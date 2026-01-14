@@ -29,9 +29,9 @@
 (load "lattice/fp/control-systems/transfer-function.ss")
 (load "lattice/fp/control-systems/stability.ss")
 
-;;; ============================================================
+;;; ====
 ;;; PID Controller Design
-;;; ============================================================
+;;; ====
 
 ;;; PID transfer function: C(s) = Kp + Ki/s + Kd*s
 ;;;                            = (Kd*s^2 + Kp*s + Ki) / s
@@ -112,9 +112,9 @@
          [Ki (/ Kp Ti)])
         (list Kp Ki 0)))
 
-;;; ============================================================
+;;; ====
 ;;; State Feedback / Pole Placement
-;;; ============================================================
+;;; ====
 
 ;;; State feedback: u = -K*x where K is the feedback gain matrix.
 ;;; Closed-loop system: x' = (A - B*K)*x
@@ -274,9 +274,9 @@
                ((= j n))
                (matrix-set! W i j (vector-ref alpha (- j i)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Observer Design
-;;; ============================================================
+;;; ====
 
 ;;; Observer (state estimator): x_hat' = A*x_hat + B*u + L*(y - C*x_hat)
 ;;;                                    = (A - L*C)*x_hat + B*u + L*y
@@ -316,9 +316,9 @@
 (define (observer-design-place sys desired-poles)
   (observer-design-ackermann sys desired-poles))
 
-;;; ============================================================
+;;; ====
 ;;; LQR - Linear Quadratic Regulator
-;;; ============================================================
+;;; ====
 
 ;;; LQR minimizes: J = integral(x'Qx + u'Ru) dt
 ;;; Solution: u = -K*x where K = R^{-1}*B'*P
@@ -388,9 +388,9 @@
                                   [P-new (matrix-add P dP)])
                                  (loop P-new (+ iter 1)))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Direct Lyapunov Equation Solver
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Solves A'X + XA = -Q using vectorization:
 ;;; (I ⊗ A' + A' ⊗ I) vec(X) = -vec(Q)
@@ -577,9 +577,9 @@
                                              (inner (+ j 1)
                                                     (+ row-sum (expt (matrix-ref M i j) 2))))))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Discrete LQR
-;;; ============================================================
+;;; ====
 
 ;;; Discrete LQR minimizes: J = sum(x'Qx + u'Ru)
 ;;; Solution: u[k] = -K*x[k] where K = (R + B'PB)^{-1}*B'PA
@@ -630,9 +630,9 @@
                            P-new
                            (loop P-new (+ iter 1))))))))
 
-;;; ============================================================
+;;; ====
 ;;; LQG - Linear Quadratic Gaussian
-;;; ============================================================
+;;; ====
 
 ;;; LQG combines LQR state feedback with matrix Kalman filter state estimation.
 ;;; This is the full MATRIX Kalman filter for state-space control systems.
@@ -673,9 +673,9 @@
                                   [L (matrix-mul P-filter (matrix-mul Ct Rn-inv))])
                                  (list K L))))))))
 
-;;; ============================================================
+;;; ====
 ;;; H-infinity Control Basics
-;;; ============================================================
+;;; ====
 
 ;;; H-infinity control minimizes the H-infinity norm of a closed-loop
 ;;; transfer function, providing robust performance guarantees.
@@ -706,9 +706,9 @@
 (define (hinf-bounded? tf gamma)
   (< (hinf-norm tf) gamma))
 
-;;; ============================================================
+;;; ====
 ;;; Compensator Synthesis
-;;; ============================================================
+;;; ====
 
 ;;; closed-loop-tf : TF × TF → TF
 ;;; Compute closed-loop transfer function for unity negative feedback.
@@ -737,9 +737,9 @@
 (define (complementary-sensitivity-tf plant controller)
   (closed-loop-tf plant controller))
 
-;;; ============================================================
+;;; ====
 ;;; Lead/Lag Compensator Design
-;;; ============================================================
+;;; ====
 
 ;;; lead-compensator : Number × Number × Number → TF
 ;;; Create a lead compensator: C(s) = Kc * (s + z)/(s + p) where z < p.
@@ -767,9 +767,9 @@
   (tf-series (lead-compensator 1 z-lead p-lead)
              (lag-compensator Kc z-lag p-lag)))
 
-;;; ============================================================
+;;; ====
 ;;; Utility
-;;; ============================================================
+;;; ====
 
 ;;; controller-info : String
 (define (controller-info)

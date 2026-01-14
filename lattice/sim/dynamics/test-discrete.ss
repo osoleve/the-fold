@@ -6,13 +6,13 @@
 (load "lattice/sim/dynamics/discrete.ss")
 
 (display "\n")
-(display "==============================================================\n")
+(display "====\n")
 (display "         DISCRETE DYNAMICAL SYSTEMS TESTS\n")
-(display "==============================================================\n")
+(display "====\n")
 
-;;; ============================================================
+;;; ====
 ;;; Construction Tests
-;;; ============================================================
+;;; ====
 
 (test-group construction
             (define-test make-deterministic-dds
@@ -61,9 +61,9 @@
                    (assert-true (dds? sys))
                    (assert-equal 0 (dds-dimension sys)))))
 
-;;; ============================================================
+;;; ====
 ;;; Orbit Computation Tests
-;;; ============================================================
+;;; ====
 
 (test-group orbit-computation
             (define-test orbit-length
@@ -117,9 +117,9 @@
                     (assert-equal 10 (car result))
                     (assert-equal 10 (cdr result)))))
 
-;;; ============================================================
+;;; ====
 ;;; Fixed Point Tests
-;;; ============================================================
+;;; ====
 
 (test-group fixed-points
             (define-test fixed-point-check-true
@@ -170,9 +170,9 @@
               (let ([sys (henon-map 1.4 0.3)])
                    (assert-false (fixed-point? sys (vector 0.0 0.0) 1e-10)))))
 
-;;; ============================================================
+;;; ====
 ;;; Periodic Orbit Tests
-;;; ============================================================
+;;; ====
 
 (test-group periodic-orbits
             (define-test period-fixed-point
@@ -209,9 +209,9 @@
                     (assert-equal 1 (cadr orb))       ;; 0 -> 1
                     (assert-equal 0 (caddr orb)))))   ;; 1 -> 0
 
-;;; ============================================================
+;;; ====
 ;;; Cobweb Diagram Tests
-;;; ============================================================
+;;; ====
 
 (test-group cobweb
             (define-test cobweb-points-length
@@ -241,9 +241,9 @@
                     (assert-equal 2 (length segs))
                     (assert-equal 2 (length (car segs))))))
 
-;;; ============================================================
+;;; ====
 ;;; Bifurcation Diagram Tests
-;;; ============================================================
+;;; ====
 
 (test-group bifurcation
             (define-test bifurcation-data-length
@@ -266,9 +266,9 @@
                     (assert-true (<= 2.0 (fold-left min +inf.0 params)))
                     (assert-true (>= 4.0 (fold-left max -inf.0 params))))))
 
-;;; ============================================================
+;;; ====
 ;;; Lyapunov Exponent Tests
-;;; ============================================================
+;;; ====
 
 (test-group lyapunov
             (define-test lyapunov-positive-chaos
@@ -290,9 +290,9 @@
                      [le (lyapunov-exponent-1d sys 0.3 100 1000)])
                     (assert-true (< (abs (- le (log 2))) 0.1)))))
 
-;;; ============================================================
+;;; ====
 ;;; Attractor Analysis Tests
-;;; ============================================================
+;;; ====
 
 (test-group attractor
             (define-test attractor-bounds-logistic
@@ -311,9 +311,9 @@
                     (assert-true (< (caar bounds) (cdar bounds)))
                     (assert-true (< (car (cadr bounds)) (cdr (cadr bounds)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Time Series Analysis Tests
-;;; ============================================================
+;;; ====
 
 (test-group time-series
             (define-test time-average-fixed-point
@@ -339,9 +339,9 @@
                      [acf (autocorrelation sys 0.5 100 500 5 identity)])
                     (assert-true (< (abs (- (car acf) 1.0)) 0.01)))))
 
-;;; ============================================================
+;;; ====
 ;;; Recurrence Analysis Tests
-;;; ============================================================
+;;; ====
 
 (test-group recurrence
             (define-test recurrence-matrix-size
@@ -371,9 +371,9 @@
                     (assert-true (>= rr 0))
                     (assert-true (<= rr 1)))))
 
-;;; ============================================================
+;;; ====
 ;;; System Composition Tests
-;;; ============================================================
+;;; ====
 
 (test-group composition
             (define-test compose-dds-simple
@@ -405,9 +405,9 @@
                          (assert-true (vector? result))
                          (assert-equal 2 (vector-length result))))))
 
-;;; ============================================================
+;;; ====
 ;;; Stochastic System Tests
-;;; ============================================================
+;;; ====
 
 (test-group stochastic
             (define-test stochastic-orbit-length
@@ -433,9 +433,9 @@
                     ;; After a few iterations, orbits should diverge
                     (assert-false (equal? orb1 orb2)))))
 
-;;; ============================================================
+;;; ====
 ;;; Display Tests
-;;; ============================================================
+;;; ====
 
 (test-group display-tests
             (define-test dds->string-test
@@ -444,9 +444,9 @@
                     (assert-true (string? str))
                     (assert-true (> (string-length str) 0)))))
 
-;;; ============================================================
+;;; ====
 ;;; Edge Cases
-;;; ============================================================
+;;; ====
 
 (test-group edge-cases
             (define-test orbit-zero-iterations
@@ -480,12 +480,12 @@
                                                       (<= (vector-ref v 1) 1)))
                                          orb)))))
 
-;;; ============================================================
+;;; ====
 ;;; Summary
-;;; ============================================================
+;;; ====
 
 (display "\n")
-(display "==============================================================\n")
+(display "====\n")
 (printf "Tests passed: ~a\n" *tests-passed*)
 (printf "Tests failed: ~a\n" *tests-failed*)
 (printf "Total tests:  ~a\n" *tests-run*)

@@ -9,16 +9,16 @@
 ;;;
 ;;; Run with: scheme --script demo-layers.ss
 
-;;; ============================================================
+;;; ====
 ;;; Load Dependencies
-;;; ============================================================
+;;; ====
 
 (load "shell/layout.ss")
 (load "shell/ui/layers.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Demo 1: Basic Layering Concept
-;;; ============================================================
+;;; ====
 
 (define (demo-basic-layering)
   (display "\n")
@@ -70,9 +70,9 @@
         (display (canvas->string final-canvas))
         (display "\n")))
 
-;;; ============================================================
+;;; ====
 ;;; Demo 2: DUCKIE with Layers
-;;; ============================================================
+;;; ====
 
 (define duckie-sprite-happy
   '("   \\  /   "
@@ -206,9 +206,9 @@
   (display "\nScene 2: Proto is CURIOUS about something\n\n")
   (demo-duckie-layered "Proto" 'curious duckie-sprite-curious))
 
-;;; ============================================================
+;;; ====
 ;;; Demo 3: Layer Visibility and Reordering
-;;; ============================================================
+;;; ====
 
 (define (demo-layer-operations)
   (display "\n")
@@ -270,9 +270,9 @@
              (display (canvas->string (flatten-layers stack3 width height)))
              (display "\n\n"))))
 
-;;; ============================================================
+;;; ====
 ;;; Demo 4: Animated Layering
-;;; ============================================================
+;;; ====
 
 (define (demo-animation)
   (display "\n")
@@ -333,9 +333,9 @@
                    (display "\n")
                    (loop (cdr positions) (+ frame 1))))))
 
-;;; ============================================================
+;;; ====
 ;;; Main Entry Point
-;;; ============================================================
+;;; ====
 
 (define (main)
   (display "\n")

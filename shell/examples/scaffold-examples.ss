@@ -8,9 +8,9 @@
 ;;;   (load "shell/tools/scaffold.ss")
 ;;;   ;; Then try examples below
 
-;;; ============================================================
+;;; ====
 ;;; Example 1: Create a Simple Shell Module
-;;; ============================================================
+;;; ====
 
 ;;; Generate a utility module for string manipulation
 (define (example-1-shell-module)
@@ -27,9 +27,9 @@
 ;;;   2. Edit shell/test-string-helpers.ss to add tests
 ;;;   3. Run: scheme --script shell/test-string-helpers.ss
 
-;;; ============================================================
+;;; ====
 ;;; Example 2: Create a Pure Core Module
-;;; ============================================================
+;;; ====
 
 ;;; Generate a core module for mathematical operations
 (define (example-2-core-module)
@@ -47,9 +47,9 @@
 ;;;   - Use fuel parameter for recursion
 ;;;   - No defensive code (Shell validates)
 
-;;; ============================================================
+;;; ====
 ;;; Example 3: Create a Toolkit Analysis Tool
-;;; ============================================================
+;;; ====
 
 ;;; Generate a tool to analyze code complexity
 (define (example-3-analysis-tool)
@@ -67,9 +67,9 @@
 ;;;      (complexity-analyzer analysis "Analyze complexity" "complexity-analyzer.ss")
 ;;;   3. Test with: scheme --script shell/test-complexity-analyzer.ss
 
-;;; ============================================================
+;;; ====
 ;;; Example 4: Create a Toolkit Introspection Tool
-;;; ============================================================
+;;; ====
 
 ;;; Generate a tool to inspect block relationships
 (define (example-4-introspection-tool)
@@ -83,9 +83,9 @@
 ;;;   - debugging:     Debugging and troubleshooting
 ;;;   - analysis:      Performance and quality analysis
 
-;;; ============================================================
+;;; ====
 ;;; Example 5: Create a Playground Game
-;;; ============================================================
+;;; ====
 
 ;;; Generate a new game for the playpen
 (define (example-5-playground-game)
@@ -106,9 +106,9 @@
 ;;;   2. Load in REPL: (load "user/templates/word-transform.ss")
 ;;;   3. Test gameplay
 
-;;; ============================================================
+;;; ====
 ;;; Example 6: Create a Test Suite
-;;; ============================================================
+;;; ====
 
 ;;; Generate tests for an existing module
 (define (example-6-test-suite)
@@ -122,9 +122,9 @@
 ;;;   - target-file:    File being tested
 ;;;   - target-file-dir: Directory for test file
 
-;;; ============================================================
+;;; ====
 ;;; Example 7: Create a Forum Post Draft
-;;; ============================================================
+;;; ====
 
 ;;; Generate a structured forum post
 (define (example-7-forum-post)
@@ -142,9 +142,9 @@
 ;;;      (let ([body (read-text-file (fs) "forum/drafts/architecture-proposal.ss")])
 ;;;        (msg 'design "Proposed Architecture for Feature X" body))
 
-;;; ============================================================
+;;; ====
 ;;; Example 8: Interactive Scaffolding
-;;; ============================================================
+;;; ====
 
 ;;; Use the interactive wizard for guided creation
 (define (example-8-interactive)
@@ -157,9 +157,9 @@
 ;;;   4. Prompt for each variable
 ;;;   5. Generate files
 
-;;; ============================================================
+;;; ====
 ;;; Example 9: Custom Template
-;;; ============================================================
+;;; ====
 
 ;;; Define a custom template for documentation files
 (define (example-9-custom-template)
@@ -193,9 +193,9 @@ TODO: Add examples
             '((topic . "Scaffolding System")
               (audience . "Claude Code users"))))
 
-;;; ============================================================
+;;; ====
 ;;; Example 10: Batch Scaffolding
-;;; ============================================================
+;;; ====
 
 ;;; Generate multiple related modules at once
 (define (example-10-batch-scaffolding)
@@ -214,9 +214,9 @@ TODO: Add examples
 ;;;   shell/xml-utils.ss + test-xml-utils.ss
 ;;;   shell/csv-utils.ss + test-csv-utils.ss
 
-;;; ============================================================
+;;; ====
 ;;; Example 11: Convention-Based Naming
-;;; ============================================================
+;;; ====
 
 ;;; Using consistent naming conventions
 (define (example-11-conventions)
@@ -238,14 +238,14 @@ TODO: Add examples
 ;;;   - Tools:          Action-oriented (dependency-visualizer)
 ;;;   - Playgrounds:    Creative, playful (lambda-kombat)
 
-;;; ============================================================
+;;; ====
 ;;; Example 12: Integration Checklist
-;;; ============================================================
+;;; ====
 
 ;;; After scaffolding, complete these steps:
 (define (post-scaffold-checklist module-type)
   (display "\nPost-Scaffolding Checklist:\n")
-  (display "===========================\n\n")
+  (display "====\n\n")
   
   (case module-type
         [(shell-module)
@@ -288,14 +288,14 @@ TODO: Add examples
          (display "4. [ ] Document\n")
          (display "5. [ ] Commit\n")]))
 
-;;; ============================================================
+;;; ====
 ;;; Help Functions
-;;; ============================================================
+;;; ====
 
 ;;; Show all examples
 (define (show-all-examples)
   (display "\nScaffolding Examples:\n")
-  (display "====================\n\n")
+  (display "====\n\n")
   (display "1. (example-1-shell-module)        - Shell utility module\n")
   (display "2. (example-2-core-module)         - Pure core module\n")
   (display "3. (example-3-analysis-tool)       - Analysis toolkit tool\n")

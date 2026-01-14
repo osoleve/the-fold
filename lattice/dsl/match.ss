@@ -28,9 +28,9 @@
 (load "lattice/fp/meta/combinators.ss")
 (load "core/types/pattern-check.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Pattern AST (Extended)
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Additional pattern forms for DSL use:
 ;;;   (as name pattern)          - as-pattern, binds whole match
@@ -62,9 +62,9 @@
 (define (active-pattern-name p) (car (pattern-data p)))
 (define (active-pattern-args p) (cdr (pattern-data p)))
 
-;;; ============================================================
+;;; ====
 ;;; Decision Tree Representation
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Decision trees represent compiled pattern matches.
 ;;;
@@ -105,9 +105,9 @@
 (define (dt-guard-success dt) (caddr dt))
 (define (dt-guard-failure dt) (cadddr dt))
 
-;;; ============================================================
+;;; ====
 ;;; Branch Representation
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Branch ::= (branch tag arity subtree)
 
@@ -124,9 +124,9 @@
 (define (branch-arity b) (caddr b))
 (define (branch-subtree b) (cadddr b))
 
-;;; ============================================================
+;;; ====
 ;;; Match Clause Representation
-;;; ============================================================
+;;; ====
 ;;;
 ;;; MatchClause ::= (clause pattern guard body)
 
@@ -143,9 +143,9 @@
 (define (clause-guard cl) (caddr cl))
 (define (clause-body cl) (cadddr cl))
 
-;;; ============================================================
+;;; ====
 ;;; Pattern Parsing (Extended)
-;;; ============================================================
+;;; ====
 
 ;;; parse-pattern-extended : SExpr → Pattern
 ;;; Parse pattern with extended forms.
@@ -194,9 +194,9 @@
    [else
     (error 'parse-clause "invalid clause" sexpr)]))
 
-;;; ============================================================
+;;; ====
 ;;; Pattern Binding Collection
-;;; ============================================================
+;;; ====
 
 ;;; collect-bindings : Pattern × Expr → Bindings
 ;;; Collect variable bindings from a pattern.
@@ -271,9 +271,9 @@
    ;; All others: no direct binding
    [else '()]))
 
-;;; ============================================================
+;;; ====
 ;;; Decision Tree Compilation
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Compile clauses to a decision tree using column selection heuristics.
 
@@ -390,9 +390,9 @@
          [new-rows (remove-col-from-rows wildcard-rows col-idx access-expr)])
         (compile-clauses new-access-exprs new-rows)))
 
-;;; ============================================================
+;;; ====
 ;;; Row Manipulation Helpers
-;;; ============================================================
+;;; ====
 
 ;;; filter-rows-for-tag : (List Row) × Nat × Symbol → (List Row)
 ;;; Keep rows where pattern at col-idx matches the given constructor tag.
@@ -459,9 +459,9 @@
                  (list (remove-at patterns col-idx) guard body all-bindings)))
    rows))
 
-;;; ============================================================
+;;; ====
 ;;; List Manipulation Helpers
-;;; ============================================================
+;;; ====
 
 ;;; list-ref : (List α) × Nat → α
 ;;; (Built-in, but ensure it exists)
@@ -479,9 +479,9 @@
       (append new-elems (cdr lst))
       (cons (car lst) (splice-at (cdr lst) (- idx 1) new-elems))))
 
-;;; ============================================================
+;;; ====
 ;;; Constructor Info Helpers
-;;; ============================================================
+;;; ====
 
 ;;; get-ctor-arity : Symbol → Nat
 ;;; Look up constructor arity from registry.
@@ -504,9 +504,9 @@
            (reverse result)
            (loop (+ i 1) (cons `(field ,base ,i) result)))))
 
-;;; ============================================================
+;;; ====
 ;;; Decision Tree to Code
-;;; ============================================================
+;;; ====
 
 ;;; dt-to-code : DecisionTree × Bindings → Expr
 ;;; Convert decision tree to executable code.
@@ -543,9 +543,9 @@
    [else
     (error 'dt-to-code "unknown decision tree form" dt)]))
 
-;;; ============================================================
+;;; ====
 ;;; Match Expression Compilation
-;;; ============================================================
+;;; ====
 
 ;;; compile-match-expr : SExpr → Expr
 ;;; Compile a match expression from S-expression syntax.
@@ -558,9 +558,9 @@
             (dt-to-code dt '()))
       (error 'compile-match-expr "expected match expression" sexpr)))
 
-;;; ============================================================
+;;; ====
 ;;; First-Class Patterns
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Patterns as values for reuse and composition.
 
@@ -593,9 +593,9 @@
   (let ([entry (assq name *pattern-registry*)])
        (if entry (just (cdr entry)) nothing)))
 
-;;; ============================================================
+;;; ====
 ;;; Pattern Combinators
-;;; ============================================================
+;;; ====
 
 ;;; pat-and : Pattern × Pattern → Pattern
 ;;; Match if both patterns match.
@@ -613,9 +613,9 @@
 (define (pat-repeat p min-count max-count)
   (make-active-pattern 'repeat (list p min-count max-count)))
 
-;;; ============================================================
+;;; ====
 ;;; Active Pattern Support
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Active patterns allow custom matching logic.
 
@@ -637,9 +637,9 @@
   (let ([entry (assq name *active-patterns*)])
        (if entry (just (cdr entry)) nothing)))
 
-;;; ============================================================
+;;; ====
 ;;; Built-in Active Patterns
-;;; ============================================================
+;;; ====
 
 ;;; Register some useful active patterns
 (register-active-pattern! 'even
@@ -657,9 +657,9 @@
 (register-active-pattern! 'empty
                           (lambda (x) (or (null? x) (and (string? x) (= (string-length x) 0)))))
 
-;;; ============================================================
+;;; ====
 ;;; Match Statistics
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Analyze decision trees for optimization.
 
@@ -694,9 +694,9 @@
               (dt-depth (dt-guard-failure dt))))]
    [else 0]))
 
-;;; ============================================================
+;;; ====
 ;;; Exports
-;;; ============================================================
+;;; ====
 
 ;;; Main entry points:
 ;;;   - compile-match, compile-match-expr

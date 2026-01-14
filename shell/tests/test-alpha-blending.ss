@@ -7,9 +7,9 @@
 
 (display "Testing alpha blending and z-index...\n\n")
 
-;;; ============================================================
+;;; ====
 ;;; Test 1: blend-chars Function
-;;; ============================================================
+;;; ====
 
 (display "1. Testing blend-chars:\n")
 
@@ -31,9 +31,9 @@
           (display "  ✓ blend-chars works correctly\n\n")
           (display "  ✗ FAILED: blend-chars broken\n\n")))
 
-;;; ============================================================
+;;; ====
 ;;; Test 2: composite-with-alpha
-;;; ============================================================
+;;; ====
 
 (display "2. Testing composite-with-alpha:\n")
 
@@ -52,9 +52,9 @@
       (newline)
       (display "  ✓ composite-with-alpha works\n\n"))
 
-;;; ============================================================
+;;; ====
 ;;; Test 3: Z-Index (Layer Depth)
-;;; ============================================================
+;;; ====
 
 (display "3. Testing z-index (layer depth):\n")
 
@@ -82,9 +82,9 @@
                (display "  ✓ Z-index ordering works correctly\n\n")
                (display "  ✗ FAILED: Z-index ordering broken\n\n"))))
 
-;;; ============================================================
+;;; ====
 ;;; Test 4: Layer Reordering
-;;; ============================================================
+;;; ====
 
 (display "4. Testing layer reordering:\n")
 
@@ -101,9 +101,9 @@
           (display "  ✓ Layers sorted by depth correctly\n\n")
           (display "  ✗ FAILED: Layer sorting broken\n\n")))
 
-;;; ============================================================
+;;; ====
 ;;; Test 5: Alpha Palette
-;;; ============================================================
+;;; ====
 
 (display "5. Testing alpha-palette:\n")
 
@@ -114,9 +114,9 @@
     (display "  ✓ Alpha palette has 5 levels\n\n")
     (display "  ✗ FAILED: Alpha palette wrong size\n\n"))
 
-;;; ============================================================
+;;; ====
 ;;; Test 6: flatten-layers-with-alpha
-;;; ============================================================
+;;; ====
 
 (display "6. Testing flatten-layers-with-alpha:\n")
 
@@ -135,6 +135,6 @@
       (newline)
       (display "  ✓ flatten-layers-with-alpha works\n\n"))
 
-(display "======================================\n")
+(display "====\n")
 (display "All alpha blending tests completed!\n")
-(display "======================================\n")
+(display "====\n")

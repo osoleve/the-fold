@@ -7,9 +7,9 @@
 (load "core/lang/eval.ss")
 (load "core/util/state.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Build State Environment
-;;; ============================================================
+;;; ====
 
 ;;; Extend the base prelude with state combinators
 (define (build-state-env fuel)
@@ -37,9 +37,9 @@
 (define (run-with-state expr fuel)
   (eval-expr expr state-env fuel))
 
-;;; ============================================================
+;;; ====
 ;;; Basic Tests
-;;; ============================================================
+;;; ====
 
 (display "State Return and Run
 ")
@@ -61,9 +61,9 @@
            (and (eq? (car result) 'ok)
                 (equal? (cadr result) '(hello 999)))))
 
-;;; ============================================================
+;;; ====
 ;;; Get and Put Tests
-;;; ============================================================
+;;; ====
 
 (display "
 Get and Put
@@ -86,9 +86,9 @@ Get and Put
                 ;; Returns unit () and new state 100
                 (equal? (cadr result) '(() 100)))))
 
-;;; ============================================================
+;;; ====
 ;;; Bind Tests
-;;; ============================================================
+;;; ====
 
 (display "
 State Bind (Sequencing)
@@ -118,9 +118,9 @@ State Bind (Sequencing)
                 ;; put 50, then get -> returns 50 with state 50
                 (equal? (cadr result) '(50 50)))))
 
-;;; ============================================================
+;;; ====
 ;;; Modify Tests
-;;; ============================================================
+;;; ====
 
 (display "
 State Modify
@@ -148,9 +148,9 @@ State Modify
            (and (eq? (car result) 'ok)
                 (equal? (cadr result) '(17 17)))))
 
-;;; ============================================================
+;;; ====
 ;;; Counter Tests
-;;; ============================================================
+;;; ====
 
 (display "
 Counter Combinators
@@ -188,9 +188,9 @@ Counter Combinators
            (and (eq? (car result) 'ok)
                 (equal? (cadr result) '((0 1 2) 3)))))
 
-;;; ============================================================
+;;; ====
 ;;; Eval and Exec Tests
-;;; ============================================================
+;;; ====
 
 (display "
 Eval and Exec State
@@ -212,9 +212,9 @@ Eval and Exec State
            (and (eq? (car result) 'ok)
                 (equal? (cadr result) 999))))
 
-;;; ============================================================
+;;; ====
 ;;; Map and Ap Tests
-;;; ============================================================
+;;; ====
 
 (display "
 Functor and Applicative
@@ -242,9 +242,9 @@ Functor and Applicative
            (and (eq? (car result) 'ok)
                 (equal? (cadr result) '(11 0)))))
 
-;;; ============================================================
+;;; ====
 ;;; Position/Game State Tests
-;;; ============================================================
+;;; ====
 
 (display "
 Game State (Position)
@@ -300,9 +300,9 @@ Game State (Position)
            (and (eq? (car result) 'ok)
                 (equal? (cadr result) '((10 5) (10 5))))))
 
-;;; ============================================================
+;;; ====
 ;;; Monad Laws Tests
-;;; ============================================================
+;;; ====
 
 (display "
 Monad Laws
@@ -365,9 +365,9 @@ Monad Laws
                 (eq? (car right) 'ok)
                 (equal? (cadr left) (cadr right)))))
 
-;;; ============================================================
+;;; ====
 ;;; Replicate Test
-;;; ============================================================
+;;; ====
 
 (display "
 State Replicate
@@ -383,9 +383,9 @@ State Replicate
            (and (eq? (car result) 'ok)
                 (equal? (cadr result) '((0 1 2 3) 4)))))
 
-;;; ============================================================
+;;; ====
 ;;; Summary
-;;; ============================================================
+;;; ====
 
 (newline)
 (display "✓ All state monad tests complete.

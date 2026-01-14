@@ -57,9 +57,9 @@
          
          (import (chezscheme))
          
-         ;;; ============================================================
+         ;;; ====
          ;;; Transform Matrix (2x3 Affine)
-         ;;; ============================================================
+         ;;; ====
          
          ;;; 2D Affine transformation matrix:
          ;;;   | a  b  tx |
@@ -200,9 +200,9 @@
                      (cons (inexact->exact (round xp))
                            (inexact->exact (round yp)))))))
 
-         ;;; ============================================================
+         ;;; ====
          ;;; Canvas Primitives (standalone definitions for library use)
-         ;;; ============================================================
+         ;;; ====
          
          ;;; These definitions enable the library to work standalone.
          ;;; They mirror shell/ui/layout.ss but are necessary because
@@ -242,9 +242,9 @@
          (define (point-x pt) (car pt))
          (define (point-y pt) (cdr pt))
 
-         ;;; ============================================================
+         ;;; ====
          ;;; Basic Transform Operations
-         ;;; ============================================================
+         ;;; ====
          
          ;;; canvas-translate : Canvas × Int × Int → Canvas
          ;;; Translate canvas by dx, dy.
@@ -317,9 +317,9 @@
                   [combined (matrix-multiply (matrix-multiply m3 m2) m1)])
                  (canvas-transform canvas combined w h)))
 
-         ;;; ============================================================
+         ;;; ====
          ;;; General Transform Application
-         ;;; ============================================================
+         ;;; ====
          
          ;;; canvas-transform : Canvas × Matrix × Nat × Nat → Canvas
          ;;; Apply arbitrary affine transform to canvas.
@@ -342,9 +342,9 @@
                                         (canvas-set! dest x y ch)
                                         (loop-x (+ x 1)))))))))
 
-         ;;; ============================================================
+         ;;; ====
          ;;; Clipping
-         ;;; ============================================================
+         ;;; ====
          
          ;;; canvas-clip : Canvas × Rect → Canvas
          ;;; Extract rectangular region from canvas (crop).
@@ -369,9 +369,9 @@
          (define (rect-width rect) (vector-ref rect 2))
          (define (rect-height rect) (vector-ref rect 3))
 
-         ;;; ============================================================
+         ;;; ====
          ;;; Masking
-         ;;; ============================================================
+         ;;; ====
          
          ;;; canvas-mask : Canvas × Canvas × Char → Canvas
          ;;; Apply mask to canvas. Only show canvas where mask is not mask-char.
@@ -391,9 +391,9 @@
                                              (canvas-set! canvas x y #\space))
                                        (loop-x (+ x 1)))))))))
 
-         ;;; ============================================================
+         ;;; ====
          ;;; Transform Groups
-         ;;; ============================================================
+         ;;; ====
          
          ;;; A transform group applies a sequence of transforms to a canvas.
          ;;; Useful for complex composed transforms.

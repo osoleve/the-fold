@@ -21,9 +21,9 @@
 (load "lattice/statistics/core/summary-stats.ss")
 (load "lattice/statistics/timeseries/acf-pacf.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Simple Moving Average (Smoother)
-;;; ============================================================
+;;; ====
 
 ;;; moving-average : Vec × Nat → Vec
 ;;; Simple moving average smoother.
@@ -90,9 +90,9 @@
                          (+ (* alpha (vector-ref xs i))
                             (* (- 1 alpha) (vector-ref result (- i 1))))))))
 
-;;; ============================================================
+;;; ====
 ;;; MA(q) Model Fitting
-;;; ============================================================
+;;; ====
 
 ;;; MA(q) model: X_t = mu + epsilon_t + theta_1*epsilon_{t-1} + ... + theta_q*epsilon_{t-q}
 ;;; For centered series: X_t = epsilon_t + theta_1*epsilon_{t-1} + ... + theta_q*epsilon_{t-q}
@@ -243,9 +243,9 @@
 (define (ma-sigma model) (list-ref model 4))
 (define (ma-order model) (list-ref model 5))
 
-;;; ============================================================
+;;; ====
 ;;; MA Forecasting
-;;; ============================================================
+;;; ====
 
 ;;; ma-forecast : MAResult × Vec × Nat → ForecastResult
 ;;; Multi-step ahead forecasting for MA(q).
@@ -331,9 +331,9 @@
              [den (+ 1 (* b1 t) (* b2 t t) (* b3 t t t))])
             (* sign (- t (/ num den))))))
 
-;;; ============================================================
+;;; ====
 ;;; ARMA (Combined AR and MA)
-;;; ============================================================
+;;; ====
 
 ;;; Note: Full ARMA requires iterative estimation.
 ;;; This is a simplified implementation using conditional least squares.

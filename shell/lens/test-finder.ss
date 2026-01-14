@@ -13,9 +13,9 @@
 ;;; Dependencies:
 ;;;   shell/tools/index.ss (symbol index)
 
-;;; ============================================================
+;;; ====
 ;;; Test Discovery
-;;; ============================================================
+;;; ====
 
 ;;; find-test-file : String -> String | #f
 ;;; Given a module path, find its corresponding test file.
@@ -60,9 +60,9 @@
         [(char=? (string-ref str i) ch) i]
         [else (loop (- i 1))])))
 
-;;; ============================================================
+;;; ====
 ;;; Test Content Analysis
-;;; ============================================================
+;;; ====
 
 ;;; test-file-references-symbol? : String × Symbol -> Boolean
 ;;; Check if a test file references the given symbol.
@@ -141,9 +141,9 @@
        (and (>= str-len pre-len)
             (string=? (substring str 0 pre-len) prefix))))
 
-;;; ============================================================
+;;; ====
 ;;; Symbol to Test Mapping
-;;; ============================================================
+;;; ====
 
 ;;; find-tests-for : Symbol -> (List (file line test-names))
 ;;; Find all tests that reference the given symbol.

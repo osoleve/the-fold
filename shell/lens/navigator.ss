@@ -22,18 +22,18 @@
 ;;;   shell/lens/dep-slice.ss
 ;;;   shell/lens/jump.ss
 
-;;; ============================================================
+;;; ====
 ;;; Module Loading
-;;; ============================================================
+;;; ====
 
 (load "shell/lens/call-graph.ss")
 (load "shell/lens/test-finder.ss")
 (load "shell/lens/dep-slice.ss")
 (load "shell/lens/jump.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Navigation Commands
-;;; ============================================================
+;;; ====
 
 ;;; lens-jump : Symbol -> void
 ;;; Jump to the definition of a symbol.
@@ -100,9 +100,9 @@
 
 ;;; take is provided by core/prelude.ss with signature (n lst)
 
-;;; ============================================================
+;;; ====
 ;;; Test Navigation
-;;; ============================================================
+;;; ====
 
 ;;; lens-test : Symbol -> void
 ;;; Find tests related to a symbol.
@@ -130,9 +130,9 @@
             tests))
        (display "\n")))
 
-;;; ============================================================
+;;; ====
 ;;; Dependency Slicing Commands
-;;; ============================================================
+;;; ====
 
 ;;; lens-slice-up : Symbol [Nat] -> void
 ;;; Show transitive dependents (what depends on this?).
@@ -188,9 +188,9 @@
              layers))
         (display "\n")))
 
-;;; ============================================================
+;;; ====
 ;;; Path Finding
-;;; ============================================================
+;;; ====
 
 ;;; lens-path : Symbol × Symbol [Nat] -> void
 ;;; Find call paths between two symbols.
@@ -221,9 +221,9 @@
                                (- (length paths) 5)))))
         (display "\n")))
 
-;;; ============================================================
+;;; ====
 ;;; Statistics and Maintenance
-;;; ============================================================
+;;; ====
 
 ;;; lens-stats : -> void
 ;;; Show overall lens navigation statistics.
@@ -269,9 +269,9 @@
   
   (display "\n  Lens navigation ready!\n\n"))
 
-;;; ============================================================
+;;; ====
 ;;; Quick Reference
-;;; ============================================================
+;;; ====
 
 ;;; lens-help : -> void
 ;;; Show lens navigation quick reference.
@@ -298,9 +298,9 @@
   (display "    (lens-help)                  Show this help\n")
   (display "\n"))
 
-;;; ============================================================
+;;; ====
 ;;; Structured Output (for programmatic use)
-;;; ============================================================
+;;; ====
 
 ;;; lens-query : Symbol × Symbol -> S-expr
 ;;; Generic query interface returning structured data.
@@ -323,9 +323,9 @@
         [else
          `(error unknown-query ,query-type)]))
 
-;;; ============================================================
+;;; ====
 ;;; Auto-initialization
-;;; ============================================================
+;;; ====
 
 (display "\n")
 (display "  Lens Navigation System Loaded\n")

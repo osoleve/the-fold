@@ -9,9 +9,9 @@
 ;;; Created by: Haiku (Player tier)
 ;;; Date: 2025-12-27
 
-;;; ============================================================
+;;; ====
 ;;; The Oracle Database
-;;; ============================================================
+;;; ====
 
 ;;; Positive responses (the oracle is in a good mood)
 (define *positive-responses* '(
@@ -55,9 +55,9 @@
                                 "The oracle takes a coffee break: TRY AGAIN"
                                 ))
 
-;;; ============================================================
+;;; ====
 ;;; ASCII Art Oracle
-;;; ============================================================
+;;; ====
 
 ;;; display-oracle : String → void
 ;;;
@@ -99,9 +99,9 @@
                   s
                   (make-string right-padding #\space))))))
 
-;;; ============================================================
+;;; ====
 ;;; Oracle Logic
-;;; ============================================================
+;;; ====
 
 ;;; random-element : (List α) → α
 ;;;
@@ -119,9 +119,9 @@
         [(< roll 90) (random-element *negative-responses*)]
         [else (random-element *uncertain-responses*)])))
 
-;;; ============================================================
+;;; ====
 ;;; Interactive Shell
-;;; ============================================================
+;;; ====
 
 ;;; oracle-shell : → void
 ;;;
@@ -173,9 +173,9 @@
               (display "   Use (ask), (help), or (quit).\n\n")
               (main-loop)]))))
 
-;;; ============================================================
+;;; ====
 ;;; Quick Access Functions
-;;; ============================================================
+;;; ====
 
 ;;; get-answer : → void
 ;;;
@@ -183,9 +183,9 @@
 (define (get-answer)
   (display-oracle (predict-answer)))
 
-;;; ============================================================
+;;; ====
 ;;; Test/Demo
-;;; ============================================================
+;;; ====
 
 ;;; When this file is loaded, uncomment one of these to play:
 ;;;

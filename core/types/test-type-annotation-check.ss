@@ -15,14 +15,14 @@
 (load "core/types/sig-parser.ss")
 
 (display "
-================================================================================
+====
                     TYPE ANNOTATION CHECK TESTS
-================================================================================
+====
 ")
 
-;;; ============================================================
+;;; ====
 ;;; Type Name Mapping (from type-annotation-check.ss)
-;;; ============================================================
+;;; ====
 
 ;;; Greek letters used as type variables
 (define greek-type-var-names
@@ -133,9 +133,9 @@
             `(error ,kind-result)
             `(ok ,kind-result))))
 
-;;; ============================================================
+;;; ====
 ;;; Type Variable Recognition Tests
-;;; ============================================================
+;;; ====
 
 (test-group type-variable-recognition
             
@@ -163,9 +163,9 @@
             (define-test list-not-type-var
               (assert-false (is-type-var? 'List))))
 
-;;; ============================================================
+;;; ====
 ;;; Type Name Normalization Tests
-;;; ============================================================
+;;; ====
 
 (test-group type-name-normalization
             
@@ -196,9 +196,9 @@
             (define-test unknown-stays-unknown
               (assert-equal 'FooBar (normalize-type-name 'FooBar))))
 
-;;; ============================================================
+;;; ====
 ;;; Type Conversion Tests
-;;; ============================================================
+;;; ====
 
 (test-group type-conversion
             
@@ -231,9 +231,9 @@
               (assert-equal '(@ List (@ List Int))
                             (sig-type->kind-type '(List (List Int))))))
 
-;;; ============================================================
+;;; ====
 ;;; Type Variable Collection Tests
-;;; ============================================================
+;;; ====
 
 (test-group type-var-collection
             
@@ -255,9 +255,9 @@
             (define-test collect-in-list-type
               (assert-true (if (member 'alpha (collect-type-vars '(@ List alpha))) #t #f))))
 
-;;; ============================================================
+;;; ====
 ;;; Kind Checking of Parsed Types
-;;; ============================================================
+;;; ====
 
 (test-group kind-checking-parsed-types
             
@@ -306,9 +306,9 @@
                    (assert-equal 'ok (car result))
                    (assert-equal '* (cadr result)))))
 
-;;; ============================================================
+;;; ====
 ;;; Polymorphic Type Annotations
-;;; ============================================================
+;;; ====
 
 (test-group polymorphic-annotations
             
@@ -332,9 +332,9 @@
                    (assert-equal 'ok (car result))
                    (assert-equal '* (cadr result)))))
 
-;;; ============================================================
+;;; ====
 ;;; Complex Annotation Patterns
-;;; ============================================================
+;;; ====
 
 (test-group complex-annotations
             
@@ -358,9 +358,9 @@
                    (assert-equal 'ok (car result))
                    (assert-equal '* (cadr result)))))
 
-;;; ============================================================
+;;; ====
 ;;; Signature Parsing Integration
-;;; ============================================================
+;;; ====
 
 (test-group signature-parsing-integration
             
@@ -386,9 +386,9 @@
                          (assert-equal '* (cadr type-result)))
                         #t))))
 
-;;; ============================================================
+;;; ====
 ;;; Error Cases
-;;; ============================================================
+;;; ====
 
 (test-group annotation-errors
             
@@ -403,9 +403,9 @@
                    (assert-true (or (eq? (car result) 'ok)
                                     (eq? (car result) 'error))))))
 
-;;; ============================================================
+;;; ====
 ;;; Kind Environment Creation
-;;; ============================================================
+;;; ====
 
 (test-group kind-env-creation
             
@@ -428,15 +428,15 @@
               (let ([env (make-type-var-env '(a a b))])
                    (assert-equal 2 (length env)))))
 
-;;; ============================================================
+;;; ====
 ;;; Summary
-;;; ============================================================
+;;; ====
 
 (newline)
-(display "================================================================================")
+(display "====")
 (newline)
 (display "                TYPE ANNOTATION CHECK TESTS COMPLETE")
 (newline)
-(display "================================================================================")
+(display "====")
 (newline)
 (exit-with-summary)

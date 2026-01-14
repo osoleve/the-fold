@@ -17,9 +17,9 @@
 (load "lattice/fp/control-systems/kalman.ss")
 (load "core/lang/eval.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Allocator State
-;;; ============================================================
+;;; ====
 
 ;;; An allocator maintains:
 ;;;   - estimator: log-space Kalman filter for cost estimation
@@ -116,9 +116,9 @@
         (+ (allocator-total-consumed a) amount)
         (allocator-max-history a)))
 
-;;; ============================================================
+;;; ====
 ;;; Fuel Allocation
-;;; ============================================================
+;;; ====
 
 ;;; allocator-request-fuel : Allocator → Nat
 ;;; Request fuel allocation for ONE element.
@@ -146,9 +146,9 @@
 (define (allocator-mark-allocated alloc amount)
   (allocator-add-allocated alloc amount))
 
-;;; ============================================================
+;;; ====
 ;;; Diagnostics
-;;; ============================================================
+;;; ====
 
 ;;; allocator-efficiency : Allocator → Num
 ;;; Ratio of consumed to allocated fuel (1.0 = perfect, <1 = over-allocated).
@@ -179,9 +179,9 @@
   (take (allocator-observations alloc)
         (min n (allocator-history-len alloc))))
 
-;;; ============================================================
+;;; ====
 ;;; Convenience: Default Allocator
-;;; ============================================================
+;;; ====
 
 ;;; default-adaptive-allocator : → Allocator
 ;;; Create an allocator with reasonable defaults.
@@ -192,9 +192,9 @@
 (define (default-adaptive-allocator)
   (make-adaptive-allocator 100 0.1 0.5 2.0))
 
-;;; ============================================================
+;;; ====
 ;;; Integration with Core Eval
-;;; ============================================================
+;;; ====
 
 ;;; result-status : Result → Symbol
 ;;; Extract status from eval result: 'ok, 'suspended, or 'error

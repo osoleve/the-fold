@@ -35,9 +35,9 @@
 (load "lattice/fp/rewrite/engine.ss")
 (load "lattice/fp/rewrite/laws.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Proof Goal Structure
-;;; ============================================================
+;;; ====
 ;;;
 ;;; A proof goal represents an equality to be proved.
 ;;; Structure: (goal lhs rhs context)
@@ -75,9 +75,9 @@
   (and (proof-goal? g)
        (equal? (goal-lhs g) (goal-rhs g))))
 
-;;; ============================================================
+;;; ====
 ;;; Tactic Results
-;;; ============================================================
+;;; ====
 ;;;
 ;;; A tactic returns either:
 ;;;   (tactic-success subgoals builder) - success with new subgoals
@@ -114,9 +114,9 @@
 (define (tactic-error r)
   (if (tactic-failure? r) (cadr r) #f))
 
-;;; ============================================================
+;;; ====
 ;;; Core Tactics
-;;; ============================================================
+;;; ====
 
 ;;; tactic-refl : Goal -> TacticResult
 ;;; Prove x = x using reflexivity.
@@ -199,9 +199,9 @@
                                                         `(trans (rewrite ,law-name ,bindings)
                                                           ,(if (null? proofs) '(refl) (car proofs)))))))))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Strategy-Based Tactics
-;;; ============================================================
+;;; ====
 ;;;
 ;;; These tactics wrap engine.ss strategies, applying them within
 ;;; the proof framework.
@@ -333,9 +333,9 @@
                       (b))
                rest))))
 
-;;; ============================================================
+;;; ====
 ;;; Tactic Combinators
-;;; ============================================================
+;;; ====
 
 ;;; tactic-then : Tactic x Tactic -> Tactic
 ;;; Sequential composition: apply t1, then apply t2 to all subgoals.
@@ -423,13 +423,13 @@
   (lambda (goal)
           (tactic-failure 'explicit-fail)))
 
-;;; ============================================================
+;;; ====
 ;;; Automation Tactics
-;;; ============================================================
+;;; ====
 
-;;; ============================================================
+;;; ====
 ;;; Auto-Law Configuration
-;;; ============================================================
+;;; ====
 ;;;
 ;;; The auto-law system determines which laws tactic-auto will try.
 ;;; It consists of:
@@ -546,9 +546,9 @@
                                  result
                                  (try-laws (cdr laws))))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Bounded Search
-;;; ============================================================
+;;; ====
 
 ;;; *search-max-depth* : Nat
 ;;; Default maximum depth for search.
@@ -616,9 +616,9 @@
                                      ;; Try next law
                                      (try-laws (cdr laws)))))))))]))
 
-;;; ============================================================
+;;; ====
 ;;; Strategy Lifting
-;;; ============================================================
+;;; ====
 ;;;
 ;;; These utilities lift engine.ss strategies into the tactic world.
 
@@ -659,9 +659,9 @@
 (define (simplify-tactic strategy)
   (strategy->tactic (innermost strategy)))
 
-;;; ============================================================
+;;; ====
 ;;; Convenience Tactics
-;;; ============================================================
+;;; ====
 
 ;;; tactic-simplify : Goal -> TacticResult
 ;;; Apply all simplification laws exhaustively.
@@ -688,9 +688,9 @@
 (define tactic-monad
   (simplify-tactic monad-simplify))
 
-;;; ============================================================
+;;; ====
 ;;; Helper: ormap
-;;; ============================================================
+;;; ====
 
 (define (ormap pred lst)
   (cond
@@ -704,9 +704,9 @@
    [(pred (car lst)) (cons (car lst) (filter pred (cdr lst)))]
    [else (filter pred (cdr lst))]))
 
-;;; ============================================================
+;;; ====
 ;;; Proof Execution
-;;; ============================================================
+;;; ====
 
 ;;; prove-with-tactics : Expr x Expr x (List Tactic) -> (Result Proof Error)
 ;;; Execute a sequence of tactics to prove lhs = rhs.

@@ -52,9 +52,9 @@
   (display name)
   (newline))
 
-;;; ============================================================
+;;; ====
 ;;; Distortion Measures Tests
-;;; ============================================================
+;;; ====
 (test-section "Distortion Measures")
 
 ;; Squared error
@@ -98,9 +98,9 @@
 (test-true "normalized mse < 1" (< norm-mse 1))
 (test-true "normalized mse > 0" (> norm-mse 0))
 
-;;; ============================================================
+;;; ====
 ;;; Statistical Helpers Tests
-;;; ============================================================
+;;; ====
 (test-section "Statistical Helpers")
 
 (test-approx "mean" 3.0 (mean '(1 2 3 4 5)) 0.001)
@@ -110,9 +110,9 @@
 (test-approx "variance" 2.0 (variance '(1 2 3 4 5)) 0.001)
 (test-approx "variance uniform" 0.0 (variance '(5 5 5)) 0.001)
 
-;;; ============================================================
+;;; ====
 ;;; Rate-Distortion Function Tests
-;;; ============================================================
+;;; ====
 (test-section "Rate-Distortion Functions")
 
 ;; Gaussian source
@@ -140,9 +140,9 @@
 (test-approx "binary D(R=1)" 0.0 (binary-distortion-rate 1) 0.01)
 (test-approx "binary D(R=0)" 0.5 (binary-distortion-rate 0) 0.01)
 
-;;; ============================================================
+;;; ====
 ;;; Uniform Quantization Tests
-;;; ============================================================
+;;; ====
 (test-section "Uniform Quantization")
 
 ;; 4-level quantizer on [0, 1]
@@ -165,9 +165,9 @@
 (test-approx "q bits 8 levels" 3.0 (quantization-bits 8) 0.001)
 (test-approx "q bits 1 level" 0.0 (quantization-bits 1) 0.001)
 
-;;; ============================================================
+;;; ====
 ;;; Lloyd-Max Quantization Tests
-;;; ============================================================
+;;; ====
 (test-section "Lloyd-Max Quantization")
 
 ;; Simple test data
@@ -197,9 +197,9 @@
 (test "lloyd-max empty" '() (lloyd-max-quantizer '() 4 100))
 (test "lloyd-max 0 levels" '() (lloyd-max-quantizer lm-samples 0 100))
 
-;;; ============================================================
+;;; ====
 ;;; Vector Quantization Tests
-;;; ============================================================
+;;; ====
 (test-section "Vector Quantization")
 
 (define cb '((0 0) (1 0) (0 1) (1 1)))  ; 4-vector codebook
@@ -214,9 +214,9 @@
 (test "vq quantize" '(0 0) (vq-quantize '(0.1 0.1) cb))
 (test "vq quantize 2" '(1 1) (vq-quantize '(0.9 0.9) cb))
 
-;;; ============================================================
+;;; ====
 ;;; Rate-Distortion Analysis Tests
-;;; ============================================================
+;;; ====
 (test-section "Rate-Distortion Analysis")
 
 (define orig '(1 2 3 4 5 6 7 8))
@@ -235,9 +235,9 @@
 (define gap (rd-gap 2.0 0.5 4.0))
 (test-true "rd gap computed" (number? gap))
 
-;;; ============================================================
+;;; ====
 ;;; Entropy-Coded Quantization Tests
-;;; ============================================================
+;;; ====
 (test-section "Entropy-Coded Quantization")
 
 (define quant-out '(0 0 0 1 1 2))
@@ -254,9 +254,9 @@
 (define ec-rate (entropy-coded-rate quant-out))
 (test-true "ec rate > 0" (> ec-rate 0))
 
-;;; ============================================================
+;;; ====
 ;;; Dithered Quantization Tests
-;;; ============================================================
+;;; ====
 (test-section "Dithered Quantization")
 
 (define dq (dither-quantize 0.5 1.0 4 0.0))
@@ -266,9 +266,9 @@
 (define dq2 (dither-quantize 0.5 1.0 4 0.05))
 (test-true "dithered q in range" (and (> dq2 0) (< dq2 1)))
 
-;;; ============================================================
+;;; ====
 ;;; High-Rate Approximations Tests
-;;; ============================================================
+;;; ====
 (test-section "High-Rate Approximations")
 
 ;; High-rate should match Gaussian R-D
@@ -282,17 +282,17 @@
              (high-rate-distortion 4.0 2.0)
              0.001)
 
-;;; ============================================================
+;;; ====
 ;;; Summary Tests
-;;; ============================================================
+;;; ====
 (test-section "Summary")
 
 (define summary (rd-summary orig quant 10))
 (test-true "summary is string" (string? summary))
 
-;;; ============================================================
+;;; ====
 ;;; Edge Cases
-;;; ============================================================
+;;; ====
 (test-section "Edge Cases")
 
 ;; Empty lists
@@ -311,12 +311,12 @@
 (test-approx "binary R(D<0)" 1.0 (binary-rate-distortion -0.1) 0.001)
 (test-approx "binary R(D>0.5)" 0.0 (binary-rate-distortion 0.6) 0.001)
 
-;;; ============================================================
+;;; ====
 ;;; Summary
-;;; ============================================================
+;;; ====
 
 (newline)
-(display "=======================================")
+(display "====")
 (newline)
 (display "  Tests passed: ")
 (display *tests-passed*)
@@ -324,7 +324,7 @@
 (display "  Tests failed: ")
 (display *tests-failed*)
 (newline)
-(display "=======================================")
+(display "====")
 (newline)
 
 (if (= *tests-failed* 0)

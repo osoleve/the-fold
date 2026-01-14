@@ -18,11 +18,11 @@
        (newline))))
 
 (display "Testing capabilities.ss\n")
-(display "=======================\n\n")
+(display "====\n\n")
 
-;;; ============================================================
+;;; ====
 ;;; Find References Tests
-;;; ============================================================
+;;; ====
 
 (display "Find References:\n")
 
@@ -43,9 +43,9 @@
 ;; Clean up
 (doc-close! "file:///test-refs.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Workspace Symbol Tests
-;;; ============================================================
+;;; ====
 
 (display "\nWorkspace Symbol:\n")
 
@@ -68,9 +68,9 @@
 (doc-close! "file:///ws1.ss")
 (doc-close! "file:///ws2.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Case-Insensitive Search Tests
-;;; ============================================================
+;;; ====
 
 (display "\nCase-Insensitive Search:\n")
 
@@ -78,9 +78,9 @@
 (test "string-contains-ci? no match" #f (string-contains-ci? "hello" "xyz"))
 (test "string-downcase" "hello" (string-downcase "HeLLo"))
 
-;;; ============================================================
+;;; ====
 ;;; Symbol Kind Tests
-;;; ============================================================
+;;; ====
 
 (display "\nSymbol Kind:\n")
 
@@ -88,9 +88,9 @@
 (test "symbol-kind->lsp-kind syntax" 14 (symbol-kind->lsp-kind 'syntax))
 (test "symbol-kind->lsp-kind variable" 13 (symbol-kind->lsp-kind 'variable))
 
-;;; ============================================================
+;;; ====
 ;;; Formatting Tests (if available)
-;;; ============================================================
+;;; ====
 
 (display "\nFormatting:\n")
 
@@ -114,9 +114,9 @@
     (begin
      (display "  (skipping - pretty printer not available)\n")))
 
-;;; ============================================================
+;;; ====
 ;;; Rename Tests
-;;; ============================================================
+;;; ====
 
 (display "\nRename:\n")
 
@@ -148,9 +148,9 @@
 (doc-close! "file:///rename1.ss")
 (doc-close! "file:///rename2.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Snippet Completions Tests
-;;; ============================================================
+;;; ====
 
 (display "\nSnippet Completions:\n")
 
@@ -163,9 +163,9 @@
 (let ([snippets (snippet-completions "")])
      (test "empty prefix returns all snippets" #t (>= (length snippets) 10)))
 
-;;; ============================================================
+;;; ====
 ;;; Code Action Tests
-;;; ============================================================
+;;; ====
 
 (display "\nCode Actions:\n")
 
@@ -191,9 +191,9 @@
 
 (doc-close! "file:///action-test.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Semantic Tokens Tests
-;;; ============================================================
+;;; ====
 
 (display "\nSemantic Tokens:\n")
 
@@ -226,9 +226,9 @@
       (test "semantic-tokens has data" #t (if (json-get result "data") #t #f)))
 (doc-close! "file:///semantic-test.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Incremental Document Sync Tests
-;;; ============================================================
+;;; ====
 
 (display "\nIncremental Sync:\n")
 
@@ -256,9 +256,9 @@
      (test "lines-offset 1" 4 (lines-offset lines 1))   ; "abc" + \n
      (test "lines-offset 2" 10 (lines-offset lines 2))) ; "abc\n" + "defgh\n"
 
-;;; ============================================================
+;;; ====
 ;;; Hover Tests
-;;; ============================================================
+;;; ====
 
 (display "\nHover:\n")
 
@@ -290,9 +290,9 @@
 ;; Clean up
 (doc-close! "file:///hover-test.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Completion Tests
-;;; ============================================================
+;;; ====
 
 (display "\nCompletion:\n")
 
@@ -334,9 +334,9 @@
 ;; Clean up
 (doc-close! "file:///completion-test.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Go-to-Definition Tests
-;;; ============================================================
+;;; ====
 
 (display "\nGo-to-Definition:\n")
 
@@ -358,9 +358,9 @@
 ;; Clean up
 (doc-close! "file:///goto-test.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Document Symbols Tests
-;;; ============================================================
+;;; ====
 
 (display "\nDocument Symbols:\n")
 
@@ -402,9 +402,9 @@
 ;; Clean up
 (doc-close! "file:///symbols-test.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Signature Help Tests
-;;; ============================================================
+;;; ====
 
 (display "\nSignature Help:\n")
 
@@ -433,9 +433,9 @@
 ;; Clean up
 (doc-close! "file:///sig-test.ss")
 
-;;; ============================================================
+;;; ====
 ;;; String Utility Tests
-;;; ============================================================
+;;; ====
 
 (display "\nString Utilities:\n")
 
@@ -464,9 +464,9 @@
 (test "string-trim-left no trim" "hello" (string-trim-left "hello"))
 (test "string-trim-left all spaces" "" (string-trim-left "   "))
 
-;;; ============================================================
+;;; ====
 ;;; Tokenizer Helpers Tests
-;;; ============================================================
+;;; ====
 
 (display "\nTokenizer Helpers:\n")
 
@@ -485,7 +485,7 @@
 (test "find-number-end negative" 4 (find-number-end "-123abc" 0))
 
 ;;; Summary
-(display "\n=======================\n")
+(display "\n====\n")
 (printf "Passed: ~a, Failed: ~a\n" tests-passed tests-failed)
 (when (> tests-failed 0)
       (exit 1))

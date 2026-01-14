@@ -8,9 +8,9 @@
 (load "core/base/sha256.ss")
 (load "core/lang/prim.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Timing Infrastructure
-;;; ============================================================
+;;; ====
 
 (define *iterations* 100000)
 
@@ -46,9 +46,9 @@
               (lambda () (apply prim op args))
               *iterations*)))
 
-;;; ============================================================
+;;; ====
 ;;; Benchmark Suites by Tier
-;;; ============================================================
+;;; ====
 
 (printf "~n=== Primitive Fuel Cost Benchmarks ===~n")
 (printf "Iterations per test: ~a~n~n" *iterations*)
@@ -128,9 +128,9 @@
 (printf "~n--- Tier 8 (Cost 110) - Serialization + crypto ---~n")
 (bench-prim 'hash-block test-block)
 
-;;; ============================================================
+;;; ====
 ;;; Cross-Tier Comparison
-;;; ============================================================
+;;; ====
 
 (printf "~n=== Cross-Tier Ratio Analysis ===~n")
 (printf "Comparing representative ops from each tier...~n~n")
@@ -155,7 +155,7 @@
 (define (ratio a b) (/ (* 1.0 a) b))
 
 (printf "Tier | Fuel | Time (ns/op) | Ratio vs Tier1 | Expected Ratio~n")
-(printf "-----|------|--------------|----------------|---------------~n")
+(printf "----|----|----|----|----~n")
 (printf "  1  |   1  | ~10,1f      |    1.0x        |     1x~n" (/ tier1-ns *iterations*))
 (printf "  2  |   2  | ~10,1f      | ~5,1fx        |     2x~n" (/ tier2-ns *iterations*) (ratio tier2-ns tier1-ns))
 (printf "  3  |   3  | ~10,1f      | ~5,1fx        |     3x~n" (/ tier3-ns *iterations*) (ratio tier3-ns tier1-ns))

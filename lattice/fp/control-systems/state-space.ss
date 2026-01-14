@@ -28,9 +28,9 @@
 (load "lattice/linalg/matrix-eigen.ss")  ; Required for SVD
 (load "lattice/linalg/svd.ss")            ; SVD for robust rank computation
 
-;;; ============================================================
+;;; ====
 ;;; State Space Representation
-;;; ============================================================
+;;; ====
 
 ;;; A state space system is: (ss A B C D)
 ;;; where A, B, C, D are matrices with compatible dimensions.
@@ -74,9 +74,9 @@
 (define (ss-outputs sys)
   (matrix-rows (ss-C sys)))
 
-;;; ============================================================
+;;; ====
 ;;; State Space Construction
-;;; ============================================================
+;;; ====
 
 ;;; make-ss : Matrix × Matrix × Matrix × Matrix → SS | Error
 ;;; Create a state space system, validating dimensions.
@@ -108,9 +108,9 @@
            (matrix-from-lists C-lists)
            (matrix-from-lists D-lists)))
 
-;;; ============================================================
+;;; ====
 ;;; Basic State Space Operations
-;;; ============================================================
+;;; ====
 
 ;;; ss-state-equation : SS × Vec × Vec → Vec
 ;;; Compute x' = A*x + B*u
@@ -124,13 +124,13 @@
   (vec-add (matrix-vec-mul (ss-C sys) x)
            (matrix-vec-mul (ss-D sys) u)))
 
-;;; ============================================================
+;;; ====
 ;;; State Transition Matrix
-;;; ============================================================
+;;; ====
 
-;;; ============================================================
+;;; ====
 ;;; Matrix Exponential - Scaling and Squaring with Padé
-;;; ============================================================
+;;; ====
 ;;;
 ;;; The Scaling and Squaring algorithm computes e^A as follows:
 ;;; 1. Find s such that ||A/2^s|| < 1 (scaling)
@@ -320,9 +320,9 @@
 (define (ss-transition-matrix-taylor sys t terms)
   (matrix-exp-taylor (matrix-scale t (ss-A sys)) terms))
 
-;;; ============================================================
+;;; ====
 ;;; Controllability
-;;; ============================================================
+;;; ====
 
 ;;; ss-controllability-matrix : SS → Matrix
 ;;; Compute the controllability matrix C = [B AB A²B ... A^(n-1)B]
@@ -375,9 +375,9 @@
          [rank (matrix-rank C-mat tolerance)])
         (= rank n)))
 
-;;; ============================================================
+;;; ====
 ;;; Observability
-;;; ============================================================
+;;; ====
 
 ;;; ss-observability-matrix : SS → Matrix
 ;;; Compute the observability matrix O = [C; CA; CA²; ...; CA^(n-1)]
@@ -417,9 +417,9 @@
          [rank (matrix-rank O-mat tolerance)])
         (= rank n)))
 
-;;; ============================================================
+;;; ====
 ;;; Gramians
-;;; ============================================================
+;;; ====
 
 ;;; For continuous-time systems, the controllability Gramian Wc satisfies:
 ;;;   A*Wc + Wc*A' + B*B' = 0  (Lyapunov equation)
@@ -481,9 +481,9 @@
                              (matrix-mul Ak A)
                              (matrix-mul Atk At)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Matrix Rank (for controllability/observability)
-;;; ============================================================
+;;; ====
 ;;;
 ;;; SVD-based rank is the gold standard for numerical rank determination.
 ;;; Falls back to QR if SVD fails.
@@ -526,9 +526,9 @@
 (define (matrix-rank m tolerance)
   (matrix-rank-svd m tolerance))
 
-;;; ============================================================
+;;; ====
 ;;; Modal Decomposition (Diagonalization)
-;;; ============================================================
+;;; ====
 
 ;;; For a diagonalizable system, there exists a transformation T such that:
 ;;;   Ā = T⁻¹AT is diagonal (eigenvalues on diagonal)
@@ -555,9 +555,9 @@
                 (matrix-mul C T)
                 D)))
 
-;;; ============================================================
+;;; ====
 ;;; Common State Space Forms
-;;; ============================================================
+;;; ====
 
 ;;; ss-identity-output : Matrix × Matrix → SS
 ;;; Create a system with identity C (full state output) and no feedthrough.
@@ -597,9 +597,9 @@
        (matrix-set! C 0 0 1)
        (make-ss A B C D)))
 
-;;; ============================================================
+;;; ====
 ;;; Display
-;;; ============================================================
+;;; ====
 
 ;;; ss->string : SS → String
 (define (ss->string sys)

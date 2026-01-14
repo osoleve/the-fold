@@ -30,9 +30,9 @@
 (load "core/types/dep-types.ss")
 (load "core/types/gadt.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Dependent Match Grammar
-;;; ============================================================
+;;; ====
 ;;;
 ;;; (dep-match (scrutinee : Type)
 ;;;   [pattern body]
@@ -48,9 +48,9 @@
 ;;;   - Dot patterns (. expr) for indices forced by the type
 ;;;   - Wildcards for values we don't care about
 
-;;; ============================================================
+;;; ====
 ;;; Type Any
-;;; ============================================================
+;;; ====
 
 ;;; A type refinement is a substitution learned from pattern matching.
 ;;; When we match on a constructor with specific return type indices,
@@ -93,9 +93,9 @@
                   type
                   subst)))
 
-;;; ============================================================
+;;; ====
 ;;; Pattern Analysis
-;;; ============================================================
+;;; ====
 
 (define-record-type dep-pattern
   (fields
@@ -155,9 +155,9 @@
       (cdr (dep-pattern-data p))
       '()))
 
-;;; ============================================================
+;;; ====
 ;;; Pattern Matching with Any
-;;; ============================================================
+;;; ====
 
 ;;; match-pattern-with-refinement : Any × Type × Any → (Result (Any × Any) Error)
 ;;; Match a pattern against a scrutinee type, producing:
@@ -229,9 +229,9 @@
    (append (type-refinement-constraints r1)
            (type-refinement-constraints r2))))
 
-;;; ============================================================
+;;; ====
 ;;; Any Computation
-;;; ============================================================
+;;; ====
 
 ;;; compute-refinement : Type × Type → Any
 ;;; Compute the type refinement by unifying scrutinee type with constructor return type.
@@ -332,9 +332,9 @@
    [(not (pair? type)) #f]
    [else (ormap (lambda (t) (occurs-in? var t)) (cdr type))]))
 
-;;; ============================================================
+;;; ====
 ;;; Constructor Type Accessors
-;;; ============================================================
+;;; ====
 
 ;;; get-ctor-return-type : Type → Type
 ;;; Extract the return type from a constructor type.
@@ -360,9 +360,9 @@
     (get-ctor-param-types (caddr type))]
    [else '()]))
 
-;;; ============================================================
+;;; ====
 ;;; Coverage Checking
-;;; ============================================================
+;;; ====
 
 ;;; coverage-check : (List Any) × Type × Any → (Result 'complete Error)
 ;;; Check that patterns cover all constructors of the scrutinee type.
@@ -391,9 +391,9 @@
                (cons result (filter-map f (cdr lst)))
                (filter-map f (cdr lst))))))
 
-;;; ============================================================
+;;; ====
 ;;; Impossible Case Detection
-;;; ============================================================
+;;; ====
 
 ;;; is-impossible-case? : Any × Type × Any → Boolean
 ;;; Check if a pattern is impossible to match due to type constraints.
@@ -412,9 +412,9 @@
                     (eq? equations 'mismatch))))]
    [else #f]))
 
-;;; ============================================================
+;;; ====
 ;;; Dependent Match Expression
-;;; ============================================================
+;;; ====
 
 (define-record-type dep-match-expr
   (fields
@@ -443,9 +443,9 @@
       (cons (parse-dep-pattern (car clause)) (cadr clause))
       (error 'parse-dep-match-clause "invalid clause" clause)))
 
-;;; ============================================================
+;;; ====
 ;;; Type Check Dependent Match
-;;; ============================================================
+;;; ====
 
 ;;; check-dep-match : Any × Type × Any × Any → (Result Type Error)
 ;;; Type check a dependent match expression, returning the result type.
@@ -477,9 +477,9 @@
                                           ;; (In a full implementation, recursively type-check body)
                                           (loop (cdr cls)))))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Examples: Standard Indexed Types
-;;; ============================================================
+;;; ====
 
 ;;; Vec : Nat → * → *
 ;;; (data (Vec n A)
@@ -502,9 +502,9 @@
           `((fzero . (Π ((m : Nat)) (Fin (succ m))))
             (fsucc . (Π ((m : Nat)) (Π ((i : (Fin m))) (Fin (succ m))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Pattern Matching Compilation
-;;; ============================================================
+;;; ====
 
 ;;; Compile dependent pattern matching to a case tree.
 ;;; This is where the real work happens for efficient matching.
@@ -624,9 +624,9 @@
       ;; For now, use first match (could extend to recurse on subpatterns)
       (make-leaf (cdr (car clauses)))))
 
-;;; ============================================================
+;;; ====
 ;;; With-Abstraction (Future Extension)
-;;; ============================================================
+;;; ====
 
 ;;; With-abstraction allows us to match on intermediate computations
 ;;; while maintaining type refinement.
@@ -636,9 +636,9 @@
 ;;; This is useful when we need to inspect a computed value and use
 ;;; the type information from the pattern in the body.
 
-;;; ============================================================
+;;; ====
 ;;; Pretty Printing
-;;; ============================================================
+;;; ====
 
 ;;; dep-pattern->string : Any → String
 (define (dep-pattern->string pat)

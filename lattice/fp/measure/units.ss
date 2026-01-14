@@ -27,9 +27,9 @@
 
 (load "core/base/prelude.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Dimension Type
-;;; ============================================================
+;;; ====
 
 ;;; A dimension is a 7-tuple of integer exponents:
 ;;; (length time mass current temperature amount luminosity)
@@ -78,9 +78,9 @@
 (define (dim=? d1 d2)
   (equal? d1 d2))
 
-;;; ============================================================
+;;; ====
 ;;; SI Base Dimensions
-;;; ============================================================
+;;; ====
 
 ;;; dim-one : Dimension
 ;;; Dimensionless (scalar)
@@ -114,9 +114,9 @@
 ;;; Luminous intensity — candela
 (define dim-luminosity-base (make-dim 0 0 0 0 0 0 1))
 
-;;; ============================================================
+;;; ====
 ;;; Dimension Arithmetic
-;;; ============================================================
+;;; ====
 
 ;;; dim* : Dimension × Dimension → Dimension
 ;;; Multiply dimensions (add exponents).
@@ -145,9 +145,9 @@
 (define (dim-inv d)
   (map - d))
 
-;;; ============================================================
+;;; ====
 ;;; Quantity Type
-;;; ============================================================
+;;; ====
 
 ;;; A quantity is a value with a dimension.
 ;;; Represented as (value . dimension).
@@ -168,9 +168,9 @@
        (number? (car q))
        (dim? (cdr q))))
 
-;;; ============================================================
+;;; ====
 ;;; Quantity Arithmetic
-;;; ============================================================
+;;; ====
 
 ;;; qty+ : Quantity × Quantity → Quantity | error
 ;;; Add quantities (dimensions must match).
@@ -232,9 +232,9 @@
 (define (qty-abs q)
   (make-qty (abs (qty-value q)) (qty-dim q)))
 
-;;; ============================================================
+;;; ====
 ;;; Quantity Comparison
-;;; ============================================================
+;;; ====
 
 ;;; qty=? : Quantity × Quantity → Boolean | error
 ;;; Equal quantities (dimensions must match).
@@ -267,9 +267,9 @@
       (>= (qty-value q1) (qty-value q2))
       (error 'qty>=? "dimension mismatch")))
 
-;;; ============================================================
+;;; ====
 ;;; SI Base Units
-;;; ============================================================
+;;; ====
 
 ;;; meter : Number → Quantity
 ;;; Create a length quantity in meters.
@@ -306,9 +306,9 @@
 (define (candela x)
   (make-qty x dim-luminosity-base))
 
-;;; ============================================================
+;;; ====
 ;;; Common Derived Dimensions
-;;; ============================================================
+;;; ====
 
 ;;; dim-velocity : Dimension
 ;;; Velocity: L/T
@@ -361,9 +361,9 @@
 ;;; Volume: L cubed
 (define dim-volume (dim-pow dim-length-base 3))
 
-;;; ============================================================
+;;; ====
 ;;; Common Derived Units
-;;; ============================================================
+;;; ====
 
 ;;; newton : Number → Quantity
 ;;; Force in newtons.
@@ -405,9 +405,9 @@
 (define (ohm x)
   (make-qty x dim-resistance))
 
-;;; ============================================================
+;;; ====
 ;;; SI Prefixes
-;;; ============================================================
+;;; ====
 
 ;;; SI prefix multipliers
 
@@ -550,9 +550,9 @@
 ;;; Create a resistance quantity in megaohms.
 (define (megaohm x) (ohm (* x mega)))
 
-;;; ============================================================
+;;; ====
 ;;; Dimension Display
-;;; ============================================================
+;;; ====
 
 ;;; dim->string : Dimension → String
 ;;; Display dimension in standard notation.
@@ -580,9 +580,9 @@
                  " "
                  (dim->string (qty-dim q))))
 
-;;; ============================================================
+;;; ====
 ;;; Dimensionless Quantities
-;;; ============================================================
+;;; ====
 
 ;;; scalar : Number → Quantity
 ;;; Create a dimensionless quantity.
@@ -601,9 +601,9 @@
       (qty-value q)
       (error 'qty->number "quantity has dimension")))
 
-;;; ============================================================
+;;; ====
 ;;; Unit Conversions
-;;; ============================================================
+;;; ====
 
 ;;; convert : Quantity × Quantity → Number
 ;;; Convert quantity to different unit (same dimension).

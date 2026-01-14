@@ -12,9 +12,9 @@
 (load "core/base/prelude.ss")
 (load "lattice/geometry/geometry.ss")
 
-;;; ============================================================
+;;; ====
 ;;; OBJ Parsing
-;;; ============================================================
+;;; ====
 
 ;;; parse-obj-line : String → (Symbol . Data) | #f
 ;;; Parse a single line of OBJ file
@@ -83,9 +83,9 @@
    [(pred (car lst)) (drop-while pred (cdr lst))]
    [else lst]))
 
-;;; ============================================================
+;;; ====
 ;;; OBJ Loading
-;;; ============================================================
+;;; ====
 
 ;;; load-obj-from-string : String → (List Triangle3)
 ;;; Parse OBJ content and return list of triangles
@@ -130,9 +130,9 @@
            (vector-ref vertices (+ n idx))
            (vector-ref vertices (- idx 1)))))
 
-;;; ============================================================
+;;; ====
 ;;; File Loading
-;;; ============================================================
+;;; ====
 
 ;;; load-obj-file : String → (List Triangle3)
 (define (load-obj-file filename)

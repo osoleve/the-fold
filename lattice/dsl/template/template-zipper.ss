@@ -17,9 +17,9 @@
 (load "lattice/dsl/template/template.ss")
 (load "lattice/fp/rewrite/sexp-zipper.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Template Hole Zipper Type
-;;; ============================================================
+;;; ====
 ;;;
 ;;; A hole-zipper tracks:
 ;;;   - The underlying sexp-zipper for navigation
@@ -55,9 +55,9 @@
 (define (hole-zipper-history hz)
   (list-ref hz 4))
 
-;;; ============================================================
+;;; ====
 ;;; Hole Detection
-;;; ============================================================
+;;; ====
 
 ;;; find-hole-positions : Sexp -> (List Position)
 ;;; Find all positions containing holes, in preorder (document order).
@@ -83,9 +83,9 @@
               (loop (cdr lst) (cons result acc))
               (loop (cdr lst) acc))))))
 
-;;; ============================================================
+;;; ====
 ;;; Constructors
-;;; ============================================================
+;;; ====
 
 ;;; template->hole-zipper : Template -> HoleZipper | #f
 ;;; Create a hole-zipper from a template.
@@ -113,9 +113,9 @@
 (define (hole-zipper->expr hz)
   (zipper->sexp (sexp-zipper-root (hole-zipper-sexp-z hz))))
 
-;;; ============================================================
+;;; ====
 ;;; Focus Operations
-;;; ============================================================
+;;; ====
 
 ;;; hole-zipper-current : HoleZipper -> Symbol | #f
 ;;; Get the current hole symbol, or #f if no holes.
@@ -140,9 +140,9 @@
         #f
         (list-ref positions idx))))
 
-;;; ============================================================
+;;; ====
 ;;; Position Information
-;;; ============================================================
+;;; ====
 
 ;;; hole-zipper-count : HoleZipper -> Nat
 ;;; Total number of holes.
@@ -176,9 +176,9 @@
 (define (hole-zipper-at-first? hz)
   (= (hole-zipper-index hz) 0))
 
-;;; ============================================================
+;;; ====
 ;;; Navigation
-;;; ============================================================
+;;; ====
 
 ;;; hole-zipper-next : HoleZipper -> HoleZipper | #f
 ;;; Move to the next hole. Returns #f if at last hole.
@@ -235,9 +235,9 @@
      (max 0 (- count 1))
      (hole-zipper-history hz))))
 
-;;; ============================================================
+;;; ====
 ;;; Filling Holes
-;;; ============================================================
+;;; ====
 
 ;;; hole-zipper-fill : HoleZipper x Expr -> HoleZipper
 ;;; Fill the current hole with a value.
@@ -285,9 +285,9 @@
          [new-history (cons hz (hole-zipper-history hz))])
     (make-hole-zipper new-sexp-z new-positions new-idx new-history)))
 
-;;; ============================================================
+;;; ====
 ;;; Undo
-;;; ============================================================
+;;; ====
 
 ;;; hole-zipper-undo : HoleZipper -> HoleZipper | #f
 ;;; Undo the last fill operation. Returns #f if nothing to undo.
@@ -306,9 +306,9 @@
 (define (hole-zipper-undo-count hz)
   (length (hole-zipper-history hz)))
 
-;;; ============================================================
+;;; ====
 ;;; Context Information
-;;; ============================================================
+;;; ====
 
 ;;; hole-zipper-context : HoleZipper -> (List Sexp)
 ;;; Get the path of parent expressions leading to current hole.
@@ -335,9 +335,9 @@
         #f
         (car ctx))))
 
-;;; ============================================================
+;;; ====
 ;;; All Holes
-;;; ============================================================
+;;; ====
 
 ;;; hole-zipper-all-holes : HoleZipper -> (List Symbol)
 ;;; Get all remaining holes in document order.
@@ -368,9 +368,9 @@
     [(= n 0) lst]
     [else (list-tail-safe (cdr lst) (- n 1))]))
 
-;;; ============================================================
+;;; ====
 ;;; Status and Display
-;;; ============================================================
+;;; ====
 
 ;;; hole-zipper-status : HoleZipper -> String
 ;;; Get a status string describing current state.

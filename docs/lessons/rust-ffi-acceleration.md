@@ -49,7 +49,7 @@ Returning `scheme-object` requires linking against Chez internals (`Scons`, `Sfl
 ### DO: Use Explicit Status Codes
 
 | Status | Meaning | Scheme Result |
-|--------|---------|---------------|
+|----|----|----|
 | 0 | Miss | `(miss fuel)` |
 | 1 | Hit | `(ok result fuel)` |
 | 2 | Out of fuel | `(out-of-fuel)` |
@@ -196,7 +196,7 @@ Always compare:
 ### Speedup Varies by Workload
 
 | Operation | Small Mesh | Large Mesh |
-|-----------|------------|------------|
+|----|----|----|
 | closest-point | 112x | 328x |
 | ray-intersect | 37x | 32x |
 
@@ -420,7 +420,7 @@ while let Some(node) = stack.pop() {
 ### Performance Impact
 
 | Mesh | Recursive | Explicit Stack |
-|------|-----------|----------------|
+|----|----|----|
 | Small (12 tris) | 105x | 162x |
 | Medium (80 tris) | 213x | 257x |
 | Large (320 tris) | 163x | 188x |
@@ -458,7 +458,7 @@ Documented in code. Rust uses standard convention. The raymarcher uses `abs(dist
 ## Final Performance Summary
 
 | Mesh Size | Triangles | Scheme (ms) | Rust (ms) | Speedup |
-|-----------|-----------|-------------|-----------|---------|
+|----|----|----|----|----|
 | Small | 12 | 190 | 1.2 | **162x** |
 | Medium | 80 | 499 | 1.9 | **257x** |
 | Large | 320 | 470 | 2.5 | **188x** |

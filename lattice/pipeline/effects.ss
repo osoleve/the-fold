@@ -21,18 +21,18 @@
 
 (load "lattice/pipeline/stage.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Effect Construction Helpers
-;;; ============================================================
+;;; ====
 
 ;;; effect : Symbol -> Any -> Stage ctx i o
 ;;; Create an effect stage with type and payload.
 (define (effect type payload)
   (make-effect-stage type payload))
 
-;;; ============================================================
+;;; ====
 ;;; LLM Effects
-;;; ============================================================
+;;; ====
 
 ;;; llm : Symbol -> String -> Stage ctx String String
 ;;; Call a language model with a prompt.
@@ -59,9 +59,9 @@
   (effect 'llm
           (list 'call-structured model prompt-template schema)))
 
-;;; ============================================================
+;;; ====
 ;;; Fold Effects
-;;; ============================================================
+;;; ====
 
 ;;; fold-eval : String -> Stage ctx i Any
 ;;; Evaluate a Fold expression.
@@ -99,9 +99,9 @@
   (effect 'fold
           (list 'call 'browse (list channel n))))
 
-;;; ============================================================
+;;; ====
 ;;; Shell Effects
-;;; ============================================================
+;;; ====
 
 ;;; shell : String -> Stage ctx i String
 ;;; Run a shell command, return stdout.
@@ -127,9 +127,9 @@
   (effect 'shell
           (list 'run-bg cmd-template)))
 
-;;; ============================================================
+;;; ====
 ;;; Store Effects (Content-Addressed Storage)
-;;; ============================================================
+;;; ====
 
 ;;; store-put : Stage ctx Any Hash
 ;;; Store value in CAS, return hash.
@@ -155,9 +155,9 @@
   (effect 'store
           (list 'pin hash)))
 
-;;; ============================================================
+;;; ====
 ;;; Log Effects
-;;; ============================================================
+;;; ====
 
 ;;; log-info : String -> Stage ctx i i
 ;;; Log info message, pass input through.
@@ -189,9 +189,9 @@
   (effect 'log
           (list 'metric name value)))
 
-;;; ============================================================
+;;; ====
 ;;; Checkpoint Effects
-;;; ============================================================
+;;; ====
 
 ;;; checkpoint : Symbol -> Stage ctx a a
 ;;; Save current value as named checkpoint.
@@ -223,9 +223,9 @@
   (effect 'checkpoint
           (list 'clear name)))
 
-;;; ============================================================
+;;; ====
 ;;; HTTP Effects
-;;; ============================================================
+;;; ====
 
 ;;; http-get : String -> Stage ctx i String
 ;;; GET request, return body.
@@ -251,9 +251,9 @@
   (effect 'http
           (list 'get-headers headers url-template)))
 
-;;; ============================================================
+;;; ====
 ;;; Await Effects (External Signals)
-;;; ============================================================
+;;; ====
 
 ;;; await-tag : String -> Stage ctx i String
 ;;; Wait for a forum post with specific tag pattern.
@@ -279,9 +279,9 @@
   (effect 'await
           (list 'signal name)))
 
-;;; ============================================================
+;;; ====
 ;;; BBS (Issue Tracker) Effects
-;;; ============================================================
+;;; ====
 
 ;;; bbs-create : String -> Stage ctx i String
 ;;; Create an issue, return ID.
@@ -327,9 +327,9 @@
 (define beads-ready bbs-ready)
 (define beads-show bbs-show)
 
-;;; ============================================================
+;;; ====
 ;;; Git Effects
-;;; ============================================================
+;;; ====
 
 ;;; git-status : Stage ctx i String
 ;;; Get git status.
@@ -355,9 +355,9 @@
   (effect 'git
           (list 'push)))
 
-;;; ============================================================
+;;; ====
 ;;; Sub-Pipeline Effects
-;;; ============================================================
+;;; ====
 
 ;;; invoke-pipeline : Pipeline -> Stage ctx i o
 ;;; Invoke another pipeline as a stage.
@@ -383,9 +383,9 @@
   (effect 'pipeline
           (list 'await run-id)))
 
-;;; ============================================================
+;;; ====
 ;;; Template Expansion
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Many effects take "templates" - strings with ${...} placeholders.
 ;;; The interpreter expands these against:
@@ -425,9 +425,9 @@
         [else
          (loop (cdr chars) (cons (car chars) result) #f '())])))
 
-;;; ============================================================
+;;; ====
 ;;; Effect Predicates
-;;; ============================================================
+;;; ====
 
 ;;; llm-effect? : Effect -> Boolean
 (define (llm-effect? e)
@@ -488,9 +488,9 @@
   (and (stage-effect? e)
        (eq? (stage-effect-type e) 'pipeline)))
 
-;;; ============================================================
+;;; ====
 ;;; Discord Effects
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Discord integration effects. These write to the discord-outbox
 ;;; for the bridge.js watcher to pick up and post to Discord.
@@ -547,9 +547,9 @@
   (effect 'discord
           (list 'dm user-id)))
 
-;;; ============================================================
+;;; ====
 ;;; Discord Await Effects
-;;; ============================================================
+;;; ====
 
 ;;; await-discord-mention : Symbol -> Stage ctx i DiscordContext
 ;;; Wait for an @agent mention in Discord.
@@ -570,9 +570,9 @@
   (effect 'await
           (list 'discord-reply message-id)))
 
-;;; ============================================================
+;;; ====
 ;;; Discord Effect Predicate
-;;; ============================================================
+;;; ====
 
 ;;; discord-effect? : Effect -> Boolean
 (define (discord-effect? e)

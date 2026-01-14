@@ -38,7 +38,7 @@ Block = { tag: Symbol, payload: Bytes, refs: [Hash] }
 ```
 
 | Field | Purpose |
-|-------|---------|
+|----|----|
 | `tag` | Type identifier (lambda, if, cons, vec, ...) |
 | `payload` | Literal data or encoded S-expression |
 | `refs` | Ordered list of hashes pointing to other blocks |
@@ -52,19 +52,19 @@ Code is blocks. Data is blocks. Documentation is blocks. The entire system is a 
 The Fold separates concerns into three layers with a strict purity boundary:
 
 ```
-+---------------------------------------+
++----+
 |   user/      Applications             |
-+---------------------------------------+
++----+
 |   shell/     IO, validation           |  <- Impure
-+=======================================+
++====+
 |   lattice/   Verified skill DAG       |  <- Pure
-+---------------------------------------+
++----+
 |   core/      Language kernel          |  <- Pure
-+---------------------------------------+
++----+
 ```
 
 | Layer | Directory | Purity | Role |
-|-------|-----------|--------|------|
+|----|----|----|----|
 | Core | `core/` | Pure | Minimal, axiomatic language kernel |
 | Lattice | `lattice/` | Pure | Verified library DAG (~1400 exports) |
 | Shell | `shell/` | Impure | IO boundary, validation, capabilities |
@@ -121,7 +121,7 @@ scheme --script test-all.ss
 ## Project Structure
 
 | Directory | Purpose |
-|-----------|---------|
+|----|----|
 | `core/` | Language kernel: types, blocks, evaluation, normalization |
 | `lattice/` | Skill DAG: verified libraries organized by tier and domain |
 | `shell/` | IO boundary: REPL, storage, diagnostics, tooling |

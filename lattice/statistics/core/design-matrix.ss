@@ -19,9 +19,9 @@
 (load "lattice/linalg/matrix.ss")
 (load "lattice/statistics/core/summary-stats.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Intercept Handling
-;;; ============================================================
+;;; ====
 
 ;;; add-intercept : Matrix → Matrix
 ;;; Prepend a column of 1s to the matrix.
@@ -52,9 +52,9 @@
                     (loop (+ i 1))
                     #f)))))
 
-;;; ============================================================
+;;; ====
 ;;; Standardization
-;;; ============================================================
+;;; ====
 
 ;;; column-mean : Matrix × Nat → Num
 ;;; Compute mean of a column.
@@ -133,9 +133,9 @@
              (vector-set! beta 0 (- (vector-ref beta-std 0) intercept-adj)))
         beta))
 
-;;; ============================================================
+;;; ====
 ;;; Dummy Encoding
-;;; ============================================================
+;;; ====
 
 ;;; unique-values : (List Any) → (List Any)
 ;;; Get sorted unique values from a list.
@@ -196,9 +196,9 @@
                       (vector-set! data (+ (* row k) idx) 1)
                       (loop (cdr xs) (+ row 1)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Polynomial Features
-;;; ============================================================
+;;; ====
 
 ;;; polynomial-features : Matrix × Nat → Matrix
 ;;; Add polynomial terms up to given degree.
@@ -230,9 +230,9 @@
                                            (expt x d)))))))
         (list 'matrix m total-cols new-data)))
 
-;;; ============================================================
+;;; ====
 ;;; Matrix Construction from Data
-;;; ============================================================
+;;; ====
 
 ;;; lists-to-design-matrix : (List (List Num)) × Bool → Matrix
 ;;; Convert list of rows to design matrix, optionally adding intercept.
@@ -290,9 +290,9 @@
                      (vector-set! data (+ (* (+ m1 i) n) j) (matrix-ref X2 i j))))
              (list 'matrix m n data)))))
 
-;;; ============================================================
+;;; ====
 ;;; Orthogonal Polynomial Bases
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Orthogonal polynomials provide better numerical stability than
 ;;; standard polynomial bases (1, x, x², ...) because they avoid
@@ -369,9 +369,9 @@
                         k)])
             (loop (+ k 1) l-1 l-k))))]))
 
-;;; ============================================================
+;;; ====
 ;;; Orthogonal Polynomial Design Matrices
-;;; ============================================================
+;;; ====
 
 ;;; legendre-features : (Vector Num) × Nat → Matrix
 ;;; Create design matrix with Legendre polynomial basis.

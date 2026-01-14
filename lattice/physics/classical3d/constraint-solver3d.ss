@@ -28,17 +28,17 @@
 (load "lattice/physics/classical3d/rigid-body3d.ss")
 (load "lattice/physics/classical3d/constraints3d.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Solver Constants
-;;; ============================================================
+;;; ====
 
 (define *baumgarte-factor-3d* 0.2)      ; Position correction bias
 (define *position-slop-3d* 0.005)       ; Allow small penetration
 (define *angular-slop-3d* 0.0001)       ; Allow small angle error
 
-;;; ============================================================
+;;; ====
 ;;; Helper: Apply Impulse to Body
-;;; ============================================================
+;;; ====
 
 ;;; apply-impulse-at-point-3d : RigidBody3D × Vec3 × Vec3 → RigidBody3D
 ;;; Apply an impulse at a world point to a body.
@@ -53,9 +53,9 @@
 (define (apply-angular-impulse-3d body angular-impulse)
   (rigid-body-3d-apply-torque-impulse body angular-impulse))
 
-;;; ============================================================
+;;; ====
 ;;; Helper: Velocity at Point
-;;; ============================================================
+;;; ====
 
 ;;; velocity-at-point-3d : RigidBody3D × Vec3 → Vec3
 ;;; Get velocity at a world-space point on the body.
@@ -63,9 +63,9 @@
 (define (velocity-at-point-3d body world-point)
   (rigid-body-3d-velocity-at body world-point))
 
-;;; ============================================================
+;;; ====
 ;;; Helper: Effective Mass for 3D Point Constraint
-;;; ============================================================
+;;; ====
 
 ;;; compute-effective-mass-3d : RigidBody3D × RigidBody3D | #f × Vec3 × Vec3 → Mat3
 ;;; Compute the effective mass matrix for a point constraint.
@@ -90,9 +90,9 @@
         ;; Full 3x3 matrix would be needed for accurate solver
         total-inv-mass))
 
-;;; ============================================================
+;;; ====
 ;;; Distance Constraint Solver
-;;; ============================================================
+;;; ====
 
 ;;; solve-distance-velocity-3d : RigidBody3D × RigidBody3D | #f × Vec3 × Vec3 × Number × Number → (RigidBody3D × RigidBody3D | #f)
 ;;; Solve velocity constraint for distance joint.
@@ -181,9 +181,9 @@
                   
                   (values new-a new-b)))))
 
-;;; ============================================================
+;;; ====
 ;;; Ball-Socket Joint Solver (3 DOF Point Constraint)
-;;; ============================================================
+;;; ====
 
 ;;; solve-ball-socket-velocity-3d : RigidBody3D × RigidBody3D | #f × Vec3 × Vec3 × Number → (RigidBody3D × RigidBody3D | #f)
 ;;; Solve velocity constraint for ball-socket joint.
@@ -251,9 +251,9 @@
                   
                   (values new-a new-b)))))
 
-;;; ============================================================
+;;; ====
 ;;; Spring Constraint Solver (Soft 1 DOF)
-;;; ============================================================
+;;; ====
 
 ;;; solve-spring-velocity-3d : RigidBody3D × RigidBody3D | #f × Vec3 × Vec3 × Number × Number × Number × Number
 ;;;                          → (RigidBody3D × RigidBody3D | #f)
@@ -293,9 +293,9 @@
 (define (correct-spring-position-3d body-a body-b pos-a pos-b rest-length)
   (values body-a body-b))
 
-;;; ============================================================
+;;; ====
 ;;; Hinge Joint Solver (5 DOF: 3 point + 2 angular)
-;;; ============================================================
+;;; ====
 
 ;;; solve-hinge-velocity-3d : RigidBody3D × RigidBody3D × Vec3 × Vec3 × Vec3 × Vec3 × Number
 ;;;                         → (RigidBody3D × RigidBody3D)
@@ -343,9 +343,9 @@
            ;; For now, return the position-corrected bodies
            (values new-a new-b))))
 
-;;; ============================================================
+;;; ====
 ;;; Fixed Joint Solver (6 DOF)
-;;; ============================================================
+;;; ====
 
 ;;; solve-fixed-velocity-3d : RigidBody3D × RigidBody3D × Vec3 × Vec3 × Quat × Number
 ;;;                         → (RigidBody3D × RigidBody3D)
@@ -409,9 +409,9 @@
                                 [final-b (rigid-body-3d-with-orientation new-b new-orient-b)])
                                (values final-a final-b))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Utility: Additional Mat3 Operations (not in rigid-body3d.ss)
-;;; ============================================================
+;;; ====
 
 ;;; mat3-trace : Mat3 → Number
 ;;; Sum of diagonal elements.
@@ -420,9 +420,9 @@
      (mat3-ref m 1 1)
      (mat3-ref m 2 2)))
 
-;;; ============================================================
+;;; ====
 ;;; Constraint Factory Functions (with solvers attached)
-;;; ============================================================
+;;; ====
 
 ;;; make-distance-joint-3d : Any × Any × Any × Vec3 × Vec3 × Number → Constraint3D
 ;;; Create a distance constraint between two entities.

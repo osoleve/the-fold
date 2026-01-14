@@ -7,9 +7,9 @@
 (load "core/types/dep-types.ss")
 (load "core/types/termination.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Test Framework
-;;; ============================================================
+;;; ====
 
 (define *test-count* 0)
 (define *pass-count* 0)
@@ -47,9 +47,9 @@
 (define (test-error name result)
   (test name #t (and (pair? result) (eq? (car result) 'error))))
 
-;;; ============================================================
+;;; ====
 ;;; Size Relation Tests
-;;; ============================================================
+;;; ====
 
 (define (run-size-relation-tests)
   (display "
@@ -78,9 +78,9 @@
   (test "< meet ? = <" '< (size-rel-meet '< '?))
   (test "? meet <= = <=" '<= (size-rel-meet '? '<=)))
 
-;;; ============================================================
+;;; ====
 ;;; Call Graph Tests
-;;; ============================================================
+;;; ====
 
 (define (run-call-graph-tests)
   (display "
@@ -99,9 +99,9 @@
        (test "call-graph-name" 'factorial (call-graph-name graph))
        (test "call-graph-params" '(n) (call-graph-params graph))))
 
-;;; ============================================================
+;;; ====
 ;;; Structural Subterm Tests
-;;; ============================================================
+;;; ====
 
 (define (run-structural-subterm-tests)
   (display "
@@ -129,9 +129,9 @@
   (let ([ctx '((m . (n . <)))])  ; m is marked as subterm of n
        (test-true "m is subterm of n via context" (structural-subterm? 'm 'n ctx))))
 
-;;; ============================================================
+;;; ====
 ;;; SCG Tests
-;;; ============================================================
+;;; ====
 
 (define (run-scg-tests)
   (display "
@@ -158,9 +158,9 @@
        (test-true "Same source/target is idempotent" (scg-idempotent? scg1))
        (test-false "Different source/target is not idempotent" (scg-idempotent? scg2))))
 
-;;; ============================================================
+;;; ====
 ;;; Termination Check Tests
-;;; ============================================================
+;;; ====
 
 (define (run-termination-tests)
   (display "
@@ -188,9 +188,9 @@
   (test-ok "Nested type terminates"
            (check-type-termination '(Π ((A : Type)) (Π ((B : Type)) (-> A B))))))
 
-;;; ============================================================
+;;; ====
 ;;; Structural Recursion Validation Tests
-;;; ============================================================
+;;; ====
 
 ;;; Helper: create a mock function definition
 (define (make-func-def name params body)
@@ -219,9 +219,9 @@
   (let ([violations (find-recursion-violations 'f 'n '(f (pred n)) '())])
        (test-true "f(pred n) is not a violation" (null? violations))))
 
-;;; ============================================================
+;;; ====
 ;;; Helper Function Tests
-;;; ============================================================
+;;; ====
 
 (define (run-helper-tests)
   (display "
@@ -248,9 +248,9 @@
   (test-false "no negative in (1 2 3)" (ormap negative? '(1 2 3)))
   (test-false "ormap on empty list" (ormap negative? '())))
 
-;;; ============================================================
+;;; ====
 ;;; Integration Tests
-;;; ============================================================
+;;; ====
 
 (define (run-integration-tests)
   (display "
@@ -272,9 +272,9 @@
   (test-ok "termination-check on empty params" (termination-check 'x '()))
   (test-ok "termination-check simple body" (termination-check '(+ 1 2) '(n))))
 
-;;; ============================================================
+;;; ====
 ;;; Run All Tests
-;;; ============================================================
+;;; ====
 
 (define (run-tests)
   (display "

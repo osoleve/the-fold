@@ -13,13 +13,13 @@
 (load "core/test-framework.ss")
 
 (display "\n")
-(display "==============================================================\n")
+(display "====\n")
 (display "           STATECHART DSL TESTS\n")
-(display "==============================================================\n")
+(display "====\n")
 
-;;; ============================================================
+;;; ====
 ;;; State Construction Tests
-;;; ============================================================
+;;; ====
 
 (test-group state-construction
             (define-test atomic-state-test
@@ -86,9 +86,9 @@
                    (assert-false (deep-history-state? shallow))
                    (assert-false (shallow-history-state? deep)))))
 
-;;; ============================================================
+;;; ====
 ;;; Transition Construction Tests
-;;; ============================================================
+;;; ====
 
 (test-group transition-construction
             (define-test simple-transition-test
@@ -131,9 +131,9 @@
                     (assert-false (transition-target t))
                     (assert-true (procedure? (transition-action t))))))
 
-;;; ============================================================
+;;; ====
 ;;; Event Tests
-;;; ============================================================
+;;; ====
 
 (test-group events
             (define-test simple-event-test
@@ -148,9 +148,9 @@
                    (assert-equal 'mouse-move (event-type e))
                    (assert-equal '(100 200) (event-payload e)))))
 
-;;; ============================================================
+;;; ====
 ;;; Simple Statechart Tests
-;;; ============================================================
+;;; ====
 
 (test-group simple-statechart
             (define-test traffic-light-test
@@ -200,9 +200,9 @@
                     (let ([interp1 (send-event interp 'unknown)])
                          (assert-true (in-state? interp1 'idle))))))
 
-;;; ============================================================
+;;; ====
 ;;; Hierarchical State Tests
-;;; ============================================================
+;;; ====
 
 (test-group hierarchical-states
             (define-test nested-composite-test
@@ -232,9 +232,9 @@
                          (assert-false (in-state? interp1 'nested))
                          (assert-false (in-state? interp1 'deep))))))
 
-;;; ============================================================
+;;; ====
 ;;; Parallel State Tests
-;;; ============================================================
+;;; ====
 
 (test-group parallel-states
             (define-test parallel-regions-test
@@ -265,9 +265,9 @@
                               (assert-true (in-state? interp2 'r1-running))
                               (assert-true (in-state? interp2 'r2-on)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Guard Condition Tests
-;;; ============================================================
+;;; ====
 
 (test-group guard-conditions
             (define-test guard-passes-test
@@ -296,9 +296,9 @@
                          (assert-true (in-state? interp1 'idle))
                          (assert-false (in-state? interp1 'active))))))
 
-;;; ============================================================
+;;; ====
 ;;; Action Tests
-;;; ============================================================
+;;; ====
 
 (test-group actions
             (define-test transition-action-test
@@ -339,9 +339,9 @@
                          (assert-true (in-state? interp1 'active))
                          (assert-equal '(exited) (statechart-current-context interp1))))))
 
-;;; ============================================================
+;;; ====
 ;;; History State Tests
-;;; ============================================================
+;;; ====
 
 (test-group history-states-behavior
             (define-test shallow-history-test
@@ -370,9 +370,9 @@
                           ;; This test validates the structure is correct
                           (assert-true (in-state? i3 'nested))))))
 
-;;; ============================================================
+;;; ====
 ;;; Final State Tests
-;;; ============================================================
+;;; ====
 
 (test-group final-states
             (define-test reach-final-state-test
@@ -386,9 +386,9 @@
                          (assert-true (in-state? interp1 'complete))
                          (assert-true (is-final? interp1))))))
 
-;;; ============================================================
+;;; ====
 ;;; Eventless Transition Tests
-;;; ============================================================
+;;; ====
 
 (test-group eventless-transitions
             (define-test always-transition-test
@@ -418,9 +418,9 @@
                          ;; Guard fails, stays in temp
                          (assert-true (in-state? interp1 'temp))))))
 
-;;; ============================================================
+;;; ====
 ;;; State Lookup Tests
-;;; ============================================================
+;;; ====
 
 (test-group state-lookup
             (define-test find-state-test
@@ -444,9 +444,9 @@
                          (assert-equal 'top (state-id (car ancestors)))
                          (assert-equal 'mid (state-id (cadr ancestors)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Validation Tests
-;;; ============================================================
+;;; ====
 
 (test-group validation
             (define-test empty-composite-error-test
@@ -474,9 +474,9 @@
                                      (validate-statechart sc))])
                     (assert-equal 0 (length errors)))))
 
-;;; ============================================================
+;;; ====
 ;;; Reachability Tests
-;;; ============================================================
+;;; ====
 
 (test-group reachability
             (define-test reachable-states-test
@@ -509,9 +509,9 @@
                     (assert-true (if (member 'a reachable) #t #f))
                     (assert-true (if (member 'unreached reachable) #t #f)))))
 
-;;; ============================================================
+;;; ====
 ;;; DOT Visualization Tests
-;;; ============================================================
+;;; ====
 
 (test-group visualization
             (define-test dot-output-test
@@ -535,9 +535,9 @@
              [(string=? (substring str i (+ i sublen)) substr) #t]
              [else (loop (+ i 1))]))))
 
-;;; ============================================================
+;;; ====
 ;;; Complex Scenario Tests
-;;; ============================================================
+;;; ====
 
 (test-group complex-scenarios
             (define-test door-lock-machine-test
@@ -590,12 +590,12 @@
                     ;; a -> b -> c -> a
                     (assert-true (in-state? final 'a)))))
 
-;;; ============================================================
+;;; ====
 ;;; Summary
-;;; ============================================================
+;;; ====
 
 (display "\n")
-(display "==============================================================\n")
+(display "====\n")
 (printf "Tests passed: ~a\n" *tests-passed*)
 (printf "Tests failed: ~a\n" *tests-failed*)
 (printf "Total tests:  ~a\n" *tests-run*)

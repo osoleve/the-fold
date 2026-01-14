@@ -5,9 +5,9 @@
 ;;;
 ;;; This is creative ASCII art exploring seasonal themes and visual harmony.
 
-;;; ============================================================
+;;; ====
 ;;; Winter Wonderland Display
-;;; ============================================================
+;;; ====
 
 (define (winter-wonderland)
   (display "\n")
@@ -64,9 +64,9 @@
   (display "~~ Festive greetings from The Fold! ~~\n")
   (display "May your days be merry and your content addressed!\n\n"))
 
-;;; ============================================================
+;;; ====
 ;;; Snowflake Designs (ASCII Art Variations)
-;;; ============================================================
+;;; ====
 
 (define (snowflake-single)
   "    *
@@ -95,9 +95,9 @@
  * *
   *")
 
-;;; ============================================================
+;;; ====
 ;;; Tree Designs (Various Heights)
-;;; ============================================================
+;;; ====
 
 (define (tree-small)
   "   /\\
@@ -129,9 +129,9 @@
     ||
    /||\\ ")
 
-;;; ============================================================
+;;; ====
 ;;; Display Helper
-;;; ============================================================
+;;; ====
 
 (define (display-snowflakes)
   (display "\nSNOWFLAKES OF THE FOLD:\n\n")
@@ -149,9 +149,9 @@
   (display (tree-medium))
   (display "\n\n"))
 
-;;; ============================================================
+;;; ====
 ;;; Main Display
-;;; ============================================================
+;;; ====
 
 (winter-wonderland)
 (display-snowflakes)

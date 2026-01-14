@@ -10,9 +10,9 @@
 ;;;   on-events      Register multiple event handlers at once
 ;;;   def-handler    Define a named, reusable event handler
 
-;;; ============================================================
+;;; ====
 ;;; On-Event Macro
-;;; ============================================================
+;;; ====
 
 ;;; on-event : Dispatcher × EventType × Options... -> Void
 ;;;
@@ -88,9 +88,9 @@
                                                            body ...))))]))
 
 
-;;; ============================================================
+;;; ====
 ;;; On-Events Macro (Batch Registration)
-;;; ============================================================
+;;; ====
 
 ;;; on-events : Dispatcher × (EventType Handler)... -> Void
 ;;;
@@ -110,9 +110,9 @@
                   (on-event dispatcher event-type handler) ...)]))
 
 
-;;; ============================================================
+;;; ====
 ;;; Define Handler Macro
-;;; ============================================================
+;;; ====
 
 ;;; def-handler : Name × EventType × (Bindings...) × Body... -> Definition
 ;;;
@@ -136,9 +136,9 @@
                         body ...))]))
 
 
-;;; ============================================================
+;;; ====
 ;;; Event Firing Helpers
-;;; ============================================================
+;;; ====
 
 ;;; emit! : Dispatcher × EventType × Source × Target × Data -> Void
 ;;; Fire an event immediately.
@@ -191,9 +191,9 @@
                                       (make-event 'event-type #f #f '()))]))
 
 
-;;; ============================================================
+;;; ====
 ;;; Example Usage (commented out)
-;;; ============================================================
+;;; ====
 
 #|
 ;;; Create a dispatcher

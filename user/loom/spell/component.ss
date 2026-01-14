@@ -8,9 +8,9 @@
 ;;; Exports:
 ;;;   def-component    Macro to define a component type with all boilerplate
 
-;;; ============================================================
+;;; ====
 ;;; Component Definition Macro
-;;; ============================================================
+;;; ====
 
 ;;; def-component : Name × ((Field Default)...) -> Definitions
 ;;;
@@ -91,9 +91,9 @@
                         #'(def-component name ((field #f) ...))])))
 
 
-;;; ============================================================
+;;; ====
 ;;; Component Utilities
-;;; ============================================================
+;;; ====
 
 ;;; These are re-exported from entity.ss for convenience.
 ;;; They're needed by def-component but defined in the core.
@@ -107,9 +107,9 @@
 ;;; (Assumes defined in entity.ss)
 
 
-;;; ============================================================
+;;; ====
 ;;; Example Usage (commented out)
-;;; ============================================================
+;;; ====
 
 #|
 ;;; Define a mana component

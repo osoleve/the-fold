@@ -671,7 +671,7 @@ A log of explorations and findings, documenting the journey of understanding The
 ### Performance Characteristics
 
 | System | Operation | Complexity | Notes |
-|--------|-----------|-----------|-------|
+|----|----|----|----|
 | World | Spatial Query | O(1) | Hash-indexed |
 | Entity | Lookup | O(1) | Alist (small N) |
 | Pathfinding | A* | O(n log n) | Iteration-limited |

@@ -8,16 +8,16 @@
 ;;;
 ;;; Dependencies: Requires core/ modules to be loadable
 
-;;; ============================================================
+;;; ====
 ;;; Setup: Ensure we can find core/ and shell/ modules
-;;; ============================================================
+;;; ====
 
 ;;; Add core to source-directories for shell dependencies
 (source-directories (cons "core" (source-directories)))
 
-;;; ============================================================
+;;; ====
 ;;; Test Runner
-;;; ============================================================
+;;; ====
 
 (define test-count 0)
 (define pass-count 0)
@@ -50,9 +50,9 @@
          (load (string-append "shell/" filename))
          (set! pass-count (+ pass-count 1))))
 
-;;; ============================================================
+;;; ====
 ;;; Run Shell Tests
-;;; ============================================================
+;;; ====
 
 (display "╔══════════════════════════════════════════════════════════╗
 ")
@@ -76,9 +76,9 @@
 ;;;   - test-block-navigator.ss (memory-intensive)
 ;;;   - test-text.ss, test-fs.ss, test-color.ss, test-layout.ss (require setup)
 
-;;; ============================================================
+;;; ====
 ;;; Summary
-;;; ============================================================
+;;; ====
 
 (newline)
 (display "╔══════════════════════════════════════════════════════════╗

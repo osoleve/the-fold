@@ -21,9 +21,9 @@
        (printf "    Expected: ~s\n" expected)
        (printf "    Actual:   ~s\n" actual))))
 
-;;; ============================================================
+;;; ====
 ;;; Command Parsing Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Testing parse-command ===\n")
 
@@ -40,9 +40,9 @@
 (assert-equal "parse unknown" (parse-command "jump") #f)
 (assert-equal "parse empty" (parse-command "") #f)
 
-;;; ============================================================
+;;; ====
 ;;; Loop State Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Testing loop state ===\n")
 
@@ -60,9 +60,9 @@
       (let ([state3 (loop-state-set-running state #f)])
            (assert-equal "loop-state-set-running" (loop-state-running state3) #f)))
 
-;;; ============================================================
+;;; ====
 ;;; Tick Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Testing tick ===\n")
 
@@ -82,11 +82,11 @@
              [duckie10 (loop-state-duckie state10)])
             (assert-equal "tick energy drains at frame 10" (duckie-energy duckie10) (- (duckie-energy duckie) 1))))
 
-;;; ============================================================
+;;; ====
 ;;; Test Summary
-;;; ============================================================
+;;; ====
 
-(printf "\n========================================\n")
+(printf "\n====\n")
 (printf "Test Results:\n")
 (printf "  Total:  ~a\n" test-count)
 (printf "  Passed: ~a\n" pass-count)

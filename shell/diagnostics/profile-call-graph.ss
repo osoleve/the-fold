@@ -10,9 +10,9 @@
 
 (load "core/util/profile.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Call Graph Data Structure
-;;; ============================================================
+;;; ====
 
 ;;; A call graph is a hashtable mapping caller -> ((callee . count) ...)
 ;;; We also maintain a reverse index: callee -> ((caller . count) ...)
@@ -33,9 +33,9 @@
 (define (call-graph-reverse graph)
   (cdr (assq 'reverse (cdr graph))))
 
-;;; ============================================================
+;;; ====
 ;;; Edge Operations
-;;; ============================================================
+;;; ====
 
 ;;; call-graph-add-edge! : Graph x Symbol x Symbol -> void
 ;;; Add an edge from caller to callee (mutates graph)
@@ -79,9 +79,9 @@
 ;;; NOTE: remove-duplicates is provided by core/base/prelude.ss
 ;;; For symbol-only lists, unique-simple uses memq for faster eq? comparison.
 
-;;; ============================================================
+;;; ====
 ;;; Build Call Graph from Profiler
-;;; ============================================================
+;;; ====
 
 ;;; build-call-graph : Profiler -> CallGraph
 ;;; Walk the call tree and extract caller->callee edges
@@ -116,9 +116,9 @@
        (walk-tree-for-edges node graph)
        graph))
 
-;;; ============================================================
+;;; ====
 ;;; Graph Metrics
-;;; ============================================================
+;;; ====
 
 ;;; call-graph-roots : Graph -> List of Symbols
 ;;; Entry points: nodes with no callers
@@ -176,9 +176,9 @@
                     0
                     (vector->list vals)))))
 
-;;; ============================================================
+;;; ====
 ;;; Critical Path Analysis
-;;; ============================================================
+;;; ====
 
 ;;; find-critical-path : Graph x (Symbol -> Number) -> List of Symbols
 ;;; Find the longest cost chain through the graph.
@@ -226,9 +226,9 @@
              0
              path))
 
-;;; ============================================================
+;;; ====
 ;;; Cycle Detection (Recursive Calls)
-;;; ============================================================
+;;; ====
 
 ;;; find-call-cycles : Graph -> List of (List of Symbols)
 ;;; Detect all cycles in the call graph (recursive calls)
@@ -312,9 +312,9 @@
    [(pred (car lst)) #t]
    [else (any? pred (cdr lst))]))
 
-;;; ============================================================
+;;; ====
 ;;; ASCII Visualization
-;;; ============================================================
+;;; ====
 
 ;;; call-graph->ascii : Graph -> String
 ;;; Render the call graph as ASCII art
@@ -394,9 +394,9 @@
                 (length leaves)
                 (length cycles))))
 
-;;; ============================================================
+;;; ====
 ;;; Integration with Profiler Statistics
-;;; ============================================================
+;;; ====
 
 ;;; call-graph-with-costs : Profiler -> (Graph x CostTable)
 ;;; Build graph and collect per-function costs from profiler

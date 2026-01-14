@@ -21,7 +21,7 @@ These transformations are applied in a specific order before α-normalization (d
 ## Version Byte Semantics
 
 | Version | Byte | Equivalences Detected |
-|---------|------|----------------------|
+|----|----|----|
 | v0 | `0x00` | α-equivalence (variable renaming) |
 | v1 | `0x01` | + Commutative, associative, parallel bindings |
 | v2 | `0x02` | + η-equivalence, identity/absorbing elements, polynomial equivalence |
@@ -132,7 +132,7 @@ A function that simply applies another function to its argument is equivalent to
 ### Examples
 
 | Input | Output | Reason |
-|-------|--------|--------|
+|----|----|----|
 | `(fn (x) (f x))` | `f` | η-reducible |
 | `(fn (x) (g x x))` | unchanged | x appears twice |
 | `(fn (x) (x y))` | unchanged | x in operator position |
@@ -221,7 +221,7 @@ A polynomial is a list of terms. Each term is `(coefficient monomial)` where mon
 ### Examples
 
 | Input | Polynomial | Output |
-|-------|-----------|--------|
+|----|----|----|
 | `(+ x x)` | `((2 ((x . 1))))` | `(* 2 x)` |
 | `(+ (* a b) (* b a))` | `((2 ((a . 1) (b . 1))))` | `(* 2 a b)` |
 | `(+ 1 2 3)` | `((6 ()))` | `6` |
@@ -250,7 +250,7 @@ See `docs/technical-report.md` Section 3.4.2 for full details.
 An identity element `e` satisfies `(op x e) = x` for all `x`:
 
 | Operation | Identity | Example |
-|-----------|----------|---------|
+|----|----|----|
 | `+` | `0` | `(+ x 0)` → `x` |
 | `*` | `1` | `(* x 1)` → `x` |
 | `-` | `0` (right) | `(- x 0)` → `x` |
@@ -265,7 +265,7 @@ An identity element `e` satisfies `(op x e) = x` for all `x`:
 An absorbing element `a` satisfies `(op x a) = a` for all `x`:
 
 | Operation | Absorbing | Example |
-|-----------|-----------|---------|
+|----|----|----|
 | `*` | `0` | `(* x 0)` → `0` |
 | `bitwise-and` | `0` | `(bitwise-and x 0)` → `0` |
 
@@ -293,7 +293,7 @@ An absorbing element `a` satisfies `(op x a) = a` for all `x`:
 ### Examples
 
 | Input | Output | Reason |
-|-------|--------|--------|
+|----|----|----|
 | `(+ x 0)` | `x` | 0 is identity for + |
 | `(* x 1)` | `x` | 1 is identity for * |
 | `(+ a 0 b 0)` | `(+ a b)` | Multiple identities removed |
@@ -425,7 +425,7 @@ Call `hash-cons-reset!` periodically (e.g., between major operations) to prevent
 ## Files
 
 | File | Purpose |
-|------|---------|
+|----|----|
 | `core/blocks/normalize.ss` | Main normalization pipeline, v2 integration |
 | `core/blocks/hash-cons.ss` | Hash-consing infrastructure |
 | `core/blocks/poly-canon.ss` | Polynomial representation and canonicalization |

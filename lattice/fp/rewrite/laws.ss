@@ -22,9 +22,9 @@
 (load "lattice/fp/rewrite/rule.ss")
 (load "lattice/fp/rewrite/engine.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Law Registry
-;;; ============================================================
+;;; ====
 
 ;;; Global registry of all laws
 (define *law-registry* (make-eq-hashtable))
@@ -65,9 +65,9 @@
              [(memq (car cs) seen) (loop (cdr cs) seen acc)]
              [else (loop (cdr cs) (cons (car cs) seen) (cons (car cs) acc))]))))
 
-;;; ============================================================
+;;; ====
 ;;; Semigroup Laws
-;;; ============================================================
+;;; ====
 
 ;;; Associativity: (x <> y) <> z = x <> (y <> z)
 ;;; Right-associative is canonical form for simplification
@@ -87,9 +87,9 @@
              'category 'expansion
              'direction 'forward))
 
-;;; ============================================================
+;;; ====
 ;;; Monoid Laws
-;;; ============================================================
+;;; ====
 
 ;;; Left identity: mempty <> x = x
 (define monoid-left-id
@@ -113,9 +113,9 @@
              'category 'monoid
              'direction 'bidirectional))
 
-;;; ============================================================
+;;; ====
 ;;; Functor Laws
-;;; ============================================================
+;;; ====
 
 ;;; Identity: fmap id = id
 ;;; Using literal 'id symbol for simplicity
@@ -142,9 +142,9 @@
              '(fmap (compose (?f) (?g)) (?fa))
              'category 'functor))
 
-;;; ============================================================
+;;; ====
 ;;; Applicative Laws
-;;; ============================================================
+;;; ====
 
 ;;; Identity: pure id <*> v = v
 (define applicative-id
@@ -168,9 +168,9 @@
              'category 'applicative
              'direction 'bidirectional))
 
-;;; ============================================================
+;;; ====
 ;;; Monad Laws
-;;; ============================================================
+;;; ====
 
 ;;; Left identity: return a >>= f = f a
 (define monad-left-id
@@ -203,9 +203,9 @@
              '(bind (bind (?m) (?f)) (?g))
              'category 'monad))
 
-;;; ============================================================
+;;; ====
 ;;; Lambda Calculus
-;;; ============================================================
+;;; ====
 
 ;;; Beta reduction: (\x -> body) arg = body[x := arg]
 ;;; Note: This rule's RHS uses substitution which is handled specially
@@ -224,9 +224,9 @@
              'category 'lambda
              'conditions '((not-free? (?x) (?f)))))
 
-;;; ============================================================
+;;; ====
 ;;; Arithmetic Identities
-;;; ============================================================
+;;; ====
 
 ;;; Addition identity: 0 + x = x
 (define arith-add-left-id
@@ -270,9 +270,9 @@
              '0
              'category 'arithmetic))
 
-;;; ============================================================
+;;; ====
 ;;; List Laws
-;;; ============================================================
+;;; ====
 
 ;;; map id = id
 (define list-map-id
@@ -295,9 +295,9 @@
              '(?xs)
              'category 'list))
 
-;;; ============================================================
+;;; ====
 ;;; Initialize Standard Laws
-;;; ============================================================
+;;; ====
 
 (define (init-standard-laws!)
   ;; Semigroup
@@ -345,9 +345,9 @@
 ;;; Initialize on load
 (init-standard-laws!)
 
-;;; ============================================================
+;;; ====
 ;;; Convenience Strategies
-;;; ============================================================
+;;; ====
 
 ;;; monoid-simplify : Strategy
 ;;; Apply monoid laws exhaustively.

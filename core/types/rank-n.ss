@@ -33,9 +33,9 @@
 (load "core/types/dep-types.ss")
 (load "core/types/infer.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Forall Type Predicates
-;;; ============================================================
+;;; ====
 
 ;;; forall-type? : Type -> Boolean
 ;;; Check if this is a universally quantified type.
@@ -44,9 +44,9 @@
        (or (eq? (car t) 'forall)
            (eq? (car t) (string->symbol (string (integer->char 8704))))))) ; Unicode forall
 
-;;; ============================================================
+;;; ====
 ;;; Type Rank Calculation
-;;; ============================================================
+;;; ====
 
 ;;; The rank of a type determines how nested its quantifiers are:
 ;;;   Rank 0: No quantifiers (monomorphic)
@@ -149,9 +149,9 @@
 (define (monomorphic? type)
   (= (type-rank type) 0))
 
-;;; ============================================================
+;;; ====
 ;;; Subsumption (Subtyping for Polymorphic Types)
-;;; ============================================================
+;;; ====
 
 ;;; Subsumption captures when one type is "at least as polymorphic" as another.
 ;;; Key rules:
@@ -360,9 +360,9 @@
   (string->symbol
    (string-append (symbol->string var) "$" (number->string fresh-rename-counter))))
 
-;;; ============================================================
+;;; ====
 ;;; Deep Instantiation
-;;; ============================================================
+;;; ====
 
 ;;; For rank-N types, we may need to instantiate quantifiers that appear
 ;;; inside the type, not just at the top level.
@@ -398,9 +398,9 @@
             (deep-skolemize-with new-body (append fresh-skolems skolems)))
       (list type skolems)))
 
-;;; ============================================================
+;;; ====
 ;;; Instantiation at Application
-;;; ============================================================
+;;; ====
 
 ;;; When applying a polymorphic function, we need to instantiate its type.
 ;;; For rank-1, this is straightforward. For rank-N, we use the "Quick Look"
@@ -424,9 +424,9 @@
               fn-type))]
    [else fn-type]))
 
-;;; ============================================================
+;;; ====
 ;;; Annotation Requirement Detection
-;;; ============================================================
+;;; ====
 
 ;;; Full inference is undecidable for rank > 1, so we need type annotations.
 ;;; This function detects when annotations are required.
@@ -450,9 +450,9 @@
                 (eq? (cadr (car params)) ':)))
       #f))
 
-;;; ============================================================
+;;; ====
 ;;; Higher-Rank Checking Extension
-;;; ============================================================
+;;; ====
 
 ;;; check-rank-n : Expr × Type × TEnv → (Result Subst Error)
 ;;; Extended checking that handles higher-rank types.
@@ -518,9 +518,9 @@
 (define (tenv-extend* env bindings)
   (append bindings env))
 
-;;; ============================================================
+;;; ====
 ;;; Type Annotations for Higher-Rank
-;;; ============================================================
+;;; ====
 
 ;;; For practical higher-rank programming, users must annotate lambdas
 ;;; with higher-rank parameter types.
@@ -547,9 +547,9 @@
             (and (pair? params)
                  (andmap (lambda (p) (extract-param-type p)) params)))))
 
-;;; ============================================================
+;;; ====
 ;;; Impredicativity
-;;; ============================================================
+;;; ====
 
 ;;; Impredicative polymorphism allows type variables to be instantiated
 ;;; with polymorphic types:
@@ -656,9 +656,9 @@
         (occurs-check var (caddr type)))]
    [else (ormap (lambda (t) (occurs-check var t)) (cdr type))]))
 
-;;; ============================================================
+;;; ====
 ;;; Pretty Printing
-;;; ============================================================
+;;; ====
 
 ;;; rank-n-type->string : Type → String
 ;;; Pretty-print a higher-rank type with proper parenthesization.
@@ -697,9 +697,9 @@
    
    [else (format "~s" type)]))
 
-;;; ============================================================
+;;; ====
 ;;; Convenience API
-;;; ============================================================
+;;; ====
 
 ;;; requires-annotation : Type → Boolean
 ;;; Does this type require annotation for inference to work?
@@ -711,9 +711,9 @@
 (define (can-infer? type)
   (<= (type-rank type) 1))
 
-;;; ============================================================
+;;; ====
 ;;; Examples and Type Signatures
-;;; ============================================================
+;;; ====
 
 ;;; Common higher-rank type patterns:
 
@@ -743,9 +743,9 @@
 (define (type-church-pair a b)
   `(-> ,a (-> ,b (∀ (r) (-> (-> ,a (-> ,b r)) r)))))
 
-;;; ============================================================
+;;; ====
 ;;; Rank-N Type Inference
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Full Rank-N bidirectional type inference with impredicative polymorphism,
 ;;; combining approaches from:
@@ -755,9 +755,9 @@
 ;;;
 ;;; The following inference functions were previously in rank-n-infer.ss.
 
-;;; ============================================================
+;;; ====
 ;;; Forall Type Accessors
-;;; ============================================================
+;;; ====
 
 ;;; forall-well-formed? : Type -> Boolean
 ;;; Check if a forall type is well-formed: (forall (vars...) body)
@@ -798,9 +798,9 @@
       (caddr t)
       t))
 
-;;; ============================================================
+;;; ====
 ;;; Instantiation
-;;; ============================================================
+;;; ====
 
 ;;; rank-n-instantiate : ForallType x (List Type) -> Type
 ;;; Instantiate a forall type with concrete types.
@@ -816,9 +816,9 @@
                           body
                           (map cons vars concrete-types))))))
 
-;;; ============================================================
+;;; ====
 ;;; Generalization
-;;; ============================================================
+;;; ====
 
 ;;; rank-n-generalize : Type x Context -> ForallType
 ;;; Generalize a type over free type variables not bound in the context.
@@ -845,9 +845,9 @@
             type
             `(∀ ,gen-vars ,type))))
 
-;;; ============================================================
+;;; ====
 ;;; Subsumption
-;;; ============================================================
+;;; ====
 
 ;;; rank-n-subsumes? : Type x Type x Context -> Boolean
 ;;; Check if type1 is at least as general as (subsumes) type2.
@@ -869,9 +869,9 @@
   (reset-subsume-fresh!)
   (subsumes-with type1 type2 '()))
 
-;;; ============================================================
+;;; ====
 ;;; Fresh Type Variables for Rank-N Inference
-;;; ============================================================
+;;; ====
 
 (define *rank-n-fresh-counter* 0)
 
@@ -885,9 +885,9 @@
   (set! *rank-n-fresh-counter* (+ *rank-n-fresh-counter* 1))
   (string->symbol (string-append "ρ" (number->string *rank-n-fresh-counter*))))
 
-;;; ============================================================
+;;; ====
 ;;; Quick Look Infrastructure (Guided Instantiation)
-;;; ============================================================
+;;; ====
 
 ;;; Quick Look (Serrano et al., ICFP 2020) guides instantiation decisions
 ;;; by analyzing argument structure before deciding whether to instantiate
@@ -918,9 +918,9 @@
             ;; Delay if ANY arg is lambda or poly-var
             (ormap (lambda (s) (memq s '(lambda poly-var))) structures))))
 
-;;; ============================================================
+;;; ====
 ;;; Skolem Detection and Escape Checking
-;;; ============================================================
+;;; ====
 
 ;;; rank-n-skolem? : Type → Boolean
 ;;; Check if a type is a skolem constant (rigid type variable).
@@ -965,9 +965,9 @@
                            (type-contains-skolem? type))))
          s))
 
-;;; ============================================================
+;;; ====
 ;;; Impredicative Unification with Scope Safety
-;;; ============================================================
+;;; ====
 
 ;;; impredicative-unify-with : Subst × Type × Type → (Result Subst Error)
 ;;; Compose existing substitution with impredicative unification.
@@ -984,9 +984,9 @@
                      `(ok ,(compose-subst new-subst s))))
             result)))
 
-;;; ============================================================
+;;; ====
 ;;; Bidirectional Type Inference for Rank-N
-;;; ============================================================
+;;; ====
 
 ;;; The key insight from Dunfield & Krishnaswami:
 ;;;   - Synthesis (↑): Expression → Type
@@ -1094,9 +1094,9 @@
    
    [else `(error unsupported-expression ,expr)]))
 
-;;; ============================================================
+;;; ====
 ;;; Application Inference for Rank-N
-;;; ============================================================
+;;; ====
 
 ;;; rank-n-infer-app : Expr × (List Expr) × TEnv → (Result (× Type Subst) Error)
 ;;; Infer type of function application.
@@ -1180,9 +1180,9 @@
                                    (compose-subst (cadr result) s) env)
                 result))))
 
-;;; ============================================================
+;;; ====
 ;;; Type Checking for Rank-N
-;;; ============================================================
+;;; ====
 
 ;;; check-against-forall-infer : Expr × Type × TEnv → (Result Subst Error)
 ;;; Check an expression against a universally quantified type (with synthesis fallback).
@@ -1253,9 +1253,9 @@
                                    (expected ,expected-applied))))))
              result))]))
 
-;;; ============================================================
+;;; ====
 ;;; Let Inference for Rank-N
-;;; ============================================================
+;;; ====
 
 ;;; rank-n-infer-let : (List (× Symbol Expr)) × Expr × TEnv → (Result (× Type Subst) Error)
 ;;; Infer type of a let expression with proper generalization.
@@ -1291,9 +1291,9 @@
                       (rank-n-infer-let-bindings (cdr bindings) body new-env combined-s))
                 init-result))))
 
-;;; ============================================================
+;;; ====
 ;;; If Inference for Rank-N
-;;; ============================================================
+;;; ====
 
 ;;; rank-n-infer-if : Expr × Expr × Expr × TEnv → (Result (× Type Subst) Error)
 (define (rank-n-infer-if test then-expr else-expr env)
@@ -1320,9 +1320,9 @@
                                               `(ok ,(apply-subst-rankn s4 then-type) ,s4))
                                          branch-unify)))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Helper Functions
-;;; ============================================================
+;;; ====
 
 ;;; extract-param-annotations : (List Param) → (List (× Symbol (Option Type)))
 ;;; Extract parameter names and optional type annotations.
@@ -1360,9 +1360,9 @@
              `(ok (List ?) ,empty-subst)))]
    [else `(ok ? ,empty-subst)]))
 
-;;; ============================================================
+;;; ====
 ;;; Convenience API
-;;; ============================================================
+;;; ====
 
 ;;; rank-n-typeof : Expr → Type | Error
 ;;; Infer the type of an expression using rank-N inference.

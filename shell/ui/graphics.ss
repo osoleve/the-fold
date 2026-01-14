@@ -25,9 +25,9 @@
 ;;;   - Render modes: ASCII-only, ANSI color, Unicode
 ;;;   - Frame buffering for animation
 
-;;; ============================================================
+;;; ====
 ;;; Dependencies
-;;; ============================================================
+;;; ====
 
 ;;; This file expects the following to already be loaded:
 ;;;   - core/block.ss
@@ -42,9 +42,9 @@
 ;;; Note: graphics-primitives.ss, layers.ss, and animation.ss are libraries.
 ;;; They will be loaded when needed via import.
 
-;;; ============================================================
+;;; ====
 ;;; Canvas Block Storage
-;;; ============================================================
+;;; ====
 
 ;;; canvas->block : Canvas → Block
 ;;; Convert a canvas to a content-addressed block.
@@ -104,9 +104,9 @@
            (block->canvas blk)
            #f)))
 
-;;; ============================================================
+;;; ====
 ;;; Colored Canvas Block Storage
-;;; ============================================================
+;;; ====
 
 ;;; Color type codes for serialization
 (define COLOR-TYPE-DEFAULT 0)
@@ -325,9 +325,9 @@
            (block->colored-canvas blk)
            #f)))
 
-;;; ============================================================
+;;; ====
 ;;; Scene Block Storage
-;;; ============================================================
+;;; ====
 
 ;;; A Scene is a complete visual composition ready to render.
 ;;; It contains:
@@ -431,9 +431,9 @@
            (block->scene blk)
            #f)))
 
-;;; ============================================================
+;;; ====
 ;;; Rendering Pipeline
-;;; ============================================================
+;;; ====
 
 ;;; Render Mode: Controls output format
 ;;;   'ascii     — ASCII-only (0x20-0x7E), no color
@@ -515,9 +515,9 @@
                                           (composite result layer (point 0 0)))
                           (composite-loop (cdr layers) result)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Graphics Primitives API
-;;; ============================================================
+;;; ====
 
 ;;; These functions provide a convenient API for common graphics operations.
 ;;; They integrate with the existing layout.ss primitives but add block storage.
@@ -544,9 +544,9 @@
 (define (graphics-fill canvas x y width height ch)
   (fill-rect canvas (make-rect (point x y) width height) ch))
 
-;;; ============================================================
+;;; ====
 ;;; Frame Buffer System
-;;; ============================================================
+;;; ====
 
 ;;; A frame buffer manages double-buffering for animation.
 ;;; It maintains front and back buffers, supporting smooth animation.
@@ -598,9 +598,9 @@
    (frame-buffer%-front fb)
    canvas))
 
-;;; ============================================================
+;;; ====
 ;;; Export Summary
-;;; ============================================================
+;;; ====
 
 ;;; This file provides:
 ;;;

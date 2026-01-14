@@ -35,7 +35,7 @@
   (sleep (make-time 'time-duration (* ms 1000000) 0)))
 
 (display "File Watching System Tests\n")
-(display "===========================\n\n")
+(display "====\n\n")
 
 ;;; Test 1: Glob pattern matching
 (display "Test 1: Glob pattern matching\n")

@@ -5,9 +5,9 @@
 (load "core/testing/test-framework.ss")
 (load "lattice/fp/control-systems/poly-algebra.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Test: Polynomial Conversion
-;;; ============================================================
+;;; ====
 
 (test-group "polynomial-conversion"
   (define-test "numeric to algebra conversion reverses to ascending order"
@@ -36,9 +36,9 @@
       ;; The degrees should be identical after round-trip
       (assert-equal orig-deg back-deg))))
 
-;;; ============================================================
+;;; ====
 ;;; Test: Transfer Function Simplification
-;;; ============================================================
+;;; ====
 
 (test-group "tf-simplification"
   (define-test "tf-simplify cancels common linear factor"
@@ -70,9 +70,9 @@
     (let ([tf (tf-from-lists '(1 1 -2) '(1 2 -3))])
       (assert-false (tf-coprime? tf)))))
 
-;;; ============================================================
+;;; ====
 ;;; Test: Exact Routh-Hurwitz
-;;; ============================================================
+;;; ====
 
 (test-group "routh-hurwitz-exact"
   (define-test "stable polynomial passes Routh-Hurwitz"
@@ -93,9 +93,9 @@
       ;; but no sign changes either
       (assert-true (routh-hurwitz-exact poly)))))
 
-;;; ============================================================
+;;; ====
 ;;; Test: Characteristic Polynomial Analysis
-;;; ============================================================
+;;; ====
 
 (test-group "char-poly-analysis"
   (define-test "tf-char-poly extracts denominator as algebra poly"
@@ -111,9 +111,9 @@
       ;; Should factor as (s+1)^2
       (assert-true (>= (length factors) 1)))))
 
-;;; ============================================================
+;;; ====
 ;;; Test: Bezout Coefficients
-;;; ============================================================
+;;; ====
 
 (test-group "bezout-identity"
   (define-test "tf-bezout computes extended GCD"
@@ -125,9 +125,9 @@
       ;; GCD of (s+2) and (s+3) should be constant (degree 0)
       (assert-equal (alg-poly-degree gcd-poly) 0))))
 
-;;; ============================================================
+;;; ====
 ;;; Test: Display Functions
-;;; ============================================================
+;;; ====
 
 (test-group "display-functions"
   (define-test "tf-exact->string produces readable output"
@@ -136,8 +136,8 @@
       (assert-true (string? str))
       (assert-true (> (string-length str) 0)))))
 
-;;; ============================================================
+;;; ====
 ;;; Run All Tests
-;;; ============================================================
+;;; ====
 
 (run-all-tests)

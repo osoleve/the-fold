@@ -16,9 +16,9 @@
 (load "lattice/fp/clp/global-constraints.ss")
 (load "lattice/fp/clp/label.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Goal Constructors
-;;; ============================================================
+;;; ====
 ;;;
 ;;; CLP goals are functions: CStore → (Stream CStore)
 ;;; They can fail (return empty stream) or succeed with modified store.
@@ -40,9 +40,9 @@
                    (clp-succeed result)
                    (clp-fail cs)))))
 
-;;; ============================================================
+;;; ====
 ;;; Goal Combinators
-;;; ============================================================
+;;; ====
 
 ;;; clp-conj : Goal × Goal → Goal
 ;;; Conjunction: run g1 then g2.
@@ -74,9 +74,9 @@
       clp-fail
       (clp-disj (car goals) (clp-disj* (cdr goals)))))
 
-;;; ============================================================
+;;; ====
 ;;; Constraint Goals
-;;; ============================================================
+;;; ====
 ;;;
 ;;; These wrap constraint functions as goals.
 
@@ -180,9 +180,9 @@
                    (clp-succeed cs1)
                    (clp-fail cs)))))
 
-;;; ============================================================
+;;; ====
 ;;; Labeling Goals
-;;; ============================================================
+;;; ====
 
 ;;; goal-label : (List LVar) → Goal
 ;;; Default labeling (first-fail, min-value).
@@ -195,9 +195,9 @@
   (lambda (cs)
           (label-with var-order val-select cs vars)))
 
-;;; ============================================================
+;;; ====
 ;;; Running CLP
-;;; ============================================================
+;;; ====
 
 ;;; run-clp : Nat × ((List LVar) → Goal) → (List (List Int))
 ;;; Run CLP goal and return up to n solutions.
@@ -225,9 +225,9 @@
          [solutions (goal cs)])
         (stream->list-limit solutions n)))
 
-;;; ============================================================
+;;; ====
 ;;; Convenience API
-;;; ============================================================
+;;; ====
 
 ;;; clp-solve : (List LVar) × Goal → (Maybe CStore)
 ;;; Find first solution or #f.
@@ -257,9 +257,9 @@
            n
            (loop (stream-tail s) (+ n 1)))))
 
-;;; ============================================================
+;;; ====
 ;;; Example: N-Queens Helper
-;;; ============================================================
+;;; ====
 
 ;;; n-queens : Nat → Goal
 ;;; Set up N-Queens problem.
@@ -338,9 +338,9 @@
                    (clp-succeed cs1)
                    (clp-fail cs)))))
 
-;;; ============================================================
+;;; ====
 ;;; Example: SEND + MORE = MONEY
-;;; ============================================================
+;;; ====
 
 ;;; send-more-money : → Goal
 ;;; Classic cryptarithmetic puzzle.
@@ -396,9 +396,9 @@
                    ;; Not all ground - propagate constraints
                    (clp-succeed cs)))))
 
-;;; ============================================================
+;;; ====
 ;;; CLP Help
-;;; ============================================================
+;;; ====
 
 ;;; clp-help : → Void
 ;;; Print help message.

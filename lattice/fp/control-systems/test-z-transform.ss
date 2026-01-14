@@ -3,9 +3,9 @@
 (load "core/base/prelude.ss")
 (load "lattice/fp/control-systems/z-transform.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Test Framework
-;;; ============================================================
+;;; ====
 
 (define tests-passed 0)
 (define tests-failed 0)
@@ -34,9 +34,9 @@
 
 (printf "\n=== Discrete Transfer Function (Z-Transform) Tests ===\n\n")
 
-;;; ============================================================
+;;; ====
 ;;; Construction Tests
-;;; ============================================================
+;;; ====
 
 (printf "--- Construction ---\n")
 
@@ -57,9 +57,9 @@
      (test "dtf-from-coeffs is dtf" #t (dtf? dtf))
      (test-approx "dtf-from-coeffs Ts" 0.05 (dtf-Ts dtf) 1e-10))
 
-;;; ============================================================
+;;; ====
 ;;; Poles and Zeros Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n--- Poles and Zeros ---\n")
 
@@ -91,9 +91,9 @@
       (test-approx "poles magnitude product" 0.5 (* (complex-magnitude (car poles))
                                                     (complex-magnitude (cadr poles))) 0.01))
 
-;;; ============================================================
+;;; ====
 ;;; Evaluation Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n--- Evaluation ---\n")
 
@@ -106,9 +106,9 @@
 (let ([dtf (dtf-from-lists '(1) '(1 -1) 0.1)])
      (test "DC gain with pole at z=1" 'infinite (dtf-gain dtf)))
 
-;;; ============================================================
+;;; ====
 ;;; Frequency Response Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n--- Frequency Response ---\n")
 
@@ -126,9 +126,9 @@
       ;; Phase should be negative for typical lowpass
       (test "phase is real number" #t (number? (vector-ref phase 0))))
 
-;;; ============================================================
+;;; ====
 ;;; System Connection Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n--- System Connections ---\n")
 
@@ -166,9 +166,9 @@
            ;; Actually, 1/(z-0.5) / (1 + 1/(z-0.5)) = 1/((z-0.5) + 1) = 1/(z + 0.5)
            (test "feedback: pole count" 1 (length poles))))
 
-;;; ============================================================
+;;; ====
 ;;; Stability Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n--- Stability ---\n")
 
@@ -192,9 +192,9 @@
 (let ([dtf (dtf-from-lists '(1) '(1 -1 0.5) 0.1)])  ; complex poles with |z|<1
      (test "stable with complex poles" #t (dtf-stable? dtf)))
 
-;;; ============================================================
+;;; ====
 ;;; DSS ↔ DTF Conversion Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n--- DSS <-> DTF Conversion ---\n")
 
@@ -234,9 +234,9 @@
                (test-approx "round-trip: DC gain preserved" g1 g2 0.01)
                (test "round-trip: both infinite DC gain" g1 g2))))
 
-;;; ============================================================
+;;; ====
 ;;; Edge Cases
-;;; ============================================================
+;;; ====
 
 (printf "\n--- Edge Cases ---\n")
 
@@ -251,9 +251,9 @@
      (test "order 3: dtf?" #t (dtf? dtf))
      (test "order 3: order" 3 (dtf-order dtf)))
 
-;;; ============================================================
+;;; ====
 ;;; Display Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n--- Display ---\n")
 
@@ -261,13 +261,13 @@
      (let ([str (dtf->string dtf)])
           (test "dtf->string not empty" #t (> (string-length str) 0))))
 
-;;; ============================================================
+;;; ====
 ;;; Summary
-;;; ============================================================
+;;; ====
 
-(printf "\n================================================================\n")
+(printf "\n====\n")
 (printf "                    TEST RESULTS\n")
-(printf "================================================================\n\n")
+(printf "====\n\n")
 (printf "Tests passed: ~a\n" tests-passed)
 (printf "Tests failed: ~a\n" tests-failed)
 (printf "Total tests:  ~a\n" (+ tests-passed tests-failed))

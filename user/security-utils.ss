@@ -3,9 +3,9 @@
 ;;; Common security functions for input validation, sanitization,
 ;;; and protection against common vulnerabilities.
 
-;;; ============================================================
+;;; ====
 ;;; String Utility Dependencies
-;;; ============================================================
+;;; ====
 
 ;;; string-trim : String → String
 (define (string-trim str)
@@ -122,9 +122,9 @@
                      [(string=? (substring haystack i (+ i needle-len)) needle) i]
                      [else (loop (+ i 1))]))))))
 
-;;; ============================================================
+;;; ====
 ;;; Input Validation Functions
-;;; ============================================================
+;;; ====
 
 ;;; valid-string? : Any × Nat × Nat → Bool
 ;;; Check if value is a valid string within length bounds
@@ -146,9 +146,9 @@
   (and (symbol? sym)
        (memq sym allowed-symbols)))
 
-;;; ============================================================
+;;; ====
 ;;; String Sanitization
-;;; ============================================================
+;;; ====
 
 ;;; sanitize-path : String → String | #f
 ;;; Remove path traversal sequences and validate path format
@@ -199,9 +199,9 @@
         "<" "&lt;")
        ">" "&gt;")))
 
-;;; ============================================================
+;;; ====
 ;;; Bounds Checking
-;;; ============================================================
+;;; ====
 
 ;;; safe-string-length : String × Nat → Nat
 ;;; Return string length or max value, whichever is smaller
@@ -228,9 +228,9 @@
       (vector-ref vec idx)
       default))
 
-;;; ============================================================
+;;; ====
 ;;; Type Validation
-;;; ============================================================
+;;; ====
 
 ;;; validate-block-content : Any → Bool
 ;;; Validate block content before processing
@@ -246,9 +246,9 @@
        (valid-integer? (car pt) 0 max-x)
        (valid-integer? (cdr pt) 0 max-y)))
 
-;;; ============================================================
+;;; ====
 ;;; Security Logging
-;;; ============================================================
+;;; ====
 
 ;;; log-security-event : Symbol × String → Void
 ;;; Log security events for monitoring
@@ -261,9 +261,9 @@
   (log-security-event 'invalid-input
                       (format "~a: ~s" context input)))
 
-;;; ============================================================
+;;; ====
 ;;; Safe String Operations
-;;; ============================================================
+;;; ====
 
 ;;; safe-string-replace : String × String × String × Nat → String
 ;;; Safe string replace with length limits
@@ -291,9 +291,9 @@
                 (safe-list-take parts max-parts))
                parts))))
 
-;;; ============================================================
+;;; ====
 ;;; Configuration Constants
-;;; ============================================================
+;;; ====
 
 ;;; Maximum allowed values for common operations
 (define MAX_STRING_LENGTH 10000)
@@ -302,9 +302,9 @@
 (define MAX_PATH_LENGTH 4096)
 (define MAX_RECURSION_DEPTH 100)
 
-;;; ============================================================
+;;; ====
 ;;; Safe Template Rendering
-;;; ============================================================
+;;; ====
 
 ;;; safe-template-render : String × (List (Pair String String)) → String
 ;;; Safe template rendering with input validation

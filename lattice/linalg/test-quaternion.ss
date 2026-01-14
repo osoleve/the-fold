@@ -13,9 +13,9 @@
 
 (define pi 3.141592653589793)
 
-;;; ============================================================
+;;; ====
 ;;; Construction Tests
-;;; ============================================================
+;;; ====
 
 (define-test "quat creates quaternion"
   (let ([q (quat 1 2 3 4)])
@@ -52,9 +52,9 @@
          [rotated (quat-rotate-vec3 q v1)])
         (assert-true (vec3-nearly-equal? v2 rotated 1e-9))))
 
-;;; ============================================================
+;;; ====
 ;;; Predicate Tests
-;;; ============================================================
+;;; ====
 
 (define-test "quat? identifies quaternions"
   (assert-true (quat? (quat 1 0 0 0)))
@@ -70,9 +70,9 @@
   (assert-true (quat-unit? (quat-from-axis-angle (vec3 1 0 0) 1)))
   (assert-false (quat-unit? (quat 2 0 0 0))))
 
-;;; ============================================================
+;;; ====
 ;;; Arithmetic Tests
-;;; ============================================================
+;;; ====
 
 (define-test "quat-add adds quaternions"
   (let ([q (quat-add (quat 1 2 3 4) (quat 5 6 7 8))])
@@ -98,9 +98,9 @@
          [expected (quat-from-axis-angle (vec3 0 0 1) pi)])
         (assert-true (quat-nearly-equal? q2 expected 1e-9))))
 
-;;; ============================================================
+;;; ====
 ;;; Normalization Tests
-;;; ============================================================
+;;; ====
 
 (define-test "quat-magnitude computes length"
   (assert-true (approx= 1.0 (quat-magnitude (quat-identity))))
@@ -111,9 +111,9 @@
        (assert-true (approx= 1.0 (quat-magnitude q)))
        (assert-true (approx= 1.0 (quat-z q)))))
 
-;;; ============================================================
+;;; ====
 ;;; Conjugate and Inverse Tests
-;;; ============================================================
+;;; ====
 
 (define-test "quat-conjugate negates vector part"
   (let ([q (quat-conjugate (quat 1 2 3 4))])
@@ -128,9 +128,9 @@
          [result (quat-mul q qi)])
         (assert-true (quat-identity? result))))
 
-;;; ============================================================
+;;; ====
 ;;; Interpolation Tests
-;;; ============================================================
+;;; ====
 
 (define-test "quat-slerp at endpoints"
   (let* ([q1 (quat-from-axis-angle (vec3 0 0 1) 0)]
@@ -153,9 +153,9 @@
         ;; For small angles, nlerp ≈ slerp
         (assert-true (< (quat-angle slerp-mid nlerp-mid) 0.01))))
 
-;;; ============================================================
+;;; ====
 ;;; Rotation Tests
-;;; ============================================================
+;;; ====
 
 (define-test "quat-rotate-vec3 rotates vector"
   (let* ([q (quat-from-axis-angle (vec3 0 0 1) (/ pi 2))]
@@ -183,9 +183,9 @@
          [back (quat-rotate-vec3-inverse q rotated)])
         (assert-true (vec3-nearly-equal? v back 1e-9))))
 
-;;; ============================================================
+;;; ====
 ;;; Conversion Tests
-;;; ============================================================
+;;; ====
 
 (define-test "quat-to-axis-angle round-trips"
   (let* ([axis (vec3-normalize (vec3 1 2 3))]
@@ -244,9 +244,9 @@
         (assert-true (approx= 0 (car row0)))
         (assert-true (approx= 1 (car row1)))))
 
-;;; ============================================================
+;;; ====
 ;;; Angular Velocity Tests
-;;; ============================================================
+;;; ====
 
 (define-test "quat-integrate rotates by angular velocity"
   (let* ([q (quat-identity)]
@@ -265,9 +265,9 @@
         (assert-true (approx= 0 (vec3-y omega)))
         (assert-true (approx= 1 (vec3-z omega)))))
 
-;;; ============================================================
+;;; ====
 ;;; Direction Tests
-;;; ============================================================
+;;; ====
 
 (define-test "quat-forward returns rotated forward"
   (let* ([q (quat-identity)]
@@ -284,9 +284,9 @@
          [up (quat-up q)])
         (assert-equal (vec3 0 1 0) up)))
 
-;;; ============================================================
+;;; ====
 ;;; Equality Tests
-;;; ============================================================
+;;; ====
 
 (define-test "quat-equal? handles double cover"
   ;; q and -q represent the same rotation
@@ -294,10 +294,10 @@
        (assert-true (quat-equal? q q))
        (assert-true (quat-equal? q (quat-neg q)))))
 
-;;; ============================================================
+;;; ====
 ;;; Run Tests
-;;; ============================================================
+;;; ====
 
 (display "Running Quaternion Tests...\n")
-(display "==========================\n\n")
+(display "====\n\n")
 (run-tests 'quaternion)

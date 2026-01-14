@@ -3,9 +3,9 @@
 (load "core/base/prelude.ss")
 (load "lattice/fp/control-systems/discrete-control.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Test Framework
-;;; ============================================================
+;;; ====
 
 (define tests-passed 0)
 (define tests-failed 0)
@@ -34,9 +34,9 @@
 
 (printf "\n=== Discrete Control System Tests ===\n\n")
 
-;;; ============================================================
+;;; ====
 ;;; DSS Construction Tests
-;;; ============================================================
+;;; ====
 
 (printf "--- DSS Construction ---\n")
 
@@ -52,9 +52,9 @@
       (test-approx "dss-A[0,0]" 0.9 (matrix-ref (dss-A sys) 0 0) 1e-10)
       (test-approx "dss-B[1,0]" 0.2 (matrix-ref (dss-B sys) 1 0) 1e-10))
 
-;;; ============================================================
+;;; ====
 ;;; ZOH Discretization Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n--- ZOH Discretization ---\n")
 
@@ -103,9 +103,9 @@
       (test-approx "zoh 2nd order: C preserved" 1.0 (matrix-ref (dss-C dsys) 0 0) 1e-10)
       (test-approx "zoh 2nd order: D preserved" 0.0 (matrix-ref (dss-D dsys) 0 0) 1e-10))
 
-;;; ============================================================
+;;; ====
 ;;; Tustin Discretization Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n--- Tustin Discretization ---\n")
 
@@ -137,9 +137,9 @@
       ;; For A=0: Ad = (I - 0)^{-1}(I + 0) = I
       (test-approx "tustin integrator: Ad" 1.0 (matrix-ref (dss-A dsys) 0 0) 1e-10))
 
-;;; ============================================================
+;;; ====
 ;;; Round-Trip: c2d then d2c
-;;; ============================================================
+;;; ====
 
 (printf "\n--- Round-Trip (c2d -> d2c) ---\n")
 
@@ -162,9 +162,9 @@
       ;; D term accumulates numerical error through Tustin - just check it's small
       (test-approx "round-trip: D approximately zero" 0.0 (matrix-ref (ss-D sys2) 0 0) 0.2))
 
-;;; ============================================================
+;;; ====
 ;;; Discrete Simulation Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n--- Discrete Simulation ---\n")
 
@@ -213,9 +213,9 @@
       (test-approx "impulse-response: y[1]" 1.0 (vector-ref (cadr imp-resp) 0) 1e-10)
       (test-approx "impulse-response: y[2]" 0.5 (vector-ref (caddr imp-resp) 0) 1e-10))
 
-;;; ============================================================
+;;; ====
 ;;; Discrete Stability Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n--- Discrete Stability ---\n")
 
@@ -251,9 +251,9 @@
        [dsys (make-dss A B C D 0.1)])
       (test "marginally stable (|eig|=1)" #f (dss-stable? dsys)))
 
-;;; ============================================================
+;;; ====
 ;;; Stability Preservation Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n--- Stability Preservation ---\n")
 
@@ -284,9 +284,9 @@
        [dsys-tustin (c2d-tustin sys 1.0)])  ; Large Ts
       (test "tustin large Ts preserves stability" #t (dss-stable? dsys-tustin)))
 
-;;; ============================================================
+;;; ====
 ;;; Sample Rate Recommendation
-;;; ============================================================
+;;; ====
 
 (printf "\n--- Sample Rate Recommendation ---\n")
 
@@ -310,9 +310,9 @@
       ;; Should be around 1/(10*1) = 0.1
       (test-approx "recommend-sample-rate: slow pole" 0.1 rec-Ts 0.05))
 
-;;; ============================================================
+;;; ====
 ;;; Edge Cases
-;;; ============================================================
+;;; ====
 
 (printf "\n--- Edge Cases ---\n")
 
@@ -343,13 +343,13 @@
       (test-approx "double integrator: Ad[0,1]" Ts (matrix-ref (dss-A dsys) 0 1) 1e-6)
       (test-approx "double integrator: Ad[1,1]" 1.0 (matrix-ref (dss-A dsys) 1 1) 1e-6))
 
-;;; ============================================================
+;;; ====
 ;;; Summary
-;;; ============================================================
+;;; ====
 
-(printf "\n================================================================\n")
+(printf "\n====\n")
 (printf "                    TEST RESULTS\n")
-(printf "================================================================\n\n")
+(printf "====\n\n")
 (printf "Tests passed: ~a\n" tests-passed)
 (printf "Tests failed: ~a\n" tests-failed)
 (printf "Total tests:  ~a\n" (+ tests-passed tests-failed))

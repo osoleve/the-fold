@@ -19,9 +19,9 @@
        (approx= (vec3-y v1) (vec3-y v2) eps)
        (approx= (vec3-z v1) (vec3-z v2) eps)))
 
-;;; ============================================================
+;;; ====
 ;;; Octree Leaf Construction Tests
-;;; ============================================================
+;;; ====
 
 (define-test "octree-leaf creation"
   (let* ([center (vec3 0 0 0)]
@@ -44,9 +44,9 @@
         (assert-equal (octree-center node) center)
         (assert-equal (octree-size node) size)))
 
-;;; ============================================================
+;;; ====
 ;;; Octree Build Tests
-;;; ============================================================
+;;; ====
 
 (define-test "octree-build with single triangle returns leaf"
   (let* ([tri (triangle3 (vec3 0 0 0) (vec3 1 0 0) (vec3 0 1 0))]
@@ -73,9 +73,9 @@
         ;; Depth limited to 2
         (assert-true (<= (octree-depth octree) 3))))
 
-;;; ============================================================
+;;; ====
 ;;; Subdivide Octants Tests
-;;; ============================================================
+;;; ====
 
 (define-test "subdivide-octants produces 8 octants"
   (let* ([center (vec3 0 0 0)]
@@ -107,9 +107,9 @@
         (assert-equal x-neg-count 4)
         (assert-equal y-neg-count 4)))
 
-;;; ============================================================
+;;; ====
 ;;; AABB Overlap Tests
-;;; ============================================================
+;;; ====
 
 (define-test "aabb-overlaps? true for overlapping boxes"
   (let* ([a (aabb (vec3 0 0 0) (vec3 2 2 2))]
@@ -131,9 +131,9 @@
          [b (aabb (vec3 1 0 0) (vec3 2 1 1))])
         (assert-true (aabb-overlaps? a b))))
 
-;;; ============================================================
+;;; ====
 ;;; Triangle-Octant Intersection Tests
-;;; ============================================================
+;;; ====
 
 (define-test "triangle-intersects-octant? true when vertex inside"
   (let* ([tri (triangle3 (vec3 0 0 0) (vec3 1 0 0) (vec3 0 1 0))]
@@ -154,9 +154,9 @@
         ;; Triangle bbox overlaps octant, though vertices are outside
         (assert-true (triangle-intersects-octant? tri center size))))
 
-;;; ============================================================
+;;; ====
 ;;; Ray-Octant Intersection Tests
-;;; ============================================================
+;;; ====
 
 (define-test "ray-intersects-octant? true for intersecting ray"
   (let* ([ray (ray3 (vec3 0 0 -10) (vec3 0 0 1))]
@@ -180,9 +180,9 @@
         ;; Returns intersection t values if hit
         (assert-false (equal? result #f))))
 
-;;; ============================================================
+;;; ====
 ;;; Octree Ray Intersection Tests
-;;; ============================================================
+;;; ====
 
 (define-test "octree-intersect-ray hit single triangle"
   (let* ([tri (triangle3 (vec3 -1 -1 0) (vec3 1 -1 0) (vec3 0 1 0))]
@@ -211,9 +211,9 @@
         (let ([t (cadr result)])
              (assert-true (approx= t 15.0 0.1)))))  ; -20 + 15 = -5
 
-;;; ============================================================
+;;; ====
 ;;; Octree Statistics Tests
-;;; ============================================================
+;;; ====
 
 (define-test "octree-depth for leaf"
   (let* ([tri (triangle3 (vec3 0 0 0) (vec3 1 0 0) (vec3 0 1 0))]
@@ -250,9 +250,9 @@
         ;; Depth is at least 1 (a leaf)
         (assert-true (>= (octree-depth octree) 1))))
 
-;;; ============================================================
+;;; ====
 ;;; Edge Cases
-;;; ============================================================
+;;; ====
 
 (define-test "octree-build empty list returns empty leaf"
   (let* ([octree (octree-build '() (vec3 0 0 0) 10 5 10)])
@@ -271,9 +271,9 @@
         (assert-true (octree-leaf? octree))
         (assert-equal (length (octree-primitives octree)) 1)))
 
-;;; ============================================================
+;;; ====
 ;;; Summary
-;;; ============================================================
+;;; ====
 
 (display "\n")
 (display "Tests run:    ")

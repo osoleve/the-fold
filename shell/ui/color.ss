@@ -5,9 +5,9 @@
 ;;;
 ;;; This is Shell code: handles display formatting (impure side).
 
-;;; ============================================================
+;;; ====
 ;;; Color Data Structure
-;;; ============================================================
+;;; ====
 
 ;;; Color : (+ 'default (rgb Nat Nat Nat) (palette Nat))
 ;;;
@@ -44,9 +44,9 @@
 (define (color-default? c)
   (eq? c 'default))
 
-;;; ============================================================
+;;; ====
 ;;; Color Constants (256-color palette)
-;;; ============================================================
+;;; ====
 
 ;;; Basic 16 ANSI colors (0-15)
 (define color-black         (make-color-palette 0))
@@ -79,9 +79,9 @@
 (define (rgb r g b)
   (make-color-rgb r g b))
 
-;;; ============================================================
+;;; ====
 ;;; ANSI Escape Code Generation
-;;; ============================================================
+;;; ====
 
 ;;; ansi-fg : Color → String
 ;;; Generate ANSI foreground color escape sequence.
@@ -138,9 +138,9 @@
 (define (ansi-color fg bg)
   (string-append (ansi-fg fg) (ansi-bg bg)))
 
-;;; ============================================================
+;;; ====
 ;;; Cell Type — Character + Color
-;;; ============================================================
+;;; ====
 
 ;;; Cell : (× Char Color Color)
 ;;;
@@ -170,9 +170,9 @@
 (define (make-cell-simple ch)
   (make-cell ch color-default color-default))
 
-;;; ============================================================
+;;; ====
 ;;; Color Helpers
-;;; ============================================================
+;;; ====
 
 ;;; lerp-color : Color × Color × Float → Color
 ;;; Linear interpolation between two RGB colors.
@@ -223,9 +223,9 @@
             (inexact->exact (round (+ b (* (- 255 b) factor))))))
       color))
 
-;;; ============================================================
+;;; ====
 ;;; Mood Color Schemes
-;;; ============================================================
+;;; ====
 
 ;;; DUCKIE mood → color mapping
 ;;;
@@ -257,9 +257,9 @@
          [high (rgb 255 220 100)])       ; Bright yellow (high energy)
         (lerp-color low high t)))
 
-;;; ============================================================
+;;; ====
 ;;; Export Summary
-;;; ============================================================
+;;; ====
 
 ;;; Exports (implicitly available when loaded):
 ;;;

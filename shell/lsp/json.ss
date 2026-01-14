@@ -24,9 +24,9 @@
 
 (load "core/base/prelude.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Type Predicates
-;;; ============================================================
+;;; ====
 
 ;;; json-object? : Any → Boolean
 (define (json-object? x)
@@ -40,9 +40,9 @@
 (define (json-null? x)
   (eq? x 'null))
 
-;;; ============================================================
+;;; ====
 ;;; Object Access
-;;; ============================================================
+;;; ====
 
 ;;; json-get : JsonObject × String → Value | #f
 ;;; Get a value from a JSON object by key.
@@ -62,9 +62,9 @@
                (json-get-path next (cdr path))
                #f))))
 
-;;; ============================================================
+;;; ====
 ;;; Constructors
-;;; ============================================================
+;;; ====
 
 ;;; json-obj : (key val ...) → JsonObject
 ;;; Construct a JSON object from key-value pairs.
@@ -80,9 +80,9 @@
 (define (json-arr . elems)
   (cons 'json-array elems))
 
-;;; ============================================================
+;;; ====
 ;;; Serializer
-;;; ============================================================
+;;; ====
 
 ;;; json-write : JsonValue → String
 (define (json-write val)
@@ -166,9 +166,9 @@
                acc
                (loop (cdr ss) (string-append acc sep (car ss)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Parser State
-;;; ============================================================
+;;; ====
 
 ;;; Parser operates on a string with an index.
 ;;; State = (index . string)
@@ -197,9 +197,9 @@
 (define (pstate-advance-n s n)
   (cons (+ n (pstate-index s)) (pstate-str s)))
 
-;;; ============================================================
+;;; ====
 ;;; Parser Primitives
-;;; ============================================================
+;;; ====
 
 ;;; skip-whitespace : State → State
 (define (skip-whitespace s)
@@ -228,9 +228,9 @@
                         (loop (+ i 1))
                         #f))))))
 
-;;; ============================================================
+;;; ====
 ;;; JSON Parser
-;;; ============================================================
+;;; ====
 
 ;;; Maximum nesting depth to prevent stack overflow DoS attacks.
 ;;; RFC 8259 doesn't specify a limit, but 100 levels is reasonable.
@@ -517,9 +517,9 @@
                                                                            (cons entry entries))]
                                                                     [else "Expected ',' or '}' in object"]))))))))))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Tests (run with test-framework)
-;;; ============================================================
+;;; ====
 
 ;; Self-test when loaded directly
 (when (top-level-bound? '*running-tests*)

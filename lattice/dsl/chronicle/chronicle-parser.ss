@@ -29,9 +29,9 @@
 (load "lattice/fp/parsing/parser.ss")
 (load "lattice/dsl/chronicle/chronicle.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Lexical Primitives
-;;; ============================================================
+;;; ====
 
 ;;; Skip whitespace and comments
 (define whitespace
@@ -53,9 +53,9 @@
 (define (symbol str)
   (lexeme (string-parser str)))
 
-;;; ============================================================
+;;; ====
 ;;; Identifiers and Strings
-;;; ============================================================
+;;; ====
 
 ;;; identifier-start : Parser Char
 (define identifier-start
@@ -100,9 +100,9 @@
                                                          (not (char=? c #\\))))
                                         "string character")))))))
 
-;;; ============================================================
+;;; ====
 ;;; Guard Expressions
-;;; ============================================================
+;;; ====
 
 ;;; Parse guard expressions like:
 ;;;   flag?(name)
@@ -213,9 +213,9 @@
     ;; false
     (parser-then (symbol "false") (parser-pure #f)))))
 
-;;; ============================================================
+;;; ====
 ;;; Effect Expressions
-;;; ============================================================
+;;; ====
 
 ;;; Parse effects like:
 ;;;   set!(name, value)
@@ -280,9 +280,9 @@
                                       (lambda (name)
                                               (parser-pure (list 'remove-item! name)))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Values
-;;; ============================================================
+;;; ====
 
 ;;; parse-number : Parser Number
 (define parse-number
@@ -304,9 +304,9 @@
     (parser-then (symbol "false") (parser-pure #f))
     identifier)))
 
-;;; ============================================================
+;;; ====
 ;;; Choice Definition
-;;; ============================================================
+;;; ====
 
 ;;; Parse choice like:
 ;;;   -> "label" => target
@@ -354,9 +354,9 @@
                                                                                                                   (if guard-mod (list ':when (cdr guard-mod)) '())
                                                                                                                   (if do-mod (list ':do (cdr do-mod)) '())))))))))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Scene Definition
-;;; ============================================================
+;;; ====
 
 ;;; Parse scene like:
 ;;;   scene name {
@@ -399,9 +399,9 @@
                                                                          ,@(if (null? on-enter) '() (list `(on-enter ,@on-enter)))
                                                                          ,@choices))))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Chronicle Definition
-;;; ============================================================
+;;; ====
 
 ;;; Parse chronicle like:
 ;;;   chronicle "title" {
@@ -439,9 +439,9 @@
                                                                          ,@(if start (list start) '())
                                                                          ,@scenes))))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Main Entry Point
-;;; ============================================================
+;;; ====
 
 ;;; parse-chronicle-text : String -> Either Error Chronicle
 ;;; Parse textual chronicle DSL and compile to Chronicle structure.
@@ -459,9 +459,9 @@
    (map (lambda (c) (if (char=? c (string-ref old 0)) (string-ref new 0) c))
         (string->list str))))
 
-;;; ============================================================
+;;; ====
 ;;; Convenience: Parse and Run
-;;; ============================================================
+;;; ====
 
 ;;; chronicle-from-text : String -> Chronicle
 ;;; Parse text and return chronicle (or error).
@@ -472,9 +472,9 @@
            (error 'chronicle-from-text
                   (format-error (from-left result))))))
 
-;;; ============================================================
+;;; ====
 ;;; Exports Summary
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Main Entry Points:
 ;;;   parse-chronicle-text : String -> Either Error Chronicle

@@ -7,9 +7,9 @@
 (load "lattice/query/patterns-parse.ss")
 (load "lattice/query/query.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Test Framework
-;;; ============================================================
+;;; ====
 
 (define *tests-run* 0)
 (define *tests-passed* 0)
@@ -34,9 +34,9 @@
       (display "All tests passed!\n")
       (display "SOME TESTS FAILED\n")))
 
-;;; ============================================================
+;;; ====
 ;;; Test Helpers
-;;; ============================================================
+;;; ====
 
 ;;; Mock list-channels and collect-channel for testing
 (define test-channels '(test-channel))
@@ -53,9 +53,9 @@
 (define (make-test-fs)
   'dummy-fs)
 
-;;; ============================================================
+;;; ====
 ;;; Test: safe-get-body
-;;; ============================================================
+;;; ====
 
 (display "\n=== safe-get-body Tests ===\n\n")
 
@@ -71,9 +71,9 @@
       ""
       (safe-get-body '()))
 
-;;; ============================================================
+;;; ====
 ;;; Test: find-tagged with missing body
-;;; ============================================================
+;;; ====
 
 (display "\n=== find-tagged Tests ===\n\n")
 
@@ -116,9 +116,9 @@
       2
       (length (find-tagged (make-test-fs) 'status #t)))
 
-;;; ============================================================
+;;; ====
 ;;; Test: list-all-tags with missing body
-;;; ============================================================
+;;; ====
 
 (display "\n=== list-all-tags Tests ===\n\n")
 
@@ -152,9 +152,9 @@
       0
       (length (list-all-tags (make-test-fs))))
 
-;;; ============================================================
+;;; ====
 ;;; Test: tag-histogram with missing body
-;;; ============================================================
+;;; ====
 
 (display "\n=== tag-histogram Tests ===\n\n")
 
@@ -177,9 +177,9 @@
            1
            (cdr (assq 'priority hist))))
 
-;;; ============================================================
+;;; ====
 ;;; Test: tag-values with missing body
-;;; ============================================================
+;;; ====
 
 (display "\n=== tag-values Tests ===\n\n")
 
@@ -202,9 +202,9 @@
            #t
            (if (member "pending" values) #t #f)))
 
-;;; ============================================================
+;;; ====
 ;;; Test: tag-value-histogram with missing body
-;;; ============================================================
+;;; ====
 
 (display "\n=== tag-value-histogram Tests ===\n\n")
 
@@ -227,8 +227,8 @@
            1
            (cdr (assoc "pending" hist))))
 
-;;; ============================================================
+;;; ====
 ;;; Test Summary
-;;; ============================================================
+;;; ====
 
 (test-summary)

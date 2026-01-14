@@ -6,9 +6,9 @@
 (load "core/testing/test-framework.ss")
 (load "lattice/dsl/partial-eval.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Binding Time Tests
-;;; ============================================================
+;;; ====
 
 (test-group binding-time
             
@@ -37,9 +37,9 @@
               (assert-false (bt<=? bt-dynamic bt-static))
               (assert-false (bt<=? bt-static bt-bottom))))
 
-;;; ============================================================
+;;; ====
 ;;; Binding-Time Environment Tests
-;;; ============================================================
+;;; ====
 
 (test-group bt-env
             
@@ -64,9 +64,9 @@
                      [env2 (bt-env-extend env 'x bt-dynamic)])
                     (assert-equal bt-dynamic (bt-env-lookup env2 'x)))))
 
-;;; ============================================================
+;;; ====
 ;;; Binding-Time Analysis Tests
-;;; ============================================================
+;;; ====
 
 (test-group bta
             
@@ -113,9 +113,9 @@
               (let ([env (bt-env-extend (make-bt-env) 'x bt-dynamic)])
                    (assert-equal bt-dynamic (bta '(+ 1 x) env)))))
 
-;;; ============================================================
+;;; ====
 ;;; Static Store Tests
-;;; ============================================================
+;;; ====
 
 (test-group static-store
             
@@ -136,9 +136,9 @@
                     (assert-false (static-store-has? store 'x))
                     (assert-true (static-store-has? store2 'x)))))
 
-;;; ============================================================
+;;; ====
 ;;; PE State Tests
-;;; ============================================================
+;;; ====
 
 (test-group pe-state
             
@@ -164,9 +164,9 @@
                     (assert-equal 'x$1 (car r2))
                     (assert-equal 'y$2 (car r3)))))
 
-;;; ============================================================
+;;; ====
 ;;; Online Partial Evaluation Tests
-;;; ============================================================
+;;; ====
 
 (test-group pe-online
             
@@ -235,9 +235,9 @@
               (let ([result (partial-eval '((lambda (x) (+ x 1)) y) '())])
                    (assert-true (pair? result)))))
 
-;;; ============================================================
+;;; ====
 ;;; List Primitive Tests (QA findings from Gemini)
-;;; ============================================================
+;;; ====
 
 (test-group list-primitives
             
@@ -277,9 +277,9 @@
             (define-test not-static-false
               (assert-equal #t (partial-eval '(not #f) '()))))
 
-;;; ============================================================
+;;; ====
 ;;; Specialization Tests
-;;; ============================================================
+;;; ====
 
 (test-group specialize
             
@@ -302,9 +302,9 @@
                              '((x . 10)))])
                    (assert-equal 'define (car result)))))
 
-;;; ============================================================
+;;; ====
 ;;; Simplification Tests
-;;; ============================================================
+;;; ====
 
 (test-group simplify
             
@@ -339,9 +339,9 @@
             (define-test empty-let
               (assert-equal 'x (simplify '(let () x)))))
 
-;;; ============================================================
+;;; ====
 ;;; Power Example Tests
-;;; ============================================================
+;;; ====
 
 (test-group power-example
             
@@ -363,9 +363,9 @@
                    (let ([expr (code-expr code)])
                         (assert-equal '* (car expr))))))
 
-;;; ============================================================
+;;; ====
 ;;; Offline Partial Evaluation Tests
-;;; ============================================================
+;;; ====
 
 (test-group pe-offline
             
@@ -380,9 +380,9 @@
               (let ([result (partial-eval-offline '(+ x 1) '())])
                    (assert-equal '(+ x 1) result))))
 
-;;; ============================================================
+;;; ====
 ;;; Integration Tests
-;;; ============================================================
+;;; ====
 
 (test-group integration
             
@@ -411,9 +411,9 @@
                              '())])
                    (assert-equal 'x result))))
 
-;;; ============================================================
+;;; ====
 ;;; Summary
-;;; ============================================================
+;;; ====
 
 (display "\n=== Partial Evaluation Tests Complete ===\n")
 (display "Passed: ")

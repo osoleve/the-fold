@@ -22,9 +22,9 @@
 (load "core/base/prelude.ss")
 (load "shell/tools/index.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Graph Data Structures
-;;; ============================================================
+;;; ====
 
 ;;; *depgraph* : Hashtable String → (List String)
 ;;; Maps each module path to its direct dependencies.
@@ -41,9 +41,9 @@
 ;;; *depgraph-initialized* : Boolean
 (define *depgraph-initialized* #f)
 
-;;; ============================================================
+;;; ====
 ;;; Graph Building
-;;; ============================================================
+;;; ====
 
 ;;; depgraph-refresh! : Unit → Void
 ;;; Rebuild the dependency graph from the module registry.
@@ -81,9 +81,9 @@
   (display "Dependency graph complete.\n")
   (depgraph-stats))
 
-;;; ============================================================
+;;; ====
 ;;; Cycle Detection (Tarjan's SCC Algorithm)
-;;; ============================================================
+;;; ====
 
 ;;; find-all-cycles : Unit → (List (List String))
 ;;; Find all strongly connected components with more than one node.
@@ -141,9 +141,9 @@
        
        sccs))
 
-;;; ============================================================
+;;; ====
 ;;; Query Functions
-;;; ============================================================
+;;; ====
 
 ;;; depgraph-deps : String → (List String)
 ;;; Get direct dependencies of a module.
@@ -200,9 +200,9 @@
   (unless *depgraph-initialized*
           (depgraph-refresh!)))
 
-;;; ============================================================
+;;; ====
 ;;; Cycle Analysis
-;;; ============================================================
+;;; ====
 
 ;;; depgraph-cycles : Unit → Void
 ;;; Display all detected cycles.
@@ -244,9 +244,9 @@
   (ensure-depgraph!)
   (ormap (lambda (cycle) (member path cycle)) *depgraph-cycles*))
 
-;;; ============================================================
+;;; ====
 ;;; Breaking Cycle Suggestions
-;;; ============================================================
+;;; ====
 
 ;;; depgraph-suggest : String → Void
 ;;; Suggest how to break cycles involving a module.
@@ -306,9 +306,9 @@
              [(char=? (string-ref path i) #\/) (substring path (+ i 1) len)]
              [else (loop (- i 1))]))))
 
-;;; ============================================================
+;;; ====
 ;;; Dependency Tree Visualization
-;;; ============================================================
+;;; ====
 
 ;;; depgraph-tree : String × Nat... → Void
 ;;; Display dependency tree for a module.
@@ -344,9 +344,9 @@
                                         (display-tree dep (+ depth 1) max-depth visited new-prefix))
                                   (loop (cdr deps))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Layered View
-;;; ============================================================
+;;; ====
 
 ;;; depgraph-layers : Unit → Void
 ;;; Show modules organized by dependency layers.
@@ -424,9 +424,9 @@
                        current-layer)
                       (loop (cons current-layer layers))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Statistics
-;;; ============================================================
+;;; ====
 
 ;;; depgraph-stats : Unit → Void
 ;;; Display dependency graph statistics.
@@ -474,9 +474,9 @@
                               max-deps)))
        (display "\n")))
 
-;;; ============================================================
+;;; ====
 ;;; REPL Commands (convenience wrappers)
-;;; ============================================================
+;;; ====
 
 ;;; deps : String → Void
 ;;; Show what a module depends on.
@@ -510,9 +510,9 @@
 ;;; Alias for depgraph-cycles.
 (define cycles depgraph-cycles)
 
-;;; ============================================================
+;;; ====
 ;;; Initialization
-;;; ============================================================
+;;; ====
 
 (display "\nDependency graph system loaded.\n")
 (display "Commands: (deps \"path\"), (rdeps \"path\"), (cycles)\n")

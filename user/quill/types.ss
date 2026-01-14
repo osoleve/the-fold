@@ -12,9 +12,9 @@
 
 (define *quill-version* "0.1.0")
 
-;;; ============================================================
+;;; ====
 ;;; Story / Node / Choice
-;;; ============================================================
+;;; ====
 
 (define-record-type quill-story%
   (fields id title start-node nodes meta))
@@ -55,9 +55,9 @@
 (define quill-choice-effects quill-choice%-effects)
 (define quill-choice-meta quill-choice%-meta)
 
-;;; ============================================================
+;;; ====
 ;;; Run State
-;;; ============================================================
+;;; ====
 
 (define-record-type quill-run%
   (fields story-id node-id state transcript done? message))
@@ -118,9 +118,9 @@
 (define (quill-transcript-entry kind fields)
   (cons (cons 'kind kind) fields))
 
-;;; ============================================================
+;;; ====
 ;;; Intent (input model)
-;;; ============================================================
+;;; ====
 
 ;;; Intent values are small tagged lists:
 ;;;   (choose n)

@@ -45,16 +45,16 @@
 
 (display "
 ")
-(display "==============================================================
+(display "====
 ")
 (display "         PARSER EXAMPLES TESTS
 ")
-(display "==============================================================
+(display "====
 ")
 
-;;; ============================================================
+;;; ====
 ;;; JSON Parser Tests
-;;; ============================================================
+;;; ====
 
 (test-group json-parser
             (define-test json-null-test
@@ -115,9 +115,9 @@
                               (assert-equal "user" (car user-pair))
                               (assert-true (pair? user)))))))
 
-;;; ============================================================
+;;; ====
 ;;; S-Expression Parser Tests
-;;; ============================================================
+;;; ====
 
 (test-group sexp-parser
             (define-test sexp-number-test
@@ -193,9 +193,9 @@ b)")])
                    (assert-true (right? result))
                    (assert-equal '((a b) (c d)) (from-right result)))))
 
-;;; ============================================================
+;;; ====
 ;;; Arithmetic Expression Parser Tests
-;;; ============================================================
+;;; ====
 
 (test-group arith-parser
             (define-test arith-number-test
@@ -257,9 +257,9 @@ b)")])
                    ;; 1 + 6 - 2 = 5
                    (assert-equal 5 (eval-arith (from-right result))))))
 
-;;; ============================================================
+;;; ====
 ;;; INI File Parser Tests
-;;; ============================================================
+;;; ====
 
 (test-group ini-parser
             (define-test ini-simple-test
@@ -328,13 +328,13 @@ foo=bar
                              (assert-true (nothing? missing))
                              (assert-true (nothing? no-section)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Summary
-;;; ============================================================
+;;; ====
 
 (display "
 ")
-(display "==============================================================
+(display "====
 ")
 (printf "Tests passed: ~a
 " *tests-passed*)

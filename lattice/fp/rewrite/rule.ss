@@ -24,9 +24,9 @@
 
 (load "core/base/prelude.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Helper: Option Extraction
-;;; ============================================================
+;;; ====
 
 ;;; get-opt : List × Symbol × Any → Any
 ;;; Extract an option from a plist-style options list.
@@ -38,9 +38,9 @@
         [(eq? (car opts) key) (cadr opts)]
         [else (loop (cddr opts))])))
 
-;;; ============================================================
+;;; ====
 ;;; Rule Construction
-;;; ============================================================
+;;; ====
 
 ;;; make-rule : Symbol × Pattern × Template × Opts... → Rule
 ;;; Create a rewrite rule.
@@ -56,9 +56,9 @@
     (direction . ,(get-opt opts 'direction 'forward))
     (conditions . ,(get-opt opts 'conditions '()))))
 
-;;; ============================================================
+;;; ====
 ;;; Rule Predicates
-;;; ============================================================
+;;; ====
 
 ;;; rule? : Any → Boolean
 ;;; Check if x is a valid rule structure.
@@ -68,9 +68,9 @@
        (assq 'lhs x)
        (assq 'rhs x)))
 
-;;; ============================================================
+;;; ====
 ;;; Rule Accessors
-;;; ============================================================
+;;; ====
 
 ;;; rule-name : Rule → Symbol
 (define (rule-name r)
@@ -99,9 +99,9 @@
   (let ([cond (assq 'conditions r)])
        (if cond (cdr cond) '())))
 
-;;; ============================================================
+;;; ====
 ;;; Metavariable Detection
-;;; ============================================================
+;;; ====
 
 ;;; metavar? : Any → Boolean
 ;;; Check if pattern element is a metavariable.
@@ -129,9 +129,9 @@
       (cadr mv)
       #f))
 
-;;; ============================================================
+;;; ====
 ;;; Pattern Utilities
-;;; ============================================================
+;;; ====
 
 ;;; pattern-vars : Pattern → (List Symbol)
 ;;; Collect all metavariable names from a pattern.
@@ -154,9 +154,9 @@
              [(memq (car vs) seen) (loop (cdr vs) seen acc)]
              [else (loop (cdr vs) (cons (car vs) seen) (cons (car vs) acc))]))))
 
-;;; ============================================================
+;;; ====
 ;;; Rule Display
-;;; ============================================================
+;;; ====
 
 ;;; rule->string : Rule → String
 ;;; Format a rule for display.
@@ -167,9 +167,9 @@
           (rule-rhs r)
           (rule-category r)))
 
-;;; ============================================================
+;;; ====
 ;;; Rule Validation
-;;; ============================================================
+;;; ====
 
 ;;; valid-rule? : Rule → Boolean
 ;;; Check if a rule is well-formed:

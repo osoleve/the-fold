@@ -9,9 +9,9 @@
 
 (display "=== Symbolic Calculus Examples ===\n\n")
 
-;;; ============================================================
+;;; ====
 ;;; Example 1: Derivative Tables
-;;; ============================================================
+;;; ====
 
 (display "--- Example 1: Building a Derivative Table ---\n\n")
 
@@ -33,9 +33,9 @@
 
 (newline)
 
-;;; ============================================================
+;;; ====
 ;;; Example 2: Integration and Verification
-;;; ============================================================
+;;; ====
 
 (display "--- Example 2: Integration with Verification ---\n\n")
 
@@ -57,9 +57,9 @@
 (verify-integral (sym-exp (var 'x)) 'x)
 (verify-integral (quotient (num 1) (var 'x)) 'x)
 
-;;; ============================================================
+;;; ====
 ;;; Example 3: Simplification Showcase
-;;; ============================================================
+;;; ====
 
 (display "--- Example 3: Algebraic Simplification ---\n\n")
 
@@ -87,9 +87,9 @@
 
 (newline)
 
-;;; ============================================================
+;;; ====
 ;;; Example 4: Definite Integrals
-;;; ============================================================
+;;; ====
 
 (display "--- Example 4: Definite Integrals ---\n\n")
 
@@ -112,9 +112,9 @@
 
 (newline)
 
-;;; ============================================================
+;;; ====
 ;;; Example 5: Gradient Computation
-;;; ============================================================
+;;; ====
 
 (display "--- Example 5: Gradient and Hessian ---\n\n")
 
@@ -147,9 +147,9 @@
 
 (newline)
 
-;;; ============================================================
+;;; ====
 ;;; Example 6: Chain Rule in Action
-;;; ============================================================
+;;; ====
 
 (display "--- Example 6: Chain Rule ---\n\n")
 
@@ -177,9 +177,9 @@
                   (sum (num 1) (power (var 'x) (num 2)))
                   'x)
 
-;;; ============================================================
+;;; ====
 ;;; Example 7: Product Expansion
-;;; ============================================================
+;;; ====
 
 (display "--- Example 7: Product Expansion ---\n\n")
 

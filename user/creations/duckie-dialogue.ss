@@ -6,9 +6,9 @@
 ;;; Each mood has its own voice. Each interaction its own response.
 ;;; This is DUCKIE thinking out loud.
 
-;;; ============================================================
+;;; ====
 ;;; Greetings — When User Arrives
-;;; ============================================================
+;;; ====
 
 ;;; happy: Bouncing, bright
 (define greetings-happy
@@ -76,9 +76,9 @@
     "*splashes excitedly*"
     "The fun is about to start!"))
 
-;;; ============================================================
+;;; ====
 ;;; Farewells — When User Leaves
-;;; ============================================================
+;;; ====
 
 ;;; happy: Sad to see you go, but upbeat
 (define farewells-happy
@@ -146,9 +146,9 @@
     "This isn't goodbye... right?"
     "*waddles after you reluctantly*"))
 
-;;; ============================================================
+;;; ====
 ;;; Idle Chatter — Random Things DUCKIE Says
-;;; ============================================================
+;;; ====
 
 ;;; Observations and thoughts
 (define idle-observations
@@ -245,9 +245,9 @@
     "Wee!"
     "*rolls around*"))
 
-;;; ============================================================
+;;; ====
 ;;; Responses to Commands — Interactive Moments
-;;; ============================================================
+;;; ====
 
 ;;; PET — When user pets DUCKIE
 (define responses-pet
@@ -377,9 +377,9 @@
     ("*hops around excitedly while listening*" . playful)
     ("This is the best!" . playful)))
 
-;;; ============================================================
+;;; ====
 ;;; Special Interactions — Bigger Moments
-;;; ============================================================
+;;; ====
 
 ;;; When named
 (define responses-named
@@ -424,9 +424,9 @@
     "I am so so so happy right now!"
     "*can barely contain the joy*"))
 
-;;; ============================================================
+;;; ====
 ;;; Reflective Moments — DUCKIE Thinking About Itself
-;;; ============================================================
+;;; ====
 
 (define reflections
   '("What am I?"
@@ -444,9 +444,9 @@
     "I just need to be here. With you."
     "*peaceful acceptance*"))
 
-;;; ============================================================
+;;; ====
 ;;; Utility Functions for Dialogue Selection
-;;; ============================================================
+;;; ====
 
 ;;; get-greeting : Mood → String
 ;;; Randomly select a greeting for the current mood
@@ -519,9 +519,9 @@
            (car (list-ref options (random (length options))))
            "*listens*")))
 
-;;; ============================================================
+;;; ====
 ;;; Notes
-;;; ============================================================
+;;; ====
 
 ;;; DUCKIE speaks in short sentences, quacks, and actions in asterisks.
 ;;; The voice is consistent: warm, simple, present.

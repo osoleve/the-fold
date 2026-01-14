@@ -4,9 +4,9 @@
 
 (load "lattice/pipeline/dsl.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Test Framework (minimal)
-;;; ============================================================
+;;; ====
 
 (define *test-count* 0)
 (define *test-passed* 0)
@@ -48,15 +48,15 @@
        (display "SOME TESTS FAILED\n")
        (exit 1))))
 
-;;; ============================================================
+;;; ====
 ;;; Test Context
-;;; ============================================================
+;;; ====
 
 (define test-ctx empty-context)
 
-;;; ============================================================
+;;; ====
 ;;; Pipeline Definition Tests
-;;; ============================================================
+;;; ====
 
 (run-tests "Pipeline Definition"
            (lambda ()
@@ -79,9 +79,9 @@
                                    stage?
                                    (pipeline-def-stage pipe)))))
 
-;;; ============================================================
+;;; ====
 ;;; Stage Naming Tests
-;;; ============================================================
+;;; ====
 
 (run-tests "Stage Naming"
            (lambda ()
@@ -104,9 +104,9 @@
                               'aliased-stage
                               (stage-name s)))))
 
-;;; ============================================================
+;;; ====
 ;;; Configuration Helpers Tests
-;;; ============================================================
+;;; ====
 
 (run-tests "Configuration Helpers"
            (lambda ()
@@ -146,9 +146,9 @@
                               'custom-value
                               (stage-result-value (run-stage s test-ctx "input"))))))
 
-;;; ============================================================
+;;; ====
 ;;; Operator Aliases Tests
-;;; ============================================================
+;;; ====
 
 (run-tests "Operator Aliases"
            (lambda ()
@@ -172,9 +172,9 @@
                          (stage-result-value
                           (run-stage (pipe-into 42 stage-pure) test-ctx "ignored")))))
 
-;;; ============================================================
+;;; ====
 ;;; Common Patterns Tests
-;;; ============================================================
+;;; ====
 
 (run-tests "Common Patterns"
            (lambda ()
@@ -202,9 +202,9 @@
                                    stage-ok?
                                    result))))
 
-;;; ============================================================
+;;; ====
 ;;; Flow Control Patterns Tests
-;;; ============================================================
+;;; ====
 
 (run-tests "Flow Control Patterns"
            (lambda ()
@@ -258,9 +258,9 @@
                               'skip
                               (stage-result-tag (run-stage s test-ctx -5))))))
 
-;;; ============================================================
+;;; ====
 ;;; Collection Processing Tests
-;;; ============================================================
+;;; ====
 
 (run-tests "Collection Processing"
            (lambda ()
@@ -309,9 +309,9 @@
                               '()
                               (stage-result-value (run-stage s test-ctx '(1 2 3)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Parallel Execution Tests
-;;; ============================================================
+;;; ====
 
 (run-tests "Parallel Execution"
            (lambda ()
@@ -340,9 +340,9 @@
                                    stage-effect?
                                    (run-stage s test-ctx "input")))))
 
-;;; ============================================================
+;;; ====
 ;;; FSM Pipeline Tests
-;;; ============================================================
+;;; ====
 
 (run-tests "FSM Pipeline"
            (lambda ()
@@ -390,9 +390,9 @@
                               'fsm-invalid-state
                               (stage-err-code (run-stage fsm test-ctx 42))))))
 
-;;; ============================================================
+;;; ====
 ;;; Convenience Constructors Tests
-;;; ============================================================
+;;; ====
 
 (run-tests "Convenience Constructors"
            (lambda ()
@@ -424,9 +424,9 @@
                               'http
                               (stage-effect-type (run-stage s test-ctx "input"))))))
 
-;;; ============================================================
+;;; ====
 ;;; Chain and Branch Tests
-;;; ============================================================
+;;; ====
 
 (run-tests "Chain and Branch"
            (lambda ()
@@ -484,9 +484,9 @@
                               42
                               side-effect-value))))
 
-;;; ============================================================
+;;; ====
 ;;; Logging Helpers Tests
-;;; ============================================================
+;;; ====
 
 (run-tests "Logging Helpers"
            (lambda ()
@@ -510,9 +510,9 @@
                                    (list 'warn "Warning message")
                                    (stage-effect-payload result))))))
 
-;;; ============================================================
+;;; ====
 ;;; Checkpoint Helpers Tests
-;;; ============================================================
+;;; ====
 
 (run-tests "Checkpoint Helpers"
            (lambda ()
@@ -536,9 +536,9 @@
                               (list 'restore 'my-checkpoint)
                               (stage-effect-payload (run-stage s test-ctx "input"))))))
 
-;;; ============================================================
+;;; ====
 ;;; Retry Policy Integration Tests
-;;; ============================================================
+;;; ====
 
 (run-tests "Retry Policy Integration"
            (lambda ()
@@ -571,8 +571,8 @@
                                    'halt
                                    (stage-result-tag result))))))
 
-;;; ============================================================
+;;; ====
 ;;; Run All Tests
-;;; ============================================================
+;;; ====
 
 (test-summary)

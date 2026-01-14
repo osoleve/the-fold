@@ -22,9 +22,9 @@
 ;;; Exports:
 ;;;   Turn state, actor queue, phase management, turn processing
 
-;;; ============================================================
+;;; ====
 ;;; Turn Configuration
-;;; ============================================================
+;;; ====
 
 ;;; Default energy threshold for taking an action
 (define *default-energy-threshold* 100)
@@ -46,9 +46,9 @@
 (define (turn-phase? phase)
   (if (memq phase turn-phases) #t #f))
 
-;;; ============================================================
+;;; ====
 ;;; Actor Queue Entry
-;;; ============================================================
+;;; ====
 
 ;;; ActorEntry : Record
 ;;;   entity-id  — Nat, the entity's ID
@@ -106,9 +106,9 @@
 (define (actor-entry-reset-energy! entry)
   (actor-entry%-energy-set! entry 0))
 
-;;; ============================================================
+;;; ====
 ;;; Actor Queue
-;;; ============================================================
+;;; ====
 
 ;;; ActorQueue : Record
 ;;;   entries   — List ActorEntry, all actors in turn order
@@ -265,9 +265,9 @@
                      (advance-actor-energy! queue)
                      (loop (+ iterations 1)))))]))]))
 
-;;; ============================================================
+;;; ====
 ;;; Turn State
-;;; ============================================================
+;;; ====
 
 ;;; TurnState : Record
 ;;;   current-turn     — Nat, global turn counter
@@ -356,9 +356,9 @@
 (define (turn-state-has-pending-actions? state)
   (not (null? (turn-state-pending-actions state))))
 
-;;; ============================================================
+;;; ====
 ;;; Turn Phase Management
-;;; ============================================================
+;;; ====
 
 ;;; transition-phase! : TurnState × Symbol × [EventQueue] -> Void
 ;;; Transition to a new phase and optionally generate events.
@@ -404,9 +404,9 @@
                        (next-phase (turn-state-phase state))
                        event-queue)]))
 
-;;; ============================================================
+;;; ====
 ;;; Turn Processing
-;;; ============================================================
+;;; ====
 
 ;;; begin-turn! : TurnState × [EventQueue] -> Event
 ;;; Start a new turn. Increments turn counter and transitions to start-turn phase.
@@ -552,9 +552,9 @@
          
          result)]))
 
-;;; ============================================================
+;;; ====
 ;;; Continuous Turn Mode
-;;; ============================================================
+;;; ====
 
 ;;; run-until-player-turn! : TurnState × Nat × (Nat -> Action) × (TurnState Action -> ActionResult) × [EventQueue] -> Nat
 ;;; Run turns continuously until a specific entity's (player) turn.
@@ -590,9 +590,9 @@
                                   
                                   (loop (+ count 1)))))))))])) ;; Andy was here
 
-;;; ============================================================
+;;; ====
 ;;; Turn State Queries
-;;; ============================================================
+;;; ====
 
 ;;; turn-state-get-actor-energy : TurnState × Nat -> Nat | #f
 ;;; Get the current energy of an actor.
@@ -638,9 +638,9 @@
 (define (turn-state-waiting-for-input? state)
   (turn-state-in-phase? state 'get-input))
 
-;;; ============================================================
+;;; ====
 ;;; Speed and Energy Utilities
-;;; ============================================================
+;;; ====
 
 ;;; calculate-energy-gain : Nat × Nat -> Nat
 ;;; Calculate energy gain based on speed.
@@ -672,9 +672,9 @@
           (quotient (+ (- threshold current-energy) energy-per-tick -1)
                     energy-per-tick))))
 
-;;; ============================================================
+;;; ====
 ;;; Turn State Formatting
-;;; ============================================================
+;;; ====
 
 ;;; turn-state->string : TurnState -> String
 ;;; Convert turn state to human-readable string for debugging.
@@ -707,9 +707,9 @@
                        ""
                        entries)))))
 
-;;; ============================================================
+;;; ====
 ;;; Export Summary
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Configuration:
 ;;;   *default-energy-threshold*, *default-energy-gain*

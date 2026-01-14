@@ -22,9 +22,9 @@
 ;;;   (bx-orphans)                 ; Show orphans as numbered list
 ;;;   (bx-help)                    ; Show command reference
 
-;;; ============================================================
+;;; ====
 ;;; Session State
-;;; ============================================================
+;;; ====
 
 ;;; Navigation state stored in parameters for session persistence
 (define current-block-list (make-parameter '()))     ; List of (hash . block) pairs
@@ -32,9 +32,9 @@
 (define navigation-history (make-parameter '()))      ; Stack of previous positions
 (define current-mode (make-parameter 'home))          ; home, viewing, search, popular, orphans
 
-;;; ============================================================
+;;; ====
 ;;; Main Entry Point
-;;; ============================================================
+;;; ====
 
 ;;; block-explorer : FS → void
 ;;; Start the interactive block explorer, showing home screen.
@@ -73,9 +73,9 @@
         (display "  (bx-help)            - Show all commands\n")
         (newline)))
 
-;;; ============================================================
+;;; ====
 ;;; Navigation Commands
-;;; ============================================================
+;;; ====
 
 ;;; bx-view : Nat → void
 ;;; View the nth block from the current list.
@@ -199,9 +199,9 @@
   (navigation-history '())
   (show-home (fs)))
 
-;;; ============================================================
+;;; ====
 ;;; Discovery Commands
-;;; ============================================================
+;;; ====
 
 ;;; bx-popular : () → void
 ;;; Show most popular blocks as numbered list.
@@ -380,9 +380,9 @@
         (display "  (bx-home)    - Return to home\n")
         (newline)))
 
-;;; ============================================================
+;;; ====
 ;;; Additional Discovery Commands
-;;; ============================================================
+;;; ====
 
 ;;; bx-recent : Nat → void
 ;;; Show N most recent blocks (by hash lexicographic order - approximation).
@@ -468,9 +468,9 @@
 (define (bx-stats)
   (block-stats (fs)))
 
-;;; ============================================================
+;;; ====
 ;;; Help
-;;; ============================================================
+;;; ====
 
 ;;; bx-help : () → void
 ;;; Show all commands.
@@ -502,9 +502,9 @@
   (display "  - Each list shows numbered blocks you can explore\n")
   (newline))
 
-;;; ============================================================
+;;; ====
 ;;; Helper Functions
-;;; ============================================================
+;;; ====
 
 ;;; Reuse from block-navigator.ss
 (define (short-hash hash-hex)

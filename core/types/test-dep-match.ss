@@ -31,9 +31,9 @@
   (display name)
   (newline))
 
-;;; ============================================================
+;;; ====
 ;;; Pattern Parsing Tests
-;;; ============================================================
+;;; ====
 (test-section "Pattern Parsing")
 
 ;; Variable pattern
@@ -70,9 +70,9 @@
           (test "nested: first is var" 'var (dep-pattern-kind (car subpats)))
           (test "nested: second is ctor" 'ctor (dep-pattern-kind (cadr subpats)))))
 
-;;; ============================================================
+;;; ====
 ;;; Pattern Predicate Tests
-;;; ============================================================
+;;; ====
 (test-section "Pattern Predicates")
 
 (test "dep-pattern-var?" #t (dep-pattern-var? (parse-dep-pattern 'x)))
@@ -81,9 +81,9 @@
 (test "dep-pattern-wildcard?" #t (dep-pattern-wildcard? (parse-dep-pattern '_)))
 (test "dep-pattern-dot?" #t (dep-pattern-dot? (parse-dep-pattern (list (string->symbol ".") 'zero))))
 
-;;; ============================================================
+;;; ====
 ;;; Type Refinement Tests
-;;; ============================================================
+;;; ====
 (test-section "Type Refinement")
 
 ;; Empty refinement
@@ -110,9 +110,9 @@
       (test "merged has a" #t (pair? (assq 'a (type-refinement-substitution merged))))
       (test "merged has b" #t (pair? (assq 'b (type-refinement-substitution merged)))))
 
-;;; ============================================================
+;;; ====
 ;;; Type Unification Tests
-;;; ============================================================
+;;; ====
 (test-section "Type Unification")
 
 ;; Equal types
@@ -145,9 +145,9 @@
 ;; Inconsistent bindings - this was a bug: (Vec n n) vs (Vec 0 1) must fail
 (test "inconsistent bindings" 'mismatch (unify-types '(Vec n n) '(Vec zero (succ m))))
 
-;;; ============================================================
+;;; ====
 ;;; Constructor Type Accessors
-;;; ============================================================
+;;; ====
 (test-section "Constructor Type Accessors")
 
 ;; Simple function type
@@ -169,9 +169,9 @@
 (test "get-ctor-param-types: function" '(A B) (get-ctor-param-types '(-> A B R)))
 (test "get-ctor-param-types: pi" '(A) (get-ctor-param-types '(Π ((x : A)) B)))
 
-;;; ============================================================
+;;; ====
 ;;; Coverage Checking Tests
-;;; ============================================================
+;;; ====
 (test-section "Coverage Checking")
 
 ;; With data declaration
@@ -196,9 +196,9 @@
        [pats (list (parse-dep-pattern 'b))])
       (test "coverage: var" '(ok complete) (coverage-check pats 'Bool data)))
 
-;;; ============================================================
+;;; ====
 ;;; Impossible Case Detection
-;;; ============================================================
+;;; ====
 (test-section "Impossible Case Detection")
 
 ;; For these tests, we need a Vec-like declaration
@@ -215,9 +215,9 @@
           (test "possible: nil vs Vec 0" #f
                 (is-impossible-case? nil-pat '(Vec zero A) vec-data))))
 
-;;; ============================================================
+;;; ====
 ;;; Pattern Matching with Refinement
-;;; ============================================================
+;;; ====
 (test-section "Pattern Matching with Refinement")
 
 ;; Variable pattern
@@ -234,9 +234,9 @@
       (test "wildcard match: success" 'ok (car result))
       (test "wildcard match: no bindings" '() (cadr result)))
 
-;;; ============================================================
+;;; ====
 ;;; Case Tree Tests
-;;; ============================================================
+;;; ====
 (test-section "Case Tree")
 
 (let ([leaf (make-leaf '(+ x 1))])
@@ -263,9 +263,9 @@
       (test "catch-all: is split" #t (case-tree-split? tree))
       (test "catch-all: has default" 2 (length (cdr (case-tree-data tree)))))
 
-;;; ============================================================
+;;; ====
 ;;; Pretty Printing
-;;; ============================================================
+;;; ====
 (test-section "Pretty Printing")
 
 (test "pp: var" "x" (dep-pattern->string (parse-dep-pattern 'x)))
@@ -279,9 +279,9 @@
      (test "pp: refinement with n" #t
            (string? (refinement->string ref))))
 
-;;; ============================================================
+;;; ====
 ;;; Standard Declarations
-;;; ============================================================
+;;; ====
 (test-section "Standard Indexed Types")
 
 (test "Vec-decl is data" #t (data-type? Vec-decl))
@@ -294,11 +294,11 @@
 (test "Fin-decl has fzero" #t (pair? (assq 'fzero (data-constructors Fin-decl))))
 (test "Fin-decl has fsucc" #t (pair? (assq 'fsucc (data-constructors Fin-decl))))
 
-;;; ============================================================
+;;; ====
 ;;; Summary
-;;; ============================================================
+;;; ====
 (newline)
-(display "=================================")
+(display "====")
 (newline)
 (display "Tests passed: ")
 (display *tests-passed*)

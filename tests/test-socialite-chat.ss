@@ -4,9 +4,9 @@
 (load "shell/repl.ss")
 
 (display "\n")
-(display "========================================\n")
+(display "====\n")
 (display "  SOCIALITE PLAYER - CHAT SYSTEM TEST\n")
-(display "========================================\n")
+(display "====\n")
 (display "\n")
 
 ;; Step 1: Log in as 'socialite'
@@ -65,9 +65,9 @@
 (who)
 (display "\n")
 
-(display "========================================\n")
+(display "====\n")
 (display "  CHAT TEST COMPLETED\n")
-(display "========================================\n")
+(display "====\n")
 (display "\n")
 
 ;; Display summary notes for analysis

@@ -9,9 +9,9 @@ const fs = require('fs');
 const path = require('path');
 const gatewayConfig = require('./gateway-config');
 
-// ============================================================
+// ====
 // Queue State
-// ============================================================
+// ====
 
 // In-memory queue
 const memoryQueue = [];
@@ -19,9 +19,9 @@ const memoryQueue = [];
 // Flag to track if we're recovering from spillover
 let isRecovering = false;
 
-// ============================================================
+// ====
 // Spillover Management
-// ============================================================
+// ====
 
 /**
  * Get the full path to the spillover file
@@ -108,9 +108,9 @@ function writeToSpillover(tasks) {
   }
 }
 
-// ============================================================
+// ====
 // Queue Operations
-// ============================================================
+// ====
 
 /**
  * Add a task to the queue
@@ -241,9 +241,9 @@ function shutdown() {
   }
 }
 
-// ============================================================
+// ====
 // Exports
-// ============================================================
+// ====
 
 module.exports = {
   enqueue,

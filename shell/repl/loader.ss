@@ -6,17 +6,17 @@
 ;;;
 ;;; Does NOT shadow Chez's load - use load! explicitly for tracking.
 
-;;; ============================================================
+;;; ====
 ;;; State
-;;; ============================================================
+;;; ====
 
 ;;; *loaded-files* : (List String)
 ;;; Files loaded via load!, in load order. No duplicates.
 (define *loaded-files* '())
 
-;;; ============================================================
+;;; ====
 ;;; Core Implementation
-;;; ============================================================
+;;; ====
 
 ;;; normalize-path : String -> String
 ;;; Normalize a file path for consistent tracking.
@@ -49,9 +49,9 @@
              #f])
     (load path)))
 
-;;; ============================================================
+;;; ====
 ;;; Public API
-;;; ============================================================
+;;; ====
 
 ;;; load! : [String] -> Any
 ;;; Load and track a file, or reload all tracked files.
@@ -106,9 +106,9 @@
   (set! *loaded-files* '())
   (display "Cleared all tracked files.\n"))
 
-;;; ============================================================
+;;; ====
 ;;; Loader Banner (respects *quiet* mode)
-;;; ============================================================
+;;; ====
 
 (unless (and (top-level-bound? '*quiet*) *quiet*)
   (display "Tracked loader ready.\n")

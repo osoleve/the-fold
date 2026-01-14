@@ -5,9 +5,9 @@
 (load "core/test-framework.ss")
 (load "lattice/dsl/staging.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Code Type Tests
-;;; ============================================================
+;;; ====
 
 (test-group code-type-basics
             
@@ -29,9 +29,9 @@
               (assert-equal (code-stage 'not-code) 0)
               (assert-equal (code-expr 'not-code) 'not-code)))
 
-;;; ============================================================
+;;; ====
 ;;; Staging Detection Tests
-;;; ============================================================
+;;; ====
 
 (test-group staging-detection
             
@@ -56,9 +56,9 @@
               (assert-false (stage-run? '(exec x)))
               (assert-false (stage-run? 'stage-run))))
 
-;;; ============================================================
+;;; ====
 ;;; Stage Environment Tests
-;;; ============================================================
+;;; ====
 
 (test-group stage-environment
             
@@ -94,9 +94,9 @@
               (let ([env (make-stage-env 0)])
                    (assert-true (nothing? (stage-env-lookup env 'undefined))))))
 
-;;; ============================================================
+;;; ====
 ;;; Stage Expansion Tests
-;;; ============================================================
+;;; ====
 
 (test-group stage-expansion
             
@@ -132,9 +132,9 @@
               (let ([result (stage-expand '(let ([x 1]) (+ x 2)) 0)])
                    (assert-equal result '(let ([x 1]) (+ x 2))))))
 
-;;; ============================================================
+;;; ====
 ;;; Code Combination Tests
-;;; ============================================================
+;;; ====
 
 (test-group code-combination
             
@@ -156,9 +156,9 @@
               (let* ([c (make-code 0 'value)])
                     (assert-equal (code-unlift c) 'value))))
 
-;;; ============================================================
+;;; ====
 ;;; Staged Arithmetic Tests
-;;; ============================================================
+;;; ====
 
 (test-group staged-arithmetic
             
@@ -186,9 +186,9 @@
                      [result (stage-div c1 c2)])
                     (assert-equal (code-expr result) '(/ p q)))))
 
-;;; ============================================================
+;;; ====
 ;;; Staged Control Flow Tests
-;;; ============================================================
+;;; ====
 
 (test-group staged-control-flow
             
@@ -217,9 +217,9 @@
                      [result (stage-app func-c (list arg1-c arg2-c))])
                     (assert-equal (code-expr result) '(f x y)))))
 
-;;; ============================================================
+;;; ====
 ;;; Cross-Stage Persistence Tests
-;;; ============================================================
+;;; ====
 
 (test-group cross-stage-persistence
             
@@ -236,9 +236,9 @@
                     (assert-equal (code-stage c) 1)
                     (assert-equal (code-expr c) '(csp-ref 'val)))))
 
-;;; ============================================================
+;;; ====
 ;;; Power Example Tests
-;;; ============================================================
+;;; ====
 
 (test-group power-example
             
@@ -266,9 +266,9 @@
                    (assert-equal (cadr spec) 2)
                    (assert-equal (caddr spec) '(* (* 1 x) x)))))
 
-;;; ============================================================
+;;; ====
 ;;; Code Pretty Print Tests
-;;; ============================================================
+;;; ====
 
 (test-group code-pretty-print
             
@@ -279,9 +279,9 @@
             (define-test code-to-string-handles-non-code
               (assert-true (string? (code->string 42)))))
 
-;;; ============================================================
+;;; ====
 ;;; Staged Compilation Tests
-;;; ============================================================
+;;; ====
 
 (test-group staged-compilation
             
@@ -293,9 +293,9 @@
               (let ([c (make-code 0 '42)])
                    (assert-equal (run-staged c) '42))))
 
-;;; ============================================================
+;;; ====
 ;;; Staged Pattern Matching Tests
-;;; ============================================================
+;;; ====
 
 (test-group staged-pattern-matching
             
@@ -306,9 +306,9 @@
                     (assert-true (code? result))
                     (assert-equal (car (code-expr result)) 'match))))
 
-;;; ============================================================
+;;; ====
 ;;; Type Inference Tests
-;;; ============================================================
+;;; ====
 
 (test-group staging-type-inference
             
@@ -328,9 +328,9 @@
               (assert-equal (infer-staged-type "hello" '() 0) 'String)
               (assert-equal (infer-staged-type #t '() 0) 'Bool)))
 
-;;; ============================================================
+;;; ====
 ;;; Transformation Tests
-;;; ============================================================
+;;; ====
 
 (test-group staging-transformations
             
@@ -357,9 +357,9 @@
               (let ([result (beta-reduce-staged '(f x))])
                    (assert-equal result '(f x)))))
 
-;;; ============================================================
+;;; ====
 ;;; Well-Staged Check Tests
-;;; ============================================================
+;;; ====
 
 (test-group well-staged-check
             
@@ -373,12 +373,12 @@
                    (assert-true (code-well-staged? c1 2))
                    (assert-false (code-well-staged? c2 1)))))
 
-;;; ============================================================
+;;; ====
 ;;; Run All Tests
-;;; ============================================================
+;;; ====
 
-(display "\n========================================\n")
+(display "\n====\n")
 (display "Running Multi-Stage Programming Tests\n")
-(display "========================================\n\n")
+(display "====\n\n")
 
 (run-all-tests)

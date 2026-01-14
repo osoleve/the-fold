@@ -6,9 +6,9 @@
 ;;;
 ;;; This is Playpen code: creative, experimental, the body of the duck.
 
-;;; ============================================================
+;;; ====
 ;;; Mood Sprites — One Per Emotional State
-;;; ============================================================
+;;; ====
 
 ;;; DUCKIE-HAPPY: Bouncing, bright, joyful
 ;;; Wings up in excitement, beak open in smile
@@ -70,9 +70,9 @@
     "  / ^^ \\"
     "        "))
 
-;;; ============================================================
+;;; ====
 ;;; Animation Frames — Bring DUCKIE to Life
-;;; ============================================================
+;;; ====
 
 ;;; DUCKIE-IDLE: Subtle breathing animation (2 frames)
 ;;; Frame 1: Normal position
@@ -177,9 +177,9 @@
     "  \\  / "
     "   \\/  "))
 
-;;; ============================================================
+;;; ====
 ;;; Bonus Sprites — Extra Expressions
-;;; ============================================================
+;;; ====
 
 ;;; DUCKIE-SURPRISED: Startled reaction
 (define duckie-surprised
@@ -199,9 +199,9 @@
     "  \\  / "
     "   \\/  "))
 
-;;; ============================================================
+;;; ====
 ;;; Sprite Registry — Map Moods to Visual Forms
-;;; ============================================================
+;;; ====
 
 ;;; All mood sprites in one association list
 (define duckie-sprites
@@ -222,9 +222,9 @@
     (wave   . (,duckie-wave-1 ,duckie-wave-2 ,duckie-wave-3))
     (blink  . (,duckie-blink-1 ,duckie-blink-2))))
 
-;;; ============================================================
+;;; ====
 ;;; Helper Functions — Working with Sprites
-;;; ============================================================
+;;; ====
 
 ;;; sprite-width : Sprite → Nat
 ;;; Get the width of a sprite (assumes all rows are same length)
@@ -262,9 +262,9 @@
            (list-ref frames frame-index)
            #f)))
 
-;;; ============================================================
+;;; ====
 ;;; Canvas Integration — Drawing Sprites
-;;; ============================================================
+;;; ====
 
 ;;; draw-sprite : Canvas × Point × Sprite → Canvas
 ;;; Draw a sprite onto the canvas at the given position.
@@ -295,9 +295,9 @@
            (draw-sprite canvas position sprite)
            canvas)))  ; If mood not found, return canvas unchanged
 
-;;; ============================================================
+;;; ====
 ;;; Sprite Information
-;;; ============================================================
+;;; ====
 
 ;;; list-moods : () → (List Symbol)
 ;;; Get all available mood names
@@ -317,9 +317,9 @@
            (length frames)
            0)))
 
-;;; ============================================================
+;;; ====
 ;;; Notes for Future Builders
-;;; ============================================================
+;;; ====
 
 ;;; The sprites are designed at 8×6 to be compact yet expressive.
 ;;; Each mood should be visually distinct at a glance.

@@ -4,9 +4,9 @@
 ;;;
 ;;; This is Shell code: uses IO for git commands.
 
-;;; ============================================================
+;;; ====
 ;;; Security Utilities
-;;; ============================================================
+;;; ====
 
 ;;; shell-escape : String → String
 ;;; Escape a string for safe use in shell single quotes.
@@ -65,9 +65,9 @@
              [(string=? (substring haystack i (+ i nlen)) needle) #t]
              [else (loop (+ i 1))]))))
 
-;;; ============================================================
+;;; ====
 ;;; Git Status
-;;; ============================================================
+;;; ====
 
 ;;; git-status : → void
 ;;; Show current git status.
@@ -91,9 +91,9 @@
        (system (format "git log --oneline -~a" n))
        (void)))
 
-;;; ============================================================
+;;; ====
 ;;; Git Commit
-;;; ============================================================
+;;; ====
 
 ;;; commit! : String → void
 ;;; Stage all changes and commit with message.
@@ -116,9 +116,9 @@
             first-line
             (string-append (substring first-line 0 (- max-len 3)) "..."))))
 
-;;; ============================================================
+;;; ====
 ;;; Git Push
-;;; ============================================================
+;;; ====
 
 ;;; push! : → void
 ;;; Push to origin.
@@ -132,9 +132,9 @@
   (commit! message)
   (push!))
 
-;;; ============================================================
+;;; ====
 ;;; Git Branch
-;;; ============================================================
+;;; ====
 
 ;;; git-branch : → void
 ;;; List branches.

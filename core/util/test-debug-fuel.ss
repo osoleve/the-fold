@@ -5,7 +5,7 @@
 (load "core/util/debug.ss")
 
 (display "Fuel-Tracking Debugger Tests\n")
-(display "=============================\n\n")
+(display "====\n\n")
 
 (define tests-passed 0)
 (define tests-failed 0)
@@ -22,9 +22,9 @@
        (display ", got ") (write actual)
        (newline))))
 
-;;; ============================================================
+;;; ====
 ;;; Fuel Debugger Creation
-;;; ============================================================
+;;; ====
 
 (display "Fuel Debugger Creation:\n")
 
@@ -36,9 +36,9 @@
      (test "debugger-fuel-used initially 0" 0 (debugger-fuel-used d))
      (test "debugger-fuel-pct initially 0" 0 (debugger-fuel-pct d)))
 
-;;; ============================================================
+;;; ====
 ;;; Step with Fuel Tracking
-;;; ============================================================
+;;; ====
 
 (display "\nStep with Fuel Tracking:\n")
 
@@ -63,9 +63,9 @@
       (test "let status" 'complete (debugger-status d2))
       (test "let fuel-trace non-empty" #t (pair? (debugger-fuel-trace d2))))
 
-;;; ============================================================
+;;; ====
 ;;; Fuel Analysis
-;;; ============================================================
+;;; ====
 
 (display "\nFuel Analysis:\n")
 
@@ -98,9 +98,9 @@
        [hotspots (fuel-hotspots d2 5)])
       (test "hotspots is list" #t (list? hotspots)))
 
-;;; ============================================================
+;;; ====
 ;;; Step-Over (Next)
-;;; ============================================================
+;;; ====
 
 (display "\nStep-Over (Next):\n")
 
@@ -115,9 +115,9 @@
        [d2 (next d)])
       (test "next completes simple" 'complete (debugger-status d2)))
 
-;;; ============================================================
+;;; ====
 ;;; Continue with Fuel Tracking
-;;; ============================================================
+;;; ====
 
 (display "\nContinue with Fuel:\n")
 
@@ -135,9 +135,9 @@
        [d3 (continue-with-fuel d2)])
       (test "breakpoint hit on let" 'breakpoint (debugger-status d3)))
 
-;;; ============================================================
+;;; ====
 ;;; Integration with Original Debugger
-;;; ============================================================
+;;; ====
 
 (display "\nIntegration:\n")
 
@@ -152,12 +152,12 @@
        [d3 (undo d2)])
       (test "undo restores expr" '(let ((x 1)) x) (debugger-expr d3)))
 
-;;; ============================================================
+;;; ====
 ;;; Summary
-;;; ============================================================
+;;; ====
 
 (newline)
-(display "=============================\n")
+(display "====\n")
 (display (format "Tests: ~a passed, ~a failed\n" tests-passed tests-failed))
 (when (> tests-failed 0)
       (exit 1))

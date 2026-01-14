@@ -347,9 +347,9 @@ pub fn mesh_sdf_normal(handle: &BVHHandle, point: Vec3, mut fuel: u64) -> (Norma
     (result, fuel)
 }
 
-// ============================================================
+// ====
 // FFI Exports
-// ============================================================
+// ====
 
 /// Complete mesh raymarching in a single FFI call
 #[no_mangle]

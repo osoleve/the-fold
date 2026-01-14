@@ -5,9 +5,9 @@
 ;;;   - quill-step: apply an intent and advance state/node deterministically
 ;;;   - quill-apply-effects: small effect language for early stories
 
-;;; ============================================================
+;;; ====
 ;;; Effects
-;;; ============================================================
+;;; ====
 
 ;;; Effect forms (initial set):
 ;;;   (set <var> <value>)
@@ -69,9 +69,9 @@
            r
            (loop (quill-apply-effect story r (car effs)) (cdr effs)))))
 
-;;; ============================================================
+;;; ====
 ;;; Run lifecycle
-;;; ============================================================
+;;; ====
 
 (define (quill-start story . state-opt)
   (let ([state (if (null? state-opt) (make-quill-state) (car state-opt))])

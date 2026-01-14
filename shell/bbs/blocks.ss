@@ -15,9 +15,9 @@
 (load "core/blocks/block.ss")
 (load "core/blocks/cas.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Block Tags
-;;; ============================================================
+;;; ====
 
 (define BBS-ISSUE 'bbs/issue)
 (define BBS-EVENT 'bbs/event)
@@ -25,9 +25,9 @@
 (define BBS-DEP 'bbs/dep)
 (define BBS-INDEX 'bbs/index)
 
-;;; ============================================================
+;;; ====
 ;;; Issue Block
-;;; ============================================================
+;;; ====
 
 ;;; make-issue-block : String String String Symbol Int Symbol (List Symbol) String String Int (Option Bytevector) -> Block
 ;;; Create an issue block.
@@ -77,9 +77,9 @@
         (vector-ref refs 0)
         #f)))
 
-;;; ============================================================
+;;; ====
 ;;; Event Block
-;;; ============================================================
+;;; ====
 
 ;;; make-event-block : Bytevector Symbol Any Any String String -> Block
 ;;; Create an event block recording a state change.
@@ -106,9 +106,9 @@
       (read (open-input-string (utf8->string (block-payload blk))))
       #f))
 
-;;; ============================================================
+;;; ====
 ;;; Comment Block
-;;; ============================================================
+;;; ====
 
 ;;; make-comment-block : Bytevector Int String String Symbol String -> Block
 ;;; Create a comment block.
@@ -135,9 +135,9 @@
       (read (open-input-string (utf8->string (block-payload blk))))
       #f))
 
-;;; ============================================================
+;;; ====
 ;;; Dependency Block
-;;; ============================================================
+;;; ====
 
 ;;; make-dep-block : Bytevector Bytevector -> Block
 ;;; Create a dependency block: blocker-hash blocks blocked-hash.
@@ -155,9 +155,9 @@
 (define (dep-block-blocked blk)
   (vector-ref (block-refs blk) 1))
 
-;;; ============================================================
+;;; ====
 ;;; Index Block
-;;; ============================================================
+;;; ====
 
 ;;; make-index-block : (List Bytevector) String -> Block
 ;;; Create an index block aggregating all issue hashes.

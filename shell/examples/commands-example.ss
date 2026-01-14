@@ -7,9 +7,9 @@
 ;;;   (load "shell/repl.ss")
 ;;;   (load "shell/commands-example.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Example 1: Simple Info Command
-;;; ============================================================
+;;; ====
 
 (register-command!
  'system-info
@@ -29,9 +29,9 @@
            (display (caddr result))
            (cadr result))))
 
-;;; ============================================================
+;;; ====
 ;;; Example 2: Command with Arguments
-;;; ============================================================
+;;; ====
 
 (register-command!
  'count-words
@@ -50,9 +50,9 @@
            (cadr result)
            (error 'count-words (caddr result)))))
 
-;;; ============================================================
+;;; ====
 ;;; Example 3: Command that Uses The Fold Features
-;;; ============================================================
+;;; ====
 
 (register-command!
  'quick-post
@@ -73,9 +73,9 @@
            (cadr result)
            (error 'quick-post (caddr result)))))
 
-;;; ============================================================
+;;; ====
 ;;; Example 4: Command with Validation
-;;; ============================================================
+;;; ====
 
 (register-command!
  'validate-hash
@@ -105,9 +105,9 @@
            (cadr result)
            (error 'validate-hash (caddr result)))))
 
-;;; ============================================================
+;;; ====
 ;;; Example 5: Command with Error Handling
-;;; ============================================================
+;;; ====
 
 (register-command!
  'safe-divide
@@ -129,9 +129,9 @@
             (display (format "Error: ~a\n" (caddr result)))
             #f))))
 
-;;; ============================================================
+;;; ====
 ;;; Notify User
-;;; ============================================================
+;;; ====
 
 (display "Example commands loaded. New commands available:\n")
 (display "  - system-info     : Show system information\n")

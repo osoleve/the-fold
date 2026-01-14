@@ -1,8 +1,8 @@
 ;;; playpen/loom/docs/CHANGELOG.ss — RPG SDK Change Log
 
-;;; ============================================================
+;;; ====
 ;;; Version 0.1.0 (2025-12-26)
-;;; ============================================================
+;;; ====
 
 ;;; FEATURES ADDED:
 ;;;   - Combat system (combat.ss)
@@ -63,9 +63,9 @@
 ;;;   - Warning: member call arity in world.ss:535 (non-blocking)
 ;;;   - Item drop functionality is stubbed (needs item registry)
 
-;;; ============================================================
+;;; ====
 ;;; Pre-release Development (2025-12-25 to 2025-12-26)
-;;; ============================================================
+;;; ====
 
 ;;; INITIAL IMPLEMENTATION:
 ;;;   - Core ECS architecture (entity.ss, core.ss)
@@ -92,9 +92,9 @@
 ;;;   ✓ Integration examples created
 ;;;   ✓ API inconsistencies resolved
 
-;;; ============================================================
+;;; ====
 ;;; Future Roadmap
-;;; ============================================================
+;;; ====
 
 ;;; PLANNED FEATURES:
 ;;;   - Save/load system

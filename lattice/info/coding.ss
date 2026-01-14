@@ -13,9 +13,9 @@
 
 (load "lattice/info/entropy.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Huffman Coding
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Huffman coding builds an optimal prefix-free code for a given
 ;;; probability distribution. The average code length approaches
@@ -165,9 +165,9 @@
             1.0  ; Degenerate case
             (/ h avg-len))))
 
-;;; ============================================================
+;;; ====
 ;;; Arithmetic Coding
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Arithmetic coding represents a message as a subinterval of [0,1).
 ;;; It achieves optimal compression (approaches entropy exactly).
@@ -243,9 +243,9 @@
            +inf.0
            (- (log2 width)))))
 
-;;; ============================================================
+;;; ====
 ;;; Lempel-Ziv Compression (LZ78-style)
-;;; ============================================================
+;;; ====
 ;;;
 ;;; LZ78 builds a dictionary of seen phrases during encoding.
 ;;; Each output is (dictionary-index, next-symbol).
@@ -332,9 +332,9 @@
       lst
       (drop-n (- n 1) (cdr lst))))
 
-;;; ============================================================
+;;; ====
 ;;; Run-Length Encoding
-;;; ============================================================
+;;; ====
 
 ;;; rle-encode : (List α) → (List (α × Nat))
 ;;; Run-length encode a sequence.
@@ -370,9 +370,9 @@
       '()
       (cons x (replicate (- n 1) x))))
 
-;;; ============================================================
+;;; ====
 ;;; Channel Coding: Error Detection
-;;; ============================================================
+;;; ====
 
 ;;; parity-encode : (List Nat) → (List Nat)
 ;;; Add even parity bit to end of message.
@@ -397,9 +397,9 @@
 (define (bitwise-xor a b)
   (if (= a b) 0 1))
 
-;;; ============================================================
+;;; ====
 ;;; Channel Coding: Repetition Code
-;;; ============================================================
+;;; ====
 
 ;;; repetition-encode : (List Nat) × Nat → (List Nat)
 ;;; Encode by repeating each bit n times.
@@ -420,9 +420,9 @@
   (let ([ones (length (filter (lambda (b) (= b 1)) bits))])
        (if (> ones (/ (length bits) 2)) 1 0)))
 
-;;; ============================================================
+;;; ====
 ;;; Channel Coding: Hamming Code (7,4)
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Hamming(7,4) encodes 4 data bits into 7 bits, correcting 1 error.
 ;;; Positions 1,2,4 are parity bits; positions 3,5,6,7 are data.
@@ -496,9 +496,9 @@
          [s4 (bitwise-xor (bitwise-xor (bitwise-xor p4 d2) d3) d4)])
         (+ s1 (* 2 s2) (* 4 s4))))
 
-;;; ============================================================
+;;; ====
 ;;; Code Properties
-;;; ============================================================
+;;; ====
 
 ;;; hamming-distance : (List Nat) × (List Nat) → Nat
 ;;; Number of positions where two codewords differ.
@@ -535,9 +535,9 @@
 (define (error-detecting-capability min-distance)
   (- min-distance 1))
 
-;;; ============================================================
+;;; ====
 ;;; Compression Metrics
-;;; ============================================================
+;;; ====
 
 ;;; compression-ratio : Nat × Nat → Real
 ;;; Original size / Compressed size.

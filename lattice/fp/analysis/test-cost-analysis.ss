@@ -11,9 +11,9 @@
 
 (test-group cost-analysis
             
-            ;;; ============================================================
+            ;;; ====
             ;;; Configuration Tests
-            ;;; ============================================================
+            ;;; ====
             
             (define-test min-parallel-threshold-returns-value
               (assert-true (number? (min-parallel-threshold)))
@@ -29,9 +29,9 @@
               (assert-true (number? (get-parallel-overhead)))
               (assert-true (> (get-parallel-overhead) 0)))
             
-            ;;; ============================================================
+            ;;; ====
             ;;; Operation Cost Tests
-            ;;; ============================================================
+            ;;; ====
             
             (define-test primitive-costs-are-positive
               (assert-true (> (operation-cost '+) 0))
@@ -56,9 +56,9 @@
                    (assert-true (> cost 0))
                    (assert-true (<= cost 20))))
             
-            ;;; ============================================================
+            ;;; ====
             ;;; Basic Work Estimation Tests
-            ;;; ============================================================
+            ;;; ====
             
             (define-test estimate-work-atoms
               ;; Numbers should have minimal cost
@@ -86,9 +86,9 @@
                    ;; sqrt should cost more than addition
                    (assert-true (> sqrt-cost add-cost))))
             
-            ;;; ============================================================
+            ;;; ====
             ;;; Lambda and Let Work Estimation
-            ;;; ============================================================
+            ;;; ====
             
             (define-test estimate-work-lambda
               (let ([cost (estimate-work '(lambda (x) (* x x)))])
@@ -108,9 +108,9 @@
                    ;; Complex bindings should cost more
                    (assert-true (> complex-let simple-let))))
             
-            ;;; ============================================================
+            ;;; ====
             ;;; Control Flow Work Estimation
-            ;;; ============================================================
+            ;;; ====
             
             (define-test estimate-work-if-form
               (let ([cost (estimate-work '(if (> x 0) x (- x)))])
@@ -130,9 +130,9 @@
                    ;; Should sum all expressions
                    (assert-true (> cost 10))))
             
-            ;;; ============================================================
+            ;;; ====
             ;;; Higher-Order Function Work Estimation
-            ;;; ============================================================
+            ;;; ====
             
             (define-test estimate-work-map
               (let ([cost (estimate-work '(map (lambda (x) (* x x)) xs))])
@@ -166,9 +166,9 @@
                     [large (estimate-work '(map f (iota 100)))])
                    (assert-true (> large small))))
             
-            ;;; ============================================================
+            ;;; ====
             ;;; Parallelization Decision Tests
-            ;;; ============================================================
+            ;;; ====
             
             (define-test parallel-beneficial-trivial-work
               ;; Trivial expressions should not benefit from parallelization
@@ -197,9 +197,9 @@
             (define-test parallel-beneficial-n-single
               (assert-false (parallel-beneficial-n? '((+ 1 2)))))
             
-            ;;; ============================================================
+            ;;; ====
             ;;; Suggested Parallelism Tests
-            ;;; ============================================================
+            ;;; ====
             
             (define-test suggested-parallelism-trivial
               ;; Trivial work should suggest sequential
@@ -210,9 +210,9 @@
                                                      (fold-left * 1 ys)))])
                    (assert-true (>= result 1))))
             
-            ;;; ============================================================
+            ;;; ====
             ;;; Work Analysis Tests
-            ;;; ============================================================
+            ;;; ====
             
             (define-test work-analysis-structure
               (let ([wa (work-analysis '(+ 1 2))])
@@ -237,9 +237,9 @@
                     ;; Should have found some hotspots
                     (assert-true (list? hotspots))))
             
-            ;;; ============================================================
+            ;;; ====
             ;;; Complexity Classification Tests
-            ;;; ============================================================
+            ;;; ====
             
             (define-test classify-constant
               (assert-equal 'constant (expr-complexity-class 42))
@@ -268,9 +268,9 @@
                             (expr-complexity-class
                              '(letrec ([f (lambda (x) (f x))]) (f 1)))))
             
-            ;;; ============================================================
+            ;;; ====
             ;;; Utility Function Tests
-            ;;; ============================================================
+            ;;; ====
             
             (define-test total-work-sums-correctly
               (let* ([e1 '(+ 1 2)]
@@ -296,9 +296,9 @@
                     ;; Should detect imbalance (if work differs significantly)
                     (assert-true (boolean? result))))
             
-            ;;; ============================================================
+            ;;; ====
             ;;; Edge Cases
-            ;;; ============================================================
+            ;;; ====
             
             (define-test estimate-work-empty-list
               (let ([cost (estimate-work '())])
@@ -324,9 +324,9 @@
                    (assert-true (work-analysis? wa))
                    (assert-true (number? (analysis-total-cost wa)))))
             
-            ;;; ============================================================
+            ;;; ====
             ;;; Optional Fuel Parameter Tests
-            ;;; ============================================================
+            ;;; ====
             
             (define-test estimate-work-optional-fuel-default
               ;; Calling with one argument should use default fuel

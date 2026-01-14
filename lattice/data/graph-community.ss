@@ -44,9 +44,9 @@
 ;;;   - matrix.ss
 ;;;   - graph-matrix.ss
 
-;;; ============================================================
+;;; ====
 ;;; Community Detection: Label Propagation
-;;; ============================================================
+;;; ====
 
 ;;; label-propagation : Matrix × [Nat] × [Nat] → Vector
 ;;;
@@ -169,9 +169,9 @@
 (define (num-communities labels)
   (length (communities->partition labels)))
 
-;;; ============================================================
+;;; ====
 ;;; Modularity
-;;; ============================================================
+;;; ====
 
 ;;; modularity : Matrix × Vector → Num
 ;;;
@@ -232,9 +232,9 @@
                  sum
                  (loop (+ i 1) (+ sum (vector-ref data i)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Minimum Spanning Tree: Prim's Algorithm
-;;; ============================================================
+;;; ====
 
 ;;; prim-mst : Matrix × [Nat] → (List Edge)
 ;;;
@@ -308,9 +308,9 @@
 (define (mst-weight edges)
   (fold-left (lambda (sum edge) (+ sum (caddr edge))) 0 edges))
 
-;;; ============================================================
+;;; ====
 ;;; Minimum Spanning Tree: Kruskal's Algorithm
-;;; ============================================================
+;;; ====
 
 ;;; kruskal-mst : (List Edge) × Nat → (List Edge)
 ;;;
@@ -379,9 +379,9 @@
               (vector-set! parent y x)
               (vector-set! rank x (+ rx 1))])))
 
-;;; ============================================================
+;;; ====
 ;;; Utility Functions
-;;; ============================================================
+;;; ====
 
 ;;; connected-components : Matrix → Vector
 ;;; Find connected components using BFS.

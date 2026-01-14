@@ -16,9 +16,9 @@
 
 (load "lattice/autodiff/higher-order-diff.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Test Functions
-;;; ============================================================
+;;; ====
 
 ;;; Quadratic function: f(x, y) = x^2 + 4*y^2
 ;;; Minimum at (0, 0), elliptical contours.
@@ -72,9 +72,9 @@
           (expt (- (+ 2.25 xy2) x) 2)
           (expt (- (+ 2.625 xy3) x) 2))))
 
-;;; ============================================================
+;;; ====
 ;;; Matrix Operations (Simple 2x2)
-;;; ============================================================
+;;; ====
 
 ;;; For 2x2 case, we can solve H * delta = -grad directly.
 
@@ -117,9 +117,9 @@
                          (iota cols)))
             (iota rows))))
 
-;;; ============================================================
+;;; ====
 ;;; Newton's Method Implementation
-;;; ============================================================
+;;; ====
 
 ;;; newton-step : ((List Jet) -> Jet) x (List Number) -> (List Number) | 'singular
 ;;; Compute one Newton step: x_new = x - H^{-1} * grad
@@ -221,14 +221,14 @@
                                                      point full-step)])
                                     (loop new-point (+ iter 1))))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Main Demonstration
-;;; ============================================================
+;;; ====
 
 (printf "~n")
-(printf "=========================================================~n")
+(printf "====~n")
 (printf "   Newton's Method for Optimization~n")
-(printf "=========================================================~n")
+(printf "====~n")
 (printf "~n")
 
 (printf "Newton's method uses second-order information (Hessian) for~n")
@@ -238,9 +238,9 @@
 (printf "~n")
 
 ;;; --- Example 1: Quadratic Function ---
-(printf "---------------------------------------------------------~n")
+(printf "----~n")
 (printf "1. Quadratic Function: f(x,y) = x^2 + 4*y^2~n")
-(printf "---------------------------------------------------------~n")
+(printf "----~n")
 (printf "~n")
 (printf "This is a simple convex quadratic with minimum at (0, 0).~n")
 (printf "Newton's method should converge in ONE step!~n")
@@ -265,9 +265,9 @@
      (printf "~n"))
 
 ;;; --- Example 2: Rosenbrock Function ---
-(printf "---------------------------------------------------------~n")
+(printf "----~n")
 (printf "2. Rosenbrock Function: f(x,y) = (1-x)^2 + 100(y-x^2)^2~n")
-(printf "---------------------------------------------------------~n")
+(printf "----~n")
 (printf "~n")
 (printf "The Rosenbrock banana function has a curved valley.~n")
 (printf "Minimum at (1, 1) where f = 0.~n")
@@ -291,9 +291,9 @@
      (printf "~n"))
 
 ;;; --- Example 3: Demonstrate Hessian Computation ---
-(printf "---------------------------------------------------------~n")
+(printf "----~n")
 (printf "3. Understanding the Hessian Matrix~n")
-(printf "---------------------------------------------------------~n")
+(printf "----~n")
 (printf "~n")
 
 (printf "The Hessian matrix contains all second-order partial derivatives:~n")
@@ -335,9 +335,9 @@
 (printf "~n")
 
 ;;; --- Example 4: Classify Critical Points ---
-(printf "---------------------------------------------------------~n")
+(printf "----~n")
 (printf "4. Critical Point Classification~n")
-(printf "---------------------------------------------------------~n")
+(printf "----~n")
 (printf "~n")
 
 (printf "The Hessian eigenvalues tell us about the nature of a critical point:~n")
@@ -359,9 +359,9 @@
       (printf "Classification: ~a~n" (classify-critical-point saddle-jet '(0.0 0.0))))
 
 (printf "~n")
-(printf "=========================================================~n")
+(printf "====~n")
 (printf "   Demonstration Complete~n")
-(printf "=========================================================~n")
+(printf "====~n")
 (printf "~n")
 (printf "Key Takeaways:~n")
 (printf "  - Newton's method uses the Hessian for quadratic convergence~n")

@@ -95,9 +95,9 @@
   (display name)
   (newline))
 
-;;; ============================================================
+;;; ====
 ;;; Type-Check Then Evaluate
-;;; ============================================================
+;;; ====
 (test-section "typecheck-eval")
 
 (test-typed "integer" 'Int 42
@@ -118,9 +118,9 @@
 (test-typed "comparison" 'Bool #t
             (typecheck-eval '(prim 'lt? 1 2) 100))
 
-;;; ============================================================
+;;; ====
 ;;; Type Errors Caught Before Evaluation
-;;; ============================================================
+;;; ====
 (test-section "Type Errors (caught before eval)")
 
 (test-error "unbound variable"
@@ -130,9 +130,9 @@
 (test-error "applying non-function"
             (typecheck-eval '(42 1 2) 100))
 
-;;; ============================================================
+;;; ====
 ;;; Lambda and Application
-;;; ============================================================
+;;; ====
 (test-section "Lambda and Application")
 
 (test-typed-value "apply identity" 42
@@ -144,9 +144,9 @@
 (test-typed-value "curried add" 7
                   (typecheck-eval '(((fn (x) (fn (y) (prim 'add x y))) 3) 4) 200))
 
-;;; ============================================================
+;;; ====
 ;;; Let Bindings
-;;; ============================================================
+;;; ====
 (test-section "Let Bindings")
 
 (test-typed-value "simple let" 42
@@ -162,9 +162,9 @@
                                               (prim 'add x (prim 'add y z)))))
                                   100))
 
-;;; ============================================================
+;;; ====
 ;;; If Conditional
-;;; ============================================================
+;;; ====
 (test-section "If Conditional")
 
 (test-typed-value "if true" 1
@@ -176,9 +176,9 @@
 (test-typed-value "if computed" 'yes
                   (typecheck-eval '(if (prim 'lt? 1 2) 'yes 'no) 100))
 
-;;; ============================================================
+;;; ====
 ;;; Recursion (Fix)
-;;; ============================================================
+;;; ====
 (test-section "Recursion (Fix)")
 
 (test-typed-value "factorial 5" 120
@@ -201,9 +201,9 @@
                    1000))
 
 
-;;; ============================================================
+;;; ====
 ;;; Case Expressions
-;;; ============================================================
+;;; ====
 (test-section "Case Expressions")
 
 ;; Test case with blocks
@@ -231,9 +231,9 @@
                            ((True) 0) ((Pair) 1)))
                    100))
 
-;;; ============================================================
+;;; ====
 ;;; Typed Run (Full Pipeline)
-;;; ============================================================
+;;; ====
 (test-section "typed-run (Full Pipeline)")
 
 (test-typed "typed-run int" 'Int 42
@@ -245,9 +245,9 @@
 (test-typed-value "typed-run computation" 25
                   (typed-run '(prim 'mul 5 5) 100))
 
-;;; ============================================================
+;;; ====
 ;;; Typed Values
-;;; ============================================================
+;;; ====
 (test-section "Typed Values")
 
 (let ([tv (typed 'Int 42)])
@@ -255,9 +255,9 @@
      (test "typed-type" 'Int (typed-type tv))
      (test "typed-value" 42 (typed-value tv)))
 
-;;; ============================================================
+;;; ====
 ;;; Display Functions
-;;; ============================================================
+;;; ====
 (test-section "show-typed")
 
 (test "show-typed int"
@@ -268,9 +268,9 @@
       "<closure> : (Int → Int)"
       (show-typed (typed '(-> Int Int) '<closure>)))
 
-;;; ============================================================
+;;; ====
 ;;; Typed Prelude
-;;; ============================================================
+;;; ====
 (test-section "Typed Prelude")
 
 (test-typed-value "prelude id" 42

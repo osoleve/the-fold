@@ -13,9 +13,9 @@
 
 (load "core/testing/test-framework.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Test Fixtures
-;;; ============================================================
+;;; ====
 
 ;;; Build a test hierarchy:
 ;;;   root (composite)
@@ -49,9 +49,9 @@
 (define test-y (composite 'y (list test-y1)))
 (define deep-root (composite 'deep-root (list test-x test-y)))
 
-;;; ============================================================
+;;; ====
 ;;; Basic Navigation Tests
-;;; ============================================================
+;;; ====
 
 (test-group "state-zipper-navigation"
 
@@ -100,9 +100,9 @@
            [c-z (from-just (state-zipper-nth-child sz 2))])
       (assert-equal 'c (state-zipper-id c-z)))))
 
-;;; ============================================================
+;;; ====
 ;;; Find Tests
-;;; ============================================================
+;;; ====
 
 (test-group "state-zipper-find"
 
@@ -135,9 +135,9 @@
            [found (state-zipper-find sz 'nonexistent)])
       (assert-true (nothing? found)))))
 
-;;; ============================================================
+;;; ====
 ;;; Ancestor Tests
-;;; ============================================================
+;;; ====
 
 (test-group "state-zipper-ancestors"
 
@@ -165,9 +165,9 @@
            [x1a-z (from-just (state-zipper-find sz 'x1a))])
       (assert-equal '(deep-root x x1 x1a) (state-zipper-path-ids x1a-z)))))
 
-;;; ============================================================
+;;; ====
 ;;; LCA Tests
-;;; ============================================================
+;;; ====
 
 (test-group "state-zipper-lca"
 
@@ -206,9 +206,9 @@
            [lca (state-zipper-lca sz 'b1 'nonexistent)])
       (assert-true (nothing? lca)))))
 
-;;; ============================================================
+;;; ====
 ;;; Exit/Entry Path Tests
-;;; ============================================================
+;;; ====
 
 (test-group "state-zipper-exit-entry-paths"
 
@@ -242,9 +242,9 @@
            [entry-path (state-zipper-entry-path sz 'x1a 'y1)])
       (assert-equal '(y y1) (map state-id entry-path)))))
 
-;;; ============================================================
+;;; ====
 ;;; Descendant Check Tests
-;;; ============================================================
+;;; ====
 
 (test-group "state-zipper-is-descendant"
 
@@ -264,9 +264,9 @@
     (let ([sz (state->zipper test-root)])
       (assert-false (state-zipper-is-descendant? sz 'a 'b)))))
 
-;;; ============================================================
+;;; ====
 ;;; Round-trip Tests
-;;; ============================================================
+;;; ====
 
 (test-group "state-zipper-roundtrip"
 
@@ -289,9 +289,9 @@
       ;; Entry action was set
       (assert-true (procedure? (state-entry-action (from-just b1-state)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Traversal Tests
-;;; ============================================================
+;;; ====
 
 (test-group "state-zipper-traversal"
 
@@ -318,9 +318,9 @@
       (assert-equal 6 (length ids))
       (assert-equal 'root (car ids)))))
 
-;;; ============================================================
+;;; ====
 ;;; Collect Tests
-;;; ============================================================
+;;; ====
 
 (test-group "state-zipper-collect"
 
@@ -335,8 +335,8 @@
            [composites (state-zipper-collect sz composite-state?)])
       (assert-equal 2 (length composites)))))
 
-;;; ============================================================
+;;; ====
 ;;; Run Tests
-;;; ============================================================
+;;; ====
 
 (run-all-tests)

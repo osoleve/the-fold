@@ -25,9 +25,9 @@
 (load "lattice/physics/classical/collision-response.ss")
 (load "lattice/physics/classical/world.ss")
 
-;;; ============================================================
+;;; ====
 ;;; PhysicsF Functor - Command Algebra
-;;; ============================================================
+;;; ====
 ;;;
 ;;; PhysicsF represents the primitive operations of a physics simulation.
 ;;; Each command is a tagged list containing operation data and a continuation.
@@ -93,9 +93,9 @@
                    (list 'detect-collisions (lambda (cs) (f (k cs)))))]
              [else (error 'physics-fmap "Unknown physics command" tag)])))
 
-;;; ============================================================
+;;; ====
 ;;; Lifting Functions (Smart Constructors)
-;;; ============================================================
+;;; ====
 ;;;
 ;;; These create Free monad values from primitive commands.
 ;;; They provide the monadic interface for building simulations.
@@ -150,9 +150,9 @@
 (define phys-detect-collisions
   (free (list 'detect-collisions pure-free)))
 
-;;; ============================================================
+;;; ====
 ;;; Monadic Combinators
-;;; ============================================================
+;;; ====
 
 ;;; phys-bind : Free PhysicsF a -> (a -> Free PhysicsF b) -> Free PhysicsF b
 ;;; Bind specialized for physics DSL.
@@ -187,9 +187,9 @@
       (phys-then (phys-step dt)
                  (phys-steps (- n 1) dt))))
 
-;;; ============================================================
+;;; ====
 ;;; Deterministic Interpreter
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Executes physics commands directly using the physics engine.
 ;;; State is a World from user/physics/world.ss.
@@ -259,9 +259,9 @@
                                           (loop (k collisions) w)))]
                                [else (error 'run-physics-deterministic "Unknown command" tag)]))))))
 
-;;; ============================================================
+;;; ====
 ;;; Logging Interpreter
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Records all commands while executing them.
 ;;; Useful for debugging, replay, and visualization.
@@ -350,9 +350,9 @@
                                           (loop (k collisions) w (cons entry log))))]
                                [else (error 'run-physics-logging "Unknown command" tag)]))))))
 
-;;; ============================================================
+;;; ====
 ;;; Pure Interpreter (Functional State)
-;;; ============================================================
+;;; ====
 ;;;
 ;;; A pure interpreter that doesn't mutate world state.
 ;;; Instead, it threads an immutable state representation.
@@ -571,9 +571,9 @@
                                            (loop (k collisions) w)))]
                                [else (error 'run-physics-pure "Unknown command" tag)]))))))
 
-;;; ============================================================
+;;; ====
 ;;; Stochastic Interpreter
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Adds random noise to forces and positions for uncertainty modeling.
 ;;; Threads a PRNG state alongside the world state.
@@ -659,9 +659,9 @@
                                           (loop (k collisions) w rng)))]
                                [else (error 'run-physics-stochastic "Unknown command" tag)]))))))
 
-;;; ============================================================
+;;; ====
 ;;; Visualization Interpreter
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Produces a stream of world states for rendering.
 ;;; Each step emits the current world state.
@@ -743,9 +743,9 @@
                           (entity-vel e)))
             entities)))
 
-;;; ============================================================
+;;; ====
 ;;; Example Programs
-;;; ============================================================
+;;; ====
 
 ;;; example-falling-ball : Entity -> Free PhysicsF Vec2
 ;;; Spawn a ball, simulate 60 frames, return final position.

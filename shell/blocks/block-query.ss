@@ -31,9 +31,9 @@
          ;; Load core dependencies (assume they're available)
          ;; In actual use, this would import from (core block) and (core cas)
          
-         ;;; ============================================================
+         ;;; ====
          ;;; Query Pattern Types
-         ;;; ============================================================
+         ;;; ====
          
          ;; A query pattern is a predicate: Block → Boolean
          ;; We represent queries as procedures for maximum flexibility
@@ -85,9 +85,9 @@
                               [(bytevector=? (vector-ref refs i) target-hash) #t]
                               [else (loop (+ i 1))])))))
          
-         ;;; ============================================================
+         ;;; ====
          ;;; Query Combinators
-         ;;; ============================================================
+         ;;; ====
          
          ;;; query-and : QueryPattern ... → QueryPattern
          ;;; Match blocks that satisfy ALL patterns
@@ -115,9 +115,9 @@
            (lambda (blk)
                    (not (pattern blk))))
          
-         ;;; ============================================================
+         ;;; ====
          ;;; Query Execution
-         ;;; ============================================================
+         ;;; ====
          
          ;;; query-blocks : QueryPattern → (List (Pair Bytevector Block))
          ;;; Execute query against all blocks in the store

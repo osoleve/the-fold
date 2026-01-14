@@ -21,9 +21,9 @@
 (load "lattice/linalg/matrix-decomp.ss")
 (load "lattice/linalg/matrix-eigen.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Polynomial Representation
-;;; ============================================================
+;;; ====
 
 ;;; Polynomials are stored as vectors of coefficients in descending
 ;;; power order. The leading coefficient is at index 0.
@@ -85,9 +85,9 @@
                        (vector-set! result (- j i) (vector-ref coeffs j))))]
              [else (loop (+ i 1))]))))
 
-;;; ============================================================
+;;; ====
 ;;; Polynomial Construction
-;;; ============================================================
+;;; ====
 
 ;;; poly-from-list : (List Number) → Poly
 ;;; Create polynomial from list of coefficients (descending powers).
@@ -154,9 +154,9 @@
             [else
              (poly-from-roots-helper rest)]))))
 
-;;; ============================================================
+;;; ====
 ;;; Polynomial Evaluation
-;;; ============================================================
+;;; ====
 
 ;;; poly-eval : Poly × Number → Number
 ;;; Evaluate polynomial at real value x using Horner's method.
@@ -183,9 +183,9 @@
                            (complex-add (complex-mul result z)
                                         (if (complex? c) c (make-complex c 0)))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Polynomial Arithmetic
-;;; ============================================================
+;;; ====
 
 ;;; poly-add : Poly × Poly → Poly
 ;;; Add two polynomials.
@@ -270,9 +270,9 @@
                            (vector-set! result i (* power coeff))))
                   (make-poly result)))))
 
-;;; ============================================================
+;;; ====
 ;;; Polynomial Root Finding
-;;; ============================================================
+;;; ====
 
 ;;; poly-roots : Poly → (List Complex) | Error
 ;;; Find roots of polynomial using companion matrix eigenvalues.
@@ -381,9 +381,9 @@
                          (loop (+ i 1) (cons (make-complex (car complex-pair) (cdr complex-pair)) result))
                          (loop (+ i 1) (cons (make-complex (vector-ref eig-vec i) 0) result))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Utility Functions
-;;; ============================================================
+;;; ====
 
 ;;; logspace : Number × Number × Nat → Vector
 ;;; Generate logarithmically spaced points from 10^start to 10^stop.
@@ -409,9 +409,9 @@
                 ((= i n) result)
                 (vector-set! result i (+ start (* i step)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Display
-;;; ============================================================
+;;; ====
 
 ;;; poly->string : Poly → String
 ;;; Pretty-print polynomial.

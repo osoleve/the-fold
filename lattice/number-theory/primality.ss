@@ -13,9 +13,9 @@
 (load "core/base/prelude.ss")
 (load "lattice/number-theory/modular.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Trial Division Primality Test
-;;; ============================================================
+;;; ====
 
 ;;; prime? : Int → Boolean
 ;;; Deterministic primality test using trial division.
@@ -40,9 +40,9 @@
 (define (composite? n)
   (and (> n 1) (not (prime? n))))
 
-;;; ============================================================
+;;; ====
 ;;; Miller-Rabin Primality Test
-;;; ============================================================
+;;; ====
 
 ;;; miller-rabin-witness? : Int × Int → Boolean
 ;;; Test if a is a Miller-Rabin witness for n being composite.
@@ -136,9 +136,9 @@
       '()
       (cons (car lst) (take (- n 1) (cdr lst)))))
 
-;;; ============================================================
+;;; ====
 ;;; Integer Factorization
-;;; ============================================================
+;;; ====
 
 ;;; trial-division : Int → (List Int)
 ;;; Factor n using trial division.
@@ -271,9 +271,9 @@
              [(and (> d 1) (< d n)) d]
              [else n]))))))
 
-;;; ============================================================
+;;; ====
 ;;; Factor Representation
-;;; ============================================================
+;;; ====
 
 ;;; prime-factorization : Int → (List (Int . Int))
 ;;; Return prime factorization as list of (prime . exponent) pairs.
@@ -330,9 +330,9 @@
 (define (flatmap f lst)
   (apply append (map f lst)))
 
-;;; ============================================================
+;;; ====
 ;;; Number-Theoretic Functions
-;;; ============================================================
+;;; ====
 
 ;;; lcm : Int × Int → Int
 ;;; Least common multiple.
@@ -410,9 +410,9 @@
       (let ([pf (prime-factorization n)])
         (fold-left * 1 (map car pf)))))
 
-;;; ============================================================
+;;; ====
 ;;; Primality Utilities
-;;; ============================================================
+;;; ====
 
 ;;; next-prime : Int → Int
 ;;; Return smallest prime greater than n.
@@ -485,9 +485,9 @@
 (define (coprime? a b)
   (= (gcd a b) 1))
 
-;;; ============================================================
+;;; ====
 ;;; Perfect Powers
-;;; ============================================================
+;;; ====
 
 ;;; isqrt : Int → Int
 ;;; Integer square root: largest k such that k² ≤ n.
@@ -541,9 +541,9 @@
              [(< x-k n) (refine (+ x 1))]
              [else (refine (- x 1))]))))))
 
-;;; ============================================================
+;;; ====
 ;;; Legendre and Jacobi Symbols
-;;; ============================================================
+;;; ====
 
 ;;; legendre-symbol : Int × Int → Int
 ;;; Legendre symbol (a/p) for prime p.
@@ -596,9 +596,9 @@
                      [recur (jacobi-symbol (modulo n a-odd) a-odd)])
                 (* two-contrib flip-sign recur))))]))]))
 
-;;; ============================================================
+;;; ====
 ;;; Export List (for reference)
-;;; ============================================================
+;;; ====
 
 ;;; Exports:
 ;;;   prime? composite?

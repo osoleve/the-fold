@@ -24,9 +24,9 @@
 (load "core/types/kinds.ss")
 (load "core/lang/nbe.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Check Result Tracking
-;;; ============================================================
+;;; ====
 
 (define *check-failures* '())
 (define *check-count* 0)
@@ -54,9 +54,9 @@
                          (display (format "  - ~a~n" name)))
                  (reverse *check-failures*)))))
 
-;;; ============================================================
+;;; ====
 ;;; 1. Built-in Kinds Well-Formedness
-;;; ============================================================
+;;; ====
 
 (display "Checking built-in kinds...\n")
 
@@ -88,9 +88,9 @@
 
 (for-each check-builtin-kind builtin-kinds)
 
-;;; ============================================================
+;;; ====
 ;;; 2. Kind Inference on Canonical Types
-;;; ============================================================
+;;; ====
 
 (display "\nChecking kind inference on types...\n")
 
@@ -151,9 +151,9 @@
 ;; Note: Hole type '?' currently falls through to the symbol check in infer-kind
 ;; and returns an error. This is a known limitation to address in a follow-up.
 
-;;; ============================================================
+;;; ====
 ;;; 3. Kind Unification
-;;; ============================================================
+;;; ====
 
 (display "\nChecking kind unification...\n")
 
@@ -185,9 +185,9 @@
 (check-unifies (K=> 'κa K*) (K=> K* K*) "(κa => *) with (* => *)")
 (check-unifies (K=> 'κa 'κb) (K=> K* K-constraint) "(κa => κb) with (* => Constraint)")
 
-;;; ============================================================
+;;; ====
 ;;; 4. Kind Normalization
-;;; ============================================================
+;;; ====
 
 (display "\nChecking kind normalization...\n")
 
@@ -209,9 +209,9 @@
 (check-normalizes (K=> K* K*) '(⇒ * *) "arrow normalizes")
 (check-normalizes (K=> K* (K=> K* K*)) '(⇒ * (⇒ * *)) "nested arrow normalizes")
 
-;;; ============================================================
+;;; ====
 ;;; 5. Kind Equivalence
-;;; ============================================================
+;;; ====
 
 (display "\nChecking kind equivalence...\n")
 
@@ -239,9 +239,9 @@
 (check-equiv (K-pi 'f (K=> K* K*) K*) (K-pi 'g (K=> K* K*) K*)
              "Pi-alpha equivalence")
 
-;;; ============================================================
+;;; ====
 ;;; 6. Type Class Kind Signatures
-;;; ============================================================
+;;; ====
 
 (display "\nChecking type class kinds...\n")
 
@@ -273,9 +273,9 @@
 (check "TC-Arrow has well-formed kind"
        (kind? (typeclass-kind TC-Arrow)))
 
-;;; ============================================================
+;;; ====
 ;;; 7. Dependent Kind Constructs
-;;; ============================================================
+;;; ====
 
 (display "\nChecking dependent kind constructs...\n")
 
@@ -303,9 +303,9 @@
      (check "dep-kind-codomain extracts codomain"
             (kind=? (dep-kind-codomain dk) K-constraint)))
 
-;;; ============================================================
+;;; ====
 ;;; Summary
-;;; ============================================================
+;;; ====
 
 (newline)
 (report-results)

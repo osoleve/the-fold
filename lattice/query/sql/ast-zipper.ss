@@ -22,9 +22,9 @@
 (load "lattice/fp/data/tree-zipper.ss")
 (load "lattice/fp/data/zipper-lens.ss")
 
-;;; ============================================================
+;;; ====
 ;;; AST to Rose Tree Conversion
-;;; ============================================================
+;;; ====
 ;;;
 ;;; SQL AST nodes are converted to rose trees where:
 ;;;   - Value = the full AST node
@@ -82,9 +82,9 @@
 (define (tree->ast t)
   (tree-value t))
 
-;;; ============================================================
+;;; ====
 ;;; AST Zipper Type
-;;; ============================================================
+;;; ====
 
 ;;; ast-zipper-tag : Symbol
 (define ast-zipper-tag 'ast-zipper)
@@ -102,9 +102,9 @@
 (define (ast-zipper-tree-z az)
   (list-ref az 1))
 
-;;; ============================================================
+;;; ====
 ;;; Navigation Lifting
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Helper to lift tree-zipper operations into ast-zipper.
 ;;; Eliminates boilerplate in navigation functions.
@@ -127,9 +127,9 @@
           nothing
           (just (make-ast-zipper (from-just result)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Constructors
-;;; ============================================================
+;;; ====
 
 ;;; ast->zipper : AST -> AstZipper
 ;;; Create a zipper focused at the root of an AST.
@@ -141,9 +141,9 @@
 (define (zipper->ast az)
   (tree->ast (zipper->tree (ast-zipper-tree-z az))))
 
-;;; ============================================================
+;;; ====
 ;;; Focus Operations
-;;; ============================================================
+;;; ====
 
 ;;; ast-zipper-node : AstZipper -> AST
 ;;; Get the AST node at focus.
@@ -178,9 +178,9 @@
 (define (ast-zipper-modify az f)
   (ast-zipper-set az (f (ast-zipper-node az))))
 
-;;; ============================================================
+;;; ====
 ;;; Navigation
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Navigation functions lifted from tree-zipper operations.
 ;;; Uses lift-ast-nav to eliminate boilerplate.
@@ -204,9 +204,9 @@
 ;;; ast-zipper-nth-child : AstZipper x Nat -> (Maybe AstZipper)
 (define ast-zipper-nth-child (lift-ast-nav-indexed tree-zipper-nth-child))
 
-;;; ============================================================
+;;; ====
 ;;; Navigation Predicates
-;;; ============================================================
+;;; ====
 
 ;;; ast-zipper-at-root? : AstZipper -> Bool
 (define (ast-zipper-at-root? az)
@@ -224,9 +224,9 @@
 (define (ast-zipper-can-go-down? az)
   (tree-zipper-can-go-down? (ast-zipper-tree-z az)))
 
-;;; ============================================================
+;;; ====
 ;;; Traversal
-;;; ============================================================
+;;; ====
 
 ;;; ast-zipper-next : AstZipper -> (Maybe AstZipper)
 ;;; Move to next node in preorder traversal.
@@ -242,9 +242,9 @@
   (map make-ast-zipper
        (tree-zipper-preorder (ast-zipper-tree-z (ast-zipper-root az)))))
 
-;;; ============================================================
+;;; ====
 ;;; Visitor Pattern Replacement
-;;; ============================================================
+;;; ====
 ;;;
 ;;; These functions replace walk-ast and collect-nodes with
 ;;; immutable, zipper-based alternatives.
@@ -279,9 +279,9 @@
               (loop (cdr lst) (cons result acc))
               (loop (cdr lst) acc))))))
 
-;;; ============================================================
+;;; ====
 ;;; Advanced Traversal
-;;; ============================================================
+;;; ====
 
 ;;; ast-find : (AST -> Bool) x AST -> (Maybe AstZipper)
 ;;; Find first node matching predicate, return zipper focused on it.
@@ -305,9 +305,9 @@
 (define (ast-collect-by-tag tag node)
   (ast-collect (lambda (n) (and (sql-ast? n) (eq? (sql-tag n) tag))) node))
 
-;;; ============================================================
+;;; ====
 ;;; Transformation
-;;; ============================================================
+;;; ====
 
 ;;; ast-transform : (AST -> AST) x AST -> AST
 ;;; Transform all nodes using function.
@@ -351,9 +351,9 @@
    f
    node))
 
-;;; ============================================================
+;;; ====
 ;;; Context Information
-;;; ============================================================
+;;; ====
 
 ;;; ast-zipper-depth : AstZipper -> Nat
 ;;; Get depth in tree (0 = root).
@@ -371,9 +371,9 @@
 (define (ast-zipper-ancestors az)
   (reverse (ast-zipper-path az)))
 
-;;; ============================================================
+;;; ====
 ;;; Specific Node Finders
-;;; ============================================================
+;;; ====
 
 ;;; ast-column-refs : AST -> (List AST)
 ;;; Get all column references in AST.

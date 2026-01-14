@@ -4,13 +4,13 @@
 (load "lattice/sim/simulation-stream.ss")
 
 (display "\n")
-(display "==============================================================\n")
+(display "====\n")
 (display "         SIMULATION STREAM TESTS\n")
-(display "==============================================================\n")
+(display "====\n")
 
-;;; ============================================================
+;;; ====
 ;;; SimState Type Tests
-;;; ============================================================
+;;; ====
 
 (test-group sim-state-type
             (define-test make-sim-state-test
@@ -32,9 +32,9 @@
                     (assert-equal 0.0 (sim-state-time s2))
                     (assert-equal 'new-data (sim-state-data s2)))))
 
-;;; ============================================================
+;;; ====
 ;;; Unfold Tests
-;;; ============================================================
+;;; ====
 
 (test-group unfold-tests
             (define-test sim-unfold-finite-test
@@ -65,9 +65,9 @@
                      [s (sim-unfold step 0)])
                     (assert-true (stream-nil? s)))))
 
-;;; ============================================================
+;;; ====
 ;;; Simulate Tests
-;;; ============================================================
+;;; ====
 
 (test-group simulate-tests
             (define-test simulate-basic-test
@@ -109,9 +109,9 @@
                     (assert-equal 1000 (length many))
                     (assert-equal 999 (sim-state-data (list-ref many 999))))))
 
-;;; ============================================================
+;;; ====
 ;;; Scan Tests
-;;; ============================================================
+;;; ====
 
 (test-group scan-tests
             (define-test sim-scan-sum-test
@@ -151,9 +151,9 @@
                     ;; Accumulated: 0, 0+1=1, 1+2=3, 3+4=7, 7+8=15
                     (assert-equal '(0 1 3 7 15) first-5))))
 
-;;; ============================================================
+;;; ====
 ;;; Physics State Tests
-;;; ============================================================
+;;; ====
 
 (test-group physics-state-tests
             (define-test make-physics-state-test
@@ -178,9 +178,9 @@
                     ;; Mass unchanged
                     (assert-equal 1.0 (physics-mass s2)))))
 
-;;; ============================================================
+;;; ====
 ;;; Physics Integration Tests
-;;; ============================================================
+;;; ====
 
 (test-group physics-integration-tests
             (define-test euler-step-no-force-test
@@ -225,9 +225,9 @@
                     ;; = 0 + 0*0.1 + 0.5*10*0.01 = 0.05
                     (assert-true (< (abs (- 0.05 (vec2-y (physics-pos after-1)))) 0.01)))))
 
-;;; ============================================================
+;;; ====
 ;;; Force Function Tests
-;;; ============================================================
+;;; ====
 
 (test-group force-function-tests
             (define-test const-gravity-test
@@ -273,9 +273,9 @@
                     ;; (10,0) + (0,20) + (-5,-5) = (5, 15)
                     (assert-true (vec2-nearly-equal? (vec2 5 15) force 0.001)))))
 
-;;; ============================================================
+;;; ====
 ;;; Full Simulation Tests
-;;; ============================================================
+;;; ====
 
 (test-group full-simulation-tests
             (define-test projectile-simulation-test
@@ -324,9 +324,9 @@
                     ;; Energy should decrease due to damping
                     (assert-true (< final-energy initial-energy)))))
 
-;;; ============================================================
+;;; ====
 ;;; Observable Stream Tests
-;;; ============================================================
+;;; ====
 
 (test-group observable-tests
             (define-test sim-positions-test
@@ -383,9 +383,9 @@
                          ;; Symplectic Euler is good at energy conservation
                          (assert-true (< (abs (- e0 e99)) (* 0.05 (abs e0))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Utility Function Tests
-;;; ============================================================
+;;; ====
 
 (test-group utility-tests
             (define-test sim-take-test
@@ -425,9 +425,9 @@
                      [state (sim-at-time 2.0 stream 100)])
                     (assert-true (>= (sim-state-time state) 2.0)))))
 
-;;; ============================================================
+;;; ====
 ;;; N-Body Simulation Tests
-;;; ============================================================
+;;; ====
 
 (test-group n-body-tests
             (define-test make-n-body-state-test
@@ -453,9 +453,9 @@
                     ;; Second body should move left
                     (assert-true (< (vec2-x (physics-pos (cadr bodies))) 10)))))
 
-;;; ============================================================
+;;; ====
 ;;; Simulation Combinator Tests
-;;; ============================================================
+;;; ====
 
 (test-group combinator-tests
             (define-test sim-seq-test
@@ -491,9 +491,9 @@
                     (assert-equal 'case-a (sim-state-data (switched initial-a)))
                     (assert-equal 'case-b (sim-state-data (switched initial-b))))))
 
-;;; ============================================================
+;;; ====
 ;;; Edge Cases
-;;; ============================================================
+;;; ====
 
 (test-group edge-cases
             (define-test zero-dt-test
@@ -522,12 +522,12 @@
                      [force (combined s)])
                     (assert-true (vec2-nearly-equal? (vec2 0 0) force 0.001)))))
 
-;;; ============================================================
+;;; ====
 ;;; Summary
-;;; ============================================================
+;;; ====
 
 (display "\n")
-(display "==============================================================\n")
+(display "====\n")
 (printf "Tests passed: ~a\n" *tests-passed*)
 (printf "Tests failed: ~a\n" *tests-failed*)
 (printf "Total tests:  ~a\n" *tests-run*)

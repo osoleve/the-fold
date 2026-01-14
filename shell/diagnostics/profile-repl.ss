@@ -30,9 +30,9 @@
 (load "shell/profiler-unified.ss")
 (load "shell/profile-persist.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Profile Session State
-;;; ============================================================
+;;; ====
 
 ;;; Current profiler result (basic)
 (define *current-profile* #f)
@@ -55,9 +55,9 @@
 ;;; Default fuel budget for profiling
 (define *default-profile-fuel* 10000)
 
-;;; ============================================================
+;;; ====
 ;;; Main Profile Command
-;;; ============================================================
+;;; ====
 
 ;;; profile : Expr [× Fuel] → ProfileResult
 ;;; Profile an expression and display results
@@ -104,9 +104,9 @@
       '()
       (cons (car lst) (take (- n 1) (cdr lst)))))
 
-;;; ============================================================
+;;; ====
 ;;; Report Commands
-;;; ============================================================
+;;; ====
 
 ;;; profile-report : → void
 ;;; Display full profile report for last run
@@ -153,9 +153,9 @@
        (void))
       (display "  No profile available. Run (profile expr) first.\n")))
 
-;;; ============================================================
+;;; ====
 ;;; History Commands
-;;; ============================================================
+;;; ====
 
 ;;; profile-history : → void
 ;;; Display profile history
@@ -164,7 +164,7 @@
       (display "  No profile history.\n")
       (begin
        (display "\n  PROFILE HISTORY\n")
-       (display "  ================\n\n")
+       (display "  ====\n\n")
        (let loop ([hist *profile-history*] [i 0])
             (unless (null? hist)
                     (let* ([entry (car hist)]
@@ -206,9 +206,9 @@
       (car lst)
       (list-ref (cdr lst) (- n 1))))
 
-;;; ============================================================
+;;; ====
 ;;; Comparison Commands
-;;; ============================================================
+;;; ====
 
 ;;; profile-compare : Nat × Nat → void
 ;;; Compare two profiles from history
@@ -220,9 +220,9 @@
                  [p2 (cdr (list-ref *profile-history* n2))])
                 (display (compare-profiles p1 p2))))))
 
-;;; ============================================================
+;;; ====
 ;;; Baseline Commands
-;;; ============================================================
+;;; ====
 
 ;;; profile-baseline : → void
 ;;; Set current profile's fuel as baseline
@@ -245,9 +245,9 @@
       (display (format "  Current baseline: ~a fuel\n" *profile-baseline*))
       (display "  No baseline set.\n")))
 
-;;; ============================================================
+;;; ====
 ;;; Configuration
-;;; ============================================================
+;;; ====
 
 ;;; profile-set-fuel : Nat → void
 ;;; Set default fuel budget
@@ -260,9 +260,9 @@
   (set! *profile-history* '())
   (display "  Profile history cleared.\n"))
 
-;;; ============================================================
+;;; ====
 ;;; Profile with Environment
-;;; ============================================================
+;;; ====
 
 ;;; profile-prelude : Expr [× Fuel] → ProfileResult
 ;;; Profile with prelude environment
@@ -281,9 +281,9 @@
               (profiler-expr p)
               `(profile-status ,status)))]))
 
-;;; ============================================================
+;;; ====
 ;;; Quick Profile (Minimal Output)
-;;; ============================================================
+;;; ====
 
 ;;; qprofile : Expr [× Fuel] → (fuel-used . result)
 ;;; Quick profile - minimal output, returns fuel and result
@@ -301,9 +301,9 @@
           (set! *current-profile* p)
           (cons used result))]))
 
-;;; ============================================================
+;;; ====
 ;;; Aliases for REPL convenience
-;;; ============================================================
+;;; ====
 
 (define prof repl-profile)
 (define prof-report repl-profile-report)
@@ -313,9 +313,9 @@
 (define prof-flame repl-profile-flame)
 (define prof-hist repl-profile-history)
 
-;;; ============================================================
+;;; ====
 ;;; Unified Profiler Commands
-;;; ============================================================
+;;; ====
 
 ;;; profile-memory : Expr [x Fuel] -> UnifiedProfiler
 ;;; Profile an expression with full memory tracking.
@@ -404,7 +404,7 @@
       (display "  No unified profile history.\n")
       (begin
        (display "\n  UNIFIED PROFILE HISTORY\n")
-       (display "  =======================\n\n")
+       (display "  ====\n\n")
        (let loop ([hist *unified-profile-history*] [i 0])
             (unless (null? hist)
                     (let* ([entry (car hist)]
@@ -489,9 +489,9 @@
            #f))
       (display "  No unified profile available. Run (profile-memory expr) first.\n")))
 
-;;; ============================================================
+;;; ====
 ;;; Extended Aliases
-;;; ============================================================
+;;; ====
 
 (define prof-mem repl-profile-memory)
 (define prof-graph repl-profile-callgraph)
@@ -503,14 +503,14 @@
 (define prof-export repl-profile-export-csv)
 (define prof-full repl-profile-full-report)
 
-;;; ============================================================
+;;; ====
 ;;; Help for new commands
-;;; ============================================================
+;;; ====
 
 (define (profile-help)
   (display "
   PROFILER COMMANDS
-  =================
+  ====
 
   Basic Profiling:
     (profile expr)              Profile expression (fuel only)
@@ -551,8 +551,8 @@
     prof-load-cmp, prof-full, prof-export, prof-uhist
 "))
 
-;;; ============================================================
+;;; ====
 ;;; Module Loading Confirmation
-;;; ============================================================
+;;; ====
 
 (define *profile-repl-loaded* #t)

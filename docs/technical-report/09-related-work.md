@@ -6,7 +6,7 @@
 **Unison** (Chiusano & Bjarnason) is the closest related work—a programming language with content-addressed definitions. Key differences:
 
 | Aspect | Unison | The Fold |
-|--------|--------|----------|
+|----|----|----|
 | Normalization | Ability-based hashing | De Bruijn α-normalization |
 | Type system | Ability effects | Gradual dependent types |
 | Module system | Namespace-based | Tiered DAG with manifests |

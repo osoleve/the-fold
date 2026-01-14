@@ -11,9 +11,9 @@
 (load "core/blocks/block.ss")
 (load "core/base/sha256.ss")
 
-;;; ============================================================
+;;; ====
 ;;; General List Utilities (Tier 5-6)
-;;; ============================================================
+;;; ====
 
 ;;; foldr : (A B → B) B (List A) → B
 ;;; Right-associative fold over a list.
@@ -28,9 +28,9 @@
       init
       (f (car lst) (foldr f init (cdr lst)))))
 
-;;; ============================================================
+;;; ====
 ;;; Core Collection Operations (Tier 5-6)
-;;; ============================================================
+;;; ====
 
 ;;; collection-hashes : Block → (List Hash)
 ;;; Extract all hashes from a collection block.
@@ -53,9 +53,9 @@
 (define (collection-empty? collection)
   (= (vector-length (block-refs collection)) 0))
 
-;;; ============================================================
+;;; ====
 ;;; Higher-Order Collection Functions (Tier 6)
-;;; ============================================================
+;;; ====
 
 ;;; map-collection : FSCap (Block → A) Block → (List A)
 ;;; Map function over all members of a collection.
@@ -116,9 +116,9 @@
                               (when block (f block))))
                  hashes)))
 
-;;; ============================================================
+;;; ====
 ;;; Collection Queries (Tier 6)
-;;; ============================================================
+;;; ====
 
 ;;; collection-find : FSCap (Block → Boolean) Block → (Maybe Block)
 ;;; Find first block in collection matching predicate.
@@ -157,9 +157,9 @@
 (define (collection-count-matching fs predicate collection)
   (length (filter-collection fs predicate collection)))
 
-;;; ============================================================
+;;; ====
 ;;; Collection Transformation (Tier 6)
-;;; ============================================================
+;;; ====
 
 ;;; collection-partition : FSCap (Block → Boolean) Block → (Values (List Block) (List Block))
 ;;; Partition collection into (matching, non-matching).
@@ -198,9 +198,9 @@
        (let-values ([(keys vals) (hashtable-entries groups)])
                    (map cons (vector->list keys) (vector->list vals)))))
 
-;;; ============================================================
+;;; ====
 ;;; Collection Construction (Tier 5)
-;;; ============================================================
+;;; ====
 
 ;;; make-collection-from-blocks : Symbol String (List Block) → Block
 ;;; Create a collection from a list of blocks.

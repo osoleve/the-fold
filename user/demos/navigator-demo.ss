@@ -14,9 +14,9 @@
 (printf "║   BLOCK NAVIGATOR + KNOWLEDGE ENGINE DEMONSTRATION         ║\n")
 (printf "╚════════════════════════════════════════════════════════════╝\n\n")
 
-;;; ============================================================
+;;; ====
 ;;; Build Knowledge Graph (from knowledge-engine.ss)
-;;; ============================================================
+;;; ====
 
 (printf "=== Building Knowledge Graph ===\n\n")
 
@@ -95,9 +95,9 @@
 (printf "✓ Created knowledge graph with 23 blocks\n")
 (printf "  Root: ~a\n\n" (hash->hex (hash-block kg)))
 
-;;; ============================================================
+;;; ====
 ;;; Store Blocks in Filesystem
-;;; ============================================================
+;;; ====
 
 (printf "=== Storing Blocks ===\n\n")
 
@@ -118,9 +118,9 @@
 
 (printf "✓ Stored ~a blocks in .store\n\n" stored-count)
 
-;;; ============================================================
+;;; ====
 ;;; Demonstrate Block Navigator Features
-;;; ============================================================
+;;; ====
 
 (printf "╔════════════════════════════════════════════════════════════╗\n")
 (printf "║              DEMONSTRATION: BLOCK NAVIGATOR                ║\n")
@@ -170,9 +170,9 @@
 
 (find-orphans fs)
 
-;;; ============================================================
+;;; ====
 ;;; Summary
-;;; ============================================================
+;;; ====
 
 (printf "\n╔════════════════════════════════════════════════════════════╗\n")
 (printf "║                    DEMONSTRATION COMPLETE                   ║\n")

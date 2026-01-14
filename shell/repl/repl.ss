@@ -15,9 +15,9 @@
 ;;;   2. Display the welcome screen
 ;;;   3. Make all CAS and exploration functions available
 
-;;; ============================================================
+;;; ====
 ;;; Dependency Loading
-;;; ============================================================
+;;; ====
 
 ;;; Load order matters — dependencies first
 
@@ -75,17 +75,17 @@
 (load "shell/repl/test-runner.ss")
 
 
-;;; ============================================================
+;;; ====
 ;;; Quiet Mode
-;;; ============================================================
+;;; ====
 
 ;;; Set *quiet* to #t before loading to suppress startup output.
 ;;; Usage: (define *quiet* #t) (load "shell/repl.ss")
 (define *quiet* (if (top-level-bound? '*quiet*) *quiet* #f))
 
-;;; ============================================================
+;;; ====
 ;;; Startup Display
-;;; ============================================================
+;;; ====
 
 (define *fold-version* "GENESIS")
 
@@ -97,9 +97,9 @@
   (display "New to The Fold? Try (start-tutorial) for an interactive guide!\n")
   (display "Type (commands) to see all registered commands.\n"))
 
-;;; ============================================================
+;;; ====
 ;;; Help and Command Reference
-;;; ============================================================
+;;; ====
 
 (define (display-help)
   (display "\n")
@@ -223,9 +223,9 @@
       ;; Show command-specific help using command registry
       (apply cmd-help args)))
 
-;;; ============================================================
+;;; ====
 ;;; Convenience Functions
-;;; ============================================================
+;;; ====
 
 ;;; fs : → FS
 ;;; Convenience function to get a filesystem capability.
@@ -266,9 +266,9 @@
 (define (search query)
   (search-ranked (fs) query))
 
-;;; ============================================================
+;;; ====
 ;;; Interactive Block Explorer (session-based)
-;;; ============================================================
+;;; ====
 ;;; Functions loaded from shell/block-explorer.ss
 ;;; Available: bx, bx-view, bx-back, bx-home, bx-popular,
 ;;;            bx-orphans, bx-search, bx-recent, bx-by-tag,
@@ -279,7 +279,7 @@
 (define (bx)
   (block-explorer (fs)))
 
-;;; ============================================================
+;;; ====
 
 ;;; resume-session : → void
 ;;; Resume an existing session without re-logging in.
@@ -299,9 +299,9 @@
   (display (format "The Fold ~a\n" *fold-version*))
   (display "Content-Addressed Storage System\n"))
 
-;;; ============================================================
+;;; ====
 ;;; Core Development Utilities
-;;; ============================================================
+;;; ====
 
 ;;; load-core : → void
 ;;; Load Core modules for development experimentation.
@@ -347,9 +347,9 @@
        (display "  (try-hash '(lambda (x) x))       → Show expression hash\n")
        (display "  (playground-demo)                → See all features\n"))))
 
-;;; ============================================================
+;;; ====
 ;;; Typed Evaluation Convenience Functions
-;;; ============================================================
+;;; ====
 
 ;;; These functions are available after (load-core)
 
@@ -405,9 +405,9 @@
           (error ':ann "Core not loaded. Run (load-core) first."))
   (show-annotated expr))
 
-;;; ============================================================
+;;; ====
 ;;; REPL Initialization
-;;; ============================================================
+;;; ====
 
 (define (fold-repl-init)
   (unless *quiet*
@@ -415,8 +415,8 @@
   (when *quiet*
         (display "The Fold loaded.\n")))
 
-;;; ============================================================
+;;; ====
 ;;; Auto-initialize on load
-;;; ============================================================
+;;; ====
 
 (fold-repl-init)

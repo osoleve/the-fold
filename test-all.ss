@@ -9,9 +9,9 @@
 ;;;   scheme --script test-all.ss core      ; core tests only
 ;;;   scheme --script test-all.ss shell     ; shell tests only
 
-;;; ============================================================
+;;; ====
 ;;; Setup
-;;; ============================================================
+;;; ====
 
 (source-directories (cons "core" (cons "lattice" (source-directories))))
 (load "core/test-framework.ss")
@@ -31,9 +31,9 @@
                       (apply format template irritants))))
       (format "~a" e)))
 
-;;; ============================================================
+;;; ====
 ;;; Timing Utilities
-;;; ============================================================
+;;; ====
 
 (define (current-time-ms)
   (let ([t (current-time)])
@@ -50,9 +50,9 @@
     (string-append (number->string (quotient ms 60000)) "m "
                    (number->string (quotient (remainder ms 60000) 1000)) "s")]))
 
-;;; ============================================================
+;;; ====
 ;;; Test Registry
-;;; ============================================================
+;;; ====
 
 (define *test-results* '())  ; ((file status duration-ms message) ...)
 (define total-start-time 0)
@@ -62,9 +62,9 @@
         (cons (list file status duration-ms (if (null? message) "" (car message)))
               *test-results*)))
 
-;;; ============================================================
+;;; ====
 ;;; Test Runner
-;;; ============================================================
+;;; ====
 
 (define (run-test-file base-dir filename)
   (let ([start (current-time-ms)]
@@ -86,9 +86,9 @@
                    (display (string-append " (" (format-duration-ms duration) ") ok"))
                    (newline)))))
 
-;;; ============================================================
+;;; ====
 ;;; Test Categories
-;;; ============================================================
+;;; ====
 
 ;;; Core tests in dependency order (language kernel only)
 (define core-tests
@@ -155,9 +155,9 @@
     "test-commands-advanced.ss"
     "test-repl-integration.ss"))
 
-;;; ============================================================
+;;; ====
 ;;; Main Test Runner
-;;; ============================================================
+;;; ====
 
 (define (run-test-category category-name dir tests)
   (display "────────────────────────────────────────────────────────────────
@@ -236,9 +236,9 @@
               *test-results*)
              (exit 1)))))
 
-;;; ============================================================
+;;; ====
 ;;; Main Entry Point
-;;; ============================================================
+;;; ====
 
 (define (main args)
   (let ([mode (if (null? args) 'all (string->symbol (car args)))])

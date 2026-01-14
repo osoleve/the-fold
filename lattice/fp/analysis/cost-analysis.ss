@@ -21,9 +21,9 @@
 
 (load "core/base/prelude.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Configuration Parameters
-;;; ============================================================
+;;; ====
 
 ;;; *parallel-overhead* : Nat
 ;;; Estimated cost of spawning a parallel task and synchronizing.
@@ -56,9 +56,9 @@
 (define (set-parallel-overhead! n)
   (set! *parallel-overhead* n))
 
-;;; ============================================================
+;;; ====
 ;;; Operation Cost Tables
-;;; ============================================================
+;;; ====
 
 ;;; Costs are in abstract "work units":
 ;;;   1 = trivial (variable lookup)
@@ -163,9 +163,9 @@
         [hof-entry (cdr hof-entry)]
         [else 10])))
 
-;;; ============================================================
+;;; ====
 ;;; Expression Form Costs
-;;; ============================================================
+;;; ====
 
 ;;; *form-costs* : Alist
 ;;; Base costs for different expression forms.
@@ -192,9 +192,9 @@
   (let ([entry (assq form *form-costs*)])
        (if entry (cdr entry) 1)))
 
-;;; ============================================================
+;;; ====
 ;;; Work Estimation Engine
-;;; ============================================================
+;;; ====
 
 ;;; *estimate-work-fuel* : Nat
 ;;; Default recursion depth for work estimation.
@@ -415,9 +415,9 @@
    ;; Unknown: conservative estimate
    [else 10]))
 
-;;; ============================================================
+;;; ====
 ;;; Parallelization Decision
-;;; ============================================================
+;;; ====
 
 ;;; parallel-beneficial? : Expr x Expr -> Bool
 ;;; Determine if parallelizing e1 and e2 is worthwhile.
@@ -468,9 +468,9 @@
                                   works))])
                 (max 1 viable-tasks))])))
 
-;;; ============================================================
+;;; ====
 ;;; Work Analysis Report
-;;; ============================================================
+;;; ====
 
 ;;; WorkAnalysis structure:
 ;;;   (work-analysis
@@ -516,9 +516,9 @@
 (define (analysis-suggested-splits wa)
   (cdr (assq 'suggested-splits (cdr wa))))
 
-;;; ============================================================
+;;; ====
 ;;; Complexity Classification
-;;; ============================================================
+;;; ====
 
 ;;; expr-complexity-class : Expr -> Symbol
 ;;; Classify an expression's complexity class based on structure.
@@ -601,9 +601,9 @@
              [o2 (cdr (assq c2 order))])
             (if (> o1 o2) c1 c2))))
 
-;;; ============================================================
+;;; ====
 ;;; Hotspot Detection
-;;; ============================================================
+;;; ====
 
 ;;; Hotspot structure: (position cost expression)
 
@@ -641,9 +641,9 @@
   (let ([sorted (sort (lambda (a b) (> (cadr a) (cadr b))) entries)])
        sorted))
 
-;;; ============================================================
+;;; ====
 ;;; Utility Functions
-;;; ============================================================
+;;; ====
 
 ;;; total-work : (List Expr) -> Nat
 ;;; Sum the estimated work of multiple expressions.
@@ -672,9 +672,9 @@
                   [min-w (fold-left min +inf.0 works-positive)])
                  (< (/ max-w min-w) 2.0)))))
 
-;;; ============================================================
+;;; ====
 ;;; Display Utilities
-;;; ============================================================
+;;; ====
 
 ;;; format-work-analysis : WorkAnalysis -> String
 ;;; Format a work analysis for display.

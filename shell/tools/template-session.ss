@@ -16,9 +16,9 @@
 
 (load "lattice/dsl/template/template.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Session State
-;;; ============================================================
+;;; ====
 
 ;;; Current session state: #(template undo-stack completed-defs)
 ;;; completed-defs accumulates finished definitions for multi-def sessions
@@ -59,9 +59,9 @@
                   (vector-set! s 1 (cdr stack))
                   (car stack)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Session API
-;;; ============================================================
+;;; ====
 
 ;;; ts-start : Expr → Unit
 ;;; Start a new template session with the given expression.
@@ -158,9 +158,9 @@
   (*completed-defs* '())
   (display "Session cleared.\n"))
 
-;;; ============================================================
+;;; ====
 ;;; Multi-Definition Support
-;;; ============================================================
+;;; ====
 
 ;;; ts-next : Expr → Unit
 ;;; Compile current template (must be complete), save it, start new one.
@@ -236,9 +236,9 @@
     [(_ expr ...)
      (ts-defs (list 'expr ...))]))
 
-;;; ============================================================
+;;; ====
 ;;; Quick Templates (Common Patterns)
-;;; ============================================================
+;;; ====
 
 ;;; ts-fn : Symbol × (List Symbol) → Unit
 ;;; Quick function definition: (ts-fn 'foo '(x y)) → (define (foo x y) $body)
@@ -274,18 +274,18 @@
                                    acc))))])
     (ts-start `(cond ,@clauses))))
 
-;;; ============================================================
+;;; ====
 ;;; Pretty Print Helper
-;;; ============================================================
+;;; ====
 
 ;;; pretty-print : Expr → Unit
 ;;; Print expression with indentation.
 (define (pretty-print expr)
   (write expr))
 
-;;; ============================================================
+;;; ====
 ;;; Shorthand Aliases
-;;; ============================================================
+;;; ====
 
 ;;; t> : Expr → Unit  (alias for ts-start)
 (define t> ts-start)

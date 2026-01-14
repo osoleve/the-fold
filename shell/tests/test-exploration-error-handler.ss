@@ -59,9 +59,9 @@
        (printf "  ✗ ~a\n" name)
        (printf "    Expected truthy value, got: ~s\n" value))))
 
-;;; ============================================================
+;;; ====
 ;;; String Utility Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Testing string utilities ===\n")
 
@@ -100,9 +100,9 @@
               (string-find-pattern "test" "")
               0)
 
-;;; ============================================================
+;;; ====
 ;;; Fix Format Placeholders Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Testing fix-format-placeholders ===\n")
 
@@ -150,9 +150,9 @@
               (fix-format-placeholders "")
               "")
 
-;;; ============================================================
+;;; ====
 ;;; Fill Format Placeholders Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Testing fill-format-placeholders ===\n")
 
@@ -181,9 +181,9 @@
                               (when (not (string? result))
                                     (error 'test "Expected string result")))))
 
-;;; ============================================================
+;;; ====
 ;;; Format Condition Message Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Testing format-condition-message ===\n")
 
@@ -209,9 +209,9 @@
               (format-condition-message "~s is invalid" #f '())
               "<value> is invalid")
 
-;;; ============================================================
+;;; ====
 ;;; Format Exploration Error Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Testing format-exploration-error ===\n")
 
@@ -241,9 +241,9 @@
                                                (error 'test "Expected who in output")))])
                                 (error 'test-func "test error"))))
 
-;;; ============================================================
+;;; ====
 ;;; Condition Inspection Helper Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Testing condition inspection helpers ===\n")
 
@@ -277,9 +277,9 @@
                                                       (list? irritants)))])
                                 (error 'test "error" 42))))
 
-;;; ============================================================
+;;; ====
 ;;; Exploration Guard Macro Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Testing exploration-guard macro ===\n")
 
@@ -310,9 +310,9 @@
                               (when (not (string? received))
                                     (error 'test "Handler didn't receive string")))))
 
-;;; ============================================================
+;;; ====
 ;;; Real-World Error Scenarios
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Testing real-world error scenarios ===\n")
 
@@ -356,9 +356,9 @@
                                                (error 'test "Expected string")))])
                                 (vector-ref (vector 1 2 3) 10))))
 
-;;; ============================================================
+;;; ====
 ;;; Edge Cases
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Testing edge cases ===\n")
 
@@ -396,9 +396,9 @@
                               (when (not (= result 42))
                                     (error 'test "Expected normal return value")))))
 
-;;; ============================================================
+;;; ====
 ;;; Comparison with Raw condition-message
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Testing improvements over raw condition-message ===\n")
 
@@ -414,9 +414,9 @@
                                                (error 'test "Format should fix ~s")))])
                                 (string-ref "x" 5))))
 
-;;; ============================================================
+;;; ====
 ;;; Demo Function Test
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Testing demo function ===\n")
 
@@ -424,9 +424,9 @@
                  (lambda ()
                          (demonstrate-error-formatting)))
 
-;;; ============================================================
+;;; ====
 ;;; Integration with Exploration Scripts Pattern
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Testing exploration script pattern ===\n")
 
@@ -442,11 +442,11 @@
                               (when (not (string? (car results)))
                                     (error 'test "Should have formatted error")))))
 
-;;; ============================================================
+;;; ====
 ;;; Test Summary
-;;; ============================================================
+;;; ====
 
-(printf "\n========================================\n")
+(printf "\n====\n")
 (printf "Test Results:\n")
 (printf "  Total:  ~a\n" test-count)
 (printf "  Passed: ~a\n" pass-count)

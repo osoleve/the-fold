@@ -24,9 +24,9 @@
 
 (load "core/base/prelude.ss")
 
-;;; ============================================================
+;;; ====
 ;;; State Monad Primitives (as Fold expressions)
-;;; ============================================================
+;;; ====
 
 ;;; These definitions are Fold expressions that can be evaluated
 ;;; by the eval.ss evaluator. They're defined here as quoted
@@ -66,9 +66,9 @@
   '(state-gets . (fn (f)
                      (fn (s) (prim 'list (f s) s)))))
 
-;;; ============================================================
+;;; ====
 ;;; State Runners
-;;; ============================================================
+;;; ====
 
 ;;; run-state-def : Sexp
 (define run-state-def
@@ -88,9 +88,9 @@
                      (fn (init-s)
                          (prim 'car (prim 'cdr (ma init-s)))))))
 
-;;; ============================================================
+;;; ====
 ;;; State Monad Combinators
-;;; ============================================================
+;;; ====
 
 ;;; state-map-def : Sexp
 (define state-map-def
@@ -124,9 +124,9 @@
                                     (s1 (prim 'car (prim 'cdr r1))))
                                    (ma s1)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Utility: Do-notation via nested binds
-;;; ============================================================
+;;; ====
 
 ;;; For convenience, we can chain operations:
 ;;; (state-do ((x <- m1) (y <- m2)) (state-return (+ x y)))
@@ -137,9 +137,9 @@
 ;;; Note: This requires a macro, which we don't have yet.
 ;;; For now, use explicit bind chains.
 
-;;; ============================================================
+;;; ====
 ;;; State Monad Laws
-;;; ============================================================
+;;; ====
 
 ;;; The state monad satisfies the monad laws:
 ;;;
@@ -149,9 +149,9 @@
 ;;;
 ;;; These can be verified by evaluation.
 
-;;; ============================================================
+;;; ====
 ;;; Practical Combinators
-;;; ============================================================
+;;; ====
 
 ;;; state-sequence-def : Sexp
 (define state-sequence-def
@@ -202,9 +202,9 @@
                                (fn (s) (prim 'list '() s))
                                action)))))
 
-;;; ============================================================
+;;; ====
 ;;; Stateful Counter Example
-;;; ============================================================
+;;; ====
 
 ;;; inc-counter-def : Sexp
 (define inc-counter-def
@@ -216,9 +216,9 @@
   '(dec-counter . (fn (n)
                       (prim 'list n (prim 'sub n 1)))))
 
-;;; ============================================================
+;;; ====
 ;;; Game State Example: Position
-;;; ============================================================
+;;; ====
 
 ;;; A game state might be a position: (x y)
 ;;; These combinators work with such state.
@@ -249,9 +249,9 @@
   '(get-y . (fn (pos)
                 (prim 'list (prim 'car (prim 'cdr pos)) pos))))
 
-;;; ============================================================
+;;; ====
 ;;; All State Definitions (for prelude)
-;;; ============================================================
+;;; ====
 
 ;;; state-prelude-defs : (List Sexp)
 (define state-prelude-defs
@@ -280,9 +280,9 @@
    get-x-def
    get-y-def))
 
-;;; ============================================================
+;;; ====
 ;;; Type Signatures
-;;; ============================================================
+;;; ====
 
 ;;; For type checking, these are the expected types:
 ;;;
@@ -299,9 +299,9 @@
 ;;; state-ap      : ∀ s a b. (s → ((a → b) × s)) → (s → (a × s)) → (s → (b × s))
 ;;; state-join    : ∀ s a. (s → ((s → (a × s)) × s)) → (s → (a × s))
 
-;;; ============================================================
+;;; ====
 ;;; Integration with eval.ss
-;;; ============================================================
+;;; ====
 
 ;;; To use these in the evaluator, add state-prelude-defs to
 ;;; the prelude-defs list in eval.ss, or build a separate

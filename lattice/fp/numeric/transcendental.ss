@@ -9,9 +9,9 @@
 ;;; Dependencies:
 ;;;   - prelude.ss (for basic utilities)
 
-;;; ============================================================
+;;; ====
 ;;; Standard Transcendental Functions
-;;; ============================================================
+;;; ====
 
 ;;; These wrap Scheme's built-in transcendental functions
 ;;; for consistency with our naming conventions and to provide
@@ -45,9 +45,9 @@
 (define (log2 x)
   (log-base 2 x))
 
-;;; ============================================================
+;;; ====
 ;;; Trigonometric Functions
-;;; ============================================================
+;;; ====
 
 ;;; sin-num : Number → Number
 ;;; Compute sine of x (in radians).
@@ -92,9 +92,9 @@
 (define (atan2-num y x)
   (atan y x))
 
-;;; ============================================================
+;;; ====
 ;;; Hyperbolic Functions
-;;; ============================================================
+;;; ====
 
 ;;; sinh-num : Number → Number
 ;;; Compute hyperbolic sine: sinh(x) = (e^x - e^(-x)) / 2
@@ -132,9 +132,9 @@
       (error 'atanh-num "domain error: atanh requires -1 < x < 1" x)
       (/ (log (/ (+ 1 x) (- 1 x))) 2)))
 
-;;; ============================================================
+;;; ====
 ;;; Power and Root Functions
-;;; ============================================================
+;;; ====
 
 ;;; pow-num : Number × Number → Number
 ;;; Compute x^y.
@@ -156,9 +156,9 @@
       (- (expt (- x) (/ 1 3)))
       (expt x (/ 1 3))))
 
-;;; ============================================================
+;;; ====
 ;;; Mathematical Constants
-;;; ============================================================
+;;; ====
 
 ;;; pi-value : → Number
 ;;; Return value of π (pi).
@@ -180,9 +180,9 @@
 (define (phi-value)
   (/ (+ 1 (sqrt 5)) 2))
 
-;;; ============================================================
+;;; ====
 ;;; Degree/Radian Conversion
-;;; ============================================================
+;;; ====
 
 ;;; deg->rad : Number → Number
 ;;; Convert degrees to radians.
@@ -194,9 +194,9 @@
 (define (rad->deg radians)
   (* radians (/ 180 (pi-value))))
 
-;;; ============================================================
+;;; ====
 ;;; Compound Functions
-;;; ============================================================
+;;; ====
 
 ;;; sec-num : Number → Number
 ;;; Compute secant: sec(x) = 1 / cos(x)
@@ -240,9 +240,9 @@
            (error 'coth-num "division by zero: coth(0) is undefined" x)
            (/ (cosh-num x) s))))
 
-;;; ============================================================
+;;; ====
 ;;; Special Functions
-;;; ============================================================
+;;; ====
 
 ;;; sinc-num : Number → Number
 ;;; Compute normalized sinc function: sinc(x) = sin(πx) / (πx)

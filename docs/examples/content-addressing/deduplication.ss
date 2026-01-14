@@ -8,9 +8,9 @@
 (load "core/blocks/cas.ss")
 (load "core/blocks/normalize.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Basic Deduplication
-;;; ============================================================
+;;; ====
 
 (display "=== Basic Deduplication ===\n")
 
@@ -32,9 +32,9 @@
 (cas-store! msg3)
 (display "\nStored 3 times, but only 1 copy exists in CAS.\n")
 
-;;; ============================================================
+;;; ====
 ;;; Semantic Deduplication (Alpha Normalization)
-;;; ============================================================
+;;; ====
 
 (display "\n=== Semantic Deduplication ===\n")
 
@@ -68,9 +68,9 @@ These ARE the same function. Variable names don't matter.
 (format #t "norm3: ~a~%" norm3)
 (format #t "All equal? ~a~%" (and (equal? norm1 norm2) (equal? norm2 norm3)))
 
-;;; ============================================================
+;;; ====
 ;;; de Bruijn Indices
-;;; ============================================================
+;;; ====
 
 (display "\n=== How It Works: de Bruijn Indices ===\n")
 
@@ -96,9 +96,9 @@ Alpha normalization replaces variable names with de Bruijn indices:
 (format #t "~a -> ~a~%" ex2 (alpha-normalize ex2))
 (format #t "~a -> ~a~%" ex3 (alpha-normalize ex3))
 
-;;; ============================================================
+;;; ====
 ;;; Deduplication of Subexpressions
-;;; ============================================================
+;;; ====
 
 (display "\n=== Subexpression Sharing ===\n")
 
@@ -121,9 +121,9 @@ Common subexpressions automatically share storage.
 (format #t "\nBoth expressions reference the same hash for (+ 1 2).\n")
 (format #t "Storage grows linearly with unique content, not total size.\n")
 
-;;; ============================================================
+;;; ====
 ;;; Real-World Impact
-;;; ============================================================
+;;; ====
 
 (display "\n=== Real-World Impact ===\n")
 
@@ -151,9 +151,9 @@ In a large codebase:
    Verification proofs for identical code? Shared.
 ")
 
-;;; ============================================================
+;;; ====
 ;;; Counting Unique Blocks
-;;; ============================================================
+;;; ====
 
 (display "=== Demonstration ===\n")
 

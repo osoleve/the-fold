@@ -17,9 +17,9 @@
 ;;; Dependencies:
 ;;;   None (uses Chez built-ins only)
 
-;;; ============================================================
+;;; ====
 ;;; Allocation Statistics
-;;; ============================================================
+;;; ====
 
 ;;; get-allocation-stats : Unit -> Alist
 ;;; Get current allocation stats from Chez Scheme's statistics.
@@ -35,9 +35,9 @@
 (define (get-bytes-allocated)
   (sstats-bytes (statistics)))
 
-;;; ============================================================
+;;; ====
 ;;; Allocation Tracking
-;;; ============================================================
+;;; ====
 
 ;;; track-allocations : (Unit -> A) -> (values A Integer)
 ;;; Execute thunk and return both its result and bytes allocated.
@@ -64,9 +64,9 @@
               (display (format "~a: ~a allocated\n" label (format-bytes bytes)))
               result))
 
-;;; ============================================================
+;;; ====
 ;;; Byte Formatting
-;;; ============================================================
+;;; ====
 
 ;;; format-bytes : Integer -> String
 ;;; Format a byte count for human-readable display.
@@ -111,9 +111,9 @@
                  [(char=? (car chars) #\.) (list->string (reverse (cdr chars)))]
                  [else (list->string (reverse chars))])))))
 
-;;; ============================================================
+;;; ====
 ;;; Allocation Tracker Record
-;;; ============================================================
+;;; ====
 
 ;;; Allocation tracker: accumulates labeled allocation records.
 ;;; Structure: (alloc-tracker entries total-bytes)
@@ -158,9 +158,9 @@
   (let-values ([(result bytes) (track-allocations thunk)])
               (values (alloc-tracker-record! tracker label bytes) result)))
 
-;;; ============================================================
+;;; ====
 ;;; Tracker Summaries
-;;; ============================================================
+;;; ====
 
 ;;; alloc-tracker-summary : AllocTracker -> Alist
 ;;; Get a summary of tracked allocations.
@@ -178,7 +178,7 @@
 (define (alloc-tracker-print-summary tracker)
   (let ([summary (alloc-tracker-summary tracker)])
        (display "\n")
-       (display "====== Allocation Summary ======\n")
+       (display "==== Allocation Summary ====\n")
        (display (format "Total: ~a (~a entries)\n\n"
                         (cdr (assq 'total-formatted summary))
                         (cdr (assq 'entry-count summary))))
@@ -187,7 +187,7 @@
         (lambda (entry)
                 (display (format "  ~a: ~a\n" (car entry) (format-bytes (cdr entry)))))
         (cdr (assq 'entries summary)))
-       (display "================================\n")))
+       (display "====\n")))
 
 ;;; alloc-tracker-top-n : AllocTracker x Integer -> List
 ;;; Get the top N allocations by size.
@@ -204,9 +204,9 @@
    [(<= n 0) '()]
    [else (cons (car lst) (take-at-most (cdr lst) (- n 1)))]))
 
-;;; ============================================================
+;;; ====
 ;;; Convenience Macros
-;;; ============================================================
+;;; ====
 
 ;;; Syntax for tracking allocations in a block.
 ;;; (with-tracked-allocations (result bytes) expr ... body ...)
@@ -217,8 +217,8 @@
                  (let-values ([(result-var bytes-var) (track-allocations (lambda () expr))])
                              body ...)]))
 
-;;; ============================================================
+;;; ====
 ;;; Module Loading Confirmation
-;;; ============================================================
+;;; ====
 
 (define *alloc-tracker-loaded* #t)

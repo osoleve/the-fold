@@ -18,9 +18,9 @@
 (load "core/blocks/normalize.ss")
 (load "lattice/fp/rewrite/trace.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Alpha-Equivalence
-;;; ============================================================
+;;; ====
 
 ;;; Leverage de Bruijn normalization from core/blocks/normalize.ss
 ;;; Two expressions are alpha-equivalent if they normalize to
@@ -37,9 +37,9 @@
 ;;; Re-export from normalize.ss for convenience.
 (define alpha-normalize normalize)
 
-;;; ============================================================
+;;; ====
 ;;; Structural Equivalence
-;;; ============================================================
+;;; ====
 
 ;;; For simpler expressions without binders, we can use
 ;;; direct structural comparison.
@@ -49,9 +49,9 @@
 (define (struct-equiv? e1 e2)
   (equal? e1 e2))
 
-;;; ============================================================
+;;; ====
 ;;; Equivalence Result Type
-;;; ============================================================
+;;; ====
 
 ;;; Equivalence results are tagged unions:
 ;;;   (ok #t reason)          - Expressions are equivalent
@@ -76,9 +76,9 @@
 (define (equiv-reason r)
   (if (equiv-ok? r) (caddr r) #f))
 
-;;; ============================================================
+;;; ====
 ;;; Verification Functions
-;;; ============================================================
+;;; ====
 
 ;;; verify-equivalence : Expr × Expr → EquivResult
 ;;; Check if two expressions are equivalent using multiple methods.
@@ -108,9 +108,9 @@
   (or (struct-equiv? e1 e2)
       (alpha-equiv? e1 e2)))
 
-;;; ============================================================
+;;; ====
 ;;; Trace Verification
-;;; ============================================================
+;;; ====
 
 ;;; verify-trace : Trace → EquivResult
 ;;; Verify that a trace's initial and final expressions are equivalent.
@@ -136,9 +136,9 @@
        (for-all (lambda (r) (and (equiv-ok? r) (equiv-result r)))
                 results)))
 
-;;; ============================================================
+;;; ====
 ;;; Equivalence Certificates
-;;; ============================================================
+;;; ====
 
 ;;; A certificate is a record of how equivalence was established.
 
@@ -171,9 +171,9 @@
    
    [else #f]))
 
-;;; ============================================================
+;;; ====
 ;;; Difference Detection
-;;; ============================================================
+;;; ====
 
 ;;; When expressions are not equivalent, it's helpful to know why.
 
@@ -205,9 +205,9 @@
               (caddr diff))
       "No difference found"))
 
-;;; ============================================================
+;;; ====
 ;;; Free Variable Analysis
-;;; ============================================================
+;;; ====
 
 ;;; For checking side conditions like eta-reduction.
 
@@ -256,9 +256,9 @@
 (define (not-free? var expr)
   (not (memq var (free-vars expr))))
 
-;;; ============================================================
+;;; ====
 ;;; Substitution Verification
-;;; ============================================================
+;;; ====
 
 ;;; For verifying beta reduction is correct.
 

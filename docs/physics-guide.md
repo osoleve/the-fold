@@ -230,7 +230,7 @@ Impulse-based resolution:
 Available methods:
 
 | Method | Order | Stability | Use Case |
-|--------|-------|-----------|----------|
+|----|----|----|----|
 | Euler | 1st | Poor | Not recommended |
 | Symplectic | 1st | Good | Fast games |
 | Verlet | 2nd | Excellent | Default choice |
@@ -378,7 +378,7 @@ Individual test files:
 ### Key Modules
 
 | Module | Purpose |
-|--------|---------|
+|----|----|
 | `integrators.ss` | Body types, numerical integration |
 | `rigid-body.ss` | Rigid body with rotation |
 | `collision-detection.ss` | Shapes, collision tests |

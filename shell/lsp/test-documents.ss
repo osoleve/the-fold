@@ -18,11 +18,11 @@
        (newline))))
 
 (display "Testing documents.ss\n")
-(display "====================\n\n")
+(display "====\n\n")
 
-;;; ============================================================
+;;; ====
 ;;; UTF-16 Conversion Tests
-;;; ============================================================
+;;; ====
 
 (display "UTF-16 Conversion:\n")
 
@@ -44,9 +44,9 @@
 (test "char->utf16 ASCII only" 5 (char-offset->utf16-offset "hello" 5))
 (test "char->utf16 with emoji" 2 (char-offset->utf16-offset "😀b" 1))  ; char 1 starts at UTF-16 pos 2
 
-;;; ============================================================
+;;; ====
 ;;; Line Computation Tests
-;;; ============================================================
+;;; ====
 
 (display "\nLine Computation:\n")
 
@@ -64,9 +64,9 @@
 (test "empty doc line-count" 1 (line-count empty-doc))
 (test "empty doc get-line-content" "" (get-line-content empty-doc 0))
 
-;;; ============================================================
+;;; ====
 ;;; Position Conversion Tests
-;;; ============================================================
+;;; ====
 
 (display "\nPosition Conversion:\n")
 
@@ -88,9 +88,9 @@
      (test "offset->lsp-position 9 line" 1 (json-get pos "line"))
      (test "offset->lsp-position 9 char" 0 (json-get pos "character")))
 
-;;; ============================================================
+;;; ====
 ;;; Symbol Extraction Tests
-;;; ============================================================
+;;; ====
 
 (display "\nSymbol Extraction:\n")
 
@@ -111,9 +111,9 @@
 (define special-doc (make-document "file:///s.ss" 1 "(string->number x)"))
 (test "symbol-at-offset special" "string->number" (symbol-at-offset special-doc 1))
 
-;;; ============================================================
+;;; ====
 ;;; Document Store Tests
-;;; ============================================================
+;;; ====
 
 (display "\nDocument Store:\n")
 
@@ -133,7 +133,7 @@
 (test "doc-get after close" #f (doc-get "file:///store-test.ss"))
 
 ;;; Summary
-(display "\n====================\n")
+(display "\n====\n")
 (printf "Passed: ~a, Failed: ~a\n" tests-passed tests-failed)
 (when (> tests-failed 0)
       (exit 1))

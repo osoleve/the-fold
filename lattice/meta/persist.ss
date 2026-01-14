@@ -20,16 +20,16 @@
 (load "core/base/prelude.ss")
 (load "core/base/sha256.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Cache Configuration
-;;; ============================================================
+;;; ====
 
 (define LATTICE-CACHE-PATH ".fold-repl/lattice-cache.sexp")
 (define LATTICE-CACHE-VERSION 1)
 
-;;; ============================================================
+;;; ====
 ;;; Manifest Fingerprinting
-;;; ============================================================
+;;; ====
 
 ;;; Note: find-manifests is defined in kg.ss (takes base-dir argument)
 ;;; We use it here: (find-manifests "lattice")
@@ -51,9 +51,9 @@
                                (lambda (port)
                                        (get-string-all port)))))
 
-;;; ============================================================
+;;; ====
 ;;; Cache Path
-;;; ============================================================
+;;; ====
 
 ;;; lattice-cache-path : -> String
 (define (lattice-cache-path)
@@ -80,9 +80,9 @@
         [(char=? (string-ref str i) char) i]
         [else (loop (- i 1))])))
 
-;;; ============================================================
+;;; ====
 ;;; State Serialization
-;;; ============================================================
+;;; ====
 
 ;;; The cache format is:
 ;;; (lattice-cache
@@ -114,9 +114,9 @@
     (fingerprint ,fingerprint)
     ,(serialize-kg-state)))
 
-;;; ============================================================
+;;; ====
 ;;; Cache Writing
-;;; ============================================================
+;;; ====
 
 ;;; lattice-save-cache! : -> Bool
 ;;; Save current KG state to cache file
@@ -134,9 +134,9 @@
                        (substring fingerprint 0 12))
                #t)))
 
-;;; ============================================================
+;;; ====
 ;;; Cache Reading
-;;; ============================================================
+;;; ====
 
 ;;; read-cache-file : -> SExp | #f
 ;;; Read and parse cache file
@@ -186,9 +186,9 @@
                  (and cached-fp
                       (string=? cached-fp current-fp))))))
 
-;;; ============================================================
+;;; ====
 ;;; Cache Loading
-;;; ============================================================
+;;; ====
 
 ;;; restore-kg-state! : SExp -> void
 ;;; Restore KG globals from cached state
@@ -232,9 +232,9 @@
                     (printf "Cache fingerprint mismatch, rebuilding.\n")
                     #f)))])))
 
-;;; ============================================================
+;;; ====
 ;;; Integrated Init
-;;; ============================================================
+;;; ====
 
 ;;; lattice-init-cached! : -> void
 ;;; Initialize lattice, using cache if valid
@@ -253,9 +253,9 @@
         (lattice-save-cache!)
         (printf "Lattice ready.\n"))))
 
-;;; ============================================================
+;;; ====
 ;;; REPL Interface
-;;; ============================================================
+;;; ====
 
 (printf "persist.ss loaded.\n")
 (printf "  (lattice-cache-valid?)         - Check cache validity\n")

@@ -22,9 +22,9 @@
 (load "core/types/types.ss")
 (load "core/types/kinds.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Instance Database
-;;; ============================================================
+;;; ====
 
 ;;; An instance database maps (class, type) pairs to instance records.
 ;;; We use a simple list for now; production would use a trie.
@@ -39,9 +39,9 @@
 (define (idb-add* db instances)
   (append instances db))
 
-;;; ============================================================
+;;; ====
 ;;; Constraint Representation
-;;; ============================================================
+;;; ====
 
 ;;; A constraint is (ClassName Type)
 ;;; Examples:
@@ -61,9 +61,9 @@
        (= (length c) 2)
        (symbol? (car c))))
 
-;;; ============================================================
+;;; ====
 ;;; Matching Instances
-;;; ============================================================
+;;; ====
 
 ;;; An instance matches a constraint if:
 ;;; 1. The class names match
@@ -91,9 +91,9 @@
                (cons result (filter-map f (cdr lst)))
                (filter-map f (cdr lst))))))
 
-;;; ============================================================
+;;; ====
 ;;; Instance Specificity
-;;; ============================================================
+;;; ====
 
 ;;; A type T1 is more specific than T2 if T1 matches fewer types.
 ;;; Examples:
@@ -144,9 +144,9 @@
                  (car matches)
                  (cdr matches))))
 
-;;; ============================================================
+;;; ====
 ;;; Resolution Algorithm
-;;; ============================================================
+;;; ====
 
 ;;; resolve : Constraint × IDB → (Result Evidence Error)
 ;;;
@@ -204,9 +204,9 @@
                          rest))
                 result))))
 
-;;; ============================================================
+;;; ====
 ;;; Superclass Resolution
-;;; ============================================================
+;;; ====
 
 ;;; Given evidence for Monad f, we can derive evidence for
 ;;; Applicative f and Functor f.
@@ -222,9 +222,9 @@
                  evidence)
             evidence)))
 
-;;; ============================================================
+;;; ====
 ;;; Class Database
-;;; ============================================================
+;;; ====
 
 ;;; lookup-class : Symbol × ClassDB → (Option TypeClass)
 (define (lookup-class name class-db)
@@ -242,9 +242,9 @@
     (Semigroup . ,TC-Semigroup)
     (Monoid . ,TC-Monoid)))
 
-;;; ============================================================
+;;; ====
 ;;; Standard Instances
-;;; ============================================================
+;;; ====
 
 ;;; List instances
 (define inst-Functor-List
@@ -287,9 +287,9 @@
                  `((>>= . either-bind)
                    (return . either-return))))
 
-;;; ============================================================
+;;; ====
 ;;; Eq Instances
-;;; ============================================================
+;;; ====
 
 (define inst-Eq-Nat
   (make-instance 'Eq 'Nat '()
@@ -333,9 +333,9 @@
                  `((== . option-eq)
                    (/= . option-neq))))
 
-;;; ============================================================
+;;; ====
 ;;; Ord Instances
-;;; ============================================================
+;;; ====
 
 (define inst-Ord-Nat
   (make-instance 'Ord 'Nat '()
@@ -369,9 +369,9 @@
                    (>  . string-gt)
                    (>= . string-gte))))
 
-;;; ============================================================
+;;; ====
 ;;; Show Instances
-;;; ============================================================
+;;; ====
 
 (define inst-Show-Nat
   (make-instance 'Show 'Nat '()
@@ -402,9 +402,9 @@
   (make-instance 'Show '(@ List a) '((Show a))
                  `((show . list-show))))
 
-;;; ============================================================
+;;; ====
 ;;; Semigroup and Monoid Instances
-;;; ============================================================
+;;; ====
 
 (define inst-Semigroup-String
   (make-instance 'Semigroup 'String '()
@@ -422,9 +422,9 @@
   (make-instance 'Monoid '(@ List a) '()
                  `((mempty . list-empty))))
 
-;;; ============================================================
+;;; ====
 ;;; Standard Instance Database
-;;; ============================================================
+;;; ====
 
 (define standard-instances
   (list
@@ -465,9 +465,9 @@
    inst-Semigroup-List
    inst-Monoid-List))
 
-;;; ============================================================
+;;; ====
 ;;; Convenience API
-;;; ============================================================
+;;; ====
 
 ;;; resolve-std : Constraint → (Result Evidence Error)
 ;;; Resolve using standard instances.
@@ -486,9 +486,9 @@
          [entry (assq method-name methods)])
         (if entry (cdr entry) #f)))
 
-;;; ============================================================
+;;; ====
 ;;; Multi-Parameter Type Classes (Future)
-;;; ============================================================
+;;; ====
 
 ;;; For constraints like (Convertible a b), we need to match on
 ;;; multiple type parameters. The current design supports this
@@ -496,18 +496,18 @@
 ;;;   (Convertible (× a b))
 ;;; But the syntax is awkward. Future work: explicit MPTC support.
 
-;;; ============================================================
+;;; ====
 ;;; Functional Dependencies (Future)
-;;; ============================================================
+;;; ====
 
 ;;; For MonadState s m, the state type s is determined by m.
 ;;; Functional dependencies: m → s.
 ;;; This affects instance selection and type inference.
 ;;; Not yet implemented.
 
-;;; ============================================================
+;;; ====
 ;;; Deriving (Future)
-;;; ============================================================
+;;; ====
 
 ;;; Automatically derive instances for algebraic data types.
 ;;; deriving Functor for (data Maybe (a) (Nothing) (Just a))

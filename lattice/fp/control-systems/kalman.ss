@@ -25,9 +25,9 @@
 
 (load "core/base/prelude.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Scalar Kalman Filter
-;;; ============================================================
+;;; ====
 
 ;;; A Kalman filter is: (kalman mean variance Q R)
 ;;; where:
@@ -61,9 +61,9 @@
 ;;; kalman-R : Kalman → Num
 (define (kalman-R kf) (car (cddddr kf)))
 
-;;; ============================================================
+;;; ====
 ;;; Kalman Filter Operations
-;;; ============================================================
+;;; ====
 
 ;;; kalman-predict : Kalman → Kalman
 ;;; Predict step: propagate state forward with no observation.
@@ -129,9 +129,9 @@
            0
            (abs (/ residual (sqrt (+ var R)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Log-Space Kalman Filter
-;;; ============================================================
+;;; ====
 ;;;
 ;;; For heavy-tailed, strictly positive distributions (like fuel costs),
 ;;; operating in log-space provides better behavior:
@@ -186,9 +186,9 @@
          [upper (exp (+ log-mean (* confidence-sigmas log-sigma)))])
         (cons lower upper)))
 
-;;; ============================================================
+;;; ====
 ;;; Adaptive Q Tuning
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Process noise Q controls how quickly the filter adapts.
 ;;; Too low: filter becomes rigid, can't track changing costs
@@ -209,9 +209,9 @@
 (define (kalman-boost-Q kf factor)
   (kalman-with-Q kf (* (kalman-Q kf) factor)))
 
-;;; ============================================================
+;;; ====
 ;;; Summary Statistics
-;;; ============================================================
+;;; ====
 
 ;;; kalman-summary : Kalman → Alist
 ;;; Return a diagnostic summary of the filter state.

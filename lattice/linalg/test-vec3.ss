@@ -13,9 +13,9 @@
 
 (define pi 3.141592653589793)
 
-;;; ============================================================
+;;; ====
 ;;; Construction Tests
-;;; ============================================================
+;;; ====
 
 (define-test "vec3 creates 3D vector"
   (let ([v (vec3 1 2 3)])
@@ -40,9 +40,9 @@
        (assert-true (approx= 0 (vec3-y v)))
        (assert-true (approx= 0 (vec3-z v)))))
 
-;;; ============================================================
+;;; ====
 ;;; Predicate Tests
-;;; ============================================================
+;;; ====
 
 (define-test "vec3? identifies 3D vectors"
   (assert-true (vec3? (vec3 1 2 3)))
@@ -59,9 +59,9 @@
   (assert-true (vec3-unit? (vec3-normalize (vec3 1 1 1))))
   (assert-false (vec3-unit? (vec3 2 0 0))))
 
-;;; ============================================================
+;;; ====
 ;;; Arithmetic Tests
-;;; ============================================================
+;;; ====
 
 (define-test "vec3-add adds vectors"
   (let ([v (vec3-add (vec3 1 2 3) (vec3 4 5 6))])
@@ -80,9 +80,9 @@
 (define-test "vec3-mul does component-wise multiplication"
   (assert-equal (vec3 4 10 18) (vec3-mul (vec3 1 2 3) (vec3 4 5 6))))
 
-;;; ============================================================
+;;; ====
 ;;; Product Tests
-;;; ============================================================
+;;; ====
 
 (define-test "vec3-dot computes dot product"
   (assert-equal 32 (vec3-dot (vec3 1 2 3) (vec3 4 5 6))))
@@ -109,9 +109,9 @@
   ;; Volume of unit cube = 1
   (assert-equal 1 (vec3-triple-scalar (vec3-unit-x) (vec3-unit-y) (vec3-unit-z))))
 
-;;; ============================================================
+;;; ====
 ;;; Length and Distance Tests
-;;; ============================================================
+;;; ====
 
 (define-test "vec3-magnitude computes length"
   (assert-equal 5 (vec3-magnitude (vec3 3 4 0)))
@@ -123,9 +123,9 @@
 (define-test "vec3-distance computes distance"
   (assert-equal 5 (vec3-distance (vec3 0 0 0) (vec3 3 4 0))))
 
-;;; ============================================================
+;;; ====
 ;;; Normalization Tests
-;;; ============================================================
+;;; ====
 
 (define-test "vec3-normalize creates unit vector"
   (let ([v (vec3-normalize (vec3 3 4 0))])
@@ -140,9 +140,9 @@
   (let ([v (vec3-set-magnitude (vec3 1 0 0) 5)])
        (assert-true (approx= 5 (vec3-magnitude v)))))
 
-;;; ============================================================
+;;; ====
 ;;; Interpolation Tests
-;;; ============================================================
+;;; ====
 
 (define-test "vec3-lerp interpolates linearly"
   (let* ([a (vec3 0 0 0)]
@@ -163,9 +163,9 @@
         (assert-true (approx= 1.0 (vec3-magnitude mid)))
         (assert-true (approx= (vec3-x mid) (vec3-y mid)))))
 
-;;; ============================================================
+;;; ====
 ;;; Projection and Reflection Tests
-;;; ============================================================
+;;; ====
 
 (define-test "vec3-project projects onto vector"
   (let ([proj (vec3-project (vec3 1 1 0) (vec3-unit-x))])
@@ -182,9 +182,9 @@
         (assert-true (approx= 1 (vec3-x r)))
         (assert-true (approx= 1 (vec3-y r)))))
 
-;;; ============================================================
+;;; ====
 ;;; Rotation Tests
-;;; ============================================================
+;;; ====
 
 (define-test "vec3-rotate-x rotates around x-axis"
   (let ([v (vec3-rotate-x (vec3-unit-y) (/ pi 2))])
@@ -210,18 +210,18 @@
        (assert-true (approx= 1 (vec3-y v)))
        (assert-true (approx= 0 (vec3-z v)))))
 
-;;; ============================================================
+;;; ====
 ;;; Angle Tests
-;;; ============================================================
+;;; ====
 
 (define-test "vec3-angle computes angle between vectors"
   (assert-true (approx= (/ pi 2) (vec3-angle (vec3-unit-x) (vec3-unit-y))))
   (assert-true (approx= 0 (vec3-angle (vec3-unit-x) (vec3-unit-x))))
   (assert-true (approx= pi (vec3-angle (vec3-unit-x) (vec3-neg (vec3-unit-x))))))
 
-;;; ============================================================
+;;; ====
 ;;; Utility Tests
-;;; ============================================================
+;;; ====
 
 (define-test "vec3-min computes component-wise minimum"
   (assert-equal (vec3 1 2 3) (vec3-min (vec3 1 5 3) (vec3 4 2 6))))
@@ -236,9 +236,9 @@
   (let ([v (vec3-clamp (vec3 -1 5 2) (vec3 0 0 0) (vec3 3 3 3))])
        (assert-equal (vec3 0 3 2) v)))
 
-;;; ============================================================
+;;; ====
 ;;; Coordinate Conversion Tests
-;;; ============================================================
+;;; ====
 
 (define-test "vec3->spherical and back"
   (let* ([v (vec3 1 2 3)]
@@ -258,9 +258,9 @@
          [v2 (vec3-from-cylindrical r theta z)])
         (assert-true (vec3-nearly-equal? v v2 1e-9))))
 
-;;; ============================================================
+;;; ====
 ;;; Basis Tests
-;;; ============================================================
+;;; ====
 
 (define-test "vec3-orthonormal-basis creates orthonormal vectors"
   (let* ([basis (vec3-orthonormal-basis (vec3 1 1 1))]
@@ -276,10 +276,10 @@
         (assert-true (approx= 0 (vec3-dot t1 n)))
         (assert-true (approx= 0 (vec3-dot t2 n)))))
 
-;;; ============================================================
+;;; ====
 ;;; Run Tests
-;;; ============================================================
+;;; ====
 
 (display "Running Vec3 Tests...\n")
-(display "=====================\n\n")
+(display "====\n\n")
 (run-tests 'vec3)

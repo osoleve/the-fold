@@ -7,16 +7,16 @@
 
 (display "
 ")
-(display "==============================================================
+(display "====
 ")
 (display "         LAZY STREAM TESTS
 ")
-(display "==============================================================
+(display "====
 ")
 
-;;; ============================================================
+;;; ====
 ;;; Stream Construction Tests
-;;; ============================================================
+;;; ====
 
 (test-group stream-construction
             (define-test stream-nil-test
@@ -49,9 +49,9 @@
                    (assert-equal '(1 2 3) (stream->list 3 s))
                    (assert-equal '(1 2 3 4 5) (stream->list 10 s)))))
 
-;;; ============================================================
+;;; ====
 ;;; Stream Generator Tests
-;;; ============================================================
+;;; ====
 
 (test-group stream-generators
             (define-test stream-iterate-test
@@ -92,9 +92,9 @@
                         1)])
                    (assert-equal '(2 4 6 8 10) (stream->list 10 s)))))
 
-;;; ============================================================
+;;; ====
 ;;; Stream Transformer Tests
-;;; ============================================================
+;;; ====
 
 (test-group stream-transformers
             (define-test stream-map-test
@@ -142,9 +142,9 @@
               (let ([s (stream-scan + 0 (stream-from 1))])
                    (assert-equal '(0 1 3 6 10) (stream->list 5 s)))))
 
-;;; ============================================================
+;;; ====
 ;;; Stream Combinator Tests
-;;; ============================================================
+;;; ====
 
 (test-group stream-combinators
             (define-test stream-zip-test
@@ -177,9 +177,9 @@
               (let ([s (stream-concat stream-nil (list->stream '(1 2)))])
                    (assert-equal '(1 2) (stream->list 10 s)))))
 
-;;; ============================================================
+;;; ====
 ;;; Stream Fold Tests
-;;; ============================================================
+;;; ====
 
 (test-group stream-folds
             (define-test stream-fold-test
@@ -202,9 +202,9 @@
             (define-test stream-find-not-found-test
               (assert-true (nothing? (stream-find (lambda (x) (> x 100)) 50 (stream-from 0))))))
 
-;;; ============================================================
+;;; ====
 ;;; Classic Stream Tests
-;;; ============================================================
+;;; ====
 
 (test-group classic-streams
             (define-test fibonacci-test
@@ -222,9 +222,9 @@
             (define-test triangular-test
               (assert-equal '(0 1 3 6 10 15) (stream->list 6 triangular))))
 
-;;; ============================================================
+;;; ====
 ;;; Generator Tests
-;;; ============================================================
+;;; ====
 
 (test-group generators
             (define-test counter-generator-test
@@ -245,9 +245,9 @@
                      [s (make-generator gen)])
                     (assert-equal '(1 2 3) (stream->list 10 s)))))
 
-;;; ============================================================
+;;; ====
 ;;; Utility Function Tests
-;;; ============================================================
+;;; ====
 
 (test-group stream-utilities
             (define-test stream-partition-test
@@ -269,9 +269,9 @@
               (let ([s (stream-enumerate (list->stream '(a b c)))])
                    (assert-equal '((0 . a) (1 . b) (2 . c)) (stream->list 10 s)))))
 
-;;; ============================================================
+;;; ====
 ;;; Memoization Tests
-;;; ============================================================
+;;; ====
 
 (test-group memoization
             (define-test memo-stream-test
@@ -292,9 +292,9 @@
                    (let ([forced (stream-force 10 s)])
                         (assert-equal '(0 1 2 3 4) (stream->list 10 forced))))))
 
-;;; ============================================================
+;;; ====
 ;;; Edge Case Tests
-;;; ============================================================
+;;; ====
 
 (test-group edge-cases
             (define-test empty-operations-test
@@ -315,9 +315,9 @@
                      [s3 (stream-take 5 s2)])
                     (assert-equal '(0 4 8 12 16) (stream->list 10 s3)))))
 
-;;; ============================================================
+;;; ====
 ;;; Practical Application Tests
-;;; ============================================================
+;;; ====
 
 (test-group practical-applications
             (define-test running-sum-test
@@ -336,9 +336,9 @@
                    (assert-equal (list-ref fibs 9)
                                  (+ (list-ref fibs 8) (list-ref fibs 7))))))
 
-;;; ============================================================
+;;; ====
 ;;; Delay/Force Tests
-;;; ============================================================
+;;; ====
 
 (test-group delay-force
             (define-test delay-creates-delayed
@@ -367,9 +367,9 @@
               (assert-false (delayed? 42))
               (assert-false (delayed? '(not delayed)))))
 
-;;; ============================================================
+;;; ====
 ;;; Functor Instance Tests
-;;; ============================================================
+;;; ====
 
 (test-group stream-functor-tests
             (define-test functor-identity-law
@@ -395,9 +395,9 @@
                    (assert-equal '(2 4 6)
                                  (stream->list 3 (fmap-fn (lambda (x) (* x 2)) (stream-from 1)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Applicative Instance Tests
-;;; ============================================================
+;;; ====
 
 (test-group stream-applicative-tests
             (define-test applicative-pure-creates-infinite
@@ -440,9 +440,9 @@
                      [sums (stream-lift3 (lambda (x y z) (+ x y z)) xs ys zs)])
                     (assert-equal '(111 222 333) (stream->list 5 sums)))))
 
-;;; ============================================================
+;;; ====
 ;;; Monad Instance Tests
-;;; ============================================================
+;;; ====
 
 (test-group stream-monad-tests
             (define-test monad-return-creates-stream
@@ -488,9 +488,9 @@
                     ;; and we get diagonal of those rows
                     (assert-true (not (stream-nil? result))))))
 
-;;; ============================================================
+;;; ====
 ;;; Codata Pattern Tests
-;;; ============================================================
+;;; ====
 
 (test-group codata-patterns
             (define-test coalgebra-step-test
@@ -523,9 +523,9 @@
             (define-test bisimulation-empty-test
               (assert-true (bisimulation-equal? 10 stream-nil stream-nil))))
 
-;;; ============================================================
+;;; ====
 ;;; Additional Infinite Stream Tests
-;;; ============================================================
+;;; ====
 
 (test-group additional-infinite-streams
             (define-test squares-test
@@ -540,9 +540,9 @@
             (define-test odds-test
               (assert-equal '(1 3 5 7 9 11) (stream->list 6 odds))))
 
-;;; ============================================================
+;;; ====
 ;;; Fuel-Based Operation Tests
-;;; ============================================================
+;;; ====
 
 (test-group fuel-operations
             (define-test stream-length-fuel-finite
@@ -574,9 +574,9 @@
             (define-test stream-last-fuel-empty
               (assert-true (nothing? (stream-last/fuel 100 stream-nil)))))
 
-;;; ============================================================
+;;; ====
 ;;; Stream Comprehension Tests
-;;; ============================================================
+;;; ====
 
 (test-group stream-comprehensions
             (define-test stream-guard-true
@@ -613,9 +613,9 @@
                     (assert-true (if (member (cons 0 2) first-20) #t #f))
                     (assert-true (if (member (cons 2 0) first-20) #t #f)))))
 
-;;; ============================================================
+;;; ====
 ;;; Type Class Dictionary Tests
-;;; ============================================================
+;;; ====
 
 (test-group type-class-dictionaries
             (define-test applicative-dictionary-structure
@@ -641,13 +641,13 @@
               (let ([ret (monad-return stream-monad)])
                    (assert-equal '(7 7 7) (stream->list 3 (ret 7))))))
 
-;;; ============================================================
+;;; ====
 ;;; Summary
-;;; ============================================================
+;;; ====
 
 (display "
 ")
-(display "==============================================================
+(display "====
 ")
 (printf "Tests passed: ~a
 " *tests-passed*)

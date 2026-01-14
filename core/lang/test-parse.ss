@@ -8,9 +8,9 @@
 ;;; Load the parser library
 (load "core/lang/parse.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Test Helpers
-;;; ============================================================
+;;; ====
 
 (define (assert-true condition msg)
   (if condition
@@ -42,9 +42,9 @@
 (define (assert-parse-err result msg)
   (assert-true (parse-err? result) msg))
 
-;;; ============================================================
+;;; ====
 ;;; ParseResult Tests
-;;; ============================================================
+;;; ====
 
 (define (test-parse-result)
   (display "Testing ParseResult construction...")
@@ -65,9 +65,9 @@
   (display "ParseResult tests complete.")
   (newline))
 
-;;; ============================================================
+;;; ====
 ;;; Primitive Parser Tests
-;;; ============================================================
+;;; ====
 
 (define (test-primitives)
   (display "Testing primitive parsers...")
@@ -114,9 +114,9 @@
   (display "Primitive parser tests complete.")
   (newline))
 
-;;; ============================================================
+;;; ====
 ;;; Character Parser Tests
-;;; ============================================================
+;;; ====
 
 (define (test-char-parsers)
   (display "Testing character parsers...")
@@ -168,9 +168,9 @@
   (display "Character parser tests complete.")
   (newline))
 
-;;; ============================================================
+;;; ====
 ;;; Combinator Tests — Sequencing
-;;; ============================================================
+;;; ====
 
 (define (test-sequencing)
   (display "Testing sequencing combinators...")
@@ -202,9 +202,9 @@
   (display "Sequencing combinator tests complete.")
   (newline))
 
-;;; ============================================================
+;;; ====
 ;;; Combinator Tests — Choice
-;;; ============================================================
+;;; ====
 
 (define (test-choice)
   (display "Testing choice combinators...")
@@ -236,9 +236,9 @@
   (display "Choice combinator tests complete.")
   (newline))
 
-;;; ============================================================
+;;; ====
 ;;; Combinator Tests — Transformation
-;;; ============================================================
+;;; ====
 
 (define (test-transformation)
   (display "Testing transformation combinators...")
@@ -259,9 +259,9 @@
   (display "Transformation combinator tests complete.")
   (newline))
 
-;;; ============================================================
+;;; ====
 ;;; Combinator Tests — Repetition
-;;; ============================================================
+;;; ====
 
 (define (test-repetition)
   (display "Testing repetition combinators...")
@@ -325,9 +325,9 @@
   (display "Repetition combinator tests complete.")
   (newline))
 
-;;; ============================================================
+;;; ====
 ;;; Combinator Tests — Delimiters
-;;; ============================================================
+;;; ====
 
 (define (test-delimiters)
   (display "Testing delimiter combinators...")
@@ -353,9 +353,9 @@
   (display "Delimiter combinator tests complete.")
   (newline))
 
-;;; ============================================================
+;;; ====
 ;;; Number Parser Tests
-;;; ============================================================
+;;; ====
 
 (define (test-number-parsers)
   (display "Testing number parsers...")
@@ -384,9 +384,9 @@
   (display "Number parser tests complete.")
   (newline))
 
-;;; ============================================================
+;;; ====
 ;;; Word Parser Tests
-;;; ============================================================
+;;; ====
 
 (define (test-word-parsers)
   (display "Testing word parsers...")
@@ -410,9 +410,9 @@
   (display "Word parser tests complete.")
   (newline))
 
-;;; ============================================================
+;;; ====
 ;;; Utility Parser Tests
-;;; ============================================================
+;;; ====
 
 (define (test-utilities)
   (display "Testing utility parsers...")
@@ -467,9 +467,9 @@
   (display "Utility parser tests complete.")
   (newline))
 
-;;; ============================================================
+;;; ====
 ;;; Complete Example Parser — Simple Arithmetic
-;;; ============================================================
+;;; ====
 
 (define (test-arithmetic-parser)
   ;; Simple expression parser: parses "num op num" like "3 + 5"
@@ -506,9 +506,9 @@
   (display "Arithmetic parser tests complete.")
   (newline))
 
-;;; ============================================================
+;;; ====
 ;;; Complete Example Parser — CSV
-;;; ============================================================
+;;; ====
 
 (define (test-csv-parser)
   ;; CSV field: sequence of non-comma characters
@@ -540,9 +540,9 @@
   (display "CSV parser tests complete.")
   (newline))
 
-;;; ============================================================
+;;; ====
 ;;; Complete Example Parser — S-expressions (simple)
-;;; ============================================================
+;;; ====
 
 (define (test-sexpr-parser)
   ;; Atom: identifier or number
@@ -579,16 +579,16 @@
   (display "S-expression parser tests complete.")
   (newline))
 
-;;; ============================================================
+;;; ====
 ;;; Run All Tests
-;;; ============================================================
+;;; ====
 
 (define (run-all-tests)
-  (display "========================================")
+  (display "====")
   (newline)
   (display "Parser Combinator Test Suite")
   (newline)
-  (display "========================================")
+  (display "====")
   (newline)
   (newline)
 
@@ -634,11 +634,11 @@
   (test-sexpr-parser)
   (newline)
 
-  (display "========================================")
+  (display "====")
   (newline)
   (display "All tests complete!")
   (newline)
-  (display "========================================")
+  (display "====")
   (newline))
 
 ;;; Run tests:

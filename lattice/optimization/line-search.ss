@@ -16,9 +16,9 @@
 (load "core/base/prelude.ss")
 (load "lattice/autodiff/reverse-diff.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Line Search Parameters
-;;; ============================================================
+;;; ====
 
 ;;; Default parameters for line search
 (define *armijo-c1* 1e-4)      ; Sufficient decrease constant
@@ -28,9 +28,9 @@
 (define *initial-step* 1.0)    ; Initial step size
 (define *default-alpha-max* 10.0)  ; Default maximum step size
 
-;;; ============================================================
+;;; ====
 ;;; Helper Functions
-;;; ============================================================
+;;; ====
 
 ;;; dot-product : (List Number) × (List Number) → Number
 ;;; Compute dot product of two list-vectors.
@@ -42,9 +42,9 @@
 (define (vec-add-scaled v1 v2 alpha)
   (map (lambda (a b) (+ a (* alpha b))) v1 v2))
 
-;;; ============================================================
+;;; ====
 ;;; Armijo Backtracking Line Search
-;;; ============================================================
+;;; ====
 
 ;;; The Armijo condition (sufficient decrease):
 ;;;   f(x + alpha * d) <= f(x) + c1 * alpha * grad(f)^T * d
@@ -95,9 +95,9 @@
                                ;; Backtrack
                                (loop (* rho alpha) (+ iter 1)))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Wolfe Conditions Line Search
-;;; ============================================================
+;;; ====
 
 ;;; The Wolfe conditions require both:
 ;;; 1. Armijo (sufficient decrease): f(x + alpha*d) <= f(x) + c1*alpha*grad^T*d
@@ -201,9 +201,9 @@
                           [else
                            (loop alpha hi (+ iter 1))]))])))))
 
-;;; ============================================================
+;;; ====
 ;;; Exact Line Search (for Quadratics)
-;;; ============================================================
+;;; ====
 
 ;;; For quadratic functions f(x) = 0.5 * x^T A x - b^T x + c,
 ;;; the exact step size along direction d from point x is:
@@ -235,9 +235,9 @@
             1.0
             (/ (- grad-dot-d) d-hessian-d))))
 
-;;; ============================================================
+;;; ====
 ;;; Adaptive Initial Step Size
-;;; ============================================================
+;;; ====
 
 ;;; For Newton and quasi-Newton methods, a step of 1.0 is often appropriate.
 ;;; For gradient descent, the initial step should be scaled.
@@ -252,9 +252,9 @@
            1.0
            (min 1.0 (/ (abs f-val) (+ grad-norm 1e-10))))))
 
-;;; ============================================================
+;;; ====
 ;;; Simple Constant Step
-;;; ============================================================
+;;; ====
 
 ;;; constant-step : Number → ((List Number) → Number) × (List Number) × (List Number) × (List Number) → (List Number × Number)
 ;;; Line search that always returns the same step size.

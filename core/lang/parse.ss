@@ -26,9 +26,9 @@
 (unless (top-level-bound? 'andmap)
         (load "core/base/prelude.ss"))
 
-;;; ============================================================
+;;; ====
 ;;; ParseResult Construction and Destructuring
-;;; ============================================================
+;;; ====
 
 ;;; success : a × String → ParseResult a
 ;;; Construct a successful parse result.
@@ -65,9 +65,9 @@
 (define (result-position result)
   (cddr result))
 
-;;; ============================================================
+;;; ====
 ;;; Running Parsers
-;;; ============================================================
+;;; ====
 
 ;;; run-parser : Parser a × String → ParseResult a
 ;;; Apply a parser to an input string.
@@ -91,9 +91,9 @@
            (result-value result)
            #f)))
 
-;;; ============================================================
+;;; ====
 ;;; Primitive Parsers
-;;; ============================================================
+;;; ====
 
 ;;; pure : a → Parser a
 ;;; Always succeeds with the given value, consumes nothing.
@@ -135,9 +135,9 @@
                        (success c (substring input 1 (string-length input)))
                        (failure label (string-length input)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Character Parsers
-;;; ============================================================
+;;; ====
 
 ;;; char : Char → Parser Char
 ;;; Match a specific character.
@@ -189,9 +189,9 @@
                             (success target (substring input tlen ilen))
                             (failure target (string-length input))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Parser Combinators — Sequencing
-;;; ============================================================
+;;; ====
 
 ;;; bind : Parser a × (a → Parser b) → Parser b
 ;;; Monadic bind — run first parser, feed result to second.
@@ -217,9 +217,9 @@
                    (bind p2 (lambda (_)
                                     (pure a))))))
 
-;;; ============================================================
+;;; ====
 ;;; Parser Combinators — Choice
-;;; ============================================================
+;;; ====
 
 ;;; alt : Parser a × Parser a → Parser a
 ;;; Try first parser, on failure try second (<|>).
@@ -239,18 +239,18 @@
           (car parsers)
           (alt (car parsers) (choice (cdr parsers))))))
 
-;;; ============================================================
+;;; ====
 ;;; Parser Combinators — Transformation
-;;; ============================================================
+;;; ====
 
 ;;; map-p : (a → b) × Parser a → Parser b
 ;;; Transform the result of a parser (fmap).
 (define (map-p f parser)
   (bind parser (lambda (a) (pure (f a)))))
 
-;;; ============================================================
+;;; ====
 ;;; Parser Combinators — Repetition
-;;; ============================================================
+;;; ====
 
 ;;; many-helper : Parser a × (List a) × String → (List a × String)
 ;;; Helper for many — accumulate results until parser fails.
@@ -303,9 +303,9 @@
    (map-p (lambda (x) (list x)) parser)
    (pure '())))
 
-;;; ============================================================
+;;; ====
 ;;; Parser Combinators — Delimiters
-;;; ============================================================
+;;; ====
 
 ;;; between : Parser open × Parser close × Parser a → Parser a
 ;;; Parse something between delimiters.
@@ -313,9 +313,9 @@
   (seq open
        (seq-left parser close)))
 
-;;; ============================================================
+;;; ====
 ;;; Utility Parsers
-;;; ============================================================
+;;; ====
 
 ;;; spaces : Parser (List Char)
 ;;; Parse zero or more whitespace characters.
@@ -352,9 +352,9 @@
 (define (braces parser)
   (between (symbol "{") (symbol "}") parser))
 
-;;; ============================================================
+;;; ====
 ;;; Number Parsers
-;;; ============================================================
+;;; ====
 
 ;;; nat : Parser Nat
 ;;; Parse a natural number (sequence of digits).
@@ -369,9 +369,9 @@
                                       (bind nat (lambda (n)
                                                         (pure (if (null? sign) n (- n))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Word and Identifier Parsers
-;;; ============================================================
+;;; ====
 
 ;;; word : Parser String
 ;;; Parse a word (sequence of alphabetic characters).
@@ -385,9 +385,9 @@
                       (bind (many (alt alphanum (char #\_))) (lambda (rest)
                                                                      (pure (list->string (cons first rest))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Chainl and Chainr — Operator Parsing
-;;; ============================================================
+;;; ====
 
 ;;; chainl1 : Parser a × Parser (a × a → a) → Parser a
 ;;; Parse one or more items separated by left-associative operators.
@@ -411,9 +411,9 @@
                                                                            (pure (f x y))))))
                         (pure x)))))
 
-;;; ============================================================
+;;; ====
 ;;; Helpers
-;;; ============================================================
+;;; ====
 
 ;;; one-of : String → Parser Char
 ;;; Match any character in the given string.

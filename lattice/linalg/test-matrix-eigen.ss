@@ -8,9 +8,9 @@
 (load "lattice/linalg/matrix-decomp.ss")
 (load "lattice/linalg/matrix-eigen.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Test Utilities
-;;; ============================================================
+;;; ====
 
 (define tests-passed 0)
 (define tests-failed 0)
@@ -50,9 +50,9 @@
 
 (printf "\n=== Eigenvalue/Eigenvector Tests ===\n\n")
 
-;;; ============================================================
+;;; ====
 ;;; Power Iteration Tests
-;;; ============================================================
+;;; ====
 
 (printf "--- Power Iteration ---\n")
 
@@ -103,9 +103,9 @@
                  (eq? (car result) 'error)
                  (eq? (cadr result) 'not-square))))
 
-;;; ============================================================
+;;; ====
 ;;; QR Algorithm Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n--- QR Algorithm ---\n")
 
@@ -155,9 +155,9 @@
           (test-approx "QR algorithm: 3x3 eigenvalue sum = trace" tr (vec-sum eigenvalues) 1e-3)
           (test "QR algorithm: 3x3 non-singular matrix" #t (vector? eigenvalues))))
 
-;;; ============================================================
+;;; ====
 ;;; Inverse Iteration Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n--- Inverse Iteration ---\n")
 
@@ -184,9 +184,9 @@
             (and (vector? v)
                  (vectors-parallel? v (vec 1 -1) 1e-3))))
 
-;;; ============================================================
+;;; ====
 ;;; Eigenvalue Decomposition Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n--- Eigenvalue Decomposition ---\n")
 
@@ -213,9 +213,9 @@
             (and (pair? result)
                  (eq? (car result) 'error))))
 
-;;; ============================================================
+;;; ====
 ;;; Symmetric Matrix Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n--- Symmetric Eigenvalues ---\n")
 
@@ -267,9 +267,9 @@
                  (eq? (car result) 'error)
                  (eq? (cadr result) 'not-symmetric))))
 
-;;; ============================================================
+;;; ====
 ;;; Spectral Analysis Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n--- Spectral Analysis ---\n")
 
@@ -298,9 +298,9 @@
        [kappa (eigenvalue-condition a)])
       (test-approx "Eigenvalue condition: identity" 1.0 kappa 1e-5))
 
-;;; ============================================================
+;;; ====
 ;;; Verification Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n--- Verification Functions ---\n")
 
@@ -322,9 +322,9 @@
             #f
             (verify-eigenvalue a lambda-val v 1e-10)))
 
-;;; ============================================================
+;;; ====
 ;;; Convenience Function Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n--- Convenience Functions ---\n")
 
@@ -347,9 +347,9 @@
                  (= (matrix-rows vecs) 2)
                  (= (matrix-cols vecs) 2))))
 
-;;; ============================================================
+;;; ====
 ;;; Summary
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Summary ===\n")
 (printf "  Passed: ~a\n" tests-passed)

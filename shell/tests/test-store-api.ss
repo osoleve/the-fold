@@ -7,13 +7,13 @@
 (load "shell/store-api.ss")
 
 (printf "\n")
-(printf "================================================================\n")
+(printf "====\n")
 (printf "              STORE API TEST SUITE                             \n")
-(printf "================================================================\n\n")
+(printf "====\n\n")
 
-;;; ============================================================
+;;; ====
 ;;; Test Harness
-;;; ============================================================
+;;; ====
 
 (define tests-passed 0)
 (define tests-failed 0)
@@ -45,12 +45,12 @@
        (printf "  [FAIL] ~a\n" name)
        (printf "      Value ~s did not satisfy predicate\n" actual))))
 
-;;; ============================================================
+;;; ====
 ;;; Test Setup - Create test store and blocks
-;;; ============================================================
+;;; ====
 
 (printf "Setting up test environment...\n")
-(printf "----------------------------------------------------------------\n")
+(printf "----\n")
 
 ;; Use a dedicated test store directory
 (define test-store-path ".test-store-api")
@@ -92,12 +92,12 @@
 
 (printf "Test blocks created.\n\n")
 
-;;; ============================================================
+;;; ====
 ;;; Test 1: Core Storage Operations (store-put!, store-get, store-exists?)
-;;; ============================================================
+;;; ====
 
 (printf "Testing Core Storage Operations:\n")
-(printf "----------------------------------------------------------------\n")
+(printf "----\n")
 
 ;; Test store-put! returns hash
 (define stored-alice-hash (store-put! fs entity-alice))
@@ -147,12 +147,12 @@
 
 (printf "\n")
 
-;;; ============================================================
+;;; ====
 ;;; Test 2: Store Enumeration (store-all-hashes, store-count)
-;;; ============================================================
+;;; ====
 
 (printf "Testing Store Enumeration:\n")
-(printf "----------------------------------------------------------------\n")
+(printf "----\n")
 
 (define all-hashes (store-all-hashes fs))
 (test-pred "store-all-hashes returns a list"
@@ -182,12 +182,12 @@
 
 (printf "\n")
 
-;;; ============================================================
+;;; ====
 ;;; Test 3: store-all-blocks
-;;; ============================================================
+;;; ====
 
 (printf "Testing store-all-blocks:\n")
-(printf "----------------------------------------------------------------\n")
+(printf "----\n")
 
 (define all-blocks (store-all-blocks fs))
 (test-pred "store-all-blocks returns a list"
@@ -206,12 +206,12 @@
 
 (printf "\n")
 
-;;; ============================================================
+;;; ====
 ;;; Test 4: store-filter
-;;; ============================================================
+;;; ====
 
 (printf "Testing store-filter:\n")
-(printf "----------------------------------------------------------------\n")
+(printf "----\n")
 
 ;; Filter for entities only
 (define entity-blocks (store-filter fs (lambda (b) (eq? (block-tag b) 'entity))))
@@ -239,12 +239,12 @@
 
 (printf "\n")
 
-;;; ============================================================
+;;; ====
 ;;; Test 5: store-find-by-tag
-;;; ============================================================
+;;; ====
 
 (printf "Testing store-find-by-tag:\n")
-(printf "----------------------------------------------------------------\n")
+(printf "----\n")
 
 (define found-entities (store-find-by-tag fs 'entity))
 (test "store-find-by-tag 'entity count"
@@ -278,12 +278,12 @@
 
 (printf "\n")
 
-;;; ============================================================
+;;; ====
 ;;; Test 6: store-find-by-payload
-;;; ============================================================
+;;; ====
 
 (printf "Testing store-find-by-payload:\n")
-(printf "----------------------------------------------------------------\n")
+(printf "----\n")
 
 ;; Find blocks with payloads starting with "name:"
 (define name-blocks
@@ -316,12 +316,12 @@
 
 (printf "\n")
 
-;;; ============================================================
+;;; ====
 ;;; Test 7: store-find-by-payload-contains
-;;; ============================================================
+;;; ====
 
 (printf "Testing store-find-by-payload-contains:\n")
-(printf "----------------------------------------------------------------\n")
+(printf "----\n")
 
 (define contains-alice (store-find-by-payload-contains fs "Alice"))
 (test "store-find-by-payload-contains 'Alice'"
@@ -351,12 +351,12 @@
 
 (printf "\n")
 
-;;; ============================================================
+;;; ====
 ;;; Test 8: store-find-by-ref
-;;; ============================================================
+;;; ====
 
 (printf "Testing store-find-by-ref:\n")
-(printf "----------------------------------------------------------------\n")
+(printf "----\n")
 
 ;; Find blocks referencing Alice
 (define refs-alice (store-find-by-ref fs hash-alice))
@@ -384,12 +384,12 @@
 
 (printf "\n")
 
-;;; ============================================================
+;;; ====
 ;;; Test 9: Batch Operations (store-put-many!, store-get-many)
-;;; ============================================================
+;;; ====
 
 (printf "Testing Batch Operations:\n")
-(printf "----------------------------------------------------------------\n")
+(printf "----\n")
 
 ;; Create new blocks for batch test
 (define batch-b1 (make-block 'batch (string->utf8 "batch1") (vector)))
@@ -448,12 +448,12 @@
 
 (printf "\n")
 
-;;; ============================================================
+;;; ====
 ;;; Test 10: Statistics (store-stats, store-print-stats)
-;;; ============================================================
+;;; ====
 
 (printf "Testing Statistics:\n")
-(printf "----------------------------------------------------------------\n")
+(printf "----\n")
 
 (define stats (store-stats fs))
 (test-pred "store-stats returns an alist"
@@ -488,20 +488,20 @@
 
 ;; Test store-print-stats (just ensure it runs without error)
 (printf "  Testing store-print-stats output:\n")
-(printf "  ----------------------------------\n")
+(printf "  ----\n")
 (store-print-stats fs)
-(printf "  ----------------------------------\n")
+(printf "  ----\n")
 (set! tests-passed (+ tests-passed 1))
 (printf "  [PASS] store-print-stats runs without error\n")
 
 (printf "\n")
 
-;;; ============================================================
+;;; ====
 ;;; Test 11: Graph Navigation (store-get-refs, store-get-referrers)
-;;; ============================================================
+;;; ====
 
 (printf "Testing Graph Navigation:\n")
-(printf "----------------------------------------------------------------\n")
+(printf "----\n")
 
 ;; Get refs from relation block
 (define relation-hash (hash-block relation-alice-knows-bob))
@@ -542,12 +542,12 @@
 
 (printf "\n")
 
-;;; ============================================================
+;;; ====
 ;;; Test 12: Knowledge Graph Helpers
-;;; ============================================================
+;;; ====
 
 (printf "Testing Knowledge Graph Helpers:\n")
-(printf "----------------------------------------------------------------\n")
+(printf "----\n")
 
 (define all-entities (store-get-entities fs))
 (test "store-get-entities count"
@@ -578,12 +578,12 @@
 
 (printf "\n")
 
-;;; ============================================================
+;;; ====
 ;;; Test 13: Edge Cases
-;;; ============================================================
+;;; ====
 
 (printf "Testing Edge Cases:\n")
-(printf "----------------------------------------------------------------\n")
+(printf "----\n")
 
 ;; Empty store test - create a fresh store
 (define empty-fs (mint-fs-capability ".test-store-empty"))
@@ -664,12 +664,12 @@
 
 (printf "\n")
 
-;;; ============================================================
+;;; ====
 ;;; Test 14: string-contains? helper (internal function)
-;;; ============================================================
+;;; ====
 
 (printf "Testing string-contains? helper:\n")
-(printf "----------------------------------------------------------------\n")
+(printf "----\n")
 
 (test-true "string-contains? finds at start"
            (string-contains? "hello world" "hello"))
@@ -694,22 +694,22 @@
 
 (printf "\n")
 
-;;; ============================================================
+;;; ====
 ;;; Cleanup
-;;; ============================================================
+;;; ====
 
 (printf "Cleaning up test stores...\n")
 (system (format "rm -rf ~a" test-store-path))
 (system "rm -rf .test-store-empty")
 (printf "Cleanup complete.\n\n")
 
-;;; ============================================================
+;;; ====
 ;;; Summary
-;;; ============================================================
+;;; ====
 
-(printf "================================================================\n")
+(printf "====\n")
 (printf "                    TEST RESULTS                               \n")
-(printf "================================================================\n\n")
+(printf "====\n\n")
 
 (printf "Tests passed: ~a\n" tests-passed)
 (printf "Tests failed: ~a\n" tests-failed)

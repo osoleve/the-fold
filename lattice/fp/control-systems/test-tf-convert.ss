@@ -3,9 +3,9 @@
 (load "core/base/prelude.ss")
 (load "lattice/fp/control-systems/tf-convert.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Test Framework
-;;; ============================================================
+;;; ====
 
 (define tests-passed 0)
 (define tests-failed 0)
@@ -34,9 +34,9 @@
 
 (printf "\n=== SS↔TF Conversion Tests ===\n\n")
 
-;;; ============================================================
+;;; ====
 ;;; TF -> SS Tests
-;;; ============================================================
+;;; ====
 
 (printf "--- TF to SS ---\n")
 
@@ -68,9 +68,9 @@
       (test "tf->ss proper: order" 1 (ss-order sys))
       (test-approx "tf->ss proper: D" 1.0 (matrix-ref (ss-D sys) 0 0) 1e-10))
 
-;;; ============================================================
+;;; ====
 ;;; SS -> TF Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n--- SS to TF ---\n")
 
@@ -116,9 +116,9 @@
                    (apply + (map complex-real poles))
                    1e-4))
 
-;;; ============================================================
+;;; ====
 ;;; Round-Trip Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n--- Round-Trip ---\n")
 
@@ -152,9 +152,9 @@
            (test-approx "ss round-trip: poles product" 2.0
                         (apply * (map complex-real poles)) 1e-4)))
 
-;;; ============================================================
+;;; ====
 ;;; Edge Cases
-;;; ============================================================
+;;; ====
 
 (printf "\n--- Edge Cases ---\n")
 
@@ -170,13 +170,13 @@
       (test "same degree: order" 1 (ss-order sys))
       (test-approx "same degree: D" 1.0 (matrix-ref (ss-D sys) 0 0) 1e-10))
 
-;;; ============================================================
+;;; ====
 ;;; Summary
-;;; ============================================================
+;;; ====
 
-(printf "\n================================================================\n")
+(printf "\n====\n")
 (printf "                    TEST RESULTS\n")
-(printf "================================================================\n\n")
+(printf "====\n\n")
 (printf "Tests passed: ~a\n" tests-passed)
 (printf "Tests failed: ~a\n" tests-failed)
 (printf "Total tests:  ~a\n" (+ tests-passed tests-failed))

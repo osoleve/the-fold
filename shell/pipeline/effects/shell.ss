@@ -8,9 +8,9 @@
 (load "lattice/pipeline/effects.ss")
 (load "lattice/pipeline/context.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Shell Effect Interpretation
-;;; ============================================================
+;;; ====
 
 ;;; interpret-shell-effect : Payload -> Context -> State -> Input -> (Result . State)
 (define (interpret-shell-effect payload ctx state input)
@@ -55,9 +55,9 @@
                                payload)
                     state)])))
 
-;;; ============================================================
+;;; ====
 ;;; Helper Functions
-;;; ============================================================
+;;; ====
 
 ;;; expand-template-with-ctx : String -> Context -> Input -> String
 (define (expand-template-with-ctx template ctx input)
@@ -66,9 +66,9 @@
                                (ctx-env ctx)))])
        (expand-template template bindings)))
 
-;;; ============================================================
+;;; ====
 ;;; Shell Escaping (Security Critical)
-;;; ============================================================
+;;; ====
 
 ;;; shell-escape : String -> String
 ;;; Escape a string for safe use in shell single quotes.
@@ -88,9 +88,9 @@
                                (append (reverse (string->list "'\\''")) chars))
                          (loop (+ i 1) (cons c chars))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Shell Execution Implementation
-;;; ============================================================
+;;; ====
 
 ;;; shell-exec : String -> ShellResult
 ;;; Execute a shell command and return result with stdout/stderr.

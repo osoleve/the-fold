@@ -23,9 +23,9 @@
 (load "core/base/prelude.ss")
 (load "lattice/fp/meta/combinators.ss")
 
-;;; ============================================================
+;;; ====
 ;;; State Representation
-;;; ============================================================
+;;; ====
 ;;;
 ;;; State s a is represented as a tagged function:
 ;;;   ('state . (s -> (a . s)))
@@ -46,9 +46,9 @@
 (define (state-fn st)
   (cdr st))
 
-;;; ============================================================
+;;; ====
 ;;; Running State Computations
-;;; ============================================================
+;;; ====
 
 ;;; run-state : State s a -> s -> (a . s)
 ;;; Run a State computation with an initial state.
@@ -66,9 +66,9 @@
 (define (exec-state st initial-state)
   (cdr (run-state st initial-state)))
 
-;;; ============================================================
+;;; ====
 ;;; Core State Operations
-;;; ============================================================
+;;; ====
 
 ;;; get : State s s
 ;;; Get the current state.
@@ -90,9 +90,9 @@
 (define (state-gets f)
   (make-state (lambda (s) (cons (f s) s))))
 
-;;; ============================================================
+;;; ====
 ;;; Monad Operations
-;;; ============================================================
+;;; ====
 
 ;;; state-pure : a -> State s a
 ;;; Lift a value into State (return/pure).
@@ -128,9 +128,9 @@
                                   (lambda (a)
                                           (state-pure (f a)))))))
 
-;;; ============================================================
+;;; ====
 ;;; State Combinators
-;;; ============================================================
+;;; ====
 
 ;;; state-sequence : (List (State s a)) -> State s (List a)
 ;;; Sequence a list of State computations, collecting results.
@@ -168,9 +168,9 @@
 (define (state-unless condition action)
   (state-when (not condition) action))
 
-;;; ============================================================
+;;; ====
 ;;; State with Lenses
-;;; ============================================================
+;;; ====
 ;;;
 ;;; These combinators work with lenses from fp/lens.ss
 ;;; to focus on parts of the state.
@@ -193,9 +193,9 @@
 (define (state-over lens f)
   (state-modify (lambda (s) (over lens f s))))
 
-;;; ============================================================
+;;; ====
 ;;; Labeled State (Named State Monad)
-;;; ============================================================
+;;; ====
 ;;;
 ;;; For computations with multiple named state components,
 ;;; use an alist as state with key-lens from lens.ss.
@@ -229,9 +229,9 @@
                                      default)])
                            (state-put-key key (f val))))))
 
-;;; ============================================================
+;;; ====
 ;;; Counter State (Common Pattern)
-;;; ============================================================
+;;; ====
 
 ;;; state-inc : State Nat Nat
 ;;; Increment counter state, return old value.
@@ -258,9 +258,9 @@
 ;;; Generate a fresh unique number.
 (define fresh state-inc)
 
-;;; ============================================================
+;;; ====
 ;;; Stack State (Common Pattern)
-;;; ============================================================
+;;; ====
 
 ;;; state-push : a -> State (List a) ()
 ;;; Push a value onto a stack state.
@@ -285,9 +285,9 @@
                           nothing
                           (just (car stack))))))
 
-;;; ============================================================
+;;; ====
 ;;; Accumulator State (Common Pattern - O(1) Writer Pattern)
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Performance note: This implementation uses cons-based accumulation
 ;;; for O(1) single-element appends, but requires O(N) reversal when
@@ -334,9 +334,9 @@
                       (state-then (state-put '())
                                   (state-pure (reverse acc))))))
 
-;;; ============================================================
+;;; ====
 ;;; do-notation Simulation
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Since we don't have macros, we use explicit bind chains.
 ;;; The pattern is:
@@ -352,9 +352,9 @@
 ;;; state-let* helper not possible without macros, but we can
 ;;; use nested lambdas as shown above.
 
-;;; ============================================================
+;;; ====
 ;;; Example Usage (for documentation)
-;;; ============================================================
+;;; ====
 ;;;
 ;;; ;; Simple counter
 ;;; (define count-to-3

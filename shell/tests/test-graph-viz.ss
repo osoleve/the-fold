@@ -11,9 +11,9 @@
 ══════════════════════════════════════════════════════════
 ")
 
-;;; ============================================================
+;;; ====
 ;;; Layout Tests
-;;; ============================================================
+;;; ====
 
 (test-group layout-tests
             (define-test layout-get-set-test
@@ -36,9 +36,9 @@
                     (assert-equal 2 (length positions))
                     (assert-true (for-all vec2? positions)))))
 
-;;; ============================================================
+;;; ====
 ;;; Tag Color Tests
-;;; ============================================================
+;;; ====
 
 (test-group tag-color-tests
             (define-test tag->color-test
@@ -47,9 +47,9 @@
               (assert-true (color12? (tag->color 'define)))
               (assert-true (color12? (tag->color 'unknown-tag)))))
 
-;;; ============================================================
+;;; ====
 ;;; Drawing Helper Tests
-;;; ============================================================
+;;; ====
 
 (test-group drawing-helper-tests
             (define-test rad->deg-test
@@ -70,8 +70,8 @@
                     ;; Should have created paths
                     (assert-true (not (null? (turtle-paths t2)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Summary
-;;; ============================================================
+;;; ====
 
 (print-summary)

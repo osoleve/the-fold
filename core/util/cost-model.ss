@@ -17,9 +17,9 @@
 
 (load "core/base/prelude.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Cost Model Interface
-;;; ============================================================
+;;; ====
 
 ;;; make-cost-model : Symbol × (Expr → Nat) × (Symbol → Nat) × Nat × ((List Nat) → Nat) → CostModel
 (define (make-cost-model name eval-cost prim-cost apply-cost aggregate)
@@ -34,9 +34,9 @@
 (define (cost-model? cm)
   (and (pair? cm) (eq? (car cm) 'cost-model)))
 
-;;; ============================================================
+;;; ====
 ;;; Cost Model Accessors
-;;; ============================================================
+;;; ====
 
 ;;; cost-model-get : CostModel × Symbol → α
 (define (cost-model-get cm key)
@@ -63,9 +63,9 @@
 (define (cost-model-aggregate cm)
   (cost-model-get cm 'aggregate))
 
-;;; ============================================================
+;;; ====
 ;;; Cost Computation Helpers
-;;; ============================================================
+;;; ====
 
 ;;; compute-eval-cost : CostModel × Expr → Nat
 (define (compute-eval-cost cm expr)
@@ -79,9 +79,9 @@
 (define (compute-aggregate cm costs)
   ((cost-model-aggregate cm) costs))
 
-;;; ============================================================
+;;; ====
 ;;; Built-in Cost Models
-;;; ============================================================
+;;; ====
 
 ;;; fuel-cost-model : CostModel
 ;;; The default fuel-based cost model.
@@ -170,9 +170,9 @@
                0
                (fold-left max 0 costs)))))
 
-;;; ============================================================
+;;; ====
 ;;; Cost Tracker
-;;; ============================================================
+;;; ====
 
 ;;; A cost tracker accumulates costs during evaluation,
 ;;; categorized by operation type.
@@ -243,9 +243,9 @@
 (define (reset-tracker ct)
   (make-cost-tracker (cost-tracker-model ct)))
 
-;;; ============================================================
+;;; ====
 ;;; Cost Model Composition
-;;; ============================================================
+;;; ====
 
 ;;; combine-cost-models : CostModel × CostModel → CostModel
 (define (combine-cost-models cm1 cm2)

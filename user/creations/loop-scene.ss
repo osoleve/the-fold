@@ -27,9 +27,9 @@
 (display "║  Integer cycles = Perfect loops. Always.                         ║\n")
 (display "╚══════════════════════════════════════════════════════════════════╝\n\n")
 
-;;; ============================================================
+;;; ====
 ;;; Core Math: Rodrigues Rotation (from gyroscope-render.ss)
-;;; ============================================================
+;;; ====
 
 (define (vec3-cross a b)
   "Cross product of two vec3s"
@@ -56,9 +56,9 @@
          [rz (+ (* pz c) (* cross-z s) (* kz dot (- 1 c)))])
         (vec3 rx ry rz)))
 
-;;; ============================================================
+;;; ====
 ;;; Rendering Backend System
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Backends decouple scene definition from rendering engine.
 ;;; The same scene can be rendered to ASCII, color ASCII, RGB bitmap,
@@ -150,16 +150,16 @@
           ;; Dispatch to backend
           ((render-backend-render-proc backend) scene output-path params))]))
 
-;;; ============================================================
+;;; ====
 ;;; Animation Primitives
-;;; ============================================================
+;;; ====
 
 ;;; These are "time functions" - they take normalized time t ∈ [0, 2π)
 ;;; and return animated values.
 
-;;; ------------------------------------------------------------
+;;; ----
 ;;; Easing Functions
-;;; ------------------------------------------------------------
+;;; ----
 ;;; All easing functions take t ∈ [0, 1] and return eased value in [0, 1].
 ;;; Use with normalized time: (ease-fn (/ t duration))
 
@@ -293,7 +293,7 @@
    Example: (with-easing ease-out-quad 0 100 0.5) → ~75"
   (+ from (* (- to from) (ease-fn t))))
 
-;;; ------------------------------------------------------------
+;;; ----
 
 (define (make-rotator axis cycles)
   "Create a rotation function that completes 'cycles' full rotations per loop.
@@ -343,9 +343,9 @@
                (let ([base-point (vec3 radius 0 0)])
                     (rotate-axis base-point norm-axis (* t cycles))))))
 
-;;; ============================================================
+;;; ====
 ;;; Scene Element Constructors
-;;; ============================================================
+;;; ====
 
 ;;; Each element returns a function: t → (p → distance)
 
@@ -436,9 +436,9 @@
                     (lambda (p)
                             (sdf-box (rot-fn p) (vec3 0 0 0) size))))))
 
-;;; ============================================================
+;;; ====
 ;;; Scene Composition
-;;; ============================================================
+;;; ====
 
 (define (combine-elements elements)
   "Combine multiple scene elements into one SDF (union).
@@ -465,9 +465,9 @@
                                           ((car remaining) p)
                                           (sdf-smooth-union result ((car remaining) p) k)))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Group Transforms
-;;; ============================================================
+;;; ====
 
 (define (group . args)
   "Group multiple elements and apply collective transforms.
@@ -507,9 +507,9 @@
                                    ;; Scale the distance too
                                    (* (base-sdf p3) scale-factor)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Camera Helpers
-;;; ============================================================
+;;; ====
 
 (define (look-at from to)
   "Create a camera looking from 'from' position toward 'to' position.
@@ -524,9 +524,9 @@
         [target (apply vec3 to)])
        (make-camera pos target (vec3 0 1 0) fov)))
 
-;;; ============================================================
+;;; ====
 ;;; Scene Configuration
-;;; ============================================================
+;;; ====
 
 (define-record-type loop-scene
   (fields duration    ; seconds
@@ -542,9 +542,9 @@
         [num-frames (inexact->exact (round (* duration fps)))])
        (make-loop-scene duration fps width height camera scene-fn)))
 
-;;; ============================================================
+;;; ====
 ;;; High-Level Scene Builder
-;;; ============================================================
+;;; ====
 
 ;;; Macro-free builder using a simple alist for options
 
@@ -576,9 +576,9 @@
                 (error 'build-loop-scene "camera is required in config"))
         (make-loop-scene* duration fps width height camera elements)))
 
-;;; ============================================================
+;;; ====
 ;;; Shorthand Element Constructors (for clean DSL syntax)
-;;; ============================================================
+;;; ====
 
 (define (ring . args)
   "Create a rotating torus ring.
@@ -678,9 +678,9 @@
 (define :elements ':elements)
 (define :center-fn ':center-fn)
 
-;;; ============================================================
+;;; ====
 ;;; Keyword Validation (catch typos early!)
-;;; ============================================================
+;;; ====
 
 ;;; Registry of valid keywords per element type
 (define *element-keywords*
@@ -751,9 +751,9 @@
   (and (<= (string-length prefix) (string-length str))
        (string=? prefix (substring str 0 (string-length prefix)))))
 
-;;; ============================================================
+;;; ====
 ;;; Validation
-;;; ============================================================
+;;; ====
 
 (define (validate-scene scene)
   "Validate a loop scene before rendering.
@@ -769,9 +769,9 @@
                 (display "Consider adjusting for clean frame count.\n"))
         #t))
 
-;;; ============================================================
+;;; ====
 ;;; Rendering
-;;; ============================================================
+;;; ====
 
 (define (render-loop! scene output-path)
   "Render a loop scene to a GIF file."
@@ -847,9 +847,9 @@
         
         output-path))
 
-;;; ============================================================
+;;; ====
 ;;; Preview Utilities
-;;; ============================================================
+;;; ====
 
 (define (preview-frame scene t)
   "Render a single frame at normalized time t ∈ [0, 2π) and display it."
@@ -961,9 +961,9 @@
                                 " = " (number->string total-pixels) " total ray marches\n"))
         estimated-seconds))
 
-;;; ============================================================
+;;; ====
 ;;; Rate Suggestions
-;;; ============================================================
+;;; ====
 
 ;;; Pre-computed sets of coprime integers for visual interest.
 ;;; Coprime rates ensure patterns don't repeat until full loop.
@@ -1012,9 +1012,9 @@
                                       (loop (cdr items) #f))))
                        '(")")))))
 
-;;; ============================================================
+;;; ====
 ;;; Preset Scenes
-;;; ============================================================
+;;; ====
 
 (define (gyroscope-scene)
   "The classic 4-ring armillary sphere."
@@ -1044,9 +1044,9 @@
      (camera . ,(look-at '(0 0 -4) '(0 0 0))))
    (box :size '(0.8 0.8 0.8) :axis '(1 1 0.5) :cycles 3)))
 
-;;; ============================================================
+;;; ====
 ;;; Help / Documentation
-;;; ============================================================
+;;; ====
 
 (define (loop-scene-help)
   "Display usage documentation."
@@ -1115,13 +1115,13 @@
   (display "║                                                                  ║\n")
   (display "╚══════════════════════════════════════════════════════════════════╝\n\n"))
 
-;;; ============================================================
+;;; ====
 ;;; ADVANCED ANIMATIONS
-;;; ============================================================
+;;; ====
 
-;;; ------------------------------------------------------------
+;;; ----
 ;;; Morphing Between Shapes
-;;; ------------------------------------------------------------
+;;; ----
 
 (define (make-morph shape1 shape2 cycles)
   "Smoothly morph between two SDF shapes.
@@ -1145,9 +1145,9 @@
   (let ([cycles (get-keyword-arg args ':cycles 1)])
        (make-morph elem1 elem2 cycles)))
 
-;;; ------------------------------------------------------------
+;;; ----
 ;;; Path Animations (beyond simple orbits)
-;;; ------------------------------------------------------------
+;;; ----
 
 (define (make-lissajous-path a b delta cycles)
   "Lissajous curve path: x = sin(a*t + delta), y = 0, z = sin(b*t)
@@ -1217,9 +1217,9 @@
          [path (make-spiral-path radius height turns cycles)])
         (follow-path path r)))
 
-;;; ------------------------------------------------------------
+;;; ----
 ;;; Wave / Deformation Effects
-;;; ------------------------------------------------------------
+;;; ----
 
 (define (make-wave-deformer amplitude frequency cycles)
   "Create a wave deformation: displaces surface based on position.
@@ -1278,9 +1278,9 @@
         (lambda (t)
                 ((deformer t) (base-elem t)))))
 
-;;; ------------------------------------------------------------
+;;; ----
 ;;; Animated Smooth Union
-;;; ------------------------------------------------------------
+;;; ----
 
 (define (make-breathing-union k-base k-range cycles)
   "Smooth union with animated smoothness factor.
@@ -1350,9 +1350,9 @@
                                                      d
                                                      (sdf-smooth-union result d k)))))))))))
 
-;;; ------------------------------------------------------------
+;;; ----
 ;;; Camera Animation
-;;; ------------------------------------------------------------
+;;; ----
 
 (define (make-orbiting-camera distance height look-at-pos cycles)
   "Create a camera that orbits around a point.
@@ -1427,9 +1427,9 @@
         (video->gif video output-path frame-delay-ms)
         output-path))
 
-;;; ------------------------------------------------------------
+;;; ----
 ;;; Animated Lighting
-;;; ------------------------------------------------------------
+;;; ----
 
 (define *animated-light-dir* (make-parameter #f))
 
@@ -1442,9 +1442,9 @@
           (let ([angle (* t cycles)])
                (vec3-normalize (vec3 (cos angle) 0.8 (sin angle))))))
 
-;;; ------------------------------------------------------------
+;;; ----
 ;;; Repetition / Instancing
-;;; ------------------------------------------------------------
+;;; ----
 
 (define (make-grid-repeat elem spacing count)
   "Repeat an element in a grid pattern.
@@ -1476,16 +1476,16 @@
          [count (get-keyword-arg args ':count 3)])
         (make-grid-repeat elem spacing count)))
 
-;;; ============================================================
+;;; ====
 ;;; 3D Asset Loading (OBJ Format)
-;;; ============================================================
+;;; ====
 ;;;
 ;;; OBJ is the simplest widely-used 3D format - plain text, easy to parse.
 ;;; We load vertices and faces, then compute signed distance to the mesh.
 
-;;; ------------------------------------------------------------
+;;; ----
 ;;; OBJ Parsing
-;;; ------------------------------------------------------------
+;;; ----
 
 (define (parse-obj-line line)
   "Parse a single OBJ line. Returns (type . data) or #f."
@@ -1599,9 +1599,9 @@
                                     (number->string (length faces)) " faces\n"))
             (cons vert-vec (reverse faces)))))
 
-;;; ------------------------------------------------------------
+;;; ----
 ;;; Mesh SDF Computation
-;;; ------------------------------------------------------------
+;;; ----
 
 (define (triangle-sdf p v0 v1 v2)
   "Compute unsigned distance from point p to triangle (v0, v1, v2).
@@ -1658,9 +1658,9 @@
                           [d (triangle-sdf p v0 v1 v2)])
                          (loop (cdr remaining) (min min-dist d)))))))
 
-;;; ------------------------------------------------------------
+;;; ----
 ;;; OBJ Scene Element
-;;; ------------------------------------------------------------
+;;; ----
 
 (define (make-mesh-element mesh scale offset axis cycles)
   "Create a rotating mesh element.
@@ -1705,9 +1705,9 @@
         (let ([loaded (load-obj path)])
              (make-mesh-element loaded scale (apply vec3 at) (apply vec3 axis) cycles))))
 
-;;; ------------------------------------------------------------
+;;; ----
 ;;; Simple Mesh Generators (for testing without files)
-;;; ------------------------------------------------------------
+;;; ----
 
 (define (make-icosahedron)
   "Generate an icosahedron mesh (20 faces, 12 vertices).
@@ -1764,9 +1764,9 @@
          [mesh (make-cube-mesh)])
         (make-mesh-element mesh scale (apply vec3 at) (apply vec3 axis) cycles)))
 
-;;; ============================================================
+;;; ====
 ;;; More Preset Scenes
-;;; ============================================================
+;;; ====
 
 (define (lissajous-scene)
   "Sphere tracing a Lissajous curve."
@@ -1820,13 +1820,13 @@
      (camera . ,(look-at '(0 0 -4) '(0 0 0))))
    (icosahedron :scale 0.8 :axis '(1 1 0.5) :cycles 2)))
 
-;;; ============================================================
+;;; ====
 ;;; Backend Implementations
-;;; ============================================================
+;;; ====
 
-;;; ------------------------------------------------------------
+;;; ----
 ;;; Backend 1: ASCII Raymarcher (default)
-;;; ------------------------------------------------------------
+;;; ----
 
 (define (render-ascii-backend scene output-path params)
   "ASCII raymarcher - the original distinctive aesthetic."
@@ -1841,9 +1841,9 @@
 
 (register-backend! ascii-backend)
 
-;;; ------------------------------------------------------------
+;;; ----
 ;;; Backend 2: Color ASCII (ANSI escape codes)
-;;; ------------------------------------------------------------
+;;; ----
 
 (define *ansi-depth-colors*
   ;; Near to far: warm to cool
@@ -1885,9 +1885,9 @@
 
 (register-backend! color-ascii-backend)
 
-;;; ------------------------------------------------------------
+;;; ----
 ;;; Backend 3: Direct Raster (RGB + Phong)
-;;; ------------------------------------------------------------
+;;; ----
 
 (define (phong-shade normal light-dir view-dir)
   "Phong shading. Returns brightness 0-1."
@@ -2015,9 +2015,9 @@
 
 (register-backend! direct-raster-backend)
 
-;;; ------------------------------------------------------------
+;;; ----
 ;;; Backend 4: Marching Cubes (mesh export)
-;;; ------------------------------------------------------------
+;;; ----
 
 (define (lerp-vertex c1 c2 v1 v2 threshold)
   "Interpolate to find isosurface crossing."
@@ -2181,9 +2181,9 @@
 
 (register-backend! marching-cubes-backend)
 
-;;; ------------------------------------------------------------
+;;; ----
 ;;; Backend Registration Complete
-;;; ------------------------------------------------------------
+;;; ----
 
 (display "\n")
 (display "╔══════════════════════════════════════════════════════════════════╗\n")

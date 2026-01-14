@@ -8,24 +8,24 @@
 
 (import (chezscheme))
 
-;;; ============================================================
+;;; ====
 ;;; Configuration
-;;; ============================================================
+;;; ====
 
 (define report-dir "docs/technical-report")
 (define manifest-file "docs/technical-report/manifest.sexp")
 (define output-file "docs/technical-report.md")
 
-;;; ============================================================
+;;; ====
 ;;; S-expression Reader
-;;; ============================================================
+;;; ====
 
 (define (read-manifest path)
   (call-with-input-file path read))
 
-;;; ============================================================
+;;; ====
 ;;; File Operations
-;;; ============================================================
+;;; ====
 
 (define (read-file path)
   (call-with-input-file path
@@ -51,9 +51,9 @@
             (loop (cdr rest)
                   (string-append acc sep (car rest)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Manifest Parsing
-;;; ============================================================
+;;; ====
 
 (define (get-chapters manifest)
   (let ([chapters-entry (assq 'chapters (cdr manifest))])
@@ -61,9 +61,9 @@
         (cdr chapters-entry)
         (error 'get-chapters "No chapters found in manifest"))))
 
-;;; ============================================================
+;;; ====
 ;;; Assembly
-;;; ============================================================
+;;; ====
 
 (define (assemble-report)
   (let* ([manifest (read-manifest manifest-file)]
@@ -82,8 +82,8 @@
                      (length chapters)
                      output-file))))
 
-;;; ============================================================
+;;; ====
 ;;; Entry Point
-;;; ============================================================
+;;; ====
 
 (assemble-report)

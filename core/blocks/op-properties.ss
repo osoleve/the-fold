@@ -13,9 +13,9 @@
 
 (load "core/base/prelude.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Operation Properties Registry
-;;; ============================================================
+;;; ====
 
 ;;; *op-properties* : Alist (Symbol -> Alist (Property -> Bool))
 ;;; Registry of algebraic properties for operations.
@@ -52,9 +52,9 @@
 ;;; Consider restricting algebraic normalization to exact numbers only,
 ;;; or document and accept this semantic divergence for floats.
 
-;;; ============================================================
+;;; ====
 ;;; Property Accessors
-;;; ============================================================
+;;; ====
 
 ;;; op-property : Symbol × Symbol → Bool
 ;;; Look up a specific property for an operation.
@@ -75,9 +75,9 @@
 (define (op-associative? op)
   (op-property op 'associative))
 
-;;; ============================================================
+;;; ====
 ;;; Known Pure Operations
-;;; ============================================================
+;;; ====
 
 ;;; Operations known to be pure (no side effects).
 ;;; Used for sequence canonicalization - only pure expressions can be reordered.
@@ -122,9 +122,9 @@
 (define (op-pure? op)
   (if (memq op *pure-ops*) #t #f))
 
-;;; ============================================================
+;;; ====
 ;;; Identity and Absorbing Elements
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Identity element: (op x identity) = x
 ;;; Absorbing element: (op x absorbing) = absorbing

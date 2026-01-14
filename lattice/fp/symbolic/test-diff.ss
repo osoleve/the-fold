@@ -6,13 +6,13 @@
 (load "lattice/fp/symbolic/diff.ss")
 
 (display "\n")
-(display "==============================================================\n")
+(display "====\n")
 (display "         SYMBOLIC DIFFERENTIATION TESTS\n")
-(display "==============================================================\n")
+(display "====\n")
 
-;;; ============================================================
+;;; ====
 ;;; Basic Differentiation Rules
-;;; ============================================================
+;;; ====
 
 (test-group basic-rules
             (define-test constant-rule
@@ -33,9 +33,9 @@
                    (assert-true (num? result))
                    (assert-equal 0 (num-val result)))))
 
-;;; ============================================================
+;;; ====
 ;;; Sum Rule
-;;; ============================================================
+;;; ====
 
 (test-group sum-rule
             (define-test sum-of-constants
@@ -62,9 +62,9 @@
                    (assert-true (num? result))
                    (assert-equal 1 (num-val result)))))
 
-;;; ============================================================
+;;; ====
 ;;; Product Rule
-;;; ============================================================
+;;; ====
 
 (test-group product-rule
             (define-test product-constant
@@ -95,9 +95,9 @@
                     ;; Result should be a sum
                     (assert-true (sum? result)))))
 
-;;; ============================================================
+;;; ====
 ;;; Difference Rule
-;;; ============================================================
+;;; ====
 
 (test-group difference-rule
             (define-test difference-simple
@@ -119,9 +119,9 @@
                    ;; Should be negation of 1
                    (assert-false (diff-right result)))))
 
-;;; ============================================================
+;;; ====
 ;;; Quotient Rule
-;;; ============================================================
+;;; ====
 
 (test-group quotient-rule
             (define-test quotient-constant-numerator
@@ -153,9 +153,9 @@
                      [result (deriv (quotient x2 x) 'x)])
                     (assert-true (quotient? result)))))
 
-;;; ============================================================
+;;; ====
 ;;; Power Rule
-;;; ============================================================
+;;; ====
 
 (test-group power-rule
             (define-test power-constant-exponent
@@ -192,9 +192,9 @@
                    ;; Should be -2 * x^(-3)
                    (assert-true (product? result)))))
 
-;;; ============================================================
+;;; ====
 ;;; Chain Rule (Function Applications)
-;;; ============================================================
+;;; ====
 
 (test-group chain-rule
             (define-test sin-of-x
@@ -238,9 +238,9 @@
                     ;; Should be a product
                     (assert-true (product? result)))))
 
-;;; ============================================================
+;;; ====
 ;;; Partial Derivatives
-;;; ============================================================
+;;; ====
 
 (test-group partial-derivatives
             (define-test partial-x-of-xy
@@ -264,9 +264,9 @@
                     ;; Should be 2x (from derivative of x^2) + 0
                     (assert-true (product? result)))))
 
-;;; ============================================================
+;;; ====
 ;;; Gradient
-;;; ============================================================
+;;; ====
 
 (test-group gradient
             (define-test gradient-linear
@@ -304,9 +304,9 @@
                     (assert-equal 2 (num-val (cadr grad)))
                     (assert-equal 3 (num-val (caddr grad))))))
 
-;;; ============================================================
+;;; ====
 ;;; Jacobian Matrix
-;;; ============================================================
+;;; ====
 
 (test-group jacobian
             (define-test jacobian-2x2
@@ -339,9 +339,9 @@
                     (assert-equal 3 (length (car J)))
                     (assert-equal 3 (length (cadr J))))))
 
-;;; ============================================================
+;;; ====
 ;;; Hessian Matrix
-;;; ============================================================
+;;; ====
 
 (test-group hessian
             (define-test hessian-quadratic
@@ -392,9 +392,9 @@
                     (assert-equal 0 (num-val (cadar H)))
                     (assert-equal 0 (num-val (caddr (cadr H)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Higher-Order Derivatives
-;;; ============================================================
+;;; ====
 
 (test-group higher-order
             (define-test second-derivative
@@ -420,9 +420,9 @@
                     [result (deriv-n (power (var 'x) (num 2)) 'x 0)])
                    (assert-true (expr=? expr result)))))
 
-;;; ============================================================
+;;; ====
 ;;; Directional Derivative
-;;; ============================================================
+;;; ====
 
 (test-group directional-derivative
             (define-test directional-simple
@@ -447,9 +447,9 @@
                     (assert-true (num? result))
                     (assert-equal 2 (num-val result)))))
 
-;;; ============================================================
+;;; ====
 ;;; Vector Calculus
-;;; ============================================================
+;;; ====
 
 (test-group vector-calculus
             (define-test divergence-simple
@@ -485,9 +485,9 @@
                     (assert-true (num? result))
                     (assert-equal 6 (num-val result)))))
 
-;;; ============================================================
+;;; ====
 ;;; Complex Expressions
-;;; ============================================================
+;;; ====
 
 (test-group complex-expressions
             (define-test polynomial

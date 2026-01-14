@@ -22,9 +22,9 @@
 (load "core/base/prelude.ss")
 (load "lattice/fp/meta/combinators.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Readtable Data Structure
-;;; ============================================================
+;;; ====
 ;;;
 ;;; A readtable maps dispatch characters to reader macros.
 ;;; Readtables can be stacked for scoped extensions.
@@ -62,9 +62,9 @@
          [filtered (filter (lambda (e) (not (char=? (car e) char))) entries)])
         (list 'readtable filtered)))
 
-;;; ============================================================
+;;; ====
 ;;; Readtable Stack
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Support scoped readtable extensions via a stack.
 ;;; (with-readtable ...) pushes; exiting pops.
@@ -102,9 +102,9 @@
                     result
                     (loop (cdr remaining)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Reader Macro Representation
-;;; ============================================================
+;;; ====
 ;;;
 ;;; A reader macro is a structure containing:
 ;;;   - transform: the transformation function
@@ -131,9 +131,9 @@
 (define (reader-macro-delimiter rm)
   (cadddr rm))
 
-;;; ============================================================
+;;; ====
 ;;; Reader Dispatch Characters
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Standard dispatch characters:
 ;;;   #v[...]  - vector literal
@@ -150,9 +150,9 @@
        (not (char-whitespace? c))
        (not (memv c '(#\( #\) #\' #\" #\; #\`)))))
 
-;;; ============================================================
+;;; ====
 ;;; Token Representation
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Tokens are the output of reader macros, ready for parsing.
 
@@ -176,9 +176,9 @@
 (define (reader-token-source tok)
   (cadddr tok))
 
-;;; ============================================================
+;;; ====
 ;;; Source Location (from quasi.ss, re-exported)
-;;; ============================================================
+;;; ====
 
 ;;; make-source-loc : String × Int × Int → SourceLoc
 (define (make-reader-source-loc file line column)
@@ -200,9 +200,9 @@
 (define no-reader-source
   (make-reader-source-loc "<reader>" 0 0))
 
-;;; ============================================================
+;;; ====
 ;;; Delimiter Pairs
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Standard delimiter pairs for reader macros.
 
@@ -223,9 +223,9 @@
   (let ([pair (find (lambda (p) (char=? (cdr p) close)) delimiter-pairs)])
        (if pair (just (car pair)) nothing)))
 
-;;; ============================================================
+;;; ====
 ;;; Reader State
-;;; ============================================================
+;;; ====
 ;;;
 ;;; The reader state tracks position and readtable stack.
 
@@ -282,9 +282,9 @@
                               (from-just result))
            rs)))
 
-;;; ============================================================
+;;; ====
 ;;; Standard Reader Macros
-;;; ============================================================
+;;; ====
 
 ;;; vector-reader-macro : ReaderMacro
 ;;; #v[1 2 3] → (vector 1 2 3)
@@ -346,9 +346,9 @@
                                                                   result))))])))
                      #\{))
 
-;;; ============================================================
+;;; ====
 ;;; Default Readtable
-;;; ============================================================
+;;; ====
 
 ;;; default-readtable : Readtable
 ;;; The standard readtable with common extensions.
@@ -364,9 +364,9 @@
           (#\s . ,set-reader-macro)
           (#\h . ,hash-reader-macro)))))
 
-;;; ============================================================
+;;; ====
 ;;; Reader Macro Expansion
-;;; ============================================================
+;;; ====
 ;;;
 ;;; These functions transform reader macro syntax to S-expressions.
 ;;; Actual IO is handled by the shell layer.
@@ -391,9 +391,9 @@
                  (just (transform contents source-loc)))
            nothing)))
 
-;;; ============================================================
+;;; ====
 ;;; Reader Macro Registration
-;;; ============================================================
+;;; ====
 ;;;
 ;;; define-reader-macro returns an updated readtable.
 ;;; Actual macro is used in shell for syntactic sugar.
@@ -408,9 +408,9 @@
   (readtable-extend readtable char
                     (make-reader-macro name transform (just delimiter))))
 
-;;; ============================================================
+;;; ====
 ;;; Reader Macro Syntax DSL
-;;; ============================================================
+;;; ====
 ;;;
 ;;; A DSL for defining reader macros declaratively.
 ;;;
@@ -459,9 +459,9 @@
                           [else (loop (cdr remaining) dispatch delimiter transform)])))))
       nothing))
 
-;;; ============================================================
+;;; ====
 ;;; Escaped Content Parsing
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Parse escaped sequences within reader macro content.
 
@@ -487,9 +487,9 @@
                           result)))]
         [else (loop (cdr chars) (cons (car chars) result))])))
 
-;;; ============================================================
+;;; ====
 ;;; Reader Macro Composition
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Compose multiple readtables.
 
@@ -506,9 +506,9 @@
    (make-readtable)
    readtables))
 
-;;; ============================================================
+;;; ====
 ;;; Reader Errors
-;;; ============================================================
+;;; ====
 
 ;;; make-reader-error : String × SourceLoc → ReaderError
 (define (make-reader-error message source-loc)
@@ -526,9 +526,9 @@
 (define (reader-error-source err)
   (caddr err))
 
-;;; ============================================================
+;;; ====
 ;;; Unit Annotation Reader
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Support for unit annotations: 5#m/s
 
@@ -546,9 +546,9 @@
                                  contents))
                      nothing))
 
-;;; ============================================================
+;;; ====
 ;;; Exports
-;;; ============================================================
+;;; ====
 
 ;;; All public functions are defined at top level.
 ;;; Main entry points:

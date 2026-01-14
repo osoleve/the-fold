@@ -12,7 +12,7 @@ The unified test framework (`test-framework.ss`) provides a consistent API for w
 (load "block.ss")  ; Load module to test
 
 (display "Block System Tests\n")
-(display "===================\n\n")
+(display "====\n\n")
 
 (test-group block-construction
   (define-test basic-block
@@ -62,7 +62,7 @@ Tests defined with `define-test` run immediately when defined. This matches the 
 
 ```
 Block System Tests
-===================
+====
 
     ✓ basic-block
     ✓ round-trip-simple
@@ -76,7 +76,7 @@ To migrate an existing test file:
 1. Add display header:
    ```scheme
    (display "Module Tests\n")
-   (display "=============\n\n")
+   (display "====\n\n")
    ```
 
 2. Wrap tests in groups:

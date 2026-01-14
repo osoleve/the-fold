@@ -52,9 +52,9 @@
   (display name)
   (newline))
 
-;;; ============================================================
+;;; ====
 ;;; Binary Symmetric Channel Tests
-;;; ============================================================
+;;; ====
 (test-section "Binary Symmetric Channel")
 
 ;; Perfect channel (p=0)
@@ -87,9 +87,9 @@
 (test-true "BSC MI with uniform input"
            (> (bsc-mutual-information 0.1 0.5) 0))
 
-;;; ============================================================
+;;; ====
 ;;; Binary Erasure Channel Tests
-;;; ============================================================
+;;; ====
 (test-section "Binary Erasure Channel")
 
 ;; Perfect channel (epsilon=0)
@@ -105,9 +105,9 @@
 (test-approx "BEC eps=0.3 capacity" 0.7 (bec-capacity 0.3) 0.001)
 (test-approx "BEC eps=0.7 capacity" 0.3 (bec-capacity 0.7) 0.001)
 
-;;; ============================================================
+;;; ====
 ;;; Z-Channel Tests
-;;; ============================================================
+;;; ====
 (test-section "Z-Channel")
 
 ;; Perfect channel (p=0)
@@ -127,9 +127,9 @@
 (test-approx "Z-channel matrix (1,0)" 0.2 (car (cadr z-tm)) 0.001)
 (test-approx "Z-channel matrix (1,1)" 0.8 (cadr (cadr z-tm)) 0.001)
 
-;;; ============================================================
+;;; ====
 ;;; AWGN Channel Tests
-;;; ============================================================
+;;; ====
 (test-section "AWGN Channel")
 
 ;; Zero SNR - no capacity
@@ -153,9 +153,9 @@
 (test-true "AWGN bandwidth positive"
            (> (awgn-capacity-bandwidth 1000 1 0.001) 0))
 
-;;; ============================================================
+;;; ====
 ;;; Discrete Memoryless Channel Tests
-;;; ============================================================
+;;; ====
 (test-section "Discrete Memoryless Channel")
 
 ;; Uniform distribution
@@ -188,9 +188,9 @@
 (define sym-cap (dmc-capacity-symmetric sym-channel))
 (test-approx "symmetric DMC = BSC" (bsc-capacity 0.1) sym-cap 0.01)
 
-;;; ============================================================
+;;; ====
 ;;; Blahut-Arimoto Algorithm Tests
-;;; ============================================================
+;;; ====
 (test-section "Blahut-Arimoto Algorithm")
 
 ;; BSC capacity via Blahut-Arimoto
@@ -205,9 +205,9 @@
 (define z-ba (blahut-arimoto (z-channel-transition-matrix 0.3) 100 0.0001))
 (test-true "BA Z-channel capacity > 0" (> (cdr z-ba) 0))
 
-;;; ============================================================
+;;; ====
 ;;; Capacity Bounds Tests
-;;; ============================================================
+;;; ====
 (test-section "Capacity Bounds")
 
 ;; Upper bound
@@ -218,9 +218,9 @@
 (define lower (dmc-capacity-lower-bound test-transition))
 (test-true "lower <= actual" (<= lower mi))
 
-;;; ============================================================
+;;; ====
 ;;; Special Channel Models Tests
-;;; ============================================================
+;;; ====
 (test-section "Special Channel Models")
 
 ;; Binary symmetric = q-ary symmetric with q=2
@@ -237,9 +237,9 @@
 (test-approx "cascaded bound" 0.5 (cascaded-channel-capacity-bound 0.5 1.0) 0.001)
 (test-approx "cascaded symmetric" 0.5 (cascaded-channel-capacity-bound 1.0 0.5) 0.001)
 
-;;; ============================================================
+;;; ====
 ;;; Rate-Capacity Tests
-;;; ============================================================
+;;; ====
 (test-section "Rate-Capacity Relationships")
 
 (test "achievable below capacity" #t (achievable-rate? 0.4 0.5))
@@ -250,9 +250,9 @@
 
 (test-approx "spectral efficiency" 2.0 (spectral-efficiency 2000 1000) 0.001)
 
-;;; ============================================================
+;;; ====
 ;;; Error Exponent Tests
-;;; ============================================================
+;;; ====
 (test-section "Error Exponents")
 
 ;; At capacity, exponent is 0
@@ -269,9 +269,9 @@
 (test-true "AWGN exponent below capacity > 0"
            (> (awgn-sphere-packing-exponent 10 0.5) 0))
 
-;;; ============================================================
+;;; ====
 ;;; Utility Function Tests
-;;; ============================================================
+;;; ====
 (test-section "Utility Functions")
 
 ;; dB conversions
@@ -286,9 +286,9 @@
 (test-approx "log10(10)" 1.0 (log10 10) 0.001)
 (test-approx "log10(100)" 2.0 (log10 100) 0.001)
 
-;;; ============================================================
+;;; ====
 ;;; Channel Summary Tests
-;;; ============================================================
+;;; ====
 (test-section "Channel Summary")
 
 (test-true "BSC summary is string"
@@ -298,9 +298,9 @@
 (test-true "AWGN summary is string"
            (string? (channel-summary 'awgn 10)))
 
-;;; ============================================================
+;;; ====
 ;;; Edge Cases
-;;; ============================================================
+;;; ====
 (test-section "Edge Cases")
 
 ;; Empty distribution
@@ -313,12 +313,12 @@
 ;; Negative SNR
 (test-approx "AWGN negative SNR" 0.0 (awgn-capacity -1) 0.001)
 
-;;; ============================================================
+;;; ====
 ;;; Summary
-;;; ============================================================
+;;; ====
 
 (newline)
-(display "=======================================")
+(display "====")
 (newline)
 (display "  Tests passed: ")
 (display *tests-passed*)
@@ -326,7 +326,7 @@
 (display "  Tests failed: ")
 (display *tests-failed*)
 (newline)
-(display "=======================================")
+(display "====")
 (newline)
 
 (if (= *tests-failed* 0)

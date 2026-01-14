@@ -24,9 +24,9 @@
 (load "shell/ui/turtle.ss")
 (load "shell/ui/turtle-svg.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Layout Data Structures
-;;; ============================================================
+;;; ====
 
 ;;; A layout maps hashes to positions: ((hash . vec2) ...)
 ;;; Stored as an association list.
@@ -45,9 +45,9 @@
 (define (layout-all-positions layout)
   (map cdr layout))
 
-;;; ============================================================
+;;; ====
 ;;; Force-Directed Layout
-;;; ============================================================
+;;; ====
 
 ;;; Simple force-directed layout using:
 ;;;   - Repulsion between all nodes (Coulomb-like)
@@ -139,9 +139,9 @@
                  l
                  (loop (+ i 1) (force-layout-step fs l hashes width height))))))
 
-;;; ============================================================
+;;; ====
 ;;; Tree Layout (for DAGs)
-;;; ============================================================
+;;; ====
 
 ;;; tree-layout : FS × Hash × Number × Number → Layout
 ;;; Layout graph as a tree rooted at given hash.
@@ -200,9 +200,9 @@
                            (loop (cdr hashes)
                                  (cons (cons hash (vec2 x y)) layout))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Radial Layout
-;;; ============================================================
+;;; ====
 
 ;;; radial-layout : FS × Hash × Number × Number → Layout
 ;;; Layout graph radially from a center node.
@@ -256,9 +256,9 @@
                                                   (place-rings (+ ring 1)))))))))
        layout))
 
-;;; ============================================================
+;;; ====
 ;;; Turtle Graphics Rendering
-;;; ============================================================
+;;; ====
 
 ;;; Define gray color (not in standard palette)
 (define color12-gray (make-color12 8 8 8))
@@ -333,9 +333,9 @@
 (define (rad->deg rad)
   (* rad (/ 180 3.14159)))
 
-;;; ============================================================
+;;; ====
 ;;; Graph Rendering Functions
-;;; ============================================================
+;;; ====
 
 ;;; render-graph-turtle : FS × Layout × (List Hash) → Turtle
 ;;; Render a graph to turtle graphics.
@@ -400,9 +400,9 @@
                                       (put-string port svg)))
        (display (format "Saved graph visualization to ~a\n" output-path))))
 
-;;; ============================================================
+;;; ====
 ;;; Interactive Exploration
-;;; ============================================================
+;;; ====
 
 ;;; show-neighborhood : FS × Hash × Number → void
 ;;; Display ASCII visualization of nodes within N hops.
@@ -435,7 +435,7 @@
        
        ;; Display
        (display "\nNeighborhood View:\n")
-       (display "==================\n")
+       (display "====\n")
        (let level-loop ([l 0])
             (when (<= l radius)
                   (let ([nodes (hashtable-ref nodes-at-level l '())])
@@ -459,7 +459,7 @@
            (display "No path found.\n")
            (begin
             (display "\nPath Trace:\n")
-            (display "===========\n")
+            (display "====\n")
             (let loop ([p path] [i 0])
                  (unless (null? p)
                          (let* ([hash (car p)]
@@ -517,9 +517,9 @@
                            (take (min 5 (length incoming)) incoming)))
             (display "└─────────────────────────────────────┘\n")))))
 
-;;; ============================================================
+;;; ====
 ;;; Quick Visualization Commands
-;;; ============================================================
+;;; ====
 
 ;;; viz-recent : FS × Number → void
 ;;; Visualize the N most recent blocks.
@@ -538,9 +538,9 @@
                           'radial
                           "subgraph.svg")))
 
-;;; ============================================================
+;;; ====
 ;;; Module Load Message
-;;; ============================================================
+;;; ====
 
 (display "Graph Visualization loaded.\n")
 (display "  Layouts: (force-layout fs hashes iterations)\n")

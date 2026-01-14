@@ -5,9 +5,9 @@
 (load "core/testing/test-framework.ss")
 (load "shell/tools/template-parser.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Tokenizer Tests
-;;; ============================================================
+;;; ====
 
 (test-group tokenizer
 
@@ -35,9 +35,9 @@
   (define-test "tokenize characters"
     (assert-equal '(char #\a) (tokenize "char #\\a"))))
 
-;;; ============================================================
+;;; ====
 ;;; Implicit Parens Tests
-;;; ============================================================
+;;; ====
 
 (test-group implicit-parens
 
@@ -50,9 +50,9 @@
   (define-test "empty list stays empty"
     (assert-equal '() (apply-implicit-parens '()))))
 
-;;; ============================================================
+;;; ====
 ;;; Session Tests
-;;; ============================================================
+;;; ====
 
 (test-group session
 
@@ -95,9 +95,9 @@
     (ts-reset)
     (assert-false (ts-active?))))
 
-;;; ============================================================
+;;; ====
 ;;; Parser Integration Tests
-;;; ============================================================
+;;; ====
 
 (test-group parser-integration
 
@@ -129,9 +129,9 @@
     (let ([result (ts-compile)])
       (assert-equal '(if (= x 0) 1 2) result))))
 
-;;; ============================================================
+;;; ====
 ;;; String Utilities Tests
-;;; ============================================================
+;;; ====
 
 (test-group string-utils
 
@@ -153,9 +153,9 @@
   (define-test "string-trim removes whitespace"
     (assert-equal "hello" (string-trim "  hello  "))))
 
-;;; ============================================================
+;;; ====
 ;;; Batch Mode Tests
-;;; ============================================================
+;;; ====
 
 (test-group batch-mode
 
@@ -179,9 +179,9 @@
     (let ([result (tp-batch "if $cond $then $else --- $cond := = x 0 --- $then := 1 --- $else := 2")])
       (assert-equal '(if (= x 0) 1 2) result))))
 
-;;; ============================================================
+;;; ====
 ;;; Run All Tests
-;;; ============================================================
+;;; ====
 
 (display "\n=== Template Shell Tools Tests ===\n\n")
 (run-all-tests)

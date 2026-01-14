@@ -9,16 +9,16 @@
 
 (display "
 ")
-(display "==============================================================
+(display "====
 ")
 (display "          MODULE DEPENDENCY ANALYZER TESTS
 ")
-(display "==============================================================
+(display "====
 ")
 
-;;; ============================================================
+;;; ====
 ;;; Load Expression Extraction Tests
-;;; ============================================================
+;;; ====
 
 (test-group extract-loads-tests
             (define-test extract-loads-simple-test
@@ -52,9 +52,9 @@
               (let ([loads (extract-loads "(load x)")])
                    (assert-equal 0 (length loads)))))
 
-;;; ============================================================
+;;; ====
 ;;; Path Normalization Tests
-;;; ============================================================
+;;; ====
 
 (test-group path-normalization-tests
             (define-test path-directory-simple-test
@@ -78,9 +78,9 @@
               (let ([result (normalize-path "shell/sub/file.ss" "../other.ss")])
                    (assert-true (string? result)))))
 
-;;; ============================================================
+;;; ====
 ;;; String Split Path Tests
-;;; ============================================================
+;;; ====
 
 (test-group string-split-path-tests
             (define-test string-split-path-simple-test
@@ -105,9 +105,9 @@
                    ;; Leading slash produces empty component, should be skipped
                    (assert-equal 2 (length parts)))))
 
-;;; ============================================================
+;;; ====
 ;;; Normalize Parts Tests
-;;; ============================================================
+;;; ====
 
 (test-group normalize-parts-tests
             (define-test normalize-parts-simple-test
@@ -131,9 +131,9 @@
               (let ([result (normalize-parts '(".." "a" "b"))])
                    (assert-equal '("a" "b") result))))
 
-;;; ============================================================
+;;; ====
 ;;; String Join Path Tests
-;;; ============================================================
+;;; ====
 
 (test-group string-join-path-tests
             (define-test string-join-path-simple-test
@@ -145,9 +145,9 @@
             (define-test string-join-path-empty-test
               (assert-equal "" (string-join-path '()))))
 
-;;; ============================================================
+;;; ====
 ;;; Dependency Graph Construction Tests
-;;; ============================================================
+;;; ====
 
 (test-group dep-graph-tests
             (define-test build-dep-graph-empty-test
@@ -157,9 +157,9 @@
             ;; Note: build-dep-graph requires actual filesystem access
             ;; Integration tests would need real files or mock fs)
             
-            ;;; ============================================================
+            ;;; ====
             ;;; Circular Dependency Detection Tests
-            ;;; ============================================================
+            ;;; ====
             
             (test-group circular-dep-tests
                         (define-test find-circular-deps-no-cycle-test
@@ -192,9 +192,9 @@
                                  [result (detect-cycle "a.ss" graph '())])
                                 (assert-true (pair? result)))))
             
-            ;;; ============================================================
+            ;;; ====
             ;;; Cycle Comparison Tests
-            ;;; ============================================================
+            ;;; ====
             
             (test-group cycle-comparison-tests
                         (define-test cycle-equal-same-test
@@ -209,9 +209,9 @@
                         (define-test cycle-equal-different-length-test
                           (assert-false (cycle-equal? '("a" "b") '("a" "b" "c")))))
             
-            ;;; ============================================================
+            ;;; ====
             ;;; Rotation Tests
-            ;;; ============================================================
+            ;;; ====
             
             (test-group rotation-tests
                         (define-test rotations-empty-test
@@ -231,9 +231,9 @@
                                (assert-true (if (member '(b c a) result) #t #f))
                                (assert-true (if (member '(c a b) result) #t #f)))))
             
-            ;;; ============================================================
+            ;;; ====
             ;;; Reverse Dependency Tests
-            ;;; ============================================================
+            ;;; ====
             
             (test-group reverse-dep-tests
                         (define-test find-reverse-deps-simple-test
@@ -249,9 +249,9 @@
                                  [rdeps (find-reverse-deps-from-graph "a.ss" graph)])
                                 (assert-equal 0 (length rdeps)))))
             
-            ;;; ============================================================
+            ;;; ====
             ;;; Remove Duplicate Cycles Tests
-            ;;; ============================================================
+            ;;; ====
             
             (test-group remove-duplicates-tests
                         (define-test remove-duplicate-cycles-no-dups-test
@@ -265,9 +265,9 @@
                                 ;; First two are rotations of same cycle
                                 (assert-equal 2 (length result)))))
             
-            ;;; ============================================================
+            ;;; ====
             ;;; Any Predicate Tests
-            ;;; ============================================================
+            ;;; ====
             
             (test-group any-tests
                         (define-test any-true-test
@@ -279,9 +279,9 @@
                         (define-test any-empty-test
                           (assert-false (any number? '()))))
             
-            ;;; ============================================================
+            ;;; ====
             ;;; Edge Case Tests
-            ;;; ============================================================
+            ;;; ====
             
             (test-group edge-case-tests
                         (define-test extract-loads-malformed-test
@@ -303,9 +303,9 @@
                                  [result (detect-cycle "x.ss" graph '())])
                                 (assert-false result))))
             
-            ;;; ============================================================
+            ;;; ====
             ;;; Normalize Path Components Tests
-            ;;; ============================================================
+            ;;; ====
             
             (test-group normalize-path-components-tests
                         (define-test normalize-path-components-simple-test
@@ -321,19 +321,19 @@
                           (assert-equal "core/blocks/block.ss"
                                         (normalize-path-components "shell/../core/blocks/block.ss"))))
             
-            ;;; ============================================================
+            ;;; ====
             ;;; Helper Functions Used in Tests
-            ;;; ============================================================
+            ;;; ====
             
             ;;; Note: 'any' is already defined in the module
             
-            ;;; ============================================================
+            ;;; ====
             ;;; Run Tests
-            ;;; ============================================================
+            ;;; ====
             
             (display "
 ")
-            (display "==============================================================
+            (display "====
 ")
             (display (format "Tests passed: ~a
 " *tests-passed*))

@@ -6,13 +6,13 @@
 (load "lattice/physics/classical3d/world3d.ss")
 
 (display "\n")
-(display "==============================================================\n")
+(display "====\n")
 (display "         WORLD 3D TESTS\n")
-(display "==============================================================\n")
+(display "====\n")
 
-;;; ============================================================
+;;; ====
 ;;; Entity Tests
-;;; ============================================================
+;;; ====
 
 (test-group entity-tests
 
@@ -46,9 +46,9 @@
                     (assert-equal (vec3 10 0 0) (entity-3d-pos updated))
                     (assert-equal 'e1 (entity-3d-id updated)))))
 
-;;; ============================================================
+;;; ====
 ;;; Material Tests
-;;; ============================================================
+;;; ====
 
 (test-group material-tests
 
@@ -64,9 +64,9 @@
               (assert-equal 0.0 (material-restitution *sticky-material*))
               (assert-equal 0.9 (material-friction *sticky-material*))))
 
-;;; ============================================================
+;;; ====
 ;;; World Creation and Entity Management
-;;; ============================================================
+;;; ====
 
 (test-group world-management-tests
 
@@ -111,9 +111,9 @@
                     (let ([updated (world-3d-get-entity world 'ball)])
                          (assert-equal (vec3 10 0 0) (entity-3d-vel updated))))))
 
-;;; ============================================================
+;;; ====
 ;;; Spatial Hash Tests
-;;; ============================================================
+;;; ====
 
 (test-group spatial-hash-tests
 
@@ -137,9 +137,9 @@
                                                         (aabb3d (vec3 100 100 100) (vec3 110 110 110)))])
                         (assert-false (member 'obj1 result))))))
 
-;;; ============================================================
+;;; ====
 ;;; Time Accumulator Tests
-;;; ============================================================
+;;; ====
 
 (test-group time-acc-tests
 
@@ -163,9 +163,9 @@
                     (assert-equal 0.016 consumed)
                     (assert-true (< (time-acc-3d-accumulated new-acc) 0.05)))))
 
-;;; ============================================================
+;;; ====
 ;;; Integration Tests
-;;; ============================================================
+;;; ====
 
 (test-group integration-tests
 
@@ -191,9 +191,9 @@
                           ;; Velocity should be negative (falling)
                           (assert-true (< vel-y 0))))))
 
-;;; ============================================================
+;;; ====
 ;;; Convenience Constructor Tests
-;;; ============================================================
+;;; ====
 
 (test-group constructor-tests
 
@@ -217,9 +217,9 @@
                    (assert-true (entity-3d-static? entity))
                    (assert-true (aabb3d? (entity-3d-shape entity))))))
 
-;;; ============================================================
+;;; ====
 ;;; Entity Manipulation Tests
-;;; ============================================================
+;;; ====
 
 (test-group manipulation-tests
 
@@ -248,9 +248,9 @@
                          ;; Velocity should have increased
                          (assert-true (> (vec3-x (entity-3d-vel ball)) 0))))))
 
-;;; ============================================================
+;;; ====
 ;;; World Query Tests
-;;; ============================================================
+;;; ====
 
 (test-group query-tests
 
@@ -265,9 +265,9 @@
                          (assert-equal 1 (length result))
                          (assert-equal 'ball (entity-3d-id (car result)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Run all tests
-;;; ============================================================
+;;; ====
 
 (run-all-tests)
 

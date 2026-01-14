@@ -12,9 +12,9 @@
 
 (load "core/util/profile.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Flame Graph Rendering
-;;; ============================================================
+;;; ====
 
 ;;; A flame graph shows call stacks with width proportional to fuel.
 ;;; Stack frames are shown bottom-up (root at bottom).
@@ -60,9 +60,9 @@
                                   (reverse children)))])
         (cons frame child-lines)))
 
-;;; ============================================================
+;;; ====
 ;;; Horizontal Bar Chart
-;;; ============================================================
+;;; ====
 
 ;;; render-fuel-bars : Profiler × Nat → String
 ;;; Render horizontal bars for top N functions
@@ -98,9 +98,9 @@
         (format "  ~a |~a| ~a% (~a)\n"
                 padded-name bar (round pct) calls)))
 
-;;; ============================================================
+;;; ====
 ;;; Pie Chart (ASCII)
-;;; ============================================================
+;;; ====
 
 ;;; render-pie-chart : Profiler × Nat → String
 ;;; Render a simple ASCII pie chart legend
@@ -125,9 +125,9 @@
          (apply string-append legend-lines)
          "\n")))
 
-;;; ============================================================
+;;; ====
 ;;; Call Tree with Inline Bars
-;;; ============================================================
+;;; ====
 
 ;;; render-tree-with-bars : Profiler → String
 ;;; Render call tree with inline fuel consumption bars
@@ -161,9 +161,9 @@
                            children)])
         (apply string-append (cons line child-lines))))
 
-;;; ============================================================
+;;; ====
 ;;; Summary Statistics Box
-;;; ============================================================
+;;; ====
 
 ;;; render-summary-box : Profiler → String
 (define (render-summary-box p)
@@ -173,9 +173,9 @@
          [status (profiler-status p)])
         (string-append
          "\n"
-         "  +----------------------------------+\n"
+         "  +----+\n"
          "  |        PROFILE SUMMARY           |\n"
-         "  +----------------------------------+\n"
+         "  +----+\n"
          (format "  | Status:      ~a~a|\n"
                  status
                  (make-string (- 19 (string-length (symbol->string status))) #\space))
@@ -188,12 +188,12 @@
          (format "  | Remaining:   ~a~a|\n"
                  (- total used)
                  (make-string (- 19 (string-length (number->string (- total used)))) #\space))
-         "  +----------------------------------+\n"
+         "  +----+\n"
          "\n")))
 
-;;; ============================================================
+;;; ====
 ;;; Full Visual Report
-;;; ============================================================
+;;; ====
 
 ;;; render-full-report : Profiler → String
 ;;; Generate complete visual profile report

@@ -9,9 +9,9 @@
 (printf "║                    🛡️  SECURITY TESTS 🛡️                      ║\n")
 (printf "╚═══════════════════════════════════════════════════════════════╝\n\n")
 
-;;; ============================================================
+;;; ====
 ;;; Test Input Validation Functions
-;;; ============================================================
+;;; ====
 
 (printf "🔍 Testing input validation functions...\n\n")
 
@@ -35,9 +35,9 @@
 (printf "  ✗ Invalid symbol: ~a\n" (valid-symbol? 'confused '(happy sad angry)))
 (printf "  ✗ Not symbol: ~a\n\n" (valid-symbol? "happy" '(happy sad angry)))
 
-;;; ============================================================
+;;; ====
 ;;; Test String Sanitization
-;;; ============================================================
+;;; ====
 
 (printf "🔒 Testing string sanitization functions...\n\n")
 
@@ -61,9 +61,9 @@
 (printf "  ✓ HTML with entities: ~s\n" (escape-html "Tom & Jerry"))
 (printf "  ✓ Non-string input: ~s\n\n" (escape-html 123))
 
-;;; ============================================================
+;;; ====
 ;;; Test Bounds Checking
-;;; ============================================================
+;;; ====
 
 (printf "📏 Testing bounds checking functions...\n\n")
 
@@ -86,9 +86,9 @@
 (printf "  ✗ Invalid index: ~s\n" (safe-vector-ref test-vector 5 'default))
 (printf "  ✗ Non-vector: ~s\n\n" (safe-vector-ref "not a vector" 0 'default))
 
-;;; ============================================================
+;;; ====
 ;;; Test Safe String Operations
-;;; ============================================================
+;;; ====
 
 (printf "🧵 Testing safe string operations...\n\n")
 
@@ -104,9 +104,9 @@
 (printf "  ✓ Too many parts: ~s\n" (safe-string-split "a,b,c,d,e" #\, 3))
 (printf "  ✗ Non-string: ~s\n\n" (safe-string-split 123 #\, 10))
 
-;;; ============================================================
+;;; ====
 ;;; Test Template Rendering Security
-;;; ============================================================
+;;; ====
 
 (printf "🎨 Testing secure template rendering...\n\n")
 
@@ -125,9 +125,9 @@
 (define recursion-bindings '(("a" . "1") ("b" . "2") ("c" . "3") ("d" . "4") ("e" . "5") ("f" . "6") ("g" . "7") ("h" . "8") ("i" . "9") ("j" . "10") ("k" . "11") ("l" . "12") ("m" . "13") ("n" . "14") ("o" . "15") ("p" . "16") ("q" . "17") ("r" . "18") ("s" . "19") ("t" . "20") ("u" . "21") ("v" . "22") ("w" . "23") ("x" . "24") ("y" . "25") ("z" . "26")))
 (printf "  ✓ Recursion limit: ~s\n\n" (safe-template-render recursion-template recursion-bindings))
 
-;;; ============================================================
+;;; ====
 ;;; Test Block Content Validation
-;;; ============================================================
+;;; ====
 
 (printf "🧱 Testing block content validation...\n\n")
 
@@ -138,9 +138,9 @@
 (printf "  ✗ Null bytes: ~a\n" (validate-block-content "Hello\000world"))
 (printf "  ✗ Non-string: ~a\n\n" (validate-block-content 123))
 
-;;; ============================================================
+;;; ====
 ;;; Test Security Logging
-;;; ============================================================
+;;; ====
 
 (printf "📝 Testing security logging...\n\n")
 
@@ -149,9 +149,9 @@
 (log-security-event 'test-event "This is a test security event")
 (log-invalid-input "test-context" "invalid input data")
 
-;;; ============================================================
+;;; ====
 ;;; Test Path Traversal Protection
-;;; ============================================================
+;;; ====
 
 (printf "🗂️  Testing path traversal protection...\n\n")
 
@@ -165,9 +165,9 @@
               (printf "  ✓ Dangerous path ~s sanitized to: ~s\n" path sanitized)))
  dangerous-paths)
 
-;;; ============================================================
+;;; ====
 ;;; Summary
-;;; ============================================================
+;;; ====
 
 (printf "\n")
 (printf "╔═══════════════════════════════════════════════════════════════╗\n")

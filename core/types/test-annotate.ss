@@ -69,9 +69,9 @@
   (display name)
   (newline))
 
-;;; ============================================================
+;;; ====
 ;;; Basic Annotations
-;;; ============================================================
+;;; ====
 (test-section "Basic Annotations")
 
 (let ([result (annotate-expr 42)])
@@ -87,9 +87,9 @@
 (let ([result (annotate-expr '(quote foo))])
      (test-type "quoted symbol is Symbol" 'Symbol result))
 
-;;; ============================================================
+;;; ====
 ;;; Lambda Annotations
-;;; ============================================================
+;;; ====
 (test-section "Lambda Annotations")
 
 ;; Simple identity
@@ -104,9 +104,9 @@
 (let ([result (annotate-expr '(fn (x) (prim 'neg x)))])
      (test-type "neg fn is Int->Int" '(-> Int Int) result))
 
-;;; ============================================================
+;;; ====
 ;;; Application Annotations
-;;; ============================================================
+;;; ====
 (test-section "Application Annotations")
 
 (let ([result (annotate-expr '((fn (x) x) 42))])
@@ -115,9 +115,9 @@
 (let ([result (annotate-expr '((fn (x) (prim 'add x 1)) 5))])
      (test-type "apply add fn" 'Int result))
 
-;;; ============================================================
+;;; ====
 ;;; Let Annotations
-;;; ============================================================
+;;; ====
 (test-section "Let Annotations")
 
 (let ([result (annotate-expr '(let ((x 42)) x))])
@@ -130,9 +130,9 @@
 (let ([result (annotate-expr '(let ((id (fn (x) x))) (id 42)))])
      (test-type "let-polymorphism" 'Int result))
 
-;;; ============================================================
+;;; ====
 ;;; If Annotations
-;;; ============================================================
+;;; ====
 (test-section "If Annotations")
 
 (let ([result (annotate-expr '(if #t 1 2))])
@@ -141,9 +141,9 @@
 (let ([result (annotate-expr '(if (prim 'lt? 1 2) 'yes 'no))])
      (test-type "if with symbols" 'Symbol result))
 
-;;; ============================================================
+;;; ====
 ;;; Prim Annotations
-;;; ============================================================
+;;; ====
 (test-section "Prim Annotations")
 
 (let ([result (annotate-expr '(prim 'add 1 2))])
@@ -155,9 +155,9 @@
 (let ([result (annotate-expr '(prim 'neg 42))])
      (test-type "neg is Int" 'Int result))
 
-;;; ============================================================
+;;; ====
 ;;; Case Annotations
-;;; ============================================================
+;;; ====
 (test-section "Case Annotations")
 
 ;; Simple case with one clause
@@ -187,16 +187,16 @@
                                      ((B x) (prim 'neg 3)))))])
      (test-ok "case unifies branches" result))
 
-;;; ============================================================
+;;; ====
 ;;; Type Errors
-;;; ============================================================
+;;; ====
 (test-section "Type Errors")
 
 (test-error "unbound variable" (annotate-expr 'undefined))
 
-;;; ============================================================
+;;; ====
 ;;; Strip Annotations
-;;; ============================================================
+;;; ====
 (test-section "Strip Annotations")
 
 (let* ([result (annotate-expr '42)]
@@ -207,9 +207,9 @@
        [stripped (strip-ann result)])
       (test "strip preserves structure" 'prim (car stripped)))
 
-;;; ============================================================
+;;; ====
 ;;; Pretty Print
-;;; ============================================================
+;;; ====
 (test-section "Pretty Print (visual inspection)")
 
 (display "

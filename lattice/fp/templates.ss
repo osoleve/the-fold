@@ -23,9 +23,9 @@
 (load "core/base/prelude.ss")
 (load "lattice/fp/meta/combinators.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Monoid Templates
-;;; ============================================================
+;;; ====
 ;;;
 ;;; A monoid is a type with:
 ;;;   - mempty : M             (identity element)
@@ -53,9 +53,9 @@
 (define (monoid-mappend m)
   (caddr m))
 
-;;; ============================================================
+;;; ====
 ;;; Common Monoid Instances
-;;; ============================================================
+;;; ====
 
 ;;; monoid-sum : Monoid for numbers under addition
 (define monoid-sum
@@ -103,9 +103,9 @@
 (define monoid-endo
   (make-monoid identity compose2))
 
-;;; ============================================================
+;;; ====
 ;;; Monoid Operations
-;;; ============================================================
+;;; ====
 
 ;;; mconcat : Monoid × (List Value) → Value
 ;;; Fold a list using the monoid.
@@ -122,9 +122,9 @@
                acc
                (loop (- n 1) ((monoid-mappend m) acc x))))))
 
-;;; ============================================================
+;;; ====
 ;;; Monoid Law Verification
-;;; ============================================================
+;;; ====
 
 ;;; verify-monoid-laws : Monoid × (List Value) → Boolean
 ;;; Check monoid laws hold for given test values.
@@ -147,9 +147,9 @@
                                    (op x (op y z)))
                            (check-assoc (cdr vs)))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Foldable Templates
-;;; ============================================================
+;;; ====
 ;;;
 ;;; A foldable type can be reduced to a single value.
 ;;;   - foldMap : (a → m) → F a → m   (given Monoid m)
@@ -176,9 +176,9 @@
 (define (foldable-foldl f)
   (cadddr f))
 
-;;; ============================================================
+;;; ====
 ;;; Common Foldable Instances
-;;; ============================================================
+;;; ====
 
 ;;; foldable-list : Foldable instance for lists
 (define foldable-list
@@ -212,9 +212,9 @@
                (f z (from-just mx))
                z))))
 
-;;; ============================================================
+;;; ====
 ;;; Foldable Operations
-;;; ============================================================
+;;; ====
 
 ;;; fold-with : Foldable × Monoid × Container → Value
 ;;; Fold container using monoid.
@@ -244,9 +244,9 @@
    #f
    container))
 
-;;; ============================================================
+;;; ====
 ;;; Traversable Templates
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Traversable types can be traversed with effects.
 ;;;   - traverse : (a → F b) → T a → F (T b)
@@ -264,9 +264,9 @@
 (define (traversable-traverse t)
   (cadr t))
 
-;;; ============================================================
+;;; ====
 ;;; Functor Templates
-;;; ============================================================
+;;; ====
 ;;;
 ;;; A functor allows mapping a function over a container.
 ;;;   - fmap : (a → b) → F a → F b
@@ -287,9 +287,9 @@
 (define (functor-fmap f)
   (cadr f))
 
-;;; ============================================================
+;;; ====
 ;;; Common Functor Instances
-;;; ============================================================
+;;; ====
 
 ;;; functor-list : Functor for lists
 (define functor-list
@@ -303,9 +303,9 @@
 (define functor-either
   (make-functor either-fmap))
 
-;;; ============================================================
+;;; ====
 ;;; Functor Operations
-;;; ============================================================
+;;; ====
 
 ;;; fmap-with : Functor × (α → β) × Container → Container
 ;;; Apply fmap using given functor.
@@ -322,9 +322,9 @@
 (define (void-with func container)
   (replace-with func '() container))
 
-;;; ============================================================
+;;; ====
 ;;; Applicative Templates
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Applicative functors allow applying functions in context.
 ;;;   - pure : a → F a
@@ -352,9 +352,9 @@
 (define (applicative-ap ap)
   (caddr ap))
 
-;;; ============================================================
+;;; ====
 ;;; Common Applicative Instances
-;;; ============================================================
+;;; ====
 
 ;;; applicative-list : Applicative for lists (all combinations)
 (define applicative-list
@@ -389,9 +389,9 @@
             [(left? ex) ex]
             [else (right ((from-right ef) (from-right ex)))]))))
 
-;;; ============================================================
+;;; ====
 ;;; Applicative Operations
-;;; ============================================================
+;;; ====
 
 ;;; ap-with : Applicative × F (α → β) × F α → F β
 (define (ap-with ap ff fx)
@@ -422,9 +422,9 @@
 (define (traverse-a ap f xs)
   (sequence-a ap (map f xs)))
 
-;;; ============================================================
+;;; ====
 ;;; Lens Templates
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Lenses are composable first-class getters and setters.
 ;;;   - view : Lens s a → s → a
@@ -453,9 +453,9 @@
 (define (lens-setter l)
   (caddr l))
 
-;;; ============================================================
+;;; ====
 ;;; Lens Operations
-;;; ============================================================
+;;; ====
 
 ;;; view : Lens × s → a
 ;;; Get the focused value.
@@ -483,9 +483,9 @@
    (lambda (b s)
            (over outer (lambda (a) (set-lens inner b a)) s))))
 
-;;; ============================================================
+;;; ====
 ;;; Common Lens Constructors
-;;; ============================================================
+;;; ====
 
 ;;; lens-fst : Lens (Pair a b) a
 ;;; Lens focusing on first element of pair.
@@ -531,9 +531,9 @@
            (cons (cons key v)
                  (filter (lambda (p) (not (eq? (car p) key))) alist)))))
 
-;;; ============================================================
+;;; ====
 ;;; Prism Templates
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Prisms focus on parts of sum types (like case analysis).
 ;;;   - preview : Prism s a → s → Maybe a
@@ -563,9 +563,9 @@
 (define (review prism a)
   ((prism-build prism) a))
 
-;;; ============================================================
+;;; ====
 ;;; Common Prisms
-;;; ============================================================
+;;; ====
 
 ;;; prism-just : Prism (Maybe a) a
 ;;; Prism focusing on Just values.
@@ -588,9 +588,9 @@
    (lambda (e) (if (right? e) (just (from-right e)) nothing))
    right))
 
-;;; ============================================================
+;;; ====
 ;;; Template Code Generation
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Generate code templates for common patterns.
 
@@ -614,9 +614,9 @@
        `(define ,(string->symbol (format "lens-~a-~a" struct-name field-name))
          (make-lens ,getter (lambda (v s) (,setter v s))))))
 
-;;; ============================================================
+;;; ====
 ;;; Best Practice Templates
-;;; ============================================================
+;;; ====
 
 ;;; new-type-checklist : List of things to implement for new type
 (define new-type-checklist
@@ -675,9 +675,9 @@
      (lambda (lens f s)
              (set-lens lens (f (view lens s)) s)))))
 
-;;; ============================================================
+;;; ====
 ;;; Exports
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Monoid:
 ;;;   - make-monoid, monoid?, monoid-mempty, monoid-mappend

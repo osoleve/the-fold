@@ -9,9 +9,9 @@
 (load "lattice/pipeline/context.ss")
 (load "shell/json.ss")
 
-;;; ============================================================
+;;; ====
 ;;; LLM Effect Interpretation
-;;; ============================================================
+;;; ====
 
 ;;; interpret-llm-effect : Payload -> Context -> State -> Input -> (Result . State)
 (define (interpret-llm-effect payload ctx state input)
@@ -67,9 +67,9 @@
                                payload)
                     state)])))
 
-;;; ============================================================
+;;; ====
 ;;; Helper Functions
-;;; ============================================================
+;;; ====
 
 ;;; expand-template-with-ctx : String -> Context -> Input -> String
 (define (expand-template-with-ctx template ctx input)
@@ -85,9 +85,9 @@
            (persona-system-prompt persona)
            "")))
 
-;;; ============================================================
+;;; ====
 ;;; LLM API Implementation
-;;; ============================================================
+;;; ====
 
 ;;; *llm-api-key-file* : String
 ;;; Path to file containing Anthropic API key
@@ -248,9 +248,9 @@
 (define (llm-response-text r) (list-ref r 2))
 (define (llm-response-error r) (list-ref r 3))
 
-;;; ============================================================
+;;; ====
 ;;; Shell Execution Dependency
-;;; ============================================================
+;;; ====
 
 ;;; shell-exec-with-env-stdin : Alist -> String -> String -> ShellResult
 ;;; Execute a shell command with environment variables and stdin input.

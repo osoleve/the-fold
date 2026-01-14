@@ -144,7 +144,7 @@ All content is **content-addressed** — the cryptographic hash IS the identity.
 ### Directory Structure
 
 | Directory | Purpose |
-|-----------|---------|
+|----|----|
 | `core/` | Language kernel — pure, minimal, axiomatic |
 | `lattice/` | Skill lattice — verified library DAG (includes "stdlib") |
 | `shell/` | Impure boundary — IO, validation, capabilities |
@@ -173,7 +173,7 @@ All content is **content-addressed** — the cryptographic hash IS the identity.
 Core defines what The Fold IS — minimal, axiomatic, changes are breaking:
 
 | Directory | Purpose | Key Modules |
-|-----------|---------|-------------|
+|----|----|----|
 | `base/` | Foundation (no deps) | prelude.ss, sha256.ss, error.ss |
 | `blocks/` | Block system & CAS | block.ss, cas.ss, normalize.ss |
 | `types/` | Type system | types.ss, dep-types.ss, infer.ss, kinds.ss |
@@ -188,7 +188,7 @@ The lattice is a DAG of verified skills. "Stdlib" = tier 0 (foundational nodes).
 
 **Tier 0 — Foundational (no lattice deps):**
 | Directory | Purpose |
-|-----------|---------|
+|----|----|
 | `linalg/` | Vectors, matrices, decomposition, solvers |
 | `data/` | Data structures, graphs, collections |
 | `algebra/` | Groups, rings, polynomial algebra, Gröbner bases |
@@ -196,7 +196,7 @@ The lattice is a DAG of verified skills. "Stdlib" = tier 0 (foundational nodes).
 
 **Tier 1 — Intermediate:**
 | Directory | Purpose |
-|-----------|---------|
+|----|----|
 | `numeric/` | Complex numbers, DFT, signal processing |
 | `geometry/` | Shapes, transforms, raymarching, SDFs |
 | `autodiff/` | Reverse-mode AD, computational graphs |
@@ -209,7 +209,7 @@ The lattice is a DAG of verified skills. "Stdlib" = tier 0 (foundational nodes).
 
 **Tier 2+ — Advanced:**
 | Directory | Purpose |
-|-----------|---------|
+|----|----|
 | `physics/diff/` | Differentiable 2D physics |
 | `physics/diff3d/` | Differentiable 3D physics |
 | `physics/classical/` | Classical 2D physics |
@@ -316,7 +316,7 @@ Agent-facing navigation and introspection for the skill lattice. Builds a CAS-ba
 - **Not all functions are exported**: Use `(audit-skill 'name)` to find functions defined in source but missing from manifests
 
 | Module | Purpose |
-|--------|---------|
+|----|----|
 | `kg.ss` | Knowledge graph builder from manifests |
 | `bm25.ss` | BM25 search engine with TF-IDF ranking |
 | `search.ss` | Unified search API, autocomplete, prefix/substring |
@@ -334,7 +334,7 @@ Agent-facing navigation and introspection for the skill lattice. Builds a CAS-ba
 Shell is organized into functional subdirectories (with backwards-compatible stubs at root):
 
 | Directory | Purpose | Key Modules |
-|-----------|---------|-------------|
+|----|----|----|
 | `repl/` | REPL & session management | repl-daemon.ss, session-manager.ss |
 | `blocks/` | Block system tools | block-explorer.ss, block-navigator.ss |
 | `debug/` | Developer inspection | debug-repl.ss (time-travel debugger) |
@@ -555,7 +555,7 @@ git push                # Push to remote
 ## File Locations
 
 | Path | Purpose |
-|------|---------|
+|----|----|
 | `/home/oso/the-fold` | Project root |
 | `.fold-repl/ready` | Daemon ready file |
 | `.fold-repl/requests/<session>.ss` | Session requests |

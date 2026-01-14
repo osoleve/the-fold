@@ -26,9 +26,9 @@
 (load "core/base/prelude.ss")
 (load "core/types/dep-types.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Graph Property Type Constructors
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Each property type encodes a graph-theoretic property.
 ;;; Values of these types are proofs that the property holds.
@@ -54,9 +54,9 @@
 ;;;   ──────────────────────────────────────────────────
 ;;;   Γ ⊢ (Path g v1 v2) : Type
 
-;;; ============================================================
+;;; ====
 ;;; Type Predicates
-;;; ============================================================
+;;; ====
 
 ;;; acyclic-type? : Type → Boolean
 ;;; Check if this is an acyclic graph proof type: (Acyclic g)
@@ -92,9 +92,9 @@
       (dag-type? t)
       (path-type? t)))
 
-;;; ============================================================
+;;; ====
 ;;; Well-Formedness Checks
-;;; ============================================================
+;;; ====
 
 ;;; acyclic-type-well-formed? : SExpr → Boolean
 ;;; Check if (Acyclic g) is well-formed.
@@ -131,9 +131,9 @@
        (eq? (car t) 'Path)
        (= (length t) 4)))
 
-;;; ============================================================
+;;; ====
 ;;; Type Extractors
-;;; ============================================================
+;;; ====
 
 ;;; acyclic-graph : Type → Expr
 ;;; Get the graph from (Acyclic g).
@@ -184,9 +184,9 @@
       (cadddr t)
       #f))
 
-;;; ============================================================
+;;; ====
 ;;; Type Constructors
-;;; ============================================================
+;;; ====
 
 ;;; make-acyclic-type : Expr → Type
 ;;; Construct an acyclic graph type.
@@ -213,9 +213,9 @@
 (define (make-path-type g v1 v2)
   `(Path ,g ,v1 ,v2))
 
-;;; ============================================================
+;;; ====
 ;;; Type Relationships
-;;; ============================================================
+;;; ====
 ;;;
 ;;; These functions encode the logical relationships between
 ;;; graph property types.
@@ -268,9 +268,9 @@
                       (path-target path2))
       #f))
 
-;;; ============================================================
+;;; ====
 ;;; Type Signatures for Graph Operations
-;;; ============================================================
+;;; ====
 ;;;
 ;;; These type signatures are for use with the dependent type
 ;;; checking system (dep-infer.ss).
@@ -363,9 +363,9 @@
                             (Σ ((t : Graph)) (Tree t)))))
     ))
 
-;;; ============================================================
+;;; ====
 ;;; Runtime Verification Functions
-;;; ============================================================
+;;; ====
 ;;;
 ;;; These functions perform runtime verification and return
 ;;; proof terms (or proof of failure).
@@ -396,9 +396,9 @@
   ;; This would call path-exists? from graph-algorithms.ss
   `(find-path-result ,g ,v1 ,v2))
 
-;;; ============================================================
+;;; ====
 ;;; Pretty Printing
-;;; ============================================================
+;;; ====
 
 ;;; graph-property-type->string : Type → String
 ;;; Convert a graph property type to a readable string.
@@ -418,9 +418,9 @@
                    " → " (format "~a" (path-target t)) ")")]
    [else (format "~s" t)]))
 
-;;; ============================================================
+;;; ====
 ;;; Type Context Integration
-;;; ============================================================
+;;; ====
 
 ;;; make-dep-graph-ctx : Unit → (List (Pair Symbol Type))
 ;;; Creates a type context with all dependent graph operations.

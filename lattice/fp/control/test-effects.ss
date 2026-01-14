@@ -6,13 +6,13 @@
 (load "lattice/fp/control/effects.ss")
 
 (display "\n")
-(display "==============================================================\n")
+(display "====\n")
 (display "         ALGEBRAIC EFFECTS TESTS\n")
-(display "==============================================================\n")
+(display "====\n")
 
-;;; ============================================================
+;;; ====
 ;;; Effect Signature Tests
-;;; ============================================================
+;;; ====
 
 (test-group effect-signatures
             (define-test make-effect-sig-test
@@ -47,9 +47,9 @@
               (assert-true (effect-sig? sig-Console))
               (assert-true (effect-sig? sig-Async))))
 
-;;; ============================================================
+;;; ====
 ;;; Effect Row Tests
-;;; ============================================================
+;;; ====
 
 (test-group effect-rows
             (define-test empty-row-test
@@ -92,9 +92,9 @@
                    (assert-true (row-var? rv))
                    (assert-equal 'r (row-var-name rv)))))
 
-;;; ============================================================
+;;; ====
 ;;; Eff Structure Tests
-;;; ============================================================
+;;; ====
 
 (test-group eff-structure
             (define-test eff-pure-test
@@ -119,9 +119,9 @@
                      [result (run-state 0 (eff-ap ef ea))])
                     (assert-equal 42 (car result)))))
 
-;;; ============================================================
+;;; ====
 ;;; Effect Structure Tests
-;;; ============================================================
+;;; ====
 
 (test-group effect-structure
             (define-test make-effect-test
@@ -134,9 +134,9 @@
               (let ([e (make-effect 'state-get '())])
                    (assert-equal 'State (effect-label e)))))
 
-;;; ============================================================
+;;; ====
 ;;; Eff Monad Laws
-;;; ============================================================
+;;; ====
 
 (test-group eff-monad-laws
             ;; Left identity: return a >>= f = f a
@@ -162,9 +162,9 @@
                      [rhs (run-state 0 (eff-bind m (lambda (x) (eff-bind (f x) g))))])
                     (assert-equal (car lhs) (car rhs)))))
 
-;;; ============================================================
+;;; ====
 ;;; Handler Tests
-;;; ============================================================
+;;; ====
 
 (test-group handlers
             (define-test make-handler-test
@@ -193,9 +193,9 @@
                    (assert-true (procedure? (handler-lookup h 'test-op)))
                    (assert-false (handler-lookup h 'unknown-op)))))
 
-;;; ============================================================
+;;; ====
 ;;; Handler Composition Tests
-;;; ============================================================
+;;; ====
 
 (test-group handler-composition
             (define-test compose-handlers-test
@@ -218,9 +218,9 @@
                      [result (handle h (eff-return 42))])
                     (assert-equal 42 result))))
 
-;;; ============================================================
+;;; ====
 ;;; State Effect Tests
-;;; ============================================================
+;;; ====
 
 (test-group state-effect
             (define-test state-get-test
@@ -295,9 +295,9 @@
                     (assert-equal 20 (car result))
                     (assert-equal 20 (cdr result)))))
 
-;;; ============================================================
+;;; ====
 ;;; Reader Effect Tests
-;;; ============================================================
+;;; ====
 
 (test-group reader-effect
             (define-test reader-ask-test
@@ -378,9 +378,9 @@
                    ;; after = 1 (back to original after all locals complete)
                    (assert-equal '((1 2 3) . 1) result))))
 
-;;; ============================================================
+;;; ====
 ;;; Writer Effect Tests
-;;; ============================================================
+;;; ====
 
 (test-group writer-effect
             (define-test writer-tell-test
@@ -416,9 +416,9 @@
                                                                  (log-error "error"))))))])
                    (assert-equal 3 (length (cdr result))))))
 
-;;; ============================================================
+;;; ====
 ;;; Exception Effect Tests
-;;; ============================================================
+;;; ====
 
 (test-group exception-effect
             (define-test throw-test
@@ -460,9 +460,9 @@
               (let ([result (run-state 0 (eff-try (eff-throw "err")))])
                    (assert-true (left? (car result))))))
 
-;;; ============================================================
+;;; ====
 ;;; NonDet Effect Tests
-;;; ============================================================
+;;; ====
 
 (test-group nondet-effect
             (define-test nondet-choose-single-test
@@ -522,9 +522,9 @@
               (let ([result (run-nondet (nondet-from-maybe nothing))])
                    (assert-equal '() result))))
 
-;;; ============================================================
+;;; ====
 ;;; Console Effect Tests
-;;; ============================================================
+;;; ====
 
 (test-group console-effect
             (define-test console-print-test
@@ -556,9 +556,9 @@
                    (assert-equal "Alice" (car result))
                    (assert-equal '("What is your name?" "Hello, Alice") (cdr result)))))
 
-;;; ============================================================
+;;; ====
 ;;; Async Effect Tests
-;;; ============================================================
+;;; ====
 
 (test-group async-effect
             (define-test async-fork-await-test
@@ -588,9 +588,9 @@
                                                    (eff-return 3))))])
                    (assert-equal '(1 2 3) result))))
 
-;;; ============================================================
+;;; ====
 ;;; Combining Effects Tests
-;;; ============================================================
+;;; ====
 
 (test-group combining-effects
             (define-test eff-sequence-test
@@ -655,9 +655,9 @@
                    (assert-equal '(0 1 2 3 4) (car result))
                    (assert-equal 5 (cdr result)))))
 
-;;; ============================================================
+;;; ====
 ;;; eff-when / eff-unless Tests
-;;; ============================================================
+;;; ====
 
 (test-group eff-conditionals
             (define-test eff-when-true-test
@@ -680,9 +680,9 @@
                              (eff-unless #f (writer-tell "executed")))])
                    (assert-equal '("executed") (cdr result)))))
 
-;;; ============================================================
+;;; ====
 ;;; eff-lift Tests
-;;; ============================================================
+;;; ====
 
 (test-group eff-lift
             (define-test eff-lift-test
@@ -703,9 +703,9 @@
                                                   (eff-return 12)))])
                    (assert-equal 42 (car result)))))
 
-;;; ============================================================
+;;; ====
 ;;; Effect Constraints Tests
-;;; ============================================================
+;;; ====
 
 (test-group effect-constraints
             (define-test make-effect-constraint-test
@@ -719,9 +719,9 @@
             (define-test check-effects-allowed-test
               (assert-true (check-effects '(State) state-get))))
 
-;;; ============================================================
+;;; ====
 ;;; Combined Effect Handlers Tests
-;;; ============================================================
+;;; ====
 
 (test-group combined-handlers
             (define-test run-state-writer-test
@@ -746,9 +746,9 @@
                    (assert-equal 42 (car result))
                    (assert-equal '("env") (cdr result)))))
 
-;;; ============================================================
+;;; ====
 ;;; Scoped Effects Tests
-;;; ============================================================
+;;; ====
 
 (test-group scoped-effects
             (define-test with-state-test
@@ -774,9 +774,9 @@
                                        (with-nondet (nondet-choose '(1 2 3))))])
                    (assert-equal '(1 2 3) (car result)))))
 
-;;; ============================================================
+;;; ====
 ;;; Resumable Continuations Tests
-;;; ============================================================
+;;; ====
 
 (test-group resumable-continuations
             (define-test resume-test
@@ -792,9 +792,9 @@
               (let ([result (run-state 0 (abort 42))])
                    (assert-equal 42 (car result)))))
 
-;;; ============================================================
+;;; ====
 ;;; Interleaving Tests
-;;; ============================================================
+;;; ====
 
 (test-group interleaving
             (define-test interleave-first-completes-test
@@ -804,9 +804,9 @@
                    (assert-true (left? (car result)))
                    (assert-equal 'a (from-left (car result))))))
 
-;;; ============================================================
+;;; ====
 ;;; Practical Examples
-;;; ============================================================
+;;; ====
 
 (test-group practical-examples
             ;; Stateful computation: factorial
@@ -874,9 +874,9 @@
                    (assert-true (not (not (member '(3 4 5) result))))
                    (assert-true (not (not (member '(5 12 13) result)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Deep vs Shallow Handler Tests
-;;; ============================================================
+;;; ====
 
 (test-group deep-vs-shallow
             ;; Test that deep handlers wrap the entire continuation
@@ -911,9 +911,9 @@
                          (assert-true (eff-pure? result))
                          (assert-equal 1 (eff-pure-value result))))))
 
-;;; ============================================================
+;;; ====
 ;;; Performance Tests (NonDet O(N) Collection)
-;;; ============================================================
+;;; ====
 
 (test-group nondet-performance
             ;; Test that run-nondet scales linearly with many branches.
@@ -972,12 +972,12 @@
            (reverse acc)
            (loop (+ i 1) (cons i acc)))))
 
-;;; ============================================================
+;;; ====
 ;;; Summary
-;;; ============================================================
+;;; ====
 
 (display "\n")
-(display "==============================================================\n")
+(display "====\n")
 (printf "Tests passed: ~a\n" *tests-passed*)
 (printf "Tests failed: ~a\n" *tests-failed*)
 (printf "Total tests:  ~a\n" *tests-run*)

@@ -4,9 +4,9 @@
 ;;;
 ;;; Run with: scheme --script docs/examples/data-structures/pairs-and-alists.ss
 
-;;; ============================================================
+;;; ====
 ;;; Pairs (cons cells)
-;;; ============================================================
+;;; ====
 
 (display "=== Pairs ===\n")
 
@@ -26,9 +26,9 @@
 (format #t "nested: ~a~%" p3)
 (format #t "caar: ~a, cdar: ~a~%" (caar p3) (cdar p3))
 
-;;; ============================================================
+;;; ====
 ;;; Lists ARE Pairs
-;;; ============================================================
+;;; ====
 
 (display "\n=== Lists as Pairs ===\n")
 
@@ -48,9 +48,9 @@
 (format #t "pair? (1 . 2) = ~a~%" (pair? p1))
 (format #t "list? (1 . 2) = ~a~%" (list? p1))  ; #f - improper list
 
-;;; ============================================================
+;;; ====
 ;;; Association Lists (alists)
-;;; ============================================================
+;;; ====
 
 (display "\n=== Association Lists ===\n")
 
@@ -74,9 +74,9 @@
 
 (format #t "age value: ~a~%" (alist-ref 'age person))
 
-;;; ============================================================
+;;; ====
 ;;; Building Alists
-;;; ============================================================
+;;; ====
 
 (display "\n=== Building Alists ===\n")
 
@@ -97,9 +97,9 @@
 
 (format #t "without city: ~a~%" (alist-remove 'city person))
 
-;;; ============================================================
+;;; ====
 ;;; assq and assv variants
-;;; ============================================================
+;;; ====
 
 (display "\n=== assq vs assoc ===\n")
 
@@ -116,9 +116,9 @@
 (define str-alist '(("hello" . 1) ("world" . 2)))
 (format #t "assoc \"world\": ~a~%" (assoc "world" str-alist))
 
-;;; ============================================================
+;;; ====
 ;;; Practical Example: Simple Config
-;;; ============================================================
+;;; ====
 
 (display "\n=== Example: Configuration ===\n")
 

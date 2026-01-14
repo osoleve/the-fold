@@ -287,7 +287,7 @@ Shell catches all errors from Core and presents them to users:
 **Error categories**:
 
 | Category | Source | User Message |
-|----------|--------|--------------|
+|----|----|----|
 | `parse-error` | Shell | "Syntax error at line N: ..." |
 | `type-error` | Core | "Type mismatch: expected T₁, got T₂" |
 | `out-of-fuel` | Core | "Computation exceeded budget" |

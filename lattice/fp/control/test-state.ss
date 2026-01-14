@@ -7,16 +7,16 @@
 
 (display "
 ")
-(display "==============================================================
+(display "====
 ")
 (display "         STATE MONAD TESTS
 ")
-(display "==============================================================
+(display "====
 ")
 
-;;; ============================================================
+;;; ====
 ;;; Core State Tests
-;;; ============================================================
+;;; ====
 
 (test-group state-basics
             (define-test make-state-test
@@ -37,9 +37,9 @@
               (let ([st (make-state (lambda (s) (cons 'ignored (+ s 100))))])
                    (assert-equal 105 (exec-state st 5)))))
 
-;;; ============================================================
+;;; ====
 ;;; Get/Put/Modify Tests
-;;; ============================================================
+;;; ====
 
 (test-group state-operations
             (define-test get-test
@@ -61,9 +61,9 @@
                    (assert-equal 15 (eval-state st 5))
                    (assert-equal 5 (exec-state st 5)))))
 
-;;; ============================================================
+;;; ====
 ;;; Monad Law Tests
-;;; ============================================================
+;;; ====
 
 (test-group monad-laws
             ;; Left identity: pure a >>= f  ===  f a
@@ -90,9 +90,9 @@
                          [rhs (state-bind m (lambda (x) (state-bind (f x) g)))])
                         (assert-equal (run-state lhs 0) (run-state rhs 0))))))
 
-;;; ============================================================
+;;; ====
 ;;; State-pure and State-bind Tests
-;;; ============================================================
+;;; ====
 
 (test-group state-monad
             (define-test pure-test
@@ -120,9 +120,9 @@
                                     state-get)])
                    (assert-equal 10 (eval-state st 0)))))
 
-;;; ============================================================
+;;; ====
 ;;; State-map and State-ap Tests
-;;; ============================================================
+;;; ====
 
 (test-group state-functor-applicative
             (define-test map-test
@@ -137,9 +137,9 @@
               (let ([st (state-ap (state-pure add1) (state-pure 5))])
                    (assert-equal 6 (eval-state st 0)))))
 
-;;; ============================================================
+;;; ====
 ;;; Sequence Tests
-;;; ============================================================
+;;; ====
 
 (test-group state-sequence
             (define-test sequence-empty-test
@@ -163,9 +163,9 @@
                                      '(1 2 3))])
                    (assert-equal '(11 12 13) (eval-state st 0)))))
 
-;;; ============================================================
+;;; ====
 ;;; Counter Tests
-;;; ============================================================
+;;; ====
 
 (test-group counter-state
             (define-test inc-test
@@ -192,9 +192,9 @@
                    (assert-equal '(0 1 2) (eval-state st 0))
                    (assert-equal 3 (exec-state st 0)))))
 
-;;; ============================================================
+;;; ====
 ;;; Stack Tests
-;;; ============================================================
+;;; ====
 
 (test-group stack-state
             (define-test push-test
@@ -231,9 +231,9 @@
                         (assert-equal 3 (from-just (car result)))
                         (assert-equal '(2 1) (cdr result))))))
 
-;;; ============================================================
+;;; ====
 ;;; Accumulator Tests
-;;; ============================================================
+;;; ====
 
 (test-group accumulator-state
             (define-test tell-test
@@ -266,9 +266,9 @@
                         (assert-equal '("x" "y") (car result))
                         (assert-equal '() (cdr result))))))
 
-;;; ============================================================
+;;; ====
 ;;; Conditional Tests
-;;; ============================================================
+;;; ====
 
 (test-group conditional-state
             (define-test when-true-test
@@ -283,9 +283,9 @@
             (define-test unless-false-test
               (assert-equal 6 (exec-state (state-unless #f (state-modify add1)) 5))))
 
-;;; ============================================================
+;;; ====
 ;;; Alist State Tests
-;;; ============================================================
+;;; ====
 
 (test-group alist-state
             (define-test get-key-missing-test
@@ -314,9 +314,9 @@
               (let ([result (exec-state (state-modify-key 'x add1 0) '())])
                    (assert-equal 1 (cdr (assoc 'x result))))))
 
-;;; ============================================================
+;;; ====
 ;;; Practical Example Tests
-;;; ============================================================
+;;; ====
 
 (test-group practical-examples
             ;; Simple computation using counter state
@@ -341,13 +341,13 @@
                                                                 (state-pure (list 'node a b))))))])
                    (assert-equal '(node 0 1) (eval-state st 0)))))
 
-;;; ============================================================
+;;; ====
 ;;; Summary
-;;; ============================================================
+;;; ====
 
 (display "
 ")
-(display "==============================================================
+(display "====
 ")
 (printf "Tests passed: ~a
 " *tests-passed*)

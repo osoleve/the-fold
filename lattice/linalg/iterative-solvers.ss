@@ -18,9 +18,9 @@
 ;;;
 ;;; Do NOT load dependencies here to avoid redefinition issues.
 
-;;; ============================================================
+;;; ====
 ;;; Constants
-;;; ============================================================
+;;; ====
 
 ;;; Default tolerance for convergence
 (define *iterative-tolerance* 1e-10)
@@ -28,9 +28,9 @@
 ;;; Maximum iterations
 (define *iterative-max-iterations* 10000)
 
-;;; ============================================================
+;;; ====
 ;;; Convergence Checking
-;;; ============================================================
+;;; ====
 
 ;;; residual : Matrix × Vec × Vec → Num
 ;;; Compute ||Ax - b||
@@ -42,9 +42,9 @@
 (define (converged? res tol)
   (< res tol))
 
-;;; ============================================================
+;;; ====
 ;;; Jacobi Iteration
-;;; ============================================================
+;;; ====
 
 ;;; jacobi : Matrix × Vec × [Vec] × [Nat] × [Num] → (Vec iterations residual) | Error
 ;;;
@@ -121,9 +121,9 @@
                                 (vector-set! x-new i (/ (- (vector-ref b i) sum) a-ii))))))
               (jacobi-loop a b x-new (+ iter 1) max-iter tol n))])))
 
-;;; ============================================================
+;;; ====
 ;;; Gauss-Seidel Iteration
-;;; ============================================================
+;;; ====
 
 ;;; gauss-seidel : Matrix × Vec × [Vec] × [Nat] × [Num] → (Vec Nat Num) | Error
 ;;;
@@ -191,9 +191,9 @@
                              (vector-set! x i (/ (- (vector-ref b i) sum) a-ii))))))
          (gauss-seidel-loop a b x (+ iter 1) max-iter tol n)])))
 
-;;; ============================================================
+;;; ====
 ;;; Successive Over-Relaxation (SOR)
-;;; ============================================================
+;;; ====
 
 ;;; sor : Matrix × Vec × Num × [Vec] × [Nat] × [Num] → (Vec Nat Num) | Error
 ;;;
@@ -277,9 +277,9 @@
                               (vector-set! x i x-new)))))
          (sor-loop a b omega x (+ iter 1) max-iter tol n)])))
 
-;;; ============================================================
+;;; ====
 ;;; Conjugate Gradient Method
-;;; ============================================================
+;;; ====
 
 ;;; conjugate-gradient : Matrix × Vec × [Vec] × [Nat] × [Num] → (Vec Nat Num) | Error
 ;;;
@@ -363,9 +363,9 @@
                          (cg-loop a b x-new r-new p-new rr-new
                                   (+ iter 1) max-iter tol n))))])))
 
-;;; ============================================================
+;;; ====
 ;;; Preconditioned Conjugate Gradient
-;;; ============================================================
+;;; ====
 
 ;;; pcg : Matrix × Vec × Preconditioner × [Vec] × [Nat] × [Num] → (Vec Nat Num) | Error
 ;;;
@@ -439,9 +439,9 @@
                          (pcg-loop a b solve-precond x-new r-new z-new p-new
                                    rz-new (+ iter 1) max-iter tol n))))])))
 
-;;; ============================================================
+;;; ====
 ;;; GMRES (Generalized Minimum Residual)
-;;; ============================================================
+;;; ====
 
 ;;; gmres : Matrix × Vec × [Nat] × [Vec] × [Nat] × [Num] → (Vec Nat Num) | Error
 ;;;
@@ -666,9 +666,9 @@
                                 0.0)])
                  (list x-new m res-norm)))))
 
-;;; ============================================================
+;;; ====
 ;;; Utilities
-;;; ============================================================
+;;; ====
 
 ;;; vector-copy : Vec → Vec
 (define (vector-copy v)

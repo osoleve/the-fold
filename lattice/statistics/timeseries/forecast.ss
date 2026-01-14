@@ -19,9 +19,9 @@
 
 (load "core/base/prelude.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Forecast Accuracy Metrics
-;;; ============================================================
+;;; ====
 
 ;;; mae : Vec × Vec → Num
 ;;; Mean Absolute Error: (1/n) * sum(|actual - forecast|)
@@ -104,9 +104,9 @@
                                        (+ count 1)))))])
         (/ mae-forecast (max naive-mae 1e-10))))
 
-;;; ============================================================
+;;; ====
 ;;; Naive Forecasters (Baselines)
-;;; ============================================================
+;;; ====
 
 ;;; naive-forecast : Vec × Nat → Vec
 ;;; Naive forecast: predict last observed value for all horizons.
@@ -157,9 +157,9 @@
             [(= i h) forecasts]
             (vector-set! forecasts i mean))))
 
-;;; ============================================================
+;;; ====
 ;;; Forecast Intervals
-;;; ============================================================
+;;; ====
 
 ;;; forecast-intervals : Vec × Vec × Num → ForecastIntervalResult
 ;;; Compute prediction intervals given forecasts and residuals.
@@ -207,9 +207,9 @@
              [den (+ 1 (* b1 t) (* b2 t t) (* b3 t t t))])
             (* sign (- t (/ num den))))))
 
-;;; ============================================================
+;;; ====
 ;;; Forecast Evaluation
-;;; ============================================================
+;;; ====
 
 ;;; forecast-accuracy : Vec × Vec → AccuracyResult
 ;;; Compute all accuracy metrics for a forecast.
@@ -254,9 +254,9 @@
                  (max n 1))])
         (/ cfe (max mad 1e-10))))
 
-;;; ============================================================
+;;; ====
 ;;; Cross-Validation for Time Series
-;;; ============================================================
+;;; ====
 
 ;;; time-series-cv : Vec × Nat × Nat × (Vec → Model) × (Model × Nat → Vec) → Vec
 ;;; Rolling window cross-validation for time series.
@@ -291,9 +291,9 @@
                    [fold-rmse (rmse test forecast)])
                   (vector-set! rmses i fold-rmse)))))
 
-;;; ============================================================
+;;; ====
 ;;; Combination Forecasts
-;;; ============================================================
+;;; ====
 
 ;;; combine-forecasts-mean : (List Vec) → Vec
 ;;; Simple average of multiple forecasts.

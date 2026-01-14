@@ -32,13 +32,13 @@
 (load "core/base/sha256.ss")
 (load "core/blocks/normalize.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Hashing (Pure)
-;;; ============================================================
+;;; ====
 
-;;; ============================================================
+;;; ====
 ;;; Address Version Constants
-;;; ============================================================
+;;; ====
 
 ;;; address-version-alpha : Byte
 ;;; Version 0x00: α-normalization only (de Bruijn indices).
@@ -60,9 +60,9 @@
 ;;;   - Hash-consing for structural deduplication
 (define address-version-v2 #x02)
 
-;;; ============================================================
+;;; ====
 ;;; Hashing Functions
-;;; ============================================================
+;;; ====
 
 ;;; hash-block : Block → Bytevector
 ;;; Compute the versioned address of a block (version 0x00).
@@ -180,9 +180,9 @@
    [(char<=? #\A c #\F) (+ 10 (- (char->integer c) (char->integer #\A)))]
    [else (error 'char->hex-digit "invalid hex character" c)]))
 
-;;; ============================================================
+;;; ====
 ;;; In-Memory Store
-;;; ============================================================
+;;; ====
 
 ;;; The store is a hashtable: hash-bytes → Block
 ;;; We use bytevector hashes as keys via equal-hash.
@@ -240,9 +240,9 @@
 (define (unpin! hash)
   (hashtable-delete! *pinned* hash))
 
-;;; ============================================================
+;;; ====
 ;;; Tree Operations (Transitive Pinning/Unpinning)
-;;; ============================================================
+;;; ====
 
 ;;; collect-refs : Bytevector × (Bytevector → Block) → (List Bytevector)
 ;;; Collect all transitive references from a block.
@@ -303,9 +303,9 @@
          refs)
         count))
 
-;;; ============================================================
+;;; ====
 ;;; Garbage Collection
-;;; ============================================================
+;;; ====
 
 ;;; gc! : → (values Nat Nat)
 ;;; Remove all unpinned blocks from the store.
@@ -376,9 +376,9 @@
          (unpinned . ,unpinned-count)
          (gc-would-collect . ,unpinned-count))))
 
-;;; ============================================================
+;;; ====
 ;;; Store Statistics
-;;; ============================================================
+;;; ====
 
 ;;; store-count : → Nat
 ;;; Number of blocks in the store.
@@ -390,9 +390,9 @@
 (define (store-hashes)
   (vector->list (hashtable-keys *store*)))
 
-;;; ============================================================
+;;; ====
 ;;; Convenience: Store S-expressions
-;;; ============================================================
+;;; ====
 
 ;;; These wrap S-expressions in blocks for storage.
 

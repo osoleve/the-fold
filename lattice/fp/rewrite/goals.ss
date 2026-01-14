@@ -23,9 +23,9 @@
 (load "core/base/prelude.ss")
 (load "lattice/fp/rewrite/rule.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Goal Structure
-;;; ============================================================
+;;; ====
 
 ;;; Goals are represented as alists with a 'type field distinguishing them.
 ;;; Common fields:
@@ -34,9 +34,9 @@
 ;;;
 ;;; Type-specific fields are documented with each constructor.
 
-;;; ============================================================
+;;; ====
 ;;; Goal Predicates
-;;; ============================================================
+;;; ====
 
 ;;; goal? : Any -> Boolean
 ;;; Check if x is a well-formed goal structure.
@@ -55,9 +55,9 @@
 (define (goal-context g)
   (cdr (assq 'context g)))
 
-;;; ============================================================
+;;; ====
 ;;; Equality Goals
-;;; ============================================================
+;;; ====
 
 ;;; eq-goal: Prove that lhs = rhs
 ;;; Structure:
@@ -94,9 +94,9 @@
   (let ([c (assq 'carrier g)])
        (if c (cdr c) #f)))
 
-;;; ============================================================
+;;; ====
 ;;; Associativity Goals
-;;; ============================================================
+;;; ====
 
 ;;; assoc-goal: Prove that op is associative
 ;;; Property: (op (op x y) z) = (op x (op y z))
@@ -120,9 +120,9 @@
 (define (assoc-goal-op g)
   (cdr (assq 'op g)))
 
-;;; ============================================================
+;;; ====
 ;;; Identity Goals
-;;; ============================================================
+;;; ====
 
 ;;; left-id-goal: Prove that e is a left identity for op
 ;;; Property: (op e x) = x
@@ -193,9 +193,9 @@
 (define (id-goal? g)
   (or (left-id-goal? g) (right-id-goal? g)))
 
-;;; ============================================================
+;;; ====
 ;;; Inverse Goals
-;;; ============================================================
+;;; ====
 
 ;;; inv-goal: Prove that inv is an inverse operation for op with identity e
 ;;; Properties:
@@ -239,9 +239,9 @@
 (define (inv-goal-side g)
   (cdr (assq 'side g)))
 
-;;; ============================================================
+;;; ====
 ;;; Goal Decomposition
-;;; ============================================================
+;;; ====
 
 ;;; decompose-goal : Goal -> (List eq-goal)
 ;;; Expand a high-level goal into concrete equality goals with metavariables.
@@ -317,9 +317,9 @@
              
              [else '()])))
 
-;;; ============================================================
+;;; ====
 ;;; Goal Utilities
-;;; ============================================================
+;;; ====
 
 ;;; goal->string : Goal -> String
 ;;; Format a goal for display.
@@ -366,9 +366,9 @@
              [(memq (car vs) seen) (loop (cdr vs) seen acc)]
              [else (loop (cdr vs) (cons (car vs) seen) (cons (car vs) acc))]))))
 
-;;; ============================================================
+;;; ====
 ;;; Goal Comparison
-;;; ============================================================
+;;; ====
 
 ;;; goals-equal? : Goal x Goal -> Boolean
 ;;; Check if two goals are structurally equal.
@@ -393,9 +393,9 @@
                    (eq? (inv-goal-side g1) (inv-goal-side g2)))]
              [else #f])))
 
-;;; ============================================================
+;;; ====
 ;;; Goal Transformation
-;;; ============================================================
+;;; ====
 
 ;;; flip-eq-goal : eq-goal -> eq-goal
 ;;; Swap lhs and rhs of an equality goal (symmetry).
@@ -419,9 +419,9 @@
                         pair))
             g)))
 
-;;; ============================================================
+;;; ====
 ;;; Standard Algebraic Goals
-;;; ============================================================
+;;; ====
 
 ;;; These convenience constructors create goals for common algebraic structures.
 

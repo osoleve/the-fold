@@ -7,9 +7,9 @@
 
 (load "core/blocks/block.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Block Structure
-;;; ============================================================
+;;; ====
 
 (display "=== Block Structure ===\n")
 
@@ -25,9 +25,9 @@ A Block has three parts:
 This simple structure can represent ANY data or code.
 ")
 
-;;; ============================================================
+;;; ====
 ;;; Creating Blocks
-;;; ============================================================
+;;; ====
 
 (display "=== Creating Blocks ===\n")
 
@@ -43,9 +43,9 @@ This simple structure can represent ANY data or code.
 (format #t "Number block: ~a~%" b2)
 (format #t "Sum block (refs two numbers): ~a~%" b-sum)
 
-;;; ============================================================
+;;; ====
 ;;; Block Components
-;;; ============================================================
+;;; ====
 
 (display "\n=== Accessing Block Components ===\n")
 
@@ -56,9 +56,9 @@ This simple structure can represent ANY data or code.
 
 (format #t "\nrefs of b-sum: ~a~%" (block-refs b-sum))
 
-;;; ============================================================
+;;; ====
 ;;; Content Addressing
-;;; ============================================================
+;;; ====
 
 (display "\n=== Content Addressing ===\n")
 
@@ -72,9 +72,9 @@ This simple structure can represent ANY data or code.
 ;;; This is the core insight: identity = content
 (display "\nIdentity IS content. Same content = same identity.\n")
 
-;;; ============================================================
+;;; ====
 ;;; Blocks as Code
-;;; ============================================================
+;;; ====
 
 (display "\n=== Blocks Represent Code ===\n")
 
@@ -95,9 +95,9 @@ This simple structure can represent ANY data or code.
 (format #t "    -> [1] hash: ~a...~%" (substring (block-hash one-block) 0 16))
 (format #t "    -> [2] hash: ~a...~%" (substring (block-hash two-block) 0 16))
 
-;;; ============================================================
+;;; ====
 ;;; Why Blocks Matter
-;;; ============================================================
+;;; ====
 
 (display "\n=== Why Blocks Matter ===\n")
 
@@ -123,9 +123,9 @@ This simple structure can represent ANY data or code.
    hash identically because variable names are normalized away.
 ")
 
-;;; ============================================================
+;;; ====
 ;;; Alpha Normalization Preview
-;;; ============================================================
+;;; ====
 
 (display "=== Alpha Normalization ===\n")
 

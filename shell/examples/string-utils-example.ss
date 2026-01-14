@@ -6,12 +6,12 @@
 
 (printf "\n=== String Utilities Examples ===\n\n")
 
-;;; ============================================================
+;;; ====
 ;;; Example 1: Parsing CSV Data
-;;; ============================================================
+;;; ====
 
 (printf "Example 1: Parsing CSV Data\n")
-(printf "-----------------------------\n")
+(printf "----\n")
 
 (define csv-line "Alice,30,Engineer")
 (define fields (string-split csv-line #\,))
@@ -23,12 +23,12 @@
         (cadr fields)
         (caddr fields))
 
-;;; ============================================================
+;;; ====
 ;;; Example 2: Processing Log Lines
-;;; ============================================================
+;;; ====
 
 (printf "Example 2: Processing Log Lines\n")
-(printf "--------------------------------\n")
+(printf "----\n")
 
 (define log-text "[ERROR] Failed to connect\n[INFO] Retrying connection\n[ERROR] Timeout occurred")
 (define log-lines (string-split-lines log-text))
@@ -44,12 +44,12 @@
 
 (printf "\n")
 
-;;; ============================================================
+;;; ====
 ;;; Example 3: Building Paths
-;;; ============================================================
+;;; ====
 
 (printf "Example 3: Building Paths\n")
-(printf "-------------------------\n")
+(printf "----\n")
 
 (define path-components '("home" "user" "documents" "file.txt"))
 (define unix-path (string-join path-components "/"))
@@ -59,12 +59,12 @@
 (printf "Unix path: ~a\n" unix-path)
 (printf "Windows path: ~a\n\n" windows-path)
 
-;;; ============================================================
+;;; ====
 ;;; Example 4: Cleaning User Input
-;;; ============================================================
+;;; ====
 
 (printf "Example 4: Cleaning User Input\n")
-(printf "-------------------------------\n")
+(printf "----\n")
 
 (define messy-input "  \n\t  Hello World!  \r\n  ")
 (define clean-input (string-trim messy-input))
@@ -73,12 +73,12 @@
 (printf "Cleaned: ~s\n" clean-input)
 (printf "Is blank? ~a\n\n" (string-blank? messy-input))
 
-;;; ============================================================
+;;; ====
 ;;; Example 5: Template Replacement
-;;; ============================================================
+;;; ====
 
 (printf "Example 5: Template Replacement\n")
-(printf "--------------------------------\n")
+(printf "----\n")
 
 (define template "Hello {{name}}, welcome to {{place}}!")
 (define personalized
@@ -89,12 +89,12 @@
 (printf "Template: ~a\n" template)
 (printf "Result: ~a\n\n" personalized)
 
-;;; ============================================================
+;;; ====
 ;;; Example 6: File Extension Checking
-;;; ============================================================
+;;; ====
 
 (printf "Example 6: File Extension Checking\n")
-(printf "-----------------------------------\n")
+(printf "----\n")
 
 (define files '("script.ss" "README.md" "data.json" "test.txt"))
 
@@ -114,12 +114,12 @@
 
 (printf "\n")
 
-;;; ============================================================
+;;; ====
 ;;; Example 7: Finding Keywords
-;;; ============================================================
+;;; ====
 
 (printf "Example 7: Finding Keywords\n")
-(printf "---------------------------\n")
+(printf "----\n")
 
 (define code-snippet "(define (factorial n) ...)")
 (define has-define? (string-contains? code-snippet "define"))
@@ -129,12 +129,12 @@
 (printf "Contains 'define'? ~a\n" has-define?)
 (printf "Contains 'lambda'? ~a\n\n" has-lambda?)
 
-;;; ============================================================
+;;; ====
 ;;; Example 8: Unicode Support
-;;; ============================================================
+;;; ====
 
 (printf "Example 8: Unicode Support\n")
-(printf "--------------------------\n")
+(printf "----\n")
 
 (define unicode-text "Hello 世界 🌍")
 (define parts (string-split unicode-text #\space))
@@ -144,7 +144,7 @@
 (printf "Contains '世界'? ~a\n" (string-contains? unicode-text "世界"))
 (printf "Starts with 'Hello'? ~a\n\n" (string-starts-with? unicode-text "Hello"))
 
-;;; ============================================================
+;;; ====
 
 (printf "=== All examples complete! ===\n\n")
 (printf "See shell/string-utils.ss for full API documentation.\n")

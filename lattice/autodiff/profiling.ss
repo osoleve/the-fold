@@ -17,9 +17,9 @@
 (load "core/autodiff/comp-graph.ss")
 (load "core/autodiff/reverse-diff.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Tape Statistics
-;;; ============================================================
+;;; ====
 
 ;;; tape-stats : MutableTape → Stats
 (define (tape-stats tape)
@@ -49,9 +49,9 @@
   (length (filter (lambda (entry) (eq? (cadr entry) op-name))
                   (reverse-tape-entries tape))))
 
-;;; ============================================================
+;;; ====
 ;;; Computational Graph Statistics
-;;; ============================================================
+;;; ====
 
 ;;; graph-stats : CompGraph → Stats
 (define (graph-stats g)
@@ -129,9 +129,9 @@
                         (vector->list keys)
                         (vector->list vals)))))
 
-;;; ============================================================
+;;; ====
 ;;; Timing Utilities
-;;; ============================================================
+;;; ====
 
 ;;; current-microseconds : → Integer
 (define (current-microseconds)
@@ -184,9 +184,9 @@
                   (cons 'total-us forward-time)
                   (cons 'tape-size 0)))))
 
-;;; ============================================================
+;;; ====
 ;;; Memory Estimation
-;;; ============================================================
+;;; ====
 
 ;;; Estimated sizes in bytes (Chez Scheme on 64-bit)
 (define *ptr-size* 8)       ; pointer
@@ -259,9 +259,9 @@
       ;; Plain number
       *flonum-size*))
 
-;;; ============================================================
+;;; ====
 ;;; Profile Report
-;;; ============================================================
+;;; ====
 
 ;;; profile-computation : ((Traced ...) → Traced) × (List Number) → Report
 (define (profile-computation f args)
@@ -317,25 +317,25 @@
         [tape-info (cdr (assq 'tape report))]
         [mem (cdr (assq 'memory-bytes report))]
         [n-inputs (cdr (assq 'num-inputs report))])
-       (printf "~n=== Autodiff Profile ====================~n")
+       (printf "~n=== Autodiff Profile ====~n")
        (printf "Inputs:     ~a variables~n" n-inputs)
        (printf "Value:      ~a~n" val)
        (printf "Gradient:   ~a~n" grad)
-       (printf "~n--- Timing ------------------------------~n")
+       (printf "~n--- Timing ----~n")
        (printf "Forward:    ~a us~n" (cdr (assq 'forward-us timing)))
        (printf "Backward:   ~a us~n" (cdr (assq 'backward-us timing)))
        (printf "Total:      ~a us~n" (cdr (assq 'total-us timing)))
-       (printf "~n--- Tape --------------------------------~n")
+       (printf "~n--- Tape ----~n")
        (printf "Size:       ~a entries~n" (cdr (assq 'size tape-info)))
        (printf "Operations: ~a~n" (cdr (assq 'ops tape-info)))
-       (printf "~n--- Memory ------------------------------~n")
+       (printf "~n--- Memory ----~n")
        (printf "Estimated:  ~a bytes (~a KB)~n"
                mem (quotient mem 1024))
-       (printf "==========================================~n")))
+       (printf "====~n")))
 
-;;; ============================================================
+;;; ====
 ;;; Benchmark Utilities
-;;; ============================================================
+;;; ====
 
 ;;; benchmark-gradient : ((Traced ...) → Traced) × (List Number) × Nat → BenchResult
 (define (benchmark-gradient f args iterations)
@@ -361,11 +361,11 @@
 
 ;;; print-benchmark : BenchResult → Void
 (define (print-benchmark result)
-  (printf "~n=== Benchmark Results ===================~n")
+  (printf "~n=== Benchmark Results ====~n")
   (printf "Iterations: ~a~n" (cdr (assq 'iterations result)))
   (printf "Total:      ~a us~n" (cdr (assq 'total-us result)))
   (printf "Average:    ~a us~n" (inexact (cdr (assq 'avg-us result))))
   (printf "Min:        ~a us~n" (cdr (assq 'min-us result)))
   (printf "Max:        ~a us~n" (cdr (assq 'max-us result)))
   (printf "Median:     ~a us~n" (cdr (assq 'median-us result)))
-  (printf "==========================================~n"))
+  (printf "====~n"))

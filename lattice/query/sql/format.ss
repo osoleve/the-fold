@@ -12,9 +12,9 @@
 (unless (top-level-bound? '*sql-types-loaded*)
         (load "lattice/query/sql/types.ss"))
 
-;;; ============================================================
+;;; ====
 ;;; Formatting Options
-;;; ============================================================
+;;; ====
 
 ;;; default-format-options : Alist
 ;;; Options:
@@ -49,9 +49,9 @@
   (let ([pair (assq key opts)])
        (if pair (cdr pair) default)))
 
-;;; ============================================================
+;;; ====
 ;;; Keyword Formatting
-;;; ============================================================
+;;; ====
 
 ;;; format-keyword : String × Alist → String
 (define (format-keyword kw opts)
@@ -67,9 +67,9 @@
 (define (string-downcase s)
   (list->string (map char-downcase (string->list s))))
 
-;;; ============================================================
+;;; ====
 ;;; Indentation
-;;; ============================================================
+;;; ====
 
 ;;; make-indent : Nat × Alist → String
 ;;; Supports numeric indent (spaces) or 'tab for tab characters
@@ -87,9 +87,9 @@
 (define (make-list n val)
   (if (<= n 0) '() (cons val (make-list (- n 1) val))))
 
-;;; ============================================================
+;;; ====
 ;;; Statement Formatting
-;;; ============================================================
+;;; ====
 
 ;;; format-sql : AST × Alist → String
 ;;; Main entry point for formatting
@@ -106,9 +106,9 @@
             (string-append result ";")
             result)))
 
-;;; ============================================================
+;;; ====
 ;;; SELECT Formatting
-;;; ============================================================
+;;; ====
 
 ;;; format-select : AST × Alist → String
 (define (format-select ast opts)
@@ -275,9 +275,9 @@
             (string-append " " (format-keyword "OFFSET" opts) " " (number->string offset))
             ""))))
 
-;;; ============================================================
+;;; ====
 ;;; INSERT Formatting
-;;; ============================================================
+;;; ====
 
 ;;; format-insert : AST × Alist → String
 (define (format-insert ast opts)
@@ -319,9 +319,9 @@
                     row)
                ", "))
 
-;;; ============================================================
+;;; ====
 ;;; UPDATE Formatting
-;;; ============================================================
+;;; ====
 
 ;;; format-update : AST × Alist → String
 (define (format-update ast opts)
@@ -349,9 +349,9 @@
    " = "
    (format-expression (set-clause-value clause) opts)))
 
-;;; ============================================================
+;;; ====
 ;;; DELETE Formatting
-;;; ============================================================
+;;; ====
 
 ;;; format-delete : AST × Alist → String
 (define (format-delete ast opts)
@@ -368,9 +368,9 @@
                             (format-expression where opts))
              ""))))
 
-;;; ============================================================
+;;; ====
 ;;; Expression Formatting
-;;; ============================================================
+;;; ====
 
 ;;; format-expression : AST × Alist → String
 (define (format-expression expr opts)
@@ -571,9 +571,9 @@
         (format-keyword "EXISTS" opts) " "
         (format-subquery subq opts))))
 
-;;; ============================================================
+;;; ====
 ;;; Utility Functions
-;;; ============================================================
+;;; ====
 
 ;;; string-join : (List String) × String → String
 (define (string-join strings delimiter)

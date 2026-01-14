@@ -30,9 +30,9 @@
 (load "core/types/dep-types.ss")
 (load "lattice/autodiff/higher-order-diff.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Dimension Type Annotations
-;;; ============================================================
+;;; ====
 
 ;;; These type constructors document gradient dimensions.
 ;;; They are validated at runtime by the wrapper functions below.
@@ -49,9 +49,9 @@
 ;;; Type: (HessianFn n) = (Vec n Number) -> (Matrix n n Number)
 ;;;       A scalar function from R^n -> R, returning n x n Hessian.
 
-;;; ============================================================
+;;; ====
 ;;; Dimension-Checked Gradient Wrapper
-;;; ============================================================
+;;; ====
 
 ;;; A DimGradient packages a gradient with its expected dimension.
 ;;; Structure: (dim-gradient dimension values)
@@ -98,9 +98,9 @@
   (and (dim-gradient? x)
        (not (and (pair? x) (eq? (car x) 'error)))))
 
-;;; ============================================================
+;;; ====
 ;;; Type Class: GradientDimensioned
-;;; ============================================================
+;;; ====
 
 ;;; This type class captures the relationship between a differentiable
 ;;; function and its gradient dimension.
@@ -137,9 +137,9 @@
 (define (gradient-spec-fn spec)
   (cadddr spec))
 
-;;; ============================================================
+;;; ====
 ;;; Safe Gradient Computation
-;;; ============================================================
+;;; ====
 
 ;;; These functions wrap the raw autodiff operations with dimension checking.
 
@@ -171,9 +171,9 @@
 (define (safe-gradient-at spec . args)
   (safe-gradient spec args))
 
-;;; ============================================================
+;;; ====
 ;;; Dimension-Checked Jacobian
-;;; ============================================================
+;;; ====
 
 ;;; DimJacobian : (dim-jacobian rows cols matrix)
 ;;; A Jacobian matrix with explicit dimensions.
@@ -221,9 +221,9 @@
                                        (list 'got (list actual-rows actual-cols)))))
                         (list 'error 'jacobian-computation-failed raw-jacobian)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Dimension-Checked Hessian
-;;; ============================================================
+;;; ====
 
 ;;; DimHessian : (dim-hessian n matrix)
 ;;; A Hessian matrix (always square) with explicit dimension.
@@ -273,9 +273,9 @@
                                      (list 'got (list actual-rows actual-cols)))))
                       (list 'error 'hessian-computation-failed raw-hessian)))]))))
 
-;;; ============================================================
+;;; ====
 ;;; Convenient Gradient Spec Constructors
-;;; ============================================================
+;;; ====
 
 ;;; These macros/functions create properly typed gradient specifications.
 
@@ -287,9 +287,9 @@
 (define (vector-fn n m f)
   (make-gradient-spec n m f))
 
-;;; ============================================================
+;;; ====
 ;;; Type Annotations for Documentation
-;;; ============================================================
+;;; ====
 
 ;;; These functions generate type annotations for gradient-related types.
 ;;; They integrate with the dependent type system in core/types/dep-types.ss.
@@ -318,9 +318,9 @@
 (define (t-hessian-fn n)
   `(-> (Vec ,n Number) (Matrix ,n ,n Number)))
 
-;;; ============================================================
+;;; ====
 ;;; Dimension Inference Utilities
-;;; ============================================================
+;;; ====
 
 ;;; These utilities help determine dimensions from function signatures.
 
@@ -340,9 +340,9 @@
       (let ([result (safe-gradient spec test-args)])
            (dim-gradient-ok? result))))
 
-;;; ============================================================
+;;; ====
 ;;; Error Reporting
-;;; ============================================================
+;;; ====
 
 ;;; format-gradient-error : Error → String
 (define (format-gradient-error err)
@@ -370,9 +370,9 @@
                  [else (format "Gradient error: ~s" err)]))
       (format "Unknown error: ~s" err)))
 
-;;; ============================================================
+;;; ====
 ;;; Differentiable Type Class Integration
-;;; ============================================================
+;;; ====
 
 ;;; DimDifferentiable extends the Differentiable type class with dimension
 ;;; information. This allows type-safe composition of differentiable functions.
@@ -399,9 +399,9 @@
   `((dim . ,gradient-spec-input-dim)
     (gradientOf . ,(lambda (spec) (lambda (args) (safe-gradient spec args))))))
 
-;;; ============================================================
+;;; ====
 ;;; Composition with Dimension Checking
-;;; ============================================================
+;;; ====
 
 ;;; These functions compose differentiable functions while checking dimensions.
 
@@ -428,9 +428,9 @@
                                       (apply f g-result)
                                       (f g-result))))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Gradient Vector Operations
-;;; ============================================================
+;;; ====
 
 ;;; These operations work on DimGradients with dimension checking.
 
@@ -475,9 +475,9 @@
                dot-result  ; Propagate error from dot product
                (sqrt dot-result)))))
 
-;;; ============================================================
+;;; ====
 ;;; Helper: Matrix Accessors (if not already loaded)
-;;; ============================================================
+;;; ====
 
 ;;; matrix-rows : Matrix → Nat
 (define (matrix-rows m)
@@ -491,9 +491,9 @@
       (caddr m)
       0))
 
-;;; ============================================================
+;;; ====
 ;;; Summary of Exported Bindings
-;;; ============================================================
+;;; ====
 
 ;;; Type annotations:
 ;;;   t-gradient, t-gradient-fn, t-jacobian, t-jacobian-fn, t-hessian, t-hessian-fn

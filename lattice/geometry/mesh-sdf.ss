@@ -20,9 +20,9 @@
 (load "lattice/geometry/geometry.ss")
 (load "lattice/geometry/bvh.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Mesh Structure
-;;; ============================================================
+;;; ====
 
 ;;; Mesh: (mesh triangles bvh)
 ;;; Represents a triangle mesh with precomputed BVH for acceleration
@@ -44,9 +44,9 @@
 (define (mesh-bvh m)
   (caddr m))
 
-;;; ============================================================
+;;; ====
 ;;; Mesh SDF Computation
-;;; ============================================================
+;;; ====
 
 ;;; mesh-sdf : Mesh × Point3 → Number
 ;;; Compute signed distance from point to mesh surface
@@ -80,9 +80,9 @@
                 (mesh-sdf mesh (vec3-sub point (vec3 0 0 eps))))])
         (vec3-normalize (vec3 dx dy dz))))
 
-;;; ============================================================
+;;; ====
 ;;; Mesh Construction Helpers
-;;; ============================================================
+;;; ====
 
 ;;; make-mesh-cube : Number → Mesh
 ;;; Create a cube mesh centered at origin with given half-size
@@ -201,9 +201,9 @@
          [triangles (subdivide-icosphere-triangles base-triangles radius subdivisions)])
         (make-mesh triangles)))
 
-;;; ============================================================
+;;; ====
 ;;; Mesh Ray Intersection
-;;; ============================================================
+;;; ====
 
 ;;; mesh-intersect-ray : Mesh × Ray3 → (Point3 Number Triangle3) | #f
 ;;; Find closest intersection of ray with mesh
@@ -217,9 +217,9 @@
                  (list hit-point t triangle))
            #f)))
 
-;;; ============================================================
+;;; ====
 ;;; Mesh Statistics
-;;; ============================================================
+;;; ====
 
 ;;; mesh-triangle-count : Mesh → Number
 (define (mesh-triangle-count mesh)

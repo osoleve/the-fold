@@ -17,9 +17,9 @@
 (load "core/base/prelude.ss")
 (load "lattice/geometry/geometry.ss")
 
-;;; ============================================================
+;;; ====
 ;;; BVH Node Structure
-;;; ============================================================
+;;; ====
 
 ;;; BVH node types:
 ;;; - Leaf: (bvh-leaf bbox primitives)
@@ -63,9 +63,9 @@
       (cadddr node)
       #f))
 
-;;; ============================================================
+;;; ====
 ;;; Helper Functions
-;;; ============================================================
+;;; ====
 
 ;;; triangle-centroid : Triangle3 → Point3
 (define (triangle-centroid tri)
@@ -107,9 +107,9 @@
         [(2) (vec3-z point)]
         [else (vec3-x point)]))
 
-;;; ============================================================
+;;; ====
 ;;; BVH Construction
-;;; ============================================================
+;;; ====
 
 ;;; bvh-build : (List Triangle3) × Number → BVH
 ;;; Build a BVH from a list of triangles
@@ -142,9 +142,9 @@
                       [right-child (bvh-build right-tris max-leaf-size)])
                      (bvh-node bbox left-child right-child))))))
 
-;;; ============================================================
+;;; ====
 ;;; BVH Traversal
-;;; ============================================================
+;;; ====
 
 ;;; bvh-intersect-ray : BVH × Ray3 → (Triangle3 Number) | #f
 ;;; Find closest triangle intersection along ray
@@ -275,9 +275,9 @@
   
   (traverse bvh #f #f #f))
 
-;;; ============================================================
+;;; ====
 ;;; BVH Statistics and Utilities
-;;; ============================================================
+;;; ====
 
 ;;; bvh-depth : BVH → Number
 ;;; Compute the maximum depth of the BVH tree

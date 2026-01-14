@@ -46,9 +46,9 @@
          (set! pass-count (+ pass-count 1))
          (printf "  ✓ ~a\n" name)))
 
-;;; ============================================================
+;;; ====
 ;;; errorf Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Testing errorf ===\n")
 
@@ -77,9 +77,9 @@
                                                (error 'test "Expected both substitutions")))])
                                 (errorf 'test "Values: ~a and ~s" "foo" "bar"))))
 
-;;; ============================================================
+;;; ====
 ;;; String Utility Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Testing string utilities ===\n")
 
@@ -131,9 +131,9 @@
               (list-slice '(a b c) 0 10)
               '(a b c))
 
-;;; ============================================================
+;;; ====
 ;;; Placeholder Fixing Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Testing placeholder fixing ===\n")
 
@@ -157,9 +157,9 @@
               (fix-unfilled-placeholders "Plain text")
               "Plain text")
 
-;;; ============================================================
+;;; ====
 ;;; Format Message Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Testing format-message ===\n")
 
@@ -177,9 +177,9 @@
                               (when (not (string-contains? result "test"))
                                     (error 'test "Expected formatted value")))))
 
-;;; ============================================================
+;;; ====
 ;;; Suggestion Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Testing suggest-fixes ===\n")
 
@@ -203,9 +203,9 @@
               (suggest-fixes "unknown error occurred")
               '())
 
-;;; ============================================================
+;;; ====
 ;;; Colorization Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Testing colorization ===\n")
 
@@ -230,9 +230,9 @@
 ;; Re-enable for remaining tests
 (set! *use-colors* #t)
 
-;;; ============================================================
+;;; ====
 ;;; Error Header Formatting Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Testing error header formatting ===\n")
 
@@ -252,9 +252,9 @@
                  (format-error-header *level-warning* #f #f #f #f)
                  "WARN")
 
-;;; ============================================================
+;;; ====
 ;;; Format Error Simple Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Testing format-error-simple ===\n")
 
@@ -266,9 +266,9 @@
                  (format-error-simple "Test error")
                  "ERROR")
 
-;;; ============================================================
+;;; ====
 ;;; Format Error With Location Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Testing format-error-with-location ===\n")
 
@@ -284,9 +284,9 @@
                  (format-error-with-location "Test error" "test.ss" 10 5)
                  "Test error")
 
-;;; ============================================================
+;;; ====
 ;;; Format Suggestions Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Testing format-suggestions ===\n")
 
@@ -312,9 +312,9 @@
 ;; Re-enable
 (set! *show-suggestions* #t)
 
-;;; ============================================================
+;;; ====
 ;;; Integration Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Testing integration scenarios ===\n")
 
@@ -349,9 +349,9 @@
                               (when (not (string? result))
                                     (error 'test "Expected string result")))))
 
-;;; ============================================================
+;;; ====
 ;;; Edge Cases
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Testing edge cases ===\n")
 
@@ -391,11 +391,11 @@
               (fix-unfilled-placeholders "")
               "")
 
-;;; ============================================================
+;;; ====
 ;;; Test Summary
-;;; ============================================================
+;;; ====
 
-(printf "\n========================================\n")
+(printf "\n====\n")
 (printf "Test Results:\n")
 (printf "  Total:  ~a\n" test-count)
 (printf "  Passed: ~a\n" pass-count)

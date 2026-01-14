@@ -21,20 +21,20 @@ None.
 ### High
 
 | File | Finding | Recommendation | Status |
-|------|---------|----------------|--------|
+|----|----|----|----|
 | `core/blocks/hash-cons.ss` | Unbounded memory growth in `*cons-table*`. Strong references retain all canonicalized expressions indefinitely. | Ensure `hash-cons-reset!` is called in the daemon loop or use weak references if supported. | **Documented** - Design choice with `hash-cons-reset!` for explicit control |
 
 ### Medium
 
 | File | Finding | Recommendation | Status |
-|------|---------|----------------|--------|
+|----|----|----|----|
 | `core/blocks/normalize.ss` | Recursion allows stack overflow on deeply nested inputs. | Add depth limit check similar to `poly-canon`. | **Acknowledged** - poly-canon has limits; general normalize follows Scheme's stack |
 | `core/blocks/hash-cons.ss` | Cyclic structures would cause infinite loop. | Document assumption of tree/DAG structures. | **By Design** - CAS operates on DAG structures only |
 
 ### Low
 
 | File | Finding | Recommendation | Status |
-|------|---------|----------------|--------|
+|----|----|----|----|
 | `core/blocks/cas.ss` | Comment describes operation order differently than code. | Update comments to match actual pipeline. | **FIXED** - Updated normalize.ss:571-575 |
 | `core/blocks/poly-canon.ss` | `term->sexpr` expands powers verbosely (x³ → `(* x x x)`). | Consider `expt` for powers > 1 if canonical format allows. | **By Design** - Maintains S-expression purity |
 | `core/blocks/test-normalize.ss` | Missing tests for limit enforcement. | Add tests triggering `*poly-canon-max-terms*`. | **FIXED** - Added Test 28-29 |

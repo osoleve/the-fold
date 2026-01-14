@@ -19,9 +19,9 @@
 
 (load "core/base/prelude.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Symbol Supply
-;;; ============================================================
+;;; ====
 
 ;;; A symbol supply is a list. We consume symbols as we encounter binders.
 
@@ -30,9 +30,9 @@
 (define (supply-next supply)
   (values (car supply) (cdr supply)))
 
-;;; ============================================================
+;;; ====
 ;;; Expansion
-;;; ============================================================
+;;; ====
 
 ;;; expand : S-expr × (List Symbol) → S-expr
 ;;; Convert de Bruijn form back to named form.
@@ -94,9 +94,9 @@
              (let-values ([(expanded new-sup) (expand-with-ctx (car items) ctx sup)])
                          (loop (cdr items) (cons expanded acc) new-sup))))]))
 
-;;; ============================================================
+;;; ====
 ;;; Default Symbol Generator
-;;; ============================================================
+;;; ====
 
 ;;; make-symbol-supply : Nat → (List Symbol)
 ;;; Generate a list of symbols: x, y, z, x1, y1, z1, ...

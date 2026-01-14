@@ -28,17 +28,17 @@
 ;;;   - Vector: vec-make, vec-ref, vec-length, vec->list, list->vec
 ;;;   - Type predicates: number?, symbol?, string?, char?, bytevector?, block?, vector?
 
-;;; ============================================================
+;;; ====
 ;;; Primitive Dispatcher
-;;; ============================================================
+;;; ====
 
 ;;; prim : Symbol × (List Value) → Value
 ;;; Dispatch to a pure primitive operation (variadic via rest args).
 (define (prim op . args)
   (case op
-        ;; --------------------------------------------------------
+        ;; ----
         ;; Arithmetic
-        ;; --------------------------------------------------------
+        ;; ----
         [(add) (apply + args)]
         [(sub) (apply - args)]
         [(mul) (apply * args)]
@@ -62,9 +62,9 @@
         [(ceiling) (ceiling (car args))]
         [(round) (round (car args))]
         
-        ;; --------------------------------------------------------
+        ;; ----
         ;; Comparison
-        ;; --------------------------------------------------------
+        ;; ----
         [(eq?) (equal? (car args) (cadr args))]
         [(lt?) (< (car args) (cadr args))]
         [(le?) (<= (car args) (cadr args))]
@@ -74,9 +74,9 @@
         [(positive?) (positive? (car args))]
         [(negative?) (negative? (car args))]
         
-        ;; --------------------------------------------------------
+        ;; ----
         ;; Bitwise
-        ;; --------------------------------------------------------
+        ;; ----
         [(bitand) (bitwise-and (car args) (cadr args))]
         [(bitor) (bitwise-ior (car args) (cadr args))]
         [(bitxor) (bitwise-xor (car args) (cadr args))]
@@ -84,16 +84,16 @@
         [(shl) (bitwise-arithmetic-shift-left (car args) (cadr args))]
         [(shr) (bitwise-arithmetic-shift-right (car args) (cadr args))]
         
-        ;; --------------------------------------------------------
+        ;; ----
         ;; Boolean
-        ;; --------------------------------------------------------
+        ;; ----
         [(not) (not (car args))]
         [(and) (and (car args) (cadr args))]
         [(or) (or (car args) (cadr args))]
         
-        ;; --------------------------------------------------------
+        ;; ----
         ;; Block operations
-        ;; --------------------------------------------------------
+        ;; ----
         [(make-block)
          ;; (prim 'make-block tag payload refs-vector)
          (make-block (car args) (cadr args) (caddr args))]
@@ -110,9 +110,9 @@
         [(block->bytes) (block->bytes (car args))]
         [(bytes->block) (bytes->block (car args))]
         
-        ;; --------------------------------------------------------
+        ;; ----
         ;; Bytevector operations
-        ;; --------------------------------------------------------
+        ;; ----
         [(bv-length) (bytevector-length (car args))]
         [(bv-ref) (bytevector-u8-ref (car args) (cadr args))]
         [(bv-make) (make-bytevector (car args) (if (null? (cdr args)) 0 (cadr args)))]
@@ -136,9 +136,9 @@
                (bytevector-copy! bv start result 0 len)
                result)]
         
-        ;; --------------------------------------------------------
+        ;; ----
         ;; String operations
-        ;; --------------------------------------------------------
+        ;; ----
         [(string-length) (string-length (car args))]
         [(string-ref) (string-ref (car args) (cadr args))]
         [(string-append) (apply string-append args)]
@@ -152,9 +152,9 @@
         [(string->list) (string->list (car args))]
         [(list->string) (list->string (car args))]
         
-        ;; --------------------------------------------------------
+        ;; ----
         ;; Character operations
-        ;; --------------------------------------------------------
+        ;; ----
         [(char->integer) (char->integer (car args))]
         [(integer->char) (integer->char (car args))]
         [(char=?) (char=? (car args) (cadr args))]
@@ -167,9 +167,9 @@
         [(char-upcase) (char-upcase (car args))]
         [(char-downcase) (char-downcase (car args))]
         
-        ;; --------------------------------------------------------
+        ;; ----
         ;; String/Bytevector conversion
-        ;; --------------------------------------------------------
+        ;; ----
         [(string->utf8) (string->utf8 (car args))]
         [(utf8->string) (utf8->string (car args))]
         [(symbol->string) (symbol->string (car args))]
@@ -177,9 +177,9 @@
         [(number->string) (number->string (car args))]
         [(string->number) (string->number (car args))]
         
-        ;; --------------------------------------------------------
+        ;; ----
         ;; List operations
-        ;; --------------------------------------------------------
+        ;; ----
         [(cons) (cons (car args) (cadr args))]
         [(car) (car (car args))]
         [(cdr) (cdr (car args))]
@@ -193,9 +193,9 @@
         [(memq) (memq (car args) (cadr args))]
         [(assq) (assq (car args) (cadr args))]
         
-        ;; --------------------------------------------------------
+        ;; ----
         ;; Vector operations
-        ;; --------------------------------------------------------
+        ;; ----
         [(vec-make) (apply vector args)]
         [(vec-empty) (vector)]
         [(vec-ref) (vector-ref (car args) (cadr args))]
@@ -203,9 +203,9 @@
         [(vec->list) (vector->list (car args))]
         [(list->vec) (list->vector (car args))]
         
-        ;; --------------------------------------------------------
+        ;; ----
         ;; Type predicates
-        ;; --------------------------------------------------------
+        ;; ----
         [(number?) (number? (car args))]
         [(integer?) (integer? (car args))]
         [(symbol?) (symbol? (car args))]
@@ -218,22 +218,22 @@
         [(boolean?) (boolean? (car args))]
         [(procedure?) (procedure? (car args))]
         
-        ;; --------------------------------------------------------
+        ;; ----
         ;; Hash operations (pure computation)
-        ;; --------------------------------------------------------
+        ;; ----
         [(sha256) (sha256 (car args))]
         [(hash-block) (hash-block (car args))]
         [(hash->hex) (hash->hex (car args))]
         [(hex->hash) (hex->hash (car args))]
         
-        ;; --------------------------------------------------------
+        ;; ----
         ;; Error: unknown primitive
-        ;; --------------------------------------------------------
+        ;; ----
         [else `(error unknown-primitive ,op)]))
 
-;;; ============================================================
+;;; ====
 ;;; Primitive Metadata
-;;; ============================================================
+;;; ====
 
 ;;; prim-fuel-cost : Symbol → (Option Nat)
 ;;; Return the fuel cost of a primitive operation.
@@ -261,10 +261,10 @@
 ;;;
 (define (prim-fuel-cost op)
   (case op
-        ;; --------------------------------------------------------
+        ;; ----
         ;; Tier 1 (Cost 1) - O(1) trivial operations
         ;; Benchmarked: ~40-100ns/op (interpreter overhead dominates)
-        ;; --------------------------------------------------------
+        ;; ----
         ;; Type predicates - single tag check
         [(number? integer? symbol? string? char? bytevector? block?
                   vector? list? boolean? procedure? null? pair?)
@@ -279,10 +279,10 @@
         [(eq? zero? positive? negative?)
          1]
         
-        ;; --------------------------------------------------------
+        ;; ----
         ;; Tier 2 (Cost 2) - O(1) simple operations
         ;; Benchmarked: ~40-110ns/op
-        ;; --------------------------------------------------------
+        ;; ----
         ;; Basic arithmetic
         [(add sub mul neg abs)
          2]
@@ -307,10 +307,10 @@
         [(bv-length vec-length string-length)
          2]
         
-        ;; --------------------------------------------------------
+        ;; ----
         ;; Tier 3 (Cost 3) - O(1) moderate operations
         ;; Benchmarked: ~40-160ns/op
-        ;; --------------------------------------------------------
+        ;; ----
         ;; Division/modulo - more CPU cycles
         [(div mod)
          3]
@@ -333,10 +333,10 @@
         [(memq assq)
          3]
         
-        ;; --------------------------------------------------------
+        ;; ----
         ;; Tier 4 (Cost 5) - O(n) linear operations
         ;; Benchmarked: ~80-200ns/op for small inputs
-        ;; --------------------------------------------------------
+        ;; ----
         ;; List traversal
         [(length reverse)
          5]
@@ -353,10 +353,10 @@
         [(symbol->string string->symbol)
          5]
         
-        ;; --------------------------------------------------------
+        ;; ----
         ;; Tier 5 (Cost 10) - O(n) with allocation
         ;; Benchmarked: ~70-150ns/op for small inputs
-        ;; --------------------------------------------------------
+        ;; ----
         ;; String operations with allocation
         [(string-append substring)
          10]
@@ -377,30 +377,30 @@
         [(string->number)
          10]
         
-        ;; --------------------------------------------------------
+        ;; ----
         ;; Tier 6 (Cost 15) - Expensive conversions
         ;; Benchmarked: ~1000ns/op (formatting overhead)
-        ;; --------------------------------------------------------
+        ;; ----
         [(number->string)
          15]
         
-        ;; --------------------------------------------------------
+        ;; ----
         ;; Tier 7 (Cost 100) - Cryptographic operations
         ;; Benchmarked: ~43,000ns/op (~500x baseline)
-        ;; --------------------------------------------------------
+        ;; ----
         [(sha256)
          100]
         
-        ;; --------------------------------------------------------
+        ;; ----
         ;; Tier 8 (Cost 110) - Serialization + cryptographic
         ;; Benchmarked: ~44,000ns/op (block->bytes + sha256)
-        ;; --------------------------------------------------------
+        ;; ----
         [(hash-block)
          110]
         
-        ;; --------------------------------------------------------
+        ;; ----
         ;; Unknown primitive
-        ;; --------------------------------------------------------
+        ;; ----
         [else #f]))
 
 ;;; prim-arity : Symbol → (Option (Either Nat Symbol))

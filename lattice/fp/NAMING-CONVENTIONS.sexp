@@ -12,9 +12,9 @@
 
  (conventions
 
-  ;;; ================================================================
+  ;;; ====
   ;;; 1. Type-Specific Operations
-  ;;; ================================================================
+  ;;; ====
   ;;;
   ;;; Pattern: type-operation
   ;;; Examples: maybe-bind, reader-fmap, state-run
@@ -36,9 +36,9 @@
                  enables tab-completion discovery, matches Haskell
                  qualified import conventions"))
 
-  ;;; ================================================================
+  ;;; ====
   ;;; 2. Generic/Dictionary Operations
-  ;;; ================================================================
+  ;;; ====
   ;;;
   ;;; Pattern: operation dict args...
   ;;; Examples: (fmap functor f fa), (bind monad ma f)
@@ -56,9 +56,9 @@
    (rationale . "Puts the operation name first for readability,
                  dictionary parameter enables ad-hoc polymorphism"))
 
-  ;;; ================================================================
+  ;;; ====
   ;;; 3. Typeclass Accessors
-  ;;; ================================================================
+  ;;; ====
   ;;;
   ;;; Pattern: typeclass-field
   ;;; Examples: functor-fmap, monad-bind, applicative-pure
@@ -75,9 +75,9 @@
    (rationale . "Distinguishes accessors from operations,
                  follows record accessor conventions"))
 
-  ;;; ================================================================
+  ;;; ====
   ;;; 4. Constructors and Predicates
-  ;;; ================================================================
+  ;;; ====
   ;;;
   ;;; Constructors: make-type or type (for simple wrappers)
   ;;; Predicates: type?
@@ -94,9 +94,9 @@
                  bare name for simple wrappers like just/nothing,
                  ? suffix follows Scheme convention for predicates"))
 
-  ;;; ================================================================
+  ;;; ====
   ;;; 5. Monad Transformers
-  ;;; ================================================================
+  ;;; ====
   ;;;
   ;;; Pattern: type-t-operation
   ;;; Examples: maybe-t-bind, reader-t-ask, state-t-get
@@ -112,9 +112,9 @@
    (rationale . "Clear distinction between Maybe and MaybeT,
                  consistent with Haskell naming"))
 
-  ;;; ================================================================
+  ;;; ====
   ;;; 6. Arrow and Profunctor Operations
-  ;;; ================================================================
+  ;;; ====
   ;;;
   ;;; Strong: strong-first, strong-second
   ;;; Choice: choice-left, choice-right
@@ -130,9 +130,9 @@
    (rationale . "Each concept gets its own prefix to avoid collision
                  between Strong first and Arrow first"))
 
-  ;;; ================================================================
+  ;;; ====
   ;;; 7. Pair/Tuple Combinators
-  ;;; ================================================================
+  ;;; ====
   ;;;
   ;;; For simple pair operations (not typeclass methods):
   ;;; Pattern: pair-operation
@@ -145,9 +145,9 @@
    (rationale . "Avoids collision with arrow/strong/bifunctor first,
                  makes it clear these operate on pairs"))
 
-  ;;; ================================================================
+  ;;; ====
   ;;; 8. Semigroup/Monoid Operations
-  ;;; ================================================================
+  ;;; ====
   ;;;
   ;;; Generic: sg-append (semigroup), mappend (monoid), mempty
   ;;; Type-specific: type-append, type-empty
@@ -162,9 +162,9 @@
                  mappend follows Haskell convention,
                  type-append for concrete implementations"))
 
-  ;;; ================================================================
+  ;;; ====
   ;;; 9. Data Structure Operations
-  ;;; ================================================================
+  ;;; ====
   ;;;
   ;;; Pattern: type-operation
   ;;; Examples: map-insert, set-member?, trie-lookup
@@ -181,9 +181,9 @@
    (note . "When 'map' is a data structure name, the fmap operation
             should be map-fmap to avoid confusion"))
 
-  ;;; ================================================================
+  ;;; ====
   ;;; 10. Reserved/Discouraged Names
-  ;;; ================================================================
+  ;;; ====
   ;;;
   ;;; Avoid these patterns:
   ;;; - operation-type (e.g., bind-maybe) - use type-operation instead

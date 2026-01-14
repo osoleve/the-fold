@@ -20,9 +20,9 @@
 (load "lattice/linalg/vec3.ss")
 (load "lattice/physics/classical3d/shapes3d.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Point-in-Shape Tests
-;;; ============================================================
+;;; ====
 
 ;;; point-in-aabb3d? : Vec3 × AABB3D → Boolean
 (define (point-in-aabb3d? point aabb)
@@ -51,9 +51,9 @@
              (<= (abs (vec3-y local)) (vec3-y half))
              (<= (abs (vec3-z local)) (vec3-z half)))))
 
-;;; ============================================================
+;;; ====
 ;;; Closest Point Utilities
-;;; ============================================================
+;;; ====
 
 ;;; closest-point-on-segment-3d : Vec3 × Vec3 × Vec3 → Vec3
 ;;; Find closest point on line segment [v1, v2] to point.
@@ -87,9 +87,9 @@
          [clamped-z (max (- (vec3-z half)) (min (vec3-z local) (vec3-z half)))])
         (vec3-add center (vec3 clamped-x clamped-y clamped-z))))
 
-;;; ============================================================
+;;; ====
 ;;; Collision Detection: Sphere vs Sphere
-;;; ============================================================
+;;; ====
 
 ;;; sphere-sphere? : Sphere3D × Sphere3D → Boolean
 ;;; Test if two spheres overlap.
@@ -120,9 +120,9 @@
                                       (vec3-scale normal radius-a))])
                   (list normal penetration contact)))))
 
-;;; ============================================================
+;;; ====
 ;;; Collision Detection: AABB3D vs AABB3D
-;;; ============================================================
+;;; ====
 
 ;;; aabb3d-aabb3d? : AABB3D × AABB3D → Boolean
 ;;; Test if two AABBs overlap.
@@ -187,9 +187,9 @@
                                        (* (vec3-z a-half) sign-z)))])
                     (list normal overlap-z contact))]))))
 
-;;; ============================================================
+;;; ====
 ;;; Collision Detection: Sphere vs AABB3D
-;;; ============================================================
+;;; ====
 
 ;;; sphere-aabb3d? : Sphere3D × AABB3D → Boolean
 ;;; Test if sphere and AABB overlap.
@@ -242,9 +242,9 @@
          [(= min-dist dz-min) (vec3 0 0 -1)]
          [else (vec3 0 0 1)])))
 
-;;; ============================================================
+;;; ====
 ;;; Collision Detection: Sphere vs Box3D
-;;; ============================================================
+;;; ====
 
 ;;; sphere-box3d? : Sphere3D × Box3D → Boolean
 ;;; Test if sphere and box overlap.
@@ -295,9 +295,9 @@
          [(= min-dist dz-neg) (vec3 0 0 -1)]
          [else (vec3 0 0 1)])))
 
-;;; ============================================================
+;;; ====
 ;;; Collision Detection: Box3D vs Box3D (AABB version)
-;;; ============================================================
+;;; ====
 
 ;;; box3d-box3d? : Box3D × Box3D → Boolean
 ;;; Test if two axis-aligned boxes overlap.
@@ -311,9 +311,9 @@
          [b-aabb (box3d-aabb b)])
         (aabb3d-aabb3d-manifold a-aabb b-aabb)))
 
-;;; ============================================================
+;;; ====
 ;;; Generic Shape Dispatch
-;;; ============================================================
+;;; ====
 
 ;;; shape-type-3d : Shape3D → Symbol
 (define (shape-type-3d s)
@@ -395,9 +395,9 @@
         ;; Default: use AABB manifold
         [else (aabb3d-aabb3d-manifold (shape-aabb-3d a) (shape-aabb-3d b))])))
 
-;;; ============================================================
+;;; ====
 ;;; Manifold Accessors
-;;; ============================================================
+;;; ====
 
 ;;; manifold-normal : Manifold → Vec3
 (define (manifold-normal m) (car m))
@@ -408,9 +408,9 @@
 ;;; manifold-contact : Manifold → Vec3
 (define (manifold-contact m) (caddr m))
 
-;;; ============================================================
+;;; ====
 ;;; Spatial Hash for Broad Phase
-;;; ============================================================
+;;; ====
 
 ;;; cell-key-3d : (Int × Int × Int) → Integer
 ;;; Convert cell coordinates to a unique integer key.
@@ -502,9 +502,9 @@
 (define (spatial-hash-3d-clear! sh)
   (hashtable-clear! (spatial-hash-3d-table sh)))
 
-;;; ============================================================
+;;; ====
 ;;; Broad Phase Collision Pair Generation
-;;; ============================================================
+;;; ====
 
 ;;; pair-key-3d : Any × Any → String
 ;;; Create a canonical key for an unordered pair.

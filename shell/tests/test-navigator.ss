@@ -28,18 +28,18 @@
 (define (assert-false name actual)
   (assert-equal name actual #f))
 
-;;; ============================================================
+;;; ====
 ;;; Setup - Ensure graph is built
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Setting up navigator tests ===\n")
 (unless (call-graph-built?)
         (lens-rebuild!))
 (printf "Lens system ready.\n")
 
-;;; ============================================================
+;;; ====
 ;;; lens-query Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Testing lens-query ===\n")
 
@@ -78,9 +78,9 @@
                   (and (pair? result)
                        (eq? (car result) 'error))))
 
-;;; ============================================================
+;;; ====
 ;;; Query Result Content Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Testing query result content ===\n")
 
@@ -100,18 +100,18 @@
              (let ([result (lens-query 'foo 'slice-down)])
                   (list? (cadr result))))
 
-;;; ============================================================
+;;; ====
 ;;; call-graph-built? Integration Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Testing call-graph-built? integration ===\n")
 
 (assert-true "graph is built after lens-rebuild"
              (call-graph-built?))
 
-;;; ============================================================
+;;; ====
 ;;; find-all-test-files Integration Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Testing find-all-test-files integration ===\n")
 
@@ -127,9 +127,9 @@
                                   (string-starts-with? basename "test-")))
                      (find-all-test-files)))
 
-;;; ============================================================
+;;; ====
 ;;; Utility Function Availability Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Testing utility function availability ===\n")
 
@@ -166,9 +166,9 @@
 (assert-true "lens-query is defined"
              (procedure? lens-query))
 
-;;; ============================================================
+;;; ====
 ;;; take Function Tests (used by navigator)
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Testing take function (used internally) ===\n")
 
@@ -180,9 +180,9 @@
       ;; We'll test the expected behavior
       )
 
-;;; ============================================================
+;;; ====
 ;;; Edge Cases
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Testing Edge Cases ===\n")
 
@@ -197,11 +197,11 @@
                   ;; May be ok with #f or error
                   (pair? result)))
 
-;;; ============================================================
+;;; ====
 ;;; Test Summary
-;;; ============================================================
+;;; ====
 
-(printf "\n========================================\n")
+(printf "\n====\n")
 (printf "Test Results (navigator):\n")
 (printf "  Total:  ~a\n" test-count)
 (printf "  Passed: ~a\n" pass-count)

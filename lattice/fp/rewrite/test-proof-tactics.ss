@@ -8,9 +8,9 @@
 
 (display "\n=== Testing proof-tactics.ss ===\n\n")
 
-;;; ============================================================
+;;; ====
 ;;; Goal Construction Tests
-;;; ============================================================
+;;; ====
 
 (test-group goal-construction
             (define-test make-proof-goal-valid
@@ -28,9 +28,9 @@
               (let ([g (make-proof-goal 'x 'y '())])
                    (assert-false (goal-trivial? g)))))
 
-;;; ============================================================
+;;; ====
 ;;; Core Tactic Tests
-;;; ============================================================
+;;; ====
 
 (test-group core-tactics
             (define-test tactic-refl-succeeds-trivial
@@ -65,9 +65,9 @@
                          (assert-equal 'y (goal-lhs g2))
                          (assert-equal 'z (goal-rhs g2))))))
 
-;;; ============================================================
+;;; ====
 ;;; Rewrite Tactic Tests
-;;; ============================================================
+;;; ====
 
 (test-group rewrite-tactics
             (define-test tactic-rewrite-applies-law
@@ -87,9 +87,9 @@
                      [result ((tactic-rewrite 'nonexistent-law) g)])
                     (assert-true (tactic-failure? result)))))
 
-;;; ============================================================
+;;; ====
 ;;; Combinator Tests
-;;; ============================================================
+;;; ====
 
 (test-group tactic-combinators
             (define-test tactic-try-always-succeeds
@@ -118,9 +118,9 @@
                          (assert-equal 'x (goal-lhs sg))
                          (assert-equal 'y (goal-rhs sg))))))
 
-;;; ============================================================
+;;; ====
 ;;; Automation Tests
-;;; ============================================================
+;;; ====
 
 (test-group automation
             (define-test tactic-auto-trivial
@@ -138,9 +138,9 @@
                      [result (tactic-auto g)])
                     (assert-true (tactic-success? result)))))
 
-;;; ============================================================
+;;; ====
 ;;; Auto-Laws Configuration Tests
-;;; ============================================================
+;;; ====
 
 (test-group auto-laws-configuration
             ;; Test that auto-laws includes base laws
@@ -188,9 +188,9 @@
                           (assert-true #f)]  ; Duplicate found - fail
                          [else (loop (cdr lst) (cons (car lst) seen))])))))
 
-;;; ============================================================
+;;; ====
 ;;; Tactic-Auto with Fusion Tests
-;;; ============================================================
+;;; ====
 
 (test-group tactic-auto-fusion
             ;; Test that tactic-auto can apply map-map fusion
@@ -220,9 +220,9 @@
                      [result (tactic-auto g)])
                     (assert-true (tactic-success? result)))))
 
-;;; ============================================================
+;;; ====
 ;;; Search Tests (Skipped - slow due to exhaustive law enumeration)
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Note: tactic-search is correct but slow due to trying all laws.
 ;;; The search tests are skipped to keep test suite fast.
@@ -230,9 +230,9 @@
 ;;;   (let ([result ((tactic-search 1) (make-proof-goal 'x 'x '()))])
 ;;;     (tactic-success? result))  ; => #t
 
-;;; ============================================================
+;;; ====
 ;;; Strategy Lifting Tests
-;;; ============================================================
+;;; ====
 
 (test-group strategy-lifting
             (define-test strategy-to-tactic
@@ -248,9 +248,9 @@
                      [result (tactic g)])
                     (assert-true (tactic-success? result)))))
 
-;;; ============================================================
+;;; ====
 ;;; Proof Execution Tests
-;;; ============================================================
+;;; ====
 
 (test-group proof-execution
             (define-test prove-simple-equality
@@ -262,8 +262,8 @@
               (let ([result (prove-with-tactics 'x 'x '())])
                    (assert-equal 'ok (car result)))))
 
-;;; ============================================================
+;;; ====
 ;;; Run Summary
-;;; ============================================================
+;;; ====
 
 (run-all-tests)

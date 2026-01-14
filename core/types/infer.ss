@@ -55,9 +55,9 @@
 (load "core/types/types.ss")
 (load "core/types/kinds.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Type Environment
-;;; ============================================================
+;;; ====
 
 ;;; A type environment maps term variables to types.
 ;;; (List (Pair Symbol Type))
@@ -77,9 +77,9 @@
 (define (tenv-extend* env bindings)
   (append bindings env))
 
-;;; ============================================================
+;;; ====
 ;;; Fresh Type Variables
-;;; ============================================================
+;;; ====
 
 ;;; For inference, we need fresh type variables.
 ;;; We use a counter embedded in the inference state.
@@ -100,9 +100,9 @@
   (set! *fresh-counter* (+ *fresh-counter* 1))
   (string->symbol (string-append prefix (number->string *fresh-counter*))))
 
-;;; ============================================================
+;;; ====
 ;;; Substitution
-;;; ============================================================
+;;; ====
 
 ;;; A substitution maps type variables to types.
 ;;; We apply substitutions to types to instantiate variables.
@@ -157,9 +157,9 @@
    (map (lambda (p) (cons (car p) (apply-subst s1 (cdr p)))) s2)
    s1))
 
-;;; ============================================================
+;;; ====
 ;;; Unification
-;;; ============================================================
+;;; ====
 
 ;;; Unification finds a substitution that makes two types equal.
 ;;; Returns (ok subst) or (error message).
@@ -270,9 +270,9 @@
 
 ;;; Note: ormap is provided by prelude.ss
 
-;;; ============================================================
+;;; ====
 ;;; Instantiation
-;;; ============================================================
+;;; ====
 
 ;;; Instantiate a polymorphic type with fresh type variables.
 ;;; (∀ (a b) (-> a b a)) → (-> τ1 τ2 τ1) with fresh τ1, τ2
@@ -287,9 +287,9 @@
             (apply-subst s body))
       type))
 
-;;; ============================================================
+;;; ====
 ;;; Generalization
-;;; ============================================================
+;;; ====
 
 ;;; Generalize a type by quantifying over free type variables
 ;;; not in the environment.
@@ -305,9 +305,9 @@
 
 ;;; Note: unique and filter are provided by prelude.ss
 
-;;; ============================================================
+;;; ====
 ;;; Bidirectional Type Inference
-;;; ============================================================
+;;; ====
 
 ;;; infer : Expr × TEnv → (Result Type Subst)
 ;;; Synthesize a type for an expression.
@@ -404,9 +404,9 @@
    
    [else `(error unsupported-expression ,expr)]))
 
-;;; ============================================================
+;;; ====
 ;;; Let Inference (Multiple Bindings)
-;;; ============================================================
+;;; ====
 
 ;;; infer-let : (List (× Symbol Expr)) × Expr × TEnv × Subst → (Result (× Type Subst) Error)
 (define (infer-let bindings body env subst)
@@ -436,9 +436,9 @@
                       (infer-let (cdr bindings) body new-env combined-subst))
                 init-result))))
 
-;;; ============================================================
+;;; ====
 ;;; If Inference
-;;; ============================================================
+;;; ====
 
 ;;; infer-if : Expr × Expr × Expr × TEnv → (Result (× Type Subst) Error)
 (define (infer-if test then-expr else-expr env)
@@ -471,9 +471,9 @@
                                                         `(ok ,(apply-subst s5 then-type) ,s5))
                                                    branch-unify)))))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Case Inference (Pattern Matching on Blocks)
-;;; ============================================================
+;;; ====
 
 ;;; (case expr ((Tag x y) body) ...)
 ;;; The scrutinee must be a Block type.
@@ -525,9 +525,9 @@
                           (infer-case-clauses
                            (cdr clauses) s2 env body-type)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Application Inference
-;;; ============================================================
+;;; ====
 
 ;;; infer-app : Expr × (List Expr) × TEnv → (Result (× Type Subst) Error)
 (define (infer-app fn args env)
@@ -582,9 +582,9 @@
                (check-args (cdr args) (cdr types) (compose-subst (cadr result) s) env)
                result))))
 
-;;; ============================================================
+;;; ====
 ;;; Type Checking (Downward)
-;;; ============================================================
+;;; ====
 
 ;;; check : Expr × Type × TEnv → (Result Subst Error)
 ;;; Check that an expression has the expected type.
@@ -620,9 +620,9 @@
                        unify-result))
              result))]))
 
-;;; ============================================================
+;;; ====
 ;;; Primitive Type Inference
-;;; ============================================================
+;;; ====
 
 ;;; Type signatures for primitives
 (define prim-types
@@ -763,9 +763,9 @@
                 (infer-app-args inst-type args empty-subst env))
            `(error unknown-primitive ,op))))
 
-;;; ============================================================
+;;; ====
 ;;; Quoted Literals
-;;; ============================================================
+;;; ====
 
 ;;; infer-quoted : α → (Result (× Type Subst) Error)
 (define (infer-quoted datum)
@@ -782,18 +782,18 @@
              `(ok (List ?) ,empty-subst)))]
    [else `(ok ? ,empty-subst)]))
 
-;;; ============================================================
+;;; ====
 ;;; Special Forms
-;;; ============================================================
+;;; ====
 
 ;;; special-form? : α → Boolean
 (define (special-form? s)
   (and (symbol? s)
        (memq s '(fn let fix if case prim quote :))))
 
-;;; ============================================================
+;;; ====
 ;;; Convenience API
-;;; ============================================================
+;;; ====
 
 ;;; typeof : Expr → Type | Error
 ;;; Infer the type of an expression in the empty environment.
@@ -815,9 +815,9 @@
            #t
            result)))
 
-;;; ============================================================
+;;; ====
 ;;; Pretty Error Messages
-;;; ============================================================
+;;; ====
 
 ;;; format-type-error : Error → String
 (define (format-type-error err)
@@ -841,9 +841,9 @@
          (format "No type class instance found for constraint: ~a" (caddr err))]
         [else (format "~s" err)]))
 
-;;; ============================================================
+;;; ====
 ;;; Constraint Handling Integration
-;;; ============================================================
+;;; ====
 
 ;;; With the instance resolution module (resolve.ss), we can now
 ;;; integrate type class constraint solving into type inference.
@@ -890,9 +890,9 @@
 (define (apply-subst-to-constraints s cs)
   (map (lambda (c) (apply-subst-to-constraint s c)) cs))
 
-;;; ============================================================
+;;; ====
 ;;; Constraint Solving
-;;; ============================================================
+;;; ====
 
 ;;; solve-constraints : (List Constraint) × IDB → (Result (List Evidence) Error)
 (define (solve-constraints constraints idb)
@@ -906,9 +906,9 @@
                         rest-result))
                result))))
 
-;;; ============================================================
+;;; ====
 ;;; Type Inference with Constraint Solving
-;;; ============================================================
+;;; ====
 
 ;;; infer-with-constraints : Expr × TEnv → (Result (× Type Subst (List Constraint)) Error)
 (define (infer-with-constraints expr env)
@@ -936,9 +936,9 @@
                      solve-result))
            result)))
 
-;;; ============================================================
+;;; ====
 ;;; Constrained Type Environment
-;;; ============================================================
+;;; ====
 
 ;;; For type checking with type classes, we need a richer environment
 ;;; that includes class method types. This allows (fmap f xs) to infer

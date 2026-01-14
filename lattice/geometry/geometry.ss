@@ -21,9 +21,9 @@
 (load "lattice/linalg/matrix.ss")
 (load "lattice/linalg/quaternion.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Geometric Primitives
-;;; ============================================================
+;;; ====
 
 ;;; Point3 is just a Vec3
 ;;; point3 : Number × Number × Number → Point3
@@ -187,9 +187,9 @@
 ;;; obb-extents : OBB → Vec3
 (define (obb-extents b) (cadddr b))
 
-;;; ============================================================
+;;; ====
 ;;; Transformations
-;;; ============================================================
+;;; ====
 
 ;;; transform4x4 : Matrix 4×4 representing homogeneous transformation
 ;;; We use the matrix module's representation
@@ -338,9 +338,9 @@
                 (* (matrix-ref mat 2 1) y)
                 (* (matrix-ref mat 2 2) z)))))
 
-;;; ============================================================
+;;; ====
 ;;; Distance Calculations
-;;; ============================================================
+;;; ====
 
 ;;; distance-point-point : Point3 × Point3 → Number
 (define (distance-point-point p1 p2)
@@ -370,9 +370,9 @@
   (- (distance-point-point point (sphere-center sphere))
      (sphere-radius sphere)))
 
-;;; ============================================================
+;;; ====
 ;;; Intersection Tests
-;;; ============================================================
+;;; ====
 
 ;;; intersect-ray-plane : Ray3 × Plane3 → Number | #f
 ;;; Returns t parameter if intersects, #f otherwise
@@ -465,9 +465,9 @@
                                 (let ([t (* f (vec3-dot edge2 q))])
                                      (if (> t 1e-10) t #f)))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Containment Tests
-;;; ============================================================
+;;; ====
 
 ;;; point-in-sphere? : Point3 × Sphere → Bool
 (define (point-in-sphere? point sphere)
@@ -498,9 +498,9 @@
         (and (>= u 0) (>= v 0) (>= w 0)
              (<= (+ u v w) 1.0001))))  ; Small epsilon for floating point
 
-;;; ============================================================
+;;; ====
 ;;; Closest Point Queries
-;;; ============================================================
+;;; ====
 
 ;;; closest-point-on-line : Point3 × Line3 → Point3
 (define (closest-point-on-line point line)
@@ -524,9 +524,9 @@
              (max (vec3-y bmin) (min (vec3-y point) (vec3-y bmax)))
              (max (vec3-z bmin) (min (vec3-z point) (vec3-z bmax))))))
 
-;;; ============================================================
+;;; ====
 ;;; Area and Volume Calculations
-;;; ============================================================
+;;; ====
 
 ;;; triangle-area : Triangle3 → Number
 (define (triangle-area tri)
@@ -556,9 +556,9 @@
          [z (vec3-z extents)])
         (* 8 x y z)))  ; extents are half-sizes
 
-;;; ============================================================
+;;; ====
 ;;; Utilities
-;;; ============================================================
+;;; ====
 
 ;;; barycentric-coords : Point3 × Point3 × Point3 × Point3 → (Number Number Number)
 ;;; Compute barycentric coordinates (u, v, w) of point p with respect to triangle (a, b, c)
@@ -623,9 +623,9 @@
                                 (max (vec3-y max-p) (vec3-y p))
                                 (max (vec3-z max-p) (vec3-z p)))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Coordinate System Conversions
-;;; ============================================================
+;;; ====
 
 ;;; vec3-to-spherical : Vec3 → (Number Number Number)
 ;;; Convert Cartesian to spherical (r, θ, φ)

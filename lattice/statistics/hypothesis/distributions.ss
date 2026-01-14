@@ -19,9 +19,9 @@
 (load "lattice/fp/numeric/transcendental.ss")
 (load "lattice/fp/numeric/special-functions.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Student's t-Distribution
-;;; ============================================================
+;;; ====
 
 ;;; The t-distribution CDF is related to the regularized incomplete beta:
 ;;; F_t(x|df) = 1 - 0.5 * I_{df/(df+x^2)}(df/2, 0.5)  for x >= 0
@@ -83,9 +83,9 @@
              [den (+ 1 (* b1 t) (* b2 t t) (* b3 t t t))])
             (* sign (- t (/ num den))))))
 
-;;; ============================================================
+;;; ====
 ;;; Chi-Squared Distribution
-;;; ============================================================
+;;; ====
 
 ;;; The chi-squared distribution is a special case of gamma:
 ;;; chi-squared(df) = gamma(df/2, 2)
@@ -131,9 +131,9 @@
            [c (/ 1 (* (expt 2 k2) (gamma k2)))])
           (* c (expt x (- k2 1)) (exp (/ (- x) 2))))]))
 
-;;; ============================================================
+;;; ====
 ;;; F-Distribution
-;;; ============================================================
+;;; ====
 
 ;;; The F-distribution CDF is related to the regularized incomplete beta:
 ;;; F_F(x|df1,df2) = I_{df1*x/(df1*x+df2)}(df1/2, df2/2)
@@ -186,9 +186,9 @@
            [den (expt (+ 1 (* (/ df1 df2) x)) (+ a b))])
           (* c (/ num den)))]))
 
-;;; ============================================================
+;;; ====
 ;;; Newton-Raphson Quantile Inversion
-;;; ============================================================
+;;; ====
 
 ;;; newton-raphson-quantile : (Num → Num) × (Num → Num) × Num × Num × Nat × Num → Num
 ;;; Find x such that cdf(x) = p using Newton-Raphson.
@@ -214,9 +214,9 @@
                                     x-new
                                     (loop x-new (+ iter 1))))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Two-Tailed P-Values
-;;; ============================================================
+;;; ====
 
 ;;; t-pvalue-two-tailed : Num × Num → Num
 ;;; Two-tailed p-value for t-statistic.

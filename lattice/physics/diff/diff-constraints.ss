@@ -24,9 +24,9 @@
 (load "lattice/physics/diff/traced-vec2.ss")
 (load "lattice/physics/diff/traced-body.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Spring Constraint (Naturally Differentiable)
-;;; ============================================================
+;;; ====
 
 ;;; Springs are inherently smooth - the simplest differentiable constraint.
 
@@ -86,9 +86,9 @@
 (define (spring-constraint-stiffness c) (list-ref c 6))
 (define (spring-constraint-damping c) (list-ref c 7))
 
-;;; ============================================================
+;;; ====
 ;;; Distance Constraint (Stiff Spring)
-;;; ============================================================
+;;; ====
 
 ;;; Distance constraints are implemented as very stiff springs.
 ;;; This is smooth but may require small timesteps for stability.
@@ -109,9 +109,9 @@
                           *distance-constraint-stiffness*
                           *distance-constraint-damping*))
 
-;;; ============================================================
+;;; ====
 ;;; Anchor Constraint (Pin to World)
-;;; ============================================================
+;;; ====
 
 ;;; Anchors a point on a body to a fixed world position.
 
@@ -149,9 +149,9 @@
          [torque (traced-vec2-cross r force)])
         (values force torque)))
 
-;;; ============================================================
+;;; ====
 ;;; Revolute Joint (Shared Pivot)
-;;; ============================================================
+;;; ====
 
 ;;; A revolute joint constrains two bodies to share a pivot point.
 ;;; Each body can rotate freely around the joint.
@@ -193,9 +193,9 @@
         (values (list force-a torque-a)
                 (list force-b torque-b))))
 
-;;; ============================================================
+;;; ====
 ;;; Angular Spring (Rotational Constraint)
-;;; ============================================================
+;;; ====
 
 ;;; Constrains the relative angle between two bodies.
 
@@ -220,9 +220,9 @@
          [total (traced-add spring-torque damp-torque)])
         total))
 
-;;; ============================================================
+;;; ====
 ;;; Constraint System Solver
-;;; ============================================================
+;;; ====
 
 ;;; Apply all constraints to a system of bodies.
 ;;; Uses truncated unrolling: computes forces once per timestep.
@@ -336,9 +336,9 @@
    bodies
    constraints))
 
-;;; ============================================================
+;;; ====
 ;;; Complete Constraint Solver Step
-;;; ============================================================
+;;; ====
 
 ;;; traced-constraint-step : (Vector TracedBody) × (List Constraint) × TracedVec2 × Number × Nat → (Vector TracedBody)
 ;;; One complete constraint solver step with optional iteration.
@@ -371,9 +371,9 @@
             ((= i n) result)
             (vector-set! result i (f (vector-ref v i))))))
 
-;;; ============================================================
+;;; ====
 ;;; Pendulum Example Helpers
-;;; ============================================================
+;;; ====
 
 ;;; make-pendulum-system : TracedVec2 × Number × Number × Number × Tape → (TracedBody × AnchorConstraint)
 ;;; Create a single pendulum bob anchored at a pivot.

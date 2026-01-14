@@ -24,14 +24,14 @@
   (assert-= (matrix-ref m i j) expected tolerance))
 
 (display "
-==============================================================
+====
          HIGHER-ORDER DIFFERENTIATION TESTS
-==============================================================
+====
 ")
 
-;;; ============================================================
+;;; ====
 ;;; Jacobian Tests
-;;; ============================================================
+;;; ====
 
 (test-group jacobian-tests
             (define-test jacobian-identity
@@ -93,9 +93,9 @@
                     (assert-matrix-= J 0 0 1 0.0001)   ; cos(0) = 1
                     (assert-matrix-= J 1 0 0 0.0001))))  ; -sin(0) = 0
 
-;;; ============================================================
+;;; ====
 ;;; JVP (Jacobian-Vector Product) Tests
-;;; ============================================================
+;;; ====
 
 (test-group jvp-tests
             (define-test jvp-identity
@@ -122,9 +122,9 @@
                      [result (jvp f '(3 4) '(1 2))])
                     (assert-= (car result) 10 0.0001))))
 
-;;; ============================================================
+;;; ====
 ;;; VJP (Vector-Jacobian Product) Tests
-;;; ============================================================
+;;; ====
 
 (test-group vjp-tests
             (define-test vjp-identity
@@ -152,9 +152,9 @@
                     (assert-= (car result) 8 0.0001)
                     (assert-= (cadr result) 6 0.0001))))
 
-;;; ============================================================
+;;; ====
 ;;; Hessian Tests (Numerical)
-;;; ============================================================
+;;; ====
 
 (test-group hessian-numerical-tests
             (define-test hessian-numerical-quadratic
@@ -182,9 +182,9 @@
                      [H (hessian-numerical f '(2) 1e-4)])
                     (assert-matrix-= H 0 0 12 0.1))))
 
-;;; ============================================================
+;;; ====
 ;;; Gradient Utilities
-;;; ============================================================
+;;; ====
 
 (test-group gradient-utility-tests
             (define-test grad-wrapper
@@ -208,9 +208,9 @@
                      [dd (directional-derivative f '(3 4) '(0.6 0.8))])
                     (assert-= dd 10 0.0001))))
 
-;;; ============================================================
+;;; ====
 ;;; Second Derivative (Single Variable)
-;;; ============================================================
+;;; ====
 
 (test-group second-derivative-tests
             (define-test second-derivative-quadratic
@@ -226,9 +226,9 @@
                      [d2f (second-derivative f 2)])
                     (assert-= d2f 12 0.5))))
 
-;;; ============================================================
+;;; ====
 ;;; Exact Hessian Tests (via Hyperdual Numbers)
-;;; ============================================================
+;;; ====
 
 (test-group exact-hessian-tests
             (define-test hessian-exact-quadratic
@@ -282,9 +282,9 @@
               (let ([d2f (second-derivative-exact hd-sin 0)])
                    (assert-= d2f 0.0 1e-15))))
 
-;;; ============================================================
+;;; ====
 ;;; Jet Number Basic Tests
-;;; ============================================================
+;;; ====
 
 (test-group jet-basic-tests
             (define-test jet-creation
@@ -317,9 +317,9 @@
                    (assert-= (jet-deriv j 1) 2 1e-15)     ; 1! * 2 = 2
                    (assert-= (jet-deriv j 2) 6 1e-15))))  ; 2! * 3 = 6
 
-;;; ============================================================
+;;; ====
 ;;; Jet Arithmetic Tests
-;;; ============================================================
+;;; ====
 
 (test-group jet-arithmetic-tests
             (define-test jet-add-simple
@@ -368,9 +368,9 @@
                     (assert-= (jet-coeff c 0) 3 1e-15)
                     (assert-= (jet-coeff c 1) 2 1e-15))))
 
-;;; ============================================================
+;;; ====
 ;;; Jet Transcendental Function Tests
-;;; ============================================================
+;;; ====
 
 (test-group jet-transcendental-tests
             (define-test jet-exp-at-zero
@@ -500,9 +500,9 @@
                     (assert-= (jet-value s) (/ (- e (/ 1 e)) 2) 1e-12)
                     (assert-= (jet-deriv s 1) (/ (+ e (/ 1 e)) 2) 1e-12))))
 
-;;; ============================================================
+;;; ====
 ;;; nth-Derivative Tests
-;;; ============================================================
+;;; ====
 
 (test-group nth-derivative-tests
             (define-test nth-deriv-polynomial
@@ -546,9 +546,9 @@
                     (assert-= (cadddr derivs) 1 1e-12)        ; f'''(0)
                     (assert-= (car (cddddr derivs)) 1 1e-12)))) ; f''''(0)
 
-;;; ============================================================
+;;; ====
 ;;; Taylor Series Tests
-;;; ============================================================
+;;; ====
 
 (test-group taylor-series-tests
             (define-test taylor-coefficients-exp
@@ -590,9 +590,9 @@
                      [bound-10 (taylor-remainder-bound jet-exp 0 0.1 10)])
                     (assert-true (< bound-10 bound-5)))))
 
-;;; ============================================================
+;;; ====
 ;;; Convenience Function Tests
-;;; ============================================================
+;;; ====
 
 (test-group convenience-function-tests
             (define-test second-derivative-jet-test
@@ -607,9 +607,9 @@
               (let ([f (lambda (x) (jet-pow x 5))])
                    (assert-= (fourth-derivative-jet f 1) 120 1e-12)))) ; 120
 
-;;; ============================================================
+;;; ====
 ;;; Multivariate Partial Derivative Tests
-;;; ============================================================
+;;; ====
 
 (test-group partial-derivative-tests
             (define-test partial-derivative-single-var
@@ -624,9 +624,9 @@
                         (assert-= (car g) 6 1e-10)   ; 2x = 6
                         (assert-= (cadr g) 8 1e-10))))) ; 2y = 8
 
-;;; ============================================================
+;;; ====
 ;;; Hessian Mixed Partial Tests (fold-ntpw)
-;;; ============================================================
+;;; ====
 
 (test-group hessian-mixed-partial-tests
             (define-test hessian-xy-product
@@ -677,9 +677,9 @@
                     (assert-= (matrix-ref H 0 1) H01-expected 1e-10)
                     (assert-= (matrix-ref H 1 0) H01-expected 1e-10))))
 
-;;; ============================================================
+;;; ====
 ;;; Jet-Pow Performance Tests (fold-zf0o)
-;;; ============================================================
+;;; ====
 
 (test-group jet-pow-performance-tests
             (define-test jet-pow-large-exponent
@@ -703,12 +703,12 @@
                     (assert-= (jet-value p) expected-value 1e-40)
                     (assert-= (jet-deriv p 1) expected-deriv 1e-38))))
 
-;;; ============================================================
+;;; ====
 ;;; Summary
-;;; ============================================================
+;;; ====
 
 (display "
-==============================================================
+====
 ")
 (printf "Tests passed: ~a~n" *tests-passed*)
 (printf "Tests failed: ~a~n" *tests-failed*)

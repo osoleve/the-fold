@@ -20,9 +20,9 @@
 
 (load "core/base/prelude.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Pair Convention
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Throughout this module, 2-element pairs use Scheme's native cons cells:
 ;;;   (cons a b) produces (a . b)
@@ -33,9 +33,9 @@
 ;;;
 ;;; This is consistent with the rest of the FP toolkit.
 
-;;; ============================================================
+;;; ====
 ;;; Classic Combinators (SKI + friends)
-;;; ============================================================
+;;; ====
 
 ;;; id : a → a
 ;;; Identity function (I combinator).
@@ -60,9 +60,9 @@
 ;;; Apply function to argument.
 (define (apply-fn f x) (f x))
 
-;;; ============================================================
+;;; ====
 ;;; Function Composition
-;;; ============================================================
+;;; ====
 
 ;;; compose2 : (b → c) → (a → b) → (a → c)
 ;;; Compose two functions (g after f).
@@ -96,9 +96,9 @@
 ;;; <<< : Alias for compose
 (define <<< compose)
 
-;;; ============================================================
+;;; ====
 ;;; Currying and Partial Application
-;;; ============================================================
+;;; ====
 
 ;;; curry2 : ((a × b) → c) → a → b → c
 ;;; Curry a binary function.
@@ -143,9 +143,9 @@
 (define (rpartial f z)
   (lambda args (apply f (append args (list z)))))
 
-;;; ============================================================
+;;; ====
 ;;; Higher-Order Function Utilities
-;;; ============================================================
+;;; ====
 
 ;;; on : (b → b → c) → (a → b) → (a → a → c)
 ;;; Apply transformation before binary operation.
@@ -181,9 +181,9 @@
   (lambda (pair)
           (cons (f (car pair)) (g (cdr pair)))))
 
-;;; ============================================================
+;;; ====
 ;;; Logical Combinators
-;;; ============================================================
+;;; ====
 
 ;;; complement : (a → Bool) → (a → Bool)
 ;;; Negate a predicate.
@@ -208,9 +208,9 @@
                     (or ((car ps) x)
                         (loop (cdr ps)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Tuple/List Operations
-;;; ============================================================
+;;; ====
 
 ;;; fst : (a × b) → a
 ;;; Note: pairs are (cons a b).
@@ -235,9 +235,9 @@
 (define (pair x y)
   (cons x y))
 
-;;; ============================================================
+;;; ====
 ;;; Maybe/Option Type Operations
-;;; ============================================================
+;;; ====
 
 ;;; Representation: #f for Nothing, (just value) for Just
 
@@ -310,9 +310,9 @@
                                       (lambda (xs)
                                               (just (cons x xs))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Either/Result Type Operations
-;;; ============================================================
+;;; ====
 
 ;;; Representation: (left value) or (right value)
 
@@ -402,9 +402,9 @@
               '(() ())
               es))
 
-;;; ============================================================
+;;; ====
 ;;; List Utilities
-;;; ============================================================
+;;; ====
 
 ;;; head : (List a) → a
 (define head car)
@@ -480,9 +480,9 @@
                         (loop (cdr xs) prev-key result)
                         (loop (cdr xs) k (cons (car xs) result))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Iteration Combinators
-;;; ============================================================
+;;; ====
 
 ;;; iterate-n : (α → α) × α × Nat → (List α)
 ;;; Generate list by repeated function application.
@@ -514,9 +514,9 @@
                 x-next
                 (loop x-next (+ i 1))))))
 
-;;; ============================================================
+;;; ====
 ;;; Memoization
-;;; ============================================================
+;;; ====
 
 ;;; memoize : (α → β) → (α → β)
 ;;; Memoize a function (using eq? hash).
@@ -530,9 +530,9 @@
                              result)
                         cached)))))
 
-;;; ============================================================
+;;; ====
 ;;; Fixpoint Combinator
-;;; ============================================================
+;;; ====
 
 ;;; Y : ((α → β) → (α → β)) → (α → β)
 ;;; Y combinator (for defining recursive anonymous functions).
@@ -540,9 +540,9 @@
   ((lambda (x) (f (lambda (v) ((x x) v))))
    (lambda (x) (f (lambda (v) ((x x) v))))))
 
-;;; ============================================================
+;;; ====
 ;;; Monadic Do-Notation
-;;; ============================================================
+;;; ====
 
 ;;; do-monad : Macro for monadic computation
 ;;;

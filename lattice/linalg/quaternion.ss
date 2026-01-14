@@ -17,9 +17,9 @@
 (load "core/base/prelude.ss")
 (load "lattice/linalg/vec3.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Quaternion Construction
-;;; ============================================================
+;;; ====
 
 ;;; quat : Number × Number × Number × Number → Quaternion
 ;;; Create a quaternion (w, x, y, z).
@@ -165,9 +165,9 @@
                   (list (vec3-z r) (vec3-z u) (vec3-z f)))])
         (quat-from-rotation-matrix m)))
 
-;;; ============================================================
+;;; ====
 ;;; Predicates
-;;; ============================================================
+;;; ====
 
 ;;; quat? : Any → Boolean
 (define (quat? q)
@@ -186,9 +186,9 @@
 (define (quat-unit? q)
   (< (abs (- (quat-magnitude-sq q) 1.0)) 1e-10))
 
-;;; ============================================================
+;;; ====
 ;;; Accessors
-;;; ============================================================
+;;; ====
 
 ;;; quat-w : Quaternion → Number
 (define (quat-w q) (list-ref q 1))
@@ -219,9 +219,9 @@
 (define (list->quat lst)
   (quat (car lst) (cadr lst) (caddr lst) (cadddr lst)))
 
-;;; ============================================================
+;;; ====
 ;;; Basic Arithmetic
-;;; ============================================================
+;;; ====
 
 ;;; quat-add : Quaternion × Quaternion → Quaternion
 ;;; Quaternion addition.
@@ -266,9 +266,9 @@
              (+ (* aw by) (- (* ax bz)) (* ay bw) (* az bx))
              (+ (* aw bz) (* ax by) (- (* ay bx)) (* az bw)))))
 
-;;; ============================================================
+;;; ====
 ;;; Length and Normalization
-;;; ============================================================
+;;; ====
 
 ;;; quat-magnitude-sq : Quaternion → Number
 ;;; Squared magnitude.
@@ -294,9 +294,9 @@
                  (/ (quat-y q) mag)
                  (/ (quat-z q) mag)))))
 
-;;; ============================================================
+;;; ====
 ;;; Conjugate and Inverse
-;;; ============================================================
+;;; ====
 
 ;;; quat-conjugate : Quaternion → Quaternion
 ;;; Conjugate: negate the vector part.
@@ -315,9 +315,9 @@
            (quat-identity)
            (quat-scale (quat-conjugate q) (/ 1 mag-sq)))))
 
-;;; ============================================================
+;;; ====
 ;;; Dot Product and Angle
-;;; ============================================================
+;;; ====
 
 ;;; quat-dot : Quaternion × Quaternion → Number
 ;;; Dot product (4D).
@@ -333,9 +333,9 @@
   (let ([dot (abs (quat-dot a b))])
        (* 2 (acos (min 1.0 dot)))))
 
-;;; ============================================================
+;;; ====
 ;;; Interpolation
-;;; ============================================================
+;;; ====
 
 ;;; quat-lerp : Quaternion × Quaternion → Number → Quaternion
 ;;; Linear interpolation (not normalized).
@@ -369,9 +369,9 @@
                   (quat-add (quat-scale a s0)
                             (quat-scale b s1))))))
 
-;;; ============================================================
+;;; ====
 ;;; Rotation Operations
-;;; ============================================================
+;;; ====
 
 ;;; quat-rotate-vec3 : Quaternion × Vec3 → Vec3
 ;;; Rotate a vector by the quaternion.
@@ -440,9 +440,9 @@
               (list (+ xy wz) (- 1 x2 z2) (- yz wx))
               (list (- xz wy) (+ yz wx) (- 1 x2 y2)))))
 
-;;; ============================================================
+;;; ====
 ;;; Angular Velocity
-;;; ============================================================
+;;; ====
 
 ;;; quat-angular-velocity : Quaternion × Quaternion × Number → Vec3
 ;;; Compute angular velocity from q1 to q2 over time dt.
@@ -472,9 +472,9 @@
                              (* (sin theta) (vec3-z axis)))])
                   (quat-normalize (quat-mul dq q))))))
 
-;;; ============================================================
+;;; ====
 ;;; Utility Functions
-;;; ============================================================
+;;; ====
 
 ;;; quat-forward : Quaternion → Vec3
 ;;; Get the forward direction (rotated +Z axis).

@@ -25,9 +25,9 @@
 
 (load "core/base/prelude.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Shell-Specific Aliases
-;;; ============================================================
+;;; ====
 
 ;;; string-prefix? : String × String → Boolean
 ;;; Check if str starts with prefix.
@@ -41,9 +41,9 @@
 (define (string-suffix? suffix str)
   (string-ends-with? str suffix))
 
-;;; ============================================================
+;;; ====
 ;;; Shell-Specific Extensions
-;;; ============================================================
+;;; ====
 
 ;;; string-index : String × Char → Integer | #f
 ;;; Find first occurrence of character in string.

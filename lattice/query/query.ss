@@ -3,9 +3,9 @@
 ;;; Note: The original forum-based query functionality has been removed.
 ;;; This file provides stub implementations for backward compatibility.
 
-;;; ============================================================
+;;; ====
 ;;; Stub Functions
-;;; ============================================================
+;;; ====
 
 ;;; These functions originally queried forum posts by tags.
 ;;; They now return empty results since the forum has been removed.

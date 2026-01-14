@@ -17,9 +17,9 @@
 (load "core/base/prelude.ss")
 (load "lattice/linalg/vec.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Convergence Criteria Structure
-;;; ============================================================
+;;; ====
 
 ;;; A convergence criteria specifies when to stop optimization.
 ;;; Structure: (convergence-criteria grad-tol f-tol x-tol max-iter)
@@ -47,9 +47,9 @@
 (define (cc-x-tol cc) (list-ref cc 3))
 (define (cc-max-iter cc) (list-ref cc 4))
 
-;;; ============================================================
+;;; ====
 ;;; Convergence State
-;;; ============================================================
+;;; ====
 
 ;;; Tracks optimization progress for convergence checking.
 ;;; Structure: (convergence-state iter f-val grad-norm f-change x-change)
@@ -69,9 +69,9 @@
 (define (cs-f-change cs) (list-ref cs 4))
 (define (cs-x-change cs) (list-ref cs 5))
 
-;;; ============================================================
+;;; ====
 ;;; Convergence Checking
-;;; ============================================================
+;;; ====
 
 ;;; converged? : ConvergenceCriteria × ConvergenceState → (Either Bool Symbol)
 ;;; Check if optimization has converged.
@@ -99,9 +99,9 @@
    ;; Not converged
    [else #f]))
 
-;;; ============================================================
+;;; ====
 ;;; Vector Norms and Differences
-;;; ============================================================
+;;; ====
 
 ;;; vec-norm : (List Number) → Number
 ;;; Compute L2 norm of a list-vector.
@@ -130,9 +130,9 @@
 (define (vec-inf-norm v)
   (fold-left max 0 (map abs v)))
 
-;;; ============================================================
+;;; ====
 ;;; Optimization Result
-;;; ============================================================
+;;; ====
 
 ;;; Represents the result of an optimization.
 ;;; Structure: (opt-result x f-val grad iterations converged-reason)
@@ -152,9 +152,9 @@
 (define (opt-iterations result) (list-ref result 4))
 (define (opt-converged result) (list-ref result 5))
 
-;;; ============================================================
+;;; ====
 ;;; Convergence Monitoring
-;;; ============================================================
+;;; ====
 
 ;;; update-convergence-state : ConvergenceState × Number × (List Number) × (List Number) × (List Number) → ConvergenceState
 ;;; Update state with new iteration data.
@@ -175,9 +175,9 @@
 (define (initial-convergence-state f-val grad)
   (make-convergence-state 0 f-val (vec-norm grad) +inf.0 +inf.0))
 
-;;; ============================================================
+;;; ====
 ;;; Progress Reporting
-;;; ============================================================
+;;; ====
 
 ;;; convergence-progress : ConvergenceState → String
 ;;; Format convergence state as a progress string.
@@ -189,9 +189,9 @@
           (cs-f-change state)
           (cs-x-change state)))
 
-;;; ============================================================
+;;; ====
 ;;; Convenience Constructors
-;;; ============================================================
+;;; ====
 
 ;;; loose-convergence : Unit → ConvergenceCriteria
 ;;; Loose convergence for quick approximate solutions.

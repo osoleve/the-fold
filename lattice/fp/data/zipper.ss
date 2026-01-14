@@ -23,9 +23,9 @@
 (load "core/base/prelude.ss")
 (load "lattice/fp/meta/combinators.ss")
 
-;;; ============================================================
+;;; ====
 ;;; List Zipper Type
-;;; ============================================================
+;;; ====
 ;;;
 ;;; A list zipper consists of:
 ;;;   - left:  Elements to the left of focus (reversed, closest first)
@@ -83,9 +83,9 @@
       (list-ref z 3)
       (error 'zipper-right "not a zipper")))
 
-;;; ============================================================
+;;; ====
 ;;; Constructors
-;;; ============================================================
+;;; ====
 
 ;;; zipper-empty : (ListZipper α)
 ;;; The empty zipper.
@@ -136,9 +136,9 @@
       [else
        (loop (cons (car rest) left) (cdr rest) (- n 1))])))
 
-;;; ============================================================
+;;; ====
 ;;; Navigation
-;;; ============================================================
+;;; ====
 
 ;;; zipper-has-focus? : (ListZipper α) → Bool
 ;;; Check if zipper has a focused element.
@@ -244,9 +244,9 @@
      (if (zipper-has-focus? z) 1 0)
      (length (zipper-right z))))
 
-;;; ============================================================
+;;; ====
 ;;; Focus Operations
-;;; ============================================================
+;;; ====
 
 ;;; zipper-focus : (ListZipper α) → α
 ;;; Get the focused element. Error if no focus.
@@ -282,9 +282,9 @@
                    (just (f (from-just (zipper-focus-maybe z))))
                    (zipper-right z))))
 
-;;; ============================================================
+;;; ====
 ;;; Insertion
-;;; ============================================================
+;;; ====
 
 ;;; zipper-insert-left : (ListZipper α) × α → (ListZipper α)
 ;;; Insert element to the left of focus.
@@ -320,9 +320,9 @@
                      right
                      (cons (from-just focus) right)))))
 
-;;; ============================================================
+;;; ====
 ;;; Deletion
-;;; ============================================================
+;;; ====
 
 ;;; zipper-delete : (ListZipper α) → (ListZipper α)
 ;;; Delete focused element. Focus moves right if possible, else left.
@@ -367,9 +367,9 @@
                      (zipper-focus-maybe z)
                      (cdr right)))))
 
-;;; ============================================================
+;;; ====
 ;;; Bulk Operations
-;;; ============================================================
+;;; ====
 
 ;;; zipper-map : (α → β) × (ListZipper α) → (ListZipper β)
 ;;; Map function over all elements in zipper.
@@ -415,9 +415,9 @@
       [(pred (car lst)) (just idx)]
       [else (loop (cdr lst) (+ idx 1))])))
 
-;;; ============================================================
+;;; ====
 ;;; Context Operations
-;;; ============================================================
+;;; ====
 
 ;;; zipper-context : (ListZipper α) → (List α)
 ;;; Get all elements except focus (in order).
@@ -444,9 +444,9 @@
               (cons (zipper-focus z) (zipper-take-right z right-count))
               (zipper-take-right z right-count))))
 
-;;; ============================================================
+;;; ====
 ;;; Splitting and Joining
-;;; ============================================================
+;;; ====
 
 ;;; zipper-split : (ListZipper α) → (Pair (List α) (List α))
 ;;; Split at focus into (left-elements, focus+right-elements).
@@ -470,9 +470,9 @@
                (zipper-focus-maybe z)
                (zipper-right z)))
 
-;;; ============================================================
+;;; ====
 ;;; Type Class Instances
-;;; ============================================================
+;;; ====
 
 ;;; zipper-functor : (Functor ListZipper)
 ;;; The Functor instance for ListZipper.
@@ -483,9 +483,9 @@
 ;;; Alias for zipper-map.
 (define zipper-fmap zipper-map)
 
-;;; ============================================================
+;;; ====
 ;;; Comonad Instance
-;;; ============================================================
+;;; ====
 ;;;
 ;;; ListZipper forms a Comonad with:
 ;;;   - extract: Get the focused element
@@ -541,9 +541,9 @@
         zipper-extract
         zipper-extend))
 
-;;; ============================================================
+;;; ====
 ;;; Equality and Display
-;;; ============================================================
+;;; ====
 
 ;;; zipper-equal? : (ListZipper α) × (ListZipper α) → Bool
 ;;; Check equality of two zippers.
@@ -582,9 +582,9 @@
               (format "~a" (last right)))))
      "]")))
 
-;;; ============================================================
+;;; ====
 ;;; Helper: iota
-;;; ============================================================
+;;; ====
 
 ;;; iota : Nat → (List Nat)
 ;;; Generate list [0, 1, ..., n-1].

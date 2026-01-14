@@ -20,9 +20,9 @@
 ;;;
 ;;; This is Shell code: manages mutable session state.
 
-;;; ============================================================
+;;; ====
 ;;; Session Storage
-;;; ============================================================
+;;; ====
 
 (define *sessions* (make-hashtable string-hash string=?))
 (define *session-timeout* 3600) ; 1 hour in seconds
@@ -43,9 +43,9 @@
 (define (current-session-id)
   (*current-session-id*))
 
-;;; ============================================================
+;;; ====
 ;;; Session Operations
-;;; ============================================================
+;;; ====
 
 ;;; create-session! : String → Session
 ;;; Create a new session with the given ID.
@@ -136,9 +136,9 @@
 (define (delete-session! session-id)
   (hashtable-delete! *sessions* session-id))
 
-;;; ============================================================
+;;; ====
 ;;; Session Login/Logout
-;;; ============================================================
+;;; ====
 
 ;;; session-login! : String Symbol Symbol [Symbol] → void
 ;;; Login a session with tier, name, and optional model.
@@ -168,9 +168,9 @@
              (set-cdr! (assq 'logged-in session) #f)
              (delete-session-file! session-id))))
 
-;;; ============================================================
+;;; ====
 ;;; Session File Storage (for compatibility with existing REPL)
-;;; ============================================================
+;;; ====
 
 (define *session-dir* ".fold-sessions")
 
@@ -201,9 +201,9 @@
        (when (file-exists? path)
              (delete-file path))))
 
-;;; ============================================================
+;;; ====
 ;;; Session Cleanup
-;;; ============================================================
+;;; ====
 
 ;;; cleanup-expired-sessions! : → Nat
 ;;; Remove sessions that haven't been active recently.
@@ -224,9 +224,9 @@
              session-ids))
        cleaned))
 
-;;; ============================================================
+;;; ====
 ;;; Session Information
-;;; ============================================================
+;;; ====
 
 ;;; list-sessions : → List
 ;;; List all active sessions.
@@ -254,9 +254,9 @@
               (name . ,(cdr (assq 'name session)))
               (logged-in . ,(cdr (assq 'logged-in session)))))))
 
-;;; ============================================================
+;;; ====
 ;;; User-Facing Session Commands
-;;; ============================================================
+;;; ====
 
 ;;; session-field : Session Symbol Any → Any
 ;;; Safe alist lookup with default value.

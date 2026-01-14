@@ -9,7 +9,7 @@
 (load "core/util/profile.ss")
 
 (display "Profiler Tests\n")
-(display "==============\n\n")
+(display "====\n\n")
 
 (define tests-passed 0)
 (define tests-failed 0)
@@ -26,9 +26,9 @@
        (display ", got ") (write actual)
        (newline))))
 
-;;; ============================================================
+;;; ====
 ;;; Node Tests
-;;; ============================================================
+;;; ====
 
 (display "Node Creation:\n")
 
@@ -55,9 +55,9 @@
        [updated (node-add-child parent child)])
       (test "node-add-child" 1 (length (node-children updated))))
 
-;;; ============================================================
+;;; ====
 ;;; Profiler State Tests
-;;; ============================================================
+;;; ====
 
 (display "\nProfiler State:\n")
 
@@ -71,9 +71,9 @@
        [updated (profiler-set p 'status 'complete)])
       (test "profiler-set" 'complete (profiler-status updated)))
 
-;;; ============================================================
+;;; ====
 ;;; Expression Classification Tests
-;;; ============================================================
+;;; ====
 
 (display "\nExpression Classification:\n")
 
@@ -86,9 +86,9 @@
 (test "expr-name if" 'if (expr-name '(if #t 1 2)))
 (test "expr-name call" 'map (expr-name '(map f xs)))
 
-;;; ============================================================
+;;; ====
 ;;; Profile Execution Tests
-;;; ============================================================
+;;; ====
 
 (display "\nProfile Execution:\n")
 
@@ -112,9 +112,9 @@
 (let ([p (profile-expr '(let ((x 5)) x) 100)])
      (test "profile let result" 5 (profiler-expr p)))
 
-;;; ============================================================
+;;; ====
 ;;; Statistics Tests
-;;; ============================================================
+;;; ====
 
 (display "\nStatistics:\n")
 
@@ -129,9 +129,9 @@
        [used (cdr (assq 'used-fuel stats))])
       (test "stats used-fuel > 0" #t (> used 0)))
 
-;;; ============================================================
+;;; ====
 ;;; Hotspot Tests
-;;; ============================================================
+;;; ====
 
 (display "\nHotspots:\n")
 
@@ -139,9 +139,9 @@
        [hotspots (find-hotspots p 5)])
       (test "find-hotspots returns list" #t (list? hotspots)))
 
-;;; ============================================================
+;;; ====
 ;;; Call Tree Tests
-;;; ============================================================
+;;; ====
 
 (display "\nCall Tree:\n")
 
@@ -158,9 +158,9 @@
        [rendered (render-tree n 0)])
       (test "render-tree produces string" #t (string? rendered)))
 
-;;; ============================================================
+;;; ====
 ;;; Path Analysis Tests
-;;; ============================================================
+;;; ====
 
 (display "\nPath Analysis:\n")
 
@@ -171,12 +171,12 @@
        [rendered (render-path path)])
       (test "render-path produces string" #t (string? rendered)))
 
-;;; ============================================================
+;;; ====
 ;;; Summary
-;;; ============================================================
+;;; ====
 
 (newline)
-(display "================\n")
+(display "====\n")
 (display (format "Tests: ~a passed, ~a failed\n" tests-passed tests-failed))
 (when (> tests-failed 0)
       (exit 1))

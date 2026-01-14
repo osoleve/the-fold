@@ -15,9 +15,9 @@
 (load "core/base/prelude.ss")
 (load "lattice/linalg/vec2.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Shape Primitives
-;;; ============================================================
+;;; ====
 
 ;;; --- AABB (Axis-Aligned Bounding Box) ---
 
@@ -198,9 +198,9 @@
                                           vs)))))])
         (make-polygon verts)))
 
-;;; ============================================================
+;;; ====
 ;;; Point-in-Shape Tests
-;;; ============================================================
+;;; ====
 
 ;;; point-in-aabb? : Vec2 × AABB → Boolean
 (define (point-in-aabb? point aabb)
@@ -242,9 +242,9 @@
                            (loop (+ i 1) (not inside))
                            (loop (+ i 1) inside)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Collision Detection: AABB vs AABB
-;;; ============================================================
+;;; ====
 
 ;;; aabb-aabb? : AABB × AABB → Boolean
 ;;; Test if two AABBs overlap.
@@ -291,9 +291,9 @@
                                          (* (vec2-y a-half) sign-y)))])
                       (list normal overlap-y contact))))))
 
-;;; ============================================================
+;;; ====
 ;;; Collision Detection: Circle vs Circle
-;;; ============================================================
+;;; ====
 
 ;;; circle-circle? : Circle × Circle → Boolean
 ;;; Test if two circles overlap.
@@ -324,9 +324,9 @@
                                       (vec2-scale normal radius-a))])
                   (list normal penetration contact)))))
 
-;;; ============================================================
+;;; ====
 ;;; Collision Detection: Circle vs AABB
-;;; ============================================================
+;;; ====
 
 ;;; circle-aabb? : Circle × AABB → Boolean
 ;;; Test if circle and AABB overlap.
@@ -377,9 +377,9 @@
                    [penetration (- r dist)])
                   (list normal penetration closest)))))
 
-;;; ============================================================
+;;; ====
 ;;; Collision Detection: Circle vs Polygon
-;;; ============================================================
+;;; ====
 
 ;;; circle-polygon? : Circle × Polygon → Boolean
 ;;; Test if circle and polygon overlap.
@@ -460,9 +460,9 @@
                                          (list normal penetration closest))
                                     (loop (cdr es) (cdr ns))))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Collision Detection: Polygon vs Polygon (SAT)
-;;; ============================================================
+;;; ====
 
 ;;; project-polygon : Polygon × Vec2 → (Min × Max)
 ;;; Project polygon onto axis, return min and max.
@@ -553,9 +553,9 @@
                                (loop (cdr ns) overlap axis)
                                (loop (cdr ns) min-overlap best-normal))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Generic Shape Collision
-;;; ============================================================
+;;; ====
 
 ;;; shape-type : Shape → Symbol
 (define (shape-type s)
@@ -651,9 +651,9 @@
         ;; Unknown
         [else #f])))
 
-;;; ============================================================
+;;; ====
 ;;; Broad Phase: Spatial Hash
-;;; ============================================================
+;;; ====
 
 ;;; make-spatial-hash : Number → SpatialHash
 ;;; Create a spatial hash grid with given cell size.
@@ -729,9 +729,9 @@
         (let-values ([(keys vals) (hashtable-entries result)])
                     (vector->list keys))))
 
-;;; ============================================================
+;;; ====
 ;;; Collision Pair Generation
-;;; ============================================================
+;;; ====
 
 ;;; find-collision-pairs : (List (Object × Shape)) × SpatialHash → (List (Object × Object))
 ;;; Find potential collision pairs using spatial hash.

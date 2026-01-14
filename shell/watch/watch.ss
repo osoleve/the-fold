@@ -17,16 +17,16 @@
 ;;; Implementation uses polling (check file modification times periodically).
 ;;; Thread-safe using a global registry with mutex protection.
 
-;;; ============================================================
+;;; ====
 ;;; Configuration
-;;; ============================================================
+;;; ====
 
 (define *watch-poll-interval* 500)  ; milliseconds
 (define *watch-debounce-delay* 200) ; milliseconds (wait after last change)
 
-;;; ============================================================
+;;; ====
 ;;; Watcher Record Type
-;;; ============================================================
+;;; ====
 
 (define-record-type watcher
   (fields
@@ -49,9 +49,9 @@
   ;; so we use a workaround with a box in the running? field
   (set-box! (watcher-running? w) val))
 
-;;; ============================================================
+;;; ====
 ;;; Global Watcher Registry
-;;; ============================================================
+;;; ====
 
 (define *watcher-registry* '())
 (define *watcher-counter* 0)
@@ -79,9 +79,9 @@
        (mutex-release *registry-mutex*)
        id))
 
-;;; ============================================================
+;;; ====
 ;;; File Modification Time
-;;; ============================================================
+;;; ====
 
 ;;; file-mtime : String → Number | #f
 ;;; Get file modification time in seconds since epoch.
@@ -107,9 +107,9 @@
                                `((mtime . ,mtime)))))
              #f)))
 
-;;; ============================================================
+;;; ====
 ;;; Path Scanning
-;;; ============================================================
+;;; ====
 
 ;;; scan-paths : String × (String | #f) → (Listof String)
 ;;; Return list of paths to watch.
@@ -197,9 +197,9 @@
                                 (loop entries)
                                 (loop (cons entry entries)))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Change Detection
-;;; ============================================================
+;;; ====
 
 ;;; check-changes : Watcher → (Listof String)
 ;;; Check for modified files, return list of changed paths.
@@ -220,9 +220,9 @@
          paths)
         (reverse changed)))
 
-;;; ============================================================
+;;; ====
 ;;; Debouncing
-;;; ============================================================
+;;; ====
 
 ;;; should-trigger? : Watcher → Boolean
 ;;; Check if enough time has passed since last trigger (debouncing).
@@ -246,9 +246,9 @@
        (+ (* (time-second t) 1000)
           (quotient (time-nanosecond t) 1000000))))
 
-;;; ============================================================
+;;; ====
 ;;; Watch Loop
-;;; ============================================================
+;;; ====
 
 ;;; watch-loop : Watcher → void
 ;;; Main polling loop for a watcher (runs in background thread).
@@ -272,9 +272,9 @@
                                     0))
                   (loop)))))
 
-;;; ============================================================
+;;; ====
 ;;; Visual Feedback
-;;; ============================================================
+;;; ====
 
 (define *ansi-reset* "\x1b;[0m")
 (define *ansi-blue* "\x1b;[34m")
@@ -339,9 +339,9 @@
   (display "]")
   (newline))
 
-;;; ============================================================
+;;; ====
 ;;; Public API
-;;; ============================================================
+;;; ====
 
 ;;; watch-file : String × (Listof String → void) → Watcher
 ;;; Watch a single file for changes.
@@ -481,9 +481,9 @@
                      (newline))
              watchers)))))
 
-;;; ============================================================
+;;; ====
 ;;; Helper: Fork Thread
-;;; ============================================================
+;;; ====
 
 ;;; fork-thread : (→ void) → Thread
 ;;; Fork a background thread (Chez Scheme threads).
@@ -498,16 +498,16 @@
              #f])
          (fork-thread thunk)))
 
-;;; ============================================================
+;;; ====
 ;;; REPL Integration
-;;; ============================================================
+;;; ====
 
 ;;; watch-help : → void
 ;;; Display help for watch commands.
 (define (watch-help)
   (display "\n")
   (display "File Watching and Auto-Reload System\n")
-  (display "=====================================\n\n")
+  (display "====\n\n")
   (display "Watch files and directories for changes, trigger actions automatically.\n\n")
   (display "Commands:\n")
   (display "  (watch-file path action)       Watch single file\n")

@@ -17,9 +17,9 @@
 
 (load "core/base/prelude.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Compat: ~s format directive (Chez 9.5 compatibility)
-;;; ============================================================
+;;; ====
 
 ;;; sexpr->string : Any → String
 ;;; Convert any s-expression to a string using write semantics.
@@ -29,9 +29,9 @@
        (write obj port)
        (get-output-string port)))
 
-;;; ============================================================
+;;; ====
 ;;; Block Construction and Access
-;;; ============================================================
+;;; ====
 
 ;;; A Block is represented as an immutable record.
 
@@ -52,7 +52,7 @@
 (define-record-type block
   (fields tag payload refs))
 
-;;; ============================================================
+;;; ====
 ;;; Canonical Serialization
 ;;;
 ;;; Format (all lengths little-endian u32):
@@ -62,7 +62,7 @@
 ;;;
 ;;; Hash size is fixed at 32 bytes (SHA-256).
 ;;; Address size is 33 bytes (version byte + hash bytes).
-;;; ============================================================
+;;; ====
 
 ;;; hash-size : Nat
 ;;; The size of a hash in bytes (SHA-256 = 32 bytes).
@@ -180,9 +180,9 @@
                       (set! pos (+ pos address-size))))
              (make-block tag payload refs))))
 
-;;; ============================================================
+;;; ====
 ;;; Block Utilities
-;;; ============================================================
+;;; ====
 
 ;;; empty-payload : Bytevector
 ;;; The empty bytevector, for blocks with no payload.

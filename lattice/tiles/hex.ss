@@ -16,9 +16,9 @@
 ;;; Dependencies:
 ;;;   - playpen/boardcraft/core.ss
 
-;;; ============================================================
+;;; ====
 ;;; Hexagonal Coordinate Systems
-;;; ============================================================
+;;; ====
 
 ;;; AXIAL COORDINATES (q, r)
 ;;;   Most commonly used for hex grids.
@@ -51,9 +51,9 @@
 ;;; offset-coord : Integer × Integer → OffsetCoord
 (define offset-coord coord)
 
-;;; ============================================================
+;;; ====
 ;;; Coordinate Conversions
-;;; ============================================================
+;;; ====
 
 ;;; axial->cubic : AxialCoord → CubicCoord
 (define (axial->cubic ac)
@@ -81,9 +81,9 @@
          [r row])
         (axial-coord q r)))
 
-;;; ============================================================
+;;; ====
 ;;; Hexagonal Neighbors
-;;; ============================================================
+;;; ====
 
 ;;; Hexagons have exactly 6 neighbors.
 ;;; In axial coordinates, the 6 directions are:
@@ -136,9 +136,9 @@
                                                          (+ (cubic-coord%-z current) (list-ref dir 2)))])
                                      (loop next dir-idx (+ step 1) (cons current results))))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Distance Metrics
-;;; ============================================================
+;;; ====
 
 ;;; hex-distance : AxialCoord × AxialCoord → Integer
 ;;; Manhattan distance in hex space (minimum number of hex steps)
@@ -151,9 +151,9 @@
          [dz (abs (- (cubic-coord%-z cube2) (cubic-coord%-z cube1)))])
         (quotient (+ dx dy dz) 2)))
 
-;;; ============================================================
+;;; ====
 ;;; Line Drawing and Range
-;;; ============================================================
+;;; ====
 
 ;;; hex-line : AxialCoord × AxialCoord → (List AxialCoord)
 ;;; Get hexes on a straight line from c1 to c2
@@ -224,9 +224,9 @@
 (define (hex-ring center radius)
   (hex-neighbors-at-distance center radius))
 
-;;; ============================================================
+;;; ====
 ;;; Rotation and Reflection
-;;; ============================================================
+;;; ====
 
 ;;; hex-rotate-left : AxialCoord × AxialCoord → AxialCoord
 ;;; Rotate coord 60° counter-clockwise around center
@@ -258,9 +258,9 @@
         (axial-coord (+ (coord-x result) (coord-x center))
                      (+ (coord-y result) (coord-y center)))))
 
-;;; ============================================================
+;;; ====
 ;;; Board Creation
-;;; ============================================================
+;;; ====
 
 ;;; make-hex-board : Symbol × Integer × [Tile] → Board
 ;;; Create a hexagonal board with radius N
@@ -297,9 +297,9 @@
   (let ([r (hex-board-radius board)])
        (+ 1 (* 3 r (+ r 1)))))
 
-;;; ============================================================
+;;; ====
 ;;; Exports Summary
-;;; ============================================================
+;;; ====
 
 ;;; This module provides:
 ;;;   • axial-coord, cubic-coord, offset-coord — Coordinate constructors

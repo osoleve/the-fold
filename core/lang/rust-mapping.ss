@@ -11,9 +11,9 @@
 
 (load "core/base/prelude.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Helper Functions for Function Types
-;;; ============================================================
+;;; ====
 
 ;;; function-param-types : (-> A... R) → (List Type)
 ;;; Extract parameter types from arrow type.
@@ -36,9 +36,9 @@
 (define (join-strings sep strs)
   (string-join strs sep))
 
-;;; ============================================================
+;;; ====
 ;;; Type Mapping
-;;; ============================================================
+;;; ====
 
 ;;; scheme-type->rust : Type → String
 ;;; Convert a Fold type to its Rust string representation.

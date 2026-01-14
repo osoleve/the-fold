@@ -41,9 +41,9 @@
 (load "lattice/fp/rewrite/fusion-rules.ss")
 (load "lattice/fp/rewrite/verify.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Fusion Analysis Interface
-;;; ============================================================
+;;; ====
 
 ;;; analyze-fusion : Expr -> (List FusionOpportunity)
 ;;; Analyze an expression for fusion opportunities.
@@ -52,9 +52,9 @@
       '()
       (*lzr-fusion-detect* expr)))
 
-;;; ============================================================
+;;; ====
 ;;; Parallel Analysis Interface
-;;; ============================================================
+;;; ====
 
 ;;; suggest-parallel : Expr -> (List ParallelOpportunity)
 ;;; Analyze an expression for parallelization opportunities.
@@ -63,9 +63,9 @@
       '()
       (detect-parallel-regions expr)))
 
-;;; ============================================================
+;;; ====
 ;;; Optimization Interface
-;;; ============================================================
+;;; ====
 
 ;;; optimize : Expr -> Expr
 ;;; Apply fusion rules to optimize an expression.
@@ -91,9 +91,9 @@
           (percent-reduction . ,percent-reduction)
           (result . ,result))))
 
-;;; ============================================================
+;;; ====
 ;;; Combined Analysis
-;;; ============================================================
+;;; ====
 
 ;;; analyze-all : Expr -> Analysis
 ;;; Perform both fusion and parallel analysis.
@@ -123,9 +123,9 @@
           (optimized . ,optimized)
           (optimization-stats . ,stats))))
 
-;;; ============================================================
+;;; ====
 ;;; Display Utilities
-;;; ============================================================
+;;; ====
 
 ;;; truncate-expr : Expr -> String
 (define (truncate-expr expr)
@@ -173,9 +173,9 @@
 ;;; display-lzr-report : Report -> Void
 (define (display-lzr-report report)
   (display "\n")
-  (display "+================================================================+\n")
+  (display "+====+\n")
   (display "|           FOLD-LZR: AUTO-PARALLELIZATION & FUSION              |\n")
-  (display "+================================================================+\n\n")
+  (display "+====+\n\n")
   
   ;; Fusion opportunities
   (let ([fusion-opps (cdr (assq 'fusion-opportunities report))])
@@ -223,16 +223,16 @@
             (display (format "  After:  ~a  (cost: ~a)\n" (truncate-expr optimized) after))
             (display (format "  Savings: ~a%\n\n" reduction))))
   
-  (display "+================================================================+\n"))
+  (display "+====+\n"))
 
 ;;; lzr : Expr -> Void
 ;;; Main entry point - analyze and display report.
 (define (lzr expr)
   (display-lzr-report (lzr-report expr)))
 
-;;; ============================================================
+;;; ====
 ;;; Equivalence Verification
-;;; ============================================================
+;;; ====
 
 ;;; verify-rewrite : Expr x Expr [Alist] -> Boolean
 ;;; Test semantic equivalence of two expressions.
@@ -242,9 +242,9 @@
     (verify-rewrite before after '())]
    [(before after sample-inputs)
     (display "\n")
-    (display "+================================================================+\n")
+    (display "+====+\n")
     (display "|                 EQUIVALENCE VERIFICATION                       |\n")
-    (display "+================================================================+\n\n")
+    (display "+====+\n\n")
     (display (format "  Before: ~a\n" (truncate-expr before)))
     (display (format "  After:  ~a\n\n" (truncate-expr after)))
     
@@ -290,9 +290,9 @@
       (substitute-all (substitute expr (caar bindings) (cdar bindings))
                       (cdr bindings))))
 
-;;; ============================================================
+;;; ====
 ;;; Quick Analysis Helpers
-;;; ============================================================
+;;; ====
 
 ;;; fusion-count : Expr -> Nat
 (define (fusion-count expr)
@@ -307,16 +307,16 @@
   (or (> (length (*lzr-fusion-detect* expr)) 0)
       (> (length (detect-parallel-regions expr)) 0)))
 
-;;; ============================================================
+;;; ====
 ;;; Help
-;;; ============================================================
+;;; ====
 
 ;;; lzr-help : -> Void
 (define (lzr-help)
   (display "\n")
-  (display "+================================================================+\n")
+  (display "+====+\n")
   (display "|           FOLD-LZR: AUTO-PARALLELIZATION & FUSION              |\n")
-  (display "+================================================================+\n\n")
+  (display "+====+\n\n")
   (display "Commands:\n")
   (display "  (lzr expr)                    - Full analysis with report\n")
   (display "  (analyze-fusion expr)         - List fusion opportunities\n")

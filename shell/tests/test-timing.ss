@@ -28,9 +28,9 @@
 (define (assert-false name actual)
   (assert-equal name actual #f))
 
-;;; ============================================================
+;;; ====
 ;;; current-nanoseconds Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Testing current-nanoseconds ===\n")
 
@@ -49,9 +49,9 @@
                        (when (< i 1000) (loop (+ i 1))))
                   (> (current-nanoseconds) t1)))
 
-;;; ============================================================
+;;; ====
 ;;; current-cpu-nanoseconds Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Testing current-cpu-nanoseconds ===\n")
 
@@ -67,9 +67,9 @@
                            acc))
                   (>= (current-cpu-nanoseconds) t1)))
 
-;;; ============================================================
+;;; ====
 ;;; timing-result Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Testing time-thunk ===\n")
 
@@ -95,9 +95,9 @@
                    (length (timing-result-value result))
                    100))
 
-;;; ============================================================
+;;; ====
 ;;; compute-stats Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Testing compute-stats ===\n")
 
@@ -148,9 +148,9 @@
                    (timing-stats-mean-ns stats)
                    0))
 
-;;; ============================================================
+;;; ====
 ;;; benchmark Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Testing benchmark ===\n")
 
@@ -179,9 +179,9 @@
      (assert-true "has stats"
                   (timing-stats? (benchmark-result-stats result))))
 
-;;; ============================================================
+;;; ====
 ;;; benchmark-with-warmup Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Testing benchmark-with-warmup ===\n")
 
@@ -193,9 +193,9 @@
                    (benchmark-result-iterations result)
                    5))
 
-;;; ============================================================
+;;; ====
 ;;; compare-benchmarks Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Testing compare-benchmarks ===\n")
 
@@ -221,9 +221,9 @@
       (assert-true "ratio is a pair"
                    (pair? (car (benchmark-comparison-ratios comparison)))))
 
-;;; ============================================================
+;;; ====
 ;;; format-ns Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Testing format-ns ===\n")
 
@@ -239,9 +239,9 @@
 (assert-true "seconds format"
              (string-contains? (format-ns 5000000000) "s"))
 
-;;; ============================================================
+;;; ====
 ;;; format-timing Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Testing format-timing ===\n")
 
@@ -256,9 +256,9 @@
       (assert-true "contains cpu"
                    (string-contains? formatted "cpu")))
 
-;;; ============================================================
+;;; ====
 ;;; format-stats Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Testing format-stats ===\n")
 
@@ -282,9 +282,9 @@
       (assert-true "contains stddev"
                    (string-contains? formatted "stddev")))
 
-;;; ============================================================
+;;; ====
 ;;; format-benchmark Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Testing format-benchmark ===\n")
 
@@ -299,9 +299,9 @@
       (assert-true "contains iterations"
                    (string-contains? formatted "3")))
 
-;;; ============================================================
+;;; ====
 ;;; time-with-fuel Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Testing time-with-fuel ===\n")
 
@@ -320,9 +320,9 @@
                           fuel-left
                           0))
 
-;;; ============================================================
+;;; ====
 ;;; Edge Cases
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Testing Edge Cases ===\n")
 
@@ -339,11 +339,11 @@
                     [cmp (compare-benchmarks baseline '())])
                    (null? (benchmark-comparison-ratios cmp))))
 
-;;; ============================================================
+;;; ====
 ;;; Test Summary
-;;; ============================================================
+;;; ====
 
-(printf "\n========================================\n")
+(printf "\n====\n")
 (printf "Test Results (timing):\n")
 (printf "  Total:  ~a\n" test-count)
 (printf "  Passed: ~a\n" pass-count)

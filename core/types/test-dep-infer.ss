@@ -9,9 +9,9 @@
 (load "core/types/infer.ss")
 (load "core/types/dep-infer.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Test Framework
-;;; ============================================================
+;;; ====
 
 (define *test-count* 0)
 (define *pass-count* 0)

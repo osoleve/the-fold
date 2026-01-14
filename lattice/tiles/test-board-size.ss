@@ -34,9 +34,9 @@
 
 ")
 
-;;; ============================================================
+;;; ====
 ;;; Test 1: Empty hex board (no default tile)
-;;; ============================================================
+;;; ====
 (display "1. Empty hex board size
 ")
 
@@ -46,9 +46,9 @@
 (test "hex board radius is 3" 3 (hex-board-radius hex-empty))
 (test "hex board capacity is 37" 37 (hex-board-capacity hex-empty))
 
-;;; ============================================================
+;;; ====
 ;;; Test 2: Hex board with default tile
-;;; ============================================================
+;;; ====
 (display "
 2. Pre-populated hex board size
 ")
@@ -59,9 +59,9 @@
 (test "filled hex board is not empty" #f (board-empty? hex-filled))
 (test "size equals capacity when filled" (hex-board-capacity hex-filled) (board-size hex-filled))
 
-;;; ============================================================
+;;; ====
 ;;; Test 3: Hex capacity formula for various radii
-;;; ============================================================
+;;; ====
 (display "
 3. Hex capacity formula
 ")
@@ -78,9 +78,9 @@
 (test-hex-capacity 3 37)   ; 1 + 6 + 12 + 18
 (test-hex-capacity 4 61)   ; 1 + 6 + 12 + 18 + 24
 
-;;; ============================================================
+;;; ====
 ;;; Test 4: Empty square board
-;;; ============================================================
+;;; ====
 (display "
 4. Empty square board size
 ")
@@ -90,9 +90,9 @@
 (test "empty square board is empty" #t (board-empty? sq-empty))
 (test "square board capacity is 64" 64 (square-board-capacity sq-empty))
 
-;;; ============================================================
+;;; ====
 ;;; Test 5: Square board with default tile
-;;; ============================================================
+;;; ====
 (display "
 5. Pre-populated square board size
 ")
@@ -102,9 +102,9 @@
 (test "filled square board is not empty" #f (board-empty? sq-filled))
 (test "size equals capacity when filled" (square-board-capacity sq-filled) (board-size sq-filled))
 
-;;; ============================================================
+;;; ====
 ;;; Test 6: Incrementally adding tiles
-;;; ============================================================
+;;; ====
 (display "
 6. Incrementally adding tiles
 ")
@@ -121,9 +121,9 @@
 (set! hex-partial (board-set hex-partial (axial-coord 0 1) floor-tile))
 (test "after adding 3 tiles" 3 (board-size hex-partial))
 
-;;; ============================================================
+;;; ====
 ;;; Summary
-;;; ============================================================
+;;; ====
 (newline)
 (display "=== Test Summary ===
 ")

@@ -20,9 +20,9 @@
 (load "lattice/autodiff/reverse-diff.ss")
 (load "lattice/physics/diff/traced-vec2.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Signed Distance Functions (SDFs)
-;;; ============================================================
+;;; ====
 
 ;;; An SDF returns:
 ;;;   - negative values: inside the shape
@@ -96,9 +96,9 @@
 (define (traced-sdf-half-plane point point-on-plane normal)
   (traced-vec2-dot (traced-vec2-sub point point-on-plane) normal))
 
-;;; ============================================================
+;;; ====
 ;;; Circle-Circle Collision (Most Common Case)
-;;; ============================================================
+;;; ====
 
 ;;; traced-sdf-circle-circle : TracedVec2 × Number × TracedVec2 × Number → TracedValue
 ;;; SDF for the Minkowski sum of two circles (their intersection region).
@@ -123,9 +123,9 @@
          [contact (traced-vec2-add pos-a (traced-vec2-scale normal radius-a))])
         (values contact normal penetration)))
 
-;;; ============================================================
+;;; ====
 ;;; Circle-Plane Collision
-;;; ============================================================
+;;; ====
 
 ;;; traced-circle-plane-contact : TracedVec2 × Number × TracedVec2 × TracedVec2 → (TracedVec2 × TracedVec2 × TracedValue)
 ;;; Contact between circle and infinite plane.
@@ -141,9 +141,9 @@
         ;; Normal points away from plane (opposite of plane-normal for reaction)
         (values contact plane-normal penetration)))
 
-;;; ============================================================
+;;; ====
 ;;; Soft Contact Force Model
-;;; ============================================================
+;;; ====
 
 ;;; Instead of impulse-based collision response, soft contact uses
 ;;; penalty forces proportional to penetration depth.
@@ -181,9 +181,9 @@
         ;; Total force = spring + damping (both only active when penetrating)
         (traced-add spring-force damping-force)))
 
-;;; ============================================================
+;;; ====
 ;;; Complete Soft Contact Response
-;;; ============================================================
+;;; ====
 
 ;;; traced-circle-circle-force : TracedVec2 × TracedVec2 × Number × TracedVec2 × TracedVec2 × Number × Number × Number × Number → TracedVec2
 ;;; Compute soft contact force between two circles.
@@ -208,9 +208,9 @@
                   [force-mag (traced-soft-contact-force-damped penetration approach-vel stiffness damping alpha)])
                  (traced-vec2-scale plane-normal force-mag)))))
 
-;;; ============================================================
+;;; ====
 ;;; Ground Plane (Common Special Case)
-;;; ============================================================
+;;; ====
 
 ;;; traced-ground-plane-force : TracedVec2 × TracedVec2 × Number × Number × Number × Number × Number → TracedVec2
 ;;; Force from horizontal ground plane at y = ground-y.
@@ -221,9 +221,9 @@
                              (lift-vec2-const (vec2 0 1))  ; up
                              stiffness damping alpha))
 
-;;; ============================================================
+;;; ====
 ;;; Contact Normal and Point from SDF
-;;; ============================================================
+;;; ====
 
 ;;; For SDFs, the gradient gives the normal direction.
 
@@ -244,9 +244,9 @@
          [normal (traced-sdf-normal sdf-fn point)])
         (vec2-sub point (vec2-scale normal sdf-val))))
 
-;;; ============================================================
+;;; ====
 ;;; Soft Friction Model
-;;; ============================================================
+;;; ====
 
 ;;; Coulomb friction is non-smooth (sign function). We use a smooth
 ;;; approximation based on hyperbolic tangent.
@@ -282,9 +282,9 @@
                                        (traced-vec2-scale normal vel-normal))])
         (traced-soft-friction vel-tangent normal-force mu 10)))
 
-;;; ============================================================
+;;; ====
 ;;; Material Properties for Soft Contact
-;;; ============================================================
+;;; ====
 
 ;;; Default stiffness and damping values.
 ;;; These should be tuned for your simulation's scale and timestep.
@@ -318,9 +318,9 @@
                       *default-contact-alpha*
                       *default-friction-mu*))
 
-;;; ============================================================
+;;; ====
 ;;; Wall Boundaries (Common for Simulations)
-;;; ============================================================
+;;; ====
 
 ;;; traced-wall-forces : TracedVec2 × TracedVec2 × Number × Vec2 × Vec2 × SoftMaterial → TracedVec2
 ;;; Compute forces from rectangular boundary walls.

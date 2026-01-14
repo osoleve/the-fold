@@ -7,9 +7,9 @@
 (load "core/blocks/block.ss")
 (load "core/blocks/cas.ss")
 
-;;; ============================================================
+;;; ====
 ;;; A Simple Chain (Linked List of Blocks)
-;;; ============================================================
+;;; ====
 
 (display "=== Building a Chain ===\n")
 
@@ -38,9 +38,9 @@ Like a blockchain or git commit history.
 
 (format #t "Head: ~a...~%" (substring head 0 16))
 
-;;; ============================================================
+;;; ====
 ;;; Walking the Chain
-;;; ============================================================
+;;; ====
 
 (display "\n=== Walking the Chain ===\n")
 
@@ -55,9 +55,9 @@ Like a blockchain or git commit history.
 
 (walk-chain head)
 
-;;; ============================================================
+;;; ====
 ;;; Branching (Multiple Children)
-;;; ============================================================
+;;; ====
 
 (display "\n=== Branching ===\n")
 
@@ -92,9 +92,9 @@ This is how git branches work.
 (format #t "Branch A: ~a...~%" (substring (block-hash branch-a) 0 12))
 (format #t "Branch B: ~a...~%" (substring (block-hash branch-b) 0 12))
 
-;;; ============================================================
+;;; ====
 ;;; Merging (Multiple Parents)
-;;; ============================================================
+;;; ====
 
 (display "\n=== Merging ===\n")
 
@@ -111,9 +111,9 @@ A merge commit references multiple parents.
 (format #t "Parents: ~a~%" (map (lambda (h) (substring h 0 12))
                                 (block-refs merge)))
 
-;;; ============================================================
+;;; ====
 ;;; Building a Tree (Directory-like Structure)
-;;; ============================================================
+;;; ====
 
 (display "\n=== Tree Structure ===\n")
 
@@ -152,9 +152,9 @@ A tree is like a filesystem:
 (format #t "Root dir: ~a...~%" (substring (block-hash root-dir) 0 12))
 (format #t "Contains ~a entries~%" (length (block-refs root-dir)))
 
-;;; ============================================================
+;;; ====
 ;;; Properties of Content-Addressed Structures
-;;; ============================================================
+;;; ====
 
 (display "\n=== Key Properties ===\n")
 
@@ -181,9 +181,9 @@ A tree is like a filesystem:
    The content will never change.
 ")
 
-;;; ============================================================
+;;; ====
 ;;; Demonstrating Structural Sharing
-;;; ============================================================
+;;; ====
 
 (display "=== Structural Sharing ===\n")
 

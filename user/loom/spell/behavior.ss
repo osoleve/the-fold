@@ -10,9 +10,9 @@
 ;;;   behavior-tick   Process one tick of a behavior
 ;;;   behavior-set-state  Change behavior state
 
-;;; ============================================================
+;;; ====
 ;;; Behavior State Machine Macro
-;;; ============================================================
+;;; ====
 
 ;;; def-behavior : Name × Clauses... -> Definitions
 ;;;
@@ -57,9 +57,9 @@
 ;;;   - (behavior-name-initial-state) -> Symbol
 ;;;   - Registered in *behaviors* table
 
-;;; ============================================================
+;;; ====
 ;;; Behavior Registry
-;;; ============================================================
+;;; ====
 
 ;;; *behaviors* : Hashtable Symbol -> (World × Entity -> AIAction)
 ;;; Global registry of defined behaviors.
@@ -77,9 +77,9 @@
 (define (behavior-exists? name)
   (hashtable-contains? *behaviors* name))
 
-;;; ============================================================
+;;; ====
 ;;; Behavior State Management
-;;; ============================================================
+;;; ====
 
 ;;; get-behavior-state : Entity -> Symbol
 ;;; Get the current state of an entity's behavior.
@@ -119,9 +119,9 @@
                  (entity-add-component entity new-ai-comp))
            entity)))
 
-;;; ============================================================
+;;; ====
 ;;; Action Helpers (for use in behavior bodies)
-;;; ============================================================
+;;; ====
 
 ;;; ai-move : Direction -> AIAction
 (define (ai-move direction)
@@ -200,9 +200,9 @@
        (display message)
        (newline)))
 
-;;; ============================================================
+;;; ====
 ;;; Predicate Helpers (for use in behavior conditions)
-;;; ============================================================
+;;; ====
 
 ;;; get-nearest-enemy : World × Entity -> Entity | #f
 ;;; Get the nearest hostile entity, or #f if none.
@@ -243,9 +243,9 @@
            (entity-distance entity nearest)
            +inf.0)))
 
-;;; ============================================================
+;;; ====
 ;;; State Transition Syntax
-;;; ============================================================
+;;; ====
 
 ;;; The (-> state) form is just syntactic sugar that returns the symbol.
 ;;; We use a simple macro to make transitions readable.
@@ -254,9 +254,9 @@
   (syntax-rules ()
                 [(_ state) 'state]))
 
-;;; ============================================================
+;;; ====
 ;;; Behavior Definition Macro
-;;; ============================================================
+;;; ====
 
 ;;; This macro parses the def-behavior form and generates:
 ;;; 1. A behavior function (behavior-name world entity) -> AIAction
@@ -323,9 +323,9 @@
                        (lambda (world entity) 'state-name)
                        (lambda (world entity) action-expr))]))
 
-;;; ============================================================
+;;; ====
 ;;; Behavior Execution
-;;; ============================================================
+;;; ====
 
 ;;; behavior-execute : Symbol × Symbol × Alist × List × World × Entity -> AIAction
 ;;;
@@ -361,9 +361,9 @@
         [(eq? (caar defs) state-name) (car defs)]
         [else (loop (cdr defs))])))
 
-;;; ============================================================
+;;; ====
 ;;; Example Usage (commented out)
-;;; ============================================================
+;;; ====
 
 #|
 ;;; A cowardly behavior that flees when hurt
@@ -423,9 +423,9 @@
 ;;;   (process-action action))
 |#
 
-;;; ============================================================
+;;; ====
 ;;; Integration with AI System
-;;; ============================================================
+;;; ====
 
 ;;; ai-decide-action-spell : World × Entity -> AIAction
 ;;;

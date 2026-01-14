@@ -16,9 +16,9 @@
 
 (load "lattice/info/entropy.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Distortion Measures
-;;; ============================================================
+;;; ====
 
 ;;; squared-error : Real × Real → Real
 ;;; Squared error distortion d(x,y) = (x-y)^2
@@ -90,9 +90,9 @@
            +inf.0
            (* 10 (/ (log2 (/ (* peak peak) m)) (log2 10))))))
 
-;;; ============================================================
+;;; ====
 ;;; Statistical Helpers
-;;; ============================================================
+;;; ====
 
 ;;; mean : (List Real) → Real
 (define (mean xs)
@@ -109,9 +109,9 @@
            (/ (fold-left + 0 (map (lambda (x) (squared-error x mu)) xs))
               (length xs)))))
 
-;;; ============================================================
+;;; ====
 ;;; Rate-Distortion Functions
-;;; ============================================================
+;;; ====
 
 ;;; gaussian-rate-distortion : Real × Real → Real
 ;;; Rate-distortion function for Gaussian source with variance sigma^2.
@@ -171,9 +171,9 @@
          [(< h-mid target) (binary-search-entropy target mid high tolerance)]
          [else (binary-search-entropy target low mid tolerance)])))
 
-;;; ============================================================
+;;; ====
 ;;; Uniform Scalar Quantization
-;;; ============================================================
+;;; ====
 
 ;;; uniform-quantize : Real × Real × Nat → Real
 ;;; Quantize x to one of n uniform levels in [0, max-val].
@@ -204,9 +204,9 @@
       0
       (log2 n-levels)))
 
-;;; ============================================================
+;;; ====
 ;;; Lloyd-Max Quantization
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Lloyd-Max algorithm finds optimal quantization levels for a
 ;;; given source distribution by iteratively refining:
@@ -304,9 +304,9 @@
    [(< x (car boundaries)) (list-ref levels i)]
    [else (find-region-level x levels (cdr boundaries) (+ i 1))]))
 
-;;; ============================================================
+;;; ====
 ;;; Vector Quantization (Simple)
-;;; ============================================================
+;;; ====
 
 ;;; vq-codebook-distance : (List Real) × (List Real) → Real
 ;;; Euclidean distance between two vectors.
@@ -329,9 +329,9 @@
 (define (vq-quantize vector codebook)
   (list-ref codebook (vq-find-nearest vector codebook)))
 
-;;; ============================================================
+;;; ====
 ;;; Rate-Distortion Analysis
-;;; ============================================================
+;;; ====
 
 ;;; operational-rate-distortion : (List Real) × (List Real) → Real × Real
 ;;; Compute operational (rate, distortion) point for a quantized signal.
@@ -353,9 +353,9 @@
   (let ([theoretical-rate (gaussian-rate-distortion variance op-distortion)])
        (- op-rate theoretical-rate)))
 
-;;; ============================================================
+;;; ====
 ;;; Entropy-Coded Quantization
-;;; ============================================================
+;;; ====
 
 ;;; quantizer-entropy : (List Real) → Real
 ;;; Entropy of quantizer output distribution (in bits).
@@ -395,9 +395,9 @@
 (define (entropy-coded-rate quantized)
   (quantizer-entropy quantized))
 
-;;; ============================================================
+;;; ====
 ;;; Dithered Quantization
-;;; ============================================================
+;;; ====
 
 ;;; dither-quantize : Real × Real × Nat × Real → Real
 ;;; Quantize with subtractive dither.
@@ -408,9 +408,9 @@
          [quantized (uniform-quantize dithered-x max-val n-levels)])
         (- quantized dither)))
 
-;;; ============================================================
+;;; ====
 ;;; High-Rate Approximations
-;;; ============================================================
+;;; ====
 
 ;;; high-rate-bits-per-sample : Real × Real → Real
 ;;; High-rate approximation: R ≈ (1/2) * log2(sigma^2 / D)
@@ -422,9 +422,9 @@
 ;;; Same as Gaussian distortion-rate.
 (define high-rate-distortion gaussian-distortion-rate)
 
-;;; ============================================================
+;;; ====
 ;;; Rate-Distortion Summary
-;;; ============================================================
+;;; ====
 
 ;;; rd-summary : (List Real) × (List Real) × Real → String
 ;;; Generate summary of rate-distortion performance.

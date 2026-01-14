@@ -7,13 +7,13 @@
 (load "lattice/physics/diff3d/optimize3d.ss")
 
 (display "\n")
-(display "==============================================================\n")
+(display "====\n")
 (display "         ROLLOUT 3D & OPTIMIZE 3D TESTS\n")
-(display "==============================================================\n")
+(display "====\n")
 
-;;; ============================================================
+;;; ====
 ;;; Test Helpers
-;;; ============================================================
+;;; ====
 
 (define *test-dt* 0.01)
 (define *test-gravity* (vec3 0 -9.8 0))
@@ -28,9 +28,9 @@
    1.0
    (inertia-solid-sphere 1.0 1.0)))
 
-;;; ============================================================
+;;; ====
 ;;; Basic Rollout Tests
-;;; ============================================================
+;;; ====
 
 (test-group basic-rollout-tests
 
@@ -58,9 +58,9 @@
                     ;; X should have increased (moving with velocity)
                     (assert-true (> (traced-value (traced-vec3-x (traced-body-3d-pos final))) 5)))))
 
-;;; ============================================================
+;;; ====
 ;;; Trajectory Recording Tests
-;;; ============================================================
+;;; ====
 
 (test-group trajectory-tests
 
@@ -84,9 +84,9 @@
                     (assert-true (< (traced-value (traced-vec3-y (traced-body-3d-pos final)))
                                     (traced-value (traced-vec3-y (traced-body-3d-pos (car traj)))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Checkpointing Tests
-;;; ============================================================
+;;; ====
 
 (test-group checkpoint-tests
 
@@ -108,9 +108,9 @@
                     ;; Should have 3 checkpoints (0, 5, 10)
                     (assert-true (>= (vector-length checkpoints) 2)))))
 
-;;; ============================================================
+;;; ====
 ;;; Loss Function Tests
-;;; ============================================================
+;;; ====
 
 (test-group loss-function-tests
 
@@ -155,9 +155,9 @@
                     ;; Moving should have positive energy
                     (assert-true (> (energy-minimization-loss-3d body-moving) 0)))))
 
-;;; ============================================================
+;;; ====
 ;;; Optimization Tests
-;;; ============================================================
+;;; ====
 
 (test-group optimization-tests
 
@@ -197,9 +197,9 @@
                     (assert-true (< (abs (list-ref result 1)) 0.2))
                     (assert-true (< (abs (list-ref result 2)) 0.2)))))
 
-;;; ============================================================
+;;; ====
 ;;; Point Mass Simulation Tests
-;;; ============================================================
+;;; ====
 
 (test-group point-mass-tests
 
@@ -230,9 +230,9 @@
                     ;; Should have moved forward in X
                     (assert-true (> (traced-value (traced-vec3-x final-pos)) 0)))))
 
-;;; ============================================================
+;;; ====
 ;;; Utility Function Tests
-;;; ============================================================
+;;; ====
 
 (test-group utility-tests
 
@@ -245,9 +245,9 @@
               (assert-equal '(0 1 2 3 4) (iota-3d 5))
               (assert-equal '() (iota-3d 0))))
 
-;;; ============================================================
+;;; ====
 ;;; Run all tests
-;;; ============================================================
+;;; ====
 
 (run-all-tests)
 

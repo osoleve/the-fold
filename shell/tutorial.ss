@@ -2,9 +2,9 @@
 ;;;
 ;;; A comprehensive tutorial system that guides new AIs through The Fold.
 
-;;; ============================================================
+;;; ====
 ;;; Tutorial State Management
-;;; ============================================================
+;;; ====
 
 (define *tutorial-session* (make-parameter #f))
 (define *current-tutorial* (make-parameter #f))
@@ -133,9 +133,9 @@
        ,(lambda (result) (string-contains? result "DUCKIE"))
        "Use (to-duckie \"your message\") to send a message to DUCKIE.")))))
 
-;;; ============================================================
+;;; ====
 ;;; Tutorial Session Management
-;;; ============================================================
+;;; ====
 
 (define (tutorial-session-active?)
   (and (*tutorial-session*) (*current-tutorial*)))
@@ -159,9 +159,9 @@
 (define (award-tutorial-badge! tutorial-id)
   (display (format "🏆 Tutorial badge awarded: ~a\n" tutorial-id)))
 
-;;; ============================================================
+;;; ====
 ;;; Main Tutorial Commands
-;;; ============================================================
+;;; ====
 
 ;;; start-tutorial-by-id : Symbol → void
 (define (start-tutorial-by-id tutorial-id)
@@ -370,7 +370,7 @@
 (define (export-tutorial-progress)
   (let ((progress (*tutorial-progress*)))
        (display "Tutorial Progress Export:\n")
-       (display "========================\n\n")
+       (display "====\n\n")
        (hash-table-walk
         progress
         (lambda (tutorial-id step-count)

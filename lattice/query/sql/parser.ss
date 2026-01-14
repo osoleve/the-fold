@@ -15,9 +15,9 @@
 (unless (top-level-bound? '*sql-lexer-loaded*)
         (load "lattice/query/sql/lexer.ss"))
 
-;;; ============================================================
+;;; ====
 ;;; Forward Declarations
-;;; ============================================================
+;;; ====
 ;;;
 ;;; We need mutual recursion between expressions and SELECT.
 
@@ -40,9 +40,9 @@
 (define lazy-sql-select
   (make-parser sql-select-thunk))
 
-;;; ============================================================
+;;; ====
 ;;; Expression Atoms
-;;; ============================================================
+;;; ====
 
 ;;; sql-literal-expr : Parser AST
 (define sql-literal-expr
@@ -220,9 +220,9 @@
            (try sql-paren-expr)
            sql-column-ref)))
 
-;;; ============================================================
+;;; ====
 ;;; Expression Parser with Precedence
-;;; ============================================================
+;;; ====
 
 ;;; sql-mul-expr : Parser AST
 (define sql-mul-expr
@@ -456,9 +456,9 @@
 ;;; Initialize sql-expr
 (set! sql-expr sql-or-expr)
 
-;;; ============================================================
+;;; ====
 ;;; SELECT Statement
-;;; ============================================================
+;;; ====
 
 ;;; sql-select-item : Parser AST
 (define sql-select-item
@@ -611,9 +611,9 @@
 ;;; Initialize sql-select-stmt
 (set! sql-select-stmt sql-select)
 
-;;; ============================================================
+;;; ====
 ;;; INSERT Statement
-;;; ============================================================
+;;; ====
 
 ;;; sql-values-row : Parser (List AST)
 (define sql-values-row
@@ -655,9 +655,9 @@
                                                                                                                                                        (make-source-span start end)
                                                                                                                                                        table columns values)))))))))))))))))
 
-;;; ============================================================
+;;; ====
 ;;; UPDATE Statement
-;;; ============================================================
+;;; ====
 
 ;;; sql-set-clause : Parser AST
 (define sql-set-clause
@@ -694,9 +694,9 @@
                                                                                                                                                                    (make-source-span start end)
                                                                                                                                                                    table set-clauses where)))))))))))))))))
 
-;;; ============================================================
+;;; ====
 ;;; DELETE Statement
-;;; ============================================================
+;;; ====
 
 ;;; sql-delete : Parser AST
 (define sql-delete
@@ -715,9 +715,9 @@
                                                                                                                                 (parser-pure (make-delete
                                                                                                                                               (make-source-span start end) table where)))))))))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Top-Level Statement Parser
-;;; ============================================================
+;;; ====
 
 ;;; sql-statement : Parser AST
 (define sql-statement

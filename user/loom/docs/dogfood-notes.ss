@@ -269,14 +269,14 @@
                   (eq? (cdr (assq 'severity (cdr issue))) 'critical))
           *critical-gaps*))
 
-;;; ============================================================
+;;; ====
 ;;; Summary Display
-;;; ============================================================
+;;; ====
 
 (define (display-dogfood-summary)
   (display "\n")
   (display "RPG SDK Dogfooding Summary\n")
-  (display "==========================\n\n")
+  (display "====\n\n")
   (display "Project: ")
   (display (cdr (assq 'project *dogfood-exercise*)))
   (newline)
@@ -302,9 +302,9 @@
             (list-critical-issues))
   (newline))
 
-;;; ============================================================
+;;; ====
 ;;; End of dogfood notes
-;;; ============================================================
+;;; ====
 
 (display "RPG SDK dogfood findings loaded.\n")
 (display "Use (display-dogfood-summary) for overview.\n")

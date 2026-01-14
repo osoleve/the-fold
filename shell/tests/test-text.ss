@@ -31,7 +31,7 @@
          #f))
 
 (display "Text Hygiene Tests\n")
-(display "==================\n\n")
+(display "====\n\n")
 
 ;;; Test 1: Clean ASCII text passes
 (display "Test 1: Clean ASCII text\n")

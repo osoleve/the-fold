@@ -25,9 +25,9 @@
 
 (load "core/base/prelude.ss")
 
-;;; ============================================================
+;;; ====
 ;;; FusionOpportunity Data Structure
-;;; ============================================================
+;;; ====
 
 ;;; A FusionOpportunity captures a detected fusion pattern:
 ;;;   (fusion-opportunity
@@ -66,9 +66,9 @@
 (define (fusion-savings opp) (cdr (assq 'savings (cdr opp))))
 (define (fusion-confidence opp) (cdr (assq 'confidence (cdr opp))))
 
-;;; ============================================================
+;;; ====
 ;;; Position Utilities
-;;; ============================================================
+;;; ====
 
 ;;; Positions are paths into an expression tree:
 ;;;   '() means root
@@ -84,9 +84,9 @@
           (expr-at-position (list-ref expr (car pos)) (cdr pos))
           expr)))
 
-;;; ============================================================
+;;; ====
 ;;; Pure Function Detection
-;;; ============================================================
+;;; ====
 
 ;;; Known pure higher-order functions
 (define *pure-hof*
@@ -144,9 +144,9 @@
    [(or (eq? c1 'likely-pure) (eq? c2 'likely-pure)) 'likely-pure]
    [else 'safe]))
 
-;;; ============================================================
+;;; ====
 ;;; Pattern Matchers
-;;; ============================================================
+;;; ====
 
 ;;; Each matcher returns #f or (bindings . confidence)
 
@@ -270,9 +270,9 @@
                             (combine-confidence (estimate-purity f)
                                                 (estimate-purity g))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Rewrite Templates
-;;; ============================================================
+;;; ====
 
 ;;; build-map-map-fused : Bindings -> Expr
 ;;; (map f (map g xs)) -> (map (compose f g) xs)
@@ -328,9 +328,9 @@
         [s (cdr (assq 's bindings))])
        `(stream-map (compose ,f ,g) ,s)))
 
-;;; ============================================================
+;;; ====
 ;;; Fusion Rules Table
-;;; ============================================================
+;;; ====
 
 ;;; Each rule: (name matcher builder savings)
 ;;; savings: estimated % reduction in list traversals
@@ -343,9 +343,9 @@
     (concat-map-fuse     ,match-concat-map     ,build-concat-map-fused     50)
     (stream-map-map-fuse ,match-stream-map-map ,build-stream-map-map-fused 50)))
 
-;;; ============================================================
+;;; ====
 ;;; Core Detection Logic
-;;; ============================================================
+;;; ====
 
 ;;; try-all-rules : Expr x Position -> (List FusionOpportunity)
 ;;; Try all fusion rules on an expression at given position.
@@ -405,9 +405,9 @@
    [(expr) (fusion-detect-at-depth expr '() *fusion-detect-fuel*)]
    [(expr fuel) (fusion-detect-at-depth expr '() fuel)]))
 
-;;; ============================================================
+;;; ====
 ;;; Convenience Functions
-;;; ============================================================
+;;; ====
 
 ;;; count-opportunities : (List FusionOpportunity) -> Nat
 ;;; Count total opportunities.
@@ -433,9 +433,9 @@
 (define (safe-opportunities opps)
   (filter (lambda (o) (eq? (fusion-confidence o) 'safe)) opps))
 
-;;; ============================================================
+;;; ====
 ;;; Display Utilities
-;;; ============================================================
+;;; ====
 
 ;;; format-opportunity : FusionOpportunity -> String
 ;;; Format an opportunity for display.
@@ -461,9 +461,9 @@
                 (display "\n\n"))
         opps))))
 
-;;; ============================================================
+;;; ====
 ;;; Summary Report
-;;; ============================================================
+;;; ====
 
 ;;; fusion-summary : (List FusionOpportunity) -> (Summary ...)
 ;;; Generate a summary report of opportunities.

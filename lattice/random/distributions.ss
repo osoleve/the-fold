@@ -25,9 +25,9 @@
 (load "lattice/fp/numeric/transcendental.ss")
 (load "lattice/random/prng.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Bernoulli Distribution
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Bernoulli(p): Returns #t with probability p, #f with probability 1-p
 
@@ -38,9 +38,9 @@
       (error 'random-bernoulli "probability must be in [0,1]" p)
       (state-map (lambda (u) (< u p)) random-float)))
 
-;;; ============================================================
+;;; ====
 ;;; Exponential Distribution
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Exponential(λ): Mean = 1/λ, models waiting times
 
@@ -57,9 +57,9 @@
                               (/ (- (log-num u-safe)) rate)))
                  random-float)))
 
-;;; ============================================================
+;;; ====
 ;;; Normal/Gaussian Distribution
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Normal(μ, σ): Bell curve with mean μ and standard deviation σ
 ;;; Uses Box-Muller transform.
@@ -102,9 +102,9 @@
                                                  [z1 (* r (sin-num theta))])
                                                 (state-pure (cons z0 z1))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Geometric Distribution
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Geometric(p): Number of trials until first success
 ;;; P(X = k) = (1-p)^(k-1) * p for k = 1, 2, 3, ...
@@ -123,9 +123,9 @@
                                               (log-num (- 1 p))))))
                      random-float))))
 
-;;; ============================================================
+;;; ====
 ;;; Poisson Distribution
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Poisson(λ): Count of events in fixed interval, mean = λ
 ;;; Uses Knuth's algorithm for small λ, rejection for large λ
@@ -194,9 +194,9 @@
                    (* 0.5 (log-num (* 2 (pi-value))))
                    series-term)))))
 
-;;; ============================================================
+;;; ====
 ;;; Binomial Distribution
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Binomial(n, p): Number of successes in n Bernoulli(p) trials
 ;;; Mean = n*p, Variance = n*p*(1-p)
@@ -238,9 +238,9 @@
                               ;; Simple acceptance (normal approx is good for large n)
                               (cons k g2))))))]))
 
-;;; ============================================================
+;;; ====
 ;;; Gamma Distribution
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Gamma(shape, rate): Generalization of exponential
 ;;; Mean = shape/rate, Variance = shape/rate^2
@@ -285,9 +285,9 @@
                                             (cons (/ (* d v3) rate) g2)
                                             (loop g2)))))))))]))
 
-;;; ============================================================
+;;; ====
 ;;; Beta Distribution
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Beta(α, β): Distribution on [0, 1]
 ;;; Mean = α/(α+β)
@@ -305,9 +305,9 @@
                                     (lambda (y)
                                             (state-pure (/ x (+ x y)))))))]))
 
-;;; ============================================================
+;;; ====
 ;;; Categorical/Discrete Distribution
-;;; ============================================================
+;;; ====
 
 ;;; random-categorical : (List Real) → (State RNG Int)
 ;;; Sample index 0..n-1 according to probability weights.
@@ -329,9 +329,9 @@
                                                        i
                                                        (loop (cdr ws) new-acc (+ i 1)))))))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Multivariate Distributions
-;;; ============================================================
+;;; ====
 
 ;;; random-normal-vector : Int × Real × Real → (State RNG (List Real))
 ;;; Generate n independent normal samples.
@@ -363,9 +363,9 @@
    [(pred (car lst)) (andmap pred (cdr lst))]
    [else #f]))
 
-;;; ============================================================
+;;; ====
 ;;; Probability Density/Mass Functions (PDF/PMF)
-;;; ============================================================
+;;; ====
 
 ;;; normal-pdf : Real × Real × Real → Real
 ;;; PDF of Normal(mean, stddev) at x.
@@ -423,9 +423,9 @@
 (define (bernoulli-pmf success? p)
   (if success? p (- 1 p)))
 
-;;; ============================================================
+;;; ====
 ;;; Cumulative Distribution Functions (CDF)
-;;; ============================================================
+;;; ====
 
 ;;; exponential-cdf : Real × Real → Real
 ;;; CDF of Exponential(rate) at x.
@@ -482,9 +482,9 @@
                sum
                (loop (+ i 1) (+ sum (poisson-pmf i rate)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Quantile Functions (Inverse CDF)
-;;; ============================================================
+;;; ====
 
 ;;; exponential-quantile : Real × Real → Real
 ;;; Quantile (inverse CDF) of Exponential(rate) at p.
@@ -537,9 +537,9 @@
 (define (normal-quantile p mean stddev)
   (+ mean (* stddev (standard-normal-quantile p))))
 
-;;; ============================================================
+;;; ====
 ;;; Helper Functions for Distributions
-;;; ============================================================
+;;; ====
 
 ;;; factorial : Int → Int
 (define (factorial n)

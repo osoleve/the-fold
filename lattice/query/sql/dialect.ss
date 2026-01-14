@@ -19,9 +19,9 @@
 (unless (top-level-bound? '*sql-format-loaded*)
         (load "lattice/query/sql/format.ss"))
 
-;;; ============================================================
+;;; ====
 ;;; Dialect Definitions
-;;; ============================================================
+;;; ====
 
 ;;; Supported dialects
 (define sql-dialects '(ansi mysql pgsql tsql oracle))
@@ -30,9 +30,9 @@
 (define (dialect-valid? dialect)
   (memq dialect sql-dialects))
 
-;;; ============================================================
+;;; ====
 ;;; Dialect Feature Differences
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Key differences between dialects:
 ;;;
@@ -73,9 +73,9 @@
 ;;;    - tsql: ESCAPE 'char'
 ;;;    - oracle: ESCAPE 'char'
 
-;;; ============================================================
+;;; ====
 ;;; Dialect Configuration
-;;; ============================================================
+;;; ====
 
 ;;; dialect-config : Symbol → Alist
 ;;; Returns configuration for a dialect
@@ -130,9 +130,9 @@
             (if pair (cdr pair)
                 (error 'dialect-get "Unknown config key" key)))))
 
-;;; ============================================================
+;;; ====
 ;;; AST Transformation
-;;; ============================================================
+;;; ====
 
 ;;; translate-ast : AST × Symbol × Symbol → AST
 ;;; Transform AST from source dialect to target dialect
@@ -173,9 +173,9 @@
                             [else child]))
                    data))))
 
-;;; ============================================================
+;;; ====
 ;;; SELECT Transformation
-;;; ============================================================
+;;; ====
 
 ;;; transform-select : AST × Symbol × Symbol → AST
 (define (transform-select node from to)
@@ -209,9 +209,9 @@
       ;; For now, keep the same structure - formatting handles differences
       limit))
 
-;;; ============================================================
+;;; ====
 ;;; Expression Transformation
-;;; ============================================================
+;;; ====
 
 ;;; transform-binary-op : AST × Symbol × Symbol → AST
 (define (transform-binary-op node from to)
@@ -300,9 +300,9 @@
                        [else node]))
             node)))
 
-;;; ============================================================
+;;; ====
 ;;; INSERT/UPDATE/DELETE Transformation
-;;; ============================================================
+;;; ====
 
 (define (transform-insert node from to)
   (transform-children node from to))
@@ -313,9 +313,9 @@
 (define (transform-delete node from to)
   (transform-children node from to))
 
-;;; ============================================================
+;;; ====
 ;;; Dialect-Aware Formatting
-;;; ============================================================
+;;; ====
 
 ;;; format-sql-dialect : AST × Symbol × Alist → String
 ;;; Format AST for specific dialect
@@ -436,9 +436,9 @@
 (define (format-delete-dialect ast dialect opts)
   (format-delete ast opts))
 
-;;; ============================================================
+;;; ====
 ;;; Identifier Quoting
-;;; ============================================================
+;;; ====
 
 ;;; quote-identifier : String × Symbol → String
 (define (quote-identifier name dialect)
@@ -450,9 +450,9 @@
          (string-append "[" name "]")]
         [else name])))
 
-;;; ============================================================
+;;; ====
 ;;; High-Level Translation API
-;;; ============================================================
+;;; ====
 
 ;;; translate-sql : String × Symbol × Symbol → Either Error String
 ;;; Parse SQL, translate AST, format for target dialect

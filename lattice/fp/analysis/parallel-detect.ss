@@ -23,9 +23,9 @@
 
 (load "core/base/prelude.ss")
 
-;;; ============================================================
+;;; ====
 ;;; ParallelOpportunity Data Structure
-;;; ============================================================
+;;; ====
 
 ;;; A ParallelOpportunity captures a detected parallelization pattern:
 ;;;   (parallel-opportunity
@@ -62,9 +62,9 @@
 (define (par-estimated-speedup opp) (cdr (assq 'estimated-speedup (cdr opp))))
 (define (par-dependencies opp) (cdr (assq 'dependencies (cdr opp))))
 
-;;; ============================================================
+;;; ====
 ;;; Dependency Graph
-;;; ============================================================
+;;; ====
 
 ;;; A DependencyGraph shows variable dependencies between expressions.
 ;;; Structure: ((name . (List DependsOn)) ...)
@@ -87,9 +87,9 @@
   (let ([entry (assq sym (dep-graph-entries g))])
        (if entry (cdr entry) '())))
 
-;;; ============================================================
+;;; ====
 ;;; Free Variables Analysis
-;;; ============================================================
+;;; ====
 
 ;;; Binders recognized: fn, lambda, let, let*, letrec, fix
 
@@ -188,9 +188,9 @@
         [(memq (car items) seen) (loop (cdr items) seen acc)]
         [else (loop (cdr items) (cons (car items) seen) (cons (car items) acc))])))
 
-;;; ============================================================
+;;; ====
 ;;; Independence Analysis
-;;; ============================================================
+;;; ====
 
 ;;; Two expressions are independent if:
 ;;; 1. Neither's free vars include the other's defined vars
@@ -246,9 +246,9 @@
                                        (inner (cdr rest) (cons j group) leftover)
                                        (inner (cdr rest) group (cons j leftover)))))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Pattern Detectors
-;;; ============================================================
+;;; ====
 
 ;;; --- Independent Let Bindings ---
 
@@ -404,9 +404,9 @@
                 '()))
       '()))
 
-;;; ============================================================
+;;; ====
 ;;; Speedup Estimation
-;;; ============================================================
+;;; ====
 
 ;;; estimate-speedup : Nat x (List Expr) -> Rational
 ;;; Estimate potential speedup based on branch count and work estimates.
@@ -435,9 +435,9 @@
     (* 10 (apply + (map estimate-work (cdr expr))))]  ; HOFs are expensive
    [else (apply + (map estimate-work expr))]))
 
-;;; ============================================================
+;;; ====
 ;;; Core Detection Logic
-;;; ============================================================
+;;; ====
 
 ;;; try-all-detectors : Expr x Position -> (List ParallelOpportunity)
 ;;; Run all parallel pattern detectors on an expression.
@@ -480,9 +480,9 @@
    [(expr) (detect-at-depth expr '() *detect-fuel*)]
    [(expr fuel) (detect-at-depth expr '() fuel)]))
 
-;;; ============================================================
+;;; ====
 ;;; Convenience Functions
-;;; ============================================================
+;;; ====
 
 ;;; count-parallel-opportunities : (List ParallelOpportunity) -> Nat
 (define (count-parallel-opportunities opps)
@@ -509,9 +509,9 @@
 (define (high-value-opportunities opps)
   (filter (lambda (o) (>= (par-estimated-speedup o) 1.5)) opps))
 
-;;; ============================================================
+;;; ====
 ;;; Display Utilities
-;;; ============================================================
+;;; ====
 
 ;;; format-opportunity : ParallelOpportunity -> String
 (define (format-parallel-opportunity opp)
@@ -533,9 +533,9 @@
                 (display "\n\n"))
         opps))))
 
-;;; ============================================================
+;;; ====
 ;;; Summary Report
-;;; ============================================================
+;;; ====
 
 ;;; parallel-summary : (List ParallelOpportunity) -> Summary
 ;;; Generate a summary report of parallelization opportunities.
@@ -551,9 +551,9 @@
                               (/ (apply + (map par-estimated-speedup opps)) (length opps))))
           (by-pattern . ,(map (lambda (pair) (cons (car pair) (length (cdr pair)))) by-pattern)))))
 
-;;; ============================================================
+;;; ====
 ;;; Transformation Suggestions
-;;; ============================================================
+;;; ====
 
 ;;; suggest-par-transform : ParallelOpportunity -> Expr
 ;;; Suggest a transformation using par forms.

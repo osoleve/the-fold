@@ -5,9 +5,9 @@
 ;;;
 ;;; This is Playpen code: tests for the RPG SDK.
 
-;;; ============================================================
+;;; ====
 ;;; Test Framework
-;;; ============================================================
+;;; ====
 
 (define *tests-passed* 0)
 (define *tests-failed* 0)
@@ -44,7 +44,7 @@
 
 (define (test-summary)
   (newline)
-  (display "===================\n")
+  (display "====\n")
   (display "Tests passed: ")
   (display *tests-passed*)
   (newline)
@@ -54,11 +54,11 @@
   (if (= *tests-failed* 0)
       (display "All tests passed!\n")
       (display "Some tests failed.\n"))
-  (display "===================\n"))
+  (display "====\n"))
 
-;;; ============================================================
+;;; ====
 ;;; Load Dependencies
-;;; ============================================================
+;;; ====
 
 ;;; Load canvas system from shell (needed for rendering tests)
 (load "shell/layout.ss")
@@ -72,9 +72,9 @@
 (load "user/loom/turn.ss")
 (load "user/loom/world.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Core Tests
-;;; ============================================================
+;;; ====
 
 (test-section "Core - Directions")
 
@@ -110,9 +110,9 @@
 (test "alist-set new" '(d . 4) (car (alist-set test-alist 'd 4)))
 (test "alist-remove" 2 (length (alist-remove test-alist 'b)))
 
-;;; ============================================================
+;;; ====
 ;;; Tile Tests
-;;; ============================================================
+;;; ====
 
 (test-section "Tile - Tile Types")
 
@@ -139,9 +139,9 @@
 (test "tilemap-walkable? floor" #t (tilemap-walkable? test-tilemap 5 5))
 (test "tilemap-walkable? wall" #f (tilemap-walkable? test-tilemap 3 3))
 
-;;; ============================================================
+;;; ====
 ;;; Entity Tests
-;;; ============================================================
+;;; ====
 
 (test-section "Entity - Components")
 
@@ -200,9 +200,9 @@
 (test "entity-is-monster?" #t (entity-is-monster? test-monster))
 (test "ai-behavior" 'hunt (ai-behavior (entity-ai test-monster)))
 
-;;; ============================================================
+;;; ====
 ;;; Event Tests
-;;; ============================================================
+;;; ====
 
 (test-section "Event - Event Creation")
 
@@ -225,9 +225,9 @@
 (event-queue-clear! eq)
 (test "event-queue-clear!" #t (event-queue-empty? eq))
 
-;;; ============================================================
+;;; ====
 ;;; Action Tests
-;;; ============================================================
+;;; ====
 
 (test-section "Action - Action Creation")
 
@@ -254,9 +254,9 @@
 (define dequeued (dequeue-action! aq))
 (test "dequeue-action! fifo" 'move (action-type dequeued))
 
-;;; ============================================================
+;;; ====
 ;;; World Tests
-;;; ============================================================
+;;; ====
 
 (test-section "World - World Creation")
 
@@ -318,9 +318,9 @@
 (test "world-find-path path not empty" #t (> (length path) 0))
 (test "world-find-path ends at goal" '(7 . 4) (if (null? path) #f (car (reverse path))))
 
-;;; ============================================================
+;;; ====
 ;;; Turn System Tests
-;;; ============================================================
+;;; ====
 
 (test-section "Turn - Actor Queue")
 
@@ -351,9 +351,9 @@
 (test "begin-turn! increments" 1 (turn-state-current-turn ts))
 (test "turn-state-in-phase?" #t (turn-state-in-phase? ts 'start-turn))
 
-;;; ============================================================
+;;; ====
 ;;; Integration Test
-;;; ============================================================
+;;; ====
 
 (test-section "Integration - Simple Game Setup")
 
@@ -409,9 +409,9 @@
 (display (canvas->string (world->canvas int-world)))
 (newline)
 
-;;; ============================================================
+;;; ====
 ;;; Test Summary
-;;; ============================================================
+;;; ====
 
 (test-summary)
 

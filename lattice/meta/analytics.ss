@@ -16,9 +16,9 @@
 
 (load "lattice/meta/dag.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Overall Statistics
-;;; ============================================================
+;;; ====
 
 ;;; lattice-stats : -> Alist
 ;;; Get overall lattice statistics
@@ -48,7 +48,7 @@
 (define (lattice-stats-pretty)
   (let ([stats (lattice-stats)])
        (printf "Lattice Statistics\n")
-       (printf "==================\n")
+       (printf "====\n")
        (printf "  Skills:       ~a\n" (cdr (assq 'skills stats)))
        (printf "  Modules:      ~a\n" (cdr (assq 'modules stats)))
        (printf "  Exports:      ~a\n" (cdr (assq 'exports stats)))
@@ -63,9 +63,9 @@
   (let ([factor (expt 10 places)])
        (/ (round (* n factor)) factor)))
 
-;;; ============================================================
+;;; ====
 ;;; Health Checks
-;;; ============================================================
+;;; ====
 
 ;;; lattice-health : -> HealthReport
 ;;; Run health checks on the lattice
@@ -130,7 +130,7 @@
          [issues (cdr (assq 'issues report))]
          [warnings (cdr (assq 'warnings report))])
         (printf "Lattice Health Report\n")
-        (printf "=====================\n\n")
+        (printf "====\n\n")
         
         (if healthy
             (printf "Status: HEALTHY\n\n")
@@ -168,9 +168,9 @@
                  warnings)
                 (printf "\n"))))
 
-;;; ============================================================
+;;; ====
 ;;; Coverage Analysis
-;;; ============================================================
+;;; ====
 
 ;;; lattice-coverage : -> CoverageReport
 ;;; Analyze documentation/test coverage
@@ -215,7 +215,7 @@
 (define (lattice-coverage-pretty)
   (let ([cov (lattice-coverage)])
        (printf "Lattice Coverage Report\n")
-       (printf "=======================\n\n")
+       (printf "====\n\n")
        (printf "Total Skills: ~a\n\n" (cdr (assq 'total cov)))
        (printf "Metadata Coverage:\n")
        (printf "  Descriptions: ~a/~a (~a%)\n"
@@ -235,9 +235,9 @@
                (cdr (assq 'total cov))
                (round-to (cdr (assq 'modules-pct cov)) 1))))
 
-;;; ============================================================
+;;; ====
 ;;; Complexity Metrics
-;;; ============================================================
+;;; ====
 
 ;;; skill-complexity : Symbol -> Alist
 ;;; Get complexity metrics for a skill
@@ -267,9 +267,9 @@
 ;;; Print complexity summary for all skills
 (define (lattice-complexity-summary)
   (printf "Skill Complexity Summary\n")
-  (printf "========================\n\n")
+  (printf "====\n\n")
   (printf "~20a ~6a ~8a ~8a ~6a\n" "Skill" "Mods" "Deps" "Users" "Depth")
-  (printf "~20a ~6a ~8a ~8a ~6a\n" "--------------------" "------" "--------" "--------" "------")
+  (printf "~20a ~6a ~8a ~8a ~6a\n" "----" "----" "----" "----" "----")
   (for-each
    (lambda (skill-name)
            (let ([c (skill-complexity skill-name)])
@@ -281,9 +281,9 @@
                         (cdr (assq 'depth c)))))
    (kg-skills)))
 
-;;; ============================================================
+;;; ====
 ;;; Purity Analysis
-;;; ============================================================
+;;; ====
 
 ;;; lattice-purity-report : -> void
 ;;; Report on purity of skills
@@ -306,15 +306,15 @@
                             [else (set! unknown (+ 1 unknown))])))
         (kg-skills))
        (printf "Purity Report\n")
-       (printf "=============\n\n")
+       (printf "====\n\n")
        (printf "Total:    ~a skills\n" total)
        (printf "Pure:     ~a (~a%)\n" pure (round-to (* 100 (/ pure total)) 1))
        (printf "Partial:  ~a (~a%)\n" partial (round-to (* 100 (/ partial total)) 1))
        (printf "Unknown:  ~a (~a%)\n" unknown (round-to (* 100 (/ unknown total)) 1))))
 
-;;; ============================================================
+;;; ====
 ;;; Convenience Functions
-;;; ============================================================
+;;; ====
 
 ;;; ls : -> void
 ;;; Quick lattice stats (for REPL)
@@ -326,9 +326,9 @@
 (define (lh)
   (lattice-health-pretty))
 
-;;; ============================================================
+;;; ====
 ;;; REPL Interface
-;;; ============================================================
+;;; ====
 
 (printf "analytics.ss loaded.\n")
 (printf "  (lattice-stats)               - Overall statistics\n")

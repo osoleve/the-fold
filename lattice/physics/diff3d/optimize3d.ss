@@ -25,9 +25,9 @@
 (load "lattice/physics/diff3d/traced-integrators3d.ss")
 (load "lattice/physics/diff3d/rollout3d.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Gradient Descent (reusable from 2D, included for completeness)
-;;; ============================================================
+;;; ====
 
 ;;; gradient-descent-step-3d : (List Number) × (List Number) × Number → (List Number)
 ;;; Single gradient descent update: x = x - lr * grad
@@ -46,9 +46,9 @@
                   [new-params (gradient-descent-step-3d params grads learning-rate)])
                  (loop new-params (+ iter 1))))))
 
-;;; ============================================================
+;;; ====
 ;;; Gradient Descent with Momentum
-;;; ============================================================
+;;; ====
 
 ;;; momentum-step-3d : (List Number) × (List Number) × (List Number) × Number × Number → ((List Number) × (List Number))
 (define (momentum-step-3d params grads velocity learning-rate beta)
@@ -71,9 +71,9 @@
                        (lambda (new-params new-velocity)
                                (loop new-params new-velocity (+ iter 1)))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Adam Optimizer
-;;; ============================================================
+;;; ====
 
 ;;; adam-step-3d : (List Number) × (List Number) × (List Number) × (List Number) × Nat × Number × Number × Number × Number → Values
 (define (adam-step-3d params grads m-prev v-prev t lr beta1 beta2 epsilon)
@@ -110,9 +110,9 @@
                        (lambda (new-params new-m new-v)
                                (loop new-params new-m new-v (+ t 1)))))))))
 
-;;; ============================================================
+;;; ====
 ;;; 3D Trajectory Optimization
-;;; ============================================================
+;;; ====
 
 ;;; optimize-initial-velocity-3d : Vec3 × Vec3 × Vec3 × Number × Nat × Number × Nat → Vec3
 ;;; Find initial velocity to hit target position.
@@ -228,9 +228,9 @@
                             (vec3 (list-ref result 3) (list-ref result 4) (list-ref result 5))
                             mass inertia)))
 
-;;; ============================================================
+;;; ====
 ;;; Inverse Physics (Parameter Estimation)
-;;; ============================================================
+;;; ====
 
 ;;; estimate-gravity-3d : (List (Vec3 × Vec3 × Vec3 × Vec3)) × Number × Vec3 × Nat → Vec3
 ;;; Estimate gravity from observed trajectories.
@@ -292,9 +292,9 @@
          [result (adam-3d loss-fn (list initial-guess) 0.01 max-iters)])
         (car result)))
 
-;;; ============================================================
+;;; ====
 ;;; Sensitivity Analysis
-;;; ============================================================
+;;; ====
 
 ;;; sensitivity-3d : ((List Number) → Number) × (List Number) → (List Number)
 ;;; Compute gradient of loss w.r.t. parameters.
@@ -379,9 +379,9 @@
                 (vec3 (car grads-y) (cadr grads-y) (caddr grads-y))
                 (vec3 (car grads-z) (cadr grads-z) (caddr grads-z)))))
 
-;;; ============================================================
+;;; ====
 ;;; Utility Functions
-;;; ============================================================
+;;; ====
 
 ;;; list-update-3d : (List α) × Nat × (α → α) → (List α)
 (define (list-update-3d lst idx f)
@@ -396,9 +396,9 @@
            '()
            (cons i (loop (+ i 1))))))
 
-;;; ============================================================
+;;; ====
 ;;; Complete Optimization Examples
-;;; ============================================================
+;;; ====
 
 ;;; projectile-optimization-example-3d : Vec3 × Vec3 × Vec3 → Vec3
 ;;; Find initial velocity to hit target from start position under gravity.

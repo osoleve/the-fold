@@ -8,9 +8,9 @@
 ;;; Load dependencies
 (load "shell/layout.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Wave Animation
-;;; ============================================================
+;;; ====
 
 ;;; wave-char : Float → Char
 ;;; Convert wave height to ASCII character density.
@@ -42,9 +42,9 @@
                   (y-loop (+ y 1))))
        canvas))
 
-;;; ============================================================
+;;; ====
 ;;; Plasma Effect
-;;; ============================================================
+;;; ====
 
 ;;; generate-plasma-canvas : Nat × Nat × Float → Canvas
 ;;; Create a plasma effect using multiple sine functions.
@@ -68,9 +68,9 @@
                   (y-loop (+ y 1))))
        canvas))
 
-;;; ============================================================
+;;; ====
 ;;; Ripple Effect
-;;; ============================================================
+;;; ====
 
 ;;; generate-ripple-canvas : Nat × Nat × Float → Canvas
 ;;; Create concentric ripples emanating from center.
@@ -92,9 +92,9 @@
                   (y-loop (+ y 1))))
        canvas))
 
-;;; ============================================================
+;;; ====
 ;;; Matrix Rain Effect
-;;; ============================================================
+;;; ====
 
 (define *matrix-state* #f)
 
@@ -134,9 +134,9 @@
                   (x-loop (+ x 1))))
        canvas))
 
-;;; ============================================================
+;;; ====
 ;;; Text Banner
-;;; ============================================================
+;;; ====
 
 ;;; draw-text : Canvas × String × Int × Int → void
 ;;; Draw text on canvas at position.
@@ -150,9 +150,9 @@
              (canvas-set! canvas (+ x i) y (string-ref text i))
              (loop (+ i 1)))))
 
-;;; ============================================================
+;;; ====
 ;;; Demo Functions
-;;; ============================================================
+;;; ====
 
 ;;; show-waves : → void
 ;;; Display a single frame of wave animation.
@@ -206,7 +206,7 @@
 ;;; Show all effects in sequence.
 (define (demo-all)
   (display "\nASCII Animation Demo\n")
-  (display "====================\n\n")
+  (display "====\n\n")
   (display "Available effects:\n")
   (display "  (show-waves)   - Sine wave patterns\n")
   (display "  (show-plasma)  - Plasma effect\n")
@@ -217,8 +217,8 @@
   (display "Try each effect! Each call shows a new frame based on time.\n")
   (newline))
 
-;;; ============================================================
+;;; ====
 ;;; Loaded
-;;; ============================================================
+;;; ====
 
 (demo-all)

@@ -31,9 +31,9 @@
 (define *workers-dir* ".fold-repl/workers")
 (define *ready-file* ".fold-repl/ready")
 
-;;; ============================================================
+;;; ====
 ;;; Utilities
-;;; ============================================================
+;;; ====
 
 (define (ensure-dirs!)
   (unless (file-exists? *repl-dir*)
@@ -89,9 +89,9 @@
                  (condition->string e)))
       (format "~a" e)))
 
-;;; ============================================================
+;;; ====
 ;;; Paths
-;;; ============================================================
+;;; ====
 
 (define (request-path session-id)
   (string-append *requests-dir* "/" session-id ".ss"))
@@ -117,9 +117,9 @@
 (define (lastreq-path session-id)
   (string-append *workers-dir* "/" session-id ".lastreq"))
 
-;;; ============================================================
+;;; ====
 ;;; Request Parsing
-;;; ============================================================
+;;; ====
 
 (define (parse-session-request content)
   (guard (e [else #f])
@@ -131,9 +131,9 @@
 (define (extract-expression request)
   (cdr (assq 'expression request)))
 
-;;; ============================================================
+;;; ====
 ;;; Content Addressing
-;;; ============================================================
+;;; ====
 
 ;;; extract-definition-body : S-expr → S-expr
 ;;; Extract the actual code being defined (without the 'define' keyword).
@@ -184,9 +184,9 @@
            (car form)   ; (define (foo x) ...) -> foo
            form)))      ; (define foo ...) -> foo
 
-;;; ============================================================
+;;; ====
 ;;; Evaluation
-;;; ============================================================
+;;; ====
 
 (define (scheme-eval-string str)
   "Evaluate a string containing Scheme expressions.
@@ -241,9 +241,9 @@
                          ;; Nothing
                          [else ""])))))
 
-;;; ============================================================
+;;; ====
 ;;; Response Helpers
-;;; ============================================================
+;;; ====
 
 (define (write-response path result)
   (when (file-exists? path)
@@ -259,9 +259,9 @@
                          (lambda (p)
                                  (display msg p))))
 
-;;; ============================================================
+;;; ====
 ;;; Worker Loop
-;;; ============================================================
+;;; ====
 
 (define (write-pid! session-id)
   (call-with-output-file (pid-path session-id)
@@ -339,9 +339,9 @@
             (loop last-heartbeat))
            (cleanup-worker! session-id))))
 
-;;; ============================================================
+;;; ====
 ;;; Startup
-;;; ============================================================
+;;; ====
 
 (define (require-session-id args)
   (if (and (pair? args) (pair? (cdr args)))

@@ -23,9 +23,9 @@
 (load "core/base/prelude.ss")
 (load "lattice/fp/numeric/transcendental.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Family Structure
-;;; ============================================================
+;;; ====
 
 ;;; make-glm-family : Symbol × (Num → Num) × (Num × Num → Num) × (Num → Bool) × (Num → Num) → GLMFamily
 ;;; Create a GLM family.
@@ -48,9 +48,9 @@
 (define (family-valid-mu? f) (list-ref f 4))
 (define (family-initialize f) (list-ref f 5))
 
-;;; ============================================================
+;;; ====
 ;;; Gaussian Family
-;;; ============================================================
+;;; ====
 
 ;;; Gaussian: Y ~ N(mu, sigma²)
 ;;; Variance: V(mu) = 1 (constant)
@@ -69,9 +69,9 @@
    ;; initialize: y itself (clamped slightly from 0 for stability)
    (lambda (y) y)))
 
-;;; ============================================================
+;;; ====
 ;;; Binomial Family
-;;; ============================================================
+;;; ====
 
 ;;; Binomial: Y ~ Binomial(n, p), often n=1 (Bernoulli)
 ;;; Variance: V(mu) = mu(1 - mu)
@@ -97,9 +97,9 @@
    ;; initialize: (y + 0.5) / 2, keeps in (0.25, 0.75)
    (lambda (y) (/ (+ y 0.5) 2))))
 
-;;; ============================================================
+;;; ====
 ;;; Poisson Family
-;;; ============================================================
+;;; ====
 
 ;;; Poisson: Y ~ Poisson(mu)
 ;;; Variance: V(mu) = mu
@@ -124,9 +124,9 @@
    ;; initialize: max(y, 0.1)
    (lambda (y) (max y 0.1))))
 
-;;; ============================================================
+;;; ====
 ;;; Gamma Family
-;;; ============================================================
+;;; ====
 
 ;;; Gamma: Y ~ Gamma(shape, rate) with mean = mu
 ;;; Variance: V(mu) = mu²
@@ -151,9 +151,9 @@
    ;; initialize: max(y, 1e-3)
    (lambda (y) (max y 1e-3))))
 
-;;; ============================================================
+;;; ====
 ;;; Inverse Gaussian Family
-;;; ============================================================
+;;; ====
 
 ;;; Inverse Gaussian (Wald): Y ~ IG(mu, lambda)
 ;;; Variance: V(mu) = mu³
@@ -176,9 +176,9 @@
    ;; initialize: max(y, 1e-3)
    (lambda (y) (max y 1e-3))))
 
-;;; ============================================================
+;;; ====
 ;;; Quasi Families
-;;; ============================================================
+;;; ====
 
 ;;; Quasi families allow over/under-dispersion via a scale parameter.
 ;;; The variance is V(mu) * phi where phi is estimated from the data.
@@ -213,9 +213,9 @@
    (lambda (mu) (and (> mu 0) (< mu 1)))
    (lambda (y) (/ (+ y 0.5) 2))))
 
-;;; ============================================================
+;;; ====
 ;;; Utility Functions
-;;; ============================================================
+;;; ====
 
 ;;; compute-deviance : GLMFamily × Vec × Vec → Num
 ;;; Compute total deviance for a fitted model.

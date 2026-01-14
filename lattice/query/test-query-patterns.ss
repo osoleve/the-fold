@@ -8,9 +8,9 @@
 (load "lattice/query/query-dsl.ss")
 (load "lattice/query/query-patterns.ss")
 
-(printf "\n================================================================\n")
+(printf "\n====\n")
 (printf "        QUERY PATTERN MATCHING TEST SUITE                    \n")
-(printf "================================================================\n\n")
+(printf "====\n\n")
 
 (define tests-passed 0)
 (define tests-failed 0)
@@ -32,12 +32,12 @@
 (define (test-false name actual)
   (test name #f actual))
 
-;;; ============================================================
+;;; ====
 ;;; Test Setup
-;;; ============================================================
+;;; ====
 
 (printf "Setting up test environment...\n")
-(printf "----------------------------------------------------------------\n")
+(printf "----\n")
 
 (define test-store-path ".test-pattern-query")
 (when (file-exists? test-store-path)
@@ -99,12 +99,12 @@
 
 (printf "Test blocks created: ~a entities, ~a relations\n\n" 4 5)
 
-;;; ============================================================
+;;; ====
 ;;; Test 1: Variable Recognition
-;;; ============================================================
+;;; ====
 
 (printf "Testing Variable Recognition:\n")
-(printf "----------------------------------------------------------------\n")
+(printf "----\n")
 
 (test-true "?x is a variable"
            (variable? '?x))
@@ -124,12 +124,12 @@
 
 (printf "\n")
 
-;;; ============================================================
+;;; ====
 ;;; Test 2: Binding Environments
-;;; ============================================================
+;;; ====
 
 (printf "Testing Binding Environments:\n")
-(printf "----------------------------------------------------------------\n")
+(printf "----\n")
 
 (define env1 (extend-env empty-env '?x hash-turing))
 (define env2 (extend-env env1 '?y hash-church))
@@ -163,12 +163,12 @@
 
 (printf "\n")
 
-;;; ============================================================
+;;; ====
 ;;; Test 3: Single Pattern Matching
-;;; ============================================================
+;;; ====
 
 (printf "Testing Single Pattern Matching:\n")
-(printf "----------------------------------------------------------------\n")
+(printf "----\n")
 
 ;; Match all "invented" relations
 (define invented-results
@@ -199,12 +199,12 @@
 
 (printf "\n")
 
-;;; ============================================================
+;;; ====
 ;;; Test 4: Multi-Pattern Joins
-;;; ============================================================
+;;; ====
 
 (printf "Testing Multi-Pattern Joins:\n")
-(printf "----------------------------------------------------------------\n")
+(printf "----\n")
 
 ;; Find who influenced whom, and what the influencer invented
 (define join-result1
@@ -228,12 +228,12 @@
 
 (printf "\n")
 
-;;; ============================================================
+;;; ====
 ;;; Test 5: Pattern Query with Constraints
-;;; ============================================================
+;;; ====
 
 (printf "Testing Pattern Query API:\n")
-(printf "----------------------------------------------------------------\n")
+(printf "----\n")
 
 ;; Simple pattern query without constraints
 (define query-result1
@@ -255,12 +255,12 @@
 
 (printf "\n")
 
-;;; ============================================================
+;;; ====
 ;;; Test 6: Result Projection
-;;; ============================================================
+;;; ====
 
 (printf "Testing Result Projection:\n")
-(printf "----------------------------------------------------------------\n")
+(printf "----\n")
 
 (define proj-envs
   (pattern-query fs '((?person invented ?concept))))
@@ -282,12 +282,12 @@
 
 (printf "\n")
 
-;;; ============================================================
+;;; ====
 ;;; Test 7: Convenience Functions
-;;; ============================================================
+;;; ====
 
 (printf "Testing Convenience Functions:\n")
-(printf "----------------------------------------------------------------\n")
+(printf "----\n")
 
 (define count-invented
   (count-pattern fs '((?x invented ?y))))
@@ -298,12 +298,12 @@
 
 (printf "\n")
 
-;;; ============================================================
+;;; ====
 ;;; Test 8: Edge Cases
-;;; ============================================================
+;;; ====
 
 (printf "Testing Edge Cases:\n")
-(printf "----------------------------------------------------------------\n")
+(printf "----\n")
 
 ;; Pattern with no matches
 (define no-match
@@ -322,13 +322,13 @@
 
 (printf "\n")
 
-;;; ============================================================
+;;; ====
 ;;; Summary
-;;; ============================================================
+;;; ====
 
-(printf "================================================================\n")
+(printf "====\n")
 (printf "                    TEST RESULTS                               \n")
-(printf "================================================================\n\n")
+(printf "====\n\n")
 
 (printf "Tests passed: ~a\n" tests-passed)
 (printf "Tests failed: ~a\n" tests-failed)

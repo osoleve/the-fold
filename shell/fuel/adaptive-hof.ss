@@ -16,9 +16,9 @@
 
 (load "shell/fuel/adaptive-allocator.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Options Parsing
-;;; ============================================================
+;;; ====
 
 ;;; normalize-opts : (Alist | Plist) → Alist
 ;;; Normalize options to alist format.
@@ -62,9 +62,9 @@
   (let ([entry (assq key opts)])
        (if entry (cdr entry) default)))
 
-;;; ============================================================
+;;; ====
 ;;; Core: Adaptive Evaluation
-;;; ============================================================
+;;; ====
 
 ;;; adaptive-eval-element : Allocator × Expr × Env × Nat → (Values Any Allocator)
 ;;; Evaluate a single element with adaptive retry.
@@ -97,9 +97,9 @@
                         ;; Error: propagate
                         (values result alloc-tracked)])))))
 
-;;; ============================================================
+;;; ====
 ;;; Adaptive Map
-;;; ============================================================
+;;; ====
 
 ;;; adaptive-map : Expr × List[α] × Options → (Values List[β] Alist)
 ;;; Map with adaptive fuel allocation.
@@ -166,9 +166,9 @@
                                                    (remaining . ,(length (cdr remaining))))
                                                  (allocator-summary alloc*))])))))))
 
-;;; ============================================================
+;;; ====
 ;;; Adaptive Map (Scheme-native functions)
-;;; ============================================================
+;;; ====
 
 ;;; adaptive-map-native : (α → β) × List[α] × Options → (Values List[β] Alist)
 ;;; Map with adaptive fuel allocation for native Scheme functions.
@@ -204,9 +204,9 @@
                              (cons result results)
                              alloc*))))))
 
-;;; ============================================================
+;;; ====
 ;;; Adaptive Filter
-;;; ============================================================
+;;; ====
 
 ;;; adaptive-filter : (α → Bool) × List[α] × Alist → (Values List[α] Alist)
 ;;; Filter with adaptive fuel allocation.
@@ -232,9 +232,9 @@
               (values (map cdr (filter (lambda (p) (car p)) results))
                       stats)))
 
-;;; ============================================================
+;;; ====
 ;;; Adaptive Fold
-;;; ============================================================
+;;; ====
 
 ;;; adaptive-fold-left : Expr × β × List[α] × Options → (Values β Alist)
 ;;; Left fold with adaptive fuel allocation.
@@ -317,9 +317,9 @@
                              new-acc
                              alloc*))))))
 
-;;; ============================================================
+;;; ====
 ;;; Time Utilities (for native function timing)
-;;; ============================================================
+;;; ====
 
 ;;; get-time-micros : → Nat
 ;;; Get current time in microseconds (Chez Scheme specific).
@@ -333,9 +333,9 @@
 (define (time-diff-micros end start)
   (max 0 (- end start)))
 
-;;; ============================================================
+;;; ====
 ;;; Convenience: Quick Adaptive Evaluation
-;;; ============================================================
+;;; ====
 
 ;;; adaptive-eval : Expr → (Values Any Alist)
 ;;; Evaluate a single expression with adaptive fuel allocation.

@@ -5,9 +5,9 @@
 (load "core/test-framework.ss")
 (load "lattice/dsl/quasi.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Helper to evaluate expanded quasiquotes
-;;; ============================================================
+;;; ====
 
 ;;; We need list, cons, append to be available for expanded code.
 ;;; The expanded code uses these primitives.
@@ -50,9 +50,9 @@
     [else
      (error 'eval-expanded "unexpected form" expr)]))
 
-;;; ============================================================
+;;; ====
 ;;; Detection Tests
-;;; ============================================================
+;;; ====
 
 (test-group quasi-detection
   (define-test quasiquote-detection
@@ -74,9 +74,9 @@
     (assert-false (unquote-splicing? '(unquote x)))
     (assert-false (unquote-splicing? 'unquote-splicing))))
 
-;;; ============================================================
+;;; ====
 ;;; Basic Quasiquote Expansion Tests
-;;; ============================================================
+;;; ====
 
 (test-group quasi-basic
   ;; Simple atoms
@@ -109,9 +109,9 @@
                            (list (quote c) (quote d)))
                     expanded))))
 
-;;; ============================================================
+;;; ====
 ;;; Unquote Tests
-;;; ============================================================
+;;; ====
 
 (test-group quasi-unquote
   ;; Single unquote
@@ -143,9 +143,9 @@
     (let ([expanded (qq-expand '(quasiquote ((a (unquote x)) b)))])
       (assert-equal '(list (list (quote a) x) (quote b)) expanded))))
 
-;;; ============================================================
+;;; ====
 ;;; Unquote-Splicing Tests
-;;; ============================================================
+;;; ====
 
 (test-group quasi-splicing
   ;; Single splice
@@ -181,9 +181,9 @@
                        (equal? '(cons x (append ys (list z))) expanded)
                        (equal? '(cons x (append ys z)) expanded))))))
 
-;;; ============================================================
+;;; ====
 ;;; Improper List Tests
-;;; ============================================================
+;;; ====
 
 (test-group quasi-improper
   ;; Simple dotted pair
@@ -201,9 +201,9 @@
     (let ([expanded (qq-expand '(quasiquote ((unquote a) . b)))])
       (assert-equal '(cons a (quote b)) expanded))))
 
-;;; ============================================================
+;;; ====
 ;;; Nested Quasiquote Tests
-;;; ============================================================
+;;; ====
 
 (test-group quasi-nested
   ;; Nested quasiquote - inner unquote should be preserved
@@ -220,9 +220,9 @@
       (assert-equal '(list (quote quasiquote) (list (quote unquote) x))
                     expanded))))
 
-;;; ============================================================
+;;; ====
 ;;; Syntax Object Tests
-;;; ============================================================
+;;; ====
 
 (test-group syntax-objects
   (define-test make-syntax-basic
@@ -256,9 +256,9 @@
       (assert-equal 'new (syntax-datum new-stx))
       (assert-equal loc (syntax-source new-stx)))))
 
-;;; ============================================================
+;;; ====
 ;;; Pattern Matching Tests
-;;; ============================================================
+;;; ====
 
 (test-group pattern-matching
   ;; Wildcard matches anything
@@ -298,9 +298,9 @@
         (assert-equal 'x (cdr (assq 'name bindings)))
         (assert-equal 42 (cdr (assq 'value bindings)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Template Instantiation Tests
-;;; ============================================================
+;;; ====
 
 (test-group template-instantiation
   (define-test instantiate-simple
@@ -318,9 +318,9 @@
           [bindings '((name . foo) (value . 42))])
       (assert-equal '(define foo 42) (instantiate-template template bindings)))))
 
-;;; ============================================================
+;;; ====
 ;;; Integration: Eval Expanded Tests
-;;; ============================================================
+;;; ====
 
 (test-group quasi-integration
   ;; Test that expanded code produces correct results
@@ -338,12 +338,12 @@
     (let ([result (eval-qq '(quasiquote ((1 2) (3 4))))])
       (assert-equal '((1 2) (3 4)) result))))
 
-;;; ============================================================
+;;; ====
 ;;; Run All Tests
-;;; ============================================================
+;;; ====
 
-(display "\n========================================\n")
+(display "\n====\n")
 (display "Running Quasiquotation Tests\n")
-(display "========================================\n\n")
+(display "====\n\n")
 
 (run-all-tests)

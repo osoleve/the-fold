@@ -24,9 +24,9 @@
 (load "lattice/data/graph-algorithms.ss")
 (load "shell/tools/benchmark.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Test Graph Generators
-;;; ============================================================
+;;; ====
 
 ;;; make-chain-graph : FSCap Nat → Hash
 ;;; Create a chain graph: A -> B -> C -> ... -> Z
@@ -206,9 +206,9 @@
                                (update-loop (+ i 1) (cdr nds)))))
             (car hashes))))
 
-;;; ============================================================
+;;; ====
 ;;; Benchmark Definitions
-;;; ============================================================
+;;; ====
 
 ;;; benchmark-traversal : FSCap String Hash → (List BenchmarkResult)
 ;;; Benchmark BFS and DFS traversal on given graph.
@@ -259,9 +259,9 @@
       ,(lambda () (find-hubs fs 10))))
    100))
 
-;;; ============================================================
+;;; ====
 ;;; Test Suites
-;;; ============================================================
+;;; ====
 
 ;;; run-traversal-benchmarks : → void
 ;;; Run traversal benchmarks on different graph structures.
@@ -437,9 +437,9 @@ Testing BFS traversal scaling on chain graphs:
   (display "
 "))
 
-;;; ============================================================
+;;; ====
 ;;; Quick Test Functions
-;;; ============================================================
+;;; ====
 
 ;;; quick-benchmark : → void
 ;;; Quick test of basic functionality.
@@ -460,9 +460,9 @@ Quick benchmark test...
                                      50)])
                  (benchmark-report (list result))))))
 
-;;; ============================================================
+;;; ====
 ;;; Load Message
-;;; ============================================================
+;;; ====
 
 (display "
 ")

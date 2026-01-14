@@ -16,9 +16,9 @@
 
 (load "lattice/autodiff/reverse-diff.ss")
 
-;;; ============================================================
+;;; ====
 ;;; The Rosenbrock Function
-;;; ============================================================
+;;; ====
 
 ;;; rosenbrock : Traced x Traced -> Traced
 ;;; The Rosenbrock function using traced operations for autodiff.
@@ -42,9 +42,9 @@
          [term2 (traced-mul b (traced-sq y-minus-x2))])
         (traced-add term1 term2)))
 
-;;; ============================================================
+;;; ====
 ;;; Plain Rosenbrock for Evaluation
-;;; ============================================================
+;;; ====
 
 ;;; rosenbrock-plain : Number x Number -> Number
 ;;; Plain version for computing function value without tracing overhead.
@@ -53,9 +53,9 @@
        (+ (expt (- a x) 2)
           (* b (expt (- y (* x x)) 2)))))
 
-;;; ============================================================
+;;; ====
 ;;; Gradient Descent Algorithm
-;;; ============================================================
+;;; ====
 
 ;;; gradient-descent : ((Traced Traced) -> Traced) x (List Number) x Number x Nat -> (List Number)
 ;;; Perform gradient descent optimization.
@@ -105,9 +105,9 @@
                                   point grad)])
                  (loop new-point (+ iter 1))))))
 
-;;; ============================================================
+;;; ====
 ;;; Gradient Descent with Line Search
-;;; ============================================================
+;;; ====
 
 ;;; backtracking-line-search : (Number x Number -> Number) x (List Number) x (List Number) x Number x Number -> Number
 ;;; Find a good step size using Armijo backtracking line search.
@@ -157,14 +157,14 @@
                                   point grad)])
                  (loop new-point (+ iter 1))))))
 
-;;; ============================================================
+;;; ====
 ;;; Main Demonstration
-;;; ============================================================
+;;; ====
 
 (printf "~n")
-(printf "=========================================================~n")
+(printf "====~n")
 (printf "   Gradient Descent Optimization with Autodiff~n")
-(printf "=========================================================~n")
+(printf "====~n")
 (printf "~n")
 
 (printf "Minimizing the Rosenbrock function:~n")
@@ -174,9 +174,9 @@
 (printf "~n")
 
 ;;; --- Demonstrating gradient computation ---
-(printf "---------------------------------------------------------~n")
+(printf "----~n")
 (printf "1. Demonstrating Gradient Computation via Autodiff~n")
-(printf "---------------------------------------------------------~n")
+(printf "----~n")
 (printf "~n")
 
 (let* ([test-point '(-1.0 2.0)]
@@ -189,9 +189,9 @@
 (printf "~n")
 
 ;;; --- Standard gradient descent with fixed learning rate ---
-(printf "---------------------------------------------------------~n")
+(printf "----~n")
 (printf "2. Standard Gradient Descent (fixed learning rate)~n")
-(printf "---------------------------------------------------------~n")
+(printf "----~n")
 (printf "~n")
 
 (printf "Starting point: (-1.5, 1.5)~n")
@@ -203,9 +203,9 @@
      (printf "~n"))
 
 ;;; --- Gradient descent with line search ---
-(printf "---------------------------------------------------------~n")
+(printf "----~n")
 (printf "3. Gradient Descent with Backtracking Line Search~n")
-(printf "---------------------------------------------------------~n")
+(printf "----~n")
 (printf "~n")
 
 (printf "Starting point: (-1.5, 1.5)~n")
@@ -217,9 +217,9 @@
      (printf "~n"))
 
 ;;; --- Verify the gradient numerically ---
-(printf "---------------------------------------------------------~n")
+(printf "----~n")
 (printf "4. Gradient Verification (Numerical vs Autodiff)~n")
-(printf "---------------------------------------------------------~n")
+(printf "----~n")
 (printf "~n")
 
 (let* ([test-point '(0.5 0.5)]
@@ -235,9 +235,9 @@
               (abs (- (cadr autodiff-grad) (cadr numerical-grad))))
       (printf "~n"))
 
-(printf "=========================================================~n")
+(printf "====~n")
 (printf "   Demonstration Complete~n")
-(printf "=========================================================~n")
+(printf "====~n")
 (printf "~n")
 (printf "Key Takeaways:~n")
 (printf "  - Gradients are computed automatically via reverse-mode autodiff~n")

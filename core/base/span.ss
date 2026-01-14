@@ -14,9 +14,9 @@
 
 (load "core/base/prelude.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Source Spans
-;;; ============================================================
+;;; ====
 
 ;;; make-span : String × Nat × Nat × Nat × Nat → Span
 ;;; Create a source span.

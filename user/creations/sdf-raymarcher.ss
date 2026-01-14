@@ -11,9 +11,9 @@
 (load "core/base/prelude.ss")
 (load "user/creations/ascii-video.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Vector3 Operations (Inline for Performance)
-;;; ============================================================
+;;; ====
 
 (define (vec3 x y z) (vector x y z))
 (define (vec3-x v) (vector-ref v 0))
@@ -49,9 +49,9 @@
            (vec3 0 1 0)
            (vec3-scale v (/ 1.0 len)))))
 
-;;; ============================================================
+;;; ====
 ;;; Rotation Matrices
-;;; ============================================================
+;;; ====
 
 (define (rotate-y v angle)
   (let ([c (cos angle)]
@@ -73,9 +73,9 @@
              (- (* c y) (* s z))
              (+ (* s y) (* c z)))))
 
-;;; ============================================================
+;;; ====
 ;;; Signed Distance Field Primitives
-;;; ============================================================
+;;; ====
 
 ;;; Sphere: distance from surface
 (define (sdf-sphere p center radius)
@@ -117,9 +117,9 @@
            (sqrt (+ (* (max d-xz 0) (max d-xz 0))
                     (* (max d-y 0) (max d-y 0)))))))
 
-;;; ============================================================
+;;; ====
 ;;; SDF Combinators (CSG Operations)
-;;; ============================================================
+;;; ====
 
 ;;; Union: minimum of distances
 (define (sdf-union d1 d2)
@@ -153,9 +153,9 @@
          [blend (/ (* h h) (* 4 k))])
         (+ (max d1 d2) blend)))
 
-;;; ============================================================
+;;; ====
 ;;; Automatic Differentiation for Normals!
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Here's where the magic happens. Instead of hardcoding normal
 ;;; formulas, we use numerical differentiation as a standin for
@@ -175,9 +175,9 @@
               (- (sdf (vec3 (vec3-x p) (vec3-y p) (+ (vec3-z p) eps)))
                  (sdf (vec3 (vec3-x p) (vec3-y p) (- (vec3-z p) eps))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Ray Marching Engine
-;;; ============================================================
+;;; ====
 
 (define *max-ray-steps* 64)
 (define *max-ray-dist* 100.0)
@@ -196,9 +196,9 @@
                    (cons t p)
                    (loop (+ t (max d 0.001)) (+ steps 1))))])))
 
-;;; ============================================================
+;;; ====
 ;;; Lighting & Shading
-;;; ============================================================
+;;; ====
 
 (define *light-dir* (vec3-normalize (vec3 0.5 0.8 -0.6)))
 (define *ambient* 0.15)
@@ -220,9 +220,9 @@
          [idx (min (- n 1) (max 0 (inexact->exact (floor (* b n)))))])
         (string-ref *shade-chars* idx)))
 
-;;; ============================================================
+;;; ====
 ;;; Camera & Rendering
-;;; ============================================================
+;;; ====
 
 (define (make-camera position look-at up fov)
   "Create a camera looking from position toward look-at"
@@ -247,9 +247,9 @@
                                   (vec3-scale (camera-up cam) up-offset)))])
         (vec3-normalize dir)))
 
-;;; ============================================================
+;;; ====
 ;;; Render a Frame
-;;; ============================================================
+;;; ====
 
 (define (render-sdf-frame sdf camera width height)
   "Render the SDF scene to an ASCII frame"
@@ -270,9 +270,9 @@
                                       (frame-set! frame col row char)))))))
        frame))
 
-;;; ============================================================
+;;; ====
 ;;; Scene Definitions
-;;; ============================================================
+;;; ====
 
 (define (make-torus-scene angle)
   "A spinning torus - the classic ray marching demo"
@@ -312,9 +312,9 @@
                  [e3 (sdf-sphere p e3-pos 0.12)])
                 (sdf-union nucleus (sdf-union e1 (sdf-union e2 e3))))))
 
-;;; ============================================================
+;;; ====
 ;;; Animation System
-;;; ============================================================
+;;; ====
 
 (define (render-animation scene-fn camera num-frames width height)
   "Record an animation of a parametric scene"
@@ -327,9 +327,9 @@
                  (video-add-frame! video frame)))
        video))
 
-;;; ============================================================
+;;; ====
 ;;; Demo Cameras
-;;; ============================================================
+;;; ====
 
 (define *default-camera*
   (make-camera (vec3 0 0 -2.5)      ; position
@@ -349,9 +349,9 @@
                (vec3 0 1 0)
                1.0))
 
-;;; ============================================================
+;;; ====
 ;;; Quick Renders (for Discord)
-;;; ============================================================
+;;; ====
 
 (define (quick-torus angle)
   "Render a single torus frame at given angle"
@@ -390,18 +390,18 @@
 (define (discord-csg angle)
   (string-append "```\n" (quick-csg angle) "```"))
 
-;;; ============================================================
+;;; ====
 ;;; Full Demo
-;;; ============================================================
+;;; ====
 
 (define (run-sdf-demo)
   (display "\n")
-  (display "====================================================\n")
+  (display "====\n")
   (display "  DIFFERENTIABLE RAY MARCHING IN ASCII\n")
-  (display "====================================================\n")
+  (display "====\n")
   (display "  SDF geometry + autodiff normals + ray marching\n")
   (display "  ...because Scheme needed a 3D renderer\n")
-  (display "====================================================\n\n")
+  (display "====\n\n")
   
   (display "Rendering spinning torus (24 frames)...\n\n")
   
@@ -414,14 +414,14 @@
        (display "Flipbook preview (every 4th frame):\n\n")
        (video-flipbook video 4)
        
-       (display "\n====================================================\n")
+       (display "\n====\n")
        (display "What's happening here:\n")
        (display "  1. Signed Distance Fields define implicit geometry\n")
        (display "  2. Ray marching steps through the field\n")
        (display "  3. Autodiff computes surface normals from SDF gradient\n")
        (display "  4. Normals give us lighting (diffuse shading)\n")
        (display "  5. ASCII characters map to brightness levels\n")
-       (display "====================================================\n\n")
+       (display "====\n\n")
        
        (display "Available scenes:\n")
        (display "  (quick-torus angle)    ; Spinning donut\n")

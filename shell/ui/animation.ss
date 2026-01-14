@@ -6,9 +6,9 @@
 ;;; This is Shell code: provides animation utilities for rendering.
 ;;; Easing functions transform linear time into non-linear motion.
 
-;;; ============================================================
+;;; ====
 ;;; Core Easing Type
-;;; ============================================================
+;;; ====
 
 ;;; Easing : Real[0,1] → Real
 ;;;
@@ -21,17 +21,17 @@
 ;;;
 ;;; Output: Transformed value showing animation progress
 
-;;; ============================================================
+;;; ====
 ;;; Linear Easing (No Easing)
-;;; ============================================================
+;;; ====
 
 ;;; linear : Easing
 ;;; No easing — constant velocity.
 (define (linear t) t)
 
-;;; ============================================================
+;;; ====
 ;;; Quadratic Easing (Gentle)
-;;; ============================================================
+;;; ====
 
 ;;; ease-in-quad : Easing
 ;;; Accelerating from zero velocity (t²).
@@ -50,9 +50,9 @@
       (* 2 t t)
       (+ (* -2 t t) (* 4 t) -1)))
 
-;;; ============================================================
+;;; ====
 ;;; Cubic Easing (Medium)
-;;; ============================================================
+;;; ====
 
 ;;; ease-in-cubic : Easing
 ;;; Accelerating from zero velocity (t³).
@@ -73,9 +73,9 @@
       (let ([t1 (- (* 2 t) 2)])
            (+ (* 0.5 t1 t1 t1) 1))))
 
-;;; ============================================================
+;;; ====
 ;;; Quartic Easing (Strong)
-;;; ============================================================
+;;; ====
 
 ;;; ease-in-quart : Easing
 ;;; Accelerating from zero velocity (t⁴).
@@ -96,9 +96,9 @@
       (let ([t1 (- (* 2 t) 2)])
            (- 1 (* 0.5 t1 t1 t1 t1)))))
 
-;;; ============================================================
+;;; ====
 ;;; Exponential Easing (Very Strong)
-;;; ============================================================
+;;; ====
 
 ;;; ease-in-expo : Easing
 ;;; Exponential accelerating from zero velocity.
@@ -123,9 +123,9 @@
    [(< t 0.5) (* 0.5 (expt 2 (* 20 t -10)))]
    [else (- 1 (* 0.5 (expt 2 (+ (* -20 t) 10))))]))
 
-;;; ============================================================
+;;; ====
 ;;; Sine Easing (Smooth)
-;;; ============================================================
+;;; ====
 
 ;;; ease-in-sine : Easing
 ;;; Sinusoidal accelerating from zero velocity.
@@ -142,9 +142,9 @@
 (define (ease-in-out-sine t)
   (* -0.5 (- (cos (* 3.141592653589793 t)) 1)))  ; π
 
-;;; ============================================================
+;;; ====
 ;;; Bounce Easing (Playful)
-;;; ============================================================
+;;; ====
 
 ;;; ease-out-bounce : Easing
 ;;; Bounce effect at the end.
@@ -174,9 +174,9 @@
       (* 0.5 (ease-in-bounce (* t 2)))
       (+ (* 0.5 (ease-out-bounce (- (* t 2) 1))) 0.5)))
 
-;;; ============================================================
+;;; ====
 ;;; Elastic Easing (Springy)
-;;; ============================================================
+;;; ====
 
 ;;; ease-out-elastic : Easing
 ;;; Elastic/spring effect at the end.
@@ -209,9 +209,9 @@
           (sin (* (- (* 20 t) 11.125) (/ (* 2 3.141592653589793) 4.5))))
        1)]))
 
-;;; ============================================================
+;;; ====
 ;;; Back Easing (Anticipation)
-;;; ============================================================
+;;; ====
 
 ;;; ease-in-back : Easing
 ;;; Back up slightly before moving forward.
@@ -239,9 +239,9 @@
            (let ([t2 (- (* 2 t) 2)])
                 (+ 1 (* 0.5 (* t2 t2 (+ (* (+ c2 1) t2) c2))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Animation Utilities
-;;; ============================================================
+;;; ====
 
 ;;; animate : Easing × Real × Real × Real → Real
 ;;;
@@ -293,9 +293,9 @@
 (define (ping-pong frame duration)
   (loop-t (frame->t frame duration)))
 
-;;; ============================================================
+;;; ====
 ;;; Color Animation
-;;; ============================================================
+;;; ====
 
 ;;; animate-color : Easing × Real × Color × Color → Color
 ;;;
@@ -305,9 +305,9 @@
   (let ([eased-t (easing t)])
        (lerp-color color-start color-end eased-t)))
 
-;;; ============================================================
+;;; ====
 ;;; Point Animation
-;;; ============================================================
+;;; ====
 
 ;;; animate-point : Easing × Real × Point × Point → Point
 ;;;
@@ -321,9 +321,9 @@
        (point (inexact->exact (round (+ x-start (* (- x-end x-start) eased-t))))
               (inexact->exact (round (+ y-start (* (- y-end y-start) eased-t)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Presets
-;;; ============================================================
+;;; ====
 
 ;;; Common animation presets for convenience
 

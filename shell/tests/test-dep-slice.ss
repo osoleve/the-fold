@@ -29,18 +29,18 @@
 (define (assert-false name actual)
   (assert-equal name actual #f))
 
-;;; ============================================================
+;;; ====
 ;;; Setup - Build call graph first
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Setting up call graph for dep-slice tests ===\n")
 (unless (call-graph-built?)
         (call-graph-refresh!))
 (printf "Call graph ready.\n")
 
-;;; ============================================================
+;;; ====
 ;;; compute-closure Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Testing compute-closure ===\n")
 
@@ -57,9 +57,9 @@
              (let ([result (compute-closure 'nonexistent-symbol-xyz call-graph-callers 5)])
                   (null? result)))
 
-;;; ============================================================
+;;; ====
 ;;; dep-slice-up Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Testing dep-slice-up ===\n")
 
@@ -74,9 +74,9 @@
 (assert-true "unknown symbol has empty slice-up"
              (null? (dep-slice-up 'nonexistent-symbol-xyz)))
 
-;;; ============================================================
+;;; ====
 ;;; dep-slice-down Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Testing dep-slice-down ===\n")
 
@@ -94,9 +94,9 @@
                    ;; All direct should be in slice
                    (andmap (lambda (d) (member d slice)) direct)))
 
-;;; ============================================================
+;;; ====
 ;;; dep-slice-both Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Testing dep-slice-both ===\n")
 
@@ -118,9 +118,9 @@
                     [down-direct (dep-slice-down 'call-graph-callers 5)])
                    (equal? down-from-both down-direct)))
 
-;;; ============================================================
+;;; ====
 ;;; dep-slice-layers-up Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Testing dep-slice-layers-up ===\n")
 
@@ -137,9 +137,9 @@
                   (or (null? layers)
                       (andmap (lambda (l) (> (car l) 0)) layers))))
 
-;;; ============================================================
+;;; ====
 ;;; dep-slice-layers-down Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Testing dep-slice-layers-down ===\n")
 
@@ -155,9 +155,9 @@
                                            (list? (cdr l))))
                               layers))))
 
-;;; ============================================================
+;;; ====
 ;;; dep-impact Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Testing dep-impact ===\n")
 
@@ -183,9 +183,9 @@
              (let ([result (dep-impact 'foo)])
                   (number? (cdr (assq 'transitive-dependents result)))))
 
-;;; ============================================================
+;;; ====
 ;;; dep-complexity Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Testing dep-complexity ===\n")
 
@@ -211,9 +211,9 @@
              (let ([result (dep-complexity 'foo)])
                   (number? (cdr (assq 'transitive-dependencies result)))))
 
-;;; ============================================================
+;;; ====
 ;;; Edge Cases
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Testing Edge Cases ===\n")
 
@@ -228,11 +228,11 @@
              (let ([result (dep-complexity 'nonexistent-symbol-xyz)])
                   (= (cdr (assq 'complexity-score result)) 0)))
 
-;;; ============================================================
+;;; ====
 ;;; Test Summary
-;;; ============================================================
+;;; ====
 
-(printf "\n========================================\n")
+(printf "\n====\n")
 (printf "Test Results (dep-slice):\n")
 (printf "  Total:  ~a\n" test-count)
 (printf "  Passed: ~a\n" pass-count)

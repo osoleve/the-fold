@@ -12,15 +12,15 @@
 (load "core/base/prelude.ss")
 (load "core/blocks/cas.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Configuration
-;;; ============================================================
+;;; ====
 
 (define *bbs-heads-dir* ".store/heads/bbs")
 
-;;; ============================================================
+;;; ====
 ;;; Path Utilities
-;;; ============================================================
+;;; ====
 
 ;;; bbs-head-path : String -> String
 ;;; Get the filesystem path for an issue's head file.
@@ -37,9 +37,9 @@
   (unless (file-exists? *bbs-heads-dir*)
     (mkdir *bbs-heads-dir*)))
 
-;;; ============================================================
+;;; ====
 ;;; Read/Write Operations
-;;; ============================================================
+;;; ====
 
 ;;; bbs-read-head : String -> Bytevector | #f
 ;;; Read the current hash for an issue ID.
@@ -87,9 +87,9 @@
 (define (bbs-head-exists? id)
   (file-exists? (bbs-head-path id)))
 
-;;; ============================================================
+;;; ====
 ;;; Compare-and-Swap (OCC)
-;;; ============================================================
+;;; ====
 
 ;;; bbs-cas-head! : String Bytevector Bytevector -> Boolean
 ;;; Atomically update head if current value matches expected.
@@ -103,9 +103,9 @@
           (bbs-write-head! id new-hash)
           #t))))
 
-;;; ============================================================
+;;; ====
 ;;; Listing Operations
-;;; ============================================================
+;;; ====
 
 ;;; bbs-list-heads : -> (List String)
 ;;; List all issue IDs that have head files.
@@ -133,9 +133,9 @@
           (loop (cdr lst)
                 (if result (cons result acc) acc))))))
 
-;;; ============================================================
+;;; ====
 ;;; String Utilities
-;;; ============================================================
+;;; ====
 
 ;;; string-trim : String -> String
 ;;; Remove leading and trailing whitespace.

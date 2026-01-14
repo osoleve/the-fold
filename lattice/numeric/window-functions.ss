@@ -11,9 +11,9 @@
 
 (load "core/base/prelude.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Basic Window Functions
-;;; ============================================================
+;;; ====
 
 ;;; rectangular-window : Integer → Vector[Number]
 ;;; Rectangular (boxcar) window - no tapering.
@@ -103,9 +103,9 @@
            ((= i n) result)
            (vector-set! result i (- 1 (/ (abs (- i mid)) mid))))))
 
-;;; ============================================================
+;;; ====
 ;;; Kaiser Window (Parameterized)
-;;; ============================================================
+;;; ====
 
 ;;; Modified Bessel function of the first kind, order 0 (I₀)
 ;;; Used for Kaiser window computation.
@@ -155,9 +155,9 @@
                   [numer (bessel-i0 arg)])
                  (vector-set! result i (/ numer denom))))))
 
-;;; ============================================================
+;;; ====
 ;;; Window Application
-;;; ============================================================
+;;; ====
 
 ;;; apply-window : Vector[Number] × Vector[Number] → Vector[Number]
 ;;; Apply a window function to a signal by element-wise multiplication.
@@ -197,9 +197,9 @@
                                        (make-complex (* (complex-real c) w)
                                                      (* (complex-imag c) w)))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Window Properties
-;;; ============================================================
+;;; ====
 
 ;;; window-energy : Vector[Number] → Number
 ;;; Compute the energy (sum of squares) of a window.
@@ -226,9 +226,9 @@
                 sum
                 (loop (+ i 1) (+ sum (vector-ref window i)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Window Selection Utilities
-;;; ============================================================
+;;; ====
 
 ;;; make-window : Symbol × Integer × (Optional Number) → Vector[Number]
 ;;; Create a window function by name.

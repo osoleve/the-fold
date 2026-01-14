@@ -6,13 +6,13 @@
 (load "lattice/fp/measure/units.ss")
 
 (display "\n")
-(display "==============================================================\n")
+(display "====\n")
 (display "         UNITS OF MEASURE TESTS\n")
-(display "==============================================================\n")
+(display "====\n")
 
-;;; ============================================================
+;;; ====
 ;;; Dimension Tests
-;;; ============================================================
+;;; ====
 
 (test-group dimensions
             (define-test make-dim-test
@@ -43,9 +43,9 @@
               (assert-equal '(0 0 0 0 0 1 0) dim-amount-base)
               (assert-equal '(0 0 0 0 0 0 1) dim-luminosity-base)))
 
-;;; ============================================================
+;;; ====
 ;;; Dimension Arithmetic Tests
-;;; ============================================================
+;;; ====
 
 (test-group dimension-arithmetic
             (define-test dim*-test
@@ -85,9 +85,9 @@
               ;; Velocity = L / T
               (assert-equal '(1 -1 0 0 0 0 0) dim-velocity)))
 
-;;; ============================================================
+;;; ====
 ;;; Quantity Tests
-;;; ============================================================
+;;; ====
 
 (test-group quantities
             (define-test make-qty-test
@@ -117,9 +117,9 @@
                    (assert-equal dim-amount-base (qty-dim mol))
                    (assert-equal dim-luminosity-base (qty-dim cd)))))
 
-;;; ============================================================
+;;; ====
 ;;; Quantity Arithmetic Tests
-;;; ============================================================
+;;; ====
 
 (test-group quantity-arithmetic
             (define-test qty+-test
@@ -173,9 +173,9 @@
               (let ([q (qty-abs (meter -5))])
                    (assert-equal 5 (qty-value q)))))
 
-;;; ============================================================
+;;; ====
 ;;; Quantity Comparison Tests
-;;; ============================================================
+;;; ====
 
 (test-group quantity-comparison
             (define-test qty=?-test
@@ -200,9 +200,9 @@
               (assert-true (qty>=? (meter 5) (meter 5)))
               (assert-false (qty>=? (meter 3) (meter 5)))))
 
-;;; ============================================================
+;;; ====
 ;;; Derived Units Tests
-;;; ============================================================
+;;; ====
 
 (test-group derived-units
             (define-test newton-test
@@ -235,9 +235,9 @@
                    (assert-equal 1000 (qty-value r))
                    (assert-equal dim-resistance (qty-dim r)))))
 
-;;; ============================================================
+;;; ====
 ;;; SI Prefix Tests
-;;; ============================================================
+;;; ====
 
 (test-group si-prefixes
             (define-test kilo-prefix-test
@@ -266,9 +266,9 @@
               ;; 1 MHz = 1e6 Hz
               (assert-equal 1e6 (qty-value (megahertz 1)))))
 
-;;; ============================================================
+;;; ====
 ;;; Physics Calculations Tests
-;;; ============================================================
+;;; ====
 
 (test-group physics-calculations
             ;; F = m * a
@@ -305,9 +305,9 @@
                     (assert-true (< (abs (- (qty-value velocity) 27.777777)) 0.001))
                     (assert-equal dim-velocity (qty-dim velocity)))))
 
-;;; ============================================================
+;;; ====
 ;;; Dimensionless Tests
-;;; ============================================================
+;;; ====
 
 (test-group dimensionless
             (define-test scalar-test
@@ -322,9 +322,9 @@
             (define-test qty->number-test
               (assert-equal 42 (qty->number (scalar 42)))))
 
-;;; ============================================================
+;;; ====
 ;;; Unit Conversion Tests
-;;; ============================================================
+;;; ====
 
 (test-group unit-conversion
             (define-test convert-test
@@ -342,9 +342,9 @@
               (let ([hour (lambda (x) (second (* x 3600)))])
                    (assert-equal 1 (in-units (second 3600) hour)))))
 
-;;; ============================================================
+;;; ====
 ;;; Display Tests
-;;; ============================================================
+;;; ====
 
 (test-group display
             (define-test dim->string-test
@@ -360,12 +360,12 @@
               (assert-equal "10 s" (qty->string (second 10)))
               (assert-equal "100 1" (qty->string (scalar 100)))))
 
-;;; ============================================================
+;;; ====
 ;;; Summary
-;;; ============================================================
+;;; ====
 
 (display "\n")
-(display "==============================================================\n")
+(display "====\n")
 (printf "Tests passed: ~a\n" *tests-passed*)
 (printf "Tests failed: ~a\n" *tests-failed*)
 (printf "Total tests:  ~a\n" *tests-run*)

@@ -22,16 +22,16 @@
 ;;; NOTE: string utilities provided by core/prelude.ss
 (load "core/base/prelude.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Configuration
-;;; ============================================================
+;;; ====
 
 (define *patches-dir* "patches")
 (define *applied-patches* '())  ; List of applied patch names
 
-;;; ============================================================
+;;; ====
 ;;; Patch Registry
-;;; ============================================================
+;;; ====
 
 ;;; scan-patches : -> (List Symbol)
 ;;; Scan the patches directory for available patches.
@@ -66,9 +66,9 @@
                     (loop (cdr lst) (cons result acc))
                     (loop (cdr lst) acc))))))
 
-;;; ============================================================
+;;; ====
 ;;; Input Validation
-;;; ============================================================
+;;; ====
 
 ;;; valid-patch-name? : Symbol → Boolean
 ;;; Patch names must contain only safe characters (no path separators or ..).
@@ -96,9 +96,9 @@
                                (loop (+ i 1))
                                #f)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Manifest Handling
-;;; ============================================================
+;;; ====
 
 ;;; read-manifest : Symbol -> Alist | #f
 ;;; Read a patch manifest from the patches directory.
@@ -122,9 +122,9 @@
   (let ([pair (assq key manifest)])
        (if pair (cdr pair) default)))
 
-;;; ============================================================
+;;; ====
 ;;; Patch Loading
-;;; ============================================================
+;;; ====
 
 ;;; patch-applied? : Symbol -> Bool
 (define (patch-applied? name)
@@ -216,9 +216,9 @@
                          (apply-patch name)
                          #f))))))
 
-;;; ============================================================
+;;; ====
 ;;; Namespace Integration
-;;; ============================================================
+;;; ====
 
 ;;; register-patch-symbols! : (List Symbol) -> void
 ;;; Add patch-provided symbols to the global whitelist.
@@ -226,9 +226,9 @@
   (when (top-level-bound? 'add-global!)
         (for-each add-global! symbols)))
 
-;;; ============================================================
+;;; ====
 ;;; User Interface
-;;; ============================================================
+;;; ====
 
 ;;; patches : -> void
 ;;; List all available patches with status.
@@ -298,9 +298,9 @@
             
             (display "└────────────────────────────────────────────────────\n")))))
 
-;;; ============================================================
+;;; ====
 ;;; Convenience
-;;; ============================================================
+;;; ====
 
 ;;; patch : Symbol -> Bool
 ;;; Alias for apply-patch (shorter to type).

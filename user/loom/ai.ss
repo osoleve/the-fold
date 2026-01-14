@@ -14,9 +14,9 @@
 ;;; Exports:
 ;;;   AI behavior implementations, AI action selection
 
-;;; ============================================================
+;;; ====
 ;;; AI Action Types
-;;; ============================================================
+;;; ====
 
 ;;; AIAction : One of
 ;;;   ('move . Direction)     — Move in a direction
@@ -38,9 +38,9 @@
 (define (ai-action-data action)
   (cdr action))
 
-;;; ============================================================
+;;; ====
 ;;; Core AI Behaviors
-;;; ============================================================
+;;; ====
 
 ;;; Each AI behavior function takes:
 ;;;   World × Entity -> AIAction
@@ -48,18 +48,18 @@
 ;;; The function examines the world and entity state, then
 ;;; returns the action the entity should take this turn.
 
-;;; ============================================================
+;;; ====
 ;;; Idle Behavior
-;;; ============================================================
+;;; ====
 
 ;;; ai-idle : World × Entity -> AIAction
 ;;; Do nothing - just stand still.
 (define (ai-idle world entity)
   (make-ai-action 'wait #f))
 
-;;; ============================================================
+;;; ====
 ;;; Wander Behavior
-;;; ============================================================
+;;; ====
 
 ;;; ai-wander : World × Entity -> AIAction
 ;;; Move randomly, avoiding obstacles.
@@ -85,9 +85,9 @@
             (make-ai-action 'move random-dir)
             (make-ai-action 'wait #f))))
 
-;;; ============================================================
+;;; ====
 ;;; Guard Behavior
-;;; ============================================================
+;;; ====
 
 ;;; ai-guard : World × Entity → AIAction
 ;;; Stay near a guard point, attack nearby enemies.
@@ -129,9 +129,9 @@
          [else
           (make-ai-action 'wait #f)])))
 
-;;; ============================================================
+;;; ====
 ;;; Hunt Behavior
-;;; ============================================================
+;;; ====
 
 ;;; ai-hunt : World × Entity → AIAction
 ;;; Chase and attack the nearest hostile entity.
@@ -177,9 +177,9 @@
                               (make-ai-action 'move dir)
                               (make-ai-action 'wait #f)))))])))
 
-;;; ============================================================
+;;; ====
 ;;; Flee Behavior
-;;; ============================================================
+;;; ====
 
 ;;; ai-flee : World × Entity → AIAction
 ;;; Run away from nearest enemy.
@@ -216,9 +216,9 @@
                     (make-ai-action 'move dir)
                     (make-ai-action 'wait #f)))])))
 
-;;; ============================================================
+;;; ====
 ;;; AI Behavior Dispatcher
-;;; ============================================================
+;;; ====
 
 ;;; ai-decide-action : World × Entity -> AIAction
 ;;; Main AI dispatcher - looks up entity's AI behavior and executes it.
@@ -240,9 +240,9 @@
            ;; No AI component - idle
            (ai-idle world entity))))
 
-;;; ============================================================
+;;; ====
 ;;; AI Utilities
-;;; ============================================================
+;;; ====
 
 ;;; is-hostile? : Entity × Entity -> Bool
 ;;; Check if entity1 is hostile to entity2.
@@ -271,9 +271,9 @@
         ;; Fallback
         [else 'north])))
 
-;;; ============================================================
+;;; ====
 ;;; Advanced AI (Optional Extensions)
-;;; ============================================================
+;;; ====
 
 ;;; ai-ambush : World × Entity → AIAction
 ;;; Hide and wait for player to approach, then attack.
@@ -296,9 +296,9 @@
   ;; Would need: healing items/spells, ally detection
   (ai-guard world entity))
 
-;;; ============================================================
+;;; ====
 ;;; Export Summary
-;;; ============================================================
+;;; ====
 ;;;
 ;;; AI Actions:
 ;;;   make-ai-action, ai-action-type, ai-action-data

@@ -18,7 +18,7 @@ The review identified 3 issues, all of which have been fixed.
 **Issues Found:**
 
 | Issue | Severity | Status |
-|-------|----------|--------|
+|----|----|----|
 | Silent truncation on 32-bit (n as usize) | Medium | **FIXED** |
 | Arithmetic overflow in fuel calc (MAT4_VEC_MUL * n) | Medium | **FIXED** |
 
@@ -34,7 +34,7 @@ The review identified 3 issues, all of which have been fixed.
 **Issues Found:**
 
 | Issue | Severity | Status |
-|-------|----------|--------|
+|----|----|----|
 | Unfair comparison: Scheme didn't write results | High | **FIXED** |
 | Missing bytevector locking | Low | **FIXED** |
 

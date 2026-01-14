@@ -13,9 +13,9 @@
 ;;;
 ;;; This loads the Loom framework first, then adds the Spell DSL on top.
 ;;;
-;;; ============================================================
+;;; ====
 ;;; Core DSL Forms (Layer 1)
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Pipe Macros:
 ;;;   ->           Thread value through transformations
@@ -38,9 +38,9 @@
 ;;;   emit!            Fire an event immediately
 ;;;   queue!           Queue an event for deferred processing
 ;;;
-;;; ============================================================
+;;; ====
 ;;; Game DSL Forms (Layer 2)
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Behaviors:
 ;;;   def-behavior     State machine AI behaviors with states/transitions
@@ -63,9 +63,9 @@
 ;;;   def-generator    Procedural world generation
 ;;;   def-recipe       Reusable room/area templates
 
-;;; ============================================================
+;;; ====
 ;;; Load Dependencies
-;;; ============================================================
+;;; ====
 
 ;;; Load the Loom framework first (provides entity, event, world, etc.)
 (load "user/loom/loom.ss")
@@ -73,15 +73,15 @@
 ;;; Load the Spell prelude (all DSL macros)
 (load "user/loom/spell/prelude.ss")
 
-;;; ============================================================
+;;; ====
 ;;; DSL Version
-;;; ============================================================
+;;; ====
 
 (define *spell-version* "0.2.1")
 
-;;; ============================================================
+;;; ====
 ;;; Standard Component Reference
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Position: (make-position-component x y)
 ;;;   - Auto-added by def-entity when using (x y) params
@@ -119,9 +119,9 @@
 ;;; Inventory: (make-inventory-component [capacity] [items])
 ;;; Equipment: (make-equipment-component)
 ;;;
-;;; ============================================================
+;;; ====
 ;;; Standard Event Data Shapes
-;;; ============================================================
+;;; ====
 ;;;
 ;;; entity-died:
 ;;;   source = killer entity ID (or #f, 'trap, 'poison)
@@ -148,12 +148,12 @@
 ;;;   data   = ((turn-number . Nat))
 ;;;
 
-;;; ============================================================
+;;; ====
 ;;; Quick Reference
-;;; ============================================================
+;;; ====
 
 #|
-;;; ========== COMPONENT DEFINITION ==========
+;;; ==== COMPONENT DEFINITION ====
 
 (def-component mana
   ((current 0)     ; starting mana
@@ -164,7 +164,7 @@
 ;;            mana-current, mana-set-current, etc.
 
 
-;;; ========== ENTITY DEFINITION ==========
+;;; ==== ENTITY DEFINITION ====
 
 ;; Note: def-entity auto-adds position-component from (x y) params
 ;; Note: Add actor-component if entity should take turns!
@@ -185,7 +185,7 @@
 ;; Generates: (make-goblin x y) factory function
 
 
-;;; ========== EVENT HANDLING ==========
+;;; ==== EVENT HANDLING ====
 
 ;; Preferred form: :do first (binds variables), then :when (uses them)
 (on-event dispatcher entity-died
@@ -198,7 +198,7 @@
           (display "Big hit!\n"))
 
 
-;;; ========== ENTITY UPDATES ==========
+;;; ==== ENTITY UPDATES ====
 
 (set! world
       (with-entity world player-id
@@ -206,7 +206,7 @@
                        (entity-heal 5))))
 
 
-;;; ========== PIPE MACROS ==========
+;;; ==== PIPE MACROS ====
 
 ;; Use :let to capture value for use in conditions
 (-> entity
@@ -225,7 +225,7 @@
      (canvas-set! 1 0 #\#))
 
 
-;;; ========== BEHAVIOR STATE MACHINES ==========
+;;; ==== BEHAVIOR STATE MACHINES ====
 
 ;; Define a cowardly AI that flees when hurt
 (def-behavior coward
@@ -248,7 +248,7 @@
          (action (ai-flee world entity))))
 
 
-;;; ========== CUSTOM ACTIONS ==========
+;;; ==== CUSTOM ACTIONS ====
 
 ;; Define a healing spell action
 (def-action heal-self
@@ -269,7 +269,7 @@
   :execute (entity-damage target damage))
 
 
-;;; ========== GAME DEFINITION ==========
+;;; ==== GAME DEFINITION ====
 
 (def-game dungeon-escape
   (title "Dungeon Escape")
@@ -290,7 +290,7 @@
 ;; (game-check-state dungeon-escape world) ; -> 'playing, 'won, or 'lost
 
 
-;;; ========== PREDICATES ==========
+;;; ==== PREDICATES ====
 
 ;; Use predicates in conditions
 (if (and (alive? entity)
@@ -304,9 +304,9 @@
 ;;                    player-nearby?, safe?, threatened?, outnumbered?
 |#
 
-;;; ============================================================
+;;; ====
 ;;; Loaded Message
-;;; ============================================================
+;;; ====
 
 (display "Spell v")
 (display *spell-version*)

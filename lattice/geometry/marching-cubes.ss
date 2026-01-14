@@ -13,9 +13,9 @@
 (load "core/base/prelude.ss")
 (load "lattice/geometry/geometry.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Marching Cubes Configuration
-;;; ============================================================
+;;; ====
 
 ;;; Edge table: which edges are intersected for each cube configuration
 ;;; Edges are numbered 0-11 (4 on bottom face, 4 on top face, 4 vertical)
@@ -75,9 +75,9 @@
      3 4 4 5 4 5 3 4 4 5 5 2 3 4 2 1
      2 3 3 2 3 4 2 1 3 2 4 1 2 1 1 0))
 
-;;; ============================================================
+;;; ====
 ;;; Grid and Cube Utilities
-;;; ============================================================
+;;; ====
 
 ;;; marching-cubes-grid : SDF-Function × AABB × Number → (List Triangle3)
 ;;; Extract triangle mesh from SDF using marching cubes
@@ -178,9 +178,9 @@
                     (let ([tri (triangle3 (car pts) (cadr pts) (caddr pts))])
                          (loop (cdddr pts) (cons tri tris))))))))
 
-;;; ============================================================
+;;; ====
 ;;; High-Level API
-;;; ============================================================
+;;; ====
 
 ;;; marching-cubes : SDF-Function × Point3 × Number × Number → (List Triangle3)
 ;;; Extract isosurface mesh from SDF

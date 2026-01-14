@@ -43,9 +43,9 @@
 ;;;   TVar ::= symbol starting with lowercase
 ;;;   Capability ::= FS | Net | Time | ...
 
-;;; ============================================================
+;;; ====
 ;;; Base Types
-;;; ============================================================
+;;; ====
 
 ;;; The primitive types of The Fold
 (define base-types
@@ -64,9 +64,9 @@
 (define (base-type? t)
   (if (memq t base-types) #t #f))
 
-;;; ============================================================
+;;; ====
 ;;; Type Predicates
-;;; ============================================================
+;;; ====
 
 ;;; type? : Any → Boolean
 ;;; Is this a well-formed type expression?
@@ -127,9 +127,9 @@
 
 ;;; Note: andmap is provided by prelude.ss
 
-;;; ============================================================
+;;; ====
 ;;; Type Constructors
-;;; ============================================================
+;;; ====
 
 ;;; t-> : Type ... → Type
 ;;; Construct a function type.
@@ -190,9 +190,9 @@
 (define (t-named-hole name)
   `(? ,name))
 
-;;; ============================================================
+;;; ====
 ;;; Type Accessors
-;;; ============================================================
+;;; ====
 
 ;;; function-type? : Type → Boolean
 (define (function-type? t)
@@ -238,9 +238,9 @@
        (not (eq? t '?))
        (char-lower-case? (string-ref (symbol->string t) 0))))
 
-;;; ============================================================
+;;; ====
 ;;; Kind-Annotated Type Variables (HKT Support)
-;;; ============================================================
+;;; ====
 
 ;;; A kinded type variable has the form (name : kind)
 ;;; Example: (f : (⇒ * *)) means f has kind * → *
@@ -286,9 +286,9 @@
                 vars))
       '()))
 
-;;; ============================================================
+;;; ====
 ;;; Type Equality
-;;; ============================================================
+;;; ====
 
 ;;; type=? : Type × Type → Boolean
 ;;; Structural equality of types.
@@ -301,9 +301,9 @@
                  (map cons t1 t2)))]
    [else #f]))
 
-;;; ============================================================
+;;; ====
 ;;; Free Type Variables
-;;; ============================================================
+;;; ====
 
 ;;; free-tvars : Type → (List Symbol)
 ;;; Collect free type variables in a type.
@@ -332,9 +332,9 @@
    [else
     (apply append (map (lambda (sub) (free-tvars-with bound sub)) (cdr t)))]))
 
-;;; ============================================================
+;;; ====
 ;;; Type Substitution
-;;; ============================================================
+;;; ====
 
 ;;; subst-type : Type × Symbol × Type → Type
 ;;; Substitute tvar with replacement in type.
@@ -363,9 +363,9 @@
     (cons (car type)
           (map (lambda (sub) (subst-type sub tvar replacement)) (cdr type)))]))
 
-;;; ============================================================
+;;; ====
 ;;; Common Type Patterns
-;;; ============================================================
+;;; ====
 
 ;;; Some frequently used types
 
@@ -394,9 +394,9 @@
 (define (t-pair t1 t2)
   (t× t1 t2))
 
-;;; ============================================================
+;;; ====
 ;;; Type Display
-;;; ============================================================
+;;; ====
 
 ;;; type->string : Type → String
 ;;; Pretty-print a type.
@@ -428,9 +428,9 @@
                  (car strs)
                  (cdr strs))))
 
-;;; ============================================================
+;;; ====
 ;;; Type as Block
-;;; ============================================================
+;;; ====
 
 ;;; Types can be serialized to blocks for storage in the CAS.
 ;;; This makes the type system homoiconic with the rest of The Fold.

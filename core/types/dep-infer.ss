@@ -53,9 +53,9 @@
 (load "core/types/gadt.ss")
 (load "core/types/existential.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Extended Type Context
-;;; ============================================================
+;;; ====
 
 ;;; A dependent type context tracks both type and term variables.
 ;;; Term variables can appear in types.
@@ -89,9 +89,9 @@
 (define (dep-ctx-extend-def ctx name type value)
   (cons (list name type value) ctx))
 
-;;; ============================================================
+;;; ====
 ;;; Dependent Type Synthesis
-;;; ============================================================
+;;; ====
 
 ;;; dep-synth : Expr x Context -> (ok Type) | (error ...)
 ;;; Synthesize a type for an expression in dependent context.
@@ -263,9 +263,9 @@
    [else
     (dep-synth-app expr ctx)]))
 
-;;; ============================================================
+;;; ====
 ;;; Pi Type Synthesis
-;;; ============================================================
+;;; ====
 
 ;;; (Pi ((x : A)) B) : Type_{max(l_1, l_2)}
 ;;; where A : Type_{l_1} and B : Type_{l_2} under x:A
@@ -293,9 +293,9 @@
                                              ;; Result universe is max of both
                                              `(ok ,(universe-max domain-type codomain-type))))))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Sigma Type Synthesis
-;;; ============================================================
+;;; ====
 
 ;;; dep-synth-sigma : Expr x Context -> (Result Type Error)
 (define (dep-synth-sigma expr ctx)
@@ -318,9 +318,9 @@
                                              `(error expected-type-got ,snd-type)
                                              `(ok ,(universe-max fst-type snd-type))))))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Lambda Synthesis
-;;; ============================================================
+;;; ====
 
 ;;; (fn ((x : A)) body) : (Pi ((x : A)) B) where body : B
 ;;; dep-synth-lambda : Expr x Context -> (Result Type Error)
@@ -342,9 +342,9 @@
                            (let ([body-type (cadr body-synth)])
                                 `(ok ,(t-pi var domain-expr body-type)))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Pair Synthesis
-;;; ============================================================
+;;; ====
 
 ;;; (pair e1 e2) : (Sigma ((x : A)) B) where e1 : A and e2 : B[e1/x]
 ;;; Note: without annotation, we can't determine the dependency
@@ -363,9 +363,9 @@
                            ;; Create non-dependent Sigma
                            `(ok ,(t-sigma '_ fst-type snd-type))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Projection Synthesis
-;;; ============================================================
+;;; ====
 
 ;;; (fst p) : A where p : (Sigma ((x : A)) B)
 ;;; dep-synth-fst : Expr x Context -> (Result Type Error)
@@ -396,9 +396,9 @@
                             [result-type (dep-subst-type snd-type var fst-expr)])
                            `(ok ,result-type)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Arrow and Product Synthesis
-;;; ============================================================
+;;; ====
 
 ;;; dep-synth-arrow : Expr x Context -> (Result Type Error)
 (define (dep-synth-arrow expr ctx)
@@ -426,9 +426,9 @@
                              `(error expected-type-got ,(cadr t-synth))
                              (loop (cdr ts)))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Vec and Matrix Type Synthesis
-;;; ============================================================
+;;; ====
 
 ;;; dep-synth-vec : Expr x Context -> (Result Type Error)
 (define (dep-synth-vec expr ctx)
@@ -462,9 +462,9 @@
                          A-check
                          `(ok Type)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Equality Type Synthesis
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Propositional equality implements Martin-Lof's identity type.
 ;;;
@@ -582,9 +582,9 @@
                                                                 ;; Result type: (P x y p)
                                                                 `(ok (,P-expr ,x-expr ,y-expr ,p-expr))))))))))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Derived Equality Operations
-;;; ============================================================
+;;; ====
 ;;;
 ;;; These can all be derived from J, but we provide direct synthesis
 ;;; for better error messages and efficiency.
@@ -759,9 +759,9 @@
                                            ;; Result: (P y)
                                            `(ok (,P-expr ,y))))))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Refinement Type Synthesis
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Refinement types: {x : T | P}
 ;;; Syntax: (refine ((x : T)) P)
@@ -805,9 +805,9 @@
                                         `(error refinement-predicate-not-bool (expected Bool) (got ,pred-type))
                                         `(ok Type))))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Refinement Proof Checking
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Proper verification that a proof term proves a predicate.
 ;;; This implements the core of refinement type checking.
@@ -975,9 +975,9 @@
             [n2 (nbe-normalize t2 nbe-empty-env)])
            (equal? n1 n2))))
 
-;;; ============================================================
+;;; ====
 ;;; Refined Introduction Rule
-;;; ============================================================
+;;; ====
 
 ;;; dep-synth-refine-intro : Expr x Context -> (Result Type Error)
 ;;; (refine-intro (refine-type) v prf) : refine-type
@@ -1026,9 +1026,9 @@
                          ;; Result is the base type
                          `(ok ,(refinement-base-type e-type))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Application Synthesis
-;;; ============================================================
+;;; ====
 
 ;;; (f x) : B[x/y] where f : (Pi ((y : A)) B) and x : A
 ;;; dep-synth-app : Expr x Context -> (Result Type Error)
@@ -1080,9 +1080,9 @@
       '()
       (cons (car lst) (take (cdr lst) (- n 1)))))
 
-;;; ============================================================
+;;; ====
 ;;; Type Checking
-;;; ============================================================
+;;; ====
 
 ;;; dep-check : Expr x Type x Context -> (ok) | (error ...)
 ;;; Check that an expression has the expected type.
@@ -1178,9 +1178,9 @@
                check-result
                (dep-check-args (cdr args) (cdr expected-types) ctx cont)))))
 
-;;; ============================================================
+;;; ====
 ;;; Type Equality with NbE
-;;; ============================================================
+;;; ====
 
 ;;; dep-types-equal? : Type x Type x Context -> Boolean
 ;;; Check if two types are definitionally equal using NbE.
@@ -1206,9 +1206,9 @@
    nbe-empty-env
    ctx))
 
-;;; ============================================================
+;;; ====
 ;;; Quoted Literals
-;;; ============================================================
+;;; ====
 
 ;;; dep-synth-quoted : a -> (Result Type Error)
 (define (dep-synth-quoted datum)
@@ -1224,9 +1224,9 @@
              `(ok (List ?))))]
    [else `(ok ?)]))
 
-;;; ============================================================
+;;; ====
 ;;; Inductive Type Synthesis
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Inductive types introduce:
 ;;;   1. A type former: the data declaration itself
@@ -1342,9 +1342,9 @@
    [(and (pair? return-type) (eq? (car return-type) type-name)) #t]
    [else #f]))
 
-;;; ============================================================
+;;; ====
 ;;; Eliminator Synthesis
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Eliminators are synthesized when we see (elim-D ...) where D
 ;;; is a known inductive type.
@@ -1467,9 +1467,9 @@
                      ;; Simplified: we just return the application without full checking
                      `(ok (,P-expr ,xs-expr)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Module Signature Synthesis
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Module signatures are first-class types that describe module interfaces.
 ;;;
@@ -1587,9 +1587,9 @@
    
    [else ctx]))
 
-;;; ============================================================
+;;; ====
 ;;; GADT Support (Delegated to gadt-infer.ss)
-;;; ============================================================
+;;; ====
 ;;;
 ;;; GADTs extend inductive types with type indices that can be refined
 ;;; by pattern matching. The key innovation is that each constructor can
@@ -1610,9 +1610,9 @@
   (gadt-infer-synth-case expr ctx dep-synth dep-check dep-types-equal?
                          dep-ctx-extend dep-ctx-extend-def))
 
-;;; ============================================================
+;;; ====
 ;;; Existential Type Support
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Existential types allow hiding type information behind an interface.
 ;;; The key operations are:
@@ -1639,16 +1639,16 @@
 (define (dep-synth-unpack expr ctx)
   (existential-infer-synth-unpack expr ctx dep-synth dep-ctx-extend dep-ctx-extend-def))
 
-;;; ============================================================
+;;; ====
 ;;; Rank-N Polymorphism (Placeholder, from rank-n-infer.ss)
-;;; ============================================================
+;;; ====
 
 ;;; Load the rank-N inference module (placeholder)
 (load "core/types/rank-n-infer.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Convenience Functions
-;;; ============================================================
+;;; ====
 
 ;;; dep-typeof : Expr -> Type | Error
 ;;; Infer the type of an expression in empty context.

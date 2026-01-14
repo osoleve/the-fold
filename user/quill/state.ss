@@ -28,9 +28,9 @@
                 (cons (cons key value) rest))
            (cons (cons key value) state))))
 
-;;; ------------------------------------------------------------
+;;; ----
 ;;; Vars
-;;; ------------------------------------------------------------
+;;; ----
 
 (define (quill-state-var state key)
   (let ([vars (quill-state-section state 'vars)])
@@ -50,9 +50,9 @@
          [next (+ cur delta)])
         (quill-state-set-var state key next)))
 
-;;; ------------------------------------------------------------
+;;; ----
 ;;; Flags
-;;; ------------------------------------------------------------
+;;; ----
 
 (define (quill-state-flag? state flag)
   (let ([flags (quill-state-section state 'flags)])
@@ -73,9 +73,9 @@
 (define (quill-state-unflag state flag)
   (quill-state-set-flag state flag #f))
 
-;;; ------------------------------------------------------------
+;;; ----
 ;;; Inventory
-;;; ------------------------------------------------------------
+;;; ----
 
 (define (quill-state-inventory state)
   (quill-state-section state 'inv))
@@ -93,9 +93,9 @@
   (let ([inv (quill-state-inventory state)])
        (quill-state-set-section state 'inv (remq item inv))))
 
-;;; ------------------------------------------------------------
+;;; ----
 ;;; Meta
-;;; ------------------------------------------------------------
+;;; ----
 
 (define (quill-state-meta state)
   (quill-state-section state 'meta))

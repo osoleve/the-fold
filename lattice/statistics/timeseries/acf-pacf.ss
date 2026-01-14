@@ -19,9 +19,9 @@
 (load "lattice/statistics/core/summary-stats.ss")
 (load "lattice/statistics/hypothesis/distributions.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Autocovariance and Autocorrelation
-;;; ============================================================
+;;; ====
 
 ;;; autocovariance : Vec × Nat → Num
 ;;; Compute autocovariance at lag k: Cov(X_t, X_{t+k})
@@ -66,9 +66,9 @@
          [bound (* z se)])
         (cons (- bound) bound)))
 
-;;; ============================================================
+;;; ====
 ;;; Partial Autocorrelation
-;;; ============================================================
+;;; ====
 
 ;;; pacf : Vec × Nat → Vec
 ;;; Compute partial autocorrelation function using Durbin-Levinson algorithm.
@@ -132,9 +132,9 @@
                           [(= j k)]
                           (vector-set! phi j (vector-ref phi-new j))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Ljung-Box Test
-;;; ============================================================
+;;; ====
 
 ;;; ljung-box-test : Vec × Nat → TestResult
 ;;; Portmanteau test for autocorrelation in residuals.
@@ -170,9 +170,9 @@
          [p-value (chi-squared-pvalue Q m)])
         (make-test-result 'box-pierce Q m p-value #f #f)))
 
-;;; ============================================================
+;;; ====
 ;;; Cross-Correlation
-;;; ============================================================
+;;; ====
 
 ;;; ccf : Vec × Vec × Nat → Vec
 ;;; Cross-correlation function between xs and ys.
@@ -206,9 +206,9 @@
                                      (- (vector-ref ys (+ t k)) my))))))])
         (/ sum n)))
 
-;;; ============================================================
+;;; ====
 ;;; Standard Normal Quantile (helper)
-;;; ============================================================
+;;; ====
 
 (define (standard-normal-quantile p)
   (if (or (<= p 0) (>= p 1))

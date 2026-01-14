@@ -28,9 +28,9 @@
 
 (load "core/base/prelude.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Configuration
-;;; ============================================================
+;;; ====
 
 (define *coverage-enabled* #f)
 (define *coverage-data* (make-hashtable equal-hash equal?))  ; (file . line) -> hits
@@ -69,9 +69,9 @@
    uncovered-lines   ; List of uncovered line numbers
    percentage))      ; Coverage % for this file
 
-;;; ============================================================
+;;; ====
 ;;; Coverage Tracking
-;;; ============================================================
+;;; ====
 
 ;;; coverage-start : → void
 ;;; Begin tracking code coverage.
@@ -131,9 +131,9 @@
                                (set! fns (cons fn fns))))
        fns))
 
-;;; ============================================================
+;;; ====
 ;;; Test Integration
-;;; ============================================================
+;;; ====
 
 ;;; coverage-run-tests : Path → CoverageReport
 ;;; Run tests with coverage tracking enabled.
@@ -166,9 +166,9 @@
    test-files)
   (coverage-stop))
 
-;;; ============================================================
+;;; ====
 ;;; Report Generation
-;;; ============================================================
+;;; ====
 
 ;;; group-entries-by-file : (List CoverageEntry) → Hashtable[Path → (List CoverageEntry)]
 ;;; BUGFIX: Pre-group entries by file for O(1) lookup instead of O(N) filter per file.
@@ -277,9 +277,9 @@
 
 ;;; NOTE: remove-duplicates is provided by core/base/prelude.ss
 
-;;; ============================================================
+;;; ====
 ;;; Report Display
-;;; ============================================================
+;;; ====
 
 ;;; coverage-report : CoverageReport → void
 ;;; Display coverage report.
@@ -342,9 +342,9 @@
    [(>= pct 70) " ○"]
    [else " ✗"]))
 
-;;; ============================================================
+;;; ====
 ;;; Persistence
-;;; ============================================================
+;;; ====
 
 ;;; coverage-save : Path → void
 ;;; Save coverage data to file.
@@ -368,9 +368,9 @@
                         (lambda (port)
                                 (read port))))
 
-;;; ============================================================
+;;; ====
 ;;; Utility Functions
-;;; ============================================================
+;;; ====
 ;;;
 ;;; NOTE: string-split, string-trim, string-starts-with? are provided
 ;;; by core/prelude.ss which is loaded above.
@@ -402,9 +402,9 @@
       '()
       (cons x (make-list-of (- n 1) x))))
 
-;;; ============================================================
+;;; ====
 ;;; Instrumentation Helpers
-;;; ============================================================
+;;; ====
 
 ;;; instrument-file : Path → void
 ;;; Add coverage tracking to a file (for future enhancement).

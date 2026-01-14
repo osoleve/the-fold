@@ -23,9 +23,9 @@
 
 (load "core/base/prelude.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Environment (prefixed to avoid collision with eval.ss)
-;;; ============================================================
+;;; ====
 
 ;;; An environment is a list of symbols, with the innermost binding first.
 ;;; Index 0 refers to (car env), index 1 to (cadr env), etc.
@@ -48,9 +48,9 @@
         [(eq? (car e) sym) i]
         [else (loop (cdr e) (+ i 1))])))
 
-;;; ============================================================
+;;; ====
 ;;; Normalization
-;;; ============================================================
+;;; ====
 
 ;;; normalize : S-expr → S-expr
 ;;; Convert an expression to de Bruijn form.
@@ -112,9 +112,9 @@
    [else
     (map (lambda (e) (normalize-with-env e env)) expr)]))
 
-;;; ============================================================
+;;; ====
 ;;; Free Variables
-;;; ============================================================
+;;; ====
 
 ;;; free-vars : S-expr → (List Symbol)
 ;;; Collect free variables in the expression (before normalization).
@@ -151,9 +151,9 @@
 
 ;;; Note: unique is provided by prelude.ss
 
-;;; ============================================================
+;;; ====
 ;;; Algebraic Normalization (Phase 1 - before α-normalization)
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Algebraic normalization canonicalizes expressions by exploiting
 ;;; mathematical properties of operations:
@@ -241,9 +241,9 @@
                     (list arg)))
               args)))
 
-;;; ============================================================
+;;; ====
 ;;; Parallel Binding Canonicalization
-;;; ============================================================
+;;; ====
 
 ;;; normalize-parallel-let : S-expr → S-expr
 ;;; Reorder let* bindings that don't depend on each other.
@@ -311,9 +311,9 @@
                      [new-deps (remove-var next-var deps)])
                 (loop new-remaining new-deps (cons next-binding result))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Sequence Canonicalization
-;;; ============================================================
+;;; ====
 
 ;;; normalize-begin : S-expr → S-expr
 ;;; Sort begin expressions if all subexpressions are provably pure.
@@ -357,9 +357,9 @@
 
     [else #f]))
 
-;;; ============================================================
+;;; ====
 ;;; Combined Normalization
-;;; ============================================================
+;;; ====
 
 ;;; normalize-full : S-expr → S-expr
 ;;; Full normalization: algebraic canonicalization followed by α-normalization.
@@ -367,9 +367,9 @@
 (define (normalize-full expr)
   (normalize (normalize-algebraic expr)))
 
-;;; ============================================================
+;;; ====
 ;;; Version 2 Normalization Pipeline
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Version 2 adds:
 ;;;   - Hash-consing for structural deduplication
@@ -387,9 +387,9 @@
 (load "core/blocks/hash-cons.ss")
 (load "core/blocks/poly-canon.ss")
 
-;;; ============================================================
+;;; ====
 ;;; η-Reduction
-;;; ============================================================
+;;; ====
 
 ;;; eta-reduce : S-expr → S-expr
 ;;; Transform (fn (x) (f x)) → f when x does not occur free in f.
@@ -443,9 +443,9 @@
     ;; General list: recurse
     [else (map eta-reduce expr)]))
 
-;;; ============================================================
+;;; ====
 ;;; Identity/Absorbing Element Elimination
-;;; ============================================================
+;;; ====
 
 ;;; eliminate-identities : S-expr → S-expr
 ;;; Remove identity elements from operations and simplify absorbing cases.
@@ -511,9 +511,9 @@
     [(pred (car lst)) #t]
     [else (any pred (cdr lst))]))
 
-;;; ============================================================
+;;; ====
 ;;; Version 2 Algebraic Normalization
-;;; ============================================================
+;;; ====
 
 ;;; normalize-algebraic-v2 : S-expr → S-expr
 ;;; Enhanced algebraic canonicalization with:
@@ -562,9 +562,9 @@
     ;; General list: recurse
     [else (map poly-canonicalize-recursive expr)]))
 
-;;; ============================================================
+;;; ====
 ;;; Version 2 Combined Normalization
-;;; ============================================================
+;;; ====
 
 ;;; normalize-v2 : S-expr → S-expr
 ;;; Full version 2 normalization pipeline:

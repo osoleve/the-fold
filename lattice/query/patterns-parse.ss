@@ -17,9 +17,9 @@
 ;;;   (extract-tag-positions "Hello @status:complete")
 ;;;   => ((status "complete" 6 22))  ; start and end positions
 
-;;; ============================================================
+;;; ====
 ;;; Tag Pattern Matching
-;;; ============================================================
+;;; ====
 
 ;;; A tag is: @key or @key:value
 ;;; - Key starts with lowercase letter [a-z]
@@ -60,9 +60,9 @@
       (char=? c #\tab)
       (char=? c #\return)))
 
-;;; ============================================================
+;;; ====
 ;;; Tag Extraction (Main API)
-;;; ============================================================
+;;; ====
 
 ;;; extract-tags : String -> (Listof (Pair Symbol (U String #t)))
 ;;; Extract all @-tags from text.
@@ -153,9 +153,9 @@
                                                (list key-sym #f start k))))
                                   (key-loop (+ k 1))))))))))
 
-;;; ============================================================
+;;; ====
 ;;; String Utilities
-;;; ============================================================
+;;; ====
 
 ;;; string-downcase : String -> String
 ;;; Convert string to lowercase.
@@ -163,9 +163,9 @@
   (list->string
    (map char-downcase (string->list s))))
 
-;;; ============================================================
+;;; ====
 ;;; Tag Validation
-;;; ============================================================
+;;; ====
 
 ;;; valid-tag-key? : String -> Boolean
 ;;; True if string is a valid tag key.
@@ -188,9 +188,9 @@
                 (and (char-value? (string-ref s i))
                      (loop (+ i 1)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Tag Formatting
-;;; ============================================================
+;;; ====
 
 ;;; format-tag : Symbol x (U String #t) -> String
 ;;; Format a tag as @key or @key:value.
@@ -212,9 +212,9 @@
                                     (if (string=? acc "") "" " ")
                                     (format-tag (caar ts) (cdar ts))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Tag Filtering and Lookup
-;;; ============================================================
+;;; ====
 
 ;;; has-tag? : (Listof (Pair Symbol Any)) x Symbol -> Boolean
 ;;; True if tags contain the given key.
@@ -240,9 +240,9 @@
    [(pred (car lst)) (cons (car lst) (filter pred (cdr lst)))]
    [else (filter pred (cdr lst))]))
 
-;;; ============================================================
+;;; ====
 ;;; Defensive Parsing (Security)
-;;; ============================================================
+;;; ====
 
 ;;; sanitize-tag-value : String -> String
 ;;; Remove potentially dangerous patterns from tag values.

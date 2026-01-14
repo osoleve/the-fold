@@ -9,7 +9,7 @@
 (load "core/util/cost-model.ss")
 
 (display "Cost Model Tests\n")
-(display "================\n\n")
+(display "====\n\n")
 
 (define tests-passed 0)
 (define tests-failed 0)
@@ -26,9 +26,9 @@
        (display ", got ") (write actual)
        (newline))))
 
-;;; ============================================================
+;;; ====
 ;;; Cost Model Creation Tests
-;;; ============================================================
+;;; ====
 
 (display "Cost Model Creation:\n")
 
@@ -48,9 +48,9 @@
 (test "cost-model? on non-model" #f (cost-model? '(not a cost model)))
 (test "cost-model? on number" #f (cost-model? 42))
 
-;;; ============================================================
+;;; ====
 ;;; Fuel Cost Model Tests
-;;; ============================================================
+;;; ====
 
 (display "\nFuel Cost Model:\n")
 
@@ -64,9 +64,9 @@
 (test "fuel aggregate sums" 10 (compute-aggregate fuel-cost-model '(1 2 3 4)))
 (test "fuel aggregate empty" 0 (compute-aggregate fuel-cost-model '()))
 
-;;; ============================================================
+;;; ====
 ;;; Weighted Cost Model Tests
-;;; ============================================================
+;;; ====
 
 (display "\nWeighted Cost Model:\n")
 
@@ -85,9 +85,9 @@
 (test "weighted prim div cost" 2 (compute-prim-cost weighted-cost-model 'div))
 (test "weighted prim cons cost" 1 (compute-prim-cost weighted-cost-model 'cons))
 
-;;; ============================================================
+;;; ====
 ;;; Memory Cost Model Tests
-;;; ============================================================
+;;; ====
 
 (display "\nMemory Cost Model:\n")
 
@@ -101,9 +101,9 @@
 (test "memory prim map cost" 4 (compute-prim-cost memory-cost-model 'map))
 (test "memory prim add cost" 0 (compute-prim-cost memory-cost-model 'add))
 
-;;; ============================================================
+;;; ====
 ;;; Max Depth Cost Model Tests
-;;; ============================================================
+;;; ====
 
 (display "\nMax Depth Cost Model:\n")
 
@@ -114,9 +114,9 @@
 (test "max-depth aggregate empty" 0 (compute-aggregate max-depth-model '()))
 (test "max-depth aggregate single" 7 (compute-aggregate max-depth-model '(7)))
 
-;;; ============================================================
+;;; ====
 ;;; Cost Tracker Tests
-;;; ============================================================
+;;; ====
 
 (display "\nCost Tracker:\n")
 
@@ -173,9 +173,9 @@
        [ct3 (track-cost ct2 'depth-c 5)])
       (test "max-depth total" 7 (get-total-cost ct3)))
 
-;;; ============================================================
+;;; ====
 ;;; Cost Model Composition Tests
-;;; ============================================================
+;;; ====
 
 (display "\nCost Model Composition:\n")
 
@@ -200,9 +200,9 @@
      (test "scaled weighted lambda" 6 (compute-eval-cost scaled '(fn (x) x)))  ; 2 * 3
      (test "scaled weighted fix" 9 (compute-eval-cost scaled '(fix f (fn (x) x)))))  ; 3 * 3
 
-;;; ============================================================
+;;; ====
 ;;; Edge Cases
-;;; ============================================================
+;;; ====
 
 (display "\nEdge Cases:\n")
 
@@ -229,9 +229,9 @@
 ;;; String expressions
 (test "weighted string" 1 (compute-eval-cost weighted-cost-model "hello"))
 
-;;; ============================================================
+;;; ====
 ;;; Immutability Tests
-;;; ============================================================
+;;; ====
 
 (display "\nImmutability:\n")
 
@@ -240,12 +240,12 @@
       (test "original tracker unchanged" '() (get-costs ct0))
       (test "new tracker has cost" 10 (get-category-cost ct1 'eval)))
 
-;;; ============================================================
+;;; ====
 ;;; Summary
-;;; ============================================================
+;;; ====
 
 (newline)
-(display "================\n")
+(display "====\n")
 (display (format "Tests: ~a passed, ~a failed\n" tests-passed tests-failed))
 (when (> tests-failed 0)
       (exit 1))

@@ -20,9 +20,9 @@
 (load "core/base/prelude.ss")
 (load "core/types/types.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Contract Grammar
-;;; ============================================================
+;;; ====
 ;;;
 ;;;   Contract ::= (Flat Predicate)                   ; Flat contract
 ;;;              | (-> (Contract ...) Contract)       ; Function contract
@@ -39,9 +39,9 @@
 ;;;   Party ::= 'caller | 'callee
 ;;;   Location ::= symbol (function name or source location)
 
-;;; ============================================================
+;;; ====
 ;;; Contract Predicates
-;;; ============================================================
+;;; ====
 
 ;;; contract? : Any → Boolean
 ;;; Is this a well-formed contract?
@@ -91,9 +91,9 @@
 (define (dependent-contract? c)
   (and (pair? c) (eq? (car c) 'Dep)))
 
-;;; ============================================================
+;;; ====
 ;;; Contract Constructors
-;;; ============================================================
+;;; ====
 
 ;;; flat : (-> Any Bool) → Any
 ;;; Create a flat contract from a predicate.
@@ -133,9 +133,9 @@
 ;;; Bottom contract - never satisfied.
 (define none/c 'None)
 
-;;; ============================================================
+;;; ====
 ;;; Common Flat Contracts
-;;; ============================================================
+;;; ====
 
 ;;; Natural number contract
 (define nat/c
@@ -177,9 +177,9 @@
 (define procedure/c
   (flat procedure?))
 
-;;; ============================================================
+;;; ====
 ;;; Contract Accessors
-;;; ============================================================
+;;; ====
 
 ;;; flat-predicate : Any → (-> Any Bool)
 (define (flat-predicate c)
@@ -211,9 +211,9 @@
       (caddr c)
       none/c))
 
-;;; ============================================================
+;;; ====
 ;;; Blame Tracking
-;;; ============================================================
+;;; ====
 
 ;;; A blame record tracks who violated a contract.
 ;;; Structure: (blame party location message value)
@@ -259,9 +259,9 @@
                   (blame-value b))
       b))
 
-;;; ============================================================
+;;; ====
 ;;; Contract Checking (Pure - No Side Effects)
-;;; ============================================================
+;;; ====
 
 ;;; check-flat : Any → Any → Symbol → Any
 ;;; Check a flat contract against a value.
@@ -317,9 +317,9 @@
                result
                (check-or-contracts (cdr contracts) value location)))))
 
-;;; ============================================================
+;;; ====
 ;;; Contract Wrapping
-;;; ============================================================
+;;; ====
 
 ;;; A wrapped value carries its contract and blame information.
 ;;; Structure: (wrapped contract value location)
@@ -349,9 +349,9 @@
 (define (wrapped-location w)
   (if (wrapped? w) (cadddr w) 'unknown))
 
-;;; ============================================================
+;;; ====
 ;;; Contract Combinators
-;;; ============================================================
+;;; ====
 
 ;;; listof : Any → Any
 ;;; Contract for a list of elements satisfying a contract.
@@ -392,9 +392,9 @@
   (flat (lambda (x)
                 (if (memq x values) #t #f))))
 
-;;; ============================================================
+;;; ====
 ;;; Contract Display
-;;; ============================================================
+;;; ====
 
 ;;; contract->string : Any → String
 (define (contract->string c)

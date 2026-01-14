@@ -26,9 +26,9 @@
 
 (load "core/base/prelude.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Configuration
-;;; ============================================================
+;;; ====
 
 (define *indent-width* 2)
 (define *max-line-length* 80)
@@ -51,9 +51,9 @@
     (guard . 1)
     (define-record-type . 1)))
 
-;;; ============================================================
+;;; ====
 ;;; Main Formatting API
-;;; ============================================================
+;;; ====
 
 ;;; format-file : Path → Bool
 ;;; Format file in-place. Returns #t if file was modified.
@@ -96,9 +96,9 @@
          [formatted (format-string original)])
         (not (string=? original formatted))))
 
-;;; ============================================================
+;;; ====
 ;;; Line-by-Line Formatting
-;;; ============================================================
+;;; ====
 
 ;;; format-lines : (List String) × Nat → (List String)
 ;;; Format lines with proper indentation.
@@ -137,9 +137,9 @@
    (make-spaces (* depth *indent-width*))
    line))
 
-;;; ============================================================
+;;; ====
 ;;; S-Expression Formatting
-;;; ============================================================
+;;; ====
 
 ;;; format-sexpr : Sexpr × Nat → String
 ;;; Format an s-expression with indentation.
@@ -251,9 +251,9 @@
     " ")
    ")"))
 
-;;; ============================================================
+;;; ====
 ;;; Helper Functions
-;;; ============================================================
+;;; ====
 
 ;;; comment-line? : String → Bool
 (define (comment-line? line)
@@ -304,9 +304,9 @@
 (define (empty-line? line)
   (= 0 (string-length line)))
 
-;;; ============================================================
+;;; ====
 ;;; File I/O
-;;; ============================================================
+;;; ====
 
 ;;; read-file-as-string : Path → String
 (define (read-file-as-string path)
@@ -325,9 +325,9 @@
                                  (display content port))
                          'replace))
 
-;;; ============================================================
+;;; ====
 ;;; Batch Operations
-;;; ============================================================
+;;; ====
 
 ;;; format-dir : Path × Pattern → (List (Pair Path Bool))
 ;;; Format all files in directory matching pattern.
@@ -343,9 +343,9 @@
   ;; Simplified: in real implementation, would recursively find *.ss files
   '())
 
-;;; ============================================================
+;;; ====
 ;;; Diff Generation
-;;; ============================================================
+;;; ====
 
 ;;; format-diff : Path → String
 ;;; Generate diff showing formatting changes.
@@ -363,9 +363,9 @@
    "+++ formatted\n"
    "Changes would be made\n"))
 
-;;; ============================================================
+;;; ====
 ;;; Utility Functions
-;;; ============================================================
+;;; ====
 ;;;
 ;;; NOTE: string-trim, string-join, string-split are provided
 ;;; by core/prelude.ss which is loaded above.

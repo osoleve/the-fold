@@ -37,9 +37,9 @@
   (display name)
   (newline))
 
-;;; ============================================================
+;;; ====
 ;;; Value Construction Tests
-;;; ============================================================
+;;; ====
 (test-section "Value Construction")
 
 ;; Lambda value
@@ -84,9 +84,9 @@
 (test-true "V-base? recognizes base" (V-base? base1))
 (test "V-base-val extracts value" 42 (V-base-val base1))
 
-;;; ============================================================
+;;; ====
 ;;; Neutral Value Tests
-;;; ============================================================
+;;; ====
 (test-section "Neutral Values")
 
 (define nvar (N-var 'x))
@@ -102,9 +102,9 @@
 (define nsnd (N-snd nvar))
 (test-true "N-snd? recognizes second projection" (N-snd? nsnd))
 
-;;; ============================================================
+;;; ====
 ;;; Closure Tests
-;;; ============================================================
+;;; ====
 (test-section "Closures")
 
 (define clo1 (make-closure 'x 'x '()))
@@ -121,9 +121,9 @@
       (V-base 42)
       (apply-closure const-clo (V-base 999)))
 
-;;; ============================================================
+;;; ====
 ;;; Environment Tests
-;;; ============================================================
+;;; ====
 (test-section "Environments")
 
 (test "nbe-empty-env is empty" '() nbe-empty-env)
@@ -137,9 +137,9 @@
 (define unknown (env-lookup nbe-empty-env 'y))
 (test-true "env-lookup unknown becomes neutral" (V-neutral? unknown))
 
-;;; ============================================================
+;;; ====
 ;;; Basic Evaluation Tests
-;;; ============================================================
+;;; ====
 (test-section "Basic Evaluation")
 
 ;; Literals
@@ -170,9 +170,9 @@
 (test-true "eval typed lambda creates V-lam" (V-lam? lam-typed))
 (test "typed lambda extracts param name" 'x (V-lam-param lam-typed))
 
-;;; ============================================================
+;;; ====
 ;;; Application Tests
-;;; ============================================================
+;;; ====
 (test-section "Application")
 
 ;; Identity function applied
@@ -191,9 +191,9 @@
 (define neutral-app (nbe-apply (V-neutral (N-var 'f)) (V-base 1)))
 (test-true "apply neutral creates neutral" (V-neutral? neutral-app))
 
-;;; ============================================================
+;;; ====
 ;;; Pi Type Tests
-;;; ============================================================
+;;; ====
 (test-section "Pi Types")
 
 ;; Non-dependent function type: Int -> Bool
@@ -211,9 +211,9 @@
 (test-true "dependent Pi creates V-pi" (V-pi? pi-dep))
 (test "Pi domain" (V-base 'Nat) (V-pi-domain pi-dep))
 
-;;; ============================================================
+;;; ====
 ;;; Sigma Type Tests
-;;; ============================================================
+;;; ====
 (test-section "Sigma Types")
 
 ;; Non-dependent product: Int × Bool
@@ -230,9 +230,9 @@
 (test-true "dependent Sigma creates V-sigma" (V-sigma? sigma-dep))
 (test "Sigma fst type" (V-base 'Nat) (V-sigma-fst-type sigma-dep))
 
-;;; ============================================================
+;;; ====
 ;;; Pair Tests
-;;; ============================================================
+;;; ====
 (test-section "Pairs")
 
 ;; Pair construction
@@ -250,9 +250,9 @@
 (test-true "fst of neutral is neutral" (V-neutral? (nbe-fst neutral-pair)))
 (test-true "snd of neutral is neutral" (V-neutral? (nbe-snd neutral-pair)))
 
-;;; ============================================================
+;;; ====
 ;;; Vec and Matrix Types
-;;; ============================================================
+;;; ====
 (test-section "Vec and Matrix Types")
 
 ;; Vec type
@@ -268,9 +268,9 @@
 (test "Matrix cols" (V-base 3) (V-matrix-n mat-type))
 (test "Matrix element type" (V-base 'Int) (V-matrix-A mat-type))
 
-;;; ============================================================
+;;; ====
 ;;; Type-Level Computation Tests
-;;; ============================================================
+;;; ====
 (test-section "Type-Level Computation")
 
 ;; Arithmetic
@@ -297,9 +297,9 @@
 (define stuck-add (nbe-eval '(+ x 3) nbe-empty-env))
 (test-true "add with neutral creates V-type-prim" (V-type-prim? stuck-add))
 
-;;; ============================================================
+;;; ====
 ;;; Readback Tests
-;;; ============================================================
+;;; ====
 (test-section "Readback")
 
 ;; Readback literals
@@ -341,9 +341,9 @@
 (test "readback neutral level" 'x5
       (readback (V-neutral (N-var 5)) 0))
 
-;;; ============================================================
+;;; ====
 ;;; Normalization Tests
-;;; ============================================================
+;;; ====
 (test-section "Normalization")
 
 ;; Identity function normalization
@@ -385,9 +385,9 @@
 (test "normalize computation with env" 15
       (normalize '(+ x 5) env-with-x))
 
-;;; ============================================================
+;;; ====
 ;;; Alpha Equivalence Tests
-;;; ============================================================
+;;; ====
 (test-section "Alpha Equivalence (via Conversion)")
 
 ;; Same term, different variable names should be equal
@@ -405,9 +405,9 @@
 (define eta2 (nbe-eval 'f nbe-empty-env))
 (test-true "eta equivalence" (convert? eta1 eta2 0))
 
-;;; ============================================================
+;;; ====
 ;;; Conversion Checking Tests
-;;; ============================================================
+;;; ====
 (test-section "Conversion Checking")
 
 ;; Type universes
@@ -465,9 +465,9 @@
 (test-true "equivalent neutral apps" (convert-neutral? (V-neutral-term napp1) (V-neutral-term napp2) 0))
 (test "non-equivalent neutral apps" #f (convert-neutral? (V-neutral-term napp1) (V-neutral-term napp3) 0))
 
-;;; ============================================================
+;;; ====
 ;;; Type Equality Tests
-;;; ============================================================
+;;; ====
 (test-section "Type Equality")
 
 ;; Convenience function
@@ -492,9 +492,9 @@
 (test "type-nf identity" '(-> Int Int) (type-nf '(-> Int Int)))
 (test "type-nf computation" 7 (type-nf '(+ 3 4)))
 
-;;; ============================================================
+;;; ====
 ;;; Kind Tests
-;;; ============================================================
+;;; ====
 (test-section "Kinds")
 
 ;; Kind value construction
@@ -555,9 +555,9 @@
 (test "kind-nf *" '* (kind-nf '*))
 (test "kind-nf arrow" '(⇒ * *) (kind-nf '(⇒ * *)))
 
-;;; ============================================================
+;;; ====
 ;;; Complex Normalization Tests
-;;; ============================================================
+;;; ====
 (test-section "Complex Normalization")
 
 ;; Church numerals normalization
@@ -601,9 +601,9 @@
 (define cond-type '(if (< 3 5) Int Bool))
 (test "normalize conditional type" 'Int (normalize-closed cond-type))
 
-;;; ============================================================
+;;; ====
 ;;; Edge Cases and Stress Tests
-;;; ============================================================
+;;; ====
 (test-section "Edge Cases")
 
 ;; Empty environment lookups
@@ -651,9 +651,9 @@
 (test "kind-level->name number" 'k4 (kind-level->name 4))
 (test "kind-level->name symbol" 'kappa (kind-level->name 'kappa))
 
-;;; ============================================================
+;;; ====
 ;;; Summary
-;;; ============================================================
+;;; ====
 
 (newline)
 (display "✓ All NBE tests complete.

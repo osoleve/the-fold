@@ -27,9 +27,9 @@
 ;;;
 ;;; Spell provides: def-entity, def-component, def-behavior, def-action, def-game
 
-;;; ============================================================
+;;; ====
 ;;; Load Order
-;;; ============================================================
+;;; ====
 
 ;;; Load core utilities first (no dependencies)
 (load "user/loom/core.ss")
@@ -58,15 +58,15 @@
 ;;; Load AI system (depends on entity, world, combat)
 (load "user/loom/ai.ss")
 
-;;; ============================================================
+;;; ====
 ;;; SDK Version
-;;; ============================================================
+;;; ====
 
 (define *loom-version* "0.2.0")
 
-;;; ============================================================
+;;; ====
 ;;; Quick Start Helpers
-;;; ============================================================
+;;; ====
 
 ;;; These are convenience functions for getting started quickly.
 
@@ -96,9 +96,9 @@
   (let ([monster (make-monster name char x y behavior)])
        (world-add-entity world monster)))
 
-;;; ============================================================
+;;; ====
 ;;; Example Game Setup
-;;; ============================================================
+;;; ====
 
 ;;; This demonstrates how to set up a basic game.
 ;;; Uncomment and modify for your own game.
@@ -122,9 +122,9 @@
 (newline)
 |#
 
-;;; ============================================================
+;;; ====
 ;;; SDK Loaded Message
-;;; ============================================================
+;;; ====
 
 (display "Loom v")
 (display *loom-version*)

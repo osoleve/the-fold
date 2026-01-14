@@ -9,9 +9,9 @@
 (import (shell block-query))
 (import (shell block-query-advanced))
 
-;;; ============================================================
+;;; ====
 ;;; Test Setup: Create blocks with varying characteristics
-;;; ============================================================
+;;; ====
 
 (display "Setting up test blocks...\n")
 
@@ -80,9 +80,9 @@
               (vector hash-branch2)))
 (define hash-deep (store! deep-block))
 
-;;; ============================================================
+;;; ====
 ;;; Test Size-based Queries
-;;; ============================================================
+;;; ====
 
 (display "\n=== Testing Size-based Queries ===\n")
 
@@ -105,9 +105,9 @@
 (define empty-block (make-block 'empty empty-payload empty-refs))
 (assert ((payload-size-bytes 0) empty-block))
 
-;;; ============================================================
+;;; ====
 ;;; Test Graph Depth Queries
-;;; ============================================================
+;;; ====
 
 (display "\n=== Testing Graph Depth Queries ===\n")
 
@@ -142,9 +142,9 @@
 ;; So its depth should be max(0, 1) + 1 = 2
 (assert ((depth-exactly 2 fetch) multi-ref-block))
 
-;;; ============================================================
+;;; ====
 ;;; Test Time-based Queries
-;;; ============================================================
+;;; ====
 
 (display "\n=== Testing Time-based Queries ===\n")
 
@@ -185,9 +185,9 @@
 (display "Testing with unknown timestamp...\n")
 (assert (not ((created-after 1000 get-timestamp) leaf-block)))
 
-;;; ============================================================
+;;; ====
 ;;; Test Higher-Order Query Composition
-;;; ============================================================
+;;; ====
 
 (display "\n=== Testing Higher-Order Composition ===\n")
 
@@ -239,9 +239,9 @@
       (assert (enhanced medium-block))
       (assert (not (enhanced small-block))))
 
-;;; ============================================================
+;;; ====
 ;;; Combined Advanced Queries
-;;; ============================================================
+;;; ====
 
 (display "\n=== Testing Combined Queries ===\n")
 
@@ -278,9 +278,9 @@
      ;; Would need a large deep block to test second condition
      (assert (not (pattern medium-block))))
 
-;;; ============================================================
+;;; ====
 ;;; Integration with Basic Queries
-;;; ============================================================
+;;; ====
 
 (display "\n=== Testing Integration with Basic Queries ===\n")
 

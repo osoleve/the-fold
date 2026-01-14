@@ -23,9 +23,9 @@
 
 (load "core/base/prelude.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Template Registry
-;;; ============================================================
+;;; ====
 
 ;;; Template structure:
 ;;;   ((name . <symbol>)
@@ -68,9 +68,9 @@
   (let ([entry (assq name *scaffold-templates*)])
        (if entry (cdr entry) #f)))
 
-;;; ============================================================
+;;; ====
 ;;; String Substitution
-;;; ============================================================
+;;; ====
 
 ;;; substitute-vars : String × Alist → String
 ;;; Replace {{VAR}} placeholders with values from bindings.
@@ -103,9 +103,9 @@
              [(string=? needle (substring haystack i (+ i nlen))) i]
              [else (loop (+ i 1))]))))
 
-;;; ============================================================
+;;; ====
 ;;; Variable Resolution
-;;; ============================================================
+;;; ====
 
 ;;; build-bindings : String × Alist × Alist → Alist
 ;;; Build substitution bindings from name, template vars, and options.
@@ -161,9 +161,9 @@
 (define (timestamp-year ts)
   (substring ts 0 4))
 
-;;; ============================================================
+;;; ====
 ;;; Scaffolding Engine
-;;; ============================================================
+;;; ====
 
 ;;; scaffold : Symbol × String × Alist → void
 ;;; Generate code from a template.
@@ -196,7 +196,7 @@
 ;;; Display all available templates.
 (define (list-templates)
   (display "\nAvailable Scaffolding Templates:\n")
-  (display "=================================\n\n")
+  (display "====\n\n")
   (for-each
    (lambda (entry)
            (let* ([name (car entry)]
@@ -244,9 +244,9 @@
                                                variables)])
                                 (scaffold template-name name options)))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Built-in Templates
-;;; ============================================================
+;;; ====
 
 ;;; Shell Module Template
 (define-template
@@ -268,9 +268,9 @@
 ;;; Created: {{TIMESTAMP}}
 ;;; Author: {{AUTHOR}}
 
-;;; ============================================================
+;;; ====
 ;;; Module Interface
-;;; ============================================================
+;;; ====
 
 ;;; TODO: Define your functions here
 
@@ -279,9 +279,9 @@
 (define ({{NAME}}-example input)
   (string-append \"{{NAME}}: \" input))
 
-;;; ============================================================
+;;; ====
 ;;; Exported Functions
-;;; ============================================================
+;;; ====
 
 ;;; Add your main module functions here.
 "))
@@ -310,7 +310,7 @@
   (newline))
 
 (display \"{{DESCRIPTION}} Tests\\n\")
-(display \"==========================================\\n\\n\")
+(display \"====\\n\\n\")
 
 ;;; Test 1: Basic functionality
 (display \"Test 1: Basic example\\n\")
@@ -342,9 +342,9 @@
 
 (load \"prelude.ss\")
 
-;;; ============================================================
+;;; ====
 ;;; Core Functions
-;;; ============================================================
+;;; ====
 
 ;;; {{NAME}}-identity : α → α
 ;;; Identity function for {{NAME}}.
@@ -371,20 +371,20 @@
 (load \"{{NAME}}.ss\")
 
 (display \"{{DESCRIPTION}} Tests\\n\")
-(display \"===================\\n\\n\")
+(display \"====\\n\\n\")
 
-;;; ============================================================
+;;; ====
 ;;; Basic Tests
-;;; ============================================================
+;;; ====
 
 (test-group {{NAME}}-basic
   (define-test identity
     (assert-equal 42 ({{NAME}}-identity 42))
     (assert-equal 'hello ({{NAME}}-identity 'hello))))
 
-;;; ============================================================
+;;; ====
 ;;; Tests run immediately when defined via define-test
-;;; ============================================================
+;;; ====
 "))))
 
 ;;; Tool Template (for toolkit integration)
@@ -407,9 +407,9 @@
 ;;; Created: {{TIMESTAMP}}
 ;;; Author: {{AUTHOR}}
 
-;;; ============================================================
+;;; ====
 ;;; Tool Interface
-;;; ============================================================
+;;; ====
 
 ;;; {{NAME}}-run : FS → void
 ;;; Main entry point for the {{NAME}} tool.
@@ -448,7 +448,7 @@
   (newline))
 
 (display \"{{DESCRIPTION}} Tests\\n\")
-(display \"==========================================\\n\\n\")
+(display \"====\\n\\n\")
 
 ;;; TODO: Add tests for your tool
 
@@ -473,20 +473,20 @@
 (load \"{{TARGET-FILE}}\")
 
 (display \"{{DESCRIPTION}}\\n\")
-(display \"===================\\n\\n\")
+(display \"====\\n\\n\")
 
-;;; ============================================================
+;;; ====
 ;;; Test Groups
-;;; ============================================================
+;;; ====
 
 (test-group {{NAME}}-tests
   (define-test example
     (assert-true #t)
     (assert-equal 42 42)))
 
-;;; ============================================================
+;;; ====
 ;;; Tests run immediately when defined via define-test
-;;; ============================================================
+;;; ====
 "))))
 
 ;;; Playground Creation Template
@@ -505,9 +505,9 @@
 ;;; Created: {{TIMESTAMP}}
 ;;; Author: {{AUTHOR}}
 
-;;; ============================================================
+;;; ====
 ;;; Dependency Loading (with guards for idempotency)
-;;; ============================================================
+;;; ====
 
 ;;; Load dependencies if not already loaded
 (define (load-if-needed path)
@@ -519,9 +519,9 @@
 (load-if-needed \"shell/fs.ss\")
 (load-if-needed \"shell/ui/text.ss\")
 
-;;; ============================================================
+;;; ====
 ;;; State
-;;; ============================================================
+;;; ====
 
 (define *{{NAME}}-state* #f)
 
@@ -530,9 +530,9 @@
   '((mode . active)
     (score . 0)))
 
-;;; ============================================================
+;;; ====
 ;;; Main Interface
-;;; ============================================================
+;;; ====
 
 ;;; {{NAME}}-start : → void
 ;;; Start the {{TYPE}}.
@@ -552,9 +552,9 @@
   (display \"\\n\"))
 "))))
 
-;;; ============================================================
+;;; ====
 ;;; Help Function
-;;; ============================================================
+;;; ====
 
 ;;; scaffold-help : → void
 ;;; Display comprehensive scaffolding help.
@@ -612,9 +612,9 @@
   (display "  4. Update documentation\n")
   (display "\n"))
 
-;;; ============================================================
+;;; ====
 ;;; Validation
-;;; ============================================================
+;;; ====
 
 ;;; validate-scaffold : String × Alist → Boolean
 ;;; Validate that required files can be created.
@@ -625,9 +625,9 @@
   ;;   - Required options present
   #t)
 
-;;; ============================================================
+;;; ====
 ;;; Module Initialization
-;;; ============================================================
+;;; ====
 
 (display "Scaffolding system loaded.\n")
 (display "Usage: (list-templates) or (scaffold-interactive)\n")

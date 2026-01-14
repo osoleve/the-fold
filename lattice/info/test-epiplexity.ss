@@ -6,9 +6,9 @@
 (load "core/test-framework.ss")
 (load "lattice/info/epiplexity.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Approximate Equality Helper
-;;; ============================================================
+;;; ====
 
 ;;; approx-equal? : Number × Number × Number → Boolean
 ;;; Check if two numbers are approximately equal within epsilon.
@@ -32,9 +32,9 @@
           (write actual)
           (newline)))
 
-;;; ============================================================
+;;; ====
 ;;; Prequential Epiplexity Tests
-;;; ============================================================
+;;; ====
 
 (test-group epiplexity
             
@@ -60,9 +60,9 @@
               ;; Mismatched lengths should raise an error
               (assert-error (lambda () (prequential-epiplexity '(1.0 2.0) '(1.0)))))
             
-            ;;; ============================================================
+            ;;; ====
             ;;; Prequential Epiplexity Scalar Tests
-            ;;; ============================================================
+            ;;; ====
             
             (define-test prequential-scalar-basic
               ;; Online: (10, 5, 1), Baseline: 1
@@ -75,9 +75,9 @@
               ;; Empty online losses should return 0
               (assert-approx 0 (prequential-epiplexity-scalar '() 1.0) 1e-6))
             
-            ;;; ============================================================
+            ;;; ====
             ;;; Requential Epiplexity Tests
-            ;;; ============================================================
+            ;;; ====
             
             (define-test requential-identical-distributions
               ;; Identical distributions (Teacher = Student) -> 0 KL -> 0 Epiplexity

@@ -24,7 +24,7 @@
 
 (display "SHA-256 Test Vectors (NIST FIPS 180-4)
 ")
-(display "======================================
+(display "====
 
 ")
 

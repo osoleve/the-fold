@@ -26,9 +26,9 @@
 
 (load "core/base/prelude.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Module Registry
-;;; ============================================================
+;;; ====
 
 ;;; *module-registry* : Hashtable Symbol → (loaded? load-time-ms)
 (define *module-registry* (make-eq-hashtable))
@@ -48,9 +48,9 @@
 ;;; Register prelude as already loaded (we loaded it above)
 (hashtable-set! *module-registry* 'prelude (cons #t 0))
 
-;;; ============================================================
+;;; ====
 ;;; Module Path Registry
-;;; ============================================================
+;;; ====
 
 ;;; *module-paths* : Hashtable Symbol → String
 ;;; Maps module names to file paths (includes both pre-registered and discovered)
@@ -151,9 +151,9 @@
 (define (clear-module-caches!)
   (hashtable-clear! *header-cache*))
 
-;;; ============================================================
+;;; ====
 ;;; Header Parsing
-;;; ============================================================
+;;; ====
 
 ;;; read-header-lines : String × Nat → (Option (List String))
 ;;; Read first n lines from file for header parsing. Returns #f if file doesn't exist.
@@ -227,9 +227,9 @@
                        (hashtable-set! *header-cache* filepath result))
                  result))))
 
-;;; ============================================================
+;;; ====
 ;;; Path Resolution
-;;; ============================================================
+;;; ====
 
 ;;; find-module-path : Symbol → (Option String)
 ;;; Find file path for a module by searching known locations.
@@ -258,9 +258,9 @@
                  (hashtable-set! *module-paths* name found))
            found)))
 
-;;; ============================================================
+;;; ====
 ;;; Auto-Registration from Headers
-;;; ============================================================
+;;; ====
 
 ;;; auto-register-module! : Symbol → Void
 ;;; Parse module header and register dependencies if not already known.
@@ -274,17 +274,17 @@
                                 ;; Register under the requested name, using deps from header
                                 (hashtable-set! *module-deps* name (cdr header))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Bootstrap Dependencies
-;;; ============================================================
+;;; ====
 
 ;;; prelude is the foundation - it has no dependencies
 ;;; All other modules now declare deps via @requires headers
 (hashtable-set! *module-deps* 'prelude '())
 
-;;; ============================================================
+;;; ====
 ;;; Module Loading
-;;; ============================================================
+;;; ====
 
 ;;; current-time-ms : Unit → Nat
 (define (current-time-ms)
@@ -358,9 +358,9 @@
 (define (require . names)
   (for-each require-one names))
 
-;;; ============================================================
+;;; ====
 ;;; Module Information
-;;; ============================================================
+;;; ====
 
 ;;; module-deps : Symbol → (List Symbol)
 ;;; Get declared dependencies for a module.
@@ -472,9 +472,9 @@
                                                                        (map (lambda (d) (string-append (symbol->string d) " ")) deps)))))))
         (sort (lambda (a b) (string<? (symbol->string a) (symbol->string b))) modules))))
 
-;;; ============================================================
+;;; ====
 ;;; Convenience
-;;; ============================================================
+;;; ====
 
 ;;; require-core : Unit → Void
 ;;; Load all core modules.
@@ -487,9 +487,9 @@
   (let ([all-modules (vector->list (hashtable-keys *module-deps*))])
        (for-each require-one all-modules)))
 
-;;; ============================================================
+;;; ====
 ;;; Module Discovery (LLM-Friendly)
-;;; ============================================================
+;;; ====
 
 ;;; extract-category : String → String
 ;;; Extract category from path like "core/base/foo.ss" → "BASE"

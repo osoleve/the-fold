@@ -15,9 +15,9 @@
 ;;;   - playpen/boardcraft/pathfinding.ss
 ;;;   - playpen/boardcraft/visibility.ss
 
-;;; ============================================================
+;;; ====
 ;;; Unit Protocol
-;;; ============================================================
+;;; ====
 
 ;;; A Unit represents an entity on the board.
 ;;; Units are records with:
@@ -63,9 +63,9 @@
                     (unit%-team unit)
                     new-props)))
 
-;;; ============================================================
+;;; ====
 ;;; Game State (Board + Units)
-;;; ============================================================
+;;; ====
 
 ;;; A Game State manages both the board and units on it.
 ;;;
@@ -140,9 +140,9 @@
                   (eq? (unit%-team (cdr entry)) team))
           (game-all-units gs)))
 
-;;; ============================================================
+;;; ====
 ;;; Unit Movement
-;;; ============================================================
+;;; ====
 
 ;;; game-move-unit : GameState × Symbol × Coord × (Coord → List Coord) → GameState | #f
 ;;; Move unit to destination if reachable
@@ -173,9 +173,9 @@
                   (member dest reachable-coords))
             #f)))
 
-;;; ============================================================
+;;; ====
 ;;; Unit Visibility
-;;; ============================================================
+;;; ====
 
 ;;; game-visible-units : GameState × Symbol × (Coord → List Coord) × (Coord × Coord → List Coord) → (List Unit)
 ;;; Get all units visible to a specific unit
@@ -209,9 +209,9 @@
            (board-has-los? board coord1 coord2 line-fn)
            #f)))
 
-;;; ============================================================
+;;; ====
 ;;; Rendering Integration
-;;; ============================================================
+;;; ====
 
 ;;; unit-char : Unit → String
 ;;; Get character representation of unit
@@ -226,9 +226,9 @@
 (define (game-render-overlay-coords gs)
   (map car (game-all-units gs)))
 
-;;; ============================================================
+;;; ====
 ;;; Exports Summary
-;;; ============================================================
+;;; ====
 
 ;;; This module provides:
 ;;;   Unit Management:

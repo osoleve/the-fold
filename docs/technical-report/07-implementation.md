@@ -69,7 +69,7 @@ Separation enables verification:
 **Space Complexity**:
 
 | Structure | Space |
-|-----------|-------|
+|----|----|
 | Block | O(tag + payload + refs) |
 | Address | 33 bytes (fixed) |
 | CAS lookup | O(1) average |
@@ -77,7 +77,7 @@ Separation enables verification:
 **Time Complexity**:
 
 | Operation | Time |
-|-----------|------|
+|----|----|
 | `hash-block` | O(payload size) |
 | `store!` / `fetch` | O(1) average |
 | `normalize` (α-only) | O(expression size) |
@@ -157,7 +157,7 @@ This eliminates per-step FFI overhead—critical for raymarching which may requi
 4x4 matrix operations where computation exceeds FFI overhead (~112 ops for matrix multiply):
 
 | Operation | Fuel Cost | Description |
-|-----------|-----------|-------------|
+|----|----|----|
 | `fold_mat4_mul` | 112 | Matrix multiplication (fully unrolled) |
 | `fold_mat4_vec_mul` | 28 | Matrix-vector multiplication |
 | `fold_mat4_transform_points` | 28×N | Batch transform N points |

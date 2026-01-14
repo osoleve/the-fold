@@ -7,16 +7,16 @@
 
 (display "
 ")
-(display "==============================================================
+(display "====
 ")
 (display "         FINITE STATE MACHINE TESTS
 ")
-(display "==============================================================
+(display "====
 ")
 
-;;; ============================================================
+;;; ====
 ;;; Basic FSM Construction Tests
-;;; ============================================================
+;;; ====
 
 (test-group fsm-construction
             (define-test make-fsm-test
@@ -49,9 +49,9 @@
                    (assert-false (fsm-deterministic? m))
                    (assert-equal '((q0 q1)) (fsm-epsilon m)))))
 
-;;; ============================================================
+;;; ====
 ;;; FSM Execution Tests
-;;; ============================================================
+;;; ====
 
 (define char-a (string-ref "a" 0))
 (define char-b (string-ref "b" 0))
@@ -104,9 +104,9 @@
                    (assert-false (fsm-accepts? m "a"))
                    (assert-false (fsm-accepts? m "aaa")))))
 
-;;; ============================================================
+;;; ====
 ;;; FSM Builder Tests
-;;; ============================================================
+;;; ====
 
 (test-group fsm-builders
             (define-test fsm-char-test
@@ -136,9 +136,9 @@
                    (assert-false (fsm-accepts? m "d"))
                    (assert-false (fsm-accepts? m "ab")))))
 
-;;; ============================================================
+;;; ====
 ;;; FSM Composition Tests
-;;; ============================================================
+;;; ====
 
 (test-group fsm-composition
             (define-test fsm-union-test
@@ -195,9 +195,9 @@
                     (assert-false (fsm-accepts? m ""))
                     (assert-false (fsm-accepts? m "ab")))))
 
-;;; ============================================================
+;;; ====
 ;;; NFA to DFA Conversion Tests
-;;; ============================================================
+;;; ====
 
 (test-group nfa-to-dfa
             (define-test simple-nfa-to-dfa-test
@@ -238,9 +238,9 @@
                     (assert-true (fsm-accepts? dfa-m "aabb"))
                     (assert-false (fsm-accepts? dfa-m "c")))))
 
-;;; ============================================================
+;;; ====
 ;;; FSM Minimization Tests
-;;; ============================================================
+;;; ====
 
 (test-group fsm-minimization
             (define-test minimize-redundant-states-test
@@ -277,9 +277,9 @@
                     (assert-true (fsm-accepts? min-m "a"))
                     (assert-true (fsm-accepts? min-m "aaa")))))
 
-;;; ============================================================
+;;; ====
 ;;; Language Operation Tests
-;;; ============================================================
+;;; ====
 
 (test-group language-operations
             (define-test fsm-reachable-test
@@ -362,9 +362,9 @@
                     ;; After complement, this should be accepted
                     (assert-true (fsm-accepts? comp "bb")))))
 
-;;; ============================================================
+;;; ====
 ;;; Moore/Mealy Machine Tests
-;;; ============================================================
+;;; ====
 
 (test-group moore-mealy
             (define-test moore-machine-test
@@ -400,9 +400,9 @@
                          (assert-equal 1 (caddr result))) ; even -> odd
                     )))
 
-;;; ============================================================
+;;; ====
 ;;; Visualization Tests
-;;; ============================================================
+;;; ====
 
 ;;; Helper for string-contains
 (define (string-contains str substr)
@@ -472,9 +472,9 @@
                     ;; Graph name quotes should be escaped
                     (assert-true (string-contains dot "test\\\"graph")))))
 
-;;; ============================================================
+;;; ====
 ;;; Edge Cases
-;;; ============================================================
+;;; ====
 
 (test-group edge-cases
             (define-test empty-alphabet-test
@@ -497,13 +497,13 @@
                    (assert-true (fsm-accepts? m ""))
                    (assert-false (fsm-accepts? m "a")))))
 
-;;; ============================================================
+;;; ====
 ;;; Summary
-;;; ============================================================
+;;; ====
 
 (display "
 ")
-(display "==============================================================
+(display "====
 ")
 (printf "Tests passed: ~a
 " *tests-passed*)

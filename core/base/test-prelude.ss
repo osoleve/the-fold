@@ -22,7 +22,7 @@
 
 (display "Testing prelude.ss
 ")
-(display "==================
+(display "====
 
 ")
 
@@ -139,9 +139,9 @@ string-join:
 (test "join empty" "" (string-join '() ","))
 (test "join one" "hello" (string-join '("hello") ","))
 
-;;; ============================================================
+;;; ====
 ;;; Migrated List Utilities (from fold-2rj)
-;;; ============================================================
+;;; ====
 
 ;;; find tests
 (display "
@@ -205,9 +205,9 @@ break:
             (test "break odd prefix" '(1 3 5) pre)
             (test "break at first even" '(2 4) suf))
 
-;;; ============================================================
+;;; ====
 ;;; Collection Utilities
-;;; ============================================================
+;;; ====
 
 ;;; identity tests
 (display "
@@ -254,9 +254,9 @@ distinct-by:
 (test "distinct-by identity" '(1 2 3) (distinct-by identity '(1 2 2 3 3 3)))
 (test "distinct-by empty" '() (distinct-by identity '()))
 
-;;; ============================================================
+;;; ====
 ;;; String Utilities
-;;; ============================================================
+;;; ====
 
 ;;; string-split tests
 (display "
@@ -391,9 +391,9 @@ edit-distance:
 (test "empty first" 5 (edit-distance "" "hello"))
 (test "empty second" 5 (edit-distance "hello" ""))
 
-;;; ============================================================
+;;; ====
 ;;; Unicode Aliases
-;;; ============================================================
+;;; ====
 
 (display "
 Unicode Aliases:
@@ -434,7 +434,7 @@ Unicode Aliases:
 
 ;;; Summary
 (newline)
-(display "==================
+(display "====
 ")
 (display "Passed: ") (display tests-passed) (newline)
 (display "Failed: ") (display tests-failed) (newline)

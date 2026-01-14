@@ -11,9 +11,9 @@
 (define (approx= a b eps)
   (< (abs (- a b)) eps))
 
-;;; ============================================================
+;;; ====
 ;;; Mesh Creation Tests
-;;; ============================================================
+;;; ====
 
 (define-test "Mesh creation from triangles"
   (let* ([tri (triangle3 (vec3 0 0 0) (vec3 1 0 0) (vec3 0 1 0))]
@@ -71,9 +71,9 @@
         (assert-true (< (abs (- mag2 radius)) eps))
         (assert-true (< (abs (- mag3 radius)) eps))))
 
-;;; ============================================================
+;;; ====
 ;;; Mesh SDF Tests
-;;; ============================================================
+;;; ====
 
 (define-test "Mesh SDF - point at origin inside cube"
   (let* ([mesh (make-mesh-cube 1.0)]
@@ -113,9 +113,9 @@
         (assert-true (> dist-outside 0))
         (assert-true (> dist-outside (abs dist-inside)))))
 
-;;; ============================================================
+;;; ====
 ;;; Mesh Ray Intersection Tests
-;;; ============================================================
+;;; ====
 
 (define-test "Mesh ray intersection - hit"
   (let* ([mesh (make-mesh-cube 1.0)]
@@ -133,9 +133,9 @@
          [result (mesh-intersect-ray mesh ray)])
         (assert-false result)))
 
-;;; ============================================================
+;;; ====
 ;;; Mesh Statistics Tests
-;;; ============================================================
+;;; ====
 
 (define-test "Mesh bounds"
   (let* ([mesh (make-mesh-cube 2.0)]
@@ -149,9 +149,9 @@
         (assert-true (<= (vec3-z bmin) -2.0))
         (assert-true (>= (vec3-z bmax) 2.0))))
 
-;;; ============================================================
+;;; ====
 ;;; Summary
-;;; ============================================================
+;;; ====
 
 (display "\n")
 (display "Tests run:    ")

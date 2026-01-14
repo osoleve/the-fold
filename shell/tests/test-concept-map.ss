@@ -22,9 +22,9 @@
       "../core"    ; We're in shell/
       "core"))     ; We're in root
 
-;;; ============================================================
+;;; ====
 ;;; Test Utilities
-;;; ============================================================
+;;; ====
 
 (define test-count 0)
 (define pass-count 0)
@@ -61,18 +61,18 @@
 
 (define (report-results)
   (newline)
-  (display "================================================================================\n")
+  (display "====\n")
   (display (string-append "RESULTS: " (number->string pass-count) "/"
                           (number->string test-count) " passed"))
   (if (> fail-count 0)
       (display (string-append " (" (number->string fail-count) " failed)"))
       (display " (all passed)"))
   (newline)
-  (display "================================================================================\n"))
+  (display "====\n"))
 
-;;; ============================================================
+;;; ====
 ;;; Tests: String Utilities
-;;; ============================================================
+;;; ====
 
 (display "\n=== String Utilities ===\n")
 
@@ -104,9 +104,9 @@
       "hello"
       (string-downcase "HELLO"))
 
-;;; ============================================================
+;;; ====
 ;;; Tests: Symbol Classification
-;;; ============================================================
+;;; ====
 
 (display "\n=== Symbol Classification ===\n")
 
@@ -134,9 +134,9 @@
       'capability
       (classify-concept 'FS))
 
-;;; ============================================================
+;;; ====
 ;;; Tests: Symbol Collection
-;;; ============================================================
+;;; ====
 
 (display "\n=== Symbol Collection ===\n")
 
@@ -153,9 +153,9 @@
       (let ([counts (count-occurrences '(a b a))])
            (list (assq 'a counts) (assq 'b counts))))
 
-;;; ============================================================
+;;; ====
 ;;; Tests: Definition Extraction
-;;; ============================================================
+;;; ====
 
 (display "\n=== Definition Extraction ===\n")
 
@@ -180,9 +180,9 @@
                                x))
                 defs))
 
-;;; ============================================================
+;;; ====
 ;;; Tests: Concept Extraction
-;;; ============================================================
+;;; ====
 
 (display "\n=== Concept Extraction ===\n")
 
@@ -210,9 +210,9 @@
    [(pred (car lst)) (car lst)]
    [else (find pred (cdr lst))]))
 
-;;; ============================================================
+;;; ====
 ;;; Tests: Relationship Finding
-;;; ============================================================
+;;; ====
 
 (display "\n=== Relationship Finding ===\n")
 
@@ -229,9 +229,9 @@
                                 x))
                  rels))
 
-;;; ============================================================
+;;; ====
 ;;; Tests: Graph Building
-;;; ============================================================
+;;; ====
 
 (display "\n=== Graph Building ===\n")
 
@@ -250,9 +250,9 @@
                              (and src (string? (cdr src)))))
                 graph))
 
-;;; ============================================================
+;;; ====
 ;;; Tests: Rendering
-;;; ============================================================
+;;; ====
 
 (display "\n=== Rendering ===\n")
 
@@ -270,9 +270,9 @@
                  (lambda (s) (string-contains? s "block.ss"))
                  output))
 
-;;; ============================================================
+;;; ====
 ;;; Tests: Full Integration
-;;; ============================================================
+;;; ====
 
 (display "\n=== Full Integration ===\n")
 
@@ -284,9 +284,9 @@
                              (assq 'Type concepts)))
                 graph))
 
-;;; ============================================================
+;;; ====
 ;;; Demo Output
-;;; ============================================================
+;;; ====
 
 (display "\n=== Demo: Concept Map for core/block.ss ===\n")
 (let ([graph (concept-map (string-append *core-path* "/block.ss"))])
@@ -296,9 +296,9 @@
 (let ([graph (concept-map (string-append *core-path* "/types.ss"))])
      (void))
 
-;;; ============================================================
+;;; ====
 ;;; Report
-;;; ============================================================
+;;; ====
 
 (report-results)
 

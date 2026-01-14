@@ -12,9 +12,9 @@
 
 (load "lattice/linalg/vec3.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Sphere3D
-;;; ============================================================
+;;; ====
 
 ;;; sphere3d : Vec3 × Number → Sphere3D
 ;;; Create a sphere with given center and radius.
@@ -70,9 +70,9 @@
   (<= (vec3-distance-sq (sphere3d-center s) p)
       (* (sphere3d-radius s) (sphere3d-radius s))))
 
-;;; ============================================================
+;;; ====
 ;;; Box3D (Axis-Aligned)
-;;; ============================================================
+;;; ====
 
 ;;; box3d : Vec3 × Vec3 → Box3D
 ;;; Create a box with given center and half-extents.
@@ -163,9 +163,9 @@
 (define (box3d-corners b)
   (map (lambda (i) (box3d-corner b i)) (iota 8)))
 
-;;; ============================================================
+;;; ====
 ;;; AABB3D (Axis-Aligned Bounding Box)
-;;; ============================================================
+;;; ====
 
 ;;; aabb3d : Vec3 × Vec3 → AABB3D
 ;;; Create AABB from min and max corners.
@@ -258,9 +258,9 @@
                                 (max (vec3-y max-p) (vec3-y p))
                                 (max (vec3-z max-p) (vec3-z p)))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Shape Utilities
-;;; ============================================================
+;;; ====
 
 ;;; shape3d? : Any → Boolean
 ;;; Check if value is any 3D shape.

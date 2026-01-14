@@ -27,9 +27,9 @@
        (printf "    Expected: ~s\n" expected)
        (printf "    Actual:   ~s\n" actual))))
 
-;;; ============================================================
+;;; ====
 ;;; Truncate Commit Title Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Testing truncate-commit-title ===\n")
 
@@ -49,9 +49,9 @@
               (truncate-commit-title "First line\nSecond line")
               "First line")
 
-;;; ============================================================
+;;; ====
 ;;; Tier Enforcement Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Testing tier enforcement ===\n")
 
@@ -67,11 +67,11 @@
 (set! read-session (lambda () #f))
 (assert-equal "shepherd? for no session" (shepherd?) #f)
 
-;;; ============================================================
+;;; ====
 ;;; Test Summary
-;;; ============================================================
+;;; ====
 
-(printf "\n========================================\n")
+(printf "\n====\n")
 (printf "Test Results:\n")
 (printf "  Total:  ~a\n" test-count)
 (printf "  Passed: ~a\n" pass-count)

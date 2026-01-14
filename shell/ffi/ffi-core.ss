@@ -13,9 +13,9 @@
 
 (load "core/base/prelude.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Library Loading
-;;; ============================================================
+;;; ====
 
 ;;; Global state for library handle
 (define *accel-lib-loaded* #f)
@@ -74,9 +74,9 @@
 (define (accel-library-path)
   *accel-lib-path*)
 
-;;; ============================================================
+;;; ====
 ;;; Test Result Struct (Phase 1)
-;;; ============================================================
+;;; ====
 
 ;;; Define C-compatible struct for test results
 ;;; Matches Rust's #[repr(C)] TestResult
@@ -86,9 +86,9 @@
    [value  double]         ; result value
    [fuel   unsigned-64]))  ; remaining fuel
 
-;;; ============================================================
+;;; ====
 ;;; Foreign Procedures (Phase 1)
-;;; ============================================================
+;;; ====
 
 ;;; Foreign procedures are bound lazily after library load
 (define rust-accel-version #f)
@@ -109,9 +109,9 @@
                            (double double double unsigned-64 (* test-result-t))
                            void)))
 
-;;; ============================================================
+;;; ====
 ;;; Scheme Wrappers
-;;; ============================================================
+;;; ====
 
 ;;; accel-version : → (Major Minor Patch) | #f
 ;;; Get the library version, or #f if not loaded
@@ -152,15 +152,15 @@
                    [(3) '(error div-by-zero)]
                    [else `(error unknown-status ,status)]))))
 
-;;; ============================================================
+;;; ====
 ;;; Self-Test
-;;; ============================================================
+;;; ====
 
 ;;; run-ffi-tests : → Boolean
 ;;; Run basic FFI tests, returns #t if all pass
 (define (run-ffi-tests)
   (display "FFI Core Tests\n")
-  (display "==============\n")
+  (display "====\n")
   
   ;; Test 1: Library loading
   (display "1. Loading library... ")
@@ -201,7 +201,7 @@
                          (display "   FAIL: expected (out-of-fuel)\n")
                          (set! loaded #f)))
             
-            (display "==============\n")
+            (display "====\n")
             (if loaded
                 (display "All tests passed!\n")
                 (display "Some tests failed.\n"))

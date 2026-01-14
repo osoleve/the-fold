@@ -8,7 +8,7 @@
 We measured the CAS storage compared to file-based storage for the standard library:
 
 | Metric | File-Based | CAS | Ratio |
-|--------|------------|-----|-------|
+|----|----|----|----|
 | Total source | 1.2 MB | 890 KB | 0.74x |
 | After α-norm | — | 720 KB | 0.60x |
 | With sharing | — | 580 KB | 0.48x |
@@ -36,7 +36,7 @@ Most blocks are small (under 500 bytes), enabling efficient hashing and transmis
 **Inference Time** (representative programs):
 
 | Program | LOC | Types | Inference Time |
-|---------|-----|-------|----------------|
+|----|----|----|----|
 | Vec operations | 450 | 89 | 12ms |
 | Matrix lib | 1,200 | 234 | 45ms |
 | Parser combinators | 800 | 156 | 38ms |

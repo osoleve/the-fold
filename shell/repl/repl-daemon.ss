@@ -16,9 +16,9 @@
 ;;;
 ;;; This is Shell code: uses IO, manages daemon state.
 
-;;; ============================================================
+;;; ====
 ;;; Configuration
-;;; ============================================================
+;;; ====
 
 (define *repl-dir* ".fold-repl")
 (define *request-file* ".fold-repl/request.ss")
@@ -27,9 +27,9 @@
 (define *ready-file* ".fold-repl/ready")
 (define *poll-interval-ns* 100000000)  ; 100ms in nanoseconds
 
-;;; ============================================================
+;;; ====
 ;;; Directory Setup
-;;; ============================================================
+;;; ====
 
 (define (ensure-repl-dir!)
   (unless (file-exists? *repl-dir*)
@@ -47,9 +47,9 @@
 (define (daemon-running?)
   (file-exists? *ready-file*))
 
-;;; ============================================================
+;;; ====
 ;;; Request Processing
-;;; ============================================================
+;;; ====
 
 (define (read-request)
   (when (file-exists? *request-file*)
@@ -81,9 +81,9 @@
   (when (file-exists? *error-file*)
         (delete-file *error-file*)))
 
-;;; ============================================================
+;;; ====
 ;;; Expression Evaluation
-;;; ============================================================
+;;; ====
 
 ;;; NOTE: These functions use unique names to avoid shadowing by
 ;;; core/compile.ss which defines its own eval-string for the Fold
@@ -177,9 +177,9 @@
                          (write-response result)))
              (clear-request!))))
 
-;;; ============================================================
+;;; ====
 ;;; Main Daemon Loop
-;;; ============================================================
+;;; ====
 
 (define *daemon-running* #t)
 
@@ -197,9 +197,9 @@
               (sleep (make-time 'time-duration *poll-interval-ns* 0))
               (daemon-loop))))
 
-;;; ============================================================
+;;; ====
 ;;; Startup
-;;; ============================================================
+;;; ====
 
 (define (start-daemon!)
   "Load the REPL environment and start the daemon loop."

@@ -17,9 +17,9 @@
 (load "lattice/linalg/vec2.ss")
 (load "lattice/physics/classical/rigid-body.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Base Constraint Structure
-;;; ============================================================
+;;; ====
 
 ;;; A constraint connects two bodies (or one body to world) with
 ;;; specific movement restrictions.
@@ -84,9 +84,9 @@
                    (constraint-solver-position c)
                    new-lambda))
 
-;;; ============================================================
+;;; ====
 ;;; Distance Constraint
-;;; ============================================================
+;;; ====
 
 ;;; Distance constraint data:
 ;;;   (list local-anchor-a local-anchor-b target-distance)
@@ -104,9 +104,9 @@
 ;;; distance-data-target : DistanceData -> Number
 (define (distance-data-target d) (list-ref d 2))
 
-;;; ============================================================
+;;; ====
 ;;; Revolute Joint
-;;; ============================================================
+;;; ====
 
 ;;; Revolute constraint data:
 ;;;   (list local-anchor-a local-anchor-b)
@@ -121,9 +121,9 @@
 ;;; revolute-data-anchor-b : RevoluteData -> Vec2
 (define (revolute-data-anchor-b d) (list-ref d 1))
 
-;;; ============================================================
+;;; ====
 ;;; Spring Constraint
-;;; ============================================================
+;;; ====
 
 ;;; Spring constraint data:
 ;;;   (list local-anchor-a local-anchor-b rest-length stiffness damping)
@@ -148,9 +148,9 @@
 ;;; spring-data-damping : SpringData -> Number
 (define (spring-data-damping d) (list-ref d 4))
 
-;;; ============================================================
+;;; ====
 ;;; Weld Joint
-;;; ============================================================
+;;; ====
 
 ;;; Weld constraint data:
 ;;;   (list local-anchor-a local-anchor-b reference-angle)
@@ -168,9 +168,9 @@
 ;;; weld-data-reference-angle : WeldData -> Number
 (define (weld-data-reference-angle d) (list-ref d 2))
 
-;;; ============================================================
+;;; ====
 ;;; Helper: Get Anchor World Positions
-;;; ============================================================
+;;; ====
 
 ;;; These functions compute world-space anchor positions from local anchors.
 ;;; Used by constraint solvers.
@@ -207,9 +207,9 @@
                     (vec2-add (body-pos body) local-anchor)))
            (vec2 0 0))))  ; Entity not found
 
-;;; ============================================================
+;;; ====
 ;;; Constraint Bodies Helper
-;;; ============================================================
+;;; ====
 
 ;;; constraint-get-bodies : World x Constraint -> (Body | #f) x (Body | #f)
 ;;; Get the two bodies connected by a constraint.

@@ -8,7 +8,7 @@ Honest acknowledgment of what The Fold does NOT provide.
 The Fold guarantees *bounded execution*, not *totality*. The difference:
 
 | Property | Totality | Bounded Execution |
-|----------|----------|-------------------|
+|----|----|----|
 | Guarantee | Function terminates on all inputs | Execution stops within fuel limit |
 | Mechanism | Structural recursion / sized types | Fuel counter |
 | On failure | Rejected at compile time | Runtime `out-of-fuel` error |

@@ -19,9 +19,9 @@
 (load "lattice/physics/diff/traced-vec2.ss")
 (load "lattice/physics/diff/traced-body.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Symplectic Euler Integration
-;;; ============================================================
+;;; ====
 
 ;;; The symplectic Euler method is:
 ;;;   v_{n+1} = v_n + a_n * dt
@@ -60,9 +60,9 @@
              [torque-over-I (traced-mul torque (traced-body-inv-inertia body))])
             (traced-euler-step body accel torque-over-I dt))))
 
-;;; ============================================================
+;;; ====
 ;;; Standard Euler (for comparison)
-;;; ============================================================
+;;; ====
 
 ;;; traced-euler-step-explicit : TracedBody × TracedVec2 × TracedValue × Number → TracedBody
 ;;; Standard (explicit) Euler integration.
@@ -84,9 +84,9 @@
                                     (traced-mul torque-over-I dt))])
             (traced-body-with-state body new-pos new-vel new-angle new-omega))))
 
-;;; ============================================================
+;;; ====
 ;;; Velocity Verlet Integration
-;;; ============================================================
+;;; ====
 
 ;;; Velocity Verlet is second-order accurate and symplectic.
 ;;; Requires computing acceleration at two time points:
@@ -131,9 +131,9 @@
                                                              (* 0.5 dt)))])
                                     (traced-body-with-state body new-pos new-vel new-angle new-omega)))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Semi-Implicit Euler (Common in Games)
-;;; ============================================================
+;;; ====
 
 ;;; Also known as symplectic Euler, but sometimes implementations
 ;;; vary in whether they include damping, clamping, etc.
@@ -158,9 +158,9 @@
                                     (traced-mul new-omega dt))])
             (traced-body-with-state body new-pos new-vel new-angle new-omega))))
 
-;;; ============================================================
+;;; ====
 ;;; Gravity and Common Forces
-;;; ============================================================
+;;; ====
 
 ;;; traced-gravity-accel : TracedVec2 → TracedVec2
 ;;; Standard gravity acceleration (constant, independent of mass).
@@ -173,9 +173,9 @@
 (define (traced-gravity-step body gravity dt)
   (traced-euler-step body gravity 0 dt))
 
-;;; ============================================================
+;;; ====
 ;;; Multi-Step Integration
-;;; ============================================================
+;;; ====
 
 ;;; traced-integrate-n-steps : TracedBody × (TracedBody → (Values TracedVec2 TracedValue)) × Number × Nat → TracedBody
 ;;; Integrate for n steps using symplectic Euler.
@@ -195,9 +195,9 @@
   (let ([n (exact (floor (/ total-time dt)))])
        (traced-integrate-n-steps body compute-accel dt n)))
 
-;;; ============================================================
+;;; ====
 ;;; Point Mass Integration (simplified)
-;;; ============================================================
+;;; ====
 
 ;;; For simple point masses without rotation.
 
@@ -213,9 +213,9 @@
 (define (traced-projectile-step pos vel gravity dt)
   (traced-point-step pos vel gravity dt))
 
-;;; ============================================================
+;;; ====
 ;;; Energy-Preserving Integration Check
-;;; ============================================================
+;;; ====
 
 ;;; For Hamiltonian systems, symplectic integrators preserve energy
 ;;; (up to bounded oscillations). This utility helps validate simulations.

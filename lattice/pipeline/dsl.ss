@@ -24,9 +24,9 @@
 (load "lattice/pipeline/context.ss")
 (load "lattice/pipeline/council.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Pipeline Definition
-;;; ============================================================
+;;; ====
 
 ;;; define-pipeline* : Symbol -> Alist -> Stage -> PipelineDef
 ;;; Create a named pipeline definition.
@@ -40,9 +40,9 @@
 ;;;     (>>> (stage-pure "input")
 ;;;          (llm 'sonnet "Process: ${input}"))))
 
-;;; ============================================================
+;;; ====
 ;;; Stage Naming and Tracing
-;;; ============================================================
+;;; ====
 
 ;;; named-stage : Symbol -> Stage -> Stage
 ;;; Wrap a stage with a name for logging/debugging.
@@ -53,9 +53,9 @@
 ;;; Alias for named-stage.
 (define stage* named-stage)
 
-;;; ============================================================
+;;; ====
 ;;; Configuration Helpers
-;;; ============================================================
+;;; ====
 
 ;;; config : Alist
 ;;; Just an alias to make config clear in pipeline defs.
@@ -94,9 +94,9 @@
            (ctx-extend-env ctx bindings))
    stage))
 
-;;; ============================================================
+;;; ====
 ;;; Operator Aliases
-;;; ============================================================
+;;; ====
 
 ;;; Infix-style operators (using >>> etc. directly from stage.ss)
 ;;; These are re-exported for convenience.
@@ -115,9 +115,9 @@
 (define (pipe-into value stage-fn)
   (stage-fn value))
 
-;;; ============================================================
+;;; ====
 ;;; Common Stage Patterns
-;;; ============================================================
+;;; ====
 
 ;;; parse-json : Stage ctx String Any
 ;;; Parse JSON string to S-expression.
@@ -149,9 +149,9 @@
    (lambda (lines)
            (list 'join-lines lines))))
 
-;;; ============================================================
+;;; ====
 ;;; Flow Control Patterns
-;;; ============================================================
+;;; ====
 
 ;;; on-success : Stage -> Stage -> Stage
 ;;; Run second stage only if first succeeds.
@@ -224,9 +224,9 @@
 (define (gate pred stage)
   (stage-if pred stage (stage-skip-with "Gate condition not met")))
 
-;;; ============================================================
+;;; ====
 ;;; Collection Processing
-;;; ============================================================
+;;; ====
 
 ;;; map-stage : Stage ctx a b -> Stage ctx (List a) (List b)
 ;;; Apply stage to each element.
@@ -280,9 +280,9 @@
       lst
       (drop (- n 1) (cdr lst))))
 
-;;; ============================================================
+;;; ====
 ;;; Parallel Execution
-;;; ============================================================
+;;; ====
 
 ;;; parallel : List Stage -> Stage ctx a (List b)
 ;;; Run multiple stages in parallel on same input.
@@ -312,9 +312,9 @@
 ;;; At least one stage must succeed.
 (define any-of race)
 
-;;; ============================================================
+;;; ====
 ;;; FSM Pipeline Pattern
-;;; ============================================================
+;;; ====
 
 ;;; fsm-pipeline : Alist (Symbol . (Stage . Alist)) -> Symbol -> Stage
 ;;; Create FSM-based pipeline.
@@ -355,9 +355,9 @@
   (let ([entry (assq result-type transitions)])
        (if entry (cdr entry) #f)))
 
-;;; ============================================================
+;;; ====
 ;;; Convenience Constructors
-;;; ============================================================
+;;; ====
 
 ;;; ask-llm : Symbol -> String -> Stage ctx String String
 ;;; Simple LLM call.
@@ -382,9 +382,9 @@
 ;;; Fetch URL content.
 (define fetch-url http-get)
 
-;;; ============================================================
+;;; ====
 ;;; Pipeline Composition Helpers
-;;; ============================================================
+;;; ====
 
 ;;; chain : Stage ... -> Stage
 ;;; Chain multiple stages sequentially.
@@ -407,9 +407,9 @@
 ;;; Side effect without changing value.
 (define tap stage-tap)
 
-;;; ============================================================
+;;; ====
 ;;; Logging Helpers
-;;; ============================================================
+;;; ====
 
 ;;; log : String -> Stage ctx a a
 ;;; Log message.
@@ -423,9 +423,9 @@
 ;;; Warning log.
 (define warn log-warn)
 
-;;; ============================================================
+;;; ====
 ;;; Checkpoint Helpers
-;;; ============================================================
+;;; ====
 
 ;;; save : Symbol -> Stage ctx a a
 ;;; Save checkpoint.
@@ -435,9 +435,9 @@
 ;;; Load checkpoint.
 (define load-checkpoint restore)
 
-;;; ============================================================
+;;; ====
 ;;; Full Pipeline Example (as documentation)
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Example: ArXiv Pipeline
 ;;;
@@ -482,9 +482,9 @@
 ;;;       ;; Checkpoint
 ;;;       (save 'completed))))
 
-;;; ============================================================
+;;; ====
 ;;; Export Summary
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Pipeline Definition:
 ;;;   define-pipeline*, named-stage, stage*, config

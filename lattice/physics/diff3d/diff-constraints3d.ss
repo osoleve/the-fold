@@ -28,9 +28,9 @@
 (load "lattice/physics/diff3d/traced-quaternion.ss")
 (load "lattice/physics/diff3d/traced-body3d.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Spring Constraint (Naturally Differentiable)
-;;; ============================================================
+;;; ====
 
 ;;; Springs are inherently smooth - the simplest differentiable constraint.
 
@@ -90,9 +90,9 @@
 (define (spring-constraint-3d-stiffness c) (list-ref c 6))
 (define (spring-constraint-3d-damping c) (list-ref c 7))
 
-;;; ============================================================
+;;; ====
 ;;; Distance Constraint (Stiff Spring)
-;;; ============================================================
+;;; ====
 
 ;;; Distance constraints are implemented as very stiff springs.
 ;;; This is smooth but may require small timesteps for stability.
@@ -113,9 +113,9 @@
                              *distance-constraint-stiffness-3d*
                              *distance-constraint-damping-3d*))
 
-;;; ============================================================
+;;; ====
 ;;; Anchor Constraint (Pin to World)
-;;; ============================================================
+;;; ====
 
 ;;; Anchors a point on a body to a fixed world position.
 
@@ -153,9 +153,9 @@
          [torque (traced-vec3-cross r force)])
         (values force torque)))
 
-;;; ============================================================
+;;; ====
 ;;; Ball-Socket Joint (Point-to-Point, 3 DOF removed)
-;;; ============================================================
+;;; ====
 
 ;;; A ball-socket joint constrains two bodies to share a pivot point.
 ;;; Each body can rotate freely around the joint.
@@ -198,9 +198,9 @@
         (values (list force-a torque-a)
                 (list force-b torque-b))))
 
-;;; ============================================================
+;;; ====
 ;;; Hinge Joint (5 DOF removed)
-;;; ============================================================
+;;; ====
 
 ;;; A hinge joint constrains:
 ;;; 1. Two bodies to share a pivot point (3 DOF from ball-socket)
@@ -276,9 +276,9 @@
         (values (list pos-force-a total-torque-a)
                 (list pos-force-b total-torque-b))))
 
-;;; ============================================================
+;;; ====
 ;;; Fixed Joint (6 DOF removed)
-;;; ============================================================
+;;; ====
 
 ;;; A fixed joint constrains:
 ;;; 1. Position (3 DOF from ball-socket)
@@ -367,9 +367,9 @@
         (values (list pos-force-a total-torque-a)
                 (list pos-force-b total-torque-b))))
 
-;;; ============================================================
+;;; ====
 ;;; Constraint System Solver
-;;; ============================================================
+;;; ====
 
 ;;; Apply all constraints to a system of bodies.
 ;;; Uses truncated unrolling: computes forces once per timestep.
@@ -546,9 +546,9 @@
    bodies
    constraints))
 
-;;; ============================================================
+;;; ====
 ;;; Complete Constraint Solver Step
-;;; ============================================================
+;;; ====
 
 ;;; traced-constraint-step-3d : (Vector TracedBody3D) × (List Constraint) × Vec3 × Number × Nat → (Vector TracedBody3D)
 ;;; One complete constraint solver step with optional iteration.
@@ -581,9 +581,9 @@
             ((= i n) result)
             (vector-set! result i (f (vector-ref v i))))))
 
-;;; ============================================================
+;;; ====
 ;;; Pendulum Example Helpers
-;;; ============================================================
+;;; ====
 
 ;;; make-pendulum-system-3d : Vec3 × Number × Number × Number × Tape → (TracedBody3D × AnchorConstraint3D)
 ;;; Create a single pendulum bob anchored at a pivot.

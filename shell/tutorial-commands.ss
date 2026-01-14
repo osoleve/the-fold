@@ -7,9 +7,9 @@
 (load "commands.ss")
 (load "tutorial.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Tutorial Command Handlers
-;;; ============================================================
+;;; ====
 
 ;;; start-tutorial-handler : [Symbol] → void
 (define start-tutorial-handler
@@ -61,9 +61,9 @@
   (export-tutorial-progress)
   (void))
 
-;;; ============================================================
+;;; ====
 ;;; Register Tutorial Commands
-;;; ============================================================
+;;; ====
 
 (define (register-tutorial-commands!)
   ;; Main tutorial commands

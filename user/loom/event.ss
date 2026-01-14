@@ -16,9 +16,9 @@
 ;;;   Event dispatcher (pub/sub pattern)
 ;;;   Convenience constructors for common event types
 
-;;; ============================================================
+;;; ====
 ;;; Event Types
-;;; ============================================================
+;;; ====
 
 ;;; EventType : Symbol
 ;;; Predefined event types for common game occurrences.
@@ -69,9 +69,9 @@
 (define (event-type? sym)
   (symbol? sym))
 
-;;; ============================================================
+;;; ====
 ;;; Event Structure
-;;; ============================================================
+;;; ====
 
 ;;; Event : Record
 ;;;   type      — Symbol, event type identifier
@@ -132,9 +132,9 @@
                (event-data evt)
                timestamp))
 
-;;; ============================================================
+;;; ====
 ;;; Event Queue
-;;; ============================================================
+;;; ====
 
 ;;; EventQueue : Record
 ;;;   events — List Event, FIFO queue (front is head of list)
@@ -198,9 +198,9 @@
 (define (event-queue->list queue)
   (event-queue%-events queue))
 
-;;; ============================================================
+;;; ====
 ;;; Event Dispatcher
-;;; ============================================================
+;;; ====
 
 ;;; EventHandler : Event -> Any
 ;;; A handler function that processes an event.
@@ -318,9 +318,9 @@
 (define (dispatcher-handler-count dispatcher event-type)
   (length (alist-ref (dispatcher-handlers dispatcher) event-type '())))
 
-;;; ============================================================
+;;; ====
 ;;; Convenience Event Constructors
-;;; ============================================================
+;;; ====
 
 ;;; Entity Events
 
@@ -535,9 +535,9 @@
    [(custom-type source target data timestamp)
     (make-event custom-type source target data timestamp)]))
 
-;;; ============================================================
+;;; ====
 ;;; Event Utilities
-;;; ============================================================
+;;; ====
 
 ;;; event-match? : Event × Symbol × [Any] × [Any] -> Bool
 ;;; Check if an event matches criteria.
@@ -574,9 +574,9 @@
                      (< (event-timestamp a) (event-timestamp b)))
              events))
 
-;;; ============================================================
+;;; ====
 ;;; Export Summary
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Event Types:
 ;;;   event-types, event-type?

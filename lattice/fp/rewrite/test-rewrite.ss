@@ -17,9 +17,9 @@
 (load "lattice/fp/rewrite/laws.ss")
 (load "lattice/fp/rewrite/verify.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Rule Construction Tests
-;;; ============================================================
+;;; ====
 
 (test-group rule-construction
             
@@ -77,9 +77,9 @@
               ;; RHS var not in LHS would be invalid
               (assert-false (valid-rule? (make-rule 'r3 '(?x) '(?y))))))
 
-;;; ============================================================
+;;; ====
 ;;; Pattern Matching Tests
-;;; ============================================================
+;;; ====
 
 (test-group pattern-matching
             
@@ -137,9 +137,9 @@
                    (assert-equal 'a (cdr (assq 'x result)))
                    (assert-equal 'b (cdr (assq 'y result))))))
 
-;;; ============================================================
+;;; ====
 ;;; Template Substitution Tests
-;;; ============================================================
+;;; ====
 
 (test-group template-substitution
             
@@ -159,9 +159,9 @@
               (let ([result (substitute-template '(g (?a) (h (?b))) '((a . x) (b . y)))])
                    (assert-equal '(g x (h y)) result))))
 
-;;; ============================================================
+;;; ====
 ;;; Rule Application Tests
-;;; ============================================================
+;;; ====
 
 (test-group rule-application
             
@@ -207,9 +207,9 @@
                    (assert-true (pair? result))
                    (assert-equal 'fa (car result)))))
 
-;;; ============================================================
+;;; ====
 ;;; Position-Based Rewriting Tests
-;;; ============================================================
+;;; ====
 
 (test-group position-rewriting
             
@@ -236,9 +236,9 @@
                    (assert-true (pair? (member '(1) positions)))
                    (assert-true (pair? (member '(2) positions))))))
 
-;;; ============================================================
+;;; ====
 ;;; Trace Tests
-;;; ============================================================
+;;; ====
 
 (test-group trace-operations
             
@@ -275,9 +275,9 @@
                      [t2 (trace-add-step t1 s2)])
                     (assert-equal '(rule-a rule-b) (trace-rules-used t2)))))
 
-;;; ============================================================
+;;; ====
 ;;; Law Registry Tests
-;;; ============================================================
+;;; ====
 
 (test-group law-registry
             
@@ -308,9 +308,9 @@
                    (assert-true (if (memq 'functor cats) #t #f))
                    (assert-true (if (memq 'monoid cats) #t #f)))))
 
-;;; ============================================================
+;;; ====
 ;;; Verification Tests
-;;; ============================================================
+;;; ====
 
 (test-group verification
             
@@ -342,9 +342,9 @@
             (define-test full-equiv-alpha
               (assert-true (full-equiv? '(fn (a) a) '(fn (b) b)))))
 
-;;; ============================================================
+;;; ====
 ;;; Strategy Combinator Tests
-;;; ============================================================
+;;; ====
 
 (test-group strategy-combinators
             
@@ -397,9 +397,9 @@
                     (assert-equal 'a (strat '(+ 0 a)))
                     (assert-false (strat '(+ 1 a))))))
 
-;;; ============================================================
+;;; ====
 ;;; Free Variables Tests
-;;; ============================================================
+;;; ====
 
 (test-group free-variables
             
@@ -420,9 +420,9 @@
             (define-test not-free-false
               (assert-false (not-free? 'x '(+ x 2)))))
 
-;;; ============================================================
+;;; ====
 ;;; Integration Tests
-;;; ============================================================
+;;; ====
 
 (test-group integration
             
@@ -448,9 +448,9 @@
               (let ([result (arith-simplify '(* 0 (big expression)))])
                    (assert-equal 0 result))))
 
-;;; ============================================================
+;;; ====
 ;;; Run All Tests
-;;; ============================================================
+;;; ====
 
 (display "\n══════════════════════════════════════════════════════════════\n")
 (display "  Rewrite System Test Suite\n")

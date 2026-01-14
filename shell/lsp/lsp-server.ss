@@ -15,18 +15,18 @@
 (load "shell/lsp/capabilities.ss")
 (load "shell/lsp/lsp-transport.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Server State
-;;; ============================================================
+;;; ====
 
 (define *server-initialized* #f)
 (define *server-shutdown-requested* #f)
 (define *client-capabilities* #f)
 (define *root-uri* #f)
 
-;;; ============================================================
+;;; ====
 ;;; Request Handlers
-;;; ============================================================
+;;; ====
 
 ;;; handle-initialize : JsonObject → JsonObject
 (define (handle-initialize params)
@@ -49,9 +49,9 @@
   (lsp-log "Shutdown requested")
   'null)
 
-;;; ============================================================
+;;; ====
 ;;; Document Sync Handlers
-;;; ============================================================
+;;; ====
 
 ;;; handle-did-open : JsonObject → Void
 (define (handle-did-open params)
@@ -102,9 +102,9 @@
                          (doc-update! uri (+ 1 (document-version doc)) text)
                          (publish-diagnostics uri))))))
 
-;;; ============================================================
+;;; ====
 ;;; Language Feature Handlers (Stubs)
-;;; ============================================================
+;;; ====
 
 ;;; handle-hover : JsonObject → JsonObject | null
 (define (handle-hover params)
@@ -222,9 +222,9 @@
             (compute-semantic-tokens doc)
             (json-obj "data" (json-arr)))))
 
-;;; ============================================================
+;;; ====
 ;;; Diagnostics
-;;; ============================================================
+;;; ====
 
 ;;; publish-diagnostics : String → Void
 ;;; Analyze document and publish diagnostics.
@@ -237,9 +237,9 @@
                                                     "diagnostics" (apply json-arr diagnostics)))))))
 
 
-;;; ============================================================
+;;; ====
 ;;; Message Dispatch
-;;; ============================================================
+;;; ====
 
 ;;; dispatch-request : String × JsonObject × Id → Void
 ;;; Dispatch a request to the appropriate handler.
@@ -338,9 +338,9 @@
        (lambda (p) (display-condition e p)))
       (format "~a" e)))
 
-;;; ============================================================
+;;; ====
 ;;; Main Loop
-;;; ============================================================
+;;; ====
 
 ;;; run-server! : → Void
 ;;; Main server loop.
@@ -355,9 +355,9 @@
   
   (lsp-log "fold-lsp server stopped"))
 
-;;; ============================================================
+;;; ====
 ;;; Entry Point
-;;; ============================================================
+;;; ====
 
 ;;; Note: Server is started explicitly from start-lsp.ss
 ;;; Do not auto-start here to avoid double-initialization.

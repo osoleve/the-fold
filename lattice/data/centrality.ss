@@ -33,9 +33,9 @@
 ;;;   - matrix.ss
 ;;;   - graph-matrix.ss (provides floyd-warshall, star-graph, etc.)
 
-;;; ============================================================
+;;; ====
 ;;; Constants
-;;; ============================================================
+;;; ====
 
 ;;; Default tolerance for convergence
 (define *centrality-tolerance* 1e-8)
@@ -43,9 +43,9 @@
 ;;; Default maximum iterations
 (define *centrality-max-iterations* 100)
 
-;;; ============================================================
+;;; ====
 ;;; Eigenvector Centrality
-;;; ============================================================
+;;; ====
 
 ;;; eigenvector-centrality : Matrix × [Nat] × [Num] → Vec | Error
 ;;;
@@ -177,9 +177,9 @@
          [adj (edges->adjacency-matrix edges n #t)])  ; undirected
         (apply eigenvector-centrality (cons adj rest1))))
 
-;;; ============================================================
+;;; ====
 ;;; Katz Centrality
-;;; ============================================================
+;;; ====
 
 ;;; katz-centrality : Matrix × [Num] × [Num] × [Nat] × [Num] → Vec | Error
 ;;;
@@ -270,9 +270,9 @@
          [adj (edges->adjacency-matrix edges n)])
         (apply katz-centrality (cons adj rest1))))
 
-;;; ============================================================
+;;; ====
 ;;; Closeness Centrality
-;;; ============================================================
+;;; ====
 
 ;;; closeness-centrality : Matrix × [Boolean] → Vec
 ;;;
@@ -355,9 +355,9 @@
          [adj (edges->adjacency-matrix edges n)])
         (apply closeness-centrality-from-adj (cons adj rest1))))
 
-;;; ============================================================
+;;; ====
 ;;; Betweenness Centrality
-;;; ============================================================
+;;; ====
 
 ;;; betweenness-centrality : Matrix → Vec
 ;;;
@@ -462,9 +462,9 @@
          [adj (edges->adjacency-matrix edges n)])
         (betweenness-centrality adj)))
 
-;;; ============================================================
+;;; ====
 ;;; Centrality Comparison and Utilities
-;;; ============================================================
+;;; ====
 
 ;;; rank-by-centrality : Vec → (List (Nat . Num))
 ;;; Return nodes ranked by centrality score (highest first).

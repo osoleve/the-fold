@@ -26,9 +26,9 @@
 (load "lattice/statistics/core/summary-stats.ss")
 (load "lattice/statistics/timeseries/acf-pacf.ss")
 
-;;; ============================================================
+;;; ====
 ;;; AR Model Fitting
-;;; ============================================================
+;;; ====
 
 ;;; AR(p) model: X_t = c + phi_1*X_{t-1} + ... + phi_p*X_{t-p} + epsilon_t
 ;;; For centered series (mean 0): X_t = phi_1*X_{t-1} + ... + phi_p*X_{t-p} + epsilon_t
@@ -114,9 +114,9 @@
                  (+ s (* (vector-ref phi k)
                          (vector-ref centered (- t k 1))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Forecasting
-;;; ============================================================
+;;; ====
 
 ;;; ar-forecast : ARResult × Vec × Nat → ForecastResult
 ;;; Multi-step ahead forecasting.
@@ -190,9 +190,9 @@
                                          (+ s (expt (vector-ref psi j) 2))))))])
                  (vector-set! se t (sqrt var))))))
 
-;;; ============================================================
+;;; ====
 ;;; Model Selection
-;;; ============================================================
+;;; ====
 
 ;;; ar-aic-value : Vec × Vec × Num × Nat × Nat → Num
 ;;; Compute AIC for AR(p) model.
@@ -234,9 +234,9 @@
         (+ (* n (log (* sigma sigma)))
            (* (log n) (+ p 1)))))
 
-;;; ============================================================
+;;; ====
 ;;; Standard Normal Quantile (helper)
-;;; ============================================================
+;;; ====
 
 (define (standard-normal-quantile p)
   (if (or (<= p 0) (>= p 1))

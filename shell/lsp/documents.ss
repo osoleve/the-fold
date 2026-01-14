@@ -16,9 +16,9 @@
 (load "shell/lsp/json.ss")
 (load "shell/lsp/protocol.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Document Structure
-;;; ============================================================
+;;; ====
 
 ;;; Document = (document uri version content line-starts)
 ;;; line-starts is a vector of byte offsets for each line start
@@ -42,9 +42,9 @@
 (define (document-line-starts doc)
   (list-ref doc 4))
 
-;;; ============================================================
+;;; ====
 ;;; Line Start Computation
-;;; ============================================================
+;;; ====
 
 ;;; compute-line-starts : String → Vector<Int>
 ;;; Compute byte offsets of each line start.
@@ -91,9 +91,9 @@
             ""
             (substring content start (min end (string-length content))))))
 
-;;; ============================================================
+;;; ====
 ;;; UTF-16 Position Conversion
-;;; ============================================================
+;;; ====
 
 ;;; In UTF-16:
 ;;; - BMP characters (U+0000 to U+FFFF): 1 code unit
@@ -130,9 +130,9 @@
                 (loop (+ i 1)
                       (+ utf16-count (char-utf16-length (string-ref str i))))))))
 
-;;; ============================================================
+;;; ====
 ;;; LSP Position ↔ Document Offset
-;;; ============================================================
+;;; ====
 
 ;;; lsp-position->offset : Document × JsonObject → Int
 ;;; Convert an LSP position {line, character} to a document offset.
@@ -168,9 +168,9 @@
                     (loop lo (- mid 1))
                     (loop mid hi))))))
 
-;;; ============================================================
+;;; ====
 ;;; Span ↔ LSP Range
-;;; ============================================================
+;;; ====
 
 ;;; span->lsp-range : Document × Span → JsonObject
 ;;; Convert a source span to an LSP range.
@@ -212,9 +212,9 @@
                                                   (json-get end "character")))])
         (make-span file start-line start-col end-line end-col)))
 
-;;; ============================================================
+;;; ====
 ;;; Document Store
-;;; ============================================================
+;;; ====
 
 ;;; Global document store: uri → document
 (define *documents* (make-hashtable string-hash string=?))
@@ -320,9 +320,9 @@
 (define (doc-list)
   (vector->list (hashtable-keys *documents*)))
 
-;;; ============================================================
+;;; ====
 ;;; Symbol Extraction
-;;; ============================================================
+;;; ====
 
 ;;; symbol-at-offset : Document × Int → String | #f
 ;;; Extract the symbol (identifier) at a given offset.
@@ -384,9 +384,9 @@
       (char-numeric? c)
       (memv c '(#\- #\_ #\? #\! #\* #\+ #\/ #\< #\> #\= #\: #\@))))
 
-;;; ============================================================
+;;; ====
 ;;; Span Re-export (for convenience)
-;;; ============================================================
+;;; ====
 
 ;;; Import span functions from span.ss if not already loaded
 (unless (top-level-bound? 'make-span)

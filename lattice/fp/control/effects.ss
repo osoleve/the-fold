@@ -31,9 +31,9 @@
 (load "lattice/fp/meta/combinators.ss")
 (load "lattice/fp/control/continuation.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Effect Signature Representation
-;;; ============================================================
+;;; ====
 ;;;
 ;;; An effect signature defines a set of operations with their
 ;;; parameter and result types. At runtime, we represent this
@@ -92,9 +92,9 @@
         [(eq? (operation-name (car ops)) op-name) (car ops)]
         [else (loop (cdr ops))])))
 
-;;; ============================================================
+;;; ====
 ;;; Built-in Effect Signatures
-;;; ============================================================
+;;; ====
 
 ;;; State effect signature: get/put operations
 (define sig-State
@@ -137,9 +137,9 @@
                    (list (make-operation 'fork '(Eff e a) '(Future a))
                          (make-operation 'await '(Future a) 'a))))
 
-;;; ============================================================
+;;; ====
 ;;; Effect Rows (Effect Type Tracking)
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Effect rows track which effects are used in a computation.
 ;;; They enable effect polymorphism: functions can be generic
@@ -213,9 +213,9 @@
 (define (row-var-name rv)
   (list-ref rv 1))
 
-;;; ============================================================
+;;; ====
 ;;; Eff Monad - Effectful Computations
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Eff e a = Pure a | Op (Effect e) (Response -> Eff e a)
 ;;;
@@ -254,9 +254,9 @@
 ;;; eff-return : a -> Eff e a
 (define eff-return make-eff-pure)
 
-;;; ============================================================
+;;; ====
 ;;; Codensity-based Eff Bind (O(1) amortized)
-;;; ============================================================
+;;; ====
 ;;;
 ;;; PERFORMANCE NOTE:
 ;;; The naive eff-bind implementation is O(N^2) for left-associative chains:
@@ -355,9 +355,9 @@
 (define (perform effect)
   (make-eff-op effect eff-return))
 
-;;; ============================================================
+;;; ====
 ;;; Effect Definitions
-;;; ============================================================
+;;; ====
 
 ;;; make-effect : Symbol -> Any -> Effect
 ;;; Create an effect with a tag and payload.
@@ -413,9 +413,9 @@
        (string (char-upcase (string-ref str 0)))
        (substring str 1 (string-length str)))))
 
-;;; ============================================================
+;;; ====
 ;;; Effect Handlers (Generic Framework)
-;;; ============================================================
+;;; ====
 ;;;
 ;;; A handler defines how to interpret effects.
 ;;;
@@ -465,9 +465,9 @@
 (define (shallow-handler return-case effect-cases)
   (make-handler return-case effect-cases 'shallow))
 
-;;; ============================================================
+;;; ====
 ;;; Handler Application
-;;; ============================================================
+;;; ====
 
 ;;; handle : Handler -> Eff e a -> b
 ;;; Apply a handler to an effectful computation.
@@ -527,9 +527,9 @@
                            (lambda (resp)
                                    (handle-shallow handler ((eff-op-cont eff) resp))))))]))
 
-;;; ============================================================
+;;; ====
 ;;; Handler Composition
-;;; ============================================================
+;;; ====
 
 ;;; compose-handlers : Handler -> Handler -> Handler
 ;;; Compose two handlers: h1 handles first, then h2
@@ -557,9 +557,9 @@
 ;;; Sugar for applying a handler (alias for handle)
 (define with-handler handle)
 
-;;; ============================================================
+;;; ====
 ;;; State Effect
-;;; ============================================================
+;;; ====
 
 ;;; state-get : Eff State s
 (define state-get
@@ -621,9 +621,9 @@
                              (lambda (resp)
                                      (run-state-helper state (k resp))))]))]))
 
-;;; ============================================================
+;;; ====
 ;;; Reader Effect
-;;; ============================================================
+;;; ====
 
 ;;; reader-ask : Eff Reader r
 (define reader-ask
@@ -673,9 +673,9 @@
                              (lambda (resp)
                                      (run-reader env (k resp))))]))]))
 
-;;; ============================================================
+;;; ====
 ;;; Writer Effect
-;;; ============================================================
+;;; ====
 
 ;;; writer-tell : w -> Eff Writer ()
 (define (writer-tell msg)
@@ -752,9 +752,9 @@
                              (lambda (resp)
                                      (run-writer-helper log (k resp))))]))]))
 
-;;; ============================================================
+;;; ====
 ;;; Exception Effect
-;;; ============================================================
+;;; ====
 
 ;;; eff-throw : e -> Eff Exception a
 (define (eff-throw exn)
@@ -804,9 +804,9 @@
 (define (eff-try eff)
   (eff-return (run-exception eff)))
 
-;;; ============================================================
+;;; ====
 ;;; NonDet Effect (Non-determinism)
-;;; ============================================================
+;;; ====
 
 ;;; nondet-choose : List a -> Eff NonDet a
 (define (nondet-choose options)
@@ -911,9 +911,9 @@
                                  (lambda (resp)
                                          (run-nondet-bounded-acc remaining acc (k resp))))]))])))
 
-;;; ============================================================
+;;; ====
 ;;; Console Effect
-;;; ============================================================
+;;; ====
 
 ;;; console-print : String -> Eff Console ()
 (define (console-print msg)
@@ -960,9 +960,9 @@
                              (lambda (resp)
                                      (run-console-helper inputs outputs (k resp))))]))]))
 
-;;; ============================================================
+;;; ====
 ;;; Async Effect (for futures/promises)
-;;; ============================================================
+;;; ====
 
 ;;; async-fork : Eff e a -> Eff Async (Future a)
 (define (async-fork computation)
@@ -1018,9 +1018,9 @@
   (set! *gensym-counter* (+ *gensym-counter* 1))
   (cons prefix *gensym-counter*))
 
-;;; ============================================================
+;;; ====
 ;;; Combining Effects
-;;; ============================================================
+;;; ====
 
 ;;; eff-sequence : List (Eff e a) -> Eff e (List a)
 ;;; Sequence effectful computations.
@@ -1097,9 +1097,9 @@
                                   (lambda (xs)
                                           (eff-return (cons x xs))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Lift / Inject Effects
-;;; ============================================================
+;;; ====
 
 ;;; eff-lift : (a -> b) -> Eff e a -> Eff e b
 ;;; Same as eff-map.
@@ -1118,9 +1118,9 @@
                                             (eff-bind ec (lambda (c)
                                                                  (eff-return (f a b c)))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Effect Constraints (Runtime Type Safety)
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Effect constraints track which effects a computation uses.
 ;;; This enables runtime checking of effect safety.
@@ -1160,9 +1160,9 @@
                        (effect-label (eff-op-effect eff))
                        allowed))))
 
-;;; ============================================================
+;;; ====
 ;;; Resumable Continuations
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Handlers can resume continuations multiple times (for nondet),
 ;;; zero times (for exceptions), or exactly once (for state).
@@ -1182,9 +1182,9 @@
 (define (abort val)
   (eff-return val))
 
-;;; ============================================================
+;;; ====
 ;;; Example: Stateful Counter
-;;; ============================================================
+;;; ====
 
 ;;; counter-increment : Eff State ()
 (define counter-increment
@@ -1202,9 +1202,9 @@
 (define counter-get
   state-get)
 
-;;; ============================================================
+;;; ====
 ;;; Example: Logging with Writer
-;;; ============================================================
+;;; ====
 
 ;;; log-info : String -> Eff Writer ()
 (define (log-info msg)
@@ -1222,9 +1222,9 @@
 (define (log-debug msg)
   (writer-tell (list 'debug msg)))
 
-;;; ============================================================
+;;; ====
 ;;; Combined Effect Handlers
-;;; ============================================================
+;;; ====
 
 ;;; run-state-writer : s × (Eff (State + Writer) α) → ((α . s) . (List w))
 ;;; Handle both state and writer effects
@@ -1290,9 +1290,9 @@
                              (lambda (resp)
                                      (run-reader-in-writer env (k resp))))]))]))
 
-;;; ============================================================
+;;; ====
 ;;; Scoped Effects
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Scoped effects limit effect scope to a region of code.
 
@@ -1321,9 +1321,9 @@
 (define (with-nondet eff)
   (eff-return (run-nondet eff)))
 
-;;; ============================================================
+;;; ====
 ;;; Local Effect Handling
-;;; ============================================================
+;;; ====
 
 ;;; local-state : s -> Eff State a -> Eff State a
 ;;; Run with temporary state, restore original after
@@ -1342,9 +1342,9 @@
 ;;; Alias for reader-local
 (define local-reader reader-local)
 
-;;; ============================================================
+;;; ====
 ;;; Effect Interleaving
-;;; ============================================================
+;;; ====
 
 ;;; interleave : Eff e a -> Eff e b -> Eff e (Either a b)
 ;;; Interleave two computations (fair scheduling for nondet)
@@ -1366,9 +1366,9 @@
                  (lambda (resp)
                          (interleave eff2 ((eff-op-cont eff1) resp))))]))
 
-;;; ============================================================
+;;; ====
 ;;; Example Usage (for documentation)
-;;; ============================================================
+;;; ====
 ;;;
 ;;; ;; State effect
 ;;; (run-state 0

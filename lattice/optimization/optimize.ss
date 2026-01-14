@@ -21,9 +21,9 @@
 (load "lattice/optimization/newton.ss")
 (load "lattice/optimization/lbfgs.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Unified Minimization Interface
-;;; ============================================================
+;;; ====
 
 ;;; minimize : ((List TracedValue) → TracedValue) × (List Number) × ... → OptResult
 ;;; Minimize a function starting from x0.
@@ -87,9 +87,9 @@
                       *default-convergence*)])
        (lbfgs-b f x0 lower upper criteria)))
 
-;;; ============================================================
+;;; ====
 ;;; Learning Rate Finder
-;;; ============================================================
+;;; ====
 
 ;;; find-learning-rate : ((List TracedValue) → TracedValue) × (List Number) × Number × Number × Nat → (List (Number × Number))
 ;;; Find good learning rate by exponentially increasing lr and tracking loss.
@@ -110,9 +110,9 @@
                        (loop x-new new-lr (+ step 1)
                              (cons (list lr loss) results)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Optimization with Callbacks
-;;; ============================================================
+;;; ====
 
 ;;; minimize-callback : ((List TracedValue) → TracedValue) × (List Number) × Symbol × ConvergenceCriteria × (ConvergenceState → Unit) → OptResult
 ;;; Minimize with iteration callback for monitoring/logging.
@@ -122,9 +122,9 @@
   ;; Callback support would require modifying individual optimizers
   (minimize f x0 method criteria))
 
-;;; ============================================================
+;;; ====
 ;;; Common Test Functions
-;;; ============================================================
+;;; ====
 
 ;;; rosenbrock : (List Number) → Number
 ;;; Rosenbrock function: f(x,y) = (1-x)^2 + 100*(y-x^2)^2
@@ -168,9 +168,9 @@
           (expt (- 2.25 (+ x (* (- 1 (* y y)) x))) 2)
           (expt (- 2.625 (+ x (* (- 1 (* y y y)) x))) 2))))
 
-;;; ============================================================
+;;; ====
 ;;; Method Selection Heuristics
-;;; ============================================================
+;;; ====
 
 ;;; suggest-method : Nat × Bool × Bool → Symbol
 ;;; Suggest optimization method based on problem characteristics.
@@ -192,9 +192,9 @@
    [else
     'adam]))
 
-;;; ============================================================
+;;; ====
 ;;; Exported Summary
-;;; ============================================================
+;;; ====
 
 ;;; Available optimizers:
 ;;;

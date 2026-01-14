@@ -28,9 +28,9 @@
 ;;;   - Stack trace formatting
 ;;;   - Related error grouping
 
-;;; ============================================================
+;;; ====
 ;;; Configuration
-;;; ============================================================
+;;; ====
 
 (load "core/base/prelude.ss")
 
@@ -62,9 +62,9 @@
 (define *level-info*
   (make-error-level 'info *color-blue* "INFO"))
 
-;;; ============================================================
+;;; ====
 ;;; Error with Format Helper
-;;; ============================================================
+;;; ====
 
 ;;; errorf : Symbol × String × Any... → ⊥
 ;;; Raise an error with a formatted message.
@@ -80,9 +80,9 @@
 (define (errorf who fmt-string . args)
   (error who (apply format fmt-string args)))
 
-;;; ============================================================
+;;; ====
 ;;; Main Formatting API
-;;; ============================================================
+;;; ====
 
 ;;; format-error : Condition → String
 ;;; Format a condition object as a readable error message.
@@ -138,9 +138,9 @@
    "
 "))
 
-;;; ============================================================
+;;; ====
 ;;; Header Formatting
-;;; ============================================================
+;;; ====
 
 ;;; format-error-header : ErrorLevel × Symbol × Path × Nat × Nat → String
 (define (format-error-header level who file line col)
@@ -155,9 +155,9 @@
                      "")])
        (string-append level-str who-str loc-str)))
 
-;;; ============================================================
+;;; ====
 ;;; Message Formatting (Fixes ~s bugs)
-;;; ============================================================
+;;; ====
 
 ;;; format-message : String × (List Any) → String
 ;;; Format message string, filling in placeholders.
@@ -231,9 +231,9 @@
              [(string=? needle (substring haystack i (+ i nlen))) i]
              [else (loop (+ i 1))]))))
 
-;;; ============================================================
+;;; ====
 ;;; Source Context
-;;; ============================================================
+;;; ====
 
 ;;; format-source-context : Path × Nat × Nat → String
 ;;; Show source code around error location.
@@ -275,9 +275,9 @@
                        (string-append result prefix formatted-line "
 " pointer))))))
 
-;;; ============================================================
+;;; ====
 ;;; Suggestions
-;;; ============================================================
+;;; ====
 
 ;;; format-suggestions : String → String
 ;;; Provide helpful suggestions based on error message.
@@ -319,9 +319,9 @@
       "Verify file exists and is readable")]
    [else '()]))
 
-;;; ============================================================
+;;; ====
 ;;; Colorization
-;;; ============================================================
+;;; ====
 
 ;;; colorize : String × String × String → String
 (define (colorize text color modifier)
@@ -329,9 +329,9 @@
       (string-append modifier color text *color-reset*)
       text))
 
-;;; ============================================================
+;;; ====
 ;;; Utility Functions
-;;; ============================================================
+;;; ====
 
 ;;; NOTE: string-contains? provided by core/prelude.ss
 
@@ -369,9 +369,9 @@
 
 ;;; NOTE: string-join provided by core/prelude.ss
 
-;;; ============================================================
+;;; ====
 ;;; Condition Inspection
-;;; ============================================================
+;;; ====
 
 ;;; error-to-string : Condition → String
 ;;; Convert condition to string (public API).

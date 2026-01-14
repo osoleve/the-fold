@@ -50,9 +50,9 @@
 
 (printf "\n=== Matrix Decomposition Tests ===\n\n")
 
-;;; ============================================================
+;;; ====
 ;;; LU Decomposition Tests
-;;; ============================================================
+;;; ====
 
 (printf "--- LU Decomposition ---\n")
 
@@ -130,9 +130,9 @@
                (test-approx "LU solve: 3×3 x[2]" 3.0 (vector-ref x 2) 1e-10))
           (test "LU solve: 3×3 decomposition failed" #t #f)))
 
-;;; ============================================================
+;;; ====
 ;;; QR Decomposition Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n--- QR Decomposition ---\n")
 
@@ -170,9 +170,9 @@
                       (matrix-approx-equal? qtq i3 1e-8)))
           (test "QR: 3×3 orthogonality test fails" #t #f)))
 
-;;; ============================================================
+;;; ====
 ;;; Cholesky Decomposition Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n--- Cholesky Decomposition ---\n")
 
@@ -218,9 +218,9 @@
                 (matrix-approx-equal? (car result) i3 1e-10))
           (test "Cholesky: Identity fails" #t #f)))
 
-;;; ============================================================
+;;; ====
 ;;; Numerical Stability Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n--- Numerical Stability ---\n")
 
@@ -245,9 +245,9 @@
             #t
             (and (pair? result) (not (eq? (car result) 'error)))))
 
-;;; ============================================================
+;;; ====
 ;;; Error Handling Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n--- Error Handling ---\n")
 
@@ -272,13 +272,13 @@
             #t
             (and (pair? result) (eq? (car result) 'error))))
 
-;;; ============================================================
+;;; ====
 ;;; Results
-;;; ============================================================
+;;; ====
 
-(printf "\n================================================================\n")
+(printf "\n====\n")
 (printf "                    TEST RESULTS\n")
-(printf "================================================================\n\n")
+(printf "====\n\n")
 (printf "Tests passed: ~a\n" tests-passed)
 (printf "Tests failed: ~a\n" tests-failed)
 (printf "Total tests:  ~a\n" (+ tests-passed tests-failed))

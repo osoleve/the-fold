@@ -13,9 +13,9 @@
 ;;;   Action results
 ;;;   Action queue for turn processing
 
-;;; ============================================================
+;;; ====
 ;;; Action Types
-;;; ============================================================
+;;; ====
 
 ;;; ActionType : Symbol
 ;;;   The kind of action being performed.
@@ -38,9 +38,9 @@
 (define (action-type? type)
   (if (symbol? type) #t #f))
 
-;;; ============================================================
+;;; ====
 ;;; Action Structure
-;;; ============================================================
+;;; ====
 
 ;;; Action : Record
 ;;;   type     — Symbol, the action type
@@ -97,9 +97,9 @@
                 cost
                 (action-data action)))
 
-;;; ============================================================
+;;; ====
 ;;; Action Validation
-;;; ============================================================
+;;; ====
 
 ;;; ValidationResult : Record
 ;;;   valid?  — Bool, whether the action is valid
@@ -142,9 +142,9 @@
   ;; Real games should override this with actual validation
   validation-success)
 
-;;; ============================================================
+;;; ====
 ;;; Action Results
-;;; ============================================================
+;;; ====
 
 ;;; ActionResult : Record
 ;;;   success?  — Bool, whether action succeeded
@@ -204,9 +204,9 @@
 (define (action-failure . args)
   (apply make-action-result (cons #f args)))
 
-;;; ============================================================
+;;; ====
 ;;; Action Queue
-;;; ============================================================
+;;; ====
 
 ;;; ActionQueue : Record (mutable)
 ;;;   actions — List Action, queue of pending actions (FIFO)
@@ -278,9 +278,9 @@
   (action-queue%-actions-set! queue
                               (filter pred (action-queue-actions queue))))
 
-;;; ============================================================
+;;; ====
 ;;; Convenience Constructors
-;;; ============================================================
+;;; ====
 
 ;;; make-move-action : Nat × (Direction | Point) × [Nat] -> Action
 ;;; Create a move action.
@@ -391,9 +391,9 @@
     (make-action 'custom actor-id target cost
                  (alist-set data 'subtype subtype))]))
 
-;;; ============================================================
+;;; ====
 ;;; Action Predicates
-;;; ============================================================
+;;; ====
 
 ;;; action-is-type? : Action × Symbol -> Bool
 ;;; Check if action is of a specific type.
@@ -421,9 +421,9 @@
 (define (action-uses-target? action)
   (and (action-target action) #t))
 
-;;; ============================================================
+;;; ====
 ;;; Action Formatting
-;;; ============================================================
+;;; ====
 
 ;;; action->string : Action -> String
 ;;; Convert action to human-readable string for debugging.
@@ -450,9 +450,9 @@
    (number->string (action-cost action))
    " AP]"))
 
-;;; ============================================================
+;;; ====
 ;;; Action Comparison
-;;; ============================================================
+;;; ====
 
 ;;; action-equal? : Action × Action -> Bool
 ;;; Check if two actions are equivalent.
@@ -472,9 +472,9 @@
 (define (action-same-target? a1 a2)
   (equal? (action-target a1) (action-target a2)))
 
-;;; ============================================================
+;;; ====
 ;;; Export Summary
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Action Types:
 ;;;   standard-action-types, action-type?

@@ -22,9 +22,9 @@
 (load "lattice/fp/control/free.ss")
 (load "lattice/fp/control/effects.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Command/Instruction Definitions
-;;; ============================================================
+;;; ====
 ;;;
 ;;; A DSL is defined by its instruction set.
 ;;; Each instruction has a tag, parameters, and a continuation.
@@ -48,9 +48,9 @@
 (define (instruction-cont instr)
   (caddr instr))
 
-;;; ============================================================
+;;; ====
 ;;; DSL Functor
-;;; ============================================================
+;;; ====
 ;;;
 ;;; The DSL functor maps over the continuation.
 
@@ -61,9 +61,9 @@
    (instruction-payload instr)
    (lambda (x) (f ((instruction-cont instr) x)))))
 
-;;; ============================================================
+;;; ====
 ;;; DSL Program Type
-;;; ============================================================
+;;; ====
 ;;;
 ;;; A DSL program is a Free monad over instructions.
 
@@ -100,9 +100,9 @@
 (define (dsl-request tag payload)
   (free (make-instruction tag payload pure-free)))
 
-;;; ============================================================
+;;; ====
 ;;; DSL Syntax Sugars
-;;; ============================================================
+;;; ====
 
 ;;; define-instruction : (Name Param ...) -> Tag -> DSL Instruction ()
 (define-syntax define-instruction
@@ -154,9 +154,9 @@
                 [(_ action rest ...)
                  (dsl-bind action (lambda (_) (dsl-do rest ...)))]))
 
-;;; ============================================================
+;;; ====
 ;;; Interpreter Builder
-;;; ============================================================
+;;; ====
 ;;;
 ;;; An interpreter maps instructions to effects/values.
 
@@ -191,9 +191,9 @@
            [result (handler tag payload)])
           (run-dsl-helper handler (cont result)))]))
 
-;;; ============================================================
+;;; ====
 ;;; Effectful Interpreter
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Interpreters that produce effects (using Eff monad).
 
@@ -239,9 +239,9 @@
                      (display (format "[DSL-TRACE]   => ~s\n" result))
                      result)))))
 
-;;; ============================================================
+;;; ====
 ;;; Interpreter Composition
-;;; ============================================================
+;;; ====
 
 ;;; layered-interpreter : List (Symbol, (Payload -> a)) -> Interpreter
 ;;; Create interpreter from list of (tag, handler) pairs.
@@ -262,9 +262,9 @@
            (guard (ex [else ((interpreter-handler secondary) tag payload)])
                   ((interpreter-handler primary) tag payload)))))
 
-;;; ============================================================
+;;; ====
 ;;; Expression DSL Builder
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Helpers for building expression-based DSLs.
 
@@ -387,9 +387,9 @@
 ;;; expr-lambda-body : Expr → Expr
 (define (expr-lambda-body e) (list-ref e 2))
 
-;;; ============================================================
+;;; ====
 ;;; Expression Evaluator
-;;; ============================================================
+;;; ====
 
 ;;; eval-expr : Env -> Expr -> Value
 ;;; Evaluate an expression in an environment.
@@ -467,9 +467,9 @@
                 (eval-expr new-env body)))
       (error 'apply-closure "Not a closure" closure)))
 
-;;; ============================================================
+;;; ====
 ;;; Statement DSL Builder
-;;; ============================================================
+;;; ====
 ;;;
 ;;; For imperative-style DSLs.
 
@@ -551,9 +551,9 @@
 ;;; stmt-expr-expr : Stmt → Expr
 (define (stmt-expr-expr s) (list-ref s 1))
 
-;;; ============================================================
+;;; ====
 ;;; Statement Interpreter
-;;; ============================================================
+;;; ====
 
 ;;; run-stmt : Env -> Stmt -> (Env, Maybe Value)
 ;;; Run a statement, returning updated env and optional return value.
@@ -601,9 +601,9 @@
                    (run-stmt-while (car result) cond body (- fuel 1))))
           (cons env nothing))))
 
-;;; ============================================================
+;;; ====
 ;;; DSL Combinators
-;;; ============================================================
+;;; ====
 
 ;;; dsl-sequence : List (DSL f a) -> DSL f (List a)
 (define (dsl-sequence programs)
@@ -649,9 +649,9 @@
                                   (lambda (xs)
                                           (dsl-pure (cons x xs))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Applicative Combinators
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Complete the Applicative interface for DSL programs.
 
@@ -701,9 +701,9 @@
 (define (dsl-compose g f)
   (dsl-kleisli f g))
 
-;;; ============================================================
+;;; ====
 ;;; Tagless Final Support
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Alternative to Free monad: define DSLs as interfaces.
 ;;; More efficient (no intermediate structure) but less inspectable.
@@ -753,9 +753,9 @@
 ;;;  ((tagless-op arith-eval 'lit) 3))
 ;;; ;; => 8
 
-;;; ============================================================
+;;; ====
 ;;; Source Location Tracking
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Attach source positions to DSL programs for better errors.
 
@@ -828,9 +828,9 @@
 (define (dsl-error-at pos tag message)
   (dsl-emit 'dsl-error (list pos tag message)))
 
-;;; ============================================================
+;;; ====
 ;;; Interpreter Middleware
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Composable interpreter transformations.
 
@@ -928,9 +928,9 @@
 (define (with-middleware middleware interp program)
   (run-dsl (middleware interp) program))
 
-;;; ============================================================
+;;; ====
 ;;; Program Introspection & Optimization
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Tools for analyzing and transforming DSL programs.
 
@@ -1011,9 +1011,9 @@
   ;; Placeholder - full implementation needs instruction rewriting
   program)
 
-;;; ============================================================
+;;; ====
 ;;; Recursive DSL Programs
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Support for recursive DSL definitions without stack overflow.
 
@@ -1082,9 +1082,9 @@
            (lambda ()
                    (run-dsl-trampoline-helper handler (cont result)))))]))
 
-;;; ============================================================
+;;; ====
 ;;; Testing Utilities
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Helpers for testing DSL interpreters and programs.
 
@@ -1187,9 +1187,9 @@
          [actual-tags (map car log)])
         (equal? actual-tags expected-tags)))
 
-;;; ============================================================
+;;; ====
 ;;; Example: Simple Calculator DSL
-;;; ============================================================
+;;; ====
 
 ;;; Calculator DSL operations
 
@@ -1274,9 +1274,9 @@
 (define (run-calc program)
   (run-dsl (make-calc-interpreter) program))
 
-;;; ============================================================
+;;; ====
 ;;; Example: Logo/Turtle DSL
-;;; ============================================================
+;;; ====
 
 ;;; Turtle DSL operations
 
@@ -1365,9 +1365,9 @@
 (define (repeat n action)
   (dsl-replicate n action))
 
-;;; ============================================================
+;;; ====
 ;;; Example Usage (for documentation)
-;;; ============================================================
+;;; ====
 ;;;
 ;;; ;; Calculator DSL
 ;;; (run-calc
@@ -1401,9 +1401,9 @@
 ;;;     (calc-pop!)))
 ;;; ; => 30
 
-;;; ============================================================
+;;; ====
 ;;; Error Handling
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Structured error handling for DSL programs.
 ;;; Uses Result type to represent success/failure.
@@ -1472,9 +1472,9 @@
               (on-fail (car payload) (cadr payload))
               (default-handler tag payload))))
 
-;;; ============================================================
+;;; ====
 ;;; Debugging Tools
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Tools for inspecting and debugging DSL programs.
 
@@ -1536,9 +1536,9 @@
              [cont (instruction-cont instr)])
             (cons tag (dsl-collect-tags (cont '()) (- fuel 1))))))
 
-;;; ============================================================
+;;; ====
 ;;; DSL Combination
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Tools for combining multiple DSLs into one.
 
@@ -1605,9 +1605,9 @@
                  [else
                   (error 'union-interpreter "Unknown instruction side" tag)])))))
 
-;;; ============================================================
+;;; ====
 ;;; Program Validation
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Validate DSL programs before execution.
 
@@ -1664,9 +1664,9 @@
      (turtle-pendown . 0)
      (turtle-getpos . 0))))
 
-;;; ============================================================
+;;; ====
 ;;; Resource Management
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Patterns for managing resources with cleanup.
 
@@ -1694,9 +1694,9 @@
                               (lambda (var) release)
                               (lambda (var) (dsl-do body ...)))]))
 
-;;; ============================================================
+;;; ====
 ;;; Algebraic Effects Integration
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Bridge between DSL and algebraic effects system.
 

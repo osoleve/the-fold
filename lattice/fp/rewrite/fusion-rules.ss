@@ -29,9 +29,9 @@
 (load "lattice/fp/rewrite/engine.ss")
 (load "lattice/fp/rewrite/laws.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Map-Map Fusion
-;;; ============================================================
+;;; ====
 
 ;;; map-map-fuse : map f (map g xs) = map (compose f g) xs
 ;;; Two consecutive maps fuse into one map with composed function.
@@ -43,9 +43,9 @@
              'category 'fusion
              'direction 'forward))
 
-;;; ============================================================
+;;; ====
 ;;; Filter-Map Fusion
-;;; ============================================================
+;;; ====
 
 ;;; filter-map-fuse : map f (filter p xs) = filter-map p f xs
 ;;; Map over filtered list becomes single filter-map pass.
@@ -67,9 +67,9 @@
              'category 'fusion
              'direction 'forward))
 
-;;; ============================================================
+;;; ====
 ;;; Fold-Map Fusion (foldl variants)
-;;; ============================================================
+;;; ====
 
 ;;; fold-map-fuse : foldl f z (map g xs) = foldl (fn (acc x) (f acc (g x))) z xs
 ;;; Absorb map into the fold's combining function.
@@ -91,9 +91,9 @@
              'category 'fusion
              'direction 'forward))
 
-;;; ============================================================
+;;; ====
 ;;; Fold-Map Fusion (foldr variants)
-;;; ============================================================
+;;; ====
 
 ;;; foldr-map-fuse : foldr f z (map g xs) = foldr (fn (x acc) (f (g x) acc)) z xs
 ;;; Same as foldl variant but for right folds.
@@ -114,9 +114,9 @@
              'category 'fusion
              'direction 'forward))
 
-;;; ============================================================
+;;; ====
 ;;; FlatMap / Concat-Map Fusion
-;;; ============================================================
+;;; ====
 
 ;;; concat-map-fuse : flatten (map f xs) = flatMap f xs
 ;;; Also known as concatMap or bind for lists.
@@ -137,9 +137,9 @@
              'category 'fusion
              'direction 'forward))
 
-;;; ============================================================
+;;; ====
 ;;; Stream Fusion
-;;; ============================================================
+;;; ====
 
 ;;; stream-map-map-fuse : stream-map f (stream-map g s) = stream-map (compose f g) s
 ;;; Lazy stream variant of map-map fusion.
@@ -169,9 +169,9 @@
              'category 'fusion
              'direction 'forward))
 
-;;; ============================================================
+;;; ====
 ;;; Additional List Fusion Rules
-;;; ============================================================
+;;; ====
 
 ;;; take-map-fuse : take n (map f xs) = map f (take n xs)
 ;;; Same principle as stream variant but for strict lists.
@@ -209,9 +209,9 @@
              'category 'fusion
              'direction 'forward))
 
-;;; ============================================================
+;;; ====
 ;;; Compose Chain Fusion
-;;; ============================================================
+;;; ====
 
 ;;; compose-assoc : compose (compose f g) h = compose f (compose g h)
 ;;; Right-associative composition is canonical (matches function application order).
@@ -240,9 +240,9 @@
              'category 'fusion
              'direction 'forward))
 
-;;; ============================================================
+;;; ====
 ;;; Initialize Fusion Laws
-;;; ============================================================
+;;; ====
 
 ;;; init-fusion-laws! : -> void
 ;;; Register all fusion rules in the law registry.
@@ -285,9 +285,9 @@
 ;;; Initialize on load
 (init-fusion-laws!)
 
-;;; ============================================================
+;;; ====
 ;;; Convenience Strategies
-;;; ============================================================
+;;; ====
 
 ;;; fusion-rules : -> (List Rule)
 ;;; Get all fusion rules.
@@ -313,9 +313,9 @@
   (repeat (seq fusion-simplify-once
                (try (rules->strategy (list compose-id-left compose-id-right))))))
 
-;;; ============================================================
+;;; ====
 ;;; Fusion Analysis
-;;; ============================================================
+;;; ====
 
 ;;; count-traversals : Expr -> Nat
 ;;; Count the number of list traversals in an expression.

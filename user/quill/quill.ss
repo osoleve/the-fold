@@ -21,16 +21,16 @@
 ;;; - Parsing uses fabric/stitches/parse.ss (parser combinators).
 ;;; - Persistence and advanced narrative features land in later modules.
 
-;;; ============================================================
+;;; ====
 ;;; Dependencies
-;;; ============================================================
+;;; ====
 
 ;; Useful string utilities (string-trim, string-blank?, etc).
 (load "shell/tools/string-utils.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Quill Modules (load order)
-;;; ============================================================
+;;; ====
 
 (load "user/quill/types.ss")
 (load "user/quill/state.ss")

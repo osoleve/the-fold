@@ -35,9 +35,9 @@
 (load "core/types/types.ss")
 (load "core/types/dep-types.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Existential Type Grammar
-;;; ============================================================
+;;; ====
 ;;;
 ;;;   ExistentialType ::= (∃ (Binding ...) Body)
 ;;;
@@ -45,9 +45,9 @@
 ;;;
 ;;; The hidden type variables in Bindings can appear in Body.
 
-;;; ============================================================
+;;; ====
 ;;; Existential Type Predicates
-;;; ============================================================
+;;; ====
 
 ;;; existential-type? : SExpr → Boolean
 ;;; Check if this is an existential type.
@@ -64,9 +64,9 @@
        (not (null? (cadr t)))
        (andmap typed-binding? (cadr t))))
 
-;;; ============================================================
+;;; ====
 ;;; Existential Type Accessors
-;;; ============================================================
+;;; ====
 
 ;;; existential-vars : SExpr → (List Symbol)
 ;;; Get the hidden type variable names.
@@ -104,9 +104,9 @@
       (caddr b)
       'Type))
 
-;;; ============================================================
+;;; ====
 ;;; Existential Type Construction
-;;; ============================================================
+;;; ====
 
 ;;; t-exists : (List (Symbol . Kind)) × Type → SExpr
 ;;; Construct an existential type from bindings and body.
@@ -119,9 +119,9 @@
 (define (t-exists-simple var body)
   (t-exists `((,var . Type)) body))
 
-;;; ============================================================
+;;; ====
 ;;; Pack Expression Predicates
-;;; ============================================================
+;;; ====
 
 ;;; pack-expr? : SExpr → Boolean
 ;;; Check if this is a pack expression.
@@ -170,9 +170,9 @@
       (car (cddddr e))
       #f))
 
-;;; ============================================================
+;;; ====
 ;;; Unpack Expression Predicates
-;;; ============================================================
+;;; ====
 
 ;;; unpack-expr? : SExpr → Boolean
 ;;; Check if this is an unpack expression.
@@ -234,9 +234,9 @@
       (caddr e)
       #f))
 
-;;; ============================================================
+;;; ====
 ;;; Skolemization
-;;; ============================================================
+;;; ====
 ;;;
 ;;; When unpacking an existential, we introduce a fresh "skolem"
 ;;; constant for the hidden type. This skolem is:
@@ -304,9 +304,9 @@
 (define (type-mentions-any-skolem? t skolems)
   (ormap (lambda (sk) (type-mentions-skolem? t sk)) skolems))
 
-;;; ============================================================
+;;; ====
 ;;; Existential Type Substitution
-;;; ============================================================
+;;; ====
 
 ;;; existential-subst : SExpr × Symbol × Type → Type
 ;;; Substitute witness type for hidden variable in existential body.
@@ -314,9 +314,9 @@
   (let ([body (existential-body exist-type)])
        (subst-type body var witness)))
 
-;;; ============================================================
+;;; ====
 ;;; Free Variables in Existentials
-;;; ============================================================
+;;; ====
 
 ;;; existential-free-vars : SExpr → (List Symbol)
 ;;; Get free type variables in an existential type.
@@ -328,9 +328,9 @@
            (filter (lambda (v) (not (memq v bound-vars))) body-vars))
       (free-tvars t)))
 
-;;; ============================================================
+;;; ====
 ;;; Existential Type Display
-;;; ============================================================
+;;; ====
 
 ;;; existential->string : SExpr → String
 (define (existential->string t)
@@ -354,16 +354,16 @@
                                       (symbol->string b)))
                           bindings)))))
 
-;;; ============================================================
+;;; ====
 ;;; Existential Type Inference
-;;; ============================================================
+;;; ====
 ;;;
 ;;; The following inference functions are used by dep-infer.ss.
 ;;; They depend on dep-synth, dep-check, etc. being defined when called.
 
-;;; ============================================================
+;;; ====
 ;;; Inference Helper Functions
-;;; ============================================================
+;;; ====
 
 ;;; subst-types : Type x (List Symbol) x (List Type) -> Type
 ;;; Substitute multiple types for multiple variables simultaneously.
@@ -392,9 +392,9 @@
              ctx
              (map cons type-vars skolems)))
 
-;;; ============================================================
+;;; ====
 ;;; Existential Type Synthesis
-;;; ============================================================
+;;; ====
 
 ;;; existential-infer-synth : Expr x Context x (Expr x Ctx -> Result) x (Type x Ctx -> Result)
 ;;;                           x (Ctx x Symbol x Type -> Ctx)
@@ -427,9 +427,9 @@
                                         (loop (cdr bindings)
                                               (dep-ctx-extend ctx var kind)))))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Pack Expression Synthesis
-;;; ============================================================
+;;; ====
 
 ;;; existential-infer-synth-pack : Expr x Context x (Expr x Ctx -> Result) x (Expr x Type x Ctx -> Result)
 ;;;                                 x (Type x Ctx -> Result)
@@ -466,9 +466,9 @@
                                              `(ok ,exist-type)
                                              value-check))))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Unpack Expression Synthesis
-;;; ============================================================
+;;; ====
 
 ;;; existential-infer-synth-unpack : Expr x Context x (Expr x Ctx -> Result)
 ;;;                                   x (Ctx x Symbol x Type -> Ctx) x (Ctx x Symbol x Type x Val -> Ctx)

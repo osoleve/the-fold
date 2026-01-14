@@ -8,9 +8,9 @@
 
 (load "shell/layout.ss")
 
-;;; ============================================================
+;;; ====
 ;;; ASCII Character Density Levels
-;;; ============================================================
+;;; ====
 
 ;;; Characters from lightest to darkest
 (define *density-levels*
@@ -21,9 +21,9 @@
     ("▓"   0.60)
     ("█"   1.00)))
 
-;;; ============================================================
+;;; ====
 ;;; Color-like Patterns using Special Characters
-;;; ============================================================
+;;; ====
 
 (define *palette-red*
   '(#\╱ #\╲ #\× #\◆ #\● #\■ #\█))
@@ -43,9 +43,9 @@
 (define *palette-cyan*
   '(#\≈ #\~ #\∼ #\◇ #\◆ #\◈ #\█))
 
-;;; ============================================================
+;;; ====
 ;;; Palette Mixing
-;;; ============================================================
+;;; ====
 
 (define (random-element lst)
   "Pick a random element from a list"
@@ -57,9 +57,9 @@
    (list *palette-red* *palette-blue* *palette-green*
          *palette-yellow* *palette-purple* *palette-cyan*)))
 
-;;; ============================================================
+;;; ====
 ;;; Canvas Operations
-;;; ============================================================
+;;; ====
 
 (define (fill-canvas-pattern canvas pattern-char)
   "Fill canvas with a repeating pattern"
@@ -122,9 +122,9 @@
                                                 (loop-x (+ x 1)))))
                                (loop-y (+ y 1)))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Display Functions
-;;; ============================================================
+;;; ====
 
 (define (display-palette-name name)
   "Display palette name with decorative border"
@@ -150,9 +150,9 @@
        (display (canvas->string canvas))
        (newline)))
 
-;;; ============================================================
+;;; ====
 ;;; Palette Explorer Functions
-;;; ============================================================
+;;; ====
 
 (define (explore-palette-gradient seed)
   "Explore a single palette with all gradient types"
@@ -180,9 +180,9 @@
              (explore-palette-gradient (+ 1000 (* i 100)))
              (loop (+ i 1)))))
 
-;;; ============================================================
+;;; ====
 ;;; Interactive Palette Creator
-;;; ============================================================
+;;; ====
 
 (define (create-custom-palette)
   "Interactively create a custom palette"
@@ -219,9 +219,9 @@
   (display "Try: (explore-palette-gradient 42)\n")
   (display "Or:  (palette-series 3)\n\n"))
 
-;;; ============================================================
+;;; ====
 ;;; Mosaic Art Generator
-;;; ============================================================
+;;; ====
 
 (define (generate-mosaic seed size-factor)
   "Generate a random mosaic art piece"
@@ -247,9 +247,9 @@
         (newline)
         (newline)))
 
-;;; ============================================================
+;;; ====
 ;;; Loaded
-;;; ============================================================
+;;; ====
 
 (display "\n")
 (display "╔════════════════════════════════════════════════════════════╗\n")

@@ -2,23 +2,23 @@
 ;;;
 ;;; Get started building roguelikes in under 5 minutes!
 
-;;; ============================================================
+;;; ====
 ;;; 1. Load the SDK (1 line)
-;;; ============================================================
+;;; ====
 
 (load "user/loom/loom.ss")
 
-;;; ============================================================
+;;; ====
 ;;; 2. Create a world (3 lines)
-;;; ============================================================
+;;; ====
 
 (define tm (make-tilemap 20 20))
 (tilemap-fill! tm tile-floor)
 (define world (make-world tm))
 
-;;; ============================================================
+;;; ====
 ;;; 3. Add entities (4 lines)
-;;; ============================================================
+;;; ====
 
 (define hero (make-player "Hero" #\@ 10 10))
 (set! world (world-spawn-player world hero))
@@ -26,9 +26,9 @@
 (define goblin (make-monster "Goblin" #\g 15 10 'hunt))
 (set! world (world-add-entity world goblin))
 
-;;; ============================================================
+;;; ====
 ;;; 4. Do things!
-;;; ============================================================
+;;; ====
 
 ;;; Move the player:
 (set! world (world-move-entity world (entity-id hero) 'east))
@@ -46,9 +46,9 @@
 ;;; Update world with damaged goblin:
 (set! world (world-replace-entity world (entity-id goblin) hit-goblin))
 
-;;; ============================================================
+;;; ====
 ;;; 5. Try the examples!
-;;; ============================================================
+;;; ====
 
 (load "user/loom/example-combat-integration.ss")
 (run-all-examples)
@@ -59,9 +59,9 @@
 (render-game)
 (move-player 'north)
 
-;;; ============================================================
+;;; ====
 ;;; Next Steps
-;;; ============================================================
+;;; ====
 ;;;
 ;;; - Read README.ss for comprehensive documentation
 ;;; - Study example-combat-integration.ss for patterns

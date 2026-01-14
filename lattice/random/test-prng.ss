@@ -13,9 +13,9 @@
 (load "core/test-framework.ss")
 (load "lattice/random/prng.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Test Utilities
-;;; ============================================================
+;;; ====
 
 ;;; mean : (List Number) -> Number
 (define (mean lst)
@@ -56,14 +56,14 @@
         chi2))
 
 (display "\n")
-(display "==============================================================\n")
+(display "====\n")
 (display "         PRNG Algorithm Tests\n")
-(display "==============================================================\n")
+(display "====\n")
 (display "\n")
 
-;;; ============================================================
+;;; ====
 ;;; Bit Manipulation Tests
-;;; ============================================================
+;;; ====
 
 (test-group bit-operations
             
@@ -106,9 +106,9 @@
               (assert-equal (rotr64 2 1) 1)
               (assert-equal (rotr64 1 1) #x8000000000000000)))
 
-;;; ============================================================
+;;; ====
 ;;; Splitmix64 Tests
-;;; ============================================================
+;;; ====
 
 (test-group splitmix64
             
@@ -166,9 +166,9 @@
                     (assert-true (<= 0 result))
                     (assert-true (< result (expt 2 64))))))
 
-;;; ============================================================
+;;; ====
 ;;; PCG Tests
-;;; ============================================================
+;;; ====
 
 (test-group pcg
             
@@ -215,9 +215,9 @@
                     (assert-true (integer? (car result)))
                     (assert-true (pcg? (cdr result))))))
 
-;;; ============================================================
+;;; ====
 ;;; Xorshift128+ Tests
-;;; ============================================================
+;;; ====
 
 (test-group xorshift128
             
@@ -264,9 +264,9 @@
                     (assert-true (integer? (car result)))
                     (assert-true (xorshift128? (cdr result))))))
 
-;;; ============================================================
+;;; ====
 ;;; Random Float Tests
-;;; ============================================================
+;;; ====
 
 (test-group random-float
             
@@ -298,9 +298,9 @@
                     (assert-true (>= min-val 5))
                     (assert-true (< max-val 10)))))
 
-;;; ============================================================
+;;; ====
 ;;; Random Integer Range Tests
-;;; ============================================================
+;;; ====
 
 (test-group random-int-range
             
@@ -331,9 +331,9 @@
               (let* ([samples (with-random 42 (random-list 100 (random-int-range 42 42)))])
                     (assert-true (andmap (lambda (x) (= x 42)) samples)))))
 
-;;; ============================================================
+;;; ====
 ;;; Random Bool Tests
-;;; ============================================================
+;;; ====
 
 (test-group random-bool
             
@@ -351,9 +351,9 @@
                     (assert-true has-true)
                     (assert-true has-false))))
 
-;;; ============================================================
+;;; ====
 ;;; Sampling Utilities Tests
-;;; ============================================================
+;;; ====
 
 (test-group sampling
             
@@ -396,9 +396,9 @@
                     ;; 'a has 100/102 ~ 98% probability
                     (assert-true (> a-count 900)))))
 
-;;; ============================================================
+;;; ====
 ;;; Generator Advance Tests
-;;; ============================================================
+;;; ====
 
 (test-group gen-advance
             
@@ -417,9 +417,9 @@
                     (assert-equal (car (pcg-next p-advanced))
                                   (car (pcg-next p-manual))))))
 
-;;; ============================================================
+;;; ====
 ;;; Generator Splitting Tests
-;;; ============================================================
+;;; ====
 
 (test-group gen-split
             
@@ -451,9 +451,9 @@
                     (assert-equal (pcg-state (car split1)) (pcg-state (car split2)))
                     (assert-equal (pcg-state (cdr split1)) (pcg-state (cdr split2))))))
 
-;;; ============================================================
+;;; ====
 ;;; Generator Serialization Tests
-;;; ============================================================
+;;; ====
 
 (test-group gen-serialization
             
@@ -505,9 +505,9 @@
                      [r2 (car (xorshift128-next restored))])
                     (assert-equal r1 r2))))
 
-;;; ============================================================
+;;; ====
 ;;; Random Bytes Tests
-;;; ============================================================
+;;; ====
 
 (test-group random-bytes
             
@@ -536,9 +536,9 @@
                      [bv2 (with-random 42 (random-bytes 50))])
                     (assert-true (equal? bv1 bv2)))))
 
-;;; ============================================================
+;;; ====
 ;;; Random List/Vector Tests
-;;; ============================================================
+;;; ====
 
 (test-group random-list-vector
             
@@ -563,9 +563,9 @@
                      [vec (with-random 42 (random-vector 20 random-float))])
                     (assert-equal lst (vector->list vec)))))
 
-;;; ============================================================
+;;; ====
 ;;; Cross-Generator Consistency Tests
-;;; ============================================================
+;;; ====
 
 (test-group cross-generator
             
@@ -587,9 +587,9 @@
                     (assert-true (integer? (car (run-state (random-u64-from sm-gen) sm-gen))))
                     (assert-true (integer? (car (run-state (random-u64-from xs-gen) xs-gen)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Print Summary
-;;; ============================================================
+;;; ====
 
 (display "\n")
 (printf "Tests passed: ~a\n" *tests-passed*)

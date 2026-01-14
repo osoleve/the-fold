@@ -25,9 +25,9 @@
 (load "base/prelude.ss")
 (load "blocks/block.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Hash Validation
-;;; ============================================================
+;;; ====
 
 ;;; hash? : Any -> Boolean
 ;;; Predicate: is this a valid hash (33-byte address bytevector)?
@@ -89,9 +89,9 @@
                                    (string (string-ref obj i))))]
           [else (loop (+ i 1))]))]))
 
-;;; ============================================================
+;;; ====
 ;;; Reference Validation
-;;; ============================================================
+;;; ====
 
 ;;; validate-refs : Any -> Result Bool
 ;;; Validate that refs is a vector of valid hashes.
@@ -123,9 +123,9 @@
                 (and (hash? (vector-ref refs i))
                      (loop (+ i 1)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Block Validation
-;;; ============================================================
+;;; ====
 
 ;;; validate-block : Any -> Result Bool
 ;;; Validate that an object is a well-formed block.
@@ -154,9 +154,9 @@
        (bytevector? (block-payload obj))
        (refs-all-valid? (block-refs obj))))
 
-;;; ============================================================
+;;; ====
 ;;; Tag Validation
-;;; ============================================================
+;;; ====
 
 ;;; validate-tag : Any -> Result Bool
 ;;; Validate that a tag is a symbol.
@@ -171,9 +171,9 @@
 (define (tag-valid? obj)
   (symbol? obj))
 
-;;; ============================================================
+;;; ====
 ;;; Payload Validation
-;;; ============================================================
+;;; ====
 
 ;;; validate-payload : Any -> Result Bool
 ;;; Validate that a payload is a bytevector.
@@ -188,9 +188,9 @@
 (define (payload-valid? obj)
   (bytevector? obj))
 
-;;; ============================================================
+;;; ====
 ;;; Serialization Validation
-;;; ============================================================
+;;; ====
 
 ;;; validate-serialized : Any -> Result Bool
 ;;; Validate that a bytevector could be a serialized block.

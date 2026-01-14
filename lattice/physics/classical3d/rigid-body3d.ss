@@ -17,9 +17,9 @@
 (load "lattice/linalg/vec3.ss")
 (load "lattice/linalg/quaternion.ss")
 
-;;; ============================================================
+;;; ====
 ;;; 3x3 Matrix Utilities (for Inertia Tensors)
-;;; ============================================================
+;;; ====
 
 ;;; mat3-identity : → Mat3
 ;;; Identity 3x3 matrix.
@@ -154,9 +154,9 @@
                   (andmap (lambda (x) (< (abs x) 1e-10)) row))
           m))
 
-;;; ============================================================
+;;; ====
 ;;; Inertia Tensor Calculations
-;;; ============================================================
+;;; ====
 
 ;;; inertia-solid-sphere : Number × Number → Mat3
 ;;; Inertia tensor for solid sphere.
@@ -216,9 +216,9 @@
 (define (inertia-point-mass mass)
   (mat3-zero))
 
-;;; ============================================================
+;;; ====
 ;;; RigidBody3D Structure
-;;; ============================================================
+;;; ====
 
 ;;; rigid-body-3d : Vec3 × Vec3 × Quat × Vec3 × Number × Number × Mat3 × Mat3 → RigidBody3D
 ;;; Create a 3D rigid body.
@@ -264,9 +264,9 @@
                                               (vec3-y half-extents)
                                               (vec3-z half-extents))))
 
-;;; ============================================================
+;;; ====
 ;;; Predicates and Accessors
-;;; ============================================================
+;;; ====
 
 ;;; rigid-body-3d? : Any → Boolean
 (define (rigid-body-3d? b)
@@ -304,9 +304,9 @@
 (define (rigid-body-3d-dynamic? b)
   (not (rigid-body-3d-static? b)))
 
-;;; ============================================================
+;;; ====
 ;;; Updaters (Immutable)
-;;; ============================================================
+;;; ====
 
 ;;; rigid-body-3d-with-pos : RigidBody3D × Vec3 → RigidBody3D
 (define (rigid-body-3d-with-pos b new-pos)
@@ -361,9 +361,9 @@
                  (rigid-body-3d-inertia b)
                  (rigid-body-3d-inv-inertia b)))
 
-;;; ============================================================
+;;; ====
 ;;; Coordinate Transformations
-;;; ============================================================
+;;; ====
 
 ;;; rigid-body-3d-local-to-world : RigidBody3D × Vec3 → Vec3
 ;;; Transform point from body-local to world coordinates.
@@ -387,9 +387,9 @@
 (define (rigid-body-3d-world-to-local-dir b world-dir)
   (quat-rotate-vec3-inverse (rigid-body-3d-orientation b) world-dir))
 
-;;; ============================================================
+;;; ====
 ;;; World-Space Inertia
-;;; ============================================================
+;;; ====
 
 ;;; rigid-body-3d-world-inertia : RigidBody3D → Mat3
 ;;; Get inertia tensor in world coordinates.
@@ -412,9 +412,9 @@
          [R-T (mat3-transpose R)])
         (mat3-mul R (mat3-mul I-inv-body R-T))))
 
-;;; ============================================================
+;;; ====
 ;;; Velocity and Momentum
-;;; ============================================================
+;;; ====
 
 ;;; rigid-body-3d-velocity-at : RigidBody3D × Vec3 → Vec3
 ;;; Get velocity at a world-space point on the body.
@@ -448,9 +448,9 @@
          [angular-ke (* 0.5 (vec3-dot omega I-omega))])
         (+ linear-ke angular-ke)))
 
-;;; ============================================================
+;;; ====
 ;;; Forces and Impulses
-;;; ============================================================
+;;; ====
 
 ;;; rigid-body-3d-apply-force : RigidBody3D × Vec3 × Vec3 × Number → RigidBody3D
 ;;; Apply force at world-space point for duration dt.

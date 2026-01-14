@@ -5,9 +5,9 @@
 (load "core/test-framework.ss")
 (load "lattice/random/probability.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Helper Utilities
-;;; ============================================================
+;;; ====
 
 (define (approx= a b tol)
   (< (abs (- a b)) tol))
@@ -22,9 +22,9 @@
             [n (length lst)])
            (/ (fold-left + 0 (map (lambda (x) (* (- x m) (- x m))) lst)) n))))
 
-;;; ============================================================
+;;; ====
 ;;; Basic Monad Tests
-;;; ============================================================
+;;; ====
 
 (test-group prob-basic
             ;; Pure/return
@@ -56,9 +56,9 @@
                                 (prob-pure 7))])
                    (assert-equal 21 (sample-once p 1)))))
 
-;;; ============================================================
+;;; ====
 ;;; Sampling Tests
-;;; ============================================================
+;;; ====
 
 (test-group prob-sampling
             ;; Uniform sampling
@@ -91,9 +91,9 @@
               (let ([samples (sample-many prob-uniform 1 50)])
                    (assert-equal 50 (length samples)))))
 
-;;; ============================================================
+;;; ====
 ;;; Conditioning Tests
-;;; ============================================================
+;;; ====
 
 (test-group prob-conditioning
             ;; Factor adds to log-weight
@@ -139,9 +139,9 @@
               (let ([w (weight-prob (assume #f) (make-pcg 1 1))])
                    (assert-equal -inf.0 w))))
 
-;;; ============================================================
+;;; ====
 ;;; Weighted Sampling Tests
-;;; ============================================================
+;;; ====
 
 (test-group prob-weighted
             ;; Weighted samples include weights
@@ -170,9 +170,9 @@
                      [sum-check (log-sum-exp normalized)])
                     (assert-true (approx= sum-check 0.0 0.001)))))
 
-;;; ============================================================
+;;; ====
 ;;; Importance Sampling Tests
-;;; ============================================================
+;;; ====
 
 (test-group prob-importance
             ;; Mean of uniform
@@ -191,9 +191,9 @@
               (let ([e (importance-expectation (lambda (x) (* x x)) prob-uniform 42 1000)])
                    (assert-true (approx= e 0.333 0.1)))))
 
-;;; ============================================================
+;;; ====
 ;;; Rejection Sampling Tests
-;;; ============================================================
+;;; ====
 
 (test-group prob-rejection
             ;; Rejection with always-valid returns value
@@ -215,9 +215,9 @@
                     (assert-true (> (length samples) 0))
                     (assert-true (for-all (lambda (x) (> x 0.5)) samples)))))
 
-;;; ============================================================
+;;; ====
 ;;; Combinator Tests
-;;; ============================================================
+;;; ====
 
 (test-group prob-combinators
             ;; Sequence
@@ -238,9 +238,9 @@
                      [result (sample-once (prob-map-m f '(1 2 3)) 1)])
                     (assert-true (equal? '(2 4 6) result)))))
 
-;;; ============================================================
+;;; ====
 ;;; First-Class Distribution Tests
-;;; ============================================================
+;;; ====
 
 (test-group prob-distributions
             ;; Normal distribution sampling
@@ -266,9 +266,9 @@
                      [m (mean samples)])
                     (assert-true (approx= m 2.0 0.5)))))
 
-;;; ============================================================
+;;; ====
 ;;; Bayesian Inference Pattern Tests
-;;; ============================================================
+;;; ====
 
 (test-group prob-bayesian
             ;; Simple inference: prior + observation
@@ -300,9 +300,9 @@
                      [posterior-mean (importance-mean model 42 10000)])
                     (assert-true (approx= posterior-mean 0.667 0.1)))))
 
-;;; ============================================================
+;;; ====
 ;;; Independence Tests (via Applicative)
-;;; ============================================================
+;;; ====
 
 (test-group prob-independence
             ;; Sum of two dice
@@ -330,12 +330,12 @@
                     ;; Different seeds should give different results
                     (assert-true (not (equal? sample1 sample2))))))
 
-;;; ============================================================
+;;; ====
 ;;; Run All Tests
-;;; ============================================================
+;;; ====
 
-(display "\n========================================\n")
+(display "\n====\n")
 (display "Running Probability Monad Tests\n")
-(display "========================================\n\n")
+(display "====\n\n")
 
 (run-all-tests)

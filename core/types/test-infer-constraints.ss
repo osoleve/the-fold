@@ -60,9 +60,9 @@
   (display " ===")
   (newline))
 
-;;; ============================================================
+;;; ====
 ;;; Test instantiate-constrained
-;;; ============================================================
+;;; ====
 
 (section "instantiate-constrained")
 
@@ -85,9 +85,9 @@
      (test "constrained but not forall - function" '-> (car (car result)))
      (test "constrained but not forall - one constraint" 1 (length (cadr result))))
 
-;;; ============================================================
+;;; ====
 ;;; Test apply-subst-to-constraints
-;;; ============================================================
+;;; ====
 
 (section "apply-subst-to-constraints")
 
@@ -99,9 +99,9 @@
       (test "subst constraint 2 class" 'Eq (caadr result))
       (test "subst constraint 2 type" 'Int (cadadr result)))
 
-;;; ============================================================
+;;; ====
 ;;; Test solve-constraints
-;;; ============================================================
+;;; ====
 
 (section "solve-constraints")
 
@@ -122,9 +122,9 @@
 (test-ok "parametric - Functor (Either String)"
          (solve-constraints '((Functor (@ Either String))) standard-instances))
 
-;;; ============================================================
+;;; ====
 ;;; Test make-class-env
-;;; ============================================================
+;;; ====
 
 (section "make-class-env")
 
@@ -135,9 +135,9 @@
      (test "class env has ==" #t (if (assq '== env) #t #f))
      (test "class env has show" #t (if (assq 'show env) #t #f)))
 
-;;; ============================================================
+;;; ====
 ;;; Test get-standard-class-tenv
-;;; ============================================================
+;;; ====
 
 (section "get-standard-class-tenv")
 
@@ -145,9 +145,9 @@
      (test "standard-class-tenv has fmap" #t (if (assq 'fmap tenv) #t #f))
      (test "standard-class-tenv has <>" #t (if (assq '<> tenv) #t #f)))
 
-;;; ============================================================
+;;; ====
 ;;; Test typeof-constrained
-;;; ============================================================
+;;; ====
 
 (section "typeof-constrained")
 
@@ -158,12 +158,12 @@
 ;; Lambda
 (test-ok "lambda" (typeof-constrained '(fn (x) x) standard-instances))
 
-;;; ============================================================
+;;; ====
 ;;; Summary
-;;; ============================================================
+;;; ====
 
 (newline)
-(display "======================")
+(display "====")
 (newline)
 (display "Passed: ")
 (display passed)

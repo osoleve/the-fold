@@ -12,9 +12,9 @@
 
 (load "core/util/debug.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Session Debugger Registry
-;;; ============================================================
+;;; ====
 
 ;;; Global registry: session-id → debugger
 (define *session-debuggers* (make-hashtable string-hash string=?))
@@ -22,9 +22,9 @@
 ;;; Current session ID (set by REPL daemon)
 (define *current-session-id* "default")
 
-;;; ============================================================
+;;; ====
 ;;; Session ID Management
-;;; ============================================================
+;;; ====
 
 ;;; get-current-session-id : → String
 (define (get-current-session-id)
@@ -34,9 +34,9 @@
 (define (set-current-session-id! id)
   (set! *current-session-id* id))
 
-;;; ============================================================
+;;; ====
 ;;; Debugger State Management
-;;; ============================================================
+;;; ====
 
 ;;; get-session-debugger : → Debugger | #f
 ;;; Get the debugger for the current session.
@@ -61,9 +61,9 @@
             (not (eq? (debugger-status dbg) 'complete))
             (not (eq? (debugger-status dbg) 'error)))))
 
-;;; ============================================================
+;;; ====
 ;;; Debugger Lifecycle
-;;; ============================================================
+;;; ====
 
 ;;; start-debug-session! : Expr × Env × Fuel → Debugger
 ;;; Start a new debug session for the current REPL session.
@@ -85,9 +85,9 @@
                (error 'debugger "No active debugging session. Use (debug expr) to start."))
        dbg))
 
-;;; ============================================================
+;;; ====
 ;;; Session Cleanup
-;;; ============================================================
+;;; ====
 
 ;;; cleanup-session-debugger! : String → void
 ;;; Clean up debugger for a specific session (called on session end).

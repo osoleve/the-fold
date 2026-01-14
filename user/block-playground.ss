@@ -32,9 +32,9 @@
                                   (cons (string-ref hex-chars (bitwise-arithmetic-shift-right byte 4))
                                         acc)))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Experiment 1: Creating Simple Blocks
-;;; ============================================================
+;;; ====
 
 (printf "🎯 Experiment 1: Creating Blocks\n")
 (printf "═════════════════════════════════════\n\n")
@@ -72,9 +72,9 @@
 (printf "  Lines:   ~a\n" (length (string-split (utf8->string (block-payload poem-block)) #\newline)))
 (printf "  Refs:    ~a references\n\n" (vector-length (block-refs poem-block)))
 
-;;; ============================================================
+;;; ====
 ;;; Experiment 2: Content Addressing - Same Content = Same Hash
-;;; ============================================================
+;;; ====
 
 (printf "🔐 Experiment 2: Content Addressing\n")
 (printf "════════════════════════════════════════\n\n")
@@ -104,9 +104,9 @@
 (printf "  Block C: 'TEST' → ~a\n" (hash->hex hash3))
 (printf "  Match A? ~a\n\n" (bytevector=? hash1 hash3))
 
-;;; ============================================================
+;;; ====
 ;;; Experiment 3: Block References - Building a Graph
-;;; ============================================================
+;;; ====
 
 (printf "🕸️  Experiment 3: Block References\n")
 (printf "═══════════════════════════════════════════\n\n")
@@ -158,9 +158,9 @@
 (printf "        ├─> Leaf B [~a...]\n" (substring (hash->hex leaf2-hash) 0 8))
 (printf "        └─> Leaf C [~a...]\n\n" (substring (hash->hex leaf3-hash) 0 8))
 
-;;; ============================================================
+;;; ====
 ;;; Experiment 4: Serialization Round-Trip
-;;; ============================================================
+;;; ====
 
 (printf "♻️  Experiment 4: Serialization\n")
 (printf "════════════════════════════════════\n\n")
@@ -191,9 +191,9 @@
 (printf "  Deserialized: ~a\n" (hash->hex deserialized-hash))
 (printf "  Match? ~a ✓\n\n" (bytevector=? original-hash deserialized-hash))
 
-;;; ============================================================
+;;; ====
 ;;; Experiment 5: Building a Mini Knowledge Graph
-;;; ============================================================
+;;; ====
 
 (printf "🧠 Experiment 5: Mini Knowledge Graph\n")
 (printf "══════════════════════════════════════════\n\n")
@@ -232,9 +232,9 @@
 (printf "the entire subgraph. The relation block proves that these\n")
 (printf "specific entities are connected in this specific way.\n\n")
 
-;;; ============================================================
+;;; ====
 ;;; Victory!
-;;; ============================================================
+;;; ====
 
 (printf "╔═══════════════════════════════════════════════════════════════╗\n")
 (printf "║                    ✨ DISCOVERIES MADE! ✨                     ║\n")

@@ -3,9 +3,9 @@
 ;;; Common types, protocols, and utilities used across all tile shapes.
 ;;; This is the foundation that specific tile implementations build upon.
 
-;;; ============================================================
+;;; ====
 ;;; Coordinate Protocol
-;;; ============================================================
+;;; ====
 
 ;;; A Coordinate is a position on a board.
 ;;; Different tile shapes use different coordinate representations.
@@ -33,9 +33,9 @@
   ;; This works for small boards; for large boards, use better hash
   (+ (* (coord-x c) 1000000) (coord-y c)))
 
-;;; ============================================================
+;;; ====
 ;;; Tile Protocol
-;;; ============================================================
+;;; ====
 
 ;;; A Tile represents game state at a board position.
 ;;; Tiles are opaque to the SDK; games define their structure.
@@ -78,9 +78,9 @@
            (cdr (assq prop data))
            default)))
 
-;;; ============================================================
+;;; ====
 ;;; Board Protocol
-;;; ============================================================
+;;; ====
 
 ;;; A Board is a mapping from Coordinates to Tiles.
 ;;; Boards are immutable hash tables.
@@ -147,9 +147,9 @@
 (define (board-empty? board)
   (= (board-size board) 0))
 
-;;; ============================================================
+;;; ====
 ;;; Neighbor Protocol
-;;; ============================================================
+;;; ====
 
 ;;; Different tile shapes have different neighbor patterns.
 ;;; Each shape module provides:
@@ -158,9 +158,9 @@
 ;;;
 ;;; This protocol allows generic algorithms to work with any shape.
 
-;;; ============================================================
+;;; ====
 ;;; Direction Types
-;;; ============================================================
+;;; ====
 
 ;;; Directions are symbolic representations of movement.
 ;;; Different shapes support different direction sets.
@@ -184,9 +184,9 @@
 (define triangle-directions
   '(e se sw))
 
-;;; ============================================================
+;;; ====
 ;;; Common Utilities
-;;; ============================================================
+;;; ====
 
 ;;; clamp : Number × Number × Number → Number
 ;;; Clamp value between min and max
@@ -215,9 +215,9 @@
 (define (euclidean-distance x1 y1 x2 y2)
   (sqrt (+ (expt (- x2 x1) 2) (expt (- y2 y1) 2))))
 
-;;; ============================================================
+;;; ====
 ;;; List Utilities
-;;; ============================================================
+;;; ====
 
 ;;; filter-map : (A → B | #f) × (List A) → (List B)
 ;;; Map function over list, filtering out #f results
@@ -251,9 +251,9 @@
     (let ([pair (assq key alist)])
          (if pair (cdr pair) default))]))
 
-;;; ============================================================
+;;; ====
 ;;; Exports Summary
-;;; ============================================================
+;;; ====
 
 ;;; This module provides:
 ;;;   • Coordinate protocol (coord, coord-x, coord-y, coord-equal?, coord-hash)

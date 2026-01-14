@@ -5,16 +5,16 @@
 (load "lattice/query/sql/ast-zipper.ss")
 (load "core/testing/test-framework.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Test AST Constructors (simplified versions for testing)
-;;; ============================================================
+;;; ====
 
 (define (make-test-ast tag . data)
   (list 'sql-ast tag '(0 0) data))
 
-;;; ============================================================
+;;; ====
 ;;; Test Fixtures
-;;; ============================================================
+;;; ====
 
 ;;; Simple SELECT: SELECT id, name FROM users
 (define simple-select
@@ -58,9 +58,9 @@
 (define simple-literal
   (make-test-ast 'literal 42 'number))
 
-;;; ============================================================
+;;; ====
 ;;; Constructor Tests
-;;; ============================================================
+;;; ====
 
 (test-group "ast-zipper-constructors"
 
@@ -78,9 +78,9 @@
     (let ([az (ast->zipper simple-literal)])
       (assert-true (ast-zipper-at-leaf? az)))))
 
-;;; ============================================================
+;;; ====
 ;;; Navigation Tests
-;;; ============================================================
+;;; ====
 
 (test-group "ast-zipper-navigation"
 
@@ -120,9 +120,9 @@
     (let ([az (ast->zipper simple-literal)])
       (assert-true (ast-zipper-at-leaf? az)))))
 
-;;; ============================================================
+;;; ====
 ;;; Traversal Tests
-;;; ============================================================
+;;; ====
 
 (test-group "ast-zipper-traversal"
 
@@ -146,9 +146,9 @@
       ;; Should have multiple selects, column-refs, table-refs, etc.
       (assert-true (> (length all) 5)))))
 
-;;; ============================================================
+;;; ====
 ;;; Collection Tests
-;;; ============================================================
+;;; ====
 
 (test-group "ast-zipper-collection"
 
@@ -181,9 +181,9 @@
       ;; outer: name, id; inner: user_id = 3 total
       (assert-equal 3 (length cols)))))
 
-;;; ============================================================
+;;; ====
 ;;; Find Tests
-;;; ============================================================
+;;; ====
 
 (test-group "ast-zipper-find"
 
@@ -201,9 +201,9 @@
     (let ([found (ast-find-by-tag 'nonexistent simple-select)])
       (assert-true (nothing? found)))))
 
-;;; ============================================================
+;;; ====
 ;;; Walk Tests
-;;; ============================================================
+;;; ====
 
 (test-group "ast-zipper-walk"
 
@@ -218,9 +218,9 @@
       ;; First visited should be last in list (reversed by cons)
       (assert-equal 'select (car (reverse tags))))))
 
-;;; ============================================================
+;;; ====
 ;;; Context Tests
-;;; ============================================================
+;;; ====
 
 (test-group "ast-zipper-context"
 
@@ -243,9 +243,9 @@
            [ancestors (ast-zipper-ancestors child)])
       (assert-equal 1 (length ancestors)))))
 
-;;; ============================================================
+;;; ====
 ;;; Modification Tests
-;;; ============================================================
+;;; ====
 
 (test-group "ast-zipper-modification"
 
@@ -266,9 +266,9 @@
            [result (zipper->ast modified)])
       (assert-equal 84 (list-ref (sql-data result) 0)))))
 
-;;; ============================================================
+;;; ====
 ;;; Transformation Tests
-;;; ============================================================
+;;; ====
 
 (test-group "ast-zipper-transform"
 
@@ -284,8 +284,8 @@
                     lit)])
       (assert-equal 20 (list-ref (sql-data result) 0)))))
 
-;;; ============================================================
+;;; ====
 ;;; Run Tests
-;;; ============================================================
+;;; ====
 
 (run-all-tests)

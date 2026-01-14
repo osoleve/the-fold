@@ -12,9 +12,9 @@
   (version "1.0")
   (start garden-entrance)
 
-  ;; ============================================================
+  ;; ====
   ;; The Garden Entrance
-  ;; ============================================================
+  ;; ====
 
   (node garden-entrance
     (title "The Garden Gate")
@@ -60,9 +60,9 @@ You tuck the flower into your pocket.")
       (set-flag! has-blue-flower?))
     (choice "Enter the garden" first-clearing))
 
-  ;; ============================================================
+  ;; ====
   ;; The First Clearing
-  ;; ============================================================
+  ;; ====
 
   (node first-clearing
     (title "The First Clearing")
@@ -106,9 +106,9 @@ Then silence returns, but the garden feels different now.")
     (on-enter (set-flag! touched-sundial?))
     (choice "Continue exploring" first-clearing))
 
-  ;; ============================================================
+  ;; ====
   ;; The Fountain
-  ;; ============================================================
+  ;; ====
 
   (node fountain
     (title "The Fountain")
@@ -194,9 +194,9 @@ She presses something into your hand — a small silver key.")
       (set-flag! has-key?))
     (choice "Thank her and go north" northern-path))
 
-  ;; ============================================================
+  ;; ====
   ;; The Northern Path
-  ;; ============================================================
+  ;; ====
 
   (node northern-path
     (title "The Northern Path")
@@ -263,9 +263,9 @@ But you feel... different. More connected.")
     (choice "Head deeper into the garden" heart-gate :when (flag? has-key?))
     (choice "Return to the fork" northern-path))
 
-  ;; ============================================================
+  ;; ====
   ;; The Heart of the Garden
-  ;; ============================================================
+  ;; ====
 
   (node heart-gate
     (title "The Gate to the Heart")
@@ -385,9 +385,9 @@ at peace with your choice.")
     (on-enter (set-flag! left-seed?))
     (choice "Leave the garden" ending-peaceful))
 
-  ;; ============================================================
+  ;; ====
   ;; Endings
-  ;; ============================================================
+  ;; ====
 
   (node ending-seed
     (title "A New Beginning")
@@ -421,9 +421,9 @@ of a place where time flows differently, and flowers remember.
     (on-enter (set-flag! story-complete?))
     (end))
 
-  ;; ============================================================
+  ;; ====
   ;; Quest: Explore the Garden
-  ;; ============================================================
+  ;; ====
 
   (quest explore-garden
     (title "Explore the Garden")
@@ -434,9 +434,9 @@ of a place where time flows differently, and flowers remember.
       (step complete "Complete your journey" (flag? story-complete?)))
     (on-complete (print! "Quest Complete: You have explored the garden!")))
 
-  ;; ============================================================
+  ;; ====
   ;; Dialogue: The Keeper
-  ;; ============================================================
+  ;; ====
 
   (dialogue keeper-dialogue
     (participants keeper player)
@@ -483,9 +483,9 @@ and time pools like water. It has many names, but I call it home.")
 The garden is all I need.")
       (choice "Goodbye for now." end)))
 
-  ;; ============================================================
+  ;; ====
   ;; Rules: Dynamic Garden Events
-  ;; ============================================================
+  ;; ====
 
   (rule flower-bloom
     (when (and (flag? has-blue-flower?) (flag? touched-sundial?)))
@@ -497,9 +497,9 @@ The garden is all I need.")
     (once? #t)
     (effects (print! "You remember the Keeper's words about the sundial...")))
 
-  ;; ============================================================
+  ;; ====
   ;; Timeline: Ambient Events
-  ;; ============================================================
+  ;; ====
 
   (timeline
     (event dawn

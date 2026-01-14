@@ -20,9 +20,9 @@
 (load "core/base/prelude.ss")
 (load "lattice/algebra/field.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Polynomial Representation
-;;; ============================================================
+;;; ====
 
 ;;; Polynomials over a coefficient field F are represented as:
 ;;;   (polynomial F coeffs)
@@ -96,9 +96,9 @@
     (and (= (length coeffs) 1)
          ((field-equal-fn F) (car coeffs) (field-zero F)))))
 
-;;; ============================================================
+;;; ====
 ;;; Polynomial Construction
-;;; ============================================================
+;;; ====
 
 ;;; poly-zero-over : Field → Polynomial
 ;;; The zero polynomial over F.
@@ -129,9 +129,9 @@
 (define (poly-x field)
   (poly-monomial field (field-one field) 1))
 
-;;; ============================================================
+;;; ====
 ;;; Polynomial Arithmetic
-;;; ============================================================
+;;; ====
 
 ;;; poly-add : Polynomial × Polynomial → Polynomial
 ;;; Add two polynomials over the same field.
@@ -213,9 +213,9 @@
     [else
      (poly-mul p (poly-power p (- n 1)))]))
 
-;;; ============================================================
+;;; ====
 ;;; Polynomial Equality
-;;; ============================================================
+;;; ====
 
 ;;; poly-equal? : Polynomial × Polynomial → Boolean
 ;;; Check if two polynomials are equal.
@@ -230,9 +230,9 @@
                (and (eq-fn (car l1) (car l2))
                     (loop (cdr l1) (cdr l2))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Polynomial Division
-;;; ============================================================
+;;; ====
 
 ;;; poly-divmod : Polynomial × Polynomial → (Polynomial × Polynomial)
 ;;; Division with remainder: p1 = q * p2 + r where deg(r) < deg(p2).
@@ -277,9 +277,9 @@
 (define (poly-divides? p1 p2)
   (poly-zero? (poly-mod p2 p1)))
 
-;;; ============================================================
+;;; ====
 ;;; GCD and Extended Euclidean Algorithm
-;;; ============================================================
+;;; ====
 
 ;;; poly-gcd : Polynomial × Polynomial → Polynomial
 ;;; Compute GCD using Euclidean algorithm.
@@ -335,9 +335,9 @@
       (poly-zero-over (poly-field p1))
       (poly-div (poly-mul p1 p2) (poly-gcd p1 p2))))
 
-;;; ============================================================
+;;; ====
 ;;; Evaluation
-;;; ============================================================
+;;; ====
 
 ;;; poly-eval : Polynomial × Coeff → Coeff
 ;;; Evaluate polynomial at point using Horner's method.
@@ -353,9 +353,9 @@
               acc
               (loop (cdr cs) (add (mul acc x) (car cs))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Derivative
-;;; ============================================================
+;;; ====
 
 ;;; poly-derivative : Polynomial → Polynomial
 ;;; Formal derivative: d/dx (sum a_k x^k) = sum k*a_k x^{k-1}
@@ -385,9 +385,9 @@
               acc
               (loop (+ i 1) (add acc c)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Factorization
-;;; ============================================================
+;;; ====
 
 ;;; poly-square-free : Polynomial → Polynomial
 ;;; Square-free part: p / gcd(p, p')
@@ -423,9 +423,9 @@
                             (cons (cons a i) result))])
         (poly-sqf-loop b-next c-next (+ i 1) new-result F))))
 
-;;; ============================================================
+;;; ====
 ;;; Interpolation
-;;; ============================================================
+;;; ====
 
 ;;; poly-lagrange-interpolate : Field × (List (Coeff × Coeff)) → Polynomial
 ;;; Lagrange interpolation through points [(x_0, y_0), ..., (x_n, y_n)].
@@ -532,9 +532,9 @@
                                         (poly-mul factor acc))])
                 (loop (cdr cs) new-acc (- k 1))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Polynomial Ring as Ring
-;;; ============================================================
+;;; ====
 
 ;;; make-polynomial-ring : Field → Ring
 ;;; Construct the polynomial ring F[x] over coefficient field F.
@@ -551,9 +551,9 @@
    (lambda (p1 p2) (poly-equal? p1 p2)) ; Equality
    ))
 
-;;; ============================================================
+;;; ====
 ;;; Display
-;;; ============================================================
+;;; ====
 
 ;;; poly->string : Polynomial × [Symbol] → String
 ;;; Pretty-print polynomial. Optional variable name (default 'x).
@@ -605,18 +605,18 @@
     [(symbol? c) (symbol->string c)]
     [else (format "~a" c)]))
 
-;;; ============================================================
+;;; ====
 ;;; Utility: make-list
-;;; ============================================================
+;;; ====
 
 (define (make-list n fill)
   (if (<= n 0)
       '()
       (cons fill (make-list (- n 1) fill))))
 
-;;; ============================================================
+;;; ====
 ;;; Backwards Compatibility: poly-ring alias
-;;; ============================================================
+;;; ====
 
 ;;; poly-ring : Polynomial → Field
 ;;; Alias for poly-field for backwards compatibility.

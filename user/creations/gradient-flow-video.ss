@@ -12,9 +12,9 @@
 (load "user/creations/ascii-video-export.ss")
 (load "lattice/fp/symbolic/integrate-autodiff.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Configuration
-;;; ============================================================
+;;; ====
 
 (define *width* 60)
 (define *height* 20)
@@ -27,9 +27,9 @@
 (define (math->canvas-x mx) (inexact->exact (floor (* (/ (+ mx 3.0) 6.0) *width*))))
 (define (math->canvas-y my) (inexact->exact (floor (* (/ (+ my 2.0) 4.0) *height*))))
 
-;;; ============================================================
+;;; ====
 ;;; ASCII Character Ramps
-;;; ============================================================
+;;; ====
 
 (define density-ramp " .'`^\":;Il!i><~+_-?][}{1)(|\\/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$")
 (define density-len (string-length density-ramp))
@@ -42,9 +42,9 @@
               [(4) #\<] [(5) #\/] [(6) #\^] [(7) #\\]
               [else #\.])))
 
-;;; ============================================================
+;;; ====
 ;;; Symbolic Potential Field
-;;; ============================================================
+;;; ====
 
 (define (sym-gaussian x-expr y-expr cx cy amplitude sigma)
   (let* ([dx (difference x-expr (num cx))]
@@ -64,9 +64,9 @@
          [potential (make-neg g1)])
         (values potential x y)))
 
-;;; ============================================================
+;;; ====
 ;;; Gradient Computation (Symbolic -> Numerical)
-;;; ============================================================
+;;; ====
 
 (define (compile-field expr vars)
   (let ([traced-fn (expr-to-traced expr vars)])
@@ -85,9 +85,9 @@
                       [dy (let ([r (dy-fn x y)]) (if (traced? r) (traced-value r) r))])
                      (values dx dy)))))
 
-;;; ============================================================
+;;; ====
 ;;; Particle System
-;;; ============================================================
+;;; ====
 
 (define (make-particle x y) (list x y 0))
 (define (particle-x p) (car p))
@@ -124,9 +124,9 @@
                      (- (* (random 100) 0.04) 2.0))
       p))
 
-;;; ============================================================
+;;; ====
 ;;; Frame Rendering
-;;; ============================================================
+;;; ====
 
 (define (render-gradient-frame potential-fn grad-fn particles frame-num t)
   (let ([frame (make-frame *width* *height* #\space)])
@@ -178,9 +178,9 @@
        
        frame))
 
-;;; ============================================================
+;;; ====
 ;;; Animation Generation
-;;; ============================================================
+;;; ====
 
 (define (generate-gradient-flow-video)
   (display "\nGenerating Gradient Flow Symphony...\n")
@@ -219,31 +219,31 @@
        (display " frames\n")
        video))
 
-;;; ============================================================
+;;; ====
 ;;; Export
-;;; ============================================================
+;;; ====
 
 (define (render-gradient-flow!)
   (display "\n")
-  (display "============================================================\n")
+  (display "====\n")
   (display "  GRADIENT FLOW SYMPHONY\n")
   (display "  Symbolic Differentiation + Autodiff Demo\n")
-  (display "============================================================\n")
+  (display "====\n")
   
   (let ([video (generate-gradient-flow-video)])
        (display "\nExporting to GIF...\n")
        (video->gif video "user/creations/gradient-flow.gif" 80)
        (display "\nDone! Check user/creations/gradient-flow.gif\n")))
 
-;;; ============================================================
+;;; ====
 ;;; Demo Entry
-;;; ============================================================
+;;; ====
 
 (display "\n")
-(display "============================================================\n")
+(display "====\n")
 (display "  GRADIENT FLOW VIDEO\n")
 (display "  Proper Scheme-based animation export\n")
-(display "============================================================\n")
+(display "====\n")
 (display "\n")
 (display "  (render-gradient-flow!)  - Generate gradient-flow.gif\n")
 (display "\n")

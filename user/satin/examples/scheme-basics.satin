@@ -12,9 +12,9 @@
   (version "1.0")
   (start welcome)
 
-  ;; ============================================================
+  ;; ====
   ;; Lesson Structure
-  ;; ============================================================
+  ;; ====
 
   (lesson intro-lesson
     (title "Introduction to Scheme")
@@ -32,9 +32,9 @@
       "Understand nesting")
     (sequence arithmetic-intro nested-arithmetic arithmetic-exercise))
 
-  ;; ============================================================
+  ;; ====
   ;; Welcome and Introduction
-  ;; ============================================================
+  ;; ====
 
   (node welcome
     (title "Welcome!")
@@ -105,9 +105,9 @@ This might feel odd at first, but it has big advantages:
 - Consistent, predictable structure")
     (choice "Test my understanding" quiz-1))
 
-  ;; ============================================================
+  ;; ====
   ;; Quiz 1: S-expressions
-  ;; ============================================================
+  ;; ====
 
   (mcq quiz-1-mcq
     (question "What is the result of evaluating `(+ 1 2)`?")
@@ -125,9 +125,9 @@ This might feel odd at first, but it has big advantages:
     (choice "Continue" arithmetic-intro :when (flag? quiz-1-passed?))
     (choice "Review S-expressions" s-expressions))
 
-  ;; ============================================================
+  ;; ====
   ;; Arithmetic Lesson
-  ;; ============================================================
+  ;; ====
 
   (node arithmetic-intro
     (title "Arithmetic Operations")
@@ -168,9 +168,9 @@ This is how Scheme handles complex calculations — by breaking them
 into simpler pieces, evaluated from the inside out.")
     (choice "Try an exercise" arithmetic-exercise))
 
-  ;; ============================================================
+  ;; ====
   ;; Code Task: Arithmetic
-  ;; ============================================================
+  ;; ====
 
   (code-task arithmetic-task
     (title "Calculate the Area")
@@ -195,9 +195,9 @@ Remember: Area = width × height")
     (choice "Continue to functions" define-intro :when (flag? arithmetic-task-passed?))
     (choice "Review arithmetic" arithmetic-intro))
 
-  ;; ============================================================
+  ;; ====
   ;; Defining Functions
-  ;; ============================================================
+  ;; ====
 
   (node define-intro
     (title "Defining Functions")
@@ -246,9 +246,9 @@ Functions can call other functions:
 ```")
     (choice "Write a function" define-exercise))
 
-  ;; ============================================================
+  ;; ====
   ;; Short Answer: Define a function
-  ;; ============================================================
+  ;; ====
 
   (short-answer define-task
     (question "Write a function `triple` that multiplies its argument by 3.
@@ -268,9 +268,9 @@ Just write the define expression:")
     (choice "Continue to lists" lists-intro :when (flag? define-task-passed?))
     (choice "Review define" define-intro))
 
-  ;; ============================================================
+  ;; ====
   ;; Lists
-  ;; ============================================================
+  ;; ====
 
   (node lists-intro
     (title "Working with Lists")
@@ -294,9 +294,9 @@ Key list operations:
 ```")
     (choice "Practice with lists" lists-quiz))
 
-  ;; ============================================================
+  ;; ====
   ;; Quiz: Lists
-  ;; ============================================================
+  ;; ====
 
   (mcq lists-mcq
     (question "What does `(car '(a b c))` return?")
@@ -311,9 +311,9 @@ Key list operations:
     (choice "Finish course" completion :when (flag? lists-mcq-passed?))
     (choice "Review lists" lists-intro))
 
-  ;; ============================================================
+  ;; ====
   ;; Completion
-  ;; ============================================================
+  ;; ====
 
   (node completion
     (title "Congratulations!")
@@ -329,9 +329,9 @@ You've learned:
 You're ready to start writing real Scheme programs!")
     (end))
 
-  ;; ============================================================
+  ;; ====
   ;; Mastery Tracking
-  ;; ============================================================
+  ;; ====
 
   (mastery scheme-syntax
     (skill "Scheme Syntax")

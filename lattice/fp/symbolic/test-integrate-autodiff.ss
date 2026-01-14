@@ -18,13 +18,13 @@
        (assert-true #f))))
 
 (display "\n")
-(display "==============================================================\n")
+(display "====\n")
 (display "         SYMBOLIC-AUTODIFF INTEGRATION TESTS\n")
-(display "==============================================================\n")
+(display "====\n")
 
-;;; ============================================================
+;;; ====
 ;;; eval-expr tests
-;;; ============================================================
+;;; ====
 
 (test-group eval-expr-tests
             
@@ -78,9 +78,9 @@
                                     (num 1)))])
                    (assert-equal 16.0 (eval-expr expr '((x . 3.0)))))))
 
-;;; ============================================================
+;;; ====
 ;;; simplify tests
-;;; ============================================================
+;;; ====
 
 (test-group simplify-tests
             
@@ -175,9 +175,9 @@
                    (assert-true (num? result))
                    (assert-equal 0 (num-val result)))))
 
-;;; ============================================================
+;;; ====
 ;;; expr-to-traced tests
-;;; ============================================================
+;;; ====
 
 (test-group expr-to-traced-tests
             
@@ -225,9 +225,9 @@
                      [expected (+ (* 2 x) (cos x))])
                     (assert-nearly-equal expected (car grad) 0.0001))))
 
-;;; ============================================================
+;;; ====
 ;;; verify-derivative tests
-;;; ============================================================
+;;; ====
 
 (test-group verify-derivative-tests
             
@@ -251,9 +251,9 @@
               ;; d/dx[sin(x^2)] = cos(x^2) * 2x at x=1
               (assert-true (verify-derivative (sym-sin (power (var 'x) (num 2))) 'x 1.0 0.0001))))
 
-;;; ============================================================
+;;; ====
 ;;; symbolic-gradient-fn tests
-;;; ============================================================
+;;; ====
 
 (test-group symbolic-gradient-fn-tests
             
@@ -275,9 +275,9 @@
                     (assert-nearly-equal 6.0 (car grad) 0.0001)
                     (assert-nearly-equal 0.0 (cadr grad) 0.0001))))
 
-;;; ============================================================
+;;; ====
 ;;; symbolic-hessian-fn tests
-;;; ============================================================
+;;; ====
 
 (test-group symbolic-hessian-fn-tests
             
@@ -291,9 +291,9 @@
                     (assert-nearly-equal 0.0 (car (cadr hess)) 0.0001)
                     (assert-nearly-equal 2.0 (cadr (cadr hess)) 0.0001))))
 
-;;; ============================================================
+;;; ====
 ;;; Full Integration tests
-;;; ============================================================
+;;; ====
 
 (test-group full-integration-tests
             
@@ -333,9 +333,9 @@
                     (assert-nearly-equal 0.0 (car grad) 0.001)
                     (assert-nearly-equal 0.0 (cadr grad) 0.001))))
 
-;;; ============================================================
+;;; ====
 ;;; expr->infix tests
-;;; ============================================================
+;;; ====
 
 (test-group expr-infix-tests
             

@@ -12,9 +12,9 @@
 ;;;   try-action      Attempt to execute an action with validation
 ;;;   action-registry Access to registered actions
 
-;;; ============================================================
+;;; ====
 ;;; Action Registry
-;;; ============================================================
+;;; ====
 
 ;;; *actions* : Hashtable Symbol -> ActionDefinition
 ;;; Global registry of defined actions.
@@ -44,9 +44,9 @@
 (define (action-get-def name)
   (hashtable-ref *actions* name #f))
 
-;;; ============================================================
+;;; ====
 ;;; Action Definition Macro
-;;; ============================================================
+;;; ====
 
 ;;; def-action : Name × Clauses... -> Definitions
 ;;;
@@ -191,9 +191,9 @@
                            :execute execute-body ...
                            :events ())])))
 
-;;; ============================================================
+;;; ====
 ;;; Action Execution
-;;; ============================================================
+;;; ====
 
 ;;; try-action : Symbol × World × Entity × Any × Alist -> ActionResult
 ;;;
@@ -226,9 +226,9 @@
            (action-failure '() '()
                            (string-append "Unknown action: " (symbol->string action-name))))))
 
-;;; ============================================================
+;;; ====
 ;;; Action Creation Helper
-;;; ============================================================
+;;; ====
 
 ;;; make-spell-action : Symbol × Nat × Any × Alist -> Action
 ;;; Create an action for a custom-defined action type.
@@ -244,9 +244,9 @@
            (make-action 'custom actor-id target 100
                         (alist-set data 'action-name action-name)))))
 
-;;; ============================================================
+;;; ====
 ;;; Common Action Helpers
-;;; ============================================================
+;;; ====
 
 ;;; entity-has-energy? : Entity × Nat -> Bool
 ;;; Check if entity has enough energy/AP for an action.
@@ -264,9 +264,9 @@
                                    (alist-set comp 'energy
                                               (- (alist-ref comp 'energy 0) cost)))))
 
-;;; ============================================================
+;;; ====
 ;;; Example Usage (commented out)
-;;; ============================================================
+;;; ====
 
 #|
 ;;; Define a healing spell action

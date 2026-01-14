@@ -51,9 +51,9 @@
 (define prng-random-float-range random-float-range)
 (define prng-random-bool random-bool)
 
-;;; ============================================================
+;;; ====
 ;;; Random Effect Signature
-;;; ============================================================
+;;; ====
 
 ;;; Random effect signature
 (define sig-Random
@@ -65,9 +65,9 @@
                          (make-operation 'bool 'Unit 'Boolean)
                          (make-operation 'float-range '(Float Float) 'Float))))
 
-;;; ============================================================
+;;; ====
 ;;; Random Effect Operations
-;;; ============================================================
+;;; ====
 
 ;;; random-uniform-eff : Eff Random Float
 ;;; Generate a random float in [0, 1).
@@ -102,9 +102,9 @@
 (define (random-sample-dist dist)
   (perform (make-effect 'random-sample dist)))
 
-;;; ============================================================
+;;; ====
 ;;; Derived Random Operations
-;;; ============================================================
+;;; ====
 
 ;;; random-bernoulli-eff : Float -> Eff Random Boolean
 ;;; Sample from Bernoulli(p) - true with probability p.
@@ -177,9 +177,9 @@
                              (lambda (swaps)
                                      (eff-return (shuffle-with-swaps lst swaps))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Random Effect Handler
-;;; ============================================================
+;;; ====
 
 ;;; run-random : Integer -> Eff Random a -> a
 ;;; Handle Random effect with a PCG generator seeded from given value.
@@ -292,9 +292,9 @@
 (define (with-random-eff seed eff)
   (eff-return (run-random seed eff)))
 
-;;; ============================================================
+;;; ====
 ;;; Split Operation (for Parallel Simulations)
-;;; ============================================================
+;;; ====
 
 ;;; random-split-eff : Eff Random (GenState . GenState)
 ;;; Split the current generator into two independent streams.
@@ -302,18 +302,18 @@
 (define random-split-eff
   (perform (make-effect 'random-split '())))
 
-;;; ============================================================
+;;; ====
 ;;; Random Bytes (for UUIDs, Crypto Placeholders, etc.)
-;;; ============================================================
+;;; ====
 
 ;;; random-bytes-eff : Nat -> Eff Random Bytevector
 ;;; Generate a bytevector of n random bytes.
 (define (random-bytes-eff n)
   (perform (make-effect 'random-bytes n)))
 
-;;; ============================================================
+;;; ====
 ;;; Serialization API (for Resumable Sessions)
-;;; ============================================================
+;;; ====
 
 ;;; get-random-state-eff : Eff Random GenState
 ;;; Get the current generator state (for serialization).
@@ -333,9 +333,9 @@
 (define (run-random-resume state-string eff)
   (run-random-with-gen (deserialize-random-state state-string) eff))
 
-;;; ============================================================
+;;; ====
 ;;; Example Usage
-;;; ============================================================
+;;; ====
 ;;;
 ;;; ;; Basic uniform random
 ;;; (run-random 42 random-uniform-eff)

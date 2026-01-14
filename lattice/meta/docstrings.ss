@@ -11,16 +11,16 @@
 ;;;
 ;;; This is Lattice code: impure (reads files), used during indexing.
 
-;;; ============================================================
+;;; ====
 ;;; State
-;;; ============================================================
+;;; ====
 
 ;;; Global docstring cache: symbol -> string
 (define *docstrings* (make-hashtable symbol-hash eq?))
 
-;;; ============================================================
+;;; ====
 ;;; File Parsing
-;;; ============================================================
+;;; ====
 
 ;;; read-file-lines : String -> (List String) | #f
 ;;; Read all lines from a file
@@ -152,9 +152,9 @@
                     (loop (+ i 1))
                     (substring str i len))))))
 
-;;; ============================================================
+;;; ====
 ;;; Directory Scanning
-;;; ============================================================
+;;; ====
 
 ;;; find-scheme-files : String -> (List String)
 ;;; Recursively find all .ss files in a directory
@@ -190,9 +190,9 @@
        (and (>= len 3)
             (string=? (substring str (- len 3) len) ".ss"))))
 
-;;; ============================================================
+;;; ====
 ;;; Public API
-;;; ============================================================
+;;; ====
 
 ;;; build-docstring-cache! : -> Void
 ;;; Build the global docstring cache from all lattice source files
@@ -227,9 +227,9 @@
            (tokenize doc)
            '())))
 
-;;; ============================================================
+;;; ====
 ;;; REPL Interface
-;;; ============================================================
+;;; ====
 
 (printf "docstrings.ss loaded.\n")
 (printf "  (build-docstring-cache!)       - Build cache from sources\n")

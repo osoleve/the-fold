@@ -20,7 +20,7 @@
 
 (display "Content-Addressed Store Tests
 ")
-(display "==============================
+(display "====
 
 ")
 

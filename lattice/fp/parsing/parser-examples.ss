@@ -15,9 +15,9 @@
 (load "core/base/prelude.ss")
 (load "lattice/fp/parsing/parser.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Character Constants (to avoid formatter issues)
-;;; ============================================================
+;;; ====
 
 ;;; %newline-ex : Char
 (define %newline-ex (integer->char 10))
@@ -52,9 +52,9 @@
 ;;; %char-t : Char
 (define %char-t (integer->char 116))
 
-;;; ============================================================
+;;; ====
 ;;; JSON Parser (Subset)
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Parses JSON values: null, booleans, numbers, strings, arrays, objects.
 ;;; Represents:
@@ -142,9 +142,9 @@
 (define (parse-json input)
   (parse-all json-value input))
 
-;;; ============================================================
+;;; ====
 ;;; S-Expression Parser
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Parses Scheme-style S-expressions:
 ;;;   - Atoms: symbols, numbers, strings, booleans
@@ -276,9 +276,9 @@
 (define (parse-sexps input)
   (parse-all (parser-then sexp-whitespace (many sexp-value)) input))
 
-;;; ============================================================
+;;; ====
 ;;; Arithmetic Expression Parser (with Precedence)
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Parses arithmetic expressions with proper precedence:
 ;;;   - Addition/subtraction (lowest)
@@ -372,9 +372,9 @@
     (/ (eval-arith (cadr ast)) (eval-arith (caddr ast)))]
    [else (error 'eval-arith "Unknown AST node" ast)]))
 
-;;; ============================================================
+;;; ====
 ;;; INI File Parser
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Parses INI-style configuration files:
 ;;;   [section]
@@ -507,9 +507,9 @@
                 (if pair (just (cdr pair)) nothing))
            nothing)))
 
-;;; ============================================================
+;;; ====
 ;;; Demonstration
-;;; ============================================================
+;;; ====
 
 ;;; demo : Unit → Unit
 (define (demo)

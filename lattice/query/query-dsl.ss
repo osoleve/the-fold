@@ -47,17 +47,17 @@
 ;;;   - thimble/store-api.ss (store-filter, store-find-by-tag, etc.)
 ;;;   - fabric/stitches/block.ss (block accessors)
 
-;;; ============================================================
+;;; ====
 ;;; Dependencies
-;;; ============================================================
+;;; ====
 
 ;;; Assumes these are already loaded:
 ;;;   - store-api.ss (store-filter, store-all-blocks, store-find-by-tag, etc.)
 ;;;   - block.ss (make-block, block-tag, block-payload, block-refs)
 
-;;; ============================================================
+;;; ====
 ;;; Section 1: Predicate Builders
-;;; ============================================================
+;;; ====
 ;;;
 ;;; These functions build predicates (Block -> Boolean) from query patterns.
 ;;; Each pattern type has a corresponding predicate builder.
@@ -127,9 +127,9 @@
   (lambda (block)
           (comparator (bytevector-length (block-payload block)) size)))
 
-;;; ============================================================
+;;; ====
 ;;; Section 2: Query Expression Interpreter
-;;; ============================================================
+;;; ====
 ;;;
 ;;; The interpreter converts query expressions (s-expressions) into
 ;;; executable predicates. It handles the following expression types:
@@ -241,9 +241,9 @@
             (or ((car preds) block)
                 (loop (cdr preds))))))
 
-;;; ============================================================
+;;; ====
 ;;; Section 3: Projection System
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Projections allow returning specific fields from matching blocks
 ;;; instead of returning the full block structure.
@@ -295,9 +295,9 @@
                (extract-fields block fields))
        blocks))
 
-;;; ============================================================
+;;; ====
 ;;; Section 4: Reference Traversal
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Functions for navigating the block reference graph.
 
@@ -354,9 +354,9 @@
                       frontier)
                      (bfs next-frontier (+ depth 1)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Section 5: Aggregation Functions
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Aggregate operations on query results.
 
@@ -400,9 +400,9 @@
         [(equal? (caar pairs) key) (car pairs)]
         [else (loop (cdr pairs))])))
 
-;;; ============================================================
+;;; ====
 ;;; Section 6: Main Query Entry Point
-;;; ============================================================
+;;; ====
 ;;;
 ;;; The `query` function is the main API entry point.
 ;;; It interprets query expressions and returns matching blocks.
@@ -475,9 +475,9 @@
     (let ([predicate (interpret-query expr)])
          (store-filter fs predicate))]))
 
-;;; ============================================================
+;;; ====
 ;;; Section 7: Query Convenience Functions
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Shorthand functions for common query patterns.
 
@@ -528,9 +528,9 @@
                  (not (hashtable-ref referenced-hashes (hash-block block) #f)))
          all-blocks)))
 
-;;; ============================================================
+;;; ====
 ;;; Section 8: Query Composition Helpers
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Functions for building complex queries programmatically.
 
@@ -564,9 +564,9 @@
 (define (make-select-query fields where-query)
   `(select ,fields (where ,where-query)))
 
-;;; ============================================================
+;;; ====
 ;;; Section 9: Utility Functions
-;;; ============================================================
+;;; ====
 
 ;;; safe-utf8->string : Bytevector → String
 ;;; Safely convert a bytevector to a UTF-8 string.
@@ -614,9 +614,9 @@
                 (loop (+ i 1)
                       (+ (* h 31) (bytevector-u8-ref bv i)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Section 10: Query Result Formatting
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Functions for displaying query results.
 
@@ -647,9 +647,9 @@
            (printf "}\n"))
    results))
 
-;;; ============================================================
+;;; ====
 ;;; Module Export Summary
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Main API:
 ;;;   query              - Execute a query expression

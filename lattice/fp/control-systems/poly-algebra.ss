@@ -27,9 +27,9 @@
 ;; Load field module (no conflicting names)
 (load "lattice/algebra/field.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Algebra Polynomial - Inline Implementation
-;;; ============================================================
+;;; ====
 ;;;
 ;;; We implement algebra polynomial operations inline rather than loading
 ;;; algebra/polynomial.ss to avoid function name collisions.
@@ -297,18 +297,18 @@
                                                power-str)])
                       (loop (+ i 1) #f (string-append acc term))))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Explicit Accessors for Numeric Polynomials
-;;; ============================================================
+;;; ====
 
 ;;; Numeric polynomials use tag 'poly and store coeffs as vector in cadr
 ;;; num-poly-coeffs : NumericPoly → Vector
 (define (num-poly-coeffs p)
   (cadr p))
 
-;;; ============================================================
+;;; ====
 ;;; Rational Field for Exact Arithmetic
-;;; ============================================================
+;;; ====
 
 ;;; Q-field : Field
 ;;; The field of rational numbers for exact arithmetic.
@@ -324,9 +324,9 @@
    (lambda (a b) (/ a b))                 ; Division
    =))                                    ; Equality
 
-;;; ============================================================
+;;; ====
 ;;; Conversion Between Numeric and Algebraic Polynomials
-;;; ============================================================
+;;; ====
 
 ;;; numeric->algebra-poly : Poly × Field → AlgPolynomial
 ;;; Convert from numeric polynomial (descending order) to algebra polynomial (ascending order).
@@ -351,9 +351,9 @@
         ((= i n) (make-poly desc-vec))
       (vector-set! desc-vec i (list-ref coeffs (- n 1 i))))))
 
-;;; ============================================================
+;;; ====
 ;;; Transfer Function Simplification via GCD
-;;; ============================================================
+;;; ====
 
 ;;; tf-simplify : TF × [Field] → TF
 ;;; Simplify transfer function by canceling common factors.
@@ -382,9 +382,9 @@
 (define (tf-simplify-exact tf)
   (tf-simplify tf Q-field))
 
-;;; ============================================================
+;;; ====
 ;;; Exact Routh-Hurwitz Using Polynomial Algebra
-;;; ============================================================
+;;; ====
 
 ;;; The standard Routh-Hurwitz uses floating-point which can cause
 ;;; numerical issues. This version uses exact rational arithmetic.
@@ -475,9 +475,9 @@
        (or sign-change?
            (has-sign-changes-exact? (cdr nums))))]))
 
-;;; ============================================================
+;;; ====
 ;;; Characteristic Polynomial Utilities
-;;; ============================================================
+;;; ====
 
 ;;; tf-char-poly : TF → AlgebraPoly
 ;;; Get the characteristic polynomial (denominator) as algebra polynomial.
@@ -489,9 +489,9 @@
 (define (tf-char-poly-factored tf)
   (alg-poly-square-free-factorization (tf-char-poly tf)))
 
-;;; ============================================================
+;;; ====
 ;;; Extended GCD for Bezout Identity
-;;; ============================================================
+;;; ====
 
 ;;; tf-bezout : TF × TF → (AlgPolynomial × AlgPolynomial × AlgPolynomial)
 ;;; Compute Bezout coefficients for transfer function polynomials.
@@ -502,9 +502,9 @@
          [num2-alg (numeric->algebra-poly (tf-num tf2) Q-field)])
     (alg-poly-extended-gcd num1-alg num2-alg)))
 
-;;; ============================================================
+;;; ====
 ;;; Pole-Zero Analysis with Exact Arithmetic
-;;; ============================================================
+;;; ====
 
 ;;; tf-coprime? : TF → Boolean
 ;;; Check if numerator and denominator are coprime (GCD = 1).
@@ -526,9 +526,9 @@
         (list (algebra->numeric-poly gcd-alg))
         '())))
 
-;;; ============================================================
+;;; ====
 ;;; Polynomial Display Utilities
-;;; ============================================================
+;;; ====
 
 ;;; tf-num-exact->string : TF → String
 ;;; Display numerator with exact rational coefficients.

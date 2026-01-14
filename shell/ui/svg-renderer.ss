@@ -69,9 +69,9 @@
          
          (import (chezscheme))
          
-         ;;; ============================================================
+         ;;; ====
          ;;; SVG Document Structure (from turtle-svg.ss)
-         ;;; ============================================================
+         ;;; ====
          
          ;;; svg-header : Nat × Nat × [(List (String . String))] → String
          ;;; Generate SVG document header with optional attributes.
@@ -106,9 +106,9 @@
               content
               (svg-footer))]))
          
-         ;;; ============================================================
+         ;;; ====
          ;;; SVG Styling
-         ;;; ============================================================
+         ;;; ====
          
          (define-record-type svg-style%
            (fields fill stroke stroke-width opacity css-class))
@@ -143,9 +143,9 @@
                 (string-append " class=\"" (svg-style%-css-class style) "\"")
                 "")))
          
-         ;;; ============================================================
+         ;;; ====
          ;;; Number Formatting (from turtle-svg.ss)
-         ;;; ============================================================
+         ;;; ====
          
          (define (format-number n)
            (let ([rounded (/ (round (* n 100)) 100.0)])
@@ -160,9 +160,9 @@
                                         [(#\.) (substring s 0 i)]
                                         [else (substring s 0 (+ i 1))])))))))
          
-         ;;; ============================================================
+         ;;; ====
          ;;; Attribute Formatting
-         ;;; ============================================================
+         ;;; ====
          
          ;;; attrs->string : (List (String . String)) → String
          ;;; Convert attribute alist to SVG attribute string.
@@ -175,9 +175,9 @@
                           ""
                           attrs)))
          
-         ;;; ============================================================
+         ;;; ====
          ;;; Canvas Rendering
-         ;;; ============================================================
+         ;;; ====
          
          ;;; canvas->svg-text : Canvas × [SVGStyle] → String
          ;;; Render canvas as SVG text elements (for ASCII art).
@@ -236,9 +236,9 @@
                       #\space
                       (vector-ref cells (+ (* y w) x)))))
            
-           ;;; ============================================================
+           ;;; ====
            ;;; Shape Rendering
-           ;;; ============================================================
+           ;;; ====
            
            ;;; rect->svg : Nat × Nat × Nat × Nat × [SVGStyle] → String
            ;;; Render rectangle.
@@ -389,9 +389,9 @@
                       (path->svg (cadr shape) style)]
                      [else ""])]))
            
-           ;;; ============================================================
+           ;;; ====
            ;;; Gradients
-           ;;; ============================================================
+           ;;; ====
            
            ;;; linear-gradient->svg : String × (List (Real . String)) × Real × Real × Real × Real → String
            ;;; Create linear gradient definition.
@@ -427,9 +427,9 @@
                    stops)
               ""))
            
-           ;;; ============================================================
+           ;;; ====
            ;;; Transforms
-           ;;; ============================================================
+           ;;; ====
            
            ;;; transform-matrix->svg : Matrix → String
            ;;; Convert 2x3 affine transform matrix to SVG matrix() transform.
@@ -451,9 +451,9 @@
                    (format-number ty)
                    ")")))
            
-           ;;; ============================================================
+           ;;; ====
            ;;; Groups and Layers
-           ;;; ============================================================
+           ;;; ====
            
            ;;; svg-group : String × [(List (String . String))] × [String] → String
            ;;; Create SVG group with content.
@@ -482,9 +482,9 @@
               content
               "  </defs>\n"))
            
-           ;;; ============================================================
+           ;;; ====
            ;;; Filters
-           ;;; ============================================================
+           ;;; ====
            
            ;;; svg-filter-blur : String × Real → String
            ;;; Create Gaussian blur filter definition.
@@ -510,9 +510,9 @@
               "    </feMerge>\n"
               "  </filter>\n"))
            
-           ;;; ============================================================
+           ;;; ====
            ;;; Utilities
-           ;;; ============================================================
+           ;;; ====
            
            ;;; string-join : (List String) × String → String
            ;;; NOTE: This duplicates core/base/prelude.ss string-join.

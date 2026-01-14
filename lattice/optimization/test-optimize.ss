@@ -12,9 +12,9 @@
 (load "core/testing/test-framework.ss")
 (load "lattice/optimization/optimize.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Test Helper Functions
-;;; ============================================================
+;;; ====
 
 ;;; approximately-equal? : Number × Number × Number → Bool
 (define (approximately-equal? a b tol)
@@ -26,9 +26,9 @@
        (andmap (lambda (pair) (approximately-equal? (car pair) (cdr pair) tol))
                (map cons l1 l2))))
 
-;;; ============================================================
+;;; ====
 ;;; Test Functions
-;;; ============================================================
+;;; ====
 
 ;;; Simple quadratic: f(x) = x^2, minimum at x=0
 (define (quadratic-1d x)
@@ -54,9 +54,9 @@
 (define (sphere-plain args)
   (fold-left + 0 (map (lambda (x) (* x x)) args)))
 
-;;; ============================================================
+;;; ====
 ;;; Convergence Criteria Tests
-;;; ============================================================
+;;; ====
 
 (test-group "Convergence Criteria"
             (define-test "make-convergence-criteria creates valid structure"
@@ -82,9 +82,9 @@
                      [state (make-convergence-state 10 0.5 1.0 0.1 0.1)])
                     (not (converged? cc state)))))
 
-;;; ============================================================
+;;; ====
 ;;; Line Search Tests
-;;; ============================================================
+;;; ====
 
 (test-group "Line Search"
             (define-test "armijo-condition? accepts sufficient decrease"
@@ -114,9 +114,9 @@
                     (and (> alpha 0)
                          (< (apply f x-new) (apply f x))))))
 
-;;; ============================================================
+;;; ====
 ;;; First-Order Optimizer Tests
-;;; ============================================================
+;;; ====
 
 (test-group "First-Order Optimizers"
             (define-test "SGD minimizes simple quadratic"
@@ -154,9 +154,9 @@
                      [x-opt (opt-x result)])
                     (list-approximately-equal? x-opt '(0.0 0.0) 0.5))))
 
-;;; ============================================================
+;;; ====
 ;;; Newton Method Tests
-;;; ============================================================
+;;; ====
 
 (test-group "Newton Methods"
             (define-test "newton-method finds minimum of sphere"
@@ -186,9 +186,9 @@
                      [x-opt (opt-x result)])
                     (list-approximately-equal? x-opt '(0.0 0.0) 0.1))))
 
-;;; ============================================================
+;;; ====
 ;;; L-BFGS Tests
-;;; ============================================================
+;;; ====
 
 (test-group "L-BFGS"
             (define-test "lbfgs finds minimum of sphere"
@@ -221,9 +221,9 @@
                     ;; Direction should be descent (negative dot product with gradient)
                     (< dot 0))))
 
-;;; ============================================================
+;;; ====
 ;;; L-BFGS-B (Bounded) Tests
-;;; ============================================================
+;;; ====
 
 (test-group "L-BFGS-B"
             (define-test "project-box enforces bounds"
@@ -253,9 +253,9 @@
                     (and (<= (car x-opt) 2.01)
                          (<= (cadr x-opt) 2.01)))))
 
-;;; ============================================================
+;;; ====
 ;;; Unified API Tests
-;;; ============================================================
+;;; ====
 
 (test-group "Unified API"
             (define-test "minimize with default method works"
@@ -284,8 +284,8 @@
                     (and (>= (car x-opt) 0.99)
                          (>= (cadr x-opt) 0.99)))))
 
-;;; ============================================================
+;;; ====
 ;;; Run All Tests
-;;; ============================================================
+;;; ====
 
 (run-all-tests)

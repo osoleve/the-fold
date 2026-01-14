@@ -20,9 +20,9 @@
 (load "lattice/algebra/polynomial.ss")
 (load "lattice/numeric/digital-filters.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Field Definition for Signal Processing
-;;; ============================================================
+;;; ====
 
 ;;; Q-field-sig : Field
 ;;; The field of rational numbers for exact filter arithmetic.
@@ -37,9 +37,9 @@
    (lambda (a b) (/ a b))                 ; Division
    =))                                    ; Equality
 
-;;; ============================================================
+;;; ====
 ;;; Algebra Polynomial Operations (Inline to Avoid Name Collision)
-;;; ============================================================
+;;; ====
 
 ;;; Same pattern as poly-algebra.ss - prefix algebra operations with sig-
 
@@ -199,9 +199,9 @@
              [inv-lc (/ 1 lc)])
         (sig-poly-scale p inv-lc))))
 
-;;; ============================================================
+;;; ====
 ;;; Conversion Between Numeric and Signal Polynomials
-;;; ============================================================
+;;; ====
 
 ;;; Access numeric polynomial coefficients (vector, descending order)
 (define (num-poly-coeffs-sig p) (vector->list (cdr p)))
@@ -221,9 +221,9 @@
          [vec (list->vector descending)])
     (cons 'polynomial vec)))
 
-;;; ============================================================
+;;; ====
 ;;; Filter Polynomial Analysis
-;;; ============================================================
+;;; ====
 
 ;;; filter-num-poly : IIR-Filter → SigPolynomial
 ;;; Get filter numerator as signal polynomial.
@@ -265,9 +265,9 @@
           (make-iir-filter (list->vector b-coeffs)
                           (list->vector a-coeffs))))))
 
-;;; ============================================================
+;;; ====
 ;;; Filter Stability Analysis
-;;; ============================================================
+;;; ====
 
 ;;; For a digital filter to be stable, all poles must be inside the unit circle.
 ;;; Since we work with polynomial coefficients (not roots directly), we use
@@ -366,9 +366,9 @@
       (and (pred (car lst))
            (andmap pred (cdr lst)))))
 
-;;; ============================================================
+;;; ====
 ;;; Deconvolution via Polynomial Division
-;;; ============================================================
+;;; ====
 
 ;;; deconvolve : Vector × Vector → (Vector . Vector)
 ;;; Deconvolution: given y = conv(x, h), find x given y and h.
@@ -398,9 +398,9 @@
           (and (< (abs (vector-ref v i)) 1e-10)
                (loop (+ i 1)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Filter Cascade/Parallel Combination
-;;; ============================================================
+;;; ====
 
 ;;; filter-cascade : IIR-Filter × IIR-Filter → IIR-Filter
 ;;; Cascade (series) combination of two filters.
@@ -434,9 +434,9 @@
     (make-iir-filter (list->vector b-coeffs)
                     (list->vector a-coeffs))))
 
-;;; ============================================================
+;;; ====
 ;;; Display Utilities
-;;; ============================================================
+;;; ====
 
 ;;; sig-poly->string : SigPolynomial × Symbol → String
 ;;; Convert polynomial to string representation.

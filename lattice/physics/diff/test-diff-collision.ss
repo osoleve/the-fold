@@ -13,14 +13,14 @@
 (load "lattice/physics/diff/diff-collision.ss")
 
 (display "
-==============================================================
+====
          DIFFERENTIABLE COLLISION RESPONSE TESTS
-==============================================================
+====
 ")
 
-;;; ============================================================
+;;; ====
 ;;; Test Utilities
-;;; ============================================================
+;;; ====
 
 (define (assert-near actual expected tolerance)
   (unless (< (abs (- actual expected)) tolerance)
@@ -42,9 +42,9 @@
 ;;; Create default soft material for tests
 (define test-material (make-soft-material 10000 100 100 0.3))
 
-;;; ============================================================
+;;; ====
 ;;; Circle-Circle Collision Force Tests
-;;; ============================================================
+;;; ====
 
 (test-group circle-circle-force-tests
             
@@ -139,9 +139,9 @@
                                   (assert-true (> mag 0)))))))
             )
 
-;;; ============================================================
+;;; ====
 ;;; Circle-Circle Impulse Application Tests
-;;; ============================================================
+;;; ====
 
 (test-group circle-impulse-tests
             
@@ -188,9 +188,9 @@
                                   (assert-near p0x p1x 0.1))))))
             )
 
-;;; ============================================================
+;;; ====
 ;;; Ground Collision Tests
-;;; ============================================================
+;;; ====
 
 (test-group ground-collision-tests
             
@@ -250,9 +250,9 @@
                              (assert-true (< (traced-value (traced-vec2-x force)) 0))))))
             )
 
-;;; ============================================================
+;;; ====
 ;;; Collision Pair Tests
-;;; ============================================================
+;;; ====
 
 (test-group collision-pair-tests
             
@@ -264,9 +264,9 @@
                    (assert-near (collision-pair-radius-b pair) 0.75 1e-10)))
             )
 
-;;; ============================================================
+;;; ====
 ;;; Multi-Body Collision Tests
-;;; ============================================================
+;;; ====
 
 (test-group multi-body-tests
             
@@ -306,9 +306,9 @@
                                   (assert-near fx-a (- fx-b) 1))))))
             )
 
-;;; ============================================================
+;;; ====
 ;;; Contact Detection Tests
-;;; ============================================================
+;;; ====
 
 (test-group contact-detection-tests
             
@@ -335,9 +335,9 @@
                     (assert-true (traced-circle-ground-overlapping? pos 1 0))))
             )
 
-;;; ============================================================
+;;; ====
 ;;; Restitution Calculation Tests
-;;; ============================================================
+;;; ====
 
 (test-group restitution-tests
             
@@ -358,9 +358,9 @@
                    (assert-true (> e1 e2))))
             )
 
-;;; ============================================================
+;;; ====
 ;;; Complete Collision Step Tests
-;;; ============================================================
+;;; ====
 
 (test-group collision-step-tests
             
@@ -413,9 +413,9 @@
                     (assert-true (< new-vx 0))))
             )
 
-;;; ============================================================
+;;; ====
 ;;; Gradient Tests
-;;; ============================================================
+;;; ====
 
 (test-group gradient-tests
             
@@ -462,16 +462,16 @@
                     (assert-true (< numerical 0))))
             )
 
-;;; ============================================================
+;;; ====
 ;;; Run All Tests
-;;; ============================================================
+;;; ====
 
 (newline)
-(display "--------------------------------------------------------------")
+(display "----")
 (newline)
 (display "  Test Summary:")
 (newline)
-(display "--------------------------------------------------------------")
+(display "----")
 (newline)
 (display "  Total:  ")
 (display *tests-run*)

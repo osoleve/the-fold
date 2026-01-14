@@ -241,7 +241,7 @@ Address = [ version : 1 byte ][ hash : 32 bytes ]
 **Version Bytes**:
 
 | Version | Mode | Description |
-|---------|------|-------------|
+|----|----|----|
 | `0x00` | α-only | De Bruijn indices only (original mode) |
 | `0x01` | Algebraic + α | Full algebraic canonicalization before de Bruijn |
 | `0x02` | Enhanced (v2) | η-reduction, identity elimination, polynomial canonicalization, hash-consing |
@@ -506,7 +506,7 @@ The full normalization function applies both phases:
 **Equivalence Classes**:
 
 | Normalization Mode | Equivalences Detected |
-|-------------------|----------------------|
+|----|----|
 | None | Syntactic identity only |
 | α-only (v0x00) | + Variable renaming |
 | Algebraic + α (v0x01) | + Commutative, associative, parallel bindings |
@@ -1004,7 +1004,7 @@ Shell catches all errors from Core and presents them to users:
 **Error categories**:
 
 | Category | Source | User Message |
-|----------|--------|--------------|
+|----|----|----|
 | `parse-error` | Shell | "Syntax error at line N: ..." |
 | `type-error` | Core | "Type mismatch: expected T₁, got T₂" |
 | `out-of-fuel` | Core | "Computation exceeded budget" |
@@ -1606,7 +1606,7 @@ Each module declares metadata in `manifest.sexp`:
 **Formal Schema**:
 
 | Field | Type | Description |
-|-------|------|-------------|
+|----|----|----|
 | `version` | SemVer | Semantic version string |
 | `tier` | Nat | Dependency tier (0 = no deps) |
 | `path` | String | Relative path from project root |
@@ -1667,7 +1667,7 @@ You do NOT need to re-verify dependencies or examine their implementations.
 If module A has bound O(f_A) and module B has bound O(f_B):
 
 | Composition | Resulting Bound |
-|-------------|-----------------|
+|----|----|
 | Sequential (A then B) | O(f_A + f_B) |
 | Nested (A calls B once) | O(f_A + f_B) |
 | Nested (A calls B n times) | O(f_A + n · f_B) |
@@ -1831,7 +1831,7 @@ Separation enables verification:
 **Space Complexity**:
 
 | Structure | Space |
-|-----------|-------|
+|----|----|
 | Block | O(tag + payload + refs) |
 | Address | 33 bytes (fixed) |
 | CAS lookup | O(1) average |
@@ -1839,7 +1839,7 @@ Separation enables verification:
 **Time Complexity**:
 
 | Operation | Time |
-|-----------|------|
+|----|----|
 | `hash-block` | O(payload size) |
 | `store!` / `fetch` | O(1) average |
 | `normalize` (α-only) | O(expression size) |
@@ -1919,7 +1919,7 @@ This eliminates per-step FFI overhead—critical for raymarching which may requi
 4x4 matrix operations where computation exceeds FFI overhead (~112 ops for matrix multiply):
 
 | Operation | Fuel Cost | Description |
-|-----------|-----------|-------------|
+|----|----|----|
 | `fold_mat4_mul` | 112 | Matrix multiplication (fully unrolled) |
 | `fold_mat4_vec_mul` | 28 | Matrix-vector multiplication |
 | `fold_mat4_transform_points` | 28×N | Batch transform N points |
@@ -2084,7 +2084,7 @@ Module: linalg/matrix
 We measured the CAS storage compared to file-based storage for the standard library:
 
 | Metric | File-Based | CAS | Ratio |
-|--------|------------|-----|-------|
+|----|----|----|----|
 | Total source | 1.2 MB | 890 KB | 0.74x |
 | After α-norm | — | 720 KB | 0.60x |
 | With sharing | — | 580 KB | 0.48x |
@@ -2112,7 +2112,7 @@ Most blocks are small (under 500 bytes), enabling efficient hashing and transmis
 **Inference Time** (representative programs):
 
 | Program | LOC | Types | Inference Time |
-|---------|-----|-------|----------------|
+|----|----|----|----|
 | Vec operations | 450 | 89 | 12ms |
 | Matrix lib | 1,200 | 234 | 45ms |
 | Parser combinators | 800 | 156 | 38ms |
@@ -2180,7 +2180,7 @@ dot  : (∀ (n) (→ (Vec n Num) (→ (Vec n Num) Num)))
 **Unison** (Chiusano & Bjarnason) is the closest related work—a programming language with content-addressed definitions. Key differences:
 
 | Aspect | Unison | The Fold |
-|--------|--------|----------|
+|----|----|----|
 | Normalization | Ability-based hashing | De Bruijn α-normalization |
 | Type system | Ability effects | Gradual dependent types |
 | Module system | Namespace-based | Tiered DAG with manifests |
@@ -2224,7 +2224,7 @@ Honest acknowledgment of what The Fold does NOT provide.
 The Fold guarantees *bounded execution*, not *totality*. The difference:
 
 | Property | Totality | Bounded Execution |
-|----------|----------|-------------------|
+|----|----|----|
 | Guarantee | Function terminates on all inputs | Execution stops within fuel limit |
 | Mechanism | Structural recursion / sized types | Fuel counter |
 | On failure | Rejected at compile time | Runtime `out-of-fuel` error |
@@ -2519,7 +2519,7 @@ v ::= (λ x : τ . e)                      ; Abstraction value
 
 
 | Feature | The Fold | Unison |
-|---------|----------|--------|
+|----|----|----|
 | **Foundation** | Chez Scheme | Haskell |
 | **Content Addressing** | SHA-256 + de Bruijn | Hash + type-directed |
 | **α-Normalization** | De Bruijn indices | Implicit in hashing |

@@ -17,9 +17,9 @@
 ;;;
 ;;; Or load interactively in the REPL.
 
-;;; ============================================================
+;;; ====
 ;;; Setup: Load the graphics libraries
-;;; ============================================================
+;;; ====
 
 (load "core/base/prelude.ss")
 (load "shell/ui/layout.ss")
@@ -33,9 +33,9 @@
 (display "║     THE FOLD GRAPHICS LIBRARY - A VISUAL TOUR               ║\n")
 (display "╚══════════════════════════════════════════════════════════════╝\n\n")
 
-;;; ============================================================
+;;; ====
 ;;; Chapter 1: The Canvas - Your Blank Slate
-;;; ============================================================
+;;; ====
 
 (display "═══ CHAPTER 1: The Canvas ═══\n\n")
 (display "Everything starts with a canvas - a grid of characters.\n")
@@ -48,9 +48,9 @@
 (canvas-display canvas1)
 (display "\n")
 
-;;; ============================================================
+;;; ====
 ;;; Chapter 2: Shapes - The Building Blocks
-;;; ============================================================
+;;; ====
 
 (display "═══ CHAPTER 2: Shapes ═══\n\n")
 (display "Circles, lines, polygons - oh my!\n\n")
@@ -73,9 +73,9 @@
 (display "\n")
 (display "A circle, a box, and a zigzag walk into a canvas...\n\n")
 
-;;; ============================================================
+;;; ====
 ;;; Chapter 3: Pattern Fills - Infinite Tessellations
-;;; ============================================================
+;;; ====
 
 (display "═══ CHAPTER 3: Pattern Fills ═══\n\n")
 (display "Why fill with one character when you can tile a pattern?\n\n")
@@ -104,9 +104,9 @@
 (display "\n")
 (display "Each pattern tiles infinitely. Create your own with make-pattern!\n\n")
 
-;;; ============================================================
+;;; ====
 ;;; Chapter 4: Connection Combinators - Drawing Relationships
-;;; ============================================================
+;;; ====
 
 (display "═══ CHAPTER 4: Connections ═══\n\n")
 (display "Connect points with lines, arrows, and smart edges!\n\n")
@@ -143,9 +143,9 @@
 (display "\n")
 (display "Edge styles: 'straight, 'horizontal-first, 'vertical-first, 'orthogonal\n\n")
 
-;;; ============================================================
+;;; ====
 ;;; Chapter 5: Layout Combinators - Compose with Elegance
-;;; ============================================================
+;;; ====
 
 (display "═══ CHAPTER 5: Layout Combinators ═══\n\n")
 (display "Combine canvases with beside, above, and atop!\n\n")
@@ -177,9 +177,9 @@
 
 (display "\n")
 
-;;; ============================================================
+;;; ====
 ;;; Chapter 6: Transforms - Bend Reality
-;;; ============================================================
+;;; ====
 
 (display "═══ CHAPTER 6: Transforms ═══\n\n")
 (display "Translate, rotate, scale, flip, and SKEW!\n\n")
@@ -206,9 +206,9 @@
 (display "  - canvas-clip: Extract a rectangular region\n")
 (display "  - canvas-mask: Apply a transparency mask\n\n")
 
-;;; ============================================================
+;;; ====
 ;;; Grand Finale: A Complete Diagram
-;;; ============================================================
+;;; ====
 
 (display "═══ GRAND FINALE: A Complete Diagram ═══\n\n")
 

@@ -25,9 +25,9 @@
 (load "lattice/fp/data/stream.ss")
 (load "lattice/linalg/vec2.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Core Simulation Stream Types
-;;; ============================================================
+;;; ====
 
 ;;; A SimState represents a snapshot of a simulation at a point in time.
 ;;; It is generic and can hold any simulation state (physics, particles, etc.)
@@ -60,9 +60,9 @@
 (define (sim-state-with-data s new-data)
   (make-sim-state (sim-state-time s) new-data (sim-state-metadata s)))
 
-;;; ============================================================
+;;; ====
 ;;; Generalized Unfold
-;;; ============================================================
+;;; ====
 ;;;
 ;;; unfold is the fundamental corecursive operation for building streams.
 ;;; Given a step function and initial seed, it produces an infinite stream
@@ -97,9 +97,9 @@
   (stream-cons seed
                (lambda () (sim-unfold-with-state step (step seed)))))
 
-;;; ============================================================
+;;; ====
 ;;; Simulation Stream Constructor
-;;; ============================================================
+;;; ====
 
 ;;; simulate : SimState x (SimState -> SimState) x Number -> Stream SimState
 ;;; Create an infinite stream of simulation states.
@@ -142,9 +142,9 @@
                                                (make-stream timed-state new-dt)))))])
           (make-stream initial (sim-state-time initial))))
 
-;;; ============================================================
+;;; ====
 ;;; Scan (Running Fold)
-;;; ============================================================
+;;; ====
 ;;;
 ;;; scan produces a stream of accumulated values.
 ;;; scan f z [s1, s2, s3, ...] = [z, f(z,s1), f(f(z,s1),s2), ...]
@@ -163,9 +163,9 @@
 ;;; Accumulate simulation states into running totals.
 (define sim-accumulate stream-scan)
 
-;;; ============================================================
+;;; ====
 ;;; Physics-Specific Simulation Helpers
-;;; ============================================================
+;;; ====
 
 ;;; Pure physics body for stream-based simulation
 ;;; (Unlike world.ss bodies which are mutated, these are purely functional)
@@ -209,9 +209,9 @@
                   (list 'physics new-pos new-vel (physics-mass s))
                   (sim-state-metadata s)))
 
-;;; ============================================================
+;;; ====
 ;;; Physics Integration as Pure Step Functions
-;;; ============================================================
+;;; ====
 
 ;;; euler-step : (PhysicsState -> Vec2) x Number -> (PhysicsState -> PhysicsState)
 ;;; Create an Euler integration step function.
@@ -263,9 +263,9 @@
                  [new-vel (vec2-add vel (vec2-scale (vec2-add accel accel-new) half-dt))])
                 (make-updated-physics state new-pos new-vel))))
 
-;;; ============================================================
+;;; ====
 ;;; Common Force Functions (Pure)
-;;; ============================================================
+;;; ====
 
 ;;; const-gravity : Number -> (PhysicsState -> Vec2)
 ;;; Constant gravity force (positive y is down).
@@ -298,9 +298,9 @@
                      (vec2 0 0)
                      force-fns)))
 
-;;; ============================================================
+;;; ====
 ;;; Simulation Stream Utilities
-;;; ============================================================
+;;; ====
 
 ;;; sim-take : Number x Stream SimState -> (List SimState)
 ;;; Take n simulation states as a list.
@@ -361,9 +361,9 @@
         [(pred (stream-head s)) (reverse (cons (stream-head s) acc))]
         [else (loop (stream-tail s) (- n 1) (cons (stream-head s) acc))])))
 
-;;; ============================================================
+;;; ====
 ;;; Observable Streams
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Extract observable quantities from simulation streams.
 
@@ -409,9 +409,9 @@
                            (+ ke pe)))
               stream))
 
-;;; ============================================================
+;;; ====
 ;;; Multi-Body Simulation
-;;; ============================================================
+;;; ====
 ;;;
 ;;; For simulations with multiple interacting bodies.
 
@@ -449,9 +449,9 @@
                        bodies forces)])
                 (make-n-body-state new-bodies (+ (sim-state-time state) dt)))))
 
-;;; ============================================================
+;;; ====
 ;;; Simulation Combinators
-;;; ============================================================
+;;; ====
 
 ;;; sim-par : (List (SimState -> SimState)) -> (List SimState -> List SimState)
 ;;; Run multiple step functions in parallel (for independent subsystems).

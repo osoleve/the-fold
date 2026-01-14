@@ -6,7 +6,7 @@
 
 (display "CAS Lifecycle Tests
 ")
-(display "===================
+(display "====
 
 ")
 
@@ -25,9 +25,9 @@
        (display ", got ") (write actual)
        (newline))))
 
-;;; ============================================================
+;;; ====
 ;;; Setup: Create test blocks
-;;; ============================================================
+;;; ====
 
 (display "Creating test blocks...
 ")
@@ -62,9 +62,9 @@
 
 ")
 
-;;; ============================================================
+;;; ====
 ;;; Pin/Unpin Tests
-;;; ============================================================
+;;; ====
 
 (display "Pin/Unpin:
 ")
@@ -75,9 +75,9 @@
 (unpin! root-hash)
 (test "unpinned after unpin!" #f (pinned? root-hash))
 
-;;; ============================================================
+;;; ====
 ;;; Tree Operations
-;;; ============================================================
+;;; ====
 
 (display "
 Tree Operations:
@@ -104,9 +104,9 @@ Tree Operations:
 (test "child1 unpinned" #f (pinned? child1-hash))
 (test "grandchild unpinned" #f (pinned? grandchild-hash))
 
-;;; ============================================================
+;;; ====
 ;;; GC Statistics
-;;; ============================================================
+;;; ====
 
 (display "
 GC Statistics:
@@ -121,9 +121,9 @@ GC Statistics:
      (test "stats pinned" 2 (cdr (assq 'pinned stats)))
      (test "stats unpinned" 3 (cdr (assq 'unpinned stats))))
 
-;;; ============================================================
+;;; ====
 ;;; Garbage Collection
-;;; ============================================================
+;;; ====
 
 (display "
 Garbage Collection:
@@ -143,9 +143,9 @@ Garbage Collection:
 (test "standalone removed" #f (stored? standalone-hash))
 (test "root still exists" #t (stored? root-hash))
 
-;;; ============================================================
+;;; ====
 ;;; GC with Roots
-;;; ============================================================
+;;; ====
 
 (display "
 GC with Roots:
@@ -169,9 +169,9 @@ GC with Roots:
 (test "grandchild gone" #f (stored? grandchild-hash))
 (test "standalone gone" #f (stored? standalone-hash))
 
-;;; ============================================================
+;;; ====
 ;;; Edge Cases
-;;; ============================================================
+;;; ====
 
 (display "
 Edge Cases:
@@ -196,12 +196,12 @@ Edge Cases:
      (let ([count (pin-tree! fake-hash)])
           (test "pin-tree! on missing returns 1" 1 count)))
 
-;;; ============================================================
+;;; ====
 ;;; Summary
-;;; ============================================================
+;;; ====
 
 (newline)
-(display "==================
+(display "====
 ")
 (display (string-append "Passed: " (number->string tests-passed) "
 "))

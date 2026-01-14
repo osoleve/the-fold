@@ -19,9 +19,9 @@
 (load "lattice/numeric/dft.ss")
 (load "lattice/numeric/window-functions.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Short-Time Fourier Transform (STFT)
-;;; ============================================================
+;;; ====
 
 ;;; stft-frame : Vector[Number] × Integer × Integer × Symbol → Vector[Complex]
 ;;; Compute one STFT frame.
@@ -120,9 +120,9 @@
                        (vector-set! signal i
                                     (/ (vector-ref signal i) n)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Spectrogram
-;;; ============================================================
+;;; ====
 
 ;;; spectrogram : Vector[Number] × Integer × Integer × Symbol → Vector[Vector[Number]]
 ;;; Compute magnitude spectrogram from STFT.
@@ -183,9 +183,9 @@
                                                   (* 20 (log10 (+ mag 1e-10))))))
                             (vector-set! result i log-frame)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Periodogram (Single-Frame PSD Estimate)
-;;; ============================================================
+;;; ====
 
 ;;; periodogram : Vector[Number] × Symbol → Vector[Number]
 ;;; Compute periodogram PSD estimate.
@@ -218,9 +218,9 @@
                    [power (* mag mag)])
                   (vector-set! psd k (/ power (* n window-energy)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Welch's Method (Averaged Periodogram)
-;;; ============================================================
+;;; ====
 
 ;;; welch-psd : Vector[Number] × Integer × Integer × Symbol → Vector[Number]
 ;;; Compute Power Spectral Density using Welch's method.
@@ -279,9 +279,9 @@
                          (/ (vector-ref psd k)
                             (* num-segments segment-len window-energy))))))
 
-;;; ============================================================
+;;; ====
 ;;; Frequency Grid Utilities
-;;; ============================================================
+;;; ====
 
 ;;; spectrogram-frequencies : Integer × Number → Vector[Number]
 ;;; Compute frequency grid for spectrogram.
@@ -312,9 +312,9 @@
             (let ([sample (+ (* i hop-len) (quotient frame-len 2))])
                  (vector-set! times i (/ sample fs))))))
 
-;;; ============================================================
+;;; ====
 ;;; Spectral Features
-;;; ============================================================
+;;; ====
 
 ;;; spectral-centroid : Vector[Number] × Vector[Number] → Number
 ;;; Compute spectral centroid (center of mass of spectrum).

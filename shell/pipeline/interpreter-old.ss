@@ -25,16 +25,16 @@
 (load "lattice/pipeline/effects.ss")
 (load "lattice/pipeline/context.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Interpreter State
-;;; ============================================================
+;;; ====
 
 ;;; Current session for Fold IPC
 (define *pipeline-session* (make-parameter "pipeline"))
 
-;;; ============================================================
+;;; ====
 ;;; Main Interpreter Entry Point
-;;; ============================================================
+;;; ====
 
 ;;; run-pipeline : PipelineDef -> Any -> (StageResult . PipelineState)
 ;;; Execute a pipeline with input, return result and final state.
@@ -50,9 +50,9 @@
 (define (run-pipeline-with-context stage ctx input)
   (interpret-pipeline stage ctx empty-state input))
 
-;;; ============================================================
+;;; ====
 ;;; Pipeline Interpretation Loop
-;;; ============================================================
+;;; ====
 
 ;;; interpret-pipeline : Stage -> Context -> State -> Input -> (Result . State)
 (define (interpret-pipeline stage ctx state input)
@@ -85,9 +85,9 @@
                      result)
           state)]))
 
-;;; ============================================================
+;;; ====
 ;;; Effect Interpretation
-;;; ============================================================
+;;; ====
 
 ;;; interpret-effect : Effect -> Context -> State -> (Result . State)
 (define (interpret-effect effect ctx state)
@@ -113,9 +113,9 @@
                                effect)
                     state)])))
 
-;;; ============================================================
+;;; ====
 ;;; LLM Effect Interpretation
-;;; ============================================================
+;;; ====
 
 ;;; interpret-llm-effect : Payload -> Context -> State -> Input -> (Result . State)
 (define (interpret-llm-effect payload ctx state input)
@@ -171,9 +171,9 @@
                                payload)
                     state)])))
 
-;;; ============================================================
+;;; ====
 ;;; Fold Effect Interpretation
-;;; ============================================================
+;;; ====
 
 ;;; interpret-fold-effect : Payload -> Context -> State -> Input -> (Result . State)
 (define (interpret-fold-effect payload ctx state input)
@@ -229,9 +229,9 @@
                                payload)
                     state)])))
 
-;;; ============================================================
+;;; ====
 ;;; Shell Effect Interpretation
-;;; ============================================================
+;;; ====
 
 ;;; interpret-shell-effect : Payload -> Context -> State -> Input -> (Result . State)
 (define (interpret-shell-effect payload ctx state input)
@@ -276,9 +276,9 @@
                                payload)
                     state)])))
 
-;;; ============================================================
+;;; ====
 ;;; Log Effect Interpretation
-;;; ============================================================
+;;; ====
 
 ;;; interpret-log-effect : Payload -> Context -> State -> Input -> (Result . State)
 (define (interpret-log-effect payload ctx state input)
@@ -291,9 +291,9 @@
              (write-pipeline-log entry)
              (cons (stage-ok input) new-state))))
 
-;;; ============================================================
+;;; ====
 ;;; Checkpoint Effect Interpretation
-;;; ============================================================
+;;; ====
 
 ;;; interpret-checkpoint-effect : Payload -> Context -> State -> Input -> (Result . State)
 (define (interpret-checkpoint-effect payload ctx state input)
@@ -345,9 +345,9 @@
                                payload)
                     state)])))
 
-;;; ============================================================
+;;; ====
 ;;; HTTP Effect Interpretation
-;;; ============================================================
+;;; ====
 
 ;;; interpret-http-effect : Payload -> Context -> State -> Input -> (Result . State)
 (define (interpret-http-effect payload ctx state input)
@@ -384,9 +384,9 @@
                                payload)
                     state)])))
 
-;;; ============================================================
+;;; ====
 ;;; Beads Effect Interpretation
-;;; ============================================================
+;;; ====
 
 ;;; interpret-beads-effect : Payload -> Context -> State -> Input -> (Result . State)
 (define (interpret-beads-effect payload ctx state input)
@@ -439,9 +439,9 @@
                                payload)
                     state)])))
 
-;;; ============================================================
+;;; ====
 ;;; Git Effect Interpretation
-;;; ============================================================
+;;; ====
 
 ;;; interpret-git-effect : Payload -> Context -> State -> Input -> (Result . State)
 (define (interpret-git-effect payload ctx state input)
@@ -486,9 +486,9 @@
                                payload)
                     state)])))
 
-;;; ============================================================
+;;; ====
 ;;; Pipeline Effect Interpretation (Nesting)
-;;; ============================================================
+;;; ====
 
 ;;; interpret-pipeline-effect : Payload -> Context -> State -> Input -> (Result . State)
 (define (interpret-pipeline-effect payload ctx state input)
@@ -534,9 +534,9 @@
                                payload)
                     state)])))
 
-;;; ============================================================
+;;; ====
 ;;; Council Effect Interpretation
-;;; ============================================================
+;;; ====
 
 ;;; interpret-council-effect : CouncilEffect -> Context -> State -> (Result . State)
 (define (interpret-council-effect effect ctx state)
@@ -667,9 +667,9 @@
 (define (run-consensus-council config topic ctx state)
   (run-sequential-council config topic ctx state))
 
-;;; ============================================================
+;;; ====
 ;;; Helper Functions
-;;; ============================================================
+;;; ====
 
 ;;; expand-template-with-ctx : String -> Context -> Input -> String
 (define (expand-template-with-ctx template ctx input)
@@ -727,9 +727,9 @@
 (define (generate-job-id)
   (format "job-~a" (random 1000000)))
 
-;;; ============================================================
+;;; ====
 ;;; External API Stubs (to be implemented)
-;;; ============================================================
+;;; ====
 
 ;;; *llm-api-key-file* : String
 ;;; Path to file containing Anthropic API key
@@ -1370,9 +1370,9 @@
            (cons (stage-err 'race-empty "No stages to race" '()) state)
            (interpret-pipeline (car stages) ctx state input))))
 
-;;; ============================================================
+;;; ====
 ;;; Discord Effect Interpretation
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Discord effects write to the outbox directory where bridge.js watches.
 ;;; The outbox path is: .fold-repl/discord-outbox/*.json
@@ -1450,9 +1450,9 @@
                                payload)
                     state)])))
 
-;;; ============================================================
+;;; ====
 ;;; Discord Queue Helpers
-;;; ============================================================
+;;; ====
 ;;; These write JSON files to the outbox for bridge.js to pick up.
 
 ;;; discord-queue-post : Symbol -> Maybe String -> String -> Context -> ()

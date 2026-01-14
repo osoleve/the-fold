@@ -6,9 +6,9 @@
 
 (load "shell/bbs/index.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Timestamp Generation
-;;; ============================================================
+;;; ====
 
 ;;; bbs-timestamp : -> String
 ;;; Generate an ISO 8601 timestamp for now.
@@ -22,9 +22,9 @@
             (date-minute t)
             (date-second t))))
 
-;;; ============================================================
+;;; ====
 ;;; Issue Creation
-;;; ============================================================
+;;; ====
 
 ;;; bbs-create : String -> String
 ;;; Create a new issue with just a title.
@@ -56,9 +56,9 @@
      [(eq? (car lst) key) (cadr lst)]
      [else (loop (cdr lst))])))
 
-;;; ============================================================
+;;; ====
 ;;; Issue Updates
-;;; ============================================================
+;;; ====
 
 ;;; bbs-update : String -> Bytevector
 ;;; Update an issue. Returns the new hash.
@@ -110,9 +110,9 @@
 
       new-hash))))
 
-;;; ============================================================
+;;; ====
 ;;; Issue Close/Reopen
-;;; ============================================================
+;;; ====
 
 ;;; bbs-close : String -> Bytevector
 ;;; Close an issue.
@@ -128,9 +128,9 @@
 (define (bbs-reopen id)
   (bbs-update id 'status 'open))
 
-;;; ============================================================
+;;; ====
 ;;; Dependencies
-;;; ============================================================
+;;; ====
 
 ;;; bbs-dep : String|Symbol String|Symbol -> Void
 ;;; Add a dependency: blocker blocks blocked.
@@ -153,9 +153,9 @@
         [blocked-str (if (symbol? blocked) (symbol->string blocked) blocked)])
     (bbs-remove-dep! blocker-str blocked-str)))
 
-;;; ============================================================
+;;; ====
 ;;; Comments
-;;; ============================================================
+;;; ====
 
 ;;; *bbs-comment-counter* : Hashtable String -> Int
 ;;; Track next comment ID per issue.

@@ -3,9 +3,9 @@
 (load "core/base/prelude.ss")
 (load "lattice/fp/control-systems/controller-design.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Test Framework
-;;; ============================================================
+;;; ====
 
 (define tests-passed 0)
 (define tests-failed 0)
@@ -34,9 +34,9 @@
 
 (printf "\n=== Controller Design Tests ===\n\n")
 
-;;; ============================================================
+;;; ====
 ;;; PID Controller Tests
-;;; ============================================================
+;;; ====
 
 (printf "--- PID Controller Design ---\n")
 
@@ -86,9 +86,9 @@
       ;; Kp = tau / (K * (lambda + theta)) = 5 / (2 * 2) = 1.25
       (test-approx "Lambda: Kp" 1.25 Kp 0.01))
 
-;;; ============================================================
+;;; ====
 ;;; Pole Placement Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n--- Pole Placement ---\n")
 
@@ -120,9 +120,9 @@
 (let ([A (matrix-from-lists '((1 2 3) (4 5 6) (7 8 9)))])
      (test-approx "matrix trace" 15.0 (matrix-trace A) 1e-10))
 
-;;; ============================================================
+;;; ====
 ;;; Observer Design Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n--- Observer Design ---\n")
 
@@ -139,9 +139,9 @@
       (test "Observer: L rows" 2 (matrix-rows L))
       (test "Observer: L cols" 1 (matrix-cols L)))
 
-;;; ============================================================
+;;; ====
 ;;; LQR Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n--- LQR ---\n")
 
@@ -181,9 +181,9 @@
                  (or (and (pair? eigenvalues) (eq? (car eigenvalues) 'error))
                      (list? eigenvalues)))))
 
-;;; ============================================================
+;;; ====
 ;;; Discrete LQR Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n--- Discrete LQR ---\n")
 
@@ -206,9 +206,9 @@
                  (or (and (pair? eigenvalues) (eq? (car eigenvalues) 'error))
                      (list? eigenvalues)))))
 
-;;; ============================================================
+;;; ====
 ;;; LQG Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n--- LQG ---\n")
 
@@ -230,9 +230,9 @@
            (test "LQG: K is matrix" #t (matrix? K))
            (test "LQG: L is matrix" #t (matrix? L))))
 
-;;; ============================================================
+;;; ====
 ;;; H-infinity Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n--- H-infinity ---\n")
 
@@ -248,9 +248,9 @@
      (test "Hinf bounded by 2" #t (hinf-bounded? tf 2))
      (test "Hinf not bounded by 0.5" #f (hinf-bounded? tf 0.5)))
 
-;;; ============================================================
+;;; ====
 ;;; Lead/Lag Compensator Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n--- Lead/Lag Compensators ---\n")
 
@@ -268,9 +268,9 @@
      ;; DC gain = 5 * 0.1/0.01 = 50
      (test-approx "Lag: DC gain" 50.0 (tf-dc-gain lag) 0.1))
 
-;;; ============================================================
+;;; ====
 ;;; Closed-Loop Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n--- Closed-Loop Analysis ---\n")
 
@@ -288,9 +288,9 @@
       ;; S = 1/(1 + G*C) = 1/(1 + 2/(s+1)) = (s+1)/(s+3)
       (test "Sensitivity: order" 1 (tf-order S)))
 
-;;; ============================================================
+;;; ====
 ;;; Polynomial Evaluation Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n--- Polynomial at Matrix ---\n")
 
@@ -304,9 +304,9 @@
       (test-approx "poly-eval-matrix: (0,0)" 4.0 (matrix-ref pA 0 0) 1e-10)
       (test-approx "poly-eval-matrix: (0,1)" 0.0 (matrix-ref pA 0 1) 1e-10))
 
-;;; ============================================================
+;;; ====
 ;;; Edge Cases
-;;; ============================================================
+;;; ====
 
 (printf "\n--- Edge Cases ---\n")
 
@@ -323,9 +323,9 @@
       ;; A-BK = -2 - K = -5 → K = 3
       (test-approx "1x1 pole placement: K value" 3.0 (matrix-ref K 0 0) 0.1))
 
-;;; ============================================================
+;;; ====
 ;;; Helper function for checking all elements
-;;; ============================================================
+;;; ====
 
 (define (all? pred lst)
   (cond
@@ -333,13 +333,13 @@
    [(not (pred (car lst))) #f]
    [else (all? pred (cdr lst))]))
 
-;;; ============================================================
+;;; ====
 ;;; Summary
-;;; ============================================================
+;;; ====
 
-(printf "\n================================================================\n")
+(printf "\n====\n")
 (printf "                    TEST RESULTS\n")
-(printf "================================================================\n\n")
+(printf "====\n\n")
 (printf "Tests passed: ~a\n" tests-passed)
 (printf "Tests failed: ~a\n" tests-failed)
 (printf "Total tests:  ~a\n" (+ tests-passed tests-failed))

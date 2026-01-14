@@ -5,9 +5,9 @@
 (load "core/test-framework.ss")
 (load "lattice/dsl/tagless.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Dictionary Tests
-;;; ============================================================
+;;; ====
 
 (test-group tagless-dict-basics
             (define-test make-dict-creates-dictionary
@@ -36,9 +36,9 @@
                     (assert-true (dict-has? d3 'x))
                     (assert-true (dict-has? d3 'y)))))
 
-;;; ============================================================
+;;; ====
 ;;; Expression Algebra Tests
-;;; ============================================================
+;;; ====
 
 (test-group tagless-expr-eval
             (define-test eval-lit
@@ -117,9 +117,9 @@
               ;; Depth: add -> max(lit(8)=1, neg->add->max(lit,lit)=1 => 2 => 3) = 3 + 1 = 4
               (assert-equal 4 (example-expr-1 depth-expr-dict))))
 
-;;; ============================================================
+;;; ====
 ;;; Extensibility Tests
-;;; ============================================================
+;;; ====
 
 (test-group tagless-extensibility
             (define-test mul-extends-expr
@@ -129,9 +129,9 @@
             (define-test mul-extends-pretty
               (assert-equal "((2 * 3) + 4)" (example-mul pretty-mul-dict))))
 
-;;; ============================================================
+;;; ====
 ;;; Boolean Algebra Tests
-;;; ============================================================
+;;; ====
 
 (test-group tagless-bool
             (define-test bool-and-true
@@ -158,9 +158,9 @@
               (assert-equal "(true && false)"
                             (bool-and pretty-bool-dict "true" "false"))))
 
-;;; ============================================================
+;;; ====
 ;;; Environment-Based Expression Tests
-;;; ============================================================
+;;; ====
 
 (test-group tagless-env-expr
             (define-test env-lit-ignores-env
@@ -184,9 +184,9 @@
                    ;; let x = 5 in let y = 3 in x + y
                    (assert-equal 8 (run-env-expr d (example-let d))))))
 
-;;; ============================================================
+;;; ====
 ;;; State Monad Tests
-;;; ============================================================
+;;; ====
 
 (test-group tagless-state
             (define-test state-pure
@@ -213,9 +213,9 @@
                     (assert-equal '(() . (modified . original))
                                   (run-state comp 'original)))))
 
-;;; ============================================================
+;;; ====
 ;;; Multiple Interpreter Tests
-;;; ============================================================
+;;; ====
 
 (test-group tagless-run-both
             (define-test run-both-eval-and-count
@@ -228,9 +228,9 @@
                    (assert-equal 5 (car result))
                    (assert-equal "(8 + (-(1 + 2)))" (cdr result)))))
 
-;;; ============================================================
+;;; ====
 ;;; Free Monad Bridge Tests
-;;; ============================================================
+;;; ====
 
 (test-group tagless-free-bridge
             (define-test tagless-to-free-produces-ast
@@ -256,9 +256,9 @@
               ;; -(-(5)) should optimize to 5
               (assert-equal 5 (run-optimized example-expr-2 eval-expr-dict))))
 
-;;; ============================================================
+;;; ====
 ;;; Dictionary Transformer Tests
-;;; ============================================================
+;;; ====
 
 (test-group tagless-transformers
             (define-test with-tracing-still-works
@@ -266,9 +266,9 @@
               (let ([d (with-tracing eval-expr-dict)])
                    (assert-equal 5 (example-expr-1 d)))))
 
-;;; ============================================================
+;;; ====
 ;;; Typed Expression Tests
-;;; ============================================================
+;;; ====
 
 (test-group tagless-typed
             (define-test typed-lit-creates-int
@@ -297,9 +297,9 @@
                      [result ((dict-ref eval-typed-dict 'if) c t e)])
                     (assert-equal 1 (typed-value result)))))
 
-;;; ============================================================
+;;; ====
 ;;; Partial Evaluation Tests
-;;; ============================================================
+;;; ====
 
 (test-group tagless-partial-eval
             (define-test pe-lit-is-static
@@ -323,12 +323,12 @@
                     (assert-equal 'static (car result))
                     (assert-equal -5 (cadr result)))))
 
-;;; ============================================================
+;;; ====
 ;;; Run All Tests
-;;; ============================================================
+;;; ====
 
-(display "\n========================================\n")
+(display "\n====\n")
 (display "Running Tagless Final Tests\n")
-(display "========================================\n\n")
+(display "====\n\n")
 
 (run-all-tests)

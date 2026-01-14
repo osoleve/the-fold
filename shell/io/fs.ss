@@ -33,9 +33,9 @@
 ;;;     heads/
 ;;;       {channel}.head   ; forum head pointers
 
-;;; ============================================================
+;;; ====
 ;;; Capability Token
-;;; ============================================================
+;;; ====
 
 ;;; Capabilities are opaque records — unforgeable at runtime.
 ;;; Core cannot construct these; only Shell can mint them.
@@ -45,9 +45,9 @@
 (define-record-type fs-capability
   (fields store-path))
 
-;;; ============================================================
+;;; ====
 ;;; Path Utilities
-;;; ============================================================
+;;; ====
 
 ;;; hash->object-path : Bytevector × String → String
 ;;; Convert hash to filesystem path under store.
@@ -124,9 +124,9 @@
         [(char=? (string-ref str i) char) i]
         [else (loop (- i 1))])))
 
-;;; ============================================================
+;;; ====
 ;;; Store Initialization
-;;; ============================================================
+;;; ====
 
 ;;; mint-fs-capability : String → FS
 ;;; Mint a filesystem capability for the given store path.
@@ -145,9 +145,9 @@
                         (mkdir path))))
    '("objects" "pins" "heads")))
 
-;;; ============================================================
+;;; ====
 ;;; Store Operations
-;;; ============================================================
+;;; ====
 
 ;;; fs-store! : FS × Block → Bytevector
 ;;; Persist a block to disk and return its hash.
@@ -192,9 +192,9 @@
 (define (fs-pinned? fs hash)
   (file-exists? (hash->pin-path hash (fs-capability-store-path fs))))
 
-;;; ============================================================
+;;; ====
 ;;; Sync and Statistics
-;;; ============================================================
+;;; ====
 
 ;;; fs-sync! : FS → void
 ;;; Force all pending writes to disk.
@@ -235,9 +235,9 @@
                    (directory-list objects-path)))
            '())))
 
-;;; ============================================================
+;;; ====
 ;;; Head Pointers (for forum channels)
-;;; ============================================================
+;;; ====
 
 ;;; fs-write-head! : FS × Symbol × Bytevector → void
 ;;; Write a channel head pointer (overwrites if exists).
@@ -273,9 +273,9 @@
                                                (hex->hash clean))))
            #f)))
 
-;;; ============================================================
+;;; ====
 ;;; Batch Operations
-;;; ============================================================
+;;; ====
 
 ;;; fs-store-all! : FS × (List Block) → (List Bytevector)
 ;;; Store multiple blocks, return their hashes.

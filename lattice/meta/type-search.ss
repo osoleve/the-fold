@@ -10,9 +10,9 @@
 ;;;
 ;;; Requires lattice/meta/search.ss to be loaded first.
 
-;;; ============================================================
+;;; ====
 ;;; Type Signature Utilities
-;;; ============================================================
+;;; ====
 
 ;;; has-type-sig? : String -> Bool
 ;;; Check if a docstring contains a type signature (has : and ->)
@@ -164,9 +164,9 @@
             [(string=? (substring haystack i (+ i n-len)) needle) i]
             [else (loop (+ i 1))])))))
 
-;;; ============================================================
+;;; ====
 ;;; Type-Aware Search (uses existing BM25 infrastructure)
-;;; ============================================================
+;;; ====
 
 ;;; lf-type : String -> Void
 ;;; Search for functions with matching type signatures
@@ -217,9 +217,9 @@
       (if (symbol? (car r)) (car r) (cadr r))
       r))
 
-;;; ============================================================
+;;; ====
 ;;; Output
-;;; ============================================================
+;;; ====
 
 ;;; print-type-results : (List Result) × String -> Void
 (define (print-type-results results query)
@@ -249,9 +249,9 @@
       '()
       (cons (car lst) (take-n (- n 1) (cdr lst)))))
 
-;;; ============================================================
+;;; ====
 ;;; REPL Interface
-;;; ============================================================
+;;; ====
 
 (printf "type-search.ss loaded.\n")
 (printf "  (lf-type \"query\")      - Search types for query\n")

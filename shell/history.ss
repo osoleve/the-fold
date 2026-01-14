@@ -25,17 +25,17 @@
 ;;;   - Size limits
 ;;;   - Metadata tracking (timestamp, session)
 
-;;; ============================================================
+;;; ====
 ;;; Configuration
-;;; ============================================================
+;;; ====
 
 (define *history-max-size* 1000)
 (define *history-file* ".fold-history")
 (define *suppress-duplicates* #t)
 
-;;; ============================================================
+;;; ====
 ;;; History State
-;;; ============================================================
+;;; ====
 
 ;;; History entry structure:
 ;;; (entry timestamp session-id command result-summary)
@@ -55,9 +55,9 @@
 (define *history-path* #f)
 (define *history-dirty* #f)
 
-;;; ============================================================
+;;; ====
 ;;; Initialization
-;;; ============================================================
+;;; ====
 
 (define (history-init! path)
   "Initialize history system, loading from file if it exists"
@@ -83,9 +83,9 @@
   (when (not *history-path*)
         (display "Warning: history path not set, auto-save disabled\n")))
 
-;;; ============================================================
+;;; ====
 ;;; Adding Entries
-;;; ============================================================
+;;; ====
 
 (define (history-add! command success? result)
   "Add command to history"
@@ -149,9 +149,9 @@
        (+ (* (time-second t) 1000000000)
           (time-nanosecond t))))
 
-;;; ============================================================
+;;; ====
 ;;; Persistence
-;;; ============================================================
+;;; ====
 
 (define (history-save!)
   "Save history to disk"
@@ -168,9 +168,9 @@
                (set! *history-dirty* #f)
                'saved)))
 
-;;; ============================================================
+;;; ====
 ;;; Viewing History
-;;; ============================================================
+;;; ====
 
 (define (history-list . args)
   "Show last n history entries (default: 10)"
@@ -217,9 +217,9 @@
       '()
       (cons (car lst) (take (cdr lst) (- n 1)))))
 
-;;; ============================================================
+;;; ====
 ;;; Searching History
-;;; ============================================================
+;;; ====
 
 (define (history-search pattern)
   "Search history for pattern (substring match)"
@@ -244,9 +244,9 @@
        
        (display "\n")))
 
-;;; ============================================================
+;;; ====
 ;;; Replaying Commands
-;;; ============================================================
+;;; ====
 
 (define (history-replay n)
   "Re-execute history entry n"
@@ -277,9 +277,9 @@
         [(= (history-entry-id (car entries)) id) (car entries)]
         [else (loop (cdr entries))])))
 
-;;; ============================================================
+;;; ====
 ;;; History Management
-;;; ============================================================
+;;; ====
 
 (define (history-clear!)
   "Clear all history"
@@ -327,9 +327,9 @@
 
 ;;; NOTE: remove-duplicates is provided by core/base/prelude.ss
 
-;;; ============================================================
+;;; ====
 ;;; Auto-save on Exit
-;;; ============================================================
+;;; ====
 
 (define (history-shutdown!)
   "Save history and cleanup on shutdown"
@@ -338,9 +338,9 @@
         (history-save!)
         (display " done.\n")))
 
-;;; ============================================================
+;;; ====
 ;;; Help
-;;; ============================================================
+;;; ====
 
 (define (history-help)
   "Display help for history commands"
@@ -379,9 +379,9 @@ EXAMPLE:
   (history-stats)
 "))
 
-;;; ============================================================
+;;; ====
 ;;; Initialization
-;;; ============================================================
+;;; ====
 
 (display "\n")
 (display "History module loaded.\n")

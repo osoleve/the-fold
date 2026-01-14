@@ -12,14 +12,14 @@
 (load "core/lang/nbe.ss")
 
 (display "
-================================================================================
+====
                         KIND CHECKING TESTS
-================================================================================
+====
 ")
 
-;;; ============================================================
+;;; ====
 ;;; Built-in Kinds Well-Formedness
-;;; ============================================================
+;;; ====
 
 (test-group builtin-kinds-wellformed
             
@@ -50,9 +50,9 @@
             (define-test k-sort-1-valid
               (assert-true (kind? (K-sort 1)))))
 
-;;; ============================================================
+;;; ====
 ;;; Kind Inference on Base Types
-;;; ============================================================
+;;; ====
 
 (test-group kind-inference-base-types
             
@@ -77,9 +77,9 @@
             (define-test hash-has-kind-star
               (assert-true (kind=? (infer-kind 'Hash '()) K*))))
 
-;;; ============================================================
+;;; ====
 ;;; Kind Inference on Type Constructors
-;;; ============================================================
+;;; ====
 
 (test-group kind-inference-constructors
             
@@ -101,9 +101,9 @@
             (define-test partial-either-kind
               (assert-true (kind=? (infer-kind '(@ Either String) '()) (K=> K* K*)))))
 
-;;; ============================================================
+;;; ====
 ;;; Kind Inference on Compound Types
-;;; ============================================================
+;;; ====
 
 (test-group kind-inference-compound
             
@@ -122,9 +122,9 @@
             (define-test forall-multi-var-kind
               (assert-true (kind=? (infer-kind '(∀ (a b) (-> a b)) '()) K*))))
 
-;;; ============================================================
+;;; ====
 ;;; Kind Unification
-;;; ============================================================
+;;; ====
 
 (test-group kind-unification
             
@@ -168,9 +168,9 @@
               (let ([result (unify-kinds (K=> 'κa 'κb) (K=> K* K-constraint))])
                    (assert-equal 'ok (car result)))))
 
-;;; ============================================================
+;;; ====
 ;;; Kind Normalization
-;;; ============================================================
+;;; ====
 
 (test-group kind-normalization
             
@@ -195,9 +195,9 @@
             (define-test normalize-nested-arrow
               (assert-equal '(⇒ * (⇒ * *)) (kind-nf (K=> K* (K=> K* K*))))))
 
-;;; ============================================================
+;;; ====
 ;;; Kind Equivalence
-;;; ============================================================
+;;; ====
 
 (test-group kind-equivalence
             
@@ -230,9 +230,9 @@
                             (K-pi 'f (K=> K* K*) K*)
                             (K-pi 'g (K=> K* K*) K*)))))
 
-;;; ============================================================
+;;; ====
 ;;; Type Class Kind Signatures
-;;; ============================================================
+;;; ====
 
 (test-group typeclass-kinds
             
@@ -263,9 +263,9 @@
             (define-test arrow-kind-wellformed
               (assert-true (kind? (typeclass-kind TC-Arrow)))))
 
-;;; ============================================================
+;;; ====
 ;;; Dependent Kind Constructs
-;;; ============================================================
+;;; ====
 
 (test-group dependent-kinds
             
@@ -305,9 +305,9 @@
               (let ([dk (K-pi 'f (K=> K* K*) K-constraint)])
                    (assert-true (kind=? K-constraint (dep-kind-codomain dk))))))
 
-;;; ============================================================
+;;; ====
 ;;; Kind Error Handling
-;;; ============================================================
+;;; ====
 
 (test-group kind-errors
             
@@ -324,9 +324,9 @@
               (let ([result (infer-kind '(List Either) '())])
                    (assert-true (and (pair? result) (eq? (car result) 'error))))))
 
-;;; ============================================================
+;;; ====
 ;;; Higher-Kinded Type Inference
-;;; ============================================================
+;;; ====
 
 (test-group hkt-inference
             
@@ -354,9 +354,9 @@
               (let ([env `((g . ,(K=>* K* K* K*)))])
                    (assert-true (kind=? K* (infer-kind '(@ g Nat Bool) env))))))
 
-;;; ============================================================
+;;; ====
 ;;; Kinded Type Variables
-;;; ============================================================
+;;; ====
 
 (test-group kinded-type-vars
             
@@ -381,9 +381,9 @@
                             (-> (-> a b) (@ f a) (@ f b)))])
                    (assert-true (kind=? K* (infer-kind type '()))))))
 
-;;; ============================================================
+;;; ====
 ;;; Built-in Kind Table Completeness
-;;; ============================================================
+;;; ====
 
 (test-group builtin-kind-table
             
@@ -405,15 +405,15 @@
                                (kind=? (K=>* K* K* K*) (lookup-kind name)))
                        '(Either Pair Result)))))
 
-;;; ============================================================
+;;; ====
 ;;; Summary
-;;; ============================================================
+;;; ====
 
 (newline)
-(display "================================================================================")
+(display "====")
 (newline)
 (display "                     KIND CHECK TESTS COMPLETE")
 (newline)
-(display "================================================================================")
+(display "====")
 (newline)
 (exit-with-summary)

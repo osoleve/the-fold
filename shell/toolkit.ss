@@ -24,9 +24,9 @@
 
 (load "core/base/prelude.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Toolkit Registry
-;;; ============================================================
+;;; ====
 
 ;;; Tool categories and their descriptions
 (define *toolkit-categories*
@@ -82,9 +82,9 @@
     (dead-code analysis "Dead code and unused binding detection" "tools/dead-code.ss")
     (type-search analysis "Type-driven search and suggestions" "tools/type-search.ss")))
 
-;;; ============================================================
+;;; ====
 ;;; Help System
-;;; ============================================================
+;;; ====
 
 ;;; toolkit-help : [Symbol] → void
 ;;; Display help for the toolkit or a specific category.
@@ -164,9 +164,9 @@
 (define (category-name sym)
   (string-upcase (symbol->string sym)))
 
-;;; ============================================================
+;;; ====
 ;;; Loading Tools
-;;; ============================================================
+;;; ====
 
 ;;; toolkit-load : Symbol → void
 ;;; Load a specific tool by name.
@@ -212,9 +212,9 @@
    *toolkit-categories*)
   (display "\n✓ Complete toolkit loaded.\n"))
 
-;;; ============================================================
+;;; ====
 ;;; Quick Access Functions
-;;; ============================================================
+;;; ====
 
 ;;; Convenience functions for commonly used tools
 
@@ -248,9 +248,9 @@
   (toolkit-load 'store-analyze)
   (store-stats (fs)))
 
-;;; ============================================================
+;;; ====
 ;;; Utility Functions
-;;; ============================================================
+;;; ====
 
 ;;; make-string : Nat × Char → String
 ;;; Create string of n copies of character.
@@ -263,9 +263,9 @@
       '()
       (cons x (make-list-of (- n 1) x))))
 
-;;; ============================================================
+;;; ====
 ;;; Initialization
-;;; ============================================================
+;;; ====
 
 (display "\n=== TOOLKIT LOADED ===\n")
 (display "(toolkit-help) - list tools | (toolkit-load 'name) - load tool\n\n")

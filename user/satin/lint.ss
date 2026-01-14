@@ -3,9 +3,9 @@
 ;;; Provides style suggestions and warnings beyond basic validation.
 ;;; Catches common authoring mistakes and suggests improvements.
 
-;;; ============================================================
+;;; ====
 ;;; Lint Issue Structure
-;;; ============================================================
+;;; ====
 
 ;;; Lint issues are similar to validation issues but include:
 ;;; - 'style' level for purely stylistic suggestions
@@ -41,9 +41,9 @@
   (and (satin-lint-issue? i)
        (eq? (satin-lint-level i) 'hint)))
 
-;;; ============================================================
+;;; ====
 ;;; Main Lint Function
-;;; ============================================================
+;;; ====
 
 ;;; satin-lint : SatinSpec → (List LintIssue)
 ;;; Lint a Satin specification for style and correctness issues.
@@ -85,9 +85,9 @@
            
            (reverse issues))))
 
-;;; ============================================================
+;;; ====
 ;;; Story-Level Lints
-;;; ============================================================
+;;; ====
 
 (define (satin-lint-story spec add!)
   ;; Check for missing title
@@ -137,9 +137,9 @@
                                      (get-span spec)
                                      "Use lowercase-with-hyphens for IDs")))))
 
-;;; ============================================================
+;;; ====
 ;;; Node-Level Lints
-;;; ============================================================
+;;; ====
 
 (define (satin-lint-node node add!)
   (let ([id (satin-node-id node)]
@@ -204,9 +204,9 @@
                                               "Use unique labels for clarity")))
               dups))))
 
-;;; ============================================================
+;;; ====
 ;;; Dialogue-Level Lints
-;;; ============================================================
+;;; ====
 
 (define (satin-lint-dialogue dialogue add!)
   (let ([id (satin-dialogue-id dialogue)]
@@ -219,9 +219,9 @@
                                      (get-span dialogue)
                                      "Add at least one dialogue node")))))
 
-;;; ============================================================
+;;; ====
 ;;; Quest-Level Lints
-;;; ============================================================
+;;; ====
 
 (define (satin-lint-quest quest add!)
   (let ([id (satin-quest-id quest)]
@@ -234,9 +234,9 @@
                                      (get-span quest)
                                      "Consider adding more steps or using a flag instead")))))
 
-;;; ============================================================
+;;; ====
 ;;; Exercise-Level Lints
-;;; ============================================================
+;;; ====
 
 (define (satin-lint-exercise exercise add!)
   (let ([id (satin-exercise-id exercise)]
@@ -250,9 +250,9 @@
                                      (get-span exercise)
                                      "Consider adding (hints ...) for struggling learners")))))
 
-;;; ============================================================
+;;; ====
 ;;; Lesson-Level Lints
-;;; ============================================================
+;;; ====
 
 (define (satin-lint-lesson lesson add!)
   (let ([id (satin-lesson-id lesson)]
@@ -273,9 +273,9 @@
                                      (get-span lesson)
                                      "Add node/exercise IDs to the sequence")))))
 
-;;; ============================================================
+;;; ====
 ;;; MCQ-Level Lints
-;;; ============================================================
+;;; ====
 
 (define (satin-lint-mcq mcq add!)
   (let ([id (satin-mcq-id mcq)]
@@ -310,9 +310,9 @@
                                      (get-span mcq)
                                      "Add (explanation ...) to help learners understand")))))
 
-;;; ============================================================
+;;; ====
 ;;; Helper Functions
-;;; ============================================================
+;;; ====
 
 ;;; Find all nodes reachable from start via choices.
 (define (satin-find-reachable nodes start)
@@ -359,9 +359,9 @@
                            (string-ref substr i))) #f]
              [else (loop (+ i 1))]))))
 
-;;; ============================================================
+;;; ====
 ;;; Issue Formatting
-;;; ============================================================
+;;; ====
 
 ;;; satin-format-lint : LintIssue → String
 (define (satin-format-lint issue)

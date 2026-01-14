@@ -18,9 +18,9 @@
 (load "lattice/linalg/vec3.ss")
 (load "lattice/linalg/quaternion.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Base Constraint Structure
-;;; ============================================================
+;;; ====
 
 ;;; A constraint connects two bodies (or one body to world) with
 ;;; specific movement restrictions.
@@ -85,9 +85,9 @@
                       (constraint-3d-solver-position c)
                       new-lambda))
 
-;;; ============================================================
+;;; ====
 ;;; Distance Constraint (1 DOF)
-;;; ============================================================
+;;; ====
 
 ;;; Distance constraint data:
 ;;;   (list local-anchor-a local-anchor-b target-distance)
@@ -105,9 +105,9 @@
 ;;; distance-data-3d-target : DistanceData3D → Number
 (define (distance-data-3d-target d) (list-ref d 2))
 
-;;; ============================================================
+;;; ====
 ;;; Ball-Socket Joint (3 DOF removed - point-to-point)
-;;; ============================================================
+;;; ====
 
 ;;; Ball-socket constraint data:
 ;;;   (list local-anchor-a local-anchor-b)
@@ -122,9 +122,9 @@
 ;;; ball-socket-data-3d-anchor-b : BallSocketData3D → Vec3
 (define (ball-socket-data-3d-anchor-b d) (list-ref d 1))
 
-;;; ============================================================
+;;; ====
 ;;; Hinge Joint (5 DOF removed - point + axis alignment)
-;;; ============================================================
+;;; ====
 
 ;;; Hinge constraint data:
 ;;;   (list local-anchor-a local-anchor-b local-axis-a local-axis-b)
@@ -145,9 +145,9 @@
 ;;; hinge-data-3d-axis-b : HingeData3D → Vec3
 (define (hinge-data-3d-axis-b d) (list-ref d 3))
 
-;;; ============================================================
+;;; ====
 ;;; Fixed Joint (6 DOF removed - rigid connection)
-;;; ============================================================
+;;; ====
 
 ;;; Fixed constraint data:
 ;;;   (list local-anchor-a local-anchor-b reference-orientation)
@@ -165,9 +165,9 @@
 ;;; fixed-data-3d-reference-orientation : FixedData3D → Quat
 (define (fixed-data-3d-reference-orientation d) (list-ref d 2))
 
-;;; ============================================================
+;;; ====
 ;;; Spring Constraint (Soft 1 DOF)
-;;; ============================================================
+;;; ====
 
 ;;; Spring constraint data:
 ;;;   (list local-anchor-a local-anchor-b rest-length stiffness damping)
@@ -192,9 +192,9 @@
 ;;; spring-data-3d-damping : SpringData3D → Number
 (define (spring-data-3d-damping d) (list-ref d 4))
 
-;;; ============================================================
+;;; ====
 ;;; Anchor Constraint (Pin to World - 3 DOF removed)
-;;; ============================================================
+;;; ====
 
 ;;; Anchor constraint data:
 ;;;   (list local-anchor world-target)
@@ -209,9 +209,9 @@
 ;;; anchor-data-3d-world-target : AnchorData3D → Vec3
 (define (anchor-data-3d-world-target d) (list-ref d 1))
 
-;;; ============================================================
+;;; ====
 ;;; Helper: Local to World Transform
-;;; ============================================================
+;;; ====
 
 ;;; local-to-world-3d : RigidBody3D × Vec3 → Vec3
 ;;; Transform a local point to world coordinates using body position and orientation.
@@ -241,9 +241,9 @@
   (let ([orient (rigid-body-3d-orientation body)])
        (quat-rotate-vec3 orient local-dir)))
 
-;;; ============================================================
+;;; ====
 ;;; Helper: Get Anchor World Positions (Placeholder)
-;;; ============================================================
+;;; ====
 
 ;;; These functions compute world-space anchor positions from local anchors.
 ;;; They require integration with the world/entity system.
@@ -257,9 +257,9 @@
 ;;; Get world position of anchor B.
 ;;; (Placeholder - will be implemented by solver)
 
-;;; ============================================================
+;;; ====
 ;;; Constraint Factory Stubs
-;;; ============================================================
+;;; ====
 
 ;;; These create constraints without solvers attached.
 ;;; The solver functions will be attached by constraint-solver3d.ss.

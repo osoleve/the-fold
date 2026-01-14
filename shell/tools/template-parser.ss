@@ -21,9 +21,9 @@
 
 (load "shell/tools/template-session.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Tokenizer (Read-based)
-;;; ============================================================
+;;; ====
 
 ;;; tokenize : String → (List Sexpr)
 ;;; Parse string into a list of S-expressions using Scheme's reader.
@@ -36,9 +36,9 @@
             (reverse acc)
             (loop (cons datum acc)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Implicit Parens
-;;; ============================================================
+;;; ====
 
 ;;; apply-implicit-parens : (List Sexpr) → Sexpr
 ;;; If list has >1 element, wrap in parens (make a list).
@@ -49,9 +49,9 @@
     [(null? (cdr tokens)) (car tokens)]  ; Single token
     [else tokens]))  ; Multiple tokens → list (implicit parens)
 
-;;; ============================================================
+;;; ====
 ;;; Line Parsing
-;;; ============================================================
+;;; ====
 
 ;;; parse-assignment : String → (values Symbol Sexpr) | #f
 ;;; Try to parse a line as "$name := value".
@@ -73,9 +73,9 @@
 (define (parse-template-line line)
   (apply-implicit-parens (tokenize line)))
 
-;;; ============================================================
+;;; ====
 ;;; Main Parser Interface
-;;; ============================================================
+;;; ====
 
 ;;; tp-parse : String → Unit
 ;;; Parse a line and execute the appropriate template operation.
@@ -165,9 +165,9 @@
                   (cons (substring str start pos) acc))
             (reverse (cons (substring str start str-len) acc)))))))
 
-;;; ============================================================
+;;; ====
 ;;; String Utilities
-;;; ============================================================
+;;; ====
 
 ;;; string-find : String × String × Nat → Nat | #f
 ;;; Find first occurrence of needle in haystack starting at pos.
@@ -195,9 +195,9 @@
     [(pred (car lst)) (drop-while pred (cdr lst))]
     [else lst]))
 
-;;; ============================================================
+;;; ====
 ;;; Interactive Mode
-;;; ============================================================
+;;; ====
 
 ;;; tp-repl : → Unit
 ;;; Simple REPL for template construction.

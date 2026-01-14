@@ -11,9 +11,9 @@
 (load "core/types/dep-types.ss")
 (load "core/types/dep-infer.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Test Framework
-;;; ============================================================
+;;; ====
 
 (define *test-count* 0)
 (define *pass-count* 0)
@@ -51,9 +51,9 @@
 (define (test-error name result)
   (test name #t (and (pair? result) (eq? (car result) 'error))))
 
-;;; ============================================================
+;;; ====
 ;;; Test Signatures
-;;; ============================================================
+;;; ====
 
 ;; Simple signature with abstract type
 (define sig-monoid
@@ -90,9 +90,9 @@
     [include Monoid]
     [val inverse : (-> T T)]))
 
-;;; ============================================================
+;;; ====
 ;;; Tests
-;;; ============================================================
+;;; ====
 
 (define (run-tests)
   (display "
@@ -100,9 +100,9 @@
 
 ")
   
-  ;; --------------------------------------------------------
+  ;; ----
   ;; Signature Predicates
-  ;; --------------------------------------------------------
+  ;; ----
   (display "--- Signature Predicates ---
 ")
   
@@ -126,9 +126,9 @@
   (test-false "sig-well-formed? missing name"
               (sig-well-formed? '(sig [type T : Type])))
   
-  ;; --------------------------------------------------------
+  ;; ----
   ;; Signature Operations
-  ;; --------------------------------------------------------
+  ;; ----
   (display "
 --- Signature Operations ---
 ")
@@ -147,9 +147,9 @@
         3
         (length (sig-decls sig-int-monoid)))
   
-  ;; --------------------------------------------------------
+  ;; ----
   ;; Declaration Type Predicates
-  ;; --------------------------------------------------------
+  ;; ----
   (display "
 --- Declaration Type Predicates ---
 ")
@@ -176,9 +176,9 @@
   (test-false "sig-include-decl? on type"
               (sig-include-decl? '(type T : Type)))
   
-  ;; --------------------------------------------------------
+  ;; ----
   ;; Declaration Operations
-  ;; --------------------------------------------------------
+  ;; ----
   (display "
 --- Declaration Operations ---
 ")
@@ -210,9 +210,9 @@
         'T
         (sig-val-decl-type '(val empty : T)))
   
-  ;; --------------------------------------------------------
+  ;; ----
   ;; Signature Construction
-  ;; --------------------------------------------------------
+  ;; ----
   (display "
 --- Signature Construction ---
 ")
@@ -237,9 +237,9 @@
         '(include Monoid)
         (t-sig-include 'Monoid))
   
-  ;; --------------------------------------------------------
+  ;; ----
   ;; Signature Extraction
-  ;; --------------------------------------------------------
+  ;; ----
   (display "
 --- Signature Extraction ---
 ")
@@ -260,9 +260,9 @@
         '(T empty append)
         (sig-exports sig-monoid))
   
-  ;; --------------------------------------------------------
+  ;; ----
   ;; Type Display
-  ;; --------------------------------------------------------
+  ;; ----
   (display "
 --- Type Display ---
 ")
@@ -273,9 +273,9 @@
        (test-true "dep-type->string for signature contains sig"
                   (string-starts-with? (dep-type->string simple-sig) "sig ")))
   
-  ;; --------------------------------------------------------
+  ;; ----
   ;; Wellformedness
-  ;; --------------------------------------------------------
+  ;; ----
   (display "
 --- Wellformedness ---
 ")
@@ -285,9 +285,9 @@
   (test-true "well-formed-dep-type? sig-int-monoid"
              (well-formed-dep-type? sig-int-monoid))
   
-  ;; --------------------------------------------------------
+  ;; ----
   ;; Type Synthesis
-  ;; --------------------------------------------------------
+  ;; ----
   (display "
 --- Type Synthesis ---
 ")
@@ -325,9 +325,9 @@
   (test-ok "synth Monoid signature"
            (dep-synth sig-monoid empty-dep-ctx))
   
-  ;; --------------------------------------------------------
+  ;; ----
   ;; Integration with Dependent Types
-  ;; --------------------------------------------------------
+  ;; ----
   (display "
 --- Dependent Types Integration ---
 ")
@@ -341,9 +341,9 @@
   (test-ok "synth signature with data export"
            (dep-synth sig-nat empty-dep-ctx))
   
-  ;; --------------------------------------------------------
+  ;; ----
   ;; Summary
-  ;; --------------------------------------------------------
+  ;; ----
   (display "
 === Test Summary ===
 ")

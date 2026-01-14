@@ -12,9 +12,9 @@
 (load "core/base/prelude.ss")
 (load "lattice/fp/numeric/transcendental.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Complex Number Representation
-;;; ============================================================
+;;; ====
 
 ;;; Complex numbers are represented in rectangular form: a + bi
 ;;; where a is the real part and b is the imaginary part.
@@ -51,9 +51,9 @@
 (define (i-value)
   (make-complex 0 1))
 
-;;; ============================================================
+;;; ====
 ;;; Polar Form
-;;; ============================================================
+;;; ====
 
 ;;; make-polar : Number × Number → Complex
 ;;; Create a complex number from polar coordinates (magnitude, phase).
@@ -88,9 +88,9 @@
 (define (polar->complex r theta)
   (make-polar r theta))
 
-;;; ============================================================
+;;; ====
 ;;; Basic Arithmetic Operations
-;;; ============================================================
+;;; ====
 
 ;;; complex-add : Complex × Complex → Complex
 ;;; Add two complex numbers.
@@ -151,9 +151,9 @@
 (define (complex-reciprocal z)
   (complex-div (make-complex 1 0) z))
 
-;;; ============================================================
+;;; ====
 ;;; Comparison and Equality
-;;; ============================================================
+;;; ====
 
 ;;; complex-equal? : Complex × Complex → Boolean
 ;;; Test if two complex numbers are equal.
@@ -177,9 +177,9 @@
 (define (complex-imaginary? z)
   (= (complex-real z) 0))
 
-;;; ============================================================
+;;; ====
 ;;; Transcendental Functions
-;;; ============================================================
+;;; ====
 
 ;;; complex-exp : Complex → Complex
 ;;; Complex exponential function.
@@ -233,9 +233,9 @@
                   [im (* (if (>= b 0) 1 -1) (sqrt (/ (- r a) 2)))])
                  (make-complex re im)))))
 
-;;; ============================================================
+;;; ====
 ;;; Trigonometric Functions
-;;; ============================================================
+;;; ====
 
 ;;; complex-sin : Complex → Complex
 ;;; Complex sine.
@@ -261,9 +261,9 @@
 (define (complex-tan z)
   (complex-div (complex-sin z) (complex-cos z)))
 
-;;; ============================================================
+;;; ====
 ;;; Hyperbolic Functions
-;;; ============================================================
+;;; ====
 
 ;;; complex-sinh : Complex → Complex
 ;;; Complex hyperbolic sine.
@@ -289,9 +289,9 @@
 (define (complex-tanh z)
   (complex-div (complex-sinh z) (complex-cosh z)))
 
-;;; ============================================================
+;;; ====
 ;;; Utility Functions
-;;; ============================================================
+;;; ====
 
 ;;; complex->string : Complex → String
 ;;; Convert complex number to string representation.
@@ -322,9 +322,9 @@
 (define (complex-hermitian-product z1 z2)
   (complex-mul (complex-conjugate z1) z2))
 
-;;; ============================================================
+;;; ====
 ;;; Constants
-;;; ============================================================
+;;; ====
 
 ;;; complex-zero : → Complex
 ;;; The complex number 0 + 0i.

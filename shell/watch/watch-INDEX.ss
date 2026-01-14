@@ -3,9 +3,9 @@
 ;;; This file lists all components of the file watching and auto-reload system.
 ;;; Use this as a reference for what exists and where to find it.
 
-;;; ============================================================
+;;; ====
 ;;; CORE IMPLEMENTATION
-;;; ============================================================
+;;; ====
 
 ;;; shell/watch.ss
 ;;;   Main implementation of the watch system
@@ -28,9 +28,9 @@
 ;;;   Load with:
 ;;;     (load "shell/watch.ss")
 
-;;; ============================================================
+;;; ====
 ;;; DAEMON INTEGRATION
-;;; ============================================================
+;;; ====
 
 ;;; shell/watch-daemon-integration.ss
 ;;;   Integration with REPL daemon for development workflows
@@ -56,9 +56,9 @@
 ;;;     - Smart reload (module + dependents)
 ;;;     - Module dependency graph
 
-;;; ============================================================
+;;; ====
 ;;; TESTING
-;;; ============================================================
+;;; ====
 
 ;;; shell/test-watch.ss
 ;;;   Comprehensive test suite for watch system
@@ -108,9 +108,9 @@
 ;;;     - Verifies all components work together
 ;;;     - Quick smoke test
 
-;;; ============================================================
+;;; ====
 ;;; EXAMPLES
-;;; ============================================================
+;;; ====
 
 ;;; shell/watch-example.ss
 ;;;   Comprehensive examples of watch system usage
@@ -140,9 +140,9 @@
 ;;;     (watch-examples-help)  ; Show all examples
 ;;;     (example-1-auto-reload) ; Run example 1
 
-;;; ============================================================
+;;; ====
 ;;; DOCUMENTATION
-;;; ============================================================
+;;; ====
 
 ;;; shell/watch-README.ss
 ;;;   Complete documentation and API reference
@@ -227,9 +227,9 @@
 ;;;     - Complete file listing
 ;;;     - Quick reference
 
-;;; ============================================================
+;;; ====
 ;;; QUICK REFERENCE
-;;; ============================================================
+;;; ====
 
 ;;; Getting Started:
 ;;;   1. (load "shell/watch.ss")
@@ -262,9 +262,9 @@
 ;;;   (watch-examples-help)              ; Examples help
 ;;;   (load "shell/watch-quickstart.ss") ; Quick start guide
 
-;;; ============================================================
+;;; ====
 ;;; FILE ORGANIZATION
-;;; ============================================================
+;;; ====
 
 ;;; All files are in shell/ directory:
 ;;;
@@ -286,9 +286,9 @@
 ;;; Tests: 2 files (unit, integration)
 ;;; Documentation: 4 files (README, quickstart, summary, index)
 
-;;; ============================================================
+;;; ====
 ;;; DEPENDENCY GRAPH
-;;; ============================================================
+;;; ====
 
 ;;; watch.ss
 ;;;   └─ No dependencies (standalone)
@@ -319,9 +319,9 @@
 ;;; watch-INDEX.ss
 ;;;   └─ Documentation only (no runtime dependencies)
 
-;;; ============================================================
+;;; ====
 ;;; INTEGRATION WITH THE FOLD
-;;; ============================================================
+;;; ====
 
 ;;; The watch system integrates with:
 ;;;
@@ -353,9 +353,9 @@
 ;;;   - CAS (watch blocks, auto-index)
 ;;;   - Git hooks (watch commits, auto-test)
 
-;;; ============================================================
+;;; ====
 ;;; USAGE STATISTICS
-;;; ============================================================
+;;; ====
 
 ;;; Lines of code:
 ;;;   Implementation:        ~650 lines
@@ -388,9 +388,9 @@
 ;;;   ────────────────────────────────
 ;;;   Total:                 4 documentation files
 
-;;; ============================================================
+;;; ====
 ;;; CONCLUSION
-;;; ============================================================
+;;; ====
 
 ;;; The watch system is complete and ready to use.
 ;;;

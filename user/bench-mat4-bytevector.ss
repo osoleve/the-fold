@@ -8,16 +8,16 @@
 
 (display "=== Bytevector FFI Benchmark ===\n\n")
 
-;;; ============================================================
+;;; ====
 ;;; Load Library
-;;; ============================================================
+;;; ====
 
 (unless (accel-load!)
         (error 'bench "Cannot load acceleration library"))
 
-;;; ============================================================
+;;; ====
 ;;; Result struct for mat4 (must match Rust)
-;;; ============================================================
+;;; ====
 
 (define-ftype mat4-result-t
   (struct
@@ -28,9 +28,9 @@
    [m12 double] [m13 double] [m14 double] [m15 double]
    [fuel unsigned-64]))
 
-;;; ============================================================
+;;; ====
 ;;; FFI Bindings - Both Approaches
-;;; ============================================================
+;;; ====
 
 ;; Approach 1: void* (requires manual pointer passing)
 (define rust-mat4-mul-ptr
@@ -51,9 +51,9 @@
                      (u8* u8* unsigned-64 u8* unsigned-64 void* void*)
                      void))
 
-;;; ============================================================
+;;; ====
 ;;; Test Data as Bytevectors
-;;; ============================================================
+;;; ====
 
 (define mat-a-bv (make-mat4-bytevector))
 (define mat-b-bv (make-mat4-bytevector))
@@ -73,9 +73,9 @@
 (define identity-bv (make-mat4-bytevector))
 (mat4-identity! identity-bv)
 
-;;; ============================================================
+;;; ====
 ;;; Timing Utilities
-;;; ============================================================
+;;; ====
 
 (define (time-it name iterations thunk)
   (collect)
@@ -91,9 +91,9 @@
         (printf "~a: ~,0fns/call\n" name ns-per-call)
         ns-per-call))
 
-;;; ============================================================
+;;; ====
 ;;; Test 1: Correctness
-;;; ============================================================
+;;; ====
 
 (display "1. Correctness Test (A * I = A)\n")
 
@@ -122,9 +122,9 @@
           (newline))
          (printf "   Status: FAIL (~a)\n" status)))
 
-;;; ============================================================
+;;; ====
 ;;; Test 2: Performance - Bytevector vs Element Copy
-;;; ============================================================
+;;; ====
 
 (display "\n2. Performance: Bytevector Direct Pass\n")
 
@@ -163,9 +163,9 @@
 
 (printf "\n   Speedup: ~,2fx\n" (/ old-approach-ns bv-direct-ns))
 
-;;; ============================================================
+;;; ====
 ;;; Test 3: Batch Transform with Bytevectors
-;;; ============================================================
+;;; ====
 
 (display "\n3. Batch Transform (1000 points)\n\n")
 
@@ -243,9 +243,9 @@
 (printf "   Per-point: ~,1fns\n\n" (/ scheme-batch-ns batch-size))
 (printf "   Speedup: ~,2fx\n" (/ scheme-batch-ns bv-batch-ns))
 
-;;; ============================================================
+;;; ====
 ;;; Summary
-;;; ============================================================
+;;; ====
 
 (display "\n=== Summary ===\n")
 (printf "Single mat4 mul:\n")

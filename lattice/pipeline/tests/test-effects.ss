@@ -5,9 +5,9 @@
 (load "lattice/pipeline/effects.ss")
 (load "lattice/pipeline/context.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Test Framework (minimal)
-;;; ============================================================
+;;; ====
 
 (define *test-count* 0)
 (define *test-passed* 0)
@@ -49,15 +49,15 @@
        (display "SOME TESTS FAILED\n")
        (exit 1))))
 
-;;; ============================================================
+;;; ====
 ;;; Test Context
-;;; ============================================================
+;;; ====
 
 (define test-ctx empty-context)
 
-;;; ============================================================
+;;; ====
 ;;; LLM Effects
-;;; ============================================================
+;;; ====
 
 (run-tests "LLM Effects"
            (lambda ()
@@ -102,9 +102,9 @@
                                    (list 'call-structured 'opus "Parse user" '((name . string) (age . number)))
                                    (stage-effect-payload result))))))
 
-;;; ============================================================
+;;; ====
 ;;; Fold Effects
-;;; ============================================================
+;;; ====
 
 (run-tests "Fold Effects"
            (lambda ()
@@ -157,9 +157,9 @@
                                    (list 'call 'browse (list 'design 10))
                                    (stage-effect-payload result))))))
 
-;;; ============================================================
+;;; ====
 ;;; Shell Effects
-;;; ============================================================
+;;; ====
 
 (run-tests "Shell Effects"
            (lambda ()
@@ -199,9 +199,9 @@
                                    (list 'run-bg "long-running-task")
                                    (stage-effect-payload result))))))
 
-;;; ============================================================
+;;; ====
 ;;; Store Effects
-;;; ============================================================
+;;; ====
 
 (run-tests "Store Effects"
            (lambda ()
@@ -240,9 +240,9 @@
                                    (list 'pin "ghi789")
                                    (stage-effect-payload result))))))
 
-;;; ============================================================
+;;; ====
 ;;; Log Effects
-;;; ============================================================
+;;; ====
 
 (run-tests "Log Effects"
            (lambda ()
@@ -289,9 +289,9 @@
                                    (list 'metric 'latency 42.5)
                                    (stage-effect-payload result))))))
 
-;;; ============================================================
+;;; ====
 ;;; Checkpoint Effects
-;;; ============================================================
+;;; ====
 
 (run-tests "Checkpoint Effects"
            (lambda ()
@@ -338,9 +338,9 @@
                                    (list 'clear 'old-checkpoint)
                                    (stage-effect-payload result))))))
 
-;;; ============================================================
+;;; ====
 ;;; HTTP Effects
-;;; ============================================================
+;;; ====
 
 (run-tests "HTTP Effects"
            (lambda ()
@@ -381,9 +381,9 @@
                                    (list 'get-headers '(("Authorization" . "Bearer token")) "https://api.example.com")
                                    (stage-effect-payload result))))))
 
-;;; ============================================================
+;;; ====
 ;;; Await Effects
-;;; ============================================================
+;;; ====
 
 (run-tests "Await Effects"
            (lambda ()
@@ -423,9 +423,9 @@
                                    (list 'signal 'ready)
                                    (stage-effect-payload result))))))
 
-;;; ============================================================
+;;; ====
 ;;; BBS (Issue Tracker) Effects
-;;; ============================================================
+;;; ====
 
 (run-tests "BBS Effects"
            (lambda ()
@@ -486,9 +486,9 @@
                               stage-effect?
                               (run-stage beads-ready test-ctx "input"))))
 
-;;; ============================================================
+;;; ====
 ;;; Git Effects
-;;; ============================================================
+;;; ====
 
 (run-tests "Git Effects"
            (lambda ()
@@ -525,9 +525,9 @@
                               (list 'push)
                               (stage-effect-payload result)))))
 
-;;; ============================================================
+;;; ====
 ;;; Pipeline Effects
-;;; ============================================================
+;;; ====
 
 (run-tests "Pipeline Effects"
            (lambda ()
@@ -567,9 +567,9 @@
                                    (list 'await 'run-123)
                                    (stage-effect-payload result))))))
 
-;;; ============================================================
+;;; ====
 ;;; Discord Effects
-;;; ============================================================
+;;; ====
 
 (run-tests "Discord Effects"
            (lambda ()
@@ -631,9 +631,9 @@
                                    (list 'dm "user-456")
                                    (stage-effect-payload result))))))
 
-;;; ============================================================
+;;; ====
 ;;; Discord Await Effects
-;;; ============================================================
+;;; ====
 
 (run-tests "Discord Await Effects"
            (lambda ()
@@ -658,9 +658,9 @@
                                    (list 'discord-reply "msg-456")
                                    (stage-effect-payload result))))))
 
-;;; ============================================================
+;;; ====
 ;;; Effect Predicates
-;;; ============================================================
+;;; ====
 
 (run-tests "Effect Predicates"
            (lambda ()
@@ -728,9 +728,9 @@
                         (test-pred "discord-effect? true for discord" discord-effect? discord-eff)
                         (test "discord-effect? false for llm" #f (discord-effect? llm-eff)))))
 
-;;; ============================================================
+;;; ====
 ;;; Template Expansion
-;;; ============================================================
+;;; ====
 
 (run-tests "Template Expansion"
            (lambda ()
@@ -759,9 +759,9 @@
                          "Price: $10.00 for item"
                          (expand-template "Price: $10.00 for ${item}" '(("item" . "item"))))))
 
-;;; ============================================================
+;;; ====
 ;;; Effect Function (generic constructor)
-;;; ============================================================
+;;; ====
 
 (run-tests "Effect Function"
            (lambda ()
@@ -783,8 +783,8 @@
                                    '(payload data)
                                    (stage-effect-payload result))))))
 
-;;; ============================================================
+;;; ====
 ;;; Run All Tests
-;;; ============================================================
+;;; ====
 
 (test-summary)

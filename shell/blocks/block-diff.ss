@@ -37,9 +37,9 @@
 (load "blocks/expand.ss")
 (load "cas-persist.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Block Comparison
-;;; ============================================================
+;;; ====
 
 ;;; block-equal? : Block × Block → Boolean
 ;;; Check if two blocks are structurally equal.
@@ -57,9 +57,9 @@
                 (and (bytevector=? (vector-ref refs1 i) (vector-ref refs2 i))
                      (loop (+ i 1)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Diff Computation
-;;; ============================================================
+;;; ====
 
 ;;; DiffResult = (same | different | missing-left | missing-right)
 ;;; Diff = ((field . Symbol) (status . DiffResult) (left . Value) (right . Value))
@@ -124,9 +124,9 @@
                                              (hash . ,(vector-ref refs2 i))) diffs))]
                       [else (loop (+ i 1) diffs)]))))))
 
-;;; ============================================================
+;;; ====
 ;;; Similarity Metrics
-;;; ============================================================
+;;; ====
 
 ;;; block-similarity : Block × Block → Real
 ;;; Compute similarity score between 0.0 and 1.0.
@@ -182,9 +182,9 @@
                                              count))))])
               (/ (exact->inexact same-refs) (exact->inexact max-len)))])))
 
-;;; ============================================================
+;;; ====
 ;;; Display Utilities
-;;; ============================================================
+;;; ====
 
 ;;; display-block-summary : Block → void
 ;;; Display a concise summary of a block.
@@ -229,9 +229,9 @@
                        (display (format "  ⚠ ~a: missing in right block\n" field))])))
    diff))
 
-;;; ============================================================
+;;; ====
 ;;; Public API
-;;; ============================================================
+;;; ====
 
 ;;; block-diff : FS × Hash × Hash → void
 ;;; Compare two blocks and display differences.
@@ -384,9 +384,9 @@
                                   (loop-j (+ j 1))))
                        (loop-i (+ i 1)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Helper Functions
-;;; ============================================================
+;;; ====
 
 ;;; hex->hash : String → Hash
 ;;; Convert hex string to hash bytevector.

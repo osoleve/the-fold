@@ -3,9 +3,9 @@
 (load "core/base/prelude.ss")
 (load "lattice/fp/control-systems/stability.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Test Framework
-;;; ============================================================
+;;; ====
 
 (define tests-passed 0)
 (define tests-failed 0)
@@ -34,9 +34,9 @@
 
 (printf "\n=== Stability Analysis Tests ===\n\n")
 
-;;; ============================================================
+;;; ====
 ;;; Pole-Based Stability Tests
-;;; ============================================================
+;;; ====
 
 (printf "--- Pole-Based Stability ---\n")
 
@@ -81,9 +81,9 @@
 (test "discrete stable (|z|<1)" #t (discrete-stable? (list (make-complex 0.5 0.3))))
 (test "discrete unstable (|z|>1)" #f (discrete-stable? (list (make-complex 1.2 0))))
 
-;;; ============================================================
+;;; ====
 ;;; Routh-Hurwitz Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n--- Routh-Hurwitz Criterion ---\n")
 
@@ -111,9 +111,9 @@
 (let ([p (poly-from-list '(1 1 -2 -1))])
      (test "RH: count RHP > 0" #t (> (routh-hurwitz-count-rhp p) 0)))
 
-;;; ============================================================
+;;; ====
 ;;; Lyapunov Stability Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n--- Lyapunov Stability ---\n")
 
@@ -140,9 +140,9 @@
       ;; P = Q/(1-a^2) = 1/(1-0.25) = 1.333...
       (test-approx "discrete lyapunov: P value" 1.333 (matrix-ref P 0 0) 0.01))
 
-;;; ============================================================
+;;; ====
 ;;; Root Locus Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n--- Root Locus ---\n")
 
@@ -167,9 +167,9 @@
       ;; Centroid = (0 + (-1) + (-2)) / 3 = -1
       (test-approx "asymptotes: centroid" -1.0 centroid 0.01))
 
-;;; ============================================================
+;;; ====
 ;;; Gain and Phase Margin Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n--- Gain/Phase Margins ---\n")
 
@@ -194,9 +194,9 @@
       (test "1st order: high GM" #t (or (eq? (car margins) 'infinite)
                                         (> (car margins) 20))))
 
-;;; ============================================================
+;;; ====
 ;;; Nyquist Criterion Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n--- Nyquist Criterion ---\n")
 
@@ -210,9 +210,9 @@
       (test "nyquist points count" 10 (length pts))
       (test "nyquist points are complex" #t (complex? (car pts))))
 
-;;; ============================================================
+;;; ====
 ;;; BIBO Stability Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n--- BIBO Stability ---\n")
 
@@ -232,9 +232,9 @@
 (let ([tf (tf-from-lists '(1) '(1 -1.2))])  ; Pole at 1.2 > 1
      (test "BIBO discrete unstable" #f (bibo-stable-discrete? tf)))
 
-;;; ============================================================
+;;; ====
 ;;; Controllability/Observability Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n--- Controllability/Observability ---\n")
 
@@ -259,9 +259,9 @@
       (test "observability matrix rows" 2 (matrix-rows O))
       (test "observability matrix cols" 2 (matrix-cols O)))
 
-;;; ============================================================
+;;; ====
 ;;; Polynomial Derivative Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n--- Polynomial Derivative ---\n")
 
@@ -284,9 +284,9 @@
        [dp (poly-derivative p)])
       (test "constant derivative is zero" 0 (poly-degree dp)))
 
-;;; ============================================================
+;;; ====
 ;;; Integration Tests (Cross-Module)
-;;; ============================================================
+;;; ====
 
 (printf "\n--- Integration Tests ---\n")
 
@@ -304,9 +304,9 @@
       (test "report is string" #t (string? report))
       (test "report not empty" #t (> (string-length report) 0)))
 
-;;; ============================================================
+;;; ====
 ;;; Edge Cases
-;;; ============================================================
+;;; ====
 
 (printf "\n--- Edge Cases ---\n")
 
@@ -324,13 +324,13 @@
       (test "1x1 poles count" 1 (length poles))
       (test-approx "1x1 pole value" -0.5 (complex-real (car poles)) 1e-10))
 
-;;; ============================================================
+;;; ====
 ;;; Summary
-;;; ============================================================
+;;; ====
 
-(printf "\n================================================================\n")
+(printf "\n====\n")
 (printf "                    TEST RESULTS\n")
-(printf "================================================================\n\n")
+(printf "====\n\n")
 (printf "Tests passed: ~a\n" tests-passed)
 (printf "Tests failed: ~a\n" tests-failed)
 (printf "Total tests:  ~a\n" (+ tests-passed tests-failed))

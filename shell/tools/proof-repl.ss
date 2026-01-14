@@ -30,9 +30,9 @@
 (load "lattice/fp/rewrite/proof-tactics.ss")
 (load "lattice/fp/rewrite/laws.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Session State
-;;; ============================================================
+;;; ====
 
 ;;; Global state for the current proof sketch
 (define *current-sketch* #f)
@@ -43,13 +43,13 @@
 ;;; Maximum history entries to retain
 (define *max-proof-history* 10)
 
-;;; ============================================================
+;;; ====
 ;;; Display Helpers
-;;; ============================================================
+;;; ====
 
 ;;; display-divider : -> void
 (define (display-divider)
-  (display "------------------------------------------------------------\n"))
+  (display "----\n"))
 
 ;;; display-header : String -> void
 (define (display-header title)
@@ -64,14 +64,14 @@
 ;;; display-box : String -> void
 (define (display-box title)
   (newline)
-  (display "  +----------------------------------------------------------+\n")
+  (display "  +----+\n")
   (display "  |  ")
   (display title)
   (let* ([title-len (string-length title)]
          [padding (max 0 (- 54 title-len))])
         (display (make-string padding #\space)))
   (display "  |\n")
-  (display "  +----------------------------------------------------------+\n")
+  (display "  +----+\n")
   (newline))
 
 ;;; truncate-expr : Expr x Nat -> String
@@ -92,9 +92,9 @@
         [(blocked) "[blocked]"]
         [else "[??]"]))
 
-;;; ============================================================
+;;; ====
 ;;; Sketch Command
-;;; ============================================================
+;;; ====
 
 ;;; parse-equality : Expr -> (lhs . rhs) | #f
 ;;; Parse an equality expression like (= lhs rhs)
@@ -146,9 +146,9 @@
                  (newline)
                  (void)))))
 
-;;; ============================================================
+;;; ====
 ;;; Goals Command
-;;; ============================================================
+;;; ====
 
 ;;; goals : -> void
 ;;; Display all remaining goals.
@@ -190,9 +190,9 @@
                   (display "  All goals discharged! Use (qed) to finalize.\n"))
             (newline))))
 
-;;; ============================================================
+;;; ====
 ;;; Focus Command
-;;; ============================================================
+;;; ====
 
 ;;; focus : Nat -> void
 ;;; Focus on a specific goal by index.
@@ -221,9 +221,9 @@
                       (newline)
                       (newline)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Apply Command
-;;; ============================================================
+;;; ====
 
 ;;; proof-apply : Symbol -> void
 ;;; Apply a named law to the current goal.
@@ -270,9 +270,9 @@
                                                       (newline)))
                                             (newline))))))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Hint Command
-;;; ============================================================
+;;; ====
 
 ;;; hint : -> void
 ;;; Suggest applicable laws for the current goal.
@@ -331,9 +331,9 @@
                     (loop (cdr xs) (cons result acc))
                     (loop (cdr xs) acc))))))
 
-;;; ============================================================
+;;; ====
 ;;; Undo Command
-;;; ============================================================
+;;; ====
 
 ;;; undo : -> void
 ;;; Undo the last step in the proof.
@@ -355,9 +355,9 @@
            (display (format "  (~a more undo(s) available)\n\n"
                             (sketch-undo-depth *current-sketch*)))))))
 
-;;; ============================================================
+;;; ====
 ;;; QED Command
-;;; ============================================================
+;;; ====
 
 ;;; qed : -> void
 ;;; Finalize the proof if all goals are discharged.
@@ -398,9 +398,9 @@
       '()
       (cons (car lst) (take-up-to (- n 1) (cdr lst)))))
 
-;;; ============================================================
+;;; ====
 ;;; Show Command
-;;; ============================================================
+;;; ====
 
 ;;; show : -> void
 ;;; Display the current proof state.
@@ -435,9 +435,9 @@
                   (newline))
             (newline))))
 
-;;; ============================================================
+;;; ====
 ;;; Trace Command
-;;; ============================================================
+;;; ====
 
 ;;; proof-trace : -> void
 ;;; Show the steps taken so far.
@@ -473,17 +473,17 @@
             (newline)
             (newline))))
 
-;;; ============================================================
+;;; ====
 ;;; Help Command
-;;; ============================================================
+;;; ====
 
 ;;; proof-help : -> void
 ;;; Show help for proof sketcher commands.
 (define (proof-help)
   (display "\n")
-  (display "  +----------------------------------------------------------+\n")
+  (display "  +----+\n")
   (display "  |              PROOF SKETCHER - INTERACTIVE HELP           |\n")
-  (display "  +----------------------------------------------------------+\n")
+  (display "  +----+\n")
   (display "\n")
   (display "  Starting a Proof:\n")
   (display "    (sketch '(= lhs rhs))      Start proving lhs = rhs\n")
@@ -518,9 +518,9 @@
   (display "    arithmetic, lambda, list\n")
   (display "\n"))
 
-;;; ============================================================
+;;; ====
 ;;; Additional Convenience Commands
-;;; ============================================================
+;;; ====
 
 ;;; simplify-goal : -> void
 ;;; Apply automatic simplification to the current goal.
@@ -573,9 +573,9 @@
                        (loop (cdr ps) (+ i 1))))))
   (newline))
 
-;;; ============================================================
+;;; ====
 ;;; Aliases
-;;; ============================================================
+;;; ====
 
 ;;; Make 'apply work but avoid shadowing the built-in
 (define proof-apply-law proof-apply)
@@ -583,9 +583,9 @@
 ;;; Alias 'trace for proof context (avoid conflict with debug-repl)
 (define proof-steps proof-trace)
 
-;;; ============================================================
+;;; ====
 ;;; Command Registration
-;;; ============================================================
+;;; ====
 
 ;;; register-proof-commands! : -> void
 ;;; Register proof sketcher commands with the shell command system.

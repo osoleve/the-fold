@@ -5,9 +5,9 @@
 (load "core/base/prelude.ss")
 (load "lattice/numeric/polynomial.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Test Framework
-;;; ============================================================
+;;; ====
 
 (define tests-passed 0)
 (define tests-failed 0)
@@ -49,9 +49,9 @@
 
 (printf "\n=== Polynomial Tests ===\n\n")
 
-;;; ============================================================
+;;; ====
 ;;; Construction Tests
-;;; ============================================================
+;;; ====
 
 (printf "--- Construction ---\n")
 
@@ -79,9 +79,9 @@
      (test "monomial 5x^3 degree" 3 (poly-degree p))
      (test "monomial 5x^3 leading" 5 (poly-leading p)))
 
-;;; ============================================================
+;;; ====
 ;;; Evaluation Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n--- Evaluation ---\n")
 
@@ -97,9 +97,9 @@
      (let ([result (poly-eval-complex p (make-complex 0 1))])  ; eval at i
           (test-complex-approx "eval x^2+1 at i" (make-complex 0 0) result 1e-10)))
 
-;;; ============================================================
+;;; ====
 ;;; Arithmetic Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n--- Arithmetic ---\n")
 
@@ -141,9 +141,9 @@
       (test-approx "normalize leading" 1.0 (poly-leading pn) 1e-10)
       (test-approx "normalize coeff" 3.0 (poly-coeff pn 0) 1e-10))
 
-;;; ============================================================
+;;; ====
 ;;; Root Finding Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n--- Root Finding ---\n")
 
@@ -189,9 +189,9 @@
       ;; Check sum instead of individual roots (more stable)
       (test-approx "from-roots roots sum" 2.0 (apply + found-reals) 1e-4))
 
-;;; ============================================================
+;;; ====
 ;;; High-Order Polynomial Tests (Numerical Stability)
-;;; ============================================================
+;;; ====
 
 (printf "\n--- High-Order Polynomials ---\n")
 
@@ -214,9 +214,9 @@
       (let ([found-sum (apply + (map complex-real found))])
            (test-approx "order-8 roots sum" 36.0 found-sum 0.5)))
 
-;;; ============================================================
+;;; ====
 ;;; Utility Function Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n--- Utilities ---\n")
 
@@ -244,13 +244,13 @@
 (let ([p (poly-zero)])
      (test "poly->string zero" "0" (poly->string p)))
 
-;;; ============================================================
+;;; ====
 ;;; Summary
-;;; ============================================================
+;;; ====
 
-(printf "\n================================================================\n")
+(printf "\n====\n")
 (printf "                    TEST RESULTS\n")
-(printf "================================================================\n\n")
+(printf "====\n\n")
 (printf "Tests passed: ~a\n" tests-passed)
 (printf "Tests failed: ~a\n" tests-failed)
 (printf "Total tests:  ~a\n" (+ tests-passed tests-failed))

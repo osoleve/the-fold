@@ -7,9 +7,9 @@
 
 (display "Testing layout and composition...\n\n")
 
-;;; ============================================================
+;;; ====
 ;;; Test 1: Canvas Composite
-;;; ============================================================
+;;; ====
 
 (display "1. Testing canvas composite:\n")
 
@@ -28,9 +28,9 @@
       (newline)
       (display "  ✓ Composite works\n\n"))
 
-;;; ============================================================
+;;; ====
 ;;; Test 2: Draw Box
-;;; ============================================================
+;;; ====
 
 (display "2. Testing draw-box:\n")
 
@@ -41,9 +41,9 @@
       (newline)
       (display "  ✓ draw-box works\n\n"))
 
-;;; ============================================================
+;;; ====
 ;;; Test 3: Multiple Composites
-;;; ============================================================
+;;; ====
 
 (display "3. Testing multiple composites:\n")
 
@@ -62,9 +62,9 @@
       (newline)
       (display "  ✓ Multiple composites work\n\n"))
 
-;;; ============================================================
+;;; ====
 ;;; Test 4: Transparency Handling
-;;; ============================================================
+;;; ====
 
 (display "4. Testing composite with transparency:\n")
 
@@ -80,9 +80,9 @@
       (newline)
       (display "  ✓ Transparent composite works\n\n"))
 
-;;; ============================================================
+;;; ====
 ;;; Test 5: Blit Operation
-;;; ============================================================
+;;; ====
 
 (display "5. Testing blit (region copy):\n")
 
@@ -99,9 +99,9 @@
       (newline)
       (display "  ✓ Blit works\n\n"))
 
-;;; ============================================================
+;;; ====
 ;;; Test 6: Vertical String
-;;; ============================================================
+;;; ====
 
 (display "6. Testing draw-string-v (vertical):\n")
 
@@ -111,9 +111,9 @@
       (newline)
       (display "  ✓ Vertical string works\n\n"))
 
-;;; ============================================================
+;;; ====
 ;;; Test 7: Draw Rectangle Outline
-;;; ============================================================
+;;; ====
 
 (display "7. Testing draw-rect (outline):\n")
 
@@ -124,6 +124,6 @@
       (newline)
       (display "  ✓ Rectangle outline works\n\n"))
 
-(display "======================================\n")
+(display "====\n")
 (display "All layout/composition tests completed!\n")
-(display "======================================\n")
+(display "====\n")

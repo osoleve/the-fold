@@ -6,9 +6,9 @@
 ;;; TIER ASSIGNMENT:
 ;;;   Tier 5-6: Pure functional data structures
 
-;;; ============================================================
+;;; ====
 ;;; Stack — Last In, First Out (LIFO)
-;;; ============================================================
+;;; ====
 
 ;;; Stack is represented as a simple list.
 ;;; Implementation: Direct list operations (cons, car, cdr).
@@ -59,9 +59,9 @@
 (define (list->stack lst)
   lst)
 
-;;; ============================================================
+;;; ====
 ;;; Queue — First In, First Out (FIFO)
-;;; ============================================================
+;;; ====
 
 ;;; Queue is represented using Okasaki's two-list implementation:
 ;;;   - front: Elements to dequeue (reversed)
@@ -131,9 +131,9 @@
 (define (list->queue lst)
   (cons lst '()))
 
-;;; ============================================================
+;;; ====
 ;;; Set — Unordered Collection (No Duplicates)
-;;; ============================================================
+;;; ====
 
 ;;; Set is represented as a list with no duplicates.
 ;;; Uses equal? for membership comparison.
@@ -240,9 +240,9 @@
            acc
            (loop (cdr remaining) (set-add (car remaining) acc)))))
 
-;;; ============================================================
+;;; ====
 ;;; Dictionary/Map — Key-Value Pairs
-;;; ============================================================
+;;; ====
 
 ;;; Dictionary is represented as an association list.
 ;;; Uses equal? for key comparison.

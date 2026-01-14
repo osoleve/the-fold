@@ -268,7 +268,7 @@ Get loader status summary.
 ### Supported Types
 
 | Type | Scheme | Rust | Result Struct |
-|------|--------|------|---------------|
+|----|----|----|----|
 | Integer | `i64`, `int` | `i64` | `I64Result` |
 | Float | `f64`, `float`, `real` | `f64` | `F64Result` |
 | Boolean | `bool`, `boolean` | `bool` | `BoolResult` |
@@ -385,7 +385,7 @@ Understanding when Rust FFI wins vs native Scheme is critical for deciding what 
 Single arithmetic operations like `(+ a b)`, `(* x y)`, `(sqrt z)`:
 
 | Implementation | Time/call | Why |
-|----------------|-----------|-----|
+|----|----|----|
 | Chez Scheme native | ~2-5ns | Direct CPU operation |
 | Rust FFI | ~200-500ns | Marshal, call, unmarshal |
 | **Ratio** | **100-250x slower** | FFI overhead dominates |
@@ -440,7 +440,7 @@ Operations like mat4×4 multiply (112 ops):
 **With element-by-element copying (old approach):**
 
 | Implementation | Time/call | Why |
-|----------------|-----------|-----|
+|----|----|----|
 | Scheme unrolled | ~800-900ns | 112 native ops |
 | Rust FFI (copy) | ~2000ns | Marshal 32 doubles, call, unmarshal 16 |
 | **Ratio** | **2-3x slower** | Marshaling overhead > computation |
@@ -448,7 +448,7 @@ Operations like mat4×4 multiply (112 ops):
 **With bytevector pass-through (new approach):**
 
 | Implementation | Time/call | Why |
-|----------------|-----------|-----|
+|----|----|----|
 | Scheme unrolled | ~800-900ns | 112 native ops |
 | Rust FFI (bytevector) | **~30ns** | Zero-copy pass, pure compute |
 | **Ratio** | **26x faster!** | No marshaling overhead |
@@ -460,7 +460,7 @@ The difference: bytevectors passed as `u8*` pointers avoid copying entirely.
 1000-point batch transform with per-call allocation:
 
 | Implementation | Time/point | Why |
-|----------------|------------|-----|
+|----|----|----|
 | Scheme batch | ~165-200ns | Iterate list, 16 MADs |
 | Rust batch | ~210-220ns | Marshal 4000 doubles per call |
 | **Ratio** | **~1:1** | Marshaling ≈ computation |
@@ -470,7 +470,7 @@ The difference: bytevectors passed as `u8*` pointers avoid copying entirely.
 1000-point batch with pre-allocated Rust memory:
 
 | Implementation | Time/point | Why |
-|----------------|------------|-----|
+|----|----|----|
 | Scheme batch | ~165-200ns | Same as above |
 | Rust (cached) | **~3ns** | Pure SIMD computation |
 | **Ratio** | **50-60x faster** | Computation >> overhead |
@@ -522,13 +522,13 @@ The key breakthrough: **Chez Scheme bytevectors can be passed directly as `u8*` 
 **Benchmark Results (fair comparison, both write results):**
 
 | Approach | Time | Notes |
-|----------|------|-------|
+|----|----|----|
 | Element copy (foreign-set! loop) | 1790ns | 64 copies per matrix |
 | Bytevector direct (u8*) | **39ns** | Zero copy |
 | **Improvement** | **46x** | |
 
 | Batch 1000 points | Time | Per-point |
-|-------------------|------|-----------|
+|----|----|----|
 | Rust (bytevector) | 3.8μs | 3.8ns |
 | Scheme (bytevector) | 237μs | 237ns |
 | **Speedup** | | **63x** |
@@ -563,7 +563,7 @@ The `bytevector-ffi.ss` module provides:
 The `rust-loader.ss` now supports bytevector types:
 
 | Scheme Type | Chez FFI Type | Use Case |
-|-------------|---------------|----------|
+|----|----|----|
 | `bv`, `bytevector`, `u8*` | `u8*` | Generic bytevector |
 | `f64*`, `f64-bv` | `u8*` | f64 array bytevector |
 | `i64*`, `i64-bv` | `u8*` | i64 array bytevector |

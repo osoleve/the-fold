@@ -32,9 +32,9 @@
 ══════════════════════════════════════════════════════════
 ")
 
-;;; ============================================================
+;;; ====
 ;;; Particle Creation Tests
-;;; ============================================================
+;;; ====
 
 (test-group particle-creation-tests
             (define-test make-particle-test
@@ -68,9 +68,9 @@
                     (assert-vec2-= (particle-pos p2) (vec2 50 50) 0.0001)
                     (assert-vec2-= (particle-vel p2) (vec2 1 1) 0.0001))))
 
-;;; ============================================================
+;;; ====
 ;;; Force Field Tests
-;;; ============================================================
+;;; ====
 
 (test-group force-field-tests
             (define-test gravity-field-test
@@ -107,9 +107,9 @@
                     (let ([force (combined p)])
                          (assert-vec2-= force (vec2 5 10) 0.0001)))))
 
-;;; ============================================================
+;;; ====
 ;;; Particle Integration Tests
-;;; ============================================================
+;;; ====
 
 (test-group particle-integration-tests
             (define-test integrate-no-force
@@ -137,9 +137,9 @@
                     ;; p1 dies (0.5 - 1 = -0.5), p2 survives (2 - 1 = 1)
                     (assert-= (length updated) 1 0))))
 
-;;; ============================================================
+;;; ====
 ;;; Emitter Tests
-;;; ============================================================
+;;; ====
 
 (test-group emitter-tests
             (define-test make-emitter-test
@@ -165,9 +165,9 @@
                     (assert-true (<= (length particles) 2))
                     (assert-true (emitter? new-emitter)))))
 
-;;; ============================================================
+;;; ====
 ;;; Particle System Tests
-;;; ============================================================
+;;; ====
 
 (test-group particle-system-tests
             (define-test make-empty-system-test
@@ -207,9 +207,9 @@
                     (assert-= (cdr (assq 'average-age stats)) 0.5 0.0001)
                     (assert-= (cdr (assq 'average-speed stats)) 10 0.0001))))
 
-;;; ============================================================
+;;; ====
 ;;; Burst Tests
-;;; ============================================================
+;;; ====
 
 (test-group burst-tests
             (define-test explosion-burst-test
@@ -224,9 +224,9 @@
                                                                       0.0001))
                                           particles)))))
 
-;;; ============================================================
+;;; ====
 ;;; Query Tests
-;;; ============================================================
+;;; ====
 
 (test-group query-tests
             (define-test particles-in-radius-test
@@ -244,8 +244,8 @@
                    (assert-true (particle-in-bounds? p1 (vec2 0 0) (vec2 100 100)))
                    (assert-false (particle-in-bounds? p2 (vec2 0 0) (vec2 100 100))))))
 
-;;; ============================================================
+;;; ====
 ;;; Summary
-;;; ============================================================
+;;; ====
 
 (print-summary)

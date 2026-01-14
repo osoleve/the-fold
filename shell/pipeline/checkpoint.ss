@@ -8,17 +8,17 @@
 (load "lattice/pipeline/effects.ss")
 (load "lattice/pipeline/context.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Checkpoint Configuration
-;;; ============================================================
+;;; ====
 
 ;;; *checkpoint-dir* : String
 ;;; Directory for pipeline checkpoints.
 (define *checkpoint-dir* ".fold-checkpoints")
 
-;;; ============================================================
+;;; ====
 ;;; Checkpoint Effect Interpretation
-;;; ============================================================
+;;; ====
 
 ;;; interpret-checkpoint-effect : Payload -> Context -> State -> Input -> (Result . State)
 (define (interpret-checkpoint-effect payload ctx state input)
@@ -70,9 +70,9 @@
                                payload)
                     state)])))
 
-;;; ============================================================
+;;; ====
 ;;; Checkpoint Persistence
-;;; ============================================================
+;;; ====
 
 ;;; persist-checkpoint : RunId -> Name -> Value -> ()
 ;;; Persist a checkpoint value to disk.
@@ -96,9 +96,9 @@
                   (call-with-input-file checkpoint-file read)
                   #f))))
 
-;;; ============================================================
+;;; ====
 ;;; Directory Utilities
-;;; ============================================================
+;;; ====
 
 ;;; path-directory : String -> String
 ;;; Get directory portion of path.

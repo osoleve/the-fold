@@ -36,9 +36,9 @@
 (load "core/base/prelude.ss")
 (load "lattice/fp/data/stream.ss")
 
-;;; ============================================================
+;;; ====
 ;;; List Fused Operations
-;;; ============================================================
+;;; ====
 
 ;;; filter-map : (a -> Bool) x (a -> b) x (List a) -> (List b)
 ;;; Combined filter and map in single traversal.
@@ -130,9 +130,9 @@
       '()
       (append (f (car xs)) (flatMap/append f (cdr xs)))))
 
-;;; ============================================================
+;;; ====
 ;;; Right Fold Fused Variants
-;;; ============================================================
+;;; ====
 
 ;;; foldr-map : (c x b -> b) x b x (a -> c) x (List a) -> b
 ;;; Right fold with integrated map.
@@ -172,9 +172,9 @@
           (f (g (car xs)) (foldr-filter-map f z pred g (cdr xs)))
           (foldr-filter-map f z pred g (cdr xs)))))
 
-;;; ============================================================
+;;; ====
 ;;; Take/Drop Fused Variants
-;;; ============================================================
+;;; ====
 
 ;;; take-map : Nat x (a -> b) x (List a) -> (List b)
 ;;; Take n elements while mapping.
@@ -233,9 +233,9 @@
         [(pred (car xs)) (loop (cdr xs))]
         [else (map f xs)])))
 
-;;; ============================================================
+;;; ====
 ;;; Multi-Filter Operations
-;;; ============================================================
+;;; ====
 
 ;;; filter-filter : (a -> Bool) x (a -> Bool) x (List a) -> (List a)
 ;;; Two filters in single pass.
@@ -260,9 +260,9 @@
 (define (filter-any preds xs)
   (filter (lambda (x) (ormap (lambda (p) (p x)) preds)) xs))
 
-;;; ============================================================
+;;; ====
 ;;; Stream Fused Operations
-;;; ============================================================
+;;; ====
 
 ;;; stream-filter-map : (a -> Bool) x (a -> b) x (Stream a) -> (Stream b)
 ;;; Lazy filter-map for streams.
@@ -337,9 +337,9 @@
         [else
          (loop acc (- fuel 1) (stream-tail s))])))
 
-;;; ============================================================
+;;; ====
 ;;; Specialized Fused Combinators
-;;; ============================================================
+;;; ====
 
 ;;; count-if : (a -> Bool) x (List a) -> Nat
 ;;; Count elements satisfying predicate (fused length + filter).
@@ -417,9 +417,9 @@
                   ;; Default: treat as right
                   (loop (cdr xs) lefts (cons result rights))])))))
 
-;;; ============================================================
+;;; ====
 ;;; Index-Aware Fused Operations
-;;; ============================================================
+;;; ====
 
 ;;; filter-mapi : (Nat x a -> Bool) x (Nat x a -> b) x (List a) -> (List b)
 ;;; Filter-map with index available to both functions.
@@ -460,9 +460,9 @@
            acc
            (loop (cdr xs) (+ i 1) (f acc i (car xs))))))
 
-;;; ============================================================
+;;; ====
 ;;; Chunking Fused Operations
-;;; ============================================================
+;;; ====
 
 ;;; chunk-map : Nat x ((List a) -> b) x (List a) -> (List b)
 ;;; Chunk list and map over chunks.
@@ -482,9 +482,9 @@
            (reverse acc)
            (loop (cdr xs) (cons (f (take n xs)) acc)))))
 
-;;; ============================================================
+;;; ====
 ;;; Parallel-Ready Fused Operations
-;;; ============================================================
+;;; ====
 ;;; These don't actually parallelize but have signatures amenable
 ;;; to parallel execution (pure, associative reductions).
 

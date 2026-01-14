@@ -29,9 +29,9 @@
 (load "core/autodiff/reverse-diff.ss")
 (load "lattice/autodiff/higher-order-diff.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Sparse Gradient Representation
-;;; ============================================================
+;;; ====
 
 ;;; A sparse gradient stores only non-zero partial derivatives.
 ;;; Represented as: (sparse-grad nnz indices values)
@@ -146,9 +146,9 @@
   (make-sparse-grad (vec-copy (sparse-grad-indices g))
                     (vec-map (lambda (v) (* k v)) (sparse-grad-values g))))
 
-;;; ============================================================
+;;; ====
 ;;; Sparsity Pattern Detection
-;;; ============================================================
+;;; ====
 
 ;;; A sparsity pattern records which (i,j) entries of a Jacobian are non-zero.
 ;;; Represented as: (sparsity-pattern m n nnz row-indices col-indices)
@@ -269,9 +269,9 @@
                            (vector-set! col-idx kk j)
                            (inner (+ j 1) (+ kk 1)))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Sparse Jacobian Computation
-;;; ============================================================
+;;; ====
 
 ;;; sparse-jacobian : ((Traced ...) → (List Traced)) × (List Number) → SparseCOO
 (define (sparse-jacobian f args)
@@ -349,9 +349,9 @@
 
 ;;; NOTE: remove-duplicates is provided by core/base/prelude.ss
 
-;;; ============================================================
+;;; ====
 ;;; Sparse Jacobian-Vector and Vector-Jacobian Products
-;;; ============================================================
+;;; ====
 
 ;;; sparse-jvp : SparseCOO × (Vector Number) → (Vector Number)
 (define (sparse-jvp J v)
@@ -376,9 +376,9 @@
                               (+ (vector-ref result j)
                                  (* (vector-ref v i) Jij)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Sparse Hessian Computation
-;;; ============================================================
+;;; ====
 
 ;;; sparse-hessian : ((Traced ...) → Traced) × (List Number) → SparseCOO
 (define (sparse-hessian f args)
@@ -440,9 +440,9 @@
                                                                          (cons (list i j h-ij) acc2)))))))))))])
         (sparse-coo-from-triplets n n triplets)))
 
-;;; ============================================================
+;;; ====
 ;;; Sparse Hessian-Vector Product
-;;; ============================================================
+;;; ====
 
 ;;; sparse-hessian-vector-product : ((Traced ...) → Traced) × (List Number) × (Vector Number) → (Vector Number)
 (define (sparse-hessian-vector-product f args v)
@@ -459,9 +459,9 @@
             ((= i n) result)
             (vector-set! result i (/ (- (car gp) (car g0)) epsilon)))))
 
-;;; ============================================================
+;;; ====
 ;;; Traced Values with Sparse Gradient Tracking
-;;; ============================================================
+;;; ====
 
 ;;; For very large-scale problems, we can track gradients sparsely
 ;;; during the backward pass.
@@ -538,9 +538,9 @@
                              (vector-set! indices k (caar ps))
                              (vector-set! values k (cdar ps)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Graph Coloring for Efficient Jacobian Computation
-;;; ============================================================
+;;; ====
 
 ;;; When computing a sparse Jacobian, we can often compute multiple
 ;;; columns simultaneously using graph coloring. If columns i and j
@@ -590,9 +590,9 @@
 (define (num-colors colors)
   (+ 1 (vec-fold max 0 colors)))
 
-;;; ============================================================
+;;; ====
 ;;; Compressed Jacobian Computation via Coloring
-;;; ============================================================
+;;; ====
 
 ;;; sparse-jacobian-colored : ((Traced ...) → (List Traced)) × (List Number) × SparsityPattern → SparseCOO
 (define (sparse-jacobian-colored f args pattern)
@@ -634,9 +634,9 @@
                                            (vector-set! values k (vector-ref deriv-vec row)))))))))
         (make-sparse-coo m n (vec-copy row-idx) (vec-copy col-idx) values)))
 
-;;; ============================================================
+;;; ====
 ;;; Conversion Utilities
-;;; ============================================================
+;;; ====
 
 ;;; sparse-jacobian->csr : SparseCOO → SparseCSR
 (define sparse-jacobian->csr coo->csr)
@@ -647,9 +647,9 @@
 ;;; sparse-jacobian->dense : SparseCOO → Matrix
 (define sparse-jacobian->dense sparse-coo->dense)
 
-;;; ============================================================
+;;; ====
 ;;; Helper: list-set
-;;; ============================================================
+;;; ====
 
 ;;; list-set : (List α) × Nat × α → (List α)
 (define (list-set lst idx val)

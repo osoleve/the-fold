@@ -34,9 +34,9 @@
 
 (printf "\n=== Matrix Solver Tests ===\n\n")
 
-;;; ============================================================
+;;; ====
 ;;; Basic Substitution Tests
-;;; ============================================================
+;;; ====
 
 (printf "--- Basic Substitution ---\n")
 
@@ -62,9 +62,9 @@
       (test-approx "Back substitution x[0]" 1.5 (vector-ref x 0) 1e-10)
       (test-approx "Back substitution x[1]" 2.0 (vector-ref x 1) 1e-10))
 
-;;; ============================================================
+;;; ====
 ;;; Matrix Solve Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n--- Matrix Solve (Ax = b) ---\n")
 
@@ -78,9 +78,9 @@
            (test-approx "Solve 3×3: x[2]" -2.0 (vector-ref x 2) 1e-10))
           (test "Solve 3×3 succeeds" #t #f)))
 
-;;; ============================================================
+;;; ====
 ;;; Matrix Inverse Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n--- Matrix Inverse ---\n")
 
@@ -100,9 +100,9 @@
                 (test "Inverse verification: A * A^-1 ≈ I" #t (matrix-approx-equal? ident i2 1e-10))))
           (test "Inverse 2×2 succeeds" #t #f)))
 
-;;; ============================================================
+;;; ====
 ;;; Determinant Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n--- Determinant ---\n")
 
@@ -120,9 +120,9 @@
      ;; Row 2 is 2 * Row 1, so det should be 0
      (test-approx "Determinant singular matrix" 0.0 (matrix-determinant a) 1e-10))
 
-;;; ============================================================
+;;; ====
 ;;; Least Squares Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n--- Least Squares ---\n")
 
@@ -155,9 +155,9 @@
            (test-approx "Least Squares: x[1]" 1.0 (vector-ref x 1) 1e-10))
           (test "Least Squares succeeds" #t #f)))
 
-          ;;; ============================================================
+          ;;; ====
           ;;; Rank and Gaussian Elimination Tests
-          ;;; ============================================================
+          ;;; ====
           
           (printf "\n--- Rank and Gaussian Elimination ---\n")
 
@@ -172,9 +172,9 @@
                ;; All rows are multiples of [1 2]
                (test "Rank of 3×2 rank-1 matrix" 1 (matrix-rank a)))
 
-          ;;; ============================================================
+          ;;; ====
           ;;; Condition Number Tests
-          ;;; ============================================================
+          ;;; ====
           
           (printf "\n--- Condition Number ---\n")
 
@@ -187,9 +187,9 @@
                (printf "  Condition number of ill-conditioned matrix: ~a\n" (matrix-condition-number a))
                (test "Condition number > 1" #t (> (matrix-condition-number a) 1)))
 
-          ;;; ============================================================
+          ;;; ====
           ;;; Levinson-Durbin Tests
-          ;;; ============================================================
+          ;;; ====
 
           (printf "\n--- Levinson-Durbin (Toeplitz Solver) ---\n")
 
@@ -272,12 +272,12 @@
                     (test "Levinson-Durbin p=0: empty result" 0 (vector-length phi))
                     (test "Levinson-Durbin p=0 succeeds" #t #f)))
 
-          ;;; ============================================================
+          ;;; ====
           ;;; Results
-          ;;; ============================================================
-          (printf "\n================================================================\n")
+          ;;; ====
+          (printf "\n====\n")
 (printf "                    TEST RESULTS\n")
-(printf "================================================================\n\n")
+(printf "====\n\n")
 (printf "Tests passed: ~a\n" tests-passed)
 (printf "Tests failed: ~a\n" tests-failed)
 (printf "Total tests:  ~a\n" (+ tests-passed tests-failed))

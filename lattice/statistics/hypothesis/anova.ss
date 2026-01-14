@@ -19,9 +19,9 @@
 (load "lattice/statistics/core/summary-stats.ss")
 (load "lattice/statistics/hypothesis/distributions.ss")
 
-;;; ============================================================
+;;; ====
 ;;; One-Way ANOVA
-;;; ============================================================
+;;; ====
 
 ;;; anova-one-way : (List Vec) → ANOVAResult
 ;;; Test H0: all group means are equal.
@@ -93,9 +93,9 @@
                                       (+ s (expt (- (vector-ref g i) m) 2)))))])
                  (loop (cdr gs) (cdr ms) (+ sum ss))))))
 
-;;; ============================================================
+;;; ====
 ;;; Effect Size Measures
-;;; ============================================================
+;;; ====
 
 ;;; anova-eta-squared : ANOVAResult → Num
 ;;; Eta-squared = SS_between / SS_total
@@ -119,9 +119,9 @@
          [den (+ ss-total ms-within)])
         (/ num (max den 1e-10))))
 
-;;; ============================================================
+;;; ====
 ;;; Post-Hoc Tests
-;;; ============================================================
+;;; ====
 
 ;;; tukey-hsd : (List Vec) → (List (List Symbol Num Num))
 ;;; Tukey's Honest Significant Difference test.
@@ -162,9 +162,9 @@
                                  (loop-j (+ j 1)
                                          (cons (list i j diff p-value significant?) r))))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Two-Way ANOVA (Simplified)
-;;; ============================================================
+;;; ====
 
 ;;; Two-way ANOVA requires a more complex data structure.
 ;;; This is a simplified implementation for balanced designs.

@@ -18,7 +18,7 @@
        (newline))))
 
 (display "Testing json.ss\n")
-(display "================\n\n")
+(display "====\n\n")
 
 ;;; Primitives
 (display "Primitives:\n")
@@ -134,7 +134,7 @@
 (test "unterminated array" 'error (car (json-read "[1, 2")))
 
 ;;; Summary
-(display "\n================\n")
+(display "\n====\n")
 (printf "Passed: ~a, Failed: ~a\n" tests-passed tests-failed)
 (when (> tests-failed 0)
       (exit 1))

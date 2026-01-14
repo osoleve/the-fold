@@ -8,16 +8,16 @@
 (load "lattice/pipeline/effects.ss")
 (load "lattice/pipeline/context.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Current Session Parameter
-;;; ============================================================
+;;; ====
 
 ;;; Current session for Fold IPC
 (define *pipeline-session* (make-parameter "pipeline"))
 
-;;; ============================================================
+;;; ====
 ;;; Security Utilities
-;;; ============================================================
+;;; ====
 
 ;;; safe-symbol-name? : String → Boolean
 ;;; SECURITY: Check if a string is a valid Scheme symbol identifier.
@@ -40,9 +40,9 @@
                          (loop (+ i 1))
                          #f))))))
 
-;;; ============================================================
+;;; ====
 ;;; Fold Effect Interpretation
-;;; ============================================================
+;;; ====
 
 ;;; interpret-fold-effect : Payload -> Context -> State -> Input -> (Result . State)
 (define (interpret-fold-effect payload ctx state input)
@@ -108,9 +108,9 @@
                                payload)
                     state)])))
 
-;;; ============================================================
+;;; ====
 ;;; Helper Functions
-;;; ============================================================
+;;; ====
 
 ;;; expand-template-with-ctx : String -> Context -> Input -> String
 (define (expand-template-with-ctx template ctx input)
@@ -119,9 +119,9 @@
                                (ctx-env ctx)))])
        (expand-template template bindings)))
 
-;;; ============================================================
+;;; ====
 ;;; Fold IPC Implementation
-;;; ============================================================
+;;; ====
 
 ;;; fold-ipc-eval : String -> FoldResult
 ;;; Evaluate an expression via the Fold REPL daemon IPC.

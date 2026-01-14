@@ -17,9 +17,9 @@
             (result-value result)
             #f)))
 
-;;; ============================================================
+;;; ====
 ;;; Token-ish helpers (using combinators)
-;;; ============================================================
+;;; ====
 
 ;;; word-boundary : Parser Unit
 ;;; Succeed only if next char is whitespace or we're at EOF.
@@ -62,9 +62,9 @@
 ;;; lex-word : Parser String
 (define lex-word (lexeme wordish))
 
-;;; ============================================================
+;;; ====
 ;;; Intent parsers
-;;; ============================================================
+;;; ====
 
 (define p-choose
   (bind nat (lambda (n)

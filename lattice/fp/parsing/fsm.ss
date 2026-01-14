@@ -17,9 +17,9 @@
 (load "core/base/prelude.ss")
 (load "lattice/fp/meta/combinators.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Finite State Machine Types
-;;; ============================================================
+;;; ====
 
 ;;; FSM = (fsm states alphabet transitions start accepting epsilon-transitions)
 ;;; - states: List of state symbols
@@ -63,9 +63,9 @@
        (let ([trans (fsm-transitions fsm)])
             (for-all (lambda (t) (<= (length (cdr t)) 1)) trans))))
 
-;;; ============================================================
+;;; ====
 ;;; FSM Construction Helpers
-;;; ============================================================
+;;; ====
 
 ;;; dfa : (List State) × (List Symbol) × (List (State × Symbol × State)) × State × (List State) → FSM
 ;;; Create a simple DFA from explicit parts
@@ -86,9 +86,9 @@
 (define (epsilon-nfa states alphabet transitions start accepting epsilon-trans)
   (make-fsm states alphabet transitions start accepting epsilon-trans))
 
-;;; ============================================================
+;;; ====
 ;;; FSM Execution
-;;; ============================================================
+;;; ====
 
 ;;; fsm-delta : FSM × State × Symbol → (List State)
 ;;; Get transition targets from state on input
@@ -167,9 +167,9 @@
 (define (fsm-accepts? fsm input)
   (just? (fsm-run fsm input)))
 
-;;; ============================================================
+;;; ====
 ;;; FSM Language Operations
-;;; ============================================================
+;;; ====
 
 ;;; fsm-reachable : FSM → (List State)
 ;;; Get reachable states from start
@@ -196,9 +196,9 @@
   (let ([reachable (fsm-reachable fsm)])
        (not (exists (lambda (s) (member s (fsm-accepting fsm))) reachable))))
 
-;;; ============================================================
+;;; ====
 ;;; NFA to DFA Conversion (Subset Construction)
-;;; ============================================================
+;;; ====
 
 ;;; state-set->name : (List State) → Symbol
 ;;; Generate fresh state name from state set
@@ -266,9 +266,9 @@
                                           (cons current-name dfa-accepting)
                                           dfa-accepting)))))))))
 
-;;; ============================================================
+;;; ====
 ;;; FSM Composition
-;;; ============================================================
+;;; ====
 
 ;;; *fsm-counter* : Nat
 ;;; Generate fresh state names
@@ -365,9 +365,9 @@
         (make-fsm all-states (fsm-alphabet m) (fsm-transitions m)
                   new-start all-accepting all-eps)))
 
-;;; ============================================================
+;;; ====
 ;;; FSM Builders
-;;; ============================================================
+;;; ====
 
 ;;; fsm-char : Char → FSM
 ;;; FSM that accepts exactly one character
@@ -405,9 +405,9 @@
                       (fsm-char (car chars))
                       (map fsm-char (cdr chars))))))
 
-;;; ============================================================
+;;; ====
 ;;; FSM Minimization (Hopcroft's Algorithm)
-;;; ============================================================
+;;; ====
 
 ;;; fsm-minimize : FSM → FSM
 ;;; Minimize a DFA using partition refinement
@@ -523,9 +523,9 @@
               '()
               lst))
 
-;;; ============================================================
+;;; ====
 ;;; FSM Visualization
-;;; ============================================================
+;;; ====
 
 ;;; dot-escape-string : String → String
 ;;; Escape special characters for DOT format strings
@@ -614,9 +614,9 @@
         "}
 ")))
 
-;;; ============================================================
+;;; ====
 ;;; FSM to String
-;;; ============================================================
+;;; ====
 
 ;;; fsm->string : FSM → String
 (define (fsm->string fsm)
@@ -657,9 +657,9 @@
                    ""
                    (fsm-epsilon fsm))))))
 
-;;; ============================================================
+;;; ====
 ;;; Product Construction (Intersection)
-;;; ============================================================
+;;; ====
 
 ;;; fsm-intersect : FSM × FSM → FSM
 ;;; Intersection of two DFAs
@@ -768,9 +768,9 @@
         (make-fsm (fsm-states m) (fsm-alphabet m) (fsm-transitions m)
                   (fsm-start m) non-accepting)))
 
-;;; ============================================================
+;;; ====
 ;;; State Machine Simulation with Actions
-;;; ============================================================
+;;; ====
 
 ;;; make-moore : FSM × (Alist State α) → Moore
 ;;; Moore machine: output depends on current state
@@ -845,9 +845,9 @@
                         [new-states (fsm-move fsm states sym)])
                        (loop new-states (cdr inputs) (cons output result)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Exports Summary
-;;; ============================================================
+;;; ====
 
 ;;; Types:
 ;;;   make-fsm, fsm?, fsm-states, fsm-alphabet, fsm-transitions,

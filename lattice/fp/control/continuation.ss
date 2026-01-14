@@ -31,9 +31,9 @@
 (load "core/base/prelude.ss")
 (load "lattice/fp/meta/combinators.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Cont Monad
-;;; ============================================================
+;;; ====
 
 ;;; make-cont : ((a -> r) -> r) -> Cont r a
 (define (make-cont run-fn)
@@ -83,9 +83,9 @@
 (define (cont-join cca)
   (cont-bind cca identity))
 
-;;; ============================================================
+;;; ====
 ;;; callCC - Call with Current Continuation
-;;; ============================================================
+;;; ====
 ;;;
 ;;; callCC gives you access to the current continuation,
 ;;; which you can invoke to escape from anywhere.
@@ -99,9 +99,9 @@
                                 (make-cont (lambda (_) (k a)))))
                      k))))
 
-;;; ============================================================
+;;; ====
 ;;; Control Operators
-;;; ============================================================
+;;; ====
 
 ;;; cont-abort : a -> Cont a b
 ;;; Abort with a final value, ignoring the rest of computation.
@@ -120,9 +120,9 @@
 (define (cont-reset c)
   (cont-return (eval-cont c)))
 
-;;; ============================================================
+;;; ====
 ;;; Exception-like Control Flow
-;;; ============================================================
+;;; ====
 
 ;;; with-escape : ((α → (Cont r β)) → (Cont r α)) → (Cont r α)
 ;;; Same as callCC but named more descriptively.
@@ -146,9 +146,9 @@
   (make-cont (lambda (k)
                      (k (list 'exception exn)))))
 
-;;; ============================================================
+;;; ====
 ;;; Loop Control
-;;; ============================================================
+;;; ====
 
 ;;; cont-loop : a -> (a -> Cont r (Either a b)) -> Cont r b
 ;;; Loop until Right is returned.
@@ -177,9 +177,9 @@
                  (lambda (acc)
                          (cont-fold f acc (cdr lst))))))
 
-;;; ============================================================
+;;; ====
 ;;; Early Return Pattern
-;;; ============================================================
+;;; ====
 
 ;;; with-early-return : ((a -> Cont a b) -> Cont a a) -> a
 ;;; Execute with ability to return early.
@@ -196,9 +196,9 @@
 (define (cont-unless pred action)
   (cont-when (not pred) action))
 
-;;; ============================================================
+;;; ====
 ;;; Backtracking / Non-determinism
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Using continuations for backtracking search.
 
@@ -231,9 +231,9 @@
       (cont-return '())
       fail))
 
-;;; ============================================================
+;;; ====
 ;;; Coroutines
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Cooperative multitasking using continuations.
 
@@ -254,9 +254,9 @@
                                      (outer-k (cons val (make-cont (lambda (inner-k)
                                                                            (run-cont (k '()) inner-k))))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Generator Pattern
-;;; ============================================================
+;;; ====
 
 ;;; make-generator : (yield-fn -> Cont r ()) -> Generator
 ;;; Create a generator from a body that calls yield.
@@ -282,9 +282,9 @@
              ;; Return accumulated values
              values)))
 
-;;; ============================================================
+;;; ====
 ;;; Trampolined Recursion
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Use continuations to avoid stack overflow.
 
@@ -322,9 +322,9 @@
 (define (cont-trampoline c)
   (trampoline (run-cont c make-done)))
 
-;;; ============================================================
+;;; ====
 ;;; ContT Monad Transformer
-;;; ============================================================
+;;; ====
 ;;;
 ;;; ContT r m a = (a -> m r) -> m r
 
@@ -358,9 +358,9 @@
    (lambda (k)
            (m-bind m-action k))))
 
-;;; ============================================================
+;;; ====
 ;;; Practical Helpers
-;;; ============================================================
+;;; ====
 
 ;;; sequence-cont : List (Cont r a) -> Cont r (List a)
 ;;; Sequence a list of continuations.
@@ -391,9 +391,9 @@
                                                              (cons (car lst) rest)
                                                              rest))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Do-Notation Helpers
-;;; ============================================================
+;;; ====
 
 ;;; cont-let* : Helper for sequential binding (manual do-notation)
 ;;; Usage: (cont-let* ([x (cont1)] [y (cont2 x)]) body)
@@ -409,9 +409,9 @@
 (define cont-void
   (cont-return '()))
 
-;;; ============================================================
+;;; ====
 ;;; Example Usage (for documentation)
-;;; ============================================================
+;;; ====
 ;;;
 ;;; ;; Basic continuation usage
 ;;; (eval-cont (cont-return 42))  ; => 42

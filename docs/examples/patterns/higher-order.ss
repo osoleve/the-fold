@@ -4,9 +4,9 @@
 ;;;
 ;;; Run with: scheme --script docs/examples/patterns/higher-order.ss
 
-;;; ============================================================
+;;; ====
 ;;; map - Transform Every Element
-;;; ============================================================
+;;; ====
 
 (display "=== map ===\n")
 
@@ -22,9 +22,9 @@
 (format #t "sum pairs: ~a~%" (map + '(1 2 3) '(10 20 30)))
 (format #t "products: ~a~%" (map * '(1 2 3) '(4 5 6)))
 
-;;; ============================================================
+;;; ====
 ;;; filter - Keep Matching Elements
-;;; ============================================================
+;;; ====
 
 (display "\n=== filter ===\n")
 
@@ -38,9 +38,9 @@
 (define (big? x) (> (abs x) 3))
 (format #t "abs > 3: ~a~%" (filter big? mixed))
 
-;;; ============================================================
+;;; ====
 ;;; fold - Reduce to a Single Value
-;;; ============================================================
+;;; ====
 
 (display "\n=== fold ===\n")
 
@@ -55,9 +55,9 @@
 ;;; fold-right: e1 op (e2 op (e3 op ... init))
 (format #t "fold-right cons: ~a~%" (fold-right cons '() nums))
 
-;;; ============================================================
+;;; ====
 ;;; compose - Chain Functions
-;;; ============================================================
+;;; ====
 
 (display "\n=== compose ===\n")
 
@@ -76,9 +76,9 @@
 (format #t "square then double then add1:~%")
 (format #t "  pipeline(3) = add1(double(square(3))) = add1(double(9)) = add1(18) = ~a~%" (pipeline 3))
 
-;;; ============================================================
+;;; ====
 ;;; curry - Partial Application
-;;; ============================================================
+;;; ====
 
 (display "\n=== Partial Application ===\n")
 
@@ -103,9 +103,9 @@
 (define times3 ((curry2 *) 3))
 (format #t "times3(7) = ~a~%" (times3 7))
 
-;;; ============================================================
+;;; ====
 ;;; Practical Combinations
-;;; ============================================================
+;;; ====
 
 (display "\n=== Combining Patterns ===\n")
 
@@ -131,9 +131,9 @@
        [count (length absolutes)])
   (format #t "average of absolutes: ~a~%" (/ sum count)))
 
-;;; ============================================================
+;;; ====
 ;;; for-each - Side Effects
-;;; ============================================================
+;;; ====
 
 (display "\n=== for-each (Side Effects) ===\n")
 
@@ -142,9 +142,9 @@
 (for-each (lambda (x) (format #t "~a " x)) '(a b c d e))
 (newline)
 
-;;; ============================================================
+;;; ====
 ;;; Building Your Own
-;;; ============================================================
+;;; ====
 
 (display "\n=== Building Your Own ===\n")
 

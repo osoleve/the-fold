@@ -23,25 +23,25 @@
 ;;;   (wait-turn)         ; Skip your turn
 ;;;   (game-stats)        ; Show current stats
 
-;;; ============================================================
+;;; ====
 ;;; Load Dependencies
-;;; ============================================================
+;;; ====
 
 (load "shell/layout.ss")
 (load "user/loom/loom.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Game State
-;;; ============================================================
+;;; ====
 
 (define *game-world* #f)
 (define *game-log* '())
 (define *game-over* #f)
 (define *victory* #f)
 
-;;; ============================================================
+;;; ====
 ;;; Dungeon Generation
-;;; ============================================================
+;;; ====
 
 ;;; Room structure: (x y width height)
 (define (make-room x y w h) (list x y w h))
@@ -139,9 +139,9 @@
        
        (values tm rooms)))
 
-;;; ============================================================
+;;; ====
 ;;; Game Initialization
-;;; ============================================================
+;;; ====
 
 (define (new-game!)
   (reset-id-counter!)
@@ -197,9 +197,9 @@
   (log-message "Use (move-player 'north/'south/'east/'west) to move.")
   (render-game))
 
-;;; ============================================================
+;;; ====
 ;;; Game Log
-;;; ============================================================
+;;; ====
 
 (define (log-message msg)
   (set! *game-log* (cons msg *game-log*))
@@ -214,9 +214,9 @@
                     (newline))
             (reverse *game-log*)))
 
-;;; ============================================================
+;;; ====
 ;;; Player Actions
-;;; ============================================================
+;;; ====
 
 (define (move-player direction)
   (if *game-over*
@@ -296,9 +296,9 @@
   (process-monster-turns)
   (render-game))
 
-;;; ============================================================
+;;; ====
 ;;; Monster AI
-;;; ============================================================
+;;; ====
 
 (define (process-monster-turns)
   (when (not *game-over*)
@@ -389,9 +389,9 @@
                                                             (entity-id moved-monster)
                                                             moved-monster))))))
 
-;;; ============================================================
+;;; ====
 ;;; Rendering
-;;; ============================================================
+;;; ====
 
 (define (render-game)
   (when *game-world*
@@ -409,7 +409,7 @@
               (newline)
               
               ;; Status bar
-              (display "================================================================================\n")
+              (display "====\n")
               (display "HP: ")
               (display hp)
               (display "/")
@@ -421,15 +421,15 @@
               (display "  |  Position: ")
               (display pos)
               (newline)
-              (display "================================================================================\n")
+              (display "====\n")
               
               ;; Show recent log messages
               (show-log)
               (newline))))
 
-;;; ============================================================
+;;; ====
 ;;; Helper Commands
-;;; ============================================================
+;;; ====
 
 (define (game-stats)
   (if *game-world*
@@ -454,14 +454,14 @@
 (define (se) (move-player-8 'se))
 (define (sw) (move-player-8 'sw))
 
-;;; ============================================================
+;;; ====
 ;;; Game Loaded
-;;; ============================================================
+;;; ====
 
 (display "\n")
-(display "================================================================================\n")
+(display "====\n")
 (display "                           DUNGEON CRAWLER - RPG SDK Demo\n")
-(display "================================================================================\n")
+(display "====\n")
 (display "\n")
 (display "Commands:\n")
 (display "  (new-game!)         - Start a new game\n")
@@ -478,7 +478,7 @@
 (display "  # = Wall   . = Floor     > = Stairs down\n")
 (display "\n")
 (display "Goal: Find the stairs (>) to escape the dungeon!\n")
-(display "================================================================================\n")
+(display "====\n")
 (display "\n")
 (display "Ready! Type (new-game!) to begin.\n")
 (display "\n")

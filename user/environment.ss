@@ -9,17 +9,17 @@
 ;;; This is Playpen code: experimental environment generation.
 ;;; Uses the color and layering systems to create atmospheric backgrounds.
 
-;;; ============================================================
+;;; ====
 ;;; Dependencies
-;;; ============================================================
+;;; ====
 
 (load "shell/ui/color.ss")
 (load "shell/ui/layout-color.ss")
 (load "user/security-utils.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Time of Day
-;;; ============================================================
+;;; ====
 
 ;;; TimeOfDay : (+ 'day 'dusk 'night 'dawn)
 ;;;
@@ -43,9 +43,9 @@
        (log-invalid-input "time-of-day" time)
        (rgb 135 206 235))))  ; Safe default
 
-;;; ============================================================
+;;; ====
 ;;; Pond Rendering
-;;; ============================================================
+;;; ====
 
 ;;; Secure draw-water-surface with bounds checking
 (define (draw-water-surface canvas y-start y-end water-color)
@@ -103,9 +103,9 @@
          [canvas (draw-water-surface canvas water-start height water-color)])
         canvas))
 
-;;; ============================================================
+;;; ====
 ;;; Plant Rendering
-;;; ============================================================
+;;; ====
 
 ;;; Secure draw-reed with validation
 (define (draw-reed canvas pos height reed-color)
@@ -159,9 +159,9 @@
          [canvas (draw-reed canvas (point (- width 15) (- water-y 1)) 3 reed-color)])
         canvas))
 
-;;; ============================================================
+;;; ====
 ;;; Sky Rendering
-;;; ============================================================
+;;; ====
 
 ;;; draw-cloud : Canvas × Point × Color → Canvas
 ;;;
@@ -230,9 +230,9 @@
                      canvas)])
         canvas))
 
-;;; ============================================================
+;;; ====
 ;;; Complete Environment
-;;; ============================================================
+;;; ====
 
 ;;; render-environment : Nat × Nat × TimeOfDay → Canvas
 ;;;
@@ -246,9 +246,9 @@
          [canvas (render-plants canvas time-of-day)])
         canvas))
 
-;;; ============================================================
+;;; ====
 ;;; Animated Environment
-;;; ============================================================
+;;; ====
 
 ;;; Secure frame->time-of-day with validation
 (define (frame->time-of-day frame)

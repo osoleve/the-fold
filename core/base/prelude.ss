@@ -11,9 +11,9 @@
 ;;;
 ;;; This is a BASE module — no internal core dependencies.
 
-;;; ============================================================
+;;; ====
 ;;; List Predicates
-;;; ============================================================
+;;; ====
 
 ;;; andmap : (α → Bool) × (List α) → Bool
 ;;; Apply predicate to all elements, return true if all pass.
@@ -31,13 +31,13 @@
        (or (pred (car lst))
            (ormap pred (cdr lst)))))
 
-;;; ============================================================
+;;; ====
 ;;; List Utilities
-;;; ============================================================
+;;; ====
 
-;;; ============================================================
+;;; ====
 ;;; Duplicate Removal
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Three variants for different use cases:
 ;;;   - unique-simple: O(n^2) with memq - works on any list, symbols preferred
@@ -200,9 +200,9 @@
 (define (break pred lst)
   (span (lambda (x) (not (pred x))) lst))
 
-;;; ============================================================
+;;; ====
 ;;; Collection Utilities (Missing Functional Primitives)
-;;; ============================================================
+;;; ====
 
 ;;; identity : α → α
 ;;; The identity function - returns its argument unchanged.
@@ -252,9 +252,9 @@
                    (loop (cdr lst) seen result)
                    (loop (cdr lst) (cons key seen) (cons elem result))))])))
 
-;;; ============================================================
+;;; ====
 ;;; Result Type (Standardized Error Handling)
-;;; ============================================================
+;;; ====
 
 ;;; All core modules use:
 ;;;   (ok value)           — success
@@ -310,9 +310,9 @@
                         rest
                         `(ok ,(cons (unwrap-ok first) (unwrap-ok rest)))))))))
 
-;;; ============================================================
+;;; ====
 ;;; String Utilities
-;;; ============================================================
+;;; ====
 
 ;;; string-join : (List String) × String → String
 ;;; Join strings with separator.
@@ -545,9 +545,9 @@
               ;; Return final distance
               (vector-ref matrix (+ (* len1 (+ len2 1)) len2)))])))
 
-;;; ============================================================
+;;; ====
 ;;; Debug Utilities
-;;; ============================================================
+;;; ====
 
 ;;; trace : String × α → α
 ;;; Print a debug message and return the value unchanged.
@@ -559,9 +559,9 @@
   (newline)
   val)
 
-;;; ============================================================
+;;; ====
 ;;; Unicode Aliases — Mathematical Notation
-;;; ============================================================
+;;; ====
 ;;;
 ;;; These are ALIASES, not replacements. Both forms work.
 ;;; The Fold embraces mathematical notation where it aids clarity.

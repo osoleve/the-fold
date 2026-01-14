@@ -18,9 +18,9 @@
 (load "core/base/prelude.ss")
 (load "lattice/fp/control/state.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Bit Manipulation Helpers
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Scheme uses arbitrary precision integers, but we simulate
 ;;; 64-bit and 32-bit operations for PRNG algorithms.
@@ -65,9 +65,9 @@
 (define (rotr64 x k)
   (rotl64 x (- 64 k)))
 
-;;; ============================================================
+;;; ====
 ;;; Splitmix64 Generator
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Simple, high-quality generator often used to initialize
 ;;; other generators from a single seed.
@@ -103,9 +103,9 @@
 (define splitmix-random
   (make-state splitmix-next))
 
-;;; ============================================================
+;;; ====
 ;;; PCG (Permuted Congruential Generator)
-;;; ============================================================
+;;; ====
 ;;;
 ;;; High-quality, statistically excellent generator.
 ;;; We implement PCG-XSH-RR (32-bit output, 64-bit state).
@@ -154,9 +154,9 @@
 (define pcg-random
   (make-state pcg-next))
 
-;;; ============================================================
+;;; ====
 ;;; Xorshift128+ Generator
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Fast generator with good statistical properties.
 ;;; State: pair of 64-bit integers (s0, s1)
@@ -205,9 +205,9 @@
 (define xorshift128-random
   (make-state xorshift128-next))
 
-;;; ============================================================
+;;; ====
 ;;; Uniform Random Number Generation
-;;; ============================================================
+;;; ====
 
 ;;; random-u32-from : RNG → (State RNG Int)
 ;;; Generate a random 32-bit unsigned integer.
@@ -313,9 +313,9 @@
                        [(xorshift128? gen) (xorshift128-next gen)]
                        [else (error 'random-bool "unknown generator" gen)])))))
 
-;;; ============================================================
+;;; ====
 ;;; Sampling Utilities
-;;; ============================================================
+;;; ====
 
 ;;; random-element : (List α) → (State RNG α)
 ;;; Pick a random element from a non-empty list.
@@ -398,9 +398,9 @@
                                                    (caar lst)
                                                    (loop (cdr lst) new-acc)))))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Generating Multiple Random Values
-;;; ============================================================
+;;; ====
 
 ;;; random-list : Int × (State RNG α) → (State RNG (List α))
 ;;; Generate a list of n random values.
@@ -418,9 +418,9 @@
 (define (random-vector n gen)
   (state-map list->vector (random-list n gen)))
 
-;;; ============================================================
+;;; ====
 ;;; Convenience Functions (Run with Default Generator)
-;;; ============================================================
+;;; ====
 
 ;;; with-random : Int × (State RNG α) → α
 ;;; Run a random computation with a PCG generator seeded from given value.
@@ -432,9 +432,9 @@
 (define (with-random-stream seed stream computation)
   (eval-state computation (make-pcg seed stream)))
 
-;;; ============================================================
+;;; ====
 ;;; Generator Statistics (for Testing)
-;;; ============================================================
+;;; ====
 
 ;;; gen-advance : Int × RNG → RNG
 ;;; Advance generator n steps (discard n values).
@@ -448,9 +448,9 @@
                    [else (error 'gen-advance "unknown generator" gen)])])
            (gen-advance (- n 1) (cdr (next gen))))))
 
-;;; ============================================================
+;;; ====
 ;;; Generator Splitting (for Parallel Simulations)
-;;; ============================================================
+;;; ====
 
 ;;; gen-split : RNG → (Pair RNG RNG)
 ;;; Split a generator into two independent streams.
@@ -507,9 +507,9 @@
                 ;; Return one child, use the other as new state
                 (cons children (car children))))))
 
-;;; ============================================================
+;;; ====
 ;;; Random Bytes Generation
-;;; ============================================================
+;;; ====
 
 ;;; random-bytes : Int → (State RNG Bytevector)
 ;;; Generate a bytevector of n random bytes.
@@ -551,9 +551,9 @@
                               
                               [else (error 'random-bytes "unknown generator" g)]))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Generator Serialization (for Resumable Sessions)
-;;; ============================================================
+;;; ====
 
 ;;; gen-serialize : RNG → Sexp
 ;;; Convert generator state to a serializable S-expression.

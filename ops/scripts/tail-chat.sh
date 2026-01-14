@@ -203,7 +203,7 @@ watch_chat() {
 
 # Main execution
 echo "🌟 The Fold Chat"
-echo "================"
+echo "===="
 
 # Check if we're in the right directory
 if [[ ! -d ".store" ]]; then

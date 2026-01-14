@@ -24,9 +24,9 @@
 (load "core/util/help.ss")  ; For function suggestions
 (load "shell/error-fmt.ss")     ; For base error formatting
 
-;;; ============================================================
+;;; ====
 ;;; Enhanced Error Context Database
-;;; ============================================================
+;;; ====
 
 (define *enhanced-error-contexts*
   `(
@@ -201,9 +201,9 @@
      (related-functions help apropos))
     ))
 
-;;; ============================================================
+;;; ====
 ;;; Error Message Parsing Utilities
-;;; ============================================================
+;;; ====
 
 (define (extract-function-name error-msg)
   "Extract function name from error message"
@@ -269,9 +269,9 @@
     (extract-filename error-msg)]  ; Same logic
    [else #f]))
 
-;;; ============================================================
+;;; ====
 ;;; Enhanced Error Detection
-;;; ============================================================
+;;; ====
 
 (define (detect-error-context-enhanced error-msg stack-trace)
   "Enhanced error context detection with multiple strategies"
@@ -293,9 +293,9 @@
                      (loop (cdr contexts) ctx)
                      (loop (cdr contexts) best-match))))))
 
-;;; ============================================================
+;;; ====
 ;;; Smart Suggestion Generation
-;;; ============================================================
+;;; ====
 
 (define (generate-suggestions error-msg context)
   "Generate context-aware suggestions"
@@ -330,9 +330,9 @@
     "
 ")))
 
-;;; ============================================================
+;;; ====
 ;;; Tutorial and Documentation Links
-;;; ============================================================
+;;; ====
 
 (define (get-documentation-links context)
   "Get relevant documentation links for context"
@@ -359,9 +359,9 @@
                   "💡 All functions: (help)")]
                [else '()]))))
 
-;;; ============================================================
+;;; ====
 ;;; Main Error Formatting Function
-;;; ============================================================
+;;; ====
 
 (define (format-enhanced-error condition)
   "Format error with enhanced context and suggestions"
@@ -450,9 +450,9 @@
 
 ")))
 
-;;; ============================================================
+;;; ====
 ;;; String Utilities
-;;; ============================================================
+;;; ====
 
 (define (string-replace-all str pattern replacement)
   "Replace all occurrences of pattern with replacement"
@@ -478,9 +478,9 @@
 
 ;;; NOTE: string-trim, string-split, string-contains?, string-index-of provided by core/prelude.ss
 
-;;; ============================================================
+;;; ====
 ;;; Enhanced Guard Macro
-;;; ============================================================
+;;; ====
 
 (define-syntax enhanced-guard
   (syntax-rules ()
@@ -488,9 +488,9 @@
                  (guard (e (else (handler (format-enhanced-error e))))
                         body)]))
 
-;;; ============================================================
+;;; ====
 ;;; Testing and Demonstration
-;;; ============================================================
+;;; ====
 
 (define (demo-enhanced-errors)
   "Demonstrate the enhanced error system"
@@ -547,9 +547,9 @@
   (display "✅ Suggests related functions
 "))
 
-;;; ============================================================
+;;; ====
 ;;; Integration with Existing System
-;;; ============================================================
+;;; ====
 
 ;; Override the standard error formatting to use our enhanced version
 (define (install-enhanced-error-handler!)

@@ -5,17 +5,17 @@
 
 (load "lattice/tiles/boardcraft.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Game Configuration
-;;; ============================================================
+;;; ====
 
 (define BOARD_RADIUS 4)  ; 4-radius hex board
 (define MAX_TURNS 20)    ; Game ends after 20 turns
 (define STARTING_UNITS 5) ; Each player starts with 5 units
 
-;;; ============================================================
+;;; ====
 ;;; Game State
-;;; ============================================================
+;;; ====
 
 (define (make-game-state board current-player turn units scores)
   (list 'game-state board current-player turn units scores))
@@ -26,9 +26,9 @@
 (define (game-state-units state) (list-ref state 4))
 (define (game-state-scores state) (list-ref state 5))
 
-;;; ============================================================
+;;; ====
 ;;; Unit Definitions
-;;; ============================================================
+;;; ====
 
 (define (make-unit player position strength)
   (list 'unit player position strength))
@@ -46,9 +46,9 @@
         [(blue) 'red]
         [else (error "Unknown player" player)]))
 
-;;; ============================================================
+;;; ====
 ;;; Game Initialization
-;;; ============================================================
+;;; ====
 
 (define (initialize-game)
   (let* ([board (make-hex-board 'axial BOARD_RADIUS)]
@@ -65,9 +65,9 @@
         
         (make-game-state board 'red 1 units scores)))
 
-;;; ============================================================
+;;; ====
 ;;; Game Logic
-;;; ============================================================
+;;; ====
 
 (define (valid-move? game position)
   (let ([board (game-state-board game)])
@@ -88,9 +88,9 @@
         (game-state-units game)
         (game-state-scores game))))
 
-;;; ============================================================
+;;; ====
 ;;; Game Display
-;;; ============================================================
+;;; ====
 
 (define (display-game-state game)
   (display "═══════════════════════════════════════════════════════════════\n")
@@ -104,9 +104,9 @@
   (display "\nBoard visualization would go here\n")
   (newline))
 
-;;; ============================================================
+;;; ====
 ;;; Main Game Function
-;;; ============================================================
+;;; ====
 
 (define (play-hex-strategy-game)
   (display "Starting Hex Strategy Game...\n")

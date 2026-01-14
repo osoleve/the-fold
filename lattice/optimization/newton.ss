@@ -28,9 +28,9 @@
 (load "lattice/optimization/convergence.ss")
 (load "lattice/optimization/line-search.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Newton's Method
-;;; ============================================================
+;;; ====
 
 ;;; Newton's method computes the search direction by solving:
 ;;;   H * d = -g
@@ -114,9 +114,9 @@
             (let ([idx (+ (* i n) i)])
                  (vector-set! new-data idx (+ (vector-ref new-data idx) lambda))))))
 
-;;; ============================================================
+;;; ====
 ;;; Modified Newton (Positive Definite Hessian)
-;;; ============================================================
+;;; ====
 
 ;;; When the Hessian is not positive definite, Newton's method can go uphill.
 ;;; Modified Newton adds a multiple of identity to make H positive definite.
@@ -177,9 +177,9 @@
             (matrix-add-diagonal m tau)
             m)))
 
-;;; ============================================================
+;;; ====
 ;;; Newton-CG (Truncated Newton)
-;;; ============================================================
+;;; ====
 
 ;;; Newton-CG uses conjugate gradient to approximately solve H*d = -g.
 ;;; This is efficient for large problems where forming the full Hessian is expensive.
@@ -272,9 +272,9 @@
          [grad- (gradient f x-)])
         (map (lambda (g+ g-) (/ (- g+ g-) (* 2 eps))) grad+ grad-)))
 
-;;; ============================================================
+;;; ====
 ;;; Gauss-Newton Method (for Least Squares)
-;;; ============================================================
+;;; ====
 
 ;;; For least squares: minimize 0.5 * ||r(x)||^2
 ;;; where r(x) is the residual vector.
@@ -360,9 +360,9 @@
 ;;; Use imported list-update or define if not available
 (define list-update list-update-newton)
 
-;;; ============================================================
+;;; ====
 ;;; Utility Functions
-;;; ============================================================
+;;; ====
 
 ;;; matrix-vec-mul : Matrix × (Vector Number) → (Vector Number)
 ;;; Matrix-vector multiplication.

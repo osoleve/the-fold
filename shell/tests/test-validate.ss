@@ -38,11 +38,11 @@
   (newline))
 
 (display "Validation Tests (shell/tools/validate.ss)\n")
-(display "====================================\n\n")
+(display "====\n\n")
 
-;;; ============================================================
+;;; ====
 ;;; Hash Validation Tests
-;;; ============================================================
+;;; ====
 
 (display "Test 1: Hash validation\n")
 (define valid-hash (make-bytevector address-size #xAB))
@@ -59,9 +59,9 @@
 (test-valid "non-bytevector" validate-hash 42 #f)
 (test-valid "string instead of hash" validate-hash "abcd" #f)
 
-;;; ============================================================
+;;; ====
 ;;; Hex String Validation Tests
-;;; ============================================================
+;;; ====
 
 (display "\nTest 2: Hex string validation\n")
 (define valid-hex "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef00")
@@ -80,9 +80,9 @@
 (test-valid "invalid hex chars" validate-hex-string invalid-hex #f)
 (test-valid "non-string" validate-hex-string 123 #f)
 
-;;; ============================================================
+;;; ====
 ;;; Reference Validation Tests
-;;; ============================================================
+;;; ====
 
 (display "\nTest 3: Reference validation\n")
 (define hash1 (make-bytevector address-size #x11))
@@ -104,9 +104,9 @@
 (test-valid "refs with bad hash" validate-refs refs-with-bad #f)
 (test-valid "refs as list" validate-refs refs-not-vector #f)
 
-;;; ============================================================
+;;; ====
 ;;; Tag Validation Tests
-;;; ============================================================
+;;; ====
 
 (display "\nTest 4: Tag validation\n")
 (test-pred "valid tag predicate" tag-valid? 'test #t)
@@ -116,9 +116,9 @@
 (test-valid "tag as string" validate-tag "greeting" #f)
 (test-valid "tag as number" validate-tag 42 #f)
 
-;;; ============================================================
+;;; ====
 ;;; Payload Validation Tests
-;;; ============================================================
+;;; ====
 
 (display "\nTest 5: Payload validation\n")
 (define valid-payload (string->utf8 "hello"))
@@ -131,9 +131,9 @@
 (test-valid "payload as string" validate-payload invalid-payload #f)
 (test-valid "payload as number" validate-payload 42 #f)
 
-;;; ============================================================
+;;; ====
 ;;; Block Validation Tests
-;;; ============================================================
+;;; ====
 
 (display "\nTest 6: Block validation\n")
 (define valid-block (make-block 'test
@@ -157,9 +157,9 @@
 (test-valid "non-block object" validate-block 'not-a-block #f)
 (test-valid "number instead of block" validate-block 42 #f)
 
-;;; ============================================================
+;;; ====
 ;;; Serialization Validation Tests
-;;; ============================================================
+;;; ====
 
 (display "\nTest 7: Serialization validation\n")
 (define serialized-valid (block->bytes valid-block))
@@ -202,9 +202,9 @@
     (display "✓\n")
     (display "✗\n"))
 
-;;; ============================================================
+;;; ====
 ;;; Hex Character Tests
-;;; ============================================================
+;;; ====
 
 (display "\nTest 9: Hex character validation\n")
 (test-pred "digit 0" hex-char? #\0 #t)
@@ -217,9 +217,9 @@
 (test-pred "letter z" hex-char? #\z #f)
 (test-pred "space" hex-char? #\space #f)
 
-;;; ============================================================
+;;; ====
 ;;; Edge Cases
-;;; ============================================================
+;;; ====
 
 (display "\nTest 10: Edge cases\n")
 

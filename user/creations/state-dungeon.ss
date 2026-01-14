@@ -11,9 +11,9 @@
 
 (display "=== STATE DUNGEON: The Monad's Labyrinth ===\n\n")
 
-;;; ============================================================
+;;; ====
 ;;; Game State Type
-;;; ============================================================
+;;; ====
 
 ;;; GameState = {
 ;;;   position: (x, y)
@@ -32,9 +32,9 @@
     (visited . ())
     (map . ,(generate-dungeon))))
 
-;;; ============================================================
+;;; ====
 ;;; Dungeon Generation
-;;; ============================================================
+;;; ====
 
 (define (generate-dungeon)
   `(((0 . 0) . ,(make-room "Entrance" "You stand at the dungeon entrance." empty))
@@ -53,9 +53,9 @@
     (type . ,type)
     (cleared . #f)))
 
-;;; ============================================================
+;;; ====
 ;;; State Accessors
-;;; ============================================================
+;;; ====
 
 (define (get-position)
   (state-bind (state-get)
@@ -81,9 +81,9 @@
                                                (let ([room-entry (assoc pos dungeon)])
                                                     (state-return (if room-entry (cdr room-entry) #f)))))))))
 
-;;; ============================================================
+;;; ====
 ;;; State Modifiers
-;;; ============================================================
+;;; ====
 
 (define (move-to new-pos)
   (state-modify
@@ -121,9 +121,9 @@
                          (cons (cons 'health (min 100 (+ (cdr health-entry) amount))) rest))
                     s)))))
 
-;;; ============================================================
+;;; ====
 ;;; Game Actions (Monadic)
-;;; ============================================================
+;;; ====
 
 (define (explore-room)
   (state-bind (get-current-room)
@@ -170,9 +170,9 @@
                                         (lambda (_)
                                                 (state-return (string-append "Moved " (symbol->string direction)))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Display Functions
-;;; ============================================================
+;;; ====
 
 (define (display-status state)
   (let ([pos (cdr (assq 'position state))]
@@ -194,9 +194,9 @@
            (display (string-append "   " desc "\n\n")))
       (display "You can't go that way!\n\n")))
 
-;;; ============================================================
+;;; ====
 ;;; Game Loop
-;;; ============================================================
+;;; ====
 
 (define (game-loop state)
   (display-status state)
@@ -271,9 +271,9 @@
                       (display "\nInvalid command.\n")
                       (game-loop state2)]))]))))
 
-;;; ============================================================
+;;; ====
 ;;; Start Game
-;;; ============================================================
+;;; ====
 
 (display "A pure functional dungeon crawler powered by State monads!\n\n")
 (display "Navigate a 3x3 dungeon, fight enemies, collect treasure, and escape!\n")

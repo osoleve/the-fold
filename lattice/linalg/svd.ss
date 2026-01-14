@@ -18,9 +18,9 @@
 ;;;
 ;;; Do NOT load dependencies here to avoid redefinition issues.
 
-;;; ============================================================
+;;; ====
 ;;; Constants
-;;; ============================================================
+;;; ====
 
 ;;; Default tolerance for rank determination and zero singular values
 (define *svd-tolerance* 1e-10)
@@ -28,9 +28,9 @@
 ;;; Maximum iterations for eigenvalue computation
 (define *svd-max-iterations* 1000)
 
-;;; ============================================================
+;;; ====
 ;;; Core SVD Algorithm
-;;; ============================================================
+;;; ====
 
 ;;; svd : Matrix × [Nat] × [Num] → (U Σ V) | Error
 ;;;
@@ -119,9 +119,9 @@
                    [v (compute-v-from-atu at sorted-u singular-values m n tol)])
                   (list sorted-u sigma v)))))
 
-;;; ============================================================
+;;; ====
 ;;; Helper Functions
-;;; ============================================================
+;;; ====
 
 ;;; eigenvalues->singular-values : Vec × Num → Vec
 ;;; Convert eigenvalues to singular values, clamping negative values to 0.
@@ -262,9 +262,9 @@
                      (matrix-set! sorted-mat r i (matrix-ref mat r idx)))))
         (cons sorted-ev sorted-mat)))
 
-;;; ============================================================
+;;; ====
 ;;; Thin/Economy SVD
-;;; ============================================================
+;;; ====
 
 ;;; svd-thin : Matrix × [Nat] × [Num] → (U Σ V) | Error
 ;;;
@@ -328,9 +328,9 @@
                 (matrix-set! result i j (matrix-ref mat (+ row-start i) (+ col-start j)))))
         result))
 
-;;; ============================================================
+;;; ====
 ;;; Moore-Penrose Pseudoinverse
-;;; ============================================================
+;;; ====
 
 ;;; pseudoinverse : Matrix × [Num] → Matrix | Error
 ;;;
@@ -373,9 +373,9 @@
                  (when (> (abs s) tol)
                        (matrix-set! sigma-pinv i i (/ 1.0 s)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Low-Rank Approximation
-;;; ============================================================
+;;; ====
 
 ;;; low-rank-approx : Matrix × Nat × [Num] → Matrix | Error
 ;;;
@@ -409,9 +409,9 @@
                            [u-sigma (matrix-mul u-k sigma-k)])
                           (matrix-mul u-sigma v-k-t))))])))
 
-;;; ============================================================
+;;; ====
 ;;; Matrix Rank
-;;; ============================================================
+;;; ====
 
 ;;; matrix-rank : Matrix × [Num] → Nat | Error
 ;;;
@@ -430,9 +430,9 @@
                                (loop (+ i 1) (+ rank 1))
                                (loop (+ i 1) rank))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Singular Values Only
-;;; ============================================================
+;;; ====
 
 ;;; singular-values : Matrix × [Num] → Vec | Error
 ;;;
@@ -470,9 +470,9 @@
                            (vector-set! result i (vector-ref result j))
                            (vector-set! result j temp)))))))
 
-;;; ============================================================
+;;; ====
 ;;; SVD Verification
-;;; ============================================================
+;;; ====
 
 ;;; verify-svd : Matrix × Matrix × Matrix × Matrix × [Num] → Boolean
 ;;;
@@ -497,9 +497,9 @@
                        (let ([x (vector-ref data i)])
                             (loop (+ i 1) (+ sum (* x x)))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Matrix Column Extraction (if not defined elsewhere)
-;;; ============================================================
+;;; ====
 
 ;;; matrix-col : Matrix × Nat → Vec
 ;;; Extract column j as a vector.

@@ -17,9 +17,9 @@
 (load "core/base/prelude.ss")
 (load "lattice/algebra/ring.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Field Representation
-;;; ============================================================
+;;; ====
 
 ;;; A Field is represented as:
 ;;; (field elements add-op mul-op zero one neg-fn div-fn equal-fn)
@@ -57,9 +57,9 @@
 (define (field-div-fn f) (list-ref f 7))
 (define (field-equal-fn f) (list-ref f 8))
 
-;;; ============================================================
+;;; ====
 ;;; Field Operations
-;;; ============================================================
+;;; ====
 
 ;;; field-add : Field × Element × Element → Element
 (define (field-add f a b)
@@ -104,9 +104,9 @@
     [else
      (field-mul f a (field-power f a (- n 1)))]))
 
-;;; ============================================================
+;;; ====
 ;;; Field → Ring Conversion
-;;; ============================================================
+;;; ====
 
 ;;; field->ring : Field → Ring
 ;;; Extract the underlying ring structure from a field.
@@ -120,9 +120,9 @@
    (field-neg-fn f)
    (field-equal-fn f)))
 
-;;; ============================================================
+;;; ====
 ;;; Standard Fields
-;;; ============================================================
+;;; ====
 
 ;;; Q-field : Field
 ;;; The field of rational numbers (using Scheme's exact rationals).
@@ -179,9 +179,9 @@
           (loop r (- old-r (* q r))
                 s (- old-s (* q s)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Utility
-;;; ============================================================
+;;; ====
 
 ;;; range : Nat × Nat → (List Nat)
 (define (range start end)

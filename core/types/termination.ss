@@ -27,9 +27,9 @@
 (load "core/types/types.ss")
 (load "core/types/dep-types.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Size Relations
-;;; ============================================================
+;;; ====
 
 ;;; Size relations between arguments in recursive calls.
 ;;; These are used to build size-change graphs.
@@ -63,9 +63,9 @@
    [(eq? r2 '<=) '<=]
    [else '?]))
 
-;;; ============================================================
+;;; ====
 ;;; Call Graph
-;;; ============================================================
+;;; ====
 
 ;;; A call graph represents the recursive call structure of a definition.
 ;;; Nodes are function names, edges are calls with size-change information.
@@ -93,9 +93,9 @@
 (define (call-graph-params g) (caddr g))
 (define (call-graph-edges g) (cadddr g))
 
-;;; ============================================================
+;;; ====
 ;;; Structural Subterm Checking
-;;; ============================================================
+;;; ====
 
 ;;; structural-subterm? : Expr × Symbol × Context → Boolean
 ;;; Check if expr is a structural subterm of the variable var.
@@ -141,9 +141,9 @@
   (let ([entry (assq var ctx)])
        (and entry (cdr entry))))
 
-;;; ============================================================
+;;; ====
 ;;; Size-Change Analysis
-;;; ============================================================
+;;; ====
 
 ;;; analyze-size-change : Expr × Symbol × (List Symbol) × Context → (List (Idx . Relation))
 ;;; Analyze how arguments change in a recursive call.
@@ -181,9 +181,9 @@
    ;; Unknown: ?
    [else '?]))
 
-;;; ============================================================
+;;; ====
 ;;; Size-Change Graph Construction
-;;; ============================================================
+;;; ====
 
 ;;; A size-change graph (SExpr) represents how arguments change between
 ;;; function entry and a recursive call.
@@ -245,9 +245,9 @@
                '?))
       '?))
 
-;;; ============================================================
+;;; ====
 ;;; Termination Checking
-;;; ============================================================
+;;; ====
 
 ;;; check-termination : Expr × (List Symbol) → (Result () Error)
 ;;; Check that a recursive definition terminates.
@@ -378,9 +378,9 @@
    
    [else ctx]))
 
-;;; ============================================================
+;;; ====
 ;;; (Option SExpr)Termination Analysis
-;;; ============================================================
+;;; ====
 
 ;;; call-graph->scgs : (Option SExpr)→ (List SExpr)
 ;;; Convert call graph edges to size-change graphs.
@@ -483,9 +483,9 @@
                           #t
                           (loop (+ i 1))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Type-Level Termination Checking
-;;; ============================================================
+;;; ====
 
 ;;; check-type-termination : TypeExpr → (Result () Error)
 ;;; Check that a type-level computation terminates.
@@ -544,9 +544,9 @@
    
    [else '(ok)]))
 
-;;; ============================================================
+;;; ====
 ;;; Structural Recursion Validation
-;;; ============================================================
+;;; ====
 
 ;;; validate-structural-recursion : DataType × FunctionDef → (Result () Error)
 ;;; Validate that a function over an inductive type uses structural recursion.
@@ -655,9 +655,9 @@
     (cons (cons pattern parent) ctx)]
    [else ctx]))
 
-;;; ============================================================
+;;; ====
 ;;; Integration with Type Checking
-;;; ============================================================
+;;; ====
 
 ;;; termination-check-enabled? : Boolean
 ;;; Global flag to enable/disable termination checking.
@@ -689,9 +689,9 @@
       (check-termination expr params)
       '(ok)))
 
-;;; ============================================================
+;;; ====
 ;;; Helper Functions
-;;; ============================================================
+;;; ====
 
 ;;; filter-map : (α → β |(Option SExpr)) × (List α) → (List β)
 (define (filter-map f lst)

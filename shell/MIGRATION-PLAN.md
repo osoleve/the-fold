@@ -46,7 +46,7 @@ shell/
 ### Tier 0: Most Depended (move first with stubs)
 
 | File | Dependents | Move To |
-|------|------------|---------|
+|----|----|----|
 | `fs.ss` | 15 files (core/, user/, shell/) | `io/` |
 | `store-api.ss` | 8 files | `storage/` |
 | `repl.ss` | 12 files | `repl/` |
@@ -54,7 +54,7 @@ shell/
 ### Tier 1: Internal Dependencies
 
 | File | Depends On | Move To |
-|------|------------|---------|
+|----|----|----|
 | `store-api.ss` | fs.ss | `storage/` |
 | `identity.ss` | cas-persist.ss | `storage/` |
 | `profiler-unified.ss` | alloc-tracker.ss, profile-call-graph.ss | `diagnostics/` |
@@ -144,7 +144,7 @@ Gradually update files to use new paths, removing need for stubs.
 ## Files Remaining at Root (By Decision)
 
 | File | Reason |
-|------|--------|
+|----|----|
 | `commands.ss` | Core command registry |
 | `history.ss` | Command history |
 | `tutorial.ss` | User-facing tutorial |
@@ -158,7 +158,7 @@ Gradually update files to use new paths, removing need for stubs.
 These don't fit cleanly into proposed categories:
 
 | File | Current Location | Question |
-|------|-----------------|----------|
+|----|----|----|
 | `watch*.ss` | root | Watch system - own directory? |
 | `graph-export.ss` | root | `blocks/` or `io/`? |
 | `capability-lens.ss` | root | `lens/` or `debug/`? |
@@ -192,7 +192,7 @@ scheme --script test-all.ss
 ## Risk Mitigations
 
 | Risk | Mitigation |
-|------|------------|
+|----|----|
 | Load path breakage | Forwarding stubs |
 | Missing files | Git status before each commit |
 | Circular deps | Analyze deps before move |

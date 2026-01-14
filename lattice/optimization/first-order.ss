@@ -22,9 +22,9 @@
 (load "lattice/optimization/convergence.ss")
 (load "lattice/optimization/line-search.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Gradient Descent (Vanilla)
-;;; ============================================================
+;;; ====
 
 ;;; gradient-descent : ((List TracedValue) → TracedValue) × (List Number) × Number × ConvergenceCriteria → OptResult
 ;;; Vanilla gradient descent with fixed learning rate.
@@ -65,9 +65,9 @@
                   [x-new (map (lambda (xi gi) (- xi (* lr gi))) x grad)])
                  (loop x-new (+ iter 1))))))
 
-;;; ============================================================
+;;; ====
 ;;; Gradient Descent with Momentum
-;;; ============================================================
+;;; ====
 
 ;;; momentum : ((List TracedValue) → TracedValue) × (List Number) × Number × Number × ConvergenceCriteria → OptResult
 ;;; Gradient descent with momentum (heavy ball method).
@@ -99,9 +99,9 @@
                              [new-state (update-convergence-state state f-new grad-new x x-new)])
                             (loop x-new v-new new-state)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Adam Optimizer
-;;; ============================================================
+;;; ====
 
 ;;; adam : ((List TracedValue) → TracedValue) × (List Number) × Number × ConvergenceCriteria → OptResult
 ;;; Adam optimizer with default hyperparameters.
@@ -158,9 +158,9 @@
                              [new-state (update-convergence-state state f-new grad-new x x-new)])
                             (loop x-new m-new v-new (+ t 1) new-state)))))))
 
-;;; ============================================================
+;;; ====
 ;;; RMSprop Optimizer
-;;; ============================================================
+;;; ====
 
 ;;; rmsprop : ((List TracedValue) → TracedValue) × (List Number) × Number × ConvergenceCriteria → OptResult
 ;;; RMSprop optimizer.
@@ -206,9 +206,9 @@
                              [new-state (update-convergence-state state f-new grad-new x x-new)])
                             (loop x-new v-new new-state)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Adagrad Optimizer
-;;; ============================================================
+;;; ====
 
 ;;; adagrad : ((List TracedValue) → TracedValue) × (List Number) × Number × ConvergenceCriteria → OptResult
 ;;; Adagrad optimizer (adaptive gradient).
@@ -251,9 +251,9 @@
                              [new-state (update-convergence-state state f-new grad-new x x-new)])
                             (loop x-new g-new new-state)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Gradient Descent with Line Search
-;;; ============================================================
+;;; ====
 
 ;;; gradient-descent-ls : ((List TracedValue) → TracedValue) × (List Number) × ConvergenceCriteria → OptResult
 ;;; Gradient descent with Armijo line search.
@@ -281,9 +281,9 @@
                              [new-state (update-convergence-state state f-new grad-new x x-new)])
                             (loop x-new new-state)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Nesterov Accelerated Gradient (NAG)
-;;; ============================================================
+;;; ====
 
 ;;; nesterov : ((List TracedValue) → TracedValue) × (List Number) × Number × Number × ConvergenceCriteria → OptResult
 ;;; Nesterov accelerated gradient descent.
@@ -317,9 +317,9 @@
                              [new-state (update-convergence-state state f-new grad-new x x-new)])
                             (loop x-new v-new new-state)))))))
 
-;;; ============================================================
+;;; ====
 ;;; AdamW (Adam with Decoupled Weight Decay)
-;;; ============================================================
+;;; ====
 
 ;;; adamw : ((List TracedValue) → TracedValue) × (List Number) × Number × Number × ConvergenceCriteria → OptResult
 ;;; AdamW optimizer (Adam with decoupled weight decay regularization).

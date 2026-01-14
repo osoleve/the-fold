@@ -20,14 +20,14 @@
           (newline)))
 
 (display "
-==============================================================
+====
          COMPUTATIONAL GRAPH TESTS
-==============================================================
+====
 ")
 
-;;; ============================================================
+;;; ====
 ;;; Node Construction and Predicates
-;;; ============================================================
+;;; ====
 
 (test-group node-tests
             (define-test node-var-creates-variable-node
@@ -60,9 +60,9 @@
                      [n (node-op 'sin (list x))])
                     (assert-equal 1 (length (node-inputs n))))))
 
-;;; ============================================================
+;;; ====
 ;;; Graph Construction
-;;; ============================================================
+;;; ====
 
 (test-group graph-construction-tests
             (define-test make-comp-graph-creates-empty-graph
@@ -104,9 +104,9 @@
                                                             (assert-true (if (memq 'x vars) #t #f))
                                                             (assert-true (if (memq 'y vars) #t #f)))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Dual Numbers
-;;; ============================================================
+;;; ====
 
 (test-group dual-number-tests
             (define-test dual-creates-dual-number
@@ -126,9 +126,9 @@
                    (assert-equal 3 (dual-value d))
                    (assert-equal 1 (dual-deriv d)))))
 
-;;; ============================================================
+;;; ====
 ;;; Dual Arithmetic
-;;; ============================================================
+;;; ====
 
 (test-group dual-arithmetic-tests
             (define-test dual-add-correct
@@ -251,9 +251,9 @@
                     (assert-= (dual-value result) expected-val 0.0001)
                     (assert-= (dual-deriv result) expected-deriv 0.0001))))
 
-;;; ============================================================
+;;; ====
 ;;; Forward Mode Differentiation
-;;; ============================================================
+;;; ====
 
 (test-group forward-mode-tests
             (define-test forward-diff-constant-function
@@ -299,9 +299,9 @@
                              5)])
                    (assert-= result 1 0.0001))))
 
-;;; ============================================================
+;;; ====
 ;;; Gradient Computation
-;;; ============================================================
+;;; ====
 
 (test-group gradient-tests
             (define-test gradient-forward-partial-derivative
@@ -322,9 +322,9 @@
                    (assert-equal 5 (car grad))   ; df/dx = y + 1
                    (assert-equal 3 (cadr grad))))) ; df/dy = x
 
-;;; ============================================================
+;;; ====
 ;;; Tape Operations
-;;; ============================================================
+;;; ====
 
 (test-group tape-tests
             (define-test make-tape-creates-empty-tape
@@ -358,9 +358,9 @@
                          (assert-equal 4 grad-x)  ; df/dx = y
                          (assert-equal 3 grad-y))))) ; df/dy = x
 
-;;; ============================================================
+;;; ====
 ;;; Graph Traversal
-;;; ============================================================
+;;; ====
 
 (test-group traversal-tests
             (define-test graph-topological-order-on-simple-graph
@@ -376,9 +376,9 @@
                                                              ;; x and y should come before mul
                                                              (assert-equal 3 (length order)))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Hyperdual Numbers
-;;; ============================================================
+;;; ====
 
 (test-group hyperdual-tests
             (define-test hyperdual-construction
@@ -500,12 +500,12 @@
                              2)])
                    (assert-equal 12 result))))
 
-;;; ============================================================
+;;; ====
 ;;; Summary
-;;; ============================================================
+;;; ====
 
 (display "
-==============================================================
+====
 ")
 (printf "Tests passed: ~a~n" *tests-passed*)
 (printf "Tests failed: ~a~n" *tests-failed*)

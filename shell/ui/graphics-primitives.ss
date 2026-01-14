@@ -77,9 +77,9 @@
                  (shell layout)
                  (shell easing))
          
-         ;;; ============================================================
+         ;;; ====
          ;;; Character Intensity Palettes
-         ;;; ============================================================
+         ;;; ====
          
          ;;; Character palettes for representing intensity/brightness levels.
          ;;; Characters ordered from darkest to brightest.
@@ -106,9 +106,9 @@
                   [safe-index (max 0 (min index (- len 1)))])
                  (list-ref palette safe-index)))
          
-         ;;; ============================================================
+         ;;; ====
          ;;; Line Drawing
-         ;;; ============================================================
+         ;;; ====
          
          ;;; draw-line : Canvas × Point × Point × Char → Canvas
          ;;; Draw a line from start to end using Bresenham's algorithm.
@@ -163,9 +163,9 @@
                                             [new-dist (+ dist 1)])
                                            (loop new-x new-y new-err new-dist))))))))
 
-         ;;; ============================================================
+         ;;; ====
          ;;; Rounded Box Drawing
-         ;;; ============================================================
+         ;;; ====
          
          ;;; draw-rounded-box : Canvas × Rect × Symbol → Canvas
          ;;; Draw a box with rounded corners.
@@ -223,9 +223,9 @@
                                       (loop (+ y 1))))
                            canvas)))))
 
-         ;;; ============================================================
+         ;;; ====
          ;;; Circle Drawing
-         ;;; ============================================================
+         ;;; ====
          
          ;;; draw-circle : Canvas × Point × Nat × Char → Canvas
          ;;; Draw a circle outline using Bresenham's circle algorithm.
@@ -269,9 +269,9 @@
                                              (canvas-set! canvas (+ cx x) (+ cy y) ch))
                                        (loop-x (+ x 1)))))))))
 
-         ;;; ============================================================
+         ;;; ====
          ;;; Gradient Fills
-         ;;; ============================================================
+         ;;; ====
          
          ;;; gradient-fill : Canvas × Rect × Real × Real × (Real → Real) × List Char → Canvas
          ;;; General gradient fill with custom start/end values and easing function.
@@ -369,9 +369,9 @@
                                         (canvas-set! canvas x y ch)
                                         (loop-x (+ x 1)))))))))
 
-         ;;; ============================================================
+         ;;; ====
          ;;; Pattern Fills
-         ;;; ============================================================
+         ;;; ====
          
          ;;; Built-in patterns (2x2 tiles)
          (define pattern-checker '((#\█ #\space) (#\space #\█)))
@@ -447,9 +447,9 @@
                                                           (canvas-set! canvas (+ cx x) (+ cy y) ch))))
                                        (loop-x (+ x 1)))))))))
 
-         ;;; ============================================================
+         ;;; ====
          ;;; Styling System
-         ;;; ============================================================
+         ;;; ====
          
          ;;; Style record for stroke/fill/opacity configuration
          (define-record-type style%
@@ -490,9 +490,9 @@
          (define (apply-opacity-block opacity)
            (get-intensity-char intensity-palette-blocks opacity))
 
-         ;;; ============================================================
+         ;;; ====
          ;;; Polyline Drawing
-         ;;; ============================================================
+         ;;; ====
          
          ;;; draw-polyline : Canvas × (List Point) × Char → Canvas
          ;;; Draw a series of connected line segments.
@@ -506,9 +506,9 @@
                         (loop (cdr pts)
                               (draw-line c (car pts) (cadr pts) ch))))))
 
-         ;;; ============================================================
+         ;;; ====
          ;;; Polygon Drawing
-         ;;; ============================================================
+         ;;; ====
          
          ;;; draw-polygon : Canvas × (List Point) × Char → Canvas
          ;;; Draw a closed polygon (polyline with final edge back to start).
@@ -622,9 +622,9 @@
                                    (canvas-set! canvas x y ch)
                                    (fill-x (+ x 1)))))))))
 
-         ;;; ============================================================
+         ;;; ====
          ;;; Active Edge Table (AET) Polygon Fill - Optimized Version
-         ;;; ============================================================
+         ;;; ====
          ;;;
          ;;; For complex polygons, the AET algorithm is more efficient:
          ;;; O(Height + Edges + Intersections) vs O(Height × Edges).
@@ -741,9 +741,9 @@
                                                new-active
                                                (cons (car remaining) unused))]))))))))
 
-         ;;; ============================================================
+         ;;; ====
          ;;; Path Drawing
-         ;;; ============================================================
+         ;;; ====
          
          ;;; A Path is a list of path commands:
          ;;;   (move-to point)           - Move to point without drawing
@@ -802,9 +802,9 @@
                                    [else
                                     (loop (cdr cmds) c current-pos path-start)]))))))
 
-         ;;; ============================================================
+         ;;; ====
          ;;; Styled Drawing
-         ;;; ============================================================
+         ;;; ====
          
          ;;; draw-with-style : Canvas × Shape × Style → Canvas
          ;;; Draw a shape with the given style.

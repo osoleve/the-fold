@@ -7,9 +7,9 @@
 ;;; Dependencies:
 ;;;   - playpen/boardcraft/core.ss
 
-;;; ============================================================
+;;; ====
 ;;; Square Coordinates
-;;; ============================================================
+;;; ====
 
 ;;; Square tiles use simple Cartesian coordinates (x, y).
 ;;; Origin is typically at (0, 0) with x increasing right, y increasing down.
@@ -19,9 +19,9 @@
 ;;; square-coord : Integer × Integer → Coord
 (define square-coord coord)
 
-;;; ============================================================
+;;; ====
 ;;; Neighbor Calculations
-;;; ============================================================
+;;; ====
 
 ;;; Square tiles have up to 8 neighbors:
 ;;;   - 4 orthogonal (edge-adjacent): N, E, S, W
@@ -84,9 +84,9 @@
         [(all)   (square-neighbors-all coord)]
         [else    (error 'square-neighbors "Invalid mode" mode)]))
 
-;;; ============================================================
+;;; ====
 ;;; Distance Metrics
-;;; ============================================================
+;;; ====
 
 ;;; square-distance-manhattan : Coord × Coord → Integer
 ;;; Manhattan distance (L1 metric)
@@ -118,9 +118,9 @@
         [(euclidean) (square-distance-euclidean c1 c2)]
         [else        (error 'square-distance "Invalid metric" metric)]))
 
-;;; ============================================================
+;;; ====
 ;;; Range and Area
-;;; ============================================================
+;;; ====
 
 ;;; square-line : Coord × Coord → (List Coord)
 ;;; Get all coordinates on a straight line from c1 to c2
@@ -191,9 +191,9 @@
                      acc
                      (loop (- y 1) (cons (square-coord (- cx radius) y) acc))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Board Creation
-;;; ============================================================
+;;; ====
 
 ;;; make-square-board : Integer × Integer × [Tile] → Board
 ;;; Create a rectangular square board with optional default tile
@@ -234,9 +234,9 @@
 (define (square-board-capacity board)
   (* (square-board-width board) (square-board-height board)))
 
-;;; ============================================================
+;;; ====
 ;;; Exports Summary
-;;; ============================================================
+;;; ====
 
 ;;; This module provides:
 ;;;   • square-coord — Create square coordinate

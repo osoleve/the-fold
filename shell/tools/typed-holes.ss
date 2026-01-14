@@ -30,9 +30,9 @@
 (load "core/types/infer.ss")
 (load "shell/tools/index.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Hole Detection
-;;; ============================================================
+;;; ====
 
 ;;; hole? : Any → Boolean
 ;;; Is this a hole expression?
@@ -84,9 +84,9 @@
                            (find-holes-aux (car items)
                                            (cons idx path))))))]))
 
-;;; ============================================================
+;;; ====
 ;;; Type Context Building
-;;; ============================================================
+;;; ====
 
 ;;; expr-context : Expr × Path → TEnv
 ;;; Build the type environment visible at a hole location.
@@ -164,9 +164,9 @@
            [subexpr (list-ref expr idx)])
           (expr-context-aux subexpr (cdr path) env))]))
 
-;;; ============================================================
+;;; ====
 ;;; Hole Type Inference
-;;; ============================================================
+;;; ====
 
 ;;; infer-hole-type : Expr × Path → Type | Error
 ;;; Infer what type a hole at the given path should have.
@@ -218,9 +218,9 @@
    ;; Default: unknown
    [else (fresh-tvar)]))
 
-;;; ============================================================
+;;; ====
 ;;; Finding Available Fits
-;;; ============================================================
+;;; ====
 
 ;;; find-fits : Type × TEnv → (List (Symbol × Type))
 ;;; Find bindings in scope that can fill a hole of the given type.
@@ -262,9 +262,9 @@
                      #f)))
    env))
 
-;;; ============================================================
+;;; ====
 ;;; REPL Commands
-;;; ============================================================
+;;; ====
 
 ;;; hole-type : Expr → Void
 ;;; Show what type each hole in the expression should have.
@@ -387,9 +387,9 @@
     (printf "  Don't know how to split ~a\n" (type->string type))])
   (display "\n"))
 
-;;; ============================================================
+;;; ====
 ;;; Standard Environment
-;;; ============================================================
+;;; ====
 
 ;;; Common functions available in the standard environment
 (define standard-env
@@ -431,9 +431,9 @@
     (fst . (∀ (a b) (-> (× a b) a)))
     (snd . (∀ (a b) (-> (× a b) b)))))
 
-;;; ============================================================
+;;; ====
 ;;; Suggestion Engine (fold-moe)
-;;; ============================================================
+;;; ====
 
 ;;; Scoring weights (higher = better)
 (define SCORE-LOCAL-EXACT 100)
@@ -462,9 +462,9 @@
 (define (suggestion-score s) (cdr (assq 'score s)))
 (define (suggestion-explanation s) (cdr (assq 'explanation s)))
 
-;;; ============================================================
+;;; ====
 ;;; Type Fit Checking
-;;; ============================================================
+;;; ====
 
 ;;; check-fit : Type × Type → FitResult | #f
 ;;; Determine how a candidate type fits the target type.
@@ -489,9 +489,9 @@
                                     (cadr result))))))]
         [else #f])))
 
-;;; ============================================================
+;;; ====
 ;;; Suggestion Finders
-;;; ============================================================
+;;; ====
 
 ;;; find-local-suggestions : Type × TEnv → (List Suggestion)
 (define (find-local-suggestions target-type ctx)
@@ -564,9 +564,9 @@
 (define (polymorphic-type? t)
   (and (pair? t) (eq? (car t) '∀)))
 
-;;; ============================================================
+;;; ====
 ;;; Synthesis Recipes
-;;; ============================================================
+;;; ====
 
 ;;; find-synthesis-suggestions : Type × TEnv → (List Suggestion)
 (define (find-synthesis-suggestions target-type ctx)
@@ -662,9 +662,9 @@
            acc
            (loop (+ i 1) (cons val acc)))))
 
-;;; ============================================================
+;;; ====
 ;;; Main Suggestion Engine
-;;; ============================================================
+;;; ====
 
 ;;; suggest-for-hole : Expr → (List HoleSuggestions)
 (define (suggest-for-hole expr)
@@ -697,9 +697,9 @@
            (> (suggestion-score a) (suggestion-score b)))
    suggestions))
 
-;;; ============================================================
+;;; ====
 ;;; REPL Command: hole-suggest
-;;; ============================================================
+;;; ====
 
 ;;; hole-suggest : Expr → Void
 (define (hole-suggest expr)
@@ -732,9 +732,9 @@
        (printf "    [~a] ~s\n" score expr)
        (printf "         ~a\n" explanation)))
 
-;;; ============================================================
+;;; ====
 ;;; Helper Functions
-;;; ============================================================
+;;; ====
 
 ;;; take-upto : Nat × (List a) → (List a)
 (define (take-upto n lst)
@@ -774,9 +774,9 @@
                     (loop (cdr items) (cons mapped result))
                     (loop (cdr items) result))))))
 
-;;; ============================================================
+;;; ====
 ;;; Usage Help
-;;; ============================================================
+;;; ====
 
 (define (hole-help)
   (display "\n")

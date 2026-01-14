@@ -12,9 +12,9 @@
 (load "shell/ffi/bvh-ffi.ss")
 (load "shell/ffi/bvh-cache.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Test Scene: Cube mesh (12 triangles)
-;;; ============================================================
+;;; ====
 
 (define (make-cube-mesh size)
   (let* ([s (/ size 2.0)]
@@ -59,9 +59,9 @@
                      (set! triangles (cons (triangle3 p00 p10 p11) triangles))
                      (set! triangles (cons (triangle3 p00 p11 p01) triangles)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Timing Utilities
-;;; ============================================================
+;;; ====
 
 (define (time-thunk thunk)
   (let* ([start (current-time 'time-monotonic)]
@@ -72,9 +72,9 @@
          [total-ms (+ (* secs 1000.0) (/ nsecs 1000000.0))])
         (cons result total-ms)))
 
-;;; ============================================================
+;;; ====
 ;;; Benchmark: Pure Scheme BVH
-;;; ============================================================
+;;; ====
 
 (define (bench-scheme-closest-point bvh points iterations)
   (display "  Pure Scheme closest-point: ")
@@ -104,9 +104,9 @@
        (newline)
        (cdr result)))
 
-;;; ============================================================
+;;; ====
 ;;; Benchmark: Rust-Accelerated BVH
-;;; ============================================================
+;;; ====
 
 (define (bench-rust-closest-point rust-handle points iterations fuel)
   (display "  Rust accel closest-point:  ")
@@ -136,9 +136,9 @@
        (newline)
        (cdr result)))
 
-;;; ============================================================
+;;; ====
 ;;; Test Data Generation
-;;; ============================================================
+;;; ====
 
 (define (random-points n range)
   (let loop ([i 0] [acc '()])
@@ -164,16 +164,16 @@
                  (loop (+ i 1)
                        (cons (cons origin dir) acc))))))
 
-;;; ============================================================
+;;; ====
 ;;; Main Benchmark
-;;; ============================================================
+;;; ====
 
 (define *benchmark-fuel* 100000)  ; Plenty of fuel for benchmarks
 
 (define (run-comparison-benchmark)
-  (display "===========================================\n")
+  (display "====\n")
   (display "BVH Benchmark: Scheme vs Rust Acceleration\n")
-  (display "===========================================\n\n")
+  (display "====\n\n")
   
   ;; Load Rust library
   (display "Loading Rust acceleration library...\n")
@@ -248,9 +248,9 @@
   (display "Cleaning up cache...\n")
   (clear-cache!)
   
-  (display "\n===========================================\n")
+  (display "\n====\n")
   (display "Benchmark complete.\n")
-  (display "===========================================\n"))
+  (display "====\n"))
 
 ;; Run if executed as script
 (run-comparison-benchmark)

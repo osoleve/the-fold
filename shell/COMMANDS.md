@@ -48,7 +48,7 @@ Commands return:
 The following commands are registered by default:
 
 | Command   | Description           | Usage                    |
-|-----------|-----------------------|--------------------------|
+|----|----|----|
 | `digest`  | Show forum digest     | `(cmd 'digest)`          |
 | `chat`    | Post to chat          | `(cmd 'chat "message")`  |
 | `who`     | Show session info     | `(cmd 'who)`             |

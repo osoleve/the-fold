@@ -33,14 +33,14 @@
        (eq? (cadr result) kind)))
 
 (display "
-==============================================================
+====
          TYPE-SAFE GRADIENT DIMENSION TESTS
-==============================================================
+====
 ")
 
-;;; ============================================================
+;;; ====
 ;;; DimGradient Construction and Validation
-;;; ============================================================
+;;; ====
 
 (test-group dim-gradient-construction
             (define-test create-valid-gradient
@@ -69,9 +69,9 @@
                      [result (dim-gradient-ref g 5)])
                     (assert-true (error-of-kind? result 'index-out-of-bounds)))))
 
-;;; ============================================================
+;;; ====
 ;;; GradientSpec Creation
-;;; ============================================================
+;;; ====
 
 (test-group gradient-spec-tests
             (define-test create-scalar-fn-spec
@@ -86,9 +86,9 @@
                    (assert-equal (gradient-spec-input-dim spec) 2)
                    (assert-equal (gradient-spec-output-dim spec) 3))))
 
-;;; ============================================================
+;;; ====
 ;;; Safe Gradient Computation
-;;; ============================================================
+;;; ====
 
 (test-group safe-gradient-tests
             (define-test gradient-sum-function
@@ -129,9 +129,9 @@
                     (assert-equal (dim-gradient-dim result) 3)
                     (assert-grads-= (dim-gradient-values result) '(12.0 8.0 6.0) 0.0001))))
 
-;;; ============================================================
+;;; ====
 ;;; Safe Hessian Computation
-;;; ============================================================
+;;; ====
 
 (test-group safe-hessian-tests
             (define-test hessian-quadratic-2d
@@ -154,9 +154,9 @@
                      [result (safe-hessian spec '(1.0 2.0))])
                     (assert-true (error-of-kind? result 'not-a-scalar-function)))))
 
-;;; ============================================================
+;;; ====
 ;;; Gradient Vector Operations
-;;; ============================================================
+;;; ====
 
 (test-group gradient-operations
             (define-test gradient-addition
@@ -191,9 +191,9 @@
                     ;; sqrt(9 + 16) = 5
                     (assert-= result 5.0 0.0001))))
 
-;;; ============================================================
+;;; ====
 ;;; Function Composition with Dimension Checking
-;;; ============================================================
+;;; ====
 
 (test-group composition-tests
             (define-test compose-matching-dimensions
@@ -232,9 +232,9 @@
                          (assert-true (dim-gradient? result))
                          (assert-= (car (dim-gradient-values result)) 3.0 0.01)))))
 
-;;; ============================================================
+;;; ====
 ;;; Type Annotation Generation
-;;; ============================================================
+;;; ====
 
 (test-group type-annotation-tests
             (define-test gradient-type-construction
@@ -253,9 +253,9 @@
               (let ([t (t-hessian 4)])
                    (assert-equal t '(Matrix 4 4 Number)))))
 
-;;; ============================================================
+;;; ====
 ;;; Error Formatting
-;;; ============================================================
+;;; ====
 
 (test-group error-formatting-tests
             (define-test format-dimension-mismatch
@@ -273,9 +273,9 @@
                      [msg (format-gradient-error err)])
                     (assert-true (string? msg)))))
 
-;;; ============================================================
+;;; ====
 ;;; Integration with Differentiable Type Class
-;;; ============================================================
+;;; ====
 
 (test-group differentiable-integration
             (define-test gradient-spec-satisfies-constraints
@@ -291,9 +291,9 @@
                     (when (gradient-spec? composed)
                           (assert-equal (gradient-spec-input-dim composed) 2)))))
 
-;;; ============================================================
+;;; ====
 ;;; Regression: Verify Gradients Match Expected Values
-;;; ============================================================
+;;; ====
 
 (test-group gradient-value-regression
             (define-test rosenbrock-gradient-at-origin
@@ -326,12 +326,12 @@
                                (assert-= (car vals) 0.0 0.01)
                                (assert-= (cadr vals) 0.0 0.01))))))
 
-;;; ============================================================
+;;; ====
 ;;; Summary
-;;; ============================================================
+;;; ====
 
 (display "
-==============================================================
+====
 ")
 (printf "Tests passed: ~a~n" *tests-passed*)
 (printf "Tests failed: ~a~n" *tests-failed*)

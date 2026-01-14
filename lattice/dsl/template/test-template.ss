@@ -5,9 +5,9 @@
 (load "core/testing/test-framework.ss")
 (load "lattice/dsl/template/template.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Hole Detection Tests
-;;; ============================================================
+;;; ====
 
 (test-group template-holes
 
@@ -49,9 +49,9 @@
     (assert-equal '($name $args $body)
                   (find-holes '(define ($name $args) $body)))))
 
-;;; ============================================================
+;;; ====
 ;;; Template Construction Tests
-;;; ============================================================
+;;; ====
 
 (test-group template-construction
 
@@ -71,9 +71,9 @@
     (assert-equal 0 (template-hole-count (new-template '(foo bar))))
     (assert-equal 3 (template-hole-count (new-template '(if $a $b $c))))))
 
-;;; ============================================================
+;;; ====
 ;;; Hole Filling Tests
-;;; ============================================================
+;;; ====
 
 (test-group template-filling
 
@@ -100,9 +100,9 @@
            [t2 (fill-hole t1 '$x 5)])
       (assert-equal '(+ 5 5) (template-expr t2)))))
 
-;;; ============================================================
+;;; ====
 ;;; Compilation Tests
-;;; ============================================================
+;;; ====
 
 (test-group template-compilation
 
@@ -124,9 +124,9 @@
       (assert-equal 'err (car result))
       (assert-equal '($x) (cadr result)))))
 
-;;; ============================================================
+;;; ====
 ;;; End-to-End Workflow Tests
-;;; ============================================================
+;;; ====
 
 (test-group template-workflow
 
@@ -153,9 +153,9 @@
            [t3 (fill-hole t2 '$body '(* x x))])
       (assert-equal '(lambda (x) (* x x)) (compile-template t3)))))
 
-;;; ============================================================
+;;; ====
 ;;; Utility Tests
-;;; ============================================================
+;;; ====
 
 (test-group template-utilities
 
@@ -173,9 +173,9 @@
   (define-test "wrap-if-multiple leaves single token unwrapped"
     (assert-equal 'a (wrap-if-multiple '(a)))))
 
-;;; ============================================================
+;;; ====
 ;;; Run All Tests
-;;; ============================================================
+;;; ====
 
 (display "\n=== Template DSL Tests ===\n\n")
 (run-all-tests)

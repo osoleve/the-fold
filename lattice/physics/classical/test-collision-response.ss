@@ -32,9 +32,9 @@
 ══════════════════════════════════════════════════════════
 ")
 
-;;; ============================================================
+;;; ====
 ;;; Manifold Tests
-;;; ============================================================
+;;; ====
 
 (test-group manifold-tests
             (define-test make-manifold-test
@@ -53,9 +53,9 @@
                     (assert-vec2-= (manifold-contact m) (vec2 1 0) 0.0001)
                     (assert-= (manifold-penetration m) 0.5 0.0001))))
 
-;;; ============================================================
+;;; ====
 ;;; Material Tests
-;;; ============================================================
+;;; ====
 
 (test-group material-tests
             (define-test make-material-test
@@ -79,9 +79,9 @@
                     ;; Friction uses geometric mean
                     (assert-= (cadr combined) (sqrt (* 0.9 0.02)) 0.0001))))
 
-;;; ============================================================
+;;; ====
 ;;; Relative Velocity Tests
-;;; ============================================================
+;;; ====
 
 (test-group velocity-tests
             (define-test relative-velocity-test
@@ -107,9 +107,9 @@
                     ;; Separating at 2 units/s
                     (assert-= vn 2 0.0001))))
 
-;;; ============================================================
+;;; ====
 ;;; Impulse Calculation Tests
-;;; ============================================================
+;;; ====
 
 (test-group impulse-tests
             (define-test impulse-elastic-test
@@ -148,9 +148,9 @@
                     ;; j = -(1+1) * (-1) / (0.1 + 1) = 2/1.1 ≈ 1.818
                     (assert-= j (/ 2 1.1) 0.01))))
 
-;;; ============================================================
+;;; ====
 ;;; Impulse Application Tests
-;;; ============================================================
+;;; ====
 
 (test-group apply-impulse-tests
             (define-test apply-impulse-test
@@ -167,9 +167,9 @@
                     ;; Static body shouldn't move
                     (assert-vec2-= (body-vel new-body) (vec2 0 0) 0.0001))))
 
-;;; ============================================================
+;;; ====
 ;;; Collision Resolution Tests
-;;; ============================================================
+;;; ====
 
 (test-group resolve-collision-tests
             (define-test resolve-elastic-head-on
@@ -209,9 +209,9 @@
                     ;; Ball should bounce back
                     (assert-vec2-= (body-vel new-ball) (vec2 -1 0) 0.0001))))
 
-;;; ============================================================
+;;; ====
 ;;; Position Correction Tests
-;;; ============================================================
+;;; ====
 
 (test-group position-correction-tests
             (define-test correct-positions-test
@@ -239,9 +239,9 @@
                     (assert-true (< (vec2-x (body-pos new-ball)) 0))
                     (assert-vec2-= (body-pos new-wall) (vec2 0.5 0) 0.0001))))
 
-;;; ============================================================
+;;; ====
 ;;; Circle-Circle Collision Tests
-;;; ============================================================
+;;; ====
 
 (test-group circle-circle-tests
             (define-test circle-circle-collision
@@ -267,9 +267,9 @@
                         (assert-= (manifold-penetration m) 0 0.0001)
                         (assert-true #t)))))  ; No manifold is also valid
 
-;;; ============================================================
+;;; ====
 ;;; Full Resolution Tests
-;;; ============================================================
+;;; ====
 
 (test-group full-resolution-tests
             (define-test resolve-with-correction-test
@@ -303,9 +303,9 @@
                             (* 2 (vec2-x (body-vel new-b))))])
                     (assert-= p1 p0 0.0001))))
 
-;;; ============================================================
+;;; ====
 ;;; Energy Tests
-;;; ============================================================
+;;; ====
 
 (test-group energy-tests
             (define-test elastic-energy-conservation
@@ -336,9 +336,9 @@
                      [ke1 (+ (body-kinetic-energy new-a) (body-kinetic-energy new-b))])
                     (assert-true (< ke1 ke0)))))
 
-;;; ============================================================
+;;; ====
 ;;; Summary
-;;; ============================================================
+;;; ====
 
 (display "
 ══════════════════════════════════════════════════════════

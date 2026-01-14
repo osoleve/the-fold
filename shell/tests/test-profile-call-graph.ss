@@ -5,9 +5,9 @@
 
 (load "shell/profile-call-graph.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Test Harness
-;;; ============================================================
+;;; ====
 
 (define test-count 0)
 (define pass-count 0)
@@ -58,9 +58,9 @@
         (printf "~a tests FAILED\n" fail-count)
         (exit 1)))
 
-;;; ============================================================
+;;; ====
 ;;; Mock Node Construction
-;;; ============================================================
+;;; ====
 
 ;;; Create a mock profiler node for testing
 (define (mock-node name start-fuel end-fuel children)
@@ -79,9 +79,9 @@
     (children . ,children)
     (call-count . ,count)))
 
-;;; ============================================================
+;;; ====
 ;;; Graph Construction Tests
-;;; ============================================================
+;;; ====
 
 (define (test-graph-construction)
   (printf "\n=== Graph Construction Tests ===\n")
@@ -123,9 +123,9 @@
                            (assq 'helper edges)
                            '(helper . 3)))))
 
-;;; ============================================================
+;;; ====
 ;;; Edge Operations Tests
-;;; ============================================================
+;;; ====
 
 (define (test-edge-operations)
   (printf "\n=== Edge Operations Tests ===\n")
@@ -169,9 +169,9 @@
             (assert-equal "b has two callers"
                           (length callers) 2))))
 
-;;; ============================================================
+;;; ====
 ;;; Graph Metrics Tests
-;;; ============================================================
+;;; ====
 
 (define (test-graph-metrics)
   (printf "\n=== Graph Metrics Tests ===\n")
@@ -243,9 +243,9 @@
                      (call-graph-total-calls g)
                      0)))
 
-;;; ============================================================
+;;; ====
 ;;; Cycle Detection Tests
-;;; ============================================================
+;;; ====
 
 (define (test-cycle-detection)
   (printf "\n=== Cycle Detection Tests ===\n")
@@ -308,9 +308,9 @@
             (assert-true "depth terminates with cycles"
                          (>= depth 0)))))
 
-;;; ============================================================
+;;; ====
 ;;; Critical Path Tests
-;;; ============================================================
+;;; ====
 
 (define (test-critical-path)
   (printf "\n=== Critical Path Tests ===\n")
@@ -360,9 +360,9 @@
              (assert-equal "single node path"
                            path '(lone)))))
 
-;;; ============================================================
+;;; ====
 ;;; ASCII Visualization Tests
-;;; ============================================================
+;;; ====
 
 (define (test-ascii-visualization)
   (printf "\n=== ASCII Visualization Tests ===\n")
@@ -406,9 +406,9 @@
              [(string=? (substring str i (+ i sub-len)) substr) #t]
              [else (loop (+ i 1))]))))
 
-;;; ============================================================
+;;; ====
 ;;; Profiler Integration Tests
-;;; ============================================================
+;;; ====
 
 (define (test-profiler-integration)
   (printf "\n=== Profiler Integration Tests ===\n")
@@ -455,8 +455,8 @@
         (assert-equal "child cost is 20"
                       (hashtable-ref costs 'child 0) 20)))
 
-;;; ============================================================
+;;; ====
 ;;; Run All Tests
-;;; ============================================================
+;;; ====
 
 (run-tests)

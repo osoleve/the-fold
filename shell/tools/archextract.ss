@@ -20,9 +20,9 @@
 
 (load "core/base/prelude.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Path Utilities (reused from fs.ss patterns)
-;;; ============================================================
+;;; ====
 
 ;;; find-last-sep : String -> Nat | #f
 ;;; Find the last path separator (/ or \) in a path.
@@ -121,9 +121,9 @@
             [else
              (resolve-parts (append base-parts (list part)) (cdr rel-parts))]))))
 
-;;; ============================================================
+;;; ====
 ;;; File Reading
-;;; ============================================================
+;;; ====
 
 ;;; read-file-contents : String -> String | #f
 ;;; Read entire file as string. Returns #f if file doesn't exist.
@@ -151,9 +151,9 @@
                                                   (loop (cons sexpr sexprs)))))))
       #f))
 
-;;; ============================================================
+;;; ====
 ;;; Module Analysis
-;;; ============================================================
+;;; ====
 
 ;;; A Module is represented as an alist:
 ;;;   ((path . <string>)           ; absolute or relative path to file
@@ -233,9 +233,9 @@
                    (loads . ,loads)
                    (defines . ,defines))))))
 
-;;; ============================================================
+;;; ====
 ;;; Directory Analysis
-;;; ============================================================
+;;; ====
 
 ;;; list-ss-files : String -> (List String)
 ;;; List all .ss files in a directory (non-recursive).
@@ -253,9 +253,9 @@
        (filter (lambda (m) m)  ; Remove #f entries
                (map analyze-module files))))
 
-;;; ============================================================
+;;; ====
 ;;; Dependency Graph
-;;; ============================================================
+;;; ====
 
 ;;; A Graph is represented as an alist:
 ;;;   ((nodes . <list-of-strings>)     ; module names
@@ -308,9 +308,9 @@
                   (loop (cdr lst) (cons result acc))
                   (loop (cdr lst) acc)))])))
 
-;;; ============================================================
+;;; ====
 ;;; Cycle Detection
-;;; ============================================================
+;;; ====
 
 ;;; find-cycles : Graph -> (List (List String))
 ;;; Find all cycles in the dependency graph using DFS.
@@ -392,9 +392,9 @@
                    (loop (cdr remaining) seen result)
                    (loop (cdr remaining) (cons key seen) (cons cycle result))))])))
 
-;;; ============================================================
+;;; ====
 ;;; Critical Module Detection
-;;; ============================================================
+;;; ====
 
 ;;; critical-modules : Graph -> (List (String . Nat))
 ;;; Find modules sorted by number of dependents (in-degree).
@@ -411,9 +411,9 @@
         ;; Sort by in-degree descending
         (list-sort (lambda (a b) (> (cdr a) (cdr b))) in-degrees)))
 
-;;; ============================================================
+;;; ====
 ;;; ASCII Visualization
-;;; ============================================================
+;;; ====
 
 ;;; render-graph-ascii : Graph -> String
 ;;; Render dependency graph as ASCII art.
@@ -456,13 +456,13 @@
 ;;; render-legend : -> String
 (define (render-legend)
   (string-append
-   "------------------------------------------------------------\n"
+   "----\n"
    "  Legend: [module] --> dependency\n"
-   "------------------------------------------------------------\n"))
+   "----\n"))
 
-;;; ============================================================
+;;; ====
 ;;; Summary Report
-;;; ============================================================
+;;; ====
 
 ;;; archextract-report : String -> String
 ;;; Generate a full architecture report for a directory.
@@ -526,9 +526,9 @@
 
 ;;; NOTE: string-contains? provided by core/prelude.ss
 
-;;; ============================================================
+;;; ====
 ;;; Quick Analysis Functions
-;;; ============================================================
+;;; ====
 
 ;;; archextract : String -> void
 ;;; Analyze a directory and print the report.

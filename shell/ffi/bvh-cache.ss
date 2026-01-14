@@ -8,9 +8,9 @@
 (load "shell/ffi/bvh-ffi.ss")
 (load "core/base/sha256.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Cache Data Structures
-;;; ============================================================
+;;; ====
 
 ;;; Maximum cache size to prevent unbounded memory growth.
 ;;; BUGFIX: Strong hashtable was preventing GC, causing memory leak.
@@ -30,9 +30,9 @@
 (define-record-type cached-bvh
   (fields hash handle))
 
-;;; ============================================================
+;;; ====
 ;;; Cache Operations
-;;; ============================================================
+;;; ====
 
 ;;; bvh-content-hash : BVH → Bytevector
 ;;; Compute content hash for a BVH (serialize and hash)
@@ -126,9 +126,9 @@
              (evict-oldest!)
              (loop))))
 
-;;; ============================================================
+;;; ====
 ;;; High-Level API
-;;; ============================================================
+;;; ====
 
 ;;; get-rust-handle : BVH → RustBVHHandle
 ;;; Get Rust handle for BVH, building and caching if needed
@@ -152,9 +152,9 @@
                       handle)
                      (error 'get-rust-handle "Failed to build Rust BVH"))))))
 
-;;; ============================================================
+;;; ====
 ;;; Guardian-Based Cleanup
-;;; ============================================================
+;;; ====
 
 ;;; cleanup-stale-handles! : → Nat
 ;;; Free Rust handles for GC'd Scheme wrappers
@@ -177,9 +177,9 @@
   (collect)
   (cleanup-stale-handles!))
 
-;;; ============================================================
+;;; ====
 ;;; Cache Statistics
-;;; ============================================================
+;;; ====
 
 ;;; cache-size : → Nat
 ;;; Number of cached BVH handles
@@ -206,13 +206,13 @@
        (hashtable-clear! *rust-bvh-cache*)
        count))
 
-;;; ============================================================
+;;; ====
 ;;; Tests
-;;; ============================================================
+;;; ====
 
 (define (run-cache-tests)
   (display "BVH Cache Tests\n")
-  (display "===============\n")
+  (display "====\n")
   
   ;; Ensure library is loaded
   (unless (accel-available?)
@@ -221,7 +221,7 @@
   
   (unless (accel-available?)
           (display "SKIP: No acceleration library\n")
-          (display "===============\n")
+          (display "====\n")
           #f)
   
   ;; Test 1: Initial cache is empty
@@ -261,5 +261,5 @@
   (let ([freed (clear-cache!)])
        (display (format "freed ~a handles, cache size=~a\n" freed (cache-size))))
   
-  (display "===============\n")
+  (display "====\n")
   #t)

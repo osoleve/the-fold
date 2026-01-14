@@ -12,16 +12,16 @@
 ;;;
 ;;; Dependencies: None (standalone module)
 
-;;; ============================================================
+;;; ====
 ;;; State
-;;; ============================================================
+;;; ====
 
 ;;; Global source location cache: symbol -> (file . line)
 (define *source-locations* (make-hashtable symbol-hash eq?))
 
-;;; ============================================================
+;;; ====
 ;;; File Parsing
-;;; ============================================================
+;;; ====
 
 ;;; read-file-lines : String -> (List String) | #f
 ;;; Read all lines from a file
@@ -148,9 +148,9 @@
                     (loop (+ i 1))
                     (substring str i len))))))
 
-;;; ============================================================
+;;; ====
 ;;; Directory Scanning
-;;; ============================================================
+;;; ====
 
 ;;; find-scheme-files-loc : String -> (List String)
 ;;; Recursively find all .ss files in a directory
@@ -194,9 +194,9 @@
        (and (>= slen plen)
             (string=? (substring str 0 plen) prefix))))
 
-;;; ============================================================
+;;; ====
 ;;; Public API
-;;; ============================================================
+;;; ====
 
 ;;; build-source-location-cache! : -> Void
 ;;; Build the global source location cache from all lattice and core files
@@ -254,9 +254,9 @@
 (define (source-location-count)
   (hashtable-size *source-locations*))
 
-;;; ============================================================
+;;; ====
 ;;; REPL Interface
-;;; ============================================================
+;;; ====
 
 (printf "source-loc.ss loaded.\n")
 (printf "  (build-source-location-cache!)  - Build cache from sources\n")

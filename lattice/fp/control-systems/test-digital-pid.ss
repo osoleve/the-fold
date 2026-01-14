@@ -3,9 +3,9 @@
 (load "core/base/prelude.ss")
 (load "lattice/fp/control-systems/digital-pid.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Test Framework
-;;; ============================================================
+;;; ====
 
 (define tests-passed 0)
 (define tests-failed 0)
@@ -34,9 +34,9 @@
 
 (printf "\n=== Digital PID Controller Tests ===\n\n")
 
-;;; ============================================================
+;;; ====
 ;;; Construction Tests
-;;; ============================================================
+;;; ====
 
 (printf "--- Construction ---\n")
 
@@ -47,9 +47,9 @@
      (test-approx "Kd accessor" 0.1 (pid-Kd pid) 1e-10)
      (test-approx "Ts accessor" 0.01 (pid-Ts pid) 1e-10))
 
-;;; ============================================================
+;;; ====
 ;;; State Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n--- State ---\n")
 
@@ -58,9 +58,9 @@
      (test-approx "initial integral" 0.0 (pid-integral state) 1e-10)
      (test-approx "initial prev-error" 0.0 (pid-prev-error state) 1e-10))
 
-;;; ============================================================
+;;; ====
 ;;; P-Only Controller Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n--- P-Only Controller ---\n")
 
@@ -78,9 +78,9 @@
        [output (car result)])
       (test-approx "P-only: negative error" -2.0 output 1e-10))
 
-;;; ============================================================
+;;; ====
 ;;; PI Controller Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n--- PI Controller ---\n")
 
@@ -102,9 +102,9 @@
             ;; Total = 1.4
             (test-approx "PI step 2: integral accumulates" 1.4 output2 1e-10)))
 
-;;; ============================================================
+;;; ====
 ;;; PID Controller Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n--- PID Controller ---\n")
 
@@ -130,9 +130,9 @@
             ;; Total = -0.85
             (test-approx "PID step 2: derivative negative" -0.85 output2 1e-10)))
 
-;;; ============================================================
+;;; ====
 ;;; Anti-Windup Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n--- Anti-Windup ---\n")
 
@@ -166,9 +166,9 @@
       ;; Integral should not have accumulated much since saturated
       (test-approx "antiwindup: integral frozen" 0.0 integral1 1e-10))
 
-;;; ============================================================
+;;; ====
 ;;; Filtered Derivative Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n--- Filtered Derivative ---\n")
 
@@ -185,9 +185,9 @@
       (test "filtered derivative: output is finite" #t (and (number? output1) (not (infinite? output1))))
       (test "filtered derivative: less than unfiltered" #t (< (abs output1) 100)))
 
-;;; ============================================================
+;;; ====
 ;;; Velocity Form Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n--- Velocity Form ---\n")
 
@@ -203,9 +203,9 @@
       ;; Velocity form accumulates output
       (test "velocity: output increases with integral" #t (> output2 output1)))
 
-;;; ============================================================
+;;; ====
 ;;; Ziegler-Nichols Tuning Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n--- Ziegler-Nichols Tuning ---\n")
 
@@ -237,9 +237,9 @@
       ;; Td = Tu/8 = 0.25, Kd = Kp*Td = 1.5
       (test-approx "ZN PID: Kd" 1.5 (pid-Kd pid-pid) 1e-10))
 
-;;; ============================================================
+;;; ====
 ;;; Tyreus-Luyben Tuning Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n--- Tyreus-Luyben Tuning ---\n")
 
@@ -251,9 +251,9 @@
       ;; Ti = 2.2*Tu = 4.4, Ki = Kp/Ti = 0.71
       (test-approx "TL: Ki" 0.71 (pid-Ki pid) 0.01))
 
-;;; ============================================================
+;;; ====
 ;;; Simulation Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n--- Simulation ---\n")
 
@@ -274,9 +274,9 @@
       (test "simulate: error decreasing" #t (< (abs (car (reverse errors)))
                                                (abs (car errors)))))
 
-;;; ============================================================
+;;; ====
 ;;; Reset Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n--- Reset ---\n")
 
@@ -297,9 +297,9 @@
      (test-approx "reset-to: integral" 5.0 (pid-integral state) 1e-10)
      (test-approx "reset-to: prev-error" 2.0 (pid-prev-error state) 1e-10))
 
-;;; ============================================================
+;;; ====
 ;;; Display Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n--- Display ---\n")
 
@@ -307,13 +307,13 @@
        [str (pid->string pid)])
       (test "pid->string not empty" #t (> (string-length str) 0)))
 
-;;; ============================================================
+;;; ====
 ;;; Summary
-;;; ============================================================
+;;; ====
 
-(printf "\n================================================================\n")
+(printf "\n====\n")
 (printf "                    TEST RESULTS\n")
-(printf "================================================================\n\n")
+(printf "====\n\n")
 (printf "Tests passed: ~a\n" tests-passed)
 (printf "Tests failed: ~a\n" tests-failed)
 (printf "Total tests:  ~a\n" (+ tests-passed tests-failed))

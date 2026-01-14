@@ -32,9 +32,9 @@
 (load "core/base/prelude.ss")
 (load "core/util/pretty.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Style Profiles
-;;; ============================================================
+;;; ====
 ;;;
 ;;; A style profile controls formatting decisions:
 ;;;   - width: Target line width
@@ -86,9 +86,9 @@
         [(canonical) *profile-canonical*]
         [else *profile-compact*]))
 
-;;; ============================================================
+;;; ====
 ;;; Special Form Rules
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Rules for indenting special forms.
 ;;; Format: (form-name body-start-index break-style)
@@ -126,9 +126,9 @@
            (cdr found)
            '(1 auto))))  ; Default: break after first element, auto break
 
-;;; ============================================================
+;;; ====
 ;;; AST to Document Conversion
-;;; ============================================================
+;;; ====
 
 ;;; Convert S-expression to pretty-printer Doc
 (define (sexp->doc* sexp profile)
@@ -291,9 +291,9 @@
                         (and (pair? x) (< (length x) 3))))
             sexp)]))
 
-;;; ============================================================
+;;; ====
 ;;; List Utilities
-;;; ============================================================
+;;; ====
 
 (define (take-n lst n)
   (if (or (null? lst) (<= n 0))
@@ -305,9 +305,9 @@
       lst
       (drop-n (cdr lst) (- n 1))))
 
-;;; ============================================================
+;;; ====
 ;;; Comment Preservation
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Comments are extracted before parsing, then reinserted after.
 ;;; This is a simplified approach - full comment preservation would
@@ -358,9 +358,9 @@
                 (loop (cdr lst)
                       (if result (cons result acc) acc))))))
 
-;;; ============================================================
+;;; ====
 ;;; Main API
-;;; ============================================================
+;;; ====
 
 ;;; Format a string of Scheme code
 (define (ast-format-string code . args)
@@ -466,9 +466,9 @@
   (let ([profile (if (null? args) *current-profile* (car args))])
        (pretty (style-width profile) (sexp->doc* expr profile))))
 
-;;; ============================================================
+;;; ====
 ;;; File I/O Helpers
-;;; ============================================================
+;;; ====
 
 (define (read-file-string path)
   (call-with-input-file path
@@ -486,9 +486,9 @@
                                  (newline port))
                          'replace))
 
-;;; ============================================================
+;;; ====
 ;;; String Utilities
-;;; ============================================================
+;;; ====
 
 ;;; Normalize whitespace for comparison
 (define (normalize-ws str)
@@ -541,9 +541,9 @@
         [(!) (format "@@ ~a @@\n-~a\n+~a" (cadr d) (caddr d) (cadddr d))]
         [else ""]))
 
-;;; ============================================================
+;;; ====
 ;;; Profile Configuration
-;;; ============================================================
+;;; ====
 
 ;;; Set current profile
 (define (set-format-profile! name)
@@ -567,9 +567,9 @@
                         (style-align-bindings p)
                         (style-collapse-simple p)))))
 
-;;; ============================================================
+;;; ====
 ;;; REPL Commands
-;;; ============================================================
+;;; ====
 
 ;;; Format code from REPL
 (define (fmt code . args)
@@ -594,14 +594,14 @@
   (let ([profile (if (null? args) 'compact (car args))])
        (display (ast-format-diff path (get-profile profile)))))
 
-;;; ============================================================
+;;; ====
 ;;; Help
-;;; ============================================================
+;;; ====
 
 (define (ast-format-help)
   (display "
 AST-Aware Code Formatter
-========================
+====
 
 Profiles:
   'compact      - Standard style (default)
@@ -628,8 +628,8 @@ Configuration:
 
 "))
 
-;;; ============================================================
+;;; ====
 ;;; Load Message
-;;; ============================================================
+;;; ====
 
 (display "AST-aware formatter loaded. Use (ast-format-help) for help.\n")

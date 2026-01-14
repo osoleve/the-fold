@@ -17,15 +17,15 @@
 (load "lattice/linalg/vec2.ss")
 (load "lattice/physics/classical/collision-detection.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Constants
-;;; ============================================================
+;;; ====
 
 (define *ray-epsilon* 1e-10)
 
-;;; ============================================================
+;;; ====
 ;;; Ray2 Data Structure
-;;; ============================================================
+;;; ====
 
 ;;; make-ray2 : Vec2 x Vec2 x Number -> Ray2
 ;;; Create a 2D ray with origin, direction (auto-normalized), and max distance.
@@ -51,9 +51,9 @@
   (vec2-add (ray2-origin ray)
             (vec2-scale (ray2-direction ray) t)))
 
-;;; ============================================================
+;;; ====
 ;;; HitInfo Data Structure
-;;; ============================================================
+;;; ====
 
 ;;; make-hit-info : Number x Vec2 x Vec2 x Shape -> HitInfo
 ;;; Create hit result with distance (t), hit point, surface normal, and shape.
@@ -76,9 +76,9 @@
 ;;; hit-info-shape : HitInfo -> Shape
 (define (hit-info-shape h) (list-ref h 4))
 
-;;; ============================================================
+;;; ====
 ;;; Ray-AABB Intersection (Slab Method)
-;;; ============================================================
+;;; ====
 
 ;;; ray2-aabb : Ray2 x AABB -> HitInfo | #f
 ;;; Cast ray against AABB using slab method.
@@ -149,9 +149,9 @@
                                  (make-hit-info t point normal aabb))
                            #f))])))))
 
-;;; ============================================================
+;;; ====
 ;;; Ray-Circle Intersection (Quadratic)
-;;; ============================================================
+;;; ====
 
 ;;; ray2-circle : Ray2 x Circle -> HitInfo | #f
 ;;; Cast ray against circle using quadratic formula.
@@ -187,9 +187,9 @@
                                      [normal (vec2-normalize (vec2-sub point center))])
                                     (make-hit-info t point normal circle))))])))))
 
-;;; ============================================================
+;;; ====
 ;;; Ray-Segment Intersection (Helper)
-;;; ============================================================
+;;; ====
 
 ;;; ray2-segment : Vec2 x Vec2 x Vec2 x Vec2 -> (t . u) | #f
 ;;; Intersect ray with line segment.
@@ -206,9 +206,9 @@
                       (cons t u)
                       #f)))))
 
-;;; ============================================================
+;;; ====
 ;;; Ray-Polygon Intersection
-;;; ============================================================
+;;; ====
 
 ;;; ray2-polygon : Ray2 x Polygon -> HitInfo | #f
 ;;; Cast ray against convex polygon, finding closest edge hit.
@@ -267,9 +267,9 @@
                                  (loop (+ i 1) (car result) normal))
                            (loop (+ i 1) best-t best-normal)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Generic Shape Dispatch
-;;; ============================================================
+;;; ====
 
 ;;; ray2-shape : Ray2 x Shape -> HitInfo | #f
 ;;; Cast ray against any supported shape type.
@@ -280,9 +280,9 @@
    [(polygon? shape) (ray2-polygon ray shape)]
    [else #f]))
 
-;;; ============================================================
+;;; ====
 ;;; Convenience Constructors
-;;; ============================================================
+;;; ====
 
 ;;; make-ray2-infinite : Vec2 x Vec2 -> Ray2
 ;;; Create a ray with effectively infinite max distance.

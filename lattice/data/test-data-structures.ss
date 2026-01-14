@@ -35,14 +35,14 @@
          (display "  ✗ ") (display name) (display " (no error raised)") (newline)))
 
 (display "Testing data-structures.ss\n")
-(display "===========================\n\n")
+(display "====\n\n")
 
-;;; ============================================================
+;;; ====
 ;;; Stack Tests
-;;; ============================================================
+;;; ====
 
 (display "Stack:\n")
-(display "------\n")
+(display "----\n")
 
 ;;; Basic operations
 (test "stack-empty? on empty stack" #t (stack-empty? stack-empty))
@@ -73,12 +73,12 @@
 (test-error "stack-peek on empty" (lambda () (stack-peek stack-empty)))
 (test-error "stack-pop on empty" (lambda () (stack-pop stack-empty)))
 
-;;; ============================================================
+;;; ====
 ;;; Queue Tests
-;;; ============================================================
+;;; ====
 
 (display "\nQueue:\n")
-(display "------\n")
+(display "----\n")
 
 ;;; Basic operations
 (test "queue-empty? on empty queue" #t (queue-empty? queue-empty))
@@ -119,9 +119,9 @@
 (test-error "queue-peek on empty" (lambda () (queue-peek queue-empty)))
 (test-error "queue-dequeue on empty" (lambda () (queue-dequeue queue-empty)))
 
-;;; ============================================================
+;;; ====
 ;;; Set Tests
-;;; ============================================================
+;;; ====
 
 (display "\nSet:\n")
 (display "----\n")
@@ -179,12 +179,12 @@
 (define set-from-list (list->set lst))
 (test "list->set removes duplicates" 3 (set-size set-from-list))
 
-;;; ============================================================
+;;; ====
 ;;; Dictionary Tests
-;;; ============================================================
+;;; ====
 
 (display "\nDictionary:\n")
-(display "-----------\n")
+(display "----\n")
 
 ;;; Basic operations
 (test "dict-empty? on empty dict" #t (dict-empty? dict-empty))
@@ -247,12 +247,12 @@
 (test "filter removes low value" #f (dict-has-key? 'a d10))
 (test "filter keeps high values" #t (dict-has-key? 'b d10))
 
-;;; ============================================================
+;;; ====
 ;;; Summary
-;;; ============================================================
+;;; ====
 
 (display "\n")
-(display "===========================\n")
+(display "====\n")
 (display "Tests passed: ") (display tests-passed) (newline)
 (display "Tests failed: ") (display tests-failed) (newline)
 

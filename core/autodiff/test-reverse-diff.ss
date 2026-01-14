@@ -25,14 +25,14 @@
             actual expected))
 
 (display "
-==============================================================
+====
          REVERSE MODE AUTODIFF TESTS
-==============================================================
+====
 ")
 
-;;; ============================================================
+;;; ====
 ;;; Traced Value Basics
-;;; ============================================================
+;;; ====
 
 (test-group traced-basics
             (define-test traced-value-extraction
@@ -54,9 +54,9 @@
               ;; traced-value should work on plain numbers too
               (assert-= (traced-value 42) 42 0.0001)))
 
-;;; ============================================================
+;;; ====
 ;;; Single-Variable Derivatives
-;;; ============================================================
+;;; ====
 
 (test-group single-var-derivatives
             (define-test derivative-of-identity
@@ -145,9 +145,9 @@
                     [e (exp 1)])
                    (assert-= (reverse-diff f 1) (/ (+ e (/ 1 e)) 2) 0.0001))))
 
-;;; ============================================================
+;;; ====
 ;;; Composite Functions (Chain Rule)
-;;; ============================================================
+;;; ====
 
 (test-group chain-rule-tests
             (define-test chain-sin-sq
@@ -175,9 +175,9 @@
               (let ([f (lambda (x) (traced-sq (traced-add x 1)))])
                    (assert-= (reverse-diff f 2) 6 0.0001))))
 
-;;; ============================================================
+;;; ====
 ;;; Multi-Variable Gradients
-;;; ============================================================
+;;; ====
 
 (test-group gradient-tests
             (define-test gradient-sum
@@ -220,9 +220,9 @@
                      [grad (gradient f '(2 3 4))])
                     (assert-grads-= grad '(12 8 6) 0.0001))))
 
-;;; ============================================================
+;;; ====
 ;;; Value and Gradient Together
-;;; ============================================================
+;;; ====
 
 (test-group value-and-gradient-tests
             (define-test value-and-gradient-basic
@@ -237,9 +237,9 @@
                                 (assert-= val 12 0.0001)
                                 (assert-grads-= grad '(4 3) 0.0001)))))
 
-;;; ============================================================
+;;; ====
 ;;; Shared Subexpressions
-;;; ============================================================
+;;; ====
 
 (test-group shared-subexpr-tests
             (define-test shared-variable-accumulation
@@ -267,9 +267,9 @@
                                     (traced-mul y y)))])
                    (assert-= (reverse-diff f 2) 6 0.0001))))
 
-;;; ============================================================
+;;; ====
 ;;; Gradient Checking (Numerical Verification)
-;;; ============================================================
+;;; ====
 
 (test-group gradient-check-tests
             (define-test check-polynomial-gradient
@@ -293,9 +293,9 @@
                                                        (traced-sq y))))])
                    (assert-true (check-gradient f '(3 4) 0.0001)))))
 
-;;; ============================================================
+;;; ====
 ;;; Edge Cases
-;;; ============================================================
+;;; ====
 
 (test-group edge-case-tests
             (define-test constant-function-gradient
@@ -316,12 +316,12 @@
                                (traced-sin (traced-sin (traced-sin x))))])
                    (assert-true (number? (reverse-diff f 1))))))
 
-;;; ============================================================
+;;; ====
 ;;; Summary
-;;; ============================================================
+;;; ====
 
 (display "
-==============================================================
+====
 ")
 (printf "Tests passed: ~a~n" *tests-passed*)
 (printf "Tests failed: ~a~n" *tests-failed*)

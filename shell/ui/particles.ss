@@ -9,17 +9,17 @@
 ;;; This is Shell code: handles particle physics and rendering.
 ;;; Particles are transient visual elements that add life to the scene.
 
-;;; ============================================================
+;;; ====
 ;;; Dependencies
-;;; ============================================================
+;;; ====
 
 (load "shell/ui/color.ss")
 (load "shell/ui/layout-color.ss")
 (load "shell/ui/animation.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Particle Type
-;;; ============================================================
+;;; ====
 
 ;;; Particle : (× Point Point Char Color Nat Nat)
 ;;;
@@ -55,9 +55,9 @@
         [max-life (particle-max-life p)])
        (- 1.0 (/ (exact->inexact lifetime) (exact->inexact max-life)))))
 
-;;; ============================================================
+;;; ====
 ;;; Particle Update
-;;; ============================================================
+;;; ====
 
 ;;; update-particle : Particle → Particle
 ;;;
@@ -85,9 +85,9 @@
   (filter particle-alive?
           (map update-particle particles)))
 
-;;; ============================================================
+;;; ====
 ;;; Particle Rendering
-;;; ============================================================
+;;; ====
 
 ;;; render-particle : Canvas × Particle → Canvas
 ;;;
@@ -120,9 +120,9 @@
       (render-particles (render-particle canvas (car particles))
                         (cdr particles))))
 
-;;; ============================================================
+;;; ====
 ;;; Particle Emitters — Hearts
-;;; ============================================================
+;;; ====
 
 ;;; emit-hearts : Point → (List Particle)
 ;;;
@@ -136,9 +136,9 @@
         (make-particle (point (+ x 2) y) (point 0.2 -0.6) #\♡ color-red 25)
         (make-particle (point (+ x -1) y) (point -0.1 -0.4) #\♥ color-pink 28))))
 
-;;; ============================================================
+;;; ====
 ;;; Particle Emitters — Sparkles
-;;; ============================================================
+;;; ====
 
 ;;; emit-sparkles : Point → (List Particle)
 ;;;
@@ -154,9 +154,9 @@
         (make-particle (point x y) (point -0.3 0.3) #\✦ color-gold 15)
         (make-particle (point x y) (point 0.0 -0.6) #\✨ color-white 25))))
 
-;;; ============================================================
+;;; ====
 ;;; Particle Emitters — Bubbles
-;;; ============================================================
+;;; ====
 
 ;;; emit-bubbles : Point → (List Particle)
 ;;;
@@ -170,9 +170,9 @@
         (make-particle (point (+ x 2) y) (point -0.1 -0.5) #\◦ color-blue 30)
         (make-particle (point (+ x 1) (+ y 2)) (point 0.0 -0.3) #\○ color-cyan 40))))
 
-;;; ============================================================
+;;; ====
 ;;; Particle Emitters — Ripples
-;;; ============================================================
+;;; ====
 
 ;;; emit-ripple : Point → (List Particle)
 ;;;
@@ -188,9 +188,9 @@
         (make-particle (point x y) (point 0.0 0.5) #\~ color-blue 11)
         (make-particle (point x y) (point 0.0 -0.5) #\~ color-blue 11))))
 
-;;; ============================================================
+;;; ====
 ;;; Particle Emitters — Stars
-;;; ============================================================
+;;; ====
 
 ;;; emit-stars : Point → (List Particle)
 ;;;
@@ -204,9 +204,9 @@
         (make-particle (point (+ x -2) (- y 1)) (point 0.0 0.0) #\☆ color-gold 20)
         (make-particle (point (+ x 3) (- y 3)) (point 0.0 0.0) #\✦ color-white 22))))
 
-;;; ============================================================
+;;; ====
 ;;; Particle Emitters — Sleepy Z's
-;;; ============================================================
+;;; ====
 
 ;;; emit-zzz : Point → (List Particle)
 ;;;
@@ -219,9 +219,9 @@
         (make-particle (point (+ x 2) (- y 1)) (point 0.2 -0.3) #\Z color-purple 30)
         (make-particle (point (+ x 3) (- y 2)) (point 0.1 -0.2) #\z color-purple 25))))
 
-;;; ============================================================
+;;; ====
 ;;; Particle Emitters — Music Notes
-;;; ============================================================
+;;; ====
 
 ;;; emit-notes : Point → (List Particle)
 ;;;
@@ -235,9 +235,9 @@
         (make-particle (point (+ x 3) (- y 1)) (point -0.2 -0.5) #\♫ color-magenta 25)
         (make-particle (point (+ x 2) (+ y 1)) (point 0.1 -0.3) #\♬ color-pink 30))))
 
-;;; ============================================================
+;;; ====
 ;;; Particle Emitters — Exclamation
-;;; ============================================================
+;;; ====
 
 ;;; emit-exclamation : Point → (List Particle)
 ;;;
@@ -250,9 +250,9 @@
         (make-particle (point (+ x 1) (- y 2)) (point 0.0 -0.2) #\! color-red 20)
         (make-particle (point (+ x 2) (- y 2)) (point 0.0 -0.2) #\! color-yellow 20))))
 
-;;; ============================================================
+;;; ====
 ;;; Particle System State
-;;; ============================================================
+;;; ====
 
 ;;; ParticleSystem : (List Particle)
 ;;;
@@ -279,9 +279,9 @@
 (define (render-particle-system canvas system)
   (render-particles canvas system))
 
-;;; ============================================================
+;;; ====
 ;;; Convenience Functions
-;;; ============================================================
+;;; ====
 
 ;;; emit-by-mood : Point × Mood → (List Particle)
 ;;;

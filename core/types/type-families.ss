@@ -30,9 +30,9 @@
 (load "core/types/types.ss")
 (load "core/types/kinds.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Type Family Declaration Grammar
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Associated Type Declaration (in type class):
 ;;;   (type Name params...)
@@ -47,9 +47,9 @@
 ;;;   (type Key m : Type)        ; Key is indexed by m, returns Type
 ;;;   (type Elem (List a) = a)   ; Instance: Elem of List a is a
 
-;;; ============================================================
+;;; ====
 ;;; Type Family Declaration
-;;; ============================================================
+;;; ====
 
 ;;; A type family declaration within a type class.
 ;;; Represented as: (type-family name params kind)
@@ -98,9 +98,9 @@
         [else
          (error 'split-at-colon "expected symbol or colon" (car items))])))
 
-;;; ============================================================
+;;; ====
 ;;; Type Family Instance
-;;; ============================================================
+;;; ====
 
 ;;; A type family instance definition.
 ;;; Represented as: (type-family-instance family-name pattern rhs)
@@ -143,9 +143,9 @@
                   [else
                    (loop (cdr items) (cons (car items) pattern-parts))])))))
 
-;;; ============================================================
+;;; ====
 ;;; Type Class with Associated Types
-;;; ============================================================
+;;; ====
 
 ;;; Extended type class record that includes associated types.
 (define-record-type typeclass-with-families
@@ -172,9 +172,9 @@
    (typeclass-methods tc)
    families))
 
-;;; ============================================================
+;;; ====
 ;;; Type Family Any
-;;; ============================================================
+;;; ====
 
 ;;; The type family registry maps:
 ;;;   (family-name, class-name) → Any declaration
@@ -240,9 +240,9 @@
    [(pair? type) (if (symbol? (car type)) (car type) (type-head (car type)))]
    [else #f]))
 
-;;; ============================================================
+;;; ====
 ;;; Type Family Application
-;;; ============================================================
+;;; ====
 
 ;;; A type family application in a type expression.
 ;;; Syntax: (TF param) where TF is a type family name
@@ -255,9 +255,9 @@
        (symbol? (car type))
        (tf-registry-lookup-decl registry (car type))))
 
-;;; ============================================================
+;;; ====
 ;;; Type Family Reduction
-;;; ============================================================
+;;; ====
 
 ;;; Reduce type family applications to their instance definitions.
 ;;; This is the core of type family evaluation.
@@ -388,9 +388,9 @@
    [(not (pair? type)) type]
    [else (map (lambda (t) (apply-type-subst subst t)) type)]))
 
-;;; ============================================================
+;;; ====
 ;;; Standard Type Families
-;;; ============================================================
+;;; ====
 
 ;;; Elem : Collection element type
 (define TF-Elem
@@ -412,9 +412,9 @@
 (define TF-Inner
   (make-type-family 'Inner '(t) (K=> K* K*)))
 
-;;; ============================================================
+;;; ====
 ;;; Standard Type Family Instances
-;;; ============================================================
+;;; ====
 
 ;;; Elem (List a) = a
 (define TFI-Elem-List
@@ -432,9 +432,9 @@
 (define TFI-Rep-Reader
   (make-type-family-instance 'Rep '(-> r) 'r))
 
-;;; ============================================================
+;;; ====
 ;;; Standard Any
-;;; ============================================================
+;;; ====
 
 ;;; Build the standard type family registry.
 (define standard-tf-registry
@@ -452,9 +452,9 @@
          [r (tf-registry-add-instance r 'Rep '(-> r) TFI-Rep-Reader)])
         r))
 
-;;; ============================================================
+;;; ====
 ;;; Convenience API
-;;; ============================================================
+;;; ====
 
 ;;; reduce-std : Type → Type
 ;;; Reduce type families using the standard registry.
@@ -466,9 +466,9 @@
 (define (tf-apply family-name arg)
   (list family-name arg))
 
-;;; ============================================================
+;;; ====
 ;;; Example Type Classes with Associated Types
-;;; ============================================================
+;;; ====
 
 ;;; Collection class with Elem associated type
 (define TC-Collection-with-Elem
@@ -502,9 +502,9 @@
      (delete . (∀ (m) (=> (Map m) (-> (Key m) m m)))))
    (list TF-Key TF-Val)))
 
-;;; ============================================================
+;;; ====
 ;;; Type Family Pretty Printing
-;;; ============================================================
+;;; ====
 
 ;;; type-family->string : Any → String
 (define (type-family->string tf)

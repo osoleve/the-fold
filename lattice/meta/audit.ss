@@ -12,9 +12,9 @@
 ;;;   (suggest-exports 'fp)          ; Generate exports for missing
 ;;;
 
-;;; ============================================================
+;;; ====
 ;;; Source File Analysis
-;;; ============================================================
+;;; ====
 
 ;;; read-file-as-string : Path -> String
 (define (read-file-as-string filepath)
@@ -100,9 +100,9 @@
    [(pred (car lst)) (drop-while pred (cdr lst))]
    [else lst]))
 
-;;; ============================================================
+;;; ====
 ;;; Manifest Analysis
-;;; ============================================================
+;;; ====
 
 ;;; parse-manifest-exports : Path -> (List Symbol)
 ;;; Extract exports list from a manifest file
@@ -137,9 +137,9 @@
                       (flatten-symbols (cdr x)))]
    [else '()]))
 
-;;; ============================================================
+;;; ====
 ;;; File Discovery (using shell)
-;;; ============================================================
+;;; ====
 
 ;;; find-source-files : Path -> (List Path)
 ;;; Find all .ss files (excluding tests) using shell
@@ -162,9 +162,9 @@
                 result)
            #f)))
 
-;;; ============================================================
+;;; ====
 ;;; Audit Functions
-;;; ============================================================
+;;; ====
 
 ;;; audit-file : String -> AuditResult
 ;;; Audit a single source file
@@ -224,16 +224,16 @@
                  [(string=? (substring haystack i (+ i n-len)) needle) #t]
                  [else (loop (+ i 1))])))))
 
-;;; ============================================================
+;;; ====
 ;;; Pretty Printing
-;;; ============================================================
+;;; ====
 
 ;;; audit-skill-pretty : Symbol -> void
 (define (audit-skill-pretty skill-name)
   (let ([report (audit-skill skill-name)])
-       (printf "\n============================================================\n")
+       (printf "\n====\n")
        (printf "Audit Report: ~a\n" skill-name)
-       (printf "============================================================\n\n")
+       (printf "====\n\n")
        (printf "Manifest exports: ~a\n" (cdr (assq 'manifest-exports report)))
        (printf "Source defines:   ~a\n" (cdr (assq 'source-defines report)))
        (printf "Public defines:   ~a\n" (cdr (assq 'public-defines report)))
@@ -262,9 +262,9 @@
       '()
       (cons (car lst) (take-at-most (- n 1) (cdr lst)))))
 
-;;; ============================================================
+;;; ====
 ;;; Export Suggestion Generator
-;;; ============================================================
+;;; ====
 
 ;;; suggest-exports : Symbol -> Sexp
 ;;; Generate suggested exports clause for a skill
@@ -281,9 +281,9 @@
   (let ([report (audit-skill skill-name)])
        (cdr (assq 'missing-from-manifest report))))
 
-;;; ============================================================
+;;; ====
 ;;; Helpers
-;;; ============================================================
+;;; ====
 
 ;;; filter-map helper
 (define (filter-map f lst)
@@ -295,9 +295,9 @@
                     (loop (cdr lst) (cons result acc))
                     (loop (cdr lst) acc))))))
 
-;;; ============================================================
+;;; ====
 ;;; REPL Interface
-;;; ============================================================
+;;; ====
 
 (printf "audit.ss loaded.\n")
 (printf "  (audit-skill 'skill)           - Audit single skill\n")

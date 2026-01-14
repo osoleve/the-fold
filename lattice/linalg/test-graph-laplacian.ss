@@ -42,11 +42,11 @@
 (define tol 1e-6)
 
 (display "\nTesting graph-laplacian.ss\n")
-(display "==========================\n\n")
+(display "====\n\n")
 
-;;; ============================================================
+;;; ====
 ;;; Test Graphs
-;;; ============================================================
+;;; ====
 
 ;; Triangle graph: K_3 (complete graph on 3 vertices)
 (define triangle-edges '((0 1) (1 2) (2 0)))
@@ -66,9 +66,9 @@
 ;; Cycle graph: C_5
 (define cycle-adj (cycle-graph 5))
 
-;;; ============================================================
+;;; ====
 ;;; Unnormalized Laplacian Tests
-;;; ============================================================
+;;; ====
 
 (display "unnormalized laplacian:\n")
 
@@ -99,9 +99,9 @@
                               (loop (+ i 1))
                               #f))))))
 
-;;; ============================================================
+;;; ====
 ;;; Normalized Laplacian Tests
-;;; ============================================================
+;;; ====
 
 (display "\nnormalized laplacian:\n")
 
@@ -120,9 +120,9 @@
      (test-approx "path L_sym[0,1] ≈ -0.707" (- (/ 1.0 (sqrt 2.0)))
                   (matrix-ref L-sym 0 1) tol))
 
-;;; ============================================================
+;;; ====
 ;;; Random Walk Laplacian Tests
-;;; ============================================================
+;;; ====
 
 (display "\nrandom walk laplacian:\n")
 
@@ -139,9 +139,9 @@
      ;; Middle node: -1/2
      (test-approx "path L_rw[1,0] = -0.5" -0.5 (matrix-ref L-rw 1 0) tol))
 
-;;; ============================================================
+;;; ====
 ;;; Eigenvalue Tests
-;;; ============================================================
+;;; ====
 
 (display "\neigenvalue properties:\n")
 
@@ -158,9 +158,9 @@
       (test-approx "triangle λ_2 ≈ 3" 3.0 (vector-ref sorted 1) 0.01)
       (test-approx "triangle λ_3 ≈ 3" 3.0 (vector-ref sorted 2) 0.01))
 
-;;; ============================================================
+;;; ====
 ;;; Connected Components Tests
-;;; ============================================================
+;;; ====
 
 (display "\nconnected components:\n")
 
@@ -184,9 +184,9 @@
        (display "  ~ disconnected components (skipped: eigenvalue error)\n")]
       [else (test "disconnected graph has 2 components" 2 result)]))
 
-;;; ============================================================
+;;; ====
 ;;; Algebraic Connectivity Tests
-;;; ============================================================
+;;; ====
 
 (display "\nalgebraic connectivity:\n")
 
@@ -213,9 +213,9 @@
        (display "  ~ disconnected algebraic connectivity (skipped: eigenvalue error)\n")]
       [else (test-approx "disconnected algebraic connectivity ≈ 0" 0.0 ac tol)]))
 
-;;; ============================================================
+;;; ====
 ;;; Spectral Partitioning Tests
-;;; ============================================================
+;;; ====
 
 (display "\nspectral partitioning:\n")
 
@@ -233,9 +233,9 @@
        (test "partition covers all nodes" 4
              (+ (length (car parts)) (length (cdr parts))))]))
 
-;;; ============================================================
+;;; ====
 ;;; Laplacian Properties Tests
-;;; ============================================================
+;;; ====
 
 (display "\nlaplacian properties:\n")
 
@@ -252,9 +252,9 @@
              (spectral-gap triangle-adj)
              tol)
 
-;;; ============================================================
+;;; ====
 ;;; Star Graph Tests
-;;; ============================================================
+;;; ====
 
 (display "\nstar graph:\n")
 
@@ -272,9 +272,9 @@
        (display "  ~ star λ_max (skipped: eigenvalue error)\n")]
       [else (test-approx "star λ_max ≈ 4" 4.0 lambda-max 0.01)]))
 
-;;; ============================================================
+;;; ====
 ;;; Cycle Graph Tests
-;;; ============================================================
+;;; ====
 
 (display "\ncycle graph:\n")
 
@@ -299,9 +299,9 @@
         (display "  ~ even cycle bipartite check (skipped: eigenvalue error)\n")]
        [else (test "even cycle is bipartite" #t result)]))
 
-;;; ============================================================
+;;; ====
 ;;; Effective Resistance Tests
-;;; ============================================================
+;;; ====
 
 (display "\neffective resistance:\n")
 
@@ -320,9 +320,9 @@
        (display "  ~ triangle R_eff(0,0) (skipped: eigenvalue error)\n")]
       [else (test-approx "triangle R_eff(0,0) = 0" 0.0 R-00 tol)]))
 
-;;; ============================================================
+;;; ====
 ;;; Laplacian Summary Tests
-;;; ============================================================
+;;; ====
 
 (display "\nlaplacian summary:\n")
 
@@ -339,9 +339,9 @@
                           (display "  ✗ summary components (eigenvalue error)\n"))
                    (test "summary components = 1" 1 cc))))))
 
-;;; ============================================================
+;;; ====
 ;;; Edge Cases
-;;; ============================================================
+;;; ====
 
 (display "\nedge cases:\n")
 
@@ -361,9 +361,9 @@
                  (display "  ✗ two isolated nodes components (eigenvalue error)\n"))
           (test "two isolated nodes have 2 components" 2 result)))
 
-;;; ============================================================
+;;; ====
 ;;; Spectral Clustering Tests
-;;; ============================================================
+;;; ====
 
 (display "\nspectral clustering:\n")
 
@@ -443,7 +443,7 @@
 
 ;;; Summary
 (newline)
-(display "==========================\n")
+(display "====\n")
 (display "Tests passed: ") (display tests-passed) (newline)
 (display "Tests failed: ") (display tests-failed) (newline)
 (newline)

@@ -13,9 +13,9 @@
 (load "core/base/prelude.ss")
 (load "shell/lsp/json.ss")
 
-;;; ============================================================
+;;; ====
 ;;; JSON-RPC Message Types
-;;; ============================================================
+;;; ====
 
 ;;; Message classification
 ;;; A request has: id, method, params
@@ -47,9 +47,9 @@
        (or (assoc "result" (cdr msg))  ; Use assoc to detect explicit null
            (json-get msg "error"))))
 
-;;; ============================================================
+;;; ====
 ;;; Message Accessors
-;;; ============================================================
+;;; ====
 
 ;;; lsp-message-id : JsonObject → Any
 (define (lsp-message-id msg)
@@ -63,9 +63,9 @@
 (define (lsp-message-params msg)
   (or (json-get msg "params") (json-obj)))
 
-;;; ============================================================
+;;; ====
 ;;; Response Construction
-;;; ============================================================
+;;; ====
 
 ;;; make-response : Id × JsonValue → JsonObject
 (define (make-response id result)
@@ -88,9 +88,9 @@
             "method" method
             "params" params))
 
-;;; ============================================================
+;;; ====
 ;;; LSP Error Codes
-;;; ============================================================
+;;; ====
 
 ;;; JSON-RPC reserved errors
 (define *error-parse-error* -32700)
@@ -107,9 +107,9 @@
 (define *error-content-modified* -32801)
 (define *error-request-cancelled* -32800)
 
-;;; ============================================================
+;;; ====
 ;;; LSP Method Names
-;;; ============================================================
+;;; ====
 
 ;;; Lifecycle
 (define *method-initialize* "initialize")
@@ -142,9 +142,9 @@
 (define *method-log-message* "window/logMessage")
 (define *method-show-message* "window/showMessage")
 
-;;; ============================================================
+;;; ====
 ;;; Server Capabilities
-;;; ============================================================
+;;; ====
 
 ;;; TextDocumentSyncKind
 (define *sync-none* 0)
@@ -243,9 +243,9 @@
   (json-obj "name" "fold-lsp"
             "version" "0.1.0"))
 
-;;; ============================================================
+;;; ====
 ;;; Position and Range Types
-;;; ============================================================
+;;; ====
 
 ;;; make-position : Nat × Nat → JsonObject
 ;;; Create an LSP Position (0-indexed line and character).
@@ -262,9 +262,9 @@
 (define (make-location uri range)
   (json-obj "uri" uri "range" range))
 
-;;; ============================================================
+;;; ====
 ;;; Diagnostic Construction
-;;; ============================================================
+;;; ====
 
 ;;; make-diagnostic : Range × String × Int [× String] → JsonObject
 ;;; Create an LSP Diagnostic.
@@ -278,9 +278,9 @@
                         (cdr base))])
         (cons 'json-object with-code)))
 
-;;; ============================================================
+;;; ====
 ;;; Hover Content
-;;; ============================================================
+;;; ====
 
 ;;; make-hover : String [× Range] → JsonObject
 ;;; Create an LSP Hover response.
@@ -291,9 +291,9 @@
            (cons 'json-object (cons (cons "range" (car range)) (cdr base)))
            base)))
 
-;;; ============================================================
+;;; ====
 ;;; Signature Help
-;;; ============================================================
+;;; ====
 
 ;;; make-signature-help : (List SignatureInfo) × Int × Int → JsonObject
 ;;; Create an LSP SignatureHelp response.
@@ -323,9 +323,9 @@
   (json-obj "label" label
             "documentation" doc))
 
-;;; ============================================================
+;;; ====
 ;;; Completion Items
-;;; ============================================================
+;;; ====
 
 ;;; make-completion-item : String × Int [× String × String] → JsonObject
 ;;; Create an LSP CompletionItem.
@@ -344,9 +344,9 @@
                        with-detail)])
         with-doc))
 
-;;; ============================================================
+;;; ====
 ;;; URI Utilities
-;;; ============================================================
+;;; ====
 
 ;;; path->uri : String → String
 ;;; Convert a file path to a file:// URI.

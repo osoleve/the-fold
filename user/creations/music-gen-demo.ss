@@ -1,11 +1,11 @@
 ;;; music-gen-demo.ss - Procedural Music Pattern Generator Demo
 ;;; A creative tool for generating musical sequences using algorithms
 
-;;; ============================================
+;;; ====
 ;;; EUCLIDEAN RHYTHM GENERATOR
 ;;; Distributes k beats across n steps as evenly as possible
 ;;; (the mathematical basis of many world music rhythms)
-;;; ============================================
+;;; ====
 
 (define (mg-take lst n)
   (if (or (null? lst) (zero? n))
@@ -31,9 +31,9 @@
                 (paired (map append (mg-take a count) b)))
                (loop paired rest-a))))))
 
-;;; ============================================
+;;; ====
 ;;; FIBONACCI MELODY GENERATOR
-;;; ============================================
+;;; ====
 
 (define (fibonacci-sequence n)
   "Generate first n Fibonacci numbers"
@@ -47,9 +47,9 @@
   (map (lambda (n) (modulo n scale-size))
        (fibonacci-sequence length)))
 
-;;; ============================================
+;;; ====
 ;;; GOLDEN RATIO SEQUENCE
-;;; ============================================
+;;; ====
 
 (define phi 1.618033988749895)
 
@@ -62,9 +62,9 @@
                  (cons (modulo (inexact->exact (floor (* i phi))) max-val)
                        acc)))))
 
-;;; ============================================
+;;; ====
 ;;; ASCII NOTATION RENDERING
-;;; ============================================
+;;; ====
 
 (define (render-rhythm pattern)
   "Render rhythm pattern as ASCII"
@@ -83,9 +83,9 @@
    "S: " (render-rhythm snare) "\n"
    "H: " (render-rhythm hihat) "\n"))
 
-;;; ============================================
+;;; ====
 ;;; DEMONSTRATION
-;;; ============================================
+;;; ====
 
 (define (music-gen-demo)
   "Show various algorithmic music patterns"

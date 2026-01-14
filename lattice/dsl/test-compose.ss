@@ -8,9 +8,9 @@
 (load "core/test-framework.ss")
 (load "lattice/dsl/compose.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Part 1: Data Types à la Carte Tests
-;;; ============================================================
+;;; ====
 
 (test-group coproduct-basics
             (define-test inl-creates-left-injection
@@ -118,9 +118,9 @@
                     ;; Arith is at index 0, so should be inl
                     (assert-true (inl? path)))))
 
-;;; ============================================================
+;;; ====
 ;;; Part 2: Effect Composition Tests
-;;; ============================================================
+;;; ====
 
 (test-group handler-stack
             (define-test make-handler-stack-creates-stack
@@ -184,9 +184,9 @@
                                                           (eff-return (* env 2)))))])
                    (assert-equal 200 result))))
 
-;;; ============================================================
+;;; ====
 ;;; Part 3: Tagless Composition Tests
-;;; ============================================================
+;;; ====
 
 (test-group dict-algebra
             (define-test empty-dict-is-empty
@@ -302,9 +302,9 @@
                     (assert-true (dict-has? result 'from-t1))
                     (assert-true (dict-has? result 'from-t2)))))
 
-;;; ============================================================
+;;; ====
 ;;; N-ary Row Fmap Tests
-;;; ============================================================
+;;; ====
 
 (test-group row-fmap
             (define-test make-row-fmap-creates-function
@@ -332,9 +332,9 @@
                     ;; Should still be inr after mapping
                     (assert-true (inr? result)))))
 
-;;; ============================================================
+;;; ====
 ;;; Tag-based DSL Operations Tests
-;;; ============================================================
+;;; ====
 
 (test-group tag-based-dsl
             (define-test dsl-lit-uses-tag-injection
@@ -379,9 +379,9 @@
                           (assert-true (free-suspended? (caddr inner))))))
             )
 
-;;; ============================================================
+;;; ====
 ;;; Optimized Handler Stack Tests
-;;; ============================================================
+;;; ====
 
 (test-group optimized-handler-stack
             (define-test run-with-composed-stack-works
@@ -391,9 +391,9 @@
                      [result (run-with-composed-stack stack (eff-return 42))])
                     (assert-equal 42 result))))
 
-;;; ============================================================
+;;; ====
 ;;; Generic Tagless Bridge Tests
-;;; ============================================================
+;;; ====
 
 (test-group generic-tagless-bridge
             (define-test tagless->free-with-custom-dict
@@ -430,9 +430,9 @@
                     ;; Should double the literal
                     (assert-equal 10 result))))
 
-;;; ============================================================
+;;; ====
 ;;; Integration Tests
-;;; ============================================================
+;;; ====
 
 (test-group composition-verification
             (define-test verify-composition-all-satisfied
@@ -470,12 +470,12 @@
                      [result (program eval-expr-dict)])
                     (assert-equal 15 result))))
 
-;;; ============================================================
+;;; ====
 ;;; Run All Tests
-;;; ============================================================
+;;; ====
 
-(display "\n========================================\n")
+(display "\n====\n")
 (display "Running DSL Composition Tests\n")
-(display "========================================\n\n")
+(display "====\n\n")
 
 (run-all-tests)

@@ -15,9 +15,9 @@
 (load "lattice/linalg/vec3.ss")
 (load "lattice/autodiff/reverse-diff.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Traced Vec3 Construction
-;;; ============================================================
+;;; ====
 
 ;;; traced-vec3 : TracedValue × TracedValue × TracedValue → TracedVec3
 ;;; Create a traced 3D vector from traced x, y, and z components.
@@ -44,9 +44,9 @@
                (make-traced-var 0 tape)
                (make-traced-var 0 tape)))
 
-;;; ============================================================
+;;; ====
 ;;; Conversion Between Vec3 and TracedVec3
-;;; ============================================================
+;;; ====
 
 ;;; lift-vec3 : Vec3 × Tape → TracedVec3
 ;;; Convert regular vec3 to traced vec3 (creates traced variables).
@@ -73,9 +73,9 @@
 (define (traced-vec3->list tv)
   (list (traced-vec3-x tv) (traced-vec3-y tv) (traced-vec3-z tv)))
 
-;;; ============================================================
+;;; ====
 ;;; Basic Arithmetic
-;;; ============================================================
+;;; ====
 
 ;;; traced-vec3-add : TracedVec3 × TracedVec3 → TracedVec3
 ;;; Vector addition with gradient tracking.
@@ -126,9 +126,9 @@
                (traced-div (traced-vec3-y v) s)
                (traced-div (traced-vec3-z v) s)))
 
-;;; ============================================================
+;;; ====
 ;;; Products
-;;; ============================================================
+;;; ====
 
 ;;; traced-vec3-dot : TracedVec3 × TracedVec3 → TracedValue
 ;;; Dot product.
@@ -147,9 +147,9 @@
                     (traced-sub (traced-mul az bx) (traced-mul ax bz))
                     (traced-sub (traced-mul ax by) (traced-mul ay bx)))))
 
-;;; ============================================================
+;;; ====
 ;;; Length and Distance
-;;; ============================================================
+;;; ====
 
 ;;; traced-vec3-magnitude-sq : TracedVec3 → TracedValue
 ;;; Squared magnitude (avoids sqrt).
@@ -186,9 +186,9 @@
 (define (traced-vec3-smooth-distance a b epsilon)
   (traced-vec3-smooth-magnitude (traced-vec3-sub a b) epsilon))
 
-;;; ============================================================
+;;; ====
 ;;; Normalization
-;;; ============================================================
+;;; ====
 
 ;;; traced-vec3-normalize : TracedVec3 → TracedVec3
 ;;; Return unit vector in same direction.
@@ -211,9 +211,9 @@
            (lift-vec3-const (vec3-zero))
            (traced-vec3-normalize v))))
 
-;;; ============================================================
+;;; ====
 ;;; Projection and Reflection
-;;; ============================================================
+;;; ====
 
 ;;; traced-vec3-reflect : TracedVec3 × TracedVec3 → TracedVec3
 ;;; Reflect vector v across normal n.
@@ -235,9 +235,9 @@
 (define (traced-vec3-reject a b)
   (traced-vec3-sub a (traced-vec3-project a b)))
 
-;;; ============================================================
+;;; ====
 ;;; Interpolation
-;;; ============================================================
+;;; ====
 
 ;;; traced-vec3-lerp : TracedVec3 × TracedVec3 × TracedValue → TracedVec3
 ;;; Linear interpolation between a and b.
@@ -246,9 +246,9 @@
   (traced-vec3-add (traced-vec3-scale a (traced-sub 1 t))
                    (traced-vec3-scale b t)))
 
-;;; ============================================================
+;;; ====
 ;;; Comparison (Non-differentiable - use carefully)
-;;; ============================================================
+;;; ====
 
 ;;; traced-vec3-min : TracedVec3 × TracedVec3 → TracedVec3
 ;;; Component-wise minimum.
@@ -284,9 +284,9 @@
 (define (traced-vec3-clamp v min-bound max-bound)
   (traced-vec3-min (traced-vec3-max v min-bound) max-bound))
 
-;;; ============================================================
+;;; ====
 ;;; Smooth Approximations for Non-differentiable Operations
-;;; ============================================================
+;;; ====
 
 ;;; traced-softplus : TracedValue × Number → TracedValue
 ;;; Smooth approximation of ReLU: log(1 + exp(α*x)) / α
@@ -328,9 +328,9 @@
 (define (traced-smooth-clamp x lo hi alpha)
   (traced-softmin2 (traced-softmax2 x lo alpha) hi alpha))
 
-;;; ============================================================
+;;; ====
 ;;; Gradient Utilities
-;;; ============================================================
+;;; ====
 
 ;;; vec3-gradient : ((TracedVec3) → TracedValue) × Vec3 → Vec3
 ;;; Compute gradient of scalar function f at point p.

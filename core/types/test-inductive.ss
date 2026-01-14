@@ -11,9 +11,9 @@
 (load "core/types/dep-types.ss")
 (load "core/types/dep-infer.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Test Framework
-;;; ============================================================
+;;; ====
 
 (define *test-count* 0)
 (define *pass-count* 0)
@@ -51,9 +51,9 @@
 (define (test-error name result)
   (test name #t (and (pair? result) (eq? (car result) 'error))))
 
-;;; ============================================================
+;;; ====
 ;;; Test Data Declarations
-;;; ============================================================
+;;; ====
 
 ;; Simple data type: Bool
 (define bool-type
@@ -85,9 +85,9 @@
     [leaf : (Tree A)]
     [node : (Π ((l : (Tree A))) (Π ((v : A)) (Π ((r : (Tree A))) (Tree A))))]))
 
-;;; ============================================================
+;;; ====
 ;;; Tests
-;;; ============================================================
+;;; ====
 
 (define (run-tests)
   (display "
@@ -95,9 +95,9 @@
 
 ")
   
-  ;; --------------------------------------------------------
+  ;; ----
   ;; Data Type Predicates
-  ;; --------------------------------------------------------
+  ;; ----
   (display "--- Data Type Predicates ---
 ")
   
@@ -122,9 +122,9 @@
   (test-false "data-type-well-formed? missing header"
               (data-type-well-formed? '(data [x : Int])))
   
-  ;; --------------------------------------------------------
+  ;; ----
   ;; Data Type Operations
-  ;; --------------------------------------------------------
+  ;; ----
   (display "
 --- Data Type Operations ---
 ")
@@ -182,9 +182,9 @@
         '(List A)
         (data-applied-type list-type))
   
-  ;; --------------------------------------------------------
+  ;; ----
   ;; Data Type Construction
-  ;; --------------------------------------------------------
+  ;; ----
   (display "
 --- Data Type Construction ---
 ")
@@ -201,9 +201,9 @@
         '(zero : Nat)
         (t-constructor 'zero 'Nat))
   
-  ;; --------------------------------------------------------
+  ;; ----
   ;; Type Display
-  ;; --------------------------------------------------------
+  ;; ----
   (display "
 --- Type Display ---
 ")
@@ -220,9 +220,9 @@
         "data List(A) { nil : (List A) | cons : Π(x : A). Π(xs : (List A)). (List A) }"
         (dep-type->string list-type))
   
-  ;; --------------------------------------------------------
+  ;; ----
   ;; Wellformedness
-  ;; --------------------------------------------------------
+  ;; ----
   (display "
 --- Wellformedness ---
 ")
@@ -234,9 +234,9 @@
   (test-true "well-formed-dep-type? List"
              (well-formed-dep-type? list-type))
   
-  ;; --------------------------------------------------------
+  ;; ----
   ;; Type Synthesis - Data Declarations
-  ;; --------------------------------------------------------
+  ;; ----
   (display "
 --- Type Synthesis: Data Declarations ---
 ")
@@ -269,9 +269,9 @@
        (test-error "synth bad constructor return type"
                    (dep-synth bad-data empty-dep-ctx)))
   
-  ;; --------------------------------------------------------
+  ;; ----
   ;; Eliminator Generation
-  ;; --------------------------------------------------------
+  ;; ----
   (display "
 --- Eliminator Generation ---
 ")
@@ -284,9 +284,9 @@
              'elim-Nat
              (eliminator-name 'Nat)))
   
-  ;; --------------------------------------------------------
+  ;; ----
   ;; Type Synthesis - Eliminators
-  ;; --------------------------------------------------------
+  ;; ----
   (display "
 --- Type Synthesis: Eliminators ---
 ")
@@ -314,9 +314,9 @@
         (test-ok "synth elim-Bool application"
                  (dep-synth '(elim-Bool P t f b) ctx)))
   
-  ;; --------------------------------------------------------
+  ;; ----
   ;; Helper Functions
-  ;; --------------------------------------------------------
+  ;; ----
   (display "
 --- Helper Functions ---
 ")
@@ -345,9 +345,9 @@
   (test-false "constructor-returns-type? wrong type"
               (constructor-returns-type? 'Int 'Nat))
   
-  ;; --------------------------------------------------------
+  ;; ----
   ;; Integration Tests
-  ;; --------------------------------------------------------
+  ;; ----
   (display "
 --- Integration Tests ---
 ")
@@ -372,9 +372,9 @@
         '((A . Type))
         (data-param-bindings maybe-type))
   
-  ;; --------------------------------------------------------
+  ;; ----
   ;; Summary
-  ;; --------------------------------------------------------
+  ;; ----
   (display "
 === Test Summary ===
 ")

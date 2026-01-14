@@ -5,9 +5,9 @@
 (load "core/test-framework.ss")
 (load "lattice/dsl/chronicle/chronicle.ss")
 
-;;; ============================================================
+;;; ====
 ;;; State Tests
-;;; ============================================================
+;;; ====
 
 (test-group chronicle-state
             (define-test empty-state-creation
@@ -58,9 +58,9 @@
                          (assert-false (state-has-item? s4 'sword))
                          (assert-true (state-has-item? s4 'shield))))))
 
-;;; ============================================================
+;;; ====
 ;;; Guard Tests
-;;; ============================================================
+;;; ====
 
 (test-group chronicle-guards
             (define-test guard-always-true
@@ -114,9 +114,9 @@
                     (assert-true (g2 s))
                     (assert-true (g3 s)))))
 
-;;; ============================================================
+;;; ====
 ;;; Effect Tests
-;;; ============================================================
+;;; ====
 
 (test-group chronicle-effects
             (define-test effect-none-identity
@@ -179,9 +179,9 @@
                     (assert-equal 100 (state-get (e s0) 'bonus 0))
                     (assert-equal 0 (state-get (e s1) 'bonus 0)))))
 
-;;; ============================================================
+;;; ====
 ;;; Template Tests
-;;; ============================================================
+;;; ====
 
 (test-group chronicle-templates
             (define-test template-no-variables
@@ -216,9 +216,9 @@
                    (assert-equal "Count: 3"
                                  (eval-template tmpl s)))))
 
-;;; ============================================================
+;;; ====
 ;;; Chronicle Structure Tests
-;;; ============================================================
+;;; ====
 
 (test-group chronicle-structure
             (define-test build-simple-scene
@@ -251,9 +251,9 @@
                     (assert-false (chronicle-has-scene? chr 'missing))
                     (assert-equal 'intro (scene-id (chronicle-scene chr 'intro))))))
 
-;;; ============================================================
+;;; ====
 ;;; DSL Parsing Tests
-;;; ============================================================
+;;; ====
 
 (test-group chronicle-dsl-parsing
             (define-test parse-simple-guard
@@ -302,9 +302,9 @@
                    (assert-equal 1 (length (scene-choices sc)))
                    (assert-equal 1 (length (scene-on-enter sc))))))
 
-;;; ============================================================
+;;; ====
 ;;; Runtime Tests
-;;; ============================================================
+;;; ====
 
 (test-group chronicle-runtime
             ;; Build a simple test chronicle
@@ -353,9 +353,9 @@
                         (assert-true (string? output))
                         (assert-true (> (string-length output) 0))))))
 
-;;; ============================================================
+;;; ====
 ;;; Integration: Full Story Test
-;;; ============================================================
+;;; ====
 
 (test-group chronicle-integration
             (define adventure-chronicle
@@ -414,12 +414,12 @@
                     (assert-equal 2 (length choices1))
                     (assert-equal "Take the key" (choice-label (car choices1))))))
 
-;;; ============================================================
+;;; ====
 ;;; Run All Tests
-;;; ============================================================
+;;; ====
 
-(display "\n========================================\n")
+(display "\n====\n")
 (display "Running Chronicle DSL Tests\n")
-(display "========================================\n\n")
+(display "====\n\n")
 
 (run-all-tests)

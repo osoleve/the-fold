@@ -21,9 +21,9 @@
 (load "core/base/prelude.ss")
 (load "lattice/fp/meta/combinators.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Character Constants (to avoid formatter issues)
-;;; ============================================================
+;;; ====
 
 ;;; %newline : Char
 (define %newline (integer->char 10))
@@ -40,9 +40,9 @@
 ;;; %page : Char
 (define %page (integer->char 12))
 
-;;; ============================================================
+;;; ====
 ;;; Parser State
-;;; ============================================================
+;;; ====
 
 ;;; Parser state contains:
 ;;;   - input: the FULL input string (never copied/sliced)
@@ -123,9 +123,9 @@
 (define (initial-state input)
   (make-state input 0 initial-pos))
 
-;;; ============================================================
+;;; ====
 ;;; Parse Error
-;;; ============================================================
+;;; ====
 
 ;;; make-error : Pos × String × (List String) → Error
 ;;; Create a parse error with position, message, and expected items.
@@ -178,9 +178,9 @@
    [(null? (cdr exps)) (car exps)]
    [else (string-append (car exps) " or " (format-expected (cdr exps)))]))
 
-;;; ============================================================
+;;; ====
 ;;; Parser Type
-;;; ============================================================
+;;; ====
 
 ;;; A Parser is: State → Either Error (Value × State)
 ;;;
@@ -213,9 +213,9 @@
   (let ([full-parser (parser-left parser eof)])
        (parse full-parser input)))
 
-;;; ============================================================
+;;; ====
 ;;; Primitive Parsers
-;;; ============================================================
+;;; ====
 
 ;;; parser-pure : α → (Parser α)
 ;;; Parser that succeeds with value without consuming input.
@@ -318,9 +318,9 @@
                                  (loop (+ i 1))))))
            (string-append "none of '" chars "'")))
 
-;;; ============================================================
+;;; ====
 ;;; Character Class Parsers
-;;; ============================================================
+;;; ====
 
 ;;; digit : (Parser Char)
 (define digit (satisfy char-numeric? "digit"))
@@ -348,9 +348,9 @@
 ;;; tab-char : (Parser Char)
 (define tab-char (char %tab))
 
-;;; ============================================================
+;;; ====
 ;;; String Parsers
-;;; ============================================================
+;;; ====
 
 
 ;;; string-parser : String → (Parser String)
@@ -390,9 +390,9 @@
                                              (state-pos state)
                                              (string-append "expected \"" str "\"")
                                              (list (string-append "\"" str "\"")))))))))))))
-;;; ============================================================
+;;; ====
 ;;; Monad Operations
-;;; ============================================================
+;;; ====
 
 ;;; parser-bind : (Parser α) × (α → (Parser β)) → (Parser β)
 ;;; Monadic bind (>>=).
@@ -435,9 +435,9 @@
                           (parser-bind pa (lambda (a)
                                                   (parser-pure (f a)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Alternation
-;;; ============================================================
+;;; ====
 
 ;;; parser-or : (Parser α) × (Parser α) → (Parser α)
 ;;; Try first parser, if it fails without consuming input, try second (<|>).
@@ -492,9 +492,9 @@
   (parser-or (parser-map just p)
              (parser-pure nothing)))
 
-;;; ============================================================
+;;; ====
 ;;; Repetition
-;;; ============================================================
+;;; ====
 
 ;;; many : (Parser α) → (Parser (List α))
 ;;; Zero or more occurrences.
@@ -613,9 +613,9 @@
                                   ;; Body parser failed - propagate error
                                   body-result))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Lookahead
-;;; ============================================================
+;;; ====
 
 ;;; look-ahead : (Parser α) → (Parser α)
 ;;; Try parser without consuming input on success.
@@ -641,9 +641,9 @@
                            '()))
                     (right (cons '() state)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Error Handling
-;;; ============================================================
+;;; ====
 
 ;;; label : (Parser α) × String → (Parser α)
 ;;; Replace expected in error messages.
@@ -663,9 +663,9 @@
 ;;; Infix alias for label.
 (define parser-label label)
 
-;;; ============================================================
+;;; ====
 ;;; Convenience Combinators
-;;; ============================================================
+;;; ====
 
 ;;; spaces : (Parser String)
 ;;; Zero or more whitespace characters.
@@ -717,9 +717,9 @@
 (define (semi-sep p)
   (sep-by p (symbol ";")))
 
-;;; ============================================================
+;;; ====
 ;;; Number Parsers
-;;; ============================================================
+;;; ====
 
 ;;; natural : (Parser Nat)
 ;;; Parse natural number.
@@ -760,9 +760,9 @@
                                                                                         (- num)
                                                                                         num))))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Identifier Parser
-;;; ============================================================
+;;; ====
 
 ;;; identifier : (Parser String)
 ;;; Parse identifier (letter followed by alphanumerics).
@@ -782,9 +782,9 @@
                                 (parser-pure kw)
                                 (parser-fail (string-append "expected keyword '" kw "'")))))))
 
-;;; ============================================================
+;;; ====
 ;;; Higher-Order Combinators
-;;; ============================================================
+;;; ====
 
 ;;; chainl1 : (Parser α) × (Parser (α × α → α)) → (Parser α)
 ;;; Parse left-associative binary operations.
@@ -918,9 +918,9 @@
                                     (lambda (ys)
                                             (parser-pure (append xs ys)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Position Utilities
-;;; ============================================================
+;;; ====
 
 ;;; get-pos : (Parser Pos)
 ;;; Get current position.
@@ -957,9 +957,9 @@
                                                          (lambda (end)
                                                                  (parser-pure (list val start end)))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Debugging Utilities
-;;; ============================================================
+;;; ====
 
 ;;; trace-parser : String × (Parser α) → (Parser α)
 ;;; Print debug info when parser is invoked.
@@ -989,9 +989,9 @@
                      (newline)
                      result)))))
 
-;;; ============================================================
+;;; ====
 ;;; Indentation-Sensitive Parsing
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Combinators for Python/Haskell-style indentation-sensitive parsing.
 ;;; These work with the existing State structure using pos-col.
@@ -1167,9 +1167,9 @@
 (define (offside ref p)
   (column-gt ref p))
 
-;;; ============================================================
+;;; ====
 ;;; Packrat Parsing (Memoization)
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Packrat parsing memoizes parser results by (rule-key, position).
 ;;; This ensures O(n) parsing time for grammars that would otherwise
@@ -1348,9 +1348,9 @@
 (define (parse-packrat memo-parser input)
   (parse-with-memo memo-parser input (make-memo-table)))
 
-;;; ============================================================
+;;; ====
 ;;; Packrat Combinators
-;;; ============================================================
+;;; ====
 ;;;
 ;;; These combinators work with memoized parsers.
 
@@ -1401,9 +1401,9 @@
 (define (lift-parser p)
   (lambda (table) p))
 
-;;; ============================================================
+;;; ====
 ;;; Packrat Statistics (for debugging)
-;;; ============================================================
+;;; ====
 
 ;;; memo-stats : MemoTable → (Nat × (Option Nat))
 ;;; Get statistics about memo table usage.

@@ -9,9 +9,9 @@
 (load "lattice/physics/classical/ascii-renderer.ss")
 (load "user/creations/ascii-video-export.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Configuration
-;;; ============================================================
+;;; ====
 
 (define *width* 70)
 (define *height* 35)
@@ -24,9 +24,9 @@
 (define style (default-render-style))
 (define renderer (make-world-renderer config debug style))
 
-;;; ============================================================
+;;; ====
 ;;; Create the Demo World
-;;; ============================================================
+;;; ====
 
 (define (make-demo-world)
   (let ([w (make-world (vec2 0 9.8))]
@@ -69,9 +69,9 @@
        
        w))
 
-;;; ============================================================
+;;; ====
 ;;; Custom Entity Styling
-;;; ============================================================
+;;; ====
 
 (define (entity->char entity)
   (let ([id (entity-id entity)])
@@ -90,9 +90,9 @@
         ;; Default
         [else #\O])))
 
-;;; ============================================================
+;;; ====
 ;;; Render Frame with Title
-;;; ============================================================
+;;; ====
 
 (define (render-demo-frame! frame world step)
   (frame-clear! frame #\space)
@@ -111,9 +111,9 @@
   (frame-put-string! frame (- *width* 12) 1
                      (string-append "Frame " (number->string step))))
 
-;;; ============================================================
+;;; ====
 ;;; Animation
-;;; ============================================================
+;;; ====
 
 (define (run-demo)
   (display "Creating physics world...\n")
@@ -150,9 +150,9 @@
         (display " frames\n")
         video))
 
-;;; ============================================================
+;;; ====
 ;;; Export
-;;; ============================================================
+;;; ====
 
 (define (export-demo)
   (let ([video (run-demo)])
@@ -162,9 +162,9 @@
 
 ;;; Run it
 (display "\n")
-(display "========================================\n")
+(display "====\n")
 (display "  PHYSICS ASCII RENDERER DEMO\n")
 (display "  Triple pendulum, chain, spring\n")
-(display "========================================\n\n")
+(display "====\n\n")
 
 (export-demo)

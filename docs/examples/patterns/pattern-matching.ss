@@ -5,9 +5,9 @@
 ;;;
 ;;; Run with: scheme --script docs/examples/patterns/pattern-matching.ss
 
-;;; ============================================================
+;;; ====
 ;;; The Pattern: Test + Destructure
-;;; ============================================================
+;;; ====
 
 (display "=== Pattern Matching Style ===\n")
 
@@ -21,9 +21,9 @@ Pattern matching is: test what you have, then take it apart.
 This is how functional programs handle algebraic data types.
 ")
 
-;;; ============================================================
+;;; ====
 ;;; Matching with cond
-;;; ============================================================
+;;; ====
 
 (display "=== Matching with cond ===\n")
 
@@ -43,9 +43,9 @@ This is how functional programs handle algebraic data types.
 (format #t "describe 'hello = ~a~%" (describe 'hello))
 (format #t "describe \"hi\" = ~a~%" (describe "hi"))
 
-;;; ============================================================
+;;; ====
 ;;; Matching List Shapes
-;;; ============================================================
+;;; ====
 
 (display "\n=== List Shape Matching ===\n")
 
@@ -61,9 +61,9 @@ This is how functional programs handle algebraic data types.
 (format #t "(a b) -> ~a~%" (list-shape '(a b)))
 (format #t "(a b c d) -> ~a~%" (list-shape '(a b c d)))
 
-;;; ============================================================
+;;; ====
 ;;; Tagged Data (Algebraic Data Types)
-;;; ============================================================
+;;; ====
 
 (display "\n=== Tagged Data Types ===\n")
 
@@ -99,9 +99,9 @@ In Scheme, we represent variants with tagged lists:
 (format #t "maybe-map square (none) = ~a~%"
         (maybe-map (lambda (x) (* x x)) (none)))
 
-;;; ============================================================
+;;; ====
 ;;; case for Literal Matching
-;;; ============================================================
+;;; ====
 
 (display "\n=== case for Literals ===\n")
 
@@ -116,9 +116,9 @@ In Scheme, we represent variants with tagged lists:
 (format #t "monday -> ~a~%" (day-type 'monday))
 (format #t "holiday -> ~a~%" (day-type 'holiday))
 
-;;; ============================================================
+;;; ====
 ;;; Recursive Pattern Matching
-;;; ============================================================
+;;; ====
 
 (display "\n=== Recursive Matching ===\n")
 
@@ -141,9 +141,9 @@ In Scheme, we represent variants with tagged lists:
 (format #t "map square (1 2 3) = ~a~%"
         (my-map (lambda (x) (* x x)) '(1 2 3)))
 
-;;; ============================================================
+;;; ====
 ;;; Matching Nested Structures
-;;; ============================================================
+;;; ====
 
 (display "\n=== Nested Structure Matching ===\n")
 
@@ -163,9 +163,9 @@ In Scheme, we represent variants with tagged lists:
 (format #t "(mul (lit 3) (add (lit 1) (lit 2))) = ~a~%"
         (eval-expr '(mul (lit 3) (add (lit 1) (lit 2)))))
 
-;;; ============================================================
+;;; ====
 ;;; Binary Trees
-;;; ============================================================
+;;; ====
 
 (display "\n=== Example: Binary Trees ===\n")
 
@@ -212,9 +212,9 @@ In Scheme, we represent variants with tagged lists:
 (format #t "contains 7? ~a~%" (tree-contains? tree 7))
 (format #t "contains 6? ~a~%" (tree-contains? tree 6))
 
-;;; ============================================================
+;;; ====
 ;;; The Pattern Matching Mindset
-;;; ============================================================
+;;; ====
 
 (display "\n=== Summary ===\n")
 

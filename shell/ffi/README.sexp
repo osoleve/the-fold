@@ -6,16 +6,16 @@
                 Fuel tracking preserves totality guarantees.")
 
  (architecture . "
-     +-----------------------+     +-------------------------+
+     +----+     +----+
      | lattice/geometry/     |     | shell/ffi/              |
      | bvh-accel.ss          |<--->| bvh-ffi.ss              |
      | (transparent wrapper) |     | (FFI bindings)          |
-     +-----------------------+     +-------------------------+
+     +----+     +----+
                                             |
-                                   +--------v--------+
+                                   +----v----+
                                    | rust-accel/     |
                                    | libfold_accel.so|
-                                   +-----------------+")
+                                   +----+")
 
  (modules
   ((name . "ffi-core.ss")

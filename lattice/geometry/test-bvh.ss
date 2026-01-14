@@ -11,9 +11,9 @@
 (define (approx= a b eps)
   (< (abs (- a b)) eps))
 
-;;; ============================================================
+;;; ====
 ;;; BVH Construction Tests
-;;; ============================================================
+;;; ====
 
 (define-test "BVH construction from single triangle"
   (let* ([tri (triangle3 (vec3 0 0 0) (vec3 1 0 0) (vec3 0 1 0))]
@@ -114,9 +114,9 @@
         (assert-equal (longest-axis bbox2) 1)
         (assert-equal (longest-axis bbox3) 2)))
 
-;;; ============================================================
+;;; ====
 ;;; Summary
-;;; ============================================================
+;;; ====
 
 (display "\n")
 (display "Tests run:    ")

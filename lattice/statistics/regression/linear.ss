@@ -26,9 +26,9 @@
 (load "lattice/statistics/core/diagnostics.ss")
 (load "lattice/statistics/hypothesis/distributions.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Ordinary Least Squares
-;;; ============================================================
+;;; ====
 
 ;;; linear-model-fit : Matrix × Vec → LinearModelResult | Error
 ;;; Fit linear model y = X*beta + epsilon using OLS.
@@ -145,9 +145,9 @@
       r-squared
       (- 1 (* (- 1 r-squared) (/ (- n 1) (- n p))))))
 
-;;; ============================================================
+;;; ====
 ;;; Weighted Least Squares
-;;; ============================================================
+;;; ====
 
 ;;; weighted-linear-fit : Matrix × Vec × Vec → LinearModelResult | Error
 ;;; Fit weighted linear model: minimize sum(w_i * (y_i - X_i*beta)^2)
@@ -269,9 +269,9 @@
                           [(= j p) se]
                           (vector-set! se j (sqrt (max (* (matrix-ref XtWX-inv j j) mse) 0)))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Prediction
-;;; ============================================================
+;;; ====
 
 ;;; linear-model-predict : LinearModelResult × Matrix → Vec
 ;;; Predict y values for new X.
@@ -366,9 +366,9 @@
                 (loop-i (+ i 1)
                         (+ sum (* (vector-ref x i) inner)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Model Summary
-;;; ============================================================
+;;; ====
 
 ;;; linear-model-f-statistic : LinearModelResult → Num
 ;;; Overall F-statistic for regression.

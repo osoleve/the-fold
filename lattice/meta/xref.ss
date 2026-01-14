@@ -14,9 +14,9 @@
 ;;;
 ;;; Dependencies: lattice/meta/source-loc.ss (for definition locations)
 
-;;; ============================================================
+;;; ====
 ;;; State
-;;; ============================================================
+;;; ====
 
 ;;; Call graph indices
 ;;; callers: symbol -> (list of symbols that call it)
@@ -27,9 +27,9 @@
 ;;; Set of all known definitions (for filtering)
 (define *xref-known-defs* (make-eq-hashtable))
 
-;;; ============================================================
+;;; ====
 ;;; Symbol Extraction
-;;; ============================================================
+;;; ====
 
 ;;; extract-symbols-from-sexp : SExp -> (List Symbol)
 ;;; Extract all symbols from an s-expression (excluding quoted data)
@@ -94,9 +94,9 @@
         (apply append (map extract-symbols-from-sexp sexp))])]
     [else '()]))
 
-;;; ============================================================
+;;; ====
 ;;; File Parsing
-;;; ============================================================
+;;; ====
 
 ;;; extract-xrefs-from-file : String -> (List (Symbol . (List Symbol)))
 ;;; Parse a file and extract (definer . callees) pairs
@@ -152,9 +152,9 @@
                   (begin (hashtable-set! seen sym #t) #t)))
             lst)))
 
-;;; ============================================================
+;;; ====
 ;;; Directory Scanning
-;;; ============================================================
+;;; ====
 
 ;;; find-scheme-files-xref : String -> (List String)
 (define (find-scheme-files-xref dir)
@@ -191,9 +191,9 @@
     (and (>= slen plen)
          (string=? (substring str 0 plen) prefix))))
 
-;;; ============================================================
+;;; ====
 ;;; Index Building
-;;; ============================================================
+;;; ====
 
 ;;; build-xref-cache! : -> Void
 ;;; Build cross-reference indices from source files
@@ -257,9 +257,9 @@
 
       (printf "  Indexed ~a definitions, ~a call edges\n" def-count edge-count))))
 
-;;; ============================================================
+;;; ====
 ;;; Query API
-;;; ============================================================
+;;; ====
 
 ;;; xref-callers : Symbol -> (List Symbol)
 ;;; Get functions that call the given symbol
@@ -303,9 +303,9 @@
                   (set! result (cons current result))
                   (loop (append (cdr to-visit) (xref-callees current))))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Pretty Printing
-;;; ============================================================
+;;; ====
 
 ;;; print-xref-callers : Symbol -> Void
 (define (print-xref-callers sym)
@@ -336,9 +336,9 @@
       '()
       (cons (car lst) (take-n-xref (- n 1) (cdr lst)))))
 
-;;; ============================================================
+;;; ====
 ;;; Convenience Functions
-;;; ============================================================
+;;; ====
 
 ;;; lxu : Symbol -> Void
 ;;; "Lattice Xref Uses" - quick lookup of callers
@@ -350,9 +350,9 @@
 (define (lxc sym)
   (print-xref-callees sym))
 
-;;; ============================================================
+;;; ====
 ;;; Statistics
-;;; ============================================================
+;;; ====
 
 ;;; xref-stats : -> Void
 (define (xref-stats)
@@ -377,9 +377,9 @@
     (take-n-xref n
       (sort (lambda (a b) (> (cdr a) (cdr b))) counts))))
 
-;;; ============================================================
+;;; ====
 ;;; REPL Interface
-;;; ============================================================
+;;; ====
 
 (printf "xref.ss loaded.\n")
 (printf "  (build-xref-cache!)       - Build call graph from sources\n")

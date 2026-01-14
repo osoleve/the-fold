@@ -36,9 +36,9 @@ const dispatcher = require('./dispatcher');
 const queue = require('./queue');
 const worker = require('./worker');
 
-// ============================================================
+// ====
 // Bot Setup
-// ============================================================
+// ====
 
 const client = new Client({
   intents: [
@@ -58,9 +58,9 @@ let lastEventTimestamp = null;
 // Health server reference
 let healthServer = null;
 
-// ============================================================
+// ====
 // REPL Bridge
-// ============================================================
+// ====
 
 /**
  * Strip code fences and backticks from expression
@@ -173,9 +173,9 @@ async function logToFold(message) {
   }
 }
 
-// ============================================================
+// ====
 // Agent Mention Handler
-// ============================================================
+// ====
 
 /**
  * Escape a string for use in S-expression string literals
@@ -244,9 +244,9 @@ async function handleAgentMention(message) {
   return true;
 }
 
-// ============================================================
+// ====
 // Event Handlers
-// ============================================================
+// ====
 
 client.once(Events.ClientReady, (c) => {
   console.log(`✅ Logged in as ${c.user.tag}`);
@@ -379,9 +379,9 @@ client.on(Events.MessageCreate, async (message) => {
   await logToFold(message);
 });
 
-// ============================================================
+// ====
 // Slash Commands
-// ============================================================
+// ====
 
 const commands = [
   new SlashCommandBuilder()
@@ -605,9 +605,9 @@ client.on(Events.InteractionCreate, async (interaction) => {
   }
 });
 
-// ============================================================
+// ====
 // Command Registration
-// ============================================================
+// ====
 
 async function registerCommands() {
   const token = process.env.DISCORD_BOT_TOKEN;
@@ -642,9 +642,9 @@ async function registerCommands() {
   }
 }
 
-// ============================================================
+// ====
 // Health Endpoint
-// ============================================================
+// ====
 
 function startHealthServer() {
   const port = gatewayConfig.health.port;
@@ -687,9 +687,9 @@ function startHealthServer() {
   });
 }
 
-// ============================================================
+// ====
 // Graceful Shutdown
-// ============================================================
+// ====
 
 async function shutdown(signal) {
   console.log(`\n${signal} received. Shutting down gracefully...`);
@@ -722,9 +722,9 @@ async function shutdown(signal) {
 process.on('SIGTERM', () => shutdown('SIGTERM'));
 process.on('SIGINT', () => shutdown('SIGINT'));
 
-// ============================================================
+// ====
 // Startup
-// ============================================================
+// ====
 
 async function main() {
   const token = process.env.DISCORD_BOT_TOKEN;

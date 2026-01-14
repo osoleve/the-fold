@@ -29,9 +29,9 @@
 (load "core/base/prelude.ss")
 (load "lattice/fp/meta/combinators.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Type Expression DSL
-;;; ============================================================
+;;; ====
 ;;;
 ;;; We represent types as symbolic S-expressions that can be
 ;;; differentiated. This is a "shallow embedding" of types.
@@ -47,9 +47,9 @@
 ;;;       | (maybe T)   ; optional T (sugar for 1 + T)
 ;;;       | (tree T)    ; rose tree (sugar for μR. T × (list R))
 
-;;; ============================================================
+;;; ====
 ;;; Type Constructors
-;;; ============================================================
+;;; ====
 
 ;;; type-zero : Type
 ;;; The empty/void type. Has no inhabitants.
@@ -127,9 +127,9 @@
 (define (type-rec-body t)
   (caddr t))
 
-;;; ============================================================
+;;; ====
 ;;; Common Type Patterns (Sugar)
-;;; ============================================================
+;;; ====
 
 ;;; type-list : Type → Type
 ;;; List a = μL. 1 + a × L
@@ -164,9 +164,9 @@
     (type-sum type-one
               (type-prod elem-type (type-var 'T) (type-var 'T)))))
 
-;;; ============================================================
+;;; ====
 ;;; Type Derivative (Core Algorithm)
-;;; ============================================================
+;;; ====
 ;;;
 ;;; The derivative of a type T with respect to variable a gives
 ;;; the type of one-hole contexts where an `a` was removed.
@@ -273,9 +273,9 @@
 
     [else t]))
 
-;;; ============================================================
+;;; ====
 ;;; Type Simplification
-;;; ============================================================
+;;; ====
 
 ;;; type-simplify : Type → Type
 ;;; Simplify type expressions by eliminating 0s and 1s.
@@ -315,9 +315,9 @@
     [(pred (car lst)) #t]
     [else (any pred (cdr lst))]))
 
-;;; ============================================================
+;;; ====
 ;;; Zipper Type Construction
-;;; ============================================================
+;;; ====
 
 ;;; make-zipper-type : Type × Symbol → Type
 ;;; Construct the zipper type for type T focused on variable v.
@@ -330,9 +330,9 @@
 (define (context-type t v)
   (type-simplify (type-deriv t v)))
 
-;;; ============================================================
+;;; ====
 ;;; Generic Zipper Runtime Structure
-;;; ============================================================
+;;; ====
 ;;;
 ;;; A generic zipper at runtime is represented as:
 ;;;   (generic-zipper focus contexts)
@@ -364,9 +364,9 @@
       (list-ref z 2)
       (error 'generic-zipper-contexts "not a generic zipper")))
 
-;;; ============================================================
+;;; ====
 ;;; Context Frame Structure
-;;; ============================================================
+;;; ====
 ;;;
 ;;; A context frame represents one "layer" of the one-hole context.
 ;;; For a product type A × B × C with hole in B:
@@ -398,9 +398,9 @@
 ;;; context-frame-siblings : ContextFrame → (List Val)
 (define (context-frame-siblings f) (list-ref f 3))
 
-;;; ============================================================
+;;; ====
 ;;; Generic Zipper Operations
-;;; ============================================================
+;;; ====
 
 ;;; generic-zipper-at-root? : (GenericZipper α) → Bool
 (define (generic-zipper-at-root? z)
@@ -421,9 +421,9 @@
   (make-generic-zipper (f (generic-zipper-focus z))
                        (generic-zipper-contexts z)))
 
-;;; ============================================================
+;;; ====
 ;;; Type Display
-;;; ============================================================
+;;; ====
 
 ;;; type->string : Type → String
 ;;; Pretty-print a type expression.
@@ -456,9 +456,9 @@
                  (car strs)
                  (cdr strs))))
 
-;;; ============================================================
+;;; ====
 ;;; Derived Zipper Examples
-;;; ============================================================
+;;; ====
 
 ;;; Example: List derivative
 ;;; List a = μL. 1 + a × L
@@ -480,9 +480,9 @@
 (define binary-tree-context-type
   (context-type (type-binary-tree (type-var 'a)) 'a))
 
-;;; ============================================================
+;;; ====
 ;;; iota helper (if not available)
-;;; ============================================================
+;;; ====
 
 (define (iota n)
   (let loop ([i 0] [acc '()])

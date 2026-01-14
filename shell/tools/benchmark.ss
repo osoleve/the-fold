@@ -25,9 +25,9 @@
 ;;;   - Historical tracking and regression detection
 ;;;   - Multiple output formats (text, CSV, scheme)
 
-;;; ============================================================
+;;; ====
 ;;; Configuration
-;;; ============================================================
+;;; ====
 
 (define *default-iterations* 1000)
 (define *default-warmup-iterations* 100)
@@ -57,9 +57,9 @@
    benchmarks            ; List of benchmark-result records
    timestamp))
 
-;;; ============================================================
+;;; ====
 ;;; Core Benchmarking
-;;; ============================================================
+;;; ====
 
 ;;; benchmark : String × (→ α) × Nat → BenchmarkResult
 ;;; Run a benchmark with specified iterations.
@@ -118,9 +118,9 @@
                   [duration (- end start)])
                  (loop (+ i 1) (cons duration samples))))))
 
-;;; ============================================================
+;;; ====
 ;;; Comparison Benchmarking
-;;; ============================================================
+;;; ====
 
 ;;; benchmark-compare : (List (Pair String (→ α))) × Nat → (List BenchmarkResult)
 ;;; Compare multiple implementations.
@@ -145,9 +145,9 @@
         results
         (current-nanoseconds))))
 
-;;; ============================================================
+;;; ====
 ;;; Statistical Functions
-;;; ============================================================
+;;; ====
 
 ;;; mean : (List Nat) → Nat
 (define (mean nums)
@@ -200,9 +200,9 @@
       0
       (apply max nums)))
 
-;;; ============================================================
+;;; ====
 ;;; Reporting
-;;; ============================================================
+;;; ====
 
 ;;; benchmark-report : (List BenchmarkResult) → void
 ;;; Display benchmark results.
@@ -288,9 +288,9 @@
                               current
                               fastest)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Formatting
-;;; ============================================================
+;;; ====
 
 ;;; format-time-ns : Nat → String
 ;;; Format nanoseconds in human-readable form.
@@ -326,9 +326,9 @@
    [else
     (format "~a" (inexact->exact (round ratio)))]))
 
-;;; ============================================================
+;;; ====
 ;;; Persistence
-;;; ============================================================
+;;; ====
 
 ;;; benchmark-save : BenchmarkResult × Path → void
 ;;; Save benchmark results to file.
@@ -352,9 +352,9 @@
                         (lambda (port)
                                 (read port))))
 
-;;; ============================================================
+;;; ====
 ;;; Utility Functions
-;;; ============================================================
+;;; ====
 
 ;;; current-nanoseconds : → Nat
 (define (current-nanoseconds)
@@ -386,9 +386,9 @@
    [(cmp x (car sorted)) (cons x sorted)]
    [else (cons (car sorted) (insert x (cdr sorted) cmp))]))
 
-;;; ============================================================
+;;; ====
 ;;; Examples and Presets
-;;; ============================================================
+;;; ====
 
 ;;; Quick benchmark presets
 (define (quick-bench thunk)

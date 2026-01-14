@@ -10,9 +10,9 @@
 ;;;   ->!    Mutation threading for side-effecting operations
 ;;;   ->>    Thread-last variant (value at end of argument list)
 
-;;; ============================================================
+;;; ====
 ;;; Enhanced Threading Macro (->)
-;;; ============================================================
+;;; ====
 
 ;;; -> : Value × Forms... -> Value
 ;;; Thread a value through a series of transformations.
@@ -78,9 +78,9 @@
                  (-> (fn val) rest ...)]))
 
 
-;;; ============================================================
+;;; ====
 ;;; Mutation Threading Macro (->!)
-;;; ============================================================
+;;; ====
 
 ;;; ->! : Object × (Mutator Args...)... -> Void
 ;;; Chain side-effecting operations on a mutable object.
@@ -108,9 +108,9 @@
                   (->! obj rest ...))]))
 
 
-;;; ============================================================
+;;; ====
 ;;; Thread-Last Macro (->>)
-;;; ============================================================
+;;; ====
 
 ;;; ->> : Value × Forms... -> Value
 ;;; Thread a value as the LAST argument to each form.
@@ -136,9 +136,9 @@
                  (->> (fn val) rest ...)]))
 
 
-;;; ============================================================
+;;; ====
 ;;; Conditional Forms
-;;; ============================================================
+;;; ====
 
 ;;; when-> : Pred × Value × Forms... -> Value
 ;;; Only thread if predicate is true, otherwise return value unchanged.

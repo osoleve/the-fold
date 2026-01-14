@@ -9,7 +9,7 @@ numerically.
 The symbolic computation library consists of four main modules:
 
 | Module | Purpose |
-|--------|---------|
+|----|----|
 | `expr.ss` | Expression representation and manipulation |
 | `diff.ss` | Symbolic differentiation |
 | `simplify.ss` | Algebraic simplification |

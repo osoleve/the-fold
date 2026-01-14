@@ -8,9 +8,9 @@
 
 (display "=== CONTINUATION QUEST: The Time Traveler's Puzzle ===\n\n")
 
-;;; ============================================================
+;;; ====
 ;;; Game State
-;;; ============================================================
+;;; ====
 
 (define *checkpoints* '())
 (define *timeline-history* '())
@@ -29,9 +29,9 @@
             ((cdr cp) 'restore))
            (display (string-append "❌ No checkpoint named '" name "'\n")))))
 
-;;; ============================================================
+;;; ====
 ;;; Adventure Scenes
-;;; ============================================================
+;;; ====
 
 (define (scene-1)
   (display "You stand at a crossroads in the forest.\n")
@@ -149,9 +149,9 @@
          (display "May your continuations always be first-class.\n\n")]
         [else (scene-4-victory)])))
 
-;;; ============================================================
+;;; ====
 ;;; Start the Game!
-;;; ============================================================
+;;; ====
 
 (display "In this game, you'll use the power of continuations to save\n")
 (display "your progress and travel through time!\n\n")

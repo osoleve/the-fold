@@ -16,9 +16,9 @@
 ;;; Dependencies:
 ;;;   - transcendental.ss (for exp, log, sqrt, pi-value)
 
-;;; ============================================================
+;;; ====
 ;;; Constants
-;;; ============================================================
+;;; ====
 
 ;;; Euler-Mascheroni constant γ ≈ 0.5772156649...
 (define *euler-gamma* 0.5772156649015329)
@@ -29,9 +29,9 @@
 ;;; sqrt(π)
 (define *sqrt-pi* 1.7724538509055159)
 
-;;; ============================================================
+;;; ====
 ;;; Error Functions
-;;; ============================================================
+;;; ====
 
 ;;; erf : Number → Number
 ;;; Error function: erf(x) = (2/√π) ∫₀ˣ e^(-t²) dt
@@ -96,9 +96,9 @@
    ((>= x 2) (error 'erfcinv "domain error: x must be in (0, 2)" x))
    (else (erfinv (- 1 x)))))
 
-;;; ============================================================
+;;; ====
 ;;; Gamma Functions
-;;; ============================================================
+;;; ====
 
 ;;; *lanczos-g* and *lanczos-coeffs*
 ;;; Lanczos approximation coefficients for g=7
@@ -175,9 +175,9 @@
     (inexact->exact (round (gamma (+ n 1)))))
    (else (gamma (+ n 1)))))
 
-;;; ============================================================
+;;; ====
 ;;; Digamma and Polygamma Functions
-;;; ============================================================
+;;; ====
 
 ;;; digamma : Number → Number
 ;;; Digamma function: ψ(x) = d/dx log(Γ(x)) = Γ'(x)/Γ(x)
@@ -237,9 +237,9 @@
              (/ -1 (* 30 x5))
              (/ 1 (* 42 x7)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Beta Function
-;;; ============================================================
+;;; ====
 
 ;;; beta : Number × Number → Number
 ;;; Beta function: B(a,b) = Γ(a)Γ(b)/Γ(a+b)
@@ -257,9 +257,9 @@
       (- (+ (lgamma a) (lgamma b))
          (lgamma (+ a b)))))
 
-;;; ============================================================
+;;; ====
 ;;; Incomplete Gamma Functions
-;;; ============================================================
+;;; ====
 
 ;;; gammainc-lower : Number × Number → Number
 ;;; Lower incomplete gamma: γ(a,x) = ∫₀ˣ t^(a-1) e^(-t) dt
@@ -288,9 +288,9 @@
 (define (gammainc-reg a x)
   (/ (gammainc-lower a x) (gamma a)))
 
-;;; ============================================================
+;;; ====
 ;;; Incomplete Beta Function
-;;; ============================================================
+;;; ====
 
 ;;; betainc : Number × Number × Number → Number
 ;;; Regularized incomplete beta: I_x(a,b) = B(x;a,b) / B(a,b)
@@ -349,9 +349,9 @@
                (* b (log (- 1 x)))
                (- (lbeta a b))))))
 
-;;; ============================================================
+;;; ====
 ;;; Binomial Coefficient
-;;; ============================================================
+;;; ====
 
 ;;; binomial : Nat × Nat → Nat
 ;;; Binomial coefficient: C(n,k) = n! / (k! (n-k)!)
@@ -366,9 +366,9 @@
                     (lgamma (+ k 1))
                     (lgamma (+ (- n k) 1)))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Pochhammer Symbol (Rising Factorial)
-;;; ============================================================
+;;; ====
 
 ;;; pochhammer : Number × Nat → Number
 ;;; Pochhammer symbol (rising factorial): (x)_n = x(x+1)...(x+n-1)
@@ -377,9 +377,9 @@
       1
       (exp (- (lgamma (+ x n)) (lgamma x)))))
 
-;;; ============================================================
+;;; ====
 ;;; Double Factorial
-;;; ============================================================
+;;; ====
 
 ;;; double-factorial : Nat → Nat
 ;;; Double factorial: n!! = n(n-2)(n-4)...

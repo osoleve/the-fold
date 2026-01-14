@@ -5,16 +5,16 @@
 
 (display "
 ")
-(display "==============================================================
+(display "====
 ")
 (display "         EXPAND (De Bruijn to Named) TESTS
 ")
-(display "==============================================================
+(display "====
 ")
 
-;;; ============================================================
+;;; ====
 ;;; Symbol Supply Tests
-;;; ============================================================
+;;; ====
 
 (test-group symbol-supply
             (define-test supply-next-single
@@ -48,9 +48,9 @@
               (let ([supply (make-symbol-supply 0)])
                    (assert-equal '() supply))))
 
-;;; ============================================================
+;;; ====
 ;;; Basic Expansion Tests
-;;; ============================================================
+;;; ====
 
 (test-group basic-expansion
             (define-test expand-symbol
@@ -74,9 +74,9 @@
               (let-values ([(result supply) (expand-with-ctx '(dv 0) '(x) '(y z))])
                           (assert-equal 'x result))))
 
-;;; ============================================================
+;;; ====
 ;;; Lambda Expansion Tests
-;;; ============================================================
+;;; ====
 
 (test-group lambda-expansion
             (define-test expand-identity
@@ -110,9 +110,9 @@
               (let ([result (expand '(fn foo) '(x))])
                    (assert-equal '(fn (x) foo) result))))
 
-;;; ============================================================
+;;; ====
 ;;; Let Expansion Tests
-;;; ============================================================
+;;; ====
 
 (test-group let-expansion
             (define-test expand-simple-let
@@ -136,9 +136,9 @@
               (let ([result (expand '(fn (let (42) (dv 0))) '(x y))])
                    (assert-equal '(fn (x) (let ((y 42)) y)) result))))
 
-;;; ============================================================
+;;; ====
 ;;; Fix Expansion Tests
-;;; ============================================================
+;;; ====
 
 (test-group fix-expansion
             (define-test expand-simple-fix
@@ -165,9 +165,9 @@
               (let ([result (expand '(fix (dv 0)) '(f))])
                    (assert-equal '(fix (f) f) result))))
 
-;;; ============================================================
+;;; ====
 ;;; Application Expansion Tests
-;;; ============================================================
+;;; ====
 
 (test-group application-expansion
             (define-test expand-simple-application
@@ -185,9 +185,9 @@
               (let ([result (expand '((fn (dv 0)) 42) '(x))])
                    (assert-equal '((fn (x) x) 42) result))))
 
-;;; ============================================================
+;;; ====
 ;;; Complex Expression Tests
-;;; ============================================================
+;;; ====
 
 (test-group complex-expressions
             (define-test expand-church-numeral-2
@@ -214,9 +214,9 @@
               (let ([result (expand '(let ((fn (dv 0))) ((dv 0) 42)) '(f x))])
                    (assert-equal '(let ((f (fn (x) x))) (f 42)) result))))
 
-;;; ============================================================
+;;; ====
 ;;; Expand Fresh Tests
-;;; ============================================================
+;;; ====
 
 (test-group expand-fresh
             (define-test expand-fresh-identity
@@ -233,9 +233,9 @@
                    ;; λx.λy.λz.x z
                    (assert-equal '(fn (x) (fn (y) (fn (z) (x z)))) result))))
 
-;;; ============================================================
+;;; ====
 ;;; Edge Cases
-;;; ============================================================
+;;; ====
 
 (test-group edge-cases
             (define-test expand-empty-list
@@ -251,13 +251,13 @@
               (let-values ([(result supply) (expand-with-ctx '(+ (dv 0) 10) '(x) '(y))])
                           (assert-equal '(+ x 10) result))))
 
-;;; ============================================================
+;;; ====
 ;;; Summary
-;;; ============================================================
+;;; ====
 
 (display "
 ")
-(display "==============================================================
+(display "====
 ")
 (printf "Tests passed: ~a
 " *tests-passed*)

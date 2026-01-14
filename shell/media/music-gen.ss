@@ -23,11 +23,11 @@
          
          (import (chezscheme))
          
-         ;;; ============================================
+         ;;; ====
          ;;; EUCLIDEAN RHYTHM GENERATOR
          ;;; Distributes k beats across n steps as evenly as possible
          ;;; (the mathematical basis of many world music rhythms)
-         ;;; ============================================
+         ;;; ====
          
          (define (euclidean-rhythm k n)
            "Generate Euclidean rhythm: k beats in n steps"
@@ -53,10 +53,10 @@
                lst
                (drop (cdr lst) (- n 1))))
          
-         ;;; ============================================
+         ;;; ====
          ;;; FIBONACCI MELODY GENERATOR
          ;;; Creates melodic patterns based on Fibonacci numbers
-         ;;; ============================================
+         ;;; ====
          
          (define (fibonacci-sequence n)
            "Generate first n Fibonacci numbers"
@@ -70,10 +70,10 @@
            (map (lambda (n) (modulo n scale-size))
                 (fibonacci-sequence length)))
          
-         ;;; ============================================
+         ;;; ====
          ;;; CELLULAR AUTOMATON RHYTHM
          ;;; Uses Rule 30 or similar CA to generate rhythmic patterns
-         ;;; ============================================
+         ;;; ====
          
          (define (ca-step rule cells)
            "Apply cellular automaton rule to cells"
@@ -97,10 +97,10 @@
                                (ca-step rule cells)
                                (cons cells acc))))))
          
-         ;;; ============================================
+         ;;; ====
          ;;; GOLDEN RATIO SEQUENCE
          ;;; Generates note positions using golden ratio
-         ;;; ============================================
+         ;;; ====
          
          (define phi 1.618033988749895)
          
@@ -110,9 +110,9 @@
                         (modulo (inexact->exact (floor (* i phi))) max-val))
                 (iota n)))
          
-         ;;; ============================================
+         ;;; ====
          ;;; ASCII NOTATION RENDERING
-         ;;; ============================================
+         ;;; ====
          
          (define (render-ascii-notation pattern)
            "Render rhythm pattern as ASCII"
@@ -150,9 +150,9 @@
                                       "\n"))
                              (iota range)))))
          
-         ;;; ============================================
+         ;;; ====
          ;;; DEMONSTRATION FUNCTIONS
-         ;;; ============================================
+         ;;; ====
          
          (define (music-gen-demo)
            "Show various algorithmic music patterns"

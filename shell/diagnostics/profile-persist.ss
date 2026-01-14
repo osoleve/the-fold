@@ -16,9 +16,9 @@
 
 (load "shell/profiler-unified.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Save Profile
-;;; ============================================================
+;;; ====
 
 ;;; profile-save : UnifiedProfiler x String -> Boolean
 ;;; Save a unified profile to a file in S-expression format.
@@ -57,9 +57,9 @@
                    entry))
        sexp))
 
-;;; ============================================================
+;;; ====
 ;;; Load Profile
-;;; ============================================================
+;;; ====
 
 ;;; profile-load : String -> UnifiedProfileData or #f
 ;;; Load a profile from file. Returns the raw S-expression data
@@ -86,9 +86,9 @@
   (and (pair? x)
        (eq? (car x) 'unified-profile-data)))
 
-;;; ============================================================
+;;; ====
 ;;; Profile Data Accessors
-;;; ============================================================
+;;; ====
 
 ;;; For loaded profile data (S-expression format)
 
@@ -121,9 +121,9 @@
 (define (profile-data-metadata data)
   (profile-data-get data 'metadata))
 
-;;; ============================================================
+;;; ====
 ;;; Extract Statistics from Loaded Data
-;;; ============================================================
+;;; ====
 
 ;;; profile-data-stats : ProfileData -> Alist
 ;;; Extract comprehensive statistics from loaded profile data.
@@ -158,9 +158,9 @@
       (let ([fuel (cdr (assq 'fuel-consumed (cdr node-sexp)))])
            (if fuel fuel 0))))
 
-;;; ============================================================
+;;; ====
 ;;; Save Human-Readable Summary
-;;; ============================================================
+;;; ====
 
 ;;; profile-save-summary : UnifiedProfiler x String -> Boolean
 ;;; Save a human-readable summary to a text file.
@@ -192,9 +192,9 @@
                                      'replace)
               #t)))
 
-;;; ============================================================
+;;; ====
 ;;; CSV Export
-;;; ============================================================
+;;; ====
 
 ;;; profile-export-csv : UnifiedProfiler x String -> Boolean
 ;;; Export profile statistics as CSV for external analysis.
@@ -246,9 +246,9 @@
         (cons header
               (append fuel-lines cost-lines mem-lines graph-lines))))
 
-;;; ============================================================
+;;; ====
 ;;; Compare Profiles
-;;; ============================================================
+;;; ====
 
 ;;; profile-compare-loaded : ProfileData x ProfileData -> String
 ;;; Compare two loaded profiles and return a diff report.
@@ -269,7 +269,7 @@
         (format
          (string-append
           "\n  PROFILE COMPARISON\n"
-          "  ==================\n\n"
+          "  ====\n\n"
           "  Fuel:\n"
           "    Profile 1: ~a\n"
           "    Profile 2: ~a\n"
@@ -313,7 +313,7 @@
         (format
          (string-append
           "\n  PROFILE vs BASELINE\n"
-          "  ===================\n\n"
+          "  ====\n\n"
           "  Status: ~a\n\n"
           "  Fuel:\n"
           "    Current:   ~a\n"
@@ -329,9 +329,9 @@
          (format-bytes mem-current) (format-bytes mem-loaded)
          (if (>= mem-diff 0) "+" "") (format-bytes mem-diff))))
 
-;;; ============================================================
+;;; ====
 ;;; File Utilities
-;;; ============================================================
+;;; ====
 
 ;;; profile-file-info : String -> Alist or #f
 ;;; Get info about a profile file without fully loading it.
@@ -353,9 +353,9 @@
                                              ".profile"))))
                  (directory-list directory))))
 
-;;; ============================================================
+;;; ====
 ;;; Auto-naming
-;;; ============================================================
+;;; ====
 
 ;;; generate-profile-filename : UnifiedProfiler -> String
 ;;; Generate a timestamped filename for a profile.
@@ -372,8 +372,8 @@
          [status (symbol->string (unified-profiler-status up))])
         (format "profile-~a-~a.profile" timestamp status)))
 
-;;; ============================================================
+;;; ====
 ;;; Module Loading Confirmation
-;;; ============================================================
+;;; ====
 
 (define *profile-persist-loaded* #t)

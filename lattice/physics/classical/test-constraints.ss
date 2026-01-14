@@ -11,9 +11,9 @@
 (load "core/test-framework.ss")
 (load "lattice/physics/classical/world.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Test Helpers
-;;; ============================================================
+;;; ====
 
 ;;; default-material for testing
 (define test-material (make-material 0.5 0.3 0.3))
@@ -42,9 +42,9 @@
   (vec2-magnitude (vec2-sub (entity-position world id-a)
                             (entity-position world id-b))))
 
-;;; ============================================================
+;;; ====
 ;;; Distance Constraint Tests
-;;; ============================================================
+;;; ====
 
 (test-group distance-constraint-tests
             
@@ -103,9 +103,9 @@
                          (assert-true (< (vec2-magnitude (vec2-sub anchor-pos (vec2 10 0))) 0.01)))))
             )
 
-;;; ============================================================
+;;; ====
 ;;; Revolute Joint Tests
-;;; ============================================================
+;;; ====
 
 (test-group revolute-joint-tests
             
@@ -151,9 +151,9 @@
                           (assert-true (< error 0.3)))))
             )
 
-;;; ============================================================
+;;; ====
 ;;; Spring Constraint Tests
-;;; ============================================================
+;;; ====
 
 (test-group spring-constraint-tests
             
@@ -214,9 +214,9 @@
                          (assert-true (> dist 7)))))
             )
 
-;;; ============================================================
+;;; ====
 ;;; Weld Joint Tests (requires RigidBody2D)
-;;; ============================================================
+;;; ====
 
 (test-group weld-joint-tests
             
@@ -252,9 +252,9 @@
                           (assert-true (< angle-diff 0.3)))))
             )
 
-;;; ============================================================
+;;; ====
 ;;; Integration Tests
-;;; ============================================================
+;;; ====
 
 (test-group integration-tests
             
@@ -306,8 +306,8 @@
                     (assert-true (null? (world-constraint-list w)))))
             )
 
-;;; ============================================================
+;;; ====
 ;;; Run All Tests
-;;; ============================================================
+;;; ====
 
 (run-all-tests)

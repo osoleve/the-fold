@@ -19,9 +19,9 @@
 
 (load "core/base/prelude.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Test Registry
-;;; ============================================================
+;;; ====
 
 ;;; Global test registry: ((group-name . tests) ...)
 ;;; Each test is: (name . thunk)
@@ -30,9 +30,9 @@
 ;;; Current group being defined (thread-local parameter)
 (define current-group (make-parameter 'default))
 
-;;; ============================================================
+;;; ====
 ;;; Test Context (State)
-;;; ============================================================
+;;; ====
 
 ;;; We use a vector for mutable state: #(run passed failed name)
 (define (make-test-context) (vector 0 0 0 #f))
@@ -82,9 +82,9 @@
     [id (vector-ref (current-context) 3)]
     [(set! id val) (vector-set! (current-context) 3 val)]))
 
-;;; ============================================================
+;;; ====
 ;;; Test Registration
-;;; ============================================================
+;;; ====
 
 ;;; register-test : Symbol × (Unit → Unit) → Unit
 ;;; Register a test in the current group.
@@ -99,9 +99,9 @@
         (let ([updated-entry (assq group *test-registry*)])
              (set-cdr! updated-entry new-tests))))
 
-;;; ============================================================
+;;; ====
 ;;; Assertion Helpers
-;;; ============================================================
+;;; ====
 
 ;;; assert-equal : Any × Any → Unit
 ;;; Check that expected equals actual, fail with message if not.
@@ -171,9 +171,9 @@
           (write result)
           (newline)))
 
-;;; ============================================================
+;;; ====
 ;;; Test Definition Macros
-;;; ============================================================
+;;; ====
 
 ;;; define-test : Symbol × Expr ... → Unit
 ;;; Define and register a test, then run it immediately.
@@ -195,9 +195,9 @@
                  (parameterize ([current-group 'name])
                    tests ...)]))
 
-;;; ============================================================
+;;; ====
 ;;; Test Runners
-;;; ============================================================
+;;; ====
 
 ;;; run-test : Symbol × (Unit → Unit) → Unit
 ;;; Run a single test, catching any errors.
@@ -272,9 +272,9 @@
               (reverse *test-registry*))
     (print-summary)))
 
-;;; ============================================================
+;;; ====
 ;;; Statistics & Reporting
-;;; ============================================================
+;;; ====
 
 ;;; print-summary : Unit → Unit
 ;;; Print test run summary.
@@ -310,9 +310,9 @@
   (when (> (ctx-failed) 0)
         (exit 1)))
 
-;;; ============================================================
+;;; ====
 ;;; Legacy Compatibility
-;;; ============================================================
+;;; ====
 
 ;;; test : String × Any × Any → Unit
 ;;; Legacy test function for backward compatibility.

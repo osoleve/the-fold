@@ -46,9 +46,9 @@
 
 (printf "\n=== Window Function Tests ===\n\n")
 
-;;; ============================================================
+;;; ====
 ;;; Basic Window Properties
-;;; ============================================================
+;;; ====
 
 (printf "Basic Window Properties:\n")
 
@@ -92,9 +92,9 @@
      (test-approx "kaiser window - symmetry 1" (vector-ref w 0) (vector-ref w 9) 1e-6)
      (test-approx "kaiser window - symmetry 2" (vector-ref w 1) (vector-ref w 8) 1e-6))
 
-;;; ============================================================
+;;; ====
 ;;; Window Application
-;;; ============================================================
+;;; ====
 
 (printf "\nWindow Application:\n")
 
@@ -110,9 +110,9 @@
       (test-approx "apply-window - hann zeros endpoints 1" 0.0 (vector-ref windowed 0) 1e-10)
       (test-approx "apply-window - hann zeros endpoints 2" 0.0 (vector-ref windowed 4) 1e-10))
 
-;;; ============================================================
+;;; ====
 ;;; Window Properties
-;;; ============================================================
+;;; ====
 
 (printf "\nWindow Properties:\n")
 
@@ -131,9 +131,9 @@
       (test-predicate "hann energy less than rectangular"
                       (< energy-hann energy-rect)))
 
-;;; ============================================================
+;;; ====
 ;;; Make Window Utility
-;;; ============================================================
+;;; ====
 
 (printf "\nWindow Creation Utility:\n")
 
@@ -145,9 +145,9 @@
 (test-predicate "make-window - hanning alias" (vector? (make-window 'hanning 10)))
 (test-predicate "make-window - boxcar alias" (vector? (make-window 'boxcar 10)))
 
-;;; ============================================================
+;;; ====
 ;;; Bessel I0 Function
-;;; ============================================================
+;;; ====
 
 (printf "\nBessel I0 Function:\n")
 
@@ -155,9 +155,9 @@
 (test-approx "bessel-i0(1) ≈ 1.266" 1.266 (bessel-i0 1.0) 0.01)
 (test-approx "bessel-i0(2) ≈ 2.280" 2.280 (bessel-i0 2.0) 0.01)
 
-;;; ============================================================
+;;; ====
 ;;; STFT Tests
-;;; ============================================================
+;;; ====
 
 (printf "\nSTFT Tests:\n")
 
@@ -179,9 +179,9 @@
       (test-approx "istft - reconstruction quality 1" 1.0 (vector-ref reconstructed 4) 0.1)
       (test-approx "istft - reconstruction quality 2" 0.0 (vector-ref reconstructed 5) 0.1))
 
-;;; ============================================================
+;;; ====
 ;;; Spectrogram Tests
-;;; ============================================================
+;;; ====
 
 (printf "\nSpectrogram Tests:\n")
 
@@ -214,9 +214,9 @@
        [pow (vector-ref (vector-ref pow-spec 0) 0)])
       (test-approx "power-spectrogram - squared magnitude" (* mag mag) pow 1e-6))
 
-;;; ============================================================
+;;; ====
 ;;; Periodogram Tests
-;;; ============================================================
+;;; ====
 
 (printf "\nPeriodogram Tests:\n")
 
@@ -239,9 +239,9 @@
                       (and (> (vector-ref psd 0) 0.01)
                            (< (vector-ref psd 1) 0.01))))
 
-;;; ============================================================
+;;; ====
 ;;; Welch's Method Tests
-;;; ============================================================
+;;; ====
 
 (printf "\nWelch's Method Tests:\n")
 
@@ -265,9 +265,9 @@
       (test "welch-psd - correct length" 256 (vector-length psd))
       (test-predicate "welch-psd - DC component significant" (> (vector-ref psd 0) 0)))
 
-;;; ============================================================
+;;; ====
 ;;; Spectral Features
-;;; ============================================================
+;;; ====
 
 (printf "\nSpectral Features:\n")
 
@@ -287,9 +287,9 @@
       (test-predicate "spectral-rolloff - 85% threshold"
                       (and (>= rolloff 200) (<= rolloff 400))))
 
-;;; ============================================================
+;;; ====
 ;;; Frequency/Time Grid Tests
-;;; ============================================================
+;;; ====
 
 (printf "\nFrequency/Time Grids:\n")
 
@@ -307,9 +307,9 @@
        [expected-frames (+ 1 (quotient (- signal-len frame-len) hop-len))])
       (test "spectrogram-times - frame count" expected-frames (vector-length times)))
 
-;;; ============================================================
+;;; ====
 ;;; Test Summary
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Test Summary ===\n")
 (printf "Passed: ~a\n" tests-passed)

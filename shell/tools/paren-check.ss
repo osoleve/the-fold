@@ -14,9 +14,9 @@
 
 (load "core/base/prelude.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Core Balance Calculation
-;;; ============================================================
+;;; ====
 
 ;;; count-parens : String -> (Values Int Int Int)
 ;;; Count open and close parens in a string.
@@ -64,9 +64,9 @@
                  [else
                   (loop (+ i 1) opens closes in-string in-comment)])))))
 
-;;; ============================================================
+;;; ====
 ;;; File Analysis
-;;; ============================================================
+;;; ====
 
 ;;; analyze-file : String -> (List LineInfo)
 ;;; Analyze a file and return line-by-line paren info.
@@ -87,9 +87,9 @@
                                                                      (cons (list line-num opens closes new-running line)
                                                                            results))))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Reporting
-;;; ============================================================
+;;; ====
 
 ;;; format-balance : Int -> String
 ;;; Format balance with indicator.
@@ -188,9 +188,9 @@
            (< (cadddr info) 0))
    (analyze-file path)))
 
-;;; ============================================================
+;;; ====
 ;;; String Utilities
-;;; ============================================================
+;;; ====
 
 (define (pad-left str width)
   (let ([len (string-length str)])
@@ -205,9 +205,9 @@
 
 ;;; NOTE: string-trim provided by core/prelude.ss
 
-;;; ============================================================
+;;; ====
 ;;; Quick Diagnostic
-;;; ============================================================
+;;; ====
 
 ;;; paren-diag : String Int -> void
 ;;; Show detailed diagnosis around a specific line.

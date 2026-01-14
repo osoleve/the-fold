@@ -18,9 +18,9 @@
 (unless (top-level-bound? 'make-error)
         (load "core/base/error.ss"))
 
-;;; ============================================================
+;;; ====
 ;;; Error Phase to Severity Mapping
-;;; ============================================================
+;;; ====
 
 ;;; phase->severity : Symbol → Int
 ;;; Convert an error phase to LSP diagnostic severity.
@@ -34,9 +34,9 @@
         [(hint) *severity-hint*]
         [else *severity-information*]))
 
-;;; ============================================================
+;;; ====
 ;;; Fold Error to LSP Diagnostic
-;;; ============================================================
+;;; ====
 
 ;;; fold-error->diagnostic : Document × FoldError → JsonObject
 ;;; Convert a Fold error to an LSP diagnostic.
@@ -116,9 +116,9 @@
             (cdr entry)
             (symbol->string code))))
 
-;;; ============================================================
+;;; ====
 ;;; Document Analysis
-;;; ============================================================
+;;; ====
 
 ;;; analyze-document-for-diagnostics : Document → (List Diagnostic)
 ;;; Analyze a document and return LSP diagnostics.
@@ -153,9 +153,9 @@
   ;; Placeholder: actual type checking integration goes here
   '())
 
-;;; ============================================================
+;;; ====
 ;;; Basic Syntax Checking
-;;; ============================================================
+;;; ====
 
 ;;; check-balanced-parens : String × String → (List Error)
 ;;; Check for unbalanced parentheses.

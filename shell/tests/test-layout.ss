@@ -6,9 +6,9 @@
 ;;; NOTE: string utilities provided by core/prelude.ss
 ;;;   - string-contains?
 
-;;; ============================================================
+;;; ====
 ;;; Test 1: Canvas Construction
-;;; ============================================================
+;;; ====
 
 (display "Test 1: Canvas Construction\n")
 (define c1 (make-canvas 10 5))
@@ -18,9 +18,9 @@
 (display "  ref (5,2): '") (display (canvas-ref c1 5 2)) (display "'\n")
 (display "  ✓ Canvas created with correct dimensions\n")
 
-;;; ============================================================
+;;; ====
 ;;; Test 2: Canvas Set and Ref
-;;; ============================================================
+;;; ====
 
 (display "\nTest 2: Canvas Set and Ref\n")
 (define c2 (canvas-set c1 3 2 #\X))
@@ -32,9 +32,9 @@
 (newline)
 (display "  ✓ Functional update works correctly\n")
 
-;;; ============================================================
+;;; ====
 ;;; Test 3: Out-of-Bounds Handling
-;;; ============================================================
+;;; ====
 
 (display "\nTest 3: Out-of-Bounds Handling\n")
 (define c3 (canvas-set c1 -1 0 #\!))
@@ -50,9 +50,9 @@
 (newline)
 (display "  ✓ Out-of-bounds handled gracefully\n")
 
-;;; ============================================================
+;;; ====
 ;;; Test 4: Draw Char
-;;; ============================================================
+;;; ====
 
 (display "\nTest 4: Draw Char\n")
 (define c5 (draw-char (make-canvas 5 3) (point 2 1) #\@))
@@ -61,9 +61,9 @@
 (display "'\n")
 (display "  ✓ draw-char places character correctly\n")
 
-;;; ============================================================
+;;; ====
 ;;; Test 5: Draw String Horizontal
-;;; ============================================================
+;;; ====
 
 (display "\nTest 5: Draw String Horizontal\n")
 (define c6 (draw-string (make-canvas 20 3) (point 2 1) "Hello, DUCKIE!"))
@@ -78,9 +78,9 @@
 (newline)
 (display "  ✓ draw-string works horizontally\n")
 
-;;; ============================================================
+;;; ====
 ;;; Test 6: Draw String Clipping
-;;; ============================================================
+;;; ====
 
 (display "\nTest 6: Draw String Clipping\n")
 (define c7 (draw-string (make-canvas 10 3) (point 5 1) "LongString"))
@@ -92,9 +92,9 @@
 (newline)
 (display "  ✓ draw-string clips at boundaries\n")
 
-;;; ============================================================
+;;; ====
 ;;; Test 7: Draw String Vertical
-;;; ============================================================
+;;; ====
 
 (display "\nTest 7: Draw String Vertical\n")
 (define c8 (draw-string-v (make-canvas 10 8) (point 3 1) "DUCKIE"))
@@ -109,9 +109,9 @@
 (newline)
 (display "  ✓ draw-string-v works vertically\n")
 
-;;; ============================================================
+;;; ====
 ;;; Test 8: Draw Rectangle
-;;; ============================================================
+;;; ====
 
 (display "\nTest 8: Draw Rectangle\n")
 (define c9 (draw-rect (make-canvas 12 6)
@@ -128,9 +128,9 @@
 (newline)
 (display "  ✓ draw-rect creates proper outline\n")
 
-;;; ============================================================
+;;; ====
 ;;; Test 9: Fill Rectangle
-;;; ============================================================
+;;; ====
 
 (display "\nTest 9: Fill Rectangle\n")
 (define c10 (fill-rect (make-canvas 12 6)
@@ -144,9 +144,9 @@
 (newline)
 (display "  ✓ fill-rect fills interior\n")
 
-;;; ============================================================
+;;; ====
 ;;; Test 10: Composite
-;;; ============================================================
+;;; ====
 
 (display "\nTest 10: Composite\n")
 (define c-dest (make-canvas 15 6))
@@ -167,9 +167,9 @@
 (newline)
 (display "  ✓ composite overlays correctly\n")
 
-;;; ============================================================
+;;; ====
 ;;; Test 11: Blit
-;;; ============================================================
+;;; ====
 
 (display "\nTest 11: Blit\n")
 (define c-source (draw-string (make-canvas 20 5) (point 0 0) "0123456789"))
@@ -188,9 +188,9 @@
 (newline)
 (display "  ✓ blit copies region correctly\n")
 
-;;; ============================================================
+;;; ====
 ;;; Test 12: Canvas to String
-;;; ============================================================
+;;; ====
 
 (display "\nTest 12: Canvas to String\n")
 (define c13 (let* ([c (make-canvas 8 4)]
@@ -208,9 +208,9 @@
 (newline)
 (display "  ✓ canvas->string produces multi-line output\n")
 
-;;; ============================================================
+;;; ====
 ;;; Test 13: DUCKIE Example from Spec
-;;; ============================================================
+;;; ====
 
 (display "\nTest 13: DUCKIE Example (ASCII Art)\n")
 (define c-duckie
@@ -226,9 +226,9 @@
 (newline)
 (display "  ✓ DUCKIE appears in the window!\n")
 
-;;; ============================================================
+;;; ====
 ;;; Test 14: Box Drawing Styles
-;;; ============================================================
+;;; ====
 
 (display "\nTest 14: Box Drawing Styles\n")
 
@@ -262,9 +262,9 @@
 
 (display "  ✓ Box drawing styles work correctly\n")
 
-;;; ============================================================
+;;; ====
 ;;; Test 15: Complex Composition
-;;; ============================================================
+;;; ====
 
 (display "\nTest 15: Complex Composition (Nested Boxes)\n")
 (define c-complex
@@ -289,9 +289,9 @@
 (newline)
 (display "  ✓ Complex composition works!\n")
 
-;;; ============================================================
+;;; ====
 ;;; Test 16: Word Splitting
-;;; ============================================================
+;;; ====
 
 (display "\nTest 16: Word Splitting\n")
 (define words1 (split-words "hello world"))
@@ -309,9 +309,9 @@
 (display words3) (newline)
 (display "  ✓ split-words works correctly\n")
 
-;;; ============================================================
+;;; ====
 ;;; Test 17: Text Wrapping
-;;; ============================================================
+;;; ====
 
 (display "\nTest 17: Text Wrapping\n")
 (define wrapped1 (wrap-text "hello world foo bar" 10))
@@ -333,9 +333,9 @@
 (display wrapped3) (newline)
 (display "  ✓ wrap-text handles edge cases\n")
 
-;;; ============================================================
+;;; ====
 ;;; Test 18: Text Alignment
-;;; ============================================================
+;;; ====
 
 (display "\nTest 18: Text Alignment\n")
 (define al-left (align-left "hi" 10))
@@ -351,9 +351,9 @@
 (display (if (char=? (string-ref al-right 0) #\space) "#t" "#f")) (newline)
 (display "  ✓ Alignment functions work correctly\n")
 
-;;; ============================================================
+;;; ====
 ;;; Test 19: Draw Lines
-;;; ============================================================
+;;; ====
 
 (display "\nTest 19: Draw Lines\n")
 (define c-lines (draw-lines (make-canvas 20 5)
@@ -368,9 +368,9 @@
 (display (if (char=? (canvas-ref c-lines 2 3) #\L) "#t" "#f")) (newline)
 (display "  ✓ draw-lines renders multiple lines\n")
 
-;;; ============================================================
+;;; ====
 ;;; Test 20: Draw Text Block
-;;; ============================================================
+;;; ====
 
 (display "\nTest 20: Draw Text Block (Wrapped + Aligned)\n")
 (define long-text "The quick brown fox jumps over the lazy dog near the river bank")
@@ -403,9 +403,9 @@
 (newline)
 (display "  ✓ draw-text-block wraps and aligns text\n")
 
-;;; ============================================================
+;;; ====
 ;;; Test 21: Text Block in Box
-;;; ============================================================
+;;; ====
 
 (display "\nTest 21: Text Block in Box (DUCKIE Dialog)\n")
 (define dialog-text "Hello! I am DUCKIE. I live in The Fold and I am very happy to meet you!")
@@ -421,9 +421,9 @@
 (newline)
 (display "  ✓ Text flows naturally in dialog box!\n")
 
-;;; ============================================================
+;;; ====
 ;;; Summary
-;;; ============================================================
+;;; ====
 
 (display "\n")
 (display "═══════════════════════════════════════════════════════\n")

@@ -65,9 +65,9 @@
 (define *user-badges* (make-hash-table))
 (define *user-reputation* (make-parameter 0))
 
-;;; ============================================================
+;;; ====
 ;;; Badge Management
-;;; ============================================================
+;;; ====
 
 (define (award-badge! badge-id user-name)
   (let ((badge (assoc badge-id *tutorial-badges*)))
@@ -112,9 +112,9 @@
                                         "Keep up the great work in The Fold!")))
                          (msg 'art title body))))))
 
-;;; ============================================================
+;;; ====
 ;;; Progress Tracking
-;;; ============================================================
+;;; ====
 
 (define (track-tutorial-progress! user-name tutorial-step step-completed?)
   (let ((user-progress (hash-table-ref/default *user-tutorial-progress* user-name (make-hash-table))))
@@ -160,9 +160,9 @@
                      forum-posting)))
        (andmap (lambda (step) (hash-table-ref/default user-progress step #f)) all-steps)))
 
-;;; ============================================================
+;;; ====
 ;;; User Profile and Statistics
-;;; ============================================================
+;;; ====
 
 (define (get-user-profile user-name)
   (let ((badges (hash-table-ref/default *user-badges* user-name '()))
@@ -219,9 +219,9 @@
        
        (display "\n")))
 
-;;; ============================================================
+;;; ====
 ;;; Persistence and Storage
-;;; ============================================================
+;;; ====
 
 (define (save-tutorial-progress user-name)
   ;; This would integrate with The Fold's content-addressed storage
@@ -236,9 +236,9 @@
   ;; Placeholder for loading mechanism
   #t)
 
-;;; ============================================================
+;;; ====
 ;;; Leaderboard and Social Features
-;;; ============================================================
+;;; ====
 
 (define (get-leaderboard . limit-opt)
   (let ((limit (if (null? limit-opt) 10 (car limit-opt))))

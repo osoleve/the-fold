@@ -18,9 +18,9 @@
 (load "core/types/dep-types.ss")
 (load "core/types/termination.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Termination Analysis Commands
-;;; ============================================================
+;;; ====
 
 ;;; terminates? : Expr × (List Symbol) → Boolean
 ;;; Check if an expression terminates given its parameters.
@@ -150,9 +150,9 @@
     (display "        or: (define name (fn (params...) body))\n")
     (display "        or: (fix name body)\n\n")]))
 
-;;; ============================================================
+;;; ====
 ;;; Structural Recursion Analysis
-;;; ============================================================
+;;; ====
 
 ;;; analyze-recursion : Expr × Symbol × Symbol → Void
 ;;; Show how a recursive function uses its recursive argument.
@@ -173,9 +173,9 @@
              violations)))
        (display "\n")))
 
-;;; ============================================================
+;;; ====
 ;;; Size-Change Graph Visualization
-;;; ============================================================
+;;; ====
 
 ;;; show-scg : Expr × (List Symbol) → Void
 ;;; Display size-change graphs for recursive calls.
@@ -213,9 +213,9 @@
             (display "  ✗ Size-change termination criterion NOT satisfied.\n"))
         (display "\n")))
 
-;;; ============================================================
+;;; ====
 ;;; Batch Analysis
-;;; ============================================================
+;;; ====
 
 ;;; termination-report : String → Void
 ;;; Analyze all function definitions in a file.
@@ -288,9 +288,9 @@
     (display "  - (unrecognized form)\n")
     #t]))
 
-;;; ============================================================
+;;; ====
 ;;; Help
-;;; ============================================================
+;;; ====
 
 (define (termination-help)
   (display "\n")

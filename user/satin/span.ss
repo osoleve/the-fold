@@ -3,9 +3,9 @@
 ;;; Spans track source locations for error reporting.
 ;;; Every Satin form carries a span for precise error messages.
 
-;;; ============================================================
+;;; ====
 ;;; Span Structure
-;;; ============================================================
+;;; ====
 
 ;;; A span is: (span file line column end-line end-column)
 ;;; - file: string, source file name
@@ -36,9 +36,9 @@
   (and (span? s)
        (equal? (span-file s) "<unknown>")))
 
-;;; ============================================================
+;;; ====
 ;;; Span Formatting
-;;; ============================================================
+;;; ====
 
 ;;; span->string : Span → String
 ;;; Format span for display: "file:line:column"
@@ -61,9 +61,9 @@
                      ", column " (number->string (span-column s)) "
 ")))
 
-;;; ============================================================
+;;; ====
 ;;; Span Combination
-;;; ============================================================
+;;; ====
 
 ;;; span-union : Span × Span → Span
 ;;; Combine two spans to cover both regions.
@@ -87,9 +87,9 @@
                             (span-end-column s2)))])
           (make-span file start-line start-col end-line end-col))]))
 
-;;; ============================================================
+;;; ====
 ;;; AST Annotation
-;;; ============================================================
+;;; ====
 
 ;;; Forms carry spans via (with-span span form) wrapper.
 (define (with-span span form)

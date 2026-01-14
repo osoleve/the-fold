@@ -17,9 +17,9 @@
 
 (load "lattice/info/entropy.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Binary Symmetric Channel (BSC)
-;;; ============================================================
+;;; ====
 ;;;
 ;;; The BSC flips each bit with probability p:
 ;;;   P(Y=0|X=0) = 1-p,  P(Y=1|X=0) = p
@@ -53,9 +53,9 @@
          [h-y-given-x (binary-entropy p-crossover)])
         (- h-y h-y-given-x)))
 
-;;; ============================================================
+;;; ====
 ;;; Binary Erasure Channel (BEC)
-;;; ============================================================
+;;; ====
 ;;;
 ;;; The BEC either transmits correctly or erases with probability epsilon:
 ;;;   P(Y=0|X=0) = 1-epsilon,  P(Y='?'|X=0) = epsilon
@@ -72,9 +72,9 @@
    [(>= epsilon 1) 0.0]  ; All erased: no information
    [else (- 1 epsilon)]))
 
-;;; ============================================================
+;;; ====
 ;;; Z-Channel (Asymmetric Binary Channel)
-;;; ============================================================
+;;; ====
 ;;;
 ;;; The Z-channel only corrupts 1->0, not 0->1:
 ;;;   P(Y=0|X=0) = 1,      P(Y=1|X=0) = 0
@@ -100,9 +100,9 @@
   (list (list 1 0)
         (list p (- 1 p))))
 
-;;; ============================================================
+;;; ====
 ;;; Additive White Gaussian Noise (AWGN) Channel
-;;; ============================================================
+;;; ====
 ;;;
 ;;; The AWGN channel: Y = X + N where N ~ N(0, sigma^2)
 ;;; With power constraint E[X^2] <= P
@@ -144,9 +144,9 @@
 (define (snr-for-capacity target-capacity)
   (- (expt 2 (* 2 target-capacity)) 1))
 
-;;; ============================================================
+;;; ====
 ;;; Discrete Memoryless Channel (DMC)
-;;; ============================================================
+;;; ====
 ;;;
 ;;; A DMC is defined by transition matrix P(Y|X).
 ;;; Capacity: C = max_{p(x)} I(X;Y)
@@ -202,9 +202,9 @@
       (let ([p (/ 1.0 n)])
            (map (lambda (_) p) (iota n)))))
 
-;;; ============================================================
+;;; ====
 ;;; Blahut-Arimoto Algorithm
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Iterative algorithm to compute capacity of general DMC.
 ;;; Converges to C = max I(X;Y) from any initial distribution.
@@ -254,9 +254,9 @@
            phi  ; Avoid division by zero
            (map (lambda (p) (/ p total)) phi))))
 
-;;; ============================================================
+;;; ====
 ;;; Capacity Bounds
-;;; ============================================================
+;;; ====
 
 ;;; dmc-capacity-upper-bound : (List (List Real)) → Real
 ;;; Upper bound on capacity: log2(number of outputs)
@@ -270,9 +270,9 @@
 (define (dmc-capacity-lower-bound transition)
   (dmc-capacity-symmetric transition))
 
-;;; ============================================================
+;;; ====
 ;;; Special Channel Models
-;;; ============================================================
+;;; ====
 
 ;;; qary-symmetric-capacity : Nat × Real → Real
 ;;; Capacity of q-ary symmetric channel.
@@ -299,9 +299,9 @@
 (define (cascaded-channel-capacity-bound c1 c2)
   (min c1 c2))
 
-;;; ============================================================
+;;; ====
 ;;; Rate-Capacity Relationships
-;;; ============================================================
+;;; ====
 
 ;;; achievable-rate? : Real × Real → Boolean
 ;;; Check if rate R is achievable for channel with capacity C.
@@ -321,9 +321,9 @@
       +inf.0
       (/ rate bandwidth)))
 
-;;; ============================================================
+;;; ====
 ;;; Error Exponent (Reliability Function)
-;;; ============================================================
+;;; ====
 ;;;
 ;;; For rates R < C, error probability decays as exp(-n * E(R))
 ;;; where E(R) is the error exponent and n is block length.
@@ -347,9 +347,9 @@
            ;; Simplified: for AWGN, E_sp approximates (C-R)/2 near capacity
            (* 0.5 (- capacity rate)))))
 
-;;; ============================================================
+;;; ====
 ;;; Utility Functions
-;;; ============================================================
+;;; ====
 
 ;;; db-to-linear : Real → Real
 ;;; Convert decibels to linear scale: 10^(dB/10)
@@ -368,9 +368,9 @@
 (define (log10 x)
   (/ (log2 x) (log2 10)))
 
-;;; ============================================================
+;;; ====
 ;;; Channel Capacity Summary
-;;; ============================================================
+;;; ====
 
 ;;; channel-summary : Symbol × Real → String
 ;;; Generate human-readable capacity summary for common channels.

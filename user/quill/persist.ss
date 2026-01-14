@@ -5,9 +5,9 @@
 
 (define *quill-snapshot-version* 1)
 
-;;; ------------------------------------------------------------
+;;; ----
 ;;; Small utilities
-;;; ------------------------------------------------------------
+;;; ----
 
 (define (quill-alist-ref alist key default)
   (let ([p (assq key alist)])
@@ -27,9 +27,9 @@
          [meta2 (quill-alist-remove-keys meta keys)])
         (quill-state-set-section state 'meta meta2)))
 
-;;; ------------------------------------------------------------
+;;; ----
 ;;; Snapshots
-;;; ------------------------------------------------------------
+;;; ----
 
 (define (quill-make-snapshot story-id node-id state done? message transcript)
   `((version . ,*quill-snapshot-version*)
@@ -78,9 +78,9 @@
            run
            #f)))
 
-;;; ------------------------------------------------------------
+;;; ----
 ;;; Checkpoints and undo history
-;;; ------------------------------------------------------------
+;;; ----
 
 (define (quill-run-history run)
   (quill-state-meta-get (quill-run-state run) 'history '()))
@@ -139,9 +139,9 @@
                              [state2 (quill-state-meta-set state1 'history (quill-run-history run))])
                             (quill-run-with-state run2 state2)))))))
 
-;;; ------------------------------------------------------------
+;;; ----
 ;;; Convenience wrappers
-;;; ------------------------------------------------------------
+;;; ----
 
 (define (quill-step-with-history story run input . options-opt)
   (let* ([options (if (null? options-opt) '() (car options-opt))]

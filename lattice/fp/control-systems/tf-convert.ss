@@ -18,9 +18,9 @@
 (load "lattice/fp/control-systems/state-space.ss")
 (load "lattice/fp/control-systems/transfer-function.ss")
 
-;;; ============================================================
+;;; ====
 ;;; State Space to Transfer Function
-;;; ============================================================
+;;; ====
 
 ;;; ss->tf : SS × [Nat] × [Nat] → TF
 ;;; Convert state-space system to transfer function.
@@ -116,9 +116,9 @@
                                         (+ (vector-ref result coeff-idx) CB)))
                        (loop (+ k 1) (cdr mats)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Transfer Function to State Space
-;;; ============================================================
+;;; ====
 
 ;;; tf->ss : TF → SS
 ;;; Convert transfer function to state-space in controllable canonical form.
@@ -199,9 +199,9 @@
                     ((= i len) result)
                     (vector-set! result (+ i offset) (vector-ref coeffs i)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Helper Functions
-;;; ============================================================
+;;; ====
 
 ;;; matrix-column : Matrix × Nat → Vec
 ;;; Extract column j as a vector.

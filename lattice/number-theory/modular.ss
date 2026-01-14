@@ -10,9 +10,9 @@
 
 (load "core/base/prelude.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Basic Modular Operations
-;;; ============================================================
+;;; ====
 
 ;;; mod+ : Int × Int × Int → Int
 ;;; Modular addition: (a + b) mod m
@@ -32,9 +32,9 @@
 (define (mod* a b m)
   (modulo (* a b) m))
 
-;;; ============================================================
+;;; ====
 ;;; Modular Exponentiation
-;;; ============================================================
+;;; ====
 
 ;;; mod-expt : Int × Nat × Int → Int
 ;;; Modular exponentiation using square-and-multiply algorithm.
@@ -56,9 +56,9 @@
                (quotient e 2)
                result)])))
 
-;;; ============================================================
+;;; ====
 ;;; Extended Euclidean Algorithm
-;;; ============================================================
+;;; ====
 
 ;;; extended-gcd : Int × Int → (List Int)
 ;;; Extended Euclidean algorithm.
@@ -84,9 +84,9 @@
       (abs a)
       (gcd b (modulo a b))))
 
-;;; ============================================================
+;;; ====
 ;;; Modular Inverse
-;;; ============================================================
+;;; ====
 
 ;;; mod-inverse : Int × Int → Int | #f
 ;;; Compute modular multiplicative inverse of a modulo m.
@@ -100,9 +100,9 @@
             (modulo x m)
             #f)))
 
-;;; ============================================================
+;;; ====
 ;;; Chinese Remainder Theorem
-;;; ============================================================
+;;; ====
 
 ;;; crt : (List Int) × (List Int) → Int | #f
 ;;; Chinese Remainder Theorem solver.
@@ -134,9 +134,9 @@
                                     (+ result (* ai Mi yi)))
                               #f)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Montgomery Multiplication
-;;; ============================================================
+;;; ====
 
 ;;; Montgomery multiplication is an optimization for modular multiplication
 ;;; when doing many multiplications with the same modulus.

@@ -22,9 +22,9 @@
 ;; When run from core: (load "prelude.ss")
 ;; This file is typically loaded after prelude is already loaded
 
-;;; ============================================================
+;;; ====
 ;;; Source Location Tracking
-;;; ============================================================
+;;; ====
 
 ;;; A located value pairs a value with its source location
 (define (make-loc value file line col)
@@ -38,9 +38,9 @@
 (define (loc-line l) (vector-ref l 3))
 (define (loc-col l) (vector-ref l 4))
 
-;;; ============================================================
+;;; ====
 ;;; Change Representation
-;;; ============================================================
+;;; ====
 
 ;;; A change represents a single edit to apply
 (define (make-change type file old-text new-text line col)
@@ -67,9 +67,9 @@
           (change-old c)
           (change-new c)))
 
-;;; ============================================================
+;;; ====
 ;;; S-Expression Traversal
-;;; ============================================================
+;;; ====
 
 ;;; Walk an S-expression, applying a function to each node
 ;;; walker : (sexp context) -> sexp
@@ -103,9 +103,9 @@
                  (loop (cdr sexp) (cons 'cdr path)))]
         [else '()])))
 
-;;; ============================================================
+;;; ====
 ;;; Rename Symbol
-;;; ============================================================
+;;; ====
 
 ;;; rename-symbol : sexp symbol symbol -> sexp
 ;;; Rename all occurrences of old-name to new-name in sexp
@@ -149,9 +149,9 @@
        (pretty-print sexp port)
        (get-output-string port)))
 
-;;; ============================================================
+;;; ====
 ;;; Extract Function
-;;; ============================================================
+;;; ====
 
 ;;; extract-function : sexp symbol list -> (values sexp sexp)
 ;;; Extract an expression into a new function definition
@@ -197,9 +197,9 @@
                (cons (car sexp)
                      (sexp-replace-at-path (cdr sexp) (cdr path) new-value))))))
 
-;;; ============================================================
+;;; ====
 ;;; Inline Function
-;;; ============================================================
+;;; ====
 
 ;;; Find a function definition in a list of top-level forms
 (define (find-definition forms name)
@@ -259,9 +259,9 @@
    sexp
    #f))
 
-;;; ============================================================
+;;; ====
 ;;; Extract Let Binding
-;;; ============================================================
+;;; ====
 
 ;;; extract-let : sexp path symbol -> sexp
 ;;; Extract expression at path into a let binding
@@ -274,9 +274,9 @@
          [modified (sexp-replace-at-path sexp path name)])
         `(let ([,name ,expr]) ,modified)))
 
-;;; ============================================================
+;;; ====
 ;;; Introduce Parameter
-;;; ============================================================
+;;; ====
 
 ;;; introduce-parameter : sexp expr symbol -> sexp
 ;;; Replace all occurrences of expr with a new parameter
@@ -290,9 +290,9 @@
    body
    #f))
 
-;;; ============================================================
+;;; ====
 ;;; Free Variables Analysis
-;;; ============================================================
+;;; ====
 
 ;;; Compute free variables in an expression
 ;;; (variables used but not bound within the expression)
@@ -347,9 +347,9 @@
 
 ;;; NOTE: unique is provided by core/base/prelude.ss
 
-;;; ============================================================
+;;; ====
 ;;; File Operations
-;;; ============================================================
+;;; ====
 
 ;;; Read a Scheme file and return list of S-expressions
 (define (read-scheme-file path)
@@ -366,9 +366,9 @@
                                                    (newline port))
                                            sexps))))
 
-;;; ============================================================
+;;; ====
 ;;; Batch Rename Across Files
-;;; ============================================================
+;;; ====
 
 ;;; rename-in-files : list symbol symbol -> list
 ;;; Rename a symbol across multiple files
@@ -393,9 +393,9 @@
                                  changes)
                            changes))))))
 
-;;; ============================================================
+;;; ====
 ;;; Preview Mode
-;;; ============================================================
+;;; ====
 
 ;;; Generate a preview of rename without applying
 (define (preview-rename sexps old-name new-name)
@@ -406,9 +406,9 @@
                     (format "  Found ~a at path ~a" old-name path))
             occurrences)))
 
-;;; ============================================================
+;;; ====
 ;;; Refactoring Session
-;;; ============================================================
+;;; ====
 
 ;;; A session tracks changes for undo
 (define (make-refactor-session)
@@ -425,9 +425,9 @@
   (vector-set! session 1 (cons change (session-changes session)))
   (vector-set! session 2 (cons change (session-undo-stack session))))
 
-;;; ============================================================
+;;; ====
 ;;; High-Level API
-;;; ============================================================
+;;; ====
 
 ;;; refactor-rename : string symbol symbol -> change
 ;;; Rename a symbol in a file
@@ -469,9 +469,9 @@
       lst
       (drop (cdr lst) (- n 1))))
 
-;;; ============================================================
+;;; ====
 ;;; Semantic Search
-;;; ============================================================
+;;; ====
 
 ;;; Find all definitions of a given type
 (define (find-definitions sexps type)
@@ -503,9 +503,9 @@
                       (sexp-find-symbol sexp sym))
               sexps)))
 
-;;; ============================================================
+;;; ====
 ;;; Export Summary
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Source Location:
 ;;;   make-loc, loc?, loc-value, loc-file, loc-line, loc-col

@@ -12,17 +12,17 @@
 (load "user/creations/ascii-video.ss")
 (load "user/creations/ascii-video-export.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Animation Parameters
-;;; ============================================================
+;;; ====
 
 (define *width* 50)
 (define *height* 20)
 (define *frame-count* 60)
 
-;;; ============================================================
+;;; ====
 ;;; Pattern Definitions (for animation)
-;;; ============================================================
+;;; ====
 
 (define (pattern-char pattern x y)
   (let* ([h (length pattern)]
@@ -36,9 +36,9 @@
 (define pat-hatch '((#\# #\-) (#\| #\#)))
 (define pat-waves '((#\~ #\space #\~ #\space) (#\space #\~ #\space #\~)))
 
-;;; ============================================================
+;;; ====
 ;;; Drawing Helpers
-;;; ============================================================
+;;; ====
 
 (define (draw-pattern-rect! frame x y w h pattern)
   (do ([row 0 (+ row 1)])
@@ -105,14 +105,14 @@
        (do ([i 1 (+ i 1)]) ((>= i (- w 1))) (frame-set! frame (+ x i) (+ y h -1) h-char))
        (frame-set! frame (+ x w -1) (+ y h -1) tl)))
 
-;;; ============================================================
+;;; ====
 ;;; Animation Scenes
-;;; ============================================================
+;;; ====
 
 (define (scene-title frame t)
   (frame-clear! frame #\space)
   (frame-put-string! frame 5 4  "  THE FOLD GRAPHICS LIBRARY")
-  (frame-put-string! frame 5 5  "  =========================")
+  (frame-put-string! frame 5 5  "  ====")
   (frame-put-string! frame 5 8  "     Shapes | Patterns")
   (frame-put-string! frame 5 9  "     Connections | Transforms")
   (when (> t 0.5)
@@ -239,7 +239,7 @@
           (frame-set! frame x y #\space)))
   
   (frame-put-string! frame 12 8  "THE FOLD GRAPHICS")
-  (frame-put-string! frame 12 9  "=================")
+  (frame-put-string! frame 12 9  "====")
   (frame-put-string! frame 14 11 "Complete!")
   
   ;; Corner decorations
@@ -248,9 +248,9 @@
   (frame-put-string! frame 2 17 "***")
   (frame-put-string! frame 45 17 "***"))
 
-;;; ============================================================
+;;; ====
 ;;; Main Animation Loop
-;;; ============================================================
+;;; ====
 
 (define (generate-showcase-video)
   (display "Generating graphics showcase animation...\n")
@@ -297,9 +297,9 @@
        (display " frames.\n")
        video))
 
-;;; ============================================================
+;;; ====
 ;;; Export
-;;; ============================================================
+;;; ====
 
 (define showcase-video (generate-showcase-video))
 

@@ -9,9 +9,9 @@
 (load "lattice/geometry/mesh-sdf.ss")
 (load "lattice/geometry/bvh.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Test Scene: Cube mesh (12 triangles)
-;;; ============================================================
+;;; ====
 
 (define (make-cube-mesh size)
   (let* ([s (/ size 2.0)]
@@ -66,9 +66,9 @@
                      (set! triangles (cons (triangle3 p00 p10 p11) triangles))
                      (set! triangles (cons (triangle3 p00 p11 p01) triangles)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Timing Utilities
-;;; ============================================================
+;;; ====
 
 (define (time-thunk thunk)
   (let* ([start (current-time 'time-monotonic)]
@@ -79,9 +79,9 @@
          [total-ms (+ (* secs 1000.0) (/ nsecs 1000000.0))])
         (cons result total-ms)))
 
-;;; ============================================================
+;;; ====
 ;;; Benchmark: Pure Scheme BVH
-;;; ============================================================
+;;; ====
 
 (define (bench-scheme-closest-point bvh points iterations)
   (display "  Pure Scheme closest-point: ")
@@ -111,9 +111,9 @@
        (newline)
        (cdr result)))
 
-;;; ============================================================
+;;; ====
 ;;; Test Data Generation
-;;; ============================================================
+;;; ====
 
 (define (random-points n range)
   (let loop ([i 0] [acc '()])
@@ -139,14 +139,14 @@
                  (loop (+ i 1)
                        (cons (cons origin dir) acc))))))
 
-;;; ============================================================
+;;; ====
 ;;; Main Benchmark
-;;; ============================================================
+;;; ====
 
 (define (run-benchmark)
-  (display "===========================================\n")
+  (display "====\n")
   (display "BVH Benchmark: Pure Scheme (Baseline)\n")
-  (display "===========================================\n\n")
+  (display "====\n\n")
   
   ;; Small mesh (cube - 12 triangles)
   (display "--- Small Mesh (12 triangles) ---\n")
@@ -185,9 +185,9 @@
         (bench-scheme-closest-point bvh points iterations)
         (bench-scheme-intersect-ray bvh rays iterations))
   
-  (display "\n===========================================\n")
+  (display "\n====\n")
   (display "Benchmark complete.\n")
-  (display "===========================================\n"))
+  (display "====\n"))
 
 ;; Run if executed as script
 (run-benchmark)

@@ -19,9 +19,9 @@
        (approx= (vec3-y v1) (vec3-y v2) eps)
        (approx= (vec3-z v1) (vec3-z v2) eps)))
 
-;;; ============================================================
+;;; ====
 ;;; String Utilities Tests
-;;; ============================================================
+;;; ====
 
 (define-test "string-split basic"
   (let ([parts (string-split "a b c" #\space)])
@@ -76,9 +76,9 @@
   (let ([result (drop-while (lambda (x) #f) '(1 2 3))])
        (assert-equal result '(1 2 3))))
 
-;;; ============================================================
+;;; ====
 ;;; OBJ Line Parsing Tests
-;;; ============================================================
+;;; ====
 
 (define-test "parse-obj-line empty"
   (let ([result (parse-obj-line "")])
@@ -147,9 +147,9 @@
        ;; Normal directive should be ignored
        (assert-false result)))
 
-;;; ============================================================
+;;; ====
 ;;; Vertex Parsing Tests
-;;; ============================================================
+;;; ====
 
 (define-test "parse-vertex basic"
   (let ([v (parse-vertex '("1.0" "2.0" "3.0"))])
@@ -169,9 +169,9 @@
        (assert-true (approx= (vec3-y v) 2.0 0.001))
        (assert-true (approx= (vec3-z v) 3.0 0.001))))
 
-;;; ============================================================
+;;; ====
 ;;; Face Parsing Tests
-;;; ============================================================
+;;; ====
 
 (define-test "parse-face simple indices"
   (let ([indices (parse-face '("1" "2" "3"))])
@@ -182,9 +182,9 @@
        ;; Should extract only vertex indices
        (assert-equal indices '(1 4 7))))
 
-;;; ============================================================
+;;; ====
 ;;; Vertex Index Resolution Tests
-;;; ============================================================
+;;; ====
 
 (define-test "get-vertex positive index"
   (let* ([vertices (vector (vec3 1 0 0) (vec3 2 0 0) (vec3 3 0 0))]
@@ -203,9 +203,9 @@
          [v (get-vertex vertices 1)])
         (assert-true (approx= (vec3-x v) 1.0 0.001))))
 
-;;; ============================================================
+;;; ====
 ;;; Face to Triangles Tests
-;;; ============================================================
+;;; ====
 
 (define-test "face->triangles single triangle"
   (let* ([vertices (vector (vec3 0 0 0) (vec3 1 0 0) (vec3 0 1 0))]
@@ -235,9 +235,9 @@
          [tris (face->triangles vertices face)])
         (assert-equal (length tris) 0)))
 
-;;; ============================================================
+;;; ====
 ;;; Full OBJ Loading Tests
-;;; ============================================================
+;;; ====
 
 (define-test "load-obj-from-string single triangle"
   (let* ([content "v 0 0 0\nv 1 0 0\nv 0 1 0\nf 1 2 3"]
@@ -285,9 +285,9 @@
         (assert-true (approx= (vec3-y p1) 2.0 0.001))
         (assert-true (approx= (vec3-z p1) 3.0 0.001))))
 
-;;; ============================================================
+;;; ====
 ;;; Cube OBJ Test
-;;; ============================================================
+;;; ====
 
 (define-test "load-obj-from-string cube"
   (let* ([content
@@ -321,9 +321,9 @@ f 1 4 8 5
                           (assert-true (triangle3? tri)))
                   tris)))
 
-;;; ============================================================
+;;; ====
 ;;; Summary
-;;; ============================================================
+;;; ====
 
 (display "\n")
 (display "Tests run:    ")

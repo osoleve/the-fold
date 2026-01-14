@@ -12,9 +12,9 @@
 
 (load "lattice/query/sql/sql.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Test Framework
-;;; ============================================================
+;;; ====
 
 (define test-count 0)
 (define pass-count 0)
@@ -63,9 +63,9 @@
                  ;; Just check we can reparse the output
                  (right? (parse-sql reformatted))))))
 
-;;; ============================================================
+;;; ====
 ;;; Parser Tests
-;;; ============================================================
+;;; ====
 
 (display "=== SQL Parser Tests ===
 ")
@@ -178,9 +178,9 @@
 (test "DELETE with complex WHERE"
       (lambda () (assert-parse "DELETE FROM orders WHERE status = 'cancelled' AND created_at < '2024-01-01'")))
 
-;;; ============================================================
+;;; ====
 ;;; Case Insensitivity Tests
-;;; ============================================================
+;;; ====
 
 (display "
 === Case Insensitivity Tests ===
@@ -195,9 +195,9 @@
 (test "UPPERCASE keywords"
       (lambda () (assert-parse "SELECT * FROM USERS WHERE ID = 1")))
 
-;;; ============================================================
+;;; ====
 ;;; Expression Tests
-;;; ============================================================
+;;; ====
 
 (display "
 === Expression Tests ===
@@ -227,9 +227,9 @@
 (test "Complex CASE"
       (lambda () (assert-parse "SELECT CASE status WHEN 1 THEN 'a' WHEN 2 THEN 'b' ELSE 'c' END FROM t")))
 
-;;; ============================================================
+;;; ====
 ;;; Validation Tests
-;;; ============================================================
+;;; ====
 
 (display "
 === Validation Tests ===
@@ -247,9 +247,9 @@
 (test "Valid DELETE validates"
       (lambda () (assert-valid "DELETE FROM users WHERE id = 1")))
 
-;;; ============================================================
+;;; ====
 ;;; Formatter Tests
-;;; ============================================================
+;;; ====
 
 (display "
 === Formatter Tests ===
@@ -276,9 +276,9 @@
 (test "Format CASE roundtrip"
       (lambda () (assert-roundtrip "SELECT CASE WHEN x = 1 THEN 'a' ELSE 'b' END FROM t")))
 
-;;; ============================================================
+;;; ====
 ;;; Error Cases
-;;; ============================================================
+;;; ====
 
 (display "
 === Error Cases ===
@@ -299,9 +299,9 @@
 (test "Empty IN list fails"
       (lambda () (assert-parse-fails "SELECT * FROM t WHERE x IN ()")))
 
-;;; ============================================================
+;;; ====
 ;;; Integration Tests
-;;; ============================================================
+;;; ====
 
 (display "
 === Integration Tests ===
@@ -326,9 +326,9 @@
                      [result (check-sql input)])
                     (right? result))))
 
-;;; ============================================================
+;;; ====
 ;;; Summary
-;;; ============================================================
+;;; ====
 
 (newline)
 (display "╔══════════════════════════════════════╗

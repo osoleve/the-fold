@@ -28,9 +28,9 @@
 (define (assert-false name actual)
   (assert-equal name actual #f))
 
-;;; ============================================================
+;;; ====
 ;;; Helper Function Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Testing remove-duplicates-eq ===\n")
 
@@ -54,9 +54,9 @@
               (remove-duplicates-eq '(x x x x))
               '(x))
 
-;;; ============================================================
+;;; ====
 ;;; extract-calls-from-body Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Testing extract-calls-from-body ===\n")
 
@@ -98,9 +98,9 @@
                    (member 'local result))
               #f)
 
-;;; ============================================================
+;;; ====
 ;;; extract-definition-info Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Testing extract-definition-info ===\n")
 
@@ -127,9 +127,9 @@
               (extract-definition-info 'symbol)
               #f)
 
-;;; ============================================================
+;;; ====
 ;;; find-scheme-files Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Testing find-scheme-files ===\n")
 
@@ -150,9 +150,9 @@
               (find-scheme-files "/nonexistent/path")
               '())
 
-;;; ============================================================
+;;; ====
 ;;; Call Graph Operations Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Testing call-graph-built? ===\n")
 
@@ -171,9 +171,9 @@
 (assert-true "graph built after refresh"
              (call-graph-built?))
 
-;;; ============================================================
+;;; ====
 ;;; call-graph-callers/callees Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Testing call-graph-callers/callees ===\n")
 
@@ -188,9 +188,9 @@
              (let ([callees (call-graph-callees 'call-graph-refresh!)])
                   (> (length callees) 0)))
 
-;;; ============================================================
+;;; ====
 ;;; call-graph-path Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Testing call-graph-path ===\n")
 
@@ -213,9 +213,9 @@
                       (and (list? paths)
                            (andmap list? paths)))))
 
-;;; ============================================================
+;;; ====
 ;;; filter-map Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Testing filter-map ===\n")
 
@@ -235,11 +235,11 @@
               (filter-map (lambda (x) x) '())
               '())
 
-;;; ============================================================
+;;; ====
 ;;; Test Summary
-;;; ============================================================
+;;; ====
 
-(printf "\n========================================\n")
+(printf "\n====\n")
 (printf "Test Results (call-graph):\n")
 (printf "  Total:  ~a\n" test-count)
 (printf "  Passed: ~a\n" pass-count)

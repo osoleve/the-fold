@@ -17,9 +17,9 @@
 
 (define *satin-version* "0.1.0")
 
-;;; ============================================================
+;;; ====
 ;;; Dependencies
-;;; ============================================================
+;;; ====
 
 ;; Core prelude (needed for parsing)
 (load "core/base/prelude.ss")
@@ -27,9 +27,9 @@
 ;; Quill runtime (required for compilation targets)
 (load "user/quill/quill.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Satin Modules (load order)
-;;; ============================================================
+;;; ====
 
 (load "user/satin/span.ss")
 (load "user/satin/syntax.ss")
@@ -41,9 +41,9 @@
 (load "user/satin/lint.ss")
 (load "user/satin/docs.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Public API
-;;; ============================================================
+;;; ====
 
 ;;; satin-compile : SatinSpec → (Values QuillStory Issues)
 ;;; Compile a Satin specification to a Quill story.

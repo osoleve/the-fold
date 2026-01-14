@@ -60,9 +60,9 @@
          ;;; NOTE: string utilities provided by core/prelude.ss
          (include "core/base/prelude.ss")
          
-         ;;; ============================================================
+         ;;; ====
          ;;; Path Utilities
-         ;;; ============================================================
+         ;;; ====
          
          ;;; make-relative-path : String × String → String
          ;;; Convert absolute path to relative path from root.
@@ -121,9 +121,9 @@
              (define (string-prefix? prefix str)
                (string-starts-with? str prefix))
              
-             ;;; ============================================================
+             ;;; ====
              ;;; File Scanning
-             ;;; ============================================================
+             ;;; ====
              
              ;;; scan-directory-recursive : String → (List String)
              ;;; Recursively scan directory and return all file paths.
@@ -161,9 +161,9 @@
              (define (scan-sexp-files-filtered root-dir dirs)
                (filter-by-directories (scan-sexp-files root-dir) dirs))
              
-             ;;; ============================================================
+             ;;; ====
              ;;; Error Formatting
-             ;;; ============================================================
+             ;;; ====
              
              ;;; get-condition-irritants : Condition → List
              ;;; Extract irritants from a compound condition.

@@ -50,7 +50,7 @@ gemini "Your prompt here" > output.txt
 ### Configuration Options
 
 | Option | Description | Example |
-|--------|-------------|---------|
+|----|----|----|
 | `[query..]` | Positional prompt (preferred) | `gemini "query"` |
 | `--output-format, -o` | Output format (text, json, stream-json) | `gemini --output-format json "query"` |
 | `--model, -m` | Specify the Gemini model | `gemini -m gemini-3-pro-preview "query"` |

@@ -3,9 +3,9 @@
 (load "core/base/prelude.ss")
 (load "lattice/fp/control-systems/transfer-function.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Test Framework
-;;; ============================================================
+;;; ====
 
 (define tests-passed 0)
 (define tests-failed 0)
@@ -47,9 +47,9 @@
 
 (printf "\n=== Transfer Function Tests ===\n\n")
 
-;;; ============================================================
+;;; ====
 ;;; Construction Tests
-;;; ============================================================
+;;; ====
 
 (printf "--- Construction ---\n")
 
@@ -75,9 +75,9 @@
 (let ([tf (tf-from-coeffs (vector 2 3) (vector 1 4 5))])
      (test "tf-from-coeffs is tf" #t (tf? tf)))
 
-;;; ============================================================
+;;; ====
 ;;; Poles and Zeros Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n--- Poles and Zeros ---\n")
 
@@ -115,9 +115,9 @@
       (test "from-poles-zeros: pole count" 2 (length poles))
       (test "from-poles-zeros: zero count" 1 (length zeros)))
 
-;;; ============================================================
+;;; ====
 ;;; Evaluation Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n--- Evaluation ---\n")
 
@@ -138,9 +138,9 @@
 (let ([tf (tf-from-lists '(1) '(1 0))])
      (test "DC gain with pole at origin" 'infinite (tf-dc-gain tf)))
 
-;;; ============================================================
+;;; ====
 ;;; Frequency Response Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n--- Frequency Response ---\n")
 
@@ -173,9 +173,9 @@
       ;; At w=1: phase should be -45 deg
       (test-approx "bode -45deg at cutoff" -45.0 (vector-ref phase-deg 1) 1.0))
 
-;;; ============================================================
+;;; ====
 ;;; System Connection Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n--- System Connections ---\n")
 
@@ -206,9 +206,9 @@
       ;; DC gain = K/(p+K) = 10/12 ≈ 0.833
       (test-approx "feedback DC gain" 0.8333 (tf-dc-gain Hcl) 0.001))
 
-;;; ============================================================
+;;; ====
 ;;; Stability Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n--- Stability ---\n")
 
@@ -225,9 +225,9 @@
 (let ([tf (tf-from-lists '(1) '(1 0 1))])  ; poles at +/-j
      (test "marginally stable (Re=0 is unstable)" #f (tf-stable? tf)))
 
-;;; ============================================================
+;;; ====
 ;;; Display Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n--- Display ---\n")
 
@@ -235,13 +235,13 @@
      (let ([str (tf->string tf)])
           (test "tf->string not empty" #t (> (string-length str) 0))))
 
-;;; ============================================================
+;;; ====
 ;;; Summary
-;;; ============================================================
+;;; ====
 
-(printf "\n================================================================\n")
+(printf "\n====\n")
 (printf "                    TEST RESULTS\n")
-(printf "================================================================\n\n")
+(printf "====\n\n")
 (printf "Tests passed: ~a\n" tests-passed)
 (printf "Tests failed: ~a\n" tests-failed)
 (printf "Total tests:  ~a\n" (+ tests-passed tests-failed))

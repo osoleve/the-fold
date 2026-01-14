@@ -19,9 +19,9 @@
 (load "shell/alloc-tracker.ss")
 (load "shell/profile-call-graph.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Unified Profiler Data Structure
-;;; ============================================================
+;;; ====
 
 ;;; A unified profiler combines:
 ;;;   - base-profiler: The core fuel-based profiler result
@@ -55,9 +55,9 @@
 (define (unified-profiler-call-graph up) (unified-profiler-get up 'call-graph))
 (define (unified-profiler-metadata up) (unified-profiler-get up 'metadata))
 
-;;; ============================================================
+;;; ====
 ;;; Profile Options
-;;; ============================================================
+;;; ====
 
 ;;; Default profile options
 (define (default-profile-options)
@@ -85,9 +85,9 @@
   (let ([entry (assq key opts)])
        (and entry (cdr entry))))
 
-;;; ============================================================
+;;; ====
 ;;; Unified Profiling Entry Point
-;;; ============================================================
+;;; ====
 
 ;;; profile-unified : Expr x Alist -> UnifiedProfiler
 ;;; Profile an expression with all tracking enabled.
@@ -190,9 +190,9 @@
                                  call-graph
                                  metadata))))))
 
-;;; ============================================================
+;;; ====
 ;;; Cost Computation from Profiler Tree
-;;; ============================================================
+;;; ====
 
 ;;; compute-costs-from-profiler : CostTracker x Profiler -> CostTracker
 ;;; Walk the profiler tree and accumulate costs by category
@@ -242,9 +242,9 @@
              'primitive
              'function)]))
 
-;;; ============================================================
+;;; ====
 ;;; Unified Statistics
-;;; ============================================================
+;;; ====
 
 ;;; unified-profile-stats : UnifiedProfiler -> Alist
 ;;; Comprehensive statistics from all tracking systems
@@ -281,9 +281,9 @@
                          (cycles . ,(length cycles))))
           (metadata . ,metadata))))
 
-;;; ============================================================
+;;; ====
 ;;; Status and Results
-;;; ============================================================
+;;; ====
 
 ;;; unified-profiler-status : UnifiedProfiler -> Symbol
 (define (unified-profiler-status up)
@@ -297,9 +297,9 @@
 (define (unified-profiler-expr up)
   (profiler-expr (unified-profiler-base up)))
 
-;;; ============================================================
+;;; ====
 ;;; Convenience Functions for Specific Analyses
-;;; ============================================================
+;;; ====
 
 ;;; unified-profile-memory : Expr -> UnifiedProfiler
 ;;; Quick profiling focused on memory
@@ -322,9 +322,9 @@
   (profile-unified expr '((track-memory . #f)
                           (build-call-graph . #f))))
 
-;;; ============================================================
+;;; ====
 ;;; Time Helpers
-;;; ============================================================
+;;; ====
 
 ;;; We need to rename our time helpers to avoid collision with Chez's current-time
 
@@ -344,9 +344,9 @@
          [ns-diff (- end-ns start-ns)])
         (+ (* sec-diff 1000000000) ns-diff)))
 
-;;; ============================================================
+;;; ====
 ;;; Report Generation
-;;; ============================================================
+;;; ====
 
 ;;; render-unified-summary : UnifiedProfiler -> String
 ;;; Render a summary of all profiling data
@@ -368,31 +368,31 @@
         
         (string-append
          "\n"
-         "  +============================================+\n"
+         "  +====+\n"
          "  |        UNIFIED PROFILE SUMMARY            |\n"
-         "  +============================================+\n"
+         "  +====+\n"
          "\n"
          "  EXECUTION\n"
-         "  ---------\n"
+         "  ----\n"
          (format "    Status:      ~a\n" (unified-profiler-status up))
          (format "    Fuel Used:   ~a / ~a\n" used-fuel total-fuel)
          (format "    Elapsed:     ~a\n" (format-elapsed (cdr (assq 'elapsed-ns metadata))))
          "\n"
          "  MEMORY\n"
-         "  ------\n"
+         "  ----\n"
          (format "    Allocated:   ~a\n" mem-total)
          "\n"
          (format "  COST MODEL (~a)\n" (cdr (assq 'cost-model metadata)))
-         "  ----------\n"
+         "  ----\n"
          (format "    Total Cost:  ~a\n" total-cost)
          (render-cost-breakdown cost-breakdown)
          "\n"
          "  CALL GRAPH\n"
-         "  ----------\n"
+         "  ----\n"
          (format "    Nodes:       ~a\n" node-count)
          (format "    Cycles:      ~a\n" cycle-count)
          "\n"
-         "  +============================================+\n")))
+         "  +====+\n")))
 
 ;;; render-cost-breakdown : Alist -> String
 (define (render-cost-breakdown breakdown)
@@ -418,9 +418,9 @@
 (define (display-unified-profile up)
   (display (render-unified-summary up)))
 
-;;; ============================================================
+;;; ====
 ;;; Memory Report
-;;; ============================================================
+;;; ====
 
 ;;; render-memory-report : UnifiedProfiler -> String
 (define (render-memory-report up)
@@ -431,7 +431,7 @@
         
         (string-append
          "\n"
-         "  ====== Memory Allocation Report ======\n"
+         "  ==== Memory Allocation Report ====\n"
          (format "  Total Allocated: ~a\n\n" total)
          "  Allocations:\n"
          (if (null? entries)
@@ -442,11 +442,11 @@
                                          (car entry)
                                          (format-bytes (cdr entry))))
                          entries)))
-         "\n  ======================================\n")))
+         "\n  ====\n")))
 
-;;; ============================================================
+;;; ====
 ;;; Cost Report
-;;; ============================================================
+;;; ====
 
 ;;; render-cost-report : UnifiedProfiler -> String
 (define (render-cost-report up)
@@ -457,7 +457,7 @@
         
         (string-append
          "\n"
-         (format "  ====== Cost Report (~a) ======\n" (cost-model-name model))
+         (format "  ==== Cost Report (~a) ====\n" (cost-model-name model))
          (format "  Total Cost: ~a\n\n" total)
          "  By Category:\n"
          (if (null? costs)
@@ -474,9 +474,9 @@
                               sorted))))
          "\n  " (make-string 40 #\=) "\n")))
 
-;;; ============================================================
+;;; ====
 ;;; Call Graph Report
-;;; ============================================================
+;;; ====
 
 ;;; render-call-graph-report : UnifiedProfiler -> String
 (define (render-call-graph-report up)
@@ -485,9 +485,9 @@
          [ascii (call-graph->ascii call-graph)])
         (string-append summary ascii)))
 
-;;; ============================================================
+;;; ====
 ;;; Export to S-expression (for persistence)
-;;; ============================================================
+;;; ====
 
 ;;; unified-profiler->sexp : UnifiedProfiler -> S-expression
 ;;; Convert unified profiler to a serializable S-expression
@@ -531,8 +531,8 @@
                         (vector->list keys)
                         (vector->list vals)))))
 
-;;; ============================================================
+;;; ====
 ;;; Module Loading Confirmation
-;;; ============================================================
+;;; ====
 
 (define *profiler-unified-loaded* #t)

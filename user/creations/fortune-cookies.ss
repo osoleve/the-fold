@@ -10,9 +10,9 @@
 ;;; Created by: Utility Crafter (Haiku tier)
 ;;; Date: 2025-12-26
 
-;;; ============================================================
+;;; ====
 ;;; The Fortune Cookie Database
-;;; ============================================================
+;;; ====
 
 (define *fortunes* '(
                      "In Scheme, all is list. All is function. All is possibility."
@@ -47,9 +47,9 @@
                      "The best code is the code you don't write."
                      ))
 
-;;; ============================================================
+;;; ====
 ;;; ASCII Art Cookie
-;;; ============================================================
+;;; ====
 
 ;;; display-cookie : String → void
 ;;;
@@ -92,9 +92,9 @@
        (display indent)
        (display "    ╲─────────────────╱\n\n")))
 
-;;; ============================================================
+;;; ====
 ;;; Helper Functions
-;;; ============================================================
+;;; ====
 
 ;;; string-split-simple : String → (List String)
 ;;;
@@ -173,9 +173,9 @@
   (let ([index (random (length *fortunes*))])
        (list-ref *fortunes* index)))
 
-;;; ============================================================
+;;; ====
 ;;; Interactive Shell
-;;; ============================================================
+;;; ====
 
 ;;; fortune-shell : → void
 ;;;
@@ -219,9 +219,9 @@
               (display "\n❓ Unknown command. Try (fortune), (spin), or (quit).\n\n")
               (main-loop)]))))
 
-;;; ============================================================
+;;; ====
 ;;; Initialization
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Uncomment the line below to start the interactive shell:
 ;;; (fortune-shell)

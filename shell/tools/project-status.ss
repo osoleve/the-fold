@@ -18,9 +18,9 @@
 ;;;   (project-status)        - Aggregate all into health dashboard
 ;;;   (project-status-report) - Pretty-print the dashboard
 
-;;; ============================================================
+;;; ====
 ;;; Path and File Utilities
-;;; ============================================================
+;;; ====
 
 ;;; normalize-path : String -> String
 ;;; Ensure path uses forward slashes for consistency.
@@ -53,9 +53,9 @@
        (and (>= len plen)
             (string=? prefix (substring str 0 plen)))))
 
-;;; ============================================================
+;;; ====
 ;;; Directory Traversal
-;;; ============================================================
+;;; ====
 
 ;;; list-directory-recursive : String -> (List String)
 ;;; Recursively list all files in a directory.
@@ -82,9 +82,9 @@
                      (cons (car files) acc)
                      acc)))))
 
-;;; ============================================================
+;;; ====
 ;;; Test Counting
-;;; ============================================================
+;;; ====
 
 ;;; is-test-file? : String -> Boolean
 ;;; Check if a file is a test file (test-*.ss or *-test.ss).
@@ -134,9 +134,9 @@
         `((files . ,(length test-files))
           (cases . ,test-count))))
 
-;;; ============================================================
+;;; ====
 ;;; Line Counting
-;;; ============================================================
+;;; ====
 
 ;;; is-scheme-file? : String -> Boolean
 ;;; Check if a file is a Scheme source file.
@@ -175,9 +175,9 @@
         `((files . ,(length scheme-files))
           (code-lines . ,code-lines))))
 
-;;; ============================================================
+;;; ====
 ;;; Git Operations
-;;; ============================================================
+;;; ====
 
 ;;; run-command : String -> String
 ;;; Run a shell command and capture its output.
@@ -275,9 +275,9 @@
              (message . ,line)
              (time . "unknown")))))
 
-;;; ============================================================
+;;; ====
 ;;; Project Status Aggregator
-;;; ============================================================
+;;; ====
 
 ;;; project-status : -> Alist
 ;;; Get comprehensive project status.
@@ -303,18 +303,18 @@
                                       (cdr (assq 'message last-commit))
                                       "unknown")))))
 
-;;; ============================================================
+;;; ====
 ;;; Pretty Printing
-;;; ============================================================
+;;; ====
 
 ;;; project-status-report : -> void
 ;;; Display a formatted project status report.
 (define (project-status-report)
   (let ([status (project-status)])
        (display "\n")
-       (display "+==============================================================+\n")
+       (display "+====+\n")
        (display "|                     PROJECT STATUS                           |\n")
-       (display "+==============================================================+\n")
+       (display "+====+\n")
        (display "\n")
        
        ;; Code Statistics
@@ -355,7 +355,7 @@
        (display (format "    Time:    ~a\n" (cdr (assq 'last-commit status))))
        (display (format "    Message: ~a\n" (cdr (assq 'last-commit-message status))))
        (display "\n")
-       (display "+==============================================================+\n")))
+       (display "+====+\n")))
 
 ;;; take-up-to : Number x List -> List
 ;;; Take up to n elements from a list.
@@ -364,9 +364,9 @@
       '()
       (cons (car lst) (take-up-to (- n 1) (cdr lst)))))
 
-;;; ============================================================
+;;; ====
 ;;; Quick Commands
-;;; ============================================================
+;;; ====
 
 ;;; status : -> void
 ;;; Alias for project-status-report.

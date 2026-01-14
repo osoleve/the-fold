@@ -16,9 +16,9 @@
 ;;;
 ;;; Do NOT load dependencies here to avoid redefinition issues.
 
-;;; ============================================================
+;;; ====
 ;;; Constants
-;;; ============================================================
+;;; ====
 
 ;;; Default tolerance for convergence tests
 (define *eigen-tolerance* 1e-10)
@@ -26,9 +26,9 @@
 ;;; Maximum iterations for iterative methods
 (define *eigen-max-iterations* 1000)
 
-;;; ============================================================
+;;; ====
 ;;; Power Iteration
-;;; ============================================================
+;;; ====
 
 ;;; power-iteration : Matrix × [Vec] × [Nat] × [Num] → (eigenvalue × eigenvector) | Error
 ;;;
@@ -86,9 +86,9 @@
                           (cons lambda-new v-new)
                           (power-iteration-loop a v-new (+ iter 1) max-iter tol lambda-new)))))))
 
-;;; ============================================================
+;;; ====
 ;;; QR Algorithm
-;;; ============================================================
+;;; ====
 
 ;;; qr-algorithm : Matrix × [Nat] × [Num] → Vec | Error
 ;;;
@@ -150,9 +150,9 @@
                              #f
                              (col-loop (+ j 1)))))))))
 
-;;; ============================================================
+;;; ====
 ;;; QR Algorithm with Shifts (Wilkinson shift)
-;;; ============================================================
+;;; ====
 
 ;;; qr-algorithm-shifted : Matrix × [Nat] × [Num] → Vec | Error
 ;;;
@@ -327,9 +327,9 @@
                 a-ii
                 (- a-ii (/ (* sign-d a-ji a-ij) denom))))))
 
-;;; ============================================================
+;;; ====
 ;;; Inverse Iteration
-;;; ============================================================
+;;; ====
 
 ;;; inverse-iteration : Matrix × Num × [Vec] × [Nat] × [Num] → Vec | Error
 ;;;
@@ -397,9 +397,9 @@
                                    x-new
                                    (inverse-iteration-loop a-shifted x-new (+ iter 1) max-iter tol)))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Eigenvalue Decomposition
-;;; ============================================================
+;;; ====
 
 ;;; eigen-decomposition : Matrix × [Nat] × [Num] → (eigenvalues . eigenvectors) | Error
 ;;;
@@ -460,9 +460,9 @@
                                                  (matrix-set! eigenvectors j i (vector-ref v-i j)))
                                              (loop (+ i 1))))))))])))))
 
-;;; ============================================================
+;;; ====
 ;;; Symmetric Matrix Eigenvalue (more efficient)
-;;; ============================================================
+;;; ====
 
 ;;; symmetric-eigen : Matrix × [Nat] × [Num] → (eigenvalues . eigenvectors) | Error
 ;;;
@@ -524,9 +524,9 @@
                              #f
                              (col-loop (+ j 1)))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Spectral Radius and Condition Number
-;;; ============================================================
+;;; ====
 
 ;;; spectral-radius : Matrix × [Nat] × [Num] → Num | Error
 ;;;
@@ -578,9 +578,9 @@
                     +inf.0  ;; Singular or near-singular
                     (/ (abs max-ev) (abs min-ev))))])))
 
-;;; ============================================================
+;;; ====
 ;;; Utilities
-;;; ============================================================
+;;; ====
 
 ;;; eigenvalues : Matrix → Vec | (complex-eigenvalues Vec info) | Error
 ;;; Convenience function to get just eigenvalues.

@@ -22,16 +22,16 @@
 ;;;   flatten-layers, composite-transparent
 ;;;   make-background-layer, make-sprite-layer, make-ui-layer
 
-;;; ============================================================
+;;; ====
 ;;; Dependencies
-;;; ============================================================
+;;; ====
 
 ;;; Load canvas primitives
 ;;; Assumes shell/layout.ss is already loaded or will be loaded separately
 
-;;; ============================================================
+;;; ====
 ;;; Transparency
-;;; ============================================================
+;;; ====
 
 ;;; The transparency character — cells with this value are transparent.
 ;;; When compositing, transparent cells don't overwrite the destination.
@@ -51,9 +51,9 @@
         [cells (make-vector (* width height) transparent-char)])
        (make-canvas% width height cells)))
 
-;;; ============================================================
+;;; ====
 ;;; Layer Data Structure
-;;; ============================================================
+;;; ====
 
 ;;; Layer: A named canvas with metadata for composition
 ;;;
@@ -120,9 +120,9 @@
                new-depth
                (layer-offset layer)))
 
-;;; ============================================================
+;;; ====
 ;;; Layer Stack
-;;; ============================================================
+;;; ====
 
 ;;; LayerStack: Ordered collection of layers
 ;;;
@@ -203,9 +203,9 @@
   (stack-update-layer stack name
                       (lambda (layer) (layer-set-depth layer new-depth))))
 
-;;; ============================================================
+;;; ====
 ;;; Transparency-Aware Composition
-;;; ============================================================
+;;; ====
 
 ;;; composite-transparent : Canvas × Canvas × Point → Canvas
 ;;; Overlay source canvas onto destination at given position.
@@ -229,9 +229,9 @@
                   (loop-y (+ y 1))))
        dest))
 
-;;; ============================================================
+;;; ====
 ;;; Layer Flattening
-;;; ============================================================
+;;; ====
 
 ;;; flatten-layers : LayerStack × Nat × Nat → Canvas
 ;;; Composite all visible layers into a single canvas.
@@ -259,9 +259,9 @@
                          ;; Skip invisible layer
                          (loop (cdr layers) canvas)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Helper Constructors for Common Patterns
-;;; ============================================================
+;;; ====
 
 ;;; make-background-layer : Nat × Nat → Layer
 ;;; Create a background layer (depth 0, filled with spaces).
@@ -287,9 +287,9 @@
               100
               (point 0 0)))
 
-;;; ============================================================
+;;; ====
 ;;; Drawing to Layers
-;;; ============================================================
+;;; ====
 
 ;;; These are convenience wrappers that work with layers directly,
 ;;; applying canvas drawing operations and returning updated layers.
@@ -318,9 +318,9 @@
   (layer-set-canvas layer
                     (draw-box (layer-canvas layer) rect style)))
 
-;;; ============================================================
+;;; ====
 ;;; Sprite Helpers
-;;; ============================================================
+;;; ====
 
 ;;; draw-sprite-to-layer : Layer × Point × List String → Layer
 ;;; Draw a sprite (list of strings) to a layer at the given position.
@@ -338,9 +338,9 @@
                                    (point (point-x offset) (+ (point-y offset) y))
                                    line))))))
 
-;;; ============================================================
+;;; ====
 ;;; Debug and Inspection
-;;; ============================================================
+;;; ====
 
 ;;; layer->string : Layer → String
 ;;; Convert a layer to a string for debugging.
@@ -369,9 +369,9 @@
                    layers)
         "]")))
 
-;;; ============================================================
+;;; ====
 ;;; Alpha Compositing
-;;; ============================================================
+;;; ====
 
 ;;; Block shading palette for alpha blending.
 ;;; Characters ordered from transparent to opaque.
@@ -456,9 +456,9 @@
                                                       alpha))
                           (loop (cdr pairs) canvas)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Export Summary
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Transparency:
 ;;;   transparent-char, transparent?, make-transparent-canvas

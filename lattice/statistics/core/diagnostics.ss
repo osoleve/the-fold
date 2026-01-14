@@ -19,9 +19,9 @@
 (load "lattice/linalg/matrix.ss")
 (load "lattice/linalg/matrix-solvers.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Hat Matrix and Leverage
-;;; ============================================================
+;;; ====
 
 ;;; The hat matrix H = X(X'X)^(-1)X' projects y onto the column space of X.
 ;;; Leverage h_ii = H[i,i] measures influence of observation i.
@@ -79,9 +79,9 @@
                                  (vector-set! h i hii)))))
              h))))
 
-;;; ============================================================
+;;; ====
 ;;; Residual Types
-;;; ============================================================
+;;; ====
 
 ;;; residuals-raw : Vec × Vec → Vec
 ;;; Raw residuals: e_i = y_i - y-hat_i
@@ -138,9 +138,9 @@
                   (vector-set! r i (/ ei denom))))
         r))
 
-;;; ============================================================
+;;; ====
 ;;; Influence Measures
-;;; ============================================================
+;;; ====
 
 ;;; cooks-distance : Vec × Vec × Nat × Num → Vec
 ;;; Cook's distance measures the influence of each observation on all fitted values.
@@ -185,9 +185,9 @@
 (define (dffits-threshold p n)
   (* 2 (sqrt (/ p n))))
 
-;;; ============================================================
+;;; ====
 ;;; Collinearity Diagnostics
-;;; ============================================================
+;;; ====
 
 ;;; vif : Matrix → Vec
 ;;; Variance Inflation Factor for each predictor.

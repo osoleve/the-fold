@@ -6,18 +6,18 @@
 ;;;
 ;;; Dependencies: All turtle modules
 
-;;; ============================================================
+;;; ====
 ;;; Load Dependencies
-;;; ============================================================
+;;; ====
 
 (load "core/base/prelude.ss")
 
 ;;; NOTE: string utilities provided by core/prelude.ss
 ;;;   - string-contains?
 
-;;; ============================================================
+;;; ====
 ;;; Test Framework
-;;; ============================================================
+;;; ====
 
 (define *test-count* 0)
 (define *pass-count* 0)
@@ -74,7 +74,7 @@
 
 (define (test-summary)
   (newline)
-  (display "----------------------------")
+  (display "----")
   (newline)
   (display "Total: ")
   (display *test-count*)
@@ -87,9 +87,9 @@
       (display "All tests passed!\n")
       (display "Some tests failed.\n")))
 
-;;; ============================================================
+;;; ====
 ;;; Load Turtle Modules
-;;; ============================================================
+;;; ====
 
 (display "Loading turtle modules...\n")
 (load "turtle-color.ss")
@@ -98,9 +98,9 @@
 (load "turtle-svg.ss")
 (display "Modules loaded.\n")
 
-;;; ============================================================
+;;; ====
 ;;; Color Tests
-;;; ============================================================
+;;; ====
 
 (test-section "Color12 Construction")
 
@@ -161,9 +161,9 @@
      (test "all equal g" 0 (color12-g c1))
      (test "all equal b" 0 (color12-b c1)))
 
-;;; ============================================================
+;;; ====
 ;;; Path Command Tests
-;;; ============================================================
+;;; ====
 
 (test-section "Path Commands")
 
@@ -184,9 +184,9 @@
      (test "circle-radius" 50 (circle-radius c))
      (test "circle-fill?" #t (circle-fill? c)))
 
-;;; ============================================================
+;;; ====
 ;;; Turtle State Tests
-;;; ============================================================
+;;; ====
 
 (test-section "Turtle Default State")
 
@@ -277,9 +277,9 @@
        [t2 (setpc t #xF00)])
       (test "setpc int" 15 (color12-r (turtle-pen-color t2))))
 
-;;; ============================================================
+;;; ====
 ;;; Drawing Tests
-;;; ============================================================
+;;; ====
 
 (test-section "Drawing Extraction")
 
@@ -289,9 +289,9 @@
       (test "drawing height" 480 (drawing-height d))
       (test "drawing has paths" 2 (length (drawing-paths d))))  ; move-to + line-to
 
-;;; ============================================================
+;;; ====
 ;;; SVG Generation Tests
-;;; ============================================================
+;;; ====
 
 (test-section "SVG Structure")
 
@@ -314,9 +314,9 @@
       (test "svg has path" #t (string-contains? svg "<path"))
       (test "svg closes" #t (string-contains? svg "</svg>")))
 
-;;; ============================================================
+;;; ====
 ;;; Shape Tests
-;;; ============================================================
+;;; ====
 
 (test-section "Shapes")
 
@@ -333,9 +333,9 @@
       (test "polygon cmd" #t (polygon? (car paths)))
       (test "polygon points" 4 (length (polygon-points (car paths)))))
 
-;;; ============================================================
+;;; ====
 ;;; Convenience Functions
-;;; ============================================================
+;;; ====
 
 (test-section "Convenience Shapes")
 
@@ -351,8 +351,8 @@
       ;; Star draws: initial move-to + 5 lines
       (test "star draws" 6 (length paths)))
 
-;;; ============================================================
+;;; ====
 ;;; Summary
-;;; ============================================================
+;;; ====
 
 (test-summary)

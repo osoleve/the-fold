@@ -18,9 +18,9 @@
 
 (load "core/base/prelude.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Character Classification for Tags
-;;; ============================================================
+;;; ====
 
 ;;; tag-start-char? : Char -> Boolean
 ;;; Characters that can start a tag name (after @)
@@ -52,9 +52,9 @@
       ;; Also treat certain punctuation as boundaries
       (memq (car preceding-chars) '(#\( #\[ #\{ #\" #\' #\< #\newline))))
 
-;;; ============================================================
+;;; ====
 ;;; Email Address Detection
-;;; ============================================================
+;;; ====
 
 ;;; Heuristic: if we see @something and it looks like domain.tld, skip it
 ;;; We look ahead for domain-like patterns
@@ -89,9 +89,9 @@
                 (char-numeric? c)
                 (memq c '(#\. #\- #\_ #\+))))))
 
-;;; ============================================================
+;;; ====
 ;;; Tag Parsing
-;;; ============================================================
+;;; ====
 
 ;;; parse-tag-name : List Char -> (name-string . remaining-chars) | #f
 ;;; Parse a tag name starting from the character after @
@@ -157,9 +157,9 @@
                           ;; Simple tag
                           (cons (cons name #t) rest))))))]))
 
-;;; ============================================================
+;;; ====
 ;;; Main Extraction
-;;; ============================================================
+;;; ====
 
 ;;; extract-tags : String -> Alist
 ;;; Extract all tags from text, returning an association list.
@@ -178,9 +178,9 @@
              [else
               (loop (cdr cs) (list (car cs)) tags)]))))
 
-;;; ============================================================
+;;; ====
 ;;; Query Functions
-;;; ============================================================
+;;; ====
 
 ;;; has-tag? : String x String -> Boolean
 ;;; Check if text contains a specific tag (by name).
@@ -212,9 +212,9 @@
         '()
         tags)))
 
-;;; ============================================================
+;;; ====
 ;;; Text Manipulation
-;;; ============================================================
+;;; ====
 
 ;;; strip-tags : String -> String
 ;;; Remove all tags from text, leaving clean prose.
@@ -269,9 +269,9 @@
              [else
               (loop (cdr cs) (list (car cs)) (cons (car cs) acc))]))))
 
-;;; ============================================================
+;;; ====
 ;;; Tag Categories (Convenience)
-;;; ============================================================
+;;; ====
 
 ;;; Common tag categories for The Fold
 
@@ -308,9 +308,9 @@
   (append (get-all-tag-values text "see")
           (get-all-tag-values text "ref")))
 
-;;; ============================================================
+;;; ====
 ;;; Predicate Helpers
-;;; ============================================================
+;;; ====
 
 ;;; is-draft? : String -> Boolean
 (define (is-draft? text)

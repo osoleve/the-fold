@@ -27,9 +27,9 @@
 (load "lattice/statistics/regression/link-functions.ss")
 (load "lattice/statistics/hypothesis/distributions.ss")
 
-;;; ============================================================
+;;; ====
 ;;; IRLS Algorithm
-;;; ============================================================
+;;; ====
 
 ;;; The IRLS algorithm iteratively solves weighted least squares:
 ;;;
@@ -274,9 +274,9 @@
                    [sign (if (>= (- yi mui) 0) 1 -1)])
                   (vector-set! r i (* sign (sqrt (max d 0))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Convenience Wrappers
-;;; ============================================================
+;;; ====
 
 ;;; logistic-fit : Matrix × Vec → GLMResult | Error
 ;;; Fit binary logistic regression.
@@ -301,9 +301,9 @@
 (define (probit-fit X y . opts)
   (apply glm-fit binomial-family probit-link X y opts))
 
-;;; ============================================================
+;;; ====
 ;;; Prediction
-;;; ============================================================
+;;; ====
 
 ;;; glm-predict : GLMResult × Matrix → Vec
 ;;; Predict on response scale.
@@ -339,9 +339,9 @@
             [(= i n) classes]
             (vector-set! classes i (if (>= (vector-ref probs i) threshold) 1 0)))))
 
-;;; ============================================================
+;;; ====
 ;;; Model Comparison
-;;; ============================================================
+;;; ====
 
 ;;; glm-likelihood-ratio-test : GLMResult × GLMResult → TestResult
 ;;; Likelihood ratio test comparing two nested models.

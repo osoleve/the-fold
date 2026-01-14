@@ -28,16 +28,16 @@
 ;;;   shell/lens/navigator.ss (call graph)
 ;;;   shell/tools/refactor.ss (core transforms)
 
-;;; ============================================================
+;;; ====
 ;;; Dependencies
-;;; ============================================================
+;;; ====
 
 (load "core/base/prelude.ss")
 (load "shell/tools/string-utils.ss")
 
-;;; ============================================================
+;;; ====
 ;;; State Management
-;;; ============================================================
+;;; ====
 
 ;;; Pending changes buffer
 (define *pending-changes* '())
@@ -48,9 +48,9 @@
 ;;; Maximum undo depth
 (define *max-undo-depth* 10)
 
-;;; ============================================================
+;;; ====
 ;;; Change Representation
-;;; ============================================================
+;;; ====
 
 ;;; Change: (type file old-text new-text line-start line-end context)
 (define (make-ref-change type file old new line-start line-end context)
@@ -69,9 +69,9 @@
 (define (ref-change-line-end c) (vector-ref c 6))
 (define (ref-change-context c) (vector-ref c 7))
 
-;;; ============================================================
+;;; ====
 ;;; Symbol Graph Integration
-;;; ============================================================
+;;; ====
 
 ;;; find-all-definitions : Symbol -> (List (file . line))
 ;;; Find all definition sites for a symbol using the index.
@@ -105,9 +105,9 @@
                           callers)))
               refs)))
 
-;;; ============================================================
+;;; ====
 ;;; Safe Rename
-;;; ============================================================
+;;; ====
 
 ;;; refactor-rename-preview : Symbol × Symbol -> (List Change)
 ;;; Preview what a rename operation would change.
@@ -266,9 +266,9 @@
       (char-numeric? c)
       (memv c '(#\- #\_ #\? #\! #\* #\+ #\/ #\< #\> #\= #\:))))
 
-;;; ============================================================
+;;; ====
 ;;; Semantic Scanner (Parse-Aware)
-;;; ============================================================
+;;; ====
 ;;;
 ;;; The semantic scanner tokenizes Scheme source code and identifies
 ;;; which regions are:
@@ -484,9 +484,9 @@
                         [else (loop (+ i 1))]))])
             (string-trim-simple (substring content start end)))))
 
-;;; ============================================================
+;;; ====
 ;;; Semantic Scanner Diagnostics
-;;; ============================================================
+;;; ====
 
 ;;; find-all-occurrences-with-context : String × String -> (List (pos line region-type))
 ;;; Find ALL textual occurrences with their context type.
@@ -599,9 +599,9 @@
 ;;;       Alias for backward compatibility
 (define string-trim-simple string-trim)
 
-;;; ============================================================
+;;; ====
 ;;; Apply Changes
-;;; ============================================================
+;;; ====
 
 ;;; refactor-apply! : -> void
 ;;; Apply all pending changes.
@@ -721,9 +721,9 @@
                                                    (substring remaining 0 (+ pos 1)))
                                     (substring remaining (+ pos 1) rlen)))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Undo Support
-;;; ============================================================
+;;; ====
 
 ;;; refactor-undo! : -> void
 ;;; Undo the last refactoring operation.
@@ -753,9 +753,9 @@
         
         (printf "\n  Restored ~a files.\n\n" (length backups))))
 
-;;; ============================================================
+;;; ====
 ;;; Argument Reordering
-;;; ============================================================
+;;; ====
 
 ;;; refactor-reorder-args-preview : Symbol × (List Nat) -> (List Change)
 ;;; Preview reordering function arguments.
@@ -805,9 +805,9 @@
                   (display "  Note: Manual review recommended before applying.\n\n")
                   changes))))
 
-;;; ============================================================
+;;; ====
 ;;; Signature Extraction and Arity-Aware Rename
-;;; ============================================================
+;;; ====
 
 ;;; extract-function-signature : Symbol -> (params . file) | #f
 ;;; Extract the parameter list from a function definition.
@@ -1142,9 +1142,9 @@
                 (display "    Manual adjustment of call sites may be needed.\n")]))])
        (display "\n")))
 
-;;; ============================================================
+;;; ====
 ;;; Convenience Commands
-;;; ============================================================
+;;; ====
 
 ;;; refactor-rename! : Symbol × Symbol -> void
 ;;; Preview and apply a rename operation.
@@ -1222,9 +1222,9 @@
   (display "    (refactor-help)                        Show this help\n")
   (display "\n"))
 
-;;; ============================================================
+;;; ====
 ;;; Initialization
-;;; ============================================================
+;;; ====
 
 (display "\n")
 (display "  Integrated Refactoring Engine Loaded\n")

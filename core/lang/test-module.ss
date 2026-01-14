@@ -7,7 +7,7 @@
 
 (display "Module System Tests
 ")
-(display "===================
+(display "====
 
 ")
 
@@ -26,9 +26,9 @@
        (display ", got ") (write actual)
        (newline))))
 
-;;; ============================================================
+;;; ====
 ;;; Header Parsing Tests
-;;; ============================================================
+;;; ====
 
 (display "Header Parsing:
 ")
@@ -46,9 +46,9 @@
      (test "parse infer.ss header" #t (and (pair? header) (eq? (car header) 'infer)))
      (test "infer.ss requires prelude types kinds" '(prelude types kinds) (if header (cdr header) '())))
 
-;;; ============================================================
+;;; ====
 ;;; Auto-Registration Tests
-;;; ============================================================
+;;; ====
 
 (display "
 Auto-Registration:
@@ -66,9 +66,9 @@ Auto-Registration:
 (test "eval includes prelude" #t (if (memq 'prelude (module-deps 'eval)) #t #f))
 (test "infer deps" '(prelude types kinds) (module-deps 'infer))
 
-;;; ============================================================
+;;; ====
 ;;; Transitive Dependencies
-;;; ============================================================
+;;; ====
 
 (display "
 Transitive Dependencies:
@@ -88,9 +88,9 @@ Transitive Dependencies:
      (test "all-deps eval includes block"
            #t (if (member 'block deps) #t #f)))
 
-;;; ============================================================
+;;; ====
 ;;; Module Loading (basic checks - no actual loading)
-;;; ============================================================
+;;; ====
 
 (display "
 Module Loading:
@@ -103,9 +103,9 @@ Module Loading:
 ;; Note: Actual module loading tests are skipped in standalone run
 ;; because paths don't resolve. Integration testing is done via REPL.
 
-;;; ============================================================
+;;; ====
 ;;; Load Times
-;;; ============================================================
+;;; ====
 
 (display "
 Load Times:
@@ -114,9 +114,9 @@ Load Times:
 (let ([time (module-load-time 'prelude)])
      (test "prelude has load time" #t (and time (>= time 0))))
 
-;;; ============================================================
+;;; ====
 ;;; Circular Dependency Detection Tests
-;;; ============================================================
+;;; ====
 
 (display "
 Circular Dependency Detection:
@@ -186,12 +186,12 @@ Circular Dependency Detection:
 ;; Clean up
 (hashtable-delete! *module-deps* 'self-dep)
 
-;;; ============================================================
+;;; ====
 ;;; Summary
-;;; ============================================================
+;;; ====
 
 (newline)
-(display "==================
+(display "====
 ")
 (display (string-append "Passed: " (number->string tests-passed) "
 "))

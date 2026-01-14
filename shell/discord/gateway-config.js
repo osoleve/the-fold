@@ -8,9 +8,9 @@
 const fs = require('fs');
 const path = require('path');
 
-// ============================================================
+// ====
 // Load Configuration
-// ============================================================
+// ====
 
 /**
  * Load agent config from JSON file if it exists
@@ -29,9 +29,9 @@ function loadAgentConfig() {
 
 const fileConfig = loadAgentConfig();
 
-// ============================================================
+// ====
 // Configuration
-// ============================================================
+// ====
 
 const config = {
   // Feature flag - enable/disable gateway dispatch
@@ -136,9 +136,9 @@ const config = {
   },
 };
 
-// ============================================================
+// ====
 // Helper Functions
-// ============================================================
+// ====
 
 /**
  * Check if an agent is configured for consultation
@@ -169,9 +169,9 @@ function getStatePath(relativePath) {
   return path.join(__dirname, '../..', relativePath);
 }
 
-// ============================================================
+// ====
 // Exports
-// ============================================================
+// ====
 
 module.exports = {
   ...config,

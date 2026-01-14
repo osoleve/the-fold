@@ -21,9 +21,9 @@
 
 (load "core/base/prelude.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Game Representation
-;;; ============================================================
+;;; ====
 
 ;;; A 2-player normal form game is represented as:
 ;;;   (game strategies1 strategies2 payoff-matrix)
@@ -67,9 +67,9 @@
 (define (game-payoff-p2 game i j)
   (cdr (game-payoff game i j)))
 
-;;; ============================================================
+;;; ====
 ;;; Classic Games
-;;; ============================================================
+;;; ====
 
 ;;; Prisoner's Dilemma
 ;;; (C,C)=(3,3), (C,D)=(0,5), (D,C)=(5,0), (D,D)=(1,1)
@@ -116,9 +116,9 @@
    '(((0 . 0) (7 . 2))
      ((2 . 7) (6 . 6)))))
 
-;;; ============================================================
+;;; ====
 ;;; Best Response
-;;; ============================================================
+;;; ====
 
 ;;; best-response-p1 : Game × Nat → (List Nat)
 ;;; Find Player 1's best responses to Player 2 playing strategy j.
@@ -145,9 +145,9 @@
                  (filter (lambda (j) (= (list-ref payoffs j) max-payoff))
                          (iota n))))))
 
-;;; ============================================================
+;;; ====
 ;;; Dominated Strategies
-;;; ============================================================
+;;; ====
 
 ;;; strictly-dominates-p1? : Game × Nat × Nat → Boolean
 ;;; Does strategy i strictly dominate strategy i' for Player 1?
@@ -195,9 +195,9 @@
        (cons (filter (lambda (i) (is-strictly-dominated-p1? game i)) (iota n1))
              (filter (lambda (j) (is-strictly-dominated-p2? game j)) (iota n2)))))
 
-;;; ============================================================
+;;; ====
 ;;; Iterated Elimination of Dominated Strategies (IESDS)
-;;; ============================================================
+;;; ====
 
 ;;; eliminate-strategy-p1 : Game × Nat → Game
 ;;; Create new game with P1's strategy i removed.
@@ -264,9 +264,9 @@
             ;; No dominated strategies remain
             [else game]))))
 
-;;; ============================================================
+;;; ====
 ;;; Pure Strategy Nash Equilibrium
-;;; ============================================================
+;;; ====
 
 ;;; is-pure-nash? : Game × Nat × Nat → Boolean
 ;;; Is (i, j) a pure strategy Nash equilibrium?
@@ -289,9 +289,9 @@
                                         (iota n2)))
                            (iota n1))))))
 
-;;; ============================================================
+;;; ====
 ;;; Mixed Strategies
-;;; ============================================================
+;;; ====
 
 ;;; A mixed strategy is a probability distribution over pure strategies.
 ;;; Represented as a vector of probabilities that sum to 1.
@@ -359,9 +359,9 @@
                                     (game-payoff-p2 game i strategy)))
                          (iota n1))))))
 
-;;; ============================================================
+;;; ====
 ;;; 2x2 Mixed Strategy Nash Equilibrium
-;;; ============================================================
+;;; ====
 
 ;;; For 2x2 games, we can compute the mixed strategy Nash equilibrium
 ;;; analytically using the indifference principle.
@@ -416,9 +416,9 @@
                   '())])
             (append pure-results mixed-result))))
 
-;;; ============================================================
+;;; ====
 ;;; Game Display
-;;; ============================================================
+;;; ====
 
 ;;; game->string : Game → String
 ;;; Display a game as a payoff matrix.

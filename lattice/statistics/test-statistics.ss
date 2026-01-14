@@ -4,9 +4,9 @@
 
 (load "core/testing/test-framework.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Core Module Tests
-;;; ============================================================
+;;; ====
 
 (load "lattice/statistics/core/summary-stats.ss")
 
@@ -33,9 +33,9 @@
               (let ([xs (vector 1 2 3 4 5 6 7 8 9 10)])
                    (assert-true (< (abs (- (vec-quantile xs 0.5) 5.5)) 0.01)))))
 
-;;; ============================================================
+;;; ====
 ;;; Distribution Tests
-;;; ============================================================
+;;; ====
 
 (load "lattice/statistics/hypothesis/distributions.ss")
 
@@ -61,9 +61,9 @@
                      [p-back (t-cdf t-val 30)])
                     (assert-true (< (abs (- p-back 0.975)) 0.01)))))
 
-;;; ============================================================
+;;; ====
 ;;; Linear Regression Tests
-;;; ============================================================
+;;; ====
 
 (load "lattice/statistics/regression/linear.ss")
 
@@ -103,9 +103,9 @@
                      [model (linear-model-fit X y)])
                     (assert-true (> (lm-r-squared model) 0.99)))))
 
-;;; ============================================================
+;;; ====
 ;;; GLM Tests
-;;; ============================================================
+;;; ====
 
 (load "lattice/statistics/regression/glm.ss")
 
@@ -129,9 +129,9 @@
                     (assert-true (< (abs (- (vector-ref coeffs 0) 1)) 0.5))
                     (assert-true (< (abs (- (vector-ref coeffs 1) 0.5)) 0.2)))))
 
-;;; ============================================================
+;;; ====
 ;;; Time Series Tests
-;;; ============================================================
+;;; ====
 
 (load "lattice/statistics/timeseries/acf-pacf.ss")
 (load "lattice/statistics/timeseries/ar.ss")
@@ -166,9 +166,9 @@
                      [forecast (vector 1 1 1 1)])
                     (assert-equal (mae actual forecast) (rmse actual forecast)))))
 
-;;; ============================================================
+;;; ====
 ;;; Hypothesis Tests
-;;; ============================================================
+;;; ====
 
 (load "lattice/statistics/hypothesis/t-test.ss")
 (load "lattice/statistics/hypothesis/chi-squared.ss")
@@ -197,9 +197,9 @@
                      [p-value (anova-p-value result)])
                     (assert-true (> p-value 0.05)))))
 
-;;; ============================================================
+;;; ====
 ;;; Design Matrix Tests (Orthogonal Polynomials)
-;;; ============================================================
+;;; ====
 
 (load "lattice/statistics/core/design-matrix.ss")
 
@@ -325,9 +325,9 @@
                     (assert-equal 3 (matrix-rows result))
                     (assert-equal 1 (matrix-ref result 0 0)))))
 
-;;; ============================================================
+;;; ====
 ;;; Regularized Regression Tests
-;;; ============================================================
+;;; ====
 
 (load "lattice/statistics/regression/regularized.ss")
 
@@ -351,9 +351,9 @@
                     ;; With very small lambda, should approximate OLS
                     (assert-true (pair? coeffs)))))
 
-;;; ============================================================
+;;; ====
 ;;; Run All Tests
-;;; ============================================================
+;;; ====
 
 (run-all-tests)
 

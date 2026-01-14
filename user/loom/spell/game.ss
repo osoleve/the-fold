@@ -10,9 +10,9 @@
 ;;;   game-create     Create a new game instance from definition
 ;;;   game-check-end  Check win/lose conditions
 
-;;; ============================================================
+;;; ====
 ;;; Game Configuration Structure
-;;; ============================================================
+;;; ====
 
 ;;; GameConfig : Alist
 ;;;   title       — String, game title
@@ -38,9 +38,9 @@
     (init-fn . #f)
     (tick-fn . #f)))
 
-;;; ============================================================
+;;; ====
 ;;; Game Registry
-;;; ============================================================
+;;; ====
 
 ;;; *games* : Hashtable Symbol -> GameConfig
 (define *games* (make-hashtable symbol-hash eq?))
@@ -57,9 +57,9 @@
 (define (game-exists? name)
   (hashtable-contains? *games* name))
 
-;;; ============================================================
+;;; ====
 ;;; Game Definition Macro
-;;; ============================================================
+;;; ====
 
 ;;; def-game : Name × Clauses... -> Definitions
 ;;;
@@ -189,9 +189,9 @@
                 [(_ (color col) rest ...)
                  (alist-set (parse-player-spec rest ...) 'color col)]))
 
-;;; ============================================================
+;;; ====
 ;;; Game Instance Creation
-;;; ============================================================
+;;; ====
 
 ;;; game-create : GameConfig × [Nat × Nat] -> World
 ;;; Create a new game world from a game configuration.
@@ -239,9 +239,9 @@
             (entity-add-component (make-actor-component))
             (entity-add-component (make-faction-component 'player '(monster))))))
 
-;;; ============================================================
+;;; ====
 ;;; Game State Checking
-;;; ============================================================
+;;; ====
 
 ;;; GameState : Symbol
 ;;;   'playing   — Game in progress
@@ -273,9 +273,9 @@
 (define (game-over? config world)
   (not (eq? (game-check-state config world) 'playing)))
 
-;;; ============================================================
+;;; ====
 ;;; Win/Lose Condition Helpers
-;;; ============================================================
+;;; ====
 
 ;;; These functions are designed to be used in win-when/lose-when
 ;;; They take the world implicitly via closure
@@ -329,9 +329,9 @@
 (define (turn-count world)
   (alist-ref (world-state world) 'turn-number 0))
 
-;;; ============================================================
+;;; ====
 ;;; Game Tick Processing
-;;; ============================================================
+;;; ====
 
 ;;; game-tick : GameConfig × World -> World
 ;;; Process one game tick, running the on-tick hook if defined.
@@ -341,9 +341,9 @@
            (tick-fn world)
            world)))
 
-;;; ============================================================
+;;; ====
 ;;; Example Usage (commented out)
-;;; ============================================================
+;;; ====
 
 #|
 ;;; Define a simple dungeon escape game
@@ -402,7 +402,7 @@
 ;;;        (loop new-w))]))
 
 
-;;; ========== WAVE/ROUND SYSTEM PATTERN ==========
+;;; ==== WAVE/ROUND SYSTEM PATTERN ====
 ;;;
 ;;; For wave-based games, track round state in world-state:
 ;;;
@@ -445,7 +445,7 @@
 ;;;   (world-set-state world (alist-set (world-state world) key value)))
 
 
-;;; ========== GAME LOOP INTEGRATION ==========
+;;; ==== GAME LOOP INTEGRATION ====
 ;;;
 ;;; The game loop coordinates:
 ;;; 1. Check win/lose with game-check-state

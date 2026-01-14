@@ -12,9 +12,9 @@
 (load "shell/ui/layout.ss")
 (load "lattice/fp/symbolic/integrate-autodiff.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Constants
-;;; ============================================================
+;;; ====
 
 (define *width* 72)
 (define *height* 24)
@@ -27,9 +27,9 @@
 (define (math->canvas-x mx) (inexact->exact (floor (* (/ (+ mx 3.0) 6.0) *width*))))
 (define (math->canvas-y my) (inexact->exact (floor (* (/ (+ my 2.0) 4.0) *height*))))
 
-;;; ============================================================
+;;; ====
 ;;; ASCII Character Ramps
-;;; ============================================================
+;;; ====
 
 ;;; Density ramp for potential field (dark = high, light = low)
 (define density-ramp " .'`^\",:;Il!i><~+_-?][}{1)(|\\/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$")
@@ -44,9 +44,9 @@
               [(4) #\<] [(5) #\/] [(6) #\^] [(7) #\\]
               [else #\.])))
 
-;;; ============================================================
+;;; ====
 ;;; Symbolic Potential Field Builder
-;;; ============================================================
+;;; ====
 
 ;;; gaussian : Expr × Expr × Number × Number × Number → Expr
 ;;; Creates a symbolic Gaussian: A * exp(-((x-cx)² + (y-cy)²) / (2*σ²))
@@ -74,9 +74,9 @@
          [potential (make-neg (sum g1 (sum g2 g3)))])
         (values potential x y)))
 
-;;; ============================================================
+;;; ====
 ;;; Symbolic Expression Pretty Printer
-;;; ============================================================
+;;; ====
 
 ;;; expr->math-string : Expr → String
 ;;; Convert symbolic expression to readable math notation
@@ -116,9 +116,9 @@
       s
       (string-append (substring s 0 (- max-len 3)) "...")))
 
-;;; ============================================================
+;;; ====
 ;;; Gradient Field Computation
-;;; ============================================================
+;;; ====
 
 ;;; compile-field : Expr × (List Symbol) → (Number × Number → Number)
 (define (compile-field expr vars)
@@ -139,9 +139,9 @@
                       [dy (let ([r (dy-fn x y)]) (if (traced? r) (traced-value r) r))])
                      (values dx dy)))))
 
-;;; ============================================================
+;;; ====
 ;;; Particle System
-;;; ============================================================
+;;; ====
 
 (define (make-particle x y)
   (list x y 0))  ; x, y, age
@@ -182,9 +182,9 @@
                      (- (* (random 100) 0.04) 2.0))
       p))
 
-;;; ============================================================
+;;; ====
 ;;; Rendering
-;;; ============================================================
+;;; ====
 
 (define (render-frame potential-fn grad-fn particles frame-num t)
   (let ([canvas (make-canvas *width* *height*)])
@@ -236,9 +236,9 @@
        
        canvas))
 
-;;; ============================================================
+;;; ====
 ;;; Frame Output
-;;; ============================================================
+;;; ====
 
 (define (clear-screen)
   (display "\x1b;[2J\x1b;[H"))
@@ -286,9 +286,9 @@
   (display "╚══════════════════════════════════════════════════════════════════════╝\n")
   (display "\x1b;[90mThe Fold • core/fp/symbolic + core/autodiff\x1b;[0m\n"))
 
-;;; ============================================================
+;;; ====
 ;;; Animation Loop
-;;; ============================================================
+;;; ====
 
 (define (run-animation)
   (display "\n\x1b;[1;33mGradient Flow Symphony\x1b;[0m\n")
@@ -321,9 +321,9 @@
                                  (loop (+ frame 1) new-particles)))))))
   (display "\n\x1b;[1;32mAnimation complete!\x1b;[0m\n"))
 
-;;; ============================================================
+;;; ====
 ;;; Single Frame Demo (for testing)
-;;; ============================================================
+;;; ====
 
 (define (demo-single-frame)
   (display "\n\x1b;[1;33mGradient Flow Symphony - Single Frame\x1b;[0m\n\n")
@@ -350,9 +350,9 @@
                           (display "\n")
                           (output-frame canvas potential 0.3 1)))))
 
-;;; ============================================================
+;;; ====
 ;;; Entry Points
-;;; ============================================================
+;;; ====
 
 (display "\n")
 (display "╔═══════════════════════════════════════════════════════════════╗\n")

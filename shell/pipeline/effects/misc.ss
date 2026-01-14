@@ -10,9 +10,9 @@
 (load "shell/pipeline/effects/shell.ss")
 (load "shell/bbs/bbs.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Configuration
-;;; ============================================================
+;;; ====
 
 ;;; *pipeline-log-dir* : String
 ;;; Directory for pipeline logs.
@@ -22,9 +22,9 @@
 ;;; Directory for content-addressed storage.
 (define *cas-store-dir* ".store")
 
-;;; ============================================================
+;;; ====
 ;;; Log Effect Interpretation
-;;; ============================================================
+;;; ====
 
 ;;; interpret-log-effect : Payload -> Context -> State -> Input -> (Result . State)
 (define (interpret-log-effect payload ctx state input)
@@ -59,9 +59,9 @@
         ;; Return as ISO-style timestamp
         (format "~a" seconds)))
 
-;;; ============================================================
+;;; ====
 ;;; Store (CAS) Effect Interpretation
-;;; ============================================================
+;;; ====
 
 ;;; interpret-store-effect : Payload -> Context -> State -> Input -> (Result . State)
 (define (interpret-store-effect payload ctx state input)
@@ -156,9 +156,9 @@
 (define (cas-get hash)
   (cas-load hash))
 
-;;; ============================================================
+;;; ====
 ;;; BBS Effect Interpretation
-;;; ============================================================
+;;; ====
 
 ;;; *valid-bbs-types* : List of Symbol
 ;;; Allowed values for issue type.
@@ -319,9 +319,9 @@
 ;;; Backwards compatibility alias
 (define interpret-beads-effect interpret-bbs-effect)
 
-;;; ============================================================
+;;; ====
 ;;; Git Effect Interpretation
-;;; ============================================================
+;;; ====
 
 ;;; interpret-git-effect : Payload -> Context -> State -> Input -> (Result . State)
 (define (interpret-git-effect payload ctx state input)
@@ -366,9 +366,9 @@
                                payload)
                     state)])))
 
-;;; ============================================================
+;;; ====
 ;;; Await Effect Interpretation
-;;; ============================================================
+;;; ====
 
 ;;; interpret-await-effect : Payload -> Context -> State -> Input -> (Result . State)
 (define (interpret-await-effect payload ctx state input)
@@ -415,9 +415,9 @@
                                payload)
                     state)])))
 
-;;; ============================================================
+;;; ====
 ;;; Helper Functions
-;;; ============================================================
+;;; ====
 
 ;;; expand-template-with-ctx : String -> Context -> Input -> String
 (define (expand-template-with-ctx template ctx input)
@@ -454,9 +454,9 @@
           (guard (ex [else (void)])  ; Ignore if already exists
                  (mkdir path))))
 
-;;; ============================================================
+;;; ====
 ;;; JSON Parsing (for beads effect)
-;;; ============================================================
+;;; ====
 
 (define (parse-json-string s)
   (guard (ex [else #f])

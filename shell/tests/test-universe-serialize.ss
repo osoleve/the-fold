@@ -11,9 +11,9 @@
 ;;; Load the library
 (import (shell universe-serialize))
 
-;;; ============================================================
+;;; ====
 ;;; Test Infrastructure
-;;; ============================================================
+;;; ====
 
 (define test-count 0)
 (define pass-count 0)
@@ -51,9 +51,9 @@
        (display actual)))
   (newline))
 
-;;; ============================================================
+;;; ====
 ;;; Test Data Setup
-;;; ============================================================
+;;; ====
 
 ;;; Create a temporary test directory with .sexp files
 (define test-dir "./test-universe")
@@ -105,12 +105,12 @@
                          (lambda (port)
                                  (display "((this is not valid scheme" port))))
 
-;;; ============================================================
+;;; ====
 ;;; Run Tests
-;;; ============================================================
+;;; ====
 
 (display "Universe Serialization Tests\n")
-(display "============================\n\n")
+(display "====\n\n")
 
 ;;; Setup
 (setup-test-dir!)
@@ -263,13 +263,13 @@
 (define empty-files (cadr (car empty-universe)))
 (test "empty universe has no files" '() empty-files)
 
-;;; ============================================================
+;;; ====
 ;;; Test Summary
-;;; ============================================================
+;;; ====
 
-(display "\n============================\n")
+(display "\n====\n")
 (display "Test Summary\n")
-(display "============================\n")
+(display "====\n")
 (display "Total tests: ")
 (display test-count)
 (newline)

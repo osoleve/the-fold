@@ -25,9 +25,9 @@
 (load "lattice/random/prng.ss")
 (load "lattice/random/distributions.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Probability Monad Representation
-;;; ============================================================
+;;; ====
 ;;;
 ;;; A Prob computation is a weighted State computation over PRNG state.
 ;;; We track likelihood weights for importance sampling and conditioning.
@@ -51,9 +51,9 @@
 (define (prob-state p)
   (cdr p))
 
-;;; ============================================================
+;;; ====
 ;;; Internal State Manipulation
-;;; ============================================================
+;;; ====
 
 ;;; prob-get-prng : State (PRNG . Weight) PRNG
 (define prob-get-prng
@@ -72,9 +72,9 @@
 (define (prob-add-weight log-w)
   (state-modify (lambda (s) (cons (car s) (+ (cdr s) log-w)))))
 
-;;; ============================================================
+;;; ====
 ;;; Running Probability Computations
-;;; ============================================================
+;;; ====
 
 ;;; run-prob : Prob a -> PRNG -> ((a . LogWeight) . PRNG)
 ;;; Run a probabilistic computation, returning value, log-weight, and final PRNG.
@@ -95,9 +95,9 @@
 (define (weight-prob p prng)
   (cdr (car (run-prob p prng))))
 
-;;; ============================================================
+;;; ====
 ;;; Monad Operations
-;;; ============================================================
+;;; ====
 
 ;;; prob-pure : a -> Prob a
 ;;; Lift a value into Prob (deterministic).
@@ -131,9 +131,9 @@
                                 (lambda (a)
                                         (prob-pure (f a)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Sampling from Distributions
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Convert State-based distributions to Prob computations.
 
@@ -201,9 +201,9 @@
 (define (prob-categorical weights)
   (sample (random-categorical weights)))
 
-;;; ============================================================
+;;; ====
 ;;; Conditioning
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Conditioning is the core of probabilistic inference.
 ;;; We support two styles:
@@ -256,9 +256,9 @@
       (prob-pure '())
       (factor -inf.0)))
 
-;;; ============================================================
+;;; ====
 ;;; Inference Primitives
-;;; ============================================================
+;;; ====
 
 ;;; sample-once : Prob a -> Int -> a
 ;;; Draw a single sample with given seed.
@@ -292,9 +292,9 @@
                       [new-prng (cdr result)])
                      (loop new-prng (- count 1) (cons (cons value log-w) acc)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Importance Sampling Inference
-;;; ============================================================
+;;; ====
 
 ;;; log-sum-exp : (List Float) -> Float
 ;;; Numerically stable log(sum(exp(xs))).
@@ -336,9 +336,9 @@
   (let ([mean (importance-mean p seed n)])
        (importance-expectation (lambda (x) (* (- x mean) (- x mean))) p seed n)))
 
-;;; ============================================================
+;;; ====
 ;;; Rejection Sampling
-;;; ============================================================
+;;; ====
 ;;;
 ;;; For hard conditioning, we can use rejection sampling
 ;;; to get unweighted samples.
@@ -383,9 +383,9 @@
                                         (loop ng (- count 1) (cons v acc))
                                         (inner-loop (- tries 1) ng))))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Combinators
-;;; ============================================================
+;;; ====
 
 ;;; prob-sequence : (List (Prob a)) -> Prob (List a)
 ;;; Sequence a list of Prob computations.
@@ -424,9 +424,9 @@
            (prob-then (factor -inf.0) (prob-pure (car xs)))  ; No valid element
            (sample (random-choice valid)))))
 
-;;; ============================================================
+;;; ====
 ;;; Distributions as First-Class Values
-;;; ============================================================
+;;; ====
 ;;;
 ;;; A Distribution is a record with:
 ;;; - sampler: State PRNG a
@@ -462,9 +462,9 @@
            (score (pdf observed))
            (error 'observe-from-dist "distribution has no PDF" d))))
 
-;;; ============================================================
+;;; ====
 ;;; Common First-Class Distributions
-;;; ============================================================
+;;; ====
 
 ;;; normal-dist : Float -> Float -> Distribution Float
 (define (normal-dist mean stddev)
@@ -496,9 +496,9 @@
    (random-poisson rate)
    (lambda (k) (poisson-pmf rate k))))
 
-;;; ============================================================
+;;; ====
 ;;; Bayesian Inference Pattern
-;;; ============================================================
+;;; ====
 ;;;
 ;;; The typical pattern for Bayesian inference:
 ;;;
@@ -516,9 +516,9 @@
 ;;;                (prob-then (observe-from-dist (normal-dist mu 1) 5.0)
 ;;;                           (prob-pure mu)))))
 
-;;; ============================================================
+;;; ====
 ;;; Example: Coin Flip Model
-;;; ============================================================
+;;; ====
 ;;;
 ;;; ;; Prior: uniform over [0,1]
 ;;; ;; Likelihood: 7 heads in 10 flips

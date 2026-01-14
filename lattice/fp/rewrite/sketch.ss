@@ -36,9 +36,9 @@
 (load "lattice/fp/rewrite/engine.ss")
 (load "lattice/fp/rewrite/verify.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Goal Construction
-;;; ============================================================
+;;; ====
 
 ;;; make-goal : Expr × Expr → Goal
 ;;; Create a new goal from source to target expression.
@@ -54,9 +54,9 @@
 (define (make-open-goal from)
   (make-goal from 'any))
 
-;;; ============================================================
+;;; ====
 ;;; Goal Predicates
-;;; ============================================================
+;;; ====
 
 ;;; goal? : Any → Boolean
 (define (goal? x)
@@ -82,9 +82,9 @@
 (define (goal-has-target? g)
   (not (eq? (goal-to g) 'any)))
 
-;;; ============================================================
+;;; ====
 ;;; Goal Accessors
-;;; ============================================================
+;;; ====
 
 ;;; goal-from : Goal → Expr
 (define (goal-from g)
@@ -103,9 +103,9 @@
   (let ([h (assq 'hints g)])
        (if h (cdr h) '())))
 
-;;; ============================================================
+;;; ====
 ;;; Goal Modification
-;;; ============================================================
+;;; ====
 
 ;;; goal-set-status : Goal × Symbol → Goal
 (define (goal-set-status g status)
@@ -134,9 +134,9 @@
 (define (goal-discharge g)
   (goal-set-status g 'discharged))
 
-;;; ============================================================
+;;; ====
 ;;; Hole Step Construction
-;;; ============================================================
+;;; ====
 
 ;;; A hole is a trace step with 'unknown as the rule name.
 ;;; This marks a gap in the proof that needs to be filled.
@@ -160,9 +160,9 @@
                    (step-position hole-step)
                    bindings))
 
-;;; ============================================================
+;;; ====
 ;;; Sketch Construction
-;;; ============================================================
+;;; ====
 
 ;;; make-sketch : Expr × Alist → Sketch
 ;;; Create a new proof sketch for a property in a given context.
@@ -187,9 +187,9 @@
          (history . ())
          (focused . 0))))
 
-;;; ============================================================
+;;; ====
 ;;; Sketch Predicates
-;;; ============================================================
+;;; ====
 
 ;;; sketch? : Any → Boolean
 (define (sketch? x)
@@ -223,9 +223,9 @@
             (list? goals)
             (for-all goal? goals))))
 
-;;; ============================================================
+;;; ====
 ;;; Sketch Accessors
-;;; ============================================================
+;;; ====
 
 ;;; sketch-trace : Sketch → Trace
 (define (sketch-trace sk)
@@ -281,9 +281,9 @@
 (define (sketch-initial sk)
   (trace-initial (sketch-trace sk)))
 
-;;; ============================================================
+;;; ====
 ;;; Sketch Modification (Pure)
-;;; ============================================================
+;;; ====
 
 ;;; sketch-set-trace : Sketch × Trace → Sketch
 (define (sketch-set-trace sk trace)
@@ -332,9 +332,9 @@
     (history . ,(sketch-history sk))
     (focused . ,idx)))
 
-;;; ============================================================
+;;; ====
 ;;; Undo Support
-;;; ============================================================
+;;; ====
 
 ;;; sketch-undo : Sketch → Sketch
 ;;; Restore previous sketch state from history.
@@ -360,9 +360,9 @@
 (define (sketch-undo-depth sk)
   (length (sketch-history sk)))
 
-;;; ============================================================
+;;; ====
 ;;; Tactic Application
-;;; ============================================================
+;;; ====
 
 ;;; Tactics transform sketches. A tactic either succeeds (returning
 ;;; a new sketch) or fails (returning #f).
@@ -376,9 +376,9 @@
   (let ([sk-with-history (sketch-push-history sk)])
        (tactic sk-with-history)))
 
-;;; ============================================================
+;;; ====
 ;;; Built-in Tactics
-;;; ============================================================
+;;; ====
 
 ;;; tactic-apply-rule : Rule × Registry → Tactic
 ;;; Create a tactic that applies a specific rule.
@@ -480,9 +480,9 @@
                          ;; No split applicable
                          [else #f]))))))
 
-;;; ============================================================
+;;; ====
 ;;; Compound Expression Helpers
-;;; ============================================================
+;;; ====
 
 ;;; compound-expr? : Expr -> Boolean
 ;;; Check if expression is a compound (pair, cons, tuple, etc.)
@@ -515,9 +515,9 @@
 (define (and-conjuncts expr)
   (if (and-expr? expr) (cdr expr) '()))
 
-;;; ============================================================
+;;; ====
 ;;; Split Implementation Helpers
-;;; ============================================================
+;;; ====
 
 ;;; split-compound-goal : Sketch x Goal x Expr x Expr -> Sketch | #f
 ;;; Split a compound equality into component equalities.
@@ -574,9 +574,9 @@
                (loop (cdr gs) (+ i 1) (append (reverse new-goals) acc))
                (loop (cdr gs) (+ i 1) (cons (car gs) acc))))))
 
-;;; ============================================================
+;;; ====
 ;;; Helper: Update Goal in List
-;;; ============================================================
+;;; ====
 
 ;;; sketch-update-goal : (List Goal) × Nat × Goal → (List Goal)
 (define (sketch-update-goal goals idx new-goal)
@@ -587,9 +587,9 @@
                (loop (cdr gs) (+ i 1) (cons new-goal acc))
                (loop (cdr gs) (+ i 1) (cons (car gs) acc))))))
 
-;;; ============================================================
+;;; ====
 ;;; Hint Generation
-;;; ============================================================
+;;; ====
 
 ;;; sketch-hints : Sketch → (List (Symbol . String))
 ;;; Get suggested next steps for the current goal.
@@ -624,9 +624,9 @@
          (eval sym)
          #t))
 
-;;; ============================================================
+;;; ====
 ;;; Goal Navigation
-;;; ============================================================
+;;; ====
 
 ;;; sketch-next-goal : Sketch → Sketch
 ;;; Move focus to next open goal.
@@ -676,9 +676,9 @@
            (sketch-set-focused sk idx)
            sk)))
 
-;;; ============================================================
+;;; ====
 ;;; Sketch Display
-;;; ============================================================
+;;; ====
 
 ;;; sketch->string : Sketch → String
 ;;; Format a sketch for display.
@@ -707,9 +707,9 @@
          [discharged (filter goal-discharged? goals)])
         (cons (length discharged) (length goals))))
 
-;;; ============================================================
+;;; ====
 ;;; Sketch Verification
-;;; ============================================================
+;;; ====
 
 ;;; sketch-verify : Sketch → Boolean
 ;;; Verify that all non-hole steps are valid equivalences.
@@ -732,9 +732,9 @@
 (define (sketch-hole-count sk)
   (length (sketch-holes sk)))
 
-;;; ============================================================
+;;; ====
 ;;; Context Operations
-;;; ============================================================
+;;; ====
 
 ;;; sketch-add-hypothesis : Sketch × Symbol × Expr → Sketch
 ;;; Add a hypothesis to the context.
@@ -751,9 +751,9 @@
 (define (sketch-clear-context sk)
   (sketch-set-context sk '()))
 
-;;; ============================================================
+;;; ====
 ;;; Compound Operations
-;;; ============================================================
+;;; ====
 
 ;;; sketch-rewrite : Sketch × Symbol × Registry → Sketch | #f
 ;;; Apply a named rule to the current goal.

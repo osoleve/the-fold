@@ -6,9 +6,9 @@
 (load "lattice/random/prng.ss")
 (load "lattice/random/distributions.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Helper Functions
-;;; ============================================================
+;;; ====
 
 ;;; mean : List Number -> Number
 (define (mean lst)
@@ -33,9 +33,9 @@
 (define (within-tolerance expected actual tolerance)
   (< (abs (- expected actual)) tolerance))
 
-;;; ============================================================
+;;; ====
 ;;; Bit Manipulation Tests
-;;; ============================================================
+;;; ====
 
 (test-group bit-manipulation
             (define-test u32-mask
@@ -56,9 +56,9 @@
               (assert-equal (rotr32 2 1) 1)
               (assert-equal (rotr32 1 1) #x80000000)))
 
-;;; ============================================================
+;;; ====
 ;;; Splitmix64 Tests
-;;; ============================================================
+;;; ====
 
 (test-group splitmix64
             (define-test splitmix-creation
@@ -88,9 +88,9 @@
                     (assert-true (integer? (car result)))
                     (assert-true (splitmix? (cdr result))))))
 
-;;; ============================================================
+;;; ====
 ;;; PCG Tests
-;;; ============================================================
+;;; ====
 
 (test-group pcg
             (define-test pcg-creation
@@ -117,9 +117,9 @@
                     (assert-true (<= 0 result))
                     (assert-true (< result (expt 2 32))))))
 
-;;; ============================================================
+;;; ====
 ;;; Xorshift128+ Tests
-;;; ============================================================
+;;; ====
 
 (test-group xorshift128
             (define-test xorshift-creation
@@ -139,9 +139,9 @@
                     (assert-true (<= 0 result))
                     (assert-true (< result (expt 2 64))))))
 
-;;; ============================================================
+;;; ====
 ;;; Uniform Random Tests
-;;; ============================================================
+;;; ====
 
 (test-group uniform-random
             (define-test random-float-range-test
@@ -176,9 +176,9 @@
                     ;; Should be roughly 50% true
                     (assert-true (< (abs (- true-count 500)) 100)))))
 
-;;; ============================================================
+;;; ====
 ;;; Sampling Tests
-;;; ============================================================
+;;; ====
 
 (test-group sampling
             (define-test random-element-test
@@ -224,9 +224,9 @@
 
 ;;; NOTE: remove-duplicates is provided by core/base/prelude.ss (loaded via test-framework.ss)
 
-;;; ============================================================
+;;; ====
 ;;; Bernoulli Distribution Tests
-;;; ============================================================
+;;; ====
 
 (test-group bernoulli
             (define-test bernoulli-always-true
@@ -243,9 +243,9 @@
                     ;; Should be ~50%
                     (assert-true (within-tolerance 5000 true-count 300)))))
 
-;;; ============================================================
+;;; ====
 ;;; Exponential Distribution Tests
-;;; ============================================================
+;;; ====
 
 (test-group exponential
             (define-test exponential-positive
@@ -260,9 +260,9 @@
                     ;; Mean should be ~1/rate = 0.5
                     (assert-true (within-tolerance expected-mean m 0.05)))))
 
-;;; ============================================================
+;;; ====
 ;;; Normal Distribution Tests
-;;; ============================================================
+;;; ====
 
 (test-group normal
             (define-test normal-standard-mean
@@ -289,9 +289,9 @@
                     ;; Stddev should be ~15
                     (assert-true (within-tolerance 15 sd 1.0)))))
 
-;;; ============================================================
+;;; ====
 ;;; Geometric Distribution Tests
-;;; ============================================================
+;;; ====
 
 (test-group geometric
             (define-test geometric-positive
@@ -305,9 +305,9 @@
                      [m (mean samples)])
                     (assert-true (within-tolerance expected-mean m 0.3)))))
 
-;;; ============================================================
+;;; ====
 ;;; Poisson Distribution Tests
-;;; ============================================================
+;;; ====
 
 (test-group poisson
             (define-test poisson-non-negative
@@ -328,9 +328,9 @@
                     ;; Mean should be ~rate
                     (assert-true (within-tolerance rate m 2.0)))))
 
-;;; ============================================================
+;;; ====
 ;;; Binomial Distribution Tests
-;;; ============================================================
+;;; ====
 
 (test-group binomial
             (define-test binomial-range
@@ -346,9 +346,9 @@
                      [m (mean samples)])
                     (assert-true (within-tolerance expected-mean m 0.3)))))
 
-;;; ============================================================
+;;; ====
 ;;; Gamma Distribution Tests
-;;; ============================================================
+;;; ====
 
 (test-group gamma
             (define-test gamma-positive
@@ -370,9 +370,9 @@
                      [samples (with-random 42 (random-list 1000 (random-gamma shape rate)))])
                     (assert-true (andmap positive? samples)))))
 
-;;; ============================================================
+;;; ====
 ;;; Beta Distribution Tests
-;;; ============================================================
+;;; ====
 
 (test-group beta
             (define-test beta-range
@@ -387,9 +387,9 @@
                      [m (mean samples)])
                     (assert-true (within-tolerance expected-mean m 0.02)))))
 
-;;; ============================================================
+;;; ====
 ;;; Categorical Distribution Tests
-;;; ============================================================
+;;; ====
 
 (test-group categorical
             (define-test categorical-range
@@ -404,9 +404,9 @@
                     ;; ~77% should be 0
                     (assert-true (> zeros 600)))))
 
-;;; ============================================================
+;;; ====
 ;;; Dirichlet Distribution Tests
-;;; ============================================================
+;;; ====
 
 (test-group dirichlet
             (define-test dirichlet-sums-to-one
@@ -422,9 +422,9 @@
               (let ([sample (with-random 42 (random-dirichlet '(1 2 3 4 5)))])
                    (assert-equal (length sample) 5))))
 
-;;; ============================================================
+;;; ====
 ;;; Reproducibility Tests
-;;; ============================================================
+;;; ====
 
 (test-group reproducibility
             (define-test same-seed-same-sequence
@@ -439,19 +439,19 @@
                      [seq2 (with-random 54321 comp)])
                     (assert-true (not (equal? seq1 seq2))))))
 
-;;; ============================================================
+;;; ====
 ;;; Run All Tests
-;;; ============================================================
+;;; ====
 
 (display "\n")
-(display "==============================================================\n")
+(display "====\n")
 (display "         Random Number Generation Tests\n")
-(display "==============================================================\n")
+(display "====\n")
 (display "\n")
 
-;;; ============================================================
+;;; ====
 ;;; PDF Tests
-;;; ============================================================
+;;; ====
 
 (test-group pdf-tests
             (define-test normal-pdf-at-mean
@@ -482,9 +482,9 @@
               (let ([pmf (binomial-pmf 5 10 0.5)])
                    (assert-true (within-tolerance 0.246 pmf 0.01)))))
 
-;;; ============================================================
+;;; ====
 ;;; CDF Tests
-;;; ============================================================
+;;; ====
 
 (test-group cdf-tests
             (define-test exponential-cdf-test
@@ -512,9 +512,9 @@
               (let ([cdf (geometric-cdf 3 0.5)])
                    (assert-true (within-tolerance 0.875 cdf 0.001)))))
 
-;;; ============================================================
+;;; ====
 ;;; Quantile Tests
-;;; ============================================================
+;;; ====
 
 (test-group quantile-tests
             (define-test exponential-quantile-test

@@ -48,9 +48,9 @@
 (load "lattice/numeric/convolution.ss")
 (load "core/autodiff/reverse-diff.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Vector Utilities for Traced Values
-;;; ============================================================
+;;; ====
 
 ;;; traced-vec? : (Vector α) → Boolean
 (define (traced-vec? v)
@@ -72,9 +72,9 @@
       (traced-tape (vector-ref v 0))
       #f))
 
-;;; ============================================================
+;;; ====
 ;;; DFT VJP (Vector-Jacobian Product)
-;;; ============================================================
+;;; ====
 
 ;;; dft-vjp : (Vector Complex) → (Vector Complex)
 (define (dft-vjp output-grad)
@@ -95,9 +95,9 @@
             ((= i n) result)
             (vector-set! result i (complex-real (vector-ref grad i))))))
 
-;;; ============================================================
+;;; ====
 ;;; IDFT VJP
-;;; ============================================================
+;;; ====
 
 ;;; idft-vjp : (Vector Complex) → (Vector Complex)
 (define (idft-vjp output-grad)
@@ -118,9 +118,9 @@
 (define (idft-vjp-real output-grad)
   (idft-vjp (real->complex-vec output-grad)))
 
-;;; ============================================================
+;;; ====
 ;;; Convolution VJP
-;;; ============================================================
+;;; ====
 
 ;;; convolve-vjp-signal : (Vector Number) × (Vector Number) × Symbol → (Vector Number)
 (define (convolve-vjp-signal output-grad kernel mode)
@@ -219,9 +219,9 @@
                              (vector-set! result j sum))))]
               [else (error 'convolve-vjp-kernel "invalid mode" mode)])))
 
-;;; ============================================================
+;;; ====
 ;;; Traced DFT Operations
-;;; ============================================================
+;;; ====
 
 ;;; traced-dft-real : (Vector (Either Traced Number)) → (Vector Traced)
 (define (traced-dft-real x)
@@ -277,9 +277,9 @@
            ((= m n) (vector->list result))
            (vector-set! result m (sin (/ (* -1 two-pi k m) n))))))
 
-;;; ============================================================
+;;; ====
 ;;; High-Level Differentiable Signal Operations
-;;; ============================================================
+;;; ====
 
 ;;; diff-dft : (Vector Number) × ((Vector Complex) → Number) → (Vector Number)
 (define (diff-dft signal loss-fn)
@@ -331,9 +331,9 @@
         (values (convolve-vjp-signal grad-output kernel mode)
                 (convolve-vjp-kernel grad-output signal mode kernel-len))))
 
-;;; ============================================================
+;;; ====
 ;;; Traced Convolution (Integrated with Autodiff)
-;;; ============================================================
+;;; ====
 
 ;;; traced-convolve-1d : (Vector Traced) × (Vector Number) × Symbol → (Vector Traced)
 (define (traced-convolve-1d signal kernel mode)
@@ -392,9 +392,9 @@
                              (vector-set! grads j (vector-ref kernel k-idx)))))]
              [else (vector->list grads)])))
 
-;;; ============================================================
+;;; ====
 ;;; Power Spectrum Gradient
-;;; ============================================================
+;;; ====
 
 ;;; power-spectrum-grad : (Vector Complex) × (Vector Number) → (Vector Complex)
 (define (power-spectrum-grad X output-grad)
@@ -424,9 +424,9 @@
                    [grad (complex-scale (* 2 g-k) x-k)])
                   (vector-set! result k grad)))))
 
-;;; ============================================================
+;;; ====
 ;;; Magnitude Spectrum Gradient
-;;; ============================================================
+;;; ====
 
 ;;; magnitude-spectrum-grad : (Vector Complex) × (Vector Number) → (Vector Complex)
 (define (magnitude-spectrum-grad X output-grad)
@@ -445,9 +445,9 @@
                                    (complex-scale (/ g-k mag)
                                                   (complex-conjugate x-k))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Spectral Loss Gradients
-;;; ============================================================
+;;; ====
 
 ;;; spectral-mse-grad : (Vector Complex) × (Vector Complex) → (Values Number (Vector Complex))
 (define (spectral-mse-grad X1 X2)

@@ -4,9 +4,9 @@
 
 (load "lattice/dsl/chronicle/tagless-chronicle.ss")
 
-(display "========================================\n")
+(display "====\n")
 (display "Chronicle Engine Playtest\n")
-(display "========================================\n\n")
+(display "====\n\n")
 
 ;;; Helper to extract choice text
 (define (choice-text c)
@@ -15,7 +15,7 @@
 ;;; Create a runtime and test a specific path
 (define (test-path)
   (display "Testing a story path:\n")
-  (display "---------------------\n\n")
+  (display "----\n\n")
   
   ;; Start at entrance
   (let* ([runtime1 (make-chronicle-runtime mysterious-door-chronicle 'entrance)]
@@ -51,7 +51,7 @@
 
 ;;; Run validation
 (display "1. Validation Check\n")
-(display "-------------------\n")
+(display "----\n")
 (let ([result (validate-chronicle mysterious-door-chronicle 'entrance)])
      (display (format "Valid: ~a\n" (cdr (assq 'valid result))))
      (display (format "Scenes: ~a\n" (cdr (assq 'scenes result))))
@@ -59,7 +59,7 @@
 
 ;;; Run analysis
 (display "2. Analysis\n")
-(display "-----------\n")
+(display "----\n")
 (let ([result (analyze-chronicle mysterious-door-chronicle)])
      (display (format "Scene count: ~a\n" (cdr (assq 'scene-count result))))
      (display (format "Total choices: ~a\n" (cdr (assq 'total-choices result))))
@@ -69,7 +69,7 @@
 
 ;;; Generate graph exports
 (display "3. Graph Export\n")
-(display "---------------\n")
+(display "----\n")
 (let ([dot (chronicle->dot mysterious-door-chronicle 'mysterious_door)])
      (display (format "DOT graph: ~a bytes\n" (string-length dot))))
 (let ([mermaid (chronicle->mermaid mysterious-door-chronicle)])
@@ -77,7 +77,7 @@
 
 ;;; Play through the story
 (display "4. Story Execution Test\n")
-(display "------------------------\n")
+(display "----\n")
 (test-path)
 
 (display "✓ Playtest complete!\n")

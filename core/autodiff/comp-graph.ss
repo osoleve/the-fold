@@ -18,9 +18,9 @@
 
 (load "core/base/prelude.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Node Types
-;;; ============================================================
+;;; ====
 
 ;;; A computational graph node is one of:
 ;;;   (var symbol)                   - Input variable
@@ -42,9 +42,9 @@
 (define (node-op op-name inputs)
   (list 'op op-name inputs))
 
-;;; ============================================================
+;;; ====
 ;;; Node Predicates
-;;; ============================================================
+;;; ====
 
 ;;; node-var? : α → Bool
 (define (node-var? n)
@@ -62,9 +62,9 @@
 (define (node? n)
   (or (node-var? n) (node-const? n) (node-op? n)))
 
-;;; ============================================================
+;;; ====
 ;;; Node Accessors
-;;; ============================================================
+;;; ====
 
 ;;; node-var-name : Node → Symbol
 (define (node-var-name n)
@@ -91,9 +91,9 @@
    [(node-op? n) (node-op-inputs n)]
    [else '()]))
 
-;;; ============================================================
+;;; ====
 ;;; Computational Graph Structure
-;;; ============================================================
+;;; ====
 
 ;;; A computational graph contains:
 ;;;   - nodes: association list of (id . node)
@@ -118,9 +118,9 @@
 ;;; comp-graph-next-id : CompGraph → Nat
 (define (comp-graph-next-id g) (cadddr g))
 
-;;; ============================================================
+;;; ====
 ;;; Graph Construction (Functional Update)
-;;; ============================================================
+;;; ====
 
 ;;; graph-add-node : CompGraph × Node → (Values CompGraph Nat)
 ;;; Add a node to the graph, returning updated graph and node id.
@@ -148,9 +148,9 @@
 (define (graph-node-count g)
   (length (comp-graph-nodes g)))
 
-;;; ============================================================
+;;; ====
 ;;; Graph Traversal
-;;; ============================================================
+;;; ====
 
 ;;; graph-topological-order : CompGraph → (List Nat)
 ;;; Return node ids in topological order (inputs before outputs).
@@ -163,9 +163,9 @@
 (define (graph-reverse-order g)
   (map car (comp-graph-nodes g)))
 
-;;; ============================================================
+;;; ====
 ;;; Graph Operations
-;;; ============================================================
+;;; ====
 
 ;;; graph-map-nodes : (Nat × Node → α) × CompGraph → (List α)
 ;;; Apply function to each node.
@@ -198,9 +198,9 @@
   (map (lambda (entry) (node-op-name (cdr entry)))
        (graph-filter-nodes node-op? g)))
 
-;;; ============================================================
+;;; ====
 ;;; Dual Numbers for Forward Mode
-;;; ============================================================
+;;; ====
 
 ;;; A dual number represents a value and its derivative:
 ;;;   (dual value derivative)
@@ -231,9 +231,9 @@
 (define (dual-variable x)
   (dual x 1))
 
-;;; ============================================================
+;;; ====
 ;;; Dual Number Arithmetic
-;;; ============================================================
+;;; ====
 
 ;;; dual-add : Dual × Dual → Dual
 (define (dual-add a b)
@@ -357,9 +357,9 @@
                      (expt bv (- n 1))
                      (dual-deriv base))))))
 
-;;; ============================================================
+;;; ====
 ;;; Inverse Trigonometric Functions
-;;; ============================================================
+;;; ====
 
 ;;; dual-asin : Dual → Dual
 ;;; d(asin x)/dx = 1/sqrt(1-x^2)
@@ -391,9 +391,9 @@
         (dual (atan v)
               (/ (dual-deriv a) (+ 1 (* v v))))))
 
-;;; ============================================================
+;;; ====
 ;;; Hyperbolic Functions
-;;; ============================================================
+;;; ====
 
 ;;; dual-sinh : Dual → Dual
 ;;; d(sinh x)/dx = cosh x
@@ -427,9 +427,9 @@
         (dual (/ (- ex emx) (+ ex emx))
               (/ (dual-deriv a) (* cosh-v cosh-v)))))
 
-;;; ============================================================
+;;; ====
 ;;; Forward Mode Differentiation
-;;; ============================================================
+;;; ====
 
 ;;; forward-diff : (Number → Number) × Number → Number
 ;;; Compute derivative of f at x using forward mode.
@@ -458,9 +458,9 @@
            (cons (gradient-forward f args i)
                  (loop (+ i 1))))))
 
-;;; ============================================================
+;;; ====
 ;;; Hyperdual Numbers for Second Derivatives
-;;; ============================================================
+;;; ====
 
 ;;; A hyperdual number represents: a + b*e1 + c*e2 + d*e1e2
 ;;; where e1^2 = e2^2 = 0 (nilpotent) but e1e2 != 0.
@@ -511,9 +511,9 @@
 (define (hd-var12 x)
   (hyperdual x 1 1 0))
 
-;;; ============================================================
+;;; ====
 ;;; Hyperdual Arithmetic
-;;; ============================================================
+;;; ====
 
 ;;; hd-add : Hyperdual × Hyperdual → Hyperdual
 (define (hd-add a b)
@@ -692,9 +692,9 @@
                            (* n pv1 b2)
                            (* n pv2 (+ (* b12 bv) (* (- n 1) b1 b2)))))])))
 
-;;; ============================================================
+;;; ====
 ;;; Hyperdual Inverse Trigonometric Functions
-;;; ============================================================
+;;; ====
 
 ;;; hd-asin : Hyperdual → Hyperdual
 ;;; d(asin f)/dx = f'/sqrt(1-f^2)
@@ -750,9 +750,9 @@
                    (/ (- (* a12 one-v2) (* 2 av a1 a2))
                       (* one-v2 one-v2)))))
 
-;;; ============================================================
+;;; ====
 ;;; Hyperdual Hyperbolic Functions
-;;; ============================================================
+;;; ====
 
 ;;; hd-sinh : Hyperdual → Hyperdual
 ;;; d(sinh f)/dx = f'*cosh(f)
@@ -809,9 +809,9 @@
                    (* a2 sech2)
                    (* (- a12 (* 2 tv a1 a2)) sech2))))
 
-;;; ============================================================
+;;; ====
 ;;; Hessian via Hyperdual Numbers
-;;; ============================================================
+;;; ====
 
 ;;; hessian-forward : ((List Hyperdual) → Hyperdual) × (List Number) → Matrix
 ;;; Compute exact Hessian using hyperdual numbers.
@@ -845,9 +845,9 @@
 (define (second-derivative-forward f x)
   (hd-deriv12 (f (hd-var12 x))))
 
-;;; ============================================================
+;;; ====
 ;;; Gradient Tape (for Reverse Mode)
-;;; ============================================================
+;;; ====
 
 ;;; A tape records operations for reverse-mode differentiation.
 ;;; Each entry: (result-id op input-ids local-gradients)
@@ -896,9 +896,9 @@
        (let-values ([(keys vals) (hashtable-entries grads)])
                    (map cons (vector->list keys) (vector->list vals)))))
 
-;;; ============================================================
+;;; ====
 ;;; Graph Printing
-;;; ============================================================
+;;; ====
 
 ;;; graph-print : CompGraph → Unit
 ;;; Print a human-readable representation of the graph.
@@ -920,9 +920,9 @@
   (when (comp-graph-output g)
         (printf "  Output: [~a]~n" (comp-graph-output g))))
 
-;;; ============================================================
+;;; ====
 ;;; Graphviz Export
-;;; ============================================================
+;;; ====
 
 ;;; graph-to-dot : CompGraph → String
 ;;; Generate DOT format representation for Graphviz visualization.

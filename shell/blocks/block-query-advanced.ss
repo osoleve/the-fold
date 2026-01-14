@@ -42,9 +42,9 @@
          ;; Load dependencies
          ;; In actual use, this would import from (core block), (core cas), and (shell block-query)
          
-         ;;; ============================================================
+         ;;; ====
          ;;; Size-based Queries
-         ;;; ============================================================
+         ;;; ====
          
          ;;; query-size : (Nat → Boolean) → QueryPattern
          ;;; Match blocks based on payload size in bytes
@@ -67,9 +67,9 @@
                                (and (>= size min-size)
                                     (<= size max-size)))))
          
-         ;;; ============================================================
+         ;;; ====
          ;;; Graph Depth Queries
-         ;;; ============================================================
+         ;;; ====
          
          ;;; compute-depth : Block × (Hash → Block) → Nat
          ;;; Compute the maximum depth of the reference graph
@@ -143,9 +143,9 @@
                                      (<= d max-depth)))
                         fetch-fn))
          
-         ;;; ============================================================
+         ;;; ====
          ;;; Time-based Queries (Metadata-dependent)
-         ;;; ============================================================
+         ;;; ====
          
          ;;; These queries require external metadata that maps hashes to timestamps.
          ;;; The metadata is provided as a function: Hash → Timestamp (or #f if unknown)
@@ -181,9 +181,9 @@
                                          (<= t end-time)))
                             metadata-fn))
          
-         ;;; ============================================================
+         ;;; ====
          ;;; Higher-Order Query Composition
-         ;;; ============================================================
+         ;;; ====
          
          ;;; query-compose : (QueryPattern → QueryPattern) ... → QueryPattern → QueryPattern
          ;;; Compose query transformers left-to-right

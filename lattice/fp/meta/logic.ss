@@ -23,9 +23,9 @@
 (load "lattice/fp/meta/combinators.ss")
 (load "lattice/fp/data/stream.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Logic Variables
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Logic variables are placeholders that can be unified with values.
 ;;; Each variable has a unique identifier.
@@ -54,9 +54,9 @@
 (define (lvar=? v1 v2)
   (and (lvar? v1) (lvar? v2) (= (lvar-id v1) (lvar-id v2))))
 
-;;; ============================================================
+;;; ====
 ;;; Substitutions
-;;; ============================================================
+;;; ====
 ;;;
 ;;; A substitution is a mapping from logic variables to values.
 ;;; We represent it as an association list.
@@ -98,9 +98,9 @@
         [(pair? v) (cons (walk* (car v) subst) (walk* (cdr v) subst))]
         [else v])))
 
-;;; ============================================================
+;;; ====
 ;;; Unification
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Unification finds a substitution that makes two terms equal.
 
@@ -127,9 +127,9 @@
         ;; Cannot unify
         [else nothing])))
 
-;;; ============================================================
+;;; ====
 ;;; Goal Monad
-;;; ============================================================
+;;; ====
 ;;;
 ;;; A goal is a function from substitution to a stream of substitutions.
 ;;; Success produces substitutions, failure produces empty stream.
@@ -164,9 +164,9 @@
                    (stream-cons subst (lambda () stream-nil))
                    stream-nil))))
 
-;;; ============================================================
+;;; ====
 ;;; Goal Combinators
-;;; ============================================================
+;;; ====
 
 ;;; conj : Goal × Goal → Goal
 ;;; Conjunction: both goals must succeed.
@@ -199,9 +199,9 @@
 (define (conde clauses)
   (disj* (map conj* clauses)))
 
-;;; ============================================================
+;;; ====
 ;;; Fresh Variables
-;;; ============================================================
+;;; ====
 
 ;;; call/fresh : (LVar → Goal) → Goal
 ;;; Create a fresh logic variable and pass it to a goal function.
@@ -234,9 +234,9 @@
                                                               (call/fresh (lambda (d)
                                                                                   (f a b c d))))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Running Goals
-;;; ============================================================
+;;; ====
 
 ;;; run-goal : Nat × Goal → (List Substitution)
 ;;; Run a goal and collect up to n solutions.
@@ -250,9 +250,9 @@
        (map (lambda (subst) (reify var subst))
             (run-goal n (f var)))))
 
-;;; ============================================================
+;;; ====
 ;;; Reification
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Reification converts logic variables to readable values.
 
@@ -286,9 +286,9 @@
         [(pair? v) (cons (reify-s (car v) subst) (reify-s (cdr v) subst))]
         [else v])))
 
-;;; ============================================================
+;;; ====
 ;;; List Relations
-;;; ============================================================
+;;; ====
 
 ;;; conso : α × (List α) × (List α) → Goal
 ;;; Relational cons: (cons head tail) == list
@@ -362,9 +362,9 @@
                            (conso head tail lst)
                            (reverse-acc tail (cons head acc) out)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Arithmetic Relations (Peano)
-;;; ============================================================
+;;; ====
 ;;;
 ;;; We use Peano numerals: zero, (succ zero), (succ (succ zero)), ...
 
@@ -399,9 +399,9 @@
                   (conj (succo diff y)  ; y has a successor component
                         (minuso y x diff)))))
 
-;;; ============================================================
+;;; ====
 ;;; Convenience: Converting Numbers
-;;; ============================================================
+;;; ====
 
 ;;; nat->peano : Nat → Peano
 (define (nat->peano n)
@@ -415,9 +415,9 @@
       0
       (+ 1 (peano->nat (cadr p)))))
 
-;;; ============================================================
+;;; ====
 ;;; Occurs Check
-;;; ============================================================
+;;; ====
 ;;;
 ;;; The occurs check prevents creating circular structures.
 
@@ -463,9 +463,9 @@
                    stream-nil
                    (stream-cons (from-just result) (lambda () stream-nil))))))
 
-;;; ============================================================
+;;; ====
 ;;; Constraint Store (Simple)
-;;; ============================================================
+;;; ====
 ;;;
 ;;; For more complex logic programming, we'd want constraints.
 ;;; This is a minimal implementation.
@@ -482,9 +482,9 @@
 (define (cstore-constraints cs)
   (list-ref cs 2))
 
-;;; ============================================================
+;;; ====
 ;;; Debugging Utilities
-;;; ============================================================
+;;; ====
 
 ;;; show-subst : Substitution → (List (Symbol × α))
 ;;; String representation

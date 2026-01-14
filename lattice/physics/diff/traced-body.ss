@@ -17,9 +17,9 @@
 (load "lattice/physics/classical/rigid-body.ss")
 (load "lattice/physics/diff/traced-vec2.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Traced Rigid Body Data Structure
-;;; ============================================================
+;;; ====
 
 ;;; A traced rigid body has:
 ;;;   - pos: position (TracedVec2)
@@ -48,9 +48,9 @@
 (define (traced-body? b)
   (and (pair? b) (eq? (car b) 'traced-body)))
 
-;;; ============================================================
+;;; ====
 ;;; Accessors
-;;; ============================================================
+;;; ====
 
 ;;; traced-body-pos : TracedBody → TracedVec2
 (define (traced-body-pos b) (list-ref b 1))
@@ -80,9 +80,9 @@
 (define (traced-body-static? b)
   (= (traced-body-inv-mass b) 0))
 
-;;; ============================================================
+;;; ====
 ;;; Updaters (Immutable)
-;;; ============================================================
+;;; ====
 
 ;;; traced-body-with-pos : TracedBody × TracedVec2 → TracedBody
 (define (traced-body-with-pos b new-pos)
@@ -130,9 +130,9 @@
                     (traced-body-mass b)
                     (traced-body-inertia b)))
 
-;;; ============================================================
+;;; ====
 ;;; Conversion Between RigidBody2D and TracedBody
-;;; ============================================================
+;;; ====
 
 ;;; trace-rigid-body : RigidBody2D × Tape → TracedBody
 ;;; Convert a regular rigid body to a traced body (creates traced variables).
@@ -154,9 +154,9 @@
                    (traced-body-mass tb)
                    (traced-body-inertia tb)))
 
-;;; ============================================================
+;;; ====
 ;;; Static Body Constructor
-;;; ============================================================
+;;; ====
 
 ;;; make-traced-static-body : TracedVec2 × TracedValue → TracedBody
 ;;; Create a static (immovable) traced rigid body.
@@ -173,9 +173,9 @@
                           0    ; mass = 0 for static
                           0))) ; inertia = 0 for static
 
-;;; ============================================================
+;;; ====
 ;;; Body State Flattening (for optimization)
-;;; ============================================================
+;;; ====
 
 ;;; traced-body-state->list : TracedBody → (List TracedValue)
 ;;; Flatten body state to list of traced values: (px, py, vx, vy, angle, omega).
@@ -201,9 +201,9 @@
 ;;; Dimension of body state vector (6 for 2D rigid body).
 (define (body-state-dimension) 6)
 
-;;; ============================================================
+;;; ====
 ;;; Physics Operations on Traced Bodies
-;;; ============================================================
+;;; ====
 
 ;;; traced-body-velocity-at : TracedBody × TracedVec2 → TracedVec2
 ;;; Compute velocity at a world-space point on the body.
@@ -266,9 +266,9 @@
              [new-omega (traced-add (traced-body-angular-vel body) delta-omega)])
             (traced-body-with-angular-vel body new-omega))))
 
-;;; ============================================================
+;;; ====
 ;;; Moment of Inertia (same as rigid-body.ss, for convenience)
-;;; ============================================================
+;;; ====
 
 ;;; These return regular numbers since they compute constants.
 
@@ -278,9 +278,9 @@
 ;;; traced-rectangle-inertia : Number × Number × Number → Number
 (define traced-rectangle-inertia rectangle-inertia)
 
-;;; ============================================================
+;;; ====
 ;;; World-Space Transformations
-;;; ============================================================
+;;; ====
 
 ;;; traced-local-to-world : TracedBody × TracedVec2 → TracedVec2
 ;;; Transform a point from body-local coordinates to world coordinates.
@@ -307,9 +307,9 @@
 (define (traced-world-dir-to-local body world-dir)
   (traced-vec2-rotate world-dir (traced-neg (traced-body-angle body))))
 
-;;; ============================================================
+;;; ====
 ;;; Kinetic Energy (for debugging/validation)
-;;; ============================================================
+;;; ====
 
 ;;; traced-body-kinetic-energy : TracedBody → TracedValue
 ;;; Compute total kinetic energy: (1/2)mv² + (1/2)Iω²

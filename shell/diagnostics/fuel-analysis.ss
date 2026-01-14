@@ -200,9 +200,9 @@
         
         [else `(error unknown-primitive ,op)]))
 
-;;; ============================================================
+;;; ====
 ;;; Instrumentation State
-;;; ============================================================
+;;; ====
 
 ;;; We use a parameter to track primitive calls during evaluation.
 ;;; This is a thread-local mutable cell that holds:
@@ -230,9 +230,9 @@
 (define (get-prim-trace)
   (*prim-trace*))
 
-;;; ============================================================
+;;; ====
 ;;; Instrumented Primitive Dispatcher
-;;; ============================================================
+;;; ====
 
 ;;; prim-instrumented : Symbol × Args... → Value
 ;;; Instrumented version of prim that records calls.
@@ -240,9 +240,9 @@
   (record-prim-call! op)
   (apply prim op args))
 
-;;; ============================================================
+;;; ====
 ;;; Fuel Cost Calculation
-;;; ============================================================
+;;; ====
 
 ;;; calculate-total-fuel : ((Symbol . Nat) ...) → Nat
 ;;; Calculate total fuel cost from primitive call trace.
@@ -258,9 +258,9 @@
    0
    trace))
 
-;;; ============================================================
+;;; ====
 ;;; Tool 1: analyze-fuel
-;;; ============================================================
+;;; ====
 
 ;;; analyze-fuel : (α → β) × α → ((total-fuel . Nat) (primitive-calls . ...) (result . β))
 ;;; Analyze fuel consumption for a function call by tracing primitives.
@@ -296,9 +296,9 @@
                       (primitive-calls . ,trace)
                       (result . ,result))))))
 
-;;; ============================================================
+;;; ====
 ;;; Simple Test Wrapper
-;;; ============================================================
+;;; ====
 
 ;;; For testing, we can wrap primitive operations to demonstrate:
 
@@ -314,9 +314,9 @@
       1
       (prim-instrumented 'mul n (test-factorial (prim-instrumented 'sub n 1)))))
 
-;;; ============================================================
+;;; ====
 ;;; Tool 2: estimate-complexity
-;;; ============================================================
+;;; ====
 
 ;;; estimate-complexity : (α → β) × (Nat → α) × (List Nat) → Result
 ;;; Estimate computational complexity by running with multiple input sizes.
@@ -431,9 +431,9 @@
               (format "unknown (~ax growth)"
                       (exact (round fuel-ratio)))]))))
 
-;;; ============================================================
+;;; ====
 ;;; Pretty Printing
-;;; ============================================================
+;;; ====
 
 ;;; print-analysis : Analysis → void
 ;;; Pretty print fuel analysis results.

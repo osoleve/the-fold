@@ -115,7 +115,7 @@
  (notes
   "All test files now use test-*.ss naming convention (2026-01-08).
 
-   Some tests have restrictive permissions (marked with -------).
+   Some tests have restrictive permissions (marked with ----).
    These may require special environment setup or credentials.")
  (see-also ("core/test-framework.ss" "Test framework implementation")
             ("core/run-tests.ss" "Core test runner")

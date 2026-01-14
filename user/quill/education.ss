@@ -3,9 +3,9 @@
 ;;; Exercises are pure, data-first objects that can be graded against
 ;;; a run + answer. Progress is tracked in state meta.
 
-;;; ============================================================
+;;; ====
 ;;; Records
-;;; ============================================================
+;;; ====
 
 (define-record-type quill-check%
   (fields id description predicate meta))
@@ -27,9 +27,9 @@
 (define quill-exercise-on-pass quill-exercise%-on-pass)
 (define quill-exercise-meta quill-exercise%-meta)
 
-;;; ============================================================
+;;; ====
 ;;; Utilities
-;;; ============================================================
+;;; ====
 
 (define (quill-education-alist-ref alist key default)
   (let ([p (assq key alist)])
@@ -46,9 +46,9 @@
     (description . ,(quill-check-description check))
     (pass? . ,ok?)))
 
-;;; ============================================================
+;;; ====
 ;;; Story helpers
-;;; ============================================================
+;;; ====
 
 (define (quill-story-exercises story)
   (let ([p (assq 'exercises (quill-story-meta story))])
@@ -61,9 +61,9 @@
         [(eq? (quill-exercise-id (car xs)) exercise-id) (car xs)]
         [else (loop (cdr xs))])))
 
-;;; ============================================================
+;;; ====
 ;;; Progress tracking
-;;; ============================================================
+;;; ====
 
 (define (quill-run-education-statuses run)
   (quill-state-meta-get (quill-run-state run) 'education '()))
@@ -93,9 +93,9 @@
                                        (cons entry xs))])
         (quill-run-with-state run state1)))
 
-;;; ============================================================
+;;; ====
 ;;; Grading
-;;; ============================================================
+;;; ====
 
 (define (quill-grade-exercise story run exercise answer)
   (let* ([checks (quill-exercise-checks exercise)]

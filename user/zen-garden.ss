@@ -7,9 +7,9 @@
 
 (load "shell/layout.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Random Utilities
-;;; ============================================================
+;;; ====
 
 ;;; seed-random : Nat → void
 ;;; Seed the random number generator for reproducible gardens.
@@ -21,9 +21,9 @@
 (define (random-element lst)
   (list-ref lst (random (length lst))))
 
-;;; ============================================================
+;;; ====
 ;;; Garden Elements
-;;; ============================================================
+;;; ====
 
 (define *rocks* '(#\o #\O #\0 #\● #\◆))
 (define *plants* '(#\i #\| #\! #\† #\‡))
@@ -31,9 +31,9 @@
 (define *water* '(#\~ #\≈ #\∼))
 (define *rake* '(#\- #\= #\≡))
 
-;;; ============================================================
+;;; ====
 ;;; Perlin-like Noise (Simple)
-;;; ============================================================
+;;; ====
 
 ;;; noise : Float × Float × Nat → Float
 ;;; Simple 2D noise function (pseudo-random but smooth-ish).
@@ -43,9 +43,9 @@
          [result (sin (* n2 0.001))])
         result))
 
-;;; ============================================================
+;;; ====
 ;;; Garden Patterns
-;;; ============================================================
+;;; ====
 
 ;;; rake-pattern : Canvas × Int × Int × Int → void
 ;;; Draw raked sand patterns (horizontal waves).
@@ -114,9 +114,9 @@
                              (x-loop (+ dx 1))))
                   (y-loop (+ dy 1))))))
 
-;;; ============================================================
+;;; ====
 ;;; Garden Generation
-;;; ============================================================
+;;; ====
 
 ;;; generate-garden : Nat × Nat × Nat → Canvas
 ;;; Generate a zen garden from a seed.
@@ -165,9 +165,9 @@
        
        canvas))
 
-;;; ============================================================
+;;; ====
 ;;; Haiku Integration
-;;; ============================================================
+;;; ====
 
 (define *zen-haiku*
   '(("Rocks rest in silence" "Raked sand patterns flow" "Peace in each line drawn")
@@ -192,9 +192,9 @@
   (display (caddr haiku))
   (newline))
 
-;;; ============================================================
+;;; ====
 ;;; Display Functions
-;;; ============================================================
+;;; ====
 
 ;;; garden : [Nat] → void
 ;;; Display a zen garden. If no seed provided, use timestamp.
@@ -236,9 +236,9 @@
              (garden (+ i 1000))
              (loop (+ i 1)))))
 
-;;; ============================================================
+;;; ====
 ;;; Loaded
-;;; ============================================================
+;;; ====
 
 (display "\n")
 (display "Digital Zen Garden loaded.\n")

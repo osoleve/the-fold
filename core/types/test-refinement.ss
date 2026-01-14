@@ -10,9 +10,9 @@
 (load "core/types/dep-types.ss")
 (load "core/types/dep-infer.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Test Framework
-;;; ============================================================
+;;; ====
 
 (define *test-count* 0)
 (define *pass-count* 0)
@@ -50,9 +50,9 @@
 (define (test-error name result)
   (test name #t (and (pair? result) (eq? (car result) 'error))))
 
-;;; ============================================================
+;;; ====
 ;;; Tests
-;;; ============================================================
+;;; ====
 
 (define (run-tests)
   (display "
@@ -60,9 +60,9 @@
 
 ")
   
-  ;; --------------------------------------------------------
+  ;; ----
   ;; Refinement Type Predicates
-  ;; --------------------------------------------------------
+  ;; ----
   (display "--- Refinement Type Predicates ---
 ")
   
@@ -77,9 +77,9 @@
   (test-false "refinement-type-well-formed? wrong length"
               (refinement-type-well-formed? '(refine ((n : Nat)))))
   
-  ;; --------------------------------------------------------
+  ;; ----
   ;; Refinement Type Operations
-  ;; --------------------------------------------------------
+  ;; ----
   (display "
 --- Refinement Type Operations ---
 ")
@@ -94,9 +94,9 @@
         '(> n 0)
         (refinement-predicate '(refine ((n : Nat)) (> n 0))))
   
-  ;; --------------------------------------------------------
+  ;; ----
   ;; Refinement Type Construction
-  ;; --------------------------------------------------------
+  ;; ----
   (display "
 --- Refinement Type Construction ---
 ")
@@ -108,9 +108,9 @@
         '(refine ((x : Int)) (and (>= x 0) (< x 100)))
         (t-refine 'x 'Int '(and (>= x 0) (< x 100))))
   
-  ;; --------------------------------------------------------
+  ;; ----
   ;; Type Display
-  ;; --------------------------------------------------------
+  ;; ----
   (display "
 --- Type Display ---
 ")
@@ -122,9 +122,9 @@
         "{v : (List Int) | (sorted v)}"
         (dep-type->string '(refine ((v : (List Int))) (sorted v))))
   
-  ;; --------------------------------------------------------
+  ;; ----
   ;; Wellformedness
-  ;; --------------------------------------------------------
+  ;; ----
   (display "
 --- Wellformedness ---
 ")
@@ -134,9 +134,9 @@
   (test-true "well-formed-dep-type? refinement with Pi base"
              (well-formed-dep-type? '(refine ((f : (Π ((x : Nat)) Nat))) (total f))))
   
-  ;; --------------------------------------------------------
+  ;; ----
   ;; Type Synthesis - Refinement Type Formation
-  ;; --------------------------------------------------------
+  ;; ----
   (display "
 --- Type Synthesis: Refinement Type Formation ---
 ")
@@ -145,9 +145,9 @@
   ;; to be well-typed. Full type formation tests require a richer context.
   ;; For now, we test the basic structure.
   
-  ;; --------------------------------------------------------
+  ;; ----
   ;; Type Synthesis - Refinement Elimination
-  ;; --------------------------------------------------------
+  ;; ----
   (display "
 --- Type Synthesis: Refinement Elimination ---
 ")
@@ -169,9 +169,9 @@
        (test-error "synth (refine-elim x) with non-refinement"
                    (dep-synth '(refine-elim x) ctx)))
   
-  ;; --------------------------------------------------------
+  ;; ----
   ;; Dependent Types Integration
-  ;; --------------------------------------------------------
+  ;; ----
   (display "
 --- Dependent Types Integration ---
 ")
@@ -186,9 +186,9 @@
         '(refine ((v : (Vec 3 Int))) (sorted v))
         (t-refine 'v '(Vec 3 Int) '(sorted v)))
   
-  ;; --------------------------------------------------------
+  ;; ----
   ;; Summary
-  ;; --------------------------------------------------------
+  ;; ----
   (display "
 === Test Summary ===
 ")

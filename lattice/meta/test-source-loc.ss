@@ -9,9 +9,9 @@
 (load "core/testing/test-framework.ss")
 (load "lattice/meta/source-loc.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Helper Tests
-;;; ============================================================
+;;; ====
 
 (test-group "string-helpers"
 
@@ -28,9 +28,9 @@
     (assert-false (string-prefix? "test-" "foo.ss"))
     (assert-true (string-prefix? "" "anything"))))
 
-;;; ============================================================
+;;; ====
 ;;; Name Extraction Tests
-;;; ============================================================
+;;; ====
 
 (test-group "name-extraction"
 
@@ -56,9 +56,9 @@
     (assert-false (try-extract-define-name "(let ([x 1]) x)"))
     (assert-false (try-extract-define-name "; just a comment"))))
 
-;;; ============================================================
+;;; ====
 ;;; File Parsing Tests
-;;; ============================================================
+;;; ====
 
 (test-group "file-parsing"
 
@@ -70,9 +70,9 @@
     (assert-false (extract-first-sym ""))
     (assert-false (extract-first-sym ")invalid"))))
 
-;;; ============================================================
+;;; ====
 ;;; Integration Tests (require cache to be built)
-;;; ============================================================
+;;; ====
 
 (test-group "source-location-cache"
 
@@ -114,8 +114,8 @@
                         #t
                         (loop (+ i 1))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Run All Tests
-;;; ============================================================
+;;; ====
 
 (run-all-tests)

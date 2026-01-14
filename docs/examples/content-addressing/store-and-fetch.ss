@@ -8,9 +8,9 @@
 (load "core/blocks/block.ss")
 (load "core/blocks/cas.ss")
 
-;;; ============================================================
+;;; ====
 ;;; The Basic Idea
-;;; ============================================================
+;;; ====
 
 (display "=== Content-Addressed Storage ===\n")
 
@@ -25,9 +25,9 @@ The hash is computed from the content itself.
 Same content = same hash, always.
 ")
 
-;;; ============================================================
+;;; ====
 ;;; Creating and Storing Blocks
-;;; ============================================================
+;;; ====
 
 (display "=== Storing Blocks ===\n")
 
@@ -43,9 +43,9 @@ Same content = same hash, always.
 (cas-store! greeting-block)
 (display "Stored in CAS.\n")
 
-;;; ============================================================
+;;; ====
 ;;; Fetching by Hash
-;;; ============================================================
+;;; ====
 
 (display "\n=== Fetching by Hash ===\n")
 
@@ -59,9 +59,9 @@ Same content = same hash, always.
              (equal? (block-payload retrieved)
                      (block-payload greeting-block))))
 
-;;; ============================================================
+;;; ====
 ;;; Automatic Deduplication
-;;; ============================================================
+;;; ====
 
 (display "\n=== Deduplication ===\n")
 
@@ -77,9 +77,9 @@ Same content = same hash, always.
 (cas-store! greeting-copy)
 (display "\nStoring 'copy' is a no-op - content already exists.\n")
 
-;;; ============================================================
+;;; ====
 ;;; Storing Different Content
-;;; ============================================================
+;;; ====
 
 (display "\n=== Different Content = Different Hash ===\n")
 
@@ -90,9 +90,9 @@ Same content = same hash, always.
 (format #t "Block B hash: ~a...~%" (substring (block-hash block-b) 0 16))
 (format #t "Same? ~a~%" (equal? (block-hash block-a) (block-hash block-b)))
 
-;;; ============================================================
+;;; ====
 ;;; Blocks with References
-;;; ============================================================
+;;; ====
 
 (display "\n=== Blocks with References ===\n")
 
@@ -122,9 +122,9 @@ Same content = same hash, always.
              (block-payload child))))
  (block-refs parent))
 
-;;; ============================================================
+;;; ====
 ;;; The Power of Content Addressing
-;;; ============================================================
+;;; ====
 
 (display "\n=== Why This Matters ===\n")
 

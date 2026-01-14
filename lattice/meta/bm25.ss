@@ -28,16 +28,16 @@
 
 (load "core/base/prelude.ss")
 
-;;; ============================================================
+;;; ====
 ;;; BM25 Parameters
-;;; ============================================================
+;;; ====
 
 (define BM25-K1 1.2)   ; Term frequency saturation
 (define BM25-B 0.75)   ; Length normalization factor
 
-;;; ============================================================
+;;; ====
 ;;; Index Data Structure
-;;; ============================================================
+;;; ====
 
 ;;; BM25 index is an alist with:
 ;;;   doc-count      : Number of documents
@@ -57,9 +57,9 @@
     (doc-lengths . ())
     (doc-data . ())))
 
-;;; ============================================================
+;;; ====
 ;;; Index Accessors
-;;; ============================================================
+;;; ====
 
 (define (bm25-doc-count idx)
   (cdr (assq 'doc-count idx)))
@@ -86,9 +86,9 @@
            0
            (/ total count))))
 
-;;; ============================================================
+;;; ====
 ;;; Term Operations
-;;; ============================================================
+;;; ====
 
 ;;; tokenize : String -> (List Symbol)
 ;;; Tokenize a string into lowercase word symbols
@@ -210,9 +210,9 @@
                     (loop (cdr lst) (cons result acc))
                     (loop (cdr lst) acc))))))
 
-;;; ============================================================
+;;; ====
 ;;; Index Building
-;;; ============================================================
+;;; ====
 
 ;;; bm25-add-doc : Index DocId (List Symbol) Any -> Index
 ;;; Add a document to the index
@@ -252,9 +252,9 @@
 ;;; Alias for bm25-add-doc (pure, returns new index)
 (define bm25-add-doc! bm25-add-doc)
 
-;;; ============================================================
+;;; ====
 ;;; Scoring
-;;; ============================================================
+;;; ====
 
 ;;; bm25-idf : Index Symbol -> Number
 ;;; Compute inverse document frequency for a term
@@ -298,9 +298,9 @@
              0
              query-terms))))
 
-;;; ============================================================
+;;; ====
 ;;; Search
-;;; ============================================================
+;;; ====
 
 ;;; bm25-search : Index (List Symbol) Int -> (List (DocId . Score))
 ;;; Search for documents matching query terms, return top-k results
@@ -324,9 +324,9 @@
       '()
       (cons (car lst) (take-at-most (- n 1) (cdr lst)))))
 
-;;; ============================================================
+;;; ====
 ;;; Result Helpers
-;;; ============================================================
+;;; ====
 
 ;;; bm25-get-data : Index DocId -> Any | #f
 ;;; Get associated data for a document
@@ -343,9 +343,9 @@
                     (list doc-id score (bm25-get-data idx doc-id))))
        results))
 
-;;; ============================================================
+;;; ====
 ;;; Statistics
-;;; ============================================================
+;;; ====
 
 ;;; bm25-stats : Index -> Alist
 ;;; Get index statistics
@@ -355,9 +355,9 @@
     (unique-terms . ,(length (bm25-term-doc-freq idx)))
     (avg-doc-length . ,(bm25-avg-doc-length idx))))
 
-;;; ============================================================
+;;; ====
 ;;; Lattice Integration
-;;; ============================================================
+;;; ====
 
 ;;; skill->terms : ManifestData -> (List Symbol)
 ;;; Extract searchable terms from skill manifest data
@@ -397,9 +397,9 @@
       (tokenize (symbol->string sym))
       '()))
 
-;;; ============================================================
+;;; ====
 ;;; REPL Interface
-;;; ============================================================
+;;; ====
 
 (printf "bm25.ss loaded.\n")
 (printf "  (bm25-create)                  - Create empty index\n")

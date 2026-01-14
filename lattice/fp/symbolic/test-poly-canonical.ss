@@ -5,9 +5,9 @@
 (load "core/testing/test-framework.ss")
 (load "lattice/fp/symbolic/poly-canonical.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Test: Expression to Polynomial Conversion
-;;; ============================================================
+;;; ====
 
 (test-group "expr-to-poly-conversion"
   (define-test "convert simple variable"
@@ -37,9 +37,9 @@
            [poly (expr->polynomial expr 'x Q-field-sym)])
       (assert-false poly))))
 
-;;; ============================================================
+;;; ====
 ;;; Test: Polynomial to Expression Conversion
-;;; ============================================================
+;;; ====
 
 (test-group "poly-to-expr-conversion"
   (define-test "convert degree 0 polynomial"
@@ -59,9 +59,9 @@
       ;; Should skip the zero coefficient term
       (assert-true (sum? expr)))))
 
-;;; ============================================================
+;;; ====
 ;;; Test: Expression Degree
-;;; ============================================================
+;;; ====
 
 (test-group "expr-degree"
   (define-test "constant has degree 0"
@@ -84,9 +84,9 @@
            [expr (sum (power x (num 2)) (sum x (num 1)))])
       (assert-equal (expr-degree expr 'x) 2))))
 
-;;; ============================================================
+;;; ====
 ;;; Test: Polynomial Expression Predicate
-;;; ============================================================
+;;; ====
 
 (test-group "polynomial-expr-predicate"
   (define-test "number is polynomial"
@@ -109,9 +109,9 @@
   (define-test "x^(1/2) is not polynomial"
     (assert-false (polynomial-expr? (power (var 'x) (quotient (num 1) (num 2))) 'x))))
 
-;;; ============================================================
+;;; ====
 ;;; Test: GCD-Based Simplification
-;;; ============================================================
+;;; ====
 
 (test-group "gcd-simplification"
   (define-test "simplify-rational reduces common factors"
@@ -136,9 +136,9 @@
       ;; Should remain a quotient with same degrees
       (assert-true (quotient? simplified)))))
 
-;;; ============================================================
+;;; ====
 ;;; Test: Polynomial GCD
-;;; ============================================================
+;;; ====
 
 (test-group "poly-gcd"
   (define-test "GCD of coprime polynomials is constant"
@@ -154,9 +154,9 @@
            [gcd-expr (expr-poly-gcd expr expr 'x)])
       (assert-equal (expr-degree gcd-expr 'x) (expr-degree expr 'x)))))
 
-;;; ============================================================
+;;; ====
 ;;; Test: Polynomial Division
-;;; ============================================================
+;;; ====
 
 (test-group "poly-division"
   (define-test "divide x^2 by x gives x with remainder 0"
@@ -180,9 +180,9 @@
       ;; Remainder should be constant (1)
       (assert-true (num? rem-expr)))))
 
-;;; ============================================================
+;;; ====
 ;;; Test: To Polynomial Form
-;;; ============================================================
+;;; ====
 
 (test-group "to-polynomial-form"
   (define-test "converts to canonical form"
@@ -192,9 +192,9 @@
            [canon (to-polynomial-form expr 'x)])
       (assert-equal (expr-degree canon 'x) 2))))
 
-;;; ============================================================
+;;; ====
 ;;; Test: Square-Free Operations
-;;; ============================================================
+;;; ====
 
 (test-group "square-free"
   (define-test "square-free of x^2 is x"
@@ -211,8 +211,8 @@
       ;; Should have factor with multiplicity 2
       (assert-true (>= (length factors) 1)))))
 
-;;; ============================================================
+;;; ====
 ;;; Run All Tests
-;;; ============================================================
+;;; ====
 
 (run-all-tests)

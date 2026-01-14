@@ -11,9 +11,9 @@
 (load "lattice/data/graph-matrix.ss")
 (load "lattice/data/graph-community.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Test Infrastructure
-;;; ============================================================
+;;; ====
 
 (define *tests-passed* 0)
 (define *tests-failed* 0)
@@ -63,9 +63,9 @@
   (display " ===")
   (newline))
 
-;;; ============================================================
+;;; ====
 ;;; Test Graphs
-;;; ============================================================
+;;; ====
 
 ;;; Two disconnected triangles (clear 2-community structure)
 (define two-triangles-edges
@@ -115,9 +115,9 @@
 (define mst-test-adj
   (edges->adjacency-matrix mst-test-edges 4 #t))
 
-;;; ============================================================
+;;; ====
 ;;; Community Detection Tests
-;;; ============================================================
+;;; ====
 
 (test-group "Label Propagation")
 
@@ -151,9 +151,9 @@
   (test "single node - length" 1 (vector-length labels))
   (test "single node - label" 0 (vector-ref labels 0)))
 
-;;; ============================================================
+;;; ====
 ;;; Communities->Partition Tests
-;;; ============================================================
+;;; ====
 
 (test-group "Communities->Partition")
 
@@ -173,9 +173,9 @@
        [partition (communities->partition labels)])
   (test "each separate count" 3 (length partition)))
 
-;;; ============================================================
+;;; ====
 ;;; Num-Communities Tests
-;;; ============================================================
+;;; ====
 
 (test-group "Num Communities")
 
@@ -183,9 +183,9 @@
 (test "num communities - 1" 1 (num-communities (vector 0 0 0)))
 (test "num communities - 3" 3 (num-communities (vector 0 1 2)))
 
-;;; ============================================================
+;;; ====
 ;;; Modularity Tests
-;;; ============================================================
+;;; ====
 
 (test-group "Modularity")
 
@@ -209,9 +209,9 @@
        [Q (modularity k4-adj labels)])
   (test-true "K4 single community Q near 0" (< (abs Q) 0.01)))
 
-;;; ============================================================
+;;; ====
 ;;; Prim's MST Tests
-;;; ============================================================
+;;; ====
 
 (test-group "Prim's MST")
 
@@ -243,9 +243,9 @@
        [mst (prim-mst single-adj)])
   (test "single node MST" 0 (length mst)))
 
-;;; ============================================================
+;;; ====
 ;;; Kruskal's MST Tests
-;;; ============================================================
+;;; ====
 
 (test-group "Kruskal's MST")
 
@@ -268,9 +268,9 @@
 (let ([mst (kruskal-mst '() 3)])
   (test "empty edges" 0 (length mst)))
 
-;;; ============================================================
+;;; ====
 ;;; MST Weight Tests
-;;; ============================================================
+;;; ====
 
 (test-group "MST Weight")
 
@@ -278,9 +278,9 @@
 (test "empty mst weight" 0 (mst-weight '()))
 (test "single edge weight" 5 (mst-weight '((0 1 5))))
 
-;;; ============================================================
+;;; ====
 ;;; Connected Components Tests
-;;; ============================================================
+;;; ====
 
 (test-group "Connected Components")
 
@@ -309,9 +309,9 @@
 (let ([components (connected-components barbell-adj)])
   (test "barbell has 1 component" 1 (num-communities components)))
 
-;;; ============================================================
+;;; ====
 ;;; Is-Connected? Tests
-;;; ============================================================
+;;; ====
 
 (test-group "Is Connected?")
 
@@ -320,9 +320,9 @@
 (test-false "two triangles not connected" (is-connected? two-triangles-adj))
 (test-true "barbell is connected" (is-connected? barbell-adj))
 
-;;; ============================================================
+;;; ====
 ;;; Union-Find Tests
-;;; ============================================================
+;;; ====
 
 (test-group "Union-Find")
 
@@ -342,12 +342,12 @@
   (test-true "union merges 0,1"
              (= (uf-find parent 0) (uf-find parent 1))))
 
-;;; ============================================================
+;;; ====
 ;;; Summary
-;;; ============================================================
+;;; ====
 
 (newline)
-(display "================================")
+(display "====")
 (newline)
 (display "Tests passed: ")
 (display *tests-passed*)
@@ -355,7 +355,7 @@
 (display "Tests failed: ")
 (display *tests-failed*)
 (newline)
-(display "================================")
+(display "====")
 (newline)
 
 (if (> *tests-failed* 0)

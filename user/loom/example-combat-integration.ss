@@ -16,9 +16,9 @@
 (load "user/loom/combat.ss")
 (load "user/loom/ai.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Example 1: Basic Combat
-;;; ============================================================
+;;; ====
 
 (define (example-basic-combat)
   (display "\n=== Example 1: Basic Combat ===\n\n")
@@ -54,9 +54,9 @@
                                (newline)
                                (display (format "Player HP after counter: ~a\n" (entity-hp new-player)))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Example 2: AI Behavior
-;;; ============================================================
+;;; ====
 
 (define (example-ai-behavior)
   ;; Create a small world
@@ -123,9 +123,9 @@
                    (ai-action-type troll-action)
                    (ai-action-data troll-action))))
 
-;;; ============================================================
+;;; ====
 ;;; Example 3: Complete Turn-Based Combat Loop
-;;; ============================================================
+;;; ====
 
 (define (example-combat-loop)
   (define tm (make-tilemap 20 20))
@@ -206,9 +206,9 @@
                (set! turn (+ turn 1))
                (loop)]))))
 
-;;; ============================================================
+;;; ====
 ;;; Example 4: Inventory System
-;;; ============================================================
+;;; ====
 
 (define (example-inventory)
   (define tm (make-tilemap 10 10))
@@ -250,9 +250,9 @@
        (display (format "  Items at (5,5): ~a\n"
                         (length (world-items-at world 5 5))))))
 
-;;; ============================================================
+;;; ====
 ;;; Example 5: Complete Game Turn with All Systems
-;;; ============================================================
+;;; ====
 
 (define (example-complete-turn)
   (define tm (make-tilemap 20 20))
@@ -303,9 +303,9 @@
   
   (display "\nTurn complete!\n"))
 
-;;; ============================================================
+;;; ====
 ;;; Run All Examples
-;;; ============================================================
+;;; ====
 
 (define (run-all-examples)
   (display "\n")

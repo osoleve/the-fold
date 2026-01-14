@@ -14,9 +14,9 @@
 (load "core/base/prelude.ss")
 (load "lattice/numeric/polynomial.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Transfer Function Representation
-;;; ============================================================
+;;; ====
 
 ;;; A transfer function is: (tf num den)
 ;;; where:
@@ -89,9 +89,9 @@
 (define (tf-strictly-proper? tf)
   (> (tf-relative-degree tf) 0))
 
-;;; ============================================================
+;;; ====
 ;;; Poles and Zeros
-;;; ============================================================
+;;; ====
 
 ;;; tf-poles : TF → (List Complex)
 ;;; Get the poles (roots of denominator).
@@ -115,9 +115,9 @@
 (define (tf-gain tf)
   (/ (poly-leading (tf-num tf)) (poly-leading (tf-den tf))))
 
-;;; ============================================================
+;;; ====
 ;;; Transfer Function Evaluation
-;;; ============================================================
+;;; ====
 
 ;;; tf-eval : TF × Complex → Complex
 ;;; Evaluate H(s) at complex frequency s.
@@ -140,9 +140,9 @@
            'infinite
            (/ (poly-eval (tf-num tf) 0) den-at-zero))))
 
-;;; ============================================================
+;;; ====
 ;;; Frequency Response
-;;; ============================================================
+;;; ====
 
 ;;; tf-freq-response : TF × Vector → Vector
 ;;; Compute frequency response H(jw) for vector of frequencies w.
@@ -209,9 +209,9 @@
          [phase-deg (tf-phase-deg tf freqs)])
         (list freqs mag-db phase-deg)))
 
-;;; ============================================================
+;;; ====
 ;;; System Connections
-;;; ============================================================
+;;; ====
 
 ;;; tf-series : TF × TF → TF
 ;;; Series connection: H1(s) * H2(s)
@@ -255,9 +255,9 @@
 (define (tf-unity-feedback G)
   (tf-feedback G (tf-from-lists '(1) '(1)) 'negative))
 
-;;; ============================================================
+;;; ====
 ;;; Stability Analysis (Basic)
-;;; ============================================================
+;;; ====
 
 ;;; tf-stable? : TF → Boolean
 ;;; Check if transfer function is stable.
@@ -276,9 +276,9 @@
 (define (tf-pole-real-parts tf)
   (map complex-real (tf-poles tf)))
 
-;;; ============================================================
+;;; ====
 ;;; Display
-;;; ============================================================
+;;; ====
 
 ;;; tf->string : TF → String
 ;;; Pretty-print transfer function.
@@ -287,9 +287,9 @@
         [den-str (poly->string (tf-den tf))])
        (string-append "(" num-str ") / (" den-str ")")))
 
-;;; ============================================================
+;;; ====
 ;;; Utility Functions
-;;; ============================================================
+;;; ====
 
 ;;; log10 : Number → Number
 (define (log10 x)

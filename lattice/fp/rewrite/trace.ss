@@ -26,9 +26,9 @@
 
 (load "core/base/prelude.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Trace Step Construction
-;;; ============================================================
+;;; ====
 
 ;;; make-trace-step : Expr × Expr × Symbol × Path × Alist → Step
 ;;; Create a single trace step recording a rewrite.
@@ -39,9 +39,9 @@
     (position . ,position)
     (bindings . ,bindings)))
 
-;;; ============================================================
+;;; ====
 ;;; Trace Step Accessors
-;;; ============================================================
+;;; ====
 
 ;;; step? : Any → Boolean
 (define (step? x)
@@ -72,9 +72,9 @@
   (let ([binds (assq 'bindings s)])
        (if binds (cdr binds) '())))
 
-;;; ============================================================
+;;; ====
 ;;; Trace Construction
-;;; ============================================================
+;;; ====
 
 ;;; make-trace : Expr → Trace
 ;;; Create a new trace starting with an initial expression.
@@ -84,9 +84,9 @@
     (final . ,initial)
     (verified? . #f)))
 
-;;; ============================================================
+;;; ====
 ;;; Trace Predicates
-;;; ============================================================
+;;; ====
 
 ;;; trace? : Any → Boolean
 (define (trace? x)
@@ -95,9 +95,9 @@
        (assq 'steps x)
        (assq 'final x)))
 
-;;; ============================================================
+;;; ====
 ;;; Trace Accessors
-;;; ============================================================
+;;; ====
 
 ;;; trace-initial : Trace → Expr
 (define (trace-initial t)
@@ -120,9 +120,9 @@
 (define (trace-step-count t)
   (length (trace-steps t)))
 
-;;; ============================================================
+;;; ====
 ;;; Trace Modification
-;;; ============================================================
+;;; ====
 
 ;;; trace-add-step : Trace × Step → Trace
 ;;; Add a step to the trace, updating the final expression.
@@ -148,9 +148,9 @@
     (final . ,(trace-final t2))
     (verified? . #f)))
 
-;;; ============================================================
+;;; ====
 ;;; Trace Display Helpers
-;;; ============================================================
+;;; ====
 
 ;;; trace-rules-used : Trace → (List Symbol)
 ;;; Get list of all rules used in a trace.

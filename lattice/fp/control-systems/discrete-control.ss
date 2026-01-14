@@ -17,9 +17,9 @@
 (load "lattice/linalg/matrix-eigen.ss")
 (load "lattice/fp/control-systems/state-space.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Discrete State Space Representation
-;;; ============================================================
+;;; ====
 
 ;;; A discrete state-space system uses the same (ss A B C D) structure
 ;;; but with the interpretation:
@@ -64,9 +64,9 @@
 (define (error-result? x)
   (and (pair? x) (eq? (car x) 'error)))
 
-;;; ============================================================
+;;; ====
 ;;; Zero-Order Hold (ZOH) Discretization
-;;; ============================================================
+;;; ====
 
 ;;; c2d-zoh : SS × Number → DSS
 ;;; Convert continuous-time to discrete-time using Zero-Order Hold.
@@ -122,9 +122,9 @@
                                           (matrix-set! Bd i j (matrix-ref exp-block i (+ n j)))))
                                   (make-dss Ad Bd C D Ts))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Tustin (Bilinear) Discretization
-;;; ============================================================
+;;; ====
 
 ;;; c2d-tustin : SS × Number → DSS
 ;;; Convert continuous-time to discrete-time using Tustin transform.
@@ -181,9 +181,9 @@
           Ts-mod (* (/ 2 wc) (tan (* wc Ts 0.5)))])
         (c2d-tustin sys Ts-mod)))
 
-;;; ============================================================
+;;; ====
 ;;; Discrete to Continuous (Inverse)
-;;; ============================================================
+;;; ====
 
 ;;; d2c-tustin : DSS × Number → SS
 ;;; Convert discrete-time to continuous-time using inverse Tustin.
@@ -216,9 +216,9 @@
                              [D (matrix-sub Dd (matrix-scale (/ Ts 2) CinvBd))])
                             (make-ss A B C D)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Discrete-Time Simulation
-;;; ============================================================
+;;; ====
 
 ;;; dss-step : DSS × Vec × Vec → Vec
 ;;; Compute one step: x[k+1] = A*x[k] + B*u[k]
@@ -279,9 +279,9 @@
         (let ([inputs (make-list n step-input)])
              (cdr (dss-simulate sys x0 inputs)))))
 
-;;; ============================================================
+;;; ====
 ;;; Discrete-Time Stability
-;;; ============================================================
+;;; ====
 
 ;;; dss-stable? : DSS → Boolean
 ;;; Check if discrete system is stable.
@@ -332,9 +332,9 @@
     (cons (cadar info) (- (caddar info)))]
    [else (find-complex-at-index i (cdr info))]))
 
-;;; ============================================================
+;;; ====
 ;;; Sample Rate Selection
-;;; ============================================================
+;;; ====
 
 ;;; recommend-sample-rate : SS → Number
 ;;; Recommend sample rate based on system bandwidth.
@@ -366,9 +366,9 @@
                     (/ 1 (* 10 (apply max rates)))))]
          [else 0.1])))
 
-;;; ============================================================
+;;; ====
 ;;; Helper Functions
-;;; ============================================================
+;;; ====
 
 ;;; vec-add : Vec × Vec → Vec
 (define (vec-add v1 v2)

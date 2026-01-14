@@ -6,9 +6,9 @@
 ;;;
 ;;; Each demo creates an SVG file in the current directory.
 
-;;; ============================================================
+;;; ====
 ;;; Load Turtle Modules
-;;; ============================================================
+;;; ====
 
 (display "Loading turtle modules...\n")
 (load "turtle-color.ss")
@@ -17,9 +17,9 @@
 (load "turtle-svg.ss")
 (display "Ready!\n\n")
 
-;;; ============================================================
+;;; ====
 ;;; Demo 1: Basic Square
-;;; ============================================================
+;;; ====
 
 (define (demo-square)
   (display "Demo 1: Drawing a square...\n")
@@ -31,9 +31,9 @@
         (save-svg d "turtle-square.svg")
         (display "  Saved to turtle-square.svg\n")))
 
-;;; ============================================================
+;;; ====
 ;;; Demo 2: Colorful Star
-;;; ============================================================
+;;; ====
 
 (define (demo-star)
   (display "Demo 2: Drawing a colorful star...\n")
@@ -46,9 +46,9 @@
         (save-svg d "turtle-star.svg")
         (display "  Saved to turtle-star.svg\n")))
 
-;;; ============================================================
+;;; ====
 ;;; Demo 3: Spiral
-;;; ============================================================
+;;; ====
 
 (define (demo-spiral)
   (display "Demo 3: Drawing a spiral...\n")
@@ -60,9 +60,9 @@
         (save-svg d "turtle-spiral.svg")
         (display "  Saved to turtle-spiral.svg\n")))
 
-;;; ============================================================
+;;; ====
 ;;; Demo 4: Nested Squares
-;;; ============================================================
+;;; ====
 
 (define (nested-squares t n size)
   (if (<= n 0)
@@ -84,9 +84,9 @@
         (save-svg d "turtle-nested.svg")
         (display "  Saved to turtle-nested.svg\n")))
 
-;;; ============================================================
+;;; ====
 ;;; Demo 5: Flower Pattern
-;;; ============================================================
+;;; ====
 
 (define (flower-petal t size)
   ;; Draw a petal: arc right, arc left
@@ -115,9 +115,9 @@
         (save-svg d "turtle-flower.svg")
         (display "  Saved to turtle-flower.svg\n")))
 
-;;; ============================================================
+;;; ====
 ;;; Demo 6: Polygon Gallery
-;;; ============================================================
+;;; ====
 
 (define (demo-polygons)
   (display "Demo 6: Drawing polygon gallery...\n")
@@ -163,9 +163,9 @@
         (save-svg d "turtle-polygons.svg")
         (display "  Saved to turtle-polygons.svg\n")))
 
-;;; ============================================================
+;;; ====
 ;;; Demo 7: Koch Snowflake (Fractal)
-;;; ============================================================
+;;; ====
 
 (define (koch-segment t length depth)
   (if (= depth 0)
@@ -202,9 +202,9 @@
         (save-svg d "turtle-koch.svg")
         (display "  Saved to turtle-koch.svg\n")))
 
-;;; ============================================================
+;;; ====
 ;;; Demo 8: Colorful Circles
-;;; ============================================================
+;;; ====
 
 (define (color-wheel t n radius)
   (let loop ([t t] [i 0])
@@ -230,9 +230,9 @@
         (save-svg d "turtle-circles.svg")
         (display "  Saved to turtle-circles.svg\n")))
 
-;;; ============================================================
+;;; ====
 ;;; Run All Demos
-;;; ============================================================
+;;; ====
 
 (define (run-demos)
   (display "=== Turtle Graphics Demos ===\n\n")

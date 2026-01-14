@@ -26,9 +26,9 @@
 
 (load "core/base/prelude.ss")
 
-;;; ============================================================
+;;; ====
 ;;; F64 Bytevector Operations
-;;; ============================================================
+;;; ====
 
 ;;; make-f64-bytevector : Nat → Bytevector
 ;;; Create a bytevector sized for N f64 values (N * 8 bytes)
@@ -80,9 +80,9 @@
                   (f64-bv-set! bv i (car lst))
                   (loop (cdr lst) (+ i 1)))))))
 
-;;; ============================================================
+;;; ====
 ;;; F32 Bytevector Operations
-;;; ============================================================
+;;; ====
 
 (define (make-f32-bytevector n)
   (make-bytevector (* n 4) 0))
@@ -96,9 +96,9 @@
 (define (f32-bv-set! bv i val)
   (bytevector-ieee-single-native-set! bv (* i 4) val))
 
-;;; ============================================================
+;;; ====
 ;;; I64 Bytevector Operations
-;;; ============================================================
+;;; ====
 
 (define (make-i64-bytevector n)
   (make-bytevector (* n 8) 0))
@@ -112,9 +112,9 @@
 (define (i64-bv-set! bv i val)
   (bytevector-s64-native-set! bv (* i 8) val))
 
-;;; ============================================================
+;;; ====
 ;;; U64 Bytevector Operations
-;;; ============================================================
+;;; ====
 
 (define (make-u64-bytevector n)
   (make-bytevector (* n 8) 0))
@@ -128,9 +128,9 @@
 (define (u64-bv-set! bv i val)
   (bytevector-u64-native-set! bv (* i 8) val))
 
-;;; ============================================================
+;;; ====
 ;;; Safe Locking for Long-Running FFI
-;;; ============================================================
+;;; ====
 
 ;;; with-locked-bytevector : Bytevector × (→ α) → α
 ;;; Lock bytevector during thunk execution to prevent GC relocation.
@@ -151,9 +151,9 @@
    thunk
    (lambda () (for-each unlock-object bvs))))
 
-;;; ============================================================
+;;; ====
 ;;; Mat4 Bytevector Helpers
-;;; ============================================================
+;;; ====
 
 ;;; make-mat4-bytevector : → Bytevector
 ;;; Create bytevector for 4x4 matrix (16 f64s = 128 bytes)
@@ -187,9 +187,9 @@
        (f64-bv-set! bv (+ base 2) z)
        (f64-bv-set! bv (+ base 3) w)))
 
-;;; ============================================================
+;;; ====
 ;;; Layer 2 Rust-Accelerated Bytevector Operations (fold-gu3t)
-;;; ============================================================
+;;; ====
 ;;;
 ;;; These functions call into Rust for accelerated operations.
 ;;; Requires the rust-accel library to be loaded.
@@ -225,9 +225,9 @@
           (rust-load-fn! "fold_str_ends_with" '(u8* u64 u8* u64) 'bool)
           (set! *str-ffi-loaded* #t)))
 
-;;; ============================================================
+;;; ====
 ;;; Bytevector Operations
-;;; ============================================================
+;;; ====
 
 ;;; rust-bv-hash : Bytevector × Fuel → Result
 ;;; FNV-1a hash of bytevector contents.
@@ -277,9 +277,9 @@
              val
              fuel))
 
-;;; ============================================================
+;;; ====
 ;;; String Operations (Pre-validated UTF-8)
-;;; ============================================================
+;;; ====
 ;;;
 ;;; These functions accept Scheme strings and convert them to UTF-8
 ;;; bytevectors for processing in Rust. The UTF-8 is pre-validated

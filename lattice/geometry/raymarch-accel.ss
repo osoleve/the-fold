@@ -20,18 +20,18 @@
              (bind-raymarch-procedures!)
              (set! *raymarch-accel-enabled* #t)))
 
-;;; ============================================================
+;;; ====
 ;;; Acceleration Status
-;;; ============================================================
+;;; ====
 
 ;;; raymarch-accel-enabled? : → Boolean
 ;;; Check if Rust raymarching acceleration is available
 (define (raymarch-accel-enabled?)
   *raymarch-accel-enabled*)
 
-;;; ============================================================
+;;; ====
 ;;; Fuel Cost Estimation (for Scheme fallback)
-;;; ============================================================
+;;; ====
 
 ;;; estimate-raymarch-fuel : Mesh × RaymarchParams → Nat
 ;;; Estimate fuel cost for raymarching on this mesh
@@ -53,9 +53,9 @@
            (* avg-steps query-cost)
            normal-cost)))
 
-;;; ============================================================
+;;; ====
 ;;; Accelerated Operations
-;;; ============================================================
+;;; ====
 
 ;;; raymarch-mesh/accel : Mesh × Ray3 × RaymarchParams × Fuel → Result
 ;;; Raymarching with fuel tracking.
@@ -139,9 +139,9 @@
       (let ([normal (mesh-sdf-gradient mesh point)])
            `(ok ,normal ,fuel))))
 
-;;; ============================================================
+;;; ====
 ;;; Convenience Wrappers
-;;; ============================================================
+;;; ====
 
 ;;; with-raymarch-accel : (→ α) → α
 ;;; Run thunk with raymarching acceleration enabled (if available)
@@ -174,13 +174,13 @@
               `(ok 0.0 ,(caddr result))]  ; background = 0
              [else result])))
 
-;;; ============================================================
+;;; ====
 ;;; Tests
-;;; ============================================================
+;;; ====
 
 (define (run-raymarch-accel-tests)
   (display "Raymarch Acceleration Tests\n")
-  (display "===========================\n")
+  (display "====\n")
   
   (display (format "Acceleration enabled: ~a\n" (raymarch-accel-enabled?)))
   
@@ -231,5 +231,5 @@
                                   "SUSPENDED as expected"
                                   result)))))
   
-  (display "===========================\n")
+  (display "====\n")
   #t)

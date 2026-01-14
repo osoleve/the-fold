@@ -15,14 +15,14 @@
 (load "lattice/physics/diff/traced-integrators.ss")
 
 (display "
-==============================================================
+====
          DIFFERENTIABLE CONSTRAINTS TESTS
-==============================================================
+====
 ")
 
-;;; ============================================================
+;;; ====
 ;;; Test Utilities
-;;; ============================================================
+;;; ====
 
 (define (assert-near actual expected tolerance)
   (unless (< (abs (- actual expected)) tolerance)
@@ -47,9 +47,9 @@
           (display actual)
           (newline)))
 
-;;; ============================================================
+;;; ====
 ;;; Spring Force Tests
-;;; ============================================================
+;;; ====
 
 (test-group spring-force-tests
             
@@ -124,9 +124,9 @@
                     (assert-near fx-damped fx-undamped 1)))
             )
 
-;;; ============================================================
+;;; ====
 ;;; Spring Constraint Structure Tests
-;;; ============================================================
+;;; ====
 
 (test-group spring-constraint-structure-tests
             
@@ -150,9 +150,9 @@
                     (assert-true (> (spring-constraint-stiffness c) 1000))))
             )
 
-;;; ============================================================
+;;; ====
 ;;; Anchor Constraint Tests
-;;; ============================================================
+;;; ====
 
 (test-group anchor-constraint-tests
             
@@ -186,9 +186,9 @@
                                   (assert-true (> fy 0)))))))
             )
 
-;;; ============================================================
+;;; ====
 ;;; Revolute Joint Tests
-;;; ============================================================
+;;; ====
 
 (test-group revolute-joint-tests
             
@@ -231,9 +231,9 @@
                                   (assert-true (< (traced-value (traced-vec2-x force-b)) 0)))))))
             )
 
-;;; ============================================================
+;;; ====
 ;;; Angular Spring Tests
-;;; ============================================================
+;;; ====
 
 (test-group angular-spring-tests
             
@@ -267,9 +267,9 @@
                     (assert-near (traced-value torque) 50 0.01)))
             )
 
-;;; ============================================================
+;;; ====
 ;;; Constraint System Tests
-;;; ============================================================
+;;; ====
 
 (test-group constraint-system-tests
             
@@ -319,9 +319,9 @@
                          (assert-true (> (traced-value (traced-vec2-x new-vel)) 0)))))
             )
 
-;;; ============================================================
+;;; ====
 ;;; Constraint Step Integration Tests
-;;; ============================================================
+;;; ====
 
 (test-group constraint-step-tests
             
@@ -357,9 +357,9 @@
                          (assert-near (traced-value (traced-vec2-y new-pos)) 0 0.001))))
             )
 
-;;; ============================================================
+;;; ====
 ;;; Pendulum System Tests
-;;; ============================================================
+;;; ====
 
 (test-group pendulum-system-tests
             
@@ -379,9 +379,9 @@
                                   (assert-near bob-y (- (vec2-y pivot) length) 0.001))))))
             )
 
-;;; ============================================================
+;;; ====
 ;;; Chain System Tests
-;;; ============================================================
+;;; ====
 
 (test-group chain-system-tests
             
@@ -403,9 +403,9 @@
                              (assert-equal (constraint-type (car constraints)) 'anchor-constraint)))))
             )
 
-;;; ============================================================
+;;; ====
 ;;; Gradient Correctness Tests
-;;; ============================================================
+;;; ====
 
 ;;; Finite difference helper
 (define (finite-diff f x epsilon)
@@ -457,16 +457,16 @@
                     (assert-near analytical-grad numerical-grad 0.001)))
             )
 
-;;; ============================================================
+;;; ====
 ;;; Run All Tests
-;;; ============================================================
+;;; ====
 
 (newline)
-(display "--------------------------------------------------------------")
+(display "----")
 (newline)
 (display "  Test Summary:")
 (newline)
-(display "--------------------------------------------------------------")
+(display "----")
 (newline)
 (display "  Total:  ")
 (display *tests-run*)

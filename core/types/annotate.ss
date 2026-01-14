@@ -29,9 +29,9 @@
 (load "core/types/kinds.ss")
 (load "core/types/infer.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Annotated AST
-;;; ============================================================
+;;; ====
 
 ;;; An annotated expression wraps every subexpression with its type.
 ;;;
@@ -57,9 +57,9 @@
 (define (ann-expr e)
   (if (ann? e) (caddr e) e))
 
-;;; ============================================================
+;;; ====
 ;;; Strip Annotations
-;;; ============================================================
+;;; ====
 
 ;;; strip-ann : AnnotatedExpr → Expr
 ;;; Remove all type annotations, recovering the original expression.
@@ -69,9 +69,9 @@
    [(not (pair? e)) e]
    [else (map strip-ann e)]))
 
-;;; ============================================================
+;;; ====
 ;;; Annotation Inference
-;;; ============================================================
+;;; ====
 
 ;;; annotate : Expr × TEnv → (ok AnnotatedExpr Subst) | (error ...)
 ;;; Run type inference and produce an annotated expression.
@@ -151,9 +151,9 @@
    
    [else `(error unsupported-expression ,expr)]))
 
-;;; ============================================================
+;;; ====
 ;;; Lambda Annotation
-;;; ============================================================
+;;; ====
 
 ;;; annotate-fn : (List Symbol) × Expr × TEnv × Subst → (Result (× AnnotatedExpr Subst) Error)
 (define (annotate-fn params body env subst)
@@ -173,9 +173,9 @@
                   `(ok ,(ann fn-type `(fn ,ann-params ,ann-body)) ,s))
             result)))
 
-;;; ============================================================
+;;; ====
 ;;; Let Annotation
-;;; ============================================================
+;;; ====
 
 ;;; annotate-let : (List (× Symbol Expr)) × Expr × TEnv × Subst → (Result (× AnnotatedExpr Subst) Error)
 (define (annotate-let bindings body env subst)
@@ -220,9 +220,9 @@
                        s))
                 result))))
 
-;;; ============================================================
+;;; ====
 ;;; Fix Annotation
-;;; ============================================================
+;;; ====
 
 ;;; annotate-fix : Symbol × Expr × TEnv × Subst → (Result (× AnnotatedExpr Subst) Error)
 (define (annotate-fix name fn-expr env subst)
@@ -241,9 +241,9 @@
                       unify-result))
             result)))
 
-;;; ============================================================
+;;; ====
 ;;; If Annotation
-;;; ============================================================
+;;; ====
 
 ;;; annotate-if : Expr × Expr × Expr × TEnv × Subst → (Result (× AnnotatedExpr Subst) Error)
 (define (annotate-if test then-expr else-expr env subst)
@@ -279,9 +279,9 @@
                                                            ,s5))
                                                    branch-result)))))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Case Annotation
-;;; ============================================================
+;;; ====
 
 ;;; (case scrutinee ((Tag vars...) body) ...)
 ;;; Pattern variables are bound to Hash type (block refs)
@@ -338,9 +338,9 @@
                            ann-scrut (cdr clauses) s2 env
                            (cons ann-clause ann-clauses) body-type)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Prim Annotation
-;;; ============================================================
+;;; ====
 
 ;;; annotate-prim : (+ Symbol (List α)) × (List Expr) × TEnv × Subst → (Result (× AnnotatedExpr Subst) Error)
 (define (annotate-prim op args env subst)
@@ -392,9 +392,9 @@
                                      (cons ann-arg ann-args)
                                      s2)))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Application Annotation
-;;; ============================================================
+;;; ====
 
 ;;; annotate-app : Expr × (List Expr) × TEnv × Subst → (Result (× AnnotatedExpr Subst) Error)
 (define (annotate-app fn args env subst)
@@ -459,9 +459,9 @@
        
        [else `(error not-a-function ,fn-type)])))
 
-;;; ============================================================
+;;; ====
 ;;; Check-Mode Annotation
-;;; ============================================================
+;;; ====
 
 ;;; annotate-check : Expr × Type × TEnv × Subst → (Result (× AnnotatedExpr Subst) Error)
 (define (annotate-check expr expected env subst)
@@ -497,9 +497,9 @@
                        unify-result))
              result))]))
 
-;;; ============================================================
+;;; ====
 ;;; Convenience API
-;;; ============================================================
+;;; ====
 
 ;;; annotate-expr : Expr → AnnotatedExpr | Error
 ;;; Annotate an expression with types.
@@ -528,9 +528,9 @@
    [(not (pair? e)) e]
    [else (map (lambda (x) (finalize-ann-inner x subst)) e)]))
 
-;;; ============================================================
+;;; ====
 ;;; Pretty Print Annotated Code
-;;; ============================================================
+;;; ====
 
 ;;; pp-ann : AnnotatedExpr × Indent → String
 ;;; Pretty-print annotated code showing types.
@@ -650,9 +650,9 @@
            ;; Not annotated
            (format "~s" ann-e))))
 
-;;; ============================================================
+;;; ====
 ;;; Display Annotated Expression
-;;; ============================================================
+;;; ====
 
 ;;; show-annotated : Expr → Unit
 (define (show-annotated expr)

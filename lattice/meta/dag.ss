@@ -19,9 +19,9 @@
 
 (load "lattice/meta/kg.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Direct Dependencies
-;;; ============================================================
+;;; ====
 
 ;;; lattice-deps : Symbol -> (List Symbol)
 ;;; Get direct dependencies of a skill
@@ -33,9 +33,9 @@
 (define (lattice-uses skill-name)
   (kg-uses skill-name))
 
-;;; ============================================================
+;;; ====
 ;;; Transitive Closure
-;;; ============================================================
+;;; ====
 
 ;;; lattice-deps-transitive : Symbol -> (List Symbol)
 ;;; Get all dependencies (transitive closure)
@@ -65,9 +65,9 @@
                     (loop (append (kg-uses current) rest)
                           (cons current visited)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Path Finding
-;;; ============================================================
+;;; ====
 
 ;;; lattice-path : Symbol Symbol -> (List Symbol) | #f
 ;;; Find a dependency path from one skill to another
@@ -101,9 +101,9 @@
            (- (length path) 1)
            #f)))
 
-;;; ============================================================
+;;; ====
 ;;; Structural Queries
-;;; ============================================================
+;;; ====
 
 ;;; lattice-roots : -> (List Symbol)
 ;;; Get tier 0 skills (no dependencies)
@@ -139,9 +139,9 @@
         (kg-skills))
        cycles))
 
-;;; ============================================================
+;;; ====
 ;;; Tier Analysis
-;;; ============================================================
+;;; ====
 
 ;;; lattice-tiers : -> ((tier . (skills ...)) ...)
 ;;; Group skills by their tier
@@ -176,9 +176,9 @@
       0
       (apply max (map lattice-depth (kg-skills)))))
 
-;;; ============================================================
+;;; ====
 ;;; Impact Analysis
-;;; ============================================================
+;;; ====
 
 ;;; lattice-impact : Symbol -> Int
 ;;; Score based on how many skills depend on this (transitive)
@@ -200,9 +200,9 @@
   ;; For now, assume any exported symbol might be used
   (> (lattice-impact skill-name) 0))
 
-;;; ============================================================
+;;; ====
 ;;; Visualization Helpers
-;;; ============================================================
+;;; ====
 
 ;;; lattice-tree : Symbol -> void
 ;;; Print dependency tree
@@ -226,7 +226,7 @@
 ;;; Print entire DAG structure
 (define (lattice-graph)
   (printf "Lattice Skill DAG\n")
-  (printf "=================\n\n")
+  (printf "====\n\n")
   (let ([tiers (lattice-tiers)])
        (for-each
         (lambda (tier-entry)
@@ -249,9 +249,9 @@
       '()
       (cons (car lst) (take-at-most (- n 1) (cdr lst)))))
 
-;;; ============================================================
+;;; ====
 ;;; Convenience Functions (for REPL)
-;;; ============================================================
+;;; ====
 
 ;;; ld : Symbol -> void
 ;;; Quick show dependencies
@@ -269,9 +269,9 @@
            (printf "Nothing depends on ~a (leaf)\n" skill-name)
            (printf "~a is used by: ~a\n" skill-name uses))))
 
-;;; ============================================================
+;;; ====
 ;;; REPL Interface
-;;; ============================================================
+;;; ====
 
 (printf "dag.ss loaded.\n")
 (printf "  (lattice-deps 'skill)            - Direct dependencies\n")

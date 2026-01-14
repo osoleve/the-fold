@@ -20,17 +20,17 @@
 (unless (top-level-bound? 'make-ast)
         (load "fp/parser-dsl.ss"))
 
-;;; ============================================================
+;;; ====
 ;;; Character Constants
-;;; ============================================================
+;;; ====
 
 (define %underscore (integer->char 95))    ; _
 (define %single-quote (integer->char 39))  ; '
 (define %double-quote (integer->char 34))  ; "
 
-;;; ============================================================
+;;; ====
 ;;; SQL Language Definition
-;;; ============================================================
+;;; ====
 
 ;;; Reserved keywords (case-insensitive in SQL)
 (define sql-reserved-words
@@ -50,9 +50,9 @@
 (define sql-reserved-ops
   '("=" "<>" "!=" "<" ">" "<=" ">=" "+" "-" "*" "/" "%" "||"))
 
-;;; ============================================================
+;;; ====
 ;;; Whitespace and Comments
-;;; ============================================================
+;;; ====
 
 ;;; sql-line-comment : Parser ()
 ;;; SQL line comments start with --
@@ -81,9 +81,9 @@
 (define (sql-lexeme p)
   (parser-left p sql-whitespace))
 
-;;; ============================================================
+;;; ====
 ;;; Case-Insensitive String Matching
-;;; ============================================================
+;;; ====
 
 ;;; char-ci-equal : Char → Char → Boolean
 (define (char-ci-equal c1 c2)
@@ -126,9 +126,9 @@
                 (and (char-ci=? (string-ref s1 i) (string-ref s2 i))
                      (loop (+ i 1)))))))
 
-;;; ============================================================
+;;; ====
 ;;; SQL Keywords
-;;; ============================================================
+;;; ====
 
 ;;; sql-keyword : String → Parser String
 ;;; Parse SQL keyword (case-insensitive) with word boundary
@@ -145,9 +145,9 @@
 ;;; Alias for sql-keyword
 (define sql-reserved sql-keyword)
 
-;;; ============================================================
+;;; ====
 ;;; SQL Identifiers
-;;; ============================================================
+;;; ====
 
 ;;; sql-identifier-start : Parser Char
 (define sql-identifier-start
@@ -200,9 +200,9 @@
   (sql-lexeme
    (parser-or sql-quoted-identifier sql-bare-identifier)))
 
-;;; ============================================================
+;;; ====
 ;;; SQL Literals
-;;; ============================================================
+;;; ====
 
 ;;; sql-string-literal : Parser String
 ;;; Single-quoted string with '' for escaped quotes
@@ -266,9 +266,9 @@
 (define sql-null
   (parser-then (sql-keyword "NULL") (parser-pure 'null)))
 
-;;; ============================================================
+;;; ====
 ;;; SQL Operators
-;;; ============================================================
+;;; ====
 
 ;;; sql-operator : String → Parser String
 ;;; Parse specific operator
@@ -293,9 +293,9 @@
 ;;; String concatenation
 (define sql-concat (sql-operator "||"))
 
-;;; ============================================================
+;;; ====
 ;;; SQL Punctuation
-;;; ============================================================
+;;; ====
 
 (define sql-lparen (sql-lexeme (char #\()))
 (define sql-rparen (sql-lexeme (char #\))))
@@ -303,9 +303,9 @@
 (define sql-semicolon (sql-lexeme (char #\;)))
 (define sql-dot (sql-lexeme (char #\.)))
 
-;;; ============================================================
+;;; ====
 ;;; Utility Parsers
-;;; ============================================================
+;;; ====
 
 ;;; sql-parens : Parser a → Parser a
 (define (sql-parens p)
@@ -319,9 +319,9 @@
 (define (sql-comma-sep1 p)
   (sep-by1 p sql-comma))
 
-;;; ============================================================
+;;; ====
 ;;; Token Record (for parser-dsl compatibility)
-;;; ============================================================
+;;; ====
 
 ;;; sql-token-parser : TokenParser
 ;;; Token parser record compatible with parser-dsl.ss

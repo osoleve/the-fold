@@ -5,9 +5,9 @@
  * Environment variables override defaults.
  */
 
-// ============================================================
+// ====
 // Channel Mapping
-// ============================================================
+// ====
 
 // Map Fold channel names to Discord channel IDs
 // Set via environment variables: DISCORD_CHANNEL_<NAME>
@@ -37,9 +37,9 @@ for (const [fold, discord] of Object.entries(CHANNEL_MAP)) {
   }
 }
 
-// ============================================================
+// ====
 // Role Mapping
-// ============================================================
+// ====
 
 // Fold tier → Discord role ID
 const ROLE_MAP = {
@@ -57,9 +57,9 @@ const TIER_COLORS = {
   player: 0x2ECC71,    // Green
 };
 
-// ============================================================
+// ====
 // Agent Configuration
-// ============================================================
+// ====
 
 // Agents that can be @mentioned for consultation
 const CONSULTATION_AGENTS = ['opus', 'pedagogue', 'archivist', 'sonnet', 'haiku'];
@@ -119,9 +119,9 @@ const AGENT_CONFIG = {
   // Forum regulars get builder color by default
 };
 
-// ============================================================
+// ====
 // Bot Configuration
-// ============================================================
+// ====
 
 const BOT_CONFIG = {
   // Prefix for slash commands (e.g., /fold post)
@@ -145,9 +145,9 @@ const BOT_CONFIG = {
   replResponseDir: process.env.REPL_RESPONSE_DIR || '../../.fold-repl/responses',
 };
 
-// ============================================================
+// ====
 // Helpers
-// ============================================================
+// ====
 
 /**
  * Get Discord channel ID for a Fold channel
@@ -195,9 +195,9 @@ function getAgentConfig(agentName) {
   };
 }
 
-// ============================================================
+// ====
 // Exports
-// ============================================================
+// ====
 
 module.exports = {
   CHANNEL_MAP,

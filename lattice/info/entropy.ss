@@ -17,15 +17,15 @@
 (load "core/base/prelude.ss")
 (load "lattice/fp/numeric/transcendental.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Constants
-;;; ============================================================
+;;; ====
 
 (define pi 3.14159265358979323846)
 
-;;; ============================================================
+;;; ====
 ;;; Utility Functions
-;;; ============================================================
+;;; ====
 
 ;;; entropy-log2 : Number → Number
 ;;; Logarithm base 2 (uses transcendental.ss log2 if not already defined).
@@ -54,9 +54,9 @@
       0
       (* p (entropy-log2 p))))
 
-;;; ============================================================
+;;; ====
 ;;; Shannon Entropy
-;;; ============================================================
+;;; ====
 
 ;;; entropy : (List Number) → Number
 ;;; Shannon entropy H(X) = -sum(p_i * log2(p_i))
@@ -92,9 +92,9 @@
            0
            (/ h (max-entropy n)))))
 
-;;; ============================================================
+;;; ====
 ;;; Binary Entropy
-;;; ============================================================
+;;; ====
 
 ;;; binary-entropy : Number → Number
 ;;; Binary entropy function H(p) = -p*log2(p) - (1-p)*log2(1-p)
@@ -105,9 +105,9 @@
    [(>= p 1) 0]
    [else (- (+ (plogp p) (plogp (- 1 p))))]))
 
-;;; ============================================================
+;;; ====
 ;;; Joint Entropy
-;;; ============================================================
+;;; ====
 
 ;;; joint-entropy : (List (List Number)) → Number
 ;;; Joint entropy H(X,Y) from joint probability matrix.
@@ -116,9 +116,9 @@
   (let ([flat (apply append joint-probs)])
        (entropy flat)))
 
-;;; ============================================================
+;;; ====
 ;;; Conditional Entropy
-;;; ============================================================
+;;; ====
 
 ;;; conditional-entropy : (List (List Number)) × (List Number) → Number
 ;;; Conditional entropy H(X|Y) = H(X,Y) - H(Y)
@@ -142,9 +142,9 @@
                  (fold-left + 0
                             (map * normalized-weights conditional-entropies))))))
 
-;;; ============================================================
+;;; ====
 ;;; Mutual Information
-;;; ============================================================
+;;; ====
 
 ;;; mutual-information : (List (List Number)) × (List Number) × (List Number) → Number
 ;;; Mutual information I(X;Y) = H(X) + H(Y) - H(X,Y)
@@ -193,9 +193,9 @@
                (reverse acc)
                (loop (+ i 1) (cons i acc))))))
 
-;;; ============================================================
+;;; ====
 ;;; Cross Entropy and KL Divergence
-;;; ============================================================
+;;; ====
 
 ;;; cross-entropy : (List Number) × (List Number) → Number
 ;;; Cross entropy H(P,Q) = -sum(p_i * log2(q_i))
@@ -243,9 +243,9 @@
   (let ([m (map (lambda (pi qi) (/ (+ pi qi) 2)) p q)])
        (/ (+ (kl-divergence p m) (kl-divergence q m)) 2)))
 
-;;; ============================================================
+;;; ====
 ;;; Continuous Entropy (Differential Entropy)
-;;; ============================================================
+;;; ====
 
 ;;; For continuous distributions, we compute differential entropy
 ;;; using numerical integration or closed-form expressions.
@@ -282,9 +282,9 @@
       -inf.0
       (+ (log2 (exp-num 1)) (log2 (* 2 b)))))
 
-;;; ============================================================
+;;; ====
 ;;; Entropy Estimation from Samples
-;;; ============================================================
+;;; ====
 
 ;;; sample-entropy : (List α) → Number
 ;;; Estimate entropy from empirical frequency counts.
@@ -326,9 +326,9 @@
                    pair))
        alist))
 
-;;; ============================================================
+;;; ====
 ;;; Variation of Information
-;;; ============================================================
+;;; ====
 
 ;;; variation-of-information : (List (List Number)) × (List Number) × (List Number) → Number
 ;;; VI(X,Y) = H(X|Y) + H(Y|X) = H(X,Y) - I(X;Y)
@@ -349,9 +349,9 @@
            0
            (/ mi (sqrt (* h-x h-y))))))
 
-;;; ============================================================
+;;; ====
 ;;; Renyi Entropy
-;;; ============================================================
+;;; ====
 
 ;;; renyi-entropy : Number × (List Number) → Number
 ;;; Renyi entropy of order alpha: H_alpha(X) = (1/(1-alpha)) * log2(sum(p_i^alpha))
@@ -387,9 +387,9 @@
 (define (hartley-entropy probs)
   (renyi-entropy 0 probs))
 
-;;; ============================================================
+;;; ====
 ;;; Information Content
-;;; ============================================================
+;;; ====
 
 ;;; surprisal : Number → Number
 ;;; Self-information / surprisal of an event with probability p.
@@ -417,9 +417,9 @@
            0
            (/ pmi denom))))
 
-;;; ============================================================
+;;; ====
 ;;; Entropy Powers and Relations
-;;; ============================================================
+;;; ====
 
 ;;; entropy-power : Number → Number
 ;;; Entropy power of a distribution with differential entropy h.

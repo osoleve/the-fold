@@ -32,9 +32,9 @@
 ;;;
 ;;; TIER: 7-8 (Complex computation with search)
 
-;;; ============================================================
+;;; ====
 ;;; Variable Recognition
-;;; ============================================================
+;;; ====
 
 ;;; variable? : α → Boolean
 ;;; Check if a symbol represents a variable (starts with ?).
@@ -50,9 +50,9 @@
   (let ([str (symbol->string var)])
        (substring str 1 (string-length str))))
 
-;;; ============================================================
+;;; ====
 ;;; Binding Environments
-;;; ============================================================
+;;; ====
 
 ;;; An environment is an association list: ((var . value) ...)
 ;;; Variables map to block hashes or extracted values.
@@ -94,9 +94,9 @@
                    (loop (cdr pairs) result)]
                   [else #f])))))
 
-;;; ============================================================
+;;; ====
 ;;; Pattern Matching
-;;; ============================================================
+;;; ====
 
 ;;; A pattern is: (?var1 relation-type ?var2)
 ;;; Matches relation blocks where:
@@ -189,9 +189,9 @@
    ;; Unknown
    [else #f]))
 
-;;; ============================================================
+;;; ====
 ;;; Multi-Pattern Join
-;;; ============================================================
+;;; ====
 
 ;;; join-patterns : FSCap × (List Pattern) → (List Env)
 ;;; Execute multiple patterns and join results based on shared variables.
@@ -228,9 +228,9 @@
                 ;; Continue with remaining patterns
                 (join-pattern-list fs rest-patterns new-envs)))))
 
-;;; ============================================================
+;;; ====
 ;;; Constraint Evaluation
-;;; ============================================================
+;;; ====
 
 ;;; extract-numeric-value : α → (Option Number)
 ;;; Extract a numeric value from various representations.
@@ -302,9 +302,9 @@
                           
                           [else #t]))))))
 
-;;; ============================================================
+;;; ====
 ;;; Main Pattern Query API
-;;; ============================================================
+;;; ====
 
 ;;; pattern-query : FSCap × (List Pattern) × (Option (List Constraint)) → (List Env)
 ;;; Execute a multi-pattern query with optional constraints.
@@ -330,9 +330,9 @@
                                  constraints))
                  envs))]))
 
-;;; ============================================================
+;;; ====
 ;;; Result Projection
-;;; ============================================================
+;;; ====
 
 ;;; project-vars : (List Env) × (List Symbol) → (List Alist)
 ;;; Project specific variables from environments.
@@ -348,9 +348,9 @@
                     vars))
        envs))
 
-;;; ============================================================
+;;; ====
 ;;; Convenience Functions
-;;; ============================================================
+;;; ====
 
 ;;; find-pattern : FSCap × Pattern → (List Bytevector)
 ;;; Find all blocks matching a single pattern, return bound values.
@@ -365,9 +365,9 @@
 (define (count-pattern fs patterns)
   (length (pattern-query fs patterns)))
 
-;;; ============================================================
+;;; ====
 ;;; Utility Functions
-;;; ============================================================
+;;; ====
 
 ;;; query-string-contains? : String × String → Boolean
 ;;; Helper for string containment check.

@@ -14,9 +14,9 @@
 
 (load "lattice/fp/clp/propagate.ss")
 
-;;; ============================================================
+;;; ====
 ;;; All-Different Constraint
-;;; ============================================================
+;;; ====
 
 ;;; all-different : (List LVar) → (CStore → (Maybe CStore))
 ;;; Constrain all variables to have different values.
@@ -115,9 +115,9 @@
       cs  ; Trivially satisfied
       (post-constraint cs 'all-different vars (all-different vars))))
 
-;;; ============================================================
+;;; ====
 ;;; Element Constraint
-;;; ============================================================
+;;; ====
 
 ;;; element : LVar × (List Int) × LVar → (CStore → (Maybe CStore))
 ;;; Constrain: array[index] = value
@@ -167,9 +167,9 @@
 (define (post-element cs index array value)
   (post-constraint cs 'element (list index value) (element index array value)))
 
-;;; ============================================================
+;;; ====
 ;;; Sum Constraint
-;;; ============================================================
+;;; ====
 
 ;;; sum-fd : (List LVar) × (LVar | Int) → (CStore → (Maybe CStore))
 ;;; Constrain: sum(vars) = result
@@ -244,9 +244,9 @@
   (let ([all-vars (if (lvar? result) (cons result vars) vars)])
        (post-constraint cs 'sum-fd all-vars (sum-fd vars result))))
 
-;;; ============================================================
+;;; ====
 ;;; Count Constraint
-;;; ============================================================
+;;; ====
 
 ;;; count-fd : Int × (List LVar) × (LVar | Int) → (CStore → (Maybe CStore))
 ;;; Constrain: count of value in vars = n

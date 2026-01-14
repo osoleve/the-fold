@@ -10,9 +10,9 @@
 ;;;
 ;;; This is Shell code: uses IO.
 
-;;; ============================================================
+;;; ====
 ;;; Path Utilities
-;;; ============================================================
+;;; ====
 
 ;;; path-directory : String -> String
 ;;; Extract directory from a path (everything before last /).
@@ -55,9 +55,9 @@
       file
       (string-append dir "/" file)))
 
-;;; ============================================================
+;;; ====
 ;;; Test Discovery
-;;; ============================================================
+;;; ====
 
 ;;; find-test-files : String -> (List String)
 ;;; Find test files associated with a module.
@@ -75,9 +75,9 @@
                                  (string-append "test-" stem ".ss")))])
     (filter file-exists? candidates)))
 
-;;; ============================================================
+;;; ====
 ;;; Test Running
-;;; ============================================================
+;;; ====
 
 ;;; run-test-file : String -> Boolean
 ;;; Run a test file. Returns #t if successful, #f on error.
@@ -93,9 +93,9 @@
     (display "  OK\n")
     #t))
 
-;;; ============================================================
+;;; ====
 ;;; Public API
-;;; ============================================================
+;;; ====
 
 ;;; test-module : String -> Void
 ;;; Find and run tests associated with a module.
@@ -146,9 +146,9 @@
                (run-test-file (path-join dir-path f)))
              test-files))))))
 
-;;; ============================================================
+;;; ====
 ;;; Startup Banner (respects *quiet* mode)
-;;; ============================================================
+;;; ====
 
 (unless (and (top-level-bound? '*quiet*) *quiet*)
   (display "Test runner ready.\n")

@@ -26,9 +26,9 @@
 (load "lattice/statistics/core/result-types.ss")
 (load "lattice/statistics/core/summary-stats.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Ridge Regression
-;;; ============================================================
+;;; ====
 
 ;;; Ridge regression minimizes: ||y - X*beta||² + lambda * ||beta||²
 ;;; Closed-form solution: beta = (X'X + lambda*I)^(-1) X'y
@@ -95,9 +95,9 @@
                                         2)))))])
         (if (= sst 0) 1 (- 1 (/ sse sst)))))
 
-;;; ============================================================
+;;; ====
 ;;; Lasso Regression
-;;; ============================================================
+;;; ====
 
 ;;; Lasso minimizes: (1/2n)||y - X*beta||² + lambda * ||beta||_1
 ;;; Uses coordinate descent with soft-thresholding.
@@ -212,9 +212,9 @@
                 (loop (+ i 1)
                       (if (= (vector-ref v i) 0) c (+ c 1)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Elastic Net
-;;; ============================================================
+;;; ====
 
 ;;; Elastic Net minimizes: (1/2n)||y - X*beta||² + lambda * (alpha*||beta||_1 + (1-alpha)*||beta||²/2)
 ;;; alpha=1 is lasso, alpha=0 is ridge.
@@ -274,9 +274,9 @@
            (/ (* (if (>= rho 0) 1 -1) (- abs-rho l1-penalty))
               (max (+ norm-sq l2-penalty) 1e-10)))))
 
-;;; ============================================================
+;;; ====
 ;;; Cross-Validation
-;;; ============================================================
+;;; ====
 
 ;;; cross-validate-lambda : Matrix × Vec × (List Num) × Nat × Symbol → (Num × (List Num))
 ;;; K-fold cross-validation for lambda selection.
@@ -382,9 +382,9 @@
                (loop (cdr xs) (+ idx 1) (car xs) idx)
                (loop (cdr xs) (+ idx 1) min-val min-idx)))))
 
-;;; ============================================================
+;;; ====
 ;;; Utility Functions
-;;; ============================================================
+;;; ====
 
 ;;; identity-matrix : Nat → Matrix
 (define (identity-matrix n)

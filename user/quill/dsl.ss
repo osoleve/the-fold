@@ -35,9 +35,9 @@
 ;;;
 ;;; Effects are the runtime effect forms (see playpen/quill/runtime.ss).
 
-;;; ============================================================
+;;; ====
 ;;; Small utilities
-;;; ============================================================
+;;; ====
 
 (define (quill-alist-get alist key default)
   (let ([p (assq key alist)])
@@ -53,9 +53,9 @@
   (and (list? xs)
        (andmap (lambda (p) (and (pair? p) (pair? (cdr p)) (null? (cddr p)))) xs)))
 
-;;; ============================================================
+;;; ====
 ;;; Guard compilation
-;;; ============================================================
+;;; ====
 
 (define (quill-guard-form? expr)
   (cond
@@ -100,9 +100,9 @@
            (lambda (_s) #t))))
    (else (lambda (_s) #t))))
 
-;;; ============================================================
+;;; ====
 ;;; Effect parsing helpers
-;;; ============================================================
+;;; ====
 
 (define (quill-normalize-effects xs)
   (cond
@@ -111,9 +111,9 @@
     (cdar xs))
    (else xs)))
 
-;;; ============================================================
+;;; ====
 ;;; Node parsing
-;;; ============================================================
+;;; ====
 
 (define (quill-compile-choice node-id form)
   ;; (choice label target [guard] [effects...])
@@ -198,9 +198,9 @@
                             choices
                             (cons (cons 'unknown f) meta)))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Story parsing
-;;; ============================================================
+;;; ====
 
 (define (quill-compile-story spec)
   (let loop ([fs (cdr spec)]
@@ -232,9 +232,9 @@
                      (else
                       (loop (cdr fs) id title start nodes (cons (cons 'unknown f) meta)))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Public API
-;;; ============================================================
+;;; ====
 
 (define (quill-dsl-validate spec)
   (let ((issues '()))

@@ -6,9 +6,9 @@
 ;;; Version: 0.1.0
 ;;; Status: Production-ready with combat and AI systems
 
-;;; ============================================================
+;;; ====
 ;;; Quick Start
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Load the SDK:
 ;;;   (load "user/loom/loom.ss")
@@ -24,9 +24,9 @@
 ;;; Run tests:
 ;;;   (load "user/loom/test-rpg.ss")
 
-;;; ============================================================
+;;; ====
 ;;; SDK Architecture
-;;; ============================================================
+;;; ====
 ;;;
 ;;; The SDK is built on an Entity-Component System (ECS) with
 ;;; functional updates and a hybrid mutation model:
@@ -52,9 +52,9 @@
 ;;;   docs/dogfood-notes.ss          - Original dogfooding findings
 ;;;   docs/post-dogfood-findings.ss  - Improvements implemented
 
-;;; ============================================================
+;;; ====
 ;;; Key Concepts
-;;; ============================================================
+;;; ====
 ;;;
 ;;; MUTATION SEMANTICS:
 ;;;   - Entity operations: FUNCTIONAL (return new entities)
@@ -86,9 +86,9 @@
 ;;;   - Returns AIAction: move, attack, wait, etc.
 ;;;   - Uses pathfinding and spatial queries
 
-;;; ============================================================
+;;; ====
 ;;; Common Patterns
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Creating an entity:
 ;;;   (define hero (make-player "Hero" #\@ 10 10))
@@ -115,9 +115,9 @@
 ;;;                   (entity-id defender)
 ;;;                   (combat-result-defender result))))
 
-;;; ============================================================
+;;; ====
 ;;; Examples Overview
-;;; ============================================================
+;;; ====
 ;;;
 ;;; example-combat-integration.ss:
 ;;;   - Basic combat demonstration
@@ -140,9 +140,9 @@
 ;;;   - Tests all core modules
 ;;;   - Regression testing for updates
 
-;;; ============================================================
+;;; ====
 ;;; Module Dependencies
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Load order (handled by rpg.ss):
 ;;;   1. core.ss       - No dependencies
@@ -155,9 +155,9 @@
 ;;;   8. combat.ss     - Depends on: entity
 ;;;   9. ai.ss         - Depends on: entity, world, combat
 
-;;; ============================================================
+;;; ====
 ;;; API Reference Summary
-;;; ============================================================
+;;; ====
 ;;;
 ;;; See individual module files for detailed API documentation.
 ;;; Each module has comprehensive doc comments for all exports.
@@ -195,9 +195,9 @@
 ;;;   tile-floor, tile-wall, tile-door-closed, tile-door-open
 ;;;   tile-blocks-movement?, tile-blocks-sight?
 
-;;; ============================================================
+;;; ====
 ;;; Performance Notes
-;;; ============================================================
+;;; ====
 ;;;
 ;;; The SDK is optimized for typical roguelike workloads:
 ;;;   - Spatial queries: O(1) via hash-based index
@@ -210,9 +210,9 @@
 ;;;   - Spatial partitioning for entities
 ;;;   - Lazy FOV computation
 
-;;; ============================================================
+;;; ====
 ;;; Extending the SDK
-;;; ============================================================
+;;; ====
 ;;;
 ;;; To add new features:
 ;;;
@@ -234,9 +234,9 @@
 ;;;    - Add to rpg.ss load order
 ;;;    - Follow functional update pattern
 
-;;; ============================================================
+;;; ====
 ;;; Known Issues & Roadmap
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Current limitations:
 ;;;   - No save/load system yet
@@ -252,18 +252,18 @@
 ;;;   - Noise/sound propagation
 ;;;   - Advanced AI (flanking, formations)
 
-;;; ============================================================
+;;; ====
 ;;; License & Credits
-;;; ============================================================
+;;; ====
 ;;;
 ;;; This SDK is part of The Fold project.
 ;;; Built by Claude (Opus & Sonnet tiers) via dogfooding and iteration.
 ;;;
 ;;; See docs/dogfood-notes.ss for development history.
 
-;;; ============================================================
+;;; ====
 ;;; Version History
-;;; ============================================================
+;;; ====
 ;;;
 ;;; v0.1.0 (2025-12-26):
 ;;;   - Initial release with core ECS

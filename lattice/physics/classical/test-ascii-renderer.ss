@@ -4,14 +4,14 @@
 (load "lattice/physics/classical/ascii-renderer.ss")
 
 (display "
-==============================================================
+====
               ASCII PHYSICS RENDERER TESTS
-==============================================================
+====
 ")
 
-;;; ============================================================
+;;; ====
 ;;; Configuration Tests
-;;; ============================================================
+;;; ====
 
 (test-group config-tests
             (define-test make-render-config-test
@@ -44,9 +44,9 @@
                    (assert-equal #\> (style-velocity-char style))
                    (assert-equal #\* (style-contact-char style)))))
 
-;;; ============================================================
+;;; ====
 ;;; Coordinate Transformation Tests
-;;; ============================================================
+;;; ====
 
 (test-group coordinate-tests
             (define-test world->screen-origin
@@ -76,9 +76,9 @@
                     (assert-equal 3.0 (vec2-x back))
                     (assert-equal 7.0 (vec2-y back)))))
 
-;;; ============================================================
+;;; ====
 ;;; Line Drawing Tests
-;;; ============================================================
+;;; ====
 
 (test-group line-tests
             (define-test horizontal-line
@@ -107,9 +107,9 @@
                    (assert-equal #\\ (frame-ref frame 3 3))
                    (assert-equal #\\ (frame-ref frame 5 5)))))
 
-;;; ============================================================
+;;; ====
 ;;; Circle Rendering Tests
-;;; ============================================================
+;;; ====
 
 (test-group circle-tests
             (define-test filled-circle-center
@@ -143,9 +143,9 @@
                    (assert-equal #\o (frame-ref frame 4 5))
                    (assert-equal #\o (frame-ref frame 6 5)))))
 
-;;; ============================================================
+;;; ====
 ;;; AABB Rendering Tests
-;;; ============================================================
+;;; ====
 
 (test-group aabb-tests
             (define-test filled-aabb-interior
@@ -190,9 +190,9 @@
                    ;; Interior should be empty
                    (assert-equal #\space (frame-ref frame 5 4)))))
 
-;;; ============================================================
+;;; ====
 ;;; Polygon Rendering Tests
-;;; ============================================================
+;;; ====
 
 (test-group polygon-tests
             (define-test triangle-fill
@@ -218,9 +218,9 @@
                    (assert-equal #\# (frame-ref frame 3 3))
                    (assert-equal #\# (frame-ref frame 6 6)))))
 
-;;; ============================================================
+;;; ====
 ;;; Arrow Direction Tests
-;;; ============================================================
+;;; ====
 
 (test-group arrow-tests
             (define-test arrow-right
@@ -238,9 +238,9 @@
               (let ([pi 3.141592653589793])
                    (assert-equal #\^ (angle->arrow-char (* 1.5 pi))))))
 
-;;; ============================================================
+;;; ====
 ;;; Integration Tests
-;;; ============================================================
+;;; ====
 
 (test-group integration-tests
             (define-test render-simple-world
@@ -270,8 +270,8 @@
                     ;; Entity should be rendered
                     (assert-equal #\O (frame-ref frame 20 10)))))
 
-;;; ============================================================
+;;; ====
 ;;; Run All Tests
-;;; ============================================================
+;;; ====
 
 (run-all-tests)

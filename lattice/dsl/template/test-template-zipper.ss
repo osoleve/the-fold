@@ -5,9 +5,9 @@
 (load "lattice/dsl/template/template-zipper.ss")
 (load "core/testing/test-framework.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Test Fixtures
-;;; ============================================================
+;;; ====
 
 ;;; Simple template with 3 holes
 (define simple-template '(define $name $body))
@@ -24,9 +24,9 @@
 ;;; No holes
 (define no-holes '(+ 1 2))
 
-;;; ============================================================
+;;; ====
 ;;; Constructor Tests
-;;; ============================================================
+;;; ====
 
 (test-group "hole-zipper-constructors"
 
@@ -50,9 +50,9 @@
            [expr (hole-zipper->expr hz)])
       (assert-equal simple-template expr))))
 
-;;; ============================================================
+;;; ====
 ;;; Current Hole Tests
-;;; ============================================================
+;;; ====
 
 (test-group "hole-zipper-current"
 
@@ -68,9 +68,9 @@
     (let ([hz (expr->hole-zipper nested-template)])
       (assert-equal '$name (hole-zipper-current hz)))))
 
-;;; ============================================================
+;;; ====
 ;;; Position Information Tests
-;;; ============================================================
+;;; ====
 
 (test-group "hole-zipper-position"
 
@@ -90,9 +90,9 @@
     (let ([hz (expr->hole-zipper simple-template)])
       (assert-false (hole-zipper-complete? hz)))))
 
-;;; ============================================================
+;;; ====
 ;;; Navigation Tests
-;;; ============================================================
+;;; ====
 
 (test-group "hole-zipper-navigation"
 
@@ -143,9 +143,9 @@
            [hz2 (hole-zipper-goto-index hz 10)])
       (assert-false hz2))))
 
-;;; ============================================================
+;;; ====
 ;;; Fill Tests
-;;; ============================================================
+;;; ====
 
 (test-group "hole-zipper-fill"
 
@@ -179,9 +179,9 @@
       ;; After filling $name, should be at $body (the only remaining hole)
       (assert-equal '$body (hole-zipper-current hz2)))))
 
-;;; ============================================================
+;;; ====
 ;;; Undo Tests
-;;; ============================================================
+;;; ====
 
 (test-group "hole-zipper-undo"
 
@@ -216,9 +216,9 @@
            [hz5 (hole-zipper-undo hz4)])
       (assert-equal simple-template (hole-zipper->expr hz5)))))
 
-;;; ============================================================
+;;; ====
 ;;; Context Tests
-;;; ============================================================
+;;; ====
 
 (test-group "hole-zipper-context"
 
@@ -236,9 +236,9 @@
       ;; immediate parent of $name should be ($name $args)
       (assert-equal '($name $args) immediate))))
 
-;;; ============================================================
+;;; ====
 ;;; All Holes Tests
-;;; ============================================================
+;;; ====
 
 (test-group "hole-zipper-holes"
 
@@ -262,9 +262,9 @@
       (assert-equal 2 (length remaining))
       (assert-equal '$then (car remaining)))))
 
-;;; ============================================================
+;;; ====
 ;;; Status Tests
-;;; ============================================================
+;;; ====
 
 (test-group "hole-zipper-status"
 
@@ -289,9 +289,9 @@
         [(string=? (substring str i (+ i sub-len)) substr) #t]
         [else (loop (+ i 1))]))))
 
-;;; ============================================================
+;;; ====
 ;;; Complete Workflow Test
-;;; ============================================================
+;;; ====
 
 (test-group "hole-zipper-workflow"
 
@@ -321,8 +321,8 @@
         (assert-equal '(if #t 1 $e) expr5)
         (assert-equal 1 (hole-zipper-count hz5))))))
 
-;;; ============================================================
+;;; ====
 ;;; Run Tests
-;;; ============================================================
+;;; ====
 
 (run-all-tests)

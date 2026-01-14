@@ -8,9 +8,9 @@
 
 (display "Testing AET polygon fill concepts...\n\n")
 
-;;; ============================================================
+;;; ====
 ;;; AET Helper Functions (mirrors graphics-primitives.ss)
-;;; ============================================================
+;;; ====
 
 ;;; make-edge-entry : Point × Point → EdgeEntry | #f
 (define (make-edge-entry p1 p2)
@@ -44,9 +44,9 @@
                       first-pt
                       (if entry (cons entry result) result))))))
 
-;;; ============================================================
+;;; ====
 ;;; Test 1: Edge Entry Creation
-;;; ============================================================
+;;; ====
 
 (display "1. Testing edge entry creation:\n")
 
@@ -65,9 +65,9 @@
           (display "  ✓ Edge entry correct\n\n")
           (display "  ✗ FAILED: Edge entry incorrect\n\n")))
 
-;;; ============================================================
+;;; ====
 ;;; Test 2: Horizontal Edge Skipping
-;;; ============================================================
+;;; ====
 
 (display "2. Testing horizontal edge skipping:\n")
 
@@ -78,9 +78,9 @@
           (display "  ✓ Horizontal edge correctly returns #f\n\n")
           (display "  ✗ FAILED: Should have returned #f\n\n")))
 
-;;; ============================================================
+;;; ====
 ;;; Test 3: Edge Table Building (Triangle)
-;;; ============================================================
+;;; ====
 
 (display "3. Testing edge table for triangle:\n")
 
@@ -97,9 +97,9 @@
           (display "  ✓ Edge table correctly built (2 non-horizontal edges)\n\n")
           (display "  ✗ FAILED: Wrong number of edges\n\n")))
 
-;;; ============================================================
+;;; ====
 ;;; Test 4: Edge Table for Rectangle
-;;; ============================================================
+;;; ====
 
 (display "4. Testing edge table for rectangle:\n")
 
@@ -117,9 +117,9 @@
           (display "  ✓ Rectangle edge table correct\n\n")
           (display "  ✗ FAILED: Wrong number of edges\n\n")))
 
-;;; ============================================================
+;;; ====
 ;;; Test 5: X-Intersection Calculation
-;;; ============================================================
+;;; ====
 
 (display "5. Testing x-intersection along scanline:\n")
 
@@ -133,9 +133,9 @@
           (display "  ✓ X-intersection correct\n\n")
           (display "  ✗ FAILED: X-intersection wrong\n\n")))
 
-;;; ============================================================
+;;; ====
 ;;; Test 6: Sorted Edge Table
-;;; ============================================================
+;;; ====
 
 (display "6. Testing edge table sorting by y-min:\n")
 
@@ -157,9 +157,9 @@
                    (check (cdr lst))
                    (display "  ✗ FAILED: Not sorted\n\n")))))
 
-;;; ============================================================
+;;; ====
 ;;; Test 7: Visual Test - Simple Fill
-;;; ============================================================
+;;; ====
 
 (display "7. Visual test - manual scanline fill:\n")
 
@@ -180,6 +180,6 @@
       (newline)
       (display "  ✓ Manual scanline fill demonstrates concept\n\n"))
 
-(display "======================================\n")
+(display "====\n")
 (display "All AET concept tests completed!\n")
-(display "======================================\n")
+(display "====\n")

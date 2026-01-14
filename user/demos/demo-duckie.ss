@@ -1,9 +1,9 @@
 ;;; demo-duckie.ss — See DUCKIE for the first time
 ;;; Run with: scheme --script demo-duckie.ss
 
-;;; ============================================================
+;;; ====
 ;;; Minimal Canvas (inline for demo)
-;;; ============================================================
+;;; ====
 
 (define (make-canvas width height)
   (vector width height (make-vector (* width height) #\space)))
@@ -54,9 +54,9 @@
       (canvas-set! c x (+ y j) #\│)
       (canvas-set! c (+ x w -1) (+ y j) #\│)))
 
-;;; ============================================================
+;;; ====
 ;;; DUCKIE Sprites
-;;; ============================================================
+;;; ====
 
 (define duckie-happy
   '("  \\  /  "
@@ -112,9 +112,9 @@
              (draw-string! c x (+ y row) (car lines))
              (loop (cdr lines) (+ row 1)))))
 
-;;; ============================================================
+;;; ====
 ;;; Render DUCKIE
-;;; ============================================================
+;;; ====
 
 (define (render-duckie name mood sprite)
   (let ([c (make-canvas 42 14)])
@@ -132,9 +132,9 @@
        ;; Output
        (display (canvas->string c))))
 
-;;; ============================================================
+;;; ====
 ;;; Show All Moods
-;;; ============================================================
+;;; ====
 
 (display "\n")
 (display "═══════════════════════════════════════════\n")

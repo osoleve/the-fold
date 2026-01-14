@@ -29,9 +29,9 @@
 (define (assert-false name actual)
   (assert-equal name actual #f))
 
-;;; ============================================================
+;;; ====
 ;;; Location Type Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Testing make-location ===\n")
 
@@ -50,9 +50,9 @@
               (location-column (make-location "foo.ss" 1 0))
               0)
 
-;;; ============================================================
+;;; ====
 ;;; location->string Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Testing location->string ===\n")
 
@@ -68,9 +68,9 @@
               (location->string (make-location "foo.ss" 1 0))
               "foo.ss:1")
 
-;;; ============================================================
+;;; ====
 ;;; read-file-lines Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Testing read-file-lines ===\n")
 
@@ -87,9 +87,9 @@
               (read-file-lines "/nonexistent/file/path.ss")
               '())
 
-;;; ============================================================
+;;; ====
 ;;; jump-location Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Testing jump-location ===\n")
 
@@ -112,9 +112,9 @@
                                  (assq 'file result)
                                  (assq 'line result))))))
 
-;;; ============================================================
+;;; ====
 ;;; jump-locations Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Testing jump-locations ===\n")
 
@@ -124,9 +124,9 @@
 (assert-true "unknown symbol returns empty list"
              (null? (jump-locations 'nonexistent-symbol-xyz-123)))
 
-;;; ============================================================
+;;; ====
 ;;; jump-refs Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Testing jump-refs ===\n")
 
@@ -136,9 +136,9 @@
 (assert-true "unknown symbol returns empty"
              (null? (jump-refs 'nonexistent-symbol-xyz-123)))
 
-;;; ============================================================
+;;; ====
 ;;; filter-map-jump Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Testing filter-map-jump ===\n")
 
@@ -158,9 +158,9 @@
               (filter-map-jump (lambda (x) (+ x 1)) '(1 2 3))
               '(2 3 4))
 
-;;; ============================================================
+;;; ====
 ;;; Editor Format Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Testing Editor Format Functions ===\n")
 
@@ -186,9 +186,9 @@
                    (jump-vscode-format loc-no-col)
                    "foo.ss:1"))
 
-;;; ============================================================
+;;; ====
 ;;; Edge Cases
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Testing Edge Cases ===\n")
 
@@ -200,11 +200,11 @@
              (let ([loc (make-location "unicode/test.ss" 1 0)])
                   (string? (location->string loc))))
 
-;;; ============================================================
+;;; ====
 ;;; Test Summary
-;;; ============================================================
+;;; ====
 
-(printf "\n========================================\n")
+(printf "\n====\n")
 (printf "Test Results (jump):\n")
 (printf "  Total:  ~a\n" test-count)
 (printf "  Passed: ~a\n" pass-count)

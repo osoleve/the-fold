@@ -64,9 +64,9 @@
 
 (printf "\n=== Wavelet Transform Tests ===\n\n")
 
-;;; ============================================================
+;;; ====
 ;;; Wavelet Filter Coefficients
-;;; ============================================================
+;;; ====
 
 (printf "Wavelet Filter Coefficients:\n")
 
@@ -89,9 +89,9 @@
 (let ([h (daubechies-6-scaling-filter)])
      (test "db6 scaling filter - length" 6 (vector-length h)))
 
-;;; ============================================================
+;;; ====
 ;;; DWT/IDWT Perfect Reconstruction
-;;; ============================================================
+;;; ====
 
 (printf "\nDWT/IDWT Perfect Reconstruction:\n")
 
@@ -131,9 +131,9 @@
        [reconstructed (idwt-family coeffs 16 'db6)])
       (test-vec-approx "db6 dwt-idwt: 2 levels" signal reconstructed 0.5))
 
-;;; ============================================================
+;;; ====
 ;;; DWT Structure
-;;; ============================================================
+;;; ====
 
 (printf "\nDWT Structure:\n")
 
@@ -161,9 +161,9 @@
                            (= (vector-length (get-detail-level coeffs 2)) (/ 128 4))
                            (= (vector-length (get-detail-level coeffs 3)) (/ 128 8)))))
 
-;;; ============================================================
+;;; ====
 ;;; Multi-Resolution Analysis
-;;; ============================================================
+;;; ====
 
 (printf "\nMulti-Resolution Analysis:\n")
 
@@ -183,9 +183,9 @@
                             [(< (car lst) 0) #f]
                             [else (check (cdr lst))]))))
 
-;;; ============================================================
+;;; ====
 ;;; Wavelet Thresholding
-;;; ============================================================
+;;; ====
 
 (printf "\nWavelet Thresholding:\n")
 
@@ -208,9 +208,9 @@
        [denoised (wavelet-denoise signal 2 'haar 0.5 'soft)])
       (test "denoising preserves signal length" 16 (vector-length denoised)))
 
-;;; ============================================================
+;;; ====
 ;;; Energy Conservation
-;;; ============================================================
+;;; ====
 
 (printf "\nEnergy Conservation:\n")
 
@@ -223,9 +223,9 @@
       (test-approx "wavelet transform preserves energy"
                    signal-energy total-coeff-energy 1e-6))
 
-;;; ============================================================
+;;; ====
 ;;; Wavelet Family API
-;;; ============================================================
+;;; ====
 
 (printf "\nWavelet Family API:\n")
 
@@ -245,9 +245,9 @@
                      (and (pair? filters)
                           (= (vector-length (car filters)) 6))))
 
-;;; ============================================================
+;;; ====
 ;;; Edge Cases
-;;; ============================================================
+;;; ====
 
 (printf "\nEdge Cases:\n")
 
@@ -270,9 +270,9 @@
                                   signal reconstructed 1e-8)
                  (test-lengths (* len 2)))))
 
-;;; ============================================================
+;;; ====
 ;;; Test Summary
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Test Summary ===\n")
 (printf "Passed: ~a\n" tests-passed)

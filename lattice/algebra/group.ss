@@ -15,9 +15,9 @@
 
 (load "core/base/prelude.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Group Representation
-;;; ============================================================
+;;; ====
 
 ;;; A Group is represented as:
 ;;; (group elements op identity inverse-fn equal-fn)
@@ -53,9 +53,9 @@
 (define (group-order g)
   (length (group-elements g)))
 
-;;; ============================================================
+;;; ====
 ;;; Group Operations
-;;; ============================================================
+;;; ====
 
 ;;; group-compose : Group × Element × Element → Element
 ;;; Apply the group operation: a ∘ b
@@ -97,9 +97,9 @@
                n
                (loop (+ n 1) (group-compose g current a))))))
 
-;;; ============================================================
+;;; ====
 ;;; Group Axiom Verification
-;;; ============================================================
+;;; ====
 
 ;;; verify-closure : Group → Boolean
 ;;; Check that the operation is closed over the elements.
@@ -184,9 +184,9 @@
        (verify-identity g)
        (verify-inverses g)))
 
-;;; ============================================================
+;;; ====
 ;;; Cyclic Groups Z_n
-;;; ============================================================
+;;; ====
 
 ;;; make-cyclic-group : Integer → Group
 ;;; Create the cyclic group Z_n (integers mod n under addition).
@@ -206,9 +206,9 @@
 ;;; Returns the standard generator of Z_n (which is 1).
 (define (cyclic-generator n) 1)
 
-;;; ============================================================
+;;; ====
 ;;; Permutation Groups S_n
-;;; ============================================================
+;;; ====
 
 ;;; A permutation is represented as a list mapping indices to values.
 ;;; E.g., (1 0 2) means: 0 → 1, 1 → 0, 2 → 2
@@ -333,9 +333,9 @@
                                                 c)))))))])
         (modulo inversions 2)))
 
-;;; ============================================================
+;;; ====
 ;;; Dihedral Groups D_n
-;;; ============================================================
+;;; ====
 
 ;;; Dihedral group D_n: symmetries of a regular n-gon.
 ;;; Elements: rotations r^k (k = 0..n-1) and reflections s*r^k
@@ -389,9 +389,9 @@
 ;;; Alias for make-dihedral-group.
 (define D make-dihedral-group)
 
-;;; ============================================================
+;;; ====
 ;;; Subgroup Testing
-;;; ============================================================
+;;; ====
 
 ;;; is-subgroup? : Group × List<Element> → Boolean
 ;;; Test if a subset H forms a subgroup of G.
@@ -452,9 +452,9 @@
                       current
                       (loop unique))))))
 
-;;; ============================================================
+;;; ====
 ;;; Group Homomorphisms
-;;; ============================================================
+;;; ====
 
 ;;; A homomorphism is represented as:
 ;;; (homomorphism source-group target-group mapping)
@@ -562,9 +562,9 @@
          '()
          (group-elements source))))
 
-;;; ============================================================
+;;; ====
 ;;; Cayley Table
-;;; ============================================================
+;;; ====
 
 ;;; cayley-table : Group → List<List<Element>>
 ;;; Generate the Cayley table (multiplication table) for a group.
@@ -575,9 +575,9 @@
                     (map (lambda (b) (op a b)) elems))
             elems)))
 
-;;; ============================================================
+;;; ====
 ;;; Utility Functions
-;;; ============================================================
+;;; ====
 
 ;;; any : (Element → Boolean) × List → Boolean
 (define (any pred lst)
@@ -607,9 +607,9 @@
       acc
       (fold-left f (f acc (car lst)) (cdr lst))))
 
-;;; ============================================================
+;;; ====
 ;;; Common Groups
-;;; ============================================================
+;;; ====
 
 ;;; trivial-group : → Group
 ;;; The trivial group with one element.

@@ -69,7 +69,7 @@
         (system (string-append "rm -rf " test-store-path))))
 
 (display "Filesystem Capability Tests\n")
-(display "===========================\n\n")
+(display "====\n\n")
 
 ;;; Test 1: Create capability
 (display "Test 1: Create capability\n")

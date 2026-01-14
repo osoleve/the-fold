@@ -33,9 +33,9 @@
 ;;;   (render-ascii fs hash 3)                       ; Tree view with depth 3
 ;;;   (render-ascii-refs fs hash)                    ; Immediate refs only
 
-;;; ============================================================
+;;; ====
 ;;; Helper Functions
-;;; ============================================================
+;;; ====
 
 ;;; hash->short : Bytevector -> String
 ;;; Truncate hash to first 8 hex characters for display.
@@ -129,9 +129,9 @@
                       [else
                        (loop (+ i 1) (cons c result))]))))))
 
-;;; ============================================================
+;;; ====
 ;;; DOT Format Export (Graphviz)
-;;; ============================================================
+;;; ====
 
 ;;; build-dot-string : FS x (List Bytevector) -> String
 ;;; Build DOT format string from a list of block hashes.
@@ -224,9 +224,9 @@
                                       (put-string port dot-str)))
        (display (format "Exported ~a blocks to ~a\n" (length hashes) output-path))))
 
-;;; ============================================================
+;;; ====
 ;;; JSON Format Export (D3.js compatible)
-;;; ============================================================
+;;; ====
 
 ;;; build-json-string : FS x (List Bytevector) -> String
 ;;; Build JSON format string from a list of block hashes.
@@ -339,15 +339,15 @@
                                       (put-string port json-str)))
        (display (format "Exported ~a blocks to ~a\n" (length hashes) output-path))))
 
-;;; ============================================================
+;;; ====
 ;;; ASCII Visualization (Terminal)
-;;; ============================================================
+;;; ====
 
 ;;; render-ascii : FS x Bytevector x Nat -> void
 ;;; Render a tree view of a block and its references up to given depth.
 (define (render-ascii fs hash depth)
   (display "Block Tree:\n")
-  (display "===========\n")
+  (display "====\n")
   (render-ascii-tree fs hash "" depth 0 (make-hashtable equal-hash equal?)))
 
 ;;; render-ascii-tree : FS x Bytevector x String x Nat x Nat x Hashtable -> void
@@ -429,9 +429,9 @@
                                           (display (format "~a[missing] (~a...)\n" branch ref-short))))
                                 (loop (+ i 1)))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Convenience Functions
-;;; ============================================================
+;;; ====
 
 ;;; export-graph : FS x String x Symbol -> void
 ;;; Export graph in specified format (:dot or :json).
@@ -468,7 +468,7 @@
               (length (filter (lambda (h) (not (hashtable-ref referenced h #f))) hashes)))
         
         (display "Graph Summary:\n")
-        (display "==============\n")
+        (display "====\n")
         (display (format "  Total nodes: ~a\n" total-blocks))
         (display (format "  Total edges: ~a\n" total-edges))
         (display (format "  Orphan nodes: ~a\n" orphan-count))
@@ -477,9 +477,9 @@
                              (inexact (/ total-edges total-blocks))
                              0)))))
 
-;;; ============================================================
+;;; ====
 ;;; Module Load Message
-;;; ============================================================
+;;; ====
 
 (printf "Graph Export loaded.\n")
 (printf "  DOT:   (export-dot fs path), (export-dot-string fs)\n")

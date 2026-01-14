@@ -13,9 +13,9 @@
 (load "lattice/random/prng.ss")
 (load "lattice/random/distributions.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Test Utilities
-;;; ============================================================
+;;; ====
 
 ;;; mean : (List Number) -> Number
 (define (mean lst)
@@ -49,14 +49,14 @@
   (length (filter identity lst)))
 
 (display "\n")
-(display "==============================================================\n")
+(display "====\n")
 (display "         Probability Distribution Tests\n")
-(display "==============================================================\n")
+(display "====\n")
 (display "\n")
 
-;;; ============================================================
+;;; ====
 ;;; Bernoulli Distribution Tests
-;;; ============================================================
+;;; ====
 
 (test-group bernoulli-distribution
             
@@ -88,9 +88,9 @@
               (assert-true (within-tolerance 0.7 (bernoulli-pmf #t 0.7) 0.0001))
               (assert-true (within-tolerance 0.3 (bernoulli-pmf #f 0.7) 0.0001))))
 
-;;; ============================================================
+;;; ====
 ;;; Exponential Distribution Tests
-;;; ============================================================
+;;; ====
 
 (test-group exponential-distribution
             
@@ -152,9 +152,9 @@
                      [back (exponential-cdf q 2.0)])
                     (assert-true (within-tolerance p back 0.001)))))
 
-;;; ============================================================
+;;; ====
 ;;; Normal Distribution Tests
-;;; ============================================================
+;;; ====
 
 (test-group normal-distribution
             
@@ -214,9 +214,9 @@
               ;; Quantile(0.975) ~ 1.96
               (assert-true (within-tolerance 1.96 (standard-normal-quantile 0.975) 0.05))))
 
-;;; ============================================================
+;;; ====
 ;;; Geometric Distribution Tests
-;;; ============================================================
+;;; ====
 
 (test-group geometric-distribution
             
@@ -248,9 +248,9 @@
               ;; CDF(3, 0.5) = 1 - 0.5^3 = 0.875
               (assert-true (within-tolerance 0.875 (geometric-cdf 3 0.5) 0.001))))
 
-;;; ============================================================
+;;; ====
 ;;; Poisson Distribution Tests
-;;; ============================================================
+;;; ====
 
 (test-group poisson-distribution
             
@@ -292,9 +292,9 @@
                     [manual (+ (poisson-pmf 0 3.0) (poisson-pmf 1 3.0) (poisson-pmf 2 3.0))])
                    (assert-true (within-tolerance manual cdf 0.0001)))))
 
-;;; ============================================================
+;;; ====
 ;;; Binomial Distribution Tests
-;;; ============================================================
+;;; ====
 
 (test-group binomial-distribution
             
@@ -342,9 +342,9 @@
               (assert-equal (binomial-pmf -1 10 0.5) 0)
               (assert-equal (binomial-pmf 11 10 0.5) 0)))
 
-;;; ============================================================
+;;; ====
 ;;; Gamma Distribution Tests
-;;; ============================================================
+;;; ====
 
 (test-group gamma-distribution
             
@@ -387,9 +387,9 @@
                      [m (mean samples)])
                     (assert-true (within-tolerance expected-mean m 0.5)))))
 
-;;; ============================================================
+;;; ====
 ;;; Beta Distribution Tests
-;;; ============================================================
+;;; ====
 
 (test-group beta-distribution
             
@@ -422,9 +422,9 @@
                     ;; Variance of uniform is 1/12
                     (assert-true (within-tolerance (/ 1 12) v 0.01)))))
 
-;;; ============================================================
+;;; ====
 ;;; Categorical Distribution Tests
-;;; ============================================================
+;;; ====
 
 (test-group categorical-distribution
             
@@ -452,9 +452,9 @@
                     ;; Each should be roughly 1000
                     (assert-true (all-satisfy (lambda (c) (within-tolerance 1000 c 100)) counts)))))
 
-;;; ============================================================
+;;; ====
 ;;; Dirichlet Distribution Tests
-;;; ============================================================
+;;; ====
 
 (test-group dirichlet-distribution
             
@@ -483,9 +483,9 @@
                     ;; Low concentration should have higher variance
                     (assert-true (> variance-low variance-high)))))
 
-;;; ============================================================
+;;; ====
 ;;; Uniform Distribution PDF/CDF Tests
-;;; ============================================================
+;;; ====
 
 (test-group uniform-pdf-cdf
             
@@ -511,9 +511,9 @@
               (assert-true (within-tolerance 0.5 (uniform-quantile 0.5 0 1) 0.0001))
               (assert-true (within-tolerance 1.0 (uniform-quantile 0.5 0 2) 0.0001))))
 
-;;; ============================================================
+;;; ====
 ;;; Normal Vector Tests
-;;; ============================================================
+;;; ====
 
 (test-group normal-vector
             
@@ -528,9 +528,9 @@
                      [m (mean samples)])
                     (assert-true (within-tolerance 50 m 1.0)))))
 
-;;; ============================================================
+;;; ====
 ;;; Helper Function Tests
-;;; ============================================================
+;;; ====
 
 (test-group helper-functions
             
@@ -560,9 +560,9 @@
                      [lg (log-gamma (+ n 1))])
                     (assert-true (within-tolerance log-fact lg 0.01)))))
 
-;;; ============================================================
+;;; ====
 ;;; Log-gamma and Special Functions Tests
-;;; ============================================================
+;;; ====
 
 (test-group log-gamma-function
             
@@ -577,9 +577,9 @@
                      [lg2 (log-gamma 2.5)])
                     (assert-true (< lg1 lg2)))))
 
-;;; ============================================================
+;;; ====
 ;;; Reproducibility Tests
-;;; ============================================================
+;;; ====
 
 (test-group distribution-reproducibility
             
@@ -601,9 +601,9 @@
                      [seq2 (with-random 12345 (random-list 100 (random-poisson 5.0)))])
                     (assert-equal seq1 seq2))))
 
-;;; ============================================================
+;;; ====
 ;;; Print Summary
-;;; ============================================================
+;;; ====
 
 (display "\n")
 (printf "Tests passed: ~a\n" *tests-passed*)

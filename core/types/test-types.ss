@@ -25,9 +25,9 @@
   (display name)
   (newline))
 
-;;; ============================================================
+;;; ====
 ;;; Base Types
-;;; ============================================================
+;;; ====
 (test-section "Base Types")
 (test "Nat is base" #t (base-type? 'Nat))
 (test "Int is base" #t (base-type? 'Int))
@@ -40,9 +40,9 @@
 (test "Hash is base" #t (base-type? 'Hash))
 (test "Foo is not base" #f (base-type? 'Foo))
 
-;;; ============================================================
+;;; ====
 ;;; Type Predicates
-;;; ============================================================
+;;; ====
 (test-section "Type Predicates")
 (test "Nat is type" #t (type? 'Nat))
 (test "hole is type" #t (type? '?))
@@ -60,9 +60,9 @@
 (test "recursive type" #t (type? '(μ list (+ (Nil) (Cons Nat list)))))
 (test "capability type" #t (type? '(Cap FS (-> String Bytes))))
 
-;;; ============================================================
+;;; ====
 ;;; Type Constructors
-;;; ============================================================
+;;; ====
 (test-section "Type Constructors")
 (test "t->" '(-> Nat Bool) (t-> 'Nat 'Bool))
 (test "t× " '(× Nat Bool String) (t× 'Nat 'Bool 'String))
@@ -77,9 +77,9 @@
 (test "t-hole" '? (t-hole))
 (test "t-named-hole" '(? x) (t-named-hole 'x))
 
-;;; ============================================================
+;;; ====
 ;;; Type Accessors
-;;; ============================================================
+;;; ====
 (test-section "Type Accessors")
 (test "function-type?" #t (function-type? '(-> Nat Bool)))
 (test "not function-type" #f (function-type? 'Nat))
@@ -97,9 +97,9 @@
 (test "not type-var (base)" #f (type-var? 'Nat))
 (test "not type-var (upper)" #f (type-var? 'Foo))
 
-;;; ============================================================
+;;; ====
 ;;; Type Equality
-;;; ============================================================
+;;; ====
 (test-section "Type Equality")
 (test "base equal" #t (type=? 'Nat 'Nat))
 (test "base not equal" #f (type=? 'Nat 'Bool))
@@ -108,9 +108,9 @@
 (test "nested equal" #t (type=? '(-> (List Nat) (× Bool String))
                                 '(-> (List Nat) (× Bool String))))
 
-;;; ============================================================
+;;; ====
 ;;; Free Type Variables
-;;; ============================================================
+;;; ====
 (test-section "Free Type Variables")
 (test "no free vars in base" '() (free-tvars 'Nat))
 (test "single tvar" '(a) (free-tvars 'a))
@@ -123,9 +123,9 @@
 (test "kinded forall free var" '(a) (free-tvars '(∀ ((f : (⇒ * *))) (@ f a))))
 (test "mixed simple+kinded" '(b) (free-tvars '(∀ (a (f : (⇒ * *))) (-> a (@ f b)))))
 
-;;; ============================================================
+;;; ====
 ;;; Type Substitution
-;;; ============================================================
+;;; ====
 (test-section "Type Substitution")
 (test "subst base unchanged" 'Nat (subst-type 'Nat 'a 'Bool))
 (test "subst tvar" 'Bool (subst-type 'a 'a 'Bool))
@@ -141,26 +141,26 @@
       '(∀ ((f : (⇒ * *))) (@ f Bool))
       (subst-type '(∀ ((f : (⇒ * *))) (@ f a)) 'a 'Bool))
 
-;;; ============================================================
+;;; ====
 ;;; Common Type Patterns
-;;; ============================================================
+;;; ====
 (test-section "Common Type Patterns")
 (test "t-option" '(+ (None) (Some Nat)) (t-option 'Nat))
 (test "t-result" '(+ (Ok Nat) (Err String)) (t-result 'Nat 'String))
 (test "t-pair" '(× Nat Bool) (t-pair 'Nat 'Bool))
 
-;;; ============================================================
+;;; ====
 ;;; Type Display
-;;; ============================================================
+;;; ====
 (test-section "Type Display")
 (test "display base" "Nat" (type->string 'Nat))
 (test "display hole" "?" (type->string '?))
 (test "display function" "(Nat → Bool)" (type->string '(-> Nat Bool)))
 (test "display product" "(Nat × Bool)" (type->string '(× Nat Bool)))
 
-;;; ============================================================
+;;; ====
 ;;; Type as Block
-;;; ============================================================
+;;; ====
 (test-section "Type as Block")
 (define test-type '(-> Nat (List Bool)))
 (define type-blk (type->block test-type))
@@ -168,9 +168,9 @@
 (test "round-trip" test-type (block->type type-blk))
 (test "invalid block" #f (block->type (make-block 'not-type (make-bytevector 0) (vector))))
 
-;;; ============================================================
+;;; ====
 ;;; infer.ss — Type Inference Tests
-;;; ============================================================
+;;; ====
 
 (load "core/types/infer.ss")
 
@@ -237,9 +237,9 @@
 (define app-error (typeof '(42 "hello")))
 (test "type mismatch in app" #t (and (pair? app-error) (eq? (car app-error) 'error)))
 
-;;; ============================================================
+;;; ====
 ;;; kinds.ss — Kind System Tests
-;;; ============================================================
+;;; ====
 
 (load "core/types/kinds.ss")
 
@@ -281,9 +281,9 @@
 (test "kind->string arrow" "* ⇒ *" (kind->string (K=> K* K*)))
 (test "kind->string Constraint" "Constraint" (kind->string K-constraint))
 
-;;; ============================================================
+;;; ====
 ;;; Integration Tests
-;;; ============================================================
+;;; ====
 
 (test-section "Integration - Polymorphism")
 (define poly-id (typeof '(fn (x) x)))

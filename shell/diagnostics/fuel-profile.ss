@@ -31,9 +31,9 @@
 (load "eval.ss")
 (load "edit.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Fuel Tracking
-;;; ============================================================
+;;; ====
 
 ;;; We track fuel consumption by running evaluation with decreasing
 ;;; fuel budgets and observing when evaluation succeeds.
@@ -112,9 +112,9 @@
          (display "  → ⚠ Dangerously close to fuel exhaustion!\n")
          (display "  → Increase budget or optimize expression.\n")])))
 
-;;; ============================================================
+;;; ====
 ;;; Detailed Profiling
-;;; ============================================================
+;;; ====
 
 ;;; fuel-profile-detailed : Expr × Nat → void
 ;;; Profile with multiple fuel levels to show scaling behavior.
@@ -153,9 +153,9 @@
         levels))
   (display "\n"))
 
-;;; ============================================================
+;;; ====
 ;;; Fuel Recommendations
-;;; ============================================================
+;;; ====
 
 ;;; fuel-recommend : Expr → void
 ;;; Recommend appropriate fuel budget for an expression.
@@ -189,9 +189,9 @@
                          (display (format "  Conservative: ~a (safety margin: 100%)\n"
                                           (* min-fuel 2)))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Fuel Comparison
-;;; ============================================================
+;;; ====
 
 ;;; fuel-compare : Expr × (List Nat) → void
 ;;; Compare expression behavior across different fuel levels.
@@ -214,9 +214,9 @@
                 (display "\n")))
    fuel-levels))
 
-;;; ============================================================
+;;; ====
 ;;; File Analysis
-;;; ============================================================
+;;; ====
 
 ;;; fuel-analyze-file : FS × String × Nat → void
 ;;; Analyze fuel consumption for all expressions in a file.
@@ -271,9 +271,9 @@
                                        (display (format "~s\n\n" expr))
                                        (loop (+ expr-num 1) (+ total-fuel min-fuel) failures))]))]))))))
 
-;;; ============================================================
+;;; ====
 ;;; Utilities
-;;; ============================================================
+;;; ====
 
 ;;; time-difference : Time × Time → Time
 ;;; Compute difference between two times.

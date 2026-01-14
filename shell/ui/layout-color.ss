@@ -5,16 +5,16 @@
 ;;;
 ;;; This is Shell code: handles display/IO with ANSI color output.
 
-;;; ============================================================
+;;; ====
 ;;; Dependencies
-;;; ============================================================
+;;; ====
 
 ;;; Load color support
 (load "shell/ui/color.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Data Structures
-;;; ============================================================
+;;; ====
 
 ;;; Canvas: A 2D grid of cells (char + color)
 ;;; Cells stored in row-major order: cells[y * width + x]
@@ -41,9 +41,9 @@
 (define rect-width rect%-width)
 (define rect-height rect%-height)
 
-;;; ============================================================
+;;; ====
 ;;; Canvas Construction
-;;; ============================================================
+;;; ====
 
 ;;; make-canvas : Nat × Nat → Canvas
 ;;; Create a canvas filled with default cells.
@@ -111,9 +111,9 @@
              updates)
             (make-canvas% w h cells))))
 
-;;; ============================================================
+;;; ====
 ;;; Drawing Primitives
-;;; ============================================================
+;;; ====
 
 ;;; draw-char : Canvas × Point × Char → Canvas
 (define (draw-char c pt ch)
@@ -222,9 +222,9 @@
                              (loop-x (+ x 1)
                                      (canvas-set-cell canvas x y (make-cell ch fg bg))))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Composition
-;;; ============================================================
+;;; ====
 
 ;;; composite : Canvas × Canvas × Point → Canvas
 (define (composite dest src pt)
@@ -279,9 +279,9 @@
                               (loop-x (+ x 1)
                                       (canvas-set-cell canvas (+ dx x) (+ dy y) cell)))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Rendering with ANSI Colors
-;;; ============================================================
+;;; ====
 
 ;;; canvas->string : Canvas → String
 ;;; Convert canvas to multi-line string with ANSI color codes.
@@ -329,9 +329,9 @@
                   [new-result (string-append result color-code (string ch))])
                  (loop-x (+ x 1) new-result fg bg)))))
 
-;;; ============================================================
+;;; ====
 ;;; Box Drawing
-;;; ============================================================
+;;; ====
 
 (define box-style-ascii
   '((tl . #\+) (tr . #\+) (bl . #\+) (br . #\+)

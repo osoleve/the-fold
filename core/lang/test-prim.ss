@@ -28,9 +28,9 @@
   (display name)
   (newline))
 
-;;; ============================================================
+;;; ====
 ;;; Arithmetic
-;;; ============================================================
+;;; ====
 (test-section "Arithmetic")
 (test "add" 5 (prim 'add 2 3))
 (test "add many" 15 (prim 'add 1 2 3 4 5))
@@ -53,9 +53,9 @@
 (test "ceiling" 4.0 (prim 'ceiling 3.2))
 (test "round" 4.0 (prim 'round 3.6))
 
-;;; ============================================================
+;;; ====
 ;;; Comparison
-;;; ============================================================
+;;; ====
 (test-section "Comparison")
 (test "eq? true" #t (prim 'eq? 5 5))
 (test "eq? false" #f (prim 'eq? 5 6))
@@ -68,9 +68,9 @@
 (test "positive?" #t (prim 'positive? 5))
 (test "negative?" #t (prim 'negative? -3))
 
-;;; ============================================================
+;;; ====
 ;;; Bitwise
-;;; ============================================================
+;;; ====
 (test-section "Bitwise")
 (test "bitand" #b1010 (prim 'bitand #b1111 #b1010))
 (test "bitor" #b1111 (prim 'bitor #b1100 #b0011))
@@ -79,18 +79,18 @@
 (test "shl" 8 (prim 'shl 1 3))
 (test "shr" 4 (prim 'shr 32 3))
 
-;;; ============================================================
+;;; ====
 ;;; Boolean
-;;; ============================================================
+;;; ====
 (test-section "Boolean")
 (test "not true" #f (prim 'not #t))
 (test "not false" #t (prim 'not #f))
 (test "and" #f (prim 'and #t #f))
 (test "or" #t (prim 'or #f #t))
 
-;;; ============================================================
+;;; ====
 ;;; Block operations
-;;; ============================================================
+;;; ====
 (test-section "Block operations")
 (define test-payload (string->utf8 "hello"))
 (define test-block (prim 'make-block 'greeting test-payload (vector)))
@@ -111,9 +111,9 @@
 (define restored (prim 'bytes->block serialized))
 (test "block round-trip tag" 'greeting (prim 'block-tag restored))
 
-;;; ============================================================
+;;; ====
 ;;; Bytevector operations
-;;; ============================================================
+;;; ====
 (test-section "Bytevector operations")
 (define bv (make-bytevector 5 #x42))
 (test "bv-length" 5 (prim 'bv-length bv))
@@ -136,9 +136,9 @@
 (test "bv-copy third" (char->integer #\d) (prim 'bv-ref copy-dst 2))
 (test "bv-copy untouched" 0 (prim 'bv-ref copy-dst 4))
 
-;;; ============================================================
+;;; ====
 ;;; String/Bytevector conversion
-;;; ============================================================
+;;; ====
 (test-section "String conversion")
 (test "string->utf8->string" "test" (prim 'utf8->string (prim 'string->utf8 "test")))
 (test "symbol->string" "foo" (prim 'symbol->string 'foo))
@@ -146,9 +146,9 @@
 (test "number->string" "42" (prim 'number->string 42))
 (test "string->number" 123 (prim 'string->number "123"))
 
-;;; ============================================================
+;;; ====
 ;;; List operations
-;;; ============================================================
+;;; ====
 (test-section "List operations")
 (test "cons" '(1 . 2) (prim 'cons 1 2))
 (test "car" 1 (prim 'car '(1 2 3)))
@@ -164,9 +164,9 @@
 (test "memq found" '(b c) (prim 'memq 'b '(a b c)))
 (test "assq" '(b . 2) (prim 'assq 'b '((a . 1) (b . 2))))
 
-;;; ============================================================
+;;; ====
 ;;; Vector operations
-;;; ============================================================
+;;; ====
 (test-section "Vector operations")
 (define v (prim 'vec-make 1 2 3))
 (test "vec-make" (vector 1 2 3) v)
@@ -176,9 +176,9 @@
 (test "vec->list" '(1 2 3) (prim 'vec->list v))
 (test "list->vec" (vector 'a 'b) (prim 'list->vec '(a b)))
 
-;;; ============================================================
+;;; ====
 ;;; String operations
-;;; ============================================================
+;;; ====
 (test-section "String operations")
 (test "string-length" 5 (prim 'string-length "hello"))
 (test "string-length empty" 0 (prim 'string-length ""))
@@ -194,9 +194,9 @@
 (test "string->list" '(#\h #\e #\l #\l #\o) (prim 'string->list "hello"))
 (test "list->string" "hi" (prim 'list->string '(#\h #\i)))
 
-;;; ============================================================
+;;; ====
 ;;; Character operations
-;;; ============================================================
+;;; ====
 (test-section "Character operations")
 (test "char->integer" 65 (prim 'char->integer #\A))
 (test "integer->char" #\A (prim 'integer->char 65))
@@ -210,8 +210,8 @@
 (test "char-upcase" #\A (prim 'char-upcase #\a))
 (test "char-downcase" #\a (prim 'char-downcase #\A))
 
-;;; ============================================================
+;;; ====
 ;;; Primitive errors
-;;; ============================================================
+;;; ====
 (test-section "Primitive errors")
 (test "unknown primitive" '(error unknown-primitive nope) (prim 'nope 1))

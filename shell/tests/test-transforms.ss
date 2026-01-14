@@ -7,9 +7,9 @@
 
 (display "Testing transform concepts...\n\n")
 
-;;; ============================================================
+;;; ====
 ;;; Test 1: Basic Canvas Operations
-;;; ============================================================
+;;; ====
 
 (display "1. Testing canvas operations:\n")
 
@@ -20,9 +20,9 @@
           (display "  ✓ Canvas set/ref works\n\n")
           (display "  ✗ FAILED: Canvas set/ref broken\n\n")))
 
-;;; ============================================================
+;;; ====
 ;;; Test 2: Point Operations
-;;; ============================================================
+;;; ====
 
 (display "2. Testing point operations:\n")
 
@@ -33,9 +33,9 @@
           (display "  ✓ Point operations work\n\n")
           (display "  ✗ FAILED: Point operations broken\n\n")))
 
-;;; ============================================================
+;;; ====
 ;;; Test 3: Canvas Dimensions
-;;; ============================================================
+;;; ====
 
 (display "3. Testing canvas dimensions:\n")
 
@@ -45,9 +45,9 @@
           (display "  ✓ Canvas dimensions correct\n\n")
           (display "  ✗ FAILED: Canvas dimensions incorrect\n\n")))
 
-;;; ============================================================
+;;; ====
 ;;; Test 4: Canvas Rendering
-;;; ============================================================
+;;; ====
 
 (display "4. Testing canvas rendering:\n")
 
@@ -60,9 +60,9 @@
       (newline)
       (display "  ✓ Canvas rendering works\n\n"))
 
-;;; ============================================================
+;;; ====
 ;;; Test 5: Out-of-Bounds Access
-;;; ============================================================
+;;; ====
 
 (display "5. Testing out-of-bounds handling:\n")
 
@@ -78,9 +78,9 @@
           (display "  ✓ Out-of-bounds returns space\n\n")
           (display "  ✗ FAILED: Out-of-bounds handling broken\n\n")))
 
-;;; ============================================================
+;;; ====
 ;;; Test 6: Composite Operation
-;;; ============================================================
+;;; ====
 
 (display "6. Testing composite operation:\n")
 
@@ -98,9 +98,9 @@
                (display "  ✓ Composite places content correctly\n\n")
                (display "  ✗ FAILED: Composite placement incorrect\n\n"))))
 
-;;; ============================================================
+;;; ====
 ;;; Test 7: Draw String
-;;; ============================================================
+;;; ====
 
 (display "7. Testing draw-string:\n")
 
@@ -113,9 +113,9 @@
                (display "  ✓ draw-string works correctly\n\n")
                (display "  ✗ FAILED: draw-string broken\n\n"))))
 
-;;; ============================================================
+;;; ====
 ;;; Test 8: Fill Rectangle
-;;; ============================================================
+;;; ====
 
 (display "8. Testing fill-rect:\n")
 
@@ -126,6 +126,6 @@
       (newline)
       (display "  ✓ fill-rect executes without error\n\n"))
 
-(display "======================================\n")
+(display "====\n")
 (display "All canvas/layout tests completed!\n")
-(display "======================================\n")
+(display "====\n")

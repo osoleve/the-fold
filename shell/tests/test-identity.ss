@@ -32,9 +32,9 @@
   (hashtable-clear! *store*)
   (hashtable-clear! *pinned*))
 
-;;; ============================================================
+;;; ====
 ;;; Identity Creation Tests
-;;; ============================================================
+;;; ====
 (test-section "Identity Creation")
 
 (cleanup-test-env!)
@@ -73,9 +73,9 @@
       #f
       (identity-exists? 'bob))
 
-;;; ============================================================
+;;; ====
 ;;; Identity Lookup Tests
-;;; ============================================================
+;;; ====
 (test-section "Identity Lookup")
 
 (test "lookup existing identity returns block"
@@ -94,9 +94,9 @@
       #f
       (get-identity-data 'missing))
 
-;;; ============================================================
+;;; ====
 ;;; Identity Update Tests
-;;; ============================================================
+;;; ====
 (test-section "Identity Updates")
 
 (test "record session increments count"
@@ -124,9 +124,9 @@
        (record-post! 'alice)
        (cdr (assq 'total-posts (get-identity-data 'alice)))))
 
-;;; ============================================================
+;;; ====
 ;;; Preference Management Tests
-;;; ============================================================
+;;; ====
 (test-section "Preference Management")
 
 (test "set preference adds to preferences"
@@ -154,9 +154,9 @@
              [prefs (cdr (assq 'preferences data))])
             (cdr (assq 'theme prefs))))
 
-;;; ============================================================
+;;; ====
 ;;; Identity History Tests
-;;; ============================================================
+;;; ====
 (test-section "Identity History")
 
 (test "identity history is not empty"
@@ -184,9 +184,9 @@
              [data (decode-identity-payload (block-payload newest))])
             (cdr (assq 'session-count data))))
 
-;;; ============================================================
+;;; ====
 ;;; Multiple Identities Tests
-;;; ============================================================
+;;; ====
 (test-section "Multiple Identities")
 
 (test "register second identity"
@@ -212,9 +212,9 @@
            (eq? (cdr (assq 'role (get-identity-data 'bob))) 'player)
            (eq? (cdr (assq 'role (get-identity-data 'charlie))) 'shepherd)))
 
-;;; ============================================================
+;;; ====
 ;;; Block Structure Tests
-;;; ============================================================
+;;; ====
 (test-section "Block Structure")
 
 (test "new identity has no refs"
@@ -242,9 +242,9 @@
              [data (decode-identity-payload payload)])
             (list? data)))
 
-;;; ============================================================
+;;; ====
 ;;; Error Handling Tests
-;;; ============================================================
+;;; ====
 (test-section "Error Handling")
 
 (test "cannot register duplicate identity"
@@ -260,9 +260,9 @@
                                (lambda (data) data))
              #f))
 
-;;; ============================================================
+;;; ====
 ;;; Encoding/Decoding Tests
-;;; ============================================================
+;;; ====
 (test-section "Encoding/Decoding")
 
 (test "encode-decode roundtrip preserves data"
@@ -285,9 +285,9 @@
                  (if (assq 'total-posts decoded) #t #f)
                  (if (assq 'preferences decoded) #t #f))))
 
-;;; ============================================================
+;;; ====
 ;;; Timestamp Tests
-;;; ============================================================
+;;; ====
 (test-section "Timestamps")
 
 (test "timestamp has ISO8601 format"

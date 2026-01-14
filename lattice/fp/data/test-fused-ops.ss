@@ -9,9 +9,9 @@
 (load "lattice/fp/data/fused-ops.ss")
 
 (display "\n")
-(display "============================================================\n")
+(display "====\n")
 (display "        Running Fused Operations Tests\n")
-(display "============================================================\n")
+(display "====\n")
 (newline)
 
 (test-group fused-ops-basic
@@ -439,9 +439,9 @@
 
 ;;; Print summary
 (newline)
-(display "============================================================\n")
+(display "====\n")
 (display "        Fused Operations Test Summary\n")
-(display "============================================================\n")
+(display "====\n")
 (display "  Total tests: ")
 (display *tests-run*)
 (newline)

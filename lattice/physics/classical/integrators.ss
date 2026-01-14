@@ -21,9 +21,9 @@
 (load "lattice/linalg/vec2.ss")
 (load "lattice/physics/classical/numerical/integrators.ss")
 
-;;; ============================================================
+;;; ====
 ;;; 2D Physics Body State
-;;; ============================================================
+;;; ====
 
 ;;; A physics body in 2D has:
 ;;;   - pos: position (vec2)
@@ -79,9 +79,9 @@
 (define (make-static-body pos)
   (make-body-2d pos (vec2 0 0) 0))
 
-;;; ============================================================
+;;; ====
 ;;; Vec2 to State Conversion
-;;; ============================================================
+;;; ====
 
 ;;; Vec2 ↔ list state conversion for generic integrators
 
@@ -106,9 +106,9 @@
                 (state->vec2 (cadr s))
                 mass))
 
-;;; ============================================================
+;;; ====
 ;;; 2D Integration Methods
-;;; ============================================================
+;;; ====
 
 ;;; integrate-body-euler : Body2D × (Body2D → Vec2) × Number → Body2D
 ;;; Integrate a body forward using Euler method.
@@ -183,9 +183,9 @@
              [new-vel (state->vec2 (drop new-state 2))])
             (body-with-state body new-pos new-vel))))
 
-;;; ============================================================
+;;; ====
 ;;; Time Accumulator (Fixed Timestep)
-;;; ============================================================
+;;; ====
 
 ;;; A time accumulator manages fixed timestep with interpolation
 ;;;   - accumulator: remaining time to simulate
@@ -237,9 +237,9 @@
         [fixed-dt (time-acc-fixed-dt t)])
        (/ remaining fixed-dt)))
 
-;;; ============================================================
+;;; ====
 ;;; Sub-stepping
-;;; ============================================================
+;;; ====
 
 ;;; substep-body : Body2D × (Body2D → Vec2) × Number × Nat × Symbol → Body2D
 ;;; Integrate body with n substeps using specified method.
@@ -269,9 +269,9 @@
                       (let ([new-b (integrate-body-verlet b force-fn fixed-dt)])
                            (loop new-b new-t (+ steps 1))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Interpolation for Rendering
-;;; ============================================================
+;;; ====
 
 ;;; interpolate-body : Body2D × Body2D × Number → Body2D
 ;;; Interpolate between two body states for smooth rendering.
@@ -281,9 +281,9 @@
          [vel (vec2-lerp (body-vel body-prev) (body-vel body-curr) alpha)])
         (body-with-state body-curr pos vel)))
 
-;;; ============================================================
+;;; ====
 ;;; Common Force Functions
-;;; ============================================================
+;;; ====
 
 ;;; gravity-force : Number → (Body2D → Vec2)
 ;;; Create gravity force function (pointing downward in screen coords).
@@ -322,9 +322,9 @@
                      (vec2 0 0)
                      force-fns)))
 
-;;; ============================================================
+;;; ====
 ;;; Energy Calculations
-;;; ============================================================
+;;; ====
 
 ;;; body-kinetic-energy : Body2D → Number
 (define (body-kinetic-energy body)
@@ -347,9 +347,9 @@
   (+ (body-kinetic-energy body)
      (body-potential-energy body g y-ref)))
 
-;;; ============================================================
+;;; ====
 ;;; Rigid Body Integration (with Rotation)
-;;; ============================================================
+;;; ====
 
 ;;; Load rigid body module
 (load "lattice/physics/classical/rigid-body.ss")

@@ -23,18 +23,18 @@
 ;;;   (try-free-vars '(+ x y))
 ;;;   (try-block 'my-tag #vu8(1 2 3) '())
 
-;;; ============================================================
+;;; ====
 ;;; Dependencies
-;;; ============================================================
+;;; ====
 ;;; These should be loaded by repl.ss or load-core:
 ;;;   core/block.ss
 ;;;   core/sha256.ss
 ;;;   core/normalize.ss (via load-core)
 ;;;   core/expand.ss (via load-core)
 
-;;; ============================================================
+;;; ====
 ;;; Pretty Printing Utilities
-;;; ============================================================
+;;; ====
 
 ;;; print-boxed : String String → void
 ;;; Print content in a nice box with a title.
@@ -55,9 +55,9 @@
   (display content)
   (display "\n\n"))
 
-;;; ============================================================
+;;; ====
 ;;; Normalization Experiments
-;;; ============================================================
+;;; ====
 
 ;;; try-normalize : Expr → void
 ;;; Show the normalized (de Bruijn) form of an expression.
@@ -78,9 +78,9 @@
            (display "  No free variables (closed expression)\n\n")
            (print-section "Free variables" (sexpr->string fv)))))
 
-;;; ============================================================
+;;; ====
 ;;; Expansion Experiments
-;;; ============================================================
+;;; ====
 
 ;;; try-expand : Expr × List<Symbol> → void
 ;;; Expand a normalized expression with specific variable names.
@@ -100,9 +100,9 @@
   (let ([expanded (expand-fresh canonical)])
        (print-section "Expanded with fresh symbols" (sexpr->string expanded))))
 
-;;; ============================================================
+;;; ====
 ;;; Round-Trip Testing
-;;; ============================================================
+;;; ====
 
 ;;; try-roundtrip : Expr × [List<Symbol>] → void
 ;;; Normalize an expression then expand it back.
@@ -127,9 +127,9 @@
                       (display "✗ Round-trip failed: normalized forms differ!\n")
                       (print-section "Re-normalized" (sexpr->string renormalized))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Hashing Experiments
-;;; ============================================================
+;;; ====
 
 ;;; hash-expr : Expr → Bytevector
 ;;; Normalize an expression and return its hash.
@@ -173,9 +173,9 @@
                 (display "✓ Hashes match! Expressions are alpha-equivalent.\n")
                 (display "✗ Hashes differ. Expressions are NOT alpha-equivalent.\n")))))
 
-;;; ============================================================
+;;; ====
 ;;; Block Experiments
-;;; ============================================================
+;;; ====
 
 ;;; try-block : Symbol × Bytevector × List<Bytevector> → void
 ;;; Build a block and show its structure and hash.
@@ -246,9 +246,9 @@
                       (display "✓ Round-trip successful! Blocks match.\n")
                       (display "✗ Round-trip failed! Blocks differ.\n"))))))
 
-;;; ============================================================
+;;; ====
 ;;; Quick Demos
-;;; ============================================================
+;;; ====
 
 ;;; playground-demo : → void
 ;;; Run a quick demo of all playground features.

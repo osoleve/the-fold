@@ -21,9 +21,9 @@
 (load "core/base/sha256.ss")
 (load "shell/fs.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Core Storage Operations (Tier 3-4)
-;;; ============================================================
+;;; ====
 
 ;;; store-put! : FSCap Block → Hash
 ;;; Store a block and return its hash.
@@ -53,9 +53,9 @@
 (define (store-count fs)
   (length (fs-all-hashes fs)))
 
-;;; ============================================================
+;;; ====
 ;;; Filtering and Querying Operations (Tier 5-6)
-;;; ============================================================
+;;; ====
 
 ;;; store-all-blocks : FSCap → (List Block)
 ;;; Load all blocks from store.
@@ -101,9 +101,9 @@
                                       [(equal? (vector-ref refs i) target-hash) #t]
                                       [else (check-refs (+ i 1))]))))))
 
-;;; ============================================================
+;;; ====
 ;;; Batch Operations (Tier 4-5)
-;;; ============================================================
+;;; ====
 
 ;;; store-put-many! : FSCap (List Block) → (List Hash)
 ;;; Store multiple blocks and return their hashes.
@@ -115,9 +115,9 @@
 (define (store-get-many fs hashes)
   (map (lambda (h) (store-get fs h)) hashes))
 
-;;; ============================================================
+;;; ====
 ;;; Statistics and Inspection (Tier 5-6)
-;;; ============================================================
+;;; ====
 
 ;;; store-stats : FSCap → Alist
 ;;; Compute statistics about the store.
@@ -163,9 +163,9 @@
                          (printf "    ~a: ~a\n" (car pair) (cdr pair)))
                  (cdr (assq 'by-tag stats)))))
 
-;;; ============================================================
+;;; ====
 ;;; Graph Navigation Helpers (Tier 5-6)
-;;; ============================================================
+;;; ====
 
 ;;; store-get-refs : FSCap Block → (List Block)
 ;;; Get all blocks referenced by given block.
@@ -188,9 +188,9 @@
 (define (store-get-referrers fs hash)
   (store-find-by-ref fs hash))
 
-;;; ============================================================
+;;; ====
 ;;; Knowledge Graph Helpers (Tier 6)
-;;; ============================================================
+;;; ====
 
 ;;; store-get-entities : FSCap → (List Block)
 ;;; Get all entity blocks.

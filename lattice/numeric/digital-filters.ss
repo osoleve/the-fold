@@ -22,9 +22,9 @@
 (load "lattice/numeric/convolution.ss")
 (load "lattice/linalg/vec.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Window Functions
-;;; ============================================================
+;;; ====
 
 ;;; rectangular-window : Integer → (Vector Number)
 ;;; All ones (no windowing).
@@ -116,9 +116,9 @@
                                                                        (* t (+ -0.01647633
                                                                                (* t 0.00392377)))))))))))))))))))))
 
-;;; ============================================================
+;;; ====
 ;;; FIR Filter Design (Windowing Method)
-;;; ============================================================
+;;; ====
 
 ;;; sinc : Number → Number
 ;;; Normalized sinc function: sin(pi*x)/(pi*x), sinc(0) = 1
@@ -189,9 +189,9 @@
             (let ([val (- (vector-ref bp i))])
                  (vector-set! result i (if (= i half) (+ 1 val) val))))))
 
-;;; ============================================================
+;;; ====
 ;;; FIR Filter Application
-;;; ============================================================
+;;; ====
 
 ;;; fir-filter : (Vector Number) × (Vector Number) → (Vector Number)
 ;;; Apply FIR filter to signal using convolution.
@@ -199,9 +199,9 @@
 (define (fir-filter signal coeffs)
   (convolve signal coeffs 'same))
 
-;;; ============================================================
+;;; ====
 ;;; IIR Filter Structures
-;;; ============================================================
+;;; ====
 
 ;;; An IIR filter is defined by:
 ;;; - b: numerator coefficients [b0, b1, ..., bM]
@@ -229,9 +229,9 @@
 (define (iir-filter-a f)
   (cdr (assq 'a f)))
 
-;;; ============================================================
+;;; ====
 ;;; IIR Filter Application
-;;; ============================================================
+;;; ====
 
 ;;; iir-filter-signal : (Vector Number) × (Vector Number) × (Vector Number) → (Vector Number)
 ;;; Apply IIR filter using direct form I.
@@ -271,9 +271,9 @@
                  (vector-set! y-hist 0 sum)
                  (vector-set! output i sum)))))
 
-;;; ============================================================
+;;; ====
 ;;; Biquad Sections (Second Order Sections)
-;;; ============================================================
+;;; ====
 
 ;;; A biquad is a second-order IIR filter section:
 ;;; H(z) = (b0 + b1*z^-1 + b2*z^-2) / (1 + a1*z^-1 + a2*z^-2)
@@ -333,9 +333,9 @@
       (cascade-biquads (biquad-filter signal (car biquads))
                        (cdr biquads))))
 
-;;; ============================================================
+;;; ====
 ;;; Butterworth Filter Design
-;;; ============================================================
+;;; ====
 
 ;;; butterworth-lowpass-poles : Integer → (List Complex)
 ;;; Compute analog Butterworth lowpass prototype poles.
@@ -445,9 +445,9 @@
                                       (complex-mul root (vector-ref coeffs i)))))
         result))
 
-;;; ============================================================
+;;; ====
 ;;; Chebyshev Filter Design
-;;; ============================================================
+;;; ====
 
 ;;; chebyshev1-lowpass : Number × Number × Integer → IIR-Filter
 ;;; Design Chebyshev Type I lowpass filter.
@@ -493,9 +493,9 @@
 (define (sinh x)
   (/ (- (exp x) (exp (- x))) 2))
 
-;;; ============================================================
+;;; ====
 ;;; Frequency Response Analysis
-;;; ============================================================
+;;; ====
 
 ;;; freqz : IIR-Filter × Integer → ((Vector Number) × (Vector Complex))
 ;;; Compute frequency response of IIR filter.
@@ -567,9 +567,9 @@
             ((= i n-points) (cons freqs phase))
             (vector-set! phase i (complex-angle (vector-ref response i))))))
 
-;;; ============================================================
+;;; ====
 ;;; Real-time Filtering State
-;;; ============================================================
+;;; ====
 
 ;;; make-filter-state : IIR-Filter → Filter-State
 ;;; Create stateful filter for sample-by-sample processing.
@@ -636,9 +636,9 @@
                 ((= i ny))
                 (vector-set! y-hist i 0.0)))))
 
-;;; ============================================================
+;;; ====
 ;;; Common Filter Presets
-;;; ============================================================
+;;; ====
 
 ;;; dc-blocker : Number → IIR-Filter
 ;;; Simple DC blocking filter.
@@ -667,9 +667,9 @@
   (let ([coeff (/ 1.0 n)])
        (make-vector n coeff)))
 
-;;; ============================================================
+;;; ====
 ;;; Impulse Response
-;;; ============================================================
+;;; ====
 
 ;;; impulse-response : IIR-Filter × Integer → (Vector Number)
 ;;; Compute impulse response of filter.

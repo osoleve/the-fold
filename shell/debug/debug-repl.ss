@@ -18,15 +18,15 @@
 
 (load "shell/session-debugger.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Configuration
-;;; ============================================================
+;;; ====
 
 (define *default-debug-fuel* 10000)
 
-;;; ============================================================
+;;; ====
 ;;; Display Helpers
-;;; ============================================================
+;;; ====
 
 ;;; truncate-expr : Expr × Nat → String
 (define (truncate-expr-str expr max-len)
@@ -58,9 +58,9 @@
          (make-string empty #\-)
          "]")))
 
-;;; ============================================================
+;;; ====
 ;;; Debug Command
-;;; ============================================================
+;;; ====
 
 ;;; cmd-debug : Expr [× Fuel] → void
 ;;; Start a new debug session.
@@ -70,18 +70,18 @@
    [(expr fuel)
     (let ([dbg (start-debug-session! expr empty-env fuel)])
          (display "\n")
-         (display "  ============================================\n")
+         (display "  ====\n")
          (display "           DEBUG SESSION STARTED\n")
-         (display "  ============================================\n\n")
+         (display "  ====\n\n")
          (display (format "  Expression: ~a\n" (truncate-expr-str expr 50)))
          (display (format "  Fuel budget: ~a\n" fuel))
          (display "  Breakpoints: (none)\n\n")
          (display "  [Ready] Use (step) to begin, (help 'debug) for commands.\n\n")
          (void))]))
 
-;;; ============================================================
+;;; ====
 ;;; Step Command
-;;; ============================================================
+;;; ====
 
 ;;; cmd-step : → void
 ;;; Execute one step.
@@ -143,9 +143,9 @@
       '()
       (cons (car lst) (take-up-to-repl (- n 1) (cdr lst)))))
 
-;;; ============================================================
+;;; ====
 ;;; Next Command (Step Over)
-;;; ============================================================
+;;; ====
 
 ;;; cmd-next : → void
 ;;; Step over the current expression.
@@ -172,9 +172,9 @@
              (display "\n")
              (void))))
 
-;;; ============================================================
+;;; ====
 ;;; Continue Command
-;;; ============================================================
+;;; ====
 
 ;;; cmd-continue : → void
 ;;; Run to completion or breakpoint.
@@ -190,9 +190,9 @@
         (display "\n")
         (case status
               [(complete)
-               (display "  ============================================\n")
+               (display "  ====\n")
                (display "             EVALUATION COMPLETE\n")
-               (display "  ============================================\n\n")
+               (display "  ====\n\n")
                (display (format "  Result: ~a\n" (truncate-expr-str expr 50)))
                (display (format "  Steps: ~a\n" steps))
                (display (format "  Fuel: ~a used of ~a (~a%)\n"
@@ -200,9 +200,9 @@
                                 (debugger-fuel-budget dbg*)
                                 (round (debugger-fuel-pct dbg*))))]
               [(breakpoint)
-               (display "  ============================================\n")
+               (display "  ====\n")
                (display "               BREAKPOINT HIT\n")
-               (display "  ============================================\n\n")
+               (display "  ====\n\n")
                (display (format "  Expression: ~a\n" (truncate-expr-str expr 50)))
                (display (format "  Fuel: ~a used ~a\n"
                                 (debugger-fuel-used dbg*)
@@ -210,23 +210,23 @@
                                           (debugger-fuel-budget dbg*)
                                           20)))]
               [(error)
-               (display "  ============================================\n")
+               (display "  ====\n")
                (display "                   ERROR\n")
-               (display "  ============================================\n\n")
+               (display "  ====\n\n")
                (display (format "  ~a\n" (debugger-get dbg* 'error)))]
               [(out-of-fuel)
-               (display "  ============================================\n")
+               (display "  ====\n")
                (display "               OUT OF FUEL\n")
-               (display "  ============================================\n\n")
+               (display "  ====\n\n")
                (display (format "  Expression: ~a\n" (truncate-expr-str expr 50)))
                (display "  Increase fuel budget with (debug expr fuel)\n")])
         
         (display "\n")
         (void)))
 
-;;; ============================================================
+;;; ====
 ;;; Breakpoint Commands
-;;; ============================================================
+;;; ====
 
 ;;; cmd-break : Symbol → void
 ;;; Set a breakpoint on a function name.
@@ -246,9 +246,9 @@
         (display "  All breakpoints cleared.\n")
         (void)))
 
-;;; ============================================================
+;;; ====
 ;;; Inspect Command
-;;; ============================================================
+;;; ====
 
 ;;; cmd-inspect : → void
 ;;; Show current environment bindings.
@@ -272,9 +272,9 @@
         (display "\n")
         (void)))
 
-;;; ============================================================
+;;; ====
 ;;; Fuel Command
-;;; ============================================================
+;;; ====
 
 ;;; cmd-fuel : → void
 ;;; Show detailed fuel consumption.
@@ -283,9 +283,9 @@
          [summary (fuel-summary dbg)])
         
         (display "\n")
-        (display "  ============================================\n")
+        (display "  ====\n")
         (display "              FUEL CONSUMPTION\n")
-        (display "  ============================================\n\n")
+        (display "  ====\n\n")
         
         (display (format "  Budget:    ~a\n" (cdr (assq 'budget summary))))
         (display (format "  Used:      ~a\n" (cdr (assq 'used summary))))
@@ -312,9 +312,9 @@
         (display "\n")
         (void)))
 
-;;; ============================================================
+;;; ====
 ;;; Trace Command
-;;; ============================================================
+;;; ====
 
 ;;; cmd-trace : → void
 ;;; Show execution trace (call stack).
@@ -344,9 +344,9 @@
         (display "\n")
         (void)))
 
-;;; ============================================================
+;;; ====
 ;;; Undo Commands
-;;; ============================================================
+;;; ====
 
 ;;; cmd-undo : → void
 ;;; Undo the last step.
@@ -391,9 +391,9 @@
         (display "  Reset to initial state.\n")
         (void)))
 
-;;; ============================================================
+;;; ====
 ;;; Watch Commands
-;;; ============================================================
+;;; ====
 
 ;;; cmd-watch : Symbol → void
 ;;; Add a variable to the watch list.
@@ -456,9 +456,9 @@
         (display "\n")
         (void)))
 
-;;; ============================================================
+;;; ====
 ;;; Explain Commands
-;;; ============================================================
+;;; ====
 
 ;;; cmd-explain : [Symbol] → void
 ;;; Explain the current result or a specific binding.
@@ -519,9 +519,9 @@
 (define (cmd-why)
   (cmd-explain))
 
-;;; ============================================================
+;;; ====
 ;;; Export Commands
-;;; ============================================================
+;;; ====
 
 ;;; cmd-export-trace : [String] → void
 ;;; Export structured trace data.
@@ -570,9 +570,9 @@
         [else
          (display (format "~a~a\n" ind sexp))])))
 
-;;; ============================================================
+;;; ====
 ;;; Session Management
-;;; ============================================================
+;;; ====
 
 ;;; cmd-quit-debug : → void
 ;;; Quit the current debug session.
@@ -581,9 +581,9 @@
   (display "  Debug session ended.\n")
   (void))
 
-;;; ============================================================
+;;; ====
 ;;; Aliases for REPL convenience
-;;; ============================================================
+;;; ====
 
 (define debug cmd-debug)
 (define dbg-step cmd-step)

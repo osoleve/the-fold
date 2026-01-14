@@ -18,9 +18,9 @@
 (load "core/base/prelude.ss")
 (load "core/autodiff/comp-graph.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Traced Values
-;;; ============================================================
+;;; ====
 
 ;;; A traced value combines:
 ;;;   - value: the actual numerical value
@@ -77,9 +77,9 @@
 (define (traced-tape t)
   (if (traced? t) (cadddr t) #f))
 
-;;; ============================================================
+;;; ====
 ;;; Mutable Tape for Recording
-;;; ============================================================
+;;; ====
 
 ;;; Global tape for current computation (parameterized for nested AD)
 (define *current-tape* (make-parameter #f))
@@ -103,9 +103,9 @@
   (set-box! (cadr tape)
             (cons entry (unbox (cadr tape)))))
 
-;;; ============================================================
+;;; ====
 ;;; Traced Variable Creation
-;;; ============================================================
+;;; ====
 
 ;;; make-traced-var : Number × Tape → TracedValue
 ;;; Create a traced variable (input to the computation).
@@ -120,9 +120,9 @@
   ;; Constants don't need IDs or tape entries
   val)
 
-;;; ============================================================
+;;; ====
 ;;; Traced Arithmetic Operations
-;;; ============================================================
+;;; ====
 
 ;;; Helper: record operation and return traced result
 (define (traced-op op-name result-val inputs local-grads tape)
@@ -287,9 +287,9 @@
                            tape))
             result)))
 
-;;; ============================================================
+;;; ====
 ;;; Inverse Trigonometric Functions
-;;; ============================================================
+;;; ====
 
 ;;; traced-asin : TracedValue → TracedValue
 ;;; Arcsine. d(asin a)/da = 1/sqrt(1-a^2)
@@ -333,9 +333,9 @@
                        tape)
             result)))
 
-;;; ============================================================
+;;; ====
 ;;; Hyperbolic Functions
-;;; ============================================================
+;;; ====
 
 ;;; traced-sinh : TracedValue → TracedValue
 ;;; Hyperbolic sine. d(sinh a)/da = cosh a
@@ -378,9 +378,9 @@
                        tape)
             result)))
 
-;;; ============================================================
+;;; ====
 ;;; Backward Pass
-;;; ============================================================
+;;; ====
 
 ;;; backward : Tape × Nat × Number → Hash
 ;;; Compute gradients by walking tape backwards.
@@ -408,9 +408,9 @@
         (reverse-tape-entries tape))
        grads))
 
-;;; ============================================================
+;;; ====
 ;;; High-Level Interface
-;;; ============================================================
+;;; ====
 
 ;;; gradient : ((List TracedValue) → TracedValue) × (List Number) → (List Number)
 ;;; Compute gradient of f at point args.
@@ -461,18 +461,18 @@
                      (values result
                              (map (lambda (_) 0) args)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Convenience: Single-Variable Differentiation
-;;; ============================================================
+;;; ====
 
 ;;; reverse-diff : (TracedValue → TracedValue) × Number → Number
 ;;; Compute derivative of f at x using reverse mode.
 (define (reverse-diff f x)
   (car (gradient f (list x))))
 
-;;; ============================================================
+;;; ====
 ;;; Gradient Checking (for debugging)
-;;; ============================================================
+;;; ====
 
 ;;; numerical-gradient : ((List Number) → Number) × (List Number) × Number → (List Number)
 ;;; Compute gradient numerically using finite differences.
@@ -499,9 +499,9 @@
          [diffs (map (lambda (a n) (abs (- a n))) analytical numerical)])
         (andmap (lambda (d) (< d tolerance)) diffs)))
 
-;;; ============================================================
+;;; ====
 ;;; Tape Utilities
-;;; ============================================================
+;;; ====
 
 ;;; print-tape : Tape → Unit
 ;;; Print tape contents for debugging.

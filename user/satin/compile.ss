@@ -3,9 +3,9 @@
 ;;; Compiles Satin specifications to Quill runtime structures.
 ;;; This is the main compilation pipeline.
 
-;;; ============================================================
+;;; ====
 ;;; Main Compilation Entry Point
-;;; ============================================================
+;;; ====
 
 ;;; satin-compile-impl : SatinSpec → (Values QuillStory Issues)
 ;;; Main compilation function. Returns story and issues.
@@ -18,9 +18,9 @@
                   [more-issues (quill-validate-story story)])
                  (values story (append issues more-issues))))))
 
-;;; ============================================================
+;;; ====
 ;;; Story Compilation
-;;; ============================================================
+;;; ====
 
 (define (satin-compile-story spec)
   (let* ([id (satin-story-id spec)]
@@ -56,9 +56,9 @@
                 base-meta)])
         (make-quill-story id title start nodes meta)))
 
-;;; ============================================================
+;;; ====
 ;;; Node Compilation
-;;; ============================================================
+;;; ====
 
 (define (satin-compile-node node)
   (let* ([id (satin-node-id node)]
@@ -76,9 +76,9 @@
                    '())])
         (cons id (make-quill-node id title body choices on-enter-final meta))))
 
-;;; ============================================================
+;;; ====
 ;;; Body Compilation
-;;; ============================================================
+;;; ====
 
 ;;; Compile body text, potentially with template interpolation.
 ;;; Templates use {var:name}, {flag:name?}, {item:name} syntax.
@@ -159,9 +159,9 @@
                  [else (string-append "{" expr "}")]))
            (string-append "{" expr "}"))))
 
-;;; ============================================================
+;;; ====
 ;;; Choice Compilation
-;;; ============================================================
+;;; ====
 
 (define (satin-compile-choice choice)
   (let* ([label (or (satin-choice-label choice) "Continue")]
@@ -174,9 +174,9 @@
          [meta `((source . satin))])
         (make-quill-choice label target guard effects meta)))
 
-;;; ============================================================
+;;; ====
 ;;; Dialogue Compilation
-;;; ============================================================
+;;; ====
 
 (define (satin-compile-dialogue-to-meta dialogue)
   (let* ([id (satin-dialogue-id dialogue)]
@@ -205,9 +205,9 @@
          [meta '()])
         (make-quill-dialogue-choice label target guard effects meta)))
 
-;;; ============================================================
+;;; ====
 ;;; Quest Compilation
-;;; ============================================================
+;;; ====
 
 (define (satin-compile-quest-to-meta quest)
   (let* ([id (satin-quest-id quest)]
@@ -228,9 +228,9 @@
                  (make-quill-quest-step id desc guard meta))
            (make-quill-quest-step 'unknown "" (lambda (_) #f) '()))))
 
-;;; ============================================================
+;;; ====
 ;;; Rule Compilation
-;;; ============================================================
+;;; ====
 
 (define (satin-compile-rule-to-meta rule)
   (let* ([id (satin-rule-id rule)]
@@ -240,9 +240,9 @@
          [meta '()])
         (make-quill-rule id guard effects once? meta)))
 
-;;; ============================================================
+;;; ====
 ;;; Exercise Compilation
-;;; ============================================================
+;;; ====
 
 (define (satin-compile-exercise-to-meta exercise)
   (let* ([id (satin-exercise-id exercise)]
@@ -340,9 +340,9 @@
                            (string-ref substr i))) #f]
              [else (loop (+ i 1))]))))
 
-;;; ============================================================
+;;; ====
 ;;; Timeline Compilation
-;;; ============================================================
+;;; ====
 
 (define (satin-compile-timelines timelines)
   (apply append (map satin-compile-timeline-events timelines)))
@@ -377,9 +377,9 @@
                   (loop (cdr xs) (cons result acc))
                   (loop (cdr xs) acc)))])))
 
-;;; ============================================================
+;;; ====
 ;;; Lesson Compilation
-;;; ============================================================
+;;; ====
 
 ;;; Lessons are sequences of nodes/exercises that form a unit.
 ;;; They compile to metadata that the runtime uses for progress tracking.
@@ -397,9 +397,9 @@
           (sequence . ,sequence)
           (on-complete . ,on-complete))))
 
-;;; ============================================================
+;;; ====
 ;;; MCQ (Multiple Choice Question) Compilation
-;;; ============================================================
+;;; ====
 
 ;;; MCQs compile to exercises with auto-generated checks
 (define (satin-compile-mcq mcq)
@@ -443,9 +443,9 @@
 ")
                        result)))))
 
-;;; ============================================================
+;;; ====
 ;;; Short Answer Compilation
-;;; ============================================================
+;;; ====
 
 (define (satin-compile-short-answer sa)
   (let* ([id (satin-short-answer-id sa)]
@@ -493,9 +493,9 @@
   (list->string
    (map char-downcase (string->list s))))
 
-;;; ============================================================
+;;; ====
 ;;; Code Task Compilation
-;;; ============================================================
+;;; ====
 
 (define (satin-compile-code-task ct)
   (let* ([id (satin-code-task-id ct)]
@@ -529,9 +529,9 @@ Starter code:
                  (make-quill-check (string->symbol desc) desc pred '()))
            (make-quill-check 'unknown "unknown test" (lambda (_s _r _a) #f) '()))))
 
-;;; ============================================================
+;;; ====
 ;;; Mastery Compilation
-;;; ============================================================
+;;; ====
 
 ;;; Mastery tracks skill development across multiple exercises
 (define (satin-compile-mastery mastery)

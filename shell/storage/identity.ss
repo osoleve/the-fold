@@ -17,9 +17,9 @@
 (load "core/blocks/cas.ss")
 (load "shell/cas-persist.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Identity Schema
-;;; ============================================================
+;;; ====
 ;;;
 ;;; An identity block has:
 ;;;   tag: 'identity
@@ -33,9 +33,9 @@
 ;;;      (preferences . alist))
 ;;;   refs: [prev-identity-hash ...]  ; history chain
 
-;;; ============================================================
+;;; ====
 ;;; Head Pointer Management
-;;; ============================================================
+;;; ====
 
 (define *identity-heads-dir* ".store/heads/identity")
 
@@ -117,9 +117,9 @@
                               (file-exists? (identity-head-path username)))
                       potential-users))))
 
-;;; ============================================================
+;;; ====
 ;;; Identity Record Encoding/Decoding
-;;; ============================================================
+;;; ====
 
 ;;; encode-identity-payload : Alist → Bytevector
 ;;; Encode identity alist to UTF-8 bytes.
@@ -133,9 +133,9 @@
          [expr (read (open-input-string str))])
         (if (list? expr) expr '())))
 
-;;; ============================================================
+;;; ====
 ;;; Identity Construction
-;;; ============================================================
+;;; ====
 
 ;;; make-identity-block : Alist × (List Bytevector) → Block
 ;;; Create an identity block with given data and previous version refs.
@@ -174,9 +174,9 @@
                    pair))
        data))
 
-;;; ============================================================
+;;; ====
 ;;; Identity Queries
-;;; ============================================================
+;;; ====
 
 ;;; lookup-identity : Symbol → Block | #f
 ;;; Look up the current identity block for a username.
@@ -212,9 +212,9 @@
 (define (identity-exists? username)
   (if (read-identity-head username) #t #f))
 
-;;; ============================================================
+;;; ====
 ;;; Validation
-;;; ============================================================
+;;; ====
 
 ;;; valid-role? : Symbol → Bool
 ;;; Check if role is a valid tier.
@@ -233,9 +233,9 @@
   (unless (valid-role? role)
           (error 'validate-role "role must be shepherd, builder, or player" role)))
 
-;;; ============================================================
+;;; ====
 ;;; Public API (Task fold-n5z)
-;;; ============================================================
+;;; ====
 
 ;;; identity-get : Symbol → Alist | #f
 ;;; Get identity record for a username.
@@ -277,9 +277,9 @@
                                                     updates)))])
        (decode-identity-payload (block-payload block))))
 
-;;; ============================================================
+;;; ====
 ;;; Identity Mutations (Create/Update)
-;;; ============================================================
+;;; ====
 
 ;;; register-identity! : Symbol × Symbol → Block
 ;;; Register a new identity. Returns the created block.
@@ -337,9 +337,9 @@
                                                             prefs))])
                                   (update-identity-data data 'preferences new-prefs)))))
 
-;;; ============================================================
+;;; ====
 ;;; Utility Functions
-;;; ============================================================
+;;; ====
 
 ;;; current-iso8601-timestamp : → String
 ;;; Get current time as ISO8601 string.
@@ -354,9 +354,9 @@
                 (date-minute date)
                 (date-second date))))
 
-;;; ============================================================
+;;; ====
 ;;; Display and Debugging
-;;; ============================================================
+;;; ====
 
 ;;; display-identity : Symbol → Void
 ;;; Display identity information for a username.

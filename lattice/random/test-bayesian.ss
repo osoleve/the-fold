@@ -50,9 +50,9 @@
   (display name)
   (newline))
 
-;;; ============================================================
+;;; ====
 ;;; Beta-Binomial Tests
-;;; ============================================================
+;;; ====
 (test-section "Beta-Binomial Conjugate Prior")
 
 ;; Prior construction
@@ -98,9 +98,9 @@
                                              (< (car ci) (beta-posterior-mean beta-post1))
                                              (> (cdr ci) (beta-posterior-mean beta-post1))))
 
-;;; ============================================================
+;;; ====
 ;;; Normal-Normal Tests
-;;; ============================================================
+;;; ====
 (test-section "Normal-Normal Conjugate Prior")
 
 ;; Prior construction
@@ -137,9 +137,9 @@
                 (< (car norm-ci) (normal-prior-mean norm-post1))
                 (> (cdr norm-ci) (normal-prior-mean norm-post1))))
 
-;;; ============================================================
+;;; ====
 ;;; Gamma-Poisson Tests
-;;; ============================================================
+;;; ====
 (test-section "Gamma-Poisson Conjugate Prior")
 
 ;; Prior construction
@@ -169,9 +169,9 @@
 ;; Mode = (21-1)/6 = 20/6 = 3.33
 (test-approx "gamma posterior mode" 3.333 (gamma-posterior-mode gamma-post1) 0.01)
 
-;;; ============================================================
+;;; ====
 ;;; Dirichlet-Multinomial Tests
-;;; ============================================================
+;;; ====
 (test-section "Dirichlet-Multinomial Conjugate Prior")
 
 ;; Prior construction: symmetric Dirichlet(1,1,1) = uniform over simplex
@@ -198,9 +198,9 @@
 ;; Mode = (10, 5, 5) / 20 = (0.5, 0.25, 0.25)
 (test-approx "dirichlet posterior mode[0]" 0.5 (car dir-mode) 0.01)
 
-;;; ============================================================
+;;; ====
 ;;; Log Probability Functions Tests
-;;; ============================================================
+;;; ====
 (test-section "Log Probability Functions")
 
 ;; log-beta: B(1,1) = 1, so log B(1,1) = 0
@@ -224,9 +224,9 @@
 ;; log ≈ -1.74
 (test-approx "log-poisson-pmf(5,5)" -1.74 (log-poisson-pmf 5 5) 0.1)
 
-;;; ============================================================
+;;; ====
 ;;; Digamma Function Tests
-;;; ============================================================
+;;; ====
 (test-section "Digamma Function")
 
 ;; digamma(1) = -gamma (Euler-Mascheroni) ≈ -0.5772
@@ -238,9 +238,9 @@
 ;; digamma(10) ≈ 2.2517
 (test-approx "digamma(10)" 2.25 (digamma 10) 0.05)
 
-;;; ============================================================
+;;; ====
 ;;; KL Divergence Tests
-;;; ============================================================
+;;; ====
 (test-section "KL Divergence")
 
 ;; KL(N(0,1) || N(0,1)) = 0
@@ -255,9 +255,9 @@
 (define b11 (make-beta-prior 1 1))
 (test-approx "KL divergence same beta = 0" 0 (kl-divergence-beta b11 b11) 0.001)
 
-;;; ============================================================
+;;; ====
 ;;; Model Selection Tests
-;;; ============================================================
+;;; ====
 (test-section "Bayesian Model Selection")
 
 ;; Bayes factor of 10 is "strong"
@@ -276,9 +276,9 @@
 ;; For k=2, LL=-50: AIC = 4 + 100 = 104
 (test-approx "AIC calculation" 104 (aic -50 2) 0.1)
 
-;;; ============================================================
+;;; ====
 ;;; Sequential Update Tests
-;;; ============================================================
+;;; ====
 (test-section "Sequential Updates")
 
 ;; Sequential beta update equivalent to batch
@@ -296,9 +296,9 @@
 (test "sequential gamma shape" 15 (gamma-prior-shape gamma-seq))
 (test "sequential gamma rate" 5 (gamma-prior-rate gamma-seq))
 
-;;; ============================================================
+;;; ====
 ;;; Utility Functions Tests
-;;; ============================================================
+;;; ====
 (test-section "Utility Functions")
 
 ;; Posterior summary
@@ -320,9 +320,9 @@
 ;; 10 trials * 0.5 mean = 5 expected successes
 (test-approx "predictive mean" 5.0 pred-mean 0.01)
 
-;;; ============================================================
+;;; ====
 ;;; Summary
-;;; ============================================================
+;;; ====
 
 (newline)
 (display "═══════════════════════════════════════════════════════════")

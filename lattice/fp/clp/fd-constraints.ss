@@ -15,18 +15,18 @@
 
 (load "lattice/fp/clp/store.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Constraint Goal Pattern
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Each constraint follows this pattern:
 ;;; 1. Goal constructor: creates constraint and adds to store
 ;;; 2. Propagator: enforces constraint by narrowing domains
 ;;; 3. Initial propagation: run propagator when constraint posted
 
-;;; ============================================================
+;;; ====
 ;;; Domain Declaration Constraints
-;;; ============================================================
+;;; ====
 
 ;;; in-range : LVar × Int × Int → (CStore → (Maybe CStore))
 ;;; Constrain variable to be in range [lo, hi].
@@ -40,9 +40,9 @@
   (lambda (cs)
           (cstore-narrow-domain cs var (domain-from-list values))))
 
-;;; ============================================================
+;;; ====
 ;;; Equality Constraints
-;;; ============================================================
+;;; ====
 
 ;;; =fd : (LVar | Int) × (LVar | Int) → (CStore → (Maybe CStore))
 ;;; Constrain two values to be equal (in the FD sense).
@@ -101,9 +101,9 @@
         ;; Neither has domain - no propagation needed yet
         [else cs])))
 
-;;; ============================================================
+;;; ====
 ;;; Comparison Constraints
-;;; ============================================================
+;;; ====
 
 ;;; <fd : (LVar | Int) × (LVar | Int) → (CStore → (Maybe CStore))
 ;;; Constrain x < y.
@@ -249,9 +249,9 @@
         ;; Can't propagate yet
         [else cs])))
 
-;;; ============================================================
+;;; ====
 ;;; Arithmetic Constraints
-;;; ============================================================
+;;; ====
 
 ;;; +fd : (LVar | Int) × (LVar | Int) × (LVar | Int) → (CStore → (Maybe CStore))
 ;;; Constrain x + y = z using bounds consistency.
@@ -408,9 +408,9 @@
                   (fd-narrow-bounds cs z new-z-lo new-z-hi))
             cs)))
 
-;;; ============================================================
+;;; ====
 ;;; Absolute Value
-;;; ============================================================
+;;; ====
 
 ;;; abs-fd : (LVar | Int) × (LVar | Int) → (CStore → (Maybe CStore))
 ;;; Constrain |x| = y.

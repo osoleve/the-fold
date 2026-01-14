@@ -18,27 +18,27 @@
 (load "lattice/linalg/vec-common.ss")
 
 
-;;; ============================================================
+;;; ====
 ;;; Generate Core Vec2 Type
-;;; ============================================================
+;;; ====
 
 (generate-vec2-core
  vec2 vec2? vec2-x vec2-y vec2->list list->vec2
  vec2-zero vec2-one vec2-unit-x vec2-unit-y)
 
 
-;;; ============================================================
+;;; ====
 ;;; Generate Vec2 Arithmetic
-;;; ============================================================
+;;; ====
 
 (generate-vec2-arithmetic
  vec2 vec2-x vec2-y
  vec2-add vec2-sub vec2-neg vec2-mul vec2-div vec2-scale vec2-scale-inv)
 
 
-;;; ============================================================
+;;; ====
 ;;; Generate Vec2 Products and Norms
-;;; ============================================================
+;;; ====
 
 (generate-vec2-products
  vec2 vec2-x vec2-y vec2-zero vec2-sub vec2-scale-inv
@@ -46,9 +46,9 @@
  vec2-distance-sq vec2-distance vec2-normalize vec2-unit vec2-set-magnitude)
 
 
-;;; ============================================================
+;;; ====
 ;;; 2D Cross Product (returns scalar, not vector)
-;;; ============================================================
+;;; ====
 
 ;;; vec2-cross : Vec2 x Vec2 -> Number
 ;;; 2D cross product (z-component of 3D cross product).
@@ -62,9 +62,9 @@
 (define vec2-perp-dot vec2-cross)
 
 
-;;; ============================================================
+;;; ====
 ;;; 2D Angles (needed before interpolation)
-;;; ============================================================
+;;; ====
 
 ;;; vec2-angle : Vec2 -> Number
 ;;; Angle of vector (radians, from positive x-axis).
@@ -89,9 +89,9 @@
 (define vec2-heading vec2-angle)
 
 
-;;; ============================================================
+;;; ====
 ;;; Generate Vec2 Interpolation
-;;; ============================================================
+;;; ====
 
 (generate-vec2-interpolation
  vec2 vec2-x vec2-y
@@ -99,9 +99,9 @@
  vec2-lerp vec2-slerp vec2-move-towards)
 
 
-;;; ============================================================
+;;; ====
 ;;; Generate Vec2 Projection
-;;; ============================================================
+;;; ====
 
 (generate-vec2-projection
  vec2 vec2-x vec2-y vec2-zero
@@ -109,18 +109,18 @@
  vec2-project vec2-reject vec2-reflect)
 
 
-;;; ============================================================
+;;; ====
 ;;; Generate Vec2 Comparison
-;;; ============================================================
+;;; ====
 
 (generate-vec2-comparison
  vec2-x vec2-y vec2-magnitude-sq
  vec2-equal? vec2-nearly-equal? vec2-zero?)
 
 
-;;; ============================================================
+;;; ====
 ;;; Generate Vec2 Utilities
-;;; ============================================================
+;;; ====
 
 (generate-vec2-utilities
  vec2 vec2-x vec2-y vec2-magnitude-sq vec2-set-magnitude
@@ -128,9 +128,9 @@
  vec2-map vec2-fold vec2-sum vec2-product vec2-clamp-magnitude vec2-limit)
 
 
-;;; ============================================================
+;;; ====
 ;;; 2D-Specific Construction
-;;; ============================================================
+;;; ====
 
 ;;; vec2-from-angle : Number -> Vec2
 ;;; Create unit vector from angle (radians).
@@ -143,9 +143,9 @@
   (vec2 (* r (cos theta)) (* r (sin theta))))
 
 
-;;; ============================================================
+;;; ====
 ;;; 2D Rotation
-;;; ============================================================
+;;; ====
 
 ;;; vec2-rotate : Vec2 x Number -> Vec2
 ;;; Rotate vector by angle (radians).
@@ -172,9 +172,9 @@
 (define vec2-perp vec2-rotate-90)
 
 
-;;; ============================================================
+;;; ====
 ;;; Printing
-;;; ============================================================
+;;; ====
 
 ;;; vec2->string : Vec2 -> String
 (define (vec2->string v)

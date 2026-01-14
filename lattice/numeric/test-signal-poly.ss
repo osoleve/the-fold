@@ -5,9 +5,9 @@
 (load "core/testing/test-framework.ss")
 (load "lattice/numeric/signal-poly.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Test: Polynomial Conversion
-;;; ============================================================
+;;; ====
 
 (test-group "polynomial-conversion"
   (define-test "numeric to signal polynomial"
@@ -32,9 +32,9 @@
            [back-coeffs (vector->list (cdr back))])
       (assert-equal orig-coeffs back-coeffs))))
 
-;;; ============================================================
+;;; ====
 ;;; Test: Filter Polynomial Extraction
-;;; ============================================================
+;;; ====
 
 (test-group "filter-polynomials"
   (define-test "extract numerator polynomial"
@@ -51,9 +51,9 @@
            [degree (sig-poly-degree den)])
       (assert-equal degree 2))))
 
-;;; ============================================================
+;;; ====
 ;;; Test: Filter Coprimality
-;;; ============================================================
+;;; ====
 
 (test-group "filter-coprime"
   (define-test "coprime filter returns true"
@@ -69,9 +69,9 @@
     (let ([f (make-iir-filter (vector 1 0.5 -0.5) (vector 1 -1.5 0.5))])
       (assert-false (filter-coprime? f)))))
 
-;;; ============================================================
+;;; ====
 ;;; Test: Filter Simplification
-;;; ============================================================
+;;; ====
 
 (test-group "filter-simplify"
   (define-test "simplify removes common factor"
@@ -93,9 +93,9 @@
       (assert-equal num-deg 1)
       (assert-equal den-deg 1))))
 
-;;; ============================================================
+;;; ====
 ;;; Test: Filter Stability
-;;; ============================================================
+;;; ====
 
 (test-group "filter-stability"
   (define-test "stable first-order filter"
@@ -122,9 +122,9 @@
     (let ([f (make-iir-filter (vector 1) (vector 0.25 -0.707 1))])
       (assert-true (filter-stable? f)))))
 
-;;; ============================================================
+;;; ====
 ;;; Test: Deconvolution
-;;; ============================================================
+;;; ====
 
 (test-group "deconvolution"
   (define-test "exact deconvolution"
@@ -147,9 +147,9 @@
       ;; May or may not have remainder depending on exact division
       (assert-true (vector? r)))))
 
-;;; ============================================================
+;;; ====
 ;;; Test: Filter Cascade
-;;; ============================================================
+;;; ====
 
 (test-group "filter-cascade"
   (define-test "cascade increases polynomial degrees"
@@ -171,9 +171,9 @@
       ;; (1 - 0.5z)(1 - 0.25z) = 1 - 0.75z + 0.125z^2
       (assert-equal (length coeffs) 3))))
 
-;;; ============================================================
+;;; ====
 ;;; Test: Filter Parallel
-;;; ============================================================
+;;; ====
 
 (test-group "filter-parallel"
   (define-test "parallel combination"
@@ -184,9 +184,9 @@
       ;; Parallel denominator = A1 * A2
       (assert-equal den-deg 2))))
 
-;;; ============================================================
+;;; ====
 ;;; Test: Display Functions
-;;; ============================================================
+;;; ====
 
 (test-group "display-functions"
   (define-test "sig-poly->string produces output"
@@ -211,8 +211,8 @@
         [(string=? (substring str i (+ i sublen)) substr) #t]
         [else (loop (+ i 1))]))))
 
-;;; ============================================================
+;;; ====
 ;;; Run All Tests
-;;; ============================================================
+;;; ====
 
 (run-all-tests)

@@ -15,9 +15,9 @@
 ;;;
 ;;; Dependencies: None (color values passed through opaquely)
 
-;;; ============================================================
+;;; ====
 ;;; Move-To Command
-;;; ============================================================
+;;; ====
 
 ;;; make-move-to : Real x Real -> PathCmd
 ;;; Create a pen-up move command.
@@ -32,9 +32,9 @@
 (define (move-to-x cmd) (list-ref cmd 1))
 (define (move-to-y cmd) (list-ref cmd 2))
 
-;;; ============================================================
+;;; ====
 ;;; Line-To Command
-;;; ============================================================
+;;; ====
 
 ;;; make-line-to : Real x Real x Color12 x Nat -> PathCmd
 ;;; Create a line drawing command.
@@ -51,9 +51,9 @@
 (define (line-to-color cmd) (list-ref cmd 3))
 (define (line-to-width cmd) (list-ref cmd 4))
 
-;;; ============================================================
+;;; ====
 ;;; Arc Command
-;;; ============================================================
+;;; ====
 
 ;;; make-arc : Real x Real x Real x Real x Real x Color12 x Nat -> PathCmd
 ;;; Create an arc drawing command.
@@ -75,9 +75,9 @@
 (define (arc-color cmd) (list-ref cmd 6))
 (define (arc-width cmd) (list-ref cmd 7))
 
-;;; ============================================================
+;;; ====
 ;;; Circle Command
-;;; ============================================================
+;;; ====
 
 ;;; make-circle : Real x Real x Real x Color12 x Nat x Bool -> PathCmd
 ;;; Create a circle drawing command.
@@ -97,9 +97,9 @@
 (define (circle-width cmd) (list-ref cmd 5))
 (define (circle-fill? cmd) (list-ref cmd 6))
 
-;;; ============================================================
+;;; ====
 ;;; Polygon Command
-;;; ============================================================
+;;; ====
 
 ;;; make-polygon : (List (Pair Real Real)) x Color12 x Nat x Bool -> PathCmd
 ;;; Create a polygon drawing command.
@@ -117,9 +117,9 @@
 (define (polygon-width cmd) (list-ref cmd 3))
 (define (polygon-fill? cmd) (list-ref cmd 4))
 
-;;; ============================================================
+;;; ====
 ;;; Path Command Utilities
-;;; ============================================================
+;;; ====
 
 ;;; path-cmd? : Any -> Bool
 ;;; Test if value is any path command.
@@ -144,9 +144,9 @@
    [(line-to? cmd) (cons (line-to-x cmd) (line-to-y cmd))]
    [else #f]))
 
-;;; ============================================================
+;;; ====
 ;;; Path Serialization (for CAS blocks)
-;;; ============================================================
+;;; ====
 
 ;;; path-cmd->sexpr : PathCmd -> S-expr
 ;;; Convert path command to a pure S-expression for storage.

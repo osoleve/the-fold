@@ -6,9 +6,9 @@
 (load "lattice/fp/control-systems/kalman.ss")
 
 (display "\n")
-(display "==============================================================\n")
+(display "====\n")
 (display "         KALMAN FILTER TESTS\n")
-(display "==============================================================\n")
+(display "====\n")
 
 ;;; Helper: approximately equal within tolerance
 (define (approx= expected actual tolerance)
@@ -18,9 +18,9 @@
 (define (assert-approx expected actual tolerance)
   (assert-true (approx= expected actual tolerance)))
 
-;;; ============================================================
+;;; ====
 ;;; Construction Tests
-;;; ============================================================
+;;; ====
 
 (test-group construction
             (define-test make-kalman-basic
@@ -41,9 +41,9 @@
               (let ([kf (make-kalman-filter 10 0.1 0.1 100)])
                    (assert-true (< (kalman-gain kf) 0.01)))))
 
-;;; ============================================================
+;;; ====
 ;;; Predict Tests
-;;; ============================================================
+;;; ====
 
 (test-group predict
             (define-test predict-mean-unchanged
@@ -58,9 +58,9 @@
                      [predicted (kalman-predict kf)])
                     (assert-equal 5.1 (kalman-variance predicted)))))
 
-;;; ============================================================
+;;; ====
 ;;; Update Tests
-;;; ============================================================
+;;; ====
 
 (test-group update
             (define-test update-moves-toward-observation
@@ -82,9 +82,9 @@
                      [updated (kalman-update kf 20)])
                     (assert-approx 20 (kalman-mean updated) 0.1))))
 
-;;; ============================================================
+;;; ====
 ;;; Estimate (Predict + Update) Tests
-;;; ============================================================
+;;; ====
 
 (test-group estimate
             (define-test estimate-combines-predict-update
@@ -95,9 +95,9 @@
                     (assert-equal (kalman-mean updated) (kalman-mean estimated))
                     (assert-equal (kalman-variance updated) (kalman-variance estimated)))))
 
-;;; ============================================================
+;;; ====
 ;;; Batch Processing Tests
-;;; ============================================================
+;;; ====
 
 (test-group batch
             (define-test converges-to-true-mean
@@ -127,9 +127,9 @@
                     (assert-approx 15 (kalman-mean final) 0.1)
                     (assert-true (> (kalman-variance final) 0)))))  ; shouldn't collapse to zero
 
-;;; ============================================================
+;;; ====
 ;;; Log-Space Kalman Tests
-;;; ============================================================
+;;; ====
 
 (test-group log-kalman
             (define-test log-kalman-construction
@@ -179,9 +179,9 @@
                     (assert-true (> (car ci) 0))
                     (assert-true (< (cdr ci) 10000)))))
 
-;;; ============================================================
+;;; ====
 ;;; Mahalanobis Distance Tests
-;;; ============================================================
+;;; ====
 
 (test-group mahalanobis
             (define-test normal-observation
@@ -196,9 +196,9 @@
                     ;; Should be > 3 (outlier threshold)
                     (assert-true (> outlier-distance 3)))))
 
-;;; ============================================================
+;;; ====
 ;;; Q Tuning Tests
-;;; ============================================================
+;;; ====
 
 (test-group q-tuning
             (define-test with-Q-changes-Q
@@ -214,9 +214,9 @@
                      [boosted (kalman-boost-Q kf 2)])
                     (assert-equal 0.2 (kalman-Q boosted)))))
 
-;;; ============================================================
+;;; ====
 ;;; Summary Tests
-;;; ============================================================
+;;; ====
 
 (test-group summary
             (define-test kalman-summary-keys
@@ -237,8 +237,8 @@
                     (assert-true (pair? (assq 'ci-95-lower s)))
                     (assert-true (pair? (assq 'ci-95-upper s))))))
 
-;;; ============================================================
+;;; ====
 ;;; Run Tests
-;;; ============================================================
+;;; ====
 
 (run-all-tests)

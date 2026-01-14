@@ -7,11 +7,11 @@
 
 (display "
 ")
-(display "==============================================================
+(display "====
 ")
 (display "         PARSER COMBINATORS TESTS
 ")
-(display "==============================================================
+(display "====
 ")
 
 ;;; Define character constants to avoid formatter issues
@@ -27,9 +27,9 @@
 (define %newline (integer->char 10))
 (define %space (integer->char 32))
 
-;;; ============================================================
+;;; ====
 ;;; Test Helpers
-;;; ============================================================
+;;; ====
 
 (define (assert-parses parser input expected)
   (let ([result (parse parser input)])
@@ -49,9 +49,9 @@
                   (format "Expected failure but got success: ~s" (from-right result)))
            #t)))
 
-;;; ============================================================
+;;; ====
 ;;; Position Tests
-;;; ============================================================
+;;; ====
 
 (test-group position-tests
             (define-test make-pos-test
@@ -74,9 +74,9 @@
                     (assert-equal 1 (pos-col p2))
                     (assert-equal 11 (pos-offset p2)))))
 
-;;; ============================================================
+;;; ====
 ;;; State Tests
-;;; ============================================================
+;;; ====
 
 (test-group state-tests
             (define-test make-state-test
@@ -92,9 +92,9 @@
                    (assert-equal 1 (pos-line (state-pos s)))
                    (assert-equal 1 (pos-col (state-pos s))))))
 
-;;; ============================================================
+;;; ====
 ;;; Error Tests
-;;; ============================================================
+;;; ====
 
 (test-group error-tests
             (define-test make-error-test
@@ -116,9 +116,9 @@
                     ;; Same position, expectations should be combined
                     (assert-equal 2 (length (error-expected merged))))))
 
-;;; ============================================================
+;;; ====
 ;;; Basic Parsers Tests
-;;; ============================================================
+;;; ====
 
 (test-group basic-parsers
             (define-test pure-parser-test
@@ -147,9 +147,9 @@
               (assert-parses (string-parser "hello") "hello world" "hello")
               (assert-fails (string-parser "hello") "hel")))
 
-;;; ============================================================
+;;; ====
 ;;; Character Class Tests
-;;; ============================================================
+;;; ====
 
 (test-group character-classes
             (define-test digit-test
@@ -166,9 +166,9 @@
               (assert-parses alpha-num "1a" %char-1)
               (assert-fails alpha-num " x")))
 
-;;; ============================================================
+;;; ====
 ;;; Combinator Tests
-;;; ============================================================
+;;; ====
 
 (test-group combinators
             (define-test parser-map-test
@@ -207,9 +207,9 @@
                    (assert-parses p "bcd" %char-b)
                    (assert-parses p "cde" %char-c))))
 
-;;; ============================================================
+;;; ====
 ;;; Repetition Tests
-;;; ============================================================
+;;; ====
 
 (test-group repetition
             (define-test many-test
@@ -229,9 +229,9 @@
               (assert-parses (optional digit %char-0) "5" %char-5)
               (assert-parses (optional digit %char-0) "a" %char-0)))
 
-;;; ============================================================
+;;; ====
 ;;; Sequence Tests
-;;; ============================================================
+;;; ====
 
 (test-group sequences
             (define-test between-test
@@ -245,9 +245,9 @@
                    (assert-parses p "1,2,3" (list %char-1 (integer->char 50) (integer->char 51)))
                    (assert-parses p "" '()))))
 
-;;; ============================================================
+;;; ====
 ;;; Token Tests
-;;; ============================================================
+;;; ====
 
 (test-group tokens
             (define-test lexeme-test
@@ -258,9 +258,9 @@
               (assert-parses integer "123abc" 123)
               (assert-parses integer "-42xyz" -42)))
 
-;;; ============================================================
+;;; ====
 ;;; Packrat/Memoization Tests
-;;; ============================================================
+;;; ====
 
 (test-group packrat
             ;; Test basic memoization
@@ -362,9 +362,9 @@
                     (assert-true (right? result))
                     (assert-equal "test" (from-right result)))))
 
-;;; ============================================================
+;;; ====
 ;;; Performance Tests
-;;; ============================================================
+;;; ====
 ;;;
 ;;; These tests verify that the O(N) optimization works correctly.
 ;;; Before the fix, parsing used substring copying which was O(N) per
@@ -407,9 +407,9 @@
                     (assert-equal input
                                   (list->string (from-right result))))))
 
-;;; ============================================================
+;;; ====
 ;;; Bounded Memoization Tests (DoS Prevention)
-;;; ============================================================
+;;; ====
 
 (test-group "bounded-memo-tests"
             ;; Test that bounded memo table enforces its limit
@@ -480,9 +480,9 @@
                     (let ([lookup-0 (memo-lookup table 'test 0)])
                          (assert-true (just? lookup-0))))))
 
-;;; ============================================================
+;;; ====
 ;;; Indentation-Sensitive Parsing Tests
-;;; ============================================================
+;;; ====
 
 (test-group indentation-tests
             ;; Test get-column
@@ -640,13 +640,13 @@
                      [result (parse p "  a")])  ; col 3 > 1
                     (assert-true (right? result)))))
 
-;;; ============================================================
+;;; ====
 ;;; Summary
-;;; ============================================================
+;;; ====
 
 (display "
 ")
-(display "==============================================================
+(display "====
 ")
 (printf "Tests passed: ~a
 " *tests-passed*)

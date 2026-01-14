@@ -11,9 +11,9 @@
 (load "lattice/linalg/vec.ss")
 (load "lattice/linalg/matrix.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Type Signatures (for dep-synth type checking)
-;;; ============================================================
+;;; ====
 
 ;;; These are the declared types for use with dep-synth.
 ;;; To type-check code using these operations, load this type context
@@ -89,9 +89,9 @@
                                                      (Vec n α)))))) ; input cotangent
     ))
 
-;;; ============================================================
+;;; ====
 ;;; Vector Operations
-;;; ============================================================
+;;; ====
 
 ;;; vec-append-typed : Nat × Nat × Type × (Vec α) × (Vec α) → (Vec α)
 ;;; Π n m A. Vec n A → Vec m A → Vec (n+m) A
@@ -132,9 +132,9 @@
 (define (vec-fold-typed n A B f init v)
   (vec-fold f init v))
 
-;;; ============================================================
+;;; ====
 ;;; Matrix Operations
-;;; ============================================================
+;;; ====
 
 ;;; matrix-mul-typed : Nat × Nat × Nat × Type × (Matrix α) × (Matrix α) → (Matrix α)
 ;;; Π m n p A. Matrix m n A → Matrix n p A → Matrix m p A
@@ -160,9 +160,9 @@
 (define (matrix-scale-typed m n A scalar mat)
   (matrix-scale scalar mat))
 
-;;; ============================================================
+;;; ====
 ;;; Safe Indexing Operations
-;;; ============================================================
+;;; ====
 
 ;;; vec-ref-safe : Nat × Type × Nat × α × (Vec α) → α
 ;;; Π n A. (i : Nat) → (proof : i < n) → Vec n A → A
@@ -177,9 +177,9 @@
 (define (matrix-ref-safe m n A i j proof-i proof-j mat)
   (matrix-ref mat i j))
 
-;;; ============================================================
+;;; ====
 ;;; Constructors
-;;; ============================================================
+;;; ====
 
 ;;; vec-nil-typed : Type → (Vec α)
 ;;; Π A. Vec 0 A
@@ -193,9 +193,9 @@
 (define (vec-cons-typed n A x v)
   (vec-from-list (cons x (vec->list v))))
 
-;;; ============================================================
+;;; ====
 ;;; Utility for Type Context
-;;; ============================================================
+;;; ====
 
 ;;; make-dep-linalg-ctx : Unit → (List (Pair Symbol Type))
 ;;; Creates a type context with all dependent linalg operations.
@@ -207,9 +207,9 @@
 (define (extend-ctx-with-dep-linalg ctx)
   (append dep-linalg-types ctx))
 
-;;; ============================================================
+;;; ====
 ;;; Differentiable Operations (Runtime Stubs)
-;;; ============================================================
+;;; ====
 ;;;
 ;;; These operations integrate with the autodiff system.
 ;;; The implementations delegate to core/autodiff/reverse-diff.ss

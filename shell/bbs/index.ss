@@ -13,9 +13,9 @@
 (load "shell/bbs/store.ss")
 (load "shell/bbs/counter.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Global State
-;;; ============================================================
+;;; ====
 
 ;;; All issues: ((id . hash) ...)
 (define *bbs-issues* '())
@@ -32,9 +32,9 @@
 ;;; Is the index initialized?
 (define *bbs-initialized* #f)
 
-;;; ============================================================
+;;; ====
 ;;; Index Building
-;;; ============================================================
+;;; ====
 
 ;;; bbs-rebuild-indices! : -> Int
 ;;; Rebuild all indices from head files.
@@ -80,9 +80,9 @@
     (set! *bbs-initialized* #t)
     count))
 
-;;; ============================================================
+;;; ====
 ;;; Index Updates
-;;; ============================================================
+;;; ====
 
 ;;; bbs-index-add! : String Bytevector -> Void
 ;;; Add a new issue to the index.
@@ -133,9 +133,9 @@
     (let ([new-list (hashtable-ref *bbs-by-priority* new-priority '())])
       (hashtable-set! *bbs-by-priority* new-priority (cons id new-list)))))
 
-;;; ============================================================
+;;; ====
 ;;; Index Queries
-;;; ============================================================
+;;; ====
 
 ;;; bbs-all-issues : -> (List (String . Bytevector))
 ;;; Get all issues as (id . hash) pairs.
@@ -170,9 +170,9 @@
          [entry (assoc id-str *bbs-issues*)])
     (if entry (cdr entry) #f)))
 
-;;; ============================================================
+;;; ====
 ;;; Dependency Management
-;;; ============================================================
+;;; ====
 
 (define *bbs-deps-file* ".bbs/deps")
 
@@ -258,9 +258,9 @@
    [(pred (car lst)) #t]
    [else (any pred (cdr lst))]))
 
-;;; ============================================================
+;;; ====
 ;;; Statistics
-;;; ============================================================
+;;; ====
 
 ;;; bbs-stats : -> Alist
 ;;; Get statistics about the issue database.

@@ -21,9 +21,9 @@
 (load "core/blocks/cas.ss")
 (load "user/duckie.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Session State
-;;; ============================================================
+;;; ====
 
 ;;; Current active DUCKIE (the one we're interacting with)
 (define *current-duckie* #f)       ; Duckie struct or #f
@@ -32,9 +32,9 @@
 ;;; Session file location for persistence across daemon restarts
 (define *session-file* ".fold-repl/duckie-session.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Persistence Operations
-;;; ============================================================
+;;; ====
 
 ;;; save-duckie! : Duckie → Bytevector
 ;;; Store DUCKIE to CAS, pin it, return hash.
@@ -60,9 +60,9 @@
        (let ([blk (fetch hash)])
             (and blk (eq? (block-tag blk) 'duckie)))))
 
-;;; ============================================================
+;;; ====
 ;;; Session Management
-;;; ============================================================
+;;; ====
 
 ;;; new-duckie! : String → Duckie
 ;;; Create a new DUCKIE, save to CAS, set as current.
@@ -96,9 +96,9 @@
 (define (current-duckie-hash)
   *current-duckie-hash*)
 
-;;; ============================================================
+;;; ====
 ;;; State Update with Auto-Save
-;;; ============================================================
+;;; ====
 
 ;;; update-duckie! : (Duckie → Duckie) → Duckie
 ;;; Apply an update function to current DUCKIE and persist.
@@ -168,9 +168,9 @@
                   [d3 (duckie-drain-energy d2 2)])
                  d3))))
 
-;;; ============================================================
+;;; ====
 ;;; Memory Operations
-;;; ============================================================
+;;; ====
 
 ;;; remember! : Symbol × Any → Duckie
 ;;; Add a new memory to DUCKIE.
@@ -192,9 +192,9 @@
             memories)
       '()))
 
-;;; ============================================================
+;;; ====
 ;;; Session Persistence (across daemon restarts)
-;;; ============================================================
+;;; ====
 
 ;;; save-session! : → void
 ;;; Save current session info to file.
@@ -219,9 +219,9 @@
                                                  (adopt-duckie! hash))))
              #f)))
 
-;;; ============================================================
+;;; ====
 ;;; Status Display
-;;; ============================================================
+;;; ====
 
 ;;; duckie-status : → void
 ;;; Display current DUCKIE status.
@@ -256,9 +256,9 @@
            (newline))
       (display "\n  No active DUCKIE. Use (new-duckie! \"name\") to create one.\n\n")))
 
-;;; ============================================================
+;;; ====
 ;;; History Navigation
-;;; ============================================================
+;;; ====
 
 ;;; duckie-history : → (List (cons Bytevector Duckie))
 ;;; Get list of all saved states for current DUCKIE.
@@ -275,9 +275,9 @@
 (define (restore-to! hash)
   (adopt-duckie! hash))
 
-;;; ============================================================
+;;; ====
 ;;; DUCKIE CAS Statistics
-;;; ============================================================
+;;; ====
 
 ;;; duckie-store-stats : → Alist
 ;;; Get storage statistics for DUCKIE data.
@@ -292,9 +292,9 @@
                                  (length (duckie-memories *current-duckie*))
                                  0)))))
 
-;;; ============================================================
+;;; ====
 ;;; Help
-;;; ============================================================
+;;; ====
 
 (define (duckie-help)
   (display "\n")

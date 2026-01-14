@@ -24,14 +24,14 @@
 
 ;; Show the generated Rust code
 (display "\n3. Generated Rust code:\n")
-(display "   ----------------------------------------\n")
+(display "   ----\n")
 (let ([code (rust-emit-module multiply-add-ir)])
      (for-each (lambda (line)
                        (display "   ")
                        (display line)
                        (newline))
                (string-split code #\newline)))
-(display "   ----------------------------------------\n\n")
+(display "   ----\n\n")
 
 ;; Compile to crate
 (display "4. Compiling to crate...\n")

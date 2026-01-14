@@ -26,9 +26,9 @@
        (load "core/util/pretty.ss")
        (set! *pretty-available* #t))
 
-;;; ============================================================
+;;; ====
 ;;; Symbol Index Integration
-;;; ============================================================
+;;; ====
 
 ;;; Try to load the symbol index
 (define *index-available* #f)
@@ -53,9 +53,9 @@
              (index-find prefix))
       '()))
 
-;;; ============================================================
+;;; ====
 ;;; Type Inference Integration
-;;; ============================================================
+;;; ====
 
 ;;; Try to load type inference
 (define *infer-available* #f)
@@ -76,9 +76,9 @@
                     #f))
            #f)))
 
-;;; ============================================================
+;;; ====
 ;;; Hover Implementation
-;;; ============================================================
+;;; ====
 
 ;;; compute-hover : Document × JsonObject → JsonObject | null
 ;;; Compute hover information for a position.
@@ -120,9 +120,9 @@
    ;; Nothing found
    [else #f]))
 
-;;; ============================================================
+;;; ====
 ;;; Primitive Type Database (shared between hover and completion)
-;;; ============================================================
+;;; ====
 
 ;;; *primitives* : (Alist String String)
 ;;; Mapping from primitive names to their type signatures.
@@ -173,9 +173,9 @@
   (let ([entry (assoc name *primitives*)])
        (and entry (cdr entry))))
 
-;;; ============================================================
+;;; ====
 ;;; Signature Help Database
-;;; ============================================================
+;;; ====
 
 ;;; *signatures* : (Alist String SignatureData)
 ;;; Mapping from function names to their signature information.
@@ -242,9 +242,9 @@
 (define (lookup-signature name)
   (assoc name *signatures*))
 
-;;; ============================================================
+;;; ====
 ;;; Signature Help Implementation
-;;; ============================================================
+;;; ====
 
 ;;; compute-signature-help : Document × JsonObject → JsonObject | null
 ;;; Compute signature help at a position.
@@ -336,9 +336,9 @@
   (or (char-alphabetic? c)
       (memv c '(#\- #\_ #\? #\! #\* #\+ #\/ #\< #\> #\= #\:))))
 
-;;; ============================================================
+;;; ====
 ;;; Go-to-Definition Implementation
-;;; ============================================================
+;;; ====
 
 ;;; compute-definition : Document × JsonObject → JsonObject | null
 ;;; Compute definition location for a position.
@@ -357,9 +357,9 @@
                                                         (make-position (- (cdr line) 1) 1)))
                              'null)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Completion Implementation
-;;; ============================================================
+;;; ====
 
 ;;; compute-completions : Document × JsonObject → JsonObject
 ;;; Compute completions at a position.
@@ -396,9 +396,9 @@
       (char-numeric? c)
       (memv c '(#\- #\_ #\? #\! #\* #\+ #\/ #\< #\> #\= #\:))))
 
-;;; ============================================================
+;;; ====
 ;;; Snippet Templates
-;;; ============================================================
+;;; ====
 
 ;;; *snippet-templates* : (Alist String (snippet-text . doc))
 ;;; Snippet templates for common Scheme forms.
@@ -533,9 +533,9 @@
                     (take matches 50)  ; Limit results
                     matches)))))
 
-;;; ============================================================
+;;; ====
 ;;; Document Symbols Implementation
-;;; ============================================================
+;;; ====
 
 ;;; compute-document-symbols : Document → JsonArray
 ;;; Extract symbols from a document for outline view.
@@ -788,9 +788,9 @@
                   "range" range
                   "selectionRange" range)))
 
-;;; ============================================================
+;;; ====
 ;;; Utilities
-;;; ============================================================
+;;; ====
 
 ;;; string-trim-left : String → String
 (define (string-trim-left str)
@@ -829,9 +829,9 @@
                     (loop (cdr l) (cons result acc))
                     (loop (cdr l) acc))))))
 
-;;; ============================================================
+;;; ====
 ;;; Find References Implementation
-;;; ============================================================
+;;; ====
 
 ;;; compute-references : Document × JsonObject × Boolean → JsonArray
 ;;; Find all references to the symbol at position.
@@ -920,9 +920,9 @@
             (or (>= end-pos content-len)
                 (not (symbol-char? (string-ref content end-pos)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Workspace Symbol Implementation
-;;; ============================================================
+;;; ====
 
 ;;; compute-workspace-symbols : String → JsonArray
 ;;; Search for symbols across all open documents matching query.
@@ -1000,9 +1000,9 @@
                                (cons (char-downcase (string-ref str i)) acc))))])
         (list->string chars)))
 
-;;; ============================================================
+;;; ====
 ;;; Document Formatting Implementation
-;;; ============================================================
+;;; ====
 
 ;;; compute-formatting : Document × JsonObject → JsonArray
 ;;; Format the document according to options.
@@ -1157,9 +1157,9 @@
                (loop (cdr ds)
                      (<> acc (<> hardline (<> hardline (car ds)))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Rename Implementation
-;;; ============================================================
+;;; ====
 
 ;;; compute-rename : Document × JsonObject × String → JsonObject | null
 ;;; Rename all occurrences of symbol at position to new-name.
@@ -1207,9 +1207,9 @@
                              (list (car pair) (apply json-arr (cdr pair))))
                      edits-by-uri))))
 
-;;; ============================================================
+;;; ====
 ;;; Code Actions Implementation
-;;; ============================================================
+;;; ====
 
 ;;; compute-code-actions : Document × String × Range × Context → JsonArray
 ;;; Compute code actions for a range and context.
@@ -1335,9 +1335,9 @@
                   (cons (cons "diagnostics" (apply json-arr diagnostics))
                         (cdr base))))))
 
-;;; ============================================================
+;;; ====
 ;;; Semantic Tokens Implementation
-;;; ============================================================
+;;; ====
 
 ;;; Token type indices (must match server capabilities)
 (define *token-keyword* 0)

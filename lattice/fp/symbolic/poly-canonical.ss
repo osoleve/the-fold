@@ -22,9 +22,9 @@
 (load "lattice/fp/symbolic/expr.ss")
 (load "lattice/fp/symbolic/simplify.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Rational Field for Exact Coefficient Arithmetic
-;;; ============================================================
+;;; ====
 
 ;;; Q-field : Field
 ;;; The field of rational numbers.
@@ -39,9 +39,9 @@
    (lambda (a b) (/ a b))                 ; Division
    =))                                    ; Equality
 
-;;; ============================================================
+;;; ====
 ;;; Conversion: Symbolic Expression ↔ Polynomial
-;;; ============================================================
+;;; ====
 
 ;;; expr->polynomial : Expr × Symbol × Field → AlgebraPoly | #f
 ;;; Convert a symbolic expression to a polynomial over the given field.
@@ -204,9 +204,9 @@
     [(= c 1) (power x (num k))]
     [else (product (num c) (power x (num k)))]))
 
-;;; ============================================================
+;;; ====
 ;;; GCD-Based Simplification for Rational Expressions
-;;; ============================================================
+;;; ====
 
 ;;; simplify-rational : Expr × Symbol → Expr
 ;;; Simplify a rational expression (quotient of polynomials) using GCD.
@@ -229,9 +229,9 @@
                     (quotient (polynomial->expr numer-reduced var-sym)
                               (polynomial->expr denom-reduced var-sym)))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Partial Fraction Decomposition
-;;; ============================================================
+;;; ====
 
 ;;; partial-fractions : Expr × Symbol → Expr | #f
 ;;; Decompose a proper rational function into partial fractions.
@@ -273,9 +273,9 @@
             #f
             #f))))
 
-;;; ============================================================
+;;; ====
 ;;; Polynomial Division for Symbolic Expressions
-;;; ============================================================
+;;; ====
 
 ;;; poly-divide-expr : Expr × Expr × Symbol → (Expr . Expr)
 ;;; Polynomial division: numer = quotient * denom + remainder.
@@ -296,9 +296,9 @@
          (cons (polynomial->expr quot-poly var-sym)
                (polynomial->expr rem-poly var-sym)))])))
 
-;;; ============================================================
+;;; ====
 ;;; Polynomial Canonical Form
-;;; ============================================================
+;;; ====
 
 ;;; to-polynomial-form : Expr × Symbol → Expr
 ;;; Convert expression to standard polynomial form: a_n*x^n + ... + a_1*x + a_0.
@@ -310,9 +310,9 @@
         ;; Not a polynomial, just simplify
         (simplify expr))))
 
-;;; ============================================================
+;;; ====
 ;;; Polynomial GCD for Expression Simplification
-;;; ============================================================
+;;; ====
 
 ;;; expr-poly-gcd : Expr × Expr × Symbol → Expr
 ;;; Compute GCD of two polynomial expressions.
@@ -334,9 +334,9 @@
         (product expr1 expr2)
         (polynomial->expr (poly-lcm poly1 poly2) var-sym))))
 
-;;; ============================================================
+;;; ====
 ;;; Square-Free Factorization for Symbolic Expressions
-;;; ============================================================
+;;; ====
 
 ;;; expr-square-free : Expr × Symbol → Expr
 ;;; Compute square-free part of polynomial expression.
@@ -359,9 +359,9 @@
              (poly-square-free-factorization poly))
         (list (cons expr 1)))))
 
-;;; ============================================================
+;;; ====
 ;;; Utility Functions
-;;; ============================================================
+;;; ====
 
 ;;; make-sum-from-list : (List Expr) → Expr
 (define (make-sum-from-list terms)

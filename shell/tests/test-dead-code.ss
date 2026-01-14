@@ -9,16 +9,16 @@
 
 (display "
 ")
-(display "==============================================================
+(display "====
 ")
 (display "          DEAD CODE DETECTION TESTS
 ")
-(display "==============================================================
+(display "====
 ")
 
-;;; ============================================================
+;;; ====
 ;;; Definition Extraction Tests
-;;; ============================================================
+;;; ====
 
 (test-group definition-extraction-tests
             (define-test extract-defs-simple-function-test
@@ -47,9 +47,9 @@
                    (assert-equal 1 (length defs))
                    (assert-equal 'foo (car (car defs))))))
 
-;;; ============================================================
+;;; ====
 ;;; Reference Collection Tests
-;;; ============================================================
+;;; ====
 
 (test-group reference-collection-tests
             (define-test walk-for-refs-symbol-test
@@ -81,9 +81,9 @@
                    (assert-true (if (member "file1.ss" files) #t #f))
                    (assert-true (if (member "file2.ss" files) #t #f)))))
 
-;;; ============================================================
+;;; ====
 ;;; String Utility Tests
-;;; ============================================================
+;;; ====
 
 (test-group string-utility-tests
             (define-test string-contains-test
@@ -98,9 +98,9 @@
               (assert-false (string-prefix-at? "hello" "xyz" 0))
               (assert-false (string-prefix-at? "hi" "hello" 0))))
 
-;;; ============================================================
+;;; ====
 ;;; Test File Detection Tests
-;;; ============================================================
+;;; ====
 
 (test-group test-detection-tests
             (define-test test-file-prefix-test
@@ -123,9 +123,9 @@
               (assert-false (all-test-files? '("test-a.ss" "normal.ss")))
               (assert-false (all-test-files? '()))))
 
-;;; ============================================================
+;;; ====
 ;;; Test Related Symbol Tests
-;;; ============================================================
+;;; ====
 
 (test-group test-related-tests
             (define-test test-related-prefix-test
@@ -141,9 +141,9 @@
               (assert-false (test-related? 'testy))  ; Not a prefix
               (assert-false (test-related? 'protest))))  ; Contains test but not test-related
 
-;;; ============================================================
+;;; ====
 ;;; Exported Symbol Tests
-;;; ============================================================
+;;; ====
 
 (test-group exported-tests
             (define-test exported-api-pattern-test
@@ -155,9 +155,9 @@
               ;; Underscore prefix is never exported
               (assert-false (exported? '_internal-helper "any.ss"))))
 
-;;; ============================================================
+;;; ====
 ;;; Unused Local Binding Tests
-;;; ============================================================
+;;; ====
 
 (test-group unused-locals-tests
             (define-test collect-body-refs-test
@@ -192,9 +192,9 @@
                    (assert-true (any (lambda (u) (eq? (car u) 'unused)) unused))
                    (assert-false (any (lambda (u) (eq? (car u) 'used)) unused)))))
 
-;;; ============================================================
+;;; ====
 ;;; Classification Tests
-;;; ============================================================
+;;; ====
 
 (test-group classification-tests
             (define-test classify-definitely-dead-test
@@ -215,9 +215,9 @@
               (let ([result (classify-definition '(define "test.ss" 1))])
                    (assert-false result))))
 
-;;; ============================================================
+;;; ====
 ;;; File Finding Tests
-;;; ============================================================
+;;; ====
 
 (test-group file-finding-tests
             (define-test find-scheme-files-test
@@ -228,9 +228,9 @@
                    ;; All files should end in .ss
                    (assert-true (every (lambda (f) (string-ends-with? f ".ss")) files)))))
 
-;;; ============================================================
+;;; ====
 ;;; Group By File Tests
-;;; ============================================================
+;;; ====
 
 (test-group grouping-tests
             (define-test group-by-file-test
@@ -248,9 +248,9 @@
                     (assert-equal "a.ss" (caar sorted))
                     (assert-equal "z.ss" (car (caddr sorted))))))
 
-;;; ============================================================
+;;; ====
 ;;; Take Up To Helper Tests
-;;; ============================================================
+;;; ====
 
 (test-group helper-tests
             (define-test take-up-to-normal-test
@@ -265,9 +265,9 @@
             (define-test take-up-to-empty-test
               (assert-equal '() (take-up-to '() 5))))
 
-;;; ============================================================
+;;; ====
 ;;; Find Definition Helper Tests
-;;; ============================================================
+;;; ====
 
 (test-group find-def-tests
             (define-test find-def-in-list-found-test
@@ -282,9 +282,9 @@
                      [result (find-def-in-list 'qux defs)])
                     (assert-false result))))
 
-;;; ============================================================
+;;; ====
 ;;; Andmap Helper Tests
-;;; ============================================================
+;;; ====
 
 (test-group andmap-tests
             (define-test andmap-all-true-test
@@ -296,9 +296,9 @@
             (define-test andmap-empty-test
               (assert-true (andmap number? '()))))
 
-;;; ============================================================
+;;; ====
 ;;; State Management Tests
-;;; ============================================================
+;;; ====
 
 (test-group state-tests
             (define-test state-initialization-test
@@ -308,9 +308,9 @@
               (assert-true (list? *unused-symbols*))
               (assert-true (list? *dead-code-by-confidence*))))
 
-;;; ============================================================
+;;; ====
 ;;; Helper Functions Used in Tests
-;;; ============================================================
+;;; ====
 
 ;;; any : (a -> Bool) x (List a) -> Bool
 (define (any pred lst)
@@ -326,13 +326,13 @@
    [(not (pred (car lst))) #f]
    [else (every pred (cdr lst))]))
 
-;;; ============================================================
+;;; ====
 ;;; Run Tests
-;;; ============================================================
+;;; ====
 
 (display "
 ")
-(display "==============================================================
+(display "====
 ")
 (display (format "Tests passed: ~a
 " *tests-passed*))

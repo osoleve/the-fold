@@ -36,9 +36,9 @@
 (define (assert-false name condition)
   (assert-true name (not condition)))
 
-;;; ============================================================
+;;; ====
 ;;; Test 1: Comment Detection
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Test 1: Comment Detection ===\n")
 
@@ -51,9 +51,9 @@
 (assert-false "empty not comment"
               (comment-line? ""))
 
-;;; ============================================================
+;;; ====
 ;;; Test 2: Paren Counting
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Test 2: Paren Counting ===\n")
 
@@ -73,9 +73,9 @@
               (count-open-parens "hello")
               0)
 
-;;; ============================================================
+;;; ====
 ;;; Test 3: Make Spaces
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Test 3: Make Spaces ===\n")
 
@@ -83,9 +83,9 @@
 (assert-equal "one space" (make-spaces 1) " ")
 (assert-equal "five spaces" (make-spaces 5) "     ")
 
-;;; ============================================================
+;;; ====
 ;;; Test 4: Empty Line Detection
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Test 4: Empty Line Detection ===\n")
 
@@ -93,9 +93,9 @@
 (assert-false "whitespace not empty" (empty-line? "  "))
 (assert-false "code not empty" (empty-line? "(+ 1 2)"))
 
-;;; ============================================================
+;;; ====
 ;;; Test 5: Close Paren Detection
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Test 5: Close Paren Detection ===\n")
 
@@ -108,9 +108,9 @@
 (assert-false "starts with letter"
               (starts-with-close-paren? "define"))
 
-;;; ============================================================
+;;; ====
 ;;; Test 6: Format Expression (Simple)
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Test 6: Format Expression (Simple) ===\n")
 
@@ -133,9 +133,9 @@
               (format-expr '())
               "()")
 
-;;; ============================================================
+;;; ====
 ;;; Test 7: Format Expression (Lists)
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Test 7: Format Expression (Lists) ===\n")
 
@@ -147,9 +147,9 @@
      (assert-true "format simple list contains 2"
                   (string-contains? result "2")))
 
-;;; ============================================================
+;;; ====
 ;;; Test 8: Format Expression (Vectors)
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Test 8: Format Expression (Vectors) ===\n")
 
@@ -161,9 +161,9 @@
                        (string-contains? result "2")
                        (string-contains? result "3"))))
 
-;;; ============================================================
+;;; ====
 ;;; Test 9: Format String (No Change)
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Test 9: Format String (No Change) ===\n")
 
@@ -174,9 +174,9 @@
       (assert-true "formatted is string"
                    (string? formatted)))
 
-;;; ============================================================
+;;; ====
 ;;; Test 10: Format Check
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Test 10: Format Check ===\n")
 
@@ -196,9 +196,9 @@
      (when (file-exists? temp-file)
            (delete-file temp-file)))
 
-;;; ============================================================
+;;; ====
 ;;; Test 11: Format File
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Test 11: Format File ===\n")
 
@@ -221,9 +221,9 @@
      (when (file-exists? temp-file)
            (delete-file temp-file)))
 
-;;; ============================================================
+;;; ====
 ;;; Test 12: Format Diff
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Test 12: Format Diff ===\n")
 
@@ -247,9 +247,9 @@
      (when (file-exists? temp-file)
            (delete-file temp-file)))
 
-;;; ============================================================
+;;; ====
 ;;; Test 13: Configuration Variables
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Test 13: Configuration Variables ===\n")
 
@@ -262,9 +262,9 @@
 (assert-equal "modified indent width" *indent-width* 4)
 (set! *indent-width* 2)  ; Restore
 
-;;; ============================================================
+;;; ====
 ;;; Test 14: Special Forms Configuration
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Test 14: Special Forms Configuration ===\n")
 
@@ -273,9 +273,9 @@
 (assert-true "has lambda" (assq 'lambda *special-forms*))
 (assert-true "has if" (assq 'if *special-forms*))
 
-;;; ============================================================
+;;; ====
 ;;; Test 15: Format Styles
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Test 15: Format Styles ===\n")
 
@@ -297,9 +297,9 @@
 ;; Restore default
 (set! *format-style* 'compact)
 
-;;; ============================================================
+;;; ====
 ;;; Test 16: Edge Cases
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Test 16: Edge Cases ===\n")
 
@@ -315,9 +315,9 @@
 (let ([result (format-expr '(+ (+ (+ 1 2) 3) 4))])
      (assert-true "nested expr formats" (string? result)))
 
-;;; ============================================================
+;;; ====
 ;;; Test 17: File I/O Functions
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Test 17: File I/O Functions ===\n")
 
@@ -334,11 +334,11 @@
      (when (file-exists? temp-file)
            (delete-file temp-file)))
 
-;;; ============================================================
+;;; ====
 ;;; Test Summary
-;;; ============================================================
+;;; ====
 
-(printf "\n========================================\n")
+(printf "\n====\n")
 (printf "Test Results:\n")
 (printf "  Total:  ~a\n" test-count)
 (printf "  Passed: ~a\n" pass-count)

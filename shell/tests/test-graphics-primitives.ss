@@ -11,13 +11,13 @@
 (import (shell graphics-primitives))
 
 (display "\n")
-(display "==============================================================\n")
+(display "====\n")
 (display "         GRAPHICS PRIMITIVES TESTS\n")
-(display "==============================================================\n")
+(display "====\n")
 
-;;; ============================================================
+;;; ====
 ;;; Character Intensity Palette Tests
-;;; ============================================================
+;;; ====
 
 (test-group intensity-palettes
             (define-test palette-simple-exists
@@ -53,9 +53,9 @@
               ;; Values > 1 should clamp to 1
               (assert-equal #\@ (get-intensity-char intensity-palette-simple 1.5))))
 
-;;; ============================================================
+;;; ====
 ;;; Line Drawing Tests
-;;; ============================================================
+;;; ====
 
 (test-group line-drawing
             (define-test draw-line-horizontal
@@ -99,9 +99,9 @@
                     ;; End should be brighter
                     (assert-true (memv (canvas-ref c 9 2) palette)))))
 
-;;; ============================================================
+;;; ====
 ;;; Rounded Box Tests
-;;; ============================================================
+;;; ====
 
 (test-group rounded-box
             (define-test draw-rounded-box-ascii
@@ -137,9 +137,9 @@
                     ;; Should still render something
                     (assert-true (char? (canvas-ref c 0 0))))))
 
-;;; ============================================================
+;;; ====
 ;;; Circle Drawing Tests
-;;; ============================================================
+;;; ====
 
 (test-group circle-drawing
             (define-test draw-circle-basic
@@ -174,9 +174,9 @@
                      [c (draw-circle c (point 2 2) 0 #\o)])
                     (assert-equal #\o (canvas-ref c 2 2)))))
 
-;;; ============================================================
+;;; ====
 ;;; Gradient Fill Tests
-;;; ============================================================
+;;; ====
 
 (test-group gradient-fills
             (define-test gradient-fill-horizontal-basic
@@ -217,9 +217,9 @@
                     ;; Should not crash, return canvas unchanged
                     (assert-equal #\space (canvas-ref c-result 0 0)))))
 
-;;; ============================================================
+;;; ====
 ;;; Polyline and Polygon Tests
-;;; ============================================================
+;;; ====
 
 (test-group polyline-polygon
             (define-test draw-polyline-triangle
@@ -256,9 +256,9 @@
                      [c (draw-polygon c (list (point 1 1) (point 3 3)) #\*)])
                     (assert-equal #\space (canvas-ref c 1 1)))))
 
-;;; ============================================================
+;;; ====
 ;;; Filled Polygon Tests (AET Algorithm)
-;;; ============================================================
+;;; ====
 
 (test-group filled-polygon
             (define-test draw-filled-polygon-square
@@ -289,9 +289,9 @@
                     ;; Interior point
                     (assert-equal #\X (canvas-ref c 6 5)))))
 
-;;; ============================================================
+;;; ====
 ;;; Style System Tests
-;;; ============================================================
+;;; ====
 
 (test-group style-system
             (define-test make-style-basic
@@ -314,9 +314,9 @@
               (let ([ch (apply-opacity-block 0.5)])
                    (assert-true (char? ch)))))
 
-;;; ============================================================
+;;; ====
 ;;; Path Drawing Tests
-;;; ============================================================
+;;; ====
 
 (test-group path-drawing
             (define-test draw-path-move-and-line
@@ -348,9 +348,9 @@
                     (assert-equal #\# (canvas-ref c 1 1))
                     (assert-equal #\# (canvas-ref c 5 5)))))
 
-;;; ============================================================
+;;; ====
 ;;; Draw With Style Tests
-;;; ============================================================
+;;; ====
 
 (test-group draw-with-style
             (define-test draw-circle-with-style
@@ -371,12 +371,12 @@
                     ;; Interior should have fill
                     (assert-equal #\. (canvas-ref c 5 3)))))
 
-;;; ============================================================
+;;; ====
 ;;; Summary
-;;; ============================================================
+;;; ====
 
 (display "\n")
-(display "==============================================================\n")
+(display "====\n")
 (printf "Tests passed: ~a\n" *tests-passed*)
 (printf "Tests failed: ~a\n" *tests-failed*)
 (printf "Total tests:  ~a\n" *tests-run*)

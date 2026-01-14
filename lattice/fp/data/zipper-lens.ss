@@ -28,9 +28,9 @@
 (load "lattice/fp/data/zipper.ss")
 (load "lattice/fp/data/tree-zipper.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Part 1: Lenses INTO List Zippers
-;;; ============================================================
+;;; ====
 ;;;
 ;;; These lenses allow you to view/modify the internal structure
 ;;; of a list zipper using standard lens operations.
@@ -75,9 +75,9 @@
    zipper-position
    (lambda (pos z) (zipper-goto z pos))))
 
-;;; ============================================================
+;;; ====
 ;;; Part 2: Lenses INTO Tree Zippers
-;;; ============================================================
+;;; ====
 
 ;;; tree-zipper-focus-lens : Lens (TreeZipper α) (Tree α)
 ;;; Lens focusing on the entire focused subtree.
@@ -118,9 +118,9 @@
    tree-zipper-depth
    (lambda (_depth z) z)))  ; Can't meaningfully set depth
 
-;;; ============================================================
+;;; ====
 ;;; Part 3: Navigation as Affine Traversals
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Navigation operations can be viewed as affine traversals
 ;;; (they may fail to find a target). We model these as functions
@@ -158,9 +158,9 @@
         s
         ((affine-setter affine) (f (from-just result)) s))))
 
-;;; ============================================================
+;;; ====
 ;;; Part 4: List Zipper Navigation Affines
-;;; ============================================================
+;;; ====
 
 ;;; zipper-left-affine : Affine (ListZipper α) (ListZipper α)
 ;;; Navigate left (returns new zipper position).
@@ -195,9 +195,9 @@
             [target-pos (+ current-pos n)])
        (zipper-set (zipper-goto z target-pos) a)))))
 
-;;; ============================================================
+;;; ====
 ;;; Part 5: Tree Zipper Navigation Affines
-;;; ============================================================
+;;; ====
 
 ;;; tree-up-affine : Affine (TreeZipper α) (TreeZipper α)
 (define tree-up-affine
@@ -247,9 +247,9 @@
              ;; Navigate back up to maintain position
              (from-just (tree-zipper-up modified))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Part 6: Zipper-to-Lens Adapter
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Convert a zipper path into a composed lens for accessing
 ;;; deeply nested data.
@@ -306,9 +306,9 @@
             (loop (+ i 1) (cdr xs) (cons val acc))
             (loop (+ i 1) (cdr xs) (cons (car xs) acc))))))
 
-;;; ============================================================
+;;; ====
 ;;; Part 7: Comonad-Lens Connection
-;;; ============================================================
+;;; ====
 ;;;
 ;;; The zipper comonad allows us to "extend" lens operations
 ;;; across all positions.
@@ -355,9 +355,9 @@
      ;; Setting a window is complex; return unchanged
      z)))
 
-;;; ============================================================
+;;; ====
 ;;; Part 8: Traversal Utilities
-;;; ============================================================
+;;; ====
 
 ;;; zipper-each : (α → β) → (ListZipper α) → (ListZipper β)
 ;;; Apply function to each element (like map, but preserves position).
@@ -403,9 +403,9 @@
               (reverse new-acc)
               (loop (from-just next) new-acc))))))
 
-;;; ============================================================
+;;; ====
 ;;; Part 9: Composed Lens Paths
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Utilities for building lens paths through nested structures.
 
@@ -453,9 +453,9 @@
                             (zipper-focus-maybe z)
                             (list-set right (- n 1) a))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Exports Summary
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Lenses into list zippers:
 ;;;   zipper-focus-lens, zipper-focus-maybe-lens

@@ -45,9 +45,9 @@
        (printf "    Expected: #f\n")
        (printf "    Actual:   #t\n"))))
 
-;;; ============================================================
+;;; ====
 ;;; Test 1: Display Functions
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Test 1: Display Functions ===\n")
 
@@ -60,9 +60,9 @@
        (display-header "Test Header")
        (assert-true "display-header succeeded" #t))
 
-;;; ============================================================
+;;; ====
 ;;; Test 2: Rewrite Help
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Test 2: Rewrite Help ===\n")
 
@@ -70,9 +70,9 @@
        (rewrite-help)
        (assert-true "rewrite-help displays without error" #t))
 
-;;; ============================================================
+;;; ====
 ;;; Test 3: Laws Command (No Category)
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Test 3: Laws Command (No Category) ===\n")
 
@@ -80,9 +80,9 @@
        (laws)
        (assert-true "laws command displays all categories" #t))
 
-;;; ============================================================
+;;; ====
 ;;; Test 4: Laws Command (With Category)
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Test 4: Laws Command (With Category) ===\n")
 
@@ -100,9 +100,9 @@
        (laws 'nonexistent-category-xyz)
        (assert-true "laws unknown category handled" #t))
 
-;;; ============================================================
+;;; ====
 ;;; Test 5: Describe Law
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Test 5: Describe Law ===\n")
 
@@ -116,9 +116,9 @@
        (describe-law 'nonexistent-law-xyz)
        (assert-true "describe-law handles unknown law" #t))
 
-;;; ============================================================
+;;; ====
 ;;; Test 6: Rewrite with Known Law
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Test 6: Rewrite with Known Law ===\n")
 
@@ -130,9 +130,9 @@
        (let ([result (rewrite '(bind (pure 5) identity) 'monad-left-id)])
             (assert-true "rewrite returns result" #t)))
 
-;;; ============================================================
+;;; ====
 ;;; Test 7: Rewrite with Unknown Law
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Test 7: Rewrite with Unknown Law ===\n")
 
@@ -140,9 +140,9 @@
        (let ([result (rewrite '(+ 1 2) 'nonexistent-law-xyz)])
             (assert-false "rewrite with unknown law returns false" result)))
 
-;;; ============================================================
+;;; ====
 ;;; Test 8: Rewrite* (Multiple Rules)
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Test 8: Rewrite* (Multiple Rules) ===\n")
 
@@ -154,9 +154,9 @@
        (let ([result (rewrite* '(+ 0 x) '(add-zero-left))])
             (assert-true "rewrite* returns trace" (trace? result))))
 
-;;; ============================================================
+;;; ====
 ;;; Test 9: Simplify
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Test 9: Simplify ===\n")
 
@@ -167,9 +167,9 @@
        (let ([result (simplify '(+ 0 5))])
             (assert-true "simplify returns result" #t)))
 
-;;; ============================================================
+;;; ====
 ;;; Test 10: Simplify-With Category
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Test 10: Simplify-With Category ===\n")
 
@@ -186,9 +186,9 @@
        (let ([result (simplify-with '(+ 1 2) 'unknown-category)])
             (assert-true "simplify-with unknown category handled" #t)))
 
-;;; ============================================================
+;;; ====
 ;;; Test 11: Show Trace
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Test 11: Show Trace ===\n")
 
@@ -201,9 +201,9 @@
             (show-trace trace)
             (assert-true "show-trace displays without error" #t)))
 
-;;; ============================================================
+;;; ====
 ;;; Test 12: Verify Equivalence
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Test 12: Verify Equivalence ===\n")
 
@@ -220,9 +220,9 @@
        (let ([result (verify '(+ 1 2) '(* 3 4))])
             (assert-true "verify returns result" (boolean? result))))
 
-;;; ============================================================
+;;; ====
 ;;; Test 13: Equiv? Quick Check
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Test 13: Equiv? Quick Check ===\n")
 
@@ -233,9 +233,9 @@
        (let ([result (equiv? '(+ 1 2) '(+ 2 1))])
             (assert-true "equiv? returns boolean" (boolean? result))))
 
-;;; ============================================================
+;;; ====
 ;;; Test 14: Suggest Rules
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Test 14: Suggest Rules ===\n")
 
@@ -252,9 +252,9 @@
        (suggest-rules '(nonexistent-op 1 2))
        (assert-true "suggest-rules handles no matches" #t))
 
-;;; ============================================================
+;;; ====
 ;;; Test 15: Define Custom Rule
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Test 15: Define Custom Rule ===\n")
 
@@ -271,9 +271,9 @@
        (define-rewrite-rule 'bad-rule '(test x) '(result y) 'category 'test)
        (assert-true "invalid rule handled" #t))
 
-;;; ============================================================
+;;; ====
 ;;; Test 16: Command Registration Check
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Test 16: Command Registration Check ===\n")
 
@@ -285,9 +285,9 @@
        (unless (top-level-bound? 'register-rewrite-commands!)
                (assert-true "register function checked" #t)))
 
-;;; ============================================================
+;;; ====
 ;;; Test 17: Integration Test
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Test 17: Integration Test ===\n")
 
@@ -301,9 +301,9 @@
               [simplified (simplify expr)])
              (assert-true "integration test completes" #t)))
 
-;;; ============================================================
+;;; ====
 ;;; Test 18: Error Handling
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Test 18: Error Handling ===\n")
 
@@ -316,9 +316,9 @@
        (show-trace 'not-a-trace)
        (assert-true "show-trace handles bad input" #t))
 
-;;; ============================================================
+;;; ====
 ;;; Test 19: Edge Cases
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Test 19: Edge Cases ===\n")
 
@@ -332,9 +332,9 @@
        (simplify '(+ (+ 0 x) (* 1 y)))
        (assert-true "simplify handles nested expr" #t))
 
-;;; ============================================================
+;;; ====
 ;;; Test 20: Law Categories
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Test 20: Law Categories ===\n")
 
@@ -344,11 +344,11 @@
             (assert-true "law-categories returns list" (list? cats))
             (assert-true "has monad category" (memq 'monad cats))))
 
-;;; ============================================================
+;;; ====
 ;;; Test Summary
-;;; ============================================================
+;;; ====
 
-(printf "\n========================================\n")
+(printf "\n====\n")
 (printf "Test Results:\n")
 (printf "  Total:  ~a\n" test-count)
 (printf "  Passed: ~a\n" pass-count)

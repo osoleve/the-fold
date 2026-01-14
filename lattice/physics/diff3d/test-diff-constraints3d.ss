@@ -6,13 +6,13 @@
 (load "lattice/physics/diff3d/diff-constraints3d.ss")
 
 (display "\n")
-(display "==============================================================\n")
+(display "====\n")
 (display "         DIFF CONSTRAINTS 3D TESTS\n")
-(display "==============================================================\n")
+(display "====\n")
 
-;;; ============================================================
+;;; ====
 ;;; Test Helpers
-;;; ============================================================
+;;; ====
 
 (define *test-dt* 0.01)
 
@@ -26,9 +26,9 @@
    1.0   ; mass
    (inertia-solid-sphere 1.0 1.0)))  ; inertia for unit sphere
 
-;;; ============================================================
+;;; ====
 ;;; Spring Constraint Tests
-;;; ============================================================
+;;; ====
 
 (test-group spring-constraint-tests
             
@@ -70,9 +70,9 @@
                     ;; Damping should resist a's motion (negative x force)
                     (assert-true (< (traced-value (traced-vec3-x force)) 0)))))
 
-;;; ============================================================
+;;; ====
 ;;; Anchor Constraint Tests
-;;; ============================================================
+;;; ====
 
 (test-group anchor-constraint-tests
             
@@ -105,9 +105,9 @@
                              (let ([force-mag (traced-vec3-smooth-magnitude force 1e-10)])
                                   (assert-true (< (traced-value force-mag) 0.01))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Ball-Socket Joint Tests
-;;; ============================================================
+;;; ====
 
 (test-group ball-socket-tests
             
@@ -150,9 +150,9 @@
                                    ;; Sum should be ~zero
                                    (assert-true (< (traced-value sum-mag) 0.01))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Hinge Joint Tests
-;;; ============================================================
+;;; ====
 
 (test-group hinge-joint-tests
             
@@ -174,9 +174,9 @@
                                   ;; Position force should pull A toward B
                                   (assert-true (> (traced-value (traced-vec3-x force-a)) 0))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Fixed Joint Tests
-;;; ============================================================
+;;; ====
 
 (test-group fixed-joint-tests
             
@@ -215,9 +215,9 @@
                                    ;; Position force should be ~zero when anchors coincide
                                    (assert-true (< (traced-value force-mag) 1.0))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Constraint Application Tests
-;;; ============================================================
+;;; ====
 
 (test-group constraint-application-tests
             
@@ -246,9 +246,9 @@
                     (let ([new-a (vector-ref new-bodies 0)])
                          (assert-true (> (traced-value (traced-vec3-x (traced-body-3d-vel new-a))) 0))))))
 
-;;; ============================================================
+;;; ====
 ;;; Complete Constraint Step Tests
-;;; ============================================================
+;;; ====
 
 (test-group constraint-step-tests
             
@@ -281,9 +281,9 @@
                            [mag-3 (traced-value (traced-vec3-smooth-magnitude vel-3 1e-10))])
                           (assert-true (> mag-3 mag-1))))))
 
-;;; ============================================================
+;;; ====
 ;;; Pendulum Helper Tests
-;;; ============================================================
+;;; ====
 
 (test-group pendulum-helper-tests
             
@@ -307,9 +307,9 @@
                             ;; Should have 5 constraints (1 anchor + 4 ball-socket)
                             (assert-equal 5 (length constraints)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Run all tests
-;;; ============================================================
+;;; ====
 
 (run-all-tests)
 

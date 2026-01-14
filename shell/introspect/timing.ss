@@ -17,9 +17,9 @@
 ;;; BenchmarkResult:
 ;;;   (benchmark-result name iterations timings stats)
 
-;;; ============================================================
+;;; ====
 ;;; Time Primitives
-;;; ============================================================
+;;; ====
 
 ;;; current-nanoseconds : → Nat
 ;;; High-resolution monotonic time in nanoseconds.
@@ -36,9 +36,9 @@
        (+ (* (time-second t) 1000000000)
           (time-nanosecond t))))
 
-;;; ============================================================
+;;; ====
 ;;; Timing Result
-;;; ============================================================
+;;; ====
 
 (define-record-type timing-result
   (fields
@@ -59,9 +59,9 @@
          (- end-cpu start-cpu)
          result)))
 
-;;; ============================================================
+;;; ====
 ;;; Statistics
-;;; ============================================================
+;;; ====
 
 (define-record-type timing-stats
   (fields
@@ -102,9 +102,9 @@
          (inexact stddev)
          total)))
 
-;;; ============================================================
+;;; ====
 ;;; Benchmark Result
-;;; ============================================================
+;;; ====
 
 (define-record-type benchmark-result
   (fields
@@ -125,9 +125,9 @@
          [stats (compute-stats elapsed-samples)])
         (make-benchmark-result name iterations timings stats)))
 
-;;; ============================================================
+;;; ====
 ;;; Warm-up Support
-;;; ============================================================
+;;; ====
 
 ;;; benchmark-with-warmup : String × Nat × Nat × (→ A) → BenchmarkResult
 ;;; Run warmup iterations (discarded), then benchmark iterations.
@@ -140,9 +140,9 @@
   ;; Actual benchmark
   (benchmark name bench-iters thunk))
 
-;;; ============================================================
+;;; ====
 ;;; Comparison
-;;; ============================================================
+;;; ====
 
 (define-record-type benchmark-comparison
   (fields
@@ -163,9 +163,9 @@
                       candidates)])
         (make-benchmark-comparison baseline candidates ratios)))
 
-;;; ============================================================
+;;; ====
 ;;; Formatting
-;;; ============================================================
+;;; ====
 
 ;;; format-ns : Nat → String
 ;;; Format nanoseconds in human-readable form.
@@ -198,9 +198,9 @@
           (benchmark-result-iterations br)
           (format-stats (benchmark-result-stats br))))
 
-;;; ============================================================
+;;; ====
 ;;; Display Utilities
-;;; ============================================================
+;;; ====
 
 ;;; print-benchmark : BenchmarkResult → void
 (define (print-benchmark br)
@@ -223,9 +223,9 @@
                             (cdr ratio-pair))))
    (benchmark-comparison-ratios cmp)))
 
-;;; ============================================================
+;;; ====
 ;;; Fuel-Aware Timing (Integration with Core)
-;;; ============================================================
+;;; ====
 
 ;;; time-with-fuel : Nat × (→ A) → (TimingResult × Nat)
 ;;; Execute a fuel-limited computation and return timing plus fuel remaining.

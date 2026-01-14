@@ -10,9 +10,9 @@
 
 (load "core/base/prelude.ss")
 
-;;; ============================================================
+;;; ====
 ;;; PID Controller Structure
-;;; ============================================================
+;;; ====
 
 ;;; A digital PID controller has the form:
 ;;;   u[k] = Kp * e[k] + Ki * Ts * sum(e[i]) + Kd/Ts * (e[k] - e[k-1])
@@ -47,9 +47,9 @@
 (define (pid-Kd pid) (cadddr pid))
 (define (pid-Ts pid) (car (cddddr pid)))
 
-;;; ============================================================
+;;; ====
 ;;; PID State
-;;; ============================================================
+;;; ====
 
 ;;; PID state tracks the running state of a PID controller.
 ;;; Structure: (pid-state integral-sum previous-error previous-output)
@@ -70,9 +70,9 @@
 (define (pid-prev-error state) (caddr state))
 (define (pid-prev-output state) (cadddr state))
 
-;;; ============================================================
+;;; ====
 ;;; Basic PID Step
-;;; ============================================================
+;;; ====
 
 ;;; pid-step : PID × PIDState × Number → (Number . PIDState)
 ;;; Compute one PID step.
@@ -101,9 +101,9 @@
          [new-state (list 'pid-state integral-new error output)])
         (cons output new-state)))
 
-;;; ============================================================
+;;; ====
 ;;; PID with Anti-Windup
-;;; ============================================================
+;;; ====
 
 ;;; pid-step-antiwindup : PID × PIDState × Number × Number × Number → (Number . PIDState)
 ;;; PID step with anti-windup limiting.
@@ -148,9 +148,9 @@
    [(> x max-val) max-val]
    [else x]))
 
-;;; ============================================================
+;;; ====
 ;;; PID with Derivative Filter
-;;; ============================================================
+;;; ====
 
 ;;; The derivative term can amplify high-frequency noise.
 ;;; A filtered derivative uses a first-order filter:
@@ -201,9 +201,9 @@
          [new-state (list 'filtered-pid-state integral-new error D-new)])
         (cons output new-state)))
 
-;;; ============================================================
+;;; ====
 ;;; PID Reset
-;;; ============================================================
+;;; ====
 
 ;;; pid-reset : PIDState → PIDState
 ;;; Reset PID state (bumpless transfer).
@@ -216,9 +216,9 @@
 (define (pid-reset-to integral prev-error)
   (list 'pid-state integral prev-error 0))
 
-;;; ============================================================
+;;; ====
 ;;; PID Tuning Methods
-;;; ============================================================
+;;; ====
 
 ;;; ziegler-nichols-tune : Number × Number × Symbol → PID
 ;;; Compute PID gains using Ziegler-Nichols method.
@@ -288,9 +288,9 @@
          [Ki (/ Kp Ti)])
         (make-digital-pid Kp Ki 0 Ts)))
 
-;;; ============================================================
+;;; ====
 ;;; Simulation Helper
-;;; ============================================================
+;;; ====
 
 ;;; pid-simulate : PID × PIDState × Number × (List Number) → (List Number × List Number)
 ;;; Simulate PID controller response.
@@ -332,9 +332,9 @@
                        (cons output outputs)
                        (cons error errors))))))
 
-;;; ============================================================
+;;; ====
 ;;; Velocity Form PID
-;;; ============================================================
+;;; ====
 
 ;;; The velocity (incremental) form computes the change in output:
 ;;;   delta_u = Kp*(e[k] - e[k-1]) + Ki*Ts*e[k] + Kd/Ts*(e[k] - 2*e[k-1] + e[k-2])
@@ -381,9 +381,9 @@
          [new-state (list 'velocity-pid-state e0 e1 output)])
         (cons output new-state)))
 
-;;; ============================================================
+;;; ====
 ;;; Display
-;;; ============================================================
+;;; ====
 
 ;;; pid->string : PID → String
 (define (pid->string pid)

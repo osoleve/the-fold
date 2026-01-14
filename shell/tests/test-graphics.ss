@@ -12,13 +12,13 @@
 (load "shell/ui/graphics.ss")
 
 (display "\n")
-(display "==============================================================\n")
+(display "====\n")
 (display "         GRAPHICS COLOR SERIALIZATION TESTS\n")
-(display "==============================================================\n")
+(display "====\n")
 
-;;; ============================================================
+;;; ====
 ;;; Color Serialization Tests
-;;; ============================================================
+;;; ====
 
 (test-group color-serialization
             (define-test serialize-default-color
@@ -87,9 +87,9 @@
                      [result (deserialize-color bv 0)])
                     (assert-equal c (car result)))))
 
-;;; ============================================================
+;;; ====
 ;;; Colored Canvas Block Tests
-;;; ============================================================
+;;; ====
 
 (test-group colored-canvas-block
             (define-test colored-canvas-roundtrip-simple
@@ -150,12 +150,12 @@
               (let* ([blk (make-block 'wrong-tag (make-bytevector 0) empty-refs)])
                     (assert-false (block->colored-canvas blk)))))
 
-;;; ============================================================
+;;; ====
 ;;; Summary
-;;; ============================================================
+;;; ====
 
 (display "\n")
-(display "==============================================================\n")
+(display "====\n")
 (printf "Tests passed: ~a\n" *tests-passed*)
 (printf "Tests failed: ~a\n" *tests-failed*)
 (printf "Total tests:  ~a\n" *tests-run*)

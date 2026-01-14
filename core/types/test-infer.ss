@@ -59,9 +59,9 @@
   (display name)
   (newline))
 
-;;; ============================================================
+;;; ====
 ;;; Substitution
-;;; ============================================================
+;;; ====
 (test-section "Substitution")
 (test "apply-subst simple" 'Int (apply-subst '((a . Int)) 'a))
 (test "apply-subst no match" 'b (apply-subst '((a . Int)) 'b))
@@ -70,9 +70,9 @@
 (test "apply-subst chain" 'Bool
       (apply-subst '((a . b) (b . Bool)) 'a))
 
-;;; ============================================================
+;;; ====
 ;;; Unification
-;;; ============================================================
+;;; ====
 (test-section "Unification")
 (let ([r (unify 'Int 'Int)])
      (test "same base type" 'ok (car r)))
@@ -87,18 +87,18 @@
 (let ([r (unify 'a '(List a))])
      (test "occurs check" 'error (car r)))
 
-;;; ============================================================
+;;; ====
 ;;; Instantiation
-;;; ============================================================
+;;; ====
 (test-section "Instantiation")
 (reset-fresh!)
 (let ([inst (instantiate '(∀ (a) (-> a a)))])
      (test "instantiate structure" '-> (car inst))
      (test "instantiate same var" (cadr inst) (caddr inst)))
 
-;;; ============================================================
+;;; ====
 ;;; Literal Inference
-;;; ============================================================
+;;; ====
 (test-section "Literal Inference")
 (test-type "integer" 'Int 42)
 (test-type "boolean true" 'Bool #t)
@@ -106,9 +106,9 @@
 (test-type "string" 'String "hello")
 (test-type "quoted symbol" 'Symbol '(quote foo))
 
-;;; ============================================================
+;;; ====
 ;;; Lambda Inference
-;;; ============================================================
+;;; ====
 (test-section "Lambda Inference")
 ;; Identity function — polymorphic
 (reset-fresh!)
@@ -118,9 +118,9 @@
 ;; Lambda with primitive use
 (test-type "neg function" '(-> Int Int) '(fn (x) (prim 'neg x)))
 
-;;; ============================================================
+;;; ====
 ;;; Application Inference
-;;; ============================================================
+;;; ====
 (test-section "Application Inference")
 ;; Apply identity to int
 (reset-fresh!)
@@ -133,9 +133,9 @@
      ;; Should be polymorphic: ∀ a. a → a
      (test "nested app is polymorphic" '∀ (if (pair? result) (car result) 'not-pair)))
 
-;;; ============================================================
+;;; ====
 ;;; Let Inference
-;;; ============================================================
+;;; ====
 (test-section "Let Inference")
 (test-type "let simple" 'Int '(let ((x 42)) x))
 
@@ -151,9 +151,9 @@
                              (id #t))))])
      (test "let-polymorphism different types" 'Bool result))
 
-;;; ============================================================
+;;; ====
 ;;; Primitive Inference
-;;; ============================================================
+;;; ====
 (test-section "Primitive Inference")
 (test-type "add" 'Int '(prim 'add 1 2))
 (test-type "sub" 'Int '(prim 'sub 10 5))
@@ -167,24 +167,24 @@
 (let ([result (typeof '(prim 'null? (quote ())))])
      (test "null? returns Bool" 'Bool result))
 
-;;; ============================================================
+;;; ====
 ;;; Type Annotation
-;;; ============================================================
+;;; ====
 (test-section "Type Annotation")
 (test-type "annotated int" 'Int '(: 42 Int))
 (test-type "annotated id" '(-> Int Int) '(: (fn (x) x) (-> Int Int)))
 
-;;; ============================================================
+;;; ====
 ;;; Type Errors
-;;; ============================================================
+;;; ====
 (test-section "Type Errors")
 (test-error "unbound variable" 'undefined-var)
 (test-error "applying non-function" '(42 1 2))
 (test-error "wrong arity" '((fn (x) x) 1 2))
 
-;;; ============================================================
+;;; ====
 ;;; Fix (Recursion)
-;;; ============================================================
+;;; ====
 (test-section "Fix")
 ;; Recursive identity (silly but tests fix)
 (reset-fresh!)
@@ -192,9 +192,9 @@
      ;; Should be polymorphic function
      (test "fix returns function" '∀ (if (pair? result) (car result) 'not-pair)))
 
-;;; ============================================================
+;;; ====
 ;;; Generalization
-;;; ============================================================
+;;; ====
 (test-section "Generalization")
 (let ([gen (generalize '() '(-> a a))])
      (test "generalize free vars" '∀ (car gen))
@@ -204,9 +204,9 @@
      (test "generalize respects env" '∀ (car gen))
      (test "generalize only free" '(b) (cadr gen)))
 
-;;; ============================================================
+;;; ====
 ;;; Complex Expressions
-;;; ============================================================
+;;; ====
 (test-section "Complex Expressions")
 
 ;; Compose-like
@@ -224,9 +224,9 @@
 (let ([result (typeof '(fn (x) (fn (y) (fn (z) ((x z) (y z))))))])
      (test "S is polymorphic" '∀ (if (pair? result) (car result) 'not-pair)))
 
-;;; ============================================================
+;;; ====
 ;;; Extended Primitive Inference
-;;; ============================================================
+;;; ====
 (test-section "Extended Primitives")
 
 ;; Bitwise
@@ -263,9 +263,9 @@
 (test-type "boolean?" 'Bool '(prim 'boolean? #t))
 (test-type "char?" 'Bool '(prim 'char? (quote #\x)))
 
-;;; ============================================================
+;;; ====
 ;;; Higher-Order FP Primitives
-;;; ============================================================
+;;; ====
 (test-section "FP Primitives")
 
 ;; map : (a → b) → [a] → [b]
@@ -302,9 +302,9 @@
 (let ([result (typeof '(fn (xs) (fn (ys) (prim 'zip xs ys))))])
      (test "zip is polymorphic" '∀ (if (pair? result) (car result) 'not-pair)))
 
-;;; ============================================================
+;;; ====
 ;;; Case Expression Inference
-;;; ============================================================
+;;; ====
 (test-section "Case Expressions")
 
 ;; Simple case with one clause

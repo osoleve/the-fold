@@ -55,9 +55,9 @@
 
 (printf "\n=== Iterative Solver Tests ===\n\n")
 
-;;; ============================================================
+;;; ====
 ;;; Test Matrices
-;;; ============================================================
+;;; ====
 
 ;; Strictly diagonally dominant 3x3 matrix
 (define dd-matrix (matrix-from-lists '((4 -1 0) (-1 4 -1) (0 -1 4))))
@@ -74,9 +74,9 @@
 (define simple-b '#(1 2))
 ;; Exact solution: (1/11, 7/11) ≈ (0.0909, 0.6364)
 
-;;; ============================================================
+;;; ====
 ;;; Jacobi Iteration Tests
-;;; ============================================================
+;;; ====
 
 (printf "--- Jacobi Iteration ---\n")
 
@@ -114,9 +114,9 @@
                   ;; Good initial guess should converge faster
                   (test-true "Good x0 helps convergence" (<= iters-x0 iters-zero)))))
 
-;;; ============================================================
+;;; ====
 ;;; Gauss-Seidel Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n--- Gauss-Seidel ---\n")
 
@@ -151,9 +151,9 @@
                 (test-approx "GS 2x2: x[0]" (/ 1.0 11.0) (vector-ref x 0) 1e-6)
                 (test-approx "GS 2x2: x[1]" (/ 7.0 11.0) (vector-ref x 1) 1e-6))))
 
-;;; ============================================================
+;;; ====
 ;;; SOR Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n--- SOR (Successive Over-Relaxation) ---\n")
 
@@ -190,9 +190,9 @@
 (let ([result (sor dd-matrix dd-b -0.1)])
      (test-true "SOR omega=-0.1 errors" (is-error? result)))
 
-;;; ============================================================
+;;; ====
 ;;; Conjugate Gradient Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n--- Conjugate Gradient ---\n")
 
@@ -242,9 +242,9 @@
        [gs-iters (cadr result-gs)])
       (test-true "CG faster than GS for SPD" (<= cg-iters gs-iters)))
 
-;;; ============================================================
+;;; ====
 ;;; Preconditioned Conjugate Gradient Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n--- Preconditioned Conjugate Gradient ---\n")
 
@@ -271,9 +271,9 @@
                  ;; Preconditioning should help (or at least not hurt much)
                  (test-true "PCG reasonable iters" (<= pcg-iters (+ cg-iters 5))))))
 
-;;; ============================================================
+;;; ====
 ;;; GMRES Tests (Experimental - algorithm needs refinement)
-;;; ============================================================
+;;; ====
 
 (printf "\n--- GMRES (Experimental) ---\n")
 
@@ -305,9 +305,9 @@
            (let ([x (car result)])
                 (test "GMRES DD: result size" 3 (vector-length x)))))
 
-;;; ============================================================
+;;; ====
 ;;; Utility Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n--- Utilities ---\n")
 
@@ -337,9 +337,9 @@
       (test-approx "Jacobi precond: z[1]" 2.0 (vector-ref z 1) 1e-12)
       (test-approx "Jacobi precond: z[2]" 1.0 (vector-ref z 2) 1e-12))
 
-;;; ============================================================
+;;; ====
 ;;; Edge Cases
-;;; ============================================================
+;;; ====
 
 (printf "\n--- Edge Cases ---\n")
 
@@ -371,9 +371,9 @@
       (test-true "Jacobi non-square" (is-error? (jacobi a b)))
       (test-true "GS non-square" (is-error? (gauss-seidel a b))))
 
-;;; ============================================================
+;;; ====
 ;;; Convergence Comparison
-;;; ============================================================
+;;; ====
 
 (printf "\n--- Convergence Comparison ---\n")
 
@@ -395,9 +395,9 @@
                  (test-true "CG ≤ GS ≤ Jacobi (iters)" (and (<= cg-iters gs-iters)
                                                             (<= gs-iters jac-iters))))))
 
-;;; ============================================================
+;;; ====
 ;;; Summary
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Iterative Solver Test Summary ===\n")
 (printf "Passed: ~a\n" tests-passed)

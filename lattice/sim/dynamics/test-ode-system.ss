@@ -47,9 +47,9 @@
   (display name)
   (newline))
 
-;;; ============================================================
+;;; ====
 ;;; ODE System Construction
-;;; ============================================================
+;;; ====
 (test-section "ODE System Construction")
 
 (define simple-autonomous
@@ -83,9 +83,9 @@
       #f
       (ode-autonomous? simple-nonautonomous))
 
-;;; ============================================================
+;;; ====
 ;;; Vector Field Evaluation
-;;; ============================================================
+;;; ====
 (test-section "Vector Field Evaluation")
 
 (define growth-sys (exponential-growth 2.0))
@@ -125,9 +125,9 @@
       (and (= (vector-ref forced-field-t0 0) 0.0)
            (= (vector-ref forced-field-t0 1) (+ -1.0 (* 0.5 (cos 0.0))))))
 
-;;; ============================================================
+;;; ====
 ;;; Batch Vector Field Evaluation
-;;; ============================================================
+;;; ====
 (test-section "Batch Vector Field Evaluation")
 
 (define batch-states (list (vector 1.0 0.0) (vector 0.0 1.0) (vector 2.0 2.0)))
@@ -142,9 +142,9 @@
       (and (= (vector-ref (car batch-fields) 0) 0.0)
            (= (vector-ref (car batch-fields) 1) -1.0)))
 
-;;; ============================================================
+;;; ====
 ;;; Standard Systems - Harmonic Oscillator
-;;; ============================================================
+;;; ====
 (test-section "Harmonic Oscillator")
 
 (define ho (harmonic-oscillator 2.0))
@@ -164,9 +164,9 @@
       (and (= (vector-ref ho-field 0) 2.0)
            (= (vector-ref ho-field 1) -4.0)))
 
-;;; ============================================================
+;;; ====
 ;;; Standard Systems - Damped Oscillator
-;;; ============================================================
+;;; ====
 (test-section "Damped Oscillator")
 
 (define damped (damped-oscillator 1.0 0.5))
@@ -183,9 +183,9 @@
            ;; dv/dt = -2ζωv - ω²x = -2*0.5*1*2 - 1*1 = -2 - 1 = -3
            (= dv-dt -3.0)))
 
-;;; ============================================================
+;;; ====
 ;;; Standard Systems - Lotka-Volterra
-;;; ============================================================
+;;; ====
 (test-section "Lotka-Volterra Predator-Prey")
 
 (define lv (lotka-volterra 1.0 0.1 0.1 0.02))
@@ -210,9 +210,9 @@
       ;; dy/dt = δxy - γy = 0.02*10*5 - 0.1*5 = 1 - 0.5 = 0.5
       (= (vector-ref lv-field 1) 0.5))
 
-;;; ============================================================
+;;; ====
 ;;; Standard Systems - Lorenz System
-;;; ============================================================
+;;; ====
 (test-section "Lorenz Chaotic System")
 
 (define lorenz (lorenz-system 10.0 28.0 (/ 8.0 3.0)))
@@ -232,9 +232,9 @@
       ;; dy/dt = x(ρ - z) - y = 1*(28 - 1) - 1 = 26
       (= (vector-ref lorenz-field 1) 26.0))
 
-;;; ============================================================
+;;; ====
 ;;; Standard Systems - Van der Pol
-;;; ============================================================
+;;; ====
 (test-section "Van der Pol Oscillator")
 
 (define vdp (van-der-pol 1.0))
@@ -250,9 +250,9 @@
       ;; dv/dt = μ(1 - x²)v - x = 1*(1 - 0.25)*1 - 0.5 = 0.75 - 0.5 = 0.25
       (= (vector-ref vdp-field 1) 0.25))
 
-;;; ============================================================
+;;; ====
 ;;; Standard Systems - Pendulum
-;;; ============================================================
+;;; ====
 (test-section "Simple Pendulum")
 
 (define pend (pendulum 1.0))
@@ -276,9 +276,9 @@
       ;; sin(π) ≈ 0 due to floating point, so restoring force is small
       (< (abs (vector-ref pend-field-down 1)) 0.01))
 
-;;; ============================================================
+;;; ====
 ;;; Linear ODE System
-;;; ============================================================
+;;; ====
 (test-section "Linear ODE System")
 
 (define A (list 'matrix 2 2 (vector 0 1 -1 0)))
@@ -295,9 +295,9 @@
       (and (= (vector-ref lin-field 0) 2.0)
            (= (vector-ref lin-field 1) -1.0)))
 
-;;; ============================================================
+;;; ====
 ;;; Vector Field Norm
-;;; ============================================================
+;;; ====
 (test-section "Vector Field Norm")
 
 (define norm-test-sys (harmonic-oscillator 1.0))
@@ -314,9 +314,9 @@
       #t
       (> norm-nonzero 4.0))
 
-;;; ============================================================
+;;; ====
 ;;; Equilibrium Detection
-;;; ============================================================
+;;; ====
 (test-section "Equilibrium Detection")
 
 (define eq-test-sys (harmonic-oscillator 1.0))
@@ -337,9 +337,9 @@
       #t
       (is-equilibrium? lv-eq (vector 5.0 10.0) 1e-6))
 
-;;; ============================================================
+;;; ====
 ;;; Phase Space Grid
-;;; ============================================================
+;;; ====
 (test-section "Phase Space Grid")
 
 (define grid-2x2 (make-phase-space-grid 0.0 1.0 2 0.0 1.0 2))
@@ -358,9 +358,9 @@
       9
       (length grid-3x3))
 
-;;; ============================================================
+;;; ====
 ;;; Vector Field Grid Computation
-;;; ============================================================
+;;; ====
 (test-section "Vector Field Grid")
 
 (define simple-sys (harmonic-oscillator 1.0))
@@ -375,9 +375,9 @@
       #t
       (andmap vector? grid-fields))
 
-;;; ============================================================
+;;; ====
 ;;; Find Equilibria from Grid
-;;; ============================================================
+;;; ====
 (test-section "Find Equilibria from Grid")
 
 (define eq-search-grid
@@ -390,9 +390,9 @@
       #t
       (> (length found-equilibria) 0))
 
-;;; ============================================================
+;;; ====
 ;;; System Coupling
-;;; ============================================================
+;;; ====
 (test-section "System Coupling")
 
 (define sys1 (exponential-growth 1.0))
@@ -418,9 +418,9 @@
       8.0
       (vector-ref coupled-field 1))
 
-;;; ============================================================
+;;; ====
 ;;; Time Reversal
-;;; ============================================================
+;;; ====
 (test-section "Time Reversal")
 
 (define forward-sys (exponential-growth 2.0))
@@ -437,9 +437,9 @@
       1
       (ode-dimension backward-sys))
 
-;;; ============================================================
+;;; ====
 ;;; Forced Oscillator (Non-Autonomous)
-;;; ============================================================
+;;; ====
 (test-section "Forced Oscillator")
 
 (define forced (forced-oscillator 1.0 2.0 1.0))
@@ -464,9 +464,9 @@
                  (vector-ref forced-t-pi-half 1)))
          1.5))
 
-;;; ============================================================
+;;; ====
 ;;; Edge Cases
-;;; ============================================================
+;;; ====
 (test-section "Edge Cases")
 
 (test "scalar state works for 1D systems"

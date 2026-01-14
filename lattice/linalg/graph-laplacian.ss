@@ -31,9 +31,9 @@
 ;;;   - matrix-eigen.ss
 ;;;   - graph-matrix.ss
 
-;;; ============================================================
+;;; ====
 ;;; Unnormalized (Combinatorial) Laplacian
-;;; ============================================================
+;;; ====
 
 ;;; laplacian : (Matrix Real) → (Matrix Real)
 ;;; L = D - A
@@ -62,9 +62,9 @@
   (let ([n (if (null? opts) #f (car opts))])
        (laplacian (edges->adjacency-matrix edges n #t))))
 
-;;; ============================================================
+;;; ====
 ;;; Normalized Symmetric Laplacian
-;;; ============================================================
+;;; ====
 
 ;;; laplacian-normalized : (Matrix Real) → (Matrix Real)
 ;;; L_sym = I - D^(-1/2) A D^(-1/2)
@@ -112,9 +112,9 @@
                                       (- (* d-i a-ij d-j)))])
                            (matrix-set! result i j term)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Random Walk Laplacian
-;;; ============================================================
+;;; ====
 
 ;;; laplacian-random-walk : (Matrix Real) → (Matrix Real)
 ;;; L_rw = I - D^(-1) A = D^(-1) L
@@ -159,9 +159,9 @@
                                            (- (* di a-ij)))])
                                 (matrix-set! result i j term))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Algebraic Connectivity (Fiedler Value)
-;;; ============================================================
+;;; ====
 
 ;;; algebraic-connectivity : (Matrix Real) → Real
 ;;; Compute the algebraic connectivity (second smallest eigenvalue).
@@ -231,9 +231,9 @@
                           [else
                            (loop (+ i 1) min-idx min-val second-idx second-val)])))))))
 
-;;; ============================================================
+;;; ====
 ;;; Connected Components from Laplacian
-;;; ============================================================
+;;; ====
 
 ;;; laplacian-connected-components : (Matrix Real) → Nat
 ;;; Count connected components by counting near-zero eigenvalues.
@@ -264,9 +264,9 @@
                                      (+ count 1)
                                      count))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Spectral Partitioning
-;;; ============================================================
+;;; ====
 
 ;;; spectral-partition : (Matrix Real) → (List Nat) × (List Nat)
 ;;; Partition graph into two groups using the Fiedler vector.
@@ -394,9 +394,9 @@
       lst
       (drop (- n 1) (cdr lst))))
 
-;;; ============================================================
+;;; ====
 ;;; Laplacian Properties
-;;; ============================================================
+;;; ====
 
 ;;; laplacian-trace : (Matrix Real) → Real
 ;;; Compute trace of Laplacian (= 2 x number of edges for undirected).
@@ -435,9 +435,9 @@
             result
             (abs (car result)))))
 
-;;; ============================================================
+;;; ====
 ;;; Graph Regularity and Bipartiteness from Spectrum
-;;; ============================================================
+;;; ====
 
 ;;; laplacian-max-eigenvalue : (Matrix Real) → Real
 ;;; Compute largest eigenvalue of Laplacian.
@@ -471,9 +471,9 @@
                                     (loop (+ i 1) (max m (vector-ref eigs i)))))])
                  (< (abs (- max-eig 2.0)) tol)))))
 
-;;; ============================================================
+;;; ====
 ;;; Effective Resistance
-;;; ============================================================
+;;; ====
 
 ;;; effective-resistance : (Matrix Real) × Nat × Nat → Real
 ;;; Compute effective resistance between nodes i and j.
@@ -533,9 +533,9 @@
                                         (loop (+ i 1) sum)
                                         (loop (+ i 1) (+ sum (/ 1.0 lambda-i))))))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Summary Functions
-;;; ============================================================
+;;; ====
 
 ;;; laplacian-summary : (Matrix Real) → (List (Symbol × α))
 ;;; Compute summary statistics of the Laplacian spectrum.
@@ -557,9 +557,9 @@
                     (trace . ,(laplacian-trace L))
                     (energy . ,(laplacian-energy adj)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Spectral Clustering (Normalized)
-;;; ============================================================
+;;; ====
 
 ;;; spectral-clustering : (Matrix Real) × Nat → (Vector Nat)
 ;;; Normalized spectral clustering using Ng-Jordan-Weiss algorithm.
@@ -650,9 +650,9 @@
               ((= j k))
             (matrix-set! result i j (/ (matrix-ref result i j) row-norm))))))))
 
-;;; ============================================================
+;;; ====
 ;;; K-Means Clustering
-;;; ============================================================
+;;; ====
 
 ;;; kmeans-cluster : Matrix × Nat → (Vector Nat)
 ;;; K-means clustering on rows of matrix.
@@ -822,9 +822,9 @@
         ((= j cols))
       (matrix-set! dst i j (matrix-ref src i j)))))
 
-;;; ============================================================
+;;; ====
 ;;; Clustering Quality Metrics
-;;; ============================================================
+;;; ====
 
 ;;; conductance : (Matrix Real) × (List Nat) → Real
 ;;; Compute conductance of a cut (set of nodes).

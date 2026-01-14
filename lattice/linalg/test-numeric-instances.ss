@@ -6,13 +6,13 @@
 (load "lattice/linalg/numeric-instances.ss")
 
 (display "\n")
-(display "==============================================================\n")
+(display "====\n")
 (display "         NUMERIC INSTANCES TESTS\n")
-(display "==============================================================\n")
+(display "====\n")
 
-;;; ============================================================
+;;; ====
 ;;; Vec Num Instance Tests
-;;; ============================================================
+;;; ====
 
 (test-group vec-num-instance
             (define-test vec-add-test
@@ -42,9 +42,9 @@
               (let ([v (vec -5 0 7)])
                    (assert-equal '#(-1 0 1) (vec-signum v)))))
 
-;;; ============================================================
+;;; ====
 ;;; Vec Fractional Instance Tests
-;;; ============================================================
+;;; ====
 
 (test-group vec-fractional-instance
             (define-test vec-div-test
@@ -56,9 +56,9 @@
               (let ([v (vec 2 4 5)])
                    (assert-equal '#(1/2 1/4 1/5) (vec-recip v)))))
 
-;;; ============================================================
+;;; ====
 ;;; Vec Floating Instance Tests
-;;; ============================================================
+;;; ====
 
 (test-group vec-floating-instance
             (define-test vec-exp-test
@@ -89,9 +89,9 @@
               (let ([v (vec 0)])
                    (assert-true (< (abs (vector-ref (vec-tanh v) 0)) 0.001)))))
 
-;;; ============================================================
+;;; ====
 ;;; Matrix Num Instance Tests
-;;; ============================================================
+;;; ====
 
 (test-group matrix-num-instance
             (define-test matrix-add-test
@@ -135,9 +135,9 @@
                         (assert-equal 3 (matrix-ref result 1 0))
                         (assert-equal 4 (matrix-ref result 1 1))))))
 
-;;; ============================================================
+;;; ====
 ;;; Matrix Fractional Instance Tests
-;;; ============================================================
+;;; ====
 
 (test-group matrix-fractional-instance
             (define-test matrix-div-test
@@ -157,9 +157,9 @@
                         (assert-equal 1/5 (matrix-ref result 1 0))
                         (assert-equal 1/10 (matrix-ref result 1 1))))))
 
-;;; ============================================================
+;;; ====
 ;;; Matrix Floating Instance Tests
-;;; ============================================================
+;;; ====
 
 (test-group matrix-floating-instance
             (define-test matrix-exp-test
@@ -181,9 +181,9 @@
                    (assert-true (< (abs (matrix-ref (matrix-sin m) 0 0)) 0.001))
                    (assert-true (< (abs (- (matrix-ref (matrix-cos m) 0 0) 1)) 0.001)))))
 
-;;; ============================================================
+;;; ====
 ;;; Scalar-Vector Operations Tests
-;;; ============================================================
+;;; ====
 
 (test-group scalar-vector-ops
             (define-test scalar-vec-add-test
@@ -194,9 +194,9 @@
               (let ([v (vec 1 2 3)])
                    (assert-equal '#(2 4 6) (scalar-vec* 2 v)))))
 
-;;; ============================================================
+;;; ====
 ;;; Scalar-Matrix Operations Tests
-;;; ============================================================
+;;; ====
 
 (test-group scalar-matrix-ops
             (define-test scalar-matrix-add-test
@@ -213,9 +213,9 @@
                         (assert-equal 6 (matrix-ref result 1 0))
                         (assert-equal 8 (matrix-ref result 1 1))))))
 
-;;; ============================================================
+;;; ====
 ;;; Applicative Operations Tests
-;;; ============================================================
+;;; ====
 
 (test-group applicative-ops
             (define-test vec-pure-test
@@ -252,9 +252,9 @@
                         (assert-equal 10 (vector-ref result 0))
                         (assert-equal 15 (vector-ref result 1))))))
 
-;;; ============================================================
+;;; ====
 ;;; Dimension Mismatch Tests
-;;; ============================================================
+;;; ====
 
 (test-group dimension-errors
             (define-test vec-add-mismatch-test
@@ -269,12 +269,12 @@
                    (let ([result (matrix+ m1 m2)])
                         (assert-true (and (pair? result) (eq? (car result) 'error)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Summary
-;;; ============================================================
+;;; ====
 
 (display "\n")
-(display "==============================================================\n")
+(display "====\n")
 (printf "Tests passed: ~a\n" *tests-passed*)
 (printf "Tests failed: ~a\n" *tests-failed*)
 (printf "Total tests:  ~a\n" *tests-run*)

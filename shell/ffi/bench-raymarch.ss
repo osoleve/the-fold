@@ -15,9 +15,9 @@
 (load "shell/ffi/bvh-cache.ss")
 (load "shell/ffi/raymarch-ffi.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Timing Utilities
-;;; ============================================================
+;;; ====
 
 (define (time-thunk thunk)
   (let* ([start (current-time 'time-monotonic)]
@@ -28,9 +28,9 @@
          [total-ms (+ (* secs 1000.0) (/ nsecs 1000000.0))])
         (cons result total-ms)))
 
-;;; ============================================================
+;;; ====
 ;;; Test Ray Generation
-;;; ============================================================
+;;; ====
 
 (define (make-camera-rays width height fov center)
   ;; Generate rays from camera at (0,0,5) looking at origin
@@ -49,9 +49,9 @@
                                                   -1.0))])
                       (set! rays (cons (ray3 camera-pos dir) rays)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Benchmark: Pure Scheme Raymarching
-;;; ============================================================
+;;; ====
 
 (define (bench-scheme-raymarch mesh rays params iterations)
   (display "  Pure Scheme raymarch:   ")
@@ -67,9 +67,9 @@
        (newline)
        (cdr result)))
 
-;;; ============================================================
+;;; ====
 ;;; Benchmark: Rust-Accelerated Raymarching
-;;; ============================================================
+;;; ====
 
 (define *benchmark-fuel* 1000000)  ; Plenty of fuel for benchmarks
 
@@ -97,14 +97,14 @@
             (newline)
             (cdr result))))
 
-;;; ============================================================
+;;; ====
 ;;; Main Benchmark
-;;; ============================================================
+;;; ====
 
 (define (run-raymarch-benchmark)
-  (display "================================================\n")
+  (display "====\n")
   (display "Raymarching Benchmark: Scheme vs Rust Acceleration\n")
-  (display "================================================\n\n")
+  (display "====\n\n")
   
   ;; Load Rust library
   (display "Loading Rust acceleration library...\n")
@@ -211,9 +211,9 @@
   (display "Cleaning up cache...\n")
   (clear-cache!)
   
-  (display "\n================================================\n")
+  (display "\n====\n")
   (display "Benchmark complete.\n")
-  (display "================================================\n"))
+  (display "====\n"))
 
 ;; Run if executed as script
 (run-raymarch-benchmark)

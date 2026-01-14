@@ -17,9 +17,9 @@
 ;;;   - shell/turtle-path.ss (path-cmd->sexpr, sexpr->path-cmd)
 ;;;   - shell/ui/turtle.ss (drawing record)
 
-;;; ============================================================
+;;; ====
 ;;; Drawing Serialization
-;;; ============================================================
+;;; ====
 
 ;;; drawing->sexpr : Drawing -> S-expr
 ;;; Convert a drawing to a pure S-expression for storage.
@@ -42,9 +42,9 @@
          [metadata (cdr (assq 'metadata sexpr))])
         (make-drawing% width height bg-color paths metadata)))
 
-;;; ============================================================
+;;; ====
 ;;; Block Conversion
-;;; ============================================================
+;;; ====
 
 ;;; drawing->block : Drawing -> Block
 ;;; Serialize a turtle drawing to a content-addressed block.
@@ -64,9 +64,9 @@
              [sexpr (read (open-input-string str))])
             (sexpr->drawing sexpr))))
 
-;;; ============================================================
+;;; ====
 ;;; CAS Store/Fetch Operations
-;;; ============================================================
+;;; ====
 
 ;;; store-drawing! : Drawing -> Bytevector
 ;;; Store a drawing in the CAS and return its hash.
@@ -86,9 +86,9 @@
 (define (store-turtle! t)
   (store-drawing! (turtle->drawing t)))
 
-;;; ============================================================
+;;; ====
 ;;; SVG Block Storage
-;;; ============================================================
+;;; ====
 
 ;;; store-drawing-svg! : Drawing -> Bytevector
 ;;; Store the SVG representation of a drawing as a separate block.
@@ -106,9 +106,9 @@
            (utf8->string (block-payload blk))
            #f)))
 
-;;; ============================================================
+;;; ====
 ;;; Convenience Functions
-;;; ============================================================
+;;; ====
 
 ;;; hash-drawing : Drawing -> Bytevector
 ;;; Compute the hash of a drawing without storing it.
@@ -120,9 +120,9 @@
 (define (drawing-stored? drawing)
   (stored? (hash-drawing drawing)))
 
-;;; ============================================================
+;;; ====
 ;;; Helper: sexpr->string (may already be in prelude)
-;;; ============================================================
+;;; ====
 
 ;;; sexpr->string : Any -> String
 ;;; Convert any S-expression to a string.

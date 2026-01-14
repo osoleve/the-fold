@@ -19,9 +19,9 @@
 (load "lattice/linalg/vec.ss")
 (load "lattice/random/prng.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Discrete Dynamical System Representation
-;;; ============================================================
+;;; ====
 
 ;;; A discrete dynamical system is represented as:
 ;;;   (dds transition-fn dimension stochastic?)
@@ -65,9 +65,9 @@
 (define (make-stochastic-dds transition-fn dimension)
   (make-dds transition-fn dimension #t))
 
-;;; ============================================================
+;;; ====
 ;;; Common Discrete Dynamical Systems
-;;; ============================================================
+;;; ====
 
 ;;; logistic-map : Number → DDS
 ;;; The logistic map: x_{n+1} = r * x_n * (1 - x_n)
@@ -136,9 +136,9 @@
    (lambda (x) (modulo (+ (* a x) c) m))
    0))
 
-;;; ============================================================
+;;; ====
 ;;; Orbit Computation
-;;; ============================================================
+;;; ====
 
 ;;; orbit : DDS × α × Nat → (List α)
 ;;; Compute the orbit of initial state for n iterations.
@@ -185,9 +185,9 @@
              [(>= k fuel) (cons state k)]
              [else (loop (f state) (+ k 1))]))))
 
-;;; ============================================================
+;;; ====
 ;;; Fixed Point Detection
-;;; ============================================================
+;;; ====
 
 ;;; fixed-point? : DDS × α × Number → Boolean
 ;;; Check if state is a fixed point within tolerance.
@@ -233,9 +233,9 @@
          [(> deriv 1) 'unstable]
          [else 'neutral])))
 
-;;; ============================================================
+;;; ====
 ;;; Periodic Orbit Detection
-;;; ============================================================
+;;; ====
 
 ;;; period : DDS × α × Nat × Number → (Option Nat)
 ;;; Detect the period of an orbit starting from a state.
@@ -280,9 +280,9 @@
                           (collect (f state) (+ k 1) (cons state acc)))))
            #f)))
 
-;;; ============================================================
+;;; ====
 ;;; Lyapunov Exponent (1D)
-;;; ============================================================
+;;; ====
 
 ;;; lyapunov-exponent-1d : DDS × Number × Nat × Nat → Number
 ;;; Estimate the Lyapunov exponent for a 1D map.
@@ -303,9 +303,9 @@
                           (loop (f state) (+ k 1) sum)
                           (loop (f state) (+ k 1) (+ sum (log deriv)))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Cobweb Diagram Data
-;;; ============================================================
+;;; ====
 
 ;;; Cobweb diagrams show the iteration process graphically.
 ;;; For y = f(x), we plot:
@@ -346,9 +346,9 @@
                                  (cons (list (cons x x) (cons x fx))       ;; vertical
                                        acc))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Bifurcation Diagram Data
-;;; ============================================================
+;;; ====
 
 ;;; bifurcation-data : (Number → DDS) × Number × Number × Nat × Nat × Nat × Number → (List (Number × Number))
 ;;; Generate data for a bifurcation diagram.
@@ -373,9 +373,9 @@
                                                (cdr orb))  ;; Skip first (it's settled)
                                           acc)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Attractor Analysis
-;;; ============================================================
+;;; ====
 
 ;;; attractor-bounds : DDS × α × Nat × Nat → (List (Number × Number))
 ;;; Estimate the bounding box of the attractor.
@@ -400,9 +400,9 @@
                                              (fold-left max (car vals) vals)))))
                       (iota n))))))
 
-;;; ============================================================
+;;; ====
 ;;; Stochastic System Utilities
-;;; ============================================================
+;;; ====
 
 ;;; add-noise : DDS × (α × RNG → (α × RNG)) → DDS
 ;;; Convert a deterministic system to a stochastic one by adding noise.
@@ -436,9 +436,9 @@
 (define (stochastic-logistic r sigma)
   (add-noise (logistic-map r) (gaussian-noise-1d sigma)))
 
-;;; ============================================================
+;;; ====
 ;;; Time Series Analysis
-;;; ============================================================
+;;; ====
 
 ;;; time-average : DDS × α × Nat × Nat × (α → Number) → Number
 ;;; Compute time average of an observable.
@@ -472,9 +472,9 @@
                               (/ sum (* n variance))))
                  (iota (+ max-lag 1))))))
 
-;;; ============================================================
+;;; ====
 ;;; Recurrence Analysis
-;;; ============================================================
+;;; ====
 
 ;;; recurrence-matrix : DDS × α × Nat × Nat × Number → (List (List Boolean))
 ;;; Compute the recurrence matrix for an orbit.
@@ -502,9 +502,9 @@
                           rm))
           (* n n))))
 
-;;; ============================================================
+;;; ====
 ;;; System Composition
-;;; ============================================================
+;;; ====
 
 ;;; compose-dds : DDS × DDS → DDS
 ;;; Compose two systems: (f o g)(x) = f(g(x))
@@ -550,9 +550,9 @@
                                           (if (= d2 0) (vector next2) next2))))))
         (+ (max d1 1) (max d2 1)))))
 
-;;; ============================================================
+;;; ====
 ;;; Display and Debugging
-;;; ============================================================
+;;; ====
 
 ;;; dds->string : DDS → String
 ;;; String representation of a discrete dynamical system.

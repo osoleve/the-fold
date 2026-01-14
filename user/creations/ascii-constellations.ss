@@ -10,9 +10,9 @@
 (display "║        THE FOLD'S CREATIVE CONSTELLATION MAP             ║\n")
 (display "╚═══════════════════════════════════════════════════════════╝\n\n")
 
-;;; ============================================================
+;;; ====
 ;;; Constellation 1: The Animation Cluster
-;;; ============================================================
+;;; ====
 
 (display "⭐ THE ANIMATION CLUSTER ⭐\n")
 (display "Representing ascii-waves.ss and its effects\n\n")
@@ -38,9 +38,9 @@
             •   •                    • • •
 ")
 
-;;; ============================================================
+;;; ====
 ;;; Constellation 2: The Duck Galaxy
-;;; ============================================================
+;;; ====
 
 (display "\n⭐ THE DUCK GALAXY ⭐\n")
 (display "Representing DUCKIE's emotional states and animations\n\n")
@@ -62,9 +62,9 @@
         Center: the eternal curious nature of creation
 ")
 
-;;; ============================================================
+;;; ====
 ;;; Constellation 3: The Fold Foundation
-;;; ============================================================
+;;; ====
 
 (display "\n⭐ THE FOLD FOUNDATION ⭐\n")
 (display "Core systems supporting creative expression\n\n")
@@ -87,9 +87,9 @@
                   PLAYPEN HUB
 ")
 
-;;; ============================================================
+;;; ====
 ;;; Discovery Notes
-;;; ============================================================
+;;; ====
 
 (display "\n" )
 (display "═══════════════════════════════════════════════════════════\n")
@@ -136,9 +136,9 @@ PRINCIPLE 4: MODULARITY AND COMPOSITION
 ═══════════════════════════════════════════════════════════
 ")
 
-;;; ============================================================
+;;; ====
 ;;; Final Message
-;;; ============================================================
+;;; ====
 
 (display "\nWave Rider's Artistic Manifesto:\n\n")
 (display "  Art in The Fold is not mere decoration.\n")

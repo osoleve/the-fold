@@ -10,9 +10,9 @@
 ;;;
 ;;; Dependencies: None
 
-;;; ============================================================
+;;; ====
 ;;; Color12 Data Structure
-;;; ============================================================
+;;; ====
 
 ;;; Color12 = (color12 r g b) where 0 <= r,g,b <= 15
 ;;;
@@ -48,9 +48,9 @@
 (define (list->color12 lst)
   (make-color12 (car lst) (cadr lst) (caddr lst)))
 
-;;; ============================================================
+;;; ====
 ;;; Color Conversions
-;;; ============================================================
+;;; ====
 
 ;;; color12-from-int : Nat -> Color12
 ;;; Create Color12 from integer 0-4095 (#x000 to #xFFF).
@@ -96,9 +96,9 @@
       (integer->char (+ n (char->integer #\0)))
       (integer->char (+ (- n 10) (char->integer #\A)))))
 
-;;; ============================================================
+;;; ====
 ;;; Named Color Palette
-;;; ============================================================
+;;; ====
 
 ;;; *color12-palette* : Alist of (Symbol . (r g b))
 ;;; Standard named colors for 12-bit space.
@@ -138,9 +138,9 @@
 (define (color12-names)
   (map car *color12-palette*))
 
-;;; ============================================================
+;;; ====
 ;;; Unified Color Parser
-;;; ============================================================
+;;; ====
 
 ;;; parse-color12 : ColorSpec -> Color12 | #f
 ;;; Parse a color specification. Accepts:
@@ -170,9 +170,9 @@
    
    [else #f]))
 
-;;; ============================================================
+;;; ====
 ;;; Color Operations
-;;; ============================================================
+;;; ====
 
 ;;; color12-lerp : Color12 x Color12 x Real -> Color12
 ;;; Linear interpolation between two colors.
@@ -203,9 +203,9 @@
         (inexact->exact (round (+ (color12-g c) (* (- 15 (color12-g c)) f))))
         (inexact->exact (round (+ (color12-b c) (* (- 15 (color12-b c)) f)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Predefined Colors
-;;; ============================================================
+;;; ====
 
 ;;; Convenience bindings for common colors
 (define color12-black   (make-color12  0  0  0))

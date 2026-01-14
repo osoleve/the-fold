@@ -100,9 +100,9 @@
 
 (define *would-explore-again* #t)
 
-;;; ============================================================
+;;; ====
 ;;; Session Summary Display
-;;; ============================================================
+;;; ====
 
 (define (display-session-summary)
   (display "\n")
@@ -134,9 +134,9 @@
   (display "═════════════════════════════════════════════════════════════\n")
   (newline))
 
-;;; ============================================================
+;;; ====
 ;;; Loaded
-;;; ============================================================
+;;; ====
 
 (display "Exploration log loaded.\n")
 (display "Use (display-session-summary) to view session highlights.\n")

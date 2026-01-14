@@ -28,9 +28,9 @@
 (load "lattice/fp/numeric/transcendental.ss")
 (load "lattice/random/distributions.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Conjugate Prior: Beta-Binomial
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Prior: Beta(alpha, beta) on success probability p
 ;;; Likelihood: Binomial(n, p) for k successes
@@ -94,9 +94,9 @@
         (cons (max 0 (- mean half-width))
               (min 1 (+ mean half-width)))))
 
-;;; ============================================================
+;;; ====
 ;;; Conjugate Prior: Normal-Normal (Known Variance)
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Prior: Normal(mu0, sigma0^2) on mean mu
 ;;; Likelihood: Normal(mu, sigma^2) for n observations with sample mean xbar
@@ -140,9 +140,9 @@
          [half-width (* z std)])
         (cons (- mean half-width) (+ mean half-width))))
 
-;;; ============================================================
+;;; ====
 ;;; Conjugate Prior: Gamma-Poisson
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Prior: Gamma(alpha, beta) on rate lambda
 ;;; Likelihood: Poisson(lambda) for observations with sum k and count n
@@ -187,9 +187,9 @@
            (/ (- alpha 1) beta)
            (gamma-posterior-mean prior))))
 
-;;; ============================================================
+;;; ====
 ;;; Conjugate Prior: Dirichlet-Multinomial
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Prior: Dirichlet(alphas) on probability vector p
 ;;; Likelihood: Multinomial(n, p) for observed counts
@@ -229,9 +229,9 @@
             (map (lambda (a) (/ (- a 1) denom)) alphas)
             (dirichlet-posterior-mean prior))))
 
-;;; ============================================================
+;;; ====
 ;;; Log Probability Functions (for MCMC/VI)
-;;; ============================================================
+;;; ====
 
 ;;; log-beta-pdf : Number x Number x Number -> Number
 ;;; Log PDF of Beta(alpha, beta) at x.
@@ -288,9 +288,9 @@
       0
       (log-gamma (+ n 1))))
 
-;;; ============================================================
+;;; ====
 ;;; Variational Inference: ELBO Computation
-;;; ============================================================
+;;; ====
 ;;;
 ;;; ELBO = E_q[log p(x,z)] - E_q[log q(z)]
 ;;;      = E_q[log p(x|z)] + E_q[log p(z)] - E_q[log q(z)]
@@ -338,9 +338,9 @@
                (* x2 (/ 1 12))
                (* x2 x2 (/ -1 120))))))
 
-;;; ============================================================
+;;; ====
 ;;; Bayesian Model Selection
-;;; ============================================================
+;;; ====
 
 ;;; log-marginal-likelihood-beta-binomial : BetaPrior x Number x Number -> Number
 ;;; Log marginal likelihood p(data|model) for Beta-Binomial.
@@ -424,9 +424,9 @@
 (define (aic log-likelihood k)
   (- (* 2 k) (* 2 log-likelihood)))
 
-;;; ============================================================
+;;; ====
 ;;; Sequential Bayesian Updates
-;;; ============================================================
+;;; ====
 
 ;;; sequential-beta-update : BetaPrior x (List (Number . Number)) -> BetaPrior
 ;;; Sequentially update Beta prior with a list of (successes . trials).
@@ -452,9 +452,9 @@
              prior
              observations))
 
-;;; ============================================================
+;;; ====
 ;;; Utility Functions
-;;; ============================================================
+;;; ====
 
 ;;; posterior-summary : Prior -> Alist
 ;;; Generate a summary of the posterior distribution.
@@ -498,9 +498,9 @@
 (define (predictive-mean-beta-binomial prior n)
   (* n (beta-posterior-mean prior)))
 
-;;; ============================================================
+;;; ====
 ;;; Exports Summary
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Beta-Binomial:
 ;;;   make-beta-prior, beta-binomial-posterior

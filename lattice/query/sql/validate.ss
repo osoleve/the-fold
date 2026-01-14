@@ -20,9 +20,9 @@
 (unless (top-level-bound? 'validation-success)
         (load "fp/validation.ss"))
 
-;;; ============================================================
+;;; ====
 ;;; Validation Error Types
-;;; ============================================================
+;;; ====
 
 ;;; sql-error : Symbol × Span × String → Error
 (define (sql-error code span message)
@@ -48,9 +48,9 @@
                msg))
       (format "~a" e)))
 
-;;; ============================================================
+;;; ====
 ;;; Validation Context
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Context tracks available tables and columns during validation.
 
@@ -84,9 +84,9 @@
   (let ([pair (assoc table-name (context-columns ctx))])
        (if pair (cdr pair) '())))
 
-;;; ============================================================
+;;; ====
 ;;; Statement Validation
-;;; ============================================================
+;;; ====
 
 ;;; validate-statement : AST → Validation (List Error) AST
 (define (validate-statement ast)
@@ -98,9 +98,9 @@
    [else (validation-failure (sql-error 'unknown-statement (sql-span ast)
                                         "Unknown statement type"))]))
 
-;;; ============================================================
+;;; ====
 ;;; SELECT Validation
-;;; ============================================================
+;;; ====
 
 ;;; validate-select : AST → Validation (List Error) AST
 (define (validate-select ast)
@@ -142,9 +142,9 @@
      (validate-identifier (alias-name item)))]
    [else (validate-expression item)]))
 
-;;; ============================================================
+;;; ====
 ;;; INSERT Validation
-;;; ============================================================
+;;; ====
 
 ;;; validate-insert : AST → Validation (List Error) AST
 (define (validate-insert ast)
@@ -186,9 +186,9 @@
       (validation-success expr)
       (validate-expression expr)))
 
-;;; ============================================================
+;;; ====
 ;;; UPDATE Validation
-;;; ============================================================
+;;; ====
 
 ;;; validate-update : AST → Validation (List Error) AST
 (define (validate-update ast)
@@ -214,9 +214,9 @@
    (validate-identifier (set-clause-column clause))
    (validate-expression (set-clause-value clause))))
 
-;;; ============================================================
+;;; ====
 ;;; DELETE Validation
-;;; ============================================================
+;;; ====
 
 ;;; validate-delete : AST → Validation (List Error) AST
 (define (validate-delete ast)
@@ -229,9 +229,9 @@
          ;; Validate WHERE (optional)
          (if where (validate-expression where) (validation-success #f)))))
 
-;;; ============================================================
+;;; ====
 ;;; Expression Validation
-;;; ============================================================
+;;; ====
 
 ;;; validate-expression : AST → Validation (List Error) AST
 (define (validate-expression expr)
@@ -353,9 +353,9 @@
 (define (validate-exists-expr expr)
   (validate-subquery (exists-expr-subquery expr)))
 
-;;; ============================================================
+;;; ====
 ;;; Primitive Validators
-;;; ============================================================
+;;; ====
 
 ;;; validate-identifier : String → Validation (List Error) String
 (define (validate-identifier name)
@@ -372,9 +372,9 @@
            (validation-failure (sql-error 'invalid-operator no-span
                                           (string-append "Unknown operator: " (symbol->string op)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Aggregate Function Validation
-;;; ============================================================
+;;; ====
 
 ;;; sql-aggregate-functions : (List String)
 (define sql-aggregate-functions
@@ -398,9 +398,9 @@
 (define (has-aggregates? expr)
   (not (null? (collect-aggregates expr))))
 
-;;; ============================================================
+;;; ====
 ;;; Advanced Validation (requires schema)
-;;; ============================================================
+;;; ====
 
 ;;; validate-with-schema : AST × Schema → Validation (List Error) AST
 ;;; Schema is an alist: ((table-name . (col1 col2 ...)) ...)

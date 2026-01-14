@@ -5,9 +5,9 @@
 (load "lattice/pipeline/stage.ss")
 (load "lattice/pipeline/context.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Test Framework (minimal)
-;;; ============================================================
+;;; ====
 
 (define *test-count* 0)
 (define *test-passed* 0)
@@ -49,15 +49,15 @@
        (display "SOME TESTS FAILED\n")
        (exit 1))))
 
-;;; ============================================================
+;;; ====
 ;;; Test Context
-;;; ============================================================
+;;; ====
 
 (define test-ctx empty-context)
 
-;;; ============================================================
+;;; ====
 ;;; StageResult Tests
-;;; ============================================================
+;;; ====
 
 (run-tests "StageResult Constructors"
            (lambda ()
@@ -113,9 +113,9 @@
                          'signal-ref
                          (stage-result-value (stage-await 'signal-ref)))))
 
-;;; ============================================================
+;;; ====
 ;;; StageResult Predicates
-;;; ============================================================
+;;; ====
 
 (run-tests "StageResult Predicates"
            (lambda ()
@@ -179,9 +179,9 @@
                          #f
                          (stage-result? '(not a result)))))
 
-;;; ============================================================
+;;; ====
 ;;; Stage Record Tests
-;;; ============================================================
+;;; ====
 
 (run-tests "Stage Record"
            (lambda ()
@@ -204,9 +204,9 @@
                           (run-stage (make-stage 'test (lambda (ctx input) (stage-ok (* input 2))))
                                      test-ctx 21)))))
 
-;;; ============================================================
+;;; ====
 ;;; Basic Stage Constructors
-;;; ============================================================
+;;; ====
 
 (run-tests "Basic Stage Constructors"
            (lambda ()
@@ -251,9 +251,9 @@
                               stage-skip?
                               (run-stage (stage-skip-with "skipping") test-ctx "input"))))
 
-;;; ============================================================
+;;; ====
 ;;; stage-arr Tests
-;;; ============================================================
+;;; ====
 
 (run-tests "stage-arr (lift function)"
            (lambda ()
@@ -283,9 +283,9 @@
                           (run-stage (stage-arr-ctx (lambda (ctx input) (ctx-fuel ctx)))
                                      test-ctx "ignored")))))
 
-;;; ============================================================
+;;; ====
 ;;; Sequential Composition (>>>)
-;;; ============================================================
+;;; ====
 
 (run-tests "Sequential Composition (>>>)"
            (lambda ()
@@ -346,9 +346,9 @@
                                                 (stage-arr (lambda (x) x)))
                                      test-ctx 1)))))
 
-;;; ============================================================
+;;; ====
 ;;; Parallel Composition (&&&)
-;;; ============================================================
+;;; ====
 
 (run-tests "Parallel Composition (&&&)"
            (lambda ()
@@ -425,9 +425,9 @@
                                    42
                                    (fanout-effect-right result))))))
 
-;;; ============================================================
+;;; ====
 ;;; Split Composition (***)
-;;; ============================================================
+;;; ====
 
 (run-tests "Split Composition (***)"
            (lambda ()
@@ -460,9 +460,9 @@
                               (stage-result-tag
                                (run-stage (stage-*** double (stage-fail 'e "m")) test-ctx '(5 . 3)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Conditional Stages
-;;; ============================================================
+;;; ====
 
 (run-tests "Conditional Stages"
            (lambda ()
@@ -521,9 +521,9 @@
                               'positive
                               (stage-result-value (run-stage classify test-ctx 5))))))
 
-;;; ============================================================
+;;; ====
 ;;; stage-guard Tests
-;;; ============================================================
+;;; ====
 
 (run-tests "stage-guard"
            (lambda ()
@@ -547,9 +547,9 @@
                          (stage-result-value
                           (run-stage (stage-guard pair? "must be pair") test-ctx '(a b c))))))
 
-;;; ============================================================
+;;; ====
 ;;; Monadic Interface
-;;; ============================================================
+;;; ====
 
 (run-tests "Monadic Interface"
            (lambda ()
@@ -630,9 +630,9 @@
                                      (stage-pure 5))
                            test-ctx "ignored")))))
 
-;;; ============================================================
+;;; ====
 ;;; Error Handling
-;;; ============================================================
+;;; ====
 
 (run-tests "Error Handling"
            (lambda ()
@@ -703,9 +703,9 @@
                          (stage-result-value
                           (run-stage (stage-optional (stage-fail 'e "m")) test-ctx "input")))))
 
-;;; ============================================================
+;;; ====
 ;;; Utility Stages
-;;; ============================================================
+;;; ====
 
 (run-tests "Utility Stages"
            (lambda ()
@@ -741,9 +741,9 @@
                          2
                          (stage-result-value (run-stage stage-snd test-ctx '(1 . 2))))))
 
-;;; ============================================================
+;;; ====
 ;;; Iteration
-;;; ============================================================
+;;; ====
 
 (run-tests "Iteration"
            (lambda ()
@@ -805,9 +805,9 @@
                                                      '(1 2 3))
                                      test-ctx "ignored")))))
 
-;;; ============================================================
+;;; ====
 ;;; Pipeline Construction
-;;; ============================================================
+;;; ====
 
 (run-tests "Pipeline Construction"
            (lambda ()
@@ -832,9 +832,9 @@
                          42
                          (stage-result-value (run-stage (pipeline 'empty) test-ctx 42)))))
 
-;;; ============================================================
+;;; ====
 ;;; ArrowChoice (Either routing)
-;;; ============================================================
+;;; ====
 
 (run-tests "ArrowChoice"
            (lambda ()
@@ -913,9 +913,9 @@
                               (stage-result-value
                                (run-stage (stage-+++ double negate) test-ctx (right 5)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Context Operations
-;;; ============================================================
+;;; ====
 
 (run-tests "Context Operations"
            (lambda ()
@@ -947,9 +947,9 @@
                                  (stage-asks (lambda (c) (ctx-env-ref c 'z))))
                                 test-ctx 42))))))
 
-;;; ============================================================
+;;; ====
 ;;; Effect Staging
-;;; ============================================================
+;;; ====
 
 (run-tests "Effect Staging"
            (lambda ()
@@ -974,9 +974,9 @@
                               "captured input"
                               (stage-effect-input (run-stage log-effect test-ctx "captured input"))))))
 
-;;; ============================================================
+;;; ====
 ;;; stage-tap Tests
-;;; ============================================================
+;;; ====
 
 (run-tests "stage-tap"
            (lambda ()
@@ -996,8 +996,8 @@
                          (stage-effect?
                           (run-stage (stage-trace "label") test-ctx "input")))))
 
-;;; ============================================================
+;;; ====
 ;;; Run All Tests
-;;; ============================================================
+;;; ====
 
 (test-summary)

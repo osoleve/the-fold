@@ -6,13 +6,13 @@
 (load "lattice/physics/diff3d/traced-body3d.ss")
 
 (display "\n")
-(display "==============================================================\n")
+(display "====\n")
 (display "         TRACED BODY 3D TESTS\n")
-(display "==============================================================\n")
+(display "====\n")
 
-;;; ============================================================
+;;; ====
 ;;; Construction Tests
-;;; ============================================================
+;;; ====
 
 (test-group construction-tests
             
@@ -48,9 +48,9 @@
                     (assert-true (traced-body-3d-dynamic? b))
                     (assert-true (< (abs (- (traced-body-3d-inv-mass b) 0.5)) 1e-10)))))
 
-;;; ============================================================
+;;; ====
 ;;; Accessor Tests
-;;; ============================================================
+;;; ====
 
 (test-group accessor-tests
             
@@ -80,9 +80,9 @@
                     (assert-true (< (abs (- (traced-value (traced-vec3-y v)) 5)) 1e-10))
                     (assert-true (< (abs (- (traced-value (traced-vec3-z v)) 6)) 1e-10)))))
 
-;;; ============================================================
+;;; ====
 ;;; Updater Tests
-;;; ============================================================
+;;; ====
 
 (test-group updater-tests
             
@@ -116,9 +116,9 @@
                     (assert-true (< (abs (- (traced-value (traced-vec3-y v)) 6)) 1e-10))
                     (assert-true (< (abs (- (traced-value (traced-vec3-z v)) 7)) 1e-10)))))
 
-;;; ============================================================
+;;; ====
 ;;; Velocity at Point Tests
-;;; ============================================================
+;;; ====
 
 (test-group velocity-at-point-tests
             
@@ -150,9 +150,9 @@
                     (assert-true (< (abs (- (traced-value (traced-vec3-y v-at)) 1)) 1e-10))
                     (assert-true (< (abs (traced-value (traced-vec3-z v-at))) 1e-10)))))
 
-;;; ============================================================
+;;; ====
 ;;; Impulse Tests
-;;; ============================================================
+;;; ====
 
 (test-group impulse-tests
             
@@ -180,9 +180,9 @@
                      [v (traced-body-3d-vel b2)])
                     (assert-true (< (abs (traced-value (traced-vec3-x v))) 1e-10)))))
 
-;;; ============================================================
+;;; ====
 ;;; State Flattening Tests
-;;; ============================================================
+;;; ====
 
 (test-group state-flattening-tests
             
@@ -217,9 +217,9 @@
                     (assert-true (< (abs (- (traced-value (list-ref state 11)) 0.2)) 1e-10))
                     (assert-true (< (abs (- (traced-value (list-ref state 12)) 0.3)) 1e-10)))))
 
-;;; ============================================================
+;;; ====
 ;;; Energy Tests
-;;; ============================================================
+;;; ====
 
 (test-group energy-tests
             
@@ -245,9 +245,9 @@
                      [p (traced-body-3d-momentum b)])
                     (assert-true (< (abs (- (traced-value (traced-vec3-x p)) 6)) 1e-10)))))
 
-;;; ============================================================
+;;; ====
 ;;; Coordinate Transform Tests
-;;; ============================================================
+;;; ====
 
 (test-group transform-tests
             
@@ -280,8 +280,8 @@
                     (assert-true (< (abs (- (traced-value (traced-vec3-x local)) 1)) 1e-10))
                     (assert-true (< (abs (traced-value (traced-vec3-y local))) 1e-10)))))
 
-;;; ============================================================
+;;; ====
 ;;; Run all tests
-;;; ============================================================
+;;; ====
 
 (run-all-tests)

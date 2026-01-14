@@ -19,16 +19,16 @@
 ;;;   shell/fs.ss
 ;;;   shell/text.ss
 
-;;; ============================================================
+;;; ====
 ;;; Version Information
-;;; ============================================================
+;;; ====
 
 ;;; The Fold version string (should match repl.ss)
 (define *fold-version* "GENESIS")
 
-;;; ============================================================
+;;; ====
 ;;; Command Registry
-;;; ============================================================
+;;; ====
 
 ;;; The registry maps command names to command records.
 ;;; Each record is an alist:
@@ -70,9 +70,9 @@
   (let ([names (vector->list (hashtable-keys *command-registry*))])
        (list-sort symbol<? names)))
 
-;;; ============================================================
+;;; ====
 ;;; Command Discovery
-;;; ============================================================
+;;; ====
 
 ;;; commands : → void
 ;;; Display all registered commands with their short help text.
@@ -145,9 +145,9 @@
 (define (cmd-help . args)
   (display (apply cmd-help-string args)))
 
-;;; ============================================================
+;;; ====
 ;;; Command Routing
-;;; ============================================================
+;;; ====
 
 ;;; cmd : Symbol × Any... → (ok Any) | (error Symbol String)
 ;;; Invoke a command by name with the given arguments.
@@ -173,9 +173,9 @@
                     `(error command-error ,(format "Unknown command: ~a. Did you mean: ~a?" name suggestion))
                     `(error command-error ,(format "Unknown command: ~a. Use (commands) to see all commands." name)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Error Recovery and Suggestions
-;;; ============================================================
+;;; ====
 
 ;;; suggest-command : Symbol → Symbol | #f
 ;;; Suggest a similar command name for typos.
@@ -192,9 +192,9 @@
             #f
             (car candidates))))
 
-;;; ============================================================
+;;; ====
 ;;; Core Command Handlers
-;;; ============================================================
+;;; ====
 
 ;;; These handlers wrap existing functions to provide uniform error handling.
 
@@ -211,9 +211,9 @@
   (display "Content-Addressed Storage System\n")
   (void))
 
-;;; ============================================================
+;;; ====
 ;;; Register Core Commands
-;;; ============================================================
+;;; ====
 
 (define (register-core-commands!)
   (register-command!
@@ -228,9 +228,9 @@
    "Display The Fold version information.\n  Usage: (cmd 'version)\n         (version)"
    version-handler))
 
-;;; ============================================================
+;;; ====
 ;;; Debugger Commands (loaded dynamically)
-;;; ============================================================
+;;; ====
 
 ;;; register-debugger-commands! : → void
 ;;; Register debugger commands (call after loading debug-repl.ss)
@@ -346,9 +346,9 @@
    "Export the debug trace as a structured S-expression.\n  Usage: (export-trace)            ; display to console\n         (export-trace \"file.ss\")  ; save to file"
    cmd-export-trace))
 
-;;; ============================================================
+;;; ====
 ;;; Profiler Commands (loaded dynamically)
-;;; ============================================================
+;;; ====
 
 ;;; register-profiler-commands! : → void
 ;;; Register profiler commands (call after loading profile-repl.ss)

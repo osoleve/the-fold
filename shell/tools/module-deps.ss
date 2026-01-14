@@ -33,9 +33,9 @@
 ;;; NOTE: string-contains?, string-starts-with?, string-last-index-of, string-join
 ;;;       are provided by core/prelude.ss
 
-;;; ============================================================
+;;; ====
 ;;; Dependency Extraction
-;;; ============================================================
+;;; ====
 
 ;;; extract-loads : String → (List String)
 ;;; Extract all (load "...") expressions from source code.
@@ -143,9 +143,9 @@
                             (normalize-path file-path load-path))
                     loads))))
 
-;;; ============================================================
+;;; ====
 ;;; Dependency Graph Construction
-;;; ============================================================
+;;; ====
 
 ;;; build-dep-graph : FS × (List String) → Alist
 ;;; Build dependency graph for a list of files.
@@ -187,9 +187,9 @@
                  [else
                   (loop rest result)])))))
 
-;;; ============================================================
+;;; ====
 ;;; Reverse Dependencies
-;;; ============================================================
+;;; ====
 
 ;;; find-reverse-deps : FS × String × Alist → (List String)
 ;;; Find all files that depend on the given file.
@@ -201,9 +201,9 @@
                        (member target-file deps)))
           dep-graph))
 
-;;; ============================================================
+;;; ====
 ;;; Circular Dependency Detection
-;;; ============================================================
+;;; ====
 
 ;;; find-circular-deps : Alist → (List (List String))
 ;;; Detect circular dependencies in the dependency graph.
@@ -287,9 +287,9 @@
        (or (pred (car lst))
            (any pred (cdr lst)))))
 
-;;; ============================================================
+;;; ====
 ;;; Reporting
-;;; ============================================================
+;;; ====
 
 ;;; deps-report : FS × String × String → void
 ;;; Generate a comprehensive dependency report for a directory.
@@ -302,14 +302,14 @@
         (call-with-output-file output-file
                                (lambda (port)
                                        (display "MODULE DEPENDENCY REPORT\n" port)
-                                       (display "========================\n\n" port)
+                                       (display "====\n\n" port)
                                        
                                        (display (format "Root directory: ~a\n" root-dir) port)
                                        (display (format "Total files analyzed: ~a\n\n" (length files)) port)
                                        
                                        ;; Circular dependencies section
                                        (display "CIRCULAR DEPENDENCIES\n" port)
-                                       (display "---------------------\n" port)
+                                       (display "----\n" port)
                                        (if (null? cycles)
                                            (display "None detected.\n\n" port)
                                            (begin
@@ -323,7 +323,7 @@
                                        
                                        ;; Per-file dependencies
                                        (display "FILE DEPENDENCIES\n" port)
-                                       (display "-----------------\n\n" port)
+                                       (display "----\n\n" port)
                                        (for-each
                                         (lambda (entry)
                                                 (let ([file (car entry)]
@@ -340,7 +340,7 @@
                                        
                                        ;; Reverse dependencies
                                        (display "REVERSE DEPENDENCIES\n" port)
-                                       (display "--------------------\n\n" port)
+                                       (display "----\n\n" port)
                                        (for-each
                                         (lambda (entry)
                                                 (let* ([file (car entry)]
@@ -356,9 +356,9 @@
         
         (display (format "Report written to ~a\n" output-file))))
 
-;;; ============================================================
+;;; ====
 ;;; Public API
-;;; ============================================================
+;;; ====
 
 ;;; analyze-module-deps : FS × String → void
 ;;; Analyze and display dependencies for a single module.

@@ -4,9 +4,9 @@
 ;;;
 ;;; Dependencies: core/prelude.ss, shell/project-status.ss
 
-;;; ============================================================
+;;; ====
 ;;; Setup
-;;; ============================================================
+;;; ====
 
 (load "core/base/prelude.ss")
 (load "shell/project-status.ss")
@@ -43,17 +43,17 @@
 (define (test-alist-has-key name key alist)
   (test name (assq key alist)))
 
-;;; ============================================================
+;;; ====
 ;;; Tests
-;;; ============================================================
+;;; ====
 
 (display "\n")
-(display "+==============================================================+\n")
+(display "+====+\n")
 (display "|          shell/project-status.ss Test Suite                  |\n")
-(display "+==============================================================+\n")
+(display "+====+\n")
 (display "\n")
 
-;;; ----- Path Utilities -----
+;;; ---- Path Utilities ----
 
 (display "Test 1: Path utilities\n")
 
@@ -81,7 +81,7 @@
 (test-true "starts-with? rejects non-prefix"
            (not (starts-with? "foo-test.ss" "test-")))
 
-;;; ----- String Utilities -----
+;;; ---- String Utilities ----
 
 (display "\nTest 2: String utilities\n")
 
@@ -105,7 +105,7 @@
             '("a" "b")
             (string-split "a||b" #\|))
 
-;;; ----- Test File Detection -----
+;;; ---- Test File Detection ----
 
 (display "\nTest 3: Test file detection\n")
 
@@ -121,7 +121,7 @@
 (test-true "is-test-file? rejects non-scheme"
            (not (is-test-file? "test-foo.txt")))
 
-;;; ----- Scheme File Detection -----
+;;; ---- Scheme File Detection ----
 
 (display "\nTest 4: Scheme file detection\n")
 
@@ -131,7 +131,7 @@
 (test-true "is-scheme-file? rejects .txt"
            (not (is-scheme-file? "foo.txt")))
 
-;;; ----- Blank/Comment Detection -----
+;;; ---- Blank/Comment Detection ----
 
 (display "\nTest 5: Blank and comment detection\n")
 
@@ -150,7 +150,7 @@
 (test-true "is-blank-or-comment? rejects code"
            (not (is-blank-or-comment? "(define x 5)")))
 
-;;; ----- Git Status Parsing -----
+;;; ---- Git Status Parsing ----
 
 (display "\nTest 6: Git status parsing\n")
 
@@ -168,7 +168,7 @@
      (test-true "untracked file captured"
                 (member "new-file.ss" (cdr (assq 'untracked untracked-result)))))
 
-;;; ----- Commit Parsing -----
+;;; ---- Commit Parsing ----
 
 (display "\nTest 7: Commit parsing\n")
 
@@ -183,7 +183,7 @@
                  "2 hours ago"
                  (cdr (assq 'time commit))))
 
-;;; ----- Integration Tests (on actual repo) -----
+;;; ---- Integration Tests (on actual repo) ----
 
 (display "\nTest 8: Integration tests (counting in current directory)\n")
 
@@ -211,7 +211,7 @@
      (test-true "recent-commits has at least 1 commit"
                 (> (length commits) 0)))
 
-;;; ----- Full Status Test -----
+;;; ---- Full Status Test ----
 
 (display "\nTest 9: Full project status\n")
 
@@ -223,7 +223,7 @@
      (test-alist-has-key "status has git-status" 'git-status status)
      (test-alist-has-key "status has last-commit" 'last-commit status))
 
-;;; ----- Health Check -----
+;;; ---- Health Check ----
 
 (display "\nTest 10: Health check\n")
 
@@ -233,14 +233,14 @@
      (test-true "health is valid value"
                 (memq h '(healthy dirty unknown))))
 
-;;; ============================================================
+;;; ====
 ;;; Summary
-;;; ============================================================
+;;; ====
 
 (display "\n")
-(display "+==============================================================+\n")
+(display "+====+\n")
 (display "|                       TEST SUMMARY                           |\n")
-(display "+==============================================================+\n")
+(display "+====+\n")
 (display (format "  Total:  ~a tests\n" *tests-run*))
 (display (format "  Passed: ~a\n" *tests-passed*))
 (display (format "  Failed: ~a\n" (- *tests-run* *tests-passed*)))
@@ -251,7 +251,7 @@
      (display "\n  Some tests failed!\n\n")
      (exit 1)))
 
-;;; ----- Demo: Show the report -----
+;;; ---- Demo: Show the report ----
 
 (display "Demo: Running project-status-report on ccverse...\n")
 (project-status-report)

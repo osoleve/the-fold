@@ -34,9 +34,9 @@
 (load "fs.ss")
 (load "edit.ss")
 
-;;; ============================================================
+;;; ====
 ;;; S-Expression Walking
-;;; ============================================================
+;;; ====
 
 ;;; find-symbol-in-sexpr : Symbol × S-expr × Nat → (List Nat)
 ;;; Find all positions where symbol appears in s-expression.
@@ -96,9 +96,9 @@
                     #f)]
                [else #f]))]))
 
-;;; ============================================================
+;;; ====
 ;;; File Analysis
-;;; ============================================================
+;;; ====
 
 ;;; Reference = (file-path line-number context-line)
 ;;; where context-line is the actual line of code
@@ -147,9 +147,9 @@
       (list-ref lines (- line-no 1))
       ""))
 
-;;; ============================================================
+;;; ====
 ;;; Definition Finding
-;;; ============================================================
+;;; ====
 
 ;;; find-definitions-in-file : FS × String × Symbol → (List Reference)
 ;;; Find all definitions of a symbol in a file.
@@ -176,9 +176,9 @@
                                           (loop (+ line-no 1) (cons ref results)))
                                     (loop (+ line-no 1) results)))]))))))
 
-;;; ============================================================
+;;; ====
 ;;; Directory Traversal
-;;; ============================================================
+;;; ====
 
 ;;; find-all-scheme-files : FS × String → (List String)
 ;;; Recursively find all .ss files in a directory.
@@ -223,9 +223,9 @@
                  [else
                   (loop rest result)])))))
 
-;;; ============================================================
+;;; ====
 ;;; Public API
-;;; ============================================================
+;;; ====
 
 ;;; xref-find-uses : FS × String × [String] → void
 ;;; Find all uses of a symbol across the codebase.
@@ -314,13 +314,13 @@
         (call-with-output-file output-file
                                (lambda (port)
                                        (display (format "CROSS-REFERENCE REPORT FOR '~a'\n" symbol) port)
-                                       (display "=====================================\n\n" port)
+                                       (display "====\n\n" port)
                                        (display (format "Search directory: ~a\n" dir) port)
                                        (display (format "Files scanned: ~a\n\n" (length files)) port)
                                        
                                        ;; Definitions section
                                        (display "DEFINITIONS\n" port)
-                                       (display "-----------\n" port)
+                                       (display "----\n" port)
                                        (if (null? all-defs)
                                            (display "No definitions found.\n\n" port)
                                            (begin
@@ -336,7 +336,7 @@
                                        
                                        ;; References section
                                        (display "REFERENCES\n" port)
-                                       (display "----------\n" port)
+                                       (display "----\n" port)
                                        (if (null? all-refs)
                                            (display "No references found.\n\n" port)
                                            (begin
@@ -399,9 +399,9 @@
               symbols))
         (display "\n")))
 
-;;; ============================================================
+;;; ====
 ;;; Utilities
-;;; ============================================================
+;;; ====
 
 ;;; NOTE: string-trim provided by core/prelude.ss
 ;;; NOTE: remove-duplicates provided by core/base/prelude.ss

@@ -65,9 +65,9 @@
   (display name)
   (newline))
 
-;;; ============================================================
+;;; ====
 ;;; Literals and Quote
-;;; ============================================================
+;;; ====
 (test-section "Literals and Quote")
 
 (test-ok "number" 42 (run '42 100))
@@ -77,9 +77,9 @@
 (test-ok "quoted symbol" 'foo (run ''foo 100))
 (test-ok "quoted list" '(1 2 3) (run ''(1 2 3) 100))
 
-;;; ============================================================
+;;; ====
 ;;; Lambda and Application
-;;; ============================================================
+;;; ====
 (test-section "Lambda and Application")
 
 ;; Identity function
@@ -94,9 +94,9 @@
 ;; Multi-argument
 (test-ok "multi-arg" 3 (run '((fn (x y) (prim 'add x y)) 1 2) 100))
 
-;;; ============================================================
+;;; ====
 ;;; Let Bindings
-;;; ============================================================
+;;; ====
 (test-section "Let Bindings")
 
 (test-ok "simple let" 42 (run '(let ((x 42)) x) 100))
@@ -114,9 +114,9 @@
                      x))
               100))
 
-;;; ============================================================
+;;; ====
 ;;; Fix (Recursion)
-;;; ============================================================
+;;; ====
 (test-section "Fix (Recursion)")
 
 ;; Factorial
@@ -146,9 +146,9 @@
                 (fib 6))
               1000))
 
-;;; ============================================================
+;;; ====
 ;;; If Conditional
-;;; ============================================================
+;;; ====
 (test-section "If Conditional")
 
 (test-ok "if true" 1 (run '(if #t 1 2) 100))
@@ -163,9 +163,9 @@
                     2))
               100))
 
-;;; ============================================================
+;;; ====
 ;;; Primitives
-;;; ============================================================
+;;; ====
 (test-section "Primitives")
 
 (test-ok "add" 5 (run '(prim 'add 2 3) 100))
@@ -185,9 +185,9 @@
 (test-ok "null?" #t (run '(prim 'null? '()) 100))
 (test-ok "list" '(1 2 3) (run '(prim 'list 1 2 3) 100))
 
-;;; ============================================================
+;;; ====
 ;;; Fuel and Suspension
-;;; ============================================================
+;;; ====
 (test-section "Fuel and Suspension")
 
 ;; With enough fuel, complete
@@ -206,9 +206,9 @@
        50))
 (test-suspended "limited fuel suspends" limited-result)
 
-;;; ============================================================
+;;; ====
 ;;; Blocks and Case
-;;; ============================================================
+;;; ====
 (test-section "Blocks and Case")
 
 ;; Create a simple block
@@ -224,9 +224,9 @@
                       ((Just) "found it")))
               100))
 
-;;; ============================================================
+;;; ====
 ;;; Error Cases
-;;; ============================================================
+;;; ====
 (test-section "Error Cases")
 
 (test-error "unbound variable" (run 'undefined 100))
@@ -235,9 +235,9 @@
 ;; div by zero returns an error *value*, not an evaluation error
 (test-ok "div by zero" '(error div-by-zero) (run '(prim 'div 1 0) 100))
 
-;;; ============================================================
+;;; ====
 ;;; Complex Expressions
-;;; ============================================================
+;;; ====
 (test-section "Complex Expressions")
 
 ;; Map over a list
@@ -267,9 +267,9 @@
                           ((compose add1 double) 3))))
               100))
 
-;;; ============================================================
+;;; ====
 ;;; Prelude
-;;; ============================================================
+;;; ====
 (test-section "Prelude")
 
 ;; Basic combinators
@@ -375,9 +375,9 @@
 (test-ok "sum of squares" 55
          (run-prelude '(sum (map (fn (x) (prim 'mul x x)) (range 1 6))) 1000))
 
-;;; ============================================================
+;;; ====
 ;;; Environment API
-;;; ============================================================
+;;; ====
 (test-section "Environment API")
 
 (define custom-env (env-extend empty-env 'x 100))
@@ -385,9 +385,9 @@
 (test-ok "custom env computation" 105
          (eval-with-env '(prim 'add x 5) custom-env 100))
 
-;;; ============================================================
+;;; ====
 ;;; Fuel Semantics
-;;; ============================================================
+;;; ====
 (test-section "Fuel Semantics")
 
 ;; Each eval call consumes 1 fuel.

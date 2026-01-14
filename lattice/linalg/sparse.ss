@@ -14,9 +14,9 @@
 ;;;   - vec.ss
 ;;;   - matrix.ss
 
-;;; ============================================================
+;;; ====
 ;;; COO (Coordinate) Format
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Most flexible format. Good for constructing sparse matrices.
 ;;; Stores triplets: (row_i, col_j, value)
@@ -82,9 +82,9 @@
               (vector-ref vals k)]
              [else (loop (+ k 1))]))))
 
-;;; ============================================================
+;;; ====
 ;;; CSR (Compressed Sparse Row) Format
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Efficient for row slicing and matrix-vector multiplication.
 ;;; row_ptrs[i] gives index into col_indices/values where row i starts.
@@ -146,9 +146,9 @@
                                result)])
             ((< k start) result))))
 
-;;; ============================================================
+;;; ====
 ;;; CSC (Compressed Sparse Column) Format
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Efficient for column slicing. Transpose of CSR structure.
 
@@ -208,9 +208,9 @@
                                result)])
             ((< k start) result))))
 
-;;; ============================================================
+;;; ====
 ;;; Format Conversions
-;;; ============================================================
+;;; ====
 
 ;;; coo->csr : SparseCOO → SparseCSR
 ;;; Convert COO to CSR format.
@@ -380,9 +380,9 @@
 (define (csc->csr csc)
   (coo->csr (csc->coo csc)))
 
-;;; ============================================================
+;;; ====
 ;;; Dense ↔ Sparse Conversions
-;;; ============================================================
+;;; ====
 
 ;;; dense->sparse-coo : Matrix × [Num] → SparseCOO
 ;;; Convert dense matrix to COO, dropping values below tolerance.
@@ -458,9 +458,9 @@
 (define (sparse-csc->dense csc)
   (sparse-csr->dense (csc->csr csc)))
 
-;;; ============================================================
+;;; ====
 ;;; Sparse Matrix-Vector Multiplication
-;;; ============================================================
+;;; ====
 
 ;;; sparse-csr-vec-mul : SparseCSR × Vec → Vec | Error
 ;;; y = A * x where A is sparse CSR. O(nnz).
@@ -531,9 +531,9 @@
                                        (+ (vector-ref result i)
                                           (* v-val (vector-ref v j))))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Sparse Matrix Addition
-;;; ============================================================
+;;; ====
 
 ;;; sparse-csr-add : SparseCSR × SparseCSR → SparseCSR | Error
 ;;; C = A + B for CSR matrices.
@@ -621,9 +621,9 @@
                                    (vector-set! out-cols k (cadr t))
                                    (vector-set! out-vals k (caddr t))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Sparse Matrix Transpose
-;;; ============================================================
+;;; ====
 
 ;;; sparse-csr-transpose : SparseCSR → SparseCSR
 ;;; Transpose A. Result is CSR of A^T (which equals CSC structure of A).
@@ -653,9 +653,9 @@
                    (vec-copy (sparse-csc-row-indices csc))
                    (vec-copy (sparse-csc-values csc))))
 
-;;; ============================================================
+;;; ====
 ;;; Sparse Matrix-Matrix Multiplication
-;;; ============================================================
+;;; ====
 
 ;;; sparse-csr-mul : SparseCSR × SparseCSR → SparseCSR | Error
 ;;; C = A * B where A is m×k and B is k×n.
@@ -729,9 +729,9 @@
                           (vector-set! col-idx k (cadr t))
                           (vector-set! vals k (caddr t))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Sparse Scalar Operations
-;;; ============================================================
+;;; ====
 
 ;;; sparse-csr-scale : Num × SparseCSR → SparseCSR
 ;;; Scale all values by constant.
@@ -750,9 +750,9 @@
                    (vec-copy (sparse-coo-col-indices coo))
                    (vec-map (lambda (x) (* k x)) (sparse-coo-values coo))))
 
-;;; ============================================================
+;;; ====
 ;;; Special Sparse Matrices
-;;; ============================================================
+;;; ====
 
 ;;; sparse-identity : Nat → SparseCSR
 ;;; n×n sparse identity matrix.
@@ -781,9 +781,9 @@
         (vector-set! row-ptrs n n)
         (make-sparse-csr n n row-ptrs col-idx vals)))
 
-;;; ============================================================
+;;; ====
 ;;; Utility Functions
-;;; ============================================================
+;;; ====
 
 ;;; sparse-shape : Sparse → (Nat × Nat)
 ;;; Get dimensions of any sparse format.

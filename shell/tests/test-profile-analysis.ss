@@ -13,9 +13,9 @@
 (load "core/test-framework.ss")
 (load "shell/profile-analysis.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Mock Profiler Construction
-;;; ============================================================
+;;; ====
 
 ;;; Create a mock profiler with specified stats
 ;;; by-function is list of (name fuel . calls)
@@ -45,9 +45,9 @@
     (children . ,children)
     (call-count . 1)))
 
-;;; ============================================================
+;;; ====
 ;;; Hint Data Structure Tests
-;;; ============================================================
+;;; ====
 
 (test-group hint-data-structure
             
@@ -81,9 +81,9 @@
               (assert-false (hint? "string")))
             )
 
-;;; ============================================================
+;;; ====
 ;;; Tail-Call Opportunity Detection Tests
-;;; ============================================================
+;;; ====
 
 (test-group tail-call-detection
             
@@ -119,9 +119,9 @@
                     (assert-equal 2 (length hints))))  ; foo and bar, not baz
             )
 
-;;; ============================================================
+;;; ====
 ;;; Fusion Opportunity Detection Tests
-;;; ============================================================
+;;; ====
 
 (test-group fusion-detection
             
@@ -176,9 +176,9 @@
                     (assert-equal 1 (length hints))))
             )
 
-;;; ============================================================
+;;; ====
 ;;; Lookup Opportunity Detection Tests
-;;; ============================================================
+;;; ====
 
 (test-group lookup-detection
             
@@ -220,9 +220,9 @@
                     (assert-equal '() (detect-lookup-opportunities p))))
             )
 
-;;; ============================================================
+;;; ====
 ;;; Memoization Candidate Detection Tests
-;;; ============================================================
+;;; ====
 
 (test-group memoization-detection
             
@@ -261,9 +261,9 @@
                     (assert-equal 'warning (hint-severity (car hints)))))
             )
 
-;;; ============================================================
+;;; ====
 ;;; Inline Candidate Detection Tests
-;;; ============================================================
+;;; ====
 
 (test-group inline-detection
             
@@ -292,9 +292,9 @@
                     (assert-equal 'info (hint-severity (car hints)))))
             )
 
-;;; ============================================================
+;;; ====
 ;;; Full Analysis Tests
-;;; ============================================================
+;;; ====
 
 (test-group full-analysis
             
@@ -323,9 +323,9 @@
                     (assert-equal '() hints)))
             )
 
-;;; ============================================================
+;;; ====
 ;;; Hint Rendering Tests
-;;; ============================================================
+;;; ====
 
 (test-group hint-rendering
             
@@ -371,9 +371,9 @@
                                            (< pos-warn pos-info))))))
             )
 
-;;; ============================================================
+;;; ====
 ;;; Profile Comparison Tests
-;;; ============================================================
+;;; ====
 
 (test-group profile-comparison
             
@@ -393,9 +393,9 @@
                     (assert-true (and (string-contains result "50") #t))))  ; ~50%
             )
 
-;;; ============================================================
+;;; ====
 ;;; Regression Detection Tests
-;;; ============================================================
+;;; ====
 
 (test-group regression-detection
             
@@ -424,9 +424,9 @@
                     (assert-equal '() hints)))
             )
 
-;;; ============================================================
+;;; ====
 ;;; Helper: string-contains
-;;; ============================================================
+;;; ====
 
 (define (string-contains str substr)
   (let ([str-len (string-length str)]
@@ -437,8 +437,8 @@
              [(string=? (substring str i (+ i sub-len)) substr) i]
              [else (loop (+ i 1))]))))
 
-;;; ============================================================
+;;; ====
 ;;; Run Tests
-;;; ============================================================
+;;; ====
 
 (run-all-tests)

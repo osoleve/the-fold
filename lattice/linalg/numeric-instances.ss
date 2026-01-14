@@ -19,9 +19,9 @@
 (load "lattice/linalg/vec.ss")
 (load "lattice/linalg/matrix.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Vec Num Instance
-;;; ============================================================
+;;; ====
 
 ;;; vec+ : Vec Num × Vec Num → Vec Num | Error
 ;;; Element-wise addition.
@@ -58,9 +58,9 @@
 (define (vec-from-integer n val)
   (make-vec n val))
 
-;;; ============================================================
+;;; ====
 ;;; Vec Fractional Instance
-;;; ============================================================
+;;; ====
 
 ;;; vec/ : Vec Num × Vec Num → Vec Num | Error
 ;;; Element-wise division.
@@ -71,9 +71,9 @@
 (define (vec-recip v)
   (vec-map (lambda (x) (/ 1 x)) v))
 
-;;; ============================================================
+;;; ====
 ;;; Vec Floating Instance
-;;; ============================================================
+;;; ====
 
 ;;; vec-pi : Nat → Vec Num
 ;;; Create a vector of n copies of pi.
@@ -164,9 +164,9 @@
 (define (vec-atanh v)
   (vec-map (lambda (x) (/ (log (/ (+ 1 x) (- 1 x))) 2)) v))
 
-;;; ============================================================
+;;; ====
 ;;; Matrix Num Instance
-;;; ============================================================
+;;; ====
 
 ;;; matrix+ : Matrix Num × Matrix Num → Matrix Num | Error
 ;;; Element-wise addition.
@@ -221,9 +221,9 @@
 (define (matrix-from-integer rows cols val)
   (make-matrix rows cols val))
 
-;;; ============================================================
+;;; ====
 ;;; Matrix Fractional Instance
-;;; ============================================================
+;;; ====
 
 ;;; matrix/ : Matrix Num × Matrix Num → Matrix Num | Error
 ;;; Element-wise division.
@@ -248,9 +248,9 @@
 (define (matrix-recip m)
   (matrix-map (lambda (x) (/ 1 x)) m))
 
-;;; ============================================================
+;;; ====
 ;;; Matrix Floating Instance
-;;; ============================================================
+;;; ====
 
 ;;; matrix-pi : Nat × Nat → Matrix Num
 ;;; Create a matrix filled with pi.
@@ -354,9 +354,9 @@
 (define (matrix-atanh m)
   (matrix-map (lambda (x) (/ (log (/ (+ 1 x) (- 1 x))) 2)) m))
 
-;;; ============================================================
+;;; ====
 ;;; Scalar-Vector and Scalar-Matrix Operations
-;;; ============================================================
+;;; ====
 
 ;;; These allow mixing scalars and vectors/matrices in arithmetic.
 
@@ -378,9 +378,9 @@
 ;;; Multiply each element by scalar (same as matrix-scale).
 (define scalar-matrix* matrix-scale)
 
-;;; ============================================================
+;;; ====
 ;;; Functor Instance Aliases (for consistency)
-;;; ============================================================
+;;; ====
 
 ;;; vec-fmap : (a → b) × Vec a → Vec b
 ;;; Functor fmap for Vec.
@@ -390,9 +390,9 @@
 ;;; Functor fmap for Matrix.
 (define matrix-fmap matrix-map)
 
-;;; ============================================================
+;;; ====
 ;;; Applicative-style Operations
-;;; ============================================================
+;;; ====
 
 ;;; vec-pure : a → Vec a
 ;;; Wrap value in a singleton vector.

@@ -5,9 +5,9 @@
 (load "core/testing/test-framework.ss")
 (load "lattice/fp/data/tree-zipper.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Test Data: Sample Trees
-;;; ============================================================
+;;; ====
 
 ;;; Single node tree
 (define tree-single (tree-leaf 1))
@@ -55,9 +55,9 @@
                         (tree-leaf 4)
                         (tree-leaf 5))))
 
-;;; ============================================================
+;;; ====
 ;;; Tree Type Tests
-;;; ============================================================
+;;; ====
 
 (test-group "tree-type"
   (define-test "tree? recognizes trees"
@@ -90,9 +90,9 @@
       (assert-equal 1 (tree-value node))
       (assert-equal 2 (length (tree-children node))))))
 
-;;; ============================================================
+;;; ====
 ;;; Tree Utility Tests
-;;; ============================================================
+;;; ====
 
 (test-group "tree-utilities"
   (define-test "tree-size counts all nodes"
@@ -116,9 +116,9 @@
     (assert-equal '(1 2 3 4) (tree-flatten tree-simple))
     (assert-equal '(1 2 5 6 3 7 4 8 9) (tree-flatten tree-deep))))
 
-;;; ============================================================
+;;; ====
 ;;; Tree Zipper Type Tests
-;;; ============================================================
+;;; ====
 
 (test-group "tree-zipper-type"
   (define-test "tree->zipper creates zipper at root"
@@ -144,9 +144,9 @@
       (let ([z2 (from-just (tree-zipper-down z))])
         (assert-equal 1 (tree-zipper-depth z2))))))
 
-;;; ============================================================
+;;; ====
 ;;; Navigation Tests
-;;; ============================================================
+;;; ====
 
 (test-group "navigation"
   (define-test "tree-zipper-down moves to first child"
@@ -236,9 +236,9 @@
            [z3 (tree-zipper-rightmost z2)])
       (assert-equal 4 (tree-zipper-get z3)))))
 
-;;; ============================================================
+;;; ====
 ;;; Navigation Predicate Tests
-;;; ============================================================
+;;; ====
 
 (test-group "navigation-predicates"
   (define-test "tree-zipper-can-go-up?"
@@ -271,9 +271,9 @@
            [z2 (from-just (tree-zipper-down z))])       ; first child
       (assert-true (tree-zipper-can-go-right? z2)))))
 
-;;; ============================================================
+;;; ====
 ;;; Focus Operation Tests
-;;; ============================================================
+;;; ====
 
 (test-group "focus-operations"
   (define-test "tree-zipper-get returns focused value"
@@ -306,9 +306,9 @@
     (let ([z (tree->zipper tree-single)])
       (assert-equal 0 (tree-zipper-children-count z)))))
 
-;;; ============================================================
+;;; ====
 ;;; Insertion Tests
-;;; ============================================================
+;;; ====
 
 (test-group "insertion"
   (define-test "tree-zipper-insert-child-left adds leftmost child"
@@ -348,9 +348,9 @@
     (let ([z (tree->zipper tree-simple)])
       (assert-true (nothing? (tree-zipper-insert-right z (tree-leaf 0)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Deletion Tests
-;;; ============================================================
+;;; ====
 
 (test-group "deletion"
   (define-test "tree-zipper-delete removes focused node"
@@ -388,9 +388,9 @@
       (assert-true (tree-zipper-at-leaf? z2))
       (assert-equal 1 (tree-zipper-get z2)))))
 
-;;; ============================================================
+;;; ====
 ;;; Traversal Tests
-;;; ============================================================
+;;; ====
 
 (test-group "traversal"
   (define-test "tree-zipper-next-preorder visits in preorder"
@@ -419,9 +419,9 @@
       (assert-equal 9 (length zippers))
       (assert-equal '(1 2 5 6 3 7 4 8 9) (map tree-zipper-get zippers)))))
 
-;;; ============================================================
+;;; ====
 ;;; Path Operation Tests
-;;; ============================================================
+;;; ====
 
 (test-group "path-operations"
   (define-test "tree-zipper-path returns path from root"
@@ -442,9 +442,9 @@
       (assert-equal 1 (from-just (tree-zipper-sibling-index z3)))
       (assert-equal 2 (from-just (tree-zipper-sibling-index z4))))))
 
-;;; ============================================================
+;;; ====
 ;;; Functor Tests
-;;; ============================================================
+;;; ====
 
 (test-group "functor"
   (define-test "tree-zipper-map preserves structure"
@@ -460,9 +460,9 @@
            [z2 (tree-zipper-map (lambda (x) x) z)])
       (assert-true (tree-zipper-equal? z z2)))))
 
-;;; ============================================================
+;;; ====
 ;;; Comonad Tests
-;;; ============================================================
+;;; ====
 
 (test-group "comonad"
   (define-test "tree-zipper-extract gets focused value"
@@ -540,9 +540,9 @@
       ;; Path to first child of second child is (1 0)
       (assert-equal '(1 0) (tree-zipper-index-path z-deep)))))
 
-;;; ============================================================
+;;; ====
 ;;; Equality and Display Tests
-;;; ============================================================
+;;; ====
 
 (test-group "equality-display"
   (define-test "tree-equal? recognizes equal trees"
@@ -571,9 +571,9 @@
            [str (tree-zipper->string z)])
       (assert-true (string? str)))))
 
-;;; ============================================================
+;;; ====
 ;;; Round-Trip Tests
-;;; ============================================================
+;;; ====
 
 (test-group "round-trip"
   (define-test "navigation round-trip preserves tree"
@@ -597,8 +597,8 @@
       ;; Find 70 in flattened tree (member returns truthy tail, not #t)
       (assert-true (if (member 70 (tree-flatten tree)) #t #f)))))
 
-;;; ============================================================
+;;; ====
 ;;; Run All Tests
-;;; ============================================================
+;;; ====
 
 (run-all-tests)

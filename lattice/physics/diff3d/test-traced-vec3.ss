@@ -7,14 +7,14 @@
 (load "lattice/physics/diff3d/traced-vec3.ss")
 
 (display "
-==============================================================
+====
          TRACED VEC3 TESTS
-==============================================================
+====
 ")
 
-;;; ============================================================
+;;; ====
 ;;; Test Utilities
-;;; ============================================================
+;;; ====
 
 ;;; finite-diff : (Number → Number) × Number × Number → Number
 (define (finite-diff f x epsilon)
@@ -46,9 +46,9 @@
 (define (assert-gradient-correct f args)
   (assert-true (check-gradient-accuracy f args 1e-5 1e-4)))
 
-;;; ============================================================
+;;; ====
 ;;; Traced Vec3 Tests
-;;; ============================================================
+;;; ====
 
 (test-group traced-vec3-construction
             

@@ -5,16 +5,16 @@
 
 (display "
 ")
-(display "==============================================================
+(display "====
 ")
 (display "         SPAN (Position-Aware Parsing) TESTS
 ")
-(display "==============================================================
+(display "====
 ")
 
-;;; ============================================================
+;;; ====
 ;;; Span Tests
-;;; ============================================================
+;;; ====
 
 (test-group span-construction
             (define-test make-span-basic
@@ -53,9 +53,9 @@
               (let ([s (make-span "test.scm" 42 17 42 25)])
                    (assert-equal "test.scm:42:17" (format-span s)))))
 
-;;; ============================================================
+;;; ====
 ;;; Parser State Tests
-;;; ============================================================
+;;; ====
 
 (test-group parser-state
             (define-test initial-state-basic
@@ -105,9 +105,9 @@
                     (assert-equal 1 (state-line st4))
                     (assert-equal 4 (state-column st4)))))
 
-;;; ============================================================
+;;; ====
 ;;; Spanned Result Tests
-;;; ============================================================
+;;; ====
 
 (test-group spanned-results
             (define-test success-construction
@@ -128,9 +128,9 @@
                     (assert-equal "identifier" (spanned-expected result))
                     (assert-true (state? (spanned-error-state result))))))
 
-;;; ============================================================
+;;; ====
 ;;; Primitive Parser Tests
-;;; ============================================================
+;;; ====
 
 (test-group primitive-parsers
             (define-test s-pure-test
@@ -175,9 +175,9 @@
                     (assert-true (spanned-err? result))
                     (assert-equal "digit" (spanned-expected result)))))
 
-;;; ============================================================
+;;; ====
 ;;; Character Parser Tests
-;;; ============================================================
+;;; ====
 
 (test-group character-parsers
             (define-test s-char-success
@@ -223,9 +223,9 @@
               (let ([result (run-spanned (s-string "hello") "hi there")])
                    (assert-true (spanned-err? result)))))
 
-;;; ============================================================
+;;; ====
 ;;; Combinator Tests
-;;; ============================================================
+;;; ====
 
 (test-group combinators
             (define-test s-bind-success
@@ -270,9 +270,9 @@
                     (assert-true (spanned-ok? result))
                     (assert-equal (char->integer #\A) (spanned-value result)))))
 
-;;; ============================================================
+;;; ====
 ;;; Repetition Tests
-;;; ============================================================
+;;; ====
 
 (test-group repetition
             (define-test s-many-success
@@ -329,9 +329,9 @@
                     (assert-true (spanned-ok? result))
                     (assert-equal 0 (length (spanned-value result))))))
 
-;;; ============================================================
+;;; ====
 ;;; Utility Parser Tests
-;;; ============================================================
+;;; ====
 
 (test-group utility-parsers
             (define-test s-spaces-test
@@ -382,9 +382,9 @@
               (let ([result (run-spanned s-identifier "5foo")])
                    (assert-true (spanned-err? result)))))
 
-;;; ============================================================
+;;; ====
 ;;; Spanned Value Wrapper Tests
-;;; ============================================================
+;;; ====
 
 (test-group spanned-values
             (define-test spanned-construction
@@ -412,9 +412,9 @@
                               (assert-equal 1 (span-line sp))
                               (assert-equal 1 (span-column sp)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Error Formatting Tests
-;;; ============================================================
+;;; ====
 
 (test-group error-formatting
             (define-test format-error-test
@@ -429,9 +429,9 @@
               (let ([msg (format-parse-error (run-spanned (s-pure 1) "x"))])
                    (assert-equal "no error" msg))))
 
-;;; ============================================================
+;;; ====
 ;;; Integration Tests
-;;; ============================================================
+;;; ====
 
 (test-group integration
             (define-test parse-list-of-numbers
@@ -460,13 +460,13 @@
                           (assert-equal 1 (span-end-line sp))
                           (assert-equal 4 (span-end-column sp))))))
 
-;;; ============================================================
+;;; ====
 ;;; Summary
-;;; ============================================================
+;;; ====
 
 (display "
 ")
-(display "==============================================================
+(display "====
 ")
 (printf "Tests passed: ~a
 " *tests-passed*)

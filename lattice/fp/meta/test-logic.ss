@@ -7,16 +7,16 @@
 
 (display "
 ")
-(display "==============================================================
+(display "====
 ")
 (display "         LOGIC PROGRAMMING TESTS
 ")
-(display "==============================================================
+(display "====
 ")
 
-;;; ============================================================
+;;; ====
 ;;; Logic Variable Tests
-;;; ============================================================
+;;; ====
 
 (test-group logic-variables
             (define-test make-lvar-test
@@ -40,9 +40,9 @@
               (assert-false (lvar? 42))
               (assert-false (lvar? '(a b c)))))
 
-;;; ============================================================
+;;; ====
 ;;; Substitution Tests
-;;; ============================================================
+;;; ====
 
 (test-group substitutions
             (define-test empty-subst-test
@@ -78,9 +78,9 @@
                      [term (list 1 v 3)])
                     (assert-equal '(1 42 3) (walk* term s)))))
 
-;;; ============================================================
+;;; ====
 ;;; Unification Tests
-;;; ============================================================
+;;; ====
 
 (test-group unification
             (define-test unify-atoms-equal-test
@@ -130,9 +130,9 @@
                          (assert-equal 1 (walk v1 s))
                          (assert-equal 2 (walk v2 s))))))
 
-;;; ============================================================
+;;; ====
 ;;; Goal Tests
-;;; ============================================================
+;;; ====
 
 (test-group basic-goals
             (define-test succeed-test
@@ -163,9 +163,9 @@
               (let ([results (stream->list 10 ((=/= 1 1) empty-subst))])
                    (assert-equal 0 (length results)))))
 
-;;; ============================================================
+;;; ====
 ;;; Goal Combinator Tests
-;;; ============================================================
+;;; ====
 
 (test-group goal-combinators
             (define-test conj-succeed-test
@@ -206,9 +206,9 @@
                      [results (stream->list 10 (goal empty-subst))])
                     (assert-equal 3 (length results)))))
 
-;;; ============================================================
+;;; ====
 ;;; Fresh Variable Tests
-;;; ============================================================
+;;; ====
 
 (test-group fresh-variables
             (define-test fresh1-test
@@ -228,9 +228,9 @@
                      [results (stream->list 10 (goal empty-subst))])
                     (assert-equal 2 (length results)))))
 
-;;; ============================================================
+;;; ====
 ;;; Run and Reify Tests
-;;; ============================================================
+;;; ====
 
 (test-group run-and-reify
             (define-test run-goal-test
@@ -254,9 +254,9 @@
                                              (disj* (list (== q 1) (== q 2) (== q 3) (== q 4)))))])
                    (assert-equal 2 (length results)))))
 
-;;; ============================================================
+;;; ====
 ;;; List Relation Tests
-;;; ============================================================
+;;; ====
 
 (test-group list-relations
             (define-test conso-forward-test
@@ -301,9 +301,9 @@
                    (assert-true (not (not (member 'b results))))
                    (assert-true (not (not (member 'c results)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Peano Arithmetic Tests
-;;; ============================================================
+;;; ====
 
 (test-group peano-arithmetic
             (define-test nat->peano-test
@@ -333,9 +333,9 @@
                    (assert-equal 1 (length results))
                    (assert-equal 3 (peano->nat (car results))))))
 
-;;; ============================================================
+;;; ====
 ;;; Occurs Check Tests
-;;; ============================================================
+;;; ====
 
 (test-group occurs-check
             (define-test occurs-simple-test
@@ -359,9 +359,9 @@
                      [results (stream->list 1 (g empty-subst))])
                     (assert-equal 0 (length results)))))
 
-;;; ============================================================
+;;; ====
 ;;; Reverse Relation Tests
-;;; ============================================================
+;;; ====
 
 (test-group reverse-relation
             (define-test reverseo-forward-test
@@ -375,9 +375,9 @@
               (let ([results (run* 1 (lambda (q) (reverseo '() q)))])
                    (assert-equal '(()) results))))
 
-;;; ============================================================
+;;; ====
 ;;; Complex Query Tests
-;;; ============================================================
+;;; ====
 
 (test-group complex-queries
             ;; Find all pairs (x, y) where x + y = 3
@@ -398,13 +398,13 @@
                                                                      (caro tail q)))))))])
                    (assert-equal '(b) results))))
 
-;;; ============================================================
+;;; ====
 ;;; Summary
-;;; ============================================================
+;;; ====
 
 (display "
 ")
-(display "==============================================================
+(display "====
 ")
 (printf "Tests passed: ~a
 " *tests-passed*)

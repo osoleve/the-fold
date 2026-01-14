@@ -14,9 +14,9 @@ const bridge = require('./bridge');
 const config = require('./config');
 const gatewayConfig = require('./gateway-config');
 
-// ============================================================
+// ====
 // Worker State
-// ============================================================
+// ====
 
 let isRunning = false;
 let pollInterval = null;
@@ -32,9 +32,9 @@ const stats = {
   lastError: null,
 };
 
-// ============================================================
+// ====
 // Pipeline Invocation
-// ============================================================
+// ====
 
 /**
  * Build the context/trigger file content for an agent
@@ -129,9 +129,9 @@ async function invokeAgent(task) {
   }
 }
 
-// ============================================================
+// ====
 // Response Sanitization
-// ============================================================
+// ====
 
 /**
  * Break self-mentions in agent responses by inserting a dot after @
@@ -146,9 +146,9 @@ function breakSelfMentions(response, agentId) {
   return response.replace(pattern, '@.$1');
 }
 
-// ============================================================
+// ====
 // Discord Posting
-// ============================================================
+// ====
 
 /**
  * Post the agent response to Discord
@@ -215,9 +215,9 @@ function saveToForum(task, response) {
   }
 }
 
-// ============================================================
+// ====
 // Task Processing
-// ============================================================
+// ====
 
 /**
  * Process a single task from the queue
@@ -269,9 +269,9 @@ async function processNextTask() {
   }
 }
 
-// ============================================================
+// ====
 // Worker Control
-// ============================================================
+// ====
 
 /**
  * Start the worker
@@ -349,9 +349,9 @@ async function processTask(task) {
   return invokeAgent(task);
 }
 
-// ============================================================
+// ====
 // Exports
-// ============================================================
+// ====
 
 module.exports = {
   start,

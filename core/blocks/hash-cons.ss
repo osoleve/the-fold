@@ -19,9 +19,9 @@
 
 (load "core/base/prelude.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Global Canonicalization Table
-;;; ============================================================
+;;; ====
 
 ;;; *cons-table* : Hashtable[S-expr, S-expr]
 ;;; Maps expressions to their unique canonical representatives.
@@ -36,9 +36,9 @@
 ;;; Counter for cache misses (for diagnostics).
 (define *cons-table-misses* 0)
 
-;;; ============================================================
+;;; ====
 ;;; Core Hash-Consing Operations
-;;; ============================================================
+;;; ====
 
 ;;; hash-cons : S-expr → S-expr
 ;;; Return the unique canonical representative for an S-expression.
@@ -69,9 +69,9 @@
 (define (hash-cons-list xs)
   (hash-cons (map hash-cons xs)))
 
-;;; ============================================================
+;;; ====
 ;;; Table Management
-;;; ============================================================
+;;; ====
 
 ;;; hash-cons-reset! : → Void
 ;;; Clear the canonicalization table and reset counters.
@@ -101,9 +101,9 @@
         0
         (/ *cons-table-hits* total))))
 
-;;; ============================================================
+;;; ====
 ;;; Memoized Function Wrapper
-;;; ============================================================
+;;; ====
 
 ;;; make-memoized : (S-expr → S-expr) → (S-expr → S-expr)
 ;;; Wrap a function with hash-consing on both input and output.
@@ -123,9 +123,9 @@
               (hashtable-set! cache canon-x result)
               result))))))
 
-;;; ============================================================
+;;; ====
 ;;; Diagnostic Utilities
-;;; ============================================================
+;;; ====
 
 ;;; hash-cons-report : → String
 ;;; Generate a human-readable report of hash-consing statistics.

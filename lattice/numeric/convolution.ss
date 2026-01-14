@@ -16,18 +16,18 @@
 (load "lattice/numeric/dft.ss")
 (load "lattice/linalg/vec.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Convolution Modes
-;;; ============================================================
+;;; ====
 
 ;;; Convolution can produce outputs of different sizes depending on mode:
 ;;; - 'full: Output length = N + M - 1 (all overlaps)
 ;;; - 'same: Output length = N (same as first input)
 ;;; - 'valid: Output length = N - M + 1 (only complete overlaps)
 
-;;; ============================================================
+;;; ====
 ;;; Direct Convolution (Time Domain)
-;;; ============================================================
+;;; ====
 
 ;;; convolve-direct-full : Vector[Number] × Vector[Number] → Vector[Number]
 ;;; Compute full convolution using direct time-domain method.
@@ -92,9 +92,9 @@
                               (set! sum (+ sum (* (vector-ref signal (+ i j))
                                                   (vector-ref kernel j)))))))))))
 
-;;; ============================================================
+;;; ====
 ;;; FFT-based Convolution (Frequency Domain)
-;;; ============================================================
+;;; ====
 
 ;;; convolve-fft : Vector[Number] × Vector[Number] → Vector[Number]
 ;;; Compute convolution using FFT (convolution theorem).
@@ -176,9 +176,9 @@
                                                      (vector-ref result-full (+ i (- m 1))))))))]
                     [else (error 'convolve "invalid mode" mode)]))])))
 
-;;; ============================================================
+;;; ====
 ;;; Correlation Operations
-;;; ============================================================
+;;; ====
 
 ;;; correlate-direct : Vector[Number] × Vector[Number] × Symbol → Vector[Number]
 ;;; Compute cross-correlation using direct method.
@@ -245,9 +245,9 @@
 (define (autocorrelate signal mode)
   (correlate signal signal mode))
 
-;;; ============================================================
+;;; ====
 ;;; Matched Filtering
-;;; ============================================================
+;;; ====
 
 ;;; matched-filter : Vector[Number] × Vector[Number] → Vector[Number]
 ;;; Apply matched filter (template matching).
@@ -278,9 +278,9 @@
                                 (>= curr next))
                            (set! peaks (cons i peaks)))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Utility Functions
-;;; ============================================================
+;;; ====
 
 ;;; vector-reverse : Vector → Vector
 ;;; Reverse a vector (for convolution/correlation conversion).
@@ -328,9 +328,9 @@
                           (vector-set! result i
                                        (/ (- (vector-ref signal i) mean) stddev)))))))))
 
-;;; ============================================================
+;;; ====
 ;;; 2D Convolution (for images, matrices)
-;;; ============================================================
+;;; ====
 
 ;;; convolve-2d : Matrix × Matrix → Matrix
 ;;; 2D convolution for image processing.
@@ -340,9 +340,9 @@
   (error 'convolve-2d "2D convolution not yet implemented"
          "Requires matrix data structure"))
 
-;;; ============================================================
+;;; ====
 ;;; Circular Convolution
-;;; ============================================================
+;;; ====
 
 ;;; convolve-circular : Vector[Number] × Vector[Number] → Vector[Number]
 ;;; Compute circular (cyclic) convolution.

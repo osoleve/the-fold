@@ -19,9 +19,9 @@
 (load "lattice/meta/bm25.ss")
 (load "lattice/meta/docstrings.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Search Index State
-;;; ============================================================
+;;; ====
 
 ;;; Mutable search indices (built from KG)
 (define *skill-index* (bm25-create))
@@ -30,9 +30,9 @@
 (define *module-cache* '())  ; Pre-computed list of all modules for O(1) lookup
 (define *search-ready* #f)
 
-;;; ============================================================
+;;; ====
 ;;; Index Building
-;;; ============================================================
+;;; ====
 
 ;;; lattice-index! : -> void
 ;;; Build search indices from the knowledge graph
@@ -106,9 +106,9 @@
                 (kg-build!))
           (lattice-index!)))
 
-;;; ============================================================
+;;; ====
 ;;; Search API
-;;; ============================================================
+;;; ====
 
 ;;; lattice-find : String [Int] [Symbol] -> (List SearchResult)
 ;;; Full-text search across all indexed entities
@@ -264,9 +264,9 @@
    [(pred (car lst)) (car lst)]
    [else (find pred (cdr lst))]))
 
-;;; ============================================================
+;;; ====
 ;;; Autocomplete
-;;; ============================================================
+;;; ====
 
 ;;; lattice-complete : String [Int] -> (List (Symbol . Score))
 ;;; Autocomplete for a prefix
@@ -304,9 +304,9 @@
                              all-matches)])
               (take-at-most k sorted))))
 
-;;; ============================================================
+;;; ====
 ;;; Filtered Search
-;;; ============================================================
+;;; ====
 
 ;;; lattice-find-by-tier : String Int [Int] -> (List SearchResult)
 ;;; Search skills filtered by tier
@@ -334,9 +334,9 @@
                                 (and p (eq? (cdr p) purity))))))
          results)))
 
-;;; ============================================================
+;;; ====
 ;;; Pretty Printing
-;;; ============================================================
+;;; ====
 
 ;;; *show-scores* : Bool
 ;;; Whether to show BM25 scores in output (default: #f)
@@ -395,9 +395,9 @@
       str
       (string-append (substring str 0 (- max-len 3)) "...")))
 
-;;; ============================================================
+;;; ====
 ;;; Convenience Functions
-;;; ============================================================
+;;; ====
 
 ;;; lf : String -> void
 ;;; Quick search with pretty output (for REPL)
@@ -441,9 +441,9 @@
   (set! *show-scores* show?)
   (printf "Score display: ~a\n" (if show? "on" "off")))
 
-;;; ============================================================
+;;; ====
 ;;; REPL Interface
-;;; ============================================================
+;;; ====
 
 (printf "search.ss loaded.\n")
 (printf "  (lattice-index!)               - Build search indices\n")

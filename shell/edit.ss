@@ -11,9 +11,9 @@
 
 (load "shell/tools/string-utils.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Core Text File Operations
-;;; ============================================================
+;;; ====
 
 ;;; read-text-file : FS × Path → String
 ;;; Read entire file as UTF-8 text.
@@ -31,9 +31,9 @@
                          (lambda (port)
                                  (put-string port content))))
 
-;;; ============================================================
+;;; ====
 ;;; Line-Oriented Helpers
-;;; ============================================================
+;;; ====
 ;;;
 ;;; NOTE: string-split, string-join, string-replace, string-replace-first
 ;;; are provided by shell/string-utils.ss which is loaded above.
@@ -48,9 +48,9 @@
 (define (lines->file! fs path lines)
   (write-text-file! fs path (string-join lines "\n")))
 
-;;; ============================================================
+;;; ====
 ;;; Transform-in-Place
-;;; ============================================================
+;;; ====
 
 ;;; edit-file! : FS × Path × (String → String) → void
 ;;; Apply transformation function to file contents.
@@ -59,16 +59,16 @@
          [new-content (transform content)])
         (write-text-file! fs path new-content)))
 
-;;; ============================================================
+;;; ====
 ;;; String Manipulation Helpers
-;;; ============================================================
+;;; ====
 ;;;
 ;;; NOTE: string-replace from prelude replaces ALL occurrences.
 ;;; These helpers provide first-occurrence replacement and matching.
 
-;;; ============================================================
+;;; ====
 ;;; File Replacement Operations
-;;; ============================================================
+;;; ====
 
 ;;; read-sexpr-file : FS × Path → (List S-expr)
 ;;; Read all top-level S-expressions from a file.
@@ -81,9 +81,9 @@
                                               (reverse exprs)
                                               (loop (cons expr exprs))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Line Range Operations
-;;; ============================================================
+;;; ====
 
 ;;; delete-lines : (List String) × Nat × Nat → (List String)
 ;;; Delete lines from start to end (0-indexed, inclusive).
@@ -112,9 +112,9 @@
 (define (replace-lines lines start end new-lines)
   (insert-lines (delete-lines lines start end) start new-lines))
 
-;;; ============================================================
+;;; ====
 ;;; Convenience: Edit Lines in File
-;;; ============================================================
+;;; ====
 
 ;;; edit-file-lines! : FS × Path × ((List String) → (List String)) → void
 ;;; Apply line transformation to file.

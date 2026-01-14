@@ -22,9 +22,9 @@
 
 (load "core/base/prelude.ss")
 
-;;; ============================================================
+;;; ====
 ;;; S-expression File Reader
-;;; ============================================================
+;;; ====
 
 ;;; read-sexps-from-file : String -> (List Sexpr)
 ;;; Read all S-expressions from a file.
@@ -52,9 +52,9 @@
                                                   (reverse acc)
                                                   (loop (cons line acc)))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Definition Extraction
-;;; ============================================================
+;;; ====
 
 ;;; extract-definitions : String -> (List Definition)
 ;;; Extract all define/define-record-type forms from a file.
@@ -140,9 +140,9 @@
        `((type . syntax)
          (name . ,name))))
 
-;;; ============================================================
+;;; ====
 ;;; Concept Extraction
-;;; ============================================================
+;;; ====
 
 ;;; known-concepts : (List Symbol)
 ;;; Capitalized concepts we recognize as significant.
@@ -228,9 +228,9 @@
         [(memq sym '(Tier Session)) 'session]
         [else 'other])))
 
-;;; ============================================================
+;;; ====
 ;;; Relationship Finding
-;;; ============================================================
+;;; ====
 
 ;;; find-relationships : (List Definition) -> (List Relationship)
 ;;; Infer relationships between concepts based on definitions.
@@ -318,9 +318,9 @@
 ;;; NOTE: string-split, string-starts-with?, string-ends-with?
 ;;;       provided by core/prelude.ss
 
-;;; ============================================================
+;;; ====
 ;;; Concept Graph Building
-;;; ============================================================
+;;; ====
 
 ;;; build-concept-graph : String -> ConceptGraph
 ;;; Build a graph of concepts and their relationships from a file.
@@ -392,9 +392,9 @@
                 (loop (cdr lst)
                       (if result (cons result acc) acc))))))
 
-;;; ============================================================
+;;; ====
 ;;; Rendering
-;;; ============================================================
+;;; ====
 
 ;;; render-concept-map : ConceptGraph -> String
 ;;; Render concept graph as readable text output.
@@ -413,14 +413,14 @@
 ;;; render-header : String x Nat x Nat x Nat -> String
 (define (render-header source def-count concept-count rel-count)
   (string-append
-   "================================================================================\n"
+   "====\n"
    "CONCEPT MAP\n"
-   "================================================================================\n"
+   "====\n"
    "Source: " source "\n"
    "Definitions: " (number->string def-count) "\n"
    "Concepts: " (number->string concept-count) "\n"
    "Relationships: " (number->string rel-count) "\n"
-   "================================================================================\n"))
+   "====\n"))
 
 ;;; render-concepts : Alist -> String
 (define (render-concepts concepts)
@@ -479,9 +479,9 @@
            (string-append "  ... and " (number->string (- (length rels) 20)) " more\n")
            ""))))
 
-;;; ============================================================
+;;; ====
 ;;; Multi-file Analysis
-;;; ============================================================
+;;; ====
 
 ;;; scan-directory-concepts : String x String -> ConceptGraph
 ;;; Scan a directory for all .ss files and build combined concept graph.
@@ -555,9 +555,9 @@
 ;;; Alias for prelude's unique (uses equal? for deep comparison).
 (define unique-rels unique)
 
-;;; ============================================================
+;;; ====
 ;;; Convenience Functions
-;;; ============================================================
+;;; ====
 
 ;;; concept-map : String -> void
 ;;; Build and display concept map for a file.
@@ -573,15 +573,15 @@
        (display (render-concept-map graph))
        graph))
 
-;;; ============================================================
+;;; ====
 ;;; Help
-;;; ============================================================
+;;; ====
 
 (define (concept-map-help)
   (display "
-================================================================================
+====
 CONCEPT MAP TOOL
-================================================================================
+====
 
 Extracts the ontology/concept structure from Scheme source files.
 

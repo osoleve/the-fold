@@ -26,9 +26,9 @@
 ;;;   - Alert thresholds
 ;;;   - Historical data retention
 
-;;; ============================================================
+;;; ====
 ;;; Configuration
-;;; ============================================================
+;;; ====
 
 (define *monitor-enabled* #f)
 (define *monitor-interval-ms* 5000)  ; Poll every 5 seconds
@@ -39,9 +39,9 @@
 (define *store-growth-threshold-mb* 100)
 (define *slow-op-threshold-ms* 1000)
 
-;;; ============================================================
+;;; ====
 ;;; Monitoring State
-;;; ============================================================
+;;; ====
 
 ;;; Global monitoring state
 (define *monitor-state*
@@ -74,9 +74,9 @@
    memory-allocated
    status))  ; 'success | 'error
 
-;;; ============================================================
+;;; ====
 ;;; State Management
-;;; ============================================================
+;;; ====
 
 (define (monitor-enabled?)
   (cdr (assq 'enabled *monitor-state*)))
@@ -134,9 +134,9 @@
               (filter (lambda (p) (not (eq? (car p) 'alerts)))
                       *monitor-state*))))
 
-;;; ============================================================
+;;; ====
 ;;; Utilities
-;;; ============================================================
+;;; ====
 
 (define (take-last lst n)
   "Take last n elements from list"
@@ -177,9 +177,9 @@
          [secs (remainder seconds 60)])
         (format "~2,'0d:~2,'0d:~2,'0d" hours minutes secs)))
 
-;;; ============================================================
+;;; ====
 ;;; Sampling
-;;; ============================================================
+;;; ====
 
 (define (take-sample fs)
   "Capture current performance snapshot"
@@ -228,9 +228,9 @@
              (session-count)
              0)))
 
-;;; ============================================================
+;;; ====
 ;;; Alert System
-;;; ============================================================
+;;; ====
 
 (define (check-thresholds sample)
   "Check sample against thresholds and generate alerts"
@@ -250,9 +250,9 @@
        ;; Return alerts
        alerts))
 
-;;; ============================================================
+;;; ====
 ;;; Operation Tracking
-;;; ============================================================
+;;; ====
 
 (define (monitor-op name thunk)
   "Execute thunk and track as named operation"
@@ -283,9 +283,9 @@
               
               result)))
 
-;;; ============================================================
+;;; ====
 ;;; Monitoring Control
-;;; ============================================================
+;;; ====
 
 (define (start-monitor!)
   "Start performance monitoring"
@@ -315,9 +315,9 @@
           (alerts . ())))
   (display "Monitor data reset.\n"))
 
-;;; ============================================================
+;;; ====
 ;;; Status Display
-;;; ============================================================
+;;; ====
 
 (define (monitor-status)
   "Display current performance metrics"
@@ -466,9 +466,9 @@
                  (display (format "  Mean: ~a\n" (format-duration-ns (inexact->exact (round mean-time)))))
                  (display "\n")))))
 
-;;; ============================================================
+;;; ====
 ;;; Quick Helpers
-;;; ============================================================
+;;; ====
 
 (define (watch-memory)
   "Quick memory snapshot"
@@ -514,9 +514,9 @@ EXAMPLE:
   (stop-monitor!)
 "))
 
-;;; ============================================================
+;;; ====
 ;;; Initialization
-;;; ============================================================
+;;; ====
 
 (display "\n")
 (display "Performance Monitor loaded.\n")

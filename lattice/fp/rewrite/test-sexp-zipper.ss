@@ -5,9 +5,9 @@
 (load "lattice/fp/rewrite/sexp-zipper.ss")
 (load "core/testing/test-framework.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Test Fixtures
-;;; ============================================================
+;;; ====
 
 ;;; Simple expression: (+ 1 2)
 (define simple-expr '(+ 1 2))
@@ -21,9 +21,9 @@
 ;;; Atom
 (define atom-expr 42)
 
-;;; ============================================================
+;;; ====
 ;;; Basic Navigation Tests
-;;; ============================================================
+;;; ====
 
 (test-group "sexp-zipper-navigation"
 
@@ -63,9 +63,9 @@
       (assert-true (just? third))
       (assert-equal 2 (sexp-zipper-get (from-just third))))))
 
-;;; ============================================================
+;;; ====
 ;;; Position-Based Navigation Tests
-;;; ============================================================
+;;; ====
 
 (test-group "sexp-zipper-positions"
 
@@ -97,9 +97,9 @@
            [at-pos (sexp-zipper-goto sz '(10))])
       (assert-true (nothing? at-pos)))))
 
-;;; ============================================================
+;;; ====
 ;;; Modification Tests
-;;; ============================================================
+;;; ====
 
 (test-group "sexp-zipper-modification"
 
@@ -124,9 +124,9 @@
            [result (zipper->sexp modified)])
       (assert-equal '(+ 1 20) result))))
 
-;;; ============================================================
+;;; ====
 ;;; Engine Compatibility Tests
-;;; ============================================================
+;;; ====
 
 (test-group "sexp-zipper-engine-compat"
 
@@ -160,9 +160,9 @@
       (assert-equal 7 (length positions))
       (assert-true (and (member '(1 2) positions) #t)))))
 
-;;; ============================================================
+;;; ====
 ;;; Traversal Tests
-;;; ============================================================
+;;; ====
 
 (test-group "sexp-zipper-traversal"
 
@@ -194,9 +194,9 @@
            [pluses (sexp-zipper-collect-matches sz (lambda (x) (equal? x '+)))])
       (assert-equal 2 (length pluses)))))
 
-;;; ============================================================
+;;; ====
 ;;; Round-trip Tests
-;;; ============================================================
+;;; ====
 
 (test-group "sexp-zipper-roundtrip"
 
@@ -216,8 +216,8 @@
     (let ([result (zipper->sexp (sexp->zipper atom-expr))])
       (assert-equal atom-expr result))))
 
-;;; ============================================================
+;;; ====
 ;;; Run Tests
-;;; ============================================================
+;;; ====
 
 (run-all-tests)

@@ -11,9 +11,9 @@
 
 (test-group fusion-detect
             
-            ;;; ============================================================
+            ;;; ====
             ;;; Data Structure Tests
-            ;;; ============================================================
+            ;;; ====
             
             (define-test fusion-opportunity-structure
               (let ([opp (make-fusion-opportunity
@@ -35,9 +35,9 @@
               (assert-false (fusion-opportunity? '(not-an-opportunity)))
               (assert-false (fusion-opportunity? '(fusion-opportunity))))
             
-            ;;; ============================================================
+            ;;; ====
             ;;; Pattern Matching: map-map
-            ;;; ============================================================
+            ;;; ====
             
             (define-test detect-map-map-fusion
               (let* ([expr '(map f (map g xs))]
@@ -62,9 +62,9 @@
                     (assert-true (> (length opps) 0))
                     (assert-equal 'safe (fusion-confidence (car opps)))))
             
-            ;;; ============================================================
+            ;;; ====
             ;;; Pattern Matching: filter-map
-            ;;; ============================================================
+            ;;; ====
             
             (define-test detect-filter-map-fusion
               (let* ([expr '(map f (filter p xs))]
@@ -80,9 +80,9 @@
                     (assert-true (> (length opps) 0))
                     (assert-equal 'filter-map-fuse (fusion-type (car opps)))))
             
-            ;;; ============================================================
+            ;;; ====
             ;;; Pattern Matching: map-filter
-            ;;; ============================================================
+            ;;; ====
             
             (define-test detect-map-filter-fusion
               (let* ([expr '(filter p (map f xs))]
@@ -92,9 +92,9 @@
                          (assert-equal 'map-filter-fuse (fusion-type opp))
                          (assert-equal '(filter-map (compose p f) f xs) (fusion-after opp)))))
             
-            ;;; ============================================================
+            ;;; ====
             ;;; Pattern Matching: fold-map
-            ;;; ============================================================
+            ;;; ====
             
             (define-test detect-fold-map-fusion-foldl
               (let* ([expr '(foldl + 0 (map square xs))]
@@ -119,9 +119,9 @@
                          (let ([after (fusion-after opp)])
                               (assert-equal 'foldr (car after))))))
             
-            ;;; ============================================================
+            ;;; ====
             ;;; Pattern Matching: concat-map
-            ;;; ============================================================
+            ;;; ====
             
             (define-test detect-concat-map-fusion-flatten
               (let* ([expr '(flatten (map f xs))]
@@ -137,9 +137,9 @@
                     (assert-true (> (length opps) 0))
                     (assert-equal 'concat-map-fuse (fusion-type (car opps)))))
             
-            ;;; ============================================================
+            ;;; ====
             ;;; Pattern Matching: stream-map-map
-            ;;; ============================================================
+            ;;; ====
             
             (define-test detect-stream-map-map-fusion
               (let* ([expr '(stream-map f (stream-map g s))]
@@ -149,9 +149,9 @@
                          (assert-equal 'stream-map-map-fuse (fusion-type opp))
                          (assert-equal '(stream-map (compose f g) s) (fusion-after opp)))))
             
-            ;;; ============================================================
+            ;;; ====
             ;;; Confidence Estimation
-            ;;; ============================================================
+            ;;; ====
             
             (define-test pure-primitives-get-safe-confidence
               (let* ([expr '(map + (map - xs))]
@@ -174,9 +174,9 @@
                     ;; so combined confidence is likely-pure
                     (assert-equal 'likely-pure (fusion-confidence (car opps)))))
             
-            ;;; ============================================================
+            ;;; ====
             ;;; No False Positives
-            ;;; ============================================================
+            ;;; ====
             
             (define-test single-map-no-fusion
               (let* ([expr '(map f xs)]
@@ -195,9 +195,9 @@
                     (let ([root-opps (filter (lambda (o) (equal? (fusion-location o) '())) opps)])
                          (assert-equal 0 (length root-opps)))))
             
-            ;;; ============================================================
+            ;;; ====
             ;;; Nested Detection
-            ;;; ============================================================
+            ;;; ====
             
             (define-test detect-multiple-opportunities
               (let* ([expr '(begin
@@ -215,9 +215,9 @@
                      [opps (detect-fusion-static expr)])
                     (assert-true (>= (length opps) 3))))
             
-            ;;; ============================================================
+            ;;; ====
             ;;; Utility Functions
-            ;;; ============================================================
+            ;;; ====
             
             (define-test count-opportunities-works
               (let* ([expr '(map f (map g xs))]
@@ -245,9 +245,9 @@
                                    (andmap (lambda (item) (eq? (fusion-type item) type)) items)))
                       by-type))))
             
-            ;;; ============================================================
+            ;;; ====
             ;;; Summary Report
-            ;;; ============================================================
+            ;;; ====
             
             (define-test fusion-summary-generates-valid-structure
               (let* ([expr '(map f (map g xs))]
@@ -265,9 +265,9 @@
                      [summary (fusion-summary opps)])
                     (assert-equal 0 (cdr (assq 'total (cdr summary))))))
             
-            ;;; ============================================================
+            ;;; ====
             ;;; Edge Cases
-            ;;; ============================================================
+            ;;; ====
             
             (define-test handles-empty-list
               (let ([opps (detect-fusion-static '())])
@@ -292,9 +292,9 @@
               (assert-equal 0 (length (detect-fusion-static '(map))))
               (assert-equal 0 (length (detect-fusion-static '(map f g h i)))))
             
-            ;;; ============================================================
+            ;;; ====
             ;;; Optional Fuel Parameter Tests
-            ;;; ============================================================
+            ;;; ====
             
             (define-test optional-fuel-parameter-default
               ;; Calling with one argument should use default fuel

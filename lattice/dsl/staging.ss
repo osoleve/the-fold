@@ -27,18 +27,18 @@
 (load "lattice/fp/meta/combinators.ss")
 (load "lattice/dsl/quasi.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Staging Annotations (S-expression representation)
-;;; ============================================================
+;;; ====
 ;;;
 ;;; We use explicit forms rather than reader syntax for Core:
 ;;;   (stage-quote expr)     ; <expr>
 ;;;   (stage-splice expr)    ; ~expr
 ;;;   (stage-run expr)       ; !expr
 
-;;; ============================================================
+;;; ====
 ;;; Code Type Representation
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Code values wrap expressions with their stage level.
 ;;; (Code n a) represents code at stage n with result type a.
@@ -60,9 +60,9 @@
 (define (code-expr c)
   (if (code? c) (caddr c) c))
 
-;;; ============================================================
+;;; ====
 ;;; Staging Detection
-;;; ============================================================
+;;; ====
 
 ;;; stage-quote? : α → Boolean
 ;;; Check if expression is a staging quote: (stage-quote expr) or <expr>
@@ -88,9 +88,9 @@
            (eq? (car x) 'run)
            (eq? (car x) '!))))
 
-;;; ============================================================
+;;; ====
 ;;; Stage Environment
-;;; ============================================================
+;;; ====
 ;;;
 ;;; The stage environment tracks:
 ;;;   - Current stage level (0 = runtime, 1+ = compile-time)
@@ -148,9 +148,9 @@
         (stage-env-bindings env)
         (cons fragment (stage-env-fragments env))))
 
-;;; ============================================================
+;;; ====
 ;;; Staging Expansion
-;;; ============================================================
+;;; ====
 ;;;
 ;;; The staging expander transforms staged code into code generators.
 ;;; Similar to quasiquote but with stage tracking.
@@ -217,9 +217,9 @@
    ;; Self-quoting atoms
    [else expr]))
 
-;;; ============================================================
+;;; ====
 ;;; Code Composition
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Operations for combining code values.
 
@@ -246,9 +246,9 @@
       (code-expr c)
       (error 'code-unlift "not stage-0 code" c)))
 
-;;; ============================================================
+;;; ====
 ;;; Code Type Operations
-;;; ============================================================
+;;; ====
 
 ;;; code-type : Code → Type
 ;;; Get the type of a code value.
@@ -260,9 +260,9 @@
 (define (code-well-staged? c expected)
   (<= (code-stage c) expected))
 
-;;; ============================================================
+;;; ====
 ;;; Staging Primitives
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Built-in operations for staged code.
 
@@ -320,9 +320,9 @@
            (make-code s `(,(code-expr func-c) ,@(map code-expr args-c)))
            (error 'stage-app "stage mismatch"))))
 
-;;; ============================================================
+;;; ====
 ;;; Cross-Stage Persistence
-;;; ============================================================
+;;; ====
 ;;;
 ;;; CSP allows values computed at one stage to be available at later stages.
 
@@ -348,9 +348,9 @@
 (define (lift-csp binding)
   (make-code 1 `(csp-ref ',(csp-name binding))))
 
-;;; ============================================================
+;;; ====
 ;;; Power Example (from specification)
-;;; ============================================================
+;;; ====
 ;;;
 ;;; This demonstrates compile-time specialization.
 
@@ -367,9 +367,9 @@
   (let ([code (power-staged n)])
        (list 'specialized-power n (code-expr code))))
 
-;;; ============================================================
+;;; ====
 ;;; Code Pretty Printing
-;;; ============================================================
+;;; ====
 
 ;;; code->string : Code → String
 ;;; Convert code to a readable string.
@@ -378,9 +378,9 @@
       (format "<~a:~a>" (code-stage c) (code-expr c))
       (format "~a" c)))
 
-;;; ============================================================
+;;; ====
 ;;; Staging Compilation
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Compile staged expressions to executable code.
 
@@ -396,9 +396,9 @@
       (code-expr c)
       (error 'run-staged "cannot run higher-stage code" c)))
 
-;;; ============================================================
+;;; ====
 ;;; Staged Pattern Matching
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Pattern matching that works across stages.
 
@@ -415,9 +415,9 @@
                   `(match ,(code-expr scrut-c)
                     ,@clauses))))
 
-;;; ============================================================
+;;; ====
 ;;; Staged Recursion
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Support for staged recursive definitions.
 
@@ -431,9 +431,9 @@
                    `(letrec ([,rec-name ,(code-expr body)])
                      ,rec-name))))
 
-;;; ============================================================
+;;; ====
 ;;; Type Checking Support
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Types for staged expressions.
 
@@ -476,9 +476,9 @@
    
    [else 'Unknown]))
 
-;;; ============================================================
+;;; ====
 ;;; Staging Transformations
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Transformations for optimization and analysis.
 
@@ -549,9 +549,9 @@
     (map (lambda (e) (subst-expr e var replacement)) expr)]
    [else expr]))
 
-;;; ============================================================
+;;; ====
 ;;; Exports
-;;; ============================================================
+;;; ====
 
 ;;; Main entry points:
 ;;;   - make-code, code?, code-stage, code-expr

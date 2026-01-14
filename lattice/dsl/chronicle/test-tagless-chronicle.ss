@@ -5,9 +5,9 @@
 (load "core/test-framework.ss")
 (load "lattice/dsl/chronicle/tagless-chronicle.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Helper Functions
-;;; ============================================================
+;;; ====
 
 ;;; Find a scene by id in the scenes list
 (define (find-scene scenes id)
@@ -34,9 +34,9 @@
              [(string=? (substring haystack i (+ i n-len)) needle) #t]
              [else (loop (+ i 1))]))))
 
-;;; ============================================================
+;;; ====
 ;;; Runtime Interpreter Tests
-;;; ============================================================
+;;; ====
 
 (test-group tagless-chronicle-runtime
             (define-test runtime-creates-scenes
@@ -113,9 +113,9 @@
                     (assert-true (pair? (assq 'a flags)))
                     (assert-true (pair? (assq 'b flags))))))
 
-;;; ============================================================
+;;; ====
 ;;; Validation Interpreter Tests
-;;; ============================================================
+;;; ====
 
 (test-group tagless-chronicle-validation
             (define-test validation-collects-scenes
@@ -144,9 +144,9 @@
                     (assert-true (contains? dead-ends 'outside))
                     (assert-true (contains? dead-ends 'ending)))))
 
-;;; ============================================================
+;;; ====
 ;;; Graph Export Tests
-;;; ============================================================
+;;; ====
 
 (test-group tagless-chronicle-graph
             (define-test graph-collects-scenes
@@ -168,9 +168,9 @@
                    (assert-true (string? mermaid))
                    (assert-true (string-contains mermaid "flowchart")))))
 
-;;; ============================================================
+;;; ====
 ;;; Analysis Interpreter Tests
-;;; ============================================================
+;;; ====
 
 (test-group tagless-chronicle-analysis
             (define-test analysis-returns-alist
@@ -187,9 +187,9 @@
                    ;; entrance: 4, hallway: 2, treasure: 1, outside: 0, ending: 0 = 7
                    (assert-equal 7 (cdr (assq 'total-choices result))))))
 
-;;; ============================================================
+;;; ====
 ;;; Runtime Execution Tests
-;;; ============================================================
+;;; ====
 
 (test-group tagless-chronicle-execution
             (define-test runtime-creates-state
@@ -241,12 +241,12 @@
                     ;; "Try the door" and "Search the area" hidden (have guard-not item key)
                     (assert-equal 2 (length choices)))))
 
-;;; ============================================================
+;;; ====
 ;;; Run All Tests
-;;; ============================================================
+;;; ====
 
-(display "\n========================================\n")
+(display "\n====\n")
 (display "Running Tagless Chronicle Tests\n")
-(display "========================================\n\n")
+(display "====\n\n")
 
 (run-all-tests)

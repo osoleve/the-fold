@@ -10,9 +10,9 @@
 (load "core/testing/test-framework.ss")
 (load "lattice/fp/data/generic-zipper.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Type Constructor Tests
-;;; ============================================================
+;;; ====
 
 (test-group "type-constructors"
 
@@ -63,9 +63,9 @@
     (assert-equal '(mu T (+ 1 (* (var a) (var T) (var T))))
                   (type-binary-tree (type-var 'a)))))
 
-;;; ============================================================
+;;; ====
 ;;; Type Predicates Tests
-;;; ============================================================
+;;; ====
 
 (test-group "type-predicates"
 
@@ -93,9 +93,9 @@
     (assert-true (type-rec? (type-list (type-var 'a))))
     (assert-false (type-rec? (type-var 'a)))))
 
-;;; ============================================================
+;;; ====
 ;;; Derivative Tests - Basic Rules
-;;; ============================================================
+;;; ====
 
 (test-group "derivative-basic"
 
@@ -120,9 +120,9 @@
       (assert-true (type-sum? result))
       (assert-equal 2 (length (type-sum-components result))))))
 
-;;; ============================================================
+;;; ====
 ;;; Derivative Tests - Product Rule
-;;; ============================================================
+;;; ====
 
 (test-group "derivative-product"
 
@@ -158,9 +158,9 @@
       (assert-true (type-prod? simplified))
       (assert-equal 2 (length (type-prod-components simplified))))))
 
-;;; ============================================================
+;;; ====
 ;;; Derivative Tests - List and Tree
-;;; ============================================================
+;;; ====
 
 (test-group "derivative-recursive"
 
@@ -188,9 +188,9 @@
       ;; Two possible hole positions
       (assert-equal 2 (length (type-sum-components deriv))))))
 
-;;; ============================================================
+;;; ====
 ;;; Substitution Tests
-;;; ============================================================
+;;; ====
 
 (test-group "substitution"
 
@@ -223,9 +223,9 @@
                               (type-var 'b))])
       (assert-equal '(mu x (var b)) result))))
 
-;;; ============================================================
+;;; ====
 ;;; Simplification Tests
-;;; ============================================================
+;;; ====
 
 (test-group "simplification"
 
@@ -262,9 +262,9 @@
                              (type-prod type-one (type-var 'a)))])
       (assert-equal (type-var 'a) (type-simplify complex)))))
 
-;;; ============================================================
+;;; ====
 ;;; Generic Zipper Structure Tests
-;;; ============================================================
+;;; ====
 
 (test-group "generic-zipper-structure"
 
@@ -297,9 +297,9 @@
            [z2 (generic-zipper-modify z (lambda (x) (* x 2)))])
       (assert-equal 10 (generic-zipper-focus z2)))))
 
-;;; ============================================================
+;;; ====
 ;;; Context Frame Tests
-;;; ============================================================
+;;; ====
 
 (test-group "context-frame"
 
@@ -315,9 +315,9 @@
       (assert-equal 'sum (context-frame-kind f))
       (assert-equal 0 (context-frame-position f)))))
 
-;;; ============================================================
+;;; ====
 ;;; Zipper Type Validation
-;;; ============================================================
+;;; ====
 ;;;
 ;;; These tests verify that the computed derivative types match
 ;;; the hand-crafted zipper context structures.
@@ -354,8 +354,8 @@
       (assert-true (type-sum? ctx-type))
       (assert-equal 2 (length (type-sum-components ctx-type))))))
 
-;;; ============================================================
+;;; ====
 ;;; Run All Tests
-;;; ============================================================
+;;; ====
 
 (run-all-tests)

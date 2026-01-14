@@ -17,9 +17,9 @@
              [(string=? (substring str i (+ i sub-len)) substr) #t]
              [else (loop (+ i 1))]))))
 
-;;; ============================================================
+;;; ====
 ;;; Test 1: Canvas to String
-;;; ============================================================
+;;; ====
 
 (display "1. Testing canvas->string:\n")
 
@@ -39,9 +39,9 @@
           (display "  ✓ canvas->string works\n\n")
           (display "  ✗ FAILED: canvas->string broken\n\n")))
 
-;;; ============================================================
+;;; ====
 ;;; Test 2: Special Characters
-;;; ============================================================
+;;; ====
 
 (display "2. Testing special characters:\n")
 
@@ -58,9 +58,9 @@
       (newline)
       (display "  ✓ Unicode characters render correctly\n\n"))
 
-;;; ============================================================
+;;; ====
 ;;; Test 3: Empty Canvas
-;;; ============================================================
+;;; ====
 
 (display "3. Testing empty canvas:\n")
 
@@ -72,9 +72,9 @@
           (display "  ✓ Empty canvas produces output\n\n")
           (display "  ✗ FAILED: Empty canvas broken\n\n")))
 
-;;; ============================================================
+;;; ====
 ;;; Test 4: Single Character
-;;; ============================================================
+;;; ====
 
 (display "4. Testing single character canvas:\n")
 
@@ -86,9 +86,9 @@
           (display "  ✓ Single char canvas works\n\n")
           (display "  ✗ FAILED: Single char broken\n\n")))
 
-;;; ============================================================
+;;; ====
 ;;; Test 5: Large Canvas Performance
-;;; ============================================================
+;;; ====
 
 (display "5. Testing large canvas:\n")
 
@@ -114,9 +114,9 @@
       (newline)
       (display "  ✓ Large canvas renders correctly\n\n"))
 
-;;; ============================================================
+;;; ====
 ;;; Test 6: String Padding
-;;; ============================================================
+;;; ====
 
 (display "6. Testing string-pad:\n")
 
@@ -126,6 +126,6 @@
           (display "  ✓ String padding works\n\n")
           (display "  ✗ FAILED: String padding broken\n\n")))
 
-(display "======================================\n")
+(display "====\n")
 (display "All SVG-related tests completed!\n")
-(display "======================================\n")
+(display "====\n")

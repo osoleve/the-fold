@@ -8,9 +8,9 @@
 (load "lattice/linalg/sparse.ss")
 (load "lattice/data/graph-matrix.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Test Utilities
-;;; ============================================================
+;;; ====
 
 (define tests-passed 0)
 (define tests-failed 0)
@@ -39,9 +39,9 @@
 
 (printf "~n=== Graph Matrix Tests ===~n~n")
 
-;;; ============================================================
+;;; ====
 ;;; Edge List Tests
-;;; ============================================================
+;;; ====
 
 (printf "--- Edge List Utilities ---~n")
 
@@ -52,9 +52,9 @@
 (test "infer-node-count single edge" 2 (infer-node-count '((0 1))))
 (test "infer-node-count gaps" 5 (infer-node-count '((0 4) (1 2))))
 
-;;; ============================================================
+;;; ====
 ;;; Dense Adjacency Matrix Tests
-;;; ============================================================
+;;; ====
 
 (printf "~n--- Dense Adjacency Matrix ---~n")
 
@@ -88,9 +88,9 @@
        [edges2 (adjacency-matrix->edges m #t)])
       (test "round-trip: same length" 3 (length edges2)))
 
-;;; ============================================================
+;;; ====
 ;;; Graph Properties Tests
-;;; ============================================================
+;;; ====
 
 (printf "~n--- Graph Properties ---~n")
 
@@ -107,9 +107,9 @@
       (test "neighbors of 0" '(1 2) (adjacency-neighbors m 0))
       (test "neighbors of 1" '(2) (adjacency-neighbors m 1)))
 
-;;; ============================================================
+;;; ====
 ;;; Sparse Adjacency Matrix Tests
-;;; ============================================================
+;;; ====
 
 (printf "~n--- Sparse Adjacency Matrix ---~n")
 
@@ -145,9 +145,9 @@
        [edges2 (sparse-adjacency->edges m #t)])
       (test "sparse round-trip: length" 3 (length edges2)))
 
-;;; ============================================================
+;;; ====
 ;;; Graph Transformations Tests
-;;; ============================================================
+;;; ====
 
 (printf "~n--- Graph Transformations ---~n")
 
@@ -167,9 +167,9 @@
       (test "symmetrize: 1->0" 1 (matrix-ref sym 1 0))
       (test "symmetrize: symmetric" #t (matrix-symmetric? sym)))
 
-;;; ============================================================
+;;; ====
 ;;; Degree Matrix Tests
-;;; ============================================================
+;;; ====
 
 (printf "~n--- Degree Matrix ---~n")
 
@@ -182,9 +182,9 @@
                  (= (matrix-ref d 2 2) 0)
                  (= (matrix-ref d 0 1) 0))))
 
-;;; ============================================================
+;;; ====
 ;;; Special Graphs Tests
-;;; ============================================================
+;;; ====
 
 (printf "~n--- Special Graphs ---~n")
 
@@ -221,9 +221,9 @@
      (test "bipartite: shape" '(5 . 5) (matrix-shape bp))
      (test "bipartite: edge count" 6 (adjacency-matrix-edge-count bp)))
 
-;;; ============================================================
+;;; ====
 ;;; Matrix Powers Tests
-;;; ============================================================
+;;; ====
 
 (printf "~n--- Matrix Powers ---~n")
 
@@ -242,9 +242,9 @@
       (test "reachability: 0->0" 1 (matrix-ref reach 0 0))  ; Identity
       (test "reachability: 0->2" 1 (matrix-ref reach 0 2)))  ; 2-hop
 
-;;; ============================================================
+;;; ====
 ;;; Dense/Sparse Conversion Tests
-;;; ============================================================
+;;; ====
 
 (printf "~n--- Dense/Sparse Conversion ---~n")
 
@@ -259,9 +259,9 @@
        [m (edges->adjacency-matrix edges 3)])
       (test-approx "density: 2 edges in 3 nodes" (/ 2 6) (adjacency-density m) 0.001))
 
-;;; ============================================================
+;;; ====
 ;;; Matrix-Based Distance Algorithm Tests
-;;; ============================================================
+;;; ====
 
 (printf "~n--- Matrix-Based Distance Algorithms ---~n")
 
@@ -347,9 +347,9 @@
       (test "path-radius" 2 (inexact->exact (graph-radius dist)))
       (test "path-center" '(1 2) (graph-center dist)))
 
-;;; ============================================================
+;;; ====
 ;;; Dijkstra's Algorithm
-;;; ============================================================
+;;; ====
 
 (printf "~n--- Dijkstra's Algorithm ---~n")
 
@@ -389,9 +389,9 @@
            (test "dijkstra: unreachable" *infinity* (vector-ref dist 2)))
       (test "dijkstra-path: unreachable" #f (dijkstra-path adj 0 2)))
 
-;;; ============================================================
+;;; ====
 ;;; Edge Cases
-;;; ============================================================
+;;; ====
 
 (printf "~n--- Edge Cases ---~n")
 
@@ -407,9 +407,9 @@
 (let ([m (edges->adjacency-matrix '((0 0)) 1)])
      (test "self-loop: edge" 1 (matrix-ref m 0 0)))
 
-;;; ============================================================
+;;; ====
 ;;; Summary
-;;; ============================================================
+;;; ====
 
 (printf "~n=== Summary ===~n")
 (printf "  Passed: ~a~n" tests-passed)

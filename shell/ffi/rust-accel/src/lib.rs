@@ -35,9 +35,9 @@ pub struct TestResult {
     pub fuel_out: u64,
 }
 
-// ============================================================
+// ====
 // Type-Safe Result Structs (Milestone 1: fold-4s4q)
-// ============================================================
+// ====
 //
 // These structs enable type-safe FFI without lossy casts.
 // Each Rust return type has its own result struct:
@@ -113,9 +113,9 @@ pub struct F32Result {
     pub fuel_out: u64,
 }
 
-// ============================================================
+// ====
 // Layer 2 Result Structs (fold-gu3t: Bytevector/String Types)
-// ============================================================
+// ====
 
 /// Result struct for operations that write to an output buffer
 /// Used for bytevector copy, string case conversion, etc.

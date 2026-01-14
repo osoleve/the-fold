@@ -12,9 +12,9 @@
 ;;;   - playpen/boardcraft/core.ss
 ;;;   - playpen/boardcraft/pathfinding.ss (for priority queue)
 
-;;; ============================================================
+;;; ====
 ;;; Line of Sight
-;;; ============================================================
+;;; ====
 
 ;;; has-line-of-sight? : Board × Coord × Coord × (Coord × Coord → List Coord) × (Coord → Bool) → Boolean
 ;;; Check if there's a clear line of sight from origin to target
@@ -48,9 +48,9 @@
            (let ([tile (board-get board coord)])
                 (and tile (tile-get-prop tile 'blocks-vision #f))))))
 
-;;; ============================================================
+;;; ====
 ;;; Field of View
-;;; ============================================================
+;;; ====
 
 ;;; calculate-fov : Board × Coord × Integer × (Coord → List Coord) × (Coord × Coord → List Coord) × (Coord → Bool) → (List Coord)
 ;;; Calculate field of view from origin within radius
@@ -112,9 +112,9 @@
            (let ([tile (board-get board coord)])
                 (and tile (tile-get-prop tile 'blocks-vision #f))))))
 
-;;; ============================================================
+;;; ====
 ;;; Shadowcast Field of View (Recursive Shadowcasting)
-;;; ============================================================
+;;; ====
 
 ;;; shadowcast-fov : Board × Coord × Integer × (Coord → List Coord) × (Coord → Bool) × (Coord → Bool) → (List Coord)
 ;;; Calculate field of view using recursive shadowcasting algorithm
@@ -136,9 +136,9 @@
   ;; For now, use simple raycast FOV
   (calculate-fov board origin max-radius neighbor-fn line-fn blocks-vision-fn))
 
-;;; ============================================================
+;;; ====
 ;;; Visibility Utilities
-;;; ============================================================
+;;; ====
 
 ;;; visible-enemies : Board × Coord × Integer × (Coord → List Coord) × (Coord × Coord → List Coord) × (Coord → Bool) → (List Coord)
 ;;; Get all enemy positions visible from origin
@@ -163,9 +163,9 @@
 (define (tiles-in-sight board origin target line-fn)
   (cons origin (line-fn origin target)))
 
-;;; ============================================================
+;;; ====
 ;;; Exports Summary
-;;; ============================================================
+;;; ====
 
 ;;; This module provides:
 ;;;   Core Visibility:

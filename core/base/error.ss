@@ -19,9 +19,9 @@
 (load "core/base/prelude.ss")
 (load "core/base/span.ss")  ; Imports make-span, span?, span-file, span-line, etc.
 
-;;; ============================================================
+;;; ====
 ;;; Error Codes by Phase
-;;; ============================================================
+;;; ====
 
 ;;; Parse errors
 (define *parse-errors*
@@ -60,9 +60,9 @@
     (hash-mismatch     . "Content hash does not match")
     (not-found         . "Block not found in store")))
 
-;;; ============================================================
+;;; ====
 ;;; Error Construction
-;;; ============================================================
+;;; ====
 
 ;;; make-error : Phase × Code × Context × Details... → Error
 ;;; Create a structured error.
@@ -91,16 +91,16 @@
        (eq? (car x) 'error)
        (>= (length x) 4)))
 
-;;; ============================================================
+;;; ====
 ;;; Source Context (Spans)
 ;;;
 ;;; Span operations imported from span.ss:
 ;;;   make-span, span?, span-file, span-line, span-column, no-span
-;;; ============================================================
+;;; ====
 
-;;; ============================================================
+;;; ====
 ;;; Error Message Lookup
-;;; ============================================================
+;;; ====
 
 ;;; lookup-error-message : Symbol × Symbol → String
 (define (lookup-error-message phase code)
@@ -115,9 +115,9 @@
             (cdr entry)
             (symbol->string code))))
 
-;;; ============================================================
+;;; ====
 ;;; Error Formatting
-;;; ============================================================
+;;; ====
 
 ;;; format-error : α → String
 ;;; Format an error for display.
@@ -180,9 +180,9 @@
                  (format ": ~a" (car details))
                  "")])))
 
-;;; ============================================================
+;;; ====
 ;;; Suggestions
-;;; ============================================================
+;;; ====
 
 ;;; format-suggestion : Symbol × Symbol × (List α) → String
 (define (format-suggestion phase code details)
@@ -226,9 +226,9 @@
              [str2 (symbol->string s2)])
             (<= (edit-distance str1 str2) 2))))
 
-;;; ============================================================
+;;; ====
 ;;; Pretty Printing
-;;; ============================================================
+;;; ====
 
 ;;; print-error : Error → Void
 ;;; Print a formatted error to current output.
@@ -262,9 +262,9 @@
 
 ;;; NOTE: string-split is provided by prelude.ss (loaded above)
 
-;;; ============================================================
+;;; ====
 ;;; Error Helpers for Common Cases
-;;; ============================================================
+;;; ====
 
 ;;; unbound-error : Symbol × Span → Error
 (define (unbound-error var span)

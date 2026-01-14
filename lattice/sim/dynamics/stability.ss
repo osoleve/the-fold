@@ -24,9 +24,9 @@
 (load "lattice/numeric/complex.ss")
 (load "lattice/sim/dynamics/ode-system.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Fixed Point Detection
-;;; ============================================================
+;;; ====
 
 ;;; find-fixed-point-newton : Any × Any × Number × Number × Nat → Any
 ;;; Find a fixed point using Newton's method.
@@ -63,9 +63,9 @@
 (define (refine-fixed-point sys point tolerance step-size)
   (find-fixed-point-newton sys point tolerance step-size 20))
 
-;;; ============================================================
+;;; ====
 ;;; Jacobian Matrix Computation
-;;; ============================================================
+;;; ====
 
 ;;; compute-jacobian : Any × Any × Number → Any
 ;;; Compute the Jacobian matrix of a vector field at a point.
@@ -103,9 +103,9 @@
 (define (linearize-at-equilibrium sys equilibrium step-size)
   (compute-jacobian sys equilibrium step-size))
 
-;;; ============================================================
+;;; ====
 ;;; Matrix Utilities (Simple Implementations)
-;;; ============================================================
+;;; ====
 
 ;;; matrix-invert-simple : Any → Any
 ;;; Simple matrix inversion using Gauss-Jordan elimination.
@@ -170,9 +170,9 @@
                                   (vector-ref aug (+ (* i (* n 2)) (+ n j))))))
              (list 'matrix n n inv-data))))
 
-;;; ============================================================
+;;; ====
 ;;; 2x2 Eigenvalue Computation
-;;; ============================================================
+;;; ====
 
 ;;; matrix-eigenvalues-2d : Any → (List Complex)
 ;;; Compute eigenvalues of a 2x2 matrix analytically.
@@ -226,9 +226,9 @@
                      (cons lambda-curr v-next)
                      (loop v-next (+ iter 1) lambda-curr))))))
 
-;;; ============================================================
+;;; ====
 ;;; Eigenvalue-Based Stability Classification
-;;; ============================================================
+;;; ====
 
 ;;; classify-stability-2d : (List Complex) → Symbol
 ;;; Classify stability for 2D system based on eigenvalues.
@@ -267,9 +267,9 @@
          [eigenvalues (matrix-eigenvalues-2d jac)])
         (cons (classify-stability-2d eigenvalues) eigenvalues)))
 
-;;; ============================================================
+;;; ====
 ;;; Stability Predicates
-;;; ============================================================
+;;; ====
 
 ;;; stable? : Symbol → Bool
 ;;; Check if a stability type is stable.
@@ -286,9 +286,9 @@
 (define (unstable? stability-type)
   (if (memq stability-type '(unstable-node unstable-spiral saddle)) #t #f))
 
-;;; ============================================================
+;;; ====
 ;;; Higher-Dimensional Stability
-;;; ============================================================
+;;; ====
 
 ;;; classify-stability-nd : (List Complex) → Symbol
 ;;; Classify stability for n-dimensional system based on eigenvalues.
@@ -316,9 +316,9 @@
                                   'unstable)])
                   (cons stability (list dom-eval))))))
 
-;;; ============================================================
+;;; ====
 ;;; Standard System Analysis
-;;; ============================================================
+;;; ====
 
 ;;; analyze-linear-system : Any → (Symbol × (List Complex))
 ;;; Analyze stability of a linear ODE system dx/dt = Ax.
@@ -326,9 +326,9 @@
   (let ([eigenvalues (matrix-eigenvalues-2d A)])
        (cons (classify-stability-2d eigenvalues) eigenvalues)))
 
-;;; ============================================================
+;;; ====
 ;;; Trajectory Analysis
-;;; ============================================================
+;;; ====
 
 ;;; estimate-basin-of-attraction : Any × Any × Number × (List Any) → (List Any)
 ;;; Estimate basin of attraction by testing which initial conditions

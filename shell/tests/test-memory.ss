@@ -28,9 +28,9 @@
 (define (assert-false name actual)
   (assert-equal name actual #f))
 
-;;; ============================================================
+;;; ====
 ;;; memory-snapshot Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Testing current-memory-snapshot ===\n")
 
@@ -50,9 +50,9 @@
      (assert-true "timestamp is positive"
                   (> (memory-snapshot-timestamp-ns snap) 0)))
 
-;;; ============================================================
+;;; ====
 ;;; compute-memory-delta Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Testing compute-memory-delta ===\n")
 
@@ -70,9 +70,9 @@
       (assert-true "gc-triggered is non-negative"
                    (>= (memory-delta-gc-triggered delta) 0)))
 
-;;; ============================================================
+;;; ====
 ;;; memory-thunk Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Testing memory-thunk ===\n")
 
@@ -96,9 +96,9 @@
                    (length (memory-result-value result))
                    100))
 
-;;; ============================================================
+;;; ====
 ;;; gc-and-measure Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Testing gc-and-measure ===\n")
 
@@ -109,9 +109,9 @@
      (assert-true "snapshot is recent"
                   (> (memory-snapshot-timestamp-ns snap) 0)))
 
-;;; ============================================================
+;;; ====
 ;;; memory-benchmark Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Testing memory-benchmark ===\n")
 
@@ -137,9 +137,9 @@
      (assert-true "has stats"
                   (memory-stats? (memory-benchmark-result-stats result))))
 
-;;; ============================================================
+;;; ====
 ;;; memory-benchmark-with-gc Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Testing memory-benchmark-with-gc ===\n")
 
@@ -151,9 +151,9 @@
                    (memory-benchmark-result-iterations result)
                    3))
 
-;;; ============================================================
+;;; ====
 ;;; compute-memory-stats Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Testing compute-memory-stats ===\n")
 
@@ -184,9 +184,9 @@
       (assert-true "mean is reasonable"
                    (= (memory-stats-mean-allocated stats) 150)))
 
-;;; ============================================================
+;;; ====
 ;;; format-bytes Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Testing format-bytes ===\n")
 
@@ -206,9 +206,9 @@
 (assert-true "negative bytes handled"
              (string? (format-bytes -1024)))
 
-;;; ============================================================
+;;; ====
 ;;; format-memory-snapshot Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Testing format-memory-snapshot ===\n")
 
@@ -226,9 +226,9 @@
       (assert-true "contains gc-count"
                    (string-contains? formatted "gc-count")))
 
-;;; ============================================================
+;;; ====
 ;;; format-memory-delta Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Testing format-memory-delta ===\n")
 
@@ -243,9 +243,9 @@
       (assert-true "contains freed"
                    (string-contains? formatted "freed")))
 
-;;; ============================================================
+;;; ====
 ;;; format-memory-stats Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Testing format-memory-stats ===\n")
 
@@ -263,9 +263,9 @@
       (assert-true "contains mean"
                    (string-contains? formatted "mean")))
 
-;;; ============================================================
+;;; ====
 ;;; allocate-bytes Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Testing allocate-bytes ===\n")
 
@@ -277,9 +277,9 @@
                    (bytevector-length bv)
                    1024))
 
-;;; ============================================================
+;;; ====
 ;;; measure-under-pressure Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Testing measure-under-pressure ===\n")
 
@@ -292,9 +292,9 @@
                    (memory-result-value result)
                    'tested))
 
-;;; ============================================================
+;;; ====
 ;;; Edge Cases
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Testing Edge Cases ===\n")
 
@@ -310,11 +310,11 @@
 (assert-true "allocate zero bytes"
              (= (bytevector-length (allocate-bytes 0)) 0))
 
-;;; ============================================================
+;;; ====
 ;;; Test Summary
-;;; ============================================================
+;;; ====
 
-(printf "\n========================================\n")
+(printf "\n====\n")
 (printf "Test Results (memory):\n")
 (printf "  Total:  ~a\n" test-count)
 (printf "  Passed: ~a\n" pass-count)

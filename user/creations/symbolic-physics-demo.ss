@@ -12,9 +12,9 @@
 (load "user/creations/ascii-video.ss")
 (load "user/creations/ascii-video-export.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Configuration
-;;; ============================================================
+;;; ====
 
 (define WIDTH 70)
 (define HEIGHT 35)
@@ -28,9 +28,9 @@
 (define TARGET-X 58)
 (define TARGET-Y 12)
 
-;;; ============================================================
+;;; ====
 ;;; Symbolic Physics Equations
-;;; ============================================================
+;;; ====
 
 ;; Build symbolic projectile equations:
 ;; y(t) = y0 + vy*t + 0.5*g*t^2
@@ -58,9 +58,9 @@
 (define dy/dt (simplify (deriv sym-y-equation 't)))    ; Should be vy + g*t
 (define dx/dvx (simplify (deriv sym-x-equation 'vx)))  ; Should be t
 
-;;; ============================================================
+;;; ====
 ;;; Frame Drawing Utilities
-;;; ============================================================
+;;; ====
 
 (define (draw-title! frame title y-pos)
   (let ([start-x (inexact->exact (floor (- (/ WIDTH 2) (/ (string-length title) 2))))])
@@ -122,9 +122,9 @@
   (frame-set! frame x (+ y h -1) #\+)
   (frame-set! frame (+ x w -1) (+ y h -1) #\+))
 
-;;; ============================================================
+;;; ====
 ;;; Trajectory Simulation (Plain Numbers)
-;;; ============================================================
+;;; ====
 
 (define (simulate-trajectory vx vy)
   "Simulate projectile, return list of (x . y) pairs"
@@ -138,9 +138,9 @@
                   [new-y (+ y (* new-vy DT))])
                  (loop new-x new-y vel-x new-vy (+ i 1) (cons (cons x y) traj))))))
 
-;;; ============================================================
+;;; ====
 ;;; Numeric Optimization via Autodiff
-;;; ============================================================
+;;; ====
 
 (define (optimize-velocity)
   "Find initial velocity to hit target using gradient descent"
@@ -183,9 +183,9 @@
                                  (- vy (* lr gy))
                                  (+ iter 1))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Animation Frames
-;;; ============================================================
+;;; ====
 
 (define (make-title-frames video n)
   (do ([i 0 (+ i 1)])
@@ -345,9 +345,9 @@
                  (draw-point! frame TARGET-X TARGET-Y #\@)
                  (video-add-frame! video frame)))))
 
-;;; ============================================================
+;;; ====
 ;;; Main Demo
-;;; ============================================================
+;;; ====
 
 (define (run-symbolic-physics-demo)
   (display "=== Symbolic + Numeric Autodiff Physics Demo ===\n\n")

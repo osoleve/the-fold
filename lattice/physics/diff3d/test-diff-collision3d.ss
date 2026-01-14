@@ -6,13 +6,13 @@
 (load "lattice/physics/diff3d/diff-collision3d.ss")
 
 (display "\n")
-(display "==============================================================\n")
+(display "====\n")
 (display "         DIFF COLLISION 3D TESTS\n")
-(display "==============================================================\n")
+(display "====\n")
 
-;;; ============================================================
+;;; ====
 ;;; Test Helpers
-;;; ============================================================
+;;; ====
 
 (define *test-dt* 0.01)
 (define *test-mat* (default-soft-material-3d))
@@ -27,9 +27,9 @@
    1.0   ; mass
    (inertia-solid-sphere 1.0 1.0)))  ; inertia for unit sphere
 
-;;; ============================================================
+;;; ====
 ;;; Sphere-Sphere Collision Force Tests
-;;; ============================================================
+;;; ====
 
 (test-group sphere-collision-force-tests
             
@@ -68,9 +68,9 @@
                              (let ([force-mag (traced-value (traced-vec3-magnitude force))])
                                   (assert-true (> force-mag 100))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Ground Collision Tests
-;;; ============================================================
+;;; ====
 
 (test-group ground-collision-tests
             
@@ -104,9 +104,9 @@
                              ;; Friction should oppose motion (negative x component)
                              (assert-true (< (traced-value (traced-vec3-x force)) 0)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Collision Step Tests
-;;; ============================================================
+;;; ====
 
 (test-group collision-step-tests
             
@@ -133,9 +133,9 @@
                              ;; B should be moving in +x direction
                              (assert-true (> (traced-value (traced-vec3-x (traced-body-3d-vel new-b))) 0)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Multi-Body System Tests
-;;; ============================================================
+;;; ====
 
 (test-group multi-body-tests
             
@@ -163,9 +163,9 @@
                                                   (traced-value (traced-vec3-x fb)))])
                                        (assert-true (< (abs sum-x) 1e-6)))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Utility Function Tests
-;;; ============================================================
+;;; ====
 
 (test-group utility-tests
             
@@ -197,9 +197,9 @@
               (let ([e (effective-restitution-3d 100 1000 1.0 1.0)])
                    (assert-equal 0 e))))
 
-;;; ============================================================
+;;; ====
 ;;; Physics Step Integration Tests
-;;; ============================================================
+;;; ====
 
 (test-group physics-step-tests
             
@@ -223,8 +223,8 @@
                          ;; Velocity should be less negative than pure gravity would cause
                          (assert-true (> vy -6))))))
 
-;;; ============================================================
+;;; ====
 ;;; Run all tests
-;;; ============================================================
+;;; ====
 
 (run-all-tests)

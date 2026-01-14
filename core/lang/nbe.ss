@@ -23,9 +23,9 @@
 (load "core/base/prelude.ss")
 (load "core/types/types.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Semantic Values
-;;; ============================================================
+;;; ====
 
 ;;; Values are the semantic domain for NbE.
 ;;; They represent fully evaluated (normalized) expressions.
@@ -168,9 +168,9 @@
 ;;; V-base-val : Value → α
 (define (V-base-val v) (cadr v))
 
-;;; ============================================================
+;;; ====
 ;;; Neutral Values
-;;; ============================================================
+;;; ====
 
 ;;; A neutral value represents a stuck computation:
 ;;;   - A variable that can't be reduced
@@ -219,9 +219,9 @@
 (define (N-snd? n)
   (and (pair? n) (eq? (car n) 'N-snd)))
 
-;;; ============================================================
+;;; ====
 ;;; Closures
-;;; ============================================================
+;;; ====
 
 ;;; A closure packages an expression with its environment.
 ;;; When applied to a value, it substitutes and continues evaluation.
@@ -264,9 +264,9 @@
 (define (const-closure-value c)
   (cadr c))
 
-;;; ============================================================
+;;; ====
 ;;; Environments
-;;; ============================================================
+;;; ====
 
 ;;; NbE environments map de Bruijn levels to values.
 ;;; We use an alist for simplicity.
@@ -283,9 +283,9 @@
            ;; Unknown variable becomes a neutral
            (V-neutral (N-var name)))))
 
-;;; ============================================================
+;;; ====
 ;;; Evaluation (Expr → Value)
-;;; ============================================================
+;;; ====
 
 ;;; nbe-eval : Expr × Env → Value
 ;;; Evaluate an expression to a value in the given environment.
@@ -458,9 +458,9 @@
             [rest-expr `(× ,@(cdr types))])
            (V-sigma fst-type (make-closure '_ rest-expr env)))))
 
-;;; ============================================================
+;;; ====
 ;;; Readback (Value → Expr)
-;;; ============================================================
+;;; ====
 
 ;;; readback : Value × Int → Expr
 ;;; Convert a value back to a normal form expression.
@@ -548,9 +548,9 @@
    
    [else neutral]))
 
-;;; ============================================================
+;;; ====
 ;;; Fresh Names
-;;; ============================================================
+;;; ====
 
 ;;; fresh-name : Int → Symbol
 ;;; Generate a fresh variable name from a de Bruijn level.
@@ -573,9 +573,9 @@
    [(not (pair? expr)) #f]
    [else (ormap (lambda (e) (mentions-var? e var)) expr)]))
 
-;;; ============================================================
+;;; ====
 ;;; Normalization
-;;; ============================================================
+;;; ====
 
 ;;; normalize : Expr × Env → Expr
 ;;; Normalize an expression to its normal form.
@@ -587,9 +587,9 @@
 (define (normalize-closed expr)
   (normalize expr nbe-empty-env))
 
-;;; ============================================================
+;;; ====
 ;;; Conversion Checking
-;;; ============================================================
+;;; ====
 
 ;;; convert? : Value × Value × Int → Boolean
 ;;; Check if two values are definitionally equal.
@@ -696,9 +696,9 @@
    
    [else #f]))
 
-;;; ============================================================
+;;; ====
 ;;; Convenience Functions
-;;; ============================================================
+;;; ====
 
 ;;; types-equal? : Type × Type → Boolean
 ;;; Check if two types are definitionally equal.
@@ -712,9 +712,9 @@
 (define (type-nf t)
   (normalize-closed t))
 
-;;; ============================================================
+;;; ====
 ;;; Type-Level Computation
-;;; ============================================================
+;;; ====
 
 ;;; The following extends NbE to handle type-level primitives.
 ;;; These allow computation within types:
@@ -818,9 +818,9 @@
 (define (N-type-prim? n)
   (and (pair? n) (eq? (car n) 'N-type-prim)))
 
-;;; ============================================================
+;;; ====
 ;;; Kind NbE - Phase 2: Kind Normalization
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Extends NbE to handle kinds. This enables:
 ;;;   - Normalizing kind expressions
@@ -834,9 +834,9 @@
 ;;;   KV-sort    : Sort □ (kind of kinds) as a value
 ;;;   KV-neutral : Stuck kind computation
 
-;;; ============================================================
+;;; ====
 ;;; Kind Semantic Values
-;;; ============================================================
+;;; ====
 
 ;;; KV-star : → KindValue
 ;;; The base kind * as a semantic value.
@@ -905,9 +905,9 @@
 
 (define (KV-neutral-term v) (cadr v))
 
-;;; ============================================================
+;;; ====
 ;;; Kind Neutral Values
-;;; ============================================================
+;;; ====
 
 ;;; KN-var : Level → KindNeutral
 ;;; A kind variable (stuck).
@@ -927,9 +927,9 @@
 (define (KN-app? n)
   (and (pair? n) (eq? (car n) 'KN-app)))
 
-;;; ============================================================
+;;; ====
 ;;; Kind Closures
-;;; ============================================================
+;;; ====
 
 ;;; make-kind-closure : Symbol × KindExpr × KindEnv → KindClosure
 (define (make-kind-closure param body env)
@@ -966,9 +966,9 @@
    [else
     (error 'apply-kind-closure "invalid closure" clo)]))
 
-;;; ============================================================
+;;; ====
 ;;; Kind Environments
-;;; ============================================================
+;;; ====
 
 (define kind-empty-env '())
 
@@ -982,9 +982,9 @@
            ;; Unknown kind variable becomes a neutral
            (KV-neutral (KN-var name)))))
 
-;;; ============================================================
+;;; ====
 ;;; Kind Evaluation (Kind → KindValue)
-;;; ============================================================
+;;; ====
 
 ;;; eval-kind : Kind × KindEnv → KindValue
 ;;; Evaluate a kind expression to a kind semantic value.
@@ -1052,9 +1052,9 @@
    [else
     (error 'eval-kind "unknown kind form" kind)]))
 
-;;; ============================================================
+;;; ====
 ;;; Kind Readback (KindValue → Kind)
-;;; ============================================================
+;;; ====
 
 ;;; kind-readback : Level × KindValue → Kind
 ;;; Convert a kind semantic value back to a normal form kind expression.
@@ -1133,9 +1133,9 @@
    [(not (pair? kind)) #f]
    [else (ormap (lambda (k) (kind-mentions-var? k var)) kind)]))
 
-;;; ============================================================
+;;; ====
 ;;; Kind Normalization
-;;; ============================================================
+;;; ====
 
 ;;; kind-normalize : Kind × KindEnv → Kind
 ;;; Normalize a kind expression.
@@ -1147,9 +1147,9 @@
 (define (kind-normalize-closed kind)
   (kind-normalize kind kind-empty-env))
 
-;;; ============================================================
+;;; ====
 ;;; Kind Equivalence (Conversion Checking)
-;;; ============================================================
+;;; ====
 
 ;;; kind-equiv? : Level × KindValue × KindValue → Boolean
 ;;; Check if two kind values are definitionally equal.
@@ -1216,9 +1216,9 @@
    
    [else #f]))
 
-;;; ============================================================
+;;; ====
 ;;; Convenience Functions
-;;; ============================================================
+;;; ====
 
 ;;; kinds-equal? : Kind × Kind → Boolean
 ;;; Check if two kinds are definitionally equal.

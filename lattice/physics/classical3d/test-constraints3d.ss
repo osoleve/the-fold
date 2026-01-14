@@ -6,13 +6,13 @@
 (load "lattice/physics/classical3d/constraint-solver3d.ss")
 
 (display "\n")
-(display "==============================================================\n")
+(display "====\n")
 (display "         CONSTRAINTS 3D TESTS\n")
-(display "==============================================================\n")
+(display "====\n")
 
-;;; ============================================================
+;;; ====
 ;;; Constraint Data Structure Tests
-;;; ============================================================
+;;; ====
 
 (test-group constraint-data-tests
             
@@ -46,9 +46,9 @@
                    (assert-equal 1000 (spring-data-3d-stiffness data))
                    (assert-equal 10 (spring-data-3d-damping data)))))
 
-;;; ============================================================
+;;; ====
 ;;; Distance Constraint Solver Tests
-;;; ============================================================
+;;; ====
 
 (test-group distance-solver-tests
             
@@ -91,9 +91,9 @@
                                                                         (rigid-body-3d-pos new-a)))])
                                    (assert-true (> new-dist old-dist))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Ball-Socket Joint Solver Tests
-;;; ============================================================
+;;; ====
 
 (test-group ball-socket-solver-tests
             
@@ -131,9 +131,9 @@
                                                                         (rigid-body-3d-pos new-a)))])
                                    (assert-true (< new-dist old-dist))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Spring Constraint Solver Tests
-;;; ============================================================
+;;; ====
 
 (test-group spring-solver-tests
             
@@ -177,9 +177,9 @@
                              ;; Body B should have positive x velocity (pushed away from A)
                              (assert-true (> (vec3-x (rigid-body-3d-vel new-b)) 0)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Constraint Factory Tests
-;;; ============================================================
+;;; ====
 
 (test-group constraint-factory-tests
             
@@ -217,9 +217,9 @@
                    (assert-true (constraint-3d? joint))
                    (assert-equal 'spring-3d (constraint-3d-type joint)))))
 
-;;; ============================================================
+;;; ====
 ;;; Mat3 Utility Tests
-;;; ============================================================
+;;; ====
 
 (test-group mat3-utility-tests
             
@@ -235,9 +235,9 @@
               (let ([Z (mat3-zero)])
                    (assert-equal 0 (mat3-trace Z)))))
 
-;;; ============================================================
+;;; ====
 ;;; Run all tests
-;;; ============================================================
+;;; ====
 
 (run-all-tests)
 

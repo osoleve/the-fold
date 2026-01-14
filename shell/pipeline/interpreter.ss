@@ -32,9 +32,9 @@
 (load "shell/pipeline/effects/misc.ss")
 (load "shell/pipeline/checkpoint.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Main Interpreter Entry Point
-;;; ============================================================
+;;; ====
 
 ;;; run-pipeline : PipelineDef -> Any -> (StageResult . PipelineState)
 ;;; Execute a pipeline with input, return result and final state.
@@ -50,9 +50,9 @@
 (define (run-pipeline-with-context stage ctx input)
   (interpret-pipeline stage ctx empty-state input))
 
-;;; ============================================================
+;;; ====
 ;;; Pipeline Interpretation Loop
-;;; ============================================================
+;;; ====
 
 ;;; interpret-pipeline : Stage -> Context -> State -> Input -> (Result . State)
 (define (interpret-pipeline stage ctx state input)
@@ -85,9 +85,9 @@
                      result)
           state)]))
 
-;;; ============================================================
+;;; ====
 ;;; Effect Interpretation Dispatcher
-;;; ============================================================
+;;; ====
 
 ;;; interpret-effect : Effect -> Context -> State -> (Result . State)
 (define (interpret-effect effect ctx state)
@@ -113,9 +113,9 @@
                                effect)
                     state)])))
 
-;;; ============================================================
+;;; ====
 ;;; Pipeline Effect Interpretation (Nesting)
-;;; ============================================================
+;;; ====
 
 ;;; interpret-pipeline-effect : Payload -> Context -> State -> Input -> (Result . State)
 (define (interpret-pipeline-effect payload ctx state input)
@@ -161,9 +161,9 @@
                                payload)
                     state)])))
 
-;;; ============================================================
+;;; ====
 ;;; Council Effect Interpretation
-;;; ============================================================
+;;; ====
 
 ;;; interpret-council-effect : CouncilEffect -> Context -> State -> (Result . State)
 (define (interpret-council-effect effect ctx state)
@@ -294,9 +294,9 @@
 (define (run-consensus-council config topic ctx state)
   (run-sequential-council config topic ctx state))
 
-;;; ============================================================
+;;; ====
 ;;; Race Effect Interpretation
-;;; ============================================================
+;;; ====
 
 ;;; interpret-race-effect : RaceEffect -> Context -> State -> (Result . State)
 (define (interpret-race-effect effect ctx state)
@@ -307,9 +307,9 @@
            (cons (stage-err 'race-empty "No stages to race" '()) state)
            (interpret-pipeline (car stages) ctx state input))))
 
-;;; ============================================================
+;;; ====
 ;;; Helper Functions
-;;; ============================================================
+;;; ====
 
 ;;; build-context-from-config : Alist -> PipelineContext
 (define (build-context-from-config config)

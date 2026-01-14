@@ -50,9 +50,9 @@
   (display name)
   (newline))
 
-;;; ============================================================
+;;; ====
 ;;; Fixed Point Detection
-;;; ============================================================
+;;; ====
 (test-section "Fixed Point Detection")
 
 (define harmonic (harmonic-oscillator 1.0))
@@ -73,9 +73,9 @@
       #t
       (is-fixed-point? lv lv-eq 1e-6))
 
-;;; ============================================================
+;;; ====
 ;;; Jacobian Computation
-;;; ============================================================
+;;; ====
 (test-section "Jacobian Computation")
 
 ;;; Linear system: dx/dt = Ax should have Jacobian = A
@@ -115,9 +115,9 @@
              (matrix-ref jac-harmonic 1 1)
              0.01)
 
-;;; ============================================================
+;;; ====
 ;;; Stability Classification - Linear Systems
-;;; ============================================================
+;;; ====
 (test-section "Linear System Stability")
 
 ;;; Stable node: both eigenvalues negative real
@@ -168,9 +168,9 @@
       'center
       (car center-result))
 
-;;; ============================================================
+;;; ====
 ;;; Stability Classification - Nonlinear Systems
-;;; ============================================================
+;;; ====
 (test-section "Nonlinear System Stability")
 
 ;;; Harmonic oscillator has center at origin
@@ -196,9 +196,9 @@
       #t
       (unstable? (car vdp-stability)))
 
-;;; ============================================================
+;;; ====
 ;;; Stability Predicates
-;;; ============================================================
+;;; ====
 (test-section "Stability Predicates")
 
 (test "stable node is stable"
@@ -225,9 +225,9 @@
       #t
       (asymptotically-stable? 'stable-node))
 
-;;; ============================================================
+;;; ====
 ;;; Matrix Inversion
-;;; ============================================================
+;;; ====
 (test-section "Matrix Inversion")
 
 (define test-matrix (list 'matrix 2 2 (vector 1 2 3 4)))
@@ -254,9 +254,9 @@
              (matrix-ref product 1 1)
              0.01)
 
-;;; ============================================================
+;;; ====
 ;;; Linearization
-;;; ============================================================
+;;; ====
 (test-section "Linearization")
 
 (define pendulum-sys (pendulum 1.0))
@@ -268,9 +268,9 @@
       (and (< (abs (matrix-ref pend-jac-upright 0 1)) 1.01)
            (> (abs (matrix-ref pend-jac-upright 0 1)) 0.99)))
 
-;;; ============================================================
+;;; ====
 ;;; Fixed Point Refinement
-;;; ============================================================
+;;; ====
 (test-section "Fixed Point Refinement")
 
 (define lv-approx (vector 4.9 10.1))  ; Close to actual equilibrium
@@ -283,9 +283,9 @@
              (vec-norm (vec-sub lv-approx lv-eq)))
           #f))
 
-;;; ============================================================
+;;; ====
 ;;; Classify Stability 2D
-;;; ============================================================
+;;; ====
 (test-section "Stability Classification 2D")
 
 (define real-neg-evals (list (make-complex -1.0 0.0) (make-complex -2.0 0.0)))
@@ -318,9 +318,9 @@
       'center
       (classify-stability-2d imaginary-evals))
 
-;;; ============================================================
+;;; ====
 ;;; Higher-Dimensional Stability
-;;; ============================================================
+;;; ====
 (test-section "Higher-Dimensional Stability")
 
 (define stable-evals-3d (list (make-complex -1.0 0.0)
@@ -347,9 +347,9 @@
       'saddle-type
       (classify-stability-nd saddle-evals-3d))
 
-;;; ============================================================
+;;; ====
 ;;; Edge Cases
-;;; ============================================================
+;;; ====
 (test-section "Edge Cases")
 
 (test "degenerate eigenvalues (both zero)"

@@ -16,9 +16,9 @@
 ;;;   Spatial queries (at position, in area, pathfinding)
 ;;;   World state updates
 ;;;
-;;; ============================================================
+;;; ====
 ;;; MUTATION SEMANTICS — IMPORTANT!
-;;; ============================================================
+;;; ====
 ;;;
 ;;; This SDK uses a HYBRID approach:
 ;;;   - FUNCTIONAL: Most operations return NEW worlds/entities
@@ -53,9 +53,9 @@
 ;;;     ✗ (set! world (world-set-tile! world x y tile-wall))  ; Wrong!
 ;;;
 
-;;; ============================================================
+;;; ====
 ;;; World Structure
-;;; ============================================================
+;;; ====
 
 ;;; World : Record
 ;;;   tilemap      — TileMap, the terrain
@@ -98,9 +98,9 @@
 (define (world-height world)
   (tilemap-height (world-tilemap world)))
 
-;;; ============================================================
+;;; ====
 ;;; Spatial Index Management
-;;; ============================================================
+;;; ====
 
 ;;; The spatial index stores entity IDs at each tile position
 ;;; for O(1) lookup of entities by position.
@@ -142,9 +142,9 @@
   (spatial-remove! world old-x old-y entity-id)
   (spatial-add! world new-x new-y entity-id))
 
-;;; ============================================================
+;;; ====
 ;;; World Update (Functional)
-;;; ============================================================
+;;; ====
 
 ;;; world-set-tilemap : World × TileMap -> World
 (define (world-set-tilemap world new-tilemap)
@@ -196,9 +196,9 @@
   (world-set-metadata world
                       (alist-set (world-metadata world) key value)))
 
-;;; ============================================================
+;;; ====
 ;;; Entity Management
-;;; ============================================================
+;;; ====
 
 ;;; world-add-entity : World × Entity -> World
 ;;; Add an entity to the world.
@@ -263,9 +263,9 @@
 (define (world-entity-ids world)
   (map car (world-entities world)))
 
-;;; ============================================================
+;;; ====
 ;;; Player Access
-;;; ============================================================
+;;; ====
 
 ;;; world-get-player : World -> Entity | #f
 (define (world-get-player world)
@@ -287,9 +287,9 @@
   (let ([world (world-add-entity world player-entity)])
        (world-set-player-id world (entity-id player-entity))))
 
-;;; ============================================================
+;;; ====
 ;;; Spatial Queries
-;;; ============================================================
+;;; ====
 
 ;;; world-entities-at : World × Int × Int -> List Entity
 ;;; Get all entities at a position.
@@ -363,9 +363,9 @@
             #f
             (cdar sorted))))
 
-;;; ============================================================
+;;; ====
 ;;; Movement and Collision
-;;; ============================================================
+;;; ====
 
 ;;; world-tile-walkable? : World × Int × Int -> Bool
 ;;; Check if tile is walkable (terrain check only).
@@ -408,9 +408,9 @@
                      world))
            world)))
 
-;;; ============================================================
+;;; ====
 ;;; Line of Sight
-;;; ============================================================
+;;; ====
 
 ;;; world-tile-opaque? : World × Int × Int -> Bool
 ;;; Check if tile blocks sight.
@@ -448,9 +448,9 @@
                            (set! new-y (+ new-y sy)))
                      (loop new-x new-y new-err))]))))
 
-;;; ============================================================
+;;; ====
 ;;; Field of View (Simple Shadowcasting)
-;;; ============================================================
+;;; ====
 
 ;;; world-compute-fov! : World × Point × Nat -> Void
 ;;; Compute field of view from a point with given radius.
@@ -479,9 +479,9 @@
                                                       (ray-loop (+ dist 1))))))))
                   (loop-angle (+ angle (/ 3.14159 (* 4 radius))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Pathfinding (A*)
-;;; ============================================================
+;;; ====
 
 ;;; path-node : Internal structure for A* algorithm
 (define (make-path-node pos g h parent)
@@ -555,9 +555,9 @@
                                                                        open)
                                                                open))))))))))])))]))
 
-;;; ============================================================
+;;; ====
 ;;; Inventory Management (World-Level)
-;;; ============================================================
+;;; ====
 
 ;;; world-pickup-item : World × Nat × Nat -> World
 ;;; Entity picks up an item at their current location.
@@ -628,9 +628,9 @@
   (let ([entities (world-entities-at world x y)])
        (filter entity-is-item? entities)))
 
-;;; ============================================================
+;;; ====
 ;;; Tilemap Mutation
-;;; ============================================================
+;;; ====
 
 ;;; world-set-tile! : World × Int × Int × TileType -> Void
 ;;; Change a tile in the world.
@@ -659,9 +659,9 @@
              #t)
             #f)))
 
-;;; ============================================================
+;;; ====
 ;;; World Rendering
-;;; ============================================================
+;;; ====
 
 ;;; world->canvas : World × [Bool] -> Canvas
 ;;; Render world to canvas (tiles + entities).
@@ -747,9 +747,9 @@
                  canvas
                  sorted)))]))
 
-;;; ============================================================
+;;; ====
 ;;; Utility Functions
-;;; ============================================================
+;;; ====
 
 ;;; any : (A -> Bool) × List A -> Bool
 ;;; Check if any element satisfies predicate.
@@ -786,9 +786,9 @@
    [(eq? item (car lst)) lst]
    [else (member item (cdr lst) eq?)]))
 
-;;; ============================================================
+;;; ====
 ;;; Export Summary
-;;; ============================================================
+;;; ====
 ;;;
 ;;; World Structure:
 ;;;   make-world, world-tilemap, world-entities, world-spatial-index

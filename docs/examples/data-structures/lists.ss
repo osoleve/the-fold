@@ -4,9 +4,9 @@
 ;;;
 ;;; Run with: scheme --script docs/examples/data-structures/lists.ss
 
-;;; ============================================================
+;;; ====
 ;;; Creating Lists
-;;; ============================================================
+;;; ====
 
 (display "=== Creating Lists ===\n")
 
@@ -25,9 +25,9 @@
 ;;; The empty list
 (format #t "empty list: ~a~%" '())
 
-;;; ============================================================
+;;; ====
 ;;; Accessing Elements
-;;; ============================================================
+;;; ====
 
 (display "\n=== Accessing Elements ===\n")
 
@@ -44,9 +44,9 @@
 ;;; list-ref for arbitrary index (0-based)
 (format #t "list-ref 1 of ~a = ~a~%" colors (list-ref colors 1))
 
-;;; ============================================================
+;;; ====
 ;;; List Properties
-;;; ============================================================
+;;; ====
 
 (display "\n=== List Properties ===\n")
 
@@ -56,9 +56,9 @@
 (format #t "list? ~a = ~a~%" colors (list? colors))
 (format #t "pair? ~a = ~a~%" colors (pair? colors))
 
-;;; ============================================================
+;;; ====
 ;;; Transforming Lists
-;;; ============================================================
+;;; ====
 
 (display "\n=== Transforming Lists ===\n")
 
@@ -77,9 +77,9 @@
 (define evens (filter even? '(1 2 3 4 5 6)))
 (format #t "evens from (1 2 3 4 5 6) = ~a~%" evens)
 
-;;; ============================================================
+;;; ====
 ;;; Folding (Reducing)
-;;; ============================================================
+;;; ====
 
 (display "\n=== Folding ===\n")
 
@@ -95,9 +95,9 @@
   (fold-left string-append "" '("Hello" " " "World" "!")))
 (format #t "concatenated: ~a~%" greeting)
 
-;;; ============================================================
+;;; ====
 ;;; Searching
-;;; ============================================================
+;;; ====
 
 (display "\n=== Searching ===\n")
 
@@ -112,9 +112,9 @@
 (define ages '((alice . 30) (bob . 25) (carol . 35)))
 (format #t "assoc 'bob in ~a = ~a~%" ages (assoc 'bob ages))
 
-;;; ============================================================
+;;; ====
 ;;; Building Lists Recursively
-;;; ============================================================
+;;; ====
 
 (display "\n=== Recursive List Building ===\n")
 

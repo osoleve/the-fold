@@ -14,16 +14,16 @@
 ;;;
 ;;; Do NOT load dependencies here to avoid redefinition issues.
 
-;;; ============================================================
+;;; ====
 ;;; Numerical Tolerance
-;;; ============================================================
+;;; ====
 
 ;;; Threshold for numerical stability checks (singularity, linear dependence)
 (define *matrix-tolerance* 1e-10)
 
-;;; ============================================================
+;;; ====
 ;;; Helper Functions
-;;; ============================================================
+;;; ====
 
 ;;; Note: vec-norm and vec-dot are defined in vec.ss
 ;;; This file assumes vec.ss is loaded (via matrix.ss dependency)
@@ -53,9 +53,9 @@
             (vector-set! result i (matrix-ref m i j)))))
 
 
-;;; ============================================================
+;;; ====
 ;;; LU Decomposition
-;;; ============================================================
+;;; ====
 
 ;;; matrix-lu : (Matrix Real) → ((Matrix Real) × (Matrix Real) × (Vec Nat)) | Error
 (define (matrix-lu a)
@@ -161,9 +161,9 @@
                  (vector-set! x i (/ (- (vector-ref y i) sum)
                                      (matrix-ref u i i)))))))
 
-;;; ============================================================
+;;; ====
 ;;; QR Decomposition
-;;; ============================================================
+;;; ====
 
 ;;; qr-find-orthogonal-basis : (Matrix Real) × Nat × Nat → (Vec Real) | #f
 ;;; Find a unit vector orthogonal to columns 0..j-1 of Q.
@@ -245,9 +245,9 @@
                                      (qr-orthogonalize-remaining! q r j m n)
                                      (col-loop (+ j 1)))))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Cholesky Decomposition
-;;; ============================================================
+;;; ====
 
 ;;; matrix-cholesky : (Matrix Real) → (List (Matrix Real)) | Error
 ;;; Returns (list L) where A = L x L^T for positive-definite A.

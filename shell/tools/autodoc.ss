@@ -20,9 +20,9 @@
 
 (load "core/base/prelude.ss")
 
-;;; ============================================================ 
+;;; ==== 
 ;;; Data Structures
-;;; ============================================================ 
+;;; ==== 
 
 ;;; Doc entry structure:
 ;;;   ((name        . Symbol)
@@ -44,9 +44,9 @@
 ;;;    (label    . String | #f)
 ;;;    (from     . String))
 
-;;; ============================================================ 
+;;; ==== 
 ;;; Global State
-;;; ============================================================ 
+;;; ==== 
 
 ;;; *autodoc-registry* : Hashtable Symbol → Doc-Entry
 (define *autodoc-registry* (make-eq-hashtable))
@@ -60,9 +60,9 @@
 ;;; *autodoc-initialized* : Boolean
 (define *autodoc-initialized* #f)
 
-;;; ============================================================ 
+;;; ==== 
 ;;; Path Utilities
-;;; ============================================================ 
+;;; ==== 
 
 ;;; derive-category : String → Symbol
 ;;; Derive category from file path.
@@ -119,9 +119,9 @@
            'private
            'public)))
 
-;;; ============================================================ 
+;;; ==== 
 ;;; File Reading Utilities
-;;; ============================================================ 
+;;; ==== 
 
 ;;; read-file-lines : String → (List String)
 (define (autodoc-read-file-lines path)
@@ -146,9 +146,9 @@
                                                      (reverse exprs)
                                                      (loop (cons expr exprs)))))))))
 
-;;; ============================================================ 
+;;; ==== 
 ;;; Docstring Parsing
-;;; ============================================================ 
+;;; ==== 
 
 ;;; parse-docstring-block : (List String) Int → (values String String (List Symbol))
 ;;; Parse docstring comments above a definition.
@@ -241,9 +241,9 @@
                  (map (lambda (p) (string->symbol (string-trim p)))
                       (filter (lambda (p) (not (string=? (string-trim p) ""))) parts))))))
 
-;;; ============================================================ 
+;;; ==== 
 ;;; Signature Extraction
-;;; ============================================================ 
+;;; ==== 
 
 ;;; extract-signature : (List String) Int → String | #f
 ;;; Extract signature from ;;; name : type comment above definition.
@@ -271,9 +271,9 @@
              [(char=? (string-ref str i) ch) i]
              [else (loop (+ i 1))]))))
 
-;;; ============================================================ 
+;;; ==== 
 ;;; Definition Extraction
-;;; ============================================================ 
+;;; ==== 
 
 ;;; scan-definitions : String → (List Doc-Entry)
 ;;; Scan a source file and extract all definitions.
@@ -435,9 +435,9 @@
                               #f))
                     (loop (+ i 1)))))))
 
-;;; ============================================================ 
+;;; ==== 
 ;;; Example Extraction (AST-based)
-;;; ============================================================ 
+;;; ==== 
 
 ;;; extract-examples-from-file : String → (List Example)
 ;;; Use (read) to parse test file and extract examples.
@@ -504,9 +504,9 @@
    [(pair? (car expr)) (extract-target-function (car expr))]
    [else #f]))
 
-;;; ============================================================ 
+;;; ==== 
 ;;; Index Building
-;;; ============================================================ 
+;;; ==== 
 
 ;;; scan-directory : String String → (List String)
 ;;; Find all .ss files in directory recursively.
@@ -596,9 +596,9 @@
                    pair))
        alist))
 
-;;; ============================================================ 
+;;; ==== 
 ;;; Display Functions
-;;; ============================================================ 
+;;; ==== 
 
 ;;; display-doc-entry : Doc-Entry → void
 (define (display-doc-entry entry)
@@ -666,9 +666,9 @@
       '()
       (cons (car lst) (take-up-to (- n 1) (cdr lst)))))
 
-;;; ============================================================ 
+;;; ==== 
 ;;; REPL Commands
-;;; ============================================================ 
+;;; ==== 
 
 ;;; doc : Symbol → void
 ;;; Show documentation for a symbol.
@@ -833,9 +833,9 @@
                      (string<? (symbol->string a) (symbol->string b)))
              syms))
 
-;;; ============================================================ 
+;;; ==== 
 ;;; Help System Integration
-;;; ============================================================ 
+;;; ==== 
 
 ;;; autodoc-lookup : Symbol → Entry | #f
 ;;; Check if symbol exists in autodoc (for help integration).
@@ -851,9 +851,9 @@
       (set! *autodoc-lookup* autodoc-lookup)
       (set! *autodoc-search-handler* doc-search))
 
-;;; ============================================================ 
+;;; ==== 
 ;;; Initialization Message
-;;; ============================================================ 
+;;; ==== 
 
 (display "\nAutodoc system loaded.\n")
 (display "Commands: (doc 'name), (doc-search \"pattern\"), (doc-category 'cat)\n")

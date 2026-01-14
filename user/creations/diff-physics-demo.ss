@@ -14,9 +14,9 @@
 (load "user/creations/ascii-video.ss")
 (load "user/creations/ascii-video-export.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Configuration
-;;; ============================================================
+;;; ====
 
 (define WIDTH 60)
 (define HEIGHT 30)
@@ -28,9 +28,9 @@
 (define DT (/ 1 30))                ; Timestep
 (define NUM-STEPS 60)               ; Simulation steps
 
-;;; ============================================================
+;;; ====
 ;;; Coordinate Transforms
-;;; ============================================================
+;;; ====
 
 ;; World coords: Y up, origin bottom-left
 ;; Screen coords: Y down, origin top-left
@@ -40,9 +40,9 @@
        (cons (inexact->exact (round x))
              (inexact->exact (round (- HEIGHT y 1))))))
 
-;;; ============================================================
+;;; ====
 ;;; Frame Drawing Utilities
-;;; ============================================================
+;;; ====
 
 (define (safe-set! frame x y char)
   (let ([xi (if (integer? x) x (inexact->exact (round x)))]
@@ -82,9 +82,9 @@
            ((>= i (string-length title)))
            (frame-set! frame (+ start-x i) y-pos (string-ref title i)))))
 
-;;; ============================================================
+;;; ====
 ;;; Trajectory Simulation (Plain Numbers)
-;;; ============================================================
+;;; ====
 
 (define (simulate-trajectory vel)
   "Simulate projectile with given initial velocity, return list of positions"
@@ -95,9 +95,9 @@
                   [new-pos (vec2-add pos (vec2-scale new-v DT))])
                  (loop new-pos new-v (+ i 1) (cons pos traj))))))
 
-;;; ============================================================
+;;; ====
 ;;; Trajectory Optimization
-;;; ============================================================
+;;; ====
 
 ;; Manual optimization using gradient (following test patterns)
 (define (optimize-velocity)
@@ -144,9 +144,9 @@
                                  (- vy (* lr gy))
                                  (+ iter 1))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Animation Generation
-;;; ============================================================
+;;; ====
 
 (define (make-intro-frames video n-frames)
   "Create intro frames with title"
@@ -233,9 +233,9 @@
                  (draw-point! frame TARGET-POS #\@)
                  (video-add-frame! video frame)))))
 
-;;; ============================================================
+;;; ====
 ;;; Main Demo
-;;; ============================================================
+;;; ====
 
 (define (run-diff-physics-demo)
   (display "Computing optimized trajectory...\n")

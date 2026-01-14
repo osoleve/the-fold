@@ -34,17 +34,17 @@
 (source-directories (cons "shell" (source-directories)))
 (load "string-utils.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Configuration
-;;; ============================================================
+;;; ====
 
 (define *doc-comment-prefix* ";;;")
 (define *export-summary-marker* "Export Summary")
 (define *section-marker-prefix* ";;; ===")
 
-;;; ============================================================
+;;; ====
 ;;; String Utilities
-;;; ============================================================
+;;; ====
 ;;;
 ;;; NOTE: string-trim, string-split, string-join, string-contains?,
 ;;; string-starts-with? (alias for string-prefix?) are provided by
@@ -54,9 +54,9 @@
 ;;; Alias for string-starts-with? from prelude.
 (define string-prefix? string-starts-with?)
 
-;;; ============================================================
+;;; ====
 ;;; Comment Parsing Utilities
-;;; ============================================================
+;;; ====
 
 
 ;;; path-basename : Path -> String
@@ -80,9 +80,9 @@
 (define (path->module-name path)
   (path-strip-extension (path-basename path)))
 
-;;; ============================================================
+;;; ====
 ;;; File Reading
-;;; ============================================================
+;;; ====
 
 ;;; read-file-lines : Path -> (List String)
 (define (read-file-lines path)
@@ -95,9 +95,9 @@
                                                      (reverse lines)
                                                      (loop (cons line lines)))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Doc Comment Parsing
-;;; ============================================================
+;;; ====
 
 ;;; doc-comment? : String -> Boolean
 ;;; True if line is a doc comment (starts with ;;;).
@@ -125,9 +125,9 @@
   (let ([trimmed (string-trim line)])
        (string-prefix? *section-marker-prefix* trimmed)))
 
-;;; ============================================================
+;;; ====
 ;;; Signature Parsing
-;;; ============================================================
+;;; ====
 
 ;;; parse-signature : String -> (List Symbol String) | #f
 ;;; Parse "function-name : Type -> Type" into (name . signature).
@@ -153,9 +153,9 @@
                      #f))
            #f)))
 
-;;; ============================================================
+;;; ====
 ;;; Function Definition Parsing
-;;; ============================================================
+;;; ====
 
 ;;; function-definition? : String -> Boolean
 (define (function-definition? line)
@@ -192,9 +192,9 @@
                           #f))]
                [else #f]))))
 
-;;; ============================================================
+;;; ====
 ;;; Export Summary Parsing
-;;; ============================================================
+;;; ====
 
 ;;; find-export-summary : (List String) -> (List String)
 ;;; Find and extract the Export Summary section.
@@ -250,9 +250,9 @@
                                       #f)))
                      parts))))
 
-;;; ============================================================
+;;; ====
 ;;; Documentation Extraction
-;;; ============================================================
+;;; ====
 
 ;;; extract-exports : (List String) -> (List (name signature doc line))
 ;;; Extract all documented exports from lines.
@@ -300,9 +300,9 @@
                 (loop (cdr ls) (+ line-num 1)
                       '() #f exports)]))])))
 
-;;; ============================================================
+;;; ====
 ;;; Main API
-;;; ============================================================
+;;; ====
 
 ;;; docgen-file : Path -> ModuleDoc
 ;;; Generate documentation for a single file.
@@ -390,9 +390,9 @@
    "
 "))
 
-;;; ============================================================
+;;; ====
 ;;; Query Functions
-;;; ============================================================
+;;; ====
 
 ;;; docgen-find : (List ModuleDoc) x Symbol -> (List Export) | '()
 ;;; Find all exports matching a name.
@@ -414,9 +414,9 @@
                                  (string-contains? doc-str query))))
                 index)))
 
-;;; ============================================================
+;;; ====
 ;;; Export Summary
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Main API:
 ;;;   docgen-file, docgen-directory, docgen-index, docgen-summary

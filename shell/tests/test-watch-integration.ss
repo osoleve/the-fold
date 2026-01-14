@@ -4,11 +4,11 @@
 ;;; Run this to validate the implementation.
 
 (display "Watch System Integration Test\n")
-(display "==============================\n\n")
+(display "====\n\n")
 
-;;; ============================================================
+;;; ====
 ;;; Test 1: Load watch system
-;;; ============================================================
+;;; ====
 
 (display "Test 1: Loading watch system... ")
 (guard (e [else
@@ -22,9 +22,9 @@
        (load "shell/watch.ss")
        (display "✓\n"))
 
-;;; ============================================================
+;;; ====
 ;;; Test 2: Verify exports
-;;; ============================================================
+;;; ====
 
 (display "Test 2: Verifying exports... ")
 (let ([required-bindings
@@ -49,9 +49,9 @@
       required-bindings)
      (display "✓\n"))
 
-;;; ============================================================
+;;; ====
 ;;; Test 3: Configuration values
-;;; ============================================================
+;;; ====
 
 (display "Test 3: Checking configuration... ")
 (unless (and (number? *watch-poll-interval*)
@@ -66,9 +66,9 @@
         (exit 1))
 (display "✓\n")
 
-;;; ============================================================
+;;; ====
 ;;; Test 4: Create and stop a watcher
-;;; ============================================================
+;;; ====
 
 (display "Test 4: Creating and stopping watcher... ")
 (guard (e [else
@@ -101,9 +101,9 @@
        
        (display "✓\n"))
 
-;;; ============================================================
+;;; ====
 ;;; Test 5: Load daemon integration
-;;; ============================================================
+;;; ====
 
 (display "Test 5: Loading daemon integration... ")
 (guard (e [else
@@ -117,9 +117,9 @@
        (load "shell/watch-daemon-integration.ss")
        (display "✓\n"))
 
-;;; ============================================================
+;;; ====
 ;;; Test 6: Verify daemon integration exports
-;;; ============================================================
+;;; ====
 
 (display "Test 6: Verifying daemon integration... ")
 (let ([required-bindings
@@ -142,9 +142,9 @@
       required-bindings)
      (display "✓\n"))
 
-;;; ============================================================
+;;; ====
 ;;; Test 7: Load examples
-;;; ============================================================
+;;; ====
 
 (display "Test 7: Loading examples... ")
 (guard (e [else
@@ -158,9 +158,9 @@
        (load "shell/watch-example.ss")
        (display "✓\n"))
 
-;;; ============================================================
+;;; ====
 ;;; Test 8: Verify example exports
-;;; ============================================================
+;;; ====
 
 (display "Test 8: Verifying examples... ")
 (let ([required-bindings
@@ -183,9 +183,9 @@
       required-bindings)
      (display "✓\n"))
 
-;;; ============================================================
+;;; ====
 ;;; Test 9: Verify glob matching
-;;; ============================================================
+;;; ====
 
 (display "Test 9: Testing glob matching... ")
 (unless (and (glob-match? "*.ss" "test.ss")
@@ -198,9 +198,9 @@
         (exit 1))
 (display "✓\n")
 
-;;; ============================================================
+;;; ====
 ;;; Test 10: Cleanup
-;;; ============================================================
+;;; ====
 
 (display "Test 10: Cleanup... ")
 (guard (e [else
@@ -209,9 +209,9 @@
        (stop-watching)
        (display "✓\n"))
 
-;;; ============================================================
+;;; ====
 ;;; Summary
-;;; ============================================================
+;;; ====
 
 (display "\n")
 (display "═══════════════════════════════════════\n")

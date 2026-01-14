@@ -16,9 +16,9 @@
 
 (load "core/base/prelude.ss")
 
-;;; ============================================================
+;;; ====
 ;;; File Scanning
-;;; ============================================================
+;;; ====
 
 ;;; list-scheme-files : String -> (List String)
 ;;; List all .ss files in a directory (non-recursive)
@@ -40,9 +40,9 @@
        (and (>= str-len suf-len)
             (string=? (substring str (- str-len suf-len) str-len) suffix))))
 
-;;; ============================================================
+;;; ====
 ;;; Source Code Parsing
-;;; ============================================================
+;;; ====
 
 ;;; extract-defines : String -> (List Symbol)
 ;;; Extract all top-level (define ...) names from source code
@@ -144,9 +144,9 @@
                                [(char-whitespace? (car chars)) (loop (cdr chars))]
                                [else chars])))))
 
-;;; ============================================================
+;;; ====
 ;;; Type Signature Extraction
-;;; ============================================================
+;;; ====
 
 ;;; extract-type-signatures : String -> (List (Symbol . String))
 ;;; Extract ;;; name : type comments
@@ -186,9 +186,9 @@
                     (loop (cdr lst) (cons result acc))
                     (loop (cdr lst) acc))))))
 
-;;; ============================================================
+;;; ====
 ;;; Module Analysis
-;;; ============================================================
+;;; ====
 
 ;;; analyze-module : String -> ModuleInfo
 ;;; Analyze a single .ss file
@@ -236,9 +236,9 @@
              [(string=? (substring str i (+ i sub-len)) sub) i]
              [else (loop (- i 1))]))))
 
-;;; ============================================================
+;;; ====
 ;;; Directory Scanning
-;;; ============================================================
+;;; ====
 
 ;;; manifest-scan : String -> SkillAnalysis
 ;;; Scan a skill directory and return analysis
@@ -256,9 +256,9 @@
           (modules . ,modules)
           (all-exports . ,(apply append (map (lambda (m) (cdr (assq 'exports m))) modules))))))
 
-;;; ============================================================
+;;; ====
 ;;; Manifest Generation
-;;; ============================================================
+;;; ====
 
 ;;; manifest-template : Symbol Nat (List Symbol) String -> String
 ;;; Generate a manifest.sexp template
@@ -365,9 +365,9 @@
                acc
                (loop (cdr strs) (string-append acc sep (car strs)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Manifest Validation
-;;; ============================================================
+;;; ====
 
 ;;; manifest-validate : String -> (List String)
 ;;; Validate a manifest file, return list of issues
@@ -412,9 +412,9 @@
         (if has-exports? '() '("Missing (exports ...)"))
         (if has-modules? '() '("Missing (modules ...)")))))
 
-;;; ============================================================
+;;; ====
 ;;; REPL Interface
-;;; ============================================================
+;;; ====
 
 (printf "manifest-gen loaded.\n")
 (printf "  (manifest-scan \"lattice/algebra\")     - Analyze skill directory\n")

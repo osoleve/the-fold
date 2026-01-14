@@ -21,9 +21,9 @@
 (load "core/autodiff/comp-graph.ss")
 (load "core/autodiff/reverse-diff.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Differentiable Type Class
-;;; ============================================================
+;;; ====
 
 ;;; class Differentiable d where
 ;;;   lift     : Real -> d          -- Lift a constant
@@ -66,9 +66,9 @@
      (d-sin   . (forall (d) (=> (Differentiable d) (-> d d))))
      (d-cos   . (forall (d) (=> (Differentiable d) (-> d d)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Differentiable Instance: Real (trivial - no derivatives)
-;;; ============================================================
+;;; ====
 
 ;;; Real numbers are "differentiable" but always have zero derivative.
 ;;; This allows mixing constants with AD types.
@@ -94,9 +94,9 @@
 (define inst-Differentiable-Real
   (make-instance 'Differentiable 'Real '() differentiable-real-methods))
 
-;;; ============================================================
+;;; ====
 ;;; Differentiable Instance: Dual (forward mode)
-;;; ============================================================
+;;; ====
 
 ;;; Dual numbers carry first-order derivative information.
 ;;; Used for forward-mode AD (efficient for few inputs, many outputs).
@@ -122,9 +122,9 @@
 (define inst-Differentiable-Dual
   (make-instance 'Differentiable 'Dual '() differentiable-dual-methods))
 
-;;; ============================================================
+;;; ====
 ;;; Differentiable Instance: Traced (reverse mode)
-;;; ============================================================
+;;; ====
 
 ;;; Traced values record a computation graph for reverse-mode AD.
 ;;; Efficient for many inputs, few outputs (e.g., loss functions).
@@ -150,9 +150,9 @@
 (define inst-Differentiable-Traced
   (make-instance 'Differentiable 'Traced '() differentiable-traced-methods))
 
-;;; ============================================================
+;;; ====
 ;;; Differentiable Instance: Hyperdual (exact second derivatives)
-;;; ============================================================
+;;; ====
 
 ;;; Hyperdual numbers carry first AND second derivative information.
 ;;; Used for exact Hessian computation without finite differences.
@@ -178,9 +178,9 @@
 (define inst-Differentiable-Hyperdual
   (make-instance 'Differentiable 'Hyperdual '() differentiable-hyperdual-methods))
 
-;;; ============================================================
+;;; ====
 ;;; Extended Differentiable Database
-;;; ============================================================
+;;; ====
 
 ;;; differentiable-instances : (List Instance)
 (define differentiable-instances
@@ -193,9 +193,9 @@
 (define ad-instances
   (idb-add* standard-instances differentiable-instances))
 
-;;; ============================================================
+;;; ====
 ;;; Generic AD Utilities
-;;; ============================================================
+;;; ====
 
 ;;; These functions work with any Differentiable type.
 
@@ -220,9 +220,9 @@
 (define (d-chain inst f g)
   (lambda (x) (f (g x))))
 
-;;; ============================================================
+;;; ====
 ;;; Convenience: Resolve Differentiable
-;;; ============================================================
+;;; ====
 
 ;;; resolve-differentiable : Type → (Result Evidence Error)
 (define (resolve-differentiable type)
@@ -235,9 +235,9 @@
            (get-method (cadr result) method-name)
            #f)))
 
-;;; ============================================================
+;;; ====
 ;;; Type-Safe Derivative Operations
-;;; ============================================================
+;;; ====
 
 ;;; These wrap the lower-level AD operations with type class dispatch.
 
@@ -252,9 +252,9 @@
 ;;; hessian-at : (Real* → Hyperdual) × (List Real) → Matrix
 (define hessian-at hessian-forward)  ; Re-export from comp-graph.ss
 
-;;; ============================================================
+;;; ====
 ;;; Type Class Registration
-;;; ============================================================
+;;; ====
 
 ;;; extended-classes : (AList Symbol TypeClass)
 (define extended-classes

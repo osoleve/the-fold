@@ -17,9 +17,9 @@
 (load "lattice/linalg/quaternion.ss")
 (load "lattice/physics/diff3d/traced-vec3.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Traced Quaternion Construction
-;;; ============================================================
+;;; ====
 
 ;;; traced-quat : TracedValue × TracedValue × TracedValue × TracedValue → TracedQuat
 ;;; Create a traced quaternion from traced w, x, y, z components.
@@ -50,9 +50,9 @@
                (make-traced-var 0 tape)
                (make-traced-var 0 tape)))
 
-;;; ============================================================
+;;; ====
 ;;; Conversion Between Quat and TracedQuat
-;;; ============================================================
+;;; ====
 
 ;;; lift-quat : Quaternion × Tape → TracedQuat
 ;;; Convert regular quaternion to traced quaternion (creates traced variables).
@@ -86,9 +86,9 @@
 (define (traced-quat-vector q)
   (traced-vec3 (traced-quat-x q) (traced-quat-y q) (traced-quat-z q)))
 
-;;; ============================================================
+;;; ====
 ;;; Basic Arithmetic
-;;; ============================================================
+;;; ====
 
 ;;; traced-quat-add : TracedQuat × TracedQuat → TracedQuat
 ;;; Quaternion addition with gradient tracking.
@@ -165,9 +165,9 @@
                                             (traced-mul ay bx))
                                 (traced-mul az bw))))))
 
-;;; ============================================================
+;;; ====
 ;;; Length and Normalization
-;;; ============================================================
+;;; ====
 
 ;;; traced-quat-dot : TracedQuat × TracedQuat → TracedValue
 ;;; Dot product (4D).
@@ -208,9 +208,9 @@
 (define (traced-quat-smooth-normalize q epsilon)
   (traced-quat-scale-inv q (traced-quat-smooth-magnitude q epsilon)))
 
-;;; ============================================================
+;;; ====
 ;;; Conjugate and Inverse
-;;; ============================================================
+;;; ====
 
 ;;; traced-quat-conjugate : TracedQuat → TracedQuat
 ;;; Conjugate: negate the vector part.
@@ -233,9 +233,9 @@
   (let ([mag-sq-smooth (traced-add (traced-quat-magnitude-sq q) (* epsilon epsilon))])
        (traced-quat-scale-inv (traced-quat-conjugate q) mag-sq-smooth)))
 
-;;; ============================================================
+;;; ====
 ;;; Rotation Operations
-;;; ============================================================
+;;; ====
 
 ;;; traced-quat-rotate-vec3 : TracedQuat × TracedVec3 → TracedVec3
 ;;; Rotate a vector by the quaternion.
@@ -257,9 +257,9 @@
 (define (traced-quat-rotate-vec3-inverse q v)
   (traced-quat-rotate-vec3 (traced-quat-conjugate q) v))
 
-;;; ============================================================
+;;; ====
 ;;; Integration for Rigid Body Dynamics
-;;; ============================================================
+;;; ====
 
 ;;; traced-quat-derivative : TracedQuat × TracedVec3 → TracedQuat
 ;;; Compute quaternion derivative given angular velocity.
@@ -293,9 +293,9 @@
   (let ([omega-world (traced-quat-rotate-vec3 q omega-body)])
        (traced-quat-integrate q omega-world dt)))
 
-;;; ============================================================
+;;; ====
 ;;; Interpolation
-;;; ============================================================
+;;; ====
 
 ;;; traced-quat-lerp : TracedQuat × TracedQuat × TracedValue → TracedQuat
 ;;; Linear interpolation (not normalized).
@@ -310,9 +310,9 @@
 (define (traced-quat-nlerp a b t epsilon)
   (traced-quat-smooth-normalize (traced-quat-lerp a b t) epsilon))
 
-;;; ============================================================
+;;; ====
 ;;; Conversion to Rotation Matrix
-;;; ============================================================
+;;; ====
 
 ;;; traced-quat-to-rotation-matrix : TracedQuat → (List (List TracedValue))
 ;;; Convert to 3x3 rotation matrix.
@@ -345,9 +345,9 @@
               (list r10 r11 r12)
               (list r20 r21 r22))))
 
-;;; ============================================================
+;;; ====
 ;;; Gradient Utilities
-;;; ============================================================
+;;; ====
 
 ;;; quat-gradient : ((TracedQuat) → TracedValue) × Quat → (Number × Number × Number × Number)
 ;;; Compute gradient of scalar function f at quaternion q.

@@ -18,9 +18,9 @@
 (load "lattice/fp/meta/logic.ss")
 (load "lattice/fp/clp/domain.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Constraint Store Structure
-;;; ============================================================
+;;; ====
 ;;;
 ;;; CStore = (cstore subst domains constraints pending)
 ;;;   subst       : Substitution from logic.ss (variable -> value bindings)
@@ -82,9 +82,9 @@
         (cstore-constraints cs)
         pending))
 
-;;; ============================================================
+;;; ====
 ;;; Domain Operations on Store
-;;; ============================================================
+;;; ====
 
 ;;; cstore-get-domain : CStore × LVar → Domain
 ;;; Get the domain of a variable. Returns unconstrained if not set.
@@ -150,9 +150,9 @@
            (cstore-set-domain cs var (domain-subtract-value current val))
            cs)))  ; No domain = unconstrained, nothing to remove
 
-;;; ============================================================
+;;; ====
 ;;; Binding Operations
-;;; ============================================================
+;;; ====
 
 ;;; cstore-bind-var : CStore × LVar × Int → (Maybe CStore)
 ;;; Bind a variable to a specific integer value.
@@ -256,9 +256,9 @@
                           (occurs? var (cdr term) subst))]
         [else #f])))
 
-;;; ============================================================
+;;; ====
 ;;; Constraint Management
-;;; ============================================================
+;;; ====
 
 ;;; Constraint = (constraint id type vars propagator)
 ;;;   id         : Unique identifier
@@ -313,9 +313,9 @@
    [(pred (car lst)) #t]
    [else (any pred (cdr lst))]))
 
-;;; ============================================================
+;;; ====
 ;;; Propagation Queue
-;;; ============================================================
+;;; ====
 
 ;;; cstore-add-pending : CStore × LVar → CStore
 ;;; Add variable to propagation queue.
@@ -340,9 +340,9 @@
 (define (cstore-clear-pending cs)
   (cstore-set-pending cs '()))
 
-;;; ============================================================
+;;; ====
 ;;; Ground/Singleton Detection
-;;; ============================================================
+;;; ====
 
 ;;; cstore-ground? : CStore × LVar → Bool
 ;;; Check if variable is bound to a ground (non-variable) value.
@@ -365,9 +365,9 @@
            (let ([dom (cstore-get-domain cs var)])
                 (and dom (domain-singleton? dom) (domain-min dom))))))
 
-;;; ============================================================
+;;; ====
 ;;; Reification
-;;; ============================================================
+;;; ====
 
 ;;; cstore-walk : CStore × Term → Term
 ;;; Walk a term through the store's substitution.
@@ -385,9 +385,9 @@
   (let ([walked (cstore-walk* cs term)])
        (reify walked)))
 
-;;; ============================================================
+;;; ====
 ;;; Store Display
-;;; ============================================================
+;;; ====
 
 ;;; cstore->string : CStore → String
 ;;; Convert store to readable string for debugging.

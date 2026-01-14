@@ -25,9 +25,9 @@
 (load "core/base/prelude.ss")
 (load "lattice/fp/meta/combinators.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Free Monad Representation
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Free f a is either:
 ;;;   ('pure a)                    — A pure value
@@ -63,16 +63,16 @@
 (define (from-free fr)
   (cadr fr))
 
-;;; ============================================================
+;;; ====
 ;;; Functor Concept
-;;; ============================================================
+;;; ====
 ;;;
 ;;; A functor has fmap : (a -> b) -> f a -> f b
 ;;; We pass fmap explicitly since we don't have typeclasses.
 
-;;; ============================================================
+;;; ====
 ;;; Monad Operations
-;;; ============================================================
+;;; ====
 
 ;;; free-map : (a -> b) -> (f a -> f b) -> Free f a -> Free f b
 ;;; Map over the Free monad. Requires the underlying functor's fmap.
@@ -90,9 +90,9 @@
     (free (fmap (lambda (inner) (free-map f fmap inner))
                 (from-free fr)))]))
 
-;;; ============================================================
+;;; ====
 ;;; Codensity-based Free Bind (O(1) amortized)
-;;; ============================================================
+;;; ====
 ;;;
 ;;; PERFORMANCE NOTE:
 ;;; The naive free-bind implementation is O(N^2) for left-associative chains:
@@ -198,9 +198,9 @@
                                 (lambda (a)
                                         (pure-free (f a)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Lifting into Free
-;;; ============================================================
+;;; ====
 
 ;;; lift-free : (a -> f a) -> a -> Free f a
 ;;; Lift a value into a suspended Free using the functor's point.
@@ -208,9 +208,9 @@
 (define (lift-free wrap x)
   (free (wrap (pure-free x))))
 
-;;; ============================================================
+;;; ====
 ;;; Interpreters
-;;; ============================================================
+;;; ====
 
 ;;; fold-free : (a -> b) -> (f b -> b) -> (f a -> f b) -> Free f a -> b
 ;;; Catamorphism for Free. Interprets the structure.
@@ -242,9 +242,9 @@
 (define (run-free m-pure interpret fmap fr)
   (fold-free m-pure interpret fmap fr))
 
-;;; ============================================================
+;;; ====
 ;;; Common Functor: Command Pattern
-;;; ============================================================
+;;; ====
 ;;;
 ;;; A common pattern is to define commands as a functor where
 ;;; each command holds a continuation for the next action.
@@ -257,9 +257,9 @@
 ;;;   ('print-line msg next)
 ;;;   ('read-line k)
 
-;;; ============================================================
+;;; ====
 ;;; Example: Key-Value Store DSL
-;;; ============================================================
+;;; ====
 
 ;;; KV Store commands:
 ;;;   ('get key k)      — get value for key, pass to k
@@ -339,9 +339,9 @@
                           ((run-kv next) new-store))]
                    [else (error 'run-kv "Unknown command")]))])))
 
-;;; ============================================================
+;;; ====
 ;;; Example: Console DSL
-;;; ============================================================
+;;; ====
 
 ;;; Console commands:
 ;;;   ('print msg next)    — print message, continue
@@ -397,9 +397,9 @@
                           (loop (k (car ins)) (cdr ins) outs)))]
                 [else (error 'run-console-pure "Unknown command")]))])))
 
-;;; ============================================================
+;;; ====
 ;;; Free Monad Combinators
-;;; ============================================================
+;;; ====
 
 ;;; free-sequence : (f a -> f b) -> (List (Free f a)) -> Free f (List a)
 ;;; Sequence a list of Free computations.
@@ -434,9 +434,9 @@
 (define (free-unless fmap condition action)
   (free-when fmap (not condition) action))
 
-;;; ============================================================
+;;; ====
 ;;; Optimization: View Patterns
-;;; ============================================================
+;;; ====
 
 ;;; Sometimes we want to inspect a Free structure without running it.
 
@@ -456,9 +456,9 @@
                ;; This is a simplified version
                '()))]))
 
-;;; ============================================================
+;;; ====
 ;;; Coyoneda: Functor from Any Type
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Sometimes we have a type that isn't a functor but we want to use Free.
 ;;; Coyoneda f a = exists b. (b -> a, f b)
@@ -483,9 +483,9 @@
         [fa (caddr cy)])
        (fmap f fa)))
 
-;;; ============================================================
+;;; ====
 ;;; Example Usage (for documentation)
-;;; ============================================================
+;;; ====
 ;;;
 ;;; ;; Define a KV store program
 ;;; (define kv-program

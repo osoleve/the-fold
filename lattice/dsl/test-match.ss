@@ -5,9 +5,9 @@
 (load "core/test-framework.ss")
 (load "lattice/dsl/match.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Extended Pattern Tests
-;;; ============================================================
+;;; ====
 
 (test-group extended-patterns
             
@@ -29,9 +29,9 @@
                    (assert-equal (active-pattern-name p) 'even)
                    (assert-equal (active-pattern-args p) '()))))
 
-;;; ============================================================
+;;; ====
 ;;; Decision Tree Tests
-;;; ============================================================
+;;; ====
 
 (test-group decision-tree-construction
             
@@ -64,9 +64,9 @@
                     (assert-true (leaf? (dt-guard-success dt)))
                     (assert-true (leaf? (dt-guard-failure dt))))))
 
-;;; ============================================================
+;;; ====
 ;;; Branch Tests
-;;; ============================================================
+;;; ====
 
 (test-group branch-construction
             
@@ -78,9 +78,9 @@
                     (assert-equal (branch-arity b) 2)
                     (assert-true (leaf? (branch-subtree b))))))
 
-;;; ============================================================
+;;; ====
 ;;; Clause Tests
-;;; ============================================================
+;;; ====
 
 (test-group clause-parsing
             
@@ -102,9 +102,9 @@
                    (assert-equal (clause-guard cl) '(> n 0))
                    (assert-equal (clause-body cl) '(positive n)))))
 
-;;; ============================================================
+;;; ====
 ;;; Pattern Parsing Extended Tests
-;;; ============================================================
+;;; ====
 
 (test-group pattern-parsing-extended
             
@@ -127,9 +127,9 @@
               (let ([p (parse-pattern-extended '_)])
                    (assert-true (wildcard-pattern? p)))))
 
-;;; ============================================================
+;;; ====
 ;;; Binding Collection Tests
-;;; ============================================================
+;;; ====
 
 (test-group binding-collection
             
@@ -157,9 +157,9 @@
                     (assert-equal (length bindings) 2)
                     (assert-equal (caar bindings) 'x))))
 
-;;; ============================================================
+;;; ====
 ;;; Decision Tree Code Generation Tests
-;;; ============================================================
+;;; ====
 
 (test-group dt-code-generation
             
@@ -189,9 +189,9 @@
                     (assert-equal (car code) 'if)
                     (assert-equal (cadr code) 'cond))))
 
-;;; ============================================================
+;;; ====
 ;;; First-Class Pattern Tests
-;;; ============================================================
+;;; ====
 
 (test-group first-class-patterns
             
@@ -211,9 +211,9 @@
               (let ([result (lookup-pattern 'nonexistent-pattern)])
                    (assert-true (nothing? result)))))
 
-;;; ============================================================
+;;; ====
 ;;; Active Pattern Tests
-;;; ============================================================
+;;; ====
 
 (test-group active-patterns
             
@@ -242,9 +242,9 @@
               (let ([result (lookup-active-pattern 'test-active)])
                    (assert-true (just? result)))))
 
-;;; ============================================================
+;;; ====
 ;;; List Helper Tests
-;;; ============================================================
+;;; ====
 
 (test-group list-helpers
             
@@ -266,9 +266,9 @@
             (define-test splice-at-empty
               (assert-equal (splice-at '(a b c) 1 '()) '(a c))))
 
-;;; ============================================================
+;;; ====
 ;;; Constructor Info Tests
-;;; ============================================================
+;;; ====
 
 (test-group ctor-info
             
@@ -296,9 +296,9 @@
                    (assert-equal (car result) '(field x 0))
                    (assert-equal (cadr result) '(field x 1)))))
 
-;;; ============================================================
+;;; ====
 ;;; Decision Tree Statistics Tests
-;;; ============================================================
+;;; ====
 
 (test-group dt-statistics
             
@@ -326,9 +326,9 @@
                      [dt (make-dt-guard 'c s f)])
                     (assert-equal (dt-depth dt) 2))))
 
-;;; ============================================================
+;;; ====
 ;;; Pattern Combinator Tests
-;;; ============================================================
+;;; ====
 
 (test-group pattern-combinators
             
@@ -343,9 +343,9 @@
                      [negated (pat-not p)])
                     (assert-true (guard-pattern? negated)))))
 
-;;; ============================================================
+;;; ====
 ;;; Integration Tests
-;;; ============================================================
+;;; ====
 
 (test-group match-integration
             
@@ -400,12 +400,12 @@
                                     (assert-true (pair? bindings))
                                     (assert-equal (caar bindings) 'inner)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Run All Tests
-;;; ============================================================
+;;; ====
 
-(display "\n========================================\n")
+(display "\n====\n")
 (display "Running Pattern Matching Compilation Tests\n")
-(display "========================================\n\n")
+(display "====\n\n")
 
 (run-all-tests)

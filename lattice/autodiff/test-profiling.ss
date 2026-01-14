@@ -4,14 +4,14 @@
 (load "lattice/autodiff/profiling.ss")
 
 (display "
-==============================================================
+====
          AUTODIFF PROFILING TESTS
-==============================================================
+====
 ")
 
-;;; ============================================================
+;;; ====
 ;;; Tape Statistics Tests
-;;; ============================================================
+;;; ====
 
 (test-group tape-stats-tests
             (define-test tape-stats-empty
@@ -60,9 +60,9 @@
                     (assert-equal (tape-op-count tape 'mul) 2)
                     (assert-equal (tape-op-count tape 'add) 0))))
 
-;;; ============================================================
+;;; ====
 ;;; Graph Statistics Tests
-;;; ============================================================
+;;; ====
 
 (test-group graph-stats-tests
             (define-test graph-stats-empty
@@ -100,9 +100,9 @@
                      [g2 (let-values ([(g id) (graph-add-node g1 (node-var 'y))]) g)])
                     (assert-equal (graph-depth g2) 0))))
 
-;;; ============================================================
+;;; ====
 ;;; Timing Tests
-;;; ============================================================
+;;; ====
 
 (test-group timing-tests
             (define-test time-gradient-simple
@@ -140,9 +140,9 @@
                     (assert-true (>= (cdr (assq 'backward-us result)) 0))
                     (assert-true (>= (cdr (assq 'total-us result)) 0)))))
 
-;;; ============================================================
+;;; ====
 ;;; Memory Estimation Tests
-;;; ============================================================
+;;; ====
 
 (test-group memory-tests
             (define-test tape-memory-empty
@@ -179,9 +179,9 @@
                     (assert-true (> (traced-memory-estimate t)
                                     (traced-memory-estimate 42))))))
 
-;;; ============================================================
+;;; ====
 ;;; Profile Report Tests
-;;; ============================================================
+;;; ====
 
 (test-group profile-tests
             (define-test profile-computation-structure
@@ -211,9 +211,9 @@
                     (assert-equal (cdr (assq 'value report)) 42)
                     (assert-equal (cdr (assq 'gradient report)) '(0)))))
 
-;;; ============================================================
+;;; ====
 ;;; Benchmark Tests
-;;; ============================================================
+;;; ====
 
 (test-group benchmark-tests
             (define-test benchmark-gradient-structure
@@ -237,9 +237,9 @@
                     (assert-true (<= (cdr (assq 'min-us result))
                                      (cdr (assq 'max-us result)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Integration Tests
-;;; ============================================================
+;;; ====
 
 (test-group integration-tests
             (define-test complex-function-profile
@@ -269,12 +269,12 @@
                            [size2 (tape-size tape2)])
                           (assert-true (> size2 size1))))))
 
-;;; ============================================================
+;;; ====
 ;;; Summary
-;;; ============================================================
+;;; ====
 
 (display "
-==============================================================
+====
 ")
 (printf "Tests passed: ~a~n" *tests-passed*)
 (printf "Tests failed: ~a~n" *tests-failed*)

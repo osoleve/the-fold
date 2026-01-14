@@ -13,9 +13,9 @@
 (load "lattice/query/sql/sql.ss")
 (load "lattice/query/sql/dialect.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Test Framework
-;;; ============================================================
+;;; ====
 
 (define test-count 0)
 (define pass-count 0)
@@ -45,9 +45,9 @@
                    (display "FAIL")
                    (newline))))))
 
-;;; ============================================================
+;;; ====
 ;;; Translation Tests
-;;; ============================================================
+;;; ====
 
 (display "=== Dialect Translation Tests ===
 ")
@@ -78,9 +78,9 @@
               (let ([result (translate-sql "SELECT * FROM users" 'ansi 'oracle)])
                    (right? result))))
 
-;;; ============================================================
+;;; ====
 ;;; LIMIT/OFFSET Translation
-;;; ============================================================
+;;; ====
 
 (display "
 === LIMIT/OFFSET Translation ===
@@ -117,9 +117,9 @@
                         (string-contains? (from-right result) "OFFSET")
                         (string-contains? (from-right result) "FETCH NEXT")))))
 
-;;; ============================================================
+;;; ====
 ;;; String Concatenation Translation
-;;; ============================================================
+;;; ====
 
 (display "
 === String Concatenation Translation ===
@@ -144,9 +144,9 @@
                    (and (right? result)
                         (string-contains? (from-right result) "||")))))
 
-;;; ============================================================
+;;; ====
 ;;; Boolean Literal Translation
-;;; ============================================================
+;;; ====
 
 (display "
 === Boolean Literal Translation ===
@@ -171,9 +171,9 @@
                    (and (right? result)
                         (string-contains? (from-right result) "TRUE")))))
 
-;;; ============================================================
+;;; ====
 ;;; Function Name Translation
-;;; ============================================================
+;;; ====
 
 (display "
 === Function Name Translation ===
@@ -215,9 +215,9 @@
                    (and (right? result)
                         (string-contains? (from-right result) "IFNULL(")))))
 
-;;; ============================================================
+;;; ====
 ;;; Translate All Dialects Test
-;;; ============================================================
+;;; ====
 
 (display "
 === Translate to All Dialects ===
@@ -228,9 +228,9 @@
               (let ([results (translate-sql-all "SELECT * FROM users LIMIT 10" 'ansi)])
                    (= (length results) 5))))
 
-;;; ============================================================
+;;; ====
 ;;; Helper Functions
-;;; ============================================================
+;;; ====
 
 ;;; string-contains? : String × String → Boolean
 (define (string-contains? str substr)
@@ -249,9 +249,9 @@
        (and (>= str-len pre-len)
             (string=? (substring str 0 pre-len) prefix))))
 
-;;; ============================================================
+;;; ====
 ;;; Demo: Show all translations
-;;; ============================================================
+;;; ====
 
 (display "
 === Demo: Complex Query in All Dialects ===
@@ -268,9 +268,9 @@
                (newline))
        results))
 
-;;; ============================================================
+;;; ====
 ;;; Summary
-;;; ============================================================
+;;; ====
 
 (newline)
 (display "╔══════════════════════════════════════╗

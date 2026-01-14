@@ -6,9 +6,9 @@
 (load "core/testing/test-framework.ss")
 (load "lattice/fp/data/zipper-lens.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Test: List Zipper Lenses
-;;; ============================================================
+;;; ====
 
 (test-group "zipper-focus-lens"
   (define-test "view focus through lens"
@@ -75,9 +75,9 @@
       (assert-equal 'd (zipper-focus z2))
       (assert-equal 3 (zipper-position z2)))))
 
-;;; ============================================================
+;;; ====
 ;;; Test: Tree Zipper Lenses
-;;; ============================================================
+;;; ====
 
 (test-group "tree-zipper-value-lens"
   (define-test "view tree value"
@@ -134,9 +134,9 @@
            [z3 (set-lens tree-zipper-focus-lens (tree-leaf 'new) z2)])
       (assert-equal 'new (tree-zipper-get z3)))))
 
-;;; ============================================================
+;;; ====
 ;;; Test: Affine (Partial Lens) Operations
-;;; ============================================================
+;;; ====
 
 (test-group "affine-basics"
   (define-test "preview-affine on successful navigation"
@@ -180,9 +180,9 @@
            [result (preview-affine affine z)])
       (assert-true (nothing? result)))))
 
-;;; ============================================================
+;;; ====
 ;;; Test: Tree Navigation Affines
-;;; ============================================================
+;;; ====
 
 (test-group "tree-navigation-affines"
   (define-test "tree-down-affine success"
@@ -223,9 +223,9 @@
       (assert-true (just? result))
       (assert-equal 'b (tree-zipper-get (from-just result))))))
 
-;;; ============================================================
+;;; ====
 ;;; Test: Zipper to Lens Conversion
-;;; ============================================================
+;;; ====
 
 (test-group "zipper-to-lens"
   (define-test "zipper at position 0 gives lens-nth 0"
@@ -279,9 +279,9 @@
              [z3 (from-just (tree-zipper-down z2))])
         (assert-equal 'new (tree-zipper-get z3))))))
 
-;;; ============================================================
+;;; ====
 ;;; Test: Comonad-Lens Integration
-;;; ============================================================
+;;; ====
 
 (test-group "extend-with-lens"
   (define-test "extend with focus lens"
@@ -327,9 +327,9 @@
       ;; At position 0, can't go left 3
       (assert-equal '(1 2 3 4) window))))
 
-;;; ============================================================
+;;; ====
 ;;; Test: Traversal Utilities
-;;; ============================================================
+;;; ====
 
 (test-group "zipper-traversal-utilities"
   (define-test "zipper-all? true case"
@@ -355,9 +355,9 @@
                     z)])
       (assert-equal '(2 4 6) evens))))
 
-;;; ============================================================
+;;; ====
 ;;; Test: Composed Lens Paths
-;;; ============================================================
+;;; ====
 
 (test-group "at-focus"
   (define-test "at-focus is alias for zipper-focus-lens"
@@ -399,9 +399,9 @@
   (define-test "at-right 0 errors with helpful message"
     (assert-error (lambda () (at-right 0)))))
 
-;;; ============================================================
+;;; ====
 ;;; Test: Edge Cases (from QA review)
-;;; ============================================================
+;;; ====
 
 (test-group "edge-cases"
   (define-test "position-lens clamping on out-of-bounds"
@@ -430,9 +430,9 @@
       ;; Depth unchanged because setter is identity
       (assert-equal (tree-zipper-depth z2) (tree-zipper-depth z3)))))
 
-;;; ============================================================
+;;; ====
 ;;; Test: Lens Laws for Zipper Lenses
-;;; ============================================================
+;;; ====
 
 (test-group "lens-laws-zipper-focus"
   (define-test "get-put law: set l (view l s) s = s"
@@ -472,8 +472,8 @@
            [v (view tree-zipper-value-lens z2)])
       (assert-equal 'new-root v))))
 
-;;; ============================================================
+;;; ====
 ;;; Run All Tests
-;;; ============================================================
+;;; ====
 
 (run-all-tests)

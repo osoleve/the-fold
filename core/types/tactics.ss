@@ -34,9 +34,9 @@
 (load "core/types/dep-types.ss")
 (load "core/types/dep-infer.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Proof Goals
-;;; ============================================================
+;;; ====
 
 ;;; A goal represents a proposition to be proved with its context.
 ;;; Structure: (goal context proposition)
@@ -55,9 +55,9 @@
 (define (goal-proposition g)
   (if (goal? g) (caddr g) #f))
 
-;;; ============================================================
+;;; ====
 ;;; Tactic Results
-;;; ============================================================
+;;; ====
 
 ;;; A tactic returns either:
 ;;;   (ok subgoals proof-builder)  - success with new subgoals and proof builder
@@ -87,9 +87,9 @@
 (define (tactic-error r)
   (if (tactic-failure? r) (cadr r) #f))
 
-;;; ============================================================
+;;; ====
 ;;; Core Tactics
-;;; ============================================================
+;;; ====
 
 ;;; reflexivity : Goal → TacticResult
 ;;; Prove x = x using refl.
@@ -257,9 +257,9 @@
         [else
          (tactic-failure `(not-trivial ,prop))])))
 
-;;; ============================================================
+;;; ====
 ;;; Tactic Combinators
-;;; ============================================================
+;;; ====
 
 ;;; then : Tactic × Tactic → Tactic
 ;;; Apply first tactic, then apply second to all subgoals.
@@ -347,9 +347,9 @@
   (lambda (goal)
           (tactic-failure 'explicit-fail)))
 
-;;; ============================================================
+;;; ====
 ;;; Proof State
-;;; ============================================================
+;;; ====
 
 ;;; A proof state tracks remaining goals and a partial proof.
 ;;; Structure: (proof-state goals proof)
@@ -380,9 +380,9 @@
                      (let ([new-goals (append (tactic-subgoals result) rest)])
                           (make-proof-state new-goals)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Auto Tactic
-;;; ============================================================
+;;; ====
 
 ;;; auto : Tactic
 ;;; Try a combination of basic tactics automatically.
@@ -396,9 +396,9 @@
       tactic-reflexivity
       tactic-id)))))
 
-;;; ============================================================
+;;; ====
 ;;; Helper Functions
-;;; ============================================================
+;;; ====
 
 ;;; take : (List α) × Nat → (List α)
 (define (take lst n)
@@ -426,9 +426,9 @@
    [(pred (car lst)) (cons (car lst) (filter pred (cdr lst)))]
    [else (filter pred (cdr lst))]))
 
-;;; ============================================================
+;;; ====
 ;;; Proof Execution
-;;; ============================================================
+;;; ====
 
 ;;; prove : Type × Context × TacticScript → (Result ProofTerm Error)
 ;;; Execute a tactic script to prove a proposition.
@@ -464,9 +464,9 @@
       'unit
       ((car builders) '())))
 
-;;; ============================================================
+;;; ====
 ;;; Quick Proof Helpers
-;;; ============================================================
+;;; ====
 
 ;;; qed-reflexivity : Type × Term → ProofTerm
 ;;; Quickly prove x = x.

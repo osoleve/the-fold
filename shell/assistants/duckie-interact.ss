@@ -5,16 +5,16 @@
 ;;;
 ;;; This is Shell code: provides IO functions for player interaction.
 
-;;; ============================================================
+;;; ====
 ;;; Dependencies
-;;; ============================================================
+;;; ====
 
 ;;; Load DUCKIE dialogue
 (load "user/creations/duckie-dialogue.ss")
 
-;;; ============================================================
+;;; ====
 ;;; State
-;;; ============================================================
+;;; ====
 
 ;;; DUCKIE's current mood (persists across REPL calls in daemon)
 (define *duckie-mood* 'curious)
@@ -23,9 +23,9 @@
 (define *duckie-valid-moods*
   '(happy curious sleepy content lonely playful))
 
-;;; ============================================================
+;;; ====
 ;;; Commands
-;;; ============================================================
+;;; ====
 
 ;;; to-duckie : String → String
 ;;; Send a message to DUCKIE and get a response based on current mood.

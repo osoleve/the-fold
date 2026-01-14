@@ -14,9 +14,9 @@
 (load "lattice/geometry/geometry.ss")
 (load "lattice/geometry/mesh-sdf.ss")
 
-;;; ============================================================
+;;; ====
 ;;; ASCII Character Ramp
-;;; ============================================================
+;;; ====
 
 ;;; Characters ordered by visual density (dark to light)
 ;;; ascii-ramp : String
@@ -31,9 +31,9 @@
                   (max 0 (inexact->exact (floor (* intensity ascii-ramp-len)))))])
        (string-ref ascii-ramp idx)))
 
-;;; ============================================================
+;;; ====
 ;;; ANSI Color Codes
-;;; ============================================================
+;;; ====
 
 ;;; rgb->ansi256 : Number × Number × Number → Number
 ;;; Convert RGB [0,1] to ANSI 256-color code
@@ -52,9 +52,9 @@
 ;;; ANSI escape sequence to reset terminal formatting
 (define ansi-reset "\x1b;[0m")
 
-;;; ============================================================
+;;; ====
 ;;; Camera and Ray Generation
-;;; ============================================================
+;;; ====
 
 ;;; make-camera : Vec3 × Vec3 × Vec3 × Number × Number → Camera
 ;;; Create camera with position, look-at point, up vector, and aspect ratio
@@ -91,9 +91,9 @@
                 (vec3-scale (camera-up cam) (* v (camera-half-height cam)))))])
         (ray3 pos dir)))
 
-;;; ============================================================
+;;; ====
 ;;; Mesh Rendering
-;;; ============================================================
+;;; ====
 
 ;;; render-pixel-color : Mesh × Ray3 × Vec3 → (Number Number Number) | #f
 ;;; Render a single ray, return RGB [0,1] or #f for background
@@ -112,9 +112,9 @@
                  (list r g b))
            #f)))
 
-;;; ============================================================
+;;; ====
 ;;; Frame Rendering
-;;; ============================================================
+;;; ====
 
 ;;; render-frame : Mesh × Camera × Vec3 × Number × Number → String
 ;;; Render mesh to colored ASCII string
@@ -143,9 +143,9 @@
                          (set! result (cons " " result)))))
            (set! result (cons (string-append ansi-reset "\n") result)))))
 
-;;; ============================================================
+;;; ====
 ;;; Animation
-;;; ============================================================
+;;; ====
 
 ;;; rotate-camera-around : Vec3 × Number × Number → Vec3
 ;;; Rotate camera position around Y axis at given distance
@@ -173,9 +173,9 @@
                            (render-frame mesh cam light-dir width height)))
              (iota num-frames))))
 
-;;; ============================================================
+;;; ====
 ;;; Output Utilities
-;;; ============================================================
+;;; ====
 
 ;;; frames->ansi-animation : (List String) × Number → Void
 ;;; Play animation in terminal with delay (ms)

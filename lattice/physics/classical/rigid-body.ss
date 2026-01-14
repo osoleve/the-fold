@@ -15,9 +15,9 @@
 (load "core/base/prelude.ss")
 (load "lattice/linalg/vec2.ss")
 
-;;; ============================================================
+;;; ====
 ;;; RigidBody2D Data Structure
-;;; ============================================================
+;;; ====
 
 ;;; A rigid body in 2D has:
 ;;;   - pos: position (Vec2)
@@ -76,9 +76,9 @@
 (define (rigid-body-static? b)
   (= (rigid-body-inv-mass b) 0))
 
-;;; ============================================================
+;;; ====
 ;;; Updaters (Immutable)
-;;; ============================================================
+;;; ====
 
 ;;; rigid-body-with-pos : RigidBody2D x Vec2 -> RigidBody2D
 (define (rigid-body-with-pos b new-pos)
@@ -126,18 +126,18 @@
                    (rigid-body-mass b)
                    (rigid-body-inertia b)))
 
-;;; ============================================================
+;;; ====
 ;;; Static Body Constructor
-;;; ============================================================
+;;; ====
 
 ;;; make-static-rigid-body : Vec2 x Number -> RigidBody2D
 ;;; Create a static (immovable) rigid body at given position and angle.
 (define (make-static-rigid-body pos angle)
   (make-rigid-body pos (vec2 0 0) angle 0 0 0))
 
-;;; ============================================================
+;;; ====
 ;;; Moment of Inertia Calculations
-;;; ============================================================
+;;; ====
 
 ;;; circle-inertia : Number x Number -> Number
 ;;; Moment of inertia for a solid circle: I = 0.5 * m * r^2
@@ -159,9 +159,9 @@
 (define (point-mass-inertia mass radius)
   (* mass radius radius))
 
-;;; ============================================================
+;;; ====
 ;;; Coordinate Transformation
-;;; ============================================================
+;;; ====
 
 ;;; local-to-world : RigidBody2D x Vec2 -> Vec2
 ;;; Transform a point from local body space to world space.
@@ -179,9 +179,9 @@
         [pos (rigid-body-pos body)])
        (vec2-rotate (vec2-sub world-point pos) (- angle))))
 
-;;; ============================================================
+;;; ====
 ;;; Velocity at Point
-;;; ============================================================
+;;; ====
 
 ;;; rigid-body-velocity-at : RigidBody2D x Vec2 -> Vec2
 ;;; Get the velocity at a world-space point on the body.
@@ -196,9 +196,9 @@
          [tangent-vel (vec2-scale (vec2-perp r) omega)])
         (vec2-add vel tangent-vel)))
 
-;;; ============================================================
+;;; ====
 ;;; Impulse Application
-;;; ============================================================
+;;; ====
 
 ;;; apply-linear-impulse : RigidBody2D x Vec2 -> RigidBody2D
 ;;; Apply a linear impulse at the center of mass.
@@ -247,9 +247,9 @@
                                    (rigid-body-angle body)
                                    new-omega))))
 
-;;; ============================================================
+;;; ====
 ;;; Energy Calculations
-;;; ============================================================
+;;; ====
 
 ;;; rigid-body-kinetic-energy : RigidBody2D -> Number
 ;;; Total kinetic energy: KE = 0.5 * m * v^2 + 0.5 * I * omega^2
@@ -271,9 +271,9 @@
 (define (rigid-body-angular-momentum body)
   (* (rigid-body-inertia body) (rigid-body-angular-vel body)))
 
-;;; ============================================================
+;;; ====
 ;;; Integration Helpers
-;;; ============================================================
+;;; ====
 
 ;;; integrate-rigid-body : RigidBody2D x Vec2 x Number x Number -> RigidBody2D
 ;;; Integrate body forward by dt with given linear acceleration and torque.
@@ -291,9 +291,9 @@
                            (* new-omega dt))])
             (rigid-body-with-state body new-pos new-vel new-angle new-omega))))
 
-;;; ============================================================
+;;; ====
 ;;; Conversion from Body2D
-;;; ============================================================
+;;; ====
 
 ;;; body-2d->rigid-body : Body2D x Number x Number -> RigidBody2D
 ;;; Convert a Body2D to RigidBody2D with given shape properties.

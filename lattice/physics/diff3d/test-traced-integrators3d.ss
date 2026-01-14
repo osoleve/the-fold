@@ -6,13 +6,13 @@
 (load "lattice/physics/diff3d/traced-integrators3d.ss")
 
 (display "\n")
-(display "==============================================================\n")
+(display "====\n")
 (display "         TRACED INTEGRATORS 3D TESTS\n")
-(display "==============================================================\n")
+(display "====\n")
 
-;;; ============================================================
+;;; ====
 ;;; Helper to create a simple body
-;;; ============================================================
+;;; ====
 
 (define (make-test-body tape pos-vec vel-vec angular-vel-vec)
   (make-traced-body-3d (lift-vec3 pos-vec tape)
@@ -22,9 +22,9 @@
                        1.0
                        (inertia-solid-sphere 1.0 1.0)))
 
-;;; ============================================================
+;;; ====
 ;;; Euler Step Tests
-;;; ============================================================
+;;; ====
 
 (test-group euler-step-tests
             
@@ -73,9 +73,9 @@
                      [omega (traced-body-3d-angular-vel b2)])
                     (assert-true (< (abs (- (traced-value (traced-vec3-z omega)) 1)) 1e-10)))))
 
-;;; ============================================================
+;;; ====
 ;;; Gravity Step Tests
-;;; ============================================================
+;;; ====
 
 (test-group gravity-tests
             
@@ -91,9 +91,9 @@
                     (assert-true (< (abs (- (traced-value (traced-vec3-y vel)) -10)) 1e-10))
                     (assert-true (< (abs (traced-value (traced-vec3-y pos))) 1e-10)))))
 
-;;; ============================================================
+;;; ====
 ;;; Multi-Step Integration Tests
-;;; ============================================================
+;;; ====
 
 (test-group multi-step-tests
             
@@ -119,9 +119,9 @@
                      [pos (traced-body-3d-pos b2)])
                     (assert-true (< (abs (- (traced-value (traced-vec3-x pos)) 1)) 1e-5)))))
 
-;;; ============================================================
+;;; ====
 ;;; Point Mass Integration Tests
-;;; ============================================================
+;;; ====
 
 (test-group point-mass-tests
             
@@ -142,9 +142,9 @@
                              (assert-true (< (abs (- (traced-value (traced-vec3-x new-pos)) 10)) 1e-10))
                              (assert-true (< (abs (traced-value (traced-vec3-y new-pos))) 1e-10)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Spring Force Tests
-;;; ============================================================
+;;; ====
 
 (test-group spring-tests
             
@@ -175,9 +175,9 @@
                     ;; Force should be away from anchor (positive x), magnitude 5
                     (assert-true (< (abs (- (traced-value (traced-vec3-x f)) 5)) 1e-5)))))
 
-;;; ============================================================
+;;; ====
 ;;; Energy Tests
-;;; ============================================================
+;;; ====
 
 (test-group energy-tests
             
@@ -201,9 +201,9 @@
                     ;; Energy drift should be bounded (allow 10% for first-order Euler)
                     (assert-true (< relative-drift 0.1)))))  ; Allow some drift for this test
 
-;;; ============================================================
+;;; ====
 ;;; Damping Tests
-;;; ============================================================
+;;; ====
 
 (test-group damping-tests
             
@@ -218,9 +218,9 @@
                     ;; v_new = v * 0.9 = 9
                     (assert-true (< (abs (- (traced-value (traced-vec3-x vel)) 9)) 1e-10)))))
 
-;;; ============================================================
+;;; ====
 ;;; Trajectory Recording Tests
-;;; ============================================================
+;;; ====
 
 (test-group trajectory-tests
             
@@ -238,8 +238,8 @@
                     ;; Last position should be at x = 0.5 (5 steps * 0.1 dt * 1 velocity)
                     (assert-true (< (abs (- (traced-value (traced-vec3-x (traced-body-3d-pos (car (reverse traj))))) 0.5)) 1e-5)))))
 
-;;; ============================================================
+;;; ====
 ;;; Run all tests
-;;; ============================================================
+;;; ====
 
 (run-all-tests)

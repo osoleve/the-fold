@@ -12,11 +12,11 @@
 (load "shell/lsp/diagnostics.ss")
 
 (display "Testing diagnostics.ss\n")
-(display "======================\n\n")
+(display "====\n\n")
 
-;;; ============================================================
+;;; ====
 ;;; string-contains? helper
-;;; ============================================================
+;;; ====
 
 (define (string-contains? str substr)
   (let ([str-len (string-length str)]
@@ -27,9 +27,9 @@
              [(string=? (substring str i (+ i sub-len)) substr) #t]
              [else (loop (+ i 1))]))))
 
-;;; ============================================================
+;;; ====
 ;;; phase->severity Tests
-;;; ============================================================
+;;; ====
 
 (test-group phase->severity
             
@@ -57,9 +57,9 @@
             (define-test phase->severity-other-symbol
               (assert-equal *severity-information* (phase->severity 'something-else))))
 
-;;; ============================================================
+;;; ====
 ;;; format-diagnostic-message Tests
-;;; ============================================================
+;;; ====
 ;;; Note: format-diagnostic-message uses Chez Scheme's format
 ;;; which may not be fully available in all contexts. Testing
 ;;; the base message lookup instead.
@@ -84,9 +84,9 @@
               (let ([msg (format-diagnostic-message 'infer 'division-by-zero '())])
                    (assert-true (string? msg)))))
 
-;;; ============================================================
+;;; ====
 ;;; context->range Tests
-;;; ============================================================
+;;; ====
 
 (test-group context->range
             
@@ -120,9 +120,9 @@
             ;; Clean up
             (doc-close! "file:///test-diag.ss"))
 
-;;; ============================================================
+;;; ====
 ;;; fold-error->diagnostic Tests
-;;; ============================================================
+;;; ====
 
 (test-group fold-error->diagnostic
             
@@ -161,9 +161,9 @@
             ;; Clean up
             (doc-close! "file:///test-err.ss"))
 
-;;; ============================================================
+;;; ====
 ;;; lookup-error-message* Tests
-;;; ============================================================
+;;; ====
 
 (test-group lookup-error-message*
             
@@ -182,9 +182,9 @@
               (assert-true (string? (lookup-error-message* 'infer 'division-by-zero)))
               (assert-true (string? (lookup-error-message* 'eval 'stack-overflow)))))
 
-;;; ============================================================
+;;; ====
 ;;; check-balanced-parens Tests
-;;; ============================================================
+;;; ====
 
 (test-group check-balanced-parens
             
@@ -224,9 +224,9 @@
               (let ([errors (check-balanced-parens "(display \"\\\"(\\\"\")" "test.ss")])
                    (assert-equal '() errors))))
 
-;;; ============================================================
+;;; ====
 ;;; compute-line-col Tests
-;;; ============================================================
+;;; ====
 
 (test-group compute-line-col
             
@@ -250,9 +250,9 @@
               (let ([result (compute-line-col "a\nb\nc" 4)])
                    (assert-equal '(3 . 1) result))))
 
-;;; ============================================================
+;;; ====
 ;;; skip-to-newline Tests
-;;; ============================================================
+;;; ====
 
 (test-group skip-to-newline
             
@@ -270,9 +270,9 @@
               (let ([result (skip-to-newline "abc; comment\ndef" 3)])
                    (assert-equal 13 result))))
 
-;;; ============================================================
+;;; ====
 ;;; Integration Tests
-;;; ============================================================
+;;; ====
 
 (test-group integration
             
@@ -306,9 +306,9 @@
                              codes))
                     phases))))
 
-;;; ============================================================
+;;; ====
 ;;; Summary
-;;; ============================================================
+;;; ====
 
 (print-summary)
 (when (> *tests-failed* 0)

@@ -25,16 +25,16 @@
 ;;;   shell/tools/index.ss (symbol index)
 ;;;   core/types/sig-parser.ss (signature parsing)
 
-;;; ============================================================
+;;; ====
 ;;; Dependencies
-;;; ============================================================
+;;; ====
 
 (load "core/base/prelude.ss")
 (load "shell/tools/string-utils.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Typed Index (Pre-parsed Signatures)
-;;; ============================================================
+;;; ====
 
 ;;; *typed-index* : Hashtable Symbol -> ParsedType
 ;;; Pre-parsed type signatures for fast searching.
@@ -68,9 +68,9 @@
 (define (typed-index-size)
   (hashtable-size *typed-index*))
 
-;;; ============================================================
+;;; ====
 ;;; Type Pattern Representation
-;;; ============================================================
+;;; ====
 
 ;;; Type patterns extend types with pattern variables:
 ;;;   - _ : matches any type
@@ -105,9 +105,9 @@
 (define (base-type? s)
   (memq s '(Nat Int Bool Char Symbol String Bytes Unit Void Hash)))
 
-;;; ============================================================
+;;; ====
 ;;; Type Matching
-;;; ============================================================
+;;; ====
 
 ;;; type-match? : Pattern × Type × Env -> Env | #f
 ;;; Match a type pattern against a concrete type.
@@ -182,9 +182,9 @@
 (define (type-equal? t1 t2)
   (equal? t1 t2))
 
-;;; ============================================================
+;;; ====
 ;;; Signature Parsing
-;;; ============================================================
+;;; ====
 
 ;;; parse-signature : String -> Type | #f
 ;;; Parse a type signature string into a type expression.
@@ -299,9 +299,9 @@
              (> (hashtable-size *symbol-index*) 0))
         (build-typed-index!)))
 
-;;; ============================================================
+;;; ====
 ;;; Search Engine
-;;; ============================================================
+;;; ====
 
 ;;; search-by-type : Pattern -> (List Entry)
 ;;; Search the symbol index for matching types.
@@ -417,9 +417,9 @@
    [(pred (car lst)) #t]
    [else (any pred (cdr lst))]))
 
-;;; ============================================================
+;;; ====
 ;;; Combinator Suggestions
-;;; ============================================================
+;;; ====
 
 ;;; suggest-combinators : Type -> (List Suggestion)
 ;;; Suggest ways to construct a value of the given type.
@@ -472,9 +472,9 @@
       '()
       (cons (car lst) (take-up-to (cdr lst) (- n 1)))))
 
-;;; ============================================================
+;;; ====
 ;;; REPL Interface
-;;; ============================================================
+;;; ====
 
 ;;; type-search : String -> void
 ;;; Search for functions matching a type pattern.
@@ -594,9 +594,9 @@
                        (display-search-result entry))
                data)])))
 
-;;; ============================================================
+;;; ====
 ;;; Help
-;;; ============================================================
+;;; ====
 
 ;;; type-search-help : -> void
 (define (type-search-help)
@@ -633,9 +633,9 @@
   (display "    (type-search-help)             Show this help\n")
   (display "\n"))
 
-;;; ============================================================
+;;; ====
 ;;; Stats
-;;; ============================================================
+;;; ====
 
 ;;; type-search-stats : -> void
 (define (type-search-stats)
@@ -666,9 +666,9 @@
                     (if (> typed-count 0) " (fast path enabled)" " (run build-typed-index!)"))))
   (display "\n"))
 
-;;; ============================================================
+;;; ====
 ;;; Initialization
-;;; ============================================================
+;;; ====
 
 (display "\n")
 (display "  Type-Driven Search Loaded\n")

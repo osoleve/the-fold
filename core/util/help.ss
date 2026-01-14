@@ -14,9 +14,9 @@
 
 (load "core/lang/prim.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Autodoc Integration Hooks
-;;; ============================================================
+;;; ====
 
 ;;; These are set by autodoc.ss when it loads, enabling unified help.
 ;;; *autodoc-help-handler*   : Symbol → void (displays full doc)
@@ -27,9 +27,9 @@
 (define *autodoc-lookup* #f)
 (define *autodoc-search-handler* #f)
 
-;;; ============================================================
+;;; ====
 ;;; Primitive Documentation Database
-;;; ============================================================
+;;; ====
 
 ;;; Primitive documentation structure:
 ;;;   name        - Symbol
@@ -42,9 +42,9 @@
 
 (define *primitive-docs*
   `(
-    ;; ============================================================
+    ;; ====
     ;; Arithmetic Operations
-    ;; ============================================================
+    ;; ====
     ((name . add) (category . arithmetic) (signature . "(add a b ...)")
      (description . "Add numbers. Variadic.")
      (examples . ("(prim 'add 2 3) → 5" "(prim 'add 1 2 3 4) → 10")))
@@ -109,9 +109,9 @@
      (description . "Round to nearest integer.")
      (examples . ("(prim 'round 3.5) → 4" "(prim 'round 3.4) → 3")))
     
-    ;; ============================================================
+    ;; ====
     ;; Comparison Operations
-    ;; ============================================================
+    ;; ====
     ((name . eq?) (category . comparison) (signature . "(eq? a b)")
      (description . "Test if two values are equal.")
      (examples . ("(prim 'eq? 1 1) → #t" "(prim 'eq? 1 2) → #f" "(prim 'eq? 'a 'a) → #t")))
@@ -144,9 +144,9 @@
      (description . "Test if a number is negative.")
      (examples . ("(prim 'negative? -5) → #t" "(prim 'negative? 3) → #f")))
     
-    ;; ============================================================
+    ;; ====
     ;; Bitwise Operations
-    ;; ============================================================
+    ;; ====
     ((name . bitand) (category . bitwise) (signature . "(bitand a b)")
      (description . "Bitwise AND of two integers.")
      (examples . ("(prim 'bitand 7 3) → 3" "(prim 'bitand 12 10) → 8")))
@@ -171,9 +171,9 @@
      (description . "Shift right by n bits.")
      (examples . ("(prim 'shr 8 3) → 1" "(prim 'shr 20 2) → 5")))
     
-    ;; ============================================================
+    ;; ====
     ;; Boolean Operations
-    ;; ============================================================
+    ;; ====
     ((name . not) (category . boolean) (signature . "(not a)")
      (description . "Logical negation.")
      (examples . ("(prim 'not #t) → #f" "(prim 'not #f) → #t")))
@@ -186,9 +186,9 @@
      (description . "Logical OR.")
      (examples . ("(prim 'or #t #f) → #t" "(prim 'or #f #f) → #f")))
     
-    ;; ============================================================
+    ;; ====
     ;; Block Operations
-    ;; ============================================================
+    ;; ====
     ((name . make-block) (category . block) (signature . "(make-block tag payload refs)")
      (description . "Create a content-addressed block.")
      (examples . ("(prim 'make-block 'data #vu8(1 2 3) #())")))
@@ -217,9 +217,9 @@
      (description . "Deserialize bytes to a block.")
      (examples . ("(prim 'bytes->block #vu8(...)) → <block>")))
     
-    ;; ============================================================
+    ;; ====
     ;; Bytevector Operations
-    ;; ============================================================
+    ;; ====
     ((name . bv-make) (category . bytevector) (signature . "(bv-make len [fill])")
      (description . "Create a bytevector of given length, optionally filled.")
      (examples . ("(prim 'bv-make 5) → #vu8(0 0 0 0 0)")))
@@ -244,9 +244,9 @@
      (description . "Extract a slice from a bytevector.")
      (examples . ("(prim 'bv-slice #vu8(1 2 3 4 5) 1 4) → #vu8(2 3 4)")))
     
-    ;; ============================================================
+    ;; ====
     ;; String Operations
-    ;; ============================================================
+    ;; ====
     ((name . string-length) (category . string) (signature . "(string-length s)")
      (description . "Return the length of a string.")
      (examples . ("(prim 'string-length \"hello\") → 5")))
@@ -287,9 +287,9 @@
      (description . "Convert list of characters to string.")
      (examples . ("(prim 'list->string '(#\\a #\\b #\\c)) → \"abc\"")))
     
-    ;; ============================================================
+    ;; ====
     ;; Character Operations
-    ;; ============================================================
+    ;; ====
     ((name . char->integer) (category . character) (signature . "(char->integer c)")
      (description . "Get Unicode code point of character.")
      (examples . ("(prim 'char->integer #\\A) → 65")))
@@ -334,9 +334,9 @@
      (description . "Convert character to lowercase.")
      (examples . ("(prim 'char-downcase #\\A) → #\\a")))
     
-    ;; ============================================================
+    ;; ====
     ;; Conversion Operations
-    ;; ============================================================
+    ;; ====
     ((name . string->utf8) (category . conversion) (signature . "(string->utf8 s)")
      (description . "Convert string to UTF-8 bytevector.")
      (examples . ("(prim 'string->utf8 \"hello\") → #vu8(104 101 108 108 111)")))
@@ -361,9 +361,9 @@
      (description . "Parse string as number.")
      (examples . ("(prim 'string->number \"42\") → 42")))
     
-    ;; ============================================================
+    ;; ====
     ;; List Operations
-    ;; ============================================================
+    ;; ====
     ((name . cons) (category . list) (signature . "(cons a b)")
      (description . "Construct a pair (cons cell).")
      (examples . ("(prim 'cons 1 2) → (1 . 2)" "(prim 'cons 1 '()) → (1)")))
@@ -412,9 +412,9 @@
      (description . "Find pair with key in association list using eq?.")
      (examples . ("(prim 'assq 'b '((a . 1) (b . 2))) → (b . 2)")))
     
-    ;; ============================================================
+    ;; ====
     ;; Vector Operations
-    ;; ============================================================
+    ;; ====
     ((name . vec-make) (category . vector) (signature . "(vec-make ...)")
      (description . "Create a vector from arguments. Variadic.")
      (examples . ("(prim 'vec-make 1 2 3) → #(1 2 3)")))
@@ -435,9 +435,9 @@
      (description . "Convert list to vector.")
      (examples . ("(prim 'list->vec '(1 2 3)) → #(1 2 3)")))
     
-    ;; ============================================================
+    ;; ====
     ;; Type Predicates
-    ;; ============================================================
+    ;; ====
     ((name . number?) (category . type) (signature . "(number? obj)")
      (description . "Test if object is a number.")
      (examples . ("(prim 'number? 42) → #t")))
@@ -482,9 +482,9 @@
      (description . "Test if object is a procedure.")
      (examples . ("(prim 'procedure? +) → #t")))
     
-    ;; ============================================================
+    ;; ====
     ;; Hash Operations
-    ;; ============================================================
+    ;; ====
     ((name . sha256) (category . hash) (signature . "(sha256 bv)")
      (description . "Compute SHA-256 hash of bytevector.")
      (examples . ("(prim 'sha256 #vu8(104 105)) → #vu8(...)")))
@@ -502,9 +502,9 @@
      (examples . ("(prim 'hex->hash \"abc123...\") → <hash>")))
     ))
 
-;;; ============================================================
+;;; ====
 ;;; Category Management
-;;; ============================================================
+;;; ====
 
 (define *categories*
   '((arithmetic . "Arithmetic Operations")
@@ -534,9 +534,9 @@
                   (eq? (cdr (assq 'category doc)) cat))
           *primitive-docs*))
 
-;;; ============================================================
+;;; ====
 ;;; Main Help Functions
-;;; ============================================================
+;;; ====
 
 ;;; help : (Option Symbol) → Void
 ;;; Show help for all primitives or a specific primitive.
@@ -711,9 +711,9 @@
        (display "
 ")))
 
-;;; ============================================================
+;;; ====
 ;;; Helper Functions
-;;; ============================================================
+;;; ====
 
 ;;; find-primitive-doc : Symbol → Alist | #f
 (define (find-primitive-doc name)
@@ -807,9 +807,9 @@
    [(pred (car lst)) (car lst)]
    [else (find pred (cdr lst))]))
 
-;;; ============================================================
+;;; ====
 ;;; Initialization
-;;; ============================================================
+;;; ====
 
 (display "
 ")

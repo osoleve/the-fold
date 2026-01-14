@@ -7,9 +7,9 @@
 (load "core/types/dep-types.ss")
 (load "core/lang/nbe.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Test Framework
-;;; ============================================================
+;;; ====
 
 (define *test-count* 0)
 (define *pass-count* 0)

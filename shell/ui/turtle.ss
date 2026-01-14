@@ -15,9 +15,9 @@
 ;;;   - shell/turtle-color.ss
 ;;;   - shell/turtle-path.ss
 
-;;; ============================================================
+;;; ====
 ;;; Constants
-;;; ============================================================
+;;; ====
 
 (define *turtle-viewport-width* 640)
 (define *turtle-viewport-height* 480)
@@ -29,9 +29,9 @@
 (define (deg->rad deg) (* deg (/ pi 180.0)))
 (define (rad->deg rad) (* rad (/ 180.0 pi)))
 
-;;; ============================================================
+;;; ====
 ;;; Turtle State Record
-;;; ============================================================
+;;; ====
 
 ;;; Turtle State:
 ;;;   x, y       : Real        - Current position
@@ -46,9 +46,9 @@
 (define-record-type turtle%
   (fields x y heading pen-down? pen-color pen-width bg-color paths visible?))
 
-;;; ============================================================
+;;; ====
 ;;; Turtle Constructor
-;;; ============================================================
+;;; ====
 
 ;;; make-turtle : -> Turtle
 ;;; Create a turtle with default state.
@@ -68,9 +68,9 @@
 ;;; Alias for make-turtle.
 (define make-default-turtle make-turtle)
 
-;;; ============================================================
+;;; ====
 ;;; State Accessors (aliases for readability)
-;;; ============================================================
+;;; ====
 
 (define turtle-x turtle%-x)
 (define turtle-y turtle%-y)
@@ -82,9 +82,9 @@
 (define turtle-paths turtle%-paths)
 (define turtle-visible? turtle%-visible?)
 
-;;; ============================================================
+;;; ====
 ;;; State Updaters (functional updates)
-;;; ============================================================
+;;; ====
 
 ;;; Copy turtle with new position and paths
 (define (turtle-with-position t x y paths)
@@ -181,9 +181,9 @@
                 (turtle-paths t)
                 visible?))
 
-;;; ============================================================
+;;; ====
 ;;; Movement Commands
-;;; ============================================================
+;;; ====
 
 ;;; fd : Turtle x Real -> Turtle
 ;;; Move forward by distance units in the current heading direction.
@@ -250,9 +250,9 @@
   (let ([r (remainder x y)])
        (if (< r 0) (+ r y) r)))
 
-;;; ============================================================
+;;; ====
 ;;; Position Commands
-;;; ============================================================
+;;; ====
 
 ;;; setxy : Turtle x Real x Real -> Turtle
 ;;; Move to absolute position (x, y).
@@ -317,9 +317,9 @@
 ;;; Alias for setheading.
 (define seth setheading)
 
-;;; ============================================================
+;;; ====
 ;;; Pen Commands
-;;; ============================================================
+;;; ====
 
 ;;; pu : Turtle -> Turtle
 ;;; Pen up - stop drawing.
@@ -360,9 +360,9 @@
 (define (clean t)
   (turtle-with-paths t '()))
 
-;;; ============================================================
+;;; ====
 ;;; Pen Attribute Commands
-;;; ============================================================
+;;; ====
 
 ;;; setpc : Turtle x ColorSpec -> Turtle
 ;;; Set pen color. Accepts Color12, (r g b), integer, or symbol.
@@ -401,9 +401,9 @@
 ;;; Alias for setbg.
 (define setbackground setbg)
 
-;;; ============================================================
+;;; ====
 ;;; Visibility Commands
-;;; ============================================================
+;;; ====
 
 ;;; st : Turtle -> Turtle
 ;;; Show turtle cursor.
@@ -423,9 +423,9 @@
 ;;; Alias for ht.
 (define hideturtle ht)
 
-;;; ============================================================
+;;; ====
 ;;; Query Functions
-;;; ============================================================
+;;; ====
 
 ;;; xcor : Turtle -> Real
 ;;; Get current x coordinate.
@@ -451,9 +451,9 @@
 ;;; Test if turtle is visible.
 (define (shown? t) (turtle-visible? t))
 
-;;; ============================================================
+;;; ====
 ;;; Drawing Record (for SVG/CAS output)
-;;; ============================================================
+;;; ====
 
 ;;; Drawing: Complete turtle graphics output
 ;;;   width, height : Nat        - Viewport dimensions
@@ -489,9 +489,9 @@
                  (reverse (turtle-paths t))
                  metadata))
 
-;;; ============================================================
+;;; ====
 ;;; Extended Commands: Shapes
-;;; ============================================================
+;;; ====
 
 ;;; arc : Turtle x Real x Real -> Turtle
 ;;; Draw an arc with given angle (degrees) and radius.
@@ -618,9 +618,9 @@
                             next-h
                             (cons (cons x y) acc)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Repeat Helper
-;;; ============================================================
+;;; ====
 
 ;;; repeat : Nat x (Turtle -> Turtle) x Turtle -> Turtle
 ;;; Apply a procedure n times to a turtle.
@@ -629,9 +629,9 @@
       t
       (repeat (- n 1) proc (proc t))))
 
-;;; ============================================================
+;;; ====
 ;;; Convenience Procedures for Common Shapes
-;;; ============================================================
+;;; ====
 
 ;;; square : Turtle x Real -> Turtle
 ;;; Draw a square with given side length.
@@ -655,9 +655,9 @@
       t
       (spiral (rt (fd t size) 90) (+ size growth) growth (- n 1))))
 
-;;; ============================================================
+;;; ====
 ;;; Imperative Interface (Logo-style)
-;;; ============================================================
+;;; ====
 ;;;
 ;;; These procedures use a global *current-turtle* parameter for
 ;;; Logo-style programming where commands mutate state in place.

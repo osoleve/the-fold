@@ -19,9 +19,9 @@
 
 (load "core/base/prelude.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Data Structures
-;;; ============================================================
+;;; ====
 
 ;;; Canvas: A 2D character grid
 ;;; Cells stored in row-major order: cells[y * width + x]
@@ -49,9 +49,9 @@
 (define rect-width rect%-width)
 (define rect-height rect%-height)
 
-;;; ============================================================
+;;; ====
 ;;; Canvas Construction
-;;; ============================================================
+;;; ====
 
 ;;; make-canvas : Nat × Nat → Canvas
 ;;; Create a canvas filled with spaces.
@@ -123,9 +123,9 @@
                      [idx (+ (* y w) x)])
                     (vector-set! cells idx ch)))))
 
-;;; ============================================================
+;;; ====
 ;;; Drawing Primitives
-;;; ============================================================
+;;; ====
 
 ;;; draw-char : Canvas × Point × Char → Canvas
 ;;; Place a single character at the given point.
@@ -210,9 +210,9 @@
                              (loop-y (+ y 1) canvas)
                              (loop-x (+ x 1) (canvas-set canvas x y ch)))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Composition
-;;; ============================================================
+;;; ====
 
 ;;; composite : Canvas × Canvas × Point → Canvas
 ;;; Overlay source canvas onto destination at given position.
@@ -282,9 +282,9 @@
                               (loop-x (+ x 1)
                                       (canvas-set canvas (+ dx x) (+ dy y) ch)))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Rendering
-;;; ============================================================
+;;; ====
 
 ;;; canvas->string : Canvas → String
 ;;; Convert canvas to multi-line string.
@@ -309,9 +309,9 @@
                                              (cons (canvas-ref c x y) chars))))])
                      (loop (+ y 1) (cons line lines)))))))
 
-;;; ============================================================
+;;; ====
 ;;; String Utilities
-;;; ============================================================
+;;; ====
 
 ;;; NOTE: string-pad-left, string-pad-right provided by core/prelude.ss
 
@@ -322,9 +322,9 @@
 (define (string-pad str target-len pad-char)
   (string-pad-right str target-len pad-char))
 
-;;; ============================================================
+;;; ====
 ;;; Box Drawing (Optional Enhancement)
-;;; ============================================================
+;;; ====
 
 ;;; Box drawing styles
 (define box-style-ascii
@@ -394,9 +394,9 @@
                                                                right y vt))))])
                            canvas))))))
 
-;;; ============================================================
+;;; ====
 ;;; Text Flow (Wrapping, Alignment, Text Blocks)
-;;; ============================================================
+;;; ====
 
 ;;; --- Word Splitting ---
 

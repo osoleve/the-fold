@@ -8,9 +8,9 @@
 (load "shell/ffi/ffi-core.ss")
 (load "shell/ffi/bvh-ffi.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Result Structs (matching Rust #[repr(C)])
-;;; ============================================================
+;;; ====
 
 ;;; Raymarching result struct
 ;;; Fields ordered for natural alignment (f64 first, then u64, u32, u8)
@@ -51,9 +51,9 @@
    [pad5   unsigned-8]
    [pad6   unsigned-8]))
 
-;;; ============================================================
+;;; ====
 ;;; Foreign Procedures (bound lazily)
-;;; ============================================================
+;;; ====
 
 (define rust-raymarch-mesh #f)
 (define rust-mesh-sdf-normal #f)
@@ -83,9 +83,9 @@
                                  (* normal-result-t))         ; out pointer
                            void)))
 
-;;; ============================================================
+;;; ====
 ;;; High-Level Wrappers
-;;; ============================================================
+;;; ====
 
 ;;; rust-raymarch-mesh/raw : RustBVHHandle × Vec3 × Vec3 × RaymarchParams × Nat → Result
 ;;; Perform raymarching using Rust acceleration
@@ -184,9 +184,9 @@
                  ;; Cleanup - always runs even on exception
                  (foreign-free (ftype-pointer-address result-ptr))))))
 
-;;; ============================================================
+;;; ====
 ;;; Convenience Wrappers
-;;; ============================================================
+;;; ====
 
 ;;; raymarch-mesh/rust : Mesh × Ray3 × RaymarchParams × Nat → Result
 ;;; Raymarching with automatic BVH caching
@@ -205,13 +205,13 @@
          [threshold (raymarch-params-hit-threshold params)])
         (rust-raymarch-mesh/raw handle origin direction max-steps max-dist threshold fuel)))
 
-;;; ============================================================
+;;; ====
 ;;; Tests
-;;; ============================================================
+;;; ====
 
 (define (run-raymarch-ffi-tests)
   (display "Raymarch FFI Tests\n")
-  (display "==================\n")
+  (display "====\n")
   
   ;; Ensure library is loaded
   (unless (accel-available?)
@@ -219,7 +219,7 @@
   
   (unless (accel-available?)
           (display "SKIP: No acceleration library\n")
-          (display "==================\n")
+          (display "====\n")
           #f)
   
   ;; Bind procedures
@@ -295,5 +295,5 @@
             
             (display "FAIL: Could not build BVH\n")))
   
-  (display "==================\n")
+  (display "====\n")
   #t)

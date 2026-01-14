@@ -26,17 +26,17 @@
 ;;;       (text "A long corridor stretches before you.")
 ;;;       (choice "Continue" -> 'ending)))
 
-;;; ============================================================
+;;; ====
 ;;; Dependencies
-;;; ============================================================
+;;; ====
 
 (load "core/base/prelude.ss")
 (load "lattice/fp/meta/combinators.ss")
 (load "lattice/dsl/quasi.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Core Types
-;;; ============================================================
+;;; ====
 
 ;;; Chronicle : A complete narrative
 (define-record-type chronicle%
@@ -75,9 +75,9 @@
 (define choice-effects choice%-effects)
 (define choice-meta choice%-meta)
 
-;;; ============================================================
+;;; ====
 ;;; State Management
-;;; ============================================================
+;;; ====
 
 ;;; State is an immutable record with vars, flags, inventory
 (define-record-type cstate%
@@ -143,9 +143,9 @@
            (cons (cons key value) (remq p alist))
            (cons (cons key value) alist))))
 
-;;; ============================================================
+;;; ====
 ;;; Guards - First-Class Predicates
-;;; ============================================================
+;;; ====
 
 ;;; A guard is a function: State -> Boolean
 ;;; Guards compose with combinators
@@ -201,9 +201,9 @@
    [(eq? guard #f) #f]
    [else #t]))
 
-;;; ============================================================
+;;; ====
 ;;; Effects - State Transformations
-;;; ============================================================
+;;; ====
 
 ;;; An effect is a function: State -> State
 ;;; Effects compose sequentially
@@ -256,9 +256,9 @@
            s
            (loop (apply-effect (car effs) s) (cdr effs)))))
 
-;;; ============================================================
+;;; ====
 ;;; Templates - Text with State Interpolation
-;;; ============================================================
+;;; ====
 
 ;;; Templates use quasiquotation for dynamic text.
 ;;; A template is either:
@@ -301,9 +301,9 @@
    [else
     (format "~a" template)]))
 
-;;; ============================================================
+;;; ====
 ;;; Chronicle Lookup
-;;; ============================================================
+;;; ====
 
 (define (chronicle-scene chronicle sid)
   (let ([scenes (chronicle-scenes chronicle)])
@@ -316,9 +316,9 @@
 (define (chronicle-has-scene? chronicle sid)
   (and (chronicle-scene chronicle sid) #t))
 
-;;; ============================================================
+;;; ====
 ;;; Runtime State
-;;; ============================================================
+;;; ====
 
 ;;; A Run tracks the current playthrough
 (define-record-type crun%
@@ -359,9 +359,9 @@
              (crun-state run) (cons entry (crun-transcript run))
              (crun-done? run) (crun-message run)))
 
-;;; ============================================================
+;;; ====
 ;;; Runtime Engine
-;;; ============================================================
+;;; ====
 
 ;;; Start a new run (enters the first scene, applying on-enter effects)
 (define (chronicle-start chronicle . state-opt)
@@ -453,9 +453,9 @@
    [(null? (cdr lst)) lst]
    [else (cons (car lst) (cons sep (intersperse sep (cdr lst))))]))
 
-;;; ============================================================
+;;; ====
 ;;; DSL Constructors (S-expression Based)
-;;; ============================================================
+;;; ====
 
 ;;; These constructors create Chronicle structures from S-expressions.
 ;;; Later, parser combinators will generate these from text syntax.
@@ -473,9 +473,9 @@
 (define (build-chronicle id title scenes start meta)
   (make-chronicle id title scenes start meta))
 
-;;; ============================================================
+;;; ====
 ;;; DSL Macros (High-Level Syntax)
-;;; ============================================================
+;;; ====
 
 ;;; Macro: define-chronicle
 ;;; Usage:
@@ -619,9 +619,9 @@
                  (define name
                    (parse-chronicle-def '(chronicle name title body ...)))]))
 
-;;; ============================================================
+;;; ====
 ;;; Exports Summary
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Types:
 ;;;   chronicle, scene, choice, cstate, crun

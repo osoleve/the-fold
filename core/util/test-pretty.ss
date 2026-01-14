@@ -7,16 +7,16 @@
 
 (display "
 ")
-(display "==============================================================
+(display "====
 ")
 (display "          PRETTY PRINTING COMBINATOR TESTS
 ")
-(display "==============================================================
+(display "====
 ")
 
-;;; ============================================================
+;;; ====
 ;;; Document Type Tests
-;;; ============================================================
+;;; ====
 
 (test-group doc-type-tests
             (define-test doc-empty-test
@@ -48,9 +48,9 @@
                    (assert-true (doc? d))
                    (assert-true (doc-group? d)))))
 
-;;; ============================================================
+;;; ====
 ;;; Primitive Tests
-;;; ============================================================
+;;; ====
 
 (test-group primitive-tests
             (define-test empty-renders-empty
@@ -66,9 +66,9 @@
               (assert-equal "a
 b" (pretty 80 (<> (text "a") (<> line (text "b")))))))
 
-;;; ============================================================
+;;; ====
 ;;; Combinator Tests
-;;; ============================================================
+;;; ====
 
 (test-group combinator-tests
             (define-test concat-test
@@ -89,9 +89,9 @@ b" (pretty 80 (<> (text "a") (<> line (text "b")))))))
                             (pretty 80 (<> (text "a")
                                            (nest 2 (<> line (text "b"))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Group Tests
-;;; ============================================================
+;;; ====
 
 (test-group group-tests
             ;; Group flattens when it fits
@@ -107,9 +107,9 @@ b" (pretty 80 (<> (text "a") (<> line (text "b")))))))
                    (assert-equal "aaaaaaaaaa
 bbbbbbbbbb" (pretty 15 doc)))))
 
-;;; ============================================================
+;;; ====
 ;;; List Combinator Tests
-;;; ============================================================
+;;; ====
 
 (test-group list-combinator-tests
             (define-test hcat-test
@@ -150,9 +150,9 @@ cccc" (pretty 8 doc))))
               (assert-equal "" (pretty 80 (hsep '())))
               (assert-equal "" (pretty 80 (vcat '())))))
 
-;;; ============================================================
+;;; ====
 ;;; Bracketing Tests
-;;; ============================================================
+;;; ====
 
 (test-group bracketing-tests
             (define-test parens-test
@@ -173,9 +173,9 @@ cccc" (pretty 8 doc))))
             (define-test double-quotes-test
               (assert-equal "\"x\"" (pretty 80 (double-quotes (text "x"))))))
 
-;;; ============================================================
+;;; ====
 ;;; Punctuate Tests
-;;; ============================================================
+;;; ====
 
 (test-group punctuate-tests
             (define-test punctuate-comma-test
@@ -191,9 +191,9 @@ cccc" (pretty 8 doc))))
               (let ([result (punctuate (text ",") (list (text "x")))])
                    (assert-equal 1 (length result)))))
 
-;;; ============================================================
+;;; ====
 ;;; Flatten Tests
-;;; ============================================================
+;;; ====
 
 (test-group flatten-tests
             (define-test flatten-line-to-space
@@ -209,9 +209,9 @@ cccc" (pretty 8 doc))))
                    (assert-equal "a
 b" (pretty 80 doc)))))
 
-;;; ============================================================
+;;; ====
 ;;; Indentation Tests
-;;; ============================================================
+;;; ====
 
 (test-group indentation-tests
             (define-test nested-indent-test
@@ -227,9 +227,9 @@ b" (pretty 80 doc)))))
               (let ([doc (indent 4 (text "indented"))])
                    (assert-equal "    indented" (pretty 80 doc)))))
 
-;;; ============================================================
+;;; ====
 ;;; S-expression Tests
-;;; ============================================================
+;;; ====
 
 (test-group sexp-tests
             (define-test sexp-symbol-test
@@ -250,9 +250,9 @@ b" (pretty 80 doc)))))
                    ;; Should contain the elements
                    (assert-true (> (string-length result) 0)))))
 
-;;; ============================================================
+;;; ====
 ;;; Width Tests
-;;; ============================================================
+;;; ====
 
 (test-group width-tests
             (define-test narrow-width-forces-breaks
@@ -265,13 +265,13 @@ world" (pretty 10 doc))))
               (let ([doc (sep (list (text "hello") (text "world")))])
                    (assert-equal "hello world" (pretty 80 doc)))))
 
-;;; ============================================================
+;;; ====
 ;;; Run Tests
-;;; ============================================================
+;;; ====
 
 (display "
 ")
-(display "==============================================================
+(display "====
 ")
 (display (format "Tests passed: ~a
 " *tests-passed*))

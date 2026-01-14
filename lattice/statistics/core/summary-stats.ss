@@ -15,9 +15,9 @@
 
 (load "core/base/prelude.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Basic Statistics (List versions)
-;;; ============================================================
+;;; ====
 
 ;;; mean : (List Num) → Num
 ;;; Compute arithmetic mean.
@@ -56,9 +56,9 @@
 (define (std-dev-population xs)
   (sqrt (variance-population xs)))
 
-;;; ============================================================
+;;; ====
 ;;; Order Statistics
-;;; ============================================================
+;;; ====
 
 ;;; median : (List Num) → Num
 ;;; Compute median (middle value or average of two middle values).
@@ -99,9 +99,9 @@
 (define (range-stat xs)
   (- (apply max xs) (apply min xs)))
 
-;;; ============================================================
+;;; ====
 ;;; Covariance and Correlation
-;;; ============================================================
+;;; ====
 
 ;;; covariance : (List Num) × (List Num) → Num
 ;;; Compute sample covariance.
@@ -128,9 +128,9 @@
            0  ; undefined, return 0
            (/ cov (* sx sy)))))
 
-;;; ============================================================
+;;; ====
 ;;; Vector-Optimized Versions
-;;; ============================================================
+;;; ====
 
 ;;; vec-sum : Vec → Num
 ;;; Sum of vector elements.
@@ -226,9 +226,9 @@
            0
            (/ cov (* s1 s2)))))
 
-;;; ============================================================
+;;; ====
 ;;; Additional Utilities
-;;; ============================================================
+;;; ====
 
 ;;; sem : (List Num) → Num
 ;;; Standard error of the mean.

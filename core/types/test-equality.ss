@@ -11,9 +11,9 @@
 (load "core/types/dep-types.ss")
 (load "core/types/dep-infer.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Test Framework
-;;; ============================================================
+;;; ====
 
 (define *test-count* 0)
 (define *pass-count* 0)
@@ -51,9 +51,9 @@
 (define (test-error name result)
   (test name #t (and (pair? result) (eq? (car result) 'error))))
 
-;;; ============================================================
+;;; ====
 ;;; Tests
-;;; ============================================================
+;;; ====
 
 (define (run-tests)
   (display "
@@ -61,9 +61,9 @@
 
 ")
   
-  ;; --------------------------------------------------------
+  ;; ----
   ;; Equality Type Predicates
-  ;; --------------------------------------------------------
+  ;; ----
   (display "--- Equality Type Predicates ---
 ")
   
@@ -78,9 +78,9 @@
   (test-false "equality-type-well-formed? wrong length"
               (equality-type-well-formed? '(= Nat x)))
   
-  ;; --------------------------------------------------------
+  ;; ----
   ;; Equality Type Operations
-  ;; --------------------------------------------------------
+  ;; ----
   (display "
 --- Equality Type Operations ---
 ")
@@ -95,9 +95,9 @@
         'y
         (equality-rhs '(= Nat x y)))
   
-  ;; --------------------------------------------------------
+  ;; ----
   ;; Equality Type Construction
-  ;; --------------------------------------------------------
+  ;; ----
   (display "
 --- Equality Type Construction ---
 ")
@@ -109,9 +109,9 @@
         '(= (List Int) xs ys)
         (t-eq '(List Int) 'xs 'ys))
   
-  ;; --------------------------------------------------------
+  ;; ----
   ;; Refl Proof Term Predicates
-  ;; --------------------------------------------------------
+  ;; ----
   (display "
 --- Refl Proof Term Predicates ---
 ")
@@ -132,9 +132,9 @@
         #f
         (refl-carrier 'refl))
   
-  ;; --------------------------------------------------------
+  ;; ----
   ;; J Eliminator Predicate
-  ;; --------------------------------------------------------
+  ;; ----
   (display "
 --- J Eliminator Predicate ---
 ")
@@ -144,9 +144,9 @@
   (test-false "j-term? on other expression"
               (j-term? '(refl Nat 5)))
   
-  ;; --------------------------------------------------------
+  ;; ----
   ;; Type Display
-  ;; --------------------------------------------------------
+  ;; ----
   (display "
 --- Type Display ---
 ")
@@ -158,9 +158,9 @@
         "5 ≡ 5 : Int"
         (dep-type->string '(= Int 5 5)))
   
-  ;; --------------------------------------------------------
+  ;; ----
   ;; Wellformedness
-  ;; --------------------------------------------------------
+  ;; ----
   (display "
 --- Wellformedness ---
 ")
@@ -170,9 +170,9 @@
   (test-true "well-formed-dep-type? equality with expressions"
              (well-formed-dep-type? '(= Int (+ 1 2) 3)))
   
-  ;; --------------------------------------------------------
+  ;; ----
   ;; Type Synthesis - Equality Type Formation
-  ;; --------------------------------------------------------
+  ;; ----
   (display "
 --- Type Synthesis: Equality Type Formation ---
 ")
@@ -193,9 +193,9 @@
        (test-error "synth equality with unbound var"
                    (dep-synth '(= Nat x z) ctx)))
   
-  ;; --------------------------------------------------------
+  ;; ----
   ;; Type Synthesis - refl
-  ;; --------------------------------------------------------
+  ;; ----
   (display "
 --- Type Synthesis: refl ---
 ")
@@ -218,9 +218,9 @@
        (test-error "synth bare refl without annotation"
                    (dep-synth '(refl) empty-dep-ctx)))
   
-  ;; --------------------------------------------------------
+  ;; ----
   ;; Type Synthesis - sym (symmetry)
-  ;; --------------------------------------------------------
+  ;; ----
   (display "
 --- Type Synthesis: sym (symmetry) ---
 ")
@@ -243,9 +243,9 @@
             (test-error "synth (sym n) with non-equality arg"
                         (dep-synth '(sym n) ctx2))))
   
-  ;; --------------------------------------------------------
+  ;; ----
   ;; Type Synthesis - trans (transitivity)
-  ;; --------------------------------------------------------
+  ;; ----
   (display "
 --- Type Synthesis: trans (transitivity) ---
 ")
@@ -267,9 +267,9 @@
              '(ok (= Nat x z))
              (dep-synth '(trans p q) ctx)))
   
-  ;; --------------------------------------------------------
+  ;; ----
   ;; Type Synthesis - cong (congruence)
-  ;; --------------------------------------------------------
+  ;; ----
   (display "
 --- Type Synthesis: cong (congruence) ---
 ")
@@ -289,9 +289,9 @@
              '(ok (= Int (f x) (f y)))
              (dep-synth '(cong f p) ctx)))
   
-  ;; --------------------------------------------------------
+  ;; ----
   ;; Type Synthesis - subst (substitution)
-  ;; --------------------------------------------------------
+  ;; ----
   (display "
 --- Type Synthesis: subst (substitution) ---
 ")
@@ -313,9 +313,9 @@
              '(ok (P y))
              (dep-synth '(subst P p prf) ctx)))
   
-  ;; --------------------------------------------------------
+  ;; ----
   ;; Dependent Types Integration
-  ;; --------------------------------------------------------
+  ;; ----
   (display "
 --- Dependent Types Integration ---
 ")
@@ -330,9 +330,9 @@
        (test-true "equality of vector lengths"
                   (equality-type? vec-eq-type)))
   
-  ;; --------------------------------------------------------
+  ;; ----
   ;; Summary
-  ;; --------------------------------------------------------
+  ;; ----
   (display "
 === Test Summary ===
 ")

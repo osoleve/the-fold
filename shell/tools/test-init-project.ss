@@ -33,9 +33,9 @@
        (printf "    Expected: #t\n")
        (printf "    Actual:   #f\n"))))
 
-;;; ============================================================
+;;; ====
 ;;; Test 1: Project Types Configuration
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Test 1: Project Types Configuration ===\n")
 
@@ -46,9 +46,9 @@
 (assert-true "has library" (assq 'library *project-types*))
 (assert-true "has playground" (assq 'playground *project-types*))
 
-;;; ============================================================
+;;; ====
 ;;; Test 2: Make Config
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Test 2: Make Config ===\n")
 
@@ -62,9 +62,9 @@
      (assert-equal "config with-git" (assoc-ref config 'with-git) #t)
      (assert-equal "config with-ci" (assoc-ref config 'with-ci) #f))
 
-;;; ============================================================
+;;; ====
 ;;; Test 3: Make Default Config
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Test 3: Make Default Config ===\n")
 
@@ -74,9 +74,9 @@
      (assert-true "default has tests" (assoc-ref config 'with-tests))
      (assert-true "default has git" (assoc-ref config 'with-git)))
 
-;;; ============================================================
+;;; ====
 ;;; Test 4: Assoc-Ref
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Test 4: Assoc-Ref ===\n")
 
@@ -85,9 +85,9 @@
      (assert-equal "assoc-ref finds b" (assoc-ref alist 'b) 2)
      (assert-equal "assoc-ref missing" (assoc-ref alist 'missing) #f))
 
-;;; ============================================================
+;;; ====
 ;;; Test 5: Path Join
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Test 5: Path Join ===\n")
 
@@ -101,9 +101,9 @@
               (path-join "single")
               "single")
 
-;;; ============================================================
+;;; ====
 ;;; Test 6: Enumerate
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Test 6: Enumerate ===\n")
 
@@ -111,9 +111,9 @@
 (assert-equal "enumerate three" (enumerate '(a b c)) '(1 2 3))
 (assert-equal "enumerate one" (enumerate '(x)) '(1))
 
-;;; ============================================================
+;;; ====
 ;;; Test 7: Format README
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Test 7: Format README ===\n")
 
@@ -127,9 +127,9 @@
      (assert-true "readme contains usage"
                   (string-contains? readme "Usage")))
 
-;;; ============================================================
+;;; ====
 ;;; Test 8: Format CLAUDE.md
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Test 8: Format CLAUDE.md ===\n")
 
@@ -141,9 +141,9 @@
      (assert-true "claude-md contains guidelines"
                   (string-contains? claude-md "Guidelines")))
 
-;;; ============================================================
+;;; ====
 ;;; Test 9: Format Main File
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Test 9: Format Main File ===\n")
 
@@ -159,9 +159,9 @@
      (assert-true "shell file marked as impure"
                   (string-contains? shell-file "impure")))
 
-;;; ============================================================
+;;; ====
 ;;; Test 10: Format Test File
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Test 10: Format Test File ===\n")
 
@@ -173,9 +173,9 @@
      (assert-true "test file has assert"
                   (string-contains? test-file "assert")))
 
-;;; ============================================================
+;;; ====
 ;;; Test 11: Format Gitignore
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Test 11: Format Gitignore ===\n")
 
@@ -187,9 +187,9 @@
      (assert-true "gitignore has .fold-repl"
                   (string-contains? gitignore ".fold-repl")))
 
-;;; ============================================================
+;;; ====
 ;;; Test 12: Format CI Config
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Test 12: Format CI Config ===\n")
 
@@ -201,9 +201,9 @@
      (assert-true "ci config has scheme install"
                   (string-contains? ci-config "chezscheme")))
 
-;;; ============================================================
+;;; ====
 ;;; Test 13: Init Project (File Creation)
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Test 13: Init Project (File Creation) ===\n")
 
@@ -236,9 +236,9 @@
      (when (file-exists? test-proj-name)
            (system (format "rm -rf ~a" test-proj-name))))
 
-;;; ============================================================
+;;; ====
 ;;; Test 14: Create Directories for Different Types
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Test 14: Create Directories for Different Types ===\n")
 
@@ -270,9 +270,9 @@
       (when (file-exists? test-dir)
             (system (format "rm -rf ~a" test-dir))))
 
-;;; ============================================================
+;;; ====
 ;;; Test 15: Write File Function
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Test 15: Write File Function ===\n")
 
@@ -286,11 +286,11 @@
      (when (file-exists? temp-file)
            (delete-file temp-file)))
 
-;;; ============================================================
+;;; ====
 ;;; Test Summary
-;;; ============================================================
+;;; ====
 
-(printf "\n========================================\n")
+(printf "\n====\n")
 (printf "Test Results:\n")
 (printf "  Total:  ~a\n" test-count)
 (printf "  Passed: ~a\n" pass-count)

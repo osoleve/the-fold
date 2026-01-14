@@ -33,9 +33,9 @@
 (load "lattice/random/prng.ss")
 (load "lattice/random/distributions.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Statistical Summary Functions
-;;; ============================================================
+;;; ====
 
 ;;; sample-mean : (List Number) -> Number
 ;;; Compute the arithmetic mean of a sample.
@@ -115,9 +115,9 @@
              (q75 . ,(sample-quantile samples 0.75))
              (max . ,(sample-max samples))))))
 
-;;; ============================================================
+;;; ====
 ;;; Basic Monte Carlo Integration
-;;; ============================================================
+;;; ====
 
 ;;; mc-integrate : (Number -> Number) x Number x Number x Integer
 ;;;                -> State GenState (Number . Number)
@@ -143,9 +143,9 @@
                             [se (sample-sem samples)])
                            (state-pure (cons mu se))))))
 
-;;; ============================================================
+;;; ====
 ;;; Importance Sampling
-;;; ============================================================
+;;; ====
 
 ;;; importance-sample : (a -> Number) x (a -> Number) x (State g a) x Integer
 ;;;                     -> State g (Number . Number)
@@ -189,9 +189,9 @@
                                       0)])
                             (state-pure (cons estimate ess))))))
 
-;;; ============================================================
+;;; ====
 ;;; Rejection Sampling
-;;; ============================================================
+;;; ====
 
 ;;; rejection-sample : (a -> Number) x Number x (State g a) x (a -> Number)
 ;;;                    -> State g a
@@ -238,9 +238,9 @@
                           (cons x g2)
                           (loop g2)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Metropolis-Hastings MCMC
-;;; ============================================================
+;;; ====
 
 ;;; mh-step : (a -> Number) x (a -> State g a) x (a -> a -> Number) x a
 ;;;           -> State g a
@@ -331,9 +331,9 @@
                               (state-pure (map (lambda (x s z) (+ x (* s z)))
                                                current step-sizes zs))))))
 
-;;; ============================================================
+;;; ====
 ;;; Gibbs Sampling
-;;; ============================================================
+;;; ====
 
 ;;; gibbs-step : (List (Integer x (List a) -> State g a)) x (List a)
 ;;;              -> State g (List a)
@@ -379,9 +379,9 @@
                       (let ([last-burn (if (null? burn-samples) initial (car (reverse burn-samples)))])
                            (gibbs-chain conditionals last-burn n-samples)))))
 
-;;; ============================================================
+;;; ====
 ;;; Variance Reduction: Antithetic Variates
-;;; ============================================================
+;;; ====
 
 ;;; antithetic-estimate : (Number -> Number) x Integer -> State g (Number . Number)
 ;;; Use antithetic variates for variance reduction.
@@ -415,9 +415,9 @@
                                   [se (* width (sample-sem paired-means))])
                                  (state-pure (cons estimate se)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Variance Reduction: Control Variates
-;;; ============================================================
+;;; ====
 
 ;;; control-variate-estimate : (a -> Number) x (a -> Number) x Number
 ;;;                            x (State g a) x Integer -> State g (Number . Number)
@@ -447,9 +447,9 @@
                              [se (sample-sem adjusted-vals)])
                             (state-pure (cons estimate se))))))
 
-;;; ============================================================
+;;; ====
 ;;; Variance Reduction: Stratified Sampling
-;;; ============================================================
+;;; ====
 
 ;;; stratified-sample : (Number -> Number) x Number x Number x Integer x Integer
 ;;;                     -> State g (Number . Number)
@@ -484,9 +484,9 @@
            (reverse acc)
            (loop (+ i 1) (cons i acc)))))
 
-;;; ============================================================
+;;; ====
 ;;; Convergence Diagnostics
-;;; ============================================================
+;;; ====
 
 ;;; effective-sample-size : (List Number) -> Number
 ;;; Estimate effective sample size accounting for autocorrelation.
@@ -581,9 +581,9 @@
                    (iat . ,iat)
                    ,@(sample-summary samples))))))
 
-;;; ============================================================
+;;; ====
 ;;; Batch and Parallel Sampling
-;;; ============================================================
+;;; ====
 
 ;;; parallel-chains : (a -> State g (List b)) x (List a) -> State g (List (List b))
 ;;; Run multiple chains from different initial points.
@@ -612,9 +612,9 @@
                                                   (state-pure all-samples)
                                                   (loop (reverse all-samples) (- remaining n-sample)))))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Convenience Functions
-;;; ============================================================
+;;; ====
 
 ;;; run-mc : Integer x State g a -> a
 ;;; Run Monte Carlo computation with PCG generator.
@@ -650,9 +650,9 @@
                                   [estimate (/ total-weight n (sqrt (* 2 (pi-value))))])
                                  (state-pure estimate))))))
 
-;;; ============================================================
+;;; ====
 ;;; Helper Functions
-;;; ============================================================
+;;; ====
 
 ;;; take : Integer x (List a) -> (List a)
 (define (take n lst)

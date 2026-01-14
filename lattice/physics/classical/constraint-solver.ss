@@ -25,17 +25,17 @@
 (load "lattice/physics/classical/rigid-body.ss")
 (load "lattice/physics/classical/constraints.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Solver Constants
-;;; ============================================================
+;;; ====
 
 (define *baumgarte-factor* 0.2)      ; Position correction bias
 (define *position-slop* 0.005)       ; Allow small penetration
 (define *angular-slop* 0.0001)       ; Allow small angle error
 
-;;; ============================================================
+;;; ====
 ;;; Helper: Apply Impulse to Entity
-;;; ============================================================
+;;; ====
 
 ;;; apply-constraint-impulse! : World x Any x Vec2 x Vec2 -> Void
 ;;; Apply an impulse at a world point to an entity.
@@ -54,9 +54,9 @@
                    (world-update-entity! world entity-id
                                          (lambda (e) (entity-with-body e new-body)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Distance Constraint Solver
-;;; ============================================================
+;;; ====
 
 ;;; solve-distance-velocity : World x Constraint x Number -> Void
 ;;; Solve velocity constraint for distance joint.
@@ -213,9 +213,9 @@
                                             (world-update-entity! world entity-b-id
                                                                   (lambda (e) (entity-with-body e new-body)))))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Revolute Joint Solver (2 DOF Point Constraint)
-;;; ============================================================
+;;; ====
 
 ;;; solve-revolute-velocity : World x Constraint x Number -> Void
 ;;; Solve velocity constraint for revolute joint.
@@ -370,9 +370,9 @@
                                             (world-update-entity! world entity-b-id
                                                                   (lambda (e) (entity-with-body e new-body)))))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Spring Constraint Solver (Soft 1 DOF)
-;;; ============================================================
+;;; ====
 
 ;;; solve-spring-velocity : World x Constraint x Number -> Void
 ;;; Solve velocity constraint for spring (soft constraint).
@@ -435,9 +435,9 @@
 (define (correct-spring-position world constraint)
   (void))
 
-;;; ============================================================
+;;; ====
 ;;; Weld Joint Solver (3 DOF: 2 position + 1 angle)
-;;; ============================================================
+;;; ====
 
 ;;; solve-weld-velocity : World x Constraint x Number -> Void
 ;;; Solve velocity constraint for weld joint (no relative motion).
@@ -546,9 +546,9 @@
                                             (world-update-entity! world entity-b-id
                                                                   (lambda (e) (entity-with-body e new-body)))))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Constraint Factory Functions
-;;; ============================================================
+;;; ====
 
 ;;; make-distance-joint : Any x Any x Any x Vec2 x Vec2 x Number -> Constraint
 ;;; Create a distance constraint between two entities.

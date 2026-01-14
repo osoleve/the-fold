@@ -12,9 +12,9 @@
 ;;; Dependencies:
 ;;;   - playpen/boardcraft/core.ss
 
-;;; ============================================================
+;;; ====
 ;;; Tile Style Protocol
-;;; ============================================================
+;;; ====
 
 ;;; A style is a function: Tile → String (single character)
 ;;; Default styles for common tile types
@@ -29,9 +29,9 @@
         [(forest) "T"]
         [else "?"]))
 
-;;; ============================================================
+;;; ====
 ;;; Square Grid Rendering
-;;; ============================================================
+;;; ====
 
 ;;; render-square-board : Board × MetaData × StyleFn → String
 ;;; Render a square board as ASCII art
@@ -94,9 +94,9 @@
                                        [else " "])])
                                (loop-x (+ x 1) (cons char chars)))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Hexagonal Grid Rendering
-;;; ============================================================
+;;; ====
 
 ;;; Hex grid rendering is more complex due to the offset layout.
 ;;; We render hexes in a staggered grid pattern:
@@ -197,9 +197,9 @@
                                               [else "  "])])
                                       (loop-q (+ q 1) (cons char chars))))))))))
 
-;;; ============================================================
+;;; ====
 ;;; High-Level Rendering
-;;; ============================================================
+;;; ====
 
 ;;; render-board : Board × StyleFn → String
 ;;; Render board using default style
@@ -236,9 +236,9 @@
 (define (display-board-with-fov board style-fn fov)
   (display (render-board-with-overlay board style-fn fov "+")))
 
-;;; ============================================================
+;;; ====
 ;;; Exports Summary
-;;; ============================================================
+;;; ====
 
 ;;; This module provides:
 ;;;   Style Protocol:

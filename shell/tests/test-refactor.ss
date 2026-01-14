@@ -9,16 +9,16 @@
 
 (display "
 ")
-(display "==============================================================
+(display "====
 ")
 (display "          REFACTORING TOOLKIT TESTS
 ")
-(display "==============================================================
+(display "====
 ")
 
-;;; ============================================================
+;;; ====
 ;;; Source Location Tests
-;;; ============================================================
+;;; ====
 
 (test-group loc-tests
             (define-test make-loc-test
@@ -34,9 +34,9 @@
               (assert-false (loc? 'not-a-loc))
               (assert-false (loc? '(1 2 3)))))
 
-;;; ============================================================
+;;; ====
 ;;; Change Tests
-;;; ============================================================
+;;; ====
 
 (test-group change-tests
             (define-test make-change-test
@@ -53,9 +53,9 @@
                     (assert-true (string? s))
                     (assert-true (> (string-length s) 0)))))
 
-;;; ============================================================
+;;; ====
 ;;; S-Expression Traversal Tests
-;;; ============================================================
+;;; ====
 
 (test-group sexp-traversal-tests
             (define-test sexp-symbols-test
@@ -86,9 +86,9 @@
                    (assert-equal '(a (X c) d)
                                  (sexp-replace-at-path sexp '(cdr car car) 'X)))))
 
-;;; ============================================================
+;;; ====
 ;;; Rename Symbol Tests
-;;; ============================================================
+;;; ====
 
 (test-group rename-tests
             (define-test rename-simple-test
@@ -113,9 +113,9 @@
                    (assert-equal 'define (car renamed))
                    (assert-equal 'bar (caadr renamed)))))
 
-;;; ============================================================
+;;; ====
 ;;; Extract Function Tests
-;;; ============================================================
+;;; ====
 
 (test-group extract-tests
             (define-test extract-function-simple-test
@@ -140,9 +140,9 @@
                    ;; Should have binding and body
                    (assert-true (pair? (cadr result))))))
 
-;;; ============================================================
+;;; ====
 ;;; Inline Function Tests
-;;; ============================================================
+;;; ====
 
 (test-group inline-tests
             (define-test find-definition-test
@@ -172,9 +172,9 @@
                     [def '(define (add x y) (+ x y))])
                    (assert-equal '(+ 3 4) (inline-call call def)))))
 
-;;; ============================================================
+;;; ====
 ;;; Free Variables Tests
-;;; ============================================================
+;;; ====
 
 (test-group free-vars-tests
             (define-test free-vars-symbol-test
@@ -205,9 +205,9 @@
                    (assert-false (if (member 'x fv) #t #f))
                    (assert-false (if (member 'y fv) #t #f)))))
 
-;;; ============================================================
+;;; ====
 ;;; Unique Tests
-;;; ============================================================
+;;; ====
 
 (test-group unique-tests
             (define-test unique-removes-duplicates
@@ -219,9 +219,9 @@
             (define-test unique-empty
               (assert-equal '() (unique '()))))
 
-;;; ============================================================
+;;; ====
 ;;; Helper Function Tests
-;;; ============================================================
+;;; ====
 
 (test-group helper-tests
             (define-test take-test
@@ -234,9 +234,9 @@
               (assert-equal '(1 2 3) (drop '(1 2 3) 0))
               (assert-equal '() (drop '(1 2 3) 5))))
 
-;;; ============================================================
+;;; ====
 ;;; Semantic Search Tests
-;;; ============================================================
+;;; ====
 
 (test-group search-tests
             (define-test find-functions-test
@@ -261,9 +261,9 @@
                     ;; foo appears in definition, and two calls
                     (assert-true (> (length usages) 2)))))
 
-;;; ============================================================
+;;; ====
 ;;; Session Tests
-;;; ============================================================
+;;; ====
 
 (test-group session-tests
             (define-test make-session-test
@@ -277,9 +277,9 @@
                    (session-add-change! s c)
                    (assert-equal 1 (length (session-changes s))))))
 
-;;; ============================================================
+;;; ====
 ;;; Introduce Parameter Tests
-;;; ============================================================
+;;; ====
 
 (test-group introduce-param-tests
             (define-test introduce-parameter-test
@@ -296,13 +296,13 @@
                              't)])
                    (assert-equal '(if (> x t) x t) result))))
 
-;;; ============================================================
+;;; ====
 ;;; Run Tests
-;;; ============================================================
+;;; ====
 
 (display "
 ")
-(display "==============================================================
+(display "====
 ")
 (display (format "Tests passed: ~a
 " *tests-passed*))

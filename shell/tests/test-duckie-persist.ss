@@ -8,7 +8,7 @@
 (load "shell/duckie-persist.ss")
 
 (display "DUCKIE Persistence Tests\n")
-(display "========================\n\n")
+(display "====\n\n")
 
 (define tests-passed 0)
 (define tests-failed 0)
@@ -25,9 +25,9 @@
        (display ", got ") (write actual)
        (newline))))
 
-;;; ============================================================
+;;; ====
 ;;; Setup: Clear state
-;;; ============================================================
+;;; ====
 
 (display "Setup:\n")
 
@@ -39,9 +39,9 @@
 
 (test "initial no active duckie" #f (current-duckie))
 
-;;; ============================================================
+;;; ====
 ;;; Create New DUCKIE
-;;; ============================================================
+;;; ====
 
 (display "\nCreate New DUCKIE:\n")
 
@@ -55,9 +55,9 @@
 (test "current-duckie set" #t (pair? (current-duckie)))
 (test "current-duckie-hash set" #t (bytevector? (current-duckie-hash)))
 
-;;; ============================================================
+;;; ====
 ;;; Save/Load Round-Trip
-;;; ============================================================
+;;; ====
 
 (display "\nSave/Load Round-Trip:\n")
 
@@ -69,9 +69,9 @@
 
 (test "duckie-exists?" #t (duckie-exists? (current-duckie-hash)))
 
-;;; ============================================================
+;;; ====
 ;;; State Updates
-;;; ============================================================
+;;; ====
 
 (display "\nState Updates:\n")
 
@@ -100,9 +100,9 @@
        [d (idle!)])
       (test "idle! changes state" #f (equal? before-hash (current-duckie-hash))))
 
-;;; ============================================================
+;;; ====
 ;;; Memory Operations
-;;; ============================================================
+;;; ====
 
 (display "\nMemory Operations:\n")
 
@@ -116,9 +116,9 @@
      (test "recall returns memories" 2 (length memories))
      (test "memories are blocks" #t (andmap block? memories)))
 
-;;; ============================================================
+;;; ====
 ;;; Adopt Existing DUCKIE
-;;; ============================================================
+;;; ====
 
 (display "\nAdopt Existing DUCKIE:\n")
 
@@ -132,9 +132,9 @@
      (adopt-duckie! quackers-hash)
      (test "adopted Quackers" "Quackers" (duckie-name (current-duckie))))
 
-;;; ============================================================
+;;; ====
 ;;; Pinning
-;;; ============================================================
+;;; ====
 
 (display "\nPinning:\n")
 
@@ -145,9 +145,9 @@
       ;; Memories should also be pinned
       (test "has pinned blocks" #t (> pinned-before 0)))
 
-;;; ============================================================
+;;; ====
 ;;; Store Statistics
-;;; ============================================================
+;;; ====
 
 (display "\nStore Statistics:\n")
 
@@ -157,12 +157,12 @@
      (test "stats duckie-active" 1 (cdr (assq 'duckie-active stats)))
      (test "stats duckie-memories" 2 (cdr (assq 'duckie-memories stats))))
 
-;;; ============================================================
+;;; ====
 ;;; Summary
-;;; ============================================================
+;;; ====
 
 (newline)
-(display "==================\n")
+(display "====\n")
 (display (string-append "Passed: " (number->string tests-passed) "\n"))
 (display (string-append "Failed: " (number->string tests-failed) "\n"))
 

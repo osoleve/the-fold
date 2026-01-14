@@ -13,9 +13,9 @@
 
 (load "lattice/dsl/tagless.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Chronicle Algebra
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Core operations for defining narratives:
 ;;;   scene   : Id -> Text -> [Choice] -> repr Scene
@@ -52,9 +52,9 @@
                (effect-var . ,effect-var-op)
                (effect-seq . ,effect-seq-op))))
 
-;;; ============================================================
+;;; ====
 ;;; Algebra Accessors
-;;; ============================================================
+;;; ====
 
 (define (tl-scene d id text . choices)
   (apply (dict-ref d 'scene) id text choices))
@@ -103,9 +103,9 @@
 (define (tl-effect-seq d . effects)
   (apply (dict-ref d 'effect-seq) effects))
 
-;;; ============================================================
+;;; ====
 ;;; Runtime Interpreter
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Produces executable Chronicle structures.
 
@@ -217,9 +217,9 @@
        (or (pred (car lst))
            (or-map pred (cdr lst)))))
 
-;;; ============================================================
+;;; ====
 ;;; Validation Interpreter
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Collects structural information for validation.
 
@@ -275,9 +275,9 @@
                (valid . ,(and (null? missing-targets)
                               (null? unreachable)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Graph Export Interpreter
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Generates graph representations for visualization.
 
@@ -367,9 +367,9 @@
                                              edges))))
                     scenes)))))
 
-;;; ============================================================
+;;; ====
 ;;; Analysis Interpreter
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Computes metrics about the narrative.
 
@@ -422,9 +422,9 @@
                                          (/ total-text-len scene-count)
                                          0))))))
 
-;;; ============================================================
+;;; ====
 ;;; Example: The Mysterious Door
-;;; ============================================================
+;;; ====
 ;;;
 ;;; A sample chronicle program in tagless final style.
 
@@ -473,9 +473,9 @@
              "Congratulations! You've completed the adventure."
              )))
 
-;;; ============================================================
+;;; ====
 ;;; Running the Example
-;;; ============================================================
+;;; ====
 
 ;;; Get runtime structure
 ;;; (mysterious-door-chronicle runtime-chronicle-dict)
@@ -489,9 +489,9 @@
 ;;; Analyze complexity
 ;;; (analyze-chronicle mysterious-door-chronicle)
 
-;;; ============================================================
+;;; ====
 ;;; Integration with Original Chronicle
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Convert tagless programs to original Chronicle structures.
 
@@ -544,9 +544,9 @@
   (let ([scene (chronicle-runtime-scene runtime)])
        (list-ref scene 2)))
 
-;;; ============================================================
+;;; ====
 ;;; Summary
-;;; ============================================================
+;;; ====
 ;;;
 ;;; The tagless final Chronicle demonstrates:
 ;;;

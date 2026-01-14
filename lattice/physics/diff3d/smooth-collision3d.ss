@@ -20,9 +20,9 @@
 (load "lattice/autodiff/reverse-diff.ss")
 (load "lattice/physics/diff3d/traced-vec3.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Signed Distance Functions (SDFs)
-;;; ============================================================
+;;; ====
 
 ;;; An SDF returns:
 ;;;   - negative values: inside the shape
@@ -102,9 +102,9 @@
 (define (traced-sdf-half-space point point-on-plane normal)
   (traced-vec3-dot (traced-vec3-sub point point-on-plane) normal))
 
-;;; ============================================================
+;;; ====
 ;;; Sphere-Sphere Collision (Most Common 3D Case)
-;;; ============================================================
+;;; ====
 
 ;;; traced-sdf-sphere-sphere : TracedVec3 × Number × TracedVec3 × Number → TracedValue
 ;;; SDF for the Minkowski sum of two spheres (their intersection region).
@@ -129,9 +129,9 @@
          [contact (traced-vec3-add pos-a (traced-vec3-scale normal radius-a))])
         (values contact normal penetration)))
 
-;;; ============================================================
+;;; ====
 ;;; Sphere-Plane Collision
-;;; ============================================================
+;;; ====
 
 ;;; traced-sphere-plane-contact : TracedVec3 × Number × TracedVec3 × TracedVec3 → (Values TracedVec3 TracedVec3 TracedValue)
 ;;; Contact between sphere and infinite plane.
@@ -147,9 +147,9 @@
         ;; Normal points away from plane
         (values contact plane-normal penetration)))
 
-;;; ============================================================
+;;; ====
 ;;; Soft Contact Force Model
-;;; ============================================================
+;;; ====
 
 ;;; Instead of impulse-based collision response, soft contact uses
 ;;; penalty forces proportional to penetration depth.
@@ -180,9 +180,9 @@
         ;; Total force = spring + damping
         (traced-add spring-force damping-force)))
 
-;;; ============================================================
+;;; ====
 ;;; Complete Soft Contact Response
-;;; ============================================================
+;;; ====
 
 ;;; traced-sphere-sphere-force : TracedVec3 × TracedVec3 × Number × TracedVec3 × TracedVec3 × Number × Number × Number × Number → TracedVec3
 ;;; Compute soft contact force between two spheres.
@@ -207,9 +207,9 @@
                   [force-mag (traced-soft-contact-force-damped penetration approach-vel stiffness damping alpha)])
                  (traced-vec3-scale plane-normal force-mag)))))
 
-;;; ============================================================
+;;; ====
 ;;; Ground Plane (Common Special Case)
-;;; ============================================================
+;;; ====
 
 ;;; traced-ground-plane-force-3d : TracedVec3 × TracedVec3 × Number × Number × Number × Number × Number → TracedVec3
 ;;; Force from horizontal ground plane at y = ground-y.
@@ -220,9 +220,9 @@
                              (lift-vec3-const (vec3 0 1 0))  ; up
                              stiffness damping alpha))
 
-;;; ============================================================
+;;; ====
 ;;; Contact Normal and Point from SDF
-;;; ============================================================
+;;; ====
 
 ;;; For SDFs, the gradient gives the normal direction.
 
@@ -259,9 +259,9 @@
          [normal (traced-sdf-normal-3d sdf-fn point)])
         (vec3-sub point (vec3-scale normal sdf-val))))
 
-;;; ============================================================
+;;; ====
 ;;; Soft Friction Model
-;;; ============================================================
+;;; ====
 
 ;;; Coulomb friction is non-smooth (sign function). We use a smooth
 ;;; approximation based on hyperbolic tangent.
@@ -297,9 +297,9 @@
                                        (traced-vec3-scale normal vel-normal))])
         (traced-soft-friction-3d vel-tangent normal-force mu 10)))
 
-;;; ============================================================
+;;; ====
 ;;; Material Properties for Soft Contact
-;;; ============================================================
+;;; ====
 
 ;;; Default stiffness and damping values.
 ;;; These should be tuned for your simulation's scale and timestep.
@@ -333,9 +333,9 @@
                          *default-contact-alpha-3d*
                          *default-friction-mu-3d*))
 
-;;; ============================================================
+;;; ====
 ;;; Wall Boundaries (Common for 3D Simulations)
-;;; ============================================================
+;;; ====
 
 ;;; traced-wall-forces-3d : TracedVec3 × TracedVec3 × Number × Vec3 × Vec3 × SoftMaterial3D → TracedVec3
 ;;; Compute forces from rectangular boundary walls (6 faces).
@@ -387,9 +387,9 @@
                                                                 (traced-vec3-add pos-y-force
                                                                                  (traced-vec3-add neg-z-force pos-z-force))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Sphere-Box Contact (Soft)
-;;; ============================================================
+;;; ====
 
 ;;; traced-sphere-box-force : TracedVec3 × TracedVec3 × Number × TracedVec3 × Vec3 × Number × Number × Number → TracedVec3
 ;;; Soft contact force between sphere and axis-aligned box.

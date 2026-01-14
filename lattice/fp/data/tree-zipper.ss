@@ -35,9 +35,9 @@
 (load "core/base/prelude.ss")
 (load "lattice/fp/meta/combinators.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Rose Tree Type
-;;; ============================================================
+;;; ====
 ;;;
 ;;; A rose tree (multi-way tree) consists of a node value and
 ;;; a list of children (which are themselves trees).
@@ -90,9 +90,9 @@
 (define (tree-node value . children)
   (make-tree value children))
 
-;;; ============================================================
+;;; ====
 ;;; Tree Utilities
-;;; ============================================================
+;;; ====
 
 ;;; tree-size : (Tree a) -> Nat
 ;;; Count all nodes in tree.
@@ -152,9 +152,9 @@
       (tree-flatten-acc (car children)
                         (tree-flatten-children (cdr children) acc))))
 
-;;; ============================================================
+;;; ====
 ;;; Tree Zipper Type
-;;; ============================================================
+;;; ====
 ;;;
 ;;; A tree zipper consists of:
 ;;;   - focus: The currently focused subtree
@@ -227,9 +227,9 @@
       (list-ref z 2)
       (error 'tree-zipper-crumbs "not a tree zipper")))
 
-;;; ============================================================
+;;; ====
 ;;; Constructors
-;;; ============================================================
+;;; ====
 
 ;;; tree->zipper : (Tree a) -> (TreeZipper a)
 ;;; Create a zipper focused at the root.
@@ -261,9 +261,9 @@
 (define (tree-zipper-depth z)
   (length (tree-zipper-crumbs z)))
 
-;;; ============================================================
+;;; ====
 ;;; Navigation
-;;; ============================================================
+;;; ====
 
 ;;; tree-zipper-up : (TreeZipper a) -> (Maybe (TreeZipper a))
 ;;; Move focus to parent. Returns nothing if at root.
@@ -386,9 +386,9 @@
       [(= i n) current]
       [else (loop (tree-zipper-right (from-just current)) (+ i 1))])))
 
-;;; ============================================================
+;;; ====
 ;;; Navigation Predicates
-;;; ============================================================
+;;; ====
 
 ;;; tree-zipper-can-go-up? : (TreeZipper a) -> Bool
 (define (tree-zipper-can-go-up? z)
@@ -410,9 +410,9 @@
     (and (not (null? crumbs))
          (not (null? (crumb-right (car crumbs)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Focus Operations
-;;; ============================================================
+;;; ====
 
 ;;; tree-zipper-get : (TreeZipper a) -> a
 ;;; Get the value at focus.
@@ -447,9 +447,9 @@
 (define (tree-zipper-children-count z)
   (length (tree-children (tree-zipper-focus z))))
 
-;;; ============================================================
+;;; ====
 ;;; Insertion
-;;; ============================================================
+;;; ====
 
 ;;; tree-zipper-insert-child-left : (TreeZipper a) x (Tree a) -> (TreeZipper a)
 ;;; Insert a tree as the new leftmost child of focused node.
@@ -503,9 +503,9 @@
                  (tree-zipper-focus z)
                  (cons new-crumb (cdr crumbs))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Deletion
-;;; ============================================================
+;;; ====
 
 ;;; tree-zipper-delete : (TreeZipper a) -> (Maybe (TreeZipper a))
 ;;; Delete focused subtree. Focus moves to:
@@ -547,9 +547,9 @@
      (tree-leaf (tree-value focus))
      (tree-zipper-crumbs z))))
 
-;;; ============================================================
+;;; ====
 ;;; Traversal
-;;; ============================================================
+;;; ====
 
 ;;; tree-zipper-next-preorder : (TreeZipper a) -> (Maybe (TreeZipper a))
 ;;; Move to next node in pre-order traversal.
@@ -596,9 +596,9 @@
         (let ([curr (from-just current)])
           (loop (tree-zipper-next-preorder curr) (cons curr acc))))))
 
-;;; ============================================================
+;;; ====
 ;;; Path Operations
-;;; ============================================================
+;;; ====
 
 ;;; tree-zipper-path : (TreeZipper a) -> (List a)
 ;;; Get path from root to focus (list of values).
@@ -625,9 +625,9 @@
                     (length (crumb-left crumb)))
                   crumbs))))
 
-;;; ============================================================
+;;; ====
 ;;; Functor Instance
-;;; ============================================================
+;;; ====
 
 ;;; tree-zipper-map : (a -> b) x (TreeZipper a) -> (TreeZipper b)
 ;;; Map function over all values in zipper (focus and context).
@@ -645,9 +645,9 @@
 (define tree-zipper-functor
   (list 'functor tree-zipper-map))
 
-;;; ============================================================
+;;; ====
 ;;; Comonad Instance
-;;; ============================================================
+;;; ====
 ;;;
 ;;; TreeZipper forms a Comonad with:
 ;;;   - extract: Get the focused node's value
@@ -743,9 +743,9 @@
         tree-zipper-extract
         tree-zipper-extend))
 
-;;; ============================================================
+;;; ====
 ;;; Equality and Display
-;;; ============================================================
+;;; ====
 
 ;;; tree-equal? : (Tree a) x (Tree a) -> Bool
 ;;; Check equality of two trees.
@@ -793,9 +793,9 @@
             (tree-value focus)
             (tree->string (zipper->tree z)))))
 
-;;; ============================================================
+;;; ====
 ;;; Helper: andmap
-;;; ============================================================
+;;; ====
 
 ;;; andmap : (a -> Bool) x (List a) -> Bool
 ;;; Check if predicate holds for all elements.

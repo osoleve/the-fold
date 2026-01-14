@@ -18,9 +18,9 @@
 (load "core/base/prelude.ss")
 (load "lattice/algebra/field.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Monomial Representation
-;;; ============================================================
+;;; ====
 
 ;;; A monomial is represented as an association list of (variable . exponent)
 ;;; pairs, sorted by variable name. Only non-zero exponents are stored.
@@ -189,9 +189,9 @@
 (define (mono-equal? m1 m2)
   (equal? m1 m2))
 
-;;; ============================================================
+;;; ====
 ;;; Monomial Orderings
-;;; ============================================================
+;;; ====
 
 ;;; A monomial ordering is a total order on monomials that is:
 ;;; 1. A well-ordering (every non-empty set has a minimum)
@@ -253,9 +253,9 @@
     [(grevlex degrevlex) (lambda (m1 m2) (mono-compare-grevlex m1 m2 vars))]
     [else (error 'make-ordering "unknown ordering type" type)]))
 
-;;; ============================================================
+;;; ====
 ;;; Multivariate Polynomial Representation
-;;; ============================================================
+;;; ====
 
 ;;; A multivariate polynomial is represented as:
 ;;;   (mpoly F vars ordering terms)
@@ -337,9 +337,9 @@
              t))
        terms))
 
-;;; ============================================================
+;;; ====
 ;;; MPoly Construction
-;;; ============================================================
+;;; ====
 
 ;;; mpoly-zero : Field × (List Symbol) × (M×M→Int) → MPoly
 (define (mpoly-zero F vars ordering)
@@ -364,9 +364,9 @@
   (let ([ordering (make-ordering ordering-type vars)])
     (make-mpoly F vars ordering terms)))
 
-;;; ============================================================
+;;; ====
 ;;; MPoly Properties
-;;; ============================================================
+;;; ====
 
 ;;; mpoly-zero? : MPoly → Boolean
 (define (mpoly-zero? p)
@@ -401,9 +401,9 @@
 (define (mpoly-leading-mono p)
   (cdr (mpoly-leading-term p)))
 
-;;; ============================================================
+;;; ====
 ;;; MPoly Arithmetic
-;;; ============================================================
+;;; ====
 
 ;;; mpoly-add : MPoly × MPoly → MPoly
 (define (mpoly-add p1 p2)
@@ -476,9 +476,9 @@
     [else
      (mpoly-mul p (mpoly-power p (- n 1)))]))
 
-;;; ============================================================
+;;; ====
 ;;; MPoly Equality
-;;; ============================================================
+;;; ====
 
 ;;; mpoly-equal? : MPoly × MPoly → Boolean
 (define (mpoly-equal? p1 p2)
@@ -493,9 +493,9 @@
                     (mono-equal? (cdar l1) (cdar l2))
                     (loop (cdr l1) (cdr l2))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Multivariate Division Algorithm
-;;; ============================================================
+;;; ====
 
 ;;; mpoly-divmod : MPoly × (List MPoly) → ((List MPoly) × MPoly)
 ;;; Multivariate division: f = q_1*g_1 + ... + q_s*g_s + r
@@ -543,9 +543,9 @@
       (cons val (cdr lst))
       (cons (car lst) (list-set (cdr lst) (- idx 1) val))))
 
-;;; ============================================================
+;;; ====
 ;;; MPoly Evaluation
-;;; ============================================================
+;;; ====
 
 ;;; mpoly-eval : MPoly × (List (Symbol × Coeff)) → Coeff
 ;;; Evaluate polynomial at given point (variable → value mapping).
@@ -585,9 +585,9 @@
        (mul half half))]
     [else (mul base (expt-int base (- n 1) mul one))]))
 
-;;; ============================================================
+;;; ====
 ;;; Display
-;;; ============================================================
+;;; ====
 
 ;;; mpoly->string : MPoly → String
 (define (mpoly->string p)
@@ -666,9 +666,9 @@
             acc
             (loop (cdr ss) (string-append acc sep (car ss)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Utility
-;;; ============================================================
+;;; ====
 
 ;;; make-list defined in polynomial.ss, redefined here for standalone
 (define (make-list n fill)

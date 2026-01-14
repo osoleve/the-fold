@@ -18,9 +18,9 @@
 
 (load "lattice/autodiff/reverse-diff.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Data Generation
-;;; ============================================================
+;;; ====
 
 ;;; generate-data : (Number -> Number) x (List Number) x Number -> (List (Number . Number))
 ;;; Generate noisy data points from a function.
@@ -49,9 +49,9 @@
            (map (lambda (i) (+ start (* i step)))
                 (iota n)))))
 
-;;; ============================================================
+;;; ====
 ;;; Polynomial Evaluation
-;;; ============================================================
+;;; ====
 
 ;;; poly-eval-traced : (List Traced) x Traced -> Traced
 ;;; Evaluate polynomial with traced coefficients at traced x.
@@ -80,9 +80,9 @@
                (loop (cdr cs)
                      (+ (car cs) (* result x)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Loss Function
-;;; ============================================================
+;;; ====
 
 ;;; mse-loss-traced : (List (Number . Number)) x (List Traced) -> Traced
 ;;; Mean squared error loss function.
@@ -119,9 +119,9 @@
                  (loop (cdr points)
                        (+ sum-sq sq-error))))))
 
-;;; ============================================================
+;;; ====
 ;;; Gradient Computation for Curve Fitting
-;;; ============================================================
+;;; ====
 
 ;;; loss-gradient : (List (Number . Number)) x (List Number) -> (List Number)
 ;;; Compute gradient of MSE loss with respect to coefficients.
@@ -130,9 +130,9 @@
                     (mse-loss-traced data traced-coeffs))
             coeffs))
 
-;;; ============================================================
+;;; ====
 ;;; Gradient Descent for Curve Fitting
-;;; ============================================================
+;;; ====
 
 ;;; fit-polynomial : (List (Number . Number)) x Nat x Number x Nat -> (List Number)
 ;;; Fit polynomial of given degree to data using gradient descent.
@@ -203,15 +203,15 @@
                         [new-coeffs (map + coeffs new-velocity)])
                        (loop new-coeffs new-velocity (+ iter 1)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Visualization Helpers
-;;; ============================================================
+;;; ====
 
 ;;; print-comparison : (List (Number . Number)) x (List Number) x Nat -> Void
 ;;; Print a comparison of actual vs predicted values.
 (define (print-comparison data coeffs num-samples)
   (printf "~n  x      |  y (actual)  |  y (predicted)  |  error~n")
-  (printf "  -------+-------------+----------------+---------~n")
+  (printf "  ----+----+----+----~n")
   (let loop ([points data]
              [count 0])
        (when (and (< count num-samples) (not (null? points)))
@@ -224,14 +224,14 @@
                            x y-actual y-pred error)
                    (loop (cdr points) (+ count 1))))))
 
-;;; ============================================================
+;;; ====
 ;;; Main Demonstration
-;;; ============================================================
+;;; ====
 
 (printf "~n")
-(printf "=========================================================~n")
+(printf "====~n")
 (printf "   Polynomial Curve Fitting with Autodiff~n")
-(printf "=========================================================~n")
+(printf "====~n")
 (printf "~n")
 
 (printf "We'll fit polynomials to noisy data generated from known functions,~n")
@@ -239,9 +239,9 @@
 (printf "~n")
 
 ;;; --- Example 1: Linear Fit ---
-(printf "---------------------------------------------------------~n")
+(printf "----~n")
 (printf "1. Linear Regression: y = 2x + 3 (with noise)~n")
-(printf "---------------------------------------------------------~n")
+(printf "----~n")
 (printf "~n")
 
 (define linear-fn (lambda (x) (+ (* 2 x) 3)))
@@ -261,9 +261,9 @@
 (printf "~n")
 
 ;;; --- Example 2: Quadratic Fit ---
-(printf "---------------------------------------------------------~n")
+(printf "----~n")
 (printf "2. Quadratic Regression: y = 0.5x^2 - 2x + 1~n")
-(printf "---------------------------------------------------------~n")
+(printf "----~n")
 (printf "~n")
 
 (define quadratic-fn (lambda (x) (+ (* 0.5 x x) (* -2 x) 1)))
@@ -283,9 +283,9 @@
 (printf "~n")
 
 ;;; --- Example 3: Cubic Fit with Momentum ---
-(printf "---------------------------------------------------------~n")
+(printf "----~n")
 (printf "3. Cubic Regression with Momentum: y = x^3 - 3x^2 + x + 2~n")
-(printf "---------------------------------------------------------~n")
+(printf "----~n")
 (printf "~n")
 
 (define cubic-fn (lambda (x) (+ (* x x x) (* -3 x x) x 2)))
@@ -305,9 +305,9 @@
 (printf "~n")
 
 ;;; --- Example 4: Underfitting and Overfitting ---
-(printf "---------------------------------------------------------~n")
+(printf "----~n")
 (printf "4. Underfitting vs Overfitting~n")
-(printf "---------------------------------------------------------~n")
+(printf "----~n")
 (printf "~n")
 
 (printf "Fitting the quadratic data with different polynomial degrees:~n")
@@ -338,9 +338,9 @@
 (printf "~n")
 
 ;;; --- Example 5: Gradient Verification ---
-(printf "---------------------------------------------------------~n")
+(printf "----~n")
 (printf "5. Verifying Autodiff Gradient Computation~n")
-(printf "---------------------------------------------------------~n")
+(printf "----~n")
 (printf "~n")
 
 (define test-coeffs '(1.0 2.0 0.5))
@@ -366,9 +366,9 @@
         (map (lambda (a n) (abs (- a n))) autodiff-grad numerical-grad))
 (printf "~n")
 
-(printf "=========================================================~n")
+(printf "====~n")
 (printf "   Demonstration Complete~n")
-(printf "=========================================================~n")
+(printf "====~n")
 (printf "~n")
 (printf "Key Takeaways:~n")
 (printf "  - Autodiff computes exact gradients for any polynomial degree~n")

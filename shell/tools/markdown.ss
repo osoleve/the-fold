@@ -13,9 +13,9 @@
 
 (load "shell/tools/string-utils.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Inline Formatting
-;;; ============================================================
+;;; ====
 
 ;;; bold : String → String
 (define (bold text)
@@ -35,9 +35,9 @@
 (define (link text url)
   (string-append "[" text "](" url ")"))
 
-;;; ============================================================
+;;; ====
 ;;; Block Formatting
-;;; ============================================================
+;;; ====
 
 ;;; header : Integer String → String
 ;;; # Title
@@ -82,9 +82,9 @@
                    (if (string-ends-with? text "\n") text (string-append text "\n"))
                    "```\n")]))
 
-;;; ============================================================
+;;; ====
 ;;; Lists
-;;; ============================================================
+;;; ====
 
 ;;; bullet-list : List<String> [Integer] → String
 ;;; Create a bulleted list. Optional indentation level.

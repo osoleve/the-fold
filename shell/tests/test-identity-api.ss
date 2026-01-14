@@ -35,9 +35,9 @@
   (hashtable-clear! *store*)
   (hashtable-clear! *pinned*))
 
-;;; ============================================================
+;;; ====
 ;;; Validation Tests
-;;; ============================================================
+;;; ====
 (test-section "Validation")
 
 (test "valid-role? accepts shepherd"
@@ -80,9 +80,9 @@
              (validate-role! 'invalid)
              #f))
 
-;;; ============================================================
+;;; ====
 ;;; identity-exists? Tests
-;;; ============================================================
+;;; ====
 (test-section "identity-exists?")
 
 (cleanup-test-env!)
@@ -101,9 +101,9 @@
       #f
       (identity-exists? 'bob))
 
-;;; ============================================================
+;;; ====
 ;;; identity-create! Tests
-;;; ============================================================
+;;; ====
 (test-section "identity-create!")
 
 (test "create new identity returns alist"
@@ -142,9 +142,9 @@
              (identity-create! 'charlie 'admin)
              #f))
 
-;;; ============================================================
+;;; ====
 ;;; identity-get Tests
-;;; ============================================================
+;;; ====
 (test-section "identity-get")
 
 (test "get existing identity returns alist"
@@ -174,9 +174,9 @@
                 (if (assq 'total-posts data) #t #f)
                 (if (assq 'preferences data) #t #f))))
 
-;;; ============================================================
+;;; ====
 ;;; identity-update! Tests
-;;; ============================================================
+;;; ====
 (test-section "identity-update!")
 
 (test "update single field"
@@ -217,9 +217,9 @@
              (identity-update! 'alice 'not-a-list)
              #f))
 
-;;; ============================================================
+;;; ====
 ;;; Registration Flow Tests
-;;; ============================================================
+;;; ====
 (test-section "Registration Flow")
 
 (test "check username not taken"
@@ -247,9 +247,9 @@
              (identity-create! 'charlie 'builder)
              #f))
 
-;;; ============================================================
+;;; ====
 ;;; API Contract Tests
-;;; ============================================================
+;;; ====
 (test-section "API Contracts")
 
 (test "identity-get returns alist or #f"
@@ -276,9 +276,9 @@
                 (assq 'total-posts data)
                 (eq? (cdr (assq 'total-posts data)) 5))))
 
-;;; ============================================================
+;;; ====
 ;;; Edge Cases
-;;; ============================================================
+;;; ====
 (test-section "Edge Cases")
 
 (test "empty updates list does nothing"

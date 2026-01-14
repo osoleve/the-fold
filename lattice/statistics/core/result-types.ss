@@ -15,9 +15,9 @@
 
 (load "core/base/prelude.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Linear Model Results
-;;; ============================================================
+;;; ====
 
 ;;; make-linear-model-result : Vec × Vec × Vec × Vec × Num × Num × Vec × Vec × Num × Num × Nat × Nat → LinearModelResult
 ;;; Create a linear model result with full diagnostics.
@@ -71,9 +71,9 @@
 (define (linear-model-sigma m)
   (sqrt (linear-model-mse m)))
 
-;;; ============================================================
+;;; ====
 ;;; GLM Results
-;;; ============================================================
+;;; ====
 
 ;;; make-glm-result : Symbol × Symbol × Vec × Vec × Vec × Vec × Num × Num × Num × Vec × Vec × Nat × Nat × Bool → GLMResult
 ;;; Create a GLM result.
@@ -125,9 +125,9 @@
 (define (glm-df-residual m)
   (- (glm-n m) (vector-length (glm-coefficients m))))
 
-;;; ============================================================
+;;; ====
 ;;; Hypothesis Test Results
-;;; ============================================================
+;;; ====
 
 ;;; make-test-result : Symbol × Num × Any × Num × (Num × Num) | #f × Num | #f → TestResult
 ;;; Create a hypothesis test result.
@@ -159,9 +159,9 @@
 (define (test-significant? r alpha)
   (< (test-p-value r) alpha))
 
-;;; ============================================================
+;;; ====
 ;;; ANOVA Results
-;;; ============================================================
+;;; ====
 
 ;;; make-anova-result : Num × Nat × Nat × Num × Num × Num × Num × Num → ANOVAResult
 ;;; Create an ANOVA result.
@@ -194,9 +194,9 @@
 (define (anova-ms-between r) (list-ref r 7))
 (define (anova-ms-within r) (list-ref r 8))
 
-;;; ============================================================
+;;; ====
 ;;; AR Model Results
-;;; ============================================================
+;;; ====
 
 ;;; make-ar-result : Vec × Num × Vec × Vec × Num × Num × Nat → ARResult
 ;;; Create an autoregressive model result.
@@ -225,9 +225,9 @@
 (define (ar-aic r) (list-ref r 6))
 (define (ar-order r) (list-ref r 7))
 
-;;; ============================================================
+;;; ====
 ;;; Forecast Results
-;;; ============================================================
+;;; ====
 
 ;;; make-forecast-result : Vec × Vec × Vec × Num → ForecastResult
 ;;; Create a forecast result.

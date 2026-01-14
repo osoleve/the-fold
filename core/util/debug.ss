@@ -20,9 +20,9 @@
 (load "core/base/prelude.ss")
 (load "core/lang/eval.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Debugger State
-;;; ============================================================
+;;; ====
 
 ;;; A debugger session tracks:
 ;;;   - current expression
@@ -80,9 +80,9 @@
              d
              updates))
 
-;;; ============================================================
+;;; ====
 ;;; Single Step
-;;; ============================================================
+;;; ====
 
 ;;; *step-fuel* : Fuel budget per debugger step
 ;;; Each step gets enough fuel to complete one "logical" reduction.
@@ -151,9 +151,9 @@
       d
       (step-n (step d) (- n 1))))
 
-;;; ============================================================
+;;; ====
 ;;; Run to Completion / Breakpoint
-;;; ============================================================
+;;; ====
 
 ;;; run-until : Debugger × (Expr → Boolean) → Debugger
 (define (run-until d pred)
@@ -183,9 +183,9 @@
 (define (run-debug expr fuel)
   (continue (make-debugger expr empty-env fuel)))
 
-;;; ============================================================
+;;; ====
 ;;; Breakpoints
-;;; ============================================================
+;;; ====
 
 ;;; add-breakpoint : Debugger × (Expr → Boolean) → Debugger
 (define (add-breakpoint d pred)
@@ -219,9 +219,9 @@
 (define (break-on-value)
   (lambda (e) (value? e)))
 
-;;; ============================================================
+;;; ====
 ;;; History, Undo, and Redo (Time-Travel)
-;;; ============================================================
+;;; ====
 
 ;;; undo : Debugger → Debugger
 ;;; Go back one step, pushing current state to future for redo.
@@ -339,9 +339,9 @@
       (car lst)
       (last (cdr lst))))
 
-;;; ============================================================
+;;; ====
 ;;; Inspection
-;;; ============================================================
+;;; ====
 
 ;;; inspect : Debugger → Alist
 (define (inspect d)
@@ -371,9 +371,9 @@
   (let ([d (run-debug expr fuel)])
        (reverse (debugger-trace d))))
 
-;;; ============================================================
+;;; ====
 ;;; Watch Expressions
-;;; ============================================================
+;;; ====
 
 ;;; add-watch : Debugger × Symbol → Debugger
 ;;; Add a variable to the watch list.
@@ -436,9 +436,9 @@
         [(pred (car l)) (loop (cdr l) (cons (car l) acc))]
         [else (loop (cdr l) acc)])))
 
-;;; ============================================================
+;;; ====
 ;;; Fuel-Tracking Debugger Extension
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Extended debugger state with detailed fuel tracking:
 ;;;   - fuel-trace: List of (expr fuel-before fuel-after fuel-consumed)
@@ -496,9 +496,9 @@
            0
            (* 100.0 (/ (debugger-fuel-used d) budget)))))
 
-;;; ============================================================
+;;; ====
 ;;; Fuel-Tracking Step
-;;; ============================================================
+;;; ====
 
 ;;; step-with-fuel : Debugger → Debugger
 ;;; Execute one step with fuel tracking, watch events, and timeline branching.
@@ -569,9 +569,9 @@
                                       (status . error)
                                       (error . ,result)))])))))
 
-;;; ============================================================
+;;; ====
 ;;; Fuel Analysis
-;;; ============================================================
+;;; ====
 
 ;;; fuel-by-expr-type : Debugger → Alist
 (define (fuel-by-expr-type d)
@@ -640,9 +640,9 @@
          (steps . ,steps)
          (by-type . ,by-type))))
 
-;;; ============================================================
+;;; ====
 ;;; Step-Over (Next)
-;;; ============================================================
+;;; ====
 
 ;;; next : Debugger → Debugger
 (define (next d)
@@ -674,9 +674,9 @@
                       [(<= current-depth target-depth) d]
                       [else (loop (step-with-fuel d))]))))))
 
-;;; ============================================================
+;;; ====
 ;;; Continue with Fuel Tracking
-;;; ============================================================
+;;; ====
 
 ;;; continue-with-fuel : Debugger → Debugger
 (define (continue-with-fuel d)
@@ -700,9 +700,9 @@
              [else
               (loop (step-with-fuel d))]))))
 
-;;; ============================================================
+;;; ====
 ;;; Explain-Why Traces
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Build causal explanations for evaluation results.
 ;;; Explains WHY an expression evaluated to a particular value
@@ -825,9 +825,9 @@
                                                     (list (explain-step-entry entry)))
                                   (loop (cdr entries))))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Structured Trace Export
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Export trace data in machine-readable S-expression format.
 

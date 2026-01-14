@@ -33,9 +33,9 @@
 (load "core/types/infer.ss")
 (load "core/lang/eval.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Compilation Phases
-;;; ============================================================
+;;; ====
 
 ;;; *phases* : (List Phase)
 ;;; Phase tags (in order)
@@ -55,9 +55,9 @@
 (define (phase<=? p1 p2)
   (<= (phase-index p1) (phase-index p2)))
 
-;;; ============================================================
+;;; ====
 ;;; Unified Result Type
-;;; ============================================================
+;;; ====
 
 ;;; result-ok : α × Context... → (Result α Error)
 ;;; Result constructors.
@@ -116,9 +116,9 @@
       (cdddr r)
       (error 'result-error-details "Not an error result" r)))
 
-;;; ============================================================
+;;; ====
 ;;; Result Threading
-;;; ============================================================
+;;; ====
 
 ;;; result-bind : (Result α Error) × (α → (Result β Error)) → (Result β Error)
 ;;; Monadic bind: continue with f if ok, propagate error otherwise.
@@ -142,9 +142,9 @@
 ;;; Alias for result-bind.
 (define >>= result-bind)
 
-;;; ============================================================
+;;; ====
 ;;; Phase Adapters
-;;; ============================================================
+;;; ====
 
 ;;; Each adapter converts phase-specific results to unified Results.
 
@@ -216,9 +216,9 @@
          (result-suspended (cadr result) '())]
         [else (result-error 'eval 'unexpected-result result)])))
 
-;;; ============================================================
+;;; ====
 ;;; Compilation Pipeline
-;;; ============================================================
+;;; ====
 
 ;;; *default-fuel* : Nat
 ;;; Default fuel for evaluation
@@ -273,9 +273,9 @@
                               ;; Phase 4: Evaluation
                               (adapt-eval (result-value r2) fuel))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Convenience Functions
-;;; ============================================================
+;;; ====
 
 ;;; compile-to : String × Symbol → (Result Value Error)
 ;;; Compile to a specific phase.
@@ -333,9 +333,9 @@
            r1
            (adapt-eval expr *default-fuel*))))
 
-;;; ============================================================
+;;; ====
 ;;; Error Formatting
-;;; ============================================================
+;;; ====
 
 ;;; format-result : (Result α Error) → String
 ;;; Format a result for display.
@@ -354,9 +354,9 @@
     (format "Suspended: ~a" (cadr r))]
    [else (format "Unknown result: ~a" r)]))
 
-;;; ============================================================
+;;; ====
 ;;; Pipeline Info
-;;; ============================================================
+;;; ====
 
 ;;; show-pipeline : Unit → Void
 ;;; Display the compilation pipeline.

@@ -16,9 +16,9 @@
 ;;;   - matrix.ss
 ;;;   - sparse.ss
 
-;;; ============================================================
+;;; ====
 ;;; Edge List Representation
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Edge lists are the input format for graph construction:
 ;;;   - Unweighted: ((from to) ...)
@@ -61,9 +61,9 @@
                       0
                       edges))))
 
-;;; ============================================================
+;;; ====
 ;;; Dense Adjacency Matrix
-;;; ============================================================
+;;; ====
 
 ;;; Maximum node count for dense adjacency matrices.
 ;;; Beyond this threshold, use edges->sparse-adjacency instead.
@@ -147,9 +147,9 @@
 (define (adjacency-matrix-edge-weight m i j)
   (matrix-ref m i j))
 
-;;; ============================================================
+;;; ====
 ;;; Sparse Adjacency Matrix
-;;; ============================================================
+;;; ====
 
 ;;; edges->sparse-adjacency : (List Edge) × (Option Nat) × (Option Boolean) → SparseCSR
 ;;; Convert edge list to sparse adjacency matrix (CSR format).
@@ -204,9 +204,9 @@
                                                      (list i j))
                                                  edges))))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Graph Properties from Adjacency Matrix
-;;; ============================================================
+;;; ====
 
 ;;; adjacency-matrix-node-count : Matrix|SparseCSR → Nat
 (define (adjacency-matrix-node-count m)
@@ -296,9 +296,9 @@
                               result
                               (cons j result))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Graph Transformations
-;;; ============================================================
+;;; ====
 
 ;;; adjacency-transpose : Matrix|SparseCSR → Matrix|SparseCSR
 ;;; Transpose adjacency matrix (reverse all edges).
@@ -317,9 +317,9 @@
 (define (adjacency-symmetrize-sparse m)
   (sparse-csr-add m (sparse-csr-transpose m)))
 
-;;; ============================================================
+;;; ====
 ;;; Degree Matrix
-;;; ============================================================
+;;; ====
 
 ;;; degree-matrix : Matrix|SparseCSR × [Symbol] → Matrix
 ;;; Create diagonal degree matrix.
@@ -354,9 +354,9 @@
                                            (adjacency-in-degree m i))])))
         (sparse-diagonal degrees)))
 
-;;; ============================================================
+;;; ====
 ;;; Special Graph Matrices
-;;; ============================================================
+;;; ====
 
 ;;; complete-graph : Nat × [Boolean] → Matrix
 ;;; Create adjacency matrix for complete graph K_n.
@@ -419,9 +419,9 @@
          edges)
         (list 'matrix total total data)))
 
-;;; ============================================================
+;;; ====
 ;;; Matrix Powers for Graph Analysis
-;;; ============================================================
+;;; ====
 
 ;;; adjacency-power : Matrix × Nat → Matrix
 ;;; Compute A^k (paths of length exactly k).
@@ -445,9 +445,9 @@
                       (matrix-add result power)
                       (matrix-mul power m))))))
 
-;;; ============================================================
+;;; ====
 ;;; Matrix-Based Graph Distance Algorithms
-;;; ============================================================
+;;; ====
 
 ;;; matrix-power-fast : Matrix × Nat → Matrix
 ;;; Compute A^k using repeated squaring (binary exponentiation).
@@ -541,9 +541,9 @@
                   [(< (matrix-ref dist i i) 0) #t]
                   [else (loop (+ i 1))]))))
 
-;;; ============================================================
+;;; ====
 ;;; Dijkstra's Algorithm (Single-Source Shortest Paths)
-;;; ============================================================
+;;; ====
 
 ;;; dijkstra : Matrix × Nat → (Vector Distance) × (Vector Predecessor)
 ;;; Compute shortest paths from source to all other nodes.
@@ -709,9 +709,9 @@
                                 (cons i center)
                                 center)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Dense/Sparse Conversion
-;;; ============================================================
+;;; ====
 
 ;;; adjacency-to-sparse : Matrix → SparseCSR
 ;;; Convert dense adjacency matrix to sparse.

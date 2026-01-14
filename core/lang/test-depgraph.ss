@@ -21,7 +21,7 @@
        (newline))))
 
 (display "\nTesting depgraph.ss\n")
-(display "===================\n\n")
+(display "====\n\n")
 
 ;;; Build the graph first
 (display "Building graph...\n")
@@ -67,7 +67,7 @@
 
 ;;; Summary
 (newline)
-(display "===================\n")
+(display "====\n")
 (display "Tests passed: ") (display tests-passed) (newline)
 (display "Tests failed: ") (display tests-failed) (newline)
 (newline)

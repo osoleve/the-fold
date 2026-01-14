@@ -19,9 +19,9 @@
 (load "lattice/fp/symbolic/diff.ss")
 (load "lattice/fp/symbolic/simplify.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Main Integration Entry Point
-;;; ============================================================
+;;; ====
 
 ;;; integrate : Expr × Symbol → Expr | #f
 ;;; Compute the indefinite integral of expr with respect to var-sym.
@@ -47,9 +47,9 @@
        (integrate-by-parts expr var-sym depth)
        (integrate-partial-fractions expr var-sym depth))))
 
-;;; ============================================================
+;;; ====
 ;;; Integration Table (Common Integrals)
-;;; ============================================================
+;;; ====
 
 ;;; integrate-table : Expr × Symbol → Expr | #f
 ;;; Table-based lookup for common integrals.
@@ -174,9 +174,9 @@
                           (num? (pow-exp (car terms)))
                           (= (num-val (pow-exp (car terms))) 2)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Basic Integration Rules
-;;; ============================================================
+;;; ====
 
 ;;; integrate-basic : Expr × Symbol × Depth → Expr | #f
 (define (integrate-basic expr var-sym depth)
@@ -306,9 +306,9 @@
         
         [else #f])))
 
-;;; ============================================================
+;;; ====
 ;;; U-Substitution
-;;; ============================================================
+;;; ====
 
 ;;; integrate-by-substitution : Expr × Symbol × Depth → Expr | #f
 ;;; Try u-substitution for various common patterns.
@@ -421,9 +421,9 @@
   ;; sqrt(x^2 - a^2): x = a*sec(t)
   #f)  ;; TODO: implement
 
-;;; ============================================================
+;;; ====
 ;;; Integration by Parts
-;;; ============================================================
+;;; ====
 
 ;;; integrate-by-parts : Expr × Symbol × Depth → Expr | #f
 ;;; Try integration by parts: ∫u dv = uv - ∫v du
@@ -485,9 +485,9 @@
                      (difference (product u v) int-v-du)
                      #f)))))
 
-;;; ============================================================
+;;; ====
 ;;; Partial Fractions (Basic)
-;;; ============================================================
+;;; ====
 
 ;;; integrate-partial-fractions : Expr × Symbol × Depth → Expr | #f
 ;;; Integrate rational functions using partial fractions.
@@ -531,9 +531,9 @@
                       (sum (quotient (product A (sym-log (make-app 'abs f1))) a)
                            (quotient (product B (sym-log (make-app 'abs f2))) c)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Helper Functions
-;;; ============================================================
+;;; ====
 
 ;;; contains-var? : Expr × Symbol → Bool
 ;;; Check if expression contains the variable.
@@ -645,9 +645,9 @@
    [(= (length exprs) 1) (car exprs)]
    [else (fold-left sum (car exprs) (cdr exprs))]))
 
-;;; ============================================================
+;;; ====
 ;;; Definite Integrals
-;;; ============================================================
+;;; ====
 
 ;;; definite-integral : Expr × Symbol × Expr × Expr → Expr | #f
 ;;; Compute definite integral from a to b.
@@ -672,9 +672,9 @@
                 (definite-integral expr var-sym (num a) (num b)))
            #f)))
 
-;;; ============================================================
+;;; ====
 ;;; Convenience Functions
-;;; ============================================================
+;;; ====
 
 ;;; antiderivative : Expr × Symbol → Expr | #f
 ;;; Alias for integrate.

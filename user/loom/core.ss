@@ -16,9 +16,9 @@
 ;;;   clamp, lerp, in-range?
 ;;;   alist-ref, alist-set, alist-update
 
-;;; ============================================================
+;;; ====
 ;;; Direction System
-;;; ============================================================
+;;; ====
 
 ;;; Direction : (+ 'north 'south 'east 'west
 ;;;               'northeast 'northwest 'southeast 'southwest 'none)
@@ -85,9 +85,9 @@
 (define all-directions
   '(north south east west northeast northwest southeast southwest))
 
-;;; ============================================================
+;;; ====
 ;;; Distance Functions
-;;; ============================================================
+;;; ====
 
 ;;; manhattan-distance : Point × Point -> Nat
 ;;; Calculate Manhattan (taxicab) distance between two points.
@@ -110,9 +110,9 @@
         [dy (- (cdr p1) (cdr p2))])
        (+ (* dx dx) (* dy dy))))
 
-;;; ============================================================
+;;; ====
 ;;; Numeric Utilities
-;;; ============================================================
+;;; ====
 
 ;;; clamp : Num × Num × Num -> Num
 ;;; Clamp value between min and max.
@@ -129,9 +129,9 @@
 (define (in-range? val min-val max-val)
   (and (>= val min-val) (< val max-val)))
 
-;;; ============================================================
+;;; ====
 ;;; Association List Utilities
-;;; ============================================================
+;;; ====
 
 ;;; alist-ref : Alist × Symbol × [Any] -> Any
 ;;; Get value from alist, with optional default.
@@ -185,9 +185,9 @@
              base
              override))
 
-;;; ============================================================
+;;; ====
 ;;; ID Generation
-;;; ============================================================
+;;; ====
 
 ;;; Simple counter-based ID generation for entities.
 ;;; In production, this would use the block hash system.
@@ -206,9 +206,9 @@
 (define (reset-id-counter!)
   (set! *next-entity-id* 0))
 
-;;; ============================================================
+;;; ====
 ;;; Point Utilities (extending shell/layout.ss)
-;;; ============================================================
+;;; ====
 
 ;;; point-add : Point × Point -> Point
 ;;; Add two points (or point + delta).
@@ -242,9 +242,9 @@
                     (point-add pt (direction->delta dir)))
             dirs)))
 
-;;; ============================================================
+;;; ====
 ;;; Random Utilities
-;;; ============================================================
+;;; ====
 
 ;;; random-range : Int × Int -> Int
 ;;; Random integer in range [min, max).
@@ -284,9 +284,9 @@
                           (caar opts)
                           (loop (cdr opts) new-cumulative)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Export Summary
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Directions:
 ;;;   valid-directions, direction?, direction->delta, delta->direction

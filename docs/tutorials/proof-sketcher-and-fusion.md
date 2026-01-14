@@ -110,7 +110,7 @@ Finalize the proof:
 ### Available Tactics
 
 | Tactic | What it does |
-|--------|--------------|
+|----|----|
 | `(proof-apply 'law)` | Apply a named law |
 | `(simplify-goal)` | Auto-simplify with all laws |
 | `(undo)` | Take back the last step |
@@ -202,7 +202,7 @@ Result:
 LZR knows 19 fusion rules:
 
 | Pattern | Becomes |
-|---------|---------|
+|----|----|
 | `(map f (map g xs))` | `(map (compose f g) xs)` |
 | `(filter p (map f xs))` | `(filter-map (compose p f) f xs)` |
 | `(foldl f z (map g xs))` | `(foldl (fn (a x) (f a (g x))) z xs)` |
@@ -276,7 +276,7 @@ that your optimization is correct?
 Both features are thoroughly tested:
 
 | Module | Tests |
-|--------|-------|
+|----|----|
 | Proof sketcher (goals, sketch, tactics) | 107 |
 | Fusion detection | 31 |
 | Parallel detection | 35 |

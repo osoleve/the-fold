@@ -26,9 +26,9 @@
 (load "shell/store-api.ss")
 (load "lattice/data/collection-utils.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Section 1: Helper Functions
-;;; ============================================================
+;;; ====
 
 ;;; --- Visited Set Management ---
 ;;; We use a hash table for O(1) membership testing.
@@ -191,9 +191,9 @@
   (map hash-block (store-find-by-ref fs hash)))
 
 
-;;; ============================================================
+;;; ====
 ;;; Section 2: Traversal Primitives (Tier 6)
-;;; ============================================================
+;;; ====
 
 ;;; bfs-traverse : FSCap Hash (Hash Block → Void) → Void
 ;;; Breadth-first traversal starting from start-hash.
@@ -271,9 +271,9 @@
                                                       (visited-add visited current))))))))))
 
 
-;;; ============================================================
+;;; ====
 ;;; Section 3: Path Finding Algorithms (Tier 6)
-;;; ============================================================
+;;; ====
 
 ;;; shortest-path : FSCap Hash Hash → (Maybe (List Hash))
 ;;; Find shortest path from from-hash to to-hash using BFS.
@@ -377,9 +377,9 @@
                                                     new-visited))))))))))
 
 
-;;; ============================================================
+;;; ====
 ;;; Section 4: Graph Analysis (Tier 7)
-;;; ============================================================
+;;; ====
 
 ;;; connected-components : FSCap → (List (List Hash))
 ;;; Find all connected components in the graph.
@@ -559,9 +559,9 @@
            result)))
 
 
-;;; ============================================================
+;;; ====
 ;;; Section 5: Centrality and Importance Metrics (Tier 6-7)
-;;; ============================================================
+;;; ====
 
 ;;; in-degree : FSCap Hash → Integer
 ;;; Count number of incoming references to a block.
@@ -638,9 +638,9 @@
                all-hashes)))
 
 
-;;; ============================================================
+;;; ====
 ;;; Section 6: Subgraph Operations (Tier 6-7)
-;;; ============================================================
+;;; ====
 
 ;;; reachable-from : FSCap Hash → (List Hash)
 ;;; Find all blocks reachable from given hash (following outgoing refs).
@@ -728,9 +728,9 @@
        result))
 
 
-;;; ============================================================
+;;; ====
 ;;; Section 7: Utility Functions for Analysis (Tier 6)
-;;; ============================================================
+;;; ====
 
 ;;; graph-stats : FSCap → Alist
 ;;; Compute basic statistics about the graph structure.
@@ -800,9 +800,9 @@
                     (loop (cdr ts) (string-append result " -> " (car ts))))))))
 
 
-;;; ============================================================
+;;; ====
 ;;; Load Complete
-;;; ============================================================
+;;; ====
 
 (printf "✓ Graph algorithms loaded
 ")

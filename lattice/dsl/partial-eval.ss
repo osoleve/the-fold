@@ -28,9 +28,9 @@
 (load "lattice/dsl/staging.ss")
 (load "lattice/fp/meta/combinators.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Binding Time Representation
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Binding times classify when a value is known:
 ;;;   - 'static  : Known at specialization time
@@ -78,9 +78,9 @@
    [(eq? bt2 bt-dynamic) #t]
    [else #f]))
 
-;;; ============================================================
+;;; ====
 ;;; Binding-Time Environment
-;;; ============================================================
+;;; ====
 
 ;;; make-bt-env : () → BTEnv
 ;;; Create empty binding-time environment.
@@ -105,9 +105,9 @@
              env
              (map cons vars bts)))
 
-;;; ============================================================
+;;; ====
 ;;; Primitive Operations (Forward Declaration)
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Needed by BTA to recognize static primitives.
 
@@ -118,9 +118,9 @@
             zero? positive? negative? even? odd? abs min max
             modulo quotient remainder)))
 
-;;; ============================================================
+;;; ====
 ;;; Binding-Time Analysis
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Analyze expression to determine binding times of subexpressions.
 ;;; This is a forward flow analysis.
@@ -230,9 +230,9 @@
         
         [else (list 'ann bt expr)])))
 
-;;; ============================================================
+;;; ====
 ;;; Static Store
-;;; ============================================================
+;;; ====
 ;;;
 ;;; The static store holds values known at specialization time.
 
@@ -264,9 +264,9 @@
   ;; Use a unique sentinel to mark as "dynamic" - lookup will find this instead of outer binding
   (cons (cons var '*dynamic-binding*) store))
 
-;;; ============================================================
+;;; ====
 ;;; Specialization State
-;;; ============================================================
+;;; ====
 
 ;;; make-pe-state : Nat → PEState
 ;;; Create partial evaluation state with unfolding limit.
@@ -349,9 +349,9 @@
         (cons def (pe-state-residuals st))
         (pe-state-counter st)))
 
-;;; ============================================================
+;;; ====
 ;;; Online Partial Evaluation
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Online PE makes specialization decisions during evaluation.
 ;;; Simpler but may miss some optimization opportunities.
@@ -691,9 +691,9 @@
       (cadr x)
       x))
 
-;;; ============================================================
+;;; ====
 ;;; Offline Partial Evaluation
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Offline PE first performs binding-time analysis, then specializes
 ;;; based on the analysis results. More precise but requires two passes.
@@ -810,9 +810,9 @@
                       (cons (car result) results)
                       (cdr result))))))
 
-;;; ============================================================
+;;; ====
 ;;; High-Level API
-;;; ============================================================
+;;; ====
 
 ;;; partial-eval : Sexp × (List (Symbol . Value)) → Sexp
 ;;; Partially evaluate expression with given static bindings.
@@ -876,9 +876,9 @@
    
    [else (partial-eval func-def static-bindings)]))
 
-;;; ============================================================
+;;; ====
 ;;; Specialization with Memoization
-;;; ============================================================
+;;; ====
 
 ;;; memo-specialize : Sexp × (List (Symbol . Value)) × Nat → Sexp
 ;;; Specialize with memoization of intermediate results.
@@ -896,9 +896,9 @@
             spec-expr
             `(letrec ,residuals ,spec-expr))))
 
-;;; ============================================================
+;;; ====
 ;;; Classic Examples
-;;; ============================================================
+;;; ====
 
 ;;; power-source : Source code for power function
 (define power-source
@@ -930,9 +930,9 @@
       (* (interp (cadr expr) env)
          (interp (caddr expr) env))])))
 
-;;; ============================================================
+;;; ====
 ;;; Futamura Projections (Conceptual)
-;;; ============================================================
+;;; ====
 ;;;
 ;;; The three Futamura projections relate interpretation and compilation:
 ;;;
@@ -953,9 +953,9 @@
 (define (futamura-1 interp program)
   (partial-eval `(,interp ',program env) '()))
 
-;;; ============================================================
+;;; ====
 ;;; Simplification
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Post-processing to simplify generated code.
 
@@ -1033,9 +1033,9 @@
 (define (partial-eval-simplified expr static-bindings)
   (simplify (partial-eval expr static-bindings)))
 
-;;; ============================================================
+;;; ====
 ;;; Exports
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Main entry points:
 ;;;   - partial-eval : Basic online partial evaluation

@@ -17,9 +17,9 @@
 (define (quill-story? x)
   (quill-story%? x))
 
-;;; ============================================================
+;;; ====
 ;;; Test Framework
-;;; ============================================================
+;;; ====
 
 (define *test-count* 0)
 (define *pass-count* 0)
@@ -61,9 +61,9 @@
 
 ")
   
-  ;; ============================================================
+  ;; ====
   ;; Span Tests
-  ;; ============================================================
+  ;; ====
   (display "--- Span Operations ---
 ")
   
@@ -93,9 +93,9 @@
             (test "get-span" s (get-span annotated))
             (test "strip-span" form (strip-span annotated))))
   
-  ;; ============================================================
+  ;; ====
   ;; Syntax Recognition Tests
-  ;; ============================================================
+  ;; ====
   (display "
 --- Syntax Recognition ---
 ")
@@ -109,9 +109,9 @@
   (test-true "satin-exercise?" (satin-exercise? '(exercise math-1)))
   (test-true "satin-rule?" (satin-rule? '(rule trigger)))
   
-  ;; ============================================================
+  ;; ====
   ;; Field Extraction Tests
-  ;; ============================================================
+  ;; ====
   (display "
 --- Field Extraction ---
 ")
@@ -146,9 +146,9 @@
        (test-pred "choice-guard" pair? (satin-choice-guard choice))
        (test "choice-effects count" 1 (length (satin-choice-effects choice))))
   
-  ;; ============================================================
+  ;; ====
   ;; Guard Compilation Tests
-  ;; ============================================================
+  ;; ====
   (display "
 --- Guard Compilation ---
 ")
@@ -200,9 +200,9 @@
        (let ([g (satin-compile-guard '(or (flag? unknown?) (has-item? key)))])
             (test-true "guard or true" (g test-state))))  ; close outer let for test-state
   
-  ;; ============================================================
+  ;; ====
   ;; Effect Compilation Tests
-  ;; ============================================================
+  ;; ====
   (display "
 --- Effect Compilation ---
 ")
@@ -264,9 +264,9 @@
   (test-false "effect valid? missing arg"
               (satin-effect-valid? '(set-flag!)))
   
-  ;; ============================================================
+  ;; ====
   ;; Validation Tests
-  ;; ============================================================
+  ;; ====
   (display "
 --- Validation ---
 ")
@@ -329,9 +329,9 @@
                                  (eq? (satin-issue-code i) 'duplicate-id))
                          issues)))
   
-  ;; ============================================================
+  ;; ====
   ;; Full Compilation Tests
-  ;; ============================================================
+  ;; ====
   (display "
 --- Full Compilation ---
 ")
@@ -392,9 +392,9 @@
                                   effects))
                    on-enter))
   
-  ;; ============================================================
+  ;; ====
   ;; Issue Formatting Tests
-  ;; ============================================================
+  ;; ====
   (display "
 --- Issue Formatting ---
 ")
@@ -407,9 +407,9 @@
        (test "issue-message" "Test message" (satin-issue-message issue))
        (test-pred "format-issue" string? (satin-format-issue issue)))
   
-  ;; ============================================================
+  ;; ====
   ;; Template Tests
-  ;; ============================================================
+  ;; ====
   (display "
 --- Templates ---
 ")
@@ -421,9 +421,9 @@
          [result (satin-expand-template "Hello {var:name}!" state)])
         (test "template expansion" "Hello Alice!" result))
   
-  ;; ============================================================
+  ;; ====
   ;; Check Predicate Tests
-  ;; ============================================================
+  ;; ====
   (display "
 --- Check Predicates ---
 ")
@@ -446,9 +446,9 @@
        (test-true "and predicate" (pred #f #f "(+ 1 2)"))
        (test-false "and predicate fail" (pred #f #f "1 2")))
   
-  ;; ============================================================
+  ;; ====
   ;; String Helpers Tests
-  ;; ============================================================
+  ;; ====
   (display "
 --- String Helpers ---
 ")
@@ -459,9 +459,9 @@
   (test-false "string-contains? no" (string-contains? "hello" "xyz"))
   (test-false "string-contains? too long" (string-contains? "hi" "hello"))
   
-  ;; ============================================================
+  ;; ====
   ;; Education Form Recognition Tests
-  ;; ============================================================
+  ;; ====
   (display "
 --- Education Form Recognition ---
 ")
@@ -481,9 +481,9 @@
   (test-true "satin-mastery?" (satin-mastery? '(mastery skill1)))
   (test-false "satin-mastery? quest" (satin-mastery? '(quest q1)))
   
-  ;; ============================================================
+  ;; ====
   ;; Lesson Extraction Tests
-  ;; ============================================================
+  ;; ====
   (display "
 --- Lesson Extraction ---
 ")
@@ -502,9 +502,9 @@
        (test "lesson-sequence" '(node-intro mcq-1 exercise-1) (satin-lesson-sequence lesson))
        (test "lesson-on-complete count" 1 (length (satin-lesson-on-complete lesson))))
   
-  ;; ============================================================
+  ;; ====
   ;; MCQ Extraction Tests
-  ;; ============================================================
+  ;; ====
   (display "
 --- MCQ Extraction ---
 ")
@@ -522,9 +522,9 @@
        (test "mcq-explanation" "Lambda creates anonymous functions" (satin-mcq-explanation mcq))
        (test "mcq-hints count" 1 (length (satin-mcq-hints mcq))))
   
-  ;; ============================================================
+  ;; ====
   ;; Short Answer Extraction Tests
-  ;; ============================================================
+  ;; ====
   (display "
 --- Short Answer Extraction ---
 ")
@@ -538,9 +538,9 @@
        (test "short-answer-expected" "define" (satin-short-answer-expected sa))
        (test "short-answer-hints count" 1 (length (satin-short-answer-hints sa))))
   
-  ;; ============================================================
+  ;; ====
   ;; Code Task Extraction Tests
-  ;; ============================================================
+  ;; ====
   (display "
 --- Code Task Extraction ---
 ")
@@ -563,9 +563,9 @@
        (test "code-task-tests count" 2 (length (satin-code-task-tests ct)))
        (test "code-task-hints count" 2 (length (satin-code-task-hints ct))))
   
-  ;; ============================================================
+  ;; ====
   ;; Mastery Extraction Tests
-  ;; ============================================================
+  ;; ====
   (display "
 --- Mastery Extraction ---
 ")
@@ -581,9 +581,9 @@
        (test "mastery-threshold" 3 (satin-mastery-threshold mastery))
        (test "mastery-exercises" '(rec-1 rec-2 rec-3 rec-4) (satin-mastery-exercises mastery)))
   
-  ;; ============================================================
+  ;; ====
   ;; Education Form Compilation Tests
-  ;; ============================================================
+  ;; ====
   (display "
 --- Education Form Compilation ---
 ")
@@ -640,9 +640,9 @@
         (test "mastery compile skill" "Testing" (cdr (assq 'skill compiled)))
         (test "mastery compile threshold" 5 (cdr (assq 'threshold compiled))))
   
-  ;; ============================================================
+  ;; ====
   ;; Full Story with Education Forms
-  ;; ============================================================
+  ;; ====
   (display "
 --- Story with Education Forms ---
 ")
@@ -703,9 +703,9 @@
         (let ([masteries (cdr (assq 'masteries meta))])
              (test "mastery count" 1 (length masteries))))
   
-  ;; ============================================================
+  ;; ====
   ;; Summary
-  ;; ============================================================
+  ;; ====
   (display "
 === Test Summary ===
 ")

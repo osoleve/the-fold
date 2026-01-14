@@ -9,9 +9,9 @@
 (load "lattice/numeric/polynomial.ss")
 (load "lattice/algebra/poly-bridge.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Test: Conversion Functions
-;;; ============================================================
+;;; ====
 
 ;;; Helper to extract coefficients from numeric polynomial
 ;;; Numeric poly is (poly #(...)) - coeffs in cadr
@@ -59,9 +59,9 @@
       (assert-equal (alg-coeffs z-alg) '(0))
       (assert-equal (vector->list (num-poly-vec z-back)) '(0)))))
 
-;;; ============================================================
+;;; ====
 ;;; Test: Prefixed Operations
-;;; ============================================================
+;;; ====
 
 (test-group "prefixed-operations"
   (define-test "alg-add works correctly"
@@ -97,9 +97,9 @@
       ;; GCD should be (x-1), degree 1
       (assert-equal deg 1))))
 
-;;; ============================================================
+;;; ====
 ;;; Test: Bridge Operations
-;;; ============================================================
+;;; ====
 
 (test-group "bridge-operations"
   (define-test "bridge-gcd on numeric polynomials"
@@ -151,9 +151,9 @@
       (assert-equal (- (vector-length (num-poly-vec num-simp)) 1) 1)
       (assert-equal (- (vector-length (num-poly-vec den-simp)) 1) 1))))
 
-;;; ============================================================
+;;; ====
 ;;; Test: Factory Functions
-;;; ============================================================
+;;; ====
 
 (test-group "factory-functions"
   (define-test "make-numeric-from-roots"
@@ -174,9 +174,9 @@
            [coeffs (alg-coeffs p)])
       (assert-equal coeffs '(1 2 3)))))
 
-;;; ============================================================
+;;; ====
 ;;; Test: String Conversion
-;;; ============================================================
+;;; ====
 
 (test-group "string-conversion"
   (define-test "alg->string produces output"
@@ -191,9 +191,9 @@
       (assert-true (string? str))
       (assert-true (> (string-length str) 0)))))
 
-;;; ============================================================
+;;; ====
 ;;; Test: Compatibility Aliases
-;;; ============================================================
+;;; ====
 
 (test-group "compatibility-aliases"
   (define-test "sig-* aliases work"
@@ -209,8 +209,8 @@
            [gcd-poly (sig-poly-gcd p1 p2)])
       (assert-equal (sig-poly-degree gcd-poly) 1))))
 
-;;; ============================================================
+;;; ====
 ;;; Run All Tests
-;;; ============================================================
+;;; ====
 
 (run-all-tests)

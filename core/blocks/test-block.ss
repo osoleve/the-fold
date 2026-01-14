@@ -10,13 +10,13 @@
 
 (display "Block System Tests
 ")
-(display "===================
+(display "====
 
 ")
 
-;;; ============================================================
+;;; ====
 ;;; Block Construction Tests
-;;; ============================================================
+;;; ====
 
 (test-group block-construction
             (define-test basic-block
@@ -27,9 +27,9 @@
                     (assert-equal 5 (bytevector-length (block-payload blk)))
                     (assert-equal 0 (vector-length (block-refs blk))))))
 
-;;; ============================================================
+;;; ====
 ;;; Serialization Tests
-;;; ============================================================
+;;; ====
 
 (test-group serialization
             (define-test round-trip-simple
@@ -51,6 +51,6 @@
                     (assert-equal 2 (vector-length (block-refs restored)))
                     (assert-true (block-equal? blk restored)))))
 
-;;; ============================================================
+;;; ====
 ;;; Tests run immediately when defined via define-test
-;;; ============================================================
+;;; ====

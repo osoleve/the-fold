@@ -27,9 +27,9 @@
 (load "lattice/physics/classical3d/collision-detection3d.ss")
 (load "lattice/physics/classical3d/constraint-solver3d.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Physics Entity 3D
-;;; ============================================================
+;;; ====
 
 ;;; A physics entity combines:
 ;;;   - id: unique identifier
@@ -75,9 +75,9 @@
 ;;; entity-3d-static? : Entity3D → Boolean
 (define (entity-3d-static? e) (rigid-body-3d-static? (entity-3d-body e)))
 
-;;; ============================================================
+;;; ====
 ;;; Material (shared with 2D)
-;;; ============================================================
+;;; ====
 
 ;;; make-material : Number × Number → Material
 ;;; Create physics material with restitution and friction.
@@ -99,9 +99,9 @@
 (define *bouncy-material* (make-material 0.9 0.3))
 (define *sticky-material* (make-material 0.0 0.9))
 
-;;; ============================================================
+;;; ====
 ;;; Time Accumulator (for fixed timestep)
-;;; ============================================================
+;;; ====
 
 ;;; make-time-acc-3d : Number × Nat → TimeAcc3D
 ;;; Create timestep accumulator for fixed-timestep simulation.
@@ -139,9 +139,9 @@
                  fixed-dt)
            (list acc 0))))
 
-;;; ============================================================
+;;; ====
 ;;; 3D Spatial Hash (Broad Phase)
-;;; ============================================================
+;;; ====
 
 ;;; make-spatial-hash-3d : Number → SpatialHash3D
 ;;; Create 3D spatial hash with given cell size.
@@ -224,9 +224,9 @@
          keys)
         results))
 
-;;; ============================================================
+;;; ====
 ;;; Physics World 3D
-;;; ============================================================
+;;; ====
 
 ;;; A physics world contains:
 ;;;   - entities: hashtable of id → entity
@@ -301,9 +301,9 @@
         new-acc
         (world-3d-constraints w)))
 
-;;; ============================================================
+;;; ====
 ;;; Entity Management
-;;; ============================================================
+;;; ====
 
 ;;; world-3d-add-entity! : World3D × Entity3D → Void
 (define (world-3d-add-entity! world entity)
@@ -330,9 +330,9 @@
        (when entity
              (hashtable-set! (world-3d-entities world) id (f entity)))))
 
-;;; ============================================================
+;;; ====
 ;;; Constraint Management
-;;; ============================================================
+;;; ====
 
 ;;; world-3d-add-constraint! : World3D × Constraint3D → Void
 (define (world-3d-add-constraint! world constraint)
@@ -352,9 +352,9 @@
   (let-values ([(keys vals) (hashtable-entries (world-3d-constraints world))])
               (vector->list vals)))
 
-;;; ============================================================
+;;; ====
 ;;; World Step
-;;; ============================================================
+;;; ====
 
 ;;; world-3d-step! : World3D × Number → World3D
 ;;; Step the physics simulation forward by dt seconds.
@@ -402,9 +402,9 @@
                   (world-3d-correct-constraint-positions! world constraints)
                   (iter-loop (+ i 1))))))
 
-;;; ============================================================
+;;; ====
 ;;; Velocity Integration
-;;; ============================================================
+;;; ====
 
 ;;; world-3d-integrate-velocities! : World3D × Number → Void
 ;;; Apply forces and update velocities (first half of integration).
@@ -427,9 +427,9 @@
                                                                (entity-3d-with-body ent new-body))))))
         entities)))
 
-;;; ============================================================
+;;; ====
 ;;; Position Integration
-;;; ============================================================
+;;; ====
 
 ;;; world-3d-integrate-positions! : World3D × Number → Void
 ;;; Update positions and orientations from velocities.
@@ -453,9 +453,9 @@
                                                                (entity-3d-with-body ent new-body))))))
         entities)))
 
-;;; ============================================================
+;;; ====
 ;;; Collision Detection
-;;; ============================================================
+;;; ====
 
 ;;; world-3d-detect-collisions : World3D → (List Collision3D)
 ;;; Detect all collisions in the world.
@@ -504,9 +504,9 @@
       (cons a b)
       (cons b a)))
 
-;;; ============================================================
+;;; ====
 ;;; Collision Resolution
-;;; ============================================================
+;;; ====
 
 ;;; world-3d-resolve-collision-velocities! : World3D × (List Collision3D) → Void
 ;;; Resolve collision velocity constraints (impulses only).
@@ -625,9 +625,9 @@
                                                                  (lambda (e) (entity-3d-with-body e new-body-b))))))))
         collisions)))
 
-;;; ============================================================
+;;; ====
 ;;; Constraint Solving
-;;; ============================================================
+;;; ====
 
 ;;; world-3d-solve-constraint-velocities! : World3D × (List Constraint3D) × Number → Void
 (define (world-3d-solve-constraint-velocities! world constraints dt)
@@ -645,9 +645,9 @@
                  ((constraint-3d-solver-position c) world c)))
    constraints))
 
-;;; ============================================================
+;;; ====
 ;;; Convenience Constructors
-;;; ============================================================
+;;; ====
 
 ;;; make-sphere-entity-3d : Any × Vec3 × Number × Number × Material → Entity3D
 ;;; Create a spherical physics entity.
@@ -691,9 +691,9 @@
                         (vec3 extent y extent))])
         (make-entity-3d id body shape material #f)))
 
-;;; ============================================================
+;;; ====
 ;;; World Queries
-;;; ============================================================
+;;; ====
 
 ;;; world-3d-query-aabb : World3D × AABB3D → (List Entity3D)
 ;;; Find all entities overlapping an AABB.
@@ -729,9 +729,9 @@
                       [else #f])))
         entities)))
 
-;;; ============================================================
+;;; ====
 ;;; Entity Manipulation
-;;; ============================================================
+;;; ====
 
 ;;; apply-force-3d! : World3D × Any × Vec3 → Void
 ;;; Apply a force to an entity (integrated over dt).

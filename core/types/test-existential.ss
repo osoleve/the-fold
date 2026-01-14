@@ -7,9 +7,9 @@
 (load "core/types/dep-types.ss")
 (load "core/types/existential.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Test Framework
-;;; ============================================================
+;;; ====
 
 (define *test-count* 0)
 (define *pass-count* 0)
@@ -41,9 +41,9 @@
 (define (test-false name actual)
   (test name #f actual))
 
-;;; ============================================================
+;;; ====
 ;;; Example Types for Testing
-;;; ============================================================
+;;; ====
 
 ;; Simple existential: ∃a. a
 (define simple-exist '(∃ ((a : Type)) a))
@@ -61,9 +61,9 @@
 ")
   (reset-skolem-counter!)
   
-  ;; --------------------------------------------------------
+  ;; ----
   ;; Existential Type Predicates
-  ;; --------------------------------------------------------
+  ;; ----
   (display "--- Existential Type Predicates ---
 ")
   
@@ -91,9 +91,9 @@
   (test-false "existential-well-formed? malformed"
               (existential-well-formed? '(∃ a)))
   
-  ;; --------------------------------------------------------
+  ;; ----
   ;; Existential Type Accessors
-  ;; --------------------------------------------------------
+  ;; ----
   (display "
 --- Existential Type Accessors ---
 ")
@@ -134,9 +134,9 @@
         'Nat
         (binding-type '(n : Nat)))
   
-  ;; --------------------------------------------------------
+  ;; ----
   ;; Existential Type Construction
-  ;; --------------------------------------------------------
+  ;; ----
   (display "
 --- Existential Type Construction ---
 ")
@@ -153,9 +153,9 @@
         '(∃ ((x : Type)) x)
         (t-exists-simple 'x 'x))
   
-  ;; --------------------------------------------------------
+  ;; ----
   ;; Pack Expression Predicates
-  ;; --------------------------------------------------------
+  ;; ----
   (display "
 --- Pack Expression Predicates ---
 ")
@@ -181,9 +181,9 @@
   (test-false "pack-well-formed? missing colon"
               (pack-well-formed? '(pack Int 42 (∃ ((a : Type)) a))))
   
-  ;; --------------------------------------------------------
+  ;; ----
   ;; Unpack Expression Predicates
-  ;; --------------------------------------------------------
+  ;; ----
   (display "
 --- Unpack Expression Predicates ---
 ")
@@ -212,9 +212,9 @@
   (test-false "unpack-well-formed? malformed"
               (unpack-well-formed? '(unpack (a packed) body)))
   
-  ;; --------------------------------------------------------
+  ;; ----
   ;; Skolemization
-  ;; --------------------------------------------------------
+  ;; ----
   (display "
 --- Skolemization ---
 ")
@@ -265,9 +265,9 @@
   (test-false "type-mentions-any-skolem? none"
               (type-mentions-any-skolem? '(-> a b) '(a!1 b!2)))
   
-  ;; --------------------------------------------------------
+  ;; ----
   ;; Substitution
-  ;; --------------------------------------------------------
+  ;; ----
   (display "
 --- Substitution ---
 ")
@@ -280,9 +280,9 @@
         '(× Int (-> Int String))
         (existential-subst showable-exist 'a 'Int))
   
-  ;; --------------------------------------------------------
+  ;; ----
   ;; Free Variables
-  ;; --------------------------------------------------------
+  ;; ----
   (display "
 --- Free Variables ---
 ")
@@ -295,9 +295,9 @@
         '(c)
         (existential-free-vars '(∃ ((a : Type)) (-> a c))))
   
-  ;; --------------------------------------------------------
+  ;; ----
   ;; Display
-  ;; --------------------------------------------------------
+  ;; ----
   (display "
 --- Display ---
 ")
@@ -306,9 +306,9 @@
         "∃ (a : Type). a"
         (existential->string simple-exist))
   
-  ;; --------------------------------------------------------
+  ;; ----
   ;; Summary
-  ;; --------------------------------------------------------
+  ;; ----
   (display "
 === Summary ===
 ")

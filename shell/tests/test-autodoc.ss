@@ -21,7 +21,7 @@
        (newline))))
 
 (display "\nTesting autodoc.ss\n")
-(display "==================\n\n")
+(display "====\n\n")
 
 ;;; Test path utilities
 (display "derive-category:\n")
@@ -79,7 +79,7 @@
 
 ;;; Summary
 (newline)
-(display "==================\n")
+(display "====\n")
 (display "Tests passed: ") (display tests-passed) (newline)
 (display "Tests failed: ") (display tests-failed) (newline)
 (newline)

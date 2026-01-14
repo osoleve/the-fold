@@ -13,9 +13,9 @@
 (printf "║     KNOWLEDGE ENGINE — Building Blocks of Thought          ║\n")
 (printf "╚════════════════════════════════════════════════════════════╝\n\n")
 
-;;; ============================================================
+;;; ====
 ;;; Core Knowledge Primitives
-;;; ============================================================
+;;; ====
 
 ;;; make-entity : Symbol String (Alist) → Block
 ;;; Create an entity (a thing that exists in the knowledge graph)
@@ -51,9 +51,9 @@
 (printf "  • make-property    - attach attributes to entities\n")
 (printf "  • make-collection  - group related blocks\n\n")
 
-;;; ============================================================
+;;; ====
 ;;; Building a Knowledge Graph: "The History of Computation"
-;;; ============================================================
+;;; ====
 
 (printf "=== Building: History of Computation Knowledge Graph ===\n\n")
 
@@ -195,9 +195,9 @@
 (printf "  Knowledge Graph: ~a\n" (hash->hex (hash-block knowledge-graph)))
 (printf "  └─ Contains: people, concepts, relations\n")
 
-;;; ============================================================
+;;; ====
 ;;; Knowledge Graph Statistics
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Knowledge Graph Statistics ===\n")
 (printf "  Entities:  10 (5 people, 5 concepts)\n")
@@ -213,9 +213,9 @@
 (printf "  ✓ Changing ANY entity changes the root hash\n")
 (printf "  ✓ Knowledge is verifiable, immutable, eternal\n")
 
-;;; ============================================================
+;;; ====
 ;;; Query Functions
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Building Query Engine ===\n")
 
@@ -234,9 +234,9 @@
 (printf "  • get-refs          - extract referenced hashes\n")
 (printf "  • expand-collection - traverse collections\n")
 
-;;; ============================================================
+;;; ====
 ;;; Demonstration: Traversing the Graph
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Traversing the Knowledge Graph ===\n\n")
 
@@ -259,15 +259,15 @@
 (for-each (lambda (h) (printf "  → ~a\n" (hash->hex h)))
           (expand-collection relations-collection))
 
-;;; ============================================================
+;;; ====
 ;;; Visualization: Graph Structure
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Knowledge Graph Visualization ===\n\n")
 (printf "```\n")
 (printf "                    Knowledge Graph (root)\n")
 (printf "                           |\n")
-(printf "           +---------------+---------------+\n")
+(printf "           +----+----+\n")
 (printf "           |               |               |\n")
 (printf "        People         Concepts        Relations\n")
 (printf "           |               |               |\n")
@@ -288,9 +288,9 @@
 (printf "  Lambda Calculus → influenced → Lisp → Scheme → SICP\n")
 (printf "```\n")
 
-;;; ============================================================
+;;; ====
 ;;; Meta-Reflection
-;;; ============================================================
+;;; ====
 
 (printf "\n╔════════════════════════════════════════════════════════════╗\n")
 (printf "║                    KNOWLEDGE ENGINE COMPLETE                ║\n")

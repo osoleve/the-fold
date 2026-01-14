@@ -16,9 +16,9 @@
 (load "core/base/prelude.ss")
 (load "lattice/linalg/iteration.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Vector Construction
-;;; ============================================================
+;;; ====
 
 ;;; make-vec : Nat x a -> Vec a
 ;;; Create a vector of n elements, all initialized to init.
@@ -40,9 +40,9 @@
 (define (vec . elems)
   (list->vector elems))
 
-;;; ============================================================
+;;; ====
 ;;; Vector Accessors
-;;; ============================================================
+;;; ====
 
 ;;; vec-ref : Vec a x Nat -> a | Error
 ;;; Get element at index (0-based).
@@ -72,9 +72,9 @@
            (vector-ref v (- n 1))
            '(error empty-vector))))
 
-;;; ============================================================
+;;; ====
 ;;; Vector Transformations
-;;; ============================================================
+;;; ====
 
 ;;; vec-map : (a -> b) x Vec a -> Vec b
 ;;; Apply function to each element.
@@ -155,9 +155,9 @@
                           (vector-set! result i (vector-ref src (+ offset i))))
                result)])))
 
-;;; ============================================================
+;;; ====
 ;;; Vector Arithmetic
-;;; ============================================================
+;;; ====
 
 ;;; vec-add : Vec Num x Vec Num -> Vec Num | Error
 ;;; Element-wise addition.
@@ -189,9 +189,9 @@
 (define (vec-negate v)
   (vec-map - v))
 
-;;; ============================================================
+;;; ====
 ;;; Vector Products and Norms
-;;; ============================================================
+;;; ====
 
 ;;; vec-dot : Vec Num x Vec Num -> Num | Error
 ;;; Dot product (inner product).
@@ -241,9 +241,9 @@
            diff
            (vec-norm diff))))
 
-;;; ============================================================
+;;; ====
 ;;; Vector Comparisons
-;;; ============================================================
+;;; ====
 
 ;;; vec-equal? : Vec a x Vec a -> Boolean
 ;;; Exact equality (short-circuits on first mismatch).
@@ -267,9 +267,9 @@
                                         epsilon))])
                      ((or (= i n) (not eq)) eq))))))
 
-;;; ============================================================
+;;; ====
 ;;; Vector Utilities
-;;; ============================================================
+;;; ====
 
 ;;; vec-sum : Vec Num -> Num
 ;;; Sum of all elements.
@@ -332,9 +332,9 @@
 (define (vec-copy v)
   (vec-map-idx i v (vector-ref v i)))
 
-;;; ============================================================
+;;; ====
 ;;; Special Vectors
-;;; ============================================================
+;;; ====
 
 ;;; vec-zeros : Nat -> Vec Num
 ;;; Vector of n zeros.

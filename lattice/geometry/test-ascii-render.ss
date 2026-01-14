@@ -19,9 +19,9 @@
        (approx= (vec3-y v1) (vec3-y v2) eps)
        (approx= (vec3-z v1) (vec3-z v2) eps)))
 
-;;; ============================================================
+;;; ====
 ;;; ASCII Character Mapping Tests
-;;; ============================================================
+;;; ====
 
 (define-test "intensity->char low intensity"
   (let ([ch (intensity->char 0.0)])
@@ -46,9 +46,9 @@
        ;; Should clamp to maximum
        (assert-equal ch #\@)))
 
-;;; ============================================================
+;;; ====
 ;;; ANSI Color Mapping Tests
-;;; ============================================================
+;;; ====
 
 (define-test "rgb->ansi256 black"
   (let ([code (rgb->ansi256 0 0 0)])
@@ -90,9 +90,9 @@
 (define-test "ansi-reset is string"
   (assert-true (string? ansi-reset)))
 
-;;; ============================================================
+;;; ====
 ;;; Camera Tests
-;;; ============================================================
+;;; ====
 
 (define-test "make-camera creation"
   (let* ([pos (vec3 0 0 -5)]
@@ -144,9 +144,9 @@
         ;; Width should be approximately aspect * height
         (assert-true (approx= half-width (* aspect half-height) 0.001))))
 
-;;; ============================================================
+;;; ====
 ;;; Ray Generation Tests
-;;; ============================================================
+;;; ====
 
 (define-test "camera-ray center"
   (let* ([cam (make-camera (vec3 0 0 -5) (vec3 0 0 0) (vec3 0 1 0) 0.8 1.0)]
@@ -174,9 +174,9 @@
         ;; Direction should be normalized (length ~1)
         (assert-true (approx= len 1.0 0.001))))
 
-;;; ============================================================
+;;; ====
 ;;; Rendering Tests
-;;; ============================================================
+;;; ====
 
 (define-test "render-pixel-color hit returns RGB"
   (let* ([mesh (make-mesh-cube 1.0)]
@@ -236,9 +236,9 @@
                (cons (car chars) current)
                result)])))
 
-;;; ============================================================
+;;; ====
 ;;; Camera Rotation Tests
-;;; ============================================================
+;;; ====
 
 (define-test "rotate-camera-around at angle 0"
   (let* ([center (vec3 0 0 0)]
@@ -274,9 +274,9 @@
         (assert-true (approx= (vec3-x pos) 15.0 0.001))
         (assert-true (approx= (vec3-z pos) 5.0 0.001))))
 
-;;; ============================================================
+;;; ====
 ;;; Animation Tests
-;;; ============================================================
+;;; ====
 
 (define-test "render-spinning-frames produces list"
   (let* ([mesh (make-mesh-cube 1.0)]
@@ -300,9 +300,9 @@
               (assert-true (string? (car frames)))
               (assert-true (string? (cadr frames))))))
 
-;;; ============================================================
+;;; ====
 ;;; Summary
-;;; ============================================================
+;;; ====
 
 (display "\n")
 (display "Tests run:    ")

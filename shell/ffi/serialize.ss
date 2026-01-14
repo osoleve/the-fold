@@ -12,9 +12,9 @@
 (load "lattice/geometry/geometry.ss")
 (load "lattice/geometry/bvh.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Vec3 Serialization
-;;; ============================================================
+;;; ====
 
 ;;; vec3->bytes : Vec3 → Bytevector (24 bytes)
 ;;; Serialize Vec3 to 3 little-endian f64 values
@@ -32,9 +32,9 @@
         (bytevector-ieee-double-native-ref bv (+ offset 8))
         (bytevector-ieee-double-native-ref bv (+ offset 16))))
 
-;;; ============================================================
+;;; ====
 ;;; Triangle Serialization
-;;; ============================================================
+;;; ====
 
 ;;; triangle->bytes : Triangle3 → Bytevector (72 bytes)
 ;;; Serialize Triangle to 9 f64 values (3 vertices × 3 components)
@@ -63,9 +63,9 @@
              (bytes->vec3 bv (+ offset 24))
              (bytes->vec3 bv (+ offset 48))))
 
-;;; ============================================================
+;;; ====
 ;;; AABB Serialization
-;;; ============================================================
+;;; ====
 
 ;;; aabb->bytes : AABB → Bytevector (48 bytes)
 ;;; Serialize AABB to 6 f64 values (min + max)
@@ -88,9 +88,9 @@
   (aabb (bytes->vec3 bv offset)
         (bytes->vec3 bv (+ offset 24))))
 
-;;; ============================================================
+;;; ====
 ;;; BVH Serialization
-;;; ============================================================
+;;; ====
 
 ;;; BVH Serialization Format:
 ;;;
@@ -221,14 +221,14 @@
                           (write-node! bvh header-size))))
         bv))
 
-;;; ============================================================
+;;; ====
 ;;; Tests
-;;; ============================================================
+;;; ====
 
 ;;; test-serialization : → Boolean
 (define (test-serialization)
   (display "Serialization Tests\n")
-  (display "===================\n")
+  (display "====\n")
   
   ;; Test Vec3
   (display "1. Vec3 round-trip... ")
@@ -280,5 +280,5 @@
             (display "OK\n")
             (begin (display "FAIL\n"))))
   
-  (display "===================\n")
+  (display "====\n")
   #t)

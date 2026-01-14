@@ -19,9 +19,9 @@
 
 (load "core/base/prelude.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Document Type
-;;; ============================================================
+;;; ====
 ;;;
 ;;; A Doc is one of:
 ;;;   (doc-empty)           - Empty document
@@ -112,9 +112,9 @@
 ;;; doc-union-right : Doc → Doc
 (define (doc-union-right d) (vector-ref d 2))
 
-;;; ============================================================
+;;; ====
 ;;; Flattening Helper (for doc-group construction)
-;;; ============================================================
+;;; ====
 ;;;
 ;;; flatten-inner is used during doc-group construction to pre-compute
 ;;; the flattened version. It differs from flatten in that it retrieves
@@ -140,9 +140,9 @@
 (define (doc-group doc)
   (vector 'doc-group doc (flatten-inner doc)))
 
-;;; ============================================================
+;;; ====
 ;;; Primitive Documents
-;;; ============================================================
+;;; ====
 
 ;;; empty : Doc
 ;;; The empty document.
@@ -171,9 +171,9 @@
 ;;; A line break that becomes empty when flattened.
 (define linebreak (doc-union (text "") (doc-line)))
 
-;;; ============================================================
+;;; ====
 ;;; Combinators
-;;; ============================================================
+;;; ====
 
 ;;; <> : Doc × Doc → Doc
 (define (<> d1 d2)
@@ -214,9 +214,9 @@
 (define (indent n doc)
   (<> (text (make-string n #\space)) (nest n doc)))
 
-;;; ============================================================
+;;; ====
 ;;; List Combinators
-;;; ============================================================
+;;; ====
 
 ;;; concat : (List Doc) → Doc
 (define (concat docs)
@@ -270,9 +270,9 @@
       (cons (<> (car docs) sep)
             (punctuate sep (cdr docs)))))
 
-;;; ============================================================
+;;; ====
 ;;; Bracketing Combinators
-;;; ============================================================
+;;; ====
 
 ;;; enclose : Doc × Doc × Doc → Doc
 (define (enclose left right doc)
@@ -302,9 +302,9 @@
 (define (double-quotes doc)
   (enclose (text "\"") (text "\"") doc))
 
-;;; ============================================================
+;;; ====
 ;;; Flattening (for group)
-;;; ============================================================
+;;; ====
 
 ;;; flatten : Doc → Doc
 (define (flatten doc)
@@ -320,9 +320,9 @@
    [(doc-union? doc) (doc-union-left doc)]  ; take flattened version
    [else doc]))
 
-;;; ============================================================
+;;; ====
 ;;; Layout Algorithm (Simple Mode)
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Simple Doc (for rendering):
 ;;;   (sdoc-empty)
@@ -429,9 +429,9 @@
    [(doc-union? doc) (doc-width (doc-union-left doc))]
    [else 0]))
 
-;;; ============================================================
+;;; ====
 ;;; Rendering
-;;; ============================================================
+;;; ====
 
 ;;; sdoc->string : SDoc → String
 (define (sdoc->string sd)
@@ -457,9 +457,9 @@
   (display (pretty width doc))
   (newline))
 
-;;; ============================================================
+;;; ====
 ;;; Default Width
-;;; ============================================================
+;;; ====
 
 (define *default-width* 80)
 
@@ -471,9 +471,9 @@
 (define (pprint doc)
   (pretty-print *default-width* doc))
 
-;;; ============================================================
+;;; ====
 ;;; Convenience: S-expression Pretty Printing
-;;; ============================================================
+;;; ====
 
 ;;; sexp->doc : Sexp → Doc
 (define (sexp->doc sexp)
@@ -492,9 +492,9 @@
 (define (pretty-sexp width sexp)
   (pretty width (sexp->doc sexp)))
 
-;;; ============================================================
+;;; ====
 ;;; Export Summary
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Types:
 ;;;   doc?, doc-empty?, doc-text?, doc-line?, doc-nest?, etc.

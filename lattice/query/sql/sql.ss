@@ -26,9 +26,9 @@
 (unless (top-level-bound? '*sql-format-loaded*)
         (load "lattice/query/sql/format.ss"))
 
-;;; ============================================================
+;;; ====
 ;;; Core API
-;;; ============================================================
+;;; ====
 
 ;;; parse-sql : String → Either Error AST
 ;;; Parse SQL string into AST.
@@ -74,9 +74,9 @@ FROM
 ;;;   => "SELECT * FROM users"
 ;;; format-sql is exported from format.ss
 
-;;; ============================================================
+;;; ====
 ;;; Convenience API
-;;; ============================================================
+;;; ====
 
 ;;; check-sql : String → Either (List Error) AST
 ;;; Parse and validate SQL in one step.
@@ -123,9 +123,9 @@ FROM
 (define (format-sql-pretty ast)
   (format-sql ast '((indent . 2) (uppercase-keywords . #t) (compact . #f))))
 
-;;; ============================================================
+;;; ====
 ;;; Error Formatting
-;;; ============================================================
+;;; ====
 
 ;;; format-parse-errors : Either Error a → String
 ;;; Format parse or validation errors for display.
@@ -140,9 +140,9 @@ FROM
                ;; Single parse error
                (format-error errors)))))
 
-;;; ============================================================
+;;; ====
 ;;; Schema-Aware API
-;;; ============================================================
+;;; ====
 
 ;;; check-sql-with-schema : String × Schema → Either (List Error) AST
 ;;; Parse and validate SQL against a schema.
@@ -162,9 +162,9 @@ FROM
                      (right (from-success valid-result))
                      (left (from-failure valid-result)))))))
 
-;;; ============================================================
+;;; ====
 ;;; AST Inspection
-;;; ============================================================
+;;; ====
 
 ;;; sql-type : AST → Symbol
 ;;; Get the type of an SQL AST node.
@@ -185,9 +185,9 @@ FROM
 ;;; sql-delete? : Any → Boolean
 (define sql-delete? delete?)
 
-;;; ============================================================
+;;; ====
 ;;; AST Construction (for programmatic SQL building)
-;;; ============================================================
+;;; ====
 
 ;;; Re-export constructors from types.ss
 ;;; These allow building SQL AST programmatically
@@ -207,9 +207,9 @@ FROM
 ;;; make-literal, make-binary-op, make-unary-op, make-function-call
 ;;; etc.
 
-;;; ============================================================
+;;; ====
 ;;; Quick Reference
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Parse:
 ;;;   (parse-sql "SELECT * FROM t")       → Either Error AST

@@ -7,16 +7,16 @@
 
 (display "
 ")
-(display "==============================================================
+(display "====
 ")
 (display "         CONTINUATION MONAD TESTS
 ")
-(display "==============================================================
+(display "====
 ")
 
-;;; ============================================================
+;;; ====
 ;;; Basic Cont Tests
-;;; ============================================================
+;;; ====
 
 (test-group cont-basic
             (define-test make-cont-test
@@ -35,9 +35,9 @@
               (assert-equal 42 (eval-cont (cont-return 42)))
               (assert-equal "hello" (eval-cont (cont-return "hello")))))
 
-;;; ============================================================
+;;; ====
 ;;; Monad Law Tests
-;;; ============================================================
+;;; ====
 
 (test-group monad-laws
             ;; Left identity: return a >>= f = f a
@@ -62,9 +62,9 @@
                      [rhs (cont-bind m (lambda (x) (cont-bind (f x) g)))])
                     (assert-equal (eval-cont lhs) (eval-cont rhs)))))
 
-;;; ============================================================
+;;; ====
 ;;; Functor/Applicative Tests
-;;; ============================================================
+;;; ====
 
 (test-group functor-applicative
             (define-test cont-map-test
@@ -89,9 +89,9 @@
                      [result (eval-cont (cont-join outer))])
                     (assert-equal 42 result))))
 
-;;; ============================================================
+;;; ====
 ;;; callCC Tests
-;;; ============================================================
+;;; ====
 
 (test-group call-cc
             (define-test callcc-no-escape-test
@@ -131,9 +131,9 @@
                    (let ([result (eval-cont (try-find even? '(1 3 5 7)))])
                         (assert-true (nothing? result))))))
 
-;;; ============================================================
+;;; ====
 ;;; Early Return Pattern Tests
-;;; ============================================================
+;;; ====
 
 (test-group early-return
             (define-test with-early-return-no-return-test
@@ -169,9 +169,9 @@
                                                             (cont-return x))))))])
                    (assert-equal 20 result))))
 
-;;; ============================================================
+;;; ====
 ;;; Loop Control Tests
-;;; ============================================================
+;;; ====
 
 (test-group loop-control
             (define-test cont-loop-immediate-exit-test
@@ -205,9 +205,9 @@
                                         '(1 2 3 4 5)))])
                    (assert-equal 15 result))))
 
-;;; ============================================================
+;;; ====
 ;;; Conditional Tests
-;;; ============================================================
+;;; ====
 
 (test-group conditionals
             ;; Test cont-when returns the action result when true
@@ -230,9 +230,9 @@
               (let ([result (eval-cont (cont-unless #f (cont-return 'executed)))])
                    (assert-equal 'executed result))))
 
-;;; ============================================================
+;;; ====
 ;;; Trampoline Tests
-;;; ============================================================
+;;; ====
 
 (test-group trampoline
             (define-test done-test
@@ -273,9 +273,9 @@
               (assert-equal 120 (trampoline (tramp-fact 5 1)))
               (assert-equal 720 (trampoline (tramp-fact 6 1)))))
 
-;;; ============================================================
+;;; ====
 ;;; Sequence and Map Tests
-;;; ============================================================
+;;; ====
 
 (test-group sequence-map
             (define-test sequence-cont-empty-test
@@ -301,9 +301,9 @@
                                           '(1 2 3 4 5 6)))])
                    (assert-equal '(2 4 6) result))))
 
-;;; ============================================================
+;;; ====
 ;;; ContT Transformer Tests
-;;; ============================================================
+;;; ====
 
 (test-group cont-t
             (define-test make-cont-t-test
@@ -319,9 +319,9 @@
                      [ct2 (cont-t-bind ct1 (lambda (x) (cont-t-return (* x 2))))])
                     (assert-equal 42 (run-cont-t ct2 identity)))))
 
-;;; ============================================================
+;;; ====
 ;;; Continuation Operators Tests
-;;; ============================================================
+;;; ====
 
 (test-group operators
             (define-test cont>>-test
@@ -336,9 +336,9 @@
             (define-test cont-void-test
               (assert-equal '() (eval-cont cont-void))))
 
-;;; ============================================================
+;;; ====
 ;;; Shift/Reset Tests
-;;; ============================================================
+;;; ====
 
 (test-group shift-reset
             (define-test reset-identity-test
@@ -352,9 +352,9 @@
                                          (lambda (x) (cont-return (* x 2))))))])
                    (assert-equal 42 result))))
 
-;;; ============================================================
+;;; ====
 ;;; Practical Examples Tests
-;;; ============================================================
+;;; ====
 
 (test-group practical-examples
             ;; Find first element matching predicate using fold with early exit
@@ -410,9 +410,9 @@
             (define-test validate-all-fail-test
               (assert-false (validate-all positive? '(1 2 -3 4 5)))))
 
-;;; ============================================================
+;;; ====
 ;;; Generator Tests
-;;; ============================================================
+;;; ====
 
 (test-group generator
             (define-test generator-to-list-empty-test
@@ -451,13 +451,13 @@
                      [result (generator-to-list gen)])
                     (assert-equal '(0 1 2 3 4) result))))
 
-;;; ============================================================
+;;; ====
 ;;; Summary
-;;; ============================================================
+;;; ====
 
 (display "
 ")
-(display "==============================================================
+(display "====
 ")
 (printf "Tests passed: ~a
 " *tests-passed*)

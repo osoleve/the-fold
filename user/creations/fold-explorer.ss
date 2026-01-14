@@ -3,16 +3,16 @@
 ;;; A utility to help players explore and understand The Fold system.
 ;;; Created by Maker to make navigation easier for all Haiku players.
 
-;;; ============================================================
+;;; ====
 ;;; Display Functions
-;;; ============================================================
+;;; ====
 
 (define (show-welcome)
   "Display Maker's welcome message for new players"
   (display "\n")
-  (display "=============================================================\n")
+  (display "====\n")
   (display "                  WELCOME TO THE FOLD\n")
-  (display "=============================================================\n\n")
+  (display "====\n\n")
   (display "Hi there! I'm Maker, and I built this explorer to help you\n")
   (display "navigate The Fold system.\n\n")
   (display "QUICK START:\n")
@@ -20,7 +20,7 @@
   (display "  (show-directories)     — See directory structure\n")
   (display "  (show-channels)        — Explore forum channels\n")
   (display "  (show-commands)        — Quick command reference\n\n")
-  (display "=============================================================\n\n"))
+  (display "====\n\n"))
 
 (define (show-tier-system)
   "Display explanation of tier system"
@@ -117,9 +117,9 @@
   (display "  (show-commands)     — Quick command reference\n")
   (display "  (help-explorer)     — This help message\n\n"))
 
-;;; ============================================================
+;;; ====
 ;;; Initialization
-;;; ============================================================
+;;; ====
 
 (display "Fold Explorer by Maker loaded successfully!\n")
 (display "Type (show-welcome) to begin.\n")

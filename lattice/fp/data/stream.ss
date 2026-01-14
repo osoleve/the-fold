@@ -20,9 +20,9 @@
 (load "core/base/prelude.ss")
 (load "lattice/fp/meta/combinators.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Stream Type
-;;; ============================================================
+;;; ====
 ;;;
 ;;; A stream is either:
 ;;;   - stream-nil: the empty stream
@@ -63,9 +63,9 @@
       ((list-ref s 2))
       (error 'stream-tail "empty stream")))
 
-;;; ============================================================
+;;; ====
 ;;; Stream Constructors
-;;; ============================================================
+;;; ====
 
 ;;; list->stream : (List α) → (Stream α)
 ;;; Convert a list to a stream.
@@ -133,9 +133,9 @@
                 (stream-cons (car pair)
                              (lambda () (stream-unfold step (cdr pair))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Stream Transformers
-;;; ============================================================
+;;; ====
 
 ;;; stream-map : (α → β) × (Stream α) → (Stream β)
 ;;; Map a function over a stream.
@@ -229,9 +229,9 @@
 (define (stream-flatmap f s)
   (stream-flatten (stream-map f s)))
 
-;;; ============================================================
+;;; ====
 ;;; Stream Combinators
-;;; ============================================================
+;;; ====
 
 ;;; stream-zip : (Stream α) × (Stream β) → (Stream (Pair α β))
 ;;; Zip two streams together.
@@ -271,9 +271,9 @@
              (stream-cons h1 (lambda () (stream-merge pred (stream-tail s1) s2)))
              (stream-cons h2 (lambda () (stream-merge pred s1 (stream-tail s2))))))]))
 
-;;; ============================================================
+;;; ====
 ;;; Stream Folds
-;;; ============================================================
+;;; ====
 
 ;;; stream-fold : (β × α → β) × β × Nat × (Stream α) → β
 ;;; Left fold over first n elements of stream.
@@ -309,9 +309,9 @@
    [(pred (stream-head s)) (just (stream-head s))]
    [else (stream-find pred (- n 1) (stream-tail s))]))
 
-;;; ============================================================
+;;; ====
 ;;; Memoized Streams
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Memoized streams cache computed values to avoid recomputation.
 
@@ -351,9 +351,9 @@
        (stream-head s)  ; force head
        (stream-force-helper (- n 1) (stream-tail s)))))
 
-;;; ============================================================
+;;; ====
 ;;; Classic Streams
-;;; ============================================================
+;;; ====
 
 ;;; fibonacci : (Stream Int)
 ;;; The Fibonacci sequence: 0, 1, 1, 2, 3, 5, 8, ...
@@ -389,9 +389,9 @@
 (define triangular
   (stream-scan + 0 (stream-from 1)))
 
-;;; ============================================================
+;;; ====
 ;;; Generator Pattern
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Generators are functions that produce streams on demand.
 
@@ -422,9 +422,9 @@
 (define (random-stream seed mult mod)
   (stream-iterate (lambda (x) (modulo (* x mult) mod)) seed))
 
-;;; ============================================================
+;;; ====
 ;;; Practical Utilities
-;;; ============================================================
+;;; ====
 
 ;;; stream-partition : (α → Bool) × (Stream α) → (Pair (Stream α) (Stream α))
 ;;; Split stream into two based on predicate.
@@ -461,9 +461,9 @@
 (define (stream-enumerate s)
   (stream-zip naturals s))
 
-;;; ============================================================
+;;; ====
 ;;; Delay/Force Primitives
-;;; ============================================================
+;;; ====
 ;;;
 ;;; These provide explicit delay/force semantics for lazy evaluation.
 ;;; While Scheme thunks already provide laziness, these forms make
@@ -491,17 +491,17 @@
 (define (delayed? x)
   (and (pair? x) (eq? (car x) 'delayed)))
 
-;;; ============================================================
+;;; ====
 ;;; Type Class Instances (Dictionary-Passing Style)
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Following The Fold's convention, type classes are represented
 ;;; as dictionaries (records with operations). This enables
 ;;; polymorphic code without Haskell-style implicit instances.
 
-;;; ============================================================
+;;; ====
 ;;; Functor Instance for Stream
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Functor laws:
 ;;;   1. fmap id = id (identity)
@@ -526,9 +526,9 @@
 ;;; Alias for stream-map, emphasizing the Functor interface.
 (define stream-fmap stream-map)
 
-;;; ============================================================
+;;; ====
 ;;; Applicative Instance for Stream
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Applicative laws:
 ;;;   1. pure id <*> v = v (identity)
@@ -580,9 +580,9 @@
    (stream-ap (stream-map (lambda (x) (lambda (y) (lambda (z) (f x y z)))) xs) ys)
    zs))
 
-;;; ============================================================
+;;; ====
 ;;; Monad Instance for Stream
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Monad laws:
 ;;;   1. return a >>= f = f a (left identity)
@@ -650,9 +650,9 @@
 (define (stream-then s1 s2)
   (stream-bind s1 (lambda (_) s2)))
 
-;;; ============================================================
+;;; ====
 ;;; Codata and Coinductive Patterns
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Streams are the canonical example of CODATA - they are defined
 ;;; by their observations (destructors) rather than construction.
@@ -701,9 +701,9 @@
    [(not (equal? (stream-head s1) (stream-head s2))) #f]
    [else (bisimulation-equal? (- n 1) (stream-tail s1) (stream-tail s2))]))
 
-;;; ============================================================
+;;; ====
 ;;; Additional Infinite Stream Generators
-;;; ============================================================
+;;; ====
 
 ;;; squares : (Stream Int)
 ;;; Perfect squares: 0, 1, 4, 9, 16, 25, ...
@@ -725,9 +725,9 @@
 (define odds
   (stream-filter odd? naturals))
 
-;;; ============================================================
+;;; ====
 ;;; Fuel-Based Operations (For Termination Safety)
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Operations on potentially infinite streams need fuel limits
 ;;; to guarantee termination. These complement stream-fold.
@@ -763,9 +763,9 @@
         [(stream-nil? s) last]
         [else (loop (just (stream-head s)) (- fuel 1) (stream-tail s))])))
 
-;;; ============================================================
+;;; ====
 ;;; Stream Comprehensions (via Monad)
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Using the monad interface, we can express list-comprehension
 ;;; style patterns for streams.

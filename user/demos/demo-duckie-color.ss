@@ -6,9 +6,9 @@
 ;;; Load color-enabled layout
 (load "shell/ui/layout-color.ss")
 
-;;; ============================================================
+;;; ====
 ;;; DUCKIE Sprites (ASCII Art)
-;;; ============================================================
+;;; ====
 
 (define duckie-happy
   '("  \\  /  "
@@ -58,9 +58,9 @@
     "  \\  / "
     "   Zz  "))
 
-;;; ============================================================
+;;; ====
 ;;; Sprite Rendering with Color
-;;; ============================================================
+;;; ====
 
 ;;; draw-sprite-colored : Canvas × Point × List[String] × Color → Canvas
 ;;; Draw a sprite with foreground color.
@@ -75,9 +75,9 @@
                       (draw-string-colored canvas (point (point-x pt) y)
                                            line fg color-default))))))
 
-;;; ============================================================
+;;; ====
 ;;; Render DUCKIE with Mood Colors
-;;; ============================================================
+;;; ====
 
 ;;; render-duckie-colored : String × Symbol × List[String] × Nat → ()
 ;;; Render DUCKIE with mood-based coloring.
@@ -129,9 +129,9 @@
         
         (display (canvas->string c))))
 
-;;; ============================================================
+;;; ====
 ;;; Mood Selector
-;;; ============================================================
+;;; ====
 
 ;;; Map moods to sprites
 (define (mood->sprite mood)
@@ -144,9 +144,9 @@
         [(playful) duckie-playful]
         [else duckie-curious]))
 
-;;; ============================================================
+;;; ====
 ;;; Show All Moods
-;;; ============================================================
+;;; ====
 
 (display "\n")
 (display "╔═══════════════════════════════════════════════════╗\n")

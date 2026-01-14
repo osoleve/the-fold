@@ -21,9 +21,9 @@
 (load "lattice/fp/data/tree-zipper.ss")
 (load "lattice/fp/data/zipper-lens.ss")
 
-;;; ============================================================
+;;; ====
 ;;; S-expression to Rose Tree Conversion
-;;; ============================================================
+;;; ====
 ;;;
 ;;; An S-expression is converted to a rose tree where:
 ;;;   - The tree value at each node is the S-expression itself
@@ -52,9 +52,9 @@
       (tree-value t)
       (map tree->sexp (tree-children t))))
 
-;;; ============================================================
+;;; ====
 ;;; S-expression Zipper Type
-;;; ============================================================
+;;; ====
 
 ;;; sexp-zipper-tag : Symbol
 (define sexp-zipper-tag 'sexp-zipper)
@@ -72,9 +72,9 @@
 (define (sexp-zipper-tree-z sz)
   (list-ref sz 1))
 
-;;; ============================================================
+;;; ====
 ;;; Constructors
-;;; ============================================================
+;;; ====
 
 ;;; sexp->zipper : Sexp -> SexpZipper
 ;;; Create a zipper focused at the root of an S-expression.
@@ -86,9 +86,9 @@
 (define (zipper->sexp sz)
   (tree->sexp (zipper->tree (sexp-zipper-tree-z sz))))
 
-;;; ============================================================
+;;; ====
 ;;; Navigation Lifting
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Helper to lift tree-zipper operations into sexp-zipper.
 ;;; Eliminates boilerplate in navigation functions.
@@ -111,9 +111,9 @@
           nothing
           (just (make-sexp-zipper (from-just result)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Focus Operations
-;;; ============================================================
+;;; ====
 
 ;;; sexp-zipper-get : SexpZipper -> Sexp
 ;;; Get the S-expression at focus.
@@ -134,9 +134,9 @@
 (define (sexp-zipper-modify sz f)
   (sexp-zipper-set sz (f (sexp-zipper-get sz))))
 
-;;; ============================================================
+;;; ====
 ;;; Navigation
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Navigation functions lifted from tree-zipper operations.
 ;;; Uses lift-tree-nav to eliminate boilerplate.
@@ -166,9 +166,9 @@
 ;;; Move to nth child (0-indexed).
 (define sexp-zipper-nth (lift-tree-nav-indexed tree-zipper-nth-child))
 
-;;; ============================================================
+;;; ====
 ;;; Navigation Predicates
-;;; ============================================================
+;;; ====
 
 ;;; sexp-zipper-at-root? : SexpZipper -> Bool
 (define (sexp-zipper-at-root? sz)
@@ -187,9 +187,9 @@
 (define (sexp-zipper-can-go-down? sz)
   (tree-zipper-can-go-down? (sexp-zipper-tree-z sz)))
 
-;;; ============================================================
+;;; ====
 ;;; Position-Based Navigation
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Positions are lists of indices like '(1 2 0) meaning:
 ;;;   "go to child 1, then child 2, then child 0"
@@ -215,9 +215,9 @@
 (define (sexp-zipper-position sz)
   (tree-zipper-index-path (sexp-zipper-tree-z sz)))
 
-;;; ============================================================
+;;; ====
 ;;; Expression Operations (Engine Compatibility)
-;;; ============================================================
+;;; ====
 ;;;
 ;;; These functions provide the same API as engine.ss but use
 ;;; zippers internally for efficiency.
@@ -242,9 +242,9 @@
         (error 'sexp-set-at "Invalid position")
         (zipper->sexp (sexp-zipper-set (from-just at-pos) new-subexpr)))))
 
-;;; ============================================================
+;;; ====
 ;;; Traversal
-;;; ============================================================
+;;; ====
 
 ;;; sexp-zipper-next : SexpZipper -> (Maybe SexpZipper)
 ;;; Move to next position in preorder traversal.
@@ -267,18 +267,18 @@
   (let ([sz (sexp->zipper expr)])
     (map sexp-zipper-position (sexp-zipper-preorder sz))))
 
-;;; ============================================================
+;;; ====
 ;;; Depth Information
-;;; ============================================================
+;;; ====
 
 ;;; sexp-zipper-depth : SexpZipper -> Nat
 ;;; Get depth in tree (0 = root).
 (define (sexp-zipper-depth sz)
   (tree-zipper-depth (sexp-zipper-tree-z sz)))
 
-;;; ============================================================
+;;; ====
 ;;; Zipper-Based Strategy Support
-;;; ============================================================
+;;; ====
 ;;;
 ;;; These functions support building strategies that work
 ;;; directly with zippers instead of rebuilding trees.

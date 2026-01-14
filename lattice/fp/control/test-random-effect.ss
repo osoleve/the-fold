@@ -6,13 +6,13 @@
 (load "lattice/fp/control/random-effect.ss")
 
 (display "\n")
-(display "==============================================================\n")
+(display "====\n")
 (display "         RANDOM EFFECT TESTS\n")
-(display "==============================================================\n")
+(display "====\n")
 
-;;; ============================================================
+;;; ====
 ;;; Random Effect Signature Tests
-;;; ============================================================
+;;; ====
 
 (test-group random-effect-signature
             (define-test sig-random-exists-test
@@ -25,9 +25,9 @@
               (assert-true (operation? (lookup-operation sig-Random 'choice)))
               (assert-true (operation? (lookup-operation sig-Random 'bool)))))
 
-;;; ============================================================
+;;; ====
 ;;; Basic Random Operations Tests
-;;; ============================================================
+;;; ====
 
 (test-group random-basic-operations
             (define-test random-uniform-basic-test
@@ -69,9 +69,9 @@
               (let ([r (run-random 42 (random-float-eff 10.0 20.0))])
                    (assert-true (and (>= r 10.0) (< r 20.0))))))
 
-;;; ============================================================
+;;; ====
 ;;; Derived Operations Tests
-;;; ============================================================
+;;; ====
 
 (test-group random-derived-operations
             (define-test random-bernoulli-true-test
@@ -107,9 +107,9 @@
    [(pred (car lst)) (andmap pred (cdr lst))]
    [else #f]))
 
-;;; ============================================================
+;;; ====
 ;;; Composition Tests
-;;; ============================================================
+;;; ====
 
 (test-group random-composition
             (define-test random-sequence-test
@@ -147,9 +147,9 @@
                    ;; State should be unchanged
                    (assert-equal 0 (cdr result)))))
 
-;;; ============================================================
+;;; ====
 ;;; Distribution Integration Tests
-;;; ============================================================
+;;; ====
 
 (test-group random-with-distributions
             ;; Test integration with distributions via random-sample-dist
@@ -170,9 +170,9 @@
                    ;; Sum of two dice: 2-12
                    (assert-true (and (>= result 2) (<= result 12))))))
 
-;;; ============================================================
+;;; ====
 ;;; Practical Examples
-;;; ============================================================
+;;; ====
 
 (test-group random-practical
             ;; Monte Carlo estimation of pi
@@ -230,9 +230,9 @@
                    ;; Score should be between -100 and 100
                    (assert-true (and (>= score -100) (<= score 100))))))
 
-;;; ============================================================
+;;; ====
 ;;; Performance Tests
-;;; ============================================================
+;;; ====
 
 (test-group random-performance
             ;; Test that large list shuffle completes in reasonable time
@@ -256,12 +256,12 @@
            acc
            (loop (- i 1) (cons i acc)))))
 
-;;; ============================================================
+;;; ====
 ;;; Summary
-;;; ============================================================
+;;; ====
 
 (display "\n")
-(display "==============================================================\n")
+(display "====\n")
 (printf "Tests passed: ~a\n" *tests-passed*)
 (printf "Tests failed: ~a\n" *tests-failed*)
 (printf "Total tests:  ~a\n" *tests-run*)

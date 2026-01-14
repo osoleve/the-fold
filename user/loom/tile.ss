@@ -12,9 +12,9 @@
 ;;;   TileMap creation and manipulation
 ;;;   Tile rendering to canvas
 
-;;; ============================================================
+;;; ====
 ;;; Tile Type Definitions
-;;; ============================================================
+;;; ====
 
 ;;; TileType : Record
 ;;;   id        — Symbol, unique identifier
@@ -56,9 +56,9 @@
    [(tt key default)
     (alist-ref (tile-type-properties tt) key default)]))
 
-;;; ============================================================
+;;; ====
 ;;; Standard Tile Types
-;;; ============================================================
+;;; ====
 
 ;;; A collection of common tile types for dungeon crawlers.
 ;;; Games can define additional types or override these.
@@ -141,9 +141,9 @@
 (define (get-tile-type id)
   (alist-ref standard-tile-types id))
 
-;;; ============================================================
+;;; ====
 ;;; Tile Instance
-;;; ============================================================
+;;; ====
 
 ;;; A Tile is a specific instance in a tilemap.
 ;;; It references a TileType and can have instance-specific state.
@@ -198,9 +198,9 @@
               (tile-visible tile)
               (alist-set (tile-state tile) key value)))
 
-;;; ============================================================
+;;; ====
 ;;; TileMap
-;;; ============================================================
+;;; ====
 
 ;;; TileMap : Record
 ;;;   width   — Nat, width in tiles
@@ -273,9 +273,9 @@
 (define (tilemap-set-type-point! tm pt tile-type)
   (tilemap-set-type! tm (car pt) (cdr pt) tile-type))
 
-;;; ============================================================
+;;; ====
 ;;; TileMap Queries
-;;; ============================================================
+;;; ====
 
 ;;; tilemap-walkable? : TileMap × Int × Int -> Bool
 ;;; Check if a tile is walkable.
@@ -327,9 +327,9 @@
                              (loop-x (+ x 1))))
                   (loop-y (+ y 1))))))
 
-;;; ============================================================
+;;; ====
 ;;; TileMap Visibility Operations
-;;; ============================================================
+;;; ====
 
 ;;; tilemap-clear-visibility! : TileMap -> Void
 ;;; Clear all visibility flags (before FOV calculation).
@@ -354,9 +354,9 @@
                              new-tile)])
               (tilemap-set! tm x y new-tile))))
 
-;;; ============================================================
+;;; ====
 ;;; TileMap Iteration
-;;; ============================================================
+;;; ====
 
 ;;; tilemap-for-each : TileMap × (Int × Int × Tile -> Void) -> Void
 ;;; Iterate over all tiles.
@@ -382,9 +382,9 @@
                                   (tilemap-set! new-tm x y (proc x y tile))))
         new-tm))
 
-;;; ============================================================
+;;; ====
 ;;; TileMap Rendering
-;;; ============================================================
+;;; ====
 
 ;;; tilemap->canvas : TileMap × [Bool] -> Canvas
 ;;; Render tilemap to a canvas.
@@ -432,9 +432,9 @@
                      (loop-y (+ y 1))))
           canvas)]))
 
-;;; ============================================================
+;;; ====
 ;;; TileMap Serialization
-;;; ============================================================
+;;; ====
 
 ;;; tilemap->string : TileMap -> String
 ;;; Convert tilemap to a simple string representation.
@@ -473,9 +473,9 @@
         [else
          (loop (cdr chars) (cons (car chars) current) results)])))
 
-;;; ============================================================
+;;; ====
 ;;; Standard Character Map for Parsing
-;;; ============================================================
+;;; ====
 
 (define standard-char-map
   `((#\. . ,tile-floor)
@@ -492,9 +492,9 @@
     (#\$ . ,tile-chest)
     (#\space . ,tile-void)))
 
-;;; ============================================================
+;;; ====
 ;;; Export Summary
-;;; ============================================================
+;;; ====
 ;;;
 ;;; TileType:
 ;;;   make-tile-type, tile-type-id, tile-type-char, tile-type-name

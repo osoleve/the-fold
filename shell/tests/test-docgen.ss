@@ -16,13 +16,13 @@
 (display "
 Docgen Tests
 ")
-(display "============
+(display "====
 
 ")
 
-;;; ============================================================
+;;; ====
 ;;; String Utility Tests
-;;; ============================================================
+;;; ====
 
 (test-group string-utilities
             
@@ -56,9 +56,9 @@ Docgen Tests
               (assert-equal "hello" (string-join '("hello") ", "))
               (assert-equal "" (string-join '() ", "))))
 
-;;; ============================================================
+;;; ====
 ;;; Path Utility Tests
-;;; ============================================================
+;;; ====
 
 (test-group path-utilities
             
@@ -77,9 +77,9 @@ Docgen Tests
               (assert-equal "module" (path->module-name "path/to/module.ss"))
               (assert-equal "test" (path->module-name "test.ss"))))
 
-;;; ============================================================
+;;; ====
 ;;; Doc Comment Detection Tests
-;;; ============================================================
+;;; ====
 
 (test-group doc-comment-detection
             
@@ -102,14 +102,14 @@ Docgen Tests
               (assert-false (empty-line? "content")))
             
             (define-test section-header-detection
-              (assert-true (section-header? ";;; ============"))
+              (assert-true (section-header? ";;; ===="))
               (assert-true (section-header? ";;; === Section"))
               (assert-false (section-header? ";;; Regular comment"))
               (assert-false (section-header? ";; Not a doc comment"))))
 
-;;; ============================================================
+;;; ====
 ;;; Signature Parsing Tests
-;;; ============================================================
+;;; ====
 
 (test-group signature-parsing
             
@@ -134,9 +134,9 @@ Docgen Tests
               (let ([result (parse-signature ";;; test : a -> b")])
                    (assert-true (pair? result)))))
 
-;;; ============================================================
+;;; ====
 ;;; Function Definition Parsing Tests
-;;; ============================================================
+;;; ====
 
 (test-group function-definition-parsing
             
@@ -154,9 +154,9 @@ Docgen Tests
               (assert-equal 'bar (extract-function-name "(define (bar a b c) body)"))
               (assert-equal 'x (extract-function-name "(define x 42)"))))
 
-;;; ============================================================
+;;; ====
 ;;; Export Summary Tests
-;;; ============================================================
+;;; ====
 
 (test-group export-summary
             
@@ -165,7 +165,7 @@ Docgen Tests
                               ";;; Export Summary"
                               ";;; foo, bar, baz"
                               ";;; qux"
-                              ";;; =============")]
+                              ";;; ====")]
                      [summary (find-export-summary lines)])
                     (assert-equal 2 (length summary))
                     (assert-true (string-contains? (car summary) "foo"))))
@@ -187,9 +187,9 @@ Docgen Tests
               (let ([names (parse-export-line "Type: make-foo, foo?")])
                    (assert-equal 2 (length names)))))
 
-;;; ============================================================
+;;; ====
 ;;; Full Documentation Extraction Tests
-;;; ============================================================
+;;; ====
 
 (test-group full-extraction
             
@@ -216,9 +216,9 @@ Docgen Tests
                      [first-exp (car exports)])
                     (assert-true (string-contains? (cdr (assq 'doc first-exp)) "helper")))))
 
-;;; ============================================================
+;;; ====
 ;;; Main API Tests
-;;; ============================================================
+;;; ====
 
 (test-group main-api
             
@@ -257,9 +257,9 @@ Docgen Tests
                     (assert-true (string-contains? summary "test"))
                     (assert-true (string-contains? summary "foo")))))
 
-;;; ============================================================
+;;; ====
 ;;; Query Function Tests
-;;; ============================================================
+;;; ====
 
 (test-group query-functions
             
@@ -280,9 +280,9 @@ Docgen Tests
                     (assert-equal 1 (length results))
                     (assert-equal 'foobar (car (car results))))))
 
-;;; ============================================================
+;;; ====
 ;;; Integration Tests
-;;; ============================================================
+;;; ====
 
 (test-group integration
             
@@ -303,9 +303,9 @@ Docgen Tests
                     ;; numeric.ss has many exports
                     (assert-true (> (length exports) 5)))))
 
-;;; ============================================================
+;;; ====
 ;;; Run Summary
-;;; ============================================================
+;;; ====
 
 (newline)
 (print-summary)

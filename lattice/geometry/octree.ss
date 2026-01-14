@@ -16,9 +16,9 @@
 (load "core/base/prelude.ss")
 (load "lattice/geometry/geometry.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Octree Node Structure
-;;; ============================================================
+;;; ====
 
 ;;; Octree node types:
 ;;; - Leaf: (octree-leaf center size primitives)
@@ -61,9 +61,9 @@
       (cadddr node)
       #f))
 
-;;; ============================================================
+;;; ====
 ;;; Octree Construction
-;;; ============================================================
+;;; ====
 
 ;;; octree-build : (List Triangle3) × Point3 × Number × Number × Number → Octree
 ;;; Build an octree from triangles
@@ -169,9 +169,9 @@
        (or (pred (car lst))
            (any pred (cdr lst)))))
 
-;;; ============================================================
+;;; ====
 ;;; Octree Queries
-;;; ============================================================
+;;; ====
 
 ;;; octree-intersect-ray : Octree × Ray3 → (Triangle3 Number) | #f
 ;;; Find closest triangle intersection along ray using octree
@@ -222,9 +222,9 @@
                                  (+ (vec3-z center) size)))])
        (intersect-ray-aabb ray octant-aabb)))
 
-;;; ============================================================
+;;; ====
 ;;; Octree Statistics
-;;; ============================================================
+;;; ====
 
 ;;; octree-depth : Octree → Number
 (define (octree-depth octree)

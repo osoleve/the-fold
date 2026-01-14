@@ -18,9 +18,9 @@
 (load "user/creations/ascii-video.ss")
 (load "lattice/physics/classical/world.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Render Configuration
-;;; ============================================================
+;;; ====
 
 ;;; make-render-config : Int x Int x Number x Int x Int -> RenderConfig
 ;;; Parameters:
@@ -45,9 +45,9 @@
 (define (default-render-config)
   (make-render-config 80 40 3.0 40 10))
 
-;;; ============================================================
+;;; ====
 ;;; Debug Options
-;;; ============================================================
+;;; ====
 
 ;;; make-debug-options : Bool x Bool x Bool x Bool -> DebugOptions
 ;;; Parameters:
@@ -74,9 +74,9 @@
 (define (full-debug-options)
   (make-debug-options #t #t #t #t))
 
-;;; ============================================================
+;;; ====
 ;;; Render Style
-;;; ============================================================
+;;; ====
 
 ;;; make-render-style : Char x Char x Char x Char x Char x Char x Char -> RenderStyle
 ;;; Character palette for visual elements
@@ -106,9 +106,9 @@
 (define (bold-render-style)
   (make-render-style #\@ #\# #\= #\| #\# #\> #\*))
 
-;;; ============================================================
+;;; ====
 ;;; World Renderer (combines config + debug + style)
-;;; ============================================================
+;;; ====
 
 (define (make-world-renderer config debug-opts style)
   (list 'world-renderer config debug-opts style))
@@ -123,9 +123,9 @@
                        (default-debug-options)
                        (default-render-style)))
 
-;;; ============================================================
+;;; ====
 ;;; Coordinate Transformation
-;;; ============================================================
+;;; ====
 
 ;;; world->screen : Vec2 x RenderConfig -> (Int . Int)
 ;;; Convert physics coordinates to screen coordinates.
@@ -148,9 +148,9 @@
        (vec2 (/ (- sx ox) scale)
              (/ (- sy oy) scale))))
 
-;;; ============================================================
+;;; ====
 ;;; Safe Frame Operations
-;;; ============================================================
+;;; ====
 
 ;;; safe-frame-set! : Frame x Int x Int x Char x RenderConfig -> Void
 ;;; Set character with bounds checking.
@@ -159,9 +159,9 @@
              (>= y 0) (< y (config-height config)))
         (frame-set! frame x y char)))
 
-;;; ============================================================
+;;; ====
 ;;; Line Drawing (Bresenham)
-;;; ============================================================
+;;; ====
 
 ;;; draw-line! : Frame x Int x Int x Int x Int x Char x RenderConfig -> Void
 ;;; Draw a line using Bresenham's algorithm.
@@ -182,9 +182,9 @@
                                             (if (< e2 dx) dx 0))])
                                (loop new-x new-y new-err)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Filled Circle Rendering
-;;; ============================================================
+;;; ====
 
 ;;; draw-filled-circle! : Frame x Int x Int x Int x Char x RenderConfig -> Void
 ;;; Draw a filled circle using scanline fill.
@@ -205,9 +205,9 @@
                                 (when (and (>= x 0) (< x w))
                                       (frame-set! frame x y char)))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Filled Polygon Rendering (Scanline)
-;;; ============================================================
+;;; ====
 
 ;;; polygon-scanline-intersections : (List (Int . Int)) x Int -> (List Int)
 ;;; Find x intersections of horizontal scanline y with polygon edges.
@@ -258,9 +258,9 @@
                          [sorted (list-sort < intersections)])
                         (fill-between-pairs! frame sorted y char config))))))
 
-;;; ============================================================
+;;; ====
 ;;; AABB Rendering
-;;; ============================================================
+;;; ====
 
 ;;; draw-filled-aabb! : Frame x AABB x Char x RenderConfig -> Void
 ;;; Fill an axis-aligned bounding box.
@@ -305,9 +305,9 @@
             (safe-frame-set! frame x1 y v-char config)
             (safe-frame-set! frame x2 y v-char config))))
 
-;;; ============================================================
+;;; ====
 ;;; Debug: Velocity Vectors
-;;; ============================================================
+;;; ====
 
 ;;; fmod : Number x Number -> Number
 ;;; Floating-point modulo.
@@ -351,9 +351,9 @@
                     ;; Draw arrow head at end
                     (safe-frame-set! frame (car end) (cdr end) arrow-char config)))))
 
-;;; ============================================================
+;;; ====
 ;;; Debug: Contact Points
-;;; ============================================================
+;;; ====
 
 ;;; draw-contact! : Frame x Vec2 x Vec2 x RenderConfig -> Void
 ;;; Draw contact point with normal direction indicator.
@@ -367,9 +367,9 @@
         (draw-line! frame (car screen-pt) (cdr screen-pt)
                     (car screen-end) (cdr screen-end) #\: config)))
 
-;;; ============================================================
+;;; ====
 ;;; Debug: Constraint Anchors
-;;; ============================================================
+;;; ====
 
 ;;; draw-constraint! : Frame x World x Constraint x RenderConfig -> Void
 ;;; Draw constraint connection between anchor points.
@@ -392,9 +392,9 @@
         (draw-line! frame (car screen-a) (cdr screen-a)
                     (car screen-b) (cdr screen-b) line-char config)))
 
-;;; ============================================================
+;;; ====
 ;;; Entity Shape Rendering
-;;; ============================================================
+;;; ====
 
 ;;; get-entity-shape-world : Entity -> Shape
 ;;; Get entity's shape in world coordinates.
@@ -435,9 +435,9 @@
         [(polygon? shape)
          (draw-filled-polygon! frame (polygon-vertices shape) char config)])))
 
-;;; ============================================================
+;;; ====
 ;;; High-Level API
-;;; ============================================================
+;;; ====
 
 ;;; render-world! : Frame x World x WorldRenderer x (Entity -> Char) -> Void
 ;;; Render entire world with optional debug overlays.
@@ -482,9 +482,9 @@
                            (draw-aabb-outline! frame (shape-aabb shape) style config)))
               (world-entity-list world)))))
 
-;;; ============================================================
+;;; ====
 ;;; Video Recording
-;;; ============================================================
+;;; ====
 
 ;;; record-physics-video : World x WorldRenderer x Int x Int x Number x (Entity -> Char) -> Video
 ;;; Record physics simulation as video.
@@ -504,9 +504,9 @@
             ;; Add to video
             (video-add-frame! video frame))))
 
-;;; ============================================================
+;;; ====
 ;;; Convenience Functions
-;;; ============================================================
+;;; ====
 
 ;;; render-world-simple! : Frame x World x RenderConfig -> Void
 ;;; Simple render without debug overlays.

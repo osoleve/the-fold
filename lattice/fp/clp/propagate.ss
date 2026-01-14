@@ -17,9 +17,9 @@
 
 (load "lattice/fp/clp/fd-constraints.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Propagation Loop
-;;; ============================================================
+;;; ====
 
 ;;; propagate : CStore → (Maybe CStore)
 ;;; Run propagation until fixpoint or failure.
@@ -62,9 +62,9 @@
                 #f  ; Propagation failed
                 (propagate-constraints cs1 (cdr constraints) fuel)))))
 
-;;; ============================================================
+;;; ====
 ;;; Posting Constraints
-;;; ============================================================
+;;; ====
 
 ;;; post-constraint : CStore × Symbol × (List LVar) × (CStore → (Maybe CStore))
 ;;;                   → (Maybe CStore)
@@ -80,9 +80,9 @@
          [cs3 (propagator cs2)])
         (and cs3 (propagate cs3))))
 
-;;; ============================================================
+;;; ====
 ;;; High-Level Constraint Posting
-;;; ============================================================
+;;; ====
 
 ;;; These functions create constraints and post them with propagation.
 
@@ -156,9 +156,9 @@
            ((*fd x y z) cs)
            (post-constraint cs '*fd vars (*fd x y z)))))
 
-;;; ============================================================
+;;; ====
 ;;; Constraint Satisfaction Check
-;;; ============================================================
+;;; ====
 
 ;;; satisfied? : CStore → Bool
 ;;; Check if all variables are ground (complete solution).
@@ -175,9 +175,9 @@
    [(not (pred (car lst))) #f]
    [else (all pred (cdr lst))]))
 
-;;; ============================================================
+;;; ====
 ;;; Debugging Support
-;;; ============================================================
+;;; ====
 
 ;;; propagate-trace : CStore → (Maybe CStore)
 ;;; Propagation with tracing output for debugging.

@@ -16,9 +16,9 @@
 (load "core/base/prelude.ss")
 (load "core/types/types.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Pattern Representation
-;;; ============================================================
+;;; ====
 
 ;;; Patterns are represented as:
 ;;;   (ctor tag subpatterns...)  - constructor pattern
@@ -83,9 +83,9 @@
   (or (wildcard-pattern? p)
       (var-pattern? p)))
 
-;;; ============================================================
+;;; ====
 ;;; Type Information
-;;; ============================================================
+;;; ====
 
 ;;; Type constructors are defined as:
 ;;;   (type-info name arity)
@@ -178,9 +178,9 @@
                          #t
                          (loop (cdr types))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Pattern Parsing
-;;; ============================================================
+;;; ====
 
 ;;; parse-pattern : SExpr → Pattern
 ;;; Convert S-expression pattern to Pattern record.
@@ -249,9 +249,9 @@
    [else
     (make-literal-pattern sexpr)]))
 
-;;; ============================================================
+;;; ====
 ;;; Pattern Matrix
-;;; ============================================================
+;;; ====
 
 ;;; A pattern matrix is a list of pattern rows.
 ;;; Each row is a list of patterns (one per column).
@@ -309,9 +309,9 @@
                  [else #f])))
    matrix))
 
-;;; ============================================================
+;;; ====
 ;;; Exhaustiveness Checking
-;;; ============================================================
+;;; ====
 
 ;;; exhaustive? : PatternMatrix × (List TypeInfo) → Boolean
 ;;; Check if pattern matrix is exhaustive for given types.
@@ -361,9 +361,9 @@
                                                                    rest)))
                                                 ctor-missing))))))))]))
 
-;;; ============================================================
+;;; ====
 ;;; Redundancy Checking
-;;; ============================================================
+;;; ====
 
 ;;; useful? : Pattern × PatternMatrix × (List TypeInfo) → Boolean
 ;;; Is this pattern useful (matches something the matrix doesn't)?
@@ -448,9 +448,9 @@
                            redundant
                            (cons idx redundant)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Case Expression Analysis
-;;; ============================================================
+;;; ====
 
 ;;; analyze-case : Expr × TypeInfo → CaseAnalysis
 ;;; Analyze a case expression for exhaustiveness and redundancy.
@@ -471,9 +471,9 @@
 (define (flatten-patterns pss)
   (map (lambda (ps) (if (= (length ps) 1) (car ps) ps)) pss))
 
-;;; ============================================================
+;;; ====
 ;;; Pattern Pretty Printing
-;;; ============================================================
+;;; ====
 
 ;;; pattern->sexpr : Pattern → SExpr
 (define (pattern->sexpr p)
@@ -498,9 +498,9 @@
 (define (pattern->string p)
   (format "~s" (pattern->sexpr p)))
 
-;;; ============================================================
+;;; ====
 ;;; High-Level API
-;;; ============================================================
+;;; ====
 
 ;;; check-patterns : (List SExpr) × Symbol → CheckResult
 ;;; Check a list of patterns against a type.
@@ -519,9 +519,9 @@
   (let ([type-info (lookup-type-info type-name)])
        (analyze-case expr type-info)))
 
-;;; ============================================================
+;;; ====
 ;;; Helper Functions
-;;; ============================================================
+;;; ====
 
 ;;; make-list : Nat × α → (List α)
 (define (make-list n x)

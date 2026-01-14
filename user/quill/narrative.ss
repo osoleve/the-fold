@@ -4,9 +4,9 @@
 ;;; and timelines. These are pure utilities that can be layered into
 ;;; runtime/authoring tools.
 
-;;; ============================================================
+;;; ====
 ;;; Records
-;;; ============================================================
+;;; ====
 
 ;;; Rules
 ;;;   guard: (state -> bool) | #t | #f | #f
@@ -83,9 +83,9 @@
 (define quill-timeline-event-once? quill-timeline-event%-once?)
 (define quill-timeline-event-meta quill-timeline-event%-meta)
 
-;;; ============================================================
+;;; ====
 ;;; Small utilities
-;;; ============================================================
+;;; ====
 
 (define (quill-narrative-alist-ref alist key default)
   (let ([p (assq key alist)])
@@ -115,9 +115,9 @@
 (define (quill-story-timeline story)
   (quill-story-meta-get story 'timeline '()))
 
-;;; ============================================================
+;;; ====
 ;;; Rules
-;;; ============================================================
+;;; ====
 
 (define (quill-run-fired-rules run)
   (quill-state-meta-get (quill-run-state run) 'rules-fired '()))
@@ -151,9 +151,9 @@
            r
            (loop (quill-apply-rule story r (car rs) apply-effects) (cdr rs)))))
 
-;;; ============================================================
+;;; ====
 ;;; Timeline
-;;; ============================================================
+;;; ====
 
 (define (quill-run-clock run)
   (quill-state-meta-get (quill-run-state run) 'clock 0))
@@ -196,9 +196,9 @@
                                r)])
                       (loop r2 (cdr evs)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Quests
-;;; ============================================================
+;;; ====
 
 (define (quill-run-quest-statuses run)
   (quill-state-meta-get (quill-run-state run) 'quests '()))
@@ -249,9 +249,9 @@
                           r)])
                  (loop r1 (cdr qs))))))
 
-;;; ============================================================
+;;; ====
 ;;; Dialogue
-;;; ============================================================
+;;; ====
 
 (define (quill-story-dialogue story dialogue-id)
   (let loop ([ds (quill-story-dialogues story)])
@@ -354,9 +354,9 @@
          (quill-run-with-message run "Dialogue expects a choice number.")]))
   )
 
-;;; ============================================================
+;;; ====
 ;;; Narrative advance
-;;; ============================================================
+;;; ====
 
 (define (quill-narrative-advance story run apply-effects . options-opt)
   (let* ([options (if (null? options-opt) '() (car options-opt))]

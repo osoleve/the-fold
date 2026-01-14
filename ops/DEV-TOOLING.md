@@ -5,7 +5,7 @@ This document catalogs all development quality-of-life tools for The Fold, inclu
 ## Currently Integrated
 
 | Tool | Language | Primary Purpose | Automation Trigger | Integrated |
-|------|----------|-----------------|-------------------|------------|
+|----|----|----|----|----|
 | cargo fmt | Rust | Code formatting | Pre-commit hook | ✅ |
 | cargo clippy | Rust | Linting & best practices | Pre-commit hook | ✅ |
 | scmindent | Scheme | Indentation formatting | Pre-commit hook (staged files) | ✅ |
@@ -21,7 +21,7 @@ This document catalogs all development quality-of-life tools for The Fold, inclu
 ## High-Priority Candidates (Integrated)
 
 | Tool | Language | Primary Purpose | Automation Trigger | Status |
-|------|----------|-----------------|-------------------|--------|
+|----|----|----|----|----|
 | typos | All | Spell checking source code | Pre-commit hook + CI | ✅ Integrated |
 | cargo-deny | Rust | Blocks bad licenses/duplicates | CI Pipeline | ✅ Integrated |
 | nextest | Rust | Faster, structured testing | CI (replaces cargo test) | ✅ Integrated |
@@ -31,27 +31,27 @@ This document catalogs all development quality-of-life tools for The Fold, inclu
 ## Medium-Priority Candidates
 
 | Tool | Language | Primary Purpose | Automation Trigger | Status |
-|------|----------|-----------------|-------------------|--------|
+|----|----|----|----|----|
 | git-cliff | Git | Generates CHANGELOG.md | Manual (./ops/scripts/changelog.sh) | ✅ Installed |
 | cargo-benchcmp | Rust | Benchmark regression detection | CI (on benchmark changes) | 📋 Candidate |
 
 ## Scheme-Specific Candidates
 
 | Tool | Language | Primary Purpose | Automation Trigger | Status |
-|------|----------|-----------------|-------------------|--------|
+|----|----|----|----|----|
 | Scheme test runner | Scheme | Integration with standard test framework | CI / Manual | 📋 Candidate |
 | Scheme linter | Scheme | Code quality checks beyond formatting | Pre-commit | 📋 Candidate |
 
 ## The Fold-Specific Tools
 
 | Tool | Language | Primary Purpose | Automation Trigger | Status |
-|------|----------|-----------------|-------------------|--------|
+|----|----|----|----|----|
 | Block store validator | Rust | Verify .store/ integrity | Manual (`./ops/scripts/store-validator.sh`) | ✅ Integrated |
 
 ## The Fold-Specific Candidates
 
 | Tool | Language | Primary Purpose | Automation Trigger | Status |
-|------|----------|-----------------|-------------------|--------|
+|----|----|----|----|----|
 | Schema validator | Scheme | Validate block schema compliance | CI | 📋 Candidate |
 | Primitive cost verifier | Scheme | Ensure fuel costs match complexity | CI | 📋 Candidate |
 
@@ -127,7 +127,7 @@ As of commit `0f12d5a` (2025-12-29):
 
 ```
 Filename                      Regions    Missed Regions     Cover   Functions  Missed Functions  Executed       Lines      Missed Lines     Cover
------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+----
 fold-bench.rs                      27                27     0.00%           3                 3     0.00%          51                51     0.00%
 fold-daemon.rs                     50                50     0.00%           4                 4     0.00%         118               118     0.00%
 fold-repl.rs                       26                26     0.00%           2                 2     0.00%          50                50     0.00%
@@ -143,7 +143,7 @@ fold_parse.rs                     181                24    86.74%          25   
 fold_print.rs                      84                77     8.33%          18                15    16.67%         170               162     4.71%
 fold_run.rs                        76                11    85.53%          12                 1    91.67%         121                16    86.78%
 mod.rs                              2                 0   100.00%           2                 0   100.00%           6                 0   100.00%
------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+----
 TOTAL                            2099               872    58.46%         248               92    62.90%        3527              1405    60.16%
 ```
 

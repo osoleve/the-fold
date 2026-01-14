@@ -1,8 +1,8 @@
 ;;; shell/test-runner.ss — Comprehensive Test Runner for The Fold
 ;;;
-;;; ============================================================
+;;; ====
 ;;; OVERVIEW
-;;; ============================================================
+;;; ====
 ;;;
 ;;; A production-ready test runner designed for The Fold's test suite.
 ;;; Provides fast, reliable test execution with rich reporting and
@@ -18,9 +18,9 @@
 ;;;   • Proper error handling and reporting
 ;;;   • Exit codes for CI/CD integration
 ;;;
-;;; ============================================================
+;;; ====
 ;;; USAGE
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Command Line:
 ;;;   scheme --script shell/tests/test-runner.ss              Run all tests
@@ -40,9 +40,9 @@
 ;;;   (run-test-file "core/test-block.ss")  Run single file
 ;;;   (list-available-tests)           Show available tests
 ;;;
-;;; ============================================================
+;;; ====
 ;;; OUTPUT
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Test results use color coding:
 ;;;   GREEN  - Test passed
@@ -62,9 +62,9 @@
 ;;;   0 - All tests passed
 ;;;   1 - One or more tests failed
 ;;;
-;;; ============================================================
+;;; ====
 ;;; INTEGRATION
-;;; ============================================================
+;;; ====
 ;;;
 ;;; CI/CD:
 ;;;   The runner exits with code 1 on failure, making it suitable
@@ -74,9 +74,9 @@
 ;;;   Can be called from within REPL sessions. Test state is isolated
 ;;;   per invocation - no global pollution.
 ;;;
-;;; ============================================================
+;;; ====
 ;;; ARCHITECTURE
-;;; ============================================================
+;;; ====
 ;;;
 ;;; The test runner operates in three phases:
 ;;;
@@ -98,9 +98,9 @@
 ;;; immediately. Most test files use the test-framework.ss which
 ;;; provides define-test, assert-equal, etc.
 ;;;
-;;; ============================================================
+;;; ====
 ;;; DEPENDENCIES
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Required:
 ;;;   - core/prelude.ss (string utilities)
@@ -108,9 +108,9 @@
 ;;; Optional (for tests themselves):
 ;;;   - core/test-framework.ss (used by most test files)
 
-;;; ============================================================
+;;; ====
 ;;; Load Dependencies
-;;; ============================================================
+;;; ====
 
 (load "core/base/prelude.ss")
 
@@ -119,9 +119,9 @@
 ;;;   - string-starts-with?
 ;;;   - string-ends-with?
 
-;;; ============================================================
+;;; ====
 ;;; ANSI Color Codes
-;;; ============================================================
+;;; ====
 
 (define *use-color* #t)  ; Can be disabled for non-TTY output
 
@@ -152,9 +152,9 @@
 (define (gray text)    (colorize ansi-gray text))
 (define (bold text)    (colorize ansi-bold text))
 
-;;; ============================================================
+;;; ====
 ;;; Timing Utilities
-;;; ============================================================
+;;; ====
 
 (define (current-time-ms)
   (let ([t (current-time)])
@@ -176,9 +176,9 @@
          (string-append (number->string min) "m "
                         (number->string sec) "s"))]))
 
-;;; ============================================================
+;;; ====
 ;;; Test Discovery
-;;; ============================================================
+;;; ====
 
 ;;; list-directory : String → (List String)
 ;;; List all files in a directory using system commands
@@ -213,9 +213,9 @@
 (define (discover-test-files dir)
   (filter is-test-file? (list-directory dir)))
 
-;;; ============================================================
+;;; ====
 ;;; Test Results Registry
-;;; ============================================================
+;;; ====
 
 ;;; Test result: (file status duration-ms error-message)
 ;;; Status: 'passed | 'failed | 'skipped | 'error
@@ -237,9 +237,9 @@
 (define (total-test-duration)
   (fold-left + 0 (map caddr *test-results*)))
 
-;;; ============================================================
+;;; ====
 ;;; Test Execution
-;;; ============================================================
+;;; ====
 
 ;;; run-test-file : String → Unit
 ;;; Execute a single test file with timing and error handling
@@ -279,9 +279,9 @@
                    (display (string-append " (" (gray (format-duration-ms duration)) ")"))
                    (newline)))))
 
-;;; ============================================================
+;;; ====
 ;;; Test Categories and Discovery
-;;; ============================================================
+;;; ====
 
 ;;; Well-known test file lists (curated for stability)
 (define *core-test-files*
@@ -330,9 +330,9 @@
 (define (filter-tests-by-pattern pattern test-files)
   (filter (lambda (f) (string-contains? f pattern)) test-files))
 
-;;; ============================================================
+;;; ====
 ;;; Test Runners
-;;; ============================================================
+;;; ====
 
 ;;; run-test-category : String × String × (List String) → Unit
 ;;; Run a category of tests (core, shell, etc.)
@@ -425,9 +425,9 @@
   
   (print-summary))
 
-;;; ============================================================
+;;; ====
 ;;; Output Formatting
-;;; ============================================================
+;;; ====
 
 ;;; print-header : String → Unit
 (define (print-header title)
@@ -534,9 +534,9 @@
    [(less? x (car sorted)) (cons x sorted)]
    [else (cons (car sorted) (insert x (cdr sorted) less?))]))
 
-;;; ============================================================
+;;; ====
 ;;; Test Listing
-;;; ============================================================
+;;; ====
 
 ;;; list-available-tests : Unit → Unit
 ;;; Display all available test files organized by category
@@ -577,9 +577,9 @@
   (display "  Filter:        scheme --script shell/test-runner.ss --pattern <text>\n")
   (display "\n"))
 
-;;; ============================================================
+;;; ====
 ;;; Watch Mode (Stub for Future Implementation)
-;;; ============================================================
+;;; ====
 
 ;;; watch-tests : Unit → Unit
 ;;; Watch for file changes and re-run tests (NYI)
@@ -590,9 +590,9 @@
   (display "  - Re-run affected tests automatically\n")
   (display "  - Provide fast feedback during development\n"))
 
-;;; ============================================================
+;;; ====
 ;;; Command-Line Interface
-;;; ============================================================
+;;; ====
 
 ;;; parse-args : (List String) → Unit
 ;;; Parse command-line arguments and execute appropriate action
@@ -659,9 +659,9 @@
   (display "  (list-available-tests)         ; show available tests\n")
   (display "\n"))
 
-;;; ============================================================
+;;; ====
 ;;; Main Entry Point
-;;; ============================================================
+;;; ====
 
 ;;; Global flag to track if loaded
 (define *test-runner-loaded* #f)

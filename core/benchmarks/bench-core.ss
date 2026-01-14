@@ -18,9 +18,9 @@
 (printf "║              CORE SYSTEM BENCHMARKS                           ║\n")
 (printf "╚═══════════════════════════════════════════════════════════════╝\n\n")
 
-;;; ============================================================
+;;; ====
 ;;; Test Data
-;;; ============================================================
+;;; ====
 
 (define small-payload (string->utf8 "small"))
 (define medium-payload (make-bytevector 1024 42))  ; 1KB
@@ -34,9 +34,9 @@
 (define nested-expr '(lambda (f) (lambda (x) (f (f x)))))
 (define deep-expr '(lambda (a) (lambda (b) (lambda (c) (lambda (d) (+ a b c d))))))
 
-;;; ============================================================
+;;; ====
 ;;; Block Operation Benchmarks
-;;; ============================================================
+;;; ====
 
 (printf "═══ Block Operations ═══\n\n")
 
@@ -52,9 +52,9 @@
 
 (benchmark-report block-results)
 
-;;; ============================================================
+;;; ====
 ;;; CAS Operation Benchmarks
-;;; ============================================================
+;;; ====
 
 (printf "\n═══ CAS Operations ═══\n\n")
 
@@ -77,9 +77,9 @@
 
 (benchmark-report cas-results)
 
-;;; ============================================================
+;;; ====
 ;;; Normalization Benchmarks
-;;; ============================================================
+;;; ====
 
 (printf "\n═══ Normalization (S-expr → Canonical) ═══\n\n")
 
@@ -92,9 +92,9 @@
 
 (benchmark-report norm-results)
 
-;;; ============================================================
+;;; ====
 ;;; Expansion Benchmarks
-;;; ============================================================
+;;; ====
 
 (printf "\n═══ Expansion (Canonical → S-expr) ═══\n\n")
 
@@ -112,9 +112,9 @@
 
 (benchmark-report expand-results)
 
-;;; ============================================================
+;;; ====
 ;;; Round-trip Benchmarks
-;;; ============================================================
+;;; ====
 
 (printf "\n═══ Round-trip Performance ═══\n\n")
 
@@ -132,9 +132,9 @@
 
 (benchmark-report roundtrip-results)
 
-;;; ============================================================
+;;; ====
 ;;; CAS Scalability Test
-;;; ============================================================
+;;; ====
 
 (printf "\n═══ CAS Scalability ═══\n\n")
 (printf "Testing CAS fetch performance with increasing store size...\n\n")
@@ -155,16 +155,16 @@
 
 (define sizes '(10 100 1000 10000))
 (printf "Size    | Get Time (mean)\n")
-(printf "--------|----------------\n")
+(printf "----|----\n")
 (for-each
  (lambda (size)
          (let ([time-ns (test-cas-scale size)])
               (printf "~6a  | ~a\n" size (format-time-ns time-ns))))
  sizes)
 
-;;; ============================================================
+;;; ====
 ;;; Summary
-;;; ============================================================
+;;; ====
 
 (printf "\n╔═══════════════════════════════════════════════════════════════╗\n")
 (printf "║              BENCHMARK COMPLETE                               ║\n")

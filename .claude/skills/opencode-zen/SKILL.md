@@ -21,7 +21,7 @@ Use opencode for:
 Check current providers with `opencode models`. Common options:
 
 | Provider | Models | Notes |
-|----------|--------|-------|
+|----|----|----|
 | `groq/*` | qwen-qwq-32b, llama-3.3-70b-versatile, deepseek-r1-distill-llama-70b | Fast inference via Groq |
 | `opencode/*` | big-pickle, gpt-5-nano, grok-code | Opencode's hosted models |
 
@@ -61,7 +61,7 @@ opencode run "Your prompt" --print-logs
 ### Configuration Options
 
 | Option | Description | Example |
-|--------|-------------|---------|
+|----|----|----|
 | `run [message]` | Execute in headless mode | `opencode run "Analyze this"` |
 | `-m, --model` | Specify provider/model | `-m groq/qwen-qwq-32b` |
 | `-f, --file` | Attach file(s) to context | `-f file.py -f test.py` |
@@ -166,7 +166,7 @@ When using opencode within The Fold:
 ## Comparison with Gemini CLI
 
 | Feature | opencode | gemini |
-|---------|----------|--------|
+|----|----|----|
 | Headless flag | `run` subcommand | `-p` flag |
 | File context | `-f file.ss` | `--include-directories dir` |
 | Model selection | `-m provider/model` | `-m model-name` |

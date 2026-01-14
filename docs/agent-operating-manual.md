@@ -66,7 +66,7 @@ PROCEDURE discover-shell-capabilities(paths: List<Path>) -> List<Capability>
 **Detection patterns (from `shell/capability-lens.ss`):**
 
 | Pattern | Extracts |
-|---------|----------|
+|----|----|
 | `(define-record-type fs-capability ...)` | `"fs"` |
 | `(define (mint-io-capability ...) ...)` | `"io"` |
 | `(define (make-net-capability ...) ...)` | `"net"` |
@@ -238,7 +238,7 @@ PROCEDURE estimate-fuel(expr: S-expr) -> FuelEstimate
 **Complexity classes (from manifests):**
 
 | Pattern | Fuel Bound | Example |
-|---------|------------|---------|
+|----|----|----|
 | Simple accessor | O(1) | `(vec-x v)` |
 | Linear traversal | O(n) | `(map f lst)` |
 | Matrix multiply | O(n³) | `(mat-mul a b)` |
@@ -400,7 +400,7 @@ PROCEDURE request-capability(cap-type: Symbol, params: Alist) -> Capability
 **What Shell validates before passing to Core:**
 
 | Check | Failure Mode |
-|-------|--------------|
+|----|----|
 | S-expression parses | Syntax error |
 | Types check (if typed mode) | Type error |
 | Fuel budget reasonable | Budget error |

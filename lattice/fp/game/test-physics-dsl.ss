@@ -11,9 +11,9 @@
 (load "core/test-framework.ss")
 (load "lattice/fp/game/physics-dsl.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Test Setup
-;;; ============================================================
+;;; ====
 
 (set! *current-group* 'physics-dsl)
 
@@ -23,9 +23,9 @@
 ;;; Default timestep (60 fps)
 (define test-dt 0.016667)
 
-;;; ============================================================
+;;; ====
 ;;; PhysicsF Functor Tests
-;;; ============================================================
+;;; ====
 
 (define-test "physics-fmap identity on apply-force"
   (let* ([cmd (list 'apply-force 'ball (vec2 1 2) 'next)]
@@ -73,9 +73,9 @@
          [result ((list-ref mapped 1) '(c1 c2 c3))])
         (assert-equal 3 result)))
 
-;;; ============================================================
+;;; ====
 ;;; Lifting Function Tests
-;;; ============================================================
+;;; ====
 
 (define-test "phys-apply-force creates correct structure"
   (let ([m (phys-apply-force 'ball (vec2 10 0))])
@@ -119,9 +119,9 @@
             (assert-equal 'ball (list-ref cmd 1))
             (assert-equal (vec2 5 -3) (list-ref cmd 2)))))
 
-;;; ============================================================
+;;; ====
 ;;; Monadic Combinator Tests
-;;; ============================================================
+;;; ====
 
 (define-test "phys-bind sequences operations"
   (let ([m (phys-bind (phys-step 0.016)
@@ -146,9 +146,9 @@
        (assert-true (free-suspended? m-true))
        (assert-true (pure-free? m-false))))
 
-;;; ============================================================
+;;; ====
 ;;; Pure World Tests
-;;; ============================================================
+;;; ====
 
 (define-test "make-pure-world creates empty world"
   (let ([pw (make-pure-world test-gravity)])
@@ -225,9 +225,9 @@
          [ball (pure-world-get-entity pw3 'ball)])
         (assert-equal (vec2 5 -3) (entity-vel ball))))
 
-;;; ============================================================
+;;; ====
 ;;; Pure Interpreter Tests
-;;; ============================================================
+;;; ====
 
 (define-test "run-physics-pure returns value from pure"
   (let* ([pw (make-pure-world test-gravity)]
@@ -314,9 +314,9 @@
         (let ([y (vec2-y (entity-pos final-entity))])
              (assert-true (< (abs (- y 90.0)) 10.0)))))  ; Allow numerical error from Euler
 
-;;; ============================================================
+;;; ====
 ;;; Force Integration Tests (Time-Dependent Behavior)
-;;; ============================================================
+;;; ====
 
 (define-test "force integration depends on dt"
   ;; Same force, different dt should give different results
@@ -392,9 +392,9 @@
         ;; Force: Δv = (1000/1) * 0.01 = 10
         (assert-true (< (abs (- (vec2-x (entity-vel ball2-force)) 10.0)) 0.001))))
 
-;;; ============================================================
+;;; ====
 ;;; Falling Body Scenario Test
-;;; ============================================================
+;;; ====
 
 (define-test "falling body scenario"
   (let* ([gravity (vec2 0 -9.8)]
@@ -435,10 +435,10 @@
         (let ([y (vec2-y (entity-pos final))])
              (assert-true (> y 10)))))  ; Should have risen significantly
 
-;;; ============================================================
+;;; ====
 ;;; Run Tests
-;;; ============================================================
+;;; ====
 
 (display "Running Physics DSL Tests...\n")
-(display "===========================\n\n")
+(display "====\n\n")
 (run-tests 'physics-dsl)

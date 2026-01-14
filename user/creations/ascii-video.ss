@@ -5,9 +5,9 @@
 
 (load "core/base/prelude.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Frame Buffer
-;;; ============================================================
+;;; ====
 
 ;;; A frame is a vector of strings (one per row)
 (define (make-frame width height fill-char)
@@ -43,9 +43,9 @@
             (vector-set! new-frame y (string-copy (vector-ref frame y))))
         new-frame))
 
-;;; ============================================================
+;;; ====
 ;;; Drawing Primitives
-;;; ============================================================
+;;; ====
 
 (define (frame-clear! frame char)
   (let ([w (frame-width frame)]
@@ -75,9 +75,9 @@
           ((>= col w))
           (frame-set! frame (+ x col) (+ y row) char))))
 
-;;; ============================================================
+;;; ====
 ;;; Video (Sequence of Frames)
-;;; ============================================================
+;;; ====
 
 (define (make-video)
   (list 'video '()))
@@ -97,9 +97,9 @@
 (define (video-get-frame v n)
   (list-ref (video-frames v) n))
 
-;;; ============================================================
+;;; ====
 ;;; Rendering
-;;; ============================================================
+;;; ====
 
 (define (frame-render frame)
   (let ([h (frame-height frame)])
@@ -117,9 +117,9 @@
        (apply string-append
               (map (lambda (s) (string-append s "\n")) lines))))
 
-;;; ============================================================
+;;; ====
 ;;; ANSI Terminal Control
-;;; ============================================================
+;;; ====
 
 (define *esc* (string (integer->char 27)))
 
@@ -157,9 +157,9 @@
   (display *esc*)
   (display "[0m"))
 
-;;; ============================================================
+;;; ====
 ;;; Playback (Terminal Only - uses ANSI codes and blocking sleep)
-;;; ============================================================
+;;; ====
 
 ;;; NOTE: video-play and video-play-loop use busy-wait and ANSI codes.
 ;;; They only work in interactive terminals, NOT in daemon/Discord contexts.
@@ -213,9 +213,9 @@
   (ansi-show-cursor)
   (newline))
 
-;;; ============================================================
+;;; ====
 ;;; Non-Blocking Frame Access (Safe for Daemon/Discord)
-;;; ============================================================
+;;; ====
 
 ;;; video-frame-string : Video x Nat -> String
 ;;; Get a single frame as a string (no ANSI, no blocking).
@@ -236,9 +236,9 @@
       (string-append "```\n" (frame-render-to-string (video-get-frame video n)) "```")
       ""))
 
-;;; ============================================================
+;;; ====
 ;;; Static Playback (No ANSI, prints all frames)
-;;; ============================================================
+;;; ====
 
 (define (video-print video)
   (let ([count (video-frame-count video)])
@@ -261,9 +261,9 @@
       (frame-render (video-get-frame video i))
       (newline)))
 
-;;; ============================================================
+;;; ====
 ;;; GIF-style Export (Text)
-;;; ============================================================
+;;; ====
 
 (define (video->string video)
   (let ([count (video-frame-count video)]
@@ -275,9 +275,9 @@
                              parts)))
        (apply string-append (reverse parts))))
 
-;;; ============================================================
+;;; ====
 ;;; Flipbook Display (Show key frames)
-;;; ============================================================
+;;; ====
 
 (define (video-flipbook video step)
   (let ([count (video-frame-count video)])

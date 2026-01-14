@@ -14,9 +14,9 @@
 
 (load "core/base/prelude.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Simple Differencing
-;;; ============================================================
+;;; ====
 
 ;;; vec-diff : Vec → Vec
 ;;; First difference: x'[i] = x[i+1] - x[i]
@@ -40,9 +40,9 @@
       xs
       (difference (vec-diff xs) (- d 1))))
 
-;;; ============================================================
+;;; ====
 ;;; Lag Differencing
-;;; ============================================================
+;;; ====
 
 ;;; lag-diff : Vec × Nat → Vec
 ;;; Difference with lag k: x'[i] = x[i] - x[i-k]
@@ -65,9 +65,9 @@
       xs
       (seasonal-difference (lag-diff xs s) s (- D 1))))
 
-;;; ============================================================
+;;; ====
 ;;; Integration (Inverse of Differencing)
-;;; ============================================================
+;;; ====
 
 ;;; integrate : Vec × Num → Vec
 ;;; Cumulative sum (inverse of first difference).
@@ -105,9 +105,9 @@
              [integrated (integrate diffs init)])
             (integrate-d integrated (cdr inits) (- d 1)))))
 
-;;; ============================================================
+;;; ====
 ;;; Stationarity Helpers
-;;; ============================================================
+;;; ====
 
 ;;; is-stationary? : Vec → Bool
 ;;; Simple heuristic: check if variance is roughly constant.
@@ -148,9 +148,9 @@
             [(= i len) result]
             (vector-set! result i (vector-ref v (+ start i))))))
 
-;;; ============================================================
+;;; ====
 ;;; Log Transform
-;;; ============================================================
+;;; ====
 
 ;;; log-transform : Vec → Vec
 ;;; Apply log transform (for variance stabilization).

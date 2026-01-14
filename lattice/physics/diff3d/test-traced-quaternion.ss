@@ -7,14 +7,14 @@
 (load "lattice/physics/diff3d/traced-quaternion.ss")
 
 (display "
-==============================================================
+====
          TRACED QUATERNION TESTS
-==============================================================
+====
 ")
 
-;;; ============================================================
+;;; ====
 ;;; Test Utilities
-;;; ============================================================
+;;; ====
 
 (define (finite-diff f x epsilon)
   (/ (- (f (+ x epsilon)) (f (- x epsilon)))
@@ -42,9 +42,9 @@
 (define (assert-gradient-correct f args)
   (assert-true (check-gradient-accuracy f args 1e-5 1e-4)))
 
-;;; ============================================================
+;;; ====
 ;;; Traced Quaternion Tests
-;;; ============================================================
+;;; ====
 
 (test-group traced-quat-arithmetic
             

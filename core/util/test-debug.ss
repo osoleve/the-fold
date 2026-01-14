@@ -6,7 +6,7 @@
 
 (display "Debugger Tests
 ")
-(display "==============
+(display "====
 
 ")
 
@@ -25,9 +25,9 @@
        (display ", got ") (write actual)
        (newline))))
 
-;;; ============================================================
+;;; ====
 ;;; Debugger Creation
-;;; ============================================================
+;;; ====
 
 (display "Debugger Creation:
 ")
@@ -40,9 +40,9 @@
      (test "initial trace empty" '() (debugger-trace d))
      (test "initial history empty" '() (debugger-history d)))
 
-;;; ============================================================
+;;; ====
 ;;; Single Step
-;;; ============================================================
+;;; ====
 
 (display "
 Single Step:
@@ -68,9 +68,9 @@ Single Step:
       (test "step var status" 'complete (debugger-status d2))
       (test "step var value" 10 (debugger-expr d2)))
 
-;;; ============================================================
+;;; ====
 ;;; Step-N
-;;; ============================================================
+;;; ====
 
 (display "
 Step-N:
@@ -87,9 +87,9 @@ Step-N:
        [d2 (step-n d 20)])
       (test "step-n let result" 6 (debugger-expr d2)))
 
-;;; ============================================================
+;;; ====
 ;;; Breakpoints
-;;; ============================================================
+;;; ====
 
 (display "
 Breakpoints:
@@ -112,9 +112,9 @@ Breakpoints:
        [d3 (clear-breakpoints d2)])
       (test "clear-breakpoints" 0 (length (debugger-breakpoints d3))))
 
-;;; ============================================================
+;;; ====
 ;;; Continue
-;;; ============================================================
+;;; ====
 
 (display "
 Continue:
@@ -136,9 +136,9 @@ Continue:
       (test "continue factorial closure" 'complete (debugger-status d2))
       (test "continue creates closure" 'closure (car (debugger-expr d2))))
 
-;;; ============================================================
+;;; ====
 ;;; History and Undo
-;;; ============================================================
+;;; ====
 
 (display "
 History and Undo:
@@ -169,9 +169,9 @@ History and Undo:
       (test "reset clears history" 0 (length (debugger-history d3)))
       (test "reset clears trace" 0 (length (debugger-trace d3))))
 
-;;; ============================================================
+;;; ====
 ;;; Inspection
-;;; ============================================================
+;;; ====
 
 (display "
 Inspection:
@@ -191,9 +191,9 @@ Inspection:
        [trace (inspect-trace d2)])
       (test "trace non-empty" #t (pair? trace)))
 
-;;; ============================================================
+;;; ====
 ;;; Trace Expression
-;;; ============================================================
+;;; ====
 
 (display "
 Trace Expression:
@@ -203,9 +203,9 @@ Trace Expression:
      (test "trace-expr returns list" #t (list? trace))
      (test "trace-expr has steps" #t (> (length trace) 0)))
 
-;;; ============================================================
+;;; ====
 ;;; Error Handling
-;;; ============================================================
+;;; ====
 
 (display "
 Error Handling:
@@ -223,9 +223,9 @@ Error Handling:
        [d3 (continue d2)])  ; Continue until done or out of fuel
       (test "out of fuel status" 'out-of-fuel (debugger-status d3)))
 
-;;; ============================================================
+;;; ====
 ;;; Complex Examples
-;;; ============================================================
+;;; ====
 
 (display "
 Complex Examples:
@@ -243,12 +243,12 @@ Complex Examples:
        [d2 (run-debug (debugger-expr d) 1000)])
       (test "map double status" 'complete (debugger-status d2)))
 
-;;; ============================================================
+;;; ====
 ;;; Summary
-;;; ============================================================
+;;; ====
 
 (newline)
-(display "==================
+(display "====
 ")
 (display (string-append "Passed: " (number->string tests-passed) "
 "))

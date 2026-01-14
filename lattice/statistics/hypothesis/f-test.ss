@@ -19,9 +19,9 @@
 (load "lattice/statistics/core/summary-stats.ss")
 (load "lattice/statistics/hypothesis/distributions.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Variance Ratio Test
-;;; ============================================================
+;;; ====
 
 ;;; f-test-variance : Vec × Vec → TestResult
 ;;; Test H0: var(x) = var(y) vs H1: var(x) != var(y).
@@ -59,9 +59,9 @@
          [ci-upper (/ ratio f-lower)])
         (cons ci-lower ci-upper)))
 
-;;; ============================================================
+;;; ====
 ;;; Levene's Test
-;;; ============================================================
+;;; ====
 
 ;;; levene-test : (List Vec) → TestResult
 ;;; Levene's test for homogeneity of variances.
@@ -88,9 +88,9 @@
                           (anova-p-value anova-result)
                           #f #f)))
 
-;;; ============================================================
+;;; ====
 ;;; Bartlett's Test
-;;; ============================================================
+;;; ====
 
 ;;; bartlett-test : (List Vec) → TestResult
 ;;; Bartlett's test for homogeneity of variances.
@@ -118,9 +118,9 @@
          [p-value (chi-squared-pvalue chi-sq df)])
         (make-test-result 'bartlett-test chi-sq df p-value #f #f)))
 
-;;; ============================================================
+;;; ====
 ;;; Regression F-Test
-;;; ============================================================
+;;; ====
 
 ;;; f-test-regression : Num × Num × Nat × Nat → TestResult
 ;;; Test overall significance of regression model.

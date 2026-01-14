@@ -19,9 +19,9 @@
 (load "lattice/meta/persist.ss")
 (load "lattice/meta/source-loc.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Initialization
-;;; ============================================================
+;;; ====
 
 ;;; lattice-init! : -> void
 ;;; Initialize the lattice tooling (build KG and search indices)
@@ -59,9 +59,9 @@
   (printf "  Use (ls) for statistics\n")
   (printf "  Use (lh) for health check\n"))
 
-;;; ============================================================
+;;; ====
 ;;; Source Location Convenience
-;;; ============================================================
+;;; ====
 
 ;;; lsrc : Symbol -> String | void
 ;;; Quick source location lookup - prints "file:line" format
@@ -71,13 +71,13 @@
            loc
            (printf "Symbol not found: ~a\n" sym))))
 
-;;; ============================================================
+;;; ====
 ;;; Quick Reference
-;;; ============================================================
+;;; ====
 
 (define (lattice-help)
   (printf "\nLattice Meta-Tooling Quick Reference\n")
-  (printf "=====================================\n\n")
+  (printf "====\n\n")
   (printf "INITIALIZATION:\n")
   (printf "  (lattice-init!)           - Init with caching (fast if unchanged)\n")
   (printf "  (lattice-init-fresh!)     - Force full rebuild\n\n")
@@ -108,9 +108,9 @@
   (printf "  (lattice-leaves)          - Skills with no dependents\n")
   (printf "  (lattice-tiers)           - Skills grouped by tier\n"))
 
-;;; ============================================================
+;;; ====
 ;;; REPL Interface
-;;; ============================================================
+;;; ====
 
 (printf "\nmeta.ss loaded — Unified lattice tooling\n")
 (printf "  (lattice-init!)  - Initialize (build KG + indices)\n")

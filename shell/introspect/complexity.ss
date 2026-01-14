@@ -23,9 +23,9 @@
 ;;; NOTE: string utilities provided by core/prelude.ss
 (load "core/base/prelude.ss")
 
-;;; ============================================================
+;;; ====
 ;;; File Metrics
-;;; ============================================================
+;;; ====
 
 (define-record-type file-metrics
   (fields
@@ -47,9 +47,9 @@
    nesting-depth     ; Maximum nesting within definition
    references))      ; Other definitions this references (list of symbols)
 
-;;; ============================================================
+;;; ====
 ;;; Parsing Utilities
-;;; ============================================================
+;;; ====
 
 ;;; read-file-lines : String → (List String)
 ;;; Read all lines from a file.
@@ -84,9 +84,9 @@
                           count))))))
 
 
-;;; ============================================================
+;;; ====
 ;;; S-Expression Analysis
-;;; ============================================================
+;;; ====
 
 ;;; read-all-sexps : String → (List Sexp)
 ;;; Read all S-expressions from a file.
@@ -204,9 +204,9 @@
 
 ;;; NOTE: unique is provided by core/base/prelude.ss
 
-;;; ============================================================
+;;; ====
 ;;; Definition Extraction
-;;; ============================================================
+;;; ====
 
 ;;; definition? : Sexp → Boolean
 ;;; Check if S-expression is a definition form.
@@ -253,9 +253,9 @@
    (sexp-depth sexp)
    (unique (extract-references sexp))))
 
-;;; ============================================================
+;;; ====
 ;;; Load Dependency Extraction
-;;; ============================================================
+;;; ====
 
 ;;; load-form? : Sexp → Boolean
 (define (load-form? sexp)
@@ -270,9 +270,9 @@
       (cadr sexp)
       #f))
 
-;;; ============================================================
+;;; ====
 ;;; File Analysis
-;;; ============================================================
+;;; ====
 
 ;;; analyze-file : String → FileMetrics
 ;;; Analyze a single Scheme source file.
@@ -319,9 +319,9 @@
                     (loop (cdr lst) (cons result acc))
                     (loop (cdr lst) acc))))))
 
-;;; ============================================================
+;;; ====
 ;;; Directory Analysis
-;;; ============================================================
+;;; ====
 
 (define-record-type directory-metrics
   (fields
@@ -361,9 +361,9 @@
          total-defs
          file-analyses)))
 
-;;; ============================================================
+;;; ====
 ;;; Coverage Analysis
-;;; ============================================================
+;;; ====
 
 (define-record-type coverage-report
   (fields
@@ -401,9 +401,9 @@
          uncovered
          (inexact ratio))))
 
-;;; ============================================================
+;;; ====
 ;;; Complexity Scoring
-;;; ============================================================
+;;; ====
 
 ;;; complexity-score : DefinitionInfo → Nat
 ;;; Compute a complexity score for a definition.
@@ -421,9 +421,9 @@
 (define (high-complexity? def threshold)
   (> (complexity-score def) threshold))
 
-;;; ============================================================
+;;; ====
 ;;; Reporting
-;;; ============================================================
+;;; ====
 
 ;;; format-file-metrics : FileMetrics → String
 (define (format-file-metrics fm)
@@ -459,9 +459,9 @@
                      (map (lambda (s) (format " ~a" s))
                           (coverage-report-uncovered cr))))))
 
-;;; ============================================================
+;;; ====
 ;;; Display Utilities
-;;; ============================================================
+;;; ====
 
 ;;; print-file-metrics : FileMetrics → void
 (define (print-file-metrics fm)
@@ -495,9 +495,9 @@
             (file-metrics-definitions fm)))
    file-analyses))
 
-;;; ============================================================
+;;; ====
 ;;; Dead Code Detection
-;;; ============================================================
+;;; ====
 
 (define-record-type dead-code-report
   (fields
@@ -575,9 +575,9 @@
   (let ([dm (analyze-directory path)])
        (find-dead-code (directory-metrics-files dm))))
 
-;;; ============================================================
+;;; ====
 ;;; Dependency Analysis
-;;; ============================================================
+;;; ====
 
 (define-record-type dependency-graph
   (fields
@@ -698,9 +698,9 @@
                                  (display "}\n" port)))
   (display (format "Exported to ~a\n" output-path)))
 
-;;; ============================================================
+;;; ====
 ;;; Full Codebase Report
-;;; ============================================================
+;;; ====
 
 (define-record-type codebase-report
   (fields

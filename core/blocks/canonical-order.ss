@@ -15,9 +15,9 @@
 
 (load "core/base/prelude.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Expression Class Ordering
-;;; ============================================================
+;;; ====
 
 ;;; Expressions are grouped into classes for comparison.
 ;;; Within the same class, type-specific comparison is used.
@@ -51,9 +51,9 @@
     [(pair? expr)    7]  ; compound expression
     [else            8]))
 
-;;; ============================================================
+;;; ====
 ;;; Main Comparison Functions
-;;; ============================================================
+;;; ====
 
 ;;; canonical<? : S-expr × S-expr → Bool
 ;;; Returns #t if a should come before b in canonical order.
@@ -85,9 +85,9 @@
 (define (canonical<=? a b)
   (or (canonical<? a b) (canonical=? a b)))
 
-;;; ============================================================
+;;; ====
 ;;; Type-Specific Comparisons
-;;; ============================================================
+;;; ====
 
 ;;; number<? : Number × Number → Bool
 ;;; Numeric comparison with special handling for exact vs inexact.
@@ -149,9 +149,9 @@
     [(canonical<? (car b) (car a)) #f]
     [else (compound<? (cdr a) (cdr b))]))
 
-;;; ============================================================
+;;; ====
 ;;; Sorting Support
-;;; ============================================================
+;;; ====
 
 ;;; canonical-sort : (List S-expr) → (List S-expr)
 ;;; Sort a list of expressions in canonical order.

@@ -2,7 +2,7 @@
 
 
 | Feature | The Fold | Unison |
-|---------|----------|--------|
+|----|----|----|
 | **Foundation** | Chez Scheme | Haskell |
 | **Content Addressing** | SHA-256 + de Bruijn | Hash + type-directed |
 | **α-Normalization** | De Bruijn indices | Implicit in hashing |

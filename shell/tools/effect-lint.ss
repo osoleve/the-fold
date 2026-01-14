@@ -21,9 +21,9 @@
 
 (load "core/base/prelude.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Effect Types
-;;; ============================================================
+;;; ====
 
 ;;; Effects are represented as symbols:
 ;;;   'pure - no effects
@@ -67,9 +67,9 @@
    [(eq? e2 'pure) #f]
    [else #f]))
 
-;;; ============================================================
+;;; ====
 ;;; Effect Annotations Database
-;;; ============================================================
+;;; ====
 
 ;;; Known effect annotations for standard functions
 (define *effect-database*
@@ -127,9 +127,9 @@
 (define (annotate-effect! name effect)
   (hashtable-set! *effect-database* name effect))
 
-;;; ============================================================
+;;; ====
 ;;; Effect Inference
-;;; ============================================================
+;;; ====
 
 ;;; infer-effect : Expr → Effect
 ;;; Infer the effect of an expression.
@@ -194,9 +194,9 @@
    
    [else 'unknown]))
 
-;;; ============================================================
+;;; ====
 ;;; Effect Checking
-;;; ============================================================
+;;; ====
 
 ;;; check-pure : Expr → (List Violation)
 ;;; Check that an expression is pure, returning violations if not.
@@ -214,9 +214,9 @@
                    (expected ,bound)
                    (actual ,effect))))))
 
-;;; ============================================================
+;;; ====
 ;;; Module Effect Analysis
-;;; ============================================================
+;;; ====
 
 ;;; analyze-module-effects : String → ModuleEffects
 ;;; Analyze all definitions in a module for their effects.
@@ -266,9 +266,9 @@
          [effect (infer-effect body)])
         (cons name effect)))
 
-;;; ============================================================
+;;; ====
 ;;; Effect Linting
-;;; ============================================================
+;;; ====
 
 ;;; lint-effects : String × Effect → (List Violation)
 ;;; Lint a module, checking that all functions respect the effect bound.
@@ -295,9 +295,9 @@
       (eq? actual expected)
       (eq? expected 'unknown)))
 
-;;; ============================================================
+;;; ====
 ;;; REPL Commands
-;;; ============================================================
+;;; ====
 
 ;;; effect-of : Expr → Void
 ;;; Show the inferred effect of an expression.
@@ -371,9 +371,9 @@
                       impure)))])
        (display "\n")))
 
-;;; ============================================================
+;;; ====
 ;;; Core vs Shell Boundary Checking
-;;; ============================================================
+;;; ====
 
 ;;; check-core-purity : → Void
 ;;; Verify that core/ modules are pure.
@@ -425,9 +425,9 @@
        (and (>= len slen)
             (string=? suffix (substring str (- len slen) len)))))
 
-;;; ============================================================
+;;; ====
 ;;; Effect Annotations
-;;; ============================================================
+;;; ====
 
 ;;; @pure : Symbol → Void
 ;;; Annotate a function as pure.
@@ -447,9 +447,9 @@
   (annotate-effect! name 'mutation)
   (printf "Annotated ~a as mutation.\n" name))
 
-;;; ============================================================
+;;; ====
 ;;; Help
-;;; ============================================================
+;;; ====
 
 (define (effect-help)
   (display "\n")

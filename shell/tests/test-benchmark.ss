@@ -9,16 +9,16 @@
 
 (display "
 ")
-(display "==============================================================
+(display "====
 ")
 (display "          BENCHMARKING HARNESS TESTS
 ")
-(display "==============================================================
+(display "====
 ")
 
-;;; ============================================================
+;;; ====
 ;;; Statistical Function Tests
-;;; ============================================================
+;;; ====
 
 (test-group statistical-tests
             (define-test mean-empty-test
@@ -78,9 +78,9 @@
               (let ([result (percentile '(1 2 3 4 5 6 7 8 9 10) 99)])
                    (assert-true (>= result 9)))))
 
-;;; ============================================================
+;;; ====
 ;;; List Min/Max Tests
-;;; ============================================================
+;;; ====
 
 (test-group minmax-tests
             (define-test list-min-empty-test
@@ -101,9 +101,9 @@
             (define-test list-max-multiple-test
               (assert-equal 5 (list-max '(1 5 3 2 4)))))
 
-;;; ============================================================
+;;; ====
 ;;; Sorting Tests
-;;; ============================================================
+;;; ====
 
 (test-group sorting-tests
             (define-test sort-empty-test
@@ -133,9 +133,9 @@
             (define-test insert-end-test
               (assert-equal '(1 2 3) (insert 3 '(1 2) <))))
 
-;;; ============================================================
+;;; ====
 ;;; Formatting Tests
-;;; ============================================================
+;;; ====
 
 (test-group formatting-tests
             (define-test format-time-ns-nanoseconds-test
@@ -186,9 +186,9 @@
               (let ([result (format-ratio 15.0)])
                    (assert-true (string? result)))))
 
-;;; ============================================================
+;;; ====
 ;;; Timing Utility Tests
-;;; ============================================================
+;;; ====
 
 (test-group timing-tests
             (define-test current-nanoseconds-test
@@ -209,9 +209,9 @@
                    (assert-true (number? b))
                    (assert-true (>= b 0)))))
 
-;;; ============================================================
+;;; ====
 ;;; Warmup Tests
-;;; ============================================================
+;;; ====
 
 (test-group warmup-tests
             (define-test do-warmup-test
@@ -225,9 +225,9 @@
                    (do-warmup (lambda () (set! counter (+ counter 1))) 0)
                    (assert-equal 0 counter))))
 
-;;; ============================================================
+;;; ====
 ;;; Sample Collection Tests
-;;; ============================================================
+;;; ====
 
 (test-group sample-collection-tests
             (define-test collect-samples-test
@@ -240,9 +240,9 @@
               (let ([samples (collect-samples (lambda () #t) 0)])
                    (assert-equal 0 (length samples)))))
 
-;;; ============================================================
+;;; ====
 ;;; Benchmark Result Tests
-;;; ============================================================
+;;; ====
 
 (test-group benchmark-result-tests
             (define-test benchmark-simple-test
@@ -267,9 +267,9 @@
               (let ([result (benchmark "samples" (lambda () #t) 10 0)])
                    (assert-equal 10 (length (benchmark-result-samples result))))))
 
-;;; ============================================================
+;;; ====
 ;;; Comparison Tests
-;;; ============================================================
+;;; ====
 
 (test-group comparison-tests
             (define-test benchmark-compare-test
@@ -286,9 +286,9 @@
                      [fastest (find-fastest (list r2 r1))])
                     (assert-true (benchmark-result? fastest)))))
 
-;;; ============================================================
+;;; ====
 ;;; Suite Tests
-;;; ============================================================
+;;; ====
 
 (test-group suite-tests
             (define-test benchmark-suite-test
@@ -300,9 +300,9 @@
                    (assert-equal "test-suite" (suite-result-name result))
                    (assert-equal 2 (length (suite-result-benchmarks result))))))
 
-;;; ============================================================
+;;; ====
 ;;; Quick/Thorough Preset Tests
-;;; ============================================================
+;;; ====
 
 (test-group preset-tests
             (define-test quick-bench-test
@@ -317,9 +317,9 @@
                    (assert-true (benchmark-result? result))
                    (assert-equal 10000 (benchmark-result-iterations result)))))
 
-;;; ============================================================
+;;; ====
 ;;; Report Tests (No File I/O)
-;;; ============================================================
+;;; ====
 
 (test-group report-tests
             (define-test benchmark-report-single-test
@@ -337,9 +337,9 @@
                    (benchmark-report results)
                    (assert-true #t))))
 
-;;; ============================================================
+;;; ====
 ;;; Configuration Tests
-;;; ============================================================
+;;; ====
 
 (test-group configuration-tests
             (define-test default-iterations-test
@@ -351,9 +351,9 @@
             (define-test time-unit-test
               (assert-equal 'milliseconds *time-unit*)))
 
-;;; ============================================================
+;;; ====
 ;;; Edge Case Tests
-;;; ============================================================
+;;; ====
 
 (test-group edge-case-tests
             (define-test benchmark-zero-iterations-test
@@ -369,9 +369,9 @@
                      (benchmark "error" (lambda () (error 'test "intentional")) 1 0)
                      (assert-true #t))))
 
-;;; ============================================================
+;;; ====
 ;;; Helper Functions Used in Tests
-;;; ============================================================
+;;; ====
 
 ;;; every : (a -> Bool) x (List a) -> Bool
 (define (every pred lst)
@@ -390,13 +390,13 @@
              [(string=? sub (substring str i (+ i sublen))) #t]
              [else (loop (+ i 1))]))))
 
-;;; ============================================================
+;;; ====
 ;;; Run Tests
-;;; ============================================================
+;;; ====
 
 (display "
 ")
-(display "==============================================================
+(display "====
 ")
 (display (format "Tests passed: ~a
 " *tests-passed*))

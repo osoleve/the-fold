@@ -6,13 +6,13 @@
 (load "lattice/fp/game/normal-form.ss")
 
 (display "\n")
-(display "==============================================================\n")
+(display "====\n")
 (display "         NORMAL FORM GAMES TESTS\n")
-(display "==============================================================\n")
+(display "====\n")
 
-;;; ============================================================
+;;; ====
 ;;; Game Construction Tests
-;;; ============================================================
+;;; ====
 
 (test-group game-construction
             (define-test make-game-basic
@@ -45,9 +45,9 @@
               (assert-true (game%? stag-hunt))
               (assert-true (game%? chicken))))
 
-;;; ============================================================
+;;; ====
 ;;; Best Response Tests
-;;; ============================================================
+;;; ====
 
 (test-group best-response
             (define-test best-response-prisoners-dilemma
@@ -71,9 +71,9 @@
               (assert-equal '(0) (best-response-p2 battle-of-sexes 0))  ; vs Opera
               (assert-equal '(1) (best-response-p2 battle-of-sexes 1)))) ; vs Football
 
-;;; ============================================================
+;;; ====
 ;;; Dominated Strategy Tests
-;;; ============================================================
+;;; ====
 
 (test-group dominated-strategies
             (define-test prisoners-dilemma-dominance
@@ -100,9 +100,9 @@
                    (assert-true (null? (car dom)))
                    (assert-true (null? (cdr dom))))))
 
-;;; ============================================================
+;;; ====
 ;;; IESDS Tests
-;;; ============================================================
+;;; ====
 
 (test-group iesds
             (define-test iesds-prisoners-dilemma
@@ -117,9 +117,9 @@
                    (assert-equal 2 (game-num-strategies reduced 0))
                    (assert-equal 2 (game-num-strategies reduced 1)))))
 
-;;; ============================================================
+;;; ====
 ;;; Pure Nash Equilibrium Tests
-;;; ============================================================
+;;; ====
 
 (test-group pure-nash
             (define-test is-pure-nash-prisoners-dilemma
@@ -155,9 +155,9 @@
                    (assert-true (and (member '(0 . 0) nash) #t))
                    (assert-true (and (member '(1 . 1) nash) #t)))))
 
-;;; ============================================================
+;;; ====
 ;;; Mixed Strategy Tests
-;;; ============================================================
+;;; ====
 
 (test-group mixed-strategies
             (define-test pure-strategy-creation
@@ -186,9 +186,9 @@
                    ;; P1 payoffs: 3, 0, 5, 1 -> avg = 9/4
                    (assert-equal 9/4 (expected-payoff-p1 prisoners-dilemma s s)))))
 
-;;; ============================================================
+;;; ====
 ;;; 2x2 Nash Equilibrium Solver Tests
-;;; ============================================================
+;;; ====
 
 (test-group nash-2x2
             (define-test solve-prisoners-dilemma
@@ -211,9 +211,9 @@
               (let ([solutions (solve-2x2-nash battle-of-sexes)])
                    (assert-equal 3 (length solutions)))))
 
-;;; ============================================================
+;;; ====
 ;;; Display Tests
-;;; ============================================================
+;;; ====
 
 (test-group display
             (define-test game->string-basic
@@ -221,12 +221,12 @@
                    (assert-true (string? s))
                    (assert-true (> (string-length s) 0)))))
 
-;;; ============================================================
+;;; ====
 ;;; Summary
-;;; ============================================================
+;;; ====
 
 (display "\n")
-(display "==============================================================\n")
+(display "====\n")
 (printf "Tests passed: ~a\n" *tests-passed*)
 (printf "Tests failed: ~a\n" *tests-failed*)
 (printf "Total tests:  ~a\n" *tests-run*)

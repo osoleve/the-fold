@@ -24,9 +24,9 @@
 
 (load "core/base/prelude.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Algebra Definition
-;;; ============================================================
+;;; ====
 ;;;
 ;;; An algebra is a dictionary of operations.
 ;;; define-algebra creates:
@@ -54,9 +54,9 @@
 ;;; For now, we'll use a simpler record-based approach
 ;;; that doesn't require macros for each algebra.
 
-;;; ============================================================
+;;; ====
 ;;; Generic Dictionary Operations
-;;; ============================================================
+;;; ====
 
 ;;; make-dict : Symbol × (List (Symbol . Procedure)) → Dict
 ;;; Create a dictionary with named operations.
@@ -93,9 +93,9 @@
   (make-dict (list (dict-tag d1) (dict-tag d2))
              (append (dict-ops d2) (dict-ops d1))))
 
-;;; ============================================================
+;;; ====
 ;;; Expression Algebra (Classic Example)
-;;; ============================================================
+;;; ====
 ;;;
 ;;; The classic tagless final example: arithmetic expressions.
 ;;;
@@ -118,9 +118,9 @@
 ;;; expr-neg : Dict × α → α
 (define (expr-neg d x) ((dict-ref d 'neg) x))
 
-;;; ============================================================
+;;; ====
 ;;; Expression Interpreters
-;;; ============================================================
+;;; ====
 
 ;;; eval-expr-dict : ExprDict
 ;;; Evaluator - returns the computed value.
@@ -154,9 +154,9 @@
    (lambda (x y) (+ 1 (max x y)))    ; add: 1 + max of children
    (lambda (x) (+ 1 x))))            ; neg: 1 + child depth
 
-;;; ============================================================
+;;; ====
 ;;; Example Programs
-;;; ============================================================
+;;; ====
 
 ;;; A program is a function that takes a dictionary and returns a result.
 ;;; The program doesn't know what the operations do - it just uses them.
@@ -182,9 +182,9 @@
 ;;;   (example-expr-1 count-expr-dict)  => 4
 ;;;   (example-expr-1 depth-expr-dict)  => 4
 
-;;; ============================================================
+;;; ====
 ;;; Extensibility: Adding Multiplication
-;;; ============================================================
+;;; ====
 ;;;
 ;;; The key advantage of tagless final: we can add new operations
 ;;; without modifying the original algebra definition.
@@ -214,9 +214,9 @@
             (expr-mul d (expr-lit d 2) (expr-lit d 3))
             (expr-lit d 4)))
 
-;;; ============================================================
+;;; ====
 ;;; Boolean Algebra
-;;; ============================================================
+;;; ====
 
 ;;; make-bool-dict : (Boolean → α) × (α × α → α) × (α × α → α) × (α → α) → Dict
 (define (make-bool-dict bool-lit and-op or-op not-op)
@@ -251,9 +251,9 @@
    (lambda (x y) (string-append "(" x " || " y ")"))
    (lambda (x) (string-append "(!" x ")"))))
 
-;;; ============================================================
+;;; ====
 ;;; Comparison Extension (Combines Expr and Bool)
-;;; ============================================================
+;;; ====
 
 ;;; make-cmp-dict : (α × α → β) × (α × α → β) × (α × α → β) → Dict
 (define (make-cmp-dict eq-op lt-op gt-op)
@@ -278,9 +278,9 @@
     (lambda (x y) (< x y))
     (lambda (x y) (> x y)))))
 
-;;; ============================================================
+;;; ====
 ;;; Conditional Extension
-;;; ============================================================
+;;; ====
 
 ;;; IMPORTANT: For correct conditional semantics, use cond-if-lazy with
 ;;; eval-cond-dict. The thunked version prevents eager evaluation of
@@ -311,9 +311,9 @@
    (lambda (c t-thunk e-thunk)
            (string-append "(if " c " then " (t-thunk) " else " (e-thunk) ")"))))
 
-;;; ============================================================
+;;; ====
 ;;; Lazy/Thunked Conditionals
-;;; ============================================================
+;;; ====
 ;;;
 ;;; For proper short-circuit evaluation, we need thunks.
 
@@ -330,9 +330,9 @@
    (lambda (c t-thunk e-thunk)
            (if c (t-thunk) (e-thunk)))))
 
-;;; ============================================================
+;;; ====
 ;;; Variable Binding Extension
-;;; ============================================================
+;;; ====
 
 ;;; make-let-dict : (Symbol × α × (α → β) → β) × (Symbol → α) → Dict
 (define (make-let-dict let-op var-op)
@@ -392,9 +392,9 @@
            (env-let d 'y (env-lit d 3)
                     (env-add d (env-var d 'x) (env-var d 'y)))))
 
-;;; ============================================================
+;;; ====
 ;;; State Monad Integration
-;;; ============================================================
+;;; ====
 ;;;
 ;;; For stateful DSLs, programs return state transformers.
 
@@ -438,9 +438,9 @@
 (define (run-state computation initial-state)
   (computation initial-state))
 
-;;; ============================================================
+;;; ====
 ;;; Chronicle DSL (Tagless Final Version)
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Narrative engine operations as a tagless final algebra.
 
@@ -490,9 +490,9 @@
 (define (ch-render d run)
   ((dict-ref d 'render) run))
 
-;;; ============================================================
+;;; ====
 ;;; Chronicle Interpreters
-;;; ============================================================
+;;; ====
 
 ;;; Validation interpreter - checks structure without running
 (define validate-chronicle-dict
@@ -534,9 +534,9 @@
    (lambda (run idx) run)
    (lambda (run) run)))
 
-;;; ============================================================
+;;; ====
 ;;; Dictionary Transformers
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Functions that transform dictionaries to add cross-cutting concerns.
 
@@ -576,9 +576,9 @@
                                                            cached))))))
                        (dict-ops d)))))
 
-;;; ============================================================
+;;; ====
 ;;; Composition Utilities
-;;; ============================================================
+;;; ====
 
 ;;; run-both : (Dict → α) × Dict × Dict → (α . β)
 ;;; Run a program with two dictionaries, returning pair of results.
@@ -594,9 +594,9 @@
 ;;; (example-expr-1 (product-dict eval-expr-dict count-expr-dict))
 ;;; => (5 . 4)
 
-;;; ============================================================
+;;; ====
 ;;; Higher-Order Programs
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Programs can be composed and transformed.
 
@@ -613,9 +613,9 @@
 (define (fold-expr d on-lit on-add on-neg)
   (make-expr-dict on-lit on-add on-neg))
 
-;;; ============================================================
+;;; ====
 ;;; Tagless Final + Free Monad Bridge
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Convert between the two representations.
 
@@ -646,9 +646,9 @@
             (expr-neg d ((free-to-tagless (cadr term)) d))]
            [else (error 'free-to-tagless "Unknown term" term)])))
 
-;;; ============================================================
+;;; ====
 ;;; Optimization via Dictionary Transformation
-;;; ============================================================
+;;; ====
 
 ;;; Double negation elimination
 ;;; optimize-neg-neg : Dict → Dict
@@ -695,9 +695,9 @@
          [opt-ast (optimize-expr ast)])
         ((free-to-tagless opt-ast) eval-dict)))
 
-;;; ============================================================
+;;; ====
 ;;; Partial Evaluation
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Specialize programs based on known values.
 
@@ -724,9 +724,9 @@
                                    (list 'dynamic
                                          (lambda () (- ((cadr x)))))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Type-Safe DSL Construction
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Use phantom types for type safety (approximated in Scheme).
 
@@ -776,9 +776,9 @@
                (if (typed-value c) (t-thunk) (e-thunk))
                (error 'if "Type error: expected bool")))))
 
-;;; ============================================================
+;;; ====
 ;;; Summary: The Pattern
-;;; ============================================================
+;;; ====
 ;;;
 ;;; 1. Define algebra as dictionary constructor:
 ;;;    (make-foo-dict op1 op2 ...) -> FooDict

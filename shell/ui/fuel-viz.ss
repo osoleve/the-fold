@@ -15,16 +15,16 @@
 (load "core/util/debug.ss")
 (load "shell/session-debugger.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Configuration
-;;; ============================================================
+;;; ====
 
 (define *viz-width* 60)
 (define *viz-height* 10)
 
-;;; ============================================================
+;;; ====
 ;;; Fuel Timeline
-;;; ============================================================
+;;; ====
 
 ;;; fuel-timeline : Debugger → String
 ;;; Show fuel consumption over time as ASCII graph.
@@ -72,9 +72,9 @@
               "   Step 1" (make-string (- *viz-width* 10) #\space)
               (format "Step ~a\n" n-entries))))))
 
-;;; ============================================================
+;;; ====
 ;;; Fuel Heatmap
-;;; ============================================================
+;;; ====
 
 ;;; fuel-heatmap : Debugger → String
 ;;; Show expressions colored by fuel cost.
@@ -114,9 +114,9 @@
             (string-append (substring str 0 (- max-len 3)) "...")
             (string-append str (make-string (- max-len len) #\space)))))
 
-;;; ============================================================
+;;; ====
 ;;; Fuel Breakdown
-;;; ============================================================
+;;; ====
 
 ;;; fuel-breakdown : Debugger → String
 ;;; Show fuel breakdown by expression type.
@@ -155,9 +155,9 @@
             (substring str 0 len)
             (string-append str (make-string (- len slen) #\space)))))
 
-;;; ============================================================
+;;; ====
 ;;; Full Fuel Report
-;;; ============================================================
+;;; ====
 
 ;;; fuel-report : Debugger → String
 ;;; Generate complete fuel consumption report.
@@ -171,9 +171,9 @@
         
         (string-append
          "\n"
-         "  ============================================================\n"
+         "  ====\n"
          "                      FUEL REPORT\n"
-         "  ============================================================\n\n"
+         "  ====\n\n"
          
          (format "  Status:      ~a\n" status)
          (format "  Budget:      ~a fuel\n" budget)
@@ -195,9 +195,9 @@
          ;; Heatmap
          (fuel-heatmap dbg))))
 
-;;; ============================================================
+;;; ====
 ;;; Display Functions
-;;; ============================================================
+;;; ====
 
 ;;; display-fuel-timeline : Debugger → void
 (define (display-fuel-timeline dbg)
@@ -215,9 +215,9 @@
 (define (display-fuel-report dbg)
   (display (fuel-report dbg)))
 
-;;; ============================================================
+;;; ====
 ;;; REPL Commands
-;;; ============================================================
+;;; ====
 
 ;;; cmd-fuel-report : → void
 (define (cmd-fuel-report)

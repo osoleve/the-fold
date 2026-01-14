@@ -6,13 +6,13 @@
 (load "lattice/physics/diff3d/smooth-collision3d.ss")
 
 (display "\n")
-(display "==============================================================\n")
+(display "====\n")
 (display "         SMOOTH COLLISION 3D TESTS\n")
-(display "==============================================================\n")
+(display "====\n")
 
-;;; ============================================================
+;;; ====
 ;;; SDF Tests
-;;; ============================================================
+;;; ====
 
 (test-group sdf-tests
             
@@ -81,9 +81,9 @@
                      [sdf (traced-sdf-capsule-3d point a b 0.5)])
                     (assert-true (< (abs (- (traced-value sdf) 0.5)) 1e-5)))))
 
-;;; ============================================================
+;;; ====
 ;;; Contact Geometry Tests
-;;; ============================================================
+;;; ====
 
 (test-group contact-tests
             
@@ -126,9 +126,9 @@
                      (lambda (contact normal penetration)
                              (assert-true (< (abs (- (traced-value penetration) 0.5)) 1e-6)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Force Tests
-;;; ============================================================
+;;; ====
 
 (test-group force-tests
             
@@ -180,9 +180,9 @@
                     ;; Force should point up (+y)
                     (assert-true (> (traced-value (traced-vec3-y force)) 0)))))
 
-;;; ============================================================
+;;; ====
 ;;; Material Tests
-;;; ============================================================
+;;; ====
 
 (test-group material-tests
             
@@ -200,9 +200,9 @@
                    (assert-equal 50 (soft-material-3d-alpha mat))
                    (assert-equal 0.3 (soft-material-3d-friction mat)))))
 
-;;; ============================================================
+;;; ====
 ;;; Friction Tests
-;;; ============================================================
+;;; ====
 
 (test-group friction-tests
             
@@ -226,9 +226,9 @@
                     ;; Friction magnitude should approach μ * Fn = 50
                     (assert-true (< (traced-value friction-mag) 60)))))
 
-;;; ============================================================
+;;; ====
 ;;; Wall Boundary Tests
-;;; ============================================================
+;;; ====
 
 (test-group wall-tests
             
@@ -258,9 +258,9 @@
                     ;; Force should push in +X direction
                     (assert-true (> (traced-value (traced-vec3-x force)) 0)))))
 
-;;; ============================================================
+;;; ====
 ;;; Gradient Verification Tests
-;;; ============================================================
+;;; ====
 
 (test-group gradient-tests
             
@@ -288,8 +288,8 @@
                     (assert-true (< (abs (- (vec3-y normal) 1.0)) 1e-4))
                     (assert-true (< (abs (vec3-z normal)) 1e-4)))))
 
-;;; ============================================================
+;;; ====
 ;;; Run all tests
-;;; ============================================================
+;;; ====
 
 (run-all-tests)

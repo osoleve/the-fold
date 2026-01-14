@@ -20,9 +20,9 @@
        (approx= (vec3-y v1) (vec3-y v2) eps)
        (approx= (vec3-z v1) (vec3-z v2) eps)))
 
-;;; ============================================================
+;;; ====
 ;;; Primitive Construction Tests
-;;; ============================================================
+;;; ====
 
 (define-test "point3 creation"
   (let ([p (point3 1 2 3)])
@@ -133,9 +133,9 @@
         (assert-equal (obb-axes box) axes)
         (assert-equal (obb-extents box) extents)))
 
-;;; ============================================================
+;;; ====
 ;;; Transformation Tests
-;;; ============================================================
+;;; ====
 
 (define-test "transform-identity"
   (let* ([m (transform-identity)]
@@ -217,9 +217,9 @@
         ;; Vector should not be affected by translation
         (assert-true (vec3-approx= result v 0.001))))
 
-;;; ============================================================
+;;; ====
 ;;; Distance Tests
-;;; ============================================================
+;;; ====
 
 (define-test "distance-point-point"
   (let* ([p1 (vec3 0 0 0)]
@@ -259,9 +259,9 @@
         (assert-true (> dist 0))
         (assert-true (approx= dist 5.0 0.001))))
 
-;;; ============================================================
+;;; ====
 ;;; Intersection Tests
-;;; ============================================================
+;;; ====
 
 (define-test "intersect-ray-plane hit"
   (let* ([ray (ray3 (vec3 0 10 0) (vec3 0 -1 0))]
@@ -334,9 +334,9 @@
          [t (intersect-ray-triangle ray tri)])
         (assert-false t)))
 
-;;; ============================================================
+;;; ====
 ;;; Containment Tests
-;;; ============================================================
+;;; ====
 
 (define-test "point-in-sphere? inside"
   (let* ([point (vec3 1 1 1)]
@@ -373,9 +373,9 @@
          [tri (triangle3 (vec3 0 0 0) (vec3 1 0 0) (vec3 0 1 0))])
         (assert-false (point-in-triangle? point tri))))
 
-;;; ============================================================
+;;; ====
 ;;; Closest Point Tests
-;;; ============================================================
+;;; ====
 
 (define-test "closest-point-on-line"
   (let* ([point (vec3 5 10 0)]
@@ -402,9 +402,9 @@
          [closest (closest-point-on-aabb point box)])
         (assert-true (vec3-approx= closest (vec3 10 5 5) 0.001))))
 
-;;; ============================================================
+;;; ====
 ;;; Area and Volume Tests
-;;; ============================================================
+;;; ====
 
 (define-test "triangle-area"
   (let* ([tri (triangle3 (vec3 0 0 0) (vec3 2 0 0) (vec3 0 2 0))]
@@ -429,9 +429,9 @@
         ;; Volume = 2 * 3 * 4 = 24
         (assert-true (approx= vol 24.0 0.001))))
 
-;;; ============================================================
+;;; ====
 ;;; Utility Tests
-;;; ============================================================
+;;; ====
 
 (define-test "barycentric-coords at vertex"
   (let* ([p (vec3 0 0 0)]
@@ -476,9 +476,9 @@
   (let* ([box (aabb-from-points '())])
         (assert-true (aabb? box))))
 
-;;; ============================================================
+;;; ====
 ;;; Coordinate Conversion Tests
-;;; ============================================================
+;;; ====
 
 (define-test "vec3-to-spherical at +Z"
   (let* ([v (vec3 0.001 0 1)]  ; Slight offset to avoid atan(0,0)
@@ -516,9 +516,9 @@
         (assert-true (approx= r 1.41421 0.001))  ; sqrt(2)
         (assert-true (approx= theta 0.7854 0.001))))  ; pi/4
 
-;;; ============================================================
+;;; ====
 ;;; Summary
-;;; ============================================================
+;;; ====
 
 (display "\n")
 (display "Tests run:    ")

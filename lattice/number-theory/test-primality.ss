@@ -4,9 +4,9 @@
 
 (load "lattice/number-theory/primality.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Test Framework
-;;; ============================================================
+;;; ====
 
 (define *test-count* 0)
 (define *pass-count* 0)
@@ -39,13 +39,13 @@
   (test name #f actual))
 
 (define (run-tests)
-  (display "================================================================\n")
+  (display "====\n")
   (display "           PRIMALITY AND FACTORIZATION TEST SUITE\n")
-  (display "================================================================\n\n")
+  (display "====\n\n")
 
-  ;;; ============================================================
+  ;;; ====
   ;;; Primality Testing: prime?
-  ;;; ============================================================
+  ;;; ====
 
   (display "--- Primality Testing (prime?) ---\n")
 
@@ -86,9 +86,9 @@
   (test-false "prime? 1001 (7×11×13)" (prime? 1001))
   (test-false "prime? 1024 (2¹⁰)" (prime? 1024))
 
-  ;;; ============================================================
+  ;;; ====
   ;;; Miller-Rabin Primality Testing
-  ;;; ============================================================
+  ;;; ====
 
   (display "\n--- Miller-Rabin Primality Testing ---\n")
 
@@ -112,9 +112,9 @@
   (test "miller-rabin? agrees with prime? on 997" (prime? 997) (miller-rabin? 997))
   (test "miller-rabin? agrees with prime? on 1000" (prime? 1000) (miller-rabin? 1000))
 
-  ;;; ============================================================
+  ;;; ====
   ;;; Trial Division Factorization
-  ;;; ============================================================
+  ;;; ====
 
   (display "\n--- Trial Division Factorization ---\n")
 
@@ -126,9 +126,9 @@
   (test "trial-division 360" '(2 2 2 3 3 5) (trial-division 360))
   (test "trial-division 1001" '(7 11 13) (trial-division 1001))
 
-  ;;; ============================================================
+  ;;; ====
   ;;; General Factorization
-  ;;; ============================================================
+  ;;; ====
 
   (display "\n--- General Factorization ---\n")
 
@@ -144,9 +144,9 @@
   (test "product of factors of 1000" 1000 (apply * (factorize 1000)))
   (test "product of factors of 12345" 12345 (apply * (factorize 12345)))
 
-  ;;; ============================================================
+  ;;; ====
   ;;; Prime Factorization (exponent form)
-  ;;; ============================================================
+  ;;; ====
 
   (display "\n--- Prime Factorization (exponent form) ---\n")
 
@@ -156,9 +156,9 @@
   (test "prime-factorization 360" '((2 . 3) (3 . 2) (5 . 1)) (prime-factorization 360))
   (test "prime-factorization 1000" '((2 . 3) (5 . 3)) (prime-factorization 1000))
 
-  ;;; ============================================================
+  ;;; ====
   ;;; Divisors
-  ;;; ============================================================
+  ;;; ====
 
   (display "\n--- Divisors ---\n")
 
@@ -173,9 +173,9 @@
   (test "divisors count of 12" 6 (length (divisors 12)))
   (test "divisors count of 360" 24 (length (divisors 360)))
 
-  ;;; ============================================================
+  ;;; ====
   ;;; LCM and GCD
-  ;;; ============================================================
+  ;;; ====
 
   (display "\n--- LCM and GCD ---\n")
 
@@ -195,9 +195,9 @@
   ;; lcm × gcd = a × b
   (test "lcm×gcd = 12×18" (* 12 18) (* (lcm 12 18) (gcd 12 18)))
 
-  ;;; ============================================================
+  ;;; ====
   ;;; Euler's Totient Function
-  ;;; ============================================================
+  ;;; ====
 
   (display "\n--- Euler's Totient Function ---\n")
 
@@ -216,9 +216,9 @@
   (test "euler-totient 8 (2³)" 4 (euler-totient 8))
   (test "euler-totient 27 (3³)" 18 (euler-totient 27))
 
-  ;;; ============================================================
+  ;;; ====
   ;;; Carmichael Lambda Function
-  ;;; ============================================================
+  ;;; ====
 
   (display "\n--- Carmichael Lambda Function ---\n")
 
@@ -232,9 +232,9 @@
   (test "carmichael-lambda 7 (prime)" 6 (carmichael-lambda 7))
   (test "carmichael-lambda 13 (prime)" 12 (carmichael-lambda 13))
 
-  ;;; ============================================================
+  ;;; ====
   ;;; Möbius Function
-  ;;; ============================================================
+  ;;; ====
 
   (display "\n--- Möbius Function ---\n")
 
@@ -246,9 +246,9 @@
   (test "mobius 8 (2³)" 0 (mobius 8))
   (test "mobius 30 (2×3×5)" -1 (mobius 30))
 
-  ;;; ============================================================
+  ;;; ====
   ;;; Radical
-  ;;; ============================================================
+  ;;; ====
 
   (display "\n--- Radical ---\n")
 
@@ -258,9 +258,9 @@
   (test "radical 12" 6 (radical 12))
   (test "radical 360" 30 (radical 360))
 
-  ;;; ============================================================
+  ;;; ====
   ;;; Prime Navigation
-  ;;; ============================================================
+  ;;; ====
 
   (display "\n--- Prime Navigation ---\n")
 
@@ -279,9 +279,9 @@
   (test "nth-prime 10" 29 (nth-prime 10))
   (test "nth-prime 25" 97 (nth-prime 25))
 
-  ;;; ============================================================
+  ;;; ====
   ;;; Primes Up To (Sieve)
-  ;;; ============================================================
+  ;;; ====
 
   (display "\n--- Primes Up To (Sieve) ---\n")
 
@@ -291,9 +291,9 @@
   (test "prime-pi 30" 10 (prime-pi 30))
   (test "prime-pi 100" 25 (prime-pi 100))
 
-  ;;; ============================================================
+  ;;; ====
   ;;; Coprimality
-  ;;; ============================================================
+  ;;; ====
 
   (display "\n--- Coprimality ---\n")
 
@@ -302,9 +302,9 @@
   (test-true "coprime? 1 anything" (coprime? 1 100))
   (test-true "coprime? primes" (coprime? 7 13))
 
-  ;;; ============================================================
+  ;;; ====
   ;;; Perfect Powers and Roots
-  ;;; ============================================================
+  ;;; ====
 
   (display "\n--- Perfect Powers and Roots ---\n")
 
@@ -328,9 +328,9 @@
   (test "is-perfect-power? 16" '(4 . 2) (is-perfect-power? 16))
   (test "is-perfect-power? 7" #f (is-perfect-power? 7))
 
-  ;;; ============================================================
+  ;;; ====
   ;;; Jacobi Symbol
-  ;;; ============================================================
+  ;;; ====
 
   (display "\n--- Jacobi Symbol ---\n")
 
@@ -350,13 +350,13 @@
   (test "jacobi(2/7) = legendre(2/7)" (legendre-symbol 2 7) (jacobi-symbol 2 7))
   (test "jacobi(3/11) = legendre(3/11)" (legendre-symbol 3 11) (jacobi-symbol 3 11))
 
-  ;;; ============================================================
+  ;;; ====
   ;;; Summary
-  ;;; ============================================================
+  ;;; ====
 
-  (display "\n================================================================\n")
+  (display "\n====\n")
   (display "                    TEST RESULTS\n")
-  (display "================================================================\n\n")
+  (display "====\n\n")
   (display (format "Tests passed: ~a\n" *pass-count*))
   (display (format "Tests failed: ~a\n" *fail-count*))
   (display (format "Total tests:  ~a\n\n" *test-count*))

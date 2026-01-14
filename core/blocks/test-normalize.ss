@@ -104,9 +104,9 @@ Test 8: Complex expression
 (define norm-complex (normalize complex-expr))
 (display "  normalized: ") (display norm-complex) (newline)
 
-;;; ============================================================
+;;; ====
 ;;; Algebraic Normalization Tests
-;;; ============================================================
+;;; ====
 
 (display "
 Test 9: Algebraic normalization - Commutativity
@@ -233,9 +233,9 @@ Test 19: Commutative expressions same algebraic hash
       [h2 (hash-sexpr-algebraic 'expr '(+ a (+ b c)))])
   (test "associative same hash" h1 h2))
 
-;;; ============================================================
+;;; ====
 ;;; Version 2 Normalization Tests
-;;; ============================================================
+;;; ====
 
 (display "
 Test 20: η-reduction

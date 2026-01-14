@@ -15,9 +15,9 @@
 (load "lattice/linalg/vec2.ss")
 (load "lattice/autodiff/reverse-diff.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Traced Vec2 Construction
-;;; ============================================================
+;;; ====
 
 ;;; traced-vec2 : TracedValue × TracedValue → TracedVec2
 ;;; Create a traced 2D vector from traced x and y components.
@@ -40,9 +40,9 @@
   (traced-vec2 (make-traced-var 0 tape)
                (make-traced-var 0 tape)))
 
-;;; ============================================================
+;;; ====
 ;;; Conversion Between Vec2 and TracedVec2
-;;; ============================================================
+;;; ====
 
 ;;; lift-vec2 : Vec2 × Tape → TracedVec2
 ;;; Convert regular vec2 to traced vec2 (creates traced variables).
@@ -67,9 +67,9 @@
 (define (traced-vec2->list tv)
   (list (traced-vec2-x tv) (traced-vec2-y tv)))
 
-;;; ============================================================
+;;; ====
 ;;; Basic Arithmetic
-;;; ============================================================
+;;; ====
 
 ;;; traced-vec2-add : TracedVec2 × TracedVec2 → TracedVec2
 ;;; Vector addition with gradient tracking.
@@ -113,9 +113,9 @@
   (traced-vec2 (traced-div (traced-vec2-x v) s)
                (traced-div (traced-vec2-y v) s)))
 
-;;; ============================================================
+;;; ====
 ;;; Products
-;;; ============================================================
+;;; ====
 
 ;;; traced-vec2-dot : TracedVec2 × TracedVec2 → TracedValue
 ;;; Dot product.
@@ -130,9 +130,9 @@
   (traced-sub (traced-mul (traced-vec2-x a) (traced-vec2-y b))
               (traced-mul (traced-vec2-y a) (traced-vec2-x b))))
 
-;;; ============================================================
+;;; ====
 ;;; Length and Distance
-;;; ============================================================
+;;; ====
 
 ;;; traced-vec2-magnitude-sq : TracedVec2 → TracedValue
 ;;; Squared magnitude (avoids sqrt).
@@ -168,9 +168,9 @@
 (define (traced-vec2-smooth-distance a b epsilon)
   (traced-vec2-smooth-magnitude (traced-vec2-sub a b) epsilon))
 
-;;; ============================================================
+;;; ====
 ;;; Normalization
-;;; ============================================================
+;;; ====
 
 ;;; traced-vec2-normalize : TracedVec2 → TracedVec2
 ;;; Return unit vector in same direction.
@@ -193,9 +193,9 @@
            (lift-vec2-const (vec2-zero))
            (traced-vec2-normalize v))))
 
-;;; ============================================================
+;;; ====
 ;;; Rotation and Transformation
-;;; ============================================================
+;;; ====
 
 ;;; traced-vec2-rotate : TracedVec2 × TracedValue → TracedVec2
 ;;; Rotate vector by angle (radians).
@@ -245,9 +245,9 @@
 (define (traced-vec2-reject a b)
   (traced-vec2-sub a (traced-vec2-project a b)))
 
-;;; ============================================================
+;;; ====
 ;;; Interpolation
-;;; ============================================================
+;;; ====
 
 ;;; traced-vec2-lerp : TracedVec2 × TracedVec2 × TracedValue → TracedVec2
 ;;; Linear interpolation between a and b.
@@ -256,9 +256,9 @@
   (traced-vec2-add (traced-vec2-scale a (traced-sub 1 t))
                    (traced-vec2-scale b t)))
 
-;;; ============================================================
+;;; ====
 ;;; Comparison (Non-differentiable - use carefully)
-;;; ============================================================
+;;; ====
 
 ;;; traced-vec2-min : TracedVec2 × TracedVec2 → TracedVec2
 ;;; Component-wise minimum.
@@ -282,9 +282,9 @@
        (traced-vec2 (if (> ax bx) (traced-vec2-x a) (traced-vec2-x b))
                     (if (> ay by) (traced-vec2-y a) (traced-vec2-y b)))))
 
-;;; ============================================================
+;;; ====
 ;;; Smooth Approximations for Non-differentiable Operations
-;;; ============================================================
+;;; ====
 
 ;;; traced-softplus : TracedValue × Number → TracedValue
 ;;; Smooth approximation of ReLU: log(1 + exp(α*x)) / α
@@ -316,9 +316,9 @@
 (define (traced-smooth-clamp x lo hi alpha)
   (traced-softmin2 (traced-softmax2 x lo alpha) hi alpha))
 
-;;; ============================================================
+;;; ====
 ;;; Gradient Utilities
-;;; ============================================================
+;;; ====
 
 ;;; vec2-gradient : ((TracedVec2) → TracedValue) × Vec2 → Vec2
 ;;; Compute gradient of scalar function f at point p.

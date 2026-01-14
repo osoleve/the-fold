@@ -25,9 +25,9 @@
 (load "lattice/physics/diff/traced-body.ss")
 (load "lattice/physics/diff/smooth-collision.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Circle-Circle Collision Response
-;;; ============================================================
+;;; ====
 
 ;;; traced-circle-collision-force : TracedBody × Number × TracedBody × Number × SoftMaterial → (TracedVec2 × TracedValue)
 ;;; Compute soft contact force and torque between two circular bodies.
@@ -82,9 +82,9 @@
                                          force-b dt)])
                                 (values new-a new-b))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Circle-Ground Collision
-;;; ============================================================
+;;; ====
 
 ;;; traced-ground-collision-force : TracedBody × Number × Number × SoftMaterial → (TracedVec2 × TracedValue)
 ;;; Soft contact force from horizontal ground at y = ground-y.
@@ -130,9 +130,9 @@
             (traced-apply-torque body torque dt)
             force dt))))
 
-;;; ============================================================
+;;; ====
 ;;; Multi-Body Collision System
-;;; ============================================================
+;;; ====
 
 ;;; For simulating many bodies, we accumulate forces then integrate.
 
@@ -191,9 +191,9 @@
          pairs)
         (values forces torques)))
 
-;;; ============================================================
+;;; ====
 ;;; Restitution Coefficient (for hard contact comparison)
-;;; ============================================================
+;;; ====
 
 ;;; In soft contact, restitution is implicitly controlled by stiffness/damping.
 ;;; For comparison with impulse-based methods, we can compute effective restitution.
@@ -212,9 +212,9 @@
             0  ; overdamped = no bounce
             (exp (/ (* (- pi) zeta) (sqrt (- 1 (* zeta zeta))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Contact Detection Utilities
-;;; ============================================================
+;;; ====
 
 ;;; These help determine which pairs need collision response.
 ;;; Note: For differentiable physics, we often want soft forces even
@@ -232,9 +232,9 @@
 (define (traced-circle-ground-overlapping? pos radius ground-y)
   (< (traced-value (traced-vec2-y pos)) (+ ground-y radius)))
 
-;;; ============================================================
+;;; ====
 ;;; Complete Collision Step
-;;; ============================================================
+;;; ====
 
 ;;; traced-collision-step : TracedBody × Number × (List (TracedBody × Number)) × Number × SoftMaterial × Number → TracedBody
 ;;; Apply collision forces from other bodies and ground for one timestep.

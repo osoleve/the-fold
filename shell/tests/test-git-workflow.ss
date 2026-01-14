@@ -29,9 +29,9 @@
        (printf "    Expected: ~s\n" expected)
        (printf "    Actual:   ~s\n" actual))))
 
-;;; ============================================================
+;;; ====
 ;;; Conflict Detection Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Testing has-conflicts? ===\n")
 
@@ -47,11 +47,11 @@
               (has-conflicts? #f)
               #f)
 
-;;; ============================================================
+;;; ====
 ;;; Test Summary
-;;; ============================================================
+;;; ====
 
-(printf "\n========================================\n")
+(printf "\n====\n")
 (printf "Test Results:\n")
 (printf "  Total:  ~a\n" test-count)
 (printf "  Passed: ~a\n" pass-count)

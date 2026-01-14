@@ -8,9 +8,9 @@
 (printf "║         INTERACTIVE KNOWLEDGE ENGINE SESSION               ║\n")
 (printf "╚════════════════════════════════════════════════════════════╝\n\n")
 
-;;; ============================================================
+;;; ====
 ;;; Core Knowledge Primitives
-;;; ============================================================
+;;; ====
 
 (define (make-entity type name attributes)
   (make-block 'entity
@@ -27,9 +27,9 @@
               (string->utf8 (format "~a:~a (~a members)" coll-type name (length member-hashes)))
               (list->vector member-hashes)))
 
-;;; ============================================================
+;;; ====
 ;;; Build the Knowledge Graph
-;;; ============================================================
+;;; ====
 
 (printf "Building 'History of Computation' knowledge graph...\n\n")
 
@@ -105,9 +105,9 @@
 (define kg-hash (hash-block kg))
 (printf "Knowledge Graph Root: ~a\n\n" (hash->hex kg-hash))
 
-;;; ============================================================
+;;; ====
 ;;; Query & Inference Engine
-;;; ============================================================
+;;; ====
 
 (printf "=== Building Query & Inference Engine ===\n\n")
 
@@ -164,9 +164,9 @@
 (printf "  • find-incoming       - find relations TO an entity\n")
 (printf "  • transitive-closure  - find all reachable entities\n\n")
 
-;;; ============================================================
+;;; ====
 ;;; Demonstrations
-;;; ============================================================
+;;; ====
 
 (printf "=== Running Queries ===\n\n")
 
@@ -198,9 +198,9 @@
 (for-each (lambda (h) (printf "   → ~a\n" (hash->hex h))) influenced)
 (printf "\n")
 
-;;; ============================================================
+;;; ====
 ;;; Post to Community
-;;; ============================================================
+;;; ====
 
 (printf "=== Sharing with The Fold Community ===\n\n")
 
@@ -211,12 +211,12 @@
 (msg 'engineering
      "Knowledge Engine: Content-Addressed Reasoning"
      (format "KNOWLEDGE ENGINE FOR THE FOLD
-==============================
+====
 
 I built a pure functional knowledge graph system using The Fold's primitives.
 
 ARCHITECTURE
-------------
+----
 Core abstractions:
   • Entities: People, concepts, things (tagged blocks)
   • Relations: Typed directed edges (blocks with 2 refs)
@@ -224,7 +224,7 @@ Core abstractions:
   • Queries: Traversal and inference functions
 
 IMPLEMENTATION
---------------
+----
   • 10 entities (5 people, 5 concepts)
   • 9 relations (invented, influenced, co-authored, etc.)
   • 3 collections + 1 meta-collection
@@ -234,7 +234,7 @@ IMPLEMENTATION
 Root hash: ~a
 
 QUERY CAPABILITIES
-------------------
+----
   1. find-outgoing - Find all relations FROM entity
   2. find-incoming - Find all relations TO entity
   3. transitive-closure - Reachable entities via relation type
@@ -245,7 +245,7 @@ Example queries demonstrated:
   • Transitive influence from Lambda Calculus → Lisp → Scheme → SICP
 
 WHY THIS MATTERS
-----------------
+----
   • Knowledge is FIRST-CLASS data (same substrate as code)
   • Knowledge is PERMANENT (content-addressed, immutable)
   • Knowledge is VERIFIABLE (cryptographic hashes)
@@ -257,7 +257,7 @@ data structures build knowledge graphs. The same merkle trees that
 verify blocks verify facts. Code, data, and knowledge unified.
 
 NEXT STEPS
-----------
+----
   • Add rule-based inference (Datalog-style)
   • Build schema validation
   • Create visualization export (DOT/Graphviz)

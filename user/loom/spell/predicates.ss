@@ -11,9 +11,9 @@
 ;;;   Faction predicates: hostile?, friendly?, neutral?, etc.
 ;;;   World predicates: tile-is?, blocked?, visible?, etc.
 
-;;; ============================================================
+;;; ====
 ;;; Entity Health Predicates
-;;; ============================================================
+;;; ====
 
 ;;; alive? : Entity -> Bool
 ;;; Entity has HP > 0.
@@ -59,9 +59,9 @@
            (= (stats-hp stats) (stats-max-hp stats))
            #t)))
 
-;;; ============================================================
+;;; ====
 ;;; Entity State Predicates
-;;; ============================================================
+;;; ====
 
 ;;; has-component? : Entity × Symbol -> Bool
 ;;; Entity has a component of the given type.
@@ -90,9 +90,9 @@
   (let ([blocker (entity-get-component entity 'blocker)])
        (and blocker (alist-ref blocker 'blocks-sight #f))))
 
-;;; ============================================================
+;;; ====
 ;;; Position Predicates
-;;; ============================================================
+;;; ====
 
 ;;; adjacent? : Entity × Entity -> Bool
 ;;; Entities are within 1 tile of each other (including diagonal).
@@ -139,9 +139,9 @@
 (define (min-distance? e1 e2 range)
   (>= (entity-distance e1 e2) range))
 
-;;; ============================================================
+;;; ====
 ;;; Faction Predicates
-;;; ============================================================
+;;; ====
 
 ;;; hostile? : Entity × Entity -> Bool
 ;;; Entity 1 considers entity 2 hostile.
@@ -209,9 +209,9 @@
                                     (hostile? entity e)
                                     (in-range? entity e range)))))
 
-;;; ============================================================
+;;; ====
 ;;; World Position Predicates
-;;; ============================================================
+;;; ====
 
 ;;; tile-is? : World × Point × Symbol -> Bool
 ;;; Tile at point is of the given type.
@@ -235,9 +235,9 @@
   (let ([entities (world-entities-at world (point-x point) (point-y point))])
        (not (null? entities))))
 
-;;; ============================================================
+;;; ====
 ;;; Player-Relative Predicates
-;;; ============================================================
+;;; ====
 
 ;;; player-nearby? : World × Entity × [Nat] -> Bool
 ;;; The player is within range of the entity.
@@ -262,9 +262,9 @@
                 (<= (entity-distance entity player) sight-range))
            #f)))
 
-;;; ============================================================
+;;; ====
 ;;; Combat Predicates
-;;; ============================================================
+;;; ====
 
 ;;; can-attack? : Entity × Entity -> Bool
 ;;; Entity 1 can attack entity 2 (adjacent and hostile).
@@ -289,9 +289,9 @@
 (define (weaker-than? e1 e2)
   (< (entity-attack e1) (entity-attack e2)))
 
-;;; ============================================================
+;;; ====
 ;;; Composite Predicates
-;;; ============================================================
+;;; ====
 
 ;;; safe? : World × Entity -> Bool
 ;;; No hostile entities nearby.
@@ -325,9 +325,9 @@
                                                   (in-range? entity e 10))))])
        (> (length enemies) (+ 1 (length allies)))))
 
-;;; ============================================================
+;;; ====
 ;;; Item Predicates
-;;; ============================================================
+;;; ====
 
 ;;; has-item? : Entity × Symbol -> Bool
 ;;; Entity has an item with the given tag in inventory.
@@ -355,9 +355,9 @@
            (null? (alist-ref inv 'items '()))
            #t)))
 
-;;; ============================================================
+;;; ====
 ;;; Quick Reference
-;;; ============================================================
+;;; ====
 
 #|
 Entity Health:

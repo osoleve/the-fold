@@ -34,16 +34,16 @@
 ;;; Note: We use Chez's built-in file operations for simplicity
 ;;; In production, this would use capability-gated shell/fs.ss
 
-;;; ============================================================
+;;; ====
 ;;; Configuration
-;;; ============================================================
+;;; ====
 
 ;;; Base directory for CAS storage
 (define *cas-root* ".fold/cas")
 
-;;; ============================================================
+;;; ====
 ;;; Path Utilities
-;;; ============================================================
+;;; ====
 
 ;;; cas-path : Bytevector → String
 ;;; Compute the filesystem path for a block hash.
@@ -76,9 +76,9 @@
          (substring path 0 i)]
         [else (loop (- i 1))])))
 
-;;; ============================================================
+;;; ====
 ;;; Persistence Operations
-;;; ============================================================
+;;; ====
 
 ;;; persist-block! : Bytevector × Block → void
 ;;; Write a block to disk. Idempotent - safe to call multiple times.
@@ -107,9 +107,9 @@
                        (bytes->block bytes)))
            #f)))
 
-;;; ============================================================
+;;; ====
 ;;; Hydration (Loading All Blocks)
-;;; ============================================================
+;;; ====
 
 ;;; hydrate-cas! : void → Nat
 ;;; Load all blocks from disk into the in-memory CAS.
@@ -137,9 +137,9 @@
             (directory-list *cas-root*))
            count)))
 
-;;; ============================================================
+;;; ====
 ;;; Store with Persistence
-;;; ============================================================
+;;; ====
 
 ;;; store-persistent! : Block → Bytevector
 ;;; Store a block in both memory and disk.
@@ -158,9 +158,9 @@
                  (hashtable-set! *store* hash blk))
            blk)))
 
-;;; ============================================================
+;;; ====
 ;;; Utilities
-;;; ============================================================
+;;; ====
 
 ;;; cas-stats : void → Association list
 ;;; Get statistics about the CAS (memory and disk).

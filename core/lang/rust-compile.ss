@@ -8,9 +8,9 @@
 (load "core/base/prelude.ss")
 (load "core/lang/rust-codegen.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Configuration
-;;; ============================================================
+;;; ====
 
 ;;; Path to the rust-accel crate (relative to project root)
 (define *rust-accel-path* "shell/ffi/rust-accel")
@@ -19,9 +19,9 @@
 (define *rust-generated-path*
   (string-append *rust-accel-path* "/src/generated"))
 
-;;; ============================================================
+;;; ====
 ;;; Standalone Compilation (rustc)
-;;; ============================================================
+;;; ====
 
 ;;; compile-rust-lib : String × (List α) [× Nat] → (Result String Error)
 ;;; Emit code to a file and compile it as a dynamic library.
@@ -48,9 +48,9 @@
 (define (cleanup-rust-lib name)
   (system (format "rm -f ~a.rs lib~a.so" name name)))
 
-;;; ============================================================
+;;; ====
 ;;; Crate Integration (cargo)
-;;; ============================================================
+;;; ====
 
 ;;; compile-to-crate : String × (List α) [× Nat] → (Result String Error)
 ;;; Generate Rust code and add it to the rust-accel crate.
@@ -198,9 +198,9 @@
         [(f (car lst)) => (lambda (v) (loop (cdr lst) (cons v result)))]
         [else (loop (cdr lst) result)])))
 
-;;; ============================================================
+;;; ====
 ;;; Build Commands
-;;; ============================================================
+;;; ====
 
 ;;; rust-build! : → (Result String Error)
 ;;; Build the rust-accel crate with cargo.
@@ -231,9 +231,9 @@
 (define (rust-clean!)
   (system (format "cd ~a && cargo clean" *rust-accel-path*)))
 
-;;; ============================================================
+;;; ====
 ;;; End-to-End Compilation
-;;; ============================================================
+;;; ====
 
 ;;; compile-and-build! : String × (List α) [× Nat] → (Result String Error)
 ;;; Generate code, add to crate, and rebuild.

@@ -25,9 +25,9 @@
 ══════════════════════════════════════════════════════════
 ")
 
-;;; ============================================================
+;;; ====
 ;;; Basic Traced Evaluation
-;;; ============================================================
+;;; ====
 
 (test-group basic-traced-eval
             (define-test traced-literal
@@ -59,9 +59,9 @@
                     (assert-true (traced? (cadr result)))
                     (assert-= (traced-value (cadr result)) 3.14 0.0001))))
 
-;;; ============================================================
+;;; ====
 ;;; Traced Primitives
-;;; ============================================================
+;;; ====
 
 (test-group traced-primitives
             (define-test traced-add
@@ -120,9 +120,9 @@
                     (assert-equal 'ok (car result))
                     (assert-= (traced-value (cadr result)) 1 0.0001))))
 
-;;; ============================================================
+;;; ====
 ;;; Traced Let Bindings
-;;; ============================================================
+;;; ====
 
 (test-group traced-let
             (define-test traced-let-simple
@@ -149,9 +149,9 @@
                     (assert-equal 'ok (car result))
                     (assert-= (traced-value (cadr result)) 9 0.0001))))
 
-;;; ============================================================
+;;; ====
 ;;; Traced Function Calls
-;;; ============================================================
+;;; ====
 
 (test-group traced-call
             (define-test traced-identity-call
@@ -175,9 +175,9 @@
                     (assert-equal 'ok (car result))
                     (assert-= (traced-value (cadr result)) 7 0.0001))))
 
-;;; ============================================================
+;;; ====
 ;;; Traced If Expressions
-;;; ============================================================
+;;; ====
 
 (test-group traced-if
             (define-test traced-if-true
@@ -202,9 +202,9 @@
                     (assert-equal 'ok (car result))
                     (assert-= (traced-value (cadr result)) 10 0.0001))))
 
-;;; ============================================================
+;;; ====
 ;;; eval-and-grad High-Level API
-;;; ============================================================
+;;; ====
 
 (test-group eval-and-grad
             (define-test eval-and-grad-identity
@@ -310,9 +310,9 @@
                           (assert-= val 6 0.0001)
                           (assert-= (car grads) 2 0.0001))))
 
-;;; ============================================================
+;;; ====
 ;;; Fuel Consumption
-;;; ============================================================
+;;; ====
 
 (test-group traced-fuel
             (define-test traced-fuel-consumption
@@ -341,9 +341,9 @@
                     ;; Should have consumed some fuel for the operations
                     (assert-true (< (caddr result) 1000)))))
 
-;;; ============================================================
+;;; ====
 ;;; Mixed Traced/Constant Values
-;;; ============================================================
+;;; ====
 
 (test-group mixed-values
             (define-test mixed-traced-and-constant
@@ -365,9 +365,9 @@
                     (assert-equal 'ok (car result))
                     (assert-= (traced-value (cadr result)) 8 0.0001))))
 
-;;; ============================================================
+;;; ====
 ;;; Non-Differentiable Primitives
-;;; ============================================================
+;;; ====
 
 (test-group non-differentiable-prims
             (define-test traced-non-diff-string-append
@@ -399,9 +399,9 @@
                          (assert-true (pair? lst))
                          (assert-equal 3 (car lst))))))
 
-;;; ============================================================
+;;; ====
 ;;; Gradient Correctness (Integration with reverse-diff)
-;;; ============================================================
+;;; ====
 
 (test-group gradient-correctness
             (define-test gradient-correct-square
@@ -446,9 +446,9 @@
                           ;; df/dx = exp(x²) * 2x, at x=0 → 0
                           (assert-= (car grads) 0 0.0001))))
 
-;;; ============================================================
+;;; ====
 ;;; Error Handling
-;;; ============================================================
+;;; ====
 
 (test-group traced-errors
             (define-test traced-div-by-zero
@@ -463,9 +463,9 @@
                     (assert-equal 'error (car result))
                     (assert-equal 'unbound-variable (cadr result)))))
 
-;;; ============================================================
+;;; ====
 ;;; Summary
-;;; ============================================================
+;;; ====
 
 (display "
 ══════════════════════════════════════════════════════════

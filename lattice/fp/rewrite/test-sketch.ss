@@ -18,9 +18,9 @@
 
 (load "core/test-framework.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Test goals.ss in isolation first
-;;; ============================================================
+;;; ====
 
 (load "lattice/fp/rewrite/goals.ss")
 
@@ -57,9 +57,9 @@
 (define alg-add-hypothesis add-hypothesis)
 (define alg-goal-context goal-context)
 
-;;; ============================================================
+;;; ====
 ;;; Goal Construction Tests (goals.ss)
-;;; ============================================================
+;;; ====
 
 (test-group goal-construction
             
@@ -128,9 +128,9 @@
               (assert-false (alg-id-goal? (make-assoc-goal '() '+)))
               (assert-false (alg-inv-goal? (make-eq-goal '() 'x 'y)))))
 
-;;; ============================================================
+;;; ====
 ;;; Goal Decomposition Tests
-;;; ============================================================
+;;; ====
 
 (test-group goal-decomposition
             
@@ -185,9 +185,9 @@
                      [decomposed (decompose-goal g)])
                     (assert-equal 2 (length decomposed)))))
 
-;;; ============================================================
+;;; ====
 ;;; Goal Utilities Tests
-;;; ============================================================
+;;; ====
 
 (test-group goal-utilities
             
@@ -239,9 +239,9 @@
                      [g2 (alg-add-hypothesis g '(z . Nat))])
                     (assert-true (if (assq 'z (alg-goal-context g2)) #t #f)))))
 
-;;; ============================================================
+;;; ====
 ;;; Convenience Constructors Tests
-;;; ============================================================
+;;; ====
 
 (test-group convenience-constructors
             
@@ -261,9 +261,9 @@
                    (assert-equal 1 (length goals))
                    (assert-true (if (alg-assoc-goal? (car goals)) #t #f)))))
 
-;;; ============================================================
+;;; ====
 ;;; Now load sketch.ss and proof-tactics.ss
-;;; ============================================================
+;;; ====
 
 (load "lattice/fp/rewrite/sketch.ss")
 (load "lattice/fp/rewrite/proof-tactics.ss")
@@ -272,9 +272,9 @@
 (define (sketch-goal? x)
   (and (pair? x) (assq 'from x) (assq 'to x) (assq 'status x)))
 
-;;; ============================================================
+;;; ====
 ;;; Sketch Construction Tests (sketch.ss)
-;;; ============================================================
+;;; ====
 
 (test-group sketch-construction
             
@@ -304,9 +304,9 @@
                    (assert-equal '() (sketch-history sk))
                    (assert-equal 1 (sketch-goal-count sk)))))
 
-;;; ============================================================
+;;; ====
 ;;; Sketch Goal Management Tests
-;;; ============================================================
+;;; ====
 
 (test-group sketch-goals
             
@@ -341,9 +341,9 @@
                    (assert-true (if (goal-has-target? g1) #t #f))
                    (assert-false (goal-has-target? g2)))))
 
-;;; ============================================================
+;;; ====
 ;;; Sketch Undo Tests
-;;; ============================================================
+;;; ====
 
 (test-group sketch-undo
             
@@ -370,9 +370,9 @@
                      [sk2 (sketch-undo sk)])
                     (assert-equal 'expr (sketch-initial sk2)))))
 
-;;; ============================================================
+;;; ====
 ;;; Hole Step Tests
-;;; ============================================================
+;;; ====
 
 (test-group hole-steps
             
@@ -391,9 +391,9 @@
               (let ([sk (make-sketch 'expr '())])
                    (assert-equal 0 (sketch-hole-count sk)))))
 
-;;; ============================================================
+;;; ====
 ;;; Goal Navigation Tests
-;;; ============================================================
+;;; ====
 
 (test-group goal-navigation
             
@@ -413,9 +413,9 @@
                    (let ([sk2 (sketch-prev-goal sk)])
                         (assert-equal 0 (sketch-focused sk2))))))
 
-;;; ============================================================
+;;; ====
 ;;; Context Operations Tests
-;;; ============================================================
+;;; ====
 
 (test-group context-operations
             
@@ -433,9 +433,9 @@
                      [sk2 (sketch-clear-context sk)])
                     (assert-equal '() (sketch-context sk2)))))
 
-;;; ============================================================
+;;; ====
 ;;; Proof Tactics Tests (proof-tactics.ss)
-;;; ============================================================
+;;; ====
 
 (test-group proof-tactics-basic
             
@@ -456,9 +456,9 @@
                    (assert-true (if (goal-trivial? g1) #t #f))
                    (assert-false (goal-trivial? g2)))))
 
-;;; ============================================================
+;;; ====
 ;;; Tactic Result Tests
-;;; ============================================================
+;;; ====
 
 (test-group tactic-results
             
@@ -479,9 +479,9 @@
                      [r (tactic-success '() builder)])
                     (assert-equal builder (tactic-builder r)))))
 
-;;; ============================================================
+;;; ====
 ;;; Core Tactics Tests
-;;; ============================================================
+;;; ====
 
 (test-group core-tactics
             
@@ -523,9 +523,9 @@
                          (assert-equal 'y (goal-lhs g2))
                          (assert-equal 'z (goal-rhs g2))))))
 
-;;; ============================================================
+;;; ====
 ;;; Strategy-Based Tactics Tests
-;;; ============================================================
+;;; ====
 
 (test-group strategy-tactics
             
@@ -551,9 +551,9 @@
                      [r (tactic-fail g)])
                     (assert-true (if (tactic-failure? r) #t #f)))))
 
-;;; ============================================================
+;;; ====
 ;;; Tactic Combinator Tests
-;;; ============================================================
+;;; ====
 
 (test-group tactic-combinators
             
@@ -579,9 +579,9 @@
                      [r ((tactic-orelse tactic-fail tactic-fail) g)])
                     (assert-true (if (tactic-failure? r) #t #f)))))
 
-;;; ============================================================
+;;; ====
 ;;; Automation Tactics Tests
-;;; ============================================================
+;;; ====
 
 (test-group automation-tactics
             
@@ -602,9 +602,9 @@
               ;; Just verify the function exists and is callable
               (assert-true (if (procedure? tactic-search) #t #f))))
 
-;;; ============================================================
+;;; ====
 ;;; Tactic Repeat Tests
-;;; ============================================================
+;;; ====
 
 (test-group tactic-repeat-tests
             
@@ -619,9 +619,9 @@
                     ;; Should hit fuel limit with tactic-id
                     (assert-true (if (tactic-success? r) #t #f)))))
 
-;;; ============================================================
+;;; ====
 ;;; Strategy Lifting Tests
-;;; ============================================================
+;;; ====
 
 (test-group strategy-lifting
             
@@ -638,9 +638,9 @@
                      [r (tactic g)])
                     (assert-true (if (tactic-failure? r) #t #f)))))
 
-;;; ============================================================
+;;; ====
 ;;; Prove-with-tactics Integration Tests
-;;; ============================================================
+;;; ====
 
 (test-group prove-integration
             
@@ -664,9 +664,9 @@
                    ;; sym gives goal x = x, then refl solves
                    (assert-true (if (ok? result) #t #f)))))
 
-;;; ============================================================
+;;; ====
 ;;; Sketch Display Tests
-;;; ============================================================
+;;; ====
 
 (test-group sketch-display
             
@@ -682,9 +682,9 @@
                     (assert-equal 0 (car prog))  ; 0 discharged
                     (assert-equal 1 (cdr prog)))))  ; 1 total
 
-;;; ============================================================
+;;; ====
 ;;; End-to-End Integration Tests
-;;; ============================================================
+;;; ====
 
 (test-group integration-tests
             
@@ -720,9 +720,9 @@
                          (assert-true (if (tactic-success? (tactic-refl sub1)) #t #f))
                          (assert-true (if (tactic-success? (tactic-refl sub2)) #t #f))))))
 
-;;; ============================================================
+;;; ====
 ;;; Tactic-Split Tests
-;;; ============================================================
+;;; ====
 
 (test-group tactic-split-tests
             
@@ -866,14 +866,14 @@
               (assert-equal '(A B C) (and-conjuncts '(and A B C)))
               (assert-equal '() (and-conjuncts '(or P Q)))))
 
-;;; ============================================================
+;;; ====
 ;;; Run All Tests
-;;; ============================================================
+;;; ====
 
 (display "\n")
-(display "==================================================================\n")
+(display "====\n")
 (display "  Proof Sketcher Test Suite\n")
 (display "  Testing: goals.ss, sketch.ss, proof-tactics.ss\n")
-(display "==================================================================\n\n")
+(display "====\n\n")
 
 (run-all-tests)

@@ -30,9 +30,9 @@
 (load "lattice/fp/control-systems/transfer-function.ss")
 (load "lattice/fp/control-systems/state-space.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Pole-Based Stability
-;;; ============================================================
+;;; ====
 
 ;;; Continuous-time system is stable if all poles have Re(s) < 0.
 ;;; Discrete-time system is stable if all poles have |z| < 1.
@@ -75,9 +75,9 @@
 (define (discrete-stable? poles)
   (all? (lambda (p) (< (complex-magnitude p) 1)) poles))
 
-;;; ============================================================
+;;; ====
 ;;; Routh-Hurwitz Criterion
-;;; ============================================================
+;;; ====
 
 ;;; The Routh-Hurwitz criterion determines polynomial stability
 ;;; without explicitly computing roots.
@@ -179,9 +179,9 @@
            [change (if (< (* a b) 0) 1 0)])
           (+ change (count-sign-changes (cdr nums))))]))
 
-;;; ============================================================
+;;; ====
 ;;; Lyapunov Stability
-;;; ============================================================
+;;; ====
 
 ;;; For continuous-time systems, solve the Lyapunov equation:
 ;;;   A'P + PA = -Q
@@ -297,9 +297,9 @@
                                              (inner (+ j 1)
                                                     (+ row-sum (expt (matrix-ref M i j) 2))))))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Root Locus
-;;; ============================================================
+;;; ====
 
 ;;; Root locus shows how closed-loop poles move as gain K varies.
 ;;; For open-loop G(s)H(s) = N(s)/D(s), closed-loop poles satisfy:
@@ -361,9 +361,9 @@
                                 (iota diff))])
                   (list angles centroid)))))
 
-;;; ============================================================
+;;; ====
 ;;; Nyquist Criterion
-;;; ============================================================
+;;; ====
 
 ;;; The Nyquist criterion determines closed-loop stability by
 ;;; examining encirclements of the -1 point by the Nyquist plot.
@@ -439,9 +439,9 @@
         ;; For stability: N + P = 0, so N = -P
         (= encirclements (- rhp-poles))))
 
-;;; ============================================================
+;;; ====
 ;;; Gain and Phase Margins
-;;; ============================================================
+;;; ====
 
 ;;; Gain margin: how much we can increase gain before instability.
 ;;; Phase margin: how much phase lag we can add before instability.
@@ -533,9 +533,9 @@
                                (cons w i))
                          (loop (+ i 1))))))))
 
-;;; ============================================================
+;;; ====
 ;;; BIBO Stability
-;;; ============================================================
+;;; ====
 
 ;;; BIBO (Bounded-Input Bounded-Output) stability:
 ;;; A system is BIBO stable if every bounded input produces bounded output.
@@ -555,9 +555,9 @@
   (let ([poles (tf-poles tf)])
        (discrete-stable? poles)))
 
-;;; ============================================================
+;;; ====
 ;;; Controllability and Observability
-;;; ============================================================
+;;; ====
 
 ;;; Controllability matrix: C = [B AB A²B ... A^{n-1}B]
 ;;; System is controllable if rank(C) = n
@@ -661,9 +661,9 @@
          [rank (stability-matrix-rank O)])
         (= rank n)))
 
-;;; ============================================================
+;;; ====
 ;;; Utility Functions
-;;; ============================================================
+;;; ====
 
 ;;; stability-matrix-rank : Matrix → Nat
 ;;; Compute matrix rank using row echelon form.
@@ -746,9 +746,9 @@
 ;;; pi constant
 (define pi 3.141592653589793)
 
-;;; ============================================================
+;;; ====
 ;;; Display Functions
-;;; ============================================================
+;;; ====
 
 ;;; stability-report : TF → String
 ;;; Generate a stability report for a transfer function.

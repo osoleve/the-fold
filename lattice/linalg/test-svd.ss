@@ -45,9 +45,9 @@
 
 (printf "\n=== SVD Tests ===\n\n")
 
-;;; ============================================================
+;;; ====
 ;;; Basic SVD Tests
-;;; ============================================================
+;;; ====
 
 (printf "--- Basic SVD ---\n")
 
@@ -96,9 +96,9 @@
                    [v (caddr result)])
                   (test-true "3x3: reconstruction" (verify-svd a u sigma v 1e-6)))))
 
-;;; ============================================================
+;;; ====
 ;;; Rectangular Matrix Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n--- Rectangular Matrices ---\n")
 
@@ -144,9 +144,9 @@
                    [v (caddr result)])
                   (test-true "4x2: reconstruction" (verify-svd a u sigma v 1e-6)))))
 
-;;; ============================================================
+;;; ====
 ;;; Thin SVD Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n--- Thin SVD ---\n")
 
@@ -180,9 +180,9 @@
                   (test "Thin 2x3: V rows" 3 (matrix-rows v))
                   (test "Thin 2x3: V cols" 2 (matrix-cols v)))))
 
-;;; ============================================================
+;;; ====
 ;;; Singular Values Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n--- Singular Values ---\n")
 
@@ -206,9 +206,9 @@
                         (loop (+ i 1) (+ sum (expt (vector-ref sv i) 2)))))])
       (test-approx "Frobenius norm preserved" (expt frob-a 2) sv-sum 1e-8))
 
-;;; ============================================================
+;;; ====
 ;;; Pseudoinverse Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n--- Pseudoinverse ---\n")
 
@@ -246,9 +246,9 @@
                    [err (matrix-frobenius-norm diff)])
                   (test-true "A+AA+ = A+" (< err 1e-6)))))
 
-;;; ============================================================
+;;; ====
 ;;; Low-Rank Approximation Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n--- Low-Rank Approximation ---\n")
 
@@ -278,9 +278,9 @@
 (let ([result (low-rank-approx (identity 3) 5)])
      (test-true "Rank > min(m,n) errors" (is-error? result)))
 
-;;; ============================================================
+;;; ====
 ;;; Matrix Rank Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n--- Matrix Rank ---\n")
 
@@ -307,9 +307,9 @@
        [r (matrix-rank a)])
       (test "3x2 full-rank matrix" 2 r))
 
-;;; ============================================================
+;;; ====
 ;;; Orthogonality Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n--- Orthogonality Properties ---\n")
 
@@ -335,9 +335,9 @@
        [err (matrix-frobenius-norm diff)])
       (test-true "V is orthogonal (V^TV = I)" (< err 1e-6)))
 
-;;; ============================================================
+;;; ====
 ;;; Edge Cases
-;;; ============================================================
+;;; ====
 
 (printf "\n--- Edge Cases ---\n")
 
@@ -361,9 +361,9 @@
                   (test-approx "Zero SV: σ₂ = 0" 0.0 (matrix-ref sigma 1 1) 1e-8)
                   (test-true "Zero SV: reconstruction" (verify-svd a u sigma v)))))
 
-;;; ============================================================
+;;; ====
 ;;; Numerical Stability Tests
-;;; ============================================================
+;;; ====
 
 (printf "\n--- Numerical Stability ---\n")
 
@@ -386,9 +386,9 @@
                   (test-approx "Large cond: σ₁ = 1000" 1000.0 (matrix-ref sigma 0 0) 1e-6)
                   (test-approx "Large cond: σ₂ = 0.001" 0.001 (matrix-ref sigma 1 1) 1e-9))))
 
-;;; ============================================================
+;;; ====
 ;;; Summary
-;;; ============================================================
+;;; ====
 
 (printf "\n=== SVD Test Summary ===\n")
 (printf "Passed: ~a\n" tests-passed)

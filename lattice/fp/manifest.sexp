@@ -30,9 +30,9 @@ Key design principles:
 
   (aliases (fp functional))
 
-  ;;; ============================================================
+  ;;; ====
   ;;; Exports by Submodule
-  ;;; ============================================================
+  ;;; ====
 
   (exports (
     ;; control/ — Monads, Effects, Continuations
@@ -452,9 +452,9 @@ Key design principles:
     make-rewrite-trace trace-step show-trace
   ))
 
-  ;;; ============================================================
+  ;;; ====
   ;;; Modules by Subdirectory
-  ;;; ============================================================
+  ;;; ====
 
   (modules (
     ((subdir "control")
@@ -559,9 +559,9 @@ Key design principles:
        "sketch.ss")))    ; Program sketching with holes
   ))
 
-  ;;; ============================================================
+  ;;; ====
   ;;; Design Patterns
-  ;;; ============================================================
+  ;;; ====
 
   (patterns (
     ((pattern "Dictionary-Passing Style")
@@ -585,9 +585,9 @@ Key design principles:
      (description "Effects as first-class values with composable handlers")
      (benefits "Modular effect handling, effect polymorphism"))))
 
-  ;;; ============================================================
+  ;;; ====
   ;;; Testing
-  ;;; ============================================================
+  ;;; ====
 
   (testing (
     ((framework "Property-Based Testing")
@@ -598,9 +598,9 @@ Key design principles:
      (description "Automated verification of type class laws")
      (location "lattice/fp/rewrite/laws.ss"))))
 
-  ;;; ============================================================
+  ;;; ====
   ;;; Future Work
-  ;;; ============================================================
+  ;;; ====
 
   (future-work (
     "High-performance BigNum in fold-rs (Rust FFI)"

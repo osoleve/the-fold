@@ -3,9 +3,9 @@
 ;;; Validates Satin specifications before compilation.
 ;;; Collects all issues for batch reporting.
 
-;;; ============================================================
+;;; ====
 ;;; Issue Structure
-;;; ============================================================
+;;; ====
 
 ;;; Issues are: (satin-issue level code message span details)
 ;;;   level: 'error | 'warning | 'info
@@ -35,9 +35,9 @@
   (and (satin-issue? i)
        (eq? (satin-issue-level i) 'warning)))
 
-;;; ============================================================
+;;; ====
 ;;; Issue Construction Helpers
-;;; ============================================================
+;;; ====
 
 (define (satin-error code message span details)
   (satin-issue 'error code message span details))
@@ -48,9 +48,9 @@
 (define (satin-info code message span details)
   (satin-issue 'info code message span details))
 
-;;; ============================================================
+;;; ====
 ;;; Issue Formatting
-;;; ============================================================
+;;; ====
 
 (define (satin-format-issue issue)
   (let ([level (satin-issue-level issue)]
@@ -70,9 +70,9 @@
   at " (span->string span))
             ""))))
 
-;;; ============================================================
+;;; ====
 ;;; Validation Functions
-;;; ============================================================
+;;; ====
 
 ;;; satin-validate : SatinSpec → (List Issue)
 ;;; Validate a Satin specification and return all issues.
@@ -163,9 +163,9 @@
        
        (reverse issues)))
 
-;;; ============================================================
+;;; ====
 ;;; Node Validation
-;;; ============================================================
+;;; ====
 
 (define (satin-validate-node node node-ids dialogue-ids issues err warn)
   (let ([node-id (satin-node-id node)]
@@ -232,9 +232,9 @@
                              `((node . ,node-id)))))
         on-enter)))
 
-;;; ============================================================
+;;; ====
 ;;; Dialogue Validation
-;;; ============================================================
+;;; ====
 
 (define (satin-validate-dialogue dialogue issues err warn)
   (let* ([dialogue-id (satin-dialogue-id dialogue)]
@@ -268,9 +268,9 @@
                        choices)))
          nodes)))
 
-;;; ============================================================
+;;; ====
 ;;; Quest Validation
-;;; ============================================================
+;;; ====
 
 (define (satin-validate-quest quest issues err warn)
   (let ([quest-id (satin-quest-id quest)]
@@ -295,9 +295,9 @@
                                         `((quest . ,quest-id)))))))
         steps)))
 
-;;; ============================================================
+;;; ====
 ;;; Exercise Validation
-;;; ============================================================
+;;; ====
 
 (define (satin-validate-exercise exercise node-ids issues err warn)
   (let ([ex-id (satin-exercise-id exercise)]
@@ -333,9 +333,9 @@
                              `((exercise . ,ex-id)))))
         on-pass)))
 
-;;; ============================================================
+;;; ====
 ;;; Suggestion Generation
-;;; ============================================================
+;;; ====
 
 ;;; Generate suggestions for a misspelled ID
 (define (satin-find-suggestions target candidates)

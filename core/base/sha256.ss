@@ -12,9 +12,9 @@
 ;;;
 ;;; This is a BASE module — no internal core dependencies.
 
-;;; ============================================================
+;;; ====
 ;;; Local Utilities (for self-containment)
-;;; ============================================================
+;;; ====
 
 ;;; iota : Nat → (List Nat)
 ;;; Generate list [0, 1, ..., n-1].
@@ -24,9 +24,9 @@
            (reverse acc)
            (loop (+ i 1) (cons i acc)))))
 
-;;; ============================================================
+;;; ====
 ;;; 32-bit Arithmetic (mod 2^32) using Fixnums
-;;; ============================================================
+;;; ====
 
 ;;; u32 : Nat → Nat
 ;;; Mask to 32-bit unsigned integer.
@@ -57,9 +57,9 @@
   (syntax-rules ()
     [(_ x n) (fxarithmetic-shift-right x n)]))
 
-;;; ============================================================
+;;; ====
 ;;; SHA-256 Functions
-;;; ============================================================
+;;; ====
 
 ;;; Ch : Nat × Nat × Nat → Nat
 ;;; SHA-256 Ch function: choose bits from y or z based on x.
@@ -108,9 +108,9 @@
                   (fxxor (rotr32 x 19)
                          (shr x 10)))]))
 
-;;; ============================================================
+;;; ====
 ;;; Constants
-;;; ============================================================
+;;; ====
 
 ;;; Initial hash values (first 32 bits of fractional parts of
 ;;; square roots of first 8 primes)
@@ -138,9 +138,9 @@
             #x748f82ee #x78a5636f #x84c87814 #x8cc70208
             #x90befffa #xa4506ceb #xbef9a3f7 #xc67178f2))
 
-;;; ============================================================
+;;; ====
 ;;; Message Padding
-;;; ============================================================
+;;; ====
 
 ;;; pad-message : Bytevector → Bytevector
 ;;; Pad to multiple of 64 bytes (512 bits).
@@ -163,9 +163,9 @@
         (bytevector-u64-set! result (- padded-len 8) bit-len 'big)
         result))
 
-;;; ============================================================
+;;; ====
 ;;; Message Schedule
-;;; ============================================================
+;;; ====
 
 ;;; make-schedule : Bytevector × Nat → (FxVector Nat)
 ;;; Create 64-word message schedule from 64-byte block at offset.
@@ -185,9 +185,9 @@
                               (fxvector-ref W (fx- i 16)))))
        W))
 
-;;; ============================================================
+;;; ====
 ;;; Compression
-;;; ============================================================
+;;; ====
 
 ;;; compress : (FxVector Nat) × (FxVector Nat) → (FxVector Nat)
 ;;; One round of compression (H, W) → H'
@@ -224,9 +224,9 @@
                  (u32+ (fxvector-ref H 6) g)
                  (u32+ (fxvector-ref H 7) h))))
 
-;;; ============================================================
+;;; ====
 ;;; Main Entry Point
-;;; ============================================================
+;;; ====
 
 ;;; sha256 : Bytevector → Bytevector
 ;;; Compute SHA-256 hash (32 bytes).
@@ -259,9 +259,9 @@
                                  (string-ref hex-chars (modulo b 16)))))
                    (iota 32)))))
 
-;;; ============================================================
+;;; ====
 ;;; Hash/Hex Conversion Utilities
-;;; ============================================================
+;;; ====
 
 ;;; hash->hex : Bytevector → String
 ;;; Convert a hash (bytevector) to lowercase hex string.
@@ -297,9 +297,9 @@
    [(char<=? #\A c #\F) (+ 10 (- (char->integer c) (char->integer #\A)))]
    [else 0]))
 
-;;; ============================================================
+;;; ====
 ;;; Block Hashing (requires core/block.ss loaded first)
-;;; ============================================================
+;;; ====
 
 ;;; hash-block : Block → Bytevector
 ;;; Compute the versioned address of a block.

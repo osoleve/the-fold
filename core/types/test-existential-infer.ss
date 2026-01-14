@@ -12,9 +12,9 @@
 (load "core/types/infer.ss")
 (load "core/types/dep-infer.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Test Framework
-;;; ============================================================
+;;; ====
 
 (define *test-count* 0)
 (define *pass-count* 0)
@@ -143,9 +143,9 @@
        (write result)
        (newline))))
 
-;;; ============================================================
+;;; ====
 ;;; Test Setup
-;;; ============================================================
+;;; ====
 
 ;;; Helper to synthesize with empty context
 (define (synth-empty expr)
@@ -163,9 +163,9 @@
            (loop (cddr bindings)
                  (dep-ctx-extend ctx (car bindings) (cadr bindings))))))
 
-;;; ============================================================
+;;; ====
 ;;; Run Tests
-;;; ============================================================
+;;; ====
 
 (define (run-tests)
   (display "
@@ -174,9 +174,9 @@
 ")
   (reset-skolem-counter!)
   
-  ;; --------------------------------------------------------
+  ;; ----
   ;; Existential Type Synthesis (existential-infer-synth)
-  ;; --------------------------------------------------------
+  ;; ----
   (display "--- Existential Type Synthesis ---
 ")
   
@@ -196,9 +196,9 @@
   (test-any-error "malformed existential: missing body"
                   (synth-empty '(∃ ((a : Type)))))
   
-  ;; --------------------------------------------------------
+  ;; ----
   ;; Pack Expression Synthesis (existential-infer-synth-pack)
-  ;; --------------------------------------------------------
+  ;; ----
   (display "
 --- Pack Expression Synthesis ---
 ")
@@ -244,9 +244,9 @@
                    (synth-empty pack-expr)
                    'pack-witness-count-mismatch))
   
-  ;; --------------------------------------------------------
+  ;; ----
   ;; Unpack Expression Synthesis (existential-infer-synth-unpack)
-  ;; --------------------------------------------------------
+  ;; ----
   (display "
 --- Unpack Expression Synthesis ---
 ")
@@ -301,9 +301,9 @@
                          (synth-with-ctx unpack-expr ctx)
                          'unpack-type-var-count-mismatch)))
   
-  ;; --------------------------------------------------------
+  ;; ----
   ;; Integration Tests
-  ;; --------------------------------------------------------
+  ;; ----
   (display "
 --- Integration Tests ---
 ")
@@ -319,9 +319,9 @@
   (test-ok "existential in function type"
            (synth-empty '(-> (∃ ((a : Type)) a) Int)))
   
-  ;; --------------------------------------------------------
+  ;; ----
   ;; Summary
-  ;; --------------------------------------------------------
+  ;; ----
   (display "
 === Summary ===
 ")

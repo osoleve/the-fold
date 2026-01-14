@@ -9,16 +9,16 @@
 (load "lattice/pipeline/context.ss")
 (load "shell/json.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Discord Configuration
-;;; ============================================================
+;;; ====
 
 ;;; Discord outbox path relative to project root
 (define *discord-outbox-dir* ".fold-repl/discord-outbox")
 
-;;; ============================================================
+;;; ====
 ;;; Discord Effect Interpretation
-;;; ============================================================
+;;; ====
 
 ;;; interpret-discord-effect : Payload -> Context -> State -> Input -> (Result . State)
 (define (interpret-discord-effect payload ctx state input)
@@ -80,9 +80,9 @@
                                payload)
                     state)])))
 
-;;; ============================================================
+;;; ====
 ;;; Helper Functions
-;;; ============================================================
+;;; ====
 
 ;;; expand-template-with-ctx : String -> Context -> Input -> String
 (define (expand-template-with-ctx template ctx input)
@@ -91,9 +91,9 @@
                                (ctx-env ctx)))])
        (expand-template template bindings)))
 
-;;; ============================================================
+;;; ====
 ;;; Discord Queue Helpers
-;;; ============================================================
+;;; ====
 ;;; These write JSON files to the outbox for bridge.js to pick up.
 
 ;;; discord-queue-post : Symbol -> Maybe String -> String -> Context -> ()
@@ -186,9 +186,9 @@
                        (lambda ()
                                (display (json->string data)))))
 
-;;; ============================================================
+;;; ====
 ;;; Context Accessors
-;;; ============================================================
+;;; ====
 
 ;;; get-agent-name : Context -> String
 ;;; Get agent name from context.
@@ -206,9 +206,9 @@
            (symbol->string (persona-tier persona))
            "builder")))
 
-;;; ============================================================
+;;; ====
 ;;; Time Utilities
-;;; ============================================================
+;;; ====
 
 ;;; current-iso-timestamp : -> String
 ;;; Get current time in ISO 8601 format.
@@ -230,9 +230,9 @@
        (+ (* (time-second t) 1000)
           (quotient (time-nanosecond t) 1000000))))
 
-;;; ============================================================
+;;; ====
 ;;; Path Utilities
-;;; ============================================================
+;;; ====
 
 ;;; path-directory : String -> String
 ;;; Get directory portion of path.

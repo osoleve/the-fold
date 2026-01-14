@@ -30,9 +30,9 @@
 ══════════════════════════════════════════════════════════
 ")
 
-;;; ============================================================
+;;; ====
 ;;; State Vector Operations
-;;; ============================================================
+;;; ====
 
 (test-group state-ops-tests
             (define-test state-add-test
@@ -52,9 +52,9 @@
               (let ([result (state-madd '(1 2 3) 2 '(1 1 1))])
                    (assert-equal '(3 4 5) result))))
 
-;;; ============================================================
+;;; ====
 ;;; Euler Method Tests
-;;; ============================================================
+;;; ====
 
 (test-group euler-tests
             (define-test euler-constant
@@ -91,9 +91,9 @@
                     ;; v' = v + dt*(-x) = 0 + 0.1*(-1) = -0.1
                     (assert-vec-= result '(1 -0.1) 0.0001))))
 
-;;; ============================================================
+;;; ====
 ;;; Midpoint Method Tests
-;;; ============================================================
+;;; ====
 
 (test-group midpoint-tests
             (define-test midpoint-constant
@@ -123,9 +123,9 @@
                     ;; y = 0 + 1*1 = 1 (exact!)
                     (assert-vec-= result '(1) 0.0001))))
 
-;;; ============================================================
+;;; ====
 ;;; Heun Method Tests
-;;; ============================================================
+;;; ====
 
 (test-group heun-tests
             (define-test heun-constant
@@ -143,9 +143,9 @@
                     ;; y = 1 + 0.5*(1+2) = 1 + 1.5 = 2.5
                     (assert-vec-= result '(2.5) 0.0001))))
 
-;;; ============================================================
+;;; ====
 ;;; RK4 Method Tests
-;;; ============================================================
+;;; ====
 
 (test-group rk4-tests
             (define-test rk4-constant
@@ -191,9 +191,9 @@
                     ;; RK4 is exact for polynomials up to degree 4
                     (assert-= (car result) 1 0.0001))))
 
-;;; ============================================================
+;;; ====
 ;;; Symplectic Euler Tests
-;;; ============================================================
+;;; ====
 
 (test-group symplectic-euler-tests
             (define-test symplectic-euler-free-particle
@@ -217,9 +217,9 @@
                     (assert-vec-= new-pos '(1) 0.0001)
                     (assert-vec-= new-vel '(1) 0.0001))))
 
-;;; ============================================================
+;;; ====
 ;;; Velocity Verlet Tests
-;;; ============================================================
+;;; ====
 
 (test-group velocity-verlet-tests
             (define-test velocity-verlet-free-particle
@@ -252,9 +252,9 @@
                     (assert-= (car new-pos) (cos 0.1) 0.001)
                     (assert-= (car new-vel) (- (sin 0.1)) 0.001))))
 
-;;; ============================================================
+;;; ====
 ;;; Leapfrog Tests
-;;; ============================================================
+;;; ====
 
 (test-group leapfrog-tests
             (define-test leapfrog-free-particle
@@ -274,9 +274,9 @@
                     (assert-= (car new-pos) (cos 0.1) 0.001)
                     (assert-= (car new-vel) (- (sin 0.1)) 0.001))))
 
-;;; ============================================================
+;;; ====
 ;;; Multi-Step Integration Tests
-;;; ============================================================
+;;; ====
 
 (test-group integration-tests
             (define-test integrate-constant
@@ -303,9 +303,9 @@
                     ;; Velocity should be close to 0
                     (assert-= (car final-vel) 0 0.02))))
 
-;;; ============================================================
+;;; ====
 ;;; Energy Conservation Tests
-;;; ============================================================
+;;; ====
 
 (test-group energy-tests
             (define-test kinetic-energy-test
@@ -351,9 +351,9 @@
                     ;; Euler should have noticeable energy growth
                     (assert-true (> (max-energy-drift energies) 0.01)))))
 
-;;; ============================================================
+;;; ====
 ;;; Order of Accuracy Tests
-;;; ============================================================
+;;; ====
 
 (test-group accuracy-tests
             (define-test euler-is-first-order
@@ -390,9 +390,9 @@
                     ;; Error ratio should be about 16 (2^4) for fourth-order
                     (assert-true (> (/ error1 error2) 10)))))
 
-;;; ============================================================
+;;; ====
 ;;; Summary
-;;; ============================================================
+;;; ====
 
 (display "
 ══════════════════════════════════════════════════════════

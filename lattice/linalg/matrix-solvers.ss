@@ -10,9 +10,9 @@
 ;;;   - matrix-decomp.ss
 ;;;   - matrix-solvers.ss (this file)
 
-;;; ============================================================
+;;; ====
 ;;; Basic Substitution Utilities
-;;; ============================================================
+;;; ====
 
 ;;; matrix-forward-substitute : Matrix × Vec → Vec
 ;;; Solve Ly = b where L is lower triangular.
@@ -46,9 +46,9 @@
                  (vector-set! x i (/ (- (vector-ref y i) sum)
                                      (matrix-ref u i i)))))))
 
-;;; ============================================================
+;;; ====
 ;;; LU-Based Solvers
-;;; ============================================================
+;;; ====
 
 ;;; matrix-solve : Matrix × Vec → Vec | Error
 ;;; Solve Ax = b for square A using LU decomposition.
@@ -79,9 +79,9 @@
                                [(= i n)]
                                (vector-set! inv-data (+ (* i n) j) (vector-ref xj i)))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Determinant
-;;; ============================================================
+;;; ====
 
 ;;; permutation-parity : Vec Nat → Int
 ;;; Compute the parity of a permutation vector. Returns 1 for even, -1 for odd.
@@ -118,9 +118,9 @@
                       [parity (permutation-parity p)])
                      (* parity det-u))))))
 
-;;; ============================================================
+;;; ====
 ;;; Least Squares
-;;; ============================================================
+;;; ====
 
 ;;; matrix-least-squares : Matrix × Vec → Vec | Error
 ;;; Solve the overdetermined system Ax = b in the least-squares sense using QR.
@@ -136,9 +136,9 @@
                   [qt-b (matrix-vec-mul (matrix-transpose q) b)])
                  (matrix-back-substitute r qt-b)))))
 
-;;; ============================================================
+;;; ====
 ;;; Gaussian Elimination and Rank
-;;; ============================================================
+;;; ====
 
 ;;; matrix-gauss-elim : Matrix → Matrix
 ;;; Compute Row Echelon Form (REF) using Gaussian elimination with partial pivoting.
@@ -198,9 +198,9 @@
                         (loop (+ i 1) (+ rank 1))]
                        [else (row-loop (+ j 1))]))))))
 
-;;; ============================================================
+;;; ====
 ;;; Numerical Properties
-;;; ============================================================
+;;; ====
 
 ;;; matrix-condition-number : Matrix → Num | Error
 ;;; Compute the condition number of a matrix using the Frobenius norm.
@@ -211,9 +211,9 @@
            inv
            (* (frobenius-norm a) (frobenius-norm inv)))))
 
-;;; ============================================================
+;;; ====
 ;;; Toeplitz Solvers
-;;; ============================================================
+;;; ====
 
 ;;; levinson-durbin : Vec → Vec
 ;;; Solve the Yule-Walker equations using Levinson-Durbin recursion.

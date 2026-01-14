@@ -34,9 +34,9 @@
 (load "lattice/fp/control/free.ss")
 (load "lattice/fp/control/effects.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Part 1: Data Types à la Carte
-;;; ============================================================
+;;; ====
 ;;;
 ;;; The key insight: if we have functors F and G, their coproduct
 ;;; F + G is also a functor. We can then use Free (F + G) to get
@@ -44,9 +44,9 @@
 ;;;
 ;;; Functor coproduct: (+ f g) a = Inl (f a) | Inr (g a)
 
-;;; ------------------------------------------------------------
+;;; ----
 ;;; Functor Coproduct
-;;; ------------------------------------------------------------
+;;; ----
 
 ;;; inl : f a -> (+ f g) a
 ;;; Inject into left of coproduct
@@ -88,9 +88,9 @@
               (inl (fmap-f f (from-inl fg)))
               (inr (fmap-g f (from-inr fg))))))
 
-;;; ------------------------------------------------------------
+;;; ----
 ;;; N-ary Coproduct Fmap (Row-based)
-;;; ------------------------------------------------------------
+;;; ----
 ;;;
 ;;; Generate fmap for arbitrary functor rows, not just binary coproducts.
 
@@ -124,9 +124,9 @@
 (define (register-fmap alist tag fmap-fn)
   (cons (cons tag fmap-fn) alist))
 
-;;; ------------------------------------------------------------
+;;; ----
 ;;; Functor Rows (Type-safe Injection)
-;;; ------------------------------------------------------------
+;;; ----
 ;;;
 ;;; To enable clean injection like `(inject (lit 5))` without
 ;;; manually tracking coproduct structure, we use functor rows.
@@ -174,9 +174,9 @@
            result
            (loop (cdr fs) (functor-row-extend result (car fs))))))
 
-;;; ------------------------------------------------------------
+;;; ----
 ;;; Path-based Injection
-;;; ------------------------------------------------------------
+;;; ----
 ;;;
 ;;; Given a functor row (F G H), to inject into G:
 ;;;   - G is at index 1
@@ -194,9 +194,9 @@
 ;;; Inject a functor value at the given index
 (define inject-by-index build-injection-path)
 
-;;; ------------------------------------------------------------
+;;; ----
 ;;; Smart Injection with Tags
-;;; ------------------------------------------------------------
+;;; ----
 ;;;
 ;;; For convenience, we tag functor values so injection can be automatic.
 
@@ -224,9 +224,9 @@
                 (build-injection-path index value)
                 (error 'inject "Functor not in row" tag row)))))
 
-;;; ------------------------------------------------------------
+;;; ----
 ;;; Example: Arithmetic Functor
-;;; ------------------------------------------------------------
+;;; ----
 
 ;;; ArithF a = LitF Int a | AddF a a a | NegF a a
 ;;; (where the last 'a' in each is the continuation)
@@ -253,9 +253,9 @@
              [(neg) (list 'neg (f (cadr cmd)))]
              [else (error 'arith-fmap "Unknown arithmetic operation" tag)])))
 
-;;; ------------------------------------------------------------
+;;; ----
 ;;; Example: State Functor
-;;; ------------------------------------------------------------
+;;; ----
 
 ;;; StateF s a = GetF (s -> a) | PutF s a
 ;;;
@@ -287,9 +287,9 @@
   (list (cons 'Arith arith-fmap)
         (cons 'State state-f-fmap)))
 
-;;; ------------------------------------------------------------
+;;; ----
 ;;; Free over Coproduct
-;;; ------------------------------------------------------------
+;;; ----
 
 ;;; lift-arith : ArithF (Free (Arith + r) a) -> Free (Arith + r) a
 ;;; Lift arithmetic into Free over a coproduct containing Arith
@@ -300,9 +300,9 @@
 (define (lift-state row cmd)
   (free (inject row (make-tagged-functor 'State cmd))))
 
-;;; ------------------------------------------------------------
+;;; ----
 ;;; Combined DSL Operations
-;;; ------------------------------------------------------------
+;;; ----
 
 ;;; For a combined Arith+State DSL, we need operations that work
 ;;; with the coproduct functor.
@@ -340,16 +340,16 @@
 (define free-state-get (dsl-get arith-state-row))
 (define (free-state-put s) (dsl-put arith-state-row s))
 
-;;; ============================================================
+;;; ====
 ;;; Part 2: Effect Composition
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Building on the effect system, we provide utilities for
 ;;; composing effect handlers in a modular way.
 
-;;; ------------------------------------------------------------
+;;; ----
 ;;; Effect Handler Stack
-;;; ------------------------------------------------------------
+;;; ----
 
 ;;; A handler stack is an ordered list of handlers.
 ;;; Effects are handled from top to bottom.
@@ -404,9 +404,9 @@
 (define (pop-handler stack)
   (make-handler-stack (cdr (handler-stack-handlers stack))))
 
-;;; ------------------------------------------------------------
+;;; ----
 ;;; Effect Row Operations for Composition
-;;; ------------------------------------------------------------
+;;; ----
 
 ;;; The key insight: when we handle an effect, we remove it from
 ;;; the effect row. This enables modular reasoning about effects.
@@ -427,9 +427,9 @@
            (and (row-contains? provided (car effects))
                 (loop (cdr effects))))))
 
-;;; ------------------------------------------------------------
+;;; ----
 ;;; Effect Lifting
-;;; ------------------------------------------------------------
+;;; ----
 ;;;
 ;;; When composing effects, we need to lift computations from
 ;;; smaller effect rows to larger ones.
@@ -454,9 +454,9 @@
                                                 ((eff-op-cont eff) resp))))
              (error 'eff-restrict "Effect not allowed" label allowed-effects)))]))
 
-;;; ------------------------------------------------------------
+;;; ----
 ;;; Modular Handler Definition
-;;; ------------------------------------------------------------
+;;; ----
 
 ;;; define-effect-handler : Symbol × (α → β) × (List (Symbol . Handler)) → Handler
 ;;; Define a handler for a single effect
@@ -472,9 +472,9 @@
                   (deep-handler identity '())
                   handlers)))
 
-;;; ------------------------------------------------------------
+;;; ----
 ;;; Common Combined Handlers
-;;; ------------------------------------------------------------
+;;; ----
 
 ;;; state+reader-handler : σ × ρ → Handler
 ;;; Handle both State and Reader effects
@@ -518,16 +518,16 @@
      (throw . ,(lambda (payload k)
                        (lambda (s) (left payload)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Part 3: Tagless Composition
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Tagless final enables extensibility via dictionary composition.
 ;;; This section provides utilities for modular tagless DSL design.
 
-;;; ------------------------------------------------------------
+;;; ----
 ;;; Dictionary Algebra
-;;; ------------------------------------------------------------
+;;; ----
 
 ;;; Dictionaries form a monoid under merge:
 ;;;   - Identity: empty dict
@@ -549,9 +549,9 @@
 (define (dict-concat dicts)
   (fold-right dict-merge empty-dict dicts))
 
-;;; ------------------------------------------------------------
+;;; ----
 ;;; Interface Constraints
-;;; ------------------------------------------------------------
+;;; ----
 ;;;
 ;;; A program may require certain operations. We represent this
 ;;; as a constraint that dictionaries must satisfy.
@@ -591,9 +591,9 @@
              (filter (lambda (op) (not (dict-has? d op)))
                      (interface-operations iface)))))
 
-;;; ------------------------------------------------------------
+;;; ----
 ;;; Standard Interfaces
-;;; ------------------------------------------------------------
+;;; ----
 
 (define iface-expr
   (make-interface 'Expr '(lit add neg)))
@@ -620,9 +620,9 @@
                            (not (memq op (interface-operations i1))))
                    (interface-operations i2)))))
 
-;;; ------------------------------------------------------------
+;;; ----
 ;;; Modular Interpreter Construction
-;;; ------------------------------------------------------------
+;;; ----
 
 ;;; An interpreter factory creates a dictionary for a specific
 ;;; representation type. This enables modular interpreter definition.
@@ -646,9 +646,9 @@
 (define (combine-interpreters interps)
   (dict-concat (map interpreter-make interps)))
 
-;;; ------------------------------------------------------------
+;;; ----
 ;;; Algebra Transformers
-;;; ------------------------------------------------------------
+;;; ----
 
 ;;; An algebra transformer wraps a base algebra to add behavior.
 ;;; Examples: logging, caching, validation, profiling.
@@ -690,9 +690,9 @@
 (define memoizing-transformer
   (make-transformer 'memoizing with-memoization))
 
-;;; ------------------------------------------------------------
+;;; ----
 ;;; DSL Composition Patterns
-;;; ------------------------------------------------------------
+;;; ----
 
 ;;; Pattern 1: Extension
 ;;; Add new operations to an existing DSL
@@ -739,16 +739,16 @@
                                    pair)))
                   (dict-ops d))))
 
-;;; ============================================================
+;;; ====
 ;;; Integration: Free + Tagless Bridge
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Convert between Free monad and Tagless final representations.
 ;;; This enables using both approaches together.
 
-;;; ------------------------------------------------------------
+;;; ----
 ;;; Generic Tagless -> Free Conversion
-;;; ------------------------------------------------------------
+;;; ----
 
 ;;; tagless->free : (Dict → α) × Dict → α
 ;;; Convert a tagless program to Free representation using a provided
@@ -780,9 +780,9 @@
 (define (tagless-program->free program)
   (tagless->free program expr-ast-dict))
 
-;;; ------------------------------------------------------------
+;;; ----
 ;;; Generic Free -> Tagless Conversion
-;;; ------------------------------------------------------------
+;;; ----
 
 ;;; free->tagless : (Sexp × Dict → α) × Sexp → (Dict → α)
 ;;; Convert a Free term to a tagless program using a provided interpreter.
@@ -848,9 +848,9 @@
 (define (interpret-arith-term term d)
   ((make-term-interpreter expr-interpret-handlers) term d))
 
-;;; ============================================================
+;;; ====
 ;;; Integration: Effect + Tagless Bridge
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Run tagless programs with effect handlers.
 
@@ -878,9 +878,9 @@
                                (eff-bind (writer-tell (list 'op op-name result))
                                          (lambda (_) (eff-return result))))))
 
-;;; ============================================================
+;;; ====
 ;;; Composition Verification
-;;; ============================================================
+;;; ====
 
 ;;; verify-composition : Dict × (List Interface) → Boolean
 ;;; Verify that a composed dictionary satisfies all interfaces
@@ -904,9 +904,9 @@
                                    (if (cadr r) "satisfied" "MISSING")))
                    results))))
 
-;;; ============================================================
+;;; ====
 ;;; Example: Complete Composition
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Demonstrate combining Arithmetic + State + Logging
 
@@ -935,9 +935,9 @@
         [(pretty) (combine-interpreters (list arith-pretty-interp))]
         [else (error 'make-full-language-dict "Unknown mode" mode)]))
 
-;;; ============================================================
+;;; ====
 ;;; Summary
-;;; ============================================================
+;;; ====
 ;;;
 ;;; This module provides three ways to compose DSLs:
 ;;;

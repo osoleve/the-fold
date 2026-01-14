@@ -18,9 +18,9 @@
 (load "core/base/prelude.ss")
 (load "core/types/types.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Extended Type Grammar
-;;; ============================================================
+;;; ====
 ;;;
 ;;; In addition to types.ss grammar:
 ;;;
@@ -86,9 +86,9 @@
 ;;; Predicates: pi-type?, sigma-type?, universe-type?, equality-type?,
 ;;;             refinement-type?, data-type?, sig-type?, dep-type?
 
-;;; ============================================================
+;;; ====
 ;;; Dependent Type Predicates
-;;; ============================================================
+;;; ====
 
 ;;; pi-type? : Type → Boolean
 (define (pi-type? t)
@@ -135,9 +135,9 @@
       (refinement-type? t) (data-type? t) (sig-type? t)
       (diff-type? t) (grad-type? t)))
 
-;;; ============================================================
+;;; ====
 ;;; Pi Type Operations
-;;; ============================================================
+;;; ====
 
 ;;; pi-type-well-formed? : SExpr → Boolean
 ;;; Check if a Pi type expression is well-formed.
@@ -181,9 +181,9 @@
            (cadr t))
       '()))
 
-;;; ============================================================
+;;; ====
 ;;; Sigma Type Operations
-;;; ============================================================
+;;; ====
 
 ;;; sigma-type-well-formed? : SExpr → Boolean
 (define (sigma-type-well-formed? t)
@@ -214,9 +214,9 @@
       (caddr t)
       'Void))
 
-;;; ============================================================
+;;; ====
 ;;; Equality Type Operations
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Propositional equality: (= A x y)
 ;;;   - A is the type at which equality is asserted
@@ -267,9 +267,9 @@
       (cadddr t)
       #f))
 
-;;; ============================================================
+;;; ====
 ;;; Heterogeneous Equality Operations
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Heterogeneous equality (HEq) relates terms of potentially different types.
 ;;; Syntax: (HEq A B a b)
@@ -334,9 +334,9 @@
       `(= ,A ,a ,b)  ; Reduce to homogeneous when types match
       `(HEq ,A ,B ,a ,b)))
 
-;;; ============================================================
+;;; ====
 ;;; Refinement Type Operations
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Refinement types are types annotated with predicates.
 ;;; Syntax: (refine ((x : T)) P)
@@ -396,9 +396,9 @@
       (caddr t)
       #f))
 
-;;; ============================================================
+;;; ====
 ;;; Differentiable Type Operations
-;;; ============================================================
+;;; ====
 ;;;
 ;;; The Diff type constructor represents differentiable functions with
 ;;; dependent dimension tracking for automatic differentiation.
@@ -491,9 +491,9 @@
 (define (make-grad-type inner)
   `(Grad ,inner))
 
-;;; ============================================================
+;;; ====
 ;;; Differentiable Type Utilities
-;;; ============================================================
+;;; ====
 
 ;;; numeric-type? : Type → Boolean
 ;;; Check if a type is numeric (supports differentiation).
@@ -525,9 +525,9 @@
        ;; diff1 domain must match diff2 codomain
        (equal? (diff-domain diff1) (diff-codomain diff2))))
 
-;;; ============================================================
+;;; ====
 ;;; Dimension Extraction for Autodiff
-;;; ============================================================
+;;; ====
 
 ;;; diff-input-dim : Type → Nat | 'scalar | #f
 ;;; Extract the input dimension from a Diff type.
@@ -610,9 +610,9 @@
              domain]
             [else 'Void]))))
 
-;;; ============================================================
+;;; ====
 ;;; Inductive Type Operations
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Inductive types (data declarations) define new types with constructors.
 ;;;
@@ -738,9 +738,9 @@
                                        p))
                            params)))))
 
-;;; ============================================================
+;;; ====
 ;;; Inductive Type Instance Predicate
-;;; ============================================================
+;;; ====
 ;;;
 ;;; An inductive type instance is an application of a data type name
 ;;; to arguments: (TypeName args...)
@@ -758,9 +758,9 @@
            [(and (pair? t) (eq? (car t) name)) #t]
            [else #f])))
 
-;;; ============================================================
+;;; ====
 ;;; Module Signature Types
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Module signatures describe the interface of a module with
 ;;; support for dependent types.
@@ -814,9 +814,9 @@
       (cddr sig)
       '()))
 
-;;; ============================================================
+;;; ====
 ;;; Signature Declaration Types
-;;; ============================================================
+;;; ====
 
 ;;; sig-type-decl? : Decl → Boolean
 ;;; Check if this is a type declaration: [type T : Kind] or [type T = Type]
@@ -838,9 +838,9 @@
 (define (sig-include-decl? d)
   (and (pair? d) (eq? (car d) 'include)))
 
-;;; ============================================================
+;;; ====
 ;;; Signature Declaration Operations
-;;; ============================================================
+;;; ====
 
 ;;; sig-type-decl-name : Decl → Symbol
 ;;; Get the name from a type declaration.
@@ -897,9 +897,9 @@
 (define (sig-include-decl-name d)
   (if (sig-include-decl? d) (cadr d) #f))
 
-;;; ============================================================
+;;; ====
 ;;; Signature Construction
-;;; ============================================================
+;;; ====
 
 ;;; t-sig : Symbol × (List Decl) → Signature
 ;;; Construct a module signature.
@@ -931,9 +931,9 @@
 (define (t-sig-include sig-name)
   `(include ,sig-name))
 
-;;; ============================================================
+;;; ====
 ;;; Signature Extraction
-;;; ============================================================
+;;; ====
 
 ;;; sig-type-names : Signature → (List Symbol)
 ;;; Get all type names declared in a signature.
@@ -974,9 +974,9 @@
           (sig-val-names sig)
           (sig-data-names sig)))
 
-;;; ============================================================
+;;; ====
 ;;; Universe Operations
-;;; ============================================================
+;;; ====
 
 ;;; universe-level : Type → Nat
 (define (universe-level t)
@@ -999,9 +999,9 @@
 (define (universe-succ u)
   `(Type ,(+ 1 (universe-level u))))
 
-;;; ============================================================
+;;; ====
 ;;; Typed Binding Helpers
-;;; ============================================================
+;;; ====
 
 ;;; typed-binding? : SExpr → Boolean
 ;;; Check if this is a valid typed binding: (x : T)
@@ -1019,9 +1019,9 @@
 (define (binding-type b)
   (caddr b))
 
-;;; ============================================================
+;;; ====
 ;;; Dependent Type Constructors
-;;; ============================================================
+;;; ====
 
 ;;; t-pi : Symbol × Type × Type → Type
 ;;; Construct a Pi type (dependent function type).
@@ -1087,9 +1087,9 @@
 (define (t-data-simple name constructors)
   (t-data name '() constructors))
 
-;;; ============================================================
+;;; ====
 ;;; Eliminator Generation
-;;; ============================================================
+;;; ====
 ;;;
 ;;; For each inductive type, we generate an eliminator (recursor).
 ;;;
@@ -1202,9 +1202,9 @@
 (define (eliminator-name data-name)
   (string->symbol (string-append "elim-" (symbol->string data-name))))
 
-;;; ============================================================
+;;; ====
 ;;; Equality Proof Term Predicates
-;;; ============================================================
+;;; ====
 ;;;
 ;;; refl is the canonical proof of (= A x x)
 ;;; J is the eliminator for equality proofs
@@ -1238,9 +1238,9 @@
 (define (j-term? e)
   (and (pair? e) (eq? (car e) 'J)))
 
-;;; ============================================================
+;;; ====
 ;;; Free Variables with Dependent Types
-;;; ============================================================
+;;; ====
 
 ;;; dep-free-tvars : Type → (List Symbol)
 ;;; Collect free type variables, handling dependent types.
@@ -1286,9 +1286,9 @@
    [else
     (apply append (map (lambda (sub) (dep-free-tvars-with bound sub)) (cdr t)))]))
 
-;;; ============================================================
+;;; ====
 ;;; Substitution with Dependent Types (Capture-Avoiding)
-;;; ============================================================
+;;; ====
 
 ;;; fresh-var : Symbol × (List Symbol) → Symbol
 ;;; Generate a fresh variable name that is not in the avoid list.
@@ -1509,9 +1509,9 @@
    [(equal? x (car lst)) (cdr lst)]
    [else (cons (car lst) (remove x (cdr lst)))]))
 
-;;; ============================================================
+;;; ====
 ;;; Type Display with Dependent Types
-;;; ============================================================
+;;; ====
 
 ;;; dep-type->string : Type → String
 ;;; Pretty-print a type, including dependent types.
@@ -1665,9 +1665,9 @@
    
    [else (format "~s" t)]))
 
-;;; ============================================================
+;;; ====
 ;;; Type Wellformedness with Dependent Types
-;;; ============================================================
+;;; ====
 
 ;;; dep-type? predicate (extended version of type?)
 ;;; Note: This is a simple syntax check, not a kinding check.

@@ -6,9 +6,9 @@
 (load "core/testing/test-framework.ss")
 (load "lattice/fp/templates.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Monoid Tests
-;;; ============================================================
+;;; ====
 
 (test-group monoid-basics
             
@@ -78,9 +78,9 @@
             (define-test all-laws
               (assert-true (verify-monoid-laws monoid-all '(#t #t #t)))))
 
-;;; ============================================================
+;;; ====
 ;;; Functor Tests
-;;; ============================================================
+;;; ====
 
 (test-group functor-basics
             
@@ -118,9 +118,9 @@
               (assert-equal '(() () ())
                             (void-with functor-list '(a b c)))))
 
-;;; ============================================================
+;;; ====
 ;;; Foldable Tests
-;;; ============================================================
+;;; ====
 
 (test-group foldable-basics
             
@@ -168,9 +168,9 @@
             (define-test elem-foldable-not-found
               (assert-false (elem-foldable foldable-list 6 '(1 2 3 4 5)))))
 
-;;; ============================================================
+;;; ====
 ;;; Applicative Tests
-;;; ============================================================
+;;; ====
 
 (test-group applicative-basics
             
@@ -230,9 +230,9 @@
               (assert-equal '((1 2 3))
                             (traverse-a applicative-list list '(1 2 3)))))
 
-;;; ============================================================
+;;; ====
 ;;; Lens Tests
-;;; ============================================================
+;;; ====
 
 (test-group lens-basics
             
@@ -312,9 +312,9 @@
               (let ([l (lens-compose lens-fst lens-fst)])
                    (assert-equal '((100 . 2) . 3) (set-lens l 100 '((1 . 2) . 3))))))
 
-;;; ============================================================
+;;; ====
 ;;; Prism Tests
-;;; ============================================================
+;;; ====
 
 (test-group prism-basics
             
@@ -351,9 +351,9 @@
             (define-test prism-right-review
               (assert-equal (right 5) (review prism-right 5))))
 
-;;; ============================================================
+;;; ====
 ;;; Template Generation Tests
-;;; ============================================================
+;;; ====
 
 (test-group template-generation
             
@@ -372,9 +372,9 @@
                    (assert-equal 'define (car tmpl))
                    (assert-equal 'lens-person-name (cadr tmpl)))))
 
-;;; ============================================================
+;;; ====
 ;;; Summary
-;;; ============================================================
+;;; ====
 
 (display "\n=== FP Templates Tests Complete ===\n")
 (display "Passed: ")

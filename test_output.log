@@ -5,7 +5,7 @@ Working directory: /home/oso/the-fold
 
 === Running core/base/test-prelude.ss ===
 Testing prelude.ss
-==================
+====
 
 andmap:
   ✓ empty list
@@ -254,7 +254,7 @@ Unicode Aliases:
   ✓ e defined
   ✓ infinity
 
-==================
+====
 Passed: 165
 Failed: 0
 
@@ -262,7 +262,7 @@ Failed: 0
 
 === Running core/base/test-sha256.ss ===
 SHA-256 Test Vectors (NIST FIPS 180-4)
-======================================
+====
 
 Test 1: Empty message
   SHA-256(""): ✓
@@ -355,7 +355,7 @@ String Split
 
 === Running core/blocks/test-block.ss ===
 Block System Tests
-===================
+====
 
     ✓ basic-block
     ✓ round-trip-simple
@@ -363,7 +363,7 @@ Block System Tests
 
 === Running core/blocks/test-cas.ss ===
 Content-Addressed Store Tests
-==============================
+====
 
 Test 1: Store and fetch
   stored hash: 00bfbf8711a995d87445f145ce6699b6226e8d9f05c23b830fc2a4d2967faaa38a
@@ -433,9 +433,9 @@ Test 8: Complex expression
 
 === Running core/blocks/test-expand.ss ===
 
-==============================================================
+====
          EXPAND (De Bruijn to Named) TESTS
-==============================================================
+====
     ✓ supply-next-single
     ✓ supply-next-chain
     ✓ make-symbol-supply-basic
@@ -472,7 +472,7 @@ Test 8: Complex expression
     ✓ expand-boolean
     ✓ expand-mixed-list
 
-==============================================================
+====
 Tests passed: 35
 Tests failed: 0
 Total tests:  35
@@ -611,9 +611,9 @@ Primitive errors
   unknown primitive: ✓
 
 === Running core/lang/test-parse.ss ===
-========================================
+====
 Parser Combinator Test Suite
-========================================
+====
 
 Testing ParseResult construction...
 ParseResult tests complete.
@@ -657,15 +657,15 @@ CSV parser tests complete.
 Testing simple S-expression parser...
 S-expression parser tests complete.
 
-========================================
+====
 All tests complete!
-========================================
+====
 
 === Running core/lang/test-span.ss ===
 
-==============================================================
+====
          SPAN (Position-Aware Parsing) TESTS
-==============================================================
+====
     ✓ make-span-basic
     ✓ no-span-test
     ✓ merge-spans-same-line
@@ -732,7 +732,7 @@ All tests complete!
     ✓ parse-csv-numbers
     ✓ parse-with-spanning
 
-==============================================================
+====
 Tests passed: 65
 Tests failed: 0
 Total tests:  65
@@ -741,7 +741,7 @@ Total tests:  65
 
 === Running core/lang/test-fold-parse.ss ===
 Fold Parser Tests
-=================
+====
 
 Spans:
   ✓ make-span
@@ -838,7 +838,7 @@ Complex Examples:
   ✓ let with multiple bindings
   ✓ case expression
 
-==================
+====
 Passed: 67
 Failed: 0
 
@@ -1613,7 +1613,7 @@ Method Extraction — New Classes
   boolean: ok
   lambda: ok
 
-======================
+====
 Passed: 26
 Failed: 0
 
@@ -1985,9 +1985,9 @@ All tests passed!
   [PASS] QR: Underdetermined system returns error
   [PASS] Cholesky: Non-PD matrix returns error
 
-================================================================
+====
                     TEST RESULTS
-================================================================
+====
 
 Tests passed: 27
 Tests failed: 0
@@ -2036,9 +2036,9 @@ Total tests:  27
   Condition number of ill-conditioned matrix: 1000002.0
   [PASS] Condition number > 1
 
-================================================================
+====
                     TEST RESULTS
-================================================================
+====
 
 Tests passed: 22
 Tests failed: 0
@@ -2191,9 +2191,9 @@ Total tests:  22
   [PASS] complex-pi
   [PASS] complex-e
 
-================================================================
+====
                     TEST RESULTS
-================================================================
+====
 
 Tests passed: 65
 Tests failed: 0
@@ -2202,14 +2202,14 @@ Total tests:  65
 [SUCCESS] All complex number tests passed.
 
 === Running lattice/numeric/test-dft.ss ===
-\n=== DFT/FFT Tests ===\n\n--- Utility Functions ---\n  [PASS] power-of-2?: 1 is power of 2\n  [PASS] power-of-2?: 2 is power of 2\n  [PASS] power-of-2?: 4 is power of 2\n  [PASS] power-of-2?: 8 is power of 2\n  [PASS] power-of-2?: 3 is not power of 2\n  [PASS] power-of-2?: 6 is not power of 2\n  [PASS] power-of-2?: 0 is not power of 2\n  [PASS] log2-int: log2(1) = 0\n  [PASS] log2-int: log2(2) = 1\n  [PASS] log2-int: log2(4) = 2\n  [PASS] log2-int: log2(8) = 3\n  [PASS] log2-int: log2(16) = 4\n  [PASS] bit-reverse: 0 with 3 bits\n  [PASS] bit-reverse: 1 with 3 bits (001 -> 100)\n  [PASS] bit-reverse: 2 with 3 bits (010 -> 010)\n  [PASS] bit-reverse: 3 with 3 bits (011 -> 110)\n  [PASS] bit-reverse: 4 with 3 bits (100 -> 001)\n  [PASS] next-power-of-2: 1\n  [PASS] next-power-of-2: 3\n  [PASS] next-power-of-2: 5\n  [PASS] next-power-of-2: 8\n  [PASS] next-power-of-2: 9\n\n--- Simple DFT Tests ---\n  [PASS] DFT of constant [1,1,1,1]\n  [PASS] DFT of impulse [1,0,0,0]\n  [PASS] DFT of alternating [1,-1,1,-1]\n\n--- Inverse DFT Tests ---\n  [PASS] IDFT(DFT(x)) = x for [1,2,3,4]\n  [PASS] IDFT(DFT(x)) = x for complex input\n\n--- FFT Correctness ---\n  [PASS] FFT matches naive DFT for [1,2,3,4]\n  [PASS] FFT matches naive DFT for impulse (N=8)\n  [PASS] FFT matches naive DFT for complex input\n\n--- Inverse FFT Tests ---\n  [PASS] IFFT(FFT(x)) = x for [1..8]\n  [PASS] IFFT(FFT(x)) = x for complex input\n\n--- Automatic Algorithm Selection ---\n  [PASS] dft() uses FFT for N=4\n  [PASS] dft() uses naive DFT for N=3\n  [PASS] idft(dft(x)) = x with auto selection\n\n--- Real-valued Transforms ---\n  [PASS] Real DFT round-trip\n\n--- Spectral Analysis ---\n  [PASS] Magnitude spectrum of impulse is constant\n  [PASS] Power spectrum = magnitude²\n\n--- Frequency Bins ---\n  [PASS] Frequency bins for N=8, fs=1000\n\n--- Zero Padding ---\n  [PASS] Zero padding extends vector\n  [PASS] Zero padding with complex zeros\n  [PASS] Zero pad to power of 2: 3->4\n  [PASS] Zero pad to power of 2: 4->4 (already power of 2)\n\n--- Bit Reversal ---\n  [PASS] Bit-reverse copy of [0..7]\n\n--- Parseval's Theorem ---\n  [PASS] Parseval's theorem: energy conservation\n\n--- Linearity ---\n  [PASS] DFT linearity: DFT(2x+3y) = 2*DFT(x)+3*DFT(y)\n\n================================================================\n                    TEST RESULTS\n================================================================\n\nTests passed: 46\nTests failed: 0\nTotal tests:  46\n\n[SUCCESS] All DFT/FFT tests passed.\n
+\n=== DFT/FFT Tests ===\n\n--- Utility Functions ---\n  [PASS] power-of-2?: 1 is power of 2\n  [PASS] power-of-2?: 2 is power of 2\n  [PASS] power-of-2?: 4 is power of 2\n  [PASS] power-of-2?: 8 is power of 2\n  [PASS] power-of-2?: 3 is not power of 2\n  [PASS] power-of-2?: 6 is not power of 2\n  [PASS] power-of-2?: 0 is not power of 2\n  [PASS] log2-int: log2(1) = 0\n  [PASS] log2-int: log2(2) = 1\n  [PASS] log2-int: log2(4) = 2\n  [PASS] log2-int: log2(8) = 3\n  [PASS] log2-int: log2(16) = 4\n  [PASS] bit-reverse: 0 with 3 bits\n  [PASS] bit-reverse: 1 with 3 bits (001 -> 100)\n  [PASS] bit-reverse: 2 with 3 bits (010 -> 010)\n  [PASS] bit-reverse: 3 with 3 bits (011 -> 110)\n  [PASS] bit-reverse: 4 with 3 bits (100 -> 001)\n  [PASS] next-power-of-2: 1\n  [PASS] next-power-of-2: 3\n  [PASS] next-power-of-2: 5\n  [PASS] next-power-of-2: 8\n  [PASS] next-power-of-2: 9\n\n--- Simple DFT Tests ---\n  [PASS] DFT of constant [1,1,1,1]\n  [PASS] DFT of impulse [1,0,0,0]\n  [PASS] DFT of alternating [1,-1,1,-1]\n\n--- Inverse DFT Tests ---\n  [PASS] IDFT(DFT(x)) = x for [1,2,3,4]\n  [PASS] IDFT(DFT(x)) = x for complex input\n\n--- FFT Correctness ---\n  [PASS] FFT matches naive DFT for [1,2,3,4]\n  [PASS] FFT matches naive DFT for impulse (N=8)\n  [PASS] FFT matches naive DFT for complex input\n\n--- Inverse FFT Tests ---\n  [PASS] IFFT(FFT(x)) = x for [1..8]\n  [PASS] IFFT(FFT(x)) = x for complex input\n\n--- Automatic Algorithm Selection ---\n  [PASS] dft() uses FFT for N=4\n  [PASS] dft() uses naive DFT for N=3\n  [PASS] idft(dft(x)) = x with auto selection\n\n--- Real-valued Transforms ---\n  [PASS] Real DFT round-trip\n\n--- Spectral Analysis ---\n  [PASS] Magnitude spectrum of impulse is constant\n  [PASS] Power spectrum = magnitude²\n\n--- Frequency Bins ---\n  [PASS] Frequency bins for N=8, fs=1000\n\n--- Zero Padding ---\n  [PASS] Zero padding extends vector\n  [PASS] Zero padding with complex zeros\n  [PASS] Zero pad to power of 2: 3->4\n  [PASS] Zero pad to power of 2: 4->4 (already power of 2)\n\n--- Bit Reversal ---\n  [PASS] Bit-reverse copy of [0..7]\n\n--- Parseval's Theorem ---\n  [PASS] Parseval's theorem: energy conservation\n\n--- Linearity ---\n  [PASS] DFT linearity: DFT(2x+3y) = 2*DFT(x)+3*DFT(y)\n\n====\n                    TEST RESULTS\n====\n\nTests passed: 46\nTests failed: 0\nTotal tests:  46\n\n[SUCCESS] All DFT/FFT tests passed.\n
 === Running lattice/numeric/test-convolution.ss ===
-\n=== Convolution and Correlation Tests ===\n\n--- Direct Convolution (Full Mode) ---\n  [PASS] convolve [1,2,3] * [1,1] (full)\n  [PASS] identity kernel [1,2,3] * [1]\n  [PASS] zero kernel [1,2,3] * [0]\n  [PASS] box filter [1,1,1] * [1,1,1]\n\n--- Direct Convolution (Same Mode) ---\n  [PASS] same mode preserves length\n\n--- Direct Convolution (Valid Mode) ---\n  [PASS] valid mode length\n  [PASS] valid mode values\n  [PASS] valid mode: kernel > signal\n\n--- FFT Convolution ---\n  [PASS] FFT matches direct convolution\n  [PASS] FFT matches direct (larger)\n\n--- Automatic Convolution ---\n  [PASS] small kernel (auto) - full\n  [PASS] auto convolution - same mode length\n  [PASS] auto convolution - valid mode length\n  [PASS] auto convolution - full mode length\n\n--- Cross-Correlation ---\n  [PASS] correlation detects pattern\n  [PASS] autocorrelation peak at center\n  [PASS] autocorrelation symmetric\n\n--- Auto-correlation ---\n  [PASS] autocorrelation of constant\n\n--- Matched Filtering ---\n  [PASS] matched filter output length\n  [PASS] matched filter detects template\n\n--- Peak Finding ---\n  [PASS] find-peaks detects 3 peaks\n  [PASS] find-peaks finds correct positions\n  [PASS] no peaks below threshold\n\n--- Utility Functions ---\n  [PASS] vector-reverse [1,2,3,4]\n  [PASS] vector-reverse empty\n  [PASS] normalized has ~zero mean\n  [PASS] normalized has ~unit variance\n  [PASS] normalize constant signal\n\n--- Circular Convolution ---\n  [PASS] circular convolution length\n  [PASS] circular convolution values\n\n--- Mathematical Properties ---\n  [PASS] convolution is commutative\n  [PASS] delta function identity\n  [PASS] correlation is not commutative\n\n--- Edge Cases ---\n  [PASS] convolve empty signal\n  [PASS] convolve empty kernel\n  [PASS] convolve single elements\n\n--- Large Signal Test ---\n  [PASS] large signal: auto matches direct\n\n================================================================\n                    TEST RESULTS\n================================================================\n\nTests passed: 37\nTests failed: 0\nTotal tests:  37\n\n[SUCCESS] All convolution tests passed.\n
+\n=== Convolution and Correlation Tests ===\n\n--- Direct Convolution (Full Mode) ---\n  [PASS] convolve [1,2,3] * [1,1] (full)\n  [PASS] identity kernel [1,2,3] * [1]\n  [PASS] zero kernel [1,2,3] * [0]\n  [PASS] box filter [1,1,1] * [1,1,1]\n\n--- Direct Convolution (Same Mode) ---\n  [PASS] same mode preserves length\n\n--- Direct Convolution (Valid Mode) ---\n  [PASS] valid mode length\n  [PASS] valid mode values\n  [PASS] valid mode: kernel > signal\n\n--- FFT Convolution ---\n  [PASS] FFT matches direct convolution\n  [PASS] FFT matches direct (larger)\n\n--- Automatic Convolution ---\n  [PASS] small kernel (auto) - full\n  [PASS] auto convolution - same mode length\n  [PASS] auto convolution - valid mode length\n  [PASS] auto convolution - full mode length\n\n--- Cross-Correlation ---\n  [PASS] correlation detects pattern\n  [PASS] autocorrelation peak at center\n  [PASS] autocorrelation symmetric\n\n--- Auto-correlation ---\n  [PASS] autocorrelation of constant\n\n--- Matched Filtering ---\n  [PASS] matched filter output length\n  [PASS] matched filter detects template\n\n--- Peak Finding ---\n  [PASS] find-peaks detects 3 peaks\n  [PASS] find-peaks finds correct positions\n  [PASS] no peaks below threshold\n\n--- Utility Functions ---\n  [PASS] vector-reverse [1,2,3,4]\n  [PASS] vector-reverse empty\n  [PASS] normalized has ~zero mean\n  [PASS] normalized has ~unit variance\n  [PASS] normalize constant signal\n\n--- Circular Convolution ---\n  [PASS] circular convolution length\n  [PASS] circular convolution values\n\n--- Mathematical Properties ---\n  [PASS] convolution is commutative\n  [PASS] delta function identity\n  [PASS] correlation is not commutative\n\n--- Edge Cases ---\n  [PASS] convolve empty signal\n  [PASS] convolve empty kernel\n  [PASS] convolve single elements\n\n--- Large Signal Test ---\n  [PASS] large signal: auto matches direct\n\n====\n                    TEST RESULTS\n====\n\nTests passed: 37\nTests failed: 0\nTotal tests:  37\n\n[SUCCESS] All convolution tests passed.\n
 === Running lattice/autodiff/test-comp-graph.ss ===
 
-==============================================================
+====
          COMPUTATIONAL GRAPH TESTS
-==============================================================
+====
     ✓ node-var-creates-variable-node
     ✓ node-const-creates-constant-node
     ✓ node-op-creates-operation-node
@@ -2271,7 +2271,7 @@ Total tests:  65
     ✓ hessian-forward-cubic
     ✓ second-derivative-forward-cubic
 
-==============================================================
+====
 Tests passed: 60
 Tests failed: 0
 Total tests:  60
@@ -2280,9 +2280,9 @@ Total tests:  60
 
 === Running lattice/autodiff/test-reverse-diff.ss ===
 
-==============================================================
+====
          REVERSE MODE AUTODIFF TESTS
-==============================================================
+====
     ✓ traced-value-extraction
 WARNING: reset-traced-ids! is deprecated. Use with-fresh-ad-scope.
     ✓ traced-id-is-unique
@@ -2328,7 +2328,7 @@ WARNING: reset-traced-ids! is deprecated. Use with-fresh-ad-scope.
     ✓ single-variable-unused
     ✓ deeply-nested
 
-==============================================================
+====
 Tests passed: 43
 Tests failed: 0
 Total tests:  43
@@ -2398,7 +2398,7 @@ Total tests:  43
   has Differentiable: ok
   has Functor: ok
 
-======================
+====
 Passed: 43
 Failed: 0
 
@@ -2406,9 +2406,9 @@ All Differentiable type class tests passed.
 
 === Running lattice/autodiff/test-higher-order-diff.ss ===
 
-==============================================================
+====
          HIGHER-ORDER DIFFERENTIATION TESTS
-==============================================================
+====
 WARNING: reset-traced-ids! is deprecated. Use with-fresh-ad-scope.
 WARNING: reset-traced-ids! is deprecated. Use with-fresh-ad-scope.
     ✓ jacobian-identity
@@ -2493,7 +2493,7 @@ WARNING: reset-traced-ids! is deprecated. Use with-fresh-ad-scope.
     ✓ jet-pow-large-exponent
     ✓ jet-pow-negative-large
 
-==============================================================
+====
 Tests passed: 70
 Tests failed: 0
 Total tests:  70
@@ -2503,10 +2503,10 @@ Total tests:  70
 === Running lattice/data/test-data-structures.ss ===
 ✓ Data structures loaded (Stack, Queue, Set, Dict)
 Testing data-structures.ss
-===========================
+====
 
 Stack:
-------
+----
   ✓ stack-empty? on empty stack
   ✓ stack-size of empty
   ✓ stack-empty? after push
@@ -2523,7 +2523,7 @@ Stack:
   ✓ stack-pop on empty (error raised)
 
 Queue:
-------
+----
   ✓ queue-empty? on empty queue
   ✓ queue-size of empty
   ✓ queue-empty? after enqueue
@@ -2574,7 +2574,7 @@ Set:
   ✓ list->set removes duplicates
 
 Dictionary:
------------
+----
   ✓ dict-empty? on empty dict
   ✓ dict-size of empty
   ✓ dict-empty? after assoc
@@ -2607,7 +2607,7 @@ Dictionary:
   ✓ filter removes low value
   ✓ filter keeps high values
 
-===========================
+====
 Tests passed: 90
 Tests failed: 0
 

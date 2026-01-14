@@ -7,9 +7,9 @@
 (load "core/types/dep-types.ss")
 (load "core/types/dep-infer.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Runtime Operation Tests
-;;; ============================================================
+;;; ====
 
 (test-group "dep-linalg-runtime"
             
@@ -74,9 +74,9 @@
                         (assert-equal 4 (matrix-ref result 0 1))
                         (assert-equal 2 (matrix-ref result 1 0))))))
 
-;;; ============================================================
+;;; ====
 ;;; Type Structure Tests
-;;; ============================================================
+;;; ====
 
 (test-group "dep-linalg-types"
             

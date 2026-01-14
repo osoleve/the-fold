@@ -28,9 +28,9 @@
 (load "core/base/prelude.ss")
 (load "lattice/fp/meta/combinators.ss")
 
-;;; ============================================================
+;;; ====
 ;;; StageResult — Outcome of running a stage
-;;; ============================================================
+;;; ====
 
 ;;; stage-ok : a -> StageResult a
 ;;; Successful result with value.
@@ -118,9 +118,9 @@
 ;;; stage-retry-delay : (StageResult α) → Nat
 (define (stage-retry-delay r) (list-ref r 3))
 
-;;; ============================================================
+;;; ====
 ;;; Stage Representation
-;;; ============================================================
+;;; ====
 ;;;
 ;;; A stage is:
 ;;;   ('stage name run-fn)
@@ -148,9 +148,9 @@
 (define (run-stage s ctx input)
   ((stage-run-fn s) ctx input))
 
-;;; ============================================================
+;;; ====
 ;;; Basic Stage Constructors
-;;; ============================================================
+;;; ====
 
 ;;; stage-pure : a -> Stage ctx i a
 ;;; Inject a constant value, ignoring input.
@@ -208,9 +208,9 @@
               (lambda (ctx input)
                       (stage-skip reason))))
 
-;;; ============================================================
+;;; ====
 ;;; Arrow-Style Composition
-;;; ============================================================
+;;; ====
 
 ;;; stage-compose : Stage ctx a b -> Stage ctx b c -> Stage ctx a c
 ;;; Sequential composition (left to right).
@@ -334,9 +334,9 @@
 ;;; &&& : Stage ctx a b -> Stage ctx a c -> Stage ctx a (b . c)
 (define stage-&&& stage-fanout)
 
-;;; ============================================================
+;;; ====
 ;;; ArrowChoice - Conditional Routing
-;;; ============================================================
+;;; ====
 
 ;;; Either type (if not already defined)
 
@@ -399,9 +399,9 @@
 (define (stage-+++ s1 s2)
   (stage->>> (stage-left s1) (stage-right s2)))
 
-;;; ============================================================
+;;; ====
 ;;; Conditional Stages
-;;; ============================================================
+;;; ====
 
 ;;; stage-if : (i -> Boolean) -> Stage ctx i o -> Stage ctx i o -> Stage ctx i o
 ;;; Conditional stage based on predicate.
@@ -445,9 +445,9 @@
                           (stage-ok input)
                           (stage-err 'guard-failed error-message input)))))
 
-;;; ============================================================
+;;; ====
 ;;; Monadic Interface
-;;; ============================================================
+;;; ====
 
 ;;; stage-bind : Stage ctx a b -> (b -> Stage ctx b c) -> Stage ctx a c
 ;;; Monadic bind for stages.
@@ -491,9 +491,9 @@
 (define (stage-traverse f xs)
   (stage-sequence (map f xs)))
 
-;;; ============================================================
+;;; ====
 ;;; Iteration and Looping
-;;; ============================================================
+;;; ====
 
 ;;; stage-fold : (b -> a -> Stage ctx a b) -> b -> List a -> Stage ctx _ b
 ;;; Fold over a list with stages.
@@ -538,9 +538,9 @@
                                             r))
                                    (stage-ok current)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Effect Staging (for interpreter)
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Effects are staged operations that require interpretation.
 ;;; The pure algebra just captures intent; interpreter executes.
@@ -581,9 +581,9 @@
 (define (fanout-effect-right e)
   (cdr (stage-effect-payload e)))
 
-;;; ============================================================
+;;; ====
 ;;; Utility Stages
-;;; ============================================================
+;;; ====
 
 ;;; stage-id : Stage ctx a a
 ;;; Identity stage.
@@ -635,9 +635,9 @@
               (lambda (ctx input)
                       (stage-ok (f ctx input)))))
 
-;;; ============================================================
+;;; ====
 ;;; Error Handling
-;;; ============================================================
+;;; ====
 
 ;;; stage-catch : (StageResult -> Stage ctx i o) -> Stage ctx i o -> Stage ctx i o
 ;;; Catch errors and handle them.
@@ -676,9 +676,9 @@
    (lambda (err) (stage-pure '()))
    (stage-map (lambda (x) (list 'some x)) stage)))
 
-;;; ============================================================
+;;; ====
 ;;; Pipeline Construction Helpers
-;;; ============================================================
+;;; ====
 
 ;;; pipeline : Symbol -> List Stage -> Stage
 ;;; Name a sequence of stages.
@@ -707,9 +707,9 @@
 (define (stage-trace label)
   (make-effect-stage 'log (list 'trace label)))
 
-;;; ============================================================
+;;; ====
 ;;; Exports (conceptual - no module system in base Scheme)
-;;; ============================================================
+;;; ====
 ;;;
 ;;; StageResult:
 ;;;   stage-ok, stage-err, stage-retry, stage-skip, stage-halt, stage-await

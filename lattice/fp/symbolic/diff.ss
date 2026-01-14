@@ -10,9 +10,9 @@
 
 (load "lattice/fp/symbolic/expr.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Helper Functions for Simplification
-;;; ============================================================
+;;; ====
 
 ;;; fold-sum : (List Expr) → Expr
 ;;; Fold a list of expressions into a sum using smart constructors.
@@ -30,9 +30,9 @@
    [(null? (cdr exprs)) (car exprs)]
    [else (product (car exprs) (fold-product (cdr exprs)))]))
 
-;;; ============================================================
+;;; ====
 ;;; Basic Differentiation
-;;; ============================================================
+;;; ====
 
 ;;; deriv : Expr × Symbol → Expr
 ;;; Compute the derivative of expr with respect to var-sym.
@@ -161,9 +161,9 @@
         ;; Unknown function: return symbolic derivative
         [else (make-app 'D (make-app fn arg))]))
 
-;;; ============================================================
+;;; ====
 ;;; Partial Derivatives
-;;; ============================================================
+;;; ====
 
 ;;; partial : Expr × Symbol → Expr
 ;;; Compute partial derivative ∂expr/∂var-sym.
@@ -171,9 +171,9 @@
 (define (partial expr var-sym)
   (deriv expr var-sym))
 
-;;; ============================================================
+;;; ====
 ;;; Gradient
-;;; ============================================================
+;;; ====
 
 ;;; gradient : Expr × (List Symbol) → (List Expr)
 ;;; Compute the gradient ∇f = [∂f/∂x₁, ∂f/∂x₂, ..., ∂f/∂xₙ].
@@ -181,9 +181,9 @@
 (define (gradient expr vars)
   (map (lambda (v) (partial expr v)) vars))
 
-;;; ============================================================
+;;; ====
 ;;; Jacobian Matrix
-;;; ============================================================
+;;; ====
 
 ;;; jacobian : (List Expr) × (List Symbol) → (List (List Expr))
 ;;; Compute the Jacobian matrix for vector-valued function f: ℝⁿ → ℝᵐ.
@@ -193,9 +193,9 @@
 (define (jacobian exprs vars)
   (map (lambda (expr) (gradient expr vars)) exprs))
 
-;;; ============================================================
+;;; ====
 ;;; Hessian Matrix
-;;; ============================================================
+;;; ====
 
 ;;; hessian : Expr × (List Symbol) → (List (List Expr))
 ;;; Compute the Hessian matrix H = [∂²f/∂xᵢ∂xⱼ].
@@ -207,9 +207,9 @@
                     vars))
        vars))
 
-;;; ============================================================
+;;; ====
 ;;; Higher-Order Derivatives
-;;; ============================================================
+;;; ====
 
 ;;; deriv-n : Expr × Symbol × Nat → Expr
 ;;; Compute nth derivative of expr with respect to var-sym.
@@ -218,9 +218,9 @@
       expr
       (deriv-n (deriv expr var-sym) var-sym (- n 1))))
 
-;;; ============================================================
+;;; ====
 ;;; Directional Derivative
-;;; ============================================================
+;;; ====
 
 ;;; directional-derivative : Expr × (List Symbol) × (List Expr) → Expr
 ;;; Compute the directional derivative ∇f · v.
@@ -231,9 +231,9 @@
   (let ([grad (gradient expr vars)])
        (fold-sum (map product grad direction))))
 
-;;; ============================================================
+;;; ====
 ;;; Curl (for 3D vector fields)
-;;; ============================================================
+;;; ====
 
 ;;; curl : (List Expr) × (List Symbol) → (List Expr)
 ;;; Compute curl of a 3D vector field F = [F₁, F₂, F₃].
@@ -252,9 +252,9 @@
         (difference (deriv F1 z) (deriv F3 x))
         (difference (deriv F2 x) (deriv F1 y)))))
 
-;;; ============================================================
+;;; ====
 ;;; Divergence (for vector fields)
-;;; ============================================================
+;;; ====
 
 ;;; divergence : (List Expr) × (List Symbol) → Expr
 ;;; Compute divergence of a vector field F = [F₁, F₂, ..., Fₙ].
@@ -263,9 +263,9 @@
 (define (divergence field vars)
   (fold-sum (map deriv field vars)))
 
-;;; ============================================================
+;;; ====
 ;;; Laplacian (scalar field)
-;;; ============================================================
+;;; ====
 
 ;;; laplacian : Expr × (List Symbol) → Expr
 ;;; Compute the Laplacian ∇²f = Σ(∂²f/∂xᵢ²).

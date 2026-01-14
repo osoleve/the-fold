@@ -31,9 +31,9 @@
 ;;;   - Stash management
 ;;;   - Safe operations (confirmations)
 
-;;; ============================================================
+;;; ====
 ;;; Configuration
-;;; ============================================================
+;;; ====
 
 (load "core/base/prelude.ss")
 
@@ -42,9 +42,9 @@
 (define *auto-push* #f)
 (define *require-confirmation* #t)
 
-;;; ============================================================
+;;; ====
 ;;; Quick Operations
-;;; ============================================================
+;;; ====
 
 ;;; quick-commit : String → Bool
 ;;; Add all changes and commit with message.
@@ -81,9 +81,9 @@
             (display "✓ Sync complete\n")
             #t))))
 
-;;; ============================================================
+;;; ====
 ;;; Feature Branch Workflow
-;;; ============================================================
+;;; ====
 
 ;;; feature-start : String → Bool
 ;;; Create and switch to new feature branch.
@@ -117,9 +117,9 @@
                  (display "✓ Feature merged and cleaned up\n")
                  #t)))))
 
-;;; ============================================================
+;;; ====
 ;;; Undo Operations
-;;; ============================================================
+;;; ====
 
 ;;; undo-last : → Bool
 ;;; Undo last commit but keep changes in working directory.
@@ -157,9 +157,9 @@
   (display "✓ All changes discarded\n")
   #t)
 
-;;; ============================================================
+;;; ====
 ;;; Stash Operations
-;;; ============================================================
+;;; ====
 
 ;;; stash-all : String → Bool
 ;;; Stash all changes with description.
@@ -183,9 +183,9 @@
   (display "Stashes:\n")
   (git-stash-list))
 
-;;; ============================================================
+;;; ====
 ;;; Branch Management
-;;; ============================================================
+;;; ====
 
 ;;; branch-cleanup : → Bool
 ;;; Delete branches that have been merged.
@@ -223,9 +223,9 @@
        (display (format "Status: ~a\n" status))
        (display "\n")))
 
-;;; ============================================================
+;;; ====
 ;;; Conflict Resolution
-;;; ============================================================
+;;; ====
 
 ;;; has-conflicts? : GitResult → Bool
 (define (has-conflicts? result)
@@ -261,9 +261,9 @@
             (display-conflicts)
             #f))))
 
-;;; ============================================================
+;;; ====
 ;;; Git Command Wrappers
-;;; ============================================================
+;;; ====
 ;;; These wrap the underlying git operations.
 ;;; In a real implementation, these would call shell/git/git.ss functions.
 
@@ -338,9 +338,9 @@
   ;; Returns list of files with conflicts
   '())
 
-;;; ============================================================
+;;; ====
 ;;; Utility Functions
-;;; ============================================================
+;;; ====
 
 ;;; confirm : String → Bool
 (define (confirm prompt)

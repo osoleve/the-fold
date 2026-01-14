@@ -55,9 +55,9 @@
 ;;;     Functor: (K=> (K=> K* K*) K-constraint)             ; (* → *) → Constraint
 ;;;     Vec   : (K-pi 'n 'Nat (K=> K* K*))                  ; Πn:Nat. * → *
 
-;;; ============================================================
+;;; ====
 ;;; Kind Representation
-;;; ============================================================
+;;; ====
 
 ;;; The base kind: ordinary types
 (define K* '*)
@@ -83,9 +83,9 @@
 (define (K-forall vars body)
   `(κ∀ ,vars ,body))
 
-;;; ============================================================
+;;; ====
 ;;; Dependent Kinds (Phase 1 Foundation)
-;;; ============================================================
+;;; ====
 
 ;;; Dependent Kind Grammar Extension:
 ;;;
@@ -171,9 +171,9 @@
       (caddr k)
       (error 'dep-kind-codomain "not a dependent kind" k)))
 
-;;; ============================================================
+;;; ====
 ;;; Kind Predicates
-;;; ============================================================
+;;; ====
 
 ;;; kind? : Any → Boolean
 (define (kind? k)
@@ -230,9 +230,9 @@
 (define (kind-result k)
   (if (kind-arrow? k) (caddr k) #f))
 
-;;; ============================================================
+;;; ====
 ;;; Kind Equality
-;;; ============================================================
+;;; ====
 
 ;;; kind=? : Kind × Kind → Boolean
 (define (kind=? k1 k2)
@@ -244,9 +244,9 @@
                  (map cons k1 k2)))]
    [else #f]))
 
-;;; ============================================================
+;;; ====
 ;;; Type Constructor Representation
-;;; ============================================================
+;;; ====
 
 ;;; A type constructor is a type-level function.
 ;;; We represent application as (@ F Arg1 Arg2 ...)
@@ -275,9 +275,9 @@
 (define (type-app-args t)
   (if (type-app? t) (cddr t) '()))
 
-;;; ============================================================
+;;; ====
 ;;; Built-in Type Constructor Kinds
-;;; ============================================================
+;;; ====
 
 ;;; The kind environment for built-in type constructors
 (define builtin-kinds
@@ -324,9 +324,9 @@
   (let ([entry (assq name builtin-kinds)])
        (if entry (cdr entry) #f)))
 
-;;; ============================================================
+;;; ====
 ;;; Kind Inference
-;;; ============================================================
+;;; ====
 
 ;;; infer-kind : Type × KindEnv → Kind | Error
 ;;; Infer the kind of a type expression.
@@ -457,9 +457,9 @@
                       (in ,(car args)))))
           `(error not-a-type-constructor ,kind ,args))))
 
-;;; ============================================================
+;;; ====
 ;;; Type Classes (Higher-Kinded)
-;;; ============================================================
+;;; ====
 
 ;;; A type class is a constraint on types or type constructors.
 ;;;
@@ -520,9 +520,9 @@
                   (=> (Monad m)
                       (-> a (@ m a))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Value-Level Type Classes
-;;; ============================================================
+;;; ====
 
 ;;; Eq : * → Constraint
 ;;;   == : a → a → Bool
@@ -588,9 +588,9 @@
    `((mempty . (∀ (a)
                   (=> (Monoid a) a))))))
 
-;;; ============================================================
+;;; ====
 ;;; Numeric Type Classes
-;;; ============================================================
+;;; ====
 
 ;;; Num : * → Constraint
 ;;; The core numeric type class for basic arithmetic.
@@ -666,9 +666,9 @@
      (mod      . (∀ (a) (=> (Integral a) (-> a a a))))
      (toInteger . (∀ (a) (=> (Integral a) (-> a Int)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Contravariant and Bifunctors
-;;; ============================================================
+;;; ====
 
 ;;; Contravariant : (* → *) → Constraint
 ;;; The dual of Functor — consumes rather than produces values.
@@ -702,9 +702,9 @@
                   (=> (Bifunctor p)
                       (-> (-> c d) (@ (@ p a) c) (@ (@ p a) d))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Category Theory Type Classes
-;;; ============================================================
+;;; ====
 
 ;;; Category : (* → * → *) → Constraint
 ;;; A category has objects (types) and morphisms between them.
@@ -765,9 +765,9 @@
                      (-> (@ (@ arr a) b) (@ (@ arr a) c)
                          (@ (@ arr a) (× b c)))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Multi-Parameter Type Classes with Functional Dependencies
-;;; ============================================================
+;;; ====
 
 ;;; Multi-parameter type classes constrain relationships between
 ;;; multiple type parameters. Functional dependencies guide type
@@ -804,9 +804,9 @@
 ;;; fundep-rhs : FunDep → (List Symbol)
 (define (fundep-rhs fd) (cdr fd))
 
-;;; ============================================================
+;;; ====
 ;;; Multi-Parameter Type Class Examples
-;;; ============================================================
+;;; ====
 
 ;;; Convertible a b — convert between types
 ;;; No fundeps: a and b are independent
@@ -891,9 +891,9 @@
                   (=> (MonadWriter w m)
                       (-> (@ m (× a (-> w w))) (@ m a))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Functional Dependency Utilities
-;;; ============================================================
+;;; ====
 
 ;;; apply-fundep : FunDep × TypeSubst → TypeSubst
 ;;; Given known type bindings, derive new bindings from fundep.
@@ -937,9 +937,9 @@
   ;; Placeholder — full implementation requires type unification
   #t)
 
-;;; ============================================================
+;;; ====
 ;;; Type Class Instances
-;;; ============================================================
+;;; ====
 
 ;;; An instance provides implementations of a type class for a specific type.
 ;;;
@@ -963,9 +963,9 @@
 ;;;
 ;;; See forum/engineering/0010-adr-001-type-classes-deferred.sexp
 
-;;; ============================================================
+;;; ====
 ;;; Constrained Types
-;;; ============================================================
+;;; ====
 
 ;;; We need a way to express constraints in types:
 ;;;   (=> (Functor f) (-> (-> a b) (@ f a) (@ f b)))
@@ -992,9 +992,9 @@
       (caddr t)
       t))
 
-;;; ============================================================
+;;; ====
 ;;; Kind Unification (for HKT inference)
-;;; ============================================================
+;;; ====
 
 ;;; Kind unification finds a substitution that makes two kinds equal.
 ;;; This is needed when inferring HKT type variables.
@@ -1075,9 +1075,9 @@
         
         [else `(error kind-mismatch ,k1 ,k2)])))
 
-;;; ============================================================
+;;; ====
 ;;; Kind Display
-;;; ============================================================
+;;; ====
 
 ;;; kind->string : Kind → String
 (define (kind->string k)

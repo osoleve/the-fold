@@ -43,9 +43,9 @@
 (load "core/types/types.ss")
 (load "core/types/kinds.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Section 1: Special Characters
-;;; ============================================================
+;;; ====
 
 (define %arrow "→")
 (define %times "×")
@@ -55,9 +55,9 @@
 (define %pipe "|")
 (define %dot ".")
 
-;;; ============================================================
+;;; ====
 ;;; Section 2: Tokenizer
-;;; ============================================================
+;;; ====
 
 ;;; Token types: symbol, arrow, times, lparen, rparen, pipe, forall, dot
 ;;; make-token : Symbol × String → Token
@@ -230,9 +230,9 @@
                               (values sym (+ pos sym-len))
                               (loop (cdr greeks)))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Section 3: Parser
-;;; ============================================================
+;;; ====
 
 ;;; Parser state: list of remaining tokens
 ;;; Result: (ok ast remaining-tokens) | (error msg)
@@ -391,9 +391,9 @@
                          [rest (caddr arg-result)])
                         (parse-type-args con (cons arg acc) rest)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Section 4: Signature Line Parser
-;;; ============================================================
+;;; ====
 
 ;;; parse-sig-line : String → (ok (name . type)) | (error ...) | (skip)
 ;;; Parse a signature comment line: ";;; name : Type"
@@ -453,9 +453,9 @@
                                                                 `(ok (,(string->symbol name-part) . ,type))
                                                                 '(skip)))))))))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Section 5: Utilities
-;;; ============================================================
+;;; ====
 
 ;;; type->internal : ParsedType → InternalType
 ;;; Convert parsed type to internal representation used by kind checker.
@@ -500,9 +500,9 @@
    [else
     (string-append "(" (string-join (map format-type t) " ") ")")]))
 
-;;; ============================================================
+;;; ====
 ;;; Section 6: Result Tracking
-;;; ============================================================
+;;; ====
 
 (define *total-sigs* 0)
 (define *valid-sigs* 0)
@@ -528,9 +528,9 @@
 (define (record-valid!)
   (set! *valid-sigs* (+ *valid-sigs* 1)))
 
-;;; ============================================================
+;;; ====
 ;;; Section 7: Type Name Resolution
-;;; ============================================================
+;;; ====
 
 ;;; Map from sig-parser names to kinds.ss names
 (define type-name-mapping
@@ -1073,9 +1073,9 @@
             `(error ,kind-result)
             `(ok ,kind-result))))
 
-;;; ============================================================
+;;; ====
 ;;; Section 8: File Processing
-;;; ============================================================
+;;; ====
 
 ;;; read-file-lines : String → (List String)
 (define (read-file-lines filename)
@@ -1118,9 +1118,9 @@
                              (record-valid!)))
                    (check-lines filename (cdr lines) (+ line-num 1))]))))
 
-;;; ============================================================
+;;; ====
 ;;; Section 9: Default Files to Check
-;;; ============================================================
+;;; ====
 
 ;;; Core files that should have type-checked annotations
 (define default-files
@@ -1134,9 +1134,9 @@
     "lattice/linalg/vec.ss"
     "lattice/linalg/matrix.ss"))
 
-;;; ============================================================
+;;; ====
 ;;; Section 10: Reporting
-;;; ============================================================
+;;; ====
 
 (define (report-results verbose?)
   (display (format "~nType Annotation Check Results:~n"))
@@ -1165,9 +1165,9 @@
                                                 file line name (format-type type) kerr))))
                   (reverse *kind-errors*))))
 
-;;; ============================================================
+;;; ====
 ;;; Section 11: Main Entry Point
-;;; ============================================================
+;;; ====
 
 ;;; Parse args for --verbose flag
 (define (parse-args args)

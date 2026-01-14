@@ -23,9 +23,9 @@
 (load "lattice/fp/rewrite/laws.ss")
 (load "lattice/fp/rewrite/verify.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Display Helpers
-;;; ============================================================
+;;; ====
 
 ;;; display-divider : → void
 (define (display-divider)
@@ -41,9 +41,9 @@
   (display-divider)
   (newline))
 
-;;; ============================================================
+;;; ====
 ;;; Rewrite Commands
-;;; ============================================================
+;;; ====
 
 ;;; rewrite : Expr × Symbol → Trace
 ;;; Apply a named rule to an expression.
@@ -162,9 +162,9 @@
             (newline)
             result)))
 
-;;; ============================================================
+;;; ====
 ;;; Trace Display
-;;; ============================================================
+;;; ====
 
 ;;; show-trace : Trace → void
 ;;; Display a rewrite trace with formatting.
@@ -202,9 +202,9 @@
   (when (trace-verified? trace)
         (display "\n  [Verified: expressions are equivalent]\n")))
 
-;;; ============================================================
+;;; ====
 ;;; Verification Commands
-;;; ============================================================
+;;; ====
 
 ;;; verify : Expr × Expr → Boolean
 ;;; Check if two expressions are equivalent.
@@ -235,9 +235,9 @@
 (define (equiv? e1 e2)
   (full-equiv? e1 e2))
 
-;;; ============================================================
+;;; ====
 ;;; Law Discovery Commands
-;;; ============================================================
+;;; ====
 
 ;;; laws : [Symbol] → void
 ;;; List available laws, optionally filtered by category.
@@ -331,9 +331,9 @@
                           (newline)))
             (reverse applicable)))))
 
-;;; ============================================================
+;;; ====
 ;;; Custom Rule Definition
-;;; ============================================================
+;;; ====
 
 ;;; define-rule : Symbol × Pattern × Template × Opts... → void
 ;;; Define a custom rewrite rule.
@@ -348,9 +348,9 @@
            (begin
             (display "  Error: Invalid rule - RHS variables must appear in LHS.\n")))))
 
-;;; ============================================================
+;;; ====
 ;;; Help
-;;; ============================================================
+;;; ====
 
 ;;; rewrite-help : → void
 (define (rewrite-help)
@@ -387,9 +387,9 @@
   (display "    → (f x)\n")
   (display "\n"))
 
-;;; ============================================================
+;;; ====
 ;;; Command Registration (if commands.ss available)
-;;; ============================================================
+;;; ====
 
 ;;; Try to register with shell command system
 (define (register-rewrite-commands!)

@@ -8,9 +8,9 @@
 ;;; Load security utilities
 (load "user/security-utils.ss")
 
-;;; ============================================================
+;;; ====
 ;;; The Soul — Core Data Structures
-;;; ============================================================
+;;; ====
 
 ;;; Point : (× Nat Nat)
 ;;; A location in 2D space. Origin is top-left.
@@ -29,9 +29,9 @@
   (and (= (point-x p1) (point-x p2))
        (= (point-y p1) (point-y p2))))
 
-;;; ============================================================
+;;; ====
 ;;; Mood — The Emotional State
-;;; ============================================================
+;;; ====
 
 ;;; Mood : Validated emotional states
 ;;;
@@ -46,9 +46,9 @@
 (define (mood->string m)
   (symbol->string m))
 
-;;; ============================================================
+;;; ====
 ;;; Memory — The Identity That Accumulates
-;;; ============================================================
+;;; ====
 
 ;;; Memory : Block tagged 'memory
 ;;;
@@ -68,9 +68,9 @@
     milestone      ; Something significant happened
     dream))        ; What DUCKIE imagined while idle
 
-;;; ============================================================
+;;; ====
 ;;; The Duckie Type — The Complete Soul
-;;; ============================================================
+;;; ====
 
 ;;; Duckie : Block tagged 'duckie
 ;;;
@@ -104,9 +104,9 @@
 (define (duckie-memories d)  (cdr (assq 'memories (duckie-fields d))))
 (define (duckie-traits d)    (cdr (assq 'traits (duckie-fields d))))
 
-;;; ============================================================
+;;; ====
 ;;; Soul Operations — How DUCKIE Changes
-;;; ============================================================
+;;; ====
 
 ;;; update-field : Duckie × Symbol × Any → Duckie
 ;;; Functional update of a single field.
@@ -148,9 +148,9 @@
   (duckie-update d 'energy
                  (min 100 (+ (duckie-energy d) amount))))
 
-;;; ============================================================
+;;; ====
 ;;; Personality Traits — What Makes Each DUCKIE Unique
-;;; ============================================================
+;;; ====
 
 ;;; Traits emerge from interactions. Some possibilities:
 
@@ -174,9 +174,9 @@
                      (cons trait (duckie-traits d)))
       d))
 
-;;; ============================================================
+;;; ====
 ;;; Mood Transitions — How Feelings Change
-;;; ============================================================
+;;; ====
 
 ;;; The mood state machine. Not rigid — just tendencies.
 ;;;
@@ -215,9 +215,9 @@
                [else current-mood])]
         [else current-mood]))
 
-;;; ============================================================
+;;; ====
 ;;; Serialization — DUCKIE as Block
-;;; ============================================================
+;;; ====
 
 ;;; duckie->block : Duckie → Block
 ;;; Serialize DUCKIE's soul for persistence.
@@ -239,9 +239,9 @@
                 #f)))
       #f))
 
-;;; ============================================================
+;;; ====
 ;;; The First DUCKIE
-;;; ============================================================
+;;; ====
 
 ;;; A test instance — proof that the soul structure works.
 (define proto-duckie
@@ -262,9 +262,9 @@
 ;;; Ready to accumulate identity.
 ;;; Ready to remember.
 
-;;; ============================================================
+;;; ====
 ;;; Notes for Future Builders
-;;; ============================================================
+;;; ====
 
 ;;; This is the soul, not the body.
 ;;; DUCKIE still needs:

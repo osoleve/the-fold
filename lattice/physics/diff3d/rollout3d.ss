@@ -28,9 +28,9 @@
 (load "lattice/physics/diff3d/traced-body3d.ss")
 (load "lattice/physics/diff3d/traced-integrators3d.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Basic Rollout (Full Tape)
-;;; ============================================================
+;;; ====
 
 ;;; traced-rollout-3d : TracedBody3D × (TracedBody3D → TracedBody3D) × Nat → TracedBody3D
 ;;; Roll out simulation for n steps using step function.
@@ -61,9 +61,9 @@
                                       (traced-euler-step-3d body accel torque dt))))
                      n))
 
-;;; ============================================================
+;;; ====
 ;;; Trajectory Recording
-;;; ============================================================
+;;; ====
 
 ;;; Sometimes we need the full trajectory, not just final state.
 
@@ -81,9 +81,9 @@
 (define (traced-trajectory-final-3d traj)
   (car (reverse traj)))
 
-;;; ============================================================
+;;; ====
 ;;; Gradient Checkpointing
-;;; ============================================================
+;;; ====
 
 ;;; For long rollouts, storing full tape uses O(T) memory.
 ;;; Checkpointing reduces this to O(sqrt(T)) by storing only
@@ -115,9 +115,9 @@
                            (loop new-body next-step (+ ckpt-idx 1)))
                           (loop new-body next-step ckpt-idx)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Segment-wise Gradient Computation
-;;; ============================================================
+;;; ====
 
 ;;; For checkpointed gradients, we compute gradients segment by segment.
 ;;; Each segment is small enough to fit in memory.
@@ -127,9 +127,9 @@
 (define (traced-segment-rollout-3d initial-body step-fn segment-length)
   (traced-rollout-3d initial-body step-fn segment-length))
 
-;;; ============================================================
+;;; ====
 ;;; Full Checkpointed Gradient (3D)
-;;; ============================================================
+;;; ====
 
 ;;; checkpointed-gradient-3d : RigidBody3D × (RigidBody3D → RigidBody3D) × (RigidBody3D → Number) × Nat → GradientResult
 ;;; Compute gradient of loss w.r.t. initial state using checkpointing.
@@ -190,9 +190,9 @@
                 (quat (list-ref grads 6) (list-ref grads 7) (list-ref grads 8) (list-ref grads 9))
                 (vec3 (list-ref grads 10) (list-ref grads 11) (list-ref grads 12)))))
 
-;;; ============================================================
+;;; ====
 ;;; Loss Functions for 3D Tasks
-;;; ============================================================
+;;; ====
 
 ;;; target-position-loss-3d : Vec3 → (RigidBody3D → Number)
 ;;; Loss for reaching a target position.
@@ -250,9 +250,9 @@
          [angular-ke (* 0.5 (vec3-dot omega I-omega))])
         (+ linear-ke angular-ke)))
 
-;;; ============================================================
+;;; ====
 ;;; Projectile Motion (3D)
-;;; ============================================================
+;;; ====
 
 ;;; projectile-hit-loss-3d : Vec3 × Vec3 × Vec3 × Number × Nat → (Vec3 → Number)
 ;;; Loss function for 3D projectile hitting target.
@@ -285,9 +285,9 @@
          [new-pos (traced-vec3-add pos (traced-vec3-scale new-vel dt))])
         (values new-pos new-vel)))
 
-;;; ============================================================
+;;; ====
 ;;; Substepping for Stability
-;;; ============================================================
+;;; ====
 
 ;;; traced-rollout-substep-3d : TracedBody3D × (TracedBody3D → TracedBody3D) × Nat × Nat → TracedBody3D
 ;;; Roll out with substepping.
@@ -298,9 +298,9 @@
                              (traced-rollout-3d body step-fn substeps))
                      num-steps))
 
-;;; ============================================================
+;;; ====
 ;;; Collision Rollout (with soft contacts)
-;;; ============================================================
+;;; ====
 
 ;;; traced-collision-rollout-3d : TracedBody3D × Number × SoftMaterial3D × Number × Nat → TracedBody3D
 ;;; Rollout with ground collision.
@@ -313,9 +313,9 @@
                 (traced-sphere-collision-step-3d body radius '() ground-y material dt))
         n)))
 
-;;; ============================================================
+;;; ====
 ;;; Constraint Rollout
-;;; ============================================================
+;;; ====
 
 ;;; traced-constraint-rollout-3d : (Vector TracedBody3D) × (List Constraint3D) × Vec3 × Number × Nat × Nat → (Vector TracedBody3D)
 ;;; Rollout multiple bodies with constraints.
@@ -326,9 +326,9 @@
            (loop (traced-constraint-step-3d bodies constraints gravity dt iterations)
                  (+ i 1)))))
 
-;;; ============================================================
+;;; ====
 ;;; Multi-Body System State
-;;; ============================================================
+;;; ====
 
 ;;; For systems with multiple bodies (chains, cloth, etc.), we need
 ;;; to track state as a vector of bodies.
@@ -353,9 +353,9 @@
            (let ([new-bodies (step-fn bodies)])
                 (loop new-bodies (+ i 1) (cons new-bodies trajectory))))))
 
-;;; ============================================================
+;;; ====
 ;;; Pendulum System Rollout
-;;; ============================================================
+;;; ====
 
 ;;; traced-pendulum-rollout-3d : TracedBody3D × Constraint3D × Vec3 × Number × Nat × Nat → TracedBody3D
 ;;; Roll out single pendulum system.
@@ -370,9 +370,9 @@
 (define (traced-chain-rollout-3d bodies constraints gravity dt iterations n)
   (traced-constraint-rollout-3d bodies constraints gravity dt iterations n))
 
-;;; ============================================================
+;;; ====
 ;;; Gradient of Pendulum Motion
-;;; ============================================================
+;;; ====
 
 ;;; pendulum-gradient-3d : TracedBody3D × Constraint3D × (RigidBody3D → Number) × Number × Nat × Nat → (Vec3 × Vec3)
 ;;; Compute gradient of loss w.r.t. initial position and velocity.

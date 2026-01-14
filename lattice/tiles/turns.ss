@@ -14,9 +14,9 @@
 ;;;   - playpen/boardcraft/core.ss
 ;;;   - playpen/boardcraft/units.ss
 
-;;; ============================================================
+;;; ====
 ;;; Turn State
-;;; ============================================================
+;;; ====
 
 ;;; A Turn State manages the current game turn.
 ;;;
@@ -64,9 +64,9 @@
          unit-ids)
         (make-turn-state unit-ids max-actions)))
 
-;;; ============================================================
+;;; ====
 ;;; Turn Queries
-;;; ============================================================
+;;; ====
 
 ;;; turn-current-unit : TurnState → UnitId | #f
 ;;; Get currently active unit ID
@@ -94,9 +94,9 @@
   (and (eq? (turn-current-unit ts) unit-id)
        (> (turn-actions-remaining ts unit-id) 0)))
 
-;;; ============================================================
+;;; ====
 ;;; Turn Actions
-;;; ============================================================
+;;; ====
 
 ;;; turn-spend-action : TurnState × UnitId × Integer → TurnState
 ;;; Spend action points
@@ -126,9 +126,9 @@
                          (turn-state%-phase ts)
                          (cons entry history))))
 
-;;; ============================================================
+;;; ====
 ;;; Turn Advancement
-;;; ============================================================
+;;; ====
 
 ;;; turn-next-phase : TurnState → TurnState
 ;;; Advance to next phase in turn
@@ -177,9 +177,9 @@
 (define (turn-end-turn ts max-actions)
   (turn-next-unit ts max-actions))
 
-;;; ============================================================
+;;; ====
 ;;; Turn History
-;;; ============================================================
+;;; ====
 
 ;;; turn-history : TurnState → (List Entry)
 ;;; Get turn history (most recent first)
@@ -196,9 +196,9 @@
            (reverse result)
            (loop (cdr actions) (+ count 1) (cons (car actions) result)))))
 
-;;; ============================================================
+;;; ====
 ;;; Initiative System
-;;; ============================================================
+;;; ====
 
 ;;; calculate-initiative-order : (List Unit) → (List UnitId)
 ;;; Calculate turn order based on unit initiative
@@ -232,9 +232,9 @@
          units)
         (make-turn-state initiative-order max-actions)))
 
-;;; ============================================================
+;;; ====
 ;;; Integrated Turn System
-;;; ============================================================
+;;; ====
 
 ;;; game-with-turns : GameState × TurnState → GameWithTurns
 ;;; Combine game state with turn state
@@ -270,9 +270,9 @@
                      #f))  ; Action failed
             #f)))  ; Can't act
 
-;;; ============================================================
+;;; ====
 ;;; Exports Summary
-;;; ============================================================
+;;; ====
 
 ;;; This module provides:
 ;;;   Turn State:

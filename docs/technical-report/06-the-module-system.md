@@ -59,7 +59,7 @@ Each module declares metadata in `manifest.sexp`:
 **Formal Schema**:
 
 | Field | Type | Description |
-|-------|------|-------------|
+|----|----|----|
 | `version` | SemVer | Semantic version string |
 | `tier` | Nat | Dependency tier (0 = no deps) |
 | `path` | String | Relative path from project root |
@@ -120,7 +120,7 @@ You do NOT need to re-verify dependencies or examine their implementations.
 If module A has bound O(f_A) and module B has bound O(f_B):
 
 | Composition | Resulting Bound |
-|-------------|-----------------|
+|----|----|
 | Sequential (A then B) | O(f_A + f_B) |
 | Nested (A calls B once) | O(f_A + f_B) |
 | Nested (A calls B n times) | O(f_A + n · f_B) |

@@ -7,9 +7,9 @@
 (load "lattice/linalg/matrix.ss")
 (load "lattice/linalg/sparse.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Test Utilities
-;;; ============================================================
+;;; ====
 
 (define tests-passed 0)
 (define tests-failed 0)
@@ -56,9 +56,9 @@
 
 (printf "~n=== Sparse Matrix Tests ===~n~n")
 
-;;; ============================================================
+;;; ====
 ;;; COO Format Tests
-;;; ============================================================
+;;; ====
 
 (printf "--- COO Format ---~n")
 
@@ -85,9 +85,9 @@
       (test "COO transpose: (2,0)" 2 (sparse-coo-ref coo-t 2 0))
       (test "COO transpose: (1,1)" 3 (sparse-coo-ref coo-t 1 1)))
 
-;;; ============================================================
+;;; ====
 ;;; CSR Format Tests
-;;; ============================================================
+;;; ====
 
 (printf "~n--- CSR Format ---~n")
 
@@ -127,9 +127,9 @@
       (test "CSR transpose ref: (2,0)" 2 (sparse-csr-ref csr-t 2 0))
       (test "CSR transpose ref: (1,1)" 3 (sparse-csr-ref csr-t 1 1)))
 
-;;; ============================================================
+;;; ====
 ;;; CSC Format Tests
-;;; ============================================================
+;;; ====
 
 (printf "~n--- CSC Format ---~n")
 
@@ -156,9 +156,9 @@
        [col0 (sparse-csc-col csc 0)])
       (test "CSC col 0 length" 2 (length col0)))
 
-;;; ============================================================
+;;; ====
 ;;; Format Conversion Round-trips
-;;; ============================================================
+;;; ====
 
 (printf "~n--- Format Conversions ---~n")
 
@@ -188,9 +188,9 @@
       (test "CSR->CSC->CSR: (0,2)" 2 (sparse-csr-ref csr2 0 2))
       (test "CSR->CSC->CSR: (1,1)" 3 (sparse-csr-ref csr2 1 1)))
 
-;;; ============================================================
+;;; ====
 ;;; Dense <-> Sparse Conversions
-;;; ============================================================
+;;; ====
 
 (printf "~n--- Dense/Sparse Conversion ---~n")
 
@@ -232,9 +232,9 @@
        [dense2 (sparse-csr->dense csr)])
       (test "Dense round-trip: equal" #t (matrix-equal? dense1 dense2)))
 
-;;; ============================================================
+;;; ====
 ;;; Sparse Matrix-Vector Multiplication
-;;; ============================================================
+;;; ====
 
 (printf "~n--- Sparse Matrix-Vector Multiplication ---~n")
 
@@ -278,9 +278,9 @@
        [dense-result (matrix-vec-mul dense v)])
       (test-vec-approx "Sparse vs Dense matvec" dense-result sparse-result 1e-10))
 
-;;; ============================================================
+;;; ====
 ;;; Sparse Matrix Addition
-;;; ============================================================
+;;; ====
 
 (printf "~n--- Sparse Matrix Addition ---~n")
 
@@ -314,9 +314,9 @@
        [result (sparse-coo-add a b)])
       (test "COO add: dimension error" 'error (car result)))
 
-;;; ============================================================
+;;; ====
 ;;; Sparse Matrix-Matrix Multiplication
-;;; ============================================================
+;;; ====
 
 (printf "~n--- Sparse Matrix-Matrix Multiplication ---~n")
 
@@ -362,9 +362,9 @@
        [result (sparse-csr-mul a b)])
       (test "CSR mul: dimension error" 'error (car result)))
 
-;;; ============================================================
+;;; ====
 ;;; Sparse Scalar Operations
-;;; ============================================================
+;;; ====
 
 (printf "~n--- Sparse Scalar Operations ---~n")
 
@@ -382,9 +382,9 @@
       (test "COO scale: (0,1)" 8 (sparse-coo-ref scaled 0 1))
       (test "COO scale: (1,0)" 10 (sparse-coo-ref scaled 1 0)))
 
-;;; ============================================================
+;;; ====
 ;;; Special Sparse Matrices
-;;; ============================================================
+;;; ====
 
 (printf "~n--- Special Sparse Matrices ---~n")
 
@@ -405,9 +405,9 @@
       (test "Sparse diagonal: (1,1)" 3 (sparse-csr-ref d 1 1))
       (test "Sparse diagonal: (2,2)" 4 (sparse-csr-ref d 2 2)))
 
-;;; ============================================================
+;;; ====
 ;;; Utility Functions
-;;; ============================================================
+;;; ====
 
 (printf "~n--- Utility Functions ---~n")
 
@@ -434,9 +434,9 @@
       ;; COO: 3*2 = 6 values, dense = 100, ratio = 0.06
       (test-approx "sparse-memory-ratio COO" 0.06 (sparse-memory-ratio coo) 1e-10))
 
-;;; ============================================================
+;;; ====
 ;;; Edge Cases
-;;; ============================================================
+;;; ====
 
 (printf "~n--- Edge Cases ---~n")
 
@@ -457,9 +457,9 @@
       (test "Single element: ref" 42 (sparse-csr-ref csr 50 50))
       (test "Single element: zero" 0 (sparse-csr-ref csr 0 0)))
 
-;;; ============================================================
+;;; ====
 ;;; Summary
-;;; ============================================================
+;;; ====
 
 (printf "~n=== Summary ===~n")
 (printf "  Passed: ~a~n" tests-passed)

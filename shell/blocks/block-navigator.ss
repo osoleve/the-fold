@@ -26,16 +26,16 @@
 ;;;   (visualize-tree (fs) hash depth); Show block tree
 ;;;   (search-ranked (fs) query)       ; Search with ranking
 
-;;; ============================================================
+;;; ====
 ;;; Dependencies (must be loaded first)
-;;; ============================================================
+;;; ====
 ;;;   core/block.ss
 ;;;   core/sha256.ss
 ;;;   shell/fs.ss
 
-;;; ============================================================
+;;; ====
 ;;; Block Information Display
-;;; ============================================================
+;;; ====
 
 ;;; describe-block : FS × Bytevector → void
 ;;; Display detailed information about a single block.
@@ -77,9 +77,9 @@
       (string-append (substring str 0 max-len) "...")
       str))
 
-;;; ============================================================
+;;; ====
 ;;; Interactive Exploration
-;;; ============================================================
+;;; ====
 
 ;;; explore : FS × String → void
 ;;; Explore a block by hash prefix, showing it and its immediate refs.
@@ -123,9 +123,9 @@
 
 ;;; string-prefix? is now provided by shell/fs.ss
 
-;;; ============================================================
+;;; ====
 ;;; Tree Visualization
-;;; ============================================================
+;;; ====
 
 ;;; visualize-tree : FS × String × Nat → void
 ;;; Display a block and its references as a tree, up to given depth.
@@ -183,9 +183,9 @@
 (define (short-hash hash-hex)
   (substring hash-hex 0 (min 8 (string-length hash-hex))))
 
-;;; ============================================================
+;;; ====
 ;;; Analytics & Statistics
-;;; ============================================================
+;;; ====
 
 ;;; block-stats : FS → void
 ;;; Display comprehensive statistics about the block store.
@@ -344,9 +344,9 @@
               orphans)
              (newline))))
 
-;;; ============================================================
+;;; ====
 ;;; Enhanced Search
-;;; ============================================================
+;;; ====
 
 ;;; search-ranked : FS × String → void
 ;;; Search for blocks containing query string, ranked by relevance.
@@ -422,9 +422,9 @@
               (loop (+ i need-len) (+ count 1))]
              [else (loop (+ i 1) count)]))))
 
-;;; ============================================================
+;;; ====
 ;;; Lineage Tracking
-;;; ============================================================
+;;; ====
 
 ;;; show-lineage : FS × String → void
 ;;; Show the full reference chain starting from a block.
@@ -458,7 +458,7 @@
                       (when (> (vector-length refs) 0)
                             (display-lineage fs (vector-ref refs 0) (+ depth 1) visited)))))))))
 
-;;; ============================================================
+;;; ====
 ;;; take is provided by core/prelude.ss as (take n lst)
 ;;; take is provided by core/prelude.ss as (take n lst)
 ;;; take is provided by core/prelude.ss as (take n lst)
@@ -467,9 +467,9 @@
 ;;; take is provided by core/prelude.ss as (take n lst)
 ;;; take is provided by core/prelude.ss as (take n lst)
 
-;;; ============================================================
+;;; ====
 ;;; Export Note
-;;; ============================================================
+;;; ====
 
 ;;; This file provides the following public functions:
 ;;;   explore, describe-block, visualize-tree, block-stats

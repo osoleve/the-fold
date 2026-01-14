@@ -5,9 +5,9 @@
 ;;;
 ;;; This is part of Spell: the DSL for weaving game logic.
 
-;;; ============================================================
+;;; ====
 ;;; Load Order
-;;; ============================================================
+;;; ====
 
 ;;; Load pipe macros first (foundation for everything else)
 (load "user/loom/spell/pipe.ss")
@@ -21,9 +21,9 @@
 ;;; Load event handler macros
 (load "user/loom/spell/event.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Phase 3: Game DSL Layer
-;;; ============================================================
+;;; ====
 
 ;;; Load predicates (used by behaviors and actions)
 (load "user/loom/spell/predicates.ss")
@@ -38,9 +38,9 @@
 (load "user/loom/spell/game.ss")
 
 
-;;; ============================================================
+;;; ====
 ;;; Common Utility Functions
-;;; ============================================================
+;;; ====
 
 ;;; These helper functions are commonly used with the DSL.
 
@@ -115,9 +115,9 @@
              (cdr enemies)))))
 
 
-;;; ============================================================
+;;; ====
 ;;; Entity Component Helpers
-;;; ============================================================
+;;; ====
 
 ;;; entity-set-component : Entity × Symbol × Component -> Entity
 ;;; Replace a component by type (wrapper around entity-add-component).
@@ -135,9 +135,9 @@
            entity)))
 
 
-;;; ============================================================
+;;; ====
 ;;; Result Helpers (ok/error pattern)
-;;; ============================================================
+;;; ====
 
 ;;; ok? : Result -> Bool
 (define (ok? result)

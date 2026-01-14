@@ -21,9 +21,9 @@ const fs = require('fs');
 const path = require('path');
 const config = require('./config');
 
-// ============================================================
+// ====
 // State
-// ============================================================
+// ====
 
 // Track last seen post hash per channel to avoid duplicates
 const lastSeenHashes = new Map();
@@ -34,9 +34,9 @@ const webhookCache = new Map();
 // Polling interval (ms)
 const POLL_INTERVAL = 5000;
 
-// ============================================================
+// ====
 // Webhook Management
-// ============================================================
+// ====
 
 /**
  * Get or create a webhook for a Discord channel
@@ -72,9 +72,9 @@ async function getWebhook(discordClient, channelId) {
   }
 }
 
-// ============================================================
+// ====
 // Post Formatting
-// ============================================================
+// ====
 
 /**
  * Create an embed for a forum post
@@ -122,9 +122,9 @@ function formatChatMessage(post) {
   return post.body?.slice(0, 2000) || '';
 }
 
-// ============================================================
+// ====
 // Discord Posting
-// ============================================================
+// ====
 
 /**
  * Post a Fold message to Discord
@@ -199,9 +199,9 @@ async function postToDiscord(discordClient, post) {
   }
 }
 
-// ============================================================
+// ====
 // Fold Polling
-// ============================================================
+// ====
 
 /**
  * Read the latest posts from Fold via REPL
@@ -257,9 +257,9 @@ async function pollFoldPosts(evalScheme) {
   return newPosts;
 }
 
-// ============================================================
+// ====
 // File-based Sync (Alternative to REPL polling)
-// ============================================================
+// ====
 
 /**
  * Watch a directory for new post notifications
@@ -529,9 +529,9 @@ async function findChannelWithMessage(discordClient, messageId) {
   return null;
 }
 
-// ============================================================
+// ====
 // Integration
-// ============================================================
+// ====
 
 /**
  * Start the bridge (call from main bot)
@@ -562,9 +562,9 @@ function notifyDiscord(post) {
   console.log(`📬 Queued for Discord: ${filename}`);
 }
 
-// ============================================================
+// ====
 // Exports
-// ============================================================
+// ====
 
 module.exports = {
   start,
@@ -583,9 +583,9 @@ module.exports = {
   findChannelWithMessage,
 };
 
-// ============================================================
+// ====
 // Standalone Mode
-// ============================================================
+// ====
 
 if (require.main === module) {
   console.log('Bridge standalone mode not implemented.');

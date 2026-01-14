@@ -3,9 +3,9 @@
 ;;; Defines the core syntax forms of Satin and their structure.
 ;;; This module recognizes Satin forms and extracts their components.
 
-;;; ============================================================
+;;; ====
 ;;; Form Recognition
-;;; ============================================================
+;;; ====
 
 ;;; Is this a satin-story form?
 (define (satin-story? x)
@@ -47,9 +47,9 @@
   (and (pair? x)
        (eq? (car (strip-span x)) 'timeline)))
 
-;;; ============================================================
+;;; ====
 ;;; Field Extraction Utilities
-;;; ============================================================
+;;; ====
 
 ;;; Get a tagged field from a list of forms.
 ;;; (get-field forms 'title "default") → value or default
@@ -78,9 +78,9 @@
                       (eq? (car (strip-span f)) tag)))
          forms))
 
-;;; ============================================================
+;;; ====
 ;;; Story Extraction
-;;; ============================================================
+;;; ====
 
 (define (satin-story-fields spec)
   (cdr (strip-span spec)))
@@ -139,9 +139,9 @@
 (define (satin-story-masteries spec)
   (filter satin-mastery? (satin-story-fields spec)))
 
-;;; ============================================================
+;;; ====
 ;;; Node Extraction
-;;; ============================================================
+;;; ====
 
 (define (satin-node-fields node)
   (cddr (strip-span node)))
@@ -176,9 +176,9 @@
 (define (satin-node-exercise node)
   (satin-get-field (satin-node-fields node) 'exercise #f))
 
-;;; ============================================================
+;;; ====
 ;;; Choice Extraction
-;;; ============================================================
+;;; ====
 
 ;;; Choices have syntax:
 ;;; (choice "label" target [:when guard] [:effects effect ...])
@@ -245,9 +245,9 @@
 (define (satin-choice-effects choice)
   (satin-get-keyword-values (satin-choice-tail choice) 'effects))
 
-;;; ============================================================
+;;; ====
 ;;; Dialogue Extraction
-;;; ============================================================
+;;; ====
 
 (define (satin-dialogue-fields dialogue)
   (cddr (strip-span dialogue)))
@@ -267,9 +267,9 @@
 (define (satin-dialogue-nodes dialogue)
   (filter satin-node? (satin-dialogue-fields dialogue)))
 
-;;; ============================================================
+;;; ====
 ;;; Quest Extraction
-;;; ============================================================
+;;; ====
 
 (define (satin-quest-fields quest)
   (cddr (strip-span quest)))
@@ -301,9 +301,9 @@
            '()
            (cdr (strip-span (car field))))))
 
-;;; ============================================================
+;;; ====
 ;;; Exercise Extraction
-;;; ============================================================
+;;; ====
 
 (define (satin-exercise-fields exercise)
   (cddr (strip-span exercise)))
@@ -341,9 +341,9 @@
            '()
            (cdr (strip-span (car field))))))
 
-;;; ============================================================
+;;; ====
 ;;; Lesson Extraction
-;;; ============================================================
+;;; ====
 
 ;;; Is this a lesson form?
 (define (satin-lesson? x)
@@ -383,9 +383,9 @@
            '()
            (cdr (strip-span (car field))))))
 
-;;; ============================================================
+;;; ====
 ;;; MCQ (Multiple Choice Question) Extraction
-;;; ============================================================
+;;; ====
 
 ;;; Is this an mcq form?
 (define (satin-mcq? x)
@@ -419,9 +419,9 @@
            '()
            (cdr (strip-span (car field))))))
 
-;;; ============================================================
+;;; ====
 ;;; Short Answer Extraction
-;;; ============================================================
+;;; ====
 
 ;;; Is this a short-answer form?
 (define (satin-short-answer? x)
@@ -452,9 +452,9 @@
            '()
            (cdr (strip-span (car field))))))
 
-;;; ============================================================
+;;; ====
 ;;; Code Task Extraction
-;;; ============================================================
+;;; ====
 
 ;;; Is this a code-task form?
 (define (satin-code-task? x)
@@ -491,9 +491,9 @@
            '()
            (cdr (strip-span (car field))))))
 
-;;; ============================================================
+;;; ====
 ;;; Mastery Extraction
-;;; ============================================================
+;;; ====
 
 ;;; Is this a mastery form?
 (define (satin-mastery? x)
@@ -524,9 +524,9 @@
            '()
            (cdr (strip-span (car field))))))
 
-;;; ============================================================
+;;; ====
 ;;; Rule Extraction
-;;; ============================================================
+;;; ====
 
 (define (satin-rule-fields rule)
   (cddr (strip-span rule)))

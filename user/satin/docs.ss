@@ -3,9 +3,9 @@
 ;;; Extracts documentation from Satin specifications into
 ;;; in-REPL inspectable structures. No markdown files!
 
-;;; ============================================================
+;;; ====
 ;;; Documentation Structure
-;;; ============================================================
+;;; ====
 
 ;;; A doc entry is an alist with:
 ;;; - id: symbol
@@ -33,9 +33,9 @@
 (define (doc-examples d) (cdr (assq 'examples d)))
 (define (doc-related d) (cdr (assq 'related d)))
 
-;;; ============================================================
+;;; ====
 ;;; Built-in Documentation Database
-;;; ============================================================
+;;; ====
 
 (define *satin-docs*
   (list
@@ -256,9 +256,9 @@
                 (event noon (at 100) (once? #t) (effects (print! "Noon!")))))
              '(rule node))))
 
-;;; ============================================================
+;;; ====
 ;;; Documentation Lookup
-;;; ============================================================
+;;; ====
 
 ;;; satin-doc : Symbol → Doc | #f
 ;;; Look up documentation for a form type.
@@ -279,9 +279,9 @@
 (define (satin-doc-types)
   (map doc-id *satin-docs*))
 
-;;; ============================================================
+;;; ====
 ;;; Story Introspection
-;;; ============================================================
+;;; ====
 
 ;;; satin-describe : SatinSpec → Doc
 ;;; Generate documentation for a specific story.
@@ -333,9 +333,9 @@
          (choice-targets . ,(map satin-choice-target choices))
          (is-end . ,(satin-node-end? node)))))
 
-;;; ============================================================
+;;; ====
 ;;; Help Display
-;;; ============================================================
+;;; ====
 
 ;;; satin-help : [Symbol] → void
 ;;; Display help for a form type, or general help if no argument.
@@ -360,7 +360,7 @@
 (define (satin-help-overview)
   (display "Satin DSL Help
 ")
-  (display "==============
+  (display "====
 
 ")
   (display "Satin is a declarative DSL for authoring Quill stories.
@@ -418,9 +418,9 @@ Use (satin-help '<form>) for detailed help.
                  (car strs)
                  (cdr strs))))
 
-;;; ============================================================
+;;; ====
 ;;; Guard and Effect Documentation
-;;; ============================================================
+;;; ====
 
 (define *satin-guard-docs*
   '((flag? . "Check if a flag is set: (flag? name)")
@@ -459,7 +459,7 @@ Use (satin-help '<form>) for detailed help.
 (define (satin-guards)
   (display "Satin Guard Predicates
 ")
-  (display "======================
+  (display "====
 
 ")
   (for-each
@@ -475,7 +475,7 @@ Use (satin-help '<form>) for detailed help.
 (define (satin-effects)
   (display "Satin Effects
 ")
-  (display "=============
+  (display "====
 
 ")
   (for-each

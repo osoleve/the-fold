@@ -20,9 +20,9 @@
 (load "lattice/geometry/geometry.ss")
 (load "lattice/geometry/mesh-sdf.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Raymarching Parameters
-;;; ============================================================
+;;; ====
 
 ;;; raymarch-params : Configuration for raymarching
 ;;; (raymarch-params max-steps max-distance hit-threshold)
@@ -43,9 +43,9 @@
 (define default-raymarch-params
   (raymarch-params 100 1000.0 0.001))
 
-;;; ============================================================
+;;; ====
 ;;; Raymarching Algorithm
-;;; ============================================================
+;;; ====
 
 ;;; raymarch : (Vec3 → Real) × Ray3 × RaymarchParams → (Vec3 × Real × Nat) | #f
 ;;; Sphere trace along a ray until surface hit or max distance
@@ -85,9 +85,9 @@
   (let ([sdf-fn (lambda (p) (mesh-sdf mesh p))])
        (raymarch sdf-fn ray params)))
 
-;;; ============================================================
+;;; ====
 ;;; Normal Computation
-;;; ============================================================
+;;; ====
 
 ;;; sdf-normal : (Vec3 → Real) × Vec3 → Vec3
 ;;; Compute surface normal using gradient of SDF
@@ -107,9 +107,9 @@
 (define (mesh-sdf-normal mesh point)
   (mesh-sdf-gradient mesh point))
 
-;;; ============================================================
+;;; ====
 ;;; Soft Shadows
-;;; ============================================================
+;;; ====
 
 ;;; raymarch-shadow : (Vec3 → Real) × Ray3 × Real × Real × RaymarchParams → Real
 ;;; Compute soft shadow factor (0 = full shadow, 1 = no shadow)
@@ -139,9 +139,9 @@
                         (march (+ t dist) (+ steps 1) new-factor))]))]))
        (march (raymarch-params-hit-threshold params) 0 1.0)))
 
-;;; ============================================================
+;;; ====
 ;;; Ambient Occlusion
-;;; ============================================================
+;;; ====
 
 ;;; raymarch-ao : (Vec3 → Real) × Vec3 × Vec3 × Nat → Real
 ;;; Compute ambient occlusion factor (0 = fully occluded, 1 = no occlusion)
@@ -161,9 +161,9 @@
                          (+ sum (* weight (max 0.0 occlusion)))))))
   (max 0.0 (- 1.0 (sample-ao 0 0 0.0))))
 
-;;; ============================================================
+;;; ====
 ;;; Scene Rendering Helpers
-;;; ============================================================
+;;; ====
 
 ;;; simple-shading : Vec3 × Vec3 × Vec3 → Real
 ;;; Simple diffuse shading
@@ -190,9 +190,9 @@
            ;; No hit - background
            0.0)))
 
-;;; ============================================================
+;;; ====
 ;;; Performance Optimization Helpers
-;;; ============================================================
+;;; ====
 
 ;;; adaptive-step : (Vec3 → Real) × Vec3 → Real
 ;;; Compute adaptive step size based on local SDF variation

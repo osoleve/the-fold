@@ -13,9 +13,9 @@
 (define (approx= a b eps)
   (< (abs (- a b)) eps))
 
-;;; ============================================================
+;;; ====
 ;;; Simple SDF Functions for Testing
-;;; ============================================================
+;;; ====
 
 ;;; sdf-sphere-origin : Number -> Vec3 -> Number
 ;;; Sphere centered at origin
@@ -28,9 +28,9 @@
 (define (sdf-plane-y p)
   (vec3-y p))
 
-;;; ============================================================
+;;; ====
 ;;; Cube Index Computation Tests
-;;; ============================================================
+;;; ====
 
 (define-test "compute-cube-index all outside"
   (let* ([values '(1 1 1 1 1 1 1 1)]  ; All positive (outside)
@@ -57,9 +57,9 @@
          [index (compute-cube-index values)])
         (assert-equal index 7)))  ; 1 + 2 + 4 = 7
 
-;;; ============================================================
+;;; ====
 ;;; Edge Intersection Tests
-;;; ============================================================
+;;; ====
 
 (define-test "compute-edge-intersections single edge"
   (let* ([corners (list (vec3 0 0 0) (vec3 1 0 0)
@@ -89,9 +89,9 @@
                    ;; X should be at midpoint (interpolation of -1 to +1)
                    (assert-true (approx= (vec3-x first-point) 1.0 0.1))))))
 
-;;; ============================================================
+;;; ====
 ;;; Triangle Generation Tests
-;;; ============================================================
+;;; ====
 
 (define-test "generate-cube-triangles empty for insufficient points"
   (let* ([points (list (vec3 0 0 0) (vec3 1 0 0))]  ; Only 2 points
@@ -110,9 +110,9 @@
          [tris (generate-cube-triangles points 0)])
         (assert-equal (length tris) 2)))
 
-;;; ============================================================
+;;; ====
 ;;; Marching Cubes Cube Tests
-;;; ============================================================
+;;; ====
 
 (define-test "marching-cubes-cube all outside produces no triangles"
   (let* ([corners (list (vec3 0 0 0) (vec3 1 0 0)
@@ -143,9 +143,9 @@
         ;; Should produce some triangles
         (assert-true (> (length tris) 0))))
 
-;;; ============================================================
+;;; ====
 ;;; Full Marching Cubes Tests
-;;; ============================================================
+;;; ====
 
 (define-test "marching-cubes sphere produces triangles"
   (let* ([sdf (sdf-sphere-origin 1.0)]
@@ -182,9 +182,9 @@
          [tris (marching-cubes sdf center size resolution)])
         (assert-equal (length tris) 0)))
 
-;;; ============================================================
+;;; ====
 ;;; Grid Tests
-;;; ============================================================
+;;; ====
 
 (define-test "marching-cubes-grid bounds"
   (let* ([sdf (sdf-sphere-origin 0.5)]
@@ -202,9 +202,9 @@
                         (assert-true (<= (abs (vec3-y p1)) 2.0))
                         (assert-true (<= (abs (vec3-z p1)) 2.0)))))))
 
-;;; ============================================================
+;;; ====
 ;;; High-Level API Tests
-;;; ============================================================
+;;; ====
 
 (define-test "marching-cubes-sphere produces valid mesh"
   (let* ([center (vec3 0 0 0)]
@@ -243,9 +243,9 @@
                           (assert-true (triangle3? tri)))
                   tris)))
 
-;;; ============================================================
+;;; ====
 ;;; Edge Table Tests
-;;; ============================================================
+;;; ====
 
 (define-test "edge-table size"
   (assert-equal (vector-length edge-table) 256))
@@ -268,9 +268,9 @@
   ;; All inside
   (assert-equal (vector-ref tri-table 255) 0))
 
-;;; ============================================================
+;;; ====
 ;;; Summary
-;;; ============================================================
+;;; ====
 
 (display "\n")
 (display "Tests run:    ")

@@ -32,18 +32,18 @@
 
 (load "core/base/prelude.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Configuration
-;;; ============================================================
+;;; ====
 
 (define *default-iterations* 100)
 (define *default-warmup* 10)
 (define *default-percentiles* '(50 90 95 99))
 (define *regression-threshold* 0.10)  ; 10% regression threshold
 
-;;; ============================================================
+;;; ====
 ;;; Timing Primitives (Chez Scheme Specific)
-;;; ============================================================
+;;; ====
 
 ;;; current-nanoseconds : → Nat
 (define (current-nanoseconds)
@@ -62,9 +62,9 @@
   (guard (e [else 0])
          (bytes-allocated)))
 
-;;; ============================================================
+;;; ====
 ;;; Benchmark Definition
-;;; ============================================================
+;;; ====
 
 ;;; Benchmark structure:
 ;;;   (benchmark
@@ -135,9 +135,9 @@
 (define (benchmark-warmup b) (benchmark-get b 'warmup))
 (define (benchmark-tags b) (benchmark-get b 'tags))
 
-;;; ============================================================
+;;; ====
 ;;; Benchmark Suite
-;;; ============================================================
+;;; ====
 
 ;;; Suite structure:
 ;;;   (suite
@@ -171,9 +171,9 @@
 (define (suite-benchmarks s) (suite-get s 'benchmarks))
 (define (suite-tags s) (suite-get s 'tags))
 
-;;; ============================================================
+;;; ====
 ;;; Statistical Functions
-;;; ============================================================
+;;; ====
 
 ;;; sum : (List Number) → Number
 (define (sum nums)
@@ -244,9 +244,9 @@
       (- (percentile sorted-nums 75)
          (percentile sorted-nums 25))))
 
-;;; ============================================================
+;;; ====
 ;;; Timing Sample Collection
-;;; ============================================================
+;;; ====
 
 ;;; Sample structure:
 ;;;   (sample
@@ -317,9 +317,9 @@
                              (when teardown (teardown))
                              (loop (+ i 1) (cons sample samples))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Benchmark Results
-;;; ============================================================
+;;; ====
 
 ;;; BenchmarkResult structure:
 ;;;   (benchmark-result
@@ -392,9 +392,9 @@
                 (if entry (cdr entry) #f))
            #f)))
 
-;;; ============================================================
+;;; ====
 ;;; Suite Results
-;;; ============================================================
+;;; ====
 
 ;;; make-suite-result : Symbol × (List BenchmarkResult) × Nat → SuiteResult
 (define (make-suite-result name results timestamp)
@@ -416,9 +416,9 @@
 (define (suite-result-results sr) (suite-result-get sr 'results))
 (define (suite-result-timestamp sr) (suite-result-get sr 'timestamp))
 
-;;; ============================================================
+;;; ====
 ;;; Running Benchmarks
-;;; ============================================================
+;;; ====
 
 ;;; run-benchmark : Benchmark → BenchmarkResult
 (define (run-benchmark bench)
@@ -448,9 +448,9 @@
         results
         (current-nanoseconds))))
 
-;;; ============================================================
+;;; ====
 ;;; Comparison and Regression Detection
-;;; ============================================================
+;;; ====
 
 ;;; ComparisonResult structure:
 ;;;   (comparison
@@ -534,9 +534,9 @@
 (define (any-regressions? comparisons)
   (ormap comparison-regression? comparisons))
 
-;;; ============================================================
+;;; ====
 ;;; Baseline Storage
-;;; ============================================================
+;;; ====
 
 ;;; Baseline structure (for file storage):
 ;;;   (baseline
@@ -566,9 +566,9 @@
 (define (baseline-created b) (baseline-get b 'created))
 (define (baseline-results b) (baseline-get b 'results))
 
-;;; ============================================================
+;;; ====
 ;;; Serialization (S-expression format)
-;;; ============================================================
+;;; ====
 
 ;;; serialize-results : (BenchmarkResult | SuiteResult) → Sexp
 (define (serialize-results results)
@@ -592,9 +592,9 @@
 (define (deserialize-results sexp)
   sexp)
 
-;;; ============================================================
+;;; ====
 ;;; Formatting Utilities
-;;; ============================================================
+;;; ====
 
 ;;; format-ns : Number → String
 (define (format-ns ns)
@@ -627,16 +627,16 @@
           (if (>= pct 0) "+" "")
           pct))
 
-;;; ============================================================
+;;; ====
 ;;; Reporting
-;;; ============================================================
+;;; ====
 
 ;;; benchmark-report : BenchmarkResult → Void
 (define (benchmark-report result)
   (display "\n")
-  (display "------------------------------------------------------------\n")
+  (display "----\n")
   (display (format "  Benchmark: ~a\n" (result-name result)))
-  (display "------------------------------------------------------------\n")
+  (display "----\n")
   (display (format "  Iterations: ~a (warmup: ~a)\n"
                    (result-iterations result)
                    (result-warmup result)))
@@ -686,16 +686,16 @@
 ;;; suite-report : SuiteResult → Void
 (define (suite-report suite-result)
   (display "\n")
-  (display "============================================================\n")
+  (display "====\n")
   (display (format "  BENCHMARK SUITE: ~a\n" (suite-result-name suite-result)))
-  (display "============================================================\n")
+  (display "====\n")
   
   (for-each benchmark-report (suite-result-results suite-result))
   
   ;; Summary table
-  (display "============================================================\n")
+  (display "====\n")
   (display "  SUMMARY\n")
-  (display "============================================================\n")
+  (display "====\n")
   (display (format "  ~a~a~a~a\n"
                    (string-pad-right "Name" 25 #\space)
                    (string-pad-right "Mean" 15 #\space)
@@ -719,9 +719,9 @@
 ;;; comparison-report : (List Comparison) → Void
 (define (comparison-report comparisons)
   (display "\n")
-  (display "============================================================\n")
+  (display "====\n")
   (display "  REGRESSION ANALYSIS\n")
-  (display "============================================================\n")
+  (display "====\n")
   
   (let ([regressions (filter comparison-regression? comparisons)]
         [improvements (filter comparison-improvement? comparisons)]
@@ -769,9 +769,9 @@
        
        (display "\n")))
 
-;;; ============================================================
+;;; ====
 ;;; Profiler Integration
-;;; ============================================================
+;;; ====
 
 ;;; benchmark-with-profiler : Benchmark × Nat → BenchmarkResult
 (define (benchmark-with-profiler bench fuel)
@@ -781,9 +781,9 @@
                                 (thunk))])
         (run-benchmark bench)))
 
-;;; ============================================================
+;;; ====
 ;;; DSL Macros
-;;; ============================================================
+;;; ====
 
 ;;; define-benchmark : Creates a benchmark definition.
 ;;;
@@ -845,9 +845,9 @@
                                  'iterations 100
                                  'warmup 10)))
 
-;;; ============================================================
+;;; ====
 ;;; CI/CD Integration Helpers
-;;; ============================================================
+;;; ====
 
 ;;; check-no-regressions : SuiteResult × SuiteResult → Boolean
 (define (check-no-regressions baseline-suite current-suite)
@@ -872,9 +872,9 @@
                                          (improvement? . ,(comparison-improvement? c))))
                                comparisons)))))
 
-;;; ============================================================
+;;; ====
 ;;; Module Exports (informational)
-;;; ============================================================
+;;; ====
 
 ;;; Primary API:
 ;;;   make-benchmark, make-suite

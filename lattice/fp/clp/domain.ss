@@ -16,9 +16,9 @@
 
 (load "core/base/prelude.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Domain Constructors
-;;; ============================================================
+;;; ====
 
 ;;; make-domain : Int × Int → Domain
 ;;; Create a domain from a range [lo, hi].
@@ -69,9 +69,9 @@
         [(member (car lst) seen) (loop (cdr lst) seen acc)]
         [else (loop (cdr lst) (cons (car lst) seen) (cons (car lst) acc))])))
 
-;;; ============================================================
+;;; ====
 ;;; Domain Predicates
-;;; ============================================================
+;;; ====
 
 ;;; domain? : α → Bool
 ;;; Check if value is a valid domain.
@@ -105,9 +105,9 @@
         [(<= n (cdar intervals)) #t]  ; lo <= n <= hi
         [else (loop (cdr intervals))])))
 
-;;; ============================================================
+;;; ====
 ;;; Domain Accessors
-;;; ============================================================
+;;; ====
 
 ;;; domain-size : Domain → Nat
 ;;; Count the number of values in the domain.
@@ -146,9 +146,9 @@
       #f
       (cons (domain-min dom) (domain-max dom))))
 
-;;; ============================================================
+;;; ====
 ;;; Domain Operations
-;;; ============================================================
+;;; ====
 
 ;;; domain-intersect : Domain × Domain → Domain
 ;;; Compute intersection of two domains.
@@ -325,9 +325,9 @@
                 [else
                  (reverse (cons (cons lo n) acc))]))])))
 
-;;; ============================================================
+;;; ====
 ;;; Domain Enumeration
-;;; ============================================================
+;;; ====
 
 ;;; domain->list : Domain → (List Int)
 ;;; Convert domain to explicit list of values.
@@ -374,9 +374,9 @@
                           (loop (cdr intervals) acc)
                           (inner (+ n 1) (f n acc))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Domain Comparison
-;;; ============================================================
+;;; ====
 
 ;;; domain=? : Domain × Domain → Bool
 ;;; Check if two domains are equal.
@@ -388,9 +388,9 @@
 (define (domain-subset? dom1 dom2)
   (domain-empty? (domain-subtract dom1 dom2)))
 
-;;; ============================================================
+;;; ====
 ;;; Domain Display
-;;; ============================================================
+;;; ====
 
 ;;; domain->string : Domain → String
 ;;; Convert domain to readable string representation.

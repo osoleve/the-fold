@@ -5,9 +5,9 @@
 ;;;
 ;;; Run with: scheme --script docs/examples/patterns/tail-recursion.ss
 
-;;; ============================================================
+;;; ====
 ;;; The Problem with Naive Recursion
-;;; ============================================================
+;;; ====
 
 (display "=== Stack Growth Problem ===\n")
 
@@ -30,9 +30,9 @@
 (format #t "factorial-bad(10) = ~a~%" (factorial-bad 10))
 (display "Works, but builds up stack frames.\n")
 
-;;; ============================================================
+;;; ====
 ;;; Tail Recursion Solution
-;;; ============================================================
+;;; ====
 
 (display "\n=== Tail Recursive Factorial ===\n")
 
@@ -54,9 +54,9 @@
 (format #t "factorial(100) = ~a~%" (factorial 100))
 (display "No stack growth - can handle huge inputs.\n")
 
-;;; ============================================================
+;;; ====
 ;;; The named let Pattern
-;;; ============================================================
+;;; ====
 
 (display "\n=== Named let Pattern ===\n")
 
@@ -81,9 +81,9 @@
 
 (format #t "squares 1-5 = ~a~%" (squares-up-to 5))
 
-;;; ============================================================
+;;; ====
 ;;; Converting Non-Tail to Tail Recursive
-;;; ============================================================
+;;; ====
 
 (display "\n=== Conversion Recipe ===\n")
 
@@ -115,9 +115,9 @@ To convert non-tail recursive to tail recursive:
 
 (format #t "reverse-good (1 2 3 4 5) = ~a~%" (reverse-good '(1 2 3 4 5)))
 
-;;; ============================================================
+;;; ====
 ;;; Multiple Accumulators
-;;; ============================================================
+;;; ====
 
 (display "\n=== Multiple Accumulators ===\n")
 
@@ -143,9 +143,9 @@ To convert non-tail recursive to tail recursive:
 
 (format #t "sum-and-product (1 2 3 4) = ~a~%" (sum-and-product '(1 2 3 4)))
 
-;;; ============================================================
+;;; ====
 ;;; Tail Recursion = Iteration
-;;; ============================================================
+;;; ====
 
 (display "\n=== Tail Recursion = Iteration ===\n")
 
@@ -178,9 +178,9 @@ No stack frames, no overhead.
     (loop (* n 2))))
 (newline)
 
-;;; ============================================================
+;;; ====
 ;;; Performance
-;;; ============================================================
+;;; ====
 
 (display "\n=== Performance ===\n")
 

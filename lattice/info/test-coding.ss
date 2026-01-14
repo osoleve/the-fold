@@ -52,9 +52,9 @@
   (display name)
   (newline))
 
-;;; ============================================================
+;;; ====
 ;;; Huffman Coding Tests
-;;; ============================================================
+;;; ====
 (test-section "Huffman Coding")
 
 ;; Simple probability distribution
@@ -99,9 +99,9 @@
 (define two-codes (huffman-codes two-tree))
 (test "two symbol codes" 2 (length two-codes))
 
-;;; ============================================================
+;;; ====
 ;;; Arithmetic Coding Tests
-;;; ============================================================
+;;; ====
 (test-section "Arithmetic Coding")
 
 ;; Encode to interval
@@ -132,9 +132,9 @@
 (test-approx "empty msg low" 0.0 (car empty-interval) 0.001)
 (test-approx "empty msg high" 1.0 (cdr empty-interval) 0.001)
 
-;;; ============================================================
+;;; ====
 ;;; Lempel-Ziv Tests
-;;; ============================================================
+;;; ====
 (test-section "Lempel-Ziv Compression")
 
 ;; Simple message
@@ -161,9 +161,9 @@
 (test "empty lz78" '() (lz78-encode '()))
 (test "empty lz78 decode" '() (lz78-decode '()))
 
-;;; ============================================================
+;;; ====
 ;;; Run-Length Encoding Tests
-;;; ============================================================
+;;; ====
 (test-section "Run-Length Encoding")
 
 (define rle-msg '(a a a b b c c c c))
@@ -187,9 +187,9 @@
 (test "replicate" '(x x x) (replicate 3 'x))
 (test "replicate 0" '() (replicate 0 'x))
 
-;;; ============================================================
+;;; ====
 ;;; Parity Check Tests
-;;; ============================================================
+;;; ====
 (test-section "Parity Check")
 
 (define bits '(1 0 1 1))
@@ -213,9 +213,9 @@
 (define ones-enc (parity-encode '(1 1 1)))
 (test "parity check ones" #t (parity-check ones-enc))
 
-;;; ============================================================
+;;; ====
 ;;; Repetition Code Tests
-;;; ============================================================
+;;; ====
 (test-section "Repetition Code")
 
 (define rep-bits '(1 0 1))
@@ -235,9 +235,9 @@
 (test "majority 0s" 0 (majority-vote '(0 0 1)))
 (test "majority tie-break" 0 (majority-vote '(0 1)))  ; 0 wins when equal
 
-;;; ============================================================
+;;; ====
 ;;; Hamming(7,4) Tests
-;;; ============================================================
+;;; ====
 (test-section "Hamming(7,4) Code")
 
 (define data-bits '(1 0 1 1))
@@ -275,9 +275,9 @@
 (define enc3 (hamming74-encode data3))
 (test "hamming decode ones" data3 (hamming74-decode enc3))
 
-;;; ============================================================
+;;; ====
 ;;; Code Properties Tests
-;;; ============================================================
+;;; ====
 (test-section "Code Properties")
 
 ;; Hamming distance
@@ -305,9 +305,9 @@
 ;; Error detecting capability
 (test "2-error detecting" 2 (error-detecting-capability 3))
 
-;;; ============================================================
+;;; ====
 ;;; Compression Metrics Tests
-;;; ============================================================
+;;; ====
 (test-section "Compression Metrics")
 
 (test-approx "compression ratio 2:1" 2.0 (compression-ratio 100 50) 0.01)
@@ -316,9 +316,9 @@
 (test-approx "space savings 50%" 0.5 (space-savings 100 50) 0.01)
 (test-approx "space savings 0%" 0.0 (space-savings 100 100) 0.01)
 
-;;; ============================================================
+;;; ====
 ;;; Edge Cases
-;;; ============================================================
+;;; ====
 (test-section "Edge Cases")
 
 ;; Flip bit helper
@@ -337,12 +337,12 @@
 (test "xor 1 0" 1 (bitwise-xor 1 0))
 (test "xor 1 1" 0 (bitwise-xor 1 1))
 
-;;; ============================================================
+;;; ====
 ;;; Summary
-;;; ============================================================
+;;; ====
 
 (newline)
-(display "=======================================")
+(display "====")
 (newline)
 (display "  Tests passed: ")
 (display *tests-passed*)
@@ -350,7 +350,7 @@
 (display "  Tests failed: ")
 (display *tests-failed*)
 (newline)
-(display "=======================================")
+(display "====")
 (newline)
 
 (if (= *tests-failed* 0)

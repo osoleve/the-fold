@@ -56,6 +56,6 @@
       (newline)
       (display "  ✓ Styled drawing works\n\n"))
 
-(display "======================================\n")
+(display "====\n")
 (display "All new primitives tests passed!\n")
-(display "======================================\n")
+(display "====\n")

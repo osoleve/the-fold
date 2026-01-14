@@ -88,7 +88,7 @@ Creates a choice with:
 Guards control when choices are visible:
 
 | Guard | Description | Example |
-|-------|-------------|---------|
+|----|----|----|
 | `guard-always` | Always visible | `(tl-guard-always d)` |
 | `guard-flag` | Check boolean flag | `(tl-guard-flag d 'visited)` |
 | `guard-not-flag` | Inverse of flag | `(tl-guard-not-flag d 'seen)` |
@@ -117,7 +117,7 @@ Guards control when choices are visible:
 Effects modify state when choices are made:
 
 | Effect | Description | Example |
-|--------|-------------|---------|
+|----|----|----|
 | `effect-noop` | No change | `(tl-effect-noop d)` |
 | `effect-flag` | Set boolean | `(tl-effect-flag d 'completed #t)` |
 | `effect-item` | Add/remove item | `(tl-effect-item d 'add 'key)` |

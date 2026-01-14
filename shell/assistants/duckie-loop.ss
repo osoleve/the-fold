@@ -9,9 +9,9 @@
 ;;; Summoned by Opus, implemented by Sonnet.
 ;;; Christmas Day, 2024 — The moment DUCKIE begins to breathe.
 
-;;; ============================================================
+;;; ====
 ;;; Dependencies
-;;; ============================================================
+;;; ====
 
 ;;; From playpen/duckie.ss — The soul
 (load "user/duckie.ss")
@@ -44,9 +44,9 @@
 ;;; NOTE: string-trim provided by core/prelude.ss
 (load "core/base/prelude.ss")
 
-;;; ============================================================
+;;; ====
 ;;; State Definition
-;;; ============================================================
+;;; ====
 
 ;;; LoopState : (× Duckie Canvas Nat Bool Mood Nat ParticleSystem)
 ;;;
@@ -143,9 +143,9 @@
                             frame
                             (loop-state-particles state)))))     ; Record transition start
 
-;;; ============================================================
+;;; ====
 ;;; Command Type
-;;; ============================================================
+;;; ====
 
 ;;; Command : (+ (pet) (feed) (play) (talk String) (sleep) (wake) (quit))
 ;;;
@@ -157,9 +157,9 @@
 (define (command-type cmd) (car cmd))
 (define (command-args cmd) (cdr cmd))
 
-;;; ============================================================
+;;; ====
 ;;; Input Handling
-;;; ============================================================
+;;; ====
 
 ;;; read-input : → String | #f
 ;;;
@@ -181,9 +181,9 @@
 
 ;;; NOTE: string-trim provided by core/prelude.ss
 
-;;; ============================================================
+;;; ====
 ;;; Command Parsing
-;;; ============================================================
+;;; ====
 
 ;;; parse-command : String → Command | #f
 ;;;
@@ -238,9 +238,9 @@
            (result-value result)
            #f)))
 
-;;; ============================================================
+;;; ====
 ;;; Time and Mood — The Tick
-;;; ============================================================
+;;; ====
 
 ;;; tick : LoopState → LoopState
 ;;;
@@ -281,9 +281,9 @@
          (loop-state-set-duckie state duckie)
          new-frame)))
 
-;;; ============================================================
+;;; ====
 ;;; Command Handling
-;;; ============================================================
+;;; ====
 
 ;;; handle-command : LoopState × Command → LoopState
 ;;;
@@ -397,9 +397,9 @@
         [(playful)  (display "DUCKIE is full of energy!")]
         [else       (display "DUCKIE exists.")]))
 
-;;; ============================================================
+;;; ====
 ;;; Rendering — Drawing DUCKIE
-;;; ============================================================
+;;; ====
 
 ;;; get-current-mood-color : LoopState → Color
 ;;;
@@ -547,9 +547,9 @@
                                        [final-canvas (flatten-layers stack width height)])
                                       final-canvas)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Display — Output to Terminal
-;;; ============================================================
+;;; ====
 
 ;;; clear-screen : → ()
 ;;;
@@ -567,9 +567,9 @@
   (newline)
   (flush-output-port (current-output-port)))
 
-;;; ============================================================
+;;; ====
 ;;; Main Loop
-;;; ============================================================
+;;; ====
 
 ;;; loop-iteration : LoopState → LoopState
 ;;;
@@ -610,9 +610,9 @@
        (display "DUCKIE's heart stops beating.")
        (newline))))
 
-;;; ============================================================
+;;; ====
 ;;; Start and Stop
-;;; ============================================================
+;;; ====
 
 ;;; duckie-start : String → ()
 ;;;
@@ -626,11 +626,11 @@
          [state (make-loop-state duckie canvas 0 #t initial-mood 0 particles)])
         (begin
          (clear-screen)
-         (display "==============================================")
+         (display "====")
          (newline)
          (display "  DUCKIE Heartbeat — The Digital Companion")
          (newline)
-         (display "==============================================")
+         (display "====")
          (newline)
          (newline)
          (display "Welcome! Your DUCKIE is named: ")
@@ -661,9 +661,9 @@
         (display "Done. Until next time.")
         (newline))))
 
-;;; ============================================================
+;;; ====
 ;;; Entry Point
-;;; ============================================================
+;;; ====
 
 ;;; For testing — uncomment to run
 ;;; (duckie-start "Proto")

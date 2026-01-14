@@ -28,9 +28,9 @@
 
 (load "core/base/prelude.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Input Validation (SECURITY)
-;;; ============================================================
+;;; ====
 
 ;;; valid-project-name? : String → Boolean
 ;;; Project names must be safe for use in shell commands and file paths.
@@ -78,9 +78,9 @@
                               #f
                               (loop (+ i 1)))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Configuration
-;;; ============================================================
+;;; ====
 
 (define *project-types*
   '((core-module . "Pure Fold core module")
@@ -89,9 +89,9 @@
     (library . "Reusable library")
     (playground . "Experimental playground")))
 
-;;; ============================================================
+;;; ====
 ;;; Main Initialization
-;;; ============================================================
+;;; ====
 
 ;;; init-project : String → Bool
 ;;; Initialize new project with defaults.
@@ -150,9 +150,9 @@
 (define (make-default-config name)
   (make-config name 'shell-tool "A Fold project" "Unknown" #t #t #f))
 
-;;; ============================================================
+;;; ====
 ;;; Project Creation
-;;; ============================================================
+;;; ====
 
 ;;; create-project : Alist → Bool
 (define (create-project config)
@@ -311,9 +311,9 @@
          [(shell-tool) ";;; This is Shell code: impure, effectful.\n"]
          [else ""])
    "\n"
-   ";;; ============================================================\n"
+   ";;; ====\n"
    ";;; Main Implementation\n"
-   ";;; ============================================================\n"
+   ";;; ====\n"
    "\n"
    ";;; TODO: Implement functionality\n"
    "\n"
@@ -376,9 +376,9 @@
    "      - name: Run tests\n"
    "        run: scheme --script run-tests.ss\n"))
 
-;;; ============================================================
+;;; ====
 ;;; Git Initialization
-;;; ============================================================
+;;; ====
 
 ;;; init-git : Alist → void
 ;;; SECURITY: Project name is validated at init-project entry point.
@@ -392,9 +392,9 @@
        (system (format "cd ~a && git add ." name))
        (system (format "cd ~a && git commit -m \"Initial commit\"" name))))
 
-;;; ============================================================
+;;; ====
 ;;; Completion Display
-;;; ============================================================
+;;; ====
 
 ;;; display-completion : String → void
 (define (display-completion name)
@@ -410,9 +410,9 @@
   (display "  3. Run tests: scheme --script run-tests.ss\n")
   (display "\n"))
 
-;;; ============================================================
+;;; ====
 ;;; Interactive Prompts
-;;; ============================================================
+;;; ====
 
 ;;; prompt : String → String
 (define (prompt question)
@@ -455,9 +455,9 @@
            (reverse result)
            (loop (+ i 1) (cdr l) (cons i result)))))
 
-;;; ============================================================
+;;; ====
 ;;; Utility Functions
-;;; ============================================================
+;;; ====
 
 ;;; assoc-ref : Alist × Symbol → Any
 (define (assoc-ref alist key)

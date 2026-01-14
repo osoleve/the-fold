@@ -371,9 +371,9 @@
       (rust-emit '(R-Fn div_by_sum ((x i64) (y i64) (z i64)) i64
                    (R-Call / (R-Var x) (R-Call + (R-Var y) (R-Var z))))))
 
-;;; ============================================================
+;;; ====
 ;;; M3: Variadic Primitives Tests
-;;; ============================================================
+;;; ====
 
 ;; Test variadic infix serialization
 (test "Variadic add (3 args)"
@@ -470,9 +470,9 @@
       (rust-emit '(R-Fn sum5 ((a i64) (b i64) (c i64) (d i64) (e i64)) i64
                    (R-Call + (R-Var a) (R-Var b) (R-Var c) (R-Var d) (R-Var e)))))
 
-;;; ============================================================
+;;; ====
 ;;; M3 QA: Edge Cases and Safety Tests
-;;; ============================================================
+;;; ====
 
 ;; Test 0-arg identity values
 (test "0-arg add identity"
@@ -566,9 +566,9 @@
 (test "variadic-safe: eq (not)" #f (variadic-safe-op? 'eq?))
 (test "variadic-safe: shl (not)" #f (variadic-safe-op? 'shl))
 
-;;; ============================================================
+;;; ====
 ;;; M4: Crate Integration Tests (rust-emit-module)
-;;; ============================================================
+;;; ====
 
 ;; Test rust-emit-module generates crate imports instead of inline structs
 (test "rust-emit-module uses crate import"
@@ -618,9 +618,9 @@
               [(string=? (substring haystack i (+ i n-len)) needle) #t]
               [else (loop (+ i 1))]))))
 
-;;; ============================================================
+;;; ====
 ;;; M4 QA: Identifier Sanitization Tests
-;;; ============================================================
+;;; ====
 
 ;; Test sanitize-rust-ident basic functionality
 (test "sanitize: normal name"
@@ -687,9 +687,9 @@
        (rust-emit-module '(R-Fn fn ((x i64)) i64 (R-Var x)))
        "fn fold_m_fn"))
 
-;;; ============================================================
+;;; ====
 ;;; M5: Closure and Recursion Support (fold-49ht)
-;;; ============================================================
+;;; ====
 
 (test-section "R-Lambda Serialization")
 

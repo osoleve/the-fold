@@ -16,9 +16,9 @@
 
 (load "core/base/prelude.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Error Message Formatting
-;;; ============================================================
+;;; ====
 
 ;;; format-exploration-error : Condition → String
 ;;; Format a Chez Scheme condition for display in exploration scripts.
@@ -78,9 +78,9 @@
          ;; Try to use Scheme's format function
          (apply format (cons msg irritants))))
 
-;;; ============================================================
+;;; ====
 ;;; String Utilities
-;;; ============================================================
+;;; ====
 
 ;;; NOTE: string-contains? provided by core/prelude.ss
 
@@ -108,9 +108,9 @@
              [(string=? pattern (substring str i (+ i plen))) i]
              [else (loop (+ i 1))]))))
 
-;;; ============================================================
+;;; ====
 ;;; Condition Inspection Helpers
-;;; ============================================================
+;;; ====
 
 ;;; who-condition? : Any → Bool
 (define (who-condition? condition)
@@ -134,9 +134,9 @@
       (condition-ref condition 'irritants)
       '()))
 
-;;; ============================================================
+;;; ====
 ;;; Enhanced Guard Macro
-;;; ============================================================
+;;; ====
 
 ;;; exploration-guard : (() → α) × (Condition → α) → α
 ;;; Enhanced guard that formats errors properly.
@@ -146,9 +146,9 @@
                  (guard (e (else (handler (format-exploration-error e))))
                         body)]))
 
-;;; ============================================================
+;;; ====
 ;;; Testing and Demonstration
-;;; ============================================================
+;;; ====
 
 ;;; demonstrate-error-formatting : → void
 ;;; Show before/after comparison of error formatting.
@@ -186,9 +186,9 @@
   (display "  Use (format-exploration-error e) instead of (condition-message e)\n")
   (display "  Or use (exploration-guard body handler) for automatic formatting\n"))
 
-;;; ============================================================
+;;; ====
 ;;; Module Export
-;;; ============================================================
+;;; ====
 
 (display "Enhanced exploration error handler loaded.\n")
 (display "Use (format-exploration-error condition) for properly formatted errors.\n")

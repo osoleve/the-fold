@@ -58,7 +58,7 @@ Holes are symbols prefixed with `$`. They act as placeholders (non-terminals) in
 **Every multi-token statement gets wrapped in parentheses.** This is the key insight that eliminates most outer parens:
 
 | Input | Output |
-|-------|--------|
+|----|----|
 | `define $sig $body` | `(define $sig $body)` |
 | `+ 1 2` | `(+ 1 2)` |
 | `if $c $t $e` | `(if $c $t $e)` |
@@ -343,7 +343,7 @@ scheme --script shell/tools/test-template-tools.ss
 ## Files
 
 | File | Purpose |
-|------|---------|
+|----|----|
 | `lattice/dsl/template/template.ss` | Core engine (pure) |
 | `lattice/dsl/template/test-template.ss` | Core tests |
 | `lattice/dsl/template/manifest.sexp` | Skill metadata |

@@ -6,13 +6,13 @@
 (load "lattice/fp/symbolic/expr.ss")
 
 (display "\n")
-(display "==============================================================\n")
+(display "====\n")
 (display "         SYMBOLIC EXPRESSION TESTS\n")
-(display "==============================================================\n")
+(display "====\n")
 
-;;; ============================================================
+;;; ====
 ;;; Constructor Tests
-;;; ============================================================
+;;; ====
 
 (test-group constructors
             (define-test num-constructor
@@ -44,9 +44,9 @@
               (let ([v (var 'x)])
                    (assert-equal v (make-product (list v))))))
 
-;;; ============================================================
+;;; ====
 ;;; Predicate Tests
-;;; ============================================================
+;;; ====
 
 (test-group predicates
             (define-test num?-test
@@ -74,9 +74,9 @@
               (assert-false (app? (num 5)))
               (assert-false (app? (list '+ (num 1) (num 2))))))
 
-;;; ============================================================
+;;; ====
 ;;; Smart Constructor Tests
-;;; ============================================================
+;;; ====
 
 (test-group smart-constructors
             (define-test sum-zero-left
@@ -141,9 +141,9 @@
               ;; 2^3 = 8
               (assert-equal (num 8) (power (num 2) (num 3)))))
 
-;;; ============================================================
+;;; ====
 ;;; Equality Tests
-;;; ============================================================
+;;; ====
 
 (test-group equality
             (define-test num-equality
@@ -175,9 +175,9 @@
                    (assert-true (expr=? e1 e2))
                    (assert-false (expr=? e1 e3)))))
 
-;;; ============================================================
+;;; ====
 ;;; Free Variables Tests
-;;; ============================================================
+;;; ====
 
 (test-group free-vars
             (define-test free-vars-num
@@ -200,9 +200,9 @@
                     (assert-true (and (member 'y fv) #t))
                     (assert-true (and (member 'n fv) #t)))))
 
-;;; ============================================================
+;;; ====
 ;;; Substitution Tests
-;;; ============================================================
+;;; ====
 
 (test-group substitution
             (define-test subst-var-match
@@ -229,9 +229,9 @@
                     (assert-true (power? result))
                     (assert-true (sum? (pow-base result))))))
 
-;;; ============================================================
+;;; ====
 ;;; Pattern Matching Tests
-;;; ============================================================
+;;; ====
 
 (test-group pattern-matching
             (define-test match-wildcard
@@ -258,9 +258,9 @@
               (let ([b (match-expr (num 5) '(var _))])
                    (assert-false b))))
 
-;;; ============================================================
+;;; ====
 ;;; Display Tests
-;;; ============================================================
+;;; ====
 
 (test-group display
             (define-test expr->string-num
@@ -278,9 +278,9 @@
               (let ([s (expr->string (sym-sin (var 'x)))])
                    (assert-equal "sin(x)" s))))
 
-;;; ============================================================
+;;; ====
 ;;; Common Functions Tests
-;;; ============================================================
+;;; ====
 
 (test-group common-functions
             (define-test sym-sin-test
@@ -300,12 +300,12 @@
               (let ([e (sym-log (var 'x))])
                    (assert-equal 'log (app-fn e)))))
 
-;;; ============================================================
+;;; ====
 ;;; Summary
-;;; ============================================================
+;;; ====
 
 (display "\n")
-(display "==============================================================\n")
+(display "====\n")
 (printf "Tests passed: ~a\n" *tests-passed*)
 (printf "Tests failed: ~a\n" *tests-failed*)
 (printf "Total tests:  ~a\n" *tests-run*)

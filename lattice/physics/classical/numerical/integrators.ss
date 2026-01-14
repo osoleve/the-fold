@@ -29,9 +29,9 @@
 (load "core/base/prelude.ss")
 (load "lattice/linalg/vec.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Vector Operations for Integrators
-;;; ============================================================
+;;; ====
 
 ;;; These work on state vectors represented as lists of numbers
 ;;; for simplicity and compatibility with the rest of the codebase.
@@ -56,9 +56,9 @@
 (define (state-madd a k b)
   (map (lambda (ai bi) (+ ai (* k bi))) a b))
 
-;;; ============================================================
+;;; ====
 ;;; Explicit Integration Methods
-;;; ============================================================
+;;; ====
 
 ;;; euler-step : ((Number × State) → State) × Number × State × Number → State
 ;;; One step of forward Euler method.
@@ -119,9 +119,9 @@
                                                     k4)))])
         (state-madd state (/ dt 6) weighted)))
 
-;;; ============================================================
+;;; ====
 ;;; Symplectic Integration Methods
-;;; ============================================================
+;;; ====
 
 ;;; These methods are designed for Hamiltonian systems and preserve
 ;;; the symplectic structure, leading to better energy conservation
@@ -207,9 +207,9 @@
          [new-vel (state-madd vel-half half-dt accel-n1)])
         (list new-pos new-vel)))
 
-;;; ============================================================
+;;; ====
 ;;; Multi-Step Integration
-;;; ============================================================
+;;; ====
 
 ;;; integrate : Step × f × Number × State × Number × Nat → (List State)
 ;;; Integrate an ODE over n steps, returning list of states.
@@ -232,9 +232,9 @@
                   [new-vel (cadr result)])
                  (loop (+ t dt) new-pos new-vel (+ i 1) (cons result results))))))
 
-;;; ============================================================
+;;; ====
 ;;; Adaptive Step Size Control
-;;; ============================================================
+;;; ====
 
 ;;; rk45-step : ((Number × State) → State) × Number × State × Number × Number → (State × Number × Number)
 ;;; Embedded RK4(5) method (Dormand-Prince coefficients).
@@ -318,9 +318,9 @@
                    ;; Reject step, try again with smaller dt
                    (loop t state (/ dt 2) steps results)))])))
 
-;;; ============================================================
+;;; ====
 ;;; Energy and Conservation Metrics
-;;; ============================================================
+;;; ====
 
 ;;; kinetic-energy : Vel × Number → Number
 ;;; Compute kinetic energy: 1/2 * m * v²

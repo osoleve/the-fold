@@ -18,9 +18,9 @@
 ;;; NOTE: Standard string utilities are provided by core/prelude.ss.
 ;;;       string-any? is unique to this module.
 
-;;; ============================================================
+;;; ====
 ;;; Character Classification
-;;; ============================================================
+;;; ====
 
 ;;; ASCII printable range (safe baseline)
 (define (ascii-printable? c)
@@ -83,9 +83,9 @@
            (= (bitwise-and cp #xFFFF) #xFFFE)
            (= (bitwise-and cp #xFFFF) #xFFFF))))
 
-;;; ============================================================
+;;; ====
 ;;; Text Validation
-;;; ============================================================
+;;; ====
 
 ;;; A validation result
 (define-record-type text-result
@@ -138,9 +138,9 @@
                       [else
                        (loop (cdr chars) (+ pos 1) warns)]))))))
 
-;;; ============================================================
+;;; ====
 ;;; Sanitization
-;;; ============================================================
+;;; ====
 
 ;;; strip-invisible : String → String
 ;;; Remove all invisible characters.
@@ -160,9 +160,9 @@
                      (allowed-whitespace? c))))
     (string->list str))))
 
-;;; ============================================================
+;;; ====
 ;;; NFC Normalization
-;;; ============================================================
+;;; ====
 
 ;;; Full NFC (Canonical Composition) normalization for Unicode text.
 ;;; Algorithm:
@@ -179,9 +179,9 @@
            (and (< (char->integer (car chars)) 128)
                 (loop (cdr chars))))))
 
-;;; ------------------------------------------------------------
+;;; ----
 ;;; Canonical Combining Class (CCC) Table
-;;; ------------------------------------------------------------
+;;; ----
 ;;; Most characters have CCC=0 (starter/base).
 ;;; Combining marks have CCC > 0, which determines their ordering.
 
@@ -307,9 +307,9 @@
   (let ([entry (assv cp ccc-table)])
        (if entry (cdr entry) 0)))
 
-;;; ------------------------------------------------------------
+;;; ----
 ;;; Canonical Decomposition Table
-;;; ------------------------------------------------------------
+;;; ----
 ;;; Maps precomposed characters to their canonical decomposition.
 ;;; Format: (precomposed . (base combining...))
 
@@ -503,9 +503,9 @@
     ;; Hangul compatibility Jamo compositions handled separately
     ))
 
-;;; ------------------------------------------------------------
+;;; ----
 ;;; Canonical Composition Table
-;;; ------------------------------------------------------------
+;;; ----
 ;;; Maps (base, combining) pairs back to precomposed characters.
 ;;; This is the inverse of decomposition for "primary composites".
 
@@ -696,9 +696,9 @@
     ((#x03C9 . #x0301) . #x03CE)  ; omega + tonos
     ))
 
-;;; ------------------------------------------------------------
+;;; ----
 ;;; Composition Exclusions
-;;; ------------------------------------------------------------
+;;; ----
 ;;; Some characters should not be composed (singletons, non-starters).
 
 (define composition-exclusions
@@ -711,9 +711,9 @@
     #x0387  ; GREEK ANO TELEIA (singleton)
     ))
 
-;;; ------------------------------------------------------------
+;;; ----
 ;;; NFC Algorithm Implementation
-;;; ------------------------------------------------------------
+;;; ----
 
 ;;; is-starter? : Integer → Boolean
 ;;; A starter has CCC=0 and is not a combining mark.
@@ -834,9 +834,9 @@
              [nfc (canonical-compose sorted)])
             (list->string (map integer->char nfc)))))
 
-;;; ============================================================
+;;; ====
 ;;; Symbol Hygiene
-;;; ============================================================
+;;; ====
 
 ;;; validate-symbol : String → TextResult
 ;;; Stricter validation for strings that will become Scheme symbols.
@@ -859,9 +859,9 @@
             (or (pred (car chars))
                 (loop (cdr chars))))))
 
-;;; ============================================================
+;;; ====
 ;;; Homoglyph Detection (Basic)
-;;; ============================================================
+;;; ====
 
 ;;; Common confusables with ASCII (stored as code points)
 ;;; Each entry: (ascii-char . (confusable-codepoint ...))
@@ -897,9 +897,9 @@
        (or (pred (car lst))
            (any pred (cdr lst)))))
 
-;;; ============================================================
+;;; ====
 ;;; Quarantine Zone
-;;; ============================================================
+;;; ====
 
 ;;; Text that fails validation but must be preserved goes here.
 ;;; Quarantined text is:
@@ -930,9 +930,9 @@
                (date-minute d)
                (date-second d))))
 
-;;; ============================================================
+;;; ====
 ;;; High-Level API
-;;; ============================================================
+;;; ====
 
 ;;; safe-text : String → String | #f
 ;;; Return sanitized text, or #f if unrecoverable.

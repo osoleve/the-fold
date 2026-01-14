@@ -8,9 +8,9 @@
 
 (display "=== Layer 2 Benchmark: Mat4 Multiply ===\n\n")
 
-;;; ============================================================
+;;; ====
 ;;; Mat4 Rust FFI Binding
-;;; ============================================================
+;;; ====
 
 ;; Result struct: { status: u8, m: [f64; 16], fuel: u64 }
 ;; Total size: 1 + 128 + 8 = 137 bytes (plus alignment padding)
@@ -35,9 +35,9 @@
                      (void* void* unsigned-64 void*)
                      void))
 
-;;; ============================================================
+;;; ====
 ;;; Scheme Mat4 Implementation (for comparison)
-;;; ============================================================
+;;; ====
 
 ;; Matrix as flat vector (row-major)
 (define (scheme-mat4-mul a b)
@@ -118,9 +118,9 @@
                             (* (vector-ref a 15) (vector-ref b 15))))
        c))
 
-;;; ============================================================
+;;; ====
 ;;; FFI Helper
-;;; ============================================================
+;;; ====
 
 ;; Call Rust mat4_mul with flat vectors
 (define (rust-mat4-mul-call a b fuel)
@@ -169,9 +169,9 @@
               
               (list status c fuel-out))))
 
-;;; ============================================================
+;;; ====
 ;;; Test Data
-;;; ============================================================
+;;; ====
 
 (define identity-mat
   (vector 1.0 0.0 0.0 0.0
@@ -191,9 +191,9 @@
           25.0 26.0 27.0 28.0
           29.0 30.0 31.0 32.0))
 
-;;; ============================================================
+;;; ====
 ;;; Timing Utilities
-;;; ============================================================
+;;; ====
 
 (define (time-it name iterations thunk)
   (collect)  ;; GC before timing
@@ -210,9 +210,9 @@
         (printf "~a: ~,2fms total, ~,0fns/call\n" name elapsed-ms ns-per-call)
         ns-per-call))
 
-;;; ============================================================
+;;; ====
 ;;; Correctness Test
-;;; ============================================================
+;;; ====
 
 (display "1. Correctness Test\n")
 
@@ -247,9 +247,9 @@
       (display scheme-result)
       (newline))
 
-;;; ============================================================
+;;; ====
 ;;; Performance Benchmark
-;;; ============================================================
+;;; ====
 
 (display "\n2. Performance Benchmark\n")
 
@@ -271,9 +271,9 @@
 (printf "   Speedup: ~,2fx\n" (/ scheme-ns rust-ns))
 (printf "   FFI overhead: ~,0fns per call\n" rust-ns)
 
-;;; ============================================================
+;;; ====
 ;;; Analysis
-;;; ============================================================
+;;; ====
 
 (display "\n3. Analysis\n")
 (display "   Mat4 multiply: 64 muls + 48 adds = 112 ops\n")
@@ -285,9 +285,9 @@
     (display "\n   RESULT: Layer 2 FFI WINS for mat4 multiply!\n")
     (display "\n   RESULT: FFI overhead still dominates - need more ops\n"))
 
-;;; ============================================================
+;;; ====
 ;;; Batch Transform Benchmark (where Layer 2 really shines)
-;;; ============================================================
+;;; ====
 
 (display "\n4. Batch Transform Benchmark\n")
 (display "   (This is where FFI really wins - amortize overhead)\n\n")
@@ -347,9 +347,9 @@
 (display "         1000 transforms in a single FFI call, amortizing\n")
 (display "         the ~200-500ns overhead across all points.\n")
 
-;;; ============================================================
+;;; ====
 ;;; 5. Rust Batch Transform Benchmark
-;;; ============================================================
+;;; ====
 
 (display "\n5. Rust Batch Transform Benchmark\n")
 
@@ -409,9 +409,9 @@
       [scheme-per-point (/ scheme-batch-ns batch-size)])
      (printf "   Rust vs Scheme per-point: ~,2fx speedup\n" (/ scheme-per-point rust-per-point)))
 
-;;; ============================================================
+;;; ====
 ;;; 6. Pre-allocated Buffer Benchmark (isolate FFI call cost)
-;;; ============================================================
+;;; ====
 
 (display "\n6. Pre-allocated Buffer Benchmark\n")
 (display "   (Isolates FFI call from marshaling overhead)\n\n")

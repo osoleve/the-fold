@@ -18,9 +18,9 @@
 (load "shell/tools/string-utils.ss")
 (load "shell/lsp/json.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Transport State
-;;; ============================================================
+;;; ====
 
 ;;; The LSP server state
 ;;; CRITICAL: Capture binary ports at load time!
@@ -31,9 +31,9 @@
 (define *lsp-stderr* (current-error-port))
 (define *lsp-running* #f)
 
-;;; ============================================================
+;;; ====
 ;;; Header Parsing
-;;; ============================================================
+;;; ====
 
 ;;; read-headers : InputPort → (Alist String String)
 ;;; Read HTTP-like headers until empty line.
@@ -77,9 +77,9 @@
 ;;; NOTE: string-index provided by shell/tools/string-utils.ss
 ;;; NOTE: string-trim provided by core/base/prelude.ss
 
-;;; ============================================================
+;;; ====
 ;;; Message Reading
-;;; ============================================================
+;;; ====
 
 ;;; Maximum message size (10 MB) to prevent DoS attacks
 (define *max-message-size* (* 10 1024 1024))
@@ -124,9 +124,9 @@
                           (bytevector-u8-set! bv i b)
                           (loop (+ i 1)))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Message Writing
-;;; ============================================================
+;;; ====
 
 ;;; write-lsp-message : OutputPort × JsonValue → Void
 ;;; Write a complete LSP message with Content-Length framing.
@@ -170,9 +170,9 @@
                                "method" method
                                "params" params)))
 
-;;; ============================================================
+;;; ====
 ;;; Logging
-;;; ============================================================
+;;; ====
 
 ;;; lsp-log : String × ... → Void
 ;;; Write to stderr for debugging (won't interfere with LSP protocol).
@@ -180,9 +180,9 @@
   (apply fprintf *lsp-stderr* (string-append "[fold-lsp] " fmt "\n") args)
   (flush-output-port *lsp-stderr*))
 
-;;; ============================================================
+;;; ====
 ;;; Transport Utilities
-;;; ============================================================
+;;; ====
 
 ;;; init-transport! : → Void
 ;;; Initialize the transport layer.
@@ -202,9 +202,9 @@
 (define (transport-running?)
   *lsp-running*)
 
-;;; ============================================================
+;;; ====
 ;;; Progress Reporting
-;;; ============================================================
+;;; ====
 
 ;;; Progress tokens are simple incrementing integers
 (define *progress-token-counter* 0)
@@ -286,9 +286,9 @@
                    (progress-end token "Done")
                    result))))
 
-;;; ============================================================
+;;; ====
 ;;; Main Read Loop Helper
-;;; ============================================================
+;;; ====
 
 ;;; with-lsp-message : (JsonValue → Void) → Void
 ;;; Read one message and call handler, returns #f on EOF or error.

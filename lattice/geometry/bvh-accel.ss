@@ -19,18 +19,18 @@
              (bind-bvh-procedures!)
              (set! *accel-enabled* #t)))
 
-;;; ============================================================
+;;; ====
 ;;; Acceleration Status
-;;; ============================================================
+;;; ====
 
 ;;; accel-enabled? : → Boolean
 ;;; Check if Rust acceleration is available
 (define (accel-enabled?)
   *accel-enabled*)
 
-;;; ============================================================
+;;; ====
 ;;; Fuel Cost Estimation (for Scheme fallback)
-;;; ============================================================
+;;; ====
 
 ;;; estimate-closest-point-fuel : BVH → Nat
 ;;; Estimate fuel cost for closest-point query on this BVH
@@ -61,9 +61,9 @@
            (* nodes per-node)
            (* avg-tris-tested per-tri))))
 
-;;; ============================================================
+;;; ====
 ;;; Accelerated Operations
-;;; ============================================================
+;;; ====
 
 ;;; bvh-closest-point/accel : BVH × Point3 × Fuel → Result
 ;;; Find closest point on BVH surface with fuel tracking.
@@ -132,9 +132,9 @@
                          `(ok ,result ,(- fuel estimated)))
                     `(suspended (bvh-intersect-ray ,bvh ,ray)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Convenience: Auto-detect and use best implementation
-;;; ============================================================
+;;; ====
 
 ;;; with-bvh-accel : (→ α) → α
 ;;; Run thunk with BVH acceleration enabled (if available)
@@ -147,13 +147,13 @@
            (when *accel-enabled*
                  (cleanup-stale-handles!)))))
 
-;;; ============================================================
+;;; ====
 ;;; Tests
-;;; ============================================================
+;;; ====
 
 (define (run-accel-tests)
   (display "BVH Acceleration Tests\n")
-  (display "======================\n")
+  (display "====\n")
   
   (display (format "Acceleration enabled: ~a\n" (accel-enabled?)))
   
@@ -189,5 +189,5 @@
              (display scheme-result)
              (newline)))
   
-  (display "======================\n")
+  (display "====\n")
   #t)

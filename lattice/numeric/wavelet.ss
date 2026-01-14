@@ -18,9 +18,9 @@
 (load "core/base/prelude.ss")
 (load "lattice/linalg/vec.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Wavelet Filter Coefficients
-;;; ============================================================
+;;; ====
 
 ;;; Wavelet families are defined by their filter coefficients.
 ;;; Each wavelet has a scaling filter (low-pass) and wavelet filter (high-pass).
@@ -82,9 +82,9 @@
 (define (daubechies-6-wavelet-filter)
   (qmf-wavelet-from-scaling (daubechies-6-scaling-filter)))
 
-;;; ============================================================
+;;; ====
 ;;; Filter Operations
-;;; ============================================================
+;;; ====
 
 ;;; reverse-filter : Vector[Number] → Vector[Number]
 ;;; Time-reverse a filter (needed for synthesis filters).
@@ -157,9 +157,9 @@
                                  (set! sum (+ sum (* (vector-ref coeffs coeff-idx)
                                                      (vector-ref filter filter-offset)))))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Discrete Wavelet Transform (DWT)
-;;; ============================================================
+;;; ====
 
 ;;; dwt-step : Vector[Number] × Vector[Number] × Vector[Number] → (Vector × Vector)
 ;;; One level of DWT decomposition.
@@ -248,9 +248,9 @@
                       [reconstructed (idwt-step approx detail h g current-len)])
                      (loop reconstructed rest current-len))))))
 
-;;; ============================================================
+;;; ====
 ;;; Wavelet Families API
-;;; ============================================================
+;;; ====
 
 ;;; get-wavelet-filters : Symbol → (Vector × Vector)
 ;;; Get scaling and wavelet filters for a given wavelet family.
@@ -288,9 +288,9 @@
          [g (cdr filters)])
         (idwt coeffs target-len h g)))
 
-;;; ============================================================
+;;; ====
 ;;; Multi-Resolution Analysis
-;;; ============================================================
+;;; ====
 
 ;;; wavelet-decompose : Vector[Number] × Integer × Symbol → List
 ;;; Decompose signal into multi-resolution components.
@@ -331,9 +331,9 @@
             (error 'get-detail-level "invalid level" level)
             (list-ref details idx))))
 
-;;; ============================================================
+;;; ====
 ;;; Wavelet Thresholding (Denoising)
-;;; ============================================================
+;;; ====
 
 ;;; hard-threshold : Number × Number → Number
 ;;; Hard thresholding: set to zero if |x| < threshold.
@@ -396,9 +396,9 @@
          [new-coeffs (cons approx thresholded-details)])
         (idwt-family new-coeffs (vector-length signal) family)))
 
-;;; ============================================================
+;;; ====
 ;;; Wavelet Energy and Statistics
-;;; ============================================================
+;;; ====
 
 ;;; wavelet-energy : Vector[Number] → Number
 ;;; Compute energy (sum of squares) of wavelet coefficients.

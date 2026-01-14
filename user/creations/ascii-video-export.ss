@@ -12,9 +12,9 @@
 
 (load "user/creations/ascii-video.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Configuration
-;;; ============================================================
+;;; ====
 
 ;;; Font metrics (each ASCII char becomes this many pixels)
 (define *char-width* 8)
@@ -44,9 +44,9 @@
   (let ([entry (assv c *char-brightness*)])
        (if entry (cdr entry) 0.7)))  ; Default for unlisted chars
 
-;;; ============================================================
+;;; ====
 ;;; Bitmap Font (Minimal 8x14 ASCII)
-;;; ============================================================
+;;; ====
 
 ;;; Each glyph is 14 rows of 8-bit patterns
 ;;; 1 = foreground, 0 = background
@@ -475,9 +475,9 @@
   (or (hashtable-ref *font-glyphs* char #f)
       *fallback-glyph*))
 
-;;; ============================================================
+;;; ====
 ;;; PPM Image Generation
-;;; ============================================================
+;;; ====
 
 ;;; PPM P6 format: binary RGB, super simple
 ;;; Header: "P6\nWIDTH HEIGHT\n255\n" then WIDTH*HEIGHT*3 bytes
@@ -541,9 +541,9 @@
               (bytevector-copy! pixels 0 result (bytevector-length header-bytes) (bytevector-length pixels))
               result)))
 
-;;; ============================================================
+;;; ====
 ;;; File I/O
-;;; ============================================================
+;;; ====
 
 (define (write-bytevector-to-file bv filename)
   (let ([port (open-file-output-port filename (file-options no-fail))])
@@ -553,9 +553,9 @@
 (define (ensure-directory path)
   (system (string-append "mkdir -p " path)))
 
-;;; ============================================================
+;;; ====
 ;;; Video Export
-;;; ============================================================
+;;; ====
 
 ;;; Zero-pad a number to specified width
 (define (zero-pad n width)
@@ -654,9 +654,9 @@
                   (display "FFmpeg failed!\n")
                   #f)))))
 
-;;; ============================================================
+;;; ====
 ;;; Quick Export Functions
-;;; ============================================================
+;;; ====
 
 (define (quick-gif video name)
   "Quick GIF export with sensible defaults"
@@ -666,17 +666,17 @@
   "Quick MP4 export with sensible defaults"
   (video->mp4 video (string-append "user/creations/" name ".mp4") 15))
 
-;;; ============================================================
+;;; ====
 ;;; Demo
-;;; ============================================================
+;;; ====
 
 (define (export-demo)
   (display "\n")
-  (display "============================================================\n")
+  (display "====\n")
   (display "  ASCII VIDEO EXPORT TOOLKIT\n")
-  (display "============================================================\n")
+  (display "====\n")
   (display "  Because your terminal art deserves to be a real video\n")
-  (display "============================================================\n\n")
+  (display "====\n\n")
   
   (display "Available functions:\n")
   (display "  (video->gif video \"output.gif\" 100)  ; 100ms per frame\n")
@@ -690,6 +690,6 @@
   (display "Font: 8x14 bitmap, ")
   (display (hashtable-size *font-glyphs*))
   (display " glyphs defined\n")
-  (display "============================================================\n"))
+  (display "====\n"))
 
 (export-demo)

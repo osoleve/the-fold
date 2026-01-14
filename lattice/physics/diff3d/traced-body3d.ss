@@ -21,9 +21,9 @@
 (load "lattice/physics/diff3d/traced-vec3.ss")
 (load "lattice/physics/diff3d/traced-quaternion.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Mat3 Operations for Inertia Tensors
-;;; ============================================================
+;;; ====
 
 ;;; mat3-identity : → Mat3
 (define (mat3-identity)
@@ -70,9 +70,9 @@
 (define (mat3-scale m s)
   (map (lambda (row) (map (lambda (x) (* x s)) row)) m))
 
-;;; ============================================================
+;;; ====
 ;;; Traced Mat3 Operations
-;;; ============================================================
+;;; ====
 
 ;;; traced-mat3-mul-vec3 : Mat3 × TracedVec3 → TracedVec3
 ;;; Multiply constant matrix by traced vector.
@@ -91,9 +91,9 @@
                                 (traced-mul (mat3-ref m 2 1) vy))
                     (traced-mul (mat3-ref m 2 2) vz)))))
 
-;;; ============================================================
+;;; ====
 ;;; Traced 3D Rigid Body Data Structure
-;;; ============================================================
+;;; ====
 
 ;;; A traced 3D rigid body has:
 ;;;   - pos: position (TracedVec3)
@@ -132,9 +132,9 @@
 (define (traced-body-3d? b)
   (and (pair? b) (eq? (car b) 'traced-body-3d)))
 
-;;; ============================================================
+;;; ====
 ;;; Accessors
-;;; ============================================================
+;;; ====
 
 ;;; traced-body-3d-pos : TracedBody3D → TracedVec3
 (define (traced-body-3d-pos b) (list-ref b 1))
@@ -168,9 +168,9 @@
 (define (traced-body-3d-dynamic? b)
   (not (traced-body-3d-static? b)))
 
-;;; ============================================================
+;;; ====
 ;;; World-Space Inertia
-;;; ============================================================
+;;; ====
 
 ;;; For impulse calculations, we need the world-space inverse inertia tensor:
 ;;;   I_world^-1 = R * I_body^-1 * R^T
@@ -208,9 +208,9 @@
             ;; I_world^-1 = R * I_body^-1 * R^T
             (mat3-mul R (mat3-mul I-inv R-t)))))
 
-;;; ============================================================
+;;; ====
 ;;; Updaters (Immutable)
-;;; ============================================================
+;;; ====
 
 ;;; traced-body-3d-with-pos : TracedBody3D × TracedVec3 → TracedBody3D
 (define (traced-body-3d-with-pos b new-pos)
@@ -273,9 +273,9 @@
         (traced-body-3d-inertia b)
         (traced-body-3d-inv-inertia b)))
 
-;;; ============================================================
+;;; ====
 ;;; Body State Flattening (for optimization)
-;;; ============================================================
+;;; ====
 
 ;;; traced-body-3d-state->list : TracedBody3D → (List TracedValue)
 ;;; Flatten body state to list of 13 traced values:
@@ -310,9 +310,9 @@
 ;;; Dimension of body state vector (13 for 3D rigid body).
 (define (body-3d-state-dimension) 13)
 
-;;; ============================================================
+;;; ====
 ;;; Physics Operations on Traced Bodies
-;;; ============================================================
+;;; ====
 
 ;;; traced-body-3d-velocity-at : TracedBody3D × TracedVec3 → TracedVec3
 ;;; Compute velocity at a world-space point on the body.
@@ -384,9 +384,9 @@
 (define (traced-apply-torque-3d body torque dt)
   (traced-apply-torque-impulse-3d body (traced-vec3-scale torque dt)))
 
-;;; ============================================================
+;;; ====
 ;;; World-Space Transformations
-;;; ============================================================
+;;; ====
 
 ;;; traced-local-to-world-3d : TracedBody3D × TracedVec3 → TracedVec3
 ;;; Transform a point from body-local coordinates to world coordinates.
@@ -414,9 +414,9 @@
   (let ([q-inv (traced-quat-conjugate (traced-body-3d-orientation body))])
        (traced-quat-rotate-vec3 q-inv world-dir)))
 
-;;; ============================================================
+;;; ====
 ;;; Energy and Momentum
-;;; ============================================================
+;;; ====
 
 ;;; traced-body-3d-kinetic-energy : TracedBody3D → TracedValue
 ;;; Compute total kinetic energy: (1/2)mv² + (1/2)ω·I·ω
@@ -448,9 +448,9 @@
          [I-local-omega (traced-mat3-mul-vec3 I local-omega)])
         (traced-mat3-mul-vec3 R I-local-omega)))
 
-;;; ============================================================
+;;; ====
 ;;; Static Body Constructor
-;;; ============================================================
+;;; ====
 
 ;;; make-traced-static-body-3d : TracedVec3 × TracedQuat → TracedBody3D
 ;;; Create a static (immovable) traced 3D rigid body.
@@ -473,9 +473,9 @@
              (mat3-identity)
              (mat3-scale (mat3-identity) 0))))  ; inv-inertia = 0 for static
 
-;;; ============================================================
+;;; ====
 ;;; Inertia Tensor Helpers
-;;; ============================================================
+;;; ====
 
 ;;; inertia-solid-sphere : Number × Number → Mat3
 ;;; I = (2/5) * m * r² for solid sphere.

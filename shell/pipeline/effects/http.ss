@@ -10,9 +10,9 @@
 (load "shell/pipeline/effects/shell.ss")
 (load "shell/json.ss")
 
-;;; ============================================================
+;;; ====
 ;;; HTTP Effect Interpretation
-;;; ============================================================
+;;; ====
 
 ;;; interpret-http-effect : Payload -> Context -> State -> Input -> (Result . State)
 (define (interpret-http-effect payload ctx state input)
@@ -49,9 +49,9 @@
                                payload)
                     state)])))
 
-;;; ============================================================
+;;; ====
 ;;; Helper Functions
-;;; ============================================================
+;;; ====
 
 ;;; expand-template-with-ctx : String -> Context -> Input -> String
 (define (expand-template-with-ctx template ctx input)
@@ -60,9 +60,9 @@
                                (ctx-env ctx)))])
        (expand-template template bindings)))
 
-;;; ============================================================
+;;; ====
 ;;; URL Validation (Security Critical)
-;;; ============================================================
+;;; ====
 
 ;;; *allowed-url-schemes* : List of String
 ;;; Only these URL schemes are allowed for HTTP fetching.
@@ -166,9 +166,9 @@
         [else
          (list 'ok url)])))
 
-;;; ============================================================
+;;; ====
 ;;; HTTP Implementation
-;;; ============================================================
+;;; ====
 
 ;;; http-fetch-get : String -> HTTPResult
 ;;; Fetch content from a URL using curl.

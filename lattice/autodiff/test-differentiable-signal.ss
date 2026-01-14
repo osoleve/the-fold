@@ -6,9 +6,9 @@
 (load "core/test-framework.ss")
 (load "lattice/autodiff/differentiable-signal.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Test Utilities
-;;; ============================================================
+;;; ====
 
 ;;; Numeric tolerance for floating-point comparisons
 (define *eps* 1e-5)
@@ -122,14 +122,14 @@
                 (set! total (+ total (* mag mag)))))))
 
 (display "
-==============================================================
+====
       DIFFERENTIABLE SIGNAL PROCESSING TESTS
-==============================================================
+====
 ")
 
-;;; ============================================================
+;;; ====
 ;;; DFT VJP Tests
-;;; ============================================================
+;;; ====
 
 (test-group dft-vjp-tests
             
@@ -178,9 +178,9 @@
                     ;; Compare numerical and analytical gradients
                     (assert-vec-= anal-grad num-grad 1e-3))))
 
-;;; ============================================================
+;;; ====
 ;;; IDFT VJP Tests
-;;; ============================================================
+;;; ====
 
 (test-group idft-vjp-tests
             
@@ -249,9 +249,9 @@
                     (assert-= (complex-real lhs) (complex-real rhs) 1e-6)
                     (assert-= (complex-imag lhs) (complex-imag rhs) 1e-6))))
 
-;;; ============================================================
+;;; ====
 ;;; Convolution VJP Tests
-;;; ============================================================
+;;; ====
 
 (test-group convolution-vjp-tests
             
@@ -318,9 +318,9 @@
                     (assert-true (> (vector-length grad-signal) 0))
                     (assert-= (vector-length grad-kernel) 3 0.001))))
 
-;;; ============================================================
+;;; ====
 ;;; Power Spectrum Gradient Tests
-;;; ============================================================
+;;; ====
 
 (test-group power-spectrum-grad-tests
             
@@ -349,9 +349,9 @@
                     (assert-complex-= (vector-ref grad 1) (make-complex 0 -2) 1e-6)
                     (assert-complex-= (vector-ref grad 2) (make-complex 2 -2) 1e-6))))
 
-;;; ============================================================
+;;; ====
 ;;; Magnitude Spectrum Gradient Tests
-;;; ============================================================
+;;; ====
 
 (test-group magnitude-spectrum-grad-tests
             
@@ -374,9 +374,9 @@
                     ;; Should return zero, not NaN
                     (assert-complex-= (vector-ref grad 0) (complex-zero) 1e-6))))
 
-;;; ============================================================
+;;; ====
 ;;; Spectral MSE Gradient Tests
-;;; ============================================================
+;;; ====
 
 (test-group spectral-mse-tests
             
@@ -400,9 +400,9 @@
                                                   (make-complex -2 0)
                                                   1e-6)))))
 
-;;; ============================================================
+;;; ====
 ;;; End-to-End Gradient Tests
-;;; ============================================================
+;;; ====
 
 (test-group e2e-gradient-tests
             
@@ -445,9 +445,9 @@
                         ((= i 5))
                         (assert-true (not (nan? (vector-ref num-grad i))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Traced Convolution Tests
-;;; ============================================================
+;;; ====
 
 (test-group traced-conv-tests
             
@@ -490,9 +490,9 @@
                     ;; Check forward
                     (assert-= (traced-value loss) 8 1e-6))))
 
-;;; ============================================================
+;;; ====
 ;;; DFT Local Gradient Tests
-;;; ============================================================
+;;; ====
 
 (test-group dft-local-grad-tests
             
@@ -516,19 +516,19 @@
                     (assert-= (caddr grads) 0.0 1e-6)
                     (assert-= (cadddr grads) 0.0 1e-6))))
 
-;;; ============================================================
+;;; ====
 ;;; Helper for NaN check
-;;; ============================================================
+;;; ====
 
 (define (nan? x)
   (not (= x x)))
 
-;;; ============================================================
+;;; ====
 ;;; Summary
-;;; ============================================================
+;;; ====
 
 (display "
-==============================================================
+====
 ")
 (printf "Tests passed: ~a~n" *tests-passed*)
 (printf "Tests failed: ~a~n" *tests-failed*)

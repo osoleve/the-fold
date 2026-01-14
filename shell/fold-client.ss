@@ -15,17 +15,17 @@
 ;;;
 ;;; This file is for documentation and can be loaded for testing.
 
-;;; ============================================================
+;;; ====
 ;;; Client Configuration
-;;; ============================================================
+;;; ====
 
 (define *repl-dir* ".fold-repl")
 (define *requests-dir* ".fold-repl/requests")
 (define *responses-dir* ".fold-repl/responses")
 
-;;; ============================================================
+;;; ====
 ;;; Request/Response Helpers
-;;; ============================================================
+;;; ====
 
 ;;; make-request : String Scheme → String
 ;;; Create a request S-expression string for the given session and expression.
@@ -45,9 +45,9 @@
 (define (response-path session-id)
   (string-append *responses-dir* "/" session-id ".txt"))
 
-;;; ============================================================
+;;; ====
 ;;; Synchronous Client (for testing)
-;;; ============================================================
+;;; ====
 
 ;;; fold-eval : String Scheme → String
 ;;; Send a request to the daemon and wait for response.
@@ -79,9 +79,9 @@
               (sleep (make-time 'time-duration 100000000 0))  ; 100ms
               (loop (- attempts 1))]))))
 
-;;; ============================================================
+;;; ====
 ;;; Session Management
-;;; ============================================================
+;;; ====
 
 ;;; generate-session-id : → String
 ;;; Generate a unique session ID.
@@ -90,9 +90,9 @@
           (time-second (current-time))
           (random 1000000)))
 
-;;; ============================================================
+;;; ====
 ;;; Example Usage
-;;; ============================================================
+;;; ====
 ;;;
 ;;; ;; Create a session
 ;;; (define my-session (generate-session-id))

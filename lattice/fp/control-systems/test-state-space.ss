@@ -6,13 +6,13 @@
 (load "lattice/fp/control-systems/state-space.ss")
 
 (display "\n")
-(display "==============================================================\n")
+(display "====\n")
 (display "         STATE SPACE MODELS TESTS\n")
-(display "==============================================================\n")
+(display "====\n")
 
-;;; ============================================================
+;;; ====
 ;;; Construction Tests
-;;; ============================================================
+;;; ====
 
 (test-group construction
             (define-test scalar-system
@@ -64,9 +64,9 @@
                         (assert-equal 0 (matrix-ref A 0 0))
                         (assert-equal 0 (matrix-ref A 2 2))))))
 
-;;; ============================================================
+;;; ====
 ;;; State and Output Equation Tests
-;;; ============================================================
+;;; ====
 
 (test-group equations
             (define-test state-equation-scalar
@@ -101,9 +101,9 @@
                     ;; y = [1 0] * [1; 2] = 1
                     (assert-equal 1 (vector-ref y 0)))))
 
-;;; ============================================================
+;;; ====
 ;;; Controllability Matrix Tests
-;;; ============================================================
+;;; ====
 
 (test-group controllability
             (define-test controllability-matrix-scalar
@@ -145,9 +145,9 @@
                     ;; Second state is not controllable
                     (assert-false (ss-controllable? sys 1e-10)))))
 
-;;; ============================================================
+;;; ====
 ;;; Observability Matrix Tests
-;;; ============================================================
+;;; ====
 
 (test-group observability
             (define-test observability-matrix-scalar
@@ -186,9 +186,9 @@
                     ;; Second state is not observable
                     (assert-false (ss-observable? sys 1e-10)))))
 
-;;; ============================================================
+;;; ====
 ;;; Gramian Tests
-;;; ============================================================
+;;; ====
 
 (test-group gramians
             (define-test controllability-gramian-scalar
@@ -219,9 +219,9 @@
                                             (matrix-ref Wo 1 0)))
                                     1e-10)))))
 
-;;; ============================================================
+;;; ====
 ;;; Transformation Tests
-;;; ============================================================
+;;; ====
 
 (test-group transformation
             (define-test identity-transform
@@ -236,9 +236,9 @@
                     (assert-equal (matrix-ref (ss-A sys) 0 0)
                                   (matrix-ref (ss-A sys2) 0 0)))))
 
-;;; ============================================================
+;;; ====
 ;;; Display Tests
-;;; ============================================================
+;;; ====
 
 (test-group display-tests
             (define-test ss->string-test
@@ -247,12 +247,12 @@
                     (assert-true (string? str))
                     (assert-true (> (string-length str) 0)))))
 
-;;; ============================================================
+;;; ====
 ;;; Summary
-;;; ============================================================
+;;; ====
 
 (display "\n")
-(display "==============================================================\n")
+(display "====\n")
 (printf "Tests passed: ~a\n" *tests-passed*)
 (printf "Tests failed: ~a\n" *tests-failed*)
 (printf "Total tests:  ~a\n" *tests-run*)

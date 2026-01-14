@@ -8,9 +8,9 @@
 (load "shell/ffi/ffi-core.ss")
 (load "shell/ffi/serialize.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Result Structs (matching Rust #[repr(C)])
-;;; ============================================================
+;;; ====
 
 ;;; Closest point query result
 (define-ftype closest-point-result-t
@@ -32,9 +32,9 @@
    [nz     double]           ; normal z
    [fuel   unsigned-64]))    ; remaining fuel
 
-;;; ============================================================
+;;; ====
 ;;; Foreign Procedures (bound lazily)
-;;; ============================================================
+;;; ====
 
 (define rust-bvh-build #f)
 (define rust-bvh-drop #f)
@@ -68,9 +68,9 @@
                            (uptr double double double double double double unsigned-64 (* ray-intersect-result-t))
                            void)))
 
-;;; ============================================================
+;;; ====
 ;;; High-Level Wrappers
-;;; ============================================================
+;;; ====
 
 ;;; rust-bvh-handle : Record type for BVH handles with cleanup tracking
 (define-record-type rust-bvh-handle
@@ -182,9 +182,9 @@
            ;; Always free allocated memory
            (foreign-free result-addr)))))
 
-;;; ============================================================
+;;; ====
 ;;; Convenience: Build from Scheme BVH
-;;; ============================================================
+;;; ====
 
 ;;; scheme-bvh->rust-handle : BVH → RustBVHHandle | #f
 ;;; Convert Scheme BVH to Rust handle
@@ -192,13 +192,13 @@
   (let ([bv (bvh->bytes bvh)])
        (build-rust-bvh bv)))
 
-;;; ============================================================
+;;; ====
 ;;; Tests
-;;; ============================================================
+;;; ====
 
 (define (run-bvh-ffi-tests)
   (display "BVH FFI Tests\n")
-  (display "=============\n")
+  (display "====\n")
   
   ;; Ensure library is loaded
   (unless (accel-available?)
@@ -206,7 +206,7 @@
   
   (unless (accel-available?)
           (display "SKIP: No acceleration library\n")
-          (display "=============\n")
+          (display "====\n")
           #f)
   
   ;; Bind BVH procedures
@@ -267,5 +267,5 @@
             
             (display "FAIL\n")))
   
-  (display "=============\n")
+  (display "====\n")
   #t)

@@ -11,14 +11,14 @@
 (import (shell universe-serialize))
 
 (display "Universe Serialization Example\n")
-(display "==============================\n\n")
+(display "====\n\n")
 
-;;; ============================================================
+;;; ====
 ;;; Example 1: Scan for all .sexp files
-;;; ============================================================
+;;; ====
 
 (display "Example 1: Scanning for .sexp files\n")
-(display "------------------------------------\n")
+(display "----\n")
 
 (define root-directory ".")
 (define all-sexp-files (scan-sexp-files root-directory))
@@ -33,12 +33,12 @@
                   (newline))
           all-sexp-files)
 
-;;; ============================================================
+;;; ====
 ;;; Example 2: Filter by directory
-;;; ============================================================
+;;; ====
 
 (display "\nExample 2: Filtering by directory\n")
-(display "-----------------------------------\n")
+(display "----\n")
 
 (define forum-files (scan-sexp-files-filtered root-directory '("forum")))
 
@@ -59,12 +59,12 @@
       (display (- (length forum-files) 10))
       (display " more\n"))
 
-;;; ============================================================
+;;; ====
 ;;; Example 3: Read and analyze content
-;;; ============================================================
+;;; ====
 
 (display "\nExample 3: Analyzing content\n")
-(display "----------------------------\n")
+(display "----\n")
 
 (define poetry-files (scan-sexp-files-filtered root-directory '("forum/poetry")))
 
@@ -89,12 +89,12 @@
                         (display (cdr (assoc 'channel contents)))
                         (newline)))))
 
-;;; ============================================================
+;;; ====
 ;;; Example 4: Serialize to memory
-;;; ============================================================
+;;; ====
 
 (display "\nExample 4: Serializing to memory\n")
-(display "---------------------------------\n")
+(display "----\n")
 
 (define scripture-universe (serialize-universe-filtered root-directory '("docs/decisions")))
 (define scripture-files (cadr (car scripture-universe)))
@@ -109,12 +109,12 @@
                   (newline))
           scripture-files)
 
-;;; ============================================================
+;;; ====
 ;;; Example 5: Write to file
-;;; ============================================================
+;;; ====
 
 (display "\nExample 5: Writing to file\n")
-(display "--------------------------\n")
+(display "----\n")
 
 (define output-file "example-universe-dump.sexp")
 
@@ -135,12 +135,12 @@
 (display output-file)
 (display "\" read))\n")
 
-;;; ============================================================
+;;; ====
 ;;; Example 6: Custom filtering
-;;; ============================================================
+;;; ====
 
 (display "\nExample 6: Multiple directory filter\n")
-(display "-------------------------------------\n")
+(display "----\n")
 
 (define important-dirs '("forum/poetry" "forum/engineering" "docs/decisions"))
 (define filtered-universe (serialize-universe-filtered root-directory important-dirs))
@@ -153,12 +153,12 @@
 (display (length filtered-files))
 (display " files\n")
 
-;;; ============================================================
+;;; ====
 ;;; Example 7: Statistics
-;;; ============================================================
+;;; ====
 
 (display "\nExample 7: Universe statistics\n")
-(display "-------------------------------\n")
+(display "----\n")
 
 ;;; NOTE: string-contains? provided by core/prelude.ss
 

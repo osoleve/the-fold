@@ -20,9 +20,9 @@
 (load "eval.ss")
 (load "typed-eval.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Test Infrastructure
-;;; ============================================================
+;;; ====
 
 (define test-count 0)
 (define pass-count 0)
@@ -44,9 +44,9 @@
        (display actual)
        (newline))))
 
-;;; ============================================================
+;;; ====
 ;;; Test: Expression Storage Round-Trip
-;;; ============================================================
+;;; ====
 
 (display "\n╔══════════════════════════════════════════════════════════╗\n")
 (display "║     INTEGRATION TEST: CAS Round-Trip                      ║\n")
@@ -74,9 +74,9 @@
       (let ([fetched-child (fetch (vector-ref (block-refs fetched-parent) 0))])
            (test "child fetchable via ref" "child data" (utf8->string (block-payload fetched-child)))))
 
-;;; ============================================================
+;;; ====
 ;;; Test: Type Inference Round-Trip
-;;; ============================================================
+;;; ====
 
 (display "\nType Inference Round-Trip\n")
 (display "─────────────────────────\n")
@@ -93,9 +93,9 @@
      (test "application type-check" 'ok (car result))
      (test "application evaluates" 5 (typed-value (cadr result))))
 
-;;; ============================================================
+;;; ====
 ;;; Test: Evaluation Pipeline
-;;; ============================================================
+;;; ====
 
 (display "\nEvaluation Pipeline\n")
 (display "───────────────────\n")
@@ -110,9 +110,9 @@
      (test "factorial eval" 'ok (car result))
      (test "factorial(5) = 120" 120 (cadr result)))
 
-;;; ============================================================
+;;; ====
 ;;; Summary
-;;; ============================================================
+;;; ====
 
 (newline)
 (display "╔══════════════════════════════════════════════════════════╗\n")

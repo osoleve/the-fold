@@ -13,9 +13,9 @@
 ;;; NOTE: string utilities provided by core/prelude.ss
 (load "core/base/prelude.ss")
 
-;;; ============================================================
+;;; ====
 ;;; SVG Document Structure
-;;; ============================================================
+;;; ====
 
 ;;; svg-header : Nat x Nat -> String
 ;;; Generate SVG document header with XML declaration.
@@ -40,9 +40,9 @@
    " height=\"" (number->string height) "\""
    " fill=\"" color-hex "\"/>\n"))
 
-;;; ============================================================
+;;; ====
 ;;; Drawing to SVG Conversion
-;;; ============================================================
+;;; ====
 
 ;;; drawing->svg : Drawing -> String
 ;;; Convert a complete turtle drawing to an SVG document.
@@ -57,9 +57,9 @@
          (paths->svg paths)
          (svg-footer))))
 
-;;; ============================================================
+;;; ====
 ;;; Path Commands to SVG Elements
-;;; ============================================================
+;;; ====
 
 ;;; paths->svg : (List PathCmd) -> String
 ;;; Convert a list of path commands to SVG elements.
@@ -143,9 +143,9 @@
                      [else
                       (loop rest current-segment current-color current-width result)]))))))
 
-;;; ============================================================
+;;; ====
 ;;; Path Segment Rendering
-;;; ============================================================
+;;; ====
 
 ;;; flush-segment : (List PathCmd) x Color12 x Nat -> String
 ;;; Convert accumulated move-to/line-to commands to SVG path element.
@@ -201,9 +201,9 @@
                                [(#\.) (substring s 0 i)]
                                [else (substring s 0 (+ i 1))])))))))
 
-;;; ============================================================
+;;; ====
 ;;; Shape Rendering
-;;; ============================================================
+;;; ====
 
 ;;; circle->svg : CircleCmd -> String
 ;;; Render a circle command as SVG.
@@ -279,9 +279,9 @@
          " fill=\"none\""
          " stroke-linecap=\"round\"/>\n")))
 
-;;; ============================================================
+;;; ====
 ;;; Utility Functions
-;;; ============================================================
+;;; ====
 
 
 ;;; exists : (A -> Bool) x (List A) -> Bool
@@ -297,9 +297,9 @@
 (define pi 3.141592653589793)
 (define (deg->rad deg) (* deg (/ pi 180.0)))
 
-;;; ============================================================
+;;; ====
 ;;; File Output Helpers
-;;; ============================================================
+;;; ====
 
 ;;; save-svg : Drawing x String -> Void
 ;;; Save drawing to an SVG file.

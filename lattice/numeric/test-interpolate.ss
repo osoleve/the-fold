@@ -4,9 +4,9 @@
 
 (load "lattice/numeric/interpolate.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Test Framework
-;;; ============================================================
+;;; ====
 
 (define *test-count* 0)
 (define *pass-count* 0)
@@ -58,9 +58,9 @@
 (define (test-false name actual)
   (test name #f actual))
 
-;;; ============================================================
+;;; ====
 ;;; Test Data
-;;; ============================================================
+;;; ====
 
 ;; Piecewise linear points
 (define points '((0 . 0) (1 . 1) (2 . 4) (3 . 9)))
@@ -95,18 +95,18 @@
 (define fit-xs '(0 1 2 3 4))
 (define fit-ys '(0 1 4 9 16))
 
-;;; ============================================================
+;;; ====
 ;;; Test Runner
-;;; ============================================================
+;;; ====
 
 (define (run-tests)
-  (display "================================================================\n")
+  (display "====\n")
   (display "           INTERPOLATION AND CURVE FITTING TEST SUITE\n")
-  (display "================================================================\n\n")
+  (display "====\n\n")
 
-  ;;; ============================================================
+  ;;; ====
   ;;; Linear Interpolation
-  ;;; ============================================================
+  ;;; ====
 
   (display "--- Linear Interpolation ---\n")
 
@@ -129,9 +129,9 @@
   (test-approx "interp-linear at 1.5" 2.5 (interp-linear points 1.5) 1e-10)
   (test-approx "interp-linear at 0.5" 0.5 (interp-linear points 0.5) 1e-10)
 
-  ;;; ============================================================
+  ;;; ====
   ;;; Lagrange Interpolation
-  ;;; ============================================================
+  ;;; ====
 
   (display "\n--- Lagrange Interpolation ---\n")
 
@@ -145,9 +145,9 @@
   (test-approx "lagrange linear at 0.5" 2 (interp-lagrange xs-lin ys-lin 0.5) 1e-10)
   (test-approx "lagrange linear at 1.5" 4 (interp-lagrange xs-lin ys-lin 1.5) 1e-10)
 
-  ;;; ============================================================
+  ;;; ====
   ;;; Newton Interpolation
-  ;;; ============================================================
+  ;;; ====
 
   (display "\n--- Newton Interpolation ---\n")
 
@@ -165,9 +165,9 @@
   (test-approx "newton at 2.5" (interp-lagrange xs-quad ys-quad 2.5)
                (interp-newton xs-quad ys-quad 2.5) 1e-10)
 
-  ;;; ============================================================
+  ;;; ====
   ;;; Hermite Interpolation
-  ;;; ============================================================
+  ;;; ====
 
   (display "\n--- Hermite Interpolation ---\n")
 
@@ -181,9 +181,9 @@
   ;; Symmetric tangents
   (test-approx "hermite symmetric" 0.5 (interp-hermite 0 1 1 1 0.5) 1e-10)
 
-  ;;; ============================================================
+  ;;; ====
   ;;; Cubic Spline
-  ;;; ============================================================
+  ;;; ====
 
   (display "\n--- Cubic Spline ---\n")
 
@@ -202,9 +202,9 @@
       (test-true "spline between 1 and 2" (and (> v15 1) (< v15 4)))
       (test-true "spline between 2 and 3" (and (> v25 4) (< v25 9)))))
 
-  ;;; ============================================================
+  ;;; ====
   ;;; Bezier Curves
-  ;;; ============================================================
+  ;;; ====
 
   (display "\n--- Bezier Curves ---\n")
 
@@ -239,9 +239,9 @@
     (test-approx "bezier-general matches cubic x" (car result-cubic) (car result-general) 1e-10)
     (test-approx "bezier-general matches cubic y" (cdr result-cubic) (cdr result-general) 1e-10))
 
-  ;;; ============================================================
+  ;;; ====
   ;;; Linear Regression
-  ;;; ============================================================
+  ;;; ====
 
   (display "\n--- Linear Regression ---\n")
 
@@ -257,9 +257,9 @@
     (test-approx "noisy linreg intercept ~0" 0 (cdr reg) 0.2))
   (test-true "noisy R² > 0.99" (> (linreg-r2 noisy-xs noisy-ys) 0.99))
 
-  ;;; ============================================================
+  ;;; ====
   ;;; Polynomial Fitting
-  ;;; ============================================================
+  ;;; ====
 
   (display "\n--- Polynomial Fitting ---\n")
 
@@ -271,9 +271,9 @@
     (test-approx "polyfit x²: f(2)" 4 (poly-eval fitted 2) 0.1)
     (test-approx "polyfit x²: f(2.5)" 6.25 (poly-eval fitted 2.5) 0.1))
 
-  ;;; ============================================================
+  ;;; ====
   ;;; Chebyshev
-  ;;; ============================================================
+  ;;; ====
 
   (display "\n--- Chebyshev ---\n")
 
@@ -297,9 +297,9 @@
                (and (>= (apply min nodes) 0)
                     (<= (apply max nodes) 1))))
 
-  ;;; ============================================================
+  ;;; ====
   ;;; B-Splines
-  ;;; ============================================================
+  ;;; ====
 
   (display "\n--- B-Splines ---\n")
 
@@ -322,13 +322,13 @@
       (test-approx "bspline-curve start x" 0 (car start) 0.1)
       (test-approx "bspline-curve end x" 2 (car end) 0.1)))
 
-  ;;; ============================================================
+  ;;; ====
   ;;; Summary
-  ;;; ============================================================
+  ;;; ====
 
-  (display "\n================================================================\n")
+  (display "\n====\n")
   (display "                    TEST RESULTS\n")
-  (display "================================================================\n\n")
+  (display "====\n\n")
   (display "Tests passed: ") (display *pass-count*) (newline)
   (display "Tests failed: ") (display *fail-count*) (newline)
   (display "Total tests:  ") (display *test-count*) (newline)

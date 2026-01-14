@@ -33,17 +33,17 @@
          
          (import (chezscheme))
          
-         ;;; ============================================
+         ;;; ====
          ;;; CONSTANTS
-         ;;; ============================================
+         ;;; ====
          
          (define PI 3.141592653589793)
          (define TAU (* 2 PI))
          
-         ;;; ============================================
+         ;;; ====
          ;;; BASIC OSCILLATORS
          ;;; Returns a function that generates sample value at time t
-         ;;; ============================================
+         ;;; ====
          
          (define (sine-wave frequency phase)
            "Pure sine wave oscillator"
@@ -78,9 +78,9 @@
                         (set! state (modulo (+ (* state 1103515245) 12345) 2147483648))
                         (- (/ (modulo state 1000) 500.0) 1.0))))
          
-         ;;; ============================================
+         ;;; ====
          ;;; WAVE OPERATIONS
-         ;;; ============================================
+         ;;; ====
          
          (define (mix-waves . waves)
            "Mix multiple waveforms together"
@@ -116,9 +116,9 @@
                                (else 0.0))))
                         (* (wave t) amp))))
          
-         ;;; ============================================
+         ;;; ====
          ;;; EFFECTS
-         ;;; ============================================
+         ;;; ====
          
          (define (add-harmonics fundamental . harmonics)
            "Add harmonic overtones (frequency, amplitude) pairs"
@@ -136,9 +136,9 @@
                    (let ((x (* (wave t) amount)))
                         (/ (* 2.0 x) (+ 1.0 (abs x))))))
          
-         ;;; ============================================
+         ;;; ====
          ;;; SAMPLING AND RENDERING
-         ;;; ============================================
+         ;;; ====
          
          (define (wave->samples wave duration sample-rate)
            "Convert wave function to discrete samples"
@@ -219,9 +219,9 @@
                                                      "\n")))
                                       (iota bins)))))))
          
-         ;;; ============================================
+         ;;; ====
          ;;; MUSICAL UTILITIES
-         ;;; ============================================
+         ;;; ====
          
          (define (note->frequency note)
            "Convert MIDI note number to frequency (A4 = 440Hz = note 69)"
@@ -243,9 +243,9 @@
            (let ((waves (map (lambda (f) (sine-wave f 0)) frequencies)))
                 (apply mix-waves waves)))
          
-         ;;; ============================================
+         ;;; ====
          ;;; DEMONSTRATION
-         ;;; ============================================
+         ;;; ====
          
          (define (synth-demo)
            (display "\n=== WAVE SYNTHESIZER ===\n\n")

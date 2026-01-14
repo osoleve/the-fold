@@ -19,9 +19,9 @@
 (load "core/test-framework.ss")
 (load "shell/tests/test-runner.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Configuration
-;;; ============================================================
+;;; ====
 
 (define *tdd-enabled* #f)
 (define *tdd-watchers* '())
@@ -34,9 +34,9 @@
 (define *tdd-target-runtime* 1000)  ; milliseconds - target for quick feedback
 (define *tdd-slow-test-threshold* 500)  ; milliseconds - warn about slow tests
 
-;;; ============================================================
+;;; ====
 ;;; Core TDD Functions
-;;; ============================================================
+;;; ====
 
 ;;; test:watch : [Symbol] → void
 ;;; Start watching test files and auto-run on changes.
@@ -142,9 +142,9 @@
 (define (test:all)
   (test:run 'all))
 
-;;; ============================================================
+;;; ====
 ;;; Test Discovery and Execution
-;;; ============================================================
+;;; ====
 
 (define (discover-test-files focus)
   "Discover test files based on focus"
@@ -256,9 +256,9 @@
                               (if (> (cadr results) 0) (caddr results) '()) ; errors
                               duration)))))
   
-  ;;; ============================================================
+  ;;; ====
   ;;; Enhanced Auto-Test for TDD
-  ;;; ============================================================
+  ;;; ====
   
   (define (auto-test-tdd test-path)
     "Enhanced auto-test for TDD with better feedback"
@@ -299,9 +299,9 @@
                         (display "═══════════════════════════════════════════════════════════════
 "))))
   
-  ;;; ============================================================
+  ;;; ====
   ;;; Results Display and Analysis
-  ;;; ============================================================
+  ;;; ====
   
   (define (display-test-results results total-duration)
     "Display comprehensive test results"
@@ -409,9 +409,9 @@
                        (newline))
                errors)))))
   
-  ;;; ============================================================
+  ;;; ====
   ;;; Test History and Analytics
-  ;;; ============================================================
+  ;;; ====
   
   (define (update-test-history results)
     "Update test history for trend analysis"
@@ -438,9 +438,9 @@
     (display "Running specific tests...
 "))
   
-  ;;; ============================================================
+  ;;; ====
   ;;; Utility Functions
-  ;;; ============================================================
+  ;;; ====
   
   (define (clear-tests!)
     "Clear the test registry"
@@ -460,9 +460,9 @@
     (let-values ([(s ms) (time-difference (current-time) (make-time 'time-duration 0 0))])
                 (+ (* s 1000) (quotient ms 1000000))))
   
-  ;;; ============================================================
+  ;;; ====
   ;;; TDD Commands and Help
-  ;;; ============================================================
+  ;;; ====
   
   (define (tdd-help)
     "Display TDD help information"
@@ -517,9 +517,9 @@
     (display "  (test:failing)            - Re-run tests that just failed
 "))
   
-  ;;; ============================================================
+  ;;; ====
   ;;; Initialization
-  ;;; ============================================================
+  ;;; ====
   
   (display "TDD system loaded!
 ")

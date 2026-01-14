@@ -15,9 +15,9 @@
 (load "lattice/numeric/polynomial.ss")
 (load "lattice/fp/control-systems/discrete-control.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Discrete Transfer Function Representation
-;;; ============================================================
+;;; ====
 
 ;;; A discrete transfer function is: (dtf num den Ts)
 ;;; where:
@@ -92,9 +92,9 @@
 (define (dtf-proper? dtf)
   (>= (dtf-relative-degree dtf) 0))
 
-;;; ============================================================
+;;; ====
 ;;; Poles and Zeros
-;;; ============================================================
+;;; ====
 
 ;;; dtf-poles : DTF → (List Complex)
 ;;; Get the poles (roots of denominator).
@@ -121,9 +121,9 @@
             (poly-from-roots poles 1)
             Ts))
 
-;;; ============================================================
+;;; ====
 ;;; Discrete Transfer Function Evaluation
-;;; ============================================================
+;;; ====
 
 ;;; dtf-eval : DTF × Complex → Complex
 ;;; Evaluate H(z) at complex point z.
@@ -137,9 +137,9 @@
 (define (dtf-eval-real dtf z)
   (/ (poly-eval (dtf-num dtf) z) (poly-eval (dtf-den dtf) z)))
 
-;;; ============================================================
+;;; ====
 ;;; Frequency Response
-;;; ============================================================
+;;; ====
 
 ;;; dtf-freq-response : DTF × Vector → Vector
 ;;; Compute frequency response H(e^{jωTs}) for vector of frequencies ω.
@@ -197,9 +197,9 @@
             ((= i n) result)
             (vector-set! result i (* (vector-ref phase-rad i) (/ 180 pi))))))
 
-;;; ============================================================
+;;; ====
 ;;; System Connections
-;;; ============================================================
+;;; ====
 
 ;;; dtf-series : DTF × DTF → DTF
 ;;; Series connection: H1(z) * H2(z)
@@ -251,9 +251,9 @@
   (let ([unity (dtf-from-lists '(1) '(1) (dtf-Ts G))])
        (dtf-feedback G unity 'negative)))
 
-;;; ============================================================
+;;; ====
 ;;; Stability Analysis
-;;; ============================================================
+;;; ====
 
 ;;; dtf-stable? : DTF → Boolean
 ;;; Check if discrete TF is stable.
@@ -272,9 +272,9 @@
 (define (dtf-pole-magnitudes dtf)
   (map complex-magnitude (dtf-poles dtf)))
 
-;;; ============================================================
+;;; ====
 ;;; DSS ↔ DTF Conversion
-;;; ============================================================
+;;; ====
 
 ;;; dss->dtf : DSS → DTF
 ;;; Convert discrete state-space to discrete transfer function.
@@ -392,9 +392,9 @@
                   (let ([D (make-matrix 1 1 b-n)])
                        (make-dss A B C D Ts))))))
 
-;;; ============================================================
+;;; ====
 ;;; Display
-;;; ============================================================
+;;; ====
 
 ;;; dtf->string : DTF → String
 ;;; Pretty-print discrete transfer function.
@@ -428,9 +428,9 @@
             "0"
             (string-join (reverse terms) " + "))))
 
-;;; ============================================================
+;;; ====
 ;;; Helper Functions
-;;; ============================================================
+;;; ====
 
 ;;; log10 : Number → Number
 (define (log10 x)

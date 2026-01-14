@@ -48,18 +48,18 @@
        (printf "    Expected: #f\n")
        (printf "    Actual:   #t\n"))))
 
-;;; ============================================================
+;;; ====
 ;;; Test 1: Basic Configuration
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Test 1: Basic Configuration ===\n")
 
 (assert-equal "default threshold" *coverage-threshold* 80)
 (assert-false "coverage disabled by default" *coverage-enabled*)
 
-;;; ============================================================
+;;; ====
 ;;; Test 2: Executable Line Detection
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Test 2: Executable Line Detection ===\n")
 
@@ -76,9 +76,9 @@
 (assert-false "whitespace not executable"
               (executable-line? "   "))
 
-;;; ============================================================
+;;; ====
 ;;; Test 3: Path Basename
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Test 3: Path Basename ===\n")
 
@@ -92,9 +92,9 @@
               (path-basename "lattice/fp/symbolic/laws.ss")
               "laws.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Test 4: Coverage Indicators
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Test 4: Coverage Indicators ===\n")
 
@@ -102,9 +102,9 @@
 (assert-equal "medium coverage indicator" (coverage-indicator 75) " ○")
 (assert-equal "low coverage indicator" (coverage-indicator 50) " ✗")
 
-;;; ============================================================
+;;; ====
 ;;; Test 5: Format Percentage
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Test 5: Format Percentage ===\n")
 
@@ -112,9 +112,9 @@
 (assert-equal "double digit" (format-percentage 50) "50")
 (assert-equal "triple digit" (format-percentage 100) "100")
 
-;;; ============================================================
+;;; ====
 ;;; Test 6: Make String Helper
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Test 6: Make String Helper ===\n")
 
@@ -122,9 +122,9 @@
 (assert-equal "make-string one" (make-string 1 #\a) "a")
 (assert-equal "make-string three" (make-string 3 #\-) "---")
 
-;;; ============================================================
+;;; ====
 ;;; Test 7: Coverage Start/Stop Basic Operation
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Test 7: Coverage Start/Stop Basic Operation ===\n")
 
@@ -138,9 +138,9 @@
        (let ([report (coverage-stop)])
             (assert-false "coverage disabled after stop" *coverage-enabled*)))
 
-;;; ============================================================
+;;; ====
 ;;; Test 8: Record Types
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Test 8: Record Types ===\n")
 
@@ -158,9 +158,9 @@
              (assert-true "file-coverage created" (file-coverage? file-cov))
              (assert-true "coverage-report created" (coverage-report? report))))
 
-;;; ============================================================
+;;; ====
 ;;; Test 9: Help/Display Functions
-;;; ============================================================
+;;; ====
 
 (printf "\n=== Test 9: Help/Display Functions ===\n")
 
@@ -170,11 +170,11 @@
             (coverage-summary report)
             (assert-true "coverage-summary succeeded" #t)))
 
-;;; ============================================================
+;;; ====
 ;;; Test Summary
-;;; ============================================================
+;;; ====
 
-(printf "\n========================================\n")
+(printf "\n====\n")
 (printf "Test Results:\n")
 (printf "  Total:  ~a\n" test-count)
 (printf "  Passed: ~a\n" pass-count)

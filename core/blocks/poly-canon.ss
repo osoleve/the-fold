@@ -20,9 +20,9 @@
 
 (load "core/base/prelude.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Configuration
-;;; ============================================================
+;;; ====
 
 ;;; Maximum expression depth for polynomial canonicalization.
 (define *poly-canon-max-depth* 10)
@@ -30,9 +30,9 @@
 ;;; Maximum number of terms after expansion.
 (define *poly-canon-max-terms* 100)
 
-;;; ============================================================
+;;; ====
 ;;; Arithmetic Expression Detection
-;;; ============================================================
+;;; ====
 
 ;;; exact-number? : Any → Bool
 ;;; True for integers and exact rationals, false for floats.
@@ -60,9 +60,9 @@
                   (cdr expr)))]
     [else #f]))
 
-;;; ============================================================
+;;; ====
 ;;; Internal Polynomial Representation
-;;; ============================================================
+;;; ====
 ;;;
 ;;; A polynomial is a list of terms.
 ;;; A term is a list: (coefficient monomial)
@@ -80,9 +80,9 @@
 ;;; make-term : Number × Monomial → Term
 (define (make-term coeff mono) (list coeff mono))
 
-;;; ============================================================
+;;; ====
 ;;; S-expression → Polynomial Conversion
-;;; ============================================================
+;;; ====
 
 ;;; sexpr->poly : S-expr → Poly
 (define (sexpr->poly expr)
@@ -113,9 +113,9 @@
 
     [else (error 'sexpr->poly "not an arithmetic expression" expr)]))
 
-;;; ============================================================
+;;; ====
 ;;; Polynomial Operations
-;;; ============================================================
+;;; ====
 
 (define (poly-add-all polys)
   (fold-left poly-add '() polys))
@@ -149,9 +149,9 @@
   (make-term (* (term-coeff t1) (term-coeff t2))
              (mono-mul (term-mono t1) (term-mono t2))))
 
-;;; ============================================================
+;;; ====
 ;;; Monomial Operations
-;;; ============================================================
+;;; ====
 
 ;;; mono-mul : Monomial × Monomial → Monomial
 ;;; Multiply monomials (add exponents of like variables).
@@ -173,9 +173,9 @@
          [else
           (cons (cons v1 (+ e1 e2)) (mono-merge (cdr m1) (cdr m2)))]))]))
 
-;;; ============================================================
+;;; ====
 ;;; Polynomial Simplification
-;;; ============================================================
+;;; ====
 
 ;;; poly-simplify : Poly → Poly
 ;;; Sort terms, combine like monomials, remove zeros.
@@ -220,9 +220,9 @@
           [else
            (loop (cons (car rest) acc) (cdr rest))]))))
 
-;;; ============================================================
+;;; ====
 ;;; Polynomial → S-expression Conversion
-;;; ============================================================
+;;; ====
 
 ;;; poly->sexpr : Poly → S-expr
 (define (poly->sexpr p)
@@ -273,9 +273,9 @@
 (define (make-list n x)
   (if (<= n 0) '() (cons x (make-list (- n 1) x))))
 
-;;; ============================================================
+;;; ====
 ;;; Main Entry Point
-;;; ============================================================
+;;; ====
 
 ;;; poly-canonicalize : S-expr → S-expr
 (define (poly-canonicalize expr)

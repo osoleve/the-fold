@@ -29,13 +29,13 @@
 ;;; NOTE: string utilities provided by core/prelude.ss
 (load "core/base/prelude.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Command-line Argument Parsing
-;;; ============================================================
+;;; ====
 
 (define (print-help)
   (display "Universe Dump Tool\n")
-  (display "==================\n\n")
+  (display "====\n\n")
   (display "Serializes all .sexp files in the-fold project to a single file.\n\n")
   (display "Usage:\n")
   (display "  scheme-script shell/universe-dump.ss [options]\n\n")
@@ -100,9 +100,9 @@
                   (exit 1)])))))
 
 
-;;; ============================================================
+;;; ====
 ;;; Main Program
-;;; ============================================================
+;;; ====
 
 (define (main args)
   (let* ([options (parse-args args)]
@@ -113,7 +113,7 @@
         
         ;; Print configuration
         (display "Universe Dump Configuration\n")
-        (display "===========================\n")
+        (display "====\n")
         (display "Root directory: ")
         (display root-dir)
         (newline)

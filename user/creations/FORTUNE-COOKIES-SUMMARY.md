@@ -70,7 +70,7 @@ Then use commands:
 ## Functions Provided
 
 | Function | Signature | Purpose |
-|----------|-----------|---------|
+|----|----|----|
 | `display-cookie` | String → void | Display a fortune in ASCII art cookie |
 | `random-fortune` | → String | Select a random fortune |
 | `fortune-shell` | → void | Start interactive shell |

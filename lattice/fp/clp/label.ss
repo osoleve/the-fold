@@ -19,9 +19,9 @@
 
 (load "lattice/fp/clp/propagate.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Variable Ordering Strategies
-;;; ============================================================
+;;; ====
 
 ;;; input-order : CStore × (List LVar) → (Maybe LVar)
 ;;; Select the first unbound (non-singleton domain) variable.
@@ -105,9 +105,9 @@
                              (loop (cdr vars) var regret)
                              (loop (cdr vars) best best-regret)))])))))
 
-;;; ============================================================
+;;; ====
 ;;; Value Selection Strategies
-;;; ============================================================
+;;; ====
 
 ;;; min-value : Domain → Int
 ;;; Select minimum value from domain.
@@ -134,9 +134,9 @@
                   [(domain-contains? dom (- mid offset)) (- mid offset)]
                   [else (loop (+ offset 1))])))))
 
-;;; ============================================================
+;;; ====
 ;;; Labeling Functions
-;;; ============================================================
+;;; ====
 
 ;;; label : CStore × (List LVar) → (Stream CStore)
 ;;; Label variables using default strategy (first-fail, min-value).
@@ -180,9 +180,9 @@
   (let ([cs1 (cstore-set-domain cs var (domain-singleton val))])
        (and cs1 (propagate cs1))))
 
-;;; ============================================================
+;;; ====
 ;;; Convenience Labeling
-;;; ============================================================
+;;; ====
 
 ;;; label-all : CStore × (List LVar) → (List CStore)
 ;;; Get all solutions as a list (may be expensive for large search spaces).
@@ -222,9 +222,9 @@
            count
            (loop (stream-tail stream) (+ count 1)))))
 
-;;; ============================================================
+;;; ====
 ;;; Strategy Constructors
-;;; ============================================================
+;;; ====
 
 ;;; make-labeling-strategy : VarOrder × ValSelect → (CStore × (List LVar) → (Stream CStore))
 ;;; Create a labeling function from component strategies.

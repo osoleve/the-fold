@@ -17,9 +17,9 @@
 (load "lattice/info/entropy.ss")
 (load "lattice/info/statistical-measures.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Prequential Epiplexity
-;;; ============================================================
+;;; ====
 
 ;;; prequential-epiplexity : (List Number) × (List Number) → Number
 ;;; Estimate epiplexity from online and final loss sequences.
@@ -52,9 +52,9 @@
                  (map (lambda (l) (- l baseline-loss))
                       online-losses))))
 
-;;; ============================================================
+;;; ====
 ;;; Requential Epiplexity
-;;; ============================================================
+;;; ====
 
 ;;; requential-epiplexity : (List (List Number)) × (List (List Number)) → Number
 ;;; Estimate epiplexity using Requential Coding (Teacher-Student approach).

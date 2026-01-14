@@ -36,9 +36,9 @@
 (load "infer.ss")
 (load "edit.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Type Display Utilities
-;;; ============================================================
+;;; ====
 
 ;;; type->string : Type → String
 ;;; Convert a type to a human-readable string.
@@ -86,9 +86,9 @@
 (define (display-type type)
   (display (type->string type)))
 
-;;; ============================================================
+;;; ====
 ;;; Type Inspection
-;;; ============================================================
+;;; ====
 
 ;;; type-inspect : Expr → void
 ;;; Infer and display the type of an expression.
@@ -151,9 +151,9 @@
         [else
          (display (format "~a• ~a\n" indent (type->string type)))])))
 
-;;; ============================================================
+;;; ====
 ;;; Type Explanation
-;;; ============================================================
+;;; ====
 
 ;;; type-explain : Expr × Type → void
 ;;; Check if expression has expected type and explain why/why not.
@@ -210,9 +210,9 @@
    [else
     (display "  → Types have different structure.\n")]))
 
-;;; ============================================================
+;;; ====
 ;;; Type Visualization
-;;; ============================================================
+;;; ====
 
 ;;; type-visualize : Type → void
 ;;; Display a tree visualization of type structure.
@@ -254,9 +254,9 @@
    [else
     (display (format "~a~a\n" prefix type))]))
 
-;;; ============================================================
+;;; ====
 ;;; File Type Checking
-;;; ============================================================
+;;; ====
 
 ;;; type-check-file : FS × String → void
 ;;; Read a file, parse expressions, and check their types.
@@ -306,9 +306,9 @@
                                   (display "\n")
                                   (loop (+ expr-num 1) errors (+ successes 1))]))]))))))
 
-;;; ============================================================
+;;; ====
 ;;; Type Environment Inspection
-;;; ============================================================
+;;; ====
 
 ;;; display-tenv : TEnv → void
 ;;; Display a type environment.
@@ -346,9 +346,9 @@
                (display "\n"))
        env)))
 
-;;; ============================================================
+;;; ====
 ;;; Batch Type Checking
-;;; ============================================================
+;;; ====
 
 ;;; type-check-expressions : (List Expr) → void
 ;;; Type-check a list of expressions and show results.

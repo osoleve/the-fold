@@ -16,9 +16,9 @@
 
 (load "core/base/prelude.ss")
 
-;;; ============================================================
+;;; ====
 ;;; PipelineContext — Read-Only Environment
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Context flows through the pipeline unchanged (unless stage-local).
 ;;; Contains configuration, session info, and resource limits.
@@ -121,9 +121,9 @@
   (let ([entry (assq key (ctx-config ctx))])
        (if entry (cdr entry) #f)))
 
-;;; ============================================================
+;;; ====
 ;;; PipelineState — Mutable Accumulator
-;;; ============================================================
+;;; ====
 ;;;
 ;;; State accumulates as pipeline runs: logs, artifacts, checkpoints.
 ;;; Unlike context, state changes between stages.
@@ -202,9 +202,9 @@
   (let ([entry (assoc key (state-cache st))])
        (if entry (cdr entry) #f)))
 
-;;; ============================================================
+;;; ====
 ;;; Log Entry Types
-;;; ============================================================
+;;; ====
 
 ;;; make-log-entry : Symbol -> String -> Any -> LogEntry
 (define (make-log-entry level message data)
@@ -226,9 +226,9 @@
 ;;; log-entry-timestamp : LogEntry -> Number
 (define (log-entry-timestamp e) (list-ref e 4))
 
-;;; ============================================================
+;;; ====
 ;;; Run Record — Complete Pipeline Execution
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Captures everything about a pipeline run for persistence/resume.
 
@@ -269,9 +269,9 @@
 ;;;   'halted - stopped intentionally
 ;;;   'awaiting - waiting for external signal
 
-;;; ============================================================
+;;; ====
 ;;; Pipeline Definition Record
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Named pipeline with configuration.
 
@@ -297,9 +297,9 @@
 ;;;   'schedule - cron/interval spec
 ;;;   'tags - labels for organization
 
-;;; ============================================================
+;;; ====
 ;;; Persona Integration
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Personas provide system prompts and behavioral configuration.
 
@@ -339,9 +339,9 @@
             (cons (if read (cdr read) '())
                   (if write (cdr write) '())))))
 
-;;; ============================================================
+;;; ====
 ;;; Schedule Specification
-;;; ============================================================
+;;; ====
 
 ;;; make-cron-schedule : String -> Schedule
 (define (make-cron-schedule cron-expr)
@@ -380,9 +380,9 @@
       (list-ref s 2)
       #f))
 
-;;; ============================================================
+;;; ====
 ;;; Retry Policy
-;;; ============================================================
+;;; ====
 
 ;;; make-retry-policy : Nat -> (Nat -> Nat) -> (Symbol -> Boolean) -> Symbol -> RetryPolicy
 (define (make-retry-policy max-attempts delay-fn retry-on on-exhaust)
@@ -432,9 +432,9 @@
    (lambda (code) #t)  ; Retry all errors
    'fail))
 
-;;; ============================================================
+;;; ====
 ;;; Context/State Pair for Threading
-;;; ============================================================
+;;; ====
 
 ;;; make-ctx-state : PipelineContext -> PipelineState -> (Context . State)
 (define (make-ctx-state ctx state)
@@ -454,9 +454,9 @@
 (define (update-ctx cs f)
   (cons (f (ctx-of cs)) (state-of cs)))
 
-;;; ============================================================
+;;; ====
 ;;; Discord Context Extensions
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Discord context is stored in the environment as special keys.
 ;;; This allows pipelines triggered by Discord to access message info.
@@ -528,9 +528,9 @@
 (define (ctx-is-discord-triggered? ctx)
   (and (ctx-discord-message-id ctx) #t))
 
-;;; ============================================================
+;;; ====
 ;;; Discord Trigger Schedule
-;;; ============================================================
+;;; ====
 
 ;;; make-discord-mention-schedule : Symbol -> Schedule
 ;;; Trigger when @agent is mentioned in Discord.

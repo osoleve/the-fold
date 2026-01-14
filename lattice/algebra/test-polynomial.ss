@@ -7,15 +7,15 @@
 (load "lattice/algebra/multivariate.ss")
 (load "lattice/algebra/groebner.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Test Helpers: Use Q-field from field.ss
-;;; ============================================================
+;;; ====
 
 ;;; Q-field is defined in field.ss and exported via polynomial.ss
 
-;;; ============================================================
+;;; ====
 ;;; Univariate Polynomial Tests
-;;; ============================================================
+;;; ====
 
 (test-group "polynomial-construction"
 
@@ -210,9 +210,9 @@
       (assert-equal 2 (poly-eval p 1))
       (assert-equal 5 (poly-eval p 2)))))
 
-;;; ============================================================
+;;; ====
 ;;; Multivariate Polynomial Tests
-;;; ============================================================
+;;; ====
 
 (test-group "multivariate-construction"
 
@@ -312,9 +312,9 @@
            [result (mpoly-eval f '((x . 2) (y . 3)))])
       (assert-equal 13 result))))
 
-;;; ============================================================
+;;; ====
 ;;; Gröbner Basis Tests
-;;; ============================================================
+;;; ====
 
 (test-group "s-polynomial"
 
@@ -387,8 +387,8 @@
            [monic (mpoly-make-monic f Q-field)])
       (assert-equal 1 (mpoly-leading-coeff monic)))))
 
-;;; ============================================================
+;;; ====
 ;;; Run Tests
-;;; ============================================================
+;;; ====
 
 (run-all-tests)

@@ -34,9 +34,9 @@
 (load "core/types/infer.ss")
 (load "core/types/annotate.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Typed Values
-;;; ============================================================
+;;; ====
 
 ;;; A typed value pairs a value with its type.
 ;;; (typed Type Value)
@@ -59,9 +59,9 @@
       (typed-value (caddr tv))  ; Recursively unwrap nested typed values
       tv))
 
-;;; ============================================================
+;;; ====
 ;;; Type-Check Then Evaluate
-;;; ============================================================
+;;; ====
 
 ;;; typecheck-eval : Expr × Nat → (Result TypedValue Error)
 ;;;
@@ -107,9 +107,9 @@
                 [else eval-result]))]
         [else type-result])))
 
-;;; ============================================================
+;;; ====
 ;;; Annotated Evaluation
-;;; ============================================================
+;;; ====
 
 ;;; eval-annotated : AnnotatedExpr × Env × Nat → (Result TypedValue Error)
 ;;;
@@ -188,9 +188,9 @@
    [else
     (eval-annotated-app (car expr) (cdr expr) env fuel)]))
 
-;;; ============================================================
+;;; ====
 ;;; Annotated Case Evaluation
-;;; ============================================================
+;;; ====
 
 ;;; (case scrutinee ((Tag vars...) body) ...)
 ;;; Pattern matching on block tags with type preservation
@@ -232,9 +232,9 @@
                 ;; No match, try next clause
                 (match-annotated-clauses block (cdr clauses) env fuel)))))
 
-;;; ============================================================
+;;; ====
 ;;; Annotated Let Evaluation
-;;; ============================================================
+;;; ====
 
 ;;; eval-annotated-let : (List Binding) × Expr × Env × Nat → (Result Value Error)
 (define (eval-annotated-let bindings body env fuel)
@@ -258,9 +258,9 @@
                (caddr result))]
              [else result]))))
 
-;;; ============================================================
+;;; ====
 ;;; Annotated Fix Evaluation
-;;; ============================================================
+;;; ====
 
 ;;; eval-annotated-fix : Symbol × Expr × Env × Nat → (Result Closure Error)
 (define (eval-annotated-fix name fn-expr env fuel)
@@ -282,9 +282,9 @@
                          `(error fix-requires-fn ,fn-val)))
                fn-result))))
 
-;;; ============================================================
+;;; ====
 ;;; Annotated If Evaluation
-;;; ============================================================
+;;; ====
 
 ;;; eval-annotated-if : Expr × Expr × Expr × Env × Nat → (Result Value Error)
 (define (eval-annotated-if test then-expr else-expr env fuel)
@@ -300,9 +300,9 @@
                       (eval-annotated else-expr env remaining)))]
             [else test-result]))))
 
-;;; ============================================================
+;;; ====
 ;;; Annotated Prim Evaluation
-;;; ============================================================
+;;; ====
 
 ;;; eval-annotated-prim : Symbol × (List Expr) × Env × Nat → (Result Value Error)
 (define (eval-annotated-prim op args env fuel)
@@ -326,9 +326,9 @@
                                        (caddr result))]
             [else result]))))
 
-;;; ============================================================
+;;; ====
 ;;; Annotated Application Evaluation
-;;; ============================================================
+;;; ====
 
 ;;; eval-annotated-app : Expr × (List Expr) × Env × Nat → (Result Value Error)
 (define (eval-annotated-app fn args env fuel)
@@ -363,9 +363,9 @@
                                        (caddr result))]
             [else result]))))
 
-;;; ============================================================
+;;; ====
 ;;; Full Pipeline: Annotate → Type-Check → Evaluate
-;;; ============================================================
+;;; ====
 
 ;;; typed-run : Expr × Nat → (Result TypedValue Error)
 ;;;
@@ -392,9 +392,9 @@
                 [else eval-result]))]
         [else ann-result])))
 
-;;; ============================================================
+;;; ====
 ;;; Type Environment Builder
-;;; ============================================================
+;;; ====
 
 ;;; Build paired type/value environments for use with typecheck-eval-env
 
@@ -411,9 +411,9 @@
                        (cons (cons name type) tenv)
                        (cons (cons name value) venv))))))
 
-;;; ============================================================
+;;; ====
 ;;; Typed Prelude
-;;; ============================================================
+;;; ====
 
 ;;; A prelude with explicit type signatures.
 
@@ -474,9 +474,9 @@
    (lambda (tenv venv)
            (typecheck-eval-env expr tenv venv fuel))))
 
-;;; ============================================================
+;;; ====
 ;;; Display Typed Values
-;;; ============================================================
+;;; ====
 
 ;;; show-typed : α → String
 (define (show-typed tv)

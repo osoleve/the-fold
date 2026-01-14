@@ -14,7 +14,7 @@
 (load "core/util/benchmark.ss")
 
 (display "Benchmark Harness Tests\n")
-(display "=======================\n\n")
+(display "====\n\n")
 
 (define tests-passed 0)
 (define tests-failed 0)
@@ -43,9 +43,9 @@
        (display ", got ") (write actual)
        (newline))))
 
-;;; ============================================================
+;;; ====
 ;;; Statistical Function Tests
-;;; ============================================================
+;;; ====
 
 (display "Statistical Functions:\n")
 
@@ -89,9 +89,9 @@
 (test "list-min" 1 (list-min '(3 1 4 1 5)))
 (test "list-max" 5 (list-max '(3 1 4 1 5)))
 
-;;; ============================================================
+;;; ====
 ;;; Benchmark Creation Tests
-;;; ============================================================
+;;; ====
 
 (display "\nBenchmark Creation:\n")
 
@@ -122,9 +122,9 @@
       (test "setup is function" #t (procedure? (benchmark-setup b)))
       (test "teardown is function" #t (procedure? (benchmark-teardown b))))
 
-;;; ============================================================
+;;; ====
 ;;; Suite Creation Tests
-;;; ============================================================
+;;; ====
 
 (display "\nSuite Creation:\n")
 
@@ -139,9 +139,9 @@
       (test "suite-description" "Test suite" (suite-description s))
       (test "suite-tags" '(unit fast) (suite-tags s)))
 
-;;; ============================================================
+;;; ====
 ;;; Sample Creation Tests
-;;; ============================================================
+;;; ====
 
 (display "\nSample Creation:\n")
 
@@ -151,9 +151,9 @@
      (test "sample-cpu-ns" 800000 (sample-cpu-ns s))
      (test "sample-memory-delta" 1024 (sample-memory-delta s)))
 
-;;; ============================================================
+;;; ====
 ;;; Timing Tests
-;;; ============================================================
+;;; ====
 
 (display "\nTiming:\n")
 
@@ -164,9 +164,9 @@
             (test "time-thunk returns sample" #t (sample? sample))
             (test "elapsed-ns >= 0" #t (>= (sample-elapsed-ns sample) 0)))
 
-;;; ============================================================
+;;; ====
 ;;; Benchmark Execution Tests
-;;; ============================================================
+;;; ====
 
 (display "\nBenchmark Execution:\n")
 
@@ -203,9 +203,9 @@
       (test "setup called correctly" 8 setup-count)      ; 5 + 3
       (test "teardown called correctly" 8 teardown-count)) ; 5 + 3
 
-;;; ============================================================
+;;; ====
 ;;; Suite Execution Tests
-;;; ============================================================
+;;; ====
 
 (display "\nSuite Execution:\n")
 
@@ -218,9 +218,9 @@
       (test "suite-result has 2 results" 2 (length (suite-result-results result)))
       (test "first result name" 'fast (result-name (car (suite-result-results result)))))
 
-;;; ============================================================
+;;; ====
 ;;; Comparison Tests
-;;; ============================================================
+;;; ====
 
 (display "\nComparison & Regression Detection:\n")
 
@@ -287,9 +287,9 @@
       (test "5% change not regression" #f (comparison-regression? comparison))
       (test "5% change not improvement" #f (comparison-improvement? comparison)))
 
-;;; ============================================================
+;;; ====
 ;;; Suite Comparison Tests
-;;; ============================================================
+;;; ====
 
 (display "\nSuite Comparison:\n")
 
@@ -307,9 +307,9 @@
       (test "1 improvement" 1 (length (filter comparison-improvement? comparisons)))
       (test "any-regressions? true" #t (any-regressions? comparisons)))
 
-;;; ============================================================
+;;; ====
 ;;; Baseline Tests
-;;; ============================================================
+;;; ====
 
 (display "\nBaseline Storage:\n")
 
@@ -321,9 +321,9 @@
       (test "baseline-created is number" #t (number? (baseline-created baseline)))
       (test "baseline-results" mock-suite (baseline-results baseline)))
 
-;;; ============================================================
+;;; ====
 ;;; Serialization Tests
-;;; ============================================================
+;;; ====
 
 (display "\nSerialization:\n")
 
@@ -343,9 +343,9 @@
 (let ([original `(benchmark-result (name . test) (iterations . 100) (stats . ()))])
      (test "deserialize is identity" original (deserialize-results original)))
 
-;;; ============================================================
+;;; ====
 ;;; Formatting Tests
-;;; ============================================================
+;;; ====
 
 (display "\nFormatting:\n")
 
@@ -372,9 +372,9 @@
 (test "format-pct negative" "-15.0%" (format-pct -15.0))
 (test "format-pct zero" "+0.0%" (format-pct 0.0))
 
-;;; ============================================================
+;;; ====
 ;;; CI Integration Tests
-;;; ============================================================
+;;; ====
 
 (display "\nCI Integration:\n")
 
@@ -401,9 +401,9 @@
       (test "ci-report 0 regressions" 0 (cdr (assq 'regressions (cdr report))))
       (test "ci-report 1 improvement" 1 (cdr (assq 'improvements (cdr report)))))
 
-;;; ============================================================
+;;; ====
 ;;; quick-bench Test
-;;; ============================================================
+;;; ====
 
 (display "\nQuick Bench:\n")
 
@@ -411,12 +411,12 @@
      (test "quick-bench returns result" #t (benchmark-result? result))
      (test "quick-bench name is 'quick" 'quick (result-name result)))
 
-;;; ============================================================
+;;; ====
 ;;; Summary
-;;; ============================================================
+;;; ====
 
 (newline)
-(display "================\n")
+(display "====\n")
 (display (format "Tests: ~a passed, ~a failed\n" tests-passed tests-failed))
 (when (> tests-failed 0)
       (exit 1))

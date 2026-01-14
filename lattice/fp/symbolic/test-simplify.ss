@@ -6,13 +6,13 @@
 (load "lattice/fp/symbolic/simplify.ss")
 
 (display "\n")
-(display "==============================================================\n")
+(display "====\n")
 (display "         ALGEBRAIC SIMPLIFICATION TESTS\n")
-(display "==============================================================\n")
+(display "====\n")
 
-;;; ============================================================
+;;; ====
 ;;; Basic Simplification Tests
-;;; ============================================================
+;;; ====
 
 (test-group basic-simplification
             (define-test simplify-constant
@@ -70,9 +70,9 @@
                    (assert-true (var? result))
                    (assert-equal 'x (var-name result)))))
 
-;;; ============================================================
+;;; ====
 ;;; Collecting Like Terms Tests
-;;; ============================================================
+;;; ====
 
 (test-group collect-terms
             (define-test x-plus-x
@@ -89,9 +89,9 @@
                    (assert-true (num? result))
                    (assert-equal 5 (num-val result)))))
 
-;;; ============================================================
+;;; ====
 ;;; Power Collection Tests
-;;; ============================================================
+;;; ====
 
 (test-group power-collection
             (define-test x-times-x
@@ -119,9 +119,9 @@
                    (assert-true (num? (pow-exp result)))
                    (assert-equal 5 (num-val (pow-exp result))))))
 
-;;; ============================================================
+;;; ====
 ;;; Expansion Tests
-;;; ============================================================
+;;; ====
 
 (test-group expansion
             (define-test expand-a-plus-b-times-c
@@ -132,9 +132,9 @@
               (let ([result (expand (product (num 2) (sum (var 'x) (var 'y))))])
                    (assert-true (sum? result)))))
 
-;;; ============================================================
+;;; ====
 ;;; Factoring Tests
-;;; ============================================================
+;;; ====
 
 (test-group factoring
             (define-test factor-common
@@ -147,9 +147,9 @@
                                                 (power (var 'y) (num 2))))])
                    (assert-true (product? result)))))
 
-;;; ============================================================
+;;; ====
 ;;; Trigonometric Simplification Tests
-;;; ============================================================
+;;; ====
 
 (test-group trig-simplify
             (define-test sin-zero
@@ -175,9 +175,9 @@
                    (assert-true (num? result))
                    (assert-equal 1 (num-val result)))))
 
-;;; ============================================================
+;;; ====
 ;;; Exponential/Logarithm Tests
-;;; ============================================================
+;;; ====
 
 (test-group exp-log
             (define-test exp-zero
@@ -209,9 +209,9 @@
               (let ([result (simplify (sym-log (power (var 'x) (num 3))))])
                    (assert-true (product? result)))))
 
-;;; ============================================================
+;;; ====
 ;;; Quotient Simplification Tests
-;;; ============================================================
+;;; ====
 
 (test-group quotient-simplify
             (define-test zero-over-x
@@ -229,9 +229,9 @@
                    (assert-true (num? result))
                    (assert-equal 2 (num-val result)))))
 
-;;; ============================================================
+;;; ====
 ;;; Power Simplification Tests
-;;; ============================================================
+;;; ====
 
 (test-group power-simplify
             (define-test zero-squared
@@ -255,9 +255,9 @@
                    (assert-true (num? (pow-exp result)))
                    (assert-equal 6 (num-val (pow-exp result))))))
 
-;;; ============================================================
+;;; ====
 ;;; Canonical Form Tests
-;;; ============================================================
+;;; ====
 
 (test-group canonical
             (define-test canonical-sorts-sums
@@ -268,8 +268,8 @@
               (let ([result (to-canonical (product (sym-sin (var 'x)) (num 2)))])
                    (assert-true (product? result)))))
 
-;;; ============================================================
+;;; ====
 ;;; Run All Tests
-;;; ============================================================
+;;; ====
 
 (run-all-tests)

@@ -11,9 +11,9 @@
 
 (test-group parallel-detect
             
-            ;;; ============================================================
+            ;;; ====
             ;;; Data Structure Tests
-            ;;; ============================================================
+            ;;; ====
             
             (define-test parallel-opportunity-structure
               (let ([opp (make-parallel-opportunity
@@ -41,9 +41,9 @@
                    (assert-equal '(x) (dep-graph-lookup g 'b))
                    (assert-equal '(a b) (dep-graph-lookup g 'c))))
             
-            ;;; ============================================================
+            ;;; ====
             ;;; Free Variables Analysis
-            ;;; ============================================================
+            ;;; ====
             
             (define-test free-vars-simple
               (assert-equal '(x) (free-vars 'x))
@@ -86,9 +86,9 @@
                    (assert-false (memq 'f fvs))
                    (assert-false (memq 'g fvs))))
             
-            ;;; ============================================================
+            ;;; ====
             ;;; Independent Let Bindings Detection
-            ;;; ============================================================
+            ;;; ====
             
             (define-test detect-independent-let-simple
               ;; (let ([a (f x)] [b (g y)]) ...) - a and b are independent
@@ -124,9 +124,9 @@
                     ;; Should find a group with a and c
                     (assert-true (>= (length let-opps) 0))))  ; May or may not detect partial
             
-            ;;; ============================================================
+            ;;; ====
             ;;; Independent Map Operations
-            ;;; ============================================================
+            ;;; ====
             
             (define-test detect-independent-maps-in-begin
               (let* ([expr '(begin (map f xs) (map g ys))]
@@ -141,9 +141,9 @@
                      [map-opps (filter (lambda (o) (eq? (par-type o) 'independent-map)) opps)])
                     (assert-true (>= (length map-opps) 0))))
             
-            ;;; ============================================================
+            ;;; ====
             ;;; Par-Eligible Expressions
-            ;;; ============================================================
+            ;;; ====
             
             (define-test detect-par-eligible-function-call
               ;; (func (expensive-a) (expensive-b)) - args can run in parallel
@@ -160,9 +160,9 @@
                     ;; This tests that we correctly identify non-parallelizable cases
                     (assert-true (list? opps))))
             
-            ;;; ============================================================
+            ;;; ====
             ;;; Fanout Pattern Detection
-            ;;; ============================================================
+            ;;; ====
             
             (define-test detect-fanout-simple
               ;; (let ([x input]) (list (f x) (g x) (h x)))
@@ -177,9 +177,9 @@
                      [fanout-opps (filter (lambda (o) (eq? (par-type o) 'fanout)) opps)])
                     (assert-true (>= (length fanout-opps) 0))))
             
-            ;;; ============================================================
+            ;;; ====
             ;;; No False Positives
-            ;;; ============================================================
+            ;;; ====
             
             (define-test single-binding-no-parallel
               (let* ([expr '(let ([a (f x)]) (g a))]
@@ -195,9 +195,9 @@
             (define-test empty-list-no-parallel
               (assert-equal 0 (length (detect-parallel-regions '()))))
             
-            ;;; ============================================================
+            ;;; ====
             ;;; Nested Detection
-            ;;; ============================================================
+            ;;; ====
             
             (define-test detect-nested-opportunities
               (let* ([expr '(let ([outer 1])
@@ -216,9 +216,9 @@
                      [opps (detect-parallel-regions expr)])
                     (assert-true (list? opps))))
             
-            ;;; ============================================================
+            ;;; ====
             ;;; Speedup Estimation
-            ;;; ============================================================
+            ;;; ====
             
             (define-test speedup-increases-with-branches
               (let ([s2 (estimate-speedup 2 '((+ 1 2) (+ 3 4)))]
@@ -236,9 +236,9 @@
                     [map-work (estimate-work '(map f xs))])
                    (assert-true (> map-work simple-work))))
             
-            ;;; ============================================================
+            ;;; ====
             ;;; Convenience Functions
-            ;;; ============================================================
+            ;;; ====
             
             (define-test count-opportunities-works
               (let* ([expr '(let ([a (f x)] [b (g y)]) (+ a b))]
@@ -260,9 +260,9 @@
                      [high (high-value-opportunities opps)])
                     (assert-true (andmap (lambda (o) (>= (par-estimated-speedup o) 1.5)) high))))
             
-            ;;; ============================================================
+            ;;; ====
             ;;; Summary Report
-            ;;; ============================================================
+            ;;; ====
             
             (define-test parallel-summary-structure
               (let* ([expr '(let ([a (f x)] [b (g y)]) (+ a b))]
@@ -281,9 +281,9 @@
                     (assert-equal 0 (cdr (assq 'total (cdr summary))))
                     (assert-equal 1.0 (cdr (assq 'max-speedup (cdr summary))))))
             
-            ;;; ============================================================
+            ;;; ====
             ;;; Transformation Suggestions
-            ;;; ============================================================
+            ;;; ====
             
             (define-test suggest-transform-returns-expr
               (let ([opp (make-parallel-opportunity
@@ -296,9 +296,9 @@
                         (assert-true (pair? suggestion))
                         (assert-equal 'par (car suggestion)))))
             
-            ;;; ============================================================
+            ;;; ====
             ;;; Edge Cases
-            ;;; ============================================================
+            ;;; ====
             
             (define-test handles-quoted-expressions
               (let* ([expr '(let ([a 'x] [b 'y]) (list a b))]
@@ -312,9 +312,9 @@
                      [opps (detect-parallel-regions expr)])
                     (assert-true (list? opps))))
             
-            ;;; ============================================================
+            ;;; ====
             ;;; Optional Fuel Parameter Tests
-            ;;; ============================================================
+            ;;; ====
             
             (define-test optional-fuel-parameter-default
               ;; Calling with one argument should use default fuel

@@ -8,15 +8,15 @@
 (load "shell/bbs/blocks.ss")
 (load "shell/bbs/heads.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Storage Root (uses same .store as rest of Fold)
-;;; ============================================================
+;;; ====
 
 (define *bbs-cas-root* ".store/objects")
 
-;;; ============================================================
+;;; ====
 ;;; Block Persistence
-;;; ============================================================
+;;; ====
 
 ;;; bbs-cas-path : Bytevector -> String
 ;;; Compute filesystem path for a block hash.
@@ -64,9 +64,9 @@
             (bytes->block bytes))
           #f))))
 
-;;; ============================================================
+;;; ====
 ;;; High-Level Operations
-;;; ============================================================
+;;; ====
 
 ;;; bbs-store! : Block -> Bytevector
 ;;; Store a block and return its hash.
@@ -106,9 +106,9 @@
         (issue-block-data blk)
         #f)))
 
-;;; ============================================================
+;;; ====
 ;;; Issue History
-;;; ============================================================
+;;; ====
 
 ;;; bbs-issue-history : String -> (List Block)
 ;;; Get all versions of an issue, newest first.
@@ -130,9 +130,9 @@
 (define (bbs-issue-history-data id)
   (map issue-block-data (bbs-issue-history id)))
 
-;;; ============================================================
+;;; ====
 ;;; Dangling Head Detection
-;;; ============================================================
+;;; ====
 
 ;;; bbs-head-valid? : String -> Boolean
 ;;; Check if a head points to a valid block.

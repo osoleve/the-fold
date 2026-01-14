@@ -5,9 +5,9 @@
 (load "core/base/prelude.ss")
 (load "lattice/linalg/iteration.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Test Framework
-;;; ============================================================
+;;; ====
 
 (define *test-count* 0)
 (define *pass-count* 0)

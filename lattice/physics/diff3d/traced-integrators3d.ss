@@ -24,9 +24,9 @@
 (load "lattice/physics/diff3d/traced-quaternion.ss")
 (load "lattice/physics/diff3d/traced-body3d.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Symplectic Euler Integration for 3D Rigid Bodies
-;;; ============================================================
+;;; ====
 
 ;;; The symplectic Euler method is:
 ;;;   v_{n+1} = v_n + a_n * dt
@@ -72,9 +72,9 @@
              [angular-accel (traced-mat3-mul-vec3 I-world-inv torque)])
             (traced-euler-step-3d body accel angular-accel dt))))
 
-;;; ============================================================
+;;; ====
 ;;; Standard Euler (for comparison)
-;;; ============================================================
+;;; ====
 
 ;;; traced-euler-step-3d-explicit : TracedBody3D × TracedVec3 × TracedVec3 × Number → TracedBody3D
 ;;; Standard (explicit) Euler integration.
@@ -96,9 +96,9 @@
                                          (traced-vec3-scale angular-accel dt))])
             (traced-body-3d-with-state body new-pos new-vel new-orientation new-omega))))
 
-;;; ============================================================
+;;; ====
 ;;; Semi-Implicit Euler with Damping
-;;; ============================================================
+;;; ====
 
 ;;; traced-semi-implicit-step-3d : TracedBody3D × TracedVec3 × TracedVec3 × Number × Number → TracedBody3D
 ;;; Semi-implicit Euler with optional velocity damping.
@@ -120,9 +120,9 @@
                                                      new-omega dt)])
             (traced-body-3d-with-state body new-pos new-vel new-orientation new-omega))))
 
-;;; ============================================================
+;;; ====
 ;;; Velocity Verlet Integration
-;;; ============================================================
+;;; ====
 
 ;;; traced-verlet-step-3d : TracedBody3D × (TracedBody3D → (Values TracedVec3 TracedVec3)) × Number → TracedBody3D
 ;;; Perform one Velocity Verlet integration step.
@@ -161,9 +161,9 @@
                                                                   (* 0.5 dt)))])
                                     (traced-body-3d-with-state body new-pos new-vel new-orientation new-omega)))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Gravity and Common Forces
-;;; ============================================================
+;;; ====
 
 ;;; traced-gravity-accel-3d : TracedVec3 → TracedVec3
 ;;; Standard gravity acceleration (constant, independent of mass).
@@ -185,9 +185,9 @@
            (traced-gravity-step-3d body (lift-vec3 gravity-vec tape) dt)
            (traced-gravity-step-3d body (lift-vec3-const gravity-vec) dt))))
 
-;;; ============================================================
+;;; ====
 ;;; Multi-Step Integration
-;;; ============================================================
+;;; ====
 
 ;;; traced-integrate-n-steps-3d : TracedBody3D × (TracedBody3D → (Values TracedVec3 TracedVec3)) × Number × Nat → TracedBody3D
 ;;; Integrate for n steps using symplectic Euler.
@@ -207,9 +207,9 @@
   (let ([n (exact (floor (/ total-time dt)))])
        (traced-integrate-n-steps-3d body compute-accel dt n)))
 
-;;; ============================================================
+;;; ====
 ;;; Integration with Trajectory Recording
-;;; ============================================================
+;;; ====
 
 ;;; traced-integrate-with-trajectory-3d : TracedBody3D × (TracedBody3D → (Values TracedVec3 TracedVec3)) × Number × Nat → (List TracedBody3D)
 ;;; Integrate for n steps and return all intermediate states.
@@ -223,9 +223,9 @@
                     (let ([new-body (traced-euler-step-3d b accel angular-accel dt)])
                          (loop new-body (- steps 1) (cons new-body traj))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Point Mass Integration (simplified, 3D)
-;;; ============================================================
+;;; ====
 
 ;;; traced-point-step-3d : TracedVec3 × TracedVec3 × TracedVec3 × Number → (Values TracedVec3 TracedVec3)
 ;;; Integrate a point mass: returns (new-pos, new-vel).
@@ -239,9 +239,9 @@
 (define (traced-projectile-step-3d pos vel gravity dt)
   (traced-point-step-3d pos vel gravity dt))
 
-;;; ============================================================
+;;; ====
 ;;; Energy-Preserving Integration Check
-;;; ============================================================
+;;; ====
 
 ;;; traced-total-energy-3d : TracedBody3D × (TracedBody3D → TracedValue) → TracedValue
 ;;; Compute total energy: kinetic + potential.
@@ -263,9 +263,9 @@
          [h (traced-sub (traced-neg (traced-vec3-dot pos g-dir)) ref-height)])
         (traced-mul m (traced-mul g-mag h))))
 
-;;; ============================================================
+;;; ====
 ;;; Spring Forces (useful for testing)
-;;; ============================================================
+;;; ====
 
 ;;; traced-spring-force-3d : TracedVec3 × TracedVec3 × Number × Number → TracedVec3
 ;;; Compute spring force between two points.

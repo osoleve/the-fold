@@ -20,9 +20,9 @@
 
 (load "core/base/prelude.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Expression Constructors
-;;; ============================================================
+;;; ====
 
 ;;; num : Number → Expr
 ;;; Create a numeric constant.
@@ -75,9 +75,9 @@
 (define (make-app fn arg)
   (list fn arg))
 
-;;; ============================================================
+;;; ====
 ;;; Smart Constructors (with simplification)
-;;; ============================================================
+;;; ====
 
 ;;; sum : Expr × Expr → Expr
 ;;; Create a sum with basic simplifications.
@@ -177,9 +177,9 @@
    ;; Default
    [else (list '^ base exp)]))
 
-;;; ============================================================
+;;; ====
 ;;; Expression Predicates
-;;; ============================================================
+;;; ====
 
 ;;; num? : α → Bool
 (define (num? e)
@@ -216,9 +216,9 @@
        (symbol? (car e))
        (not (memq (car e) '(num var + * - / ^)))))
 
-;;; ============================================================
+;;; ====
 ;;; Expression Accessors
-;;; ============================================================
+;;; ====
 
 ;;; num-val : Expr → Number
 (define (num-val e)
@@ -271,9 +271,9 @@
 (define (app-arg e)
   (cadr e))
 
-;;; ============================================================
+;;; ====
 ;;; Expression Equality
-;;; ============================================================
+;;; ====
 
 ;;; list-all-equal? : (List Expr) × (List Expr) → Bool
 ;;; Check if all corresponding elements are equal.
@@ -321,9 +321,9 @@
    ;; Default: not equal
    [else #f]))
 
-;;; ============================================================
+;;; ====
 ;;; Pattern Matching
-;;; ============================================================
+;;; ====
 
 ;;; A pattern is:
 ;;;   (num _) — match any number, bind to _
@@ -462,9 +462,9 @@
                         #f))
                #f))))
 
-;;; ============================================================
+;;; ====
 ;;; Free Variables
-;;; ============================================================
+;;; ====
 
 ;;; free-vars : Expr → (List Symbol)
 ;;; Get all free variables in an expression.
@@ -486,9 +486,9 @@
    [(app? e) (free-vars (app-arg e))]
    [else '()]))
 
-;;; ============================================================
+;;; ====
 ;;; Substitution
-;;; ============================================================
+;;; ====
 
 ;;; subst : Expr × Symbol × Expr → Expr
 ;;; Substitute val for var-sym in expression.
@@ -527,9 +527,9 @@
     (make-app (app-fn expr) (subst (app-arg expr) var-sym val))]
    [else expr]))
 
-;;; ============================================================
+;;; ====
 ;;; Expression Display
-;;; ============================================================
+;;; ====
 
 ;;; expr->string : Expr → String
 ;;; Convert expression to readable string.
@@ -561,9 +561,9 @@
                    "(" (expr->string (app-arg e)) ")")]
    [else "?"]))
 
-;;; ============================================================
+;;; ====
 ;;; Common Function Constructors
-;;; ============================================================
+;;; ====
 
 ;;; sym-sin : Expr → Expr
 ;;; Trigonometric sine function.

@@ -12,9 +12,9 @@
 ;;;   - core/compile.ss (the compilation pipeline)
 ;;;   - core/error.ss (error formatting)
 
-;;; ============================================================
+;;; ====
 ;;; Load Dependencies
-;;; ============================================================
+;;; ====
 
 ;; Ensure core is in path
 (source-directories (cons "core" (source-directories)))
@@ -22,9 +22,9 @@
 (load "core/lang/compile.ss")
 (load "core/base/error.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Error Display with Source Context
-;;; ============================================================
+;;; ====
 
 ;;; Current source being processed (for error display)
 (define *current-source* #f)
@@ -76,9 +76,9 @@
 (define (remove-span-from-details details)
   (filter (lambda (x) (not (span? x))) details))
 
-;;; ============================================================
+;;; ====
 ;;; Parse Command
-;;; ============================================================
+;;; ====
 
 ;;; fold-parse-string : String → void
 ;;; Parse a string and display the AST or error.
@@ -102,9 +102,9 @@
                       (display "AST:\n")
                       (pretty-print 'str)))]))
 
-;;; ============================================================
+;;; ====
 ;;; Type Check Command
-;;; ============================================================
+;;; ====
 
 ;;; fold-type-string : String → void
 ;;; Type-check a string and display the type or error.
@@ -134,9 +134,9 @@
                 [(_ expr)
                  (fold-type-string (format "~s" 'expr))]))
 
-;;; ============================================================
+;;; ====
 ;;; Eval Command
-;;; ============================================================
+;;; ====
 
 ;;; fold-eval-string : String [× Nat] → void
 ;;; Evaluate a string and display the result or error.
@@ -166,9 +166,9 @@
                 [(_ expr fuel)
                  (fold-eval-string (format "~s" 'expr) fuel)]))
 
-;;; ============================================================
+;;; ====
 ;;; Full Pipeline Command
-;;; ============================================================
+;;; ====
 
 ;;; fold-compile-string : String → void
 ;;; Run full pipeline with diagnostics at each phase.
@@ -211,9 +211,9 @@
                 [(_ expr)
                  (fold-compile-string (format "~s" 'expr))]))
 
-;;; ============================================================
+;;; ====
 ;;; Help
-;;; ============================================================
+;;; ====
 
 (define (fold-eval-help)
   (display "\n")

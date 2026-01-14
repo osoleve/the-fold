@@ -12,9 +12,9 @@
 ;;; Exports:
 ;;;   Combat resolution, damage calculation, attack helpers
 
-;;; ============================================================
+;;; ====
 ;;; Damage Calculation
-;;; ============================================================
+;;; ====
 
 ;;; calculate-damage : Entity × Entity × [Alist] -> Nat
 ;;; Calculate damage from attacker to defender.
@@ -59,9 +59,9 @@
 (define (calculate-damage-simple attack defense)
   (max 1 (- attack defense)))
 
-;;; ============================================================
+;;; ====
 ;;; Attack Resolution
-;;; ============================================================
+;;; ====
 
 ;;; CombatResult : Alist
 ;;;   (attacker . Entity)    — Updated attacker entity
@@ -136,9 +136,9 @@
 (define (combat-result-message result)
   (alist-ref result 'message ""))
 
-;;; ============================================================
+;;; ====
 ;;; Combat Utilities
-;;; ============================================================
+;;; ====
 
 ;;; entity-can-attack? : Entity × Entity -> Bool
 ;;; Check if attacker can attack defender.
@@ -164,9 +164,9 @@
         (critical? . #f)
         (message . "Cannot attack: out of range or invalid target"))))
 
-;;; ============================================================
+;;; ====
 ;;; Status Effects (Future Extension)
-;;; ============================================================
+;;; ====
 
 ;;; These are stubs for future implementation.
 ;;; Status effects like poison, stun, buffs would go here.
@@ -181,18 +181,18 @@
   ;; TODO: Add status-effect component and buff logic
   entity)
 
-;;; ============================================================
+;;; ====
 ;;; Random Utilities
-;;; ============================================================
+;;; ====
 
 ;;; random-int : Nat -> Nat
 ;;; Generate random integer in range [0, n).
 (define (random-int n)
   (random n))
 
-;;; ============================================================
+;;; ====
 ;;; Export Summary
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Damage Calculation:
 ;;;   calculate-damage - Full damage calculation with options

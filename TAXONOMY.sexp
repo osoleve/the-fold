@@ -10,17 +10,17 @@
  (date . "2026-01-09")
  (status . canonical)
 
- ;;; ================================================================
+ ;;; ====
  ;;; THREE-LAYER ARCHITECTURE
- ;;; ================================================================
+ ;;; ====
  ;;;
  ;;; core/    — Language kernel (minimal, axiomatic)
  ;;; lattice/ — Skill DAG (stdlib = tier 0, grows organically)
  ;;; shell/   — Impure boundary (IO, validation, capabilities)
 
- ;;; ================================================================
+ ;;; ====
  ;;; DOMAIN HIERARCHY
- ;;; ================================================================
+ ;;; ====
  ;;;
  ;;; Top-level conceptual domains organizing the codebase.
 
@@ -150,9 +150,9 @@
       (description . "Filesystem, JSON, validation")
       (modules . (shell/io)))))))
 
- ;;; ================================================================
+ ;;; ====
  ;;; NAMING CONVENTIONS
- ;;; ================================================================
+ ;;; ====
 
  (naming-conventions
 
@@ -196,9 +196,9 @@
       (description . "Accessors")
       (examples . (block-tag block-payload functor-fmap)))))))
 
- ;;; ================================================================
+ ;;; ====
  ;;; CLASSIFICATION RULES
- ;;; ================================================================
+ ;;; ====
  ;;;
  ;;; Rules for determining where new code belongs.
 
@@ -232,9 +232,9 @@
    (rationale . "Benchmarks are reproducible computation")
    (test . "Is this for measuring performance?")))
 
- ;;; ================================================================
+ ;;; ====
  ;;; TIER ACCESS
- ;;; ================================================================
+ ;;; ====
 
  (tiers
   ((tier . player)
@@ -249,9 +249,9 @@
    (description . "Can modify core/, architectural decisions")
    (access . (read core shell) (write core shell))))
 
- ;;; ================================================================
+ ;;; ====
  ;;; DIRECTORY STRUCTURE
- ;;; ================================================================
+ ;;; ====
 
  (structure
   ;; CORE — Language Kernel (minimal, axiomatic)

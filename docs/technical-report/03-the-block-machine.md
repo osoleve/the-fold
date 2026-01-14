@@ -50,7 +50,7 @@ Address = [ version : 1 byte ][ hash : 32 bytes ]
 **Version Bytes**:
 
 | Version | Mode | Description |
-|---------|------|-------------|
+|----|----|----|
 | `0x00` | α-only | De Bruijn indices only (original mode) |
 | `0x01` | Algebraic + α | Full algebraic canonicalization before de Bruijn |
 | `0x02` | Enhanced (v2) | η-reduction, identity elimination, polynomial canonicalization, hash-consing |
@@ -315,7 +315,7 @@ The full normalization function applies both phases:
 **Equivalence Classes**:
 
 | Normalization Mode | Equivalences Detected |
-|-------------------|----------------------|
+|----|----|
 | None | Syntactic identity only |
 | α-only (v0x00) | + Variable renaming |
 | Algebraic + α (v0x01) | + Commutative, associative, parallel bindings |

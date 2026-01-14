@@ -15,9 +15,9 @@
 
 (load "core/base/prelude.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Simple Exponential Smoothing (SES)
-;;; ============================================================
+;;; ====
 
 ;;; simple-exponential-smooth : Vec × Num → SESResult
 ;;; Single exponential smoothing: s_t = alpha * x_t + (1-alpha) * s_{t-1}
@@ -67,9 +67,9 @@
                         (set! best-alpha alpha)
                         (set! best-sse sse))))))
 
-;;; ============================================================
+;;; ====
 ;;; Holt's Double Exponential Smoothing
-;;; ============================================================
+;;; ====
 
 ;;; holt-smooth : Vec × Num × Num → HoltResult
 ;;; Double exponential smoothing for data with trend.
@@ -132,9 +132,9 @@
                          (+ (vector-ref level (- t 1))
                             (vector-ref trend (- t 1)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Holt-Winters Triple Exponential Smoothing
-;;; ============================================================
+;;; ====
 
 ;;; holt-winters : Vec × Num × Num × Num × Nat × Symbol → HWResult
 ;;; Triple exponential smoothing with seasonality.
@@ -316,9 +316,9 @@
                           (vector-set! fitted t (+ lt-1 bt-1 st-p))
                           (vector-set! fitted t (* (+ lt-1 bt-1) st-p))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Damped Trend Holt's Method
-;;; ============================================================
+;;; ====
 
 ;;; holt-damped : Vec × Num × Num × Num → HoltDampedResult
 ;;; Holt's method with damped trend for more conservative forecasts.

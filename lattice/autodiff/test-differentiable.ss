@@ -60,9 +60,9 @@
   (display " ===")
   (newline))
 
-;;; ============================================================
+;;; ====
 ;;; Test Instance Resolution
-;;; ============================================================
+;;; ====
 
 (section "Instance Resolution")
 
@@ -71,9 +71,9 @@
 (test-ok "resolve Differentiable Traced" (resolve-differentiable 'Traced))
 (test-ok "resolve Differentiable Hyperdual" (resolve-differentiable 'Hyperdual))
 
-;;; ============================================================
+;;; ====
 ;;; Test Real Instance
-;;; ============================================================
+;;; ====
 
 (section "Real Instance")
 
@@ -90,9 +90,9 @@
       (test "d+ 2 3" 5 (d+ 2 3))
       (test "d* 2 3" 6 (d* 2 3)))
 
-;;; ============================================================
+;;; ====
 ;;; Test Dual Instance
-;;; ============================================================
+;;; ====
 
 (section "Dual Instance")
 
@@ -126,9 +126,9 @@
            (test "d-sq value" 9 (primal result))
            (test "d-sq deriv" 6 (tangent result))))
 
-;;; ============================================================
+;;; ====
 ;;; Test Traced Instance
-;;; ============================================================
+;;; ====
 
 (section "Traced Instance")
 
@@ -144,9 +144,9 @@
              [z (d* x y)])
             (test "traced d* value" 6 (primal z))))
 
-;;; ============================================================
+;;; ====
 ;;; Test Hyperdual Instance
-;;; ============================================================
+;;; ====
 
 (section "Hyperdual Instance")
 
@@ -168,9 +168,9 @@
             (test "hd d-sq deriv2" 0 (hd-deriv2 result))
             (test "hd d-sq deriv12 (d^2/dxdy = 0)" 0 (hd-deriv12 result))))
 
-;;; ============================================================
+;;; ====
 ;;; Test get-diff-method
-;;; ============================================================
+;;; ====
 
 (section "get-diff-method")
 
@@ -178,9 +178,9 @@
 (test "get d* for Real" #t (procedure? (get-diff-method 'Real 'd*)))
 (test "get invalid method" #f (get-diff-method 'Dual 'nonexistent))
 
-;;; ============================================================
+;;; ====
 ;;; Test Generic d-pow
-;;; ============================================================
+;;; ====
 
 (section "Generic d-pow")
 
@@ -211,9 +211,9 @@
            (test-approx "d-pow x^-3 value" 0.125 (dual-value result) 0.0001)
            (test-approx "d-pow x^-3 deriv" -0.1875 (dual-deriv result) 0.0001)))
 
-;;; ============================================================
+;;; ====
 ;;; Test derivative-at
-;;; ============================================================
+;;; ====
 
 (section "derivative-at")
 
@@ -226,21 +226,21 @@
 (let ([f (lambda (x) (dual-sin x))])
      (test-approx "d/dx sin(x) at 0" 1 (derivative-at f 0) 0.0001))
 
-;;; ============================================================
+;;; ====
 ;;; Test extended-classes
-;;; ============================================================
+;;; ====
 
 (section "extended-classes")
 
 (test "has Differentiable" #t (if (assq 'Differentiable extended-classes) #t #f))
 (test "has Functor" #t (if (assq 'Functor extended-classes) #t #f))
 
-;;; ============================================================
+;;; ====
 ;;; Summary
-;;; ============================================================
+;;; ====
 
 (newline)
-(display "======================")
+(display "====")
 (newline)
 (display "Passed: ")
 (display passed)

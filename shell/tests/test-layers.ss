@@ -10,13 +10,13 @@
 (load "shell/ui/layers.ss")
 
 (display "\n")
-(display "==============================================================\n")
+(display "====\n")
 (display "         CANVAS LAYERING SYSTEM TESTS\n")
-(display "==============================================================\n")
+(display "====\n")
 
-;;; ============================================================
+;;; ====
 ;;; Transparency Tests
-;;; ============================================================
+;;; ====
 
 (test-group transparency
             (define-test transparent-char-exists
@@ -39,9 +39,9 @@
                    (assert-true (transparent? (canvas-ref c 5 2)))
                    (assert-true (transparent? (canvas-ref c 9 4))))))
 
-;;; ============================================================
+;;; ====
 ;;; Layer Construction Tests
-;;; ============================================================
+;;; ====
 
 (test-group layer-construction
             (define-test make-layer-basic
@@ -68,9 +68,9 @@
                     (assert-equal 10 (point-x (layer-offset layer)))
                     (assert-equal 20 (point-y (layer-offset layer))))))
 
-;;; ============================================================
+;;; ====
 ;;; Layer Setters Tests
-;;; ============================================================
+;;; ====
 
 (test-group layer-setters
             (define-test layer-set-visible-test
@@ -109,9 +109,9 @@
                     (assert-equal 10 (layer-depth layer))
                     (assert-equal 99 (layer-depth reordered)))))
 
-;;; ============================================================
+;;; ====
 ;;; Layer Stack Tests
-;;; ============================================================
+;;; ====
 
 (test-group layer-stack
             (define-test make-empty-stack
@@ -158,9 +158,9 @@
                     (assert-equal 'second (layer-name (stack-find-layer stack 'second)))
                     (assert-false (stack-find-layer stack 'nonexistent)))))
 
-;;; ============================================================
+;;; ====
 ;;; Stack Update Operations Tests
-;;; ============================================================
+;;; ====
 
 (test-group stack-operations
             (define-test stack-update-layer-test
@@ -190,9 +190,9 @@
                     (assert-equal 'second (layer-name (car (stack-layers stack))))
                     (assert-equal 'first (layer-name (cadr (stack-layers stack)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Transparent Composition Tests
-;;; ============================================================
+;;; ====
 
 (test-group transparent-composition
             (define-test composite-transparent-basic
@@ -222,9 +222,9 @@
                     ;; * should appear at (6, 6) = (5+1, 5+1)
                     (assert-equal #\* (canvas-ref result 6 6)))))
 
-;;; ============================================================
+;;; ====
 ;;; Layer Flattening Tests
-;;; ============================================================
+;;; ====
 
 (test-group layer-flattening
             (define-test flatten-single-layer
@@ -267,9 +267,9 @@
                     ;; Should see VISIBLE, not HIDDEN
                     (assert-equal #\V (canvas-ref result 0 0)))))
 
-;;; ============================================================
+;;; ====
 ;;; Helper Constructor Tests
-;;; ============================================================
+;;; ====
 
 (test-group helper-constructors
             (define-test make-background-layer-test
@@ -296,9 +296,9 @@
                    (assert-equal 'ui (layer-name layer))
                    (assert-equal 100 (layer-depth layer)))))
 
-;;; ============================================================
+;;; ====
 ;;; Layer Drawing Operations Tests
-;;; ============================================================
+;;; ====
 
 (test-group layer-drawing
             (define-test layer-draw-string-test
@@ -331,9 +331,9 @@
                     ;; Check second line
                     (assert-equal #\( (canvas-ref (layer-canvas layer) 2 2)))))
 
-;;; ============================================================
+;;; ====
 ;;; Alpha Blending Tests
-;;; ============================================================
+;;; ====
 
 (test-group alpha-blending
             (define-test blend-chars-full-transparent
@@ -366,9 +366,9 @@
                     (assert-equal layer (car pair))
                     (assert-equal 0.75 (cdr pair)))))
 
-;;; ============================================================
+;;; ====
 ;;; Debug String Tests
-;;; ============================================================
+;;; ====
 
 (test-group debug-strings
             (define-test layer-to-string-test
@@ -389,12 +389,12 @@
                     (assert-true (string-contains? str "first"))
                     (assert-true (string-contains? str "second")))))
 
-;;; ============================================================
+;;; ====
 ;;; Summary
-;;; ============================================================
+;;; ====
 
 (display "\n")
-(display "==============================================================\n")
+(display "====\n")
 (printf "Tests passed: ~a\n" *tests-passed*)
 (printf "Tests failed: ~a\n" *tests-failed*)
 (printf "Total tests:  ~a\n" *tests-run*)

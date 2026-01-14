@@ -11,9 +11,9 @@
 (load "user/creations/ascii-video-export.ss")
 (load "lattice/physics/classical/world.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Configuration
-;;; ============================================================
+;;; ====
 
 (define *width* 60)
 (define *height* 30)
@@ -28,9 +28,9 @@
        (cons (inexact->exact (round (+ *origin-x* (* x *scale*))))
              (inexact->exact (round (+ *origin-y* (* y *scale*)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Rendering
-;;; ============================================================
+;;; ====
 
 (define test-material (make-material 0.5 0.3 0.3))
 
@@ -85,9 +85,9 @@
                                             (if (< e2 dx) dx 0))])
                                (loop new-x new-y new-err)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Scene: Pendulum + Chain + Spring
-;;; ============================================================
+;;; ====
 
 (define (make-demo-world)
   (let ([w (make-world (vec2 0 9.8))])  ; Gravity down
@@ -167,9 +167,9 @@
   ;; Spring mass
   (draw-entity! frame world 'spring-mass #\O))
 
-;;; ============================================================
+;;; ====
 ;;; Animation
-;;; ============================================================
+;;; ====
 
 (define (run-demo)
   (display "Creating physics world...\n")
@@ -207,9 +207,9 @@
         (display " frames\n")
         video))
 
-;;; ============================================================
+;;; ====
 ;;; Export
-;;; ============================================================
+;;; ====
 
 (define (export-demo)
   (let ([video (run-demo)])
@@ -218,9 +218,9 @@
 
 ;;; Run it
 (display "\n")
-(display "========================================\n")
+(display "====\n")
 (display "  PHYSICS CONSTRAINT DEMO\n")
 (display "  Distance joints, chains, springs\n")
-(display "========================================\n\n")
+(display "====\n\n")
 
 (export-demo)

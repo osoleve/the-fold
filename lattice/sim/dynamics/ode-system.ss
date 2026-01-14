@@ -21,9 +21,9 @@
 (load "lattice/linalg/vec.ss")
 (load "lattice/linalg/matrix.ss")
 
-;;; ============================================================
+;;; ====
 ;;; ODE System Representation
-;;; ============================================================
+;;; ====
 
 ;;; An ODE system is represented as:
 ;;;   (ode-system vector-field dimension autonomous?)
@@ -76,9 +76,9 @@
    dimension
    #f))
 
-;;; ============================================================
+;;; ====
 ;;; Vector Field Evaluation
-;;; ============================================================
+;;; ====
 
 ;;; eval-vector-field : Any × Number × Any → Any
 ;;; Evaluate the vector field at a given time and state.
@@ -92,9 +92,9 @@
 (define (eval-vector-field-batch sys t states)
   (map (lambda (state) (eval-vector-field sys t state)) states))
 
-;;; ============================================================
+;;; ====
 ;;; Flow and Trajectory
-;;; ============================================================
+;;; ====
 
 ;;; make-flow-function : Any → (Number × Number × Any → Any)
 ;;; Create a flow function φ(t, t0, x0) that represents the solution
@@ -116,9 +116,9 @@
            (vec-norm field)
            (abs field))))
 
-;;; ============================================================
+;;; ====
 ;;; Phase Space Utilities
-;;; ============================================================
+;;; ====
 
 ;;; make-phase-space-grid : Number × Number × Nat × Number × Number × Nat → (List Any)
 ;;; Create a rectangular grid of points in 2D phase space.
@@ -150,9 +150,9 @@
 (define (compute-vector-field-grid sys t grid-points)
   (map (lambda (point) (eval-vector-field sys t point)) grid-points))
 
-;;; ============================================================
+;;; ====
 ;;; Standard ODE Systems (Examples)
-;;; ============================================================
+;;; ====
 
 ;;; exponential-growth : Number → Any
 ;;; Simple exponential growth: dx/dt = r*x
@@ -271,9 +271,9 @@
                 (matrix-vec-mul A state))
         n)))
 
-;;; ============================================================
+;;; ====
 ;;; Equilibrium Points
-;;; ============================================================
+;;; ====
 
 ;;; is-equilibrium? : Any × Any × Number → Bool
 ;;; Check if a point is an equilibrium (fixed point) within tolerance.
@@ -289,9 +289,9 @@
   (filter (lambda (point) (is-equilibrium? sys point tolerance))
           grid-points))
 
-;;; ============================================================
+;;; ====
 ;;; System Composition
-;;; ============================================================
+;;; ====
 
 ;;; couple-ode-systems : Any × Any → Any
 ;;; Couple two ODE systems into a single higher-dimensional system.
@@ -314,9 +314,9 @@
         (+ dim1 dim2)
         auto?)))
 
-;;; ============================================================
+;;; ====
 ;;; Time Reversal
-;;; ============================================================
+;;; ====
 
 ;;; reverse-time-ode : Any → Any
 ;;; Create the time-reversed ODE system: dx/dt = -f(t, x)
@@ -334,9 +334,9 @@
         dim
         auto?)))
 
-;;; ============================================================
+;;; ====
 ;;; Coordinate Transformations
-;;; ============================================================
+;;; ====
 
 ;;; transform-ode-system : Any × (Any → Any) × (Any → Any) → Any
 ;;; Transform an ODE system via a coordinate change.

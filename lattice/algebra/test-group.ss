@@ -7,9 +7,9 @@
 
 (set! *current-group* 'group-theory)
 
-;;; ============================================================
+;;; ====
 ;;; Basic Group Construction Tests
-;;; ============================================================
+;;; ====
 
 (define-test "make-group creates valid group structure"
   (let ([g (make-cyclic-group 4)])
@@ -22,9 +22,9 @@
   (assert-false (group? '(1 2 3)))
   (assert-false (group? 42)))
 
-;;; ============================================================
+;;; ====
 ;;; Cyclic Group Tests
-;;; ============================================================
+;;; ====
 
 (define-test "Z_3 has correct elements"
   (let ([g (Z 3)])
@@ -55,9 +55,9 @@
        (assert-equal 2 (element-order g 3))
        (assert-equal 1 (element-order g 0))))
 
-;;; ============================================================
+;;; ====
 ;;; Permutation Group Tests
-;;; ============================================================
+;;; ====
 
 (define-test "permutation-identity is identity"
   (let ([id (permutation-identity 3)])
@@ -109,9 +109,9 @@
   (assert-equal 1 (permutation-parity '(1 0 2)))  ; transposition is odd
   (assert-equal 0 (permutation-parity '(1 2 0)))) ; 3-cycle is even
 
-;;; ============================================================
+;;; ====
 ;;; Dihedral Group Tests
-;;; ============================================================
+;;; ====
 
 (define-test "D_3 has 6 elements"
   (let ([g (D 3)])
@@ -142,9 +142,9 @@
         (assert-equal (group-identity g) (group-compose g s0 s0))
         (assert-equal (group-identity g) (group-compose g s1 s1))))
 
-;;; ============================================================
+;;; ====
 ;;; Group Power Tests
-;;; ============================================================
+;;; ====
 
 (define-test "group-power computes powers correctly"
   (let ([g (Z 7)])
@@ -160,9 +160,9 @@
        ;; 2^(-2) = 3+3 = 6 ≡ 1 (mod 5)
        (assert-equal 1 (group-power g 2 -2))))
 
-;;; ============================================================
+;;; ====
 ;;; Subgroup Tests
-;;; ============================================================
+;;; ====
 
 (define-test "trivial subgroup is subgroup"
   (let ([g (Z 6)])
@@ -188,9 +188,9 @@
         ;; <2> = {0, 2, 4}
         (assert-equal 3 (length sub))))
 
-;;; ============================================================
+;;; ====
 ;;; Homomorphism Tests
-;;; ============================================================
+;;; ====
 
 (define-test "identity homomorphism is valid"
   (let* ([g (Z 4)]
@@ -229,9 +229,9 @@
          [h (make-homomorphism z3 z3 phi)])
         (assert-true (is-isomorphism? h))))
 
-;;; ============================================================
+;;; ====
 ;;; Cayley Table Tests
-;;; ============================================================
+;;; ====
 
 (define-test "cayley-table for Z_2"
   (let* ([g (Z 2)]
@@ -244,9 +244,9 @@
         (assert-equal 3 (length table))
         (assert-equal 3 (length (car table)))))
 
-;;; ============================================================
+;;; ====
 ;;; Common Groups Tests
-;;; ============================================================
+;;; ====
 
 (define-test "trivial group has one element"
   (let ([g (trivial-group)])
@@ -292,10 +292,10 @@
        (assert-equal 'e-1 (group-compose g 'qj 'qj))
        (assert-equal 'e-1 (group-compose g 'qk 'qk))))
 
-;;; ============================================================
+;;; ====
 ;;; Run Tests
-;;; ============================================================
+;;; ====
 
 (display "Running Group Theory Tests...\n")
-(display "============================\n\n")
+(display "====\n\n")
 (run-tests 'group-theory)

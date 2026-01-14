@@ -7,16 +7,16 @@
 
 (display "
 ")
-(display "==============================================================
+(display "====
 ")
 (display "         DSL BUILDER TESTS
 ")
-(display "==============================================================
+(display "====
 ")
 
-;;; ============================================================
+;;; ====
 ;;; Instruction Tests
-;;; ============================================================
+;;; ====
 
 (test-group instruction
             (define-test make-instruction-test
@@ -33,9 +33,9 @@
                     (let ([result (dsl-pure-value ((instruction-cont instr) 21))])
                          (assert-equal 42 result)))))
 
-;;; ============================================================
+;;; ====
 ;;; DSL Program Tests
-;;; ============================================================
+;;; ====
 
 (test-group dsl-program
             (define-test dsl-pure-test
@@ -62,9 +62,9 @@
               (let ([prog (dsl-request 'get 100)])
                    (assert-true (dsl-suspended? prog)))))
 
-;;; ============================================================
+;;; ====
 ;;; Interpreter Tests
-;;; ============================================================
+;;; ====
 
 (test-group interpreter
             (define-test make-interpreter-test
@@ -82,9 +82,9 @@
                                      (lambda (x) (dsl-pure (* x 2))))])
                     (assert-equal 200 (run-dsl interp prog)))))
 
-;;; ============================================================
+;;; ====
 ;;; Layered Interpreter Tests
-;;; ============================================================
+;;; ====
 
 (test-group layered-interpreter
             (define-test layered-single-handler-test
@@ -102,9 +102,9 @@
                                              (dsl-request 'mul (cons sum 2))))])
                     (assert-equal 30 (run-dsl interp prog)))))
 
-;;; ============================================================
+;;; ====
 ;;; Expression DSL Tests
-;;; ============================================================
+;;; ====
 
 (test-group expression-dsl
             (define-test expr-lit-test
@@ -136,9 +136,9 @@
                    (assert-true (expr-lambda? e))
                    (assert-equal '(x y) (expr-lambda-params e)))))
 
-;;; ============================================================
+;;; ====
 ;;; Expression Evaluation Tests
-;;; ============================================================
+;;; ====
 
 (test-group eval-expr
             (define-test eval-lit-test
@@ -207,9 +207,9 @@
             (define-test eval-unop-neg-test
               (assert-equal -5 (eval-expr '() (expr-unop 'neg (expr-lit 5))))))
 
-;;; ============================================================
+;;; ====
 ;;; Statement Tests
-;;; ============================================================
+;;; ====
 
 (test-group statement
             (define-test stmt-assign-test
@@ -237,9 +237,9 @@
               (let ([s (stmt-return (expr-lit 42))])
                    (assert-true (stmt-return? s)))))
 
-;;; ============================================================
+;;; ====
 ;;; Statement Execution Tests
-;;; ============================================================
+;;; ====
 
 (test-group run-stmt
             (define-test run-assign-test
@@ -285,9 +285,9 @@
                    (assert-equal 0 (cdr (assoc 'n (car result))))
                    (assert-equal 6 (cdr (assoc 'sum (car result)))))))  ; 3+2+1=6
 
-;;; ============================================================
+;;; ====
 ;;; DSL Combinator Tests
-;;; ============================================================
+;;; ====
 
 (test-group dsl-combinators
             (define-test dsl-sequence-empty-test
@@ -321,9 +321,9 @@
                              (dsl-replicate 3 (dsl-pure 'x)))])
                    (assert-equal '(x x x) result))))
 
-;;; ============================================================
+;;; ====
 ;;; Calculator DSL Tests
-;;; ============================================================
+;;; ====
 
 (test-group calculator-dsl
             (define-test calc-push-pop-test
@@ -405,9 +405,9 @@
                                                                                                                        (calc-pop!))))))))))))])
                    (assert-equal 16 result))))
 
-;;; ============================================================
+;;; ====
 ;;; Turtle DSL Tests
-;;; ============================================================
+;;; ====
 
 (test-group turtle-dsl
             (define-test turtle-getpos-initial-test
@@ -455,9 +455,9 @@
                    (assert-true (< (abs (car result)) 1))
                    (assert-true (< (abs (cdr result)) 1)))))
 
-;;; ============================================================
+;;; ====
 ;;; New Feature Tests
-;;; ============================================================
+;;; ====
 
 (define-instruction (move-x! n) 'move-x)
 
@@ -486,9 +486,9 @@
                     (assert-equal 'from-1 (run-dsl comp (dsl-request 'a '())))
                     (assert-equal 'from-2 (run-dsl comp (dsl-request 'b '()))))))
 
-;;; ============================================================
+;;; ====
 ;;; Practical Examples
-;;; ============================================================
+;;; ====
 
 (test-group practical-examples
             ;; Factorial using expression DSL
@@ -520,9 +520,9 @@
                                                              (stmt-assign 'i (expr-binop '+ (expr-var 'i) (expr-lit 1)))))))])
                    (assert-equal 8 (cdr (assoc 'a (car result)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Do-Notation Tests
-;;; ============================================================
+;;; ====
 
 (test-group dsl-do-notation
             (define-test dsl-do-basic-test
@@ -584,9 +584,9 @@
                               (dsl-pure (+ x 10))))])
                    (assert-equal 20 result))))
 
-;;; ============================================================
+;;; ====
 ;;; Error Handling Tests
-;;; ============================================================
+;;; ====
 
 (test-group error-handling
             (define-test dsl-ok-test
@@ -634,9 +634,9 @@
               (let ([prog (dsl-fail 'test-error "Test failure")])
                    (assert-true (dsl-suspended? prog)))))
 
-;;; ============================================================
+;;; ====
 ;;; Debugging Tools Tests
-;;; ============================================================
+;;; ====
 
 (test-group debugging-tools
             (define-test dsl-peek-pure-test
@@ -689,9 +689,9 @@
                    (assert-equal 'calc-add (cadr tags))
                    (assert-equal 'calc-pop (caddr tags)))))
 
-;;; ============================================================
+;;; ====
 ;;; DSL Combination Tests
-;;; ============================================================
+;;; ====
 
 (test-group dsl-combination
             (define-test dsl-inject-left-test
@@ -724,9 +724,9 @@
                      [result (run-dsl combined prog)])
                     (assert-equal 8 result))))
 
-;;; ============================================================
+;;; ====
 ;;; Validation Tests
-;;; ============================================================
+;;; ====
 
 (test-group validation
             (define-test dsl-schema-test
@@ -759,9 +759,9 @@
                      [result (dsl-validate turtle-schema prog 100)])
                     (assert-true (dsl-ok? result)))))
 
-;;; ============================================================
+;;; ====
 ;;; Resource Management Tests
-;;; ============================================================
+;;; ====
 
 (test-group resource-management
             (define-test dsl-finally-test
@@ -807,9 +807,9 @@
                     (assert-equal 'used (cadr log))
                     (assert-equal 'acquired (caddr log)))))
 
-;;; ============================================================
+;;; ====
 ;;; Effects Integration Tests
-;;; ============================================================
+;;; ====
 
 (test-group effects-integration
             (define-test dsl-to-eff-pure-test
@@ -825,9 +825,9 @@
                     ;; Should produce an eff-op
                     (assert-true (eff-op? eff)))))
 
-;;; ============================================================
+;;; ====
 ;;; Applicative Combinator Tests
-;;; ============================================================
+;;; ====
 
 (test-group applicative-combinators
             (define-test dsl-ap-basic-test
@@ -874,9 +874,9 @@
                      [result (dsl-pure-value (h 20))])
                     (assert-equal 41 result))))
 
-;;; ============================================================
+;;; ====
 ;;; Tagless Final Tests
-;;; ============================================================
+;;; ====
 
 (test-group tagless-final
             (define-test make-tagless-dsl-test
@@ -907,9 +907,9 @@
                      [mul (tagless-op arith-eval 'mul)])
                     (assert-equal 16 (mul (add (lit 5) (lit 3)) (lit 2))))))
 
-;;; ============================================================
+;;; ====
 ;;; Source Location Tests
-;;; ============================================================
+;;; ====
 
 (test-group source-locations
             (define-test make-source-pos-test
@@ -942,9 +942,9 @@
                            [instr-pos (instruction-pos instr)])
                           (assert-equal 5 (source-pos-line instr-pos))))))
 
-;;; ============================================================
+;;; ====
 ;;; Middleware Tests
-;;; ============================================================
+;;; ====
 
 (test-group middleware
             (define-test middleware-identity-test
@@ -1029,9 +1029,9 @@
                      [wrapped (mw base-interp)])
                     (assert-equal 50 (run-dsl wrapped (dsl-request 'test 5))))))
 
-;;; ============================================================
+;;; ====
 ;;; Introspection Tests
-;;; ============================================================
+;;; ====
 
 (test-group introspection
             (define-test dsl-instruction-list-test
@@ -1079,9 +1079,9 @@
                     (assert-equal 2 add-count)
                     (assert-equal 1 pop-count))))
 
-;;; ============================================================
+;;; ====
 ;;; Trampoline Tests
-;;; ============================================================
+;;; ====
 
 (test-group trampolines
             (define-test make-done-test
@@ -1125,9 +1125,9 @@
                      [result (run-dsl-trampolined interp prog)])
                     (assert-equal 30 result))))
 
-;;; ============================================================
+;;; ====
 ;;; Testing Utilities Tests
-;;; ============================================================
+;;; ====
 
 (test-group testing-utilities
             (define-test make-mock-interpreter-test
@@ -1174,13 +1174,13 @@
                     (assert-false (verify-instruction-sequence
                                    prog base '(a c b))))))
 
-;;; ============================================================
+;;; ====
 ;;; Summary
-;;; ============================================================
+;;; ====
 
 (display "
 ")
-(display "==============================================================
+(display "====
 ")
 (printf "Tests passed: ~a
 " *tests-passed*)

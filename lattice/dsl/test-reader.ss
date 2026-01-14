@@ -5,9 +5,9 @@
 (load "core/test-framework.ss")
 (load "lattice/dsl/reader.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Readtable Tests
-;;; ============================================================
+;;; ====
 
 (test-group readtable-basics
             
@@ -38,9 +38,9 @@
                      [rt3 (readtable-remove rt2 #\v)])
                     (assert-true (nothing? (readtable-lookup rt3 #\v))))))
 
-;;; ============================================================
+;;; ====
 ;;; Readtable Stack Tests
-;;; ============================================================
+;;; ====
 
 (test-group readtable-stack
             
@@ -79,9 +79,9 @@
                     (assert-equal (reader-macro-name (from-just (readtable-stack-lookup stack #\a)))
                                   'matrix))))
 
-;;; ============================================================
+;;; ====
 ;;; Reader Macro Tests
-;;; ============================================================
+;;; ====
 
 (test-group reader-macro-structure
             
@@ -99,9 +99,9 @@
                      [transform (reader-macro-transform rm)])
                     (assert-equal (transform '(1 2) no-reader-source) '(list 1 2 1 2)))))
 
-;;; ============================================================
+;;; ====
 ;;; Standard Reader Macro Tests
-;;; ============================================================
+;;; ====
 
 (test-group vector-reader-macro-tests
             
@@ -174,9 +174,9 @@
                    (assert-error (lambda ()
                                          (transform '(a 1 b) no-reader-source))))))
 
-;;; ============================================================
+;;; ====
 ;;; Default Readtable Tests
-;;; ============================================================
+;;; ====
 
 (test-group default-readtable-tests
             
@@ -195,9 +195,9 @@
             (define-test has-hash-macro
               (assert-true (just? (readtable-lookup default-readtable #\h)))))
 
-;;; ============================================================
+;;; ====
 ;;; Reader Macro Expansion Tests
-;;; ============================================================
+;;; ====
 
 (test-group reader-macro-expansion
             
@@ -216,9 +216,9 @@
                     (assert-true (just? result))
                     (assert-equal (from-just result) '(vector a b)))))
 
-;;; ============================================================
+;;; ====
 ;;; Registration Tests
-;;; ============================================================
+;;; ====
 
 (test-group reader-macro-registration
             
@@ -236,9 +236,9 @@
                      [transform (reader-macro-transform macro)])
                     (assert-equal (transform '(x) no-reader-source) '(* 2 x)))))
 
-;;; ============================================================
+;;; ====
 ;;; Delimiter Tests
-;;; ============================================================
+;;; ====
 
 (test-group delimiter-pairs-tests
             
@@ -255,9 +255,9 @@
               (assert-equal (from-just (delimiter-open #\])) #\[)
               (assert-equal (from-just (delimiter-open #\})) #\{)))
 
-;;; ============================================================
+;;; ====
 ;;; Dispatch Character Tests
-;;; ============================================================
+;;; ====
 
 (test-group dispatch-characters
             
@@ -274,9 +274,9 @@
               (assert-false (dispatch-char? #\())
               (assert-false (dispatch-char? #\)))))
 
-;;; ============================================================
+;;; ====
 ;;; Reader State Tests
-;;; ============================================================
+;;; ====
 
 (test-group reader-state-tests
             
@@ -300,9 +300,9 @@
                     (assert-equal (reader-source-loc-line loc) 42)
                     (assert-equal (reader-source-loc-column loc) 7))))
 
-;;; ============================================================
+;;; ====
 ;;; Escape Sequence Tests
-;;; ============================================================
+;;; ====
 
 (test-group escape-sequences
             
@@ -327,9 +327,9 @@
             (define-test unescape-handles-escaped-single-quote
               (assert-equal (unescape-string "a\\'b") "a'b")))
 
-;;; ============================================================
+;;; ====
 ;;; Composition Tests
-;;; ============================================================
+;;; ====
 
 (test-group readtable-composition
             
@@ -347,9 +347,9 @@
                     (assert-equal (reader-macro-name (from-just (readtable-lookup composed #\a)))
                                   'matrix))))
 
-;;; ============================================================
+;;; ====
 ;;; Reader Token Tests
-;;; ============================================================
+;;; ====
 
 (test-group reader-tokens
             
@@ -364,9 +364,9 @@
                      [tok (make-reader-token 'symbol 'foo loc)])
                     (assert-equal (reader-source-loc-line (reader-token-source tok)) 10))))
 
-;;; ============================================================
+;;; ====
 ;;; Reader Error Tests
-;;; ============================================================
+;;; ====
 
 (test-group reader-errors
             
@@ -380,9 +380,9 @@
                      [err (make-reader-error "syntax error" loc)])
                     (assert-equal (reader-source-loc-line (reader-error-source err)) 99))))
 
-;;; ============================================================
+;;; ====
 ;;; Unit Annotation Tests
-;;; ============================================================
+;;; ====
 
 (test-group unit-annotations
             
@@ -396,12 +396,12 @@
                      [result (transform '(not-valid) no-reader-source)])
                     (assert-equal result '(not-valid)))))
 
-;;; ============================================================
+;;; ====
 ;;; Run All Tests
-;;; ============================================================
+;;; ====
 
-(display "\n========================================\n")
+(display "\n====\n")
 (display "Running Reader Extension Tests\n")
-(display "========================================\n\n")
+(display "====\n\n")
 
 (run-all-tests)

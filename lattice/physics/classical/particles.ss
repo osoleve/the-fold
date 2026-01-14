@@ -23,9 +23,9 @@
 (load "lattice/linalg/vec2.ss")
 (load "lattice/random/prng.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Particle Type
-;;; ============================================================
+;;; ====
 
 ;;; Particle : lightweight physics object
 ;;;   - pos       : Vec2 - current position
@@ -97,9 +97,9 @@
                  (particle-color p)
                  (particle-user-data p)))
 
-;;; ============================================================
+;;; ====
 ;;; Force Fields
-;;; ============================================================
+;;; ====
 
 ;;; A force field is a function: Particle → Vec2
 ;;; The force is applied as acceleration (assumes unit mass particles).
@@ -173,9 +173,9 @@
                      (vec2 0 0)
                      fields)))
 
-;;; ============================================================
+;;; ====
 ;;; Particle Update
-;;; ============================================================
+;;; ====
 
 ;;; integrate-particle : Particle × ForceField × Number → Particle
 ;;; Update particle using symplectic Euler integration.
@@ -197,9 +197,9 @@
           (map (lambda (p) (integrate-particle p field dt))
                particles)))
 
-;;; ============================================================
+;;; ====
 ;;; Emitter Type
-;;; ============================================================
+;;; ====
 
 ;;; Emitter: particle source
 ;;;   - pos           : Vec2 - emitter position
@@ -300,9 +300,9 @@
         (emitter-user-data e)
         acc))
 
-;;; ============================================================
+;;; ====
 ;;; Emitter Emission
-;;; ============================================================
+;;; ====
 
 ;;; spawn-particle : Emitter × RNG → (Particle × RNG)
 ;;; Spawn a single particle from the emitter.
@@ -360,9 +360,9 @@
                         [r-next (cdr result)])
                        (loop (- n 1) (cons p particles) r-next))))))
 
-;;; ============================================================
+;;; ====
 ;;; Particle System
-;;; ============================================================
+;;; ====
 
 ;;; ParticleSystem: manages emitters, particles, and forces
 ;;;   - emitters  : (List Emitter)
@@ -405,9 +405,9 @@
                         (append new-particles (particle-system-particles ps))
                         (particle-system-forces ps)))
 
-;;; ============================================================
+;;; ====
 ;;; Particle System Update
-;;; ============================================================
+;;; ====
 
 ;;; particle-system-step : ParticleSystem × Number × RNG → (ParticleSystem × RNG)
 ;;; Step the particle system forward by dt.
@@ -437,9 +437,9 @@
          [new-system (make-particle-system new-emitters all-particles forces)])
         (cons new-system new-rng)))
 
-;;; ============================================================
+;;; ====
 ;;; Convenience Constructors
-;;; ============================================================
+;;; ====
 
 ;;; make-empty-system : → ParticleSystem
 ;;; Create an empty particle system with no forces.
@@ -498,9 +498,9 @@
                 'red         ; color
                 #f))
 
-;;; ============================================================
+;;; ====
 ;;; Burst Emission (One-Shot)
-;;; ============================================================
+;;; ====
 
 ;;; burst : Vec2 × Number × Number × Number × Any × RNG → (List Particle) × RNG
 ;;; Create a burst of particles at a position.
@@ -538,9 +538,9 @@
                   [p (make-particle pos vel lifetime lifetime 4 'orange #f)])
                  (loop (- n 1) (cons p particles) rng3)))))
 
-;;; ============================================================
+;;; ====
 ;;; Particle Queries
-;;; ============================================================
+;;; ====
 
 ;;; particles-in-radius : (List Particle) × Vec2 × Number → (List Particle)
 ;;; Find all particles within radius of a point.
@@ -565,9 +565,9 @@
                         (> (particle-age a) (particle-age b)))
                 particles)))
 
-;;; ============================================================
+;;; ====
 ;;; Collision Support (Optional)
-;;; ============================================================
+;;; ====
 
 ;;; particle-bounce : Particle × Vec2 × Number → Particle
 ;;; Bounce particle off a surface with given normal and restitution.
@@ -593,9 +593,9 @@
   (filter (lambda (p) (particle-in-bounds? p min-corner max-corner))
           particles))
 
-;;; ============================================================
+;;; ====
 ;;; Statistics
-;;; ============================================================
+;;; ====
 
 ;;; particle-system-stats : ParticleSystem → Alist
 ;;; Get statistics about the particle system.
@@ -617,9 +617,9 @@
           (average-age . ,avg-age)
           (average-speed . ,avg-speed))))
 
-;;; ============================================================
+;;; ====
 ;;; Module Load Message
-;;; ============================================================
+;;; ====
 
 (display "Particle System loaded.\n")
 (display "  Create: (make-particle-system emitters particles forces)\n")

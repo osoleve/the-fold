@@ -13,9 +13,9 @@
 (load "shell/edit.ss")
 (load "core/base/prelude.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Small Utilities
-;;; ============================================================
+;;; ====
 
 ;;; NOTE: string utilities (string-starts-with?, string-ends-with?, string-downcase,
 ;;;       string-upcase, string-join) are provided by core/prelude.ss
@@ -45,9 +45,9 @@
 (define (capability->symbol cap-str)
   (string->symbol (string-upcase cap-str)))
 
-;;; ============================================================
+;;; ====
 ;;; File Discovery and Parsing
-;;; ============================================================
+;;; ====
 
 (define (scheme-file? path)
   (let ([len (string-length path)])
@@ -101,9 +101,9 @@
                           [(eq? expr 'read-error) (reverse exprs)]
                           [else (loop (cons expr exprs))]))))))
 
-;;; ============================================================
+;;; ====
 ;;; Capability Discovery
-;;; ============================================================
+;;; ====
 
 (define (capability-from-record-type expr)
   (and (pair? expr)
@@ -155,9 +155,9 @@
                   [mint-caps (collect-mint-ops exprs)])
                  (loop (cdr paths) (append record-caps mint-caps caps))))))
 
-;;; ============================================================
+;;; ====
 ;;; Operator Collection (skip quoted and binding positions)
-;;; ============================================================
+;;; ====
 
 (define (collect-operators expr)
   (cond
@@ -219,9 +219,9 @@
                    '()))
        bindings)))
 
-;;; ============================================================
+;;; ====
 ;;; Capability Classification
-;;; ============================================================
+;;; ====
 
 (define (capability-from-prefix name known-caps)
   (let loop ([caps known-caps])
@@ -258,9 +258,9 @@
                         mints
                         (cons (capability->symbol (car cap)) uses))])))))
 
-;;; ============================================================
+;;; ====
 ;;; Definition Analysis
-;;; ============================================================
+;;; ====
 
 (define (define-form? expr)
   (and (pair? expr) (eq? (car expr) 'define)))
@@ -336,9 +336,9 @@
                (requires . ,(sort-symbols requires))
                (definitions . ,all-defs)))))
 
-;;; ============================================================
+;;; ====
 ;;; Public API
-;;; ============================================================
+;;; ====
 
 (define (capability-scan fs . paths)
   (let* ([roots (if (null? paths) (list "shell") paths)]

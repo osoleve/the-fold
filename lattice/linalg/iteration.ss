@@ -21,9 +21,9 @@
 ;;; Dependencies:
 ;;;   - None (pure macros, no runtime dependencies)
 
-;;; ============================================================
+;;; ====
 ;;; Vector Iteration Macros
-;;; ============================================================
+;;; ====
 
 ;;; vec-do! : (idx-var vector body ...) -> unspecified
 ;;; Execute body for each index in vector, binding idx-var.
@@ -160,9 +160,9 @@
                            [all #t (and all (let ([elem (vector-ref v i)]) pred))])
                           ((or (= i n) (not all)) all)))]))
 
-;;; ============================================================
+;;; ====
 ;;; Matrix Iteration Macros
-;;; ============================================================
+;;; ====
 
 ;;; matrix-do! : (i-var j-var rows cols body ...) -> unspecified
 ;;; Iterate over matrix indices (row-major order).
@@ -254,9 +254,9 @@
                           ((= i r))
                           body ...))]))
 
-;;; ============================================================
+;;; ====
 ;;; Range Iteration
-;;; ============================================================
+;;; ====
 
 ;;; range-do! : (var start end body ...) -> unspecified
 ;;; Execute body for each value from start to end-1.
@@ -282,9 +282,9 @@
                       [acc init body])
                      ((= var end) acc))]))
 
-;;; ============================================================
+;;; ====
 ;;; Reverse Iteration
-;;; ============================================================
+;;; ====
 
 ;;; vec-do-reverse! : (idx-var vec body ...) -> unspecified
 ;;; Iterate over vector indices in reverse order (n-1 down to 0).
@@ -314,9 +314,9 @@
                            [acc init body])
                           ((< idx 0) acc)))]))
 
-;;; ============================================================
+;;; ====
 ;;; Conditional Iteration with Early Exit
-;;; ============================================================
+;;; ====
 
 ;;; vec-find-idx : (idx-var vec pred) -> index or #f
 ;;; Find first index where predicate holds.
@@ -332,9 +332,9 @@
                            [found #f (if pred idx #f)])
                           ((or (= idx n) found) found)))]))
 
-;;; ============================================================
+;;; ====
 ;;; Triple-Nested Loops (Matrix Multiplication Pattern)
-;;; ============================================================
+;;; ====
 
 ;;; matrix-mul-do! : (i-var j-var k-var r1 c1 c2 body ...) -> unspecified
 ;;; Triple nested loop for matrix multiplication pattern.
@@ -357,9 +357,9 @@
                                   ((= k m))
                                   body ...))))]))
 
-;;; ============================================================
+;;; ====
 ;;; Accumulating Inner Products
-;;; ============================================================
+;;; ====
 
 ;;; dot-product-loop : (k-var len get-a get-b) -> sum
 ;;; Compute inner product using expressions for getting elements.

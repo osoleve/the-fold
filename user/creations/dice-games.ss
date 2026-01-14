@@ -3,9 +3,9 @@
 ;;; Simple utilities for gaming, storytelling, and chance-based creative play.
 ;;; Created by Maker to add fun to The Fold community.
 
-;;; ============================================================
+;;; ====
 ;;; Dice Rolling Utilities
-;;; ============================================================
+;;; ====
 
 (define (roll-die sides)
   "Roll a single die with the specified number of sides"
@@ -36,9 +36,9 @@
         (display (format "] = ~a\n" total))
         total))
 
-;;; ============================================================
+;;; ====
 ;;; Common Dice Notations
-;;; ============================================================
+;;; ====
 
 (define (d4) "Roll a 4-sided die" (roll-die 4))
 (define (d6) "Roll a 6-sided die" (roll-die 6))
@@ -52,9 +52,9 @@
 (define (roll-3d6) "Roll 3d6 (character creation)" (roll-and-sum 3 6))
 (define (roll-2d10) "Roll 2d10" (roll-and-sum 2 10))
 
-;;; ============================================================
+;;; ====
 ;;; Story Starters
-;;; ============================================================
+;;; ====
 
 (define *story-prompts*
   '("A mysterious door appears in The Fold..."
@@ -85,9 +85,9 @@
   (display (story-starter))
   (display "\n\n"))
 
-;;; ============================================================
+;;; ====
 ;;; Character Generation
-;;; ============================================================
+;;; ====
 
 (define *classes*
   '(("Coder" . "Master of logic and systems")
@@ -121,9 +121,9 @@
         (display (format "Health: ~a HP\n" hp))
         (display (format "Energy: ~a\n\n" energy))))
 
-;;; ============================================================
+;;; ====
 ;;; Simple Luck Games
-;;; ============================================================
+;;; ====
 
 (define (coin-flip)
   "Flip a coin - return 'heads or 'tails"
@@ -148,9 +148,9 @@
   (let ([first (d20)])
        (higher-lower first)))
 
-;;; ============================================================
+;;; ====
 ;;; Probability Fun
-;;; ============================================================
+;;; ====
 
 (define (success-chance percentage)
   "Roll to see if something succeeds given a percentage"
@@ -176,9 +176,9 @@
                       (max best new-roll)
                       (cons new-roll all-rolls))))))
 
-;;; ============================================================
+;;; ====
 ;;; Help and Navigation
-;;; ============================================================
+;;; ====
 
 (define (dice-help)
   "Show help for dice games"
@@ -208,9 +208,9 @@
   (display "  (success-chance 75)      Roll to beat percentage\n")
   (display "  (combat-advantage 2)     Roll multiple times, take best\n\n"))
 
-;;; ============================================================
+;;; ====
 ;;; Initialization
-;;; ============================================================
+;;; ====
 
 (display "Dice & Games utilities loaded!\n")
 (display "Try: (dice-help) or (generate-character) to start\n")

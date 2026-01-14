@@ -18,9 +18,9 @@
 ;;; MemoryResult:
 ;;;   (memory-result before after delta value)
 
-;;; ============================================================
+;;; ====
 ;;; Memory Primitives
-;;; ============================================================
+;;; ====
 
 ;;; Note: Chez Scheme provides several memory introspection facilities:
 ;;;   (bytes-allocated) - total bytes ever allocated
@@ -29,9 +29,9 @@
 ;;;
 ;;; These are Chez-specific. Other Scheme implementations may differ.
 
-;;; ============================================================
+;;; ====
 ;;; Memory Snapshot
-;;; ============================================================
+;;; ====
 
 (define-record-type memory-snapshot
   (fields
@@ -52,9 +52,9 @@
              (+ (* (time-second t) 1000000000)
                 (time-nanosecond t))))))
 
-;;; ============================================================
+;;; ====
 ;;; Memory Delta
-;;; ============================================================
+;;; ====
 
 (define-record-type memory-delta
   (fields
@@ -72,9 +72,9 @@
    (- (memory-snapshot-gc-count after)
       (memory-snapshot-gc-count before))))
 
-;;; ============================================================
+;;; ====
 ;;; Memory Measurement
-;;; ============================================================
+;;; ====
 
 (define-record-type memory-result
   (fields
@@ -100,9 +100,9 @@
   (collect)  ; Second pass for generational GC
   (current-memory-snapshot))
 
-;;; ============================================================
+;;; ====
 ;;; Memory Benchmark
-;;; ============================================================
+;;; ====
 
 (define-record-type memory-stats
   (fields
@@ -162,9 +162,9 @@
          [stats (compute-memory-stats deltas)])
         (make-memory-benchmark-result name iterations results stats)))
 
-;;; ============================================================
+;;; ====
 ;;; Formatting
-;;; ============================================================
+;;; ====
 
 ;;; format-bytes : Nat → String
 ;;; Format bytes in human-readable form.
@@ -208,9 +208,9 @@
           (memory-benchmark-result-iterations mbr)
           (format-memory-stats (memory-benchmark-result-stats mbr))))
 
-;;; ============================================================
+;;; ====
 ;;; Display Utilities
-;;; ============================================================
+;;; ====
 
 ;;; print-memory-snapshot : MemorySnapshot → void
 (define (print-memory-snapshot snap)
@@ -229,9 +229,9 @@
   (display (format-memory-benchmark mbr))
   (newline))
 
-;;; ============================================================
+;;; ====
 ;;; Allocation Tracking
-;;; ============================================================
+;;; ====
 
 ;;; track-allocations : (→ A) → (A × AllocationProfile)
 ;;; Execute thunk and return detailed allocation breakdown.
@@ -259,9 +259,9 @@
           (- (sstats-gc-count stats-after) (sstats-gc-count stats-before))
           (- (sstats-gc-bytes stats-after) (sstats-gc-bytes stats-before))))))
 
-;;; ============================================================
+;;; ====
 ;;; Memory Pressure Simulation
-;;; ============================================================
+;;; ====
 
 ;;; allocate-bytes : Nat → Bytevector
 ;;; Allocate exactly n bytes (for testing memory behavior).

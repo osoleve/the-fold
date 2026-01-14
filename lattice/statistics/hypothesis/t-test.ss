@@ -20,9 +20,9 @@
 (load "lattice/statistics/core/summary-stats.ss")
 (load "lattice/statistics/hypothesis/distributions.ss")
 
-;;; ============================================================
+;;; ====
 ;;; One-Sample T-Test
-;;; ============================================================
+;;; ====
 
 ;;; t-test-one-sample : Vec × Num × Num → TestResult
 ;;; Test H0: mean = mu0 vs H1: mean != mu0 (two-tailed).
@@ -51,9 +51,9 @@
 (define (t-test-one-sample-list xs . opts)
   (apply t-test-one-sample (list->vector xs) opts))
 
-;;; ============================================================
+;;; ====
 ;;; Two-Sample T-Test
-;;; ============================================================
+;;; ====
 
 ;;; t-test-two-sample : Vec × Vec × Bool × Num → TestResult
 ;;; Test H0: mean(x) = mean(y) vs H1: mean(x) != mean(y).
@@ -127,9 +127,9 @@
         (make-test-result 't-test-two-sample-welch t-stat df p-value
                           (cons ci-lower ci-upper) effect-size)))
 
-;;; ============================================================
+;;; ====
 ;;; Paired T-Test
-;;; ============================================================
+;;; ====
 
 ;;; t-test-paired : Vec × Vec × Num → TestResult
 ;;; Test H0: mean(x - y) = 0 vs H1: mean(x - y) != 0.
@@ -159,9 +159,9 @@
   (let ([confidence (if (>= (length opts) 1) (car opts) 0.95)])
        (t-test-paired (list->vector xs) (list->vector ys) confidence)))
 
-;;; ============================================================
+;;; ====
 ;;; One-Sided Tests
-;;; ============================================================
+;;; ====
 
 ;;; t-test-one-sample-greater : Vec × Num → TestResult
 ;;; Test H0: mean <= mu0 vs H1: mean > mu0.

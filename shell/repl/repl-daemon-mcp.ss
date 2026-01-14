@@ -18,9 +18,9 @@
 
 (load "core/base/prelude.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Configuration
-;;; ============================================================
+;;; ====
 
 (define *repl-dir* ".fold-repl")
 (define *requests-dir* ".fold-repl/requests")
@@ -35,9 +35,9 @@
 (define *idle-timeout* 600)            ; 10 minutes without request - kill idle workers
 (define *last-cleanup* (time-second (current-time)))
 
-;;; ============================================================
+;;; ====
 ;;; Input Validation
-;;; ============================================================
+;;; ====
 
 ;;; valid-session-id? : String → Boolean
 ;;; Session IDs must contain only alphanumeric characters and hyphens.
@@ -64,9 +64,9 @@
       s
       #f))
 
-;;; ============================================================
+;;; ====
 ;;; Utilities
-;;; ============================================================
+;;; ====
 
 ;;; NOTE: string-contains? provided by core/prelude.ss
 
@@ -170,9 +170,9 @@
           #f]
          [else #f])))
 
-;;; ============================================================
+;;; ====
 ;;; Worker Spawning
-;;; ============================================================
+;;; ====
 
 (define (scheme-command)
   (or (getenv "FOLD_SCHEME_CMD") "scheme"))
@@ -200,9 +200,9 @@
   (unless (or (worker-alive? session-id) (worker-starting? session-id))
           (spawn-worker! session-id)))
 
-;;; ============================================================
+;;; ====
 ;;; Cleanup
-;;; ============================================================
+;;; ====
 
 (define (cleanup-worker-files! session-id)
   "Remove all worker metadata files for a session."
@@ -257,9 +257,9 @@
                                         (cleanup-worker-files! session-id)))))
               files))))
 
-;;; ============================================================
+;;; ====
 ;;; Main Daemon Loop
-;;; ============================================================
+;;; ====
 
 (define *daemon-running* #t)
 
@@ -300,9 +300,9 @@
               (sleep (make-time 'time-duration *poll-interval-ns* 0))
               (daemon-loop))))
 
-;;; ============================================================
+;;; ====
 ;;; Startup
-;;; ============================================================
+;;; ====
 
 (define (start-daemon!)
   "Start the session broker daemon."

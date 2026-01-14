@@ -28,9 +28,9 @@
 (load "lattice/fp/rewrite/trace.ss")
 (load "lattice/fp/rewrite/sexp-zipper.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Constraint Checking
-;;; ============================================================
+;;; ====
 
 ;;; check-constraint : Symbol × Expr → Boolean
 ;;; Check if expression satisfies a type constraint.
@@ -46,9 +46,9 @@
         [else (error 'check-constraint
                      (format "Unknown constraint: ~a" constraint))]))
 
-;;; ============================================================
+;;; ====
 ;;; Pattern Matching
-;;; ============================================================
+;;; ====
 
 ;;; match-pattern : Pattern × Expr × Env → Env | #f
 ;;; Match a pattern against an expression, extending the environment.
@@ -94,9 +94,9 @@
          ;; Bind variable
          [else (cons (cons var expr) env)])))
 
-;;; ============================================================
+;;; ====
 ;;; Template Substitution
-;;; ============================================================
+;;; ====
 
 ;;; substitute-template : Template × Env → Expr
 ;;; Replace metavariables in template with their bound values.
@@ -119,9 +119,9 @@
    ;; Atom: return as-is
    [else template]))
 
-;;; ============================================================
+;;; ====
 ;;; Rule Application
-;;; ============================================================
+;;; ====
 
 ;;; apply-rule : Rule × Expr → (Expr . Bindings) | #f
 ;;; Try to apply a rule at the root of an expression.
@@ -141,9 +141,9 @@
            (apply-rule rule expr)
            #f)))
 
-;;; ============================================================
+;;; ====
 ;;; Position-Based Rewriting
-;;; ============================================================
+;;; ====
 
 ;;; Positions are paths into an expression tree.
 ;;; '() means root
@@ -173,9 +173,9 @@
             (expr-set-at expr position (car result))
             #f)))
 
-;;; ============================================================
+;;; ====
 ;;; Finding All Matches
-;;; ============================================================
+;;; ====
 
 ;;; find-all-positions : Expr → (List Position)
 ;;; Get all positions in an expression tree.
@@ -208,9 +208,9 @@
                     (loop (cdr lst) (cons result acc))
                     (loop (cdr lst) acc))))))
 
-;;; ============================================================
+;;; ====
 ;;; Strategy Combinators
-;;; ============================================================
+;;; ====
 
 ;;; A strategy is: Expr → Expr | #f
 ;;; Returns the rewritten expression on success, #f on failure.
@@ -274,9 +274,9 @@
                             (loop result (+ count 1))
                             current))))))
 
-;;; ============================================================
+;;; ====
 ;;; Traversal Strategies
-;;; ============================================================
+;;; ====
 
 ;;; map-children : Strategy × Expr → Expr | #f
 ;;; Apply strategy to all immediate children.
@@ -329,9 +329,9 @@
 (define (outermost s)
   (repeat (topdown (try s))))
 
-;;; ============================================================
+;;; ====
 ;;; Rule to Strategy
-;;; ============================================================
+;;; ====
 
 ;;; rule->strategy : Rule → Strategy
 ;;; Convert a rule into a strategy that applies it at root.
@@ -348,9 +348,9 @@
       (choice (rule->strategy (car rules))
               (rules->strategy (cdr rules)))))
 
-;;; ============================================================
+;;; ====
 ;;; Traced Rewriting
-;;; ============================================================
+;;; ====
 
 ;;; rewrite-with-trace : Rule × Expr → Trace
 ;;; Apply a rule and return a trace.

@@ -7,16 +7,16 @@
 
 (display "
 ")
-(display "==============================================================
+(display "====
 ")
 (display "         FREE MONAD TESTS
 ")
-(display "==============================================================
+(display "====
 ")
 
-;;; ============================================================
+;;; ====
 ;;; Core Constructor Tests
-;;; ============================================================
+;;; ====
 
 (test-group free-constructors
             (define-test pure-free-test
@@ -36,9 +36,9 @@
               (assert-equal '(1 2 3) (from-pure-free (pure-free '(1 2 3))))
               (assert-equal #t (from-pure-free (pure-free #t)))))
 
-;;; ============================================================
+;;; ====
 ;;; Simple Functor for Testing
-;;; ============================================================
+;;; ====
 
 ;;; TestF a = ('test-cmd value next)
 ;;; A simple functor where next is the continuation
@@ -49,9 +49,9 @@
         [next (caddr cmd)])
        (list tag value (f next))))
 
-;;; ============================================================
+;;; ====
 ;;; Monad Operations Tests
-;;; ============================================================
+;;; ====
 
 (test-group free-monad-ops
             (define-test free-map-pure-test
@@ -90,9 +90,9 @@
                     (assert-true (pure-free? result))
                     (assert-equal 6 (from-pure-free result)))))
 
-;;; ============================================================
+;;; ====
 ;;; Monad Laws Tests
-;;; ============================================================
+;;; ====
 
 (test-group free-monad-laws
             ;; Left identity: pure a >>= f  ===  f a
@@ -120,9 +120,9 @@
                                          (lambda (x) (free-bind test-fmap (f x) g)))])
                         (assert-equal (from-pure-free lhs) (from-pure-free rhs))))))
 
-;;; ============================================================
+;;; ====
 ;;; lift-free Tests
-;;; ============================================================
+;;; ====
 
 (test-group lift-free-tests
             (define-test lift-free-basic-test
@@ -132,9 +132,9 @@
                     (let ([inner (from-free fr)])
                          (assert-equal 'wrapped (car inner))))))
 
-;;; ============================================================
+;;; ====
 ;;; Interpreter Tests (fold-free, iter-free)
-;;; ============================================================
+;;; ====
 
 (test-group interpreter-tests
             (define-test fold-free-pure-test
@@ -149,9 +149,9 @@
               (let ([result (iter-free identity test-fmap (pure-free 42))])
                    (assert-equal 42 result))))
 
-;;; ============================================================
+;;; ====
 ;;; KV Store DSL Tests
-;;; ============================================================
+;;; ====
 
 (test-group kv-store-dsl
             (define-test kv-get-creates-free-test
@@ -244,9 +244,9 @@
                      [result ((run-kv prog) '())])
                     (assert-equal 30 (car result)))))
 
-;;; ============================================================
+;;; ====
 ;;; Console DSL Tests
-;;; ============================================================
+;;; ====
 
 (test-group console-dsl
             (define-test console-print-creates-free-test
@@ -304,9 +304,9 @@
                     (assert-equal '() (car result))
                     (assert-equal '("What is your name?" "Hello, World!") (cdr result)))))
 
-;;; ============================================================
+;;; ====
 ;;; Free Combinators Tests
-;;; ============================================================
+;;; ====
 
 (test-group free-combinators
             (define-test free-sequence-empty-test
@@ -353,9 +353,9 @@
                    (assert-true (pure-free? result))
                    (assert-equal 'executed (from-pure-free result)))))
 
-;;; ============================================================
+;;; ====
 ;;; Coyoneda Tests
-;;; ============================================================
+;;; ====
 
 (test-group coyoneda-tests
             (define-test make-coyoneda-test
@@ -392,9 +392,9 @@
                     (assert-equal (lower-coyoneda map lhs)
                                   (lower-coyoneda map rhs)))))
 
-;;; ============================================================
+;;; ====
 ;;; Integration Tests
-;;; ============================================================
+;;; ====
 
 (test-group integration-tests
             ;; Build a small KV program that demonstrates composition
@@ -437,13 +437,13 @@
                     (assert-equal '("Enter first number:" "Enter second number:" "Sum: 7")
                                   (cdr result)))))
 
-;;; ============================================================
+;;; ====
 ;;; Summary
-;;; ============================================================
+;;; ====
 
 (display "
 ")
-(display "==============================================================
+(display "====
 ")
 (printf "Tests passed: ~a
 " *tests-passed*)

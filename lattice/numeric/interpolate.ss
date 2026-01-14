@@ -20,9 +20,9 @@
 (load "lattice/linalg/matrix-solvers.ss")
 (load "lattice/numeric/polynomial.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Binary Search Helper (for O(log n) segment lookup)
-;;; ============================================================
+;;; ====
 
 ;;; binary-search-segment : (List Num) × Num → Int
 ;;; Find index i such that xs[i] <= x < xs[i+1].
@@ -55,9 +55,9 @@
                   (loop lo mid)
                   (loop mid hi)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Linear Interpolation
-;;; ============================================================
+;;; ====
 
 ;;; lerp : Num × Num × Num → Num
 ;;; Linear interpolation: lerp(a, b, t) = a + t×(b - a)
@@ -99,9 +99,9 @@
                 [y1 (cdr p1)])
             (lerp y0 y1 (lerp-inverse x0 x1 x))))]))]))
 
-;;; ============================================================
+;;; ====
 ;;; Polynomial Interpolation (Lagrange)
-;;; ============================================================
+;;; ====
 
 ;;; lagrange-basis : (List Num) × Int × Num → Num
 ;;; Compute the i-th Lagrange basis polynomial L_i(x).
@@ -131,9 +131,9 @@
                 (+ result (* (list-ref ys i)
                             (lagrange-basis xs i x))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Polynomial Interpolation (Newton's Divided Differences)
-;;; ============================================================
+;;; ====
 
 ;;; divided-differences : (List Num) × (List Num) → (List Num)
 ;;; Compute Newton's divided differences table (first column only).
@@ -177,9 +177,9 @@
                 (+ (list-ref coeffs i)
                    (* result (- x (list-ref xs i)))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Hermite Interpolation
-;;; ============================================================
+;;; ====
 
 ;;; interp-hermite : Num × Num × Num × Num × Num → Num
 ;;; Cubic Hermite interpolation between two points.
@@ -207,9 +207,9 @@
 (define (hermite-tangent-estimate y-prev y-curr y-next dx)
   (/ (- y-next y-prev) (* 2 dx)))
 
-;;; ============================================================
+;;; ====
 ;;; Cubic Spline Interpolation
-;;; ============================================================
+;;; ====
 
 ;;; thomas-algorithm : (Vector Num) × (Vector Num) × (Vector Num) × (Vector Num) → (Vector Num)
 ;;; Solve tridiagonal system using Thomas algorithm (TDMA).
@@ -354,9 +354,9 @@
   (let ([spline (cubic-spline-natural xs ys)])
     (spline-eval spline xs x)))
 
-;;; ============================================================
+;;; ====
 ;;; Bezier Curves
-;;; ============================================================
+;;; ====
 
 ;;; bezier-linear : (Num × Num) × (Num × Num) × Num → (Num × Num)
 ;;; Linear Bezier (line segment).
@@ -426,9 +426,9 @@
                                  result))))])
           (bezier-general deriv-points t)))))
 
-;;; ============================================================
+;;; ====
 ;;; Least Squares Fitting
-;;; ============================================================
+;;; ====
 
 ;;; polyfit : (List Num) × (List Num) × Int → Poly
 ;;; Fit polynomial of degree n to data points using least squares.
@@ -495,9 +495,9 @@
         1.0
         (- 1 (/ ss-res ss-tot)))))
 
-;;; ============================================================
+;;; ====
 ;;; Chebyshev Approximation
-;;; ============================================================
+;;; ====
 
 ;;; chebyshev-nodes : Int → (List Num)
 ;;; Generate n Chebyshev nodes in [-1, 1].
@@ -560,9 +560,9 @@
                     (+ (list-ref coeffs i) (* 2 x b1) (- b2))
                     b1))))))
 
-;;; ============================================================
+;;; ====
 ;;; B-Spline Basis Functions
-;;; ============================================================
+;;; ====
 
 ;;; bspline-basis : (Vector Num) × Int × Int × Num → Num
 ;;; Compute B-spline basis function N_{i,p}(x).
@@ -616,9 +616,9 @@
                   (+ x (* basis (car pi)))
                   (+ y (* basis (cdr pi)))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Export List (for reference)
-;;; ============================================================
+;;; ====
 
 ;;; Exports:
 ;;;   ;; Linear interpolation

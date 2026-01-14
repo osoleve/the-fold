@@ -28,9 +28,9 @@
 (load "lattice/physics/diff3d/traced-integrators3d.ss")
 (load "lattice/physics/diff3d/smooth-collision3d.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Sphere-Sphere Collision Response
-;;; ============================================================
+;;; ====
 
 ;;; traced-sphere-collision-force : TracedBody3D × Number × TracedBody3D × Number × SoftMaterial3D → (Values TracedVec3 TracedVec3)
 ;;; Compute soft contact force and torque between two spherical bodies.
@@ -93,9 +93,9 @@
                                          force-b dt)])
                                 (values new-a new-b))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Sphere-Ground Collision
-;;; ============================================================
+;;; ====
 
 ;;; traced-ground-collision-force-3d : TracedBody3D × Number × Number × SoftMaterial3D → (Values TracedVec3 TracedVec3)
 ;;; Soft contact force from horizontal ground at y = ground-y.
@@ -148,9 +148,9 @@
             (traced-apply-torque-3d body torque dt)
             force dt))))
 
-;;; ============================================================
+;;; ====
 ;;; Multi-Body Collision System
-;;; ============================================================
+;;; ====
 
 ;;; For simulating many bodies, we accumulate forces then integrate.
 
@@ -211,9 +211,9 @@
          pairs)
         (values forces torques)))
 
-;;; ============================================================
+;;; ====
 ;;; Restitution Coefficient (for hard contact comparison)
-;;; ============================================================
+;;; ====
 
 ;;; In soft contact, restitution is implicitly controlled by stiffness/damping.
 ;;; For comparison with impulse-based methods, we can compute effective restitution.
@@ -233,9 +233,9 @@
             (exp (/ (* (- 3.141592653589793) zeta)
                     (sqrt (- 1 (* zeta zeta))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Contact Detection Utilities
-;;; ============================================================
+;;; ====
 
 ;;; These help determine which pairs need collision response.
 ;;; Note: For differentiable physics, we often want soft forces even
@@ -253,9 +253,9 @@
 (define (traced-sphere-ground-overlapping? pos radius ground-y)
   (< (traced-value (traced-vec3-y pos)) (+ ground-y radius)))
 
-;;; ============================================================
+;;; ====
 ;;; Complete Collision Step
-;;; ============================================================
+;;; ====
 
 ;;; traced-collision-step-3d : TracedBody3D × Number × (List (TracedBody3D × Number)) × Number × SoftMaterial3D × Number → TracedBody3D
 ;;; Apply collision forces from other bodies and ground for one timestep.
@@ -302,9 +302,9 @@
          (traced-apply-torque-3d body total-torque dt)
          total-force dt)))
 
-;;; ============================================================
+;;; ====
 ;;; Wall Collision Forces (Box Boundary)
-;;; ============================================================
+;;; ====
 
 ;;; traced-wall-collision-force-3d : TracedBody3D × Number × Vec3 × Vec3 × SoftMaterial3D → (Values TracedVec3 TracedVec3)
 ;;; Compute forces from box-shaped boundary walls.
@@ -328,9 +328,9 @@
             (traced-apply-torque-3d body torque dt)
             force dt))))
 
-;;; ============================================================
+;;; ====
 ;;; Gravity Integration Helper
-;;; ============================================================
+;;; ====
 
 ;;; traced-apply-gravity-3d : TracedBody3D × Vec3 × Number → TracedBody3D
 ;;; Apply gravity acceleration for time dt.
@@ -340,9 +340,9 @@
          [g (if tape (lift-vec3 gravity tape) (lift-vec3-const gravity))])
         (traced-euler-step-3d body g (lift-vec3-const (vec3-zero)) dt)))
 
-;;; ============================================================
+;;; ====
 ;;; Combined Physics Step
-;;; ============================================================
+;;; ====
 
 ;;; traced-physics-step-3d : TracedBody3D × Number × (List (TracedBody3D × Number)) × Number × Vec3 × Vec3 × Vec3 × SoftMaterial3D × Number → TracedBody3D
 ;;; Complete physics step including gravity, ground, walls, and other bodies.

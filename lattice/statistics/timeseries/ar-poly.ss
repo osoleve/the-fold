@@ -20,9 +20,9 @@
 (load "lattice/algebra/field.ss")
 (load "lattice/algebra/polynomial.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Rational Field for Exact Coefficient Arithmetic
-;;; ============================================================
+;;; ====
 
 ;;; Q-field-ts : Field
 ;;; The field of rational numbers for exact arithmetic.
@@ -37,9 +37,9 @@
    (lambda (a b) (/ a b))                 ; Division
    =))                                    ; Equality
 
-;;; ============================================================
+;;; ====
 ;;; AR Characteristic Polynomial
-;;; ============================================================
+;;; ====
 
 ;;; AR(p) model: X_t = phi_1*X_{t-1} + phi_2*X_{t-2} + ... + phi_p*X_{t-p} + e_t
 ;;;
@@ -88,9 +88,9 @@
                                  (cons (- (vector-ref phi (- p 1 k))) acc)))))])
     (make-polynomial Q-field-ts coeffs)))
 
-;;; ============================================================
+;;; ====
 ;;; MA Polynomial
-;;; ============================================================
+;;; ====
 
 ;;; MA(q) model: X_t = e_t + theta_1*e_{t-1} + ... + theta_q*e_{t-q}
 ;;;
@@ -114,9 +114,9 @@
                                  (cons (vector-ref theta (- k 1)) acc)))))])
     (make-polynomial Q-field-ts coeffs)))
 
-;;; ============================================================
+;;; ====
 ;;; ARMA Polynomial Operations
-;;; ============================================================
+;;; ====
 
 ;;; arma-common-factors : Vec × Vec → AlgebraPoly
 ;;; Find common factors between AR and MA polynomials.
@@ -177,9 +177,9 @@
               ((> k q) result)
             (vector-set! result (- k 1) (list-ref coeffs k)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Stability and Invertibility Analysis
-;;; ============================================================
+;;; ====
 
 ;;; Note: Determining if all roots are outside unit circle requires
 ;;; finding roots or using algebraic criteria. Here we provide tools
@@ -225,9 +225,9 @@
               (< (abs theta2) 1)))]
       [else #f])))
 
-;;; ============================================================
+;;; ====
 ;;; Polynomial Trend Fitting
-;;; ============================================================
+;;; ====
 
 ;;; fit-poly-trend : Vec × Nat → AlgebraPoly
 ;;; Fit polynomial trend of degree d to time series.
@@ -255,9 +255,9 @@
           acc
           (loop (+ i 1) (f acc (vector-ref v i)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Polynomial Operations for Forecasting
-;;; ============================================================
+;;; ====
 
 ;;; ar-forecast-weights : Vec × Nat → (List Number)
 ;;; Compute forecast weights (psi-weights) from AR coefficients.
@@ -288,9 +288,9 @@
   (let ([weights (ar-forecast-weights phi (- n-terms 1))])
     (make-polynomial Q-field-ts weights)))
 
-;;; ============================================================
+;;; ====
 ;;; Display Utilities
-;;; ============================================================
+;;; ====
 
 ;;; ar-char-poly->string : Vec → String
 ;;; Display AR characteristic polynomial as string.

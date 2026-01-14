@@ -4,9 +4,9 @@
 ;;;
 ;;; Run with: scheme --script docs/examples/data-structures/vectors.ss
 
-;;; ============================================================
+;;; ====
 ;;; Creating Vectors
-;;; ============================================================
+;;; ====
 
 (display "=== Creating Vectors ===\n")
 
@@ -26,9 +26,9 @@
 (define v4 (list->vector '(x y z)))
 (format #t "from list: ~a~%" v4)
 
-;;; ============================================================
+;;; ====
 ;;; Accessing Elements
-;;; ============================================================
+;;; ====
 
 (display "\n=== Accessing Elements ===\n")
 
@@ -40,9 +40,9 @@
 ;;; vector-length
 (format #t "length of v1 = ~a~%" (vector-length v1))
 
-;;; ============================================================
+;;; ====
 ;;; Modifying Vectors (Mutation)
-;;; ============================================================
+;;; ====
 
 (display "\n=== Mutation ===\n")
 
@@ -57,9 +57,9 @@
 (vector-fill! filled 'x)
 (format #t "after fill: ~a~%" filled)
 
-;;; ============================================================
+;;; ====
 ;;; Vector Operations
-;;; ============================================================
+;;; ====
 
 (display "\n=== Vector Operations ===\n")
 
@@ -75,9 +75,9 @@
 (vector-set! copy 0 999)
 (format #t "after modifying copy: original=~a, copy=~a~%" original copy)
 
-;;; ============================================================
+;;; ====
 ;;; Iterating Over Vectors
-;;; ============================================================
+;;; ====
 
 (display "\n=== Iteration ===\n")
 
@@ -99,9 +99,9 @@
       (loop (+ i 1)))))
 (newline)
 
-;;; ============================================================
+;;; ====
 ;;; When to Use Vectors vs Lists
-;;; ============================================================
+;;; ====
 
 (display "\n=== Vectors vs Lists ===\n")
 
@@ -119,9 +119,9 @@ Use LISTS when:
   - Size varies or is unknown
 ")
 
-;;; ============================================================
+;;; ====
 ;;; Practical Example: Sieve of Eratosthenes
-;;; ============================================================
+;;; ====
 
 (display "=== Example: Prime Sieve ===\n")
 

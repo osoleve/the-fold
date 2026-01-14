@@ -2,9 +2,9 @@
 ;;;
 ;;; This test file verifies the scaffolding system in isolation.
 
-;;; ============================================================
+;;; ====
 ;;; Load Dependencies
-;;; ============================================================
+;;; ====
 
 (load "core/base/prelude.ss")
 
@@ -13,9 +13,9 @@
 ;;;   - string-downcase
 ;;;   - string-contains?
 
-;;; ============================================================
+;;; ====
 ;;; Minimal Dependencies for Testing
-;;; ============================================================
+;;; ====
 
 ;;; Mock functions needed by scaffold.ss
 
@@ -45,15 +45,15 @@
 (define (timestamp-year ts)
   (substring ts 0 4))
 
-;;; ============================================================
+;;; ====
 ;;; Load the module under test
-;;; ============================================================
+;;; ====
 
 (load "shell/tools/scaffold.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Test Framework
-;;; ============================================================
+;;; ====
 
 (define *test-count* 0)
 (define *test-passed* 0)
@@ -74,12 +74,12 @@
        (display actual)))
   (newline))
 
-;;; ============================================================
+;;; ====
 ;;; Tests
-;;; ============================================================
+;;; ====
 
 (display "Scaffolding System Tests\n")
-(display "==========================================\n\n")
+(display "====\n\n")
 
 ;;; Test 1: Template registration
 (display "Test 1: Template registration\n")
@@ -219,11 +219,11 @@
           (test "year is 4 chars" 4 (string-length year))
           (test "year value" "2025" year)))
 
-;;; ============================================================
+;;; ====
 ;;; Test Summary
-;;; ============================================================
+;;; ====
 
-(display "\n==========================================\n")
+(display "\n====\n")
 (display (format "Tests passed: ~a/~a\n" *test-passed* *test-count*))
 (if (= *test-passed* *test-count*)
     (display "✓ All scaffold tests complete.\n")

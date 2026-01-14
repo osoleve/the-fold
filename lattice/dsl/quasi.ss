@@ -26,9 +26,9 @@
 (load "core/base/prelude.ss")
 (load "lattice/fp/meta/combinators.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Quasiquote Detection
-;;; ============================================================
+;;; ====
 
 ;;; quasiquote? : α → Boolean
 (define (quasiquote? x)
@@ -51,9 +51,9 @@
        (pair? (cdr x))
        (null? (cddr x))))
 
-;;; ============================================================
+;;; ====
 ;;; Quasiquote Expansion
-;;; ============================================================
+;;; ====
 ;;;
 ;;; qq-expand transforms a quasiquoted expression into code that
 ;;; constructs the result at runtime.
@@ -219,9 +219,9 @@
                (cons (qq-expand-depth (car remaining) depth) current-list)
                segments)])))
 
-;;; ============================================================
+;;; ====
 ;;; Convenience: expand-quasiquote
-;;; ============================================================
+;;; ====
 
 ;;; expand-quasiquote : Sexp → Sexp
 ;;; Top-level entry point. If not a quasiquote, returns as-is.
@@ -230,9 +230,9 @@
       (qq-expand expr)
       expr))
 
-;;; ============================================================
+;;; ====
 ;;; Syntax Objects (Source Location Tracking)
-;;; ============================================================
+;;; ====
 ;;;
 ;;; A syntax object wraps a datum with source location information.
 ;;; This enables error messages that point to the original DSL code.
@@ -297,9 +297,9 @@
    [(vector? stx) (list->vector (map syntax->datum (vector->list stx)))]
    [else stx]))
 
-;;; ============================================================
+;;; ====
 ;;; Syntax Templates with Source Tracking
-;;; ============================================================
+;;; ====
 ;;;
 ;;; qq-expand-syntax: like qq-expand but preserves source locations.
 
@@ -318,9 +318,9 @@
   ;; Full implementation would track locations through expansion
   (qq-expand-depth (if (syntax? expr) (syntax-datum expr) expr) depth))
 
-;;; ============================================================
+;;; ====
 ;;; Pattern Matching on Syntax (syntax-case style)
-;;; ============================================================
+;;; ====
 ;;;
 ;;; syntax-match provides pattern matching on syntax objects.
 ;;; Patterns can include:
@@ -417,9 +417,9 @@
       (f (from-just m))
       nothing))
 
-;;; ============================================================
+;;; ====
 ;;; Utility: Template Instantiation
-;;; ============================================================
+;;; ====
 
 ;;; instantiate-template : Sexp × Bindings → Sexp
 ;;; Fill in a template with bindings from pattern match.

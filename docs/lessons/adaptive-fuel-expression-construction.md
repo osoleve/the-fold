@@ -114,7 +114,7 @@ Detect format and normalize:
 ### Detection Heuristic
 
 | First Element | Format |
-|--------------|--------|
+|----|----|
 | `(key . val)` | Alist |
 | `symbol` | Plist |
 

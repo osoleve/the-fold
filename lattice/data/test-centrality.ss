@@ -80,9 +80,9 @@
                          (loop (+ i 1) i val)
                          (loop (+ i 1) max-idx max-val)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Test Graphs
-;;; ============================================================
+;;; ====
 
 ;;; Star graph: node 0 is center, connected to 1, 2, 3, 4
 (define star-adj (star-graph 5))
@@ -108,9 +108,9 @@
                        (4 5) (5 6) (6 4))) ; triangle 2
 (define bowtie-adj (edges->adjacency-matrix bowtie-edges 7 #t))
 
-;;; ============================================================
+;;; ====
 ;;; Eigenvector Centrality Tests
-;;; ============================================================
+;;; ====
 (test-section "Eigenvector Centrality")
 
 (define star-evc (eigenvector-centrality star-adj))
@@ -145,9 +145,9 @@
                 (< (abs (- e1 e2)) 0.01)
                 (< (abs (- e2 e3)) 0.01))))
 
-;;; ============================================================
+;;; ====
 ;;; Katz Centrality Tests
-;;; ============================================================
+;;; ====
 (test-section "Katz Centrality")
 
 (define star-katz (katz-centrality star-adj))
@@ -189,9 +189,9 @@
            ;; Higher alpha should give more relative difference
            (> (/ high-max high-min) (/ low-max low-min))))
 
-;;; ============================================================
+;;; ====
 ;;; Closeness Centrality Tests
-;;; ============================================================
+;;; ====
 (test-section "Closeness Centrality")
 
 (define star-dist (floyd-warshall star-adj))
@@ -224,9 +224,9 @@
       (and (vector? harmonic-close)
            (vec-non-negative? harmonic-close)))
 
-;;; ============================================================
+;;; ====
 ;;; Betweenness Centrality Tests
-;;; ============================================================
+;;; ====
 (test-section "Betweenness Centrality")
 
 (define star-btwn (betweenness-centrality star-adj))
@@ -272,9 +272,9 @@
            ;; Bridge nodes should have higher betweenness than non-bridges
            (and (> b1 b0) (> b3 b0) (> b3 b5))))
 
-;;; ============================================================
+;;; ====
 ;;; Utility Function Tests
-;;; ============================================================
+;;; ====
 (test-section "Utility Functions")
 
 ;;; rank-by-centrality
@@ -311,9 +311,9 @@
       #t
       (> evc-katz-corr 0.5))
 
-;;; ============================================================
+;;; ====
 ;;; Edge Case Tests
-;;; ============================================================
+;;; ====
 (test-section "Edge Cases")
 
 ;;; Single node
@@ -342,11 +342,11 @@
       #t
       (vector? k23-evc))
 
-;;; ============================================================
+;;; ====
 ;;; Summary
-;;; ============================================================
+;;; ====
 (newline)
-(display "=================================")
+(display "====")
 (newline)
 (display "Tests passed: ")
 (display *tests-passed*)
@@ -354,7 +354,7 @@
 (display "Tests failed: ")
 (display *tests-failed*)
 (newline)
-(display "=================================")
+(display "====")
 (newline)
 
 (when (> *tests-failed* 0)

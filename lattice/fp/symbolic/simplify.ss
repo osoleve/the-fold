@@ -17,9 +17,9 @@
 
 (load "lattice/fp/symbolic/expr.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Helper Functions
-;;; ============================================================
+;;; ====
 
 ;;; filter-map : (α → β | #f) × (List α) → (List β)
 (define (filter-map f lst)
@@ -35,9 +35,9 @@
 (define (get-numeric e)
   (if (num? e) (num-val e) #f))
 
-;;; ============================================================
+;;; ====
 ;;; Main Simplification Entry Point
-;;; ============================================================
+;;; ====
 
 ;;; simplify : Expr → Expr
 ;;; Simplify an expression using algebraic rules.
@@ -83,9 +83,9 @@
    
    [else expr]))
 
-;;; ============================================================
+;;; ====
 ;;; Sum Simplification
-;;; ============================================================
+;;; ====
 
 ;;; simplify-sum : (List Expr) → Expr
 ;;; Simplify a sum by collecting numeric terms and like terms.
@@ -163,9 +163,9 @@
    [(= (length terms) 1) (car terms)]
    [else (fold-left sum (car terms) (cdr terms))]))
 
-;;; ============================================================
+;;; ====
 ;;; Product Simplification
-;;; ============================================================
+;;; ====
 
 ;;; simplify-product : (List Expr) → Expr
 ;;; Simplify a product by collecting numeric factors and combining powers.
@@ -232,9 +232,9 @@
    [(= (length factors) 1) (car factors)]
    [else (fold-left product (car factors) (cdr factors))]))
 
-;;; ============================================================
+;;; ====
 ;;; Difference and Negation Simplification
-;;; ============================================================
+;;; ====
 
 ;;; simplify-diff : Expr × Expr → Expr
 (define (simplify-diff left right)
@@ -273,9 +273,9 @@
                       (cons '* rest))))]
    [else (make-neg e)]))
 
-;;; ============================================================
+;;; ====
 ;;; Quotient Simplification
-;;; ============================================================
+;;; ====
 
 ;;; simplify-quot : Expr × Expr → Expr
 (define (simplify-quot numer denom)
@@ -349,9 +349,9 @@
          (append (reverse acc) (cdr rest))]
         [else (loop (cdr rest) (cons (car rest) acc))])))
 
-;;; ============================================================
+;;; ====
 ;;; Power Simplification
-;;; ============================================================
+;;; ====
 
 ;;; simplify-pow : Expr × Expr → Expr
 (define (simplify-pow base exp)
@@ -382,9 +382,9 @@
           (product-factors base)))]
    [else (power base exp)]))
 
-;;; ============================================================
+;;; ====
 ;;; Function Application Simplification
-;;; ============================================================
+;;; ====
 
 ;;; simplify-app : Symbol × Expr → Expr
 (define (simplify-app fn arg)
@@ -448,9 +448,9 @@
    
    [else (make-app fn arg)]))
 
-;;; ============================================================
+;;; ====
 ;;; Product Expansion
-;;; ============================================================
+;;; ====
 
 ;;; expand : Expr → Expr
 ;;; Fully expand products and powers in an expression.
@@ -535,9 +535,9 @@
                acc
                (loop (expand-once (product acc base)) (+ i 1))))))
 
-;;; ============================================================
+;;; ====
 ;;; Factoring (Basic)
-;;; ============================================================
+;;; ====
 
 ;;; factor : Expr → Expr
 ;;; Try to factor an expression.
@@ -622,9 +622,9 @@
     (num (/ (num-val term) (num-val factor)))]
    [else (quotient term factor)]))
 
-;;; ============================================================
+;;; ====
 ;;; Trigonometric Identities
-;;; ============================================================
+;;; ====
 
 ;;; simplify-trig : Expr → Expr
 ;;; Apply trigonometric identities.
@@ -758,9 +758,9 @@
    [(equal? (car lst) elem) (cdr lst)]
    [else (cons (car lst) (remove-first elem (cdr lst)))]))
 
-;;; ============================================================
+;;; ====
 ;;; Canonical Form
-;;; ============================================================
+;;; ====
 
 ;;; to-canonical : Expr → Expr
 ;;; Convert expression to canonical form:
@@ -822,9 +822,9 @@
    [(app? expr) (+ 5 (expr-complexity (app-arg expr)))]
    [else 10]))
 
-;;; ============================================================
+;;; ====
 ;;; Full Simplification Pipeline
-;;; ============================================================
+;;; ====
 
 ;;; full-simplify : Expr → Expr
 ;;; Apply comprehensive simplification.

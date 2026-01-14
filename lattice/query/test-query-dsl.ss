@@ -8,13 +8,13 @@
 (load "lattice/query/query-dsl.ss")
 
 (printf "\n")
-(printf "================================================================\n")
+(printf "====\n")
 (printf "              QUERY DSL TEST SUITE                             \n")
-(printf "================================================================\n\n")
+(printf "====\n\n")
 
-;;; ============================================================
+;;; ====
 ;;; Test Harness
-;;; ============================================================
+;;; ====
 
 (define tests-passed 0)
 (define tests-failed 0)
@@ -46,12 +46,12 @@
        (printf "  [FAIL] ~a\n" name)
        (printf "      Value ~s did not satisfy predicate\n" actual))))
 
-;;; ============================================================
+;;; ====
 ;;; Test Setup - Create test store and blocks
-;;; ============================================================
+;;; ====
 
 (printf "Setting up test environment...\n")
-(printf "----------------------------------------------------------------\n")
+(printf "----\n")
 
 ;; Use a dedicated test store directory
 (define test-store-path ".test-query-dsl")
@@ -139,12 +139,12 @@
 
 (printf "Test blocks created and stored: ~a blocks\n\n" (store-count fs))
 
-;;; ============================================================
+;;; ====
 ;;; Test 1: Basic Tag Queries
-;;; ============================================================
+;;; ====
 
 (printf "Testing Basic Tag Queries:\n")
-(printf "----------------------------------------------------------------\n")
+(printf "----\n")
 
 ;; Test tag query using bare pattern (shorthand)
 (define entity-results (query fs '(tag . entity)))
@@ -191,12 +191,12 @@
 
 (printf "\n")
 
-;;; ============================================================
+;;; ====
 ;;; Test 2: Content Search Queries
-;;; ============================================================
+;;; ====
 
 (printf "Testing Content Search Queries:\n")
-(printf "----------------------------------------------------------------\n")
+(printf "----\n")
 
 ;; Test payload-contains
 (define alice-results (query fs '(payload-contains . "Alice")))
@@ -234,12 +234,12 @@
 
 (printf "\n")
 
-;;; ============================================================
+;;; ====
 ;;; Test 3: Compound AND Queries
-;;; ============================================================
+;;; ====
 
 (printf "Testing Compound AND Queries:\n")
-(printf "----------------------------------------------------------------\n")
+(printf "----\n")
 
 ;; AND: tag AND payload-contains
 (define entity-scientist-results
@@ -280,12 +280,12 @@
 
 (printf "\n")
 
-;;; ============================================================
+;;; ====
 ;;; Test 4: Compound OR Queries
-;;; ============================================================
+;;; ====
 
 (printf "Testing Compound OR Queries:\n")
-(printf "----------------------------------------------------------------\n")
+(printf "----\n")
 
 ;; OR: tag OR tag
 (define entity-or-relation-results
@@ -324,12 +324,12 @@
 
 (printf "\n")
 
-;;; ============================================================
+;;; ====
 ;;; Test 5: Compound NOT Queries
-;;; ============================================================
+;;; ====
 
 (printf "Testing Compound NOT Queries:\n")
-(printf "----------------------------------------------------------------\n")
+(printf "----\n")
 
 ;; NOT: exclude tag
 (define not-entity-results (query fs '(not (tag . entity))))
@@ -363,12 +363,12 @@
 
 (printf "\n")
 
-;;; ============================================================
+;;; ====
 ;;; Test 6: Reference Queries - refs-to
-;;; ============================================================
+;;; ====
 
 (printf "Testing Reference Queries (refs-to):\n")
-(printf "----------------------------------------------------------------\n")
+(printf "----\n")
 
 ;; Find blocks that reference Alice
 (define refs-to-alice (query fs `(refs-to ,hash-alice)))
@@ -397,12 +397,12 @@
 
 (printf "\n")
 
-;;; ============================================================
+;;; ====
 ;;; Test 7: Reference Queries - refs-from
-;;; ============================================================
+;;; ====
 
 (printf "Testing Reference Queries (refs-from):\n")
-(printf "----------------------------------------------------------------\n")
+(printf "----\n")
 
 ;; Find blocks referenced BY collection-all-people
 (define collection-hash (hash-block collection-all-people))
@@ -432,12 +432,12 @@
 
 (printf "\n")
 
-;;; ============================================================
+;;; ====
 ;;; Test 8: Transitive Reference Traversal
-;;; ============================================================
+;;; ====
 
 (printf "Testing Transitive Reference Traversal:\n")
-(printf "----------------------------------------------------------------\n")
+(printf "----\n")
 
 ;; Start from relation-alice-knows-bob and traverse
 ;; With depth=1, only start block is collected (depth >= max-depth stops before expanding)
@@ -467,12 +467,12 @@
 
 (printf "\n")
 
-;;; ============================================================
+;;; ====
 ;;; Test 9: Projection Queries (select)
-;;; ============================================================
+;;; ====
 
 (printf "Testing Projection Queries:\n")
-(printf "----------------------------------------------------------------\n")
+(printf "----\n")
 
 ;; Select single field
 (define select-tags (query fs '(select (tag) (where (tag . entity)))))
@@ -531,12 +531,12 @@
 
 (printf "\n")
 
-;;; ============================================================
+;;; ====
 ;;; Test 10: Aggregation - query-count
-;;; ============================================================
+;;; ====
 
 (printf "Testing Aggregation - query-count:\n")
-(printf "----------------------------------------------------------------\n")
+(printf "----\n")
 
 ;; Count entities
 (test "query-count entities"
@@ -571,12 +571,12 @@
 
 (printf "\n")
 
-;;; ============================================================
+;;; ====
 ;;; Test 11: Aggregation - query-group-by
-;;; ============================================================
+;;; ====
 
 (printf "Testing Aggregation - query-group-by:\n")
-(printf "----------------------------------------------------------------\n")
+(printf "----\n")
 
 ;; Group all blocks by tag
 (define grouped-by-tag (query-group-by fs 'tag '()))
@@ -619,12 +619,12 @@
 
 (printf "\n")
 
-;;; ============================================================
+;;; ====
 ;;; Test 12: has-refs and refs-count Predicates
-;;; ============================================================
+;;; ====
 
 (printf "Testing has-refs and refs-count Predicates:\n")
-(printf "----------------------------------------------------------------\n")
+(printf "----\n")
 
 ;; Find blocks with any references
 (define has-refs-results (query fs '(match (has-refs . #t))))
@@ -664,12 +664,12 @@
 
 (printf "\n")
 
-;;; ============================================================
+;;; ====
 ;;; Test 13: Payload Size Predicates
-;;; ============================================================
+;;; ====
 
 (printf "Testing Payload Size Predicates:\n")
-(printf "----------------------------------------------------------------\n")
+(printf "----\n")
 
 ;; Find blocks with payload > 100 bytes
 (define large-payload-results
@@ -703,12 +703,12 @@
 
 (printf "\n")
 
-;;; ============================================================
+;;; ====
 ;;; Test 14: Convenience Functions
-;;; ============================================================
+;;; ====
 
 (printf "Testing Convenience Functions:\n")
-(printf "----------------------------------------------------------------\n")
+(printf "----\n")
 
 ;; find-entities
 (define found-entities (find-entities fs))
@@ -755,12 +755,12 @@
 
 (printf "\n")
 
-;;; ============================================================
+;;; ====
 ;;; Test 15: Query Builders
-;;; ============================================================
+;;; ====
 
 (printf "Testing Query Builders:\n")
-(printf "----------------------------------------------------------------\n")
+(printf "----\n")
 
 ;; make-tag-query
 (define built-tag-query (make-tag-query 'entity))
@@ -820,12 +820,12 @@
 
 (printf "\n")
 
-;;; ============================================================
+;;; ====
 ;;; Test 16: Empty Query (returns all blocks)
-;;; ============================================================
+;;; ====
 
 (printf "Testing Empty Query:\n")
-(printf "----------------------------------------------------------------\n")
+(printf "----\n")
 
 (define all-blocks-query (query fs '()))
 (test "empty query returns all blocks"
@@ -838,12 +838,12 @@
 
 (printf "\n")
 
-;;; ============================================================
+;;; ====
 ;;; Test 17: Edge Cases
-;;; ============================================================
+;;; ====
 
 (printf "Testing Edge Cases:\n")
-(printf "----------------------------------------------------------------\n")
+(printf "----\n")
 
 ;; Query on empty store
 (define empty-store-path ".test-query-dsl-empty")
@@ -905,12 +905,12 @@
 
 (printf "\n")
 
-;;; ============================================================
+;;; ====
 ;;; Test 18: Predicate Builders (Internal Testing)
-;;; ============================================================
+;;; ====
 
 (printf "Testing Predicate Builders:\n")
-(printf "----------------------------------------------------------------\n")
+(printf "----\n")
 
 ;; build-tag-predicate
 (define tag-pred (build-tag-predicate 'entity))
@@ -956,12 +956,12 @@
 
 (printf "\n")
 
-;;; ============================================================
+;;; ====
 ;;; Test 19: Field Extraction
-;;; ============================================================
+;;; ====
 
 (printf "Testing Field Extraction:\n")
-(printf "----------------------------------------------------------------\n")
+(printf "----\n")
 
 ;; extract-field for tag
 (test "extract-field tag"
@@ -1008,12 +1008,12 @@
 
 (printf "\n")
 
-;;; ============================================================
+;;; ====
 ;;; Test 20: Query String Contains Helper
-;;; ============================================================
+;;; ====
 
 (printf "Testing query-string-contains? Helper:\n")
-(printf "----------------------------------------------------------------\n")
+(printf "----\n")
 
 (test-true "query-string-contains? finds at start"
            (query-string-contains? "hello world" "hello"))
@@ -1038,22 +1038,22 @@
 
 (printf "\n")
 
-;;; ============================================================
+;;; ====
 ;;; Cleanup
-;;; ============================================================
+;;; ====
 
 (printf "Cleaning up test stores...\n")
 (system (format "rm -rf ~a" test-store-path))
 (system (format "rm -rf ~a" empty-store-path))
 (printf "Cleanup complete.\n\n")
 
-;;; ============================================================
+;;; ====
 ;;; Summary
-;;; ============================================================
+;;; ====
 
-(printf "================================================================\n")
+(printf "====\n")
 (printf "                    TEST RESULTS                               \n")
-(printf "================================================================\n\n")
+(printf "====\n\n")
 
 (printf "Tests passed: ~a\n" tests-passed)
 (printf "Tests failed: ~a\n" tests-failed)

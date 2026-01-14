@@ -3,16 +3,16 @@
 ;;; Formats Satin specifications for display and debugging.
 ;;; Produces readable, consistently-indented output.
 
-;;; ============================================================
+;;; ====
 ;;; Pretty-Printer Configuration
-;;; ============================================================
+;;; ====
 
 (define *satin-indent-width* 2)
 (define *satin-max-line-width* 80)
 
-;;; ============================================================
+;;; ====
 ;;; Core Pretty-Printing
-;;; ============================================================
+;;; ====
 
 ;;; satin-pretty : SatinSpec → String
 ;;; Pretty-print an entire Satin specification.
@@ -133,9 +133,9 @@
   (and (pair? x)
        (memq (car (strip-span x)) '(id title author version start meta))))
 
-;;; ============================================================
+;;; ====
 ;;; Form-Specific Pretty-Printers
-;;; ============================================================
+;;; ====
 
 ;;; Pretty-print a node form.
 (define (satin-pretty-node node indent)
@@ -206,9 +206,9 @@
         ")
 ")))
 
-;;; ============================================================
+;;; ====
 ;;; Generic Form Pretty-Printing
-;;; ============================================================
+;;; ====
 
 ;;; satin-pretty-form : Form × Indent → String
 ;;; Pretty-print any s-expression form.
@@ -259,9 +259,9 @@
   (apply string-append
          (map (lambda (f) (satin-pretty-form f indent)) fields)))
 
-;;; ============================================================
+;;; ====
 ;;; Utility Functions
-;;; ============================================================
+;;; ====
 
 ;;; Create indentation string.
 (define (satin-indent n)
@@ -306,9 +306,9 @@ ewline) (list #\ #
                  (car strs)
                  (cdr strs))))
 
-;;; ============================================================
+;;; ====
 ;;; Convenience Functions
-;;; ============================================================
+;;; ====
 
 ;;; satin-print : SatinSpec → void
 ;;; Print a pretty-formatted specification.

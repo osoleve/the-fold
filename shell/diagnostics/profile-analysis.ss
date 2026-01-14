@@ -13,9 +13,9 @@
 
 (load "core/util/profile.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Hint Data Structure
-;;; ============================================================
+;;; ====
 
 ;;; A hint is:
 ;;;   (hint type severity location message suggestion)
@@ -41,9 +41,9 @@
 (define (hint-message h) (hint-get h 'message))
 (define (hint-suggestion h) (hint-get h 'suggestion))
 
-;;; ============================================================
+;;; ====
 ;;; Pattern Detection: Tail-Call Opportunities
-;;; ============================================================
+;;; ====
 
 ;;; Detect recursive calls that could be tail-calls
 ;;; Pattern: (fix name (fn (args) ... (name ...)))
@@ -69,9 +69,9 @@
                                    name))))
              recursive-fns)))
 
-;;; ============================================================
+;;; ====
 ;;; Pattern Detection: Fusion Opportunities
-;;; ============================================================
+;;; ====
 
 ;;; Detect consecutive map/filter/fold operations that could fuse
 ;;; Pattern: (map f (map g xs)) → (map (compose f g) xs)
@@ -115,9 +115,9 @@
                       (find-adjacent-in-list (cdr nodes) ops))
                 (find-adjacent-in-list (cdr nodes) ops)))))
 
-;;; ============================================================
+;;; ====
 ;;; Pattern Detection: Expensive Lookups
-;;; ============================================================
+;;; ====
 
 ;;; Detect repeated assq/assv/member calls that could use hashtables
 ;;; Pattern: Many calls to assq with similar call patterns
@@ -146,9 +146,9 @@
                            "Consider using a hashtable for O(1) lookup")))
              expensive)))
 
-;;; ============================================================
+;;; ====
 ;;; Pattern Detection: Memoization Candidates
-;;; ============================================================
+;;; ====
 
 ;;; Detect pure functions called many times (potential memoization)
 
@@ -180,9 +180,9 @@
                                    name))))
              candidates)))
 
-;;; ============================================================
+;;; ====
 ;;; Pattern Detection: Inline Candidates
-;;; ============================================================
+;;; ====
 
 ;;; Detect small functions called many times (inline candidates)
 
@@ -209,9 +209,9 @@
                                    name))))
              frequent-small)))
 
-;;; ============================================================
+;;; ====
 ;;; Full Analysis
-;;; ============================================================
+;;; ====
 
 ;;; analyze-profile : Profiler → List of Hints
 ;;; Run all analyses and collect hints
@@ -223,9 +223,9 @@
    (detect-memoization-candidates p)
    (detect-inline-candidates p)))
 
-;;; ============================================================
+;;; ====
 ;;; Hint Rendering
-;;; ============================================================
+;;; ====
 
 (define (severity-symbol sev)
   (case sev
@@ -282,15 +282,15 @@
 (define (display-analysis p)
   (let ([hints (analyze-profile p)])
        (display "\n")
-       (display "  ============================================\n")
+       (display "  ====\n")
        (display "           OPTIMIZATION HINTS\n")
-       (display "  ============================================\n\n")
+       (display "  ====\n\n")
        (display (render-hints hints))
        (display (format "  Total: ~a hints\n\n" (length hints)))))
 
-;;; ============================================================
+;;; ====
 ;;; Comparative Analysis
-;;; ============================================================
+;;; ====
 
 ;;; compare-profiles : Profiler × Profiler → String
 ;;; Compare two profile runs (before/after optimization)
@@ -302,12 +302,12 @@
          [diff (- used1 used2)]
          [pct (if (zero? used1) 0 (* 100.0 (/ diff used1)))])
         (format
-         "  Profile Comparison\n  ==================\n  Before: ~a fuel\n  After:  ~a fuel\n  Saved:  ~a fuel (~a%)\n"
+         "  Profile Comparison\n  ====\n  Before: ~a fuel\n  After:  ~a fuel\n  Saved:  ~a fuel (~a%)\n"
          used1 used2 diff (round pct))))
 
-;;; ============================================================
+;;; ====
 ;;; Regression Detection
-;;; ============================================================
+;;; ====
 
 ;;; check-regression : Profiler × Nat → List of Hints
 ;;; Check if profile exceeds baseline by more than threshold %

@@ -8,9 +8,9 @@
 ;;; Dependencies:
 ;;;   - playpen/boardcraft/core.ss
 
-;;; ============================================================
+;;; ====
 ;;; Triangular Coordinates
-;;; ============================================================
+;;; ====
 
 ;;; Triangular tiles use a coordinate system where each position
 ;;; in a (row, col) grid can contain 2 triangles: one pointing up,
@@ -45,9 +45,9 @@
      (* (triangle-col t) 1000)
      (if (eq? (triangle-orientation t) 'up) 0 1)))
 
-;;; ============================================================
+;;; ====
 ;;; Orientation and Alternation
-;;; ============================================================
+;;; ====
 
 ;;; In a standard triangular grid, triangles alternate:
 ;;;   Row 0: up down up down ...
@@ -69,9 +69,9 @@
                   (triangle-col t)
                   (if (eq? (triangle-orientation t) 'up) 'down 'up)))
 
-;;; ============================================================
+;;; ====
 ;;; Neighbor Calculations
-;;; ============================================================
+;;; ====
 
 ;;; Triangles have 3 edge-adjacent neighbors.
 ;;; The specific neighbors depend on orientation:
@@ -140,9 +140,9 @@
         [(all)    (triangle-neighbors-all coord)]
         [else     (error 'triangle-neighbors "Invalid mode" mode)]))
 
-;;; ============================================================
+;;; ====
 ;;; Distance Metrics
-;;; ============================================================
+;;; ====
 
 ;;; For triangular grids, distance is more complex than square/hex.
 ;;; We'll use a simple metric: minimum number of edge-transitions.
@@ -161,9 +161,9 @@
 ;;; For exact distance, we'd need pathfinding (BFS/Dijkstra)
 ;;; which will be in the pathfinding module
 
-;;; ============================================================
+;;; ====
 ;;; Line Drawing
-;;; ============================================================
+;;; ====
 
 ;;; Line drawing in triangular space is complex due to alternating
 ;;; orientations. For now, provide a simple stepped approach.
@@ -191,9 +191,9 @@
                             [coord (triangle-coord r c ori)])
                            (loop (+ i 1) (cons coord coords))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Range and Area
-;;; ============================================================
+;;; ====
 
 ;;; triangle-range : TriangleCoord × Integer → (List TriangleCoord)
 ;;; Get all triangles within approximate distance N
@@ -218,9 +218,9 @@
                            '()))])
                     (loop r (+ c 1) (append new-coords coords)))]))))
 
-;;; ============================================================
+;;; ====
 ;;; Board Creation
-;;; ============================================================
+;;; ====
 
 ;;; make-triangle-board : Integer × Integer × [Tile] → Board
 ;;; Create a rectangular triangular board
@@ -265,9 +265,9 @@
         [cols (triangle-board-cols board)])
        (and (>= r 0) (< r rows) (>= c 0) (< c cols))))
 
-;;; ============================================================
+;;; ====
 ;;; Rotation and Reflection
-;;; ============================================================
+;;; ====
 
 ;;; triangle-rotate-180 : TriangleCoord × (Integer Integer) → TriangleCoord
 ;;; Rotate triangle 180° around a center point
@@ -300,9 +300,9 @@
                        c
                        (if (eq? ori 'up) 'down 'up))))
 
-;;; ============================================================
+;;; ====
 ;;; Exports Summary
-;;; ============================================================
+;;; ====
 
 ;;; This module provides:
 ;;;   • triangle-coord — Create triangular coordinate

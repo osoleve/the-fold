@@ -17,9 +17,9 @@
 
 (load "core/base/prelude.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Index Data Structures
-;;; ============================================================
+;;; ====
 
 ;;; Symbol entry structure:
 ;;;   ((name . <symbol>)
@@ -41,9 +41,9 @@
 (define *module-registry* (make-hashtable string-hash string=?))  ; path -> module-entry
 (define *reverse-deps* (make-hashtable string-hash string=?))  ; path -> list of dependent paths
 
-;;; ============================================================
+;;; ====
 ;;; File Scanning
-;;; ============================================================
+;;; ====
 
 ;;; read-file-lines : String → (List String)
 ;;; Read all lines from a file.
@@ -194,9 +194,9 @@
     (signature . ,sig)
     (docstring . ,doc)))
 
-;;; ============================================================
+;;; ====
 ;;; Load Statement Extraction
-;;; ============================================================
+;;; ====
 
 ;;; extract-loads : (List String) → (List String)
 ;;; Extract loaded file paths from source lines.
@@ -213,9 +213,9 @@
                             (loop (cdr lines) results)))]
                   [else (loop (cdr lines) results)])))))
 
-;;; ============================================================
+;;; ====
 ;;; Index Building
-;;; ============================================================
+;;; ====
 
 ;;; scan-module : String → ModuleEntry
 ;;; Scan a single module file.
@@ -269,9 +269,9 @@
                                (loop (cdr pending) (cons current results))
                                (loop (cdr pending) results))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Query Functions
-;;; ============================================================
+;;; ====
 
 ;;; index-refresh! : Unit → Void
 ;;; Rebuild the entire index.
@@ -365,9 +365,9 @@
                      (symbol->string (cdr (assq 'name b)))))
    entries))
 
-;;; ============================================================
+;;; ====
 ;;; Display Functions
-;;; ============================================================
+;;; ====
 
 ;;; display-entry : Entry → Void
 ;;; Pretty print a symbol entry.
@@ -403,9 +403,9 @@
   (display "
 "))
 
-;;; ============================================================
+;;; ====
 ;;; REPL Integration
-;;; ============================================================
+;;; ====
 
 ;;; find : String → Void
 ;;; User-friendly search command.
@@ -441,9 +441,9 @@
            (printf "Symbol '~a' not found.
 " name))))
 
-;;; ============================================================
+;;; ====
 ;;; Module Exploration
-;;; ============================================================
+;;; ====
 
 ;;; modules : String... → Void
 ;;; List all indexed modules, optionally filtered by pattern.

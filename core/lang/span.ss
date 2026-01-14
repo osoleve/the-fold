@@ -21,9 +21,9 @@
 (load "core/base/span.ss")
 (load "core/lang/parse.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Parser State with Position Tracking
-;;; ============================================================
+;;; ====
 
 ;;; State = (state input offset line column file)
 
@@ -103,9 +103,9 @@
                        (+ col 1)
                        file))))
 
-;;; ============================================================
+;;; ====
 ;;; Spanned Parse Results
-;;; ============================================================
+;;; ====
 
 ;;; SpannedResult a =
 ;;;   | (ok value state span)     ; value with ending state and covering span
@@ -135,9 +135,9 @@
 ;;; spanned-error-state : SpannedResult → State
 (define (spanned-error-state r) (list-ref r 2))
 
-;;; ============================================================
+;;; ====
 ;;; Spanned Parser Type
-;;; ============================================================
+;;; ====
 
 ;;; SpannedParser a = State → SpannedResult a
 
@@ -146,9 +146,9 @@
   (let ([file (if (null? file-arg) "<input>" (car file-arg))])
        (parser (initial-state input file))))
 
-;;; ============================================================
+;;; ====
 ;;; Primitive Spanned Parsers
-;;; ============================================================
+;;; ====
 
 ;;; s-pure : a → SpannedParser a
 ;;; Always succeeds with value, zero-width span at current position.
@@ -196,9 +196,9 @@
                              (spanned-success char next-state (merge-spans start-span end-span)))
                        (spanned-failure label state))))))
 
-;;; ============================================================
+;;; ====
 ;;; Character Parsers (Spanned)
-;;; ============================================================
+;;; ====
 
 ;;; s-char : Char → SpannedParser Char
 (define (s-char target)
@@ -247,9 +247,9 @@
                                 (check-loop (+ i 1))
                                 (spanned-failure target state))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Spanned Combinators — Core
-;;; ============================================================
+;;; ====
 
 ;;; s-bind : SpannedParser a × (a → SpannedParser b) → SpannedParser b
 ;;; Monadic bind with span merging.
@@ -299,9 +299,9 @@
 (define (s-map f parser)
   (s-bind parser (lambda (a) (s-pure (f a)))))
 
-;;; ============================================================
+;;; ====
 ;;; Spanned Combinators — Repetition
-;;; ============================================================
+;;; ====
 
 ;;; s-many-helper : SpannedParser α × (List α) × State → ((List α) . State)
 (define (s-many-helper parser acc state)
@@ -341,9 +341,9 @@
                                                                       (s-pure (cons first rest))))))
    (s-pure '())))
 
-;;; ============================================================
+;;; ====
 ;;; Spanned Utility Parsers
-;;; ============================================================
+;;; ====
 
 ;;; s-spaces : SpannedParser (List Char)
 (define s-spaces (s-many s-space))
@@ -387,9 +387,9 @@
                           (s-bind (s-many (s-alt s-alphanum (s-char #\_))) (lambda (rest)
                                                                                    (s-pure (list->string (cons first rest))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Spanned Value Wrapper
-;;; ============================================================
+;;; ====
 
 ;;; A Spanned value pairs a value with its source span.
 ;;; This is used for AST nodes.
@@ -422,9 +422,9 @@
                                     (spanned-span result))
                    result))))
 
-;;; ============================================================
+;;; ====
 ;;; Error Formatting
-;;; ============================================================
+;;; ====
 
 ;;; format-parse-error : SpannedResult → String
 (define (format-parse-error result)

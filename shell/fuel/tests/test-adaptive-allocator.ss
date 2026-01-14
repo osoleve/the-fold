@@ -6,9 +6,9 @@
 (load "shell/fuel/adaptive-hof.ss")
 
 (display "\n")
-(display "==============================================================\n")
+(display "====\n")
 (display "     ADAPTIVE FUEL ALLOCATOR INTEGRATION TESTS\n")
-(display "==============================================================\n")
+(display "====\n")
 
 ;;; Helper: approximately equal within tolerance
 (define (approx= expected actual tolerance)
@@ -22,9 +22,9 @@
   (if (<= n 0) alloc
       (observe-many (allocator-observe alloc val) (- n 1) val)))
 
-;;; ============================================================
+;;; ====
 ;;; Allocator Construction and Accessors
-;;; ============================================================
+;;; ====
 
 (test-group allocator-basics
             (define-test make-allocator
@@ -39,9 +39,9 @@
                    (assert-true (allocator? a))
                    (assert-true (> (allocator-request-fuel a) 0)))))
 
-;;; ============================================================
+;;; ====
 ;;; Fuel Request Convergence
-;;; ============================================================
+;;; ====
 
 (test-group fuel-convergence
             (define-test converges-to-stable-cost
@@ -62,9 +62,9 @@
                          (assert-true (> (cdr (assq 'mean-estimate summary)) 50))
                          (assert-true (< (cdr (assq 'mean-estimate summary)) 200))))))
 
-;;; ============================================================
+;;; ====
 ;;; History Management
-;;; ============================================================
+;;; ====
 
 (test-group history-management
             (define-test history-tracks-length
@@ -91,9 +91,9 @@
                     (assert-equal '(30 20 10) (allocator-recent-costs a3 3))
                     (assert-equal '(30 20) (allocator-recent-costs a3 2)))))
 
-;;; ============================================================
+;;; ====
 ;;; Mark Allocated / Consumed Tracking
-;;; ============================================================
+;;; ====
 
 (test-group tracking
             (define-test mark-allocated
@@ -115,9 +115,9 @@
                     ;; Efficiency = consumed/allocated = 100/200 = 0.5
                     (assert-approx 0.5 (allocator-efficiency a2) 0.01))))
 
-;;; ============================================================
+;;; ====
 ;;; Adaptive Map Native
-;;; ============================================================
+;;; ====
 
 (test-group adaptive-map-native
             (define-test basic-map
@@ -141,9 +141,9 @@
                           (assert-equal 100 (length results))
                           (assert-equal 100 (cdr (assq 'observations stats))))))
 
-;;; ============================================================
+;;; ====
 ;;; Adaptive Filter Native
-;;; ============================================================
+;;; ====
 
 (test-group adaptive-filter-native
             (define-test basic-filter
@@ -151,9 +151,9 @@
                             (adaptive-filter-native even? '(1 2 3 4 5 6 7 8 9 10))])
                           (assert-equal '(2 4 6 8 10) results))))
 
-;;; ============================================================
+;;; ====
 ;;; Adaptive Fold Native
-;;; ============================================================
+;;; ====
 
 (test-group adaptive-fold-native
             (define-test sum-fold
@@ -168,9 +168,9 @@
                                                        '(1 2 3))])
                           (assert-equal '(3 2 1) result))))
 
-;;; ============================================================
+;;; ====
 ;;; Summary Statistics
-;;; ============================================================
+;;; ====
 
 (test-group summary
             (define-test summary-keys
@@ -186,8 +186,8 @@
                     (assert-true (pair? (assq 'total-consumed s)))
                     (assert-true (pair? (assq 'observations s))))))
 
-;;; ============================================================
+;;; ====
 ;;; Run Tests
-;;; ============================================================
+;;; ====
 
 (run-all-tests)

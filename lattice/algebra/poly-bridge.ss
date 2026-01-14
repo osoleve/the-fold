@@ -52,9 +52,9 @@
 ;;; Note: poly-from-roots is only in numeric/polynomial.ss
 ;;; We'll implement a simple version for algebra polynomials.
 
-;;; ============================================================
+;;; ====
 ;;; Standard Rational Field
-;;; ============================================================
+;;; ====
 
 ;;; Q-field : Field
 ;;; The standard field of rational numbers for exact arithmetic.
@@ -70,9 +70,9 @@
    (lambda (a b) (/ a b))                 ; Division
    =))                                    ; Equality
 
-;;; ============================================================
+;;; ====
 ;;; Conversion Functions
-;;; ============================================================
+;;; ====
 
 ;;; numeric->algebra : NumericPoly → AlgebraPoly
 ;;; Convert numeric polynomial (descending vector) to algebra polynomial (ascending list).
@@ -103,9 +103,9 @@
          [coeffs-vec (list->vector descending)])
     (list 'poly coeffs-vec)))
 
-;;; ============================================================
+;;; ====
 ;;; Prefixed Algebra Operations (Avoid Name Collision)
-;;; ============================================================
+;;; ====
 
 ;;; These functions wrap algebra/polynomial.ss operations with alg- prefix,
 ;;; allowing them to be used alongside numeric/polynomial.ss without collision.
@@ -165,9 +165,9 @@
 ;;; alg-monic : AlgebraPoly → AlgebraPoly
 (define alg-monic alg-poly-monic)
 
-;;; ============================================================
+;;; ====
 ;;; Bridge Operations (Work on Either Representation)
-;;; ============================================================
+;;; ====
 
 ;;; bridge-gcd : NumericPoly × NumericPoly → NumericPoly
 ;;; Compute GCD of two numeric polynomials using algebra operations.
@@ -206,9 +206,9 @@
          [gcd-alg (alg-gcd a1 a2)])
     (<= (alg-degree gcd-alg) 0)))
 
-;;; ============================================================
+;;; ====
 ;;; Polynomial String Conversion
-;;; ============================================================
+;;; ====
 
 ;;; alg->string : AlgebraPoly × Symbol → String
 ;;; Convert algebra polynomial to string.
@@ -220,9 +220,9 @@
 (define (numeric->string p var)
   (alg->string (numeric->algebra p) var))
 
-;;; ============================================================
+;;; ====
 ;;; Polynomial From Roots
-;;; ============================================================
+;;; ====
 
 ;;; alg-poly-from-roots : Field × (List Coeff) → AlgebraPoly
 ;;; Create polynomial from roots: (x - r_1)(x - r_2)...(x - r_n)
@@ -239,9 +239,9 @@
                    [linear (alg-make-polynomial field (list (- r) 1))])
               (loop (cdr rs) (alg-poly-mul acc linear)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Factory Functions (Create in Either Representation)
-;;; ============================================================
+;;; ====
 
 ;;; make-numeric-from-roots : (List Number) → NumericPoly
 ;;; Create numeric polynomial from its roots.
@@ -263,9 +263,9 @@
 (define (make-algebra-from-descending field coeffs)
   (alg-make-polynomial field (reverse coeffs)))
 
-;;; ============================================================
+;;; ====
 ;;; Compatibility Aliases
-;;; ============================================================
+;;; ====
 
 ;;; For modules that were using inline implementations, provide
 ;;; equivalent functions they can switch to.

@@ -85,7 +85,7 @@ State persisted to `.fold-repl/discord-state/antiloop.json`.
 ## Slash Commands
 
 | Command | Description |
-|---------|-------------|
+|----|----|
 | `/fold digest` | Show recent forum posts |
 | `/fold post <channel> <title> <body>` | Create forum post |
 | `/fold browse <channel>` | Browse channel |

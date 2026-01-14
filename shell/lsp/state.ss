@@ -36,9 +36,9 @@
 
 (load "core/base/prelude.ss")
 
-;;; ============================================================
+;;; ====
 ;;; State Reset (for testing)
-;;; ============================================================
+;;; ====
 
 ;;; lsp-reset-documents! : → Void
 ;;; Clear the document store.
@@ -76,9 +76,9 @@
   (lsp-reset-server-state!)
   (lsp-reset-transport-state!))
 
-;;; ============================================================
+;;; ====
 ;;; State Queries
-;;; ============================================================
+;;; ====
 
 ;;; lsp-document-count : → Int
 ;;; Return number of open documents.
@@ -102,9 +102,9 @@
         (cons 'index (and (top-level-bound? '*index-available*) *index-available*))
         (cons 'infer (and (top-level-bound? '*infer-available*) *infer-available*))))
 
-;;; ============================================================
+;;; ====
 ;;; State Summary (for debugging)
-;;; ============================================================
+;;; ====
 
 ;;; lsp-state-summary : → String
 ;;; Return a human-readable summary of LSP state.

@@ -22,15 +22,15 @@
 ;;;   shell/tools/index.ss (symbol index)
 ;;;   shell/lens/call-graph.ss (call graph)
 
-;;; ============================================================
+;;; ====
 ;;; Dependencies
-;;; ============================================================
+;;; ====
 
 (load "core/base/prelude.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Analysis State
-;;; ============================================================
+;;; ====
 
 ;;; All defined symbols found
 (define *all-definitions* '())
@@ -63,9 +63,9 @@
     ;; Module system
     library import export))
 
-;;; ============================================================
+;;; ====
 ;;; Symbol Collection
-;;; ============================================================
+;;; ====
 
 ;;; collect-definitions : String -> (List (symbol file line))
 ;;; Collect all definitions from a file.
@@ -156,9 +156,9 @@
            (vector->list (hashtable-keys (cdr entry)))
            '())))
 
-;;; ============================================================
+;;; ====
 ;;; Confidence Level Classification
-;;; ============================================================
+;;; ====
 
 ;;; classify-definition : (sym file line) -> (sym file line confidence reason)
 ;;; Classify a definition by how likely it is to be dead code.
@@ -247,9 +247,9 @@
       (and (pred (car lst))
            (andmap pred (cdr lst)))))
 
-;;; ============================================================
+;;; ====
 ;;; Dead Code Detection
-;;; ============================================================
+;;; ====
 
 ;;; find-scheme-files : String -> (List String)
 (define (find-scheme-files dir)
@@ -469,9 +469,9 @@
              ;; But only if it doesn't start with underscore
              (not (string-starts-with? name "_"))))))
 
-;;; ============================================================
+;;; ====
 ;;; Unused Local Bindings
-;;; ============================================================
+;;; ====
 
 ;;; find-unused-locals : String -> (List (name file line binding-form))
 ;;; Find unused local bindings in let/let*/letrec forms.
@@ -567,9 +567,9 @@
                (walk body)
                refs)))
 
-;;; ============================================================
+;;; ====
 ;;; Safe Delete Analysis
-;;; ============================================================
+;;; ====
 
 ;;; dead-code-suggest-delete : Symbol -> void
 ;;; Analyze safety of deleting a symbol.
@@ -624,9 +624,9 @@
       '()
       (cons (car lst) (take-up-to (cdr lst) (- n 1)))))
 
-;;; ============================================================
+;;; ====
 ;;; Statistics and Reporting
-;;; ============================================================
+;;; ====
 
 ;;; dead-code-stats : -> void
 ;;; Show analysis statistics.
@@ -665,9 +665,9 @@
             unused)))
   (display "\n"))
 
-;;; ============================================================
+;;; ====
 ;;; REPL Commands
-;;; ============================================================
+;;; ====
 
 ;;; dead-code-help : -> void
 (define (dead-code-help)
@@ -697,9 +697,9 @@
   (display "    (dead-code-help)              Show this help\n")
   (display "\n"))
 
-;;; ============================================================
+;;; ====
 ;;; Initialization
-;;; ============================================================
+;;; ====
 
 (display "\n")
 (display "  Dead Code Detection Loaded\n")

@@ -46,9 +46,9 @@
 ══════════════════════════════════════════════════════════
 ")
 
-;;; ============================================================
+;;; ====
 ;;; AABB Tests
-;;; ============================================================
+;;; ====
 
 (test-group aabb-tests
             (define-test make-aabb-test
@@ -76,9 +76,9 @@
                    (assert-vec2-= (aabb-min a) (vec2 1 1) 0.0001)
                    (assert-vec2-= (aabb-max a) (vec2 5 8) 0.0001))))
 
-;;; ============================================================
+;;; ====
 ;;; Circle Tests
-;;; ============================================================
+;;; ====
 
 (test-group circle-tests
             (define-test make-circle-test
@@ -93,9 +93,9 @@
                     (assert-vec2-= (aabb-min a) (vec2 3 3) 0.0001)
                     (assert-vec2-= (aabb-max a) (vec2 7 7) 0.0001))))
 
-;;; ============================================================
+;;; ====
 ;;; Polygon Tests
-;;; ============================================================
+;;; ====
 
 (test-group polygon-tests
             (define-test make-polygon-test
@@ -126,9 +126,9 @@
               (let ([hex (make-regular-polygon (vec2 0 0) 1 6)])
                    (assert-= (polygon-vertex-count hex) 6 0))))
 
-;;; ============================================================
+;;; ====
 ;;; Point-in-Shape Tests
-;;; ============================================================
+;;; ====
 
 (test-group point-in-shape-tests
             (define-test point-in-aabb-test
@@ -151,9 +151,9 @@
                    (assert-false (point-in-polygon? (vec2 -1 5) p))
                    (assert-false (point-in-polygon? (vec2 15 5) p)))))
 
-;;; ============================================================
+;;; ====
 ;;; AABB vs AABB Tests
-;;; ============================================================
+;;; ====
 
 (test-group aabb-aabb-tests
             (define-test aabb-aabb-overlap-test
@@ -178,9 +178,9 @@
                     (assert-true (not (not m)))  ; m is not #f
                     (assert-= (cadr m) 2 0.0001))))  ; penetration
 
-;;; ============================================================
+;;; ====
 ;;; Circle vs Circle Tests
-;;; ============================================================
+;;; ====
 
 (test-group circle-circle-tests
             (define-test circle-circle-overlap-test
@@ -208,9 +208,9 @@
                     ;; Penetration = 5+5-8 = 2
                     (assert-= (cadr m) 2 0.0001))))
 
-;;; ============================================================
+;;; ====
 ;;; Circle vs AABB Tests
-;;; ============================================================
+;;; ====
 
 (test-group circle-aabb-tests
             (define-test circle-aabb-overlap-test
@@ -237,9 +237,9 @@
                     ;; Circle is below AABB, should have -y normal
                     (assert-= (vec2-y (car m)) -1 0.0001))))
 
-;;; ============================================================
+;;; ====
 ;;; Circle vs Polygon Tests
-;;; ============================================================
+;;; ====
 
 (test-group circle-polygon-tests
             (define-test circle-polygon-overlap-test
@@ -261,9 +261,9 @@
               (let ([closest (closest-point-on-segment (vec2 5 5) (vec2 0 0) (vec2 10 0))])
                    (assert-vec2-= closest (vec2 5 0) 0.0001))))
 
-;;; ============================================================
+;;; ====
 ;;; Polygon vs Polygon (SAT) Tests
-;;; ============================================================
+;;; ====
 
 (test-group polygon-sat-tests
             (define-test sat-overlap-test
@@ -294,9 +294,9 @@
                     [b (make-polygon (list (vec2 2 1) (vec2 6 1) (vec2 4 4)))])
                    (assert-true (polygon-polygon? a b)))))
 
-;;; ============================================================
+;;; ====
 ;;; Generic Shape Tests
-;;; ============================================================
+;;; ====
 
 (test-group generic-shape-tests
             (define-test shape-type-test
@@ -322,9 +322,9 @@
                      [m (shapes-manifold a b)])
                     (assert-true (not (not m))))))
 
-;;; ============================================================
+;;; ====
 ;;; Spatial Hash Tests
-;;; ============================================================
+;;; ====
 
 (test-group spatial-hash-tests
             (define-test spatial-hash-create-test
@@ -360,9 +360,9 @@
                     (let ([result (spatial-hash-query h (make-aabb (vec2 100 100) (vec2 105 105)))])
                          (assert-false (not (not (member obj1 result))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Projection Tests
-;;; ============================================================
+;;; ====
 
 (test-group projection-tests
             (define-test project-polygon-test
@@ -383,9 +383,9 @@
               (assert-= (intervals-overlap '(0 10) '(2 8)) 8 0.0001)
               (assert-false (intervals-overlap '(0 5) '(6 10)))))
 
-;;; ============================================================
+;;; ====
 ;;; Edge Cases
-;;; ============================================================
+;;; ====
 
 (test-group edge-case-tests
             (define-test coincident-circles-test
@@ -407,9 +407,9 @@
               (let ([closest (closest-point-on-segment (vec2 5 5) (vec2 0 0) (vec2 0 0))])
                    (assert-vec2-= closest (vec2 0 0) 0.0001))))
 
-;;; ============================================================
+;;; ====
 ;;; Summary
-;;; ============================================================
+;;; ====
 
 (display "
 ══════════════════════════════════════════════════════════

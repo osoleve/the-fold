@@ -25,9 +25,9 @@
 (load "core/base/prelude.ss")
 (load "core/lang/span.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Fold AST Types
-;;; ============================================================
+;;; ====
 
 ;;; AST nodes are spanned values:
 ;;;   (spanned value span)
@@ -39,9 +39,9 @@
 ;;;   - Booleans: #t or #f
 ;;;   - Lists: list of spanned values
 
-;;; ============================================================
+;;; ====
 ;;; Lexical Elements
-;;; ============================================================
+;;; ====
 
 ;;; fold-comment : SpannedParser Unit
 ;;; Skip a line comment.
@@ -63,9 +63,9 @@
 (define (fold-token parser)
   (s-seq-left parser fold-whitespace))
 
-;;; ============================================================
+;;; ====
 ;;; Atoms
-;;; ============================================================
+;;; ====
 
 ;;; fold-number : SpannedParser Number
 ;;; Parse an integer or floating point number.
@@ -134,9 +134,9 @@
                                                              (s-bind (s-many (s-satisfy symbol-subsequent? "symbol char")) (lambda (rest)
                                                                                                                                    (s-pure (string->symbol (list->string (cons first rest)))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Expressions
-;;; ============================================================
+;;; ====
 
 ;;; Forward declaration for mutual recursion
 ;;; fold-expr : SpannedParser Expr
@@ -200,9 +200,9 @@
                                                        fold-atom)))))
                state)))
 
-;;; ============================================================
+;;; ====
 ;;; Top-Level Parser
-;;; ============================================================
+;;; ====
 
 ;;; fold-program : SpannedParser (List Expr)
 ;;; Parse a sequence of expressions.
@@ -235,9 +235,9 @@
                    [span (state-span state)])
                   (list 'error 'parse expected span)))))
 
-;;; ============================================================
+;;; ====
 ;;; Span Extraction Utilities
-;;; ============================================================
+;;; ====
 
 ;;; strip-spans : α → α
 ;;; Remove span wrappers from an AST, leaving just the values.

@@ -25,9 +25,9 @@
 (load "blocks/block.ss")
 (load "blocks/cas.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Index Structure
-;;; ============================================================
+;;; ====
 
 ;;; An Index is a record containing:
 ;;;   - tag-index: hashtable mapping tags to lists of hashes
@@ -56,9 +56,9 @@
 (define (index-content-table idx)
   (list-ref idx 3))
 
-;;; ============================================================
+;;; ====
 ;;; Indexing Operations (MUTATING)
-;;; ============================================================
+;;; ====
 
 ;;; index-block! : Index x Hash x Block -> void
 ;;; Add a block to the index (MUTATES the index tables).
@@ -96,9 +96,9 @@
                                 (let ([existing (hashtable-ref content-table fragment '())])
                                      (hashtable-set! content-table fragment (cons hash existing))))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Query Operations (Pure)
-;;; ============================================================
+;;; ====
 
 ;;; find-blocks-by-tag : Index x Symbol -> List[Hash]
 ;;; Find all blocks with the given tag.
@@ -126,9 +126,9 @@
                       (hashtable-ref content-table fragment '())))))
        ))
 
-;;; ============================================================
+;;; ====
 ;;; Index Statistics (Pure queries)
-;;; ============================================================
+;;; ====
 
 ;;; index-stats : Index -> Alist
 ;;; Return statistics about the index.
@@ -155,9 +155,9 @@
                     (cons tag (length (hashtable-ref tag-table tag '()))))
             (vector->list (hashtable-keys tag-table)))))
 
-;;; ============================================================
+;;; ====
 ;;; Graph Traversal Primitives (Use mutation for visited set)
-;;; ============================================================
+;;; ====
 
 ;;; traverse-refs : (Hash -> Block) x Hash x (Block -> Bool) x Int -> List[Hash]
 ;;; Traverse block references depth-first, collecting matching hashes.

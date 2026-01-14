@@ -10,13 +10,13 @@
 (load "shell/ui/layout-color.ss")
 
 (display "\n")
-(display "==============================================================\n")
+(display "====\n")
 (display "         COLOR LAYOUT SYSTEM TESTS\n")
-(display "==============================================================\n")
+(display "====\n")
 
-;;; ============================================================
+;;; ====
 ;;; Point and Rect Tests
-;;; ============================================================
+;;; ====
 
 (test-group point-and-rect
             (define-test point-construction
@@ -31,9 +31,9 @@
                    (assert-equal 10 (rect-width r))
                    (assert-equal 5 (rect-height r)))))
 
-;;; ============================================================
+;;; ====
 ;;; Canvas Construction Tests
-;;; ============================================================
+;;; ====
 
 (test-group canvas-construction
             (define-test make-canvas-basic
@@ -61,9 +61,9 @@
                      [ch (canvas-ref-char c 2 2)])
                     (assert-equal #\space ch))))
 
-;;; ============================================================
+;;; ====
 ;;; Canvas Set Tests
-;;; ============================================================
+;;; ====
 
 (test-group canvas-set
             (define-test canvas-set-basic
@@ -88,9 +88,9 @@
                     (assert-equal color-red (cell%-fg result))
                     (assert-equal color-blue (cell%-bg result)))))
 
-;;; ============================================================
+;;; ====
 ;;; Drawing Primitives Tests
-;;; ============================================================
+;;; ====
 
 (test-group drawing-primitives
             (define-test draw-char-basic
@@ -139,9 +139,9 @@
                     (assert-equal #\B (canvas-ref-char c 3 2))
                     (assert-equal #\C (canvas-ref-char c 3 3)))))
 
-;;; ============================================================
+;;; ====
 ;;; Rectangle Drawing Tests
-;;; ============================================================
+;;; ====
 
 (test-group rectangle-drawing
             (define-test draw-rect-basic
@@ -189,9 +189,9 @@
                      [c (fill-rect c r #\X)])
                     (assert-equal #\space (canvas-ref-char c 0 0)))))
 
-;;; ============================================================
+;;; ====
 ;;; Composition Tests
-;;; ============================================================
+;;; ====
 
 (test-group composition
             (define-test composite-basic
@@ -232,9 +232,9 @@
                     (assert-equal #\E (canvas-ref-char result 3 1))
                     (assert-equal #\G (canvas-ref-char result 4 1)))))
 
-;;; ============================================================
+;;; ====
 ;;; Box Drawing Tests
-;;; ============================================================
+;;; ====
 
 (test-group box-drawing
             (define-test draw-box-ascii
@@ -278,9 +278,9 @@
                     ;; No crash, just unchanged
                     (assert-true (canvas%? c)))))
 
-;;; ============================================================
+;;; ====
 ;;; Canvas to String Tests
-;;; ============================================================
+;;; ====
 
 (test-group canvas-to-string
             (define-test canvas-to-string-basic
@@ -300,12 +300,12 @@
                     ;; Should end with reset code
                     (assert-true (string-contains? str ansi-reset)))))
 
-;;; ============================================================
+;;; ====
 ;;; Summary
-;;; ============================================================
+;;; ====
 
 (display "\n")
-(display "==============================================================\n")
+(display "====\n")
 (printf "Tests passed: ~a\n" *tests-passed*)
 (printf "Tests failed: ~a\n" *tests-failed*)
 (printf "Total tests:  ~a\n" *tests-run*)

@@ -5,9 +5,9 @@
 (load "core/test-framework.ss")
 (load "lattice/dsl/chronicle/chronicle-parser.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Lexical Tests
-;;; ============================================================
+;;; ====
 
 (test-group chronicle-parser-lexical
             (define-test parse-identifier
@@ -40,9 +40,9 @@
                    (assert-true (right? result))
                    (assert-equal -10 (from-right result)))))
 
-;;; ============================================================
+;;; ====
 ;;; Guard Expression Tests
-;;; ============================================================
+;;; ====
 
 (test-group chronicle-parser-guards
             (define-test parse-guard-flag
@@ -70,9 +70,9 @@
                    (assert-true (right? result))
                    (assert-equal #f (from-right result)))))
 
-;;; ============================================================
+;;; ====
 ;;; Effect Expression Tests
-;;; ============================================================
+;;; ====
 
 (test-group chronicle-parser-effects
             (define-test parse-effect-flag
@@ -95,9 +95,9 @@
                    (assert-true (right? result))
                    (assert-equal '(add-item! sword) (from-right result)))))
 
-;;; ============================================================
+;;; ====
 ;;; Choice Tests
-;;; ============================================================
+;;; ====
 
 (test-group chronicle-parser-choices
             (define-test parse-simple-choice
@@ -123,9 +123,9 @@
                    (let ([choice (from-right result)])
                         (assert-equal "Take key" (cadr choice))))))
 
-;;; ============================================================
+;;; ====
 ;;; Scene Tests
-;;; ============================================================
+;;; ====
 
 (test-group chronicle-parser-scenes
             (define-test parse-simple-scene
@@ -153,9 +153,9 @@
                         ;; Check on-enter is present
                         (assert-true (pair? (member 'on-enter (map (lambda (x) (if (pair? x) (car x) x)) scene))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Full Chronicle Tests
-;;; ============================================================
+;;; ====
 
 (test-group chronicle-parser-full
             (define test-chronicle-source "
@@ -205,9 +205,9 @@ chronicle \"Test Story\" {
                          ;; Should have visible choices
                          (assert-equal 1 (length (chronicle-visible-choices chron run)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Complex Chronicle Test
-;;; ============================================================
+;;; ====
 
 (test-group chronicle-parser-complex
             (define complex-source "
@@ -270,12 +270,12 @@ chronicle \"Adventure\" {
                               ;; All 3 choices should be visible now
                               (assert-equal 3 (length choices)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Run All Tests
-;;; ============================================================
+;;; ====
 
-(display "\n========================================\n")
+(display "\n====\n")
 (display "Running Chronicle Parser Tests\n")
-(display "========================================\n\n")
+(display "====\n\n")
 
 (run-all-tests)

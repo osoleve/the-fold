@@ -41,9 +41,9 @@
               [(string=? (substring str i (+ i sub-len)) substr) #t]
               [else (loop (+ i 1))]))))
 
-;;; ============================================================
+;;; ====
 ;;; Type Rank Calculation Tests
-;;; ============================================================
+;;; ====
 (test-section "Type Rank Calculation")
 
 ;; Rank 0: monomorphic types
@@ -76,9 +76,9 @@
 (test "Deeply nested quantifiers is rank 3" 3
       (type-rank '(-> (∀ (a) (-> (∀ (b) (-> b a)) a)) Int)))
 
-;;; ============================================================
+;;; ====
 ;;; Rank Predicates
-;;; ============================================================
+;;; ====
 (test-section "Rank Predicates")
 
 (test "Int is monomorphic" #t (monomorphic? 'Int))
@@ -92,9 +92,9 @@
 (test "(∀a. a) → Int is rank-N" #t (rank-n? '(-> (∀ (a) a) Int)))
 (test "∀a. a is not rank-N" #f (rank-n? '(∀ (a) a)))
 
-;;; ============================================================
+;;; ====
 ;;; Subsumption Tests
-;;; ============================================================
+;;; ====
 (test-section "Subsumption")
 
 ;; Reflexivity
@@ -127,9 +127,9 @@
 (test "(Int → Int) → Int subsumes (∀a. a → a) → Int" #t
       (subsumes '(-> (-> Int Int) Int) '(-> (∀ (a) (-> a a)) Int)))
 
-;;; ============================================================
+;;; ====
 ;;; Deep Instantiation Tests
-;;; ============================================================
+;;; ====
 (test-section "Deep Instantiation")
 
 (let ([result (deep-instantiate '(∀ (a) (-> a a)))])
@@ -141,9 +141,9 @@
 (test "deep-instantiate preserves Int" 'Int (deep-instantiate 'Int))
 (test "deep-instantiate preserves →" '(-> Int Bool) (deep-instantiate '(-> Int Bool)))
 
-;;; ============================================================
+;;; ====
 ;;; Deep Skolemization Tests
-;;; ============================================================
+;;; ====
 (test-section "Deep Skolemization")
 
 (let* ([result (deep-skolemize '(∀ (a) (-> a a)))]
@@ -156,9 +156,9 @@
             (function-param-types type)
             (list (function-return-type type))))
 
-;;; ============================================================
+;;; ====
 ;;; Impredicative Unification Tests
-;;; ============================================================
+;;; ====
 (test-section "Impredicative Unification")
 
 (test "Int unifies with Int" 'ok (car (impredicative-unify 'Int 'Int)))
@@ -177,9 +177,9 @@
 (test "∀a. a → a unifies with ∀b. b → b" 'ok
       (car (impredicative-unify '(∀ (a) (-> a a)) '(∀ (b) (-> b b)))))
 
-;;; ============================================================
+;;; ====
 ;;; Annotation Detection Tests
-;;; ============================================================
+;;; ====
 (test-section "Annotation Detection")
 
 (test "Int doesn't need annotation" #f (requires-annotation 'Int))
@@ -190,9 +190,9 @@
 (test "Can infer rank-1" #t (can-infer? '(∀ (a) (-> a a))))
 (test "Cannot infer rank-2" #f (can-infer? '(-> (∀ (a) a) Int)))
 
-;;; ============================================================
+;;; ====
 ;;; Pretty Printing Tests
-;;; ============================================================
+;;; ====
 (test-section "Pretty Printing")
 
 (test "rank-n-type->string Int" "Int" (rank-n-type->string 'Int))
@@ -205,9 +205,9 @@
      (test "higher-rank parenthesizes forall in arg" #t
            (string-contains? result "(∀")))
 
-;;; ============================================================
+;;; ====
 ;;; Example Type Patterns
-;;; ============================================================
+;;; ====
 (test-section "Example Types")
 
 (test "runST is rank 2" 2 (type-rank type-runST))
@@ -223,9 +223,9 @@
 (let ([pair-type (type-church-pair 'a 'b)])
      (test "Church pair constructor is rank 1" 1 (type-rank pair-type)))
 
-;;; ============================================================
+;;; ====
 ;;; Capture-Avoiding Substitution Tests
-;;; ============================================================
+;;; ====
 (test-section "Capture-Avoiding Substitution")
 
 ;; Test that [b/a] in (∀b. a → b) renames b to avoid capture
@@ -250,11 +250,11 @@
       (test "no capture: b unchanged" '(b) (cadr result))
       (test "no capture: a becomes c" '(-> c b) (caddr result)))
 
-;;; ============================================================
+;;; ====
 ;;; Summary
-;;; ============================================================
+;;; ====
 (newline)
-(display "=================================")
+(display "====")
 (newline)
 (display "Tests passed: ")
 (display *tests-passed*)

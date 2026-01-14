@@ -18,9 +18,9 @@
 (load "lattice/fp/meta/combinators.ss")
 (load "lattice/fp/data/tree-zipper.ss")
 
-;;; ============================================================
+;;; ====
 ;;; State Tree Conversion
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Statechart states form a rose tree where:
 ;;;   - Node value = state record
@@ -61,9 +61,9 @@
                 parent-id
                 (state-data state))))
 
-;;; ============================================================
+;;; ====
 ;;; State Zipper Type
-;;; ============================================================
+;;; ====
 ;;;
 ;;; A state-zipper wraps tree-zipper specialized for states.
 ;;; It provides state-specific operations on top of generic navigation.
@@ -84,9 +84,9 @@
 (define (state-zipper-tree-z sz)
   (list-ref sz 1))
 
-;;; ============================================================
+;;; ====
 ;;; Constructors
-;;; ============================================================
+;;; ====
 
 ;;; state->zipper : State -> StateZipper
 ;;; Create a zipper focused at the root of a state hierarchy.
@@ -98,9 +98,9 @@
 (define (zipper->state sz)
   (tree->state (zipper->tree (state-zipper-tree-z sz))))
 
-;;; ============================================================
+;;; ====
 ;;; Focus Operations
-;;; ============================================================
+;;; ====
 
 ;;; state-zipper-state : StateZipper -> State
 ;;; Get the currently focused state.
@@ -131,9 +131,9 @@
 (define (state-zipper-modify sz f)
   (state-zipper-set sz (f (state-zipper-state sz))))
 
-;;; ============================================================
+;;; ====
 ;;; Navigation
-;;; ============================================================
+;;; ====
 
 ;;; state-zipper-up : StateZipper -> (Maybe StateZipper)
 ;;; Move focus to parent state.
@@ -180,9 +180,9 @@
         nothing
         (just (make-state-zipper (from-just result))))))
 
-;;; ============================================================
+;;; ====
 ;;; Navigation Predicates
-;;; ============================================================
+;;; ====
 
 ;;; state-zipper-at-root? : StateZipper -> Bool
 (define (state-zipper-at-root? sz)
@@ -200,9 +200,9 @@
 (define (state-zipper-can-go-down? sz)
   (tree-zipper-can-go-down? (state-zipper-tree-z sz)))
 
-;;; ============================================================
+;;; ====
 ;;; State-Specific Search
-;;; ============================================================
+;;; ====
 
 ;;; state-zipper-find : StateZipper x Symbol -> (Maybe StateZipper)
 ;;; Find a state by ID, returning zipper focused on it.
@@ -245,9 +245,9 @@
                                result
                                (try-siblings (from-just right)))))))))))]))
 
-;;; ============================================================
+;;; ====
 ;;; Ancestor Operations (O(depth) instead of O(n))
-;;; ============================================================
+;;; ====
 
 ;;; state-zipper-ancestors : StateZipper -> (List State)
 ;;; Get all ancestor states from parent to root.
@@ -277,9 +277,9 @@
 (define (state-zipper-depth sz)
   (tree-zipper-depth (state-zipper-tree-z sz)))
 
-;;; ============================================================
+;;; ====
 ;;; LCA (Lowest Common Ancestor) - Efficient Implementation
-;;; ============================================================
+;;; ====
 ;;;
 ;;; To find LCA of two states:
 ;;; 1. Find both states (get zippers focused on each)
@@ -323,9 +323,9 @@
       (car lst)
       (last (cdr lst))))
 
-;;; ============================================================
+;;; ====
 ;;; Descendant Check
-;;; ============================================================
+;;; ====
 
 ;;; state-zipper-is-descendant? : StateZipper x Symbol x Symbol -> Bool
 ;;; Check if child-id is a descendant of parent-id.
@@ -338,9 +338,9 @@
             #t
             #f))))
 
-;;; ============================================================
+;;; ====
 ;;; Exit/Entry Path Computation
-;;; ============================================================
+;;; ====
 ;;;
 ;;; For transitions, we need:
 ;;; - States to exit (source up to LCA, exclusive)
@@ -392,9 +392,9 @@
     [(pred (car lst)) lst]
     [else (dropwhile-not pred (cdr lst))]))
 
-;;; ============================================================
+;;; ====
 ;;; Preorder Traversal
-;;; ============================================================
+;;; ====
 
 ;;; state-zipper-preorder : StateZipper -> (List StateZipper)
 ;;; Get all state zippers in preorder traversal.
@@ -410,9 +410,9 @@
         nothing
         (just (make-state-zipper (from-just result))))))
 
-;;; ============================================================
+;;; ====
 ;;; Utility: Find with predicate
-;;; ============================================================
+;;; ====
 
 ;;; state-zipper-find-if : StateZipper x (State -> Bool) -> (Maybe StateZipper)
 ;;; Find first state matching predicate (preorder).
@@ -425,9 +425,9 @@
       [else
        (loop (state-zipper-next (from-just current)))])))
 
-;;; ============================================================
+;;; ====
 ;;; Collect Operations
-;;; ============================================================
+;;; ====
 
 ;;; state-zipper-collect : StateZipper x (State -> Bool) -> (List State)
 ;;; Collect all states matching predicate.

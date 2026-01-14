@@ -17,9 +17,9 @@
 (load "core/base/prelude.ss")
 (load "lattice/algebra/group.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Ring Representation
-;;; ============================================================
+;;; ====
 
 ;;; A Ring is represented as:
 ;;; (ring elements add-op mul-op zero one neg-fn equal-fn)
@@ -66,9 +66,9 @@
 (define (ring-order r)
   (length (ring-elements r)))
 
-;;; ============================================================
+;;; ====
 ;;; Ring Operations
-;;; ============================================================
+;;; ====
 
 ;;; ring-add : Ring × Element × Element → Element
 (define (ring-add r a b)
@@ -124,9 +124,9 @@
                acc
                (loop (cdr elems) (ring-mul r acc (car elems)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Ring Properties
-;;; ============================================================
+;;; ====
 
 ;;; is-commutative-ring? : Ring → Boolean
 ;;; Check if multiplication is commutative: a × b = b × a
@@ -197,9 +197,9 @@
   (filter (lambda (a) (is-unit? r a))
           (ring-elements r)))
 
-;;; ============================================================
+;;; ====
 ;;; Standard Rings
-;;; ============================================================
+;;; ====
 
 ;;; make-ring-zn : Natural → Ring
 ;;; Create the ring Z_n of integers modulo n.
@@ -232,9 +232,9 @@
         -         ; Negation
         =)))      ; Equality
 
-;;; ============================================================
+;;; ====
 ;;; Ring Homomorphisms
-;;; ============================================================
+;;; ====
 
 ;;; A ring homomorphism is a function φ: R → S such that:
 ;;; - φ(a + b) = φ(a) + φ(b)
@@ -307,9 +307,9 @@
         (map phi (ring-elements r))
         (ring-equal-fn (ring-hom-target h)))))
 
-;;; ============================================================
+;;; ====
 ;;; Ideals
-;;; ============================================================
+;;; ====
 
 ;;; An ideal I of ring R is a subset such that:
 ;;; 1. (I, +) is a subgroup of (R, +)
@@ -453,9 +453,9 @@
                                        (loop (cdr candidates))
                                        #f))))))))) ; Found proper ideal containing I
 
-;;; ============================================================
+;;; ====
 ;;; Utilities
-;;; ============================================================
+;;; ====
 
 ;;; Helper: range
 (define (range start end)

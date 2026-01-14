@@ -31,7 +31,7 @@ Blocks reference other blocks by hash, forming a Merkle DAG—an immutable, cont
 The system has three layers:
 
 | Layer | Purpose | Properties |
-|-------|---------|------------|
+|----|----|----|
 | **Core** | Language kernel | Pure, total (always terminates), assumes valid input |
 | **Shell** | IO boundary | Handles real-world messiness, validates input |
 | **User** | Applications | Built on verified foundations |
@@ -131,7 +131,7 @@ Performance-critical paths have optional Rust acceleration via FFI (`shell/ffi/r
 ## Comparison to Similar Systems
 
 | System | Similarity | Difference |
-|--------|------------|------------|
+|----|----|----|
 | **Unison** | Content-addressed code | Different type system, different normalization |
 | **IPFS** | Content-addressed storage | IPFS is for data; The Fold is for computation |
 | **Nix** | Content-addressed builds | Nix addresses build reproducibility; The Fold addresses computation |

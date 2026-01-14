@@ -20,9 +20,9 @@
 (load "lattice/linalg/vec2.ss")
 (load "lattice/physics/classical/integrators.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Collision Manifold
-;;; ============================================================
+;;; ====
 
 ;;; A collision manifold describes the contact between two bodies:
 ;;;   - body-a: first body
@@ -54,9 +54,9 @@
 ;;; manifold-contact : Manifold → Vec2
 (define (manifold-contact m) (list-ref m 5))
 
-;;; ============================================================
+;;; ====
 ;;; Material Properties
-;;; ============================================================
+;;; ====
 
 ;;; Material properties for collision response
 ;;;   - restitution: bounciness (0 = perfectly inelastic, 1 = perfectly elastic)
@@ -100,9 +100,9 @@
              (sqrt (* sf-a sf-b))  ; Geometric mean for static friction
              (sqrt (* df-a df-b))))) ; Geometric mean for dynamic friction
 
-;;; ============================================================
+;;; ====
 ;;; Relative Velocity Calculation (with angular support)
-;;; ============================================================
+;;; ====
 
 ;;; velocity-at-point : Body × Vec2 → Vec2
 ;;; Get velocity at a world point, including angular contribution for rigid bodies.
@@ -138,9 +138,9 @@
          [normal-component (vec2-scale normal (vec2-dot rel-vel normal))])
         (vec2-sub rel-vel normal-component)))
 
-;;; ============================================================
+;;; ====
 ;;; Impulse Calculation (with angular support)
-;;; ============================================================
+;;; ====
 
 ;;; get-inv-mass : Body → Number
 ;;; Get inverse mass from either Body2D or RigidBody2D.
@@ -227,9 +227,9 @@
                      ;; Dynamic friction
                      (* (- j-normal) dynamic-friction (if (< j-tangent 0) -1 1)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Impulse Application (with angular support)
-;;; ============================================================
+;;; ====
 
 ;;; body-is-static? : Body → Boolean
 ;;; Check if body is static (works for both Body2D and RigidBody2D).
@@ -364,9 +364,9 @@
                              [body-b-2 (apply-impulse-at body-b-1 (vec2-neg friction-impulse) contact)])
                             (list body-a-2 body-b-2)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Position Correction
-;;; ============================================================
+;;; ====
 
 ;;; Position correction parameters
 (define *position-slop* 0.01)      ; Allow slight penetration
@@ -404,9 +404,9 @@
                   (list (body-with-position body-a new-pos-a)
                         (body-with-position body-b new-pos-b))))))
 
-;;; ============================================================
+;;; ====
 ;;; Full Collision Resolution
-;;; ============================================================
+;;; ====
 
 ;;; resolve-with-correction : Manifold × Material × Material → (Body2D × Body2D)
 ;;; Full collision resolution with impulse and position correction.
@@ -437,9 +437,9 @@
          [corrected (correct-positions corrected-manifold)])
         corrected))
 
-;;; ============================================================
+;;; ====
 ;;; Simple Collision Detection Helpers
-;;; ============================================================
+;;; ====
 
 ;;; body-circle-circle-manifold : Body2D × Number × Body2D × Number → Manifold | #f
 ;;; Generate collision manifold for two circles using bodies.
@@ -492,9 +492,9 @@
                   (let ([aabb-body (make-static-body closest)])
                        (make-manifold body aabb-body normal penetration closest))))))
 
-;;; ============================================================
+;;; ====
 ;;; Batch Collision Resolution
-;;; ============================================================
+;;; ====
 
 ;;; resolve-all-collisions : (List Manifold) × (Manifold → Material × Material) → (List Body2D)
 ;;; Resolve multiple collisions, returning updated unique bodies.
@@ -537,9 +537,9 @@
             (let-values ([(keys vals) (hashtable-entries body-table)])
                         (vector->list vals)))))
 
-;;; ============================================================
+;;; ====
 ;;; Iterative Solver
-;;; ============================================================
+;;; ====
 
 ;;; solve-iterations : (List Manifold) × (Manifold → Material × Material) × Nat → (List Body2D)
 ;;; Iteratively solve collisions for stability (sequential impulses).

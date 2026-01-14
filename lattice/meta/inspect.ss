@@ -17,9 +17,9 @@
 
 (load "lattice/meta/dag.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Skill Description
-;;; ============================================================
+;;; ====
 
 ;;; lattice-describe : Symbol -> void
 ;;; Pretty-print full skill description
@@ -98,9 +98,9 @@
                  (loop (cdr cs))
                  cs)))))
 
-;;; ============================================================
+;;; ====
 ;;; Export Listing
-;;; ============================================================
+;;; ====
 
 ;;; lattice-skill-exports : Symbol -> (List Symbol)
 ;;; Get all exports from a skill
@@ -144,9 +144,9 @@
                                (printf "\n")))
                  (if (list? exports-raw) exports-raw '()))))))
 
-;;; ============================================================
+;;; ====
 ;;; Module Listing
-;;; ============================================================
+;;; ====
 
 ;;; lattice-modules-detail : Symbol -> void
 ;;; Pretty-print module details for a skill
@@ -168,9 +168,9 @@
                                     (printf "  ~a\n\n" desc))))
                  (if (list? modules-raw) modules-raw '()))))))
 
-;;; ============================================================
+;;; ====
 ;;; Source Location
-;;; ============================================================
+;;; ====
 
 ;;; lattice-source : Symbol -> String | #f
 ;;; Get source file for an export (if discoverable)
@@ -211,9 +211,9 @@
    [(pred (car lst)) (car lst)]
    [else (find pred (cdr lst))]))
 
-;;; ============================================================
+;;; ====
 ;;; Agent-Friendly Info
-;;; ============================================================
+;;; ====
 
 ;;; lattice-info : Symbol -> Alist | #f
 ;;; Get structured info about a skill for agent consumption
@@ -243,7 +243,7 @@
 ;;; Print one-line summary for each skill
 (define (lattice-summary)
   (printf "~20a ~8a ~8a ~6a ~a\n" "Skill" "Tier" "Purity" "Mods" "Description")
-  (printf "~20a ~8a ~8a ~6a ~a\n" "--------------------" "--------" "--------" "------" "------------------------")
+  (printf "~20a ~8a ~8a ~6a ~a\n" "----" "----" "----" "----" "----")
   (for-each
    (lambda (skill-name)
            (let ([info (lattice-info skill-name)])
@@ -263,9 +263,9 @@
            s
            (string-append (substring s 0 (- max-len 3)) "..."))))
 
-;;; ============================================================
+;;; ====
 ;;; Convenience Functions (for REPL)
-;;; ============================================================
+;;; ====
 
 ;;; li : Symbol -> void
 ;;; Quick skill inspection
@@ -282,9 +282,9 @@
 (define (lm skill-name)
   (lattice-modules-detail skill-name))
 
-;;; ============================================================
+;;; ====
 ;;; REPL Interface
-;;; ============================================================
+;;; ====
 
 (printf "inspect.ss loaded.\n")
 (printf "  (lattice-describe 'skill)     - Full description\n")

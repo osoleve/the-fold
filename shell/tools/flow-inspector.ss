@@ -19,9 +19,9 @@
 (load "shell/lens/call-graph.ss")
 (load "shell/tools/index.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Data Structures
-;;; ============================================================
+;;; ====
 
 ;;; Flow node: represents a symbol with its effect
 ;;; ((symbol . Symbol)
@@ -57,9 +57,9 @@
 (define (boundary-from-effect b) (cdr (assq 'from-effect b)))
 (define (boundary-to-effect b) (cdr (assq 'to-effect b)))
 
-;;; ============================================================
+;;; ====
 ;;; Effect Lookup
-;;; ============================================================
+;;; ====
 
 ;;; get-symbol-effect : Symbol → Effect
 ;;; Get the effect of a symbol using the effect database.
@@ -76,9 +76,9 @@
                 (values (or file #f) (or line #f)))
            (values #f #f))))
 
-;;; ============================================================
+;;; ====
 ;;; Flow Graph Building
-;;; ============================================================
+;;; ====
 
 ;;; build-flow-tree : Symbol × Nat × (HashTable Symbol) → FlowTree
 ;;; Build a tree of call relationships with effect annotations.
@@ -98,9 +98,9 @@
                          `((node . ,(make-flow-node root effect file line))
                            (children . ,children)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Effect Boundary Detection
-;;; ============================================================
+;;; ====
 
 ;;; find-boundaries-in-tree : FlowTree × Effect → (List EffectBoundary)
 ;;; Walk the tree and collect effect boundaries.
@@ -135,9 +135,9 @@
             (find-boundaries-in-tree tree 'pure)
             '())))
 
-;;; ============================================================
+;;; ====
 ;;; Effect-Filtered Call Slicing
-;;; ============================================================
+;;; ====
 
 ;;; call-slice-by-effect : Symbol × Effect × Nat → (List (List Symbol))
 ;;; Get callees filtered by effect, organized by depth.
@@ -171,9 +171,9 @@
                                 acc
                                 (cons (cons i level) acc)))))))))
 
-;;; ============================================================
+;;; ====
 ;;; REPL Commands
-;;; ============================================================
+;;; ====
 
 ;;; trace-flow : Symbol [Nat] → Void
 ;;; Trace effectful flows from a symbol.
@@ -355,9 +355,9 @@
                    (printf "  Total: ~a symbol~a\n" total (if (= total 1) "" "s"))))))
     (display "\n")]))
 
-;;; ============================================================
+;;; ====
 ;;; Help
-;;; ============================================================
+;;; ====
 
 (define (flow-inspector-help)
   (display "\n")

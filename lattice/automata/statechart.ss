@@ -23,9 +23,9 @@
 (load "core/base/prelude.ss")
 (load "lattice/fp/meta/combinators.ss")
 
-;;; ============================================================
+;;; ====
 ;;; State Types and Constructors
-;;; ============================================================
+;;; ====
 ;;;
 ;;; States can be:
 ;;;   - Atomic: simple states with no substates
@@ -212,9 +212,9 @@
 ;;; This provides efficient O(depth) ancestor/LCA operations.
 (load "lattice/automata/statechart-zipper.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Transition Types
-;;; ============================================================
+;;; ====
 ;;;
 ;;; A transition is:
 ;;;   (transition <event> <target> <guard> <action>)
@@ -302,9 +302,9 @@
 (define (internal-guard event guard action)
   (make-transition event #f guard action))
 
-;;; ============================================================
+;;; ====
 ;;; Events
-;;; ============================================================
+;;; ====
 ;;;
 ;;; An event is: (event <type> <payload>)
 
@@ -333,9 +333,9 @@
 (define (evt-data type data)
   (make-event type data))
 
-;;; ============================================================
+;;; ====
 ;;; Statechart
-;;; ============================================================
+;;; ====
 ;;;
 ;;; A statechart is the top-level container:
 ;;;   (statechart <id> <root-state> <context> <history>)
@@ -388,9 +388,9 @@
   (cons (cons state-id active-substates)
         (filter (lambda (e) (not (eq? (car e) state-id))) hist)))
 
-;;; ============================================================
+;;; ====
 ;;; Statechart DSL
-;;; ============================================================
+;;; ====
 ;;;
 ;;; The DSL provides a declarative way to define statecharts.
 ;;;
@@ -473,9 +473,9 @@
                 (state-parent state) (state-data state))]
    [else state]))
 
-;;; ============================================================
+;;; ====
 ;;; State Lookup and Navigation
-;;; ============================================================
+;;; ====
 
 ;;; find-state : State × Symbol → (Option State)
 ;;; Find a state by id within a state hierarchy.
@@ -537,9 +537,9 @@
   (let ([sz (state->zipper root)])
     (state-zipper-is-descendant? sz parent-id child-id)))
 
-;;; ============================================================
+;;; ====
 ;;; Configuration (Active State Set)
-;;; ============================================================
+;;; ====
 ;;;
 ;;; A configuration is the set of currently active states.
 ;;; For flat machines: single state.
@@ -617,9 +617,9 @@
                                            (configuration-add cfg (state-id region)))))))]
                  [else (configuration-empty)])))))
 
-;;; ============================================================
+;;; ====
 ;;; Statechart Interpreter
-;;; ============================================================
+;;; ====
 ;;;
 ;;; The interpreter manages statechart execution:
 ;;;   - Current configuration (active states)
@@ -705,9 +705,9 @@
     (make-configuration (list (state-id root)))]
    [else (configuration-empty)]))
 
-;;; ============================================================
+;;; ====
 ;;; Transition Selection and Execution
-;;; ============================================================
+;;; ====
 
 ;;; find-enabled-transition : Interpreter × State × (Option Event) → (Option Transition)
 ;;; Find a transition enabled by the given event in the given state.
@@ -977,9 +977,9 @@
                            target-id))]
                  [else target-id])))))
 
-;;; ============================================================
+;;; ====
 ;;; Event Processing
-;;; ============================================================
+;;; ====
 
 ;;; step : Interpreter × (Option Event) → Interpreter
 ;;; Process a single event and return the new interpreter state.
@@ -1026,9 +1026,9 @@
 (define (run-events interp events)
   (fold-left step interp events))
 
-;;; ============================================================
+;;; ====
 ;;; State Queries
-;;; ============================================================
+;;; ====
 
 ;;; in-state? : Interpreter × Symbol → Boolean
 ;;; Check if a state is currently active.
@@ -1055,9 +1055,9 @@
 (define (current-context interp)
   (interpreter-context interp))
 
-;;; ============================================================
+;;; ====
 ;;; Validation and Analysis
-;;; ============================================================
+;;; ====
 
 ;;; validate-statechart : Statechart → (List (List Symbol))
 ;;; Validate a statechart for structural correctness.
@@ -1177,9 +1177,9 @@
             (apply append (map collect-all-state-ids (state-substates state)))
             '())))
 
-;;; ============================================================
+;;; ====
 ;;; Visualization
-;;; ============================================================
+;;; ====
 
 ;;; statechart->dot : Statechart → String
 ;;; Generate a DOT (Graphviz) representation.
@@ -1246,9 +1246,9 @@
                           ""))
               (state-transitions state))))
 
-;;; ============================================================
+;;; ====
 ;;; Helper Functions
-;;; ============================================================
+;;; ====
 
 ;;; find-if : (α → Boolean) × (List α) → (Option α)
 (define (find-if pred lst)
@@ -1269,9 +1269,9 @@
       (from-just maybe)
       default))
 
-;;; ============================================================
+;;; ====
 ;;; Exports Summary
-;;; ============================================================
+;;; ====
 ;;;
 ;;; State Constructors:
 ;;;   atomic, atomic-with, composite, composite-with

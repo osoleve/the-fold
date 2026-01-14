@@ -5,16 +5,16 @@
 
 (display "
 ")
-(display "==============================================================
+(display "====
 ")
 (display "   PARSER INFINITE LOOP BUG FIX TESTS
 ")
-(display "==============================================================
+(display "====
 ")
 
-;;; ============================================================
+;;; ====
 ;;; Test Cases for Infinite Loop Bug
-;;; ============================================================
+;;; ====
 
 (test-group infinite-loop-tests
             ;; Test many with parser that succeeds without consuming input
@@ -95,9 +95,9 @@
                     ;; But outer many sees no input consumed, so breaks
                     (assert-equal '() (from-right result)))))
 
-;;; ============================================================
+;;; ====
 ;;; Regression Tests (ensure normal behavior still works)
-;;; ============================================================
+;;; ====
 
 (test-group regression-tests
             ;; Test spaces combinator (uses many)
@@ -131,13 +131,13 @@
                     (assert-true (right? result))
                     (assert-equal 4 (length (from-right result))))))
 
-;;; ============================================================
+;;; ====
 ;;; Summary
-;;; ============================================================
+;;; ====
 
 (display "
 ")
-(display "==============================================================
+(display "====
 ")
 (printf "Tests passed: ~a
 " *tests-passed*)

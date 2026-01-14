@@ -36,9 +36,9 @@
 (load "blocks/cas.ss")
 (load "cas-persist.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Store Statistics
-;;; ============================================================
+;;; ====
 
 ;;; compute-store-stats : FS → Stats
 ;;; Compute comprehensive statistics about the store.
@@ -100,9 +100,9 @@
                                            tag-counts
                                            ref-counts)))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Display Statistics
-;;; ============================================================
+;;; ====
 
 ;;; store-stats : FS → void
 ;;; Display store statistics.
@@ -178,9 +178,9 @@
                     (list pivot)
                     (list-sort less? greater)))))
 
-;;; ============================================================
+;;; ====
 ;;; Size Distribution Analysis
-;;; ============================================================
+;;; ====
 
 ;;; store-distribution : FS → void
 ;;; Show block size distribution with histogram.
@@ -259,9 +259,9 @@
       '()
       (cons x (make-list-of (- n 1) x))))
 
-;;; ============================================================
+;;; ====
 ;;; Store Health Check
-;;; ============================================================
+;;; ====
 
 ;;; store-health-check : FS → void
 ;;; Check store health and integrity.
@@ -363,9 +363,9 @@
                        (not (hash-set-contains? referenced hash)))
                all-hashes)))
 
-;;; ============================================================
+;;; ====
 ;;; Hash Set (for efficient membership testing)
-;;; ============================================================
+;;; ====
 
 ;;; make-hash-set : (List Hash) → HashSet
 ;;; Create a hash set from a list of hashes.
@@ -397,9 +397,9 @@
                 (loop (+ i 1)
                       (+ (* hash 31) (bytevector-u8-ref bv i)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Store Report Generation
-;;; ============================================================
+;;; ====
 
 ;;; store-report : FS × String → void
 ;;; Generate comprehensive store report.
@@ -411,11 +411,11 @@
        (call-with-output-file output-file
                               (lambda (port)
                                       (display "CONTENT-ADDRESSED STORE ANALYSIS REPORT\n" port)
-                                      (display "========================================\n\n" port)
+                                      (display "====\n\n" port)
                                       
                                       ;; Basic stats
                                       (display "STORAGE STATISTICS\n" port)
-                                      (display "------------------\n" port)
+                                      (display "----\n" port)
                                       (display (format "Total Blocks: ~a\n" (cdr (assq 'total-blocks stats))) port)
                                       (display (format "Total Storage: ~a bytes\n" (cdr (assq 'total-bytes stats))) port)
                                       (display (format "Average Block Size: ~a bytes\n" (cdr (assq 'avg-block-size stats))) port)
@@ -423,7 +423,7 @@
                                       
                                       ;; Tag distribution
                                       (display "TAG DISTRIBUTION\n" port)
-                                      (display "----------------\n" port)
+                                      (display "----\n" port)
                                       (let ([tag-dist (cdr (assq 'tag-distribution stats))])
                                            (hashtable-for-each tag-dist
                                                                (lambda (tag count)
@@ -432,7 +432,7 @@
                                       
                                       ;; Reference distribution
                                       (display "REFERENCE DISTRIBUTION\n" port)
-                                      (display "----------------------\n" port)
+                                      (display "----\n" port)
                                       (for-each
                                        (lambda (entry)
                                                (display (format "~a refs: ~a blocks\n" (car entry) (cdr entry)) port))
@@ -450,9 +450,9 @@
                 (proc key (hashtable-ref ht key #f)))
         keys)))
 
-;;; ============================================================
+;;; ====
 ;;; Growth Analysis
-;;; ============================================================
+;;; ====
 
 ;;; store-growth-analysis : FS → void
 ;;; Analyze store growth patterns (requires historical data).
@@ -488,9 +488,9 @@
                                (display "\n")))
                   growth-rates)))))
 
-;;; ============================================================
+;;; ====
 ;;; Helper Functions
-;;; ============================================================
+;;; ====
 
 ;;; hash->hex : Hash → String
 ;;; Convert hash to hex string (simplified version).

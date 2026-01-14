@@ -19,9 +19,9 @@
 (load "lattice/statistics/core/result-types.ss")
 (load "lattice/statistics/hypothesis/distributions.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Goodness-of-Fit Test
-;;; ============================================================
+;;; ====
 
 ;;; chi-squared-test-goodness : Vec × Vec → TestResult
 ;;; Test H0: observed frequencies match expected frequencies.
@@ -66,9 +66,9 @@
             (vector-set! expected i (* total (vector-ref proportions i))))
         (chi-squared-test-goodness observed expected)))
 
-;;; ============================================================
+;;; ====
 ;;; Independence Test
-;;; ============================================================
+;;; ====
 
 ;;; chi-squared-test-independence : Matrix → TestResult
 ;;; Test H0: rows and columns are independent in contingency table.
@@ -116,9 +116,9 @@
               (make-test-result 'chi-squared-independence chi-sq df p-value
                                 #f cramers-v))))
 
-;;; ============================================================
+;;; ====
 ;;; Helper Functions
-;;; ============================================================
+;;; ====
 
 ;;; vec-sum : Vec → Num
 (define (vec-sum v)

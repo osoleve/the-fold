@@ -159,7 +159,7 @@ For standard recursion (calling at the same type), no annotation is needed:
 The type system uses proper higher-rank subtyping:
 
 | Rule | Description |
-|------|-------------|
+|----|----|
 | `∀a. T <: T[τ/a]` | Polymorphic types can be instantiated |
 | `T <: ∀a. T` (if `a` not free in context) | Types can be generalized |
 | `(A → B) <: (A' → B')` if `A' <: A` and `B <: B'` | Contravariant args, covariant returns |

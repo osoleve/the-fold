@@ -159,7 +159,7 @@ Traced operations must handle mixed traced/constant arguments:
 Differentiation adds overhead to primitive operations:
 
 | Operation | Normal Cost | Traced Cost | Overhead |
-|-----------|-------------|-------------|----------|
+|----|----|----|----|
 | `add`     | 2           | 3           | +1       |
 | `mul`     | 2           | 3           | +1       |
 | `sqrt`    | 4           | 6           | +2       |

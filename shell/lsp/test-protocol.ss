@@ -18,11 +18,11 @@
        (newline))))
 
 (display "Testing protocol.ss\n")
-(display "===================\n\n")
+(display "====\n\n")
 
-;;; ============================================================
+;;; ====
 ;;; Message Classification Tests
-;;; ============================================================
+;;; ====
 
 (display "Message Classification:\n")
 
@@ -67,9 +67,9 @@
                                                  ("message" . "Invalid")))))
 (test "lsp-response? error" #t (if (lsp-response? response-error) #t #f))
 
-;;; ============================================================
+;;; ====
 ;;; Message Accessor Tests
-;;; ============================================================
+;;; ====
 
 (display "\nMessage Accessors:\n")
 
@@ -78,9 +78,9 @@
 (test "lsp-message-params type" 'json-object
       (car (lsp-message-params request-msg)))
 
-;;; ============================================================
+;;; ====
 ;;; Constructor Tests
-;;; ============================================================
+;;; ====
 
 (display "\nConstructors:\n")
 
@@ -127,9 +127,9 @@
       (test "make-signature-help activeSignature" 0 (json-get help "activeSignature"))
       (test "make-signature-help activeParameter" 0 (json-get help "activeParameter")))
 
-;;; ============================================================
+;;; ====
 ;;; URI Utilities Tests
-;;; ============================================================
+;;; ====
 
 (display "\nURI Utilities:\n")
 
@@ -137,9 +137,9 @@
 (test "uri->path" "/home/test.ss" (uri->path "file:///home/test.ss"))
 (test "uri->path passthrough" "/already/path" (uri->path "/already/path"))
 
-;;; ============================================================
+;;; ====
 ;;; Response Construction Tests
-;;; ============================================================
+;;; ====
 
 (display "\nResponse Construction:\n")
 
@@ -152,7 +152,7 @@
            (if (json-get err "error") #t #f)))
 
 ;;; Summary
-(display "\n===================\n")
+(display "\n====\n")
 (printf "Passed: ~a, Failed: ~a\n" tests-passed tests-failed)
 (when (> tests-failed 0)
       (exit 1))

@@ -9,9 +9,9 @@
 ;;;   - json->string : Any -> String
 ;;;   - json-escape : String -> String
 
-;;; ============================================================
+;;; ====
 ;;; JSON Parsing
-;;; ============================================================
+;;; ====
 
 ;;; parse-json-string : String -> Any | #f
 ;;; Parse a JSON string into Scheme data structures.
@@ -170,9 +170,9 @@
       (values '() (+ pos 4))
       (values #f pos)))
 
-;;; ============================================================
+;;; ====
 ;;; JSON Serialization
-;;; ============================================================
+;;; ====
 
 ;;; json->string : Any -> String
 ;;; Convert Scheme value to JSON string.

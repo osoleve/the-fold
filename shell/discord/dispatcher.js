@@ -14,9 +14,9 @@ const fs = require('fs');
 const path = require('path');
 const gatewayConfig = require('./gateway-config');
 
-// ============================================================
+// ====
 // State Management
-// ============================================================
+// ====
 
 /**
  * Load anti-loop state from disk
@@ -65,9 +65,9 @@ function saveState(state) {
   }
 }
 
-// ============================================================
+// ====
 // Mention Parsing
-// ============================================================
+// ====
 
 /**
  * Parse a message to extract agent mention
@@ -88,9 +88,9 @@ function parseAgentMention(content) {
   return null;
 }
 
-// ============================================================
+// ====
 // Anti-Loop Policy Checks
-// ============================================================
+// ====
 
 /**
  * Check thread depth limit
@@ -252,9 +252,9 @@ function checkSelfMention(authorName, agentId) {
   return { allowed: true };
 }
 
-// ============================================================
+// ====
 // Main Dispatch Check
-// ============================================================
+// ====
 
 /**
  * Check if a message should be dispatched to an agent
@@ -413,9 +413,9 @@ function cleanupState(state) {
   saveState(state);
 }
 
-// ============================================================
+// ====
 // Exports
-// ============================================================
+// ====
 
 module.exports = {
   // State management

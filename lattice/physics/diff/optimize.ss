@@ -22,9 +22,9 @@
 (load "lattice/physics/diff/traced-integrators.ss")
 (load "lattice/physics/diff/rollout.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Gradient Descent
-;;; ============================================================
+;;; ====
 
 ;;; gradient-descent-step : (List Number) × (List Number) × Number → (List Number)
 ;;; Single gradient descent update: x = x - lr * grad
@@ -48,9 +48,9 @@
                   [new-params (gradient-descent-step params grads learning-rate)])
                  (loop new-params (+ iter 1))))))
 
-;;; ============================================================
+;;; ====
 ;;; Gradient Descent with Momentum
-;;; ============================================================
+;;; ====
 
 ;;; momentum-step : (List Number) × (List Number) × (List Number) × Number × Number → ((List Number) × (List Number))
 ;;; Momentum update: v = beta*v + grad, x = x - lr*v
@@ -75,9 +75,9 @@
                        (lambda (new-params new-velocity)
                                (loop new-params new-velocity (+ iter 1)))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Adam Optimizer
-;;; ============================================================
+;;; ====
 
 ;;; adam-step : (List Number) × (List Number) × (List Number) × (List Number) × Nat × Number × Number × Number × Number → ((List Number) × (List Number) × (List Number))
 ;;; Adam optimizer update.
@@ -115,9 +115,9 @@
                        (lambda (new-params new-m new-v)
                                (loop new-params new-m new-v (+ t 1)))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Trajectory Optimization
-;;; ============================================================
+;;; ====
 
 ;;; optimize-initial-velocity : Vec2 × Vec2 × Vec2 × Number × Nat × Number × Nat → Vec2
 ;;; Find initial velocity to hit target position.
@@ -185,9 +185,9 @@
                          (list-ref result 5)
                          mass inertia)))
 
-;;; ============================================================
+;;; ====
 ;;; Inverse Physics (Parameter Estimation)
-;;; ============================================================
+;;; ====
 
 ;;; estimate-mass : (List (RigidBody2D × RigidBody2D)) × Vec2 × Number × Number × Nat → Number
 ;;; Estimate mass from observed (initial, final) state pairs.
@@ -257,9 +257,9 @@
                        0.1 max-iters)])
         (vec2 (car result) (cadr result))))
 
-;;; ============================================================
+;;; ====
 ;;; Sensitivity Analysis
-;;; ============================================================
+;;; ====
 
 ;;; sensitivity : ((List Number) → Number) × (List Number) → (List Number)
 ;;; Compute gradient of loss w.r.t. parameters (same as gradient, but semantic).
@@ -322,9 +322,9 @@
         (values (vec2 (car grads-x) (cadr grads-x))
                 (vec2 (car grads-y) (cadr grads-y)))))
 
-;;; ============================================================
+;;; ====
 ;;; Utility Functions
-;;; ============================================================
+;;; ====
 
 ;;; list-update : (List α) × Nat × (α → α) → (List α)
 ;;; Update element at index with function.
@@ -346,9 +346,9 @@
 (define (print-optimization-progress iter loss params)
   (printf "Iter ~a: loss=~a params=~a~n" iter loss params))
 
-;;; ============================================================
+;;; ====
 ;;; Complete Optimization Example
-;;; ============================================================
+;;; ====
 
 ;;; This shows how to set up a complete optimization problem.
 

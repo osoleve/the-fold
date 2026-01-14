@@ -11,9 +11,9 @@
 (load "core/base/prelude.ss")
 (load "core/blocks/block.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Accelerator Manifest Format
-;;; ============================================================
+;;; ====
 
 ;;; Example manifest:
 ;;; (accelerator
@@ -29,9 +29,9 @@
 ;;;   (source-hash "00abc123...")
 ;;;   (scheme-hash "00def456..."))
 
-;;; ============================================================
+;;; ====
 ;;; Manifest Construction
-;;; ============================================================
+;;; ====
 
 ;;; make-accelerator-manifest : String × String × String × String × List × List × List × Bytevector × Bytevector → List
 ;;; Create an accelerator manifest S-expression
@@ -50,9 +50,9 @@
     (source-hash ,source-hash)
     (scheme-hash ,scheme-hash)))
 
-;;; ============================================================
+;;; ====
 ;;; Block Operations
-;;; ============================================================
+;;; ====
 
 ;;; make-accelerator-block : List × Bytevector × Bytevector → Block
 ;;; Create a block containing the accelerator manifest
@@ -84,9 +84,9 @@
 (define (accelerator-block-scheme-hash blk)
   (vector-ref (block-refs blk) 1))
 
-;;; ============================================================
+;;; ====
 ;;; Manifest Accessors
-;;; ============================================================
+;;; ====
 
 ;;; manifest-get : List × Symbol → (+ Any #f)
 ;;; Get a field from manifest
@@ -115,9 +115,9 @@
   (let ([fm (assq 'fuel-model (cdr manifest))])
        (and fm (cdr fm))))
 
-;;; ============================================================
+;;; ====
 ;;; Rust Source Block
-;;; ============================================================
+;;; ====
 
 ;;; make-rust-source-block : String → Block
 ;;; Create a block containing Rust source code
@@ -135,9 +135,9 @@
 (define (rust-source-block-code blk)
   (utf8->string (block-payload blk)))
 
-;;; ============================================================
+;;; ====
 ;;; Example: BVH Accelerator Manifest
-;;; ============================================================
+;;; ====
 
 ;;; bvh-closest-point-manifest : Bytevector × Bytevector → List
 ;;; Create manifest for the BVH closest-point accelerator
@@ -167,13 +167,13 @@
    source-hash
    scheme-hash))
 
-;;; ============================================================
+;;; ====
 ;;; Tests
-;;; ============================================================
+;;; ====
 
 (define (test-accelerator-block)
   (display "Accelerator Block Tests\n")
-  (display "=======================\n")
+  (display "====\n")
   
   ;; Test 1: Create manifest
   (display "1. Create manifest... ")
@@ -221,5 +221,5 @@
             (display "OK\n")
             (display "FAIL\n")))
   
-  (display "=======================\n")
+  (display "====\n")
   #t)

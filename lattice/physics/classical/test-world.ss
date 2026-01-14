@@ -46,9 +46,9 @@
 ══════════════════════════════════════════════════════════
 ")
 
-;;; ============================================================
+;;; ====
 ;;; Entity Tests
-;;; ============================================================
+;;; ====
 
 (test-group entity-tests
             (define-test make-entity-test
@@ -75,9 +75,9 @@
                      [e (make-entity 'static body shape default-material #f)])
                     (assert-true (entity-static? e)))))
 
-;;; ============================================================
+;;; ====
 ;;; World Creation Tests
-;;; ============================================================
+;;; ====
 
 (test-group world-creation-tests
             (define-test make-world-test
@@ -106,9 +106,9 @@
                     (world-add-entity! w e2)
                     (assert-= (length (world-entity-list w)) 2 0))))
 
-;;; ============================================================
+;;; ====
 ;;; Convenience Constructor Tests
-;;; ============================================================
+;;; ====
 
 (test-group constructor-tests
             (define-test make-circle-entity-test
@@ -131,9 +131,9 @@
               (let ([g (make-ground 'ground 500 1000 wood-material)])
                    (assert-true (entity-static? g)))))
 
-;;; ============================================================
+;;; ====
 ;;; Integration Tests
-;;; ============================================================
+;;; ====
 
 (test-group integration-tests
             (define-test gravity-integration-test
@@ -170,9 +170,9 @@
                          ;; Should have moved 100 * 0.1 = 10 units
                          (assert-= (vec2-x (entity-pos mover)) 10 0.5)))))
 
-;;; ============================================================
+;;; ====
 ;;; Collision Detection Tests
-;;; ============================================================
+;;; ====
 
 (test-group collision-detection-tests
             (define-test detect-circle-collision-test
@@ -204,9 +204,9 @@
                     (let ([collisions (world-detect-collisions w)])
                          (assert-= (length collisions) 0 0)))))
 
-;;; ============================================================
+;;; ====
 ;;; Collision Resolution Tests
-;;; ============================================================
+;;; ====
 
 (test-group collision-resolution-tests
             (define-test resolve-separates-test
@@ -243,9 +243,9 @@
                          ;; Ball velocity should reverse (bounce up)
                          (assert-true (<= (vec2-y (entity-vel ball-after)) 0))))))
 
-;;; ============================================================
+;;; ====
 ;;; Query Tests
-;;; ============================================================
+;;; ====
 
 (test-group query-tests
             (define-test query-aabb-test
@@ -268,9 +268,9 @@
                     (let ([misses (world-query-point w (vec2 100 100))])
                          (assert-= (length misses) 0 0)))))
 
-;;; ============================================================
+;;; ====
 ;;; Raycast Tests
-;;; ============================================================
+;;; ====
 
 (test-group raycast-tests
             (define-test raycast-hit-test
@@ -288,9 +288,9 @@
                     (let ([hits (world-raycast w (vec2 0 0) (vec2 -1 0) 100)])
                          (assert-= (length hits) 0 0)))))
 
-;;; ============================================================
+;;; ====
 ;;; Entity Manipulation Tests
-;;; ============================================================
+;;; ====
 
 (test-group manipulation-tests
             (define-test set-velocity-test
@@ -310,9 +310,9 @@
                          ;; With mass=1, velocity should be 10
                          (assert-vec2-= (entity-vel ball) (vec2 10 0) 0.0001)))))
 
-;;; ============================================================
+;;; ====
 ;;; Full Simulation Tests
-;;; ============================================================
+;;; ====
 
 (test-group simulation-tests
             (define-test falling-ball-test
@@ -345,9 +345,9 @@
                          (assert-true (> (vec2-y (entity-pos b)) 0))
                          (assert-true (< (vec2-x (entity-pos c)) 40))))))
 
-;;; ============================================================
+;;; ====
 ;;; Summary
-;;; ============================================================
+;;; ====
 
 (display "
 ══════════════════════════════════════════════════════════

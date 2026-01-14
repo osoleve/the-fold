@@ -5,9 +5,9 @@
 (load "core/testing/test-framework.ss")
 (load "lattice/statistics/timeseries/ar-poly.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Test: AR Characteristic Polynomial
-;;; ============================================================
+;;; ====
 
 (test-group "ar-char-poly"
   (define-test "AR(1) characteristic polynomial"
@@ -38,9 +38,9 @@
            [coeffs (poly-coeffs poly)])
       (assert-equal coeffs '(1)))))
 
-;;; ============================================================
+;;; ====
 ;;; Test: MA Characteristic Polynomial
-;;; ============================================================
+;;; ====
 
 (test-group "ma-char-poly"
   (define-test "MA(1) characteristic polynomial"
@@ -64,9 +64,9 @@
       (assert-equal (cadr coeffs) 0.3)
       (assert-equal (caddr coeffs) 0.2))))
 
-;;; ============================================================
+;;; ====
 ;;; Test: AR Companion Polynomial
-;;; ============================================================
+;;; ====
 
 (test-group "ar-companion-poly"
   (define-test "AR(1) companion polynomial"
@@ -89,9 +89,9 @@
       (assert-equal degree 2)
       (assert-equal (list-ref coeffs 2) 1))))  ; Leading coeff is 1
 
-;;; ============================================================
+;;; ====
 ;;; Test: ARMA Common Factors
-;;; ============================================================
+;;; ====
 
 (test-group "arma-common-factors"
   (define-test "coprime AR and MA have GCD degree 0"
@@ -106,9 +106,9 @@
            [theta '#(0.3)])
       (assert-false (arma-reducible? phi theta)))))
 
-;;; ============================================================
+;;; ====
 ;;; Test: Stability Analysis
-;;; ============================================================
+;;; ====
 
 (test-group "ar-stability"
   (define-test "AR(1) with |phi| < 1 is stable"
@@ -124,9 +124,9 @@
     ;; phi_1 = 0.5, phi_2 = 0.6 -> phi_1 + phi_2 = 1.1 > 1 (unstable)
     (assert-false (ar-stable-simple? '#(0.5 0.6)))))
 
-;;; ============================================================
+;;; ====
 ;;; Test: MA Invertibility
-;;; ============================================================
+;;; ====
 
 (test-group "ma-invertibility"
   (define-test "MA(1) with |theta| < 1 is invertible"
@@ -139,9 +139,9 @@
   (define-test "MA(2) invertibility conditions"
     (assert-true (ma-invertible-simple? '#(0.3 0.2)))))
 
-;;; ============================================================
+;;; ====
 ;;; Test: Forecast Weights (Psi-weights)
-;;; ============================================================
+;;; ====
 
 (test-group "forecast-weights"
   (define-test "AR(1) psi-weights"
@@ -164,9 +164,9 @@
       ;; psi_2 = 0.5 * 0.5 + 0.3 * 1 = 0.55
       (assert-equal (list-ref psi 2) 0.55))))
 
-;;; ============================================================
+;;; ====
 ;;; Test: Coefficient Conversion
-;;; ============================================================
+;;; ====
 
 (test-group "coeff-conversion"
   (define-test "algebra-poly->ar-coeffs round trip"
@@ -185,9 +185,9 @@
       (assert-equal (vector-ref theta-back 0) 0.3)
       (assert-equal (vector-ref theta-back 1) 0.2))))
 
-;;; ============================================================
+;;; ====
 ;;; Test: Display Functions
-;;; ============================================================
+;;; ====
 
 (test-group "display-functions"
   (define-test "ar-char-poly->string produces output"
@@ -209,8 +209,8 @@
       (assert-true (string? str))
       (assert-true (> (string-length str) 0)))))
 
-;;; ============================================================
+;;; ====
 ;;; Run All Tests
-;;; ============================================================
+;;; ====
 
 (run-all-tests)

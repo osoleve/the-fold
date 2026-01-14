@@ -14,9 +14,9 @@
 (load "lattice/numeric/complex.ss")
 (load "lattice/linalg/vec.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Utilities
-;;; ============================================================
+;;; ====
 
 ;;; power-of-2? : Integer → Boolean
 ;;; Check if n is a power of 2.
@@ -52,9 +52,9 @@
             (let ([j (bit-reverse i nbits)])
                  (vector-set! result j (vector-ref v i))))))
 
-;;; ============================================================
+;;; ====
 ;;; Naive DFT (O(N²))
-;;; ============================================================
+;;; ====
 
 ;;; dft-naive : Vector[Complex] → Vector[Complex]
 ;;; Compute the Discrete Fourier Transform using the naive O(N²) algorithm.
@@ -99,9 +99,9 @@
                             [term (complex-mul (vector-ref X k) twiddle)])
                            (set! sum (complex-add sum term))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Fast Fourier Transform (Cooley-Tukey Radix-2)
-;;; ============================================================
+;;; ====
 
 ;;; fft-radix2-inplace! : Vector[Complex] → Vector[Complex]
 ;;; Compute FFT in-place using Cooley-Tukey radix-2 algorithm.
@@ -189,9 +189,9 @@
       (let ([a (bit-reverse-copy X)])
            (ifft-radix2-inplace! a))))
 
-;;; ============================================================
+;;; ====
 ;;; Automatic Algorithm Selection
-;;; ============================================================
+;;; ====
 
 ;;; dft : Vector[Complex] → Vector[Complex]
 ;;; Compute DFT using the most appropriate algorithm.
@@ -209,9 +209,9 @@
       (ifft-radix2 X)
       (idft-naive X)))
 
-;;; ============================================================
+;;; ====
 ;;; Real-valued Transforms
-;;; ============================================================
+;;; ====
 
 ;;; real->complex-vec : Vector[Number] → Vector[Complex]
 ;;; Convert real-valued vector to complex vector.
@@ -241,9 +241,9 @@
 (define (idft-real X)
   (complex->real-vec (idft X)))
 
-;;; ============================================================
+;;; ====
 ;;; Spectral Analysis Utilities
-;;; ============================================================
+;;; ====
 
 ;;; magnitude-spectrum : Vector[Complex] → Vector[Number]
 ;;; Compute magnitude spectrum from DFT output.
@@ -273,9 +273,9 @@
             (let ([mag (complex-magnitude (vector-ref X i))])
                  (vector-set! result i (* mag mag))))))
 
-;;; ============================================================
+;;; ====
 ;;; Frequency Bins
-;;; ============================================================
+;;; ====
 
 ;;; freq-bins : Integer × Number → Vector[Number]
 ;;; Compute frequency bin centers for DFT of length n at sample rate fs.
@@ -287,9 +287,9 @@
            ((= i n) result)
            (vector-set! result i (* i df)))))
 
-;;; ============================================================
+;;; ====
 ;;; Zero Padding
-;;; ============================================================
+;;; ====
 
 ;;; zero-pad : Vector × Integer → Vector
 ;;; Pad vector with zeros to length n.

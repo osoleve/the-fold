@@ -27,14 +27,14 @@
        (< (abs (- actual expected-val)) tolerance)))
 
 (display "
-==============================================================
+====
          SPARSE AUTODIFF TESTS
-==============================================================
+====
 ")
 
-;;; ============================================================
+;;; ====
 ;;; Sparse Gradient Tests
-;;; ============================================================
+;;; ====
 
 (test-group sparse-gradient-tests
             (define-test sparse-grad-creation
@@ -94,9 +94,9 @@
                     (assert-= (sparse-grad-ref scaled 1) 6.0 0.0001)
                     (assert-= (sparse-grad-ref scaled 3) 12.0 0.0001))))
 
-;;; ============================================================
+;;; ====
 ;;; Sparsity Pattern Tests
-;;; ============================================================
+;;; ====
 
 (test-group sparsity-pattern-tests
             (define-test diagonal-pattern-creation
@@ -133,9 +133,9 @@
                     ;; Should detect 3 non-zero entries
                     (assert-equal 3 (pattern-nnz p)))))
 
-;;; ============================================================
+;;; ====
 ;;; Sparse Jacobian Tests
-;;; ============================================================
+;;; ====
 
 (test-group sparse-jacobian-tests
             (define-test sparse-jacobian-identity
@@ -214,9 +214,9 @@
                     (assert-= (matrix-ref J-dense 1 1) 6.0 0.0001)
                     (assert-= (matrix-ref J-dense 0 1) 0.0 0.0001))))
 
-;;; ============================================================
+;;; ====
 ;;; Sparse JVP/VJP Tests
-;;; ============================================================
+;;; ====
 
 (test-group sparse-jvp-vjp-tests
             (define-test sparse-jvp-computation
@@ -254,9 +254,9 @@
                     (assert-= (vector-ref result 0) 7.0 0.0001)
                     (assert-= (vector-ref result 1) -1.0 0.0001))))
 
-;;; ============================================================
+;;; ====
 ;;; Sparse Hessian Tests
-;;; ============================================================
+;;; ====
 
 (test-group sparse-hessian-tests
             (define-test sparse-hessian-quadratic
@@ -286,9 +286,9 @@
                     (assert-true (sparse-coo-has-entry? H 0 0 2.0 0.0001))
                     (assert-true (sparse-coo-has-entry? H 1 1 2.0 0.0001)))))
 
-;;; ============================================================
+;;; ====
 ;;; Sparse Hessian-Vector Product Tests
-;;; ============================================================
+;;; ====
 
 (test-group sparse-hvp-tests
             (define-test sparse-hvp-quadratic
@@ -309,9 +309,9 @@
                     (assert-= (vector-ref result 0) 3.0 0.1)
                     (assert-= (vector-ref result 1) 2.0 0.1))))
 
-;;; ============================================================
+;;; ====
 ;;; Graph Coloring Tests
-;;; ============================================================
+;;; ====
 
 (test-group graph-coloring-tests
             (define-test color-diagonal-pattern
@@ -342,9 +342,9 @@
                     ;; Tridiagonal can use 3 colors
                     (assert-true (<= nc 3)))))
 
-;;; ============================================================
+;;; ====
 ;;; Compressed Jacobian Tests
-;;; ============================================================
+;;; ====
 
 (test-group compressed-jacobian-tests
             (define-test colored-jacobian-diagonal
@@ -378,9 +378,9 @@
                     (assert-true (sparse-coo-has-entry? J 2 1 1.0 0.0001))
                     (assert-true (sparse-coo-has-entry? J 2 2 1.0 0.0001)))))
 
-;;; ============================================================
+;;; ====
 ;;; Integration with Sparse Matrix Types
-;;; ============================================================
+;;; ====
 
 (test-group integration-tests
             (define-test jacobian-to-csr-multiply
@@ -421,9 +421,9 @@
                     (assert-= (matrix-ref sum-dense 0 0) 5.0 0.0001)
                     (assert-= (matrix-ref sum-dense 1 1) 7.0 0.0001))))
 
-;;; ============================================================
+;;; ====
 ;;; Large-Scale Efficiency Tests
-;;; ============================================================
+;;; ====
 
 (test-group efficiency-tests
             (define-test sparse-efficiency-ratio
@@ -449,9 +449,9 @@
                     ;; ratio = 60/400 = 0.15
                     (assert-true (< ratio 0.5)))))
 
-;;; ============================================================
+;;; ====
 ;;; Scalability Tests (fold-hls0)
-;;; ============================================================
+;;; ====
 
 (test-group scalability-tests
             
@@ -513,12 +513,12 @@
                     (assert-= (sparse-coo-ref H 1 1) 2.0 0.0001)
                     (assert-= (sparse-coo-ref H 2 2) 0.0 0.0001))))
 
-;;; ============================================================
+;;; ====
 ;;; Summary
-;;; ============================================================
+;;; ====
 
 (display "
-==============================================================
+====
 ")
 (printf "Tests passed: ~a~n" *tests-passed*)
 (printf "Tests failed: ~a~n" *tests-failed*)

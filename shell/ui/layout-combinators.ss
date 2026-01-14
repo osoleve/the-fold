@@ -75,9 +75,9 @@
          
          (import (chezscheme))
          
-         ;;; ============================================================
+         ;;; ====
          ;;; Canvas Primitives (standalone definitions for library use)
-         ;;; ============================================================
+         ;;; ====
          
          ;;; These definitions enable the library to work standalone.
          ;;; They mirror shell/ui/layout.ss but are necessary because
@@ -117,9 +117,9 @@
          (define (point-x pt) (car pt))
          (define (point-y pt) (cdr pt))
          
-         ;;; ============================================================
+         ;;; ====
          ;;; Diagram (Canvas with Size Metadata)
-         ;;; ============================================================
+         ;;; ====
          
          ;;; A Diagram wraps a canvas with explicit size information.
          ;;; This allows combinators to work with canvases that have
@@ -152,9 +152,9 @@
          (define (diagram->canvas diag)
            (diagram-canvas diag))
          
-         ;;; ============================================================
+         ;;; ====
          ;;; Bounding Box Calculation
-         ;;; ============================================================
+         ;;; ====
          
          ;;; canvas-bbox : Canvas → (x-min y-min x-max y-max)
          ;;; Calculate tight bounding box around non-space content.
@@ -215,9 +215,9 @@
                                                                       (+ y1 y)))
                                              (loop-x (+ x 1))))))))))))
 
-         ;;; ============================================================
+         ;;; ====
          ;;; Basic Spatial Combinators
-         ;;; ============================================================
+         ;;; ====
          
          ;;; composite-at : Canvas × Canvas × Point → Canvas
          ;;; Helper: overlay src onto dest at given point.
@@ -292,9 +292,9 @@
                   [result (composite-at result top (point 0 0))])
                  result))
 
-         ;;; ============================================================
+         ;;; ====
          ;;; Multi-Element Combinators
-         ;;; ============================================================
+         ;;; ====
          
          ;;; hcat : (List Canvas) × [Nat] → Canvas
          ;;; Horizontal concatenation (beside multiple canvases).
@@ -324,9 +324,9 @@
                             (car canvases)
                             (cdr canvases)))]))
 
-         ;;; ============================================================
+         ;;; ====
          ;;; Distribution (Even Spacing)
-         ;;; ============================================================
+         ;;; ====
          
          ;;; distribute-horizontal : (List Canvas) × Nat → Canvas
          ;;; Distribute canvases horizontally with even spacing.
@@ -362,9 +362,9 @@
                       [w (apply max (map canvas-width canvases))])
                      (vcat canvases spacing))))
 
-         ;;; ============================================================
+         ;;; ====
          ;;; Alignment
-         ;;; ============================================================
+         ;;; ====
          
          ;;; align-left : Canvas × Nat → Canvas
          ;;; Align canvas to left within target width.
@@ -442,9 +442,9 @@
                        [result (make-canvas result-w result-h)])
                       (composite-at result canvas (point x-offset y-offset)))))
 
-         ;;; ============================================================
+         ;;; ====
          ;;; Centering (Convenience Wrappers)
-         ;;; ============================================================
+         ;;; ====
          
          ;;; center-h : Canvas × Nat → Canvas
          ;;; Alias for align-center-h
@@ -458,9 +458,9 @@
          ;;; Alias for align-center
          (define center-canvas align-center)
 
-         ;;; ============================================================
+         ;;; ====
          ;;; Padding
-         ;;; ============================================================
+         ;;; ====
          
          ;;; pad : Canvas × Nat → Canvas
          ;;; Add uniform padding on all sides.
@@ -490,9 +490,9 @@
                   [result (make-canvas w new-h)])
                  (composite-at result canvas (point 0 amount))))
 
-         ;;; ============================================================
+         ;;; ====
          ;;; Connection Combinators (for diagrams)
-         ;;; ============================================================
+         ;;; ====
          
          ;;; connect : Canvas × Point × Point × Char → Canvas
          ;;; Draw a line connecting two points using Bresenham's algorithm.

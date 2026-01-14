@@ -9,7 +9,7 @@
 
 (display "Testing Satin Examples
 ")
-(display "======================
+(display "====
 
 ")
 
@@ -110,7 +110,7 @@
                             errors))))))
 
 (display "
-======================
+====
 ")
 (display "Examples test complete!
 ")

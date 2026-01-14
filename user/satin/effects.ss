@@ -3,9 +3,9 @@
 ;;; Effects are state manipulation actions that compile to
 ;;; Quill runtime effect forms.
 
-;;; ============================================================
+;;; ====
 ;;; Effect Forms (Satin DSL)
-;;; ============================================================
+;;; ====
 
 ;;; Satin effect syntax:
 ;;;   (set-flag! <sym>)              ; set boolean flag
@@ -27,9 +27,9 @@
 ;;;   (advance-clock! [<n>])         ; advance time (default 1)
 ;;;   (mark-visited! <node>)         ; mark node as visited
 
-;;; ============================================================
+;;; ====
 ;;; Effect Recognition
-;;; ============================================================
+;;; ====
 
 (define (satin-effect-form? expr)
   (and (pair? expr)
@@ -43,9 +43,9 @@
                         advance-clock! mark-visited!
                         end)))))
 
-;;; ============================================================
+;;; ====
 ;;; Effect Compilation
-;;; ============================================================
+;;; ====
 
 ;;; satin-compile-effect : EffectExpr → QuillEffect
 ;;; Compile a Satin effect to a Quill runtime effect form.
@@ -136,9 +136,9 @@
 (define (satin-compile-effects exprs)
   (map satin-compile-effect exprs))
 
-;;; ============================================================
+;;; ====
 ;;; Effect Validation
-;;; ============================================================
+;;; ====
 
 ;;; satin-effect-valid? : EffectExpr → Bool
 ;;; Check if an effect form is syntactically valid.

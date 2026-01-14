@@ -23,9 +23,9 @@
 ;;; Restore autodiff functions with clear names
 (define autodiff-gradient gradient)
 
-;;; ============================================================
+;;; ====
 ;;; Expression Evaluation
-;;; ============================================================
+;;; ====
 
 ;;; eval-expr : Expr × Env → Number
 ;;; Evaluate a symbolic expression given variable bindings.
@@ -102,9 +102,9 @@
   (guard (c [else #f])
          (eval-expr expr env)))
 
-;;; ============================================================
+;;; ====
 ;;; Expression Simplification
-;;; ============================================================
+;;; ====
 
 ;;; simplify : Expr → Expr
 ;;; Simplify an expression using algebraic rules.
@@ -359,9 +359,9 @@
    [(and (eq? fn 'atan) (num? arg) (= (num-val arg) 0)) (num 0)]
    [else (make-app fn arg)]))
 
-;;; ============================================================
+;;; ====
 ;;; Expression → Traced Function Compiler
-;;; ============================================================
+;;; ====
 
 ;;; expr-to-traced : Expr × (List Symbol) → ((List TracedValue) → TracedValue)
 ;;; Compile a symbolic expression into a traced function.
@@ -451,9 +451,9 @@
    
    [else (error 'eval-traced "Unknown expression type" expr)]))
 
-;;; ============================================================
+;;; ====
 ;;; High-Level Integration Functions
-;;; ============================================================
+;;; ====
 
 ;;; symbolic-gradient-fn : Expr × (List Symbol) → ((List Number) → (List Number))
 ;;; Create a numerical gradient function from a symbolic expression.
@@ -519,9 +519,9 @@
          [ad-val (car (gradient traced-fn (list test-val)))])
         (< (abs (- sym-val ad-val)) tolerance)))
 
-;;; ============================================================
+;;; ====
 ;;; Pretty Printing
-;;; ============================================================
+;;; ====
 
 ;;; expr->infix : Expr → String
 ;;; Convert expression to readable infix notation.

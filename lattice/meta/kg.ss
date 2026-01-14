@@ -22,9 +22,9 @@
 (load "core/base/sha256.ss")
 (load "core/blocks/block.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Entity Types
-;;; ============================================================
+;;; ====
 
 ;;; Block tags for knowledge graph entities
 (define KG-SKILL 'lattice/skill)
@@ -33,9 +33,9 @@
 (define KG-DEPENDS-ON 'lattice/depends-on)
 (define KG-INDEX-ROOT 'lattice/index-root)
 
-;;; ============================================================
+;;; ====
 ;;; Manifest Parsing
-;;; ============================================================
+;;; ====
 
 ;;; read-manifest : String -> SExp | #f
 ;;; Read and parse a manifest.sexp file
@@ -109,9 +109,9 @@
       (car lst)
       default))
 
-;;; ============================================================
+;;; ====
 ;;; Entity Creation
-;;; ============================================================
+;;; ====
 
 ;;; make-skill-entity : ManifestData -> Block
 ;;; Create a skill entity block
@@ -163,9 +163,9 @@
               (vector (hash-block from-skill)
                       (hash-block to-skill))))
 
-;;; ============================================================
+;;; ====
 ;;; Knowledge Graph State
-;;; ============================================================
+;;; ====
 
 ;;; In-memory knowledge graph (mutable for building)
 (define *kg-skills* '())        ; ((name block . manifest-data) ...)
@@ -185,9 +185,9 @@
   (set! *kg-index-root* #f)
   (set! *kg-skill-data* '()))
 
-;;; ============================================================
+;;; ====
 ;;; Graph Building
-;;; ============================================================
+;;; ====
 
 ;;; kg-add-skill! : ManifestData -> Block
 ;;; Add a skill to the knowledge graph
@@ -255,9 +255,9 @@
   (let ([entry (assq skill-name *kg-skill-data*)])
        (if entry (cdr entry) #f)))
 
-;;; ============================================================
+;;; ====
 ;;; Manifest Discovery
-;;; ============================================================
+;;; ====
 
 ;;; find-manifests : String -> (List String)
 ;;; Find all manifest.sexp files under a directory
@@ -285,9 +285,9 @@
        (and (>= str-len pre-len)
             (string=? (substring str 0 pre-len) prefix))))
 
-;;; ============================================================
+;;; ====
 ;;; Main API
-;;; ============================================================
+;;; ====
 
 ;;; kg-build! : -> Hash
 ;;; Build knowledge graph from all manifests in lattice/
@@ -386,9 +386,9 @@
                     (loop (cdr lst) (cons result acc))
                     (loop (cdr lst) acc))))))
 
-;;; ============================================================
+;;; ====
 ;;; Statistics
-;;; ============================================================
+;;; ====
 
 ;;; kg-stats : -> Alist
 ;;; Get knowledge graph statistics
@@ -398,9 +398,9 @@
     (exports . ,(length *kg-exports*))
     (dependencies . ,(length *kg-deps*))))
 
-;;; ============================================================
+;;; ====
 ;;; REPL Interface
-;;; ============================================================
+;;; ====
 
 (printf "kg.ss loaded.\n")
 (printf "  (kg-build!)           - Build KG from manifests\n")

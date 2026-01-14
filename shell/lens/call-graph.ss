@@ -15,9 +15,9 @@
 ;;;   shell/tools/index.ss (symbol index)
 ;;;   shell/xref.ss (cross-reference utilities)
 
-;;; ============================================================
+;;; ====
 ;;; Call Graph Data Structures
-;;; ============================================================
+;;; ====
 
 ;;; Forward graph: symbol -> (list of symbols it calls)
 (define *forward-calls* (make-eq-hashtable))
@@ -31,9 +31,9 @@
 ;;; Index status
 (define *call-graph-built?* #f)
 
-;;; ============================================================
+;;; ====
 ;;; S-Expression Analysis
-;;; ============================================================
+;;; ====
 
 ;;; extract-calls-from-body : S-expr Symbol -> (List Symbol)
 ;;; Extract all symbol references from an expression body.
@@ -137,9 +137,9 @@
                      #t)))
         lst)))
 
-;;; ============================================================
+;;; ====
 ;;; Definition Extraction
-;;; ============================================================
+;;; ====
 
 ;;; extract-definition-info : S-expr -> (Symbol S-expr) | #f
 ;;; Extract (name body) from a definition form.
@@ -161,9 +161,9 @@
                  `(lambda ,(cdr name-part) ,@body))]
           [else #f]))]))
 
-;;; ============================================================
+;;; ====
 ;;; File Processing
-;;; ============================================================
+;;; ====
 
 ;;; process-file-for-calls : String -> void
 ;;; Process a single file to extract call relationships.
@@ -241,9 +241,9 @@
 
 ;;; string-suffix? is provided by shell/string-utils.ss with signature (suffix str)
 
-;;; ============================================================
+;;; ====
 ;;; Public API
-;;; ============================================================
+;;; ====
 
 ;;; call-graph-refresh! : -> void
 ;;; Rebuild the entire call graph from source files.

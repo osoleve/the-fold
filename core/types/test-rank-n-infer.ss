@@ -43,9 +43,9 @@
   (display name)
   (newline))
 
-;;; ============================================================
+;;; ====
 ;;; Forall Type Predicates Tests
-;;; ============================================================
+;;; ====
 (test-section "Forall Type Predicates")
 
 (test-true "forall-type? on (forall (a) a)"
@@ -63,9 +63,9 @@
 (test-false "forall-well-formed? on empty vars"
             (forall-well-formed? '(forall () a)))
 
-;;; ============================================================
+;;; ====
 ;;; Forall Accessors Tests
-;;; ============================================================
+;;; ====
 (test-section "Forall Accessors")
 
 (test "forall-vars simple" '(a) (forall-vars '(forall (a) a)))
@@ -77,9 +77,9 @@
 
 (test "forall-body" '(-> a a) (forall-body '(forall (a) (-> a a))))
 
-;;; ============================================================
+;;; ====
 ;;; Instantiation Tests
-;;; ============================================================
+;;; ====
 (test-section "Instantiation")
 
 (test "rank-n-instantiate simple"
@@ -94,9 +94,9 @@
       '(-> Int Bool)
       (rank-n-instantiate '(forall (a b) (-> a b)) '(Int Bool)))
 
-;;; ============================================================
+;;; ====
 ;;; Generalization Tests
-;;; ============================================================
+;;; ====
 (test-section "Generalization")
 
 ;; Free variables in type but not in context should be generalized
@@ -120,9 +120,9 @@
       '(-> Int Bool)
       (rank-n-generalize '(-> Int Bool) '()))
 
-;;; ============================================================
+;;; ====
 ;;; Subsumption Tests (using rank-n.ss infrastructure)
-;;; ============================================================
+;;; ====
 (test-section "Subsumption")
 
 (test-true "same types subsume" (rank-n-subsumes? 'Int 'Int '()))
@@ -130,9 +130,9 @@
 (test-true "forall function subsumes" (rank-n-subsumes? '(∀ (a) (-> a a)) '(-> Int Int) '()))
 (test-false "mono doesn't subsume poly" (rank-n-subsumes? '(-> Int Int) '(∀ (a) (-> a a)) '()))
 
-;;; ============================================================
+;;; ====
 ;;; Type Synthesis Tests
-;;; ============================================================
+;;; ====
 (test-section "Type Synthesis")
 
 ;; Literals
@@ -177,9 +177,9 @@
 (let ([result (rank-n-typeof '(if #t 1 2))])
      (test "if expression" 'Int result))
 
-;;; ============================================================
+;;; ====
 ;;; Type Checking Tests
-;;; ============================================================
+;;; ====
 (test-section "Type Checking")
 
 ;; Check literal against type
@@ -197,9 +197,9 @@
 (let ([result (rank-n-typecheck '(fn (x) #t) '(-> Int Int))])
      (test-false "type mismatch fails" (eq? result #t)))
 
-;;; ============================================================
+;;; ====
 ;;; Higher-Rank Type Checking Tests
-;;; ============================================================
+;;; ====
 (test-section "Higher-Rank Type Checking")
 
 ;; runST-style: function taking polymorphic argument
@@ -216,9 +216,9 @@
                 `(-> ,pair-type Int))])
       (test-true "church pair fst" result))
 
-;;; ============================================================
+;;; ====
 ;;; Annotation Tests
-;;; ============================================================
+;;; ====
 (test-section "Type Annotations")
 
 (let ([result (rank-n-typeof '(: 42 Int))])
@@ -228,9 +228,9 @@
      (test-true "annotation with forall"
                 (forall-type? result)))
 
-;;; ============================================================
+;;; ====
 ;;; Edge Cases
-;;; ============================================================
+;;; ====
 (test-section "Edge Cases")
 
 ;; Nested let with shadowing
@@ -245,9 +245,9 @@
 (let ([result (rank-n-typeof ''foo)])
      (test "quoted symbol" 'Symbol result))
 
-;;; ============================================================
+;;; ====
 ;;; True Rank-N Tests (Quick Look / Impredicative)
-;;; ============================================================
+;;; ====
 (test-section "True Rank-N Inference")
 
 ;; runST-style: function taking polymorphic argument (WITHOUT annotation!)
@@ -276,9 +276,9 @@
        [result (rank-n-infer-synth '(mono-apply (fn (x) x)) env)])
       (test-ok "mono apply with lambda" result))
 
-;;; ============================================================
+;;; ====
 ;;; Skolem Escape Prevention Tests
-;;; ============================================================
+;;; ====
 (test-section "Skolem Escape Prevention")
 
 ;; This tests that we properly reject unsound programs where
@@ -291,11 +291,11 @@
       ;; This should fail: identity is a→a, not a value of type a
       (test-error "identity is not a value" result))
 
-;;; ============================================================
+;;; ====
 ;;; Summary
-;;; ============================================================
+;;; ====
 (newline)
-(display "=================================")
+(display "====")
 (newline)
 (display "Tests passed: ")
 (display *tests-passed*)

@@ -13,9 +13,9 @@
 (load "core/types/infer.ss")
 (load "core/types/dep-infer.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Test Framework
-;;; ============================================================
+;;; ====
 
 (define *test-count* 0)
 (define *pass-count* 0)
@@ -144,9 +144,9 @@
        (write result)
        (newline))))
 
-;;; ============================================================
+;;; ====
 ;;; Test Setup
-;;; ============================================================
+;;; ====
 
 ;;; Helper to synthesize with empty context
 (define (synth-empty expr)
@@ -164,9 +164,9 @@
            (loop (cddr bindings)
                  (dep-ctx-extend ctx (car bindings) (cadr bindings))))))
 
-;;; ============================================================
+;;; ====
 ;;; Example GADTs for Testing
-;;; ============================================================
+;;; ====
 
 ;;; Simple expression GADT (without forall for now)
 (define expr-gadt
@@ -187,9 +187,9 @@
     [Nothing : (Maybe a)]
     [Just    : (-> a (Maybe a))]))
 
-;;; ============================================================
+;;; ====
 ;;; Run Tests
-;;; ============================================================
+;;; ====
 
 (define (run-tests)
   (display "
@@ -200,9 +200,9 @@
   ;; Reset registry before tests
   (reset-gadt-registry!)
   
-  ;; --------------------------------------------------------
+  ;; ----
   ;; GADT Declaration Synthesis (gadt-infer-synth)
-  ;; --------------------------------------------------------
+  ;; ----
   (display "--- GADT Declaration Synthesis ---
 ")
   
@@ -216,9 +216,9 @@
   (reset-gadt-registry!)
   (test-ok "Expr GADT declaration synthesizes" (synth-empty expr-gadt))
   
-  ;; --------------------------------------------------------
+  ;; ----
   ;; GADT Constructor Validation
-  ;; --------------------------------------------------------
+  ;; ----
   (display "
 --- GADT Constructor Validation ---
 ")
@@ -229,9 +229,9 @@
        (test-any-error "constructor returns wrong type"
                        (synth-empty bad-gadt)))
   
-  ;; --------------------------------------------------------
+  ;; ----
   ;; Registry Operations
-  ;; --------------------------------------------------------
+  ;; ----
   (display "
 --- Registry Operations ---
 ")
@@ -250,9 +250,9 @@
   (test-false "reset clears Maybe"
               (lookup-gadt 'Maybe))
   
-  ;; --------------------------------------------------------
+  ;; ----
   ;; GADT Case Synthesis with Manual Registration
-  ;; --------------------------------------------------------
+  ;; ----
   (display "
 --- GADT Case Synthesis (manual registration) ---
 ")
@@ -297,9 +297,9 @@
                         (synth-with-ctx case-expr ctx)
                         'pattern-arity-mismatch)))
   
-  ;; --------------------------------------------------------
+  ;; ----
   ;; Type Refinement Tests
-  ;; --------------------------------------------------------
+  ;; ----
   (display "
 --- Type Refinement ---
 ")
@@ -321,9 +321,9 @@
                           (synth-with-ctx case-expr ctx)
                           'Int)))
   
-  ;; --------------------------------------------------------
+  ;; ----
   ;; Integration Tests
-  ;; --------------------------------------------------------
+  ;; ----
   (display "
 --- Integration Tests ---
 ")
@@ -338,9 +338,9 @@
                           (synth-with-ctx case-expr ctx)
                           '(Maybe Int))))
   
-  ;; --------------------------------------------------------
+  ;; ----
   ;; Summary
-  ;; --------------------------------------------------------
+  ;; ----
   (display "
 === Summary ===
 ")

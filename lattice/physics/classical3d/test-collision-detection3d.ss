@@ -6,13 +6,13 @@
 (load "lattice/physics/classical3d/collision-detection3d.ss")
 
 (display "\n")
-(display "==============================================================\n")
+(display "====\n")
 (display "         3D COLLISION DETECTION TESTS\n")
-(display "==============================================================\n")
+(display "====\n")
 
-;;; ============================================================
+;;; ====
 ;;; Point-in-Shape Tests
-;;; ============================================================
+;;; ====
 
 (test-group point-in-shape-tests
             
@@ -44,9 +44,9 @@
               (let ([box (box3d (vec3 0 0 0) (vec3 1 1 1))])
                    (assert-false (point-in-box3d? (vec3 2 0 0) box)))))
 
-;;; ============================================================
+;;; ====
 ;;; Closest Point Tests
-;;; ============================================================
+;;; ====
 
 (test-group closest-point-tests
             
@@ -82,9 +82,9 @@
                      [closest (closest-point-on-box3d point box)])
                     (assert-true (< (vec3-distance closest (vec3 1 0 0)) 1e-6)))))
 
-;;; ============================================================
+;;; ====
 ;;; Sphere-Sphere Collision Tests
-;;; ============================================================
+;;; ====
 
 (test-group sphere-sphere-tests
             
@@ -117,9 +117,9 @@
                     ;; Should have some arbitrary normal (we use (1, 0, 0))
                     (assert-equal 1 (vec3-x (manifold-normal m))))))
 
-;;; ============================================================
+;;; ====
 ;;; AABB-AABB Collision Tests
-;;; ============================================================
+;;; ====
 
 (test-group aabb-aabb-tests
             
@@ -154,9 +154,9 @@
                     ;; Normal should be in +y direction
                     (assert-equal 1 (vec3-y (manifold-normal m))))))
 
-;;; ============================================================
+;;; ====
 ;;; Sphere-AABB Collision Tests
-;;; ============================================================
+;;; ====
 
 (test-group sphere-aabb-tests
             
@@ -190,9 +190,9 @@
                     ;; Normal should point toward nearest face
                     (assert-true (= (abs (vec3-x (manifold-normal m))) 1)))))
 
-;;; ============================================================
+;;; ====
 ;;; Sphere-Box Collision Tests
-;;; ============================================================
+;;; ====
 
 (test-group sphere-box-tests
             
@@ -209,9 +209,9 @@
                     ;; Normal should point from box to sphere
                     (assert-true (> (vec3-x (manifold-normal m)) 0.9)))))
 
-;;; ============================================================
+;;; ====
 ;;; Box-Box Collision Tests
-;;; ============================================================
+;;; ====
 
 (test-group box-box-tests
             
@@ -230,9 +230,9 @@
                     ;; Penetration should be (1 + 1) - 1.5 = 0.5
                     (assert-true (< (abs (- (manifold-penetration m) 0.5)) 1e-6)))))
 
-;;; ============================================================
+;;; ====
 ;;; Generic Shape Dispatch Tests
-;;; ============================================================
+;;; ====
 
 (test-group shape-dispatch-tests
             
@@ -277,9 +277,9 @@
                     (assert-true (< (abs (+ (vec3-x (manifold-normal m1))
                                             (vec3-x (manifold-normal m2)))) 1e-6)))))
 
-;;; ============================================================
+;;; ====
 ;;; Spatial Hash Tests
-;;; ============================================================
+;;; ====
 
 (test-group spatial-hash-tests
             
@@ -315,9 +315,9 @@
                    (assert-equal 1 (cadr cell))   ; floor(3.2/2) = 1
                    (assert-equal 3 (caddr cell))))) ; floor(7.8/2) = 3
 
-;;; ============================================================
+;;; ====
 ;;; Collision Pair Generation Tests
-;;; ============================================================
+;;; ====
 
 (test-group collision-pair-tests
             
@@ -345,9 +345,9 @@
                     ;; Should only have one pair, not both (a,b) and (b,a)
                     (assert-equal 1 (length pairs)))))
 
-;;; ============================================================
+;;; ====
 ;;; Manifold Accessor Tests
-;;; ============================================================
+;;; ====
 
 (test-group manifold-accessor-tests
             
@@ -357,8 +357,8 @@
                    (assert-equal 0.5 (manifold-penetration m))
                    (assert-true (vec3? (manifold-contact m))))))
 
-;;; ============================================================
+;;; ====
 ;;; Run all tests
-;;; ============================================================
+;;; ====
 
 (run-all-tests)

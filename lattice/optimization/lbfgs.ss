@@ -22,9 +22,9 @@
 (load "lattice/optimization/convergence.ss")
 (load "lattice/optimization/line-search.ss")
 
-;;; ============================================================
+;;; ====
 ;;; L-BFGS History Structure
-;;; ============================================================
+;;; ====
 
 ;;; L-BFGS history stores recent (s, y, rho) tuples.
 ;;; Structure: (lbfgs-history max-size current-size s-list y-list rho-list)
@@ -71,9 +71,9 @@
       '()
       (cons (car lst) (take-n (cdr lst) (- n 1)))))
 
-;;; ============================================================
+;;; ====
 ;;; L-BFGS Two-Loop Recursion
-;;; ============================================================
+;;; ====
 
 ;;; Compute H_k * q where H_k is the approximate inverse Hessian
 ;;; and q is typically the negative gradient.
@@ -150,9 +150,9 @@
                 1.0
                 (/ sy yy)))))
 
-;;; ============================================================
+;;; ====
 ;;; L-BFGS Optimizer
-;;; ============================================================
+;;; ====
 
 ;;; lbfgs : ((List TracedValue) → TracedValue) × (List Number) × ConvergenceCriteria → OptResult
 ;;; L-BFGS optimization with default history size.
@@ -196,9 +196,9 @@
                              [new-state (update-convergence-state state f-new grad-new x x-new)])
                             (loop x-new grad-new history-new new-state)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Simplified Interface
-;;; ============================================================
+;;; ====
 
 ;;; minimize : ((List TracedValue) → TracedValue) × (List Number) → OptResult
 ;;; Minimize function using L-BFGS with default settings.
@@ -219,9 +219,9 @@
 ;;; Note: gradient-descent, adam, newton-method need to be loaded
 ;;; from their respective modules when used together.
 
-;;; ============================================================
+;;; ====
 ;;; L-BFGS-B (Bound Constrained)
-;;; ============================================================
+;;; ====
 
 ;;; L-BFGS-B handles simple box constraints: lower <= x <= upper.
 ;;; Uses projected gradient and modified Cauchy point.

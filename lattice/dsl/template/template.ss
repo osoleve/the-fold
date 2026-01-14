@@ -16,9 +16,9 @@
 
 (load "core/base/prelude.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Compat: sexpr->string (from block.ss)
-;;; ============================================================
+;;; ====
 
 ;;; sexpr->string : Any → String
 ;;; Convert any s-expression to a string using write semantics.
@@ -27,9 +27,9 @@
     (write obj port)
     (get-output-string port)))
 
-;;; ============================================================
+;;; ====
 ;;; Hole Detection
-;;; ============================================================
+;;; ====
 
 ;;; hole? : Any → Bool
 ;;; Returns #t if x is a hole (symbol starting with $).
@@ -56,9 +56,9 @@
       [else '()]))
   (remove-duplicates (collect expr)))
 
-;;; ============================================================
+;;; ====
 ;;; String Utilities (needed before compilation)
-;;; ============================================================
+;;; ====
 
 ;;; holes->string : (List Symbol) → String
 ;;; Format hole list for display: ($a $b $c) → "$a, $b, $c"
@@ -73,9 +73,9 @@
                       (symbol->string (car h))
                       (string-append acc ", " (symbol->string (car h)))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Template Type
-;;; ============================================================
+;;; ====
 
 ;;; Template record: holds expression and cached hole list
 (define-record-type template
@@ -96,9 +96,9 @@
 (define (template-hole-count t)
   (length (template-holes t)))
 
-;;; ============================================================
+;;; ====
 ;;; Substitution
-;;; ============================================================
+;;; ====
 
 ;;; subst-hole : Expr × Symbol × Expr → Expr
 ;;; Replace all occurrences of hole-sym with value in expr.
@@ -125,9 +125,9 @@
       (fill-holes (fill-hole t (caar alist) (cdar alist))
                   (cdr alist))))
 
-;;; ============================================================
+;;; ====
 ;;; Compilation
-;;; ============================================================
+;;; ====
 
 ;;; compile-template : Template → Expr | Error
 ;;; If complete, return the expression; otherwise error.
@@ -144,9 +144,9 @@
       (list 'ok (template-expr t))
       (list 'err (template-holes t))))
 
-;;; ============================================================
+;;; ====
 ;;; Display Utilities
-;;; ============================================================
+;;; ====
 
 ;;; template->string : Template → String
 ;;; Pretty-print a template expression.
@@ -161,9 +161,9 @@
         "Complete!"
         (string-append "Holes: " (holes->string holes)))))
 
-;;; ============================================================
+;;; ====
 ;;; Implicit Parens Helper
-;;; ============================================================
+;;; ====
 
 ;;; wrap-if-multiple : (List Token) → Expr
 ;;; If list has >1 element, wrap in parens (make a list).

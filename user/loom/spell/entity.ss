@@ -9,9 +9,9 @@
 ;;;   def-entity       Macro to define an entity type with components
 ;;;   with-entity      Macro for scoped entity transformations
 
-;;; ============================================================
+;;; ====
 ;;; Entity Definition Macro
-;;; ============================================================
+;;; ====
 
 ;;; def-entity : Name × (Params...) × :components × Components... -> Definitions
 ;;;
@@ -109,9 +109,9 @@
                          #'(define make-name make-base))])))
 
 
-;;; ============================================================
+;;; ====
 ;;; With-Entity Macro
-;;; ============================================================
+;;; ====
 
 ;;; with-entity : World × EntityID × Forms... -> World
 ;;;
@@ -161,9 +161,9 @@
                           world))]))
 
 
-;;; ============================================================
+;;; ====
 ;;; Entity Query Helpers
-;;; ============================================================
+;;; ====
 
 ;;; These are convenience forms for common entity queries.
 
@@ -178,9 +178,9 @@
                   entities)]))
 
 
-;;; ============================================================
+;;; ====
 ;;; Example Usage (commented out)
-;;; ============================================================
+;;; ====
 
 #|
 ;;; Define a goblin entity type

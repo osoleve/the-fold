@@ -16,9 +16,9 @@
 ;;; Exports:
 ;;;   Entity creation, components, queries
 ;;;
-;;; ============================================================
+;;; ====
 ;;; MUTATION SEMANTICS — IMPORTANT!
-;;; ============================================================
+;;; ====
 ;;;
 ;;; ALL entity and component operations are FUNCTIONAL:
 ;;;   - They return NEW entities/components
@@ -48,9 +48,9 @@
 ;;;   - Functional transformations compose well
 ;;;
 
-;;; ============================================================
+;;; ====
 ;;; Component Types
-;;; ============================================================
+;;; ====
 
 ;;; Components are alists with a 'type key identifying the component kind.
 ;;; Each component type has specific expected fields.
@@ -67,9 +67,9 @@
        (not (null? x))
        (assq 'type x)))
 
-;;; ============================================================
+;;; ====
 ;;; Standard Component Constructors
-;;; ============================================================
+;;; ====
 
 ;;; Position Component
 ;;; Represents location in the game world.
@@ -308,9 +308,9 @@
 (define (blocker-blocks-sight? comp)
   (alist-ref comp 'blocks-sight #f))
 
-;;; ============================================================
+;;; ====
 ;;; Entity Structure
-;;; ============================================================
+;;; ====
 
 ;;; Entity : Alist
 ;;;   (id . Nat)           — Unique identifier
@@ -365,9 +365,9 @@
            (entity-add-component entity (update-fn comp))
            entity)))
 
-;;; ============================================================
+;;; ====
 ;;; Entity Convenience Accessors
-;;; ============================================================
+;;; ====
 
 ;;; Direct accessors for common component properties.
 
@@ -421,9 +421,9 @@
   (let ([f (entity-get-component entity 'faction)])
        (if f (faction-faction f) 'neutral)))
 
-;;; ============================================================
+;;; ====
 ;;; Entity Modification Helpers
-;;; ============================================================
+;;; ====
 
 ;;; entity-move-to : Entity × Int × Int -> Entity
 ;;; Move entity to new position.
@@ -456,9 +456,9 @@
   (entity-update-component entity 'stats
                            (lambda (stats) (stats-modify-hp stats amount))))
 
-;;; ============================================================
+;;; ====
 ;;; Entity Factory Functions
-;;; ============================================================
+;;; ====
 
 ;;; Convenient functions for creating common entity types.
 
@@ -515,9 +515,9 @@
            (entity-add-component (make-name-component name ""))
            (entity-add-component `((type . item) (item-type . ,item-type))))))
 
-;;; ============================================================
+;;; ====
 ;;; Entity Predicates
-;;; ============================================================
+;;; ====
 
 (define (entity-is-player? entity)
   (eq? (entity-faction entity) 'player))
@@ -543,9 +543,9 @@
   (let ([blocker (entity-get-component entity 'blocker)])
        (and blocker (blocker-blocks-sight? blocker))))
 
-;;; ============================================================
+;;; ====
 ;;; Entity Distance and Targeting
-;;; ============================================================
+;;; ====
 
 ;;; entity-distance : Entity × Entity -> Nat
 ;;; Manhattan distance between entities.
@@ -561,9 +561,9 @@
 (define (entity-at-point? entity pt)
   (point=? (entity-point entity) pt))
 
-;;; ============================================================
+;;; ====
 ;;; Export Summary
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Component Utilities:
 ;;;   component-type, component?

@@ -15,9 +15,9 @@
 (load "core/base/prelude.ss")
 (load "core/types/pattern-check.ss")
 
-;;; ============================================================
+;;; ====
 ;;; REPL Commands
-;;; ============================================================
+;;; ====
 
 ;;; check-match : Expr × Symbol → Void
 ;;; Analyze a case expression for exhaustiveness and redundancy.
@@ -137,9 +137,9 @@
                  (car strs)
                  (cdr strs))))
 
-;;; ============================================================
+;;; ====
 ;;; Type Registration Commands
-;;; ============================================================
+;;; ====
 
 ;;; define-match-type : Symbol × (List (Symbol × Nat)) → Void
 ;;; Register a new type for pattern matching analysis.
@@ -148,9 +148,9 @@
   (printf "Registered type ~a with ~a constructor(s).\n"
           name (length ctors)))
 
-;;; ============================================================
+;;; ====
 ;;; Batch Analysis
-;;; ============================================================
+;;; ====
 
 ;;; check-file-patterns : String → Void
 ;;; Check all case expressions in a file for exhaustiveness.
@@ -191,9 +191,9 @@
    [else
     (apply append (map (lambda (e) (find-cases-in e line)) (cdr expr)))]))
 
-;;; ============================================================
+;;; ====
 ;;; Examples and Help
-;;; ============================================================
+;;; ====
 
 (define (pattern-help)
   (display "\n")

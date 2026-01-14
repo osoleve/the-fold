@@ -19,9 +19,9 @@
        (approx= (vec3-y v1) (vec3-y v2) eps)
        (approx= (vec3-z v1) (vec3-z v2) eps)))
 
-;;; ============================================================
+;;; ====
 ;;; Simple SDF Functions for Testing
-;;; ============================================================
+;;; ====
 
 ;;; sdf-sphere : Vec3 -> Number
 ;;; Sphere centered at origin with radius 1
@@ -45,9 +45,9 @@
 (define (sdf-plane p)
   (vec3-y p))
 
-;;; ============================================================
+;;; ====
 ;;; Raymarch Parameters Tests
-;;; ============================================================
+;;; ====
 
 (define-test "raymarch-params creation"
   (let ([params (raymarch-params 100 500.0 0.001)])
@@ -60,9 +60,9 @@
   (assert-true (approx= (raymarch-params-max-distance default-raymarch-params) 1000.0 0.001))
   (assert-true (approx= (raymarch-params-hit-threshold default-raymarch-params) 0.001 0.0001)))
 
-;;; ============================================================
+;;; ====
 ;;; Basic Raymarching Tests
-;;; ============================================================
+;;; ====
 
 (define-test "raymarch sphere hit"
   (let* ([ray (ray3 (vec3 0 0 -5) (vec3 0 0 1))]
@@ -127,9 +127,9 @@
         ;; Should fail due to max distance
         (assert-false result)))
 
-;;; ============================================================
+;;; ====
 ;;; Normal Computation Tests
-;;; ============================================================
+;;; ====
 
 (define-test "sdf-normal sphere at +X"
   (let* ([point (vec3 1 0 0)]
@@ -171,9 +171,9 @@
         (assert-true (< (abs (vec3-y normal)) 0.2))
         (assert-true (< (abs (vec3-z normal)) 0.2))))
 
-;;; ============================================================
+;;; ====
 ;;; Soft Shadow Tests
-;;; ============================================================
+;;; ====
 
 (define-test "raymarch-shadow no occlusion"
   (let* ([ray (ray3 (vec3 0 5 0) (vec3 0 1 0))]  ; Going up, no obstacles
@@ -198,9 +198,9 @@
         (assert-true (>= shadow 0.0))
         (assert-true (<= shadow 1.0))))
 
-;;; ============================================================
+;;; ====
 ;;; Ambient Occlusion Tests
-;;; ============================================================
+;;; ====
 
 (define-test "raymarch-ao open space"
   (let* ([point (vec3 0 5 0)]
@@ -226,9 +226,9 @@
         ;; Right on the plane
         (assert-true (<= ao 1.0))))
 
-;;; ============================================================
+;;; ====
 ;;; Shading Tests
-;;; ============================================================
+;;; ====
 
 (define-test "simple-shading direct light"
   (let* ([normal (vec3 0 1 0)]
@@ -254,9 +254,9 @@
         ;; Should only have ambient
         (assert-true (approx= shading 0.2 0.1))))
 
-;;; ============================================================
+;;; ====
 ;;; Render Pixel Tests
-;;; ============================================================
+;;; ====
 
 (define-test "render-pixel hit"
   (let* ([ray (ray3 (vec3 0 0 -5) (vec3 0 0 1))]
@@ -274,9 +274,9 @@
         ;; Should return 0 for background
         (assert-true (approx= pixel 0.0 0.001))))
 
-;;; ============================================================
+;;; ====
 ;;; Adaptive Step Tests
-;;; ============================================================
+;;; ====
 
 (define-test "adaptive-step returns valid distance"
   (let* ([point (vec3 0 0 -2)]  ; 1 unit from sphere
@@ -293,9 +293,9 @@
         (assert-true (> flat-step 0))
         (assert-true (> curved-step 0))))
 
-;;; ============================================================
+;;; ====
 ;;; Mesh Raymarching Tests (with mesh-sdf)
-;;; ============================================================
+;;; ====
 
 (define-test "raymarch-mesh cube hit"
   (let* ([mesh (make-mesh-cube 1.0)]
@@ -322,9 +322,9 @@
         ;; Should point outward in +X direction
         (assert-true (approx= (vec3-x normal) 1.0 0.3))))
 
-;;; ============================================================
+;;; ====
 ;;; BVH Accelerated Raymarching Tests
-;;; ============================================================
+;;; ====
 
 (define-test "bvh-accelerated-raymarch cube hit"
   (let* ([mesh (make-mesh-cube 1.0)]
@@ -343,9 +343,9 @@
          [result (bvh-accelerated-raymarch mesh ray params)])
         (assert-false result)))
 
-;;; ============================================================
+;;; ====
 ;;; Summary
-;;; ============================================================
+;;; ====
 
 (display "\n")
 (display "Tests run:    ")

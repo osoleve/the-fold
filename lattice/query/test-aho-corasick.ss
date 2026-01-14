@@ -43,14 +43,14 @@
            (newline)))))
 
 (display "Testing aho-corasick.ss\n")
-(display "========================\n\n")
+(display "====\n\n")
 
-;;; ============================================================
+;;; ====
 ;;; Basic Pattern Matching
-;;; ============================================================
+;;; ====
 
 (display "Basic Matching:\n")
-(display "---------------\n")
+(display "----\n")
 
 (define ac1 (make-automaton '("he" "she" "his" "hers")))
 
@@ -74,12 +74,12 @@
       '()
       (search ac1 "xyz"))
 
-;;; ============================================================
+;;; ====
 ;;; Overlapping Patterns
-;;; ============================================================
+;;; ====
 
 (display "\nOverlapping Patterns:\n")
-(display "---------------------\n")
+(display "----\n")
 
 (define ac2 (make-automaton '("a" "aa" "aaa")))
 
@@ -94,12 +94,12 @@
         (3 . "a"))
       (search ac2 "aaaa"))
 
-;;; ============================================================
+;;; ====
 ;;; Single Pattern
-;;; ============================================================
+;;; ====
 
 (display "\nSingle Pattern:\n")
-(display "---------------\n")
+(display "----\n")
 
 (define ac3 (make-automaton '("test")))
 
@@ -115,12 +115,12 @@
       '()
       (search ac3 "xyz"))
 
-;;; ============================================================
+;;; ====
 ;;; Empty and Edge Cases
-;;; ============================================================
+;;; ====
 
 (display "\nEdge Cases:\n")
-(display "-----------\n")
+(display "----\n")
 
 (define ac-empty (make-automaton '()))
 
@@ -138,12 +138,12 @@
       '()
       (search ac4 ""))
 
-;;; ============================================================
+;;; ====
 ;;; Real-World Example: DNA Sequences
-;;; ============================================================
+;;; ====
 
 (display "\nDNA Sequences:\n")
-(display "--------------\n")
+(display "----\n")
 
 (define ac-dna (make-automaton '("ATG" "TGA" "TAG" "TAA")))
 
@@ -155,12 +155,12 @@
       '((2 . "ATG") (3 . "TGA") (6 . "TAG"))
       (search ac-dna "AAATGATAG"))
 
-;;; ============================================================
+;;; ====
 ;;; Performance: Many Patterns
-;;; ============================================================
+;;; ====
 
 (display "\nMany Patterns:\n")
-(display "--------------\n")
+(display "----\n")
 
 (define ac5 (make-automaton '("the" "he" "she" "her" "his" "i" "is")))
 
@@ -177,12 +177,12 @@
            (if (member '(1 . "he") matches) #t #f)
            (if (member '(4 . "is") matches) #t #f)))
 
-;;; ============================================================
+;;; ====
 ;;; Case Sensitivity
-;;; ============================================================
+;;; ====
 
 (display "\nCase Sensitivity:\n")
-(display "-----------------\n")
+(display "----\n")
 
 (define ac6 (make-automaton '("test")))
 
@@ -194,12 +194,12 @@
       '()
       (search ac6 "TEST"))
 
-;;; ============================================================
+;;; ====
 ;;; Prefix/Suffix Patterns
-;;; ============================================================
+;;; ====
 
 (display "\nPrefix/Suffix Patterns:\n")
-(display "-----------------------\n")
+(display "----\n")
 
 (define ac7 (make-automaton '("pre" "prefix" "fix")))
 
@@ -211,12 +211,12 @@
       '((3 . "fix"))
       (search ac7 "suffix"))
 
-;;; ============================================================
+;;; ====
 ;;; Summary
-;;; ============================================================
+;;; ====
 
 (display "\n")
-(display "========================\n")
+(display "====\n")
 (display "Tests passed: ") (display tests-passed) (newline)
 (display "Tests failed: ") (display tests-failed) (newline)
 

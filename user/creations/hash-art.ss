@@ -1,9 +1,9 @@
 ;;; hash-art.ss - Generative Art from Hash Values
 ;;; Creates visual patterns from cryptographic hashes
 
-;;; ============================================
+;;; ====
 ;;; HASH TO PATTERN CONVERTERS
-;;; ============================================
+;;; ====
 
 (define (hex-char->number c)
   "Convert hex character to number 0-15"
@@ -22,9 +22,9 @@
       '()
       (cons (car lst) (take-n (cdr lst) (- n 1)))))
 
-;;; ============================================
+;;; ====
 ;;; PATTERN GENERATORS
-;;; ============================================
+;;; ====
 
 (define (hash-grid hash-str size)
   "Create grid pattern from hash (uses first size*size values)"
@@ -176,9 +176,9 @@
                                                               (cons #\space chars))))))
                                       "\n"))))))
 
-;;; ============================================
+;;; ====
 ;;; DEMONSTRATION
-;;; ============================================
+;;; ====
 
 (define (hash-art-demo)
   (display "\n=== HASH ART GENERATOR ===\n")

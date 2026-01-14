@@ -18,9 +18,9 @@
 (unless (top-level-bound? 'make-ast)
         (load "fp/parser-dsl.ss"))
 
-;;; ============================================================
+;;; ====
 ;;; SQL AST Node Constructors
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Pattern: (sql-ast tag span . data)
 ;;; All constructors return AST nodes with source location tracking.
@@ -46,9 +46,9 @@
 (define (sql-ref node n)
   (list-ref (sql-data node) n))
 
-;;; ============================================================
+;;; ====
 ;;; Statement Types
-;;; ============================================================
+;;; ====
 
 ;;; SELECT statement
 ;;; Data: (distinct? columns from-clause where-clause group-by having order-by limit)
@@ -94,9 +94,9 @@
 (define (delete-table d) (sql-ref d 0))
 (define (delete-where d) (sql-ref d 1))
 
-;;; ============================================================
+;;; ====
 ;;; SELECT Components
-;;; ============================================================
+;;; ====
 
 ;;; Column reference
 ;;; Data: (table-alias column-name) or (column-name) for unqualified
@@ -157,9 +157,9 @@
 (define (limit-value l) (sql-ref l 0))
 (define (limit-offset l) (sql-ref l 1))
 
-;;; ============================================================
+;;; ====
 ;;; Expression Types
-;;; ============================================================
+;;; ====
 
 ;;; Literal values
 (define (make-literal span value type)
@@ -264,9 +264,9 @@
 (define (exists-expr-subquery e) (sql-ref e 0))
 (define (exists-expr-not? e) (sql-ref e 1))
 
-;;; ============================================================
+;;; ====
 ;;; UPDATE Components
-;;; ============================================================
+;;; ====
 
 ;;; SET clause (column = value)
 (define (make-set-clause span column value)
@@ -276,9 +276,9 @@
 (define (set-clause-column s) (sql-ref s 0))
 (define (set-clause-value s) (sql-ref s 1))
 
-;;; ============================================================
+;;; ====
 ;;; INSERT Components
-;;; ============================================================
+;;; ====
 
 ;;; VALUES clause (list of value lists)
 (define (make-values-clause span rows)
@@ -293,9 +293,9 @@
 
 (define (default-value? x) (and (sql-ast? x) (eq? (sql-tag x) 'default)))
 
-;;; ============================================================
+;;; ====
 ;;; Type Inference Support
-;;; ============================================================
+;;; ====
 
 ;;; SQL type tags (for validation)
 (define sql-type-number 'number)
@@ -305,9 +305,9 @@
 (define sql-type-unknown 'unknown)
 (define sql-type-any 'any)
 
-;;; ============================================================
+;;; ====
 ;;; AST Utilities
-;;; ============================================================
+;;; ====
 
 ;;; sql-statement? : Any → Boolean
 (define (sql-statement? x)

@@ -24,9 +24,9 @@
 (load "lattice/physics/diff/traced-body.ss")
 (load "lattice/physics/diff/traced-integrators.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Basic Rollout (Full Tape)
-;;; ============================================================
+;;; ====
 
 ;;; traced-rollout : TracedBody × (TracedBody → TracedBody) × Nat → TracedBody
 ;;; Roll out simulation for n steps using step function.
@@ -57,9 +57,9 @@
                                    (traced-euler-step body accel torque dt))))
                   n))
 
-;;; ============================================================
+;;; ====
 ;;; Trajectory Recording
-;;; ============================================================
+;;; ====
 
 ;;; Sometimes we need the full trajectory, not just final state.
 
@@ -77,9 +77,9 @@
 (define (traced-trajectory-final traj)
   (car (reverse traj)))
 
-;;; ============================================================
+;;; ====
 ;;; Gradient Checkpointing
-;;; ============================================================
+;;; ====
 
 ;;; For long rollouts, storing full tape uses O(T) memory.
 ;;; Checkpointing reduces this to O(sqrt(T)) by storing only
@@ -115,9 +115,9 @@
                            (loop new-body next-step (+ ckpt-idx 1)))
                           (loop new-body next-step ckpt-idx)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Segment-wise Gradient Computation
-;;; ============================================================
+;;; ====
 
 ;;; For checkpointed gradients, we compute gradients segment by segment.
 ;;; Each segment is small enough to fit in memory.
@@ -163,9 +163,9 @@
                          (list-ref grads 4)
                          (list-ref grads 5))))))
 
-;;; ============================================================
+;;; ====
 ;;; Full Checkpointed Gradient
-;;; ============================================================
+;;; ====
 
 ;;; checkpointed-gradient : RigidBody2D × (RigidBody2D → RigidBody2D) × (RigidBody2D → Number) × Nat → (Vec2 × Vec2 × Number × Number)
 ;;; Compute gradient of loss w.r.t. initial state using checkpointing.
@@ -211,9 +211,9 @@
                 (list-ref grads 4)
                 (list-ref grads 5))))
 
-;;; ============================================================
+;;; ====
 ;;; Loss Functions for Common Tasks
-;;; ============================================================
+;;; ====
 
 ;;; target-position-loss : Vec2 → (RigidBody2D → Number)
 ;;; Loss for reaching a target position.
@@ -254,9 +254,9 @@
                    (expt (rigid-body-angular-vel body) 2)))])
         ke))
 
-;;; ============================================================
+;;; ====
 ;;; Utility: Projectile Motion Loss
-;;; ============================================================
+;;; ====
 
 ;;; For trajectory optimization, a common task is finding initial
 ;;; velocity to hit a target.
@@ -285,9 +285,9 @@
                           [dist-sq (traced-vec2-distance-sq final-state (lift-vec2-const target))])
                          (traced-value dist-sq))))))
 
-;;; ============================================================
+;;; ====
 ;;; Substepping for Stability
-;;; ============================================================
+;;; ====
 
 ;;; For stiff systems (soft contacts, constraints), smaller substeps
 ;;; improve stability.

@@ -5,9 +5,9 @@
 
 (define *quill-wrap-width* 72)
 
-;;; ============================================================
+;;; ====
 ;;; Text shaping helpers
-;;; ============================================================
+;;; ====
 
 (define (quill-alist-ref alist key default)
   (let ([p (assq key alist)])
@@ -66,9 +66,9 @@
            (cons (string-append prefix (car lines))
                  (map (lambda (line) (string-append indent line)) (cdr lines))))))
 
-;;; ============================================================
+;;; ====
 ;;; Template rendering
-;;; ============================================================
+;;; ====
 
 (define *quill-template-missing* '__quill-missing)
 
@@ -304,9 +304,9 @@
                        [(null? choices) "\n(Type 'quit' to exit)\n"]
                        [else "\n(Choose a number, or 'help')\n"]))))) ])))
 
-;;; ============================================================
+;;; ====
 ;;; Transcript rendering
-;;; ============================================================
+;;; ====
 
 (define (quill-indent-lines lines indent)
   (map (lambda (line) (string-append indent line)) lines))

@@ -3,9 +3,9 @@
 ;;; Guards are boolean expressions that control choice visibility
 ;;; and effect triggers. They compile to (lambda (state) -> bool).
 
-;;; ============================================================
+;;; ====
 ;;; Guard Forms
-;;; ============================================================
+;;; ====
 
 ;;; Valid guard forms:
 ;;;   #t | #f                    ; literal boolean
@@ -25,9 +25,9 @@
 ;;;   (quest-complete? <id>)     ; check quest complete
 ;;;   (exercise-passed? <id>)    ; check exercise passed
 
-;;; ============================================================
+;;; ====
 ;;; Guard Recognition
-;;; ============================================================
+;;; ====
 
 (define (satin-guard-form? expr)
   (cond
@@ -40,9 +40,9 @@
                      not and or visited? quest-active? quest-complete?
                      exercise-passed?)))]))
 
-;;; ============================================================
+;;; ====
 ;;; Guard Compilation
-;;; ============================================================
+;;; ====
 
 ;;; satin-compile-guard : GuardExpr → (State → Bool)
 ;;; Compile a guard expression to a predicate function.
@@ -148,9 +148,9 @@
    ;; Unknown - default to true
    [else (lambda (_s) #t)]))
 
-;;; ============================================================
+;;; ====
 ;;; Helper Functions
-;;; ============================================================
+;;; ====
 
 ;;; Generate flag name for node visited tracking
 (define (satin-visited-flag node-id)

@@ -31,9 +31,9 @@
   (display name)
   (newline))
 
-;;; ============================================================
+;;; ====
 ;;; Type Family Declaration Parsing
-;;; ============================================================
+;;; ====
 (test-section "Type Family Declaration Parsing")
 
 (test "type-family-decl? basic" #t (type-family-decl? '(type Elem c)))
@@ -54,9 +54,9 @@
      (test "parse multi-param: name" 'Key (type-family-name tf))
      (test "parse multi-param: params" '(m v) (type-family-params tf)))
 
-;;; ============================================================
+;;; ====
 ;;; Type Family Instance Parsing
-;;; ============================================================
+;;; ====
 (test-section "Type Family Instance Parsing")
 
 (test "type-family-instance-decl? basic" #t (type-family-instance-decl? '(type Elem (List a) = a)))
@@ -71,9 +71,9 @@
      (test "parse simple instance: pattern" 'Identity (type-family-instance-pattern tfi))
      (test "parse simple instance: rhs" 'Unit (type-family-instance-rhs tfi)))
 
-;;; ============================================================
+;;; ====
 ;;; Type Family Registry
-;;; ============================================================
+;;; ====
 (test-section "Type Family Registry")
 
 (let* ([r (empty-tf-registry)]
@@ -90,9 +90,9 @@
       (test "lookup instance: not found" #f
             (tf-registry-lookup-instance r 'Elem '(Vector Int))))
 
-;;; ============================================================
+;;; ====
 ;;; Type Pattern Matching
-;;; ============================================================
+;;; ====
 (test-section "Type Pattern Matching")
 
 ;; Match (List a) against (List Int)
@@ -121,9 +121,9 @@
 (test "match (-> a a) vs (-> Int Bool): failure" #f
       (match-type-pattern '(-> a a) '(-> Int Bool)))
 
-;;; ============================================================
+;;; ====
 ;;; Type Family Reduction
-;;; ============================================================
+;;; ====
 (test-section "Type Family Reduction")
 
 ;; Reduce (Elem (List Int)) → Int
@@ -156,17 +156,17 @@
       '(List Int)
       (reduce-std '(List (Elem (List Int)))))
 
-;;; ============================================================
+;;; ====
 ;;; Type Application Construction
-;;; ============================================================
+;;; ====
 (test-section "Type Family Application")
 
 (test "tf-apply Elem" '(Elem (List Int)) (tf-apply 'Elem '(List Int)))
 (test "tf-apply Rep" '(Rep Identity) (tf-apply 'Rep 'Identity))
 
-;;; ============================================================
+;;; ====
 ;;; Standard Type Families
-;;; ============================================================
+;;; ====
 (test-section "Standard Type Families")
 
 (test "TF-Elem exists" #t (type-family? TF-Elem))
@@ -179,9 +179,9 @@
 (test "TF-Val exists" #t (type-family? TF-Val))
 (test "TF-Inner exists" #t (type-family? TF-Inner))
 
-;;; ============================================================
+;;; ====
 ;;; Standard Instances
-;;; ============================================================
+;;; ====
 (test-section "Standard Instances")
 
 (test "TFI-Elem-List exists" #t (type-family-instance? TFI-Elem-List))
@@ -191,9 +191,9 @@
 
 (test "TFI-Rep-Identity rhs" 'Unit (type-family-instance-rhs TFI-Rep-Identity))
 
-;;; ============================================================
+;;; ====
 ;;; Type Classes with Associated Types
-;;; ============================================================
+;;; ====
 (test-section "Type Classes with Associated Types")
 
 (test "TC-Collection-with-Elem exists" #t
@@ -213,9 +213,9 @@
 (test "TC-Map-with-Types has two families" 2
       (length (typeclass-with-families-type-families TC-Map-with-Types)))
 
-;;; ============================================================
+;;; ====
 ;;; Pretty Printing
-;;; ============================================================
+;;; ====
 (test-section "Pretty Printing")
 
 (test "type-family->string basic"
@@ -226,9 +226,9 @@
       "type Rep f : Type"
       (type-family->string (make-type-family 'Rep '(f) 'Type)))
 
-;;; ============================================================
+;;; ====
 ;;; Integration: Method Types with Type Families
-;;; ============================================================
+;;; ====
 (test-section "Integration Tests")
 
 ;; Verify that insert method type uses Elem
@@ -242,11 +242,11 @@
        [tabulate-type (cdr (assq 'tabulate methods))])
       (test "tabulate method exists" #t (pair? tabulate-type)))
 
-;;; ============================================================
+;;; ====
 ;;; Summary
-;;; ============================================================
+;;; ====
 (newline)
-(display "=================================")
+(display "====")
 (newline)
 (display "Tests passed: ")
 (display *tests-passed*)

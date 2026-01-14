@@ -66,9 +66,9 @@
 (load "core/base/prelude.ss")
 (load "core/lang/rust-mapping.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Operator Mappings
-;;; ============================================================
+;;; ====
 
 ;;; scheme-op->rust : Symbol → (or String #f)
 ;;; Convert a Scheme primitive operator to Rust infix/prefix syntax.
@@ -122,9 +122,9 @@
         [(or) "false"]
         [else #f]))
 
-;;; ============================================================
+;;; ====
 ;;; Parameter Type Serialization (fold-s2w6)
-;;; ============================================================
+;;; ====
 
 ;;; param-type->rust : Type → String
 ;;; Convert a parameter type to its Rust string representation.
@@ -141,9 +141,9 @@
    ;; Fallback
    [else (format "/* Unknown param type: ~s */" type)]))
 
-;;; ============================================================
+;;; ====
 ;;; Rust Identifier Sanitization
-;;; ============================================================
+;;; ====
 
 ;;; rust-reserved-keywords : (List String)
 ;;; Rust keywords that cannot be used as identifiers.
@@ -205,9 +205,9 @@
         [(truncate) "trunc"]  ; Rust uses trunc()
         [else #f]))
 
-;;; ============================================================
+;;; ====
 ;;; Fuel Threading for Recursive Functions (fold-vt79)
-;;; ============================================================
+;;; ====
 
 ;;; rust-serialize-with-fuel : IR × Symbol → String
 ;;; Serialize IR, adding __fuel argument to calls of the named function.
@@ -414,9 +414,9 @@
         [(bool) "false"]
         [else "Default::default()"]))
 
-;;; ============================================================
+;;; ====
 ;;; Free Variable Analysis (fold-13td: Capturing Closures)
-;;; ============================================================
+;;; ====
 
 ;;; free-vars : Expr × (Set Symbol) → (Set Symbol)
 ;;; Compute free variables in a Scheme expression.
@@ -482,9 +482,9 @@
   (foldl (lambda (acc x) (if (memq x acc) acc (cons x acc)))
          a b))
 
-;;; ============================================================
+;;; ====
 ;;; IR Serialization
-;;; ============================================================
+;;; ====
 
 ;;; rust-serialize : (List α) → String
 ;;; Convert Rust IR to a string fragment.
@@ -731,9 +731,9 @@
 
    [else (format "/* Unknown IR: ~s */" ir)]))
 
-;;; ============================================================
+;;; ====
 ;;; Scheme to Rust IR Translation
-;;; ============================================================
+;;; ====
 
 ;;; scheme->rust-ir : α → (List α)
 ;;; Translate a Scheme expression to Rust IR.
@@ -866,9 +866,9 @@
    [else `(R-Literal ,(format "/* unsupported: ~s */" expr))]))
 
 
-;;; ============================================================
+;;; ====
 ;;; Fuel Cost Computation
-;;; ============================================================
+;;; ====
 
 ;;; op-fuel-cost : Symbol → Nat
 ;;; Return the fuel cost of a primitive operation.
@@ -984,9 +984,9 @@
    [else 0]))
 
 
-;;; ============================================================
+;;; ====
 ;;; Autodiff Gradient Formulas
-;;; ============================================================
+;;; ====
 ;;;
 ;;; These formulas enable future Rust-native autodiff codegen.
 ;;; They are designed to be 1:1 with reverse-diff.ss traced ops.
@@ -1065,9 +1065,9 @@
   (and (op-local-gradient op) #t))
 
 
-;;; ============================================================
+;;; ====
 ;;; Code Emission
-;;; ============================================================
+;;; ====
 
 ;;; ret-type->result-struct : Symbol → String
 ;;; Map a return type to its corresponding result struct name.
@@ -1103,9 +1103,9 @@
         [(i64 f64 u64 i32 f32) "    result.value = val;\n"]
         [else "    result.value = val as f64;\n"]))  ; Fallback for backwards compat
 
-;;; ============================================================
+;;; ====
 ;;; Division-by-Zero Protection (M2: fold-jppr)
-;;; ============================================================
+;;; ====
 
 ;;; ir-collect-divisors : (List α) → (List (List α))
 ;;; Collect all divisor expressions from division/modulo operations.

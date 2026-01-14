@@ -15,9 +15,9 @@
 ;;; Dependencies:
 ;;;   shell/lens/call-graph.ss
 
-;;; ============================================================
+;;; ====
 ;;; Transitive Closure Computation
-;;; ============================================================
+;;; ====
 
 ;;; compute-closure : Symbol × (Symbol -> (List Symbol)) × Nat -> (List Symbol)
 ;;; Compute transitive closure using the given neighbor function.
@@ -44,9 +44,9 @@
        
        (reverse result)))
 
-;;; ============================================================
+;;; ====
 ;;; Public API
-;;; ============================================================
+;;; ====
 
 ;;; dep-slice-up : Symbol [Nat] -> (List Symbol)
 ;;; Find all symbols that transitively depend on sym.
@@ -69,9 +69,9 @@
        `((up . ,(dep-slice-up sym max-depth))
          (down . ,(dep-slice-down sym max-depth)))))
 
-;;; ============================================================
+;;; ====
 ;;; Layered Slicing (by depth)
-;;; ============================================================
+;;; ====
 
 ;;; dep-slice-layers-up : Symbol Nat -> (List (depth . (List Symbol)))
 ;;; Return dependents organized by distance from symbol.
@@ -139,9 +139,9 @@
                          (loop (+ i 1)
                                (cons (cons i (reverse layer)) result))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Impact Analysis
-;;; ============================================================
+;;; ====
 
 ;;; dep-impact : Symbol -> (impact-score direct-deps transitive-deps)
 ;;; Compute the "impact" of changing a symbol.
@@ -169,9 +169,9 @@
           (transitive-dependencies . ,transitive-count)
           (complexity-score . ,(+ (* direct-count 2) transitive-count)))))
 
-;;; ============================================================
+;;; ====
 ;;; Display Functions
-;;; ============================================================
+;;; ====
 
 ;;; dep-slice-stats : Symbol -> void
 ;;; Display dependency statistics for a symbol.

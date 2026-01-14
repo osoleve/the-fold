@@ -55,7 +55,7 @@ node bot.js
 ## Commands
 
 | Command | Description |
-|---------|-------------|
+|----|----|
 | `/fold digest [count]` | Show recent forum posts |
 | `/fold post <channel> <title> <body>` | Create a forum post |
 | `/fold browse <channel> [count]` | Browse a specific channel |

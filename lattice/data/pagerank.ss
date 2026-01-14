@@ -22,9 +22,9 @@
 ;;;   - matrix-eigen.ss
 ;;;   - graph-matrix.ss
 
-;;; ============================================================
+;;; ====
 ;;; Constants
-;;; ============================================================
+;;; ====
 
 ;;; Default damping factor (probability of following a link)
 (define *default-damping-factor* 0.85)
@@ -35,9 +35,9 @@
 ;;; Default maximum iterations
 (define *pagerank-max-iterations* 100)
 
-;;; ============================================================
+;;; ====
 ;;; Transition Matrix Construction
-;;; ============================================================
+;;; ====
 
 ;;; adjacency->transition : Matrix → Matrix
 ;;; Convert adjacency matrix to column-stochastic transition matrix.
@@ -92,9 +92,9 @@
                 sum
                 (loop (+ i 1) (+ sum (matrix-ref m i j)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Google Matrix Construction
-;;; ============================================================
+;;; ====
 
 ;;; make-google-matrix : Matrix × Num → Matrix
 ;;; Construct the Google matrix: G = d*M + (1-d)*E/N
@@ -114,9 +114,9 @@
                       (vector-set! google-data idx g-ij))))
         (list 'matrix n n google-data)))
 
-;;; ============================================================
+;;; ====
 ;;; PageRank Computation
-;;; ============================================================
+;;; ====
 
 ;;; pagerank-from-matrix : Matrix × [Num] × [Nat] × [Num] → Vec | Error
 ;;; Compute PageRank scores from adjacency matrix.
@@ -185,9 +185,9 @@
 (define (vec-sum v)
   (vec-fold + 0 v))
 
-;;; ============================================================
+;;; ====
 ;;; Edge List Interface
-;;; ============================================================
+;;; ====
 
 ;;; pagerank : (List Edge) × [Nat] × [Num] × [Nat] × [Num] → Vec | Error
 ;;; Compute PageRank from edge list.
@@ -213,9 +213,9 @@
                  adj
                  (apply pagerank-from-matrix (cons adj rest1))))))
 
-;;; ============================================================
+;;; ====
 ;;; Personalized PageRank
-;;; ============================================================
+;;; ====
 
 ;;; personalized-pagerank : Matrix × Vec × [Num] × [Nat] × [Num] → Vec | Error
 ;;; Compute Personalized PageRank with custom teleportation vector.
@@ -269,9 +269,9 @@
                                   [v0 (make-vec n (/ 1.0 n))])
                                  (pagerank-power-iteration google v0 max-iter tol))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Utilities
-;;; ============================================================
+;;; ====
 
 ;;; top-k-nodes : Vec × Nat → (List (Nat . Num))
 ;;; Return top k nodes by PageRank score.

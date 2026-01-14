@@ -24,9 +24,9 @@
 (load "lattice/physics/classical/constraints.ss")
 (load "lattice/physics/classical/constraint-solver.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Physics Entity
-;;; ============================================================
+;;; ====
 
 ;;; A physics entity combines:
 ;;;   - id: unique identifier
@@ -72,9 +72,9 @@
 ;;; entity-static? : Entity → Boolean
 (define (entity-static? e) (body-static? (entity-body e)))
 
-;;; ============================================================
+;;; ====
 ;;; Shape Transformation
-;;; ============================================================
+;;; ====
 
 ;;; transform-shape : Shape × Vec2 → Shape
 ;;; Translate a shape by the given offset.
@@ -101,9 +101,9 @@
        ;; (For now, assume shapes are already in world coords from body pos)
        shape))
 
-;;; ============================================================
+;;; ====
 ;;; Physics World
-;;; ============================================================
+;;; ====
 
 ;;; A physics world contains:
 ;;;   - entities: hashtable of id → entity
@@ -176,9 +176,9 @@
         new-acc
         (world-constraints w)))
 
-;;; ============================================================
+;;; ====
 ;;; Entity Management
-;;; ============================================================
+;;; ====
 
 ;;; world-add-entity! : World × Entity → Void
 ;;; Add an entity to the world.
@@ -210,9 +210,9 @@
        (when entity
              (hashtable-set! (world-entities world) id (f entity)))))
 
-;;; ============================================================
+;;; ====
 ;;; Constraint Management
-;;; ============================================================
+;;; ====
 
 ;;; world-add-constraint! : World × Constraint → Void
 ;;; Add a constraint to the world.
@@ -243,9 +243,9 @@
        (when constraint
              (hashtable-set! (world-constraints world) id (f constraint)))))
 
-;;; ============================================================
+;;; ====
 ;;; Force Accumulation
-;;; ============================================================
+;;; ====
 
 ;;; A force accumulator for an entity
 (define (make-force-acc)
@@ -266,9 +266,9 @@
 (define (force-acc-clear! acc)
   (hashtable-clear! acc))
 
-;;; ============================================================
+;;; ====
 ;;; World Step
-;;; ============================================================
+;;; ====
 
 ;;; world-step! : World × Number → Void
 ;;; Step the physics simulation forward by dt seconds.
@@ -427,9 +427,9 @@
                                                             (entity-with-body ent new-body))))))
         entities)))
 
-;;; ============================================================
+;;; ====
 ;;; Collision Detection
-;;; ============================================================
+;;; ====
 
 ;;; world-detect-collisions : World → (List Collision)
 ;;; Detect all collisions in the world.
@@ -479,9 +479,9 @@
       (cons b a)))
 
 
-;;; ============================================================
+;;; ====
 ;;; Convenience Constructors
-;;; ============================================================
+;;; ====
 
 ;;; make-circle-entity : Any × Vec2 × Number × Number × Material → Entity
 ;;; Create a circular physics entity.
@@ -521,9 +521,9 @@
                            (vec2 half-width y))])
         (make-entity id body shape material #f)))
 
-;;; ============================================================
+;;; ====
 ;;; World Queries
-;;; ============================================================
+;;; ====
 
 ;;; world-query-aabb : World × AABB → (List Entity)
 ;;; Find all entities overlapping an AABB.
@@ -597,9 +597,9 @@
                               (hit-info-distance (cdr b))))
                    hits)))
 
-;;; ============================================================
+;;; ====
 ;;; Entity Manipulation
-;;; ============================================================
+;;; ====
 
 ;;; apply-force! : World × Any × Vec2 → Void
 ;;; Apply a force to an entity.
@@ -658,9 +658,9 @@
                  (make-entity (entity-id e) new-body new-shape
                               (entity-material e) (entity-user-data e))))))
 
-;;; ============================================================
+;;; ====
 ;;; Convenience Wrappers
-;;; ============================================================
+;;; ====
 
 ;;; world-resolve-collisions! : World × (List Collision) → Void
 ;;; Resolve collisions with both velocity impulses and position correction.

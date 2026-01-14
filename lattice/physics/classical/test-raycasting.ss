@@ -25,14 +25,14 @@
   (assert-= (vec2-y actual) (vec2-y expected) tolerance))
 
 (display "
-==============================================================
+====
               2D RAYCASTING TESTS
-==============================================================
+====
 ")
 
-;;; ============================================================
+;;; ====
 ;;; Ray Construction Tests
-;;; ============================================================
+;;; ====
 
 (test-group ray-construction-tests
             (define-test make-ray2-normalizes-direction
@@ -64,9 +64,9 @@
                    (assert-vec2-= (ray2-direction ray) (vec2 1 0) 0.0001)
                    (assert-= (ray2-max-dist ray) 10 0.0001))))
 
-;;; ============================================================
+;;; ====
 ;;; HitInfo Tests
-;;; ============================================================
+;;; ====
 
 (test-group hit-info-tests
             (define-test make-hit-info-test
@@ -78,9 +78,9 @@
                     (assert-vec2-= (hit-info-normal hit) (vec2 -1 0) 0.0001)
                     (assert-true (circle? (hit-info-shape hit))))))
 
-;;; ============================================================
+;;; ====
 ;;; Ray-AABB Tests
-;;; ============================================================
+;;; ====
 
 (test-group ray-aabb-tests
             (define-test ray-aabb-direct-hit
@@ -143,9 +143,9 @@
                      [hit (ray2-aabb ray box)])
                     (assert-true (hit-info? hit)))))
 
-;;; ============================================================
+;;; ====
 ;;; Ray-Circle Tests
-;;; ============================================================
+;;; ====
 
 (test-group ray-circle-tests
             (define-test ray-circle-through-center
@@ -205,9 +205,9 @@
                      [hit (ray2-circle ray circ)])
                     (assert-false hit))))
 
-;;; ============================================================
+;;; ====
 ;;; Ray-Polygon Tests
-;;; ============================================================
+;;; ====
 
 (test-group ray-polygon-tests
             (define-test ray-polygon-box-hit
@@ -243,9 +243,9 @@
                      [hit (ray2-polygon ray hex)])
                     (assert-true (hit-info? hit)))))
 
-;;; ============================================================
+;;; ====
 ;;; Generic Shape Tests
-;;; ============================================================
+;;; ====
 
 (test-group ray-shape-tests
             (define-test ray2-shape-aabb
@@ -271,9 +271,9 @@
                      [hit (ray2-shape ray '(unknown-shape))])
                     (assert-false hit))))
 
-;;; ============================================================
+;;; ====
 ;;; Edge Cases
-;;; ============================================================
+;;; ====
 
 (test-group edge-case-tests
             (define-test zero-length-ray-inside
@@ -303,8 +303,8 @@
                      [hit (ray2-circle ray tiny)])
                     (assert-true (hit-info? hit)))))
 
-;;; ============================================================
+;;; ====
 ;;; Run Tests
-;;; ============================================================
+;;; ====
 
 (run-all-tests)

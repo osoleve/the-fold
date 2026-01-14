@@ -50,9 +50,9 @@
   (display name)
   (newline))
 
-;;; ============================================================
+;;; ====
 ;;; Window Functions Tests
-;;; ============================================================
+;;; ====
 (test-section "Window Functions")
 
 ;; Rectangular window
@@ -83,9 +83,9 @@
 (test "kaiser window length" 8 (vector-length kaiser8))
 (test-true "kaiser window max at center" (> (vector-ref kaiser8 4) (vector-ref kaiser8 0)))
 
-;;; ============================================================
+;;; ====
 ;;; FIR Filter Design Tests
-;;; ============================================================
+;;; ====
 (test-section "FIR Filter Design")
 
 ;; Low-pass FIR
@@ -105,9 +105,9 @@
 (define bs-fir (fir-bandstop 0.2 0.4 20 hamming-window))
 (test "FIR bandstop length" 21 (vector-length bs-fir))
 
-;;; ============================================================
+;;; ====
 ;;; FIR Filter Application Tests
-;;; ============================================================
+;;; ====
 (test-section "FIR Filter Application")
 
 ;; Simple averaging filter (moving average)
@@ -121,9 +121,9 @@
 (define dc-filtered (fir-filter dc-signal lp-fir))
 (test-true "lowpass passes DC" (> (vector-ref dc-filtered 16) 0.5))
 
-;;; ============================================================
+;;; ====
 ;;; IIR Filter Structure Tests
-;;; ============================================================
+;;; ====
 (test-section "IIR Filter Structure")
 
 (define test-iir (make-iir-filter (vector 1.0 0.5) (vector 1.0 -0.5)))
@@ -131,9 +131,9 @@
 (test "IIR filter b coeffs" 2 (vector-length (iir-filter-b test-iir)))
 (test "IIR filter a coeffs" 2 (vector-length (iir-filter-a test-iir)))
 
-;;; ============================================================
+;;; ====
 ;;; IIR Filter Application Tests
-;;; ============================================================
+;;; ====
 (test-section "IIR Filter Application")
 
 ;; Simple first-order IIR
@@ -144,9 +144,9 @@
 (test-approx "IIR first sample" 0.5 (vector-ref iir-out 0) 0.01)
 (test-approx "IIR second sample" 1.5 (vector-ref iir-out 1) 0.01)
 
-;;; ============================================================
+;;; ====
 ;;; Biquad Tests
-;;; ============================================================
+;;; ====
 (test-section "Biquad Sections")
 
 (define bq (make-biquad 0.1 0.2 0.1 -0.8 0.4))
@@ -158,9 +158,9 @@
 (define bq-out (biquad-filter test-signal bq))
 (test "biquad output length" 8 (vector-length bq-out))
 
-;;; ============================================================
+;;; ====
 ;;; Butterworth Filter Design Tests
-;;; ============================================================
+;;; ====
 (test-section "Butterworth Filter Design")
 
 ;; Butterworth poles
@@ -180,9 +180,9 @@
 (test-true "butterworth has b coeffs" (> (vector-length (iir-filter-b bw-lp)) 0))
 (test-true "butterworth has a coeffs" (> (vector-length (iir-filter-a bw-lp)) 0))
 
-;;; ============================================================
+;;; ====
 ;;; Chebyshev Filter Design Tests
-;;; ============================================================
+;;; ====
 (test-section "Chebyshev Filter Design")
 
 ;; Chebyshev poles
@@ -197,9 +197,9 @@
 (define ch-lp (chebyshev1-lowpass 0.2 0.5 2))
 (test-true "chebyshev filter created" (iir-filter? ch-lp))
 
-;;; ============================================================
+;;; ====
 ;;; Frequency Response Tests
-;;; ============================================================
+;;; ====
 (test-section "Frequency Response Analysis")
 
 ;; Simple filter for testing
@@ -220,9 +220,9 @@
 ;; DC gain should be 0 dB for this filter (b = [0.5, 0.5], sum = 1)
 (test-approx "DC gain 0 dB" 0.0 (vector-ref (cdr mag-r) 0) 0.5)
 
-;;; ============================================================
+;;; ====
 ;;; Real-time Filtering Tests
-;;; ============================================================
+;;; ====
 (test-section "Real-time Filtering")
 
 (define rt-filter (make-iir-filter (vector 0.5 0.5) (vector 1.0 0.0)))
@@ -241,9 +241,9 @@
 (define s3 (filter-process-sample! rt-state 1.0))
 (test-approx "realtime after reset" 0.5 s3 0.01)
 
-;;; ============================================================
+;;; ====
 ;;; Common Filter Presets Tests
-;;; ============================================================
+;;; ====
 (test-section "Common Filter Presets")
 
 ;; DC blocker
@@ -263,9 +263,9 @@
 (test "moving average length" 5 (vector-length ma5))
 (test-approx "moving average coeff" 0.2 (vector-ref ma5 0) 0.001)
 
-;;; ============================================================
+;;; ====
 ;;; Impulse and Step Response Tests
-;;; ============================================================
+;;; ====
 (test-section "Impulse and Step Response")
 
 (define ir (impulse-response simple-iir 16))
@@ -277,9 +277,9 @@
 (test "step response length" 16 (vector-length sr))
 (test-approx "step response converges to 1" 1.0 (vector-ref sr 15) 0.01)
 
-;;; ============================================================
+;;; ====
 ;;; Edge Cases
-;;; ============================================================
+;;; ====
 (test-section "Edge Cases")
 
 ;; Single sample window
@@ -295,9 +295,9 @@
 (test-approx "sinc(0) = 1" 1.0 (sinc 0) 0.001)
 (test-approx "sinc(1) = 0" 0.0 (sinc 1) 0.001)
 
-;;; ============================================================
+;;; ====
 ;;; Summary
-;;; ============================================================
+;;; ====
 
 (newline)
 (display "═══════════════════════════════════════════════════════════")

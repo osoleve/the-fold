@@ -6,16 +6,16 @@
 (load "lattice/fp/symbolic/integrate.ss")
 
 (display "\n")
-(display "==============================================================\n")
+(display "====\n")
 (display "         SYMBOLIC INTEGRATION TESTS\n")
-(display "==============================================================\n")
+(display "====\n")
 
 ;;; Helper to convert truthy to #t
 (define (truthy? x) (if x #t #f))
 
-;;; ============================================================
+;;; ====
 ;;; Basic Integration Tests
-;;; ============================================================
+;;; ====
 
 (test-group basic-integrals
             (define-test integrate-constant
@@ -43,9 +43,9 @@
                    (assert-true (truthy? result))
                    (assert-true (quotient? result)))))
 
-;;; ============================================================
+;;; ====
 ;;; Trigonometric Integration Tests
-;;; ============================================================
+;;; ====
 
 (test-group trig-integrals
             (define-test integrate-sin
@@ -60,9 +60,9 @@
                    (assert-true (app? result))
                    (assert-equal 'sin (app-fn result)))))
 
-;;; ============================================================
+;;; ====
 ;;; Exponential/Logarithm Integration Tests
-;;; ============================================================
+;;; ====
 
 (test-group exp-log-integrals
             (define-test integrate-exp
@@ -82,9 +82,9 @@
                    (assert-true (truthy? result))
                    (assert-true (difference? result)))))
 
-;;; ============================================================
+;;; ====
 ;;; Sum Rule Tests
-;;; ============================================================
+;;; ====
 
 (test-group sum-rule
             (define-test integrate-sum-of-powers
@@ -97,9 +97,9 @@
                    (assert-true (truthy? result))
                    (assert-true (sum? result)))))
 
-;;; ============================================================
+;;; ====
 ;;; Constant Multiple Rule Tests
-;;; ============================================================
+;;; ====
 
 (test-group constant-multiple
             (define-test integrate-3x
@@ -111,9 +111,9 @@
                    (assert-true (truthy? result))
                    (assert-true (product? result)))))
 
-;;; ============================================================
+;;; ====
 ;;; Power Rule Tests
-;;; ============================================================
+;;; ====
 
 (test-group power-rule
             (define-test integrate-x-inverse
@@ -127,9 +127,9 @@
                    (assert-true (truthy? result))
                    (assert-true (product? result)))))
 
-;;; ============================================================
+;;; ====
 ;;; Difference Rule Tests
-;;; ============================================================
+;;; ====
 
 (test-group difference-rule
             (define-test integrate-diff-of-powers
@@ -142,9 +142,9 @@
                    (assert-true (truthy? result))
                    (assert-true (difference? result)))))
 
-;;; ============================================================
+;;; ====
 ;;; Definite Integral Tests
-;;; ============================================================
+;;; ====
 
 (test-group definite-integrals
             (define-test definite-x-from-0-to-1
@@ -160,9 +160,9 @@
                    ;; Result is 5*b - 5*a, a difference expression
                    (assert-true (difference? result)))))
 
-;;; ============================================================
+;;; ====
 ;;; Hyperbolic Function Tests
-;;; ============================================================
+;;; ====
 
 (test-group hyperbolic-integrals
             (define-test integrate-sinh
@@ -177,9 +177,9 @@
                    (assert-true (app? result))
                    (assert-equal 'sinh (app-fn result)))))
 
-;;; ============================================================
+;;; ====
 ;;; Verification Tests (derivative of integral = original)
-;;; ============================================================
+;;; ====
 
 (test-group verify-integration
             (define-test verify-x-squared
@@ -206,9 +206,9 @@
                     (assert-true (truthy? simplified))
                     (assert-true (expr=? simplified f)))))
 
-;;; ============================================================
+;;; ====
 ;;; Edge Cases
-;;; ============================================================
+;;; ====
 
 (test-group edge-cases
             (define-test integrate-zero
@@ -225,8 +225,8 @@
                         (assert-true (var? simplified))
                         (assert-equal 'x (var-name simplified))))))
 
-;;; ============================================================
+;;; ====
 ;;; Run All Tests
-;;; ============================================================
+;;; ====
 
 (run-all-tests)

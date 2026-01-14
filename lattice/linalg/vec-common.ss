@@ -16,9 +16,9 @@
 (load "core/base/prelude.ss")
 
 
-;;; ============================================================
+;;; ====
 ;;; 2D Vector Generation Macros
-;;; ============================================================
+;;; ====
 
 ;;; generate-vec2-core : Generate constructor, predicate, accessors
 (define-syntax generate-vec2-core
@@ -244,9 +244,9 @@
                              v))))]))
 
 
-;;; ============================================================
+;;; ====
 ;;; 3D Vector Generation Macros
-;;; ============================================================
+;;; ====
 
 ;;; generate-vec3-core : Generate constructor, predicate, accessors
 (define-syntax generate-vec3-core

@@ -32,9 +32,9 @@
            (reverse acc)
            (loop (+ i 1) (cons (+ start i) acc)))))
 
-;;; ============================================================
+;;; ====
 ;;; Council Configuration
-;;; ============================================================
+;;; ====
 
 ;;; make-council-config : Fields -> CouncilConfig
 (define (make-council-config models
@@ -83,9 +83,9 @@
 ;;; council-timeout : CouncilConfig → Nat
 (define (council-timeout cfg) (list-ref cfg 9))
 
-;;; ============================================================
+;;; ====
 ;;; Council Result Types
-;;; ============================================================
+;;; ====
 
 ;;; make-council-result : Fields -> CouncilResult
 (define (make-council-result responses
@@ -122,9 +122,9 @@
 ;;; result-history : CouncilResult → (List (Alist Symbol String))
 (define (result-history r) (list-ref r 6))
 
-;;; ============================================================
+;;; ====
 ;;; Sequential Council (Round-Robin)
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Models take turns, each seeing all prior responses.
 ;;; Useful for building on each other's ideas.
@@ -161,9 +161,9 @@
                                    60000)
                                   input)))))
 
-;;; ============================================================
+;;; ====
 ;;; Parallel Council (Independent + Synthesize)
-;;; ============================================================
+;;; ====
 ;;;
 ;;; All models respond independently to same prompt.
 ;;; A synthesizer combines the responses.
@@ -193,9 +193,9 @@
                                    60000)
                                   input)))))
 
-;;; ============================================================
+;;; ====
 ;;; Voting Council
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Models vote on options, with optional discussion.
 
@@ -224,9 +224,9 @@
                                    30000)
                                   input)))))
 
-;;; ============================================================
+;;; ====
 ;;; Debate Council
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Two models take opposing positions, third judges.
 
@@ -251,9 +251,9 @@
                                    90000)
                                   input)))))
 
-;;; ============================================================
+;;; ====
 ;;; Consensus Seeking Council
-;;; ============================================================
+;;; ====
 ;;;
 ;;; Continue until consensus or max rounds.
 
@@ -279,9 +279,9 @@
                                    60000)
                                   input)))))
 
-;;; ============================================================
+;;; ====
 ;;; Council Helpers
-;;; ============================================================
+;;; ====
 
 ;;; with-council-moderator : Symbol × (Stage ctx α CouncilResult) → (Stage ctx α CouncilResult)
 ;;; Override the moderator for a council stage.
@@ -335,9 +335,9 @@
                                                  topic)))
                                result)))))
 
-;;; ============================================================
+;;; ====
 ;;; Council Result Extractors
-;;; ============================================================
+;;; ====
 
 ;;; extract-consensus : CouncilResult → (Maybe String)
 ;;; Get consensus text if reached.
@@ -375,9 +375,9 @@
                          #f))))
       #f))
 
-;;; ============================================================
+;;; ====
 ;;; Common Council Patterns
-;;; ============================================================
+;;; ====
 
 ;;; architectural-council : Stage ctx String CouncilResult
 ;;; Standard council for architecture decisions.
@@ -401,9 +401,9 @@
 (define (technical-debate topic-perspective)
   (council-debate 'opus 'gemini-3 'sonnet))
 
-;;; ============================================================
+;;; ====
 ;;; Council as Pipeline Stage
-;;; ============================================================
+;;; ====
 
 ;;; council : CouncilConfig → (Stage ctx String CouncilResult)
 ;;; General council constructor from config.
@@ -442,9 +442,9 @@
                            (stage-pure result))
                           (stage-pure result)))))
 
-;;; ============================================================
+;;; ====
 ;;; Council Effect Detection
-;;; ============================================================
+;;; ====
 
 ;;; council-effect? : Any → Bool
 ;;; Checks for standard stage-effect with 'council type.

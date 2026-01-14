@@ -67,9 +67,9 @@
 (define *current-step* (make-parameter 0))
 (define *tutorial-progress* (make-hash-table))
 
-;;; ============================================================
+;;; ====
 ;;; Core Tutorial Functions
-;;; ============================================================
+;;; ====
 
 (define (start-interactive-tutorial . tutorial-name)
   (let ((tutorial (or (and (not (null? tutorial-name)) (car tutorial-name))
@@ -234,7 +234,7 @@
 
 (define (show-tutorial-progress)
   (display "\n📊 Tutorial Progress Report:\n")
-  (display "=============================\n\n")
+  (display "====\n\n")
   
   (hash-table-walk
    *tutorial-progress*

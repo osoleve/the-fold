@@ -13,9 +13,9 @@
 ;;; Dependencies:
 ;;;   shell/tools/index.ss (symbol index)
 
-;;; ============================================================
+;;; ====
 ;;; Location Types
-;;; ============================================================
+;;; ====
 
 ;;; location : String × Nat × Nat -> Location
 ;;; Create a location record: (file line column)
@@ -46,9 +46,9 @@
            (format "~a:~a" file line)
            (format "~a:~a:~a" file line col))))
 
-;;; ============================================================
+;;; ====
 ;;; Symbol Location Lookup
-;;; ============================================================
+;;; ====
 
 ;;; jump-location : Symbol -> Location | #f
 ;;; Get the location of a symbol's definition.
@@ -70,9 +70,9 @@
   (let ([loc (jump-location sym)])
        (if loc (list loc) '())))
 
-;;; ============================================================
+;;; ====
 ;;; Jump Commands
-;;; ============================================================
+;;; ====
 
 ;;; jump-to-def : Symbol -> void
 ;;; Display the definition location for a symbol.
@@ -120,9 +120,9 @@
                                                      (reverse lines)
                                                      (loop (cons line lines)))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Reference Lookup
-;;; ============================================================
+;;; ====
 
 ;;; jump-refs : Symbol -> (List Location)
 ;;; Get all locations where a symbol is referenced.
@@ -161,9 +161,9 @@
              callers refs))
         (display "\n")))
 
-;;; ============================================================
+;;; ====
 ;;; Multi-Location Navigation
-;;; ============================================================
+;;; ====
 
 ;;; jump-list : Symbol -> void
 ;;; Show a numbered list of all locations related to a symbol.
@@ -194,9 +194,9 @@
                                (loop (cdr locs) (+ n 1))))))
         (display "\n")))
 
-;;; ============================================================
+;;; ====
 ;;; Quick Navigation Helpers
-;;; ============================================================
+;;; ====
 
 ;;; jump-file-line : String × Nat -> String
 ;;; Format as file:line for editor integration.

@@ -14,9 +14,9 @@
 (load "core/base/prelude.ss")
 (load "lattice/linalg/vec.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Matrix Representation
-;;; ============================================================
+;;; ====
 
 ;;; A matrix is: (matrix rows cols data)
 ;;; - rows: number of rows (Nat)
@@ -48,9 +48,9 @@
 (define (matrix-shape m)
   (cons (matrix-rows m) (matrix-cols m)))
 
-;;; ============================================================
+;;; ====
 ;;; Matrix Construction
-;;; ============================================================
+;;; ====
 
 ;;; make-matrix : Nat × Nat × a → Matrix a
 ;;; Create an m×n matrix with all elements set to init.
@@ -93,9 +93,9 @@
       (list 'matrix rows cols (vec-copy data))
       `(error dimension-mismatch ,(vector-length data) ,(* rows cols))))
 
-;;; ============================================================
+;;; ====
 ;;; Matrix Accessors
-;;; ============================================================
+;;; ====
 
 ;;; matrix-ref : Matrix a × Nat × Nat → a | Error
 ;;; Get element at position (i, j).
@@ -146,9 +146,9 @@
             ((= i n) result)
             (vector-set! result i (vector-ref data (+ (* i cols) i))))))
 
-;;; ============================================================
+;;; ====
 ;;; Matrix Transformations
-;;; ============================================================
+;;; ====
 
 ;;; matrix-transpose : Matrix a → Matrix a
 ;;; Transpose a matrix (swap rows and columns).
@@ -199,9 +199,9 @@
 (define (matrix-fold f init m)
   (vec-fold f init (matrix-data m)))
 
-;;; ============================================================
+;;; ====
 ;;; Matrix Arithmetic
-;;; ============================================================
+;;; ====
 
 ;;; matrix-add : Matrix Num × Matrix Num → Matrix Num | Error
 ;;; Element-wise addition.
@@ -228,9 +228,9 @@
 (define (matrix-negate m)
   (matrix-map - m))
 
-;;; ============================================================
+;;; ====
 ;;; Matrix Multiplication
-;;; ============================================================
+;;; ====
 
 ;;; matrix-mul : Matrix Num × Matrix Num → Matrix Num | Error
 ;;; Matrix multiplication: A(m×n) * B(n×p) = C(m×p)
@@ -297,9 +297,9 @@
                         ((= i rows)
                          (vector-set! result j sum))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Matrix Comparisons
-;;; ============================================================
+;;; ====
 
 ;;; matrix-equal? : Matrix a × Matrix a → Boolean
 ;;; Exact equality.
@@ -316,9 +316,9 @@
             (= (matrix-cols m1) (matrix-cols m2))
             (vec-approx-equal? (matrix-data m1) (matrix-data m2) epsilon))))
 
-;;; ============================================================
+;;; ====
 ;;; Matrix Properties
-;;; ============================================================
+;;; ====
 
 ;;; matrix-square? : Matrix → Boolean
 (define (matrix-square? m)
@@ -341,9 +341,9 @@
 (define (frobenius-norm m)
   (sqrt (vec-fold (lambda (acc x) (+ acc (* x x))) 0 (matrix-data m))))
 
-;;; ============================================================
+;;; ====
 ;;; Special Matrices
-;;; ============================================================
+;;; ====
 
 ;;; zeros : Nat × Nat → Matrix Num
 ;;; Matrix of all zeros.
@@ -372,9 +372,9 @@
             ((= i n) (list 'matrix n n data))
             (vector-set! data (+ (* i n) i) (vector-ref v i)))))
 
-;;; ============================================================
+;;; ====
 ;;; Matrix Slicing
-;;; ============================================================
+;;; ====
 
 ;;; matrix-submatrix : Matrix × Nat × Nat × Nat × Nat → Matrix | Error
 ;;; Extract submatrix from (r1,c1) to (r2,c2) exclusive.
@@ -397,9 +397,9 @@
                        (vector-set! result (+ (* i new-cols) j)
                                     (vector-ref data (+ (* (+ r1 i) cols) (+ c1 j)))))))])))
 
-;;; ============================================================
+;;; ====
 ;;; Matrix Concatenation
-;;; ============================================================
+;;; ====
 
 ;;; matrix-hstack : Matrix × Matrix → Matrix | Error
 ;;; Horizontal concatenation (side by side).
@@ -445,9 +445,9 @@
                      ((= i (* r2 c2)) (list 'matrix new-rows c1 result))
                      (vector-set! result (+ (* r1 c1) i) (vector-ref data2 i)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Utilities
-;;; ============================================================
+;;; ====
 
 ;;; matrix->lists : Matrix → (List (List a))
 ;;; Convert matrix to list of row lists.

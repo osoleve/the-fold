@@ -17,9 +17,9 @@
 
 (load "shell/ffi/ffi-core.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Type-Safe Result Structs
-;;; ============================================================
+;;; ====
 
 ;;; Match Rust's #[repr(C)] result structs from lib.rs
 
@@ -54,9 +54,9 @@
    [bytes-written unsigned-64]  ; number of bytes written (usize)
    [fuel   unsigned-64]))
 
-;;; ============================================================
+;;; ====
 ;;; Type Mappings
-;;; ============================================================
+;;; ====
 
 ;;; Scheme type symbol → Chez ftype for parameters
 ;;;
@@ -118,9 +118,9 @@
         [(buffer) (ftype-sizeof buffer-result-t)]
         [else (error 'result-ftype-sizeof "Unknown type" type)]))
 
-;;; ============================================================
+;;; ====
 ;;; Function Registry
-;;; ============================================================
+;;; ====
 
 ;;; Registry entry: (name param-types ret-type foreign-proc result-ftype-sym)
 (define *rust-fn-registry* (make-hashtable string-hash string=?))
@@ -152,9 +152,9 @@
 (define (clear-rust-fns!)
   (hashtable-clear! *rust-fn-registry*))
 
-;;; ============================================================
+;;; ====
 ;;; Input Validation
-;;; ============================================================
+;;; ====
 
 ;;; valid-c-identifier? : String → Boolean
 ;;; Validate that a name is a valid C identifier (letters, numbers, underscore).
@@ -177,9 +177,9 @@
                               (loop (+ i 1))
                               #f)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Dynamic Binding
-;;; ============================================================
+;;; ====
 
 ;;; build-foreign-proc : String × (List Symbol) × Symbol → Procedure
 ;;; Create a foreign-procedure binding for a Rust function.
@@ -218,9 +218,9 @@
                                       (list name param-types ret-type proc))
                       proc)))))
 
-;;; ============================================================
+;;; ====
 ;;; rust-load-fn! — Public API for Loading
-;;; ============================================================
+;;; ====
 
 ;;; rust-load-fn! : String × (List Symbol) × Symbol → (Result #t Error)
 ;;; Register and optionally bind a Rust function.
@@ -248,9 +248,9 @@
          (ensure-bound! name)
          '(ok #t)))
 
-;;; ============================================================
+;;; ====
 ;;; rust-call — Public API for Calling
-;;; ============================================================
+;;; ====
 
 ;;; rust-call : String × Any... × Nat → (Result Value Nat) | (Error)
 ;;; Call a registered Rust function with fuel tracking.
@@ -299,9 +299,9 @@
         [(buffer) (rust-call-buffer proc args fuel)]
         [else (error 'rust-call-with-result "Unknown return type" ret-type)]))
 
-;;; ============================================================
+;;; ====
 ;;; Type-Specific Call Implementations
-;;; ============================================================
+;;; ====
 
 ;;; rust-call-i64 : Proc × Args × Fuel → Result
 ;;; BUGFIX: Use dynamic-wind to ensure foreign memory is freed on exception
@@ -397,9 +397,9 @@
         [(4) '(error buffer-overflow)]
         [else `(error unknown-status ,status)]))
 
-;;; ============================================================
+;;; ====
 ;;; Convenience Functions
-;;; ============================================================
+;;; ====
 
 ;;; rust-load-and-call : String × (List Symbol) × Symbol × Args... × Fuel → Result
 ;;; One-shot: register, bind, and call in one step.
@@ -425,9 +425,9 @@
   (set! *accel-lib-loaded* #f)
   (accel-load!))
 
-;;; ============================================================
+;;; ====
 ;;; Diagnostic Functions
-;;; ============================================================
+;;; ====
 
 ;;; rust-fn-info : String → Alist | #f
 ;;; Get information about a registered function.
@@ -447,9 +447,9 @@
     (registered-functions . ,(hashtable-size *rust-fn-registry*))
     (function-names . ,(list-rust-fns))))
 
-;;; ============================================================
+;;; ====
 ;;; Callback Support (fold-s2w6)
-;;; ============================================================
+;;; ====
 ;;;
 ;;; These functions enable passing Scheme procedures as callbacks to Rust.
 ;;; The Scheme procedure is wrapped via foreign-callable to produce a

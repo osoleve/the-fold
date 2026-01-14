@@ -26,9 +26,9 @@
 (load "lattice/fp/numeric/transcendental.ss")
 (load "lattice/fp/numeric/special-functions.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Link Function Structure
-;;; ============================================================
+;;; ====
 
 ;;; make-link-function : Symbol × (Num → Num) × (Num → Num) × (Num → Num) → LinkFunction
 ;;; Create a link function.
@@ -49,9 +49,9 @@
 (define (link-inverse lf) (list-ref lf 3))
 (define (link-derivative lf) (list-ref lf 4))
 
-;;; ============================================================
+;;; ====
 ;;; Identity Link
-;;; ============================================================
+;;; ====
 
 ;;; g(mu) = mu
 ;;; Canonical link for Gaussian family.
@@ -66,9 +66,9 @@
    ;; g'(mu) = 1
    (lambda (mu) 1)))
 
-;;; ============================================================
+;;; ====
 ;;; Logit Link
-;;; ============================================================
+;;; ====
 
 ;;; g(mu) = log(mu / (1 - mu))
 ;;; Canonical link for Binomial family.
@@ -89,9 +89,9 @@
            (let ([mu-safe (max (min mu (- 1 1e-10)) 1e-10)])
                 (/ 1 (* mu-safe (- 1 mu-safe)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Log Link
-;;; ============================================================
+;;; ====
 
 ;;; g(mu) = log(mu)
 ;;; Canonical link for Poisson family.
@@ -110,9 +110,9 @@
    (lambda (mu)
            (/ 1 (max mu 1e-10)))))
 
-;;; ============================================================
+;;; ====
 ;;; Probit Link
-;;; ============================================================
+;;; ====
 
 ;;; g(mu) = Phi^(-1)(mu) where Phi is standard normal CDF
 ;;; Alternative link for Binomial family.
@@ -164,9 +164,9 @@
   (/ (exp (* -0.5 x x))
      (sqrt (* 2 (pi-value)))))
 
-;;; ============================================================
+;;; ====
 ;;; Inverse Link
-;;; ============================================================
+;;; ====
 
 ;;; g(mu) = 1/mu
 ;;; Canonical link for Gamma family.
@@ -184,9 +184,9 @@
    (lambda (mu)
            (/ -1 (expt (if (= mu 0) 1e-10 mu) 2)))))
 
-;;; ============================================================
+;;; ====
 ;;; Square Root Link
-;;; ============================================================
+;;; ====
 
 ;;; g(mu) = sqrt(mu)
 ;;; Alternative link for Poisson (variance-stabilizing).
@@ -204,9 +204,9 @@
    (lambda (mu)
            (/ 1 (* 2 (sqrt (max mu 1e-10)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Complementary Log-Log Link
-;;; ============================================================
+;;; ====
 
 ;;; g(mu) = log(-log(1 - mu))
 ;;; Alternative link for Binomial (asymmetric).
@@ -229,9 +229,9 @@
                   [neg-log (- (log one-minus-mu))])
                  (/ 1 (* one-minus-mu (max neg-log 1e-10)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Cauchy Link (Cauchit)
-;;; ============================================================
+;;; ====
 
 ;;; g(mu) = tan(pi * (mu - 0.5))
 ;;; Alternative link for Binomial (heavy tails).
@@ -252,9 +252,9 @@
                   [t (tan-num (* (pi-value) (- mu-safe 0.5)))])
                  (* (pi-value) (+ 1 (* t t)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Power Links
-;;; ============================================================
+;;; ====
 
 ;;; make-power-link : Num → LinkFunction
 ;;; g(mu) = mu^power for power != 0, log(mu) for power = 0
@@ -273,9 +273,9 @@
        (lambda (mu)
                (* power (expt (max mu 1e-10) (- power 1)))))))
 
-;;; ============================================================
+;;; ====
 ;;; Canonical Links
-;;; ============================================================
+;;; ====
 
 ;;; canonical-link : Symbol → LinkFunction
 ;;; Return canonical link for given family.

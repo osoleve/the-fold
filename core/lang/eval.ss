@@ -37,9 +37,9 @@
 (load "core/lang/prim.ss")
 (load "core/autodiff/reverse-diff.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Fuel
-;;; ============================================================
+;;; ====
 
 ;;; Fuel is a natural number. Each eval call costs 1 fuel.
 ;;; Primitives consume 0 fuel. Suspension happens only at eval boundaries.
@@ -48,9 +48,9 @@
 
 (define (out-of-fuel? n) (zero? n))
 
-;;; ============================================================
+;;; ====
 ;;; Values
-;;; ============================================================
+;;; ====
 
 ;;; A value is something that doesn't reduce further.
 
@@ -73,9 +73,9 @@
 (define (make-closure params body env)
   `(closure ,params ,body ,env))
 
-;;; ============================================================
+;;; ====
 ;;; Environments
-;;; ============================================================
+;;; ====
 
 ;;; An environment is an alist mapping symbols to values.
 
@@ -100,9 +100,9 @@
 (define (env-extend-alist env alist)
   (append alist env))
 
-;;; ============================================================
+;;; ====
 ;;; Evaluation Context (for unified traced/untraced evaluation)
-;;; ============================================================
+;;; ====
 ;;;
 ;;; The evaluation context encapsulates mode-specific state:
 ;;;   - Untraced: ctx is #f
@@ -130,9 +130,9 @@
 (define (result-expr r) (cadr r))   ; for suspended
 (define (result-env r) (caddr r))   ; for suspended
 
-;;; ============================================================
+;;; ====
 ;;; The Evaluator (Unified Core)
-;;; ============================================================
+;;; ====
 ;;;
 ;;; eval-core : Expr × Env × Fuel × Ctx → (ok Value Fuel Ctx) | (suspended Expr Env Fuel Ctx) | (error ...)
 ;;;
@@ -212,9 +212,9 @@
                  [else
                   (eval-call* (car expr) (cdr expr) env remaining ctx)]))]))]))
 
-;;; ============================================================
+;;; ====
 ;;; Public API (backward-compatible wrappers)
-;;; ============================================================
+;;; ====
 
 ;;; eval-expr : Expr × Env × Fuel → (ok Value Fuel) | (suspended Expr Env) | (error ...)
 ;;; Standard evaluation without tracing.
@@ -238,9 +238,9 @@
          `(suspended ,(result-expr result) ,(result-env result) ,(result-fuel result) ,(result-ctx result))]
         [else result])))
 
-;;; ============================================================
+;;; ====
 ;;; Par/Pseq Evaluation (Parallel with Fallback)
-;;; ============================================================
+;;; ====
 ;;;
 ;;; (par a b) evaluates a and b, returning b's result.
 ;;; If threading is available, a runs in a background thread.
@@ -248,7 +248,7 @@
 ;;;
 ;;; (pseq a b) always evaluates sequentially: a then b.
 ;;;
-;;; ============================================================
+;;; ====
 
 ;;; Default timeout for parallel evaluation (milliseconds)
 (define *par-timeout-ms* 30000)  ; 30 seconds
@@ -366,9 +366,9 @@
          (eval-core b-expr env (result-fuel a-result) (result-ctx a-result))]
         [else a-result])))  ; Forward suspension or error
 
-;;; ============================================================
+;;; ====
 ;;; Let Evaluation (Unified)
-;;; ============================================================
+;;; ====
 
 (define (eval-let* bindings body env fuel ctx)
   (if (out-of-fuel? fuel)
@@ -405,12 +405,12 @@
                                     (result-fuel result) (result-ctx result)))]
              [else result]))))
 
-;;; ============================================================
+;;; ====
 ;;; Fix Evaluation (Recursion)
-;;; ============================================================
+;;; ====
 ;;;
 ;;; IMPORTANT: MUTATION EXCEPTION
-;;; ============================
+;;; ====
 ;;; This is the ONLY use of mutation (set-cdr!) in all of core/.
 ;;;
 ;;; Rationale: Recursive closures require a cyclic structure where
@@ -431,7 +431,7 @@
 ;;; computing it through repeated application.
 ;;;
 ;;; See forum/engineering/0011-adr-002-eval-mutation-exception.sexp
-;;; ============================================================
+;;; ====
 
 (define (eval-fix* name fn-expr env fuel ctx)
   ;; fn-expr should be (fn (params...) body)
@@ -446,9 +446,9 @@
             (make-ok closure fuel ctx))
       `(error fix-requires-fn ,fn-expr)))
 
-;;; ============================================================
+;;; ====
 ;;; If Evaluation (Unified)
-;;; ============================================================
+;;; ====
 
 (define (eval-if* test-expr then-expr else-expr env fuel ctx)
   (if (out-of-fuel? fuel)
@@ -473,9 +473,9 @@
                              (result-ctx test-result))]
             [else test-result]))))
 
-;;; ============================================================
+;;; ====
 ;;; Case Evaluation (Pattern Matching) (Unified)
-;;; ============================================================
+;;; ====
 
 ;;; (case expr
 ;;;   ((Tag1 x y) body1)
@@ -528,9 +528,9 @@
                 (reverse acc)
                 (loop (+ i 1) (cons (vector-ref refs i) acc))))))
 
-;;; ============================================================
+;;; ====
 ;;; Primitive Evaluation (Unified)
-;;; ============================================================
+;;; ====
 
 ;;; Primitives consume no fuel themselves; only argument evaluation costs fuel.
 ;;; In traced mode, differentiable primitives use traced-* operations.
@@ -637,9 +637,9 @@
                 [result (apply prim (cons op primal-args))])
                (make-ok result fuel tape))]))
 
-;;; ============================================================
+;;; ====
 ;;; Call Evaluation (Application) (Unified)
-;;; ============================================================
+;;; ====
 
 (define (eval-call* fn-expr arg-exprs env fuel ctx)
   (if (out-of-fuel? fuel)
@@ -694,9 +694,9 @@
                                    (result-ctx result)))]
             [else result]))))
 
-;;; ============================================================
+;;; ====
 ;;; Convenience API
-;;; ============================================================
+;;; ====
 
 ;;; run : Expr × Fuel → (ok Value) | (suspended Expr) | (error ...)
 ;;; Evaluate an expression with empty environment.
@@ -735,9 +735,9 @@
 (define (eval-with-env expr env fuel)
   (eval-expr expr env fuel))
 
-;;; ============================================================
+;;; ====
 ;;; Standard Prelude
-;;; ============================================================
+;;; ====
 
 ;;; Some useful functions defined in The Fold's own language.
 ;;; These are defined as expressions to be evaluated, ensuring
@@ -988,9 +988,9 @@
                                                    (prim 'cons (prim 'car xs) (prim 'car rest))
                                                    (prim 'car (prim 'cdr rest)))))))))
     
-    ;; ================================================================
+    ;; ====
     ;; Type Class Method Implementations
-    ;; ================================================================
+    ;; ====
     ;; These implement the methods declared in core/resolve.ss
     ;; Names match those used in instance definitions.
     
@@ -1188,9 +1188,9 @@
   (let ([prelude-env (build-prelude-env 1000)])
        (eval-expr expr prelude-env fuel)))
 
-;;; ============================================================
+;;; ====
 ;;; High-Level Traced Evaluation API
-;;; ============================================================
+;;; ====
 
 ;;; eval-and-grad : Expr × Env × VarNames × Values × Fuel → (Value, Gradients)
 ;;; Evaluate expression and compute gradients w.r.t. named variables.

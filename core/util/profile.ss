@@ -12,9 +12,9 @@
 (load "core/base/prelude.ss")
 (load "core/lang/eval.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Call Tree Data Structures
-;;; ============================================================
+;;; ====
 
 ;;; make-node : Symbol × Nat → Node
 (define (make-node name start-fuel)
@@ -63,9 +63,9 @@
 (define (node-increment-calls n)
   (node-set n 'call-count (+ 1 (node-call-count n))))
 
-;;; ============================================================
+;;; ====
 ;;; Expression Classification
-;;; ============================================================
+;;; ====
 
 (define (expr-name expr)
   (cond
@@ -96,9 +96,9 @@
           [(symbol? head) head]
           [else 'expr]))]))
 
-;;; ============================================================
+;;; ====
 ;;; Profiler State
-;;; ============================================================
+;;; ====
 
 ;;; make-profiler : Expr × Env × Nat → Profiler
 (define (make-profiler expr env fuel)
@@ -138,9 +138,9 @@
              p
              updates))
 
-;;; ============================================================
+;;; ====
 ;;; Simple Profiling (Run to Completion)
-;;; ============================================================
+;;; ====
 
 ;;; profile-expr : Expr × Fuel → Profiler
 ;;; Profile an expression with given fuel budget (simple approach)
@@ -209,9 +209,9 @@
             (status . error)
             (result . ,result))])))
 
-;;; ============================================================
+;;; ====
 ;;; Statistics Extraction
-;;; ============================================================
+;;; ====
 
 ;;; flatten-tree : Node → List of (name . fuel-consumed)
 (define (flatten-tree node)
@@ -254,9 +254,9 @@
                              (/ used-fuel total-fuel)))
           (by-function . ,by-name))))
 
-;;; ============================================================
+;;; ====
 ;;; Hotspot Analysis
-;;; ============================================================
+;;; ====
 
 ;;; find-hotspots : Profiler × Nat → List of (name fuel% calls)
 (define (find-hotspots p n)
@@ -282,9 +282,9 @@
       '()
       (cons (car lst) (take-up-to (- n 1) (cdr lst)))))
 
-;;; ============================================================
+;;; ====
 ;;; Call Tree Rendering
-;;; ============================================================
+;;; ====
 
 ;;; render-tree : Node × Nat → String
 (define (render-tree node depth)
@@ -299,9 +299,9 @@
                           children)])
         (apply string-append (cons header child-strs))))
 
-;;; ============================================================
+;;; ====
 ;;; Path Analysis
-;;; ============================================================
+;;; ====
 
 (define (collect-paths node prefix)
   (let* ([current (cons (cons (node-name node) (node-fuel-consumed node))
@@ -338,9 +338,9 @@
                             all-paths)])
         (take-up-to n sorted)))
 
-;;; ============================================================
+;;; ====
 ;;; Public API
-;;; ============================================================
+;;; ====
 
 ;;; profile : Expr × Nat → Profiler
 (define (profile expr fuel)
@@ -357,9 +357,9 @@
          [hot-paths (find-hot-paths root 5)])
         
         (display "\n")
-        (display "  ============================================\n")
+        (display "  ====\n")
         (display "              PROFILE REPORT\n")
-        (display "  ============================================\n\n")
+        (display "  ====\n\n")
         
         (display (format "  Fuel Budget:    ~a\n" total))
         (display (format "  Fuel Used:      ~a\n" used))

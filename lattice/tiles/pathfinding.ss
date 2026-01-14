@@ -13,9 +13,9 @@
 ;;; Dependencies:
 ;;;   - playpen/boardcraft/core.ss
 
-;;; ============================================================
+;;; ====
 ;;; Priority Queue (Min-Heap)
-;;; ============================================================
+;;; ====
 
 ;;; Simple priority queue implementation for Dijkstra and A*
 ;;; Uses a list of (priority . value) pairs, sorted by priority
@@ -38,9 +38,9 @@
       (values #f #f #f)
       (values (cdar pq) (caar pq) (cdr pq))))
 
-;;; ============================================================
+;;; ====
 ;;; Path Reconstruction
-;;; ============================================================
+;;; ====
 
 ;;; reconstruct-path : HashTable × Coord × Coord → (List Coord)
 ;;; Reconstruct path from came-from map
@@ -53,9 +53,9 @@
                     (loop prev (cons current path))
                     #f))))) ; No path found
 
-;;; ============================================================
+;;; ====
 ;;; Breadth-First Search (BFS)
-;;; ============================================================
+;;; ====
 
 ;;; bfs-path : Coord × Coord × (Coord → List Coord) × (Coord → Bool) → (List Coord) | #f
 ;;; Find shortest path using BFS (unweighted)
@@ -92,9 +92,9 @@
                                 valid-neighbors)
                                (loop (append rest-q valid-neighbors)))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Dijkstra's Algorithm
-;;; ============================================================
+;;; ====
 
 ;;; dijkstra-path : Coord × Coord × (Coord → List Coord) × (Coord → Number) × (Coord → Bool) → (List Coord) | #f
 ;;; Find shortest weighted path using Dijkstra's algorithm
@@ -136,9 +136,9 @@
                                                            (pqueue-insert q new-cost next)))
                                                          (process-neighbors (cdr ns) q))))))))))))
 
-;;; ============================================================
+;;; ====
 ;;; A* Algorithm
-;;; ============================================================
+;;; ====
 
 ;;; astar-path : Coord × Coord × (Coord → List Coord) × (Coord → Number) × (Coord × Coord → Number) × (Coord → Bool) → (List Coord) | #f
 ;;; Find shortest path using A* with heuristic
@@ -183,9 +183,9 @@
                                                                (pqueue-insert q f-score next)))
                                                          (process-neighbors (cdr ns) q))))))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Board-Integrated Pathfinding
-;;; ============================================================
+;;; ====
 
 ;;; These functions integrate with the board system, handling
 ;;; tile walkability checks automatically.
@@ -228,9 +228,9 @@
               heuristic-fn
               (lambda (c) (board-walkable? board c))))
 
-;;; ============================================================
+;;; ====
 ;;; Reachability Analysis
-;;; ============================================================
+;;; ====
 
 ;;; find-reachable : Coord × Integer × (Coord → List Coord) × (Coord → Bool) × (Coord → Number) → (List (Coord . Number))
 ;;; Find all coordinates reachable within N movement points
@@ -272,9 +272,9 @@
                   (lambda (c) (board-walkable? board c))
                   (lambda (c) (board-cost board c))))
 
-;;; ============================================================
+;;; ====
 ;;; Exports Summary
-;;; ============================================================
+;;; ====
 
 ;;; This module provides:
 ;;;   Core Algorithms:

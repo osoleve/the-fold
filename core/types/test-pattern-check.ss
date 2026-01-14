@@ -5,9 +5,9 @@
 (load "core/base/prelude.ss")
 (load "core/types/pattern-check.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Test Framework
-;;; ============================================================
+;;; ====
 
 (define *test-count* 0)
 (define *pass-count* 0)
@@ -39,9 +39,9 @@
 (define (test-false name actual)
   (test name #f actual))
 
-;;; ============================================================
+;;; ====
 ;;; Pattern Parsing Tests
-;;; ============================================================
+;;; ====
 
 (define (run-parse-tests)
   (display "\n--- Pattern Parsing Tests ---\n")
@@ -80,9 +80,9 @@
        (test-true "nil pattern" (ctor-pattern? p))
        (test "nil tag" 'nil (ctor-pattern-tag p))))
 
-;;; ============================================================
+;;; ====
 ;;; Exhaustiveness Tests
-;;; ============================================================
+;;; ====
 
 (define (run-exhaustiveness-tests)
   (display "\n--- Exhaustiveness Tests ---\n")
@@ -129,9 +129,9 @@
          [missing (find-missing-patterns parsed (list maybe-type-info))])
         (test "complete Maybe match" '() missing)))
 
-;;; ============================================================
+;;; ====
 ;;; Redundancy Tests
-;;; ============================================================
+;;; ====
 
 (define (run-redundancy-tests)
   (display "\n--- Redundancy Tests ---\n")
@@ -166,9 +166,9 @@
          [redundant (find-redundant parsed (list list-type-info))])
         (test "no redundancy in List patterns" '() redundant)))
 
-;;; ============================================================
+;;; ====
 ;;; Usefulness Tests
-;;; ============================================================
+;;; ====
 
 (define (run-usefulness-tests)
   (display "\n--- Usefulness Tests ---\n")
@@ -194,9 +194,9 @@
          [matrix (list (list (parse-pattern 'true)))])
         (test-false "same ctor not useful" (useful? row matrix (list bool-type-info)))))
 
-;;; ============================================================
+;;; ====
 ;;; High-Level API Tests
-;;; ============================================================
+;;; ====
 
 (define (run-api-tests)
   (display "\n--- High-Level API Tests ---\n")
@@ -220,9 +220,9 @@
          [redundant (cdr (assq 'redundant result))])
         (test "check-patterns redundant" '(2) redundant)))
 
-;;; ============================================================
+;;; ====
 ;;; Type Registration Tests
-;;; ============================================================
+;;; ====
 
 (define (run-registration-tests)
   (display "\n--- Type Registration Tests ---\n")
@@ -242,9 +242,9 @@
          [exhaustive (cdr (assq 'exhaustive result))])
         (test-false "incomplete Color patterns" exhaustive)))
 
-;;; ============================================================
+;;; ====
 ;;; Run All Tests
-;;; ============================================================
+;;; ====
 
 (define (run-tests)
   (display "\n=== Pattern Check Test Suite ===\n\n")

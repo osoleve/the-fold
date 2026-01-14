@@ -28,9 +28,9 @@
 (load "core/types/types.ss")
 (load "core/types/dep-types.ss")
 
-;;; ============================================================
+;;; ====
 ;;; GADT Grammar
-;;; ============================================================
+;;; ====
 ;;;
 ;;;   GADTDecl ::= (gadt TypeHead CtorDecl ...)
 ;;;
@@ -45,9 +45,9 @@
 ;;; where the indices can be specific types (not just variables), enabling
 ;;; type refinement.
 
-;;; ============================================================
+;;; ====
 ;;; GADT Type Predicates
-;;; ============================================================
+;;; ====
 
 ;;; gadt-type? : SExpr → Boolean
 ;;; Check if this is a GADT declaration.
@@ -89,9 +89,9 @@
            (symbol? (car d))
            (eq? (cadr d) ':))))
 
-;;; ============================================================
+;;; ====
 ;;; GADT Accessors
-;;; ============================================================
+;;; ====
 
 ;;; gadt-name : GADTDecl → Symbol
 ;;; Extract the type name from a GADT declaration.
@@ -142,9 +142,9 @@
        (let ([entry (assq ctor-name ctors)])
             (if entry (cdr entry) #f))))
 
-;;; ============================================================
+;;; ====
 ;;; GADT Type Construction
-;;; ============================================================
+;;; ====
 
 ;;; t-gadt : Symbol × (List (Symbol . Kind)) × (List (Symbol . Type)) → GADTDecl
 ;;; Construct a GADT declaration from its parts.
@@ -164,9 +164,9 @@
       name
       `(,name ,@indices)))
 
-;;; ============================================================
+;;; ====
 ;;; Constructor Type Analysis
-;;; ============================================================
+;;; ====
 
 ;;; gadt-ctor-return-type : Type → Type
 ;;; Extract the return type from a constructor type.
@@ -223,9 +223,9 @@
     (gadt-ctor-forall-vars (pi-codomain t))]
    [else '()]))
 
-;;; ============================================================
+;;; ====
 ;;; Type Refinement (The Core GADT Innovation)
-;;; ============================================================
+;;; ====
 
 ;;; When we match on a GADT constructor, we learn type equalities.
 ;;; If we're matching a value of type (Expr a) against constructor Lit
@@ -280,9 +280,9 @@
              type
              refinements))
 
-;;; ============================================================
+;;; ====
 ;;; GADT Pattern Matching Support
-;;; ============================================================
+;;; ====
 
 ;;; gadt-case-expr? : SExpr → Boolean
 ;;; Check if this is a GADT case expression.
@@ -323,9 +323,9 @@
 (define (gadt-pattern-vars pattern)
   (cdr pattern))
 
-;;; ============================================================
+;;; ====
 ;;; GADT Registry
-;;; ============================================================
+;;; ====
 
 ;;; A registry maps GADT names to their declarations.
 ;;; This is used during type checking to look up constructor types.
@@ -343,9 +343,9 @@
 (define (gadt-registry-add registry decl)
   (cons (cons (gadt-name decl) decl) registry))
 
-;;; ============================================================
+;;; ====
 ;;; GADT Type Wellformedness
-;;; ============================================================
+;;; ====
 
 ;;; gadt-ctor-returns-gadt? : Type × Symbol → Boolean
 ;;; Check that a constructor type returns the GADT type.
@@ -364,16 +364,16 @@
                        (gadt-ctor-returns-gadt? (cdr ct) name))
                ctors)))
 
-;;; ============================================================
+;;; ====
 ;;; GADT Type Inference
-;;; ============================================================
+;;; ====
 ;;;
 ;;; The following inference functions are used by dep-infer.ss.
 ;;; They depend on dep-synth, dep-check, etc. being defined when called.
 
-;;; ============================================================
+;;; ====
 ;;; GADT Registry (Global State)
-;;; ============================================================
+;;; ====
 
 (define *gadt-registry* '())
 
@@ -389,9 +389,9 @@
 (define (lookup-gadt name)
   (gadt-registry-lookup *gadt-registry* name))
 
-;;; ============================================================
+;;; ====
 ;;; GADT Type Constructor Kind
-;;; ============================================================
+;;; ====
 
 ;;; gadt-type-constructor-kind : (List (Symbol . Kind)) -> Kind
 ;;; Build the kind of a GADT type constructor from its index kinds.
@@ -406,9 +406,9 @@
                        'Type
                        param-kinds))))
 
-;;; ============================================================
+;;; ====
 ;;; GADT Declaration Synthesis
-;;; ============================================================
+;;; ====
 
 ;;; gadt-infer-synth : GADTDecl x Context x (Expr x Ctx -> Result) x (Expr x Type x Ctx -> Result) x (Type x Ctx -> Result)
 ;;;                    -> (Result Type Error)
@@ -453,9 +453,9 @@
                     `(error ctor-wrong-return-type ,ctor-name ,ctor-type ,gadt-name)
                     (gadt-infer-check-ctors gadt-name index-kinds (cdr ctors) ctx dep-check-type))))))
 
-;;; ============================================================
+;;; ====
 ;;; GADT Case Synthesis
-;;; ============================================================
+;;; ====
 
 ;;; gadt-infer-synth-case : Expr x Context x (Expr x Ctx -> Result) x (Expr x Type x Ctx -> Result) x (Type x Type x Ctx -> Bool)
 ;;;                          x (Ctx x Symbol x Type -> Ctx) x (Ctx x Symbol x Type x Val -> Ctx)
@@ -578,9 +578,9 @@
                           (first ,first-type)
                           (other ,(car remaining)))))))))
 
-;;; ============================================================
+;;; ====
 ;;; Test GADT Setup Helper
-;;; ============================================================
+;;; ====
 
 ;;; gadt-define-test-gadts! : -> Unit
 ;;; Helper to set up test GADTs.

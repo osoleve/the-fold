@@ -32,9 +32,9 @@
 ══════════════════════════════════════════════════════════
 ")
 
-;;; ============================================================
+;;; ====
 ;;; Body Creation Tests
-;;; ============================================================
+;;; ====
 
 (test-group body-creation-tests
             (define-test make-body-2d-test
@@ -63,9 +63,9 @@
                     (assert-vec2-= (body-pos b2) (vec2 5 5) 0.0001)
                     (assert-vec2-= (body-vel b2) (vec2 3 4) 0.0001))))
 
-;;; ============================================================
+;;; ====
 ;;; Euler Integration Tests
-;;; ============================================================
+;;; ====
 
 (test-group euler-integration-tests
             (define-test euler-no-force
@@ -92,9 +92,9 @@
                      [b2 (integrate-body-euler b f 1)])
                     (assert-vec2-= (body-pos b2) (vec2 50 50) 0.0001))))
 
-;;; ============================================================
+;;; ====
 ;;; Symplectic Integration Tests
-;;; ============================================================
+;;; ====
 
 (test-group symplectic-integration-tests
             (define-test symplectic-no-force
@@ -114,9 +114,9 @@
                     (assert-= (vec2-y (body-vel b2)) 10 0.0001)
                     (assert-= (vec2-y (body-pos b2)) 10 0.0001))))
 
-;;; ============================================================
+;;; ====
 ;;; Verlet Integration Tests
-;;; ============================================================
+;;; ====
 
 (test-group verlet-integration-tests
             (define-test verlet-free-particle
@@ -149,9 +149,9 @@
                     (assert-= (vec2-x (body-pos b2)) (cos 0.1) 0.01)
                     (assert-= (vec2-x (body-vel b2)) (- (sin 0.1)) 0.01))))
 
-;;; ============================================================
+;;; ====
 ;;; Time Accumulator Tests
-;;; ============================================================
+;;; ====
 
 (test-group time-acc-tests
             (define-test make-time-acc-test
@@ -187,9 +187,9 @@
                      [t2 (time-acc-add t 0.008)])
                     (assert-= (time-acc-alpha t2) 0.5 0.0001))))
 
-;;; ============================================================
+;;; ====
 ;;; Sub-stepping Tests
-;;; ============================================================
+;;; ====
 
 (test-group substep-tests
             (define-test substep-single
@@ -210,9 +210,9 @@
                     (assert-vec2-= (body-pos b-1) (vec2 10 0) 0.0001)
                     (assert-vec2-= (body-pos b-10) (vec2 10 0) 0.0001))))
 
-;;; ============================================================
+;;; ====
 ;;; Force Function Tests
-;;; ============================================================
+;;; ====
 
 (test-group force-function-tests
             (define-test gravity-force-test
@@ -244,9 +244,9 @@
                      [force (f b)])
                     (assert-vec2-= force (vec2 10 5) 0.0001))))
 
-;;; ============================================================
+;;; ====
 ;;; Energy Tests
-;;; ============================================================
+;;; ====
 
 (test-group energy-tests
             (define-test kinetic-energy-test
@@ -282,9 +282,9 @@
                     (assert-= e0 0.5 0.0001)
                     (assert-= ef 0.5 0.01))))
 
-;;; ============================================================
+;;; ====
 ;;; Interpolation Tests
-;;; ============================================================
+;;; ====
 
 (test-group interpolation-tests
             (define-test interpolate-zero
@@ -306,9 +306,9 @@
                     (assert-vec2-= (body-pos bi) (vec2 5 5) 0.0001)
                     (assert-vec2-= (body-vel bi) (vec2 5 5) 0.0001))))
 
-;;; ============================================================
+;;; ====
 ;;; Summary
-;;; ============================================================
+;;; ====
 
 (display "
 ══════════════════════════════════════════════════════════

@@ -27,9 +27,9 @@
 ══════════════════════════════════════════════════════════
 ")
 
-;;; ============================================================
+;;; ====
 ;;; Construction
-;;; ============================================================
+;;; ====
 
 (test-group construction-tests
             (define-test vec2-creates-vector
@@ -64,9 +64,9 @@
                    (assert-= (vec2-x v) (sqrt 2) 0.0001)
                    (assert-= (vec2-y v) (sqrt 2) 0.0001))))
 
-;;; ============================================================
+;;; ====
 ;;; Basic Arithmetic
-;;; ============================================================
+;;; ====
 
 (test-group arithmetic-tests
             (define-test vec2-add-correct
@@ -104,9 +104,9 @@
                    (assert-equal 3 (vec2-x result))
                    (assert-equal 4 (vec2-y result)))))
 
-;;; ============================================================
+;;; ====
 ;;; Products
-;;; ============================================================
+;;; ====
 
 (test-group product-tests
             (define-test vec2-dot-correct
@@ -124,9 +124,9 @@
             (define-test vec2-cross-parallel-is-zero
               (assert-equal 0 (vec2-cross (vec2 2 4) (vec2 1 2)))))
 
-;;; ============================================================
+;;; ====
 ;;; Length and Distance
-;;; ============================================================
+;;; ====
 
 (test-group length-tests
             (define-test vec2-magnitude-sq-correct
@@ -145,9 +145,9 @@
               ;; d((0,0), (3,4)) = 5
               (assert-equal 5 (vec2-distance (vec2-zero) (vec2 3 4)))))
 
-;;; ============================================================
+;;; ====
 ;;; Normalization
-;;; ============================================================
+;;; ====
 
 (test-group normalize-tests
             (define-test vec2-normalize-correct
@@ -173,9 +173,9 @@
               (let ([result (vec2-limit (vec2 6 8) 5)])  ; magnitude 10, limit to 5
                    (assert-= (vec2-magnitude result) 5 0.0001))))
 
-;;; ============================================================
+;;; ====
 ;;; Angles
-;;; ============================================================
+;;; ====
 
 (test-group angle-tests
             (define-test vec2-angle-x-axis
@@ -194,9 +194,9 @@
                     [b (vec2 2 0)])
                    (assert-= (vec2-angle-between a b) 0 0.0001))))
 
-;;; ============================================================
+;;; ====
 ;;; Rotation
-;;; ============================================================
+;;; ====
 
 (test-group rotation-tests
             (define-test vec2-rotate-90
@@ -219,9 +219,9 @@
                    (assert-= (vec2-x result) 0 0.0001)
                    (assert-= (vec2-y result) -1 0.0001))))
 
-;;; ============================================================
+;;; ====
 ;;; Reflection and Projection
-;;; ============================================================
+;;; ====
 
 (test-group projection-tests
             (define-test vec2-reflect-off-x-axis
@@ -240,9 +240,9 @@
                    (assert-= (vec2-x result) 0 0.0001)
                    (assert-= (vec2-y result) 4 0.0001))))
 
-;;; ============================================================
+;;; ====
 ;;; Interpolation
-;;; ============================================================
+;;; ====
 
 (test-group interpolation-tests
             (define-test vec2-lerp-at-zero
@@ -275,9 +275,9 @@
               (let ([result (vec2-move-towards (vec2 0 0) (vec2 6 8) 5)])
                    (assert-= (vec2-distance result (vec2-zero)) 5 0.0001))))
 
-;;; ============================================================
+;;; ====
 ;;; Comparison
-;;; ============================================================
+;;; ====
 
 (test-group comparison-tests
             (define-test vec2-equal-true
@@ -306,9 +306,9 @@
                    (assert-equal 3 (vec2-x result))
                    (assert-equal 4 (vec2-y result)))))
 
-;;; ============================================================
+;;; ====
 ;;; Utility
-;;; ============================================================
+;;; ====
 
 (test-group utility-tests
             (define-test vec2-map-correct
@@ -328,9 +328,9 @@
                      [v2 (list->vec2 lst)])
                     (assert-true (vec2-equal? v v2)))))
 
-;;; ============================================================
+;;; ====
 ;;; Summary
-;;; ============================================================
+;;; ====
 
 (display "
 ══════════════════════════════════════════════════════════

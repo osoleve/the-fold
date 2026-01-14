@@ -8,9 +8,9 @@
 (load "core/types/dep-infer.ss")
 (load "core/types/tactics.ss")
 
-;;; ============================================================
+;;; ====
 ;;; Test Framework
-;;; ============================================================
+;;; ====
 
 (define *test-count* 0)
 (define *pass-count* 0)
@@ -48,9 +48,9 @@
 (define (test-failure name result)
   (test name #t (tactic-failure? result)))
 
-;;; ============================================================
+;;; ====
 ;;; Goal Tests
-;;; ============================================================
+;;; ====
 
 (define (run-goal-tests)
   (display "
@@ -68,9 +68,9 @@
        (test "goal-context non-empty" '((x . Nat) (y . Nat)) (goal-context g))
        (test "goal-proposition with vars" '(= Nat x y) (goal-proposition g))))
 
-;;; ============================================================
+;;; ====
 ;;; Reflexivity Tests
-;;; ============================================================
+;;; ====
 
 (define (run-reflexivity-tests)
   (display "
@@ -98,9 +98,9 @@
          [result (tactic-reflexivity goal)])
         (test-failure "reflexivity fails on non-equality" result)))
 
-;;; ============================================================
+;;; ====
 ;;; Symmetry Tests
-;;; ============================================================
+;;; ====
 
 (define (run-symmetry-tests)
   (display "
@@ -120,9 +120,9 @@
          [result (tactic-symmetry goal)])
         (test-failure "symmetry fails on non-equality" result)))
 
-;;; ============================================================
+;;; ====
 ;;; Transitivity Tests
-;;; ============================================================
+;;; ====
 
 (define (run-transitivity-tests)
   (display "
@@ -144,9 +144,9 @@
          [result ((tactic-transitivity 'y) goal)])
         (test-failure "transitivity fails on non-equality" result)))
 
-;;; ============================================================
+;;; ====
 ;;; Assumption Tests
-;;; ============================================================
+;;; ====
 
 (define (run-assumption-tests)
   (display "
@@ -171,9 +171,9 @@
          [result (tactic-assumption goal)])
         (test-failure "assumption fails on empty context" result)))
 
-;;; ============================================================
+;;; ====
 ;;; Trivial Tests
-;;; ============================================================
+;;; ====
 
 (define (run-trivial-tests)
   (display "
@@ -200,9 +200,9 @@
          [result (tactic-trivial goal)])
         (test-failure "trivial fails on x = y" result)))
 
-;;; ============================================================
+;;; ====
 ;;; Intro Tests
-;;; ============================================================
+;;; ====
 
 (define (run-intro-tests)
   (display "
@@ -223,9 +223,9 @@
          [result ((tactic-intro 'x) goal)])
         (test-failure "intro fails on non-function" result)))
 
-;;; ============================================================
+;;; ====
 ;;; Combinator Tests
-;;; ============================================================
+;;; ====
 
 (define (run-combinator-tests)
   (display "
@@ -263,9 +263,9 @@
         (test "id produces 1 subgoal" 1 (length (tactic-subgoals result)))
         (test "id subgoal unchanged" goal (car (tactic-subgoals result)))))
 
-;;; ============================================================
+;;; ====
 ;;; Proof State Tests
-;;; ============================================================
+;;; ====
 
 (define (run-proof-state-tests)
   (display "
@@ -291,9 +291,9 @@
         (test-true "apply-tactic success" (proof-state? result))
         (test-true "apply-tactic completes state" (proof-state-complete? result))))
 
-;;; ============================================================
+;;; ====
 ;;; QED Helper Tests
-;;; ============================================================
+;;; ====
 
 (define (run-qed-tests)
   (display "
@@ -305,9 +305,9 @@
   (test "qed-transitivity" '(trans _ p q) (qed-transitivity 'p 'q))
   (test "qed-congruence" '(cong f p) (qed-congruence 'f 'p)))
 
-;;; ============================================================
+;;; ====
 ;;; Auto Tactic Tests
-;;; ============================================================
+;;; ====
 
 (define (run-auto-tests)
   (display "
@@ -325,9 +325,9 @@
          [result (tactic-auto goal)])
         (test-success "auto uses assumption" result)))
 
-;;; ============================================================
+;;; ====
 ;;; Run All Tests
-;;; ============================================================
+;;; ====
 
 (define (run-tests)
   (display "

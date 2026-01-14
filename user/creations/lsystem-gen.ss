@@ -1,9 +1,9 @@
 ;;; lsystem-gen.ss - L-System Fractal Generator
 ;;; Generates fractal patterns using Lindenmayer systems
 
-;;; ============================================
+;;; ====
 ;;; L-SYSTEM ENGINE
-;;; ============================================
+;;; ====
 
 (define (apply-rule rules char)
   "Apply production rules to a single character"
@@ -26,9 +26,9 @@
            (loop (+ n 1)
                  (list->string (lsystem-step rules state))))))
 
-;;; ============================================
+;;; ====
 ;;; TURTLE GRAPHICS INTERPRETER
-;;; ============================================
+;;; ====
 
 (define (deg->rad deg)
   (* deg (/ 3.141592653589793 180.0)))
@@ -71,9 +71,9 @@
                       (else
                        (loop (cdr chars) x y heading stack path)))))))
 
-;;; ============================================
+;;; ====
 ;;; ASCII RENDERING
-;;; ============================================
+;;; ====
 
 (define (path-bounds path)
   "Find min/max coordinates in path"
@@ -135,9 +135,9 @@
                          "\n")
                         lines))))))
 
-;;; ============================================
+;;; ====
 ;;; CLASSIC L-SYSTEMS
-;;; ============================================
+;;; ====
 
 (define algae-rules
   '((#\A . "AB")
@@ -158,9 +158,9 @@
   '((#\F . "FF")
     (#\X . "F+[[X]-X]-F[-FX]+X")))
 
-;;; ============================================
+;;; ====
 ;;; DEMONSTRATIONS
-;;; ============================================
+;;; ====
 
 (define (show-lsystem name rules axiom angle iters width height)
   (display (string-append "\n=== " name " ===\n"))
