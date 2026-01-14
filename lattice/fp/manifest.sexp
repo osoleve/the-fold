@@ -253,6 +253,30 @@ Key design principles:
     ;; Display
     type->string
 
+    ;; zipper-lens.ss — Zipper-Lens Integration
+    ;; Lenses into list zippers
+    zipper-focus-lens zipper-focus-maybe-lens
+    zipper-left-lens zipper-right-lens zipper-position-lens
+    ;; Lenses into tree zippers
+    tree-zipper-focus-lens tree-zipper-value-lens
+    tree-zipper-children-lens tree-zipper-crumbs-lens tree-zipper-depth-lens
+    ;; Affine (partial lens) operations
+    make-affine affine? affine-getter affine-setter
+    preview-affine set-affine over-affine
+    ;; List zipper navigation affines
+    zipper-left-affine zipper-right-affine zipper-nth-affine
+    ;; Tree zipper navigation affines
+    tree-up-affine tree-down-affine tree-left-affine tree-right-affine
+    tree-nth-child-affine tree-child-value-affine
+    ;; Zipper-to-lens conversion
+    follow-path zipper-to-lens tree-path-to-lens
+    ;; Comonad-lens integration
+    extend-with-lens map-with-context neighbor-lens window-lens
+    ;; Traversal utilities
+    zipper-each zipper-all? zipper-any? zipper-collect
+    ;; Composed lens paths
+    at-focus at-left at-right
+
     ;; game/ — Game Theory
     ;; normal-form.ss
     make-game game? game-players game-strategies game-payoff-fn
@@ -483,7 +507,8 @@ Key design principles:
        "rope.ss"         ; Efficient string manipulation
        "zipper.ss"        ; Functional cursor/zipper (lists)
        "tree-zipper.ss"   ; Rose tree zipper with navigation
-       "generic-zipper.ss"))) ; Type-theoretic zipper derivation
+       "generic-zipper.ss" ; Type-theoretic zipper derivation
+       "zipper-lens.ss"))) ; Zipper-lens integration (lenses, affines, comonad connection)
 
     ((subdir "game")
      (description "Game theory utilities")
