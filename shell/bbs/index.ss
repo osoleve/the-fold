@@ -74,6 +74,9 @@
                      (hashtable-set! *bbs-by-priority* priority (cons id existing))))))))))
      ids)
 
+    ;; Load dependencies from disk
+    (bbs-load-deps!)
+
     (set! *bbs-initialized* #t)
     count))
 
@@ -169,12 +172,38 @@
 ;;; Dependency Management
 ;;; ============================================================
 
+(define *bbs-deps-file* ".bbs/deps")
+
+;;; bbs-save-deps! : -> Void
+;;; Persist dependencies to disk.
+(define (bbs-save-deps!)
+  (unless (file-exists? ".bbs")
+    (mkdir ".bbs"))
+  (call-with-output-file *bbs-deps-file*
+    (lambda (port)
+      (write *bbs-deps* port)
+      (newline port))
+    '(replace)))
+
+;;; bbs-load-deps! : -> Void
+;;; Load dependencies from disk.
+(define (bbs-load-deps!)
+  (guard (e [else (set! *bbs-deps* '())])
+    (if (file-exists? *bbs-deps-file*)
+        (set! *bbs-deps*
+              (call-with-input-file *bbs-deps-file*
+                (lambda (port)
+                  (let ([data (read port)])
+                    (if (eof-object? data) '() data)))))
+        (set! *bbs-deps* '()))))
+
 ;;; bbs-add-dep! : String String -> Void
 ;;; Add a dependency: blocker-id blocks blocked-id.
 (define (bbs-add-dep! blocker-id blocked-id)
   (unless (assoc blocker-id
                  (filter (lambda (d) (string=? (cdr d) blocked-id)) *bbs-deps*))
-    (set! *bbs-deps* (cons (cons blocker-id blocked-id) *bbs-deps*))))
+    (set! *bbs-deps* (cons (cons blocker-id blocked-id) *bbs-deps*))
+    (bbs-save-deps!)))
 
 ;;; bbs-remove-dep! : String String -> Void
 ;;; Remove a dependency.
@@ -183,7 +212,8 @@
         (filter (lambda (d)
                   (not (and (string=? (car d) blocker-id)
                             (string=? (cdr d) blocked-id))))
-                *bbs-deps*)))
+                *bbs-deps*))
+  (bbs-save-deps!))
 
 ;;; bbs-blockers : String -> (List String)
 ;;; Get IDs of issues that block the given issue.
