@@ -68,6 +68,9 @@
 ;; Lens navigation system
 (load "shell/lens/navigator.ss")
 
+;; Tracked loader (load! for development workflow)
+(load "shell/repl/loader.ss")
+
 
 ;;; ============================================================
 ;;; Quiet Mode
@@ -179,6 +182,11 @@
   (display "    (lens-stats)           Show navigation statistics\n")
   (display "    (lens-rebuild!)        Rebuild all indices\n")
   (display "    (lens-help)            Lens command reference\n")
+  (display "\n")
+  (display "  DEVELOPMENT:\n")
+  (display "    (load! \"path\")        Load and track file for reload\n")
+  (display "    (load!)                Reload all tracked files\n")
+  (display "    (loaded)               Show tracked files\n")
   (display "\n")
   (display "  UTILITIES:\n")
   (display "    (help)                 Show this help\n")

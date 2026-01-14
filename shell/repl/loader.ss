@@ -107,10 +107,11 @@
   (display "Cleared all tracked files.\n"))
 
 ;;; ============================================================
-;;; Loader Banner
+;;; Loader Banner (respects *quiet* mode)
 ;;; ============================================================
 
-(display "Tracked loader ready.\n")
-(display "  (load! \"path\")  - Load and track\n")
-(display "  (load!)         - Reload all tracked\n")
-(display "  (loaded)        - Show tracked files\n")
+(unless (and (top-level-bound? '*quiet*) *quiet*)
+  (display "Tracked loader ready.\n")
+  (display "  (load! \"path\")  - Load and track\n")
+  (display "  (load!)         - Reload all tracked\n")
+  (display "  (loaded)        - Show tracked files\n"))
