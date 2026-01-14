@@ -332,6 +332,7 @@ Shell is organized into functional subdirectories (with backwards-compatible stu
 | `lens/` | Optics & lenses | capability-lens.ss |
 | `introspect/` | System introspection | type-inspect.ss, xref.ss |
 | `pipeline/` | Agent pipelines | workflow integration |
+| `bbs/` | Issue tracker | bbs.ss, ops.ss, index.ss |
 | `tools/` | Utility tools | template-session.ss, template-parser.ss |
 | `lsp/` | Language server protocol | lsp-server.ss, protocol.ss |
 | `tests/` | Shell test suite | test-*.ss files |
@@ -505,6 +506,19 @@ Status: `'open`, `'in_progress`, `'closed`.
 (bbs-stats)                       ; Database statistics
 ```
 
+### Pipeline Integration
+
+BBS effects are available in agent pipelines (`lattice/pipeline/effects.ss`):
+
+```scheme
+(bbs-create "title")              ; Create issue, return ID
+(bbs-create-full title desc type priority)
+(bbs-update id updates-alist)     ; Update issue fields
+(bbs-close id)                    ; Close issue
+(bbs-ready)                       ; Get unblocked issues
+(bbs-show id)                     ; Get issue details
+```
+
 ### Session End
 
 **Work is NOT complete until `git push` succeeds:**
@@ -531,8 +545,8 @@ git push                # Push to remote
 | `.fold-sessions/` | Persistent session state |
 | `.fold-users/` | User profile data |
 | `.store/` | Content-addressed store |
-| `.store/heads/bbs/` | BBS issue heads |
-| `.bbs/` | BBS counter file |
+| `.store/heads/bbs/` | BBS issue heads (current hash per issue) |
+| `.bbs/` | BBS runtime data (counter, deps) |
 | `archives/` | Historical exports (e.g., forum archive) |
 | `TAXONOMY.sexp` | Machine-readable project taxonomy |
 
