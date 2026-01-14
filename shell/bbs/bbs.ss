@@ -21,14 +21,30 @@
 ;;; Initialization
 ;;; ====
 
+;;; *bbs-initialized* : Boolean
+;;; Track whether BBS has been initialized.
+(define *bbs-initialized* #f)
+
 ;;; bbs-init! : -> Int
 ;;; Initialize the BBS system.
 ;;; Loads indices from disk and returns the number of issues.
 (define (bbs-init!)
-  (printf "Initializing BBS...~n")
-  (let ([count (bbs-rebuild-indices!)])
-    (printf "  Loaded ~a issues~n" count)
-    count))
+  (if *bbs-initialized*
+      (hashtable-size (let () *bbs-by-status*))  ; Return count without reinit
+      (begin
+        (printf "Initializing BBS...~n")
+        (let ([count (bbs-rebuild-indices!)])
+          (set! *bbs-initialized* #t)
+          (printf "  Loaded ~a issues~n" count)
+          count))))
+
+;;; bbs-init-quiet! : -> Int
+;;; Initialize BBS silently (for startup).
+(define (bbs-init-quiet!)
+  (unless *bbs-initialized*
+    (bbs-rebuild-indices!)
+    (set! *bbs-initialized* #t))
+  (hashtable-size *bbs-by-status*))
 
 ;;; ====
 ;;; Display Functions

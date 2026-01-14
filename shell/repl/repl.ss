@@ -68,6 +68,10 @@
 ;; Lens navigation system
 (load "shell/lens/navigator.ss")
 
+;; BBS issue tracker
+(load "shell/bbs/bbs.ss")
+(bbs-init-quiet!)
+
 ;; Tracked loader (load! for development workflow)
 (load "shell/repl/loader.ss")
 
