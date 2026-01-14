@@ -15,10 +15,12 @@
 ;;; Dependencies:
 ;;;   - lattice/query/sql/types.ss
 ;;;   - lattice/fp/data/tree-zipper.ss
+;;;   - lattice/fp/data/zipper-lens.ss
 
 (load "core/base/prelude.ss")
 (load "lattice/fp/meta/combinators.ss")
 (load "lattice/fp/data/tree-zipper.ss")
+(load "lattice/fp/data/zipper-lens.ss")
 
 ;;; ============================================================
 ;;; AST to Rose Tree Conversion
@@ -101,6 +103,31 @@
   (list-ref az 1))
 
 ;;; ============================================================
+;;; Navigation Lifting
+;;; ============================================================
+;;;
+;;; Helper to lift tree-zipper operations into ast-zipper.
+;;; Eliminates boilerplate in navigation functions.
+
+;;; lift-ast-nav : ((TreeZipper a) -> (Maybe (TreeZipper a))) -> (AstZipper -> (Maybe AstZipper))
+;;; Lift a tree-zipper navigation function to work on ast-zippers.
+(define (lift-ast-nav tree-op)
+  (lambda (az)
+    (let ([result (tree-op (ast-zipper-tree-z az))])
+      (if (nothing? result)
+          nothing
+          (just (make-ast-zipper (from-just result)))))))
+
+;;; lift-ast-nav-indexed : ((TreeZipper a) x Nat -> (Maybe (TreeZipper a))) -> (AstZipper x Nat -> (Maybe AstZipper))
+;;; Lift an indexed tree-zipper navigation function.
+(define (lift-ast-nav-indexed tree-op)
+  (lambda (az n)
+    (let ([result (tree-op (ast-zipper-tree-z az) n)])
+      (if (nothing? result)
+          nothing
+          (just (make-ast-zipper (from-just result)))))))
+
+;;; ============================================================
 ;;; Constructors
 ;;; ============================================================
 
@@ -154,45 +181,28 @@
 ;;; ============================================================
 ;;; Navigation
 ;;; ============================================================
+;;;
+;;; Navigation functions lifted from tree-zipper operations.
+;;; Uses lift-ast-nav to eliminate boilerplate.
 
 ;;; ast-zipper-up : AstZipper -> (Maybe AstZipper)
-(define (ast-zipper-up az)
-  (let ([result (tree-zipper-up (ast-zipper-tree-z az))])
-    (if (nothing? result)
-        nothing
-        (just (make-ast-zipper (from-just result))))))
+(define ast-zipper-up (lift-ast-nav tree-zipper-up))
 
 ;;; ast-zipper-down : AstZipper -> (Maybe AstZipper)
-(define (ast-zipper-down az)
-  (let ([result (tree-zipper-down (ast-zipper-tree-z az))])
-    (if (nothing? result)
-        nothing
-        (just (make-ast-zipper (from-just result))))))
+(define ast-zipper-down (lift-ast-nav tree-zipper-down))
 
 ;;; ast-zipper-left : AstZipper -> (Maybe AstZipper)
-(define (ast-zipper-left az)
-  (let ([result (tree-zipper-left (ast-zipper-tree-z az))])
-    (if (nothing? result)
-        nothing
-        (just (make-ast-zipper (from-just result))))))
+(define ast-zipper-left (lift-ast-nav tree-zipper-left))
 
 ;;; ast-zipper-right : AstZipper -> (Maybe AstZipper)
-(define (ast-zipper-right az)
-  (let ([result (tree-zipper-right (ast-zipper-tree-z az))])
-    (if (nothing? result)
-        nothing
-        (just (make-ast-zipper (from-just result))))))
+(define ast-zipper-right (lift-ast-nav tree-zipper-right))
 
 ;;; ast-zipper-root : AstZipper -> AstZipper
 (define (ast-zipper-root az)
   (make-ast-zipper (tree-zipper-root (ast-zipper-tree-z az))))
 
 ;;; ast-zipper-nth-child : AstZipper x Nat -> (Maybe AstZipper)
-(define (ast-zipper-nth-child az n)
-  (let ([result (tree-zipper-nth-child (ast-zipper-tree-z az) n)])
-    (if (nothing? result)
-        nothing
-        (just (make-ast-zipper (from-just result))))))
+(define ast-zipper-nth-child (lift-ast-nav-indexed tree-zipper-nth-child))
 
 ;;; ============================================================
 ;;; Navigation Predicates
@@ -220,19 +230,11 @@
 
 ;;; ast-zipper-next : AstZipper -> (Maybe AstZipper)
 ;;; Move to next node in preorder traversal.
-(define (ast-zipper-next az)
-  (let ([result (tree-zipper-next-preorder (ast-zipper-tree-z az))])
-    (if (nothing? result)
-        nothing
-        (just (make-ast-zipper (from-just result))))))
+(define ast-zipper-next (lift-ast-nav tree-zipper-next-preorder))
 
 ;;; ast-zipper-prev : AstZipper -> (Maybe AstZipper)
 ;;; Move to previous node in preorder traversal.
-(define (ast-zipper-prev az)
-  (let ([result (tree-zipper-prev-preorder (ast-zipper-tree-z az))])
-    (if (nothing? result)
-        nothing
-        (just (make-ast-zipper (from-just result))))))
+(define ast-zipper-prev (lift-ast-nav tree-zipper-prev-preorder))
 
 ;;; ast-zipper-preorder : AstZipper -> (List AstZipper)
 ;;; Get all nodes in preorder traversal.

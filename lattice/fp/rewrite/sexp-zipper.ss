@@ -14,10 +14,12 @@
 ;;;   - core/base/prelude.ss
 ;;;   - lattice/fp/meta/combinators.ss
 ;;;   - lattice/fp/data/tree-zipper.ss
+;;;   - lattice/fp/data/zipper-lens.ss
 
 (load "core/base/prelude.ss")
 (load "lattice/fp/meta/combinators.ss")
 (load "lattice/fp/data/tree-zipper.ss")
+(load "lattice/fp/data/zipper-lens.ss")
 
 ;;; ============================================================
 ;;; S-expression to Rose Tree Conversion
@@ -85,6 +87,31 @@
   (tree->sexp (zipper->tree (sexp-zipper-tree-z sz))))
 
 ;;; ============================================================
+;;; Navigation Lifting
+;;; ============================================================
+;;;
+;;; Helper to lift tree-zipper operations into sexp-zipper.
+;;; Eliminates boilerplate in navigation functions.
+
+;;; lift-tree-nav : ((TreeZipper a) -> (Maybe (TreeZipper a))) -> (SexpZipper -> (Maybe SexpZipper))
+;;; Lift a tree-zipper navigation function to work on sexp-zippers.
+(define (lift-tree-nav tree-op)
+  (lambda (sz)
+    (let ([result (tree-op (sexp-zipper-tree-z sz))])
+      (if (nothing? result)
+          nothing
+          (just (make-sexp-zipper (from-just result)))))))
+
+;;; lift-tree-nav-indexed : ((TreeZipper a) x Nat -> (Maybe (TreeZipper a))) -> (SexpZipper x Nat -> (Maybe SexpZipper))
+;;; Lift an indexed tree-zipper navigation function.
+(define (lift-tree-nav-indexed tree-op)
+  (lambda (sz n)
+    (let ([result (tree-op (sexp-zipper-tree-z sz) n)])
+      (if (nothing? result)
+          nothing
+          (just (make-sexp-zipper (from-just result)))))))
+
+;;; ============================================================
 ;;; Focus Operations
 ;;; ============================================================
 
@@ -110,38 +137,25 @@
 ;;; ============================================================
 ;;; Navigation
 ;;; ============================================================
+;;;
+;;; Navigation functions lifted from tree-zipper operations.
+;;; Uses lift-tree-nav to eliminate boilerplate.
 
 ;;; sexp-zipper-up : SexpZipper -> (Maybe SexpZipper)
 ;;; Move focus to parent.
-(define (sexp-zipper-up sz)
-  (let ([result (tree-zipper-up (sexp-zipper-tree-z sz))])
-    (if (nothing? result)
-        nothing
-        (just (make-sexp-zipper (from-just result))))))
+(define sexp-zipper-up (lift-tree-nav tree-zipper-up))
 
 ;;; sexp-zipper-down : SexpZipper -> (Maybe SexpZipper)
 ;;; Move focus to first child (first element if focus is a list).
-(define (sexp-zipper-down sz)
-  (let ([result (tree-zipper-down (sexp-zipper-tree-z sz))])
-    (if (nothing? result)
-        nothing
-        (just (make-sexp-zipper (from-just result))))))
+(define sexp-zipper-down (lift-tree-nav tree-zipper-down))
 
 ;;; sexp-zipper-left : SexpZipper -> (Maybe SexpZipper)
 ;;; Move focus to left sibling.
-(define (sexp-zipper-left sz)
-  (let ([result (tree-zipper-left (sexp-zipper-tree-z sz))])
-    (if (nothing? result)
-        nothing
-        (just (make-sexp-zipper (from-just result))))))
+(define sexp-zipper-left (lift-tree-nav tree-zipper-left))
 
 ;;; sexp-zipper-right : SexpZipper -> (Maybe SexpZipper)
 ;;; Move focus to right sibling.
-(define (sexp-zipper-right sz)
-  (let ([result (tree-zipper-right (sexp-zipper-tree-z sz))])
-    (if (nothing? result)
-        nothing
-        (just (make-sexp-zipper (from-just result))))))
+(define sexp-zipper-right (lift-tree-nav tree-zipper-right))
 
 ;;; sexp-zipper-root : SexpZipper -> SexpZipper
 ;;; Move focus to root.
@@ -150,11 +164,7 @@
 
 ;;; sexp-zipper-nth : SexpZipper x Nat -> (Maybe SexpZipper)
 ;;; Move to nth child (0-indexed).
-(define (sexp-zipper-nth sz n)
-  (let ([result (tree-zipper-nth-child (sexp-zipper-tree-z sz) n)])
-    (if (nothing? result)
-        nothing
-        (just (make-sexp-zipper (from-just result))))))
+(define sexp-zipper-nth (lift-tree-nav-indexed tree-zipper-nth-child))
 
 ;;; ============================================================
 ;;; Navigation Predicates
@@ -238,19 +248,11 @@
 
 ;;; sexp-zipper-next : SexpZipper -> (Maybe SexpZipper)
 ;;; Move to next position in preorder traversal.
-(define (sexp-zipper-next sz)
-  (let ([result (tree-zipper-next-preorder (sexp-zipper-tree-z sz))])
-    (if (nothing? result)
-        nothing
-        (just (make-sexp-zipper (from-just result))))))
+(define sexp-zipper-next (lift-tree-nav tree-zipper-next-preorder))
 
 ;;; sexp-zipper-prev : SexpZipper -> (Maybe SexpZipper)
 ;;; Move to previous position in preorder traversal.
-(define (sexp-zipper-prev sz)
-  (let ([result (tree-zipper-prev-preorder (sexp-zipper-tree-z sz))])
-    (if (nothing? result)
-        nothing
-        (just (make-sexp-zipper (from-just result))))))
+(define sexp-zipper-prev (lift-tree-nav tree-zipper-prev-preorder))
 
 ;;; sexp-zipper-preorder : SexpZipper -> (List SexpZipper)
 ;;; Get all positions in preorder.
