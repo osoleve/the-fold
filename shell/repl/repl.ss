@@ -71,6 +71,9 @@
 ;; Tracked loader (load! for development workflow)
 (load "shell/repl/loader.ss")
 
+;; Test runner (test-module for quick testing)
+(load "shell/repl/test-runner.ss")
+
 
 ;;; ============================================================
 ;;; Quiet Mode
@@ -187,6 +190,8 @@
   (display "    (load! \"path\")        Load and track file for reload\n")
   (display "    (load!)                Reload all tracked files\n")
   (display "    (loaded)               Show tracked files\n")
+  (display "    (test-module \"path\")  Run tests for a module\n")
+  (display "    (test-dir \"path\")     Run all tests in directory\n")
   (display "\n")
   (display "  UTILITIES:\n")
   (display "    (help)                 Show this help\n")
