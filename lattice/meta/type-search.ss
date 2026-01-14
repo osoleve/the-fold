@@ -35,6 +35,7 @@
 
 ;;; extract-type-sig : String -> String | #f
 ;;; Extract type signature from docstring (part between : and description)
+;;; Stops at first lowercase word that follows a complete type expression
 (define (extract-type-sig docstring)
   (if (not (string? docstring))
       #f
@@ -44,8 +45,71 @@
             (let* ([after-colon (substring docstring (+ colon-pos 1)
                                            (string-length docstring))]
                    [trimmed (string-trim-left-ws after-colon)])
-              ;; Return up to end of type (heuristic: stop at lowercase word after type)
-              trimmed)))))
+              (truncate-at-description trimmed))))))
+
+;;; truncate-at-description : String -> String
+;;; Truncate type signature at the start of description text
+;;; Strategy: Find the arrow, then take only the output type after it
+(define (truncate-at-description str)
+  (let* ([arrow-pos (or (string-find-substr str "→")
+                        (string-find-substr str "->"))]
+         [len (string-length str)])
+    (if (not arrow-pos)
+        ;; No arrow - just return first type-like segment
+        (extract-first-type-token str)
+        ;; Has arrow - take input types + arrow + first output type
+        (let* ([arrow-len (if (and (< arrow-pos len)
+                                   (char=? (string-ref str arrow-pos) #\→))
+                              1 2)]
+               [after-arrow (substring str (+ arrow-pos arrow-len) len)]
+               [output-type (extract-first-type-token (string-trim-left-ws after-arrow))])
+          (string-append
+           (substring str 0 (+ arrow-pos arrow-len))
+           " "
+           output-type)))))
+
+;;; extract-first-type-token : String -> String
+;;; Extract the first type expression (parenthesized or single word)
+(define (extract-first-type-token str)
+  (let* ([trimmed (string-trim-left-ws str)]
+         [len (string-length trimmed)])
+    (if (= len 0)
+        ""
+        (if (char=? (string-ref trimmed 0) #\()
+            ;; Parenthesized - find matching close
+            (let loop ([i 1] [depth 1])
+              (cond
+                [(>= i len) trimmed]
+                [(char=? (string-ref trimmed i) #\() (loop (+ i 1) (+ depth 1))]
+                [(char=? (string-ref trimmed i) #\))
+                 (if (= depth 1)
+                     (substring trimmed 0 (+ i 1))
+                     (loop (+ i 1) (- depth 1)))]
+                [else (loop (+ i 1) depth)]))
+            ;; Single token - take until whitespace
+            (let loop ([i 0])
+              (cond
+                [(>= i len) trimmed]
+                [(char-whitespace? (string-ref trimmed i))
+                 (substring trimmed 0 i)]
+                [else (loop (+ i 1))]))))))
+
+;;; skip-whitespace : String × Int -> Int
+(define (skip-whitespace str start)
+  (let ([len (string-length str)])
+    (let loop ([i start])
+      (if (or (>= i len) (not (char-whitespace? (string-ref str i))))
+          i
+          (loop (+ i 1))))))
+
+;;; string-trim-right-ws : String -> String
+(define (string-trim-right-ws str)
+  (let ([len (string-length str)])
+    (let loop ([i (- len 1)])
+      (cond
+        [(< i 0) ""]
+        [(char-whitespace? (string-ref str i)) (loop (- i 1))]
+        [else (substring str 0 (+ i 1))]))))
 
 ;;; string-find : String × Char -> Int | #f
 (define (string-find str ch)

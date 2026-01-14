@@ -49,21 +49,41 @@
                      (map extract-symbols-from-sexp (cddr sexp))))
             '())]
        ;; Handle let/let*/letrec - skip binding names
+       ;; Also handle named let: (let loop ([x 1]) body...)
        [(let let* letrec)
-        (if (and (pair? (cdr sexp)) (pair? (cadr sexp)))
-            (let ([bindings (cadr sexp)]
-                  [body (cddr sexp)])
-              (append
-               ;; Extract from binding values (not names)
-               (apply append
-                      (map (lambda (b)
-                             (if (and (pair? b) (pair? (cdr b)))
-                                 (extract-symbols-from-sexp (cadr b))
-                                 '()))
-                           (if (list? bindings) bindings '())))
-               ;; Extract from body
-               (apply append (map extract-symbols-from-sexp body))))
-            '())]
+        (cond
+          ;; Named let: (let name ([var init] ...) body...)
+          [(and (pair? (cdr sexp))
+                (symbol? (cadr sexp))
+                (pair? (cddr sexp))
+                (pair? (caddr sexp)))
+           (let ([bindings (caddr sexp)]
+                 [body (cdddr sexp)])
+             (append
+              ;; Extract from binding values
+              (apply append
+                     (map (lambda (b)
+                            (if (and (pair? b) (pair? (cdr b)))
+                                (extract-symbols-from-sexp (cadr b))
+                                '()))
+                          (if (list? bindings) bindings '())))
+              ;; Extract from body
+              (apply append (map extract-symbols-from-sexp body))))]
+          ;; Regular let: (let ([var init] ...) body...)
+          [(and (pair? (cdr sexp)) (pair? (cadr sexp)))
+           (let ([bindings (cadr sexp)]
+                 [body (cddr sexp)])
+             (append
+              ;; Extract from binding values (not names)
+              (apply append
+                     (map (lambda (b)
+                            (if (and (pair? b) (pair? (cdr b)))
+                                (extract-symbols-from-sexp (cadr b))
+                                '()))
+                          (if (list? bindings) bindings '())))
+              ;; Extract from body
+              (apply append (map extract-symbols-from-sexp body))))]
+          [else '()])]
        ;; Handle lambda - skip parameter names
        [(lambda)
         (if (pair? (cddr sexp))
