@@ -1,11 +1,14 @@
-;;; fabric/patterns/test-data-structures.ss — Tests for data-structures.ss
+;;; lattice/data/test-data-structures.ss — Tests for data structures
 ;;;
 ;;; Comprehensive tests for Stack, Queue, Set, and Dictionary.
 ;;;
 ;;; Dependencies:
-;;;   - data-structures.ss
+;;;   - stack.ss, queue.ss, set.ss, dict.ss
 
-(load "lattice/data/data-structures.ss")
+(load "lattice/data/stack.ss")
+(load "lattice/data/queue.ss")
+(load "lattice/data/set.ss")
+(load "lattice/data/dict.ss")
 
 (define tests-passed 0)
 (define tests-failed 0)
@@ -34,7 +37,7 @@
          (set! tests-failed (+ tests-failed 1))
          (display "  ✗ ") (display name) (display " (no error raised)") (newline)))
 
-(display "Testing data-structures.ss\n")
+(display "Testing data structures (stack, queue, set, dict)\n")
 (display "====\n\n")
 
 ;;; ====

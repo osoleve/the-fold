@@ -129,7 +129,6 @@
  (register-module-path! 'queue "lattice/data/queue.ss")
  (register-module-path! 'set "lattice/data/set.ss")
  (register-module-path! 'dict "lattice/data/dict.ss")
- (register-module-path! 'data-structures "lattice/data/data-structures.ss")  ; re-export shim
  (register-module-path! 'collection-utils "lattice/data/collection-utils.ss")
  (register-module-path! 'graph-algorithms "lattice/data/graph-algorithms.ss")
  
