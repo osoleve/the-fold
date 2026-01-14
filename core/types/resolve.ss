@@ -239,6 +239,7 @@
     (Eq . ,TC-Eq)
     (Ord . ,TC-Ord)
     (Show . ,TC-Show)
+    (Pretty . ,TC-Pretty)
     (Semigroup . ,TC-Semigroup)
     (Monoid . ,TC-Monoid)))
 
@@ -403,6 +404,48 @@
                  `((show . list-show))))
 
 ;;; ====
+;;; Pretty Instances
+;;; ====
+;;; Pretty returns Doc (from core/util/pretty.ss) for width-aware layout.
+;;; Implementation functions are in core/util/pretty-class.ss.
+
+(define inst-Pretty-Nat
+  (make-instance 'Pretty 'Nat '()
+                 `((pretty . nat-pretty)
+                   (pretty-prec . nat-pretty-prec))))
+
+(define inst-Pretty-Int
+  (make-instance 'Pretty 'Int '()
+                 `((pretty . int-pretty)
+                   (pretty-prec . int-pretty-prec))))
+
+(define inst-Pretty-Bool
+  (make-instance 'Pretty 'Bool '()
+                 `((pretty . bool-pretty)
+                   (pretty-prec . bool-pretty-prec))))
+
+(define inst-Pretty-Char
+  (make-instance 'Pretty 'Char '()
+                 `((pretty . char-pretty)
+                   (pretty-prec . char-pretty-prec))))
+
+(define inst-Pretty-String
+  (make-instance 'Pretty 'String '()
+                 `((pretty . string-pretty)
+                   (pretty-prec . string-pretty-prec))))
+
+(define inst-Pretty-Symbol
+  (make-instance 'Pretty 'Symbol '()
+                 `((pretty . symbol-pretty)
+                   (pretty-prec . symbol-pretty-prec))))
+
+;;; Pretty (List a) requires Pretty a
+(define inst-Pretty-List
+  (make-instance 'Pretty '(@ List a) '((Pretty a))
+                 `((pretty . list-pretty)
+                   (pretty-prec . list-pretty-prec))))
+
+;;; ====
 ;;; Semigroup and Monoid Instances
 ;;; ====
 
@@ -459,6 +502,14 @@
    inst-Show-String
    inst-Show-Symbol
    inst-Show-List
+   ;; Pretty
+   inst-Pretty-Nat
+   inst-Pretty-Int
+   inst-Pretty-Bool
+   inst-Pretty-Char
+   inst-Pretty-String
+   inst-Pretty-Symbol
+   inst-Pretty-List
    ;; Semigroup/Monoid
    inst-Semigroup-String
    inst-Monoid-String

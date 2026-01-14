@@ -566,6 +566,24 @@
                 (=> (Show a)
                     (-> a String)))))))
 
+;;; Pretty : * → Constraint
+;;; Pretty-printing with Doc output for composable, width-aware layout.
+;;; Unlike Show (which returns String), Pretty returns Doc for use with
+;;; the Wadler-Lindig layout algorithm.
+;;;   pretty : a → Doc
+;;;   pretty-prec : Int → a → Doc  (precedence-aware for expressions)
+(define TC-Pretty
+  (make-typeclass
+   'Pretty
+   (K=> K* K-constraint)
+   '()
+   `((pretty . (∀ (a)
+                  (=> (Pretty a)
+                      (-> a Doc))))
+     (pretty-prec . (∀ (a)
+                       (=> (Pretty a)
+                           (-> Int a Doc)))))))
+
 ;;; Semigroup : * → Constraint
 ;;;   <> : a → a → a
 (define TC-Semigroup
