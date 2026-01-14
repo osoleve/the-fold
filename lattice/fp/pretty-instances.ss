@@ -282,7 +282,7 @@
       [(num var) (expr-pretty x)]
       [(+ * - / ^) (expr-pretty x)]
       [(block) (block-pretty x)]
-      [else (sexp->doc x)])]
+      [else (sexp->doc-dispatch x)])]
    ;; Scheme vectors
    [(vector? x) (scheme-vec-pretty x)]
    ;; Nested lists

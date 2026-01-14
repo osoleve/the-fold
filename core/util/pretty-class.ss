@@ -8,6 +8,33 @@
 ;;;
 ;;; This is Core code: pure, total, assumes reasonable input.
 ;;;
+;;; ====
+;;; Architecture: Pretty Type Class + Wadler-Lindig Layout
+;;; ====
+;;;
+;;; This module bridges the type class system with the layout algorithm:
+;;;
+;;;   pretty.ss (Layout Layer)
+;;;   ├── Doc type: abstract document representation
+;;;   ├── Combinators: text, line, nest, group, <>, hsep, sep, etc.
+;;;   ├── Layout: best, be, fits? (Wadler-Lindig optimal layout)
+;;;   └── Render: pretty : Nat × Doc → String
+;;;
+;;;   pretty-class.ss (Type Class Layer) [this file]
+;;;   ├── Instance functions: nat-pretty, bool-pretty, etc. : Value → Doc
+;;;   ├── Dispatch hook: *pretty-dispatch* for lattice type extension
+;;;   ├── Convenience: pretty-render, pp-value : Doc/Value → String
+;;;   └── Precedence helpers: parens-if, pretty-binop for expressions
+;;;
+;;;   lattice/fp/pretty-instances.ss (Extension)
+;;;   ├── Lattice instances: vec2-pretty, matrix-pretty, expr-pretty, etc.
+;;;   └── Registers lattice-pretty-dispatch via set-pretty-dispatch!
+;;;
+;;; Usage:
+;;;   - To pretty-print a value: (pp-value x) or (pprint-value x)
+;;;   - To build a Doc manually: use combinators from pretty.ss
+;;;   - To add new types: define *-pretty functions, register via dispatch
+;;;
 ;;; Dependencies:
 ;;;   - prelude.ss
 ;;;   - pretty.ss (for Doc type and combinators)
@@ -137,6 +164,17 @@
       (hsep (punctuate (text ",")
                        (map infer-elem-pretty elems)))))))
 
+;;; sexp->doc-dispatch : Sexp → Doc
+;;; Like sexp->doc but uses infer-elem-pretty for nested elements.
+;;; This ensures lattice types nested in unknown structures still pretty-print.
+(define (sexp->doc-dispatch sexp)
+  (cond
+   [(null? sexp) (text "()")]
+   [(pair? sexp)
+    (parens (group (nest 1 (sep (map infer-elem-pretty sexp)))))]
+   ;; For atoms, use infer-elem-pretty to get proper Pretty instance
+   [else (infer-elem-pretty sexp)]))
+
 ;;; ====
 ;;; Precedence Helpers (for expressions)
 ;;; ====
@@ -212,6 +250,36 @@
   (newline))
 
 ;;; ====
+;;; Value-to-String Convenience
+;;; ====
+;;;
+;;; These functions combine type class dispatch with layout rendering.
+;;; Use these when you want to pretty-print a value directly to String.
+
+;;; pp-value : Any → String
+;;; Pretty-print any value to string with default width.
+;;; Uses dispatch hook if set (for lattice types).
+(define (pp-value x)
+  (pretty-render (infer-elem-pretty x)))
+
+;;; pp-value-width : Nat → Any → String
+;;; Pretty-print any value to string with given width.
+(define (pp-value-width width x)
+  (pretty-render-width width (infer-elem-pretty x)))
+
+;;; pprint-value : Any → Void
+;;; Display any value to stdout with default width.
+(define (pprint-value x)
+  (display (pp-value x))
+  (newline))
+
+;;; pprint-value-width : Nat → Any → Void
+;;; Display any value to stdout with given width.
+(define (pprint-value-width width x)
+  (display (pp-value-width width x))
+  (newline))
+
+;;; ====
 ;;; S-expression fallback (already in pretty.ss as sexp->doc)
 ;;; ====
 ;;; sexp->doc provides a fallback for any S-expression when
@@ -222,6 +290,7 @@
 ;;; ====
 
 (display "pretty-class.ss loaded.\n")
-(display "  Pretty type class implementations for Nat, Int, Bool, Char, String, Symbol, List.\n")
-(display "  Use (pretty-render doc) to render a Doc to string.\n")
-(display "  Use (parens-if cond doc) for precedence-aware wrapping.\n")
+(display "  Pretty type class: Nat, Int, Bool, Char, String, Symbol, List.\n")
+(display "  Value → String: (pp-value x), (pprint-value x)\n")
+(display "  Doc → String: (pretty-render doc), (pretty-display doc)\n")
+(display "  Extension: (set-pretty-dispatch! fn) for lattice types.\n")

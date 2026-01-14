@@ -127,6 +127,18 @@
     (set-pretty-dispatch! #f)
     (assert-equal "(1 2 3)" (pretty-render (list-pretty '(1 2 3)))))
 
+  (define-test sexp->doc-dispatch-uses-infer
+    ;; sexp->doc-dispatch should use infer-elem-pretty for nested elements
+    ;; Set up custom dispatch that transforms 42 to "ANSWER"
+    (set-pretty-dispatch! (lambda (x)
+                            (if (and (number? x) (= x 42))
+                                (text "ANSWER")
+                                (core-elem-pretty x))))
+    ;; Unknown tag wrapping 42 should still use dispatch
+    (assert-equal "(mystery ANSWER)" (pretty-render (sexp->doc-dispatch '(mystery 42))))
+    ;; Cleanup
+    (set-pretty-dispatch! #f))
+
   (define-test dispatch-custom-hook
     ;; Custom dispatch can override behavior
     (set-pretty-dispatch! (lambda (x)
