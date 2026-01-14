@@ -19,9 +19,10 @@
   (aliases (lattice-meta lattice-tools skills))
 
   (exports
-   (kg kg-build! kg-skills kg-skill kg-modules kg-deps kg-uses kg-stats)
+   (kg kg-build! kg-skills kg-skill kg-modules kg-deps kg-uses kg-stats kg-exports)
    (bm25 bm25-create bm25-add-doc bm25-search bm25-search-string bm25-score)
-   (search lattice-find lattice-find-exact lattice-complete lf lfe)
+   (search lattice-find lattice-find-exact lattice-complete lf lfe lfp lfs)
+   (type-search lf-type lf-input lf-output type-search)
    (dag lattice-deps lattice-deps-transitive lattice-uses lattice-uses-transitive
         lattice-path lattice-roots lattice-leaves lattice-hubs lattice-graph ld lu)
    (analytics lattice-stats lattice-health lattice-coverage ls lh)
@@ -31,6 +32,7 @@
    (kg "kg.ss" "CAS-backed knowledge graph builder from manifests")
    (bm25 "bm25.ss" "BM25 search engine for term-based ranking")
    (search "search.ss" "Unified search API integrating BM25 with KG")
+   (type-search "type-search.ss" "Hoogle-style type-aware search over signatures")
    (dag "dag.ss" "DAG navigation and dependency analysis")
    (analytics "analytics.ss" "Statistics, health checks, and coverage")
    (inspect "inspect.ss" "Skill introspection and detailed descriptions")))

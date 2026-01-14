@@ -248,6 +248,12 @@ Agent-facing navigation and introspection for the skill lattice. Builds a CAS-ba
 (lfs 'c2d)                         ; Substring search (finds c2d-zoh, etc.)
 (lattice-complete "mat")           ; Autocomplete suggestions
 
+;; Type-Aware Search (Hoogle-style)
+(load "lattice/meta/type-search.ss")
+(lf-type "Monad")                  ; Find functions with Monad in type signature
+(lf-input "Matrix")                ; Functions that take Matrix as input
+(lf-output "Maybe")                ; Functions that return Maybe
+
 ;; DAG Navigation
 (ld 'physics/diff)                 ; What does this skill depend on?
 (lu 'linalg)                       ; What skills use this?
@@ -288,6 +294,7 @@ Agent-facing navigation and introspection for the skill lattice. Builds a CAS-ba
 | `kg.ss` | Knowledge graph builder from manifests |
 | `bm25.ss` | BM25 search engine with TF-IDF ranking |
 | `search.ss` | Unified search API, autocomplete, prefix/substring |
+| `type-search.ss` | Type-aware search (Hoogle-style lf-type, lf-input, lf-output) |
 | `dag.ss` | DAG traversal, paths, tiers, hubs |
 | `analytics.ss` | Stats, health, coverage, purity |
 | `inspect.ss` | Skill descriptions, exports, sources |

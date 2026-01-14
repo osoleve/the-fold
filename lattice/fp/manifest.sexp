@@ -367,7 +367,7 @@ Key design principles:
     nyquist-plot-points nyquist-stable?
     gain-margin phase-margin stability-margins
     bibo-stable? bibo-stable-discrete?
-    controllability-matrix controllable? observability-matrix observable?
+    controllable? observable?
     stability-report
 
     ;; z-transform.ss — Discrete transfer functions

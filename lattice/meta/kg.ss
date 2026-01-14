@@ -340,9 +340,20 @@
    *kg-modules*))
 
 ;;; kg-exports : -> (List (Symbol . Block))
-;;; Get all exports
+;;; Get all exports (deduplicated by name)
 (define (kg-exports)
-  *kg-exports*)
+  (dedupe-by-car *kg-exports*))
+
+;;; dedupe-by-car : (List (Symbol . Any)) -> (List (Symbol . Any))
+;;; Remove entries with duplicate car values, keeping first occurrence
+(define (dedupe-by-car lst)
+  (let ([seen (make-eq-hashtable)])
+    (filter (lambda (entry)
+              (let ([name (car entry)])
+                (if (hashtable-ref seen name #f)
+                    #f
+                    (begin (hashtable-set! seen name #t) #t))))
+            lst)))
 
 ;;; kg-deps : Symbol -> (List Symbol)
 ;;; Get dependencies for a skill
