@@ -68,7 +68,10 @@ Design Philosophy:
       "set.ss         - Functional sets"
       "stream.ss      - Lazy infinite streams"
       "trie.ss        - Prefix trees"
-      "zipper.ss      - Zipper (functional cursor)"))
+      "zipper.ss      - List zipper (functional cursor with Comonad)"
+      "tree-zipper.ss - Rose tree zipper with navigation"
+      "generic-zipper.ss - Type-theoretic zipper derivation"
+      "zipper-lens.ss - Zipper-lens integration (lenses, affines, comonad connection)"))
     (specialized . (
       "interval.ss      - Interval arithmetic"
       "interval-elem.ss - Interval elements"
@@ -186,6 +189,29 @@ Design Philosophy:
 ; Compose lenses for deep access
 (define deep-lens (lens-compose lens-fst lens-fst))
 (view deep-lens '((a . b) . c))          ; => a
+"))
+   ((title . "Zippers and Zipper-Lens Integration")
+    (code . "
+; Create a list zipper and navigate
+(define z (list->zipper '(1 2 3 4 5)))
+(define z2 (from-just (zipper-right! z)))  ; Focus on 2
+(zipper-focus z2)                          ; => 2
+
+; Use lenses on zippers
+(view zipper-focus-lens z2)                ; => 2
+(set-lens zipper-focus-lens 99 z2)         ; Focus becomes 99
+
+; Navigation as affines (partial lenses)
+(preview-affine zipper-right-affine z)     ; => Just(zipper at 2)
+(preview-affine zipper-left-affine z)      ; => Nothing (at start)
+
+; Comonad: extend operations across all positions
+(zipper-extend (lambda (z) (* (zipper-focus z) 10))
+               (list->zipper '(1 2 3)))    ; => [10 20 30]
+
+; Convert zipper position to lens for list access
+(define pos-lens (zipper-to-lens z2))      ; Lens for position 1
+(view pos-lens '(a b c d e))               ; => b
 "))))
  (design-patterns . (
    ((pattern . "Dictionary-Passing Style")

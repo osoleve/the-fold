@@ -206,7 +206,7 @@ The lattice is a DAG of verified skills. "Stdlib" = tier 0 (foundational nodes).
 - `numeric/` — Transcendental functions
 - `parsing/` — Parser combinators with memoization
 - `meta/` — DSL utilities, logic programming
-- `data/` — Lazy streams, persistent structures
+- `data/` — Lazy streams, zippers (list/tree/generic), zipper-lens integration
 - `game/` — Game theory, Nash equilibrium
 - `symbolic/` — Symbolic expressions
 - `measure/` — Units of measure

@@ -415,37 +415,43 @@
 
 ;;; at-left : Nat → Lens (ListZipper α) α
 ;;; Lens for the nth element to the left of focus (1 = immediate left).
+;;; n must be >= 1 (0 is the focus itself, use at-focus for that).
 (define (at-left n)
-  (make-lens
-   (lambda (z)
-     (let ([left (zipper-left z)])
-       (if (> n (length left))
-           (error 'at-left "index out of bounds")
-           (list-ref left (- n 1)))))
-   (lambda (a z)
-     (let ([left (zipper-left z)])
-       (if (> n (length left))
-           (error 'at-left "index out of bounds")
-           (make-zipper (list-set left (- n 1) a)
-                        (zipper-focus-maybe z)
-                        (zipper-right z)))))))
+  (if (< n 1)
+      (error 'at-left "n must be >= 1 (use at-focus for n=0)")
+      (make-lens
+       (lambda (z)
+         (let ([left (zipper-left z)])
+           (if (> n (length left))
+               (error 'at-left "index out of bounds")
+               (list-ref left (- n 1)))))
+       (lambda (a z)
+         (let ([left (zipper-left z)])
+           (if (> n (length left))
+               (error 'at-left "index out of bounds")
+               (make-zipper (list-set left (- n 1) a)
+                            (zipper-focus-maybe z)
+                            (zipper-right z))))))))
 
 ;;; at-right : Nat → Lens (ListZipper α) α
 ;;; Lens for the nth element to the right of focus (1 = immediate right).
+;;; n must be >= 1 (0 is the focus itself, use at-focus for that).
 (define (at-right n)
-  (make-lens
-   (lambda (z)
-     (let ([right (zipper-right z)])
-       (if (> n (length right))
-           (error 'at-right "index out of bounds")
-           (list-ref right (- n 1)))))
-   (lambda (a z)
-     (let ([right (zipper-right z)])
-       (if (> n (length right))
-           (error 'at-right "index out of bounds")
-           (make-zipper (zipper-left z)
-                        (zipper-focus-maybe z)
-                        (list-set right (- n 1) a)))))))
+  (if (< n 1)
+      (error 'at-right "n must be >= 1 (use at-focus for n=0)")
+      (make-lens
+       (lambda (z)
+         (let ([right (zipper-right z)])
+           (if (> n (length right))
+               (error 'at-right "index out of bounds")
+               (list-ref right (- n 1)))))
+       (lambda (a z)
+         (let ([right (zipper-right z)])
+           (if (> n (length right))
+               (error 'at-right "index out of bounds")
+               (make-zipper (zipper-left z)
+                            (zipper-focus-maybe z)
+                            (list-set right (- n 1) a))))))))
 
 ;;; ============================================================
 ;;; Exports Summary

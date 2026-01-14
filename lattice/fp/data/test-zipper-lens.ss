@@ -377,7 +377,10 @@
   (define-test "set at-left modifies correct element"
     (let* ([z (zipper-goto (list->zipper '(a b c d e)) 2)]
            [z2 (set-lens (at-left 1) 'X z)])
-      (assert-equal '(a X c d e) (zipper->list z2)))))
+      (assert-equal '(a X c d e) (zipper->list z2))))
+
+  (define-test "at-left 0 errors with helpful message"
+    (assert-error (lambda () (at-left 0)))))
 
 (test-group "at-right"
   (define-test "at-right 1 gets immediate right"
@@ -391,7 +394,41 @@
   (define-test "set at-right modifies correct element"
     (let* ([z (zipper-goto (list->zipper '(a b c d e)) 2)]
            [z2 (set-lens (at-right 1) 'X z)])
-      (assert-equal '(a b c X e) (zipper->list z2)))))
+      (assert-equal '(a b c X e) (zipper->list z2))))
+
+  (define-test "at-right 0 errors with helpful message"
+    (assert-error (lambda () (at-right 0)))))
+
+;;; ============================================================
+;;; Test: Edge Cases (from QA review)
+;;; ============================================================
+
+(test-group "edge-cases"
+  (define-test "position-lens clamping on out-of-bounds"
+    ;; zipper-goto clamps to valid range
+    (let* ([z (list->zipper '(a b c))]
+           [z2 (set-lens zipper-position-lens 100 z)])
+      ;; Should clamp to valid position (past-end state)
+      (assert-true (>= (zipper-position z2) 0))))
+
+  (define-test "zipper-to-lens captures position at creation time"
+    ;; The lens is a snapshot - modifying the list doesn't affect it
+    (let* ([z (zipper-goto (list->zipper '(a b c d e)) 2)]
+           [lens (zipper-to-lens z)]
+           [data1 '(1 2 3 4 5)]
+           [data2 '(x y z)])
+      ;; Same lens works on different lists (if long enough)
+      (assert-equal 3 (view lens data1))
+      (assert-equal 'z (view lens data2))))
+
+  (define-test "tree-zipper-depth-lens is read-only"
+    ;; Setting depth is a no-op (documented behavior)
+    (let* ([tree (tree-node 'root (tree-node 'child (tree-leaf 'deep)))]
+           [z (tree->zipper tree)]
+           [z2 (from-just (tree-zipper-down z))]
+           [z3 (set-lens tree-zipper-depth-lens 999 z2)])
+      ;; Depth unchanged because setter is identity
+      (assert-equal (tree-zipper-depth z2) (tree-zipper-depth z3)))))
 
 ;;; ============================================================
 ;;; Test: Lens Laws for Zipper Lenses
