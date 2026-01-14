@@ -189,8 +189,8 @@ def main():
                         help="Save session to .fold-session for future calls")
     parser.add_argument("--timeout", type=int, default=DEFAULT_TIMEOUT, help="Timeout in seconds")
     parser.add_argument("--json", action="store_true", help="Read JSON input from stdin")
-    parser.add_argument("--quiet", "-q", action="store_true",
-                        help="Quiet mode: output only the result (no JSON wrapper)")
+    parser.add_argument("--verbose", "-v", action="store_true",
+                        help="Verbose mode: output full JSON response")
     parser.add_argument("--show-session", action="store_true",
                         help="Show current session and exit")
 
@@ -240,27 +240,28 @@ def main():
         save_session_to_file(session_id)
 
     if not is_daemon_running():
-        if args.quiet:
-            print("Error: REPL daemon is not running. Run './daemon.sh start' first.", file=sys.stderr)
-            sys.exit(1)
-        else:
+        if args.verbose:
             print(json.dumps({
                 "status": "error",
                 "error": "REPL daemon is not running. Run './daemon.sh start' first."
             }))
+        else:
+            print("Error: REPL daemon is not running. Run './daemon.sh start' first.", file=sys.stderr)
+            sys.exit(1)
         return
 
     response = run_request(session_id, code, timeout)
 
-    if args.quiet:
-        # Quiet mode: just output result, errors to stderr
+    if args.verbose:
+        # Verbose mode: full JSON response
+        print(json.dumps(response))
+    else:
+        # Default: just output result, errors to stderr
         if response["status"] == "success":
             print(response["result"])
         else:
             print(f"Error: {response.get('error', 'Unknown error')}", file=sys.stderr)
             sys.exit(1)
-    else:
-        print(json.dumps(response))
 
 if __name__ == "__main__":
     main()
