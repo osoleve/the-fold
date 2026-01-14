@@ -8,6 +8,15 @@ Usage:
   ./fold-agent.py --session my-session "define x 10"  # Becomes (define x 10)
   echo '{"code": "+ 1 2", "session": "my-session"}' | ./fold-agent.py --json
 
+Session Persistence:
+  Sessions can be specified in several ways (in order of priority):
+  1. --session flag: ./fold-agent.py --session dev "code"
+  2. FOLD_SESSION env var: export FOLD_SESSION=dev
+  3. .fold-session file: Contains session name (created by --persist)
+  4. Auto-generated: agent-<uuid> if none specified
+
+  Use --persist to save the current session name to .fold-session for future calls.
+
 Output (JSON):
   {
     "status": "success",   # or "error", "timeout"
@@ -34,7 +43,48 @@ REPL_DIR = ".fold-repl"
 REQUESTS_DIR = os.path.join(REPL_DIR, "requests")
 RESPONSES_DIR = os.path.join(REPL_DIR, "responses")
 READY_FILE = os.path.join(REPL_DIR, "ready")
+SESSION_FILE = ".fold-session"  # Persisted session file
 DEFAULT_TIMEOUT = 30
+
+def get_session_from_env():
+    """Get session from FOLD_SESSION environment variable."""
+    return os.environ.get("FOLD_SESSION")
+
+def get_session_from_file():
+    """Get session from .fold-session file if it exists."""
+    if os.path.exists(SESSION_FILE):
+        try:
+            with open(SESSION_FILE, 'r') as f:
+                session = f.read().strip()
+                if session:
+                    return session
+        except IOError:
+            pass
+    return None
+
+def save_session_to_file(session_id):
+    """Save session to .fold-session file."""
+    try:
+        with open(SESSION_FILE, 'w') as f:
+            f.write(session_id)
+        return True
+    except IOError:
+        return False
+
+def resolve_session(explicit_session):
+    """
+    Resolve session ID from multiple sources.
+    Priority: explicit > env var > file > auto-generate
+    """
+    if explicit_session:
+        return explicit_session
+    env_session = get_session_from_env()
+    if env_session:
+        return env_session
+    file_session = get_session_from_file()
+    if file_session:
+        return file_session
+    return generate_session_id()
 
 def ensure_dirs():
     os.makedirs(REQUESTS_DIR, exist_ok=True)
@@ -125,13 +175,17 @@ def run_request(session_id, code, timeout):
 def main():
     parser = argparse.ArgumentParser(description="Fold REPL Agent Client")
     parser.add_argument("code", nargs="?", help="Code to execute")
-    parser.add_argument("--session", help="Session ID")
+    parser.add_argument("--session", "-s", help="Session ID (overrides env/file)")
+    parser.add_argument("--persist", "-p", action="store_true",
+                        help="Save session to .fold-session for future calls")
     parser.add_argument("--timeout", type=int, default=DEFAULT_TIMEOUT, help="Timeout in seconds")
     parser.add_argument("--json", action="store_true", help="Read JSON input from stdin")
-    
+    parser.add_argument("--show-session", action="store_true",
+                        help="Show current session and exit")
+
     args = parser.parse_args()
-    
-    session_id = args.session
+
+    explicit_session = args.session
     code = args.code
     timeout = args.timeout
 
@@ -139,11 +193,22 @@ def main():
         try:
             data = json.load(sys.stdin)
             code = data.get("code", code)
-            session_id = data.get("session", session_id)
+            explicit_session = data.get("session", explicit_session)
             timeout = data.get("timeout", timeout)
         except json.JSONDecodeError as e:
             print(json.dumps({"status": "error", "error": f"Invalid JSON input: {e}"}))
             return
+
+    # Resolve session from multiple sources
+    session_id = resolve_session(explicit_session)
+
+    # Handle --show-session
+    if args.show_session:
+        source = "explicit" if explicit_session else (
+            "FOLD_SESSION env" if get_session_from_env() else (
+            ".fold-session file" if get_session_from_file() else "auto-generated"))
+        print(json.dumps({"session": session_id, "source": source}))
+        return
 
     if not code:
         # Try reading code from stdin if not in json mode and not arg
@@ -157,19 +222,16 @@ def main():
     # Implicit parenthesization: wrap code in parens if needed
     code = apply_implicit_parens(code)
 
-    if not session_id:
-        session_id = generate_session_id()
-
     ensure_dirs()
 
+    # Handle --persist: save session before running
+    if args.persist:
+        save_session_to_file(session_id)
+
     if not is_daemon_running():
-        # Fallback handling could go here, but for now just report error
-        # Agents should know to start the daemon or use fold.sh's fallback logic if needed.
-        # But to be helpful, let's try to run via fold.sh's fallback logic?
-        # No, let's stick to the daemon protocol for reliability.
         print(json.dumps({
-            "status": "error", 
-            "error": "REPL daemon is not running. Run './start-daemon.ss' first."
+            "status": "error",
+            "error": "REPL daemon is not running. Run './daemon.sh start' first."
         }))
         return
 
