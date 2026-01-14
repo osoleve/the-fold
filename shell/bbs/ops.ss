@@ -114,19 +114,26 @@
 ;;; Issue Close/Reopen
 ;;; ====
 
-;;; bbs-close : String -> Bytevector
-;;; Close an issue.
+;;; bbs-close : String -> Bytevector | #f
+;;; Close an issue. Returns #f if already closed (idempotent).
 ;;;
 ;;; Keyword arguments:
 ;;;   'reason - Reason for closing
 (define (bbs-close id . args)
-  (let ([reason (get-keyword-arg args 'reason "")])
-    (bbs-update id 'status 'closed)))
+  (let* ([id-str (normalize-id id)]
+         [data (bbs-fetch-issue-data id-str)])
+    (if (and data (eq? (cdr (assq 'status data)) 'closed))
+        #f  ; Already closed, no-op
+        (bbs-update id 'status 'closed))))
 
-;;; bbs-reopen : String -> Bytevector
-;;; Reopen a closed issue.
+;;; bbs-reopen : String -> Bytevector | #f
+;;; Reopen a closed issue. Returns #f if already open (idempotent).
 (define (bbs-reopen id)
-  (bbs-update id 'status 'open))
+  (let* ([id-str (normalize-id id)]
+         [data (bbs-fetch-issue-data id-str)])
+    (if (and data (eq? (cdr (assq 'status data)) 'open))
+        #f  ; Already open, no-op
+        (bbs-update id 'status 'open))))
 
 ;;; ====
 ;;; Dependencies
@@ -184,3 +191,79 @@
                                   content-type timestamp)]
          [hash (bbs-store! blk)])
     hash))
+
+;;; ====
+;;; History Compaction
+;;; ====
+
+;;; bbs-compact-history! : String -> Bytevector | #f
+;;; Compact redundant history by removing consecutive versions with same status.
+;;; Creates a new version that skips redundant intermediate versions.
+;;; Returns new hash, or #f if no compaction needed.
+(define (bbs-compact-history! id)
+  (let* ([id-str (normalize-id id)]
+         [history (bbs-issue-history-data id-str)])
+    (if (< (length history) 3)
+        #f  ; Nothing to compact
+        (let* ([current (car history)]
+               [current-status (cdr (assq 'status current))]
+               ;; Find the first version with a different status
+               [meaningful-prev
+                (let loop ([versions (cdr history)])
+                  (if (null? versions)
+                      #f
+                      (let ([v (car versions)])
+                        (if (not (eq? (cdr (assq 'status v)) current-status))
+                            v
+                            (loop (cdr versions))))))])
+          (if (not meaningful-prev)
+              #f  ; All versions have same status, nothing to do
+              ;; Count how many versions we're skipping
+              (let ([skipped (- (cdr (assq 'version current))
+                                (cdr (assq 'version meaningful-prev))
+                                1)])
+                (if (< skipped 1)
+                    #f  ; No redundant versions
+                    ;; Create compacted version
+                    (let* ([prev-hash (bbs-find-version-hash id-str
+                                        (cdr (assq 'version meaningful-prev)))]
+                           [new-blk (make-issue-block
+                                     id-str
+                                     (cdr (assq 'title current))
+                                     (cdr (assq 'description current))
+                                     (cdr (assq 'status current))
+                                     (cdr (assq 'priority current))
+                                     (cdr (assq 'type current))
+                                     (cdr (assq 'labels current))
+                                     (cdr (assq 'created-at current))
+                                     (cdr (assq 'created-by current))
+                                     (+ (cdr (assq 'version meaningful-prev)) 1)
+                                     prev-hash)]
+                           [new-hash (bbs-store! new-blk)])
+                      ;; Update head to point to compacted version
+                      (bbs-write-head! id-str new-hash)
+                      ;; Update index
+                      (bbs-index-update! id-str new-hash
+                                         current-status current-status
+                                         (cdr (assq 'priority current))
+                                         (cdr (assq 'priority current)))
+                      (display (format "Compacted ~a versions from ~a~n"
+                                       skipped id-str))
+                      new-hash))))))))
+
+;;; bbs-find-version-hash : String Int -> Bytevector | #f
+;;; Find the hash of a specific version number.
+(define (bbs-find-version-hash id version-num)
+  (let loop ([hash (bbs-read-head id)])
+    (if (not hash)
+        #f
+        (let ([blk (bbs-fetch hash)])
+          (if (not blk)
+              #f
+              (let ([data (issue-block-data blk)])
+                (if (= (cdr (assq 'version data)) version-num)
+                    hash
+                    (let ([prev (issue-block-prev blk)])
+                      (if prev
+                          (loop prev)
+                          #f)))))))))
