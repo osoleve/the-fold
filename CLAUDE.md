@@ -254,6 +254,14 @@ Agent-facing navigation and introspection for the skill lattice. Builds a CAS-ba
 (lf-input "Matrix")                ; Functions that take Matrix as input
 (lf-output "Maybe")                ; Functions that return Maybe
 
+;; Cross-Reference Queries (function-level call graph)
+(load "lattice/meta/xref.ss")
+(build-xref-cache!)                ; Build call graph (~25k edges)
+(lxu 'matrix-rows)                 ; What functions call this?
+(lxc 'floyd-warshall)              ; What does this function call?
+(xref-callers-transitive 'fn)      ; All transitive callers
+(xref-most-called 10)              ; Most-called functions
+
 ;; DAG Navigation
 (ld 'physics/diff)                 ; What does this skill depend on?
 (lu 'linalg)                       ; What skills use this?
@@ -295,6 +303,7 @@ Agent-facing navigation and introspection for the skill lattice. Builds a CAS-ba
 | `bm25.ss` | BM25 search engine with TF-IDF ranking |
 | `search.ss` | Unified search API, autocomplete, prefix/substring |
 | `type-search.ss` | Type-aware search (Hoogle-style lf-type, lf-input, lf-output) |
+| `xref.ss` | Cross-reference queries (lxu, lxc, call graph analysis) |
 | `dag.ss` | DAG traversal, paths, tiers, hubs |
 | `analytics.ss` | Stats, health, coverage, purity |
 | `inspect.ss` | Skill descriptions, exports, sources |

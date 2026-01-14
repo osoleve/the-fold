@@ -23,6 +23,8 @@
    (bm25 bm25-create bm25-add-doc bm25-search bm25-search-string bm25-score)
    (search lattice-find lattice-find-exact lattice-complete lf lfe lfp lfs)
    (type-search lf-type lf-input lf-output type-search)
+   (xref build-xref-cache! xref-callers xref-callees xref-callers-transitive
+         xref-callees-transitive xref-stats xref-most-called lxu lxc)
    (dag lattice-deps lattice-deps-transitive lattice-uses lattice-uses-transitive
         lattice-path lattice-roots lattice-leaves lattice-hubs lattice-graph ld lu)
    (analytics lattice-stats lattice-health lattice-coverage ls lh)
@@ -33,6 +35,7 @@
    (bm25 "bm25.ss" "BM25 search engine for term-based ranking")
    (search "search.ss" "Unified search API integrating BM25 with KG")
    (type-search "type-search.ss" "Hoogle-style type-aware search over signatures")
+   (xref "xref.ss" "Function-level cross-reference and call graph analysis")
    (dag "dag.ss" "DAG navigation and dependency analysis")
    (analytics "analytics.ss" "Statistics, health checks, and coverage")
    (inspect "inspect.ss" "Skill introspection and detailed descriptions")))

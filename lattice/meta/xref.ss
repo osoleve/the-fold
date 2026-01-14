@@ -1,0 +1,370 @@
+;;; lattice/meta/xref.ss — Cross-Reference Tracking
+;;;
+;;; Track function call relationships for impact analysis.
+;;; Enables "what calls this?" and "what does this call?" queries.
+;;;
+;;; This is Lattice code: impure (reads files), used during indexing.
+;;;
+;;; Usage:
+;;;   (build-xref-cache!)               ; Build call graph from sources
+;;;   (xref-callers 'symbol)            ; What functions call this?
+;;;   (xref-callees 'symbol)            ; What does this function call?
+;;;   (lxu 'symbol)                     ; Quick "lattice xref uses"
+;;;   (lxc 'symbol)                     ; Quick "lattice xref calls"
+;;;
+;;; Dependencies: lattice/meta/source-loc.ss (for definition locations)
+
+;;; ============================================================
+;;; State
+;;; ============================================================
+
+;;; Call graph indices
+;;; callers: symbol -> (list of symbols that call it)
+;;; callees: symbol -> (list of symbols it calls)
+(define *xref-callers* (make-hashtable symbol-hash eq?))
+(define *xref-callees* (make-hashtable symbol-hash eq?))
+
+;;; Set of all known definitions (for filtering)
+(define *xref-known-defs* (make-eq-hashtable))
+
+;;; ============================================================
+;;; Symbol Extraction
+;;; ============================================================
+
+;;; extract-symbols-from-sexp : SExp -> (List Symbol)
+;;; Extract all symbols from an s-expression (excluding quoted data)
+(define (extract-symbols-from-sexp sexp)
+  (cond
+    [(symbol? sexp) (list sexp)]
+    [(pair? sexp)
+     (case (car sexp)
+       ;; Skip quoted expressions
+       [(quote quasiquote) '()]
+       ;; Handle define specially - skip the name being defined
+       [(define)
+        (if (and (pair? (cdr sexp)) (pair? (cddr sexp)))
+            (let ([name-part (cadr sexp)])
+              ;; Skip the function name, extract from body
+              (apply append
+                     (map extract-symbols-from-sexp (cddr sexp))))
+            '())]
+       ;; Handle let/let*/letrec - skip binding names
+       [(let let* letrec)
+        (if (and (pair? (cdr sexp)) (pair? (cadr sexp)))
+            (let ([bindings (cadr sexp)]
+                  [body (cddr sexp)])
+              (append
+               ;; Extract from binding values (not names)
+               (apply append
+                      (map (lambda (b)
+                             (if (and (pair? b) (pair? (cdr b)))
+                                 (extract-symbols-from-sexp (cadr b))
+                                 '()))
+                           (if (list? bindings) bindings '())))
+               ;; Extract from body
+               (apply append (map extract-symbols-from-sexp body))))
+            '())]
+       ;; Handle lambda - skip parameter names
+       [(lambda)
+        (if (pair? (cddr sexp))
+            (apply append (map extract-symbols-from-sexp (cddr sexp)))
+            '())]
+       ;; Default: recurse into all parts
+       [else
+        (apply append (map extract-symbols-from-sexp sexp))])]
+    [else '()]))
+
+;;; ============================================================
+;;; File Parsing
+;;; ============================================================
+
+;;; extract-xrefs-from-file : String -> (List (Symbol . (List Symbol)))
+;;; Parse a file and extract (definer . callees) pairs
+(define (extract-xrefs-from-file path)
+  (guard (e [else '()])
+    (call-with-input-file path
+      (lambda (port)
+        (let loop ([results '()])
+          (let ([sexp (read port)])
+            (if (eof-object? sexp)
+                results
+                (let ([xref (extract-xref-from-toplevel sexp)])
+                  (loop (if xref (cons xref results) results))))))))))
+
+;;; extract-xref-from-toplevel : SExp -> (Symbol . (List Symbol)) | #f
+;;; Extract cross-reference info from a top-level form
+(define (extract-xref-from-toplevel sexp)
+  (cond
+    ;; (define (name ...) body...)
+    [(and (pair? sexp)
+          (eq? (car sexp) 'define)
+          (pair? (cdr sexp)))
+     (let ([name (get-define-name sexp)])
+       (if name
+           (let* ([body (cddr sexp)]
+                  [refs (apply append (map extract-symbols-from-sexp body))]
+                  [unique-refs (remove-duplicates-sym refs)])
+             (cons name unique-refs))
+           #f))]
+    ;; (define-syntax name ...) - skip for now
+    [(and (pair? sexp) (eq? (car sexp) 'define-syntax))
+     #f]
+    [else #f]))
+
+;;; get-define-name : SExp -> Symbol | #f
+;;; Extract the name from a define form
+(define (get-define-name sexp)
+  (if (pair? (cdr sexp))
+      (let ([name-part (cadr sexp)])
+        (cond
+          [(symbol? name-part) name-part]
+          [(and (pair? name-part) (symbol? (car name-part)))
+           (car name-part)]
+          [else #f]))
+      #f))
+
+;;; remove-duplicates-sym : (List Symbol) -> (List Symbol)
+(define (remove-duplicates-sym lst)
+  (let ([seen (make-eq-hashtable)])
+    (filter (lambda (sym)
+              (if (hashtable-ref seen sym #f)
+                  #f
+                  (begin (hashtable-set! seen sym #t) #t)))
+            lst)))
+
+;;; ============================================================
+;;; Directory Scanning
+;;; ============================================================
+
+;;; find-scheme-files-xref : String -> (List String)
+(define (find-scheme-files-xref dir)
+  (guard (e [else '()])
+    (let ([entries (directory-list dir)])
+      (apply append
+             (map (lambda (entry)
+                    (let ([path (string-append dir "/" entry)])
+                      (cond
+                        [(and (> (string-length entry) 0)
+                              (char=? (string-ref entry 0) #\.))
+                         '()]
+                        [(file-directory-xref? path)
+                         (find-scheme-files-xref path)]
+                        [(and (string-ends-with-ss-xref? entry)
+                              (not (string-prefix-xref? "test-" entry)))
+                         (list path)]
+                        [else '()])))
+                  entries)))))
+
+(define (file-directory-xref? path)
+  (guard (e [else #f])
+    (directory-list path)
+    #t))
+
+(define (string-ends-with-ss-xref? str)
+  (let ([len (string-length str)])
+    (and (>= len 3)
+         (string=? (substring str (- len 3) len) ".ss"))))
+
+(define (string-prefix-xref? prefix str)
+  (let ([plen (string-length prefix)]
+        [slen (string-length str)])
+    (and (>= slen plen)
+         (string=? (substring str 0 plen) prefix))))
+
+;;; ============================================================
+;;; Index Building
+;;; ============================================================
+
+;;; build-xref-cache! : -> Void
+;;; Build cross-reference indices from source files
+(define (build-xref-cache!)
+  (printf "Building cross-reference cache...\n")
+  (set! *xref-callers* (make-hashtable symbol-hash eq?))
+  (set! *xref-callees* (make-hashtable symbol-hash eq?))
+  (set! *xref-known-defs* (make-eq-hashtable))
+
+  ;; First pass: collect all definitions
+  (let ([def-count 0]
+        [all-xrefs '()])
+    ;; Collect definitions from lattice/
+    (for-each
+      (lambda (path)
+        (let ([xrefs (extract-xrefs-from-file path)])
+          (for-each
+            (lambda (xref)
+              (let ([name (car xref)])
+                (hashtable-set! *xref-known-defs* name #t)
+                (set! def-count (+ def-count 1))))
+            xrefs)
+          (set! all-xrefs (append xrefs all-xrefs))))
+      (find-scheme-files-xref "lattice"))
+
+    ;; Also collect from core/
+    (for-each
+      (lambda (path)
+        (let ([xrefs (extract-xrefs-from-file path)])
+          (for-each
+            (lambda (xref)
+              (let ([name (car xref)])
+                (hashtable-set! *xref-known-defs* name #t)
+                (set! def-count (+ def-count 1))))
+            xrefs)
+          (set! all-xrefs (append xrefs all-xrefs))))
+      (find-scheme-files-xref "core"))
+
+    ;; Second pass: build caller/callee indices
+    (let ([edge-count 0])
+      (for-each
+        (lambda (xref)
+          (let* ([caller (car xref)]
+                 [all-refs (cdr xref)]
+                 ;; Filter to only known definitions (not primitives)
+                 [callees (filter (lambda (s)
+                                   (and (not (eq? s caller))  ; No self-refs
+                                        (hashtable-ref *xref-known-defs* s #f)))
+                                 all-refs)])
+            ;; Store callees for this function
+            (hashtable-set! *xref-callees* caller callees)
+            ;; Update callers for each callee
+            (for-each
+              (lambda (callee)
+                (let ([existing (hashtable-ref *xref-callers* callee '())])
+                  (unless (memq caller existing)
+                    (hashtable-set! *xref-callers* callee (cons caller existing))
+                    (set! edge-count (+ edge-count 1)))))
+              callees)))
+        all-xrefs)
+
+      (printf "  Indexed ~a definitions, ~a call edges\n" def-count edge-count))))
+
+;;; ============================================================
+;;; Query API
+;;; ============================================================
+
+;;; xref-callers : Symbol -> (List Symbol)
+;;; Get functions that call the given symbol
+(define (xref-callers sym)
+  (hashtable-ref *xref-callers* sym '()))
+
+;;; xref-callees : Symbol -> (List Symbol)
+;;; Get functions that the given symbol calls
+(define (xref-callees sym)
+  (hashtable-ref *xref-callees* sym '()))
+
+;;; xref-callers-transitive : Symbol -> (List Symbol)
+;;; Get all transitive callers (functions that directly or indirectly call sym)
+(define (xref-callers-transitive sym)
+  (let ([seen (make-eq-hashtable)]
+        [result '()])
+    (let loop ([to-visit (xref-callers sym)])
+      (if (null? to-visit)
+          result
+          (let ([current (car to-visit)])
+            (if (hashtable-ref seen current #f)
+                (loop (cdr to-visit))
+                (begin
+                  (hashtable-set! seen current #t)
+                  (set! result (cons current result))
+                  (loop (append (cdr to-visit) (xref-callers current))))))))))
+
+;;; xref-callees-transitive : Symbol -> (List Symbol)
+;;; Get all transitive callees (functions that sym directly or indirectly calls)
+(define (xref-callees-transitive sym)
+  (let ([seen (make-eq-hashtable)]
+        [result '()])
+    (let loop ([to-visit (xref-callees sym)])
+      (if (null? to-visit)
+          result
+          (let ([current (car to-visit)])
+            (if (hashtable-ref seen current #f)
+                (loop (cdr to-visit))
+                (begin
+                  (hashtable-set! seen current #t)
+                  (set! result (cons current result))
+                  (loop (append (cdr to-visit) (xref-callees current))))))))))
+
+;;; ============================================================
+;;; Pretty Printing
+;;; ============================================================
+
+;;; print-xref-callers : Symbol -> Void
+(define (print-xref-callers sym)
+  (let ([callers (xref-callers sym)])
+    (if (null? callers)
+        (printf "~a: no callers found\n" sym)
+        (begin
+          (printf "~a is called by (~a functions):\n" sym (length callers))
+          (for-each (lambda (c) (printf "  ~a\n" c))
+                    (take-n-xref 15 callers))
+          (when (> (length callers) 15)
+            (printf "  ... and ~a more\n" (- (length callers) 15)))))))
+
+;;; print-xref-callees : Symbol -> Void
+(define (print-xref-callees sym)
+  (let ([callees (xref-callees sym)])
+    (if (null? callees)
+        (printf "~a: no callees found\n" sym)
+        (begin
+          (printf "~a calls (~a functions):\n" sym (length callees))
+          (for-each (lambda (c) (printf "  ~a\n" c))
+                    (take-n-xref 15 callees))
+          (when (> (length callees) 15)
+            (printf "  ... and ~a more\n" (- (length callees) 15)))))))
+
+(define (take-n-xref n lst)
+  (if (or (<= n 0) (null? lst))
+      '()
+      (cons (car lst) (take-n-xref (- n 1) (cdr lst)))))
+
+;;; ============================================================
+;;; Convenience Functions
+;;; ============================================================
+
+;;; lxu : Symbol -> Void
+;;; "Lattice Xref Uses" - quick lookup of callers
+(define (lxu sym)
+  (print-xref-callers sym))
+
+;;; lxc : Symbol -> Void
+;;; "Lattice Xref Calls" - quick lookup of callees
+(define (lxc sym)
+  (print-xref-callees sym))
+
+;;; ============================================================
+;;; Statistics
+;;; ============================================================
+
+;;; xref-stats : -> Void
+(define (xref-stats)
+  (let ([def-count (hashtable-size *xref-known-defs*)]
+        [caller-count (hashtable-size *xref-callers*)]
+        [callee-count (hashtable-size *xref-callees*)])
+    (printf "Cross-reference statistics:\n")
+    (printf "  Known definitions: ~a\n" def-count)
+    (printf "  Functions with callers: ~a\n" caller-count)
+    (printf "  Functions with callees: ~a\n" callee-count)))
+
+;;; xref-most-called : Int -> (List (Symbol . Count))
+;;; Get most-called functions
+(define (xref-most-called n)
+  (let ([counts '()])
+    (vector-for-each
+      (lambda (sym)
+        (let ([callers (xref-callers sym)])
+          (when (pair? callers)
+            (set! counts (cons (cons sym (length callers)) counts)))))
+      (hashtable-keys *xref-callers*))
+    (take-n-xref n
+      (sort (lambda (a b) (> (cdr a) (cdr b))) counts))))
+
+;;; ============================================================
+;;; REPL Interface
+;;; ============================================================
+
+(printf "xref.ss loaded.\n")
+(printf "  (build-xref-cache!)       - Build call graph from sources\n")
+(printf "  (lxu 'fn)                 - What calls this function?\n")
+(printf "  (lxc 'fn)                 - What does this function call?\n")
+(printf "  (xref-callers 'fn)        - Get caller list\n")
+(printf "  (xref-callees 'fn)        - Get callee list\n")
+(printf "  (xref-stats)              - Show statistics\n")
