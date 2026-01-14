@@ -12,9 +12,13 @@
 .fold-sessions/
 
 # Content store
-.store/
+# Track objects/ for BBS durability (27MB, acceptable)
+# Track heads/ for issue pointers
+# Note: Must negate parent before children for git to see them
+!.store/
+.store/*
+!.store/objects/
 !.store/heads/
-!.store/heads/bbs/
 .store_archive/
 
 # Forum runtime data
