@@ -521,10 +521,7 @@ This project uses **BBS** (Bulletin Board System), a CAS-native issue tracker bu
 
 ### Initialization
 
-```scheme
-(load "shell/bbs/bbs.ss")
-(bbs-init!)                       ; Load issues from disk
-```
+BBS is auto-initialized when the REPL starts. No manual setup required.
 
 ### Finding Work
 

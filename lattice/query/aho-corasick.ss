@@ -1,7 +1,9 @@
 ;;; core/query/aho-corasick.ss --- Aho-Corasick Multi-Pattern String Matching
 ;;;
 ;;; Dogfooding new data structures: Queue for BFS, Dict for transitions
-(load "lattice/data/data-structures.ss")
+(load "lattice/data/queue.ss")
+(load "lattice/data/set.ss")
+(load "lattice/data/dict.ss")
 
 ;;; State = (id Dict Set Nat) where Dict: Char -> Nat, Set of patterns,  Nat is failure link
 (define-record-type ac-state

@@ -22,10 +22,14 @@
   (aliases (ds structures collections))
 
   (exports
-   (data-structures graph-algorithms collection-utils pagerank graph-matrix centrality graph-community))
+   (stack queue set dict data-structures graph-algorithms collection-utils pagerank graph-matrix centrality graph-community))
 
   (modules
-   (data-structures "data-structures.ss" "Core data structure implementations")
+   (stack "stack.ss" "LIFO stack operations")
+   (queue "queue.ss" "FIFO queue with amortized O(1) ops")
+   (set "set.ss" "Unordered collection with no duplicates")
+   (dict "dict.ss" "Key-value dictionary/map operations")
+   (data-structures "data-structures.ss" "Re-exports stack, queue, set, dict")
    (graph-algorithms "graph-algorithms.ss" "BFS, DFS, shortest paths, spanning trees")
    (collection-utils "collection-utils.ss" "Higher-order collection operations")
    (pagerank "pagerank.ss" "PageRank importance scoring")
