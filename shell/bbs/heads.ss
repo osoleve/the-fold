@@ -50,9 +50,14 @@
       (if (file-exists? path)
           (let* ([content (call-with-input-file path
                            (lambda (port) (get-line port)))]
-                 [trimmed (string-trim content)])
-            (if (= (string-length trimmed) 66)
-                (hex->hash trimmed)
+                 [trimmed (string-trim content)]
+                 ;; Strip 0x prefix if present
+                 [hex (if (and (> (string-length trimmed) 2)
+                               (string=? (substring trimmed 0 2) "0x"))
+                          (substring trimmed 2 (string-length trimmed))
+                          trimmed)])
+            (if (= (string-length hex) 64)
+                (hex->hash hex)
                 #f))
           #f))))
 

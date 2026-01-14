@@ -57,10 +57,10 @@
   (let ([path (bbs-cas-path hash)])
     (guard (e [else #f])
       (if (file-exists? path)
-          (let ([bytes (call-with-input-file path
-                         (lambda (port)
-                           (get-bytevector-all port))
-                         '(binary))])
+          (let ([bytes (call-with-port
+                        (open-file-input-port path)
+                        (lambda (port)
+                          (get-bytevector-all port)))])
             (bytes->block bytes))
           #f))))
 

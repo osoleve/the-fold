@@ -449,82 +449,70 @@ For agents operating within The Fold, see [`docs/agent-operating-manual.md`](doc
 
 ---
 
-## Issue Tracking with Beads
+## Issue Tracking with BBS
 
-This project uses **bd** (beads) for dependency-aware issue tracking.
+This project uses **BBS** (Bulletin Board System), a CAS-native issue tracker built on The Fold's block primitives.
+
+### Initialization
+
+```scheme
+(load "shell/bbs/bbs.ss")
+(bbs-init!)                       ; Load issues from disk
+```
 
 ### Finding Work
 
-```bash
-bd ready --limit 0                # Show unblocked work (no blockers)
-bd list --status=open             # All open issues
-bd list --status=in_progress      # Your active work
-bd show <id>                      # View issue details with dependencies
-bd search "query" --status open   # Full-text search with filters
+```scheme
+(bbs-list)                        ; List open issues (default)
+(bbs-list 'status 'closed)        ; List closed issues
+(bbs-list 'status 'all)           ; List all issues
+(bbs-ready)                       ; Show unblocked work
+(bbs-blocked)                     ; Show blocked issues
+(bbs-show 'fold-001)              ; View issue details
+(bbs-find "query")                ; Search issue titles
 ```
 
 ### Creating & Updating
 
-```bash
-bd create --title="..." --type=task --priority=2   # New issue
-bd q "Quick task title"           # Quick capture (returns ID only, for scripting)
-bd update <id> --status=in_progress  # Claim work
-bd close <id> --reason="..."      # Complete work
-bd close <id1> <id2> ...          # Close multiple at once
+```scheme
+(bbs-create "Issue title")                              ; Basic create
+(bbs-create "Title" 'priority 1 'type 'bug)            ; With options
+(bbs-create "Title" 'description "Details..." 'labels '(core urgent))
+
+(bbs-update 'fold-001 'status 'in_progress)            ; Update status
+(bbs-update 'fold-001 'priority 0)                     ; Change priority
+(bbs-close 'fold-001)                                  ; Close issue
+(bbs-close 'fold-001 'reason "Done!")                  ; Close with reason
 ```
 
-Priority: 0-4 (0=critical, 2=medium, 4=backlog). NOT "high"/"medium"/"low".
+Priority: 0-4 (0=critical, 2=medium, 4=backlog).
+Types: `'task`, `'bug`, `'feature`, `'epic`.
+Status: `'open`, `'in_progress`, `'closed`.
 
-### Dependencies & Structure
+### Dependencies
 
-```bash
-bd dep add <issue> <depends-on>   # Add dependency
-bd dep tree <id>                  # Text tree view
-bd graph <id>                     # ASCII DAG visualization
-bd blocked                        # Show all blocked issues
+```scheme
+(bbs-dep 'fold-001 'fold-002)     ; fold-001 blocks fold-002
+(bbs-blockers 'fold-002)          ; What blocks this issue?
+(bbs-blocking 'fold-001)          ; What does this issue block?
+(bbs-ready)                       ; All unblocked open issues
 ```
 
-### Planning for Parallelism
+### History & Stats
 
-**Prioritize swarm-compatible plans.** When breaking down work:
-
-1. **Identify independent tracks** — Tasks that don't share dependencies can run in parallel
-2. **Minimize dependency chains** — Prefer wide DAGs over deep chains
-3. **Create clear interfaces** — Define boundaries so parallel work doesn't conflict
-4. **Use epics as coordination points** — Group related parallel work under a parent issue
-
-A swarm-compatible plan enables multiple agents (or sessions) to work simultaneously, dramatically improving throughput.
-
-### Parallel Work (Swarms)
-
-For epics with multiple parallel tracks:
-
-```bash
-bd swarm validate <epic-id>       # Check DAG structure, parallelism
-bd swarm create <epic-id>         # Create coordination molecule
-bd swarm status <epic-id>         # Show completed/active/ready/blocked
+```scheme
+(bbs-history 'fold-001)           ; Show version history
+(bbs-stats)                       ; Database statistics
 ```
 
-### Hygiene & Search
-
-```bash
-bd stale                          # Issues with no recent updates
-bd orphans                        # Issues in commits but still open
-bd count --by-status              # Aggregate statistics
-bd comments add <id> "note"       # Add comment without state change
-bd defer <id>                     # Put on ice (not blocked, just postponed)
-```
-
-### Sync & Session End
+### Session End
 
 **Work is NOT complete until `git push` succeeds:**
 
 ```bash
 git status              # Check changes
 git add <files>         # Stage changes
-bd sync                 # Commit beads
 git commit -m "..."     # Commit code
-bd sync                 # Commit new beads
 git push                # Push to remote
 ```
 
@@ -543,7 +531,8 @@ git push                # Push to remote
 | `.fold-sessions/` | Persistent session state |
 | `.fold-users/` | User profile data |
 | `.store/` | Content-addressed store |
-| `.beads/` | Issue tracking database |
+| `.store/heads/bbs/` | BBS issue heads |
+| `.bbs/` | BBS counter file |
 | `archives/` | Historical exports (e.g., forum archive) |
 | `TAXONOMY.sexp` | Machine-readable project taxonomy |
 

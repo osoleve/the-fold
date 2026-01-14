@@ -13,6 +13,8 @@
 
 # Content store
 .store/
+!.store/heads/
+!.store/heads/bbs/
 .store_archive/
 
 # Forum runtime data
