@@ -61,6 +61,10 @@ Note: Single-token commands need explicit parens since they're procedure calls.
 (search "query")                 ; Search blocks
 (commit! "message")              ; Git commit
 (push!)                          ; Git push
+
+;; Session management
+(who)                            ; Show current session info
+(bye)                            ; Logout and clean up session files
 ```
 
 ### Debugging
@@ -503,6 +507,8 @@ This project uses **BBS** (Bulletin Board System), a CAS-native issue tracker bu
 Priority: 0-4 (0=critical, 2=medium, 4=backlog).
 Types: `'task`, `'bug`, `'feature`, `'epic`.
 Status: `'open`, `'in_progress`, `'closed`.
+
+**Note:** Issue IDs can be symbols (`'fold-001`) or strings (`"fold-001"`).
 
 ### Dependencies
 

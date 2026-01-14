@@ -633,6 +633,10 @@ With pinning:
 ```scheme
 (shell-eval session expr)         ; Evaluate via daemon
 (mint-X-capability ...)           ; Request capability (Shell only)
+
+;; Session management
+(who)                             ; Show current session info
+(bye)                             ; Logout and clean up session files
 ```
 
 ---

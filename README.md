@@ -104,14 +104,16 @@ Speed optimizations happen underneath; semantics stay stable above. The content-
 # Start the persistent REPL daemon (required)
 ./daemon.sh start
 
-# Evaluate an expression
-./fold-agent.py "(+ 1 2)"
+# Evaluate an expression (implicit parens: becomes (+ 1 2))
+./fold "+ 1 2"
 
 # Run the test suite
 scheme --script test-all.ss
 
 # Explore the lattice
-./fold-agent.py "(load \"lattice/meta/meta.ss\") (lattice-init!) (lf \"matrix\")"
+./fold 'load "lattice/meta/meta.ss"'
+./fold "(lattice-init!)"
+./fold 'lf "matrix"'
 ```
 
 ---

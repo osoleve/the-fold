@@ -72,15 +72,20 @@
 ;;;   'expect-hash - Expected current hash (for OCC)
 (define (bbs-update id . args)
   (let* ([id-str (if (symbol? id) (symbol->string id) id)]
-         [current-hash (bbs-issue-hash id-str)]
-         [expect-hash (get-keyword-arg args 'expect-hash #f)]
-         [blk (bbs-fetch current-hash)]
-         [data (issue-block-data blk)])
+         [current-hash (bbs-issue-hash id-str)])
 
-    ;; OCC check if expect-hash provided
-    (when (and expect-hash
-               (not (bytevector=? current-hash expect-hash)))
-      (error 'bbs-update "Concurrent modification detected" id-str))
+    ;; Existence check
+    (unless current-hash
+      (error 'bbs-update "Issue not found" id-str))
+
+    (let* ([expect-hash (get-keyword-arg args 'expect-hash #f)]
+           [blk (bbs-fetch current-hash)]
+           [data (issue-block-data blk)])
+
+      ;; OCC check if expect-hash provided
+      (when (and expect-hash
+                 (not (bytevector=? current-hash expect-hash)))
+        (error 'bbs-update "Concurrent modification detected" id-str))
 
     (let* ([old-status (cdr (assq 'status data))]
            [old-priority (cdr (assq 'priority data))]
@@ -103,7 +108,7 @@
       ;; Update index
       (bbs-index-update! id-str new-hash old-status new-status old-priority new-priority)
 
-      new-hash)))
+      new-hash))))
 
 ;;; ============================================================
 ;;; Issue Close/Reopen
@@ -162,17 +167,18 @@
     (hashtable-set! *bbs-comment-counter* issue-id (+ current 1))
     (+ current 1)))
 
-;;; bbs-comment : String String -> Bytevector
+;;; bbs-comment : String|Symbol String -> Bytevector
 ;;; Add a comment to an issue.
 ;;;
 ;;; Keyword arguments:
 ;;;   'content-type - 'text | 'code | 'tool-result | 'thought
 ;;;   'author - Comment author
 (define (bbs-comment issue-id text . args)
-  (let* ([content-type (get-keyword-arg args 'content-type 'text)]
+  (let* ([id-str (if (symbol? issue-id) (symbol->string issue-id) issue-id)]
+         [content-type (get-keyword-arg args 'content-type 'text)]
          [author (get-keyword-arg args 'author "system")]
-         [issue-hash (bbs-issue-hash issue-id)]
-         [comment-id (bbs-next-comment-id! issue-id)]
+         [issue-hash (bbs-issue-hash id-str)]
+         [comment-id (bbs-next-comment-id! id-str)]
          [timestamp (bbs-timestamp)]
          [blk (make-comment-block issue-hash comment-id author text
                                   content-type timestamp)]
