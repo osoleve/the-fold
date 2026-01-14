@@ -71,7 +71,7 @@
 ;;;   'labels - New labels
 ;;;   'expect-hash - Expected current hash (for OCC)
 (define (bbs-update id . args)
-  (let* ([id-str (if (symbol? id) (symbol->string id) id)]
+  (let* ([id-str (normalize-id id)]
          [current-hash (bbs-issue-hash id-str)])
 
     ;; Existence check
@@ -135,8 +135,8 @@
 ;;; bbs-dep : String|Symbol String|Symbol -> Void
 ;;; Add a dependency: blocker blocks blocked.
 (define (bbs-dep blocker blocked)
-  (let* ([blocker-str (if (symbol? blocker) (symbol->string blocker) blocker)]
-         [blocked-str (if (symbol? blocked) (symbol->string blocked) blocked)]
+  (let* ([blocker-str (normalize-id blocker)]
+         [blocked-str (normalize-id blocked)]
          [blocker-hash (bbs-issue-hash blocker-str)]
          [blocked-hash (bbs-issue-hash blocked-str)])
     (when (and blocker-hash blocked-hash)
@@ -149,8 +149,8 @@
 ;;; bbs-undep : String|Symbol String|Symbol -> Void
 ;;; Remove a dependency.
 (define (bbs-undep blocker blocked)
-  (let ([blocker-str (if (symbol? blocker) (symbol->string blocker) blocker)]
-        [blocked-str (if (symbol? blocked) (symbol->string blocked) blocked)])
+  (let ([blocker-str (normalize-id blocker)]
+        [blocked-str (normalize-id blocked)])
     (bbs-remove-dep! blocker-str blocked-str)))
 
 ;;; ====
@@ -174,7 +174,7 @@
 ;;;   'content-type - 'text | 'code | 'tool-result | 'thought
 ;;;   'author - Comment author
 (define (bbs-comment issue-id text . args)
-  (let* ([id-str (if (symbol? issue-id) (symbol->string issue-id) issue-id)]
+  (let* ([id-str (normalize-id issue-id)]
          [content-type (get-keyword-arg args 'content-type 'text)]
          [author (get-keyword-arg args 'author "system")]
          [issue-hash (bbs-issue-hash id-str)]

@@ -14,6 +14,15 @@
 (load "shell/bbs/counter.ss")
 
 ;;; ====
+;;; ID Normalization
+;;; ====
+
+;;; normalize-id : String|Symbol -> String
+;;; Convert an ID to string form. Accepts both symbols and strings.
+(define (normalize-id id)
+  (if (symbol? id) (symbol->string id) id))
+
+;;; ====
 ;;; Global State
 ;;; ====
 
@@ -160,13 +169,13 @@
 ;;; bbs-issue-exists? : String -> Boolean
 ;;; Check if an issue exists in the index.
 (define (bbs-issue-exists? id)
-  (let ([id-str (if (symbol? id) (symbol->string id) id)])
+  (let ([id-str (normalize-id id)])
     (assoc id-str *bbs-issues*)))
 
 ;;; bbs-issue-hash : String|Symbol -> Bytevector | #f
 ;;; Get the current hash for an issue ID.
 (define (bbs-issue-hash id)
-  (let* ([id-str (if (symbol? id) (symbol->string id) id)]
+  (let* ([id-str (normalize-id id)]
          [entry (assoc id-str *bbs-issues*)])
     (if entry (cdr entry) #f)))
 

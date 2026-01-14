@@ -37,7 +37,7 @@
 ;;; bbs-show : String | Symbol -> Void
 ;;; Display an issue.
 (define (bbs-show id)
-  (let* ([id-str (if (symbol? id) (symbol->string id) id)]
+  (let* ([id-str (normalize-id id)]
          [data (bbs-fetch-issue-data id-str)])
     (if data
         (begin
@@ -133,7 +133,7 @@
 ;;; bbs-history : String | Symbol -> Void
 ;;; Show version history of an issue.
 (define (bbs-history id)
-  (let* ([id-str (if (symbol? id) (symbol->string id) id)]
+  (let* ([id-str (normalize-id id)]
          [history (bbs-issue-history-data id-str)])
     (if (null? history)
         (printf "Issue not found: ~a~n" id-str)

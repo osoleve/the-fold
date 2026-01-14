@@ -13,9 +13,11 @@ Session Persistence:
   1. --session flag: ./fold-agent.py --session dev "code"
   2. FOLD_SESSION env var: export FOLD_SESSION=dev
   3. .fold-session file: Contains session name (created by --persist)
-  4. Auto-generated: agent-<uuid> if none specified
+  4. Default: "agent-default" (stable session for agent workflows)
 
-  Use --persist to save the current session name to .fold-session for future calls.
+  The default session is now persistent - multiple invocations share state.
+  Use --persist to save a custom session name to .fold-session.
+  For ephemeral sessions: --session "agent-$(uuidgen | head -c 8)"
 
 Output (JSON):
   {
@@ -109,7 +111,14 @@ def is_daemon_running():
     return os.path.exists(READY_FILE)
 
 def generate_session_id():
-    return f"agent-{uuid.uuid4().hex[:8]}"
+    """Generate a stable default session ID.
+
+    Uses 'agent-default' instead of random UUID so agents maintain state
+    across invocations without explicitly specifying --session.
+
+    For true ephemeral sessions, use: ./fold-agent.py --session "agent-$(uuidgen | head -c 8)"
+    """
+    return "agent-default"
 
 def run_request(session_id, code, timeout):
     request_file = os.path.join(REQUESTS_DIR, f"{session_id}.ss")

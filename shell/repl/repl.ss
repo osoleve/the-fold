@@ -74,6 +74,9 @@
 ;; Test runner (test-module for quick testing)
 (load "shell/repl/test-runner.ss")
 
+;; Error context capture (last-error, with-context)
+(load "shell/repl/error-context.ss")
+
 
 ;;; ====
 ;;; Quiet Mode
@@ -192,6 +195,11 @@
   (display "    (loaded)               Show tracked files\n")
   (display "    (test-module \"path\")  Run tests for a module\n")
   (display "    (test-dir \"path\")     Run all tests in directory\n")
+  (display "\n")
+  (display "  ERROR DEBUGGING:\n")
+  (display "    (last-error)           Show last error with full details\n")
+  (display "    (clear-error!)         Clear captured error\n")
+  (display "    (with-context lbl e)   Evaluate with context label\n")
   (display "\n")
   (display "  UTILITIES:\n")
   (display "    (help)                 Show this help\n")
