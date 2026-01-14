@@ -642,5 +642,66 @@ rm -rf .fold-repl/   # Nuclear option
 
 1. **Always use the daemon** — State doesn't persist between Bash calls otherwise
 2. **Load from project root** — All `(load ...)` paths are relative to `/home/oso/the-fold`
-3. **Push before ending** — Work is not complete until `git push` succeeds
+3. **Land the Plane** — A session is NOT complete until work is committed and pushed
 4. **Maintain The Fold**
+
+---
+
+## Land the Plane Protocol
+
+**A session is not complete until code is committed and pushed to remote.**
+
+This is non-negotiable. Uncommitted work is lost work. Follow this checklist before ending any session:
+
+### Pre-Flight Checklist
+
+```bash
+# 1. Verify all tests pass
+scheme --script <relevant-test-file>.ss
+
+# 2. Check what's changed
+git status
+
+# 3. Review the diff
+git diff
+```
+
+### Commit Sequence
+
+```bash
+# 4. Stage changes (be specific, not `git add .`)
+git add <specific-files>
+
+# 5. Commit with descriptive message
+git commit -m "feat(module): Brief description
+
+Longer explanation if needed.
+
+Co-Authored-By: Claude <noreply@anthropic.com>"
+
+# 6. Push to remote
+git push
+```
+
+### Verification
+
+```bash
+# 7. Confirm push succeeded
+git status
+# Should show: "Your branch is up to date with 'origin/main'"
+```
+
+### If Something Goes Wrong
+
+- **Merge conflict?** Resolve locally, then push
+- **Push rejected?** Pull first: `git pull --rebase && git push`
+- **Tests failing?** Fix before committing — don't push broken code
+
+### Why This Matters
+
+1. **Durability**: Local state can be lost; remote is backed up
+2. **Collaboration**: Others can't use uncommitted work
+3. **Auditability**: Git history documents what was done and why
+4. **Recovery**: Easy to rollback if something breaks
+
+**Remember: The plane hasn't landed until `git push` succeeds.**
