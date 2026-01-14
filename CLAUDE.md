@@ -302,9 +302,8 @@ Each lattice skill has a `manifest.sexp` declaring metadata:
 Agent-facing navigation and introspection for the skill lattice. Builds a CAS-backed knowledge graph from manifests with BM25 search ranking. Uses persistent caching for fast initialization.
 
 ```scheme
-;; Initialize (required once per session — uses cache if manifests unchanged)
-(load "lattice/meta/meta.ss")
-(lattice-init!)                    ; Build KG + search indices (~2000 exports)
+;; Lattice meta-tooling is auto-initialized when the REPL starts.
+;; Use (lattice-init!) to reinitialize, or (lattice-init-fresh!) to force rebuild.
 
 ;; Search — BM25 ranked results
 (lf "matrix decomposition")        ; Full-text search

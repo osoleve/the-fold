@@ -45,6 +45,19 @@
   (printf "  Use (ls) for statistics\n")
   (printf "  Use (lh) for health check\n"))
 
+;;; lattice-init-quiet! : -> void
+;;; Initialize silently (for REPL startup)
+(define (lattice-init-quiet!)
+  (if (lattice-load-cache!)
+      (begin
+        (lattice-index!)
+        (build-source-location-cache!))
+      (begin
+        (kg-build!)
+        (lattice-index!)
+        (build-source-location-cache!)
+        (lattice-save-cache!))))
+
 ;;; lattice-init-fresh! : -> void
 ;;; Force full rebuild, ignoring cache
 (define (lattice-init-fresh!)

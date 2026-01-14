@@ -72,6 +72,10 @@
 (load "shell/bbs/bbs.ss")
 (bbs-init-quiet!)
 
+;; Lattice meta-tooling (search, inspect, analytics)
+(load "lattice/meta/meta.ss")
+(lattice-init-quiet!)
+
 ;; Tracked loader (load! for development workflow)
 (load "shell/repl/loader.ss")
 
