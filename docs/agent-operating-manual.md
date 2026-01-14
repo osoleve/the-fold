@@ -336,19 +336,29 @@ PROCEDURE shell-eval(session: String, expr: S-expr) -> Result
   5. If timeout: Return (error 'timeout)
 ```
 
-**Using fold-agent.py (recommended):**
+**Using ./fold (recommended):**
+
+Implicit outer parentheses: no `()` needed for multi-token expressions.
 
 ```bash
-# Simple evaluation
-./fold-agent.py "(+ 1 2)"
+# Simple evaluation (auto-session, implicit parens)
+./fold "+ 1 2"                    # Becomes (+ 1 2)
 # → {"status": "ok", "result": "3", "output": ""}
 
-# With session
-./fold-agent.py --session my-agent "(define x 10)"
+# With named session (-s short flag)
+./fold -s my-agent "define x 10"  # Becomes (define x 10)
 # → {"status": "ok", "result": "", "output": ""}
 
+# Single token stays unwrapped (good for variable lookup)
+./fold -s my-agent "x"            # Stays as x → returns value of x
+# → {"status": "ok", "result": "10", "output": ""}
+
+# Session cleanup (needs explicit parens - procedure call)
+./fold -s my-agent "(bye)"        # Logout and clean up session files
+# → {"status": "ok", "result": "Goodbye.", "output": ""}
+
 # JSON input (for programmatic use)
-echo '{"code": "(* x 2)", "session": "my-agent"}' | ./fold-agent.py --json
+echo '{"code": "* x 2", "session": "my-agent"}' | ./fold --json
 # → {"status": "ok", "result": "20", "output": ""}
 ```
 

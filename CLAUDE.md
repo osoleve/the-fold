@@ -27,16 +27,30 @@ The daemon is **essential** — state is lost between Bash invocations without i
 
 ## Interacting with The Fold
 
-### Using fold-agent.py (Recommended)
+### Using ./fold (Recommended)
 
 ```bash
-./fold-agent.py "(+ 1 2)"                              # Evaluate expression
-./fold-agent.py --session my-session "(define x 10)"   # With specific session
-./fold-agent.py script.ss                              # Run script file
-echo '{"code": "(+ 1 2)", "session": "my-session"}' | ./fold-agent.py --json  # JSON input
+./fold "+ 1 2"                     # Implicit parens: becomes (+ 1 2)
+./fold -s dev "define x 10"        # Named session with -s flag
+./fold -s dev "x"                  # Retrieve value from session
+./fold script.ss                   # Run script file
 ```
 
+**Key features:**
+- Implicit outer parentheses: `"+ 1 2"` becomes `(+ 1 2)` automatically
+- Short session flag: `-s` instead of `--session`
+- Auto-sessions: Omit `-s` for ephemeral sessions
+
 Returns JSON output with status, result, output, and any errors.
+
+### Session Cleanup
+
+```bash
+./fold -s dev "(bye)"              # Logout and clean up session files
+./fold -s dev "(who)"              # Show current session info
+```
+
+Note: Single-token commands need explicit parens since they're procedure calls.
 
 ### Essential Commands
 

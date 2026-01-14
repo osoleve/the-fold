@@ -253,3 +253,46 @@
               (tier . ,(cdr (assq 'tier session)))
               (name . ,(cdr (assq 'name session)))
               (logged-in . ,(cdr (assq 'logged-in session)))))))
+
+;;; ============================================================
+;;; User-Facing Session Commands
+;;; ============================================================
+
+;;; session-field : Session Symbol Any → Any
+;;; Safe alist lookup with default value.
+(define (session-field session key default)
+  (let ([pair (assq key session)])
+    (if pair (cdr pair) default)))
+
+;;; who : → void
+;;; Display current session info.
+(define (who)
+  (let ([session-id (current-session-id)])
+    (cond
+     [(not session-id)
+      (display "No active session.\n")]
+     [else
+      ;; Use get-or-create to ensure session exists
+      (let ([session (get-or-create-session! session-id)])
+        (cond
+         [(session-field session 'logged-in #f)
+          (display (format "~a (~a) - session: ~a\n"
+                           (session-field session 'name 'anonymous)
+                           (session-field session 'tier 'unknown)
+                           session-id))]
+         [else
+          (display (format "Anonymous session: ~a\n" session-id))]))])))
+
+;;; bye : → void
+;;; Cleanup and logout current session.
+;;; - Logs out from session (clears tier/name)
+;;; - Deletes .fold-session file if present
+;;; - Deletes session file from .fold-sessions/
+(define (bye)
+  (let ([session-id (current-session-id)])
+    (when session-id
+      (session-logout! session-id))
+    ;; Clean up .fold-session file (persisted session from fold-agent.py)
+    (when (file-exists? ".fold-session")
+      (delete-file ".fold-session"))
+    (display "Goodbye.\n")))
