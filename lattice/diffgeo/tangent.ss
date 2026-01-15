@@ -618,50 +618,81 @@
 ;;;               → TangentVector
 ;;; Compute the Lie bracket [X, Y] at a point.
 ;;; X and Y are vector fields (functions from points to tangent vectors).
+;;;
+;;; Performance: O(N) field evaluations where N is the manifold dimension.
+;;; We compute all partial derivatives first, then assemble the bracket algebraically.
 (define (lie-bracket X Y point chart . epsilon-arg)
   (let* ([eps (if (null? epsilon-arg) *jacobian-epsilon* (car epsilon-arg))]
          [coords (chart-apply chart point)]
          [n (chart-dim chart)]
-         ;; Get X and Y components at the point
+         ;; Get X and Y components at the point (with chart compatibility check)
          [X-at-p (X point)]
          [Y-at-p (Y point)]
-         [X-comps (tangent-vector-components X-at-p)]
-         [Y-comps (tangent-vector-components Y-at-p)]
+         [X-comps (tangent-vector-components
+                   (if (eq? (chart-name (tangent-vector-chart X-at-p)) (chart-name chart))
+                       X-at-p
+                       (tangent-change-chart X-at-p chart)))]
+         [Y-comps (tangent-vector-components
+                   (if (eq? (chart-name (tangent-vector-chart Y-at-p)) (chart-name chart))
+                       Y-at-p
+                       (tangent-change-chart Y-at-p chart)))]
+         ;; Pre-allocate derivative storage: dX[i] and dY[i] are n-vectors
+         ;; dX[i][k] = ∂X^k/∂x^i
+         [dX-matrix (make-vector n #f)]
+         [dY-matrix (make-vector n #f)]
+         ;; Scratch buffers for coordinate perturbation (reuse to reduce allocation)
+         [coords-plus (vec-copy coords)]
+         [coords-minus (vec-copy coords)]
          ;; Result components
          [result (make-vector n 0)])
-    ;; Compute [X, Y]^k = X^i (∂Y^k/∂x^i) - Y^i (∂X^k/∂x^i)
+
+    ;; Phase 1: Compute all partial derivatives (O(N) field evaluations)
+    ;; For each direction i, perturb and evaluate X and Y once
+    (do ([i 0 (+ i 1)])
+        ((= i n))
+        ;; Set up perturbed coordinates
+        (let ([ci (vector-ref coords i)])
+          (vector-set! coords-plus i (+ ci eps))
+          (vector-set! coords-minus i (- ci eps)))
+        ;; Get perturbed points
+        (let* ([p-plus (chart-apply-inverse chart coords-plus)]
+               [p-minus (chart-apply-inverse chart coords-minus)]
+               ;; Evaluate fields at perturbed points
+               [X-plus (tangent-vector-components (X p-plus))]
+               [X-minus (tangent-vector-components (X p-minus))]
+               [Y-plus (tangent-vector-components (Y p-plus))]
+               [Y-minus (tangent-vector-components (Y p-minus))]
+               ;; Compute derivative vectors: dX/dx^i and dY/dx^i
+               [inv-2eps (/ 1.0 (* 2 eps))]
+               [dXi (make-vector n 0)]
+               [dYi (make-vector n 0)])
+          ;; Compute each component of the derivative
+          (do ([k 0 (+ k 1)])
+              ((= k n))
+              (vector-set! dXi k (* inv-2eps (- (vector-ref X-plus k) (vector-ref X-minus k))))
+              (vector-set! dYi k (* inv-2eps (- (vector-ref Y-plus k) (vector-ref Y-minus k)))))
+          ;; Store in matrices
+          (vector-set! dX-matrix i dXi)
+          (vector-set! dY-matrix i dYi))
+        ;; Reset coords for next iteration
+        (let ([ci (vector-ref coords i)])
+          (vector-set! coords-plus i ci)
+          (vector-set! coords-minus i ci)))
+
+    ;; Phase 2: Compute bracket components (purely algebraic, O(N²) arithmetic ops)
+    ;; [X, Y]^k = Σ_i (X^i * ∂Y^k/∂x^i - Y^i * ∂X^k/∂x^i)
     (do ([k 0 (+ k 1)])
         ((= k n))
         (let ([bracket-k 0])
-          ;; Sum over i
           (do ([i 0 (+ i 1)])
               ((= i n))
-              ;; Compute ∂Y^k/∂x^i and ∂X^k/∂x^i numerically
-              (let* ([coords-plus (vec-copy coords)]
-                     [coords-minus (vec-copy coords)]
-                     [_ (vector-set! coords-plus i (+ (vector-ref coords i) eps))]
-                     [_ (vector-set! coords-minus i (- (vector-ref coords i) eps))]
-                     ;; Points at perturbed coordinates
-                     [p-plus (chart-apply-inverse chart coords-plus)]
-                     [p-minus (chart-apply-inverse chart coords-minus)]
-                     ;; Y components at perturbed points
-                     [Y-plus (tangent-vector-components (Y p-plus))]
-                     [Y-minus (tangent-vector-components (Y p-minus))]
-                     ;; X components at perturbed points
-                     [X-plus (tangent-vector-components (X p-plus))]
-                     [X-minus (tangent-vector-components (X p-minus))]
-                     ;; Partial derivatives
-                     [dYk-dxi (/ (- (vector-ref Y-plus k) (vector-ref Y-minus k))
-                                (* 2 eps))]
-                     [dXk-dxi (/ (- (vector-ref X-plus k) (vector-ref X-minus k))
-                                (* 2 eps))]
-                     ;; Contribution: X^i * ∂Y^k/∂x^i - Y^i * ∂X^k/∂x^i
-                     [Xi (vector-ref X-comps i)]
-                     [Yi (vector-ref Y-comps i)])
-                (set! bracket-k (+ bracket-k
-                                   (- (* Xi dYk-dxi)
-                                      (* Yi dXk-dxi))))))
+              (let ([Xi (vector-ref X-comps i)]
+                    [Yi (vector-ref Y-comps i)]
+                    [dYk-dxi (vector-ref (vector-ref dY-matrix i) k)]
+                    [dXk-dxi (vector-ref (vector-ref dX-matrix i) k)])
+                (set! bracket-k (+ bracket-k (- (* Xi dYk-dxi) (* Yi dXk-dxi))))))
           (vector-set! result k bracket-k)))
+
     (make-tangent-vector point chart result)))
 
 ;;; lie-bracket-field : (Point → TangentVector) × (Point → TangentVector) × Chart × [Num]

@@ -312,41 +312,6 @@ $$df = \sum_i \frac{\partial f}{\partial x^i} dx^i$$
 (covector-apply df v)  ; => 6 (directional derivative in x direction)
 ```
 
-## Module Reference
-
-### charts.ss
-
-| Function | Description |
-|----------|-------------|
-| `make-chart` | Create a coordinate chart |
-| `chart-apply` | Get coordinates of a point |
-| `chart-apply-inverse` | Get point from coordinates |
-| `make-transition` | Create transition function |
-| `transition-jacobian` | Jacobian of transition |
-| `make-atlas` | Create atlas from charts |
-| `atlas-find-chart` | Find chart containing point |
-
-### tangent.ss
-
-| Function | Description |
-|----------|-------------|
-| `make-tangent-vector` | Create tangent vector |
-| `tangent-change-chart` | Transform to new chart |
-| `make-cotangent-vector` | Create cotangent vector (1-form) |
-| `covector-apply` | Evaluate ⟨ω, v⟩ |
-| `pushforward` | Push tangent vector through map |
-| `pullback-at` | Pull cotangent vector back |
-| `make-tangent-space` | Create tangent space at point |
-| `make-tangent-bundle` | Create bundle over atlas |
-| `differential` | Compute df for scalar f |
-
-## Testing
-
-```bash
-scheme --script lattice/diffgeo/test-charts.ss
-scheme --script lattice/diffgeo/test-tangent.ss
-```
-
 ## Lie Bracket
 
 The **Lie bracket** [X, Y] of two vector fields measures their non-commutativity. Geometrically, it describes how the flows along X and Y fail to commute.
@@ -384,10 +349,47 @@ $$[X, Y]^k = X^i \frac{\partial Y^k}{\partial x^i} - Y^i \frac{\partial X^k}{\pa
 
 ```scheme
 ;; Create [X, Y] as a vector field (function from points to tangent vectors)
-(define bracket-field (lie-bracket-field X Y cart))
+(define bracket-field (lie-bracket-field X Y chart))
 
 ;; Evaluate at any point
 (bracket-field (vector 3.0 4.0))
+```
+
+## Module Reference
+
+### charts.ss
+
+| Function | Description |
+|----------|-------------|
+| `make-chart` | Create a coordinate chart |
+| `chart-apply` | Get coordinates of a point |
+| `chart-apply-inverse` | Get point from coordinates |
+| `make-transition` | Create transition function |
+| `transition-jacobian` | Jacobian of transition |
+| `make-atlas` | Create atlas from charts |
+| `atlas-find-chart` | Find chart containing point |
+
+### tangent.ss
+
+| Function | Description |
+|----------|-------------|
+| `make-tangent-vector` | Create tangent vector |
+| `tangent-change-chart` | Transform to new chart |
+| `make-cotangent-vector` | Create cotangent vector (1-form) |
+| `covector-apply` | Evaluate ⟨ω, v⟩ |
+| `pushforward` | Push tangent vector through map |
+| `pullback-at` | Pull cotangent vector back |
+| `make-tangent-space` | Create tangent space at point |
+| `make-tangent-bundle` | Create bundle over atlas |
+| `differential` | Compute df for scalar f |
+| `lie-bracket` | Compute [X, Y] at point |
+| `lie-bracket-field` | Create [X, Y] as vector field |
+
+## Testing
+
+```bash
+scheme --script lattice/diffgeo/test-charts.ss
+scheme --script lattice/diffgeo/test-tangent.ss
 ```
 
 ## Future Work
