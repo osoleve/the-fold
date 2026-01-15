@@ -384,6 +384,25 @@
   (newline))
 
 ;;; ====
+;;; Direct String Styling
+;;; ====
+;;;
+;;; For cases where you want to style a plain string without
+;;; going through the Doc system.
+
+;;; colored-text : Style × String → String
+;;; Apply ANSI style to a plain string.
+(define (colored-text style str)
+  (let ([ansi-code (style->ansi style)])
+    (if (string=? ansi-code "")
+        str
+        (string-append ansi-code str ansi-reset))))
+
+;;; styled-string : Style × String → String
+;;; Alias for colored-text.
+(define styled-string colored-text)
+
+;;; ====
 ;;; Styled Document Combinators
 ;;; ====
 ;;;
