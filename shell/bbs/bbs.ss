@@ -36,7 +36,7 @@
         (let ([count (if (bbs-load-index-cache!)
                          (begin
                            (printf "  (loaded from cache)~n")
-                           (length *bbs-issues*))
+                           (bbs-issue-count))
                          (bbs-rebuild-indices!))])
           (set! *bbs-initialized* #t)
           (printf "  Loaded ~a issues~n" count)
@@ -99,7 +99,7 @@
   (let* ([status (get-keyword-arg args 'status 'open)]
          [limit (get-keyword-arg args 'limit 20)]
          [ids (if (eq? status 'all)
-                  (map car *bbs-issues*)
+                  (bbs-all-ids)
                   (bbs-issues-by-status status))]
          [to-show (take-n limit ids)])
     (printf "~a issues (~a status)~n" (length ids) status)
@@ -182,7 +182,7 @@
                             (string-contains-ci?
                              (cdr (assq 'title data))
                              query-lower))))
-                   (map car *bbs-issues*))])
+                   (bbs-all-ids))])
     (printf "~a matches for '~a'~n" (length matches) query)
     (printf "~a~n" (make-string 60 #\-))
     (for-each
@@ -231,7 +231,7 @@
        (and data
             (let ([labels (cdr (assq 'labels data))])
               (memq label labels)))))
-   (map car *bbs-issues*)))
+   (bbs-all-ids)))
 
 ;;; bbs-list-by-label : Symbol -> Void
 ;;; List issues with a specific label.
@@ -262,7 +262,7 @@
      (let ([data (bbs-fetch-issue-data id)])
        (and data
             (eq? (cdr (assq 'type data)) type))))
-   (map car *bbs-issues*)))
+   (bbs-all-ids)))
 
 ;;; bbs-list-by-type : Symbol -> Void
 ;;; List issues of a specific type.
@@ -305,7 +305,7 @@
                                 (string-contains-ci?
                                  (cdr (assq 'description data))
                                  query-lower)))))
-                   (map car *bbs-issues*))]
+                   (bbs-all-ids))]
          [to-show (take-n limit matches)])
     (printf "~a matches for '~a' (title+description)~n" (length matches) query)
     (printf "~a~n" (make-string 60 #\-))
@@ -335,7 +335,7 @@
                 (unless (memq label all-labels)
                   (set! all-labels (cons label all-labels))))
               labels)))))
-     (map car *bbs-issues*))
+     (bbs-all-ids))
     (sort (lambda (a b)
             (string<? (symbol->string a) (symbol->string b)))
           all-labels)))
