@@ -289,6 +289,22 @@ Each lattice skill has a `manifest.sexp` declaring metadata:
   (modules (<name> "<file>" "<desc>") ...))
 ```
 
+**Module System (`core/lang/module.ss`):**
+
+Load modules with dependency resolution:
+
+```scheme
+(require 'charts)              ; Simple (first-match-wins)
+(require 'diffgeo/charts)      ; Namespaced (unambiguous)
+(require 'algebra/polynomial)  ; Avoids collision with numeric/polynomial
+
+(modules)                      ; List all modules
+(module-info 'charts)          ; Show module details
+(module-collisions)            ; List name collisions
+```
+
+Use namespaced form (`'dir/module`) when module names collide. The system warns on collision during simple require.
+
 **Meta-Tooling (`lattice/meta/`):**
 
 Use `/lattice-search` skill for full documentation. Quick reference:

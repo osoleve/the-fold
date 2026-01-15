@@ -234,19 +234,104 @@
 ;;; Path Resolution
 ;;; ====
 
+;;; *module-base-dirs* : (List String)
+;;; Base directories for namespaced module resolution (e.g., 'diffgeo/charts → lattice/diffgeo/charts.ss)
+(define *module-base-dirs*
+  '("lattice" "core" "shell"))
+
 ;;; find-module-path : Symbol → (Option String)
 ;;; Find file path for a module by searching known locations.
-;;; Searches core/, shell/, and all subdirectories in *module-search-dirs*.
+;;;
+;;; Supports two forms:
+;;;   - Simple:     (require 'charts)           → first-match-wins from *module-search-dirs*
+;;;   - Namespaced: (require 'diffgeo/charts)   → lattice/diffgeo/charts.ss (unambiguous)
+;;;
+;;; Namespaced form searches *module-base-dirs* (lattice/, core/, shell/) for the path.
+;;; Use namespaced form when module names collide or for clarity.
 (define (find-module-path name)
   (let ([name-str (symbol->string name)])
-       ;; Search all registered directories
-       (let loop ([dirs *module-search-dirs*])
-            (if (null? dirs)
-                #f
-                (let ([path (string-append (car dirs) "/" name-str ".ss")])
-                     (if (file-exists? path)
-                         path
-                         (loop (cdr dirs))))))))
+       (if (string-contains? name-str "/")
+           ;; Namespaced: search base directories
+           (find-namespaced-module name-str)
+           ;; Simple: search all registered directories (first-match-wins)
+           (find-simple-module name-str))))
+
+;;; string-contains? : String × String → Boolean
+;;; Check if haystack contains needle.
+(define (string-contains? haystack needle)
+  (let ([h-len (string-length haystack)]
+        [n-len (string-length needle)])
+       (let loop ([i 0])
+            (cond
+             [(> (+ i n-len) h-len) #f]
+             [(string=? (substring haystack i (+ i n-len)) needle) #t]
+             [else (loop (+ i 1))]))))
+
+;;; find-namespaced-module : String → (Option String)
+;;; Find module by namespaced path (e.g., "diffgeo/charts" → "lattice/diffgeo/charts.ss")
+(define (find-namespaced-module name-str)
+  (let loop ([bases *module-base-dirs*])
+       (if (null? bases)
+           #f
+           (let ([path (string-append (car bases) "/" name-str ".ss")])
+                (if (file-exists? path)
+                    path
+                    (loop (cdr bases)))))))
+
+;;; find-simple-module : String → (Option String)
+;;; Find module by simple name using first-match-wins from search directories.
+(define (find-simple-module name-str)
+  (let loop ([dirs *module-search-dirs*])
+       (if (null? dirs)
+           #f
+           (let ([path (string-append (car dirs) "/" name-str ".ss")])
+                (if (file-exists? path)
+                    path
+                    (loop (cdr dirs)))))))
+
+;;; find-all-module-paths : String → (List String)
+;;; Find ALL paths matching a simple module name (for collision detection).
+(define (find-all-module-paths name-str)
+  (filter file-exists?
+          (map (lambda (dir) (string-append dir "/" name-str ".ss"))
+               *module-search-dirs*)))
+
+;;; check-module-collision : Symbol → Void
+;;; Warn if a simple module name has multiple matches.
+;;; Called during require to alert users about potential ambiguity.
+(define (check-module-collision name)
+  (let* ([name-str (symbol->string name)]
+         [all-paths (find-all-module-paths name-str)])
+        (when (> (length all-paths) 1)
+              (display (format "  ⚠ Warning: '~a' matches ~a files (using first):~%"
+                               name (length all-paths)))
+              (for-each (lambda (p) (display (format "      - ~a~%" p))) all-paths)
+              (display (format "    Consider using namespaced form: (require '~a)~%"
+                               (path->namespace (car all-paths)))))))
+
+;;; path->namespace : String → String
+;;; Convert path like "lattice/diffgeo/charts.ss" to namespace "diffgeo/charts"
+(define (path->namespace path)
+  (let* ([without-ext (if (string-ends-with? path ".ss")
+                          (substring path 0 (- (string-length path) 3))
+                          path)]
+         ;; Remove base prefix (lattice/, core/, shell/)
+         [trimmed (cond
+                   [(string-starts-with? without-ext "lattice/")
+                    (substring without-ext 8 (string-length without-ext))]
+                   [(string-starts-with? without-ext "core/")
+                    (substring without-ext 5 (string-length without-ext))]
+                   [(string-starts-with? without-ext "shell/")
+                    (substring without-ext 6 (string-length without-ext))]
+                   [else without-ext])])
+        trimmed))
+
+;;; string-ends-with? : String × String → Boolean
+(define (string-ends-with? str suffix)
+  (let ([s-len (string-length str)]
+        [x-len (string-length suffix)])
+       (and (>= s-len x-len)
+            (string=? (substring str (- s-len x-len) s-len) suffix))))
 
 ;;; module-name->path : Symbol → (Option String)
 ;;; Get file path for module, using registry or searching.
@@ -346,6 +431,9 @@
    [else
     ;; Try to discover dependencies from header if not known
     (auto-register-module! name)
+    ;; Warn about collisions for simple (non-namespaced) module names
+    (unless (string-contains? (symbol->string name) "/")
+            (check-module-collision name))
     (let ([deps (hashtable-ref *module-deps* name '())])
          ;; Push onto loading stack
          (set! *loading-stack* (cons name *loading-stack*))
@@ -588,6 +676,7 @@
          categories)
         
         (display "  Usage: (require 'module-name) to load a module\n")
+        (display "         (require 'dir/module) for namespaced (avoids collisions)\n")
         (display "         (module-info 'module-name) for details\n")
         (display "         (module-stats) for load times\n\n")))
 
@@ -644,3 +733,39 @@
 (define (list-registered-modules)
   (sort (lambda (a b) (string<? (symbol->string a) (symbol->string b)))
         (vector->list (hashtable-keys *module-paths*))))
+
+;;; module-collisions : Unit → Void
+;;; List all module names that have multiple files (collision candidates).
+;;; Useful for auditing the codebase and knowing when to use namespaced requires.
+;;;
+;;; Usage: (module-collisions) to see all colliding names
+;;;        Use namespaced form (require 'dir/module) to avoid ambiguity
+(define (module-collisions)
+  (display "\n")
+  (display "  ┌────────────────────────────────────────────────────────────────────┐\n")
+  (display "  │                    MODULE COLLISIONS                               │\n")
+  (display "  └────────────────────────────────────────────────────────────────────┘\n")
+  (display "\n")
+  (display "  Known collisions (use namespaced form to disambiguate):\n\n")
+
+  ;; Check known collision-prone names
+  (let ([collision-count 0]
+        [names-to-check '("types" "state" "effects" "polynomial" "parser"
+                          "distributions" "dsl" "integrators" "optimize"
+                          "span" "stability" "units" "numeric-instances")])
+       (for-each
+        (lambda (name)
+                (let ([paths (find-all-module-paths name)])
+                     (when (> (length paths) 1)
+                           (set! collision-count (+ collision-count 1))
+                           (display (format "  ~a (~a files):~%" name (length paths)))
+                           (for-each
+                            (lambda (p)
+                                    (display (format "    → (require '~a)~%" (path->namespace p))))
+                            paths)
+                           (display "\n"))))
+        names-to-check)
+
+       (if (= collision-count 0)
+           (display "  No collisions found.\n\n")
+           (display (format "  Total: ~a module names with collisions~%~%" collision-count)))))
