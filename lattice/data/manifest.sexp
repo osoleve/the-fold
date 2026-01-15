@@ -11,12 +11,12 @@
 
   (description
    "Fundamental data structures: heaps, balanced trees, graphs,
-    hash tables, and collection utilities.")
+    dictionaries, and collection utilities.")
 
   (keywords (data-structure graph heap priority-queue leftist-heap heapsort
              sort merge-sort quicksort insertion-sort stable-sort median
              avl-tree balanced-tree ordered-map range-query bst
-             tree hash-table queue stack bfs dfs shortest-path pagerank
+             tree dictionary alist queue stack bfs dfs shortest-path pagerank
              collection adjacency-matrix floyd-warshall dijkstra
              transitive-closure graph-distance eigenvector-centrality
              katz-centrality closeness-centrality betweenness-centrality
