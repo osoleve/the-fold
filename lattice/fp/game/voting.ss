@@ -27,15 +27,26 @@
 
 ;;; make-preference-profile : (List (List Candidate)) -> PreferenceProfile
 ;;; Create a preference profile from a list of rankings.
-;;; Validates that all rankings contain the same candidates.
+;;; Validates that:
+;;;   1. All rankings contain the same candidates
+;;;   2. No ranking contains duplicate candidates
 (define (make-preference-profile rankings)
   (if (null? rankings)
       '()
-      (let ([candidates (list->set (car rankings))])
-        (if (for-all? (lambda (r) (set=? candidates (list->set r))) rankings)
-            rankings
-            (error 'make-preference-profile
-                   "All rankings must contain same candidates")))))
+      (let ([first-ranking (car rankings)])
+        ;; Check for duplicates in first ranking
+        (unless (= (length first-ranking) (length (list->set first-ranking)))
+          (error 'make-preference-profile
+                 "Rankings must not contain duplicate candidates"))
+        (let ([candidates (list->set first-ranking)])
+          ;; Check all rankings have same candidates (no duplicates)
+          (if (for-all? (lambda (r)
+                          (and (= (length r) (length candidates))  ; No duplicates
+                               (set=? candidates (list->set r)))) ; Same candidates
+                        rankings)
+              rankings
+              (error 'make-preference-profile
+                     "All rankings must contain same candidates without duplicates"))))))
 
 ;;; profile-voters : PreferenceProfile -> Int
 ;;; Number of voters in the profile.
@@ -50,6 +61,17 @@
 ;;; profile-num-candidates : PreferenceProfile -> Int
 (define (profile-num-candidates profile)
   (if (null? profile) 0 (length (car profile))))
+
+;;; profile-rankings : PreferenceProfile -> (List (List Candidate))
+;;; Get all rankings (the profile itself, for consistency).
+(define (profile-rankings profile)
+  profile)
+
+;;; profile-empty? : PreferenceProfile -> Bool
+;;; Check if profile is empty (no voters or no candidates).
+(define (profile-empty? profile)
+  (or (null? profile)
+      (null? (car profile))))
 
 ;;; ============================================================================
 ;;; Utility Functions
@@ -122,21 +144,30 @@
 
 ;;; plurality-scores : Int -> (List Int)
 ;;; Plurality: only first place gets 1 point.
+;;; Returns empty list for m=0.
 (define (plurality-scores m)
-  (cons 1 (make-list (- m 1) 0)))
+  (if (<= m 0)
+      '()
+      (cons 1 (make-list (- m 1) 0))))
 
 ;;; borda-scores : Int -> (List Int)
 ;;; Borda: m-1 for first, m-2 for second, ..., 0 for last.
+;;; Returns empty list for m=0.
 (define (borda-scores m)
-  (let loop ([i 0] [acc '()])
-    (if (>= i m)
-        (reverse acc)
-        (loop (+ i 1) (cons (- m 1 i) acc)))))
+  (if (<= m 0)
+      '()
+      (let loop ([i 0] [acc '()])
+        (if (>= i m)
+            (reverse acc)
+            (loop (+ i 1) (cons (- m 1 i) acc))))))
 
 ;;; antiplurality-scores : Int -> (List Int)
 ;;; Anti-plurality (veto): everyone gets 1 except last place.
+;;; Returns empty list for m=0.
 (define (antiplurality-scores m)
-  (append (make-list (- m 1) 1) '(0)))
+  (if (<= m 0)
+      '()
+      (append (make-list (- m 1) 1) '(0))))
 
 ;;; positional-score : Candidate PreferenceProfile (List Int) -> Int
 ;;; Compute total score for a candidate under given score vector.
@@ -146,12 +177,15 @@
                     (if pos (list-ref scores pos) 0)))
                 profile)))
 
-;;; positional-winner : PreferenceProfile (List Int) -> Candidate
+;;; positional-winner : PreferenceProfile (List Int) -> Candidate | #f
 ;;; Find the winner under a positional rule.
+;;; Returns #f for empty profiles.
 (define (positional-winner profile scores)
-  (let ([candidates (profile-candidates profile)])
-    (argmax (lambda (c) (positional-score c profile scores))
-            candidates)))
+  (if (profile-empty? profile)
+      #f
+      (let ([candidates (profile-candidates profile)])
+        (argmax (lambda (c) (positional-score c profile scores))
+                candidates))))
 
 ;;; positional-ranking : PreferenceProfile (List Int) -> (List Candidate)
 ;;; Rank all candidates by score (highest first).
@@ -264,11 +298,14 @@
                             [else 0])))
                   others))))
 
-;;; copeland-winner : PreferenceProfile -> Candidate
+;;; copeland-winner : PreferenceProfile -> Candidate | #f
 ;;; Winner under Copeland method.
+;;; Returns #f for empty profiles.
 (define (copeland-winner profile)
-  (argmax (lambda (c) (copeland-score c profile))
-          (profile-candidates profile)))
+  (if (profile-empty? profile)
+      #f
+      (argmax (lambda (c) (copeland-score c profile))
+              (profile-candidates profile))))
 
 ;;; copeland-ranking : PreferenceProfile -> (List Candidate)
 ;;; Full ranking by Copeland scores.
@@ -283,6 +320,12 @@
 ;;; The Schulze method resolves Condorcet cycles by finding the strongest
 ;;; "beatpath" from each candidate to each other.
 ;;; Strength of path is the minimum margin along the path.
+;;;
+;;; This implementation uses the MARGIN variant (defeats require strictly
+;;; positive margins). Other variants include:
+;;;   - Winning Votes: Uses raw vote counts instead of margins
+;;;   - Ratio: Uses ratio of votes for/against
+;;; The Margin variant is the most common and is clone-independent.
 
 ;;; build-margin-matrix : PreferenceProfile -> (Vector (Vector Int))
 ;;; Build matrix M where M[i][j] = margin of i over j.
@@ -333,42 +376,48 @@
                 (when (> via-k direct)
                   (vector-set! (vector-ref strength i) j via-k))))))))))
 
-;;; schulze-winner : PreferenceProfile -> Candidate
+;;; schulze-winner : PreferenceProfile -> Candidate | #f
 ;;; Find winner using Schulze method.
+;;; Returns #f for empty profiles.
 (define (schulze-winner profile)
-  (let* ([candidates (profile-candidates profile)]
-         [n (length candidates)]
-         [strength (schulze-strengths profile)])
-    ;; A candidate wins if their path to each other is >= that other's path to them
-    (let loop ([i 0])
-      (if (>= i n)
-          (car candidates)  ; fallback (shouldn't happen with valid profile)
-          (let ([winner?
-                 (let check ([j 0])
-                   (cond
-                     [(>= j n) #t]
-                     [(= i j) (check (+ j 1))]
-                     [(>= (vector-ref (vector-ref strength i) j)
-                          (vector-ref (vector-ref strength j) i))
-                      (check (+ j 1))]
-                     [else #f]))])
-            (if winner?
-                (list-ref candidates i)
-                (loop (+ i 1))))))))
+  (if (profile-empty? profile)
+      #f
+      (let* ([candidates (profile-candidates profile)]
+             [n (length candidates)]
+             [strength (schulze-strengths profile)])
+        ;; A candidate wins if their path to each other is >= that other's path to them
+        (let loop ([i 0])
+          (if (>= i n)
+              (car candidates)  ; fallback (shouldn't happen with valid profile)
+              (let ([winner?
+                     (let check ([j 0])
+                       (cond
+                         [(>= j n) #t]
+                         [(= i j) (check (+ j 1))]
+                         [(>= (vector-ref (vector-ref strength i) j)
+                              (vector-ref (vector-ref strength j) i))
+                          (check (+ j 1))]
+                         [else #f]))])
+                (if winner?
+                    (list-ref candidates i)
+                    (loop (+ i 1)))))))))
 
 ;;; schulze-ranking : PreferenceProfile -> (List Candidate)
 ;;; Full ranking using Schulze method.
+;;; Returns empty list for empty profiles.
 (define (schulze-ranking profile)
-  (let* ([candidates (profile-candidates profile)]
-         [n (length candidates)]
-         [strength (schulze-strengths profile)])
-    ;; Sort by Schulze relation
-    (sort (lambda (a b)
-            (let ([ia (position-of a candidates)]
-                  [ib (position-of b candidates)])
-              (> (vector-ref (vector-ref strength ia) ib)
-                 (vector-ref (vector-ref strength ib) ia))))
-          candidates)))
+  (if (profile-empty? profile)
+      '()
+      (let* ([candidates (profile-candidates profile)]
+             [n (length candidates)]
+             [strength (schulze-strengths profile)])
+        ;; Sort by Schulze relation
+        (sort (lambda (a b)
+                (let ([ia (position-of a candidates)]
+                      [ib (position-of b candidates)])
+                  (> (vector-ref (vector-ref strength ia) ib)
+                     (vector-ref (vector-ref strength ib) ia))))
+              candidates))))
 
 ;;; ============================================================================
 ;;; Manipulation Detection

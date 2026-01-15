@@ -191,6 +191,31 @@
       (assert-equal 'x (borda-winner profile))
       (assert-equal 'x (condorcet-winner profile))))
 
+  (define-test single-candidate
+    (let ([profile (make-preference-profile '((a) (a) (a)))])
+      (assert-equal 'a (plurality-winner profile))
+      (assert-equal 'a (borda-winner profile))
+      (assert-equal 'a (condorcet-winner profile))
+      (assert-equal 'a (copeland-winner profile))
+      (assert-equal 'a (schulze-winner profile))))
+
+  (define-test empty-profile
+    (let ([profile (make-preference-profile '())])
+      (assert-equal #f (plurality-winner profile))
+      (assert-equal #f (borda-winner profile))
+      (assert-equal #f (condorcet-winner profile))
+      (assert-equal #f (copeland-winner profile))
+      (assert-equal #f (schulze-winner profile))
+      (assert-equal '() (schulze-ranking profile))))
+
+  (define-test duplicate-candidates-rejected
+    ;; Rankings with duplicates should be rejected
+    (assert-error (lambda () (make-preference-profile '((a a b))))))
+
+  (define-test mismatched-candidates-rejected
+    ;; Rankings with different candidate sets should be rejected
+    (assert-error (lambda () (make-preference-profile '((a b c) (a b d))))))
+
 )
 
 ;;; ============================================================================
