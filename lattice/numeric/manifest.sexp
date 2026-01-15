@@ -5,7 +5,7 @@
   (purity total)
   (stability stable)
   (fuel-bound "O(n log n) for FFT, O(n) for FIR/spline, O(log n) for spline-eval, O(n²) for Lagrange")
-  (deps (linalg))
+  (deps (linalg algebra))
 
   (description
    "Numerical computing, signal processing, and interpolation library. Provides

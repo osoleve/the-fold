@@ -11,7 +11,7 @@
   (stability stable)
   (fuel-bound 10000)
 
-  (deps (data))  ; Depends on data structures
+  (deps (data algebra))  ; Depends on data structures and algebraic structures
 
   (description
    "A comprehensive functional programming library implementing Haskell-style
