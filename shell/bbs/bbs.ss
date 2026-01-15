@@ -195,6 +195,158 @@
   (bbs-show id))
 
 ;;; ====
+;;; Convenience Aliases
+;;; ====
+
+;;; bbs-add-blocker : String|Symbol String|Symbol -> Void
+;;; Add a dependency where blocker blocks blocked.
+;;; Alias for bbs-dep with clearer naming.
+;;; Example: (bbs-add-blocker 'fold-001 'fold-002) means fold-001 blocks fold-002
+(define (bbs-add-blocker blocker blocked)
+  (bbs-dep blocker blocked))
+
+;;; bbs-remove-blocker : String|Symbol String|Symbol -> Void
+;;; Remove a dependency.
+;;; Alias for bbs-undep with clearer naming.
+(define (bbs-remove-blocker blocker blocked)
+  (bbs-undep blocker blocked))
+
+;;; ====
+;;; Label and Type Filtering
+;;; ====
+
+;;; bbs-by-label : Symbol -> (List String)
+;;; Get issue IDs that have a specific label.
+;;; Returns list of IDs (not displayed).
+(define (bbs-by-label label)
+  (filter
+   (lambda (id)
+     (let ([data (bbs-fetch-issue-data id)])
+       (and data
+            (let ([labels (cdr (assq 'labels data))])
+              (memq label labels)))))
+   (map car *bbs-issues*)))
+
+;;; bbs-list-by-label : Symbol -> Void
+;;; List issues with a specific label.
+(define (bbs-list-by-label label . args)
+  (let* ([limit (get-keyword-arg args 'limit 20)]
+         [ids (bbs-by-label label)]
+         [to-show (take-n limit ids)])
+    (printf "~a issues with label '~a'~n" (length ids) label)
+    (printf "~a~n" (make-string 60 #\-))
+    (for-each
+     (lambda (id)
+       (let ([data (bbs-fetch-issue-data id)])
+         (when data
+           (printf "~a  P~a  [~a]  ~a~n"
+                   (pad-right id 12)
+                   (cdr (assq 'priority data))
+                   (pad-right (symbol->string (cdr (assq 'status data))) 11)
+                   (truncate-str (cdr (assq 'title data)) 35)))))
+     to-show)
+    (when (> (length ids) limit)
+      (printf "... and ~a more~n" (- (length ids) limit)))))
+
+;;; bbs-by-type : Symbol -> (List String)
+;;; Get issue IDs of a specific type (task, bug, feature, epic).
+(define (bbs-by-type type)
+  (filter
+   (lambda (id)
+     (let ([data (bbs-fetch-issue-data id)])
+       (and data
+            (eq? (cdr (assq 'type data)) type))))
+   (map car *bbs-issues*)))
+
+;;; bbs-list-by-type : Symbol -> Void
+;;; List issues of a specific type.
+(define (bbs-list-by-type type . args)
+  (let* ([limit (get-keyword-arg args 'limit 20)]
+         [ids (bbs-by-type type)]
+         [to-show (take-n limit ids)])
+    (printf "~a ~a issues~n" (length ids) type)
+    (printf "~a~n" (make-string 60 #\-))
+    (for-each
+     (lambda (id)
+       (let ([data (bbs-fetch-issue-data id)])
+         (when data
+           (printf "~a  P~a  [~a]  ~a~n"
+                   (pad-right id 12)
+                   (cdr (assq 'priority data))
+                   (pad-right (symbol->string (cdr (assq 'status data))) 11)
+                   (truncate-str (cdr (assq 'title data)) 35)))))
+     to-show)
+    (when (> (length ids) limit)
+      (printf "... and ~a more~n" (- (length ids) limit)))))
+
+;;; ====
+;;; Enhanced Search
+;;; ====
+
+;;; bbs-search : String -> Void
+;;; Search issues by title AND description (case-insensitive).
+;;; More comprehensive than bbs-find which only searches titles.
+(define (bbs-search query . args)
+  (let* ([limit (get-keyword-arg args 'limit 20)]
+         [query-lower (string-downcase query)]
+         [matches (filter
+                   (lambda (id)
+                     (let ([data (bbs-fetch-issue-data id)])
+                       (and data
+                            (or (string-contains-ci?
+                                 (cdr (assq 'title data))
+                                 query-lower)
+                                (string-contains-ci?
+                                 (cdr (assq 'description data))
+                                 query-lower)))))
+                   (map car *bbs-issues*))]
+         [to-show (take-n limit matches)])
+    (printf "~a matches for '~a' (title+description)~n" (length matches) query)
+    (printf "~a~n" (make-string 60 #\-))
+    (for-each
+     (lambda (id)
+       (let ([data (bbs-fetch-issue-data id)])
+         (when data
+           (printf "~a  [~a]  ~a~n"
+                   (pad-right id 12)
+                   (pad-right (symbol->string (cdr (assq 'status data))) 11)
+                   (truncate-str (cdr (assq 'title data)) 40)))))
+     to-show)
+    (when (> (length matches) limit)
+      (printf "... and ~a more~n" (- (length matches) limit)))))
+
+;;; bbs-labels : -> (List Symbol)
+;;; Get all unique labels in use across all issues.
+(define (bbs-labels)
+  (let ([all-labels '()])
+    (for-each
+     (lambda (id)
+       (let ([data (bbs-fetch-issue-data id)])
+         (when data
+           (let ([labels (cdr (assq 'labels data))])
+             (for-each
+              (lambda (label)
+                (unless (memq label all-labels)
+                  (set! all-labels (cons label all-labels))))
+              labels)))))
+     (map car *bbs-issues*))
+    (sort (lambda (a b)
+            (string<? (symbol->string a) (symbol->string b)))
+          all-labels)))
+
+;;; bbs-label-report : -> Void
+;;; Show all labels and their issue counts.
+(define (bbs-label-report)
+  (let ([labels (bbs-labels)])
+    (printf "~a labels in use~n" (length labels))
+    (printf "~a~n" (make-string 40 #\-))
+    (for-each
+     (lambda (label)
+       (let ([count (length (bbs-by-label label))])
+         (printf "  ~a: ~a~n" (pad-right (symbol->string label) 20) count)))
+     labels)))
+
+;;; ====
 ;;; String Utilities
 ;;; ====
 
@@ -246,6 +398,7 @@
   (list->string
    (map char-downcase (string->list str))))
 
+
 ;;; ====
 ;;; Print Help
 ;;; ====
@@ -261,5 +414,9 @@
 (printf "  (bbs-dep 'blocker 'blocked)     - Add dependency~n")
 (printf "  (bbs-ready)                     - Show ready issues~n")
 (printf "  (bbs-blocked)                   - Show blocked issues~n")
-(printf "  (bbs-find \"query\")              - Search issues~n")
+(printf "  (bbs-find \"query\")              - Search issue titles~n")
+(printf "  (bbs-search \"query\")            - Search titles + descriptions~n")
 (printf "  (bbs-history 'id)               - Show version history~n")
+(printf "  (bbs-list-by-label 'label)      - Filter by label~n")
+(printf "  (bbs-list-by-type 'type)        - Filter by type~n")
+(printf "  (bbs-label-report)              - Show all labels~n")
