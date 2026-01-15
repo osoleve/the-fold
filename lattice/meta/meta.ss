@@ -28,17 +28,17 @@
 ;;; Uses cache if valid, otherwise rebuilds and caches
 (define (lattice-init!)
   (if (lattice-load-cache!)
-      ;; Cache loaded successfully, just build search indices
+      ;; Cache loaded - docstrings and source-locs already restored
       (begin
         (lattice-index!)
-        (build-source-location-cache!)
         (printf "\nLattice tooling initialized (from cache)!\n"))
       ;; No valid cache, full rebuild
       (begin
         (kg-build!)
         (lattice-index!)
         (build-source-location-cache!)
-        (lattice-save-cache!)))
+        (lattice-save-cache!)
+        (printf "\nLattice tooling initialized!\n")))
   (printf "  Use (lf \"query\") to search\n")
   (printf "  Use (li 'skill) to inspect a skill\n")
   (printf "  Use (lsrc 'fn) for source location\n")
@@ -47,11 +47,13 @@
 
 ;;; lattice-init-quiet! : -> void
 ;;; Initialize silently (for REPL startup)
+;;; Uses cache if valid - very fast startup
 (define (lattice-init-quiet!)
   (if (lattice-load-cache!)
-      (begin
-        (lattice-index!)
-        (build-source-location-cache!))
+      ;; Cache loaded - docstrings and source-locs already restored
+      ;; Just build the BM25 indices (fast, in-memory only)
+      (lattice-index!)
+      ;; No cache - full rebuild
       (begin
         (kg-build!)
         (lattice-index!)

@@ -25,7 +25,7 @@
 ;;; ====
 
 (define LATTICE-CACHE-PATH ".fold-repl/lattice-cache.sexp")
-(define LATTICE-CACHE-VERSION 1)
+(define LATTICE-CACHE-VERSION 2)  ; Bump: now includes docstrings + source-locs
 
 ;;; ====
 ;;; Manifest Fingerprinting
@@ -106,13 +106,28 @@
     (module-names ,(map car *kg-modules*))
     (export-names ,(map car *kg-exports*))))
 
+;;; serialize-docstrings : -> (List (Symbol . String))
+;;; Convert *docstrings* hashtable to alist for serialization
+(define (serialize-docstrings)
+  (let-values ([(keys vals) (hashtable-entries *docstrings*)])
+              (map cons (vector->list keys) (vector->list vals))))
+
+;;; serialize-source-locs : -> (List (Symbol File Line))
+;;; Convert *source-locations* hashtable to list for serialization
+(define (serialize-source-locs)
+  (let-values ([(keys vals) (hashtable-entries *source-locations*)])
+              (map (lambda (k v) (list k (car v) (cdr v)))
+                   (vector->list keys) (vector->list vals))))
+
 ;;; serialize-cache : String -> SExp
 ;;; Create full cache S-expression with fingerprint
 (define (serialize-cache fingerprint)
   `(lattice-cache
     (version ,LATTICE-CACHE-VERSION)
     (fingerprint ,fingerprint)
-    ,(serialize-kg-state)))
+    ,(serialize-kg-state)
+    (docstrings ,(serialize-docstrings))
+    (source-locs ,(serialize-source-locs))))
 
 ;;; ====
 ;;; Cache Writing
@@ -207,30 +222,46 @@
        (set! *kg-deps* '())  ; Deps can be recomputed from skill-data if needed
        ))
 
+;;; restore-docstrings! : (List (Symbol . String)) -> void
+;;; Restore docstrings cache from alist
+(define (restore-docstrings! alist)
+  (set! *docstrings* (make-hashtable symbol-hash eq?))
+  (for-each (lambda (pair)
+                    (hashtable-set! *docstrings* (car pair) (cdr pair)))
+            (or alist '())))
+
+;;; restore-source-locs! : (List (Symbol File Line)) -> void
+;;; Restore source locations cache from list
+(define (restore-source-locs! locs)
+  (set! *source-locations* (make-hashtable symbol-hash eq?))
+  (for-each (lambda (entry)
+                    (hashtable-set! *source-locations*
+                                    (car entry)
+                                    (cons (cadr entry) (caddr entry))))
+            (or locs '())))
+
 ;;; lattice-load-cache! : -> Bool
 ;;; Load KG state from cache if valid
 (define (lattice-load-cache!)
-  (let ([cache (read-cache-file)])
-       (cond
-        [(not cache)
-         (printf "No cache found.\n")
-         #f]
-        [(not (= (or (cache-field cache 'version) 0) LATTICE-CACHE-VERSION))
-         (printf "Cache version mismatch, rebuilding.\n")
-         #f]
-        [else
-         (let ([cached-fp (cache-field cache 'fingerprint)]
-               [current-fp (lattice-manifest-fingerprint)])
-              (if (and cached-fp (string=? cached-fp current-fp))
-                  (let ([kg-state (cache-field cache 'kg-state)])
-                       (when kg-state
-                             (restore-kg-state! kg-state)
-                             (printf "Loaded from cache (~a skills)\n"
-                                     (length *kg-skills*)))
-                       #t)
-                  (begin
-                    (printf "Cache fingerprint mismatch, rebuilding.\n")
-                    #f)))])))
+  (guard (e [else #f])
+         (let ([cache (read-cache-file)])
+              (cond
+               [(not cache)
+                #f]
+               [(not (= (or (cache-field cache 'version) 0) LATTICE-CACHE-VERSION))
+                #f]
+               [else
+                (let ([cached-fp (cache-field cache 'fingerprint)]
+                      [current-fp (lattice-manifest-fingerprint)])
+                     (if (and cached-fp (string=? cached-fp current-fp))
+                         (let ([kg-state (cache-field cache 'kg-state)]
+                               [docstrings (cache-field cache 'docstrings)]
+                               [source-locs (cache-field cache 'source-locs)])
+                              (when kg-state (restore-kg-state! kg-state))
+                              (when docstrings (restore-docstrings! docstrings))
+                              (when source-locs (restore-source-locs! source-locs))
+                              #t)
+                         #f))]))))
 
 ;;; ====
 ;;; Integrated Init

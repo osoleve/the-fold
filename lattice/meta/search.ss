@@ -38,15 +38,15 @@
 ;;; Build search indices from the knowledge graph
 ;;; Requires kg-build! to have been called first
 (define (lattice-index!)
-  (printf "Building search indices...\n")
   ;; Reset indices
   (set! *skill-index* (bm25-create))
   (set! *module-index* (bm25-create))
   (set! *export-index* (bm25-create))
   (set! *module-cache* '())
 
-  ;; Build docstring cache for enhanced export search
-  (build-docstring-cache!)
+  ;; Build docstring cache only if not already populated from cache
+  (when (zero? (hashtable-size *docstrings*))
+        (build-docstring-cache!))
 
   ;; Index all skills
   (for-each
@@ -156,10 +156,10 @@
 (define (lattice-find-exact sym)
   (ensure-indexed!)
   (cond
-   ;; Check skills first
-   [(kg-skill sym)
-    => (lambda (block)
-               (list sym 1.0 'skill (kg-skill-data sym)))]
+   ;; Check skills first (use kg-skill-data since block may be #f from cache)
+   [(kg-skill-data sym)
+    => (lambda (data)
+               (list sym 1.0 'skill data))]
    ;; Check exports
    [(assq sym (kg-exports))
     => (lambda (entry)

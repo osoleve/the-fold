@@ -72,7 +72,7 @@
 (load "shell/bbs/bbs.ss")
 (bbs-init-quiet!)
 
-;; Lattice meta-tooling (search, inspect, analytics)
+;; Lattice meta-tooling (auto-initialized with cached docstrings + source-locs)
 (load "lattice/meta/meta.ss")
 (lattice-init-quiet!)
 

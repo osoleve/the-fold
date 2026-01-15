@@ -200,7 +200,14 @@
 
 ;;; build-source-location-cache! : -> Void
 ;;; Build the global source location cache from all lattice and core files
+;;; Skips if cache is already populated (e.g., loaded from disk cache)
 (define (build-source-location-cache!)
+  (when (zero? (hashtable-size *source-locations*))
+        (build-source-location-cache-fresh!)))
+
+;;; build-source-location-cache-fresh! : -> Void
+;;; Force rebuild of source location cache
+(define (build-source-location-cache-fresh!)
   (printf "Building source location cache...\n")
   (set! *source-locations* (make-hashtable symbol-hash eq?))
   (let ([count 0])
