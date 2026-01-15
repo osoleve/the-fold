@@ -31,6 +31,7 @@ The daemon is **essential** — state is lost between Bash invocations without i
 
 ```bash
 ./fold "+ 1 2"                     # Implicit parens: becomes (+ 1 2)
+./fold "bye"                       # Single-token commands work: becomes (bye)
 ./fold -s dev "define x 10"        # Named session with -s flag
 ./fold -s dev "x"                  # Retrieve value from session
 ./fold script.ss                   # Run script file
@@ -38,6 +39,8 @@ The daemon is **essential** — state is lost between Bash invocations without i
 
 **Key features:**
 - Implicit outer parentheses: `"+ 1 2"` becomes `(+ 1 2)` automatically
+- Single-token symbols auto-wrap: `"bye"` becomes `(bye)`
+- Literals stay unwrapped: `"42"` stays `42`, `"'(a b)"` stays `'(a b)`
 - Short session flag: `-s` instead of `--session`
 - Auto-sessions: Omit `-s` for ephemeral sessions
 
@@ -46,11 +49,9 @@ Returns JSON output with status, result, output, and any errors.
 ### Session Cleanup
 
 ```bash
-./fold -s dev "(bye)"              # Logout and clean up session files
-./fold -s dev "(who)"              # Show current session info
+./fold -s dev "bye"                # Logout and clean up session files
+./fold -s dev "who"                # Show current session info
 ```
-
-Note: Single-token commands need explicit parens since they're procedure calls.
 
 ### Essential Commands
 
@@ -99,6 +100,8 @@ scheme --script lattice/linalg/test-vec.ss
 scheme --script lattice/info/test-entropy.ss
 scheme --script lattice/physics/diff/test-rollout.ss
 scheme --script lattice/meta/test-meta.ss
+scheme --script lattice/fp/game/test-voting-games.ss
+scheme --script lattice/fp/game/test-coop-games.ss
 
 # Shell tests
 scheme --script shell/tests/test-string-utils.ss
@@ -269,7 +272,7 @@ The lattice is a DAG of verified skills. "Stdlib" = tier 0 (foundational nodes).
 | `automata/` | State machines, DFA/NFA |
 | `pipeline/` | Agent workflows, council |
 
-**FP Toolkit (`lattice/fp/`):** Monads, parsers, streams, zippers, game theory (cooperative games, matching theory, Nash equilibrium), symbolic math, control systems, rewriting. Use `(li 'fp)` and `(le 'fp)` for details.
+**FP Toolkit (`lattice/fp/`):** Monads, parsers, streams, zippers, game theory (cooperative games, matching theory, Nash equilibrium, voting theory with power indices), symbolic math, control systems, rewriting. Use `(li 'fp)` and `(le 'fp)` for details.
 
 Each lattice skill has a `manifest.sexp` declaring metadata:
 
