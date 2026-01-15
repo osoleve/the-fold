@@ -16,9 +16,12 @@ The `diffgeo` skill provides foundational structures for differential geometry:
 ## Quick Start
 
 ```scheme
-;; Load both modules
-(load "lattice/diffgeo/charts.ss")
-(load "lattice/diffgeo/tangent.ss")
+;; Load using the module system (preferred)
+(require 'diffgeo/tangent)  ; Also loads charts dependency
+
+;; Or load explicitly
+;; (load "lattice/diffgeo/charts.ss")
+;; (load "lattice/diffgeo/tangent.ss")
 
 ;; Create charts for R²
 (define cart (make-cartesian-chart))

@@ -311,20 +311,21 @@
 
 ;;; path->namespace : String → String
 ;;; Convert path like "lattice/diffgeo/charts.ss" to namespace "diffgeo/charts"
+;;; Dynamically matches against *module-base-dirs* for extensibility.
 (define (path->namespace path)
   (let* ([without-ext (if (string-ends-with? path ".ss")
                           (substring path 0 (- (string-length path) 3))
-                          path)]
-         ;; Remove base prefix (lattice/, core/, shell/)
-         [trimmed (cond
-                   [(string-starts-with? without-ext "lattice/")
-                    (substring without-ext 8 (string-length without-ext))]
-                   [(string-starts-with? without-ext "core/")
-                    (substring without-ext 5 (string-length without-ext))]
-                   [(string-starts-with? without-ext "shell/")
-                    (substring without-ext 6 (string-length without-ext))]
-                   [else without-ext])])
-        trimmed))
+                          path)])
+        ;; Match against base directories dynamically
+        (let loop ([bases *module-base-dirs*])
+             (if (null? bases)
+                 without-ext  ; No match, return as-is
+                 (let ([base-prefix (string-append (car bases) "/")])
+                      (if (string-starts-with? without-ext base-prefix)
+                          (substring without-ext
+                                     (string-length base-prefix)
+                                     (string-length without-ext))
+                          (loop (cdr bases))))))))
 
 ;;; string-ends-with? : String × String → Boolean
 (define (string-ends-with? str suffix)

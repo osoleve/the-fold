@@ -212,4 +212,56 @@ Pure functional BM25 implementation for ranked retrieval:
 
 All implemented via dictionary-passing, maintaining Core purity.
 
+### 6.6 Module Loading
+
+The `core/lang/module.ss` module provides dependency-aware loading:
+
+**Basic Usage**:
+```scheme
+(require 'charts)              ; Load module and dependencies
+(require 'vec 'matrix)         ; Load multiple modules
+```
+
+**Namespaced Modules** (for disambiguation):
+
+When module names collide across directories, use the namespaced form:
+
+```scheme
+(require 'diffgeo/charts)      ; → lattice/diffgeo/charts.ss
+(require 'algebra/polynomial)  ; → lattice/algebra/polynomial.ss
+(require 'numeric/polynomial)  ; → lattice/numeric/polynomial.ss
+(require 'fp/control/state)    ; → lattice/fp/control/state.ss
+```
+
+The namespaced form searches base directories (`lattice/`, `core/`, `shell/`) for the path.
+
+**Collision Detection**:
+
+When using simple names that have multiple matches, the loader warns:
+
+```
+⚠ Warning: 'polynomial' matches 2 files (using first):
+      - lattice/algebra/polynomial.ss
+      - lattice/numeric/polynomial.ss
+    Consider using namespaced form: (require 'algebra/polynomial)
+```
+
+**Discovery Functions**:
+```scheme
+(modules)                      ; List all registered modules
+(module-info 'charts)          ; Show path, deps, status
+(module-collisions)            ; Audit name collisions
+(module-stats)                 ; Show load times
+```
+
+**Header Annotations**:
+
+Modules declare dependencies via header comments:
+```scheme
+;;; @module tangent
+;;; @requires prelude matrix vec charts
+```
+
+The loader parses these to build the dependency graph automatically.
+
 ---
