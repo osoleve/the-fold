@@ -5,10 +5,8 @@
 ;;; Features:
 ;;;   - Linear equation solving: ax + b = 0 → x = -b/a
 ;;;   - Quadratic formula: ax² + bx + c = 0
-;;;   - Cubic formula (Cardano's)
-;;;   - Quartic formula (Ferrari's)
-;;;   - Polynomial root extraction
-;;;   - Systems of polynomial equations (via Gröbner bases)
+;;;   - Cubic formula (Cardano's) - returns all 3 roots
+;;;   - Polynomial root extraction (auto-expands factored forms)
 ;;;   - Symbolic Gaussian elimination for linear systems
 ;;;
 ;;; This is Lattice code: pure, functional, assumes reasonable input.
@@ -359,6 +357,7 @@
 ;;; solve-cubic : Expr × Symbol → (List Expr) | #f
 ;;; Solve ax³ + bx² + cx + d = 0 using Cardano's formula.
 ;;; First converts to depressed cubic t³ + pt + q = 0.
+;;; Returns all 3 roots (using cube roots of unity ω = (-1 + i√3)/2).
 (define (solve-cubic expr var-sym)
   (let ([coeffs (extract-poly-coefficients expr var-sym)])
     (if (or (not coeffs) (not (= (length coeffs) 4)))
@@ -381,24 +380,35 @@
                                              (quotient (product b/a c/a) (num 3)))
                                  (quotient (product (num 2) (power b/a (num 3)))
                                            (num 27))))]
-               ;; Cardano: t = ∛(-q/2 + √(q²/4 + p³/27)) + ∛(-q/2 - √(q²/4 + p³/27))
-               ;; discriminant part: q²/4 + p³/27
+               ;; Cardano: t = ∛(-q/2 + √Δ) + ∛(-q/2 - √Δ)
+               ;; where Δ = q²/4 + p³/27
                [disc-inner (simplify (sum (quotient (power q (num 2)) (num 4))
                                           (quotient (power p (num 3)) (num 27))))]
                [sqrt-disc (sym-sqrt disc-inner)]
                [neg-q/2 (simplify (quotient (make-neg q) (num 2)))]
-               ;; The cube roots
+               ;; The cube root arguments
                [u-arg (simplify (sum neg-q/2 sqrt-disc))]
                [v-arg (simplify (difference neg-q/2 sqrt-disc))]
-               ;; t = cbrt(u) + cbrt(v)
+               ;; Principal cube roots
                [cbrt-u (power u-arg (quotient (num 1) (num 3)))]
                [cbrt-v (power v-arg (quotient (num 1) (num 3)))]
+               ;; Cube roots of unity: ω = (-1 + i√3)/2, ω² = (-1 - i√3)/2
+               ;; For symbolic output, represent as primitive roots
+               [omega (quotient (sum (num -1) (product (var 'i) (sym-sqrt (num 3)))) (num 2))]
+               [omega2 (quotient (difference (num -1) (product (var 'i) (sym-sqrt (num 3)))) (num 2))]
+               ;; Three roots of depressed cubic:
+               ;; t₁ = cbrt(u) + cbrt(v)           [principal roots]
+               ;; t₂ = ω·cbrt(u) + ω²·cbrt(v)     [first rotation]
+               ;; t₃ = ω²·cbrt(u) + ω·cbrt(v)     [second rotation]
                [t1 (simplify (sum cbrt-u cbrt-v))]
+               [t2 (simplify (sum (product omega cbrt-u) (product omega2 cbrt-v)))]
+               [t3 (simplify (sum (product omega2 cbrt-u) (product omega cbrt-v)))]
                ;; Shift back: x = t - b/(3a)
                [shift (simplify (quotient b/a (num 3)))]
-               [x1 (simplify (difference t1 shift))])
-          ;; Return first real root (full cubic has 3 roots with complex cube roots)
-          (list x1)))))
+               [x1 (simplify (difference t1 shift))]
+               [x2 (simplify (difference t2 shift))]
+               [x3 (simplify (difference t3 shift))])
+          (list x1 x2 x3)))))
 
 ;;; ====
 ;;; General Polynomial Solving
@@ -442,14 +452,47 @@
 ;;; Main Solve Interface
 ;;; ====
 
+;;; diff-to-sum : Expr → Expr
+;;; Convert difference (- a b) to sum (+ a (- b)) recursively.
+;;; This enables expand to distribute products over differences.
+(define (diff-to-sum expr)
+  (cond
+    [(num? expr) expr]
+    [(var? expr) expr]
+    [(sum? expr)
+     (make-sum-from-terms (map diff-to-sum (sum-terms expr)))]
+    [(product? expr)
+     (make-product-from-terms (map diff-to-sum (product-factors expr)))]
+    [(difference? expr)
+     (if (diff-right expr)
+         ;; (- a b) → (+ a (- b))
+         (sum (diff-to-sum (diff-left expr))
+              (make-neg (diff-to-sum (diff-right expr))))
+         ;; Negation stays as negation
+         (make-neg (diff-to-sum (diff-left expr))))]
+    [(quotient? expr)
+     (quotient (diff-to-sum (quot-numer expr))
+               (diff-to-sum (quot-denom expr)))]
+    [(power? expr)
+     (power (diff-to-sum (pow-base expr))
+            (diff-to-sum (pow-exp expr)))]
+    [(app? expr)
+     (make-app (app-fn expr) (diff-to-sum (app-arg expr)))]
+    [else expr]))
+
 ;;; solve : Equation × Symbol → (List Expr) | Expr | #f
 ;;; Solve an equation for the given variable.
 ;;; Returns list of solutions, single solution, 'infinite, or #f.
+;;; Auto-expands factored forms like (x-1)(x-2) before solving.
 (define (solve eq var-sym)
-  (let ([expr (if (equation? eq)
-                  (equation->expr eq)
-                  eq)])  ; Allow passing expression directly (assumed = 0)
-    (solve-polynomial expr var-sym)))
+  (let* ([expr (if (equation? eq)
+                   (equation->expr eq)
+                   eq)]  ; Allow passing expression directly (assumed = 0)
+         ;; Convert differences to sums so expand can distribute
+         [as-sums (diff-to-sum expr)]
+         ;; Expand factored products before solving
+         [expanded (simplify (expand as-sums))])
+    (solve-polynomial expanded var-sym)))
 
 ;;; solve-for : Expr × Symbol → Expr | #f
 ;;; Convenience: solve single-variable equation, return first solution.

@@ -145,15 +145,16 @@
                                 (num -6))))]
            [sols (solve expr 'x)])
       (assert-true (list? sols))
-      ;; At least returns one solution (Cardano gives first real root)
-      (assert-true (>= (length sols) 1))))
+      ;; Should return all 3 roots
+      (assert-equal 3 (length sols))))
 
-  (define-test cubic-returns-solution
-    ;; x³ - 1 = 0 → x = 1 (real root)
+  (define-test cubic-returns-three-roots
+    ;; x³ - 1 = 0 → x = 1, ω, ω² (complex roots of unity)
     (let* ([expr (difference (power (var 'x) (num 3)) (num 1))]
            [sols (solve expr 'x)])
       (assert-true (list? sols))
-      (assert-true (>= (length sols) 1)))))
+      ;; Should return all 3 roots
+      (assert-equal 3 (length sols)))))
 
 ;;; ====
 ;;; Polynomial Degree Detection Tests
@@ -306,6 +307,78 @@
     (assert-true (contains-var? (sum (var 'x) (num 1)) 'x))
     (assert-true (contains-var? (product (num 2) (var 'x)) 'x))
     (assert-false (contains-var? (sum (var 'y) (num 1)) 'x))))
+
+;;; ====
+;;; Factored Polynomial Tests (expand before solving)
+;;; ====
+
+(test-group factored-tests
+
+  (define-test factored-quadratic
+    ;; (x - 2)(x - 3) = 0 → x = 2, 3
+    ;; This previously failed because expand wasn't called
+    (let* ([expr (product (difference (var 'x) (num 2))
+                          (difference (var 'x) (num 3)))]
+           [sols (solve expr 'x)])
+      (assert-true (list? sols))
+      (assert-equal 2 (length sols))
+      ;; Verify solutions
+      (assert-true (verify-solution-approx expr 'x (car sols) 1e-6))
+      (assert-true (verify-solution-approx expr 'x (cadr sols) 1e-6))))
+
+  (define-test factored-with-constant
+    ;; 2(x - 1)(x + 1) = 0 → x = 1, -1
+    (let* ([expr (product (num 2)
+                          (product (difference (var 'x) (num 1))
+                                   (sum (var 'x) (num 1))))]
+           [sols (solve expr 'x)])
+      (assert-true (list? sols))
+      (assert-equal 2 (length sols))))
+
+  (define-test factored-linear
+    ;; (x - 5) = 0 → x = 5
+    (let* ([expr (difference (var 'x) (num 5))]
+           [sol (solve-for expr 'x)])
+      (assert-true (num? sol))
+      (assert-equal 5 (num-val sol))))
+
+  (define-test factored-cubic
+    ;; (x - 1)(x - 2)(x - 3) = 0 → roots at 1, 2, 3
+    (let* ([expr (product (difference (var 'x) (num 1))
+                          (product (difference (var 'x) (num 2))
+                                   (difference (var 'x) (num 3))))]
+           [sols (solve expr 'x)])
+      (assert-true (list? sols))
+      ;; Should expand to cubic and return 3 roots
+      (assert-equal 3 (length sols)))))
+
+;;; ====
+;;; Singular System Tests
+;;; ====
+
+(test-group singular-system-tests
+
+  (define-test singular-system-no-solution
+    ;; x + y = 1
+    ;; x + y = 2
+    ;; Parallel lines - no solution
+    (let* ([eq1 (difference (sum (var 'x) (var 'y)) (num 1))]
+           [eq2 (difference (sum (var 'x) (var 'y)) (num 2))]
+           [solution (solve-linear-system (list eq1 eq2) '(x y))])
+      ;; Should return #f for singular/inconsistent system
+      (assert-false solution)))
+
+  (define-test singular-system-dependent
+    ;; x + y = 2
+    ;; 2x + 2y = 4
+    ;; Same line (dependent) - singular matrix
+    (let* ([eq1 (difference (sum (var 'x) (var 'y)) (num 2))]
+           [eq2 (difference (sum (product (num 2) (var 'x))
+                                 (product (num 2) (var 'y)))
+                            (num 4))]
+           [solution (solve-linear-system (list eq1 eq2) '(x y))])
+      ;; Returns #f for singular system (could be extended to return parameterized solution)
+      (assert-false solution))))
 
 (display "\nRunning tests...\n\n")
 (run-all-tests)

@@ -235,7 +235,7 @@
   ("test-diff.ss" "51 tests for symbolic differentiation")
   ("test-simplify.ss" "41 tests for algebraic simplification")
   ("test-integrate.ss" "27 tests for symbolic integration")
-  ("test-solve.ss" "29 tests for equation solving")
+  ("test-solve.ss" "35 tests for equation solving")
   ("test-integrate-autodiff.ss" "Redirect to lattice/autodiff/test-symbolic-diff.ss"))
 
  (notes
@@ -271,4 +271,4 @@
    All modules use smart constructors that apply basic simplifications
    automatically, ensuring expressions stay in reasonably simplified form.
 
-   Total: 203 tests across all modules."))
+   Total: 209 tests across all modules."))
