@@ -29,7 +29,8 @@ Output (JSON):
   }
 
 Note: If code doesn't start with '(', it's automatically wrapped in parens.
-      Single tokens stay unwrapped (e.g., "x" stays "x", not "(x)").
+      Single-token symbols are wrapped too (e.g., "bye" becomes "(bye)").
+      Literals (numbers, quoted, booleans) stay unwrapped.
 """
 
 import os
@@ -92,18 +93,48 @@ def ensure_dirs():
     os.makedirs(REQUESTS_DIR, exist_ok=True)
     os.makedirs(RESPONSES_DIR, exist_ok=True)
 
+def is_literal(token):
+    """Check if a single token is a literal (not a procedure call)."""
+    if not token:
+        return False
+    first_char = token[0]
+    # Quoted expressions: 'x, `x, ,x, ,@x
+    if first_char in "'`,":
+        return True
+    # Hash literals: #t, #f, #\x, #(vector), #vu8(...)
+    if first_char == '#':
+        return True
+    # String literals
+    if first_char == '"':
+        return True
+    # Numeric literals (including negative)
+    if first_char.isdigit():
+        return True
+    if first_char == '-' and len(token) > 1 and token[1].isdigit():
+        return True
+    if first_char == '+' and len(token) > 1 and token[1].isdigit():
+        return True
+    # Decimal starting with dot
+    if first_char == '.' and len(token) > 1 and token[1].isdigit():
+        return True
+    return False
+
 def apply_implicit_parens(code):
-    """Wrap code in parens if it doesn't start with '(' and has multiple tokens."""
+    """Wrap code in parens if it doesn't start with '(' and isn't a literal."""
     code = code.strip()
     if not code:
         return code
     # Already parenthesized
     if code.startswith('('):
         return code
-    # Single token (no spaces outside of strings) - leave as-is
-    # Simple heuristic: if no whitespace, it's a single token
-    if ' ' not in code and '\t' not in code and '\n' not in code:
+    # Quoted/quasi-quoted expressions - never wrap (may contain spaces)
+    if code[0] in "'`":
         return code
+    # Single token - wrap if it's a symbol (procedure call), not a literal
+    if ' ' not in code and '\t' not in code and '\n' not in code:
+        if is_literal(code):
+            return code  # Don't wrap literals
+        return f"({code})"  # Wrap symbols (procedure calls)
     # Multiple tokens - wrap in parens
     return f"({code})"
 
