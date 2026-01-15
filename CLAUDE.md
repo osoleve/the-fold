@@ -272,7 +272,7 @@ The lattice is a DAG of verified skills. "Stdlib" = tier 0 (foundational nodes).
 | `automata/` | State machines, DFA/NFA |
 | `pipeline/` | Agent workflows, council |
 
-**FP Toolkit (`lattice/fp/`):** Monads, parsers, streams, zippers, game theory (cooperative games, matching theory, Nash equilibrium, voting theory with power indices), symbolic math, control systems, rewriting. Use `(li 'fp)` and `(le 'fp)` for details.
+**FP Toolkit (`lattice/fp/`):** Monads, parsers, streams, zippers, game theory (cooperative games, matching theory, Nash equilibrium, voting theory with power indices, fair division with cake cutting and adjusted winner), symbolic math, control systems, rewriting. Use `(li 'fp)` and `(le 'fp)` for details.
 
 Each lattice skill has a `manifest.sexp` declaring metadata:
 

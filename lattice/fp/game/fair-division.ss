@@ -58,11 +58,16 @@
 ;;; cake-valuation : Cake × Nat × Real × Real → Real
 ;;; Compute player i's value for interval [a, b].
 ;;; Uses trapezoidal rule with 100 steps for integration.
+;;; Handles edge cases: if a >= b, returns 0; clamps to [0, 1].
 (define (cake-valuation c i a b)
-  (let ([density (vector-ref (cake%-valuations c) i)])
-    (if (not density)
-        (- b a)  ; Default: uniform valuation
-        (integrate-density density a b 100))))
+  (let* ([a (max 0 (min 1 a))]  ; clamp to [0, 1]
+         [b (max 0 (min 1 b))])
+    (if (>= a b)
+        0  ; empty or inverted interval
+        (let ([density (vector-ref (cake%-valuations c) i)])
+          (if (not density)
+              (- b a)  ; Default: uniform valuation
+              (integrate-density density a b 100))))))
 
 ;;; integrate-density : (Real → Real) × Real × Real × Nat → Real
 ;;; Trapezoidal integration of density from a to b with n steps.
@@ -367,9 +372,16 @@
 ;;; 4. Trimmings divided by similar process
 ;;;
 ;;; This is the first bounded envy-free protocol for 3 players (1960s).
+;;;
+;;; IMPLEMENTATION NOTE: This is a SIMPLIFIED implementation. The full protocol
+;;; requires a complex sub-routine for dividing trimmings that recursively
+;;; ensures envy-freeness. Our simplified version assigns trimmings heuristically,
+;;; which guarantees proportionality but may not achieve strict envy-freeness
+;;; in adversarial cases with extreme opposing valuations.
 
 ;;; selfridge-conway : Cake × Nat → Division
-;;; 3-player envy-free division.
+;;; 3-player division using simplified Selfridge-Conway protocol.
+;;; Guarantees proportionality; envy-freeness is approximate.
 (define (selfridge-conway c fuel)
   (if (not (= 3 (cake-players c)))
       (error 'selfridge-conway "requires exactly 3 players")
@@ -611,7 +623,9 @@
             ;; score-src - score-dest = f*(src-val + dest-val)
             ;; f = (score-src - score-dest) / (src-val + dest-val)
             (let* ([gap (- score-src score-dest)]
-                   [f (/ gap (+ src-val dest-val))]
+                   [denom (+ src-val dest-val)]
+                   ;; Handle zero-valued goods: if both value at 0, skip (no effect on scores)
+                   [f (if (= denom 0) 0 (/ gap denom))]
                    [f (max 0 (min 1 f))]  ; clamp to [0,1]
                    ;; Remove f from source, add f to dest
                    [new-alloc-src (update-fraction alloc-src i (- 1 f))]
@@ -754,23 +768,29 @@
 ;;; if they divided the goods into n bundles and got the worst one.
 ;;;
 ;;; MMS_i = max over partitions P: min over bundle B in P: v_i(B)
+;;;
+;;; Computing exact MMS is NP-hard (related to partition problem).
+;;; We use a greedy approximation that provides a lower bound.
 
 ;;; maximin-share : DP × Nat × Nat → Real
-;;; Compute player i's maximin share.
-;;; fuel limits partition exploration.
+;;; Approximate player i's maximin share using greedy balancing.
+;;; Returns a lower bound on the true MMS (greedy may not find optimal partition).
+;;; fuel parameter is reserved for future exact search; currently unused.
 (define (maximin-share dp i fuel)
   (let* ([n (discrete-problem-players dp)]
          [m (discrete-problem-goods-count dp)]
          [goods-list (iota m)])
-    ;; Generate partitions of goods into n bundles
-    ;; This is exponential, so we use fuel to limit
-    (maximin-search dp i n goods-list fuel 0)))
+    ;; Use greedy balancing heuristic (polynomial time)
+    ;; True MMS requires exponential partition enumeration
+    (maximin-search-greedy dp i n goods-list)))
 
-;;; maximin-search : DP × Nat × Nat × (List Nat) × Nat × Real → Real
-;;; Greedy approximation of maximin share.
-(define (maximin-search dp player num-bundles goods fuel best-so-far)
-  (if (or (<= fuel 0) (null? goods))
-      best-so-far
+;;; maximin-search-greedy : DP × Nat × Nat × (List Nat) → Real
+;;; Greedy approximation of maximin share using LPT-style balancing.
+;;; Sorts goods by value (descending) and assigns each to the bundle
+;;; with lowest current value (greedy load balancing).
+(define (maximin-search-greedy dp player num-bundles goods)
+  (if (null? goods)
+      0
       ;; Greedy: create balanced bundles based on player's valuation
       (let* ([bundles (make-vector num-bundles '())]
              [vals (make-vector num-bundles 0)]

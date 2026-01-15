@@ -350,6 +350,25 @@ Key design principles:
     decisive-for-candidate blocking-for-candidate
     make-electoral-college-game electoral-college-power power-per-capita
     us-electoral-college-2020 un-security-council simple-3-voter-example
+    ;; fair-division.ss — Fair Division Algorithms
+    ;; Cake representation
+    make-cake cake? cake-players cake-set-valuation! cake-valuation cake-total-value
+    ;; Pieces and divisions
+    make-piece piece-singleton piece-value piece-length piece-merge piece-empty
+    make-division division-assign! division-piece division->list
+    ;; Fairness criteria
+    proportional? envy-free? equitable? pareto-optimal?
+    ;; Cake cutting protocols
+    cut-and-choose dubins-spanier selfridge-conway
+    find-cut-point find-cut-point-from
+    ;; Adjusted winner (2-player, mixed goods)
+    make-adjusted-winner-problem adjusted-winner
+    ;; Discrete fair division (indivisible goods)
+    make-discrete-problem discrete-problem-players discrete-problem-goods-count
+    discrete-problem-valuation round-robin discrete-allocation-value
+    envy-free-up-to-one? maximin-share
+    ;; Example utilities
+    uniform-cake simple-cake-2 opposing-valuations-cake
 
     ;; symbolic/ — Symbolic Expressions
     ;; expr.ss
@@ -576,13 +595,14 @@ Key design principles:
        "zipper-lens.ss"))) ; Zipper-lens integration (lenses, affines, comonad connection)
 
     ((subdir "game")
-     (description "Game theory: normal form, cooperative games, matching, voting")
+     (description "Game theory: normal form, cooperative games, matching, voting, fair division")
      (files (
        "normal-form.ss"   ; Normal form games, Nash equilibrium, IESDS
        "coop-games.ss"    ; Cooperative games, Shapley value, core, bargaining
        "matching.ss"      ; Two-sided matching, Gale-Shapley, assignment games
        "voting.ss"        ; Social choice: plurality, Borda, Condorcet, Schulze
-       "voting-games.ss"))) ; Bridge: voting rules to simple games, power indices
+       "voting-games.ss"  ; Bridge: voting rules to simple games, power indices
+       "fair-division.ss"))) ; Cake cutting, adjusted winner, EF1, maximin share
 
     ((subdir "symbolic")
      (description "Symbolic computation and computer algebra")
