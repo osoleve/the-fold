@@ -344,7 +344,7 @@ Shell is organized into functional subdirectories (with backwards-compatible stu
 | `debug/` | Developer inspection | debug-repl.ss (time-travel debugger) |
 | `diagnostics/` | Profiling & analysis | fuel-viz.ss, profile-viewer.ss |
 | `storage/` | Persistence & identity | store-manager.ss, cas-persist.ss |
-| `io/` | Low-level IO utilities | fs.ss, json.ss |
+| `io/` | Low-level IO utilities | fs.ss, json.ss, process.ss |
 | `git/` | Git operations | git.ss, git-workflow.ss |
 | `assistants/` | AI agents | duckie-*.ss |
 | `media/` | Creative tools | music-gen.ss, create-art.ss |

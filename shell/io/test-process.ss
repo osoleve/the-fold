@@ -78,6 +78,34 @@
     (let ([result (shell-capture-result "echo err >&2")])
       (assert-true (process-ok? result))
       (assert-true (string-contains? (process-stderr result) "err"))))
+
+  ;; Edge cases identified by QA
+  (define-test test-result-no-trailing-newline
+    ;; printf without newline - tests off-by-one fix
+    (let ([result (shell-capture-result "printf 'foo'")])
+      (assert-true (process-ok? result))
+      (assert-equal "foo" (process-stdout result))))
+
+  (define-test test-result-empty-output
+    ;; Command with no output
+    (let ([result (shell-capture-result "true")])
+      (assert-true (process-ok? result))
+      (assert-equal "" (process-stdout result))))
+
+  (define-test test-result-stderr-only
+    ;; Command that only writes to stderr
+    (let ([result (shell-capture-result "echo error >&2 && exit 0")])
+      (assert-true (process-ok? result))
+      (assert-equal "" (process-stdout result))
+      (assert-true (string-contains? (process-stderr result) "error"))))
+
+  (define-test test-result-marker-in-output
+    ;; Output containing the marker string (should not confuse parser)
+    ;; The marker is at the END, so earlier occurrences shouldn't matter
+    (let ([result (shell-capture-result "echo 'text with __EXIT__ in it'")])
+      (assert-true (process-ok? result))
+      ;; Should capture the full output including the fake marker
+      (assert-true (string-contains? (process-stdout result) "__EXIT__"))))
 )
 
 ;;; ====

@@ -82,8 +82,10 @@
                  [code-str (string-trim (substring stdout-str code-start
                                                    (string-length stdout-str)))]
                  [code (or (string->number code-str) 1)]
-                 ;; Remove trailing newline before marker
-                 [actual-end (max 0 (- idx 1))]
+                 ;; Only remove trailing newline if present (fixes off-by-one bug)
+                 [has-newline (and (> idx 0)
+                                   (char=? (string-ref stdout-str (- idx 1)) #\newline))]
+                 [actual-end (if has-newline (- idx 1) idx)]
                  [actual-stdout (if (> actual-end 0)
                                     (substring stdout-str 0 actual-end)
                                     "")])
