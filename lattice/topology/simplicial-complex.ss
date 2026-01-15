@@ -75,8 +75,9 @@
 ;;; make-simplex : (List Vertex) → Simplex
 ;;; Create a simplex from a list of vertices.
 ;;; Vertices are sorted for canonical representation.
+;;; Duplicate vertices are removed (degenerate simplices normalized).
 (define (make-simplex vertices)
-  (list 'simplex (sort-by generic<? vertices)))
+  (list 'simplex (unique-sorted (sort-by generic<? vertices))))
 
 ;;; simplex? : α → Boolean
 ;;; Check if value is a simplex.

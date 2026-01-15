@@ -46,7 +46,17 @@
       (assert-true (simplex-face? v t))
       (assert-true (simplex-face? e t))
       (assert-true (simplex-face? t t))  ; A simplex is a face of itself
-      (assert-false (simplex-face? other t)))))
+      (assert-false (simplex-face? other t))))
+
+  (define-test "duplicate vertices are removed"
+    ; Degenerate simplices should be normalized
+    (let ([s (make-simplex '(a a b))])
+      (assert-equal 1 (simplex-dim s))  ; Edge, not triangle
+      (assert-equal '(a b) (simplex-vertices s)))
+    ; Same vertex repeated many times
+    (let ([s (make-simplex '(x x x))])
+      (assert-equal 0 (simplex-dim s))  ; Vertex
+      (assert-equal '(x) (simplex-vertices s)))))
 
 ;;; ============================================================
 ;;; FACE ENUMERATION TESTS

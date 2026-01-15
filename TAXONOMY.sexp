@@ -56,7 +56,9 @@
      ((name . analysis)
       (modules . (core/numeric core/fp/numeric)))
      ((name . probability)
-      (modules . (core/random core/info-theory))))))
+      (modules . (core/random core/info-theory)))
+     ((name . topology)
+      (modules . (lattice/topology))))))
 
   ((domain . computation)
    (description . "Computational abstractions and algorithms")
@@ -281,6 +283,7 @@
    (info "Information theory")
    (number-theory "Primes, modular arithmetic")
    (statistics "Statistical modeling: regression, GLM, time series, hypothesis tests")
+   (topology "Simplicial complexes, homology, TDA")
    ;; Tier 2+ — Advanced
    (physics/diff "Differentiable 2D physics")
    (physics/diff3d "Differentiable 3D physics")

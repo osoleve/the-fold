@@ -252,6 +252,7 @@ The lattice is a DAG of verified skills. "Stdlib" = tier 0 (foundational nodes).
 | `info/` | Entropy, coding, information theory |
 | `number-theory/` | Primes, modular arithmetic |
 | `meta/` | Lattice navigation, search, introspection |
+| `topology/` | Simplicial complexes, boundary operators, TDA |
 
 **Tier 2+ — Advanced:**
 | Directory | Purpose |
@@ -265,19 +266,7 @@ The lattice is a DAG of verified skills. "Stdlib" = tier 0 (foundational nodes).
 | `automata/` | State machines, DFA/NFA |
 | `pipeline/` | Agent workflows, council |
 
-**FP Toolkit (`lattice/fp/`):**
-- `control/` — Monads, effects, continuations, free monads
-- `numeric/` — Transcendental functions
-- `parsing/` — Parser combinators with memoization
-- `meta/` — DSL utilities, logic programming
-- `data/` — Lazy streams, zippers (list/tree/generic), zipper-lens integration
-- `game/` — Game theory, Nash equilibrium
-- `symbolic/` — Symbolic expressions
-- `measure/` — Units of measure
-- `control-systems/` — Control theory, state space models
-- `analysis/` — Numerical analysis
-- `rewrite/` — Term rewriting systems
-- `pretty-instances.ss` — Pretty instances for Vec2, Matrix, Complex, Polynomial, Expr
+**FP Toolkit (`lattice/fp/`):** Monads, parsers, streams, zippers, game theory (cooperative games, matching theory, Nash equilibrium), symbolic math, control systems, rewriting. Use `(li 'fp)` and `(le 'fp)` for details.
 
 Each lattice skill has a `manifest.sexp` declaring metadata:
 
@@ -299,81 +288,16 @@ Each lattice skill has a `manifest.sexp` declaring metadata:
 
 **Meta-Tooling (`lattice/meta/`):**
 
-Agent-facing navigation and introspection for the skill lattice. Builds a CAS-backed knowledge graph from manifests with BM25 search ranking. Uses persistent caching for fast initialization.
+Use `/lattice-search` skill for full documentation. Quick reference:
 
 ```scheme
-;; Lattice meta-tooling is auto-initialized at startup with persistent caching.
-;; First run builds cache (~10s); subsequent runs load from cache (~1s).
-
-;; Search — BM25 ranked results
-(lf "matrix decomposition")        ; Full-text search
-(lfe 'vec3)                        ; Exact lookup (falls back to substring)
-(lfp 'matrix)                      ; Prefix search (matrix*, matrix-*)
-(lfs 'c2d)                         ; Substring search (finds c2d-zoh, etc.)
-(lattice-complete "mat")           ; Autocomplete suggestions
-
-;; Type-Aware Search (Hoogle-style)
-(load "lattice/meta/type-search.ss")
-(lf-type "Monad")                  ; Find functions with Monad in type signature
-(lf-input "Matrix")                ; Functions that take Matrix as input
-(lf-output "Maybe")                ; Functions that return Maybe
-
-;; Cross-Reference Queries (function-level call graph)
-(load "lattice/meta/xref.ss")
-(build-xref-cache!)                ; Build call graph (~25k edges)
-(lxu 'matrix-rows)                 ; What functions call this?
-(lxc 'floyd-warshall)              ; What does this function call?
-(xref-callers-transitive 'fn)      ; All transitive callers
-(xref-most-called 10)              ; Most-called functions
-
-;; DAG Navigation
-(ld 'physics/diff)                 ; What does this skill depend on?
-(lu 'linalg)                       ; What skills use this?
-(lattice-path 'physics/diff 'linalg) ; Find dependency path
-(lattice-roots)                    ; Tier 0 skills (no deps)
-(lattice-leaves)                   ; Skills with no dependents
-(lattice-hubs)                     ; Most-depended-on skills
-
-;; Inspection
-(li 'linalg)                       ; Full skill description
-(le 'linalg)                       ; List all exports
-(lm 'linalg)                       ; List modules with descriptions
-(lattice-summary)                  ; One-line summary of all skills
-(lattice-info 'linalg)             ; Structured data for programmatic use
-
-;; Analytics
-(ls)                               ; Lattice statistics
-(lh)                               ; Health check (missing deps, cycles)
-(lattice-coverage-pretty)          ; Metadata coverage report
-(lattice-graph)                    ; Print full DAG structure
-
-;; Manifest Auditing
-(load "lattice/meta/audit.ss")
-(audit-skill-pretty 'fp)           ; Find missing exports, phantom exports
-(suggest-missing 'fp)              ; List exports to add to manifest
+(lf "query")        ; Full-text search (BM25)
+(lfe 'symbol)       ; Exact lookup
+(li 'skill)         ; Skill description
+(le 'skill)         ; List exports
+(ld 'skill)         ; Dependencies
+(lu 'skill)         ; Dependents
 ```
-
-**Search Best Practices:**
-
-- **Start broad, then narrow**: Use `(lf "concept")` first, then `(lfe 'symbol)` for exact matches
-- **Use substring for partial names**: If you know part of a name (like `c2d`), use `(lfs 'c2d)` to find all matches
-- **Try multiple query variations**: Function might be named differently than expected (e.g., `c2d-zoh` vs `ss-c2d`)
-- **Check skill exports**: Use `(le 'skill-name)` to see what a skill actually exports
-- **Not all functions are exported**: Use `(audit-skill 'name)` to find functions defined in source but missing from manifests
-
-| Module | Purpose |
-|----|----|
-| `kg.ss` | Knowledge graph builder from manifests |
-| `bm25.ss` | BM25 search engine with TF-IDF ranking |
-| `search.ss` | Unified search API, autocomplete, prefix/substring |
-| `type-search.ss` | Type-aware search (Hoogle-style lf-type, lf-input, lf-output) |
-| `xref.ss` | Cross-reference queries (lxu, lxc, call graph analysis) |
-| `dag.ss` | DAG traversal, paths, tiers, hubs |
-| `analytics.ss` | Stats, health, coverage, purity |
-| `inspect.ss` | Skill descriptions, exports, sources |
-| `persist.ss` | Cache KG to disk for fast init |
-| `audit.ss` | Find gaps between source and manifests |
-| `meta.ss` | Unified entry point + `lattice-help` |
 
 ### Shell Subsystems
 
@@ -516,82 +440,18 @@ For agents operating within The Fold, see [`docs/agent-operating-manual.md`](doc
 
 ## Issue Tracking with BBS
 
-This project uses **BBS** (Bulletin Board System), a CAS-native issue tracker built on The Fold's block primitives.
-
-### Initialization
-
-BBS is auto-initialized when the REPL starts. No manual setup required.
-
-### Finding Work
+Use `/bbs` skill for full documentation. Quick reference:
 
 ```scheme
-(bbs-list)                        ; List open issues (default)
-(bbs-list 'status 'closed)        ; List closed issues
-(bbs-list 'status 'all)           ; List all issues
-(bbs-ready)                       ; Show unblocked work
-(bbs-blocked)                     ; Show blocked issues
-(bbs-show 'fold-001)              ; View issue details
-(bbs-find "query")                ; Search issue titles
+(bbs-list)              ; List open issues
+(bbs-ready)             ; Show unblocked work
+(bbs-show 'fold-001)    ; View issue details
+(bbs-create "Title")    ; Create issue
+(bbs-update 'id 'status 'in_progress)
+(bbs-close 'id)         ; Close issue
 ```
 
-### Creating & Updating
-
-```scheme
-(bbs-create "Issue title")                              ; Basic create
-(bbs-create "Title" 'priority 1 'type 'bug)            ; With options
-(bbs-create "Title" 'description "Details..." 'labels '(core urgent))
-
-(bbs-update 'fold-001 'status 'in_progress)            ; Update status
-(bbs-update 'fold-001 'priority 0)                     ; Change priority
-(bbs-close 'fold-001)                                  ; Close issue
-(bbs-close 'fold-001 'reason "Done!")                  ; Close with reason
-```
-
-Priority: 0-4 (0=critical, 2=medium, 4=backlog).
-Types: `'task`, `'bug`, `'feature`, `'epic`.
-Status: `'open`, `'in_progress`, `'closed`.
-
-**Note:** Issue IDs can be symbols (`'fold-001`) or strings (`"fold-001"`).
-
-### Dependencies
-
-```scheme
-(bbs-dep 'fold-001 'fold-002)     ; fold-001 blocks fold-002
-(bbs-blockers 'fold-002)          ; What blocks this issue?
-(bbs-blocking 'fold-001)          ; What does this issue block?
-(bbs-ready)                       ; All unblocked open issues
-```
-
-### History & Stats
-
-```scheme
-(bbs-history 'fold-001)           ; Show version history
-(bbs-stats)                       ; Database statistics
-```
-
-### Pipeline Integration
-
-BBS effects are available in agent pipelines (`lattice/pipeline/effects.ss`):
-
-```scheme
-(bbs-create "title")              ; Create issue, return ID
-(bbs-create-full title desc type priority)
-(bbs-update id updates-alist)     ; Update issue fields
-(bbs-close id)                    ; Close issue
-(bbs-ready)                       ; Get unblocked issues
-(bbs-show id)                     ; Get issue details
-```
-
-### Session End
-
-**Work is NOT complete until `git push` succeeds:**
-
-```bash
-git status              # Check changes
-git add <files>         # Stage changes
-git commit -m "..."     # Commit code
-git push                # Push to remote
-```
+Priority: 0-4 (0=critical, 4=backlog). Types: `task`, `bug`, `feature`, `epic`.
 
 ---
 
@@ -647,57 +507,20 @@ rm -rf .fold-repl/   # Nuclear option
 
 **A session is not complete until code is committed and pushed to remote.**
 
-This is non-negotiable. Uncommitted work is lost work. Follow this checklist before ending any session:
-
-### Pre-Flight Checklist
-
 ```bash
-# 1. Verify all tests pass
+# 1. Verify tests pass
 scheme --script <relevant-test-file>.ss
 
-# 2. Check what's changed
-git status
-
-# 3. Review the diff
-git diff
-```
-
-### Commit Sequence
-
-```bash
-# 4. Stage changes (be specific, not `git add .`)
+# 2. Stage and commit
+git status && git diff
 git add <specific-files>
-
-# 5. Commit with descriptive message
 git commit -m "feat(module): Brief description
-
-Longer explanation if needed.
 
 Co-Authored-By: Claude <noreply@anthropic.com>"
 
-# 6. Push to remote
+# 3. Push and verify
 git push
+git status  # Should show "up to date with 'origin/main'"
 ```
 
-### Verification
-
-```bash
-# 7. Confirm push succeeded
-git status
-# Should show: "Your branch is up to date with 'origin/main'"
-```
-
-### If Something Goes Wrong
-
-- **Merge conflict?** Resolve locally, then push
-- **Push rejected?** Pull first: `git pull --rebase && git push`
-- **Tests failing?** Fix before committing — don't push broken code
-
-### Why This Matters
-
-1. **Durability**: Local state can be lost; remote is backed up
-2. **Collaboration**: Others can't use uncommitted work
-3. **Auditability**: Git history documents what was done and why
-4. **Recovery**: Easy to rollback if something breaks
-
-**Remember: The plane hasn't landed until `git push` succeeds.**
+**If blocked:** Merge conflict → resolve locally. Push rejected → `git pull --rebase && git push`.
