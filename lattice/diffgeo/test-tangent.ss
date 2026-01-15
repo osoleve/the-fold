@@ -450,6 +450,93 @@
 )
 
 ;;; ============================================================================
+;;; Lie Bracket Tests
+;;; ============================================================================
+
+(test-group lie-bracket
+
+  ;; [X, X] = 0 (Lie bracket with self is zero)
+  (define-test test-lie-bracket-self-zero
+    (let* ([cart (make-cartesian-chart)]
+           [point (vector 1.0 2.0)]
+           ;; X = x∂/∂x + y∂/∂y (radial field)
+           [X (lambda (p)
+                (make-tangent-vector p cart
+                  (vector (vector-ref p 0) (vector-ref p 1))))]
+           [bracket (lie-bracket X X point cart)])
+      ;; [X, X] should be zero
+      (assert-true (vec-approx-equal? (tangent-vector-components bracket)
+                                       (vector 0.0 0.0) 1e-5))))
+
+  ;; [X, Y] = -[Y, X] (antisymmetry)
+  (define-test test-lie-bracket-antisymmetry
+    (let* ([cart (make-cartesian-chart)]
+           [point (vector 1.0 2.0)]
+           ;; X = ∂/∂x (constant field)
+           [X (lambda (p)
+                (make-tangent-vector p cart (vector 1.0 0.0)))]
+           ;; Y = x∂/∂y (varies with x)
+           [Y (lambda (p)
+                (make-tangent-vector p cart
+                  (vector 0.0 (vector-ref p 0))))]
+           [XY (lie-bracket X Y point cart)]
+           [YX (lie-bracket Y X point cart)])
+      ;; [X, Y] + [Y, X] should be zero
+      (let ([sum (tangent-add XY YX)])
+        (assert-true (vec-approx-equal? (tangent-vector-components sum)
+                                         (vector 0.0 0.0) 1e-5)))))
+
+  ;; Specific computation: [∂/∂x, x∂/∂y] = ∂/∂y
+  ;; Because ∂/∂x applied to Y^2 = x gives 1, so [X,Y]^2 = 1
+  (define-test test-lie-bracket-specific
+    (let* ([cart (make-cartesian-chart)]
+           [point (vector 2.0 3.0)]
+           ;; X = ∂/∂x
+           [X (lambda (p)
+                (make-tangent-vector p cart (vector 1.0 0.0)))]
+           ;; Y = x∂/∂y  (Y^1 = 0, Y^2 = x)
+           [Y (lambda (p)
+                (make-tangent-vector p cart
+                  (vector 0.0 (vector-ref p 0))))]
+           [bracket (lie-bracket X Y point cart)])
+      ;; [∂/∂x, x∂/∂y] = ∂/∂y (since ∂x/∂x = 1)
+      (assert-true (vec-approx-equal? (tangent-vector-components bracket)
+                                       (vector 0.0 1.0) 1e-5))))
+
+  ;; Constant fields have zero bracket
+  (define-test test-lie-bracket-constant-fields
+    (let* ([cart (make-cartesian-chart)]
+           [point (vector 1.0 1.0)]
+           ;; Two constant fields
+           [X (lambda (p) (make-tangent-vector p cart (vector 1.0 0.0)))]
+           [Y (lambda (p) (make-tangent-vector p cart (vector 0.0 1.0)))]
+           [bracket (lie-bracket X Y point cart)])
+      ;; [constant, constant] = 0
+      (assert-true (vec-approx-equal? (tangent-vector-components bracket)
+                                       (vector 0.0 0.0) 1e-5))))
+
+  ;; Test lie-bracket-field creates a proper vector field
+  (define-test test-lie-bracket-field
+    (let* ([cart (make-cartesian-chart)]
+           [X (lambda (p) (make-tangent-vector p cart (vector 1.0 0.0)))]
+           [Y (lambda (p)
+                (make-tangent-vector p cart
+                  (vector 0.0 (vector-ref p 0))))]
+           [bracket-field (lie-bracket-field X Y cart)]
+           [p1 (vector 1.0 0.0)]
+           [p2 (vector 2.0 0.0)]
+           [v1 (bracket-field p1)]
+           [v2 (bracket-field p2)])
+      ;; [∂/∂x, x∂/∂y] = ∂/∂y everywhere (independent of x)
+      (assert-true (tangent-vector? v1))
+      (assert-true (tangent-vector? v2))
+      (assert-true (vec-approx-equal? (tangent-vector-components v1)
+                                       (vector 0.0 1.0) 1e-5))
+      (assert-true (vec-approx-equal? (tangent-vector-components v2)
+                                       (vector 0.0 1.0) 1e-5))))
+)
+
+;;; ============================================================================
 ;;; Summary
 ;;; ============================================================================
 

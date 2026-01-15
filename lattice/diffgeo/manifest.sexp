@@ -58,7 +58,9 @@
     cotangent-bundle? cotangent-bundle-atlas cotangent-bundle-dim
     make-cotangent-bundle cotangent-bundle-fiber cotangent-bundle-section
     ;; Differential
-    differential))
+    differential
+    ;; Lie bracket
+    lie-bracket lie-bracket-field))
 
   (modules
    (charts "charts.ss"

@@ -347,9 +347,51 @@ scheme --script lattice/diffgeo/test-charts.ss
 scheme --script lattice/diffgeo/test-tangent.ss
 ```
 
+## Lie Bracket
+
+The **Lie bracket** [X, Y] of two vector fields measures their non-commutativity. Geometrically, it describes how the flows along X and Y fail to commute.
+
+In coordinates:
+$$[X, Y]^k = X^i \frac{\partial Y^k}{\partial x^i} - Y^i \frac{\partial X^k}{\partial x^i}$$
+
+### Computing the Lie Bracket
+
+```scheme
+(define cart (make-cartesian-chart))
+
+;; X = ∂/∂x (constant field)
+(define X (lambda (p)
+            (make-tangent-vector p cart (vector 1.0 0.0))))
+
+;; Y = x∂/∂y (varies with x)
+(define Y (lambda (p)
+            (make-tangent-vector p cart
+              (vector 0.0 (vector-ref p 0)))))
+
+;; Compute [X, Y] at a point
+(define bracket (lie-bracket X Y (vector 1.0 2.0) cart))
+;; => ∂/∂y (since ∂x/∂x = 1)
+```
+
+### Properties
+
+- **Antisymmetry**: [X, Y] = -[Y, X]
+- **Self-bracket is zero**: [X, X] = 0
+- **Constant fields commute**: If X and Y are constant, [X, Y] = 0
+- **Jacobi identity**: [X, [Y, Z]] + [Y, [Z, X]] + [Z, [X, Y]] = 0
+
+### Creating a Bracket Field
+
+```scheme
+;; Create [X, Y] as a vector field (function from points to tangent vectors)
+(define bracket-field (lie-bracket-field X Y cart))
+
+;; Evaluate at any point
+(bracket-field (vector 3.0 4.0))
+```
+
 ## Future Work
 
-- Lie bracket of vector fields
 - Higher-order differential forms (k-forms)
 - Exterior derivative
 - Tensor fields and metric tensors

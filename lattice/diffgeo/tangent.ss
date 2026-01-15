@@ -605,6 +605,74 @@
     (make-cotangent-vector point chart grad)))
 
 ;;; ============================================================================
+;;; Lie Bracket of Vector Fields
+;;; ============================================================================
+
+;;; The Lie bracket [X, Y] of two vector fields measures their non-commutativity.
+;;; In coordinates: [X, Y]^k = X^i (∂Y^k/∂x^i) - Y^i (∂X^k/∂x^i)
+;;;
+;;; Geometrically, [X, Y] measures the failure of flows along X and Y to commute.
+;;; If [X, Y] = 0, the flows commute (you get to the same place regardless of order).
+
+;;; lie-bracket : (Point → TangentVector) × (Point → TangentVector) × Point × Chart × [Num]
+;;;               → TangentVector
+;;; Compute the Lie bracket [X, Y] at a point.
+;;; X and Y are vector fields (functions from points to tangent vectors).
+(define (lie-bracket X Y point chart . epsilon-arg)
+  (let* ([eps (if (null? epsilon-arg) *jacobian-epsilon* (car epsilon-arg))]
+         [coords (chart-apply chart point)]
+         [n (chart-dim chart)]
+         ;; Get X and Y components at the point
+         [X-at-p (X point)]
+         [Y-at-p (Y point)]
+         [X-comps (tangent-vector-components X-at-p)]
+         [Y-comps (tangent-vector-components Y-at-p)]
+         ;; Result components
+         [result (make-vector n 0)])
+    ;; Compute [X, Y]^k = X^i (∂Y^k/∂x^i) - Y^i (∂X^k/∂x^i)
+    (do ([k 0 (+ k 1)])
+        ((= k n))
+        (let ([bracket-k 0])
+          ;; Sum over i
+          (do ([i 0 (+ i 1)])
+              ((= i n))
+              ;; Compute ∂Y^k/∂x^i and ∂X^k/∂x^i numerically
+              (let* ([coords-plus (vec-copy coords)]
+                     [coords-minus (vec-copy coords)]
+                     [_ (vector-set! coords-plus i (+ (vector-ref coords i) eps))]
+                     [_ (vector-set! coords-minus i (- (vector-ref coords i) eps))]
+                     ;; Points at perturbed coordinates
+                     [p-plus (chart-apply-inverse chart coords-plus)]
+                     [p-minus (chart-apply-inverse chart coords-minus)]
+                     ;; Y components at perturbed points
+                     [Y-plus (tangent-vector-components (Y p-plus))]
+                     [Y-minus (tangent-vector-components (Y p-minus))]
+                     ;; X components at perturbed points
+                     [X-plus (tangent-vector-components (X p-plus))]
+                     [X-minus (tangent-vector-components (X p-minus))]
+                     ;; Partial derivatives
+                     [dYk-dxi (/ (- (vector-ref Y-plus k) (vector-ref Y-minus k))
+                                (* 2 eps))]
+                     [dXk-dxi (/ (- (vector-ref X-plus k) (vector-ref X-minus k))
+                                (* 2 eps))]
+                     ;; Contribution: X^i * ∂Y^k/∂x^i - Y^i * ∂X^k/∂x^i
+                     [Xi (vector-ref X-comps i)]
+                     [Yi (vector-ref Y-comps i)])
+                (set! bracket-k (+ bracket-k
+                                   (- (* Xi dYk-dxi)
+                                      (* Yi dXk-dxi))))))
+          (vector-set! result k bracket-k)))
+    (make-tangent-vector point chart result)))
+
+;;; lie-bracket-field : (Point → TangentVector) × (Point → TangentVector) × Chart × [Num]
+;;;                     → (Point → TangentVector)
+;;; Create a new vector field that is the Lie bracket of X and Y.
+(define (lie-bracket-field X Y chart . epsilon-arg)
+  (let ([eps (if (null? epsilon-arg) *jacobian-epsilon* (car epsilon-arg))])
+    (lambda (point)
+      (lie-bracket X Y point chart eps))))
+
+;;; ============================================================================
 ;;; REPL Interface
 ;;; ============================================================================
 
@@ -624,3 +692,6 @@
 (printf "    (make-tangent-space point chart)\n")
 (printf "    (make-tangent-bundle atlas)\n")
 (printf "    (differential f point chart) - df as 1-form\n")
+(printf "  Lie Bracket:\n")
+(printf "    (lie-bracket X Y point chart) - [X,Y] at point\n")
+(printf "    (lie-bracket-field X Y chart) - [X,Y] as vector field\n")
