@@ -3,7 +3,14 @@
  (description "General-purpose data structures and graph algorithms.
 Provides building blocks for higher-level abstractions.")
  (modules
-  ((stack.ss "LIFO stack operations")
+  ((heap.ss "Leftist heap and priority queue:
+     - Purely functional O(log n) insert, delete-min/max, merge
+     - heap-empty, heap-insert, heap-min, heap-delete-min, heap-pop
+     - Max-heap variants: heap-insert-max, heap-max, heap-delete-max
+     - Generic comparator: heap-merge-by, heap-insert-by, list->heap-by
+     - Priority queue interface: pq-insert, pq-peek, pq-pop
+     - Heapsort: heapsort, heapsort-desc, heapsort-by")
+   (stack.ss "LIFO stack operations")
    (queue.ss "FIFO queue with amortized O(1) ops")
    (set.ss "Unordered collection with no duplicates")
    (dict.ss "Key-value dictionary/map operations")
@@ -43,7 +50,8 @@ Provides building blocks for higher-level abstractions.")
      - connected-components: BFS-based component labeling
      - is-connected?: Test graph connectivity")))
  (tests
-  ((test-data-structures.ss "Tests for Stack, Queue, Set, Dict")
+  ((test-heap.ss "Tests for heap and priority queue")
+   (test-data-structures.ss "Tests for Stack, Queue, Set, Dict")
    (test-collection-utils.ss "Tests for collection utilities")
    (test-graph-algorithms.ss "Tests for graph algorithms")
    (test-pagerank.ss "Tests for PageRank")

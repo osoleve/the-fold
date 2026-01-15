@@ -13,18 +13,20 @@
    "Fundamental data structures: heaps, balanced trees, graphs,
     hash tables, and collection utilities.")
 
-  (keywords (data-structure graph heap tree hash-table queue stack
-             bfs dfs shortest-path pagerank collection adjacency-matrix
-             floyd-warshall dijkstra transitive-closure graph-distance
-             eigenvector-centrality katz-centrality closeness-centrality
-             betweenness-centrality community-detection label-propagation
-             modularity minimum-spanning-tree mst prim kruskal union-find))
+  (keywords (data-structure graph heap priority-queue leftist-heap heapsort
+             tree hash-table queue stack bfs dfs shortest-path pagerank
+             collection adjacency-matrix floyd-warshall dijkstra
+             transitive-closure graph-distance eigenvector-centrality
+             katz-centrality closeness-centrality betweenness-centrality
+             community-detection label-propagation modularity
+             minimum-spanning-tree mst prim kruskal union-find))
   (aliases (ds structures collections))
 
   (exports
-   (stack queue set dict graph-algorithms collection-utils pagerank graph-matrix centrality graph-community))
+   (heap stack queue set dict graph-algorithms collection-utils pagerank graph-matrix centrality graph-community))
 
   (modules
+   (heap "heap.ss" "Leftist heap and priority queue with O(log n) operations")
    (stack "stack.ss" "LIFO stack operations")
    (queue "queue.ss" "FIFO queue with amortized O(1) ops")
    (set "set.ss" "Unordered collection with no duplicates")
