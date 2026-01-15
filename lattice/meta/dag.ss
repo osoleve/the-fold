@@ -140,6 +140,83 @@
        cycles))
 
 ;;; ====
+;;; Proactive Cycle Detection
+;;; ====
+
+;;; lattice-would-cycle? : Symbol Symbol -> Bool
+;;; Check if adding a dependency from->to would create a cycle.
+;;; Returns #t if the edge would create a cycle, #f if safe.
+;;;
+;;; Algorithm: A cycle would form if 'to' can already reach 'from'.
+;;; If we add from->to and to can reach from, we complete a cycle.
+(define (lattice-would-cycle? from to)
+  (or (eq? from to)  ; Self-loop is a cycle
+      (and (memq from (lattice-deps-transitive to)) #t)))
+
+;;; lattice-find-cycle-path : Symbol Symbol -> (List Symbol) | #f
+;;; If adding from->to would create a cycle, return the cycle path.
+;;; Returns #f if no cycle would be created.
+(define (lattice-find-cycle-path from to)
+  (if (eq? from to)
+      (list from from)  ; Self-loop
+      (let ([path (lattice-path to from)])
+           (if path
+               (append path (list to))  ; Complete the cycle
+               #f))))
+
+;;; lattice-check-deps : Symbol -> (ok #t) | (err (cycle-path ...))
+;;; Validate that a skill's dependencies don't create cycles.
+;;; Returns (ok #t) if valid, (err (cycle-from to path)) if cycle found.
+(define (lattice-check-deps skill-name)
+  (let ([deps (kg-deps skill-name)])
+       (let loop ([deps deps])
+            (if (null? deps)
+                '(ok #t)
+                (let* ([dep (car deps)]
+                       [cycle-path (lattice-find-cycle-path skill-name dep)])
+                      (if cycle-path
+                          `(err (cycle ,skill-name ,dep ,cycle-path))
+                          (loop (cdr deps))))))))
+
+;;; lattice-validate-all : -> (List (err ...))
+;;; Validate all skills, returning list of cycle errors.
+(define (lattice-validate-all)
+  (filter-map
+   (lambda (skill-name)
+           (let ([result (lattice-check-deps skill-name)])
+                (if (and (pair? result) (eq? (car result) 'err))
+                    result
+                    #f)))
+   (kg-skills)))
+
+;;; lc : Symbol -> void
+;;; Quick cycle check for a skill (REPL convenience)
+(define (lc skill-name)
+  (let ([result (lattice-check-deps skill-name)])
+       (if (and (pair? result) (eq? (car result) 'ok))
+           (printf "~a: No cycles detected\n" skill-name)
+           (let* ([err-data (cadr result)]
+                  [from (cadr err-data)]
+                  [to (caddr err-data)]
+                  [path (cadddr err-data)])
+                 (printf "~a: CYCLE DETECTED!\n" skill-name)
+                 (printf "  Adding ~a -> ~a creates cycle:\n" from to)
+                 (printf "  ~a\n" (format-cycle-path path)))))
+  (void))
+
+;;; format-cycle-path : (List Symbol) -> String
+;;; Format a cycle path for display
+(define (format-cycle-path path)
+  (if (null? path)
+      ""
+      (let loop ([rest (cdr path)]
+                 [acc (symbol->string (car path))])
+           (if (null? rest)
+               acc
+               (loop (cdr rest)
+                     (string-append acc " → " (symbol->string (car rest))))))))
+
+;;; ====
 ;;; Tier Analysis
 ;;; ====
 
@@ -283,4 +360,8 @@
 (printf "  (lattice-leaves)                 - No dependents\n")
 (printf "  (lattice-hubs)                   - Most used skills\n")
 (printf "  (lattice-graph)                  - Print full DAG\n")
+(printf "  (lattice-would-cycle? 'a 'b)     - Would a->b create cycle?\n")
+(printf "  (lattice-check-deps 'skill)      - Validate skill's deps\n")
+(printf "  (lattice-validate-all)           - Validate all skills\n")
 (printf "  (ld 'skill), (lu 'skill)         - Quick lookup\n")
+(printf "  (lc 'skill)                      - Quick cycle check\n")

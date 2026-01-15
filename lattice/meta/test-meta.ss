@@ -74,30 +74,100 @@
 ;;; ====
 
 (test-group dag-tests
-            
+
             (define-test test-lattice-roots
               (kg-build!)
               (let ([roots (lattice-roots)])
                    (assert-true (if (memq 'linalg roots) #t #f))
                    (assert-true (if (memq 'data roots) #t #f))))
-            
+
             (define-test test-lattice-deps-transitive
               (kg-build!)
               (let ([deps (lattice-deps-transitive 'physics/diff)])
                    (assert-true (if (memq 'linalg deps) #t #f))))
-            
+
             (define-test test-lattice-path
               (kg-build!)
               (let ([path (lattice-path 'physics/diff 'linalg)])
                    (assert-true (list? path))))
-            
+
             (define-test test-lattice-tiers
               (kg-build!)
               (let ([tiers (lattice-tiers)])
                    (assert-true (if (assq 0 tiers) #t #f))
                    (assert-true (if (assq 1 tiers) #t #f))
                    (assert-true (if (assq 2 tiers) #t #f))))
-            
+
+            )
+
+;;; ====
+;;; Cycle Detection Tests
+;;; ====
+
+(test-group cycle-detection-tests
+
+            ;; Test that self-loops are detected
+            (define-test test-self-loop-detection
+              (kg-build!)
+              (assert-true (lattice-would-cycle? 'linalg 'linalg)))
+
+            ;; Test that safe dependencies are correctly identified
+            (define-test test-safe-dependency
+              (kg-build!)
+              ;; physics/diff -> linalg exists and is safe (linalg is tier 0)
+              (assert-false (lattice-would-cycle? 'physics/diff 'linalg)))
+
+            ;; Test that reverse dependencies would create cycles
+            (define-test test-reverse-would-cycle
+              (kg-build!)
+              ;; linalg -> physics/diff would create cycle since physics/diff -> linalg
+              (assert-true (lattice-would-cycle? 'linalg 'physics/diff)))
+
+            ;; Test cycle path finding for self-loop
+            (define-test test-find-cycle-path-self
+              (kg-build!)
+              (let ([path (lattice-find-cycle-path 'linalg 'linalg)])
+                   (assert-true (list? path))
+                   (assert-equal '(linalg linalg) path)))
+
+            ;; Test cycle path finding for valid cycle
+            (define-test test-find-cycle-path-real
+              (kg-build!)
+              (let ([path (lattice-find-cycle-path 'linalg 'physics/diff)])
+                   (assert-true (list? path))
+                   (assert-true (> (length path) 2))))
+
+            ;; Test no cycle path for safe dep
+            (define-test test-no-cycle-path-safe
+              (kg-build!)
+              (assert-false (lattice-find-cycle-path 'physics/diff 'linalg)))
+
+            ;; Test lattice-check-deps returns ok for valid skill
+            (define-test test-check-deps-valid
+              (kg-build!)
+              (let ([result (lattice-check-deps 'physics/diff)])
+                   (assert-true (pair? result))
+                   (assert-equal 'ok (car result))))
+
+            ;; Test lattice-check-deps returns ok for tier 0 skill (no deps)
+            (define-test test-check-deps-tier0
+              (kg-build!)
+              (let ([result (lattice-check-deps 'linalg)])
+                   (assert-true (pair? result))
+                   (assert-equal 'ok (car result))))
+
+            ;; Test lattice-validate-all returns empty on healthy lattice
+            (define-test test-validate-all-healthy
+              (kg-build!)
+              (let ([errors (lattice-validate-all)])
+                   (assert-true (null? errors))))
+
+            ;; Test format-cycle-path helper
+            (define-test test-format-cycle-path
+              (assert-equal "a → b → c" (format-cycle-path '(a b c)))
+              (assert-equal "x" (format-cycle-path '(x)))
+              (assert-equal "" (format-cycle-path '())))
+
             )
 
 ;;; ====

@@ -73,11 +73,13 @@
   (let* ([issues '()]
          [warnings '()]
          [skills (kg-skills)])
-        
-        ;; Check for cycles
-        (let ([cycles (lattice-cycles)])
-             (unless (null? cycles)
-                     (set! issues (cons `(cycles ,@cycles) issues))))
+
+        ;; Check for cycles (using new detailed validator)
+        (let ([cycle-errors (lattice-validate-all)])
+             (for-each
+              (lambda (err)
+                      (set! issues (cons err issues)))
+              cycle-errors))
         
         ;; Check for missing manifests (skills referenced but not defined)
         (for-each
@@ -140,14 +142,25 @@
                 (printf "Issues (~a):\n" (length issues))
                 (for-each
                  (lambda (issue)
-                         (case (car issue)
-                               [(cycles)
-                                (printf "  ERROR: Dependency cycles detected: ~a\n" (cdr issue))]
-                               [(missing-dep)
-                                (printf "  ERROR: ~a depends on missing skill: ~a\n"
-                                        (cadr issue) (caddr issue))]
-                               [else
-                                (printf "  ERROR: ~a\n" issue)]))
+                         (cond
+                          ;; New cycle format: (err (cycle from to path))
+                          [(and (pair? issue) (eq? (car issue) 'err))
+                           (let* ([data (cadr issue)]
+                                  [from (cadr data)]
+                                  [to (caddr data)]
+                                  [path (cadddr data)])
+                                 (printf "  ERROR: Cycle detected in ~a\n" from)
+                                 (printf "         ~a -> ~a creates: ~a\n"
+                                         from to (format-cycle-path path)))]
+                          ;; Legacy cycle format
+                          [(and (pair? issue) (eq? (car issue) 'cycles))
+                           (printf "  ERROR: Dependency cycles detected: ~a\n" (cdr issue))]
+                          ;; Missing dep format
+                          [(and (pair? issue) (eq? (car issue) 'missing-dep))
+                           (printf "  ERROR: ~a depends on missing skill: ~a\n"
+                                   (cadr issue) (caddr issue))]
+                          [else
+                           (printf "  ERROR: ~a\n" issue)]))
                  issues)
                 (printf "\n"))
         
