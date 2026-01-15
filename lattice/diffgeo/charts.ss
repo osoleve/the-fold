@@ -362,15 +362,17 @@
 
 ;;; make-spherical-chart : → Chart
 ;;; Create a 3D spherical coordinate chart.
-;;; Domain: R^3 \ {z-axis}
-;;; Coordinates: (r, θ, φ) where r > 0, θ ∈ (0, π), φ ∈ (-π, π]
+;;; Domain: R^3 \ {z-axis ∪ negative x-axis half-plane}
+;;; Excludes z-axis (singularity) and atan branch cut (y=0, x≤0)
+;;; Coordinates: (r, θ, φ) where r > 0, θ ∈ (0, π), φ ∈ (-π, π)
 (define (make-spherical-chart)
   (make-chart 'spherical 3
-              ;; Domain: not z-axis (where x=y=0)
+              ;; Domain: not z-axis AND not atan branch cut
               (lambda (p)
                 (let ([x (vector-ref p 0)]
                       [y (vector-ref p 1)])
-                  (not (and (= x 0) (= y 0)))))
+                  (and (not (and (= x 0) (= y 0)))      ; Exclude z-axis
+                       (not (and (<= x 0) (= y 0))))))
               ;; Coord map: (x,y,z) → (r, θ, φ)
               (lambda (p)
                 (let* ([x (vector-ref p 0)]
@@ -391,15 +393,17 @@
 
 ;;; make-cylindrical-chart : → Chart
 ;;; Create a 3D cylindrical coordinate chart.
-;;; Domain: R^3 \ {z-axis}
-;;; Coordinates: (ρ, φ, z) where ρ > 0, φ ∈ (-π, π]
+;;; Domain: R^3 \ {z-axis ∪ negative x-axis half-plane}
+;;; Excludes z-axis (singularity) and atan branch cut (y=0, x≤0)
+;;; Coordinates: (ρ, φ, z) where ρ > 0, φ ∈ (-π, π)
 (define (make-cylindrical-chart)
   (make-chart 'cylindrical 3
-              ;; Domain: not z-axis
+              ;; Domain: not z-axis AND not atan branch cut
               (lambda (p)
                 (let ([x (vector-ref p 0)]
                       [y (vector-ref p 1)])
-                  (not (and (= x 0) (= y 0)))))
+                  (and (not (and (= x 0) (= y 0)))      ; Exclude z-axis
+                       (not (and (<= x 0) (= y 0))))))
               ;; Coord map: (x,y,z) → (ρ, φ, z)
               (lambda (p)
                 (let ([x (vector-ref p 0)]

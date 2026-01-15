@@ -258,6 +258,100 @@
 )
 
 ;;; ====
+;;; Chart Overlap Tests
+;;; ====
+
+(test-group chart-overlap-tests
+
+  ;; Test that polar and cartesian overlap in first quadrant
+  (define-test test-charts-overlap-positive
+    (let* ([polar (make-polar-chart)]
+           [cart (make-cartesian-chart)]
+           ;; Test points in first quadrant (polar coords)
+           [test-coords (list (vector 1.0 0.5)
+                              (vector 2.0 0.8)
+                              (vector 0.5 1.0))])
+      (assert-true (charts-overlap? polar cart test-coords))))
+
+  ;; Test overlap detection with non-overlapping region
+  (define-test test-charts-overlap-at-origin
+    (let* ([polar (make-polar-chart)]
+           [cart (make-cartesian-chart)]
+           ;; Coords that map to origin - not in polar domain
+           ;; Use coords that would map far from origin
+           [test-coords (list (vector 1.0 0.0))])
+      ;; These should overlap since (1,0) in polar -> (1,0) cartesian
+      (assert-true (charts-overlap? polar cart test-coords))))
+)
+
+;;; ====
+;;; Transition Smoothness Tests
+;;; ====
+
+(test-group transition-smooth-tests
+
+  ;; Polar to cartesian should be smooth away from origin
+  (define-test test-transition-smooth-polar-cart
+    (let* ([polar (make-polar-chart)]
+           [cart (make-cartesian-chart)]
+           [test-coords (list (vector 1.0 0.5)
+                              (vector 2.0 1.0)
+                              (vector 0.5 0.3))])
+      (assert-true (transition-smooth? polar cart test-coords))))
+
+  ;; Test at a specific point
+  (define-test test-transition-smooth-single-point
+    (let* ([polar (make-polar-chart)]
+           [cart (make-cartesian-chart)]
+           [test-coords (list (vector 2.0 0.7))])
+      (assert-true (transition-smooth? polar cart test-coords))))
+)
+
+;;; ====
+;;; Branch Cut Boundary Tests
+;;; ====
+
+(test-group branch-cut-tests
+
+  ;; Spherical chart should exclude negative x-axis
+  (define-test test-spherical-excludes-neg-x-axis
+    (let ([spherical (make-spherical-chart)])
+      (assert-false (chart-contains? spherical (vector -1.0 0.0 0.0)))
+      (assert-false (chart-contains? spherical (vector -5.0 0.0 2.0)))
+      (assert-false (chart-contains? spherical (vector -0.1 0.0 -3.0)))))
+
+  ;; Spherical chart should include points not on branch cut
+  (define-test test-spherical-includes-valid-points
+    (let ([spherical (make-spherical-chart)])
+      (assert-true (chart-contains? spherical (vector 1.0 0.0 0.0)))
+      (assert-true (chart-contains? spherical (vector 1.0 1.0 0.0)))
+      (assert-true (chart-contains? spherical (vector -1.0 0.1 0.0)))
+      (assert-true (chart-contains? spherical (vector -1.0 -0.1 0.0)))))
+
+  ;; Cylindrical chart should exclude negative x-axis
+  (define-test test-cylindrical-excludes-neg-x-axis
+    (let ([cyl (make-cylindrical-chart)])
+      (assert-false (chart-contains? cyl (vector -1.0 0.0 0.0)))
+      (assert-false (chart-contains? cyl (vector -2.0 0.0 5.0)))
+      (assert-false (chart-contains? cyl (vector 0.0 0.0 1.0)))))  ; z-axis
+
+  ;; Cylindrical chart should include valid points
+  (define-test test-cylindrical-includes-valid-points
+    (let ([cyl (make-cylindrical-chart)])
+      (assert-true (chart-contains? cyl (vector 1.0 0.0 0.0)))
+      (assert-true (chart-contains? cyl (vector 0.0 1.0 0.0)))
+      (assert-true (chart-contains? cyl (vector -1.0 0.1 5.0)))))
+
+  ;; Polar chart branch cut (for completeness)
+  (define-test test-polar-branch-cut
+    (let ([polar (make-polar-chart)])
+      (assert-false (chart-contains? polar (vector -1.0 0.0)))
+      (assert-false (chart-contains? polar (vector 0.0 0.0)))
+      (assert-true (chart-contains? polar (vector -1.0 0.1)))
+      (assert-true (chart-contains? polar (vector 1.0 0.0)))))
+)
+
+;;; ====
 ;;; Summary
 ;;; ====
 
