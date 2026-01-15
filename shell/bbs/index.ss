@@ -185,21 +185,24 @@
 ;;; bbs-index-issue-from-disk! : String Bytevector -> Void
 ;;; Load a single issue into the index from its hash.
 ;;; Used for auto-refresh when an issue exists on disk but not in memory.
+;;; Guards against duplicate indexing (e.g., from concurrent calls).
 (define (bbs-index-issue-from-disk! id hash)
-  (let ([blk (bbs-fetch hash)])
-    (when blk
-      (let ([data (issue-block-data blk)])
-        (when data
-          ;; Add to main index
-          (set! *bbs-issues* (cons (cons id hash) *bbs-issues*))
-          ;; Index by status
-          (let* ([status (cdr (assq 'status data))]
-                 [existing (hashtable-ref *bbs-by-status* status '())])
-            (hashtable-set! *bbs-by-status* status (cons id existing)))
-          ;; Index by priority
-          (let* ([priority (cdr (assq 'priority data))]
-                 [existing (hashtable-ref *bbs-by-priority* priority '())])
-            (hashtable-set! *bbs-by-priority* priority (cons id existing))))))))
+  ;; Guard: skip if already indexed (prevents duplicates)
+  (unless (assoc id *bbs-issues*)
+    (let ([blk (bbs-fetch hash)])
+      (when blk
+        (let ([data (issue-block-data blk)])
+          (when data
+            ;; Add to main index
+            (set! *bbs-issues* (cons (cons id hash) *bbs-issues*))
+            ;; Index by status
+            (let* ([status (cdr (assq 'status data))]
+                   [existing (hashtable-ref *bbs-by-status* status '())])
+              (hashtable-set! *bbs-by-status* status (cons id existing)))
+            ;; Index by priority
+            (let* ([priority (cdr (assq 'priority data))]
+                   [existing (hashtable-ref *bbs-by-priority* priority '())])
+              (hashtable-set! *bbs-by-priority* priority (cons id existing)))))))))
 
 ;;; ====
 ;;; Dependency Management
