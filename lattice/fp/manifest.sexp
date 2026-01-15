@@ -340,6 +340,16 @@ Key design principles:
     schulze-strengths schulze-winner schulze-ranking
     ;; Examples and manipulation
     condorcet-cycle-example manipulation-possible?
+    ;; voting-games.ss — Voting-Cooperative Games Bridge
+    profile->majority-game profile->weighted-voting-game profile->rule-induced-game
+    shapley-shubik-index shapley-shubik-weighted
+    banzhaf-voting-power banzhaf-weighted
+    voter-is-dictator? voter-is-dummy? voter-has-veto?
+    minimal-winning-coalitions is-minimal-winning?
+    power-concentration power-gini
+    decisive-for-candidate blocking-for-candidate
+    make-electoral-college-game electoral-college-power power-per-capita
+    us-electoral-college-2020 un-security-council simple-3-voter-example
 
     ;; symbolic/ — Symbolic Expressions
     ;; expr.ss
@@ -571,7 +581,8 @@ Key design principles:
        "normal-form.ss"   ; Normal form games, Nash equilibrium, IESDS
        "coop-games.ss"    ; Cooperative games, Shapley value, core, bargaining
        "matching.ss"      ; Two-sided matching, Gale-Shapley, assignment games
-       "voting.ss")))     ; Social choice: plurality, Borda, Condorcet, Schulze
+       "voting.ss"        ; Social choice: plurality, Borda, Condorcet, Schulze
+       "voting-games.ss"))) ; Bridge: voting rules to simple games, power indices
 
     ((subdir "symbolic")
      (description "Symbolic computation and computer algebra")
