@@ -1,6 +1,7 @@
 ((name "game")
  (description "Game theory foundations including normal form games,
-  Nash equilibrium computation, and strategic analysis tools.")
+  cooperative games, Nash equilibrium computation, Shapley value,
+  and strategic analysis tools.")
 
  (modules
   ((file "normal-form.ss")
@@ -37,6 +38,60 @@
      (find-pure-nash pd)
      ;; => ((defect defect))"))
 
+  ((file "coop-games.ss")
+   (purpose "Cooperative (coalitional) game theory with TU games")
+   (exports
+    ;; Coalition operations
+    (coalition-empty "Empty coalition (no players)")
+    (coalition-singleton "Coalition with single player")
+    (coalition-member? "Check if player is in coalition")
+    (coalition-union "Union of two coalitions")
+    (coalition-intersection "Intersection of coalitions")
+    (coalition-complement "Complement w.r.t. grand coalition")
+    (coalition-size "Number of players in coalition")
+    (coalition->list "Convert coalition to player list")
+    (list->coalition "Convert player list to coalition")
+    (all-coalitions "Generate all 2^n coalitions")
+    ;; Game types
+    (make-coop-game "Create cooperative game from n and v")
+    (coop-game? "Check if x is a cooperative game")
+    (coop-game-players "Get number of players")
+    (coop-game-value "Get v(S) for coalition S")
+    (coop-game-grand-coalition "Get grand coalition N")
+    ;; Allocations and imputations
+    (allocation-total "Sum of all payoffs")
+    (allocation-coalition-total "Sum of payoffs for coalition")
+    (imputation? "Check if allocation is an imputation")
+    ;; Solution concepts
+    (shapley-value "Compute Shapley value (fair allocation)")
+    (allocation-in-core? "Check if allocation is in core")
+    (core-excess "Compute excess for coalition")
+    (nucleolus "Compute nucleolus (needs LP)")
+    (nash-bargaining "Nash bargaining solution (2-player)")
+    (kalai-smorodinsky "Kalai-Smorodinsky solution (2-player)")
+    ;; Game constructors
+    (make-additive-game "Additive game v(S) = sum of values")
+    (make-unanimity-game "Unanimity game u_T")
+    (make-weighted-voting-game "Weighted voting game")
+    (make-airport-game "Airport cost game")
+    (make-bankruptcy-game "Bankruptcy game")
+    (make-gloves-game "Gloves market game")
+    ;; Properties
+    (coop-game-superadditive? "Check superadditivity")
+    (coop-game-convex? "Check convexity")
+    (coop-game-monotonic? "Check monotonicity")
+    (coop-game-simple? "Check if simple (voting) game")
+    ;; Power indices
+    (is-winning? "Check if coalition is winning")
+    (is-blocking? "Check if coalition is blocking")
+    (is-pivotal? "Check if player is pivotal")
+    (banzhaf-index "Compute Banzhaf power index"))
+   (example
+    ";; Airport game: 3 airlines with runway requirements
+     (define airport (make-airport-game '(100 200 300)))
+     (shapley-value airport 1000)
+     ;; Fair cost allocation based on marginal contributions"))
+
   ((file "physics-dsl.ss")
    (purpose "Domain-specific language for physics simulations")
    (exports
@@ -52,11 +107,16 @@
   ("lattice/linalg/matrix.ss" "Matrix operations"))
 
  (notes
-  "Normal form games represent strategic situations where players
-   choose simultaneously. A Nash equilibrium is a strategy profile
-   where no player can unilaterally improve their payoff.
+  "Game theory in The Fold covers both non-cooperative (normal form)
+   and cooperative (coalitional) games.
 
-   The module focuses on finite games with pure and mixed strategies.
-   For games with continuous strategy spaces, see optimization modules.
+   Non-cooperative: Players choose simultaneously. Nash equilibrium is
+   where no player can unilaterally improve. Focus on finite games
+   with pure and mixed strategies.
 
-   Test suite: 26 tests covering equilibrium finding and dominance."))
+   Cooperative: Players form binding coalitions. Key concepts are
+   the Shapley value (fair division), core stability (no coalition
+   wants to deviate), and bargaining solutions (2-player negotiations).
+   Constraint: n <= 60 players (bitmask representation).
+
+   Test suites: 26 tests for normal-form, 41 tests for cooperative."))

@@ -291,6 +291,25 @@ Key design principles:
     ;; Mixed strategies
     make-mixed-strategy expected-payoff
     solve-2x2-nash
+    ;; coop-games.ss — Cooperative Games
+    ;; Coalition operations
+    coalition-empty coalition-singleton coalition-member?
+    coalition-union coalition-intersection coalition-difference coalition-complement
+    coalition-size coalition->list list->coalition all-coalitions coalition-subset?
+    ;; Game types
+    make-coop-game coop-game? coop-game-players coop-game-value coop-game-grand-coalition
+    ;; Allocations
+    allocation-total allocation-coalition-total imputation?
+    ;; Solution concepts
+    shapley-value allocation-in-core? core-excess max-excess nucleolus
+    bargaining-set nash-bargaining kalai-smorodinsky
+    ;; Game constructors
+    make-additive-game make-unanimity-game make-weighted-voting-game
+    make-airport-game make-bankruptcy-game make-gloves-game
+    ;; Properties
+    coop-game-superadditive? coop-game-convex? coop-game-monotonic? coop-game-simple?
+    ;; Power indices
+    is-winning? is-blocking? is-pivotal? banzhaf-index
 
     ;; symbolic/ — Symbolic Expressions
     ;; expr.ss
@@ -517,9 +536,10 @@ Key design principles:
        "zipper-lens.ss"))) ; Zipper-lens integration (lenses, affines, comonad connection)
 
     ((subdir "game")
-     (description "Game theory utilities")
+     (description "Game theory: normal form and cooperative games")
      (files (
-       "normal-form.ss"))) ; Normal form games, Nash equilibrium, IESDS
+       "normal-form.ss"   ; Normal form games, Nash equilibrium, IESDS
+       "coop-games.ss"))) ; Cooperative games, Shapley value, core, bargaining
 
     ((subdir "symbolic")
      (description "Symbolic computation and computer algebra")
