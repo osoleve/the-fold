@@ -15,6 +15,7 @@
 
   (keywords (data-structure graph heap priority-queue leftist-heap heapsort
              sort merge-sort quicksort insertion-sort stable-sort median
+             avl-tree balanced-tree ordered-map range-query bst
              tree hash-table queue stack bfs dfs shortest-path pagerank
              collection adjacency-matrix floyd-warshall dijkstra
              transitive-closure graph-distance eigenvector-centrality
@@ -24,9 +25,10 @@
   (aliases (ds structures collections))
 
   (exports
-   (sort heap stack queue set dict graph-algorithms collection-utils pagerank graph-matrix centrality graph-community))
+   (avl-tree sort heap stack queue set dict graph-algorithms collection-utils pagerank graph-matrix centrality graph-community))
 
   (modules
+   (avl-tree "avl-tree.ss" "Self-balancing AVL tree with O(log n) operations")
    (sort "sort.ss" "Sorting algorithms: merge sort, quicksort, insertion sort")
    (heap "heap.ss" "Leftist heap and priority queue with O(log n) operations")
    (stack "stack.ss" "LIFO stack operations")

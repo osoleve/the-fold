@@ -3,7 +3,15 @@
  (description "General-purpose data structures and graph algorithms.
 Provides building blocks for higher-level abstractions.")
  (modules
-  ((sort.ss "Sorting algorithms:
+  ((avl-tree.ss "Self-balancing AVL tree (binary search tree):
+     - O(log n) operations: avl-insert, avl-delete, avl-lookup
+     - Min/max: avl-min, avl-max, avl-min-node, avl-max-node
+     - Range queries: avl-range, avl-keys-between, avl-less-than, avl-greater-than
+     - Higher-order: avl-fold, avl-fold-right, avl-map, avl-filter
+     - Set operations: avl-set-union, avl-set-intersection, avl-set-difference
+     - Conversions: avl->list, list->avl, avl-keys, avl-values
+     - Custom comparators: avl-*-by functions")
+   (sort.ss "Sorting algorithms:
      - Merge sort (stable, O(n log n)): sort, merge-sort, merge-sort-by
      - Quicksort (O(n log n) average): quicksort, quicksort-by
      - Insertion sort (O(n^2), stable): insertion-sort, insertion-sort-by
@@ -58,7 +66,8 @@ Provides building blocks for higher-level abstractions.")
      - connected-components: BFS-based component labeling
      - is-connected?: Test graph connectivity")))
  (tests
-  ((test-sort.ss "Tests for sorting algorithms")
+  ((test-avl-tree.ss "Tests for AVL tree operations and balancing")
+   (test-sort.ss "Tests for sorting algorithms")
    (test-heap.ss "Tests for heap and priority queue")
    (test-data-structures.ss "Tests for Stack, Queue, Set, Dict")
    (test-collection-utils.ss "Tests for collection utilities")
