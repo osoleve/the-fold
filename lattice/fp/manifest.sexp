@@ -320,6 +320,8 @@ Key design principles:
     matching-stable? same-matched-agents?
     ;; Assignment games
     make-assignment-game optimal-assignment
+    ;; ILP-based matching
+    weighted-matching-ilp bottleneck-matching-ilp
     ;; Classic market constructors
     make-medical-residency-market make-school-choice-market
 

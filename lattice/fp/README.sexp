@@ -106,6 +106,12 @@ Design Philosophy:
       "property.ss   - Property definition framework"
       "quickcheck.ss - QuickCheck-style property-based testing"
       "laws.ss       - Type class law verification")))
+   ((category . "Game Theory")
+    (description . "Strategic and cooperative game theory")
+    (modules . (
+      "normal-form.ss - Normal form games, Nash equilibrium, IESDS"
+      "coop-games.ss  - Cooperative games, Shapley value, nucleolus, core"
+      "matching.ss    - Two-sided matching, Gale-Shapley, assignment games, ILP matching")))
    ((category . "Utilities")
     (description . "General-purpose functional utilities")
     (modules . (

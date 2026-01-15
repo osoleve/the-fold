@@ -20,8 +20,9 @@
              collection adjacency-matrix floyd-warshall dijkstra
              transitive-closure graph-distance eigenvector-centrality
              katz-centrality closeness-centrality betweenness-centrality
-             community-detection label-propagation modularity
-             minimum-spanning-tree mst prim kruskal union-find))
+             community-detection label-propagation modularity modularity-ilp
+             minimum-spanning-tree mst prim kruskal union-find
+             homology betti-numbers simplicial-complex cycle-basis euler-characteristic))
   (aliases (ds structures collections))
 
   (exports
@@ -35,9 +36,9 @@
    (queue "queue.ss" "FIFO queue with amortized O(1) ops")
    (set "set.ss" "Unordered collection with no duplicates")
    (dict "dict.ss" "Key-value dictionary/map operations")
-   (graph-algorithms "graph-algorithms.ss" "BFS, DFS, shortest paths, spanning trees")
+   (graph-algorithms "graph-algorithms.ss" "BFS, DFS, shortest paths, spanning trees, homology")
    (collection-utils "collection-utils.ss" "Higher-order collection operations")
    (pagerank "pagerank.ss" "PageRank importance scoring")
    (graph-matrix "graph-matrix.ss" "Adjacency matrices, distance algorithms, graph metrics")
    (centrality "centrality.ss" "Eigenvector, Katz, closeness, betweenness centrality")
-   (graph-community "graph-community.ss" "Community detection and minimum spanning trees")))
+   (graph-community "graph-community.ss" "Community detection, MST, modularity optimization")))
