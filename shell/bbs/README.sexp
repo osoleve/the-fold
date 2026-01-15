@@ -19,12 +19,14 @@
              bbs-dep bbs-undep bbs-comment)))
 
   ((name "index.ss")
-   (description "In-memory indices for fast lookups")
+   (description "In-memory indices with disk cache for fast lookups")
    (exports (bbs-rebuild-indices! bbs-all-issues bbs-issues-by-status
              bbs-issues-by-priority bbs-issue-count bbs-issue-exists?
              bbs-issue-hash bbs-blockers bbs-blocking bbs-is-blocked?
              bbs-blocked-issues bbs-ready-issues bbs-stats
-             bbs-add-dep! bbs-remove-dep!)))
+             bbs-add-dep! bbs-remove-dep!
+             ;; Cache functions
+             bbs-save-index-cache! bbs-load-index-cache!)))
 
   ((name "store.ss")
    (description "Block storage and retrieval via CAS")
@@ -52,7 +54,9 @@
   ((path ".bbs/counter")
    (description "Next ID number"))
   ((path ".bbs/deps")
-   (description "Dependency list persistence")))
+   (description "Dependency list persistence"))
+  ((path ".bbs/index.cache")
+   (description "Serialized index cache for fast session startup (gitignored)")))
 
  (pipeline-integration
   "BBS effects are available in agent pipelines via lattice/pipeline/effects.ss:
@@ -69,4 +73,7 @@
   "Migrated from external beads tool to native implementation (2026-01-14)."
   "All data is content-addressed - history preserved via block refs."
   "Dependencies stored in .bbs/deps for persistence across sessions."
-  "IDs use base36 encoding: fold-001, fold-00a, fold-010, etc."))
+  "IDs use base36 encoding: fold-001, fold-00a, fold-010, etc."
+  "Index cache added 2026-01-15 for fast session startup (26x speedup)."
+  "Cache validation: count-based (if head count differs, rebuild from scratch)."
+  "Individual issue updates auto-refresh via bbs-issue-hash on cache miss."))

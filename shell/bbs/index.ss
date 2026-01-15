@@ -108,9 +108,10 @@
                       [by-priority-alist (cadr (assq 'by-priority (cdr data)))])
                   ;; Validate cache version
                   (and (= version *bbs-index-cache-version*)
-                       ;; Validate head count matches disk
-                       (let ([disk-count (length (bbs-list-heads))])
-                         (and (= head-count disk-count)
+                       ;; Get actual disk heads for validation and counter sync
+                       ;; (Gemini QA: use disk heads, not cached IDs, for counter sync)
+                       (let ([disk-heads (bbs-list-heads)])
+                         (and (= head-count (length disk-heads))
                               ;; Cache is valid - restore state
                               (begin
                                 ;; Restore issues (convert hex back to bytevector)
@@ -130,8 +131,9 @@
                                  (lambda (entry)
                                    (hashtable-set! *bbs-by-priority* (car entry) (cdr entry)))
                                  by-priority-alist)
-                                ;; Sync counter from heads to avoid ID collisions
-                                (bbs-sync-counter-from-heads! (map car *bbs-issues*))
+                                ;; CRITICAL: Sync counter from DISK heads, not cache
+                                ;; This prevents ID collisions if cache is stale
+                                (bbs-sync-counter-from-heads! disk-heads)
                                 ;; Load dependencies (always from disk, not cached)
                                 (bbs-load-deps!)
                                 #t))))))))))

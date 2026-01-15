@@ -471,7 +471,7 @@ Priority: 0-4 (0=critical, 4=backlog). Types: `task`, `bug`, `feature`, `epic`.
 | `.fold-users/` | User profile data |
 | `.store/` | Content-addressed store |
 | `.store/heads/bbs/` | BBS issue heads (current hash per issue) |
-| `.bbs/` | BBS runtime data (counter, deps) |
+| `.bbs/` | BBS runtime data (counter, deps, index cache) |
 | `archives/` | Historical exports (e.g., forum archive) |
 | `TAXONOMY.sexp` | Machine-readable project taxonomy |
 
