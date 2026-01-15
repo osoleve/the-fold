@@ -1,5 +1,5 @@
 (skill topology
-  (version "0.2.1")
+  (version "0.3.0")
   (tier 1)
   (path "lattice/topology")
   (purity total)
@@ -38,8 +38,8 @@ Computes topological invariants over Z₂ coefficients. Foundation for persisten
       ;; Z₂ matrix operations
       z2-matrix z2-matrix? z2-matrix-rows z2-matrix-cols z2-matrix-ref
       z2-matrix-zero z2-matrix-copy z2-matrix-print
-      ;; Rank computation
-      z2-rank z2-nullity
+      ;; Rank and null space computation
+      z2-rank z2-nullity z2-rref z2-null-space
       ;; Boundary matrices
       sc-boundary-matrix sc-boundary-matrix-print
       ;; Betti numbers (main interface)

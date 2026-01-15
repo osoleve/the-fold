@@ -84,6 +84,61 @@
         (assert-equal 4 (+ r n))))))
 
 ;;; ============================================================
+;;; Z2 NULL SPACE TESTS
+;;; ============================================================
+
+(test-group "Z2 Null Space"
+
+  (define-test "null space of identity is empty"
+    (let ([m (z2-matrix 3 3 (vector 1 0 0 0 1 0 0 0 1))])
+      (assert-equal '() (z2-null-space m))))
+
+  (define-test "null space of zero matrix is full"
+    (let* ([m (z2-matrix-zero 2 3)]
+           [ns (z2-null-space m)])
+      ; 3 columns, rank 0, so nullity = 3
+      (assert-equal 3 (length ns))))
+
+  (define-test "null space dimension equals nullity"
+    (let* ([m (z2-matrix 3 4 (vector 1 0 1 0 0 1 0 1 1 1 1 1))]
+           [ns (z2-null-space m)])
+      (assert-equal (z2-nullity m) (length ns))))
+
+  (define-test "null space vectors are in kernel"
+    ; Matrix with known null space: [1 1 0; 0 1 1] has null vector (1 1 1)
+    (let* ([m (z2-matrix 2 3 (vector 1 1 0 0 1 1))]
+           [ns (z2-null-space m)])
+      (assert-equal 1 (length ns))
+      ; Verify Ax = 0: each row dot null-vector should be 0 mod 2
+      (let ([v (car ns)])
+        ; Row 0: 1*v0 + 1*v1 + 0*v2 = v0 + v1
+        (assert-equal 0 (modulo (+ (list-ref v 0) (list-ref v 1)) 2))
+        ; Row 1: 0*v0 + 1*v1 + 1*v2 = v1 + v2
+        (assert-equal 0 (modulo (+ (list-ref v 1) (list-ref v 2)) 2)))))
+
+  (define-test "null space of boundary matrix gives cycles"
+    ; Triangle boundary d1 has null space = cycles
+    ; For a triangle, the cycle is the boundary itself (all 3 edges)
+    (let* ([sc (sc-from-simplices (list (triangle 0 1 2)))]
+           [b1 (sc-boundary-matrix sc 1)]
+           [ns (z2-null-space b1)])
+      ; Filled triangle has no 1-cycles (B1 = 0), so null space of d1
+      ; should have dimension = nullity(d1) = 3 - 2 = 1... but wait
+      ; Actually d1 for filled triangle has rank 2, nullity 1
+      ; The null vector (1 1 1) represents all 3 edges forming a cycle
+      (assert-equal 1 (length ns))
+      (assert-equal '(1 1 1) (car ns))))
+
+  (define-test "z2-rref returns correct pivots"
+    (let* ([m (z2-matrix 2 3 (vector 1 1 0 0 1 1))])
+      (let-values ([(rref pivots) (z2-rref m)])
+        ; Pivots should be in columns 0 and 1
+        (assert-equal '(0 1) pivots)
+        ; RREF should have 1s only on diagonal for pivot cols
+        (assert-equal 1 (z2-matrix-ref rref 0 0))
+        (assert-equal 1 (z2-matrix-ref rref 1 1))))))
+
+;;; ============================================================
 ;;; BOUNDARY MATRIX TESTS
 ;;; ============================================================
 

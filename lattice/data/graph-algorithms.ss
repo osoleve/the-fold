@@ -28,11 +28,8 @@
 
 ;;; Dependencies for homology-based analysis (Section 8)
 ;;; Uses topology/homology.ss for Z_2 homology computation (canonical implementation)
+;;; All homology functions now use Z_2 arithmetic via this module
 (load "lattice/topology/homology.ss")
-;;; Legacy linalg loads kept for cycle-basis-homology null space computation
-(load "lattice/linalg/matrix.ss")
-(load "lattice/linalg/matrix-decomp.ss")
-(load "lattice/linalg/matrix-solvers.ss")
 
 ;;; ====
 ;;; Section 1: Helper Functions
@@ -822,15 +819,14 @@
 ;;;   - beta_1 = dim(H_1) = number of independent cycles
 ;;;
 ;;; IMPLEMENTATION NOTES:
-;;;   - Betti numbers (graph-betti-numbers) use the canonical Z_2 homology
+;;;   - All homology functions use the canonical Z_2 implementation
 ;;;     from topology/homology.ss for exact mod-2 arithmetic
-;;;   - Cycle basis extraction (cycle-basis-homology) still uses legacy
-;;;     real-matrix null space computation (pending z2-null-space in topology)
-;;;   - Bridge functions (graph->simplicial-complex) remain unchanged
+;;;   - Betti numbers via sc-betti-numbers
+;;;   - Cycle basis via z2-null-space of sc-boundary-matrix
+;;;   - Bridge functions (graph->simplicial-complex) convert graph to SC
 ;;;
 ;;; Dependencies:
-;;;   - lattice/topology/homology.ss (canonical Z_2 homology)
-;;;   - lattice/linalg/matrix.ss (legacy, for null space computation)
+;;;   - lattice/topology/homology.ss (Z_2 homology, boundary matrices, null space)
 
 ;;; --- Graph to Simplicial Complex Conversion ---
 
@@ -971,17 +967,14 @@
 ;;; Returns a list of fundamental cycles, where each cycle is a list of edges.
 ;;; The number of cycles equals beta_1.
 ;;;
-;;; NOTE: Unlike graph-betti-numbers which uses Z_2 homology from topology/homology.ss,
-;;; this function still uses real-matrix null space computation because
-;;; topology/homology.ss doesn't yet provide z2-null-space (only rank/nullity).
-;;; The results are equivalent for typical graphs but may have numerical precision
-;;; differences for very large graphs. See BBS issue for z2-null-space addition.
+;;; Uses Z_2 homology from topology/homology.ss for exact mod-2 arithmetic.
+;;; No floating-point tolerance issues.
 ;;;
 ;;; Algorithm:
-;;;   1. Build boundary matrix ∂_1 (real-valued, legacy implementation)
-;;;   2. Find null space of ∂_1 (kernel vectors)
+;;;   1. Build Z_2 boundary matrix ∂_1 via sc-boundary-matrix
+;;;   2. Find null space of ∂_1 via z2-null-space (exact Z_2 kernel)
 ;;;   3. Each basis vector of ker(∂_1) represents a cycle
-;;;   4. Convert to edge lists
+;;;   4. Convert to edge lists (1 = edge in cycle, 0 = not)
 ;;;
 ;;; Example:
 ;;;   (cycle-basis-homology '((0 . 1) (1 . 2) (2 . 0)) '(0 1 2))
@@ -992,103 +985,29 @@
          [edge-list (sc-edges sc)])
     (if (= n-edges 0)
         '()  ; No edges, no cycles
-        (let* ([boundary-1 (build-boundary-matrix-1 sc)]
-               [null-basis (matrix-null-space boundary-1)])
+        (let* ([boundary-1 (sc-boundary-matrix sc 1)]
+               [null-basis (z2-null-space boundary-1)])
           ;; Convert each null space vector to a cycle (list of edges)
           (map (lambda (null-vec)
-                 (edges-from-null-vector null-vec edge-list))
+                 (edges-from-z2-null-vector null-vec edge-list))
                null-basis)))))
 
-;;; matrix-null-space : Matrix → (List Vector)
-;;; Compute a basis for the null space of a matrix.
-;;; Uses row reduction to find free variables and back-substitution.
-;;;
-;;; Returns a list of vectors, each representing a basis element.
-(define (matrix-null-space m)
-  (let* ([rows (matrix-rows m)]
-         [cols (matrix-cols m)]
-         ;; Row reduce to echelon form
-         [ref (matrix-gauss-elim m)]
-         ;; Find pivot columns
-         [pivot-cols (find-pivot-columns ref rows cols)]
-         ;; Free columns are non-pivot columns
-         [free-cols (find-free-columns cols pivot-cols)]
-         [n-free (length free-cols)])
-    (if (= n-free 0)
-        '()  ; Trivial null space
-        ;; For each free column, create a basis vector
-        (map (lambda (free-col)
-               (null-space-basis-vector ref rows cols pivot-cols free-col))
-             free-cols))))
-
-;;; find-pivot-columns : Matrix × Nat × Nat → (List Nat)
-;;; Find the column indices that contain pivots in row echelon form.
-(define (find-pivot-columns ref rows cols)
-  (let loop ([row 0] [col 0] [pivots '()])
-    (cond
-     [(or (>= row rows) (>= col cols))
-      (reverse pivots)]
-     [(> (abs (matrix-ref ref row col)) 1e-10)
-      ;; Found pivot in this column
-      (loop (+ row 1) (+ col 1) (cons col pivots))]
-     [else
-      ;; No pivot in this column, try next column
-      (loop row (+ col 1) pivots)])))
-
-;;; find-free-columns : Nat × (List Nat) → (List Nat)
-;;; Find column indices that are not pivot columns.
-(define (find-free-columns n-cols pivot-cols)
-  (let loop ([col 0] [free '()])
-    (if (>= col n-cols)
-        (reverse free)
-        (if (member col pivot-cols)
-            (loop (+ col 1) free)
-            (loop (+ col 1) (cons col free))))))
-
-;;; null-space-basis-vector : Matrix × Nat × Nat × (List Nat) × Nat → Vector
-;;; Construct a null space basis vector for a given free column.
-;;; Sets the free column to 1, other free columns to 0,
-;;; and solves for pivot columns by back-substitution.
-(define (null-space-basis-vector ref rows cols pivot-cols free-col)
-  (let ([vec (make-vector cols 0)]
-        [n-pivots (length pivot-cols)])
-    ;; Set free column to 1
-    (vector-set! vec free-col 1)
-    ;; Back-substitute to find pivot column values
-    ;; For each pivot row (from bottom up), solve for pivot variable
-    (let loop ([p-idx (- n-pivots 1)])
-      (when (>= p-idx 0)
-        (let* ([pivot-col (list-ref pivot-cols p-idx)]
-               [pivot-row p-idx]
-               [pivot-val (matrix-ref ref pivot-row pivot-col)])
-          (when (> (abs pivot-val) 1e-10)
-            ;; Compute sum of known terms
-            (let ([sum (let col-loop ([c (+ pivot-col 1)] [s 0])
-                         (if (>= c cols)
-                             s
-                             (col-loop (+ c 1)
-                                       (+ s (* (matrix-ref ref pivot-row c)
-                                               (vector-ref vec c))))))])
-              (vector-set! vec pivot-col (- (/ sum pivot-val)))))
-          (loop (- p-idx 1)))))
-    vec))
-
-;;; edges-from-null-vector : Vector × (List Simplex) → (List Edge)
-;;; Convert a null space vector to a list of edges.
-;;; Non-zero entries indicate edges that participate in the cycle.
-(define (edges-from-null-vector vec edge-simplices)
-  (let loop ([idx 0] [edges edge-simplices] [result '()])
-    (if (null? edges)
+;;; edges-from-z2-null-vector : (List {0,1}) × (List Simplex) → (List Edge)
+;;; Convert a Z_2 null space vector to a list of edges.
+;;; Entry 1 means edge participates in cycle, 0 means not.
+(define (edges-from-z2-null-vector coeffs edge-simplices)
+  (let loop ([cs coeffs] [edges edge-simplices] [result '()])
+    (if (or (null? cs) (null? edges))
         (reverse result)
-        (let ([coeff (vector-ref vec idx)]
+        (let ([coeff (car cs)]
               [edge (car edges)])
-          (if (> (abs coeff) 1e-10)
+          (if (= coeff 1)
               ;; This edge participates in the cycle
               (let* ([vs (simplex-vertices edge)]
                      [v0 (car vs)]
                      [v1 (cadr vs)])
-                (loop (+ idx 1) (cdr edges) (cons (cons v0 v1) result)))
-              (loop (+ idx 1) (cdr edges) result))))))
+                (loop (cdr cs) (cdr edges) (cons (cons v0 v1) result)))
+              (loop (cdr cs) (cdr edges) result))))))
 
 ;;; --- Convenience Functions ---
 

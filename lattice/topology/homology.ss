@@ -132,6 +132,97 @@
 (define (z2-nullity m)
   (- (z2-matrix-cols m) (z2-rank m)))
 
+;;; z2-rref : Z2Matrix -> (values Z2Matrix (List Integer))
+;;; Compute reduced row echelon form and return pivot columns.
+;;; Returns: (1) RREF matrix, (2) list of pivot column indices
+(define (z2-rref matrix)
+  (let* ([m (z2-matrix-copy matrix)]
+         [rows (z2-matrix-rows m)]
+         [cols (z2-matrix-cols m)]
+         [pivots '()])  ; Will collect pivot columns in reverse
+    (let loop ([pivot-row 0] [pivot-col 0])
+      (if (or (>= pivot-row rows) (>= pivot-col cols))
+          (values m (reverse pivots))
+          ; Find a row with 1 in pivot column
+          (let find-pivot ([r pivot-row])
+            (cond
+              [(>= r rows)
+               ; No pivot in this column, try next column
+               (loop pivot-row (+ pivot-col 1))]
+              [(= (z2-matrix-ref m r pivot-col) 1)
+               ; Found pivot, swap to pivot position
+               (when (not (= r pivot-row))
+                 (z2-matrix-swap-rows! m r pivot-row))
+               ; Eliminate all other 1s in this column
+               (do ([i 0 (+ i 1)])
+                   [(= i rows)]
+                 (when (and (not (= i pivot-row))
+                            (= (z2-matrix-ref m i pivot-col) 1))
+                   (z2-matrix-add-row! m i pivot-row)))
+               ; Record this pivot column
+               (set! pivots (cons pivot-col pivots))
+               ; Move to next pivot position
+               (loop (+ pivot-row 1) (+ pivot-col 1))]
+              [else
+               (find-pivot (+ r 1))]))))))
+
+;;; z2-null-space : Z2Matrix -> (List (List {0,1}))
+;;; Compute a basis for the null space (kernel) of a Z_2 matrix.
+;;; Returns a list of vectors, each represented as a list of 0s and 1s.
+;;;
+;;; Algorithm:
+;;;   1. Reduce matrix to RREF, tracking pivot columns
+;;;   2. Free columns (non-pivot) correspond to free variables
+;;;   3. For each free column, construct a basis vector:
+;;;      - Set free variable to 1, other free variables to 0
+;;;      - Back-substitute to find pivot variable values from RREF
+;;;
+;;; Example: For a 1-cycle in a graph, the null space basis vectors
+;;; indicate which edges participate in the cycle.
+(define (z2-null-space matrix)
+  (let-values ([(rref pivots) (z2-rref matrix)])
+    (let* ([cols (z2-matrix-cols matrix)]
+           [pivot-set (list->set pivots)]
+           ; Free columns are those not in pivot-set
+           [free-cols (filter (lambda (c) (not (set-member? pivot-set c)))
+                              (iota cols))])
+      (if (null? free-cols)
+          '()  ; Trivial null space
+          ; For each free column, construct a basis vector
+          (map (lambda (free-col)
+                 (z2-null-basis-vector rref pivots cols free-col))
+               free-cols)))))
+
+;;; z2-null-basis-vector : Z2Matrix x (List Int) x Int x Int -> (List {0,1})
+;;; Construct one null space basis vector for the given free column.
+;;; In RREF, for free column f, the basis vector has:
+;;;   - v[f] = 1 (the free variable)
+;;;   - v[p] = rref[row-of-p][f] for each pivot column p
+;;;   - v[other-free] = 0
+(define (z2-null-basis-vector rref pivots cols free-col)
+  (let ([vec (make-vector cols 0)])
+    ; Set the free variable to 1
+    (vector-set! vec free-col 1)
+    ; For each pivot, read the value from the RREF matrix
+    ; Pivot column p in row r means: x_p + ... + rref[r][f]*x_f + ... = 0
+    ; So x_p = rref[r][f] (mod 2)
+    (let loop ([ps pivots] [row 0])
+      (unless (null? ps)
+        (let ([pivot-col (car ps)])
+          (vector-set! vec pivot-col (z2-matrix-ref rref row free-col))
+          (loop (cdr ps) (+ row 1)))))
+    (vector->list vec)))
+
+;;; Helper: list->set using hash table for O(1) membership
+(define (list->set lst)
+  (let ([ht (make-hashtable equal-hash equal?)])
+    (for-each (lambda (x) (hashtable-set! ht x #t)) lst)
+    ht))
+
+;;; Helper: set-member?
+(define (set-member? set x)
+  (hashtable-ref set x #f))
+
 ;;; ============================================================
 ;;; BOUNDARY MATRICES
 ;;; ============================================================
