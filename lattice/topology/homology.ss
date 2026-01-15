@@ -138,12 +138,29 @@
 
 ;;; simplex-index : (List Simplex) x Simplex -> Integer | #f
 ;;; Find the index of a simplex in a list (for matrix indexing).
+;;; NOTE: O(n) linear scan - use build-simplex-index-table for bulk lookups.
 (define (simplex-index simplices s)
   (let loop ([remaining simplices] [idx 0])
     (cond
       [(null? remaining) #f]
       [(simplex-equal? s (car remaining)) idx]
       [else (loop (cdr remaining) (+ idx 1))])))
+
+;;; build-simplex-index-table : (List Simplex) -> HashTable
+;;; Build a hash table mapping simplex vertices -> index for O(1) lookup.
+;;; Key is the sorted vertex list (canonical form).
+(define (build-simplex-index-table simplices)
+  (let ([table (make-hashtable equal-hash equal?)])
+    (let loop ([remaining simplices] [idx 0])
+      (unless (null? remaining)
+        (hashtable-set! table (simplex-vertices (car remaining)) idx)
+        (loop (cdr remaining) (+ idx 1))))
+    table))
+
+;;; simplex-index-fast : HashTable x Simplex -> Integer | #f
+;;; O(1) lookup using pre-built index table.
+(define (simplex-index-fast table s)
+  (hashtable-ref table (simplex-vertices s) #f))
 
 ;;; sc-boundary-matrix : SC x Integer -> Z2Matrix
 ;;; Build the k-th boundary matrix d_k : C_k -> C_{k-1}.
@@ -153,6 +170,9 @@
 ;;; Entry (i,j) = 1 if sigma_i is a facet of tau_j
 ;;;
 ;;; For Z_2 coefficients, we ignore signs (+/-1 = 1 mod 2).
+;;;
+;;; Complexity: O(N * k) where N = number of k-simplices, k = simplex dimension
+;;; Uses hash table for O(1) facet index lookups (was O(M) linear scan).
 (define (sc-boundary-matrix sc k)
   (let* ([domain (sc-simplices-dim sc k)]        ; k-simplices
          [codomain (sc-simplices-dim sc (- k 1))] ; (k-1)-simplices
@@ -160,7 +180,8 @@
          [num-cols (length domain)])
     (if (or (= num-rows 0) (= num-cols 0))
         (z2-matrix-zero num-rows num-cols)
-        (let ([mat (z2-matrix-zero num-rows num-cols)])
+        (let ([mat (z2-matrix-zero num-rows num-cols)]
+              [codomain-index (build-simplex-index-table codomain)])  ; O(1) lookups
           ; Fill in the matrix
           (let col-loop ([dom domain] [j 0])
             (if (null? dom)
@@ -170,7 +191,7 @@
                   ; For each facet of tau, mark the corresponding row
                   (for-each
                     (lambda (sigma)
-                      (let ([i (simplex-index codomain sigma)])
+                      (let ([i (simplex-index-fast codomain-index sigma)])
                         (when i
                           (z2-matrix-set! mat i j 1))))
                     facets)

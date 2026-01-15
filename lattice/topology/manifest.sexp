@@ -1,10 +1,10 @@
 (skill topology
-  (version "0.2.0")
+  (version "0.2.1")
   (tier 1)
   (path "lattice/topology")
   (purity total)
   (stability experimental)
-  (fuel-bound "O(n³) for homology via Gaussian elimination, O(2^n) for n-simplex face enumeration")
+  (fuel-bound "O(n³) for homology via Gaussian elimination, O(N*k) for boundary matrix construction")
   (deps (data))
   (description "Computational topology: simplicial complexes, homology groups, and Betti numbers.
 Computes topological invariants over Z₂ coefficients. Foundation for persistent homology and TDA.")
