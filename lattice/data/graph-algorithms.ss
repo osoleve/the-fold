@@ -918,14 +918,6 @@
             (edge-loop (cdr es) (+ col 1)))))
       mat)))
 
-;;; build-boundary-matrix-0 : SC → Matrix
-;;; Build the boundary matrix ∂_0 : C_0 → 0 (zero map).
-;;; This is a 0 × n_vertices matrix (no rows, just columns).
-;;; For computation, we represent it as a 1 × n_vertices zero matrix.
-(define (build-boundary-matrix-0 sc)
-  (let ([n-vertices (length (sc-vertices sc))])
-    (make-matrix 1 n-vertices 0)))
-
 ;;; --- Betti Number Computation ---
 
 ;;; graph-betti-numbers : (List Edge) × (List Vertex) → (beta0 . beta1)
