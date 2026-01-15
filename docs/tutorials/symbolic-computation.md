@@ -312,8 +312,8 @@ Here's a practical example computing Taylor series terms:
 2. **Check for #f**: The `integrate` function returns `#f` when it can't find
    an antiderivative.
 
-3. **Combine with autodiff**: Use `integrate-autodiff.ss` to bridge symbolic
-   and numeric computation.
+3. **Combine with autodiff**: Use `lattice/autodiff/symbolic-diff.ss` to bridge
+   symbolic and numeric computation.
 
 4. **Test with verification**: Always verify integration by differentiating the
    result when developing.

@@ -8,7 +8,7 @@
 
 (load "core/base/prelude.ss")
 (load "lattice/linalg/vec2.ss")
-(load "lattice/fp/symbolic/integrate-autodiff.ss")
+(load "lattice/autodiff/symbolic-diff.ss")
 (load "user/creations/ascii-video.ss")
 (load "user/creations/ascii-video-export.ss")
 

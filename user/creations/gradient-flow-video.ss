@@ -10,7 +10,7 @@
 (load "core/base/prelude.ss")
 (load "user/creations/ascii-video.ss")
 (load "user/creations/ascii-video-export.ss")
-(load "lattice/fp/symbolic/integrate-autodiff.ss")
+(load "lattice/autodiff/symbolic-diff.ss")
 
 ;;; ====
 ;;; Configuration

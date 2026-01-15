@@ -158,7 +158,14 @@
      ;; => (num 1/2)"))
 
   ((file "integrate-autodiff.ss")
-   (purpose "Bridge between symbolic and automatic differentiation")
+   (purpose "DEPRECATED: Redirect to lattice/autodiff/symbolic-diff.ss")
+   (note "This module has moved to lattice/autodiff/symbolic-diff.ss.
+          This file remains as a backwards-compatible redirect.
+          Please update your imports to use the new location.")))
+
+ (moved-modules
+  ((original "integrate-autodiff.ss")
+   (new-location "lattice/autodiff/symbolic-diff.ss")
    (exports
     (eval-expr "Evaluate symbolic expression numerically")
     (eval-expr-safe "Safe eval with error handling")

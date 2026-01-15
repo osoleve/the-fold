@@ -51,4 +51,5 @@
    (differentiable-signal "differentiable-signal.ss" "Differentiable signal processing")
    (sparse-autodiff "sparse-autodiff.ss" "Sparse autodiff for large systems")
    (typed-gradients "typed-gradients.ss" "Type-safe gradient computation")
-   (profiling "profiling.ss" "Performance profiling and debugging tools")))
+   (profiling "profiling.ss" "Performance profiling and debugging tools")
+   (symbolic-diff "symbolic-diff.ss" "Bridge symbolic expressions to traced autodiff")))
