@@ -595,14 +595,17 @@
              [c-final (vec-append c-full (vec-zeros n))]
              [ilp (make-ilp c-final A-final b-stack (iota n))]
              [result (ilp-solve ilp)])
-        (if (ilp-optimal? result)
-            (let* ([x-full (ilp-result-x result)]
-                   [selected '()])
-              (do ([j 0 (+ j 1)])
-                  [(= j n) (reverse selected)]
-                (when (> (vector-ref x-full j) 0.5)
-                  (set! selected (cons j selected)))))
-            'infeasible)))))
+        (cond
+          ((not (ilp-optimal? result)) 'infeasible)
+          ;; Check if Big-M artificial variables are used (indicates infeasibility)
+          ((> (ilp-result-z result) (/ BIG-M 2)) 'infeasible)
+          (else
+           (let* ((x-full (ilp-result-x result))
+                  (selected '()))
+             (do ((j 0 (+ j 1)))
+                 ((= j n) (reverse selected))
+               (when (> (vector-ref x-full j) 0.5)
+                 (set! selected (cons j selected)))))))))))
 
 ;;; ====
 ;;; Helper Functions

@@ -161,6 +161,17 @@
       (let ([total-cost (apply + (map (lambda (i) (vector-ref costs i)) result))])
         (assert-equal 2 total-cost))))
 
+  (define-test "infeasible set cover"
+    ;; Universe: {0, 1, 2}
+    ;; Sets: S0 = {0}, S1 = {1}
+    ;; No set covers element 2, so problem is infeasible
+    (let* ([coverage (matrix-from-lists '((1 0)    ; element 0: only S0
+                                          (0 1)    ; element 1: only S1
+                                          (0 0)))] ; element 2: not covered!
+           [costs (vector 1 1)]
+           [result (set-cover-solve coverage costs)])
+      (assert-true (eq? result 'infeasible))))
+
   (define-test "set cover single set covers all"
     ;; Universe: {0, 1}
     ;; Sets: S0 = {0, 1}
