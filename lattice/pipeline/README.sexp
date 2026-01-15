@@ -11,6 +11,7 @@ Effects are interpreted by the shell layer.")
    (effects.ss . "Effect definitions - LLM, shell, Fold, HTTP, etc.")
    (context.ss . "Pipeline context and state records")
    (council.ss . "Multi-model deliberation primitives")
+   (council-voting.ss . "Ranked-choice voting integration for councils")
    (dsl.ss . "User-facing pipeline DSL")))
 
  (shell-modules
@@ -55,7 +56,12 @@ Effects are interpreted by the shell layer.")
    (parallel . "(council-parallel '(sonnet gemini-3 kimi) 'opus)")
    (debate . "(council-debate 'opus 'gemini-3 'sonnet)")
    (vote . "(council-vote '(opus sonnet haiku) options)")
-   (consensus . "(council-consensus '(opus gemini-3) 5)")))
+   (consensus . "(council-consensus '(opus gemini-3) 5)")
+   ;; Ranked voting patterns (from council-voting.ss)
+   (ranked-schulze . "(council-schulze '(opus sonnet gemini-3) proposals)")
+   (ranked-borda . "(council-borda voters proposals)")
+   (ranked-condorcet . "(council-condorcet voters proposals)")
+   (deliberation . "(deliberate (code-review-deliberation reviewers verdicts))")))
 
  (effect-types
   ((llm . "Call language models")
