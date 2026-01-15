@@ -283,6 +283,191 @@
   (lattice-modules-detail skill-name))
 
 ;;; ====
+;;; Test Discovery
+;;; ====
+
+;;; find-test-files : String -> (List String)
+;;; Find all test-*.ss files in a directory (non-recursive)
+(define (find-test-files dir)
+  (guard (e [else '()])
+         (let ([entries (directory-list dir)])
+              (filter (lambda (f)
+                              (and (string-starts-with? f "test-")
+                                   (string-ends-with? f ".ss")))
+                      entries))))
+
+;;; string-ends-with? : String String -> Bool
+(define (string-ends-with? str suffix)
+  (let ([str-len (string-length str)]
+        [suf-len (string-length suffix)])
+       (and (>= str-len suf-len)
+            (string=? (substring str (- str-len suf-len) str-len) suffix))))
+
+;;; lattice-tests : Symbol -> (List String)
+;;; Get list of test files for a skill
+;;; Returns full paths to test-*.ss files in the skill's directory
+(define (lattice-tests skill-name)
+  (let ([data (kg-skill-data skill-name)])
+       (if (not data)
+           (begin
+             (printf "Skill not found: ~a\n" skill-name)
+             '())
+           (let* ([path (cdr (or (assq 'path data) '(path . "")))]
+                  [test-files (find-test-files path)])
+                 (map (lambda (f) (string-append path "/" f))
+                      test-files)))))
+
+;;; lattice-tests-pretty : Symbol -> void
+;;; Pretty-print test files for a skill
+(define (lattice-tests-pretty skill-name)
+  (let ([tests (lattice-tests skill-name)])
+       (if (null? tests)
+           (printf "No tests found for ~a\n" skill-name)
+           (begin
+             (printf "Tests for ~a (~a files)\n" skill-name (length tests))
+             (printf "~a\n\n" (make-string 40 #\-))
+             (for-each (lambda (t) (printf "  ~a\n" t)) tests)))))
+
+;;; lattice-tests-run : Symbol -> Alist
+;;; Run tests for a skill and return structured results
+;;; Result: ((total . N) (passed . N) (failed . N) (files . ((path . status) ...)))
+;;; This is a shell-boundary operation - invokes external Scheme process
+(define (lattice-tests-run skill-name)
+  (let ([tests (lattice-tests skill-name)])
+       (if (null? tests)
+           `((total . 0) (passed . 0) (failed . 0) (files . ()))
+           (let loop ([remaining tests]
+                      [passed 0]
+                      [failed 0]
+                      [results '()])
+                (if (null? remaining)
+                    `((total . ,(length tests))
+                      (passed . ,passed)
+                      (failed . ,failed)
+                      (files . ,(reverse results)))
+                    (let* ([test-file (car remaining)]
+                           [result (run-test-file test-file)]
+                           [success? (eq? result 'ok)])
+                          (loop (cdr remaining)
+                                (if success? (+ passed 1) passed)
+                                (if success? failed (+ failed 1))
+                                (cons (cons test-file result) results))))))))
+
+;;; run-test-file : String -> 'ok | (error . String)
+;;; Run a single test file and return result
+(define (run-test-file path)
+  (guard (e [else `(error . ,(format "~a" e))])
+         (let* ([cmd (format "scheme --script ~a 2>&1" path)]
+                [output (shell-command-output cmd)])
+               (if (string-contains? output "All tests passed")
+                   'ok
+                   `(error . ,output)))))
+
+;;; shell-command-output : String -> String
+;;; Execute shell command and capture output (stdout + stderr combined via 2>&1)
+(define (shell-command-output cmd)
+  (guard (e [else ""])
+         (let-values ([(to-stdin from-stdout from-stderr pid)
+                       (open-process-ports cmd (buffer-mode line) (native-transcoder))])
+                     (close-port to-stdin)
+                     (close-port from-stderr)  ; We're using 2>&1 so stderr goes to stdout
+                     (let loop ([lines '()])
+                          (let ([line (get-line from-stdout)])
+                               (if (eof-object? line)
+                                   (begin
+                                     (close-port from-stdout)
+                                     (string-join (reverse lines) "\n"))
+                                   (loop (cons line lines))))))))
+
+;;; string-join : (List String) String -> String
+;;; Join strings with separator
+(define (string-join strs sep)
+  (if (null? strs)
+      ""
+      (let loop ([rest (cdr strs)] [acc (car strs)])
+           (if (null? rest)
+               acc
+               (loop (cdr rest) (string-append acc sep (car rest)))))))
+
+;;; string-contains? : String String -> Bool
+;;; Check if str contains substr
+(define (string-contains? str substr)
+  (let ([str-len (string-length str)]
+        [sub-len (string-length substr)])
+       (if (> sub-len str-len)
+           #f
+           (let loop ([i 0])
+                (cond
+                 [(> (+ i sub-len) str-len) #f]
+                 [(string=? (substring str i (+ i sub-len)) substr) #t]
+                 [else (loop (+ i 1))])))))
+
+;;; lattice-tests-run-pretty : Symbol -> void
+;;; Run tests and display results
+(define (lattice-tests-run-pretty skill-name)
+  (printf "Running tests for ~a...\n\n" skill-name)
+  (let* ([results (lattice-tests-run skill-name)]
+         [total (cdr (assq 'total results))]
+         [passed (cdr (assq 'passed results))]
+         [failed (cdr (assq 'failed results))]
+         [files (cdr (assq 'files results))])
+        (if (= total 0)
+            (printf "No tests found.\n")
+            (begin
+              (for-each
+               (lambda (entry)
+                       (let ([path (car entry)]
+                             [status (cdr entry)])
+                            (if (eq? status 'ok)
+                                (printf "  ✓ ~a\n" path)
+                                (printf "  ✗ ~a\n    ~a\n" path (cdr status)))))
+               files)
+              (printf "\n~a\n" (make-string 40 #\-))
+              (printf "Total: ~a  Passed: ~a  Failed: ~a\n" total passed failed)
+              (if (= failed 0)
+                  (printf "✓ All tests passed!\n")
+                  (printf "✗ ~a test~a failed\n" failed (if (= failed 1) "" "s")))))))
+
+;;; lt : Symbol -> void
+;;; Quick test file listing (follows li, le, lm pattern)
+(define (lt skill-name)
+  (lattice-tests-pretty skill-name))
+
+;;; ltr : Symbol -> void
+;;; Quick test runner (lt + run)
+(define (ltr skill-name)
+  (lattice-tests-run-pretty skill-name))
+
+;;; lattice-all-tests : -> (List (Pair Symbol (List String)))
+;;; Get test files for all skills
+(define (lattice-all-tests)
+  (map (lambda (skill-name)
+               (cons skill-name (lattice-tests skill-name)))
+       (kg-skills)))
+
+;;; lattice-tests-summary : -> void
+;;; Print summary of test coverage across all skills
+(define (lattice-tests-summary)
+  (printf "Test Coverage Summary\n")
+  (printf "~a\n\n" (make-string 50 #\=))
+  (let* ([all-tests (lattice-all-tests)]
+         [with-tests (filter (lambda (e) (not (null? (cdr e)))) all-tests)]
+         [without-tests (filter (lambda (e) (null? (cdr e))) all-tests)])
+        (printf "Skills with tests: ~a/~a\n\n" (length with-tests) (length all-tests))
+        (for-each
+         (lambda (entry)
+                 (printf "  ~20a ~a test file~a\n"
+                         (car entry)
+                         (length (cdr entry))
+                         (if (= 1 (length (cdr entry))) "" "s")))
+         (sort (lambda (a b) (> (length (cdr a)) (length (cdr b)))) with-tests))
+        (when (not (null? without-tests))
+              (printf "\nSkills without tests:\n")
+              (for-each
+               (lambda (entry) (printf "  ~a\n" (car entry)))
+               without-tests))))
+
+;;; ====
 ;;; REPL Interface
 ;;; ====
 
@@ -293,4 +478,8 @@
 (printf "  (lattice-source 'export)      - Source location\n")
 (printf "  (lattice-info 'skill)         - Structured info\n")
 (printf "  (lattice-summary)             - All skills summary\n")
+(printf "  (lattice-tests 'skill)        - List test files\n")
+(printf "  (lattice-tests-run 'skill)    - Run skill tests\n")
+(printf "  (lattice-tests-summary)       - Test coverage overview\n")
 (printf "  (li 'skill), (le 'skill)      - Quick inspection\n")
+(printf "  (lt 'skill), (ltr 'skill)     - Quick test listing/running\n")

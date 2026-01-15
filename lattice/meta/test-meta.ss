@@ -247,6 +247,68 @@
             )
 
 ;;; ====
+;;; Test Discovery Tests
+;;; ====
+
+(test-group test-discovery-tests
+
+            (define-test test-lattice-tests-finds-files
+              (lattice-init!)
+              (let ([tests (lattice-tests 'linalg)])
+                   (assert-true (> (length tests) 0))
+                   ;; Should find known test files
+                   (assert-true (if (find (lambda (f) (string-contains? f "test-vec.ss")) tests) #t #f))))
+
+            (define-test test-lattice-tests-returns-paths
+              (lattice-init!)
+              (let ([tests (lattice-tests 'meta)])
+                   (assert-true (> (length tests) 0))
+                   ;; Paths should include skill directory
+                   (assert-true (if (find (lambda (f) (string-starts-with? f "lattice/meta/")) tests) #t #f))))
+
+            (define-test test-lattice-tests-unknown-skill
+              (lattice-init!)
+              (let ([tests (lattice-tests 'nonexistent-skill-xyz)])
+                   (assert-equal '() tests)))
+
+            (define-test test-find-test-files-helper
+              ;; Test the low-level helper
+              (let ([files (find-test-files "lattice/linalg")])
+                   (assert-true (> (length files) 0))
+                   ;; Should return just filenames, not paths
+                   (assert-true (if (find (lambda (f) (string=? f "test-vec.ss")) files) #t #f))))
+
+            (define-test test-string-ends-with
+              (assert-true (string-ends-with? "test-vec.ss" ".ss"))
+              (assert-true (string-ends-with? "foo.txt" ".txt"))
+              (assert-false (string-ends-with? "foo.ss" ".txt"))
+              (assert-false (string-ends-with? "ss" ".ss")))  ; suffix longer than string
+
+            (define-test test-string-contains
+              (assert-true (string-contains? "hello world" "world"))
+              (assert-true (string-contains? "hello world" "hello"))
+              (assert-true (string-contains? "hello world" "lo wo"))
+              (assert-false (string-contains? "hello" "world"))
+              (assert-false (string-contains? "hi" "hello")))  ; needle longer than haystack
+
+            (define-test test-string-join
+              (assert-equal "a-b-c" (string-join '("a" "b" "c") "-"))
+              (assert-equal "one" (string-join '("one") "-"))
+              (assert-equal "" (string-join '() "-"))
+              (assert-equal "a\nb\nc" (string-join '("a" "b" "c") "\n")))
+
+            (define-test test-lattice-all-tests-structure
+              (lattice-init!)
+              (let ([all (lattice-all-tests)])
+                   (assert-true (> (length all) 0))
+                   ;; Each entry should be (skill . tests-list)
+                   (let ([first (car all)])
+                        (assert-true (symbol? (car first)))
+                        (assert-true (list? (cdr first))))))
+
+            )
+
+;;; ====
 ;;; Summary
 ;;; ====
 
