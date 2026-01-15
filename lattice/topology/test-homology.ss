@@ -185,19 +185,41 @@
 
 (test-group "Betti Numbers - Surfaces"
 
-  ; Note: The torus construction may need adjustment
-  ; Expected: B = (1 2 1) for torus
-
-  (define-test "hollow triangle (dΔ²) is S¹"
+  (define-test "hollow triangle (dD2) is S1"
     ; Boundary of triangle = 3 edges forming a loop
     (let* ([sc (sc-boundary-of-simplex 2)]
            [betti (sc-betti-numbers sc)])
       (assert-equal '(1 1) betti)))
 
-  (define-test "hollow tetrahedron (dΔ³) is S²"
+  (define-test "hollow tetrahedron (dD3) is S2"
     (let* ([sc (sc-boundary-of-simplex 3)]
            [betti (sc-betti-numbers sc)])
-      (assert-equal '(1 0 1) betti))))
+      (assert-equal '(1 0 1) betti)))
+
+  (define-test "torus T2 has B = (1 2 1)"
+    ; Torus: 1 component, 2 independent loops, 1 void
+    (let* ([sc (make-torus)]
+           [betti (sc-betti-numbers sc)]
+           [euler (sc-euler sc)])
+      (assert-equal '(1 2 1) betti)
+      (assert-equal 0 euler)))  ; X = 1 - 2 + 1 = 0
+
+  (define-test "torus f-vector is (9 27 18)"
+    ; 3x3 grid: 9 vertices, 27 edges, 18 triangles
+    (let ([f (sc-f-vector (make-torus))])
+      (assert-equal '(9 27 18) f)))
+
+  (define-test "Klein bottle has B = (1 2 1) over Z2"
+    ; Over Z2, Klein bottle looks like torus (non-orientability invisible)
+    (let* ([sc (make-klein-bottle)]
+           [betti (sc-betti-numbers sc)])
+      (assert-equal '(1 2 1) betti)))
+
+  (define-test "projective plane RP2 has B = (1 1 1) over Z2"
+    ; Over Z2: 1 component, 1 loop (from crosscap), 1 "void"
+    (let* ([sc (make-projective-plane)]
+           [betti (sc-betti-numbers sc)])
+      (assert-equal '(1 1 1) betti))))
 
 ;;; ============================================================
 ;;; EULER CHARACTERISTIC TESTS

@@ -1,8 +1,8 @@
 ((name "topology")
  (purpose "Computational topology and topological data analysis")
- (description "Simplicial complexes, boundary operators, and topological invariants.
-Provides the foundational data structures for algebraic topology computations
-including homology groups, Betti numbers, and persistent homology.")
+ (description "Simplicial complexes, homology groups, and Betti numbers.
+Provides foundational data structures for algebraic topology computations
+using Z_2 coefficients. Supports topological data analysis (TDA).")
  (modules
   ((simplicial-complex.ss "Core simplicial complex data structures:
      - Simplex: make-simplex, simplex-dim, simplex-vertices, simplex-face?
@@ -14,7 +14,14 @@ including homology groups, Betti numbers, and persistent homology.")
      - Boundary: simplex-boundary, chain-boundary (for homology computation)
      - Invariants: sc-euler, sc-f-vector
      - Filtration: make-filtered-simplex (for persistent homology)
-     - Standard complexes: sc-simplex, sc-boundary-of-simplex, sc-discrete")))
+     - Standard complexes: sc-simplex, sc-boundary-of-simplex, sc-discrete")
+   (homology.ss "Homology computation over Z_2 coefficients:
+     - Z_2 matrices: z2-matrix, z2-rank, z2-nullity
+     - Boundary matrices: sc-boundary-matrix
+     - Betti numbers: sc-betti, sc-betti-numbers, sc-homology-summary
+     - Standard spaces: make-sphere, make-torus, make-klein-bottle, make-projective-plane
+     - Connected components: sc-connected-components (alternative to B_0)")))
  (tests
-  ((test-simplicial-complex.ss "Tests for simplicial complex operations")))
+  ((test-simplicial-complex.ss "Tests for simplicial complex operations")
+   (test-homology.ss "Tests for homology and Betti number computation")))
  (dependencies (data)))
