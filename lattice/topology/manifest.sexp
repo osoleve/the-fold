@@ -1,15 +1,15 @@
 (skill topology
-  (version "0.1.0")
+  (version "0.2.0")
   (tier 1)
   (path "lattice/topology")
   (purity total)
   (stability experimental)
-  (fuel-bound "O(2^n) for n-simplex face enumeration")
+  (fuel-bound "O(n³) for homology via Gaussian elimination, O(2^n) for n-simplex face enumeration")
   (deps (data))
-  (description "Computational topology: simplicial complexes, boundary operators, and topological invariants.
-Foundation for persistent homology and topological data analysis.")
-  (keywords (topology simplicial-complex homology boundary euler-characteristic
-             star link skeleton filtration tda))
+  (description "Computational topology: simplicial complexes, homology groups, and Betti numbers.
+Computes topological invariants over Z₂ coefficients. Foundation for persistent homology and TDA.")
+  (keywords (topology simplicial-complex homology betti-numbers boundary euler-characteristic
+             star link skeleton filtration tda z2-coefficients))
   (aliases (topo simplicial))
   (exports
     (simplicial-complex
@@ -33,7 +33,23 @@ Foundation for persistent homology and topological data analysis.")
       ;; Filtration support
       make-filtered-simplex filtered-simplex? filtered-simplex-base filtered-simplex-value
       ;; Standard complexes
-      sc-simplex sc-boundary-of-simplex sc-discrete))
+      sc-simplex sc-boundary-of-simplex sc-discrete)
+    (homology
+      ;; Z₂ matrix operations
+      z2-matrix z2-matrix? z2-matrix-rows z2-matrix-cols z2-matrix-ref
+      z2-matrix-zero z2-matrix-copy z2-matrix-print
+      ;; Rank computation
+      z2-rank z2-nullity
+      ;; Boundary matrices
+      sc-boundary-matrix sc-boundary-matrix-print
+      ;; Betti numbers (main interface)
+      sc-betti sc-betti-numbers sc-homology-summary
+      ;; Standard topological spaces
+      make-sphere make-torus make-klein-bottle make-projective-plane
+      ;; Connected components (β₀ alternative)
+      sc-connected-components))
   (modules
     (simplicial-complex "simplicial-complex.ss"
-      "Core simplicial complex data structures and operations")))
+      "Core simplicial complex data structures and operations")
+    (homology "homology.ss"
+      "Homology groups and Betti numbers over Z₂ coefficients")))
