@@ -324,6 +324,22 @@ Key design principles:
     weighted-matching-ilp bottleneck-matching-ilp
     ;; Classic market constructors
     make-medical-residency-market make-school-choice-market
+    ;; voting.ss — Social Choice Theory
+    ;; Preference profiles
+    make-preference-profile profile-voters profile-num-candidates
+    profile-candidates profile-rankings
+    ;; Positional rules
+    plurality-winner plurality-scores-all
+    borda-winner borda-scores-all
+    antiplurality-winner antiplurality-scores-all
+    ;; Condorcet methods
+    pairwise-margin pairwise-beats?
+    condorcet-winner? condorcet-winner
+    copeland-score copeland-winner
+    ;; Schulze method
+    schulze-strengths schulze-winner schulze-ranking
+    ;; Examples and manipulation
+    condorcet-cycle-example manipulation-possible?
 
     ;; symbolic/ — Symbolic Expressions
     ;; expr.ss
@@ -550,11 +566,12 @@ Key design principles:
        "zipper-lens.ss"))) ; Zipper-lens integration (lenses, affines, comonad connection)
 
     ((subdir "game")
-     (description "Game theory: normal form, cooperative games, and matching")
+     (description "Game theory: normal form, cooperative games, matching, voting")
      (files (
        "normal-form.ss"   ; Normal form games, Nash equilibrium, IESDS
        "coop-games.ss"    ; Cooperative games, Shapley value, core, bargaining
-       "matching.ss")))   ; Two-sided matching, Gale-Shapley, assignment games
+       "matching.ss"      ; Two-sided matching, Gale-Shapley, assignment games
+       "voting.ss")))     ; Social choice: plurality, Borda, Condorcet, Schulze
 
     ((subdir "symbolic")
      (description "Symbolic computation and computer algebra")

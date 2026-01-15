@@ -131,7 +131,51 @@
     (make-force "Create a force vector")
     (apply-force "Apply force to body, return updated body")
     (simulate-step "Advance simulation by one time step")
-    (gravity "Gravitational force between two bodies"))))
+    (gravity "Gravitational force between two bodies")))
+
+  ((file "voting.ss")
+   (purpose "Social choice and voting theory")
+   (exports
+    ;; Preference profiles
+    (make-preference-profile "Create profile from list of rankings")
+    (profile-voters "Number of voters in profile")
+    (profile-num-candidates "Number of candidates")
+    (profile-candidates "List of candidates")
+    (profile-rankings "Get all voter rankings")
+    ;; Positional scoring rules
+    (plurality-winner "First-place plurality winner")
+    (plurality-scores-all "Plurality scores for all candidates")
+    (borda-winner "Borda count winner")
+    (borda-scores-all "Borda scores for all candidates")
+    (antiplurality-winner "Anti-plurality (veto) winner")
+    (antiplurality-scores-all "Anti-plurality scores for all")
+    ;; Condorcet methods
+    (pairwise-margin "Head-to-head margin between two candidates")
+    (pairwise-beats? "Does a beat b pairwise?")
+    (condorcet-winner? "Is candidate a Condorcet winner?")
+    (condorcet-winner "Find Condorcet winner or #f if none")
+    (copeland-score "Copeland score (wins minus losses)")
+    (copeland-winner "Copeland method winner")
+    ;; Schulze method (beatpath)
+    (schulze-strengths "Floyd-Warshall strongest beatpaths")
+    (schulze-winner "Schulze method winner")
+    (schulze-ranking "Complete Schulze ranking")
+    ;; Examples
+    (condorcet-cycle-example "Classic a>b>c, b>c>a, c>a>b cycle")
+    ;; Manipulation
+    (manipulation-possible? "Can voter improve outcome by misreporting?"))
+   (example
+    ";; Classic Condorcet paradox: cycling majorities
+     (define profile (condorcet-cycle-example))
+     (plurality-winner profile)   ; => 'a (tie-break to first)
+     (condorcet-winner profile)   ; => #f (no Condorcet winner)
+     (schulze-winner profile)     ; => deterministic resolution
+
+     ;; Borda vs Plurality disagreement
+     (define profile2 (make-preference-profile
+                        '((a b c) (a b c) (b c a) (c b a))))
+     (plurality-winner profile2)  ; => 'a
+     (borda-winner profile2)      ; => 'b")))
 
  (dependencies
   ("core/base/prelude.ss" "Base utilities")
@@ -141,7 +185,7 @@
 
  (notes
   "Game theory in The Fold covers non-cooperative (normal form),
-   cooperative (coalitional), and matching theory games.
+   cooperative (coalitional), matching theory, and social choice games.
 
    Non-cooperative: Players choose simultaneously. Nash equilibrium is
    where no player can unilaterally improve. Focus on finite games
@@ -158,6 +202,14 @@
    games - the core equals competitive equilibria (Shapley-Shubik 1971).
    Applications: medical residency (NRMP), school choice, kidney exchange.
 
+   Voting/Social Choice: Preference aggregation with positional rules
+   (plurality, Borda, anti-plurality) and Condorcet methods (pairwise
+   comparison, Copeland, Schulze beatpath). Key results: Arrow's theorem
+   (no perfect voting rule), Condorcet cycles (majority intransitivity),
+   Gibbard-Satterthwaite (strategic manipulation always possible).
+   The Schulze method uses Floyd-Warshall to find strongest beatpaths,
+   producing total orderings even with cycles.
+
    Note on cost games: make-airport-game produces a cost game where
    v(S) represents cost, not value. For cost games, 'fair allocation'
    means cost sharing; the standard core condition x(S) >= v(S) becomes
@@ -165,4 +217,4 @@
    Use Shapley value for cost allocation (proven fair for airport games).
 
    Test suites: 26 tests for normal-form, 45 tests for cooperative,
-   34 tests for matching."))
+   34 tests for matching, 21 tests for voting."))
