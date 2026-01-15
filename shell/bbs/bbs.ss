@@ -27,22 +27,28 @@
 
 ;;; bbs-init! : -> Int
 ;;; Initialize the BBS system.
-;;; Loads indices from disk and returns the number of issues.
+;;; Tries cached index first, rebuilds only if cache is stale.
 (define (bbs-init!)
   (if *bbs-initialized*
       (hashtable-size (let () *bbs-by-status*))  ; Return count without reinit
       (begin
         (printf "Initializing BBS...~n")
-        (let ([count (bbs-rebuild-indices!)])
+        (let ([count (if (bbs-load-index-cache!)
+                         (begin
+                           (printf "  (loaded from cache)~n")
+                           (length *bbs-issues*))
+                         (bbs-rebuild-indices!))])
           (set! *bbs-initialized* #t)
           (printf "  Loaded ~a issues~n" count)
           count))))
 
 ;;; bbs-init-quiet! : -> Int
 ;;; Initialize BBS silently (for startup).
+;;; Tries cached index first for fast startup.
 (define (bbs-init-quiet!)
   (unless *bbs-initialized*
-    (bbs-rebuild-indices!)
+    (unless (bbs-load-index-cache!)
+      (bbs-rebuild-indices!))
     (set! *bbs-initialized* #t))
   (hashtable-size *bbs-by-status*))
 

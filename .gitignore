@@ -43,6 +43,9 @@ archive/
 # bv (legacy beads viewer) local config and caches
 .bv/
 
+# BBS index cache (generated, can be rebuilt)
+.bbs/index.cache
+
 # Gateway runtime state
 state/
 

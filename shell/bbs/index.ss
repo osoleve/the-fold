@@ -1,17 +1,30 @@
 ;;; shell/bbs/index.ss — BBS In-Memory Indices
 ;;;
 ;;; Maintains in-memory indices for fast issue lookups.
-;;; Rebuilt on initialization from head files.
+;;; Uses a disk-based cache (.bbs/index.cache) to avoid expensive
+;;; rebuilds on every session startup.
 ;;;
 ;;; Indices:
 ;;;   *bbs-issues*     - ((id . hash) ...)
 ;;;   *bbs-by-status*  - hashtable: status -> (id ...)
 ;;;   *bbs-deps*       - ((blocker-id . blocked-id) ...)
 ;;;
+;;; Cache Strategy:
+;;;   - Save index with head-file count as version marker
+;;;   - On load: if count matches disk, use cache; else rebuild
+;;;   - Individual issues auto-refresh via bbs-issue-hash on cache miss
+;;;
 ;;; This is Shell code: impure (maintains mutable state).
 
 (load "shell/bbs/store.ss")
 (load "shell/bbs/counter.ss")
+
+;;; ====
+;;; Index Cache
+;;; ====
+
+(define *bbs-index-cache-file* ".bbs/index.cache")
+(define *bbs-index-cache-version* 1)
 
 ;;; ====
 ;;; ID Normalization
@@ -37,6 +50,91 @@
 
 ;;; Dependencies: ((blocker-id . blocked-id) ...)
 (define *bbs-deps* '())
+
+;;; ====
+;;; Index Cache Persistence
+;;; ====
+
+;;; bbs-save-index-cache! : -> Void
+;;; Save the current index to disk cache.
+;;; Called after rebuild to speed up future startups.
+(define (bbs-save-index-cache!)
+  (unless (file-exists? ".bbs")
+    (mkdir ".bbs"))
+  (guard (e [else #f])  ; Silently fail - cache is optional
+    (call-with-output-file *bbs-index-cache-file*
+      (lambda (port)
+        ;; Convert bytevector hashes to hex for serialization
+        (let ([issues-hex (map (lambda (entry)
+                                 (cons (car entry) (hash->hex (cdr entry))))
+                               *bbs-issues*)]
+              [by-status-alist (hashtable->alist *bbs-by-status*)]
+              [by-priority-alist (hashtable->alist *bbs-by-priority*)])
+          (write
+           `(bbs-index-cache
+             (version ,*bbs-index-cache-version*)
+             (head-count ,(length *bbs-issues*))
+             (issues ,issues-hex)
+             (by-status ,by-status-alist)
+             (by-priority ,by-priority-alist))
+           port)
+          (newline port)))
+      '(replace))))
+
+;;; hashtable->alist : Hashtable -> Alist
+;;; Convert hashtable to association list for serialization.
+(define (hashtable->alist ht)
+  (let-values ([(keys vals) (hashtable-entries ht)])
+    (let loop ([i 0] [acc '()])
+      (if (>= i (vector-length keys))
+          acc
+          (loop (+ i 1)
+                (cons (cons (vector-ref keys i) (vector-ref vals i)) acc))))))
+
+;;; bbs-load-index-cache! : -> Boolean
+;;; Try to load index from disk cache.
+;;; Returns #t if cache was valid and loaded, #f otherwise.
+(define (bbs-load-index-cache!)
+  (guard (e [else #f])
+    (and (file-exists? *bbs-index-cache-file*)
+         (let ([data (call-with-input-file *bbs-index-cache-file* read)])
+           (and (pair? data)
+                (eq? (car data) 'bbs-index-cache)
+                ;; Use cadr because structure is (key value) not (key . value)
+                (let ([version (cadr (assq 'version (cdr data)))]
+                      [head-count (cadr (assq 'head-count (cdr data)))]
+                      [issues-hex (cadr (assq 'issues (cdr data)))]
+                      [by-status-alist (cadr (assq 'by-status (cdr data)))]
+                      [by-priority-alist (cadr (assq 'by-priority (cdr data)))])
+                  ;; Validate cache version
+                  (and (= version *bbs-index-cache-version*)
+                       ;; Validate head count matches disk
+                       (let ([disk-count (length (bbs-list-heads))])
+                         (and (= head-count disk-count)
+                              ;; Cache is valid - restore state
+                              (begin
+                                ;; Restore issues (convert hex back to bytevector)
+                                (set! *bbs-issues*
+                                      (map (lambda (entry)
+                                             (cons (car entry) (hex->hash (cdr entry))))
+                                           issues-hex))
+                                ;; Restore by-status hashtable
+                                (set! *bbs-by-status* (make-eq-hashtable))
+                                (for-each
+                                 (lambda (entry)
+                                   (hashtable-set! *bbs-by-status* (car entry) (cdr entry)))
+                                 by-status-alist)
+                                ;; Restore by-priority hashtable
+                                (set! *bbs-by-priority* (make-eqv-hashtable))
+                                (for-each
+                                 (lambda (entry)
+                                   (hashtable-set! *bbs-by-priority* (car entry) (cdr entry)))
+                                 by-priority-alist)
+                                ;; Sync counter from heads to avoid ID collisions
+                                (bbs-sync-counter-from-heads! (map car *bbs-issues*))
+                                ;; Load dependencies (always from disk, not cached)
+                                (bbs-load-deps!)
+                                #t))))))))))
 
 ;;; ====
 ;;; Index Building
@@ -82,6 +180,9 @@
 
     ;; Load dependencies from disk
     (bbs-load-deps!)
+
+    ;; Save cache for future fast loads
+    (bbs-save-index-cache!)
 
     count))
 
