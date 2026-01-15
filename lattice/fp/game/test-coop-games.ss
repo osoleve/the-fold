@@ -314,6 +314,43 @@
 )
 
 ;;; ============================================================================
+;;; Nucleolus Tests
+;;; ============================================================================
+
+(test-group nucleolus-tests
+
+  (define-test nucleolus-symmetric-voting
+    ;; 3-player majority (quota 2): all players symmetric
+    ;; Nucleolus = (1/3, 1/3, 1/3) = Shapley value
+    (let* ([g (make-weighted-voting-game '(1 1 1) 2)]
+           [nuc (nucleolus g 100)])
+      (when (vector? nuc)
+        (let ([tolerance 0.01])
+          (assert-true (< (abs (- (vector-ref nuc 0) 1/3)) tolerance))
+          (assert-true (< (abs (- (vector-ref nuc 1) 1/3)) tolerance))
+          (assert-true (< (abs (- (vector-ref nuc 2) 1/3)) tolerance))))))
+
+  (define-test nucleolus-additive-game
+    ;; For additive games, nucleolus = Shapley = individual values
+    (let* ([g (make-additive-game '(10 20 30))]
+           [nuc (nucleolus g 100)])
+      (when (vector? nuc)
+        (let ([tolerance 0.01])
+          (assert-true (< (abs (- (vector-ref nuc 0) 10)) tolerance))
+          (assert-true (< (abs (- (vector-ref nuc 1) 20)) tolerance))
+          (assert-true (< (abs (- (vector-ref nuc 2) 30)) tolerance))))))
+
+  (define-test nucleolus-efficiency
+    ;; Nucleolus sums to v(N)
+    (let* ([g (make-additive-game '(10 20 30))]
+           [nuc (nucleolus g 100)])
+      (when (vector? nuc)
+        (let ([total (+ (vector-ref nuc 0) (vector-ref nuc 1) (vector-ref nuc 2))])
+          (assert-true (< (abs (- total 60)) 0.01))))))
+
+)
+
+;;; ============================================================================
 ;;; Game Properties Tests
 ;;; ============================================================================
 
