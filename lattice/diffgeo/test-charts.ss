@@ -145,6 +145,17 @@
            [via-cart (transition-apply polar cartesian original)]
            [back (transition-apply cartesian polar via-cart)])
       (assert-true (vec-approx-equal? back original 1e-10))))
+
+  ;; Test domain verification - polar chart excludes origin
+  (define-test test-transition-domain-check
+    (let* ([polar (make-polar-chart)]
+           [cartesian (make-cartesian-chart)]
+           ;; (0, 0) in cartesian is not in polar's domain
+           [result (transition-apply cartesian polar (vector 0.0 0.0))])
+      ;; Should return an error
+      (assert-true (and (pair? result)
+                        (eq? (car result) 'error)
+                        (eq? (cadr result) 'point-not-in-target-domain)))))
 )
 
 ;;; ====
@@ -190,6 +201,15 @@
   (define-test test-determinant-3x3
     (let ([M (matrix-from-lists '((1 2 3) (4 5 6) (7 8 10)))])
       (assert-true (< (abs (- (jacobian-determinant M) -3.0)) 1e-10))))
+
+  ;; Test determinant of 4x4 (uses LU decomposition)
+  (define-test test-determinant-4x4
+    (let ([M (matrix-from-lists '((2 0 0 0)
+                                   (0 3 0 0)
+                                   (0 0 4 0)
+                                   (0 0 0 5)))])
+      ;; det = 2*3*4*5 = 120
+      (assert-true (< (abs (- (jacobian-determinant M) 120.0)) 1e-8))))
 
   ;; Jacobian determinant of polar-to-cart should be r
   (define-test test-jacobian-det-polar

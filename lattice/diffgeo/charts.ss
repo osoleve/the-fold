@@ -1,6 +1,6 @@
 ;;; lattice/diffgeo/charts.ss — Coordinate Charts and Atlases
 ;;; @module charts
-;;; @requires prelude matrix vec
+;;; @requires prelude matrix vec matrix-decomp
 ;;;
 ;;; Foundation for smooth manifold representation.
 ;;;
@@ -18,10 +18,12 @@
 ;;;   core/base/prelude.ss
 ;;;   lattice/linalg/matrix.ss
 ;;;   lattice/linalg/vec.ss
+;;;   lattice/linalg/matrix-decomp.ss (for LU-based determinant)
 
 (load "core/base/prelude.ss")
 (load "lattice/linalg/matrix.ss")
 (load "lattice/linalg/vec.ss")
+(load "lattice/linalg/matrix-decomp.ss")
 
 ;;; ====
 ;;; Chart Representation
@@ -105,6 +107,8 @@
 ;;; make-transition : Chart × Chart → (Vec → Vec) | #f
 ;;; Create a transition function from chart-from to chart-to.
 ;;; Returns #f if the charts have different dimensions.
+;;; Note: The returned function does NOT verify domain membership (for performance).
+;;; Use transition-apply for safe transitions with domain checking.
 (define (make-transition chart-from chart-to)
   (if (not (= (chart-dim chart-from) (chart-dim chart-to)))
       #f
@@ -114,11 +118,15 @@
 
 ;;; transition-apply : Chart × Chart × Vec → Vec | Error
 ;;; Apply the transition function from chart-from to chart-to.
+;;; Verifies that the intermediate point lies in the target chart's domain.
 (define (transition-apply chart-from chart-to coords)
-  (let ([transition (make-transition chart-from chart-to)])
-    (if transition
-        (transition coords)
-        `(error dimension-mismatch ,(chart-dim chart-from) ,(chart-dim chart-to)))))
+  (if (not (= (chart-dim chart-from) (chart-dim chart-to)))
+      `(error dimension-mismatch ,(chart-dim chart-from) ,(chart-dim chart-to))
+      (let ([point ((chart-inverse-map chart-from) coords)])
+        ;; Verify point is in target chart's domain
+        (if (not ((chart-domain-pred chart-to) point))
+            `(error point-not-in-target-domain ,(chart-name chart-to) ,point)
+            ((chart-coord-map chart-to) point)))))
 
 ;;; ====
 ;;; Jacobian Computation
@@ -294,9 +302,10 @@
                 #f  ; Singular Jacobian - not smooth
                 (loop (cdr coords))))))))
 
-;;; jacobian-determinant : Matrix → Num
+;;; jacobian-determinant : Matrix → Num | Error
 ;;; Compute the determinant of a square matrix.
-;;; For small matrices (up to 3×3), use explicit formulas.
+;;; For small matrices (up to 3×3), use explicit formulas for efficiency.
+;;; For larger matrices, use LU decomposition via matrix-det.
 (define (jacobian-determinant J)
   (let ([n (matrix-rows J)])
     (cond
@@ -315,9 +324,8 @@
            (- (* b (- (* d i) (* f g))))
            (* c (- (* d h) (* e g)))))]
      [else
-      ;; For larger matrices, use LU decomposition (load matrix-decomp if needed)
-      ;; For now, return error for n > 3
-      `(error det-not-implemented-for-dim ,n)])))
+      ;; For larger matrices (n > 3), use LU decomposition
+      (matrix-det J)])))
 
 ;;; ====
 ;;; Standard Chart Constructors

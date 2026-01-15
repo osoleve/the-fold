@@ -280,3 +280,48 @@
                                          (matrix-set! l i j (/ (- (matrix-ref a i j) sum)
                                                                (matrix-ref l j j)))
                                          (col-loop (+ j 1))]))))))))))
+
+;;; ====
+;;; Determinant via LU Decomposition
+;;; ====
+
+;;; permutation-sign : (Vec Nat) → Int
+;;; Compute the sign of a permutation: (-1)^(number of inversions).
+;;; An inversion is a pair (i, j) where i < j but P[i] > P[j].
+(define (permutation-sign p)
+  (let ([n (vector-length p)])
+       (let outer ([i 0] [swaps 0])
+            (if (= i n)
+                (if (even? swaps) 1 -1)
+                (let inner ([j (+ i 1)] [s swaps])
+                     (if (= j n)
+                         (outer (+ i 1) s)
+                         (inner (+ j 1)
+                                (if (> (vector-ref p i) (vector-ref p j))
+                                    (+ s 1)
+                                    s))))))))
+
+;;; matrix-det : (Matrix Real) → Real | Error
+;;; Compute the determinant of a square matrix using LU decomposition.
+;;; det(A) = det(L) × det(U) × sign(P)
+;;;        = 1 × (product of U diagonal) × sign(P)
+;;;
+;;; Complexity: O(n³) via LU decomposition.
+(define (matrix-det a)
+  (let ([result (matrix-lu a)])
+       (if (and (pair? result) (eq? (car result) 'error))
+           ;; Singular matrix has determinant 0
+           (if (eq? (cadr result) 'singular-matrix)
+               0
+               result)
+           (let ([l (car result)]
+                 [u (cadr result)]
+                 [p (caddr result)])
+                ;; det(U) = product of diagonal elements
+                (let ([n (matrix-rows u)])
+                     (let loop ([i 0] [prod 1])
+                          (if (= i n)
+                              (* prod (permutation-sign p))
+                              (loop (+ i 1)
+                                    (* prod (matrix-ref u i i))))))))))
+
