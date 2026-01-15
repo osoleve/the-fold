@@ -88,50 +88,50 @@
 (define (ansi-fg color)
   (cond
    [(color-default? color)
-    "\x1B[39m"]  ; Default foreground
+    "\x1B;[39m"]  ; Default foreground
    
    [(color-rgb? color)
     (let ([r (list-ref color 1)]
           [g (list-ref color 2)]
           [b (list-ref color 3)])
-         (string-append "\x1B[38;2;"
+         (string-append "\x1B;[38;2;"
                         (number->string r) ";"
                         (number->string g) ";"
                         (number->string b) "m"))]
    
    [(color-palette? color)
     (let ([n (list-ref color 1)])
-         (string-append "\x1B[38;5;"
+         (string-append "\x1B;[38;5;"
                         (number->string n) "m"))]
    
-   [else "\x1B[39m"]))  ; Fallback to default
+   [else "\x1B;[39m"]))  ; Fallback to default
 
 ;;; ansi-bg : Color → String
 ;;; Generate ANSI background color escape sequence.
 (define (ansi-bg color)
   (cond
    [(color-default? color)
-    "\x1B[49m"]  ; Default background
+    "\x1B;[49m"]  ; Default background
    
    [(color-rgb? color)
     (let ([r (list-ref color 1)]
           [g (list-ref color 2)]
           [b (list-ref color 3)])
-         (string-append "\x1B[48;2;"
+         (string-append "\x1B;[48;2;"
                         (number->string r) ";"
                         (number->string g) ";"
                         (number->string b) "m"))]
    
    [(color-palette? color)
     (let ([n (list-ref color 1)])
-         (string-append "\x1B[48;5;"
+         (string-append "\x1B;[48;5;"
                         (number->string n) "m"))]
    
-   [else "\x1B[49m"]))  ; Fallback to default
+   [else "\x1B;[49m"]))  ; Fallback to default
 
 ;;; ansi-reset : String
 ;;; Reset all text attributes to default.
-(define ansi-reset "\x1B[0m")
+(define ansi-reset "\x1B;[0m")
 
 ;;; ansi-color : Color × Color → String
 ;;; Generate ANSI codes for both foreground and background.
