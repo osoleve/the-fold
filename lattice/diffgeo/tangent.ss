@@ -1,4 +1,6 @@
 ;;; lattice/diffgeo/tangent.ss — Tangent and Cotangent Spaces
+;;; @module tangent
+;;; @requires prelude matrix vec charts
 ;;;
 ;;; Differential geometry structures for tangent vectors and differential forms.
 ;;;

@@ -1,6 +1,6 @@
 ;;; core/linalg/vec.ss --- Vector Operations
 ;;; @module vec
-;;; @requires prelude, iteration
+;;; @requires prelude iteration
 ;;;
 ;;; Core vector operations for linear algebra.
 ;;;

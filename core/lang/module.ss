@@ -67,7 +67,7 @@
     "core/base" "core/blocks" "core/lang" "core/types" "core/util"
     ;; Lattice directories (skill tree)
     "lattice/linalg" "lattice/data" "lattice/algebra" "lattice/random"
-    "lattice/numeric" "lattice/geometry" "lattice/autodiff"
+    "lattice/numeric" "lattice/geometry" "lattice/autodiff" "lattice/diffgeo"
     "lattice/query" "lattice/dsl" "lattice/info"
     "lattice/physics/diff" "lattice/physics/diff3d"
     "lattice/physics/classical" "lattice/physics/classical3d"

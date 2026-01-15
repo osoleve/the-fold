@@ -1,4 +1,6 @@
 ;;; lattice/diffgeo/charts.ss — Coordinate Charts and Atlases
+;;; @module charts
+;;; @requires prelude matrix vec
 ;;;
 ;;; Foundation for smooth manifold representation.
 ;;;
