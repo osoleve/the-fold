@@ -175,7 +175,52 @@
      (define profile2 (make-preference-profile
                         '((a b c) (a b c) (b c a) (c b a))))
      (plurality-winner profile2)  ; => 'a
-     (borda-winner profile2)      ; => 'b")))
+     (borda-winner profile2)      ; => 'b"))
+
+  ((file "voting-games.ss")
+   (purpose "Bridge between voting theory and cooperative games via power indices")
+   (exports
+    ;; Profile to game conversion
+    (profile->majority-game "Convert profile to simple majority game")
+    (profile->weighted-voting-game "Convert with custom voter weights")
+    (profile->rule-induced-game "General rule-induced game (expensive)")
+    ;; Power indices
+    (shapley-shubik-index "Shapley-Shubik power index for voters")
+    (shapley-shubik-weighted "Shapley-Shubik with custom weights")
+    (banzhaf-voting-power "Normalized Banzhaf power index")
+    (banzhaf-weighted "Banzhaf with custom weights")
+    ;; Power analysis
+    (voter-is-dictator? "Can voter alone determine outcome?")
+    (voter-is-dummy? "Is voter never pivotal?")
+    (voter-has-veto? "Can voter alone block any outcome?")
+    (minimal-winning-coalitions "Find all minimal winning coalitions")
+    (is-minimal-winning? "Check if coalition is minimal winning")
+    ;; Power distribution metrics
+    (power-concentration "Herfindahl-Hirschman Index of power")
+    (power-gini "Gini coefficient of power distribution")
+    ;; Strategic analysis
+    (decisive-for-candidate "Coalitions that can elect a candidate")
+    (blocking-for-candidate "Coalitions that can block a candidate")
+    ;; Electoral college modeling
+    (make-electoral-college-game "Weighted game from state electoral votes")
+    (electoral-college-power "Banzhaf power for each state")
+    (power-per-capita "Voting power per capita by state")
+    ;; Examples
+    (us-electoral-college-2020 "Simplified US electoral college data")
+    (un-security-council "UN Security Council voting game")
+    (simple-3-voter-example "Simple 3-voter example profile"))
+   (example
+    ";; Compute voter power in a 3-voter majority system
+     (define profile (make-preference-profile '((a b) (a b) (b a))))
+     (shapley-shubik-index profile)  ; => #(1/3 1/3 1/3) - equal power
+
+     ;; Weighted voting: weights 3,2,1 with quota 4
+     (profile->weighted-voting-game profile '(3 2 1))
+     ;; Voter 0 has more power than voters 1,2
+
+     ;; UN Security Council: P5 have veto power
+     (define unsc (un-security-council))
+     (voter-has-veto? ...)"))
 
  (dependencies
   ("core/base/prelude.ss" "Base utilities")
@@ -210,6 +255,16 @@
    The Schulze method uses Floyd-Warshall to find strongest beatpaths,
    producing total orderings even with cycles.
 
+   Voting-Games Bridge: Connects voting theory with cooperative games.
+   Key insight: voting rules induce simple games where coalitions are
+   'winning' if they can determine the outcome. Power indices measure
+   a voter's ability to influence results:
+   - Shapley-Shubik: probability of being pivotal under random orderings
+   - Banzhaf: fraction of coalitions where voter is pivotal
+   Applications: electoral college analysis (states have different power
+   than their vote counts suggest), weighted voting systems, UN Security
+   Council (P5 have veto power = 100% Banzhaf).
+
    Note on cost games: make-airport-game produces a cost game where
    v(S) represents cost, not value. For cost games, 'fair allocation'
    means cost sharing; the standard core condition x(S) >= v(S) becomes
@@ -217,4 +272,4 @@
    Use Shapley value for cost allocation (proven fair for airport games).
 
    Test suites: 26 tests for normal-form, 45 tests for cooperative,
-   34 tests for matching, 21 tests for voting."))
+   34 tests for matching, 25 tests for voting, 26 tests for voting-games."))
