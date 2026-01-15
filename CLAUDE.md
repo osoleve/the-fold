@@ -245,6 +245,7 @@ The lattice is a DAG of verified skills. "Stdlib" = tier 0 (foundational nodes).
 |----|----|
 | `numeric/` | Complex numbers, DFT, signal processing |
 | `geometry/` | Shapes, transforms, raymarching, SDFs |
+| `diffgeo/` | Coordinate charts, atlases, Jacobians, manifold foundations |
 | `autodiff/` | Reverse-mode AD, computational graphs |
 | `fp/` | Monads, parsers, streams, rewriting |
 | `query/` | Query DSL, SQL parser, patterns |
@@ -299,6 +300,8 @@ Use `/lattice-search` skill for full documentation. Quick reference:
 (le 'skill)         ; List exports
 (ld 'skill)         ; Dependencies
 (lu 'skill)         ; Dependents
+(lc 'skill)         ; Cycle check (validate deps)
+(lattice-would-cycle? 'from 'to)  ; Proactive cycle detection
 ```
 
 ### Shell Subsystems
