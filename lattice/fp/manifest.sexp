@@ -307,6 +307,12 @@ Key design principles:
     ;; poly-canonical.ss — Polynomial canonical forms
     expr->polynomial polynomial->expr simplify-rational
     expr-poly-gcd expr-degree polynomial-expr?
+    ;; solve.ss — Equation solving
+    make-equation equation? equation-lhs equation-rhs equation->expr
+    solve solve-for solve-linear solve-quadratic solve-cubic solve-polynomial
+    solve-linear-system
+    is-polynomial? polynomial-degree extract-poly-coefficients
+    contains-var? collect-linear-coeffs
 
     ;; measure/ — Units of Measure
     ;; units.ss
@@ -519,6 +525,10 @@ Key design principles:
      (description "Symbolic computation and computer algebra")
      (files (
        "expr.ss"           ; Symbolic expression representation
+       "diff.ss"           ; Symbolic differentiation
+       "simplify.ss"       ; Algebraic simplification
+       "integrate.ss"      ; Symbolic integration
+       "solve.ss"          ; Symbolic equation solving
        "poly-canonical.ss"))) ; Polynomial canonical form conversion
 
     ((subdir "measure")
