@@ -58,9 +58,7 @@
     cotangent-bundle? cotangent-bundle-atlas cotangent-bundle-dim
     make-cotangent-bundle cotangent-bundle-fiber cotangent-bundle-section
     ;; Differential
-    differential
-    ;; Utilities
-    matrix-vec-mul matrix-transpose))
+    differential))
 
   (modules
    (charts "charts.ss"

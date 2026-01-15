@@ -366,23 +366,6 @@
 ;;;
 ;;; Pullback is the dual of pushforward: ⟨f*ω, v⟩ = ⟨ω, df(v)⟩
 
-;;; pullback : (Vec → Vec) × CotangentVector × Chart × Chart → CotangentVector | Error
-;;; Pull a cotangent vector back through a map.
-;;; f is the map in coordinate form, from source-chart to target-chart.
-(define (pullback f cv source-chart target-chart)
-  (let* ([target-point (cotangent-vector-point cv)]
-         [cv-in-target (cotangent-change-chart cv target-chart)])
-    (if (and (pair? cv-in-target) (eq? (car cv-in-target) 'error))
-        cv-in-target
-        (let* ([target-coords (chart-apply target-chart target-point)]
-               ;; Need to find source point: need inverse of f
-               ;; For now, we require the source point to be provided implicitly
-               ;; via the cotangent vector's position in the inverse image
-               [omega-components (cotangent-vector-components cv-in-target)])
-          ;; The pullback formula requires computing at the source point
-          ;; This is a simplified version assuming identity source coords
-          `(error pullback-requires-source-point)))))
-
 ;;; pullback-at : (Vec → Vec) × CotangentVector × Point × Chart × Chart → CotangentVector | Error
 ;;; Pull back a cotangent vector to a specific source point.
 (define (pullback-at f cv source-point source-chart target-chart)
@@ -620,38 +603,6 @@
           (let ([deriv (/ (- (f coords-plus) (f coords-minus)) (* 2 eps))])
             (vector-set! grad i deriv))))
     (make-cotangent-vector point chart grad)))
-
-;;; ============================================================================
-;;; Utilities
-;;; ============================================================================
-
-;;; matrix-vec-mul : Matrix × Vec → Vec
-;;; Multiply matrix by column vector.
-(define (matrix-vec-mul M v)
-  (let* ([m (matrix-rows M)]
-         [n (matrix-cols M)]
-         [result (make-vector m 0)])
-    (do ([i 0 (+ i 1)])
-        ((= i m) result)
-        (let ([sum 0])
-          (do ([j 0 (+ j 1)])
-              ((= j n))
-              (set! sum (+ sum (* (matrix-ref M i j) (vector-ref v j)))))
-          (vector-set! result i sum)))))
-
-;;; matrix-transpose : Matrix → Matrix
-;;; Transpose a matrix.
-(define (matrix-transpose M)
-  (let* ([m (matrix-rows M)]
-         [n (matrix-cols M)]
-         [result (make-matrix n m 0)])
-    (do ([i 0 (+ i 1)])
-        ((= i m) result)
-        (do ([j 0 (+ j 1)])
-            ((= j n))
-            (vector-set! (matrix-data result)
-                         (+ (* j m) i)
-                         (matrix-ref M i j))))))
 
 ;;; ============================================================================
 ;;; REPL Interface
