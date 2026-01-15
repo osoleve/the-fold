@@ -24,7 +24,7 @@
    (tier-0 "Foundational — no lattice deps, only core"
            (modules linalg data algebra text random))
    (tier-1 "Intermediate — builds on tier 0"
-           (modules numeric geometry autodiff fp query dsl info topology crypto))
+           (modules numeric geometry autodiff fp query dsl info topology crypto optimization))
    (tier-2+ "Advanced — multiple dependencies"
            (modules physics tiles sim automata number-theory pipeline))))
 

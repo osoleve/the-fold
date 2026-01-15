@@ -285,6 +285,7 @@
    (statistics "Statistical modeling: regression, GLM, time series, hypothesis tests")
    (topology "Simplicial complexes, homology, TDA")
    (crypto "SHA-512, BLAKE2b, HMAC")
+   (optimization "LP, ILP, gradient descent, L-BFGS")
    ;; Tier 2+ — Advanced
    (physics/diff "Differentiable 2D physics")
    (physics/diff3d "Differentiable 3D physics")
