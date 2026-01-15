@@ -26,6 +26,12 @@
 (load "shell/store-api.ss")
 (load "lattice/data/collection-utils.ss")
 
+;;; Dependencies for homology-based analysis (Section 8)
+(load "lattice/topology/simplicial-complex.ss")
+(load "lattice/linalg/matrix.ss")
+(load "lattice/linalg/matrix-decomp.ss")
+(load "lattice/linalg/matrix-solvers.ss")
+
 ;;; ====
 ;;; Section 1: Helper Functions
 ;;; ====
@@ -801,6 +807,325 @@
 
 
 ;;; ====
+;;; Section 8: Homology-Based Cycle Analysis (Tier 7)
+;;; ====
+
+;;; This section provides algebraic topology tools for analyzing cycles
+;;; in graphs using simplicial homology. For a graph:
+;;;   - H_0 (0-th homology) captures connected components
+;;;   - H_1 (1st homology) captures independent cycles
+;;;
+;;; The Betti numbers are:
+;;;   - beta_0 = dim(H_0) = number of connected components
+;;;   - beta_1 = dim(H_1) = number of independent cycles
+;;;
+;;; Dependencies:
+;;;   - lattice/topology/simplicial-complex.ss
+;;;   - lattice/linalg/matrix.ss
+;;;   - lattice/linalg/matrix-solvers.ss (for matrix-rank)
+
+;;; --- Graph to Simplicial Complex Conversion ---
+
+;;; graph->simplicial-complex : (List Edge) × (List Vertex) → SC
+;;; Convert a graph (edge list + vertex list) to a 1-dimensional simplicial complex.
+;;; Vertices become 0-simplices, edges become 1-simplices.
+;;;
+;;; Edge format: (v1 . v2) or (v1 v2) - both are supported
+;;; Returns a simplicial complex suitable for homology computation.
+;;;
+;;; Example:
+;;;   (graph->simplicial-complex '((0 . 1) (1 . 2) (2 . 0)) '(0 1 2))
+;;;   => simplicial complex for a triangle
+(define (graph->simplicial-complex edges vertices)
+  ;; Create 0-simplices (vertices) and 1-simplices (edges)
+  ;; Handles both (v1 . v2) dotted pair and (v1 v2) list formats
+  (let* ([vertex-simplices (map (lambda (v) (make-simplex (list v))) vertices)]
+         [edge-simplices (map (lambda (e)
+                                (let ([v1 (car e)]
+                                      [v2 (if (pair? (cdr e))
+                                              (cadr e)
+                                              (cdr e))])
+                                  (make-simplex (list v1 v2))))
+                              edges)])
+    (sc-from-simplices (append vertex-simplices edge-simplices))))
+
+;;; graph-adjacency->simplicial-complex : AdjList → SC
+;;; Convert adjacency list to simplicial complex.
+;;; AdjList format: ((vertex neighbor1 neighbor2 ...) ...)
+;;;
+;;; Example:
+;;;   (graph-adjacency->simplicial-complex '((0 1 2) (1 0 2) (2 0 1)))
+;;;   => simplicial complex for triangle K_3
+(define (graph-adjacency->simplicial-complex adj)
+  (let* ([vertices (map car adj)]
+         ;; Extract edges (avoid duplicates by only taking v1 < v2)
+         [edges '()])
+    (for-each
+     (lambda (entry)
+       (let ([v (car entry)]
+             [neighbors (cdr entry)])
+         (for-each
+          (lambda (n)
+            (when (< v n)
+              (set! edges (cons (cons v n) edges))))
+          neighbors)))
+     adj)
+    (graph->simplicial-complex edges vertices)))
+
+;;; --- Boundary Matrix Construction ---
+
+;;; build-boundary-matrix-1 : SC → Matrix
+;;; Build the boundary matrix ∂_1 : C_1 → C_0 for a 1-dimensional complex.
+;;; Rows correspond to 0-simplices (vertices), columns to 1-simplices (edges).
+;;; Entry (i,j) is +1 or -1 if vertex i is in edge j, 0 otherwise.
+;;;
+;;; For edge [v_a, v_b] with v_a < v_b:
+;;;   ∂_1([v_a, v_b]) = [v_b] - [v_a]
+;;; So column j has +1 at row for v_b and -1 at row for v_a.
+(define (build-boundary-matrix-1 sc)
+  (let* ([vertices (sc-vertices sc)]
+         [edges (sc-edges sc)]
+         [n-vertices (length vertices)]
+         [n-edges (length edges)]
+         ;; Build vertex-to-index map
+         [vertex-index (make-hashtable equal-hash equal?)])
+    ;; Populate vertex index map
+    (let loop ([vs vertices] [i 0])
+      (unless (null? vs)
+        (hashtable-set! vertex-index (car vs) i)
+        (loop (cdr vs) (+ i 1))))
+    ;; Build boundary matrix
+    (let ([mat (make-matrix n-vertices n-edges 0)])
+      (let edge-loop ([es edges] [col 0])
+        (unless (null? es)
+          (let* ([edge (car es)]
+                 [vs (simplex-vertices edge)]
+                 [v0 (car vs)]   ; smaller vertex (due to sorting)
+                 [v1 (cadr vs)]  ; larger vertex
+                 [row0 (hashtable-ref vertex-index v0 #f)]
+                 [row1 (hashtable-ref vertex-index v1 #f)])
+            ;; ∂([v0, v1]) = [v1] - [v0]
+            (when row0 (matrix-set! mat row0 col -1))
+            (when row1 (matrix-set! mat row1 col 1))
+            (edge-loop (cdr es) (+ col 1)))))
+      mat)))
+
+;;; build-boundary-matrix-0 : SC → Matrix
+;;; Build the boundary matrix ∂_0 : C_0 → 0 (zero map).
+;;; This is a 0 × n_vertices matrix (no rows, just columns).
+;;; For computation, we represent it as a 1 × n_vertices zero matrix.
+(define (build-boundary-matrix-0 sc)
+  (let ([n-vertices (length (sc-vertices sc))])
+    (make-matrix 1 n-vertices 0)))
+
+;;; --- Betti Number Computation ---
+
+;;; graph-betti-numbers : (List Edge) × (List Vertex) → (beta0 . beta1)
+;;; Compute Betti numbers for a graph.
+;;;
+;;; beta_0 = dim(ker ∂_0) = dim(C_0) = number of vertices minus rank(∂_1)
+;;;        = n_vertices - rank(∂_1)
+;;;        But more correctly: beta_0 = n_vertices - rank(∂_1)
+;;;
+;;; Actually, for simplicial homology:
+;;;   beta_0 = dim(ker ∂_0) - dim(im ∂_1) = n_vertices - rank(∂_1)
+;;;          = number of connected components
+;;;
+;;;   beta_1 = dim(ker ∂_1) - dim(im ∂_2)
+;;;          Since ∂_2 = 0 for 1-dimensional complexes (no 2-simplices):
+;;;          beta_1 = dim(ker ∂_1) = n_edges - rank(∂_1)
+;;;          = number of independent cycles
+;;;
+;;; Example:
+;;;   (graph-betti-numbers '((0 . 1) (1 . 2) (2 . 0)) '(0 1 2))
+;;;   => (1 . 1)  ; 1 component, 1 independent cycle (triangle)
+(define (graph-betti-numbers edges vertices)
+  (let* ([sc (graph->simplicial-complex edges vertices)]
+         [n-vertices (length vertices)]
+         [n-edges (length edges)])
+    (if (= n-edges 0)
+        ;; No edges: each vertex is its own component, no cycles
+        (cons n-vertices 0)
+        (let* ([boundary-1 (build-boundary-matrix-1 sc)]
+               [rank-d1 (matrix-rank boundary-1)]
+               ;; beta_0 = n_vertices - rank(∂_1) = number of components
+               [beta-0 (- n-vertices rank-d1)]
+               ;; beta_1 = n_edges - rank(∂_1) = number of independent cycles
+               [beta-1 (- n-edges rank-d1)])
+          (cons beta-0 beta-1)))))
+
+;;; graph-betti-numbers-from-adjacency : AdjList → (beta0 . beta1)
+;;; Compute Betti numbers from adjacency list representation.
+(define (graph-betti-numbers-from-adjacency adj)
+  (let* ([vertices (map car adj)]
+         ;; Extract edges (avoid duplicates)
+         [edges '()])
+    (for-each
+     (lambda (entry)
+       (let ([v (car entry)]
+             [neighbors (cdr entry)])
+         (for-each
+          (lambda (n)
+            (when (< v n)
+              (set! edges (cons (cons v n) edges))))
+          neighbors)))
+     adj)
+    (graph-betti-numbers edges vertices)))
+
+;;; --- Cycle Basis from Homology ---
+
+;;; cycle-basis-homology : (List Edge) × (List Vertex) → (List Cycle)
+;;; Compute a basis for H_1 (first homology group).
+;;; Returns a list of fundamental cycles, where each cycle is a list of edges.
+;;; The number of cycles equals beta_1.
+;;;
+;;; Algorithm:
+;;;   1. Build boundary matrix ∂_1
+;;;   2. Find null space of ∂_1 (kernel vectors)
+;;;   3. Each basis vector of ker(∂_1) represents a cycle
+;;;   4. Convert to edge lists
+;;;
+;;; Example:
+;;;   (cycle-basis-homology '((0 . 1) (1 . 2) (2 . 0)) '(0 1 2))
+;;;   => (((0 . 1) (1 . 2) (2 . 0)))  ; one fundamental cycle
+(define (cycle-basis-homology edges vertices)
+  (let* ([sc (graph->simplicial-complex edges vertices)]
+         [n-edges (length edges)]
+         [edge-list (sc-edges sc)])
+    (if (= n-edges 0)
+        '()  ; No edges, no cycles
+        (let* ([boundary-1 (build-boundary-matrix-1 sc)]
+               [null-basis (matrix-null-space boundary-1)])
+          ;; Convert each null space vector to a cycle (list of edges)
+          (map (lambda (null-vec)
+                 (edges-from-null-vector null-vec edge-list))
+               null-basis)))))
+
+;;; matrix-null-space : Matrix → (List Vector)
+;;; Compute a basis for the null space of a matrix.
+;;; Uses row reduction to find free variables and back-substitution.
+;;;
+;;; Returns a list of vectors, each representing a basis element.
+(define (matrix-null-space m)
+  (let* ([rows (matrix-rows m)]
+         [cols (matrix-cols m)]
+         ;; Row reduce to echelon form
+         [ref (matrix-gauss-elim m)]
+         ;; Find pivot columns
+         [pivot-cols (find-pivot-columns ref rows cols)]
+         ;; Free columns are non-pivot columns
+         [free-cols (find-free-columns cols pivot-cols)]
+         [n-free (length free-cols)])
+    (if (= n-free 0)
+        '()  ; Trivial null space
+        ;; For each free column, create a basis vector
+        (map (lambda (free-col)
+               (null-space-basis-vector ref rows cols pivot-cols free-col))
+             free-cols))))
+
+;;; find-pivot-columns : Matrix × Nat × Nat → (List Nat)
+;;; Find the column indices that contain pivots in row echelon form.
+(define (find-pivot-columns ref rows cols)
+  (let loop ([row 0] [col 0] [pivots '()])
+    (cond
+     [(or (>= row rows) (>= col cols))
+      (reverse pivots)]
+     [(> (abs (matrix-ref ref row col)) 1e-10)
+      ;; Found pivot in this column
+      (loop (+ row 1) (+ col 1) (cons col pivots))]
+     [else
+      ;; No pivot in this column, try next column
+      (loop row (+ col 1) pivots)])))
+
+;;; find-free-columns : Nat × (List Nat) → (List Nat)
+;;; Find column indices that are not pivot columns.
+(define (find-free-columns n-cols pivot-cols)
+  (let loop ([col 0] [free '()])
+    (if (>= col n-cols)
+        (reverse free)
+        (if (member col pivot-cols)
+            (loop (+ col 1) free)
+            (loop (+ col 1) (cons col free))))))
+
+;;; null-space-basis-vector : Matrix × Nat × Nat × (List Nat) × Nat → Vector
+;;; Construct a null space basis vector for a given free column.
+;;; Sets the free column to 1, other free columns to 0,
+;;; and solves for pivot columns by back-substitution.
+(define (null-space-basis-vector ref rows cols pivot-cols free-col)
+  (let ([vec (make-vector cols 0)]
+        [n-pivots (length pivot-cols)])
+    ;; Set free column to 1
+    (vector-set! vec free-col 1)
+    ;; Back-substitute to find pivot column values
+    ;; For each pivot row (from bottom up), solve for pivot variable
+    (let loop ([p-idx (- n-pivots 1)])
+      (when (>= p-idx 0)
+        (let* ([pivot-col (list-ref pivot-cols p-idx)]
+               [pivot-row p-idx]
+               [pivot-val (matrix-ref ref pivot-row pivot-col)])
+          (when (> (abs pivot-val) 1e-10)
+            ;; Compute sum of known terms
+            (let ([sum (let col-loop ([c (+ pivot-col 1)] [s 0])
+                         (if (>= c cols)
+                             s
+                             (col-loop (+ c 1)
+                                       (+ s (* (matrix-ref ref pivot-row c)
+                                               (vector-ref vec c))))))])
+              (vector-set! vec pivot-col (- (/ sum pivot-val)))))
+          (loop (- p-idx 1)))))
+    vec))
+
+;;; edges-from-null-vector : Vector × (List Simplex) → (List Edge)
+;;; Convert a null space vector to a list of edges.
+;;; Non-zero entries indicate edges that participate in the cycle.
+(define (edges-from-null-vector vec edge-simplices)
+  (let loop ([idx 0] [edges edge-simplices] [result '()])
+    (if (null? edges)
+        (reverse result)
+        (let ([coeff (vector-ref vec idx)]
+              [edge (car edges)])
+          (if (> (abs coeff) 1e-10)
+              ;; This edge participates in the cycle
+              (let* ([vs (simplex-vertices edge)]
+                     [v0 (car vs)]
+                     [v1 (cadr vs)])
+                (loop (+ idx 1) (cdr edges) (cons (cons v0 v1) result)))
+              (loop (+ idx 1) (cdr edges) result))))))
+
+;;; --- Convenience Functions ---
+
+;;; graph-euler-characteristic : (List Edge) × (List Vertex) → Integer
+;;; Compute Euler characteristic: χ = V - E + F
+;;; For a graph (1-dimensional complex), F = 0, so χ = V - E.
+;;; Also: χ = beta_0 - beta_1 (alternating sum of Betti numbers)
+(define (graph-euler-characteristic edges vertices)
+  (- (length vertices) (length edges)))
+
+;;; graph-cycle-rank : (List Edge) × (List Vertex) → Integer
+;;; Compute the cycle rank (cyclomatic number): beta_1 = E - V + beta_0
+;;; This equals the minimum number of edges to remove to make acyclic.
+;;;
+;;; For connected graphs: cycle-rank = E - V + 1
+(define (graph-cycle-rank edges vertices)
+  (let ([betti (graph-betti-numbers edges vertices)])
+    (cdr betti)))
+
+;;; graph-is-tree? : (List Edge) × (List Vertex) → Boolean
+;;; A graph is a tree iff it is connected (beta_0 = 1) and acyclic (beta_1 = 0).
+(define (graph-is-tree? edges vertices)
+  (let ([betti (graph-betti-numbers edges vertices)])
+    (and (= (car betti) 1)
+         (= (cdr betti) 0))))
+
+;;; graph-is-forest? : (List Edge) × (List Vertex) → Boolean
+;;; A graph is a forest iff it is acyclic (beta_1 = 0).
+;;; A forest may have multiple components.
+(define (graph-is-forest? edges vertices)
+  (let ([betti (graph-betti-numbers edges vertices)])
+    (= (cdr betti) 0)))
+
+
+;;; ====
 ;;; Load Complete
 ;;; ====
 
@@ -815,4 +1140,6 @@
 (printf "  Centrality:  in-degree, out-degree, find-hubs, find-roots, find-leaves
 ")
 (printf "  Subgraphs:   reachable-from, ancestors-of, subgraph, neighborhood
+")
+(printf "  Homology:    graph-betti-numbers, cycle-basis-homology, graph-is-tree?
 ")

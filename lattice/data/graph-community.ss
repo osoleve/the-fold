@@ -43,6 +43,7 @@
 ;;;   - vec.ss
 ;;;   - matrix.ss
 ;;;   - graph-matrix.ss
+;;;   - ilp.ss (for modularity-ilp)
 
 ;;; ====
 ;;; Community Detection: Label Propagation
@@ -424,3 +425,214 @@
 ;;; Convenience: compute MST from adjacency matrix using Prim's.
 (define (mst-from-adjacency adj)
   (prim-mst adj))
+
+;;; ====
+;;; ILP-Based Modularity Optimization
+;;; ====
+
+;;; modularity-ilp : Matrix → Vector
+;;;
+;;; Compute optimal 2-community partition maximizing modularity using ILP.
+;;; Uses exact integer linear programming to find the global optimum.
+;;;
+;;; Arguments:
+;;;   adj - Adjacency matrix (undirected)
+;;;
+;;; Returns: Vector of community labels (0 or 1 for each node)
+;;;
+;;; Notes:
+;;;   - Complexity: Exponential in worst case (exact optimization)
+;;;   - Recommended for small graphs (n < 20) due to ILP complexity
+;;;   - For large graphs, use label-propagation instead
+;;;
+;;; Algorithm:
+;;;   Modularity Q = (1/2m) Σ B[i,j]·δ(c_i, c_j) where B[i,j] = A[i,j] - k_i·k_j/(2m)
+;;;   For 2 communities with x_i ∈ {0,1}:
+;;;     - Nodes in same community if x_i = x_j
+;;;     - δ(c_i, c_j) = x_i·x_j + (1-x_i)·(1-x_j) = 2·x_i·x_j - x_i - x_j + 1
+;;;
+;;;   Objective: maximize Σ B[i,j]·(2·y[i,j] - x[i] - x[j] + 1)
+;;;   where y[i,j] = x[i]·x[j] (linearized with standard constraints)
+;;;
+;;; Example:
+;;;   (load "lattice/optimization/ilp.ss")  ; Required for ILP solver
+;;;   (modularity-ilp two-triangles-adj) => #(0 0 0 1 1 1)
+(define (modularity-ilp adj)
+  (let* ([n (matrix-rows adj)]
+         ;; Compute modularity matrix B[i,j] = A[i,j] - k_i·k_j/(2m)
+         [two-m (matrix-sum adj)])
+    (if (or (= two-m 0) (< n 2))
+        ;; Degenerate cases: no edges or single node
+        (make-vector n 0)
+        (let* ([m (/ two-m 2.0)]
+               [degrees (compute-degrees adj n)]
+               [B (compute-modularity-matrix adj degrees two-m n)]
+               ;; Build and solve ILP
+               [ilp-data (build-modularity-ilp B n)]
+               [result (ilp-solve ilp-data)])
+          (if (ilp-optimal? result)
+              ;; Extract x[0..n-1] from solution
+              (let ([sol (ilp-result-x result)])
+                (let ([labels (make-vector n 0)])
+                  (do ([i 0 (+ i 1)])
+                      ((= i n) labels)
+                    (vector-set! labels i (inexact->exact (round (vector-ref sol i)))))))
+              ;; Fallback to all zeros if ILP fails
+              (make-vector n 0))))))
+
+;;; compute-degrees : Matrix × Nat → Vector
+;;; Compute degree of each node.
+(define (compute-degrees adj n)
+  (let ([degrees (make-vector n 0)])
+    (do ([i 0 (+ i 1)])
+        ((= i n) degrees)
+      (do ([j 0 (+ j 1)])
+          ((= j n))
+        (when (> (matrix-ref adj i j) 0)
+          (vector-set! degrees i
+                       (+ (vector-ref degrees i)
+                          (matrix-ref adj i j))))))))
+
+;;; compute-modularity-matrix : Matrix × Vector × Num × Nat → Matrix
+;;; Compute modularity matrix B[i,j] = A[i,j] - k_i·k_j/(2m).
+(define (compute-modularity-matrix adj degrees two-m n)
+  (let ([B (make-matrix n n 0)])
+    (do ([i 0 (+ i 1)])
+        ((= i n) B)
+      (do ([j 0 (+ j 1)])
+          ((= j n))
+        (let* ([a-ij (matrix-ref adj i j)]
+               [ki (vector-ref degrees i)]
+               [kj (vector-ref degrees j)]
+               [expected (/ (* ki kj) two-m)])
+          (matrix-set! B i j (- a-ij expected)))))))
+
+;;; build-modularity-ilp : Matrix × Nat → ILP
+;;; Build ILP for maximizing modularity with 2 communities.
+;;;
+;;; Variables:
+;;;   x[i] ∈ {0,1} for i = 0..n-1  (community assignment)
+;;;   y[i,j] = x[i]·x[j] for i < j  (linearization variables)
+;;;
+;;; Objective: maximize Σ_{i,j} B[i,j]·(2·y[i,j] - x[i] - x[j] + 1)
+;;;          = Σ_{i<j} 2·B[i,j]·(2·y[i,j] - x[i] - x[j] + 1) + Σ_i B[i,i]
+;;;
+;;; Since we minimize, negate the objective.
+;;;
+;;; Linearization constraints for y[i,j] = x[i]·x[j]:
+;;;   y[i,j] <= x[i]
+;;;   y[i,j] <= x[j]
+;;;   y[i,j] >= x[i] + x[j] - 1
+;;;   y[i,j] >= 0  (implicit in LP)
+(define (build-modularity-ilp B n)
+  ;; Number of y variables: n*(n-1)/2 for i < j
+  (let* ([num-y (quotient (* n (- n 1)) 2)]
+         [num-vars (+ n num-y)]
+         ;; Map (i,j) where i < j to y-variable index
+         [y-index (lambda (i j)
+                    (let ([lo (min i j)]
+                          [hi (max i j)])
+                      (+ n
+                         (- (* hi (- hi 1) 1/2) 0)
+                         lo)))]
+         ;; Build cost vector (negate for minimization)
+         [c (make-vector num-vars 0)])
+
+    ;; Compute objective coefficients
+    ;; For diagonal: B[i,i] contributes to constant (ignore for optimization)
+    ;; For off-diagonal i < j:
+    ;;   2·B[i,j]·(2·y[i,j] - x[i] - x[j] + 1)
+    ;;   = 4·B[i,j]·y[i,j] - 2·B[i,j]·x[i] - 2·B[i,j]·x[j] + 2·B[i,j]
+    ;; Due to symmetry B[i,j] = B[j,i], we count each pair once:
+    ;;   Coef of y[i,j]: 4·B[i,j]
+    ;;   Coef of x[i]: -2·Σ_{j≠i} B[i,j] = -2·(row sum - B[i,i])
+    ;;   Coef of x[j]: similar
+
+    ;; First, compute x coefficients from row sums
+    (do ([i 0 (+ i 1)])
+        ((= i n))
+      (let ([row-sum 0])
+        (do ([j 0 (+ j 1)])
+            ((= j n))
+          (when (not (= i j))
+            (set! row-sum (+ row-sum (matrix-ref B i j)))))
+        ;; Negate because we minimize, and we want to maximize
+        (vector-set! c i (* 2 row-sum))))
+
+    ;; Then, compute y coefficients
+    (do ([i 0 (+ i 1)])
+        ((= i n))
+      (do ([j (+ i 1) (+ j 1)])
+          ((= j n))
+        (let ([y-idx (y-index i j)]
+              [bij (matrix-ref B i j)])
+          ;; Negate for minimization
+          (vector-set! c y-idx (* -4 bij)))))
+
+    ;; Build constraints for linearization
+    ;; Each y[i,j] needs 3 constraints:
+    ;;   y[i,j] - x[i] <= 0         (y <= x[i])
+    ;;   y[i,j] - x[j] <= 0         (y <= x[j])
+    ;;   -y[i,j] + x[i] + x[j] <= 1  (y >= x[i] + x[j] - 1)
+    ;; Plus binary constraints: x[i] <= 1
+    ;;
+    ;; Total constraints: 3·num-y + n (for x <= 1)
+    (let* ([num-lin-constraints (* 3 num-y)]
+           [num-binary-constraints n]
+           [num-constraints (+ num-lin-constraints num-binary-constraints)]
+           ;; Standard form: Ax = b with slack variables
+           ;; Each <= constraint needs one slack variable
+           [num-slack num-constraints]
+           [total-vars (+ num-vars num-slack)]
+           [A (make-matrix num-constraints total-vars 0)]
+           [b (make-vector num-constraints 0)]
+           [c-full (make-vector total-vars 0)]
+           [constraint-idx 0])
+
+      ;; Copy objective coefficients
+      (do ([i 0 (+ i 1)])
+          ((= i num-vars))
+        (vector-set! c-full i (vector-ref c i)))
+
+      ;; Add linearization constraints for each y[i,j]
+      (do ([i 0 (+ i 1)])
+          ((= i n))
+        (do ([j (+ i 1) (+ j 1)])
+            ((= j n))
+          (let ([y-idx (y-index i j)])
+            ;; Constraint 1: y[i,j] - x[i] + s = 0  (y <= x[i])
+            (matrix-set! A constraint-idx y-idx 1)
+            (matrix-set! A constraint-idx i -1)
+            (matrix-set! A constraint-idx (+ num-vars constraint-idx) 1)
+            (vector-set! b constraint-idx 0)
+            (set! constraint-idx (+ constraint-idx 1))
+
+            ;; Constraint 2: y[i,j] - x[j] + s = 0  (y <= x[j])
+            (matrix-set! A constraint-idx y-idx 1)
+            (matrix-set! A constraint-idx j -1)
+            (matrix-set! A constraint-idx (+ num-vars constraint-idx) 1)
+            (vector-set! b constraint-idx 0)
+            (set! constraint-idx (+ constraint-idx 1))
+
+            ;; Constraint 3: -y[i,j] + x[i] + x[j] + s = 1  (y >= x[i]+x[j]-1)
+            (matrix-set! A constraint-idx y-idx -1)
+            (matrix-set! A constraint-idx i 1)
+            (matrix-set! A constraint-idx j 1)
+            (matrix-set! A constraint-idx (+ num-vars constraint-idx) 1)
+            (vector-set! b constraint-idx 1)
+            (set! constraint-idx (+ constraint-idx 1)))))
+
+      ;; Add binary constraints: x[i] + s = 1  (x <= 1)
+      (do ([i 0 (+ i 1)])
+          ((= i n))
+        (matrix-set! A constraint-idx i 1)
+        (matrix-set! A constraint-idx (+ num-vars constraint-idx) 1)
+        (vector-set! b constraint-idx 1)
+        (set! constraint-idx (+ constraint-idx 1)))
+
+      ;; Integer variables: x[0..n-1] and y[n..n+num-y-1]
+      (let ([integer-vars (let loop ([i 0] [acc '()])
+                            (if (= i num-vars)
+                                (reverse acc)
+                                (loop (+ i 1) (cons i acc))))])
+        (make-ilp c-full A b integer-vars)))))

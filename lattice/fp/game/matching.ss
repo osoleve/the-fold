@@ -20,6 +20,7 @@
 
 (load "core/base/prelude.ss")
 (load "lattice/optimization/lp.ss")
+(load "lattice/optimization/ilp.ss")
 (load "lattice/fp/game/coop-games.ss")
 
 ;;; ============================================================================
@@ -570,3 +571,248 @@
 ;;; Lexicographic comparison for symbols.
 (define (symbol<? a b)
   (string<? (symbol->string a) (symbol->string b)))
+
+;;; ============================================================================
+;;; ILP-Based Matching Algorithms
+;;; ============================================================================
+;;;
+;;; These algorithms use Integer Linear Programming for matching problems
+;;; that require integral solutions (exact matchings).
+
+;;; ----------------------------------------------------------------------------
+;;; Maximum Weighted Bipartite Matching via ILP
+;;; ----------------------------------------------------------------------------
+;;;
+;;; Given a bipartite graph with weights W[i,j] for each edge (i,j),
+;;; find a matching that maximizes the total weight.
+;;;
+;;; ILP formulation:
+;;;   maximize   Σ W[i,j] · x[i,j]
+;;;   subject to Σ_j x[i,j] <= 1  for all i (each row matched at most once)
+;;;              Σ_i x[i,j] <= 1  for all j (each col matched at most once)
+;;;              x[i,j] ∈ {0,1}
+
+;;; weighted-matching-ilp : Nat × Nat × (Nat × Nat → Real) → (List (Nat . Nat)) × Real
+;;; Compute maximum weighted bipartite matching using ILP.
+;;; n = number of nodes on left side (rows)
+;;; m = number of nodes on right side (cols)
+;;; weight = weight function (i,j) → weight of edge (i,j)
+;;; Returns ((matches ...) . total-weight) where matches are (left . right) pairs.
+;;;
+;;; Example:
+;;;   (weighted-matching-ilp 2 2 (lambda (i j) (vector-ref '#(#(3 1) #(2 4)) i j)))
+;;;   => (((0 . 0) (1 . 1)) . 7)
+(define (weighted-matching-ilp n m weight)
+  (let* (;; Number of decision variables: n*m binary variables x[i,j]
+         [num-vars (* n m)]
+         ;; Number of constraints: n row constraints + m col constraints
+         [num-row-constraints n]
+         [num-col-constraints m]
+         [num-constraints (+ num-row-constraints num-col-constraints)]
+         ;; Add slack variables for <= constraints
+         [num-slacks num-constraints]
+         [total-vars (+ num-vars num-slacks)]
+         ;; Cost vector (negated for maximization via minimization)
+         [c (make-vector total-vars 0)]
+         ;; Constraint matrix A
+         [A (make-matrix num-constraints total-vars 0)]
+         ;; RHS vector b (all 1s for matching constraints)
+         [b (make-vector num-constraints 1)])
+    ;; Fill cost vector: c[i*m + j] = -weight(i,j) (negate to maximize)
+    (do ([i 0 (+ i 1)])
+        [(= i n)]
+      (do ([j 0 (+ j 1)])
+          [(= j m)]
+        (let ([var-idx (+ (* i m) j)])
+          (vector-set! c var-idx (- (weight i j))))))
+    ;; Fill row constraints: Σ_j x[i,j] + slack_i = 1
+    (do ([i 0 (+ i 1)])
+        [(= i n)]
+      (do ([j 0 (+ j 1)])
+          [(= j m)]
+        (let ([var-idx (+ (* i m) j)])
+          (matrix-set! A i var-idx 1)))
+      ;; Slack variable for row i
+      (matrix-set! A i (+ num-vars i) 1))
+    ;; Fill col constraints: Σ_i x[i,j] + slack_{n+j} = 1
+    (do ([j 0 (+ j 1)])
+        [(= j m)]
+      (do ([i 0 (+ i 1)])
+          [(= i n)]
+        (let ([var-idx (+ (* i m) j)])
+          (matrix-set! A (+ n j) var-idx 1)))
+      ;; Slack variable for col j
+      (matrix-set! A (+ n j) (+ num-vars n j) 1))
+    ;; Create and solve ILP (decision variables are binary)
+    (let* ([ilp (make-ilp c A b (iota num-vars))]  ; all x[i,j] must be integer
+           [result (ilp-solve ilp)])
+      (if (ilp-optimal? result)
+          (let* ([x (ilp-result-x result)]
+                 ;; Extract matches from solution
+                 [matches (extract-ilp-matches x n m)]
+                 ;; Total weight is negation of objective (we minimized -weight)
+                 [total-weight (- (ilp-result-z result))])
+            (cons matches total-weight))
+          ;; Fallback (shouldn't happen for bipartite matching)
+          (cons '() 0)))))
+
+;;; extract-ilp-matches : Vec × Nat × Nat → (List (Nat . Nat))
+;;; Extract matching pairs from ILP solution vector.
+(define (extract-ilp-matches x n m)
+  (let loop ([i 0] [j 0] [result '()])
+    (cond
+      [(= i n) (reverse result)]
+      [(= j m) (loop (+ i 1) 0 result)]
+      [else
+       (let* ([var-idx (+ (* i m) j)]
+              [val (vector-ref x var-idx)])
+         (loop i (+ j 1)
+               (if (> val 0.5)  ; Threshold for binary variable
+                   (cons (cons i j) result)
+                   result)))])))
+
+;;; ----------------------------------------------------------------------------
+;;; Bottleneck Matching via ILP (Minimize Maximum Edge Weight)
+;;; ----------------------------------------------------------------------------
+;;;
+;;; The bottleneck matching problem minimizes the maximum weight edge
+;;; in a perfect or maximal matching. This is useful for load balancing
+;;; and fairness applications.
+;;;
+;;; Solved via binary search on threshold T:
+;;;   - For each T, solve feasibility ILP: can we match using only edges ≤ T?
+;;;   - Binary search finds minimum T that admits a matching.
+;;;
+;;; Feasibility ILP at threshold T:
+;;;   maximize   Σ x[i,j]  (or just check feasibility)
+;;;   subject to x[i,j] = 0  if weight(i,j) > T
+;;;              Σ_j x[i,j] <= 1  for all i
+;;;              Σ_i x[i,j] <= 1  for all j
+;;;              x[i,j] ∈ {0,1}
+
+;;; bottleneck-matching-ilp : Nat × Nat × (Nat × Nat → Real) → (List (Nat . Nat)) × Real
+;;; Compute bottleneck bipartite matching using binary search + ILP.
+;;; Returns ((matches ...) . bottleneck-value) where bottleneck-value is
+;;; the maximum edge weight in the matching.
+;;;
+;;; Example:
+;;;   (bottleneck-matching-ilp 2 2 (lambda (i j) (vector-ref '#(#(5 3) #(4 2)) i j)))
+;;;   => (((0 . 1) (1 . 1)) . 3) or similar optimal matching
+(define (bottleneck-matching-ilp n m weight)
+  (let* (;; Collect all distinct edge weights
+         [all-weights (collect-edge-weights n m weight)]
+         ;; Sort weights to enable binary search
+         [sorted-weights (sort-numbers all-weights)]
+         ;; Determine required matching size (min of n, m for maximal)
+         [required-size (min n m)])
+    (if (null? sorted-weights)
+        ;; No edges - empty matching
+        (cons '() 0)
+        ;; Binary search for minimum bottleneck
+        (let ([result (binary-search-bottleneck
+                       n m weight sorted-weights required-size)])
+          (if result
+              result
+              ;; Fallback if no matching found
+              (cons '() +inf.0))))))
+
+;;; collect-edge-weights : Nat × Nat × (Nat × Nat → Real) → List
+;;; Collect all edge weights into a list.
+(define (collect-edge-weights n m weight)
+  (let loop ([i 0] [j 0] [result '()])
+    (cond
+      [(= i n) result]
+      [(= j m) (loop (+ i 1) 0 result)]
+      [else
+       (let ([w (weight i j)])
+         (loop i (+ j 1) (cons w result)))])))
+
+;;; sort-numbers : List → List
+;;; Sort a list of numbers in ascending order.
+(define (sort-numbers lst)
+  (list-sort < lst))
+
+;;; remove-duplicates-numbers : List → List
+;;; Remove duplicate numbers from sorted list.
+(define (remove-duplicates-numbers sorted-lst)
+  (if (or (null? sorted-lst) (null? (cdr sorted-lst)))
+      sorted-lst
+      (let loop ([lst (cdr sorted-lst)] [prev (car sorted-lst)] [result (list (car sorted-lst))])
+        (if (null? lst)
+            (reverse result)
+            (let ([curr (car lst)])
+              (if (= curr prev)
+                  (loop (cdr lst) curr result)
+                  (loop (cdr lst) curr (cons curr result))))))))
+
+;;; binary-search-bottleneck : Nat × Nat × Fn × List × Nat → (List . Real) | #f
+;;; Binary search for minimum threshold that admits required matching size.
+(define (binary-search-bottleneck n m weight sorted-weights required-size)
+  (let* ([unique-weights (remove-duplicates-numbers sorted-weights)]
+         [num-thresholds (length unique-weights)]
+         [weight-vec (list->vector unique-weights)])
+    (if (= num-thresholds 0)
+        #f
+        (let loop ([lo 0] [hi (- num-thresholds 1)] [best-result #f])
+          (if (> lo hi)
+              best-result
+              (let* ([mid (quotient (+ lo hi) 2)]
+                     [threshold (vector-ref weight-vec mid)]
+                     [feasible-result (check-bottleneck-feasibility
+                                       n m weight threshold required-size)])
+                (if feasible-result
+                    ;; Found feasible matching at this threshold, try lower
+                    (loop lo (- mid 1) feasible-result)
+                    ;; Not feasible, need higher threshold
+                    (loop (+ mid 1) hi best-result))))))))
+
+;;; check-bottleneck-feasibility : Nat × Nat × Fn × Real × Nat → (List . Real) | #f
+;;; Check if a matching of required size exists using only edges ≤ threshold.
+;;; Returns (matches . threshold) if feasible, #f otherwise.
+(define (check-bottleneck-feasibility n m weight threshold required-size)
+  (let* (;; Create filtered weight function (edges above threshold become 0)
+         ;; Actually for feasibility, we want to maximize # of matches
+         ;; using only edges <= threshold
+         [num-vars (* n m)]
+         [num-constraints (+ n m)]
+         [num-slacks num-constraints]
+         [total-vars (+ num-vars num-slacks)]
+         ;; Cost: maximize sum of x[i,j] => minimize -sum
+         [c (make-vector total-vars 0)]
+         [A (make-matrix num-constraints total-vars 0)]
+         [b (make-vector num-constraints 1)])
+    ;; Cost: -1 for each matching variable (to maximize count)
+    ;; But only for edges <= threshold
+    (do ([i 0 (+ i 1)])
+        [(= i n)]
+      (do ([j 0 (+ j 1)])
+          [(= j m)]
+        (let ([var-idx (+ (* i m) j)]
+              [w (weight i j)])
+          (when (<= w threshold)
+            (vector-set! c var-idx -1)))))
+    ;; Row constraints
+    (do ([i 0 (+ i 1)])
+        [(= i n)]
+      (do ([j 0 (+ j 1)])
+          [(= j m)]
+        (matrix-set! A i (+ (* i m) j) 1))
+      (matrix-set! A i (+ num-vars i) 1))
+    ;; Column constraints
+    (do ([j 0 (+ j 1)])
+        [(= j m)]
+      (do ([i 0 (+ i 1)])
+          [(= i n)]
+        (matrix-set! A (+ n j) (+ (* i m) j) 1))
+      (matrix-set! A (+ n j) (+ num-vars n j) 1))
+    ;; Solve ILP
+    (let* ([ilp (make-ilp c A b (iota num-vars))]
+           [result (ilp-solve ilp)])
+      (if (ilp-optimal? result)
+          (let* ([x (ilp-result-x result)]
+                 [matches (extract-ilp-matches x n m)]
+                 [match-count (length matches)])
+            (if (>= match-count required-size)
+                (cons matches threshold)
+                #f))
+          #f))))

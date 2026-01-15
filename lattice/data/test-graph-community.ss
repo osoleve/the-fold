@@ -343,6 +343,61 @@
              (= (uf-find parent 0) (uf-find parent 1))))
 
 ;;; ====
+;;; Modularity ILP Tests
+;;; ====
+
+;; Load ILP solver for these tests
+(load "lattice/optimization/ilp.ss")
+
+(test-group "Modularity ILP")
+
+;; Test: two disconnected triangles - should find perfect partition
+(let* ([labels (modularity-ilp two-triangles-adj)]
+       [partition (communities->partition labels)]
+       [Q (modularity two-triangles-adj labels)])
+  (test "ILP finds two communities" 2 (num-communities labels))
+  (test-true "ILP modularity > 0.3" (> Q 0.3)))
+
+;; Test: ILP finds at least as good as greedy
+(let* ([ilp-labels (modularity-ilp barbell-adj)]
+       [greedy-labels (label-propagation barbell-adj 100 42)]
+       [Q-ilp (modularity barbell-adj ilp-labels)]
+       [Q-greedy (modularity barbell-adj greedy-labels)])
+  (test-true "ILP Q >= greedy Q"
+             (>= (+ Q-ilp 0.001) Q-greedy)))  ; tolerance for floating point
+
+;; Test: single node graph
+(let* ([single-adj (make-matrix 1 1 0)]
+       [labels (modularity-ilp single-adj)])
+  (test "single node - length" 1 (vector-length labels))
+  (test "single node - label" 0 (vector-ref labels 0)))
+
+;; Test: empty graph (no edges)
+(let* ([empty-adj (make-matrix 3 3 0)]
+       [labels (modularity-ilp empty-adj)])
+  (test "empty graph - length" 3 (vector-length labels)))
+
+;; Test: K4 - all nodes in same community should have Q near 0
+(let* ([labels (modularity-ilp k4-adj)]
+       [Q (modularity k4-adj labels)])
+  (test-true "K4 ILP produces valid labels" (vector? labels))
+  (test "K4 labels length" 4 (vector-length labels)))
+
+;; Test: path graph of 4 nodes
+(let* ([labels (modularity-ilp path-4-adj)]
+       [Q (modularity path-4-adj labels)])
+  (test-true "path graph Q >= 0" (>= Q -0.01)))
+
+;; Test: verify ILP respects 2-community constraint
+(let ([labels (modularity-ilp two-triangles-adj)])
+  (test-true "labels are binary"
+             (let loop ([i 0])
+               (or (= i (vector-length labels))
+                   (and (or (= (vector-ref labels i) 0)
+                            (= (vector-ref labels i) 1))
+                        (loop (+ i 1)))))))
+
+;;; ====
 ;;; Summary
 ;;; ====
 

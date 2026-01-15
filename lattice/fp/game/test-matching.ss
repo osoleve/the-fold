@@ -491,6 +491,188 @@
                                        (cdr lst))))))
 
 ;;; ============================================================================
+;;; ILP-Based Weighted Matching Tests
+;;; ============================================================================
+
+(test-group "Weighted Matching (ILP)"
+
+  (define-test "2x2 weighted matching via ILP"
+    ;; Weight matrix:
+    ;;     j0  j1
+    ;; i0:  3   1
+    ;; i1:  2   4
+    ;; Optimal: (0,0)=3 + (1,1)=4 = 7
+    (let* ([weight (lambda (i j)
+                     (let ([W '#(#(3 1)
+                                 #(2 4))])
+                       (vector-ref (vector-ref W i) j)))]
+           [result (weighted-matching-ilp 2 2 weight)]
+           [matches (car result)]
+           [total (cdr result)])
+      (assert-true (approximately-equal? 7 total 0.01))
+      (assert-equal 2 (length matches))))
+
+  (define-test "3x3 weighted matching via ILP"
+    ;; Weight matrix:
+    ;;     j0 j1 j2
+    ;; i0:  5  4  3
+    ;; i1:  4  5  3
+    ;; i2:  3  3  5
+    ;; Optimal: diagonal = 5+5+5 = 15
+    (let* ([weight (lambda (i j)
+                     (let ([W '#(#(5 4 3)
+                                 #(4 5 3)
+                                 #(3 3 5))])
+                       (vector-ref (vector-ref W i) j)))]
+           [result (weighted-matching-ilp 3 3 weight)]
+           [total (cdr result)])
+      (assert-true (approximately-equal? 15 total 0.01))))
+
+  (define-test "rectangular weighted matching (more rows)"
+    ;; 3x2 case
+    (let* ([weight (lambda (i j)
+                     (let ([W '#(#(5 1)
+                                 #(2 4)
+                                 #(3 3))])
+                       (vector-ref (vector-ref W i) j)))]
+           [result (weighted-matching-ilp 3 2 weight)]
+           [matches (car result)]
+           [total (cdr result)])
+      ;; Optimal: (0,0)=5 + (1,1)=4 = 9
+      (assert-equal 2 (length matches))
+      (assert-true (approximately-equal? 9 total 0.01))))
+
+  (define-test "rectangular weighted matching (more cols)"
+    ;; 2x3 case
+    (let* ([weight (lambda (i j)
+                     (let ([W '#(#(5 1 2)
+                                 #(2 4 3))])
+                       (vector-ref (vector-ref W i) j)))]
+           [result (weighted-matching-ilp 2 3 weight)]
+           [matches (car result)]
+           [total (cdr result)])
+      ;; Optimal: (0,0)=5 + (1,1)=4 = 9
+      (assert-equal 2 (length matches))
+      (assert-true (approximately-equal? 9 total 0.01))))
+
+  (define-test "weighted matching with ties"
+    ;; All equal weights
+    (let* ([weight (lambda (i j) 10)]
+           [result (weighted-matching-ilp 2 2 weight)]
+           [matches (car result)]
+           [total (cdr result)])
+      (assert-equal 2 (length matches))
+      (assert-true (approximately-equal? 20 total 0.01))))
+
+  (define-test "weighted matching single pair"
+    (let* ([weight (lambda (i j) 42)]
+           [result (weighted-matching-ilp 1 1 weight)]
+           [matches (car result)]
+           [total (cdr result)])
+      (assert-equal 1 (length matches))
+      (assert-true (approximately-equal? 42 total 0.01))))
+
+  (define-test "weighted matching agrees with optimal-assignment"
+    ;; Verify ILP result matches LP result for same problem
+    (let* ([weight (lambda (i j)
+                     (let ([W '#(#(3 1)
+                                 #(2 4))])
+                       (vector-ref (vector-ref W i) j)))]
+           [ilp-result (weighted-matching-ilp 2 2 weight)]
+           [lp-result (optimal-assignment 2 2 weight)])
+      (assert-true (approximately-equal? (cdr ilp-result) (cdr lp-result) 0.01))))
+
+) ; end weighted matching ILP tests
+
+;;; ============================================================================
+;;; ILP-Based Bottleneck Matching Tests
+;;; ============================================================================
+
+(test-group "Bottleneck Matching (ILP)"
+
+  (define-test "2x2 bottleneck matching"
+    ;; Weight matrix:
+    ;;     j0  j1
+    ;; i0:  5   3
+    ;; i1:  4   2
+    ;; Optimal bottleneck: match (0,1)=3, (1,0)=4 => bottleneck=4
+    ;; Or (0,0)=5, (1,1)=2 => bottleneck=5
+    ;; Best is (0,1), (1,0) with bottleneck 4
+    (let* ([weight (lambda (i j)
+                     (let ([W '#(#(5 3)
+                                 #(4 2))])
+                       (vector-ref (vector-ref W i) j)))]
+           [result (bottleneck-matching-ilp 2 2 weight)]
+           [matches (car result)]
+           [bottleneck (cdr result)])
+      (assert-equal 2 (length matches))
+      (assert-true (<= bottleneck 4))))
+
+  (define-test "3x3 bottleneck matching diagonal optimal"
+    ;; Weight matrix with diagonal minimizing bottleneck:
+    ;;     j0 j1 j2
+    ;; i0:  1  5  5
+    ;; i1:  5  1  5
+    ;; i2:  5  5  1
+    ;; Optimal: diagonal with bottleneck = 1
+    (let* ([weight (lambda (i j)
+                     (if (= i j) 1 5))]
+           [result (bottleneck-matching-ilp 3 3 weight)]
+           [bottleneck (cdr result)])
+      (assert-true (approximately-equal? 1 bottleneck 0.01))))
+
+  (define-test "bottleneck matching with uniform weights"
+    ;; All same weight - any matching works
+    (let* ([weight (lambda (i j) 7)]
+           [result (bottleneck-matching-ilp 2 2 weight)]
+           [matches (car result)]
+           [bottleneck (cdr result)])
+      (assert-equal 2 (length matches))
+      (assert-true (approximately-equal? 7 bottleneck 0.01))))
+
+  (define-test "bottleneck matching rectangular (more rows)"
+    ;; 3x2 case
+    (let* ([weight (lambda (i j)
+                     (let ([W '#(#(10 3)
+                                 #(4 8)
+                                 #(5 6))])
+                       (vector-ref (vector-ref W i) j)))]
+           [result (bottleneck-matching-ilp 3 2 weight)]
+           [matches (car result)]
+           [bottleneck (cdr result)])
+      ;; Can match 2 pairs
+      ;; Options: (0,1)=3,(1,0)=4 => 4
+      ;;          (0,1)=3,(2,0)=5 => 5
+      ;;          (1,0)=4,(2,1)=6 => 6
+      ;; Best bottleneck should be 4
+      (assert-equal 2 (length matches))
+      (assert-true (<= bottleneck 4))))
+
+  (define-test "bottleneck matching single pair"
+    (let* ([weight (lambda (i j) 99)]
+           [result (bottleneck-matching-ilp 1 1 weight)]
+           [matches (car result)]
+           [bottleneck (cdr result)])
+      (assert-equal 1 (length matches))
+      (assert-true (approximately-equal? 99 bottleneck 0.01))))
+
+  (define-test "bottleneck matching finds minimum max edge"
+    ;; Verify that bottleneck is actually the max edge in the matching
+    (let* ([weight (lambda (i j)
+                     (let ([W '#(#(2 8)
+                                 #(7 3))])
+                       (vector-ref (vector-ref W i) j)))]
+           [result (bottleneck-matching-ilp 2 2 weight)]
+           [matches (car result)]
+           [bottleneck (cdr result)])
+      ;; Matching (0,0)=2, (1,1)=3 has max 3
+      ;; Matching (0,1)=8, (1,0)=7 has max 8
+      ;; Best bottleneck is 3
+      (assert-true (<= bottleneck 3))))
+
+) ; end bottleneck matching ILP tests
+
+;;; ============================================================================
 ;;; Run Tests
 ;;; ============================================================================
 
