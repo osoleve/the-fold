@@ -1,7 +1,7 @@
 ((name "game")
  (description "Game theory foundations including normal form games,
-  cooperative games, Nash equilibrium computation, Shapley value,
-  and strategic analysis tools.")
+  cooperative games, matching theory, Nash equilibrium computation,
+  Shapley value, and strategic analysis tools.")
 
  (modules
   ((file "normal-form.ss")
@@ -92,6 +92,38 @@
      (shapley-value airport 1000)
      ;; Fair cost allocation based on marginal contributions"))
 
+  ((file "matching.ss")
+   (purpose "Two-sided matching, stable matching, and assignment games")
+   (exports
+    ;; Market construction
+    (make-matching-market "Create market from proposers, receivers, preferences")
+    (matching-market? "Check if x is a matching market")
+    (market-proposers "Get proposer vector")
+    (market-receivers "Get receiver vector")
+    (market-proposer-prefs "Get preferences for a proposer")
+    (market-receiver-prefs "Get preferences for a receiver")
+    ;; Stable matching
+    (stable-match "Gale-Shapley deferred acceptance (proposer-optimal)")
+    (stable-match-receiver-optimal "Receiver-optimal stable matching")
+    (matching-stable? "Verify matching has no blocking pairs")
+    (same-matched-agents? "Check if two matchings have same matched agents")
+    ;; Assignment games
+    (make-assignment-game "Create cooperative game from bipartite valuations")
+    (optimal-assignment "Find max weight matching via LP")
+    ;; Classic market constructors
+    (make-medical-residency-market "NRMP-style medical residency market")
+    (make-school-choice-market "School choice market"))
+   (example
+    ";; Classic stable matching problem
+     (define market
+       (make-matching-market
+         '(m1 m2 m3)
+         '(w1 w2 w3)
+         '((m1 w1 w2 w3) (m2 w2 w1 w3) (m3 w1 w3 w2))
+         '((w1 m2 m1 m3) (w2 m1 m2 m3) (w3 m1 m3 m2))))
+     (stable-match market 100)
+     ;; => proposer-optimal stable matching"))
+
   ((file "physics-dsl.ss")
    (purpose "Domain-specific language for physics simulations")
    (exports
@@ -108,8 +140,8 @@
   ("lattice/optimization/lp.ss" "Linear programming for nucleolus"))
 
  (notes
-  "Game theory in The Fold covers both non-cooperative (normal form)
-   and cooperative (coalitional) games.
+  "Game theory in The Fold covers non-cooperative (normal form),
+   cooperative (coalitional), and matching theory games.
 
    Non-cooperative: Players choose simultaneously. Nash equilibrium is
    where no player can unilaterally improve. Focus on finite games
@@ -120,10 +152,17 @@
    wants to deviate), and bargaining solutions (2-player negotiations).
    Constraint: n <= 60 players (bitmask representation).
 
+   Matching: Two-sided markets with preferences. Gale-Shapley (1962)
+   produces stable matchings where no pair would prefer each other
+   to current partners. Assignment games bridge matching and cooperative
+   games - the core equals competitive equilibria (Shapley-Shubik 1971).
+   Applications: medical residency (NRMP), school choice, kidney exchange.
+
    Note on cost games: make-airport-game produces a cost game where
    v(S) represents cost, not value. For cost games, 'fair allocation'
    means cost sharing; the standard core condition x(S) >= v(S) becomes
    'pay at least the standalone cost' which is the opposite intuition.
    Use Shapley value for cost allocation (proven fair for airport games).
 
-   Test suites: 26 tests for normal-form, 45 tests for cooperative."))
+   Test suites: 26 tests for normal-form, 45 tests for cooperative,
+   34 tests for matching."))

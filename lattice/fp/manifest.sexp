@@ -310,6 +310,18 @@ Key design principles:
     coop-game-superadditive? coop-game-convex? coop-game-monotonic? coop-game-simple?
     ;; Power indices
     is-winning? is-blocking? is-pivotal? banzhaf-index
+    ;; matching.ss — Matching Theory
+    ;; Market construction
+    make-matching-market matching-market?
+    market-proposers market-receivers market-num-proposers market-num-receivers
+    market-proposer-prefs market-receiver-prefs
+    ;; Stable matching (Gale-Shapley)
+    stable-match stable-match-receiver-optimal
+    matching-stable? same-matched-agents?
+    ;; Assignment games
+    make-assignment-game optimal-assignment
+    ;; Classic market constructors
+    make-medical-residency-market make-school-choice-market
 
     ;; symbolic/ — Symbolic Expressions
     ;; expr.ss
@@ -536,10 +548,11 @@ Key design principles:
        "zipper-lens.ss"))) ; Zipper-lens integration (lenses, affines, comonad connection)
 
     ((subdir "game")
-     (description "Game theory: normal form and cooperative games")
+     (description "Game theory: normal form, cooperative games, and matching")
      (files (
        "normal-form.ss"   ; Normal form games, Nash equilibrium, IESDS
-       "coop-games.ss"))) ; Cooperative games, Shapley value, core, bargaining
+       "coop-games.ss"    ; Cooperative games, Shapley value, core, bargaining
+       "matching.ss")))   ; Two-sided matching, Gale-Shapley, assignment games
 
     ((subdir "symbolic")
      (description "Symbolic computation and computer algebra")
