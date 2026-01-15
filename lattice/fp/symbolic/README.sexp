@@ -161,7 +161,57 @@
    (purpose "DEPRECATED: Redirect to lattice/autodiff/symbolic-diff.ss")
    (note "This module has moved to lattice/autodiff/symbolic-diff.ss.
           This file remains as a backwards-compatible redirect.
-          Please update your imports to use the new location.")))
+          Please update your imports to use the new location."))
+
+  ((file "solve.ss")
+   (purpose "Symbolic equation solving")
+   (exports
+    ;; Equation representation
+    (make-equation "Create equation: (make-equation lhs rhs)")
+    (equation? "Test for equation")
+    (equation-lhs "Get left-hand side")
+    (equation-rhs "Get right-hand side")
+    (equation->expr "Convert to expr=0 form: lhs - rhs")
+    ;; Single-variable solving
+    (solve "Solve equation for variable: (solve eq var) => list of solutions")
+    (solve-for "Solve, return first solution: (solve-for eq var)")
+    (solve-linear "Solve ax+b=0: (solve-linear expr var)")
+    (solve-quadratic "Solve quadratic via formula: (solve-quadratic expr var)")
+    (solve-cubic "Solve cubic via Cardano's formula: (solve-cubic expr var)")
+    (solve-polynomial "General polynomial solving: (solve-polynomial expr var)")
+    ;; System solving
+    (solve-linear-system "Solve linear system via Gaussian elimination:
+                          (solve-linear-system eqs vars) => alist")
+    ;; Analysis utilities
+    (is-polynomial? "Check if expr is polynomial in var")
+    (polynomial-degree "Get degree of polynomial: (polynomial-degree expr var)")
+    (extract-poly-coefficients "Get coefficients: (extract-poly-coefficients expr var)")
+    (contains-var? "Check if expr contains variable")
+    (collect-linear-coeffs "Get a,b from ax+b: (collect-linear-coeffs expr var)"))
+   (features
+    ("Linear equations" "ax + b = 0 => x = -b/a")
+    ("Quadratic equations" "ax² + bx + c = 0 via discriminant")
+    ("Cubic equations" "Cardano's formula for depressed cubic")
+    ("Complex roots" "Returns symbolic sqrt expressions for complex cases")
+    ("Linear systems" "Gaussian elimination with symbolic arithmetic")
+    ("Polynomial analysis" "Degree detection, coefficient extraction"))
+   (example
+    ";; Solve linear: 2x + 4 = 0
+     (solve-for (sum (product (num 2) (var 'x)) (num 4)) 'x)
+     ;; => (num -2)
+
+     ;; Solve quadratic: x² - 5x + 6 = 0
+     (solve (sum (power (var 'x) (num 2))
+                 (sum (product (num -5) (var 'x)) (num 6)))
+            'x)
+     ;; => ((num 2) (num 3))
+
+     ;; Solve linear system: x+y=3, x-y=1
+     (solve-linear-system
+       (list (difference (sum (var 'x) (var 'y)) (num 3))
+             (difference (difference (var 'x) (var 'y)) (num 1)))
+       '(x y))
+     ;; => ((x . (num 2)) (y . (num 1)))")))
 
  (moved-modules
   ((original "integrate-autodiff.ss")
@@ -185,7 +235,8 @@
   ("test-diff.ss" "51 tests for symbolic differentiation")
   ("test-simplify.ss" "41 tests for algebraic simplification")
   ("test-integrate.ss" "27 tests for symbolic integration")
-  ("test-integrate-autodiff.ss" "Tests for symbolic-AD bridge"))
+  ("test-solve.ss" "29 tests for equation solving")
+  ("test-integrate-autodiff.ss" "Redirect to lattice/autodiff/test-symbolic-diff.ss"))
 
  (notes
   "Symbolic expressions form an algebraic data type representing
@@ -210,7 +261,14 @@
    - Power rule and linear substitution
    - Integration by parts (limited)
 
+   The solve module implements symbolic equation solving:
+   - Linear equations via coefficient extraction
+   - Quadratic equations via the quadratic formula
+   - Cubic equations via Cardano's formula (depressed cubic)
+   - Linear systems via symbolic Gaussian elimination
+   - Polynomial degree detection and coefficient extraction
+
    All modules use smart constructors that apply basic simplifications
    automatically, ensuring expressions stay in reasonably simplified form.
 
-   Total: 174 tests across all modules."))
+   Total: 203 tests across all modules."))

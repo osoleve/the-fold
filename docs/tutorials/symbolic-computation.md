@@ -6,7 +6,7 @@ numerically.
 
 ## Overview
 
-The symbolic computation library consists of four main modules:
+The symbolic computation library consists of five main modules:
 
 | Module | Purpose |
 |----|----|
@@ -14,6 +14,7 @@ The symbolic computation library consists of four main modules:
 | `diff.ss` | Symbolic differentiation |
 | `simplify.ss` | Algebraic simplification |
 | `integrate.ss` | Symbolic integration |
+| `solve.ss` | Symbolic equation solving |
 
 ## Getting Started
 
@@ -31,6 +32,9 @@ Load the modules you need:
 
 ;; For integration (includes diff.ss and simplify.ss)
 (load "lattice/fp/symbolic/integrate.ss")
+
+;; For equation solving (includes expr.ss and simplify.ss)
+(load "lattice/fp/symbolic/solve.ss")
 ```
 
 ## Building Expressions
@@ -261,6 +265,90 @@ The integrator applies several rules:
 ;; Linear substitution
 (integrate (power (sum (product (num 2) (var 'x)) (num 1)) (num 3)) 'x)
 ;; Handles f(ax+b) => F(ax+b)/a
+```
+
+## Symbolic Equation Solving
+
+The `solve.ss` module provides symbolic equation solving:
+
+```scheme
+(load "lattice/fp/symbolic/solve.ss")
+
+;; Solve linear equation: 2x + 4 = 0
+(solve-for (sum (product (num 2) (var 'x)) (num 4)) 'x)
+;; => (num -2)   [x = -2]
+
+;; Solve quadratic: x^2 - 5x + 6 = 0
+(solve (sum (power (var 'x) (num 2))
+            (sum (product (num -5) (var 'x)) (num 6)))
+       'x)
+;; => ((num 2) (num 3))   [x = 2 or x = 3]
+
+;; Create equations explicitly
+(define eq (make-equation (product (num 2) (var 'x)) (num 6)))
+(solve-for eq 'x)
+;; => (num 3)   [2x = 6 => x = 3]
+```
+
+### Polynomial Analysis
+
+```scheme
+;; Check if expression is polynomial
+(is-polynomial? (sum (var 'x) (num 1)) 'x)
+;; => #t
+
+(is-polynomial? (sym-sin (var 'x)) 'x)
+;; => #f
+
+;; Get polynomial degree
+(polynomial-degree (power (var 'x) (num 3)) 'x)
+;; => 3
+
+;; Extract coefficients (constant term first)
+(extract-poly-coefficients
+  (sum (power (var 'x) (num 2))
+       (sum (product (num 2) (var 'x)) (num 3)))
+  'x)
+;; => ((num 3) (num 2) (num 1))   [3 + 2x + x^2]
+```
+
+### Linear Systems
+
+Solve systems of linear equations via Gaussian elimination:
+
+```scheme
+;; System: x + y = 3, x - y = 1
+(solve-linear-system
+  (list (difference (sum (var 'x) (var 'y)) (num 3))
+        (difference (difference (var 'x) (var 'y)) (num 1)))
+  '(x y))
+;; => ((x . (num 2)) (y . (num 1)))
+;; [x = 2, y = 1]
+
+;; System: 2x + 3y = 8, 4x - y = 2
+(solve-linear-system
+  (list (difference (sum (product (num 2) (var 'x))
+                         (product (num 3) (var 'y)))
+                    (num 8))
+        (difference (difference (product (num 4) (var 'x))
+                                (var 'y))
+                    (num 2)))
+  '(x y))
+;; => ((x . (num 1)) (y . (num 2)))
+```
+
+### Cubic Equations
+
+The solver uses Cardano's formula for cubic equations:
+
+```scheme
+;; x^3 - 6x^2 + 11x - 6 = 0  [roots: 1, 2, 3]
+(solve (sum (power (var 'x) (num 3))
+            (sum (product (num -6) (power (var 'x) (num 2)))
+                 (sum (product (num 11) (var 'x))
+                      (num -6))))
+       'x)
+;; Returns list of solutions (may include symbolic sqrt expressions)
 ```
 
 ## Verification: Differentiate the Integral
