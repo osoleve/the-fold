@@ -4,9 +4,9 @@
  (description
   "A comprehensive optimization library providing gradient-based and linear
    methods. Includes first-order methods (SGD, Adam, RMSprop), second-order
-   methods (Newton, Newton-CG), quasi-Newton methods (L-BFGS), and linear
-   programming (two-phase revised simplex) with line search and convergence
-   monitoring.")
+   methods (Newton, Newton-CG), quasi-Newton methods (L-BFGS), linear
+   programming (two-phase revised simplex), and integer linear programming
+   (branch-and-bound, Gomory cuts) with line search and convergence monitoring.")
 
  (modules
   ((convergence.ss "Convergence criteria, stopping conditions, and result tracking")
@@ -15,9 +15,11 @@
    (newton.ss "Newton's method, modified Newton, Newton-CG, Gauss-Newton")
    (lbfgs.ss "Limited-memory BFGS and L-BFGS-B (bound constrained)")
    (lp.ss "Linear programming via two-phase revised simplex method")
+   (ilp.ss "Integer linear programming via branch-and-bound")
    (optimize.ss "Unified API combining all optimizers")
    (test-optimize.ss "Comprehensive test suite for gradient-based optimizers")
-   (test-lp.ss "LP test suite (21 tests)")))
+   (test-lp.ss "LP test suite (21 tests)")
+   (test-ilp.ss "ILP test suite (16 tests)")))
 
  (dependencies
   (autodiff "For gradient computation via reverse-mode AD")
@@ -115,5 +117,36 @@
    (kingma-ba "Adam: A Method for Stochastic Optimization (2014)")
    (liu-nocedal "L-BFGS algorithm for large scale optimization")))
 
- (total-tests 56)  ; 35 gradient-based + 21 LP
+ (total-tests 72)  ; 35 gradient-based + 21 LP + 16 ILP
+
+ (integer-programming
+  ((ilp-solve "Branch-and-bound solver for mixed-integer programs")
+   (ilp-solve-cutting-plane "Cutting plane method with Gomory cuts")
+   (knapsack-solve "0-1 knapsack optimization")
+   (set-cover-solve "Minimum cost set cover")))
+
+ (ilp-quick-start
+  ((simple-ilp
+    "Solve a simple integer program"
+    ((load "lattice/optimization/ilp.ss")
+     (define ilp (make-ilp c A b '(0 1 2)))  ; variables 0,1,2 must be integer
+     (define result (ilp-solve ilp))
+     (ilp-result-x result)))
+
+   (knapsack-example
+    "Solve 0-1 knapsack"
+    ((define result (knapsack-solve
+                      (vector 60 100 120)   ; values
+                      (vector 10 20 30)     ; weights
+                      50))                  ; capacity
+     (car result)   ; selected items
+     (cdr result))) ; total value
+
+   (set-cover-example
+    "Solve minimum set cover"
+    ((define coverage (matrix-from-lists '((1 0 1)
+                                           (1 1 0)
+                                           (0 1 1))))
+     (define costs (vector 1 1 1))
+     (set-cover-solve coverage costs)))))  ; returns list of set indices
 )
