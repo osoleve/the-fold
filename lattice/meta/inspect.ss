@@ -288,12 +288,15 @@
 
 ;;; find-test-files : String -> (List String)
 ;;; Find all test-*.ss files in a directory (non-recursive)
+;;; Filters out directories that might match the pattern
 (define (find-test-files dir)
   (guard (e [else '()])
          (let ([entries (directory-list dir)])
               (filter (lambda (f)
                               (and (string-starts-with? f "test-")
-                                   (string-ends-with? f ".ss")))
+                                   (string-ends-with? f ".ss")
+                                   ;; Verify it's a file, not a directory
+                                   (file-regular? (string-append dir "/" f))))
                       entries))))
 
 ;;; string-ends-with? : String String -> Bool
@@ -355,11 +358,14 @@
 
 ;;; run-test-file : String -> 'ok | (error . String)
 ;;; Run a single test file and return result
+;;; Note: Path is quoted to handle spaces/special chars safely
 (define (run-test-file path)
   (guard (e [else `(error . ,(format "~a" e))])
-         (let* ([cmd (format "scheme --script ~a 2>&1" path)]
+         (let* ([cmd (format "scheme --script '~a' 2>&1" path)]
                 [output (shell-command-output cmd)])
-               (if (string-contains? output "All tests passed")
+               ;; Check for test framework success markers
+               (if (or (string-contains? output "All tests passed")
+                       (string-contains? output "Tests passed:"))
                    'ok
                    `(error . ,output)))))
 

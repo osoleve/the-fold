@@ -36,7 +36,12 @@
     "(li 'linalg)                 ; Describe skill"
     "(le 'linalg)                 ; List exports"
     "(ld 'physics/diff)           ; Dependencies"
-    "(lu 'linalg)                 ; Dependents"))
+    "(lu 'linalg)                 ; Dependents"
+    ""
+    ";; Testing"
+    "(lt 'linalg)                 ; List test files"
+    "(ltr 'linalg)                ; Run skill tests"
+    "(lattice-tests-summary)      ; Coverage overview"))
 
   (modules
    ((name "meta.ss")
@@ -77,8 +82,9 @@
     (exports (lattice-stats lattice-health lattice-coverage ls lh)))
 
    ((name "inspect.ss")
-    (purpose "Skill introspection and detailed descriptions")
-    (exports (lattice-describe lattice-info lattice-summary li le lm)))
+    (purpose "Skill introspection, descriptions, and test discovery")
+    (exports (lattice-describe lattice-info lattice-summary li le lm
+              lattice-tests lattice-tests-run lattice-tests-summary lt ltr)))
 
    ((name "docstrings.ss")
     (purpose "Extract docstrings from source files for search indexing")
@@ -124,6 +130,13 @@
     (lattice-roots "Tier 0 skills (no deps)")
     (lattice-leaves "Skills with no dependents")
     (lattice-hubs "Most-depended-on skills"))
+
+   (section "Testing"
+    (lt 'skill "List test files for skill")
+    (ltr 'skill "Run tests and show results")
+    (lattice-tests 'skill "Get test file paths as list")
+    (lattice-tests-run 'skill "Run tests, return structured result")
+    (lattice-tests-summary "Test coverage overview for all skills"))
 
    (section "Analytics"
     (ls "Lattice statistics")

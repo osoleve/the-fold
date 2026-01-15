@@ -313,12 +313,22 @@ Use namespaced form (`'dir/module`) when module names collide. The system warns 
 Use `/lattice-search` skill for full documentation. Quick reference:
 
 ```scheme
+;; Search
 (lf "query")        ; Full-text search (BM25)
 (lfe 'symbol)       ; Exact lookup
+
+;; Inspection
 (li 'skill)         ; Skill description
 (le 'skill)         ; List exports
 (ld 'skill)         ; Dependencies
 (lu 'skill)         ; Dependents
+
+;; Testing
+(lt 'skill)         ; List test files for skill
+(ltr 'skill)        ; Run tests for skill
+(lattice-tests-summary)  ; Test coverage overview
+
+;; Validation
 (lc 'skill)         ; Cycle check (validate deps)
 (lattice-would-cycle? 'from 'to)  ; Proactive cycle detection
 ```
