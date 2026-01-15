@@ -413,6 +413,197 @@
   (printf "\nDone.\n"))
 
 ;;; ====
+;;; Description Claim Validation
+;;; ====
+
+;;; Common data structure/feature terms that should have implementation backing
+;;; Format: (phrase-to-match . (evidence-keywords...))
+;;; Phrases with spaces are matched exactly; single words match as substrings
+(define *feature-terms*
+  '(;; Data structures - use specific phrases to avoid false positives
+    ("heaps" . (heap priority-queue pq leftist pairing binomial heapsort))
+    ("hash table" . (hash-table hashtable hash-map hashmap))
+    ("hash tables" . (hash-table hashtable hash-map hashmap))
+    ("balanced tree" . (avl-tree red-black rb-tree treemap balanced bst avl))
+    ("balanced trees" . (avl-tree red-black rb-tree treemap balanced bst avl))
+    ("binary tree" . (binary-tree btree bst avl-tree avl))
+    ("trie" . (trie prefix-tree))
+    ("graphs" . (graph vertex edge adjacency bfs dfs dijkstra shortest-path))
+    ("queues" . (queue fifo enqueue dequeue))
+    ("stacks" . (stack lifo push pop))
+    ;; "dictionaries" as data structure (avoid matching "dictionary-passing")
+    ("dictionaries," . (dict dictionary alist assoc lookup))
+    ("sets" . (set member union intersection difference set-))
+    ("arrays" . (array vector matrix))
+    ;; Algorithms
+    ("sorting" . (sort merge-sort quicksort heapsort insertion-sort))
+    ("parsers" . (parse parser combinator))
+    ("monads" . (monad bind return >>= applicative functor))))
+
+;;; extract-description : Sexp -> String
+;;; Extract description string from manifest
+(define (extract-description manifest)
+  (let* ([body (cddr manifest)]
+         [desc-entry (assq 'description body)])
+        (if desc-entry
+            (let ([desc (cadr desc-entry)])
+                 (if (string? desc) desc ""))
+            "")))
+
+;;; extract-keywords : Sexp -> (List Symbol)
+;;; Extract keywords from manifest
+(define (extract-keywords manifest)
+  (let* ([body (cddr manifest)]
+         [kw-entry (assq 'keywords body)])
+        (if kw-entry
+            (flatten-symbols (cadr kw-entry))
+            '())))
+
+;;; extract-module-names : Sexp -> (List Symbol)
+;;; Extract module names from manifest (handles nested subdir format)
+(define (extract-module-names manifest)
+  (let* ([body (cddr manifest)]
+         [mods-entry (assq 'modules body)])
+        (if mods-entry
+            (flatten-module-names (cdr mods-entry))
+            '())))
+
+;;; flatten-module-names : Sexp -> (List Symbol)
+;;; Recursively extract module names, handling subdir structures
+(define (flatten-module-names mods)
+  (cond
+   [(null? mods) '()]
+   [(symbol? mods) (list mods)]
+   [(and (pair? mods) (pair? (car mods)) (eq? (caar mods) 'subdir))
+    ;; Subdir format: ((subdir "name") (description ...) (files ...))
+    (append (flatten-module-names (cdr mods)))]
+   [(and (pair? mods) (symbol? (car mods)))
+    ;; Simple module name
+    (cons (car mods) (flatten-module-names (cdr mods)))]
+   [(and (pair? mods) (pair? (car mods)))
+    ;; Nested structure - recurse
+    (let ([first (car mods)])
+         (if (symbol? (car first))
+             (cons (car first) (flatten-module-names (cdr mods)))
+             (append (flatten-module-names first)
+                     (flatten-module-names (cdr mods)))))]
+   [else (flatten-module-names (cdr mods))]))
+
+;;; string-downcase : String -> String
+(define (string-downcase s)
+  (list->string (map char-downcase (string->list s))))
+
+;;; description-contains? : String String -> Bool
+;;; Case-insensitive substring check
+(define (description-contains? desc term)
+  (string-contains? (string-downcase desc) (string-downcase term)))
+
+;;; find-claimed-features : String -> (List String)
+;;; Find feature terms mentioned in description
+(define (find-claimed-features description)
+  (filter (lambda (term) (description-contains? description term))
+          (map car *feature-terms*)))
+
+;;; feature-has-evidence? : String (List Symbol) (List Symbol) -> Bool
+;;; Check if a claimed feature has evidence in keywords or modules
+(define (feature-has-evidence? feature keywords modules)
+  (let* ([evidence-terms (cdr (assoc feature *feature-terms*))]
+         [all-names (append keywords modules)]
+         [all-strings (map symbol->string all-names)])
+        ;; Check if any evidence term appears in keywords/modules
+        (any (lambda (evidence)
+                    (let ([ev-str (symbol->string evidence)])
+                         (any (lambda (name)
+                                     (or (string-contains? (string-downcase name) ev-str)
+                                         (string=? (string-downcase name) ev-str)))
+                              all-strings)))
+             evidence-terms)))
+
+;;; any : (A -> Bool) (List A) -> Bool
+(define (any pred lst)
+  (cond
+   [(null? lst) #f]
+   [(pred (car lst)) #t]
+   [else (any pred (cdr lst))]))
+
+;;; audit-description : Symbol -> DescriptionAuditReport
+;;; Check if skill description claims match implementation
+(define (audit-description skill-name)
+  (let* ([skill-path (string-append "lattice/" (symbol->string skill-name))]
+         [manifest-path (string-append skill-path "/manifest.sexp")]
+         [manifest (if (file-exists? manifest-path)
+                       (read-manifest manifest-path)
+                       #f)])
+        (if manifest
+            (let* ([description (extract-description manifest)]
+                   [keywords (extract-keywords manifest)]
+                   [modules (extract-module-names manifest)]
+                   [claimed (find-claimed-features description)]
+                   [unfounded (filter (lambda (f)
+                                             (not (feature-has-evidence? f keywords modules)))
+                                      claimed)]
+                   [supported (filter (lambda (f)
+                                             (feature-has-evidence? f keywords modules))
+                                      claimed)])
+                  `((skill . ,skill-name)
+                    (claimed-features . ,claimed)
+                    (supported-features . ,supported)
+                    (unfounded-claims . ,unfounded)
+                    (keywords . ,keywords)
+                    (modules . ,modules)))
+            `((skill . ,skill-name)
+              (error . "manifest not found")))))
+
+;;; audit-description-pretty : Symbol -> void
+;;; Pretty-print description audit
+(define (audit-description-pretty skill-name)
+  (let ([report (audit-description skill-name)])
+       (printf "\n====\n")
+       (printf "Description Audit: ~a\n" skill-name)
+       (printf "====\n\n")
+       (if (assq 'error report)
+           (printf "Error: ~a\n" (cdr (assq 'error report)))
+           (let ([claimed (cdr (assq 'claimed-features report))]
+                 [supported (cdr (assq 'supported-features report))]
+                 [unfounded (cdr (assq 'unfounded-claims report))])
+                (printf "Features mentioned in description: ~a\n" (length claimed))
+                (for-each (lambda (f) (printf "  - ~a\n" f)) claimed)
+                (printf "\n")
+                (if (null? unfounded)
+                    (printf "✓ All claimed features have implementation evidence.\n")
+                    (begin
+                      (printf "✗ UNFOUNDED CLAIMS (~a):\n" (length unfounded))
+                      (for-each (lambda (f)
+                                        (printf "  - \"~a\" — no matching keywords or modules\n" f))
+                                unfounded)
+                      (printf "\n  These features are mentioned in the description but have no\n")
+                      (printf "  corresponding keywords or module names. Either implement them\n")
+                      (printf "  or remove from description.\n")))))))
+
+;;; audit-all-descriptions : -> void
+;;; Audit descriptions for all skills, showing only problems
+(define (audit-all-descriptions)
+  (printf "\n====\n")
+  (printf "Description Audit: All Skills\n")
+  (printf "====\n\n")
+  (let ([skills (kg-skills)]
+        [problems 0])
+       (for-each
+        (lambda (skill)
+                (let* ([report (audit-description skill)]
+                       [unfounded (if (assq 'unfounded-claims report)
+                                      (cdr (assq 'unfounded-claims report))
+                                      '())])
+                      (when (not (null? unfounded))
+                            (set! problems (+ problems 1))
+                            (printf "~a: unfounded claims ~a\n" skill unfounded))))
+        skills)
+       (printf "\n")
+       (if (= problems 0)
+           (printf "✓ All skills have honest descriptions.\n")
+           (printf "✗ ~a skill(s) have unfounded claims.\n" problems))))
+
+;;; ====
 ;;; REPL Interface
 ;;; ====
 
@@ -425,3 +616,6 @@
 (printf "  (audit-deps 'skill)            - Audit dependencies\n")
 (printf "  (audit-deps-pretty 'skill)     - Pretty-print dep audit\n")
 (printf "  (audit-all-deps)               - Audit all skills' deps\n")
+(printf "  (audit-description 'skill)     - Check description claims\n")
+(printf "  (audit-description-pretty 'skill) - Pretty-print claim audit\n")
+(printf "  (audit-all-descriptions)       - Check all skill descriptions\n")
