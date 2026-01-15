@@ -14,6 +14,7 @@
     hash tables, and collection utilities.")
 
   (keywords (data-structure graph heap priority-queue leftist-heap heapsort
+             sort merge-sort quicksort insertion-sort stable-sort median
              tree hash-table queue stack bfs dfs shortest-path pagerank
              collection adjacency-matrix floyd-warshall dijkstra
              transitive-closure graph-distance eigenvector-centrality
@@ -23,9 +24,10 @@
   (aliases (ds structures collections))
 
   (exports
-   (heap stack queue set dict graph-algorithms collection-utils pagerank graph-matrix centrality graph-community))
+   (sort heap stack queue set dict graph-algorithms collection-utils pagerank graph-matrix centrality graph-community))
 
   (modules
+   (sort "sort.ss" "Sorting algorithms: merge sort, quicksort, insertion sort")
    (heap "heap.ss" "Leftist heap and priority queue with O(log n) operations")
    (stack "stack.ss" "LIFO stack operations")
    (queue "queue.ss" "FIFO queue with amortized O(1) ops")

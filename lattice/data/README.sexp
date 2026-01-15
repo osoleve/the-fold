@@ -3,7 +3,15 @@
  (description "General-purpose data structures and graph algorithms.
 Provides building blocks for higher-level abstractions.")
  (modules
-  ((heap.ss "Leftist heap and priority queue:
+  ((sort.ss "Sorting algorithms:
+     - Merge sort (stable, O(n log n)): sort, merge-sort, merge-sort-by
+     - Quicksort (O(n log n) average): quicksort, quicksort-by
+     - Insertion sort (O(n^2), stable): insertion-sort, insertion-sort-by
+     - Sort by key: sort-by-key, sort-by-key-desc (Schwartzian transform)
+     - Utilities: sorted?, unique-sorted, sort-unique
+     - Selection: min-element, max-element, min-by, max-by, median, nth-smallest
+     - Top-K: top-k, bottom-k")
+   (heap.ss "Leftist heap and priority queue:
      - Purely functional O(log n) insert, delete-min/max, merge
      - heap-empty, heap-insert, heap-min, heap-delete-min, heap-pop
      - Max-heap variants: heap-insert-max, heap-max, heap-delete-max
@@ -50,7 +58,8 @@ Provides building blocks for higher-level abstractions.")
      - connected-components: BFS-based component labeling
      - is-connected?: Test graph connectivity")))
  (tests
-  ((test-heap.ss "Tests for heap and priority queue")
+  ((test-sort.ss "Tests for sorting algorithms")
+   (test-heap.ss "Tests for heap and priority queue")
    (test-data-structures.ss "Tests for Stack, Queue, Set, Dict")
    (test-collection-utils.ss "Tests for collection utilities")
    (test-graph-algorithms.ss "Tests for graph algorithms")
