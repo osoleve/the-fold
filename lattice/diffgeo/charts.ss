@@ -298,9 +298,11 @@
           (let* ([c (car coords)]
                  [J (transition-jacobian chart-from chart-to c eps)]
                  [det (jacobian-determinant J)])
-            (if (< (abs det) 1e-10)
-                #f  ; Singular Jacobian - not smooth
-                (loop (cdr coords))))))))
+            ;; Handle error results from jacobian-determinant (e.g., from matrix-det)
+            (cond
+             [(and (pair? det) (eq? (car det) 'error)) #f]  ; Error → not smooth
+             [(< (abs det) 1e-10) #f]  ; Singular Jacobian → not smooth
+             [else (loop (cdr coords))]))))))
 
 ;;; jacobian-determinant : Matrix → Num | Error
 ;;; Compute the determinant of a square matrix.

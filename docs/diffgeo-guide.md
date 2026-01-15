@@ -106,9 +106,21 @@ When two charts overlap, a **transition function** converts coordinates between 
 (define τ (make-transition polar cart))
 (τ (vector 2.0 0.5))  ; Convert (r=2, θ=0.5) to (x, y)
 
-;; Or use directly
+;; Or use directly (with domain verification)
 (transition-apply polar cart (vector 2.0 0.5))
 ```
+
+### Domain Verification
+
+`transition-apply` verifies that the intermediate point lies in the target chart's domain:
+
+```scheme
+;; This returns an error because (0,0) is not in polar's domain
+(transition-apply cartesian polar (vector 0.0 0.0))
+; => (error point-not-in-target-domain polar #(0.0 0.0))
+```
+
+Use `make-transition` for a raw (unchecked) transition function when performance matters.
 
 ### Jacobians
 
@@ -123,6 +135,10 @@ The **Jacobian** is the matrix of partial derivatives of a transition function:
 ;; Determinant (useful for integration)
 (jacobian-determinant J)  ; => r = 2
 ```
+
+The `jacobian-determinant` function works for any dimension:
+- 1×1, 2×2, 3×3: Uses explicit formulas (fast)
+- n×n (n > 3): Uses LU decomposition via `matrix-det`
 
 ## Tangent Vectors
 
@@ -367,8 +383,10 @@ $$[X, Y]^k = X^i \frac{\partial Y^k}{\partial x^i} - Y^i \frac{\partial X^k}{\pa
 | `make-chart` | Create a coordinate chart |
 | `chart-apply` | Get coordinates of a point |
 | `chart-apply-inverse` | Get point from coordinates |
-| `make-transition` | Create transition function |
+| `make-transition` | Create transition function (unchecked) |
+| `transition-apply` | Apply transition with domain check |
 | `transition-jacobian` | Jacobian of transition |
+| `jacobian-determinant` | Determinant of Jacobian (any dimension) |
 | `make-atlas` | Create atlas from charts |
 | `atlas-find-chart` | Find chart containing point |
 
