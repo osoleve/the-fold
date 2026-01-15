@@ -222,6 +222,69 @@
      (define unsc (un-security-council))
      (voter-has-veto? ...)"))
 
+  ((file "fair-division.ss")
+   (purpose "Fair division algorithms for divisible and indivisible goods")
+   (exports
+    ;; Cake representation
+    (make-cake "Create cake for n players")
+    (cake? "Check if x is a cake")
+    (cake-players "Get number of players")
+    (cake-set-valuation! "Set player's valuation density function")
+    (cake-valuation "Compute player's value for interval [a,b]")
+    (cake-total-value "Player's value for entire cake")
+    ;; Pieces and divisions
+    (make-piece "Create piece from interval list")
+    (piece-singleton "Single interval piece")
+    (piece-value "Player's value for a piece")
+    (piece-length "Total length of intervals")
+    (piece-merge "Merge two pieces")
+    (make-division "Create empty division for n players")
+    (division-assign! "Assign piece to player")
+    (division-piece "Get player's piece")
+    ;; Fairness criteria
+    (proportional? "Each player gets >= 1/n of their value")
+    (envy-free? "No player prefers another's piece")
+    (equitable? "All players receive same share of their value")
+    (pareto-optimal? "Cannot improve one without harming another")
+    ;; Cake cutting protocols
+    (cut-and-choose "2-player proportional + envy-free division")
+    (dubins-spanier "n-player proportional moving knife protocol")
+    (selfridge-conway "3-player envy-free protocol (simplified)")
+    ;; Adjusted winner (2-player, multiple goods)
+    (make-adjusted-winner-problem "Create from goods and point allocations")
+    (adjusted-winner "Compute envy-free equitable allocation")
+    ;; Discrete fair division
+    (make-discrete-problem "Create from goods and valuation matrix")
+    (round-robin "Simple round-robin allocation")
+    (envy-free-up-to-one? "Check if allocation is EF1")
+    (maximin-share "Compute player's maximin share guarantee")
+    ;; Example cakes
+    (uniform-cake "Cake with uniform valuations")
+    (simple-cake-2 "2-player cake with opposing preferences")
+    (opposing-valuations-cake "3-player cake with opposing preferences"))
+   (example
+    ";; Cake cutting: 2 players divide a cake
+     (define c (uniform-cake 2))
+     (define div (cut-and-choose c 100))
+     (proportional? c div)    ; => #t
+     (envy-free? c div)       ; => #t
+
+     ;; Adjusted winner: divide house, car, boat
+     (define prob (make-adjusted-winner-problem
+                    '(house car boat)
+                    '(40 35 25)    ; player 1's points
+                    '(30 50 20)))  ; player 2's points
+     (adjusted-winner prob)
+     ;; => envy-free + equitable allocation
+
+     ;; Discrete: round-robin for indivisible goods
+     (define dp (make-discrete-problem
+                  '(A B C D)
+                  '((10 20 30 40)    ; player 0's valuations
+                    (40 30 20 10)))) ; player 1's valuations
+     (define allocs (round-robin dp))
+     (envy-free-up-to-one? dp allocs)  ; => #t"))
+
  (dependencies
   ("core/base/prelude.ss" "Base utilities")
   ("lattice/linalg/vec.ss" "Vector operations")
@@ -271,5 +334,19 @@
    'pay at least the standalone cost' which is the opposite intuition.
    Use Shapley value for cost allocation (proven fair for airport games).
 
+   Fair Division: Extends cooperative games to non-transferable utility
+   settings. Three main problem classes:
+   1. Cake cutting (continuous): Resource represented as [0,1] with
+      player-specific valuation functions. Protocols:
+      - Cut-and-choose (2 players): proportional + envy-free
+      - Dubins-Spanier (n players): proportional moving knife
+      - Selfridge-Conway (3 players): envy-free (simplified impl)
+   2. Adjusted winner (mixed): Point-based allocation where goods may
+      be split. Produces envy-free + equitable + Pareto optimal results.
+   3. Discrete (indivisible goods): EF1 (envy-free up to one good) is
+      achievable when true envy-freeness is impossible. Round-robin
+      guarantees EF1. Maximin share provides fairness benchmark.
+
    Test suites: 26 tests for normal-form, 45 tests for cooperative,
-   34 tests for matching, 25 tests for voting, 26 tests for voting-games."))
+   34 tests for matching, 25 tests for voting, 26 tests for voting-games,
+   40 tests for fair-division."))
