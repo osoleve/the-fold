@@ -7,7 +7,7 @@
   (purity total)  ; All generators are pure (State monad)
   (stability stable)
   (fuel-bound "O(1) per sample for most distributions")
-  (deps ())  ; Tier 0 - foundational, no lattice dependencies
+  (deps (fp))  ; Uses fp/control/state and fp/numeric/transcendental
 
   (description
    "Pure, deterministic pseudorandom number generation using the State monad.

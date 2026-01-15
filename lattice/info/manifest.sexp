@@ -5,7 +5,7 @@
   (purity total)
   (stability stable)
   (fuel-bound "O(n) for entropy/divergence, O(n log n) for Huffman, O(n^2) for Blahut-Arimoto")
-  (deps ())
+  (deps (fp))
 
   (description
    "Information theory library implementing Shannon entropy, divergence measures,

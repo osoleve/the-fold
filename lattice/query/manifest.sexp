@@ -7,7 +7,7 @@
   (purity partial)
   (stability stable)
   (fuel-bound "O(n) for linear scans, O(n*m) for joins, O(k*n) for multi-pattern Aho-Corasick")
-  (deps (data))
+  (deps (data fp))
 
   (description
    "Query DSL for searching and filtering blocks in the content-addressed store.

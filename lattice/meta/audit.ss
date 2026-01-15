@@ -296,6 +296,123 @@
                     (loop (cdr lst) acc))))))
 
 ;;; ====
+;;; Dependency Auditing
+;;; ====
+
+;;; extract-load-deps : String -> (List Symbol)
+;;; Extract skill names from (load "lattice/X/...") statements in a file
+(define (extract-load-deps filepath)
+  (let* ([content (read-file-as-string filepath)]
+         [lines (string-split content #\newline)])
+        (filter-map extract-load-skill lines)))
+
+;;; extract-load-skill : String -> Symbol | #f
+;;; Parse (load "lattice/SKILL/...") and return SKILL symbol
+(define (extract-load-skill line)
+  (let ([trimmed (string-trim line)])
+       (if (and (> (string-length trimmed) 16)
+                (string=? (substring trimmed 0 15) "(load \"lattice/"))
+           (let* ([rest (substring trimmed 15 (string-length trimmed))]
+                  [slash-pos (string-index rest #\/)])
+                 (if slash-pos
+                     (string->symbol (substring rest 0 slash-pos))
+                     #f))
+           #f)))
+
+;;; string-index : String Char -> Int | #f
+(define (string-index str char)
+  (let ([len (string-length str)])
+       (let loop ([i 0])
+            (cond
+             [(>= i len) #f]
+             [(char=? (string-ref str i) char) i]
+             [else (loop (+ i 1))]))))
+
+;;; parse-manifest-deps : Path -> (List Symbol)
+;;; Extract declared dependencies from a manifest
+;;; Manifest format: (skill name (version ...) (deps (...)) ...)
+(define (parse-manifest-deps manifest-path)
+  (if (file-exists? manifest-path)
+      (guard (e [else '()])
+             (let* ([sexp (call-with-input-file manifest-path read)]
+                    ;; Skip 'skill and 'name, then search for deps
+                    [body (cddr sexp)]
+                    [deps-entry (assq 'deps body)])
+                   (if deps-entry
+                       (cadr deps-entry)
+                       '())))
+      '()))
+
+;;; audit-deps : Symbol -> DepsAuditReport
+;;; Audit dependencies for a skill
+(define (audit-deps skill-name)
+  (let* ([skill-path (string-append "lattice/" (symbol->string skill-name))]
+         [manifest-path (string-append skill-path "/manifest.sexp")]
+         [declared-deps (parse-manifest-deps manifest-path)]
+         [source-files (find-source-files skill-path)]
+         [all-load-deps (apply append (map extract-load-deps source-files))]
+         ;; Remove self-references and core references
+         [external-deps (filter (lambda (d)
+                                        (and (not (eq? d skill-name))
+                                             (file-exists? (string-append "lattice/" (symbol->string d) "/manifest.sexp"))))
+                                (remove-duplicates all-load-deps))]
+         [missing-deps (set-difference external-deps declared-deps)]
+         [unused-deps (set-difference declared-deps external-deps)])
+        `((skill . ,skill-name)
+          (declared-deps . ,declared-deps)
+          (actual-deps . ,external-deps)
+          (missing-deps . ,missing-deps)
+          (unused-deps . ,unused-deps))))
+
+;;; remove-duplicates : (List A) -> (List A)
+(define (remove-duplicates lst)
+  (let loop ([lst lst] [seen '()] [acc '()])
+       (if (null? lst)
+           (reverse acc)
+           (if (memq (car lst) seen)
+               (loop (cdr lst) seen acc)
+               (loop (cdr lst) (cons (car lst) seen) (cons (car lst) acc))))))
+
+;;; audit-deps-pretty : Symbol -> void
+(define (audit-deps-pretty skill-name)
+  (let ([report (audit-deps skill-name)])
+       (printf "\n====\n")
+       (printf "Dependency Audit: ~a\n" skill-name)
+       (printf "====\n\n")
+       (printf "Declared deps: ~a\n" (cdr (assq 'declared-deps report)))
+       (printf "Actual deps:   ~a\n" (cdr (assq 'actual-deps report)))
+       (let ([missing (cdr (assq 'missing-deps report))]
+             [unused (cdr (assq 'unused-deps report))])
+            (printf "\n")
+            (if (null? missing)
+                (printf "✓ No undeclared dependencies.\n")
+                (begin
+                  (printf "✗ Undeclared dependencies (~a):\n" (length missing))
+                  (for-each (lambda (d) (printf "  - ~a\n" d)) missing)))
+            (printf "\n")
+            (if (null? unused)
+                (printf "✓ No unused dependencies.\n")
+                (begin
+                  (printf "? Possibly unused dependencies (~a):\n" (length unused))
+                  (for-each (lambda (d) (printf "  - ~a\n" d)) unused))))))
+
+;;; audit-all-deps : -> void
+;;; Audit dependencies for all skills
+(define (audit-all-deps)
+  (printf "\n====\n")
+  (printf "Dependency Audit: All Skills\n")
+  (printf "====\n\n")
+  (let ([skills (kg-skills)])
+       (for-each
+        (lambda (skill)
+                (let* ([report (audit-deps skill)]
+                       [missing (cdr (assq 'missing-deps report))])
+                      (if (not (null? missing))
+                          (printf "~a: missing deps ~a\n" skill missing))))
+        skills))
+  (printf "\nDone.\n"))
+
+;;; ====
 ;;; REPL Interface
 ;;; ====
 
@@ -305,3 +422,6 @@
 (printf "  (audit-file \"path\")            - Audit single file\n")
 (printf "  (suggest-exports 'skill)       - Generate exports clause\n")
 (printf "  (suggest-missing 'skill)       - List missing exports\n")
+(printf "  (audit-deps 'skill)            - Audit dependencies\n")
+(printf "  (audit-deps-pretty 'skill)     - Pretty-print dep audit\n")
+(printf "  (audit-all-deps)               - Audit all skills' deps\n")
