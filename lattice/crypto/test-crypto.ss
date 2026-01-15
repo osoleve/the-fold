@@ -153,6 +153,20 @@
       ;; Just verify it produces valid output of correct length
       (assert-equal 64 (bytevector-length (blake2b-keyed key msg)))))
 
+  (define-test "keyed hash determinism"
+    ;; Same key + message should produce same hash
+    (let ([key (string->bv "mykey")]
+          [msg (string->bv "test data")])
+      (assert-equal (blake2b-keyed key msg)
+                    (blake2b-keyed key msg))))
+
+  (define-test "different keys produce different MACs"
+    (let ([key1 (string->bv "key1")]
+          [key2 (string->bv "key2")]
+          [msg (string->bv "same message")])
+      (assert-false (equal? (blake2b-keyed key1 msg)
+                            (blake2b-keyed key2 msg)))))
+
   (define-test "long message"
     ;; 64 bytes of 'a'
     (let ([msg (make-bytevector 64 (char->integer #\a))])

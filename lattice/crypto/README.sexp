@@ -16,5 +16,5 @@ All implementations follow official specifications and pass test vectors.")
      - hmac-sha256, hmac-sha512, hmac-sha384: pre-built HMACs
      - Keyed-hash message authentication codes")))
  (tests
-  ((test-crypto.ss "26 tests with official NIST and RFC test vectors")))
+  ((test-crypto.ss "28 tests with official NIST and RFC test vectors")))
  (dependencies (core/base/sha256)))

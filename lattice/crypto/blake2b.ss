@@ -148,7 +148,8 @@
                                                 (bitwise-arithmetic-shift-left 1 16)
                                                 (bitwise-arithmetic-shift-left 1 24))))
     ;; If we have a key, pad it to 128 bytes and process as first block
-    (let ([t (if (> keylen 0) 128 0)]
+    ;; Note: t starts at 0 regardless of key - the loop adds 128 for each block
+    (let ([t 0]
           [data (if (> keylen 0)
                     (let ([padded-key (make-bytevector 128 0)])
                       (bytevector-copy! key 0 padded-key 0 keylen)

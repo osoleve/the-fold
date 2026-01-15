@@ -253,6 +253,7 @@ The lattice is a DAG of verified skills. "Stdlib" = tier 0 (foundational nodes).
 | `number-theory/` | Primes, modular arithmetic |
 | `meta/` | Lattice navigation, search, introspection |
 | `topology/` | Simplicial complexes, boundary operators, TDA |
+| `crypto/` | SHA-512, BLAKE2b, HMAC |
 
 **Tier 2+ — Advanced:**
 | Directory | Purpose |
