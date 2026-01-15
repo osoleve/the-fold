@@ -26,7 +26,13 @@ only the Shell can mint. Core code cannot directly access files.
 
   ((file . json.ss)
    (purpose . "JSON parsing and serialization")
-   (api . (parse-json-string json->string json-escape))))
+   (api . (parse-json-string json->string json-escape)))
+
+  ((file . process.ss)
+   (purpose . "Shell command execution and output capture")
+   (api . (shell-capture shell-capture-result shell-capture-stdout
+           shell-run shell-run-quiet shell-escape
+           process-ok? process-stdout process-stderr process-exit-code))))
 
  (dependencies
   (internal . (core/base/prelude.ss)))
@@ -42,6 +48,12 @@ Load JSON utilities:
   (load \"shell/io/json.ss\")
   (parse-json-string \"{\\\"key\\\": \\\"value\\\"}\")
   (json->string '((key . \"value\")))
+
+Load process utilities:
+  (load \"shell/io/process.ss\")
+  (shell-capture \"ls -la\")           ; Returns stdout string
+  (shell-capture-result \"cmd\")       ; Returns (ok? stdout stderr code)
+  (shell-run \"test -f file\")         ; Returns #t/#f
 ")
 
  (see-also . (

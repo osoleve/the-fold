@@ -14,8 +14,10 @@
 ;;; Dependencies:
 ;;;   lattice/meta/kg.ss
 ;;;   lattice/meta/dag.ss
+;;;   shell/io/process.ss (for test execution)
 
 (load "lattice/meta/dag.ss")
+(load "shell/io/process.ss")
 
 ;;; ====
 ;;; Skill Description
@@ -351,32 +353,19 @@
 
 ;;; run-test-file : String -> 'ok | (error . String)
 ;;; Run a single test file and return result
-;;; Note: Path is quoted to handle spaces/special chars safely
+;;; Uses shell/io/process.ss for proper exit code handling
 (define (run-test-file path)
   (guard (e [else `(error . ,(format "~a" e))])
-         (let* ([cmd (format "scheme --script '~a' 2>&1" path)]
-                [output (shell-command-output cmd)])
-               ;; Check for test framework success markers
-               (if (or (string-contains? output "All tests passed")
+         (let* ([cmd (format "scheme --script '~a' 2>&1" (shell-escape path))]
+                [result (shell-capture-result cmd)]
+                [ok? (process-ok? result)]
+                [output (process-stdout result)])
+               ;; Primary: check exit code; fallback: check success markers
+               (if (or ok?
+                       (string-contains? output "All tests passed")
                        (string-contains? output "Tests passed:"))
                    'ok
                    `(error . ,output)))))
-
-;;; shell-command-output : String -> String
-;;; Execute shell command and capture output (stdout + stderr combined via 2>&1)
-(define (shell-command-output cmd)
-  (guard (e [else ""])
-         (let-values ([(to-stdin from-stdout from-stderr pid)
-                       (open-process-ports cmd (buffer-mode line) (native-transcoder))])
-                     (close-port to-stdin)
-                     (close-port from-stderr)  ; We're using 2>&1 so stderr goes to stdout
-                     (let loop ([lines '()])
-                          (let ([line (get-line from-stdout)])
-                               (if (eof-object? line)
-                                   (begin
-                                     (close-port from-stdout)
-                                     (string-join (reverse lines) "\n"))
-                                   (loop (cons line lines))))))))
 
 ;;; lattice-tests-run-pretty : Symbol -> void
 ;;; Run tests and display results
