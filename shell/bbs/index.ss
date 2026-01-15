@@ -38,9 +38,6 @@
 ;;; Dependencies: ((blocker-id . blocked-id) ...)
 (define *bbs-deps* '())
 
-;;; Is the index initialized?
-(define *bbs-initialized* #f)
-
 ;;; ====
 ;;; Index Building
 ;;; ====
@@ -86,7 +83,6 @@
     ;; Load dependencies from disk
     (bbs-load-deps!)
 
-    (set! *bbs-initialized* #t)
     count))
 
 ;;; ====
@@ -174,10 +170,36 @@
 
 ;;; bbs-issue-hash : String|Symbol -> Bytevector | #f
 ;;; Get the current hash for an issue ID.
+;;; Auto-refreshes from disk if issue not in index (handles cross-session creation).
 (define (bbs-issue-hash id)
   (let* ([id-str (normalize-id id)]
          [entry (assoc id-str *bbs-issues*)])
-    (if entry (cdr entry) #f)))
+    (if entry
+        (cdr entry)
+        ;; Not in index - try loading from disk (auto-refresh on cache miss)
+        (let ([hash (bbs-read-head id-str)])
+          (when hash
+            (bbs-index-issue-from-disk! id-str hash))
+          hash))))
+
+;;; bbs-index-issue-from-disk! : String Bytevector -> Void
+;;; Load a single issue into the index from its hash.
+;;; Used for auto-refresh when an issue exists on disk but not in memory.
+(define (bbs-index-issue-from-disk! id hash)
+  (let ([blk (bbs-fetch hash)])
+    (when blk
+      (let ([data (issue-block-data blk)])
+        (when data
+          ;; Add to main index
+          (set! *bbs-issues* (cons (cons id hash) *bbs-issues*))
+          ;; Index by status
+          (let* ([status (cdr (assq 'status data))]
+                 [existing (hashtable-ref *bbs-by-status* status '())])
+            (hashtable-set! *bbs-by-status* status (cons id existing)))
+          ;; Index by priority
+          (let* ([priority (cdr (assq 'priority data))]
+                 [existing (hashtable-ref *bbs-by-priority* priority '())])
+            (hashtable-set! *bbs-by-priority* priority (cons id existing))))))))
 
 ;;; ====
 ;;; Dependency Management

@@ -50,6 +50,7 @@
 ;;; block-refs : Block → (Vector Bytevector)
 ;;; Extract the refs vector from a block.
 (define-record-type block
+  (nongenerative fold-block-record-v1)  ; Stable UID for cross-session compatibility
   (fields tag payload refs))
 
 ;;; ====

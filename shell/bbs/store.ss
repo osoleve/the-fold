@@ -92,8 +92,9 @@
 
 ;;; bbs-fetch-issue : String -> Block | #f
 ;;; Fetch the current version of an issue by ID.
+;;; Uses bbs-issue-hash which auto-refreshes from disk on cache miss.
 (define (bbs-fetch-issue id)
-  (let ([hash (bbs-read-head id)])
+  (let ([hash (bbs-issue-hash id)])  ; Auto-refresh on cache miss
     (if hash
         (bbs-fetch hash)
         #f)))
