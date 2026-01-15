@@ -66,7 +66,7 @@
     (shapley-value "Compute Shapley value (fair allocation)")
     (allocation-in-core? "Check if allocation is in core")
     (core-excess "Compute excess for coalition")
-    (nucleolus "Compute nucleolus (needs LP)")
+    (nucleolus "Compute nucleolus via iterated LP")
     (nash-bargaining "Nash bargaining solution (2-player)")
     (kalai-smorodinsky "Kalai-Smorodinsky solution (2-player)")
     ;; Game constructors
@@ -104,7 +104,8 @@
  (dependencies
   ("core/base/prelude.ss" "Base utilities")
   ("lattice/linalg/vec.ss" "Vector operations")
-  ("lattice/linalg/matrix.ss" "Matrix operations"))
+  ("lattice/linalg/matrix.ss" "Matrix operations")
+  ("lattice/optimization/lp.ss" "Linear programming for nucleolus"))
 
  (notes
   "Game theory in The Fold covers both non-cooperative (normal form)
@@ -119,4 +120,10 @@
    wants to deviate), and bargaining solutions (2-player negotiations).
    Constraint: n <= 60 players (bitmask representation).
 
-   Test suites: 26 tests for normal-form, 41 tests for cooperative."))
+   Note on cost games: make-airport-game produces a cost game where
+   v(S) represents cost, not value. For cost games, 'fair allocation'
+   means cost sharing; the standard core condition x(S) >= v(S) becomes
+   'pay at least the standalone cost' which is the opposite intuition.
+   Use Shapley value for cost allocation (proven fair for airport games).
+
+   Test suites: 26 tests for normal-form, 45 tests for cooperative."))

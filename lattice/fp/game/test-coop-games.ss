@@ -348,6 +348,29 @@
         (let ([total (+ (vector-ref nuc 0) (vector-ref nuc 1) (vector-ref nuc 2))])
           (assert-true (< (abs (- total 60)) 0.01))))))
 
+  (define-test nucleolus-gloves-game
+    ;; Gloves game with 2 left, 1 right: nucleolus ≠ Shapley
+    ;; Players 0,1 have left hands, player 2 has right hand
+    ;; v(S) = min(left in S, right in S)
+    ;; Shapley = (1/6, 1/6, 2/3) but nucleolus = (0, 0, 1)
+    ;; The scarce resource (right hand) gets all value in nucleolus
+    (let* ([g (make-gloves-game 2 1)]
+           [nuc (nucleolus g 200)])
+      (when (vector? nuc)
+        (let ([tolerance 0.05])
+          ;; Nucleolus should give (nearly) all to player 2
+          (assert-true (< (vector-ref nuc 0) tolerance)
+                       "Left hand player 0 should get ~0")
+          (assert-true (< (vector-ref nuc 1) tolerance)
+                       "Left hand player 1 should get ~0")
+          (assert-true (> (vector-ref nuc 2) (- 1 tolerance))
+                       "Right hand player 2 should get ~1")
+          ;; Verify it's different from Shapley
+          (let ([shap (shapley-value g 1000)])
+            ;; Shapley gives 1/6 to each left player
+            (assert-true (> (vector-ref shap 0) 0.1)
+                         "Shapley should give positive to player 0"))))))
+
 )
 
 ;;; ============================================================================

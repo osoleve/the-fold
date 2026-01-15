@@ -2,10 +2,11 @@
  (purpose "Numerical optimization algorithms powered by automatic differentiation")
 
  (description
-  "A comprehensive optimization library providing gradient-based methods for
-   minimizing differentiable functions. Includes first-order methods (SGD, Adam,
-   RMSprop), second-order methods (Newton, Newton-CG), and quasi-Newton methods
-   (L-BFGS) with line search and convergence monitoring.")
+  "A comprehensive optimization library providing gradient-based and linear
+   methods. Includes first-order methods (SGD, Adam, RMSprop), second-order
+   methods (Newton, Newton-CG), quasi-Newton methods (L-BFGS), and linear
+   programming (two-phase revised simplex) with line search and convergence
+   monitoring.")
 
  (modules
   ((convergence.ss "Convergence criteria, stopping conditions, and result tracking")
@@ -13,8 +14,10 @@
    (first-order.ss "SGD, Momentum, Adam, RMSprop, Adagrad, Nesterov optimizers")
    (newton.ss "Newton's method, modified Newton, Newton-CG, Gauss-Newton")
    (lbfgs.ss "Limited-memory BFGS and L-BFGS-B (bound constrained)")
+   (lp.ss "Linear programming via two-phase revised simplex method")
    (optimize.ss "Unified API combining all optimizers")
-   (test-optimize.ss "Comprehensive test suite")))
+   (test-optimize.ss "Comprehensive test suite for gradient-based optimizers")
+   (test-lp.ss "LP test suite (21 tests)")))
 
  (dependencies
   (autodiff "For gradient computation via reverse-mode AD")
@@ -112,4 +115,5 @@
    (kingma-ba "Adam: A Method for Stochastic Optimization (2014)")
    (liu-nocedal "L-BFGS algorithm for large scale optimization")))
 
- (total-tests 35))
+ (total-tests 56)  ; 35 gradient-based + 21 LP
+)

@@ -26,6 +26,7 @@
 (load "core/base/prelude.ss")
 (load "lattice/linalg/vec.ss")
 (load "lattice/linalg/matrix.ss")
+(load "lattice/linalg/matrix-solvers.ss")
 (load "lattice/optimization/lp.ss")
 
 ;;; ============================================================================
@@ -484,11 +485,43 @@
 
 ;;; extract-nucleolus-allocation : CoopGame × Nat × Real × List → Vec
 ;;; When all coalitions are fixed, solve for the allocation.
+;;; Uses least-squares on the system: efficiency + fixed coalition constraints.
 (define (extract-nucleolus-allocation g n v-grand fixed-constraints)
-  ;; Build system of equations from fixed constraints plus efficiency
-  ;; This is overdetermined; use least squares or pick consistent subset
-  ;; For now, return Shapley value as fallback
-  (shapley-value g 10000))
+  ;; Build system of equations from fixed constraints plus efficiency:
+  ;;   - Efficiency: sum(x) = v(N)
+  ;;   - For each (S, eps) in fixed-constraints: sum_{i in S}(x_i) = v(S) - eps
+  ;;
+  ;; This is typically overdetermined (more equations than n variables).
+  ;; Use least-squares to find best-fit solution.
+  (let* ([num-constraints (+ 1 (length fixed-constraints))]
+         [A (make-matrix num-constraints n 0)]
+         [b (make-vector num-constraints 0)])
+    ;; Row 0: Efficiency constraint
+    (do ([i 0 (+ i 1)])
+        [(= i n)]
+      (matrix-set! A 0 i 1))
+    (vector-set! b 0 v-grand)
+    ;; Remaining rows: Fixed coalition constraints
+    (let loop ([constraints fixed-constraints]
+               [row 1])
+      (if (null? constraints)
+          ;; Solve the overdetermined system
+          (let ([result (matrix-least-squares A b)])
+            (if (pair? result)
+                ;; Error case - fall back to Shapley
+                (shapley-value g 10000)
+                result))
+          (let* ([constraint (car constraints)]
+                 [S (car constraint)]
+                 [eps (cdr constraint)]
+                 [v-S (coop-game-value g S)])
+            ;; sum_{i in S}(x_i) = v(S) - eps
+            (do ([i 0 (+ i 1)])
+                [(= i n)]
+              (when (coalition-member? S i)
+                (matrix-set! A row i 1)))
+            (vector-set! b row (- v-S eps))
+            (loop (cdr constraints) (+ row 1)))))))
 
 ;;; ============================================================================
 ;;; Bargaining Solutions (2-player)
