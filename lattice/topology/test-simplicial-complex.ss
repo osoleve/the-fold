@@ -56,7 +56,45 @@
     ; Same vertex repeated many times
     (let ([s (make-simplex '(x x x))])
       (assert-equal 0 (simplex-dim s))  ; Vertex
-      (assert-equal '(x) (simplex-vertices s)))))
+      (assert-equal '(x) (simplex-vertices s))))
+
+  (define-test "bytevector vertices are sorted correctly"
+    ; Critical for block graph homology where vertices are hashes
+    (let* ([bv1 #vu8(0 1 2)]
+           [bv2 #vu8(0 1 3)]
+           [bv3 #vu8(1 0 0)]
+           [s (make-simplex (list bv3 bv1 bv2))])
+      ; Should be sorted: bv1 < bv2 < bv3 (lexicographic)
+      (assert-equal (list bv1 bv2 bv3) (simplex-vertices s))))
+
+  (define-test "bytevector edge canonical regardless of order"
+    ; Edge (A,B) should equal edge (B,A) after canonicalization
+    (let* ([hash-a #vu8(0 0 0 1)]
+           [hash-b #vu8(0 0 0 2)]
+           [edge-ab (make-simplex (list hash-a hash-b))]
+           [edge-ba (make-simplex (list hash-b hash-a))])
+      (assert-true (simplex-equal? edge-ab edge-ba))
+      (assert-equal (simplex-vertices edge-ab) (simplex-vertices edge-ba))))
+
+  (define-test "bytevector<? comparison"
+    ; Test the underlying comparison function
+    (assert-true (bytevector<? #vu8(0 0) #vu8(0 1)))
+    (assert-true (bytevector<? #vu8(0 0) #vu8(1 0)))
+    (assert-true (bytevector<? #vu8(0) #vu8(0 0)))     ; shorter < longer when prefix matches
+    (assert-false (bytevector<? #vu8(1 0) #vu8(0 1)))
+    (assert-false (bytevector<? #vu8(0 0) #vu8(0 0)))  ; equal, not less
+    (assert-false (bytevector<? #vu8(0 0 0) #vu8(0 0)))) ; longer >= shorter
+
+  (define-test "mixed type ordering includes bytevectors"
+    ; Bytevectors should have consistent ordering with other types
+    (let* ([num 42]
+           [sym 'foo]
+           [str "bar"]
+           [bv #vu8(1 2 3)]
+           [lst '(1 2)]
+           [s (make-simplex (list lst bv str sym num))])
+      ; Order: number < symbol < string < bytevector < list
+      (assert-equal (list num sym str bv lst) (simplex-vertices s)))))
 
 ;;; ============================================================
 ;;; FACE ENUMERATION TESTS

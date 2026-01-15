@@ -31,7 +31,7 @@
 
 ;;; generic<? : α × α → Boolean
 ;;; Universal comparison function for canonical ordering.
-;;; Handles: numbers, symbols, strings, and lists (lexicographically).
+;;; Handles: numbers, symbols, strings, bytevectors, and lists (lexicographically).
 (define (generic<? a b)
   (cond
     ; Both numbers
@@ -43,6 +43,9 @@
     ; Both strings
     [(and (string? a) (string? b))
      (string<? a b)]
+    ; Both bytevectors (lexicographic on bytes)
+    [(and (bytevector? a) (bytevector? b))
+     (bytevector<? a b)]
     ; Both lists (lexicographic)
     [(and (list? a) (list? b))
      (cond
@@ -55,6 +58,24 @@
     [else
      (< (type-order a) (type-order b))]))
 
+;;; bytevector<? : Bytevector × Bytevector → Boolean
+;;; Lexicographic comparison of bytevectors.
+;;; Compares byte-by-byte; shorter vector is less if prefix matches.
+(define (bytevector<? a b)
+  (let ([len-a (bytevector-length a)]
+        [len-b (bytevector-length b)])
+    (let loop ([i 0])
+      (cond
+        [(= i len-a) (< len-a len-b)]  ; a exhausted, a < b iff b is longer
+        [(= i len-b) #f]                ; b exhausted first, a >= b
+        [else
+         (let ([byte-a (bytevector-u8-ref a i)]
+               [byte-b (bytevector-u8-ref b i)])
+           (cond
+             [(< byte-a byte-b) #t]
+             [(> byte-a byte-b) #f]
+             [else (loop (+ i 1))]))]))))
+
 ;;; type-order : α → Integer
 ;;; Assign numeric order to types for consistent mixed-type comparison.
 (define (type-order x)
@@ -62,8 +83,9 @@
     [(number? x) 0]
     [(symbol? x) 1]
     [(string? x) 2]
-    [(list? x) 3]
-    [else 4]))
+    [(bytevector? x) 3]
+    [(list? x) 4]
+    [else 5]))
 
 ;;; ============================================================
 ;;; SIMPLEX — The Fundamental Building Block
