@@ -299,13 +299,6 @@
                                    (file-regular? (string-append dir "/" f))))
                       entries))))
 
-;;; string-ends-with? : String String -> Bool
-(define (string-ends-with? str suffix)
-  (let ([str-len (string-length str)]
-        [suf-len (string-length suffix)])
-       (and (>= str-len suf-len)
-            (string=? (substring str (- str-len suf-len) str-len) suffix))))
-
 ;;; lattice-tests : Symbol -> (List String)
 ;;; Get list of test files for a skill
 ;;; Returns full paths to test-*.ss files in the skill's directory
@@ -384,29 +377,6 @@
                                      (close-port from-stdout)
                                      (string-join (reverse lines) "\n"))
                                    (loop (cons line lines))))))))
-
-;;; string-join : (List String) String -> String
-;;; Join strings with separator
-(define (string-join strs sep)
-  (if (null? strs)
-      ""
-      (let loop ([rest (cdr strs)] [acc (car strs)])
-           (if (null? rest)
-               acc
-               (loop (cdr rest) (string-append acc sep (car rest)))))))
-
-;;; string-contains? : String String -> Bool
-;;; Check if str contains substr
-(define (string-contains? str substr)
-  (let ([str-len (string-length str)]
-        [sub-len (string-length substr)])
-       (if (> sub-len str-len)
-           #f
-           (let loop ([i 0])
-                (cond
-                 [(> (+ i sub-len) str-len) #f]
-                 [(string=? (substring str i (+ i sub-len)) substr) #t]
-                 [else (loop (+ i 1))])))))
 
 ;;; lattice-tests-run-pretty : Symbol -> void
 ;;; Run tests and display results

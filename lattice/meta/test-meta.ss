@@ -278,25 +278,6 @@
                    ;; Should return just filenames, not paths
                    (assert-true (if (find (lambda (f) (string=? f "test-vec.ss")) files) #t #f))))
 
-            (define-test test-string-ends-with
-              (assert-true (string-ends-with? "test-vec.ss" ".ss"))
-              (assert-true (string-ends-with? "foo.txt" ".txt"))
-              (assert-false (string-ends-with? "foo.ss" ".txt"))
-              (assert-false (string-ends-with? "ss" ".ss")))  ; suffix longer than string
-
-            (define-test test-string-contains
-              (assert-true (string-contains? "hello world" "world"))
-              (assert-true (string-contains? "hello world" "hello"))
-              (assert-true (string-contains? "hello world" "lo wo"))
-              (assert-false (string-contains? "hello" "world"))
-              (assert-false (string-contains? "hi" "hello")))  ; needle longer than haystack
-
-            (define-test test-string-join
-              (assert-equal "a-b-c" (string-join '("a" "b" "c") "-"))
-              (assert-equal "one" (string-join '("one") "-"))
-              (assert-equal "" (string-join '() "-"))
-              (assert-equal "a\nb\nc" (string-join '("a" "b" "c") "\n")))
-
             (define-test test-lattice-all-tests-structure
               (lattice-init!)
               (let ([all (lattice-all-tests)])
