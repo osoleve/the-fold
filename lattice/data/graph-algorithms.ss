@@ -27,7 +27,9 @@
 (load "lattice/data/collection-utils.ss")
 
 ;;; Dependencies for homology-based analysis (Section 8)
-(load "lattice/topology/simplicial-complex.ss")
+;;; Uses topology/homology.ss for Z_2 homology computation (canonical implementation)
+(load "lattice/topology/homology.ss")
+;;; Legacy linalg loads kept for cycle-basis-homology null space computation
 (load "lattice/linalg/matrix.ss")
 (load "lattice/linalg/matrix-decomp.ss")
 (load "lattice/linalg/matrix-solvers.ss")
@@ -819,10 +821,16 @@
 ;;;   - beta_0 = dim(H_0) = number of connected components
 ;;;   - beta_1 = dim(H_1) = number of independent cycles
 ;;;
+;;; IMPLEMENTATION NOTES:
+;;;   - Betti numbers (graph-betti-numbers) use the canonical Z_2 homology
+;;;     from topology/homology.ss for exact mod-2 arithmetic
+;;;   - Cycle basis extraction (cycle-basis-homology) still uses legacy
+;;;     real-matrix null space computation (pending z2-null-space in topology)
+;;;   - Bridge functions (graph->simplicial-complex) remain unchanged
+;;;
 ;;; Dependencies:
-;;;   - lattice/topology/simplicial-complex.ss
-;;;   - lattice/linalg/matrix.ss
-;;;   - lattice/linalg/matrix-solvers.ss (for matrix-rank)
+;;;   - lattice/topology/homology.ss (canonical Z_2 homology)
+;;;   - lattice/linalg/matrix.ss (legacy, for null space computation)
 
 ;;; --- Graph to Simplicial Complex Conversion ---
 
@@ -921,38 +929,30 @@
 ;;; --- Betti Number Computation ---
 
 ;;; graph-betti-numbers : (List Edge) × (List Vertex) → (beta0 . beta1)
-;;; Compute Betti numbers for a graph.
+;;; Compute Betti numbers for a graph using Z_2 homology.
 ;;;
-;;; beta_0 = dim(ker ∂_0) = dim(C_0) = number of vertices minus rank(∂_1)
-;;;        = n_vertices - rank(∂_1)
-;;;        But more correctly: beta_0 = n_vertices - rank(∂_1)
+;;; For a graph (1-dimensional simplicial complex):
+;;;   beta_0 = number of connected components
+;;;   beta_1 = number of independent cycles (cyclomatic complexity)
 ;;;
-;;; Actually, for simplicial homology:
-;;;   beta_0 = dim(ker ∂_0) - dim(im ∂_1) = n_vertices - rank(∂_1)
-;;;          = number of connected components
-;;;
-;;;   beta_1 = dim(ker ∂_1) - dim(im ∂_2)
-;;;          Since ∂_2 = 0 for 1-dimensional complexes (no 2-simplices):
-;;;          beta_1 = dim(ker ∂_1) = n_edges - rank(∂_1)
-;;;          = number of independent cycles
+;;; Uses the canonical Z_2 homology implementation from topology/homology.ss
+;;; which provides exact mod-2 arithmetic (no floating-point tolerance).
 ;;;
 ;;; Example:
 ;;;   (graph-betti-numbers '((0 . 1) (1 . 2) (2 . 0)) '(0 1 2))
 ;;;   => (1 . 1)  ; 1 component, 1 independent cycle (triangle)
 (define (graph-betti-numbers edges vertices)
-  (let* ([sc (graph->simplicial-complex edges vertices)]
-         [n-vertices (length vertices)]
-         [n-edges (length edges)])
-    (if (= n-edges 0)
+  (let ([sc (graph->simplicial-complex edges vertices)])
+    (if (null? edges)
         ;; No edges: each vertex is its own component, no cycles
-        (cons n-vertices 0)
-        (let* ([boundary-1 (build-boundary-matrix-1 sc)]
-               [rank-d1 (matrix-rank boundary-1)]
-               ;; beta_0 = n_vertices - rank(∂_1) = number of components
-               [beta-0 (- n-vertices rank-d1)]
-               ;; beta_1 = n_edges - rank(∂_1) = number of independent cycles
-               [beta-1 (- n-edges rank-d1)])
-          (cons beta-0 beta-1)))))
+        (cons (length vertices) 0)
+        (let ([betti (sc-betti-numbers sc)])
+          ;; sc-betti-numbers returns (B_0 B_1 ...) as a list
+          ;; For 1-dim complex, we have at most B_0 and B_1
+          (cons (if (pair? betti) (car betti) 0)
+                (if (and (pair? betti) (pair? (cdr betti)))
+                    (cadr betti)
+                    0))))))
 
 ;;; graph-betti-numbers-from-adjacency : AdjList → (beta0 . beta1)
 ;;; Compute Betti numbers from adjacency list representation.
@@ -979,8 +979,14 @@
 ;;; Returns a list of fundamental cycles, where each cycle is a list of edges.
 ;;; The number of cycles equals beta_1.
 ;;;
+;;; NOTE: Unlike graph-betti-numbers which uses Z_2 homology from topology/homology.ss,
+;;; this function still uses real-matrix null space computation because
+;;; topology/homology.ss doesn't yet provide z2-null-space (only rank/nullity).
+;;; The results are equivalent for typical graphs but may have numerical precision
+;;; differences for very large graphs. See BBS issue for z2-null-space addition.
+;;;
 ;;; Algorithm:
-;;;   1. Build boundary matrix ∂_1
+;;;   1. Build boundary matrix ∂_1 (real-valued, legacy implementation)
 ;;;   2. Find null space of ∂_1 (kernel vectors)
 ;;;   3. Each basis vector of ker(∂_1) represents a cycle
 ;;;   4. Convert to edge lists
