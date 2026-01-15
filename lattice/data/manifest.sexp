@@ -1,13 +1,13 @@
 ;;; lattice/data/manifest.sexp — Data Structures Skill Manifest
 
 (skill data
-  (version "0.1.0")
+  (version "0.2.0")
   (tier 0)
   (path "lattice/data")
   (purity total)
   (stability stable)
-  (fuel-bound "O(log n) for balanced structures, O(n) for linear")
-  (deps ())  ; Tier 0 - no lattice dependencies
+  (fuel-bound "O(log n) for balanced structures, O(n) for linear, O(n³) for homology")
+  (deps ())  ; Tier 0 - no skill-level deps (graph-algorithms has file-level dep on topology)
 
   (description
    "Fundamental data structures: heaps, balanced trees, graphs,
