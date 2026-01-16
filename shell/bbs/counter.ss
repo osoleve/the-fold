@@ -9,6 +9,7 @@
 
 (load "core/base/prelude.ss")
 (load "shell/io/atomic.ss")
+(load "shell/io/file-lock.ss")
 
 ;;; ====
 ;;; Configuration
@@ -94,12 +95,15 @@
 ;;; bbs-next-id! : -> String
 ;;; Generate the next issue ID and increment counter.
 ;;; Returns "fold-XXXX" format.
+;;; Uses file locking to prevent race conditions with concurrent calls.
 (define (bbs-next-id!)
-  (let* ([current (bbs-read-counter)]
-         [next (+ current 1)]
-         [id (string-append *bbs-id-prefix* (int->base36 next))])
-    (bbs-write-counter! next)
-    id))
+  (with-file-lock *bbs-counter-file*
+    (lambda ()
+      (let* ([current (bbs-read-counter)]
+             [next (+ current 1)]
+             [id (string-append *bbs-id-prefix* (int->base36 next))])
+        (bbs-write-counter! next)
+        id))))
 
 ;;; bbs-id->number : String -> Int | #f
 ;;; Extract the numeric part from an ID.

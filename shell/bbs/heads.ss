@@ -12,6 +12,7 @@
 (load "core/base/prelude.ss")
 (load "core/blocks/cas.ss")
 (load "shell/io/atomic.ss")
+(load "shell/io/file-lock.ss")
 
 ;;; ====
 ;;; Configuration
@@ -96,14 +97,18 @@
 ;;; bbs-cas-head! : String Bytevector Bytevector -> Boolean
 ;;; Atomically update head if current value matches expected.
 ;;; Returns #t if successful, #f if current value differs.
+;;; Uses file locking to make the check-then-write truly atomic.
 (define (bbs-cas-head! id expected-hash new-hash)
-  (let ([current (bbs-read-head id)])
-    (if (or (not current)
-            (not (bytevector=? current expected-hash)))
-        #f  ; CAS failed - current doesn't match expected
-        (begin
-          (bbs-write-head! id new-hash)
-          #t))))
+  (let ([path (bbs-head-path id)])
+    (with-file-lock path
+      (lambda ()
+        (let ([current (bbs-read-head id)])
+          (if (or (not current)
+                  (not (bytevector=? current expected-hash)))
+              #f  ; CAS failed - current doesn't match expected
+              (begin
+                (bbs-write-head! id new-hash)
+                #t)))))))
 
 ;;; ====
 ;;; Listing Operations
