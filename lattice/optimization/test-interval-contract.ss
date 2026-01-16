@@ -110,6 +110,15 @@
            [contractor (make-linear-le-contractor '((0 . 1) (1 . 1)) 5)]
            [result (contractor box)])
       (assert-equal 'empty result)))
+
+  (define-test "zero coefficient variable is unchanged"
+    ;; Constraint 0*x + y <= 5: x should be unchanged, y should contract
+    (let* ([box (list (interval -10 10) (interval 0 10))]
+           [contractor (make-linear-le-contractor '((0 . 0) (1 . 1)) 5)]
+           [result (contractor box)])
+      ;; x unchanged (coef=0), y contracted to [0, 5]
+      (assert-true (interval-approx= (car result) (interval -10 10) 1e-10))
+      (assert-true (interval-approx= (cadr result) (interval 0 5) 1e-10))))
 )
 
 ;;; ============================================================================

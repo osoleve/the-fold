@@ -212,7 +212,7 @@ The lattice is a DAG of verified skills. "Stdlib" = tier 0 (foundational nodes).
 | `numeric/` | Complex numbers, DFT, signal processing |
 | `geometry/` | Shapes, transforms, raymarching, SDFs, mesh topology |
 | `diffgeo/` | Charts, atlases, Lie groups, Riemannian curvature |
-| `autodiff/` | Reverse-mode AD, computational graphs |
+| `autodiff/` | Reverse-mode AD, computational graphs, interval gradients |
 | `fp/` | Monads, parsers, streams, protocols, game theory, control systems |
 | `fp/clp/` | Constraint logic programming (cKanren-style CLP(FD)) |
 | `query/` | Query DSL, SQL parser, patterns |
@@ -222,7 +222,7 @@ The lattice is a DAG of verified skills. "Stdlib" = tier 0 (foundational nodes).
 | `meta/` | Lattice navigation, search, introspection |
 | `topology/` | Simplicial complexes, homology, Betti numbers |
 | `crypto/` | SHA-512, BLAKE2b, HMAC |
-| `optimization/` | LP, ILP, gradient descent, Newton, L-BFGS, interval global |
+| `optimization/` | LP, ILP, gradient descent, Newton, L-BFGS, interval global, constraint contractors |
 | `statistics/` | Regression, GLM, time series, hypothesis testing |
 | `physics/lenses/` | Optics for physics state access |
 
