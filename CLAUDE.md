@@ -451,7 +451,7 @@ Grammar-driven code construction for building S-expressions without tracking par
 - Core functions are total (enforced via **fuel** parameter)
 - Evaluation strategy is **call-by-value**
 
-### The Shell (Thimble) Is Fallen
+### The Shell Is Fallen
 
 - `shell/` handles all IO
 - Contains all defensive logic

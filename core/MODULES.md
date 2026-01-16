@@ -1,6 +1,6 @@
 # Core Module Dependencies
 
-This document describes the dependency layers within the `core/` directory ("The Fabric").
+This document describes the dependency layers within the `core/` directory.
 Modules in lower layers must not depend on modules in higher layers.
 
 ## Layer 0: Base (`core/base/`)

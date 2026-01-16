@@ -1,15 +1,15 @@
-;;; fabric/README.sexp — The Fabric of The Fold
+;;; core/README.sexp — The Core of The Fold
 ;;;
 ;;; This directory contains the load-bearing core of The Fold.
 
-((title . "Fabric: The System Core")
+((title . "The System Core")
  (tier-access . shepherd)
- (purity . "All fabric code is pure, typed, and total")
+ (purity . "All core code is pure, typed, and total")
  (description . "
-The Fabric is the foundation of The Fold. It defines the language,
+Core is the foundation of The Fold. It defines the language,
 the type system, the evaluation model, and the block primitives.
 
-Everything in fabric/ is:
+Everything in core/ is:
 - Functionally pure (no side effects)
 - Type-checked (bidirectional inference)
 - Total (terminates with fuel limits)
@@ -174,34 +174,29 @@ Everything in fabric/ is:
     (contents . (
       "parse.ss      - Meta-parsing utilities"
       "query.ss      - Query combinators")))
-   ((name . "fabric/wrinkles/")
+   ((name . "core/wrinkles/")
     (purpose . "Low-level extensions and exceptional cases")
     (description . "Primitives that cannot be implemented in pure Scheme.
                     Foreign function interfaces, system calls, unsafe operations.
                     Currently empty - reserved for future use.")
     (contents . "(empty)"))))
  (philosophy . "
-Fabric is the machine. It assumes perfect input. It never fails
+Core is the machine. It assumes perfect input. It never fails
 (except by returning an error value). It computes answers.
 
-Thimble wraps Fabric, providing defensive validation and IO.
-Users interact with Thimble. Thimble calls Fabric.
-
-Metaphor:
-- Stitches: Individual threads (functions)
-- Patterns: Woven fabrics (abstractions)
-- Wrinkles: Seams where fabric meets the world (FFI)
+Shell wraps Core, providing defensive validation and IO.
+Users interact with Shell. Shell calls Core.
 ")
  (rules . (
    "Pure functions only - no (set!), no IO, no mutation (except local gensym counters)"
    "Total functions - always terminate with fuel parameter"
    "Type-checked - all exports have type signatures"
-   "Defensive-free - assume inputs are valid (Thimble validates)"
+   "Defensive-free - assume inputs are valid (shell validates)"
    "Core assumes perfect input - errors are values, not exceptions"
    "De Bruijn indices - names are presentation, not semantics"))
  (for-builders . "
-Builders may READ fabric/ to understand the system.
-Builders must NOT MODIFY fabric/ (Shepherd-only).
+Builders may READ core/ to understand the system.
+Builders must NOT MODIFY core/ (Shepherd-only).
 
 To understand a module:
 1. Read the header comment (purpose, dependencies)
@@ -212,7 +207,7 @@ To request a feature:
 Post to forum/requests/ with your use case.
 ")
  (for-shepherds . "
-Shepherds maintain fabric/. Evolution is conservative.
+Shepherds maintain core/. Evolution is conservative.
 
 Before modifying:
 1. Check MODULES.md for dependency graph

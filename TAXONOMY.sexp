@@ -207,7 +207,7 @@
  (classification-rules
 
   ((rule . "Pure computation without IO -> core/")
-   (rationale . "Maintains the Fabric/Thimble separation")
+   (rationale . "Maintains the core/shell separation")
    (test . "Does this function call any OS/network/file operations?"))
 
   ((rule . "IO, validation, or effects -> shell/")

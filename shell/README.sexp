@@ -1,14 +1,14 @@
-;;; shell/README.sexp — The Thimble (Shell/IO Layer)
+;;; shell/README.sexp — The Shell (IO Layer)
 ;;;
 ;;; This directory contains the defensive shell that wraps the pure core.
 
-((title . "Thimble: The IO Layer")
+((title . "The Shell: IO Layer")
  (tier-access . builder)
- (purity . "Thimble code is impure, defensive, and effectful")
+ (purity . "Shell code is impure, defensive, and effectful")
  (description . "
-The Thimble is the shell around the Fabric. It handles:
+The shell wraps core. It handles:
 - File IO (reading, writing, persistence)
-- Validation (defensive checks before calling Fabric)
+- Validation (defensive checks before calling core)
 - Capabilities (minting unforgeable authority tokens)
 - REPL (interactive environment)
 - Tools (developer utilities)
@@ -19,7 +19,7 @@ Everything in shell/ may:
 - Validate inputs
 - Fail, timeout, or raise errors
 - Use defensive programming
-- Call Fabric with validated inputs
+- Call core with validated inputs
 ")
  (structure . (
    "REPL & Session Management:"
@@ -50,7 +50,7 @@ Everything in shell/ may:
    "  layers.ss            - Layer composition"
    ""
    "Testing & Quality:"
-   "  test-runner.ss       - Thimble test runner"
+   "  test-runner.ss       - Shell test runner"
    "  validate.ss          - Input validation"
    ""
    "Utilities:"
@@ -59,21 +59,17 @@ Everything in shell/ may:
    "  git.ss               - Git integration"
    "  export.ss            - Data export"))
  (philosophy . "
-Thimble protects Fabric. It stands between the messy world
+Shell protects core. It stands between the messy world
 (user input, files, network) and the pure core.
 
-Thimble is defensive. Thimble validates. Thimble retries.
-Fabric trusts Thimble to only send valid input.
-
-Metaphor:
-A thimble protects the finger that pushes the needle through fabric.
-The thimble bears the bruises. The needle stays sharp.
+Shell is defensive. Shell validates. Shell retries.
+Core trusts shell to only send valid input.
 ")
  (rules . (
-   "Validate all inputs before calling Fabric"
+   "Validate all inputs before calling core"
    "Return Result types (ok/error) for fallible operations"
    "Use capabilities for authority (fs, network, etc.)"
-   "Never expose raw Fabric functions to users"
+   "Never expose raw core functions to users"
    "Log errors with context (file, line, operation)"
    "Defensive programming is encouraged here"))
  (for-players . "
@@ -108,8 +104,8 @@ How to add a new utility:
      ;; Validate input
      (unless (valid? arg)
        (error 'my-function \"Invalid argument\" arg))
-     ;; Call Fabric
-     (fabric-function (normalize arg)))
+     ;; Call core
+     (core-function (normalize arg)))
 
 2. Load in REPL: Edit shell/repl.ss, add:
    (load \"shell/my-utility.ss\")
@@ -132,9 +128,9 @@ Key responsibilities:
 - Core/Shell boundary (what validates, what computes)
 
 Before adding to shell/:
-- Does this belong in Fabric instead? (is it pure?)
+- Does this belong in core instead? (is it pure?)
 - Does this need a capability? (does it touch OS?)
-- Is input validated before calling Fabric?
+- Is input validated before calling core?
 ")
  (capabilities . "
 Capabilities are unforgeable authority tokens.
@@ -144,8 +140,8 @@ Example (fs.ss):
   (invoke fs-cap 'read path)  ; fs.ss grants read access
 
 Capabilities:
-- Minted only by Thimble
-- Passed to Fabric for effect-requiring operations
+- Minted only by shell
+- Passed to core for effect-requiring operations
 - Cannot be forged
 - Type: (Capability 'name metadata)
 
@@ -154,5 +150,5 @@ See shell/fs.ss for the canonical example.
  (see-also . (
    "shell/COMMANDS.md"
    "shell/run-tests.ss"
-   "fabric/README.sexp"
+   "core/README.sexp"
    "CLAUDE.md")))

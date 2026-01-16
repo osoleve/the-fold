@@ -1,5 +1,5 @@
 ((name "tests")
- (purpose "Comprehensive test suite for shell layer (Thimble)")
+ (purpose "Comprehensive test suite for shell layer")
  (description
   "Complete test coverage for shell subsystems including IO, validation,
    graphics, tools, REPL, and utilities. Tests verify defensive code,
