@@ -5,16 +5,18 @@
   (purity total)
   (stability stable)
   (fuel-bound "O(n log n) for BVH/octree operations, O(n) for raymarching")
-  (deps (linalg))
+  (deps (linalg topology))
 
   (description
    "3D computational geometry library providing primitives, spatial data structures,
-    and raymarching. Includes points, lines, rays, planes, triangles, spheres, AABBs,
-    OBBs, transforms, distance queries, intersection tests, BVH and octree acceleration
-    structures, mesh SDF computation, and marching cubes isosurface extraction.")
+    raymarching, and mesh topology analysis. Includes points, lines, rays, planes,
+    triangles, spheres, AABBs, OBBs, transforms, distance queries, intersection tests,
+    BVH and octree acceleration structures, mesh SDF computation, marching cubes
+    isosurface extraction, and topological validation via Betti numbers.")
 
   (keywords (geometry 3d raymarching sdf bvh octree mesh intersection transform
-             marching-cubes rendering ray-tracing spatial-data-structures))
+             marching-cubes rendering ray-tracing spatial-data-structures
+             topology homology betti-numbers manifold validation))
   (aliases (geom 3d-geometry spatial))
 
   (exports
@@ -85,7 +87,16 @@
     edge-table tri-table
     marching-cubes-grid marching-cubes-cube
     compute-cube-index compute-edge-intersections generate-cube-triangles
-    marching-cubes marching-cubes-sphere marching-cubes-torus))
+    marching-cubes marching-cubes-sphere marching-cubes-torus)
+
+   (mesh-topology
+    mesh->simplicial-complex triangles->simplicial-complex
+    mesh-betti-numbers mesh-euler-characteristic mesh-f-vector
+    mesh-connected-components mesh-genus
+    mesh-edge-counts mesh-is-manifold? mesh-is-closed?
+    mesh-boundary-edges mesh-non-manifold-edges
+    mesh-topology-summary
+    mesh-is-watertight? mesh-is-sphere-topology? mesh-is-torus-topology?))
 
   (modules
    (geometry "geometry.ss"
@@ -110,4 +121,8 @@
      distance queries. Includes primitive mesh generators.")
    (marching-cubes "marching-cubes.ss"
     "Marching cubes isosurface extraction. Converts implicit surfaces (SDFs) to
-     triangle meshes at specified resolution.")))
+     triangle meshes at specified resolution.")
+   (mesh-topology "mesh-topology.ss"
+    "Topological analysis of triangle meshes via homology. Computes Betti numbers,
+     validates manifold properties, detects non-manifold edges, and verifies mesh
+     topology (sphere, torus, watertight).")))
