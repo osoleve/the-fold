@@ -87,11 +87,13 @@ mod term {
         unsafe { tcsetattr(fd, TCSANOW, termios) == 0 }
     }
 
-    pub fn make_raw(termios: &Termios) -> Termios {
+    /// Create raw mode with timeout for escape sequence detection.
+    /// VMIN=0, VTIME=1 means read returns after 100ms timeout or when data available.
+    pub fn make_raw_with_timeout(termios: &Termios) -> Termios {
         let mut raw = *termios;
         raw.c_lflag &= !(ICANON | ECHO);
-        raw.c_cc[VMIN] = 1;
-        raw.c_cc[VTIME] = 0;
+        raw.c_cc[VMIN] = 0;
+        raw.c_cc[VTIME] = 1; // 100ms timeout (in 1/10 seconds)
         raw
     }
 
@@ -108,6 +110,72 @@ mod term {
             None
         }
     }
+}
+
+/// RAII guard for terminal raw mode - restores terminal on drop (panic safety)
+struct RawModeGuard {
+    fd: i32,
+    original: term::Termios,
+}
+
+impl RawModeGuard {
+    fn new(fd: i32) -> Option<Self> {
+        let original = term::get_termios(fd)?;
+        let raw = term::make_raw_with_timeout(&original);
+        if term::set_termios(fd, &raw) {
+            Some(Self { fd, original })
+        } else {
+            None
+        }
+    }
+}
+
+impl Drop for RawModeGuard {
+    fn drop(&mut self) {
+        // Restore terminal even on panic
+        term::set_termios(self.fd, &self.original);
+        // Show cursor and clear screen
+        print!("{}{}{}", SHOW_CURSOR, CLEAR, HOME);
+        let _ = std::io::Write::flush(&mut std::io::stdout());
+    }
+}
+
+/// Sanitize a string for safe terminal output.
+/// Strips ANSI escape sequences and control characters to prevent terminal injection.
+fn sanitize(s: &str) -> String {
+    let mut result = String::with_capacity(s.len());
+    let mut chars = s.chars().peekable();
+
+    while let Some(c) = chars.next() {
+        if c == '\x1b' {
+            // Skip ANSI escape sequence: ESC [ ... final_byte
+            if chars.peek() == Some(&'[') {
+                chars.next(); // consume '['
+                // Skip until we hit a letter (final byte of CSI sequence)
+                while let Some(&next) = chars.peek() {
+                    chars.next();
+                    if next.is_ascii_alphabetic() {
+                        break;
+                    }
+                }
+            }
+            // Also handle ESC followed by other chars (OSC, etc.)
+            continue;
+        }
+
+        // Allow printable ASCII, newlines, tabs
+        if c.is_ascii_graphic() || c == ' ' || c == '\n' || c == '\t' {
+            result.push(c);
+        } else if c.is_ascii_control() {
+            // Replace control chars with a visible marker
+            result.push('?');
+        } else {
+            // Allow non-ASCII Unicode (UTF-8 content)
+            result.push(c);
+        }
+    }
+
+    result
 }
 
 // ANSI escape codes
@@ -213,12 +281,12 @@ impl App {
             RESET
         ));
 
-        // Filter info
+        // Filter info (sanitize user-controlled content)
         if let Some(tag) = &self.tag_filter {
-            out.push_str(&format!("{}Tag: {}{}\n", YELLOW, tag, RESET));
+            out.push_str(&format!("{}Tag: {}{}\n", YELLOW, sanitize(tag), RESET));
         }
         if !self.search_query.is_empty() {
-            out.push_str(&format!("{}Search: {}{}\n", YELLOW, self.search_query, RESET));
+            out.push_str(&format!("{}Search: {}{}\n", YELLOW, sanitize(&self.search_query), RESET));
         }
         if let Some(msg) = &self.message {
             out.push_str(&format!("{}{}{}\n", MAGENTA, msg, RESET));
@@ -248,6 +316,7 @@ impl App {
                 " ".to_string()
             };
 
+            // Sanitize tag to prevent terminal injection
             out.push_str(&format!(
                 "{}{} {}{:16}{} {:20} {:>8} {:>4} {}\n",
                 highlight,
@@ -255,7 +324,7 @@ impl App {
                 BLUE,
                 &block.hash[..16],
                 RESET,
-                truncate(&block.tag, 20),
+                truncate(&sanitize(&block.tag), 20),
                 block.payload_size,
                 block.refs_count,
                 pin,
@@ -300,7 +369,8 @@ impl App {
                 let pinned = meta.as_ref().map(|m| m.pinned).unwrap_or(false);
 
                 out.push_str(&format!("{}Hash:{} {}{}{}\n", BOLD, RESET, BLUE, hash, RESET));
-                out.push_str(&format!("{}Tag:{} {}\n", BOLD, RESET, block.tag));
+                // Sanitize tag to prevent terminal injection
+                out.push_str(&format!("{}Tag:{} {}\n", BOLD, RESET, sanitize(&block.tag)));
                 out.push_str(&format!("{}Size:{} {} bytes\n", BOLD, RESET, block.payload.len()));
                 out.push_str(&format!(
                     "{}Pinned:{} {}\n",
@@ -313,9 +383,9 @@ impl App {
                     }
                 ));
 
-                // Payload preview
+                // Payload preview (sanitize to prevent terminal injection)
                 out.push_str(&format!("\n{}Payload:{}\n", BOLD, RESET));
-                let preview = block.payload_preview(500);
+                let preview = sanitize(&block.payload_preview(500));
                 for line in preview.lines().take(10) {
                     out.push_str(&format!("  {}{}{}\n", DIM, line, RESET));
                 }
@@ -323,13 +393,13 @@ impl App {
                     out.push_str(&format!("  {}...{}\n", DIM, RESET));
                 }
 
-                // Refs
+                // Refs (sanitize tags)
                 if !block.refs.is_empty() {
                     out.push_str(&format!("\n{}References ({}):{}\n", BOLD, block.refs.len(), RESET));
                     for (i, r) in block.refs.iter().enumerate().take(10) {
                         let ref_hash = r.to_hex();
                         let ref_meta = self.store.get_meta(&ref_hash);
-                        let ref_tag = ref_meta.map(|m| m.tag).unwrap_or_else(|| "?".to_string());
+                        let ref_tag = ref_meta.map(|m| sanitize(&m.tag)).unwrap_or_else(|| "?".to_string());
                         let marker = if i == self.cursor { ">" } else { " " };
                         out.push_str(&format!(
                             "  {}{} {}{}{} {}\n",
@@ -369,13 +439,14 @@ impl App {
             let prefix = if selected { ">" } else { " " };
             let highlight = if selected { BOLD } else { "" };
 
+            // Sanitize head name to prevent terminal injection
             out.push_str(&format!(
                 "{}{} {:24} {}{}{}\n",
                 highlight,
                 prefix,
-                head.name,
+                truncate(&sanitize(&head.name), 24),
                 BLUE,
-                &head.hash[..32],
+                &head.hash[..32.min(head.hash.len())],
                 RESET
             ));
         }
@@ -630,63 +701,64 @@ fn main() {
         process::exit(0);
     }
 
-    // Set up terminal raw mode
+    // Set up terminal raw mode with RAII guard (panic safety)
     let fd = io::stdin().as_raw_fd();
-    let old_termios = match term::get_termios(fd) {
-        Some(t) => t,
+    let _guard = match RawModeGuard::new(fd) {
+        Some(g) => g,
         None => {
-            eprintln!("Failed to get terminal attributes");
+            eprintln!("Failed to set raw terminal mode");
             process::exit(1);
         }
     };
-
-    let raw = term::make_raw(&old_termios);
-    if !term::set_termios(fd, &raw) {
-        eprintln!("Failed to set raw mode");
-        process::exit(1);
-    }
 
     print!("{}", HIDE_CURSOR);
     io::stdout().flush().ok();
 
     let mut app = App::new(store);
-
-    // Get terminal height
     let stdout_fd = io::stdout().as_raw_fd();
-    if let Some((_, h)) = term::get_winsize(stdout_fd) {
-        app.height = h as usize;
-    }
 
     // Main loop
     let mut stdin = io::stdin();
     loop {
+        // Dynamic window resize - check each iteration
+        if let Some((_, h)) = term::get_winsize(stdout_fd) {
+            app.height = h as usize;
+        }
+
         // Render
         print!("{}", app.render());
         io::stdout().flush().ok();
 
-        // Read input
+        // Read input (with VTIME=1 timeout, read returns 0 bytes on timeout)
         let mut buf = [0u8; 3];
-        if stdin.read(&mut buf[..1]).is_ok() {
-            let key = buf[0];
+        match stdin.read(&mut buf[..1]) {
+            Ok(0) => continue, // Timeout, no input - loop again
+            Ok(_) => {}
+            Err(_) => continue,
+        }
 
-            // Handle escape sequences (arrow keys)
-            if key == 27 {
-                // Check for more bytes (arrow keys send \x1b[A etc)
-                if stdin.read(&mut buf[1..3]).is_ok() && buf[1] == b'[' {
-                    if !app.handle_key(buf[2]) {
-                        break;
-                    }
-                } else if !app.handle_key(27) {
+        let key = buf[0];
+
+        // Handle escape sequences (arrow keys send \x1b[A etc)
+        if key == 27 {
+            // Try to read more bytes with timeout
+            // If timeout (0 bytes), it was just ESC key
+            let n = stdin.read(&mut buf[1..3]).unwrap_or(0);
+            if n >= 2 && buf[1] == b'[' {
+                // Arrow key sequence: pass the direction byte
+                if !app.handle_key(buf[2]) {
                     break;
                 }
-            } else if !app.handle_key(key) {
-                break;
+            } else {
+                // Plain ESC key (or incomplete sequence)
+                if !app.handle_key(27) {
+                    break;
+                }
             }
+        } else if !app.handle_key(key) {
+            break;
         }
     }
 
-    // Cleanup
-    print!("{}{}{}", SHOW_CURSOR, CLEAR, HOME);
-    io::stdout().flush().ok();
-    term::set_termios(fd, &old_termios);
+    // Guard's Drop will restore terminal
 }
