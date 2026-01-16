@@ -14,6 +14,13 @@
 ;;;
 ;;; Invariant: For all operations f, if x ∈ [a,b] and y ∈ [c,d],
 ;;;            then f(x,y) ∈ f([a,b], [c,d]).
+;;;
+;;; CAVEAT: This implementation uses standard floating-point arithmetic with
+;;; round-to-nearest semantics. True interval arithmetic requires directed
+;;; rounding (round-down for lower bounds, round-up for upper bounds) which
+;;; Scheme does not expose. For most practical purposes with reasonable
+;;; operands, this is sufficient. For rigorous proofs requiring IEEE 754
+;;; directed rounding, use a library with explicit rounding control.
 
 (load "core/base/prelude.ss")
 
@@ -68,9 +75,11 @@
 ;;; ============================================================================
 
 ;;; interval-mid : Interval → Real
-;;; Midpoint of interval.
+;;; Midpoint of interval. Uses overflow-safe formula.
 (define (interval-mid iv)
-  (/ (+ (interval-lo iv) (interval-hi iv)) 2))
+  (let ([lo (interval-lo iv)]
+        [hi (interval-hi iv)])
+    (+ lo (/ (- hi lo) 2))))
 
 ;;; interval-width : Interval → Real
 ;;; Width (diameter) of interval.
@@ -229,14 +238,31 @@
                  (- (interval-hi iv1) (interval-lo iv2))))
 
 ;;; interval-mul : Interval × Interval → Interval
-;;; Multiplication: compute all four products, take min and max.
+;;; Multiplication with sign-based optimization (2 muls in most cases).
+;;; Cases: P=positive, N=negative, M=mixed (contains zero)
 (define (interval-mul iv1 iv2)
-  (let* ([a (interval-lo iv1)] [b (interval-hi iv1)]
-         [c (interval-lo iv2)] [d (interval-hi iv2)]
-         [ac (* a c)] [ad (* a d)]
-         [bc (* b c)] [bd (* b d)])
-    (make-interval (min ac ad bc bd)
-                   (max ac ad bc bd))))
+  (let ([a (interval-lo iv1)] [b (interval-hi iv1)]
+        [c (interval-lo iv2)] [d (interval-hi iv2)])
+    (cond
+      ;; iv1 positive (a >= 0)
+      [(>= a 0)
+       (cond
+         [(>= c 0) (make-interval (* a c) (* b d))]       ; P*P
+         [(<= d 0) (make-interval (* b c) (* a d))]       ; P*N
+         [else     (make-interval (* b c) (* b d))])]     ; P*M
+      ;; iv1 negative (b <= 0)
+      [(<= b 0)
+       (cond
+         [(>= c 0) (make-interval (* a d) (* b c))]       ; N*P
+         [(<= d 0) (make-interval (* b d) (* a c))]       ; N*N
+         [else     (make-interval (* a d) (* a c))])]     ; N*M
+      ;; iv1 mixed (a < 0 < b)
+      [else
+       (cond
+         [(>= c 0) (make-interval (* a d) (* b d))]       ; M*P
+         [(<= d 0) (make-interval (* b c) (* a c))]       ; M*N
+         [else     (make-interval (min (* a d) (* b c))   ; M*M (4 muls unavoidable)
+                                  (max (* a c) (* b d)))])])))
 
 ;;; interval-sqr : Interval → Interval
 ;;; Square: tighter than interval-mul iv iv when interval contains 0.
@@ -303,29 +329,29 @@
        (make-interval (sqrt a) (sqrt b))])))
 
 ;;; interval-pow : Interval × Integer → Interval
-;;; Integer power x^n.
+;;; Integer power x^n. Uses monotonicity for tight bounds.
 (define (interval-pow iv n)
-  (cond
-    [(= n 0) (interval-singleton 1)]
-    [(= n 1) iv]
-    [(< n 0)
-     (let ([recip (interval-recip iv)])
-       (if (eq? recip 'division-by-zero)
-           'division-by-zero
-           (interval-pow recip (- n))))]
-    [(even? n)
-     ;; Even power: use interval-sqr logic
-     (let* ([half-n (quotient n 2)]
-            [half-pow (interval-pow iv half-n)])
-       (if (eq? half-pow 'division-by-zero)
-           'division-by-zero
-           (interval-sqr half-pow)))]
-    [else
-     ;; Odd power: preserves sign
-     (let* ([prev (interval-pow iv (- n 1))])
-       (if (eq? prev 'division-by-zero)
-           'division-by-zero
-           (interval-mul iv prev)))]))
+  (let ([a (interval-lo iv)]
+        [b (interval-hi iv)])
+    (cond
+      [(= n 0) (interval-singleton 1)]
+      [(= n 1) iv]
+      [(< n 0)
+       (let ([recip (interval-recip iv)])
+         (if (eq? recip 'division-by-zero)
+             'division-by-zero
+             (interval-pow recip (- n))))]
+      [(odd? n)
+       ;; Odd power: x^n is monotonically increasing, so [a^n, b^n]
+       (make-interval (expt a n) (expt b n))]
+      [else
+       ;; Even power: x^n has minimum at 0
+       (let ([a^n (expt a n)]
+             [b^n (expt b n)])
+         (cond
+           [(>= a 0) (make-interval a^n b^n)]        ; Entirely non-negative
+           [(<= b 0) (make-interval b^n a^n)]        ; Entirely non-positive
+           [else     (make-interval 0 (max a^n b^n))]))])))
 
 ;;; interval-min : Interval × Interval → Interval
 ;;; Minimum of two intervals.

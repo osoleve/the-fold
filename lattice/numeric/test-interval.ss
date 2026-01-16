@@ -234,6 +234,19 @@
       (assert-equal 8 (interval-lo iv))
       (assert-equal 27 (interval-hi iv))))
 
+  (define-test "interval-pow odd tight bounds"
+    ;; Gemini QA: [-1,2]^3 should be [-1,8], not [-4,8]
+    ;; Odd powers are monotonic, so bounds are exact
+    (let ([iv (interval-pow (interval -1 2) 3)])
+      (assert-equal -1 (interval-lo iv))
+      (assert-equal 8 (interval-hi iv))))
+
+  (define-test "interval-pow even with zero-crossing"
+    ;; Even powers have minimum at 0 when interval crosses zero
+    (let ([iv (interval-pow (interval -3 2) 4)])
+      (assert-equal 0 (interval-lo iv))
+      (assert-equal 81 (interval-hi iv))))  ; (-3)^4 = 81 > 2^4 = 16
+
   (define-test "interval-pow zero"
     (let ([iv (interval-pow (interval 2 3) 0)])
       (assert-equal 1 (interval-lo iv))
