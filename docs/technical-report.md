@@ -1560,8 +1560,9 @@ The Fold organizes verified code into a *Module DAG*—a directed acyclic graph 
 Tier 0 (Foundational):     linalg, data, algebra, random, numeric
          │                 No lattice dependencies, only Core
          ▼
-Tier 1 (Intermediate):     autodiff, geometry, query, fp, info
+Tier 1 (Intermediate):     autodiff, geometry, diffgeo, query, fp, info, topology
          │                 Depend on Tier 0
+         │                 diffgeo provides charts, tangent spaces, Lie groups, curvature
          ▼
 Tier 2+ (Advanced):        physics/diff, physics/diff3d, physics/classical, sim, pipeline
                            Multiple dependencies, domain-specific
@@ -1721,7 +1722,7 @@ Pure functional BM25 implementation for ranked retrieval:
 ; → (physics/diff autodiff linalg)
 
 (lattice-hubs 5)                       ; Most-depended-on modules
-; → ((linalg . 12) (data . 8) (fp . 6) ...)
+; → ((linalg . 14) (data . 10) (fp . 7) (diffgeo . 4) ...)
 
 (lattice-impact 'linalg)               ; Transitive dependents
 ; → 15
@@ -2140,6 +2141,68 @@ Module: linalg/matrix
 
 **Block explorer TUI** (`shell/web/fold-explorer/`):
 A Rust-based terminal UI for visualizing the content-addressed store. Navigate blocks by tag, search content, follow references to traverse the Merkle DAG, and analyze orphan or highly-referenced blocks. All untrusted content is sanitized before display to prevent terminal escape sequence injection.
+
+### 7.6 Shell IO Infrastructure
+
+The Shell layer provides IO primitives that maintain consistency guarantees despite operating in an impure environment.
+
+#### 7.6.1 Atomic File Writes
+
+The `shell/io/atomic.ss` module implements atomic file writes using the *write-then-rename* pattern:
+
+```
+1. Write content to temporary file (path.tmp)
+2. Flush buffers to OS
+3. Rename temporary file to target path (atomic on POSIX)
+```
+
+**Guarantees**:
+- Readers never see partial writes—files are either complete-old or complete-new
+- Crash during write leaves target unchanged (temp file may be orphaned)
+- Error during write triggers cleanup of temporary file
+
+**Limitations**:
+- `flush-output-port` flushes to OS buffers, not to disk; true durability requires `fsync()` which is not yet implemented
+- On power failure after rename but before disk sync, data may be lost
+- Temporary filename `.tmp` suffix is fixed, creating collision risk for concurrent writers to the same path
+
+#### 7.6.2 File Locking
+
+The `shell/io/file-lock.ss` module provides file locking for multi-step atomic operations:
+
+```scheme
+(with-file-lock path
+  (lambda ()
+    ;; read-modify-write safely here
+    ))
+```
+
+**Two-layer protection**:
+1. **Process-internal mutex**: Prevents thread races within a single Scheme process
+2. **Cross-process lockfile**: Uses exclusive file creation (`O_CREAT|O_EXCL` semantics) for inter-process safety
+
+**Stale lock recovery**: Locks older than 60 seconds are considered stale and can be broken. This handles crashes that leave orphaned lock files.
+
+**Known limitations** (documented for future improvement):
+- *Stale lock race*: Two processes detecting a stale lock simultaneously can both acquire it. Safe recovery requires identity tokens or `flock()`.
+- *Cooperative only*: Functions that bypass the lock (direct calls to underlying writers) break the safety guarantee.
+- *No true PID*: Process identification uses memory address heuristics, not OS PID.
+
+#### 7.6.3 BBS: Case Study
+
+The Bulletin Board System (BBS) demonstrates these primitives in practice:
+
+**Counter generation** (`bbs-next-id!`):
+- Requires atomic read-increment-write
+- Protected by `with-file-lock` on counter file
+- Without locking, concurrent issue creation would generate duplicate IDs
+
+**Compare-and-swap** (`bbs-cas-head!`):
+- Implements optimistic concurrency control for issue updates
+- Protected by `with-file-lock` on individual head files
+- Returns `#f` on conflict, allowing retry
+
+**Design tradeoff**: The Fold prioritizes simplicity and portability over maximum performance. A production system with high write concurrency would benefit from `flock()` via FFI or a proper database. The current implementation is appropriate for single-server deployments with moderate concurrency.
 
 ---
 ## 8. Evaluation
