@@ -15,6 +15,7 @@
 ;;;   - prelude.ss
 ;;;   - matrix.ss
 ;;;   - sparse.ss
+;;;   - heap.ss (for O(log n) priority queue operations)
 
 ;;; ====
 ;;; Edge List Representation
@@ -551,8 +552,12 @@
 ;;;   - distances[i] = shortest distance from source to i
 ;;;   - predecessors[i] = previous node on shortest path, or -1 if unreachable
 ;;;
-;;; Time complexity: O(n²) with linear search for min
+;;; Time complexity: O((V + E) log V) with heap-based min extraction.
 ;;; For weighted graphs with non-negative weights.
+;;;
+;;; Uses lazy deletion: when a shorter path is found, we insert a new
+;;; (distance, node) pair rather than updating in place. Already-visited
+;;; nodes are skipped when extracted from the heap.
 ;;;
 ;;; Example:
 ;;;   (dijkstra adj 0) => (#(0 3 5 7) . #(-1 0 1 2))
@@ -560,17 +565,54 @@
   (let* ([n (matrix-rows adj)]
          [dist (make-vector n *infinity*)]
          [pred (make-vector n -1)]
-         [visited (make-vector n #f)])
+         [visited (make-vector n #f)]
+         ;; Comparator: smaller distance first (min-heap by distance)
+         [dist-cmp (lambda (a b) (<= (car a) (car b)))])
         ;; Initialize source
         (vector-set! dist source 0)
-        ;; Main loop: find min unvisited, relax neighbors
+        ;; Main loop with heap-based extraction
+        (let loop ([heap (heap-insert-by dist-cmp (cons 0 source) heap-empty)])
+             (if (heap-empty? heap)
+                 (cons dist pred)
+                 (let* ([top (heap-value heap)]
+                        [heap-rest (heap-delete-top-by dist-cmp heap)]
+                        [u (cdr top)])
+                       (if (vector-ref visited u)
+                           ;; Already processed (lazy deletion) - skip
+                           (loop heap-rest)
+                           (begin
+                             (vector-set! visited u #t)
+                             ;; Relax all neighbors and add to heap
+                             (let relax ([v 0] [h heap-rest])
+                                  (if (= v n)
+                                      (loop h)
+                                      (let ([w (matrix-ref adj u v)])
+                                           (if (and (> w 0)
+                                                    (not (vector-ref visited v)))
+                                               (let ([alt (+ (vector-ref dist u) w)])
+                                                    (if (< alt (vector-ref dist v))
+                                                        (begin
+                                                          (vector-set! dist v alt)
+                                                          (vector-set! pred v u)
+                                                          (relax (+ v 1)
+                                                                 (heap-insert-by dist-cmp (cons alt v) h)))
+                                                        (relax (+ v 1) h)))
+                                               (relax (+ v 1) h))))))))))))
+
+;;; dijkstra-naive : Matrix × Nat → (Vector Distance) × (Vector Predecessor)
+;;; Original O(n²) implementation using linear scan for min extraction.
+;;; Kept for comparison and cases where heap overhead isn't worth it.
+(define (dijkstra-naive adj source)
+  (let* ([n (matrix-rows adj)]
+         [dist (make-vector n *infinity*)]
+         [pred (make-vector n -1)]
+         [visited (make-vector n #f)])
+        (vector-set! dist source 0)
         (do ([iter 0 (+ iter 1)])
             ((= iter n))
-            ;; Find unvisited node with minimum distance
             (let ([u (dijkstra-find-min dist visited n)])
                  (when (and u (< (vector-ref dist u) *infinity*))
                        (vector-set! visited u #t)
-                       ;; Relax all neighbors
                        (do ([v 0 (+ v 1)])
                            ((= v n))
                            (let ([w (matrix-ref adj u v)])
@@ -583,7 +625,8 @@
         (cons dist pred)))
 
 ;;; dijkstra-find-min : Vector × Vector × Nat → Nat | #f
-;;; Find unvisited node with minimum distance.
+;;; Find unvisited node with minimum distance. O(n) linear scan.
+;;; Used by dijkstra-naive.
 (define (dijkstra-find-min dist visited n)
   (let loop ([i 0] [min-idx #f] [min-val *infinity*])
        (if (= i n)

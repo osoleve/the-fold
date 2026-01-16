@@ -6,6 +6,7 @@
 (load "lattice/linalg/vec.ss")
 (load "lattice/linalg/matrix.ss")
 (load "lattice/linalg/sparse.ss")
+(load "lattice/data/heap.ss")
 (load "lattice/data/graph-matrix.ss")
 
 ;;; ====

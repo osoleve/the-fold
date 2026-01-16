@@ -34,7 +34,7 @@
 ;;; Complexity:
 ;;;   - label-propagation: O(k·n²) where k = iterations (matrix-based)
 ;;;   - modularity: O(n²)
-;;;   - prim-mst: O(n²)
+;;;   - prim-mst: O((V + E) log V) with heap-based min extraction
 ;;;   - kruskal-mst: O(m log m) for sorting + O(m·α(n)) for union-find
 ;;;   - connected-components: O(n + m) BFS
 ;;;
@@ -43,6 +43,7 @@
 ;;;   - vec.ss
 ;;;   - matrix.ss
 ;;;   - graph-matrix.ss
+;;;   - heap.ss (for O(log n) priority queue operations)
 ;;;   - ilp.ss (for modularity-ilp)
 
 ;;; ====
@@ -249,7 +250,11 @@
 ;;;
 ;;; Returns: List of edges (from to weight) forming the MST
 ;;;
-;;; Complexity: O(n²) with linear search for minimum
+;;; Complexity: O((V + E) log V) with heap-based min extraction.
+;;;
+;;; Uses lazy deletion: when a better edge is found, we insert a new
+;;; (weight, node, parent) triple rather than updating. Already-visited
+;;; nodes are skipped when extracted from the heap.
 ;;;
 ;;; Notes:
 ;;;   - For disconnected graphs, returns MST of the component containing start
@@ -266,23 +271,69 @@
          [min-weight (make-vector n +inf.0)]
          ;; Parent node in MST
          [parent (make-vector n -1)]
-         [mst-edges '()])
-        ;; Initialize
+         ;; Comparator: smaller weight first (min-heap)
+         ;; Heap entries are (weight node from) triples
+         [weight-cmp (lambda (a b) (<= (car a) (car b)))])
+        ;; Initialize source
         (vector-set! min-weight start 0)
-        ;; Add n nodes to MST
+        ;; Main loop with heap-based extraction
+        (let loop ([heap (heap-insert-by weight-cmp (list 0 start -1) heap-empty)]
+                   [mst-edges '()])
+             (if (heap-empty? heap)
+                 (reverse mst-edges)
+                 (let* ([top (heap-value heap)]
+                        [heap-rest (heap-delete-top-by weight-cmp heap)]
+                        [w (car top)]
+                        [u (cadr top)]
+                        [from (caddr top)])
+                       (if (vector-ref in-mst u)
+                           ;; Already in MST (lazy deletion) - skip
+                           (loop heap-rest mst-edges)
+                           (begin
+                             (vector-set! in-mst u #t)
+                             ;; Add edge to MST (except for start node)
+                             (let ([new-edges (if (>= from 0)
+                                                  (cons (list from u (matrix-ref adj from u))
+                                                        mst-edges)
+                                                  mst-edges)])
+                                  ;; Add neighbors to heap
+                                  (let add-neighbors ([v 0] [h heap-rest])
+                                       (if (= v n)
+                                           (loop h new-edges)
+                                           (let ([edge-w (matrix-ref adj u v)])
+                                                (if (and (> edge-w 0)
+                                                         (not (vector-ref in-mst v))
+                                                         (< edge-w (vector-ref min-weight v)))
+                                                    (begin
+                                                      (vector-set! min-weight v edge-w)
+                                                      (vector-set! parent v u)
+                                                      (add-neighbors (+ v 1)
+                                                                     (heap-insert-by weight-cmp
+                                                                                     (list edge-w v u)
+                                                                                     h)))
+                                                    (add-neighbors (+ v 1) h)))))))))))))
+
+;;; prim-mst-naive : Matrix × [Nat] → (List Edge)
+;;; Original O(n²) implementation using linear scan for min extraction.
+;;; Kept for comparison and cases where heap overhead isn't worth it.
+(define (prim-mst-naive adj . opts)
+  (let* ([n (matrix-rows adj)]
+         [start (if (pair? opts) (car opts) 0)]
+         [in-mst (make-vector n #f)]
+         [min-weight (make-vector n +inf.0)]
+         [parent (make-vector n -1)]
+         [mst-edges '()])
+        (vector-set! min-weight start 0)
         (do ([count 0 (+ count 1)])
             ((= count n))
-            ;; Find minimum weight node not in MST
             (let ([u (prim-find-min min-weight in-mst n)])
                  (when u
                        (vector-set! in-mst u #t)
-                       ;; Add edge to MST (except for start node)
                        (when (>= (vector-ref parent u) 0)
                              (set! mst-edges
                                    (cons (list (vector-ref parent u) u
                                                (matrix-ref adj (vector-ref parent u) u))
                                          mst-edges)))
-                       ;; Update weights for neighbors
                        (do ([v 0 (+ v 1)])
                            ((= v n))
                            (let ([w (matrix-ref adj u v)])
@@ -294,7 +345,8 @@
         (reverse mst-edges)))
 
 ;;; prim-find-min : Vector × Vector × Nat → Nat | #f
-;;; Find node with minimum weight not yet in MST.
+;;; Find node with minimum weight not yet in MST. O(n) linear scan.
+;;; Used by prim-mst-naive.
 (define (prim-find-min weights in-mst n)
   (let loop ([i 0] [min-idx #f] [min-val +inf.0])
        (if (= i n)
