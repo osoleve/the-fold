@@ -19,6 +19,7 @@
 
 (load "shell/bbs/store.ss")
 (load "shell/bbs/counter.ss")
+(load "shell/io/atomic.ss")
 
 ;;; ====
 ;;; Index Cache
@@ -59,11 +60,12 @@
 ;;; bbs-save-index-cache! : -> Void
 ;;; Save the current index to disk cache.
 ;;; Called after rebuild to speed up future startups.
+;;; Uses atomic write-then-rename to prevent corruption.
 (define (bbs-save-index-cache!)
   (unless (file-exists? ".bbs")
     (mkdir ".bbs"))
   (guard (e [else #f])  ; Silently fail - cache is optional
-    (call-with-output-file *bbs-index-cache-file*
+    (call-with-atomic-output-file *bbs-index-cache-file*
       (lambda (port)
         ;; Convert hashtable to alist with hex hashes for serialization
         (let ([issues-hex (hashtable-map *bbs-issues*
@@ -328,10 +330,11 @@
 
 ;;; bbs-save-deps! : -> Void
 ;;; Persist dependencies to disk.
+;;; Uses atomic write-then-rename to prevent corruption.
 (define (bbs-save-deps!)
   (unless (file-exists? ".bbs")
     (mkdir ".bbs"))
-  (call-with-output-file *bbs-deps-file*
+  (call-with-atomic-output-file *bbs-deps-file*
     (lambda (port)
       (write *bbs-deps* port)
       (newline port))

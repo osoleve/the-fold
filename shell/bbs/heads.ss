@@ -11,6 +11,7 @@
 
 (load "core/base/prelude.ss")
 (load "core/blocks/cas.ss")
+(load "shell/io/atomic.ss")
 
 ;;; ====
 ;;; Configuration
@@ -65,11 +66,12 @@
 
 ;;; bbs-write-head! : String Bytevector -> Void
 ;;; Write the current hash for an issue ID.
+;;; Uses atomic write-then-rename to prevent corruption.
 (define (bbs-write-head! id hash)
   (bbs-ensure-heads-dir!)
   (let ([path (bbs-head-path id)]
         [hex (hash->hex hash)])
-    (call-with-output-file path
+    (call-with-atomic-output-file path
       (lambda (port)
         (put-string port hex)
         (newline port))

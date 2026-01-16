@@ -8,6 +8,7 @@
 ;;; This is Shell code: impure (filesystem IO).
 
 (load "core/base/prelude.ss")
+(load "shell/io/atomic.ss")
 
 ;;; ====
 ;;; Configuration
@@ -81,9 +82,10 @@
 
 ;;; bbs-write-counter! : Int -> Void
 ;;; Write the counter value.
+;;; Uses atomic write-then-rename to prevent corruption.
 (define (bbs-write-counter! n)
   (bbs-ensure-counter-dir!)
-  (call-with-output-file *bbs-counter-file*
+  (call-with-atomic-output-file *bbs-counter-file*
     (lambda (port)
       (put-string port (number->string n))
       (newline port))
