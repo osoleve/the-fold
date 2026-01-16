@@ -407,5 +407,42 @@
    "Profile with minimal output, returns (fuel . result).\n  Usage: (qprofile '(+ 1 2))"
    qprofile))
 
+;;; ====
+;;; Refactoring Commands (loaded dynamically)
+;;; ====
+
+;;; register-refactoring-commands! : -> void
+;;; Register refactoring commands (call after loading refactor-toolkit.ss)
+(define (register-refactoring-commands!)
+  (register-command!
+   'refactor
+   "Unified refactoring toolkit"
+   "Access all refactoring operations through a single interface.\n  Usage: (refactor 'operation args...)\n\n  Operations:\n    help      - Show all available operations\n    rename    - Rename a symbol globally\n    move      - Move a symbol to another module\n    extract   - Extract code to new function\n    inline    - Inline a function at call sites\n    dead-code - Find unused definitions\n    deps      - Show dependencies for a symbol\n    undo      - Undo last refactoring\n    status    - Show pending changes\n    apply     - Apply pending changes\n    clear     - Discard pending changes\n\n  Example:\n    (refactor 'help)\n    (refactor 'rename 'old-name 'new-name)\n    (refactor 'move 'my-func \"new-file.ss\")"
+   (lambda args (apply refactor args)))
+
+  (register-command!
+   'rr
+   "Quick rename (alias)"
+   "Quick alias for rename refactoring.\n  Usage: (rr 'old-name 'new-name)\n  Same as: (refactor 'rename 'old-name 'new-name)"
+   rr)
+
+  (register-command!
+   'rm
+   "Quick move (alias)"
+   "Quick alias for move refactoring.\n  Usage: (rm 'symbol \"target.ss\")\n  Same as: (refactor 'move 'symbol \"target.ss\")"
+   rm)
+
+  (register-command!
+   'rd
+   "Quick dependency check (alias)"
+   "Quick alias for dependency analysis.\n  Usage: (rd 'symbol)\n  Same as: (refactor 'deps 'symbol)"
+   rd)
+
+  (register-command!
+   'rdc
+   "Quick dead code scan (alias)"
+   "Quick alias for dead code scanning.\n  Usage: (rdc)           - Scan entire codebase\n         (rdc \"path\")    - Scan specific path\n  Same as: (refactor 'dead-code)"
+   (lambda args (apply rdc args))))
+
 ;;; Auto-register core commands on load
 (register-core-commands!)

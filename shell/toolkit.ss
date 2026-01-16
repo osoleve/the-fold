@@ -49,6 +49,8 @@
     (format building "Code formatter and pretty-printer" "tools/format.ss")
     (init-project building "Project initialization wizard" "tools/init-project.ss")
     (refactor-integrated building "Integrated refactoring with symbol graph" "tools/refactor-integrated.ss")
+    (refactor-toolkit building "Unified refactoring interface (rename/move/dead-code)" "tools/refactor-toolkit.ss")
+    (refactor-move building "Move symbols between modules with reference updates" "tools/refactor-move.ss")
     
     ;; Workflow Tools
     (test-runner workflow "Comprehensive test automation and discovery" "test-runner.ss")
