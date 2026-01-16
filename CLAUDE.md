@@ -357,9 +357,45 @@ Shell is organized into functional subdirectories (with backwards-compatible stu
 | `bbs/` | Issue tracker | bbs.ss, ops.ss, index.ss |
 | `tools/` | Utility tools | template-session.ss, template-parser.ss |
 | `lsp/` | Language server protocol | lsp-server.ss, protocol.ss |
+| `web/` | Web servers | fold-explorer (Rust CAS visualizer) |
 | `tests/` | Shell test suite | test-*.ss files |
 
 Root-level files like `commands.ss` and `validate.ss` remain for shared infrastructure.
+
+### Block Explorer Web UI
+
+Visual block explorer for the content-addressed store:
+
+```bash
+# Build and run
+cd shell/web/fold-explorer
+cargo build --release
+./target/release/fold-explorer [store-path] [static-dir] [port]
+
+# Default: serves .store/ on http://localhost:8080
+./target/release/fold-explorer
+```
+
+**Features:**
+- Block browser with pagination, tag filtering, search
+- Graph visualization (Canvas-based, D3.js-compatible JSON)
+- Subgraph exploration with configurable depth
+- Heads listing, orphan/popular block analysis
+
+**API Endpoints:**
+| Endpoint | Description |
+|----------|-------------|
+| `GET /api/blocks?limit=&offset=&tag=` | List blocks (paginated) |
+| `GET /api/blocks/{hash}` | Block details + payload preview |
+| `GET /api/blocks/{hash}/refs` | Block references |
+| `GET /api/graph/stats` | Store statistics |
+| `GET /api/graph/subgraph/{hash}?depth=` | D3.js-format subgraph |
+| `GET /api/graph/orphans` | Unreferenced blocks |
+| `GET /api/graph/popular` | Most-referenced blocks |
+| `GET /api/heads` | Named references |
+| `GET /api/search?q=` | Full-text search |
+
+**Security:** Payloads served as `application/octet-stream` with `X-Content-Type-Options: nosniff` to prevent XSS.
 
 ### Template DSL (AI Code Generation)
 

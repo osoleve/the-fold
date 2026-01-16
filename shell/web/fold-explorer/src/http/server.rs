@@ -3,9 +3,13 @@
 use std::io::Write;
 use std::net::{TcpListener, TcpStream};
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 use std::thread;
 use std::{fs, io};
+
+/// Maximum concurrent connections to prevent thread exhaustion DoS.
+const MAX_CONNECTIONS: usize = 100;
 
 use crate::graph::{block_list_to_json, block_meta_to_json, popular_to_json, StoreStats, Subgraph};
 use crate::json::Json;
@@ -18,6 +22,8 @@ use super::response::Response;
 pub struct Server {
     store: Arc<Store>,
     static_dir: PathBuf,
+    /// Current number of active connections.
+    active_connections: Arc<AtomicUsize>,
 }
 
 impl Server {
@@ -26,6 +32,7 @@ impl Server {
         Self {
             store: Arc::new(store),
             static_dir: static_dir.as_ref().to_path_buf(),
+            active_connections: Arc::new(AtomicUsize::new(0)),
         }
     }
 
@@ -37,10 +44,26 @@ impl Server {
         for stream in listener.incoming() {
             match stream {
                 Ok(stream) => {
+                    // Check connection limit to prevent thread exhaustion DoS
+                    let current = self.active_connections.load(Ordering::SeqCst);
+                    if current >= MAX_CONNECTIONS {
+                        // Reject connection - send 503 and close
+                        let mut stream = stream;
+                        let _ = stream.write_all(
+                            b"HTTP/1.1 503 Service Unavailable\r\nContent-Length: 0\r\n\r\n",
+                        );
+                        continue;
+                    }
+
+                    self.active_connections.fetch_add(1, Ordering::SeqCst);
                     let store = Arc::clone(&self.store);
                     let static_dir = self.static_dir.clone();
+                    let counter = Arc::clone(&self.active_connections);
+
                     thread::spawn(move || {
-                        if let Err(e) = handle_connection(stream, &store, &static_dir) {
+                        let result = handle_connection(stream, &store, &static_dir);
+                        counter.fetch_sub(1, Ordering::SeqCst);
+                        if let Err(e) = result {
                             eprintln!("Connection error: {}", e);
                         }
                     });
@@ -373,8 +396,9 @@ fn serve_static(path: &str, static_dir: &Path) -> Response {
                     resp.json(&String::from_utf8_lossy(&content));
                 }
                 "svg" => {
-                    resp.header("Content-Type", "image/svg+xml");
-                    resp.body = content;
+                    // SECURITY: Serve SVGs as octet-stream to prevent XSS
+                    // SVGs can contain embedded JavaScript
+                    resp.binary(content);
                 }
                 "png" => {
                     resp.header("Content-Type", "image/png");

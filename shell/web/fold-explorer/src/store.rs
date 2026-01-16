@@ -288,7 +288,7 @@ impl Store {
             }
         }
 
-        // Fall back to expected prefix directory
+        // Fall back to expected prefix directory (for blocks not yet indexed)
         let expected_prefix = &hash[..2];
         let expected_path = objects_dir.join(expected_prefix).join(hash);
         if expected_path.exists() {
@@ -296,20 +296,8 @@ impl Store {
             return Block::from_bytes(&data).map_err(StoreError::Parse);
         }
 
-        // If still not found, scan all directories (handles unindexed blocks)
-        for entry in fs::read_dir(&objects_dir)? {
-            let entry = entry?;
-            let shard_path = entry.path();
-            if !shard_path.is_dir() {
-                continue;
-            }
-            let path = shard_path.join(hash);
-            if path.exists() {
-                let data = fs::read(&path)?;
-                return Block::from_bytes(&data).map_err(StoreError::Parse);
-            }
-        }
-
+        // SECURITY: Do NOT scan all directories - that enables DoS attacks
+        // If block is not in index or expected location, it doesn't exist
         Err(StoreError::NotFound(hash.to_string()))
     }
 
