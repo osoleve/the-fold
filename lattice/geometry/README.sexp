@@ -1,18 +1,24 @@
-;;; core/geometry/README.sexp — Geometry and Spatial Acceleration Documentation
+;;; lattice/geometry/README.sexp — Geometry and Spatial Acceleration Documentation
 
 (document
- (title "Geometry Library with BVH/Octree Acceleration")
- (version "1.0.0")
+ (title "Geometry Library with BVH/Octree Acceleration and Topology Analysis")
+ (version "1.1.0")
  (created "2026-01-05")
+ (updated "2026-01-16")
 
  (section
   (title "Overview")
   (content
    "The geometry library provides core 3D geometric primitives, transformations,
-    and spatial acceleration structures for efficient geometric queries. The library
-    includes implementations of both BVH (Bounding Volume Hierarchy) and Octree
-    spatial partitioning for accelerating ray-triangle intersection and nearest-point
-    queries on triangle meshes."))
+    spatial acceleration structures, mesh generation, and topological analysis.
+
+    Key capabilities:
+    - Geometric primitives (points, lines, rays, planes, triangles, spheres, boxes)
+    - BVH and Octree spatial partitioning for efficient queries
+    - Mesh SDF computation with BVH acceleration
+    - Marching cubes isosurface extraction
+    - Mesh topology validation via homology (Betti numbers, manifold detection)
+    - ASCII/ANSI terminal rendering with raytracing"))
 
  (section
   (title "Modules")
@@ -127,7 +133,73 @@
 
    (algorithm
     "Sphere tracing: iteratively step along ray by distance to nearest surface.
-     Guaranteed not to overshoot surfaces. Converges quickly for smooth SDFs.")))
+     Guaranteed not to overshoot surfaces. Converges quickly for smooth SDFs."))
+
+  (module
+   (name "marching-cubes.ss")
+   (description "Isosurface extraction from implicit functions")
+   (exports
+    ;; Core algorithm
+    (marching-cubes)              ; SDF × Grid-params → (List Triangle3)
+    (marching-cubes-grid)         ; SDF × Resolution × Bounds → (List Triangle3)
+
+    ;; Primitive generators
+    (marching-cubes-sphere)       ; Number × Resolution → (List Triangle3)
+    (marching-cubes-torus)        ; Major × Minor × Resolution → (List Triangle3)
+
+    ;; Internals (for custom implementations)
+    (edge-table tri-table)        ; Lookup tables for cube configurations
+    (compute-cube-index)          ; Sample values → Configuration index
+    (generate-cube-triangles))    ; Cube → Triangles
+
+   (algorithm
+    "Marching cubes extracts polygonal meshes from scalar fields by evaluating
+     the implicit function at grid vertices, classifying cube configurations,
+     and interpolating edge crossings. Produces watertight meshes from SDFs."))
+
+  (module
+   (name "mesh-topology.ss")
+   (description "Topological analysis of triangle meshes via homology")
+   (exports
+    ;; Conversion
+    (mesh->simplicial-complex)     ; Mesh → SC (simplicial complex)
+    (triangles->simplicial-complex) ; (List Triangle3) → SC
+
+    ;; Topological invariants
+    (mesh-betti-numbers)           ; Mesh → (B_0 B_1 B_2)
+    (mesh-euler-characteristic)    ; Mesh → Integer
+    (mesh-f-vector)                ; Mesh → (V E F)
+    (mesh-connected-components)    ; Mesh → Integer
+    (mesh-genus)                   ; Mesh → Integer | 'open | 'disconnected
+
+    ;; Manifold validation
+    (mesh-is-manifold?)            ; Mesh → Boolean (edge + vertex conditions)
+    (mesh-edges-are-manifold?)     ; Mesh → Boolean (edge condition only)
+    (mesh-vertices-are-manifold?)  ; Mesh → Boolean (vertex link condition)
+    (mesh-is-closed?)              ; Mesh → Boolean (no boundary edges)
+    (mesh-boundary-edges)          ; Mesh → (List Edge)
+    (mesh-non-manifold-edges)      ; Mesh → (List Edge)
+
+    ;; Topology predicates
+    (mesh-is-watertight?)          ; Connected, closed, manifold
+    (mesh-is-sphere-topology?)     ; B = (1,0,1), χ = 2
+    (mesh-is-torus-topology?)      ; B = (1,2,1), χ = 0
+
+    ;; Diagnostics
+    (mesh-topology-summary))       ; Print comprehensive analysis
+
+   (theory
+    "Computes Betti numbers via Z₂ homology:
+     - B₀ = connected components (should be 1 for single solid)
+     - B₁ = handles/tunnels (genus-related)
+     - B₂ = enclosed voids (should be 0 for watertight mesh)
+
+     Manifold validation checks two conditions:
+     - Edge condition: every edge shared by 1-2 triangles
+     - Vertex condition: every vertex link is connected (detects pinch points)
+
+     Useful for validating marching cubes output, detecting mesh defects
+     before physics simulation, and classifying surface topology.")))
 
  (section
   (title "Usage Examples")
@@ -238,7 +310,54 @@
      ;; Query statistics
      (display \"Depth: \") (display (octree-depth octree)) (newline)
      (display \"Nodes: \") (display (octree-count-nodes octree)) (newline)
-     (display \"Triangles: \") (display (octree-count-triangles octree)) (newline)")))
+     (display \"Triangles: \") (display (octree-count-triangles octree)) (newline)"))
+
+  (example
+   (name "Validating mesh topology")
+   (code
+    "(load \"lattice/geometry/mesh-topology.ss\")
+
+     ;; Create a cube mesh
+     (define cube (make-mesh-cube 1.0))
+
+     ;; Compute Betti numbers
+     (define betti (mesh-betti-numbers cube))
+     (display \"Betti numbers: \") (write betti) (newline)
+     ;; => (1 0 1) — connected, no handles, one void
+
+     ;; Check if watertight (suitable for physics simulation)
+     (display \"Watertight? \") (display (mesh-is-watertight? cube)) (newline)
+     ;; => #t
+
+     ;; Verify sphere topology (genus 0)
+     (display \"Sphere topology? \") (display (mesh-is-sphere-topology? cube)) (newline)
+     ;; => #t
+
+     ;; Check manifold properties
+     (display \"Is manifold? \") (display (mesh-is-manifold? cube)) (newline)
+     ;; => #t (passes both edge and vertex conditions)
+
+     ;; Print full analysis
+     (mesh-topology-summary cube)"))
+
+  (example
+   (name "Detecting mesh defects")
+   (code
+    "(load \"lattice/geometry/mesh-topology.ss\")
+
+     ;; Identify boundary edges (mesh is open)
+     (define boundary (mesh-boundary-edges some-mesh))
+     (when (> (length boundary) 0)
+       (display \"Mesh has boundary edges — not watertight!\\n\"))
+
+     ;; Detect non-manifold edges (>2 triangles share edge)
+     (define bad-edges (mesh-non-manifold-edges some-mesh))
+     (when (> (length bad-edges) 0)
+       (display \"Non-manifold edges detected!\\n\"))
+
+     ;; Check for pinch points (vertex shared by disconnected surfaces)
+     (unless (mesh-vertices-are-manifold? some-mesh)
+       (display \"Mesh has pinch points — vertex link disconnected!\\n\"))")))
 
  (section
   (title "Performance Characteristics")
@@ -274,10 +393,12 @@
              "Tests mesh creation, SDF computation, signed distance correctness")
   (test-file "test-raymarch.ss"
              "Tests raymarching algorithm, shading, soft shadows, ambient occlusion")
+  (test-file "test-mesh-topology.ss"
+             "Tests mesh-to-SC conversion, Betti numbers, manifold validation,
+              genus detection, hourglass pinch-point detection")
 
   (run-tests
-   "scheme --script core/geometry/test-bvh.ss
-    scheme --script core/geometry/test-mesh-sdf.ss"))
+   "scheme --script lattice/geometry/test-mesh-topology.ss"))
 
  (section
   (title "References")
@@ -306,8 +427,11 @@
   (enhancement "GPU acceleration"
                "Parallel BVH/octree traversal on GPU for real-time rendering")
 
-  (enhancement "Icosphere subdivision"
-               "Implement proper subdivision for make-mesh-sphere-ico")
+  (enhancement "Icosphere vertex deduplication"
+               "Fix floating-point vertex merging issues in icosphere construction")
 
   (enhancement "Wider range of primitives"
-               "Support for CSG operations, implicit surfaces, bezier patches")))
+               "Support for CSG operations, implicit surfaces, bezier patches")
+
+  (enhancement "Persistent homology"
+               "Extend mesh-topology to support filtrations and persistence diagrams")))

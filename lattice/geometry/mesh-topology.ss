@@ -204,8 +204,19 @@
 
 ;;; mesh-is-manifold? : Mesh → Boolean
 ;;; Check if mesh is a valid 2-manifold.
-;;; Every edge must be shared by exactly 1 or 2 triangles.
+;;; Must satisfy:
+;;;   1. Edge Condition: Every edge is shared by 1 or 2 triangles.
+;;;   2. Vertex Condition: The link of every vertex is connected (1 component).
+;;;
+;;; The vertex condition catches "pinch points" where multiple surfaces
+;;; meet at a single vertex (e.g., hourglass shape = two cones at one point).
 (define (mesh-is-manifold? mesh)
+  (and (mesh-edges-are-manifold? mesh)
+       (mesh-vertices-are-manifold? mesh)))
+
+;;; mesh-edges-are-manifold? : Mesh → Boolean
+;;; Check edge condition: every edge shared by 1-2 triangles.
+(define (mesh-edges-are-manifold? mesh)
   (let ([edge-counts (mesh-edge-counts mesh)])
     (let-values ([(keys) (hashtable-keys edge-counts)])
       (let loop ([i 0])
@@ -215,6 +226,121 @@
               (if (and (>= count 1) (<= count 2))
                   (loop (+ i 1))
                   #f)))))))
+
+;;; mesh-vertices-are-manifold? : Mesh → Boolean
+;;; Check vertex condition: the link of every vertex is connected.
+;;; For a 2-manifold, each vertex link should be homeomorphic to a circle
+;;; (interior vertex) or line segment (boundary vertex) - both are connected.
+;;; Disconnected links indicate "pinch points" (non-manifold vertices).
+(define (mesh-vertices-are-manifold? mesh)
+  (let* ([sc (mesh->simplicial-complex mesh)]
+         [vertices (sc-vertices sc)])
+    (let loop ([vs vertices])
+      (if (null? vs)
+          #t
+          (let* ([v (car vs)]
+                 ;; Get edges and vertices of the link
+                 [link-data (vertex-link-edges sc v)]
+                 [link-verts (car link-data)]
+                 [link-edges (cadr link-data)]
+                 ;; Count connected components via union-find
+                 [n-comps (count-components-uf link-verts link-edges)])
+            (if (<= n-comps 1)  ; 0 for empty link, 1 for manifold
+                (loop (cdr vs))
+                #f))))))
+
+;;; vertex-link-edges : SC × Vertex → ((List Vertex) (List (Vertex Vertex)))
+;;; Get the vertices and edges of the link of a vertex.
+;;; Returns (link-vertices link-edges) where edges are pairs.
+;;; NOTE: Uses list-member? to avoid shadowed set-member? from homology.ss
+(define (vertex-link-edges sc v)
+  (let* ([triangles (sc-simplices-dim sc 2)]
+         [incident (filter (lambda (t) (list-member? v (simplex-vertices t))) triangles)]
+         ;; Each incident triangle contributes an edge to the link (the opposite edge)
+         [link-edges
+          (map (lambda (t)
+                 (let ([verts (filter (lambda (x) (not (equal? x v)))
+                                      (simplex-vertices t))])
+                   (cons (car verts) (cadr verts))))
+               incident)]
+         ;; Collect all link vertices
+         [link-verts (unique-list (apply append (map (lambda (e) (list (car e) (cdr e))) link-edges)))])
+    (list link-verts link-edges)))
+
+;;; list-member? : α × (List α) → Boolean
+;;; Check if element is in list (avoids shadowed set-member?).
+(define (list-member? x lst)
+  (cond
+    [(null? lst) #f]
+    [(equal? x (car lst)) #t]
+    [else (list-member? x (cdr lst))]))
+
+;;; unique-list : (List α) → (List α)
+;;; Remove duplicates from a list (preserves first occurrence).
+(define (unique-list lst)
+  (let loop ([remaining lst] [seen '()] [acc '()])
+    (cond
+      [(null? remaining) (reverse acc)]
+      [(member (car remaining) seen)
+       (loop (cdr remaining) seen acc)]
+      [else
+       (loop (cdr remaining)
+             (cons (car remaining) seen)
+             (cons (car remaining) acc))])))
+
+;;; count-components-uf : (List Vertex) × (List (Vertex . Vertex)) → Integer
+;;; Count connected components using union-find.
+(define (count-components-uf vertices edges)
+  (if (null? vertices)
+      0
+      (let* ([n (length vertices)]
+             [idx-map (build-index-map vertices)]
+             [parent (make-vector n)]
+             [rank-vec (make-vector n 0)])
+        ;; Initialize: each vertex is its own component
+        (do ([i 0 (+ i 1)]) [(= i n)]
+          (vector-set! parent i i))
+        ;; Union-find helpers
+        (letrec ([find (lambda (x)
+                         (if (= (vector-ref parent x) x)
+                             x
+                             (let ([root (find (vector-ref parent x))])
+                               (vector-set! parent x root)
+                               root)))]
+                 [union (lambda (x y)
+                          (let ([px (find x)] [py (find y)])
+                            (unless (= px py)
+                              (let ([rx (vector-ref rank-vec px)]
+                                    [ry (vector-ref rank-vec py)])
+                                (cond
+                                  [(< rx ry) (vector-set! parent px py)]
+                                  [(> rx ry) (vector-set! parent py px)]
+                                  [else
+                                   (vector-set! parent py px)
+                                   (vector-set! rank-vec px (+ rx 1))])))))])
+          ;; Process edges
+          (for-each
+            (lambda (edge)
+              (let ([i1 (hashtable-ref idx-map (car edge) #f)]
+                    [i2 (hashtable-ref idx-map (cdr edge) #f)])
+                (when (and i1 i2)
+                  (union i1 i2))))
+            edges)
+          ;; Count distinct roots
+          (let ([roots (make-hashtable equal-hash equal?)])
+            (do ([i 0 (+ i 1)]) [(= i n)]
+              (hashtable-set! roots (find i) #t))
+            (hashtable-size roots))))))
+
+;;; build-index-map : (List α) → HashTable
+;;; Build a map from elements to their indices.
+(define (build-index-map lst)
+  (let ([ht (make-hashtable equal-hash equal?)])
+    (let loop ([remaining lst] [i 0])
+      (unless (null? remaining)
+        (hashtable-set! ht (car remaining) i)
+        (loop (cdr remaining) (+ i 1))))
+    ht))
 
 ;;; mesh-is-closed? : Mesh → Boolean
 ;;; Check if mesh is a closed surface (no boundary edges).

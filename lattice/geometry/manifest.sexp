@@ -94,6 +94,7 @@
     mesh-betti-numbers mesh-euler-characteristic mesh-f-vector
     mesh-connected-components mesh-genus
     mesh-edge-counts mesh-is-manifold? mesh-is-closed?
+    mesh-edges-are-manifold? mesh-vertices-are-manifold?
     mesh-boundary-edges mesh-non-manifold-edges
     mesh-topology-summary
     mesh-is-watertight? mesh-is-sphere-topology? mesh-is-torus-topology?))

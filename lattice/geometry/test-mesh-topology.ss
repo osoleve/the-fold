@@ -57,6 +57,24 @@
                      (vec3 1 0 0)
                      (vec3 0 -1 0)))))
 
+;;; make-hourglass : () → Mesh
+;;; Two tetrahedra sharing a single vertex (p0) - non-manifold at vertex!
+;;; This passes edge checks but fails vertex link check (pinch point).
+(define (make-hourglass)
+  (let ([p0 (vec3 0 0 0)]
+        ;; Tetrahedron 1 (Top)
+        [t1a (vec3 1 1 1)] [t1b (vec3 -1 1 1)] [t1c (vec3 0 -1 1)]
+        ;; Tetrahedron 2 (Bottom)
+        [t2a (vec3 1 1 -1)] [t2b (vec3 -1 1 -1)] [t2c (vec3 0 -1 -1)])
+    (make-mesh
+      (append
+        ;; Tet 1 faces incident to p0
+        (list (triangle3 p0 t1a t1b) (triangle3 p0 t1b t1c) (triangle3 p0 t1c t1a)
+              (triangle3 t1a t1b t1c)) ; cap
+        ;; Tet 2 faces incident to p0
+        (list (triangle3 p0 t2a t2b) (triangle3 p0 t2b t2c) (triangle3 p0 t2c t2a)
+              (triangle3 t2a t2b t2c)))))) ; cap
+
 ;;; ============================================================
 ;;; TESTS: Basic Conversion
 ;;; ============================================================
@@ -168,7 +186,14 @@
 
   (define-test "non-manifold edges identified"
     (let ([edges (mesh-non-manifold-edges (make-non-manifold-mesh))])
-      (assert-equal 1 (length edges)))))        ; One edge shared by 3 triangles
+      (assert-equal 1 (length edges))))         ; One edge shared by 3 triangles
+
+  (define-test "hourglass (vertex pinch) is NOT manifold"
+    (assert-false (mesh-is-manifold? (make-hourglass))))
+
+  (define-test "hourglass passes edge check but fails vertex check"
+    (assert-true (mesh-edges-are-manifold? (make-hourglass)))
+    (assert-false (mesh-vertices-are-manifold? (make-hourglass)))))
 
 ;;; ============================================================
 ;;; TESTS: Boundary Detection
