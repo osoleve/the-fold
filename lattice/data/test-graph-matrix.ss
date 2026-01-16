@@ -2,11 +2,7 @@
 ;;;
 ;;; Run with: scheme --script core/data/test-graph-matrix.ss
 
-(load "core/base/prelude.ss")
-(load "lattice/linalg/vec.ss")
-(load "lattice/linalg/matrix.ss")
-(load "lattice/linalg/sparse.ss")
-(load "lattice/data/heap.ss")
+;; graph-matrix.ss loads its own dependencies (prelude, vec, matrix, sparse, heap)
 (load "lattice/data/graph-matrix.ss")
 
 ;;; ====

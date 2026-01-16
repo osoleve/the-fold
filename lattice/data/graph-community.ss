@@ -10,8 +10,7 @@
 ;;; This is Core code: pure, total, assumes reasonable input.
 ;;;
 ;;; Quick Start:
-;;;   (load "lattice/data/graph-matrix.ss")
-;;;   (load "lattice/data/graph-community.ss")
+;;;   (load "lattice/data/graph-community.ss")  ; loads dependencies automatically
 ;;;
 ;;;   ;; Community detection on social network
 ;;;   (define g (edges->adjacency-matrix social-edges 34 #t))
@@ -45,6 +44,9 @@
 ;;;   - graph-matrix.ss
 ;;;   - heap.ss (for O(log n) priority queue operations)
 ;;;   - ilp.ss (for modularity-ilp)
+
+(load "lattice/data/graph-matrix.ss")
+(load "lattice/optimization/ilp.ss")
 
 ;;; ====
 ;;; Community Detection: Label Propagation

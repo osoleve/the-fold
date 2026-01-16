@@ -5,12 +5,7 @@
 ;;;
 ;;; Run from project root: scheme --script lattice/data/test-graph-community.ss
 
-(load "core/base/prelude.ss")
-(load "lattice/linalg/vec.ss")
-(load "lattice/linalg/matrix.ss")
-(load "lattice/linalg/sparse.ss")
-(load "lattice/data/heap.ss")
-(load "lattice/data/graph-matrix.ss")
+;; graph-community.ss loads its own dependencies (graph-matrix, ilp, etc.)
 (load "lattice/data/graph-community.ss")
 
 ;;; ====

@@ -159,6 +159,21 @@
                                result)])
             ((< k start) result))))
 
+;;; sparse-csr-row-alist : SparseCSR × Nat → (List (Cons Nat Num))
+;;; Get row i as association list of (col . value) pairs.
+;;; More memory-efficient than sparse-csr-row for iteration.
+(define (sparse-csr-row-alist m i)
+  (let* ([row-ptrs (sparse-csr-row-ptrs m)]
+         [col-idx (sparse-csr-col-indices m)]
+         [vals (sparse-csr-values m)]
+         [start (vector-ref row-ptrs i)]
+         [end (vector-ref row-ptrs (+ i 1))])
+        (do ([k (- end 1) (- k 1)]
+             [result '() (cons (cons (vector-ref col-idx k)
+                                     (vector-ref vals k))
+                               result)])
+            ((< k start) result))))
+
 ;;; ====
 ;;; CSC (Compressed Sparse Column) Format
 ;;; ====

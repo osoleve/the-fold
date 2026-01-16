@@ -17,6 +17,12 @@
 ;;;   - sparse.ss
 ;;;   - heap.ss (for O(log n) priority queue operations)
 
+(load "core/base/prelude.ss")
+(load "lattice/linalg/vec.ss")
+(load "lattice/linalg/matrix.ss")
+(load "lattice/linalg/sparse.ss")
+(load "lattice/data/heap.ss")
+
 ;;; ====
 ;;; Edge List Representation
 ;;; ====
@@ -303,18 +309,9 @@
 ;;; This enables O(degree) iteration instead of O(V) for sparse graphs.
 (define (adjacency-neighbors-with-weights m i)
   (if (sparse-csr? m)
-      (let ([row-ptrs (sparse-csr-row-ptrs m)]
-            [col-idx (sparse-csr-col-indices m)]
-            [vals (sparse-csr-values m)]
-            [start (vector-ref row-ptrs i)]
-            [end (vector-ref row-ptrs (+ i 1))])
-           (let loop ([k start] [result '()])
-                (if (= k end)
-                    (reverse result)
-                    (loop (+ k 1)
-                          (cons (cons (vector-ref col-idx k)
-                                      (vector-ref vals k))
-                                result)))))
+      ;; Delegate to sparse-csr-row-alist for O(degree) access
+      (sparse-csr-row-alist m i)
+      ;; Dense matrix: scan row, skip zeros
       (let ([n (matrix-cols m)]
             [data (matrix-data m)])
            (let loop ([j 0] [result '()])
