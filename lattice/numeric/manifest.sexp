@@ -1,5 +1,5 @@
 (skill numeric
-  (version "0.3.0")
+  (version "0.4.0")
   (tier 0)
   (path "lattice/numeric")
   (purity total)
@@ -133,9 +133,17 @@
     interval-definitely< interval-definitely<= interval-definitely> interval-definitely>=
     interval-possibly< interval-possibly<= interval-possibly> interval-possibly>=
     interval-definitely= interval-possibly=
-    ;; Arithmetic
+    ;; Arithmetic (standard - fast, round-to-nearest)
     interval-neg interval-add interval-sub interval-mul interval-sqr
     interval-recip interval-div interval-scale
+    ;; Arithmetic (rigorous - directed rounding, guaranteed enclosure)
+    interval-add-rigorous interval-sub-rigorous interval-mul-rigorous
+    interval-div-rigorous interval-sqrt-rigorous interval-sqr-rigorous
+    interval-scale-rigorous
+    ;; Directed rounding primitives
+    fl-next-up fl-next-down
+    add-down add-up sub-down sub-up mul-down mul-up div-down div-up
+    sqrt-down sqrt-up
     ;; Elementary functions
     interval-abs interval-sqrt interval-pow interval-min interval-max
     interval-exp interval-log interval-sin interval-cos interval-tan

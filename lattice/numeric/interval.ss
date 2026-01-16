@@ -15,14 +15,134 @@
 ;;; Invariant: For all operations f, if x ∈ [a,b] and y ∈ [c,d],
 ;;;            then f(x,y) ∈ f([a,b], [c,d]).
 ;;;
-;;; CAVEAT: This implementation uses standard floating-point arithmetic with
-;;; round-to-nearest semantics. True interval arithmetic requires directed
-;;; rounding (round-down for lower bounds, round-up for upper bounds) which
-;;; Scheme does not expose. For most practical purposes with reasonable
-;;; operands, this is sufficient. For rigorous proofs requiring IEEE 754
-;;; directed rounding, use a library with explicit rounding control.
+;;; ROUNDING MODES: This module provides both standard and rigorous operations.
+;;; Standard ops (interval-add, etc.) use round-to-nearest for speed.
+;;; Rigorous ops (interval-add-rigorous, etc.) use directed rounding via
+;;; fl-next-up/fl-next-down for guaranteed enclosure at ~2x cost.
 
 (load "core/base/prelude.ss")
+
+;;; ============================================================================
+;;; Directed Rounding (IEEE 754 Simulation)
+;;; ============================================================================
+;;;
+;;; IEEE 754 double-precision floats have a natural ordering when interpreted
+;;; as 64-bit integers (for positive numbers). We exploit this to implement
+;;; "next up" and "next down" operations that return the adjacent representable
+;;; floating-point values.
+;;;
+;;; These enable directed rounding: round-down for lower bounds, round-up for
+;;; upper bounds, guaranteeing the computed interval encloses the true result.
+
+;;; fl-next-up : Flonum → Flonum
+;;; Return the smallest flonum greater than x.
+;;; Special cases: +inf → +inf, NaN → NaN, -0 → smallest positive denormal
+(define (fl-next-up x)
+  (cond
+    [(not (= x x)) x]                    ; NaN stays NaN
+    [(= x +inf.0) +inf.0]                ; +inf stays +inf
+    [(= x -inf.0) -1.7976931348623157e308]  ; -inf → most negative finite
+    [(and (zero? x) (not (negative? x)))    ; +0 → smallest positive
+     4.9406564584124654e-324]
+    [else
+     (let ([bv (make-bytevector 8)])
+       (bytevector-ieee-double-native-set! bv 0 x)
+       ;; Interpret as 64-bit unsigned int, adjust, convert back
+       (let* ([bits (bytevector-u64-native-ref bv 0)]
+              [new-bits (if (>= x 0.0)
+                            (+ bits 1)    ; Positive: increment
+                            (- bits 1))]) ; Negative: decrement (toward zero)
+         (bytevector-u64-native-set! bv 0 new-bits)
+         (bytevector-ieee-double-native-ref bv 0)))]))
+
+;;; fl-next-down : Flonum → Flonum
+;;; Return the largest flonum less than x.
+;;; Special cases: -inf → -inf, NaN → NaN, +0 → smallest negative denormal
+(define (fl-next-down x)
+  (cond
+    [(not (= x x)) x]                    ; NaN stays NaN
+    [(= x -inf.0) -inf.0]                ; -inf stays -inf
+    [(= x +inf.0) 1.7976931348623157e308]  ; +inf → most positive finite
+    [(and (zero? x) (not (negative? x)))    ; +0 → smallest negative
+     -4.9406564584124654e-324]
+    [(and (zero? x) (negative? x))          ; -0 → smallest negative
+     -4.9406564584124654e-324]
+    [else
+     (let ([bv (make-bytevector 8)])
+       (bytevector-ieee-double-native-set! bv 0 x)
+       (let* ([bits (bytevector-u64-native-ref bv 0)]
+              [new-bits (if (> x 0.0)
+                            (- bits 1)    ; Positive: decrement
+                            (+ bits 1))]) ; Negative: increment (away from zero)
+         (bytevector-u64-native-set! bv 0 new-bits)
+         (bytevector-ieee-double-native-ref bv 0)))]))
+
+;;; ============================================================================
+;;; Directed Rounding Arithmetic
+;;; ============================================================================
+;;;
+;;; These operations round the result in a specified direction.
+;;; Used to guarantee interval bounds enclose the true mathematical result.
+
+;;; add-down : Real × Real → Real
+;;; Add with rounding toward -∞.
+(define (add-down a b)
+  (let ([r (+ a b)])
+    (if (or (infinite? r) (nan? r)) r (fl-next-down r))))
+
+;;; add-up : Real × Real → Real
+;;; Add with rounding toward +∞.
+(define (add-up a b)
+  (let ([r (+ a b)])
+    (if (or (infinite? r) (nan? r)) r (fl-next-up r))))
+
+;;; sub-down : Real × Real → Real
+;;; Subtract with rounding toward -∞.
+(define (sub-down a b)
+  (let ([r (- a b)])
+    (if (or (infinite? r) (nan? r)) r (fl-next-down r))))
+
+;;; sub-up : Real × Real → Real
+;;; Subtract with rounding toward +∞.
+(define (sub-up a b)
+  (let ([r (- a b)])
+    (if (or (infinite? r) (nan? r)) r (fl-next-up r))))
+
+;;; mul-down : Real × Real → Real
+;;; Multiply with rounding toward -∞.
+(define (mul-down a b)
+  (let ([r (* a b)])
+    (if (or (infinite? r) (nan? r)) r (fl-next-down r))))
+
+;;; mul-up : Real × Real → Real
+;;; Multiply with rounding toward +∞.
+(define (mul-up a b)
+  (let ([r (* a b)])
+    (if (or (infinite? r) (nan? r)) r (fl-next-up r))))
+
+;;; div-down : Real × Real → Real
+;;; Divide with rounding toward -∞.
+(define (div-down a b)
+  (let ([r (/ a b)])
+    (if (or (infinite? r) (nan? r)) r (fl-next-down r))))
+
+;;; div-up : Real × Real → Real
+;;; Divide with rounding toward +∞.
+(define (div-up a b)
+  (let ([r (/ a b)])
+    (if (or (infinite? r) (nan? r)) r (fl-next-up r))))
+
+;;; sqrt-down : Real → Real
+;;; Square root with rounding toward -∞.
+(define (sqrt-down x)
+  (let ([r (sqrt x)])
+    (if (or (infinite? r) (nan? r) (< x 0)) r (fl-next-down r))))
+
+;;; sqrt-up : Real → Real
+;;; Square root with rounding toward +∞.
+(define (sqrt-up x)
+  (let ([r (sqrt x)])
+    (if (or (infinite? r) (nan? r) (< x 0)) r (fl-next-up r))))
 
 ;;; ============================================================================
 ;;; Interval Type
@@ -450,6 +570,105 @@
          (or (null? ivs)
              (and (interval-contains? (car ivs) (car pts))
                   (loop (cdr ivs) (cdr pts)))))))
+
+;;; ============================================================================
+;;; Rigorous Interval Operations (Directed Rounding)
+;;; ============================================================================
+;;;
+;;; These operations use directed rounding to GUARANTEE the computed interval
+;;; contains the true mathematical result. They are ~2x slower than standard
+;;; operations but provide formal correctness guarantees.
+;;;
+;;; Use these when:
+;;; - Proving properties of algorithms
+;;; - Safety-critical applications
+;;; - When standard operations aren't tight enough
+
+;;; interval-add-rigorous : Interval × Interval → Interval
+;;; Addition with guaranteed enclosure.
+(define (interval-add-rigorous iv1 iv2)
+  (make-interval (add-down (interval-lo iv1) (interval-lo iv2))
+                 (add-up (interval-hi iv1) (interval-hi iv2))))
+
+;;; interval-sub-rigorous : Interval × Interval → Interval
+;;; Subtraction with guaranteed enclosure.
+(define (interval-sub-rigorous iv1 iv2)
+  (make-interval (sub-down (interval-lo iv1) (interval-hi iv2))
+                 (sub-up (interval-hi iv1) (interval-lo iv2))))
+
+;;; interval-mul-rigorous : Interval × Interval → Interval
+;;; Multiplication with guaranteed enclosure.
+(define (interval-mul-rigorous iv1 iv2)
+  (let ([a (interval-lo iv1)] [b (interval-hi iv1)]
+        [c (interval-lo iv2)] [d (interval-hi iv2)])
+    (cond
+      ;; iv1 positive (a >= 0)
+      [(>= a 0)
+       (cond
+         [(>= c 0) (make-interval (mul-down a c) (mul-up b d))]
+         [(<= d 0) (make-interval (mul-down b c) (mul-up a d))]
+         [else     (make-interval (mul-down b c) (mul-up b d))])]
+      ;; iv1 negative (b <= 0)
+      [(<= b 0)
+       (cond
+         [(>= c 0) (make-interval (mul-down a d) (mul-up b c))]
+         [(<= d 0) (make-interval (mul-down b d) (mul-up a c))]
+         [else     (make-interval (mul-down a d) (mul-up a c))])]
+      ;; iv1 mixed (a < 0 < b)
+      [else
+       (cond
+         [(>= c 0) (make-interval (mul-down a d) (mul-up b d))]
+         [(<= d 0) (make-interval (mul-down b c) (mul-up a c))]
+         [else     (make-interval (min (mul-down a d) (mul-down b c))
+                                  (max (mul-up a c) (mul-up b d)))])])))
+
+;;; interval-div-rigorous : Interval × Interval → Interval | 'division-by-zero
+;;; Division with guaranteed enclosure.
+(define (interval-div-rigorous iv1 iv2)
+  (if (interval-contains-zero? iv2)
+      'division-by-zero
+      (let ([a (interval-lo iv1)] [b (interval-hi iv1)]
+            [c (interval-lo iv2)] [d (interval-hi iv2)])
+        ;; 1/[c,d] = [1/d, 1/c] (when 0 not in [c,d])
+        ;; Then multiply
+        (cond
+          [(> c 0)  ; Divisor entirely positive
+           (cond
+             [(>= a 0) (make-interval (div-down a d) (div-up b c))]
+             [(<= b 0) (make-interval (div-down a c) (div-up b d))]
+             [else     (make-interval (div-down a c) (div-up b c))])]
+          [else     ; Divisor entirely negative (d < 0)
+           (cond
+             [(>= a 0) (make-interval (div-down b d) (div-up a c))]
+             [(<= b 0) (make-interval (div-down b c) (div-up a d))]
+             [else     (make-interval (div-down b d) (div-up a d))])]))))
+
+;;; interval-sqrt-rigorous : Interval → Interval | 'domain-error
+;;; Square root with guaranteed enclosure.
+(define (interval-sqrt-rigorous iv)
+  (let ([a (interval-lo iv)]
+        [b (interval-hi iv)])
+    (cond
+      [(< b 0) 'domain-error]
+      [(< a 0) (make-interval 0 (sqrt-up b))]  ; Clamp negative to 0
+      [else    (make-interval (sqrt-down a) (sqrt-up b))])))
+
+;;; interval-sqr-rigorous : Interval → Interval
+;;; Square with guaranteed enclosure.
+(define (interval-sqr-rigorous iv)
+  (let ([a (interval-lo iv)]
+        [b (interval-hi iv)])
+    (cond
+      [(>= a 0) (make-interval (mul-down a a) (mul-up b b))]
+      [(<= b 0) (make-interval (mul-down b b) (mul-up a a))]
+      [else     (make-interval 0 (max (mul-up a a) (mul-up b b)))])))
+
+;;; interval-scale-rigorous : Interval × Real → Interval
+;;; Scalar multiplication with guaranteed enclosure.
+(define (interval-scale-rigorous iv k)
+  (if (>= k 0)
+      (make-interval (mul-down k (interval-lo iv)) (mul-up k (interval-hi iv)))
+      (make-interval (mul-down k (interval-hi iv)) (mul-up k (interval-lo iv)))))
 
 ;;; ============================================================================
 ;;; Useful Constants

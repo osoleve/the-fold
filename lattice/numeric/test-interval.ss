@@ -358,6 +358,99 @@
       (assert-true (interval-contains? iv 2.5)))))
 
 ;;; ============================================================================
+;;; Directed Rounding Tests
+;;; ============================================================================
+
+(test-group "directed-rounding"
+  (define-test "fl-next-up increases positive numbers"
+    (assert-true (< 1.0 (fl-next-up 1.0)))
+    (assert-true (< 0.5 (fl-next-up 0.5)))
+    (assert-true (< 100.0 (fl-next-up 100.0))))
+
+  (define-test "fl-next-down decreases positive numbers"
+    (assert-true (> 1.0 (fl-next-down 1.0)))
+    (assert-true (> 0.5 (fl-next-down 0.5)))
+    (assert-true (> 100.0 (fl-next-down 100.0))))
+
+  (define-test "fl-next-up increases negative numbers toward zero"
+    (assert-true (< -1.0 (fl-next-up -1.0)))
+    (assert-true (< -100.0 (fl-next-up -100.0))))
+
+  (define-test "fl-next-down decreases negative numbers away from zero"
+    (assert-true (> -1.0 (fl-next-down -1.0)))
+    (assert-true (> -100.0 (fl-next-down -100.0))))
+
+  (define-test "fl-next-up from zero is smallest positive"
+    (let ([eps (fl-next-up 0.0)])
+      (assert-true (> eps 0))
+      (assert-true (< eps 1e-300))))
+
+  (define-test "fl-next-down from zero is smallest negative"
+    (let ([eps (fl-next-down 0.0)])
+      (assert-true (< eps 0))
+      (assert-true (> eps -1e-300)))))
+
+(test-group "rigorous-interval-ops"
+  (define-test "rigorous add is at least as wide as standard"
+    (let ([iv1 (interval 1 2)]
+          [iv2 (interval 3 4)])
+      (let ([std (interval-add iv1 iv2)]
+            [rig (interval-add-rigorous iv1 iv2)])
+        (assert-true (<= (interval-lo rig) (interval-lo std)))
+        (assert-true (>= (interval-hi rig) (interval-hi std))))))
+
+  (define-test "rigorous sub is at least as wide as standard"
+    (let ([iv1 (interval 5 8)]
+          [iv2 (interval 1 2)])
+      (let ([std (interval-sub iv1 iv2)]
+            [rig (interval-sub-rigorous iv1 iv2)])
+        (assert-true (<= (interval-lo rig) (interval-lo std)))
+        (assert-true (>= (interval-hi rig) (interval-hi std))))))
+
+  (define-test "rigorous mul is at least as wide as standard"
+    (let ([iv1 (interval 2 3)]
+          [iv2 (interval 4 5)])
+      (let ([std (interval-mul iv1 iv2)]
+            [rig (interval-mul-rigorous iv1 iv2)])
+        (assert-true (<= (interval-lo rig) (interval-lo std)))
+        (assert-true (>= (interval-hi rig) (interval-hi std))))))
+
+  (define-test "rigorous div is at least as wide as standard"
+    (let ([iv1 (interval 1 2)]
+          [iv2 (interval 3 4)])
+      (let ([std (interval-div iv1 iv2)]
+            [rig (interval-div-rigorous iv1 iv2)])
+        (assert-true (<= (interval-lo rig) (interval-lo std)))
+        (assert-true (>= (interval-hi rig) (interval-hi std))))))
+
+  (define-test "rigorous sqrt is at least as wide as standard"
+    (let ([iv (interval 4 9)])
+      (let ([std (interval-sqrt iv)]
+            [rig (interval-sqrt-rigorous iv)])
+        (assert-true (<= (interval-lo rig) (interval-lo std)))
+        (assert-true (>= (interval-hi rig) (interval-hi std))))))
+
+  (define-test "rigorous sqr is at least as wide as standard"
+    (let ([iv (interval 2 3)])
+      (let ([std (interval-sqr iv)]
+            [rig (interval-sqr-rigorous iv)])
+        (assert-true (<= (interval-lo rig) (interval-lo std)))
+        (assert-true (>= (interval-hi rig) (interval-hi std))))))
+
+  (define-test "rigorous ops preserve containment"
+    ;; For exact inputs, rigorous result must contain exact result
+    (let ([x 1.5] [y 2.5])
+      (let ([sum-iv (interval-add-rigorous (interval-singleton x)
+                                            (interval-singleton y))])
+        (assert-true (interval-contains? sum-iv (+ x y))))
+      (let ([prod-iv (interval-mul-rigorous (interval-singleton x)
+                                             (interval-singleton y))])
+        (assert-true (interval-contains? prod-iv (* x y))))
+      (let ([quot-iv (interval-div-rigorous (interval-singleton x)
+                                             (interval-singleton y))])
+        (assert-true (interval-contains? quot-iv (/ x y)))))))
+
+;;; ============================================================================
 ;;; Run Tests
 ;;; ============================================================================
 
