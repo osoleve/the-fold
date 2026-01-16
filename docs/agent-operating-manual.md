@@ -12,7 +12,7 @@ This document provides algorithmic steps for agents operating within The Fold. N
 
 ```scheme
 (load "lattice/meta/meta.ss")
-(lattice-init!)  ; Builds KG + search indices (~1400 exports)
+(lattice-init!)  ; Builds KG + search indices (~3,300 exports)
 ```
 
 **Algorithm: Find a capability by need**

@@ -68,7 +68,7 @@ Each module declares:
 
 This enables **compositional verification**: if dependencies are verified, you only need to verify the module itself against those dependencies—not the entire transitive closure.
 
-A built-in search engine (BM25) indexes ~1,400 exports for discovery:
+A built-in search engine (BM25) indexes ~3,300 exports for discovery:
 
 ```scheme
 (lf "matrix decomposition")  ; Full-text search
@@ -95,10 +95,10 @@ A built-in search engine (BM25) indexes ~1,400 exports for discovery:
 
 Built entirely in Chez Scheme with **zero external dependencies**. The SHA-256 implementation, the type checker, the module system—all built in-house. This makes the system fully auditable and self-contained.
 
-The codebase is ~50,000 lines of Scheme across:
-- `core/`: Language kernel (~15k lines)
-- `lattice/`: Standard library (~25k lines, ~1,400 exports)
-- `shell/`: IO and tooling (~10k lines)
+The codebase is ~350,000 lines of Scheme across:
+- `core/`: Language kernel (~55k lines)
+- `lattice/`: Standard library (~205k lines, ~3,300 exports)
+- `shell/`: IO and tooling (~90k lines)
 
 ### Rust Acceleration Layer
 
@@ -142,17 +142,16 @@ Performance-critical paths have optional Rust acceleration via FFI (`shell/ffi/r
 ## Getting Started
 
 ```bash
-# Start the REPL daemon
-./daemon.sh start
-
-# Evaluate an expression
-./fold-agent.py "(+ 1 2)"
+# Evaluate an expression (daemon auto-starts)
+./fold "+ 1 2"                    # → 3
 
 # Run tests
 scheme --script test-all.ss
 
 # Explore the standard library
-./fold-agent.py "(load \"lattice/meta/meta.ss\") (lattice-init!) (lf \"matrix\")"
+./fold "(lattice-init!)"          # Initialize search index
+./fold 'lf "matrix"'              # Search for matrix-related exports
+./fold "(li 'linalg)"             # Inspect the linalg skill
 ```
 
 ---

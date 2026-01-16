@@ -66,7 +66,7 @@ The Fold separates concerns into three layers with a strict purity boundary:
 | Layer | Directory | Purity | Role |
 |----|----|----|----|
 | Core | `core/` | Pure | Minimal, axiomatic language kernel |
-| Lattice | `lattice/` | Pure | Verified library DAG (~1400 exports) |
+| Lattice | `lattice/` | Pure | Verified library DAG (~3,300 exports) |
 | Shell | `shell/` | Impure | IO boundary, validation, capabilities |
 | User | `user/` | Mixed | Applications and experiments |
 
@@ -101,19 +101,20 @@ Speed optimizations happen underneath; semantics stay stable above. The content-
 ## Quick Start
 
 ```bash
-# Start the persistent REPL daemon (required)
-./daemon.sh start
+# Evaluate an expression (daemon auto-starts, implicit parens)
+./fold "+ 1 2"                          # → 3
 
-# Evaluate an expression (implicit parens: becomes (+ 1 2))
-./fold "+ 1 2"
+# Named sessions persist state
+./fold -s work "define x 42"            # Define in session
+./fold -s work "* x 2"                  # → 84
 
 # Run the test suite
 scheme --script test-all.ss
 
-# Explore the lattice
-./fold 'load "lattice/meta/meta.ss"'
-./fold "(lattice-init!)"
-./fold 'lf "matrix"'
+# Explore the lattice (~3,300 exports)
+./fold "(lattice-init!)"                # Initialize search index
+./fold 'lf "matrix"'                    # Full-text search
+./fold "(li 'linalg)"                   # Inspect a skill
 ```
 
 ---
@@ -133,21 +134,22 @@ scheme --script test-all.ss
 
 ## The Lattice
 
-The lattice is The Fold's standard library, organized as a dependency DAG with tiers:
+The lattice is The Fold's standard library (~205k lines, ~3,300 exports), organized as a dependency DAG with tiers:
 
 **Tier 0 (Foundational):** `linalg`, `data`, `algebra`, `random`—no lattice dependencies.
 
-**Tier 1 (Intermediate):** `numeric`, `geometry`, `autodiff`, `fp`, `query`, `info`—build on tier 0.
+**Tier 1 (Intermediate):** `numeric`, `geometry`, `diffgeo`, `autodiff`, `fp`, `query`, `info`, `topology`, `crypto`, `optimization`, `dsl`—build on tier 0.
 
-**Tier 2+ (Advanced):** `physics/diff`, `tiles`, `sim`, `automata`, `pipeline`—multiple dependencies.
+**Tier 2+ (Advanced):** `physics/diff`, `physics/diff3d`, `physics/classical`, `tiles`, `sim`, `automata`, `pipeline`—multiple dependencies.
 
 Each skill has a `manifest.sexp` declaring its purity, fuel bounds, dependencies, and exports. The `lattice/meta/` subsystem provides search and navigation:
 
 ```scheme
 (lf "matrix decomposition")   ; Full-text search
 (li 'linalg)                  ; Skill description
+(le 'linalg)                  ; List exports
 (ld 'physics/diff)            ; What does this depend on?
-(lattice-hubs)                ; Most-depended-on skills
+(lu 'linalg)                  ; What depends on this?
 ```
 
 ---
