@@ -548,6 +548,8 @@ Key design principles:
     bundle-types bundle-protocols bundle-slot-count
     get-bundle list-bundles register-bundle!
     build-getter-name build-setter-name
+    ;; Composable type requirements
+    implements-bundle? compose-bundles assert-bundle! missing-protocols
   ))
 
   ;;; ====

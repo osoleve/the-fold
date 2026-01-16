@@ -164,25 +164,12 @@
 ;;; Overrides are 3-tuples: (label getter-expr setter-expr)
 ;;; They're converted to lists at expansion time.
 (define-syntax derive-bundle!
-  (syntax-rules ()
-    ;; No overrides
-    [(_ bundle-expr type-tag prefix)
-     (derive-bundle-runtime! bundle-expr type-tag (quote prefix) '())]
-    ;; With one override
-    [(_ bundle-expr type-tag prefix (label1 getter1 setter1))
-     (derive-bundle-runtime! bundle-expr type-tag (quote prefix)
-       (list (list label1 getter1 setter1)))]
-    ;; With two overrides
-    [(_ bundle-expr type-tag prefix (label1 getter1 setter1) (label2 getter2 setter2))
-     (derive-bundle-runtime! bundle-expr type-tag (quote prefix)
-       (list (list label1 getter1 setter1)
-             (list label2 getter2 setter2)))]
-    ;; With three overrides
-    [(_ bundle-expr type-tag prefix (label1 getter1 setter1) (label2 getter2 setter2) (label3 getter3 setter3))
-     (derive-bundle-runtime! bundle-expr type-tag (quote prefix)
-       (list (list label1 getter1 setter1)
-             (list label2 getter2 setter2)
-             (list label3 getter3 setter3)))]))
+  (lambda (stx)
+    (syntax-case stx ()
+      ;; Match bundle, type-tag, prefix, and any number of override triples
+      [(_ bundle-expr type-tag prefix (label getter setter) ...)
+       #'(derive-bundle-runtime! bundle-expr type-tag (quote prefix)
+           (list (list label getter setter) ...))])))
 
 ;;; derive-bundle-runtime! : Bundle × Symbol × Symbol × (List Override) → Void
 ;;;
@@ -314,6 +301,78 @@
   (length (bundle-slots bundle)))
 
 ;;; ====
+;;; Type Requirements (Composable Constraints)
+;;; ====
+
+;;; implements-bundle? : Symbol × Bundle → Boolean
+;;; Check if a type tag implements all protocols in a bundle.
+;;;
+;;; Example:
+;;;   (implements-bundle? 'rigid-body-2d body-ops) → #t
+;;;   (implements-bundle? 'string body-ops) → #f
+(define (implements-bundle? type-tag bundle)
+  (let ([slots (bundle-slots bundle)])
+    (and-map (lambda (slot)
+               (and (type-implements? type-tag (slot-getter slot))
+                    (type-implements? type-tag (slot-setter slot))))
+             slots)))
+
+;;; compose-bundles : Symbol × Bundle ... → Bundle
+;;; Combine multiple bundles into a new named bundle.
+;;; Slots are merged; duplicates (by label) are kept from the first bundle.
+;;;
+;;; Example:
+;;;   (define movable-ops ...)
+;;;   (define drawable-ops ...)
+;;;   (define game-object-ops (compose-bundles 'game-object-ops movable-ops drawable-ops))
+(define (compose-bundles name . bundles)
+  (let* ([all-slots (apply append (map bundle-slots bundles))]
+         [unique-slots (dedupe-slots all-slots)])
+    (let ([composed (make-protocol-bundle name unique-slots)])
+      (register-bundle! composed)
+      composed)))
+
+;;; dedupe-slots : (List Slot) → (List Slot)
+;;; Remove duplicate slots by label, keeping first occurrence.
+(define (dedupe-slots slots)
+  (let loop ([remaining slots] [seen '()] [result '()])
+    (cond
+     [(null? remaining) (reverse result)]
+     [(member (slot-label (car remaining)) seen)
+      (loop (cdr remaining) seen result)]
+     [else
+      (loop (cdr remaining)
+            (cons (slot-label (car remaining)) seen)
+            (cons (car remaining) result))])))
+
+;;; assert-bundle! : Any × Bundle → Any | Error
+;;; Assert that a value's type implements a bundle. Returns the value if ok.
+;;; Throws an error if the type doesn't implement all bundle protocols.
+;;;
+;;; Example:
+;;;   (define (move-body body delta)
+;;;     (assert-bundle! body body-ops)  ; Validates body type
+;;;     (body-set-pos body (vec2-add (body-pos body) delta)))
+(define (assert-bundle! value bundle)
+  (let ([type-tag (get-type-tag value)])
+    (if (implements-bundle? type-tag bundle)
+        value
+        (error 'assert-bundle!
+               (format "Type '~a' does not implement bundle '~a'. Missing protocols: ~a"
+                       type-tag
+                       (bundle-name bundle)
+                       (missing-protocols type-tag bundle))))))
+
+;;; missing-protocols : Symbol × Bundle → (List Symbol)
+;;; List protocols from a bundle that a type doesn't implement.
+(define (missing-protocols type-tag bundle)
+  (let ([slots (bundle-slots bundle)])
+    (filter
+     (lambda (proto)
+       (not (type-implements? type-tag proto)))
+     (bundle-protocols bundle))))
+
+;;; ====
 ;;; Helper: and-map
 ;;; ====
 
@@ -331,4 +390,7 @@
 (display "  Define:    (define-protocol-bundle name ((getter setter) label) ...)\n")
 (display "  Derive:    (derive-bundle! bundle 'type-tag prefix [(label get set) ...])\n")
 (display "  Implement: (implement-bundle! bundle 'type-tag (label get set) ...)\n")
+(display "  Compose:   (compose-bundles 'name bundle1 bundle2 ...)\n")
+(display "  Check:     (implements-bundle? 'type-tag bundle)\n")
+(display "  Assert:    (assert-bundle! value bundle)\n")
 (display "  Inspect:   (bundle-types bundle), (bundle-protocols bundle)\n")

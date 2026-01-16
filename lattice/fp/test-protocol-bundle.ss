@@ -288,6 +288,162 @@
       (assert-false (find-override "c" overrides)))))
 
 ;;; ====
+;;; Tests: derive-bundle! with 4+ overrides (fold-zxmc fix)
+;;; ====
+
+;;; Define protocols for a 4-slot bundle
+(define-protocol (robot-x r) "Get robot X position")
+(define-protocol (robot-set-x r x) "Set robot X position")
+(define-protocol (robot-y r) "Get robot Y position")
+(define-protocol (robot-set-y r y) "Set robot Y position")
+(define-protocol (robot-charge r) "Get robot charge")
+(define-protocol (robot-set-charge r c) "Set robot charge")
+(define-protocol (robot-status r) "Get robot status")
+(define-protocol (robot-set-status r s) "Set robot status")
+
+;;; 4-slot bundle
+(define-protocol-bundle robot-ops
+  ((robot-x robot-set-x) "x")
+  ((robot-y robot-set-y) "y")
+  ((robot-charge robot-set-charge) "charge")
+  ((robot-status robot-set-status) "status"))
+
+;;; Drone: all slots use overrides (tests 4 simultaneous overrides)
+;;; Structure: (list 'drone px py battery mode)
+(define (make-drone px py battery mode)
+  (list 'drone px py battery mode))
+
+;;; derive-bundle! with 4 overrides - previously impossible!
+(derive-bundle! robot-ops 'drone drone
+  ("x" (lambda (d) (cadr d)) (lambda (d v) (list 'drone v (caddr d) (cadddr d) (car (cddddr d)))))
+  ("y" (lambda (d) (caddr d)) (lambda (d v) (list 'drone (cadr d) v (cadddr d) (car (cddddr d)))))
+  ("charge" (lambda (d) (cadddr d)) (lambda (d v) (list 'drone (cadr d) (caddr d) v (car (cddddr d)))))
+  ("status" (lambda (d) (car (cddddr d))) (lambda (d v) (list 'drone (cadr d) (caddr d) (cadddr d) v))))
+
+(test-group "derive-bundle! with 4+ overrides"
+  (define-test "4-override derive works - x getter"
+    (let ([d (make-drone 10 20 100 'active)])
+      (assert-equal 10 (robot-x d))))
+
+  (define-test "4-override derive works - y getter"
+    (let ([d (make-drone 10 20 100 'active)])
+      (assert-equal 20 (robot-y d))))
+
+  (define-test "4-override derive works - charge getter"
+    (let ([d (make-drone 10 20 100 'active)])
+      (assert-equal 100 (robot-charge d))))
+
+  (define-test "4-override derive works - status getter"
+    (let ([d (make-drone 10 20 100 'active)])
+      (assert-equal 'active (robot-status d))))
+
+  (define-test "4-override derive works - x setter"
+    (let* ([d (make-drone 10 20 100 'active)]
+           [d2 (robot-set-x d 50)])
+      (assert-equal 50 (robot-x d2))
+      (assert-equal 20 (robot-y d2))))
+
+  (define-test "4-override derive works - status setter"
+    (let* ([d (make-drone 10 20 100 'active)]
+           [d2 (robot-set-status d 'idle)])
+      (assert-equal 'idle (robot-status d2))
+      (assert-equal 100 (robot-charge d2)))))
+
+;;; ====
+;;; Tests: Composable Type Requirements (fold-zxlt)
+;;; ====
+
+;;; Define additional protocols for composition testing
+(define-protocol (entity-health e) "Get entity health")
+(define-protocol (entity-set-health e h) "Set entity health")
+
+(define-protocol-bundle health-ops
+  ((entity-health entity-set-health) "health"))
+
+;;; Warrior: implements both vehicle-ops and health-ops
+;;; Structure: (list 'warrior speed fuel health)
+(define (make-warrior speed fuel health)
+  (list 'warrior speed fuel health))
+
+(define (warrior-speed w) (cadr w))
+(define (warrior-fuel w) (caddr w))
+(define (warrior-health w) (cadddr w))
+
+(define (warrior-with-speed w s)
+  (list 'warrior s (warrior-fuel w) (warrior-health w)))
+(define (warrior-with-fuel w f)
+  (list 'warrior (warrior-speed w) f (warrior-health w)))
+(define (warrior-with-health w h)
+  (list 'warrior (warrior-speed w) (warrior-fuel w) h))
+
+(derive-bundle! vehicle-ops 'warrior warrior)
+(derive-bundle! health-ops 'warrior warrior)
+
+(test-group "implements-bundle?"
+  (define-test "type implementing bundle returns true"
+    (assert-true (implements-bundle? 'car vehicle-ops)))
+
+  (define-test "type not implementing bundle returns false"
+    (assert-false (implements-bundle? 'unknown-type vehicle-ops)))
+
+  (define-test "warrior implements vehicle-ops"
+    (assert-true (implements-bundle? 'warrior vehicle-ops)))
+
+  (define-test "warrior implements health-ops"
+    (assert-true (implements-bundle? 'warrior health-ops)))
+
+  (define-test "car does not implement health-ops"
+    (assert-false (implements-bundle? 'car health-ops))))
+
+(test-group "compose-bundles"
+  (define-test "compose creates new bundle"
+    (let ([combined (compose-bundles 'combined-ops vehicle-ops health-ops)])
+      (assert-true (bundle? combined))))
+
+  (define-test "composed bundle has correct name"
+    (let ([combined (compose-bundles 'test-combined vehicle-ops health-ops)])
+      (assert-equal 'test-combined (bundle-name combined))))
+
+  (define-test "composed bundle has all slots"
+    (let ([combined (compose-bundles 'full-ops vehicle-ops health-ops)])
+      (assert-equal 3 (bundle-slot-count combined))))  ; speed, fuel, health
+
+  (define-test "warrior implements composed bundle"
+    (let ([combined (compose-bundles 'warrior-reqs vehicle-ops health-ops)])
+      (assert-true (implements-bundle? 'warrior combined))))
+
+  (define-test "car does not implement composed bundle"
+    (let ([combined (compose-bundles 'game-obj-ops vehicle-ops health-ops)])
+      (assert-false (implements-bundle? 'car combined)))))
+
+(test-group "assert-bundle!"
+  (define-test "assert passes for valid type"
+    (let ([c (make-car 60 100 'red)])
+      (assert-equal c (assert-bundle! c vehicle-ops))))
+
+  (define-test "assert returns the value"
+    (let* ([c (make-car 60 100 'red)]
+           [result (assert-bundle! c vehicle-ops)])
+      (assert-equal 60 (vehicle-speed result))))
+
+  (define-test "assert throws for invalid type"
+    (assert-error (lambda () (assert-bundle! '(unknown-type) vehicle-ops))))
+
+  (define-test "warrior passes assert for composed bundle"
+    (let ([w (make-warrior 50 80 100)]
+          [combined (compose-bundles 'w-test vehicle-ops health-ops)])
+      (assert-equal w (assert-bundle! w combined)))))
+
+(test-group "missing-protocols"
+  (define-test "no missing protocols for valid type"
+    (let ([missing (missing-protocols 'car vehicle-ops)])
+      (assert-equal '() missing)))
+
+  (define-test "lists missing protocols for invalid type"
+    (let ([missing (missing-protocols 'car health-ops)])
+      (assert-true (> (length missing) 0)))))
+
+;;; ====
 ;;; Run Tests
 ;;; ====
 

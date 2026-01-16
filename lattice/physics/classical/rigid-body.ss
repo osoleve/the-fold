@@ -116,6 +116,24 @@
                    (rigid-body-mass b)
                    (rigid-body-inertia b)))
 
+;;; rigid-body-with-mass : RigidBody2D x Number -> RigidBody2D
+(define (rigid-body-with-mass b new-mass)
+  (make-rigid-body (rigid-body-pos b)
+                   (rigid-body-vel b)
+                   (rigid-body-angle b)
+                   (rigid-body-angular-vel b)
+                   new-mass
+                   (rigid-body-inertia b)))
+
+;;; rigid-body-with-inertia : RigidBody2D x Number -> RigidBody2D
+(define (rigid-body-with-inertia b new-inertia)
+  (make-rigid-body (rigid-body-pos b)
+                   (rigid-body-vel b)
+                   (rigid-body-angle b)
+                   (rigid-body-angular-vel b)
+                   (rigid-body-mass b)
+                   new-inertia))
+
 ;;; rigid-body-with-state : RigidBody2D x Vec2 x Vec2 x Number x Number -> RigidBody2D
 ;;; Update all kinematic state at once.
 (define (rigid-body-with-state b new-pos new-vel new-angle new-angular-vel)

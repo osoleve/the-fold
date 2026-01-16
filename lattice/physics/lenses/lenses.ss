@@ -283,18 +283,9 @@
 ;;; ====
 ;;;
 ;;; Uses naming convention: rigid-body-<field>, rigid-body-with-<field>
-;;; Note: No rigid-body-with-mass exists, so we override the mass slot.
+;;; All slots follow convention - no overrides needed.
 
-(derive-bundle! body-ops 'rigid-body-2d rigid-body
-  ("mass"
-   rigid-body-mass
-   (lambda (b m)
-     (make-rigid-body (rigid-body-pos b)
-                      (rigid-body-vel b)
-                      (rigid-body-angle b)
-                      (rigid-body-angular-vel b)
-                      m
-                      (rigid-body-inertia b)))))
+(derive-bundle! body-ops 'rigid-body-2d rigid-body)
 
 ;;; ====
 ;;; Protocol Implementations: Particle
