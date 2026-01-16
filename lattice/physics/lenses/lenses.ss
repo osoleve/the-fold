@@ -23,13 +23,22 @@
 ;;;
 ;;; This is Lattice code: pure, functional.
 ;;;
+;;; Open Protocol System:
+;;;   Generic lenses use the open protocol system from lattice/fp/protocol.ss.
+;;;   New body types can register implementations without modifying this file:
+;;;
+;;;   (implement-protocol! 'body-pos 'my-body-type my-pos-getter)
+;;;   (implement-protocol! 'body-set-pos 'my-body-type my-pos-setter)
+;;;
 ;;; Dependencies:
 ;;;   - lattice/fp/templates.ss (lens infrastructure)
+;;;   - lattice/fp/protocol.ss (open dispatch)
 ;;;   - lattice/linalg/vec2.ss
 ;;;   - lattice/physics/classical/rigid-body.ss
 ;;;   - lattice/physics/classical/particles.ss
 
 (load "lattice/fp/templates.ss")
+(load "lattice/fp/protocol.ss")
 (load "lattice/linalg/vec2.ss")
 (load "lattice/physics/classical/rigid-body.ss")
 (load "lattice/physics/classical/particles.ss")
@@ -225,75 +234,114 @@
    (lambda (new-m p) p)))      ; No-op: cannot change implicit mass
 
 ;;; ====
-;;; Generic Body Lenses (Work with any body type)
+;;; Open Protocol Definitions
+;;; ====
+;;;
+;;; These protocols enable extensible dispatch for generic body operations.
+;;; New body types register implementations via implement-protocol!
+
+;;; body-pos : Body → Vec2
+;;; Protocol for getting body position.
+(define-protocol (body-pos b) "Get body position")
+
+;;; body-set-pos : Body × Vec2 → Body
+;;; Protocol for setting body position.
+(define-protocol (body-set-pos b p) "Set body position")
+
+;;; body-vel : Body → Vec2
+;;; Protocol for getting body velocity.
+(define-protocol (body-vel b) "Get body velocity")
+
+;;; body-set-vel : Body × Vec2 → Body
+;;; Protocol for setting body velocity.
+(define-protocol (body-set-vel b v) "Set body velocity")
+
+;;; body-mass : Body → Number
+;;; Protocol for getting body mass.
+(define-protocol (body-mass b) "Get body mass")
+
+;;; body-set-mass : Body × Number → Body
+;;; Protocol for setting body mass.
+(define-protocol (body-set-mass b m) "Set body mass")
+
+;;; ====
+;;; Protocol Implementations: RigidBody2D
 ;;; ====
 
-;;; These use dispatch to work with rigid-body, particle, or traced-body.
-;;; NOTE: This is a closed dispatch (adding new body types requires modifying
-;;; this file). An open protocol could be added in the future if needed.
+(implement-protocol! 'body-pos 'rigid-body-2d
+  rigid-body-pos)
 
-;;; body-pos : Any -> Vec2
-;;; Generic position accessor.
-(define (body-pos b)
-  (cond
-   [(rigid-body? b) (rigid-body-pos b)]
-   [(particle? b) (particle-pos b)]
-   [else (error 'body-pos "Unknown body type" b)]))
+(implement-protocol! 'body-set-pos 'rigid-body-2d
+  (lambda (b p) (rigid-body-with-pos b p)))
+
+(implement-protocol! 'body-vel 'rigid-body-2d
+  rigid-body-vel)
+
+(implement-protocol! 'body-set-vel 'rigid-body-2d
+  (lambda (b v) (rigid-body-with-vel b v)))
+
+(implement-protocol! 'body-mass 'rigid-body-2d
+  rigid-body-mass)
+
+(implement-protocol! 'body-set-mass 'rigid-body-2d
+  (lambda (b m)
+    (make-rigid-body (rigid-body-pos b)
+                     (rigid-body-vel b)
+                     (rigid-body-angle b)
+                     (rigid-body-angular-vel b)
+                     m
+                     (rigid-body-inertia b))))
+
+;;; ====
+;;; Protocol Implementations: Particle
+;;; ====
+
+(implement-protocol! 'body-pos 'particle
+  particle-pos)
+
+(implement-protocol! 'body-set-pos 'particle
+  (lambda (p pos) (particle-with-pos p pos)))
+
+(implement-protocol! 'body-vel 'particle
+  particle-vel)
+
+(implement-protocol! 'body-set-vel 'particle
+  (lambda (p vel) (particle-with-vel p vel)))
+
+(implement-protocol! 'body-mass 'particle
+  (lambda (p) 1.0))  ; Particles have implicit unit mass
+
+(implement-protocol! 'body-set-mass 'particle
+  (lambda (p m) p))  ; No-op: cannot change implicit mass
+
+;;; ====
+;;; Generic Body Lenses (Protocol-based)
+;;; ====
+;;;
+;;; These lenses work with any body type that implements the protocols.
+;;; New body types automatically work with these lenses after registering
+;;; their protocol implementations.
 
 ;;; body-pos-lens : Lens Body Vec2
-;;; Generic lens for body position (works with rigid-body and particle).
+;;; Generic lens for body position (works with any body type).
 (define body-pos-lens
   (make-lens
    body-pos
-   (lambda (new-pos b)
-     (cond
-      [(rigid-body? b) (rigid-body-with-pos b new-pos)]
-      [(particle? b) (particle-with-pos b new-pos)]
-      [else (error 'body-pos-lens "Unknown body type" b)]))))
-
-;;; body-vel : Any -> Vec2
-;;; Generic velocity accessor.
-(define (body-vel b)
-  (cond
-   [(rigid-body? b) (rigid-body-vel b)]
-   [(particle? b) (particle-vel b)]
-   [else (error 'body-vel "Unknown body type" b)]))
+   (lambda (new-pos b) (body-set-pos b new-pos))))
 
 ;;; body-vel-lens : Lens Body Vec2
 ;;; Generic lens for body velocity.
 (define body-vel-lens
   (make-lens
    body-vel
-   (lambda (new-vel b)
-     (cond
-      [(rigid-body? b) (rigid-body-with-vel b new-vel)]
-      [(particle? b) (particle-with-vel b new-vel)]
-      [else (error 'body-vel-lens "Unknown body type" b)]))))
-
-;;; body-mass : Any -> Number
-;;; Generic mass accessor. Particles have implicit mass of 1.0.
-(define (body-mass b)
-  (cond
-   [(rigid-body? b) (rigid-body-mass b)]
-   [(particle? b) 1.0]  ; Particles have implicit unit mass
-   [else (error 'body-mass "Unknown body type" b)]))
+   (lambda (new-vel b) (body-set-vel b new-vel))))
 
 ;;; body-mass-lens : Lens Body Number
 ;;; Generic lens for body mass. Particles have implicit mass 1.0 (read-only).
 (define body-mass-lens
   (make-lens
    body-mass
-   (lambda (new-mass b)
-     (cond
-      [(rigid-body? b)
-       (make-rigid-body (rigid-body-pos b)
-                        (rigid-body-vel b)
-                        (rigid-body-angle b)
-                        (rigid-body-angular-vel b)
-                        new-mass
-                        (rigid-body-inertia b))]
-      [(particle? b) b]  ; Particles: mass is implicit, ignore set
-      [else (error 'body-mass-lens "Unknown body type" b)]))))
+   (lambda (new-mass b) (body-set-mass b new-mass))))
 
 ;;; ====
 ;;; Dot Notation Macro
@@ -303,10 +351,10 @@
 ;;; Convenience macro for composing physics lenses using dot notation.
 ;;; (body. pos x) => (lens-compose body-pos-lens vec2-x-lens)
 ;;;
-;;; Supported paths (generic - work with rigid-body and particle):
+;;; Supported paths (generic - work with any body type):
 ;;;   (body. pos)       -> body-pos-lens
 ;;;   (body. vel)       -> body-vel-lens
-;;;   (body. mass)      -> body-mass-lens (particles: implicit 1.0)
+;;;   (body. mass)      -> body-mass-lens
 ;;;   (body. pos x)     -> (lens-compose body-pos-lens vec2-x-lens)
 ;;;   (body. pos y)     -> (lens-compose body-pos-lens vec2-y-lens)
 ;;;   (body. vel x)     -> (lens-compose body-vel-lens vec2-x-lens)
@@ -332,7 +380,7 @@
     [(body. vel) body-vel-lens]
     [(body. vel x) (lens-compose body-vel-lens vec2-x-lens)]
     [(body. vel y) (lens-compose body-vel-lens vec2-y-lens)]
-    ;; Generic (works with both rigid-body and particle)
+    ;; Generic (works with any body type)
     [(body. mass) body-mass-lens]
     ;; RigidBody-specific
     [(body. angle) rigid-body-angle-lens]
@@ -363,20 +411,19 @@
     (over pos-lens (lambda (p) (vec2-add p (vec2-scale vel dt))) body)))
 
 ;;; ====
-;;; Aliases (Backward Compatibility with Issue Description)
+;;; Aliases (Backward Compatibility)
 ;;; ====
 
-;;; The issue mentioned: position-lens, velocity-lens, mass-lens, rotation-lens
 (define position-lens body-pos-lens)
 (define velocity-lens body-vel-lens)
-(define mass-lens body-mass-lens)  ; Generic: works with rigid-body and particle
+(define mass-lens body-mass-lens)
 (define rotation-lens rigid-body-angle-lens)
 
 ;;; ====
 ;;; Print Help
 ;;; ====
 
-(display "lenses.ss loaded.\n")
+(display "lenses.ss loaded (with open protocol dispatch).\n")
 (display "  Vec2:        vec2-x-lens, vec2-y-lens\n")
 (display "  RigidBody:   rigid-body-pos-lens, rigid-body-vel-lens\n")
 (display "               rigid-body-angle-lens, rigid-body-angular-vel-lens\n")
@@ -386,3 +433,4 @@
 (display "  Generic:     body-pos-lens, body-vel-lens, body-mass-lens\n")
 (display "  Aliases:     position-lens, velocity-lens, mass-lens, rotation-lens\n")
 (display "  Dot syntax:  (body. pos x), (body. vel y), (body. mass), etc.\n")
+(display "  Extend:      (implement-protocol! 'body-pos 'my-type my-getter)\n")

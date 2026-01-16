@@ -9,7 +9,8 @@
     "Enable elegant, composable access to nested physics structures:"
     "- View/set/modify body position, velocity, angle without boilerplate"
     "- Compose lenses for deep access (body -> position -> x)"
-    "- Type-polymorphic: same lens works on rigid-body and particle"
+    "- Type-polymorphic: same lens works on rigid-body, particle, traced-body"
+    "- Open protocol dispatch: extend to new body types without modification"
     "- Satisfy lens laws for predictable behavior")
 
   (quick-start
@@ -109,10 +110,35 @@
     "(define (step-world bodies dt)"
     "  (map (lambda (b) (apply-gravity b dt)) bodies))")
 
+  (extending
+    "Generic lenses use the open protocol system for extensibility."
+    "To add a new body type without modifying lenses.ss:"
+    ""
+    ";;; Register protocol implementations for your type"
+    "(implement-protocol! 'body-pos 'my-body-type my-pos-getter)"
+    "(implement-protocol! 'body-set-pos 'my-body-type"
+    "  (lambda (b p) (my-body-with-pos b p)))"
+    "(implement-protocol! 'body-vel 'my-body-type my-vel-getter)"
+    "(implement-protocol! 'body-set-vel 'my-body-type"
+    "  (lambda (b v) (my-body-with-vel b v)))"
+    "(implement-protocol! 'body-mass 'my-body-type my-mass-getter)"
+    "(implement-protocol! 'body-set-mass 'my-body-type"
+    "  (lambda (b m) (my-body-with-mass b m)))"
+    ""
+    ";;; Now generic lenses work with your type"
+    "(view body-pos-lens my-body)     ; works!"
+    "(over (body. vel x) add1 my-body) ; works!")
+
+  (traced-body-support
+    "For differentiable physics (autodiff), load traced-body protocols:"
+    "(load \"lattice/physics/diff/traced-body-protocols.ss\")"
+    "This registers TracedBody implementations for body-pos, body-vel, body-mass.")
+
   (tier 1)
   (purity total)
   (dependencies
     (fp/templates.ss "Core lens infrastructure")
+    (fp/protocol.ss "Open protocol dispatch")
     (linalg/vec2.ss "Vec2 data type")
     (physics/classical/rigid-body.ss "RigidBody2D data type")
     (physics/classical/particles.ss "Particle data type"))

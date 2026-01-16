@@ -442,6 +442,41 @@ Utility functions for common physics operations:
     body))
 ```
 
+### Extending to New Body Types
+
+Generic lenses use an open protocol system. Add support for new body types
+without modifying lenses.ss:
+
+```scheme
+;; Define your body type as a tagged list
+(define (make-soft-body pos vel stiffness)
+  (list 'soft-body pos vel stiffness))
+
+;; Register protocol implementations
+(implement-protocol! 'body-pos 'soft-body
+  (lambda (b) (list-ref b 1)))
+(implement-protocol! 'body-set-pos 'soft-body
+  (lambda (b p) (make-soft-body p (soft-body-vel b) (soft-body-stiffness b))))
+(implement-protocol! 'body-vel 'soft-body
+  (lambda (b) (list-ref b 2)))
+(implement-protocol! 'body-set-vel 'soft-body
+  (lambda (b v) (make-soft-body (soft-body-pos b) v (soft-body-stiffness b))))
+(implement-protocol! 'body-mass 'soft-body
+  (lambda (b) 1.0))  ; or compute from stiffness
+(implement-protocol! 'body-set-mass 'soft-body
+  (lambda (b m) b))  ; no-op or implement
+
+;; Now generic lenses work with soft-body
+(view body-pos-lens my-soft-body)
+(over (body. vel x) add1 my-soft-body)
+```
+
+For differentiable physics (autodiff), load traced-body protocols:
+```scheme
+(load "lattice/physics/diff/traced-body-protocols.ss")
+;; Now body-pos-lens, body-vel-lens work with traced-body
+```
+
 ### Lens Laws
 
 All lenses satisfy the three lens laws, ensuring predictable behavior:
