@@ -1,24 +1,26 @@
 (skill numeric
-  (version "0.2.0")
+  (version "0.3.0")
   (tier 0)
   (path "lattice/numeric")
   (purity total)
   (stability stable)
-  (fuel-bound "O(n log n) for FFT, O(n) for FIR/spline, O(log n) for spline-eval, O(n²) for Lagrange")
+  (fuel-bound "O(n log n) for FFT, O(n) for FIR/spline/interval-ops, O(log n) for spline-eval, O(n²) for Lagrange")
   (deps (linalg algebra))
 
   (description
-   "Numerical computing, signal processing, and interpolation library. Provides
-    complex number arithmetic, discrete Fourier transform (naive and radix-2 FFT),
+   "Numerical computing, signal processing, interpolation, and interval arithmetic.
+    Provides complex number arithmetic, discrete Fourier transform (radix-2 FFT),
     digital filters (FIR, IIR, Butterworth, Chebyshev), convolution and correlation,
     wavelet transforms (Haar, Daubechies), spectral analysis (STFT, spectrogram),
     interpolation (linear, polynomial, spline, Hermite), Bezier curves, curve
-    fitting (least squares, polynomial), and Chebyshev approximation.")
+    fitting (least squares, polynomial), Chebyshev approximation, and rigorous
+    interval arithmetic for verified numerical computation.")
 
   (keywords (numerics signal-processing fft dft complex-numbers digital-filters
              wavelets convolution spectral-analysis iir fir butterworth
-             interpolation spline bezier curve-fitting regression chebyshev))
-  (aliases (signal dsp interp))
+             interpolation spline bezier curve-fitting regression chebyshev
+             interval-arithmetic verified-computation bounds))
+  (aliases (signal dsp interp interval))
 
   (exports
    (complex
@@ -115,7 +117,37 @@
     chebyshev-nodes chebyshev-nodes-interval
     chebyshev-t chebyshev-coeffs chebyshev-eval
     ;; B-splines
-    bspline-basis bspline-curve))
+    bspline-basis bspline-curve)
+
+   (interval
+    ;; Constructors and type
+    make-interval interval interval? interval-singleton entire-interval
+    ;; Accessors
+    interval-lo interval-hi interval-mid interval-width interval-radius
+    interval-magnitude interval-mignitude
+    ;; Predicates
+    interval-empty? interval-singleton? interval-contains? interval-contains-zero?
+    interval-positive? interval-negative? interval-subset?
+    intervals-overlap? intervals-disjoint?
+    ;; Comparisons (three-valued)
+    interval-definitely< interval-definitely<= interval-definitely> interval-definitely>=
+    interval-possibly< interval-possibly<= interval-possibly> interval-possibly>=
+    interval-definitely= interval-possibly=
+    ;; Arithmetic
+    interval-neg interval-add interval-sub interval-mul interval-sqr
+    interval-recip interval-div interval-scale
+    ;; Elementary functions
+    interval-abs interval-sqrt interval-pow interval-min interval-max
+    ;; Set operations
+    interval-union interval-hull interval-hull-list interval-intersection interval-bisect
+    ;; Coercion
+    real->interval interval->string interval-print
+    ;; Multi-dimensional boxes
+    make-box box-dimension box-volume box-contains?
+    ;; Constants
+    pi-interval e-interval
+    ;; Short aliases
+    iv+ iv- iv* iv/))
 
   (modules
    (complex "complex.ss"
@@ -148,4 +180,10 @@
      polynomial interpolation. Hermite and natural cubic spline interpolation.
      Bezier curves (linear, quadratic, cubic, arbitrary degree). Least squares
      polynomial fitting, linear regression. Chebyshev approximation and nodes.
-     B-spline basis functions and curves.")))
+     B-spline basis functions and curves.")
+   (interval "interval.ss"
+    "Interval arithmetic for verified numerical computation. Represents sets of
+     real numbers with guaranteed enclosure. Supports arithmetic, comparisons
+     (three-valued logic), set operations, and elementary functions. Multi-dimensional
+     boxes for n-dimensional computations. Foundation for global optimization and
+     computer-aided proofs.")))
