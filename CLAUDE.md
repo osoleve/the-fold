@@ -352,6 +352,35 @@ Extensible type dispatch for the Open/Closed Principle (`lattice/fp/protocol.ss`
 
 Objects must be tagged lists: `(list 'type-tag ...)`. Dispatch is O(1) via hashtable.
 
+### Protocol Bundles
+
+Reduce boilerplate when implementing multiple related protocols (`lattice/fp/protocol-bundle.ss`):
+
+```scheme
+(load "lattice/fp/protocol-bundle.ss")
+
+;; Define a bundle of related protocol pairs
+(define-protocol-bundle body-ops
+  ((body-pos body-set-pos) "pos")
+  ((body-vel body-set-vel) "vel")
+  ((body-mass body-set-mass) "mass"))
+
+;; Derive implementations using naming convention: <prefix>-<field>, <prefix>-with-<field>
+(derive-bundle! body-ops 'rigid-body-2d rigid-body)
+
+;; With overrides for slots that don't follow the convention
+(derive-bundle! body-ops 'particle particle
+  ("mass" (lambda (p) 1.0) (lambda (p m) p)))  ; Particles have implicit mass
+
+;; Explicit implementation when convention doesn't apply
+(implement-bundle! body-ops 'custom-body
+  ("pos" custom-get-pos custom-set-pos)
+  ("vel" custom-get-vel custom-set-vel)
+  ("mass" custom-get-mass custom-set-mass))
+```
+
+Introspection: `(bundle-types bundle)`, `(bundle-protocols bundle)`, `(list-bundles)`.
+
 ### Refactoring Toolkit
 
 Unified interface for codebase refactoring operations (`shell/tools/refactor-toolkit.ss`):

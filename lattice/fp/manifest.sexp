@@ -534,6 +534,20 @@ Key design principles:
     fix-strategy normalize
     ;; Tracing
     make-rewrite-trace trace-step show-trace
+
+    ;; protocol.ss — Open Protocol System
+    define-protocol define-protocol/default implement-protocol!
+    protocol-dispatch protocol-dispatch/default
+    get-type-tag protocol-exists? type-implements?
+    protocol-implementations list-protocols
+
+    ;; protocol-bundle.ss — Protocol Bundle System
+    define-protocol-bundle derive-bundle! implement-bundle!
+    make-protocol-bundle bundle? bundle-name bundle-slots
+    make-bundle-slot slot? slot-getter slot-setter slot-label
+    bundle-types bundle-protocols bundle-slot-count
+    get-bundle list-bundles register-bundle!
+    build-getter-name build-setter-name
   ))
 
   ;;; ====
@@ -650,6 +664,14 @@ Key design principles:
        "goals.ss"        ; Goal-directed rewriting
        "proof-tactics.ss" ; Proof tactics for equational reasoning
        "sketch.ss")))    ; Program sketching with holes
+
+    ;; Root-level modules
+    ((subdir "")
+     (description "Core FP infrastructure at lattice/fp root")
+     (files (
+       "protocol.ss"        ; Open protocol system for extensible dispatch
+       "protocol-bundle.ss" ; Protocol bundles for reduced boilerplate
+       "templates.ss")))    ; Lens infrastructure
   ))
 
   ;;; ====

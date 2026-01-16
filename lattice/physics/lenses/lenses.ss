@@ -27,18 +27,20 @@
 ;;;   Generic lenses use the open protocol system from lattice/fp/protocol.ss.
 ;;;   New body types can register implementations without modifying this file:
 ;;;
-;;;   (implement-protocol! 'body-pos 'my-body-type my-pos-getter)
-;;;   (implement-protocol! 'body-set-pos 'my-body-type my-pos-setter)
+;;;   (derive-bundle! body-ops 'my-body-type my-body-prefix)
+;;;   ;; or with overrides for non-standard slots:
+;;;   (derive-bundle! body-ops 'my-body-type my-body
+;;;     ("mass" custom-mass-getter custom-mass-setter))
 ;;;
 ;;; Dependencies:
 ;;;   - lattice/fp/templates.ss (lens infrastructure)
-;;;   - lattice/fp/protocol.ss (open dispatch)
+;;;   - lattice/fp/protocol-bundle.ss (includes protocol.ss)
 ;;;   - lattice/linalg/vec2.ss
 ;;;   - lattice/physics/classical/rigid-body.ss
 ;;;   - lattice/physics/classical/particles.ss
 
 (load "lattice/fp/templates.ss")
-(load "lattice/fp/protocol.ss")
+(load "lattice/fp/protocol-bundle.ss")
 (load "lattice/linalg/vec2.ss")
 (load "lattice/physics/classical/rigid-body.ss")
 (load "lattice/physics/classical/particles.ss")
@@ -265,54 +267,43 @@
 (define-protocol (body-set-mass b m) "Set body mass")
 
 ;;; ====
+;;; Body Operations Bundle
+;;; ====
+;;;
+;;; Defines the standard body protocol pairs. New body types register
+;;; implementations using derive-bundle! or implement-bundle!.
+
+(define-protocol-bundle body-ops
+  ((body-pos body-set-pos) "pos")
+  ((body-vel body-set-vel) "vel")
+  ((body-mass body-set-mass) "mass"))
+
+;;; ====
 ;;; Protocol Implementations: RigidBody2D
 ;;; ====
+;;;
+;;; Uses naming convention: rigid-body-<field>, rigid-body-with-<field>
+;;; Note: No rigid-body-with-mass exists, so we override the mass slot.
 
-(implement-protocol! 'body-pos 'rigid-body-2d
-  rigid-body-pos)
-
-(implement-protocol! 'body-set-pos 'rigid-body-2d
-  (lambda (b p) (rigid-body-with-pos b p)))
-
-(implement-protocol! 'body-vel 'rigid-body-2d
-  rigid-body-vel)
-
-(implement-protocol! 'body-set-vel 'rigid-body-2d
-  (lambda (b v) (rigid-body-with-vel b v)))
-
-(implement-protocol! 'body-mass 'rigid-body-2d
-  rigid-body-mass)
-
-(implement-protocol! 'body-set-mass 'rigid-body-2d
-  (lambda (b m)
-    (make-rigid-body (rigid-body-pos b)
-                     (rigid-body-vel b)
-                     (rigid-body-angle b)
-                     (rigid-body-angular-vel b)
-                     m
-                     (rigid-body-inertia b))))
+(derive-bundle! body-ops 'rigid-body-2d rigid-body
+  ("mass"
+   rigid-body-mass
+   (lambda (b m)
+     (make-rigid-body (rigid-body-pos b)
+                      (rigid-body-vel b)
+                      (rigid-body-angle b)
+                      (rigid-body-angular-vel b)
+                      m
+                      (rigid-body-inertia b)))))
 
 ;;; ====
 ;;; Protocol Implementations: Particle
 ;;; ====
+;;;
+;;; Particles have implicit unit mass (1.0), so we override the mass slot.
 
-(implement-protocol! 'body-pos 'particle
-  particle-pos)
-
-(implement-protocol! 'body-set-pos 'particle
-  (lambda (p pos) (particle-with-pos p pos)))
-
-(implement-protocol! 'body-vel 'particle
-  particle-vel)
-
-(implement-protocol! 'body-set-vel 'particle
-  (lambda (p vel) (particle-with-vel p vel)))
-
-(implement-protocol! 'body-mass 'particle
-  (lambda (p) 1.0))  ; Particles have implicit unit mass
-
-(implement-protocol! 'body-set-mass 'particle
-  (lambda (p m) p))  ; No-op: cannot change implicit mass
+(derive-bundle! body-ops 'particle particle
+  ("mass" (lambda (p) 1.0) (lambda (p m) p)))
 
 ;;; ====
 ;;; Generic Body Lenses (Protocol-based)
