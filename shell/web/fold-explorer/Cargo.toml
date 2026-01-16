@@ -9,6 +9,10 @@ description = "Web server for CAS visualization"
 name = "fold-explorer"
 path = "src/bin/fold-explorer.rs"
 
+[[bin]]
+name = "fold-tui"
+path = "src/bin/fold-tui.rs"
+
 [dependencies]
 # Minimal dependencies - The Fold builds everything in-house
 
