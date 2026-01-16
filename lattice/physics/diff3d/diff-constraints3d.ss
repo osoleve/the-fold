@@ -23,7 +23,7 @@
 
 (load "core/base/prelude.ss")
 (load "lattice/linalg/vec3.ss")
-(load "lattice/autodiff/reverse-diff.ss")
+(load "core/autodiff/reverse-diff.ss")
 (load "lattice/physics/diff3d/traced-vec3.ss")
 (load "lattice/physics/diff3d/traced-quaternion.ss")
 (load "lattice/physics/diff3d/traced-body3d.ss")

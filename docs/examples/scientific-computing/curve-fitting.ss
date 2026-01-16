@@ -16,7 +16,7 @@
 ;;;
 ;;; Run with: scheme --script examples/scientific-computing/curve-fitting.ss
 
-(load "lattice/autodiff/reverse-diff.ss")
+(load "core/autodiff/reverse-diff.ss")
 
 ;;; ====
 ;;; Data Generation

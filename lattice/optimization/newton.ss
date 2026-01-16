@@ -23,7 +23,7 @@
 (load "lattice/linalg/matrix.ss")
 (load "lattice/linalg/matrix-decomp.ss")
 (load "lattice/linalg/matrix-solvers.ss")
-(load "lattice/autodiff/reverse-diff.ss")
+(load "core/autodiff/reverse-diff.ss")
 (load "lattice/autodiff/higher-order-diff.ss")
 (load "lattice/optimization/convergence.ss")
 (load "lattice/optimization/line-search.ss")

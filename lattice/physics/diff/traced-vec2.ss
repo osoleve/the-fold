@@ -13,7 +13,7 @@
 
 (load "core/base/prelude.ss")
 (load "lattice/linalg/vec2.ss")
-(load "lattice/autodiff/reverse-diff.ss")
+(load "core/autodiff/reverse-diff.ss")
 
 ;;; ====
 ;;; Traced Vec2 Construction

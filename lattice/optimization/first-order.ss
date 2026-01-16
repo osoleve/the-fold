@@ -18,7 +18,7 @@
 ;;;   - optimization/line-search.ss
 
 (load "core/base/prelude.ss")
-(load "lattice/autodiff/reverse-diff.ss")
+(load "core/autodiff/reverse-diff.ss")
 (load "lattice/optimization/convergence.ss")
 (load "lattice/optimization/line-search.ss")
 
