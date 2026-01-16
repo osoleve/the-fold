@@ -362,9 +362,12 @@
          [tr (matrix-trace R)]
          [cos-theta (/ (- tr 1) 2)])
     (cond
-      ;; θ ≈ 0: R ≈ I, log(R) ≈ 0
+      ;; θ ≈ 0: Use linear approximation ω ≈ ½(R - Rᵀ)ᵛ
+      ;; This preserves precision for small rotations instead of snapping to zero
       [(> cos-theta (- 1 *lie-epsilon*))
-       (make-so3-alg (vector 0 0 0))]
+       (let* ([R-Rt (matrix-sub R (matrix-transpose R))]
+              [omega-hat (matrix-scale 0.5 R-Rt)])
+         (make-so3-alg (so3-vee omega-hat)))]
       ;; θ ≈ π: special handling needed
       [(< cos-theta (- -1 (- *lie-epsilon*)))
        ;; Find eigenvector corresponding to eigenvalue 1

@@ -172,7 +172,45 @@
            [axis-back (car result)]
            [theta-back (cdr result)])
       (assert-true (< (abs (- theta theta-back)) 1e-8))
-      (assert-true (< (vec-norm (vec-sub axis axis-back)) 1e-8)))))
+      (assert-true (< (vec-norm (vec-sub axis axis-back)) 1e-8))))
+
+  ;; Edge case: extremely small angle (exercises Taylor expansion in exp, linear approx in log)
+  (define-test "so3 exp/log round-trip (tiny angle ~1e-11)"
+    (let* ([omega (vector 1e-11 2e-11 1.5e-11)]
+           [xi (make-so3-alg omega)]
+           [g (so3-exp xi)]
+           [xi-back (so3-log g)]
+           [omega-back (so3-alg-vec xi-back)])
+      ;; Should preserve tiny rotation, not snap to zero
+      (assert-true (< (vec-norm (vec-sub omega omega-back)) 1e-13))))
+
+  ;; Edge case: rotation by exactly π (exercises diagonal extraction in log)
+  (define-test "so3 exp/log round-trip (theta = π, x-axis)"
+    (let* ([axis (vector 1 0 0)]
+           [theta *pi*]
+           [g (make-so3 axis theta)]
+           [xi-back (so3-log g)]
+           [omega-back (so3-alg-vec xi-back)]
+           [theta-back (vec-norm omega-back)])
+      ;; Angle should be π (±small error)
+      (assert-true (< (abs (- theta-back *pi*)) 1e-6))))
+
+  ;; Edge case: rotation by π around arbitrary axis
+  (define-test "so3 exp/log round-trip (theta = π, diagonal axis)"
+    (let* ([axis (vec-scale (/ 1.0 (sqrt 3)) (vector 1 1 1))]
+           [theta *pi*]
+           [g (make-so3 axis theta)]
+           [xi-back (so3-log g)]
+           [omega-back (so3-alg-vec xi-back)]
+           [theta-back (vec-norm omega-back)]
+           [axis-back (vec-scale (/ 1.0 theta-back) omega-back)])
+      ;; Angle should be π
+      (assert-true (< (abs (- theta-back *pi*)) 1e-6))
+      ;; Axis should match (or be negated - both valid for π rotation)
+      (let ([dot (+ (* (vector-ref axis 0) (vector-ref axis-back 0))
+                    (* (vector-ref axis 1) (vector-ref axis-back 1))
+                    (* (vector-ref axis 2) (vector-ref axis-back 2)))])
+        (assert-true (or (> dot 0.99) (< dot -0.99)))))))
 
 ;;; ============================================================================
 ;;; SE(2) Tests
