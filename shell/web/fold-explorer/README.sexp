@@ -1,49 +1,44 @@
 ((name . "fold-explorer")
- (description . "Visual block explorer web server for the content-addressed store")
+ (description . "Terminal UI for exploring the content-addressed store")
  (version . "0.1.0")
  (language . "rust")
  (dependencies . ())  ; Zero dependencies - std only
 
- (usage . "fold-explorer [store-path] [static-dir] [port]")
- (defaults . ((store-path . ".store")
-              (static-dir . "static")
-              (port . 8080)))
+ (binaries
+  ((name . "fold-tui")
+   (usage . "fold-tui [store-path] [--check]")
+   (description . "Interactive terminal explorer for CAS blocks")))
+
+ (modes
+  (interactive . "Full TUI with navigation, search, filtering")
+  (check . "Non-interactive store verification and stats"))
 
  (features
-  (block-browser . "Pagination, tag filtering, hash prefix search")
-  (graph-view . "Canvas-based visualization, D3.js-compatible JSON export")
-  (subgraph . "Configurable depth traversal from any root block")
-  (heads . "Named reference listing")
-  (analytics . "Orphan and popular block analysis"))
+  (block-browser . "Scrolling list with tag filtering and search")
+  (block-detail . "Payload preview, refs navigation")
+  (heads . "Named reference listing and navigation")
+  (orphans . "Blocks with no inbound references")
+  (popular . "Most-referenced blocks")
+  (search . "Hash prefix, tag, and payload content search"))
+
+ (keybindings
+  (navigation . "j/k or arrows to move, Enter to select")
+  (views . "h=heads, o=orphans, p=popular, t=cycle tags")
+  (search . "/ to search, r to reset filters")
+  (back . "b or Esc to go back")
+  (quit . "q to quit"))
 
  (security
-  (xss-prevention . "Payloads served as application/octet-stream")
-  (headers . ("X-Content-Type-Options: nosniff"
-              "X-Frame-Options: DENY"
-              "Content-Security-Policy: default-src 'self'"))
+  (terminal-injection . "All untrusted content sanitized before display")
+  (panic-safety . "RAII guard restores terminal on crash")
   (path-traversal . "Hash validation (hex chars only)"))
 
- (api-endpoints
-  ((path . "/api/blocks") (method . "GET") (params . "limit, offset, tag, prefix"))
-  ((path . "/api/blocks/{hash}") (method . "GET"))
-  ((path . "/api/blocks/{hash}/payload") (method . "GET"))
-  ((path . "/api/blocks/{hash}/refs") (method . "GET"))
-  ((path . "/api/graph/stats") (method . "GET"))
-  ((path . "/api/graph/subgraph/{hash}") (method . "GET") (params . "depth"))
-  ((path . "/api/graph/orphans") (method . "GET") (params . "limit"))
-  ((path . "/api/graph/popular") (method . "GET") (params . "limit"))
-  ((path . "/api/heads") (method . "GET"))
-  ((path . "/api/heads/{name}") (method . "GET"))
-  ((path . "/api/search") (method . "GET") (params . "q, tag, limit")))
-
- (modules
+ (library-modules
   (block . "Block binary parser - handles 64/66 char hashes, dynamic ref sizes")
   (store . "Store traversal and in-memory indexing")
-  (graph . "Graph analysis utilities and D3.js JSON export")
-  (json . "Hand-rolled JSON serializer")
-  (http . "Zero-dependency HTTP/1.1 server"))
+  (graph . "Graph analysis utilities")
+  (json . "Hand-rolled JSON serializer"))
 
  (files
   (source . "src/")
-  (static . "static/")
-  (binary . "target/release/fold-explorer")))
+  (binary . "target/release/fold-tui")))
