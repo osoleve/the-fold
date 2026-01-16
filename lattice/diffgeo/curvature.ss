@@ -672,8 +672,9 @@
 ;;; ============================================================================
 
 ;;; Sectional curvature K(X, Y) for a 2-plane spanned by tangent vectors X, Y:
-;;;   K(X,Y) = R(X,Y,Y,X) / (g(X,X)g(Y,Y) - g(X,Y)²)
-;;; where R(X,Y,Z,W) = R^l_{ijk} X^i Y^j Z^k W_l
+;;;   K(X,Y) = g(R(X,Y)Y, X) / (g(X,X)g(Y,Y) - g(X,Y)²)
+;;; In components: R(X,Y)Y = R^l_{ijk} Y^i X^j Y^k, then contracted with X via metric.
+;;; The numerator is R_{ijkl} Y^i X^j Y^k X^l where R_{ijkl} = g_{lm} R^m_{ijk}.
 
 ;;; sectional-curvature : Metric × Vec × Vec × Vec × [Num] → Num
 ;;; Compute the sectional curvature for the plane spanned by X and Y at coords.
@@ -706,10 +707,12 @@
                           (set! R-ijkl (+ R-ijkl
                                           (* (matrix-ref g l mm)
                                              (riemann-ref R mm i j k)))))
+                      ;; R(X,Y,Y,X) = R_{ijkl} Y^i X^j Y^k X^l
+                      ;; Note: X^j Y^k (not Y^j Y^k) avoids symmetric/antisymmetric cancellation
                       (set! numerator (+ numerator
                                          (* R-ijkl
-                                            (vector-ref X i)
-                                            (vector-ref Y j)
+                                            (vector-ref Y i)
+                                            (vector-ref X j)
                                             (vector-ref Y k)
                                             (vector-ref X l)))))))))
 

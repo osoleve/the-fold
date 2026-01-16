@@ -321,6 +321,66 @@
 ) ; end Gauss-Bonnet
 
 ;;; ============================================================================
+;;; Sectional Curvature Tests
+;;; ============================================================================
+
+(test-group "Sectional Curvature"
+
+  (define-test "Flat space has zero sectional curvature"
+    ;; Euclidean metric in 2D: sectional curvature is 0
+    (let* ([cart-chart (make-cartesian-chart)]
+           [m (make-euclidean-metric cart-chart)]
+           [coords '#(1.0 2.0)]  ; arbitrary point in 2D
+           [X '#(1.0 0.0)]       ; unit vectors
+           [Y '#(0.0 1.0)]
+           [K (sectional-curvature m coords X Y)])
+      (assert-true (approx-equal? K 0.0 1e-10))))
+
+  (define-test "Flat space sectional curvature with arbitrary vectors"
+    ;; Any plane in flat 2D space has K = 0
+    (let* ([cart-chart (make-cartesian-chart)]
+           [m (make-euclidean-metric cart-chart)]
+           [coords '#(0.0 0.0)]
+           [X '#(1.0 2.0)]
+           [Y '#(-1.0 1.0)]
+           [K (sectional-curvature m coords X Y)])
+      (assert-true (approx-equal? K 0.0 1e-10))))
+
+  (define-test "Sectional curvature is symmetric: K(X,Y) = K(Y,X)"
+    ;; The plane spanned by X,Y is the same as Y,X
+    (let* ([cart-chart (make-cartesian-chart)]
+           [m (make-euclidean-metric cart-chart)]
+           [coords '#(1.0 1.0)]
+           [X '#(1.0 0.5)]
+           [Y '#(-0.5 1.0)]
+           [K-XY (sectional-curvature m coords X Y)]
+           [K-YX (sectional-curvature m coords Y X)])
+      (assert-true (approx-equal? K-XY K-YX 1e-12))))
+
+  (define-test "Degenerate plane returns 0"
+    ;; Parallel vectors give degenerate plane (denominator → 0)
+    (let* ([cart-chart (make-cartesian-chart)]
+           [m (make-euclidean-metric cart-chart)]
+           [coords '#(0.0 0.0)]
+           [X '#(1.0 0.0)]
+           [Y '#(2.0 0.0)]  ; parallel to X
+           [K (sectional-curvature m coords X Y)])
+      (assert-equal K 0)))  ; degenerate case returns 0
+
+  (define-test "Polar coordinates (flat space) has zero sectional curvature"
+    ;; Polar coordinates in flat 2D have zero curvature
+    ;; (it's just a coordinate change of Euclidean space)
+    (let* ([polar-chart (make-polar-chart)]
+           [m (make-polar-metric polar-chart)]
+           [coords '#(2.0 0.5)]  ; (r=2, θ=0.5)
+           [X '#(1.0 0.0)]       ; radial direction
+           [Y '#(0.0 1.0)]       ; angular direction
+           [K (sectional-curvature m coords X Y)])
+      (assert-true (approx-equal? K 0.0 0.1))))
+
+) ; end Sectional Curvature
+
+;;; ============================================================================
 ;;; Run All Tests
 ;;; ============================================================================
 

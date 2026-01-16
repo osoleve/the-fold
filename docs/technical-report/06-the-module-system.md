@@ -13,8 +13,9 @@ The Fold organizes verified code into a *Module DAG*—a directed acyclic graph 
 Tier 0 (Foundational):     linalg, data, algebra, random, numeric
          │                 No lattice dependencies, only Core
          ▼
-Tier 1 (Intermediate):     autodiff, geometry, query, fp, info
+Tier 1 (Intermediate):     autodiff, geometry, diffgeo, query, fp, info, topology
          │                 Depend on Tier 0
+         │                 diffgeo provides charts, tangent spaces, Lie groups, curvature
          ▼
 Tier 2+ (Advanced):        physics/diff, physics/diff3d, physics/classical, sim, pipeline
                            Multiple dependencies, domain-specific
@@ -174,7 +175,7 @@ Pure functional BM25 implementation for ranked retrieval:
 ; → (physics/diff autodiff linalg)
 
 (lattice-hubs 5)                       ; Most-depended-on modules
-; → ((linalg . 12) (data . 8) (fp . 6) ...)
+; → ((linalg . 14) (data . 10) (fp . 7) (diffgeo . 4) ...)
 
 (lattice-impact 'linalg)               ; Transitive dependents
 ; → 15
