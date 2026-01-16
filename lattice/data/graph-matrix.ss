@@ -297,6 +297,35 @@
                               result
                               (cons j result))))))))
 
+;;; adjacency-neighbors-with-weights : Matrix|SparseCSR × Nat → (List (Cons Nat Num))
+;;; Get list of (neighbor . weight) pairs for node i's outgoing edges.
+;;; For unweighted graphs, weight is 1 for existing edges.
+;;; This enables O(degree) iteration instead of O(V) for sparse graphs.
+(define (adjacency-neighbors-with-weights m i)
+  (if (sparse-csr? m)
+      (let ([row-ptrs (sparse-csr-row-ptrs m)]
+            [col-idx (sparse-csr-col-indices m)]
+            [vals (sparse-csr-values m)]
+            [start (vector-ref row-ptrs i)]
+            [end (vector-ref row-ptrs (+ i 1))])
+           (let loop ([k start] [result '()])
+                (if (= k end)
+                    (reverse result)
+                    (loop (+ k 1)
+                          (cons (cons (vector-ref col-idx k)
+                                      (vector-ref vals k))
+                                result)))))
+      (let ([n (matrix-cols m)]
+            [data (matrix-data m)])
+           (let loop ([j 0] [result '()])
+                (if (= j n)
+                    (reverse result)
+                    (let ([w (vector-ref data (+ (* i n) j))])
+                         (loop (+ j 1)
+                               (if (= w 0)
+                                   result
+                                   (cons (cons j w) result)))))))))
+
 ;;; ====
 ;;; Graph Transformations
 ;;; ====
@@ -546,14 +575,15 @@
 ;;; Dijkstra's Algorithm (Single-Source Shortest Paths)
 ;;; ====
 
-;;; dijkstra : Matrix × Nat → (Vector Distance) × (Vector Predecessor)
+;;; dijkstra : Matrix|SparseCSR × Nat → (Vector Distance) × (Vector Predecessor)
 ;;; Compute shortest paths from source to all other nodes.
 ;;; Returns (distances . predecessors) where:
 ;;;   - distances[i] = shortest distance from source to i
 ;;;   - predecessors[i] = previous node on shortest path, or -1 if unreachable
 ;;;
-;;; Time complexity: O((V + E) log V) with heap-based min extraction.
+;;; Time complexity: O((V + E) log V) with heap-based neighbor iteration.
 ;;; For weighted graphs with non-negative weights.
+;;; Supports both dense Matrix and SparseCSR adjacency matrices.
 ;;;
 ;;; Uses lazy deletion: when a shorter path is found, we insert a new
 ;;; (distance, node) pair rather than updating in place. Already-visited
@@ -562,7 +592,7 @@
 ;;; Example:
 ;;;   (dijkstra adj 0) => (#(0 3 5 7) . #(-1 0 1 2))
 (define (dijkstra adj source)
-  (let* ([n (matrix-rows adj)]
+  (let* ([n (adjacency-matrix-node-count adj)]
          [dist (make-vector n *infinity*)]
          [pred (make-vector n -1)]
          [visited (make-vector n #f)]
@@ -582,22 +612,24 @@
                            (loop heap-rest)
                            (begin
                              (vector-set! visited u #t)
-                             ;; Relax all neighbors and add to heap
-                             (let relax ([v 0] [h heap-rest])
-                                  (if (= v n)
+                             ;; Relax neighbors - O(degree) instead of O(V)
+                             (let relax ([neighbors (adjacency-neighbors-with-weights adj u)]
+                                         [h heap-rest])
+                                  (if (null? neighbors)
                                       (loop h)
-                                      (let ([w (matrix-ref adj u v)])
-                                           (if (and (> w 0)
-                                                    (not (vector-ref visited v)))
-                                               (let ([alt (+ (vector-ref dist u) w)])
-                                                    (if (< alt (vector-ref dist v))
-                                                        (begin
-                                                          (vector-set! dist v alt)
-                                                          (vector-set! pred v u)
-                                                          (relax (+ v 1)
-                                                                 (heap-insert-by dist-cmp (cons alt v) h)))
-                                                        (relax (+ v 1) h)))
-                                               (relax (+ v 1) h))))))))))))
+                                      (let* ([edge (car neighbors)]
+                                             [v (car edge)]
+                                             [w (cdr edge)])
+                                            (if (not (vector-ref visited v))
+                                                (let ([alt (+ (vector-ref dist u) w)])
+                                                     (if (< alt (vector-ref dist v))
+                                                         (begin
+                                                           (vector-set! dist v alt)
+                                                           (vector-set! pred v u)
+                                                           (relax (cdr neighbors)
+                                                                  (heap-insert-by dist-cmp (cons alt v) h)))
+                                                         (relax (cdr neighbors) h)))
+                                                (relax (cdr neighbors) h))))))))))))
 
 ;;; dijkstra-naive : Matrix × Nat → (Vector Distance) × (Vector Predecessor)
 ;;; Original O(n²) implementation using linear scan for min extraction.

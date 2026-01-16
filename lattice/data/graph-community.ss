@@ -238,19 +238,20 @@
 ;;; Minimum Spanning Tree: Prim's Algorithm
 ;;; ====
 
-;;; prim-mst : Matrix × [Nat] → (List Edge)
+;;; prim-mst : Matrix|SparseCSR × [Nat] → (List Edge)
 ;;;
 ;;; Compute minimum spanning tree using Prim's algorithm.
 ;;; Starts from a given node and greedily adds the minimum weight edge
 ;;; connecting the tree to a new node.
 ;;;
 ;;; Arguments:
-;;;   adj   - Weighted adjacency matrix (0 = no edge)
+;;;   adj   - Weighted adjacency matrix (0 = no edge), dense or sparse
 ;;;   start - Starting node (default: 0)
 ;;;
 ;;; Returns: List of edges (from to weight) forming the MST
 ;;;
-;;; Complexity: O((V + E) log V) with heap-based min extraction.
+;;; Complexity: O((V + E) log V) with heap-based neighbor iteration.
+;;; Supports both dense Matrix and SparseCSR adjacency matrices.
 ;;;
 ;;; Uses lazy deletion: when a better edge is found, we insert a new
 ;;; (weight, node, parent) triple rather than updating. Already-visited
@@ -263,7 +264,7 @@
 ;;; Example:
 ;;;   (prim-mst weighted-adj) => ((0 1 2) (1 2 3) (0 3 1))
 (define (prim-mst adj . opts)
-  (let* ([n (matrix-rows adj)]
+  (let* ([n (adjacency-matrix-node-count adj)]
          [start (if (pair? opts) (car opts) 0)]
          ;; Track which nodes are in the MST
          [in-mst (make-vector n #f)]
@@ -291,27 +292,28 @@
                            (loop heap-rest mst-edges)
                            (begin
                              (vector-set! in-mst u #t)
-                             ;; Add edge to MST (except for start node)
+                             ;; Add edge to MST using weight from heap (avoid re-lookup)
                              (let ([new-edges (if (>= from 0)
-                                                  (cons (list from u (matrix-ref adj from u))
-                                                        mst-edges)
+                                                  (cons (list from u w) mst-edges)
                                                   mst-edges)])
-                                  ;; Add neighbors to heap
-                                  (let add-neighbors ([v 0] [h heap-rest])
-                                       (if (= v n)
+                                  ;; Add neighbors - O(degree) instead of O(V)
+                                  (let add-neighbors ([neighbors (adjacency-neighbors-with-weights adj u)]
+                                                      [h heap-rest])
+                                       (if (null? neighbors)
                                            (loop h new-edges)
-                                           (let ([edge-w (matrix-ref adj u v)])
-                                                (if (and (> edge-w 0)
-                                                         (not (vector-ref in-mst v))
-                                                         (< edge-w (vector-ref min-weight v)))
-                                                    (begin
-                                                      (vector-set! min-weight v edge-w)
-                                                      (vector-set! parent v u)
-                                                      (add-neighbors (+ v 1)
-                                                                     (heap-insert-by weight-cmp
-                                                                                     (list edge-w v u)
-                                                                                     h)))
-                                                    (add-neighbors (+ v 1) h)))))))))))))
+                                           (let* ([edge (car neighbors)]
+                                                  [v (car edge)]
+                                                  [edge-w (cdr edge)])
+                                                 (if (and (not (vector-ref in-mst v))
+                                                          (< edge-w (vector-ref min-weight v)))
+                                                     (begin
+                                                       (vector-set! min-weight v edge-w)
+                                                       (vector-set! parent v u)
+                                                       (add-neighbors (cdr neighbors)
+                                                                      (heap-insert-by weight-cmp
+                                                                                      (list edge-w v u)
+                                                                                      h)))
+                                                     (add-neighbors (cdr neighbors) h)))))))))))))
 
 ;;; prim-mst-naive : Matrix × [Nat] → (List Edge)
 ;;; Original O(n²) implementation using linear scan for min extraction.
