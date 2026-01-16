@@ -6,7 +6,7 @@
   (path "lattice/data")
   (purity total)
   (stability stable)
-  (fuel-bound "O(log n) for balanced structures, O(n) for linear, O(n³) for homology")
+  (fuel-bound "O(log n) for balanced structures, O((V+E) log V) for graph algorithms, O(n³) for homology")
   (deps ())  ; Tier 0 - no skill-level deps (graph-algorithms has file-level dep on topology)
 
   (description
@@ -39,6 +39,6 @@
    (graph-algorithms "graph-algorithms.ss" "BFS, DFS, shortest paths, spanning trees, homology")
    (collection-utils "collection-utils.ss" "Higher-order collection operations")
    (pagerank "pagerank.ss" "PageRank importance scoring")
-   (graph-matrix "graph-matrix.ss" "Adjacency matrices, distance algorithms, graph metrics")
+   (graph-matrix "graph-matrix.ss" "Adjacency matrices, Dijkstra O((V+E) log V), Floyd-Warshall, graph metrics")
    (centrality "centrality.ss" "Eigenvector, Katz, closeness, betweenness centrality")
-   (graph-community "graph-community.ss" "Community detection, MST, modularity optimization")))
+   (graph-community "graph-community.ss" "Community detection, Prim MST O((V+E) log V), Kruskal, modularity")))

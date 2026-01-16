@@ -38,7 +38,7 @@ Provides building blocks for higher-level abstractions.")
      - Graph generators: complete, cycle, path, star, bipartite
      - Degree matrices and graph transformations
      - Single-source shortest paths:
-       * dijkstra: O(n²) weighted shortest paths from source
+       * dijkstra: O((V+E) log V) weighted shortest paths (heap-based)
        * dijkstra-path: Reconstruct path from source to target
        * dijkstra-distance: Get distance between two nodes
      - All-pairs shortest paths:
@@ -61,7 +61,7 @@ Provides building blocks for higher-level abstractions.")
    (graph-community.ss "Community detection and spanning tree algorithms:
      - label-propagation: Fast community detection via neighbor label voting
      - modularity: Quality metric for community partitions
-     - prim-mst: O(n^2) minimum spanning tree from adjacency matrix
+     - prim-mst: O((V+E) log V) minimum spanning tree (heap-based)
      - kruskal-mst: O(m log m) MST from edge list with union-find
      - connected-components: BFS-based component labeling
      - is-connected?: Test graph connectivity")))
