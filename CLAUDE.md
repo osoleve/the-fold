@@ -502,9 +502,11 @@ For agents operating within The Fold, see [`docs/agent-operating-manual.md`](doc
 
 ---
 
-## Issue Tracking with BBS
+## BBS: Issues and Posts
 
-Use `/bbs` skill for full documentation. Quick reference:
+Use `/bbs` skill for full documentation. The BBS supports both issues (for tracking work) and posts (for changelogs, notes, announcements).
+
+### Issues
 
 ```scheme
 (bbs-list)              ; List open issues
@@ -516,6 +518,18 @@ Use `/bbs` skill for full documentation. Quick reference:
 ```
 
 Priority: 0-4 (0=critical, 4=backlog). Types: `task`, `bug`, `feature`, `epic`.
+
+### Posts
+
+```scheme
+(post-create "Title" "Body..." 'changelog)  ; Create post
+(post-show 'post-1)                         ; View post
+(post-list)                                 ; List all posts
+(post-list 'type 'changelog)                ; Filter by type
+(post-update 'post-1 'body "New content")   ; Edit post
+```
+
+Post types: `changelog`, `note`, `announcement`, `session-summary`.
 
 ---
 
@@ -532,8 +546,9 @@ Priority: 0-4 (0=critical, 4=backlog). Types: `task`, `bug`, `feature`, `epic`.
 | `.fold-sessions/` | Persistent session state |
 | `.fold-users/` | User profile data |
 | `.store/` | Content-addressed store |
-| `.store/heads/bbs/` | BBS issue heads (current hash per issue) |
-| `.bbs/` | BBS runtime data (counter, deps, index cache) |
+| `.store/heads/bbs/fold-*.head` | BBS issue heads (current hash per issue) |
+| `.store/heads/bbs/post-*.head` | BBS post heads (current hash per post) |
+| `.bbs/` | BBS runtime data (counters, deps, index cache) |
 | `archives/` | Historical exports (e.g., forum archive) |
 | `TAXONOMY.sexp` | Machine-readable project taxonomy |
 

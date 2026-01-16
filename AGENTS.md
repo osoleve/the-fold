@@ -514,9 +514,9 @@ For agents operating within The Fold, see [`docs/agent-operating-manual.md`](doc
 
 ---
 
-## Issue Tracking with BBS
+## BBS: Issues and Posts
 
-This project uses **BBS** (Bulletin Board System), a CAS-native issue tracker built on The Fold's block primitives.
+This project uses **BBS** (Bulletin Board System), a CAS-native system for issue tracking and posts, built on The Fold's block primitives.
 
 ### Initialization
 
@@ -568,6 +568,24 @@ Status: `'open`, `'in_progress`, `'closed`.
 (bbs-history 'fold-001)           ; Show version history
 (bbs-stats)                       ; Database statistics
 ```
+
+### Posts (Changelogs, Notes, Announcements)
+
+Beyond issues, BBS supports general posts for documentation and communication:
+
+```scheme
+(post-create "Title" "Body..." 'changelog)  ; Create post
+(post-show 'post-1)                         ; View post
+(post-list)                                 ; List all posts
+(post-list 'type 'session-summary)          ; Filter by type
+(post-update 'post-1 'body "New content")   ; Edit post
+```
+
+Post types:
+- `'changelog` — Release notes, what changed
+- `'note` — General documentation, thoughts
+- `'announcement` — Important announcements
+- `'session-summary` — Summary of work sessions
 
 ### Pipeline Integration
 

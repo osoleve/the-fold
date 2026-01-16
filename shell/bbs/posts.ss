@@ -19,6 +19,22 @@
 (load "shell/bbs/store.ss")
 
 ;;; ====
+;;; Timestamp Generation
+;;; ====
+
+;;; post-timestamp : -> String
+;;; Generate an ISO 8601 timestamp for now.
+(define (post-timestamp)
+  (let ([t (current-date)])
+    (format "~4,'0d-~2,'0d-~2,'0dT~2,'0d:~2,'0d:~2,'0dZ"
+            (date-year t)
+            (date-month t)
+            (date-day t)
+            (date-hour t)
+            (date-minute t)
+            (date-second t))))
+
+;;; ====
 ;;; Configuration
 ;;; ====
 
@@ -107,7 +123,7 @@
   (let* ([tags (get-keyword-arg args 'tags '())]
          [author (get-keyword-arg args 'author "system")]
          [id (post-next-id!)]
-         [timestamp (bbs-timestamp)]
+         [timestamp (post-timestamp)]
          [blk (make-post-block id title body post-type tags timestamp author 1 #f)]
          [hash (bbs-store! blk)])
     ;; Write head file
@@ -134,29 +150,35 @@
 ;;; Update a post's content.
 ;;;
 ;;; Keyword arguments:
-;;;   'title - New title
-;;;   'body  - New body
-;;;   'tags  - New tags
+;;;   'title       - New title
+;;;   'body        - New body
+;;;   'tags        - New tags
+;;;   'expect-hash - Expected current hash (for OCC)
 (define (post-update id . args)
   (let* ([current-hash (post-read-head id)])
     (unless current-hash
       (error 'post-update "Post not found" id))
-    (let* ([blk (bbs-fetch current-hash)]
-           [data (post-block-data blk)]
-           [new-title (get-keyword-arg args 'title (cdr (assq 'title data)))]
-           [new-body (get-keyword-arg args 'body (cdr (assq 'body data)))]
-           [new-tags (get-keyword-arg args 'tags (cdr (assq 'tags data)))]
-           [version (+ (cdr (assq 'version data)) 1)]
-           [new-blk (make-post-block id new-title new-body
-                                     (cdr (assq 'post-type data))
-                                     new-tags
-                                     (cdr (assq 'created-at data))
-                                     (cdr (assq 'author data))
-                                     version
-                                     current-hash)]
-           [new-hash (bbs-store! new-blk)])
-      (post-write-head! id new-hash)
-      new-hash)))
+    (let ([expect-hash (get-keyword-arg args 'expect-hash #f)])
+      ;; OCC check if expect-hash provided
+      (when (and expect-hash
+                 (not (bytevector=? current-hash expect-hash)))
+        (error 'post-update "Concurrent modification detected" id))
+      (let* ([blk (bbs-fetch current-hash)]
+             [data (post-block-data blk)]
+             [new-title (get-keyword-arg args 'title (cdr (assq 'title data)))]
+             [new-body (get-keyword-arg args 'body (cdr (assq 'body data)))]
+             [new-tags (get-keyword-arg args 'tags (cdr (assq 'tags data)))]
+             [version (+ (cdr (assq 'version data)) 1)]
+             [new-blk (make-post-block id new-title new-body
+                                       (cdr (assq 'post-type data))
+                                       new-tags
+                                       (cdr (assq 'created-at data))
+                                       (cdr (assq 'author data))
+                                       version
+                                       current-hash)]
+             [new-hash (bbs-store! new-blk)])
+        (post-write-head! id new-hash)
+        new-hash))))
 
 ;;; ====
 ;;; Display Functions
