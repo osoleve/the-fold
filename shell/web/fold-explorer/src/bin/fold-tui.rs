@@ -498,7 +498,7 @@ impl App {
                     }
                 }
             }
-            13 => {
+            13 | 10 => {
                 // Enter
                 if let Some(block) = self.blocks.get(self.cursor) {
                     self.view = View::Detail(block.hash.clone());
@@ -582,7 +582,7 @@ impl App {
                     self.cursor -= 1;
                 }
             }
-            13 => {
+            13 | 10 => {
                 // Enter - follow ref
                 if let Ok(block) = self.store.load_block(hash) {
                     if let Some(r) = block.refs.get(self.cursor) {
@@ -614,7 +614,7 @@ impl App {
                     self.cursor -= 1;
                 }
             }
-            13 => {
+            13 | 10 => {
                 if let Some(head) = self.heads.get(self.cursor) {
                     self.view = View::Detail(head.hash.clone());
                     self.cursor = 0;
@@ -631,7 +631,7 @@ impl App {
                 // Escape
                 self.view = View::List;
             }
-            13 => {
+            13 | 10 => {
                 // Enter - execute search
                 let query = self.search_query.clone();
                 self.search(&query);
