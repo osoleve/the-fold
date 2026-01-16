@@ -1,0 +1,36 @@
+[package]
+name = "fold-explorer"
+version = "0.1.0"
+edition = "2021"
+authors = ["The Fold Team"]
+description = "Web server for CAS visualization"
+
+[[bin]]
+name = "fold-explorer"
+path = "src/bin/fold-explorer.rs"
+
+[dependencies]
+# Minimal dependencies - The Fold builds everything in-house
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+panic = "abort"
+
+# Clippy configuration
+[lints.rust]
+unsafe_code = "allow"
+missing_docs = "allow"
+
+[lints.clippy]
+correctness = { level = "deny", priority = -1 }
+style = { level = "warn", priority = -1 }
+complexity = { level = "warn", priority = -1 }
+perf = { level = "warn", priority = -1 }
+pedantic = { level = "allow", priority = -1 }
+nursery = { level = "allow", priority = -1 }
+unwrap_used = "warn"
+expect_used = "warn"
+todo = "warn"
+unimplemented = "warn"
