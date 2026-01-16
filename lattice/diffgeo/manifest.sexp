@@ -1,10 +1,10 @@
 (skill diffgeo
-  (version "0.3.0")
+  (version "0.4.0")
   (tier 1)
   (path "lattice/diffgeo")
   (purity total)
   (stability experimental)
-  (fuel-bound "O(n²) for Jacobian computation, O(k) for atlas operations with k charts")
+  (fuel-bound "O(n⁴) for Riemann tensor, O(n²) for Christoffel symbols, O(k) for atlas operations")
   (deps (linalg))
 
   (description
@@ -13,15 +13,21 @@
     cotangent spaces, pushforward and pullback operations, and tangent/cotangent
     bundles. Includes standard coordinate systems (polar, spherical, cylindrical),
     Lie groups (SO(2), SO(3), SE(2), SE(3)) with exponential/logarithm maps,
-    adjoint representations, and Baker-Campbell-Hausdorff approximations.")
+    adjoint representations, and Baker-Campbell-Hausdorff approximations.
+    Also provides Riemannian metric tensors, Christoffel symbols, Riemann curvature
+    tensor, Ricci tensor, scalar curvature, and surface curvatures (Gaussian, mean,
+    principal) for 2D surfaces embedded in R³.")
 
   (keywords (differential-geometry manifold chart atlas coordinates
              transition-function jacobian polar spherical cylindrical
              tangent-vector cotangent-vector tangent-space cotangent-space
              tangent-bundle cotangent-bundle pushforward pullback differential
              lie-group lie-algebra so2 so3 se2 se3 rotation rigid-transformation
-             exponential-map rodrigues adjoint bch interpolation slerp))
-  (aliases (diffgeom manifolds smooth-manifolds lie-groups))
+             exponential-map rodrigues adjoint bch interpolation slerp
+             curvature metric riemannian christoffel riemann-tensor ricci-tensor
+             scalar-curvature gaussian-curvature mean-curvature principal-curvature
+             surface fundamental-form))
+  (aliases (diffgeom manifolds smooth-manifolds lie-groups riemannian-geometry))
 
   (exports
    (charts
@@ -94,7 +100,26 @@
     ;; Baker-Campbell-Hausdorff
     so3-bracket so3-bch-2 so3-bch-4
     ;; Interpolation
-    so3-interpolate se3-interpolate))
+    so3-interpolate se3-interpolate)
+
+   (curvature
+    ;; Metric tensors
+    metric? metric-chart metric-fn metric-dim make-metric
+    metric-at metric-at-point metric-inverse
+    metric-inner-product metric-norm metric-determinant
+    make-euclidean-metric make-polar-metric make-spherical-metric make-cylindrical-metric
+    ;; Christoffel symbols
+    christoffel-symbols christoffel-ref
+    ;; Curvature tensors
+    riemann-tensor riemann-ref ricci-tensor scalar-curvature sectional-curvature
+    ;; Surfaces
+    surface? surface-param make-surface surface-at
+    first-fundamental-form second-fundamental-form
+    gaussian-curvature mean-curvature principal-curvatures
+    surface-classify classify-point-curvature
+    surface-normal surface-partial-u surface-partial-v
+    ;; Standard surfaces
+    make-sphere-surface make-torus-surface make-paraboloid-surface make-saddle-surface))
 
   (modules
    (charts "charts.ss"
@@ -106,4 +131,9 @@
    (lie-groups "lie-groups.ss"
     "Lie groups (SO(2), SO(3), SE(2), SE(3)) and their Lie algebras. Provides
      exponential/logarithm maps via Rodrigues formula, adjoint representations,
-     Baker-Campbell-Hausdorff approximations, and SLERP interpolation.")))
+     Baker-Campbell-Hausdorff approximations, and SLERP interpolation.")
+   (curvature "curvature.ss"
+    "Riemannian curvature computations. Metric tensors, Christoffel symbols,
+     Riemann curvature tensor, Ricci tensor, scalar curvature, and surface
+     curvatures (Gaussian, mean, principal) with standard surfaces (sphere,
+     torus, paraboloid, saddle).")))
