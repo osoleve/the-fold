@@ -80,16 +80,24 @@ The time-travel debugger lives in `shell/debug/debug-repl.ss`:
 # Full test suite
 scheme --script test-all.ss
 
-# Core tests only
+# Test subsets
+scheme --script test-all.ss quick     # Skip slow tests
+scheme --script test-all.ss core      # Core tests only
+scheme --script test-all.ss shell     # Shell tests only
+
+# Core tests
 scheme --script core/run-tests.ss
 
-# Lattice tests
+# Individual lattice tests
 scheme --script lattice/linalg/test-vec.ss
 scheme --script lattice/info/test-entropy.ss
 scheme --script lattice/physics/diff/test-rollout.ss
 scheme --script lattice/meta/test-meta.ss
 scheme --script lattice/fp/game/test-voting-games.ss
 scheme --script lattice/fp/game/test-coop-games.ss
+scheme --script lattice/fp/clp/test-clp.ss
+scheme --script lattice/statistics/test-statistics.ss
+scheme --script lattice/topology/homology-test.ss
 
 # Shell tests
 scheme --script shell/tests/test-string-utils.ss
@@ -177,8 +185,6 @@ Core defines what The Fold IS — minimal, axiomatic, changes are breaking:
 
 **Type Classes (`core/types/kinds.ss`, `core/types/resolve.ss`):**
 
-The type class system provides ad-hoc polymorphism. Key classes:
-
 | Class | Kind | Methods | Purpose |
 |-------|------|---------|---------|
 | `Eq` | `* → Constraint` | `==`, `/=` | Equality comparison |
@@ -188,39 +194,6 @@ The type class system provides ad-hoc polymorphism. Key classes:
 | `Functor` | `(* → *) → Constraint` | `fmap` | Mappable containers |
 | `Monad` | `(* → *) → Constraint` | `>>=`, `return` | Sequencing with context |
 
-**Pretty Type Class** (`core/util/pretty-class.ss`):
-
-Unlike `Show` (returns flat `String`), `Pretty` returns `Doc` for composable, width-aware layout using the Wadler-Lindig algorithm.
-
-```scheme
-(load "core/util/pretty-class.ss")
-
-;; Render Doc to string
-(pretty-render (nat-pretty 42))           ; => "42"
-(pretty-render-width 40 doc)              ; Custom width
-
-;; Precedence-aware expression printing
-(parens-if (> outer-prec inner-prec) doc) ; Add parens when needed
-(pretty-binop prec op-prec left "+" right) ; Binary operators
-
-;; Precedence levels (higher = tighter binding)
-prec-atom  ; 10 - atoms (tightest)
-prec-mul   ; 7  - multiplication
-prec-add   ; 6  - addition
-prec-top   ; 0  - top level (loosest)
-```
-
-Lattice extensions (`lattice/fp/pretty-instances.ss`):
-
-```scheme
-(load "lattice/fp/pretty-instances.ss")
-
-(pretty-render (vec2-pretty '(vec2 3 4)))       ; => "[3, 4]"
-(pretty-render (complex-pretty '(complex 3 4))) ; => "3 + 4i"
-(pretty-render (expr-pretty '(+ (num 2) (* (num 3) (var x)))))
-                                                ; => "2 + 3 * x"
-```
-
 ### Lattice (Skill DAG)
 
 The lattice is a DAG of verified skills. "Stdlib" = tier 0 (foundational nodes).
@@ -229,7 +202,7 @@ The lattice is a DAG of verified skills. "Stdlib" = tier 0 (foundational nodes).
 | Directory | Purpose |
 |----|----|
 | `linalg/` | Vectors, matrices, decomposition, solvers |
-| `data/` | Data structures, graphs, collections |
+| `data/` | Data structures, graphs, collections, community detection |
 | `algebra/` | Groups, rings, polynomial algebra, Gröbner bases |
 | `random/` | PRNG, distributions |
 
@@ -237,18 +210,21 @@ The lattice is a DAG of verified skills. "Stdlib" = tier 0 (foundational nodes).
 | Directory | Purpose |
 |----|----|
 | `numeric/` | Complex numbers, DFT, signal processing |
-| `geometry/` | Shapes, transforms, raymarching, SDFs |
-| `diffgeo/` | Coordinate charts, atlases, Jacobians, manifold foundations |
+| `geometry/` | Shapes, transforms, raymarching, SDFs, mesh topology |
+| `diffgeo/` | Charts, atlases, Lie groups, Riemannian curvature |
 | `autodiff/` | Reverse-mode AD, computational graphs |
-| `fp/` | Monads, parsers, streams, rewriting |
+| `fp/` | Monads, parsers, streams, protocols, game theory, control systems |
+| `fp/clp/` | Constraint logic programming (cKanren-style CLP(FD)) |
 | `query/` | Query DSL, SQL parser, patterns |
 | `dsl/` | Tagless final, chronicle, staging, template DSL |
 | `info/` | Entropy, coding, information theory |
 | `number-theory/` | Primes, modular arithmetic |
 | `meta/` | Lattice navigation, search, introspection |
-| `topology/` | Simplicial complexes, boundary operators, TDA |
+| `topology/` | Simplicial complexes, homology, Betti numbers |
 | `crypto/` | SHA-512, BLAKE2b, HMAC |
 | `optimization/` | LP, ILP, gradient descent, Newton, L-BFGS |
+| `statistics/` | Regression, GLM, time series, hypothesis testing |
+| `physics/lenses/` | Optics for physics state access |
 
 **Tier 2+ — Advanced:**
 | Directory | Purpose |
@@ -262,7 +238,13 @@ The lattice is a DAG of verified skills. "Stdlib" = tier 0 (foundational nodes).
 | `automata/` | State machines, DFA/NFA |
 | `pipeline/` | Agent workflows, council |
 
-**FP Toolkit (`lattice/fp/`):** Monads, parsers, streams, zippers, game theory (cooperative games, matching theory, Nash equilibrium, voting theory with power indices, fair division with cake cutting and adjusted winner), symbolic math, control systems, rewriting. Use `(li 'fp)` and `(le 'fp)` for details.
+**Key Lattice Subsystems:**
+
+*FP Toolkit (`lattice/fp/`):* Monads, parsers, streams, zippers, game theory (cooperative games, matching theory, Nash equilibrium, voting theory with power indices, fair division), symbolic math, control systems (state-space, Kalman filters, PID, stability analysis), term rewriting. Use `(li 'fp)` and `(le 'fp)` for details.
+
+*Statistics (`lattice/statistics/`):* Linear/GLM regression (IRLS), regularization (ridge, lasso, elastic net), time series (AR, MA, exponential smoothing), hypothesis testing (t-test, F-test, ANOVA, chi-squared). Use `(li 'statistics)` for details.
+
+*CLP(FD) (`lattice/fp/clp/`):* cKanren-style constraint logic programming with finite domains, arithmetic constraints, global constraints (all-different), and intelligent search strategies. Classic problems: N-Queens, Sudoku, cryptarithmetic.
 
 Each lattice skill has a `manifest.sexp` declaring metadata:
 
@@ -283,8 +265,6 @@ Each lattice skill has a `manifest.sexp` declaring metadata:
 ```
 
 **Module System (`core/lang/module.ss`):**
-
-Load modules with dependency resolution:
 
 ```scheme
 (require 'charts)              ; Simple (first-match-wins)
@@ -325,7 +305,7 @@ Use `/lattice-search` skill for full documentation. Quick reference:
 
 ### Shell Subsystems
 
-Shell is organized into functional subdirectories (with backwards-compatible stubs at root):
+Shell is organized into functional subdirectories:
 
 | Directory | Purpose | Key Modules |
 |----|----|----|
@@ -345,12 +325,32 @@ Shell is organized into functional subdirectories (with backwards-compatible stu
 | `introspect/` | System introspection | type-inspect.ss, xref.ss |
 | `pipeline/` | Agent pipelines | workflow integration |
 | `bbs/` | Issue tracker | bbs.ss, ops.ss, index.ss |
-| `tools/` | Utility & refactoring tools | refactor-toolkit.ss, refactor-move.ss, template-*.ss |
+| `tools/` | Utility & refactoring tools | refactor-toolkit.ss, template-*.ss |
 | `lsp/` | Language server protocol | lsp-server.ss, protocol.ss |
 | `web/` | Web tools | fold-tui (Rust CAS terminal explorer) |
 | `tests/` | Shell test suite | test-*.ss files |
 
-Root-level files like `commands.ss` and `validate.ss` remain for shared infrastructure.
+### Open Protocol System
+
+Extensible type dispatch for the Open/Closed Principle (`lattice/fp/protocol.ss`):
+
+```scheme
+(load "lattice/fp/protocol.ss")
+
+;; Define a protocol (generic operation)
+(define-protocol (draw obj ctx) "Draw object to context")
+
+;; Register implementations per type tag
+(implement-protocol! 'draw 'circle
+  (lambda (c ctx) (draw-circle (circle-center c) ctx)))
+(implement-protocol! 'draw 'rectangle
+  (lambda (r ctx) (draw-rect (rect-pos r) ctx)))
+
+;; Use (automatic dispatch via type tag)
+(draw my-circle canvas)  ; calls circle implementation
+```
+
+Objects must be tagged lists: `(list 'type-tag ...)`. Dispatch is O(1) via hashtable.
 
 ### Refactoring Toolkit
 
@@ -385,14 +385,6 @@ Unified interface for codebase refactoring operations (`shell/tools/refactor-too
 
 **Quick aliases:** `rr` (rename), `rm` (move), `rd` (deps), `rdc` (dead-code)
 
-**Move Refactoring Safety Features:**
-- Path validation (rejects absolute paths and `..` traversal)
-- Atomic operations (writes target before modifying source)
-- Backup validation (aborts if file read fails)
-- Skill boundary detection with warnings
-- Cycle detection via `lattice-would-cycle?`
-- Multi-file atomic undo
-
 ### Block Explorer TUI
 
 Terminal UI for exploring the content-addressed store:
@@ -409,34 +401,13 @@ cargo build --release
 ./target/release/fold-tui .store --check
 ```
 
-**Key bindings:**
-| Key | Action |
-|-----|--------|
-| j/k, arrows | Navigate up/down |
-| Enter | View block / follow ref |
-| b, Esc | Go back |
-| / | Search |
-| t | Cycle tag filter |
-| o | Show orphans (unreferenced) |
-| p | Show popular (most referenced) |
-| h | Show heads (named refs) |
-| r | Reset filters |
-| q | Quit |
-
-**Features:**
-- Block list with scrolling, tag filtering, search
-- Block detail view with payload preview and refs
-- Follow refs to traverse the block graph
-- Orphan and popular block analysis
-- Heads (named references) navigation
-
-**Security:** All untrusted content (tags, payloads) sanitized before terminal display to prevent escape sequence injection.
+**Key bindings:** `j/k` navigate, `Enter` view/follow, `b/Esc` back, `/` search, `t` tag filter, `o` orphans, `p` popular, `h` heads, `r` reset, `q` quit.
 
 ### Template DSL (AI Code Generation)
 
 Grammar-driven code construction for building S-expressions without tracking parentheses.
 
-**Batch Mode (Recommended):** Chain template + fills with `---`:
+**Batch Mode (Recommended):**
 
 ```scheme
 (load "shell/tools/template-parser.ss")
@@ -451,33 +422,12 @@ Grammar-driven code construction for building S-expressions without tracking par
   --- $pred := lambda (x) (< x (car lst))
   --- $pred2 := lambda (x) (>= x (car lst))
 ")
-;; → (define (qs lst)
-;;     (if (null? lst)
-;;         '()
-;;         (append (qs (filter (lambda (x) (< x (car lst))) (cdr lst)))
-;;                 (cons (car lst)
-;;                       (qs (filter (lambda (x) (>= x (car lst))) (cdr lst)))))))
-```
-
-**Interactive Mode:** Build incrementally with hole propagation:
-
-```scheme
-(tp-parse "define $sig $body")           ; Start template
-(tp-parse "$sig := factorial n")         ; Fill hole (implicit parens)
-(tp-parse "$body := if $cond $then $else")
-(tp-parse "$cond := = n 0")              ; Implicit parens: (= n 0)
-(tp-parse "$then := 1")
-(tp-parse "$else := * n (factorial (- n 1))")
-(ts-compile)
-;; → (define (factorial n) (if (= n 0) 1 (* n (factorial (- n 1)))))
 ```
 
 **Key concepts:**
 - Holes (`$name`) are non-terminals that get filled incrementally
 - Multi-token statements get implicit parentheses (no outer `()` needed)
 - Batch mode: `tp-batch` chains definitions/fills separated by `---`
-- Filling a hole with a value containing holes propagates those holes
-- Session manager provides undo support
 
 **Files:** `lattice/dsl/template/template.ss` (core), `shell/tools/template-session.ss` (session), `shell/tools/template-parser.ss` (parser)
 
