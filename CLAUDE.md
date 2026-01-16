@@ -345,12 +345,53 @@ Shell is organized into functional subdirectories (with backwards-compatible stu
 | `introspect/` | System introspection | type-inspect.ss, xref.ss |
 | `pipeline/` | Agent pipelines | workflow integration |
 | `bbs/` | Issue tracker | bbs.ss, ops.ss, index.ss |
-| `tools/` | Utility tools | template-session.ss, template-parser.ss |
+| `tools/` | Utility & refactoring tools | refactor-toolkit.ss, refactor-move.ss, template-*.ss |
 | `lsp/` | Language server protocol | lsp-server.ss, protocol.ss |
 | `web/` | Web tools | fold-tui (Rust CAS terminal explorer) |
 | `tests/` | Shell test suite | test-*.ss files |
 
 Root-level files like `commands.ss` and `validate.ss` remain for shared infrastructure.
+
+### Refactoring Toolkit
+
+Unified interface for codebase refactoring operations (`shell/tools/refactor-toolkit.ss`):
+
+```scheme
+(load "shell/tools/refactor-toolkit.ss")
+
+;; Help and discovery
+(refactor 'help)                           ; Show all operations
+
+;; Rename symbols globally
+(refactor 'rename 'old-name 'new-name)     ; Preview rename
+(refactor 'apply)                          ; Apply staged changes
+
+;; Move symbols between modules
+(refactor 'move 'symbol "target-file.ss")  ; Preview move
+(refactor-move-apply!)                     ; Apply staged move
+
+;; Dead code analysis
+(refactor 'dead-code)                      ; Scan entire codebase
+(refactor 'dead-code "lattice/fp")         ; Scan specific path
+
+;; Dependency analysis
+(refactor 'deps 'symbol)                   ; Show callers/callees
+
+;; Change management
+(refactor 'status)                         ; Show pending changes
+(refactor 'undo)                           ; Undo last operation
+(refactor 'clear)                          ; Discard pending changes
+```
+
+**Quick aliases:** `rr` (rename), `rm` (move), `rd` (deps), `rdc` (dead-code)
+
+**Move Refactoring Safety Features:**
+- Path validation (rejects absolute paths and `..` traversal)
+- Atomic operations (writes target before modifying source)
+- Backup validation (aborts if file read fails)
+- Skill boundary detection with warnings
+- Cycle detection via `lattice-would-cycle?`
+- Multi-file atomic undo
 
 ### Block Explorer TUI
 
