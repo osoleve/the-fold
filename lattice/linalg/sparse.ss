@@ -7,12 +7,25 @@
 ;;; - CSR (Compressed Sparse Row): (sparse-csr rows cols row-ptrs col-indices values)
 ;;; - CSC (Compressed Sparse Column): (sparse-csc rows cols col-ptrs row-indices values)
 ;;;
+;;; Floating-point tolerance:
+;;; - *sparse-epsilon* controls threshold for treating values as zero
+;;; - Operations drop values |v| < epsilon to prevent fill-in from FP errors
+;;; - Use (sparse-drop-below tol m) to clean up after untolerated operations
+;;;
 ;;; This is Core code: pure, total, assumes reasonable input.
 ;;;
 ;;; Dependencies:
 ;;;   - prelude.ss
 ;;;   - vec.ss
 ;;;   - matrix.ss
+
+;;; ====
+;;; Floating-Point Tolerance
+;;; ====
+
+;;; Default tolerance for sparse operations.
+;;; Values with |v| < *sparse-epsilon* are treated as zero.
+(define *sparse-epsilon* 1e-15)
 
 ;;; ====
 ;;; COO (Coordinate) Format
@@ -556,11 +569,13 @@
            `(error dimension-mismatch (,ra ,ca) (,rb ,cb))
            (sparse-coo-add-impl a b))))
 
-;;; sparse-coo-add-impl : SparseCOO × SparseCOO → SparseCOO
+;;; sparse-coo-add-impl : SparseCOO × SparseCOO × [Num] → SparseCOO
 ;;; Internal: assumes dimensions match. Uses sparse hash table accumulator.
+;;; Drops values with |v| < epsilon to prevent floating-point fill-in.
 ;;; Complexity: O(nnz_a + nnz_b) space and time.
-(define (sparse-coo-add-impl a b)
-  (let* ([rows (sparse-coo-rows a)]
+(define (sparse-coo-add-impl a b . eps-arg)
+  (let* ([eps (if (null? eps-arg) *sparse-epsilon* (car eps-arg))]
+         [rows (sparse-coo-rows a)]
          [cols (sparse-coo-cols a)]
          ;; Use hash table for sparse accumulation (key = row*cols+col)
          [acc (make-hashtable equal-hash equal?)])
@@ -588,15 +603,15 @@
                         [key (cons i j)]
                         [old (hashtable-ref acc key 0)])
                        (hashtable-set! acc key (+ old (vector-ref vals k))))))
-        ;; Extract non-zeros from hash table
+        ;; Extract non-zeros from hash table (using tolerance)
         (let-values ([(keys values) (hashtable-entries acc)])
                     (let* ([n (vector-length keys)]
-                           ;; Filter out zeros and collect triplets
+                           ;; Filter out near-zeros and collect triplets
                            [triplets (let loop ([k 0] [result '()])
                                           (if (= k n)
                                               result
                                               (let ([v (vector-ref values k)])
-                                                   (if (= v 0)
+                                                   (if (< (abs v) eps)
                                                        (loop (+ k 1) result)
                                                        (let ([key (vector-ref keys k)])
                                                             (loop (+ k 1)
@@ -657,12 +672,14 @@
 ;;; Sparse Matrix-Matrix Multiplication
 ;;; ====
 
-;;; sparse-csr-mul : SparseCSR × SparseCSR → SparseCSR | Error
+;;; sparse-csr-mul : SparseCSR × SparseCSR × [Num] → SparseCSR | Error
 ;;; C = A * B where A is m×k and B is k×n.
 ;;; Uses sparse row accumulator (hash table) for each output row.
+;;; Drops values with |v| < epsilon to prevent floating-point fill-in.
 ;;; Complexity: O(nnz_a * avg_nnz_per_row_b) time, O(max_nnz_per_output_row) space.
-(define (sparse-csr-mul a b)
-  (let ([ma (sparse-csr-rows a)] [ka (sparse-csr-cols a)]
+(define (sparse-csr-mul a b . eps-arg)
+  (let ([eps (if (null? eps-arg) *sparse-epsilon* (car eps-arg))]
+        [ma (sparse-csr-rows a)] [ka (sparse-csr-cols a)]
         [kb (sparse-csr-rows b)] [nb (sparse-csr-cols b)])
        (if (not (= ka kb))
            `(error dimension-mismatch (,ma ,ka) (,kb ,nb))
@@ -696,7 +713,7 @@
                                                           [b-kj (vector-ref b-vals bk)]
                                                           [old (hashtable-ref row-acc j 0)])
                                                          (hashtable-set! row-acc j (+ old (* a-ik b-kj))))))))
-                                 ;; Extract non-zeros from row accumulator
+                                 ;; Extract non-zeros from row accumulator (using tolerance)
                                  (let-values ([(cols vals) (hashtable-entries row-acc)])
                                              (let* ([n (vector-length cols)]
                                                     [row-triplets
@@ -704,7 +721,7 @@
                                                           (if (= k n)
                                                               result
                                                               (let ([v (vector-ref vals k)])
-                                                                   (if (= v 0)
+                                                                   (if (< (abs v) eps)
                                                                        (loop (+ k 1) result)
                                                                        (loop (+ k 1)
                                                                              (cons (list i (vector-ref cols k) v)
@@ -830,3 +847,88 @@
           ;; CSC: 2*nnz + cols+1 values
           (/ (+ (* 2 nnz) cols 1) dense-size)]
          [else 1])))
+
+;;; ====
+;;; Tolerance-Aware Operations
+;;; ====
+
+;;; sparse-drop-below : Num × SparseCOO → SparseCOO
+;;; Drop all entries with |value| < tolerance.
+;;; Useful for cleaning up after operations that don't use tolerance.
+(define (sparse-coo-drop-below tol coo)
+  (let* ([rows (sparse-coo-rows coo)]
+         [cols (sparse-coo-cols coo)]
+         [row-idx (sparse-coo-row-indices coo)]
+         [col-idx (sparse-coo-col-indices coo)]
+         [vals (sparse-coo-values coo)]
+         [nnz (sparse-coo-nnz coo)]
+         ;; First pass: count entries to keep
+         [keep-count (let loop ([k 0] [count 0])
+                          (if (= k nnz)
+                              count
+                              (loop (+ k 1)
+                                    (if (>= (abs (vector-ref vals k)) tol)
+                                        (+ count 1)
+                                        count))))]
+         [new-rows (make-vector keep-count 0)]
+         [new-cols (make-vector keep-count 0)]
+         [new-vals (make-vector keep-count 0)])
+        ;; Second pass: copy entries to keep
+        (let loop ([k 0] [j 0])
+             (if (= k nnz)
+                 (make-sparse-coo rows cols new-rows new-cols new-vals)
+                 (let ([v (vector-ref vals k)])
+                      (if (>= (abs v) tol)
+                          (begin
+                           (vector-set! new-rows j (vector-ref row-idx k))
+                           (vector-set! new-cols j (vector-ref col-idx k))
+                           (vector-set! new-vals j v)
+                           (loop (+ k 1) (+ j 1)))
+                          (loop (+ k 1) j)))))))
+
+;;; sparse-csr-drop-below : Num × SparseCSR → SparseCSR
+;;; Drop all entries with |value| < tolerance from CSR matrix.
+(define (sparse-csr-drop-below tol csr)
+  (coo->csr (sparse-coo-drop-below tol (csr->coo csr))))
+
+;;; sparse-csc-drop-below : Num × SparseCSC → SparseCSC
+;;; Drop all entries with |value| < tolerance from CSC matrix.
+(define (sparse-csc-drop-below tol csc)
+  (coo->csc (sparse-coo-drop-below tol (csc->coo csc))))
+
+;;; sparse-approx-equal? : Sparse × Sparse × [Num] → Boolean
+;;; Check if two sparse matrices are approximately equal within tolerance.
+;;; Compares structure and values.
+(define (sparse-approx-equal? a b . tol-arg)
+  (let ([tol (if (null? tol-arg) *sparse-epsilon* (car tol-arg))])
+    (cond
+      ;; Different formats: convert both to COO and compare
+      [(and (sparse-csr? a) (sparse-csr? b))
+       (sparse-coo-approx-equal? (csr->coo a) (csr->coo b) tol)]
+      [(and (sparse-csc? a) (sparse-csc? b))
+       (sparse-coo-approx-equal? (csc->coo a) (csc->coo b) tol)]
+      [(and (sparse-coo? a) (sparse-coo? b))
+       (sparse-coo-approx-equal? a b tol)]
+      [else
+       ;; Mixed formats: convert to COO
+       (let ([coo-a (cond [(sparse-csr? a) (csr->coo a)]
+                          [(sparse-csc? a) (csc->coo a)]
+                          [else a])]
+             [coo-b (cond [(sparse-csr? b) (csr->coo b)]
+                          [(sparse-csc? b) (csc->coo b)]
+                          [else b])])
+         (sparse-coo-approx-equal? coo-a coo-b tol))])))
+
+;;; sparse-coo-approx-equal? : SparseCOO × SparseCOO × Num → Boolean
+;;; Check if two COO matrices are approximately equal.
+(define (sparse-coo-approx-equal? a b tol)
+  (and (= (sparse-coo-rows a) (sparse-coo-rows b))
+       (= (sparse-coo-cols a) (sparse-coo-cols b))
+       ;; Compute A - B and check if all entries are below tolerance
+       (let* ([diff (sparse-coo-add-impl a (sparse-coo-scale -1 b) 0)]  ; No filtering
+              [diff-vals (sparse-coo-values diff)]
+              [nnz (sparse-coo-nnz diff)])
+         (let loop ([k 0])
+           (or (= k nnz)
+               (and (< (abs (vector-ref diff-vals k)) tol)
+                    (loop (+ k 1))))))))

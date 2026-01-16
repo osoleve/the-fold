@@ -458,6 +458,63 @@
       (test "Single element: zero" 0 (sparse-csr-ref csr 0 0)))
 
 ;;; ====
+;;; Floating-Point Tolerance Tests
+;;; ====
+
+(printf "~n--- Floating-Point Tolerance ---~n")
+
+;; Test: *sparse-epsilon* is defined
+(test "sparse-epsilon defined" #t (number? *sparse-epsilon*))
+
+;; Test: drop-below removes small values
+(let* ([coo (sparse-coo-from-triplets 3 3 '((0 0 1.0) (0 1 1e-16) (1 1 2.0) (2 2 1e-20)))]
+       [cleaned (sparse-coo-drop-below 1e-14 coo)])
+      (test "drop-below: removes tiny values" 2 (sparse-coo-nnz cleaned))
+      (test "drop-below: keeps (0,0)" 1.0 (sparse-coo-ref cleaned 0 0))
+      (test "drop-below: keeps (1,1)" 2.0 (sparse-coo-ref cleaned 1 1)))
+
+;; Test: addition with tolerance handles near-zero results
+(let* ([a (sparse-coo-from-triplets 2 2 '((0 0 1.0) (1 1 0.1)))]
+       [b (sparse-coo-from-triplets 2 2 '((0 0 -1.0) (1 1 -0.1)))]
+       [sum (sparse-coo-add a b)])
+      ;; With tolerance, 1.0 + (-1.0) = 0 should be dropped
+      (test "add with tolerance: cancellation" 0 (sparse-coo-nnz sum)))
+
+;; Test: floating-point error case (classic 0.1 + 0.2 - 0.3 problem)
+(let* ([a (sparse-coo-from-triplets 1 1 '((0 0 0.1)))]
+       [b (sparse-coo-from-triplets 1 1 '((0 0 0.2)))]
+       [c (sparse-coo-from-triplets 1 1 '((0 0 -0.3)))]
+       [sum1 (sparse-coo-add a b)]
+       [sum2 (sparse-coo-add sum1 c)])
+      ;; 0.1 + 0.2 - 0.3 is ~5.5e-17, should be dropped with default tolerance
+      (test "FP tolerance: 0.1+0.2-0.3 cleaned" 0 (sparse-coo-nnz sum2)))
+
+;; Test: CSR drop-below
+(let* ([coo (sparse-coo-from-triplets 2 2 '((0 0 5.0) (0 1 1e-17) (1 1 3.0)))]
+       [csr (coo->csr coo)]
+       [cleaned (sparse-csr-drop-below 1e-15 csr)])
+      (test "CSR drop-below: nnz" 2 (sparse-csr-nnz cleaned)))
+
+;; Test: multiplication with tolerance
+(let* ([a (sparse-coo-from-triplets 2 2 '((0 0 1e-8) (1 1 1.0)))]
+       [b (sparse-coo-from-triplets 2 2 '((0 0 1e-8) (1 1 1.0)))]
+       [csr-a (coo->csr a)]
+       [csr-b (coo->csr b)]
+       [c (sparse-csr-mul csr-a csr-b)])
+      ;; (1e-8)^2 = 1e-16 should be dropped
+      (test "CSR mul with tolerance: drops tiny products" 1 (sparse-csr-nnz c)))
+
+;; Test: approx-equal for similar matrices
+(let* ([a (sparse-coo-from-triplets 2 2 '((0 0 1.0) (1 1 2.0)))]
+       [b (sparse-coo-from-triplets 2 2 '((0 0 1.0000000001) (1 1 1.9999999999)))])
+      (test "approx-equal: similar matrices" #t (sparse-approx-equal? a b 1e-8)))
+
+;; Test: approx-equal for different matrices
+(let* ([a (sparse-coo-from-triplets 2 2 '((0 0 1.0)))]
+       [b (sparse-coo-from-triplets 2 2 '((0 0 2.0)))])
+      (test "approx-equal: different matrices" #f (sparse-approx-equal? a b 1e-8)))
+
+;;; ====
 ;;; Summary
 ;;; ====
 
