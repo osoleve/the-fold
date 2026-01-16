@@ -1,5 +1,5 @@
 (skill diffgeo
-  (version "0.2.0")
+  (version "0.3.0")
   (tier 1)
   (path "lattice/diffgeo")
   (purity total)
@@ -11,14 +11,17 @@
    "Differential geometry foundations for smooth manifolds. Provides coordinate
     charts, atlases, transition functions, Jacobian computation, tangent and
     cotangent spaces, pushforward and pullback operations, and tangent/cotangent
-    bundles. Includes standard coordinate systems (polar, spherical, cylindrical)
-    and tools for manifold representation.")
+    bundles. Includes standard coordinate systems (polar, spherical, cylindrical),
+    Lie groups (SO(2), SO(3), SE(2), SE(3)) with exponential/logarithm maps,
+    adjoint representations, and Baker-Campbell-Hausdorff approximations.")
 
   (keywords (differential-geometry manifold chart atlas coordinates
              transition-function jacobian polar spherical cylindrical
              tangent-vector cotangent-vector tangent-space cotangent-space
-             tangent-bundle cotangent-bundle pushforward pullback differential))
-  (aliases (diffgeom manifolds smooth-manifolds))
+             tangent-bundle cotangent-bundle pushforward pullback differential
+             lie-group lie-algebra so2 so3 se2 se3 rotation rigid-transformation
+             exponential-map rodrigues adjoint bch interpolation slerp))
+  (aliases (diffgeom manifolds smooth-manifolds lie-groups))
 
   (exports
    (charts
@@ -60,7 +63,38 @@
     ;; Differential
     differential
     ;; Lie bracket
-    lie-bracket lie-bracket-field))
+    lie-bracket lie-bracket-field)
+
+   (lie-groups
+    ;; Constants/utilities
+    identity-matrix matrix-set! matrix-trace skew-symmetric?
+    ;; SO(2) - 2D rotations
+    so2? so2-matrix make-so2 so2-identity so2-angle
+    so2-compose so2-inverse so2-act
+    so2-alg? so2-alg-omega make-so2-alg so2-alg-to-matrix so2-matrix-to-alg
+    so2-exp so2-log
+    ;; SO(3) - 3D rotations
+    so3? so3-matrix make-so3-from-matrix make-so3 so3-identity
+    so3-compose so3-inverse so3-act
+    so3-alg? so3-alg-vec make-so3-alg so3-hat so3-vee
+    so3-alg-to-matrix so3-matrix-to-alg so3-exp so3-log so3-axis-angle
+    ;; SE(2) - 2D rigid transformations
+    se2? se2-rotation se2-translation make-se2 make-se2-from-angle
+    se2-identity se2-to-matrix matrix-to-se2
+    se2-compose se2-inverse se2-act
+    se2-alg? se2-alg-omega se2-alg-v make-se2-alg se2-alg-to-matrix
+    se2-exp se2-log
+    ;; SE(3) - 3D rigid transformations
+    se3? se3-rotation se3-translation make-se3 se3-identity
+    se3-to-matrix matrix-to-se3 se3-compose se3-inverse se3-act
+    se3-alg? se3-alg-omega se3-alg-v make-se3-alg se3-alg-to-matrix
+    se3-exp se3-log
+    ;; Adjoint representation
+    so3-adjoint se3-adjoint vec-cross
+    ;; Baker-Campbell-Hausdorff
+    so3-bracket so3-bch-2 so3-bch-4
+    ;; Interpolation
+    so3-interpolate se3-interpolate))
 
   (modules
    (charts "charts.ss"
@@ -68,4 +102,8 @@
      Foundation for smooth manifold representation.")
    (tangent "tangent.ss"
     "Tangent and cotangent spaces, vectors, pushforward/pullback operations,
-     and bundle constructions. Foundation for vector fields and differential forms.")))
+     and bundle constructions. Foundation for vector fields and differential forms.")
+   (lie-groups "lie-groups.ss"
+    "Lie groups (SO(2), SO(3), SE(2), SE(3)) and their Lie algebras. Provides
+     exponential/logarithm maps via Rodrigues formula, adjoint representations,
+     Baker-Campbell-Hausdorff approximations, and SLERP interpolation.")))
