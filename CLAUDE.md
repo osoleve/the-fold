@@ -12,19 +12,6 @@ Repository: `git@github.com:osoleve/the-fold`
 
 ---
 
-## First Step: Start the REPL Daemon
-
-**Before doing ANYTHING else:**
-
-```bash
-./daemon.sh status   # Verify running
-./daemon.sh start    # Start persistent REPL if needed
-```
-
-The daemon is **essential** — state is lost between Bash invocations without it.
-
----
-
 ## Interacting with The Fold
 
 ### Using ./fold (Recommended)
@@ -34,17 +21,18 @@ The daemon is **essential** — state is lost between Bash invocations without i
 ./fold "bye"                       # Single-token commands work: becomes (bye)
 ./fold -s dev "define x 10"        # Named session with -s flag
 ./fold -s dev "x"                  # Retrieve value from session
-./fold script.ss                   # Run script file
+./fold --status                    # Check if daemon is running
 ```
 
 **Key features:**
+- **Auto-starts daemon** if not running (disable with `--no-auto-start`)
 - Implicit outer parentheses: `"+ 1 2"` becomes `(+ 1 2)` automatically
 - Single-token symbols auto-wrap: `"bye"` becomes `(bye)`
 - Literals stay unwrapped: `"42"` stays `42`, `"'(a b)"` stays `'(a b)`
 - Short session flag: `-s` instead of `--session`
-- Auto-sessions: Omit `-s` for ephemeral sessions
+- Colorized errors (disable with `NO_COLOR=1`)
 
-Returns JSON output with status, result, output, and any errors.
+Returns result on stdout, errors to stderr with exit codes: 0=success, 1=error, 2=timeout.
 
 ### Session Cleanup
 
@@ -553,17 +541,22 @@ Priority: 0-4 (0=critical, 4=backlog). Types: `task`, `bug`, `feature`, `epic`.
 
 ## Troubleshooting
 
+**Check daemon status:**
+```bash
+./fold --status      # Quick check
+```
+
 **Daemon won't start:**
 ```bash
 ./daemon.sh stop     # Clear stale state
 ./daemon.sh cleanup  # Kill orphan workers
-./daemon.sh start
+./daemon.sh start    # Or just run ./fold - it auto-starts
 ```
 
 **Session state corruption:**
 ```bash
 rm -rf .fold-repl/   # Nuclear option
-./daemon.sh start
+./fold "(help)"      # Auto-starts fresh daemon
 ```
 
 **Tests hanging:** Check fuel consumption. Infinite loops exhaust fuel and return `out-of-fuel` error.
@@ -572,7 +565,7 @@ rm -rf .fold-repl/   # Nuclear option
 
 ## Critical Reminders
 
-1. **Always use the daemon** — State doesn't persist between Bash calls otherwise
+1. **Use `./fold` for REPL interaction** — It auto-starts the daemon and handles sessions
 2. **Load from project root** — All `(load ...)` paths are relative to `/home/oso/the-fold`
 3. **Land the Plane** — A session is NOT complete until work is committed and pushed
 4. **Maintain The Fold**
