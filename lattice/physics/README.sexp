@@ -13,6 +13,15 @@
     "- Educational demonstrations")
 
   (subdirectories
+    (lenses "Functional optics for physics state access"
+      (features
+        "Lens-based getters and setters for bodies and particles"
+        "Composable lenses for deep nested access"
+        "Generic body-pos-lens works with any body type"
+        "Convenient (body. pos x) dot notation macro"
+        "Integration utilities for lens-based physics updates"
+        "Satisfies lens laws (Get-Put, Put-Get, Put-Put)"))
+
     (classical "2D rigid body physics with collision detection and response"
       (features
         "Multiple integration methods (Euler, Verlet, RK4)"
@@ -84,7 +93,8 @@
     (linalg/vec3.ss "3D vector math")
     (linalg/mat3.ss "3x3 matrices for inertia")
     (linalg/quaternion.ss "Quaternion math for 3D rotation")
-    (autodiff/reverse-diff.ss "For differentiable physics"))
+    (autodiff/reverse-diff.ss "For differentiable physics")
+    (fp/templates.ss "Lens infrastructure for physics/lenses"))
 
   (test-command "scheme --script lattice/physics/classical/test-physics.ss")
 

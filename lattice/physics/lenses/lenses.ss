@@ -215,11 +215,22 @@
 (define particle-vel-y-lens
   (lens-compose particle-vel-lens vec2-y-lens))
 
+;;; particle-mass-lens : Lens Particle Number
+;;; Virtual lens: particles have implicit unit mass (1.0).
+;;; Getter always returns 1.0, setter is a no-op (mass is conceptual).
+;;; This enables polymorphic use with apply-force-via-lens.
+(define particle-mass-lens
+  (make-lens
+   (lambda (p) 1.0)            ; Particles have implicit mass of 1.0
+   (lambda (new-m p) p)))      ; No-op: cannot change implicit mass
+
 ;;; ====
 ;;; Generic Body Lenses (Work with any body type)
 ;;; ====
 
 ;;; These use dispatch to work with rigid-body, particle, or traced-body.
+;;; NOTE: This is a closed dispatch (adding new body types requires modifying
+;;; this file). An open protocol could be added in the future if needed.
 
 ;;; body-pos : Any -> Vec2
 ;;; Generic position accessor.
@@ -259,25 +270,57 @@
       [(particle? b) (particle-with-vel b new-vel)]
       [else (error 'body-vel-lens "Unknown body type" b)]))))
 
+;;; body-mass : Any -> Number
+;;; Generic mass accessor. Particles have implicit mass of 1.0.
+(define (body-mass b)
+  (cond
+   [(rigid-body? b) (rigid-body-mass b)]
+   [(particle? b) 1.0]  ; Particles have implicit unit mass
+   [else (error 'body-mass "Unknown body type" b)]))
+
+;;; body-mass-lens : Lens Body Number
+;;; Generic lens for body mass. Particles have implicit mass 1.0 (read-only).
+(define body-mass-lens
+  (make-lens
+   body-mass
+   (lambda (new-mass b)
+     (cond
+      [(rigid-body? b)
+       (make-rigid-body (rigid-body-pos b)
+                        (rigid-body-vel b)
+                        (rigid-body-angle b)
+                        (rigid-body-angular-vel b)
+                        new-mass
+                        (rigid-body-inertia b))]
+      [(particle? b) b]  ; Particles: mass is implicit, ignore set
+      [else (error 'body-mass-lens "Unknown body type" b)]))))
+
 ;;; ====
 ;;; Dot Notation Macro
 ;;; ====
 
 ;;; body. : Symbol ... -> Lens
 ;;; Convenience macro for composing physics lenses using dot notation.
-;;; (body. pos x) => (lens-compose rigid-body-pos-lens vec2-x-lens)
+;;; (body. pos x) => (lens-compose body-pos-lens vec2-x-lens)
 ;;;
-;;; Supported paths:
+;;; Supported paths (generic - work with rigid-body and particle):
 ;;;   (body. pos)       -> body-pos-lens
 ;;;   (body. vel)       -> body-vel-lens
+;;;   (body. mass)      -> body-mass-lens (particles: implicit 1.0)
 ;;;   (body. pos x)     -> (lens-compose body-pos-lens vec2-x-lens)
 ;;;   (body. pos y)     -> (lens-compose body-pos-lens vec2-y-lens)
 ;;;   (body. vel x)     -> (lens-compose body-vel-lens vec2-x-lens)
 ;;;   (body. vel y)     -> (lens-compose body-vel-lens vec2-y-lens)
+;;;
+;;; Rigid-body specific:
 ;;;   (body. angle)     -> rigid-body-angle-lens
 ;;;   (body. angular-vel) -> rigid-body-angular-vel-lens
-;;;   (body. mass)      -> rigid-body-mass-lens
 ;;;   (body. inertia)   -> rigid-body-inertia-lens
+;;;
+;;; Particle specific:
+;;;   (body. lifetime)  -> particle-lifetime-lens
+;;;   (body. size)      -> particle-size-lens
+;;;   (body. color)     -> particle-color-lens
 
 (define-syntax body.
   (syntax-rules (pos vel x y angle angular-vel mass inertia lifetime size color)
@@ -289,10 +332,11 @@
     [(body. vel) body-vel-lens]
     [(body. vel x) (lens-compose body-vel-lens vec2-x-lens)]
     [(body. vel y) (lens-compose body-vel-lens vec2-y-lens)]
+    ;; Generic (works with both rigid-body and particle)
+    [(body. mass) body-mass-lens]
     ;; RigidBody-specific
     [(body. angle) rigid-body-angle-lens]
     [(body. angular-vel) rigid-body-angular-vel-lens]
-    [(body. mass) rigid-body-mass-lens]
     [(body. inertia) rigid-body-inertia-lens]
     ;; Particle-specific
     [(body. lifetime) particle-lifetime-lens]
@@ -325,7 +369,7 @@
 ;;; The issue mentioned: position-lens, velocity-lens, mass-lens, rotation-lens
 (define position-lens body-pos-lens)
 (define velocity-lens body-vel-lens)
-(define mass-lens rigid-body-mass-lens)
+(define mass-lens body-mass-lens)  ; Generic: works with rigid-body and particle
 (define rotation-lens rigid-body-angle-lens)
 
 ;;; ====
@@ -337,8 +381,8 @@
 (display "  RigidBody:   rigid-body-pos-lens, rigid-body-vel-lens\n")
 (display "               rigid-body-angle-lens, rigid-body-angular-vel-lens\n")
 (display "               rigid-body-mass-lens, rigid-body-inertia-lens\n")
-(display "  Particle:    particle-pos-lens, particle-vel-lens\n")
+(display "  Particle:    particle-pos-lens, particle-vel-lens, particle-mass-lens\n")
 (display "               particle-lifetime-lens, particle-size-lens\n")
-(display "  Generic:     body-pos-lens, body-vel-lens\n")
+(display "  Generic:     body-pos-lens, body-vel-lens, body-mass-lens\n")
 (display "  Aliases:     position-lens, velocity-lens, mass-lens, rotation-lens\n")
-(display "  Dot syntax:  (body. pos x), (body. vel y), etc.\n")
+(display "  Dot syntax:  (body. pos x), (body. vel y), (body. mass), etc.\n")

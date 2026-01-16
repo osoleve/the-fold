@@ -217,7 +217,32 @@
            [pos (particle-pos new-p)])
       (assert-true (particle? new-p))
       (assert-equal 50 (vec2-x pos))
-      (assert-equal 60 (vec2-y pos)))))
+      (assert-equal 60 (vec2-y pos))))
+
+  (define-test "body-mass-lens works on rigid-body"
+    (assert-equal 5.0 (view body-mass-lens test-body)))
+
+  (define-test "body-mass-lens works on particle (implicit 1.0)"
+    (assert-equal 1.0 (view body-mass-lens test-particle)))
+
+  (define-test "body-mass-lens set on rigid-body"
+    (let ([new-body (set-lens body-mass-lens 10.0 test-body)])
+      (assert-equal 10.0 (rigid-body-mass new-body))
+      ;; inv-mass should be recalculated
+      (assert-equal 0.1 (rigid-body-inv-mass new-body))))
+
+  (define-test "body-mass-lens set on particle is no-op"
+    ;; Setting mass on particle should return same particle
+    (let ([new-p (set-lens body-mass-lens 999 test-particle)])
+      (assert-equal 1.0 (view body-mass-lens new-p))))
+
+  (define-test "particle-mass-lens view"
+    (assert-equal 1.0 (view particle-mass-lens test-particle)))
+
+  (define-test "particle-mass-lens set is no-op"
+    ;; Setting mass on particle via particle-mass-lens should return same particle
+    (assert-equal 1.0 (view particle-mass-lens
+                            (set-lens particle-mass-lens 999 test-particle)))))
 
 ;;; ====
 ;;; Dot Notation Tests

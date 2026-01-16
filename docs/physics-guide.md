@@ -328,6 +328,128 @@ For optimization and learning:
   100))           ; optimization iterations
 ```
 
+## Physics Lenses
+
+Lenses provide functional optics for accessing and modifying physics state.
+Instead of manual getter/setter calls, compose lenses for elegant deep access.
+
+### Why Lenses?
+
+```scheme
+;; Without lenses - verbose nested access
+(let* ([pos (rigid-body-pos body)]
+       [new-x (+ (vec2-x pos) 10)]
+       [new-pos (vec2 new-x (vec2-y pos))])
+  (rigid-body-with-pos body new-pos))
+
+;; With lenses - concise and composable
+(over rigid-body-pos-x-lens (lambda (x) (+ x 10)) body)
+
+;; Or with dot notation
+(over (body. pos x) (lambda (x) (+ x 10)) body)
+```
+
+### Loading
+
+```scheme
+(load "lattice/physics/lenses/lenses.ss")
+```
+
+### Basic Operations
+
+```scheme
+;; View (get) through a lens
+(view rigid-body-pos-lens body)        ; -> Vec2
+(view rigid-body-pos-x-lens body)      ; -> Number
+(view (body. vel y) body)              ; -> Number
+
+;; Set through a lens
+(set-lens rigid-body-vel-lens (vec2 1 0) body)
+(set-lens particle-color-lens 'blue particle)
+
+;; Over (modify) through a lens
+(over rigid-body-angle-lens (lambda (a) (+ a 0.1)) body)
+(over particle-lifetime-lens (lambda (t) (- t dt)) particle)
+```
+
+### Available Lenses
+
+**Vec2 Component Lenses:**
+- `vec2-x-lens`, `vec2-y-lens`
+
+**RigidBody Lenses:**
+- `rigid-body-pos-lens`, `rigid-body-vel-lens`
+- `rigid-body-angle-lens`, `rigid-body-angular-vel-lens`
+- `rigid-body-mass-lens`, `rigid-body-inertia-lens`
+- Pre-composed: `rigid-body-pos-x-lens`, `rigid-body-pos-y-lens`, etc.
+
+**Particle Lenses:**
+- `particle-pos-lens`, `particle-vel-lens`
+- `particle-lifetime-lens`, `particle-size-lens`, `particle-color-lens`
+
+**Generic Lenses (work with any body type):**
+- `body-pos-lens`, `body-vel-lens`
+- `position-lens`, `velocity-lens` (aliases)
+- `mass-lens`, `rotation-lens` (aliases)
+
+### Lens Composition
+
+Compose lenses for nested access:
+
+```scheme
+;; Manual composition
+(define body-pos-x (lens-compose rigid-body-pos-lens vec2-x-lens))
+(view body-pos-x body)  ; -> x position
+
+;; Dot notation (macro)
+(view (body. pos x) body)      ; equivalent
+(view (body. vel y) body)      ; y velocity
+(view (body. angle) body)      ; rotation
+(view (body. lifetime) particle)  ; particle lifetime
+```
+
+### Lens-based Physics Updates
+
+Utility functions for common physics operations:
+
+```scheme
+;; Apply force using lenses
+(apply-force-via-lens rigid-body-vel-lens rigid-body-mass-lens
+                      force dt body)
+
+;; Euler integration via lenses
+(integrate-position-via-lens rigid-body-pos-lens rigid-body-vel-lens
+                             dt body)
+```
+
+### Example: Gravity System
+
+```scheme
+(define gravity (vec2 0 9.8))
+
+(define (apply-gravity body dt)
+  (over rigid-body-vel-lens
+        (lambda (v) (vec2-add v (vec2-scale gravity dt)))
+        body))
+
+;; Or using the utility
+(define (apply-gravity body dt)
+  (apply-force-via-lens
+    rigid-body-vel-lens
+    rigid-body-mass-lens
+    (vec2-scale gravity (rigid-body-mass body))  ; F = m*g
+    dt
+    body))
+```
+
+### Lens Laws
+
+All lenses satisfy the three lens laws, ensuring predictable behavior:
+
+1. **Get-Put**: `(set-lens l (view l s) s) = s`
+2. **Put-Get**: `(view l (set-lens l a s)) = a`
+3. **Put-Put**: `(set-lens l a' (set-lens l a s)) = (set-lens l a' s)`
+
 ## 3D Physics
 
 The 3D physics module mirrors the 2D API:
@@ -387,3 +509,4 @@ Individual test files:
 | `constraints.ss` | Joint types |
 | `raycasting.ss` | Ray queries |
 | `particles.ss` | Particle emitters |
+| `lenses/lenses.ss` | Functional optics for state access |
