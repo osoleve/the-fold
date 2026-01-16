@@ -138,6 +138,9 @@
     interval-recip interval-div interval-scale
     ;; Elementary functions
     interval-abs interval-sqrt interval-pow interval-min interval-max
+    interval-exp interval-log interval-sin interval-cos interval-tan
+    interval-asin interval-acos interval-atan
+    interval-sinh interval-cosh interval-tanh
     ;; Set operations
     interval-union interval-hull interval-hull-list interval-intersection interval-bisect
     ;; Coercion
@@ -184,6 +187,7 @@
    (interval "interval.ss"
     "Interval arithmetic for verified numerical computation. Represents sets of
      real numbers with guaranteed enclosure. Supports arithmetic, comparisons
-     (three-valued logic), set operations, and elementary functions. Multi-dimensional
-     boxes for n-dimensional computations. Foundation for global optimization and
+     (three-valued logic), set operations, and transcendental elementary functions
+     (exp, log, sin, cos, tan, hyperbolic). Multi-dimensional boxes for n-dimensional
+     computations. Foundation for global optimization, monotonicity analysis, and
      computer-aided proofs.")))

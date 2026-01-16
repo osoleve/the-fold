@@ -1,23 +1,24 @@
 ;;; lattice/autodiff/manifest.sexp — Automatic Differentiation Skill Manifest
 
 (skill autodiff
-  (version "0.1.0")
+  (version "0.2.0")
   (tier 1)
   (path "lattice/autodiff")
   (purity partial)  ; Uses mutable tape for efficiency
   (stability stable)
   (fuel-bound "O(n) forward pass, O(n) backward pass where n is tape length")
-  (deps (linalg))  ; Depends on linalg for vectors/matrices in Jacobian/Hessian
+  (deps (linalg numeric))  ; numeric for interval arithmetic
 
   (description
    "Reverse-mode automatic differentiation (backpropagation) using
     computational graphs. Supports gradient computation, Jacobian/Hessian
     matrices, higher-order derivatives, and a differentiable type class
-    for generic AD code. Includes sparse autodiff for large systems.")
+    for generic AD code. Includes sparse autodiff for large systems and
+    interval autodiff for verified optimization with monotonicity pruning.")
 
   (keywords (autodiff automatic-differentiation gradient backpropagation
-             reverse-mode forward-mode jacobian hessian
-             computational-graph tape dual-numbers hyperdual))
+             reverse-mode forward-mode jacobian hessian interval-gradient
+             computational-graph tape dual-numbers hyperdual monotonicity))
   (aliases (ad diff reverse-diff backprop))
 
   (exports
@@ -41,7 +42,13 @@
                    lift primal tangent d+ d* d- d/ d-neg d-sq d-sqrt
                    d-exp d-log d-sin d-cos)
    (sparse-autodiff sparse-jacobian sparse-hessian sparsity-pattern)
-   (profiling profile-tape tape-stats memory-usage))
+   (profiling profile-tape tape-stats memory-usage)
+   (interval-autodiff interval-gradient interval-traced interval-traced?
+                      iv-traced-add iv-traced-sub iv-traced-mul iv-traced-div
+                      iv-traced-sqr iv-traced-sqrt iv-traced-exp iv-traced-log
+                      iv-traced-sin iv-traced-cos iv-traced-pow
+                      gradient-sign monotonicity-info all-monotonic?
+                      reduce-box-by-monotonicity))
 
   (modules
    (comp-graph "comp-graph.ss" "Computational graph DAG for representing computations")
@@ -52,4 +59,5 @@
    (sparse-autodiff "sparse-autodiff.ss" "Sparse autodiff for large systems")
    (typed-gradients "typed-gradients.ss" "Type-safe gradient computation")
    (profiling "profiling.ss" "Performance profiling and debugging tools")
-   (symbolic-diff "symbolic-diff.ss" "Bridge symbolic expressions to traced autodiff")))
+   (symbolic-diff "symbolic-diff.ss" "Bridge symbolic expressions to traced autodiff")
+   (interval-autodiff "interval-autodiff.ss" "Interval autodiff for verified optimization")))

@@ -481,5 +481,178 @@
 ;;; iv/ : Interval × Interval → Interval
 (define iv/ interval-div)
 
+;;; ============================================================================
+;;; Elementary Transcendental Functions
+;;; ============================================================================
+;;;
+;;; These use monotonicity properties where applicable:
+;;;   - exp is monotonically increasing
+;;;   - log is monotonically increasing (on positive domain)
+;;;   - sin/cos require careful handling of periodicity
+
+;;; interval-exp : Interval → Interval
+;;; Exponential function. exp is monotonically increasing.
+(define (interval-exp iv)
+  (make-interval (exp (interval-lo iv))
+                 (exp (interval-hi iv))))
+
+;;; interval-log : Interval → Interval | 'domain-error
+;;; Natural logarithm. Requires interval to be positive.
+(define (interval-log iv)
+  (let ([lo (interval-lo iv)]
+        [hi (interval-hi iv)])
+    (cond
+      [(<= hi 0) 'domain-error]    ; Entirely non-positive
+      [(<= lo 0)                   ; Partially negative: clamp to epsilon
+       (make-interval (log 1e-300) (log hi))]
+      [else                        ; Entirely positive
+       (make-interval (log lo) (log hi))])))
+
+;;; interval-sin : Interval → Interval
+;;; Sine function. Must handle periodicity.
+;;; For intervals wider than 2pi, returns [-1, 1].
+;;; Otherwise, check for extrema at pi/2 + k*pi.
+(define (interval-sin iv)
+  (let* ([lo (interval-lo iv)]
+         [hi (interval-hi iv)]
+         [pi 3.141592653589793]
+         [width (- hi lo)])
+    (cond
+      ;; Wide interval: full range
+      [(>= width (* 2 pi)) (make-interval -1 1)]
+      [else
+       ;; Evaluate at endpoints
+       (let* ([sin-lo (sin lo)]
+              [sin-hi (sin hi)]
+              [min-val (min sin-lo sin-hi)]
+              [max-val (max sin-lo sin-hi)])
+         ;; Check for maximum (at pi/2 + 2k*pi)
+         ;; Check for minimum (at -pi/2 + 2k*pi = 3pi/2 + 2k*pi)
+         (let* ([max-val (if (interval-contains-critical? lo hi (* 0.5 pi) (* 2 pi))
+                             1
+                             max-val)]
+                [min-val (if (interval-contains-critical? lo hi (* 1.5 pi) (* 2 pi))
+                             -1
+                             min-val)])
+           (make-interval min-val max-val)))])))
+
+;;; interval-cos : Interval → Interval
+;;; Cosine function. Must handle periodicity.
+(define (interval-cos iv)
+  (let* ([lo (interval-lo iv)]
+         [hi (interval-hi iv)]
+         [pi 3.141592653589793]
+         [width (- hi lo)])
+    (cond
+      ;; Wide interval: full range
+      [(>= width (* 2 pi)) (make-interval -1 1)]
+      [else
+       ;; Evaluate at endpoints
+       (let* ([cos-lo (cos lo)]
+              [cos-hi (cos hi)]
+              [min-val (min cos-lo cos-hi)]
+              [max-val (max cos-lo cos-hi)])
+         ;; Check for maximum (at 2k*pi)
+         ;; Check for minimum (at pi + 2k*pi)
+         (let* ([max-val (if (interval-contains-critical? lo hi 0 (* 2 pi))
+                             1
+                             max-val)]
+                [min-val (if (interval-contains-critical? lo hi pi (* 2 pi))
+                             -1
+                             min-val)])
+           (make-interval min-val max-val)))])))
+
+;;; interval-contains-critical? : Real × Real × Real × Real → Boolean
+;;; Check if interval [lo, hi] contains any point of form (base + k*period)
+;;; for integer k.
+(define (interval-contains-critical? lo hi base period)
+  ;; Find smallest k such that base + k*period >= lo
+  (let* ([k-lo (ceiling (/ (- lo base) period))]
+         [critical (+ base (* k-lo period))])
+    (<= critical hi)))
+
+;;; interval-tan : Interval → Interval | 'domain-error
+;;; Tangent function. Undefined at pi/2 + k*pi.
+;;; Returns 'domain-error if interval contains a discontinuity.
+(define (interval-tan iv)
+  (let* ([lo (interval-lo iv)]
+         [hi (interval-hi iv)]
+         [pi 3.141592653589793]
+         [half-pi (* 0.5 pi)])
+    ;; Check if interval contains any discontinuity at pi/2 + k*pi
+    (if (interval-contains-critical? lo hi half-pi pi)
+        'domain-error
+        (make-interval (tan lo) (tan hi)))))
+
+;;; interval-asin : Interval → Interval | 'domain-error
+;;; Arcsine. Domain is [-1, 1], monotonically increasing.
+(define (interval-asin iv)
+  (let ([lo (interval-lo iv)]
+        [hi (interval-hi iv)])
+    (cond
+      [(or (< hi -1) (> lo 1)) 'domain-error]
+      [else
+       (make-interval (asin (max -1 lo))
+                      (asin (min 1 hi)))])))
+
+;;; interval-acos : Interval → Interval | 'domain-error
+;;; Arccosine. Domain is [-1, 1], monotonically decreasing.
+(define (interval-acos iv)
+  (let ([lo (interval-lo iv)]
+        [hi (interval-hi iv)])
+    (cond
+      [(or (< hi -1) (> lo 1)) 'domain-error]
+      [else
+       ;; acos is decreasing: acos(hi) <= acos(lo)
+       (make-interval (acos (min 1 hi))
+                      (acos (max -1 lo)))])))
+
+;;; interval-atan : Interval → Interval
+;;; Arctangent. Monotonically increasing on all reals.
+(define (interval-atan iv)
+  (make-interval (atan (interval-lo iv))
+                 (atan (interval-hi iv))))
+
+;;; interval-sinh : Interval → Interval
+;;; Hyperbolic sine. Monotonically increasing.
+(define (interval-sinh iv)
+  (make-interval (sinh (interval-lo iv))
+                 (sinh (interval-hi iv))))
+
+;;; interval-cosh : Interval → Interval
+;;; Hyperbolic cosine. Minimum at 0, symmetric.
+(define (interval-cosh iv)
+  (let ([lo (interval-lo iv)]
+        [hi (interval-hi iv)])
+    (cond
+      [(>= lo 0) (make-interval (cosh lo) (cosh hi))]     ; Entirely non-negative
+      [(<= hi 0) (make-interval (cosh hi) (cosh lo))]     ; Entirely non-positive
+      [else (make-interval 1 (max (cosh lo) (cosh hi)))]))) ; Contains zero
+
+;;; interval-tanh : Interval → Interval
+;;; Hyperbolic tangent. Monotonically increasing, range (-1, 1).
+(define (interval-tanh iv)
+  (make-interval (tanh (interval-lo iv))
+                 (tanh (interval-hi iv))))
+
+;;; ============================================================================
+;;; Natural Interval Extension Helpers
+;;; ============================================================================
+
+;;; sinh : Real → Real
+;;; Standard hyperbolic sine (define if not built-in).
+(define (sinh x)
+  (/ (- (exp x) (exp (- x))) 2))
+
+;;; cosh : Real → Real
+;;; Standard hyperbolic cosine.
+(define (cosh x)
+  (/ (+ (exp x) (exp (- x))) 2))
+
+;;; tanh : Real → Real
+;;; Standard hyperbolic tangent.
+(define (tanh x)
+  (/ (sinh x) (cosh x)))
+
 ;;; Display load message
 (display "Interval arithmetic loaded. Use (make-interval lo hi) or (interval lo hi).\n")

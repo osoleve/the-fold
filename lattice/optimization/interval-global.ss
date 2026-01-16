@@ -410,8 +410,155 @@
   (newline))
 
 ;;; ============================================================================
+;;; Monotonicity-Enhanced Optimization
+;;; ============================================================================
+;;;
+;;; When interval gradient bounds are available, use them for additional pruning:
+;;; - If gradient doesn't contain zero in some dimension, function is monotonic
+;;; - Monotonic dimensions can be reduced to boundary faces
+;;; - This dramatically speeds up optimization for smooth functions
+
+;;; interval-minimize-with-gradient : (Box -> Interval) x (Box -> (List Interval)) x Box x IntervalConvergence [x ((List Real) -> Real)] -> IntervalOptResult
+;;; Global minimization with monotonicity pruning via interval gradients.
+;;;
+;;; Arguments:
+;;;   f-interval: objective function (Box -> Interval)
+;;;   grad-fn: interval gradient function (Box -> (List Interval))
+;;;   initial-box: search domain
+;;;   criteria: convergence criteria
+;;;   f-scalar (optional): scalar objective for faster midpoint test
+;;;
+;;; The grad-fn should return a list of intervals bounding the partial
+;;; derivatives over the input box. Use interval-gradient from
+;;; lattice/autodiff/interval-autodiff.ss to compute this automatically.
+(define (interval-minimize-with-gradient f-interval grad-fn initial-box criteria . f-scalar-opt)
+  (let* ([f-scalar (if (null? f-scalar-opt)
+                       (lambda (pt) (eval-at-point f-interval pt))
+                       (car f-scalar-opt))]
+         [width-tol (ic-width-tol criteria)]
+         [max-iter (ic-max-iter criteria)]
+         [gap-tol (ic-gap-tol criteria)]
+         ;; Evaluate initial box
+         [f0 (f-interval initial-box)]
+         [mid0 (box-midpoint initial-box)]
+         [f-mid0 (f-scalar mid0)]
+         [item0 (make-work-item initial-box f0)]
+         [work-list (heap-insert-by work-item-cmp item0 heap-empty)]
+         [best-upper (min f-mid0 (interval-hi f0))])
+    (bb-loop-monotonic f-interval grad-fn f-scalar work-list best-upper '() 1
+                       width-tol max-iter gap-tol)))
+
+;;; bb-loop-monotonic : (Box -> Interval) x (Box -> (List Interval)) x ((List Real) -> Real) x Heap x Real x (List Box) x Nat x Real x Nat x Real -> IntervalOptResult
+;;; Main branch-and-bound loop with monotonicity pruning.
+(define (bb-loop-monotonic f-interval grad-fn f-scalar work-list best-upper candidates iter
+                           width-tol max-iter gap-tol)
+  (cond
+    ;; Work list exhausted
+    [(heap-empty? work-list)
+     (make-interval-opt-result (filter-candidates candidates best-upper f-interval)
+                               best-upper iter 'exhausted)]
+    ;; Max iterations reached
+    [(>= iter max-iter)
+     (make-interval-opt-result (filter-candidates candidates best-upper f-interval)
+                               best-upper iter 'max-iterations)]
+    [else
+     (let*-values
+         ([(rest-heap item) (heap-pop-by work-item-cmp work-list)])
+       (let* ([box (work-item-box item)]
+              [f-iv (work-item-interval item)]
+              [lo (interval-lo f-iv)])
+         (cond
+           ;; Prune: this box can't contain the global minimum
+           [(> lo best-upper)
+            (bb-loop-monotonic f-interval grad-fn f-scalar rest-heap best-upper candidates iter
+                               width-tol max-iter gap-tol)]
+           ;; Converged: box is small enough
+           [(< (box-max-width box) width-tol)
+            (bb-loop-monotonic f-interval grad-fn f-scalar rest-heap best-upper
+                               (cons box candidates) iter
+                               width-tol max-iter gap-tol)]
+           ;; Converged: gap is small enough
+           [(< (- (interval-hi f-iv) lo) gap-tol)
+            (bb-loop-monotonic f-interval grad-fn f-scalar rest-heap best-upper
+                               (cons box candidates) iter
+                               width-tol max-iter gap-tol)]
+           [else
+            ;; Try monotonicity reduction before bisecting
+            (let* ([grad-ivs (grad-fn box)]
+                   [reduced-box (maybe-reduce-box-monotonic box grad-ivs)]
+                   [actually-reduced? (not (equal? reduced-box box))])
+              (if actually-reduced?
+                  ;; Box was reduced by monotonicity - re-evaluate and continue
+                  (let* ([f-reduced (f-interval reduced-box)]
+                         [mid-reduced (box-midpoint reduced-box)]
+                         [f-mid-reduced (f-scalar mid-reduced)]
+                         [new-best (min best-upper f-mid-reduced (interval-hi f-reduced))]
+                         [item-reduced (make-work-item reduced-box f-reduced)]
+                         [new-heap (heap-insert-by work-item-cmp item-reduced rest-heap)])
+                    (bb-loop-monotonic f-interval grad-fn f-scalar new-heap new-best candidates (+ iter 1)
+                                       width-tol max-iter gap-tol))
+                  ;; No reduction possible - bisect as usual
+                  (let* ([pair (bisect-box box)]
+                         [box1 (car pair)]
+                         [box2 (cdr pair)]
+                         [f1 (f-interval box1)]
+                         [f2 (f-interval box2)]
+                         [mid1 (box-midpoint box1)]
+                         [mid2 (box-midpoint box2)]
+                         [f-mid1 (f-scalar mid1)]
+                         [f-mid2 (f-scalar mid2)]
+                         [new-best (min best-upper f-mid1 f-mid2
+                                        (interval-hi f1) (interval-hi f2))]
+                         [item1 (make-work-item box1 f1)]
+                         [item2 (make-work-item box2 f2)]
+                         [new-heap (heap-insert-by work-item-cmp item1
+                                     (heap-insert-by work-item-cmp item2 rest-heap))])
+                    (bb-loop-monotonic f-interval grad-fn f-scalar new-heap new-best candidates (+ iter 2)
+                                       width-tol max-iter gap-tol))))])))]))
+
+;;; maybe-reduce-box-monotonic : Box x (List Interval) -> Box
+;;; Reduce box dimensions where gradient doesn't contain zero.
+;;; Returns the same box if no reduction possible.
+(define (maybe-reduce-box-monotonic box grad-ivs)
+  (let loop ([box box] [grads grad-ivs] [new-box '()] [changed? #f])
+    (cond
+      [(null? box)
+       (if changed?
+           (reverse new-box)
+           (reverse new-box))]  ; Return reduced or original
+      [else
+       (let* ([iv (car box)]
+              [grad (car grads)]
+              [lo (interval-lo grad)]
+              [hi (interval-hi grad)])
+         (cond
+           ;; Gradient definitely positive: minimum at lower bound
+           [(> lo 0)
+            (loop (cdr box) (cdr grads)
+                  (cons (interval-singleton (interval-lo iv)) new-box)
+                  #t)]
+           ;; Gradient definitely negative: minimum at upper bound
+           [(< hi 0)
+            (loop (cdr box) (cdr grads)
+                  (cons (interval-singleton (interval-hi iv)) new-box)
+                  #t)]
+           ;; Mixed gradient: keep full interval
+           [else
+            (loop (cdr box) (cdr grads)
+                  (cons iv new-box)
+                  changed?)]))])))
+
+;;; interval-find-minimum-with-gradient : (Box -> Interval) x (Box -> (List Interval)) x Box -> (List Real)
+;;; Simplified interface with gradient-based monotonicity pruning.
+(define (interval-find-minimum-with-gradient f-interval grad-fn box)
+  (let ([result (interval-minimize-with-gradient f-interval grad-fn box *default-interval-convergence*)])
+    (or (ior-best-point result)
+        (box-midpoint box))))
+
+;;; ============================================================================
 ;;; Load message
 ;;; ============================================================================
 
 (display "Interval global optimization loaded.\n")
 (display "Use (interval-minimize f-interval box criteria [f-scalar]) for global minimization.\n")
+(display "Use (interval-minimize-with-gradient f-interval grad-fn box criteria) for monotonicity pruning.\n")

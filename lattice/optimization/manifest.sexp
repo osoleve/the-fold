@@ -1,7 +1,7 @@
 ;;; lattice/optimization/manifest.sexp — Optimization Skill Manifest
 
 (skill optimization
-  (version "0.3.0")
+  (version "0.5.0")
   (tier 1)
   (path "lattice/optimization")
   (purity total)
@@ -14,14 +14,19 @@
     Includes gradient descent variants, Newton's method, L-BFGS,
     constrained optimization with line search and convergence criteria,
     linear programming via the simplex method, integer linear programming
-    via branch-and-bound with Gomory cutting planes, and interval-based
-    global optimization with guaranteed enclosure of the global minimum.")
+    via branch-and-bound with Gomory cutting planes, interval-based
+    global optimization with guaranteed enclosure of the global minimum,
+    monotonicity-enhanced optimization using interval gradients for
+    automatic pruning, and constraint contractors for constrained interval
+    optimization.")
 
   (keywords (optimization gradient-descent sgd adam newton lbfgs
              minimize convergence line-search numerical
              linear-programming simplex dual sensitivity
              integer-programming ilp branch-and-bound knapsack set-cover
-             global-optimization interval-branch-and-bound verified-optimization))
+             global-optimization interval-branch-and-bound verified-optimization
+             constraint-propagation contractors constrained-optimization
+             monotonicity-pruning interval-gradient))
   (aliases (optim opt minimize))
 
   (exports
@@ -35,7 +40,13 @@
    (interval-global interval-minimize interval-maximize make-interval-convergence
                     interval-opt-result? ior-candidates ior-best-upper ior-best-point
                     ior-solution-box interval-find-minimum
-                    interval-sphere interval-rosenbrock interval-rastrigin))
+                    interval-minimize-with-gradient interval-find-minimum-with-gradient
+                    interval-sphere interval-rosenbrock interval-rastrigin)
+   (interval-contract interval-minimize-constrained
+                      make-bound-contractor make-equality-contractor
+                      make-linear-le-contractor make-linear-ge-contractor make-linear-eq-contractor
+                      make-sphere-contractor make-box-constraints
+                      contract-all contract-fixpoint))
 
   (modules
    (line-search "line-search.ss" "Armijo, Wolfe line search strategies")
@@ -46,4 +57,5 @@
    (optimize "optimize.ss" "Main API - combines all optimizers")
    (lp "lp.ss" "Linear programming via two-phase simplex method")
    (ilp "ilp.ss" "Integer linear programming via branch-and-bound")
-   (interval-global "interval-global.ss" "Interval branch-and-bound global optimization")))
+   (interval-global "interval-global.ss" "Interval branch-and-bound global optimization with monotonicity pruning")
+   (interval-contract "interval-contract.ss" "Constraint contractors for interval optimization")))
