@@ -1,25 +1,27 @@
 ;;; lattice/optimization/manifest.sexp — Optimization Skill Manifest
 
 (skill optimization
-  (version "0.2.0")
+  (version "0.3.0")
   (tier 1)
   (path "lattice/optimization")
   (purity total)
   (stability stable)
-  (fuel-bound "O(iterations × n) for first-order, O(iterations × n²) for second-order, O(iterations × m × n) for LP, O(2^k × LP) for ILP")
-  (deps (autodiff linalg))
+  (fuel-bound "O(iterations × n) for first-order, O(iterations × n²) for second-order, O(iterations × m × n) for LP, O(2^k × LP) for ILP, O(2^d × iterations) for interval global")
+  (deps (autodiff linalg numeric data))
 
   (description
    "Numerical optimization algorithms powered by automatic differentiation.
     Includes gradient descent variants, Newton's method, L-BFGS,
     constrained optimization with line search and convergence criteria,
-    linear programming via the simplex method, and integer linear programming
-    via branch-and-bound with Gomory cutting planes.")
+    linear programming via the simplex method, integer linear programming
+    via branch-and-bound with Gomory cutting planes, and interval-based
+    global optimization with guaranteed enclosure of the global minimum.")
 
   (keywords (optimization gradient-descent sgd adam newton lbfgs
              minimize convergence line-search numerical
              linear-programming simplex dual sensitivity
-             integer-programming ilp branch-and-bound knapsack set-cover))
+             integer-programming ilp branch-and-bound knapsack set-cover
+             global-optimization interval-branch-and-bound verified-optimization))
   (aliases (optim opt minimize))
 
   (exports
@@ -29,7 +31,11 @@
    (newton newton-method newton-cg)
    (lbfgs lbfgs minimize)
    (lp make-lp lp-solve lp-dual lp-shadow-prices lp-reduced-costs)
-   (ilp make-ilp ilp-solve ilp-solve-cutting-plane knapsack-solve set-cover-solve))
+   (ilp make-ilp ilp-solve ilp-solve-cutting-plane knapsack-solve set-cover-solve)
+   (interval-global interval-minimize interval-maximize make-interval-convergence
+                    interval-opt-result? ior-candidates ior-best-upper ior-best-point
+                    ior-solution-box interval-find-minimum
+                    interval-sphere interval-rosenbrock interval-rastrigin))
 
   (modules
    (line-search "line-search.ss" "Armijo, Wolfe line search strategies")
@@ -39,4 +45,5 @@
    (lbfgs "lbfgs.ss" "Limited-memory BFGS quasi-Newton")
    (optimize "optimize.ss" "Main API - combines all optimizers")
    (lp "lp.ss" "Linear programming via two-phase simplex method")
-   (ilp "ilp.ss" "Integer linear programming via branch-and-bound")))
+   (ilp "ilp.ss" "Integer linear programming via branch-and-bound")
+   (interval-global "interval-global.ss" "Interval branch-and-bound global optimization")))

@@ -222,7 +222,7 @@ The lattice is a DAG of verified skills. "Stdlib" = tier 0 (foundational nodes).
 | `meta/` | Lattice navigation, search, introspection |
 | `topology/` | Simplicial complexes, homology, Betti numbers |
 | `crypto/` | SHA-512, BLAKE2b, HMAC |
-| `optimization/` | LP, ILP, gradient descent, Newton, L-BFGS |
+| `optimization/` | LP, ILP, gradient descent, Newton, L-BFGS, interval global |
 | `statistics/` | Regression, GLM, time series, hypothesis testing |
 | `physics/lenses/` | Optics for physics state access |
 

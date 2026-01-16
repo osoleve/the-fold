@@ -6,13 +6,15 @@
 ;;; API:
 ;;;   (define-test name body ...)      — register a named test
 ;;;   (test-group name tests ...)      — group related tests
-;;;   (assert-equal expected actual)   — equality assertion
-;;;   (assert-true expr)               — truth assertion
-;;;   (assert-false expr)              — falseness assertion
+;;;   (assert-equal expected actual [msg])  — equality assertion
+;;;   (assert-true expr [msg])         — truth assertion
+;;;   (assert-false expr [msg])        — falseness assertion
 ;;;   (assert-error expr)              — verify expr throws error
-;;;   (assert-ok expr)                 — verify expr is (ok ...)
+;;;   (assert-ok expr [msg])           — verify expr is (ok ...)
 ;;;   (run-all-tests)                  — run all registered tests
 ;;;   (run-tests 'group-name)          — run specific group
+;;;
+;;; All assertions accept an optional message string that appears on failure.
 ;;;
 ;;; Dependencies:
 ;;;   - prelude.ss (for result types)
@@ -103,13 +105,17 @@
 ;;; Assertion Helpers
 ;;; ====
 
-;;; assert-equal : Any × Any → Unit
+;;; assert-equal : Any × Any [× String] → Unit
 ;;; Check that expected equals actual, fail with message if not.
-(define (assert-equal expected actual)
+;;; Optional third argument is a custom failure message.
+(define (assert-equal expected actual . msg)
   (unless (equal? expected actual)
           (inc-failed!)
           (display "    ✗ ")
           (display (ctx-name))
+          (when (pair? msg)
+            (display " — ")
+            (display (car msg)))
           (newline)
           (display "      Expected: ")
           (write expected)
@@ -118,13 +124,17 @@
           (write actual)
           (newline)))
 
-;;; assert-true : Any → Unit
+;;; assert-true : Any [× String] → Unit
 ;;; Check that expression is true.
-(define (assert-true expr)
+;;; Optional second argument is a custom failure message.
+(define (assert-true expr . msg)
   (unless (eq? #t expr)
           (inc-failed!)
           (display "    ✗ ")
           (display (ctx-name))
+          (when (pair? msg)
+            (display " — ")
+            (display (car msg)))
           (newline)
           (display "      Expected: #t")
           (newline)
@@ -132,13 +142,17 @@
           (write expr)
           (newline)))
 
-;;; assert-false : Any → Unit
+;;; assert-false : Any [× String] → Unit
 ;;; Check that expression is false.
-(define (assert-false expr)
+;;; Optional second argument is a custom failure message.
+(define (assert-false expr . msg)
   (unless (eq? #f expr)
           (inc-failed!)
           (display "    ✗ ")
           (display (ctx-name))
+          (when (pair? msg)
+            (display " — ")
+            (display (car msg)))
           (newline)
           (display "      Expected: #f")
           (newline)
@@ -159,13 +173,17 @@
          (display "      Expected error, but none was raised")
          (newline)))
 
-;;; assert-ok : Result → Unit
+;;; assert-ok : Result [× String] → Unit
 ;;; Check that result is (ok ...).
-(define (assert-ok result)
+;;; Optional second argument is a custom failure message.
+(define (assert-ok result . msg)
   (unless (ok? result)
           (inc-failed!)
           (display "    ✗ ")
           (display (ctx-name))
+          (when (pair? msg)
+            (display " — ")
+            (display (car msg)))
           (newline)
           (display "      Expected (ok ...), got: ")
           (write result)
