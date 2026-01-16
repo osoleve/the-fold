@@ -324,6 +324,11 @@
 (define (kg-skills)
   (map car *kg-skills*))
 
+;;; kg-initialized? : -> Boolean
+;;; Check if the knowledge graph has been built
+(define (kg-initialized?)
+  (not (null? *kg-skills*)))
+
 ;;; kg-skill : Symbol -> Block | #f
 ;;; Get skill block by name
 (define (kg-skill name)

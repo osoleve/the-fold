@@ -26,9 +26,13 @@
 ;;; lattice-describe : Symbol -> void
 ;;; Pretty-print full skill description
 (define (lattice-describe skill-name)
-  (let ([data (kg-skill-data skill-name)])
-       (if (not data)
-           (printf "Skill not found: ~a\n" skill-name)
+  (if (not (kg-initialized?))
+      (begin
+        (printf "Knowledge graph not initialized.\n")
+        (printf "Run (lattice-init!) first.\n"))
+      (let ([data (kg-skill-data skill-name)])
+           (if (not data)
+               (printf "Skill not found: ~a\n" skill-name)
            (let ([name (cdr (assq 'name data))]
                  [version (cdr (or (assq 'version data) '(version . "0.0.0")))]
                  [tier (cdr (or (assq 'tier data) '(tier . 0)))]
@@ -76,7 +80,7 @@
                  (lambda (mod)
                          (let ([mod-name (car mod)])
                               (printf "  - ~a\n" mod-name)))
-                 modules)))))
+                 modules))))))
 
 ;;; string-trim : String -> String
 ;;; Remove leading/trailing whitespace and collapse internal whitespace
@@ -244,19 +248,24 @@
 ;;; lattice-summary : -> void
 ;;; Print one-line summary for each skill
 (define (lattice-summary)
-  (printf "~20a ~8a ~8a ~6a ~a\n" "Skill" "Tier" "Purity" "Mods" "Description")
-  (printf "~20a ~8a ~8a ~6a ~a\n" "----" "----" "----" "----" "----")
-  (for-each
-   (lambda (skill-name)
-           (let ([info (lattice-info skill-name)])
-                (when info
-                      (printf "~20a ~8a ~8a ~6a ~a\n"
-                              (cdr (assq 'name info))
-                              (cdr (assq 'tier info))
-                              (cdr (assq 'purity info))
-                              (cdr (assq 'module-count info))
-                              (truncate-string (cdr (assq 'description info)) 40)))))
-   (kg-skills)))
+  (if (not (kg-initialized?))
+      (begin
+        (printf "Knowledge graph not initialized.\n")
+        (printf "Run (lattice-init!) first.\n"))
+      (begin
+        (printf "~20a ~8a ~8a ~6a ~a\n" "Skill" "Tier" "Purity" "Mods" "Description")
+        (printf "~20a ~8a ~8a ~6a ~a\n" "----" "----" "----" "----" "----")
+        (for-each
+         (lambda (skill-name)
+                 (let ([info (lattice-info skill-name)])
+                      (when info
+                            (printf "~20a ~8a ~8a ~6a ~a\n"
+                                    (cdr (assq 'name info))
+                                    (cdr (assq 'tier info))
+                                    (cdr (assq 'purity info))
+                                    (cdr (assq 'module-count info))
+                                    (truncate-string (cdr (assq 'description info)) 40)))))
+         (kg-skills)))))
 
 ;;; truncate-string : String Int -> String
 (define (truncate-string str max-len)
@@ -413,24 +422,29 @@
 ;;; lattice-tests-summary : -> void
 ;;; Print summary of test coverage across all skills
 (define (lattice-tests-summary)
-  (printf "Test Coverage Summary\n")
-  (printf "~a\n\n" (make-string 50 #\=))
-  (let* ([all-tests (lattice-all-tests)]
-         [with-tests (filter (lambda (e) (not (null? (cdr e)))) all-tests)]
-         [without-tests (filter (lambda (e) (null? (cdr e))) all-tests)])
-        (printf "Skills with tests: ~a/~a\n\n" (length with-tests) (length all-tests))
-        (for-each
-         (lambda (entry)
-                 (printf "  ~20a ~a test file~a\n"
-                         (car entry)
-                         (length (cdr entry))
-                         (if (= 1 (length (cdr entry))) "" "s")))
-         (sort (lambda (a b) (> (length (cdr a)) (length (cdr b)))) with-tests))
-        (when (not (null? without-tests))
-              (printf "\nSkills without tests:\n")
+  (if (not (kg-initialized?))
+      (begin
+        (printf "Knowledge graph not initialized.\n")
+        (printf "Run (lattice-init!) first, or (kg-build!) for just the graph.\n"))
+      (begin
+        (printf "Test Coverage Summary\n")
+        (printf "~a\n\n" (make-string 50 #\=))
+        (let* ([all-tests (lattice-all-tests)]
+               [with-tests (filter (lambda (e) (not (null? (cdr e)))) all-tests)]
+               [without-tests (filter (lambda (e) (null? (cdr e))) all-tests)])
+              (printf "Skills with tests: ~a/~a\n\n" (length with-tests) (length all-tests))
               (for-each
-               (lambda (entry) (printf "  ~a\n" (car entry)))
-               without-tests))))
+               (lambda (entry)
+                       (printf "  ~20a ~a test file~a\n"
+                               (car entry)
+                               (length (cdr entry))
+                               (if (= 1 (length (cdr entry))) "" "s")))
+               (sort (lambda (a b) (> (length (cdr a)) (length (cdr b)))) with-tests))
+              (when (not (null? without-tests))
+                    (printf "\nSkills without tests:\n")
+                    (for-each
+                     (lambda (entry) (printf "  ~a\n" (car entry)))
+                     without-tests))))))
 
 ;;; ====
 ;;; REPL Interface

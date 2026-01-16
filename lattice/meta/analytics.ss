@@ -46,17 +46,21 @@
 ;;; lattice-stats-pretty : -> void
 ;;; Print statistics in a nice format
 (define (lattice-stats-pretty)
-  (let ([stats (lattice-stats)])
-       (printf "Lattice Statistics\n")
-       (printf "====\n")
-       (printf "  Skills:       ~a\n" (cdr (assq 'skills stats)))
-       (printf "  Modules:      ~a\n" (cdr (assq 'modules stats)))
-       (printf "  Exports:      ~a\n" (cdr (assq 'exports stats)))
-       (printf "  Dependencies: ~a\n" (cdr (assq 'dependencies stats)))
-       (printf "  Roots (T0):   ~a\n" (cdr (assq 'roots stats)))
-       (printf "  Leaves:       ~a\n" (cdr (assq 'leaves stats)))
-       (printf "  Max Depth:    ~a\n" (cdr (assq 'max-depth stats)))
-       (printf "  Avg Deps:     ~a\n" (round-to (cdr (assq 'avg-deps stats)) 2))))
+  (if (not (kg-initialized?))
+      (begin
+        (printf "Knowledge graph not initialized.\n")
+        (printf "Run (lattice-init!) first.\n"))
+      (let ([stats (lattice-stats)])
+           (printf "Lattice Statistics\n")
+           (printf "====\n")
+           (printf "  Skills:       ~a\n" (cdr (assq 'skills stats)))
+           (printf "  Modules:      ~a\n" (cdr (assq 'modules stats)))
+           (printf "  Exports:      ~a\n" (cdr (assq 'exports stats)))
+           (printf "  Dependencies: ~a\n" (cdr (assq 'dependencies stats)))
+           (printf "  Roots (T0):   ~a\n" (cdr (assq 'roots stats)))
+           (printf "  Leaves:       ~a\n" (cdr (assq 'leaves stats)))
+           (printf "  Max Depth:    ~a\n" (cdr (assq 'max-depth stats)))
+           (printf "  Avg Deps:     ~a\n" (round-to (cdr (assq 'avg-deps stats)) 2)))))
 
 ;;; round-to : Number Int -> Number
 (define (round-to n places)
