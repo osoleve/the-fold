@@ -3,11 +3,7 @@ name = "fold-explorer"
 version = "0.1.0"
 edition = "2021"
 authors = ["The Fold Team"]
-description = "Web server for CAS visualization"
-
-[[bin]]
-name = "fold-explorer"
-path = "src/bin/fold-explorer.rs"
+description = "Terminal UI for CAS exploration"
 
 [[bin]]
 name = "fold-tui"
