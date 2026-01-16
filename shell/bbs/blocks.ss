@@ -8,6 +8,7 @@
 ;;;   bbs/comment  - Comment on issue
 ;;;   bbs/dep      - Dependency relation (A blocks B)
 ;;;   bbs/index    - Root index of all issues
+;;;   bbs/post     - General post (changelog, note, announcement)
 ;;;
 ;;; This is Shell code: uses Core block primitives.
 
@@ -24,6 +25,7 @@
 (define BBS-COMMENT 'bbs/comment)
 (define BBS-DEP 'bbs/dep)
 (define BBS-INDEX 'bbs/index)
+(define BBS-POST 'bbs/post)
 
 ;;; ====
 ;;; Issue Block
@@ -181,3 +183,50 @@
 ;;; Get the issue hashes from an index block.
 (define (index-block-issues blk)
   (block-refs blk))
+
+;;; ====
+;;; Post Block
+;;; ====
+
+;;; make-post-block : String String String Symbol (List Symbol) String String Int (Option Bytevector) -> Block
+;;; Create a post block for changelogs, notes, announcements.
+;;;
+;;; Arguments:
+;;;   id          - Human-readable ID (e.g., "post-001")
+;;;   title       - Post title
+;;;   body        - Post body (markdown)
+;;;   post-type   - 'changelog | 'note | 'announcement | 'session-summary
+;;;   tags        - List of tag symbols
+;;;   created-at  - ISO 8601 timestamp
+;;;   author      - Username
+;;;   version     - Version number (increments on edit)
+;;;   prev-hash   - Hash of previous version (or #f for first version)
+(define (make-post-block id title body post-type tags created-at author version prev-hash)
+  (let* ([payload-data `((id . ,id)
+                         (title . ,title)
+                         (body . ,body)
+                         (post-type . ,post-type)
+                         (tags . ,tags)
+                         (created-at . ,created-at)
+                         (author . ,author)
+                         (version . ,version))]
+         [payload (string->utf8 (format "~s" payload-data))]
+         [refs (if prev-hash
+                   (vector prev-hash)
+                   (vector))])
+    (make-block BBS-POST payload refs)))
+
+;;; post-block-data : Block -> Alist | #f
+;;; Extract post data from a block.
+(define (post-block-data blk)
+  (if (and (block? blk) (eq? (block-tag blk) BBS-POST))
+      (read (open-input-string (utf8->string (block-payload blk))))
+      #f))
+
+;;; post-block-prev : Block -> Bytevector | #f
+;;; Get the previous version hash from a post block.
+(define (post-block-prev blk)
+  (let ([refs (block-refs blk)])
+    (if (> (vector-length refs) 0)
+        (vector-ref refs 0)
+        #f)))

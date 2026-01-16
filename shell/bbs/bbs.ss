@@ -1,21 +1,28 @@
 ;;; shell/bbs/bbs.ss — BBS Entry Point
 ;;;
-;;; CAS-native bulletin board system for issue tracking.
+;;; CAS-native bulletin board system for issue tracking and posts.
 ;;; Replaces beads with a native implementation using The Fold's CAS.
 ;;;
 ;;; Usage:
 ;;;   (load "shell/bbs/bbs.ss")
 ;;;   (bbs-init!)
 ;;;
+;;;   ;; Issues
 ;;;   (bbs-create "Issue title" 'priority 2 'type 'task)
 ;;;   (bbs-show 'fold-001)
 ;;;   (bbs-list)
 ;;;   (bbs-update 'fold-001 'status 'in_progress)
 ;;;   (bbs-close 'fold-001 'reason "Done!")
 ;;;
+;;;   ;; Posts (changelogs, notes, announcements)
+;;;   (post-create "Title" "Body..." 'changelog)
+;;;   (post-show 'post-1)
+;;;   (post-list)
+;;;
 ;;; This is Shell code: loads all BBS modules.
 
 (load "shell/bbs/ops.ss")
+(load "shell/bbs/posts.ss")
 
 ;;; ====
 ;;; Initialization
