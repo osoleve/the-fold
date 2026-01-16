@@ -182,9 +182,9 @@
 (define (z2-null-space matrix)
   (let-values ([(rref pivots) (z2-rref matrix)])
     (let* ([cols (z2-matrix-cols matrix)]
-           [pivot-set (list->set pivots)]
+           [pivot-set (list->hashtable-set pivots)]
            ; Free columns are those not in pivot-set
-           [free-cols (filter (lambda (c) (not (set-member? pivot-set c)))
+           [free-cols (filter (lambda (c) (not (hashtable-set-member? pivot-set c)))
                               (iota cols))])
       (if (null? free-cols)
           '()  ; Trivial null space
@@ -213,14 +213,14 @@
           (loop (cdr ps) (+ row 1)))))
     (vector->list vec)))
 
-;;; Helper: list->set using hash table for O(1) membership
-(define (list->set lst)
+;;; Helper: list->hashtable-set using hash table for O(1) membership
+(define (list->hashtable-set lst)
   (let ([ht (make-hashtable equal-hash equal?)])
     (for-each (lambda (x) (hashtable-set! ht x #t)) lst)
     ht))
 
-;;; Helper: set-member?
-(define (set-member? set x)
+;;; Helper: hashtable-set-member?
+(define (hashtable-set-member? set x)
   (hashtable-ref set x #f))
 
 ;;; ============================================================

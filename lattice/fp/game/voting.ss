@@ -329,21 +329,43 @@
 
 ;;; build-margin-matrix : PreferenceProfile -> (Vector (Vector Int))
 ;;; Build matrix M where M[i][j] = margin of i over j.
+;;; Complexity: O(V * N²) where V = voters, N = candidates.
+;;;
+;;; Optimized: Instead of calling pairwise-margin for each pair O(V*N²*V),
+;;; we iterate through the profile once and update all pairs per ranking.
 (define (build-margin-matrix profile)
   (let* ([candidates (profile-candidates profile)]
          [n (length candidates)]
-         [idx (lambda (c) (position-of c candidates))]
          [matrix (make-vector n)])
+    ;; Initialize NxN matrix of zeros
     (do ([i 0 (+ i 1)])
-        ((>= i n) matrix)
-      (vector-set! matrix i (make-vector n 0))
-      (do ([j 0 (+ j 1)])
-          ((>= j n))
-        (unless (= i j)
-          (vector-set! (vector-ref matrix i) j
-                       (pairwise-margin (list-ref candidates i)
-                                        (list-ref candidates j)
-                                        profile)))))))
+        ((>= i n))
+      (vector-set! matrix i (make-vector n 0)))
+    ;; Single pass through profile: for each ranking, update all pairs
+    (for-each
+     (lambda (ranking)
+       ;; Build position lookup for this ranking: candidate -> position
+       (let ([pos-of (make-eq-hashtable)])
+         (let loop ([r ranking] [p 0])
+           (unless (null? r)
+             (hashtable-set! pos-of (car r) p)
+             (loop (cdr r) (+ p 1))))
+         ;; For each pair (i, j), if candidate[i] ranked higher, increment margin
+         (do ([i 0 (+ i 1)])
+             ((>= i n))
+           (let ([ci (list-ref candidates i)]
+                 [row (vector-ref matrix i)])
+             (do ([j 0 (+ j 1)])
+                 ((>= j n))
+               (unless (= i j)
+                 (let ([cj (list-ref candidates j)])
+                   ;; If ci ranked higher (smaller position) than cj, +1 to margin[i][j]
+                   (when (< (hashtable-ref pos-of ci n) (hashtable-ref pos-of cj n))
+                     (vector-set! row j (+ (vector-ref row j) 1))
+                     (vector-set! (vector-ref matrix j) i
+                                  (- (vector-ref (vector-ref matrix j) i) 1))))))))))
+     profile)
+    matrix))
 
 ;;; schulze-strengths : PreferenceProfile -> (Vector (Vector Int))
 ;;; Compute strongest path strengths using Floyd-Warshall variant.
@@ -430,6 +452,9 @@
 ;;; manipulation-possible? : PreferenceProfile (Profile -> Candidate) Int -> Bool
 ;;; Can voter i benefit by voting strategically under the given rule?
 ;;; This is a brute-force check over all possible misreports.
+;;;
+;;; WARNING: O(N!) complexity - only practical for N <= 9 candidates.
+;;; For N=10, there are 3.6 million permutations to check per voter.
 (define (manipulation-possible? profile voting-rule voter-idx)
   (let* ([true-ranking (list-ref profile voter-idx)]
          [candidates (profile-candidates profile)]
