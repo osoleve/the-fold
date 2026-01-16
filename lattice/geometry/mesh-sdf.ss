@@ -119,9 +119,149 @@
            (triangle3 v000 v101 v100))])
         (make-mesh triangles)))
 
+;;; subdivide-icosphere-triangles : (List Triangle3) × Number × Number → (List Triangle3)
+;;; Apply n levels of subdivision to a list of triangles.
+;;; Uses shared edge midpoint table to ensure adjacent triangles share exact vertices.
+(define (subdivide-icosphere-triangles triangles radius levels)
+  (if (<= levels 0)
+      triangles
+      (let ([subdivided (subdivide-icosphere-once triangles radius)])
+        (subdivide-icosphere-triangles subdivided radius (- levels 1)))))
+
+;;; subdivide-icosphere-once : (List Triangle3) × Number → (List Triangle3)
+;;; Single subdivision pass using shared edge midpoints.
+;;; Key insight: each edge midpoint is computed ONCE and shared by adjacent triangles.
+;;; Uses vertex identity (not coordinates) for edge keying to avoid floating-point issues.
+(define (subdivide-icosphere-once triangles radius)
+  ;; First, collect all unique vertices and assign stable IDs
+  (let* ([vertex-id-table (make-eq-hashtable)]
+         [next-id 0]
+         [get-vertex-id
+          (lambda (v)
+            (or (eq-hashtable-ref vertex-id-table v #f)
+                (let ([id next-id])
+                  (eq-hashtable-set! vertex-id-table v id)
+                  (set! next-id (+ next-id 1))
+                  id)))]
+         ;; Build edge → midpoint table using vertex IDs as keys
+         [edge-midpoints (make-hashtable equal-hash equal?)])
+    ;; First pass: assign IDs to all vertices
+    (for-each
+      (lambda (tri)
+        (get-vertex-id (triangle3-p1 tri))
+        (get-vertex-id (triangle3-p2 tri))
+        (get-vertex-id (triangle3-p3 tri)))
+      triangles)
+    ;; Second pass: compute midpoints with ID-based keys
+    (for-each
+      (lambda (tri)
+        (let ([v0 (triangle3-p1 tri)]
+              [v1 (triangle3-p2 tri)]
+              [v2 (triangle3-p3 tri)])
+          (ensure-edge-midpoint-by-id! edge-midpoints v0 v1 radius
+                                        (get-vertex-id v0) (get-vertex-id v1))
+          (ensure-edge-midpoint-by-id! edge-midpoints v1 v2 radius
+                                        (get-vertex-id v1) (get-vertex-id v2))
+          (ensure-edge-midpoint-by-id! edge-midpoints v2 v0 radius
+                                        (get-vertex-id v2) (get-vertex-id v0))))
+      triangles)
+    ;; Third pass: subdivide using shared midpoints
+    (apply append
+      (map (lambda (tri)
+             (subdivide-triangle-with-midpoints-by-id tri edge-midpoints get-vertex-id))
+           triangles))))
+
+;;; vec3-edge-key : Vec3 × Vec3 → (List Number Number Number Number Number Number)
+;;; Create a canonical edge key from two vertices.
+;;; Uses sorted coordinates to ensure (v0,v1) and (v1,v0) produce same key.
+(define (vec3-edge-key v0 v1)
+  (let ([coords0 (list (vec3-x v0) (vec3-y v0) (vec3-z v0))]
+        [coords1 (list (vec3-x v1) (vec3-y v1) (vec3-z v1))])
+    (if (vec3-coords<? coords0 coords1)
+        (append coords0 coords1)
+        (append coords1 coords0))))
+
+;;; vec3-coords<? : (List Num Num Num) × (List Num Num Num) → Boolean
+;;; Lexicographic comparison for coordinate lists.
+(define (vec3-coords<? a b)
+  (cond
+    [(< (car a) (car b)) #t]
+    [(> (car a) (car b)) #f]
+    [(< (cadr a) (cadr b)) #t]
+    [(> (cadr a) (cadr b)) #f]
+    [else (< (caddr a) (caddr b))]))
+
+;;; edge-id-key : Int × Int → (Int . Int)
+;;; Create canonical edge key from vertex IDs (smaller ID first).
+(define (edge-id-key id0 id1)
+  (if (< id0 id1) (cons id0 id1) (cons id1 id0)))
+
+;;; ensure-edge-midpoint-by-id! : HashTable × Vec3 × Vec3 × Number × Int × Int → Vec3
+;;; Get or compute the midpoint for an edge, using vertex IDs as key.
+(define (ensure-edge-midpoint-by-id! table v0 v1 radius id0 id1)
+  (let ([key (edge-id-key id0 id1)])
+    (or (hashtable-ref table key #f)
+        (let* ([mid (vec3-scale (vec3-add v0 v1) 0.5)]
+               [mid-norm (vec3-scale (vec3-normalize mid) radius)])
+          (hashtable-set! table key mid-norm)
+          mid-norm))))
+
+;;; get-edge-midpoint-by-id : HashTable × Int × Int → Vec3
+;;; Retrieve the shared midpoint for an edge by vertex IDs.
+(define (get-edge-midpoint-by-id table id0 id1)
+  (hashtable-ref table (edge-id-key id0 id1) #f))
+
+;;; subdivide-triangle-with-midpoints-by-id : Triangle3 × HashTable × (Vec3 → Int) → (List Triangle3)
+;;; Subdivide a triangle using pre-computed shared midpoints (ID-based lookup).
+(define (subdivide-triangle-with-midpoints-by-id tri midpoint-table get-id)
+  (let* ([v0 (triangle3-p1 tri)]
+         [v1 (triangle3-p2 tri)]
+         [v2 (triangle3-p3 tri)]
+         [id0 (get-id v0)]
+         [id1 (get-id v1)]
+         [id2 (get-id v2)]
+         ;; Look up shared midpoints by ID
+         [m01 (get-edge-midpoint-by-id midpoint-table id0 id1)]
+         [m12 (get-edge-midpoint-by-id midpoint-table id1 id2)]
+         [m20 (get-edge-midpoint-by-id midpoint-table id2 id0)])
+    ;; Create 4 new triangles
+    (list
+     (triangle3 v0 m01 m20)       ; Top triangle
+     (triangle3 m01 v1 m12)       ; Bottom-left triangle
+     (triangle3 m20 m12 v2)       ; Bottom-right triangle
+     (triangle3 m01 m12 m20))))   ; Center triangle
+
+;;; get-edge-midpoint : HashTable × Vec3 × Vec3 → Vec3
+;;; Retrieve the shared midpoint for an edge.
+(define (get-edge-midpoint table v0 v1)
+  (hashtable-ref table (vec3-edge-key v0 v1) #f))
+
+;;; subdivide-triangle-with-midpoints : Triangle3 × HashTable → (List Triangle3)
+;;; Subdivide a triangle using pre-computed shared midpoints.
+(define (subdivide-triangle-with-midpoints tri midpoint-table)
+  (let* ([v0 (triangle3-p1 tri)]
+         [v1 (triangle3-p2 tri)]
+         [v2 (triangle3-p3 tri)]
+         ;; Look up shared midpoints
+         [m01 (get-edge-midpoint midpoint-table v0 v1)]
+         [m12 (get-edge-midpoint midpoint-table v1 v2)]
+         [m20 (get-edge-midpoint midpoint-table v2 v0)])
+    ;; Create 4 new triangles:
+    ;;       v0
+    ;;      /  \
+    ;;    m01--m20
+    ;;    / \  / \
+    ;;  v1--m12--v2
+    (list
+     (triangle3 v0 m01 m20)       ; Top triangle
+     (triangle3 m01 v1 m12)       ; Bottom-left triangle
+     (triangle3 m20 m12 v2)       ; Bottom-right triangle
+     (triangle3 m01 m12 m20))))   ; Center triangle
+
+;;; Legacy function for backwards compatibility
 ;;; subdivide-icosphere-triangle : Triangle3 × Number → (List Triangle3)
 ;;; Subdivide a single triangle on the sphere surface into 4 triangles.
-;;; Each edge midpoint is normalized to the sphere radius.
+;;; NOTE: Use subdivide-icosphere-triangles for proper vertex sharing.
 (define (subdivide-icosphere-triangle tri radius)
   (let* ([v0 (triangle3-p1 tri)]
          [v1 (triangle3-p2 tri)]
@@ -145,17 +285,6 @@
          (triangle3 m01-norm v1 m12-norm)       ; Bottom-left triangle
          (triangle3 m20-norm m12-norm v2)       ; Bottom-right triangle
          (triangle3 m01-norm m12-norm m20-norm)))) ; Center triangle
-
-;;; subdivide-icosphere-triangles : (List Triangle3) × Number × Number → (List Triangle3)
-;;; Apply n levels of subdivision to a list of triangles.
-(define (subdivide-icosphere-triangles triangles radius levels)
-  (if (<= levels 0)
-      triangles
-      (let ([subdivided (apply append
-                               (map (lambda (tri)
-                                            (subdivide-icosphere-triangle tri radius))
-                                    triangles))])
-           (subdivide-icosphere-triangles subdivided radius (- levels 1)))))
 
 ;;; make-mesh-sphere-ico : Number × Number → Mesh
 ;;; Create a sphere mesh using icosphere subdivision
@@ -185,12 +314,23 @@
            (vec3 (- (* b radius)) 0 (* a radius))
            (vec3 (* b radius) 0 (- (* a radius)))
            (vec3 (- (* b radius)) 0 (- (* a radius))))]
-         ;; 20 triangular faces
+         ;; 20 triangular faces of icosahedron
+         ;; Vertices form 3 orthogonal golden rectangles:
+         ;;   0-3: (0, ±a, ±b) - yz plane rectangle
+         ;;   4-7: (±a, ±b, 0) - xy plane rectangle
+         ;;   8-11: (±b, 0, ±a) - xz plane rectangle
+         ;; Adjacent vertices are at distance 2a (edge length).
+         ;; Each vertex has degree 5 (connected to 5 neighbors).
+         ;; Correct topology: 12 vertices, 30 edges, 20 faces, χ=2
          [indices
-          '((0 4 8) (0 8 9) (0 9 6) (0 6 4) (0 1 10)
-            (1 0 4) (1 4 10) (1 10 5) (1 5 3) (1 3 11)
-            (2 3 7) (2 7 9) (2 9 8) (2 8 5) (2 5 3)
-            (3 5 10) (3 10 11) (3 11 7) (4 6 10) (5 8 4))]
+          '(;; 5 triangles around vertex 0 (0,a,b) - neighbors: 2,4,6,8,9
+            (0 2 8) (0 8 4) (0 4 6) (0 6 9) (0 9 2)
+            ;; 5 triangles around vertex 1 (0,a,-b) - neighbors: 3,4,6,10,11
+            (1 4 10) (1 10 3) (1 3 11) (1 11 6) (1 6 4)
+            ;; 5 equatorial triangles connecting "front" (z>0) vertices
+            (2 5 8) (8 5 10) (10 5 3) (3 5 7) (7 5 2)
+            ;; 5 equatorial triangles connecting "back" (z<0) vertices
+            (9 7 2) (9 11 7) (11 3 7) (11 9 6) (4 8 10))]
          [base-triangles
           (map (lambda (idx)
                        (triangle3 (list-ref vertices (car idx))
