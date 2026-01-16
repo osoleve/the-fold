@@ -141,13 +141,17 @@
           (zero? (system (format "kill -0 ~a 2>/dev/null" pid))))))
 
 (define (worker-alive? session-id)
+  ;; A worker is alive only if BOTH:
+  ;; 1. It has a recent heartbeat (within timeout)
+  ;; 2. Its process is actually running
+  ;; This prevents "zombie" workers where the process died but heartbeat is stale.
   (let* ([now (time-second (current-time))]
          [hb (read-number-file (heartbeat-path session-id))]
          [pid (read-number-file (pid-path session-id))])
-        (cond
-         [(and hb (< (- now hb) *worker-timeout*)) #t]
-         [(and pid (process-alive? pid)) #t]
-         [else #f])))
+        (and hb
+             pid
+             (< (- now hb) *worker-timeout*)
+             (process-alive? pid))))
 
 (define (terminate-worker! session-id)
   ;; SECURITY: Validate session-id (path construction) and pid (shell command)
