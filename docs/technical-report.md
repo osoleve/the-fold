@@ -10,7 +10,7 @@ We present **The Fold**, a programming system built on a content-addressable hom
 
 The Fold implements a *gradual dependent type system* combining bidirectional type checking (following Dunfield & Krishnaswami), dependent function and pair types (Π, Σ), higher-kinded types, type classes via dictionary-passing, and GADTs with pattern refinement. Gradual typing through holes enables incremental specification without sacrificing soundness where types are known.
 
-The system organizes verified code into a *module DAG* (internally called the "skill lattice")—a tiered directed acyclic graph where modules declare dependencies, purity guarantees, and complexity bounds. Functions are bounded rather than structurally total—fuel limits guarantee termination of any execution, though this is weaker than type-theoretic totality. This structure enables compositional verification: if dependencies are verified and a module is verified against those dependencies, the module is verified. A BM25-powered semantic search engine enables discovery across ~1,400 exports.
+The system organizes verified code into a *module DAG* (internally called the "skill lattice")—a tiered directed acyclic graph where modules declare dependencies, purity guarantees, and complexity bounds. Functions are bounded rather than structurally total—fuel limits guarantee termination of any execution, though this is weaker than type-theoretic totality. This structure enables compositional verification: if dependencies are verified and a module is verified against those dependencies, the module is verified. A BM25-powered semantic search engine enables discovery across ~3,000 exports.
 
 Key contributions: (1) a block calculus formalizing content-addressed computation with α-equivalence, (2) a dependent type system integrated with gradual typing, (3) a compositional module system with fuel-bounded complexity guarantees. The implementation, built entirely in Chez Scheme with no third-party dependencies, demonstrates that reproducible, verifiable computation can emerge from simple foundations.
 
@@ -1563,8 +1563,9 @@ Tier 0 (Foundational):     linalg, data, algebra, random, numeric
 Tier 1 (Intermediate):     autodiff, geometry, query, fp, info
          │                 Depend on Tier 0
          ▼
-Tier 2+ (Advanced):        physics/diff, sim, pipeline
+Tier 2+ (Advanced):        physics/diff, physics/diff3d, physics/classical, sim, pipeline
                            Multiple dependencies, domain-specific
+                           Physics includes lens library for functional state access
 ```
 
 **DAG Properties**:
@@ -1751,6 +1752,18 @@ Pure functional BM25 implementation for ranked retrieval:
 - Strategic rewriting (innermost, outermost)
 - Fusion rules for optimization
 
+**Open Protocols** (`fp/protocol.ss`):
+- Clojure-style protocol system for extensible dispatch
+- Types register implementations at load time; dispatch on first argument's type tag
+- Enables Open/Closed Principle: extend behavior without modifying existing code
+- Used by physics lenses for polymorphic body access
+
+**Game Theory** (`fp/game/`):
+- **Cooperative games**: Coalition formation, Shapley value, core solutions
+- **Matching theory**: Stable marriage, hospital-residents, top trading cycles
+- **Voting theory**: Power indices (Shapley-Shubik, Banzhaf), weighted voting
+- **Fair division**: Cake cutting protocols (cut-and-choose, Dubins-Spanier), adjusted winner procedure, envy-free allocation
+
 **Type Classes** (dictionary-passing style):
 - **Functor**: `fmap` for structure-preserving transformations
 - **Applicative**: `pure` and `<*>` for effectful computations
@@ -1758,6 +1771,58 @@ Pure functional BM25 implementation for ranked retrieval:
 - **Comonad**: `extract` and `extend` for contextual computations—the dual of Monad. Where Monad builds up context, Comonad tears it down. Zippers are the canonical Comonad: `extract` gets the focus, `extend f` applies `f` at every position with full context available.
 
 All implemented via dictionary-passing, maintaining Core purity.
+
+### 6.6 Module Loading
+
+The `core/lang/module.ss` module provides dependency-aware loading:
+
+**Basic Usage**:
+```scheme
+(require 'charts)              ; Load module and dependencies
+(require 'vec 'matrix)         ; Load multiple modules
+```
+
+**Namespaced Modules** (for disambiguation):
+
+When module names collide across directories, use the namespaced form:
+
+```scheme
+(require 'diffgeo/charts)      ; → lattice/diffgeo/charts.ss
+(require 'algebra/polynomial)  ; → lattice/algebra/polynomial.ss
+(require 'numeric/polynomial)  ; → lattice/numeric/polynomial.ss
+(require 'fp/control/state)    ; → lattice/fp/control/state.ss
+```
+
+The namespaced form searches base directories (`lattice/`, `core/`, `shell/`) for the path.
+
+**Collision Detection**:
+
+When using simple names that have multiple matches, the loader warns:
+
+```
+⚠ Warning: 'polynomial' matches 2 files (using first):
+      - lattice/algebra/polynomial.ss
+      - lattice/numeric/polynomial.ss
+    Consider using namespaced form: (require 'algebra/polynomial)
+```
+
+**Discovery Functions**:
+```scheme
+(modules)                      ; List all registered modules
+(module-info 'charts)          ; Show path, deps, status
+(module-collisions)            ; Audit name collisions
+(module-stats)                 ; Show load times
+```
+
+**Header Annotations**:
+
+Modules declare dependencies via header comments:
+```scheme
+;;; @module tangent
+;;; @requires prelude matrix vec charts
+```
+
+The loader parses these to build the dependency graph automatically.
 
 ---
 ## 7. Implementation
@@ -2072,6 +2137,9 @@ Multiplies two matrices. Requires inner dimensions to match.
 Complexity: O(m·n·p)
 Module: linalg/matrix
 ```
+
+**Block explorer TUI** (`shell/web/fold-explorer/`):
+A Rust-based terminal UI for visualizing the content-addressed store. Navigate blocks by tag, search content, follow references to traverse the Merkle DAG, and analyze orphan or highly-referenced blocks. All untrusted content is sanitized before display to prevent terminal escape sequence injection.
 
 ---
 ## 8. Evaluation

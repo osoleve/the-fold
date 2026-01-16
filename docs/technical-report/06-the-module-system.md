@@ -16,8 +16,9 @@ Tier 0 (Foundational):     linalg, data, algebra, random, numeric
 Tier 1 (Intermediate):     autodiff, geometry, query, fp, info
          │                 Depend on Tier 0
          ▼
-Tier 2+ (Advanced):        physics/diff, sim, pipeline
+Tier 2+ (Advanced):        physics/diff, physics/diff3d, physics/classical, sim, pipeline
                            Multiple dependencies, domain-specific
+                           Physics includes lens library for functional state access
 ```
 
 **DAG Properties**:
@@ -203,6 +204,18 @@ Pure functional BM25 implementation for ranked retrieval:
 - Term rewriting systems
 - Strategic rewriting (innermost, outermost)
 - Fusion rules for optimization
+
+**Open Protocols** (`fp/protocol.ss`):
+- Clojure-style protocol system for extensible dispatch
+- Types register implementations at load time; dispatch on first argument's type tag
+- Enables Open/Closed Principle: extend behavior without modifying existing code
+- Used by physics lenses for polymorphic body access
+
+**Game Theory** (`fp/game/`):
+- **Cooperative games**: Coalition formation, Shapley value, core solutions
+- **Matching theory**: Stable marriage, hospital-residents, top trading cycles
+- **Voting theory**: Power indices (Shapley-Shubik, Banzhaf), weighted voting
+- **Fair division**: Cake cutting protocols (cut-and-choose, Dubins-Spanier), adjusted winner procedure, envy-free allocation
 
 **Type Classes** (dictionary-passing style):
 - **Functor**: `fmap` for structure-preserving transformations

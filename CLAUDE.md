@@ -157,6 +157,8 @@ All content is **content-addressed** — the cryptographic hash IS the identity.
 | `docs/` | Documentation and policy |
 | `archives/` | Historical exports |
 
+**Note on Technical Report:** `docs/technical-report.md` is **generated** from chapter files in `docs/technical-report/`. Edit the chapter files (e.g., `00-abstract.md`, `06-the-module-system.md`), then run `scheme --script docs/technical-report/assemble.ss` to rebuild. Chapter order is defined in `docs/technical-report/manifest.sexp`.
+
 ### Three-Layer Architecture
 
 ```

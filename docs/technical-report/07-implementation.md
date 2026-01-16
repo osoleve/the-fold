@@ -311,4 +311,7 @@ Complexity: O(m·n·p)
 Module: linalg/matrix
 ```
 
+**Block explorer TUI** (`shell/web/fold-explorer/`):
+A Rust-based terminal UI for visualizing the content-addressed store. Navigate blocks by tag, search content, follow references to traverse the Merkle DAG, and analyze orphan or highly-referenced blocks. All untrusted content is sanitized before display to prevent terminal escape sequence injection.
+
 ---
