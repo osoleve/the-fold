@@ -316,6 +316,60 @@ Module: linalg/matrix
 **Block explorer TUI** (`shell/web/fold-explorer/`):
 A Rust-based terminal UI for visualizing the content-addressed store. Navigate blocks by tag, search content, follow references to traverse the Merkle DAG, and analyze orphan or highly-referenced blocks. All untrusted content is sanitized before display to prevent terminal escape sequence injection.
 
+#### 7.5.5 LSP Integration
+
+The Language Server Protocol implementation (`shell/lsp/`) provides IDE features with real type inference integration.
+
+**Hover Type Inference**:
+
+Rather than relying solely on pre-indexed type signatures, the LSP hover handler performs real type inference using the document's content:
+
+```
+Document → parse-definitions → [(name, expr)] → build-tenv-from-defs → TEnv → try-infer-type → "Type"
+```
+
+**Process**:
+1. `parse-definitions` extracts top-level `define` forms from the document text
+2. `build-tenv-from-defs` infers types for each definition, building a type environment incrementally
+3. `try-infer-type` looks up the hovered symbol in this environment
+4. Falls back to `get-type-string` (primitive/indexed types) if inference fails
+
+**Definition extraction** handles both forms:
+```scheme
+(define x 42)              ; → (x . 42)
+(define (f a b) body)      ; → (f . (fn (a b) body))
+```
+
+**Integration with bidirectional inference**:
+
+The implementation uses the core type inference engine (`core/types/infer.ss`), including hole constraint tracking (§5.9.1). Each definition is inferred independently with fresh type variables, then generalized before being added to the environment:
+
+```scheme
+(reset-fresh!)
+(let* ([result (infer init env)]
+       [type (apply-subst subst (cadr result))]
+       [gen-type (generalize env type)])
+  (tenv-extend env name gen-type))
+```
+
+**Fallback strategy**:
+
+The layered fallback ensures useful hover information is always available:
+
+1. **Real inference**: Best for user-defined symbols in the current file
+2. **Primitive table**: Built-in operations like `+`, `map`, `cons`
+3. **Symbol index**: Pre-indexed module exports
+
+**Known limitations**:
+
+| Limitation | Impact | Status |
+|----|----|----|
+| Forward references | Mutually recursive functions may show `Any` | Planned: multi-pass inference |
+| Local bindings | `let`-bound variables not typed | Planned: body traversal |
+| Re-parsing overhead | O(N) per hover request | Planned: tenv caching |
+
+These limitations are acceptable for initial deployment—the fallback ensures primitive operations always display types, and real inference succeeds for the common case of sequential top-level definitions.
+
 ### 7.6 Shell IO Infrastructure
 
 The Shell layer provides IO primitives that maintain consistency guarantees despite operating in an impure environment.
