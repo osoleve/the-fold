@@ -433,3 +433,130 @@
                      "  Message: " (blame-message b) "\n"
                      "  Value: " (format "~s" (blame-value b)))
       "Invalid blame"))
+
+;;; ====
+;;; Higher-Order Contract Wrapping
+;;; ====
+;;;
+;;; contract-wrap applies a contract to a value, producing a wrapped value
+;;; that enforces the contract at runtime.
+;;;
+;;; For flat contracts: checks immediately
+;;; For function contracts: returns a wrapper procedure
+;;;
+;;; Blame assignment for function contracts:
+;;;   - Domain violations blame the CALLER (they passed bad arguments)
+;;;   - Range violations blame the CALLEE (function returned bad result)
+;;;   - Higher-order argument contracts get FLIPPED blame:
+;;;     If caller passes a callback that violates its contract when called,
+;;;     the callee is blamed (they misused the callback).
+
+;;; contract-wrap : Contract → Any → Symbol → (Ok Any) | (Err Blame)
+;;; Wrap a value with a contract. Returns wrapped/checked value or blame.
+(define (contract-wrap contract value location)
+  (cond
+   ;; Flat contracts: check immediately
+   [(or (eq? contract 'Any)
+        (eq? contract 'None)
+        (flat-contract? contract)
+        (and (pair? contract) (memq (car contract) '(And Or Not))))
+    (check-flat contract value location)]
+   ;; Function contracts: wrap the procedure
+   [(function-contract? contract)
+    (if (procedure? value)
+        `(Ok ,(wrap-function contract value location 'caller))
+        `(Err ,(make-blame 'callee location
+                           "Expected a procedure for function contract"
+                           value)))]
+   ;; Dependent contracts: not yet supported for wrapping
+   [(dependent-contract? contract)
+    `(Err ,(make-blame 'callee location
+                       "Dependent contract wrapping not yet implemented"
+                       value))]
+   [else
+    `(Err ,(make-blame 'callee location
+                       "Unknown contract type"
+                       contract))]))
+
+;;; wrap-function : Contract → Procedure → Symbol → Symbol → Procedure
+;;; Wrap a procedure with a function contract.
+;;; blame-party is 'caller or 'callee - determines who gets blamed for domain violations.
+(define (wrap-function contract proc location blame-party)
+  (let ([domain-contracts (function-contract-domain contract)]
+        [range-contract (function-contract-range contract)])
+    (lambda args
+      ;; Check arity
+      (if (not (= (length args) (length domain-contracts)))
+          (error 'contract-violation
+                 (format "~a: expected ~a arguments, got ~a"
+                         location (length domain-contracts) (length args)))
+          ;; Check domain contracts and wrap HO arguments
+          (let ([wrapped-args (check-and-wrap-args domain-contracts args location blame-party)])
+            (if (eq? (car wrapped-args) 'Err)
+                (error 'contract-violation (blame->string (cadr wrapped-args)))
+                ;; Call the function with wrapped arguments
+                (let ([result (apply proc (cadr wrapped-args))])
+                  ;; Check/wrap the result (blame callee for range violations)
+                  (let ([checked-result (contract-wrap-with-blame
+                                          range-contract result location
+                                          (if (eq? blame-party 'caller) 'callee 'caller))])
+                    (if (eq? (car checked-result) 'Err)
+                        (error 'contract-violation (blame->string (cadr checked-result)))
+                        (cadr checked-result))))))))))
+
+;;; check-and-wrap-args : (List Contract) → (List Any) → Symbol → Symbol → (Ok (List Any)) | (Err Blame)
+;;; Check each argument against its contract, wrapping HO arguments.
+(define (check-and-wrap-args contracts args location blame-party)
+  (let loop ([cs contracts] [as args] [acc '()])
+    (if (null? cs)
+        `(Ok ,(reverse acc))
+        (let ([result (contract-wrap-with-blame (car cs) (car as) location blame-party)])
+          (if (eq? (car result) 'Err)
+              result
+              (loop (cdr cs) (cdr as) (cons (cadr result) acc)))))))
+
+;;; contract-wrap-with-blame : Contract → Any → Symbol → Symbol → (Ok Any) | (Err Blame)
+;;; Wrap with explicit blame party for domain/range checking.
+(define (contract-wrap-with-blame contract value location blame-party)
+  (cond
+   ;; Flat contracts: check immediately
+   [(or (eq? contract 'Any)
+        (eq? contract 'None)
+        (flat-contract? contract)
+        (and (pair? contract) (memq (car contract) '(And Or Not))))
+    (let ([result (check-flat contract value location)])
+      (if (eq? (car result) 'Err)
+          ;; Adjust blame party
+          (let ([b (cadr result)])
+            `(Err ,(make-blame blame-party
+                               (blame-location b)
+                               (blame-message b)
+                               (blame-value b))))
+          result))]
+   ;; Function contracts: wrap with FLIPPED blame for HO arguments
+   [(function-contract? contract)
+    (if (procedure? value)
+        ;; Higher-order: flip blame because if caller passes f,
+        ;; and callee calls f incorrectly, callee is at fault
+        `(Ok ,(wrap-function contract value location
+                             (if (eq? blame-party 'caller) 'callee 'caller)))
+        `(Err ,(make-blame blame-party location
+                           "Expected a procedure for function contract"
+                           value)))]
+   ;; Dependent contracts: not yet supported
+   [(dependent-contract? contract)
+    `(Err ,(make-blame blame-party location
+                       "Dependent contract wrapping not yet implemented"
+                       value))]
+   [else
+    `(Err ,(make-blame blame-party location
+                       "Unknown contract type"
+                       contract))]))
+
+;;; apply-contract : Contract → Any → Symbol → Any
+;;; Convenience function: apply contract, raise error on violation, return value on success.
+(define (apply-contract contract value location)
+  (let ([result (contract-wrap contract value location)])
+    (if (eq? (car result) 'Err)
+        (error 'contract-violation (blame->string (cadr result)))
+        (cadr result))))

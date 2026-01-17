@@ -37,7 +37,7 @@ GADTs, existential types, and bidirectional type inference.")
    (termination.ss "Termination checking: structural, lexicographic, size-change")
    (dep-graph.ss "Graph property types: Acyclic, Connected, Tree, DAG, Path")
    (tactics.ss "Proof tactics: reflexivity, symmetry, transitivity, congruence")
-   (contracts.ss "Contract system with flat/function/dependent contracts and blame")
+   (contracts.ss "Contract system: flat/function contracts, HO wrapping, blame tracking")
    (annotate.ss "Type-annotated AST representation for tooling")
 
    ;; Validation & Tooling
@@ -82,7 +82,8 @@ GADTs, existential types, and bidirectional type inference.")
    (existentials "Hide implementation types behind abstract interfaces")
    (termination "Ensure type-level computation terminates for decidable checking")
    (gradual-holes "Holes (? and (? name)) for partial type specifications")
-   (hole-constraints "Named holes enforce consistency; constraints recorded for inference")))
+   (hole-constraints "Named holes enforce consistency; constraints recorded for inference")
+   (ho-contracts "Higher-order function contracts with recursive wrapping and blame flip")))
 
  (type-classes
   ((single-param

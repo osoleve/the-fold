@@ -195,6 +195,123 @@
       (let ([result (check-flat none/c 42 'test)])
            (string? (blame-message (cadr result)))))
 
+;;; ====
+;;; Higher-Order Contract Wrapping
+;;; ====
+(test-section "Higher-Order Contract Wrapping - Flat")
+
+;; contract-wrap with flat contracts
+(test "contract-wrap any/c succeeds" 'Ok (car (contract-wrap any/c 42 'test)))
+(test "contract-wrap nat/c succeeds" 'Ok (car (contract-wrap nat/c 5 'test)))
+(test "contract-wrap nat/c fails" 'Err (car (contract-wrap nat/c -1 'test)))
+(test "contract-wrap returns value on success" 42 (cadr (contract-wrap any/c 42 'test)))
+
+(test-section "Higher-Order Contract Wrapping - First-Order Functions")
+
+;; Simple function contract: (-> (nat) nat)
+(define add1-contract (->c (list nat/c) nat/c))
+
+;; Wrap a valid function
+(define wrapped-add1
+  (let ([result (contract-wrap add1-contract (lambda (x) (+ x 1)) 'add1)])
+    (if (eq? (car result) 'Ok)
+        (cadr result)
+        #f)))
+
+(test "wrap-function succeeds for procedure" #t (procedure? wrapped-add1))
+(test "wrapped function works with valid input" 6 (wrapped-add1 5))
+
+;; Test domain violation (blame caller)
+(define (test-domain-violation)
+  (guard (e [else #t])  ; any exception means violation was caught
+    (wrapped-add1 -1)  ; -1 violates nat/c
+    #f))  ; no exception = test failed
+(test "domain violation caught" #t (test-domain-violation))
+
+;; Function that returns wrong type
+(define bad-return-fn
+  (let ([result (contract-wrap add1-contract (lambda (x) "not a number") 'bad-fn)])
+    (if (eq? (car result) 'Ok) (cadr result) #f)))
+
+(define (test-range-violation)
+  (guard (e [else #t])  ; any exception means violation was caught
+    (bad-return-fn 5)  ; returns "not a number", violates nat/c range
+    #f))  ; no exception = test failed
+(test "range violation caught" #t (test-range-violation))
+
+(test-section "Higher-Order Contract Wrapping - Higher-Order Functions")
+
+;; Higher-order contract: ((nat -> nat) -> nat)
+;; A function that takes a function and returns a nat
+(define ho-contract
+  (->c (list (->c (list nat/c) nat/c)) nat/c))
+
+;; apply-twice: applies f to 5, then to the result
+(define apply-twice
+  (lambda (f) (f (f 5))))
+
+(define wrapped-apply-twice
+  (let ([result (contract-wrap ho-contract apply-twice 'apply-twice)])
+    (if (eq? (car result) 'Ok) (cadr result) #f)))
+
+(test "HO wrap succeeds" #t (procedure? wrapped-apply-twice))
+(test "HO function works with valid callback" 7 (wrapped-apply-twice (lambda (x) (+ x 1))))
+
+;; Test: caller provides callback that violates its own contract (returns wrong type)
+;; The callback's range contract is violated - blame should go to CALLER
+;; (because caller provided a bad callback)
+(define (test-ho-callback-range-violation)
+  (guard (e [else #t])  ; any exception means violation was caught
+    (wrapped-apply-twice (lambda (x) "bad"))  ; callback returns string, not nat
+    #f))  ; no exception = test failed
+(test "HO callback range violation caught" #t (test-ho-callback-range-violation))
+
+;; Test: callee calls the callback with wrong argument type
+;; This would be a callee fault - they misused the callback
+;; We need a function that deliberately calls its callback wrong
+(define misuse-callback
+  (lambda (f) (f "not a number")))  ; calls f with string instead of nat
+
+(define wrapped-misuse
+  (let ([result (contract-wrap ho-contract misuse-callback 'misuse)])
+    (if (eq? (car result) 'Ok) (cadr result) #f)))
+
+(define (test-ho-misuse-violation)
+  (guard (e [else #t])  ; any exception means violation was caught
+    (wrapped-misuse (lambda (x) (+ x 1)))  ; good callback, but callee misuses it
+    #f))  ; no exception = test failed
+(test "HO callee misuse caught" #t (test-ho-misuse-violation))
+
+(test-section "Higher-Order Contract Wrapping - Multi-Argument")
+
+;; Contract for binary function: (nat nat -> nat)
+(define binary-contract (->c (list nat/c nat/c) nat/c))
+
+(define wrapped-add
+  (let ([result (contract-wrap binary-contract + 'add)])
+    (if (eq? (car result) 'Ok) (cadr result) #f)))
+
+(test "multi-arg wrap succeeds" #t (procedure? wrapped-add))
+(test "multi-arg function works" 8 (wrapped-add 3 5))
+
+;; Test arity mismatch
+(define (test-arity-violation)
+  (guard (e [else #t])  ; any exception means violation was caught
+    (wrapped-add 5)  ; only 1 argument, expects 2
+    #f))  ; no exception = test failed
+(test "arity violation caught" #t (test-arity-violation))
+
+(test-section "Higher-Order Contract Wrapping - apply-contract convenience")
+
+(test "apply-contract returns value on success" 42 (apply-contract nat/c 42 'test))
+(test "apply-contract with wrapped fn" 6 ((apply-contract add1-contract (lambda (x) (+ x 1)) 'f) 5))
+
+(define (test-apply-contract-failure)
+  (guard (e [else #t])
+    (apply-contract nat/c "not a nat" 'test)
+    #f))
+(test "apply-contract raises on failure" #t (test-apply-contract-failure))
+
 (newline)
 (display "All tests completed!")
 (newline)
