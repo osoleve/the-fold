@@ -529,4 +529,109 @@ value    : the offending value
 (not/c nat/c)                 ; Must NOT be a natural number
 ```
 
+### 5.11 Category Theory Foundations
+
+The Fold provides category-theoretic abstractions as first-class values, supporting compositional reasoning about functors and transformations.
+
+#### 5.11.1 Functors
+
+A functor F : C → D maps objects and morphisms while preserving identity and composition. In The Fold, functors over Scheme values are represented as records containing an `fmap` function:
+
+```scheme
+(define functor-list (make-functor map))
+(define functor-maybe (make-functor maybe-fmap))
+
+;; fmap : (a → b) → F a → F b
+(fmap-with functor-list add1 '(1 2 3))  ; → (2 3 4)
+```
+
+#### 5.11.2 Natural Transformations
+
+A **natural transformation** η : F ⟹ G between functors assigns to each type A a morphism η_A : F(A) → G(A) such that the naturality square commutes:
+
+```
+     F(A) ───η_A──→ G(A)
+      │              │
+    F(f)           G(f)
+      │              │
+      ↓              ↓
+     F(B) ───η_B──→ G(B)
+```
+
+That is: `G(f) ∘ η_A = η_B ∘ F(f)` for all morphisms f : A → B.
+
+**Definition**:
+```scheme
+(define nat-head
+  (make-nat-transform
+   'head
+   functor-list      ; source: List
+   functor-maybe     ; target: Maybe
+   (lambda (xs)      ; component: [A] → Maybe A
+     (if (null? xs) nothing (just (car xs))))))
+
+(nat-apply nat-head '(1 2 3))  ; → (just 1)
+(nat-apply nat-head '())       ; → nothing
+```
+
+**Vertical Composition** (η ∘ ε): Chain transformations F ⟹ G ⟹ H:
+```scheme
+(define η (nat-maybe-to-either 'empty))  ; Maybe ⟹ Either
+(define composed (nat-compose η nat-head)) ; List ⟹ Maybe ⟹ Either
+(nat-apply composed '(a b))  ; → (right a)
+(nat-apply composed '())     ; → (left 'empty)
+```
+
+**Horizontal Composition** (η * ε): The Godement product composes transformations on composed functors. Given η : F ⟹ G and ε : H ⟹ K, produces (η * ε) : H∘F ⟹ K∘G.
+
+**Whiskering**: Extend a transformation by composing with a functor:
+- Right whiskering (η ◁ H): Precompose with H, producing F∘H ⟹ G∘H
+- Left whiskering (H ▷ η): Postcompose with H, producing H∘F ⟹ H∘G
+
+#### 5.11.3 Naturality Verification
+
+The system can verify the naturality condition for specific test cases:
+
+```scheme
+;; Test: Maybe(f) ∘ head = head ∘ List(f)
+(check-naturality nat-head add1 '(1 2 3))  ; → #t
+
+;; Verify with multiple morphisms and values
+(verify-naturality nat-head
+  (list (cons add1 '(1 2 3))
+        (cons symbol->string '(a b c))))  ; → #t
+```
+
+#### 5.11.4 Natural Isomorphisms
+
+A natural isomorphism is a natural transformation where each component is invertible. This captures when two functors are "essentially the same":
+
+```scheme
+(define maybe≅either
+  (make-nat-iso 'maybe≅either
+    functor-maybe
+    functor-either-unit
+    (lambda (m) (if (just? m) (right (from-just m)) (left '())))
+    (lambda (e) (if (right? e) (just (from-right e)) nothing))))
+
+;; Round-trip is identity
+(nat-apply (nat-compose (nat-iso-inverse maybe≅either)
+                        (nat-iso-forward maybe≅either))
+           (just 42))  ; → (just 42)
+```
+
+#### 5.11.5 Common Natural Transformations
+
+| Transformation | Type | Description |
+|---------------|------|-------------|
+| `nat-head` | List ⟹ Maybe | First element or nothing |
+| `nat-singleton` | Maybe ⟹ List | Wrap in singleton or empty |
+| `nat-concat` | List∘List ⟹ List | Flatten (monad join) |
+| `nat-pure-list` | Id ⟹ List | Wrap in singleton (monad unit) |
+| `nat-pure-maybe` | Id ⟹ Maybe | Wrap in Just |
+| `nat-either-to-maybe` | Either ⟹ Maybe | Forget error |
+| `nat-maybe-to-either` | Maybe ⟹ Either | Add default error |
+
+These transformations satisfy the naturality condition and compose correctly, enabling equational reasoning about data flow through functor pipelines.
+
 ---
