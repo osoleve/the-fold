@@ -85,6 +85,55 @@
                             (k 'logged)))))
               prog)"))
 
+  ((file "result.ss")
+   (purpose "Result type utilities for functional error handling")
+   (exports
+    ;; Constructors
+    (ok "Wrap success value: (ok x)")
+    (err "Wrap error value: (err e)")
+    ;; Core operations (from prelude)
+    (ok? "Test for success")
+    (error? "Test for error")
+    (unwrap-ok "Extract value (assumes ok)")
+    (unwrap-error "Extract error (assumes error)")
+    (result-map "Map over ok value")
+    (result-bind "Monadic bind for Result")
+    (result-sequence "Sequence list of Results")
+    ;; Extended operations
+    (result-fold "Pattern match: (result-fold on-ok on-err r)")
+    (result-default "Extract or return default")
+    (result-or "Return first ok, or last error")
+    (result-catch "Catch exceptions as errors")
+    (result-try "Try thunk with fallback")
+    (assert-ok! "Unwrap or raise error")
+    ;; Conversions
+    (result->maybe "Convert to Maybe (discards error)")
+    (maybe->result "Convert from Maybe")
+    (result->either "Convert to Either")
+    (either->result "Convert from Either")
+    ;; Validation (accumulates errors)
+    (validation-ok "Validation success")
+    (validation-err "Validation failure")
+    (validation-ap "Applicative that accumulates errors"))
+   (example
+    ";; Chain operations that may fail
+     (result-bind (parse-int \"42\")
+                  (lambda (n)
+                    (if (positive? n)
+                        (ok (* n 2))
+                        (err 'negative))))
+     ;; => (ok 84)
+
+     ;; Catch exceptions
+     (result-catch (lambda () (/ 1 0)))
+     ;; => (error <condition>)
+
+     ;; Accumulate validation errors
+     (validation-ap
+       (validation-err \"name required\")
+       (validation-err \"age invalid\"))
+     ;; => (validation-err (\"name required\" \"age invalid\"))"))
+
   ((file "logic.ss")
    (purpose "Logic programming primitives (miniKanren-style)")
    (exports
@@ -131,13 +180,19 @@
   ("lattice/fp/control/free.ss" "Free monad for DSL"))
 
  (notes
-  "The meta module provides three complementary approaches to abstraction:
+  "The meta module provides four complementary approaches to abstraction:
 
-   1. Combinators: Point-free function manipulation
-   2. DSL toolkit: Build interpreters using free monads
-   3. Logic programming: Declarative relational programming
+   1. Combinators: Point-free function manipulation, Maybe, Either
+   2. Result: Functional error handling with monadic chaining
+   3. DSL toolkit: Build interpreters using free monads
+   4. Logic programming: Declarative relational programming
 
-   Logic programming is particularly powerful for:
-   - Running programs 'backwards' (synthesis from specification)
-   - Non-deterministic search
-   - Constraint satisfaction"))
+   Result vs Either:
+   - Result uses (ok x)/(error e) - canonical for error handling
+   - Either uses (left x)/(right x) - general sum type for branching
+   - Use Result for operations that can fail
+   - Use Either for values that can be one of two types
+
+   Validation vs Result:
+   - Result short-circuits on first error (fail-fast)
+   - Validation accumulates ALL errors (for forms, configs, etc.)"))

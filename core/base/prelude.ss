@@ -331,6 +331,20 @@
   (newline)
   val)
 
+;;; errorf : Symbol × String × Any... → ⊥
+;;; Raise an error with a formatted message.
+;;; This prevents the common bug of using format placeholders (~a, ~s)
+;;; directly in (error ...) which doesn't do substitution.
+;;;
+;;; WRONG: (error 'foo "Unknown value: ~a" value)  ; Shows literal ~a
+;;; RIGHT: (errorf 'foo "Unknown value: ~a" value) ; Substitutes value
+;;;
+;;; Example:
+;;;   (errorf 'fetch "Block not found: ~a" hash)
+;;;   => Exception in fetch: Block not found: abc123...
+(define (errorf who fmt-string . args)
+  (error who (apply format fmt-string args)))
+
 ;;; ====
 ;;; Unicode Aliases — Mathematical Notation
 ;;; ====

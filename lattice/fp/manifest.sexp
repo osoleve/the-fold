@@ -112,6 +112,21 @@ Key design principles:
     left right either? left? right? from-left from-right
     either-map either-bimap either-bind either-ap
     partition-eithers lefts rights
+    ;; Result (core/base/prelude.ss - documented here for discovery)
+    ;; Constructors: (list 'ok value), (list 'error ...)
+    ok? error? unwrap-ok unwrap-error
+    result-map result-bind result-sequence
+    ;; result.ss (additional utilities)
+    ok err result-fold result-default result-or result-and
+    result-map-error result-bimap
+    result-catch result-catch/handler result-try
+    assert-ok! assert-ok/msg!
+    result->maybe maybe->result result->either either->result
+    result-ap result-lift2 result-traverse result-filter
+    ;; Validation (applicative error accumulation)
+    validation-ok validation-err validation-errs
+    validation-ok? validation-err? validation-value validation-errors
+    validation-ap validation-map validation->result result->validation
     ;; Monadic utilities
     do-monad sequence-m map-m filter-m fold-m
     lift-m lift-m2 join-m
@@ -587,9 +602,10 @@ Key design principles:
        "regex.ss")))         ; Regular expression matching
 
     ((subdir "meta")
-     (description "FP combinators, DSL utilities, logic programming")
+     (description "FP combinators, DSL utilities, logic programming, Result type")
      (files (
        "combinators.ss"  ; id, const, compose, Maybe, Either, do-monad
+       "result.ss"       ; Result type utilities, validation, error handling
        "dsl.ss"          ; DSL builder with tagless final support
        "logic.ss"        ; miniKanren-style logic programming
        "strategies.ss"   ; Rewriting strategies

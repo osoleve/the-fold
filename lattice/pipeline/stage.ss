@@ -337,26 +337,9 @@
 ;;; ====
 ;;; ArrowChoice - Conditional Routing
 ;;; ====
-
-;;; Either type (if not already defined)
-
-;;; left : α → (Either α β)
-(define (left x) (cons 'left x))
-
-;;; right : β → (Either α β)
-(define (right x) (cons 'right x))
-
-;;; left? : (Either α β) → Bool
-(define (left? e) (and (pair? e) (eq? (car e) 'left)))
-
-;;; right? : (Either α β) → Bool
-(define (right? e) (and (pair? e) (eq? (car e) 'right)))
-
-;;; from-left : (Either α β) → α
-(define (from-left e) (cdr e))
-
-;;; from-right : (Either α β) → β
-(define (from-right e) (cdr e))
+;;;
+;;; Either type operations (left, right, left?, right?, from-left, from-right)
+;;; are provided by lattice/fp/meta/combinators.ss loaded above.
 
 ;;; stage-left : Stage ctx a b -> Stage ctx (Either a c) (Either b c)
 ;;; Apply stage to left values, pass right through.

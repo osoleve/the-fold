@@ -65,20 +65,9 @@
 ;;; ====
 ;;; Error with Format Helper
 ;;; ====
-
-;;; errorf : Symbol × String × Any... → ⊥
-;;; Raise an error with a formatted message.
-;;; This prevents the common bug of using format placeholders (~a, ~s)
-;;; directly in (error ...) which doesn't do substitution.
 ;;;
-;;; WRONG: (error 'foo "Unknown value: ~a" value)  ; Shows literal ~a
-;;; RIGHT: (errorf 'foo "Unknown value: ~a" value) ; Substitutes value
-;;;
-;;; Example:
-;;;   (errorf 'start-tutorial "Unknown tutorial: ~a" tutorial-id)
-;;;   => Exception in start-tutorial: Unknown tutorial: basic-intro
-(define (errorf who fmt-string . args)
-  (error who (apply format fmt-string args)))
+;;; NOTE: errorf is now provided by core/base/prelude.ss
+;;; It's available everywhere prelude is loaded.
 
 ;;; ====
 ;;; Main Formatting API
