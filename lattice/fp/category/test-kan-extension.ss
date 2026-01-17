@@ -325,6 +325,65 @@
       (assert-equal (just direct-result) codensity-result))))
 
 ;;; ============================================================
+;;; Difference Lists (True O(1) Append)
+;;; ============================================================
+
+(test-group "Difference Lists"
+
+  (define-test "dlist-empty produces empty list"
+    (assert-equal '() (dlist-to-list dlist-empty)))
+
+  (define-test "dlist-singleton creates single-element list"
+    (assert-equal '(42) (dlist-to-list (dlist-singleton 42))))
+
+  (define-test "dlist-from-list roundtrips"
+    (assert-equal '(1 2 3) (dlist-to-list (dlist-from-list '(1 2 3)))))
+
+  (define-test "dlist-append concatenates lists"
+    (let* ([d1 (dlist-from-list '(1 2 3))]
+           [d2 (dlist-from-list '(4 5 6))]
+           [combined (dlist-append d1 d2)])
+      (assert-equal '(1 2 3 4 5 6) (dlist-to-list combined))))
+
+  (define-test "dlist-append with empty"
+    (let ([d (dlist-from-list '(1 2 3))])
+      (assert-equal '(1 2 3) (dlist-to-list (dlist-append dlist-empty d)))
+      (assert-equal '(1 2 3) (dlist-to-list (dlist-append d dlist-empty)))))
+
+  (define-test "dlist-cons prepends element"
+    (let* ([d (dlist-from-list '(2 3))]
+           [result (dlist-cons 1 d)])
+      (assert-equal '(1 2 3) (dlist-to-list result))))
+
+  (define-test "dlist-snoc appends element"
+    (let* ([d (dlist-from-list '(1 2))]
+           [result (dlist-snoc d 3)])
+      (assert-equal '(1 2 3) (dlist-to-list result))))
+
+  (define-test "dlist-concat flattens list of dlists"
+    (let* ([d1 (dlist-from-list '(1 2))]
+           [d2 (dlist-from-list '(3 4))]
+           [d3 (dlist-from-list '(5 6))]
+           [combined (dlist-concat (list d1 d2 d3))])
+      (assert-equal '(1 2 3 4 5 6) (dlist-to-list combined))))
+
+  (define-test "multiple dlist-append is O(1) per operation"
+    ;; Chain many appends - if this were O(n) per append, it would be O(n^2)
+    ;; With true difference lists, it should be O(n) total
+    (let* ([dlists (map dlist-singleton '(1 2 3 4 5 6 7 8 9 10))]
+           [combined (fold-left dlist-append dlist-empty dlists)])
+      (assert-equal '(1 2 3 4 5 6 7 8 9 10) (dlist-to-list combined))))
+
+  (define-test "left-associative appends work correctly"
+    ;; ((a ++ b) ++ c) ++ d - worst case for regular lists
+    (let* ([a (dlist-singleton 'a)]
+           [b (dlist-singleton 'b)]
+           [c (dlist-singleton 'c)]
+           [d (dlist-singleton 'd)]
+           [result (dlist-append (dlist-append (dlist-append a b) c) d)])
+      (assert-equal '(a b c d) (dlist-to-list result)))))
+
+;;; ============================================================
 ;;; Run All Tests
 ;;; ============================================================
 

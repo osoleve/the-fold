@@ -126,16 +126,26 @@
 
 ;;; ran-lift : F a -> Ran K F (K a)
 ;;; Lift an F-value into Ran at type K a.
-;;; This uses the identity continuation: K(id) : K a -> K a
+;;;
+;;; WARNING: This implementation is ONLY correct when K = Id (the Codensity case).
+;;; For general K, ran-lift requires additional structure (an adjunction or
+;;; F being a K-algebra) to properly transform F a into F b given k : K a -> K b.
+;;;
+;;; The general form would need:
+;;;   ran-lift : (forall b. (a -> K b) -> F a -> F b) -> F a -> Ran K F (K a)
+;;;
+;;; But when K = Id:
+;;;   k : a -> b, and we can use F's fmap or just return fa when k = id
+;;;   For Codensity, use codensity-lift instead which takes m-bind explicitly.
+;;;
+;;; Keeping for API compatibility but marking as limited.
 (define (ran-lift k-functor f-functor fa)
   (make-ran k-functor
             f-functor
             (lambda (k)
-              ;; k : K a -> K b, but we need F b
-              ;; Actually this needs F to be able to fmap...
-              ;; The correct lift is when we can apply k to get K b
-              ;; then transform F somehow. Let's use the simpler form.
-              ;; For the identity case, lift just wraps.
+              ;; NOTE: This ignores k, which is only valid when K = Id
+              ;; and we're immediately applying with the identity continuation.
+              ;; For proper lifting, use codensity-lift which uses m-bind.
               fa)))
 
 ;;; ============================================================
@@ -384,10 +394,15 @@
 ;;; Normal list append: [1,2] ++ [3,4] = 1 : 2 : [3,4] (traverses left list)
 ;;; Difference list: (\xs -> 1:2:xs) . (\xs -> 3:4:xs) = \xs -> 1:2:3:4:xs
 ;;;
-;;; This is exactly Codensity List:
-;;;   Codensity List a = forall r. (a -> [r]) -> [r]
-;;;                    ~ forall r. ([r] -> [r])  (when specialized)
-;;;                    ~ DList a
+;;; However, there are TWO representations:
+;;;
+;;; 1. Generic Codensity: forall r. (a -> [r]) -> [r]
+;;;    - This gives O(1) BIND, but append still uses `append` internally
+;;;    - Use codensity-list-singleton and codensity-list-append
+;;;
+;;; 2. True Difference Lists: [a] -> [a] (endomorphisms)
+;;;    - This gives O(1) APPEND via function composition
+;;;    - Use dlist-* functions below
 
 ;;; codensity-list-singleton : a -> Codensity List a
 (define (codensity-list-singleton x)
@@ -395,7 +410,10 @@
                   (lambda (k) (k x))))
 
 ;;; codensity-list-append : Codensity List a -> Codensity List a -> Codensity List a
-;;; O(1) append via Codensity.
+;;; NOTE: This is NOT true O(1) append! It uses `append` internally.
+;;; For true O(1) append, use the dlist-* functions below.
+;;; This function provides correct semantics but O(n) performance where
+;;; n is the length of the first list.
 (define (codensity-list-append c1 c2)
   (make-codensity list
                   (lambda (k)
@@ -405,6 +423,75 @@
 ;;; codensity-list-lower : Codensity List a -> List a
 (define (codensity-list-lower c)
   ((codensity-run c) list))
+
+;;; ====
+;;; True Difference Lists (O(1) append)
+;;; ====
+;;;
+;;; A DList is a function [a] -> [a] that prepends elements.
+;;; - Composition is O(1)
+;;; - Lowering (to-list) is O(n)
+;;;
+;;; This is the proper "difference list" pattern from functional programming.
+
+;;; make-dlist : ([a] -> [a]) -> DList a
+;;; Create a difference list from a prepend function.
+(define (make-dlist prepend-fn)
+  (list 'dlist prepend-fn))
+
+;;; dlist? : Any -> Boolean
+(define (dlist? x)
+  (and (pair? x) (eq? (car x) 'dlist)))
+
+;;; dlist-prepend : DList a -> ([a] -> [a])
+(define (dlist-prepend dl)
+  (cadr dl))
+
+;;; dlist-empty : DList a
+;;; The empty difference list.
+(define dlist-empty
+  (make-dlist id))
+
+;;; dlist-singleton : a -> DList a
+;;; O(1) - create a single-element difference list.
+(define (dlist-singleton x)
+  (make-dlist (lambda (tail) (cons x tail))))
+
+;;; dlist-from-list : [a] -> DList a
+;;; O(n) - convert a list to a difference list.
+(define (dlist-from-list xs)
+  (make-dlist (lambda (tail) (append xs tail))))
+
+;;; dlist-append : DList a -> DList a -> DList a
+;;; O(1)! - append two difference lists via function composition.
+;;; This is the key operation that makes difference lists useful.
+(define (dlist-append dl1 dl2)
+  (make-dlist (lambda (tail)
+                ((dlist-prepend dl1)
+                 ((dlist-prepend dl2) tail)))))
+
+;;; dlist-cons : a -> DList a -> DList a
+;;; O(1) - prepend an element.
+(define (dlist-cons x dl)
+  (make-dlist (lambda (tail)
+                (cons x ((dlist-prepend dl) tail)))))
+
+;;; dlist-snoc : DList a -> a -> DList a
+;;; O(1) - append an element to the end.
+(define (dlist-snoc dl x)
+  (dlist-append dl (dlist-singleton x)))
+
+;;; dlist-to-list : DList a -> [a]
+;;; O(n) - convert back to a regular list.
+;;; This is where all the deferred work happens.
+(define (dlist-to-list dl)
+  ((dlist-prepend dl) '()))
+
+;;; dlist-concat : [DList a] -> DList a
+;;; O(k) where k is the number of difference lists.
+;;; The total to-list is still O(n) where n is total elements.
+(define (dlist-concat dls)
+  (fold-right dlist-append dlist-empty dls))
 
 ;;; ====
 ;;; Codensity for Maybe
@@ -559,3 +646,8 @@
 ;;;   codensity-maybe-return, codensity-maybe-bind, codensity-maybe-fail
 ;;;   make-codensity-monad, codensity-monad-return, codensity-monad-bind
 ;;;   codensity-monad-lift, codensity-monad-lower
+;;;
+;;; Difference Lists (True O(1) append):
+;;;   make-dlist, dlist?, dlist-prepend, dlist-empty
+;;;   dlist-singleton, dlist-from-list, dlist-append
+;;;   dlist-cons, dlist-snoc, dlist-to-list, dlist-concat

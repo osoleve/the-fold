@@ -109,8 +109,12 @@
     make-codensity codensity? codensity-return-fn codensity-run
     codensity-return codensity-bind codensity-map
     codensity-lift codensity-lower
-    ;; Codensity List (Difference Lists)
+    ;; Codensity List
     codensity-list-singleton codensity-list-append codensity-list-lower
+    ;; True Difference Lists (O(1) append)
+    make-dlist dlist? dlist-prepend dlist-empty
+    dlist-singleton dlist-from-list dlist-append
+    dlist-cons dlist-snoc dlist-to-list dlist-concat
     ;; Codensity Maybe
     codensity-maybe-return codensity-maybe-bind codensity-maybe-fail
     ;; Generic Builder
