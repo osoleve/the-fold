@@ -86,9 +86,14 @@
 
 (define *fresh-counter* 0)
 
+;;; Hole counter (forward declaration, see Hole Variables section)
+(define *hole-counter* 0)
+
 ;;; reset-fresh! : → Unit
+;;; Reset both type variable and hole variable counters.
 (define (reset-fresh!)
-  (set! *fresh-counter* 0))
+  (set! *fresh-counter* 0)
+  (set! *hole-counter* 0))
 
 ;;; fresh-tvar : → Symbol
 (define (fresh-tvar)
@@ -99,6 +104,66 @@
 (define (fresh-tvar-named prefix)
   (set! *fresh-counter* (+ *fresh-counter* 1))
   (string->symbol (string-append prefix (number->string *fresh-counter*))))
+
+;;; ====
+;;; Hole Variables (Gradual Typing Support)
+;;; ====
+
+;;; Holes (? and (? name)) are converted to hole variables for constraint tracking.
+;;; This enables:
+;;;   - Named holes (? x) to be consistently typed across all uses
+;;;   - Recording what types holes unified with for inference/runtime casts
+;;;
+;;; Hole variables are symbols starting with '?':
+;;;   - Anonymous holes (?) → ?1, ?2, etc. (fresh each time)
+;;;   - Named holes (? x) → ?x (consistent across uses)
+;;;
+;;; Note: *hole-counter* is defined in Fresh Type Variables section
+;;; and reset by reset-fresh!.
+
+;;; reset-holes! : → Unit
+;;; Standalone reset for holes only (use reset-fresh! for full reset).
+(define (reset-holes!)
+  (set! *hole-counter* 0))
+
+;;; fresh-hole-var : → Symbol
+;;; Generate a fresh hole variable for anonymous holes.
+(define (fresh-hole-var)
+  (set! *hole-counter* (+ *hole-counter* 1))
+  (string->symbol (string-append "?" (number->string *hole-counter*))))
+
+;;; hole->var : Hole → Symbol
+;;; Convert a hole to its corresponding hole variable.
+;;; Named holes get consistent names; anonymous holes get fresh names.
+(define (hole->var h)
+  (if (and (pair? h) (eq? (car h) '?))
+      ;; Named hole (? x) → ?x
+      (string->symbol (string-append "?" (symbol->string (cadr h))))
+      ;; Anonymous hole ? → fresh ?1, ?2, etc.
+      (fresh-hole-var)))
+
+;;; hole-var? : Any → Boolean
+;;; Is this a hole variable (symbol starting with '?' but not '?' itself)?
+(define (hole-var? t)
+  (and (symbol? t)
+       (let ([s (symbol->string t)])
+         (and (> (string-length s) 1)
+              (char=? (string-ref s 0) #\?)))))
+
+;;; hole-var-name : HoleVar → String
+;;; Extract the name part of a hole variable (?foo → "foo", ?1 → "1").
+(define (hole-var-name hv)
+  (substring (symbol->string hv) 1 (string-length (symbol->string hv))))
+
+;;; hole-constraints : Subst → Subst
+;;; Extract only the hole variable bindings from a substitution.
+(define (hole-constraints s)
+  (filter (lambda (p) (hole-var? (car p))) s))
+
+;;; type-var-constraints : Subst → Subst
+;;; Extract only the type variable bindings from a substitution.
+(define (type-var-constraints s)
+  (filter (lambda (p) (and (type-var? (car p)) (not (hole-var? (car p))))) s))
 
 ;;; ====
 ;;; Substitution
@@ -122,12 +187,28 @@
 ;;; Apply a substitution to a type.
 (define (apply-subst s type)
   (cond
+   ;; Type variables: look up in substitution
    [(type-var? type)
     (let ([replacement (subst-lookup s type)])
          (if replacement
              (apply-subst s replacement)  ; Chase chains
              type))]
-   [(or (base-type? type) (hole? type)) type]
+   ;; Hole variables: look up like type variables
+   [(hole-var? type)
+    (let ([replacement (subst-lookup s type)])
+         (if replacement
+             (apply-subst s replacement)  ; Chase chains
+             type))]
+   ;; Named holes: convert to hole var and look up
+   [(and (pair? type) (eq? (car type) '?))
+    (let* ([hv (string->symbol (string-append "?" (symbol->string (cadr type))))]
+           [replacement (subst-lookup s hv)])
+          (if replacement
+              (apply-subst s replacement)
+              type))]  ; Keep as named hole if not yet constrained
+   ;; Anonymous holes: unchanged (they get fresh vars during unification)
+   [(eq? type '?) type]
+   [(base-type? type) type]
    [(not (pair? type)) type]
    ;; Don't substitute bound variables
    [(eq? (car type) '∀)
@@ -188,15 +269,49 @@
              `(error occurs-check ,t2 ,t1)
              `(ok ,(subst-extend s t2 t1)))]
         
-        ;; Holes unify with anything (gradual typing semantics)
-        ;; NOTE: Holes don't record what they unified with. This means:
-        ;;   - (? → Int) unifies with (Bool → Int) silently
-        ;;   - Multiple uses of the same named hole (? x) don't constrain each other
-        ;; For full gradual typing, we'd need to track hole constraints and
-        ;; generate runtime casts. Current behavior is "optimistic" — assume
-        ;; the programmer knows what they're doing with partial type annotations.
-        [(hole? t1) `(ok ,s)]
-        [(hole? t2) `(ok ,s)]
+        ;; Hole variables unify like type variables (constraint recording)
+        ;; This enables tracking what types holes unified with for:
+        ;;   - Consistent typing of named holes across uses
+        ;;   - Inference of hole types for better error messages
+        ;;   - Potential runtime cast generation for gradual typing
+        [(hole-var? t1)
+         (cond
+          ;; Hole var unifies with itself
+          [(and (hole-var? t2) (eq? t1 t2)) `(ok ,s)]
+          ;; Hole var unifies with another hole var: unify them
+          [(hole-var? t2) `(ok ,(subst-extend s t1 t2))]
+          ;; Hole var unifies with a type: record the constraint
+          [(occurs? t1 t2)
+           `(error occurs-check ,t1 ,t2)]
+          [else
+           `(ok ,(subst-extend s t1 t2))])]
+        [(hole-var? t2)
+         (if (occurs? t2 t1)
+             `(error occurs-check ,t2 ,t1)
+             `(ok ,(subst-extend s t2 t1)))]
+
+        ;; Holes: convert to hole variables and unify
+        ;; Named holes (? x) become consistent hole vars (?x)
+        ;; Anonymous holes (?) become fresh hole vars (?1, ?2, etc.)
+        [(hole? t1)
+         (let ([hv (hole->var t1)])
+           (cond
+            [(hole? t2)
+             ;; Both are holes: convert both and unify their vars
+             (let ([hv2 (hole->var t2)])
+               `(ok ,(subst-extend s hv hv2)))]
+            [(hole-var? t2)
+             ;; Hole meets hole-var: unify them
+             `(ok ,(subst-extend s hv t2))]
+            [(occurs? hv t2)
+             `(error occurs-check ,hv ,t2)]
+            [else
+             `(ok ,(subst-extend s hv t2))]))]
+        [(hole? t2)
+         (let ([hv (hole->var t2)])
+           (if (occurs? hv t1)
+               `(error occurs-check ,hv ,t1)
+               `(ok ,(subst-extend s hv t1))))]
         
         ;; Both are compound types with same constructor
         [(and (pair? t1) (pair? t2) (eq? (car t1) (car t2)))
@@ -247,10 +362,17 @@
              result))]))
 
 ;;; occurs? : Symbol × Type → Boolean
+;;; Check if a variable (type var or hole var) occurs in a type.
 (define (occurs? var type)
   (cond
    [(type-var? type) (eq? var type)]
-   [(or (base-type? type) (hole? type)) #f]
+   [(hole-var? type) (eq? var type)]
+   ;; Anonymous hole: never contains a variable
+   [(eq? type '?) #f]
+   ;; Named hole: check if var matches the hole's variable
+   [(and (pair? type) (eq? (car type) '?))
+    (eq? var (string->symbol (string-append "?" (symbol->string (cadr type)))))]
+   [(base-type? type) #f]
    [(not (pair? type)) #f]
    [(eq? (car type) '∀)
     ;; Extract var names from both simple (a) and kinded ((a : *)) forms

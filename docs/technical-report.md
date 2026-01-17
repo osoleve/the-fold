@@ -1489,7 +1489,42 @@ Holes (`?`) enable partial type specifications:
 
 **Semantics**: Holes unify with any type during inference. The system is *sound where types are known*—type errors are caught at typed boundaries, while untyped regions defer checking to runtime.
 
-#### 5.9.1 Interaction with Dependent Types
+#### 5.9.1 Hole Constraint Tracking
+
+Rather than simply ignoring holes during unification (which loses information), The Fold converts holes to *hole variables* and records what types they unify with:
+
+**Anonymous Holes** (`?`): Each occurrence generates a fresh hole variable (`?1`, `?2`, etc.). Multiple anonymous holes are independent:
+
+```scheme
+;; (→ ? ?) unifying with (→ Int Bool) produces:
+;;   ?1 → Int
+;;   ?2 → Bool
+;; The two holes are independent constraints
+```
+
+**Named Holes** (`(? name)`): All occurrences of the same named hole share a single hole variable (`?name`). This enforces consistency:
+
+```scheme
+;; (→ (? t) (? t)) unifying with (→ Int Int) succeeds:
+;;   ?t → Int
+
+;; (→ (? t) (? t)) unifying with (→ Int Bool) fails:
+;;   Cannot unify Int with Bool (inconsistent use of ?t)
+```
+
+**Constraint Extraction**: After inference, hole constraints can be extracted from the substitution:
+
+```scheme
+(hole-constraints subst)      ; → ((?x . Int) (?y . Bool) ...)
+(type-var-constraints subst)  ; → ((τ1 . String) ...)
+```
+
+This enables:
+- Better error messages ("hole ?x was inferred as Int")
+- Potential runtime cast generation for full gradual typing
+- IDE tooling showing inferred types for holes
+
+#### 5.9.2 Interaction with Dependent Types
 
 Combining gradual and dependent types is a known hard problem (Eremondi et al., 2019). The core difficulty: in `(Π ((x : A)) B)`, the type `B` may mention `x`. If `A` is a hole, what is `x`? If we don't know `x`'s type, we cannot normalize `B`.
 

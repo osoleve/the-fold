@@ -80,7 +80,9 @@ GADTs, existential types, and bidirectional type inference.")
    (quick-look "Guided instantiation: delay polymorphism decisions until more info")
    (gadts "Constructors with refined return types enable type-level computation")
    (existentials "Hide implementation types behind abstract interfaces")
-   (termination "Ensure type-level computation terminates for decidable checking")))
+   (termination "Ensure type-level computation terminates for decidable checking")
+   (gradual-holes "Holes (? and (? name)) for partial type specifications")
+   (hole-constraints "Named holes enforce consistency; constraints recorded for inference")))
 
  (type-classes
   ((single-param
