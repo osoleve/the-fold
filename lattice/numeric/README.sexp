@@ -1,9 +1,11 @@
 ((name "numeric")
- (purpose "Numerical computing, signal processing, and interpolation")
+ (purpose "Numerical computing, signal processing, interpolation, and verified arithmetic")
  (description "Numerical algorithms including complex numbers, FFT/DFT,
-convolution, digital filters, wavelets, spectral analysis, and interpolation.
-Provides the mathematical foundation for signal processing, curve fitting,
-and scientific computing.")
+convolution, digital filters, wavelets, spectral analysis, interpolation,
+interval arithmetic for verified computation, and affine arithmetic for
+tighter bounds via correlation tracking. Provides the mathematical foundation
+for signal processing, curve fitting, scientific computing, and rigorous
+numerical verification.")
  (modules
   ((complex.ss "Complex number arithmetic - 56 tests")
    (dft.ss "FFT and DFT algorithms - 46 tests")
@@ -14,7 +16,9 @@ and scientific computing.")
    (wavelet.ss "Haar, Daubechies wavelet transforms")
    (spectral-analysis.ss "STFT, spectrogram, Welch PSD")
    (signal-poly.ss "Filter polynomial algebra - stability, simplification, cascade")
-   (interpolate.ss "Interpolation, splines, Bezier, curve fitting - 75 tests")))
+   (interpolate.ss "Interpolation, splines, Bezier, curve fitting - 75 tests")
+   (interval.ss "Interval arithmetic for verified computation - 56 tests")
+   (affine.ss "Affine arithmetic with correlation tracking - 24 tests")))
  (dependencies (base linalg))
  (exports
   ;; === interpolate.ss ===
@@ -93,7 +97,13 @@ and scientific computing.")
   "=== Curves ==="
   "  Bezier curves (linear, quadratic, cubic)"
   "  De Casteljau algorithm for arbitrary degree"
-  "  Bezier derivatives/tangents")
+  "  Bezier derivatives/tangents"
+  ""
+  "=== Verified Arithmetic ==="
+  "  Interval arithmetic (rigorous bounds, three-valued comparisons)"
+  "  Affine arithmetic (correlation tracking, solves dependency problem)"
+  "  Elementary functions with guaranteed enclosure (exp, log, sqrt, trig)"
+  "  Multi-dimensional boxes for n-dimensional computation")
 
  (usage-examples
   ((interpolation
@@ -113,7 +123,19 @@ and scientific computing.")
 
    (chebyshev
     "(chebyshev-nodes 5)               ; optimal sampling points"
-    "(chebyshev-t 3 x)                 ; T_3(x) = 4x^3 - 3x")))
+    "(chebyshev-t 3 x)                 ; T_3(x) = 4x^3 - 3x")
+
+   (interval-arithmetic
+    "(interval 1 3)                    ; create [1, 3]"
+    "(interval-add x y)                ; [a,b] + [c,d]"
+    "(interval-definitely< x y)        ; true iff hi(x) < lo(y)"
+    "(interval-sqrt (interval 4 9))    ; => [2, 3]")
+
+   (affine-arithmetic
+    "(affine-from-interval (interval 1 2)) ; => 1.5 + 0.5*ε₀"
+    "(affine-sub x x)                  ; => 0 (not [-1,1]!)"
+    "(affine->interval result)         ; convert back to interval"
+    "(affine-mul x y)                  ; multiplication with error term")))
 
  (performance
   "FFT: O(n log n)"
@@ -121,11 +143,16 @@ and scientific computing.")
   "Newton interpolation: O(n^2) setup, O(n) evaluation"
   "Cubic spline: O(n) setup (tridiagonal), O(log n) evaluation"
   "Bezier (de Casteljau): O(n^2)"
-  "Chebyshev evaluation (Clenshaw): O(n)")
+  "Chebyshev evaluation (Clenshaw): O(n)"
+  "Interval ops: O(1) per operation"
+  "Affine ops: O(k) where k = number of noise symbols")
 
  (notes
   "Transcendental functions are in fp/numeric/transcendental.ss"
   "For polynomial GCD/division, use algebra/poly-bridge.ss alongside polynomial.ss"
   "Load polynomial.ss BEFORE poly-bridge.ss to avoid name collisions"
   "Splines use natural boundary conditions (S''=0 at endpoints)"
-  "Bezier curves are parametric in t from [0,1]"))
+  "Bezier curves are parametric in t from [0,1]"
+  "Interval arithmetic uses round-to-nearest (see -rigorous ops for directed rounding)"
+  "Affine arithmetic solves the dependency problem: x-x = 0, not [-r,r]"
+  "Use affine when expressions reuse variables; use interval for independent values"))

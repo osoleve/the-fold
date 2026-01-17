@@ -238,35 +238,46 @@
       (make-affine center (append linear-terms error-term)))))
 
 ;;; affine-recip : Affine → Affine | 'division-by-zero
-;;; Reciprocal 1/x̂ using Chebyshev approximation over the range.
+;;; Reciprocal 1/x̂ using linearization at center with conservative error bounds.
 (define (affine-recip af)
   (let* ([iv (affine->interval af)]
-         [lo (interval-lo iv)]
-         [hi (interval-hi iv)])
+         [a (interval-lo iv)]
+         [b (interval-hi iv)])
     (cond
       ;; Division by zero: interval contains zero
-      [(and (<= lo 0) (>= hi 0)) 'division-by-zero]
+      [(and (<= a 0) (>= b 0)) 'division-by-zero]
       [else
-       ;; Chebyshev approximation of 1/x over [lo, hi]
-       ;; Best linear approx: α + βx where β = -1/(lo*hi), α chosen to minimize max error
-       (let* ([a lo]
-              [b hi]
-              [beta (/ -1 (* a b))]
-              [alpha (/ (+ (/ 1 a) (/ 1 b) (* beta (+ a b))) 2)]
-              ;; Error bound: max|1/x - (α + βx)| over [a,b]
-              ;; Occurs at x = sqrt(a*b) for same-sign intervals
-              [xm (sqrt (* (abs a) (abs b)))]
-              [xm-signed (if (> a 0) xm (- xm))]
-              [delta (abs (- (/ 1 xm-signed) (+ alpha (* beta xm-signed))))])
-         ;; Result: α + β*x̂ + δ*ε_new
-         (let* ([x0 (affine-center af)]
-                [terms (affine-terms af)]
-                [center (+ alpha (* beta x0))]
-                [linear-terms (map (lambda (t) (cons (car t) (* beta (cdr t)))) terms)]
-                [error-term (if (zero? delta)
-                                '()
-                                (list (cons (affine-fresh-noise-id!) delta)))])
-           (make-affine center (append linear-terms error-term))))])))
+       (let* ([x0 (affine-center af)]
+              [r (affine-radius af)])
+         (cond
+           [(< r 1e-15)  ; Near-constant
+            (affine-constant (/ 1 x0))]
+           [else
+            ;; 1/x is monotone decreasing, so 1/[a,b] = [1/b, 1/a] for positive
+            ;; or [1/b, 1/a] for negative (reversed order since both negative)
+            ;; Linearization: 1/x ≈ 1/x0 + (-1/x0²) * (x - x0) = 1/x0 - (x - x0)/x0²
+            ;;              = 1/x0 - x/x0² + 1/x0 = 2/x0 - x/x0²
+            ;; Derivative at center: -1/x0²
+            (let* ([recip-a (/ 1 a)]
+                   [recip-b (/ 1 b)]
+                   [recip-x0 (/ 1 x0)]
+                   [deriv (/ -1 (* x0 x0))]  ; Derivative at center
+                   ;; Linear approximation at endpoints
+                   [linear-lo (+ recip-x0 (* deriv (- a x0)))]
+                   [linear-hi (+ recip-x0 (* deriv (- b x0)))]
+                   ;; Error: difference between linear approx and true bounds
+                   ;; 1/x is convex for positive x, so linear UNDERestimates
+                   ;; For negative x, 1/x is also convex (shaped like positive but flipped)
+                   [err-lo (- recip-a linear-lo)]
+                   [err-hi (- recip-b linear-hi)]
+                   [max-err (max (abs err-lo) (abs err-hi))]
+                   [terms (affine-terms af)]
+                   ;; Scale noise terms by derivative at center
+                   [linear-terms (map (lambda (t) (cons (car t) (* deriv (cdr t)))) terms)]
+                   [error-term (if (< max-err 1e-15)
+                                   '()
+                                   (list (cons (affine-fresh-noise-id!) max-err)))])
+              (make-affine recip-x0 (append linear-terms error-term)))]))])))
 
 ;;; affine-div : Affine × Affine → Affine | 'division-by-zero
 ;;; Division: x̂/ŷ = x̂ * (1/ŷ)

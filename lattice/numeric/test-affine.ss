@@ -168,7 +168,25 @@
     (affine-reset-noise-counter!)
     (let* ([x (affine-from-interval (interval -2 -1))]
            [result (affine-sqrt x)])
-      (assert-equal 'domain-error result))))
+      (assert-equal 'domain-error result)))
+
+  (define-test "direct reciprocal of constant"
+    ;; Gemini QA recommendation: explicit test for affine-recip
+    (affine-reset-noise-counter!)
+    (let* ([x (affine-constant 2)]
+           [result (affine-recip x)]
+           [iv (affine->interval result)])
+      (assert-true (< (abs (- (affine-center result) 0.5)) 1e-10)
+                   "1/2 should equal 0.5")))
+
+  (define-test "reciprocal contains true reciprocal"
+    (affine-reset-noise-counter!)
+    (let* ([x (affine-from-interval (interval 2 4))]
+           [result (affine-recip x)]
+           [iv (affine->interval result)])
+      ;; True range: [1/4, 1/2] = [0.25, 0.5]
+      (assert-true (<= (interval-lo iv) 0.25))
+      (assert-true (>= (interval-hi iv) 0.5)))))
 
 ;;; ============================================================================
 ;;; Elementary Function Tests
