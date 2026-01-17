@@ -54,12 +54,18 @@
        (= (length x) 4)))
 
 ;;; comonad-functor : Comonad → Functor
+;;; Errors if not a valid comonad (consistent with comonad-extend).
 (define (comonad-functor w)
-  (if (comonad? w) (cadr w) #f))
+  (if (comonad? w)
+      (cadr w)
+      (error 'comonad-functor "not a valid comonad")))
 
 ;;; comonad-extract : Comonad → (W a → a)
+;;; Errors if not a valid comonad (consistent with comonad-extend).
 (define (comonad-extract w)
-  (if (comonad? w) (caddr w) id))
+  (if (comonad? w)
+      (caddr w)
+      (error 'comonad-extract "not a valid comonad")))
 
 ;;; comonad-extend : Comonad → ((W a → b) → W a → W b)
 ;;; Note: Default fallback is identity; caller should always provide a valid comonad.
