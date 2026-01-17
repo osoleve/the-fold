@@ -211,6 +211,26 @@ Pure functional BM25 implementation for ranked retrieval:
 ; → 15
 ```
 
+**File Export Discovery** (`shell/introspect/exports.ss`):
+
+For modules without manifest entries, or when developing new code that depends on existing infrastructure, direct file scanning provides instant API discovery:
+
+```scheme
+(exports-of "lattice/fp/templates.ss")
+; → (ap-with applicative-ap applicative-either make-functor ...)
+
+(lef "lattice/fp/templates.ss")        ; Pretty-print grouped by category
+; → Constructors (7): make-applicative, make-foldable, make-functor, ...
+;   Predicates (8): applicative?, foldable?, functor?, ...
+;   Accessors & Operations (60): ap-with, applicative-ap, ...
+;   Values & Instances (6): mconcat, mtimes, over, ...
+
+(exports-of-summary "core/blocks/block.ss")
+; → core/blocks/block.ss: 15 exports (1 predicates, 13 ops, 1 values)
+```
+
+The categorization uses naming conventions: `make-*` → constructors, `*?` → predicates, symbols with `-` → operations, plain symbols → values. This eliminates the friction of tracing through files to discover APIs when building new modules.
+
 ### 6.5 The FP Toolkit
 
 `lattice/fp/` is a comprehensive functional programming library:

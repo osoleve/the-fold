@@ -318,7 +318,8 @@ Use `/lattice-search` skill for full documentation. Quick reference:
 
 ;; Inspection
 (li 'skill)         ; Skill description
-(le 'skill)         ; List exports
+(le 'skill)         ; List exports (from manifest)
+(lef "file.ss")     ; List exports (from any file)
 (ld 'skill)         ; Dependencies
 (lu 'skill)         ; Dependents
 

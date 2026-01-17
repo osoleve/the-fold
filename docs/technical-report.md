@@ -2635,6 +2635,26 @@ Pure functional BM25 implementation for ranked retrieval:
 ; → 15
 ```
 
+**File Export Discovery** (`shell/introspect/exports.ss`):
+
+For modules without manifest entries, or when developing new code that depends on existing infrastructure, direct file scanning provides instant API discovery:
+
+```scheme
+(exports-of "lattice/fp/templates.ss")
+; → (ap-with applicative-ap applicative-either make-functor ...)
+
+(lef "lattice/fp/templates.ss")        ; Pretty-print grouped by category
+; → Constructors (7): make-applicative, make-foldable, make-functor, ...
+;   Predicates (8): applicative?, foldable?, functor?, ...
+;   Accessors & Operations (60): ap-with, applicative-ap, ...
+;   Values & Instances (6): mconcat, mtimes, over, ...
+
+(exports-of-summary "core/blocks/block.ss")
+; → core/blocks/block.ss: 15 exports (1 predicates, 13 ops, 1 values)
+```
+
+The categorization uses naming conventions: `make-*` → constructors, `*?` → predicates, symbols with `-` → operations, plain symbols → values. This eliminates the friction of tracing through files to discover APIs when building new modules.
+
 ### 6.5 The FP Toolkit
 
 `lattice/fp/` is a comprehensive functional programming library:
@@ -3200,6 +3220,28 @@ The Bulletin Board System (BBS) demonstrates these primitives in practice:
 - Protected by `with-file-lock` on individual head files
 - Uses internal `%bbs-write-head!` since it already holds the lock
 - Returns `#f` on conflict, allowing retry
+
+**In-memory indices with cache persistence**:
+
+Both issues and posts use in-memory hashtable indices for O(1) lookups, with disk-based cache persistence:
+
+| Index | Purpose | Key → Value |
+|----|----|---|
+| `*bbs-issues*` | Issue lookup by ID | id-string → hash-bytevector |
+| `*bbs-by-status*` | Filter by status | status-symbol → (id ...) |
+| `*bbs-by-priority*` | Filter by priority | priority-int → (id ...) |
+| `*bbs-posts*` | Post lookup by ID | id-string → hash-bytevector |
+| `*bbs-posts-by-type*` | Filter by type | type-symbol → (id ...) |
+
+**Cache invalidation strategy**:
+```
+1. On save: Store head-file count as version marker
+2. On load: Compare cached count vs actual disk head count
+3. If mismatch: Full rebuild from disk (conservative but correct)
+4. On cache hit: Individual items auto-refresh on hash lookup miss
+```
+
+This approach trades off stale cache detection granularity for simplicity—no complex change tracking is needed, and the count check is O(1).
 
 **Design achieved**: The current implementation provides production-ready concurrency for single-server deployments. The hybrid `flock()` + lockfile approach handles both normal operation (via fast OS-level locks) and edge cases (via identity-verified lockfiles).
 
