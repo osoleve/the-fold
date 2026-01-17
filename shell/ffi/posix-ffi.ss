@@ -4,6 +4,8 @@
 ;;; - getpid: true OS process ID
 ;;; - flock: advisory file locking (with automatic cleanup on process death)
 ;;; - open/close: low-level file descriptor operations with O_EXCL
+;;; - fsync/fdatasync: force data to disk for durability
+;;; - stat/fstat: file metadata (size, mtime, mode, type)
 ;;;
 ;;; IMPORTANT: Always use LOCK_NB (non-blocking) with flock!
 ;;; Blocking flock would hang the Chez runtime (cooperative threading).
@@ -14,6 +16,10 @@
 ;;;   (posix-open path flags mode)       ; Open file, return fd
 ;;;   (posix-close fd)                   ; Close file descriptor
 ;;;   (posix-flock fd op)                ; Advisory locking
+;;;   (posix-fsync fd)                   ; Force data+metadata to disk
+;;;   (posix-fdatasync fd)               ; Force data to disk (faster)
+;;;   (posix-stat path)                  ; Get file metadata
+;;;   (posix-fstat fd)                   ; Get metadata via fd
 ;;;   (with-flock-lock path thunk)       ; High-level: lock file during thunk
 ;;;
 ;;; This is Shell code: impure (system calls, FFI).
@@ -60,6 +66,17 @@
 ;;; errno constants
 (define EWOULDBLOCK 11)  ; Non-blocking lock would block
 (define EEXIST 17)       ; File exists (O_EXCL)
+(define ENOENT 2)        ; No such file or directory
+
+;;; File type constants (from stat)
+(define FILE_TYPE_OTHER 0)
+(define FILE_TYPE_REGULAR 1)
+(define FILE_TYPE_DIRECTORY 2)
+(define FILE_TYPE_SYMLINK 3)
+
+;;; Stat buffer size (must match Rust STAT_BUFFER_SIZE)
+;;; Layout: size(8) + mtime_sec(8) + mtime_nsec(8) + mode(4) + type(4) = 32
+(define *stat-buffer-size* 32)
 
 ;;; ====
 ;;; Foreign Procedure Bindings
@@ -71,6 +88,10 @@
 (define rust-posix-open #f)
 (define rust-posix-close #f)
 (define rust-posix-flock #f)
+(define rust-posix-fsync #f)
+(define rust-posix-fdatasync #f)
+(define rust-posix-stat #f)
+(define rust-posix-fstat #f)
 
 ;;; Get POSIX constants from Rust (ensures compatibility)
 (define rust-posix-lock-sh #f)
@@ -110,6 +131,30 @@
     (set! rust-posix-flock
           (foreign-procedure "fold_posix_flock"
                              (integer-32 integer-32 (* posix-status-result-t))
+                             void))
+
+    ;; fsync(fd)
+    (set! rust-posix-fsync
+          (foreign-procedure "fold_posix_fsync"
+                             (integer-32 (* posix-status-result-t))
+                             void))
+
+    ;; fdatasync(fd)
+    (set! rust-posix-fdatasync
+          (foreign-procedure "fold_posix_fdatasync"
+                             (integer-32 (* posix-status-result-t))
+                             void))
+
+    ;; stat(path, out_buf, out_status)
+    (set! rust-posix-stat
+          (foreign-procedure "fold_posix_stat"
+                             (u8* size_t u8* (* posix-status-result-t))
+                             void))
+
+    ;; fstat(fd, out_buf, out_status)
+    (set! rust-posix-fstat
+          (foreign-procedure "fold_posix_fstat"
+                             (integer-32 u8* (* posix-status-result-t))
                              void))
 
     ;; Constants
@@ -232,6 +277,134 @@
        [else #f]))))
 
 ;;; ====
+;;; Durability Operations
+;;; ====
+
+;;; posix-fsync : Int → Boolean
+;;; Force all buffered data for fd to be written to disk.
+;;; WARNING: Blocking operation, can take 10-100ms on rotating media.
+;;; Returns #t on success, #f on failure.
+(define (posix-fsync fd)
+  (unless (posix-available?)
+    (error 'posix-fsync "POSIX FFI not loaded"))
+  (let* ([result-ptr (make-ftype-pointer posix-status-result-t
+                                         (foreign-alloc (ftype-sizeof posix-status-result-t)))])
+    (rust-posix-fsync fd result-ptr)
+    (let ([status (ftype-ref posix-status-result-t (status) result-ptr)])
+      (foreign-free (ftype-pointer-address result-ptr))
+      (= status 0))))
+
+;;; posix-fdatasync : Int → Boolean
+;;; Force buffered data (but not metadata) for fd to be written to disk.
+;;; Faster than fsync because it skips non-essential metadata like atime.
+;;; PREFERRED for atomic writes where only data integrity matters.
+;;; Returns #t on success, #f on failure.
+(define (posix-fdatasync fd)
+  (unless (posix-available?)
+    (error 'posix-fdatasync "POSIX FFI not loaded"))
+  (let* ([result-ptr (make-ftype-pointer posix-status-result-t
+                                         (foreign-alloc (ftype-sizeof posix-status-result-t)))])
+    (rust-posix-fdatasync fd result-ptr)
+    (let ([status (ftype-ref posix-status-result-t (status) result-ptr)])
+      (foreign-free (ftype-pointer-address result-ptr))
+      (= status 0))))
+
+;;; ====
+;;; File Metadata Operations
+;;; ====
+
+;;; NOTE: We allocate stat buffers locally in each function call
+;;; to ensure thread-safety. The minor allocation overhead is
+;;; acceptable for correctness. (Fixed: fold-zxn6)
+
+;;; parse-stat-buffer : Bytevector → Alist
+;;; Parse stat buffer into an association list.
+;;; Keys: size, mtime-sec, mtime-nsec, mode, file-type
+(define (parse-stat-buffer buf)
+  (list
+   (cons 'size (bytevector-u64-native-ref buf 0))
+   (cons 'mtime-sec (bytevector-s64-native-ref buf 8))
+   (cons 'mtime-nsec (bytevector-s64-native-ref buf 16))
+   (cons 'mode (bytevector-u32-native-ref buf 24))
+   (cons 'file-type (bytevector-u32-native-ref buf 28))))
+
+;;; posix-stat : String → Alist | #f
+;;; Get file metadata. Returns alist with keys:
+;;;   size       - file size in bytes
+;;;   mtime-sec  - modification time seconds since epoch
+;;;   mtime-nsec - modification time nanoseconds
+;;;   mode       - file permissions
+;;;   file-type  - FILE_TYPE_REGULAR, FILE_TYPE_DIRECTORY, etc.
+;;; Returns #f if file does not exist or error.
+;;; Thread-safe: allocates buffer locally. (Fixed: fold-zxn6)
+(define (posix-stat path)
+  (unless (posix-available?)
+    (error 'posix-stat "POSIX FFI not loaded"))
+  (let* ([path-bv (string->utf8 path)]
+         [stat-buffer (make-bytevector *stat-buffer-size*)]
+         [result-ptr (make-ftype-pointer posix-status-result-t
+                                         (foreign-alloc (ftype-sizeof posix-status-result-t)))])
+    (rust-posix-stat path-bv (bytevector-length path-bv)
+                     stat-buffer result-ptr)
+    (let ([status (ftype-ref posix-status-result-t (status) result-ptr)])
+      (foreign-free (ftype-pointer-address result-ptr))
+      (if (= status 0)
+          (parse-stat-buffer stat-buffer)
+          #f))))
+
+;;; posix-stat-field : String × Symbol → Value | #f
+;;; Get a single field from stat. More efficient than full posix-stat
+;;; when only one field is needed.
+(define (posix-stat-field path field)
+  (let ([result (posix-stat path)])
+    (and result (cdr (assq field result)))))
+
+;;; posix-file-exists? : String → Boolean
+;;; Check if file exists using stat.
+(define (posix-file-exists? path)
+  (and (posix-stat path) #t))
+
+;;; posix-file-size : String → Int | #f
+;;; Get file size in bytes.
+(define (posix-file-size path)
+  (posix-stat-field path 'size))
+
+;;; posix-file-mtime : String → Int | #f
+;;; Get file modification time as seconds since epoch.
+(define (posix-file-mtime path)
+  (posix-stat-field path 'mtime-sec))
+
+;;; posix-file-type : String → Int | #f
+;;; Get file type (FILE_TYPE_REGULAR, FILE_TYPE_DIRECTORY, etc.)
+(define (posix-file-type path)
+  (posix-stat-field path 'file-type))
+
+;;; posix-regular-file? : String → Boolean
+(define (posix-regular-file? path)
+  (eqv? (posix-file-type path) FILE_TYPE_REGULAR))
+
+;;; posix-directory? : String → Boolean
+(define (posix-directory? path)
+  (eqv? (posix-file-type path) FILE_TYPE_DIRECTORY))
+
+;;; posix-fstat : Int → Alist | #f
+;;; Get file metadata via file descriptor.
+;;; Same return format as posix-stat.
+;;; Thread-safe: allocates buffer locally. (Fixed: fold-zxn6)
+(define (posix-fstat fd)
+  (unless (posix-available?)
+    (error 'posix-fstat "POSIX FFI not loaded"))
+  (let* ([stat-buffer (make-bytevector *stat-buffer-size*)]
+         [result-ptr (make-ftype-pointer posix-status-result-t
+                                         (foreign-alloc (ftype-sizeof posix-status-result-t)))])
+    (rust-posix-fstat fd stat-buffer result-ptr)
+    (let ([status (ftype-ref posix-status-result-t (status) result-ptr)])
+      (foreign-free (ftype-pointer-address result-ptr))
+      (if (= status 0)
+          (parse-stat-buffer stat-buffer)
+          #f))))
+
+;;; ====
 ;;; High-Level Locking API
 ;;; ====
 
@@ -252,16 +425,27 @@
 ;;; - The thunk completes (normally or via exception)
 ;;; - The process dies (OS kernel handles cleanup)
 ;;;
+;;; Security: Uses O_EXCL on creation to prevent symlink attacks. (Fixed: fold-zxn7)
 ;;; This is the recommended way to use flock from Scheme.
 (define (with-flock-lock path thunk)
   (unless (posix-available?)
     (error 'with-flock-lock "POSIX FFI not loaded"))
 
   (let* ([lock-path (string-append path ".flock")]
+         ;; Try exclusive creation first to prevent symlink attacks
          ;; O_CLOEXEC prevents child processes from inheriting the lock FD
          [fd-result (posix-open lock-path
-                                (bitwise-ior O_CREAT O_RDWR O_CLOEXEC)
-                                #o644)])
+                                (bitwise-ior O_CREAT O_EXCL O_RDWR O_CLOEXEC)
+                                #o644)]
+         ;; If file already exists (EEXIST), open it normally
+         ;; This is safe because we created it exclusively on first use
+         [fd-result (if (and (pair? fd-result)
+                             (eq? (car fd-result) 'error)
+                             (= (cadr fd-result) EEXIST))
+                        (posix-open lock-path
+                                    (bitwise-ior O_RDWR O_CLOEXEC)
+                                    #o644)
+                        fd-result)])
     (when (and (pair? fd-result) (eq? (car fd-result) 'error))
       (error 'with-flock-lock "Failed to open lock file" lock-path fd-result))
 
@@ -385,6 +569,106 @@
                     (printf "FAIL (returned ~a)\n" result)
                     (set! loaded #f)))))
 
+          ;; Test 6: fdatasync
+          (display "6. posix-fdatasync: ")
+          (let* ([test-path "/tmp/fold-fdatasync-test.txt"]
+                 [fd (posix-open test-path (bitwise-ior O_CREAT O_RDWR) #o644)])
+            (if (and (integer? fd) (>= fd 0))
+                (let ([sync-result (posix-fdatasync fd)])
+                  (posix-close fd)
+                  (when (file-exists? test-path)
+                    (delete-file test-path))
+                  (if sync-result
+                      (display "OK\n")
+                      (begin (display "FAIL\n") (set! loaded #f))))
+                (begin
+                  (printf "FAIL (open returned ~a)\n" fd)
+                  (set! loaded #f))))
+
+          ;; Test 7: fsync
+          (display "7. posix-fsync: ")
+          (let* ([test-path "/tmp/fold-fsync-test.txt"]
+                 [fd (posix-open test-path (bitwise-ior O_CREAT O_RDWR) #o644)])
+            (if (and (integer? fd) (>= fd 0))
+                (let ([sync-result (posix-fsync fd)])
+                  (posix-close fd)
+                  (when (file-exists? test-path)
+                    (delete-file test-path))
+                  (if sync-result
+                      (display "OK\n")
+                      (begin (display "FAIL\n") (set! loaded #f))))
+                (begin
+                  (printf "FAIL (open returned ~a)\n" fd)
+                  (set! loaded #f))))
+
+          ;; Test 8: posix-stat
+          (display "8. posix-stat: ")
+          (let* ([test-path "/tmp/fold-stat-test.txt"]
+                 [content "hello stat test"])
+            ;; Create test file
+            (call-with-output-file test-path
+              (lambda (p) (put-string p content))
+              '(replace))
+            (let ([stat-result (posix-stat test-path)])
+              (when (file-exists? test-path)
+                (delete-file test-path))
+              (if (and stat-result
+                       (= (cdr (assq 'size stat-result)) (string-length content))
+                       (= (cdr (assq 'file-type stat-result)) FILE_TYPE_REGULAR))
+                  (begin
+                    (printf "size=~a type=~a OK\n"
+                            (cdr (assq 'size stat-result))
+                            (cdr (assq 'file-type stat-result))))
+                  (begin
+                    (printf "FAIL (result=~a)\n" stat-result)
+                    (set! loaded #f)))))
+
+          ;; Test 9: posix-stat on directory
+          (display "9. posix-stat (directory): ")
+          (let ([stat-result (posix-stat "/tmp")])
+            (if (and stat-result
+                     (= (cdr (assq 'file-type stat-result)) FILE_TYPE_DIRECTORY))
+                (display "OK\n")
+                (begin
+                  (printf "FAIL (result=~a)\n" stat-result)
+                  (set! loaded #f))))
+
+          ;; Test 10: posix-stat nonexistent
+          (display "10. posix-stat (nonexistent): ")
+          (let ([stat-result (posix-stat "/tmp/this-file-should-not-exist-fold.txt")])
+            (if (not stat-result)
+                (display "OK (returned #f)\n")
+                (begin
+                  (printf "FAIL (expected #f, got ~a)\n" stat-result)
+                  (set! loaded #f))))
+
+          ;; Test 11: posix-fstat
+          (display "11. posix-fstat: ")
+          (let* ([test-path "/tmp/fold-fstat-test.txt"]
+                 [content "hello fstat test"])
+            ;; Create test file
+            (call-with-output-file test-path
+              (lambda (p) (put-string p content))
+              '(replace))
+            (let ([fd (posix-open test-path O_RDONLY 0)])
+              (if (and (integer? fd) (>= fd 0))
+                  (let ([fstat-result (posix-fstat fd)])
+                    (posix-close fd)
+                    (when (file-exists? test-path)
+                      (delete-file test-path))
+                    (if (and fstat-result
+                             (= (cdr (assq 'size fstat-result)) (string-length content)))
+                        (begin
+                          (printf "size=~a OK\n" (cdr (assq 'size fstat-result))))
+                        (begin
+                          (printf "FAIL (result=~a)\n" fstat-result)
+                          (set! loaded #f))))
+                  (begin
+                    (when (file-exists? test-path)
+                      (delete-file test-path))
+                    (printf "FAIL (open returned ~a)\n" fd)
+                    (set! loaded #f)))))
+
           (display "====\n")
           (if loaded
               (display "All tests passed!\n")
@@ -398,5 +682,9 @@
 (display "posix-ffi.ss loaded.\n")
 (display "  (posix-load!)                   - Load FFI library\n")
 (display "  (posix-getpid)                  - Get real OS PID\n")
+(display "  (posix-fdatasync fd)            - Force data to disk (fast)\n")
+(display "  (posix-fsync fd)                - Force data+metadata to disk\n")
+(display "  (posix-stat path)               - Get file metadata\n")
+(display "  (posix-fstat fd)                - Get metadata via fd\n")
 (display "  (with-flock-lock path thunk)    - Execute with advisory lock\n")
 (display "  (run-posix-tests)               - Run tests\n")

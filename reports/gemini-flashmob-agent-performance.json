@@ -1,0 +1,47 @@
+{
+  "agent_id": "agent-performance",
+  "focus": "PERFORMANCE",
+  "files_reviewed": ["shell/ffi/posix-ffi.ss", "shell/io/atomic.ss"],
+  "findings": [
+    {
+      "severity": "high",
+      "line": 167,
+      "file": "shell/ffi/posix-ffi.ss",
+      "description": "Frequent use of 'foreign-alloc' and 'foreign-free' for small result structs in POSIX wrappers. These procedures invoke the system malloc/free, which are significantly more expensive than Scheme's nursery allocation and can lead to heap fragmentation. This pattern is repeated in posix-getpid, posix-open, posix-close, posix-flock, posix-fsync, posix-fdatasync, posix-stat, and posix-fstat, adding overhead to every system call.",
+      "code_snippet": "(let* ([result-ptr (make-ftype-pointer posix-int-result-t (foreign-alloc (ftype-sizeof posix-int-result-t)))])",
+      "suggested_fix": "Use a pre-allocated thread-local buffer or a small bytevector with make-ftype-pointer. Since the library already employs a global *stat-result-buffer* for stat data, a similar reusable buffer for status results would eliminate these allocations.",
+      "confidence": 0.95,
+      "category": "performance"
+    },
+    {
+      "severity": "medium",
+      "line": 260,
+      "file": "shell/ffi/posix-ffi.ss",
+      "description": "The 'parse-stat-buffer' function allocates a new association list for every metadata query. High-level wrappers like 'posix-file-size' and 'posix-directory?' perform O(N) lookups on this list and discard it immediately. This creates unnecessary garbage and overhead, especially when scanning directories or checking multiple properties of the same file.",
+      "code_snippet": "(define (parse-stat-buffer buf)\n  (list\n   (cons 'size (bytevector-u64-native-ref buf 0))\n   (cons 'mtime-sec (bytevector-s64-native-ref buf 8))\n   (cons 'mtime-nsec (bytevector-s64-native-ref buf 16))\n   (cons 'mode (bytevector-u32-native-ref buf 24))\n   (cons 'file-type (bytevector-u32-native-ref buf 28))))",
+      "suggested_fix": "Implement direct field accessors that read from the bytevector using 'bytevector-u64-native-ref' etc., avoiding alist allocation entirely for single-field queries.",
+      "confidence": 0.9,
+      "category": "performance"
+    },
+    {
+      "severity": "medium",
+      "line": 355,
+      "file": "shell/ffi/posix-ffi.ss",
+      "description": "The lock acquisition retry loop in 'with-flock-lock' calls '(current-time)' in every iteration. In Chez Scheme, 'current-time' allocates a 'time' record. Under lock contention, this polling loop (10ms interval) will generate a steady stream of short-lived garbage.",
+      "code_snippet": "(if (> (time-second (current-time)) deadline)",
+      "suggested_fix": "Calculate the deadline once and use a more efficient way to check elapsed time, or use a non-allocating timer if available in the runtime.",
+      "confidence": 0.85,
+      "category": "performance"
+    },
+    {
+      "severity": "low",
+      "line": 70,
+      "file": "shell/io/atomic.ss",
+      "description": "The 'unique-temp-path' function uses 'format' and '(current-time)' for every atomic write operation. 'format' is a heavy-weight procedure that parses its format string at runtime. For high-frequency temporary file generation, simpler string concatenation is significantly faster.",
+      "code_snippet": "(format \"~a.~a.~a.~a.tmp\"\n          path\n          (get-atomic-pid)\n          (time-nanosecond (current-time))\n          *atomic-temp-counter*)",
+      "suggested_fix": "Use 'string-append' and 'number->string' to construct the path, and consider caching the timestamp or using a more efficient counter-based approach.",
+      "confidence": 0.8,
+      "category": "performance"
+    }
+  ]
+}

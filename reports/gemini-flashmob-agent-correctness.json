@@ -1,0 +1,77 @@
+{
+  "agent_id": "agent-correctness",
+  "focus": "CORRECTNESS",
+  "files_reviewed": ["shell/ffi/posix-ffi.ss", "shell/io/atomic.ss"],
+  "findings": [
+    {
+      "severity": "high",
+      "line": 213,
+      "file": "shell/ffi/posix-ffi.ss",
+      "description": "The global buffer '*stat-result-buffer*' is shared across all calls to 'posix-stat' and 'posix-fstat'. This creates a race condition in multi-threaded environments where concurrent calls will overwrite the same memory before it is parsed, leading to corrupted metadata results.",
+      "code_snippet": "(define *stat-result-buffer* (make-bytevector *stat-buffer-size*))",
+      "suggested_fix": "Allocate the stat buffer locally within 'posix-stat' and 'posix-fstat' or use a thread-local storage mechanism.",
+      "confidence": 1.0,
+      "category": "correctness"
+    },
+    {
+      "severity": "high",
+      "line": 121,
+      "file": "shell/io/atomic.ss",
+      "description": "The temporary file used for atomic writes is opened with 'no-truncate'. If a temp file name collision occurs (which is possible due to the race condition in the counter), the new content is written over the old content without clearing it. If the new content is shorter, the file will contain trailing garbage from the previous write, leading to silent data corruption.",
+      "code_snippet": "(let ([port (open-file-output-port temp-path (file-options no-fail no-truncate) (buffer-mode block) (native-transcoder))])",
+      "suggested_fix": "Remove the 'no-truncate' option to ensure the file is cleared upon opening, or use '(file-options exclusive)' to fail on collisions.",
+      "confidence": 1.0,
+      "category": "correctness"
+    },
+    {
+      "severity": "high",
+      "line": 67,
+      "file": "shell/io/atomic.ss",
+      "description": "Incrementing '*atomic-temp-counter*' is not atomic. Multiple threads can read the same value and increment it to the same result, leading to identical temporary file paths for different write operations. Combined with the 'no-truncate' bug, this leads to data corruption.",
+      "code_snippet": "(set! *atomic-temp-counter* (+ 1 *atomic-temp-counter*))",
+      "suggested_fix": "Use an atomic increment operation or wrap the counter update in a mutex to ensure uniqueness.",
+      "confidence": 0.95,
+      "category": "correctness"
+    },
+    {
+      "severity": "medium",
+      "line": 131,
+      "file": "shell/ffi/posix-ffi.ss",
+      "description": "Memory leak in FFI wrappers. 'foreign-alloc' is used to allocate result structures, but 'foreign-free' is only called at the end of the procedure. If a Scheme exception or interruption (like a timer interrupt or user break) occurs between allocation and free, the memory is leaked.",
+      "code_snippet": "(let* ([result-ptr (make-ftype-pointer posix-int-result-t (foreign-alloc (ftype-sizeof posix-int-result-t)))]) (rust-posix-getpid result-ptr) ... (foreign-free (ftype-pointer-address result-ptr)))",
+      "suggested_fix": "Use 'dynamic-wind' or 'guard' to ensure 'foreign-free' is executed regardless of how the block is exited.",
+      "confidence": 0.95,
+      "category": "correctness"
+    },
+    {
+      "severity": "medium",
+      "line": 317,
+      "file": "shell/ffi/posix-ffi.ss",
+      "description": "Incorrect 'dynamic-wind' usage in 'with-flock-lock'. The 'before' thunk is empty, and the 'after' thunk closes the file descriptor. If the protected thunk is re-entered via a continuation, the code will attempt to use a closed file descriptor without holding a lock.",
+      "code_snippet": "(dynamic-wind (lambda () #f) thunk (lambda () (posix-flock fd LOCK_UN) (posix-close fd)))",
+      "suggested_fix": "Acquire the lock in the 'before' thunk of 'dynamic-wind' to ensure it is re-acquired upon continuation re-entry, or use a flag to prevent re-entry.",
+      "confidence": 0.9,
+      "category": "correctness"
+    },
+    {
+      "severity": "medium",
+      "line": 104,
+      "file": "shell/io/atomic.ss",
+      "description": "The 'modes' parameter in 'atomic-write-file' is ignored. The code calculates 'file-modes' based on the input but never passes it to 'open-file-output-port', rendering user-specified options (like 'append' or 'exclusive') ineffective.",
+      "code_snippet": "(define (atomic-write-file path writer . modes) (let* (... [file-modes (if (null? modes) '(replace) (car modes))] ...) ... (open-file-output-port temp-path (file-options no-fail no-truncate) ...))",
+      "suggested_fix": "Pass the 'file-modes' (converted to 'file-options') to 'open-file-output-port'.",
+      "confidence": 1.0,
+      "category": "correctness"
+    },
+    {
+      "severity": "medium",
+      "line": 300,
+      "file": "shell/ffi/posix-ffi.ss",
+      "description": "The lock acquisition loop uses 'time-second' for deadline calculation and comparison. This provides only 1-second resolution, making timeouts inaccurate and potentially causing the loop to wait up to a full second longer than requested, or behave incorrectly for sub-second timeouts.",
+      "code_snippet": "[deadline (+ (time-second (current-time)) (/ *flock-timeout-ms* 1000))]",
+      "suggested_fix": "Use millisecond or nanosecond resolution by comparing 'time' objects directly or using 'time-nanosecond' for comparisons.",
+      "confidence": 0.85,
+      "category": "correctness"
+    }
+  ]
+}
