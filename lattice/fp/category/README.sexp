@@ -2,23 +2,35 @@
  (purpose "Category theory abstractions for functional programming")
  (description
   "Categorical structures and transformations including natural transformations,
-   functor morphisms, and compositional operations. Builds on the functor and
-   type class infrastructure in lattice/fp/templates.ss and core/types/kinds.ss.")
+   functor morphisms, Kan extensions, and compositional operations. Builds on
+   the functor and type class infrastructure in lattice/fp/templates.ss and
+   core/types/kinds.ss.")
 
  (modules
   ((natural-transform.ss "Natural transformations between functors with composition")
-   (adjunction.ss "Adjoint functors, triangle identities, and Galois connections")))
+   (adjunction.ss "Adjoint functors, triangle identities, and Galois connections")
+   (monad-derivation.ss "Unified monad derivation from adjunctions (F -| G yields monad on G.F)")
+   (comonad.ss "Comonad type class, Store/Env/Traced comonads, adjunction derivation")
+   (kan-extension.ss "Left/Right Kan extensions and Codensity monad")))
 
  (key-concepts
-  ((natural-transformation "Morphism between functors: η : F ⟹ G with components η_A : F(A) → G(A)")
-   (naturality-condition "G(f) ∘ η_A = η_B ∘ F(f) for all f : A → B")
-   (vertical-composition "η ∘ ε: compose transformations F ⟹ G ⟹ H")
-   (horizontal-composition "η * ε: Godement product for functor composition")
-   (whiskering "Compose transformation with functor: F ▷ η and η ◁ G")
+  ((natural-transformation "Morphism between functors: eta : F ==> G with components eta_A : F(A) -> G(A)")
+   (naturality-condition "G(f) . eta_A = eta_B . F(f) for all f : A -> B")
+   (vertical-composition "eta . eps: compose transformations F ==> G ==> H")
+   (horizontal-composition "eta * eps: Godement product for functor composition")
+   (whiskering "Compose transformation with functor: F |> eta and eta <| G")
    (natural-isomorphism "Invertible natural transformation")
-   (adjunction "F ⊣ G: Unit η and Counit ε satisfying triangle identities")
-   (triangle-identities "(ε ◁ F) ∘ (F ▷ η) = id_F and (G ▷ ε) ∘ (η ◁ G) = id_G")
-   (galois-connection "Adjunction between preorders (monotone maps)")))
+   (adjunction "F -| G: Unit eta and Counit eps satisfying triangle identities")
+   (triangle-identities "(eps <| F) . (F |> eta) = id_F and (G |> eps) . (eta <| G) = id_G")
+   (galois-connection "Adjunction between preorders (monotone maps)")
+   (comonad "Dual of monad: extract/extend/duplicate for context decomposition")
+   (store-comonad "Store s a = (s->a, s): position in space with universal access")
+   (env-comonad "Env e a = (e, a): value with environment (dual of Reader)")
+   (traced-comonad "Traced m a = m->a: function from monoidal accumulator")
+   (monad-from-adjunction "Every adjunction F -| G yields monad: return=eta, join=G(eps_F)")
+   (right-kan-extension "(Ran K F) a = forall b. (a -> K b) -> F b")
+   (left-kan-extension "(Lan K F) a = exists b. (K b -> a, F b)")
+   (codensity-monad "Ran_Id M: gives O(1) amortized bind for any monad M")))
 
  (dependencies (fp/templates fp/meta/combinators base))
 
@@ -27,10 +39,10 @@
     make-nat-transform nat-transform? nat-transform-name
     nat-transform-source nat-transform-target nat-transform-component
     nat-apply nat-id
-    nat-compose nat-∘
-    nat-horizontal nat-*
-    nat-whisker-right nat-◁
-    nat-whisker-left nat-▷
+    nat-compose nat-compose2
+    nat-horizontal nat-horizontal2
+    nat-whisker-right nat-whisker-right2
+    nat-whisker-left nat-whisker-left2
     make-nat-iso nat-iso? nat-iso-forward nat-iso-inverse
     check-naturality verify-naturality
     nat-head nat-singleton nat-maybe-to-either nat-either-to-maybe
@@ -46,9 +58,82 @@
     adj-free-list
     make-galois galois? galois-lower galois-upper
     galois-closure galois-kernel galois-floor-ceil
-    adjunction->string)))
+    adjunction->string)
+   (monad-derivation.ss
+    ;; MonadOps record
+    make-monad-ops monad-ops? monad-ops-name
+    monad-ops-return monad-ops-fmap monad-ops-join monad-ops-bind
+    ;; Core derivation
+    monad-from-adjunction
+    ;; Example derivations
+    monad-list-derived
+    make-reader-adjunction adj-reader-example monad-reader-derived
+    ;; State-like utilities
+    run-state eval-state exec-state
+    ;; Law verification
+    verify-left-identity verify-right-identity verify-associativity
+    verify-monad-laws verify-functor-identity verify-functor-composition
+    ;; Display
+    monad-ops->string)
+   (comonad.ss
+    make-comonad comonad? comonad-functor comonad-extract comonad-extend
+    duplicate-with extract-with extend-with coflatmap =>>
+    comonad-from-adjunction
+    ;; Store comonad
+    make-store store? store-accessor store-position
+    store-peek store-seek store-seeks store-experiment
+    store-extract store-extend store-duplicate
+    store-functor store-comonad
+    ;; Env comonad
+    make-env env? env-environment env-value env-ask env-local
+    env-extract env-extend env-duplicate env-functor env-comonad
+    ;; Traced comonad
+    make-traced traced? traced-run traced-monoid run-traced
+    traced-extract traced-extend traced-duplicate
+    traced-functor traced-comonad
+    ;; Law verification
+    verify-comonad-law-1 verify-comonad-law-2 verify-comonad-law-3
+    verify-comonad-laws
+    ;; Composition
+    compose-comonads
+    ;; Display
+    comonad->string store->string env->string)
+   (kan-extension.ss
+    ;; Right Kan Extension
+    make-ran ran? ran-k ran-f ran-computation ran-apply
+    ran-fmap functor-ran ran-lift
+    ;; Left Kan Extension
+    make-lan lan? lan-k lan-f lan-morphism lan-value
+    lan-fmap functor-lan lan-inject lan-lower
+    ;; Codensity Monad
+    make-codensity codensity? codensity-return-fn codensity-run
+    codensity-return codensity-bind codensity-map
+    codensity-lift codensity-lower
+    ;; Codensity List (Difference Lists)
+    codensity-list-singleton codensity-list-append codensity-list-lower
+    ;; Codensity Maybe
+    codensity-maybe-return codensity-maybe-bind codensity-maybe-fail
+    ;; Generic Builder
+    make-codensity-monad codensity-monad-return codensity-monad-bind
+    codensity-monad-lift codensity-monad-lower)))
+
+ (theory-notes
+  ((kan-extensions-universal
+    "Kan extensions are the most universal constructions in category theory.
+     Every concept in category theory (limits, colimits, adjoints, ends, coends)
+     can be expressed as a Kan extension.")
+   (codensity-performance
+    "The Codensity monad transforms any monad M into an equivalent monad with
+     O(1) amortized bind. This is exactly what free-queue in free.ss and
+     eff-queue in effects.ss implement - they ARE Codensity in disguise.")
+   (continuation-queue-pattern
+    "Instead of nested bind structure (left-associative, O(n^2)),
+     Codensity accumulates continuations in a queue and applies them
+     all at once during lowering (right-associative, O(n)).
+     The 'queue' is a defunctionalized continuation representation.")))
 
  (future-work
   ((functor-categories "Categories with functors as objects, nat transforms as morphisms")
    (yoneda "Yoneda lemma and embedding")
-   (kan-extensions "Left and right Kan extensions"))))
+   (ends-coends "End and coend as universal constructions via Kan")
+   (cofree-comonad "Cofree f a = (a, f (Cofree f a)) dual of Free monad"))))
