@@ -18,6 +18,7 @@
 (load "lattice/meta/inspect.ss")
 (load "lattice/meta/persist.ss")
 (load "lattice/meta/source-loc.ss")
+(load "shell/introspect/exports.ss")
 
 ;;; ====
 ;;; Initialization
@@ -41,6 +42,7 @@
         (printf "\nLattice tooling initialized!\n")))
   (printf "  Use (lf \"query\") to search\n")
   (printf "  Use (li 'skill) to inspect a skill\n")
+  (printf "  Use (lef \"file.ss\") to list exports from any file\n")
   (printf "  Use (lt 'skill) to list tests\n")
   (printf "  Use (lsrc 'fn) for source location\n")
   (printf "  Use (ls) for statistics\n")
@@ -71,6 +73,7 @@
   (printf "\nLattice tooling initialized (fresh build)!\n")
   (printf "  Use (lf \"query\") to search\n")
   (printf "  Use (li 'skill) to inspect a skill\n")
+  (printf "  Use (lef \"file.ss\") to list exports from any file\n")
   (printf "  Use (lt 'skill) to list tests\n")
   (printf "  Use (lsrc 'fn) for source location\n")
   (printf "  Use (ls) for statistics\n")
@@ -116,7 +119,8 @@
   (printf "  (lattice-validate-all)    - Validate all skills\n\n")
   (printf "INSPECTION:\n")
   (printf "  (li 'skill)               - Full skill description\n")
-  (printf "  (le 'skill)               - List exports\n")
+  (printf "  (le 'skill)               - List exports (from manifest)\n")
+  (printf "  (lef \"file.ss\")           - List exports (from any file)\n")
   (printf "  (lm 'skill)               - List modules\n")
   (printf "  (lsrc 'fn)                - Source location (file:line)\n")
   (printf "  (lattice-summary)         - One-line summary of all skills\n\n")

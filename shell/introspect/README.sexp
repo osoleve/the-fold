@@ -8,6 +8,7 @@
  (modules
   ((complexity.ss "Static analysis: LOC, nesting depth, definitions, coverage estimation")
    (memory.ss "Memory measurement: allocation tracking, GC statistics")
-   (timing.ss "High-resolution timing: wall-clock, CPU time, benchmark harness")))
+   (timing.ss "High-resolution timing: wall-clock, CPU time, benchmark harness")
+   (exports.ss "Export discovery: extract defines from any .ss file without manifest")))
  (dependencies (base))
  (load-order "timing.ss, memory.ss, complexity.ss (independent)"))
