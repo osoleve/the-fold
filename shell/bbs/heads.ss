@@ -152,6 +152,15 @@
            entries))
         '())))
 
+;;; bbs-list-issue-heads : -> (List String)
+;;; List only issue IDs (fold-* prefix), excluding posts.
+;;; Use this for issue index operations to avoid counting posts.
+(define (bbs-list-issue-heads)
+  (filter (lambda (id)
+            (and (>= (string-length id) 5)
+                 (string=? (substring id 0 5) "fold-")))
+          (bbs-list-heads)))
+
 ;;; filter-map : (a -> b | #f) (List a) -> (List b)
 ;;; Map and filter in one pass.
 (define (filter-map f lst)

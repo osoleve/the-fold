@@ -122,7 +122,8 @@
                   (and (= version *bbs-index-cache-version*)
                        ;; Get actual disk heads for validation and counter sync
                        ;; (Gemini QA: use disk heads, not cached IDs, for counter sync)
-                       (let ([disk-heads (bbs-list-heads)])
+                       ;; Use issue-only heads to avoid counting posts in validation
+                       (let ([disk-heads (bbs-list-issue-heads)])
                          (and (= head-count (length disk-heads))
                               ;; Cache is valid - restore state
                               (begin
@@ -164,9 +165,9 @@
   (set! *bbs-by-priority* (make-eqv-hashtable))
   (set! *bbs-deps* '())
 
-  (let* ([ids (bbs-list-heads)]
+  (let* ([ids (bbs-list-issue-heads)]
          [count 0])
-    ;; Sync counter to avoid ID collisions
+    ;; Sync counter to avoid ID collisions (issue heads only)
     (bbs-sync-counter-from-heads! ids)
 
     ;; Index each issue
