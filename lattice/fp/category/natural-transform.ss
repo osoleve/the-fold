@@ -184,9 +184,10 @@
          [H-fmap (functor-fmap H)]
          [F-fmap (functor-fmap F)]
          [G-fmap (functor-fmap G)])
-    ;; F∘H and G∘H: (F∘H)(f)(x) = F(f)(H(f)(x))
-    (let ([FH (make-functor (lambda (f x) (F-fmap f (H-fmap f x))))]
-          [GH (make-functor (lambda (f x) (G-fmap f (H-fmap f x))))])
+    ;; F∘H and G∘H: (F∘H)(f) = F(H(f)), lifting H(f) through F
+    ;; For x : F(H(A)), we map (λy. H(f)(y)) over the F-container
+    (let ([FH (make-functor (lambda (f x) (F-fmap (lambda (y) (H-fmap f y)) x)))]
+          [GH (make-functor (lambda (f x) (G-fmap (lambda (y) (H-fmap f y)) x)))])
       (make-nat-transform
        (string->symbol (format "~a◁H" (nat-transform-name η)))
        FH
@@ -207,9 +208,10 @@
          [H-fmap (functor-fmap H)]
          [F-fmap (functor-fmap F)]
          [G-fmap (functor-fmap G)])
-    ;; H∘F and H∘G: (H∘F)(f)(x) = H(f)(F(f)(x))
-    (let ([HF (make-functor (lambda (f x) (H-fmap f (F-fmap f x))))]
-          [HG (make-functor (lambda (f x) (H-fmap f (G-fmap f x))))])
+    ;; H∘F and H∘G: (H∘F)(f) = H(F(f)), lifting F(f) through H
+    ;; For x : H(F(A)), we map (λy. F(f)(y)) over the H-container
+    (let ([HF (make-functor (lambda (f x) (H-fmap (lambda (y) (F-fmap f y)) x)))]
+          [HG (make-functor (lambda (f x) (H-fmap (lambda (y) (G-fmap f y)) x)))])
       (make-nat-transform
        (string->symbol (format "H▷~a" (nat-transform-name η)))
        HF

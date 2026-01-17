@@ -181,6 +181,54 @@
   (test-true "left whiskering creates nat-transform"
              (nat-transform? whiskered)))
 
+;; Substantive whiskering tests using nat-head
+;; nat-head : List ⟹ Maybe takes a list and returns Just (head) or Nothing
+
+;; Right whiskering: (nat-head ◁ Maybe) : List∘Maybe ⟹ Maybe∘Maybe
+;; Input is List(Maybe(A)), output is Maybe(Maybe(A))
+;; The component η_{Maybe(A)} = head : List(Maybe(A)) → Maybe(Maybe(A))
+(let ([right-whiskered (nat-whisker-right nat-head functor-maybe)])
+  (test "right whisker (η ◁ H) applies η to H-wrapped values"
+        (just (just 1))  ; head of [(Just 1), (Just 2), Nothing]
+        (nat-apply right-whiskered (list (just 1) (just 2) nothing)))
+
+  (test "right whisker on empty list"
+        nothing
+        (nat-apply right-whiskered '())))
+
+;; Left whiskering: (List ▷ nat-head) : List∘List ⟹ List∘Maybe
+;; Input is List(List(A)), output is List(Maybe(A))
+;; Component (H ▷ η)_A = H(η_A) = List(head) - map head over the outer list
+(let ([left-whiskered (nat-whisker-left functor-list nat-head)])
+  (test "left whisker (H ▷ η) maps η over H-container"
+        (list (just 'a) (just 'd) nothing)  ; head of each inner list
+        (nat-apply left-whiskered '((a b c) (d e) ())))
+
+  (test "left whisker on empty outer list"
+        '()
+        (nat-apply left-whiskered '())))
+
+;; Test that the composed functor's fmap works correctly
+;; This was the bug: the composed functor was doing F(f)(H(f)(x)) instead of F(H(f))(x)
+(section "Whiskering Functor Composition")
+
+(let* ([η (make-nat-transform
+           'id-list
+           functor-list
+           functor-list
+           (lambda (xs) xs))]  ; identity on lists
+       [whiskered (nat-whisker-right η functor-maybe)]
+       [FH (nat-transform-source whiskered)]
+       [FH-fmap (functor-fmap FH)])
+
+  ;; For List∘Maybe, fmap f should apply f to the innermost values
+  ;; Input: [(Just 1), (Just 2), Nothing]
+  ;; f = add1
+  ;; Output: [(Just 2), (Just 3), Nothing]
+  (test "composed functor (F∘H) fmap works correctly"
+        (list (just 2) (just 3) nothing)
+        (FH-fmap add1 (list (just 1) (just 2) nothing))))
+
 ;;; ====
 ;;; Test: Natural Isomorphisms
 ;;; ====
