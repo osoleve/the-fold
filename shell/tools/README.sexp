@@ -18,6 +18,7 @@
    (init-project.ss "Project initialization and setup")
    (markdown.ss "Markdown parsing and rendering utilities")
    (module-deps.ss "Module dependency graph analysis and cycle detection")
+   (paren-check.ss "Parenthesis balance checker with exact error locations")
    (refactor.ss "Safe automated refactorings: rename, extract, inline")
    (refactor-integrated.ss "Refactoring with index and call graph integration")
    (scaffold.ss "Code scaffolding from templates with variable substitution")

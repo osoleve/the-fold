@@ -313,7 +313,7 @@
                       [errors '()]
                       [in-string #f]
                       [in-block-comment 0]   ; nesting depth for #|...|#
-                      [in-datum-skip 0])     ; paren depth for #; datum skip (0 = not skipping)
+                      [in-datum-skip 0])     ; #; state: 0=normal, -1=waiting, >0=inside at depth
         (let ([line (get-line port)])
           (if (eof-object? line)
               ;; EOF - check for unclosed items
@@ -335,8 +335,9 @@
                                   line-num 0))  ; line-num is EOF position
                           '())]
                      ;; Check for unterminated datum comments
+                     ;; in-datum-skip = -1 means waiting, >0 means inside parens
                      [datum-error
-                      (if (> in-datum-skip 0)
+                      (if (not (= in-datum-skip 0))
                           (list (make-paren-error
                                   'unclosed
                                   "unterminated datum comment #;..."
@@ -518,7 +519,10 @@
 ;;; skip-datum-with-depth : String Int Bool -> (Values Int Bool Int)
 ;;; Like skip-datum but returns paren depth instead of crossed-line boolean.
 ;;; Returns (new-col new-in-string remaining-depth)
-;;; remaining-depth > 0 means datum continues on next line(s).
+;;; remaining-depth meanings:
+;;;   0 = datum complete
+;;;   -1 = waiting for datum to start (next line)
+;;;   >0 = inside datum, tracking paren depth
 (define (skip-datum-with-depth line start-col in-string)
   (let ([len (string-length line)])
     ;; Skip leading whitespace
@@ -526,8 +530,8 @@
       (cond
         [(>= col len)
          ;; End of line before finding datum start
-         ;; The datum must be on the next line - signal waiting for atom
-         (values col in-string 1)]  ; depth 1 = waiting for datum start
+         ;; The datum must be on the next line - signal waiting
+         (values col in-string -1)]  ; -1 = waiting for datum start
         [(char-whitespace? (string-ref line col))
          (skip-ws (+ col 1))]
         [else
@@ -537,11 +541,40 @@
              ;; List/vector opener - track balanced parens
              [(or (char=? c #\() (char=? c #\[) (char=? c #\{))
               (skip-balanced-depth line (+ col 1) in-string 1)]
-             ;; Vector #(
-             [(and (char=? c #\#)
-                   (< (+ col 1) len)
-                   (char=? (string-ref line (+ col 1)) #\())
-              (skip-balanced-depth line (+ col 2) in-string 1)]
+             ;; Vector #( or bytevector #vu8(
+             [(char=? c #\#)
+              (cond
+                ;; #( vector
+                [(and (< (+ col 1) len)
+                      (char=? (string-ref line (+ col 1)) #\())
+                 (skip-balanced-depth line (+ col 2) in-string 1)]
+                ;; #vu8( bytevector
+                [(and (< (+ col 4) len)
+                      (char=? (string-ref line (+ col 1)) #\v)
+                      (char=? (string-ref line (+ col 2)) #\u)
+                      (char=? (string-ref line (+ col 3)) #\8)
+                      (char=? (string-ref line (+ col 4)) #\())
+                 (skip-balanced-depth line (+ col 5) in-string 1)]
+                ;; #\ character literal - skip it
+                [(and (< (+ col 1) len)
+                      (char=? (string-ref line (+ col 1)) #\\))
+                 (let ([char-pos (+ col 2)])
+                   (if (>= char-pos len)
+                       (values char-pos in-string 0)
+                       (let ([char-start (string-ref line char-pos)])
+                         (if (char-alphabetic? char-start)
+                             ;; Named char like #\newline
+                             (let scan ([i (+ char-pos 1)])
+                               (if (or (>= i len)
+                                       (not (char-alphabetic? (string-ref line i))))
+                                   (values i in-string 0)
+                                   (scan (+ i 1))))
+                             ;; Simple char like #\(
+                             (values (+ char-pos 1) in-string 0)))))]
+                ;; Other # syntax (boolean #t/#f, etc.) - atom
+                [else
+                 (let-values ([(new-col new-str _) (skip-atom line col in-string)])
+                   (values new-col new-str 0))])]
              ;; String
              [(char=? c #\")
               (let-values ([(new-col new-str crossed) (skip-string line (+ col 1))])
@@ -615,7 +648,74 @@
                           (string-ref line (+ col 1))
                           #f)])
           (cond
-            ;; Continuing datum skip from previous line (multi-line #; comment)
+            ;; Waiting for datum to start (saw #; but datum is on next line)
+            ;; in-datum = -1 means waiting for the datum to begin
+            [(= in-datum -1)
+             (cond
+               ;; Skip whitespace
+               [(char-whitespace? c)
+                (char-loop (+ col 1) stack errors in-string in-block -1)]
+               ;; Opener starts a list/vector - now track depth
+               [(or (char=? c #\() (char=? c #\[) (char=? c #\{))
+                (char-loop (+ col 1) stack errors in-string in-block 1)]
+               ;; String starts - skip it, datum complete when string ends
+               [(char=? c #\")
+                (let-values ([(new-col new-str crossed) (skip-string line (+ col 1))])
+                  (if crossed
+                      ;; String continues to next line
+                      (values stack errors #t in-block 1)  ; Use 1 to track string continuation
+                      ;; String complete - datum done
+                      (char-loop new-col stack errors #f in-block 0)))]
+               ;; Quote prefix - skip and still waiting for actual datum
+               [(or (char=? c #\') (char=? c #\`) (char=? c #\,))
+                (let ([next-col (+ col 1)])
+                  (if (and (char=? c #\,)
+                           (< next-col (string-length line))
+                           (char=? (string-ref line next-col) #\@))
+                      (char-loop (+ col 2) stack errors in-string in-block -1)
+                      (char-loop next-col stack errors in-string in-block -1)))]
+               ;; #-prefixed forms
+               [(char=? c #\#)
+                (cond
+                  ;; Vector #(
+                  [(and next-c (char=? next-c #\())
+                   (char-loop (+ col 2) stack errors in-string in-block 1)]
+                  ;; Bytevector #vu8(
+                  [(and (< (+ col 4) (string-length line))
+                        (char=? (string-ref line (+ col 1)) #\v)
+                        (char=? (string-ref line (+ col 2)) #\u)
+                        (char=? (string-ref line (+ col 3)) #\8)
+                        (char=? (string-ref line (+ col 4)) #\())
+                   (char-loop (+ col 5) stack errors in-string in-block 1)]
+                  ;; Character literal #\x - atom, datum complete
+                  [(and next-c (char=? next-c #\\))
+                   (let ([char-pos (+ col 2)])
+                     (if (>= char-pos (string-length line))
+                         (char-loop char-pos stack errors in-string in-block 0)
+                         (let ([char-start (string-ref line char-pos)])
+                           (if (char-alphabetic? char-start)
+                               ;; Named char like #\newline
+                               (let scan ([i (+ char-pos 1)])
+                                 (if (or (>= i (string-length line))
+                                         (not (char-alphabetic? (string-ref line i))))
+                                     (char-loop i stack errors in-string in-block 0)
+                                     (scan (+ i 1))))
+                               ;; Simple char like #\(
+                               (char-loop (+ char-pos 1) stack errors in-string in-block 0)))))]
+                  ;; Other # syntax (boolean #t/#f) - atom, datum complete
+                  [else
+                   (let-values ([(new-col new-str _) (skip-atom line col in-string)])
+                     (char-loop new-col stack errors new-str in-block 0))])]
+               ;; Line comment - still waiting on next line
+               [(char=? c #\;)
+                (values stack errors in-string in-block -1)]
+               ;; Any other character - it's an atom, skip it and datum complete
+               [else
+                (let-values ([(new-col new-str _) (skip-atom line col in-string)])
+                  (char-loop new-col stack errors new-str in-block 0))])]
+
+            ;; Continuing datum skip from previous line (inside balanced parens)
+            ;; in-datum > 0 means we're tracking paren depth inside a list/vector
             [(> in-datum 0)
              (cond
                ;; String handling within datum
@@ -674,8 +774,9 @@
             [(and (char=? c #\#) next-c (char=? next-c #\;))
              (let-values ([(new-col new-in-string datum-depth)
                            (skip-datum-with-depth line (+ col 2) in-string)])
-               (if (> datum-depth 0)
-                   ;; Datum extends beyond this line - track depth for continuation
+               (if (not (= datum-depth 0))
+                   ;; Datum extends beyond this line - track state for continuation
+                   ;; datum-depth = -1 means waiting for datum, >0 means inside parens
                    (values stack errors new-in-string in-block datum-depth)
                    ;; Datum complete on this line
                    (char-loop new-col stack errors new-in-string in-block 0)))]
