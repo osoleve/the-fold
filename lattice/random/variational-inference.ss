@@ -164,6 +164,12 @@
 ;;; q(z) = N(z; μ, LL^T) where L is lower triangular (Cholesky factor)
 ;;; Parameters: μ (mean), L (Cholesky factor, stored as vector)
 ;;; Reparameterization: z = μ + L ε, where ε ~ N(0, I)
+;;;
+;;; WARNING: The Cholesky diagonal elements are NOT constrained to be positive.
+;;; If optimization drives a diagonal to negative, log-det will fail with NaN.
+;;; For most use cases, prefer mean-field Gaussian which uses log-stds to
+;;; guarantee positivity. A future version may store log-diagonal elements
+;;; to fix this issue.
 
 ;;; make-full-gaussian : (List Number) × (List Number) → VFamily
 ;;; Create full covariance Gaussian.
@@ -400,6 +406,11 @@
 ;;;
 ;;; IMPORTANT: traced-log-joint must use traced arithmetic (traced-add, traced-mul, etc.)
 ;;; to allow gradients to flow through log p(x,z).
+;;;
+;;; Mathematical note: We use ANALYTICAL entropy gradient instead of Monte Carlo estimation.
+;;; ELBO = E_q[log p(x,z)] + H[q], where H[q] = 0.5*d*(1+log(2π)) + Σ log_σ
+;;; This avoids the variance collapse bug from detaching z when computing log q.
+;;; The gradient of H[q] w.r.t. log_σ is +1 for each dimension.
 (define (elbo-gradient-mf traced-log-joint means log-stds epsilons)
   (let* ([d (length means)]
          [params (append means log-stds)])
@@ -418,14 +429,12 @@
                                   t-means t-log-stds epsilons)]
                         ;; Compute log p(x, z) using TRACED z values
                         [t-log-p (traced-log-joint t-z)]
-                        ;; Compute log q(z; μ, σ) with traced parameters
-                        [z-vals (map traced-value t-z)]  ; Need primal for log q
-                        [t-log-q (sum-traced
-                                  (map (lambda (zi t-mu t-log-s)
-                                               (traced-log-normal-pdf zi t-mu t-log-s))
-                                       z-vals t-means t-log-stds))])
-                       ;; ELBO contribution: log p - log q
-                       (traced-sub t-log-p t-log-q)))
+                        ;; Compute ANALYTICAL entropy: H[q] = 0.5*d*(1+log(2π)) + Σ log_σ
+                        ;; Only the Σ log_σ term contributes gradient (∂H/∂log_σ = +1)
+                        ;; The constant 0.5*d*(1+log(2π)) has zero gradient, so we omit it
+                        [t-entropy (sum-traced t-log-stds)])
+                       ;; ELBO = E[log p(x,z)] + H[q] (using analytical entropy)
+                       (traced-add t-log-p t-entropy)))
          params)))
 
 ;;; ====
@@ -466,6 +475,43 @@
                                            (make-traced-const (log (sqrt prior-var)) #f))]
            ;; Likelihood: sum of log N(x_i | mu, known-var)
            [t-likelihood (traced-log-normal-pdf-sum observations t-mu known-var)])
+          (traced-add t-prior t-likelihood))))
+
+;;; make-traced-log-joint-linear-regression : (List (List Number)) × (List Number) × Number × Number → ((List Traced) → Traced)
+;;; Create a traced log-joint for Bayesian linear regression.
+;;; Model: β ~ N(0, prior-var*I), y_i ~ N(X_i · β, noise-var)
+(define (make-traced-log-joint-linear-regression X y noise-var prior-var)
+  (lambda (t-beta)
+    ;; Compute prior: sum of log N(β_j | 0, prior-var)
+    (let* ([t-prior (fold-left traced-add
+                               (make-traced-const 0 #f)
+                               (map (lambda (t-bj)
+                                           ;; log N(β_j | 0, prior-var)
+                                           (traced-log-normal-pdf (traced-value t-bj)
+                                                                  (make-traced-const 0 #f)
+                                                                  (make-traced-const (log (sqrt prior-var)) #f)))
+                                    t-beta))]
+           ;; Compute likelihood: sum of log N(y_i | X_i·β, noise-var)
+           [t-likelihood (fold-left traced-add
+                                    (make-traced-const 0 #f)
+                                    (map (lambda (xi yi)
+                                                 ;; Compute X_i · β using traced arithmetic
+                                                 (let* ([t-pred (fold-left traced-add
+                                                                           (make-traced-const 0 #f)
+                                                                           (map (lambda (xij t-bj)
+                                                                                        (traced-mul (make-traced-const xij #f) t-bj))
+                                                                                xi t-beta))]
+                                                        ;; log N(y_i | pred, noise-var)
+                                                        [yi-const (make-traced-const yi #f)]
+                                                        [diff (traced-sub yi-const t-pred)]
+                                                        [diff-sq (traced-mul diff diff)]
+                                                        [var-const (make-traced-const noise-var #f)]
+                                                        [log-norm-const (make-traced-const
+                                                                         (* -0.5 (log (* 2 3.141592653589793 noise-var))) #f)]
+                                                        [half (make-traced-const 0.5 #f)]
+                                                        [scaled (traced-div diff-sq var-const)])
+                                                       (traced-sub log-norm-const (traced-mul half scaled))))
+                                         X y))])
           (traced-add t-prior t-likelihood))))
 
 ;;; take-traced : (List Traced) × Nat → (List Traced)
@@ -793,7 +839,7 @@
     [(X y sigma2 num-iters lr)
      (let* ([n (length y)]
             [d (length (car X))]  ; Number of features
-            ;; Log joint
+            ;; Non-traced log joint (for ELBO estimation)
             [log-joint (lambda (beta)
                                (+ ;; Prior: β ~ N(0, 10*I)
                                 (fold-left + 0
@@ -805,11 +851,13 @@
                                                         (let ([pred (fold-left + 0 (map * xi beta))])
                                                              (log-normal-pdf yi pred sigma2)))
                                                 X y))))]
+            ;; Traced log joint (for gradient computation)
+            [traced-log-joint (make-traced-log-joint-linear-regression X y sigma2 10)]
             ;; Initial variational approximation
             [init-means (make-list d 0.0)]
             [init-log-stds (make-list d 0.0)]
             [init-vfamily (make-mf-gaussian init-means init-log-stds)])
-           (vi-fit log-joint init-vfamily num-iters lr))]))
+           (vi-fit-traced log-joint traced-log-joint init-vfamily num-iters lr))]))
 
 ;;; ====
 ;;; Diagnostics
