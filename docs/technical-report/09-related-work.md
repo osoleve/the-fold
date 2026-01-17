@@ -39,4 +39,21 @@ The Fold's de Bruijn approach provides stronger α-equivalence guarantees. Uniso
 
 **Backpack**: Mixin modules for Haskell. Similar goals of flexible composition; different mechanisms.
 
+### 9.5 Probabilistic Programming and Automatic Differentiation
+
+**Stan, PyMC, Pyro**: Popular probabilistic programming languages. The Fold's approach is more minimalist—variational inference as a library rather than a DSL, using general-purpose autodiff.
+
+**JAX, PyTorch**: Automatic differentiation frameworks that enable gradient-based inference. The Fold's autodiff is similar in spirit (traced computation graphs) but implemented in pure Scheme with fuel tracking.
+
+**Edward, Turing.jl**: Probabilistic programming with variational inference. The Fold follows similar theoretical foundations (ELBO optimization, reparameterization trick) but emphasizes simplicity and self-containment over ecosystem breadth.
+
+| Aspect | Stan/PyMC | The Fold |
+|----|----|----|
+| Inference | HMC + VI | VI (ELBO optimization) |
+| Autodiff | External (C++/JAX) | In-house (traced values) |
+| Language | DSL/Python | Embedded in Scheme |
+| Guarantees | None | Fuel-tracked, content-addressed |
+
+The Fold's probabilistic programming is less feature-rich but fully introspectable and self-contained.
+
 ---

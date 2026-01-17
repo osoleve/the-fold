@@ -2254,6 +2254,98 @@ The Bulletin Board System (BBS) demonstrates these primitives in practice:
 
 **Design achieved**: The current implementation provides production-ready concurrency for single-server deployments. The hybrid `flock()` + lockfile approach handles both normal operation (via fast OS-level locks) and edge cases (via identity-verified lockfiles).
 
+### 7.7 Probabilistic Programming and Automatic Differentiation
+
+The Fold integrates automatic differentiation with probabilistic programming, enabling gradient-based inference for scalable Bayesian computation.
+
+#### 7.7.1 Automatic Differentiation
+
+The autodiff module (`core/autodiff/`) provides multiple differentiation modes:
+
+| Mode | Type | Best For |
+|----|----|----|
+| Forward (Dual numbers) | `Dual` | Few inputs, many outputs |
+| Reverse (Traced values) | `Traced` | Many inputs, few outputs (e.g., loss functions) |
+| Hyperdual | `Hyperdual` | Exact second derivatives (Hessians) |
+
+**Traced values** record a computation graph during the forward pass, then backpropagate gradients:
+
+```scheme
+(gradient
+  (lambda (x y)
+    (traced-mul x (traced-add x y)))  ; f(x,y) = x(x+y)
+  '(3.0 2.0))
+; → (8.0 3.0)  ; ∂f/∂x = 2x+y = 8, ∂f/∂y = x = 3
+```
+
+The `Differentiable` type class (`core/autodiff/differentiable.ss`) provides a uniform interface:
+
+```scheme
+(class Differentiable d where
+  lift    : Real → d           ; Lift constant
+  primal  : d → Real           ; Extract value
+  d+, d*, d-, d/ : d → d → d   ; Arithmetic
+  d-exp, d-log, d-sin, d-cos   ; Transcendentals
+  ...)
+```
+
+This enables generic differentiable programming—write once, differentiate with any AD mode.
+
+#### 7.7.2 Variational Inference
+
+Variational inference (`lattice/random/variational-inference.ss`) transforms Bayesian integration into optimization:
+
+**Key insight**: Instead of computing the intractable posterior p(z|x), find the closest approximation from a tractable family:
+
+```
+q*(z) = argmin_q KL(q(z) || p(z|x)) = argmax_q ELBO(q)
+```
+
+where ELBO (Evidence Lower Bound) is:
+
+```
+L(φ) = E_q[log p(x,z)] - E_q[log q(z;φ)]
+     = E_q[log p(x,z)] + H[q]
+```
+
+**The Reparameterization Trick**: Naive sampling z ~ q(z|φ) blocks gradient flow. The solution: sample noise ε ~ N(0,1) and compute z = g(ε, φ) deterministically:
+
+```
+For Gaussian q(z|μ,σ): z = μ + σ * ε
+```
+
+Now z is a deterministic function of φ, enabling ∇_φ E_q[f(z)] via backpropagation.
+
+**Variational Families**:
+
+| Family | Parameters | Expressiveness |
+|----|----|----|
+| Mean-field Gaussian | μ, diag(σ) | Fast, independent marginals |
+| Full-covariance Gaussian | μ, LL^T (Cholesky) | Captures correlations |
+
+**Optimization**: Adam optimizer with momentum and adaptive learning rates:
+
+```scheme
+(vi-fit-normal-mean observations variance num-iters learning-rate)
+; Infers posterior over mean given observations with known variance
+```
+
+**Convergence Diagnostics**:
+- ELBO history tracking
+- `vi-summary` for posterior statistics
+- `vi-check-convergence` for monitoring
+
+**Example: Bayesian Linear Regression**
+
+```scheme
+;; Model: β ~ N(0, 10*I), y_i ~ N(X_i · β, σ²)
+(let ([result (vi-fit-linear-regression X y 1.0 2000 0.01)])
+  (vi-summary result))
+; → Posterior mean and uncertainty over regression coefficients
+```
+
+This approach scales to large datasets where MCMC would be prohibitively slow.
+
 ---
 ## 8. Evaluation
 
@@ -2393,6 +2485,23 @@ The Fold's de Bruijn approach provides stronger α-equivalence guarantees. Uniso
 **ML Modules**: Sophisticated module system with functors and signatures. The Fold's module system is simpler (no functors) but adds verification metadata.
 
 **Backpack**: Mixin modules for Haskell. Similar goals of flexible composition; different mechanisms.
+
+### 9.5 Probabilistic Programming and Automatic Differentiation
+
+**Stan, PyMC, Pyro**: Popular probabilistic programming languages. The Fold's approach is more minimalist—variational inference as a library rather than a DSL, using general-purpose autodiff.
+
+**JAX, PyTorch**: Automatic differentiation frameworks that enable gradient-based inference. The Fold's autodiff is similar in spirit (traced computation graphs) but implemented in pure Scheme with fuel tracking.
+
+**Edward, Turing.jl**: Probabilistic programming with variational inference. The Fold follows similar theoretical foundations (ELBO optimization, reparameterization trick) but emphasizes simplicity and self-containment over ecosystem breadth.
+
+| Aspect | Stan/PyMC | The Fold |
+|----|----|----|
+| Inference | HMC + VI | VI (ELBO optimization) |
+| Autodiff | External (C++/JAX) | In-house (traced values) |
+| Language | DSL/Python | Embedded in Scheme |
+| Guarantees | None | Fuel-tracked, content-addressed |
+
+The Fold's probabilistic programming is less feature-rich but fully introspectable and self-contained.
 
 ---
 ## 10. Limitations and Non-Goals
