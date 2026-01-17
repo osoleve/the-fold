@@ -64,17 +64,109 @@
        (load "core/types/types.ss")
        (set! *infer-available* #t))
 
+;;; ====
+;;; Real Type Inference for Hover
+;;; ====
+
+;;; try-parse-expr : String → Expr | #f
+;;; Try to parse a string as a Scheme expression.
+(define (try-parse-expr str)
+  (guard (e [else #f])
+         (read (open-input-string str))))
+
+;;; parse-definitions : String → (List (Pair Symbol Expr))
+;;; Parse top-level definitions from document content.
+;;; Returns list of (name . init-expr) pairs for type inference.
+(define (parse-definitions content)
+  (guard (e [else '()])
+         (let ([port (open-input-string content)])
+              (let loop ([acc '()])
+                   (let ([expr (read port)])
+                        (if (eof-object? expr)
+                            (reverse acc)
+                            (loop (append (extract-def expr) acc))))))))
+
+;;; extract-def : Expr → (List (Pair Symbol Expr))
+;;; Extract definition bindings from a single form.
+(define (extract-def expr)
+  (cond
+   ;; (define name value)
+   [(and (pair? expr)
+         (eq? (car expr) 'define)
+         (symbol? (cadr expr)))
+    (list (cons (cadr expr) (caddr expr)))]
+   ;; (define (name args...) body)
+   [(and (pair? expr)
+         (eq? (car expr) 'define)
+         (pair? (cadr expr)))
+    (let ([name (caadr expr)]
+          [args (cdadr expr)]
+          [body (if (null? (cdddr expr)) (caddr expr) (cons 'begin (cddr expr)))])
+         (list (cons name `(fn ,args ,body))))]
+   [else '()]))
+
+;;; build-tenv-from-defs : (List (Pair Symbol Expr)) → TEnv
+;;; Build a type environment by inferring types for definitions.
+;;; Falls back to fresh type variables for failed inferences.
+(define (build-tenv-from-defs defs)
+  (if (not *infer-available*)
+      empty-tenv
+      (let loop ([defs defs] [env empty-tenv])
+           (if (null? defs)
+               env
+               (let* ([def (car defs)]
+                      [name (car def)]
+                      [init (cdr def)])
+                     (guard (e [else (loop (cdr defs) env)])
+                            (reset-fresh!)
+                            (let ([result (infer init env)])
+                                 (if (eq? (car result) 'ok)
+                                     (let* ([type (cadr result)]
+                                            [s (caddr result)]
+                                            [gen-type (generalize env (apply-subst s type))])
+                                           (loop (cdr defs) (tenv-extend env name gen-type)))
+                                     (loop (cdr defs) env)))))))))
+
+;;; try-infer-type : String × String → String | #f
+;;; Try to infer the type of a symbol in the context of a document.
+;;; Returns the type as a string, or #f if inference fails.
+(define (try-infer-type name content)
+  (if (not *infer-available*)
+      #f
+      (guard (e [else #f])
+             (let* ([defs (parse-definitions content)]
+                    [env (build-tenv-from-defs defs)]
+                    [sym (string->symbol name)]
+                    ;; First check if it's in the environment
+                    [env-type (tenv-lookup env sym)])
+                   (if env-type
+                       (type->string env-type)
+                       ;; Try to parse and infer as an expression
+                       (let ([expr (try-parse-expr name)])
+                            (if expr
+                                (begin
+                                 (reset-fresh!)
+                                 (let ([result (infer expr env)])
+                                      (if (eq? (car result) 'ok)
+                                          (let* ([type (cadr result)]
+                                                 [s (caddr result)]
+                                                 [final-type (apply-subst s type)])
+                                                (type->string (generalize '() final-type)))
+                                          #f)))
+                                #f)))))))
+
 ;;; get-type-string : String → String | #f
 ;;; Get the type of a symbol as a string.
+;;; Tries multiple sources: real inference, symbol index, primitives.
 (define (get-type-string name)
-  ;; First check the symbol index for signature
-  (let ([info (lookup-symbol-info name)])
-       (if info
-           (let ([sig (assq 'signature info)])
-                (if (and sig (cdr sig))
-                    (cdr sig)
-                    #f))
-           #f)))
+  (or
+   ;; 1. Try the symbol index for pre-computed signature
+   (let ([info (lookup-symbol-info name)])
+        (and info
+             (let ([sig (assq 'signature info)])
+                  (and sig (cdr sig)))))
+   ;; 2. Check primitive database
+   (primitive-type name)))
 
 ;;; ====
 ;;; Hover Implementation
@@ -82,12 +174,16 @@
 
 ;;; compute-hover : Document × JsonObject → JsonObject | null
 ;;; Compute hover information for a position.
+;;; Uses real type inference when available, falls back to index/primitives.
 (define (compute-hover doc position)
   (let ([symbol (symbol-at-position doc position)])
        (if (not symbol)
            'null
            (let* ([info (lookup-symbol-info symbol)]
-                  [type-str (get-type-string symbol)]
+                  ;; Try real type inference first, then fall back to index/primitives
+                  [type-str (or (and *infer-available*
+                                     (try-infer-type symbol (document-content doc)))
+                                (get-type-string symbol))]
                   [hover-text (format-hover-text symbol info type-str)])
                  (if hover-text
                      (make-hover hover-text)
