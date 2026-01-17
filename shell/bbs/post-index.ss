@@ -13,10 +13,43 @@
 ;;;   - On load: if count matches disk, use cache; else rebuild
 ;;;   - Individual posts auto-refresh via post-index-hash on cache miss
 ;;;
+;;; Note: Unlike issues, posts do NOT have dependencies (blockers/blocking).
+;;; This simplifies the index - no dependency tracking or dep persistence needed.
+;;; If post relationships are added in the future, add deps infrastructure here.
+;;;
 ;;; This is Shell code: impure (maintains mutable state).
 
 (load "shell/bbs/store.ss")
 (load "shell/io/atomic.ss")
+(load "shell/io/file-lock.ss")
+
+;;; ====
+;;; Counter Functions (local copies to avoid circular dependency with posts.ss)
+;;; ====
+
+(define *post-counter-file* ".bbs/post-counter")
+
+;;; post-read-counter : -> Int
+;;; Read current counter value (or 0 if not exists).
+(define (post-read-counter)
+  (guard (e [else 0])
+    (if (file-exists? *post-counter-file*)
+        (call-with-input-file *post-counter-file*
+          (lambda (port)
+            (let ([line (get-line port)])
+              (string->number line))))
+        0)))
+
+;;; %post-write-counter! : Int -> Void
+;;; INTERNAL: Write counter value to file (caller must hold lock).
+(define (%post-write-counter! n)
+  (unless (file-exists? ".bbs")
+    (mkdir ".bbs"))
+  (call-with-atomic-output-file *post-counter-file*
+    (lambda (port)
+      (put-string port (number->string n))
+      (newline port))
+    '(replace)))
 
 ;;; ====
 ;;; Index Cache
@@ -144,6 +177,9 @@
 ;;; post-sync-counter-from-heads! : (List String) -> Void
 ;;; Sync the post counter to be >= max ID found in heads.
 ;;; Prevents ID collisions when cache is stale.
+;;;
+;;; Uses file lock to prevent race condition where concurrent
+;;; processes could overwrite each other's counter updates.
 (define (post-sync-counter-from-heads! ids)
   (let ([max-n 0])
     (for-each
@@ -155,8 +191,12 @@
            (set! max-n n))))
      ids)
     ;; Only update if we found a higher counter
-    (when (> max-n (post-read-counter))
-      (post-write-counter! max-n))))
+    ;; Lock must be held for atomic read-compare-write
+    (when (> max-n 0)
+      (with-file-lock *post-counter-file*
+        (lambda ()
+          (when (> max-n (post-read-counter))
+            (%post-write-counter! max-n)))))))
 
 ;;; ====
 ;;; Index Building

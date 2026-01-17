@@ -25,7 +25,7 @@
    (exports (post-create post-show post-list post-update post-fetch-data)))
 
   ((name "index.ss")
-   (description "In-memory indices with disk cache for fast lookups")
+   (description "In-memory issue indices with disk cache for fast lookups")
    (exports (bbs-rebuild-indices! bbs-all-issues bbs-issues-by-status
              bbs-issues-by-priority bbs-issue-count bbs-issue-exists?
              bbs-issue-hash bbs-blockers bbs-blocking bbs-is-blocked?
@@ -33,6 +33,14 @@
              bbs-add-dep! bbs-remove-dep!
              ;; Cache functions
              bbs-save-index-cache! bbs-load-index-cache!)))
+
+  ((name "post-index.ss")
+   (description "In-memory post indices with disk cache for fast lookups")
+   (exports (post-rebuild-indices! post-all-ids post-all-posts
+             post-ids-by-type post-index-count post-index-exists?
+             post-index-hash post-index-stats
+             ;; Cache functions
+             post-save-index-cache! post-load-index-cache!)))
 
   ((name "store.ss")
    (description "Block storage and retrieval via CAS")
@@ -72,7 +80,9 @@
   ((path ".bbs/deps")
    (description "Dependency list persistence"))
   ((path ".bbs/index.cache")
-   (description "Serialized index cache for fast session startup (gitignored)")))
+   (description "Serialized issue index cache for fast session startup"))
+  ((path ".bbs/post-index.cache")
+   (description "Serialized post index cache for fast session startup")))
 
  (pipeline-integration
   "BBS effects are available in agent pipelines via lattice/pipeline/effects.ss:
@@ -94,4 +104,5 @@
   "Index cache added 2026-01-15 for fast session startup (26x speedup)."
   "Cache validation: count-based (if head count differs, rebuild from scratch)."
   "Individual issue updates auto-refresh via bbs-issue-hash on cache miss."
-  "Posts added 2026-01-16 for changelogs, notes, announcements, session summaries."))
+  "Posts added 2026-01-16 for changelogs, notes, announcements, session summaries."
+  "Post index added 2026-01-17 mirroring issue index pattern for O(1) lookups."))
