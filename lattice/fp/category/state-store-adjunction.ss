@@ -212,8 +212,9 @@
          ;; Step 1: η_{G(a)}(func) : S → ((S → a) × S)
          [step1 (η func)]
          ;; Step 2: G(ε)(step1) : S → a
+         ;; G(ε) = ε ∘ -, so G(ε)(step1) = λs. ε(step1(s))
          [step2 (lambda (s)
-                  (ε ((step1 s))))])  ; Apply ε to the pair at s
+                  (ε (step1 s)))])  ; Apply ε to the pair at s
     ;; Should equal func
     (equal? (func s-test) (step2 s-test))))
 

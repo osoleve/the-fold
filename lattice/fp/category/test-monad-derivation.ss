@@ -438,6 +438,89 @@
         (join '((1 2) (3 4)))))
 
 ;;; ====
+;;; Test: Custom Equality Verification (for function-based monads)
+;;; ====
+
+(section "Custom Equality Verification")
+
+;; Define custom equality for State monad: compare behavior on test inputs
+(define (state-eq test-state m1 m2)
+  (equal? (run-state m1 test-state) (run-state m2 test-state)))
+
+;; State monad operations for testing
+(let* ([return (monad-ops-return monad-state-derived)]
+       [bind (monad-ops-bind monad-state-derived)]
+       [fmap (monad-ops-fmap monad-state-derived)]
+       ;; Test equality at multiple states
+       [eq-at-0 (lambda (m1 m2) (state-eq 0 m1 m2))]
+       [eq-at-100 (lambda (m1 m2) (state-eq 100 m1 m2))]
+       [eq-at-both (lambda (m1 m2)
+                     (and (state-eq 0 m1 m2)
+                          (state-eq 100 m1 m2)))])
+
+  ;; Test left identity with custom equality
+  (test-true "verify-left-identity-with-eq for State monad (s=0)"
+             (verify-left-identity-with-eq
+              monad-state-derived
+              42
+              (lambda (x) (return (* x 2)))
+              eq-at-0))
+
+  (test-true "verify-left-identity-with-eq for State monad (s=100)"
+             (verify-left-identity-with-eq
+              monad-state-derived
+              42
+              (lambda (x) (return (* x 2)))
+              eq-at-100))
+
+  ;; Test right identity with custom equality
+  (test-true "verify-right-identity-with-eq for State monad"
+             (verify-right-identity-with-eq
+              monad-state-derived
+              (return 'test-value)
+              eq-at-both))
+
+  ;; Test associativity with custom equality
+  (test-true "verify-associativity-with-eq for State monad"
+             (verify-associativity-with-eq
+              monad-state-derived
+              (return 10)
+              (lambda (x) (return (+ x 1)))
+              (lambda (y) (return (* y 2)))
+              eq-at-both))
+
+  ;; Test all laws together
+  (test-true "verify-monad-laws-with-eq for State monad"
+             (verify-monad-laws-with-eq
+              monad-state-derived
+              5                              ; test value a
+              (return 10)                    ; test monadic value m
+              (lambda (x) (return (+ x 1)))  ; f
+              (lambda (y) (return (* y 2)))  ; g
+              eq-at-both))
+
+  ;; Test functor laws with custom equality
+  (test-true "verify-functor-identity-with-eq for State monad"
+             (verify-functor-identity-with-eq
+              monad-state-derived
+              (return 42)
+              eq-at-both))
+
+  (test-true "verify-functor-composition-with-eq for State monad"
+             (verify-functor-composition-with-eq
+              monad-state-derived
+              (lambda (x) (* x 2))
+              (lambda (x) (+ x 1))
+              (return 10)
+              eq-at-both)))
+
+;; Contrast: the regular verify functions would FAIL for State monad
+;; because they compare functions by reference
+(test-false "regular verify-right-identity fails for State monad (expected!)"
+            (verify-right-identity monad-state-derived
+                                   ((monad-ops-return monad-state-derived) 42)))
+
+;;; ====
 ;;; Summary
 ;;; ====
 

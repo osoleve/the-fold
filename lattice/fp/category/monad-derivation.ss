@@ -231,35 +231,73 @@
 ;;;   1. Left identity:  bind (return a) f = f a
 ;;;   2. Right identity: bind m return = m
 ;;;   3. Associativity:  bind (bind m f) g = bind m (λx. bind (f x) g)
+;;;
+;;; NOTE: The basic verify-* functions use Scheme's `equal?` for comparison.
+;;; This works for data-based monads (List, Maybe, Either) but FAILS for
+;;; function-based monads (State, Reader, Continuation) because functions
+;;; are compared by reference, not extensionally.
+;;;
+;;; For function-based monads, use the verify-*-with-eq variants that accept
+;;; a custom equality predicate. Example for State monad:
+;;;
+;;;   (define (state-eq s m1 m2)
+;;;     (equal? (run-state m1 s) (run-state m2 s)))
+;;;
+;;;   (verify-left-identity-with-eq ops a f (lambda (x y) (state-eq 0 x y)))
 
 ;;; verify-left-identity : MonadOps × a × (a → M b) → Boolean
 ;;; Check: bind (return a) f = f a
+;;; Uses equal? - only works for data-based monads.
 (define (verify-left-identity ops a f)
+  (verify-left-identity-with-eq ops a f equal?))
+
+;;; verify-left-identity-with-eq : MonadOps × a × (a → M b) × (M b × M b → Boolean) → Boolean
+;;; Check: bind (return a) f = f a, using custom equality.
+(define (verify-left-identity-with-eq ops a f eq?)
   (let ([return (monad-ops-return ops)]
         [bind (monad-ops-bind ops)])
-    (equal? (bind (return a) f)
-            (f a))))
+    (eq? (bind (return a) f)
+         (f a))))
 
 ;;; verify-right-identity : MonadOps × M a → Boolean
 ;;; Check: bind m return = m
+;;; Uses equal? - only works for data-based monads.
 (define (verify-right-identity ops m)
+  (verify-right-identity-with-eq ops m equal?))
+
+;;; verify-right-identity-with-eq : MonadOps × M a × (M a × M a → Boolean) → Boolean
+;;; Check: bind m return = m, using custom equality.
+(define (verify-right-identity-with-eq ops m eq?)
   (let ([return (monad-ops-return ops)]
         [bind (monad-ops-bind ops)])
-    (equal? (bind m return) m)))
+    (eq? (bind m return) m)))
 
 ;;; verify-associativity : MonadOps × M a × (a → M b) × (b → M c) → Boolean
 ;;; Check: bind (bind m f) g = bind m (λx. bind (f x) g)
+;;; Uses equal? - only works for data-based monads.
 (define (verify-associativity ops m f g)
+  (verify-associativity-with-eq ops m f g equal?))
+
+;;; verify-associativity-with-eq : MonadOps × M a × (a → M b) × (b → M c) × (M c × M c → Boolean) → Boolean
+;;; Check: bind (bind m f) g = bind m (λx. bind (f x) g), using custom equality.
+(define (verify-associativity-with-eq ops m f g eq?)
   (let ([bind (monad-ops-bind ops)])
-    (equal? (bind (bind m f) g)
-            (bind m (lambda (x) (bind (f x) g))))))
+    (eq? (bind (bind m f) g)
+         (bind m (lambda (x) (bind (f x) g))))))
 
 ;;; verify-monad-laws : MonadOps × a × M a × (a → M a) × (a → M a) → Boolean
 ;;; Verify all three monad laws for given test values.
+;;; Uses equal? - only works for data-based monads.
 (define (verify-monad-laws ops a m f g)
-  (and (verify-left-identity ops a f)
-       (verify-right-identity ops m)
-       (verify-associativity ops m f g)))
+  (verify-monad-laws-with-eq ops a m f g equal?))
+
+;;; verify-monad-laws-with-eq : MonadOps × a × M a × (a → M a) × (a → M a) × (M a × M a → Boolean) → Boolean
+;;; Verify all three monad laws using custom equality.
+;;; Use this for function-based monads (State, Reader, Continuation).
+(define (verify-monad-laws-with-eq ops a m f g eq?)
+  (and (verify-left-identity-with-eq ops a f eq?)
+       (verify-right-identity-with-eq ops m eq?)
+       (verify-associativity-with-eq ops m f g eq?)))
 
 ;;; ====
 ;;; Functor Law Verification
@@ -268,19 +306,33 @@
 ;;; A functor must satisfy:
 ;;;   1. Identity:    fmap id = id
 ;;;   2. Composition: fmap (g . f) = fmap g . fmap f
+;;;
+;;; Same caveat as monad laws: use -with-eq variants for function-based monads.
 
 ;;; verify-functor-identity : MonadOps × M a → Boolean
 ;;; Check: fmap id m = m
+;;; Uses equal? - only works for data-based monads.
 (define (verify-functor-identity ops m)
+  (verify-functor-identity-with-eq ops m equal?))
+
+;;; verify-functor-identity-with-eq : MonadOps × M a × (M a × M a → Boolean) → Boolean
+;;; Check: fmap id m = m, using custom equality.
+(define (verify-functor-identity-with-eq ops m eq?)
   (let ([fmap (monad-ops-fmap ops)])
-    (equal? (fmap id m) m)))
+    (eq? (fmap id m) m)))
 
 ;;; verify-functor-composition : MonadOps × (b → c) × (a → b) × M a → Boolean
 ;;; Check: fmap (g . f) m = fmap g (fmap f m)
+;;; Uses equal? - only works for data-based monads.
 (define (verify-functor-composition ops g f m)
+  (verify-functor-composition-with-eq ops g f m equal?))
+
+;;; verify-functor-composition-with-eq : MonadOps × (b → c) × (a → b) × M a × (M c × M c → Boolean) → Boolean
+;;; Check: fmap (g . f) m = fmap g (fmap f m), using custom equality.
+(define (verify-functor-composition-with-eq ops g f m eq?)
   (let ([fmap (monad-ops-fmap ops)])
-    (equal? (fmap (compose2 g f) m)
-            (fmap g (fmap f m)))))
+    (eq? (fmap (compose2 g f) m)
+         (fmap g (fmap f m)))))
 
 ;;; ====
 ;;; Display
@@ -312,10 +364,15 @@
 ;;; State utilities:
 ;;;   - run-state, eval-state, exec-state
 ;;;
-;;; Verification:
+;;; Verification (data-based monads - use equal?):
 ;;;   - verify-left-identity, verify-right-identity, verify-associativity
 ;;;   - verify-monad-laws
 ;;;   - verify-functor-identity, verify-functor-composition
+;;;
+;;; Verification (function-based monads - custom equality):
+;;;   - verify-left-identity-with-eq, verify-right-identity-with-eq
+;;;   - verify-associativity-with-eq, verify-monad-laws-with-eq
+;;;   - verify-functor-identity-with-eq, verify-functor-composition-with-eq
 ;;;
 ;;; Display:
 ;;;   - monad-ops->string

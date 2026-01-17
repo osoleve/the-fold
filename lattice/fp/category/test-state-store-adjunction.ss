@@ -191,6 +191,57 @@
       (assert-true (verify-store-extract-matches accessor 10)))))
 
 ;;; ====
+;;; Triangle Identity Tests
+;;; ====
+
+(test-group "Triangle Identities"
+
+  ;; Left triangle: ε_{F(a)} ∘ F(η_a) = id_{F(a)}
+  ;; For an element (a, s) in F(A) = A × S, the identity says:
+  ;;   ε ∘ F(η)((a, s)) = (a, s)
+  ;; Since F(η)(a, s) = (η(a), s) = ((λs'. (a, s')), s)
+  ;; And ε((λs'. (a, s')), s) = (λs'. (a, s'))(s) = (a, s)
+  ;; So the round-trip recovers the original pair.
+
+  (define-test "left triangle identity with numbers"
+    (assert-true (verify-state-store-triangle-left (cons 42 100))))
+
+  (define-test "left triangle identity with symbols"
+    (assert-true (verify-state-store-triangle-left (cons 'value 'state))))
+
+  (define-test "left triangle identity with complex state"
+    (assert-true (verify-state-store-triangle-left (cons "hello" '(a b c)))))
+
+  ;; Right triangle: G(ε) ∘ η_{G(a)} = id_{G(a)}
+  ;; For a function func : S → A in G(A) = S → A, the identity says:
+  ;;   (G(ε) ∘ η)(func) = func
+  ;; Since η(func) = λs. (func, s)
+  ;; And G(ε)(η(func)) = ε ∘ η(func) = λs. ε((func, s)) = λs. func(s) = func
+  ;; So the round-trip recovers the original function (extensionally).
+
+  (define-test "right triangle identity - doubling function"
+    (let ([func (lambda (s) (* s 2))])
+      (assert-true (verify-state-store-triangle-right func 5))
+      (assert-true (verify-state-store-triangle-right func 10))
+      (assert-true (verify-state-store-triangle-right func 0))))
+
+  (define-test "right triangle identity - constant function"
+    (let ([func (lambda (s) 'constant)])
+      (assert-true (verify-state-store-triangle-right func 'any))
+      (assert-true (verify-state-store-triangle-right func 42))))
+
+  (define-test "right triangle identity - polynomial function"
+    (let ([func (lambda (s) (+ (* s s) s 1))])  ; s² + s + 1
+      (assert-true (verify-state-store-triangle-right func 0))   ; = 1
+      (assert-true (verify-state-store-triangle-right func 3))   ; = 13
+      (assert-true (verify-state-store-triangle-right func -1)))) ; = 1
+
+  (define-test "right triangle identity - list state"
+    (let ([func (lambda (s) (length s))])
+      (assert-true (verify-state-store-triangle-right func '()))
+      (assert-true (verify-state-store-triangle-right func '(a b c))))))
+
+;;; ====
 ;;; Run Tests
 ;;; ====
 
