@@ -78,7 +78,23 @@
     (let* ([accessor (lambda (x) (+ x 10))]
            [st (make-store accessor 5)]
            [f (lambda (s) (* 2 (store-extract s)))])
-      (assert-true (verify-comonad-law-2 store-comonad f st)))))
+      (assert-true (verify-comonad-law-2 store-comonad f st))))
+
+  (define-test "store comonad law 3: extend f . extend g = extend (f . extend g)"
+    (let* ([accessor (lambda (x) (* x x))]  ; squares
+           [st (make-store accessor 3)]
+           [f (lambda (s) (* 2 (store-extract s)))]   ; double
+           [g (lambda (s) (+ (store-extract s) 1))])  ; add 1
+      (assert-true
+       (verify-comonad-law-3
+        store-comonad f g st
+        (lambda (a b)
+          (and (store? a) (store? b)
+               (equal? (store-position a) (store-position b))
+               ;; Check values at multiple positions
+               (equal? (store-peek a 0) (store-peek b 0))
+               (equal? (store-peek a 3) (store-peek b 3))
+               (equal? (store-peek a 7) (store-peek b 7)))))))))
 
 ;;; ====
 ;;; Env Comonad Tests
@@ -138,7 +154,19 @@
   (define-test "env comonad law 2: extract . extend f = f"
     (let* ([e (make-env 10 5)]
            [f (lambda (env) (+ (env-environment env) (env-value env)))])
-      (assert-true (verify-comonad-law-2 env-comonad f e)))))
+      (assert-true (verify-comonad-law-2 env-comonad f e))))
+
+  (define-test "env comonad law 3: extend f . extend g = extend (f . extend g)"
+    (let* ([e (make-env 100 5)]  ; env=100, value=5
+           [f (lambda (env) (* 2 (env-value env)))]   ; double value
+           [g (lambda (env) (+ (env-environment env) (env-value env)))])  ; env + value
+      (assert-true
+       (verify-comonad-law-3
+        env-comonad f g e
+        (lambda (a b)
+          (and (env? a) (env? b)
+               (equal? (env-environment a) (env-environment b))
+               (equal? (env-value a) (env-value b)))))))))
 
 ;;; ====
 ;;; Traced Comonad Tests
@@ -181,7 +209,22 @@
     (let* ([run-fn (lambda (acc) (+ acc 1))]
            [t (make-traced run-fn monoid-sum)]
            [f (lambda (tr) (+ 100 (traced-extract tr)))])
-      (assert-true (verify-comonad-law-2 (traced-comonad monoid-sum) f t)))))
+      (assert-true (verify-comonad-law-2 (traced-comonad monoid-sum) f t))))
+
+  (define-test "traced comonad law 3: extend f . extend g = extend (f . extend g)"
+    (let* ([run-fn (lambda (acc) (+ acc 10))]  ; base value is acc + 10
+           [t (make-traced run-fn monoid-sum)]
+           [f (lambda (tr) (* 2 (traced-extract tr)))]   ; double
+           [g (lambda (tr) (+ (traced-extract tr) 5))])  ; add 5
+      (assert-true
+       (verify-comonad-law-3
+        (traced-comonad monoid-sum) f g t
+        (lambda (a b)
+          (and (traced? a) (traced? b)
+               ;; Check values at multiple positions
+               (equal? (run-traced a 0) (run-traced b 0))
+               (equal? (run-traced a 10) (run-traced b 10))
+               (equal? (run-traced a 25) (run-traced b 25)))))))))
 
 ;;; ====
 ;;; Comonad Derivation from Adjunction Tests
