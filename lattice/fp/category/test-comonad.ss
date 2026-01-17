@@ -187,6 +187,27 @@
 ;;; Comonad Derivation from Adjunction Tests
 ;;; ====
 
+;;; Product-exponential adjunction: (−×S) ⊣ (S→−)
+;;; Produces the Store comonad. Use this to rigorously verify comonad-from-adjunction.
+(define test-functor-pair-S
+  (make-functor (lambda (f pair) (list (f (car pair)) (cadr pair)))))
+
+(define test-functor-func-S
+  (make-functor (lambda (f func) (lambda (s) (f (func s))))))
+
+(define adj-store-test
+  (let* ([FG-functor (make-functor
+                      (lambda (f x)
+                        ((functor-fmap test-functor-pair-S)
+                         (lambda (y) ((functor-fmap test-functor-func-S) f y)) x)))]
+         [unit (make-nat-transform 'unit-store functor-id FG-functor
+                 (lambda (a) (lambda (s) (list a s))))]
+         [counit (make-nat-transform 'counit-store FG-functor functor-id
+                   (lambda (pair) ((car pair) (cadr pair))))])
+    (make-adjunction 'store test-functor-pair-S test-functor-func-S unit counit)))
+
+(define store-derived (comonad-from-adjunction adj-store-test))
+
 (test-group "Comonad from Adjunction"
 
   (define-test "derive comonad from free-list adjunction"
@@ -194,7 +215,55 @@
     ;; The comonad would be List ∘ Id = List
     ;; But this is a bit degenerate... let's just verify it constructs
     (let ([derived (comonad-from-adjunction adj-free-list)])
-      (assert-true (comonad? derived)))))
+      (assert-true (comonad? derived))))
+
+  (define-test "derived store extract works correctly"
+    (let* ([test-val (list (lambda (x) (* x x)) 3)]  ; accessor=square, pos=3
+           [result ((comonad-extract store-derived) test-val)])
+      (assert-equal 9 result)))  ; 3² = 9
+
+  (define-test "derived store extend works correctly"
+    (let* ([test-val (list (lambda (x) (* x x)) 3)]
+           [f (lambda (st) (+ ((car st) (cadr st)) 1))]  ; extract + 1
+           [extended ((comonad-extend store-derived) f test-val)])
+      ;; At position 3: 3² + 1 = 10
+      (assert-equal 10 ((car extended) 3))
+      ;; At position 5: 5² + 1 = 26
+      (assert-equal 26 ((car extended) 5))))
+
+  (define-test "derived store satisfies law 1: extend extract = id"
+    (let* ([test-val (list (lambda (x) (* x x)) 3)]
+           [ext (comonad-extend store-derived)]
+           [extr (comonad-extract store-derived)]
+           [result (ext extr test-val)])
+      ;; Position preserved
+      (assert-equal (cadr test-val) (cadr result))
+      ;; Values preserved
+      (assert-equal ((car test-val) 3) ((car result) 3))
+      (assert-equal ((car test-val) 7) ((car result) 7))))
+
+  (define-test "derived store satisfies law 2: extract . extend f = f"
+    (let* ([test-val (list (lambda (x) (* x x)) 3)]
+           [f (lambda (st) (* 2 ((car st) (cadr st))))]
+           [ext (comonad-extend store-derived)]
+           [extr (comonad-extract store-derived)]
+           [lhs (extr (ext f test-val))]
+           [rhs (f test-val)])
+      (assert-equal rhs lhs)))
+
+  (define-test "derived store satisfies law 3: extend f . extend g = extend (f . extend g)"
+    (let* ([test-val (list (lambda (x) (* x x)) 3)]
+           [f (lambda (st) (* 2 ((car st) (cadr st))))]
+           [g (lambda (st) (+ ((car st) (cadr st)) 1))]
+           [ext (comonad-extend store-derived)]
+           [lhs (ext f (ext g test-val))]
+           [rhs (ext (lambda (w) (f (ext g w))) test-val)])
+      ;; Position preserved
+      (assert-equal (cadr lhs) (cadr rhs))
+      ;; Values equal at multiple positions
+      (assert-equal ((car lhs) 3) ((car rhs) 3))
+      (assert-equal ((car lhs) 5) ((car rhs) 5))
+      (assert-equal ((car lhs) 0) ((car rhs) 0)))))
 
 ;;; ====
 ;;; Integration with Existing Zipper
