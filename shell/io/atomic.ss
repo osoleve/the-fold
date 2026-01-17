@@ -4,6 +4,11 @@
 ;;; On POSIX systems, rename() is atomic, ensuring that readers
 ;;; always see either the old or new complete file, never partial data.
 ;;;
+;;; Key improvements:
+;;;   - Unique temp file names prevent collision when multiple processes
+;;;     write to the same target concurrently
+;;;   - Uses real PID (via FFI when available) + nanosecond timestamp + counter
+;;;
 ;;; Note on durability:
 ;;;   - flush-output-port flushes to OS buffers
 ;;;   - For true durability, fsync is needed (not yet implemented)
@@ -12,6 +17,53 @@
 ;;; This is Shell code: impure (filesystem IO).
 
 (load "core/base/prelude.ss")
+
+;;; ====
+;;; Unique Temp File Generation
+;;; ====
+
+;;; *atomic-temp-counter* : Number
+;;; Per-process counter to ensure uniqueness even within the same nanosecond
+(define *atomic-temp-counter* 0)
+
+;;; *atomic-pid* : Number | #f
+;;; Cached process ID (computed lazily)
+(define *atomic-pid* #f)
+
+;;; get-atomic-pid : → Number
+;;; Get process ID for temp file naming.
+;;; Uses real PID via FFI when available, falls back to pseudo-PID.
+(define (get-atomic-pid)
+  (unless *atomic-pid*
+    (set! *atomic-pid*
+          (guard (e [else (pseudo-pid)])
+            ;; Try to load and use POSIX FFI
+            (load "shell/ffi/posix-ffi.ss")
+            (if (and (top-level-bound? 'posix-load!)
+                     (posix-load!))
+                (posix-getpid)
+                (pseudo-pid)))))
+  *atomic-pid*)
+
+;;; pseudo-pid : → Number
+;;; Generate a pseudo-PID when real PID is unavailable.
+;;; Uses memory address as unique-ish identifier.
+(define (pseudo-pid)
+  (let ([addr (ftype-pointer-address (make-ftype-pointer void* (foreign-alloc 8)))])
+    (foreign-free addr)
+    (modulo addr 1000000)))
+
+;;; unique-temp-path : String → String
+;;; Generate a unique temporary file path for atomic writes.
+;;; Uses: original path + PID + nanoseconds + counter
+;;; This ensures uniqueness even when multiple processes target the same file.
+(define (unique-temp-path path)
+  (set! *atomic-temp-counter* (+ 1 *atomic-temp-counter*))
+  (format "~a.~a.~a.~a.tmp"
+          path
+          (get-atomic-pid)
+          (time-nanosecond (current-time))
+          *atomic-temp-counter*))
 
 ;;; ====
 ;;; Atomic Write Operations
@@ -26,13 +78,13 @@
 ;;;   modes: Optional file modes (e.g., '(replace))
 ;;;
 ;;; Implementation:
-;;;   1. Write to temporary file (path.tmp)
+;;;   1. Write to unique temporary file
 ;;;   2. Flush and close the temporary file
 ;;;   3. Atomically rename temp file to target path
 ;;;
 ;;; This ensures readers never see partial writes.
 (define (atomic-write-file path writer . modes)
-  (let* ([temp-path (string-append path ".tmp")]
+  (let* ([temp-path (unique-temp-path path)]
          [file-modes (if (null? modes) '(replace) (car modes))]
          [write-done #f])
     ;; Use guard to clean up temp file on error
@@ -57,7 +109,7 @@
 ;;; Like call-with-output-file, but atomic.
 ;;; Returns the result of the writer procedure.
 (define (call-with-atomic-output-file path writer . modes)
-  (let* ([temp-path (string-append path ".tmp")]
+  (let* ([temp-path (unique-temp-path path)]
          [file-modes (if (null? modes) '(replace) (car modes))]
          [result #f]
          [write-done #f])

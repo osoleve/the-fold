@@ -9,6 +9,10 @@
 ;;;   'announcement      - Important announcements
 ;;;   'session-summary   - Summary of a work session
 ;;;
+;;; Lock-aware design:
+;;;   - Public functions (post-write-counter!, post-next-id!) acquire locks
+;;;   - Internal functions (%post-write-counter!) for use when lock already held
+;;;
 ;;; Usage:
 ;;;   (post-create "Title" "Body..." 'changelog)
 ;;;   (post-list)
@@ -17,6 +21,7 @@
 ;;; This is Shell code: impure (modifies state and filesystem).
 
 (load "shell/bbs/store.ss")
+(load "shell/io/file-lock.ss")
 
 ;;; ====
 ;;; Timestamp Generation
@@ -55,24 +60,33 @@
               (string->number line))))
         0)))
 
-;;; post-write-counter! : Int -> Void
-;;; Write counter value to file.
-(define (post-write-counter! n)
+;;; %post-write-counter! : Int -> Void
+;;; INTERNAL: Write counter value to file (caller must hold lock).
+(define (%post-write-counter! n)
   (unless (file-exists? ".bbs")
     (mkdir ".bbs"))
-  (call-with-output-file *post-counter-file*
+  (call-with-atomic-output-file *post-counter-file*
     (lambda (port)
       (put-string port (number->string n))
       (newline port))
     '(replace)))
 
+;;; post-write-counter! : Int -> Void
+;;; PUBLIC: Write counter value to file with locking.
+(define (post-write-counter! n)
+  (with-file-lock *post-counter-file*
+    (lambda ()
+      (%post-write-counter! n))))
+
 ;;; post-next-id! : -> String
 ;;; Generate next post ID.
 (define (post-next-id!)
-  (let* ([n (+ (post-read-counter) 1)]
-         [id (string-append "post-" (number->string n 36))])
-    (post-write-counter! n)
-    id))
+  (with-file-lock *post-counter-file*
+    (lambda ()
+      (let* ([n (+ (post-read-counter) 1)]
+             [id (string-append "post-" (number->string n 36))])
+        (%post-write-counter! n)  ; Use internal version - already holding lock
+        id))))
 
 ;;; ====
 ;;; Head Management (reuses bbs heads infrastructure)

@@ -7,6 +7,11 @@
 ;;;   - 2 chars: version byte (00)
 ;;;   - 64 chars: SHA-256 hash
 ;;;
+;;; Lock-aware design:
+;;;   - Public functions (bbs-write-head!, bbs-delete-head!) acquire locks
+;;;   - Internal functions (%bbs-write-head!, %bbs-delete-head!) for use
+;;;     when lock already held
+;;;
 ;;; This is Shell code: impure (filesystem IO).
 
 (load "core/base/prelude.ss")
@@ -65,10 +70,10 @@
                   #f)))
           #f))))
 
-;;; bbs-write-head! : String Bytevector -> Void
-;;; Write the current hash for an issue ID.
+;;; %bbs-write-head! : String Bytevector -> Void
+;;; INTERNAL: Write the current hash for an issue ID (caller must hold lock).
 ;;; Uses atomic write-then-rename to prevent corruption.
-(define (bbs-write-head! id hash)
+(define (%bbs-write-head! id hash)
   (bbs-ensure-heads-dir!)
   (let ([path (bbs-head-path id)]
         [hex (hash->hex hash)])
@@ -78,12 +83,29 @@
         (newline port))
       '(replace))))
 
-;;; bbs-delete-head! : String -> Void
-;;; Delete the head file for an issue (for closing/deleting).
-(define (bbs-delete-head! id)
+;;; bbs-write-head! : String Bytevector -> Void
+;;; PUBLIC: Write the current hash for an issue ID with locking.
+;;; Uses atomic write-then-rename to prevent corruption.
+(define (bbs-write-head! id hash)
+  (let ([path (bbs-head-path id)])
+    (with-file-lock path
+      (lambda ()
+        (%bbs-write-head! id hash)))))
+
+;;; %bbs-delete-head! : String -> Void
+;;; INTERNAL: Delete the head file for an issue (caller must hold lock).
+(define (%bbs-delete-head! id)
   (let ([path (bbs-head-path id)])
     (when (file-exists? path)
       (delete-file path))))
+
+;;; bbs-delete-head! : String -> Void
+;;; PUBLIC: Delete the head file for an issue (for closing/deleting).
+(define (bbs-delete-head! id)
+  (let ([path (bbs-head-path id)])
+    (with-file-lock path
+      (lambda ()
+        (%bbs-delete-head! id)))))
 
 ;;; bbs-head-exists? : String -> Boolean
 ;;; Check if a head file exists for an issue ID.
@@ -107,7 +129,7 @@
                   (not (bytevector=? current expected-hash)))
               #f  ; CAS failed - current doesn't match expected
               (begin
-                (bbs-write-head! id new-hash)
+                (%bbs-write-head! id new-hash)  ; Use internal version
                 #t)))))))
 
 ;;; ====

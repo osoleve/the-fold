@@ -2,6 +2,11 @@
 ;;;
 ;;; Create, update, close, and manage issues.
 ;;;
+;;; Lock-aware design:
+;;;   Operations call public functions (bbs-write-head!, bbs-next-id!)
+;;;   which acquire their own locks. Each operation accesses different
+;;;   resources (counter, CAS store, head files) with independent locks.
+;;;
 ;;; This is Shell code: impure (modifies state and filesystem).
 
 (load "shell/bbs/index.ss")

@@ -12,6 +12,7 @@ pub mod bytes;
 pub mod fuel;
 pub mod generated;
 pub mod mat4;
+pub mod posix;
 pub mod raymarch;
 pub mod string;
 pub mod triangle;

@@ -11,6 +11,8 @@ crate-type = ["cdylib"]
 
 [dependencies]
 # Minimal dependencies - The Fold builds everything in-house
+# libc: Standard Rust FFI types for POSIX (zero transitive deps, well-audited)
+libc = "0.2"
 
 [profile.release]
 opt-level = 3

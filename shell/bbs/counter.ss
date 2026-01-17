@@ -5,6 +5,10 @@
 ;;;
 ;;; Counter is stored in .bbs/counter
 ;;;
+;;; Lock-aware design:
+;;;   - Public functions (bbs-write-counter!, bbs-next-id!) acquire locks
+;;;   - Internal functions (%bbs-write-counter!) for use when lock already held
+;;;
 ;;; This is Shell code: impure (filesystem IO).
 
 (load "core/base/prelude.ss")
@@ -81,16 +85,24 @@
                   (string->number line)))))
         0)))
 
-;;; bbs-write-counter! : Int -> Void
-;;; Write the counter value.
+;;; %bbs-write-counter! : Int -> Void
+;;; INTERNAL: Write the counter value (caller must hold lock).
 ;;; Uses atomic write-then-rename to prevent corruption.
-(define (bbs-write-counter! n)
+(define (%bbs-write-counter! n)
   (bbs-ensure-counter-dir!)
   (call-with-atomic-output-file *bbs-counter-file*
     (lambda (port)
       (put-string port (number->string n))
       (newline port))
     '(replace)))
+
+;;; bbs-write-counter! : Int -> Void
+;;; PUBLIC: Write the counter value with locking.
+;;; Uses atomic write-then-rename to prevent corruption.
+(define (bbs-write-counter! n)
+  (with-file-lock *bbs-counter-file*
+    (lambda ()
+      (%bbs-write-counter! n))))
 
 ;;; bbs-next-id! : -> String
 ;;; Generate the next issue ID and increment counter.
@@ -102,7 +114,7 @@
       (let* ([current (bbs-read-counter)]
              [next (+ current 1)]
              [id (string-append *bbs-id-prefix* (int->base36 next))])
-        (bbs-write-counter! next)
+        (%bbs-write-counter! next)  ; Use internal version - already holding lock
         id))))
 
 ;;; bbs-id->number : String -> Int | #f
@@ -118,13 +130,15 @@
 ;;; Sync counter to be at least as high as the highest existing ID.
 ;;; Call this during initialization to avoid ID collisions.
 (define (bbs-sync-counter-from-heads! ids)
-  (let ([max-num (fold-left
-                  (lambda (acc id)
-                    (let ([num (bbs-id->number id)])
-                      (if (and num (> num acc))
-                          num
-                          acc)))
-                  0
-                  ids)])
-    (when (> max-num (bbs-read-counter))
-      (bbs-write-counter! max-num))))
+  (with-file-lock *bbs-counter-file*
+    (lambda ()
+      (let ([max-num (fold-left
+                      (lambda (acc id)
+                        (let ([num (bbs-id->number id)])
+                          (if (and num (> num acc))
+                              num
+                              acc)))
+                      0
+                      ids)])
+        (when (> max-num (bbs-read-counter))
+          (%bbs-write-counter! max-num))))))  ; Use internal version
