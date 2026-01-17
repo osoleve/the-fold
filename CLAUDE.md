@@ -20,7 +20,7 @@ Repository: `git@github.com:osoleve/the-fold`
 ./fold "+ 1 2"                     # Implicit parens: becomes (+ 1 2)
 ./fold "bye"                       # Single-token commands work: becomes (bye)
 ./fold -s dev "define x 10"        # Named session with -s flag
-./fold -s dev "x"                  # Retrieve value from session
+./fold -s dev "(begin x)"          # Retrieve variable value from session
 ./fold --status                    # Check if daemon is running
 ```
 
@@ -31,6 +31,10 @@ Repository: `git@github.com:osoleve/the-fold`
 - Literals stay unwrapped: `"42"` stays `42`, `"'(a b)"` stays `'(a b)`
 - Short session flag: `-s` instead of `--session`
 - Colorized errors (disable with `NO_COLOR=1`)
+- **Sessions persist state** across invocations - variables, functions, and loaded modules are retained
+
+**Gotcha - Retrieving Variables:**
+Single-token auto-wrap means `./fold "x"` becomes `(x)`, which tries to *call* x. To retrieve a variable's value, wrap it: `./fold "(begin x)"` or `./fold "identity x"`.
 
 Returns result on stdout, errors to stderr with exit codes: 0=success, 1=error, 2=timeout.
 
@@ -125,6 +129,8 @@ Tests are co-located with their modules (e.g., `test-vec.ss` next to `vec.ss`).
 (run-all-tests)                  ; Run all registered tests
 (run-tests 'group-name)          ; Run specific group
 ```
+
+**Note:** `assert-true` checks `(eq? #t expr)`, not just truthiness. Use `(assert-true (pair? x))` instead of `(assert-true x)` when x might be a truthy non-boolean like a pair from `assq`.
 
 ---
 
@@ -240,7 +246,19 @@ The lattice is a DAG of verified skills. "Stdlib" = tier 0 (foundational nodes).
 
 **Key Lattice Subsystems:**
 
-*FP Toolkit (`lattice/fp/`):* Monads, parsers, streams, zippers, game theory (cooperative games, matching theory, Nash equilibrium, voting theory with power indices, fair division), symbolic math, control systems (state-space, Kalman filters, PID, stability analysis), term rewriting. Use `(li 'fp)` and `(le 'fp)` for details.
+*FP Toolkit (`lattice/fp/`):* Monads, parsers, streams, zippers, game theory, symbolic math, control systems (state-space, Kalman filters, PID, stability analysis), term rewriting. Use `(li 'fp)` and `(le 'fp)` for details.
+
+*Game Theory (`lattice/fp/game/`):* Rich set of ready-to-use algorithms:
+| Module | Contents |
+|--------|----------|
+| `coop-games.ss` | `make-coop-game`, `shapley-value`, `core`, `nucleolus` |
+| `voting-games.ss` | `banzhaf-index`, `shapley-shubik-index`, `make-weighted-voting-game` |
+| `voting.ss` | `schulze-ranking`, `borda-scores-all`, `condorcet-winner` |
+| `multi-winner.ss` | `pav-winners` (proportional approval), `stv-winners` |
+| `matching.ss` | Gale-Shapley stable matching, hospital-residents |
+| `fair-division.ss` | Envy-free allocation, proportional division |
+
+These are pure functions - import them into shell code for applications like QA triage, resource allocation, or voting systems.
 
 *Statistics (`lattice/statistics/`):* Linear/GLM regression (IRLS), regularization (ridge, lasso, elastic net), time series (AR, MA, exponential smoothing), hypothesis testing (t-test, F-test, ANOVA, chi-squared). Use `(li 'statistics)` for details.
 
@@ -277,6 +295,17 @@ Each lattice skill has a `manifest.sexp` declaring metadata:
 ```
 
 Use namespaced form (`'dir/module`) when module names collide. The system warns on collision during simple require.
+
+**`(require ...)` vs `(load ...)`:**
+
+| Use Case | Mechanism | Notes |
+|----------|-----------|-------|
+| **Library code** | `(require 'module)` | Preferred. Handles dependencies, avoids double-loading, collision detection |
+| **Test scripts** | `(load "path.ss")` | OK for standalone scripts run via `scheme --script` |
+| **Shell modules** | `(require 'shell/bbs)` | Shell code can use require too |
+| **REPL exploration** | Either | `require` is cleaner; `load` works for quick experiments |
+
+When creating new modules, prefer `(require ...)` chains over `(load ...)`. The module system tracks what's loaded and prevents redundant evaluation.
 
 **Meta-Tooling (`lattice/meta/`):**
 
