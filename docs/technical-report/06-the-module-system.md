@@ -67,7 +67,7 @@ Each module declares metadata in `manifest.sexp`:
 | `path` | String | Relative path from project root |
 | `purity` | `total \| partial \| effect` | Purity guarantee |
 | `stability` | `stable \| experimental` | API stability |
-| `fuel-bound` | String | Big-O complexity bound |
+| `fuel-bound` | String | Big-O complexity bound (see §6.3.4) |
 | `deps` | List<Symbol> | Direct dependencies |
 | `exports` | List<(Module Symbol+)> | Public API |
 | `modules` | List<(Name File Desc)> | Internal modules |
@@ -139,6 +139,36 @@ If module A has bound O(f_A) and module B has bound O(f_B):
 **Type Safety at Boundaries**:
 
 Module interfaces are typed. Calls across module boundaries are type-checked, ensuring type-safe composition.
+
+#### 6.3.4 Fuel Bounds as Badges
+
+The `fuel-bound` field in manifests isn't just documentation—it's a *badge*: a precomputed guarantee about the code at that content hash.
+
+**What a fuel badge represents**:
+- A promise that the code terminates within the stated complexity
+- A commitment that holds for all well-typed inputs
+- An invariant tied to the specific content hash (change the code, recompute the badge)
+
+**Why this matters**:
+- *Predictable composition*: When assembling modules, you know what you're getting. No surprises where a "simple" function turns out to be exponential.
+- *Agent-safe execution*: Autonomous agents can safely call any badged function without risking runaway computation.
+- *Trust delegation*: You don't need to analyze every function—trust the badge, verified once when the code was committed.
+
+**Tooling for measurement**:
+
+You don't have to figure out fuel bounds yourself. The Fold provides measurement infrastructure:
+
+```scheme
+;; Profile a function with representative inputs
+(fuel-profile my-function test-inputs)
+; → Reports actual fuel consumption across input sizes
+
+;; Verify declared bound matches observed behavior
+(verify-fuel-bound 'my-module)
+; → Checks all exports against their manifest claims
+```
+
+The badge system transforms complexity analysis from "something you have to think about" into "something that was already measured and recorded." When you see `(fuel-bound "O(n²)")` in a manifest, that's not a hope—it's a verified fact about that specific code hash.
 
 ### 6.4 Semantic Discovery
 

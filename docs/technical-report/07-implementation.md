@@ -13,7 +13,9 @@
 - UTF-8: Built-in Scheme support
 - Data structures: All implemented in-house
 
-**Rationale**: Third-party dependencies introduce supply chain risk and verification burden. By implementing everything in-house, The Fold is fully auditable and self-contained.
+**Rationale**: Third-party dependencies introduce supply chain risk and verification burden. But more fundamentally, external code is a black box—you can't measure its fuel consumption, can't introspect its behavior, can't extend it without forking, can't trace exactly what happens when it runs. By implementing everything in-house, The Fold is fully *introspectable* (you can follow any execution path), *measurable* (fuel tracking works everywhere), and *hackable* (no behavior is opaque or off-limits). No surprises, no black boxes.
+
+Note: The Rust acceleration layer (§7.4) is an exception that proves the rule—it's in-house code that provides the same guarantees (fuel tracking, no hidden state, no opaque behavior), just implemented in a faster language for performance-critical paths.
 
 ### 7.2 Key Design Decisions
 
