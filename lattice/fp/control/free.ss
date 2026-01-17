@@ -91,17 +91,32 @@
                 (from-free fr)))]))
 
 ;;; ====
-;;; Codensity-based Free Bind (O(1) amortized)
+;;; Queue-based Free Bind (avoids O(n²) worst case)
 ;;; ====
 ;;;
 ;;; PERFORMANCE NOTE:
-;;; The naive free-bind implementation is O(N^2) for left-associative chains:
+;;; The naive free-bind implementation is O(n²) for left-associative chains:
 ;;;   ((a >>= b) >>= c) >>= d
 ;;; Each bind traverses the entire left structure to attach continuations.
 ;;;
-;;; The Codensity transformation gives O(1) amortized bind by representing
-;;; computations in continuation-passing style. Instead of building nested
-;;; structures, we accumulate continuations in a queue.
+;;; This implementation uses a continuation queue to avoid the O(n²) problem.
+;;; Instead of rebuilding nested structures, we accumulate continuations in
+;;; a list and apply them all at once when the free monad is interpreted.
+;;;
+;;; IMPORTANT CAVEAT:
+;;; This implementation uses `append` to add continuations to the queue,
+;;; which is O(queue_length) per bind operation. For n binds, total cost
+;;; is O(n²) in the worst case if all binds hit the queue path.
+;;;
+;;; However, in typical use (mixed pure values and suspended computations),
+;;; the performance is much better than naive Free because:
+;;; 1. Pure values short-circuit immediately
+;;; 2. We only traverse the queue once at interpretation time
+;;; 3. The queue is typically short in practice
+;;;
+;;; For TRUE O(1) per-bind performance, use the Codensity monad in
+;;; lattice/fp/category/kan-extension.ss, which represents continuations
+;;; as nested lambdas (function composition is O(1)).
 ;;;
 ;;; Free-Queue: ('free-queue base-free fmap continuation-queue)
 ;;; where continuation-queue is a list of (a -> Free f b) functions.
@@ -130,19 +145,20 @@
   (list-ref q 3))
 
 ;;; free-bind : (f a -> f b) -> Free f a -> (a -> Free f b) -> Free f b
-;;; O(1) amortized via continuation queue.
-;;; Left-associative chains like ((a >>= b) >>= c) >>= d simply append
+;;; Avoids O(n²) tree-rebuilding via continuation queue.
+;;; Left-associative chains like ((a >>= b) >>= c) >>= d append
 ;;; to the continuation queue instead of rebuilding structure.
+;;; Note: append is O(queue_length), not O(1). See header for details.
 (define (free-bind fmap fr f)
   (cond
-   ;; Pure value: apply continuation immediately
+   ;; Pure value: apply continuation immediately (O(1))
    [(pure-free? fr) (f (from-pure-free fr))]
-   ;; Queue: append continuation to the queue (O(1))
+   ;; Queue: append continuation (O(queue_length) due to append)
    [(free-queue? fr)
     (make-free-queue (free-queue-base fr)
                      (free-queue-fmap fr)
                      (append (free-queue-conts fr) (list f)))]
-   ;; Suspended: wrap in queue with single continuation
+   ;; Suspended: wrap in queue with single continuation (O(1))
    [(free-suspended? fr)
     (make-free-queue fr fmap (list f))]))
 
