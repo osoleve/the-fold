@@ -32,22 +32,53 @@
 ;;; Track whether BBS has been initialized.
 (define *bbs-initialized* #f)
 
+;;; *bbs-posts-initialized* : Boolean
+;;; Track whether post index has been initialized.
+(define *bbs-posts-initialized* #f)
+
 ;;; bbs-init! : -> Int
-;;; Initialize the BBS system.
+;;; Initialize the BBS system (issues and posts).
 ;;; Tries cached index first, rebuilds only if cache is stale.
 (define (bbs-init!)
   (if *bbs-initialized*
       (hashtable-size (let () *bbs-by-status*))  ; Return count without reinit
       (begin
         (printf "Initializing BBS...~n")
+        ;; Initialize issues
         (let ([count (if (bbs-load-index-cache!)
                          (begin
-                           (printf "  (loaded from cache)~n")
+                           (printf "  (issues loaded from cache)~n")
                            (bbs-issue-count))
                          (bbs-rebuild-indices!))])
           (set! *bbs-initialized* #t)
           (printf "  Loaded ~a issues~n" count)
+          ;; Initialize posts
+          (bbs-init-posts!)
           count))))
+
+;;; bbs-init-posts! : -> Int
+;;; Initialize the post index.
+;;; Tries cached index first, rebuilds only if cache is stale.
+(define (bbs-init-posts!)
+  (if *bbs-posts-initialized*
+      (post-index-count)  ; Return count without reinit
+      (let ([count (if (post-load-index-cache!)
+                       (begin
+                         (printf "  (posts loaded from cache)~n")
+                         (post-index-count))
+                       (post-rebuild-indices!))])
+        (set! *bbs-posts-initialized* #t)
+        (printf "  Loaded ~a posts~n" count)
+        count)))
+
+;;; bbs-init-posts-quiet! : -> Int
+;;; Initialize post index silently (for startup).
+(define (bbs-init-posts-quiet!)
+  (unless *bbs-posts-initialized*
+    (unless (post-load-index-cache!)
+      (post-rebuild-indices!))
+    (set! *bbs-posts-initialized* #t))
+  (post-index-count))
 
 ;;; bbs-init-quiet! : -> Int
 ;;; Initialize BBS silently (for startup).
@@ -57,6 +88,8 @@
     (unless (bbs-load-index-cache!)
       (bbs-rebuild-indices!))
     (set! *bbs-initialized* #t))
+  ;; Also init posts silently
+  (bbs-init-posts-quiet!)
   (hashtable-size *bbs-by-status*))
 
 ;;; ====

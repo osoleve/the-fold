@@ -21,6 +21,7 @@
 ;;; This is Shell code: impure (modifies state and filesystem).
 
 (load "shell/bbs/store.ss")
+(load "shell/bbs/post-index.ss")
 (load "shell/io/file-lock.ss")
 
 ;;; ====
@@ -142,12 +143,16 @@
          [hash (bbs-store! blk)])
     ;; Write head file
     (post-write-head! id hash)
+    ;; Update in-memory index
+    (post-index-add! id hash)
     id))
 
 ;;; post-fetch : String -> Block | #f
 ;;; Fetch a post by ID.
+;;; Uses index for O(1) hash lookup with auto-refresh from disk.
 (define (post-fetch id)
-  (let ([hash (post-read-head id)])
+  (let* ([id-str (if (symbol? id) (symbol->string id) id)]
+         [hash (post-index-hash id-str)])
     (if hash
         (bbs-fetch hash)
         #f)))
@@ -192,6 +197,8 @@
                                        current-hash)]
              [new-hash (bbs-store! new-blk)])
         (post-write-head! id new-hash)
+        ;; Update in-memory index
+        (post-index-update! id new-hash)
         new-hash))))
 
 ;;; ====
@@ -227,18 +234,20 @@
 ;;; Keyword arguments:
 ;;;   'type  - Filter by post type (default: show all)
 ;;;   'limit - Maximum number to show (default: 20)
+;;;
+;;; Uses in-memory index for O(1) ID retrieval by type.
 (define (post-list . args)
   (let* ([type-filter (get-keyword-arg args 'type #f)]
          [limit (get-keyword-arg args 'limit 20)]
-         [ids (post-list-heads)]
+         ;; Use index for O(1) type filtering (vs O(n) disk reads)
+         [ids (if type-filter
+                  (post-ids-by-type type-filter)
+                  (post-all-ids))]
+         ;; Still need to fetch data for sorting - but only for visible posts
          [posts (filter-map
                  (lambda (id)
                    (let ([data (post-fetch-data id)])
-                     (if (and data
-                              (or (not type-filter)
-                                  (eq? (cdr (assq 'post-type data)) type-filter)))
-                         (cons id data)
-                         #f)))
+                     (if data (cons id data) #f)))
                  ids)]
          ;; Sort by date descending
          [sorted (sort (lambda (a b)
