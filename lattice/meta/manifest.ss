@@ -1,0 +1,236 @@
+;;; lattice/meta/manifest.ss — Pure Manifest Parsing
+;;; @module manifest
+;;; @requires prelude
+;;;
+;;; Pure functions for parsing lattice skill manifests.
+;;; No I/O - takes S-expression input, returns structured data.
+;;;
+;;; This is Lattice code: pure, no side effects.
+;;;
+;;; Usage:
+;;;   (parse-manifest sexp)           ; S-exp → manifest-data alist
+;;;   (manifest-modules manifest)     ; manifest → ((name file desc) ...)
+;;;   (manifest->module-index manifest skill-path)  ; → ((name . path) ...)
+;;;
+;;; Dependencies:
+;;;   core/base/prelude.ss (implicitly loaded)
+
+;;; ====
+;;; Manifest Field Extraction
+;;; ====
+
+;;; manifest-field : SExp Symbol -> Any | #f
+;;; Extract a field from a manifest s-expression.
+;;; A manifest has the form: (skill <name> (<field> <values>...) ...)
+(define (manifest-field manifest field-name)
+  (if (and (pair? manifest)
+           (eq? (car manifest) 'skill)
+           (pair? (cdr manifest))      ; Has at least skill name
+           (pair? (cddr manifest)))    ; Has at least one field
+      (let loop ([fields (cddr manifest)])
+           (cond
+            [(null? fields) #f]
+            [(and (pair? (car fields))
+                  (eq? (caar fields) field-name))
+             (cdar fields)]
+            [else (loop (cdr fields))]))
+      #f))
+
+;;; ====
+;;; Helper Functions
+;;; ====
+
+;;; flatten-single : (List a) | #f -> (List a)
+;;; If list contains single element that is itself a list, return that inner list.
+;;; Handles manifest fields like (deps ((linalg algebra))) -> (linalg algebra)
+(define (flatten-single lst)
+  (cond
+   [(not lst) '()]
+   [(null? lst) '()]
+   [(and (= (length lst) 1)
+         (list? (car lst)))
+    (car lst)]
+   [else lst]))
+
+;;; car-or-default : (List a) | #f a -> a
+;;; Get first element or return default.
+(define (car-or-default lst default)
+  (if (and lst (pair? lst))
+      (car lst)
+      default))
+
+;;; ====
+;;; Manifest Parsing
+;;; ====
+
+;;; parse-manifest : SExp -> ManifestData | #f
+;;; Parse a manifest s-expression into structured alist data.
+;;; Returns #f if the input is not a valid manifest.
+;;;
+;;; ManifestData is an alist with keys:
+;;;   name, version, tier, path, purity, stability, fuel-bound,
+;;;   deps, description, keywords, aliases, exports, modules
+(define (parse-manifest sexp)
+  (if (and (pair? sexp) (eq? (car sexp) 'skill))
+      (let ([name (cadr sexp)])
+           `((name . ,name)
+             (version . ,(car-or-default (manifest-field sexp 'version) "0.0.0"))
+             (tier . ,(car-or-default (manifest-field sexp 'tier) 0))
+             (path . ,(car-or-default (manifest-field sexp 'path) ""))
+             (purity . ,(car-or-default (manifest-field sexp 'purity) 'total))
+             (stability . ,(car-or-default (manifest-field sexp 'stability) 'experimental))
+             (fuel-bound . ,(car-or-default (manifest-field sexp 'fuel-bound) "O(?)"))
+             (deps . ,(flatten-single (manifest-field sexp 'deps)))
+             (description . ,(car-or-default (manifest-field sexp 'description) ""))
+             (keywords . ,(flatten-single (manifest-field sexp 'keywords)))
+             (aliases . ,(flatten-single (manifest-field sexp 'aliases)))
+             (exports . ,(or (manifest-field sexp 'exports) '()))
+             (modules . ,(flatten-single (or (manifest-field sexp 'modules) '())))))
+      #f))
+
+;;; ====
+;;; Manifest Accessors
+;;; ====
+
+;;; manifest-name : ManifestData -> Symbol
+(define (manifest-name manifest)
+  (cdr (assq 'name manifest)))
+
+;;; manifest-path : ManifestData -> String
+(define (manifest-path manifest)
+  (cdr (assq 'path manifest)))
+
+;;; manifest-modules : ManifestData -> (List (name file desc))
+;;; Get the modules list from a parsed manifest.
+;;; Each module entry is (name "file.ss" "description")
+(define (manifest-modules manifest)
+  (let ([mods (cdr (assq 'modules manifest))])
+       (if (list? mods) mods '())))
+
+;;; manifest-deps : ManifestData -> (List Symbol)
+;;; Get the skill dependencies from a parsed manifest.
+(define (manifest-deps manifest)
+  (let ([deps (cdr (assq 'deps manifest))])
+       (if (list? deps) deps '())))
+
+;;; manifest-exports : ManifestData -> (List (module-name export ...))
+;;; Get the exports list from a parsed manifest.
+(define (manifest-exports manifest)
+  (let ([exports (cdr (assq 'exports manifest))])
+       (if (list? exports) exports '())))
+
+;;; ====
+;;; Module Index Building
+;;; ====
+
+;;; parse-module-entry : SExp String -> (List (Symbol . String)) | '()
+;;; Parse a single module entry and return module index entries.
+;;; Handles both simple format: (name "file.ss" "desc")
+;;; and nested format: ((subdir "name") (description "...") (files ("a.ss" "b.ss")))
+(define (parse-module-entry mod skill-path)
+  (cond
+   ;; Simple format: (name "file.ss" "description")
+   [(and (pair? mod)
+         (symbol? (car mod))
+         (>= (length mod) 2)
+         (string? (cadr mod)))
+    (let* ([mod-name (car mod)]
+           [mod-file (cadr mod)]
+           [full-path (string-append skill-path "/" mod-file)])
+          (list (cons mod-name full-path)))]
+
+   ;; Nested format: ((subdir "name") (description "...") (files (...)))
+   [(and (pair? mod)
+         (pair? (car mod))
+         (eq? (caar mod) 'subdir))
+    (let* ([subdir (cadar mod)]
+           [files-entry (assq 'files mod)]
+           [files (if files-entry (cadr files-entry) '())]
+           [subdir-path (if (string=? subdir "")
+                            skill-path
+                            (string-append skill-path "/" subdir))])
+          (filter-map
+           (lambda (file)
+                   (if (string? file)
+                       (let* ([mod-name (string->symbol (path->module-name file))]
+                              [full-path (string-append subdir-path "/" file)])
+                             (cons mod-name full-path))
+                       #f))
+           files))]
+
+   ;; Unknown format
+   [else '()]))
+
+;;; path->module-name : String -> String
+;;; Convert "foo.ss" to "foo", "bar.scm" to "bar"
+(define (path->module-name path)
+  (let ([len (string-length path)])
+       (cond
+        [(and (> len 3) (string=? (substring path (- len 3) len) ".ss"))
+         (substring path 0 (- len 3))]
+        [(and (> len 4) (string=? (substring path (- len 4) len) ".scm"))
+         (substring path 0 (- len 4))]
+        [else path])))
+
+;;; manifest->module-index : ManifestData -> (List (Symbol . String))
+;;; Convert a manifest to a list of (module-name . file-path) pairs.
+;;; The path is constructed from the manifest's path field.
+;;; Handles both simple and nested module formats.
+;;;
+;;; Example:
+;;;   For manifest with (path "lattice/linalg") and module (vec "vec.ss" ...)
+;;;   Returns: ((vec . "lattice/linalg/vec.ss") ...)
+(define (manifest->module-index manifest)
+  (let* ([skill-path (manifest-path manifest)]
+         [mods (manifest-modules manifest)])
+        (apply append
+               (map (lambda (mod) (parse-module-entry mod skill-path))
+                    mods))))
+
+;;; manifest->namespaced-index : ManifestData -> (List (Symbol . String))
+;;; Like manifest->module-index but creates namespaced module names.
+;;; These are always unambiguous: 'linalg/vec, 'diffgeo/charts, etc.
+;;;
+;;; Example:
+;;;   For manifest 'linalg with module (vec "vec.ss" ...)
+;;;   Returns: ((linalg/vec . "lattice/linalg/vec.ss") ...)
+(define (manifest->namespaced-index manifest)
+  (let* ([skill-name (manifest-name manifest)]
+         [simple-entries (manifest->module-index manifest)])
+        ;; Transform simple entries to namespaced entries
+        (map (lambda (entry)
+                     (let* ([mod-name (car entry)]
+                            [path (cdr entry)]
+                            [namespaced-name (string->symbol
+                                              (string-append (symbol->string skill-name)
+                                                             "/"
+                                                             (symbol->string mod-name)))])
+                           (cons namespaced-name path)))
+             simple-entries)))
+
+;;; filter-map : (a -> b | #f) (List a) -> (List b)
+;;; Map and filter in one pass, removing #f results.
+(define (filter-map f lst)
+  (let loop ([lst lst] [acc '()])
+       (if (null? lst)
+           (reverse acc)
+           (let ([result (f (car lst))])
+                (if result
+                    (loop (cdr lst) (cons result acc))
+                    (loop (cdr lst) acc))))))
+
+;;; ====
+;;; Validation
+;;; ====
+
+;;; valid-manifest? : ManifestData -> Boolean
+;;; Check if a parsed manifest has required fields.
+(define (valid-manifest? manifest)
+  (and (pair? manifest)
+       (assq 'name manifest)
+       (assq 'path manifest)
+       (let ([name (cdr (assq 'name manifest))]
+             [path (cdr (assq 'path manifest))])
+            (and (symbol? name)
+                 (string? path)
+                 (> (string-length path) 0)))))
