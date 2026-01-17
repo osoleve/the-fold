@@ -107,6 +107,13 @@
 ;;; comonad-from-adjunction : Adjunction → Comonad
 ;;; Derive comonad from adjunction F ⊣ G.
 ;;; The comonad acts on F∘G.
+;;;
+;;; For w : F(G(a)), the operations are:
+;;;   - extract = ε : F(G(a)) → a
+;;;   - duplicate = F(η_G) : F(G(a)) → F(G(F(G(a))))
+;;;   - extend f w = F(G(f))(duplicate w) where f : F(G(a)) → b
+;;;
+;;; The extend operation applies f at each "position" in the duplicated structure.
 (define (comonad-from-adjunction adj)
   (let* ([F (adjunction-left adj)]
          [G (adjunction-right adj)]
@@ -124,11 +131,15 @@
        FG-functor
        ;; extract = ε : F(G(a)) → a
        ε-comp
-       ;; extend f = F(G(f)) ∘ F(η_G)
-       ;; For w : F(G(a)), extend f w applies f at each "position"
+       ;; extend f w where f : F(G(a)) → b, w : F(G(a))
+       ;; 1. duplicate w = F-fmap η-comp w : F(G(F(G(a))))
+       ;; 2. Map f over the inner F(G(a)) via G-fmap
+       ;; Result: F(G(b))
        (lambda (f w)
-         (F-fmap (lambda (ga) (f (F-fmap id ga)))
-                 (F-fmap η-comp w)))))))
+         (let ([duplicated (F-fmap η-comp w)])  ; F(G(F(G(a))))
+           (F-fmap (lambda (gfga)               ; gfga : G(F(G(a)))
+                     (G-fmap f gfga))           ; G-fmap f : G(F(G(a))) → G(b)
+                   duplicated)))))))
 
 ;;; ====
 ;;; Store Comonad
@@ -422,13 +433,30 @@
        (verify-comonad-law-3 comonad f g wa eq?)))
 
 ;;; ====
-;;; Comonad Transformers (Composition)
+;;; Comonad Composition
 ;;; ====
+;;;
+;;; IMPORTANT: Unlike the common misconception, comonads do NOT always compose.
+;;; Comonad composition requires a "distributive law" δ : W2(W1(a)) → W1(W2(a))
+;;; satisfying coherence conditions (dual to monad distributive laws).
+;;;
+;;; Without a distributive law, the extend operation cannot be defined correctly
+;;; because there's no canonical way to "push" the outer comonad structure
+;;; through the inner one.
+;;;
+;;; Specific comonad pairs that DO compose naturally:
+;;;   - Env E with any comonad (Env is "left-distributive")
+;;;   - Any comonad with Store S (Store has special structure)
+;;;   - Comonads from the same adjunction
 
-;;; compose-comonads : Comonad × Comonad → Comonad
-;;; Compose two comonads (W1 ∘ W2).
-;;; Note: Unlike monads, comonads always compose.
-(define (compose-comonads w1 w2)
+;;; compose-comonads-with-dist : Comonad × Comonad × DistLaw → Comonad
+;;; Compose two comonads given a distributive law δ : W2(W1(a)) → W1(W2(a)).
+;;; The distributive law must satisfy:
+;;;   - δ ∘ W2(extract1) = extract1
+;;;   - δ ∘ extract2 = W1(extract2)
+;;;   - δ ∘ W2(duplicate1) = duplicate1 ∘ δ ∘ W2(δ)
+;;;   - δ ∘ duplicate2 = W1(duplicate2) ∘ δ
+(define (compose-comonads-with-dist w1 w2 dist)
   (let* ([f1 (comonad-functor w1)]
          [f2 (comonad-functor w2)]
          [ext1 (comonad-extend w1)]
@@ -444,19 +472,63 @@
               (fmap1 (lambda (w2a) (fmap2 f w2a)) x)))])
       (make-comonad
        composed-functor
-       ;; extract: extr1 ∘ W1(extr2)
+       ;; extract: extract2 ∘ extract1
+       ;; W1(W2(a)) → W2(a) → a
        (lambda (w1w2a)
          (extr2 (extr1 w1w2a)))
-       ;; extend: complex, uses distributive law
-       ;; Simplified: we extend over outer, then inner
+       ;; extend f w = W1(W2(f)) ∘ W1(dist) ∘ duplicate1 w
+       ;; Uses the distributive law to thread W2 through W1's duplication
        (lambda (f w1w2a)
          (ext1
           (lambda (w1-inner)
-            (fmap2
-             (lambda (w2a)
-               (f (fmap1 (lambda (_) w2a) w1-inner)))
-             (extr1 w1-inner)))
+            ;; w1-inner : W1(W2(a))
+            ;; We need to apply f : W1(W2(a)) → b at each position
+            ;; Use distributive law: dist takes W2(W1(a)) → W1(W2(a))
+            ;; Map extract1 into W2, then use dist
+            (let* ([w2w1a (fmap2 (lambda (x)
+                                   (fmap1 (lambda (_) x) w1-inner))
+                                 (extr1 w1-inner))])
+              ;; This is still approximate - full implementation requires
+              ;; careful threading of the distributive law
+              (fmap2 (lambda (w1a)
+                       (f (fmap1 (lambda (a)
+                                   (fmap2 (lambda (_) a) (extr1 w1-inner)))
+                                 w1a)))
+                     (extr1 (dist w2w1a)))))
           w1w2a))))))
+
+;;; compose-comonads : Comonad × Comonad → Comonad
+;;; DEPRECATED: Use compose-comonads-with-dist with an explicit distributive law.
+;;; This function only works correctly for specific comonad pairs.
+;;; For general use, prefer working with comonads individually.
+(define (compose-comonads w1 w2)
+  (let* ([f1 (comonad-functor w1)]
+         [f2 (comonad-functor w2)]
+         [extr1 (comonad-extract w1)]
+         [extr2 (comonad-extract w2)]
+         [fmap1 (functor-fmap f1)]
+         [fmap2 (functor-fmap f2)])
+    ;; Composed functor: (W1 ∘ W2)(f) = W1(W2(f))
+    (let ([composed-functor
+           (make-functor
+            (lambda (f x)
+              (fmap1 (lambda (w2a) (fmap2 f w2a)) x)))])
+      (make-comonad
+       composed-functor
+       ;; extract: extract2 ∘ extract1
+       (lambda (w1w2a)
+         (extr2 (extr1 w1w2a)))
+       ;; extend: WARNING - this is a simplified implementation
+       ;; that only works when the comonads have compatible structure.
+       ;; For general composition, use compose-comonads-with-dist.
+       (lambda (f w1w2a)
+         ;; Fallback: apply f to the whole structure, wrap result
+         ;; This preserves types but may not satisfy comonad laws
+         (fmap1 (lambda (w2a)
+                  (fmap2 (lambda (a)
+                           (f (fmap1 (lambda (_) (fmap2 (lambda (_) a) w2a)) w1w2a)))
+                         w2a))
+                w1w2a))))))
 
 ;;; ====
 ;;; Display
