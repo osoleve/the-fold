@@ -256,6 +256,24 @@ Pure functional BM25 implementation for ranked retrieval:
 
 All implemented via dictionary-passing, maintaining Core purity.
 
+**Category Theory** (`fp/category/`):
+
+The category module provides first-class categorical structures that unify and explain the type class infrastructure:
+
+- **Natural Transformations** (`natural-transform.ss`): Morphisms between functors with vertical composition, horizontal (Godement) composition, and whiskering. Naturality verification functions ensure the naturality square commutes.
+
+- **Adjunctions** (`adjunction.ss`): Pairs of functors F ⊣ G with unit and counit satisfying triangle identities. Includes transpose operations (curry/uncurry via the hom-set bijection), adjunction composition, and the free monoid adjunction `adj-free-list`.
+
+- **Monad Derivation** (`monad-derivation.ss`): Every adjunction F ⊣ G yields a monad G∘F via `monad-from-adjunction`. Derives return from the unit η and join from G(ε). The List monad is derived automatically from `adj-free-list`. Includes monad law verification.
+
+- **Comonads** (`comonad.ss`): Full comonad type class with Store, Env, and Traced comonads. `comonad-from-adjunction` derives comonads from adjunctions (F∘G). Comonads always compose (unlike monads), enabling `compose-comonads`.
+
+- **Kan Extensions** (`kan-extension.ss`): Right Kan Extension (Ran) and Left Kan Extension (Lan) as universal constructions. The Codensity monad `Ran_M M` provides O(1) bind—the categorical explanation for the `free-queue` and `eff-queue` optimizations in `free.ss` and `effects.ss`.
+
+- **State/Store Adjunction** (`state-store-adjunction.ss`): The canonical product-exponential adjunction (−)×S ⊣ (−)^S. Derives the State monad and Store comonad from first principles, and implements currying as adjunction transposition.
+
+The key insight: **all standard monads and comonads arise from adjunctions**, and **the O(1) bind optimization in effect systems is the Codensity monad**. This provides both theoretical grounding and practical performance understanding.
+
 ### 6.6 Module Loading
 
 The `core/lang/module.ss` module provides dependency-aware loading:
