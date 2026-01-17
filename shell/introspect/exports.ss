@@ -40,42 +40,70 @@
         (let ([defs (collect-file-definitions filepath)])
           (list-sort symbol<? (map car defs))))))
 
-;;; collect-file-definitions : String -> (List (symbol . line))
-;;; Collect all definitions with their line numbers.
+;;; collect-file-definitions : String -> (List Symbol)
+;;; Collect all definitions from a file.
+;;; Warns on read errors rather than silently truncating.
 (define (collect-file-definitions filepath)
   (call-with-input-file filepath
     (lambda (port)
-      (let loop ([line-num 1] [results '()])
-        (let ([expr (guard (e [else #f]) (read port))])
+      (let loop ([results '()])
+        (let-values ([(expr err) (safe-read port)])
           (cond
             [(eof-object? expr) (reverse results)]
-            [(not expr) (reverse results)]
+            [err
+             ;; Read error - warn and return what we have
+             (printf "Warning: Read error in ~a: ~a\n" filepath err)
+             (printf "  (returning ~a definitions found before error)\n"
+                     (length results))
+             (reverse results)]
             [else
-             (let ([defs (extract-definitions expr line-num)])
-               (loop (+ line-num 1) (append defs results)))]))))))
+             (let ([defs (extract-definitions expr)])
+               (loop (append defs results)))]))))))
 
-;;; extract-definitions : S-expr x Nat -> (List (symbol . line))
+;;; safe-read : Port -> (Values S-expr (or String #f))
+;;; Read from port, returning (values result #f) on success,
+;;; or (values #f error-message) on error.
+(define (safe-read port)
+  (guard (e [else
+             (values #f (if (message-condition? e)
+                            (condition-message e)
+                            (format "~a" e)))])
+    (let ([expr (read port)])
+      (values expr #f))))
+
+;;; extract-definitions : S-expr -> (List (Symbol . Symbol))
 ;;; Extract defined names from a top-level expression.
-(define (extract-definitions expr line)
+;;; Returns list of (name . form-type) pairs.
+(define (extract-definitions expr)
   (cond
     [(not (pair? expr)) '()]
     ;; (define name value) or (define (name args...) body)
     [(eq? (car expr) 'define)
      (cond
        [(and (pair? (cdr expr)) (symbol? (cadr expr)))
-        (list (cons (cadr expr) line))]
+        (list (cons (cadr expr) 'define))]
        [(and (pair? (cdr expr)) (pair? (cadr expr)) (symbol? (caadr expr)))
-        (list (cons (caadr expr) line))]
+        (list (cons (caadr expr) 'define))]
        [else '()])]
     ;; (define-syntax name ...)
     [(eq? (car expr) 'define-syntax)
      (if (and (pair? (cdr expr)) (symbol? (cadr expr)))
-         (list (cons (cadr expr) line))
+         (list (cons (cadr expr) 'syntax))
          '())]
     ;; (define-record-type name ...) - extract record name
     [(eq? (car expr) 'define-record-type)
      (if (and (pair? (cdr expr)) (symbol? (cadr expr)))
-         (list (cons (cadr expr) line))
+         (list (cons (cadr expr) 'record))
+         '())]
+    ;; (define-protocol (name ...) ...) - extract protocol name
+    [(eq? (car expr) 'define-protocol)
+     (if (and (pair? (cdr expr)) (pair? (cadr expr)) (symbol? (caadr expr)))
+         (list (cons (caadr expr) 'protocol))
+         '())]
+    ;; (define-protocol/default (name ...) ...) - same pattern
+    [(eq? (car expr) 'define-protocol/default)
+     (if (and (pair? (cdr expr)) (pair? (cadr expr)) (symbol? (caadr expr)))
+         (list (cons (caadr expr) 'protocol))
          '())]
     [else '()]))
 
