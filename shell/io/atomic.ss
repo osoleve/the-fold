@@ -35,6 +35,10 @@
 ;;; Mutex to protect counter increment (Fixed: fold-zxn9)
 (define *atomic-counter-mutex* (make-mutex))
 
+;;; *atomic-pid-mutex* : Mutex
+;;; Mutex to protect PID initialization (Fixed: fold-zxnd)
+(define *atomic-pid-mutex* (make-mutex))
+
 ;;; *atomic-pid* : Number | #f
 ;;; Cached process ID (computed lazily)
 (define *atomic-pid* #f)
@@ -42,25 +46,25 @@
 ;;; get-atomic-pid : → Number
 ;;; Get process ID for temp file naming.
 ;;; Uses real PID via FFI when available, falls back to pseudo-PID.
+;;; Thread-safe: uses mutex for initialization. (Fixed: fold-zxnd)
 (define (get-atomic-pid)
-  (unless *atomic-pid*
-    (set! *atomic-pid*
-          (guard (e [else (pseudo-pid)])
-            ;; Try to load and use POSIX FFI
-            (load "shell/ffi/posix-ffi.ss")
-            (if (and (top-level-bound? 'posix-load!)
-                     (posix-load!))
-                (posix-getpid)
-                (pseudo-pid)))))
+  (with-mutex *atomic-pid-mutex*
+    (unless *atomic-pid*
+      (set! *atomic-pid*
+            (guard (e [else (pseudo-pid)])
+              ;; Try to load and use POSIX FFI
+              (load "shell/ffi/posix-ffi.ss")
+              (if (and (top-level-bound? 'posix-load!)
+                       (posix-load!))
+                  (posix-getpid)
+                  (pseudo-pid))))))
   *atomic-pid*)
 
 ;;; pseudo-pid : → Number
 ;;; Generate a pseudo-PID when real PID is unavailable.
-;;; Uses memory address as unique-ish identifier.
+;;; Uses random number to avoid ASLR information leakage. (Fixed: fold-zxna)
 (define (pseudo-pid)
-  (let ([addr (ftype-pointer-address (make-ftype-pointer void* (foreign-alloc 8)))])
-    (foreign-free addr)
-    (modulo addr 1000000)))
+  (random 1000000))
 
 ;;; unique-temp-path : String → String
 ;;; Generate a unique temporary file path for atomic writes.

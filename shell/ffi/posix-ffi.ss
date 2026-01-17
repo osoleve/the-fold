@@ -210,71 +210,104 @@
   (and (accel-available?) *posix-bound*))
 
 ;;; ====
+;;; Memory-Safe FFI Helpers
+;;; ====
+
+;;; call-with-foreign-alloc : Size × (Pointer → α) → α
+;;; Allocate foreign memory, execute thunk with pointer, ensure cleanup.
+;;; Uses dynamic-wind to guarantee foreign-free even on exceptions. (Fixed: fold-zxnb)
+(define (call-with-foreign-alloc size thunk)
+  (let ([addr (foreign-alloc size)])
+    (dynamic-wind
+      (lambda () #f)
+      (lambda () (thunk addr))
+      (lambda () (foreign-free addr)))))
+
+;;; call-with-int-result : (Pointer → Void) × (Status × Value × Errno → α) → α
+;;; Common pattern for int-returning POSIX calls with guaranteed cleanup.
+;;; Allocates posix-int-result-t, calls ffi-proc, then result-proc with values. (Fixed: fold-zxnb)
+(define (call-with-int-result ffi-proc result-proc)
+  (call-with-foreign-alloc
+   (ftype-sizeof posix-int-result-t)
+   (lambda (addr)
+     (let ([ptr (make-ftype-pointer posix-int-result-t addr)])
+       (ffi-proc ptr)
+       (result-proc
+        (ftype-ref posix-int-result-t (status) ptr)
+        (ftype-ref posix-int-result-t (value) ptr)
+        (ftype-ref posix-int-result-t (error-code) ptr))))))
+
+;;; call-with-status-result : (Pointer → Void) × (Status × Errno → α) → α
+;;; Common pattern for status-returning POSIX calls with guaranteed cleanup.
+;;; Allocates posix-status-result-t, calls ffi-proc, then result-proc with values. (Fixed: fold-zxnb)
+(define (call-with-status-result ffi-proc result-proc)
+  (call-with-foreign-alloc
+   (ftype-sizeof posix-status-result-t)
+   (lambda (addr)
+     (let ([ptr (make-ftype-pointer posix-status-result-t addr)])
+       (ffi-proc ptr)
+       (result-proc
+        (ftype-ref posix-status-result-t (status) ptr)
+        (ftype-ref posix-status-result-t (error-code) ptr))))))
+
+;;; ====
 ;;; Scheme Wrappers
 ;;; ====
 
 ;;; posix-getpid : → Int
 ;;; Get the real OS process ID
+;;; Memory-safe: uses dynamic-wind for cleanup. (Fixed: fold-zxnb)
 (define (posix-getpid)
   (unless (posix-available?)
     (error 'posix-getpid "POSIX FFI not loaded"))
-  (let* ([result-ptr (make-ftype-pointer posix-int-result-t
-                                         (foreign-alloc (ftype-sizeof posix-int-result-t)))])
-    (rust-posix-getpid result-ptr)
-    (let ([status (ftype-ref posix-int-result-t (status) result-ptr)]
-          [value (ftype-ref posix-int-result-t (value) result-ptr)])
-      (foreign-free (ftype-pointer-address result-ptr))
-      (if (= status 0)
-          value
-          (error 'posix-getpid "getpid failed" status)))))
+  (call-with-int-result
+   (lambda (ptr) (rust-posix-getpid ptr))
+   (lambda (status value errno)
+     (if (= status 0)
+         value
+         (error 'posix-getpid "getpid failed" status)))))
 
 ;;; posix-open : String × Int × Int → Int | (error errno)
 ;;; Open a file and return file descriptor
 ;;; Returns fd on success, (error errno) on failure
+;;; Memory-safe: uses dynamic-wind for cleanup. (Fixed: fold-zxnb)
 (define (posix-open path flags mode)
   (unless (posix-available?)
     (error 'posix-open "POSIX FFI not loaded"))
-  (let* ([path-bv (string->utf8 path)]
-         [result-ptr (make-ftype-pointer posix-int-result-t
-                                         (foreign-alloc (ftype-sizeof posix-int-result-t)))])
-    (rust-posix-open path-bv (bytevector-length path-bv) flags mode result-ptr)
-    (let ([status (ftype-ref posix-int-result-t (status) result-ptr)]
-          [value (ftype-ref posix-int-result-t (value) result-ptr)]
-          [errno (ftype-ref posix-int-result-t (error-code) result-ptr)])
-      (foreign-free (ftype-pointer-address result-ptr))
-      (if (= status 0)
-          value
-          (list 'error errno)))))
+  (let ([path-bv (string->utf8 path)])
+    (call-with-int-result
+     (lambda (ptr)
+       (rust-posix-open path-bv (bytevector-length path-bv) flags mode ptr))
+     (lambda (status value errno)
+       (if (= status 0)
+           value
+           (list 'error errno))))))
 
 ;;; posix-close : Int → Boolean
 ;;; Close a file descriptor
 ;;; Returns #t on success, #f on failure
+;;; Memory-safe: uses dynamic-wind for cleanup. (Fixed: fold-zxnb)
 (define (posix-close fd)
   (unless (posix-available?)
     (error 'posix-close "POSIX FFI not loaded"))
-  (let* ([result-ptr (make-ftype-pointer posix-status-result-t
-                                         (foreign-alloc (ftype-sizeof posix-status-result-t)))])
-    (rust-posix-close fd result-ptr)
-    (let ([status (ftype-ref posix-status-result-t (status) result-ptr)])
-      (foreign-free (ftype-pointer-address result-ptr))
-      (= status 0))))
+  (call-with-status-result
+   (lambda (ptr) (rust-posix-close fd ptr))
+   (lambda (status errno) (= status 0))))
 
 ;;; posix-flock : Int × Int → Boolean | (would-block)
 ;;; Apply advisory lock to file descriptor
 ;;; Returns #t on success, (would-block) if EWOULDBLOCK, #f on other error
+;;; Memory-safe: uses dynamic-wind for cleanup. (Fixed: fold-zxnb)
 (define (posix-flock fd operation)
   (unless (posix-available?)
     (error 'posix-flock "POSIX FFI not loaded"))
-  (let* ([result-ptr (make-ftype-pointer posix-status-result-t
-                                         (foreign-alloc (ftype-sizeof posix-status-result-t)))])
-    (rust-posix-flock fd operation result-ptr)
-    (let ([status (ftype-ref posix-status-result-t (status) result-ptr)]
-          [errno (ftype-ref posix-status-result-t (error-code) result-ptr)])
-      (foreign-free (ftype-pointer-address result-ptr))
-      (cond
-       [(= status 0) #t]
-       [(= errno EWOULDBLOCK) '(would-block)]
-       [else #f]))))
+  (call-with-status-result
+   (lambda (ptr) (rust-posix-flock fd operation ptr))
+   (lambda (status errno)
+     (cond
+      [(= status 0) #t]
+      [(= errno EWOULDBLOCK) '(would-block)]
+      [else #f]))))
 
 ;;; ====
 ;;; Durability Operations
@@ -284,30 +317,26 @@
 ;;; Force all buffered data for fd to be written to disk.
 ;;; WARNING: Blocking operation, can take 10-100ms on rotating media.
 ;;; Returns #t on success, #f on failure.
+;;; Memory-safe: uses dynamic-wind for cleanup. (Fixed: fold-zxnb)
 (define (posix-fsync fd)
   (unless (posix-available?)
     (error 'posix-fsync "POSIX FFI not loaded"))
-  (let* ([result-ptr (make-ftype-pointer posix-status-result-t
-                                         (foreign-alloc (ftype-sizeof posix-status-result-t)))])
-    (rust-posix-fsync fd result-ptr)
-    (let ([status (ftype-ref posix-status-result-t (status) result-ptr)])
-      (foreign-free (ftype-pointer-address result-ptr))
-      (= status 0))))
+  (call-with-status-result
+   (lambda (ptr) (rust-posix-fsync fd ptr))
+   (lambda (status errno) (= status 0))))
 
 ;;; posix-fdatasync : Int → Boolean
 ;;; Force buffered data (but not metadata) for fd to be written to disk.
 ;;; Faster than fsync because it skips non-essential metadata like atime.
 ;;; PREFERRED for atomic writes where only data integrity matters.
 ;;; Returns #t on success, #f on failure.
+;;; Memory-safe: uses dynamic-wind for cleanup. (Fixed: fold-zxnb)
 (define (posix-fdatasync fd)
   (unless (posix-available?)
     (error 'posix-fdatasync "POSIX FFI not loaded"))
-  (let* ([result-ptr (make-ftype-pointer posix-status-result-t
-                                         (foreign-alloc (ftype-sizeof posix-status-result-t)))])
-    (rust-posix-fdatasync fd result-ptr)
-    (let ([status (ftype-ref posix-status-result-t (status) result-ptr)])
-      (foreign-free (ftype-pointer-address result-ptr))
-      (= status 0))))
+  (call-with-status-result
+   (lambda (ptr) (rust-posix-fdatasync fd ptr))
+   (lambda (status errno) (= status 0))))
 
 ;;; ====
 ;;; File Metadata Operations
@@ -337,20 +366,19 @@
 ;;;   file-type  - FILE_TYPE_REGULAR, FILE_TYPE_DIRECTORY, etc.
 ;;; Returns #f if file does not exist or error.
 ;;; Thread-safe: allocates buffer locally. (Fixed: fold-zxn6)
+;;; Memory-safe: uses dynamic-wind for cleanup. (Fixed: fold-zxnb)
 (define (posix-stat path)
   (unless (posix-available?)
     (error 'posix-stat "POSIX FFI not loaded"))
   (let* ([path-bv (string->utf8 path)]
-         [stat-buffer (make-bytevector *stat-buffer-size*)]
-         [result-ptr (make-ftype-pointer posix-status-result-t
-                                         (foreign-alloc (ftype-sizeof posix-status-result-t)))])
-    (rust-posix-stat path-bv (bytevector-length path-bv)
-                     stat-buffer result-ptr)
-    (let ([status (ftype-ref posix-status-result-t (status) result-ptr)])
-      (foreign-free (ftype-pointer-address result-ptr))
-      (if (= status 0)
-          (parse-stat-buffer stat-buffer)
-          #f))))
+         [stat-buffer (make-bytevector *stat-buffer-size*)])
+    (call-with-status-result
+     (lambda (ptr)
+       (rust-posix-stat path-bv (bytevector-length path-bv) stat-buffer ptr))
+     (lambda (status errno)
+       (if (= status 0)
+           (parse-stat-buffer stat-buffer)
+           #f)))))
 
 ;;; posix-stat-field : String × Symbol → Value | #f
 ;;; Get a single field from stat. More efficient than full posix-stat
@@ -391,18 +419,17 @@
 ;;; Get file metadata via file descriptor.
 ;;; Same return format as posix-stat.
 ;;; Thread-safe: allocates buffer locally. (Fixed: fold-zxn6)
+;;; Memory-safe: uses dynamic-wind for cleanup. (Fixed: fold-zxnb)
 (define (posix-fstat fd)
   (unless (posix-available?)
     (error 'posix-fstat "POSIX FFI not loaded"))
-  (let* ([stat-buffer (make-bytevector *stat-buffer-size*)]
-         [result-ptr (make-ftype-pointer posix-status-result-t
-                                         (foreign-alloc (ftype-sizeof posix-status-result-t)))])
-    (rust-posix-fstat fd stat-buffer result-ptr)
-    (let ([status (ftype-ref posix-status-result-t (status) result-ptr)])
-      (foreign-free (ftype-pointer-address result-ptr))
-      (if (= status 0)
-          (parse-stat-buffer stat-buffer)
-          #f))))
+  (let ([stat-buffer (make-bytevector *stat-buffer-size*)])
+    (call-with-status-result
+     (lambda (ptr) (rust-posix-fstat fd stat-buffer ptr))
+     (lambda (status errno)
+       (if (= status 0)
+           (parse-stat-buffer stat-buffer)
+           #f)))))
 
 ;;; ====
 ;;; High-Level Locking API
@@ -417,6 +444,14 @@
 (define (flock-sleep-ms ms)
   (sleep (make-time 'time-duration (* ms 1000000) 0)))
 
+;;; monotonic-time-ms : → Number
+;;; Get current monotonic time in milliseconds.
+;;; Monotonic time never goes backwards, immune to NTP/clock adjustments. (Fixed: fold-zxne)
+(define (monotonic-time-ms)
+  (let ([t (current-time 'time-monotonic)])
+    (+ (* 1000 (time-second t))
+       (quotient (time-nanosecond t) 1000000))))
+
 ;;; with-flock-lock : String × (→ α) → α
 ;;; Execute thunk while holding an advisory flock on path.
 ;;; Uses non-blocking flock with retry loop to avoid hanging Chez runtime.
@@ -426,6 +461,7 @@
 ;;; - The process dies (OS kernel handles cleanup)
 ;;;
 ;;; Security: Uses O_EXCL on creation to prevent symlink attacks. (Fixed: fold-zxn7)
+;;; Timing: Uses monotonic time for timeout to prevent NTP-related issues. (Fixed: fold-zxne)
 ;;; This is the recommended way to use flock from Scheme.
 (define (with-flock-lock path thunk)
   (unless (posix-available?)
@@ -450,16 +486,15 @@
       (error 'with-flock-lock "Failed to open lock file" lock-path fd-result))
 
     (let ([fd fd-result]
-          [deadline (+ (time-second (current-time))
-                       (/ *flock-timeout-ms* 1000))])
+          [deadline (+ (monotonic-time-ms) *flock-timeout-ms*)])
       ;; Acquire lock with non-blocking retry
       (let acquire-loop ()
         (let ([result (posix-flock fd (bitwise-ior LOCK_EX LOCK_NB))])
           (cond
            [(eq? result #t) #t]  ; Lock acquired
            [(equal? result '(would-block))
-            ;; Check timeout
-            (if (> (time-second (current-time)) deadline)
+            ;; Check timeout using monotonic time
+            (if (> (monotonic-time-ms) deadline)
                 (begin
                   (posix-close fd)
                   (error 'with-flock-lock
@@ -473,13 +508,22 @@
             (error 'with-flock-lock "flock failed" path)])))
 
       ;; Lock acquired - use dynamic-wind for cleanup
-      (dynamic-wind
-        (lambda () #f)  ; Already acquired
-        thunk
-        (lambda ()
-          ;; Always release and close (even on exception)
-          (posix-flock fd LOCK_UN)
-          (posix-close fd))))))
+      ;; Use a flag to prevent re-entry via captured continuations (Fixed: fold-zxnc)
+      (let ([closed #f])
+        (dynamic-wind
+          (lambda ()
+            ;; Before thunk: check if fd was already closed
+            (when closed
+              (error 'with-flock-lock
+                     "Cannot re-enter locked region after exit (continuation re-entry)"
+                     path)))
+          thunk
+          (lambda ()
+            ;; After thunk: release lock, close fd, mark as closed
+            (unless closed
+              (posix-flock fd LOCK_UN)
+              (posix-close fd)
+              (set! closed #t))))))))
 
 ;;; ====
 ;;; Testing
