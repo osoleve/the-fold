@@ -1579,6 +1579,107 @@ Rather than approximate normalization (Eremondi et al.) or elaborate runtime che
 
 **Future direction**: We may explore restricted approximate normalization for specific patterns (e.g., length-indexed vectors with unknown but bounded length).
 
+### 5.10 Contract System
+
+Contracts provide runtime verification with precise blame tracking. They complement the static type system, especially for gradual typing boundaries.
+
+#### 5.10.1 Contract Grammar
+
+```
+Contract ::= (Flat Predicate)              ; Simple predicate
+           | (→ (Contract ...) Contract)   ; Function contract
+           | (Dep (Var ...) Contract)      ; Dependent contract
+           | (And Contract ...)            ; Conjunction
+           | (Or Contract ...)             ; Disjunction
+           | (Not Contract)                ; Negation
+           | Any                           ; Top (always satisfied)
+           | None                          ; Bottom (never satisfied)
+```
+
+**Flat contracts** check a predicate immediately:
+```scheme
+nat/c   = (Flat (λ (x) (and (integer? x) (>= x 0))))
+pos/c   = (Flat (λ (x) (and (number? x) (> x 0))))
+```
+
+**Function contracts** specify domain and range:
+```scheme
+(->c (list nat/c nat/c) pos/c)  ; (Nat × Nat) → Pos
+```
+
+#### 5.10.2 Higher-Order Contract Wrapping
+
+For higher-order functions, contracts must wrap function values to check them at each call site. The key challenge is **blame assignment**—who is at fault when a contract is violated?
+
+**First-Order Blame**:
+- **Domain violation** → blame the **caller** (they passed bad arguments)
+- **Range violation** → blame the **callee** (the function returned a bad result)
+
+**Higher-Order Blame Flip**:
+When a function is passed as an argument, blame must "flip" across the boundary:
+
+```scheme
+;; Contract: ((Nat → Nat) → Nat)
+;; A function that takes a callback and returns a Nat
+
+(define (apply-twice f) (f (f 5)))
+(define wrapped (apply-contract ho-contract apply-twice 'apply-twice))
+
+;; Case 1: Caller provides bad callback (returns wrong type)
+(wrapped (λ (x) "bad"))  ; Callback violates range → blame CALLER
+                         ; (caller provided a faulty callback)
+
+;; Case 2: Callee misuses the callback
+(define (misuse f) (f "not a number"))  ; Calls f with string
+(define wrapped-misuse (apply-contract ho-contract misuse 'misuse))
+(wrapped-misuse (λ (x) (+ x 1)))  ; Domain violation → blame CALLEE
+                                  ; (callee misused the callback)
+```
+
+The blame flip rule: when wrapping a higher-order argument, swap caller↔callee. This ensures:
+- If the callback itself is broken → caller's fault (they provided it)
+- If the callback is used incorrectly → callee's fault (they misused it)
+
+#### 5.10.3 Blame Tracking
+
+Blame records capture violation context:
+
+```scheme
+(blame party location message value)
+
+party    : 'caller | 'callee
+location : symbol (function name or source location)
+message  : human-readable description
+value    : the offending value
+```
+
+`flip-blame` swaps caller↔callee when crossing contract boundaries with higher-order values.
+
+#### 5.10.4 Contract Combinators
+
+**Container contracts**:
+```scheme
+(listof nat/c)      ; List of natural numbers
+(vectorof string/c) ; Vector of strings
+```
+
+**Range contracts**:
+```scheme
+(between/c 0 100)   ; Numbers in [0, 100]
+```
+
+**Enumeration**:
+```scheme
+(one-of/c 'red 'green 'blue)  ; Must be one of these symbols
+```
+
+**Boolean combinators**:
+```scheme
+(and/c nat/c pos/c)           ; Both must hold
+(or/c nat/c string/c)         ; At least one must hold
+(not/c nat/c)                 ; Must NOT be a natural number
+```
+
 ---
 ## 6. The Module System
 
