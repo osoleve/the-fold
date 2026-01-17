@@ -62,8 +62,15 @@
   (if (comonad? w) (caddr w) id))
 
 ;;; comonad-extend : Comonad → ((W a → b) → W a → W b)
+;;; Note: Default fallback is identity; caller should always provide a valid comonad.
 (define (comonad-extend w)
-  (if (comonad? w) (cadddr w) (lambda (f x) (f x))))
+  (if (comonad? w)
+      (cadddr w)
+      ;; Fallback should preserve W structure. The minimal valid extend
+      ;; that doesn't know W's structure is to just return the input unchanged.
+      ;; This only type-checks if f returns the same type, which it generally doesn't.
+      ;; Better to error than silently return wrong type.
+      (error 'comonad-extend "not a valid comonad")))
 
 ;;; ====
 ;;; Derived Operations
@@ -498,9 +505,23 @@
           w1w2a))))))
 
 ;;; compose-comonads : Comonad × Comonad → Comonad
+;;;
 ;;; DEPRECATED: Use compose-comonads-with-dist with an explicit distributive law.
-;;; This function only works correctly for specific comonad pairs.
-;;; For general use, prefer working with comonads individually.
+;;;
+;;; WARNING: Comonads do NOT compose in general! This function provides a
+;;; fallback extend implementation that:
+;;;   - Does NOT satisfy the comonad laws for arbitrary comonad pairs
+;;;   - Uses constant fmap to create synthetic structure (discards context)
+;;;   - Only produces correct results for special cases (Env ∘ Any, Any ∘ Store)
+;;;
+;;; The fundamental issue: extend needs to apply a contextual function at
+;;; every position, but without a distributive law there's no canonical way
+;;; to "thread" the outer comonad through the inner one.
+;;;
+;;; For correct composition, use:
+;;;   (compose-comonads-with-dist w1 w2 distributive-law)
+;;;
+;;; Or work with each comonad separately via comonad transformers.
 (define (compose-comonads w1 w2)
   (let* ([f1 (comonad-functor w1)]
          [f2 (comonad-functor w2)]
@@ -515,17 +536,26 @@
               (fmap1 (lambda (w2a) (fmap2 f w2a)) x)))])
       (make-comonad
        composed-functor
-       ;; extract: extract2 ∘ extract1
+       ;; extract: extract2 ∘ extract1 (this IS correct)
        (lambda (w1w2a)
          (extr2 (extr1 w1w2a)))
-       ;; extend: WARNING - this is a simplified implementation
-       ;; that only works when the comonads have compatible structure.
-       ;; For general composition, use compose-comonads-with-dist.
+       ;; extend: INCORRECT for general comonads.
+       ;; This uses constant fmap, which creates synthetic structure that
+       ;; replaces all positions with a single extracted value `a`.
+       ;; Result: every position "sees" the same context instead of its own.
+       ;;
+       ;; Known to work correctly only when:
+       ;;   - W1 is Env (environment just gets passed through)
+       ;;   - W2 is Store (position-indexed access still works)
        (lambda (f w1w2a)
-         ;; Fallback: apply f to the whole structure, wrap result
-         ;; This preserves types but may not satisfy comonad laws
+         ;; For each position in W1, for each position in W2:
+         ;; Apply f to a synthetic structure where all of W1 contains
+         ;; copies of the current W2 value. This is wrong but type-preserving.
          (fmap1 (lambda (w2a)
                   (fmap2 (lambda (a)
+                           ;; BUG: This creates W1(W2(a)) where every W1-position
+                           ;; contains the same w2a (filled with constant a).
+                           ;; The real context from w1w2a is discarded.
                            (f (fmap1 (lambda (_) (fmap2 (lambda (_) a) w2a)) w1w2a)))
                          w2a))
                 w1w2a))))))
