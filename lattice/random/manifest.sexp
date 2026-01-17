@@ -1,25 +1,27 @@
 ;;; lattice/random/manifest.sexp — Random Number Generation Skill Manifest
 
 (skill random
-  (version "0.1.0")
-  (tier 0)
+  (version "0.2.0")
+  (tier 1)  ; Bumped to tier 1 due to autodiff dependency
   (path "lattice/random")
   (purity total)  ; All generators are pure (State monad)
   (stability stable)
-  (fuel-bound "O(1) per sample for most distributions")
-  (deps (fp))  ; Uses fp/control/state and fp/numeric/transcendental
+  (fuel-bound "O(1) per sample for most distributions, O(iter) for VI")
+  (deps (fp autodiff))  ; Uses fp/control/state, fp/numeric/transcendental, and autodiff for VI
 
   (description
    "Pure, deterministic pseudorandom number generation using the State monad.
     All generators are fully reproducible given the same seed. Includes
     high-quality PRNGs (PCG, Xorshift128+, Splitmix64), probability
-    distributions (normal, exponential, poisson, etc.), and a probability
-    monad for compositional probabilistic programming.")
+    distributions (normal, exponential, poisson, etc.), a probability
+    monad for compositional probabilistic programming, and variational
+    inference for scalable Bayesian computation.")
 
   (keywords (random prng pcg xorshift splitmix probability distribution
              sampling monte-carlo state-monad reproducible deterministic
-             normal gaussian exponential poisson binomial))
-  (aliases (rand prng probability sampling))
+             normal gaussian exponential poisson binomial variational-inference
+             elbo reparameterization bayesian gradient-descent))
+  (aliases (rand prng probability sampling vi))
 
   (exports
    (prng
@@ -54,11 +56,36 @@
     ;; Conditioning and inference
     condition observe factor
     sample-many expectation variance
-    importance-sample rejection-sample))
+    importance-sample rejection-sample)
+   (variational-inference
+    ;; Variational families
+    make-mf-gaussian mf-gaussian? mf-gaussian-means mf-gaussian-log-stds
+    mf-gaussian-stds mf-gaussian-dim mf-gaussian-reparam sample-mf-gaussian
+    mf-gaussian-log-prob mf-gaussian-entropy
+    make-full-gaussian full-gaussian? full-gaussian-means full-gaussian-chol
+    full-gaussian-dim full-gaussian-reparam sample-full-gaussian
+    full-gaussian-log-prob full-gaussian-entropy
+    ;; Generic interface
+    vfamily-dim vfamily-entropy vfamily-params vfamily-from-params
+    ;; ELBO estimation
+    elbo-estimate elbo-with-entropy
+    ;; Gradient computation (requires traced log-joint)
+    elbo-gradient-mf traced-log-normal-pdf traced-log-normal-pdf-sum
+    make-traced-log-joint-normal-mean
+    ;; Optimization
+    vi-step-mf vi-step-adam vi-step-adam-traced
+    make-adam-state adam-state? adam-state-m adam-state-v adam-state-t adam-update
+    ;; Fitting
+    vi-fit vi-fit-traced vi-fit-normal-mean vi-fit-linear-regression
+    vi-result? vi-result-vfamily vi-result-elbo-history vi-result-iterations
+    ;; Diagnostics
+    vi-summary vi-check-convergence))
 
   (modules
    (prng "prng.ss" "PRNGs: PCG, Xorshift128+, Splitmix64 with State monad")
    (distributions "distributions.ss" "Probability distributions: normal, exponential, poisson, etc.")
    (probability "probability.ss" "Probability monad for probabilistic programming")
    (bayesian "bayesian.ss" "Bayesian inference primitives")
-   (monte-carlo "monte-carlo.ss" "Monte Carlo methods and MCMC")))
+   (monte-carlo "monte-carlo.ss" "Monte Carlo methods and MCMC")
+   (variational-inference "variational-inference.ss"
+    "Variational inference: ELBO optimization, reparameterization trick, mean-field and full-covariance Gaussian families")))
