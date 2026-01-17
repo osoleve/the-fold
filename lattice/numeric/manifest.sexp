@@ -1,26 +1,28 @@
 (skill numeric
-  (version "0.4.0")
+  (version "0.5.0")
   (tier 0)
   (path "lattice/numeric")
   (purity total)
   (stability stable)
-  (fuel-bound "O(n log n) for FFT, O(n) for FIR/spline/interval-ops, O(log n) for spline-eval, O(n²) for Lagrange")
+  (fuel-bound "O(n log n) for FFT, O(n) for FIR/spline/interval-ops, O(log n) for spline-eval, O(n²) for Lagrange, O(k) for affine-ops where k=noise-symbols")
   (deps (linalg algebra))
 
   (description
-   "Numerical computing, signal processing, interpolation, and interval arithmetic.
+   "Numerical computing, signal processing, interpolation, interval, and affine arithmetic.
     Provides complex number arithmetic, discrete Fourier transform (radix-2 FFT),
     digital filters (FIR, IIR, Butterworth, Chebyshev), convolution and correlation,
     wavelet transforms (Haar, Daubechies), spectral analysis (STFT, spectrogram),
     interpolation (linear, polynomial, spline, Hermite), Bezier curves, curve
-    fitting (least squares, polynomial), Chebyshev approximation, and rigorous
-    interval arithmetic for verified numerical computation.")
+    fitting (least squares, polynomial), Chebyshev approximation, rigorous
+    interval arithmetic for verified numerical computation, and affine arithmetic
+    for tighter bounds via correlation tracking (solves the dependency problem).")
 
   (keywords (numerics signal-processing fft dft complex-numbers digital-filters
              wavelets convolution spectral-analysis iir fir butterworth
              interpolation spline bezier curve-fitting regression chebyshev
-             interval-arithmetic verified-computation bounds))
-  (aliases (signal dsp interp interval))
+             interval-arithmetic affine-arithmetic verified-computation bounds
+             correlation-tracking dependency-problem noise-symbols))
+  (aliases (signal dsp interp interval affine))
 
   (exports
    (complex
@@ -158,7 +160,33 @@
     ;; Constants
     pi-interval e-interval
     ;; Short aliases
-    iv+ iv- iv* iv/))
+    iv+ iv- iv* iv/)
+
+   (affine
+    ;; Noise symbol management
+    affine-fresh-noise-id! affine-reset-noise-counter!
+    ;; Constructors and type
+    make-affine affine? affine-center affine-terms
+    affine-constant affine-noise
+    ;; Interval conversion
+    affine-from-interval affine->interval affine-radius
+    ;; Affine operations (correlation-preserving)
+    affine-neg affine-add affine-sub affine-scale affine-add-constant
+    ;; Non-affine operations
+    affine-mul affine-sqr affine-recip affine-div affine-sqrt
+    ;; Elementary functions
+    affine-exp affine-log
+    ;; Min/max
+    affine-min affine-max affine-abs
+    ;; Predicates
+    affine-definitely-positive? affine-definitely-negative? affine-possibly-zero?
+    affine-definitely< affine-definitely<= affine-definitely> affine-definitely>=
+    ;; Display
+    affine->string affine-print
+    ;; Short aliases
+    af+ af- af* af/ af-neg af-sqr af-sqrt af-exp af-log
+    ;; Higher-level operations
+    affine-sum affine-product affine-linear-combination affine-horner))
 
   (modules
    (complex "complex.ss"
@@ -198,4 +226,11 @@
      (three-valued logic), set operations, and transcendental elementary functions
      (exp, log, sin, cos, tan, hyperbolic). Multi-dimensional boxes for n-dimensional
      computations. Foundation for global optimization, monotonicity analysis, and
-     computer-aided proofs.")))
+     computer-aided proofs.")
+   (affine "affine.ss"
+    "Affine arithmetic for tighter bounds via correlation tracking. Solves the
+     'dependency problem' in interval arithmetic where x - x yields [-r, r] instead
+     of [0, 0]. Affine forms represent values as x₀ + Σxᵢεᵢ where εᵢ are noise
+     symbols in [-1, 1]. When forms share noise symbols, operations automatically
+     account for correlations. Supports all arithmetic ops plus exp, log, sqrt.
+     Use affine-from-interval to convert intervals, affine->interval to convert back.")))
