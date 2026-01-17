@@ -92,6 +92,10 @@
 ;; Error context capture (last-error, with-context)
 (load "shell/repl/error-context.ss")
 
+;; History module (undo/redo, branching)
+;; Note: Loaded by repl-worker.ss after session initialization
+;; Commands: (undo) (redo) (history) (branch 'name) (branches) (checkout 'name)
+
 
 ;;; ====
 ;;; Quiet Mode
@@ -215,6 +219,17 @@
   (display "    (last-error)           Show last error with full details\n")
   (display "    (clear-error!)         Clear captured error\n")
   (display "    (with-context lbl e)   Evaluate with context label\n")
+  (display "\n")
+  (display "  HISTORY (undo/redo):\n")
+  (display "    (undo)                 Undo last command\n")
+  (display "    (redo)                 Redo undone command\n")
+  (display "    (history)              Show command history\n")
+  (display "    (history n)            Show last n commands\n")
+  (display "    (jump n)               Jump to history index n\n")
+  (display "    (branch 'name)         Create branch at current point\n")
+  (display "    (branches)             List all branches\n")
+  (display "    (checkout 'name)       Switch to branch\n")
+  (display "    (history-help)         Full history command reference\n")
   (display "\n")
   (display "  UTILITIES:\n")
   (display "    (help)                 Show this help\n")

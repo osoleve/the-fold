@@ -3245,6 +3245,109 @@ This approach trades off stale cache detection granularity for simplicity—no c
 
 **Design achieved**: The current implementation provides production-ready concurrency for single-server deployments. The hybrid `flock()` + lockfile approach handles both normal operation (via fast OS-level locks) and edge cases (via identity-verified lockfiles).
 
+#### 7.6.4 REPL History: Case Study
+
+The REPL History module (`shell/history/`) demonstrates command replay as an alternative to state serialization—a key insight for systems with opaque runtime objects.
+
+**The Problem**: Time-travel debugging and undo/redo typically require environment snapshots. But Scheme environments contain *closures* (captured lexical scopes), *continuations* (call stack snapshots), and *ports* (OS file handles)—none of which can be serialized portably.
+
+**The Solution**: Command replay. Instead of snapshotting state, record the commands that produced it:
+
+```
+Execute command → Create history entry block → Link to previous → Update head
+                                                      ↓
+Undo → Walk back prev chain → Reset environment → Replay to target position
+```
+
+**Command Classification**:
+
+| Type | Examples | Replay Behavior |
+|----|----|----|
+| `definition` | `define`, `define-syntax` | Always replay (modifies environment) |
+| `effect` | `load`, `display`, `write-file` | Skip in safe mode (side effects) |
+| `expression` | `(+ 1 2)`, `(map f xs)` | Replay if needed for result |
+
+Classification is determined by inspecting the head form of each parsed expression.
+
+**Block Schema** (`history/entry`):
+
+```scheme
+;; Payload
+((session-id . "cli-123")
+ (index . 42)
+ (command . "(define x 10)")
+ (cmd-type . definition)
+ (result-type . success)
+ (result-hash . "a4f5...")
+ (defined-name . x)
+ (timestamp . "2026-01-17T...")
+ (version . 1))
+;; Refs: [prev-entry-hash]
+```
+
+Each entry links to its predecessor, forming a chain like git commits.
+
+**Branching via Content Addressing**:
+
+Creating a branch is O(1)—no data copying required:
+
+```
+Before:  main.head → entry-5 → entry-4 → entry-3 → ...
+
+(branch 'experiment)
+
+After:   main.head → entry-5 → entry-4 → entry-3 → ...
+                              ↑
+         experiment.head ─────┘
+```
+
+Both branches share the same underlying blocks. Divergence only occurs when new commands are added to different branches.
+
+**Environment Reset Challenge**:
+
+Chez Scheme provides no `unbind!` primitive. The workaround:
+
+1. Track all symbols defined via history
+2. On reset, overwrite each with a tombstone value
+3. Replay definitions to rebuild correct bindings
+
+This isn't true unbinding—`(top-level-bound? x)` still returns `#t`—but it's sufficient for replay semantics.
+
+**Divergence Detection**:
+
+When replaying, commands that succeeded originally might fail due to:
+- Changed external state (files, network)
+- Stale dependencies
+- Non-deterministic behavior
+
+On divergence (replay error where original succeeded), the system pauses and reports the conflict rather than silently corrupting state.
+
+**Head Files** (per session):
+
+```
+.store/heads/history/<session-id>/
+  main.head           # Branch tip hash
+  experiment.head     # Other branches
+  __current__.head    # Active branch name
+  __redo__.sexp       # Redo stack (list of entry hashes)
+```
+
+The redo stack enables `(redo)` after `(undo)`—popping from the stack re-executes the undone command.
+
+**Integration**: The REPL worker (`shell/repl/repl-worker.ss`) hooks command recording into evaluation:
+
+```scheme
+;; After successful evaluation:
+(history-record-success! session-id cmd-str result defined-name)
+
+;; After error:
+(history-record-error! session-id cmd-str error-value)
+```
+
+Recording is guarded to prevent history failures from breaking the REPL itself.
+
+**Design Insight**: Command replay is the right abstraction for systems with opaque runtime state. It's portable (commands are strings), auditable (history is inspectable), and debuggable (replay can be traced). The tradeoff is replay cost—O(n) for n commands—but practical REPL sessions rarely exceed hundreds of commands, making this acceptable.
+
 ### 7.7 Probabilistic Programming and Automatic Differentiation
 
 The Fold integrates automatic differentiation with probabilistic programming, enabling gradient-based inference for scalable Bayesian computation.

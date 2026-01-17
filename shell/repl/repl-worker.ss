@@ -220,34 +220,76 @@
 
 (define (scheme-eval-and-capture session-id str)
   "Evaluate expressions and capture both stdout and return value.
-   For definitions, returns the content-address of the definition expression."
+   For definitions, returns the content-address of the definition expression.
+   Returns (values output-string defined-name result) for history recording."
   (let ([output-port (open-output-string)])
        (let-values ([(result def-name def-expr)
                      (parameterize ([current-output-port output-port]
                                     [*current-session-id* session-id])
                                    (scheme-eval-string str))])
                    (let ([output (get-output-string output-port)])
-                        (cond
-                         ;; Definition: return content-address of the definition expression
-                         [def-expr
-                           (let ([addr (content-address def-expr)])
-                                (if (> (string-length output) 0)
-                                    (string-append output "\n" addr)
-                                    addr))]
-                         ;; Only output, no meaningful return value
-                         [(and (eq? result (void)) (> (string-length output) 0))
-                          output]
-                         ;; Both output and result
-                         [(> (string-length output) 0)
-                          (string-append output
-                                         (if (eq? result (void))
-                                             ""
-                                             (string-append "\n=> " (format "~a" result))))]
-                         ;; Only result, no output
-                         [(not (eq? result (void)))
-                          (format "~a" result)]
-                         ;; Nothing
-                         [else ""])))))
+                        (values
+                         (cond
+                          ;; Definition: return content-address of the definition expression
+                          [def-expr
+                            (let ([addr (content-address def-expr)])
+                                 (if (> (string-length output) 0)
+                                     (string-append output "\n" addr)
+                                     addr))]
+                          ;; Only output, no meaningful return value
+                          [(and (eq? result (void)) (> (string-length output) 0))
+                           output]
+                          ;; Both output and result
+                          [(> (string-length output) 0)
+                           (string-append output
+                                          (if (eq? result (void))
+                                              ""
+                                              (string-append "\n=> " (format "~a" result))))]
+                          ;; Only result, no output
+                          [(not (eq? result (void)))
+                           (format "~a" result)]
+                          ;; Nothing
+                          [else ""])
+                         def-name
+                         result)))))
+
+;;; ====
+;;; History Recording
+;;; ====
+
+;;; *history-loaded* : Boolean
+;;; Whether the history module has been loaded.
+(define *history-loaded* #f)
+
+;;; *history-meta-commands* : (List Symbol)
+;;; Commands that manipulate history should not be recorded to history.
+(define *history-meta-commands*
+  '(undo redo history jump branch branches checkout delete-branch
+    history-help history-export history-enabled? history-disable! history-enable!))
+
+;;; history-meta-command? : String -> Boolean
+;;; Check if a command string is a history meta-command.
+(define (history-meta-command? cmd-str)
+  (guard (e [else #f])
+    (let* ([port (open-input-string cmd-str)]
+           [expr (read port)])
+      (and (pair? expr)
+           (symbol? (car expr))
+           (memq (car expr) *history-meta-commands*)
+           #t))))
+
+;;; history-record-if-enabled! : String String Any Symbol (Option Symbol) -> Void
+;;; Record a command in history if history is enabled.
+;;; Guards against errors to avoid breaking the REPL.
+;;; Note: History meta-commands (undo, redo, history, etc.) are NOT recorded.
+(define (history-record-if-enabled! session-id cmd-str result result-type def-name)
+  (when *history-loaded*
+    (guard (e [else #f])  ; Silently ignore history errors
+      (when (and *history-enabled*
+                 (not (history-meta-command? cmd-str)))
+        (if (eq? result-type 'success)
+            (history-record-success! session-id cmd-str result def-name)
+            (history-record-error! session-id cmd-str result))))))
 
 ;;; ====
 ;;; Response Helpers
@@ -368,9 +410,14 @@
                    (when (file-exists? err-path)
                          (delete-file err-path))
                    (guard (e [else
-                              (write-error err-path (format-condition e))])
-                          (let ([result (scheme-eval-and-capture session-id expr-str)])
-                               (write-response resp-path result)))
+                              (write-error err-path (format-condition e))
+                              ;; Record error in history
+                              (history-record-if-enabled! session-id expr-str e 'error #f)])
+                          (let-values ([(result def-name eval-result)
+                                        (scheme-eval-and-capture session-id expr-str)])
+                               (write-response resp-path result)
+                               ;; Record success in history
+                               (history-record-if-enabled! session-id expr-str eval-result 'success def-name)))
                    (delete-file path)))))
 
 (define (worker-loop session-id)
@@ -402,6 +449,15 @@
        (ensure-dirs!)
        (write-pid! session-id)
        (load "shell/repl.ss")
+       ;; Load history module after REPL (which loads prelude and other deps)
+       (guard (e [else
+                  (display (format "Warning: History module failed to load: ~a\n"
+                                   (if (message-condition? e)
+                                       (condition-message e)
+                                       "unknown error")))])
+              (load "shell/history/history.ss")
+              (history-init-session! session-id)
+              (set! *history-loaded* #t))
        (write-ready! session-id)
        (write-heartbeat! session-id)
        (write-lastreq! session-id)  ; Initialize last-request timestamp (legacy)

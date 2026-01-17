@@ -639,6 +639,48 @@ With pinning:
 (bye)                             ; Logout and clean up session files
 ```
 
+### History Commands
+
+```scheme
+;; Undo/Redo
+(undo)                            ; Undo last command
+(redo)                            ; Redo undone command
+(jump n)                          ; Jump to history index n
+
+;; Viewing
+(history)                         ; Show last 20 commands
+(history n)                       ; Show last n commands
+(export-history)                  ; Export as Scheme script
+
+;; Branching
+(branch 'name)                    ; Create branch at current point
+(branches)                        ; List all branches
+(checkout 'name)                  ; Switch to branch
+(delete-branch 'name)             ; Delete a branch
+
+;; Control
+(history-enable!)                 ; Enable history recording
+(history-disable!)                ; Disable history recording
+```
+
+**History output format:**
+
+```
+History (branch: main, at index 5):
+─────────────────────────────────────────────────
+    0 [D ] (define x 10) → x
+    1 [D ] (define y 20) → y
+►   2 [  ] (+ x y)
+─────────────────────────────────────────────────
+[D]=definition [E]=effect [✗]=error
+```
+
+**Key insight:** History uses *command replay*, not state snapshots. Scheme closures and continuations cannot be serialized, so we record commands and replay them to restore state. This means:
+
+- `(undo)` resets environment, then replays from index 0 to new position
+- `(checkout 'branch)` resets environment, then replays entire branch
+- Effects (I/O) are skipped during safe replay to avoid side-effect duplication
+
 ---
 
 ## Invariants to Maintain
