@@ -3,7 +3,7 @@
 ;;; Tests for monad derivation from adjunctions, including:
 ;;;   - MonadOps record operations
 ;;;   - List monad derived from free monoid adjunction
-;;;   - Reader adjunction and derived monad
+;;;   - State adjunction and derived monad
 ;;;   - Monad law verification (left identity, right identity, associativity)
 ;;;   - Functor law verification (identity, composition)
 ;;;   - Comparison with hand-coded monad operations
@@ -253,72 +253,72 @@
         (d-bind '(1 2 3) (lambda (x) (list x (- x))))))
 
 ;;; ====
-;;; Test: Reader Adjunction
+;;; Test: State Adjunction
 ;;; ====
 
-(section "Reader Adjunction")
+(section "State Adjunction")
 
-(test-true "make-reader-adjunction creates adjunction"
-           (adjunction? adj-reader-example))
+(test-true "make-state-adjunction creates adjunction"
+           (adjunction? adj-state-example))
 
-(test "reader adjunction name"
-      'reader-env
-      (adjunction-name adj-reader-example))
+(test "state adjunction name"
+      'state-state
+      (adjunction-name adj-state-example))
 
-(test-true "reader adjunction has left functor"
-           (functor? (adjunction-left adj-reader-example)))
+(test-true "state adjunction has left functor"
+           (functor? (adjunction-left adj-state-example)))
 
-(test-true "reader adjunction has right functor"
-           (functor? (adjunction-right adj-reader-example)))
+(test-true "state adjunction has right functor"
+           (functor? (adjunction-right adj-state-example)))
 
-(test-true "reader adjunction has unit"
-           (nat-transform? (adjunction-unit adj-reader-example)))
+(test-true "state adjunction has unit"
+           (nat-transform? (adjunction-unit adj-state-example)))
 
-(test-true "reader adjunction has counit"
-           (nat-transform? (adjunction-counit adj-reader-example)))
+(test-true "state adjunction has counit"
+           (nat-transform? (adjunction-counit adj-state-example)))
 
 ;;; ====
-;;; Test: Reader Monad (Derived)
+;;; Test: State Monad (Derived)
 ;;; ====
 
-(section "Reader Monad (Derived)")
+(section "State Monad (Derived)")
 
-(test-true "monad-reader-derived is MonadOps"
-           (monad-ops? monad-reader-derived))
+(test-true "monad-state-derived is MonadOps"
+           (monad-ops? monad-state-derived))
 
-(test "reader monad name"
-      'monad-reader-env
-      (monad-ops-name monad-reader-derived))
+(test "state monad name"
+      'monad-state-state
+      (monad-ops-name monad-state-derived))
 
-;; The derived monad is State-like: M A = E -> (A, E)
-(let ([return (monad-ops-return monad-reader-derived)]
-      [fmap (monad-ops-fmap monad-reader-derived)]
-      [bind (monad-ops-bind monad-reader-derived)])
+;; The derived monad is M A = S -> (A, S)
+(let ([return (monad-ops-return monad-state-derived)]
+      [fmap (monad-ops-fmap monad-state-derived)]
+      [bind (monad-ops-bind monad-state-derived)])
 
-  ;; return a = λe. (a, e)
+  ;; return a = λs. (a, s)
   (let ([m (return 42)])
-    (test "return 42 with env 'x produces (42 . x)"
+    (test "return 42 with state 'x produces (42 . x)"
           (cons 42 'x)
           (m 'x))
 
-    (test "return 42 with env 100 produces (42 . 100)"
+    (test "return 42 with state 100 produces (42 . 100)"
           (cons 42 100)
           (m 100)))
 
   ;; fmap applies to the value part
   (let ([m (return 10)])
     (let ([mapped (fmap (lambda (x) (* x 2)) m)])
-      (test "fmap (* 2) on return 10, env 'e"
-            (cons 20 'e)
-            (mapped 'e)))))
+      (test "fmap (* 2) on return 10, state 's"
+            (cons 20 's)
+            (mapped 's)))))
 
 ;;; ====
-;;; Test: State-like Operations
+;;; Test: State Operations
 ;;; ====
 
-(section "State-like Operations")
+(section "State Operations")
 
-(let ([return (monad-ops-return monad-reader-derived)])
+(let ([return (monad-ops-return monad-state-derived)])
   (let ([m (return 'value)])
 
     (test "run-state returns (value . state)"
@@ -334,29 +334,29 @@
           (exec-state m 'initial))))
 
 ;;; ====
-;;; Test: Reader Triangle Identities
+;;; Test: State Triangle Identities
 ;;; ====
 
-(section "Reader Triangle Identities")
+(section "State Triangle Identities")
 
 ;; These tests verify the adjunction structure is correct
-(let* ([F (adjunction-left adj-reader-example)]
-       [G (adjunction-right adj-reader-example)]
-       [η (adjunction-unit adj-reader-example)]
-       [ε (adjunction-counit adj-reader-example)]
+(let* ([F (adjunction-left adj-state-example)]
+       [G (adjunction-right adj-state-example)]
+       [η (adjunction-unit adj-state-example)]
+       [ε (adjunction-counit adj-state-example)]
        [η-comp (nat-transform-component η)]
        [ε-comp (nat-transform-component ε)]
        [F-fmap (functor-fmap F)]
        [G-fmap (functor-fmap G)])
 
   ;; Left triangle: ε_{F(A)} ∘ F(η_A) = id_{F(A)}
-  ;; For val = (42 . env) in F(A):
-  ;; F(η)(val) = F(η)((42 . env)) where F(f)(a,e) = (f(a), e)
-  ;; η(42) = λe. (42, e)
-  ;; F(η)(42, env) = (η(42), env) = (λe.(42,e), env)
-  ;; ε((λe.(42,e), env)) = (λe.(42,e))(env) = (42, env)
-  ;; This should equal original (42, env)
-  (let* ([val (cons 42 'my-env)]
+  ;; For val = (42 . state) in F(A):
+  ;; F(η)(val) = F(η)((42 . state)) where F(f)(a,s) = (f(a), s)
+  ;; η(42) = λs. (42, s)
+  ;; F(η)(42, state) = (η(42), state) = (λs.(42,s), state)
+  ;; ε((λs.(42,s), state)) = (λs.(42,s))(state) = (42, state)
+  ;; This should equal original (42, state)
+  (let* ([val (cons 42 'my-state)]
          [step1 (F-fmap η-comp val)]  ; Apply F(η) to val
          [result (ε-comp step1)])      ; Apply ε to result
     (test "Left triangle identity"
@@ -364,19 +364,19 @@
           result))
 
   ;; Right triangle: G(ε) ∘ η_{G(B)} = id_{G(B)}
-  ;; For val = (λe. e) in G(B) (identity function):
-  ;; η(val) = λe'. (val, e') = λe'. ((λe.e), e')
-  ;; G(ε)(η(val)) = G(ε)(λe'.(val, e'))
-  ;; G(f)(g) = λe. f(g(e))
-  ;; G(ε)(η(val))(e) = ε(η(val)(e)) = ε((val, e)) = val(e) = e
-  (let* ([val (lambda (e) e)]  ; Identity function in G(B)
+  ;; For val = (λs. s) in G(B) (identity function):
+  ;; η(val) = λs'. (val, s') = λs'. ((λs.s), s')
+  ;; G(ε)(η(val)) = G(ε)(λs'.(val, s'))
+  ;; G(f)(g) = λs. f(g(s))
+  ;; G(ε)(η(val))(s) = ε(η(val)(s)) = ε((val, s)) = val(s) = s
+  (let* ([val (lambda (s) s)]  ; Identity function in G(B)
          [step1 (η-comp val)]   ; Apply η
          [result-fn (G-fmap ε-comp step1)])  ; Apply G(ε)
     ;; result-fn should behave like val
-    (test "Right triangle identity (test at env=100)"
+    (test "Right triangle identity (test at state=100)"
           (val 100)
           (result-fn 100))
-    (test "Right triangle identity (test at env='foo)"
+    (test "Right triangle identity (test at state='foo)"
           (val 'foo)
           (result-fn 'foo))))
 
@@ -393,9 +393,9 @@
       "MonadOps<monad-free-list>"
       (monad-ops->string monad-list-derived))
 
-(test "monad-ops->string for reader monad"
-      "MonadOps<monad-reader-env>"
-      (monad-ops->string monad-reader-derived))
+(test "monad-ops->string for state monad"
+      "MonadOps<monad-state-state>"
+      (monad-ops->string monad-state-derived))
 
 ;;; ====
 ;;; Test: Edge Cases

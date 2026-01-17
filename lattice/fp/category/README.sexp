@@ -67,7 +67,7 @@
     monad-from-adjunction
     ;; Example derivations
     monad-list-derived
-    make-reader-adjunction adj-reader-example monad-reader-derived
+    make-state-adjunction adj-state-example monad-state-derived
     ;; State-like utilities
     run-state eval-state exec-state
     ;; Law verification

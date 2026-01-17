@@ -782,4 +782,492 @@ Examples of Galois connections:
 - Interior ⊣ Closure (topology)
 - Abstraction ⊣ Concretization (abstract interpretation)
 
+### 5.13 Comonads
+
+A **comonad** is the categorical dual of a monad. Where monads encode effects and sequencing, comonads encode contexts and decomposition. A comonad W on a category C consists of:
+
+- A functor W : C → C
+- **Extract** ε : W ⟹ Id (counit, dual of return)
+- **Duplicate** δ : W ⟹ W∘W (comultiplication, dual of join)
+
+Or equivalently, via **extend**:
+- **Extend** : (W A → B) → W A → W B
+
+These satisfy the dual of monad laws:
+
+```
+Law 1: extend extract = id
+Law 2: extract ∘ extend f = f
+Law 3: extend f ∘ extend g = extend (f ∘ extend g)
+```
+
+#### 5.13.1 Comonad Type Class
+
+```scheme
+(define (make-comonad functor extract-fn extend-fn)
+  (list 'comonad functor extract-fn extend-fn))
+
+;; Extract a value from context
+(define (extract-with comonad wa)
+  ((comonad-extract comonad) wa))
+
+;; Extend a function over all positions
+(define (extend-with comonad f wa)
+  ((comonad-extend comonad) f wa))
+
+;; Derive duplicate from extend
+(define (duplicate-with comonad wa)
+  (extend-with comonad (lambda (x) x) wa))
+```
+
+#### 5.13.2 Store Comonad
+
+The **Store comonad** `Store S A = (S → A) × S` represents a position in a space with the ability to access any other position. It's ideal for:
+- Cellular automata (each cell can see neighbors)
+- Zippers and cursors
+- Image processing (convolution kernels)
+
+```scheme
+(define (make-store accessor position)
+  (list 'store accessor position))
+
+;; Peek at another position
+(define (store-peek store pos)
+  ((store-accessor store) pos))
+
+;; Move to a new position
+(define (store-seek store new-pos)
+  (make-store (store-accessor store) new-pos))
+
+;; Extract: get value at current position
+(define (store-extract store)
+  ((store-accessor store) (store-position store)))
+
+;; Extend: apply function at every position
+(define (store-extend f store)
+  (make-store
+   (lambda (pos) (f (store-seek store pos)))
+   (store-position store)))
+```
+
+**Example: Cellular Automaton Rule**
+
+```scheme
+;; Count live neighbors and apply rule
+(define (rule store)
+  (let* ([pos (store-position store)]
+         [left (store-peek store (- pos 1))]
+         [right (store-peek store (+ pos 1))]
+         [neighbors (+ left right)])
+    (if (= neighbors 1) 1 0)))  ; Rule 30-ish
+
+;; One generation step
+(define (step world)
+  (store-extend rule world))
+```
+
+#### 5.13.3 Env Comonad
+
+The **Env comonad** `Env E A = (E, A)` represents a value with an immutable environment (dual of Reader monad):
+
+```scheme
+(define (make-env environment value)
+  (list 'env environment value))
+
+(define (env-extract env) (env-value env))
+
+(define (env-extend f env)
+  (make-env (env-environment env) (f env)))
+
+;; Access environment without modifying
+(define (env-ask env) (env-environment env))
+
+;; Transform environment locally
+(define (env-local f env)
+  (make-env (f (env-environment env)) (env-value env)))
+```
+
+#### 5.13.4 Traced Comonad
+
+The **Traced comonad** `Traced M A = M → A` for monoid M represents a computation that depends on an accumulated monoidal context:
+
+```scheme
+(define (make-traced run-fn monoid)
+  (list 'traced run-fn monoid))
+
+(define (traced-extract traced)
+  ((traced-run traced) (monoid-identity (traced-monoid traced))))
+
+(define (traced-extend f traced)
+  (let ([monoid (traced-monoid traced)])
+    (make-traced
+     (lambda (m)
+       (f (make-traced
+           (lambda (m2)
+             ((traced-run traced)
+              ((monoid-op monoid) m m2)))
+           monoid)))
+     monoid)))
+```
+
+#### 5.13.5 Comonad from Adjunction
+
+Every adjunction F ⊣ G yields a comonad on the domain category via F∘G:
+
+```scheme
+;; Given F ⊣ G with unit η and counit ε:
+;; W = F ∘ G
+;; extract = ε (counit)
+;; duplicate = F(η_G) (whisker unit through F)
+
+(define (comonad-from-adjunction adj)
+  (let* ([F (adjunction-left adj)]
+         [G (adjunction-right adj)]
+         [η (adjunction-unit adj)]
+         [ε (adjunction-counit adj)])
+    (make-comonad
+     (functor-compose F G)
+     (nat-transform-component ε)
+     (lambda (f wa)
+       ;; extend f = fmap f ∘ duplicate
+       ;; = F∘G(f) ∘ F(η_G)
+       ((functor-fmap F)
+        (lambda (ga) (f ((functor-fmap F) (nat-transform-component η) ga)))
+        wa)))))
+```
+
+The **Store comonad** arises from the product-exponential adjunction (−)×S ⊣ (−)^S.
+
+#### 5.13.6 Comonad Composition
+
+Unlike monads, **comonads always compose**. Given comonads W₁ and W₂:
+
+```scheme
+(define (compose-comonads w1 w2)
+  (make-comonad
+   (functor-compose (comonad-functor w1) (comonad-functor w2))
+   (lambda (w1w2a)
+     ;; extract₁ ∘ fmap₁(extract₂)
+     (extract-with w1 ((functor-fmap (comonad-functor w1))
+                       (lambda (w2a) (extract-with w2 w2a))
+                       w1w2a)))
+   (lambda (f w1w2a)
+     ;; extend using both comonads
+     (extend-with w1
+       (lambda (w1x)
+         ((functor-fmap (comonad-functor w1))
+          (lambda (w2a) (extend-with w2 (lambda (w2y) (f ???)) w2a))
+          w1x))
+       w1w2a))))
+```
+
+This is because the extract/duplicate operations distribute coherently without needing a distributive law (which monads require).
+
+### 5.14 Monad Derivation from Adjunctions
+
+Every adjunction F ⊣ G gives rise to a monad on the codomain of G (= domain of F). This provides a principled, unified derivation of all standard monads.
+
+#### 5.14.1 The Derivation
+
+Given adjunction F ⊣ G with unit η and counit ε:
+
+```
+Monad M = G ∘ F
+
+return : A → M A = η_A (unit)
+join : M(M A) → M A = G(ε_{F(A)}) (apply counit under G)
+```
+
+In code:
+
+```scheme
+(define (monad-from-adjunction adj)
+  (let* ([F (adjunction-left adj)]
+         [G (adjunction-right adj)]
+         [η (adjunction-unit adj)]
+         [ε (adjunction-counit adj)]
+         [M (functor-compose G F)])
+    (make-monad-ops
+     (string->symbol (format "monad-~a" (adjunction-name adj)))
+     (nat-transform-component η)              ; return = η
+     (functor-fmap M)                          ; fmap from composed functor
+     (lambda (mma)                             ; join = G(ε_F)
+       ((functor-fmap G)
+        (nat-transform-component ε)
+        mma))
+     (lambda (ma f)                            ; bind via join and fmap
+       (join (fmap f ma))))))
+```
+
+#### 5.14.2 Example: List Monad from Free Monoid
+
+The List monad arises from the free-forgetful adjunction for monoids:
+
+```scheme
+;; F: Set → Mon (free monoid = lists)
+;; G: Mon → Set (forget monoid structure)
+;; F ⊣ G
+
+(define adj-free-list
+  (make-adjunction
+   'free-list
+   functor-list     ; F: wraps in lists
+   functor-id       ; G: identity (forgets structure)
+   nat-pure-list    ; η: singleton wrapping
+   nat-concat))     ; ε: concatenation (join)
+
+(define monad-list-derived
+  (monad-from-adjunction adj-free-list))
+
+;; Verify it works
+(define return (monad-ops-return monad-list-derived))
+(define bind (monad-ops-bind monad-list-derived))
+
+(return 42)  ; → '(42)
+(bind '(1 2 3) (lambda (x) (list x x)))  ; → '(1 1 2 2 3 3)
+```
+
+#### 5.14.3 Example: State Monad
+
+The State monad arises from the product-exponential adjunction:
+
+```scheme
+;; For fixed state type S:
+;; F(A) = A × S  (product functor)
+;; G(B) = S → B  (exponential functor)
+;; F ⊣ G (currying adjunction)
+
+(define (make-state-adjunction state-type)
+  (make-adjunction
+   'state
+   (make-product-functor state-type)
+   (make-exponential-functor state-type)
+   (make-state-unit)
+   (make-state-counit)))
+
+;; Derived: State S A = S → (A × S)
+;; return a = λs. (a, s)
+;; m >>= f = λs. let (a, s') = m s in f a s'
+```
+
+#### 5.14.4 MonadOps Record
+
+Derived monads are packaged in a record containing all operations:
+
+```scheme
+(define-record-type monad-ops
+  (fields name return fmap join bind))
+
+;; Usage
+(monad-ops-name monad-list-derived)    ; → 'monad-free-list
+(monad-ops-return monad-list-derived)  ; → singleton procedure
+(monad-ops-bind monad-list-derived)    ; → concatMap procedure
+```
+
+#### 5.14.5 Law Verification
+
+The derivation automatically satisfies monad laws (by the triangle identities of the adjunction). Verification functions confirm this:
+
+```scheme
+;; Left identity: return a >>= f = f a
+(verify-left-identity monad-list-derived 5 (lambda (x) (list x x)))  ; → #t
+
+;; Right identity: m >>= return = m
+(verify-right-identity monad-list-derived '(1 2 3))  ; → #t
+
+;; Associativity: (m >>= f) >>= g = m >>= (λx. f x >>= g)
+(verify-associativity monad-list-derived '(1 2)
+  (lambda (x) (list x (+ x 1)))
+  (lambda (y) (list y y)))  ; → #t
+
+;; All laws at once
+(verify-monad-laws monad-list-derived ...)  ; → #t
+```
+
+### 5.15 Kan Extensions and the Codensity Monad
+
+**Kan extensions** are "the most universal construction" in category theory—every other concept (limits, colimits, adjunctions, ends) can be expressed as a Kan extension.
+
+#### 5.15.1 Right Kan Extension
+
+The **Right Kan extension** of F : C → E along K : C → D is a functor Ran_K F : D → E together with a universal natural transformation:
+
+```
+(Ran_K F) A = ∀B. (A → K B) → F B
+```
+
+Universal property: Any natural transformation G∘K ⟹ F factors uniquely through Ran_K F.
+
+```scheme
+(define (make-ran k f computation)
+  (list 'ran k f computation))
+
+;; Apply the Ran to a K-morphism
+(define (ran-apply ran k-morphism)
+  ((ran-computation ran) k-morphism))
+
+;; Ran is a functor
+(define (ran-fmap f ran)
+  (make-ran (ran-k ran) (ran-f ran)
+    (lambda (k)
+      ((ran-computation ran) (compose k f)))))
+```
+
+#### 5.15.2 Left Kan Extension
+
+The **Left Kan extension** is dual:
+
+```
+(Lan_K F) A = ∃B. (K B → A, F B)
+```
+
+It's a coend: Lan_K F = ∫^B (K B → A) ⊗ F B
+
+```scheme
+(define (make-lan k f morphism value)
+  (list 'lan k f morphism value))
+
+;; Inject a value into Lan
+(define (lan-inject k f fb morphism)
+  (make-lan k f morphism fb))
+
+;; Lan is a functor
+(define (lan-fmap f lan)
+  (make-lan (lan-k lan) (lan-f lan)
+    (compose f (lan-morphism lan))
+    (lan-value lan)))
+```
+
+#### 5.15.3 The Codensity Monad
+
+The **Codensity monad** is the Right Kan extension of a monad M along itself:
+
+```
+Codensity M A = Ran_M M A = ∀R. (A → M R) → M R
+```
+
+This is exactly **continuation-passing style** made categorical. The key insight:
+
+```
+Standard bind: m >>= f     Rebuilds structure each time → O(n²) for left-nested binds
+Codensity bind: ca >>= f   Composes continuations → O(1) per bind, O(n) at lower
+```
+
+```scheme
+(define (codensity-return m-return a)
+  (make-codensity m-return (lambda (k) (k a))))
+
+(define (codensity-bind ca f)
+  (make-codensity
+   (codensity-return-fn ca)
+   (lambda (k)
+     ((codensity-run ca)
+      (lambda (a) ((codensity-run (f a)) k))))))
+
+;; Lower back to base monad
+(define (codensity-lower ca)
+  ((codensity-run ca) (codensity-return-fn ca)))
+
+;; Lift from base monad
+(define (codensity-lift m-return m-bind ma)
+  (make-codensity m-return (lambda (k) (m-bind ma k))))
+```
+
+#### 5.15.4 Connection to The Fold's Effect System
+
+The Codensity monad explains the O(1) bind optimization used in `lattice/fp/free.ss` and `lattice/fp/effects.ss`:
+
+```scheme
+;; In free.ss, the 'free-queue variant:
+('free-queue base-free fmap continuation-queue)
+
+;; In effects.ss, the 'eff-queue variant:
+('eff-queue base-eff continuation-queue)
+```
+
+These **are Codensity monad implementations**. The queue represents accumulated continuations `(A → M R)` waiting to be applied. Instead of nested lambda closures, the queue defunctionalizes the continuation:
+
+```
+Naive bind chain: ((((m >>= f) >>= g) >>= h) >>= i)
+  Each >>= traverses the accumulated structure → O(n²)
+
+Codensity/queue: m with conts = [f, g, h, i]
+  Each >>= just appends to queue → O(1)
+  Final lower applies all at once → O(n)
+```
+
+#### 5.15.5 Difference Lists via Codensity
+
+The classic "difference list" pattern is Codensity applied to the List monad:
+
+```scheme
+;; Normal list append: [1,2] ++ [3,4]
+;; Must traverse [1,2] to find end → O(n)
+
+;; Codensity List: λxs. 1:2:xs
+;; Composition is function composition → O(1)
+
+(define (codensity-list-singleton x)
+  (codensity-return list x))
+
+(define (codensity-list-append c1 c2)
+  (codensity-bind c1
+    (lambda (x)
+      (codensity-bind c2
+        (lambda (y)
+          (codensity-return list (cons x y)))))))
+
+;; Lower to regular list
+(define (codensity-list-lower c)
+  (codensity-lower c))
+```
+
+This transforms O(n²) left-associative appends into O(n):
+
+```scheme
+;; Left-associative: (((a ++ b) ++ c) ++ d)
+;;   Step 1: traverse a          → O(|a|)
+;;   Step 2: traverse a ++ b     → O(|a| + |b|)
+;;   Step 3: traverse all so far → O(|a| + |b| + |c|)
+;;   Total: O(n²) where n = total elements
+
+;; Codensity: lower (c_a ∘ c_b ∘ c_c ∘ c_d)
+;;   All compositions: O(1) each → O(n) total
+;;   Final lower: single traversal → O(n)
+;;   Total: O(n)
+```
+
+#### 5.15.6 Generic Codensity Monad Builder
+
+A utility constructs Codensity for any monad:
+
+```scheme
+(define (make-codensity-monad m-return m-bind)
+  (list
+   (lambda (a) (codensity-return m-return a))           ; return
+   (lambda (ca f) (codensity-bind ca f))                ; bind
+   (lambda (ma) (codensity-lift m-return m-bind ma))    ; lift
+   (lambda (ca) (codensity-lower ca))))                 ; lower
+```
+
+**Usage pattern**:
+
+```scheme
+;; Build optimized Maybe monad
+(define codensity-maybe (make-codensity-monad just maybe-bind))
+(define cm-return (car codensity-maybe))
+(define cm-bind (cadr codensity-maybe))
+(define cm-lower (cadddr codensity-maybe))
+
+;; Use Codensity for computation
+(define result
+  (cm-lower
+    (cm-bind (cm-return 5)
+      (lambda (x)
+        (cm-bind (cm-return (* x 2))
+          (lambda (y)
+            (cm-return (+ y 1))))))))
+;; → (just 11), but with O(1) binds
+```
+
 ---

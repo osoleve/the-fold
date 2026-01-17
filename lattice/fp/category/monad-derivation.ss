@@ -9,7 +9,7 @@
 ;;;   - monad-from-adjunction: derive monad operations from any adjunction
 ;;;   - MonadOps record: return, bind, join, fmap
 ;;;   - Example derivations: List monad from Free monoid adjunction
-;;;   - Reader adjunction and its derived monad
+;;;   - State adjunction and its derived monad
 ;;;
 ;;; This is Core code: pure, total, assumes reasonable input.
 ;;;
@@ -124,110 +124,104 @@
   (monad-from-adjunction adj-free-list))
 
 ;;; ====
-;;; Reader Adjunction and Monad
+;;; State Adjunction and Monad
 ;;; ====
 ;;;
-;;; The Reader monad arises from the adjunction (- × E) ⊣ (- ^ E):
-;;;   - Left adjoint F: A ↦ A × E (product with environment)
-;;;   - Right adjoint G: B ↦ E → B (functions from environment)
-;;;   - Unit η_A : A → (E → A × E), η_A(a) = λe. (a, e)
-;;;   - Counit ε_B : (E → B) × E → B, ε_B(f, e) = f(e)
+;;; The State monad arises from the adjunction (- × S) ⊣ (- ^ S):
+;;;   - Left adjoint F: A ↦ A × S (product with state)
+;;;   - Right adjoint G: B ↦ S → B (functions from state)
+;;;   - Unit η_A : A → (S → A × S), η_A(a) = λs. (a, s)
+;;;   - Counit ε_B : (S → B) × S → B, ε_B(f, s) = f(s)
 ;;;
 ;;; The resulting monad on G∘F is:
-;;;   M A = E → (A × E) → E → A (which simplifies to E → A, the Reader monad)
+;;;   M A = S → (A × S)
 ;;;
-;;; Actually, let's use the simpler formulation where:
-;;;   F A = A × E and G B = E → B
-;;;   gives M A = E → (A × E) which is State-like
-;;;
-;;; For pure Reader (E → A), we use a slightly different adjunction.
-;;; Let's implement one that demonstrates the principle clearly.
+;;; This is exactly the State monad, where computations thread state through.
+;;; Note: Reader monad (S → A) requires a different construction.
 
-;;; make-reader-adjunction : Type → Adjunction
-;;; Create the product/exponential adjunction for a fixed environment type E.
-;;; Note: In our untyped setting, E is just a tag to distinguish the adjunction.
+;;; make-state-adjunction : Type → Adjunction
+;;; Create the product/exponential adjunction for a fixed state type S.
+;;; Note: In our untyped setting, S is just a tag to distinguish the adjunction.
 ;;;
-;;; We'll use a simplified version where:
-;;;   F(A) = (A, E)  -- pair with environment slot
-;;;   G(B) = E → B   -- function from environment
-;;;   η : A → (E → (A, E))  -- η(a) = λe. (a, e)
-;;;   ε : (E → B, E) → B    -- ε(f, e) = f(e)
-(define (make-reader-adjunction env-tag)
-  (let* (;; F(A) = A × E represented as (a . env-slot)
-         ;; F(f)(a . e) = (f a . e)
+;;; We use the standard formulation where:
+;;;   F(A) = (A, S)  -- pair with state slot
+;;;   G(B) = S → B   -- function from state
+;;;   η : A → (S → (A, S))  -- η(a) = λs. (a, s)
+;;;   ε : (S → B, S) → B    -- ε(f, s) = f(s)
+(define (make-state-adjunction state-tag)
+  (let* (;; F(A) = A × S represented as (a . state-slot)
+         ;; F(f)(a . s) = (f a . s)
          [F (make-functor
-             (lambda (f ae)
-               (cons (f (car ae)) (cdr ae))))]
+             (lambda (f as)
+               (cons (f (car as)) (cdr as))))]
 
-         ;; G(B) = E → B, represented as functions
-         ;; G(f) : (E → B) → (E → C) = λg. λe. f(g(e))
+         ;; G(B) = S → B, represented as functions
+         ;; G(f) : (S → B) → (S → C) = λg. λs. f(g(s))
          [G (make-functor
              (lambda (f g)
-               (lambda (e) (f (g e)))))]
+               (lambda (s) (f (g s)))))]
 
          ;; η : Id → G∘F
-         ;; η_A : A → (E → A × E)
-         ;; η_A(a) = λe. (a, e)
+         ;; η_A : A → (S → A × S)
+         ;; η_A(a) = λs. (a, s)
          [η (make-nat-transform
-             'η-reader
+             'η-state
              functor-id
              G  ; Simplified: target is G (applied to F result)
              (lambda (a)
-               (lambda (e) (cons a e))))]
+               (lambda (s) (cons a s))))]
 
          ;; ε : F∘G → Id
-         ;; ε_B : (E → B) × E → B
-         ;; ε_B(f, e) = f(e)
+         ;; ε_B : (S → B) × S → B
+         ;; ε_B(f, s) = f(s)
          [ε (make-nat-transform
-             'ε-reader
+             'ε-state
              F  ; Simplified: source is F (applied to G result)
              functor-id
-             (lambda (fe)
-               (let ([f (car fe)]
-                     [e (cdr fe)])
-                 (f e))))])
+             (lambda (fs)
+               (let ([f (car fs)]
+                     [s (cdr fs)])
+                 (f s))))])
 
     (make-adjunction
-     (string->symbol (format "reader-~a" env-tag))
+     (string->symbol (format "state-~a" state-tag))
      F
      G
      η
      ε)))
 
-;;; adj-reader-example : Adjunction
-;;; Example Reader adjunction with environment tag 'env.
-(define adj-reader-example
-  (make-reader-adjunction 'env))
+;;; adj-state-example : Adjunction
+;;; Example State adjunction with state tag 'state.
+(define adj-state-example
+  (make-state-adjunction 'state))
 
-;;; monad-reader-derived : MonadOps
-;;; Reader monad derived from the Reader adjunction.
-;;; M A = E → (A × E), which is essentially a State-like monad.
-(define monad-reader-derived
-  (monad-from-adjunction adj-reader-example))
+;;; monad-state-derived : MonadOps
+;;; State monad derived from the State adjunction.
+;;; M A = S → (A × S)
+(define monad-state-derived
+  (monad-from-adjunction adj-state-example))
 
 ;;; ====
-;;; State-like Monad Operations
+;;; State Monad Operations
 ;;; ====
 ;;;
-;;; The monad derived from Reader adjunction is State-like:
-;;; M A = E → (A × E)
-;;;
-;;; Provide convenience functions for this pattern.
+;;; The monad derived from the State adjunction is M A = S → (A × S).
+;;; Provide convenience functions for working with this pattern.
 
-;;; run-state : (E → (A × E)) × E → (A × E)
+;;; run-state : (S → (A × S)) × S → (A × S)
 ;;; Run a state computation with initial state.
-(define (run-state m e)
-  (m e))
+(define (run-state m s)
+  (m s))
 
-;;; eval-state : (E → (A × E)) × E → A
+;;; eval-state : (S → (A × S)) × S → A
 ;;; Run computation and return just the value.
-(define (eval-state m e)
-  (car (run-state m e)))
+(define (eval-state m s)
+  (car (run-state m s)))
 
-;;; exec-state : (E → (A × E)) × E → E
-;;; Run computation and return just the state.
-(define (exec-state m e)
-  (cdr (run-state m e)))
+;;; exec-state : (S → (A × S)) × S → S
+;;; Run computation and return just the final state.
+(define (exec-state m s)
+  (cdr (run-state m s)))
 
 ;;; ====
 ;;; Monad Law Verification
@@ -312,8 +306,8 @@
 ;;;
 ;;; Examples:
 ;;;   - monad-list-derived (from adj-free-list)
-;;;   - make-reader-adjunction, adj-reader-example
-;;;   - monad-reader-derived
+;;;   - make-state-adjunction, adj-state-example
+;;;   - monad-state-derived
 ;;;
 ;;; State utilities:
 ;;;   - run-state, eval-state, exec-state
