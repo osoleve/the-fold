@@ -60,8 +60,31 @@
 ;;; Cache for parsed headers (keyed by file path)
 (define *header-cache* (make-hashtable string-hash string=?))
 
+;;; ====
+;;; Manifest-Based Module Index
+;;; ====
+
+;;; *manifest-module-index* : Hashtable Symbol → String | #f
+;;; Simple module names → file paths (populated by shell at startup)
+(define *manifest-module-index* #f)
+
+;;; *manifest-namespaced-index* : Hashtable Symbol → String | #f
+;;; Namespaced module names (skill/module) → file paths (always unambiguous)
+(define *manifest-namespaced-index* #f)
+
+;;; register-manifest-index! : Hashtable Hashtable → Void
+;;; Shell calls this at startup to inject the manifest-derived index.
+(define (register-manifest-index! simple-index namespaced-index)
+  (set! *manifest-module-index* simple-index)
+  (set! *manifest-namespaced-index* namespaced-index))
+
+;;; ====
+;;; Legacy Search Directories (Deprecated)
+;;; ====
+
 ;;; *module-search-dirs* : (List String)
-;;; Directories to search when resolving module names
+;;; DEPRECATED: Only used as fallback when manifest index is not initialized.
+;;; The manifest index (populated at startup) is the primary lookup mechanism.
 (define *module-search-dirs*
   '(;; Core directories (language kernel)
     "core/base" "core/blocks" "core/lang" "core/types" "core/util"
@@ -76,7 +99,9 @@
     "lattice/fp" "lattice/fp/control" "lattice/fp/numeric" "lattice/fp/parsing"
     "lattice/fp/meta" "lattice/fp/data" "lattice/fp/game" "lattice/fp/symbolic"
     "lattice/fp/measure" "lattice/fp/control-systems" "lattice/fp/rewrite"
-    "lattice/fp/analysis"
+    "lattice/fp/analysis" "lattice/fp/clp" "lattice/statistics"
+    "lattice/meta" "lattice/crypto" "lattice/topology" "lattice/optimization"
+    "lattice/physics/lenses"
     ;; Shell directories
     "shell" "shell/tests" "shell/lsp"))
 
@@ -240,21 +265,29 @@
   '("lattice" "core" "shell"))
 
 ;;; find-module-path : Symbol → (Option String)
-;;; Find file path for a module by searching known locations.
+;;; Find file path for a module using manifest-based index.
 ;;;
 ;;; Supports two forms:
-;;;   - Simple:     (require 'charts)           → first-match-wins from *module-search-dirs*
-;;;   - Namespaced: (require 'diffgeo/charts)   → lattice/diffgeo/charts.ss (unambiguous)
+;;;   - Simple:     (require 'vec)              → O(1) lookup in manifest index
+;;;   - Namespaced: (require 'linalg/vec)       → O(1) lookup, always unambiguous
 ;;;
-;;; Namespaced form searches *module-base-dirs* (lattice/, core/, shell/) for the path.
-;;; Use namespaced form when module names collide or for clarity.
+;;; Priority:
+;;;   1. Manifest namespaced index (for 'skill/module form)
+;;;   2. Manifest simple index (for 'module form)
+;;;   3. Legacy fallback (for base directories if index not initialized)
 (define (find-module-path name)
   (let ([name-str (symbol->string name)])
        (if (string-contains? name-str "/")
-           ;; Namespaced: search base directories
-           (find-namespaced-module name-str)
-           ;; Simple: search all registered directories (first-match-wins)
-           (find-simple-module name-str))))
+           ;; Namespaced: check namespaced index, then legacy fallback
+           (or (and *manifest-namespaced-index*
+                    (hashtable-ref *manifest-namespaced-index* name #f))
+               (find-namespaced-module name-str))
+           ;; Simple: check simple index, then namespaced index, then legacy fallback
+           (or (and *manifest-module-index*
+                    (hashtable-ref *manifest-module-index* name #f))
+               (and *manifest-namespaced-index*
+                    (hashtable-ref *manifest-namespaced-index* name #f))
+               (find-simple-module name-str)))))
 
 ;;; string-contains? : String × String → Boolean
 ;;; Check if haystack contains needle.
@@ -298,16 +331,20 @@
 
 ;;; check-module-collision : Symbol → Void
 ;;; Warn if a simple module name has multiple matches.
-;;; Called during require to alert users about potential ambiguity.
+;;; No-op when manifest index is available (collisions handled at build time).
+;;; Legacy fallback for when manifest index is not initialized.
 (define (check-module-collision name)
-  (let* ([name-str (symbol->string name)]
-         [all-paths (find-all-module-paths name-str)])
-        (when (> (length all-paths) 1)
-              (display (format "  ⚠ Warning: '~a' matches ~a files (using first):~%"
-                               name (length all-paths)))
-              (for-each (lambda (p) (display (format "      - ~a~%" p))) all-paths)
-              (display (format "    Consider using namespaced form: (require '~a)~%"
-                               (path->namespace (car all-paths)))))))
+  ;; Skip collision check when manifest index is available
+  ;; (collisions are detected and reported during index building)
+  (unless *manifest-module-index*
+          (let* ([name-str (symbol->string name)]
+                 [all-paths (find-all-module-paths name-str)])
+                (when (> (length all-paths) 1)
+                      (display (format "  ⚠ Warning: '~a' matches ~a files (using first):~%"
+                                       name (length all-paths)))
+                      (for-each (lambda (p) (display (format "      - ~a~%" p))) all-paths)
+                      (display (format "    Consider using namespaced form: (require '~a)~%"
+                                       (path->namespace (car all-paths))))))))
 
 ;;; path->namespace : String → String
 ;;; Convert path like "lattice/diffgeo/charts.ss" to namespace "diffgeo/charts"

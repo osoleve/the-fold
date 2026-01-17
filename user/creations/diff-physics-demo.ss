@@ -109,8 +109,8 @@
          ;; Start with a reasonable upward velocity
          [initial-vx (/ dx time)]
          [initial-vy (+ (/ dy time) (* 0.5 (- (vec2-y GRAVITY)) time))]  ; Compensate for gravity
-         [lr 0.001]  ; Much smaller learning rate
-         [iterations 30])  ; Fewer iterations for quick demo
+         [lr 0.01]  ; Much smaller learning rate
+         [iterations 50])  ; Fewer iterations for quick demo
         (display "  Initial vx: ") (display initial-vx) (newline)
         (display "  Initial vy: ") (display initial-vy) (newline)
         ;; Manual gradient descent loop

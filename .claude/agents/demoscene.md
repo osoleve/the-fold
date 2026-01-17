@@ -149,13 +149,17 @@ Establish mood      │ Tension builds       │ Everything moves     │ Satisf
 Starfield appears   │ Subject enters       │ Peak complexity      │ Resolution
 ```
 
-**Frame budget for 6 seconds @ 60fps (360 frames):**
+**Frame budget for 6 seconds @ 12fps (72 frames):**
 | Phase | Frames | Seconds | Purpose |
 |-------|--------|---------|---------|
-| Intro | 0-89 | 1.5s | Hook, mood, starfield/plasma bed |
-| Build | 90-179 | 1.5s | Subject enters, elements layer |
-| Peak | 180-299 | 2.0s | Full animation, peak complexity |
-| Outro | 300-359 | 1.0s | Resolve, hold, maybe credits |
+| Intro | 0-17 | 1.5s | Hook, mood, starfield/plasma bed |
+| Build | 18-35 | 1.5s | Subject enters, elements layer |
+| Peak | 36-59 | 2.0s | Full animation, peak complexity |
+| Outro | 60-71 | 1.0s | Resolve, hold, maybe credits |
+
+**IMPORTANT: 12fps, not 60fps.** ASCII animation doesn't need smooth interpolation—it has *character*. 60fps is wasteful and misses the aesthetic. The choppy frames are part of the charm.
+
+**Let important moments breathe.** Don't cram 6 phases into 6 seconds. If you're showing something critical—a key insight, a dramatic reveal, a side-by-side comparison—give it 2-3 seconds alone. Rushed demos feel like slideshows. Great demos feel like they're *savoring* the good parts.
 
 ## Character Density Ramps
 

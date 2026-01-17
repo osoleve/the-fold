@@ -3,9 +3,10 @@
 fold — JSON-based REPL client for The Fold.
 
 Usage:
-  ./fold "+ 1 2"                        # Implicit parens: (+ 1 2)
+  ./fold + 1 2                          # Implicit parens: (+ 1 2)
+  ./fold "+ 1 2"                        # Quoted form also works
   ./fold "(+ 1 2)"                      # Explicit parens work too
-  ./fold -s dev "define x 10"           # Named session
+  ./fold -s dev define x 10             # Named session, unquoted
   ./fold --status                       # Check if daemon is running
 
 Features:
@@ -283,13 +284,13 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  ./fold "+ 1 2"              Evaluate (+ 1 2)
-  ./fold -s dev "define x 10" Define x in 'dev' session
+  ./fold + 1 2                Evaluate (+ 1 2)
+  ./fold -s dev define x 10   Define x in 'dev' session
   ./fold --status             Check if daemon is running
-  ./fold --no-auto-start "x"  Don't auto-start daemon
+  ./fold --no-auto-start x    Don't auto-start daemon
 """
     )
-    parser.add_argument("code", nargs="?", help="Code to execute")
+    parser.add_argument("code", nargs="*", help="Code to execute (multiple args joined with spaces)")
     parser.add_argument("--session", "-s", help="Session ID (overrides env/file)")
     parser.add_argument("--persist", "-p", action="store_true",
                         help="Save session to .fold-session for future calls")
@@ -316,7 +317,7 @@ Examples:
             sys.exit(1)
 
     explicit_session = args.session
-    code = args.code
+    code = " ".join(args.code) if args.code else None
     timeout = args.timeout
 
     if args.json:

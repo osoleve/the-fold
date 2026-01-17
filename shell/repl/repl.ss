@@ -31,6 +31,13 @@
 ;; Module system (provides (require), (modules), (module-info))
 (load "core/lang/module.ss")
 
+;; Module index initialization (manifest-based auto-discovery)
+;; Must happen BEFORE any lattice modules are required
+(load "shell/module/manifest-scanner.ss")
+(load "lattice/meta/manifest.ss")
+(load "shell/module/module-index.ss")
+(module-index-init!)
+
 ;; Shell dependencies
 (load "shell/fs.ss")
 (load "shell/ui/text.ss")

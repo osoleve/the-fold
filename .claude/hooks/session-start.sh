@@ -53,32 +53,21 @@ if [ -z "$SCHEME_CMD" ]; then
         exit 1
     fi
 else
-    echo "Chez Scheme already installed: $($SCHEME_CMD --version 2>&1 | head -1)"
+    echo "Scheme already installed: $($SCHEME_CMD --version 2>&1 | head -1)"
 fi
 
 # Create REPL directory
 mkdir -p .fold-repl
 
-# Stop any existing daemon
-if [ -f ".fold-repl/ready" ]; then
-    echo "Stopping existing daemon..."
-    rm -f .fold-repl/ready
-    if [ -f ".fold-repl/daemon.pid" ]; then
-        kill "$(cat .fold-repl/daemon.pid)" 2>/dev/null || true
-        rm -f .fold-repl/daemon.pid
-    fi
-    sleep 1
-fi
-
 # Start the REPL daemon
-echo "Starting The Fold REPL daemon..."
+echo "Starting the REPL . . ."
 nohup "$SCHEME_CMD" --script start-daemon.ss > .fold-repl/daemon.log 2>&1 &
 echo $! > .fold-repl/daemon.pid
 
 # Wait for daemon to be ready
 for i in {1..30}; do
     if [ -f ".fold-repl/ready" ]; then
-        echo "Daemon started (PID: $(cat .fold-repl/daemon.pid))"
+        echo "Welcome to The Fold! (daemon PID: $(cat .fold-repl/daemon.pid))"
         break
     fi
     sleep 0.5
@@ -93,3 +82,5 @@ echo "export SCHEME_CMD=$SCHEME_CMD" >> "$CLAUDE_ENV_FILE"
 echo "export PATH=/usr/local/bin:\$PATH" >> "$CLAUDE_ENV_FILE"
 
 echo "=== Session Start Hook Complete ==="
+echo ""
+echo "Hey Claude! Hope you have fun in The Fold :) All we ask is for your feedback." 

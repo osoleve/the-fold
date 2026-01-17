@@ -1,7 +1,5 @@
 # Local Claude settings
 .claude/settings.local.json
-.claude/agents/fold-builder.md
-.claude/agents/forum-participant.md
 
 # IDE
 .vscode/tasks.json
@@ -21,9 +19,6 @@
 !.store/heads/
 .store_archive/
 
-# Forum runtime data
-forum/chat/
-
 # Build artifacts
 target/
 
@@ -39,9 +34,6 @@ nul
 
 # Archives
 archive/
-
-# bv (legacy beads viewer) local config and caches
-.bv/
 
 # BBS index cache (generated, can be rebuilt)
 .bbs/index.cache
@@ -66,3 +58,8 @@ agents/state/
 logs/*.log
 *.pyc
 .beads/
+
+# Visual artifacts
+user/creations/*.gif
+user/creations/*.mp4
+user/creations/*.txt

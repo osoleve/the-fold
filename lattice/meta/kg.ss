@@ -17,10 +17,12 @@
 ;;; Dependencies:
 ;;;   core/base/prelude.ss
 ;;;   core/blocks/block.ss
+;;;   lattice/meta/manifest.ss (pure manifest parsing)
 
 (load "core/base/prelude.ss")
 (load "core/base/sha256.ss")
 (load "core/blocks/block.ss")
+(load "lattice/meta/manifest.ss")
 
 ;;; ====
 ;;; Entity Types
@@ -34,11 +36,15 @@
 (define KG-INDEX-ROOT 'lattice/index-root)
 
 ;;; ====
-;;; Manifest Parsing
+;;; Manifest Reading (I/O)
 ;;; ====
 
+;;; NOTE: Parsing functions (parse-manifest, manifest-field, etc.) are now
+;;; provided by lattice/meta/manifest.ss which is loaded above.
+
 ;;; read-manifest : String -> SExp | #f
-;;; Read and parse a manifest.sexp file
+;;; Read and parse a manifest.sexp file.
+;;; This is the only I/O function in this module.
 (define (read-manifest filepath)
   (guard (e [else #f])
          (call-with-input-file filepath
@@ -55,59 +61,6 @@
                                                    (get-char port)
                                                    (loop)]
                                                   [else (read port)])))))))
-
-;;; manifest-field : SExp Symbol -> Any | #f
-;;; Extract a field from a manifest s-expression
-(define (manifest-field manifest field-name)
-  (if (and (pair? manifest)
-           (eq? (car manifest) 'skill)
-           (pair? (cdr manifest))      ; Has at least skill name
-           (pair? (cddr manifest)))    ; Has at least one field
-      (let loop ([fields (cddr manifest)])
-           (cond
-            [(null? fields) #f]
-            [(and (pair? (car fields))
-                  (eq? (caar fields) field-name))
-             (cdar fields)]
-            [else (loop (cdr fields))]))
-      #f))
-
-;;; parse-manifest : SExp -> ManifestData | #f
-;;; Parse manifest into structured data
-(define (parse-manifest sexp)
-  (if (and (pair? sexp) (eq? (car sexp) 'skill))
-      (let ([name (cadr sexp)])
-           `((name . ,name)
-             (version . ,(car-or-default (manifest-field sexp 'version) "0.0.0"))
-             (tier . ,(car-or-default (manifest-field sexp 'tier) 0))
-             (path . ,(car-or-default (manifest-field sexp 'path) ""))
-             (purity . ,(car-or-default (manifest-field sexp 'purity) 'total))
-             (stability . ,(car-or-default (manifest-field sexp 'stability) 'experimental))
-             (fuel-bound . ,(car-or-default (manifest-field sexp 'fuel-bound) "O(?)"))
-             (deps . ,(flatten-single (manifest-field sexp 'deps)))
-             (description . ,(car-or-default (manifest-field sexp 'description) ""))
-             (keywords . ,(flatten-single (manifest-field sexp 'keywords)))
-             (aliases . ,(flatten-single (manifest-field sexp 'aliases)))
-             (exports . ,(or (manifest-field sexp 'exports) '()))
-             (modules . ,(or (manifest-field sexp 'modules) '()))))
-      #f))
-
-;;; flatten-single : (List a) | #f -> (List a)
-;;; If list contains single element that is itself a list, return that inner list
-(define (flatten-single lst)
-  (cond
-   [(not lst) '()]
-   [(null? lst) '()]
-   [(and (= (length lst) 1)
-         (list? (car lst)))
-    (car lst)]
-   [else lst]))
-
-;;; car-or-default : (List a) | #f a -> a
-(define (car-or-default lst default)
-  (if (and lst (pair? lst))
-      (car lst)
-      default))
 
 ;;; ====
 ;;; Entity Creation
@@ -381,15 +334,7 @@
                      #f)))
    *kg-skills*))
 
-;;; filter-map helper
-(define (filter-map f lst)
-  (let loop ([lst lst] [acc '()])
-       (if (null? lst)
-           (reverse acc)
-           (let ([result (f (car lst))])
-                (if result
-                    (loop (cdr lst) (cons result acc))
-                    (loop (cdr lst) acc))))))
+;;; NOTE: filter-map is now provided by lattice/meta/manifest.ss
 
 ;;; ====
 ;;; Statistics
