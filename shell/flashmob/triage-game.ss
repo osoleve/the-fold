@@ -150,10 +150,32 @@
 ;;; Check if preferences are too sparse for Schulze.
 ;;; Returns #t if < 50% of pairs have clear preferences.
 (define (game-sparse-preferences? profile)
-  (if (or (null? profile) (< (length (car profile)) 2))
-      #t
-      ;; For now, assume we have enough if we have rankings
-      #f))
+  (cond
+    [(null? profile) #t]
+    [(< (length (car profile)) 2) #t]
+    [else
+     (let* ([candidates (car profile)]  ; First ranking as candidate list
+            [n (length candidates)]
+            [total-pairs (* n (- n 1))]  ; n*(n-1) ordered pairs
+            [margin (game-build-margin-matrix profile candidates)]
+            ;; Count pairs with clear preference (non-zero margin)
+            [clear-count
+             (let loop ([i 0] [count 0])
+               (if (>= i n)
+                   count
+                   (loop (+ i 1)
+                         (+ count
+                            (let inner ([j 0] [c 0])
+                              (if (>= j n)
+                                  c
+                                  (inner (+ j 1)
+                                         (if (and (not (= i j))
+                                                  (not (= 0 (vector-ref (vector-ref margin i) j))))
+                                             (+ c 1)
+                                             c))))))))]
+            [density (if (= total-pairs 0) 0 (/ clear-count total-pairs))])
+       ;; Sparse if less than 50% of pairs have clear preferences
+       (< density 0.5))]))
 
 ;;; game-schulze-sort : PreferenceProfile (List String) -> (List String)
 ;;; Sort candidates using Schulze method.
@@ -305,17 +327,21 @@
 ;;; Shapley Attribution
 ;;; ====
 
+;;; *shapley-sample-count* : Int
+;;; Number of permutation samples for approximate Shapley (N > 15).
+(define *shapley-sample-count* 1000)
+
 ;;; game-shapley-credits : (List Symbol) (List Alist) -> Alist
 ;;; Compute Shapley value attribution.
-;;; Falls back to proportional if > 15 agents.
+;;; Uses exact algorithm for N ≤ 15, sampling approximation for N > 15.
 (define (game-shapley-credits agent-ids findings)
   (if (null? agent-ids)
       '()
       (let ([n (length agent-ids)])
         (if (> n *shapley-agent-limit*)
-            ;; Fall back to proportional
-            (game-proportional-fallback agent-ids findings)
-            ;; Full Shapley
+            ;; Sampling-based approximation for large N
+            (game-shapley-sample agent-ids findings *shapley-sample-count*)
+            ;; Full exact Shapley for small N
             (game-compute-shapley agent-ids findings)))))
 
 ;;; game-compute-shapley : (List Symbol) (List Alist) -> Alist
@@ -370,6 +396,60 @@
     (if (= total 0)
         (map (lambda (id) (cons id (/ 1.0 (length agent-ids)))) agent-ids)
         (map (lambda (c) (cons (car c) (/ (cdr c) total))) contribs))))
+
+;;; game-shapley-sample : (List Symbol) (List Alist) Int -> Alist
+;;; Approximate Shapley value using permutation sampling (Castro et al., 2009).
+;;; Generates M random permutations and computes marginal contributions.
+;;; Returns normalized values that sum to 1.
+(define (game-shapley-sample agent-ids findings num-samples)
+  (let* ([n (length agent-ids)]
+         [game (game-create-qa-game agent-ids findings)]
+         ;; Accumulator for sum of marginal contributions
+         [sums (make-vector n 0.0)])
+    ;; Sample random permutations
+    (do ([sample 0 (+ sample 1)])
+        ((>= sample num-samples))
+      ;; Generate random permutation
+      (let ([perm (game-random-permutation n)])
+        ;; Compute marginal contributions along this permutation
+        (let loop ([i 0] [coalition 0])
+          (when (< i n)
+            (let* ([agent-idx (vector-ref perm i)]
+                   ;; v(S ∪ {i})
+                   [with-agent (bitwise-ior coalition (bitwise-arithmetic-shift-left 1 agent-idx))]
+                   [v-with (coop-game-value game with-agent)]
+                   ;; v(S)
+                   [v-without (if (= coalition 0) 0 (coop-game-value game coalition))]
+                   ;; Marginal contribution
+                   [marginal (- v-with v-without)])
+              (vector-set! sums agent-idx
+                           (+ (vector-ref sums agent-idx) marginal))
+              (loop (+ i 1) with-agent))))))
+    ;; Average and normalize
+    (let* ([avg-values (map (lambda (i) (/ (vector-ref sums i) num-samples)) (iota n))]
+           [total (apply + avg-values)])
+      (if (= total 0)
+          (map (lambda (id) (cons id (/ 1.0 n))) agent-ids)
+          (map (lambda (id i)
+                 (cons id (/ (list-ref avg-values i) total)))
+               agent-ids
+               (iota n))))))
+
+;;; game-random-permutation : Int -> Vector
+;;; Generate a random permutation of 0..n-1 using Fisher-Yates shuffle.
+(define (game-random-permutation n)
+  (let ([v (make-vector n)])
+    ;; Initialize with identity
+    (do ([i 0 (+ i 1)])
+        ((>= i n))
+      (vector-set! v i i))
+    ;; Fisher-Yates shuffle
+    (do ([i (- n 1) (- i 1)])
+        ((< i 1) v)
+      (let* ([j (random (+ i 1))]
+             [tmp (vector-ref v i)])
+        (vector-set! v i (vector-ref v j))
+        (vector-set! v j tmp)))))
 
 ;;; ====
 ;;; Core Stability (Consensus)

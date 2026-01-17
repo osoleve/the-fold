@@ -151,21 +151,44 @@
    "]"))
 
 ;;; json-escape-string : String -> String
+;;; Properly escapes all JSON special characters including Unicode.
 (define (json-escape-string str)
   (string-append
    "\""
    (let loop ([chars (string->list str)] [acc '()])
      (if (null? chars)
          (list->string (reverse acc))
-         (let ([c (car chars)])
+         (let* ([c (car chars)]
+                [code (char->integer c)])
            (cond
+             ;; Required JSON escapes
              [(char=? c #\") (loop (cdr chars) (append (list #\" #\\) acc))]
              [(char=? c #\\) (loop (cdr chars) (append (list #\\ #\\) acc))]
              [(char=? c #\newline) (loop (cdr chars) (append (list #\n #\\) acc))]
              [(char=? c #\return) (loop (cdr chars) (append (list #\r #\\) acc))]
              [(char=? c #\tab) (loop (cdr chars) (append (list #\t #\\) acc))]
+             ;; Other control characters (0x00-0x1F) as \uXXXX
+             [(< code 32)
+              (loop (cdr chars)
+                    (append (reverse (string->list (json-unicode-escape code))) acc))]
+             ;; DEL and above 0x7F - escape non-ASCII for safety
+             [(> code 127)
+              (loop (cdr chars)
+                    (append (reverse (string->list (json-unicode-escape code))) acc))]
+             ;; Printable ASCII - pass through
              [else (loop (cdr chars) (cons c acc))]))))
    "\""))
+
+;;; json-unicode-escape : Int -> String
+;;; Format a code point as \uXXXX (handles BMP only; surrogates for >0xFFFF).
+(define (json-unicode-escape code)
+  (if (> code #xFFFF)
+      ;; Surrogate pair for characters outside BMP
+      (let* ([adjusted (- code #x10000)]
+             [high (+ #xD800 (bitwise-arithmetic-shift-right adjusted 10))]
+             [low (+ #xDC00 (bitwise-and adjusted #x3FF))])
+        (string-append (json-unicode-escape high) (json-unicode-escape low)))
+      (format "\\u~4,'0x" code)))
 
 ;;; json-number->string : Number -> String
 (define (json-number->string n)
