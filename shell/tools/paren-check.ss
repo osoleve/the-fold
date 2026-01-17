@@ -312,7 +312,8 @@
                       [stack '()]
                       [errors '()]
                       [in-string #f]
-                      [in-block-comment 0])  ; nesting depth for #|...|#
+                      [in-block-comment 0]   ; nesting depth for #|...|#
+                      [in-datum-skip 0])     ; paren depth for #; datum skip (0 = not skipping)
         (let ([line (get-line port)])
           (if (eof-object? line)
               ;; EOF - check for unclosed items
@@ -333,6 +334,14 @@
                                   "unterminated block comment #|...|#"
                                   line-num 0))  ; line-num is EOF position
                           '())]
+                     ;; Check for unterminated datum comments
+                     [datum-error
+                      (if (> in-datum-skip 0)
+                          (list (make-paren-error
+                                  'unclosed
+                                  "unterminated datum comment #;..."
+                                  line-num 0))
+                          '())]
                      ;; And unterminated strings
                      [string-error
                       (if in-string
@@ -341,61 +350,339 @@
                                   "unterminated string literal"
                                   line-num 0))
                           '())])
-                (values '() (append (reverse errors) unclosed-errors block-error string-error)))
+                (values '() (append (reverse errors) unclosed-errors block-error datum-error string-error)))
               ;; Process this line
-              (let-values ([(new-stack new-errors new-in-string new-in-block)
+              (let-values ([(new-stack new-errors new-in-string new-in-block new-in-datum)
                             (process-line line line-num stack errors
-                                          in-string in-block-comment)])
+                                          in-string in-block-comment in-datum-skip)])
                 (line-loop (+ line-num 1)
                            new-stack
                            new-errors
                            new-in-string
-                           new-in-block))))))))
+                           new-in-block
+                           new-in-datum))))))))
+
+;;; skip-datum : String Int Bool -> (Values Int Bool Bool)
+;;; Skip a single datum (S-expression) on the current line.
+;;; Returns (new-col new-in-string crossed-line-boundary).
+;;; If the datum extends beyond the line, returns with crossed-line-boundary=#t.
+;;;
+;;; A datum is:
+;;;   - A list/vector starting with (, [, {, or #(
+;;;   - An atom (symbol, number, boolean, etc.)
+;;;   - A string "..."
+;;;   - A character literal #\x
+(define (skip-datum line start-col in-string)
+  (let ([len (string-length line)])
+    ;; Skip leading whitespace
+    (let skip-ws ([col start-col])
+      (cond
+        [(>= col len)
+         ;; End of line - datum is on next line(s)
+         (values col in-string #t)]
+        [(char-whitespace? (string-ref line col))
+         (skip-ws (+ col 1))]
+        [else
+         ;; Found start of datum
+         (let ([c (string-ref line col)])
+           (cond
+             ;; List/vector opener - skip until matching closer
+             [(or (char=? c #\() (char=? c #\[) (char=? c #\{))
+              (skip-balanced line col in-string)]
+             ;; Vector #( or bytevector #vu8(
+             [(char=? c #\#)
+              (cond
+                [(and (< (+ col 1) len)
+                      (char=? (string-ref line (+ col 1)) #\())
+                 ;; #( vector
+                 (skip-balanced line (+ col 1) in-string)]
+                [(and (< (+ col 3) len)
+                      (char=? (string-ref line (+ col 1)) #\v)
+                      (char=? (string-ref line (+ col 2)) #\u)
+                      (char=? (string-ref line (+ col 3)) #\8))
+                 ;; #vu8( bytevector - find the (
+                 (let find-paren ([i (+ col 4)])
+                   (if (and (< i len) (char=? (string-ref line i) #\())
+                       (skip-balanced line i in-string)
+                       ;; Should not happen in valid code
+                       (values (min i len) in-string (>= i len))))]
+                [(and (< (+ col 1) len)
+                      (char=? (string-ref line (+ col 1)) #\\))
+                 ;; Character literal #\x - skip it
+                 (let ([next-col (+ col 2)])
+                   (if (>= next-col len)
+                       (values next-col in-string #t)
+                       (let ([char-start (string-ref line next-col)])
+                         (if (char-alphabetic? char-start)
+                             ;; Named char like #\newline - scan to end
+                             (let scan ([i (+ next-col 1)])
+                               (if (or (>= i len)
+                                       (not (char-alphabetic? (string-ref line i))))
+                                   (values i in-string #f)
+                                   (scan (+ i 1))))
+                             ;; Simple char like #\( - just skip one more
+                             (values (+ next-col 1) in-string #f)))))]
+                [else
+                 ;; Other # syntax (boolean #t/#f, etc.) - treat as atom
+                 (skip-atom line col in-string)])]
+             ;; String
+             [(char=? c #\")
+              (skip-string line (+ col 1))]
+             ;; Quote/quasiquote/unquote prefixes - skip prefix then recurse
+             [(or (char=? c #\') (char=? c #\`) (char=? c #\,))
+              (let ([next-col (+ col 1)])
+                ;; Check for ,@ (unquote-splicing)
+                (if (and (char=? c #\,)
+                         (< next-col len)
+                         (char=? (string-ref line next-col) #\@))
+                    (skip-datum line (+ col 2) in-string)
+                    (skip-datum line next-col in-string)))]
+             ;; Regular atom (symbol, number, etc.)
+             [else
+              (skip-atom line col in-string)]))]))))
+
+;;; skip-balanced : String Int Bool -> (Values Int Bool Bool)
+;;; Skip a balanced expression starting at an opener.
+(define (skip-balanced line start-col in-string)
+  (let ([len (string-length line)]
+        [opener (string-ref line start-col)])
+    (let loop ([col (+ start-col 1)]
+               [depth 1]
+               [in-str in-string])
+      (cond
+        [(>= col len)
+         ;; End of line with unclosed parens - datum continues
+         (values col in-str #t)]
+        [(= depth 0)
+         (values col in-str #f)]
+        [else
+         (let ([c (string-ref line col)])
+           (cond
+             ;; String handling
+             [(and in-str (char=? c #\\))
+              (loop (+ col 2) depth in-str)]
+             [(and in-str (char=? c #\"))
+              (loop (+ col 1) depth #f)]
+             [in-str
+              (loop (+ col 1) depth in-str)]
+             [(char=? c #\")
+              (loop (+ col 1) depth #t)]
+             ;; Line comment - skip rest
+             [(char=? c #\;)
+              (values len in-str #t)]  ; Continue on next line
+             ;; Nested openers
+             [(or (char=? c #\() (char=? c #\[) (char=? c #\{))
+              (loop (+ col 1) (+ depth 1) in-str)]
+             ;; Closers
+             [(or (char=? c #\)) (char=? c #\]) (char=? c #\}))
+              (loop (+ col 1) (- depth 1) in-str)]
+             [else
+              (loop (+ col 1) depth in-str)]))]))))
+
+;;; skip-string : String Int -> (Values Int Bool Bool)
+;;; Skip a string starting after the opening quote.
+(define (skip-string line start-col)
+  (let ([len (string-length line)])
+    (let loop ([col start-col])
+      (cond
+        [(>= col len)
+         ;; String continues on next line
+         (values col #t #t)]
+        [(char=? (string-ref line col) #\\)
+         ;; Escape - skip next char
+         (loop (+ col 2))]
+        [(char=? (string-ref line col) #\")
+         ;; End of string
+         (values (+ col 1) #f #f)]
+        [else
+         (loop (+ col 1))]))))
+
+;;; skip-atom : String Int Bool -> (Values Int Bool Bool)
+;;; Skip an atom (symbol, number, etc.) until delimiter.
+(define (skip-atom line start-col in-string)
+  (let ([len (string-length line)])
+    (let loop ([col start-col])
+      (if (>= col len)
+          (values col in-string #f)
+          (let ([c (string-ref line col)])
+            (if (or (char-whitespace? c)
+                    (char=? c #\() (char=? c #\))
+                    (char=? c #\[) (char=? c #\])
+                    (char=? c #\{) (char=? c #\})
+                    (char=? c #\") (char=? c #\;)
+                    (char=? c #\') (char=? c #\`)
+                    (char=? c #\,))
+                (values col in-string #f)
+                (loop (+ col 1))))))))
+
+;;; skip-datum-with-depth : String Int Bool -> (Values Int Bool Int)
+;;; Like skip-datum but returns paren depth instead of crossed-line boolean.
+;;; Returns (new-col new-in-string remaining-depth)
+;;; remaining-depth > 0 means datum continues on next line(s).
+(define (skip-datum-with-depth line start-col in-string)
+  (let ([len (string-length line)])
+    ;; Skip leading whitespace
+    (let skip-ws ([col start-col])
+      (cond
+        [(>= col len)
+         ;; End of line before finding datum start
+         ;; The datum must be on the next line - signal waiting for atom
+         (values col in-string 1)]  ; depth 1 = waiting for datum start
+        [(char-whitespace? (string-ref line col))
+         (skip-ws (+ col 1))]
+        [else
+         ;; Found start of datum
+         (let ([c (string-ref line col)])
+           (cond
+             ;; List/vector opener - track balanced parens
+             [(or (char=? c #\() (char=? c #\[) (char=? c #\{))
+              (skip-balanced-depth line (+ col 1) in-string 1)]
+             ;; Vector #(
+             [(and (char=? c #\#)
+                   (< (+ col 1) len)
+                   (char=? (string-ref line (+ col 1)) #\())
+              (skip-balanced-depth line (+ col 2) in-string 1)]
+             ;; String
+             [(char=? c #\")
+              (let-values ([(new-col new-str crossed) (skip-string line (+ col 1))])
+                (if crossed
+                    (values new-col new-str 1)  ; String continues - need to finish it
+                    (values new-col new-str 0)))]
+             ;; Quote prefix - skip and recurse
+             [(or (char=? c #\') (char=? c #\`) (char=? c #\,))
+              (let ([next-col (+ col 1)])
+                (if (and (char=? c #\,)
+                         (< next-col len)
+                         (char=? (string-ref line next-col) #\@))
+                    (skip-datum-with-depth line (+ col 2) in-string)
+                    (skip-datum-with-depth line next-col in-string)))]
+             ;; Atom (symbol, number, etc.) - single line only
+             [else
+              (let-values ([(new-col new-str _) (skip-atom line col in-string)])
+                (values new-col new-str 0))]))]))))
+
+;;; skip-balanced-depth : String Int Bool Int -> (Values Int Bool Int)
+;;; Skip balanced parens and return remaining depth.
+(define (skip-balanced-depth line start-col in-string depth)
+  (let ([len (string-length line)])
+    (let loop ([col start-col]
+               [d depth]
+               [in-str in-string])
+      (cond
+        [(>= col len)
+         ;; End of line - return remaining depth
+         (values col in-str d)]
+        [(= d 0)
+         ;; Balanced - done
+         (values col in-str 0)]
+        [else
+         (let ([c (string-ref line col)])
+           (cond
+             ;; String handling
+             [(and in-str (char=? c #\\))
+              (loop (+ col 2) d in-str)]
+             [(and in-str (char=? c #\"))
+              (loop (+ col 1) d #f)]
+             [in-str
+              (loop (+ col 1) d in-str)]
+             [(char=? c #\")
+              (loop (+ col 1) d #t)]
+             ;; Line comment - continue on next line
+             [(char=? c #\;)
+              (values len in-str d)]
+             ;; Nested opener
+             [(or (char=? c #\() (char=? c #\[) (char=? c #\{))
+              (loop (+ col 1) (+ d 1) in-str)]
+             ;; Closer
+             [(or (char=? c #\)) (char=? c #\]) (char=? c #\}))
+              (loop (+ col 1) (- d 1) in-str)]
+             [else
+              (loop (+ col 1) d in-str)]))]))))
 
 ;;; process-line : String Int Stack Errors Bool Int -> (Values Stack Errors Bool Int)
 ;;; Process a single line, updating stack and collecting errors.
-(define (process-line line line-num stack errors in-string in-block-comment)
+(define (process-line line line-num stack errors in-string in-block-comment in-datum-skip)
   (let char-loop ([col 0]
                   [stack stack]
                   [errors errors]
                   [in-string in-string]
-                  [in-block in-block-comment])
+                  [in-block in-block-comment]
+                  [in-datum in-datum-skip])  ; paren depth in datum being skipped
     (if (>= col (string-length line))
-        (values stack errors in-string in-block)
+        (values stack errors in-string in-block in-datum)
         (let ([c (string-ref line col)]
               [next-c (if (< (+ col 1) (string-length line))
                           (string-ref line (+ col 1))
                           #f)])
           (cond
+            ;; Continuing datum skip from previous line (multi-line #; comment)
+            [(> in-datum 0)
+             (cond
+               ;; String handling within datum
+               [(and in-string (char=? c #\\))
+                (char-loop (+ col 2) stack errors in-string in-block in-datum)]
+               [(and in-string (char=? c #\"))
+                (char-loop (+ col 1) stack errors #f in-block in-datum)]
+               [in-string
+                (char-loop (+ col 1) stack errors in-string in-block in-datum)]
+               [(char=? c #\")
+                (char-loop (+ col 1) stack errors #t in-block in-datum)]
+               ;; Nested openers in datum - increase depth
+               [(or (char=? c #\() (char=? c #\[) (char=? c #\{))
+                (char-loop (+ col 1) stack errors in-string in-block (+ in-datum 1))]
+               ;; Closers in datum - decrease depth
+               [(or (char=? c #\)) (char=? c #\]) (char=? c #\}))
+                (let ([new-depth (- in-datum 1)])
+                  (if (= new-depth 0)
+                      ;; Datum complete - continue normal processing
+                      (char-loop (+ col 1) stack errors in-string in-block 0)
+                      (char-loop (+ col 1) stack errors in-string in-block new-depth)))]
+               ;; Line comment within datum - skip rest of line
+               [(char=? c #\;)
+                (values stack errors in-string in-block in-datum)]
+               [else
+                (char-loop (+ col 1) stack errors in-string in-block in-datum)])]
+
             ;; Inside block comment
             [(> in-block 0)
              (cond
                ;; End block comment
                [(and (char=? c #\|) next-c (char=? next-c #\#))
-                (char-loop (+ col 2) stack errors in-string (- in-block 1))]
+                (char-loop (+ col 2) stack errors in-string (- in-block 1) in-datum)]
                ;; Nested block comment
                [(and (char=? c #\#) next-c (char=? next-c #\|))
-                (char-loop (+ col 2) stack errors in-string (+ in-block 1))]
+                (char-loop (+ col 2) stack errors in-string (+ in-block 1) in-datum)]
                [else
-                (char-loop (+ col 1) stack errors in-string in-block)])]
+                (char-loop (+ col 1) stack errors in-string in-block in-datum)])]
 
             ;; String handling
             [(and in-string (char=? c #\\))
              ;; Escape - skip next char
-             (char-loop (+ col 2) stack errors in-string in-block)]
+             (char-loop (+ col 2) stack errors in-string in-block in-datum)]
             [(and in-string (char=? c #\"))
              ;; End string
-             (char-loop (+ col 1) stack errors #f in-block)]
+             (char-loop (+ col 1) stack errors #f in-block in-datum)]
             [in-string
              ;; Inside string - skip
-             (char-loop (+ col 1) stack errors in-string in-block)]
+             (char-loop (+ col 1) stack errors in-string in-block in-datum)]
             [(char=? c #\")
              ;; Start string
-             (char-loop (+ col 1) stack errors #t in-block)]
+             (char-loop (+ col 1) stack errors #t in-block in-datum)]
+
+            ;; Datum comment #; - skip the next complete S-expression
+            ;; Must check before line comment since #; starts with # not ;
+            [(and (char=? c #\#) next-c (char=? next-c #\;))
+             (let-values ([(new-col new-in-string datum-depth)
+                           (skip-datum-with-depth line (+ col 2) in-string)])
+               (if (> datum-depth 0)
+                   ;; Datum extends beyond this line - track depth for continuation
+                   (values stack errors new-in-string in-block datum-depth)
+                   ;; Datum complete on this line
+                   (char-loop new-col stack errors new-in-string in-block 0)))]
 
             ;; Line comment - skip rest of line
             [(char=? c #\;)
-             (values stack errors in-string in-block)]
+             (values stack errors in-string in-block in-datum)]
 
             ;; Pipe-delimited symbol |foo(bar)| - skip to closing pipe
             ;; These can contain parens that shouldn't be counted
@@ -405,16 +692,16 @@
                  [(>= i (string-length line))
                   ;; Unclosed pipe symbol on this line - continue to next line
                   ;; For simplicity, just skip to end of line
-                  (values stack errors in-string in-block)]
+                  (values stack errors in-string in-block in-datum)]
                  [(char=? (string-ref line i) #\|)
                   ;; Found closing pipe
-                  (char-loop (+ i 1) stack errors in-string in-block)]
+                  (char-loop (+ i 1) stack errors in-string in-block in-datum)]
                  [else
                   (scan-pipe (+ i 1))]))]
 
             ;; Block comment start
             [(and (char=? c #\#) next-c (char=? next-c #\|))
-             (char-loop (+ col 2) stack errors in-string (+ in-block 1))]
+             (char-loop (+ col 2) stack errors in-string (+ in-block 1) in-datum)]
 
             ;; Character literal - #\( is not an opener
             ;; Handle both simple (#\x) and named (#\newline, #\space) forms
@@ -428,9 +715,9 @@
                      (if (and (< end (string-length line))
                               (char-alphabetic? (string-ref line end)))
                          (scan-name (+ end 1))
-                         (char-loop end stack errors in-string in-block)))
+                         (char-loop end stack errors in-string in-block in-datum)))
                    ;; Simple character literal like #\( or #\x
-                   (char-loop (+ col 3) stack errors in-string in-block)))]
+                   (char-loop (+ col 3) stack errors in-string in-block in-datum)))]
 
             ;; Openers
             [(char->opener-type c)
@@ -439,7 +726,8 @@
                              (cons (make-opener type line-num col) stack)
                              errors
                              in-string
-                             in-block))]
+                             in-block
+                             in-datum))]
 
             ;; Closers
             [(char->closer-type c)
@@ -456,7 +744,8 @@
                                         line-num col)
                                       errors)
                                 in-string
-                                in-block)]
+                                in-block
+                                in-datum)]
                     ;; Mismatch
                     [(not (eq? (opener-type (car stack)) close-type))
                      (let ([opener (car stack)])
@@ -473,18 +762,20 @@
                                           opener)
                                         errors)
                                   in-string
-                                  in-block))]
+                                  in-block
+                                  in-datum))]
                     ;; Match - pop stack
                     [else
                      (char-loop (+ col 1)
                                 (cdr stack)
                                 errors
                                 in-string
-                                in-block)]))]
+                                in-block
+                                in-datum)]))]
 
             ;; Other characters
             [else
-             (char-loop (+ col 1) stack errors in-string in-block)])))))
+             (char-loop (+ col 1) stack errors in-string in-block in-datum)])))))
 
 ;;; paren-errors : String -> (List Error)
 ;;; Return list of paren errors in file.
