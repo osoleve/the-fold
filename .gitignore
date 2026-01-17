@@ -46,6 +46,9 @@ archive/
 # BBS index cache (generated, can be rebuilt)
 .bbs/index.cache
 
+# BBS lock files (runtime only)
+*.flock
+
 # Gateway runtime state
 state/
 
