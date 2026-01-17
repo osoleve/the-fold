@@ -7,6 +7,8 @@
 ;;;   (paren-check "path/to/file.ss")           ; Full report
 ;;;   (paren-check "path/to/file.ss" 100 150)   ; Lines 100-150 only
 ;;;   (paren-balance "path/to/file.ss")         ; Just the final balance
+;;;   (paren-locate "path/to/file.ss")          ; Stack-based: exact error locations
+;;;   (paren-errors "path/to/file.ss")          ; Returns list of error structs
 ;;;
 ;;; This is Shell code: file IO for analysis.
 ;;;
@@ -246,3 +248,239 @@
         
         (display (make-string 70 #\─))
         (display "\n\n")))
+
+;;; ====
+;;; Stack-Based Location Tracking
+;;; ====
+;;;
+;;; Instead of just counting parens, this tracks a stack of openers
+;;; with their exact locations. When something goes wrong, we can
+;;; point to exactly where the problem is.
+
+;;; An opener is (type line col) where type is 'paren, 'bracket, or 'brace
+(define (make-opener type line col)
+  (list type line col))
+(define (opener-type o) (car o))
+(define (opener-line o) (cadr o))
+(define (opener-col o) (caddr o))
+
+;;; An error is (kind message line col . extra)
+;;; Kinds: 'unclosed, 'extra-close, 'mismatch
+(define (make-paren-error kind message line col . extra)
+  (list* kind message line col extra))
+(define (paren-error-kind e) (car e))
+(define (paren-error-message e) (cadr e))
+(define (paren-error-line e) (caddr e))
+(define (paren-error-col e) (cadddr e))
+
+;;; char->opener-type : Char -> Symbol | #f
+(define (char->opener-type c)
+  (cond
+    [(char=? c #\() 'paren]
+    [(char=? c #\[) 'bracket]
+    [(char=? c #\{) 'brace]
+    [else #f]))
+
+;;; char->closer-type : Char -> Symbol | #f
+(define (char->closer-type c)
+  (cond
+    [(char=? c #\)) 'paren]
+    [(char=? c #\]) 'bracket]
+    [(char=? c #\}) 'brace]
+    [else #f]))
+
+;;; type->open-char : Symbol -> Char
+(define (type->open-char type)
+  (case type
+    [(paren) #\(]
+    [(bracket) #\[]
+    [(brace) #\{]))
+
+;;; type->close-char : Symbol -> Char
+(define (type->close-char type)
+  (case type
+    [(paren) #\)]
+    [(bracket) #\]]
+    [(brace) #\}]))
+
+;;; paren-stack-analyze : String -> (Values Stack Errors)
+;;; Analyze file with stack tracking. Returns final stack and list of errors.
+(define (paren-stack-analyze path)
+  (call-with-input-file path
+    (lambda (port)
+      (let line-loop ([line-num 1]
+                      [stack '()]
+                      [errors '()]
+                      [in-string #f]
+                      [in-block-comment 0])  ; nesting depth for #|...|#
+        (let ([line (get-line port)])
+          (if (eof-object? line)
+              ;; EOF - any remaining stack items are unclosed
+              (let ([unclosed-errors
+                     (map (lambda (opener)
+                            (make-paren-error
+                              'unclosed
+                              (format "unclosed '~a' - never closed"
+                                      (type->open-char (opener-type opener)))
+                              (opener-line opener)
+                              (opener-col opener)))
+                          (reverse stack))])
+                (values '() (append (reverse errors) unclosed-errors)))
+              ;; Process this line
+              (let-values ([(new-stack new-errors new-in-string new-in-block)
+                            (process-line line line-num stack errors
+                                          in-string in-block-comment)])
+                (line-loop (+ line-num 1)
+                           new-stack
+                           new-errors
+                           new-in-string
+                           new-in-block))))))))
+
+;;; process-line : String Int Stack Errors Bool Int -> (Values Stack Errors Bool Int)
+;;; Process a single line, updating stack and collecting errors.
+(define (process-line line line-num stack errors in-string in-block-comment)
+  (let char-loop ([col 0]
+                  [stack stack]
+                  [errors errors]
+                  [in-string in-string]
+                  [in-block in-block-comment])
+    (if (>= col (string-length line))
+        (values stack errors in-string in-block)
+        (let ([c (string-ref line col)]
+              [next-c (if (< (+ col 1) (string-length line))
+                          (string-ref line (+ col 1))
+                          #f)])
+          (cond
+            ;; Inside block comment
+            [(> in-block 0)
+             (cond
+               ;; End block comment
+               [(and (char=? c #\|) next-c (char=? next-c #\#))
+                (char-loop (+ col 2) stack errors in-string (- in-block 1))]
+               ;; Nested block comment
+               [(and (char=? c #\#) next-c (char=? next-c #\|))
+                (char-loop (+ col 2) stack errors in-string (+ in-block 1))]
+               [else
+                (char-loop (+ col 1) stack errors in-string in-block)])]
+
+            ;; String handling
+            [(and in-string (char=? c #\\))
+             ;; Escape - skip next char
+             (char-loop (+ col 2) stack errors in-string in-block)]
+            [(and in-string (char=? c #\"))
+             ;; End string
+             (char-loop (+ col 1) stack errors #f in-block)]
+            [in-string
+             ;; Inside string - skip
+             (char-loop (+ col 1) stack errors in-string in-block)]
+            [(char=? c #\")
+             ;; Start string
+             (char-loop (+ col 1) stack errors #t in-block)]
+
+            ;; Line comment - skip rest of line
+            [(char=? c #\;)
+             (values stack errors in-string in-block)]
+
+            ;; Block comment start
+            [(and (char=? c #\#) next-c (char=? next-c #\|))
+             (char-loop (+ col 2) stack errors in-string (+ in-block 1))]
+
+            ;; Character literal - #\( is not an opener
+            [(and (char=? c #\#) next-c (char=? next-c #\\))
+             (char-loop (+ col 3) stack errors in-string in-block)]  ; skip #\x
+
+            ;; Openers
+            [(char->opener-type c)
+             => (lambda (type)
+                  (char-loop (+ col 1)
+                             (cons (make-opener type line-num col) stack)
+                             errors
+                             in-string
+                             in-block))]
+
+            ;; Closers
+            [(char->closer-type c)
+             => (lambda (close-type)
+                  (cond
+                    ;; Stack empty - extra closer
+                    [(null? stack)
+                     (char-loop (+ col 1)
+                                stack
+                                (cons (make-paren-error
+                                        'extra-close
+                                        (format "unexpected '~a' - no matching opener"
+                                                (type->close-char close-type))
+                                        line-num col)
+                                      errors)
+                                in-string
+                                in-block)]
+                    ;; Mismatch
+                    [(not (eq? (opener-type (car stack)) close-type))
+                     (let ([opener (car stack)])
+                       (char-loop (+ col 1)
+                                  (cdr stack)  ; pop anyway to continue
+                                  (cons (make-paren-error
+                                          'mismatch
+                                          (format "mismatched brackets: opened '~a' at line ~a col ~a, closed with '~a'"
+                                                  (type->open-char (opener-type opener))
+                                                  (opener-line opener)
+                                                  (opener-col opener)
+                                                  (type->close-char close-type))
+                                          line-num col
+                                          opener)
+                                        errors)
+                                  in-string
+                                  in-block))]
+                    ;; Match - pop stack
+                    [else
+                     (char-loop (+ col 1)
+                                (cdr stack)
+                                errors
+                                in-string
+                                in-block)]))]
+
+            ;; Other characters
+            [else
+             (char-loop (+ col 1) stack errors in-string in-block)])))))
+
+;;; paren-errors : String -> (List Error)
+;;; Return list of paren errors in file.
+(define (paren-errors path)
+  (let-values ([(_ errors) (paren-stack-analyze path)])
+    errors))
+
+;;; paren-locate : String -> void
+;;; Print detailed location info for paren errors.
+(define (paren-locate path)
+  (let ([errors (paren-errors path)])
+    (printf "\n~a\n" (make-string 70 #\─))
+    (printf "Paren Location Report: ~a\n" path)
+    (printf "~a\n\n" (make-string 70 #\─))
+
+    (if (null? errors)
+        (printf "✓ All parentheses balanced!\n\n")
+        (begin
+          (printf "Found ~a error(s):\n\n" (length errors))
+          (for-each
+            (lambda (err)
+              (let ([kind (paren-error-kind err)]
+                    [msg (paren-error-message err)]
+                    [line (paren-error-line err)]
+                    [col (paren-error-col err)])
+                ;; Print in compiler-friendly format
+                (printf "~a:~a:~a: ~a: ~a\n"
+                        path line (+ col 1)  ; 1-indexed for editors
+                        (case kind
+                          [(unclosed) "error"]
+                          [(extra-close) "error"]
+                          [(mismatch) "error"])
+                        msg)))
+            errors)
+          (printf "\n")))
+
+    (printf "~a\n" (make-string 70 #\─))))
+
+;;; paren-ok? : String -> Boolean
+;;; Quick check - returns #t if file has balanced parens.
+(define (paren-ok? path)
+  (null? (paren-errors path)))

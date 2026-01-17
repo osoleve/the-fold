@@ -8,6 +8,7 @@ Usage:
   ./fold "(+ 1 2)"                      # Explicit parens work too
   ./fold -s dev define x 10             # Named session, unquoted
   ./fold --status                       # Check if daemon is running
+  ./fold -c file.ss                     # Check file for paren errors
 
 Features:
   - Auto-starts daemon if not running (disable with --no-auto-start)
@@ -278,6 +279,65 @@ def run_request(session_id, code, timeout):
         "error": f"Request timed out after {timeout}s"
     }
 
+def check_syntax(filepath):
+    """Check file for parenthesis balance errors.
+
+    Runs paren-locate from paren-check.ss directly via scheme.
+    Returns 0 if balanced, 1 if errors found.
+    """
+    if not os.path.exists(filepath):
+        print(f"{COLORS['red']}Error:{COLORS['reset']} File not found: {filepath}", file=sys.stderr)
+        return 1
+
+    # Run scheme directly to check parens (no daemon needed)
+    scheme_code = f'''
+(load "shell/tools/paren-check.ss")
+(let ([errors (paren-errors "{filepath}")])
+  (if (null? errors)
+      (begin
+        (printf "~a~a: ✓ All parentheses balanced~a~n"
+                "{COLORS['green']}" "{filepath}" "{COLORS['reset']}")
+        (exit 0))
+      (begin
+        (for-each
+          (lambda (err)
+            (printf "~a:~a:~a: ~a~aerror~a: ~a~n"
+                    "{filepath}"
+                    (caddr err)   ; line
+                    (+ (cadddr err) 1)  ; col (1-indexed)
+                    "{COLORS['red']}"
+                    ""
+                    "{COLORS['reset']}"
+                    (cadr err)))  ; message
+          errors)
+        (exit 1))))
+'''
+
+    try:
+        result = subprocess.run(
+            ["scheme", "-q"],
+            input=scheme_code,
+            capture_output=True,
+            text=True,
+            timeout=30
+        )
+        # Print output
+        if result.stdout:
+            print(result.stdout, end="")
+        if result.stderr:
+            print(result.stderr, file=sys.stderr, end="")
+        return result.returncode
+    except subprocess.TimeoutExpired:
+        print(f"{COLORS['red']}Error:{COLORS['reset']} Syntax check timed out", file=sys.stderr)
+        return 1
+    except FileNotFoundError:
+        print(f"{COLORS['red']}Error:{COLORS['reset']} 'scheme' not found in PATH", file=sys.stderr)
+        return 1
+    except Exception as e:
+        print(f"{COLORS['red']}Error:{COLORS['reset']} {e}", file=sys.stderr)
+        return 1
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Fold REPL Agent Client",
@@ -288,6 +348,7 @@ Examples:
   ./fold -s dev define x 10   Define x in 'dev' session
   ./fold --status             Check if daemon is running
   ./fold --no-auto-start x    Don't auto-start daemon
+  ./fold -c file.ss           Check file for paren balance errors
 """
     )
     parser.add_argument("code", nargs="*", help="Code to execute (multiple args joined with spaces)")
@@ -304,8 +365,14 @@ Examples:
                         help="Check daemon status and exit")
     parser.add_argument("--no-auto-start", action="store_true",
                         help="Don't auto-start daemon if not running")
+    parser.add_argument("--check-syntax", "-c", metavar="FILE",
+                        help="Check file for paren balance errors (no execution)")
 
     args = parser.parse_args()
+
+    # Handle --check-syntax early (doesn't need daemon)
+    if args.check_syntax:
+        sys.exit(check_syntax(args.check_syntax))
 
     # Handle --status early
     if args.status:
