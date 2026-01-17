@@ -315,17 +315,33 @@
                       [in-block-comment 0])  ; nesting depth for #|...|#
         (let ([line (get-line port)])
           (if (eof-object? line)
-              ;; EOF - any remaining stack items are unclosed
-              (let ([unclosed-errors
-                     (map (lambda (opener)
-                            (make-paren-error
-                              'unclosed
-                              (format "unclosed '~a' - never closed"
-                                      (type->open-char (opener-type opener)))
-                              (opener-line opener)
-                              (opener-col opener)))
-                          (reverse stack))])
-                (values '() (append (reverse errors) unclosed-errors)))
+              ;; EOF - check for unclosed items
+              (let* ([unclosed-errors
+                      (map (lambda (opener)
+                             (make-paren-error
+                               'unclosed
+                               (format "unclosed '~a' - never closed"
+                                       (type->open-char (opener-type opener)))
+                               (opener-line opener)
+                               (opener-col opener)))
+                           (reverse stack))]
+                     ;; Also check for unterminated block comments
+                     [block-error
+                      (if (> in-block-comment 0)
+                          (list (make-paren-error
+                                  'unclosed
+                                  "unterminated block comment #|...|#"
+                                  line-num 0))  ; line-num is EOF position
+                          '())]
+                     ;; And unterminated strings
+                     [string-error
+                      (if in-string
+                          (list (make-paren-error
+                                  'unclosed
+                                  "unterminated string literal"
+                                  line-num 0))
+                          '())])
+                (values '() (append (reverse errors) unclosed-errors block-error string-error)))
               ;; Process this line
               (let-values ([(new-stack new-errors new-in-string new-in-block)
                             (process-line line line-num stack errors
@@ -381,13 +397,40 @@
             [(char=? c #\;)
              (values stack errors in-string in-block)]
 
+            ;; Pipe-delimited symbol |foo(bar)| - skip to closing pipe
+            ;; These can contain parens that shouldn't be counted
+            [(char=? c #\|)
+             (let scan-pipe ([i (+ col 1)])
+               (cond
+                 [(>= i (string-length line))
+                  ;; Unclosed pipe symbol on this line - continue to next line
+                  ;; For simplicity, just skip to end of line
+                  (values stack errors in-string in-block)]
+                 [(char=? (string-ref line i) #\|)
+                  ;; Found closing pipe
+                  (char-loop (+ i 1) stack errors in-string in-block)]
+                 [else
+                  (scan-pipe (+ i 1))]))]
+
             ;; Block comment start
             [(and (char=? c #\#) next-c (char=? next-c #\|))
              (char-loop (+ col 2) stack errors in-string (+ in-block 1))]
 
             ;; Character literal - #\( is not an opener
+            ;; Handle both simple (#\x) and named (#\newline, #\space) forms
             [(and (char=? c #\#) next-c (char=? next-c #\\))
-             (char-loop (+ col 3) stack errors in-string in-block)]  ; skip #\x
+             (let ([char-after (if (< (+ col 2) (string-length line))
+                                   (string-ref line (+ col 2))
+                                   #f)])
+               (if (and char-after (char-alphabetic? char-after))
+                   ;; Named character literal - scan to end of name
+                   (let scan-name ([end (+ col 3)])
+                     (if (and (< end (string-length line))
+                              (char-alphabetic? (string-ref line end)))
+                         (scan-name (+ end 1))
+                         (char-loop end stack errors in-string in-block)))
+                   ;; Simple character literal like #\( or #\x
+                   (char-loop (+ col 3) stack errors in-string in-block)))]
 
             ;; Openers
             [(char->opener-type c)
@@ -424,7 +467,7 @@
                                           (format "mismatched brackets: opened '~a' at line ~a col ~a, closed with '~a'"
                                                   (type->open-char (opener-type opener))
                                                   (opener-line opener)
-                                                  (opener-col opener)
+                                                  (+ (opener-col opener) 1)  ; 1-indexed for display
                                                   (type->close-char close-type))
                                           line-num col
                                           opener)
