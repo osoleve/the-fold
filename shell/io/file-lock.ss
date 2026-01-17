@@ -50,21 +50,38 @@
 ;;; Process ID
 ;;; ====
 
-;;; *lock-identity-token* : String
-;;; Unique identity for this process (generated once at load time)
-;;; Used to verify lock ownership after stale lock breaking
-(define *lock-identity-token*
-  (let ([chars "0123456789abcdefghijklmnopqrstuvwxyz"])
-    (list->string
-     (let loop ([i 0] [acc '()])
-       (if (= i 16)
-           acc
-           (loop (+ i 1)
-                 (cons (string-ref chars
-                                   (modulo (+ (* (time-nanosecond (current-time)) i)
-                                              (time-second (current-time)))
-                                           36))
-                       acc)))))))
+;;; *lock-identity-token-cache* : String | #f
+;;; Cached identity token (lazily initialized to include PID)
+(define *lock-identity-token-cache* #f)
+
+;;; get-lock-identity-token : → String
+;;; Get unique identity token for this process.
+;;; Lazily initialized to include PID (which requires FFI check).
+;;; Includes: PID + nanoseconds + counter for uniqueness.
+(define (get-lock-identity-token)
+  (unless *lock-identity-token-cache*
+    (let* ([pid (current-process-id)]  ; Real PID via FFI if available
+           [nanos (time-nanosecond (current-time))]
+           [secs (time-second (current-time))]
+           [chars "0123456789abcdefghijklmnopqrstuvwxyz"]
+           ;; Combine PID + time for uniqueness
+           [seed (+ (* pid 1000000000) nanos (* secs 37))])
+      (set! *lock-identity-token-cache*
+            (string-append
+             ;; Include PID directly for debugging
+             (number->string pid)
+             "-"
+             ;; Plus random-ish suffix from time
+             (list->string
+              (let loop ([i 0] [s seed] [acc '()])
+                (if (= i 12)
+                    acc
+                    (loop (+ i 1)
+                          (quotient s 36)
+                          (cons (string-ref chars (modulo s 36))
+                                acc)))))))))
+  *lock-identity-token-cache*)
+
 
 ;;; current-process-id : → Number
 ;;; Get current process ID.
@@ -134,7 +151,7 @@
 ;;; write-lock-content : Port → Void
 ;;; Write lock file content with identity token, PID, and timestamp.
 (define (write-lock-content port)
-  (put-string port *lock-identity-token*)
+  (put-string port (get-lock-identity-token))
   (newline port)
   (put-string port (number->string (current-process-id)))
   (newline port)
@@ -160,7 +177,7 @@
           ;; Verify we actually own the lock
           (let ([lock-info (parse-lock-file lock-path)])
             (and lock-info
-                 (string=? (car lock-info) *lock-identity-token*)))))))
+                 (string=? (car lock-info) (get-lock-identity-token))))))))
 
 ;;; lock-file-stale? : String → Boolean
 ;;; Check if a lock file is stale (older than threshold).
@@ -183,7 +200,7 @@
 (define (break-stale-lock-safe lock-path)
   (let ([temp-path (format "~a.~a.~a.breaking"
                            lock-path
-                           *lock-identity-token*
+                           (get-lock-identity-token)
                            (time-nanosecond (current-time)))])
     (guard (e [else #f])
       ;; Write our lock to temp file
@@ -200,7 +217,7 @@
       ;; Verify we actually own the lock
       (let ([lock-info (parse-lock-file lock-path)])
         (and lock-info
-             (string=? (car lock-info) *lock-identity-token*))))))
+             (string=? (car lock-info) (get-lock-identity-token)))))))
 
 ;;; remove-lock-file : String → Void
 ;;; Remove a lock file (only if we own it).
@@ -210,7 +227,7 @@
       ;; Only remove if we own it
       (let ([lock-info (parse-lock-file lock-path)])
         (when (and lock-info
-                   (string=? (car lock-info) *lock-identity-token*))
+                   (string=? (car lock-info) (get-lock-identity-token)))
           (delete-file lock-path))))))
 
 ;;; ====

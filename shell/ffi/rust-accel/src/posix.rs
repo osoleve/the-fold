@@ -63,6 +63,8 @@ pub const O_RDWR: i32 = libc::O_RDWR;
 pub const O_RDONLY: i32 = libc::O_RDONLY;
 /// Write-only access
 pub const O_WRONLY: i32 = libc::O_WRONLY;
+/// Close on exec (prevents FD inheritance to child processes)
+pub const O_CLOEXEC: i32 = libc::O_CLOEXEC;
 
 // ====
 // POSIX operations
@@ -239,6 +241,12 @@ pub extern "C" fn fold_posix_o_excl() -> i32 {
 #[no_mangle]
 pub extern "C" fn fold_posix_o_rdwr() -> i32 {
     O_RDWR
+}
+
+/// Get O_CLOEXEC constant for Scheme (close on exec - prevents FD inheritance)
+#[no_mangle]
+pub extern "C" fn fold_posix_o_cloexec() -> i32 {
+    libc::O_CLOEXEC
 }
 
 /// Get EWOULDBLOCK constant for Scheme (non-blocking lock would block)

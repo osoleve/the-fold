@@ -55,6 +55,7 @@
 (define O_RDWR  #o2)     ; Read-write access
 (define O_RDONLY 0)      ; Read-only access
 (define O_WRONLY 1)      ; Write-only access
+(define O_CLOEXEC #o2000000) ; Close on exec (prevents FD inheritance)
 
 ;;; errno constants
 (define EWOULDBLOCK 11)  ; Non-blocking lock would block
@@ -81,6 +82,7 @@
 (define rust-posix-o-rdwr #f)
 (define rust-posix-ewouldblock #f)
 (define rust-posix-eexist #f)
+(define rust-posix-o-cloexec #f)
 
 ;;; bind-posix-procedures! : → Void
 ;;; Bind POSIX foreign procedures
@@ -129,6 +131,8 @@
           (foreign-procedure "fold_posix_ewouldblock" () integer-32))
     (set! rust-posix-eexist
           (foreign-procedure "fold_posix_eexist" () integer-32))
+    (set! rust-posix-o-cloexec
+          (foreign-procedure "fold_posix_o_cloexec" () integer-32))
 
     ;; Update Scheme constants to match Rust values
     (set! LOCK_SH (rust-posix-lock-sh))
@@ -140,6 +144,7 @@
     (set! O_RDWR (rust-posix-o-rdwr))
     (set! EWOULDBLOCK (rust-posix-ewouldblock))
     (set! EEXIST (rust-posix-eexist))
+    (set! O_CLOEXEC (rust-posix-o-cloexec))
 
     (set! *posix-bound* #t)))
 
@@ -253,8 +258,9 @@
     (error 'with-flock-lock "POSIX FFI not loaded"))
 
   (let* ([lock-path (string-append path ".flock")]
+         ;; O_CLOEXEC prevents child processes from inheriting the lock FD
          [fd-result (posix-open lock-path
-                                (bitwise-ior O_CREAT O_RDWR)
+                                (bitwise-ior O_CREAT O_RDWR O_CLOEXEC)
                                 #o644)])
     (when (and (pair? fd-result) (eq? (car fd-result) 'error))
       (error 'with-flock-lock "Failed to open lock file" lock-path fd-result))
