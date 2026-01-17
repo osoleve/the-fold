@@ -12,12 +12,15 @@
 
  (description . "Comprehensive game theory library covering non-cooperative games,
 cooperative (coalitional) games, two-sided matching, social choice/voting theory,
-and fair division. Implements Nash equilibrium, Shapley value, Gale-Shapley stable
-matching, Schulze voting method, cake cutting protocols, and adjusted winner.")
+multi-winner elections, and fair division. Implements Nash equilibrium, Shapley value,
+Gale-Shapley stable matching, Schulze voting, STV, PAV, Monroe/Chamberlin-Courant,
+cake cutting protocols, and adjusted winner.")
 
  (keywords . (game-theory nash-equilibrium shapley-value cooperative-games
               matching stable-matching gale-shapley voting social-choice
-              condorcet schulze fair-division cake-cutting envy-free
+              condorcet schulze multi-winner stv approval-voting pav
+              monroe chamberlin-courant proportional-representation
+              committee-selection fair-division cake-cutting envy-free
               proportional adjusted-winner power-indices banzhaf))
 
  (aliases . (game games game-theory))
@@ -79,6 +82,18 @@ matching, Schulze voting method, cake cutting protocols, and adjusted winner.")
    make-electoral-college-game electoral-college-power power-per-capita
    us-electoral-college-2020 un-security-council simple-3-voter-example
 
+   ;; multi-winner.ss — Multi-Winner Elections
+   droop-quota hare-quota
+   stv stv-droop stv-hare
+   make-approval-profile approval-profile-voters approval-profile-candidates
+   approval-count approval-scores approval-winners
+   pav-score pav-winners
+   sav-score sav-winners
+   monroe-greedy cc-greedy cc-total-satisfaction
+   proportionality-score representation-coverage diversity-score
+   profile->approval approval->profile
+   stv-example approval-example diverse-preferences-example
+
    ;; fair-division.ss — Fair Division
    make-cake cake? cake-players cake-set-valuation!
    cake-valuation cake-total-value
@@ -99,4 +114,5 @@ matching, Schulze voting method, cake cutting protocols, and adjusted winner.")
    (matching "matching.ss" "Two-sided matching, Gale-Shapley, assignment games")
    (voting "voting.ss" "Social choice: plurality, Borda, Condorcet, Schulze")
    (voting-games "voting-games.ss" "Bridge: voting rules to simple games, power indices")
+   (multi-winner "multi-winner.ss" "STV, approval voting, PAV, Monroe, Chamberlin-Courant")
    (fair-division "fair-division.ss" "Cake cutting, adjusted winner, EF1, maximin share"))))
