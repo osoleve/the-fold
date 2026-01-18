@@ -60,6 +60,17 @@
 ;;;   - Hash-consing for structural deduplication
 (define address-version-v2 #x02)
 
+;;; address-version-v3 : Byte
+;;; Version 0x03: NbE-enhanced normalization (v3).
+;;; Applies all v0x02 transformations PLUS:
+;;;   - β-reduction via NbE (Normalization by Evaluation)
+;;;   - Pair projection reduction: (fst (pair a b)) → a
+;;;   - Sum projection reduction: (case (Left a) ...) → left-branch
+;;;   - Conditional reduction: (if #t a b) → a
+;;;   - η-equivalence via semantic readback
+;;; This is the most aggressive semantic equivalence detection.
+(define address-version-v3 #x03)
+
 ;;; ====
 ;;; Hashing Functions
 ;;; ====
@@ -131,6 +142,28 @@
     (bytevector-copy! hash 0 address 1 hash-size)
     address))
 
+;;; hash-sexpr-v3 : Symbol × S-expr → Bytevector
+;;; Hash an S-expression with version 3 normalization (version 0x03).
+;;; This applies the most aggressive canonicalization using NbE:
+;;;   - β-reduction: ((fn (x) x) y) → y
+;;;   - η-equivalence: via semantic readback
+;;;   - Pair projection: (fst (pair a b)) → a
+;;;   - Sum projection: (case (Left a) ...) → left-branch[a]
+;;;   - Conditional: (if #t a b) → a
+;;;   - All v2 transformations (η-reduction, poly-canon, algebraic, etc.)
+;;;
+;;; Use this for maximum semantic equivalence detection.
+;;; Version byte 0x03 distinguishes from previous versions.
+(define (hash-sexpr-v3 tag sexpr)
+  (let* ([normalized (normalize-v3 sexpr)]
+         [payload (string->utf8 (format "~s" normalized))]
+         [blk (make-block tag payload empty-refs)]
+         [hash (sha256 (block->bytes blk))]
+         [address (make-bytevector address-size)])
+    (bytevector-u8-set! address 0 address-version-v3)
+    (bytevector-copy! hash 0 address 1 hash-size)
+    address))
+
 ;;; address-version : Bytevector → Byte
 ;;; Extract the version byte from an address.
 (define (address-version-byte addr)
@@ -145,6 +178,11 @@
 ;;; Check if an address was computed with v2 normalization (v0x02).
 (define (address-v2? addr)
   (= (address-version-byte addr) address-version-v2))
+
+;;; address-v3? : Bytevector → Boolean
+;;; Check if an address was computed with v3 normalization (v0x03).
+(define (address-v3? addr)
+  (= (address-version-byte addr) address-version-v3))
 
 ;;; hash->hex : Bytevector → String
 ;;; Convert address bytes to hexadecimal string (for display).

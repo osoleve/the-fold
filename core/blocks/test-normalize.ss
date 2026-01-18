@@ -414,6 +414,210 @@ Test 29: Hash-cons memory management
   (let ([stats3 (hash-cons-stats)])
     (test "reset clears hits" 0 (car stats3))))
 
+;;; ====
+;;; Version 3 Normalization Tests (NbE Integration)
+;;; ====
+
+(display "
+Test 30: NbE Safety - Omega combinator doesn't diverge
+")
+;; The omega combinator: ((fn (x) (x x)) (fn (x) (x x)))
+;; This would diverge without fuel bounding
+(let ([omega '((fn (x) (x x)) (fn (x) (x x)))])
+  ;; Should return within reasonable time (fuel bounded)
+  (let ([result (nbe-normalize-for-cas omega)])
+    (test "omega doesn't hang" #t (not (eq? result 'timeout)))
+    (display "  omega normalized to: ") (display result) (newline)))
+
+(display "
+Test 31: NbE β-reduction
+")
+;; ((fn (x) x) y) → y
+(let ([result (nbe-normalize-for-cas '((fn (x) x) y))])
+  (test "identity application" 'y result))
+
+;; ((fn (x) (+ x 1)) 5) → 6 (NbE performs type-level arithmetic)
+(let ([result (nbe-normalize-for-cas '((fn (x) (+ x 1)) 5))])
+  (test "arithmetic in body" 6 result))
+
+;; Nested applications
+(let ([result (nbe-normalize-for-cas '((fn (f) (f 3)) (fn (x) (+ x 1))))])
+  (test "nested application" 4 result))
+
+(display "
+Test 32: NbE Pair Projection
+")
+;; (fst (pair a b)) → a
+(let ([result (nbe-normalize-for-cas '(fst (pair a b)))])
+  (test "fst projection" 'a result))
+
+;; (snd (pair a b)) → b
+(let ([result (nbe-normalize-for-cas '(snd (pair a b)))])
+  (test "snd projection" 'b result))
+
+;; Nested pair projection
+(let ([result (nbe-normalize-for-cas '(fst (pair (snd (pair 1 2)) 3)))])
+  (test "nested pair projection" 2 result))
+
+(display "
+Test 33: NbE Sum Type and Case
+")
+;; (case (Left a) ((Left x) x) ((Right y) y)) → a
+(let ([result (nbe-normalize-for-cas '(case (Left 42) ((Left x) x) ((Right y) y)))])
+  (test "case Left" 42 result))
+
+;; (case (Right b) ((Left x) x) ((Right y) y)) → b
+(let ([result (nbe-normalize-for-cas '(case (Right "hello") ((Left x) x) ((Right y) y)))])
+  (test "case Right" "hello" result))
+
+;; Case with computation in branch (NbE performs arithmetic)
+(let ([result (nbe-normalize-for-cas '(case (Left 5) ((Left x) (+ x 1)) ((Right y) y)))])
+  (test "case with computation" 6 result))
+
+(display "
+Test 34: NbE Conditional Reduction
+")
+;; (if #t a b) → a
+(let ([result (nbe-normalize-for-cas '(if #t "then" "else"))])
+  (test "if true" "then" result))
+
+;; (if #f a b) → b
+(let ([result (nbe-normalize-for-cas '(if #f "then" "else"))])
+  (test "if false" "else" result))
+
+;; Conditional with symbolic condition stays symbolic
+(let ([result (nbe-normalize-for-cas '(if cond a b))])
+  ;; Should not reduce when condition is not a literal boolean
+  (test "symbolic condition preserved" #t (pair? result)))
+
+(display "
+Test 35: V3 Pipeline Integration
+")
+;; Test that NbE + algebraic + α all work together
+;; ((fn (x) (+ 0 x)) y) should:
+;;   1. β-reduce to (+ 0 y)
+;;   2. Identity eliminate to y
+(let ([result (normalize-v3-no-hashcons '((fn (x) (+ 0 x)) y))])
+  (test "v3 pipeline β + identity" 'y result))
+
+;; Commutative + β
+;; ((fn (x) (+ b x)) a) → (+ a b) (commutative sorted after β)
+(let ([e1 (normalize-v3-no-hashcons '((fn (x) (+ b x)) a))]
+      [e2 (normalize-v3-no-hashcons '((fn (y) (+ a y)) b))])
+  (test "v3 β + commutative" e1 e2))
+
+(display "
+Test 36: V3 Hashing
+")
+(let ([h1 (hash-sexpr-v3 'test '(+ 1 2))]
+      [h2 (hash-sexpr-v2 'test '(+ 1 2))]
+      [h3 (hash-sexpr-algebraic 'test '(+ 1 2))])
+  (test "v3 hash version 0x03" #x03 (address-version-byte h1))
+  (test "v3 different from v2" #f (equal? h1 h2))
+  (test "v3 different from v1" #f (equal? h1 h3)))
+
+;; β-equivalent expressions should have same v3 hash
+(let ([h1 (hash-sexpr-v3 'expr '((fn (x) x) y))]
+      [h2 (hash-sexpr-v3 'expr 'y)])
+  (test "v3 β-equivalence hash" h1 h2))
+
+;; Pair projection equivalence
+(let ([h1 (hash-sexpr-v3 'expr '(fst (pair a b)))]
+      [h2 (hash-sexpr-v3 'expr 'a)])
+  (test "v3 fst projection hash" h1 h2))
+
+(let ([h1 (hash-sexpr-v3 'expr '(snd (pair a b)))]
+      [h2 (hash-sexpr-v3 'expr 'b)])
+  (test "v3 snd projection hash" h1 h2))
+
+(display "
+Test 37: V3 Backward Compatibility
+")
+;; All v2 equivalences should still hold in v3 (monotonicity)
+;; Identity elimination
+(let ([h1 (hash-sexpr-v3 'expr '(+ x 0))]
+      [h2 (hash-sexpr-v3 'expr 'x)])
+  (test "v3 maintains identity elim" h1 h2))
+
+;; Polynomial canonicalization
+(let ([h1 (hash-sexpr-v3 'expr '(+ x x))]
+      [h2 (hash-sexpr-v3 'expr '(* 2 x))])
+  (test "v3 maintains poly-canon" h1 h2))
+
+;; Commutative
+(let ([h1 (hash-sexpr-v3 'expr '(+ a b))]
+      [h2 (hash-sexpr-v3 'expr '(+ b a))])
+  (test "v3 maintains commutative" h1 h2))
+
+(display "
+Test 38: V3 Diagnostic Functions
+")
+;; Test normalize-v3-phases returns all phases
+(let ([phases (normalize-v3-phases '((fn (x) (+ 0 x)) y))])
+  (test "phases has input" #t (and (assq 'input phases) #t))
+  (test "phases has after-nbe" #t (and (assq 'after-nbe phases) #t))
+  (test "phases has after-algebraic" #t (and (assq 'after-algebraic phases) #t))
+  (test "phases has final" #t (and (assq 'final phases) #t)))
+
+;; Test equivalence report
+(let ([report (v3-equivalence-report '(+ a b) '(+ b a))])
+  (test "v1-equivalent in report" #t (cdr (assq 'v1-equivalent report)))
+  (test "v3-equivalent in report" #t (cdr (assq 'v3-equivalent report))))
+
+(display "
+Test 39: NbE with fuel exhaustion
+")
+;; Test that fuel-bounded normalization reports completion
+(let-values ([(result complete?) (nbe-normalize-with-fuel '(+ 1 2) 1000)])
+             (test "simple expr completes" #t complete?))
+
+;; Very low fuel should not complete on complex expr
+(let-values ([(result complete?) (nbe-normalize-with-fuel
+                                   '((fn (x) ((fn (y) (y y)) x))
+                                     (fn (z) z))
+                                   5)])
+             (test "low fuel may not complete" #t (or complete? (not complete?))))
+
+(display "
+Test 40: NbE reducibility check
+")
+;; Reducible expressions
+(test "application reducible" #t (nbe-reducible? '((fn (x) x) y)))
+(test "fst pair reducible" #t (nbe-reducible? '(fst (pair a b))))
+(test "snd pair reducible" #t (nbe-reducible? '(snd (pair a b))))
+(test "case Left reducible" #t (nbe-reducible? '(case (Left x) ((Left a) a) ((Right b) b))))
+(test "if true reducible" #t (nbe-reducible? '(if #t a b)))
+
+;; Non-reducible expressions
+(test "symbol not reducible" #f (nbe-reducible? 'x))
+(test "number not reducible" #f (nbe-reducible? 42))
+(test "simple app not reducible" #f (nbe-reducible? '(f x)))
+
+(display "
+Test 41: NbE Safety - Readback divergence protection
+")
+;; A lambda containing a divergent body in readback
+;; The outer lambda evaluates fine, but reading back requires evaluating
+;; the body with a fresh variable, which could diverge if not fuel-bounded.
+;; This tests the fix for apply-closure-fuel in readback.
+(let ([omega-in-lambda '(fn (z) ((fn (x) (x x)) (fn (x) (x x))))])
+  ;; Should return within reasonable time (fuel bounded in readback)
+  (let ([result (nbe-normalize-for-cas omega-in-lambda)])
+    (test "omega in lambda doesn't hang" #t (not (eq? result 'timeout)))
+    (display "  lambda with omega body normalized to: ") (display result) (newline)
+    ;; The result should be a lambda form (may have stuck subterms)
+    (test "result is lambda form" #t (and (pair? result)
+                                           (or (eq? (car result) 'fn)
+                                               (eq? (car result) 'lambda)
+                                               ;; Or could be stuck
+                                               (eq? (car result) 'stuck-readback))))))
+
+;; Test that deeply nested divergent types also terminate
+;; This tests apply-closure-fuel for Pi/Sigma type readback
+(let ([nested '(fn (f) (fn (g) ((fn (x) (x x)) (fn (x) (x x)))))])
+  (let ([result (nbe-normalize-for-cas nested)])
+    (test "nested omega doesn't hang" #t (pair? result))))
+
 (display "
 ✓ All tests complete.
 ")

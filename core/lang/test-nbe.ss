@@ -348,42 +348,42 @@
 
 ;; Identity function normalization
 (test "normalize identity" '(fn (x0) x0)
-      (normalize-closed '(fn (x) x)))
+      (nbe-type-normalize-closed '(fn (x) x)))
 
 ;; Beta reduction: ((λx.x) 42) → 42
 (test "normalize identity applied" 42
-      (normalize-closed '((fn (x) x) 42)))
+      (nbe-type-normalize-closed '((fn (x) x) 42)))
 
 ;; Constant function: ((λx.λy.x) 1 2) → 1
 (test "normalize const function" 1
-      (normalize-closed '((fn (x) ((fn (y) x) 2)) 1)))
+      (nbe-type-normalize-closed '((fn (x) ((fn (y) x) 2)) 1)))
 
 ;; Nested lambda normalization
 (test "normalize nested lambda" '(fn (x0) (fn (x1) x0))
-      (normalize-closed '(fn (x) (fn (y) x))))
+      (nbe-type-normalize-closed '(fn (x) (fn (y) x))))
 
 ;; Type normalization
-(test "normalize simple type" 'Type (normalize-closed 'Type))
+(test "normalize simple type" 'Type (nbe-type-normalize-closed 'Type))
 (test "normalize arrow type" '(-> Int Bool)
-      (normalize-closed '(-> Int Bool)))
+      (nbe-type-normalize-closed '(-> Int Bool)))
 
 ;; Normalize pair projections
 (test "normalize fst (pair a b)" 'a
-      (normalize-closed '(fst (pair a b))))
+      (nbe-type-normalize-closed '(fst (pair a b))))
 (test "normalize snd (pair a b)" 'b
-      (normalize-closed '(snd (pair a b))))
+      (nbe-type-normalize-closed '(snd (pair a b))))
 
 ;; Normalize type-level computation
 (test "normalize type-level add" 7
-      (normalize-closed '(+ 3 4)))
+      (nbe-type-normalize-closed '(+ 3 4)))
 (test "normalize type-level conditional" 'Int
-      (normalize-closed '(if #t Int Bool)))
+      (nbe-type-normalize-closed '(if #t Int Bool)))
 
 ;; Normalize with environment
 (define env-with-x (env-extend nbe-empty-env 'x (V-base 10)))
-(test "normalize with env" 10 (normalize 'x env-with-x))
+(test "normalize with env" 10 (nbe-type-normalize 'x env-with-x))
 (test "normalize computation with env" 15
-      (normalize '(+ x 5) env-with-x))
+      (nbe-type-normalize '(+ x 5) env-with-x))
 
 ;;; ====
 ;;; Alpha Equivalence Tests
@@ -562,12 +562,12 @@
 
 ;; Church numerals normalization
 (define church-0 '(fn (f) (fn (x) x)))
-(define church-0-nf (normalize-closed church-0))
+(define church-0-nf (nbe-type-normalize-closed church-0))
 (test "normalize church 0" '(fn (x0) (fn (x1) x1)) church-0-nf)
 
 ;; Compose function
 (define compose '(fn (f) (fn (g) (fn (x) (f (g x))))))
-(define compose-nf (normalize-closed compose))
+(define compose-nf (nbe-type-normalize-closed compose))
 (test "normalize compose starts with fn" 'fn (car compose-nf))
 
 ;; Y combinator: Cannot normalize - causes infinite expansion
@@ -579,27 +579,27 @@
 
 ;; Dependent type example: (n : Nat) → Vec n Int
 (define dep-fn-type '(Π ((n : Nat)) (Vec n Int)))
-(define dep-fn-nf (normalize-closed dep-fn-type))
+(define dep-fn-nf (nbe-type-normalize-closed dep-fn-type))
 (test "normalize dependent function type starts with Π" 'Π (car dep-fn-nf))
 
 ;; Dependent pair type: (n : Nat) × Vec n Int
 (define dep-pair-type '(Σ ((n : Nat)) (Vec n Int)))
-(define dep-pair-nf (normalize-closed dep-pair-type))
+(define dep-pair-nf (nbe-type-normalize-closed dep-pair-type))
 (test "normalize dependent pair type starts with Σ" 'Σ (car dep-pair-nf))
 
 ;; Type-level function application in types
 (define vec-computed '(Vec (+ 2 3) Int))
 (test "normalize Vec with type-level computation" '(Vec 5 Int)
-      (normalize-closed vec-computed))
+      (nbe-type-normalize-closed vec-computed))
 
 ;; Matrix with computed dimensions (use Int - a base type)
 (define mat-computed '(Matrix (* 2 3) (+ 4 1) Int))
 (test "normalize Matrix with computations" '(Matrix 6 5 Int)
-      (normalize-closed mat-computed))
+      (nbe-type-normalize-closed mat-computed))
 
 ;; Conditional type
 (define cond-type '(if (< 3 5) Int Bool))
-(test "normalize conditional type" 'Int (normalize-closed cond-type))
+(test "normalize conditional type" 'Int (nbe-type-normalize-closed cond-type))
 
 ;;; ====
 ;;; Edge Cases and Stress Tests
@@ -612,7 +612,7 @@
 
 ;; Multiple projections
 (test "nested fst" '(fst (fst p))
-      (normalize-closed '(fst (fst p))))
+      (nbe-type-normalize-closed '(fst (fst p))))
 
 ;; Application to neutral
 (define app-neutral (nbe-eval '(x 1 2 3) nbe-empty-env))
@@ -620,13 +620,13 @@
 
 ;; Deeply nested lambdas
 (define nested-3 '(fn (a) (fn (b) (fn (c) a))))
-(define nested-3-nf (normalize-closed nested-3))
+(define nested-3-nf (nbe-type-normalize-closed nested-3))
 (test "deeply nested lambda normalizes" '(fn (x0) (fn (x1) (fn (x2) x0)))
       nested-3-nf)
 
 ;; Type-level computation that stays stuck
 (define stuck-vec '(Vec x Int))
-(define stuck-vec-nf (normalize-closed stuck-vec))
+(define stuck-vec-nf (nbe-type-normalize-closed stuck-vec))
 (test "stuck Vec stays structured" 'Vec (car stuck-vec-nf))
 
 ;; Arithmetic with mixed concrete/symbolic

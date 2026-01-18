@@ -254,6 +254,21 @@
           [env (closure-env clo)])
          (nbe-eval body (env-extend env param val)))]))
 
+;;; apply-closure-fuel : Closure × Value × Nat → (Values Value Nat)
+;;; Apply a closure to a value with fuel bounding.
+;;; Used in readback-fuel for Pi/Sigma type codomain evaluation.
+(define (apply-closure-fuel clo val fuel)
+  (cond
+   [(<= fuel 0)
+    (values (V-neutral (N-stuck `(closure-app ,clo ,val))) 0)]
+   [(const-closure? clo)
+    (values (const-closure-value clo) (- fuel 1))]
+   [else
+    (let ([param (closure-param clo)]
+          [body (closure-body clo)]
+          [env (closure-env clo)])
+         (nbe-eval-fuel body (env-extend env param val) (- fuel 1)))]))
+
 ;;; Constant closures - for non-dependent types
 (define (make-const-closure value)
   `(const-closure ,value))
@@ -577,15 +592,22 @@
 ;;; Normalization
 ;;; ====
 
-;;; normalize : Expr × Env → Expr
-;;; Normalize an expression to its normal form.
-(define (normalize expr env)
+;;; nbe-type-normalize : Expr × Env → Expr
+;;; Normalize an expression to its normal form using NbE.
+;;; Note: Named nbe-type-normalize to avoid collision with
+;;; de Bruijn normalize in core/blocks/normalize.ss.
+(define (nbe-type-normalize expr env)
   (readback (nbe-eval expr env) 0))
 
-;;; normalize-closed : Expr → Expr
-;;; Normalize a closed expression.
-(define (normalize-closed expr)
-  (normalize expr nbe-empty-env))
+;;; nbe-type-normalize-closed : Expr → Expr
+;;; Normalize a closed expression using NbE.
+(define (nbe-type-normalize-closed expr)
+  (nbe-type-normalize expr nbe-empty-env))
+
+;;; Backward compatibility aliases for code that uses the old names.
+;;; These will be shadowed when normalize.ss is loaded.
+(define normalize-for-types nbe-type-normalize)
+(define normalize-closed-for-types nbe-type-normalize-closed)
 
 ;;; ====
 ;;; Conversion Checking
@@ -710,7 +732,7 @@
 ;;; type-nf : Type → Type
 ;;; Get the normal form of a type.
 (define (type-nf t)
-  (normalize-closed t))
+  (nbe-type-normalize-closed t))
 
 ;;; ====
 ;;; Type-Level Computation
@@ -1231,3 +1253,483 @@
 ;;; Get the normal form of a kind.
 (define (kind-nf k)
   (kind-normalize-closed k))
+
+;;; ====
+;;; Fuel-Bounded NbE (Phase 2: CAS Integration)
+;;; ====
+;;;
+;;; These variants add fuel bounding to prevent divergence on non-terminating
+;;; expressions like the omega combinator: ((fn (x) (x x)) (fn (x) (x x))).
+;;;
+;;; When fuel is exhausted, evaluation returns a stuck V-neutral term.
+;;; This is safe for CAS hashing: the expression will hash to a unique
+;;; value based on its unreduced form.
+;;;
+;;; These functions are designed for use by the normalization pipeline
+;;; in core/blocks/nbe-normalize.ss.
+
+;;; N-stuck : Expr → Neutral
+;;; A stuck computation due to fuel exhaustion.
+;;; The original expression is preserved for readback.
+(define (N-stuck expr)
+  `(N-stuck ,expr))
+
+(define (N-stuck? n)
+  (and (pair? n) (eq? (car n) 'N-stuck)))
+
+(define (N-stuck-expr n) (cadr n))
+
+;;; ====
+;;; Fuel-Bounded Evaluation
+;;; ====
+
+;;; *nbe-default-fuel* : Nat
+;;; Default fuel limit for CAS normalization.
+;;; High enough for practical expressions, low enough to catch divergence.
+(define *nbe-default-fuel* 10000)
+
+;;; nbe-eval-fuel : Expr × Env × Nat → (Values Value Nat)
+;;; Evaluate an expression with fuel bounding.
+;;; Returns (values result-value remaining-fuel).
+;;; When fuel reaches 0, returns a stuck neutral term.
+(define (nbe-eval-fuel expr env fuel)
+  (if (<= fuel 0)
+      ;; Fuel exhausted: return stuck term
+      (values (V-neutral (N-stuck expr)) 0)
+      (cond
+       ;; Universe Type
+       [(eq? expr 'Type)
+        (values (V-type 0) (- fuel 1))]
+
+       ;; Variables and base types
+       [(symbol? expr)
+        (if (base-type? expr)
+            (values (V-base expr) (- fuel 1))
+            (values (env-lookup env expr) (- fuel 1)))]
+
+       ;; Literals
+       [(number? expr)
+        (values (V-base expr) (- fuel 1))]
+       [(boolean? expr)
+        (values (V-base expr) (- fuel 1))]
+       [(string? expr)
+        (values (V-base expr) (- fuel 1))]
+
+       [(not (pair? expr))
+        (values (V-base expr) (- fuel 1))]
+
+       ;; Universe
+       [(eq? (car expr) 'Type)
+        (values (V-type (if (= (length expr) 1) 0 (cadr expr))) (- fuel 1))]
+
+       ;; Lambda: (fn (x) body) or (λ ((x : T)) body)
+       [(or (eq? (car expr) 'fn) (eq? (car expr) 'λ))
+        (let* ([params (cadr expr)]
+               [body (caddr expr)]
+               ;; Extract param name (handle both (x) and ((x : T)))
+               [param (if (pair? (car params))
+                          (caar params)
+                          (car params))])
+              (values (V-lam param body env) (- fuel 1)))]
+
+       ;; Pi type: (Π ((x : A)) B)
+       [(eq? (car expr) 'Π)
+        (let*-values
+         ([(binding) (car (cadr expr))]
+          [(var) (car binding)]
+          [(domain-expr) (caddr binding)]
+          [(codomain-expr) (caddr expr)]
+          [(domain-val fuel1) (nbe-eval-fuel domain-expr env (- fuel 1))]
+          [(codomain-clo) (make-closure var codomain-expr env)])
+         (values (V-pi domain-val codomain-clo) fuel1))]
+
+       ;; Sigma type: (Σ ((x : A)) B)
+       [(eq? (car expr) 'Σ)
+        (let*-values
+         ([(binding) (car (cadr expr))]
+          [(var) (car binding)]
+          [(fst-type-expr) (caddr binding)]
+          [(snd-type-expr) (caddr expr)]
+          [(fst-type-val fuel1) (nbe-eval-fuel fst-type-expr env (- fuel 1))]
+          [(snd-type-clo) (make-closure var snd-type-expr env)])
+         (values (V-sigma fst-type-val snd-type-clo) fuel1))]
+
+       ;; Vector type: (Vec n A)
+       [(eq? (car expr) 'Vec)
+        (let*-values
+         ([(n-val fuel1) (nbe-eval-fuel (cadr expr) env (- fuel 1))]
+          [(A-val fuel2) (nbe-eval-fuel (caddr expr) env fuel1)])
+         (values (V-vec n-val A-val) fuel2))]
+
+       ;; Matrix type: (Matrix m n A)
+       [(eq? (car expr) 'Matrix)
+        (let*-values
+         ([(m-val fuel1) (nbe-eval-fuel (cadr expr) env (- fuel 1))]
+          [(n-val fuel2) (nbe-eval-fuel (caddr expr) env fuel1)]
+          [(A-val fuel3) (nbe-eval-fuel (cadddr expr) env fuel2)])
+         (values (V-matrix m-val n-val A-val) fuel3))]
+
+       ;; Pair: (pair a b)
+       [(eq? (car expr) 'pair)
+        (let*-values
+         ([(fst-val fuel1) (nbe-eval-fuel (cadr expr) env (- fuel 1))]
+          [(snd-val fuel2) (nbe-eval-fuel (caddr expr) env fuel1)])
+         (values (V-pair fst-val snd-val) fuel2))]
+
+       ;; First projection: (fst p)
+       [(eq? (car expr) 'fst)
+        (let-values ([(p fuel1) (nbe-eval-fuel (cadr expr) env (- fuel 1))])
+                    (nbe-fst-fuel p fuel1))]
+
+       ;; Second projection: (snd p)
+       [(eq? (car expr) 'snd)
+        (let-values ([(p fuel1) (nbe-eval-fuel (cadr expr) env (- fuel 1))])
+                    (nbe-snd-fuel p fuel1))]
+
+       ;; Sum types: (Left a) and (Right b)
+       [(eq? (car expr) 'Left)
+        (let-values ([(v fuel1) (nbe-eval-fuel (cadr expr) env (- fuel 1))])
+                    (values (V-sum 'left v) fuel1))]
+
+       [(eq? (car expr) 'Right)
+        (let-values ([(v fuel1) (nbe-eval-fuel (cadr expr) env (- fuel 1))])
+                    (values (V-sum 'right v) fuel1))]
+
+       ;; Case analysis: (case scrutinee ((Left x) left-body) ((Right y) right-body))
+       [(eq? (car expr) 'case)
+        (let-values ([(scrutinee-val fuel1) (nbe-eval-fuel (cadr expr) env (- fuel 1))])
+                    (nbe-case-fuel scrutinee-val (cddr expr) env fuel1))]
+
+       ;; Non-dependent function type: (-> A B)
+       [(eq? (car expr) '->)
+        (nbe-eval-arrow-fuel (cdr expr) env (- fuel 1))]
+
+       ;; Non-dependent product type: (× A B)
+       [(eq? (car expr) '×)
+        (nbe-eval-product-fuel (cdr expr) env (- fuel 1))]
+
+       ;; Type-level conditional: (if cond then else)
+       [(eq? (car expr) 'if)
+        (let*-values
+         ([(cond-val fuel1) (nbe-eval-fuel (cadr expr) env (- fuel 1))]
+          [(then-val fuel2) (nbe-eval-fuel (caddr expr) env fuel1)]
+          [(else-val fuel3) (nbe-eval-fuel (cadddr expr) env fuel2)])
+         (values (type-level-if cond-val then-val else-val) fuel3))]
+
+       ;; Type-level primitives: (prim op args...)
+       [(eq? (car expr) 'prim)
+        (let ([op (cadr (cadr expr))])  ; Extract symbol from quoted
+             (nbe-eval-prim-fuel op (cddr expr) env (- fuel 1)))]
+
+       ;; Type-level arithmetic shorthand: (+ a b), (- a b), (* a b)
+       [(memq (car expr) '(+ - * < > = == eq))
+        (nbe-eval-prim-fuel (car expr) (cdr expr) env (- fuel 1))]
+
+       ;; Application: (f x ...)
+       [else
+        (let-values ([(func fuel1) (nbe-eval-fuel (car expr) env (- fuel 1))])
+                    (nbe-eval-args-and-apply-fuel func (cdr expr) env fuel1))])))
+
+;;; nbe-eval-args-and-apply-fuel : Value × (List Expr) × Env × Nat → (Values Value Nat)
+;;; Evaluate arguments and apply function with fuel bounding.
+(define (nbe-eval-args-and-apply-fuel func arg-exprs env fuel)
+  (if (null? arg-exprs)
+      (values func fuel)
+      (let-values ([(arg-val fuel1) (nbe-eval-fuel (car arg-exprs) env fuel)])
+                  (if (<= fuel1 0)
+                      (values (V-neutral (N-stuck `(,func ,@arg-exprs))) 0)
+                      (let-values ([(result fuel2) (nbe-apply-fuel func arg-val fuel1)])
+                                  (nbe-eval-args-and-apply-fuel result (cdr arg-exprs) env fuel2))))))
+
+;;; nbe-apply-fuel : Value × Value × Nat → (Values Value Nat)
+;;; Apply a function value to an argument value with fuel bounding.
+(define (nbe-apply-fuel func arg fuel)
+  (if (<= fuel 0)
+      (values (V-neutral (N-stuck `(apply ,func ,arg))) 0)
+      (cond
+       [(V-lam? func)
+        (let ([param (V-lam-param func)]
+              [body (V-lam-body func)]
+              [env (V-lam-env func)])
+             (nbe-eval-fuel body (env-extend env param arg) (- fuel 1)))]
+       [(V-neutral? func)
+        (values (V-neutral (N-app (V-neutral-term func) arg)) (- fuel 1))]
+       [else
+        ;; Type error, but we continue with neutral
+        (values (V-neutral (N-app func arg)) (- fuel 1))])))
+
+;;; nbe-fst-fuel : Value × Nat → (Values Value Nat)
+;;; Project first component with fuel bounding.
+(define (nbe-fst-fuel v fuel)
+  (cond
+   [(<= fuel 0)
+    (values (V-neutral (N-stuck `(fst ,v))) 0)]
+   [(V-pair? v)
+    (values (V-pair-fst v) (- fuel 1))]
+   [(V-neutral? v)
+    (values (V-neutral (N-fst (V-neutral-term v))) (- fuel 1))]
+   [else
+    (values (V-neutral (N-fst v)) (- fuel 1))]))
+
+;;; nbe-snd-fuel : Value × Nat → (Values Value Nat)
+;;; Project second component with fuel bounding.
+(define (nbe-snd-fuel v fuel)
+  (cond
+   [(<= fuel 0)
+    (values (V-neutral (N-stuck `(snd ,v))) 0)]
+   [(V-pair? v)
+    (values (V-pair-snd v) (- fuel 1))]
+   [(V-neutral? v)
+    (values (V-neutral (N-snd (V-neutral-term v))) (- fuel 1))]
+   [else
+    (values (V-neutral (N-snd v)) (- fuel 1))]))
+
+;;; ====
+;;; Sum Type Support (V-sum)
+;;; ====
+
+;;; V-sum : Symbol × Value → Value
+;;; A sum type value (Left or Right).
+(define (V-sum tag value)
+  `(V-sum ,tag ,value))
+
+(define (V-sum? v)
+  (and (pair? v) (eq? (car v) 'V-sum)))
+
+(define (V-sum-tag v) (cadr v))
+(define (V-sum-value v) (caddr v))
+
+;;; N-case : Neutral × (List Branch) → Neutral
+;;; A stuck case analysis.
+(define (N-case scrutinee branches)
+  `(N-case ,scrutinee ,branches))
+
+(define (N-case? n)
+  (and (pair? n) (eq? (car n) 'N-case)))
+
+;;; nbe-case-fuel : Value × (List Branch) × Env × Nat → (Values Value Nat)
+;;; Evaluate case analysis with fuel bounding.
+;;; Branches are: (((Left x) body) ((Right y) body))
+(define (nbe-case-fuel scrutinee branches env fuel)
+  (cond
+   [(<= fuel 0)
+    (values (V-neutral (N-stuck `(case ,scrutinee ,@branches))) 0)]
+
+   [(V-sum? scrutinee)
+    (let* ([tag (V-sum-tag scrutinee)]
+           [value (V-sum-value scrutinee)]
+           ;; Find matching branch
+           [branch (case-find-branch tag branches)])
+      (if branch
+          (let* ([pattern (car branch)]
+                 [body (cadr branch)]
+                 [var (cadr pattern)]  ; Extract var from (Left x) or (Right y)
+                 [new-env (env-extend env var value)])
+            (nbe-eval-fuel body new-env (- fuel 1)))
+          ;; No matching branch - stuck
+          (values (V-neutral (N-case (N-stuck scrutinee) branches)) (- fuel 1))))]
+
+   [(V-neutral? scrutinee)
+    (values (V-neutral (N-case (V-neutral-term scrutinee) branches)) (- fuel 1))]
+
+   [else
+    (values (V-neutral (N-case scrutinee branches)) (- fuel 1))]))
+
+;;; case-find-branch : Symbol × (List Branch) → Branch | #f
+;;; Find the branch matching the given sum tag.
+(define (case-find-branch tag branches)
+  (let loop ([bs branches])
+    (if (null? bs)
+        #f
+        (let* ([branch (car bs)]
+               [pattern (car branch)]
+               [pattern-tag (car pattern)])
+          (if (eq? pattern-tag (if (eq? tag 'left) 'Left 'Right))
+              branch
+              (loop (cdr bs)))))))
+
+;;; ====
+;;; Fuel-Bounded Arrow and Product Evaluation
+;;; ====
+
+;;; nbe-eval-arrow-fuel : (List Expr) × Env × Nat → (Values Value Nat)
+(define (nbe-eval-arrow-fuel types env fuel)
+  (if (<= fuel 0)
+      (values (V-neutral (N-stuck `(-> ,@types))) 0)
+      (if (= (length types) 2)
+          (let*-values
+           ([(domain fuel1) (nbe-eval-fuel (car types) env fuel)]
+            [(codomain fuel2) (nbe-eval-fuel (cadr types) env fuel1)])
+           (values (V-pi domain (make-const-closure codomain)) fuel2))
+          (let-values ([(domain fuel1) (nbe-eval-fuel (car types) env fuel)])
+                      (let ([rest-expr `(-> ,@(cdr types))])
+                        (values (V-pi domain (make-closure '_ rest-expr env)) fuel1))))))
+
+;;; nbe-eval-product-fuel : (List Expr) × Env × Nat → (Values Value Nat)
+(define (nbe-eval-product-fuel types env fuel)
+  (if (<= fuel 0)
+      (values (V-neutral (N-stuck `(× ,@types))) 0)
+      (if (= (length types) 2)
+          (let*-values
+           ([(fst-type fuel1) (nbe-eval-fuel (car types) env fuel)]
+            [(snd-type fuel2) (nbe-eval-fuel (cadr types) env fuel1)])
+           (values (V-sigma fst-type (make-const-closure snd-type)) fuel2))
+          (let-values ([(fst-type fuel1) (nbe-eval-fuel (car types) env fuel)])
+                      (let ([rest-expr `(× ,@(cdr types))])
+                        (values (V-sigma fst-type (make-closure '_ rest-expr env)) fuel1))))))
+
+;;; nbe-eval-prim-fuel : Symbol × (List Expr) × Env × Nat → (Values Value Nat)
+;;; Evaluate a primitive operation with fuel bounding.
+(define (nbe-eval-prim-fuel op arg-exprs env fuel)
+  (if (<= fuel 0)
+      (values (V-neutral (N-stuck `(,op ,@arg-exprs))) 0)
+      (let loop ([exprs arg-exprs] [vals '()] [f fuel])
+        (if (null? exprs)
+            (values (type-level-reduce op (reverse vals)) f)
+            (let-values ([(v f1) (nbe-eval-fuel (car exprs) env f)])
+                        (loop (cdr exprs) (cons v vals) f1))))))
+
+;;; ====
+;;; Fuel-Bounded Readback
+;;; ====
+
+;;; readback-fuel : Value × Int × Nat → (Values Expr Nat)
+;;; Convert a value back to a normal form expression with fuel bounding.
+(define (readback-fuel val level fuel)
+  (if (<= fuel 0)
+      (values `(stuck-readback ,val) 0)
+      (cond
+       [(V-lam? val)
+        (let* ([x (fresh-name level)]
+               [x-val (V-neutral (N-var level))])
+          (let-values ([(body-val fuel1) (nbe-apply-fuel val x-val (- fuel 1))])
+                      (let-values ([(body-nf fuel2) (readback-fuel body-val (+ level 1) fuel1)])
+                                  (values `(fn (,x) ,body-nf) fuel2))))]
+
+       [(V-pi? val)
+        (let* ([x (fresh-name level)]
+               [x-val (V-neutral (N-var level))])
+          (let*-values
+           ([(domain-nf fuel1) (readback-fuel (V-pi-domain val) level (- fuel 1))]
+            [(codomain-val fuel1a) (apply-closure-fuel (V-pi-codomain-closure val) x-val fuel1)]
+            [(codomain-nf fuel2) (readback-fuel codomain-val (+ level 1) fuel1a)])
+           (values
+            (if (mentions-var? codomain-nf x)
+                `(Π ((,x : ,domain-nf)) ,codomain-nf)
+                `(-> ,domain-nf ,codomain-nf))
+            fuel2)))]
+
+       [(V-sigma? val)
+        (let* ([x (fresh-name level)]
+               [x-val (V-neutral (N-var level))])
+          (let*-values
+           ([(fst-type-nf fuel1) (readback-fuel (V-sigma-fst-type val) level (- fuel 1))]
+            [(snd-type-val fuel1a) (apply-closure-fuel (V-sigma-snd-type-closure val) x-val fuel1)]
+            [(snd-type-nf fuel2) (readback-fuel snd-type-val (+ level 1) fuel1a)])
+           (values
+            (if (mentions-var? snd-type-nf x)
+                `(Σ ((,x : ,fst-type-nf)) ,snd-type-nf)
+                `(× ,fst-type-nf ,snd-type-nf))
+            fuel2)))]
+
+       [(V-vec? val)
+        (let*-values
+         ([(n-nf fuel1) (readback-fuel (V-vec-n val) level (- fuel 1))]
+          [(A-nf fuel2) (readback-fuel (V-vec-A val) level fuel1)])
+         (values `(Vec ,n-nf ,A-nf) fuel2))]
+
+       [(V-matrix? val)
+        (let*-values
+         ([(m-nf fuel1) (readback-fuel (V-matrix-m val) level (- fuel 1))]
+          [(n-nf fuel2) (readback-fuel (V-matrix-n val) level fuel1)]
+          [(A-nf fuel3) (readback-fuel (V-matrix-A val) level fuel2)])
+         (values `(Matrix ,m-nf ,n-nf ,A-nf) fuel3))]
+
+       [(V-type? val)
+        (let ([n (V-type-level val)])
+          (values (if (= n 0) 'Type `(Type ,n)) (- fuel 1)))]
+
+       [(V-pair? val)
+        (let*-values
+         ([(fst-nf fuel1) (readback-fuel (V-pair-fst val) level (- fuel 1))]
+          [(snd-nf fuel2) (readback-fuel (V-pair-snd val) level fuel1)])
+         (values `(pair ,fst-nf ,snd-nf) fuel2))]
+
+       [(V-sum? val)
+        (let-values ([(inner-nf fuel1) (readback-fuel (V-sum-value val) level (- fuel 1))])
+                    (values `(,(if (eq? (V-sum-tag val) 'left) 'Left 'Right) ,inner-nf) fuel1))]
+
+       [(V-neutral? val)
+        (readback-neutral-fuel (V-neutral-term val) level (- fuel 1))]
+
+       [(V-base? val)
+        (values (V-base-val val) (- fuel 1))]
+
+       [(V-type-prim? val)
+        (let ([op (V-type-prim-op val)])
+          (let loop ([args (V-type-prim-args val)] [nfs '()] [f (- fuel 1)])
+            (if (null? args)
+                (values (cons op (reverse nfs)) f)
+                (let-values ([(nf f1) (readback-fuel (car args) level f)])
+                            (loop (cdr args) (cons nf nfs) f1)))))]
+
+       [else
+        (values val (- fuel 1))])))
+
+;;; readback-neutral-fuel : Neutral × Int × Nat → (Values Expr Nat)
+(define (readback-neutral-fuel neutral level fuel)
+  (if (<= fuel 0)
+      (values `(stuck-neutral ,neutral) 0)
+      (cond
+       [(N-var? neutral)
+        (values (level->name (N-var-level neutral)) (- fuel 1))]
+
+       [(N-app? neutral)
+        (let*-values
+         ([(func-nf fuel1) (readback-neutral-fuel (cadr neutral) level (- fuel 1))]
+          [(arg-nf fuel2) (readback-fuel (caddr neutral) level fuel1)])
+         (values `(,func-nf ,arg-nf) fuel2))]
+
+       [(N-fst? neutral)
+        (let-values ([(inner-nf fuel1) (readback-neutral-fuel (cadr neutral) level (- fuel 1))])
+                    (values `(fst ,inner-nf) fuel1))]
+
+       [(N-snd? neutral)
+        (let-values ([(inner-nf fuel1) (readback-neutral-fuel (cadr neutral) level (- fuel 1))])
+                    (values `(snd ,inner-nf) fuel1))]
+
+       [(N-stuck? neutral)
+        ;; Return the original stuck expression
+        (values (N-stuck-expr neutral) (- fuel 1))]
+
+       [(N-case? neutral)
+        (let-values ([(scrutinee-nf fuel1) (readback-neutral-fuel (cadr neutral) level (- fuel 1))])
+                    (values `(case ,scrutinee-nf ,@(caddr neutral)) fuel1))]
+
+       [else
+        (values neutral (- fuel 1))])))
+
+;;; ====
+;;; Fuel-Bounded Normalization API
+;;; ====
+
+;;; normalize-fuel : Expr × Env × Nat → (Values Expr Nat)
+;;; Normalize an expression with fuel bounding.
+(define (normalize-fuel expr env fuel)
+  (let-values ([(val fuel1) (nbe-eval-fuel expr env fuel)])
+              (readback-fuel val 0 fuel1)))
+
+;;; normalize-closed-fuel : Expr × Nat → (Values Expr Nat)
+;;; Normalize a closed expression with fuel bounding.
+(define (normalize-closed-fuel expr fuel)
+  (normalize-fuel expr nbe-empty-env fuel))
+
+;;; nbe-normalize-safe : Expr → Expr
+;;; Safe normalization for CAS hashing.
+;;; Falls back to original expression on fuel exhaustion or errors.
+(define (nbe-normalize-safe expr)
+  (guard (ex [else expr])  ; Fall back on any error
+         (let-values ([(result fuel) (normalize-closed-fuel expr *nbe-default-fuel*)])
+                     (if (> fuel 0)
+                         result
+                         expr))))  ; Fuel exhausted, return original

@@ -583,3 +583,100 @@
 ;;; Version 2 without hash-consing (for testing/comparison).
 (define (normalize-v2-no-hashcons expr)
   (normalize (normalize-algebraic-v2 expr)))
+
+;;; ====
+;;; Version 3 Normalization Pipeline
+;;; ====
+;;;
+;;; Version 3 adds NbE (Normalization by Evaluation) to the pipeline.
+;;; NbE provides intrinsic reductions that were previously missing or
+;;; required external rewrite rules:
+;;;
+;;;   - β-reduction: ((fn (x) body) arg) → body[arg/x]
+;;;   - η-equivalence: structurally (via readback)
+;;;   - Pair projections: (fst (pair a b)) → a, (snd (pair a b)) → b
+;;;   - Sum projections: (case (Left a) ...) → left-branch[a]
+;;;   - Conditionals: (if #t a b) → a, (if #f a b) → b
+;;;
+;;; The v3 pipeline is:
+;;;   NbE → V2 algebraic → α-normalization → Hash-consing
+;;;
+;;; NbE is applied FIRST because it performs semantic reductions that
+;;; may expose opportunities for algebraic canonicalization.
+;;;
+;;; Order matters:
+;;;   1. NbE: Semantic evaluation and readback (β, projections, case)
+;;;   2. V2 algebraic: η-reduction, poly-canon, sorting, identity elim
+;;;   3. α-norm: De Bruijn indices
+;;;   4. Hash-cons: Structural deduplication
+;;;
+;;; Properties:
+;;;   - Backward compatible: v3 identifies MORE equivalences than v2
+;;;   - Monotonic: if v2-hash(a) = v2-hash(b), then v3-hash(a) = v3-hash(b)
+;;;   - Idempotent: normalize-v3(normalize-v3(x)) = normalize-v3(x)
+;;;   - Deterministic: same input → same output
+
+(load "core/blocks/nbe-normalize.ss")
+
+;;; normalize-v3 : S-expr → S-expr
+;;; Full version 3 normalization pipeline:
+;;;   NbE → η-reduction → poly-canon → algebraic → identity elim → α → hash-cons
+;;;
+;;; This is the most aggressive normalization mode, identifying the
+;;; maximum number of semantic equivalences.
+(define (normalize-v3 expr)
+  (hash-cons
+   (normalize
+    (normalize-algebraic-v2
+     (nbe-normalize-for-cas expr)))))
+
+;;; normalize-v3-no-hashcons : S-expr → S-expr
+;;; Version 3 without hash-consing (for testing/comparison).
+(define (normalize-v3-no-hashcons expr)
+  (normalize
+   (normalize-algebraic-v2
+    (nbe-normalize-for-cas expr))))
+
+;;; normalize-v3-no-nbe : S-expr → S-expr
+;;; Version 3 without NbE (for testing/comparison).
+;;; Equivalent to normalize-v2.
+(define (normalize-v3-no-nbe expr)
+  (normalize-v2 expr))
+
+;;; ====
+;;; V3 Normalization Diagnostics
+;;; ====
+
+;;; normalize-v3-phases : S-expr → Alist
+;;; Run v3 normalization and return intermediate results at each phase.
+;;; Useful for debugging and understanding normalization behavior.
+(define (normalize-v3-phases expr)
+  (let* ([nbe-result (nbe-normalize-for-cas expr)]
+         [alg-result (normalize-algebraic-v2 nbe-result)]
+         [alpha-result (normalize alg-result)]
+         [final-result (hash-cons alpha-result)])
+    `((input . ,expr)
+      (after-nbe . ,nbe-result)
+      (after-algebraic . ,alg-result)
+      (after-alpha . ,alpha-result)
+      (final . ,final-result))))
+
+;;; v3-equivalence-report : S-expr × S-expr → Alist
+;;; Compare two expressions and report their normalization at each version.
+;;; Useful for understanding when and why expressions become equivalent.
+(define (v3-equivalence-report e1 e2)
+  (let* ([e1-v1 (normalize-full e1)]
+         [e2-v1 (normalize-full e2)]
+         [e1-v2 (normalize-v2 e1)]
+         [e2-v2 (normalize-v2 e2)]
+         [e1-v3 (normalize-v3 e1)]
+         [e2-v3 (normalize-v3 e2)])
+    `((v1-equivalent . ,(equal? e1-v1 e2-v1))
+      (v2-equivalent . ,(equal? e1-v2 e2-v2))
+      (v3-equivalent . ,(equal? e1-v3 e2-v3))
+      (e1-v1 . ,e1-v1)
+      (e2-v1 . ,e2-v1)
+      (e1-v2 . ,e1-v2)
+      (e2-v2 . ,e2-v2)
+      (e1-v3 . ,e1-v3)
+      (e2-v3 . ,e2-v3))))

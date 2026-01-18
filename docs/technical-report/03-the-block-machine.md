@@ -54,12 +54,15 @@ Address = [ version : 1 byte ][ hash : 32 bytes ]
 | `0x00` | α-only | De Bruijn indices only (original mode) |
 | `0x01` | Algebraic + α | Full algebraic canonicalization before de Bruijn |
 | `0x02` | Enhanced (v2) | η-reduction, identity elimination, polynomial canonicalization, hash-consing |
+| `0x03` | NbE + v2 (v3) | Fuel-bounded NbE normalization before v2 pipeline |
 
 Version `0x00` provides α-equivalence: `(λ x. x)` and `(λ y. y)` hash identically.
 
 Version `0x01` provides extended equivalence: `(+ a b)` and `(+ b a)` also hash identically, as do `(+ (+ a b) c)` and `(+ a b c)`.
 
 Version `0x02` provides maximum semantic equivalence detection: `(+ x 0)` and `x` hash identically, `(+ x x)` and `(* 2 x)` hash identically, and `(fn (x) (f x))` and `f` hash identically (when x is not free in f).
+
+Version `0x03` adds NbE (Normalization by Evaluation) to the pipeline, providing β-reduction and intrinsic handling of projections: `((fn (x) x) y)` and `y` hash identically, `(fst (pair a b))` and `a` hash identically, and `(case (Left x) ...)` reduces to the appropriate branch.
 
 The version byte ensures no collision between modes—a block hashed with algebraic normalization is distinct from the same block hashed without it.
 
@@ -409,6 +412,90 @@ SHA-256 → Address (version 0x02)
 ```
 
 **Implementation**: `core/blocks/normalize.ss` (v2 pipeline), `core/blocks/poly-canon.ss` (polynomial operations), `core/blocks/hash-cons.ss` (structural sharing), `core/blocks/op-properties.ss` (identity/absorbing elements)
+
+#### 3.4.5 NbE-Based Normalization (Version 3)
+
+Version 0x03 introduces **Normalization by Evaluation (NbE)** to the CAS hashing pipeline. NbE is a principled technique from type theory that normalizes expressions by:
+
+1. **Evaluating** the expression to semantic values (β-reduction happens intrinsically)
+2. **Reading back** from values to normal form expressions
+
+This approach has key advantages over syntactic rewriting:
+
+- **β-reduction is automatic**: Function applications reduce by actual evaluation
+- **Projections are intrinsic**: `(fst (pair a b))` evaluates to `a` during the value phase
+- **Sum elimination is built-in**: `(case (Left x) ...)` selects the correct branch
+- **Single-pass**: No need for iterated rewriting to reach fixpoint
+
+**Fuel Bounding for Safety**
+
+NbE can diverge on non-terminating expressions like the omega combinator `((fn (x) (x x)) (fn (x) (x x)))`. The implementation uses fuel-bounded evaluation:
+
+```scheme
+(define (nbe-eval-fuel expr env fuel)
+  (if (<= fuel 0)
+      (values (V-neutral (N-stuck expr)) 0)  ; Return "stuck" value
+      (cond
+       [(and (pair? expr) (eq? (car expr) 'fn))
+        (values (V-lam ...) (- fuel 1))]
+       ...)))
+```
+
+When fuel exhausts, the expression becomes a "stuck" neutral value—a valid normal form that preserves the original expression. This ensures:
+
+- **Termination**: Always returns in bounded time
+- **Soundness**: Stuck terms don't collapse distinct expressions
+- **Graceful degradation**: Complex expressions normalize as much as fuel allows
+
+**Sum Type Support**
+
+NbE handles sum types (tagged unions) with `Left`/`Right` constructors:
+
+```scheme
+;; Values
+(V-sum 'left value)   ; Left-injected value
+(V-sum 'right value)  ; Right-injected value
+
+;; Case elimination
+(case (Left 42) ((Left x) x) ((Right y) y)) → 42
+```
+
+When the scrutinee is a known sum, the appropriate branch is selected. When stuck (e.g., scrutinee is a variable), a neutral `N-case` is produced.
+
+**V3 Pipeline**
+
+```
+Input Expression
+    ↓
+NbE Normalization (fuel-bounded)
+    ├── β-reduction (function application)
+    ├── Pair projection (fst/snd)
+    ├── Sum elimination (case)
+    └── Conditional reduction (if with literal condition)
+    ↓
+V2 Pipeline (η-reduction, algebraic canonicalization, etc.)
+    ↓
+α-Normalization (de Bruijn indices)
+    ↓
+Hash-Consing
+    ↓
+SHA-256 → Address (version 0x03)
+```
+
+**Equivalences Detected by V3**:
+
+| Expression | Normalizes To | V2 Detects? | V3 Detects? |
+|------------|---------------|-------------|-------------|
+| `((fn (x) x) y)` | `y` | ✗ | ✓ |
+| `((fn (x) (+ x 1)) 5)` | `6` | ✗ | ✓ |
+| `(fst (pair a b))` | `a` | ✗ | ✓ |
+| `(snd (pair a b))` | `b` | ✗ | ✓ |
+| `(case (Left x) ...)` | branch with x | ✗ | ✓ |
+| `(if #t a b)` | `a` | ✗ | ✓ |
+
+V3 is a strict superset of V2—all V2 equivalences are preserved.
+
+**Implementation**: `core/lang/nbe.ss` (NbE implementation with fuel-bounded variants), `core/blocks/nbe-normalize.ss` (CAS integration), `core/blocks/normalize.ss` (v3 pipeline assembly), `core/blocks/cas.ss` (hash-sexpr-v3)
 
 ### 3.5 Content-Addressed Store (CAS)
 
