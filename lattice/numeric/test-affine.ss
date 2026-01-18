@@ -278,6 +278,150 @@
       (assert-true (affine-definitely-positive? x)))))
 
 ;;; ============================================================================
+;;; Min/Max/Abs Tests
+;;; ============================================================================
+
+(test-group "min-max-abs"
+  ;; affine-min tests
+  (define-test "affine-min: non-overlapping ranges (x < y)"
+    (affine-reset-noise-counter!)
+    (let* ([x (affine-from-interval (interval 1 2))]
+           [y (affine-from-interval (interval 5 6))]
+           [result (affine-min x y)]
+           [iv (affine->interval result)])
+      ;; x is definitely less, should return x's bounds
+      (assert-true (< (abs (- (interval-lo iv) 1)) 1e-10))
+      (assert-true (< (abs (- (interval-hi iv) 2)) 1e-10))))
+
+  (define-test "affine-min: non-overlapping ranges (y < x)"
+    (affine-reset-noise-counter!)
+    (let* ([x (affine-from-interval (interval 10 15))]
+           [y (affine-from-interval (interval 2 4))]
+           [result (affine-min x y)]
+           [iv (affine->interval result)])
+      ;; y is definitely less, should return y's bounds
+      (assert-true (< (abs (- (interval-lo iv) 2)) 1e-10))
+      (assert-true (< (abs (- (interval-hi iv) 4)) 1e-10))))
+
+  (define-test "affine-min: overlapping ranges gives conservative bound"
+    (affine-reset-noise-counter!)
+    (let* ([x (affine-from-interval (interval 1 5))]
+           [y (affine-from-interval (interval 3 7))]
+           [result (affine-min x y)]
+           [iv (affine->interval result)])
+      ;; Ranges overlap [3,5], min could be anywhere in [1, 5]
+      ;; Result should be conservative: [min(1,3), min(5,7)] = [1, 5]
+      (assert-true (<= (interval-lo iv) 1))
+      (assert-true (>= (interval-hi iv) 3))))
+
+  (define-test "affine-min: with constants"
+    (affine-reset-noise-counter!)
+    (let* ([x (affine-constant 5)]
+           [y (affine-constant 3)]
+           [result (affine-min x y)]
+           [iv (affine->interval result)])
+      ;; min(5, 3) = 3
+      (assert-true (< (abs (- (interval-lo iv) 3)) 1e-10))
+      (assert-true (< (abs (- (interval-hi iv) 3)) 1e-10))))
+
+  ;; affine-max tests
+  (define-test "affine-max: non-overlapping ranges (x > y)"
+    (affine-reset-noise-counter!)
+    (let* ([x (affine-from-interval (interval 10 15))]
+           [y (affine-from-interval (interval 2 4))]
+           [result (affine-max x y)]
+           [iv (affine->interval result)])
+      ;; x is definitely greater, should return x's bounds
+      (assert-true (< (abs (- (interval-lo iv) 10)) 1e-10))
+      (assert-true (< (abs (- (interval-hi iv) 15)) 1e-10))))
+
+  (define-test "affine-max: non-overlapping ranges (y > x)"
+    (affine-reset-noise-counter!)
+    (let* ([x (affine-from-interval (interval 1 2))]
+           [y (affine-from-interval (interval 5 6))]
+           [result (affine-max x y)]
+           [iv (affine->interval result)])
+      ;; y is definitely greater, should return y's bounds
+      (assert-true (< (abs (- (interval-lo iv) 5)) 1e-10))
+      (assert-true (< (abs (- (interval-hi iv) 6)) 1e-10))))
+
+  (define-test "affine-max: overlapping ranges gives conservative bound"
+    (affine-reset-noise-counter!)
+    (let* ([x (affine-from-interval (interval 1 5))]
+           [y (affine-from-interval (interval 3 7))]
+           [result (affine-max x y)]
+           [iv (affine->interval result)])
+      ;; Ranges overlap [3,5], max could be anywhere in [3, 7]
+      ;; Result should be conservative: [max(1,3), max(5,7)] = [3, 7]
+      (assert-true (<= (interval-lo iv) 5))
+      (assert-true (>= (interval-hi iv) 5))))
+
+  (define-test "affine-max: with constants"
+    (affine-reset-noise-counter!)
+    (let* ([x (affine-constant 5)]
+           [y (affine-constant 3)]
+           [result (affine-max x y)]
+           [iv (affine->interval result)])
+      ;; max(5, 3) = 5
+      (assert-true (< (abs (- (interval-lo iv) 5)) 1e-10))
+      (assert-true (< (abs (- (interval-hi iv) 5)) 1e-10))))
+
+  ;; affine-abs tests
+  (define-test "affine-abs: entirely non-negative"
+    (affine-reset-noise-counter!)
+    (let* ([x (affine-from-interval (interval 2 5))]
+           [result (affine-abs x)]
+           [iv (affine->interval result)])
+      ;; |[2,5]| = [2,5] (no change)
+      (assert-true (< (abs (- (interval-lo iv) 2)) 1e-10))
+      (assert-true (< (abs (- (interval-hi iv) 5)) 1e-10))))
+
+  (define-test "affine-abs: entirely non-positive"
+    (affine-reset-noise-counter!)
+    (let* ([x (affine-from-interval (interval -5 -2))]
+           [result (affine-abs x)]
+           [iv (affine->interval result)])
+      ;; |[-5,-2]| = [2,5] (negated)
+      (assert-true (< (abs (- (interval-lo iv) 2)) 1e-10))
+      (assert-true (< (abs (- (interval-hi iv) 5)) 1e-10))))
+
+  (define-test "affine-abs: contains zero"
+    (affine-reset-noise-counter!)
+    (let* ([x (affine-from-interval (interval -3 5))]
+           [result (affine-abs x)]
+           [iv (affine->interval result)])
+      ;; |[-3,5]| contains [0, max(3,5)] = [0,5]
+      (assert-true (<= (interval-lo iv) 0))
+      (assert-true (>= (interval-hi iv) 5))))
+
+  (define-test "affine-abs: symmetric around zero"
+    (affine-reset-noise-counter!)
+    (let* ([x (affine-from-interval (interval -4 4))]
+           [result (affine-abs x)]
+           [iv (affine->interval result)])
+      ;; |[-4,4]| = [0,4]
+      (assert-true (<= (interval-lo iv) 0))
+      (assert-true (>= (interval-hi iv) 4))))
+
+  (define-test "affine-abs: constant positive"
+    (affine-reset-noise-counter!)
+    (let* ([x (affine-constant 7)]
+           [result (affine-abs x)]
+           [iv (affine->interval result)])
+      ;; |7| = 7
+      (assert-true (< (abs (- (interval-lo iv) 7)) 1e-10))
+      (assert-true (< (abs (- (interval-hi iv) 7)) 1e-10))))
+
+  (define-test "affine-abs: constant negative"
+    (affine-reset-noise-counter!)
+    (let* ([x (affine-constant -7)]
+           [result (affine-abs x)]
+           [iv (affine->interval result)])
+      ;; |-7| = 7
+      (assert-true (< (abs (- (interval-lo iv) 7)) 1e-10))
+      (assert-true (< (abs (- (interval-hi iv) 7)) 1e-10)))))
+
+;;; ============================================================================
 ;;; Run Tests
 ;;; ============================================================================
 
