@@ -79,6 +79,10 @@ when invalidated. This avoids unnecessary work.")))
    ;; Access Tracking
    (with-access-tracking log-optic-access!)
 
+   ;; Unregistered Optic Configuration (fold-zxpe)
+   (*warn-unregistered-optics?* *strict-optic-registration?*)
+   (reset-optic-warnings! handle-unregistered-optic!)
+
    ;; Invalidation
    (invalidate-optic! invalidate-optics!)
 
@@ -108,8 +112,13 @@ across threads.")
     (named-optics-only
      "Reactivity only works with optics registered in the provenance system.
 Anonymous optics (those without a name in the optic registry) will not
-trigger dependency tracking or invalidation. Changes via unregistered
-optics fail silently - the derivation won't know to update.")
+trigger dependency tracking or invalidation.
+
+As of fold-zxpe fix: By default, using unregistered optics emits a warning
+to help catch missing registrations. Configure this behavior with:
+  - *warn-unregistered-optics?* (#t by default - emit warnings)
+  - *strict-optic-registration?* (#f by default - set #t to raise errors)
+  - (reset-optic-warnings!) to clear the warning cache")
     (no-derivation-composition
      "Derivations cannot depend on other derivations directly.
 If derivation A calls (reactive-value 'B), A will not be invalidated

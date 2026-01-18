@@ -336,6 +336,115 @@
       (assert-true (pair? (memq 'lens-snd (reactive-dependencies 'dynamic-dep)))))))
 
 ;;; ============================================================
+;;; Part 11: Unregistered Optic Handling Tests (fold-zxpe fix)
+;;; ============================================================
+
+(test-group "unregistered-optic-handling"
+  ;; Create an anonymous optic that is NOT registered
+  ;; Use make-lens from the optics tower for proper structure
+  (define anon-fst (make-lens car (lambda (b s) (cons b (cdr s)))))
+
+  (define-test "anonymous optic is not registered"
+    ;; Verify our test optic is truly unregistered
+    (assert-false (lookup-optic-name anon-fst)))
+
+  (define-test "warning emitted for unregistered optic (default mode)"
+    ;; Reset warnings and configuration
+    (reset-optic-warnings!)
+    (set! *warn-unregistered-optics?* #t)
+    (set! *strict-optic-registration?* #f)
+    ;; Use in a tracked context - should warn but not error
+    (call-with-values
+      (lambda ()
+        (with-access-tracking
+         (lambda ()
+           ;; This should emit a warning (to stderr)
+           ;; but still work and return the value
+           (reactive-view '(1 . 2) anon-fst))))
+      (lambda (result deps)
+        ;; Result should still work
+        (assert-equal 1 result)
+        ;; But deps should be empty (no registration)
+        (assert-equal '() deps))))
+
+  (define-test "warning only emitted once per optic"
+    (reset-optic-warnings!)
+    (set! *warn-unregistered-optics?* #t)
+    (set! *strict-optic-registration?* #f)
+    ;; First use - should set warning flag
+    (with-access-tracking
+     (lambda () (reactive-view '(1 . 2) anon-fst)))
+    ;; Check that optic is now in warned cache
+    (assert-true (hashtable-ref *warned-optics* anon-fst #f)))
+
+  (define-test "reset-optic-warnings! clears cache"
+    (reset-optic-warnings!)
+    ;; After reset, optic should not be in cache
+    (assert-false (hashtable-ref *warned-optics* anon-fst #f)))
+
+  (define-test "strict mode raises error for unregistered optic"
+    (reset-optic-warnings!)
+    (set! *warn-unregistered-optics?* #t)
+    (set! *strict-optic-registration?* #t)
+    ;; Should raise an error - assert-error takes a thunk
+    (assert-error
+     (lambda ()
+       (with-access-tracking
+        (lambda ()
+          (reactive-view '(1 . 2) anon-fst)))))
+    ;; Reset to safe defaults
+    (set! *strict-optic-registration?* #f))
+
+  (define-test "no warning when not tracking accesses"
+    (reset-optic-warnings!)
+    (set! *warn-unregistered-optics?* #t)
+    (set! *strict-optic-registration?* #f)
+    ;; Outside of tracking context, no warning should be logged
+    (reactive-view '(1 . 2) anon-fst)
+    ;; The optic should NOT be in the warned cache
+    ;; (warning is only for tracked context where deps matter)
+    (assert-false (hashtable-ref *warned-optics* anon-fst #f)))
+
+  (define-test "silent mode when warnings disabled"
+    (reset-optic-warnings!)
+    (set! *warn-unregistered-optics?* #f)
+    (set! *strict-optic-registration?* #f)
+    ;; Should work silently without warning
+    (call-with-values
+      (lambda ()
+        (with-access-tracking
+         (lambda () (reactive-view '(42 . 0) anon-fst))))
+      (lambda (result deps)
+        (assert-equal 42 result)
+        ;; Still no deps tracked
+        (assert-equal '() deps)
+        ;; And no warning recorded
+        (assert-false (hashtable-ref *warned-optics* anon-fst #f)))))
+
+  (define-test "reactive-set! warns for unregistered optic"
+    (reset-optic-warnings!)
+    (set! *warn-unregistered-optics?* #t)
+    (set! *strict-optic-registration?* #f)
+    ;; reactive-set! should also warn (always, not just during tracking)
+    (reactive-set! anon-fst 99 '(1 . 2))
+    ;; Should be in warned cache now
+    (assert-true (hashtable-ref *warned-optics* anon-fst #f)))
+
+  (define-test "reactive-over! warns for unregistered optic"
+    (reset-optic-warnings!)
+    (set! *warn-unregistered-optics?* #t)
+    (set! *strict-optic-registration?* #f)
+    ;; Clear from previous test
+    (reset-optic-warnings!)
+    (reactive-over! anon-fst add1 '(1 . 2))
+    (assert-true (hashtable-ref *warned-optics* anon-fst #f)))
+
+  ;; Restore safe defaults after test group
+  (set! *warn-unregistered-optics?* #t)
+  (set! *strict-optic-registration?* #f)
+  (reset-optic-warnings!))
+
+;;; ============================================================
 ;;; Run Tests
 ;;; ============================================================
 

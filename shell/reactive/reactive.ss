@@ -45,6 +45,57 @@
 ;;; List of optic names accessed during current tracking session.
 (define *access-log* '())
 
+;;; ============================================================
+;;; Unregistered Optic Handling (fold-zxpe fix)
+;;; ============================================================
+;;;
+;;; When using anonymous/ad-hoc optics (not registered via register-optic!),
+;;; dependency tracking silently fails. These settings control the behavior.
+
+;;; *warn-unregistered-optics?* : Boolean
+;;; When #t, emit a warning when an unregistered optic is used in reactive
+;;; operations. Helps catch missing registrations during development.
+;;; Default: #t
+(define *warn-unregistered-optics?* #t)
+
+;;; *strict-optic-registration?* : Boolean
+;;; When #t, raise an error if an unregistered optic is used in reactive
+;;; operations. Use this for strict enforcement in production code.
+;;; Default: #f
+(define *strict-optic-registration?* #f)
+
+;;; *warned-optics* : Hashtable (Optic -> Boolean)
+;;; Cache to avoid repeated warnings for the same optic.
+(define *warned-optics* (make-eq-hashtable))
+
+;;; reset-optic-warnings! : -> Void
+;;; Clear the warning cache (useful for testing or session reset).
+(define (reset-optic-warnings!)
+  (set! *warned-optics* (make-eq-hashtable)))
+
+;;; handle-unregistered-optic! : Optic Symbol -> Void
+;;; Handle an unregistered optic according to current configuration.
+;;; - If strict mode: raises an error
+;;; - If warn mode: emits a warning (once per optic)
+;;; - Otherwise: silent (backward compatible)
+;;;
+;;; Arguments:
+;;;   optic     - The unregistered optic
+;;;   operation - The reactive operation being performed (for error messages)
+(define (handle-unregistered-optic! optic operation)
+  (cond
+    [*strict-optic-registration?*
+     (error operation
+            "unregistered optic - use register-optic! to enable dependency tracking"
+            optic)]
+    [*warn-unregistered-optics?*
+     (unless (hashtable-ref *warned-optics* optic #f)
+       (hashtable-set! *warned-optics* optic #t)
+       (display "Warning: ")
+       (display operation)
+       (display " used with unregistered optic - dependency tracking skipped\n")
+       (display "  Hint: Use (register-optic! 'name optic) for reactivity\n"))]))
+
 ;;; with-access-tracking : (-> a) -> (Values a (List Symbol))
 ;;; Execute thunk while tracking optic accesses.
 ;;; Returns the result and the list of optic names accessed.
@@ -264,39 +315,57 @@
 
 ;;; reactive-view : Any Optic -> Any
 ;;; View through an optic with access tracking and provenance.
+;;; Warns or errors on unregistered optics (configurable).
 (define (reactive-view s optic)
   (let ([name (lookup-optic-name optic)])
-    (log-optic-access! name))
+    (if name
+        (log-optic-access! name)
+        (when *tracking-accesses?*
+          (handle-unregistered-optic! optic 'reactive-view))))
   (traced-view s optic))
 
 ;;; reactive-preview : Any Optic -> Maybe Any
 ;;; Preview through an optic with access tracking and provenance.
+;;; Warns or errors on unregistered optics (configurable).
 (define (reactive-preview s optic)
   (let ([name (lookup-optic-name optic)])
-    (log-optic-access! name))
+    (if name
+        (log-optic-access! name)
+        (when *tracking-accesses?*
+          (handle-unregistered-optic! optic 'reactive-preview))))
   (traced-preview s optic))
 
 ;;; reactive-to-list : Any Optic -> (List Any)
 ;;; To-list through an optic with access tracking and provenance.
+;;; Warns or errors on unregistered optics (configurable).
 (define (reactive-to-list s optic)
   (let ([name (lookup-optic-name optic)])
-    (log-optic-access! name))
+    (if name
+        (log-optic-access! name)
+        (when *tracking-accesses?*
+          (handle-unregistered-optic! optic 'reactive-to-list))))
   (traced-to-list s optic))
 
 ;;; reactive-set! : Optic Any Any -> Any
 ;;; Set through an optic with invalidation and provenance.
+;;; Warns or errors on unregistered optics (configurable).
 ;;; Returns the new structure.
 (define (reactive-set! optic val s)
   (let ([name (lookup-optic-name optic)])
-    (when name (invalidate-optic! name)))
+    (if name
+        (invalidate-optic! name)
+        (handle-unregistered-optic! optic 'reactive-set!)))
   (traced-set optic val s))
 
 ;;; reactive-over! : Optic (Any -> Any) Any -> Any
 ;;; Modify through an optic with invalidation and provenance.
+;;; Warns or errors on unregistered optics (configurable).
 ;;; Returns the new structure.
 (define (reactive-over! optic f s)
   (let ([name (lookup-optic-name optic)])
-    (when name (invalidate-optic! name)))
+    (if name
+        (invalidate-optic! name)
+        (handle-unregistered-optic! optic 'reactive-over!)))
   (traced-over optic f s))
 
 ;;; ============================================================
@@ -396,6 +465,12 @@
 ;;; Access Tracking:
 ;;;   with-access-tracking, log-optic-access!
 ;;;   *tracking-accesses?*, *access-log*
+;;;
+;;; Unregistered Optic Configuration (fold-zxpe):
+;;;   *warn-unregistered-optics?*   - Emit warnings (default #t)
+;;;   *strict-optic-registration?*  - Raise errors (default #f)
+;;;   reset-optic-warnings!         - Clear warning cache
+;;;   handle-unregistered-optic!    - Called when optic not registered
 ;;;
 ;;; Invalidation:
 ;;;   invalidate-optic!, invalidate-optics!
