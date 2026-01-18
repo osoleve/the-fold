@@ -1,9 +1,9 @@
-## 10. Limitations and Non-Goals
+## 12. Limitations and Non-Goals
 
 
 Honest acknowledgment of what The Fold does NOT provide.
 
-### 10.1 Not True Totality
+### 12.1 Not True Totality
 
 The Fold guarantees *bounded execution*, not *totality*. The difference:
 
@@ -16,7 +16,7 @@ The Fold guarantees *bounded execution*, not *totality*. The difference:
 
 **Implication**: We cannot safely evaluate arbitrary Core functions during type checking. This limits dependent type expressiveness compared to Agda or Idris.
 
-### 10.2 Limited Gradual + Dependent Integration
+### 12.2 Limited Gradual + Dependent Integration
 
 The Fold does NOT support:
 - Holes in dependent positions (`(Π ((x : ?)) (Vec x A))`)
@@ -25,7 +25,7 @@ The Fold does NOT support:
 
 This is a deliberate simplification. Full gradual dependent types (Eremondi et al., 2019) require sophisticated runtime checks and approximate normalization. We chose separation over complexity.
 
-### 10.3 No Proof Tactics
+### 12.3 No Proof Tactics
 
 Unlike Agda, Idris, or Lean, The Fold provides no:
 - Tactic language for proof construction
@@ -35,7 +35,7 @@ Unlike Agda, Idris, or Lean, The Fold provides no:
 
 Dependent types are for specification, not theorem proving. Use external proof assistants for serious verification.
 
-### 10.4 Shell is Unverified
+### 12.4 Shell is Unverified
 
 The Shell is *trusted but unverified*. We believe it maintains its invariants, but we have not mechanically verified this. The verification boundary is:
 
@@ -49,7 +49,7 @@ The Shell is *trusted but unverified*. We believe it maintains its invariants, b
 
 Core is verified in the sense that well-typed programs don't go wrong (within fuel bounds). Shell correctness is assured by testing and code review.
 
-### 10.5 Single-Node Only
+### 12.5 Single-Node Only
 
 The current implementation is single-node:
 - No distributed CAS
@@ -58,7 +58,7 @@ The current implementation is single-node:
 
 Distributed operation is future work (§11).
 
-### 10.6 IDE Integration Limitations
+### 12.6 IDE Integration Limitations
 
 The Fold includes an LSP implementation (`shell/lsp/`) providing:
 - Hover-based type inference for top-level definitions
@@ -74,7 +74,7 @@ The Fold includes an LSP implementation (`shell/lsp/`) providing:
 
 The REPL and command-line tools remain the primary development interface, but LSP support enables basic IDE features for editors that support the protocol.
 
-### 10.7 Floating-Point Algebraic Properties
+### 12.7 Floating-Point Algebraic Properties
 
 Algebraic normalization assumes mathematical properties that don't hold perfectly for floating-point arithmetic:
 
@@ -91,7 +91,7 @@ Algebraic normalization assumes mathematical properties that don't hold perfectl
 
 **Future consideration**: Restrict algebraic canonicalization to exact arithmetic only, or provide an opt-out for numeric-sensitive code.
 
-### 10.8 Metaprogramming Type Interactions
+### 12.8 Metaprogramming Type Interactions
 
 The `quote`/`eval` mechanism has limited type integration:
 

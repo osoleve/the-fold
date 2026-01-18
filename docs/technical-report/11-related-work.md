@@ -1,7 +1,7 @@
-## 9. Related Work
+## 11. Related Work
 
 
-### 9.1 Content-Addressed Systems
+### 11.1 Content-Addressed Systems
 
 **Unison** (Chiusano & Bjarnason) is the closest related work—a programming language with content-addressed definitions. Key differences:
 
@@ -21,25 +21,25 @@ The Fold's de Bruijn approach provides stronger α-equivalence guarantees. Uniso
 
 **Nix**: Content-addressed builds. Nix addresses build reproducibility; The Fold addresses computation reproducibility at a finer grain.
 
-### 9.2 Dependent Type Systems
+### 11.2 Dependent Type Systems
 
 **Agda, Idris, Lean**: Full-spectrum dependent types with proof capabilities. The Fold's type system is less powerful (no universe polymorphism, limited tactics) but more practical (gradual typing, dictionary-passing classes).
 
 **Gradual Dependent Types** (Eremondi et al.): Theoretical foundations for combining gradual and dependent types. The Fold implements a conservative subset of these ideas.
 
-### 9.3 Homoiconic Languages
+### 11.3 Homoiconic Languages
 
 **Lisp tradition**: The Fold continues McCarthy's vision of code-as-data. Unlike traditional Lisps, The Fold adds content addressing and dependent types to the homoiconic foundation.
 
 **Racket**: Advanced macro system and language-oriented programming. The Fold's metaprogramming is simpler but content-addressed.
 
-### 9.4 Module Systems
+### 11.4 Module Systems
 
 **ML Modules**: Sophisticated module system with functors and signatures. The Fold's module system is simpler (no functors) but adds verification metadata.
 
 **Backpack**: Mixin modules for Haskell. Similar goals of flexible composition; different mechanisms.
 
-### 9.5 Probabilistic Programming and Automatic Differentiation
+### 11.5 Probabilistic Programming and Automatic Differentiation
 
 **Stan, PyMC, Pyro**: Popular probabilistic programming languages. The Fold's approach is more minimalist—variational inference as a library rather than a DSL, using general-purpose autodiff.
 

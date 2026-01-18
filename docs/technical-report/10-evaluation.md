@@ -1,7 +1,7 @@
-## 8. Evaluation
+## 10. Evaluation
 
 
-### 8.1 Storage Efficiency
+### 10.1 Storage Efficiency
 
 **Deduplication Ratio**:
 
@@ -31,7 +31,7 @@ Block Size    Count    Percentage
 
 Most blocks are small (under 500 bytes), enabling efficient hashing and transmission.
 
-### 8.2 Normalization Equivalence Detection
+### 10.2 Normalization Equivalence Detection
 
 We measured how often each normalization level detects semantic equivalences that simpler levels miss. The benchmark analyzed 939,880 subexpressions extracted from `core/` and `lattice/`.
 
@@ -68,7 +68,7 @@ The low semantic equivalence rate (0.06%) indicates the codebase is already writ
 
 **Bug Discovery**: The benchmark uncovered a normalization bug where unary negation `(- x)` was incorrectly collapsed to `x`. The identity element `0` for subtraction only applies to binary `(- x 0)`, not unary negation. This caused 122 false equivalences in initial results, demonstrating the value of empirical validation.
 
-### 8.3 Type Checking Performance
+### 10.3 Type Checking Performance
 
 **Inference Time** (representative programs):
 
@@ -85,7 +85,7 @@ Performance scales approximately linearly with program size.
 
 For dependent type checking, NbE adds ~15-20% overhead compared to simple type checking, justified by the expressiveness gains.
 
-### 8.4 Case Study: Building the Linear Algebra Module
+### 10.4 Case Study: Building the Linear Algebra Module
 
 We trace the complete workflow for implementing `lattice/linalg`:
 

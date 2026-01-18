@@ -4427,10 +4427,962 @@ The traditional query-dsl (`query-dsl.ss`) uses pattern matching on block fields
 The optic query language is more general—it works on any data structure navigable by optics, not just CAS blocks. The two approaches complement each other: use `query-dsl` for declarative block searches, use `optic-query` for structured data navigation.
 
 ---
-## 8. Evaluation
+## 8. Developer and Meta-Tooling
+
+The Fold's introspectable architecture enables powerful developer tooling built directly on the system's primitives. This chapter documents the meta-tooling ecosystem that supports both human developers and AI agents working on and with The Fold.
+
+### 8.1 The Manifest-Driven Architecture
+
+Every skill in the lattice is described by a `manifest.sexp` file—a machine-readable specification that serves as the single source of truth for the skill's metadata.
+
+**Manifest Schema**:
+
+```scheme
+(skill <name>
+  (version "x.y.z")
+  (tier 0-2)                       ; 0=foundational, 1=intermediate, 2+=advanced
+  (path "lattice/<name>")
+  (purity total|partial)           ; total=pure, partial=may have effects
+  (stability stable|experimental)
+  (fuel-bound "O(...)")            ; Complexity bound
+  (deps (<skill> ...))             ; Skill-level dependencies
+  (description "...")
+  (keywords (<keyword> ...))       ; For search
+  (aliases (<alias> ...))          ; Alternative names
+  (exports (<module> <symbol> ...) ...)
+  (modules (<name> "<file>" "<desc>") ...))
+```
+
+**Manifest Parser** (`lattice/meta/manifest.ss`):
+
+The manifest parser is pure Scheme code with no side effects—it takes S-expression input and produces structured records. This purity enables:
+
+1. Deterministic parsing regardless of environment state
+2. Easy testing without mocking file systems
+3. Reuse across different contexts (CLI, LSP, agents)
+
+```scheme
+(define (parse-manifest sexpr)
+  ;; Returns: (skill name version tier path deps exports modules ...)
+  ...)
+```
+
+**Knowledge Graph Construction**:
+
+Manifests are transformed into CAS blocks for indexing and querying:
+
+| Block Tag | Contents | Purpose |
+|-----------|----------|---------|
+| `KG-SKILL` | Skill metadata | Root node for skill |
+| `KG-MODULE` | Module within skill | File-level granularity |
+| `KG-EXPORT` | Exported symbol | Function/value discovery |
+
+The knowledge graph is built by `kg-build!` which scans all manifest files, parses them, and stores the resulting blocks in the CAS. This happens lazily on first access, with subsequent queries hitting a warm cache.
+
+**Initialization Performance**:
+
+| Scenario | Time |
+|----------|------|
+| Cold start (no cache) | ~2.5s |
+| Warm start (cached) | <0.3s |
+| Incremental (one skill changed) | ~0.5s |
+
+The warm cache stores serialized BM25 indices and skill metadata, eliminating the need to re-scan the filesystem.
+
+### 8.2 Semantic Search Infrastructure
+
+The lattice provides full-text search over skills, modules, and exports using the BM25 ranking algorithm (`lattice/meta/bm25.ss`).
+
+**Index Architecture**:
+
+Three separate indices enable different query patterns:
+
+| Index | Entries | Fields Indexed |
+|-------|---------|----------------|
+| skill-index | ~40 | name, description, keywords, aliases |
+| module-index | ~200 | name, description, skill context |
+| export-index | ~2,700 | symbol name, module context, type signature |
+
+**Search Modes**:
+
+| Function | Algorithm | Use Case |
+|----------|-----------|----------|
+| `lattice-find` / `lf` | BM25 full-text | Natural language queries |
+| `lattice-find-exact` / `lfe` | Exact match | Known symbol lookup |
+| `lattice-find-prefix` / `lfp` | Prefix match | Tab completion |
+| `lattice-find-substring` / `lfs` | Substring | Fuzzy search |
+
+**Type-Aware Search**:
+
+Search by input or output type to find functions by signature:
+
+```scheme
+(lf-input 'Matrix)   ; Functions that take Matrix
+(lf-output 'Vector)  ; Functions that return Vector
+```
+
+**Example Session**:
+
+```scheme
+> (lf "matrix inverse")
+((matrix-inverse 0.92 export (linalg matrix))
+ (solve-linear 0.78 export (linalg solvers))
+ (lu-decompose 0.65 export (linalg decomp)))
+
+> (lfe 'shapley-value)
+((shapley-value exact export (fp/game coop-games))
+ (shapley-shubik-index exact export (fp/game voting-games)))
+
+> (lfp 'vec)
+((vec+ vec- vec* vec-dot vec-cross vec-norm vec-normalize ...))
+```
+
+**BM25 Implementation**:
+
+The BM25 algorithm (`lattice/meta/bm25.ss`) implements:
+
+1. **TF (Term Frequency)**: `tf = freq / (freq + k1 * (1 - b + b * doc_len / avg_len))`
+2. **IDF (Inverse Document Frequency)**: `idf = log((N - n + 0.5) / (n + 0.5))`
+3. **Score**: `score = sum(tf * idf)` over query terms
+
+Default parameters: `k1 = 1.2`, `b = 0.75` (tuned for code search).
+
+### 8.3 DAG Navigation and Analysis
+
+The lattice forms a Directed Acyclic Graph where nodes are skills and edges are dependency relationships. The meta-tooling provides comprehensive DAG navigation.
+
+**Dependency Queries**:
+
+| Function | Alias | Returns |
+|----------|-------|---------|
+| `lattice-deps` | `ld` | Direct dependencies of a skill |
+| `lattice-deps-transitive` | — | All transitive dependencies |
+| `lattice-uses` | `lu` | Skills that depend on this one |
+| `lattice-uses-transitive` | — | All transitive dependents |
+
+**Path Finding**:
+
+```scheme
+(lattice-path 'physics/diff 'linalg)
+; => (physics/diff autodiff linalg)
+```
+
+This uses BFS to find the shortest dependency path between two skills.
+
+**Structural Queries**:
+
+| Function | Returns |
+|----------|---------|
+| `lattice-roots` | Skills with no dependencies (tier 0) |
+| `lattice-leaves` | Skills with no dependents |
+| `lattice-hubs` | Most-connected skills (high in/out degree) |
+| `lattice-orphans` | Skills not reachable from any entry point |
+
+**DAG Validation**:
+
+```scheme
+(lc 'new-skill)                        ; Check for cycles
+(lattice-would-cycle? 'from 'to)       ; Proactive cycle detection before adding edge
+```
+
+The cycle checker uses DFS with a visited set, flagging any back-edges that would create cycles.
+
+**Analytics**:
+
+```scheme
+> (lattice-stats)
+((skills . 42)
+ (modules . 198)
+ (exports . 2714)
+ (edges . 87)
+ (max-depth . 4)
+ (avg-deps . 2.1))
+
+> (lattice-health)
+((orphaned-skills . 0)
+ (cycles . 0)
+ (missing-manifests . 0)
+ (parse-errors . 0))
+
+> (lattice-coverage)
+((skills-with-tests . 38)
+ (skills-without-tests . 4)
+ (coverage-pct . 90.5))
+```
+
+### 8.4 Cross-Reference System
+
+The cross-reference system (`shell/introspect/xref.ss`) provides function-level dependency analysis, enabling "who calls this?" and "what does this call?" queries.
+
+**Index Construction**:
+
+The xref builder parses all Scheme source files, extracting:
+
+1. **Definitions**: `define`, `define-syntax`, `define-record-type`
+2. **References**: All symbol occurrences in expression position
+3. **File locations**: Path, line, column for jump-to-definition
+
+**Scale**:
+
+| Metric | Count |
+|--------|-------|
+| Definitions indexed | ~11,000 |
+| Call edges | ~25,000 |
+| Files scanned | ~400 |
+| Build time (cold) | ~3s |
+
+**Query API**:
+
+```scheme
+(xref-callers 'matrix-mul)   ; Who calls matrix-mul?
+(xref-callees 'gradient)     ; What does gradient call?
+(xref-location 'vec+)        ; Where is vec+ defined?
+```
+
+**Quick Aliases**:
+
+| Alias | Function |
+|-------|----------|
+| `lxu` | `xref-callers` (who **u**ses this) |
+| `lxc` | `xref-callees` (what this **c**alls) |
+
+**Integration with Source Locations**:
+
+The `source-loc.ss` module enables jump-to-definition by maintaining a mapping from symbol → file:line:column. This powers the LSP `textDocument/definition` handler.
+
+```scheme
+> (xref-location 'traced-set)
+("shell/provenance/traced-optics.ss" 45 1)
+```
+
+### 8.5 Refactoring Toolkit
+
+The refactoring toolkit (`shell/tools/refactor-toolkit.ss`) provides a unified interface for codebase-wide transformations with preview-before-apply semantics.
+
+**Unified Dispatcher**:
+
+```scheme
+(refactor 'help)                           ; Show all operations
+(refactor 'rename 'old-name 'new-name)     ; Preview rename
+(refactor 'apply)                          ; Apply staged changes
+```
+
+**Operations**:
+
+| Operation | Description |
+|-----------|-------------|
+| `rename` | Rename symbol across codebase |
+| `move` | Move symbol to different module |
+| `extract` | Extract expression to named function |
+| `inline` | Inline function at call sites |
+| `dead-code` | Find unused definitions |
+| `deps` | Show callers/callees |
+
+**Staged Changes**:
+
+All refactoring operations are staged before application:
+
+```scheme
+> (refactor 'rename 'vec+ 'vector-add)
+Staged changes:
+  lattice/linalg/vec.ss:45 - definition
+  lattice/linalg/matrix.ss:23 - reference
+  lattice/physics/diff/body.ss:67 - reference
+  ... (12 more)
+
+> (refactor 'status)
+15 files, 23 changes pending
+
+> (refactor 'apply)
+Applied 23 changes to 15 files.
+```
+
+**Dead Code Detection**:
+
+```scheme
+> (refactor 'dead-code)
+Dead code analysis:
+  HIGH confidence (no callers):
+    - legacy-parse (shell/old/parser.ss:12)
+    - unused-helper (lattice/fp/internal.ss:89)
+  MEDIUM confidence (internal only):
+    - format-debug (core/util/debug.ss:34)
+```
+
+Confidence levels:
+- **HIGH**: No callers found anywhere in codebase
+- **MEDIUM**: Only called from same file (possibly internal)
+- **LOW**: Called but from deprecated/test code
+
+**Quick Aliases**:
+
+| Alias | Operation |
+|-------|-----------|
+| `rr` | `(refactor 'rename ...)` |
+| `rm` | `(refactor 'move ...)` |
+| `rd` | `(refactor 'deps ...)` |
+| `rdc` | `(refactor 'dead-code)` |
+
+### 8.6 Template DSL for Code Generation
+
+The template DSL (`lattice/dsl/template/`) enables grammar-driven code construction, particularly useful for AI-assisted code generation where tracking parentheses is error-prone.
+
+**Core Concept**: Templates are S-expressions with named holes (`$name`) that can be filled incrementally.
+
+**Batch Mode** (Recommended):
+
+```scheme
+(tp-batch "
+  define (qs lst) $body
+  --- $body := if $cond $then $else
+  --- $cond := null? lst
+  --- $then := '()
+  --- $else := append (qs (filter $pred (cdr lst)))
+                      (cons (car lst) (qs (filter $pred2 (cdr lst))))
+  --- $pred := lambda (x) (< x (car lst))
+  --- $pred2 := lambda (x) (>= x (car lst))
+")
+```
+
+Produces:
+
+```scheme
+(define (qs lst)
+  (if (null? lst)
+      '()
+      (append (qs (filter (lambda (x) (< x (car lst))) (cdr lst)))
+              (cons (car lst) (qs (filter (lambda (x) (>= x (car lst))) (cdr lst)))))))
+```
+
+**Key Features**:
+
+1. **Implicit parentheses**: Multi-token lines auto-wrap
+2. **Incremental filling**: Build complex expressions step by step
+3. **Validation**: Type-check partial templates
+4. **Composition**: Templates can reference other templates
+
+**Grammar Rules**:
+
+| Input | Result |
+|-------|--------|
+| `"+ 1 2"` | `(+ 1 2)` |
+| `"x"` | `x` (single token stays unwrapped) |
+| `"'(a b)"` | `'(a b)` (quoted stays as-is) |
+| `"$hole"` | Placeholder for later filling |
+
+**Session Mode**:
+
+For interactive development:
+
+```scheme
+> (ts-start)
+> (ts-template '(define (f x) $body))
+> (ts-fill '$body '(+ x 1))
+> (ts-show)
+(define (f x) (+ x 1))
+> (ts-done)
+```
+
+**Files**:
+- `lattice/dsl/template/template.ss` — Core template engine
+- `shell/tools/template-session.ss` — Interactive session
+- `shell/tools/template-parser.ss` — Batch mode parser
+
+### 8.7 Issue Tracking (BBS)
+
+The Bulletin Board System (`shell/bbs/`) is a CAS-native issue tracker that stores issues and posts as immutable blocks with head pointers for current state.
+
+**Issue Schema** (tag: `bbs-issue`):
+
+```scheme
+((id . "fold-001")
+ (title . "Implement fuel tracking for FFI calls")
+ (status . open)             ; open, in_progress, blocked, closed
+ (priority . 2)              ; 0=critical, 1=high, 2=normal, 3=low, 4=backlog
+ (type . feature)            ; task, bug, feature, epic
+ (assignee . #f)
+ (labels . (ffi performance))
+ (created . "2026-01-15T...")
+ (updated . "2026-01-17T...")
+ (description . "...")
+ (version . 1))
+```
+
+**Core Operations**:
+
+```scheme
+(bbs-list)                              ; List open issues
+(bbs-ready)                             ; Unblocked work items
+(bbs-show 'fold-001)                    ; View issue details
+(bbs-create "Title")                    ; Create issue
+(bbs-update 'fold-001 'status 'in_progress)
+(bbs-close 'fold-001)                   ; Close issue
+```
+
+**Posts** (for changelogs, announcements):
+
+```scheme
+(post-create "Title" "Body..." 'changelog)
+(post-list 'type 'changelog)
+(post-show 'post-1)
+```
+
+Post types: `changelog`, `note`, `announcement`, `session-summary`.
+
+**Dependency Tracking**:
+
+Issues can declare dependencies on other issues:
+
+```scheme
+(bbs-add-dep! 'fold-002 'fold-001)      ; fold-002 blocks on fold-001
+(bbs-deps 'fold-002)                    ; => (fold-001)
+(bbs-blocked-by 'fold-001)              ; => (fold-002)
+```
+
+**CAS Architecture**:
+
+| Path | Purpose |
+|------|---------|
+| `.store/heads/bbs/fold-*.head` | Current hash for each issue |
+| `.store/heads/bbs/post-*.head` | Current hash for each post |
+| `.bbs/counter` | Next issue number |
+| `.bbs/post-counter` | Next post number |
+| `.bbs/deps` | Dependency graph |
+| `.bbs/index.cache` | In-memory index cache |
+
+Updates are atomic via compare-and-swap on head files (see §7.6.3).
+
+### 8.8 Design Principles
+
+The meta-tooling ecosystem follows several key design principles:
+
+**Everything Queryable Through Manifests**:
+
+All skill metadata flows through manifest files. There's no hidden configuration—if a skill has dependencies, exports, or keywords, they're declared in its manifest. This enables:
+
+- Automated documentation generation
+- Dependency analysis without loading code
+- Search indexing from metadata alone
+
+**CAS-Native Persistence**:
+
+The knowledge graph, BBS issues, and provenance records are all stored as CAS blocks. This provides:
+
+- Immutable history (every state is preserved)
+- Content deduplication
+- Merkle DAG structure for lineage
+
+**Lazy Loading**:
+
+Tools load their dependencies on demand:
+
+```scheme
+;; refactor-toolkit.ss
+(define (refactor op . args)
+  (case op
+    [(rename) (load-once "refactor-rename.ss") ...]
+    [(move) (load-once "refactor-move.ss") ...]
+    ...))
+```
+
+This keeps startup fast while providing rich functionality.
+
+**Pure/Impure Boundary**:
+
+- **Pure** (lattice): Manifest parsing, BM25 scoring, dependency analysis
+- **Impure** (shell): File I/O, index persistence, head file updates
+
+The pure components are testable and reusable; the impure components handle the messy reality of file systems and concurrent access.
+
+**Agent-Oriented Design**:
+
+All query functions return structured data, not formatted strings:
+
+```scheme
+(lf "query")   ; Returns ((name score type context) ...)
+(ld 'skill)    ; Returns (dep1 dep2 ...)
+```
+
+This enables agents to process results programmatically rather than parsing human-readable output.
+
+---
+
+## 9. The Fold as Agent Substrate
+
+The Fold's architecture provides unique properties for AI agent execution—content-addressed computation, fuel-bounded evaluation, capability-based security, and immutable provenance. This chapter examines why The Fold is particularly suited as an agent runtime substrate.
+
+### 9.1 Design Thesis
+
+The Fold embodies several architectural decisions that make it well-suited for agent workloads:
+
+**S-expressions Enable Stackable Abstractions**:
+
+S-expressions have a *fractal grammar*—the same syntax rules apply at every level of nesting. This means:
+
+- Agents can manipulate code as data without special parsing
+- Macros and code generation compose naturally
+- The same tooling works on expressions of any complexity
+
+Traditional languages require agents to handle varying syntactic constructs (statements vs expressions, blocks vs brackets, significant whitespace). S-expressions eliminate this cognitive overhead.
+
+**Editing ASTs is Easier Than Editing Text**:
+
+When agents generate or modify code, they're fundamentally manipulating abstract syntax trees. Most languages force a roundtrip: parse text → modify AST → serialize back to text. The Fold's homoiconicity means code *is* the AST—agents work directly with the data structure they're reasoning about.
+
+**Agents Don't Need to Solve the Halting Problem**:
+
+We can't prove arbitrary programs terminate, but we can ensure *agents* halt by construction. The Fold's fuel system provides predictable resource bounds:
+
+```scheme
+(eval-with-fuel expr env 10000)  ; Guaranteed to return within 10000 operations
+```
+
+An agent can always reason about its resource consumption before execution.
+
+**Content-Addressed Computation Creates Reproducibility**:
+
+When computation is content-addressed:
+
+- Same input → same hash → same result (referential transparency)
+- Computations can be cached by their hash
+- Shared subexpressions are automatically deduplicated
+- Audit trails are immutable
+
+**Pure Core + Impure Shell Enables Verifiable Reasoning**:
+
+The agent's "reasoning" (pure computation in Core) is separate from its "actions" (effects through Shell). This separation means:
+
+- Core computations can be verified, replayed, and tested
+- Effects are explicit and auditable
+- The attack surface for capability violations is small (Shell boundary only)
+
+### 9.2 The Agent Interface
+
+Agents interact with The Fold through a well-defined interface designed for both human and programmatic use.
+
+**CLI Access**:
+
+The `./fold` CLI provides the primary agent interface:
+
+```bash
+./fold "+ 1 2"                     # Implicit parens: (+ 1 2)
+./fold "map add1 '(1 2 3)"         # Multi-token auto-wraps
+./fold -s agent-1 "define x 10"    # Named session with state
+./fold -s agent-1 "(begin x)"      # Retrieve from session
+```
+
+Key features for agents:
+- **Implicit parentheses**: Reduces syntax errors
+- **Session persistence**: State survives across invocations
+- **Structured errors**: Exit codes and stderr for programmatic handling
+- **Auto-starting daemon**: No explicit lifecycle management needed
+
+**Core Agent Workflows**:
+
+| Workflow | Entry Points | Description |
+|----------|--------------|-------------|
+| Capability Discovery | `lf`, `li`, `le` | Find available functions in the lattice |
+| Data Manipulation | `^.`, `.~`, `%~`, `>>>` | Composable optic operations |
+| Querying | `oquery`, `oquery-where` | Declarative data extraction |
+| Reactive State | `define-reactive`, `reactive-value` | Auto-invalidating cached computations |
+| Coordination | `bbs-create`, `bbs-list`, `bbs-ready` | Async work coordination |
+| Provenance | `traced-set`, `explain` | Auditable decision paths |
+| History | `undo`, `redo`, `branch` | Full undo/redo with branching |
+
+**Structured Data Access via Optics**:
+
+The optics tower (§7.8) provides type-safe, composable data access:
+
+```scheme
+;; View nested data
+(^. body (>>> body-pos-lens vec2-x-lens))
+
+;; Modify at path
+(& body (%~ (>>> body-pos-lens vec2-x-lens) add1))
+
+;; Collect from traversal
+(^.. world (>>> world-all-bodies body-vel-lens))
+```
+
+Optics compose: `Lens >>> Lens = Lens`, `Lens >>> Prism = Affine`. The type system tracks what operations are valid.
+
+**Query DSL**:
+
+For complex data extraction, the optic query language (§7.12) provides declarative access:
+
+```scheme
+(oquery-pipe world world-each-body
+  (lambda (b) (> (^. b body-vel-y) 0))    ; Filter
+  (lambda (b) (^. b body-name)))          ; Project
+```
+
+### 9.3 Fuel-Bounded Computation
+
+Every operation in The Fold has a predictable fuel cost. Agents can estimate resource consumption before execution.
+
+**Fuel Model**:
+
+| Operation Class | Fuel Cost |
+|-----------------|-----------|
+| Primitive ops (`+`, `cons`, `car`) | O(1) |
+| Linear traversals (`map`, `filter`) | O(n) |
+| Sorting operations | O(n log n) |
+| Matrix operations | O(n²) to O(n³) |
+| BVH queries (§7.4) | O(log n) average |
+
+**Predictive Estimation**:
+
+Before executing expensive operations, agents can query fuel requirements:
+
+```scheme
+(estimate-fuel '(matrix-mul A B))  ; Returns estimated fuel cost
+```
+
+**Resumable Execution**:
+
+Long-running computations can checkpoint and resume:
+
+```scheme
+(define checkpoint (eval-with-fuel expr env 5000))
+(if (out-of-fuel? checkpoint)
+    (resume-from checkpoint 10000)  ; Continue with more fuel
+    (result-value checkpoint))
+```
+
+This enables agents to:
+1. Start with conservative fuel budgets
+2. Checkpoint at regular intervals
+3. Resume after yielding to other tasks
+
+**Why Fuel Matters for Agents**:
+
+Traditional runtimes have unbounded execution—an agent can accidentally trigger infinite loops or exponential blowup. Fuel provides:
+
+- **Predictability**: Agent can commit to resource bounds upfront
+- **Fairness**: Multiple agents share resources via fuel allocation
+- **Safety**: Runaway computation is impossible by construction
+
+### 9.4 Effect Pipelines
+
+Agents execute effects through structured pipelines (`lattice/pipeline/`), not ad-hoc side effects.
+
+**Pipeline Stages**:
+
+A pipeline is a sequence of stages, each with an explicit effect type:
+
+```scheme
+(define my-pipeline
+  (pipeline
+    (stage 'fetch (effect/http "https://api.example.com/data"))
+    (stage 'parse (effect/fold-eval '(parse-json $input)))
+    (stage 'store (effect/store-put '$result))
+    (stage 'respond (effect/llm "Summarize: $result"))))
+```
+
+**Effect Types**:
+
+| Effect | Description |
+|--------|-------------|
+| `llm` | LLM API call |
+| `fold-eval` | Pure Fold evaluation |
+| `shell` | Shell command execution |
+| `store-put` / `store-get` | CAS operations |
+| `checkpoint` | Save/restore state |
+| `http` | HTTP requests |
+
+**Council Effects** (Multi-Model Reasoning):
+
+For complex decisions, agents can invoke multiple models:
+
+```scheme
+(effect/council 'consensus
+  '((claude "Analyze this code for bugs")
+    (gemini "Review for security issues")
+    (local "Check style compliance")))
+```
+
+Council modes:
+- `sequential`: Each model builds on previous
+- `parallel`: All models run independently
+- `vote`: Majority decision
+- `debate`: Models critique each other
+- `consensus`: Iterate until agreement
+
+**Pipeline Execution**:
+
+Pipelines are *pure definitions*—they describe what effects to perform but don't execute them. The shell interpreter runs pipelines:
+
+```scheme
+(run-pipeline my-pipeline initial-context)
+```
+
+This separation means:
+- Pipelines can be serialized, stored, shared
+- Execution is auditable (every stage logged)
+- Testing can mock effect handlers
+
+### 9.5 Capability-Based Security
+
+Agents operate under a capability-based security model where permissions are explicit, unforgeable tokens.
+
+**Capability Records**:
+
+Capabilities are opaque records that can only be created by Shell code:
+
+```scheme
+;; Shell mints capabilities
+(define file-cap (mint-capability 'file-read "/home/data"))
+
+;; Core receives capabilities, cannot inspect internals
+(define (process-data cap)
+  (let ([content (read-with-cap cap)])  ; Uses capability
+    (parse content)))
+```
+
+**Security Properties**:
+
+1. **Unforgeable**: Core code cannot construct capabilities
+2. **Transferable**: Capabilities can be passed to functions
+3. **Revocable**: Shell can invalidate capabilities
+4. **Auditable**: Capability usage is logged
+
+**Capability Audit**:
+
+```scheme
+(capability-audit 'my-agent)
+; => ((file-read "/home/data" 15 times)
+;     (network "api.example.com" 3 times)
+;     (store-write ".store/" 42 times))
+```
+
+**Why Capabilities for Agents?**
+
+Traditional permission models (user-based, role-based) don't map well to agents:
+- Agents may need temporary, scoped permissions
+- Permissions should flow with data, not identity
+- Audit trails need fine-grained attribution
+
+Capabilities provide exactly this: permissions are values that can be passed, scoped, and tracked.
+
+### 9.6 Reactive State and Provenance
+
+Agents need both reactive updates (when dependencies change) and provenance (how did we get here).
+
+**Reactive Derivations** (§7.11):
+
+Define computed values that automatically invalidate when dependencies change:
+
+```scheme
+(define-reactive 'player-health world-state
+  (lambda (world)
+    (reactive-view world (>>> (body-lens 'player) health-lens))))
+
+(reactive-value 'player-health)     ; Computed and cached
+;; ... world-state changes via reactive-set! ...
+(reactive-value 'player-health)     ; Recomputed with new value
+```
+
+The reactive system tracks which optics were accessed during computation and invalidates when those optics are written.
+
+**Provenance Tracking** (§7.10):
+
+Every traced optic operation creates an immutable audit record:
+
+```scheme
+(define v1 '(1 . 2))
+(define v2 (traced-set lens-fst 10 v1))
+(define v3 (traced-set lens-snd 20 v2))
+
+(explain v3)
+; => Lineage for 00abc123...
+;    Step 1: set via lens-fst (lens)
+;      Source: 00def456... → (1 . 2)
+;      Result: 00789abc... → (10 . 2)
+;    Step 2: set via lens-snd (lens)
+;      Source: 00789abc... → (10 . 2)
+;      Result: 00abc123... → (10 . 20)
+```
+
+**Query Provenance**:
+
+```scheme
+(provenance-for-result result-hash)   ; What created this?
+(trace-lineage result-hash)           ; Full history
+(find-provenance-by-agent 'my-agent)  ; All operations by agent
+```
+
+**Why Both?**
+
+- **Reactivity** enables responsive agents: state changes propagate automatically
+- **Provenance** enables explainable agents: every decision has a traceable path
+
+Together, they provide agents with dynamic state that remains fully auditable.
+
+### 9.7 Content-Addressed Knowledge Base
+
+Agent knowledge is stored as immutable CAS blocks, providing several key properties.
+
+**Semantic Identity**:
+
+The same reasoning produces the same hash:
+
+```scheme
+;; These produce identical hashes (α-equivalent)
+(store! (make-block 'thought '() "Consider: X implies Y"))
+(store! (make-block 'thought '() "Consider: X implies Y"))
+; => Same hash, no duplication
+```
+
+**Merkle DAG Structure**:
+
+Knowledge blocks can reference other blocks, forming a DAG:
+
+```scheme
+(define premise-1 (store! (make-block 'premise '() "All men are mortal")))
+(define premise-2 (store! (make-block 'premise '() "Socrates is a man")))
+(define conclusion (store! (make-block 'conclusion
+                                        (vector premise-1 premise-2)
+                                        "Socrates is mortal")))
+```
+
+The conclusion block references its premises—the reasoning structure is explicit.
+
+**Automatic Deduplication**:
+
+If two agents independently derive the same conclusion, it's stored once:
+
+```scheme
+;; Agent A derives: "The function is O(n²)"
+;; Agent B derives: "The function is O(n²)"
+;; => Single block in CAS, both agents reference it
+```
+
+**Lineage Tracking**:
+
+Every block knows its inputs (refs vector). Tracing refs reconstructs the full derivation:
+
+```scheme
+(collect-block-tree fetch conclusion-hash)
+; => All blocks in the reasoning chain
+```
+
+### 9.8 Multi-Agent Coordination
+
+Multiple agents coordinate through CAS-native mechanisms designed for concurrent, asynchronous operation.
+
+**BBS (Bulletin Board System)**:
+
+Agents communicate through the issue tracker (§8.7):
+
+```scheme
+;; Agent A creates work item
+(bbs-create "Analyze module X for performance issues")
+
+;; Agent B claims and works
+(bbs-update 'fold-042 'status 'in_progress)
+(bbs-update 'fold-042 'assignee 'agent-b)
+
+;; Agent B completes
+(bbs-close 'fold-042)
+```
+
+**Properties**:
+- **Asynchronous**: No tight coupling between agents
+- **Persistent**: Work survives agent restarts
+- **Auditable**: Full history in CAS
+- **Priority-based**: Agents can query `(bbs-ready)` for highest-priority unblocked work
+
+**Flashmob (QA Triage)**:
+
+For coordinated quality assurance, the flashmob system aggregates findings from multiple agents:
+
+```scheme
+(flashmob-report! 'agent-a
+  '((file . "vec.ss")
+    (severity . high)
+    (confidence . 0.9)
+    (finding . "Potential overflow in vec-dot")))
+```
+
+The flashmob coordinator:
+1. Aggregates findings from all agents
+2. Applies game-theoretic credit allocation (Shapley values)
+3. Ranks issues by severity × confidence
+4. Exports actionable items to BBS
+
+**No Shared Mutable State**:
+
+Agents never share mutable memory. All coordination happens through:
+- CAS blocks (immutable, content-addressed)
+- Head pointers (atomic compare-and-swap)
+- BBS issues (explicit work items)
+
+This eliminates entire classes of concurrency bugs (races, deadlocks, lost updates).
+
+### 9.9 Differentiating Properties
+
+The Fold's architecture provides properties that distinguish it from traditional agent runtimes.
+
+| Property | Traditional Runtime | The Fold |
+|----------|---------------------|----------|
+| **Identity** | Process ID, memory address | Content hash |
+| **State** | Mutable memory | Immutable blocks |
+| **Resource bounds** | Unknown until crash/timeout | Fuel-predicted |
+| **Reasoning audit** | Logs (lossy, ad-hoc) | Provenance (complete, structured) |
+| **Code updates** | Replace process, lose state | New hash, old preserved |
+| **Multi-agent** | Shared mutable state, locks | CAS coordination, no locks |
+| **Effects** | Implicit, anywhere | Explicit pipeline stages |
+| **Permissions** | User/role-based | Capability tokens |
+
+**Content-Addressed Identity**:
+
+Traditional systems identify agents by process ID or memory address. The Fold identifies computations by their content hash. This means:
+- "Same computation" has a precise definition
+- Results can be cached and shared across agents
+- Identical reasoning from different agents is recognized as identical
+
+**Immutable State**:
+
+Mutable state requires careful synchronization. Immutable blocks eliminate this:
+- No locks needed—blocks never change
+- "Update" means creating a new block with new hash
+- History is automatic—old versions exist forever
+
+**Predictable Resources**:
+
+Traditional runtimes discover resource limits through failure. The Fold knows costs upfront:
+- Fuel estimation before execution
+- Guaranteed termination within budget
+- Fair sharing through fuel allocation
+
+**Complete Audit Trail**:
+
+Logs are typically unstructured text, prone to loss, and incomplete. Provenance is:
+- Structured (typed records)
+- Immutable (CAS-stored)
+- Complete (every traced operation recorded)
+- Queryable (find by agent, optic, time)
+
+**Safe Evolution**:
+
+Updating agent code in traditional systems risks losing state or breaking assumptions. With content-addressing:
+- Old code continues to exist (its hash)
+- New code gets a new hash
+- Both can coexist, be compared, rolled back
+
+**Lock-Free Coordination**:
+
+Shared mutable state requires locks, which cause deadlocks and contention. CAS coordination:
+- Compare-and-swap on head pointers
+- Retry on conflict (optimistic concurrency)
+- No global locks, no deadlocks
+
+---
+
+## 10. Evaluation
 
 
-### 8.1 Storage Efficiency
+### 10.1 Storage Efficiency
 
 **Deduplication Ratio**:
 
@@ -4460,7 +5412,7 @@ Block Size    Count    Percentage
 
 Most blocks are small (under 500 bytes), enabling efficient hashing and transmission.
 
-### 8.2 Normalization Equivalence Detection
+### 10.2 Normalization Equivalence Detection
 
 We measured how often each normalization level detects semantic equivalences that simpler levels miss. The benchmark analyzed 939,880 subexpressions extracted from `core/` and `lattice/`.
 
@@ -4497,7 +5449,7 @@ The low semantic equivalence rate (0.06%) indicates the codebase is already writ
 
 **Bug Discovery**: The benchmark uncovered a normalization bug where unary negation `(- x)` was incorrectly collapsed to `x`. The identity element `0` for subtraction only applies to binary `(- x 0)`, not unary negation. This caused 122 false equivalences in initial results, demonstrating the value of empirical validation.
 
-### 8.3 Type Checking Performance
+### 10.3 Type Checking Performance
 
 **Inference Time** (representative programs):
 
@@ -4514,7 +5466,7 @@ Performance scales approximately linearly with program size.
 
 For dependent type checking, NbE adds ~15-20% overhead compared to simple type checking, justified by the expressiveness gains.
 
-### 8.4 Case Study: Building the Linear Algebra Module
+### 10.4 Case Study: Building the Linear Algebra Module
 
 We trace the complete workflow for implementing `lattice/linalg`:
 
@@ -4562,10 +5514,10 @@ dot  : (∀ (n) (→ (Vec n Num) (→ (Vec n Num) Num)))
 4. `autodiff` is now verified
 
 ---
-## 9. Related Work
+## 11. Related Work
 
 
-### 9.1 Content-Addressed Systems
+### 11.1 Content-Addressed Systems
 
 **Unison** (Chiusano & Bjarnason) is the closest related work—a programming language with content-addressed definitions. Key differences:
 
@@ -4585,25 +5537,25 @@ The Fold's de Bruijn approach provides stronger α-equivalence guarantees. Uniso
 
 **Nix**: Content-addressed builds. Nix addresses build reproducibility; The Fold addresses computation reproducibility at a finer grain.
 
-### 9.2 Dependent Type Systems
+### 11.2 Dependent Type Systems
 
 **Agda, Idris, Lean**: Full-spectrum dependent types with proof capabilities. The Fold's type system is less powerful (no universe polymorphism, limited tactics) but more practical (gradual typing, dictionary-passing classes).
 
 **Gradual Dependent Types** (Eremondi et al.): Theoretical foundations for combining gradual and dependent types. The Fold implements a conservative subset of these ideas.
 
-### 9.3 Homoiconic Languages
+### 11.3 Homoiconic Languages
 
 **Lisp tradition**: The Fold continues McCarthy's vision of code-as-data. Unlike traditional Lisps, The Fold adds content addressing and dependent types to the homoiconic foundation.
 
 **Racket**: Advanced macro system and language-oriented programming. The Fold's metaprogramming is simpler but content-addressed.
 
-### 9.4 Module Systems
+### 11.4 Module Systems
 
 **ML Modules**: Sophisticated module system with functors and signatures. The Fold's module system is simpler (no functors) but adds verification metadata.
 
 **Backpack**: Mixin modules for Haskell. Similar goals of flexible composition; different mechanisms.
 
-### 9.5 Probabilistic Programming and Automatic Differentiation
+### 11.5 Probabilistic Programming and Automatic Differentiation
 
 **Stan, PyMC, Pyro**: Popular probabilistic programming languages. The Fold's approach is more minimalist—variational inference as a library rather than a DSL, using general-purpose autodiff.
 
@@ -4621,12 +5573,12 @@ The Fold's de Bruijn approach provides stronger α-equivalence guarantees. Uniso
 The Fold's probabilistic programming is less feature-rich but fully introspectable and self-contained.
 
 ---
-## 10. Limitations and Non-Goals
+## 12. Limitations and Non-Goals
 
 
 Honest acknowledgment of what The Fold does NOT provide.
 
-### 10.1 Not True Totality
+### 12.1 Not True Totality
 
 The Fold guarantees *bounded execution*, not *totality*. The difference:
 
@@ -4639,7 +5591,7 @@ The Fold guarantees *bounded execution*, not *totality*. The difference:
 
 **Implication**: We cannot safely evaluate arbitrary Core functions during type checking. This limits dependent type expressiveness compared to Agda or Idris.
 
-### 10.2 Limited Gradual + Dependent Integration
+### 12.2 Limited Gradual + Dependent Integration
 
 The Fold does NOT support:
 - Holes in dependent positions (`(Π ((x : ?)) (Vec x A))`)
@@ -4648,7 +5600,7 @@ The Fold does NOT support:
 
 This is a deliberate simplification. Full gradual dependent types (Eremondi et al., 2019) require sophisticated runtime checks and approximate normalization. We chose separation over complexity.
 
-### 10.3 No Proof Tactics
+### 12.3 No Proof Tactics
 
 Unlike Agda, Idris, or Lean, The Fold provides no:
 - Tactic language for proof construction
@@ -4658,7 +5610,7 @@ Unlike Agda, Idris, or Lean, The Fold provides no:
 
 Dependent types are for specification, not theorem proving. Use external proof assistants for serious verification.
 
-### 10.4 Shell is Unverified
+### 12.4 Shell is Unverified
 
 The Shell is *trusted but unverified*. We believe it maintains its invariants, but we have not mechanically verified this. The verification boundary is:
 
@@ -4672,7 +5624,7 @@ The Shell is *trusted but unverified*. We believe it maintains its invariants, b
 
 Core is verified in the sense that well-typed programs don't go wrong (within fuel bounds). Shell correctness is assured by testing and code review.
 
-### 10.5 Single-Node Only
+### 12.5 Single-Node Only
 
 The current implementation is single-node:
 - No distributed CAS
@@ -4681,7 +5633,7 @@ The current implementation is single-node:
 
 Distributed operation is future work (§11).
 
-### 10.6 IDE Integration Limitations
+### 12.6 IDE Integration Limitations
 
 The Fold includes an LSP implementation (`shell/lsp/`) providing:
 - Hover-based type inference for top-level definitions
@@ -4697,7 +5649,7 @@ The Fold includes an LSP implementation (`shell/lsp/`) providing:
 
 The REPL and command-line tools remain the primary development interface, but LSP support enables basic IDE features for editors that support the protocol.
 
-### 10.7 Floating-Point Algebraic Properties
+### 12.7 Floating-Point Algebraic Properties
 
 Algebraic normalization assumes mathematical properties that don't hold perfectly for floating-point arithmetic:
 
@@ -4714,7 +5666,7 @@ Algebraic normalization assumes mathematical properties that don't hold perfectl
 
 **Future consideration**: Restrict algebraic canonicalization to exact arithmetic only, or provide an opt-out for numeric-sensitive code.
 
-### 10.8 Metaprogramming Type Interactions
+### 12.8 Metaprogramming Type Interactions
 
 The `quote`/`eval` mechanism has limited type integration:
 
@@ -4729,7 +5681,7 @@ The `quote`/`eval` mechanism has limited type integration:
 Typed quotation (as in MetaML or Typed Template Haskell) is not implemented. Metaprogramming operates at the untyped level.
 
 ---
-## 11. Future Work
+## 13. Future Work
 
 
 **Distributed CAS**: Extend the CAS to peer-to-peer networks, enabling decentralized code sharing with content verification.
@@ -4745,7 +5697,7 @@ Typed quotation (as in MetaML or Typed Template Haskell) is not implemented. Met
 **Formal Verification**: Mechanize the Core semantics in a proof assistant, proving type soundness and other properties.
 
 ---
-## 12. Conclusion
+## 14. Conclusion
 
 
 The Fold demonstrates that content-addressed homoiconic computation is practical. By combining:
