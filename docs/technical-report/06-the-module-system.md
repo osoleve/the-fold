@@ -287,7 +287,7 @@ The category module provides first-class categorical structures that unify and e
 
 - **Monad Derivation** (`monad-derivation.ss`): Every adjunction F ⊣ G yields a monad G∘F via `monad-from-adjunction`. Derives return from the unit η and join from G(ε). The List monad is derived automatically from `adj-free-list`. Includes monad law verification.
 
-- **Comonads** (`comonad.ss`): Full comonad type class with Store, Env, and Traced comonads. `comonad-from-adjunction` derives comonads from adjunctions (F∘G). Comonads always compose (unlike monads), enabling `compose-comonads`.
+- **Comonads** (`comonad.ss`): Full comonad type class with Store, Env, and Traced comonads. `comonad-from-adjunction` derives comonads from adjunctions (F∘G). Comonad composition requires a **distributive law** δ : W₂(W₁(a)) → W₁(W₂(a)) satisfying coherence conditions—`compose-comonads-with-dist` implements this correctly with position-aware extraction via the `copeek` abstraction.
 
 - **Kan Extensions** (`kan-extension.ss`): Right Kan Extension (Ran) and Left Kan Extension (Lan) as universal constructions. The Codensity monad `Ran_M M` provides O(1) bind—the categorical explanation for the `free-queue` and `eff-queue` optimizations in `free.ss` and `effects.ss`.
 

@@ -2091,28 +2091,51 @@ The **Store comonad** arises from the product-exponential adjunction (−)×S �
 
 #### 5.13.6 Comonad Composition
 
-Unlike monads, **comonads always compose**. Given comonads W₁ and W₂:
+Like monads, **comonads require a distributive law** to compose. Given comonads W₁ and W₂, composition requires:
 
-```scheme
-(define (compose-comonads w1 w2)
-  (make-comonad
-   (functor-compose (comonad-functor w1) (comonad-functor w2))
-   (lambda (w1w2a)
-     ;; extract₁ ∘ fmap₁(extract₂)
-     (extract-with w1 ((functor-fmap (comonad-functor w1))
-                       (lambda (w2a) (extract-with w2 w2a))
-                       w1w2a)))
-   (lambda (f w1w2a)
-     ;; extend using both comonads
-     (extend-with w1
-       (lambda (w1x)
-         ((functor-fmap (comonad-functor w1))
-          (lambda (w2a) (extend-with w2 (lambda (w2y) (f ???)) w2a))
-          w1x))
-       w1w2a))))
+```
+δ : W₂(W₁(a)) → W₁(W₂(a))
 ```
 
-This is because the extract/duplicate operations distribute coherently without needing a distributive law (which monads require).
+satisfying coherence conditions:
+- `δ ∘ W₂(extract₁) = extract₁` (distributing then extracting W₁ is extracting W₁)
+- `δ ∘ extract₂ = W₁(extract₂)` (extracting W₂ then distributing is just extracting W₂ inside)
+- duplicate coherence for both layers
+
+The implementation requires a **copeek** operation `W₂(a) → W₂(a) → a` that extracts from the second argument at the position indicated by the first:
+
+```scheme
+(define (compose-comonads-with-dist* w1 w2 dist copeek)
+  (let ([extr1 (comonad-extract w1)]
+        [extr2 (comonad-extract w2)]
+        [ext1  (comonad-extend w1)]
+        [ext2  (comonad-extend w2)]
+        [fmap1 (functor-fmap (comonad-functor w1))])
+    (make-comonad
+     (functor-compose (comonad-functor w1) (comonad-functor w2))
+     ;; extract: W₁(W₂(a)) → a
+     (lambda (w1w2a) (extr2 (extr1 w1w2a)))
+     ;; extend: (W₁(W₂(a)) → b) → W₁(W₂(a)) → W₁(W₂(b))
+     (lambda (f w1w2a)
+       (ext1
+        (lambda (w1-pos)
+          (ext2
+           (lambda (w2-foc)
+             ;; Build W₂(W₁(a)) by iterating over W₂ positions
+             (let ([w2w1a
+                    (ext2
+                     (lambda (w2-iter)
+                       (fmap1
+                        (lambda (w2-in-w1)
+                          (copeek w2-iter w2-in-w1))
+                        w1-pos))
+                     w2-foc)])
+               (f (dist w2w1a))))
+           (extr1 w1-pos)))
+        w1w2a)))))
+```
+
+The key insight: when W₂ has meaningful position (like Store), `copeek` must extract at the indicator's position; when W₂ is trivial (like Env), the default `(lambda (pos val) (extract val))` suffices.
 
 ### 5.14 Monad Derivation from Adjunctions
 
@@ -2711,7 +2734,7 @@ The category module provides first-class categorical structures that unify and e
 
 - **Monad Derivation** (`monad-derivation.ss`): Every adjunction F ⊣ G yields a monad G∘F via `monad-from-adjunction`. Derives return from the unit η and join from G(ε). The List monad is derived automatically from `adj-free-list`. Includes monad law verification.
 
-- **Comonads** (`comonad.ss`): Full comonad type class with Store, Env, and Traced comonads. `comonad-from-adjunction` derives comonads from adjunctions (F∘G). Comonads always compose (unlike monads), enabling `compose-comonads`.
+- **Comonads** (`comonad.ss`): Full comonad type class with Store, Env, and Traced comonads. `comonad-from-adjunction` derives comonads from adjunctions (F∘G). Comonad composition requires a **distributive law** δ : W₂(W₁(a)) → W₁(W₂(a)) satisfying coherence conditions—`compose-comonads-with-dist` implements this correctly with position-aware extraction via the `copeek` abstraction.
 
 - **Kan Extensions** (`kan-extension.ss`): Right Kan Extension (Ran) and Left Kan Extension (Lan) as universal constructions. The Codensity monad `Ran_M M` provides O(1) bind—the categorical explanation for the `free-queue` and `eff-queue` optimizations in `free.ss` and `effects.ss`.
 
@@ -3583,16 +3606,24 @@ The profunctor optics module (`profunctor-optics.ss`) provides an alternative re
 - `Strong` — Adds `pfirst : p a b → p (a,c) (b,c)` (enables lenses)
 - `Choice` — Adds `pleft : p a b → p (Either a c) (Either b c)` (enables prisms)
 - `Closed` — Adds `pclosed : p a b → p (x→a) (x→b)` (enables grates)
+- `Wander` — Combines Strong + Choice with `wander : ((a → F b) → s → F t) → p a b → p s t` (enables traversals)
 
 **Advantages**:
 1. Composition is function composition (automatic type inference)
 2. Type class hierarchy mirrors optic hierarchy
 3. Separation of concerns: `Forget` for reading, `Tagged` for writing
 
+**Profunctor optic types**:
+- `p-iso`, `p-lens`, `p-prism`, `p-affine`, `p-grate` — Core optics
+- `p-traversal` — Multi-target optic using Wander class
+- `p-fold` — Read-only multi-target (composition: any optic + fold = fold)
+
 **Conversions**:
 ```scheme
 (lens->p-lens concrete-lens)    ; Concrete → Profunctor
 (p-lens->lens profunctor-lens)  ; Profunctor → Concrete
+(traversal->p-traversal trav)   ; Concrete traversal → Profunctor
+(p-traversal->traversal ptrav)  ; Profunctor → Concrete
 ```
 
 #### 7.8.5 Grate: The Dual of Lens
@@ -3669,7 +3700,45 @@ The Fold's content-addressed architecture benefits from optics in several ways:
 
 4. **Domain modeling**: Physics simulations, game state, and agent pipelines all benefit from declarative data access.
 
-**Future directions**: The optics foundation enables query languages (optics + pattern matching), reactive derivations (optic-based dependency tracking), and differentiable data access (optics + AD).
+**Future directions**: The optics foundation enables query languages (optics + pattern matching) and reactive derivations (optic-based dependency tracking).
+
+#### 7.8.8 Differentiable Data Access
+
+The traced optics module (`lattice/autodiff/traced-optics.ss`) bridges optics with automatic differentiation, enabling gradient computation through optic-focused paths:
+
+```scheme
+;; Gradient of loss w.r.t. optic focus
+(optic-gradient
+  (lambda (p) (traced-sq (car p)))  ; Loss = x²
+  lens-fst
+  '(3.0 . 4.0))
+; → 6.0  ; ∂(x²)/∂x = 2x = 6 at x=3
+
+;; Gradient through composed lenses
+(optic-gradient
+  (lambda (s) (traced-sq (view (>>> lens-fst lens-snd) s)))
+  (>>> lens-fst lens-snd)
+  '((1.0 . 2.0) . (3.0 . 4.0)))
+; → 4.0  ; Gradient at nested position
+
+;; Gradients for traversal targets (one per focus)
+(optic-gradient-list
+  (lambda (xs) (traced-sum (map traced-sq xs)))
+  traversal-each
+  '(1.0 2.0 3.0))
+; → (2.0 4.0 6.0)  ; Gradient for each element
+```
+
+**Key API**:
+| Function | Purpose |
+|----|-----|
+| `optic-gradient` | Gradient of loss w.r.t. lens/affine/iso focus |
+| `optic-gradient-list` | List of gradients for traversal targets |
+| `optic-gradient-maybe` | Maybe gradient for prism/affine (nothing if no match) |
+| `optimize-at` | Single gradient descent step at optic focus |
+| `optimize-steps` | Multiple gradient descent steps |
+
+**Architecture insight**: The `lift-at-optic` function traces only the optic focus, not the entire structure. This "pair of traced" pattern (vs "traced pair") enables efficient gradient computation through deeply nested structures while maintaining the compositional nature of optics.
 
 ### 7.9 Bidirectional Transformations
 

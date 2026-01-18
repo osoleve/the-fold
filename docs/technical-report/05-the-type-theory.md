@@ -940,28 +940,51 @@ The **Store comonad** arises from the product-exponential adjunction (−)×S �
 
 #### 5.13.6 Comonad Composition
 
-Unlike monads, **comonads always compose**. Given comonads W₁ and W₂:
+Like monads, **comonads require a distributive law** to compose. Given comonads W₁ and W₂, composition requires:
 
-```scheme
-(define (compose-comonads w1 w2)
-  (make-comonad
-   (functor-compose (comonad-functor w1) (comonad-functor w2))
-   (lambda (w1w2a)
-     ;; extract₁ ∘ fmap₁(extract₂)
-     (extract-with w1 ((functor-fmap (comonad-functor w1))
-                       (lambda (w2a) (extract-with w2 w2a))
-                       w1w2a)))
-   (lambda (f w1w2a)
-     ;; extend using both comonads
-     (extend-with w1
-       (lambda (w1x)
-         ((functor-fmap (comonad-functor w1))
-          (lambda (w2a) (extend-with w2 (lambda (w2y) (f ???)) w2a))
-          w1x))
-       w1w2a))))
+```
+δ : W₂(W₁(a)) → W₁(W₂(a))
 ```
 
-This is because the extract/duplicate operations distribute coherently without needing a distributive law (which monads require).
+satisfying coherence conditions:
+- `δ ∘ W₂(extract₁) = extract₁` (distributing then extracting W₁ is extracting W₁)
+- `δ ∘ extract₂ = W₁(extract₂)` (extracting W₂ then distributing is just extracting W₂ inside)
+- duplicate coherence for both layers
+
+The implementation requires a **copeek** operation `W₂(a) → W₂(a) → a` that extracts from the second argument at the position indicated by the first:
+
+```scheme
+(define (compose-comonads-with-dist* w1 w2 dist copeek)
+  (let ([extr1 (comonad-extract w1)]
+        [extr2 (comonad-extract w2)]
+        [ext1  (comonad-extend w1)]
+        [ext2  (comonad-extend w2)]
+        [fmap1 (functor-fmap (comonad-functor w1))])
+    (make-comonad
+     (functor-compose (comonad-functor w1) (comonad-functor w2))
+     ;; extract: W₁(W₂(a)) → a
+     (lambda (w1w2a) (extr2 (extr1 w1w2a)))
+     ;; extend: (W₁(W₂(a)) → b) → W₁(W₂(a)) → W₁(W₂(b))
+     (lambda (f w1w2a)
+       (ext1
+        (lambda (w1-pos)
+          (ext2
+           (lambda (w2-foc)
+             ;; Build W₂(W₁(a)) by iterating over W₂ positions
+             (let ([w2w1a
+                    (ext2
+                     (lambda (w2-iter)
+                       (fmap1
+                        (lambda (w2-in-w1)
+                          (copeek w2-iter w2-in-w1))
+                        w1-pos))
+                     w2-foc)])
+               (f (dist w2w1a))))
+           (extr1 w1-pos)))
+        w1w2a)))))
+```
+
+The key insight: when W₂ has meaningful position (like Store), `copeek` must extract at the indicator's position; when W₂ is trivial (like Env), the default `(lambda (pos val) (extract val))` suffices.
 
 ### 5.14 Monad Derivation from Adjunctions
 
