@@ -131,7 +131,13 @@
 
 ;;; adjunction-compose : Adjunction × Adjunction → Adjunction
 ;;; Compose F ⊣ G and F' ⊣ G' to get F'∘F ⊣ G∘G'
+;;; Requires: both arguments must be valid adjunctions.
 (define (adjunction-compose adj2 adj1)
+  ;; Input validation guards
+  (unless (adjunction? adj1)
+    (error 'adjunction-compose "expected adjunction for first argument" adj1))
+  (unless (adjunction? adj2)
+    (error 'adjunction-compose "expected adjunction for second argument" adj2))
   (let* ([F (adjunction-left adj1)]
          [G (adjunction-right adj1)]
          [η (adjunction-unit adj1)]
@@ -139,9 +145,14 @@
          [F-prime (adjunction-left adj2)]
          [G-prime (adjunction-right adj2)]
          [η-prime (adjunction-unit adj2)]
-         [ε-prime (adjunction-counit adj2)])
-    (let ([new-left (make-functor (lambda (f x) ((functor-fmap F-prime) (lambda (y) ((functor-fmap F) f y)) x)))]
-          [new-right (make-functor (lambda (f x) ((functor-fmap G) (lambda (y) ((functor-fmap G-prime) f y)) x)))])
+         [ε-prime (adjunction-counit adj2)]
+         ;; Hoist functor-fmap lookups out of hot path
+         [F-fmap (functor-fmap F)]
+         [G-fmap (functor-fmap G)]
+         [F-prime-fmap (functor-fmap F-prime)]
+         [G-prime-fmap (functor-fmap G-prime)])
+    (let ([new-left (make-functor (lambda (f x) (F-prime-fmap (lambda (y) (F-fmap f y)) x)))]
+          [new-right (make-functor (lambda (f x) (G-fmap (lambda (y) (G-prime-fmap f y)) x)))])
       (make-adjunction
        (string->symbol (format "~a∘~a" (adjunction-name adj2) (adjunction-name adj1)))
        new-left
@@ -177,7 +188,9 @@
 
 ;;; galois? : Any → Boolean
 (define (galois? x)
-  (and (pair? x) (eq? (car x) 'galois)))
+  (and (pair? x)
+       (eq? (car x) 'galois)
+       (= (length x) 4)))
 
 ;;; galois-lower : Galois → (P → Q)
 (define (galois-lower g) (caddr g))

@@ -145,7 +145,41 @@
   ;; val = '(a b)
   (test-true "verify-triangle-right composed"
              (verify-triangle-right composed '(a b))))
-;;; ==== 
+;;; ====
+;;; Test: Input Validation
+;;; ====
+
+(section "Input Validation")
+
+;; Helper to test that an expression throws an error
+(define (test-error name thunk)
+  (display "  ")
+  (display name)
+  (display ": ")
+  (let ([result (guard (e [else 'error-raised])
+                  (thunk)
+                  'no-error)])
+    (if (eq? result 'error-raised)
+        (display "✓")
+        (begin
+          (display "✗ (expected error, got: ")
+          (display result)
+          (display ")"))))
+  (newline))
+
+(test-error "adjunction-compose rejects non-adjunction arg1"
+            (lambda () (adjunction-compose adj-free-list 'not-an-adjunction)))
+
+(test-error "adjunction-compose rejects non-adjunction arg2"
+            (lambda () (adjunction-compose 'not-an-adjunction adj-free-list)))
+
+(test-false "galois? rejects malformed galois (wrong length)"
+            (galois? '(galois too few)))
+
+(test-false "galois? rejects non-galois"
+            (galois? '(not-galois a b c)))
+
+;;; ====
 ;;; Test: Galois Connections
 ;;; ====
 
