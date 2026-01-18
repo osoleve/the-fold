@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+# Post-commit hook for The Fold
+# Auto-deploys technical report when chapter files are changed
+#
+# Install: git config core.hooksPath .githooks
+
+set -e
+
+# Colors
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m'
+
+# Check if any technical report files were committed
+REPORT_FILES=$(git diff-tree --no-commit-id --name-only -r HEAD | grep -E '^docs/technical-report/' || true)
+
+if [ -n "$REPORT_FILES" ]; then
+    echo ""
+    echo -e "${YELLOW}[POST-COMMIT]${NC} Technical report files changed, rebuilding and deploying..."
+    echo ""
+
+    # Run the full deploy pipeline
+    if scheme --script docs/technical-report/assemble.ss --deploy; then
+        echo ""
+        echo -e "${GREEN}[POST-COMMIT]${NC} Technical report deployed successfully."
+    else
+        echo -e "${YELLOW}[POST-COMMIT]${NC} Warning: Deploy failed (non-blocking)"
+    fi
+fi
+
+exit 0
