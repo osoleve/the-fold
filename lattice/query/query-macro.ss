@@ -134,16 +134,31 @@
 
 ;;; string-contains? : String × String → Bool
 ;;; Case-sensitive substring search.
+;;; Uses character-by-character comparison to avoid substring allocations.
 (define (string-contains? haystack needle)
   (let ([h-len (string-length haystack)]
         [n-len (string-length needle)])
-    (if (> n-len h-len)
-        #f
-        (let loop ([i 0])
-          (cond
-            [(> (+ i n-len) h-len) #f]
-            [(string=? (substring haystack i (+ i n-len)) needle) #t]
-            [else (loop (+ i 1))])))))
+    (cond
+      [(= n-len 0) #t]  ; Empty needle always matches
+      [(> n-len h-len) #f]  ; Needle longer than haystack
+      [else
+       (let ([first-char (string-ref needle 0)])
+         ;; Scan for first character match, then verify rest
+         (let outer ([i 0])
+           (cond
+             [(> (+ i n-len) h-len) #f]
+             [(char=? (string-ref haystack i) first-char)
+              ;; First char matches, check remaining chars
+              (if (let inner ([j 1])
+                    (cond
+                      [(= j n-len) #t]  ; All chars matched
+                      [(char=? (string-ref haystack (+ i j))
+                               (string-ref needle j))
+                       (inner (+ j 1))]
+                      [else #f]))
+                  #t
+                  (outer (+ i 1)))]
+             [else (outer (+ i 1))])))])))  ; Fixed: removed extra parens
 
 ;;; string-downcase : String → String
 ;;; Convert string to lowercase.

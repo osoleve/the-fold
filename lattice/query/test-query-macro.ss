@@ -181,7 +181,25 @@
   (define-test "not? negates predicate"
     (let ([pred (not? (=? body-name-lens "alpha"))])
       (assert-false (pred (car test-bodies)))
-      (assert-true (pred (cadr test-bodies))))))
+      (assert-true (pred (cadr test-bodies)))))
+
+  (define-test "null-at? checks for missing target"
+    ;; All bodies have names, so null-at? should return false
+    (let ([pred (null-at? body-name-lens)])
+      (assert-false (pred (car test-bodies)))))
+
+  (define-test "exists-at? checks for present target"
+    ;; All bodies have names, so exists-at? should return true
+    (let ([pred (exists-at? body-name-lens)])
+      (assert-true (pred (car test-bodies)))))
+
+  (define-test "like? with needle longer than haystack returns false"
+    (let ([pred (like? body-name-lens "verylongnamethatdoesnotexist")])
+      (assert-false (pred (car test-bodies)))))
+
+  (define-test "like? is case-insensitive"
+    (let ([pred (like? body-name-lens "ALPHA")])
+      (assert-true (pred (car test-bodies))))))
 
 ;;; ============================================================
 ;;; Part 2: @ Operator Tests
@@ -497,7 +515,17 @@
 
   (define-test "like? with empty pattern matches all"
     (let ([pred (like? body-name-lens "")])
-      (assert-true (pred (car test-bodies))))))
+      (assert-true (pred (car test-bodies)))))
+
+  (define-test "select-fields extracts multiple fields"
+    (let* ([proj (select-fields (cons 'name body-name-lens)
+                                (cons 'x body-pos-x))]
+           [body (car test-bodies)]
+           [result (proj body)])
+      ;; alpha has name="alpha", x=0
+      (assert-equal 2 (length result))
+      (assert-equal "alpha" (cdr (assq 'name result)))
+      (assert-equal 0 (cdr (assq 'x result))))))
 
 ;;; ============================================================
 ;;; Run Tests
