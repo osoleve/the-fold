@@ -4,7 +4,7 @@
 ;;; enabling principled navigation and transformation of nested structures.
 
 (skill optics
-  (version "1.1.0")
+  (version "1.2.0")
   (tier 1)
   (path "lattice/fp/optics")
   (purity total)
@@ -14,9 +14,9 @@
   (deps (fp))  ; Depends on fp for base lens/prism in templates.ss
 
   (description
-   "A complete optics tower implementing the standard hierarchy of composable
-data accessors. Each optic type provides different capabilities for focusing
-on parts of data structures:
+   "A complete optics tower with bidirectional transformations for composable
+data access and reversible migrations. Each optic type provides different
+capabilities for focusing on parts of data structures:
 
                   Fold
                  /    \\
@@ -40,11 +40,17 @@ Key features:
 - Operator syntax (^., ^?, ^.., .~, %~) for ergonomic use
 - Comprehensive instances for Maybe, Either, List, and pairs
 - Automatic type-preserving composition
-- Grate for zipping multiple structures together")
+- Grate for zipping multiple structures together
+- Bidirectional transformations: migrations with automatic rollback
+- Schema DSL for field-level operations (rename, add, transform)
+- Block migrations for CAS schema evolution
+- Bottom-up tree traversal for Merkle DAG correctness")
 
   (keywords (optics lenses prisms affines traversals folds getters setters
              isomorphisms grates data-access composition functional-programming
-             profunctor profunctor-optics strong choice closed cotraverse zipWith))
+             profunctor profunctor-optics strong choice closed cotraverse zipWith
+             bidirectional migrations schema-evolution format-conversion
+             rollback reversible block-migration merkle-dag))
 
   (aliases (optics lens prism profunctor-optics))
 
@@ -189,6 +195,51 @@ Key features:
     lens->p-lens p-lens->lens
     prism->p-prism p-prism->prism
     affine->p-affine p-affine->affine
+
+    ;; Bidirectional Transformations (bidirectional.ss)
+    make-migration migration? migration-name
+    migration-from migration-to migration-iso
+    migrate rollback migration-apply
+    migration-compose migration-chain
+    migration-flip
+    make-migration-from-functions make-identity-migration
+    migration-versions-match? migration-compatible?
+    verify-migration-laws migration-describe
+
+    ;; Format Isomorphisms (format-iso.ss)
+    iso-utf8 iso-utf8-flip
+    iso-sexpr-string iso-sexpr-bytevector
+    sexpr->bytevector bytevector->sexpr
+    iso-list-vector iso-alist-keys-sorted
+    iso-number-string iso-exact-inexact
+    iso-bool-int iso-bool-symbol
+    iso-null-nothing iso-false-nothing
+    iso-time-unix iso-symbol-string
+    make-tag-iso iso-ok-unwrap
+    format-compose format-flip
+
+    ;; Schema Operations (schema.ss)
+    field-rename-iso field-add-iso field-remove-iso
+    field-transform-iso field-transform-if-present-iso
+    field-split-iso field-merge-iso
+    field-move-to-front-iso
+    nested-field-iso
+    field-ensure-iso field-with-default-iso
+    fields-rename-iso fields-keep-only-iso fields-remove-iso
+    schema-compose
+    field-coerce-to-string-iso field-coerce-to-number-iso
+
+    ;; Block Migrations (block-migration.ss)
+    make-block-migration block-migration?
+    block-migration-from-tag block-migration-to-tag block-migration-payload-iso
+    block-migration-applies? block-migrate-payload block-rollback-payload
+    block-with-refs block-migrate-with-refs
+    parse-versioned-tag make-versioned-tag
+    block-tag-version block-tag-base
+    block-migration-compose block-migration-flip
+    make-tag-only-migration make-schema-migration
+    block-has-sexpr-payload? known-sexpr-tags block-is-sexpr-type?
+    block-migration->migration
   ))
 
   ;;; ====
@@ -201,7 +252,15 @@ Key features:
     ("block-optics" "block-optics.ss"
      "Optics for The Fold's block system (content-addressed store)")
     ("profunctor-optics" "profunctor-optics.ss"
-     "Profunctor encoding of optics: optics as polymorphic functions p a b -> p s t")))
+     "Profunctor encoding of optics: optics as polymorphic functions p a b -> p s t")
+    ("bidirectional" "bidirectional.ss"
+     "Bidirectional transformations via optics: migrations, schema evolution, format conversion")
+    ("format-iso" "format-iso.ss"
+     "Standard format isomorphisms: UTF-8, S-expr, bytevector, booleans, numbers")
+    ("schema" "schema.ss"
+     "Field-level schema operations DSL: rename, add, remove, transform, split, merge")
+    ("block-migration" "block-migration.ss"
+     "CAS block-specific migrations: tag transforms, payload migrations, tree traversal")))
 
   ;;; ====
   ;;; Optic Hierarchy
@@ -287,7 +346,8 @@ Key features:
   (testing (
     ("test-optics.ss" "Comprehensive tests for all optic types and composition")
     ("test-block-optics.ss" "Tests for block system optics")
-    ("test-profunctor-optics.ss" "Tests for profunctor optics encoding")))
+    ("test-profunctor-optics.ss" "Tests for profunctor optics encoding")
+    ("test-bidirectional.ss" "Tests for bidirectional transformations and migrations")))
 
   ;;; ====
   ;;; References
