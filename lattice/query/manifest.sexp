@@ -1,7 +1,7 @@
 ;;; lattice/query/manifest.sexp — Query DSL Skill Manifest
 
 (skill query
-  (version "0.2.0")
+  (version "0.3.0")
   (tier 1)
   (path "lattice/query")
   (purity partial)
@@ -16,7 +16,14 @@
 
     The optic query language uses optics as typed path expressions for navigating
     data structures, combined with predicate filtering, projection, and aggregation
-    for building composable, declarative queries.")
+    for building composable, declarative queries.
+
+    The declarative query-macro DSL provides SQL-like syntax:
+      (from world world-each-body
+        (where (>? body-vel-y 0))
+        (select body-pos-lens)
+        (order-by (pluck body-pos-y))
+        (limit 10))")
 
   (keywords (query dsl search filter tags pattern-matching
              relational join projection aho-corasick string-search
@@ -50,7 +57,16 @@
                 make-query q-where q-map q-run q-count q-first
                 optic-eq? optic-matches? optic-exists?
                 optic-gt? optic-lt? optic-gte? optic-lte? optic-between?
-                key-lens))
+                key-lens)
+   ;; Declarative query-macro DSL
+   (query-macro from where-clause select-clause order-by-clause
+                limit-clause offset-clause run-query q>
+                =? /=? >? <? >=? <=? between? in? like?
+                null-at? exists-at? and? or? not?
+                @ @?
+                count-query sum-query avg-query min-query max-query group-query
+                first-result any-result? all-match?
+                pluck select-fields))
 
   (modules
    (patterns-parse "patterns-parse.ss" "Tag parsing and extraction from text")
@@ -58,4 +74,5 @@
    (aho-corasick "aho-corasick.ss" "Aho-Corasick multi-pattern string matching")
    (query "query.ss" "High-level query interface for tagged blocks")
    (query-patterns "query-patterns.ss" "Relational pattern matching with joins")
-   (optic-query "optic-query.ss" "Optic-based declarative query language")))
+   (optic-query "optic-query.ss" "Optic-based declarative query language")
+   (query-macro "query-macro.ss" "SQL-like declarative query DSL with predicate combinators")))
