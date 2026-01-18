@@ -1,10 +1,12 @@
 #!/usr/bin/env scheme-script
 ;;; docs/technical-report/assemble.ss — Assemble technical report from chapters
 ;;;
-;;; Usage: scheme --script docs/technical-report/assemble.ss
+;;; Usage:
+;;;   scheme --script docs/technical-report/assemble.ss         # Markdown only
+;;;   scheme --script docs/technical-report/assemble.ss --html  # Also build HTML
 ;;;
 ;;; Reads manifest.sexp, concatenates chapter files in order, writes output.
-;;; Used by pre-commit hook to keep technical-report.md in sync with chapters.
+;;; With --html flag, also rebuilds the website HTML versions.
 
 (import (chezscheme))
 
@@ -15,6 +17,7 @@
 (define report-dir "docs/technical-report")
 (define manifest-file "docs/technical-report/manifest.sexp")
 (define output-file "docs/technical-report.md")
+(define build-html? (member "--html" (command-line-arguments)))
 
 ;;; ====
 ;;; S-expression Reader
@@ -83,7 +86,27 @@
                      output-file))))
 
 ;;; ====
+;;; HTML Building
+;;; ====
+
+(define (build-html-reports)
+  (display "\nBuilding HTML versions for website...\n")
+  ;; Build simple HTML report
+  (display "  Building technical-report.html...\n")
+  (let ([result (system "scheme --script shell/tools/build-report.ss 2>&1")])
+    (unless (zero? result)
+      (display "  Warning: build-report.ss failed\n")))
+  ;; Build navigable HTML report
+  (display "  Building technical-report-nav.html...\n")
+  (let ([result (system "scheme --script shell/tools/build-nav-report.ss 2>&1")])
+    (unless (zero? result)
+      (display "  Warning: build-nav-report.ss failed\n")))
+  (display "HTML build complete.\n"))
+
+;;; ====
 ;;; Entry Point
 ;;; ====
 
 (assemble-report)
+(when build-html?
+  (build-html-reports))
