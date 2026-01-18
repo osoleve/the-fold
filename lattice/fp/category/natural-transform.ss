@@ -103,8 +103,16 @@
 
 ;;; nat-compose : NatTransform × NatTransform → NatTransform
 ;;; Vertical composition: (ε ∘ η) where η : F ⟹ G and ε : G ⟹ H
-;;; Precondition: target of η equals source of ε
+;;; Requires: both arguments be valid nat-transforms.
+;;; Note: Functor compatibility (target(η) = source(ε)) cannot be reliably
+;;; checked at runtime because composed functors create fresh objects.
+;;; This is a semantic constraint enforced by usage, not structure.
 (define (nat-compose ε η)
+  ;; Validate inputs are natural transformations
+  (unless (nat-transform? η)
+    (error 'nat-compose "expected nat-transform for second argument" η))
+  (unless (nat-transform? ε)
+    (error 'nat-compose "expected nat-transform for first argument" ε))
   (let ([source (nat-transform-source η)]
         [target (nat-transform-target ε)]
         [η-comp (nat-transform-component η)]
