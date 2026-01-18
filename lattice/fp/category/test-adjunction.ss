@@ -145,33 +145,14 @@
   ;; val = '(a b)
   (test-true "verify-triangle-right composed"
              (verify-triangle-right composed '(a b))))
+;;; Note: Input validation for adjunction-compose is tested in shell/fp/test-category.ss
+;;; The lattice code is pure and assumes valid input; validation lives at the shell boundary.
+
 ;;; ====
-;;; Test: Input Validation
+;;; Test: Predicate Edge Cases
 ;;; ====
 
-(section "Input Validation")
-
-;; Helper to test that an expression throws an error
-(define (test-error name thunk)
-  (display "  ")
-  (display name)
-  (display ": ")
-  (let ([result (guard (e [else 'error-raised])
-                  (thunk)
-                  'no-error)])
-    (if (eq? result 'error-raised)
-        (display "✓")
-        (begin
-          (display "✗ (expected error, got: ")
-          (display result)
-          (display ")"))))
-  (newline))
-
-(test-error "adjunction-compose rejects non-adjunction arg1"
-            (lambda () (adjunction-compose adj-free-list 'not-an-adjunction)))
-
-(test-error "adjunction-compose rejects non-adjunction arg2"
-            (lambda () (adjunction-compose 'not-an-adjunction adj-free-list)))
+(section "Predicate Edge Cases")
 
 (test-false "galois? rejects malformed galois (wrong length)"
             (galois? '(galois too few)))

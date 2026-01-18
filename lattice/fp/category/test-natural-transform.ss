@@ -467,42 +467,8 @@
         (nat-apply left-side (list nothing nothing))
         (nat-apply right-side (list nothing nothing))))
 
-;;; ====
-;;; Test: Input Validation
-;;; ====
-
-(section "Input Validation")
-
-;; Helper to test that an expression throws an error
-(define (test-error name thunk)
-  (display "  ")
-  (display name)
-  (display ": ")
-  (let ([result (guard (e [else 'error-raised])
-                  (thunk)
-                  'no-error)])
-    (if (eq? result 'error-raised)
-        (display "✓")
-        (begin
-          (display "✗ (expected error, got: ")
-          (display result)
-          (display ")"))))
-  (newline))
-
-;; nat-compose rejects non-nat-transform arguments
-(test-error "nat-compose rejects non-nat-transform η (second arg)"
-            (lambda () (nat-compose (nat-id functor-list) 'not-a-nat-transform)))
-
-(test-error "nat-compose rejects non-nat-transform ε (first arg)"
-            (lambda () (nat-compose 'not-a-nat-transform (nat-id functor-list))))
-
-;; Note: Functor compatibility (target(η) = source(ε)) cannot be reliably
-;; checked at runtime because composed functors create fresh objects.
-;; This is documented in nat-compose and enforced by correct usage.
-
-;; nat-transform-component should error on non-nat-transform
-(test-error "nat-transform-component rejects non-nat-transform"
-            (lambda () (nat-transform-component 'not-a-nat-transform)))
+;;; Note: Input validation for nat-compose is tested in shell/fp/test-category.ss
+;;; The lattice code is pure and assumes valid input; validation lives at the shell boundary.
 
 ;;; ====
 ;;; Summary

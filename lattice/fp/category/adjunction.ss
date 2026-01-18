@@ -131,13 +131,9 @@
 
 ;;; adjunction-compose : Adjunction × Adjunction → Adjunction
 ;;; Compose F ⊣ G and F' ⊣ G' to get F'∘F ⊣ G∘G'
-;;; Requires: both arguments must be valid adjunctions.
+;;; Precondition: both arguments are valid adjunctions.
+;;; This is pure lattice code; use shell/fp/category.ss for validated entry points.
 (define (adjunction-compose adj2 adj1)
-  ;; Input validation guards
-  (unless (adjunction? adj1)
-    (error 'adjunction-compose "expected adjunction for first argument" adj1))
-  (unless (adjunction? adj2)
-    (error 'adjunction-compose "expected adjunction for second argument" adj2))
   (let* ([F (adjunction-left adj1)]
          [G (adjunction-right adj1)]
          [η (adjunction-unit adj1)]
