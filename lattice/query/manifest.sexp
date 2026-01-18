@@ -1,22 +1,27 @@
 ;;; lattice/query/manifest.sexp — Query DSL Skill Manifest
 
 (skill query
-  (version "0.1.0")
+  (version "0.2.0")
   (tier 1)
   (path "lattice/query")
   (purity partial)
   (stability stable)
   (fuel-bound "O(n) for linear scans, O(n*m) for joins, O(k*n) for multi-pattern Aho-Corasick")
-  (deps (data fp))
+  (deps (data fp optics))
 
   (description
    "Query DSL for searching and filtering blocks in the content-addressed store.
-    Includes tag extraction, pattern matching, relational joins, and Aho-Corasick
-    multi-pattern string matching.")
+    Includes tag extraction, pattern matching, relational joins, Aho-Corasick
+    multi-pattern string matching, and optic-based declarative queries.
+
+    The optic query language uses optics as typed path expressions for navigating
+    data structures, combined with predicate filtering, projection, and aggregation
+    for building composable, declarative queries.")
 
   (keywords (query dsl search filter tags pattern-matching
-             relational join projection aho-corasick string-search))
-  (aliases (search find filter block-query))
+             relational join projection aho-corasick string-search
+             optics optic-query declarative traversal))
+  (aliases (search find filter block-query optic-query))
 
   (exports
    (patterns-parse extract-tags extract-tag-positions parse-tag-at
@@ -31,11 +36,26 @@
    (query find-tagged find-tagged-any list-all-tags tag-histogram
           tag-values tag-report)
    (query-patterns pattern-query join-patterns match-pattern project-vars
-                   find-pattern count-pattern))
+                   find-pattern count-pattern)
+   (optic-query oquery oquery-where oquery-select oquery-pipe
+                oquery-first oquery-first-where
+                optic-where optic-having optic-select optic-at-index
+                optic-limit optic-skip
+                oquery-count oquery-count-where oquery-sum oquery-sum-by
+                oquery-any oquery-all oquery-min oquery-max
+                oquery-min-by oquery-max-by
+                oquery-group-by oquery-partition
+                oquery-join oquery-zip oquery-union oquery-intersect
+                oquery-sort-by oquery-sort-by-desc
+                make-query q-where q-map q-run q-count q-first
+                optic-eq? optic-matches? optic-exists?
+                optic-gt? optic-lt? optic-gte? optic-lte? optic-between?
+                key-lens))
 
   (modules
    (patterns-parse "patterns-parse.ss" "Tag parsing and extraction from text")
    (query-dsl "query-dsl.ss" "Core query DSL with predicates and combinators")
    (aho-corasick "aho-corasick.ss" "Aho-Corasick multi-pattern string matching")
    (query "query.ss" "High-level query interface for tagged blocks")
-   (query-patterns "query-patterns.ss" "Relational pattern matching with joins")))
+   (query-patterns "query-patterns.ss" "Relational pattern matching with joins")
+   (optic-query "optic-query.ss" "Optic-based declarative query language")))

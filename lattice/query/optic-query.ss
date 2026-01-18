@@ -1,0 +1,546 @@
+;;; lattice/query/optic-query.ss — Optic-Based Query Language
+;;;
+;;; Build declarative queries using optics as the path language.
+;;; Optics encode "how to reach" data; this module adds:
+;;;   - Predicate filtering at optic foci
+;;;   - Projection of specific fields
+;;;   - Aggregation over query results
+;;;
+;;; DESIGN PRINCIPLES:
+;;;   - Optics define the path through data structures
+;;;   - Predicates filter which targets to keep
+;;;   - Projectors transform results
+;;;   - Composable: build complex queries from simple parts
+;;;
+;;; CORE API:
+;;;
+;;;   (oquery s optic)              ; Get all targets via optic
+;;;   (oquery-where s optic pred)   ; Filter targets by predicate
+;;;   (oquery-select s optic proj)  ; Project targets
+;;;   (oquery-pipe s optic pred proj) ; Filter then project
+;;;
+;;; COMBINATORS (for composition):
+;;;
+;;;   (optic-where optic pred)      ; Filtered traversal
+;;;   (optic-select optic proj)     ; Projected getter
+;;;   (optic-having optic inner-optic pred)  ; Filter by nested value
+;;;
+;;; AGGREGATIONS:
+;;;
+;;;   (oquery-count s optic pred)   ; Count matching targets
+;;;   (oquery-sum s optic pred)     ; Sum numeric targets
+;;;   (oquery-any s optic pred)     ; Any target matches?
+;;;   (oquery-all s optic pred)     ; All targets match?
+;;;
+;;; EXAMPLE:
+;;;
+;;;   ;; Find all bodies with positive y-velocity, return their positions
+;;;   (oquery-pipe world
+;;;     (>>> world-bodies-trav)
+;;;     (lambda (b) (> (^. b body-vel-y) 0))
+;;;     (lambda (b) (^. b body-pos)))
+;;;
+;;;   ;; Using combinators for reusable queries
+;;;   (define fast-bodies
+;;;     (optic-where bodies-trav
+;;;       (lambda (b) (> (body-speed b) 100))))
+;;;
+;;;   (^.. world (>>> world-bodies fast-bodies))
+;;;
+;;; Dependencies:
+;;;   - lattice/fp/optics/optics.ss (optic tower)
+
+(load "lattice/fp/optics/optics.ss")
+
+;;; ============================================================
+;;; Part 1: Core Query Functions
+;;; ============================================================
+
+;;; oquery : s × Optic s a → (List a)
+;;; Get all targets reachable via optic.
+;;; This is essentially (^.. s optic) with a clearer query semantics.
+(define (oquery s optic)
+  (^.. s optic))
+
+;;; oquery-where : s × Optic s a × (a → Bool) → (List a)
+;;; Get targets matching a predicate.
+(define (oquery-where s optic pred)
+  (filter pred (^.. s optic)))
+
+;;; oquery-select : s × Optic s a × (a → b) → (List b)
+;;; Project all targets through a function.
+(define (oquery-select s optic proj)
+  (map proj (^.. s optic)))
+
+;;; oquery-pipe : s × Optic s a × (a → Bool) × (a → b) → (List b)
+;;; Filter then project: the most common query pattern.
+(define (oquery-pipe s optic pred proj)
+  (map proj (filter pred (^.. s optic))))
+
+;;; oquery-first : s × Optic s a → Maybe a
+;;; Get first target if any exist.
+(define (oquery-first s optic)
+  (^? s optic))
+
+;;; oquery-first-where : s × Optic s a × (a → Bool) → Maybe a
+;;; Get first target matching predicate.
+(define (oquery-first-where s optic pred)
+  (let loop ([targets (^.. s optic)])
+    (cond
+      [(null? targets) nothing]
+      [(pred (car targets)) (just (car targets))]
+      [else (loop (cdr targets))])))
+
+;;; ============================================================
+;;; Part 2: Optic Combinators for Queries
+;;; ============================================================
+;;;
+;;; These create new optics that can be composed with >>>.
+;;; They enable reusable, named query patterns.
+
+;;; optic-where : Optic s a × (a → Bool) → Traversal s a
+;;; Create a traversal that only yields targets matching predicate.
+;;; The resulting traversal can be composed with other optics.
+(define (optic-where optic pred)
+  (make-traversal
+   ;; traverse: (a → b) → s → t
+   (lambda (f s)
+     ;; Get all targets, apply f only to matching ones
+     (let ([trav (->traversal optic)])
+       ((traversal-traverse trav)
+        (lambda (a) (if (pred a) (f a) a))
+        s)))
+   ;; fold: s → List a
+   (lambda (s)
+     (filter pred (^.. s optic)))))
+
+;;; optic-having : Optic s a × Optic a b × (b → Bool) → Traversal s a
+;;; Filter targets by a predicate on a nested value.
+;;; "Give me all a's where the b inside satisfies pred"
+;;;
+;;; Example:
+;;;   (optic-having bodies-trav body-vel-y (lambda (vy) (> vy 0)))
+;;;   ;; All bodies whose velocity y-component is positive
+(define (optic-having optic inner-optic pred)
+  (optic-where optic
+    (lambda (a)
+      (let ([maybe-b (^? a inner-optic)])
+        (and (just? maybe-b)
+             (pred (from-just maybe-b)))))))
+
+;;; optic-select : Optic s a × (a → b) → Fold s b
+;;; Create a fold that projects targets through a function.
+;;; Read-only: you can get values but not set them.
+(define (optic-select optic proj)
+  (make-fold
+   (lambda (s)
+     (map proj (^.. s optic)))))
+
+;;; optic-at-index : Nat → Affine (List a) a
+;;; Focus on element at specific index (re-export for convenience).
+(define optic-at-index affine-nth)
+
+;;; optic-limit : Optic s a × Nat → Fold s a
+;;; Take only the first n targets.
+(define (optic-limit optic n)
+  (make-fold
+   (lambda (s)
+     (take-up-to n (^.. s optic)))))
+
+;;; optic-skip : Optic s a × Nat → Fold s a
+;;; Skip the first n targets.
+(define (optic-skip optic n)
+  (make-fold
+   (lambda (s)
+     (drop-up-to n (^.. s optic)))))
+
+;;; ============================================================
+;;; Part 3: Aggregation Functions
+;;; ============================================================
+
+;;; oquery-count : s × Optic s a → Nat
+;;; Count all targets.
+(define (oquery-count s optic)
+  (length (^.. s optic)))
+
+;;; oquery-count-where : s × Optic s a × (a → Bool) → Nat
+;;; Count targets matching predicate.
+(define (oquery-count-where s optic pred)
+  (length (filter pred (^.. s optic))))
+
+;;; oquery-sum : s × Optic s Number → Number
+;;; Sum all numeric targets.
+(define (oquery-sum s optic)
+  (apply + (^.. s optic)))
+
+;;; oquery-sum-by : s × Optic s a × (a → Number) → Number
+;;; Sum values extracted from targets.
+(define (oquery-sum-by s optic f)
+  (apply + (map f (^.. s optic))))
+
+;;; oquery-any : s × Optic s a × (a → Bool) → Bool
+;;; Check if any target matches predicate.
+(define (oquery-any s optic pred)
+  (ormap pred (^.. s optic)))
+
+;;; oquery-all : s × Optic s a × (a → Bool) → Bool
+;;; Check if all targets match predicate.
+(define (oquery-all s optic pred)
+  (andmap pred (^.. s optic)))
+
+;;; oquery-min : s × Optic s Number → Maybe Number
+;;; Get minimum target value.
+(define (oquery-min s optic)
+  (let ([targets (^.. s optic)])
+    (if (null? targets)
+        nothing
+        (just (apply min targets)))))
+
+;;; oquery-max : s × Optic s Number → Maybe Number
+;;; Get maximum target value.
+(define (oquery-max s optic)
+  (let ([targets (^.. s optic)])
+    (if (null? targets)
+        nothing
+        (just (apply max targets)))))
+
+;;; oquery-min-by : s × Optic s a × (a → Number) → Maybe a
+;;; Get target with minimum value according to function.
+(define (oquery-min-by s optic f)
+  (let ([targets (^.. s optic)])
+    (if (null? targets)
+        nothing
+        (just (let loop ([best (car targets)]
+                         [best-val (f (car targets))]
+                         [remaining (cdr targets)])
+                (if (null? remaining)
+                    best
+                    (let ([val (f (car remaining))])
+                      (if (< val best-val)
+                          (loop (car remaining) val (cdr remaining))
+                          (loop best best-val (cdr remaining))))))))))
+
+;;; oquery-max-by : s × Optic s a × (a → Number) → Maybe a
+;;; Get target with maximum value according to function.
+(define (oquery-max-by s optic f)
+  (let ([targets (^.. s optic)])
+    (if (null? targets)
+        nothing
+        (just (let loop ([best (car targets)]
+                         [best-val (f (car targets))]
+                         [remaining (cdr targets)])
+                (if (null? remaining)
+                    best
+                    (let ([val (f (car remaining))])
+                      (if (> val best-val)
+                          (loop (car remaining) val (cdr remaining))
+                          (loop best best-val (cdr remaining))))))))))
+
+;;; ============================================================
+;;; Part 4: Grouping and Partitioning
+;;; ============================================================
+
+;;; oquery-group-by : s × Optic s a × (a → k) → Alist k (List a)
+;;; Group targets by a key function.
+;;; Uses hashtable for O(N) performance.
+(define (oquery-group-by s optic key-fn)
+  (let ([targets (^.. s optic)]
+        [groups (make-hashtable equal-hash equal?)])
+    ;; Collect items into hashtable buckets
+    (for-each
+     (lambda (target)
+       (let* ([key (key-fn target)]
+              [existing (hashtable-ref groups key '())])
+         (hashtable-set! groups key (cons target existing))))
+     targets)
+    ;; Convert hashtable to alist, reversing to preserve order
+    (let-values ([(keys vals) (hashtable-entries groups)])
+      (let loop ([i 0] [result '()])
+        (if (>= i (vector-length keys))
+            result
+            (loop (+ i 1)
+                  (cons (cons (vector-ref keys i)
+                              (reverse (vector-ref vals i)))
+                        result)))))))
+
+;;; assoc-equal : k × Alist → Maybe (Pair k v)
+(define (assoc-equal key alist)
+  (let loop ([pairs alist])
+    (cond
+      [(null? pairs) #f]
+      [(equal? (caar pairs) key) (car pairs)]
+      [else (loop (cdr pairs))])))
+
+;;; oquery-partition : s × Optic s a × (a → Bool) → (Pair (List a) (List a))
+;;; Partition targets into (matching, not-matching).
+(define (oquery-partition s optic pred)
+  (let loop ([targets (^.. s optic)]
+             [yes '()]
+             [no '()])
+    (if (null? targets)
+        (cons (reverse yes) (reverse no))
+        (if (pred (car targets))
+            (loop (cdr targets) (cons (car targets) yes) no)
+            (loop (cdr targets) yes (cons (car targets) no))))))
+
+;;; ============================================================
+;;; Part 5: Joining Queries
+;;; ============================================================
+;;;
+;;; Combine results from multiple optic paths.
+
+;;; oquery-join : s × Optic s a × Optic s b × (a × b → Bool) → (List (Pair a b))
+;;; Cross-product join with predicate filter.
+(define (oquery-join s optic-a optic-b match-pred)
+  (let ([as (^.. s optic-a)]
+        [bs (^.. s optic-b)])
+    (let outer ([remaining-a as] [result '()])
+      (if (null? remaining-a)
+          (reverse result)
+          (let ([a (car remaining-a)])
+            (let inner ([remaining-b bs] [pairs result])
+              (if (null? remaining-b)
+                  (outer (cdr remaining-a) pairs)
+                  (let ([b (car remaining-b)])
+                    (if (match-pred a b)
+                        (inner (cdr remaining-b) (cons (cons a b) pairs))
+                        (inner (cdr remaining-b) pairs))))))))))
+
+;;; oquery-zip : s × Optic s a × Optic s b → (List (Pair a b))
+;;; Zip two optic results pairwise (shortest length).
+(define (oquery-zip s optic-a optic-b)
+  (let ([as (^.. s optic-a)]
+        [bs (^.. s optic-b)])
+    (let loop ([remaining-a as]
+               [remaining-b bs]
+               [result '()])
+      (if (or (null? remaining-a) (null? remaining-b))
+          (reverse result)
+          (loop (cdr remaining-a)
+                (cdr remaining-b)
+                (cons (cons (car remaining-a) (car remaining-b)) result))))))
+
+;;; oquery-union : s × Optic s a × Optic s a → (List a)
+;;; Combine targets from two optics (may have duplicates).
+(define (oquery-union s optic-a optic-b)
+  (append (^.. s optic-a) (^.. s optic-b)))
+
+;;; oquery-intersect : s × Optic s a × Optic s a × (a × a → Bool) → (List a)
+;;; Keep only targets that appear in both optic results.
+(define (oquery-intersect s optic-a optic-b equal?)
+  (let ([as (^.. s optic-a)]
+        [bs (^.. s optic-b)])
+    (filter (lambda (a)
+              (ormap (lambda (b) (equal? a b)) bs))
+            as)))
+
+;;; ============================================================
+;;; Part 6: Sorted Queries
+;;; ============================================================
+
+;;; oquery-sort-by : s × Optic s a × (a → Number) → (List a)
+;;; Get targets sorted by a numeric key (ascending).
+(define (oquery-sort-by s optic key-fn)
+  (merge-sort-by key-fn (^.. s optic)))
+
+;;; merge-sort-by : (a → Number) × (List a) → (List a)
+;;; O(N log N) merge sort by key function.
+(define (merge-sort-by key-fn xs)
+  (let ([n (length xs)])
+    (if (<= n 1)
+        xs
+        (let* ([mid (quotient n 2)]
+               [left (take-n mid xs)]
+               [right (drop-n mid xs)])
+          (merge-by key-fn
+                    (merge-sort-by key-fn left)
+                    (merge-sort-by key-fn right))))))
+
+;;; merge-by : (a → Number) × (List a) × (List a) → (List a)
+;;; Merge two sorted lists by key function.
+(define (merge-by key-fn xs ys)
+  (cond
+    [(null? xs) ys]
+    [(null? ys) xs]
+    [(<= (key-fn (car xs)) (key-fn (car ys)))
+     (cons (car xs) (merge-by key-fn (cdr xs) ys))]
+    [else
+     (cons (car ys) (merge-by key-fn xs (cdr ys)))]))
+
+;;; take-n : Nat × (List a) → (List a)
+;;; Take first n elements.
+(define (take-n n xs)
+  (if (or (<= n 0) (null? xs))
+      '()
+      (cons (car xs) (take-n (- n 1) (cdr xs)))))
+
+;;; drop-n : Nat × (List a) → (List a)
+;;; Drop first n elements.
+(define (drop-n n xs)
+  (if (or (<= n 0) (null? xs))
+      xs
+      (drop-n (- n 1) (cdr xs))))
+
+;;; oquery-sort-by-desc : s × Optic s a × (a → Number) → (List a)
+;;; Get targets sorted by a numeric key (descending).
+(define (oquery-sort-by-desc s optic key-fn)
+  (reverse (oquery-sort-by s optic key-fn)))
+
+;;; ============================================================
+;;; Part 7: Query Builder DSL
+;;; ============================================================
+;;;
+;;; A more declarative interface for building queries.
+;;; Uses chained operations that accumulate transformations.
+
+;;; make-query : Optic s a → Query s a
+;;; Start building a query from an optic.
+(define (make-query optic)
+  (list 'query optic '() '()))
+
+;;; query-builder? : α → Bool
+(define (query-builder? x)
+  (and (pair? x) (eq? (car x) 'query)))
+
+;;; query-optic : Query → Optic
+(define (query-optic q) (cadr q))
+
+;;; query-filters : Query → (List (a → Bool))
+(define (query-filters q) (caddr q))
+
+;;; query-transforms : Query → (List (a → a))
+(define (query-transforms q) (cadddr q))
+
+;;; q-where : Query s a × (a → Bool) → Query s a
+;;; Add a filter to the query.
+(define (q-where query pred)
+  (list 'query
+        (query-optic query)
+        (cons pred (query-filters query))
+        (query-transforms query)))
+
+;;; q-map : Query s a × (a → b) → Query s b
+;;; Add a transformation (projection).
+(define (q-map query f)
+  (list 'query
+        (query-optic query)
+        (query-filters query)
+        (cons f (query-transforms query))))
+
+;;; q-run : s × Query s a → (List a)
+;;; Execute the query.
+(define (q-run s query)
+  (let* ([optic (query-optic query)]
+         [filters (reverse (query-filters query))]
+         [transforms (reverse (query-transforms query))]
+         [targets (^.. s optic)]
+         ;; Apply all filters
+         [filtered (let loop ([preds filters] [data targets])
+                     (if (null? preds)
+                         data
+                         (loop (cdr preds) (filter (car preds) data))))]
+         ;; Apply all transforms
+         [transformed (let loop ([fns transforms] [data filtered])
+                        (if (null? fns)
+                            data
+                            (loop (cdr fns) (map (car fns) data))))])
+    transformed))
+
+;;; q-count : s × Query s a → Nat
+;;; Count query results.
+(define (q-count s query)
+  (length (q-run s query)))
+
+;;; q-first : s × Query s a → Maybe a
+;;; Get first result.
+(define (q-first s query)
+  (let ([results (q-run s query)])
+    (if (null? results) nothing (just (car results)))))
+
+;;; ============================================================
+;;; Part 8: Predicate Helpers
+;;; ============================================================
+;;;
+;;; Common predicates for building queries.
+
+;;; optic-eq? : Optic a b × b → (a → Bool)
+;;; Create predicate that checks if optic target equals value.
+(define (optic-eq? optic value)
+  (lambda (a)
+    (let ([maybe-b (^? a optic)])
+      (and (just? maybe-b)
+           (equal? (from-just maybe-b) value)))))
+
+;;; optic-matches? : Optic a b × (b → Bool) → (a → Bool)
+;;; Create predicate that checks if optic target satisfies a condition.
+(define (optic-matches? optic pred)
+  (lambda (a)
+    (let ([maybe-b (^? a optic)])
+      (and (just? maybe-b)
+           (pred (from-just maybe-b))))))
+
+;;; optic-exists? : Optic a b → (a → Bool)
+;;; Create predicate that checks if optic has a target.
+(define (optic-exists? optic)
+  (lambda (a)
+    (just? (^? a optic))))
+
+;;; optic-gt? : Optic a Number × Number → (a → Bool)
+;;; Check if optic target is greater than value.
+(define (optic-gt? optic value)
+  (optic-matches? optic (lambda (x) (> x value))))
+
+;;; optic-lt? : Optic a Number × Number → (a → Bool)
+;;; Check if optic target is less than value.
+(define (optic-lt? optic value)
+  (optic-matches? optic (lambda (x) (< x value))))
+
+;;; optic-gte? : Optic a Number × Number → (a → Bool)
+;;; Check if optic target is >= value.
+(define (optic-gte? optic value)
+  (optic-matches? optic (lambda (x) (>= x value))))
+
+;;; optic-lte? : Optic a Number × Number → (a → Bool)
+;;; Check if optic target is <= value.
+(define (optic-lte? optic value)
+  (optic-matches? optic (lambda (x) (<= x value))))
+
+;;; optic-between? : Optic a Number × Number × Number → (a → Bool)
+;;; Check if optic target is between low and high (inclusive).
+(define (optic-between? optic low high)
+  (optic-matches? optic (lambda (x) (and (>= x low) (<= x high)))))
+
+;;; ============================================================
+;;; Part 9: Convenience Lenses for Common Patterns
+;;; ============================================================
+
+;;; key-lens : Symbol → Lens Alist a
+;;; Lens for accessing alist by key.
+(define (key-lens key)
+  (make-lens
+   (lambda (alist)
+     (let ([pair (assq key alist)])
+       (if pair (cdr pair) #f)))
+   (lambda (val alist)
+     (let loop ([remaining alist] [prefix '()] [found #f])
+       (cond
+         [(null? remaining)
+          (if found
+              (reverse prefix)
+              (reverse (cons (cons key val) prefix)))]
+         [(eq? (caar remaining) key)
+          (loop (cdr remaining) (cons (cons key val) prefix) #t)]
+         [else
+          (loop (cdr remaining) (cons (car remaining) prefix) found)])))))
+
+;;; ============================================================
+;;; Module Load Message
+;;; ============================================================
+
+(printf "Optic Query Language loaded.\n")
+(printf "  Core: oquery, oquery-where, oquery-select, oquery-pipe\n")
+(printf "  Combinators: optic-where, optic-having, optic-select\n")
+(printf "  Aggregates: oquery-count, oquery-sum, oquery-any, oquery-all\n")
+(printf "  Groups: oquery-group-by, oquery-partition\n")
+(printf "  Joins: oquery-join, oquery-zip, oquery-union\n")
+(printf "  Builder: make-query, q-where, q-map, q-run\n")

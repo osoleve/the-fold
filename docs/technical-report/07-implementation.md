@@ -1359,3 +1359,219 @@ Immediate recomputation on invalidation would cascade through the dependency gra
 **Single-threaded**: The global mutable state (`*derivations*`, etc.) isn't thread-safe. Concurrent access requires external synchronization.
 
 ---
+
+### 7.12 Optic Query Language
+
+The optic query module (`lattice/query/optic-query.ss`) builds on the optics foundation to provide a declarative query language. The key insight is that optics are already a *typed path language*—they describe how to navigate through data structures. By combining optic paths with predicate filtering, projection, and aggregation, we get a composable query system.
+
+#### 7.12.1 Design Philosophy
+
+Traditional query languages separate "navigation" from "filtering":
+
+```sql
+SELECT pos FROM bodies WHERE vel.y > 0
+```
+
+The optic query language unifies these through composition:
+
+```scheme
+(oquery-pipe world
+  (optic-having world-each-body body-vel-y (lambda (vy) (> vy 0)))
+  (lambda (b) #t)
+  (lambda (b) (^. b body-pos)))
+```
+
+Here, `optic-having` creates a *filtered traversal* that only yields bodies whose y-velocity satisfies the predicate. This traversal composes with other optics via `>>>`, enabling reusable query fragments.
+
+#### 7.12.2 Core API
+
+**Query functions** operate on a structure, an optic path, and optional predicate/projector:
+
+| Function | Signature | Purpose |
+|----------|-----------|---------|
+| `oquery` | `s × Optic → [a]` | Get all targets |
+| `oquery-where` | `s × Optic × (a→Bool) → [a]` | Filter by predicate |
+| `oquery-select` | `s × Optic × (a→b) → [b]` | Project through function |
+| `oquery-pipe` | `s × Optic × (a→Bool) × (a→b) → [b]` | Filter then project |
+| `oquery-first` | `s × Optic → Maybe a` | First target |
+| `oquery-first-where` | `s × Optic × (a→Bool) → Maybe a` | First matching target |
+
+**Example**: Find all bodies with positive y-velocity, return their names:
+
+```scheme
+(oquery-pipe world world-each-body
+  (lambda (b) (> (^. b body-vel-y) 0))
+  (lambda (b) (^. b body-name)))
+; => ("alpha" "delta")
+```
+
+#### 7.12.3 Optic Combinators
+
+Combinators create new optics that can be composed with `>>>`:
+
+| Combinator | Type | Purpose |
+|------------|------|---------|
+| `optic-where` | `Optic × (a→Bool) → Traversal` | Filtered traversal |
+| `optic-having` | `Optic × Optic × (b→Bool) → Traversal` | Filter by nested value |
+| `optic-select` | `Optic × (a→b) → Fold` | Projected fold |
+| `optic-limit` | `Optic × Nat → Fold` | Take first n |
+| `optic-skip` | `Optic × Nat → Fold` | Drop first n |
+
+**Example**: Reusable query components:
+
+```scheme
+;; Define once
+(define fast-bodies
+  (optic-where world-each-body
+    (lambda (b) (> (body-speed b) 100))))
+
+;; Use anywhere via composition
+(^.. game-state (>>> world-lens fast-bodies))
+(oquery-count game-state (>>> world-lens fast-bodies))
+```
+
+The `optic-having` combinator is particularly powerful—it filters based on a nested value:
+
+```scheme
+;; Bodies whose velocity y-component is positive
+(optic-having world-each-body body-vel-y
+  (lambda (vy) (> vy 0)))
+```
+
+This composes the outer traversal (`world-each-body`) with an inner optic (`body-vel-y`) and filters based on the inner value.
+
+#### 7.12.4 Aggregations
+
+Standard aggregation operations:
+
+| Function | Purpose |
+|----------|---------|
+| `oquery-count` | Count targets |
+| `oquery-count-where` | Count matching targets |
+| `oquery-sum` | Sum numeric targets |
+| `oquery-sum-by` | Sum extracted values |
+| `oquery-any` | Any target matches? |
+| `oquery-all` | All targets match? |
+| `oquery-min/max` | Min/max target value |
+| `oquery-min-by/max-by` | Target with min/max value |
+
+**Example**: Total mass of all bodies:
+
+```scheme
+(oquery-sum-by world world-each-body
+  (lambda (b) (^. b body-mass)))
+```
+
+#### 7.12.5 Grouping and Joins
+
+**Grouping** partitions targets by a key function:
+
+```scheme
+(oquery-group-by world world-each-body
+  (lambda (b) (if (> (^. b body-mass) 10) 'heavy 'light)))
+; => ((heavy . [bodies...]) (light . [bodies...]))
+```
+
+**Joins** combine results from multiple optic paths:
+
+| Function | Purpose |
+|----------|---------|
+| `oquery-join` | Cross-product with predicate filter |
+| `oquery-zip` | Pairwise combination (shortest length) |
+| `oquery-union` | Concatenate results |
+| `oquery-intersect` | Keep only shared targets |
+
+**Example**: Find bodies near each other:
+
+```scheme
+(oquery-join world world-each-body world-each-body
+  (lambda (a b)
+    (and (not (eq? a b))
+         (< (distance (^. a body-pos) (^. b body-pos)) 10))))
+```
+
+#### 7.12.6 Query Builder DSL
+
+For complex queries, the builder pattern provides a chainable interface:
+
+```scheme
+(define my-query
+  (-> (make-query world-each-body)
+      (q-where (lambda (b) (> (^. b body-pos-y) 0)))
+      (q-where (lambda (b) (> (^. b body-mass) 5)))
+      (q-map (lambda (b) (^. b body-name)))))
+
+(q-run world my-query)    ; => ("alpha" "delta")
+(q-count world my-query)  ; => 2
+(q-first world my-query)  ; => (just "alpha")
+```
+
+Filters and transforms accumulate; `q-run` executes them in order.
+
+#### 7.12.7 Predicate Helpers
+
+Convenience functions for building predicates:
+
+| Function | Creates predicate for... |
+|----------|--------------------------|
+| `optic-eq?` | Target equals value |
+| `optic-matches?` | Target satisfies condition |
+| `optic-exists?` | Target exists (non-nothing) |
+| `optic-gt?/lt?/gte?/lte?` | Numeric comparisons |
+| `optic-between?` | Range check (inclusive) |
+
+**Example**:
+
+```scheme
+(filter (optic-between? body-mass 5 20) bodies)
+```
+
+#### 7.12.8 Integration with Block Optics
+
+The query language works with CAS block optics for querying the content-addressed store:
+
+```scheme
+;; Find all lambda blocks with arity > 2
+(oquery-where store
+  (>>> all-blocks-trav (block-type-prism 'lambda))
+  (lambda (blk)
+    (> (^. blk block-arity-lens) 2)))
+```
+
+This integrates with the existing `lattice/query/query-dsl.ss` block query infrastructure while providing the composability benefits of optics.
+
+#### 7.12.9 Performance Characteristics
+
+| Operation | Complexity |
+|-----------|------------|
+| `oquery` | O(targets) |
+| `oquery-where` | O(targets) |
+| `oquery-group-by` | O(targets × groups) |
+| `oquery-join` | O(n × m) |
+| `oquery-sort-by` | O(n log n) |
+
+Queries are eager—all targets are collected before filtering. For large datasets, consider:
+- Using `optic-limit` to cap results
+- Composing filters before traversals to reduce intermediate results
+- Caching frequently-used filtered traversals
+
+#### 7.12.10 Design Rationale
+
+**Why optics as the path language?**
+
+1. **Type-safe composition**: `>>>` ensures paths compose correctly
+2. **Unified read/write**: Same optic for queries and updates
+3. **Reusability**: Define query fragments once, compose everywhere
+4. **Hierarchy awareness**: Lens+Prism=Affine; composition preserves semantics
+
+**Relationship to existing query-dsl**:
+
+The traditional query-dsl (`query-dsl.ss`) uses pattern matching on block fields:
+
+```scheme
+(query fs '(and (tag . entity) (payload-contains . "Turing")))
+```
+
+The optic query language is more general—it works on any data structure navigable by optics, not just CAS blocks. The two approaches complement each other: use `query-dsl` for declarative block searches, use `optic-query` for structured data navigation.
+
+---

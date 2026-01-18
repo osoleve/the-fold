@@ -4075,6 +4075,358 @@ For performance-critical code, use `without-tracing` or raw optics.
 **Storage growth**: Provenance creates ~4 blocks per operation. For high-volume systems, implement retention policies or archived storage tiers.
 
 ---
+
+### 7.11 Reactive Derivations
+
+The reactive module (`shell/reactive/`) builds on provenance tracking to provide automatic reactivity via optic-based dependency graphs. When a derivation is computed, we track which optics were accessed. When those optics are written to, the derivation invalidates and recomputes on next access.
+
+This is the pattern behind lens-based state management systems (MobX, Recoil, Jotai), adapted to The Fold's optic foundation.
+
+#### 7.11.1 Core Concepts
+
+**Derivations** are cached computed values that track their optic dependencies:
+
+```scheme
+(define-reactive 'player-health
+  world-state
+  (lambda (world)
+    (reactive-view world (>>> (body-lens 'player) health-lens))))
+
+(reactive-value 'player-health)  ; => 100 (computed and cached)
+(reactive-value 'player-health)  ; => 100 (from cache)
+```
+
+**Access tracking** discovers dependencies automatically during computation:
+
+```scheme
+(with-access-tracking
+ (lambda ()
+   (reactive-view data lens-fst)
+   (reactive-view data lens-snd)))
+; => (values result '(lens-fst lens-snd))
+```
+
+**Invalidation** marks derivations stale when their dependencies change:
+
+```scheme
+(reactive-set! lens-fst 999 data)  ; Invalidates all derivations using lens-fst
+(reactive-value 'player-health)    ; Recomputes with fresh value
+```
+
+#### 7.11.2 Implementation Architecture
+
+**Data structures**:
+
+```
+*derivations*           : Hashtable (Symbol → Derivation-Record)
+*optic-to-derivations*  : Hashtable (Symbol → (List Symbol))  ; Reverse index
+```
+
+The derivation record (stored as a mutable vector) tracks:
+- `source`: The root data structure being observed
+- `dependencies`: List of optic names accessed during computation
+- `compute-fn`: The function that produces the value
+- `cached-value`: Last computed result
+- `stale?`: Boolean flag for lazy recomputation
+
+**Dependency discovery**: During `define-reactive` or `reactive-recompute!`, computation runs inside `with-access-tracking`. Each `reactive-view` call logs the optic name (via the provenance optic registry) to `*access-log*`. After computation, these become the derivation's dependencies.
+
+**Reverse index maintenance**: When dependencies change, we update `*optic-to-derivations*` to enable O(1) invalidation lookup. Old dependencies are removed, new ones are added.
+
+**Lazy recomputation**: `reactive-value` checks `stale?`. If true, it recomputes (updating dependencies in the process). If false, it returns the cached value.
+
+#### 7.11.3 API Reference
+
+**Derivation management**:
+```scheme
+(define-reactive name source compute-fn)  ; Create derivation
+(reactive-value name)                     ; Get value (recompute if stale)
+(reactive-refresh! name)                  ; Force recomputation
+(reactive-stale? name)                    ; Check if needs recomputation
+(reactive-dependencies name)              ; Get optic dependencies
+(undefine-reactive name)                  ; Remove derivation
+```
+
+**Reactive optic operations**:
+```scheme
+(reactive-view s optic)      ; View with access tracking
+(reactive-preview s optic)   ; Preview with access tracking
+(reactive-to-list s optic)   ; To-list with access tracking
+(reactive-set! optic val s)  ; Set with invalidation
+(reactive-over! optic f s)   ; Modify with invalidation
+```
+
+**Batch operations**:
+```scheme
+(with-batch
+ (lambda ()
+   ;; Multiple changes, single invalidation pass
+   (reactive-set! lens-fst 10 data)
+   (reactive-set! lens-snd 20 data)))
+```
+
+**Introspection**:
+```scheme
+(list-derivations)        ; => (deriv-a deriv-b ...)
+(derivation-info name)    ; => ((name . foo) (dependencies . (...)) ...)
+(dependency-graph)        ; => ((lens-fst . (deriv-a deriv-b)) ...)
+```
+
+#### 7.11.4 Relationship to Provenance
+
+Reactive derivations and provenance tracking share infrastructure:
+
+| Aspect | Provenance | Reactive |
+|--------|------------|----------|
+| **Purpose** | Audit trail | Automatic updates |
+| **Tracking** | All operations | Access paths only |
+| **Storage** | CAS blocks | In-memory hashtables |
+| **Optic registry** | Names in records | Dependency keys |
+| **Persistence** | Survives restart | Session-scoped |
+
+Both use the optic registry from `traced-optics.ss` to map optic values to symbolic names.
+
+#### 7.11.5 Design Decisions
+
+**Why not automatic invalidation on all traced-set?**
+
+The reactive operations (`reactive-set!`, etc.) are separate from traced operations (`traced-set`, etc.) to avoid unwanted coupling. Code using provenance tracking shouldn't automatically trigger reactive invalidation.
+
+**Why session-scoped, not persistent?**
+
+Reactive derivations are designed for interactive state management (UI, simulation dashboards). Persistence would require serializing compute functions, which conflicts with The Fold's pure/impure separation.
+
+**Why lazy recomputation?**
+
+Immediate recomputation on invalidation would cascade through the dependency graph, potentially wasting work if the value is never accessed. Lazy evaluation ensures we only compute what's needed.
+
+#### 7.11.6 Limitations
+
+**Unregistered optics**: If an optic isn't registered with `register-optic!`, its accesses won't be tracked. Custom optics should be registered before use in reactive derivations.
+
+**No circular dependency detection**: A derivation that reads and writes through the same optic could create infinite loops. The current implementation doesn't detect this.
+
+**Memory management**: Derivations persist until explicitly removed with `undefine-reactive`. Long-running sessions should clean up unused derivations.
+
+**Single-threaded**: The global mutable state (`*derivations*`, etc.) isn't thread-safe. Concurrent access requires external synchronization.
+
+---
+
+### 7.12 Optic Query Language
+
+The optic query module (`lattice/query/optic-query.ss`) builds on the optics foundation to provide a declarative query language. The key insight is that optics are already a *typed path language*—they describe how to navigate through data structures. By combining optic paths with predicate filtering, projection, and aggregation, we get a composable query system.
+
+#### 7.12.1 Design Philosophy
+
+Traditional query languages separate "navigation" from "filtering":
+
+```sql
+SELECT pos FROM bodies WHERE vel.y > 0
+```
+
+The optic query language unifies these through composition:
+
+```scheme
+(oquery-pipe world
+  (optic-having world-each-body body-vel-y (lambda (vy) (> vy 0)))
+  (lambda (b) #t)
+  (lambda (b) (^. b body-pos)))
+```
+
+Here, `optic-having` creates a *filtered traversal* that only yields bodies whose y-velocity satisfies the predicate. This traversal composes with other optics via `>>>`, enabling reusable query fragments.
+
+#### 7.12.2 Core API
+
+**Query functions** operate on a structure, an optic path, and optional predicate/projector:
+
+| Function | Signature | Purpose |
+|----------|-----------|---------|
+| `oquery` | `s × Optic → [a]` | Get all targets |
+| `oquery-where` | `s × Optic × (a→Bool) → [a]` | Filter by predicate |
+| `oquery-select` | `s × Optic × (a→b) → [b]` | Project through function |
+| `oquery-pipe` | `s × Optic × (a→Bool) × (a→b) → [b]` | Filter then project |
+| `oquery-first` | `s × Optic → Maybe a` | First target |
+| `oquery-first-where` | `s × Optic × (a→Bool) → Maybe a` | First matching target |
+
+**Example**: Find all bodies with positive y-velocity, return their names:
+
+```scheme
+(oquery-pipe world world-each-body
+  (lambda (b) (> (^. b body-vel-y) 0))
+  (lambda (b) (^. b body-name)))
+; => ("alpha" "delta")
+```
+
+#### 7.12.3 Optic Combinators
+
+Combinators create new optics that can be composed with `>>>`:
+
+| Combinator | Type | Purpose |
+|------------|------|---------|
+| `optic-where` | `Optic × (a→Bool) → Traversal` | Filtered traversal |
+| `optic-having` | `Optic × Optic × (b→Bool) → Traversal` | Filter by nested value |
+| `optic-select` | `Optic × (a→b) → Fold` | Projected fold |
+| `optic-limit` | `Optic × Nat → Fold` | Take first n |
+| `optic-skip` | `Optic × Nat → Fold` | Drop first n |
+
+**Example**: Reusable query components:
+
+```scheme
+;; Define once
+(define fast-bodies
+  (optic-where world-each-body
+    (lambda (b) (> (body-speed b) 100))))
+
+;; Use anywhere via composition
+(^.. game-state (>>> world-lens fast-bodies))
+(oquery-count game-state (>>> world-lens fast-bodies))
+```
+
+The `optic-having` combinator is particularly powerful—it filters based on a nested value:
+
+```scheme
+;; Bodies whose velocity y-component is positive
+(optic-having world-each-body body-vel-y
+  (lambda (vy) (> vy 0)))
+```
+
+This composes the outer traversal (`world-each-body`) with an inner optic (`body-vel-y`) and filters based on the inner value.
+
+#### 7.12.4 Aggregations
+
+Standard aggregation operations:
+
+| Function | Purpose |
+|----------|---------|
+| `oquery-count` | Count targets |
+| `oquery-count-where` | Count matching targets |
+| `oquery-sum` | Sum numeric targets |
+| `oquery-sum-by` | Sum extracted values |
+| `oquery-any` | Any target matches? |
+| `oquery-all` | All targets match? |
+| `oquery-min/max` | Min/max target value |
+| `oquery-min-by/max-by` | Target with min/max value |
+
+**Example**: Total mass of all bodies:
+
+```scheme
+(oquery-sum-by world world-each-body
+  (lambda (b) (^. b body-mass)))
+```
+
+#### 7.12.5 Grouping and Joins
+
+**Grouping** partitions targets by a key function:
+
+```scheme
+(oquery-group-by world world-each-body
+  (lambda (b) (if (> (^. b body-mass) 10) 'heavy 'light)))
+; => ((heavy . [bodies...]) (light . [bodies...]))
+```
+
+**Joins** combine results from multiple optic paths:
+
+| Function | Purpose |
+|----------|---------|
+| `oquery-join` | Cross-product with predicate filter |
+| `oquery-zip` | Pairwise combination (shortest length) |
+| `oquery-union` | Concatenate results |
+| `oquery-intersect` | Keep only shared targets |
+
+**Example**: Find bodies near each other:
+
+```scheme
+(oquery-join world world-each-body world-each-body
+  (lambda (a b)
+    (and (not (eq? a b))
+         (< (distance (^. a body-pos) (^. b body-pos)) 10))))
+```
+
+#### 7.12.6 Query Builder DSL
+
+For complex queries, the builder pattern provides a chainable interface:
+
+```scheme
+(define my-query
+  (-> (make-query world-each-body)
+      (q-where (lambda (b) (> (^. b body-pos-y) 0)))
+      (q-where (lambda (b) (> (^. b body-mass) 5)))
+      (q-map (lambda (b) (^. b body-name)))))
+
+(q-run world my-query)    ; => ("alpha" "delta")
+(q-count world my-query)  ; => 2
+(q-first world my-query)  ; => (just "alpha")
+```
+
+Filters and transforms accumulate; `q-run` executes them in order.
+
+#### 7.12.7 Predicate Helpers
+
+Convenience functions for building predicates:
+
+| Function | Creates predicate for... |
+|----------|--------------------------|
+| `optic-eq?` | Target equals value |
+| `optic-matches?` | Target satisfies condition |
+| `optic-exists?` | Target exists (non-nothing) |
+| `optic-gt?/lt?/gte?/lte?` | Numeric comparisons |
+| `optic-between?` | Range check (inclusive) |
+
+**Example**:
+
+```scheme
+(filter (optic-between? body-mass 5 20) bodies)
+```
+
+#### 7.12.8 Integration with Block Optics
+
+The query language works with CAS block optics for querying the content-addressed store:
+
+```scheme
+;; Find all lambda blocks with arity > 2
+(oquery-where store
+  (>>> all-blocks-trav (block-type-prism 'lambda))
+  (lambda (blk)
+    (> (^. blk block-arity-lens) 2)))
+```
+
+This integrates with the existing `lattice/query/query-dsl.ss` block query infrastructure while providing the composability benefits of optics.
+
+#### 7.12.9 Performance Characteristics
+
+| Operation | Complexity |
+|-----------|------------|
+| `oquery` | O(targets) |
+| `oquery-where` | O(targets) |
+| `oquery-group-by` | O(targets × groups) |
+| `oquery-join` | O(n × m) |
+| `oquery-sort-by` | O(n log n) |
+
+Queries are eager—all targets are collected before filtering. For large datasets, consider:
+- Using `optic-limit` to cap results
+- Composing filters before traversals to reduce intermediate results
+- Caching frequently-used filtered traversals
+
+#### 7.12.10 Design Rationale
+
+**Why optics as the path language?**
+
+1. **Type-safe composition**: `>>>` ensures paths compose correctly
+2. **Unified read/write**: Same optic for queries and updates
+3. **Reusability**: Define query fragments once, compose everywhere
+4. **Hierarchy awareness**: Lens+Prism=Affine; composition preserves semantics
+
+**Relationship to existing query-dsl**:
+
+The traditional query-dsl (`query-dsl.ss`) uses pattern matching on block fields:
+
+```scheme
+(query fs '(and (tag . entity) (payload-contains . "Turing")))
+```
+
+The optic query language is more general—it works on any data structure navigable by optics, not just CAS blocks. The two approaches complement each other: use `query-dsl` for declarative block searches, use `optic-query` for structured data navigation.
+
+---
 ## 8. Evaluation
 
 
