@@ -754,16 +754,24 @@ The profunctor optics module (`profunctor-optics.ss`) provides an alternative re
 - `Strong` — Adds `pfirst : p a b → p (a,c) (b,c)` (enables lenses)
 - `Choice` — Adds `pleft : p a b → p (Either a c) (Either b c)` (enables prisms)
 - `Closed` — Adds `pclosed : p a b → p (x→a) (x→b)` (enables grates)
+- `Wander` — Combines Strong + Choice with `wander : ((a → F b) → s → F t) → p a b → p s t` (enables traversals)
 
 **Advantages**:
 1. Composition is function composition (automatic type inference)
 2. Type class hierarchy mirrors optic hierarchy
 3. Separation of concerns: `Forget` for reading, `Tagged` for writing
 
+**Profunctor optic types**:
+- `p-iso`, `p-lens`, `p-prism`, `p-affine`, `p-grate` — Core optics
+- `p-traversal` — Multi-target optic using Wander class
+- `p-fold` — Read-only multi-target (composition: any optic + fold = fold)
+
 **Conversions**:
 ```scheme
 (lens->p-lens concrete-lens)    ; Concrete → Profunctor
 (p-lens->lens profunctor-lens)  ; Profunctor → Concrete
+(traversal->p-traversal trav)   ; Concrete traversal → Profunctor
+(p-traversal->traversal ptrav)  ; Profunctor → Concrete
 ```
 
 #### 7.8.5 Grate: The Dual of Lens
@@ -840,7 +848,45 @@ The Fold's content-addressed architecture benefits from optics in several ways:
 
 4. **Domain modeling**: Physics simulations, game state, and agent pipelines all benefit from declarative data access.
 
-**Future directions**: The optics foundation enables query languages (optics + pattern matching), reactive derivations (optic-based dependency tracking), and differentiable data access (optics + AD).
+**Future directions**: The optics foundation enables query languages (optics + pattern matching) and reactive derivations (optic-based dependency tracking).
+
+#### 7.8.8 Differentiable Data Access
+
+The traced optics module (`lattice/autodiff/traced-optics.ss`) bridges optics with automatic differentiation, enabling gradient computation through optic-focused paths:
+
+```scheme
+;; Gradient of loss w.r.t. optic focus
+(optic-gradient
+  (lambda (p) (traced-sq (car p)))  ; Loss = x²
+  lens-fst
+  '(3.0 . 4.0))
+; → 6.0  ; ∂(x²)/∂x = 2x = 6 at x=3
+
+;; Gradient through composed lenses
+(optic-gradient
+  (lambda (s) (traced-sq (view (>>> lens-fst lens-snd) s)))
+  (>>> lens-fst lens-snd)
+  '((1.0 . 2.0) . (3.0 . 4.0)))
+; → 4.0  ; Gradient at nested position
+
+;; Gradients for traversal targets (one per focus)
+(optic-gradient-list
+  (lambda (xs) (traced-sum (map traced-sq xs)))
+  traversal-each
+  '(1.0 2.0 3.0))
+; → (2.0 4.0 6.0)  ; Gradient for each element
+```
+
+**Key API**:
+| Function | Purpose |
+|----|-----|
+| `optic-gradient` | Gradient of loss w.r.t. lens/affine/iso focus |
+| `optic-gradient-list` | List of gradients for traversal targets |
+| `optic-gradient-maybe` | Maybe gradient for prism/affine (nothing if no match) |
+| `optimize-at` | Single gradient descent step at optic focus |
+| `optimize-steps` | Multiple gradient descent steps |
+
+**Architecture insight**: The `lift-at-optic` function traces only the optic focus, not the entire structure. This "pair of traced" pattern (vs "traced pair") enables efficient gradient computation through deeply nested structures while maintaining the compositional nature of optics.
 
 ### 7.9 Bidirectional Transformations
 
@@ -1027,5 +1073,153 @@ Migrations satisfy isomorphism laws by construction:
 
 (migrate-dry-run issue-v1->v2 root-hash)  ; Preview without storing
 ```
+
+### 7.10 Provenance Tracking
+
+The provenance module (`shell/provenance/`) instruments optic operations to create a complete audit trail in the CAS. Every traced operation produces a provenance record capturing what happened, enabling "explain this value" queries and regulatory compliance.
+
+#### 7.10.1 Architecture
+
+**Provenance record schema** (tag: `provenance/record`):
+
+```scheme
+((operation . <symbol>)        ; view, set, over, preview, etc.
+ (optic-name . <symbol|#f>)    ; Registered name if available
+ (optic-type . <symbol>)       ; lens, prism, traversal, etc.
+ (source-hash . <hex-string>)  ; Input structure
+ (result-hash . <hex-string>)  ; Output structure
+ (value-hash . <hex-string|#f>); Set/over value
+ (timestamp . <iso8601>)
+ (agent-id . <symbol|#f>)
+ (session-id . <string|#f>)
+ (version . 1))
+```
+
+The refs vector links to actual blocks: `[source-block, result-block, value-block?]`.
+
+**Head pointer indices** enable O(1) lookup:
+- `.store/heads/provenance/by-result/<hash>.head` — Find what created a result
+- `.store/heads/provenance/by-source/<hash>.head` — Find what used a source
+- `.store/heads/provenance/log.head` — Most recent operation
+
+#### 7.10.2 Traced Operations
+
+The `traced-optics.ss` module wraps standard optic operations with provenance recording:
+
+| Traced Function | Base Operation | Records |
+|-----------------|----------------|---------|
+| `traced-view` | `^.` | source, result |
+| `traced-set` | `.~` | source, result, value |
+| `traced-over` | `%~` | source, result, function name |
+| `traced-preview` | `^?` | source, Maybe result |
+| `traced-to-list` | `^..` | source, list result |
+
+**Usage**:
+```scheme
+(load "shell/provenance/traced-optics.ss")
+(load "shell/provenance/query.ss")
+
+;; Chain transformations with full tracking
+(define v1 '(1 . 2))
+(define v2 (traced-set lens-fst 10 v1))     ; (10 . 2)
+(define v3 (traced-set lens-snd 20 v2))     ; (10 . 20)
+
+;; Explain how v3 was created
+(explain v3)
+; → Lineage for 00abc123...
+;   Step 1: set via lens-fst (lens)
+;     Source: 00def456...
+;     Result: 00789abc...
+;   Step 2: set via lens-snd (lens)
+;     ...
+```
+
+**Optic registry**: Since optics are functions, they can't be serialized. The registry maps optic values to symbolic names for traceable provenance:
+
+```scheme
+(register-optic! 'my-optic (>>> lens-fst lens-snd))
+(lookup-optic-name my-optic)  ; → 'my-optic
+```
+
+Standard optics (`lens-fst`, `prism-just`, `traversal-each`, etc.) are pre-registered.
+
+#### 7.10.3 Query API
+
+**Direct queries**:
+```scheme
+(provenance-for-result result-hex)  ; → Block | #f
+(provenance-for-source source-hex)  ; → Block | #f
+(latest-provenance)                 ; → Block | #f
+```
+
+**Lineage traversal**:
+```scheme
+(trace-lineage result-hex)     ; → (List Block) oldest first
+(trace-descendants source-hex) ; → (List Block) forward lineage
+```
+
+**Value retrieval** (from provenance records):
+```scheme
+(provenance-get-source record)  ; → original value
+(provenance-get-result record)  ; → result value
+(provenance-get-value record)   ; → set/over argument
+```
+
+**Search and statistics**:
+```scheme
+(find-provenance-by-optic 'lens-fst)       ; All uses of this optic
+(find-provenance-by-operation 'set)        ; All set operations
+(find-provenance-by-agent 'my-agent)       ; All by this agent
+(provenance-stats)                         ; Counts by operation/optic/agent
+```
+
+#### 7.10.4 Context and Scoping
+
+**Agent identity** for audit trails:
+```scheme
+(with-agent-id 'migration-tool
+  (lambda ()
+    (traced-set lens-fst new-value data)))
+; Provenance record shows agent-id: migration-tool
+```
+
+**Selective tracing**:
+```scheme
+(without-tracing
+  (lambda ()
+    ;; Performance-critical section
+    (traced-view data lens-fst)))  ; No provenance recorded
+
+(with-tracing
+  (lambda ()
+    ;; Ensure tracing even if globally disabled
+    ...))
+```
+
+#### 7.10.5 Security Considerations
+
+**Path validation**: Hex strings used in head file paths are validated to contain only `[0-9a-fA-F]`, preventing path traversal attacks:
+
+```scheme
+(valid-hex-string? "../etc/passwd")  ; → #f (rejected)
+(valid-hex-string? "00abcdef1234")   ; → #t
+```
+
+**Data sensitivity**: Values are stored as plaintext S-expressions. Sensitive data (keys, PII) will appear in provenance blocks. Consider:
+- Using `without-tracing` for sensitive operations
+- Restricting CAS directory permissions
+- Future: encrypted payload option
+
+#### 7.10.6 Performance Considerations
+
+**Per-operation overhead**: Each traced operation creates:
+- 3-4 block stores (source, result, value, record)
+- 3 head file writes (log, by-result, by-source)
+
+For performance-critical code, use `without-tracing` or raw optics.
+
+**Query scalability**: `find-provenance-by-*` functions scan the entire store—O(N). For production use with large stores, consider external indices (BBS pattern).
+
+**Storage growth**: Provenance creates ~4 blocks per operation. For high-volume systems, implement retention policies or archived storage tiers.
 
 ---
