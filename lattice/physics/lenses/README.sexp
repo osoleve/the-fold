@@ -134,16 +134,45 @@
     "(load \"lattice/physics/diff/traced-body-protocols.ss\")"
     "This registers TracedBody implementations for body-pos, body-vel, body-mass.")
 
+  (optics-integration
+    "For full optics tower integration with operators and traversals:"
+    "(load \"lattice/physics/lenses/optics-integration.ss\")"
+    ""
+    "Provides:"
+    "- Optics operators: ^., ^?, %~, .~, & for Haskell-like syntax"
+    "- >>> operator for left-to-right composition"
+    "- Traversals: bodies-each, particles-each, particles-alive"
+    "- Affines: affine-rigid-angle, affine-particle-lifetime, etc."
+    "- World optics: make-world, world-body, world-all-bodies"
+    ""
+    "Example usage:"
+    ";;; Using optics operators"
+    "(^. body (body. pos))                    ; View position"
+    "(& body (%~ (body. pos x) add1))         ; Modify pos.x"
+    "(& body (.~ (body. vel) (vec2 0 0)))     ; Set velocity"
+    ""
+    ";;; Traverse all bodies"
+    "(traversal-over bodies-each"
+    "  (lambda (b) (& b (%~ (body. vel y) (lambda (vy) (+ vy -9.8)))))"
+    "  bodies)"
+    ""
+    ";;; World-level composition with >>>"
+    "(^? world (>>> (world-body 'player) (lens->affine body-pos-lens)))")
+
   (tier 1)
   (purity total)
   (dependencies
     (fp/templates.ss "Core lens infrastructure")
     (fp/protocol.ss "Open protocol dispatch")
+    (fp/optics/optics.ss "Optics tower")
     (linalg/vec2.ss "Vec2 data type")
     (physics/classical/rigid-body.ss "RigidBody2D data type")
     (physics/classical/particles.ss "Particle data type"))
 
-  (test-command "scheme --script lattice/physics/lenses/test-lenses.ss")
+  (test-commands
+    "scheme --script lattice/physics/lenses/test-lenses.ss"
+    "scheme --script lattice/physics/lenses/test-optics-integration.ss")
 
   (author "Claude Opus 4.5")
-  (created "2026-01-16"))
+  (created "2026-01-16")
+  (updated "2026-01-18"))

@@ -292,6 +292,52 @@ Key design principles:
     ;; Composed lens paths
     at-focus at-left at-right
 
+    ;; optics/ — Complete Optics Tower
+    ;; optics.ss
+    ;; Isomorphisms
+    make-iso iso? iso-forward iso-backward
+    iso-view iso-review iso-over iso-flip iso-compose
+    iso-id iso-curried iso-flipped iso-swapped iso-reversed
+    iso-assoc-list iso-maybe-either iso-cons
+    ;; Lens extensions
+    lens-id
+    ;; Prism extensions
+    prism-over prism-set prism-compose
+    prism-id prism-nil prism-cons
+    ;; Affines (full implementation)
+    affine-preview affine-set affine-over affine-compose
+    affine-id affine-nth lens->affine prism->affine
+    ;; Traversals
+    make-traversal traversal? traversal-traverse traversal-fold
+    traversal-to-list traversal-over traversal-set traversal-compose
+    traversal-each traversal-filtered traversal-both
+    traversal-left traversal-right traversal-just
+    lens->traversal prism->traversal affine->traversal
+    ;; Folds
+    make-fold fold-optic? fold-optic-fn
+    fold-to-list fold-preview fold-has fold-length
+    fold-all fold-any fold-sum fold-compose
+    fold-each fold-filtered fold-taking fold-dropping
+    traversal->fold lens->fold prism->fold
+    ;; Getters
+    make-getter getter? getter-fn
+    getter-view getter-compose
+    getter-id getter-fst getter-snd getter-to
+    lens->getter iso->getter
+    ;; Setters
+    make-setter setter? setter-over-fn
+    setter-over setter-set setter-compose
+    setter-mapped setter-arg setter-result
+    lens->setter traversal->setter iso->setter
+    ;; Unified composition
+    optic-type optic-compose
+    ->traversal ->fold ->setter
+    iso->lens iso->prism getter->fold
+    ;; Operators
+    ^. ^? ^.. .~ %~ &
+    ;; Law verification
+    verify-iso-laws verify-lens-laws verify-prism-laws verify-traversal-laws
+
     ;; game/ — Game Theory
     ;; normal-form.ss
     make-game game? game-players game-strategies game-payoff-fn
@@ -625,6 +671,11 @@ Key design principles:
        "tree-zipper.ss"   ; Rose tree zipper with navigation
        "generic-zipper.ss" ; Type-theoretic zipper derivation
        "zipper-lens.ss"))) ; Zipper-lens integration (lenses, affines, comonad connection)
+
+    ((subdir "optics")
+     (description "Complete optics tower: Iso, Lens, Prism, Affine, Traversal, Fold, Getter, Setter")
+     (files (
+       "optics.ss")))     ; Unified optics with composition and operators
 
     ((subdir "game")
      (description "Game theory: normal form, cooperative games, matching, voting, fair division")

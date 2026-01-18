@@ -16,6 +16,7 @@ Tier 0 (Foundational):     linalg, data, algebra, random, numeric
 Tier 1 (Intermediate):     autodiff, geometry, diffgeo, query, fp, info, topology
          │                 Depend on Tier 0
          │                 diffgeo provides charts, tangent spaces, Lie groups, curvature
+         │                 fp/optics provides composable data accessors (lenses, prisms, etc.)
          ▼
 Tier 2+ (Advanced):        physics/diff, physics/diff3d, physics/classical, sim, pipeline
                            Multiple dependencies, domain-specific
@@ -293,6 +294,61 @@ The category module provides first-class categorical structures that unify and e
 - **State/Store Adjunction** (`state-store-adjunction.ss`): The canonical product-exponential adjunction (−)×S ⊣ (−)^S. Derives the State monad and Store comonad from first principles, and implements currying as adjunction transposition.
 
 The key insight: **all standard monads and comonads arise from adjunctions**, and **the O(1) bind optimization in effect systems is the Codensity monad**. This provides both theoretical grounding and practical performance understanding.
+
+**Optics** (`fp/optics/`):
+
+A complete hierarchy of composable optics for principled data access and transformation:
+
+```
+              Fold
+             /    \
+        Getter    Traversal
+             \    /    \
+              Affine   Setter
+             /    \     |
+          Prism   Lens  |
+             \    /    /
+               Iso ---- Grate
+```
+
+Grate is the categorical dual of Lens: where Lens extracts/replaces a single focus, Grate enables zipping multiple structures together via cotraverse.
+
+| Optic | Targets | Read | Write | Primary Use |
+|-------|---------|------|-------|-------------|
+| Iso | exactly 1 | yes | yes | Reversible transformations |
+| Lens | exactly 1 | yes | yes | Product type fields |
+| Prism | 0 or 1 | yes | yes | Sum type variants |
+| Affine | 0 or 1 | yes | yes | Optional fields (Lens ∩ Prism) |
+| Grate | exactly 1 | no | yes | Zipping structures (dual of Lens) |
+| Traversal | 0+ | yes | yes | Multiple targets |
+| Fold | 0+ | yes | no | Read-only multi-target |
+| Getter | exactly 1 | yes | no | Read-only single-target |
+| Setter | 0+ | no | yes | Write-only multi-target |
+
+**Key features**:
+- **Unified composition**: `optic-compose` automatically selects the most specific result type (lens+prism→affine, traversal+fold→fold)
+- **Operator syntax**: `^.` (view), `^?` (preview), `^..` (to-list), `.~` (set), `%~` (modify) enable ergonomic chaining
+- **Law verification**: All optic types include property-based law checkers
+
+**Example**:
+```scheme
+;; View through lens
+(^. '(1 . 2) lens-fst)  ; → 1
+
+;; Preview through prism (returns Maybe)
+(^? (just 42) prism-just)  ; → (just 42)
+(^? nothing prism-just)     ; → nothing
+
+;; Modify all matching elements
+(& '(1 2 3 4) (%~ (traversal-filtered even?) (lambda (x) (* x 10))))
+; → (1 20 3 40)
+
+;; Composition: lens+prism automatically yields affine
+(define my-affine (optic-compose lens-fst prism-just))
+(affine-preview my-affine (cons (just 42) "hello"))  ; → (just 42)
+```
+
+The optics tower provides principled abstractions for refactoring higher lattice modules—any module that navigates nested data structures can benefit from composable optics rather than ad-hoc accessor functions.
 
 ### 6.6 Module Loading
 

@@ -667,4 +667,179 @@ Now z is a deterministic function of φ, enabling ∇_φ E_q[f(z)] via backpropa
 
 This approach scales to large datasets where MCMC would be prohibitively slow.
 
+### 7.8 Optics Tower
+
+The Fold includes a complete optics implementation (`lattice/fp/optics/`) providing composable data accessors for principled navigation and transformation of nested structures.
+
+#### 7.8.1 The Optics Hierarchy
+
+Optics form a hierarchy based on their capabilities:
+
+```
+                  Fold
+                 /    \
+            Getter    Traversal
+                 \    /    \
+                  Affine   Setter
+                 /    \     |
+              Prism   Lens  |
+                 \    /    /
+                   Iso ---- Grate
+```
+
+Grate is the categorical dual of Lens. While a Lens focuses on extracting and replacing a single value within a structure, a Grate enables zipping multiple copies of a structure together.
+
+| Optic | Targets | Read | Write | Laws |
+|-------|---------|------|-------|------|
+| Iso | exactly 1 | ✓ | ✓ | forward∘backward = id, backward∘forward = id |
+| Lens | exactly 1 | ✓ | ✓ | get-put, put-get, put-put |
+| Prism | 0 or 1 | ✓ | ✓ | preview-review, review-preview |
+| Affine | 0 or 1 | ✓ | ✓ | get-set, set-get |
+| Grate | exactly 1 | ✗ | ✓ | review-over, zipWith-identity |
+| Traversal | 0+ | ✓ | ✓ | identity, composition |
+| Fold | 0+ | ✓ | ✗ | — |
+| Getter | exactly 1 | ✓ | ✗ | — |
+| Setter | 0+ | ✗ | ✓ | identity, composition |
+
+**Composition rules**: When optics compose, the result type is the "least upper bound" in the hierarchy. Lens + Prism = Affine (can read/write, but target may not exist).
+
+#### 7.8.2 Operator Syntax
+
+Ergonomic operators mirror Haskell's lens library:
+
+| Operator | Name | Type | Usage |
+|----------|------|------|-------|
+| `^.` | view | `s × Lens → a` | `(^. pair lens-fst)` |
+| `^?` | preview | `s × Affine → Maybe a` | `(^? maybe prism-just)` |
+| `^..` | to-list | `s × Traversal → [a]` | `(^.. list traversal-each)` |
+| `.~` | set | `Optic × b → s → t` | `((.~ lens-fst 99) pair)` |
+| `%~` | over | `Optic × (a→b) → s → t` | `((%~ lens-fst add1) pair)` |
+| `&` | pipe | `s × (s→t) → t` | `(& pair (.~ lens-fst 99))` |
+| `>>>` | compose | `Optic × Optic → Optic` | `(>>> outer inner)` |
+
+**Example**:
+```scheme
+(& body (%~ (>>> body-pos-lens vec2-x-lens) add1))  ; Increment x coordinate
+```
+
+#### 7.8.3 Block Optics
+
+The CAS-aware optics (`block-optics.ss`) provide principled access to content-addressed blocks:
+
+**Basic lenses**:
+- `block-tag-lens` — Focus on block tag (Symbol)
+- `block-payload-lens` — Focus on payload (Bytevector)
+- `block-refs-lens` — Focus on refs vector
+
+**Reference optics**:
+- `block-ref-at n` — Affine for ref at index n (returns nothing if out of bounds)
+- `block-refs-each` — Traversal over all refs
+- `follow-ref fetch` — Affine that dereferences through CAS
+
+**Type prisms**:
+- `block-type-prism tag` — Match blocks by tag
+- `block-lambda-prism`, `block-app-prism`, etc. — Common type matchers
+
+**Tree traversal**:
+```scheme
+(collect-block-tree fetch root)  ; DFS all reachable blocks (O(N))
+```
+
+#### 7.8.4 Profunctor Encoding
+
+The profunctor optics module (`profunctor-optics.ss`) provides an alternative representation where optics are polymorphic functions `p a b → p s t` constrained by profunctor type classes.
+
+**Type classes**:
+- `Profunctor` — `dimap : (a'→a) → (b→b') → p a b → p a' b'`
+- `Strong` — Adds `pfirst : p a b → p (a,c) (b,c)` (enables lenses)
+- `Choice` — Adds `pleft : p a b → p (Either a c) (Either b c)` (enables prisms)
+- `Closed` — Adds `pclosed : p a b → p (x→a) (x→b)` (enables grates)
+
+**Advantages**:
+1. Composition is function composition (automatic type inference)
+2. Type class hierarchy mirrors optic hierarchy
+3. Separation of concerns: `Forget` for reading, `Tagged` for writing
+
+**Conversions**:
+```scheme
+(lens->p-lens concrete-lens)    ; Concrete → Profunctor
+(p-lens->lens profunctor-lens)  ; Profunctor → Concrete
+```
+
+#### 7.8.5 Grate: The Dual of Lens
+
+Grate is the categorical dual of Lens. The key insight is in their representations:
+
+| Optic | Representation | Profunctor Class |
+|-------|----------------|------------------|
+| Lens | `(s → a, s → b → t)` — get/set | Strong (`pfirst`) |
+| Grate | `((s → a) → b) → t` — cotraverse | Closed (`pclosed`) |
+
+Where a Lens says "I can extract a focus and replace it," a Grate says "given any way to extract a focus, I can produce a result."
+
+**Primary operation — zipWith**:
+```scheme
+;; Zip two pairs element-wise with a combining function
+(grate-zipWith grate-pair-same + '(1 . 2) '(3 . 4))  ; → (4 . 6)
+
+;; Apply the same argument to two functions and combine results
+(let ([f (lambda (x) (+ x 1))]
+      [g (lambda (x) (* x 2))])
+  ((grate-zipWith grate-fn + f g) 5))  ; → 16  ((5+1) + (5*2))
+```
+
+**Common grates**:
+- `grate-id` — Identity grate
+- `grate-fn` — Functions as a grate (apply same input, combine outputs)
+- `grate-pair-same` — Homogeneous pairs `(a . a)`
+- `grate-list-rep n` — Fixed-length lists of n elements
+
+**Laws**:
+1. `(grate-over g id s) = s` — Identity
+2. `(grate-zipWith g (λ (a b) a) s1 s2) = s1` — Left projection
+3. `(grate-review g (grate-over g f (grate-review g a))) = (grate-review g (f a))` — Review-over coherence
+
+**Use cases**:
+- Parallel structure processing (zip vectors, matrices)
+- Distributing functions over containers
+- Gradient computation (apply same perturbation, collect partial derivatives)
+
+#### 7.8.6 Physics Integration
+
+The physics lens integration (`lattice/physics/lenses/optics-integration.ss`) demonstrates domain-specific optics:
+
+**Traversals**:
+- `bodies-each` — All bodies in a list
+- `particles-alive` — Only alive particles
+- `rigid-bodies-only` — Type-filtered traversal
+
+**World optics**:
+```scheme
+(^? world (world-body 'player))                    ; Maybe get player
+(traversal-over world-all-bodies (step-body dt) w) ; Simulate all bodies
+```
+
+**Physics operations as optic transformations**:
+```scheme
+(define (apply-gravity g)
+  (lambda (body)
+    (& body (%~ (>>> body-vel-lens vec2-y-lens) (lambda (vy) (+ vy g))))))
+```
+
+#### 7.8.7 Design Rationale
+
+**Why optics?**
+
+The Fold's content-addressed architecture benefits from optics in several ways:
+
+1. **Immutable updates**: Blocks are immutable; optics provide functional update syntax that creates new blocks with modified content.
+
+2. **Composable paths**: Complex CAS traversals (follow ref → match type → extract field) compose cleanly.
+
+3. **Type-safe partiality**: Affines and prisms encode "might not exist" in their types, preventing runtime errors.
+
+4. **Domain modeling**: Physics simulations, game state, and agent pipelines all benefit from declarative data access.
+
+**Future directions**: The optics foundation enables query languages (optics + pattern matching), bidirectional transformations (schema migrations), reactive derivations (optic-based dependency tracking), and differentiable data access (optics + AD).
+
 ---
