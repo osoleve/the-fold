@@ -66,6 +66,10 @@
 
 ;;; *warned-optics* : Hashtable (Optic -> Boolean)
 ;;; Cache to avoid repeated warnings for the same optic.
+;;; NOTE: Uses eq-hashtable keyed on optic closures. For long-running processes
+;;; with many ephemeral anonymous optics, consider periodic reset-optic-warnings!
+;;; calls to prevent unbounded growth. A weak-eq-hashtable would be ideal but
+;;; the eq? identity of closures makes GC behavior unpredictable.
 (define *warned-optics* (make-eq-hashtable))
 
 ;;; reset-optic-warnings! : -> Void
@@ -93,8 +97,8 @@
        (hashtable-set! *warned-optics* optic #t)
        (display "Warning: ")
        (display operation)
-       (display " used with unregistered optic - dependency tracking skipped\n")
-       (display "  Hint: Use (register-optic! 'name optic) for reactivity\n"))]))
+       (display " used with unregistered optic - reactivity skipped\n")
+       (display "  Hint: Use (register-optic! 'name optic) for dependency tracking\n"))]))
 
 ;;; with-access-tracking : (-> a) -> (Values a (List Symbol))
 ;;; Execute thunk while tracking optic accesses.

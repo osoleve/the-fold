@@ -421,6 +421,30 @@
         ;; And no warning recorded
         (assert-false (hashtable-ref *warned-optics* anon-fst #f)))))
 
+  (define-test "reactive-preview warns for unregistered optic"
+    (reset-optic-warnings!)
+    (set! *warn-unregistered-optics?* #t)
+    (set! *strict-optic-registration?* #f)
+    ;; Define an anonymous prism for testing preview
+    (let ([anon-prism (make-prism
+                        (lambda (x) (if (pair? x) (just (car x)) nothing))
+                        (lambda (a) (list a)))])
+      (with-access-tracking
+       (lambda () (reactive-preview '(1 2 3) anon-prism)))
+      (assert-true (hashtable-ref *warned-optics* anon-prism #f))))
+
+  (define-test "reactive-to-list warns for unregistered optic"
+    (reset-optic-warnings!)
+    (set! *warn-unregistered-optics?* #t)
+    (set! *strict-optic-registration?* #f)
+    ;; Use traversal-each which is registered, but compose with anonymous lens
+    (let ([anon-traversal (make-traversal
+                            (lambda (f xs) (map f xs))
+                            (lambda (xs) xs))])
+      (with-access-tracking
+       (lambda () (reactive-to-list '(1 2 3) anon-traversal)))
+      (assert-true (hashtable-ref *warned-optics* anon-traversal #f))))
+
   (define-test "reactive-set! warns for unregistered optic"
     (reset-optic-warnings!)
     (set! *warn-unregistered-optics?* #t)
@@ -438,6 +462,18 @@
     (reset-optic-warnings!)
     (reactive-over! anon-fst add1 '(1 . 2))
     (assert-true (hashtable-ref *warned-optics* anon-fst #f)))
+
+  (define-test "distinct anonymous optics trigger separate warnings"
+    (reset-optic-warnings!)
+    (set! *warn-unregistered-optics?* #t)
+    (set! *strict-optic-registration?* #f)
+    ;; Create two distinct anonymous lenses
+    (let ([opt1 (make-lens car (lambda (b s) (cons b (cdr s))))]
+          [opt2 (make-lens car (lambda (b s) (cons b (cdr s))))])
+      (with-access-tracking (lambda () (reactive-view '(1 . 2) opt1)))
+      (with-access-tracking (lambda () (reactive-view '(1 . 2) opt2)))
+      ;; Should have 2 separate entries (eq? identity is different)
+      (assert-equal 2 (hashtable-size *warned-optics*))))
 
   ;; Restore safe defaults after test group
   (set! *warn-unregistered-optics?* #t)
