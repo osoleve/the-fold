@@ -51,19 +51,25 @@
 
 ;;; field-add-iso : Symbol -> Any -> PIso Alist Alist
 ;;; Create an iso that adds a field with a default value.
-;;; Forward: add field with default at the front
-;;; Backward: remove the field
+;;; Forward: add field with default at the front (idempotent: skips if exists)
+;;; Backward: remove the field (only if value equals default)
 ;;;
-;;; Note: The default is used when migrating forward.
-;;; Rolling back simply removes the field (data may be lost).
+;;; Note: Idempotent - if field already exists, no change is made.
+;;; This ensures roundtrip safety: rollback(migrate(x)) = x.
 (define (field-add-iso field default)
   (make-p-iso
-   ;; Forward: add field at front
+   ;; Forward: add field at front only if not present
    (lambda (alist)
-     (cons (cons field default) alist))
-   ;; Backward: remove field
+     (if (assq field alist)
+         alist  ; Already exists, don't duplicate
+         (cons (cons field default) alist)))
+   ;; Backward: remove field only if value equals default
+   ;; (preserves original values if field was already present)
    (lambda (alist)
-     (filter (lambda (pair) (not (eq? (car pair) field))) alist))))
+     (let ([existing (assq field alist)])
+       (if (and existing (equal? (cdr existing) default))
+           (filter (lambda (pair) (not (eq? (car pair) field))) alist)
+           alist)))))
 
 ;;; field-remove-iso : Symbol -> Any -> PIso Alist Alist
 ;;; Create an iso that removes a field (inverse of add).
@@ -85,17 +91,23 @@
 ;;; field-transform-iso : Symbol -> PIso a b -> PIso Alist Alist
 ;;; Create an iso that transforms a specific field's value.
 ;;; The value-iso transforms the field value bidirectionally.
+;;; Note: Errors if field is not present. Use field-transform-if-present-iso
+;;; for optional fields.
 (define (field-transform-iso field value-iso)
   (make-p-iso
-   ;; Forward: apply value-iso's forward to field value
+   ;; Forward: apply value-iso's forward to field value (must exist)
    (lambda (alist)
+     (unless (assq field alist)
+       (error 'field-transform-iso "field not found" field))
      (map (lambda (pair)
             (if (eq? (car pair) field)
                 (cons field ((p-iso-forward value-iso) (cdr pair)))
                 pair))
           alist))
-   ;; Backward: apply value-iso's backward to field value
+   ;; Backward: apply value-iso's backward to field value (must exist)
    (lambda (alist)
+     (unless (assq field alist)
+       (error 'field-transform-iso "field not found" field))
      (map (lambda (pair)
             (if (eq? (car pair) field)
                 (cons field ((p-iso-backward value-iso) (cdr pair)))
@@ -103,21 +115,28 @@
           alist))))
 
 ;;; field-transform-if-present-iso : Symbol -> PIso a b -> PIso Alist Alist
-;;; Like field-transform-iso but safely handles missing fields.
+;;; Like field-transform-iso but safely skips if field is missing.
+;;; Use this for optional fields where absence is valid.
 (define (field-transform-if-present-iso field value-iso)
   (make-p-iso
+   ;; Forward: apply if present, otherwise pass through unchanged
    (lambda (alist)
-     (map (lambda (pair)
-            (if (eq? (car pair) field)
-                (cons field ((p-iso-forward value-iso) (cdr pair)))
-                pair))
-          alist))
+     (if (assq field alist)
+         (map (lambda (pair)
+                (if (eq? (car pair) field)
+                    (cons field ((p-iso-forward value-iso) (cdr pair)))
+                    pair))
+              alist)
+         alist))
+   ;; Backward: apply if present, otherwise pass through unchanged
    (lambda (alist)
-     (map (lambda (pair)
-            (if (eq? (car pair) field)
-                (cons field ((p-iso-backward value-iso) (cdr pair)))
-                pair))
-          alist))))
+     (if (assq field alist)
+         (map (lambda (pair)
+                (if (eq? (car pair) field)
+                    (cons field ((p-iso-backward value-iso) (cdr pair)))
+                    pair))
+              alist)
+         alist))))
 
 ;;; ============================================================
 ;;; Part 4: Field Split/Merge

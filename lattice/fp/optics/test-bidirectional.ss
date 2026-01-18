@@ -210,6 +210,30 @@
       (assert-false (assq 'new-field result))
       (assert-true (pair? (assq 'existing result)))))
 
+  (define-test "field-add-iso is idempotent"
+    (let* ([iso (field-add-iso 'status 'pending)]
+           [alist-with-field '((status . active) (other . 1))]
+           [result ((p-iso-forward iso) alist-with-field)])
+      ;; Should NOT add duplicate, keep original value
+      (assert-equal 'active (cdr (assq 'status result)))
+      ;; Count occurrences of 'status - should be 1
+      (assert-equal 1 (length (filter (lambda (p) (eq? (car p) 'status)) result)))))
+
+  (define-test "field-add-iso roundtrips when field already exists"
+    (let* ([iso (field-add-iso 'status 'pending)]
+           [alist '((status . active) (other . 1))])
+      ;; roundtrip should preserve original
+      (assert-equal alist ((p-iso-backward iso)
+                           ((p-iso-forward iso) alist)))))
+
+  (define-test "field-transform-if-present-iso skips missing field"
+    (let* ([value-iso (make-p-iso add1 sub1)]
+           [iso (field-transform-if-present-iso 'count value-iso)]
+           [alist '((name . "test"))]
+           [result ((p-iso-forward iso) alist)])
+      ;; Should pass through unchanged when field missing
+      (assert-equal alist result)))
+
   (define-test "field-transform-iso transforms value"
     (let* ([value-iso (make-p-iso add1 sub1)]
            [iso (field-transform-iso 'count value-iso)]
@@ -234,7 +258,64 @@
       (assert-true (pair? (assq 'new2 result)))
       (assert-true (pair? (assq 'unchanged result)))
       (assert-false (assq 'old1 result))
-      (assert-false (assq 'old2 result)))))
+      (assert-false (assq 'old2 result))))
+
+  ;; Tests for field-split-iso and field-merge-iso
+  (define-test "field-split-iso splits single field"
+    (let* ([splitter (lambda (v) `((first . ,(car v)) (second . ,(cdr v))))]
+           [merger (lambda (pairs)
+                     (cons (cdr (assq 'first pairs))
+                           (cdr (assq 'second pairs))))]
+           [iso (field-split-iso 'pair '(first second) splitter merger)]
+           [alist '((pair . (1 . 2)) (other . 99))]
+           [result ((p-iso-forward iso) alist)])
+      (assert-true (pair? (assq 'first result)))
+      (assert-true (pair? (assq 'second result)))
+      (assert-false (assq 'pair result))
+      (assert-equal 1 (cdr (assq 'first result)))
+      (assert-equal 2 (cdr (assq 'second result)))))
+
+  (define-test "field-split-iso roundtrips"
+    (let* ([splitter (lambda (v) `((first . ,(car v)) (second . ,(cdr v))))]
+           [merger (lambda (pairs)
+                     (cons (cdr (assq 'first pairs))
+                           (cdr (assq 'second pairs))))]
+           [iso (field-split-iso 'pair '(first second) splitter merger)]
+           [alist '((pair . (1 . 2)) (other . 99))])
+      (assert-equal alist ((p-iso-backward iso)
+                           ((p-iso-forward iso) alist)))))
+
+  (define-test "field-merge-iso merges fields"
+    (let* ([merger (lambda (pairs)
+                     (cons (cdr (assq 'first pairs))
+                           (cdr (assq 'second pairs))))]
+           [splitter (lambda (v) `((first . ,(car v)) (second . ,(cdr v))))]
+           [iso (field-merge-iso '(first second) 'pair merger splitter)]
+           [alist '((first . 1) (second . 2) (other . 99))]
+           [result ((p-iso-forward iso) alist)])
+      (assert-true (pair? (assq 'pair result)))
+      (assert-false (assq 'first result))
+      (assert-false (assq 'second result))
+      (assert-equal '(1 . 2) (cdr (assq 'pair result)))))
+
+  (define-test "field-merge-iso roundtrips"
+    (let* ([merger (lambda (pairs)
+                     (cons (cdr (assq 'first pairs))
+                           (cdr (assq 'second pairs))))]
+           [splitter (lambda (v) `((first . ,(car v)) (second . ,(cdr v))))]
+           [iso (field-merge-iso '(first second) 'pair merger splitter)]
+           [alist '((first . 1) (second . 2) (other . 99))])
+      (assert-equal alist ((p-iso-backward iso)
+                           ((p-iso-forward iso) alist)))))
+
+  (define-test "field-split-iso handles missing field"
+    (let* ([splitter (lambda (v) `((a . ,(car v))))]
+           [merger (lambda (pairs) (car (cdr (assq 'a pairs))))]
+           [iso (field-split-iso 'missing '(a) splitter merger)]
+           [alist '((other . 99))]
+           [result ((p-iso-forward iso) alist)])
+      ;; Should pass through unchanged when field missing
+      (assert-equal alist result))))
 
 ;;; ============================================================
 ;;; Part 7: Block Migration Tests

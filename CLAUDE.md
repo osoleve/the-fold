@@ -100,6 +100,9 @@ scheme --script lattice/meta/test-meta.ss
 scheme --script lattice/fp/game/test-voting-games.ss
 scheme --script lattice/fp/game/test-coop-games.ss
 scheme --script lattice/fp/clp/test-clp.ss
+scheme --script lattice/fp/optics/test-optics.ss
+scheme --script lattice/fp/optics/test-profunctor-optics.ss
+scheme --script lattice/fp/optics/test-bidirectional.ss
 scheme --script lattice/statistics/test-statistics.ss
 scheme --script lattice/topology/homology-test.ss
 
@@ -220,6 +223,7 @@ The lattice is a DAG of verified skills. "Stdlib" = tier 0 (foundational nodes).
 | `diffgeo/` | Charts, atlases, Lie groups, Riemannian curvature |
 | `autodiff/` | Reverse-mode AD, computational graphs, interval gradients |
 | `fp/` | Monads, parsers, streams, protocols, game theory, control systems |
+| `fp/optics/` | Complete optics tower (Iso, Lens, Prism, Affine, Traversal, Fold, Getter, Setter) |
 | `fp/clp/` | Constraint logic programming (cKanren-style CLP(FD)) |
 | `query/` | Query DSL, SQL parser, patterns |
 | `dsl/` | Tagless final, chronicle, staging, template DSL |
@@ -230,7 +234,7 @@ The lattice is a DAG of verified skills. "Stdlib" = tier 0 (foundational nodes).
 | `crypto/` | SHA-512, BLAKE2b, HMAC |
 | `optimization/` | LP, ILP, gradient descent, Newton, L-BFGS, interval global, constraint contractors |
 | `statistics/` | Regression, GLM, time series, hypothesis testing |
-| `physics/lenses/` | Optics for physics state access |
+| `physics/lenses/` | Physics lenses integrated with optics tower (bodies, particles, worlds) |
 
 **Tier 2+ — Advanced:**
 | Directory | Purpose |
@@ -263,6 +267,24 @@ These are pure functions - import them into shell code for applications like QA 
 *Statistics (`lattice/statistics/`):* Linear/GLM regression (IRLS), regularization (ridge, lasso, elastic net), time series (AR, MA, exponential smoothing), hypothesis testing (t-test, F-test, ANOVA, chi-squared). Use `(li 'statistics)` for details.
 
 *CLP(FD) (`lattice/fp/clp/`):* cKanren-style constraint logic programming with finite domains, arithmetic constraints, global constraints (all-different), and intelligent search strategies. Classic problems: N-Queens, Sudoku, cryptarithmetic.
+
+*Optics (`lattice/fp/optics/`):* Complete optics tower for composable data access:
+| Module | Contents |
+|--------|----------|
+| `optics.ss` | Core tower: Iso, Lens, Prism, Affine, Traversal, Fold, Getter, Setter, Grate |
+| `block-optics.ss` | CAS block optics: `block-tag-lens`, `block-refs-each`, `follow-ref`, type prisms |
+| `profunctor-optics.ss` | Profunctor encoding: Strong/Choice/Closed classes, `p-lens`, `p-prism`, `p-grate` |
+| `bidirectional.ss` | Reversible migrations: `make-migration`, `migrate`, `rollback`, `migration-compose` |
+| `schema.ss` | Field DSL: `field-rename-iso`, `field-add-iso`, `field-transform-iso` |
+| `block-migration.ss` | CAS migrations: `make-block-migration`, `block-migrate-payload`, bottom-up tree traversal |
+
+Operators: `^.` (view), `^?` (preview), `^..` (to-list), `.~` (set), `%~` (modify), `&` (pipe), `>>>` (compose left-to-right).
+
+```scheme
+(^. body body-pos-lens)                    ; View position
+(& body (%~ (>>> body-pos-lens vec2-x-lens) add1))  ; Modify pos.x
+(^.. world (>>> world-all-bodies body-vel-lens))    ; All velocities
+```
 
 Each lattice skill has a `manifest.sexp` declaring metadata:
 
@@ -355,6 +377,7 @@ Shell is organized into functional subdirectories:
 | `introspect/` | System introspection | type-inspect.ss, xref.ss |
 | `pipeline/` | Agent pipelines | workflow integration |
 | `bbs/` | Issue tracker | bbs.ss, ops.ss, index.ss |
+| `migrations/` | Schema migrations | runner.ss (CAS tree migration), registry.ss (version graph) |
 | `tools/` | Utility & refactoring tools | refactor-toolkit.ss, template-*.ss |
 | `lsp/` | Language server protocol | lsp-server.ss, protocol.ss |
 | `web/` | Web tools | fold-tui (Rust CAS terminal explorer) |

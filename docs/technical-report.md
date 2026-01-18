@@ -3669,7 +3669,193 @@ The Fold's content-addressed architecture benefits from optics in several ways:
 
 4. **Domain modeling**: Physics simulations, game state, and agent pipelines all benefit from declarative data access.
 
-**Future directions**: The optics foundation enables query languages (optics + pattern matching), bidirectional transformations (schema migrations), reactive derivations (optic-based dependency tracking), and differentiable data access (optics + AD).
+**Future directions**: The optics foundation enables query languages (optics + pattern matching), reactive derivations (optic-based dependency tracking), and differentiable data access (optics + AD).
+
+### 7.9 Bidirectional Transformations
+
+The bidirectional transformations system (`lattice/fp/optics/bidirectional.ss`) extends the optics tower with reversible migrations, enabling schema evolution, format conversion, and CAS block migrations with automatic rollback.
+
+#### 7.9.1 Migration Type
+
+A migration is a named, versioned isomorphism:
+
+```scheme
+(define user-v1->v2
+  (make-migration 'user-v1->v2 'v1 'v2
+    (make-p-iso
+      (lambda (u) (cons '(created-at . 0) u))    ; forward
+      (lambda (u) (assq-remove u 'created-at))))) ; backward
+
+;; Apply forward (migrate) or backward (rollback)
+(migrate user-v1->v2 old-user)    ; v1 → v2
+(rollback user-v1->v2 new-user)   ; v2 → v1
+```
+
+**Key insight**: Profunctor optics already encode bidirectionality via `p-iso-forward` and `p-iso-backward`. Migrations leverage this to provide automatic rollback without writing reverse transformations manually.
+
+**Composition**: Migrations compose like optics—`v1→v2` + `v2→v3` = `v1→v3`:
+
+```scheme
+(define v1->v3 (migration-compose v1->v2 v2->v3))
+```
+
+**Flip**: Reverse any migration:
+```scheme
+(define v2->v1 (migration-flip v1->v2))
+```
+
+#### 7.9.2 Schema DSL
+
+The schema module (`schema.ss`) provides field-level operations for alist-based schemas:
+
+| Operation | Forward | Backward |
+|-----------|---------|----------|
+| `field-rename-iso` | Rename field | Rename back |
+| `field-add-iso` | Add with default | Remove field |
+| `field-remove-iso` | Remove field | Add with preserved value |
+| `field-transform-iso` | Transform value | Reverse transform |
+| `field-split-iso` | Split field into two | Merge fields into one |
+| `field-merge-iso` | Merge fields | Split field |
+
+**Example: Schema evolution**
+```scheme
+(define v2-schema
+  (schema-compose
+    (field-rename-iso 'desc 'description)
+    (field-add-iso 'created-at 0)
+    (field-transform-iso 'priority iso-number-string)))
+```
+
+These compose via `schema-compose`, maintaining bidirectionality throughout.
+
+#### 7.9.3 Block Migrations
+
+Block migrations (`block-migration.ss`) specialize the migration infrastructure for The Fold's content-addressed blocks:
+
+```scheme
+(define issue-v1->v2
+  (make-block-migration 'bbs-issue-v1 'bbs-issue-v2
+    (field-add-iso 'created-at 0)))
+
+;; Apply to block (pure transformation)
+(block-migrate-payload issue-v1->v2 old-block)
+```
+
+**Tag-based versioning**: Version is encoded in the block tag (e.g., `'bbs-issue-v2`). Migrations check tag match before applying.
+
+**Version detection**:
+```scheme
+(parse-versioned-tag 'bbs-issue-v2)  ; → (bbs-issue . 2)
+(make-versioned-tag 'bbs-issue 3)    ; → 'bbs-issue-v3
+```
+
+#### 7.9.4 Merkle DAG Correctness
+
+The shell runner (`shell/migrations/runner.ss`) executes migrations against the CAS with Merkle DAG correctness.
+
+**The problem**: In a content-addressed system, changing a block changes its hash. If block A references block B, and B is migrated to B', then A must also be updated to reference B' instead of B. This cascades up to the root.
+
+**Solution: Bottom-up (post-order) traversal**
+
+```
+migrate(root) → migrate(child₁), migrate(child₂), ... → then migrate(root with new refs)
+```
+
+1. Recursively migrate all children first
+2. Collect their new hashes
+3. Migrate parent payload with updated refs
+4. Store parent, producing new hash
+5. Memoize to handle shared subtrees (DAGs, not just trees)
+
+```scheme
+(define (migrate-tree-impl! bm hash visited)
+  (let ([cached (hashtable-ref visited hash #f)])
+    (if cached cached  ; DAG memoization
+        (let* ([blk (fetch hash)]
+               [new-refs (map-refs (lambda (h)
+                           (migrate-tree-impl! bm h visited))
+                         (block-refs blk))]
+               [migrated (block-migrate-with-refs bm blk new-refs)]
+               [new-hash (store! migrated)])
+          (hashtable-set! visited hash new-hash)
+          new-hash))))
+```
+
+**Memoization is critical**: Without it, shared subtrees would be migrated multiple times, causing exponential blowup in DAGs.
+
+#### 7.9.5 Migration Registry
+
+The registry (`shell/migrations/registry.ss`) manages migrations and computes paths:
+
+```scheme
+;; Register migrations
+(register-migration! user-v1->v2)
+(register-migration! user-v2->v3)
+
+;; Find path between versions (BFS)
+(find-migration-path 'v1 'v3)  ; → (user-v1->v2 user-v2->v3)
+
+;; Get composed migration
+(get-migration-chain 'v1 'v3)  ; → single migration v1→v3
+```
+
+**Version graph**: The registry builds a directed graph where nodes are versions and edges are migrations. Path finding uses BFS to find the shortest migration chain.
+
+**Automatic rollback**: Flipped migrations are registered alongside forward migrations, enabling rollback path discovery.
+
+#### 7.9.6 Format Isomorphisms
+
+Standard format conversions (`format-iso.ss`) for common transformations:
+
+| Iso | Forward | Backward |
+|-----|---------|----------|
+| `iso-utf8` | bytevector → string | string → bytevector |
+| `iso-sexpr-string` | sexpr → string | string → sexpr |
+| `iso-sexpr-bytevector` | sexpr → bytevector | bytevector → sexpr |
+| `iso-number-string` | number → string | string → number |
+| `iso-bool-int` | boolean → integer | integer → boolean |
+| `iso-time-unix` | time-utc → integer | integer → time-utc |
+
+**Convenience wrappers**:
+```scheme
+(sexpr->bytevector '(a b c))   ; For block payloads
+(bytevector->sexpr payload)    ; For payload parsing
+```
+
+#### 7.9.7 Law Verification
+
+Migrations satisfy isomorphism laws by construction:
+
+```scheme
+(verify-migration-laws user-v1->v2 test-user)
+; Checks:
+; 1. (rollback m (migrate m x)) = x  (roundtrip)
+; 2. (migrate m (rollback m y)) = y  (reverse roundtrip)
+```
+
+**Design rationale**: By building migrations from profunctor isos, law compliance is compositional—if components satisfy laws, compositions do too.
+
+#### 7.9.8 Use Cases
+
+**CAS schema evolution**:
+```scheme
+;; Upgrade all issues in store
+(migrate-tree! issue-v1->v2 (read-head 'issue-42))
+```
+
+**Format conversion**:
+```scheme
+(define json->sexpr (make-migration 'json->sexpr 'json 'sexpr
+                      iso-json-sexpr))
+```
+
+**Batch migration with statistics**:
+```scheme
+(migration-stats issue-v1->v2 root-hash)
+; → ((total . 150) (matching . 42) (non-matching . 108))
+
+(migrate-dry-run issue-v1->v2 root-hash)  ; Preview without storing
+```
 
 ---
 ## 8. Evaluation
