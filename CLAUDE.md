@@ -103,6 +103,7 @@ scheme --script lattice/fp/clp/test-clp.ss
 scheme --script lattice/fp/optics/test-optics.ss
 scheme --script lattice/fp/optics/test-profunctor-optics.ss
 scheme --script lattice/fp/optics/test-bidirectional.ss
+scheme --script lattice/autodiff/test-traced-optics.ss
 scheme --script lattice/statistics/test-statistics.ss
 scheme --script lattice/topology/homology-test.ss
 
@@ -221,7 +222,7 @@ The lattice is a DAG of verified skills. "Stdlib" = tier 0 (foundational nodes).
 | `numeric/` | Complex numbers, DFT, signal processing |
 | `geometry/` | Shapes, transforms, raymarching, SDFs, mesh topology |
 | `diffgeo/` | Charts, atlases, Lie groups, Riemannian curvature |
-| `autodiff/` | Reverse-mode AD, computational graphs, interval gradients |
+| `autodiff/` | Reverse-mode AD, computational graphs, interval gradients, optics-based gradient |
 | `fp/` | Monads, parsers, streams, protocols, game theory, control systems |
 | `fp/optics/` | Complete optics tower (Iso, Lens, Prism, Affine, Traversal, Fold, Getter, Setter) |
 | `fp/clp/` | Constraint logic programming (cKanren-style CLP(FD)) |
@@ -273,10 +274,23 @@ These are pure functions - import them into shell code for applications like QA 
 |--------|----------|
 | `optics.ss` | Core tower: Iso, Lens, Prism, Affine, Traversal, Fold, Getter, Setter, Grate |
 | `block-optics.ss` | CAS block optics: `block-tag-lens`, `block-refs-each`, `follow-ref`, type prisms |
-| `profunctor-optics.ss` | Profunctor encoding: Strong/Choice/Closed classes, `p-lens`, `p-prism`, `p-grate` |
+| `profunctor-optics.ss` | Profunctor encoding: Strong/Choice/Closed/Wander, `p-lens`, `p-prism`, `p-traversal`, `p-fold` |
 | `bidirectional.ss` | Reversible migrations: `make-migration`, `migrate`, `rollback`, `migration-compose` |
 | `schema.ss` | Field DSL: `field-rename-iso`, `field-add-iso`, `field-transform-iso` |
 | `block-migration.ss` | CAS migrations: `make-block-migration`, `block-migrate-payload`, bottom-up tree traversal |
+
+*Traced Optics (`lattice/autodiff/traced-optics.ss`):* Compute gradients through optic-focused paths:
+```scheme
+;; Gradient of loss w.r.t. nested parameter via optic composition
+(optic-gradient loss-fn (>>> outer-lens inner-lens) structure)
+
+;; Gradient descent step at optic focus
+(optimize-at lens-fst '(5.0 . ignored) (lambda (p) (traced-sq (car p))) 0.1)
+;; => (4.0 . ignored)  ; 5 - 0.1 * 2 * 5 = 4
+
+;; Gradients for all traversal targets
+(optic-gradient-list loss-fn traversal-each '(1 2 3))  ; => list of gradients
+```
 
 Operators: `^.` (view), `^?` (preview), `^..` (to-list), `.~` (set), `%~` (modify), `&` (pipe), `>>>` (compose left-to-right).
 
@@ -376,6 +390,8 @@ Shell is organized into functional subdirectories:
 | `lens/` | Optics & lenses | capability-lens.ss |
 | `introspect/` | System introspection | type-inspect.ss, xref.ss |
 | `pipeline/` | Agent pipelines | workflow integration |
+| `provenance/` | Optic provenance tracking | provenance.ss, traced-optics.ss, query.ss |
+| `reactive/` | Reactive derivations | reactive.ss (optic dependency tracking) |
 | `bbs/` | Issue tracker | bbs.ss, ops.ss, index.ss |
 | `migrations/` | Schema migrations | runner.ss (CAS tree migration), registry.ss (version graph) |
 | `tools/` | Utility & refactoring tools | refactor-toolkit.ss, template-*.ss |

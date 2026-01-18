@@ -1223,3 +1223,139 @@ For performance-critical code, use `without-tracing` or raw optics.
 **Storage growth**: Provenance creates ~4 blocks per operation. For high-volume systems, implement retention policies or archived storage tiers.
 
 ---
+
+### 7.11 Reactive Derivations
+
+The reactive module (`shell/reactive/`) builds on provenance tracking to provide automatic reactivity via optic-based dependency graphs. When a derivation is computed, we track which optics were accessed. When those optics are written to, the derivation invalidates and recomputes on next access.
+
+This is the pattern behind lens-based state management systems (MobX, Recoil, Jotai), adapted to The Fold's optic foundation.
+
+#### 7.11.1 Core Concepts
+
+**Derivations** are cached computed values that track their optic dependencies:
+
+```scheme
+(define-reactive 'player-health
+  world-state
+  (lambda (world)
+    (reactive-view world (>>> (body-lens 'player) health-lens))))
+
+(reactive-value 'player-health)  ; => 100 (computed and cached)
+(reactive-value 'player-health)  ; => 100 (from cache)
+```
+
+**Access tracking** discovers dependencies automatically during computation:
+
+```scheme
+(with-access-tracking
+ (lambda ()
+   (reactive-view data lens-fst)
+   (reactive-view data lens-snd)))
+; => (values result '(lens-fst lens-snd))
+```
+
+**Invalidation** marks derivations stale when their dependencies change:
+
+```scheme
+(reactive-set! lens-fst 999 data)  ; Invalidates all derivations using lens-fst
+(reactive-value 'player-health)    ; Recomputes with fresh value
+```
+
+#### 7.11.2 Implementation Architecture
+
+**Data structures**:
+
+```
+*derivations*           : Hashtable (Symbol → Derivation-Record)
+*optic-to-derivations*  : Hashtable (Symbol → (List Symbol))  ; Reverse index
+```
+
+The derivation record (stored as a mutable vector) tracks:
+- `source`: The root data structure being observed
+- `dependencies`: List of optic names accessed during computation
+- `compute-fn`: The function that produces the value
+- `cached-value`: Last computed result
+- `stale?`: Boolean flag for lazy recomputation
+
+**Dependency discovery**: During `define-reactive` or `reactive-recompute!`, computation runs inside `with-access-tracking`. Each `reactive-view` call logs the optic name (via the provenance optic registry) to `*access-log*`. After computation, these become the derivation's dependencies.
+
+**Reverse index maintenance**: When dependencies change, we update `*optic-to-derivations*` to enable O(1) invalidation lookup. Old dependencies are removed, new ones are added.
+
+**Lazy recomputation**: `reactive-value` checks `stale?`. If true, it recomputes (updating dependencies in the process). If false, it returns the cached value.
+
+#### 7.11.3 API Reference
+
+**Derivation management**:
+```scheme
+(define-reactive name source compute-fn)  ; Create derivation
+(reactive-value name)                     ; Get value (recompute if stale)
+(reactive-refresh! name)                  ; Force recomputation
+(reactive-stale? name)                    ; Check if needs recomputation
+(reactive-dependencies name)              ; Get optic dependencies
+(undefine-reactive name)                  ; Remove derivation
+```
+
+**Reactive optic operations**:
+```scheme
+(reactive-view s optic)      ; View with access tracking
+(reactive-preview s optic)   ; Preview with access tracking
+(reactive-to-list s optic)   ; To-list with access tracking
+(reactive-set! optic val s)  ; Set with invalidation
+(reactive-over! optic f s)   ; Modify with invalidation
+```
+
+**Batch operations**:
+```scheme
+(with-batch
+ (lambda ()
+   ;; Multiple changes, single invalidation pass
+   (reactive-set! lens-fst 10 data)
+   (reactive-set! lens-snd 20 data)))
+```
+
+**Introspection**:
+```scheme
+(list-derivations)        ; => (deriv-a deriv-b ...)
+(derivation-info name)    ; => ((name . foo) (dependencies . (...)) ...)
+(dependency-graph)        ; => ((lens-fst . (deriv-a deriv-b)) ...)
+```
+
+#### 7.11.4 Relationship to Provenance
+
+Reactive derivations and provenance tracking share infrastructure:
+
+| Aspect | Provenance | Reactive |
+|--------|------------|----------|
+| **Purpose** | Audit trail | Automatic updates |
+| **Tracking** | All operations | Access paths only |
+| **Storage** | CAS blocks | In-memory hashtables |
+| **Optic registry** | Names in records | Dependency keys |
+| **Persistence** | Survives restart | Session-scoped |
+
+Both use the optic registry from `traced-optics.ss` to map optic values to symbolic names.
+
+#### 7.11.5 Design Decisions
+
+**Why not automatic invalidation on all traced-set?**
+
+The reactive operations (`reactive-set!`, etc.) are separate from traced operations (`traced-set`, etc.) to avoid unwanted coupling. Code using provenance tracking shouldn't automatically trigger reactive invalidation.
+
+**Why session-scoped, not persistent?**
+
+Reactive derivations are designed for interactive state management (UI, simulation dashboards). Persistence would require serializing compute functions, which conflicts with The Fold's pure/impure separation.
+
+**Why lazy recomputation?**
+
+Immediate recomputation on invalidation would cascade through the dependency graph, potentially wasting work if the value is never accessed. Lazy evaluation ensures we only compute what's needed.
+
+#### 7.11.6 Limitations
+
+**Unregistered optics**: If an optic isn't registered with `register-optic!`, its accesses won't be tracked. Custom optics should be registered before use in reactive derivations.
+
+**No circular dependency detection**: A derivation that reads and writes through the same optic could create infinite loops. The current implementation doesn't detect this.
+
+**Memory management**: Derivations persist until explicitly removed with `undefine-reactive`. Long-running sessions should clean up unused derivations.
+
+**Single-threaded**: The global mutable state (`*derivations*`, etc.) isn't thread-safe. Concurrent access requires external synchronization.
+
+---
