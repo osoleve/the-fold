@@ -331,6 +331,143 @@
              error-caught?))
 
 ;;; ====
+;;; Test: Algebraic Laws (fold-zxnv)
+;;; ====
+
+(section "Algebraic Laws: Vertical Composition Associativity")
+
+;; Associativity: (α ∘ β) ∘ γ = α ∘ (β ∘ γ)
+;; Using: γ = nat-head : List → Maybe
+;;        β = nat-singleton : Maybe → List
+;;        α = nat-head : List → Maybe
+;; Both sides give List → Maybe
+(let* ([γ nat-head]           ; List → Maybe
+       [β nat-singleton]       ; Maybe → List
+       [α nat-head]           ; List → Maybe
+       ;; Left association: (α ∘ β) ∘ γ
+       [α∘β (nat-compose α β)]               ; Maybe → Maybe
+       [left-assoc (nat-compose α∘β γ)]      ; List → Maybe
+       ;; Right association: α ∘ (β ∘ γ)
+       [β∘γ (nat-compose β γ)]               ; List → List
+       [right-assoc (nat-compose α β∘γ)])    ; List → Maybe
+
+  (test-true "associativity creates nat-transforms"
+             (and (nat-transform? left-assoc)
+                  (nat-transform? right-assoc)))
+
+  ;; Test on various inputs
+  (test "associativity: (α ∘ β) ∘ γ = α ∘ (β ∘ γ) on '(1 2 3)"
+        (nat-apply left-assoc '(1 2 3))
+        (nat-apply right-assoc '(1 2 3)))
+
+  (test "associativity: (α ∘ β) ∘ γ = α ∘ (β ∘ γ) on '()"
+        (nat-apply left-assoc '())
+        (nat-apply right-assoc '()))
+
+  (test "associativity: (α ∘ β) ∘ γ = α ∘ (β ∘ γ) on '(a)"
+        (nat-apply left-assoc '(a))
+        (nat-apply right-assoc '(a))))
+
+(section "Algebraic Laws: Identity Laws")
+
+;; Left identity: nat-compose (nat-id G) η = η
+;; For η = nat-head : List → Maybe, G = Maybe
+(let* ([η nat-head]
+       [id-maybe (nat-id functor-maybe)]
+       [left-id-composed (nat-compose id-maybe η)])
+
+  (test "left identity: nat-compose (nat-id G) η = η on '(1 2 3)"
+        (nat-apply η '(1 2 3))
+        (nat-apply left-id-composed '(1 2 3)))
+
+  (test "left identity: nat-compose (nat-id G) η = η on '()"
+        (nat-apply η '())
+        (nat-apply left-id-composed '()))
+
+  (test "left identity: nat-compose (nat-id G) η = η on '(x)"
+        (nat-apply η '(x))
+        (nat-apply left-id-composed '(x))))
+
+;; Right identity: nat-compose η (nat-id F) = η
+;; For η = nat-head : List → Maybe, F = List
+(let* ([η nat-head]
+       [id-list (nat-id functor-list)]
+       [right-id-composed (nat-compose η id-list)])
+
+  (test "right identity: nat-compose η (nat-id F) = η on '(1 2 3)"
+        (nat-apply η '(1 2 3))
+        (nat-apply right-id-composed '(1 2 3)))
+
+  (test "right identity: nat-compose η (nat-id F) = η on '()"
+        (nat-apply η '())
+        (nat-apply right-id-composed '()))
+
+  (test "right identity: nat-compose η (nat-id F) = η on '(a b)"
+        (nat-apply η '(a b))
+        (nat-apply right-id-composed '(a b))))
+
+;; Test with different transformation: nat-singleton : Maybe → List
+(let* ([η nat-singleton]
+       [id-list (nat-id functor-list)]
+       [id-maybe (nat-id functor-maybe)]
+       [left-composed (nat-compose id-list η)]
+       [right-composed (nat-compose η id-maybe)])
+
+  (test "left identity for nat-singleton on (just 42)"
+        (nat-apply η (just 42))
+        (nat-apply left-composed (just 42)))
+
+  (test "right identity for nat-singleton on nothing"
+        (nat-apply η nothing)
+        (nat-apply right-composed nothing)))
+
+(section "Algebraic Laws: Interchange Law")
+
+;; Interchange law: (α ∘ β) * (γ ∘ δ) = (α * γ) ∘ (β * δ)
+;; where * is horizontal composition (nat-horizontal)
+;;
+;; Setup: We need transformations that can be horizontally composed.
+;; Using nat-id transformations to test the structure:
+;;   α, β : List → List (identity on List)
+;;   γ, δ : Maybe → Maybe (identity on Maybe)
+;;
+;; Then (α ∘ β) : List → List, (γ ∘ δ) : Maybe → Maybe
+;; (α ∘ β) * (γ ∘ δ) : List∘Maybe → List∘Maybe
+;; (α * γ) ∘ (β * δ) : List∘Maybe → List∘Maybe
+(let* ([α (nat-id functor-list)]     ; List → List
+       [β (nat-id functor-list)]     ; List → List
+       [γ (nat-id functor-maybe)]    ; Maybe → Maybe
+       [δ (nat-id functor-maybe)]    ; Maybe → Maybe
+       ;; Left side: (α ∘ β) * (γ ∘ δ)
+       [α∘β (nat-compose α β)]
+       [γ∘δ (nat-compose γ δ)]
+       [left-side (nat-horizontal α∘β γ∘δ)]
+       ;; Right side: (α * γ) ∘ (β * δ)
+       [α*γ (nat-horizontal α γ)]
+       [β*δ (nat-horizontal β δ)]
+       [right-side (nat-compose α*γ β*δ)]
+       ;; Test value: List(Maybe(A)) = [(Just 1), Nothing, (Just 2)]
+       [test-val (list (just 1) nothing (just 2))])
+
+  (test-true "interchange creates nat-transforms"
+             (and (nat-transform? left-side)
+                  (nat-transform? right-side)))
+
+  (test "interchange law: (α ∘ β) * (γ ∘ δ) = (α * γ) ∘ (β * δ)"
+        (nat-apply left-side test-val)
+        (nat-apply right-side test-val))
+
+  ;; Test on empty list of maybes
+  (test "interchange law on '()"
+        (nat-apply left-side '())
+        (nat-apply right-side '()))
+
+  ;; Test on list with all nothings
+  (test "interchange law on '(nothing nothing)"
+        (nat-apply left-side (list nothing nothing))
+        (nat-apply right-side (list nothing nothing))))
+
+;;; ====
 ;;; Summary
 ;;; ====
 
