@@ -259,6 +259,12 @@
 (define store-comonad
   (make-comonad store-functor store-extract store-extend))
 
+;;; store-copeek : Store s a → Store s a → a
+;;; Copeek operation for Store: extract from second store at first store's position.
+;;; Use with compose-comonads-with-dist* for Store-based composition.
+(define (store-copeek pos-store val-store)
+  (store-peek val-store (store-position pos-store)))
+
 ;;; ====
 ;;; Env Comonad (CoReader)
 ;;; ====
@@ -326,6 +332,12 @@
 ;;; env-comonad : Comonad Env
 (define env-comonad
   (make-comonad env-functor env-extract env-extend))
+
+;;; env-copeek : Env e a → Env e a → a
+;;; Copeek operation for Env: position is trivial, so just extract from value source.
+;;; Use with compose-comonads-with-dist* (though the default works for Env).
+(define (env-copeek pos-env val-env)
+  (env-value val-env))
 
 ;;; ====
 ;;; Traced Comonad (CoWriter)
@@ -462,14 +474,24 @@
 ;;;   - Any comonad with Store S (Store has special structure)
 ;;;   - Comonads from the same adjunction
 
-;;; compose-comonads-with-dist : Comonad × Comonad × DistLaw → Comonad
-;;; Compose two comonads given a distributive law δ : W2(W1(a)) → W1(W2(a)).
+;;; compose-comonads-with-dist* : Comonad × Comonad × DistLaw × Copeek → Comonad
+;;; Compose two comonads given a distributive law δ : W2(W1(a)) → W1(W2(a))
+;;; and a "copeek" operation for W2.
+;;;
 ;;; The distributive law must satisfy:
 ;;;   - δ ∘ W2(extract1) = extract1
 ;;;   - δ ∘ extract2 = W1(extract2)
 ;;;   - δ ∘ W2(duplicate1) = duplicate1 ∘ δ ∘ W2(δ)
 ;;;   - δ ∘ duplicate2 = W1(duplicate2) ∘ δ
-(define (compose-comonads-with-dist w1 w2 dist)
+;;;
+;;; The copeek operation: W2(a) → W2(a) → a
+;;; Given (w2-pos, w2-val), extracts from w2-val at w2-pos's focus position.
+;;;   - For Store: (λ pos val. store-peek val (store-position pos))
+;;;   - For Env:   (λ _ val. env-value val)
+;;;   - For Traced: (λ _ val. traced-extract val)
+;;;
+;;; This is the fully general composition that works for all comonads.
+(define (compose-comonads-with-dist* w1 w2 dist copeek)
   (let* ([f1 (comonad-functor w1)]
          [f2 (comonad-functor w2)]
          [ext1 (comonad-extend w1)]
@@ -489,26 +511,57 @@
        ;; W1(W2(a)) → W2(a) → a
        (lambda (w1w2a)
          (extr2 (extr1 w1w2a)))
-       ;; extend f w = W1(W2(f)) ∘ W1(dist) ∘ duplicate1 w
-       ;; Uses the distributive law to thread W2 through W1's duplication
+       ;; extend f w
+       ;; At each (W1-position, W2-position) pair, apply f to the whole
+       ;; W1(W2(a)) structure "focused" at that position pair.
        (lambda (f w1w2a)
          (ext1
-          (lambda (w1-inner)
-            ;; w1-inner : W1(W2(a))
-            ;; We need to apply f : W1(W2(a)) → b at each position
-            ;; Use distributive law: dist takes W2(W1(a)) → W1(W2(a))
-            ;; Map extract1 into W2, then use dist
-            (let* ([w2w1a (fmap2 (lambda (x)
-                                   (fmap1 (lambda (_) x) w1-inner))
-                                 (extr1 w1-inner))])
-              ;; This is still approximate - full implementation requires
-              ;; careful threading of the distributive law
-              (fmap2 (lambda (w1a)
-                       (f (fmap1 (lambda (a)
-                                   (fmap2 (lambda (_) a) (extr1 w1-inner)))
-                                 w1a)))
-                     (extr1 (dist w2w1a)))))
+          (lambda (w1-pos)
+            ;; w1-pos : W1(W2(a)) - the whole structure focused at current W1 position
+            (ext2
+             (lambda (w2-foc)
+               ;; w2-foc : W2(a) - the W2 at this W1 position, focused at current W2 position
+               ;; Build W2(W1(a)) where at each W2 position p, we have W1(a) with
+               ;; values extracted from w1-pos's W2 values at position p.
+               ;; Use ext2 to iterate with proper focus information.
+               (let ([w2w1a
+                      (ext2
+                       (lambda (w2-iter)
+                         ;; w2-iter : W2(a) focused at iteration position
+                         ;; Build W1(a) by extracting from each W1's W2 at this position
+                         (fmap1
+                          (lambda (w2-in-w1)
+                            ;; w2-in-w1 : W2(a) at some W1 position
+                            ;; Extract at w2-iter's focus position using copeek
+                            (copeek w2-iter w2-in-w1))
+                          w1-pos))
+                       w2-foc)])
+                 ;; Apply distributive law to swap W2(W1(a)) → W1(W2(a))
+                 ;; Then apply f to get b
+                 (f (dist w2w1a))))
+             (extr1 w1-pos)))
           w1w2a))))))
+
+;;; compose-comonads-with-dist : Comonad × Comonad × DistLaw → Comonad
+;;; Compose two comonads given a distributive law δ : W2(W1(a)) → W1(W2(a)).
+;;;
+;;; Uses extr2 as the default copeek operation, which is correct for:
+;;;   - Env (CoReader): No meaningful position, extract always works
+;;;   - Any comonad where "position" is trivial
+;;;
+;;; For position-based comonads like Store, use compose-comonads-with-dist*
+;;; with an appropriate copeek (e.g., store-peek-based).
+;;;
+;;; The distributive law must satisfy:
+;;;   - δ ∘ W2(extract1) = extract1
+;;;   - δ ∘ extract2 = W1(extract2)
+;;;   - δ ∘ W2(duplicate1) = duplicate1 ∘ δ ∘ W2(δ)
+;;;   - δ ∘ duplicate2 = W1(duplicate2) ∘ δ
+(define (compose-comonads-with-dist w1 w2 dist)
+  (compose-comonads-with-dist* w1 w2 dist
+    ;; Default copeek: just extract from value source
+    ;; Correct for Env and other position-trivial comonads
+    (lambda (w2-pos w2-val) ((comonad-extract w2) w2-val))))
 
 ;;; compose-comonads : Comonad × Comonad → Comonad
 ;;;

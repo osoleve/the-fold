@@ -325,6 +325,183 @@
       (assert-equal 50 (store-peek st 4)))))
 
 ;;; ====
+;;; Comonad Composition Tests
+;;; ====
+;;;
+;;; Test compose-comonads-with-dist and compose-comonads-with-dist*.
+;;; The key test is that the composed comonad satisfies the comonad laws.
+
+;;; Distributive law: Store(S, Env(E, a)) → Env(E, Store(S, a))
+;;; For composing Env ∘ Store: W1=Env, W2=Store, so dist : W2(W1) → W1(W2)
+;;; dist ((λs. (e_s, v_s)), s0) = (e_{s0}, ((λs. v_s), s0))
+;;; Assumes e_s is constant (same environment at all positions).
+(define (dist-store-to-env store-env)
+  (let* ([accessor (store-accessor store-env)]
+         [pos (store-position store-env)]
+         [env-at-pos (accessor pos)]
+         [the-env (env-environment env-at-pos)])
+    (make-env the-env
+              (make-store (lambda (s) (env-value (accessor s))) pos))))
+
+;;; Distributive law: Env(E, Store(S, a)) → Store(S, Env(E, a))
+;;; For composing Store ∘ Env: W1=Store, W2=Env, so dist : W2(W1) → W1(W2)
+;;; dist (e, (acc, s)) = ((λs'. (e, acc(s'))), s)
+(define (dist-env-to-store env-store)
+  (let* ([the-env (env-environment env-store)]
+         [the-store (env-value env-store)]
+         [accessor (store-accessor the-store)]
+         [pos (store-position the-store)])
+    (make-store (lambda (s) (make-env the-env (accessor s))) pos)))
+
+(test-group "Comonad Composition with Distributive Law"
+
+  ;; Test Env ∘ Store composition (Env outside, Store inside)
+  ;; W1=Env, W2=Store. Since W2=Store has non-trivial position, we need store-copeek.
+  (define-test "env-store composition: extract works correctly"
+    (let* ([env-store-comonad (compose-comonads-with-dist*
+                                env-comonad
+                                store-comonad
+                                dist-store-to-env
+                                store-copeek)]
+           ;; Env(E=100, Store(accessor=square, pos=3))
+           [w (make-env 100 (make-store (lambda (x) (* x x)) 3))]
+           [result ((comonad-extract env-store-comonad) w)])
+      ;; extract should give: 3² = 9
+      (assert-equal 9 result)))
+
+  (define-test "env-store composition: extend applies f at each position"
+    (let* ([env-store-comonad (compose-comonads-with-dist*
+                                env-comonad
+                                store-comonad
+                                dist-store-to-env
+                                store-copeek)]
+           ;; Env(E=100, Store(accessor=square, pos=3))
+           [w (make-env 100 (make-store (lambda (x) (* x x)) 3))]
+           ;; f: sum of environment and extracted value
+           [f (lambda (es)
+                (+ (env-environment es)
+                   (store-extract (env-value es))))]
+           [extended ((comonad-extend env-store-comonad) f w)]
+           [inner-store (env-value extended)])
+      ;; Environment should be preserved
+      (assert-equal 100 (env-environment extended))
+      ;; At position 3: 100 + 3² = 100 + 9 = 109
+      (assert-equal 109 (store-extract inner-store))
+      ;; At position 5: 100 + 5² = 100 + 25 = 125
+      (assert-equal 125 (store-peek inner-store 5))))
+
+  (define-test "env-store composition: law 1 (extend extract = id)"
+    (let* ([comonad (compose-comonads-with-dist*
+                      env-comonad
+                      store-comonad
+                      dist-store-to-env
+                      store-copeek)]
+           [w (make-env 42 (make-store (lambda (x) (+ x 10)) 5))]
+           [ext (comonad-extend comonad)]
+           [extr (comonad-extract comonad)]
+           [result (ext extr w)])
+      ;; Check environment preserved
+      (assert-equal (env-environment w) (env-environment result))
+      ;; Check store position preserved
+      (assert-equal (store-position (env-value w))
+                    (store-position (env-value result)))
+      ;; Check values at multiple positions
+      (assert-equal (store-peek (env-value w) 0)
+                    (store-peek (env-value result) 0))
+      (assert-equal (store-peek (env-value w) 5)
+                    (store-peek (env-value result) 5))
+      (assert-equal (store-peek (env-value w) 10)
+                    (store-peek (env-value result) 10))))
+
+  (define-test "env-store composition: law 2 (extract . extend f = f)"
+    (let* ([comonad (compose-comonads-with-dist*
+                      env-comonad
+                      store-comonad
+                      dist-store-to-env
+                      store-copeek)]
+           [w (make-env 100 (make-store (lambda (x) (* x x)) 3))]
+           [f (lambda (es)
+                (* 2 (+ (env-environment es)
+                        (store-extract (env-value es)))))]
+           [ext (comonad-extend comonad)]
+           [extr (comonad-extract comonad)]
+           [lhs (extr (ext f w))]
+           [rhs (f w)])
+      (assert-equal rhs lhs)))
+
+  (define-test "env-store composition: law 3 (extend f . extend g = extend (f . extend g))"
+    (let* ([comonad (compose-comonads-with-dist*
+                      env-comonad
+                      store-comonad
+                      dist-store-to-env
+                      store-copeek)]
+           [w (make-env 10 (make-store (lambda (x) (* x x)) 3))]
+           [f (lambda (es) (* 2 (store-extract (env-value es))))]
+           [g (lambda (es) (+ (env-environment es) (store-extract (env-value es))))]
+           [ext (comonad-extend comonad)]
+           [lhs (ext f (ext g w))]
+           [rhs (ext (lambda (es) (f (ext g es))) w)]
+           [lhs-store (env-value lhs)]
+           [rhs-store (env-value rhs)])
+      ;; Check environments match
+      (assert-equal (env-environment lhs) (env-environment rhs))
+      ;; Check store positions match
+      (assert-equal (store-position lhs-store) (store-position rhs-store))
+      ;; Check values at multiple positions
+      (assert-equal (store-peek lhs-store 0) (store-peek rhs-store 0))
+      (assert-equal (store-peek lhs-store 3) (store-peek rhs-store 3))
+      (assert-equal (store-peek lhs-store 7) (store-peek rhs-store 7)))))
+
+(test-group "Comonad Composition with Env (trivial position)"
+
+  ;; Test Store ∘ Env composition (Store outside, Env inside)
+  ;; W1=Store, W2=Env. Since W2=Env has trivial position, the default copeek works.
+  (define-test "store-env composition: extract works correctly"
+    (let* ([store-env-comonad (compose-comonads-with-dist
+                                store-comonad
+                                env-comonad
+                                dist-env-to-store)]
+           ;; Store(accessor=returns Env(E=e, val=e*s), pos=3)
+           [w (make-store (lambda (s) (make-env (* s 10) (* s s))) 3)]
+           [result ((comonad-extract store-env-comonad) w)])
+      ;; extract should give: 3² = 9
+      (assert-equal 9 result)))
+
+  (define-test "store-env composition: extend applies f correctly"
+    (let* ([store-env-comonad (compose-comonads-with-dist
+                                store-comonad
+                                env-comonad
+                                dist-env-to-store)]
+           ;; Store(accessor=returns Env(E=s*10, val=s²), pos=3)
+           [w (make-store (lambda (s) (make-env (* s 10) (* s s))) 3)]
+           ;; f: extract the inner env's value
+           [f (lambda (se)
+                (let ([inner-env (store-extract se)])
+                  (env-value inner-env)))]
+           [extended ((comonad-extend store-env-comonad) f w)])
+      ;; At position 3: inner env value = 3² = 9
+      (assert-equal 9 (env-value (store-extract extended)))
+      ;; At position 5: inner env value = 5² = 25
+      (assert-equal 25 (env-value (store-peek extended 5)))))
+
+  (define-test "store-env composition: law 2 (extract . extend f = f)"
+    (let* ([comonad (compose-comonads-with-dist
+                      store-comonad
+                      env-comonad
+                      dist-env-to-store)]
+           [w (make-store (lambda (s) (make-env s (* s s))) 4)]
+           [f (lambda (se)
+                (+ (env-environment (store-extract se))
+                   (env-value (store-extract se))))]
+           [ext (comonad-extend comonad)]
+           [extr (comonad-extract comonad)]
+           [lhs (extr (ext f w))]
+           [rhs (f w)])
+      ;; At position 4: env=4, val=16, so f = 4 + 16 = 20
+      (assert-equal rhs lhs)
+      (assert-equal 20 lhs))))
+
+;;; ====
 ;;; Run Tests
 ;;; ====
 
