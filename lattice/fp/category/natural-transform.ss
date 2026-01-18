@@ -70,8 +70,11 @@
 
 ;;; nat-transform-component : NatTransform → (F(A) → G(A))
 ;;; The component function η_A
+;;; Errors if η is not a valid nat-transform (fail-fast, fold-zxnw fix)
 (define (nat-transform-component η)
-  (if (nat-transform? η) (car (cddddr η)) id))
+  (if (nat-transform? η)
+      (car (cddddr η))
+      (error 'nat-transform-component "expected nat-transform" η)))
 
 ;;; nat-apply : NatTransform × F(A) → G(A)
 ;;; Apply the natural transformation at a value.

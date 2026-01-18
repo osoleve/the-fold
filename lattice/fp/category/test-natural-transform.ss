@@ -302,6 +302,35 @@
            (string? (nat-transform->string nat-head)))
 
 ;;; ====
+;;; Test: Fail-Fast on Invalid Input (fold-zxnw fix)
+;;; ====
+
+(section "Fail-Fast Behavior (fold-zxnw)")
+
+;; nat-transform-component should error on invalid input, not return id
+(let ([error-caught? #f])
+  (guard (e [else (set! error-caught? #t)])
+    (nat-transform-component 'not-a-nat-transform))
+  (test-true "nat-transform-component errors on invalid input"
+             error-caught?))
+
+;; Verify the error includes useful context
+(let ([error-message #f])
+  (guard (e [else (set! error-message (condition-message e))])
+    (nat-transform-component 42))
+  (test-true "error message mentions expected type"
+             (and error-message
+                  (string? error-message)
+                  (string-contains? error-message "nat-transform"))))
+
+;; Verify that nat-apply also fails fast (since it uses nat-transform-component)
+(let ([error-caught? #f])
+  (guard (e [else (set! error-caught? #t)])
+    (nat-apply 'oops-just-a-symbol 'some-value))
+  (test-true "nat-apply errors on invalid nat-transform"
+             error-caught?))
+
+;;; ====
 ;;; Summary
 ;;; ====
 
