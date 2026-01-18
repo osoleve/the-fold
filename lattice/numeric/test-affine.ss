@@ -422,6 +422,152 @@
       (assert-true (< (abs (- (interval-hi iv) 7)) 1e-10)))))
 
 ;;; ============================================================================
+;;; List Operations Tests
+;;; ============================================================================
+
+(test-group "list-operations"
+  ;; affine-sum tests
+  (define-test "affine-sum: empty list returns zero"
+    (let* ([result (affine-sum '())]
+           [iv (affine->interval result)])
+      (assert-true (< (abs (interval-lo iv)) 1e-10))
+      (assert-true (< (abs (interval-hi iv)) 1e-10))))
+
+  (define-test "affine-sum: single element"
+    (affine-reset-noise-counter!)
+    (let* ([x (affine-from-interval (interval 1 3))]
+           [result (affine-sum (list x))]
+           [iv (affine->interval result)])
+      (assert-true (< (abs (- (interval-lo iv) 1)) 1e-10))
+      (assert-true (< (abs (- (interval-hi iv) 3)) 1e-10))))
+
+  (define-test "affine-sum: multiple independent variables"
+    (affine-reset-noise-counter!)
+    (let* ([x (affine-from-interval (interval 1 2))]
+           [y (affine-from-interval (interval 3 4))]
+           [z (affine-from-interval (interval 5 6))]
+           [result (affine-sum (list x y z))]
+           [iv (affine->interval result)])
+      ;; [1,2] + [3,4] + [5,6] = [9, 12]
+      (assert-true (< (abs (- (interval-lo iv) 9)) 1e-10))
+      (assert-true (< (abs (- (interval-hi iv) 12)) 1e-10))))
+
+  (define-test "affine-sum: correlated cancellation"
+    ;; x + (-x) should give tighter bounds than interval arithmetic
+    (affine-reset-noise-counter!)
+    (let* ([x (affine-from-interval (interval 1 5))]
+           [neg-x (affine-neg x)]
+           [result (affine-sum (list x neg-x))]
+           [iv (affine->interval result)])
+      ;; Should be exactly 0 due to dependency tracking
+      (assert-true (< (interval-width iv) 1e-10))))
+
+  (define-test "affine-sum: with constants"
+    (let* ([a (affine-constant 10)]
+           [b (affine-constant 20)]
+           [c (affine-constant 30)]
+           [result (affine-sum (list a b c))]
+           [iv (affine->interval result)])
+      (assert-true (< (abs (- (interval-lo iv) 60)) 1e-10))
+      (assert-true (< (abs (- (interval-hi iv) 60)) 1e-10))))
+
+  ;; affine-product tests
+  (define-test "affine-product: empty list returns one"
+    (let* ([result (affine-product '())]
+           [iv (affine->interval result)])
+      (assert-true (< (abs (- (interval-lo iv) 1)) 1e-10))
+      (assert-true (< (abs (- (interval-hi iv) 1)) 1e-10))))
+
+  (define-test "affine-product: single element"
+    (affine-reset-noise-counter!)
+    (let* ([x (affine-from-interval (interval 2 4))]
+           [result (affine-product (list x))]
+           [iv (affine->interval result)])
+      (assert-true (< (abs (- (interval-lo iv) 2)) 1e-10))
+      (assert-true (< (abs (- (interval-hi iv) 4)) 1e-10))))
+
+  (define-test "affine-product: two elements"
+    (affine-reset-noise-counter!)
+    (let* ([x (affine-from-interval (interval 2 3))]
+           [y (affine-from-interval (interval 4 5))]
+           [result (affine-product (list x y))]
+           [iv (affine->interval result)])
+      ;; [2,3] * [4,5] contains [8, 15]
+      (assert-true (<= (interval-lo iv) 8))
+      (assert-true (>= (interval-hi iv) 15))))
+
+  (define-test "affine-product: three elements"
+    (affine-reset-noise-counter!)
+    (let* ([x (affine-from-interval (interval 1 2))]
+           [y (affine-from-interval (interval 2 3))]
+           [z (affine-from-interval (interval 3 4))]
+           [result (affine-product (list x y z))]
+           [iv (affine->interval result)])
+      ;; [1,2] * [2,3] * [3,4] contains [6, 24]
+      (assert-true (<= (interval-lo iv) 6))
+      (assert-true (>= (interval-hi iv) 24))))
+
+  (define-test "affine-product: with constants"
+    (let* ([a (affine-constant 2)]
+           [b (affine-constant 3)]
+           [c (affine-constant 4)]
+           [result (affine-product (list a b c))]
+           [iv (affine->interval result)])
+      (assert-true (< (abs (- (interval-lo iv) 24)) 1e-10))
+      (assert-true (< (abs (- (interval-hi iv) 24)) 1e-10))))
+
+  ;; affine-linear-combination tests
+  (define-test "affine-linear-combination: simple weighted sum"
+    (affine-reset-noise-counter!)
+    (let* ([x (affine-from-interval (interval 1 2))]
+           [y (affine-from-interval (interval 3 4))]
+           ;; 2*x + 3*y where x∈[1,2], y∈[3,4]
+           ;; = [2,4] + [9,12] = [11, 16]
+           [result (affine-linear-combination '(2 3) (list x y))]
+           [iv (affine->interval result)])
+      (assert-true (< (abs (- (interval-lo iv) 11)) 1e-10))
+      (assert-true (< (abs (- (interval-hi iv) 16)) 1e-10))))
+
+  (define-test "affine-linear-combination: negative coefficients"
+    (affine-reset-noise-counter!)
+    (let* ([x (affine-from-interval (interval 1 2))]
+           [y (affine-from-interval (interval 3 4))]
+           ;; x - y where x∈[1,2], y∈[3,4]
+           ;; = [1,2] - [3,4] = [-3, -1]
+           [result (affine-linear-combination '(1 -1) (list x y))]
+           [iv (affine->interval result)])
+      (assert-true (< (abs (- (interval-lo iv) -3)) 1e-10))
+      (assert-true (< (abs (- (interval-hi iv) -1)) 1e-10))))
+
+  (define-test "affine-linear-combination: zero coefficient"
+    (affine-reset-noise-counter!)
+    (let* ([x (affine-from-interval (interval 1 100))]  ; Wide interval
+           [y (affine-from-interval (interval 5 6))]
+           ;; 0*x + 1*y should give just y's bounds
+           [result (affine-linear-combination '(0 1) (list x y))]
+           [iv (affine->interval result)])
+      (assert-true (< (abs (- (interval-lo iv) 5)) 1e-10))
+      (assert-true (< (abs (- (interval-hi iv) 6)) 1e-10))))
+
+  (define-test "affine-linear-combination: dependency tracking"
+    ;; 2*x - 2*x should equal 0 due to dependency tracking
+    (affine-reset-noise-counter!)
+    (let* ([x (affine-from-interval (interval 1 10))]
+           [result (affine-linear-combination '(2 -2) (list x x))]
+           [iv (affine->interval result)])
+      ;; Should be exactly 0
+      (assert-true (< (interval-width iv) 1e-10))))
+
+  (define-test "affine-linear-combination: with constants"
+    (let* ([a (affine-constant 5)]
+           [b (affine-constant 7)]
+           ;; 3*5 + 4*7 = 15 + 28 = 43
+           [result (affine-linear-combination '(3 4) (list a b))]
+           [iv (affine->interval result)])
+      (assert-true (< (abs (- (interval-lo iv) 43)) 1e-10))
+      (assert-true (< (abs (- (interval-hi iv) 43)) 1e-10)))))
+
+;;; ============================================================================
 ;;; Run Tests
 ;;; ============================================================================
 
