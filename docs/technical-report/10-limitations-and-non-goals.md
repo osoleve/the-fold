@@ -58,15 +58,21 @@ The current implementation is single-node:
 
 Distributed operation is future work (§11).
 
-### 10.6 No IDE Integration
+### 10.6 IDE Integration Limitations
 
-Currently no:
-- Language Server Protocol (LSP) implementation
-- Editor plugins (VS Code, Emacs, etc.)
-- Jump-to-definition, find-references
-- Inline type display
+The Fold includes an LSP implementation (`shell/lsp/`) providing:
+- Hover-based type inference for top-level definitions
+- Basic diagnostics
+- Document synchronization
 
-The REPL and command-line tools are the primary interface.
+**Current limitations:**
+- No editor plugins packaged (users must configure LSP clients manually)
+- No jump-to-definition or find-references yet
+- Type inference is per-file only (no project-wide analysis)
+- Forward references in the same file may show incomplete types
+- Local bindings inside `let` forms are not yet typed
+
+The REPL and command-line tools remain the primary development interface, but LSP support enables basic IDE features for editors that support the protocol.
 
 ### 10.7 Floating-Point Algebraic Properties
 
