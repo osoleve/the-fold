@@ -31,7 +31,44 @@ Block Size    Count    Percentage
 
 Most blocks are small (under 500 bytes), enabling efficient hashing and transmission.
 
-### 8.2 Type Checking Performance
+### 8.2 Normalization Equivalence Detection
+
+We measured how often each normalization level detects semantic equivalences that simpler levels miss. The benchmark analyzed 939,880 subexpressions extracted from `core/` and `lattice/`.
+
+**Unique Hashes by Normalization Level**:
+
+| Level | Description | Unique Hashes | Reduction |
+|-------|-------------|---------------|-----------|
+| v0x00 | α-normalization only | 268,325 | baseline |
+| v0x01 | + algebraic canonicalization | 268,237 | 88 (0.03%) |
+| v0x02 | + η-reduction, identity elimination | 268,174 | 151 (0.06%) |
+
+**What Each Level Detects**:
+
+- **v0→v1 (88 equivalences)**: Commutative reordering
+  - `(* a b)` ≡ `(* b a)`
+  - `(+ 1 (* 2 k))` ≡ `(+ (* 2 k) 1)`
+
+- **v1→v2 (63 equivalences)**: Identity elimination and η-reduction
+  - `(* 1.0 ndotl)` ≡ `ndotl`
+  - `(+ x 0)` ≡ `x`
+
+**Structural vs. Semantic Duplication**:
+
+| Metric | Count | Percentage |
+|--------|-------|------------|
+| Total subexpressions | 939,880 | 100% |
+| Unique hashes (structural) | 268,325 | 28.5% |
+| Structural duplicates | 671,555 | 71.5% |
+| Semantic equivalences (v0→v2) | 151 | 0.06% |
+
+The high structural duplication (71.5%) reflects normal code patterns—expressions like `(car x)` and `(null? lst)` appear thousands of times. The CAS automatically deduplicates these.
+
+The low semantic equivalence rate (0.06%) indicates the codebase is already written in near-canonical form. Developers consistently write `(+ a b)` rather than mixing `(+ a b)` and `(+ b a)` arbitrarily. This is a positive signal about code consistency.
+
+**Bug Discovery**: The benchmark uncovered a normalization bug where unary negation `(- x)` was incorrectly collapsed to `x`. The identity element `0` for subtraction only applies to binary `(- x 0)`, not unary negation. This caused 122 false equivalences in initial results, demonstrating the value of empirical validation.
+
+### 8.3 Type Checking Performance
 
 **Inference Time** (representative programs):
 
@@ -48,7 +85,7 @@ Performance scales approximately linearly with program size.
 
 For dependent type checking, NbE adds ~15-20% overhead compared to simple type checking, justified by the expressiveness gains.
 
-### 8.3 Case Study: Building the Linear Algebra Module
+### 8.4 Case Study: Building the Linear Algebra Module
 
 We trace the complete workflow for implementing `lattice/linalg`:
 
