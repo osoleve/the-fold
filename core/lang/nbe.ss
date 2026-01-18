@@ -257,10 +257,19 @@
 ;;; apply-closure-fuel : Closure × Value × Nat → (Values Value Nat)
 ;;; Apply a closure to a value with fuel bounding.
 ;;; Used in readback-fuel for Pi/Sigma type codomain evaluation.
+;;;
+;;; IMPORTANT: On fuel exhaustion, we return a stuck term using only
+;;; the closure's body expression (valid source syntax), NOT internal
+;;; closure structures. This ensures readback produces valid S-expressions.
 (define (apply-closure-fuel clo val fuel)
   (cond
    [(<= fuel 0)
-    (values (V-neutral (N-stuck `(closure-app ,clo ,val))) 0)]
+    ;; Return stuck with the closure body - it's valid source syntax.
+    ;; Don't include clo or val directly as they contain internal structures.
+    (let ([body (if (const-closure? clo)
+                    'type  ; const closures don't have bodies
+                    (closure-body clo))])
+      (values (V-neutral (N-stuck body)) 0))]
    [(const-closure? clo)
     (values (const-closure-value clo) (- fuel 1))]
    [else
@@ -1280,6 +1289,74 @@
 (define (N-stuck-expr n) (cadr n))
 
 ;;; ====
+;;; Value to Source Expression Conversion
+;;; ====
+
+;;; value->source-expr : Value → Expr
+;;; Convert internal Value structures to valid source S-expressions.
+;;; Used when creating stuck terms to avoid leaking internal representations.
+;;;
+;;; This is a best-effort conversion - complex values become placeholders.
+(define (value->source-expr val)
+  (cond
+   ;; Base values (numbers, strings, booleans, symbols)
+   [(V-base? val)
+    (V-base-val val)]
+
+   ;; Sum types - convert to (Left x) or (Right x)
+   [(V-sum? val)
+    (let ([tag (V-sum-tag val)]
+          [inner (value->source-expr (V-sum-value val))])
+      (if (eq? tag 'left)
+          `(Left ,inner)
+          `(Right ,inner)))]
+
+   ;; Pairs
+   [(V-pair? val)
+    `(pair ,(value->source-expr (V-pair-fst val))
+           ,(value->source-expr (V-pair-snd val)))]
+
+   ;; Neutrals - already have source-like structure
+   [(V-neutral? val)
+    (neutral->source-expr (V-neutral-term val))]
+
+   ;; Type universe
+   [(V-type? val)
+    (let ([n (V-type-level val)])
+      (if (= n 0) 'Type `(Type ,n)))]
+
+   ;; Lambda values - use placeholder to avoid exposing closures
+   [(V-lam? val)
+    '(fn (_) ...)]
+
+   ;; Complex types - use descriptive placeholders
+   [(V-pi? val) '(Π ...)]
+   [(V-sigma? val) '(Σ ...)]
+   [(V-vec? val) '(Vec ...)]
+   [(V-matrix? val) '(Matrix ...)]
+
+   ;; Fallback for unknown values
+   [else '<value>]))
+
+;;; neutral->source-expr : Neutral → Expr
+;;; Convert Neutral terms to source expressions.
+(define (neutral->source-expr n)
+  (cond
+   [(N-var? n)
+    (level->name (N-var-level n))]
+   [(N-app? n)
+    `(,(neutral->source-expr (cadr n)) ,(value->source-expr (caddr n)))]
+   [(N-fst? n)
+    `(fst ,(neutral->source-expr (cadr n)))]
+   [(N-snd? n)
+    `(snd ,(neutral->source-expr (cadr n)))]
+   [(N-stuck? n)
+    (N-stuck-expr n)]
+   [(N-case? n)
+    `(case ,(neutral->source-expr (cadr n)) ,@(caddr n))]
+   [else '<neutral>]))
+
+;;; ====
 ;;; Fuel-Bounded Evaluation
 ;;; ====
 
@@ -1510,10 +1587,14 @@
 ;;; nbe-case-fuel : Value × (List Branch) × Env × Nat → (Values Value Nat)
 ;;; Evaluate case analysis with fuel bounding.
 ;;; Branches are: (((Left x) body) ((Right y) body))
+;;;
+;;; IMPORTANT: When creating stuck terms, we must NOT embed internal Value
+;;; structures. Use value->source-expr to convert values to valid syntax.
 (define (nbe-case-fuel scrutinee branches env fuel)
   (cond
    [(<= fuel 0)
-    (values (V-neutral (N-stuck `(case ,scrutinee ,@branches))) 0)]
+    ;; Fuel exhausted - create stuck with source-safe scrutinee
+    (values (V-neutral (N-stuck `(case ,(value->source-expr scrutinee) ,@branches))) 0)]
 
    [(V-sum? scrutinee)
     (let* ([tag (V-sum-tag scrutinee)]
@@ -1526,14 +1607,16 @@
                  [var (cadr pattern)]  ; Extract var from (Left x) or (Right y)
                  [new-env (env-extend env var value)])
             (nbe-eval-fuel body new-env (- fuel 1)))
-          ;; No matching branch - stuck
-          (values (V-neutral (N-case (N-stuck scrutinee) branches)) (- fuel 1))))]
+          ;; No matching branch - stuck with source-safe representation
+          (let ([sum-expr (value->source-expr scrutinee)])
+            (values (V-neutral (N-stuck `(case ,sum-expr ,@branches))) (- fuel 1)))))]
 
    [(V-neutral? scrutinee)
     (values (V-neutral (N-case (V-neutral-term scrutinee) branches)) (- fuel 1))]
 
    [else
-    (values (V-neutral (N-case scrutinee branches)) (- fuel 1))]))
+    ;; Unknown scrutinee type - convert to source expression
+    (values (V-neutral (N-stuck `(case ,(value->source-expr scrutinee) ,@branches))) (- fuel 1))]))
 
 ;;; case-find-branch : Symbol × (List Branch) → Branch | #f
 ;;; Find the branch matching the given sum tag.

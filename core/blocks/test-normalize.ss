@@ -619,5 +619,58 @@ Test 41: NbE Safety - Readback divergence protection
     (test "nested omega doesn't hang" #t (pair? result))))
 
 (display "
+Test 42: Missing case branches handled gracefully
+")
+;; Case with missing branch should become stuck, not crash
+(let ([result (nbe-normalize-for-cas '(case (Left 42) ((Right y) y)))])
+  ;; Should not crash - returns stuck case or original
+  (test "missing Left branch doesn't crash" #t (pair? result))
+  (display "  missing branch normalized to: ") (display result) (newline))
+
+(let ([result (nbe-normalize-for-cas '(case (Right 42) ((Left x) x)))])
+  (test "missing Right branch doesn't crash" #t (pair? result)))
+
+;; Case with symbolic scrutinee stays stuck
+(let ([result (nbe-normalize-for-cas '(case unknown ((Left x) x) ((Right y) y)))])
+  (test "symbolic scrutinee stays case" #t (and (pair? result) (eq? (car result) 'case))))
+
+(display "
+Test 43: Deep nesting stack safety
+")
+;; Generate deeply nested expression
+(define (make-deep-nesting depth)
+  (if (<= depth 0)
+      'x
+      `(fn (,(string->symbol (format "v~a" depth)))
+           ,(make-deep-nesting (- depth 1)))))
+
+;; 100 levels of nesting should be fine
+(let ([deep (make-deep-nesting 100)])
+  (let ([result (nbe-normalize-for-cas deep)])
+    (test "100 nested lambdas normalizes" #t (pair? result))))
+
+;; 500 levels - still should work (tests stack isn't blown)
+(let ([deep (make-deep-nesting 500)])
+  (let ([result (nbe-normalize-for-cas deep)])
+    (test "500 nested lambdas normalizes" #t (pair? result))))
+
+(display "
+Test 44: Stuck terms contain valid S-expressions only
+")
+;; Ensure stuck terms don't leak internal structures
+;; The result should be printable/hashable without exposing closures
+(let ([result (nbe-normalize-for-cas '(fn (z) ((fn (x) (x x)) (fn (x) (x x)))))])
+  ;; Check result doesn't contain 'closure or 'env markers
+  (define (contains-internal? expr)
+    (cond
+     [(not (pair? expr)) #f]
+     [(memq (car expr) '(closure const-closure env closure-app)) #t]
+     [else (ormap contains-internal? expr)]))
+  (test "no internal structures leaked" #f (contains-internal? result))
+  ;; Should be writable without error
+  (let ([str (format "~s" result)])
+    (test "result is printable" #t (string? str))))
+
+(display "
 ✓ All tests complete.
 ")
