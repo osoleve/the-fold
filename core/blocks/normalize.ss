@@ -492,9 +492,13 @@
             (cond
               ;; All were identity → return identity
               [(null? filtered) identity]
-              ;; Single element → return it
-              [(null? (cdr filtered)) (car filtered)]
-              ;; Multiple → reconstruct
+              ;; Single element: only unwrap for truly unary-collapsible ops
+              ;; NOTE: (- x) is unary negation, NOT (- x 0) with identity removed.
+              ;; Only collapse to single element for ops where (op x) = x.
+              [(and (null? (cdr filtered))
+                    (not (eq? op '-)))  ; - has right identity only, not unary
+               (car filtered)]
+              ;; Multiple or non-collapsible single → reconstruct
               [else (cons op filtered)]))]
 
          ;; No identity/absorbing → reconstruct with recursed args
