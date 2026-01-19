@@ -159,8 +159,8 @@ class FoldMCPServer {
       throw new Error('Invalid name: must start with letter and contain only letters, numbers, hyphens, underscores');
     }
 
-    // Send login request to daemon
-    const expression = `(hi '${tier} '${name} "${escapeString(message)}")`;
+    // Send login request to daemon - call session-login! directly
+    const expression = `(session-login! "${session.id}" '${tier} '${name})`;
     const response = await sendRequest(session.id, expression);
 
     if (response.error) {
@@ -170,8 +170,10 @@ class FoldMCPServer {
     // Update session
     this.sessionManager.login(session.id, tier as Tier, name);
 
+    // Format output message (previously done by hi wrapper)
+    const output = `${name} (${tier}) logged in: ${message}`;
     return {
-      content: [{ type: 'text', text: response.output }]
+      content: [{ type: 'text', text: output }]
     };
   }
 
