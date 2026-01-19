@@ -58,12 +58,12 @@ Algebraic canonicalization extends semantic identity:
 
 The version byte (0x01) distinguishes algebraically-normalized hashes from α-only hashes (0x00), ensuring backwards compatibility.
 
-**Why Pure Core + Impure Shell?**
+**Why Pure Core + Impure Boundary?**
 
 Separation enables verification:
 - Core: small, pure, formally verifiable
-- Shell: practical, handles messy reality
-- Clear boundary for trust decisions
+- Boundary: practical, handles messy reality
+- Clear interface for trust decisions
 - Neither compromises the other
 
 ### 7.3 Performance Considerations
@@ -370,9 +370,9 @@ The layered fallback ensures useful hover information is always available:
 
 These limitations are acceptable for initial deployment—the fallback ensures primitive operations always display types, and real inference succeeds for the common case of sequential top-level definitions.
 
-### 7.6 Shell IO Infrastructure
+### 7.6 Boundary IO Infrastructure
 
-The Shell layer provides IO primitives that maintain consistency guarantees despite operating in an impure environment.
+The Boundary layer provides IO primitives that maintain consistency guarantees despite operating in an impure environment.
 
 #### 7.6.1 Atomic File Writes
 

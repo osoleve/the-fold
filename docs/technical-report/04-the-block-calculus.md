@@ -91,7 +91,7 @@ The Fold uses *call-by-value* (strict) evaluation:
 2. Let bindings evaluate the bound expression before the body
 3. No lazy evaluation or thunks in Core
 
-**Rationale**: Call-by-value interacts predictably with effects (even though Core is pure, Shell is not) and simplifies reasoning about resource consumption.
+**Rationale**: Call-by-value interacts predictably with effects (even though Core is pure, Boundary is not) and simplifies reasoning about resource consumption.
 
 ### 4.4 The Homoiconic Mechanism
 
@@ -130,9 +130,9 @@ This bijection enables:
 - Metaprogramming via block manipulation
 - Serialization/deserialization of any value
 
-### 4.5 Effects and the Shell Boundary
+### 4.5 Effects and the Boundary
 
-Core is *effect-free*. The Shell provides effects through a capability-based system:
+Core is *effect-free*. The Boundary provides effects through a capability-based system:
 
 **Capability Types**:
 ```scheme
@@ -141,10 +141,10 @@ Core is *effect-free*. The Shell provides effects through a capability-based sys
 (Cap Time T)  ; Time/randomness capability producing T
 ```
 
-**Effect Boundary**: A capability is a token authorizing specific operations. The Shell mints capabilities; Core code that needs effects must receive them as arguments:
+**Effect Boundary**: A capability is a token authorizing specific operations. The Boundary mints capabilities; Core code that needs effects must receive them as arguments:
 
 ```scheme
-;; Shell mints a filesystem capability
+;; Boundary mints a filesystem capability
 (define fs-cap (mint-capability 'filesystem))
 
 ;; Core function requires capability as argument
@@ -164,18 +164,18 @@ Core is *effect-free*. The Shell provides effects through a capability-based sys
 
 This keeps Core pure while enabling practical programs.
 
-### 4.6 Shell Implementation Details
+### 4.6 Boundary Implementation Details
 
-The Shell ("thimble") is the verification boundary—code below is trusted, code above is verified. This section details Shell's invariants and implementation.
+The Boundary ("thimble") is the verification boundary—code below is trusted, code above is verified. This section details Boundary's invariants and implementation.
 
-#### 4.6.1 Shell Invariants
+#### 4.6.1 Boundary Invariants
 
-The Shell maintains these invariants before invoking Core:
+The Boundary maintains these invariants before invoking Core:
 
 **I1. Well-formed S-expressions**: All input is syntactically valid. Malformed UTF-8, unbalanced parentheses, and invalid tokens are rejected before reaching Core.
 
 ```scheme
-;; Shell validation pipeline
+;; Boundary validation pipeline
 (define (validate-input raw-bytes)
   (let ([utf8-result (validate-utf8 raw-bytes)])
     (if (err? utf8-result)
@@ -186,7 +186,7 @@ The Shell maintains these invariants before invoking Core:
               (ok-val sexpr-result))))))
 ```
 
-**I2. Type-compatible arguments**: Values passed to typed Core functions satisfy their declared types. Shell performs runtime type checks at the boundary.
+**I2. Type-compatible arguments**: Values passed to typed Core functions satisfy their declared types. Boundary performs runtime type checks at the interface.
 
 ```scheme
 ;; Boundary check before Core call
@@ -201,7 +201,7 @@ The Shell maintains these invariants before invoking Core:
 
 **I3. Capability presence**: Effectful operations receive valid capability tokens. No capability = no effect.
 
-**I4. Fuel budget**: Every Core invocation receives a finite fuel budget. Shell chooses the budget based on operation type and user configuration.
+**I4. Fuel budget**: Every Core invocation receives a finite fuel budget. Boundary chooses the budget based on operation type and user configuration.
 
 #### 4.6.2 Capability Implementation
 
@@ -216,7 +216,7 @@ Capabilities are unforgeable tokens authorizing specific effects. Implementation
     scope       ; Restrictions: paths, hosts, etc.
     revoked?))  ; Mutable: can be revoked
 
-;; Capability minting (Shell only)
+;; Capability minting (Boundary only)
 (define (mint-capability kind scope)
   (make-capability
     (crypto-random-bytes 16)
@@ -235,7 +235,7 @@ Capabilities are unforgeable tokens authorizing specific effects. Implementation
      (error 'scope-violation operation (capability-scope cap))]
     [else #t]))
 
-;; Usage in Shell
+;; Usage in Boundary
 (define (read-file cap path)
   (check-capability cap 'filesystem `(read ,path))
   (call-with-input-file path get-string-all))
@@ -267,7 +267,7 @@ Capabilities are unforgeable tokens authorizing specific effects. Implementation
 
 #### 4.6.3 Error Handling
 
-Shell catches all errors from Core and presents them to users:
+Boundary catches all errors from Core and presents them to users:
 
 ```scheme
 (define (boundary-eval expr fuel)
@@ -288,19 +288,19 @@ Shell catches all errors from Core and presents them to users:
 
 | Category | Source | User Message |
 |----|----|----|
-| `parse-error` | Shell | "Syntax error at line N: ..." |
+| `parse-error` | Boundary | "Syntax error at line N: ..." |
 | `type-error` | Core | "Type mismatch: expected T₁, got T₂" |
 | `out-of-fuel` | Core | "Computation exceeded budget" |
 | `unbound-var` | Core | "Undefined variable: x" |
-| `capability-error` | Shell | "Operation requires capability C" |
-| `io-error` | Shell | "Cannot read file: ..." |
+| `capability-error` | Boundary | "Operation requires capability C" |
+| `io-error` | Boundary | "Cannot read file: ..." |
 
-#### 4.6.4 Shell/Core Protocol
+#### 4.6.4 Boundary/Core Protocol
 
 Communication follows a strict protocol:
 
 ```
-Shell                           Core
+Boundary                        Core
   │                               │
   ├─── validate(input) ──────────►│
   │                               │
@@ -316,7 +316,7 @@ Shell                           Core
   │                               │
 ```
 
-Core never initiates communication. Core never performs IO directly. All external interaction flows through Shell.
+Core never initiates communication. Core never performs IO directly. All external interaction flows through Boundary.
 
 ### 4.7 Metaprogramming and the Type System
 

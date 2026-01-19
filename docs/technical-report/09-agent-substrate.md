@@ -39,13 +39,13 @@ When computation is content-addressed:
 - Shared subexpressions are automatically deduplicated
 - Audit trails are immutable
 
-**Pure Core + Impure Shell Enables Verifiable Reasoning**:
+**Pure Core + Impure Boundary Enables Verifiable Reasoning**:
 
-The agent's "reasoning" (pure computation in Core) is separate from its "actions" (effects through Shell). This separation means:
+The agent's "reasoning" (pure computation in Core) is separate from its "actions" (effects through Boundary). This separation means:
 
 - Core computations can be verified, replayed, and tested
 - Effects are explicit and auditable
-- The attack surface for capability violations is small (Shell boundary only)
+- The attack surface for capability violations is small (Boundary interface only)
 
 ### 9.2 The Agent Interface
 
@@ -218,10 +218,10 @@ Agents operate under a capability-based security model where permissions are exp
 
 **Capability Records**:
 
-Capabilities are opaque records that can only be created by Shell code:
+Capabilities are opaque records that can only be created by Boundary code:
 
 ```scheme
-;; Shell mints capabilities
+;; Boundary mints capabilities
 (define file-cap (mint-capability 'file-read "/home/data"))
 
 ;; Core receives capabilities, cannot inspect internals
@@ -234,7 +234,7 @@ Capabilities are opaque records that can only be created by Shell code:
 
 1. **Unforgeable**: Core code cannot construct capabilities
 2. **Transferable**: Capabilities can be passed to functions
-3. **Revocable**: Shell can invalidate capabilities
+3. **Revocable**: Boundary can invalidate capabilities
 4. **Auditable**: Capability usage is logged
 
 **Capability Audit**:

@@ -8,7 +8,7 @@ The Fold employs a *three-layer architecture* separating pure computation from e
 │                         User Layer                          │
 │              Applications, experiments, scripts             │
 ├─────────────────────────────────────────────────────────────┤
-│                        Shell Layer                          │
+│                       Boundary Layer                        │
 │         IO, validation, capability minting, effects         │
 ├─────────────────────────────────────────────────────────────┤
 │                        Core Layer                           │
@@ -41,19 +41,19 @@ Core contains:
 - Evaluation (fuel-bounded reduction)
 - Normalization (de Bruijn transformation)
 
-### 2.2 The Shell Layer
+### 2.2 The Boundary Layer
 
-The Shell (internally called "the thimble" or "fallen layer") mediates between the pure Core and the impure world:
+The Boundary (internally called "the thimble" or "fallen layer") mediates between the pure Core and the impure world:
 
-**Validation**: All external input is validated before reaching Core. Malformed S-expressions, invalid UTF-8, type mismatches—all caught at the Shell boundary.
+**Validation**: All external input is validated before reaching Core. Malformed S-expressions, invalid UTF-8, type mismatches—all caught at the Boundary.
 
-**Capability Minting**: Effects require capabilities. The Shell creates capability tokens (filesystem access, network access, time/randomness) that authorize specific operations.
+**Capability Minting**: Effects require capabilities. The Boundary creates capability tokens (filesystem access, network access, time/randomness) that authorize specific operations.
 
-**IO Operations**: File reading/writing, network communication, user interaction—all live in Shell. Core never performs IO directly.
+**IO Operations**: File reading/writing, network communication, user interaction—all live in Boundary. Core never performs IO directly.
 
-**Error Recovery**: Shell handles exceptions, provides error messages, and maintains system stability when things go wrong.
+**Error Recovery**: Boundary handles exceptions, provides error messages, and maintains system stability when things go wrong.
 
-The Shell/Core boundary is the *verification frontier*: Core can be formally verified; Shell is trusted but unverified.
+The Boundary/Core interface is the *verification frontier*: Core can be formally verified; Boundary is trusted but unverified.
 
 ### 2.3 The User Layer
 
@@ -64,7 +64,7 @@ The User layer contains applications built on the verified foundations:
 - Domain-specific applications
 - Experiments and prototypes
 
-User code may be verified (if it uses only Core and verified Shell interfaces) or unverified (if it uses arbitrary Shell capabilities).
+User code may be verified (if it uses only Core and verified Boundary interfaces) or unverified (if it uses arbitrary Boundary capabilities).
 
 ### 2.4 Design Rationale
 
@@ -78,6 +78,6 @@ Pure code can be:
 
 Effectful code cannot enjoy these properties unconditionally. Rather than compromise the entire system, we isolate effects to a well-defined boundary.
 
-The Shell is not a "second-class citizen"—it is essential for any useful system. But by separating it from Core, we preserve Core's mathematical properties while providing practical functionality.
+The Boundary is not a "second-class citizen"—it is essential for any useful system. But by separating it from Core, we preserve Core's mathematical properties while providing practical functionality.
 
 ---

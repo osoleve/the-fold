@@ -13,7 +13,7 @@
 | Implementation | Haskell | Chez Scheme (self-contained) |
 | Effects | First-class abilities | Capability types + monads |
 
-The Fold's de Bruijn approach provides stronger α-equivalence guarantees. Unison's ability system is more integrated with the type system; The Fold separates effects into Shell.
+The Fold's de Bruijn approach provides stronger α-equivalence guarantees. Unison's ability system is more integrated with the type system; The Fold separates effects into Boundary.
 
 **IPFS**: Content-addressed storage for arbitrary data. The Fold adapts similar Merkle DAG concepts for code specifically, adding normalization and typing.
 

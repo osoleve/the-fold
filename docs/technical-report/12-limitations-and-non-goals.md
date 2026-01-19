@@ -35,19 +35,19 @@ Unlike Agda, Idris, or Lean, The Fold provides no:
 
 Dependent types are for specification, not theorem proving. Use external proof assistants for serious verification.
 
-### 12.4 Shell is Unverified
+### 12.4 Boundary is Unverified
 
-The Shell is *trusted but unverified*. We believe it maintains its invariants, but we have not mechanically verified this. The verification boundary is:
+The Boundary is *trusted but unverified*. We believe it maintains its invariants, but we have not mechanically verified this. The verification boundary is:
 
 ```
    ┌─────────────────────────┐
-   │   Shell (trusted)       │  ← May have bugs
+   │   Boundary (trusted)    │  ← May have bugs
    ├─────────────────────────┤
    │   Core (verified*)      │  ← *Type-safe by construction
    └─────────────────────────┘
 ```
 
-Core is verified in the sense that well-typed programs don't go wrong (within fuel bounds). Shell correctness is assured by testing and code review.
+Core is verified in the sense that well-typed programs don't go wrong (within fuel bounds). Boundary correctness is assured by testing and code review.
 
 ### 12.5 Single-Node Only
 

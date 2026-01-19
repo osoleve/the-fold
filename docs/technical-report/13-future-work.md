@@ -7,7 +7,7 @@
 
 **Algebraic Effects**: Integrate algebraic effects more deeply, replacing the current capability/monad approach.
 
-**Linear Types**: Add linear/affine types for safe resource management in Shell.
+**Linear Types**: Add linear/affine types for safe resource management in Boundary.
 
 **Incremental Type Checking**: Cache type derivations in the CAS, enabling O(changed) re-checking instead of O(total).
 

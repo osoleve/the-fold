@@ -21,7 +21,7 @@
 
 **Key Philosophical Differences**:
 
-1. **Effects**: Unison treats effects as first-class abilities integrated into the type system. The Fold separates effects into Shell with capability types.
+1. **Effects**: Unison treats effects as first-class abilities integrated into the type system. The Fold separates effects into Boundary with capability types.
 
 2. **Verification**: The Fold emphasizes compositional verification with fuel bounds. Unison focuses on codebase management.
 
