@@ -4939,7 +4939,114 @@ Issues can declare dependencies on other issues:
 
 Updates are atomic via compare-and-swap on head files (see §7.6.3).
 
-### 8.8 Design Principles
+### 8.8 Language Server Protocol
+
+The Fold includes a full LSP implementation (`boundary/lsp/`) that enables rich IDE integration. The server is written entirely in Scheme and leverages the existing introspection infrastructure.
+
+**Architecture**:
+
+| Module | Purpose |
+|--------|---------|
+| `lsp-server.ss` | Main message loop and lifecycle |
+| `protocol.ss` | JSON-RPC types, LSP constants, response constructors |
+| `transport.ss` | Stdio transport with Content-Length framing |
+| `documents.ss` | Open document state management |
+| `capabilities.ss` | All language feature implementations |
+| `diagnostics.ss` | Parse/semantic error detection |
+| `json.ss` | JSON parser/serializer for S-expressions |
+
+**Supported Capabilities**:
+
+| Capability | Description |
+|------------|-------------|
+| `textDocumentSync` | Incremental sync (change deltas, not full text) |
+| `hoverProvider` | Type info, docstrings, primitive signatures |
+| `completionProvider` | Keywords, primitives, snippets, lattice symbols |
+| `signatureHelpProvider` | Parameter hints for known functions |
+| `definitionProvider` | Jump to definition (via xref integration) |
+| `referencesProvider` | Find all references across workspace |
+| `documentSymbolProvider` | Document outline (nested definitions) |
+| `workspaceSymbolProvider` | Search symbols across workspace |
+| `documentFormattingProvider` | Pretty-print Scheme code |
+| `renameProvider` | Rename symbol with scope awareness |
+| `codeActionProvider` | Quick fixes (undefined → define stub) |
+| `semanticTokensProvider` | Rich syntax highlighting (10 token types) |
+
+**Semantic Token Types**:
+
+| Index | Type | Description |
+|-------|------|-------------|
+| 0 | keyword | `define`, `lambda`, `if`, `let`, etc. |
+| 1 | function | Function definitions and calls |
+| 2 | variable | Local and global variables |
+| 3 | string | String literals |
+| 4 | number | Numeric literals |
+| 5 | comment | Comments |
+| 6 | operator | Operators like `+`, `-`, `*` |
+| 7 | macro | Macro definitions (`define-syntax`) |
+| 8 | parameter | Lambda/let parameters |
+| 9 | type | Type annotations |
+
+**Integration with Meta-Tooling**:
+
+The LSP server leverages existing Fold infrastructure:
+
+- **Type Inference**: Hover uses `core/types/infer.ss` for type information
+- **Cross-References**: Definition/references use `boundary/introspect/xref.ss`
+- **Lattice Search**: Workspace symbols query the BM25 indices from `lattice/meta/`
+- **Pretty Printer**: Formatting uses `core/util/pretty.ss`
+
+**Scope-Aware Rename**:
+
+The rename provider handles Scheme's lexical scoping:
+
+```scheme
+;; Before rename 'x' → 'value'
+(let ([x 10])
+  (let ([x 20])  ; Different binding
+    (+ x 1))
+  x)             ; Original x
+
+;; After rename (only renames the outer x)
+(let ([value 10])
+  (let ([x 20])
+    (+ x 1))
+  value)
+```
+
+The implementation tracks shadowing via `symbol-shadowed-in-form?` and filters references to the correct binding.
+
+**Running the Server**:
+
+```bash
+# Direct execution (for editors)
+scheme --script boundary/lsp/lsp-server.ss
+
+# Via ops script
+./ops/start-lsp.sh
+```
+
+The server communicates over stdio using the LSP wire protocol (JSON-RPC 2.0 with Content-Length headers).
+
+**MCP Integration**:
+
+The LSP is also exposed via MCP tools (`fold_lsp_*`) for use by AI agents:
+
+```scheme
+;; Available MCP tools
+fold_lsp_hover      ; Get hover info at position
+fold_lsp_definition ; Jump to definition
+fold_lsp_references ; Find all references
+fold_lsp_symbols    ; Search workspace symbols
+fold_lsp_lookup     ; Combined hover + definition + references
+fold_lsp_completion ; Get completions at position
+fold_lsp_format     ; Format document
+fold_lsp_diagnostics; Get errors/warnings
+```
+
+This enables agents to navigate and understand code using the same infrastructure as human developers.
+
+### 8.9 Design Principles
 
 The meta-tooling ecosystem follows several key design principles:
 
