@@ -35,6 +35,9 @@
 ;;; Doc index: list of (file line tag content target?)
 (define *doc-index* '())
 
+;;; Initialization flag: distinguishes "not yet built" from "built but empty"
+(define *doc-index-built?* #f)
+
 ;;; ====
 ;;; File Reading
 ;;; ====
@@ -156,18 +159,23 @@
 
 ;;; build-doc-index! : -> Void
 ;;; Build the doc index from the codebase
+;;; Uses cons+reverse pattern to avoid O(N²) append overhead
 (define (build-doc-index!)
-  (set! *doc-index* '())
-  (let ([roots '("core" "lattice" "boundary")])
+  (let ([roots '("core" "lattice" "boundary")]
+        [acc '()])
     (for-each
      (lambda (root)
        (let ([files (find-scheme-files root)])
          (for-each
           (lambda (file)
             (let ([docs (extract-docs-from-file file)])
-              (set! *doc-index* (append *doc-index* docs))))
+              ;; Prepend docs (constant time) instead of append (linear time)
+              (set! acc (append docs acc))))
           files)))
-     roots))
+     roots)
+    ;; Reverse once at the end to restore file order
+    (set! *doc-index* (reverse acc))
+    (set! *doc-index-built?* #t))
   (unless *docs-quiet*
     (printf "Doc index built: ~a entries~n" (length *doc-index*))))
 
@@ -175,11 +183,16 @@
 ;;; Search Functions
 ;;; ====
 
+;;; ensure-doc-index! : -> Void
+;;; Build index if not yet built (handles empty index correctly)
+(define (ensure-doc-index!)
+  (unless *doc-index-built?*
+    (build-doc-index!)))
+
 ;;; lf-docs : Symbol -> (List Doc)
 ;;; Find all docs with a specific tag
 (define (lf-docs tag)
-  (when (null? *doc-index*)
-    (build-doc-index!))
+  (ensure-doc-index!)
   (filter (lambda (doc)
             (eq? (caddr doc) tag))  ; doc = (file line tag content target?)
           *doc-index*))
@@ -187,8 +200,7 @@
 ;;; docs-for : Symbol -> (List Doc)
 ;;; Find all docs targeting a specific symbol
 (define (docs-for target)
-  (when (null? *doc-index*)
-    (build-doc-index!))
+  (ensure-doc-index!)
   (filter (lambda (doc)
             (eq? (list-ref doc 4) target))  ; 5th element is target
           *doc-index*))
@@ -196,8 +208,7 @@
 ;;; doc-stats : -> (Alist Tag Nat)
 ;;; Count docs by tag
 (define (doc-stats)
-  (when (null? *doc-index*)
-    (build-doc-index!))
+  (ensure-doc-index!)
   (let ([counts (make-hashtable equal-hash equal?)])  ; Use equal? for non-symbol tags
     (for-each
      (lambda (doc)
@@ -240,5 +251,7 @@
 (define (lf-types) (print-docs (lf-docs 'type)))
 (define (lf-deprecated) (print-docs (lf-docs 'deprecated)))
 
-;;; Rebuild index
-(define (doc-reindex!) (build-doc-index!))
+;;; Rebuild index (resets flag, forces fresh build)
+(define (doc-reindex!)
+  (set! *doc-index-built?* #f)
+  (build-doc-index!))
