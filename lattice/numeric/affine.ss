@@ -302,49 +302,10 @@
 
 ;;; affine-sqrt-positive : Affine → Affine
 ;;; Square root for affine forms known to be non-negative.
-;;; Uses optimal Chebyshev approximation: line midway between tangent and secant.
+;;; Uses generic Chebyshev helper with clamp-lo=1e-300 to avoid numerical issues near zero.
+;;; sqrt'(x) = 1/(2√x) = β  →  x = 1/(4β²)
 (define (affine-sqrt-positive af)
-  (let* ([iv (affine->interval af)]
-         [a (max 1e-300 (interval-lo iv))]  ; Avoid division by zero
-         [b (interval-hi iv)])
-    (cond
-      [(< (- b a) 1e-15)  ; Near-singleton
-       (affine-constant (sqrt (affine-center af)))]
-      [else
-       ;; Optimal Chebyshev approximation of sqrt(x) over [a, b]
-       ;;
-       ;; For a concave function like sqrt:
-       ;; - Secant line (through endpoints) is BELOW the curve
-       ;; - Tangent line with same slope is ABOVE the curve (touches at one point)
-       ;; - Optimal line is MIDWAY between them, equalizing max errors
-       ;;
-       ;; Slope β = secant slope = (sqrt(b) - sqrt(a)) / (b - a)
-       (let* ([sqrt-a (sqrt a)]
-              [sqrt-b (sqrt b)]
-              [beta (/ (- sqrt-b sqrt-a) (- b a))]
-              ;; Secant intercept: line through (a, sqrt(a)) with slope beta
-              [alpha-secant (- sqrt-a (* beta a))]
-              ;; Tangent intercept: tangent to sqrt with slope beta
-              ;; Tangent has slope 1/(2*sqrt(x)) = beta, so x = 1/(4*beta^2)
-              [x-tangent (/ 1 (* 4 beta beta))]
-              [x-tangent-clamped (max a (min b x-tangent))]
-              [alpha-tangent (- (sqrt x-tangent-clamped) (* beta x-tangent-clamped))]
-              ;; Optimal: midpoint between tangent and secant
-              [alpha (/ (+ alpha-tangent alpha-secant) 2)]
-              ;; Error bound: half the gap between tangent and secant
-              ;; (tangent > secant for concave functions)
-              ;; Add small safety margin for floating point rounding
-              [delta-raw (/ (- alpha-tangent alpha-secant) 2)]
-              [delta (+ delta-raw (* 1e-14 (max (abs sqrt-a) (abs sqrt-b))))])
-         ;; Result: α + β*x̂ + δ*ε_new
-         (let* ([x0 (affine-center af)]
-                [terms (affine-terms af)]
-                [center (+ alpha (* beta x0))]
-                [linear-terms (map (lambda (t) (cons (car t) (* beta (cdr t)))) terms)]
-                [error-term (if (< delta 1e-15)
-                                '()
-                                (list (cons (affine-fresh-noise-id!) delta)))])
-           (make-affine center (append linear-terms error-term))))])))
+  (affine-chebyshev-approx af sqrt (lambda (β) (/ 1 (* 4 β β))) 'concave 1e-300))
 
 ;;; ============================================================================
 ;;; Optimal Linear Approximation (Generic Chebyshev)
@@ -354,20 +315,23 @@
 ;;; approximation: the line midway between tangent and secant equalizes
 ;;; the maximum positive and negative errors, cutting bounds ~2x vs naive.
 
-;;; affine-chebyshev-approx : Affine × (Num → Num) × (Num → Num) × Symbol → Affine
+;;; affine-chebyshev-approx : Affine × (Num → Num) × (Num → Num) × Symbol [× Num] → Affine
 ;;; Generic optimal linear approximation for monotonic functions.
 ;;;   af           - the affine form to approximate f over
 ;;;   f            - the function to approximate
 ;;;   deriv-inverse - given slope β, returns x where f'(x) = β
 ;;;   convexity    - 'convex (secant > tangent) or 'concave (tangent > secant)
+;;;   clamp-lo     - optional: clamp lower bound away from problematic values
+;;;                  (e.g., sqrt needs a > 0 for the derivative to be defined)
 ;;;
 ;;; Examples of deriv-inverse:
 ;;;   sqrt: f'(x) = 1/(2√x) = β  →  x = 1/(4β²)   →  (lambda (β) (/ 1 (* 4 β β)))
 ;;;   exp:  f'(x) = exp(x) = β   →  x = log(β)    →  log
 ;;;   log:  f'(x) = 1/x = β      →  x = 1/β       →  (lambda (β) (/ 1 β))
-(define (affine-chebyshev-approx af f deriv-inverse convexity)
+(define (affine-chebyshev-approx af f deriv-inverse convexity . clamp-lo-opt)
   (let* ([iv (affine->interval af)]
-         [a (interval-lo iv)]
+         [a-raw (interval-lo iv)]
+         [a (if (pair? clamp-lo-opt) (max (car clamp-lo-opt) a-raw) a-raw)]
          [b (interval-hi iv)]
          [x0 (affine-center af)]
          [r (affine-radius af)])
