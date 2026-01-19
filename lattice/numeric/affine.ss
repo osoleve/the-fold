@@ -302,6 +302,7 @@
 
 ;;; affine-sqrt-positive : Affine → Affine
 ;;; Square root for affine forms known to be non-negative.
+;;; Uses optimal Chebyshev approximation: line midway between tangent and secant.
 (define (affine-sqrt-positive af)
   (let* ([iv (affine->interval af)]
          [a (max 1e-300 (interval-lo iv))]  ; Avoid division by zero
@@ -310,23 +311,31 @@
       [(< (- b a) 1e-15)  ; Near-singleton
        (affine-constant (sqrt (affine-center af)))]
       [else
-       ;; Chebyshev approximation of sqrt(x) over [a, b]
-       ;; Best linear approx: α + βx
-       ;; For sqrt, minimum max error line passes through (a, sqrt(a)) and (b, sqrt(b))
-       ;; with slope β = (sqrt(b) - sqrt(a)) / (b - a)
+       ;; Optimal Chebyshev approximation of sqrt(x) over [a, b]
+       ;;
+       ;; For a concave function like sqrt:
+       ;; - Secant line (through endpoints) is BELOW the curve
+       ;; - Tangent line with same slope is ABOVE the curve (touches at one point)
+       ;; - Optimal line is MIDWAY between them, equalizing max errors
+       ;;
+       ;; Slope β = secant slope = (sqrt(b) - sqrt(a)) / (b - a)
        (let* ([sqrt-a (sqrt a)]
               [sqrt-b (sqrt b)]
               [beta (/ (- sqrt-b sqrt-a) (- b a))]
-              ;; Find alpha such that line is tangent to sqrt at some point
-              ;; Tangent has slope 1/(2*sqrt(x)), so x = 1/(4*beta^2)
+              ;; Secant intercept: line through (a, sqrt(a)) with slope beta
+              [alpha-secant (- sqrt-a (* beta a))]
+              ;; Tangent intercept: tangent to sqrt with slope beta
+              ;; Tangent has slope 1/(2*sqrt(x)) = beta, so x = 1/(4*beta^2)
               [x-tangent (/ 1 (* 4 beta beta))]
               [x-tangent-clamped (max a (min b x-tangent))]
-              ;; The error is largest at the tangent point
-              [alpha (- (sqrt x-tangent-clamped) (* beta x-tangent-clamped))]
-              ;; Error bound: check at endpoints and tangent point
-              [err-a (abs (- sqrt-a (+ alpha (* beta a))))]
-              [err-b (abs (- sqrt-b (+ alpha (* beta b))))]
-              [delta (max err-a err-b)])
+              [alpha-tangent (- (sqrt x-tangent-clamped) (* beta x-tangent-clamped))]
+              ;; Optimal: midpoint between tangent and secant
+              [alpha (/ (+ alpha-tangent alpha-secant) 2)]
+              ;; Error bound: half the gap between tangent and secant
+              ;; (tangent > secant for concave functions)
+              ;; Add small safety margin for floating point rounding
+              [delta-raw (/ (- alpha-tangent alpha-secant) 2)]
+              [delta (+ delta-raw (* 1e-14 (max (abs sqrt-a) (abs sqrt-b))))])
          ;; Result: α + β*x̂ + δ*ε_new
          (let* ([x0 (affine-center af)]
                 [terms (affine-terms af)]
