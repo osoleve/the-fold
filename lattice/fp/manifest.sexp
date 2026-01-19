@@ -611,6 +611,21 @@ Key design principles:
     build-getter-name build-setter-name
     ;; Composable type requirements
     implements-bundle? compose-bundles assert-bundle! missing-protocols
+
+    ;; templates.ss — Type Class Templates
+    make-monoid monoid? monoid-mempty monoid-mappend
+    make-foldable foldable? foldable-fold-map foldable-foldr foldable-foldl
+    make-functor make-named-functor functor? functor-fmap functor-name
+    make-applicative applicative? applicative-pure applicative-ap
+    make-lens lens? lens-getter lens-setter
+    make-prism prism? prism-match prism-build
+    ;; Common instances
+    monoid-sum monoid-product monoid-list monoid-string
+    foldable-list foldable-maybe
+    functor-list functor-maybe functor-either
+    applicative-list applicative-maybe applicative-either
+    lens-fst lens-snd lens-head lens-tail lens-nth lens-key
+    prism-just prism-left prism-right
   ))
 
   ;;; ====

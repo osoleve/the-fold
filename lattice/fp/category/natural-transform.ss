@@ -404,6 +404,10 @@
   (if (nat-transform? η)
       (format "~a : ~a ⟹ ~a"
               (nat-transform-name η)
-              (if (functor? (nat-transform-source η)) "F" "?")
-              (if (functor? (nat-transform-target η)) "G" "?"))
+              (if (functor? (nat-transform-source η))
+                  (functor-name (nat-transform-source η) 'F)
+                  "?")
+              (if (functor? (nat-transform-target η))
+                  (functor-name (nat-transform-target η) 'G)
+                  "?"))
       "Not a natural transformation"))

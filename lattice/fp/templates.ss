@@ -279,6 +279,11 @@
 (define (make-functor fmap-fn)
   (list 'functor fmap-fn))
 
+;;; make-named-functor : Symbol × ((α → β) → F α → F β) → Functor
+;;; Create a functor with a name for debugging.
+(define (make-named-functor name fmap-fn)
+  (list 'functor fmap-fn name))
+
 ;;; functor? : α → Boolean
 (define (functor? x)
   (and (pair? x) (eq? (car x) 'functor)))
@@ -287,21 +292,29 @@
 (define (functor-fmap f)
   (cadr f))
 
+;;; functor-name : Functor × [Symbol] → Symbol
+;;; Get the name of the functor, or default if unnamed.
+(define (functor-name f . args)
+  (let ([default (if (null? args) 'F (car args))])
+    (if (and (functor? f) (> (length f) 2))
+        (caddr f)
+        default)))
+
 ;;; ====
 ;;; Common Functor Instances
 ;;; ====
 
 ;;; functor-list : Functor for lists
 (define functor-list
-  (make-functor map))
+  (make-named-functor 'list map))
 
 ;;; functor-maybe : Functor for Maybe
 (define functor-maybe
-  (make-functor maybe-fmap))
+  (make-named-functor 'maybe maybe-fmap))
 
 ;;; functor-either : Functor for Either (maps over Right)
 (define functor-either
-  (make-functor either-fmap))
+  (make-named-functor 'either either-fmap))
 
 ;;; ====
 ;;; Functor Operations
