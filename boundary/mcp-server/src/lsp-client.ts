@@ -352,7 +352,16 @@ export class LSPClient {
           references: {},
           documentSymbol: {},
           formatting: {},
-          publishDiagnostics: {}
+          publishDiagnostics: {},
+          semanticTokens: {
+            requests: { full: true },
+            tokenTypes: [
+              'keyword', 'function', 'variable', 'string', 'number',
+              'comment', 'operator', 'macro', 'parameter', 'type'
+            ],
+            tokenModifiers: ['definition', 'declaration', 'readonly'],
+            formats: ['relative']
+          }
         },
         workspace: {
           symbol: {}
@@ -530,49 +539,6 @@ export class LSPClient {
       }));
     } catch (e) {
       console.error('[LSP] Workspace symbol error:', e);
-      return null;
-    }
-  }
-
-  /**
-   * Get document symbols
-   */
-  async documentSymbol(filePath: string): Promise<SymbolInformation[] | null> {
-    await this.ensureRunning();
-    const uri = await this.syncDocument(filePath);
-
-    try {
-      const result = await this.sendRequest('textDocument/documentSymbol', {
-        textDocument: { uri }
-      });
-
-      if (!result) {
-        return null;
-      }
-
-      // Flatten hierarchical symbols if needed
-      const flatten = (symbols: any[], container?: string): SymbolInformation[] => {
-        const flat: SymbolInformation[] = [];
-        for (const sym of symbols) {
-          flat.push({
-            name: sym.name,
-            kind: sym.kind,
-            location: {
-              uri: this.uriToPath(uri),
-              range: sym.range || sym.selectionRange
-            },
-            containerName: container
-          });
-          if (sym.children) {
-            flat.push(...flatten(sym.children, sym.name));
-          }
-        }
-        return flat;
-      };
-
-      return flatten(result);
-    } catch (e) {
-      console.error('[LSP] Document symbol error:', e);
       return null;
     }
   }
@@ -893,6 +859,9 @@ export function completionKindName(kind: number | undefined): string {
 
 /**
  * Semantic token type names (matches server legend)
+ * NOTE: These are hardcoded to match Fold LSP's legend. For full LSP compliance,
+ * these should be dynamically retrieved from the initialize response's
+ * semanticTokensProvider.legend. This works because we control both client and server.
  */
 export const SemanticTokenTypes = [
   'keyword',    // 0
