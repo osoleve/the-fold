@@ -290,8 +290,9 @@
 ;;; Main Read Loop Helper
 ;;; ====
 
-;;; with-lsp-message : (JsonValue → Void) → Void
-;;; Read one message and call handler, returns #f on EOF or error.
+;;; with-lsp-message : (JsonValue → Void) → Boolean
+;;; Read one message and call handler. Returns #f only on EOF (shutdown).
+;;; Parse errors send a JSON-RPC ParseError (-32700) and continue.
 (define (with-lsp-message handler)
   (let ([msg (read-lsp-message *lsp-stdin*)])
        (cond
@@ -299,11 +300,15 @@
          (lsp-log "EOF received, shutting down")
          #f]
         [(and (pair? msg) (eq? (car msg) 'error))
-         (lsp-log "Read error: ~a" (cadr msg))
-         #f]
+         ;; Parse or transport error - send ParseError response and continue
+         ;; JSON-RPC spec: id is null when we couldn't parse the request
+         (lsp-log "Read error (continuing): ~a" (cadr msg))
+         (write-lsp-error 'null -32700 (cadr msg))  ; -32700 = ParseError
+         #t]  ; Continue the server loop
         [(and (pair? msg) (eq? (car msg) 'ok))
          (handler (cadr msg))
          #t]
         [else
-         (lsp-log "Unexpected read result: ~a" msg)
-         #f])))
+         (lsp-log "Unexpected read result (continuing): ~a" msg)
+         (write-lsp-error 'null -32700 "Malformed message")
+         #t])))
