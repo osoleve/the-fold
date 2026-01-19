@@ -159,7 +159,8 @@
 
 ;;; build-doc-index! : -> Void
 ;;; Build the doc index from the codebase
-;;; Uses cons+reverse pattern to avoid O(N²) append overhead
+;;; Prepends small doc lists to accumulator (O(docs-per-file) each, not O(total))
+;;; then reverses once at end for correct file order
 (define (build-doc-index!)
   (let ([roots '("core" "lattice" "boundary")]
         [acc '()])
@@ -169,11 +170,11 @@
          (for-each
           (lambda (file)
             (let ([docs (extract-docs-from-file file)])
-              ;; Prepend docs (constant time) instead of append (linear time)
+              ;; Prepend docs to acc: O(|docs|) not O(|acc|)
+              ;; Old code did (append acc docs) which was O(|acc|) per file
               (set! acc (append docs acc))))
           files)))
      roots)
-    ;; Reverse once at the end to restore file order
     (set! *doc-index* (reverse acc))
     (set! *doc-index-built?* #t))
   (unless *docs-quiet*

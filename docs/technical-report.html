@@ -6755,7 +6755,246 @@ Issues can declare dependencies on other issues:</p>
 Updates are atomic via compare-and-swap on head files (see §7.6.3).</p>
 
 <h3>
-8.8 Design Principles</h3>
+8.8 Language Server Protocol</h3>
+
+<p>
+The Fold includes a full LSP implementation (<code>boundary/lsp/</code>) that enables rich IDE integration. The server is written entirely in Scheme and leverages the existing introspection infrastructure.</p>
+
+<p>
+<strong>Architecture</strong>:</p>
+
+<table>
+<thead>
+<tr>
+<th>Module</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>lsp-server.ss</code></td>
+<td>Main message loop and lifecycle</td>
+</tr>
+<tr>
+<td><code>protocol.ss</code></td>
+<td>JSON-RPC types, LSP constants, response constructors</td>
+</tr>
+<tr>
+<td><code>transport.ss</code></td>
+<td>Stdio transport with Content-Length framing</td>
+</tr>
+<tr>
+<td><code>documents.ss</code></td>
+<td>Open document state management</td>
+</tr>
+<tr>
+<td><code>capabilities.ss</code></td>
+<td>All language feature implementations</td>
+</tr>
+<tr>
+<td><code>diagnostics.ss</code></td>
+<td>Parse/semantic error detection</td>
+</tr>
+<tr>
+<td><code>json.ss</code></td>
+<td>JSON parser/serializer for S-expressions</td>
+</tr>
+</tbody>
+</table>
+
+<p>
+<strong>Supported Capabilities</strong>:</p>
+
+<table>
+<thead>
+<tr>
+<th>Capability</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>textDocumentSync</code></td>
+<td>Incremental sync (change deltas, not full text)</td>
+</tr>
+<tr>
+<td><code>hoverProvider</code></td>
+<td>Type info, docstrings, primitive signatures</td>
+</tr>
+<tr>
+<td><code>completionProvider</code></td>
+<td>Keywords, primitives, snippets, lattice symbols</td>
+</tr>
+<tr>
+<td><code>signatureHelpProvider</code></td>
+<td>Parameter hints for known functions</td>
+</tr>
+<tr>
+<td><code>definitionProvider</code></td>
+<td>Jump to definition (via xref integration)</td>
+</tr>
+<tr>
+<td><code>referencesProvider</code></td>
+<td>Find all references across workspace</td>
+</tr>
+<tr>
+<td><code>documentSymbolProvider</code></td>
+<td>Document outline (nested definitions)</td>
+</tr>
+<tr>
+<td><code>workspaceSymbolProvider</code></td>
+<td>Search symbols across workspace</td>
+</tr>
+<tr>
+<td><code>documentFormattingProvider</code></td>
+<td>Pretty-print Scheme code</td>
+</tr>
+<tr>
+<td><code>renameProvider</code></td>
+<td>Rename symbol with scope awareness</td>
+</tr>
+<tr>
+<td><code>codeActionProvider</code></td>
+<td>Quick fixes (undefined → define stub)</td>
+</tr>
+<tr>
+<td><code>semanticTokensProvider</code></td>
+<td>Rich syntax highlighting (10 token types)</td>
+</tr>
+</tbody>
+</table>
+
+<p>
+<strong>Semantic Token Types</strong>:</p>
+
+<table>
+<thead>
+<tr>
+<th>Index</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0</td>
+<td>keyword</td>
+<td><code>define</code>, <code>lambda</code>, <code>if</code>, <code>let</code>, etc.</td>
+</tr>
+<tr>
+<td>1</td>
+<td>function</td>
+<td>Function definitions and calls</td>
+</tr>
+<tr>
+<td>2</td>
+<td>variable</td>
+<td>Local and global variables</td>
+</tr>
+<tr>
+<td>3</td>
+<td>string</td>
+<td>String literals</td>
+</tr>
+<tr>
+<td>4</td>
+<td>number</td>
+<td>Numeric literals</td>
+</tr>
+<tr>
+<td>5</td>
+<td>comment</td>
+<td>Comments</td>
+</tr>
+<tr>
+<td>6</td>
+<td>operator</td>
+<td>Operators like <code>+</code>, <code>-</code>, <code>*</code></td>
+</tr>
+<tr>
+<td>7</td>
+<td>macro</td>
+<td>Macro definitions (<code>define-syntax</code>)</td>
+</tr>
+<tr>
+<td>8</td>
+<td>parameter</td>
+<td>Lambda/let parameters</td>
+</tr>
+<tr>
+<td>9</td>
+<td>type</td>
+<td>Type annotations</td>
+</tr>
+</tbody>
+</table>
+
+<p>
+<strong>Integration with Meta-Tooling</strong>:</p>
+
+<p>
+The LSP server leverages existing Fold infrastructure:</p>
+
+<ul>
+<li><strong>Type Inference</strong>: Hover uses <code>core/types/infer.ss</code> for type information</li><li><strong>Cross-References</strong>: Definition/references use <code>boundary/introspect/xref.ss</code></li><li><strong>Lattice Search</strong>: Workspace symbols query the BM25 indices from <code>lattice/meta/</code></li><li><strong>Pretty Printer</strong>: Formatting uses <code>core/util/pretty.ss</code></li></ul>
+
+<p>
+<strong>Scope-Aware Rename</strong>:</p>
+
+<p>
+The rename provider handles Scheme&#39;s lexical scoping:</p>
+
+<pre><code class="language-scheme">;; Before rename &#39;x&#39; → &#39;value&#39;
+(let ([x 10])
+  (let ([x 20])  ; Different binding
+    (+ x 1))
+  x)             ; Original x
+
+;; After rename (only renames the outer x)
+(let ([value 10])
+  (let ([x 20])
+    (+ x 1))
+  value)
+</code></pre>
+
+<p>
+The implementation tracks shadowing via <code>symbol-shadowed-in-form?</code> and filters references to the correct binding.</p>
+
+<p>
+<strong>Running the Server</strong>:</p>
+
+<pre><code class="language-bash"># Direct execution (for editors)
+scheme --script boundary/lsp/lsp-server.ss
+
+# Via ops script
+./ops/start-lsp.sh
+</code></pre>
+
+<p>
+The server communicates over stdio using the LSP wire protocol (JSON-RPC 2.0 with Content-Length headers).</p>
+
+<p>
+<strong>MCP Integration</strong>:</p>
+
+<p>
+The LSP is also exposed via MCP tools (<code>fold_lsp_*</code>) for use by AI agents:</p>
+
+<pre><code class="language-scheme">;; Available MCP tools
+fold_lsp_hover      ; Get hover info at position
+fold_lsp_definition ; Jump to definition
+fold_lsp_references ; Find all references
+fold_lsp_symbols    ; Search workspace symbols
+fold_lsp_lookup     ; Combined hover + definition + references
+fold_lsp_completion ; Get completions at position
+fold_lsp_format     ; Format document
+fold_lsp_diagnostics; Get errors/warnings
+</code></pre>
+
+<p>
+This enables agents to navigate and understand code using the same infrastructure as human developers.</p>
+
+<h3>
+8.9 Design Principles</h3>
 
 <p>
 The meta-tooling ecosystem follows several key design principles:</p>

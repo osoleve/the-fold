@@ -226,7 +226,64 @@ The `source-loc.ss` module enables jump-to-definition by maintaining a mapping f
 ("boundary/provenance/traced-optics.ss" 45 1)
 ```
 
-### 8.5 Refactoring Toolkit
+### 8.5 Typed Comment Extraction
+
+The doc extraction system (`lattice/meta/docs.ss`) provides searchable, introspectable annotations via `(doc ...)` forms that survive in source code (unlike `;;;` comments which are stripped by the reader).
+
+**Syntax**:
+
+```scheme
+;; Contextual (belongs to enclosing definition)
+(define (add x y)
+  (doc 'type (-> Int Int Int))
+  (doc 'description "Adds two integers")
+  (+ x y))
+
+;; Targeted (names what it documents)
+(doc factorial 'type (-> Int Int))
+(define (factorial n) ...)
+```
+
+**Standard Tags**: `'type`, `'description`, `'param`, `'returns`, `'todo`, `'fixme`, `'deprecated`, `'since`, `'see`, `'note`
+
+**Query API**:
+
+```scheme
+(lf-docs 'todo)           ; Find all TODOs
+(lf-docs 'type)           ; Find all type annotations
+(docs-for 'factorial)     ; Find docs for specific target
+(doc-stats)               ; Summary counts by tag
+```
+
+**Convenience Aliases**:
+
+| Function | Searches |
+|----------|----------|
+| `lf-todo` | `'todo` tags |
+| `lf-fixme` | `'fixme` tags |
+| `lf-types` | `'type` tags |
+| `lf-deprecated` | `'deprecated` tags |
+
+**Indexing Performance**:
+
+The indexer uses a cons+reverse pattern to avoid O(N²) append overhead when processing hundreds of files:
+
+```scheme
+;; O(N) instead of O(N²)
+(let ([acc '()])
+  (for-each (lambda (file)
+              (set! acc (append (extract-docs file) acc)))
+            files)
+  (reverse acc))
+```
+
+An `*doc-index-built?*` flag distinguishes "not yet indexed" from "indexed but found nothing", preventing redundant rebuilds.
+
+**Normalization Semantics**:
+
+Doc forms are stripped during α-normalization—code with and without doc forms hashes identically. This makes them pure metadata that doesn't affect content addressing.
+
+### 8.6 Refactoring Toolkit
 
 The refactoring toolkit (`boundary/tools/refactor-toolkit.ss`) provides a unified interface for codebase-wide transformations with preview-before-apply semantics.
 
@@ -294,7 +351,7 @@ Confidence levels:
 | `rd` | `(refactor 'deps ...)` |
 | `rdc` | `(refactor 'dead-code)` |
 
-### 8.6 Template DSL for Code Generation
+### 8.7 Template DSL for Code Generation
 
 The template DSL (`lattice/dsl/template/`) enables grammar-driven code construction, particularly useful for AI-assisted code generation where tracking parentheses is error-prone.
 
@@ -359,7 +416,7 @@ For interactive development:
 - `boundary/tools/template-session.ss` — Interactive session
 - `boundary/tools/template-parser.ss` — Batch mode parser
 
-### 8.7 Issue Tracking (BBS)
+### 8.8 Issue Tracking (BBS)
 
 The Bulletin Board System (`boundary/bbs/`) is a CAS-native issue tracker that stores issues and posts as immutable blocks with head pointers for current state.
 
@@ -423,7 +480,7 @@ Issues can declare dependencies on other issues:
 
 Updates are atomic via compare-and-swap on head files (see §7.6.3).
 
-### 8.8 Language Server Protocol
+### 8.9 Language Server Protocol
 
 The Fold includes a full LSP implementation (`boundary/lsp/`) that enables rich IDE integration. The server is written entirely in Scheme and leverages the existing introspection infrastructure.
 
@@ -530,7 +587,7 @@ fold_lsp_diagnostics; Get errors/warnings
 
 This enables agents to navigate and understand code using the same infrastructure as human developers.
 
-### 8.9 Design Principles
+### 8.10 Design Principles
 
 The meta-tooling ecosystem follows several key design principles:
 
