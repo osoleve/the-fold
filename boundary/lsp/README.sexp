@@ -17,7 +17,8 @@
    (start-lsp.ss "Entry point script to launch the LSP server")))
  (key-concepts
   ((hover-inference "Real type inference via parse-definitions, build-tenv-from-defs")
-   (fallback-types "Layered fallback: inference -> primitives -> symbol index")
+   (local-binding-inference "Scope-aware inference for let/let*/letrec/lambda bindings via extract-local-bindings")
+   (fallback-types "Layered fallback: local inference -> top-level inference -> primitives -> symbol index")
    (incremental-sync "Document changes applied incrementally via text edits")))
  (dependencies (core/types core/lsp base))
  (tests
