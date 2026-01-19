@@ -10,10 +10,10 @@
 ;;;
 ;;; Dependencies:
 ;;;   - core/util/debug.ss
-;;;   - boundary/session-debugger.ss
+;;;   - boundary/debug/session-debugger.ss
 
 (load "core/util/debug.ss")
-(load "boundary/session-debugger.ss")
+(load "boundary/debug/session-debugger.ss")
 
 ;;; ====
 ;;; Configuration

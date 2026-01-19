@@ -1,4 +1,4 @@
-;;; boundary/tutorial.ss — Interactive Tutorial System for The Fold
+;;; boundary/tutorial/tutorial.ss — Interactive Tutorial System for The Fold
 ;;;
 ;;; A comprehensive tutorial system that guides new AIs through The Fold.
 

@@ -16,7 +16,7 @@
 ;;;   - Layer composition
 ;;;
 ;;; Dependencies:
-;;;   - boundary/layout.ss — Canvas primitives
+;;;   - boundary/ui/layout.ss — Canvas primitives
 ;;;   - boundary/ui/graphics-primitives.ss — Shape rendering
 ;;;   - boundary/ui/transforms.ss — Transform matrices
 ;;;

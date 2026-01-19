@@ -5,7 +5,7 @@
 ;;;
 ;;; This is Playpen code: creative meditation through procedural generation.
 
-(load "boundary/layout.ss")
+(load "boundary/ui/layout.ss")
 
 ;;; ====
 ;;; Random Utilities

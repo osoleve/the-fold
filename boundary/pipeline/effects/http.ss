@@ -8,7 +8,7 @@
 (load "lattice/pipeline/effects.ss")
 (load "lattice/pipeline/context.ss")
 (load "boundary/pipeline/effects/shell.ss")
-(load "boundary/json.ss")
+(load "boundary/io/json.ss")
 
 ;;; ====
 ;;; HTTP Effect Interpretation

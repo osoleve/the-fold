@@ -1,10 +1,10 @@
 #!/usr/bin/env scheme-script
-;;; boundary/universe-dump.ss — CLI tool for dumping the universe
+;;; boundary/storage/universe-dump.ss — CLI tool for dumping the universe
 ;;;
 ;;; Serializes all .sexp files in the-fold project to a single file.
 ;;;
 ;;; Usage:
-;;;   scheme-script boundary/universe-dump.ss [options]
+;;;   scheme-script boundary/storage/universe-dump.ss [options]
 ;;;
 ;;; Options:
 ;;;   --root DIR          Root directory to scan (default: current directory)
@@ -15,13 +15,13 @@
 ;;;
 ;;; Examples:
 ;;;   # Dump entire universe with pretty printing
-;;;   scheme-script boundary/universe-dump.ss --pretty
+;;;   scheme-script boundary/storage/universe-dump.ss --pretty
 ;;;
 ;;;   # Dump only forum and scripture
-;;;   scheme-script boundary/universe-dump.ss --filter forum,scripture --pretty
+;;;   scheme-script boundary/storage/universe-dump.ss --filter forum,scripture --pretty
 ;;;
 ;;;   # Specify custom root and output
-;;;   scheme-script boundary/universe-dump.ss --root /path/to/fold --output my-dump.sexp
+;;;   scheme-script boundary/storage/universe-dump.ss --root /path/to/fold --output my-dump.sexp
 
 (import (chezscheme)
         (shell universe-serialize))
@@ -38,7 +38,7 @@
   (display "====\n\n")
   (display "Serializes all .sexp files in the-fold project to a single file.\n\n")
   (display "Usage:\n")
-  (display "  scheme-script boundary/universe-dump.ss [options]\n\n")
+  (display "  scheme-script boundary/storage/universe-dump.ss [options]\n\n")
   (display "Options:\n")
   (display "  --root DIR          Root directory to scan (default: current directory)\n")
   (display "  --output FILE       Output file path (default: universe-dump.sexp)\n")
@@ -47,11 +47,11 @@
   (display "  --help              Show this help message\n\n")
   (display "Examples:\n")
   (display "  # Dump entire universe with pretty printing\n")
-  (display "  scheme-script boundary/universe-dump.ss --pretty\n\n")
+  (display "  scheme-script boundary/storage/universe-dump.ss --pretty\n\n")
   (display "  # Dump only forum and scripture\n")
-  (display "  scheme-script boundary/universe-dump.ss --filter forum,scripture --pretty\n\n")
+  (display "  scheme-script boundary/storage/universe-dump.ss --filter forum,scripture --pretty\n\n")
   (display "  # Specify custom root and output\n")
-  (display "  scheme-script boundary/universe-dump.ss --root /path/to/fold --output my-dump.sexp\n"))
+  (display "  scheme-script boundary/storage/universe-dump.ss --root /path/to/fold --output my-dump.sexp\n"))
 
 ;;; Parse command-line arguments into options alist
 (define (parse-args args)

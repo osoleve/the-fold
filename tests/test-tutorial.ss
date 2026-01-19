@@ -5,7 +5,7 @@
 (display "Testing Tutorial System...\n\n")
 
 ;; Load the tutorial system
-(load "boundary/repl.ss")
+(load "boundary/repl/repl.ss")
 
 ;; Wait a moment for everything to load
 (sleep 1)

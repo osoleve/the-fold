@@ -3,7 +3,7 @@
 (source-directories (cons "core" (source-directories)))
 (load "core/blocks/block.ss")
 (load "core/base/sha256.ss")
-(load "boundary/fs.ss")
+(load "boundary/io/fs.ss")
 (load "lattice/data/collection-utils.ss")
 
 (printf "\n╔════════════════════════════════════════════════════════════╗\n")

@@ -3,8 +3,8 @@
 (load "core/blocks/block.ss")
 (load "core/base/sha256.ss")
 (load "core/blocks/cas.ss")
-(load "boundary/block-query.ss")
-(load "boundary/block-query-advanced.ss")
+(load "boundary/blocks/block-query.ss")
+(load "boundary/blocks/block-query-advanced.ss")
 
 (import (shell block-query))
 (import (shell block-query-advanced))
@@ -285,7 +285,7 @@
 (display "\n=== Testing Integration with Basic Queries ===\n")
 
 (display "Testing advanced + basic query combination...\n")
-;; Combine basic query (from boundary/block-query.ss) with advanced
+;; Combine basic query (from boundary/blocks/block-query.ss) with advanced
 (let ([pattern (query-all-of (list
                               (tag-matches "^branch")
                               (depth-at-least 1 fetch)

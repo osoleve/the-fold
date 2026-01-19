@@ -4,7 +4,7 @@
 ;;;
 ;;; Run from project root: scheme --script boundary/tests/test-identity.ss
 
-(load "boundary/identity.ss")
+(load "boundary/storage/identity.ss")
 
 (define (test name expected actual)
   (display "  ")

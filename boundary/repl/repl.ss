@@ -6,7 +6,7 @@
 ;;; It loads all necessary dependencies and displays the welcome screen.
 ;;;
 ;;; Usage:
-;;;   (load "boundary/repl.ss")  ; First and ONLY thing you do
+;;;   (load "boundary/repl/repl.ss")  ; First and ONLY thing you do
 ;;;
 ;;; This is Shell code: uses IO, manages system state.
 ;;;
@@ -39,19 +39,19 @@
 (module-index-init!)
 
 ;; Shell dependencies
-(load "boundary/fs.ss")
+(load "boundary/io/fs.ss")
 (load "boundary/ui/text.ss")
 (load "boundary/tools/string-utils.ss")  ; Wishlist #3: Foundational string utilities
-(load "boundary/edit.ss")
+(load "boundary/tools/edit.ss")
 (load "boundary/git/git.ss")
-(load "boundary/session-manager.ss")
+(load "boundary/repl/session-manager.ss")
 
 ;; DUCKIE interaction
-(load "boundary/duckie-interact.ss")
+(load "boundary/assistants/duckie-interact.ss")
 
 ;; Block navigation and exploration
-(load "boundary/block-navigator.ss")
-(load "boundary/block-explorer.ss")
+(load "boundary/blocks/block-navigator.ss")
+(load "boundary/blocks/block-explorer.ss")
 
 ;; Metadata tagging system
 (load "core/lang/parse.ss")
@@ -59,7 +59,7 @@
 (load "lattice/query/query.ss")
 
 ;; Standard library: Store API and Collection Utilities
-(load "boundary/store-api.ss")
+(load "boundary/storage/store-api.ss")
 (load "lattice/data/collection-utils.ss")
 (load "lattice/query/query-dsl.ss")  ; Query DSL (depends on store-api)
 
@@ -67,10 +67,10 @@
 (load "boundary/commands.ss")
 
 ;; Typed evaluation commands (fold-parse, fold-type, fold-eval, fold-compile)
-(load "boundary/eval-repl.ss")
+(load "boundary/repl/eval-repl.ss")
 
 ;; Patch system
-(load "boundary/patches.ss")
+(load "boundary/repl/patches.ss")
 
 ;; Lens navigation system
 (load "boundary/lens/navigator.ss")
@@ -102,7 +102,7 @@
 ;;; ====
 
 ;;; Set *quiet* to #t before loading to suppress startup output.
-;;; Usage: (define *quiet* #t) (load "boundary/repl.ss")
+;;; Usage: (define *quiet* #t) (load "boundary/repl/repl.ss")
 (define *quiet* (if (top-level-bound? '*quiet*) *quiet* #f))
 
 ;;; ====
@@ -307,7 +307,7 @@
 ;;; ====
 ;;; Interactive Block Explorer (session-based)
 ;;; ====
-;;; Functions loaded from boundary/block-explorer.ss
+;;; Functions loaded from boundary/blocks/block-explorer.ss
 ;;; Available: bx, bx-view, bx-back, bx-home, bx-popular,
 ;;;            bx-orphans, bx-search, bx-recent, bx-by-tag,
 ;;;            bx-stats, bx-help

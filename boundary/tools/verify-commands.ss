@@ -1,5 +1,5 @@
 (define *quiet* #t)
-(load "boundary/repl.ss")
+(load "boundary/repl/repl.ss")
 
 (display "\n╔═══════════════════════════════════════════════════════════════╗\n")
 (display "║     COMMAND SYSTEM VERIFICATION                               ║\n")

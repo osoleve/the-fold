@@ -1,4 +1,4 @@
-;;; boundary/graph-export.ss — Graph Visualization Export Tool
+;;; boundary/ui/graph-export.ss — Graph Visualization Export Tool
 ;;;
 ;;; Exports the block store graph to various visualization formats:
 ;;;   - DOT (Graphviz) for static graph rendering
@@ -10,14 +10,14 @@
 ;;; Dependencies:
 ;;;   core/block.ss
 ;;;   core/sha256.ss
-;;;   boundary/fs.ss
-;;;   boundary/store-api.ss
+;;;   boundary/io/fs.ss
+;;;   boundary/storage/store-api.ss
 ;;;
 ;;; NOTE: Standard string utilities provided by core/prelude.ss.
 ;;;       string-trim-newlines is unique to this module.
 ;;;
 ;;; Usage:
-;;;   (load "boundary/graph-export.ss")
+;;;   (load "boundary/ui/graph-export.ss")
 ;;;
 ;;;   ;; DOT export (Graphviz)
 ;;;   (export-dot fs "graph.dot")                    ; Export entire store

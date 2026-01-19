@@ -1,4 +1,4 @@
-;;; boundary/text.ss — Text Canonicalization and Glitchling Quarantine
+;;; boundary/ui/text.ss — Text Canonicalization and Glitchling Quarantine
 ;;;
 ;;; The Fold accepts text from Outside. Outside is hostile.
 ;;; Glitchlings hide in encoding errors, homoglyphs, bidi markers,

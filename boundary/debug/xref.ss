@@ -20,8 +20,8 @@
 ;;;   (xref-index fs "core")  ; build index of all definitions
 ;;;
 ;;; Dependencies:
-;;;   boundary/fs.ss
-;;;   boundary/edit.ss
+;;;   boundary/io/fs.ss
+;;;   boundary/tools/edit.ss
 ;;;   core/prelude.ss (for string-trim, etc.)
 ;;;
 ;;; NOTE: string-trim and string-split-lines provided by boundary/tools/string-utils.ss.

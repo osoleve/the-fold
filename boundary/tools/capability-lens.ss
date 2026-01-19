@@ -1,16 +1,16 @@
-;;; boundary/capability-lens.ss --- Capability Lens (Effect/Authority Scan)
+;;; boundary/tools/capability-lens.ss --- Capability Lens (Effect/Authority Scan)
 ;;;
 ;;; Static analysis of Scheme sources to surface capability mint/use.
 ;;; This is Shell code: reads files, parses S-expressions.
 ;;;
 ;;; Usage:
-;;;   (load "boundary/capability-lens.ss")
+;;;   (load "boundary/tools/capability-lens.ss")
 ;;;   (capability-report (fs) "shell" "forum")
 ;;;   (capability-scan (fs) "shell")   ; returns structured data
 
-(load "boundary/fs.ss")
-(load "boundary/text.ss")
-(load "boundary/edit.ss")
+(load "boundary/io/fs.ss")
+(load "boundary/ui/text.ss")
+(load "boundary/tools/edit.ss")
 (load "core/base/prelude.ss")
 
 ;;; ====

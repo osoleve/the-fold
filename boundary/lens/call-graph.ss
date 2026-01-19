@@ -13,7 +13,7 @@
 ;;;
 ;;; Dependencies:
 ;;;   boundary/tools/index.ss (symbol index)
-;;;   boundary/xref.ss (cross-reference utilities)
+;;;   boundary/debug/xref.ss (cross-reference utilities)
 
 ;;; ====
 ;;; Call Graph Data Structures

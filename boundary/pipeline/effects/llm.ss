@@ -7,7 +7,7 @@
 (load "lattice/pipeline/stage.ss")
 (load "lattice/pipeline/effects.ss")
 (load "lattice/pipeline/context.ss")
-(load "boundary/json.ss")
+(load "boundary/io/json.ss")
 
 ;;; ====
 ;;; LLM Effect Interpretation

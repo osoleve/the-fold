@@ -3,7 +3,7 @@
 ;;; Comprehensive test suite for profile-call-graph.ss
 ;;; Tests graph construction, edge extraction, metrics, cycle detection.
 
-(load "boundary/profile-call-graph.ss")
+(load "boundary/diagnostics/profile-call-graph.ss")
 
 ;;; ====
 ;;; Test Harness

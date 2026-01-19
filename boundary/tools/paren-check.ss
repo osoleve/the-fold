@@ -1,4 +1,4 @@
-;;; boundary/paren-check.ss — Parenthesis Balance Checker
+;;; boundary/tools/paren-check.ss — Parenthesis Balance Checker
 ;;;
 ;;; Analyzes Scheme files for parenthesis balance issues.
 ;;; Reports running balance per line and highlights imbalances.

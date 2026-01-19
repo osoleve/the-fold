@@ -546,7 +546,7 @@
 
 ;;; fs : () → FS
 ;;; Get the current filesystem capability.
-;;; This function is provided by boundary/repl.ss when loaded in the REPL.
+;;; This function is provided by boundary/repl/repl.ss when loaded in the REPL.
 ;;; When using this file standalone, you must define (fs) yourself.
 ;;; Default implementation for REPL:
 (define (fs)

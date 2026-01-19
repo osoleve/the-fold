@@ -1,4 +1,4 @@
-;;; boundary/interactive-tutorial.ss — Interactive Step-by-Step Tutorial
+;;; boundary/tutorial/interactive-tutorial.ss — Interactive Step-by-Step Tutorial
 ;;;
 ;;; A comprehensive tutorial system with interactive guidance and progress tracking
 

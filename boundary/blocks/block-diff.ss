@@ -23,8 +23,8 @@
 ;;;   core/cas.ss
 ;;;   core/normalize.ss
 ;;;   core/expand.ss
-;;;   boundary/fs.ss
-;;;   boundary/cas-persist.ss
+;;;   boundary/io/fs.ss
+;;;   boundary/storage/cas-persist.ss
 
 ;;; Set up source-directories to find modules
 (source-directories (cons "core" (source-directories)))

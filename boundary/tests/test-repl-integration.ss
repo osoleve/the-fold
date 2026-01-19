@@ -1,6 +1,6 @@
 ;;; Test normal REPL loading and integration
 
-(load "boundary/repl.ss")
+(load "boundary/repl/repl.ss")
 
 ;; Verify commands are available
 (display "\n=== Verification Tests ===\n\n")

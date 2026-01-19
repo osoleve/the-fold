@@ -1,4 +1,4 @@
-;;; boundary/fold-client.ss — Multi-Session Client for The Fold REPL
+;;; boundary/repl/fold-client.ss — Multi-Session Client for The Fold REPL
 ;;;
 ;;; Provides functions for Claude agents to interact with the REPL daemon
 ;;; in a multi-tenant safe way. Each agent uses a unique session-id.

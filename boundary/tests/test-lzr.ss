@@ -12,10 +12,10 @@
 ;;;
 ;;; Dependencies:
 ;;;   - core/test-framework.ss
-;;;   - boundary/lzr.ss
+;;;   - boundary/tools/fusion-analyzer.ss
 
 (load "core/test-framework.ss")
-(load "boundary/lzr.ss")
+(load "boundary/tools/fusion-analyzer.ss")
 
 (display "\n")
 (display "====\n")

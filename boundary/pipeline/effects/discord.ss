@@ -7,7 +7,7 @@
 (load "lattice/pipeline/stage.ss")
 (load "lattice/pipeline/effects.ss")
 (load "lattice/pipeline/context.ss")
-(load "boundary/json.ss")
+(load "boundary/io/json.ss")
 
 ;;; ====
 ;;; Discord Configuration
@@ -175,7 +175,7 @@
 
 ;;; write-outbox-json : String -> Alist -> ()
 ;;; Write alist as JSON to outbox file.
-;;; Uses shared json->string from boundary/json.ss for proper escaping.
+;;; Uses shared json->string from boundary/io/json.ss for proper escaping.
 (define (write-outbox-json path data)
   ;; Ensure outbox directory exists
   (let ([dir (path-directory path)])

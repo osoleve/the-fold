@@ -13,15 +13,15 @@
 ;;; This is Shell code: reads files, handles IO.
 ;;;
 ;;; Usage:
-;;;   (analyze-module-deps fs "boundary/repl.ss")
+;;;   (analyze-module-deps fs "boundary/repl/repl.ss")
 ;;;   (find-module-deps fs "core")               ; analyze entire directory
 ;;;   (find-reverse-deps fs "core/blocks/block.ss")     ; what depends on this?
 ;;;   (check-circular-deps fs "shell")           ; find cycles
 ;;;   (deps-report fs "." "dependency-report.txt") ; generate report
 ;;;
 ;;; Dependencies:
-;;;   boundary/fs.ss
-;;;   boundary/edit.ss
+;;;   boundary/io/fs.ss
+;;;   boundary/tools/edit.ss
 
 ;;; Set up source-directories to find shell modules
 (source-directories (cons "shell" (source-directories)))
@@ -57,7 +57,7 @@
 
 ;;; normalize-path : String × String → String
 ;;; Normalize a load path relative to a source file.
-;;; E.g., if "boundary/repl.ss" loads "fs.ss", result is "boundary/fs.ss"
+;;; E.g., if "boundary/repl/repl.ss" loads "fs.ss", result is "boundary/io/fs.ss"
 (define (normalize-path base-file load-path)
   (cond
    ;; Absolute or rooted path
@@ -75,7 +75,7 @@
 
 ;;; path-directory : String → String
 ;;; Extract directory part of a file path.
-;;; E.g., "boundary/repl.ss" → "shell", "foo.ss" → ""
+;;; E.g., "boundary/repl/repl.ss" → "shell", "foo.ss" → ""
 (define (path-directory path)
   (let ([idx (string-last-index-of path "/")])
        (if idx

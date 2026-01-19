@@ -1,10 +1,10 @@
 ;;; boundary/tests/test-alloc-tracker.ss --- Tests for Allocation Tracker
 ;;;
-;;; Comprehensive tests for boundary/alloc-tracker.ss.
+;;; Comprehensive tests for boundary/diagnostics/alloc-tracker.ss.
 ;;; Validates byte formatting, allocation tracking, and tracker accumulation.
 
 (load "core/test-framework.ss")
-(load "boundary/alloc-tracker.ss")
+(load "boundary/diagnostics/alloc-tracker.ss")
 
 (display "\n")
 (display "====\n")

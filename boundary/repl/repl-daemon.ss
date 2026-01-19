@@ -203,7 +203,7 @@
 
 (define (start-daemon!)
   "Load the REPL environment and start the daemon loop."
-  (load "boundary/repl.ss")
+  (load "boundary/repl/repl.ss")
   (ensure-repl-dir!)
   
   ;; Clear any stale files

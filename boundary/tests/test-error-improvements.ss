@@ -1,10 +1,10 @@
 ;;; boundary/tests/test-error-improvements.ss — Tests for Error Improvements
 ;;;
-;;; Comprehensive test suite for boundary/error-improvements.ss
+;;; Comprehensive test suite for boundary/debug/error-improvements.ss
 ;;; Validates enhanced error context detection, suggestion generation,
 ;;; and documentation linking.
 
-(load "boundary/error-improvements.ss")
+(load "boundary/debug/error-improvements.ss")
 
 (define test-count 0)
 (define pass-count 0)

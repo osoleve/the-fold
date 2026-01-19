@@ -3,7 +3,7 @@
 ;;; Dependencies:
 ;;;   - autodoc.ss
 
-(load "boundary/autodoc.ss")
+(load "boundary/tools/autodoc.ss")
 
 (define tests-passed 0)
 (define tests-failed 0)

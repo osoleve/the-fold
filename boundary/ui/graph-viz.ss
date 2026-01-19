@@ -1,6 +1,6 @@
-;;; boundary/graph-viz.ss — Graph Visualization Utilities
+;;; boundary/ui/graph-viz.ss — Graph Visualization Utilities
 ;;;
-;;; Complements boundary/graph-export.ss with:
+;;; Complements boundary/ui/graph-export.ss with:
 ;;;   - Layout algorithms (force-directed, tree, radial)
 ;;;   - Turtle graphics rendering for block graphs
 ;;;   - Interactive exploration utilities
@@ -8,17 +8,17 @@
 ;;; This is Shell code: uses filesystem, turtle graphics.
 ;;;
 ;;; Dependencies:
-;;;   - boundary/graph-export.ss (for hash->short, block->label)
-;;;   - boundary/store-api.ss (for store-get, store-all-hashes)
+;;;   - boundary/ui/graph-export.ss (for hash->short, block->label)
+;;;   - boundary/storage/store-api.ss (for store-get, store-all-hashes)
 ;;;   - lattice/data/graph-algorithms.ss (for traversal)
 ;;;   - lattice/linalg/vec2.ss (for layout math)
 ;;;   - boundary/ui/turtle.ss (for rendering)
 
 (load "core/base/prelude.ss")
 (load "lattice/linalg/vec2.ss")
-(load "boundary/store-api.ss")
+(load "boundary/storage/store-api.ss")
 (load "lattice/data/graph-algorithms.ss")
-(load "boundary/graph-export.ss")
+(load "boundary/ui/graph-export.ss")
 (load "boundary/ui/turtle-color.ss")
 (load "boundary/ui/turtle-path.ss")
 (load "boundary/ui/turtle.ss")

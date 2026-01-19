@@ -5,7 +5,7 @@
 (display "🎯 Loading The Fold Tutorial System...\n\n")
 
 ;; Load the complete system
-(load "boundary/repl.ss")
+(load "boundary/repl/repl.ss")
 
 ;; Wait for system to initialize
 (sleep 2)

@@ -1,7 +1,7 @@
 ;;; playpen/creations/quill-education-demo.ss — Quill education demo
 ;;;
 ;;; Usage:
-;;;   (load "boundary/repl.ss")
+;;;   (load "boundary/repl/repl.ss")
 ;;;   (load "user/quill/quill.ss")
 ;;;   (load "user/creations/quill-education-demo.ss")
 ;;;   (quill-run quill-education-demo-story)

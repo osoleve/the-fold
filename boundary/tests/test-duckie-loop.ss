@@ -2,7 +2,7 @@
 ;;;
 ;;; Validates command parsing and state transitions.
 
-(load "boundary/duckie-loop.ss")
+(load "boundary/assistants/duckie-loop.ss")
 
 (define test-count 0)
 (define pass-count 0)

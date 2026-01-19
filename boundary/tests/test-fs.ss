@@ -1,4 +1,4 @@
-;;; Test harness for boundary/fs.ss
+;;; Test harness for boundary/io/fs.ss
 
 ;;; Load from core directory
 (load "core/blocks/block.ss")
@@ -45,7 +45,7 @@
    [(char<=? #\A c #\F) (+ 10 (- (char->integer c) (char->integer #\A)))]
    [else (error 'char->hex-digit "invalid hex character" c)]))
 
-(load "boundary/fs.ss")
+(load "boundary/io/fs.ss")
 
 (define (test name expected actual)
   (display "  ")

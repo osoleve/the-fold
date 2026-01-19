@@ -5,7 +5,7 @@
 ;;;
 ;;; Run with: scheme --script playpen/creations/demo-showcase.ss
 
-(load "boundary/layout.ss")
+(load "boundary/ui/layout.ss")
 
 (display "╔══════════════════════════════════════════════════════════════════════╗\n")
 (display "║                   THE FOLD GAMES SHOWCASE                           ║\n")

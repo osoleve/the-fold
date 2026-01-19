@@ -1,4 +1,4 @@
-;;; boundary/watch.ss — File Watching and Auto-Reload System
+;;; boundary/watch/watch.ss — File Watching and Auto-Reload System
 ;;;
 ;;; Watch files and directories for changes, trigger actions on modification.
 ;;; Supports auto-reload, auto-test, debouncing, and custom actions.
@@ -519,7 +519,7 @@
   (display "  (list-watchers)                Show active watchers\n")
   (display "  (watch-help)                   Show this help\n\n")
   (display "Examples:\n")
-  (display "  (auto-reload \"boundary/fs.ss\")\n")
+  (display "  (auto-reload \"boundary/io/fs.ss\")\n")
   (display "  (auto-test \"boundary/test-fs.ss\")\n")
   (display "  (watch-dir \"core\" \"*.ss\" (lambda (files) (display \"Core changed\\n\")))\n\n")
   (display "Configuration:\n")

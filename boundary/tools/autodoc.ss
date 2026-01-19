@@ -1,4 +1,4 @@
-;;; boundary/autodoc.ss — Auto-Documentation Extractor
+;;; boundary/tools/autodoc.ss — Auto-Documentation Extractor
 ;;; @module autodoc
 ;;; @requires prelude
 ;;;

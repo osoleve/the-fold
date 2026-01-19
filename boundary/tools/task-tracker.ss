@@ -4,7 +4,7 @@
 ;;; store to maintain an immutable audit trail of tasks and their status.
 ;;;
 ;;; Usage:
-;;;   (load "boundary/task-tracker.ss")
+;;;   (load "boundary/tools/task-tracker.ss")
 ;;;   (task-new! "Fix format string injection" 'critical 'security)
 ;;;   (task-list)
 ;;;   (task-complete! <task-hash>)
@@ -12,7 +12,7 @@
 ;;;
 
 (unless (bound? '*fs*)
-        (error 'task-tracker "Must load boundary/repl.ss first for *fs* capability"))
+        (error 'task-tracker "Must load boundary/repl/repl.ss first for *fs* capability"))
 
 ;;; Task structure stored as content-addressed blocks
 ;;; {

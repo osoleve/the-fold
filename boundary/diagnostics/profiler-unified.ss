@@ -11,13 +11,13 @@
 ;;; Dependencies:
 ;;;   - core/util/profile.ss (base profiling)
 ;;;   - core/util/cost-model.ss (cost models)
-;;;   - boundary/alloc-tracker.ss (memory tracking)
-;;;   - boundary/profile-call-graph.ss (call graph analysis)
+;;;   - boundary/diagnostics/alloc-tracker.ss (memory tracking)
+;;;   - boundary/diagnostics/profile-call-graph.ss (call graph analysis)
 
 (load "core/util/profile.ss")
 (load "core/util/cost-model.ss")
-(load "boundary/alloc-tracker.ss")
-(load "boundary/profile-call-graph.ss")
+(load "boundary/diagnostics/alloc-tracker.ss")
+(load "boundary/diagnostics/profile-call-graph.ss")
 
 ;;; ====
 ;;; Unified Profiler Data Structure

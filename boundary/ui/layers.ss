@@ -27,7 +27,7 @@
 ;;; ====
 
 ;;; Load canvas primitives
-;;; Assumes boundary/layout.ss is already loaded or will be loaded separately
+;;; Assumes boundary/ui/layout.ss is already loaded or will be loaded separately
 
 ;;; ====
 ;;; Transparency

@@ -13,8 +13,8 @@
 ;;;   (scaffold-interactive)
 ;;;
 ;;; Dependencies:
-;;;   boundary/fs.ss (for file operations)
-;;;   boundary/text.ss (for text utilities)
+;;;   boundary/io/fs.ss (for file operations)
+;;;   boundary/ui/text.ss (for text utilities)
 ;;;   core/prelude.ss (for string utilities)
 ;;;
 ;;; NOTE: string utilities (string-join, string-split, string-trim, string-contains?,
@@ -293,7 +293,7 @@
 
 ;;; Load dependencies
 (load \"core/block.ss\")
-(load \"boundary/fs.ss\")
+(load \"boundary/io/fs.ss\")
 (load \"boundary/{{NAME}}.ss\")
 
 (define (test name expected actual)
@@ -431,7 +431,7 @@
      (content . ";;; Test harness for boundary/{{NAME}}.ss
 
 (load \"core/block.ss\")
-(load \"boundary/fs.ss\")
+(load \"boundary/io/fs.ss\")
 (load \"boundary/{{NAME}}.ss\")
 
 (define (test name expected actual)
@@ -516,7 +516,7 @@
 
 (load-if-needed \"core/blocks/block.ss\")
 (load-if-needed \"core/base/sha256.ss\")
-(load-if-needed \"boundary/fs.ss\")
+(load-if-needed \"boundary/io/fs.ss\")
 (load-if-needed \"boundary/ui/text.ss\")
 
 ;;; ====

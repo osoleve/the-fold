@@ -6,8 +6,8 @@
 ;;; This is Shell code: reads/writes files, formats text.
 ;;;
 ;;; Dependencies:
-;;;   boundary/fs.ss (for file operations)
-;;;   boundary/text.ss (for text utilities)
+;;;   boundary/io/fs.ss (for file operations)
+;;;   boundary/ui/text.ss (for text utilities)
 ;;;
 ;;; Operations:
 ;;;   (format-file path) — Format file in-place

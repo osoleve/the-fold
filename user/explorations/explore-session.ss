@@ -1,5 +1,5 @@
 ;;; My exploration session
-(load "boundary/repl.ss")
+(load "boundary/repl/repl.ss")
 
 ;; Login
 (hi 'opus 'sonnet-explorer "Exploring The Fold for the first time")

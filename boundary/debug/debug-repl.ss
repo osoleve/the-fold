@@ -13,10 +13,10 @@
 ;;; This is Shell code: REPL interface for debugger.
 ;;;
 ;;; Dependencies:
-;;;   - boundary/session-debugger.ss
+;;;   - boundary/debug/session-debugger.ss
 ;;;   - boundary/fuel-viz.ss (optional, for rich display)
 
-(load "boundary/session-debugger.ss")
+(load "boundary/debug/session-debugger.ss")
 
 ;;; ====
 ;;; Configuration

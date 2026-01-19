@@ -1,4 +1,4 @@
-;;; boundary/edit.ss — Text File Editing Utilities
+;;; boundary/tools/edit.ss — Text File Editing Utilities
 ;;;
 ;;; Enables source code maintenance from within the REPL.
 ;;; All operations are capability-gated through FS.
@@ -6,8 +6,8 @@
 ;;; This is Shell code: uses IO, handles files.
 ;;;
 ;;; Dependencies (must be loaded before this file):
-;;;   boundary/fs.ss
-;;;   boundary/text.ss
+;;;   boundary/io/fs.ss
+;;;   boundary/ui/text.ss
 
 (load "boundary/tools/string-utils.ss")
 

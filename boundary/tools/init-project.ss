@@ -6,7 +6,7 @@
 ;;; This is Boundary code: creates files, sets up structure, user interaction.
 ;;;
 ;;; Dependencies:
-;;;   boundary/fs.ss
+;;;   boundary/io/fs.ss
 ;;;   boundary/tools/scaffold.ss (for templates)
 ;;;   boundary/git/git-workflow.ss (for git init)
 ;;;

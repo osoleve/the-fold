@@ -50,9 +50,9 @@
 
 (test-case "Normalize path"
            (lambda ()
-                   (let ([result (normalize-path "boundary/repl.ss" "fs.ss")])
-                        (unless (string=? result "boundary/fs.ss")
-                                (error 'test (format "Expected boundary/fs.ss, got ~a" result))))))
+                   (let ([result (normalize-path "boundary/repl/repl.ss" "fs.ss")])
+                        (unless (string=? result "boundary/io/fs.ss")
+                                (error 'test (format "Expected boundary/io/fs.ss, got ~a" result))))))
 
 ;;; ====
 ;;; Test Cross-Referencer

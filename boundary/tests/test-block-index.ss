@@ -4,9 +4,9 @@
 ;;;
 ;;; Run from ccverse root: scheme --script boundary/test-block-index.ss
 
-(load "boundary/block-index.ss")
+(load "boundary/blocks/block-index.ss")
 
-(display "Testing boundary/block-index.ss...\n")
+(display "Testing boundary/blocks/block-index.ss...\n")
 
 ;;; Test: Create empty index
 (display "  Creating empty index... ")

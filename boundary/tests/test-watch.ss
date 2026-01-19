@@ -1,6 +1,6 @@
-;;; Test harness for boundary/watch.ss
+;;; Test harness for boundary/watch/watch.ss
 
-(load "boundary/watch.ss")
+(load "boundary/watch/watch.ss")
 
 (define (test name expected actual)
   (display "  ")

@@ -5,7 +5,7 @@
 ;;;   2. Estimate computational complexity
 ;;;   3. Compare different algorithms
 
-(load "boundary/fuel-analysis.ss")
+(load "boundary/diagnostics/fuel-analysis.ss")
 
 (display "\n")
 (display "════════════════════════════════════════════════════════════════\n")

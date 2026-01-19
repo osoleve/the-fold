@@ -2,14 +2,14 @@
 ;;;
 ;;; Run from ccverse root: scheme --script boundary/test-project-status.ss
 ;;;
-;;; Dependencies: core/prelude.ss, boundary/project-status.ss
+;;; Dependencies: core/prelude.ss, boundary/tools/project-status.ss
 
 ;;; ====
 ;;; Setup
 ;;; ====
 
 (load "core/base/prelude.ss")
-(load "boundary/project-status.ss")
+(load "boundary/tools/project-status.ss")
 
 ;;; Test counter
 (define *tests-run* 0)
@@ -49,7 +49,7 @@
 
 (display "\n")
 (display "+====+\n")
-(display "|          boundary/project-status.ss Test Suite                  |\n")
+(display "|          boundary/tools/project-status.ss Test Suite                  |\n")
 (display "+====+\n")
 (display "\n")
 

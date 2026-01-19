@@ -2,7 +2,7 @@
 ;;;
 ;;; Provides auto-parallelization detection, fusion hints,
 ;;; and safe rewrite suggestions for functional pipelines.
-;;; (Formerly boundary/lzr.ss)
+;;; (Formerly boundary/tools/fusion-analyzer.ss)
 ;;;
 ;;; This is Shell code: provides user-facing interface to Core analysis.
 ;;;

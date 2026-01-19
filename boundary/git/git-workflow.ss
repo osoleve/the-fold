@@ -8,7 +8,7 @@
 ;;; Dependencies:
 ;;;   core/prelude.ss
 ;;;   boundary/git/git.ss (if available)
-;;;   boundary/fs.ss
+;;;   boundary/io/fs.ss
 ;;;
 ;;; NOTE: string utilities (string-contains?, string-trim) provided by core/prelude.ss
 ;;;

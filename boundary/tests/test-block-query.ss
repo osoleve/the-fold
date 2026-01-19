@@ -3,7 +3,7 @@
 (load "core/blocks/block.ss")
 (load "core/base/sha256.ss")
 (load "core/blocks/cas.ss")
-(load "boundary/block-query.ss")
+(load "boundary/blocks/block-query.ss")
 
 (import (shell block-query))
 

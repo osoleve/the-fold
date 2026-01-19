@@ -116,7 +116,7 @@
             
             (define-test test-file-non-test-test
               (assert-false (test-file? "core/blocks/block.ss"))
-              (assert-false (test-file? "boundary/repl.ss")))
+              (assert-false (test-file? "boundary/repl/repl.ss")))
             
             (define-test all-test-files-test
               (assert-true (all-test-files? '("test-a.ss" "test-b.ss")))

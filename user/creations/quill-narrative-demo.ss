@@ -1,7 +1,7 @@
 ;;; playpen/creations/quill-narrative-demo.ss — Quill narrative demo
 ;;;
 ;;; Usage:
-;;;   (load "boundary/repl.ss")
+;;;   (load "boundary/repl/repl.ss")
 ;;;   (load "user/quill/quill.ss")
 ;;;   (load "user/creations/quill-narrative-demo.ss")
 ;;;   (quill-run quill-narrative-demo-story)

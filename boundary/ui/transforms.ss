@@ -15,7 +15,7 @@
 ;;;   - Transform composition (combine multiple transforms)
 ;;;
 ;;; Dependencies:
-;;;   - boundary/layout.ss — Canvas primitives
+;;;   - boundary/ui/layout.ss — Canvas primitives
 ;;;
 ;;; Coordinate System:
 ;;;   - Origin (0,0) is top-left

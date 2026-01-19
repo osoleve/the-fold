@@ -1,4 +1,4 @@
-;;; boundary/profile-viz.ss — Profile Visualization
+;;; boundary/ui/profile-viz.ss — Profile Visualization
 ;;;
 ;;; ASCII-art visualizations for profiler output:
 ;;;   - Flame graphs

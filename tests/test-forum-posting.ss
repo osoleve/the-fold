@@ -8,7 +8,7 @@
 (define *quiet* #t)
 
 ;;; Load the REPL system
-(load "boundary/repl.ss")
+(load "boundary/repl/repl.ss")
 
 ;;; ====
 ;;; Test 1: Login as creator

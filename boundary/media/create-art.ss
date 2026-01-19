@@ -1,8 +1,8 @@
 ;;; boundary/media/create-art.ss — Create art using the graphics primitives
 ;;; Dogfooding the graphics system!
 
-(load "boundary/layout.ss")
-(load "boundary/easing.ss")
+(load "boundary/ui/layout.ss")
+(load "boundary/ui/easing.ss")
 (load "boundary/ui/graphics-primitives.ss")
 
 (import (shell layout)

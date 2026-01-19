@@ -12,9 +12,9 @@
 ;;; This is Shell code: handles file I/O for profiles.
 ;;;
 ;;; Dependencies:
-;;;   - boundary/profiler-unified.ss
+;;;   - boundary/diagnostics/profiler-unified.ss
 
-(load "boundary/profiler-unified.ss")
+(load "boundary/diagnostics/profiler-unified.ss")
 
 ;;; ====
 ;;; Save Profile

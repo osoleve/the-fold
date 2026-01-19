@@ -1,4 +1,4 @@
-;;; boundary/meta.ss --- Inline Metadata Tag Parser
+;;; boundary/tools/meta.ss --- Inline Metadata Tag Parser
 ;;;
 ;;; Tags are inline markers that travel with text:
 ;;;   @tag           - Simple boolean tag (e.g., @draft, @reviewed)

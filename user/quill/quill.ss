@@ -8,7 +8,7 @@
 ;;; This file defines the Quill load order and public entrypoints.
 ;;;
 ;;; Usage:
-;;;   (load "boundary/repl.ss")
+;;;   (load "boundary/repl/repl.ss")
 ;;;   (load "user/quill/quill.ss")
 ;;;
 ;;; Then:

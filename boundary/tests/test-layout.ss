@@ -1,7 +1,7 @@
 ;;; boundary/tests/test-layout.ss — Test vectors for Text Layout Primitives
 
 (load "core/base/prelude.ss")
-(load "boundary/layout.ss")
+(load "boundary/ui/layout.ss")
 
 ;;; NOTE: string utilities provided by core/prelude.ss
 ;;;   - string-contains?

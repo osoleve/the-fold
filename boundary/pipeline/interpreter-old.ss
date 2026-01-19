@@ -16,7 +16,7 @@
 ;;;   - core/pipeline/stage.ss
 ;;;   - core/pipeline/effects.ss
 ;;;   - core/pipeline/context.ss
-;;;   - boundary/fs.ss (for file operations)
+;;;   - boundary/io/fs.ss (for file operations)
 ;;;
 ;;; NOTE: Standard string utilities provided by core/prelude.ss.
 ;;;       string-rindex is unique to this module.

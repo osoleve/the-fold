@@ -14,7 +14,7 @@
 ;;;   - Padding and spacing control
 ;;;
 ;;; Dependencies:
-;;;   - boundary/layout.ss — Canvas primitives
+;;;   - boundary/ui/layout.ss — Canvas primitives
 ;;;
 ;;; Layout Philosophy:
 ;;;   - All combinators are pure functions (no mutation)

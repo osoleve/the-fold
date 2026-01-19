@@ -4,7 +4,7 @@
 
 ;; Test basic loading
 (display "1. Testing basic REPL load...\n")
-(load "boundary/repl.ss")
+(load "boundary/repl/repl.ss")
 (sleep 1)
 
 ;; Check if tutorial functions are available
@@ -56,7 +56,7 @@
     (display "✅ Loaded\n")
     (begin
      (display "❌ Not loaded - attempting manual load...\n")
-     (load "boundary/interactive-tutorial.ss")
+     (load "boundary/tutorial/interactive-tutorial.ss")
      (test-function "interactive-tutorial (after manual load)" 'interactive-tutorial)))
 
 ;; Test if we can call the functions after manual loading

@@ -23,7 +23,7 @@
 ;;;   core/infer.ss
 ;;;   core/types.ss
 ;;;   core/kinds.ss
-;;;   boundary/edit.ss
+;;;   boundary/tools/edit.ss
 
 ;;; Set up source-directories to find modules
 (source-directories (cons "core" (source-directories)))

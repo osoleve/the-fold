@@ -3,7 +3,7 @@
 ;;; NOTE: Run from project root: scheme --script boundary/tests/test-graph-viz.ss
 
 (load "core/testing/test-framework.ss")
-(load "boundary/graph-viz.ss")
+(load "boundary/ui/graph-viz.ss")
 
 (display "
 ══════════════════════════════════════════════════════════

@@ -19,7 +19,7 @@
                (display e))
            (newline)
            (exit 1)])
-       (load "boundary/watch.ss")
+       (load "boundary/watch/watch.ss")
        (display "✓\n"))
 
 ;;; ====
@@ -221,7 +221,7 @@
 (display "Watch system is ready to use!\n")
 (display "\n")
 (display "Quick start:\n")
-(display "  (load \"boundary/watch.ss\")\n")
+(display "  (load \"boundary/watch/watch.ss\")\n")
 (display "  (auto-reload \"your-module.ss\")\n")
 (display "\n")
 (display "Or:\n")

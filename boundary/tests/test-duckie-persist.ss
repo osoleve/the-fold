@@ -5,7 +5,7 @@
 ;;; Ensure we're running from ccverse root
 (source-directories (cons "shell" (cons "core" (cons "user" (source-directories)))))
 
-(load "boundary/duckie-persist.ss")
+(load "boundary/assistants/duckie-persist.ss")
 
 (display "DUCKIE Persistence Tests\n")
 (display "====\n\n")

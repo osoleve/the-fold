@@ -16,8 +16,8 @@
 ;;; Commands return: (ok result) or (error 'command-error msg)
 ;;;
 ;;; Dependencies (must be loaded before this file):
-;;;   boundary/fs.ss
-;;;   boundary/text.ss
+;;;   boundary/io/fs.ss
+;;;   boundary/ui/text.ss
 
 ;;; ====
 ;;; Version Information

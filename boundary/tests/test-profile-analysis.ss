@@ -11,7 +11,7 @@
 ;;;   - Profile comparison and regression detection
 
 (load "core/test-framework.ss")
-(load "boundary/profile-analysis.ss")
+(load "boundary/diagnostics/profile-analysis.ss")
 
 ;;; ====
 ;;; Mock Profiler Construction

@@ -1,7 +1,7 @@
 ;; Test script: socialite player testing The Fold chat system
 ;; This script logs in as 'socialite' and tests chat functionality
 
-(load "boundary/repl.ss")
+(load "boundary/repl/repl.ss")
 
 (display "\n")
 (display "====\n")

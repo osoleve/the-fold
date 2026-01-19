@@ -5,8 +5,8 @@
 
 (load "core/blocks/block.ss")
 (load "core/base/sha256.ss")
-(load "boundary/fs.ss")
-(load "boundary/block-navigator.ss")
+(load "boundary/io/fs.ss")
+(load "boundary/blocks/block-navigator.ss")
 
 (display "╔══════════════════════════════════════════════════════════════╗\n")
 (display "║           BLOCK NAVIGATOR TEST SUITE                        ║\n")
@@ -174,7 +174,7 @@
 (newline)
 (display "The Block Navigator is ready for use!\n")
 (display "\nUsage:\n")
-(display "  (load \"boundary/block-navigator.ss\")\n")
+(display "  (load \"boundary/blocks/block-navigator.ss\")\n")
 (display "  (block-stats (fs))                  ; Show store statistics\n")
 (display "  (explore (fs) \"hash-prefix\")        ; Explore a block\n")
 (display "  (visualize-tree (fs) \"hash\" depth)  ; Show block tree\n")

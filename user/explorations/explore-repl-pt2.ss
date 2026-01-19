@@ -1,7 +1,7 @@
 ;;; explore-repl-pt2.ss — Further exploration of Fold features
 
-(load "boundary/repl.ss")
-(load "boundary/exploration-error-handler.ss")  ; Enhanced error formatting
+(load "boundary/repl/repl.ss")
+(load "boundary/debug/exploration-error-handler.ss")  ; Enhanced error formatting
 
 (display "\n╔════════════════════════════════════════════════════════════╗\n")
 (display "║       THE FOLD — EXPLORATION PART 2 (ADVANCED)             ║\n")

@@ -3,8 +3,8 @@
 (source-directories (cons "core" (source-directories)))
 (load "core/blocks/block.ss")
 (load "core/base/sha256.ss")
-(load "boundary/fs.ss")
-(load "boundary/store-api.ss")
+(load "boundary/io/fs.ss")
+(load "boundary/storage/store-api.ss")
 (load "lattice/query/query-dsl.ss")
 (load "lattice/query/query-patterns.ss")
 

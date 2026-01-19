@@ -4,7 +4,7 @@
 ;;; Load this file after repl.ss to add example commands.
 ;;;
 ;;; Usage:
-;;;   (load "boundary/repl.ss")
+;;;   (load "boundary/repl/repl.ss")
 ;;;   (load "boundary/commands-example.ss")
 
 ;;; ====

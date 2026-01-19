@@ -1,12 +1,12 @@
 ;;; playpen/ascii-waves.ss — Animated ASCII Wave Demo
 ;;;
 ;;; A mesmerizing sine wave animation using the canvas system.
-;;; Demonstrates procedural animation and the boundary/layout.ss API.
+;;; Demonstrates procedural animation and the boundary/ui/layout.ss API.
 ;;;
 ;;; This is Playpen code: creative exploration of the canvas system.
 
 ;;; Load dependencies
-(load "boundary/layout.ss")
+(load "boundary/ui/layout.ss")
 
 ;;; ====
 ;;; Wave Animation

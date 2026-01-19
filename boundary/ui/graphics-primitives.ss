@@ -13,8 +13,8 @@
 ;;;   - Character intensity palettes for shading
 ;;;
 ;;; Dependencies:
-;;;   - boundary/layout.ss — Canvas primitives and data structures
-;;;   - boundary/easing.ss — Easing functions for smooth transitions
+;;;   - boundary/ui/layout.ss — Canvas primitives and data structures
+;;;   - boundary/ui/easing.ss — Easing functions for smooth transitions
 
 (library (shell graphics-primitives)
          (export

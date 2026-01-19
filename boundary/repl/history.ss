@@ -1,10 +1,10 @@
-;;; boundary/history.ss — REPL History Persistence
+;;; boundary/repl/history.ss — REPL History Persistence
 ;;;
 ;;; Persistent command history across REPL sessions.
 ;;; This is Shell code: manages state, persists to disk.
 ;;;
 ;;; Dependencies:
-;;;   boundary/fs.ss
+;;;   boundary/io/fs.ss
 (load "core/base/prelude.ss")
 
 ;;; NOTE: string-contains?, string-split provided by core/prelude.ss

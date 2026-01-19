@@ -11,11 +11,11 @@
 ;;; Dependencies:
 ;;;   - core/blocks/block.ss
 ;;;   - core/blocks/cas.ss
-;;;   - boundary/cas-persist.ss (for filesystem persistence)
+;;;   - boundary/storage/cas-persist.ss (for filesystem persistence)
 
 (load "core/blocks/block.ss")
 (load "core/blocks/cas.ss")
-(load "boundary/cas-persist.ss")
+(load "boundary/storage/cas-persist.ss")
 
 ;;; ====
 ;;; Identity Schema

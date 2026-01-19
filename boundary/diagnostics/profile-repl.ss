@@ -19,16 +19,16 @@
 ;;;
 ;;; Dependencies:
 ;;;   - core/util/profile.ss
-;;;   - boundary/profile-viz.ss
-;;;   - boundary/profile-analysis.ss
-;;;   - boundary/profiler-unified.ss
-;;;   - boundary/profile-persist.ss
+;;;   - boundary/ui/profile-viz.ss
+;;;   - boundary/diagnostics/profile-analysis.ss
+;;;   - boundary/diagnostics/profiler-unified.ss
+;;;   - boundary/diagnostics/profile-persist.ss
 
 (load "core/util/profile.ss")
-(load "boundary/profile-viz.ss")
-(load "boundary/profile-analysis.ss")
-(load "boundary/profiler-unified.ss")
-(load "boundary/profile-persist.ss")
+(load "boundary/ui/profile-viz.ss")
+(load "boundary/diagnostics/profile-analysis.ss")
+(load "boundary/diagnostics/profiler-unified.ss")
+(load "boundary/diagnostics/profile-persist.ss")
 
 ;;; ====
 ;;; Profile Session State

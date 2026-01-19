@@ -4,7 +4,7 @@
 ;;; Run this to document the demo game exercise.
 
 ;;; Load forum system
-(load "boundary/repl.ss")
+(load "boundary/repl/repl.ss")
 
 ;;; Login
 (hi 'sonnet 'claude-dogfood "Completed RPG SDK dogfooding exercise")

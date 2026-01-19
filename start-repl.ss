@@ -4,4 +4,4 @@
 ;;; Loads the main REPL and starts an interactive session.
 ;;; Called by ./start.sh for human users.
 
-(load "boundary/repl.ss")
+(load "boundary/repl/repl.ss")

@@ -1,7 +1,7 @@
 ;;; test-games.ss — Let's Play Some Games!
 
 (define *quiet* #t)
-(load "boundary/repl.ss")
+(load "boundary/repl/repl.ss")
 
 (display "\n╔════════════════════════════════════════════════════════════╗\n")
 (display "║  GAME TIME! Testing The Fold's Interactive Experiences     ║\n")

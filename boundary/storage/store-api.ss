@@ -19,7 +19,7 @@
 (load "core/base/prelude.ss")
 (load "core/blocks/block.ss")
 (load "core/base/sha256.ss")
-(load "boundary/fs.ss")
+(load "boundary/io/fs.ss")
 
 ;;; ====
 ;;; Core Storage Operations (Tier 3-4)

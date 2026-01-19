@@ -37,8 +37,8 @@
 ;;; From core/parse.ss — The ears
 (load "core/lang/parse.ss")
 
-;;; From boundary/duckie-persist.ss — The memory
-(load "boundary/duckie-persist.ss")
+;;; From boundary/assistants/duckie-persist.ss — The memory
+(load "boundary/assistants/duckie-persist.ss")
 
 ;;; From core/prelude.ss — The string utilities
 ;;; NOTE: string-trim provided by core/prelude.ss
@@ -52,7 +52,7 @@
 ;;;
 ;;; The complete state of the main loop:
 ;;;   - duckie             : The DUCKIE soul from playpen/duckie.ss
-;;;   - canvas             : The drawing surface from boundary/layout.ss
+;;;   - canvas             : The drawing surface from boundary/ui/layout.ss
 ;;;   - frame              : Animation frame counter (increments each tick)
 ;;;   - running            : Loop control flag (#t = continue, #f = stop)
 ;;;   - prev-mood          : Previous mood (for smooth color transitions)
@@ -647,7 +647,7 @@
 ;;; duckie-stop : LoopState → ()
 ;;;
 ;;; Clean shutdown — save state to disk.
-;;; Future: Use boundary/fs.ss to persist DUCKIE to CAS.
+;;; Future: Use boundary/io/fs.ss to persist DUCKIE to CAS.
 (define (duckie-stop state)
   (let ([duckie (loop-state-duckie state)])
        (begin

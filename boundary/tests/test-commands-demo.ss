@@ -2,7 +2,7 @@
 
 ;; Load in quiet mode
 (define *quiet* #t)
-(load "boundary/repl.ss")
+(load "boundary/repl/repl.ss")
 
 (display "\n")
 (display "╔═══════════════════════════════════════════════════════════════════╗\n")

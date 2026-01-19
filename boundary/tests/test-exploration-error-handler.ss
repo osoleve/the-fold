@@ -1,10 +1,10 @@
 ;;; boundary/tests/test-exploration-error-handler.ss — Tests for Exploration Error Handler
 ;;;
-;;; Comprehensive test suite for boundary/exploration-error-handler.ss
+;;; Comprehensive test suite for boundary/debug/exploration-error-handler.ss
 ;;; Validates error formatting for exploration scripts, placeholder fixes,
 ;;; and condition handling.
 
-(load "boundary/exploration-error-handler.ss")
+(load "boundary/debug/exploration-error-handler.ss")
 
 (define test-count 0)
 (define pass-count 0)

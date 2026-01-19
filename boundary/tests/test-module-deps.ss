@@ -58,7 +58,7 @@
 
 (test-group path-normalization-tests
             (define-test path-directory-simple-test
-              (assert-equal "shell" (path-directory "boundary/repl.ss")))
+              (assert-equal "shell" (path-directory "boundary/repl/repl.ss")))
             
             (define-test path-directory-nested-test
               (assert-equal "core/base" (path-directory "core/base/prelude.ss")))
@@ -67,11 +67,11 @@
               (assert-equal "" (path-directory "foo.ss")))
             
             (define-test normalize-path-relative-test
-              (let ([result (normalize-path "boundary/repl.ss" "fs.ss")])
-                   (assert-equal "boundary/fs.ss" result)))
+              (let ([result (normalize-path "boundary/repl/repl.ss" "fs.ss")])
+                   (assert-equal "boundary/io/fs.ss" result)))
             
             (define-test normalize-path-absolute-test
-              (let ([result (normalize-path "boundary/repl.ss" "/abs/path.ss")])
+              (let ([result (normalize-path "boundary/repl/repl.ss" "/abs/path.ss")])
                    (assert-equal "/abs/path.ss" result)))
             
             (define-test normalize-path-dotdot-test

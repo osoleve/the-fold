@@ -3,7 +3,7 @@
 ;;; Test the fuel analysis tools to ensure they correctly track
 ;;; primitive operations and estimate complexity.
 
-(load "boundary/fuel-analysis.ss")
+(load "boundary/diagnostics/fuel-analysis.ss")
 
 (display "\n")
 (display "════════════════════════════════════════════════════════════════\n")

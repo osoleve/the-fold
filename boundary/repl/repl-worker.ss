@@ -441,14 +441,14 @@
   (if (and (pair? args) (pair? (cdr args)))
       (cadr args)
       (begin
-       (display "Usage: scheme --script boundary/repl-worker.ss <session-id>\n")
+       (display "Usage: scheme --script boundary/repl/repl-worker.ss <session-id>\n")
        (exit 1))))
 
 (define (start-worker!)
   (let ([session-id (require-session-id (command-line))])
        (ensure-dirs!)
        (write-pid! session-id)
-       (load "boundary/repl.ss")
+       (load "boundary/repl/repl.ss")
        ;; Load history module after REPL (which loads prelude and other deps)
        (guard (e [else
                   (display (format "Warning: History module failed to load: ~a\n"

@@ -12,7 +12,7 @@
 ;;;   - Provides quick fix suggestions
 ;;;
 ;;; Dependencies:
-;;;   core/prelude.ss, core/help.ss, boundary/error-fmt.ss
+;;;   core/prelude.ss, core/help.ss, boundary/debug/error-fmt.ss
 ;;;
 ;;; NOTE: string utilities provided by core/prelude.ss:
 ;;;       string-contains?, string-trim, string-split, string-index-of
@@ -22,7 +22,7 @@
 
 (load "core/base/prelude.ss")
 (load "core/util/help.ss")  ; For function suggestions
-(load "boundary/error-fmt.ss")     ; For base error formatting
+(load "boundary/debug/error-fmt.ss")     ; For base error formatting
 
 ;;; ====
 ;;; Enhanced Error Context Database

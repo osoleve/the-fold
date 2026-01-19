@@ -7,7 +7,7 @@
 ;;;
 ;;; Dependencies:
 ;;;   boundary/test-runner.ss (for test execution)
-;;;   boundary/fs.ss (for file operations)
+;;;   boundary/io/fs.ss (for file operations)
 ;;;
 ;;; Operations:
 ;;;   (coverage-start) — Begin coverage tracking

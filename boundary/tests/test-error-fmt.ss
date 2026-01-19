@@ -1,9 +1,9 @@
 ;;; boundary/tests/test-error-fmt.ss — Tests for Error Formatter
 ;;;
-;;; Comprehensive test suite for boundary/error-fmt.ss
+;;; Comprehensive test suite for boundary/debug/error-fmt.ss
 ;;; Validates error formatting, colorization, suggestions, and placeholder fixes.
 
-(load "boundary/error-fmt.ss")
+(load "boundary/debug/error-fmt.ss")
 
 (define test-count 0)
 (define pass-count 0)

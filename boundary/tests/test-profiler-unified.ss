@@ -1,6 +1,6 @@
 ;;; boundary/tests/test-profiler-unified.ss --- Tests for Unified Profiler
 ;;;
-;;; Comprehensive tests for boundary/profiler-unified.ss, boundary/profile-persist.ss,
+;;; Comprehensive tests for boundary/diagnostics/profiler-unified.ss, boundary/diagnostics/profile-persist.ss,
 ;;; and the new profile-repl.ss commands.
 ;;;
 ;;; Validates:
@@ -12,8 +12,8 @@
 ;;;   - Statistics extraction
 
 (load "core/test-framework.ss")
-(load "boundary/profiler-unified.ss")
-(load "boundary/profile-persist.ss")
+(load "boundary/diagnostics/profiler-unified.ss")
+(load "boundary/diagnostics/profile-persist.ss")
 
 (display "\n")
 (display "====\n")

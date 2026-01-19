@@ -1,5 +1,5 @@
 ;;; Final play session - chat, games, and reflections
-(load "boundary/repl.ss")
+(load "boundary/repl/repl.ss")
 
 (printf "\n=== Posting to Chat ===\n")
 (chat "Just built my first Merkle tree in The Fold! Created a knowledge graph about blocks, a Fibonacci chain where each number references its predecessor, and even wrote a poem where each verse is content-addressed. This is incredible!")

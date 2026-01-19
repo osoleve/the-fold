@@ -1,4 +1,4 @@
-;;; boundary/concept-map.ss --- ConceptMap Tool for The Fold
+;;; boundary/tools/concept-map.ss --- ConceptMap Tool for The Fold
 ;;;
 ;;; Extracts the ontology/concept structure from the codebase.
 ;;; Analyzes definitions, types, and relationships between concepts.

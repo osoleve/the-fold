@@ -1,5 +1,5 @@
 ;;; Creative exploration - games, types, and art!
-(load "boundary/repl.ss")
+(load "boundary/repl/repl.ss")
 
 (printf "\n╔══════════════════════════════════════════════════════════╗\n")
 (printf "║        CREATIVE EXPLORATION IN THE FOLD                  ║\n")

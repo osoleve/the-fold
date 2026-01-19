@@ -18,7 +18,7 @@
 ;;;   - Block lineage tracking (full ref chain)
 ;;;
 ;;; Usage:
-;;;   (load "boundary/block-navigator.ss")
+;;;   (load "boundary/blocks/block-navigator.ss")
 ;;;   (explore (fs) hash-prefix)      ; Explore a block and its refs
 ;;;   (block-stats (fs))               ; Show store statistics
 ;;;   (find-popular (fs) n)            ; Find n most-referenced blocks
@@ -31,7 +31,7 @@
 ;;; ====
 ;;;   core/block.ss
 ;;;   core/sha256.ss
-;;;   boundary/fs.ss
+;;;   boundary/io/fs.ss
 
 ;;; ====
 ;;; Block Information Display
@@ -121,7 +121,7 @@
                          hash
                          (loop (cdr hashes))))))))
 
-;;; string-prefix? is now provided by boundary/fs.ss
+;;; string-prefix? is now provided by boundary/io/fs.ss
 
 ;;; ====
 ;;; Tree Visualization
@@ -475,4 +475,4 @@
 ;;;   explore, describe-block, visualize-tree, block-stats
 ;;;   find-popular, find-orphans, search-ranked, show-lineage
 ;;;
-;;; Load this after boundary/fs.ss and core/block.ss are available.
+;;; Load this after boundary/io/fs.ss and core/block.ss are available.

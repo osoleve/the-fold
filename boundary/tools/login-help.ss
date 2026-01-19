@@ -1,4 +1,4 @@
-;;; boundary/login-help.ss — Mature Login Flow Documentation
+;;; boundary/tools/login-help.ss — Mature Login Flow Documentation
 
 (define (login-help)
   (display "THE FOLD - LOGIN GUIDE\n\n")

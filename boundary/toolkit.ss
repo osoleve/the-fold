@@ -282,4 +282,4 @@
 
 ;; Auto-load essential tools
 (guard (e [else (void)])
-       (load "boundary/fs.ss"))
+       (load "boundary/io/fs.ss"))

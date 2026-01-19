@@ -1,4 +1,4 @@
-;;; boundary/universe-serialize.ss — Universe Tree Serialization
+;;; boundary/storage/universe-serialize.ss — Universe Tree Serialization
 ;;;
 ;;; Serializes the entire universe-tree (all .sexp files) to a single file.
 ;;; The .fold project contains .sexp files scattered across forum/, playpen/,

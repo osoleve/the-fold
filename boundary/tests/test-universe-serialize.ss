@@ -1,6 +1,6 @@
 ;;; boundary/universe-serialize-test.ss — Tests for Universe Serialization
 ;;;
-;;; Test harness for boundary/universe-serialize.ss
+;;; Test harness for boundary/storage/universe-serialize.ss
 
 ;;; Load dependencies
 (load "core/base/prelude.ss")

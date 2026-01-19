@@ -7,7 +7,7 @@
 (define *quiet* #t)
 
 ;;; Load the REPL system (loads all dependencies)
-(load "boundary/repl.ss")
+(load "boundary/repl/repl.ss")
 
 ;;; ====
 ;;; Login and Post

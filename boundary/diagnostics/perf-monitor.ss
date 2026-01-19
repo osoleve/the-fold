@@ -6,8 +6,8 @@
 ;;; Dependencies:
 ;;;   boundary/introspect/timing.ss
 ;;;   boundary/introspect/memory.ss
-;;;   boundary/store-analyze.ss
-;;;   boundary/fs.ss
+;;;   boundary/storage/store-analyze.ss
+;;;   boundary/io/fs.ss
 ;;;   core/cas.ss
 ;;;
 ;;; Operations:

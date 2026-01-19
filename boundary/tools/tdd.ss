@@ -1,4 +1,4 @@
-;;; boundary/tdd.ss — Test-Driven Development Workflow for The Fold
+;;; boundary/tools/tdd.ss — Test-Driven Development Workflow for The Fold
 ;;;
 ;;; Provides comprehensive TDD capabilities:
 ;;;   • Watch mode with auto-test on file changes
@@ -15,7 +15,7 @@
 ;;;   - test-framework.ss (test execution)
 ;;;   - test-runner.ss (test discovery and reporting)
 
-(load "boundary/watch.ss")
+(load "boundary/watch/watch.ss")
 (load "core/test-framework.ss")
 (load "boundary/tests/test-runner.ss")
 

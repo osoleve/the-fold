@@ -4,7 +4,7 @@
 ;;; Run these examples in the REPL after loading scaffold.ss.
 ;;;
 ;;; Usage:
-;;;   (load "boundary/repl.ss")
+;;;   (load "boundary/repl/repl.ss")
 ;;;   (load "boundary/tools/scaffold.ss")
 ;;;   ;; Then try examples below
 
@@ -253,7 +253,7 @@ TODO: Add examples
          (display "2. [ ] Add tests in boundary/test-<name>.ss\n")
          (display "3. [ ] Run tests: scheme --script boundary/test-<name>.ss\n")
          (display "4. [ ] Document usage in module header\n")
-         (display "5. [ ] Add to boundary/repl.ss if needed\n")
+         (display "5. [ ] Add to boundary/repl/repl.ss if needed\n")
          (display "6. [ ] Commit changes\n")]
         
         [(core-module)
@@ -278,7 +278,7 @@ TODO: Add examples
          (display "2. [ ] Test in REPL: (load \"user/templates/<name>.ss\")\n")
          (display "3. [ ] Play/use the creation\n")
          (display "4. [ ] Document how to use in file header\n")
-         (display "5. [ ] Add to boundary/repl.ss if loading by default\n")
+         (display "5. [ ] Add to boundary/repl/repl.ss if loading by default\n")
          (display "6. [ ] Commit changes\n")]
         
         [else

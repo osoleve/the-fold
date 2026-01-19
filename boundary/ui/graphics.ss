@@ -7,7 +7,7 @@
 ;;; This is Shell code: handles rendering and IO, integrates with CAS.
 ;;;
 ;;; Architecture:
-;;;   - Canvas Layer: 2D character grids (from boundary/layout.ss)
+;;;   - Canvas Layer: 2D character grids (from boundary/ui/layout.ss)
 ;;;   - Color Layer: RGB/palette colors + ANSI output (from boundary/ui/color.ss)
 ;;;   - Primitive Layer: Shapes, lines, circles (from boundary/ui/graphics-primitives.ss)
 ;;;   - Composition Layer: Transparency, z-ordering (from boundary/ui/layers.ss)
@@ -33,11 +33,11 @@
 ;;;   - core/block.ss
 ;;;   - core/sha256.ss
 ;;;   - core/cas.ss
-;;;   - boundary/fs.ss
-;;;   - boundary/layout.ss
+;;;   - boundary/io/fs.ss
+;;;   - boundary/ui/layout.ss
 ;;;   - boundary/ui/color.ss
 ;;;
-;;; Load them via boundary/repl.ss or manually before loading this file.
+;;; Load them via boundary/repl/repl.ss or manually before loading this file.
 ;;;
 ;;; Note: graphics-primitives.ss, layers.ss, and animation.ss are libraries.
 ;;; They will be loaded when needed via import.
@@ -626,7 +626,7 @@
 ;;;   - frame-buffer-set-back
 ;;;
 ;;; Integration with existing systems:
-;;;   - Uses boundary/layout.ss for canvas primitives
+;;;   - Uses boundary/ui/layout.ss for canvas primitives
 ;;;   - Uses boundary/ui/color.ss for color representation
 ;;;   - Uses core/block.ss + core/cas.ss for storage
-;;;   - Uses boundary/fs.ss for persistence
+;;;   - Uses boundary/io/fs.ss for persistence

@@ -22,7 +22,7 @@
 ;;;   - core/prelude.ss
 ;;;   - core/block.ss
 ;;;   - core/cas.ss
-;;;   - boundary/fs.ss (for filesystem operations)
+;;;   - boundary/io/fs.ss (for filesystem operations)
 ;;;
 ;;; See core/MODULES.md for dependency graph.
 
@@ -32,7 +32,7 @@
 (load "blocks/cas.ss")
 
 ;;; Note: We use Chez's built-in file operations for simplicity
-;;; In production, this would use capability-gated boundary/fs.ss
+;;; In production, this would use capability-gated boundary/io/fs.ss
 
 ;;; ====
 ;;; Configuration

@@ -1,4 +1,4 @@
-;;; boundary/watch-INDEX.ss — Index of Watch System Files
+;;; boundary/watch/watch-INDEX.ss — Index of Watch System Files
 ;;;
 ;;; This file lists all components of the file watching and auto-reload system.
 ;;; Use this as a reference for what exists and where to find it.
@@ -7,7 +7,7 @@
 ;;; CORE IMPLEMENTATION
 ;;; ====
 
-;;; boundary/watch.ss
+;;; boundary/watch/watch.ss
 ;;;   Main implementation of the watch system
 ;;;   Lines: ~650
 ;;;   Exports:
@@ -26,7 +26,7 @@
 ;;;   Dependencies:
 ;;;     - None (uses only standard R6RS Scheme)
 ;;;   Load with:
-;;;     (load "boundary/watch.ss")
+;;;     (load "boundary/watch/watch.ss")
 
 ;;; ====
 ;;; DAEMON INTEGRATION
@@ -46,7 +46,7 @@
 ;;;     - auto-dev-mode
 ;;;     - dev-help
 ;;;   Dependencies:
-;;;     - boundary/watch.ss
+;;;     - boundary/watch/watch.ss
 ;;;   Load with:
 ;;;     (load "boundary/watch-daemon-integration.ss")
 ;;;   Features:
@@ -75,7 +75,7 @@
 ;;;     - Debouncing (1 test)
 ;;;   Total: 25 test cases
 ;;;   Dependencies:
-;;;     - boundary/watch.ss
+;;;     - boundary/watch/watch.ss
 ;;;   Run with:
 ;;;     scheme --script boundary/test-watch.ss
 ;;;   Notes:
@@ -98,7 +98,7 @@
 ;;;     - Cleanup
 ;;;   Total: 10 integration tests
 ;;;   Dependencies:
-;;;     - boundary/watch.ss
+;;;     - boundary/watch/watch.ss
 ;;;     - boundary/watch-daemon-integration.ss
 ;;;     - boundary/watch-example.ss
 ;;;   Run with:
@@ -133,7 +133,7 @@
 ;;;     - example-7-debounce-demo
 ;;;     - watch-examples-help
 ;;;   Dependencies:
-;;;     - boundary/watch.ss
+;;;     - boundary/watch/watch.ss
 ;;;   Load with:
 ;;;     (load "boundary/watch-example.ss")
 ;;;   Usage:
@@ -212,7 +212,7 @@
 ;;;     - Performance characteristics
 ;;;     - Complete feature list
 
-;;; boundary/watch-INDEX.ss
+;;; boundary/watch/watch-INDEX.ss
 ;;;   This file - index of all watch system components
 ;;;   Lines: ~300
 ;;;   Sections:
@@ -232,7 +232,7 @@
 ;;; ====
 
 ;;; Getting Started:
-;;;   1. (load "boundary/watch.ss")
+;;;   1. (load "boundary/watch/watch.ss")
 ;;;   2. (auto-reload "your-module.ss")
 ;;;   3. Or: (load "boundary/watch-daemon-integration.ss")
 ;;;          (dev-mode-on)
@@ -325,12 +325,12 @@
 
 ;;; The watch system integrates with:
 ;;;
-;;;   REPL Daemon (boundary/repl-daemon.ss)
+;;;   REPL Daemon (boundary/repl/repl-daemon.ss)
 ;;;     - Runs in daemon process
 ;;;     - Background threads
 ;;;     - Persistent state
 ;;;
-;;;   Filesystem (boundary/fs.ss)
+;;;   Filesystem (boundary/io/fs.ss)
 ;;;     - Uses file-exists?, mkdir, delete-file
 ;;;     - Compatible with FS capability system
 ;;;
@@ -395,7 +395,7 @@
 ;;; The watch system is complete and ready to use.
 ;;;
 ;;; To get started:
-;;;   1. Load boundary/watch.ss
+;;;   1. Load boundary/watch/watch.ss
 ;;;   2. Try (auto-reload "your-module.ss")
 ;;;   3. Or use (dev-mode-on) for full workflow
 ;;;

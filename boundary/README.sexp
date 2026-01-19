@@ -22,42 +22,62 @@ Everything in boundary/ may:
 - Call core with validated inputs
 ")
  (structure . (
-   "REPL & Session Management:"
-   "  repl.ss              - Main REPL (loads everything)"
-   "  repl-daemon.ss       - Background REPL daemon"
-   "  repl-daemon-mcp.ss   - Session broker daemon"
-   "  repl-worker.ss       - Per-session worker process"
-   "  session-manager.ss   - Multi-tenant session handling"
+   "Root Files (entry points):"
+   "  commands.ss          - REPL command registry"
+   "  toolkit.ss           - Development toolkit index"
+   "  run-tests.ss         - Boundary test runner"
    ""
-   "Core IO:"
-   "  fs.ss                - Filesystem capability layer"
-   "  text.ss              - Encoding hygiene, Glitchling quarantine"
-   "  cas-persist.ss       - Persist CAS to disk"
+   "Subdirectories:"
+   "  repl/                - REPL & session management"
+   "    repl.ss            - Main REPL (loads everything)"
+   "    repl-daemon.ss     - Background daemon"
+   "    session-manager.ss - Multi-tenant sessions"
+   "    history.ss         - Command history"
    ""
-   "Developer Tools:"
-   "  commands.ss          - Command registry"
-   "  block-navigator.ss   - Block exploration"
-   "  block-explorer.ss    - Interactive block browser"
-   "  type-inspect.ss      - Type system introspection"
-   "  benchmark.ss         - Performance measurement"
-   "  coverage.ss          - Code coverage analysis"
-   "  fuel-profile.ss      - Fuel consumption profiling"
+   "  io/                  - Core IO operations"
+   "    fs.ss              - Filesystem capability layer"
+   "    json.ss            - JSON parsing/encoding"
+   "    process.ss         - Process management"
    ""
-   "Graphics & Visualization:"
-   "  graphics.ss          - Graphics primitives"
-   "  turtle.ss            - Turtle graphics"
-   "  color.ss             - Color utilities"
-   "  layers.ss            - Layer composition"
+   "  storage/             - Persistence & identity"
+   "    cas-persist.ss     - CAS persistence"
+   "    store-api.ss       - Store operations"
+   "    identity.ss        - Identity management"
    ""
-   "Testing & Quality:"
-   "  test-runner.ss       - Boundary test runner"
-   "  validate.ss          - Input validation"
+   "  blocks/              - Block system tools"
+   "    block-explorer.ss  - Interactive browser"
+   "    block-navigator.ss - Navigation"
+   "    block-query.ss     - Query interface"
    ""
-   "Utilities:"
-   "  format.ss            - Code formatting"
-   "  scaffold.ss          - Project scaffolding"
-   "  git.ss               - Git integration"
-   "  export.ss            - Data export"))
+   "  tools/               - Developer utilities"
+   "    edit.ss            - Text editing"
+   "    autodoc.ss         - Documentation gen"
+   "    refactor-toolkit.ss- Refactoring"
+   ""
+   "  debug/               - Debugging & errors"
+   "    debug-repl.ss      - Time-travel debugger"
+   "    error-fmt.ss       - Error formatting"
+   ""
+   "  diagnostics/         - Profiling & analysis"
+   "    profiler-unified.ss- Unified profiler"
+   "    fuel-analysis.ss   - Fuel profiling"
+   ""
+   "  ui/                  - Graphics & visualization"
+   "    graphics.ss        - Graphics primitives"
+   "    color.ss           - Color utilities"
+   "    layout.ss          - Layout combinators"
+   ""
+   "  assistants/          - AI agents"
+   "    duckie-*.ss        - Duckie assistant"
+   ""
+   "  tutorial/            - Tutorial system"
+   "    tutorial.ss        - Main tutorial"
+   ""
+   "  bbs/                 - Issue tracker"
+   "    bbs.ss             - BBS operations"
+   ""
+   "  git/                 - Git integration"
+   "    git.ss             - Git operations"))
  (philosophy . "
 Boundary protects core. It stands between the messy world
 (user input, files, network) and the pure core.
@@ -82,7 +102,7 @@ Key functions available in REPL:
   (who)            - Show session info
 
 To explore:
-  (load \"boundary/block-navigator.ss\")
+  (load \"boundary/blocks/block-navigator.ss\")
   (navigate-from hash)
 ")
  (for-builders . "
@@ -90,15 +110,16 @@ Builders may modify boundary/ to add utilities and tools.
 
 How to add a new utility:
 
-1. Create: boundary/my-utility.ss
-   ;;; boundary/my-utility.ss — One-line description
+1. Create in appropriate subdirectory:
+   boundary/tools/my-utility.ss
+   ;;; boundary/tools/my-utility.ss — One-line description
    ;;;
    ;;; Dependencies:
    ;;;   - core/block.ss
-   ;;;   - boundary/fs.ss
+   ;;;   - boundary/io/fs.ss
 
    (load \"core/block.ss\")
-   (load \"boundary/fs.ss\")
+   (load \"boundary/io/fs.ss\")
 
    (define (my-function arg)
      ;; Validate input
@@ -107,15 +128,22 @@ How to add a new utility:
      ;; Call core
      (core-function (normalize arg)))
 
-2. Load in REPL: Edit boundary/repl.ss, add:
-   (load \"boundary/my-utility.ss\")
+2. Load in REPL: Edit boundary/repl/repl.ss, add:
+   (load \"boundary/tools/my-utility.ss\")
 
 3. Register command (optional): Edit boundary/commands.ss
    (register-command! 'my-cmd \"description\" my-function)
 
-4. Test: boundary/test-my-utility.ss
+4. Test: boundary/tests/test-my-utility.ss
 
 5. Document: Add to boundary/COMMANDS.md if it's user-facing
+
+Subdirectory guidelines:
+  tools/       - Developer utilities
+  io/          - File/network IO
+  debug/       - Debugging tools
+  diagnostics/ - Profiling/analysis
+  ui/          - Graphics/visualization
 
 See boundary/COMMANDS.md for detailed command patterns.
 ")
@@ -123,19 +151,20 @@ See boundary/COMMANDS.md for detailed command patterns.
 Shepherds maintain boundary/ architecture.
 
 Key responsibilities:
-- Capability model (fs.ss, capability.ss)
-- REPL stability (repl.ss, session-manager.ss)
+- Capability model (io/fs.ss)
+- REPL stability (repl/repl.ss, repl/session-manager.ss)
 - Core/Boundary layer (what validates, what computes)
 
 Before adding to boundary/:
 - Does this belong in core instead? (is it pure?)
+- Which subdirectory? (tools, io, debug, diagnostics, ui)
 - Does this need a capability? (does it touch OS?)
 - Is input validated before calling core?
 ")
  (capabilities . "
 Capabilities are unforgeable authority tokens.
 
-Example (fs.ss):
+Example (io/fs.ss):
   (define fs-cap (make-capability 'filesystem \"/path/to/store\"))
   (invoke fs-cap 'read path)  ; fs.ss grants read access
 
@@ -145,7 +174,7 @@ Capabilities:
 - Cannot be forged
 - Type: (Capability 'name metadata)
 
-See boundary/fs.ss for the canonical example.
+See boundary/io/fs.ss for the canonical example.
 ")
  (see-also . (
    "boundary/COMMANDS.md"

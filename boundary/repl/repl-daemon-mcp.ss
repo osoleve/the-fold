@@ -27,7 +27,7 @@
 (define *responses-dir* ".fold-repl/responses")
 (define *workers-dir* ".fold-repl/workers")
 (define *ready-file* ".fold-repl/ready")
-(define *worker-script* "boundary/repl-worker.ss")
+(define *worker-script* "boundary/repl/repl-worker.ss")
 (define *poll-interval-ns* 100000000)  ; 100ms in nanoseconds
 (define *worker-timeout* 600)          ; seconds without heartbeat (10 min - allows long jobs)
 (define *starting-timeout* 30)         ; seconds to wait for worker startup
