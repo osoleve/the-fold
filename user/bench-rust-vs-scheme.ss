@@ -2,7 +2,7 @@
 
 (load "core/lang/rust-codegen.ss")
 (load "core/lang/rust-compile.ss")
-(load "shell/ffi/rust-loader.ss")
+(load "boundary/ffi/rust-loader.ss")
 (load "core/lang/eval.ss")
 
 (display "=== Rust vs Scheme Benchmark ===\n\n")

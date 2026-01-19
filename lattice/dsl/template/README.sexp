@@ -49,9 +49,9 @@
   (file "manifest.sexp" "Skill metadata"))
 
  (shell-tools
-  (file "shell/tools/template-session.ss"
+  (file "boundary/tools/template-session.ss"
         "Stateful session manager with undo support")
-  (file "shell/tools/template-parser.ss"
+  (file "boundary/tools/template-parser.ss"
         "Linear syntax parser for EBNF-like statements"))
 
  (api
@@ -79,7 +79,7 @@
    (fn "try-compile-template" "Template → (Ok Expr) | (Err Holes)"
        "Safe compilation returning result type"))
 
-  (section "Session (shell/tools/template-session.ss)"
+  (section "Session (boundary/tools/template-session.ss)"
    (fn "ts-start" "Expr → Unit" "Start new session")
    (fn "ts-fill" "Symbol × Expr → Unit" "Fill a hole")
    (fn "ts-holes" "→ (List Symbol)" "Get current holes")
@@ -88,7 +88,7 @@
    (fn "ts-show" "→ Unit" "Pretty-print current template")
    (fn "ts-status" "→ String" "Get status string"))
 
-  (section "Parser (shell/tools/template-parser.ss)"
+  (section "Parser (boundary/tools/template-parser.ss)"
    (fn "tp-batch" "String → Expr"
        "Parse chained definitions separated by ---. Recommended for AI use.")
    (fn "tp-parse" "String → Unit"

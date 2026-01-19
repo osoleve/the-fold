@@ -2,7 +2,7 @@
 ;;;
 ;;; Let's have some fun with the new string utilities!
 
-(load "shell/tools/string-utils.ss")
+(load "boundary/tools/string-utils.ss")
 (load "user/security-utils.ss")
 
 (printf "\n╔════════════════════════════════════════════════════════════╗\n")

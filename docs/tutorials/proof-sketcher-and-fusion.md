@@ -13,7 +13,7 @@ functor composition really does fuse? Now you can - interactively!
 
 ```scheme
 ;; Load the proof REPL
-(load "shell/tools/proof-repl.ss")
+(load "boundary/tools/proof-repl.ss")
 
 ;; Let's prove a classic: the monad left identity law
 ;; bind (pure x) f = f x
@@ -128,7 +128,7 @@ need one! Let the LZR analyzer find these opportunities automatically.
 ### Detecting Fusion Opportunities
 
 ```scheme
-(load "shell/lzr.ss")
+(load "boundary/lzr.ss")
 
 ;; Analyze some code
 (analyze-fusion '(map square (map double xs)))

@@ -230,7 +230,7 @@ Priority order:
 ## File Organization
 
 ```
-shell/ffi/
+boundary/ffi/
 ├── ffi-core.ss          # Library loading, basic FFI
 ├── serialize.ss         # Scheme → bytevector
 ├── bvh-ffi.ss          # BVH-specific FFI bindings
@@ -470,7 +470,7 @@ Documented in code. Rust uses standard convention. The raymarcher uses `abs(dist
 ## Updated File Organization
 
 ```
-shell/ffi/
+boundary/ffi/
 ├── ffi-core.ss          # Library loading, basic FFI
 ├── serialize.ss         # Scheme → bytevector
 ├── bvh-ffi.ss          # BVH-specific FFI bindings

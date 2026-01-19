@@ -5,8 +5,8 @@
 (source-directories (cons "core" (source-directories)))
 (load "core/blocks/block.ss")
 (load "core/base/sha256.ss")
-(load "shell/fs.ss")
-(load "shell/store-api.ss")
+(load "boundary/fs.ss")
+(load "boundary/store-api.ss")
 
 (printf "\n╔════════════════════════════════════════════════════════════╗\n")
 (printf "║         STORE API DEMONSTRATION: ETERNAL KNOWLEDGE         ║\n")

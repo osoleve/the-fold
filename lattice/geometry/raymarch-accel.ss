@@ -13,8 +13,8 @@
 ;;; Try to load acceleration, but don't fail if unavailable
 (define *raymarch-accel-enabled* #f)
 (guard (ex [else (set! *raymarch-accel-enabled* #f)])
-       (load "shell/ffi/raymarch-ffi.ss")
-       (load "shell/ffi/bvh-cache.ss")
+       (load "boundary/ffi/raymarch-ffi.ss")
+       (load "boundary/ffi/bvh-cache.ss")
        (when (accel-available?)
              (bind-bvh-procedures!)
              (bind-raymarch-procedures!)

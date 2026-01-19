@@ -291,7 +291,7 @@ def check_syntax(filepath):
 
     # Run scheme directly to check parens (no daemon needed)
     scheme_code = f'''
-(load "shell/tools/paren-check.ss")
+(load "boundary/tools/paren-check.ss")
 (let ([errors (paren-errors "{filepath}")])
   (if (null? errors)
       (begin

@@ -2,7 +2,7 @@
   {
     "severity": "high",
     "line": 46,
-    "file": "shell/module/manifest-scanner.ss",
+    "file": "boundary/module/manifest-scanner.ss",
     "description": "The use of the native 'read' function to parse manifest files is a significant security risk if the files are untrusted. In most Scheme implementations, 'read' supports reader macros (such as '#.' for evaluation) that allow arbitrary code execution at read-time, leading to Remote Code Execution (RCE).",
     "code_snippet": "[else (read port)]",
     "suggested_fix": "Implement or use a restricted S-expression parser that only handles data literals and explicitly forbids reader macros, or ensure that the reader is parameterized to disable unsafe features (e.g., setting 'read-accept-compiled' to #f or using a dedicated safe-read procedure).",
@@ -22,7 +22,7 @@
   {
     "severity": "low",
     "line": 63,
-    "file": "shell/module/manifest-scanner.ss",
+    "file": "boundary/module/manifest-scanner.ss",
     "description": "The 'find-manifests' function performs recursive directory traversal without checking for symbolic link loops or limiting the recursion depth. This could be exploited to cause a Denial of Service (DoS) via resource exhaustion (stack overflow or hang) if a cyclic directory structure is encountered.",
     "code_snippet": "(set! result (append (find-manifests path) result))",
     "suggested_fix": "Track visited directories using device and inode numbers to detect and break cycles, and implement a maximum recursion depth limit.",

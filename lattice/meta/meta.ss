@@ -18,7 +18,7 @@
 (load "lattice/meta/inspect.ss")
 (load "lattice/meta/persist.ss")
 (load "lattice/meta/source-loc.ss")
-(load "shell/introspect/exports.ss")
+(load "boundary/introspect/exports.ss")
 
 ;;; ====
 ;;; Initialization

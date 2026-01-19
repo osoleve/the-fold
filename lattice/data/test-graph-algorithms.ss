@@ -3,8 +3,8 @@
 (source-directories (cons "core" (source-directories)))
 (load "core/blocks/block.ss")
 (load "core/base/sha256.ss")
-(load "shell/fs.ss")
-(load "shell/store-api.ss")
+(load "boundary/fs.ss")
+(load "boundary/store-api.ss")
 (load "lattice/data/graph-algorithms.ss")
 
 (define tests-passed 0)

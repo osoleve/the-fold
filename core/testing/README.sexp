@@ -68,4 +68,4 @@ New code should use core/testing/test-framework.ss directly.
 
  (see-also . (
    "core/testing/TEST-FRAMEWORK.md"
-   "shell/tests/README.sexp")))
+   "boundary/tests/README.sexp")))

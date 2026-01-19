@@ -98,11 +98,11 @@ Built entirely in Chez Scheme with **zero external dependencies**. The SHA-256 i
 The codebase is ~350,000 lines of Scheme across:
 - `core/`: Language kernel (~55k lines)
 - `lattice/`: Standard library (~205k lines, ~3,300 exports)
-- `shell/`: IO and tooling (~90k lines)
+- `boundary/`: IO and tooling (~90k lines)
 
 ### Rust Acceleration Layer
 
-Performance-critical paths have optional Rust acceleration via FFI (`shell/ffi/rust-accel/`). The Rust layer provides:
+Performance-critical paths have optional Rust acceleration via FFI (`boundary/ffi/rust-accel/`). The Rust layer provides:
 
 **Spatial Acceleration (BVH)**:
 - Bounding Volume Hierarchy construction and traversal

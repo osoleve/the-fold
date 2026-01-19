@@ -124,7 +124,7 @@ These masters worked with hardware limits that would make modern developers cry.
 (video->gif video "path.gif" 17)  ; ~60fps (17ms per frame)
 (video->mp4 video "path.mp4" 60)  ; 60fps MP4
 
-;; Animation helpers (shell/ui/animation.ss)
+;; Animation helpers (boundary/ui/animation.ss)
 (ease-in-out-cubic t)             ; Smooth acceleration
 (ease-out-bounce t)               ; Playful bounce
 (ease-out-elastic t)              ; Springy overshoot

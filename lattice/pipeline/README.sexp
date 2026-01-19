@@ -100,7 +100,7 @@ Effects are interpreted by the shell layer.")
 
  (dependencies
   ((internal . ("prelude.ss" "fp/combinators.ss"))
-   (shell . ("shell/fs.ss" "shell/repl-daemon.ss"))))
+   (shell . ("boundary/fs.ss" "boundary/repl-daemon.ss"))))
 
  (tier . shepherd)
  (authority . "May be modified by Shepherd tier and above"))

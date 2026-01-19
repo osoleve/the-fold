@@ -8,7 +8,7 @@
 ;;; This file defines the Quill load order and public entrypoints.
 ;;;
 ;;; Usage:
-;;;   (load "shell/repl.ss")
+;;;   (load "boundary/repl.ss")
 ;;;   (load "user/quill/quill.ss")
 ;;;
 ;;; Then:
@@ -26,7 +26,7 @@
 ;;; ====
 
 ;; Useful string utilities (string-trim, string-blank?, etc).
-(load "shell/tools/string-utils.ss")
+(load "boundary/tools/string-utils.ss")
 
 ;;; ====
 ;;; Quill Modules (load order)

@@ -294,6 +294,6 @@ BBS effects are available in agent pipelines (`lattice/pipeline/effects.ss`):
 | `.store/heads/bbs/` | Issue head files (current hash per issue) |
 | `.bbs/counter` | Next issue number |
 | `.bbs/deps` | Dependency relationships |
-| `shell/bbs/bbs.ss` | Core BBS implementation |
-| `shell/bbs/ops.ss` | BBS operations |
-| `shell/bbs/index.ss` | BBS indexing |
+| `boundary/bbs/bbs.ss` | Core BBS implementation |
+| `boundary/bbs/ops.ss` | BBS operations |
+| `boundary/bbs/index.ss` | BBS indexing |

@@ -93,7 +93,7 @@ gemini -m gemini-3-flash-preview \
   > user/feedback/gemini-ux-review-$(date +%Y%m%d).json
 
 # Quick usability check on CLI help text
-cat shell/commands.ss | gemini "Is this help text clear to a beginner? Suggest improvements."
+cat boundary/commands.ss | gemini "Is this help text clear to a beginner? Suggest improvements."
 ```
 
 ### Example 4: Second Opinion/Adversarial Review
@@ -171,7 +171,7 @@ gemini -m gemini-3-flash-preview \
   "Review this code for bugs, logic errors, edge cases. Report findings with file:line format."
 
 # Multiple files in parallel (batch mode)
-for file in shell/tools/*.ss; do
+for file in boundary/tools/*.ss; do
   gemini -m gemini-3-flash-preview \
     "Review $file for correctness issues" \
     > "reports/$(basename "$file").review" &

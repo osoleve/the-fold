@@ -9,7 +9,7 @@
 ;;;
 ;;; This is the flex. The absurd demo. The "yes we actually did this" moment.
 
-(load "shell/ui/layout.ss")
+(load "boundary/ui/layout.ss")
 (load "lattice/autodiff/symbolic-diff.ss")
 
 ;;; ====

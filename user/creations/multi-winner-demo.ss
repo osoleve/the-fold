@@ -14,7 +14,7 @@
 (load "user/creations/ascii-video.ss")
 (load "user/creations/ascii-video-export.ss")
 (load "lattice/fp/game/multi-winner.ss")
-(load "shell/ui/animation.ss")
+(load "boundary/ui/animation.ss")
 
 ;;; ============================================================================
 ;;; Configuration

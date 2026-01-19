@@ -5,5 +5,5 @@
 ;;; This loads the MCP daemon module which supports multi-session
 ;;; IPC for multitenancy. Each session gets isolated environments.
 
-(load "shell/repl-daemon-mcp.ss")
+(load "boundary/repl-daemon-mcp.ss")
 (start-daemon!)

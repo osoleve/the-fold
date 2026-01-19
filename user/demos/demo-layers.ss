@@ -13,8 +13,8 @@
 ;;; Load Dependencies
 ;;; ====
 
-(load "shell/layout.ss")
-(load "shell/ui/layers.ss")
+(load "boundary/layout.ss")
+(load "boundary/ui/layers.ss")
 
 ;;; ====
 ;;; Demo 1: Basic Layering Concept
@@ -365,7 +365,7 @@
   (display "  • Layers can be shown/hidden and reordered dynamically\n")
   (display "  • flatten-layers composites all visible layers into one canvas\n")
   (display "\n")
-  (display "See shell/ui/layers.ss for the full API.\n\n"))
+  (display "See boundary/ui/layers.ss for the full API.\n\n"))
 
 ;;; Run the demo
 (main)

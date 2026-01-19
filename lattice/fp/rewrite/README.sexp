@@ -24,7 +24,7 @@
      (core/blocks/normalize.ss . "De Bruijn normalization for alpha-equivalence")
      (core/lang/nbe.ss . "Normalization by Evaluation (optional advanced verification)")))
 
- (shell-integration . "shell/tools/rewrite-repl.ss")
+ (shell-integration . "boundary/tools/rewrite-repl.ss")
 
  (test-count . 72)
 

@@ -227,7 +227,51 @@
   ((closed-fn closed) pab))
 
 ;;; ============================================================
-;;; Part 5: Profunctor Instances
+;;; Part 5: Wander Profunctor (for Traversals)
+;;; ============================================================
+;;;
+;;; The Wander class captures profunctors that can handle traversals.
+;;; This is the profunctor equivalent of an applicative functor traversal.
+;;;
+;;;   class (Strong p, Choice p) => Wander p where
+;;;     wander :: (forall f. Applicative f => (a -> f b) -> s -> f t)
+;;;            -> p a b -> p s t
+;;;
+;;; The key insight: wander takes a "traversing function" that works with
+;;; any applicative functor, and lifts p a b through it.
+;;;
+;;; For concrete usage, we provide explicit traverse functions rather than
+;;; requiring forall quantification.
+
+;;; make-wander : Strong -> Choice -> wander-fn -> Wander
+;;; Create a wander profunctor from Strong + Choice + wander implementation.
+(define (make-wander strong choice wander-fn)
+  (list 'wander strong choice wander-fn))
+
+;;; wander? : alpha -> Boolean
+(define (wander? x)
+  (and (pair? x) (eq? (car x) 'wander)))
+
+;;; wander-strong : Wander -> Strong
+(define (wander-strong w)
+  (cadr w))
+
+;;; wander-choice : Wander -> Choice
+(define (wander-choice w)
+  (caddr w))
+
+;;; wander-fn : Wander -> ((traverser × p a b) -> p s t)
+;;; The traverser is a function (a -> F b) -> s -> F t for applicative F.
+(define (wander-wander w)
+  (cadddr w))
+
+;;; pwander : Wander -> Traverser -> p a b -> p s t
+;;; Apply the wander function.
+(define (pwander wander traverser pab)
+  ((wander-wander wander) traverser pab))
+
+;;; ============================================================
+;;; Part 6: Profunctor Instances
 ;;; ============================================================
 
 ;;; ====
@@ -273,6 +317,19 @@
    (lambda (f)
      (lambda (g)
        (compose2 f g)))))
+
+;;; wander-fn : Wander (->)
+;;; For functions, wander uses the identity functor.
+;;; wander traverse f = traverse f
+;;; This works because for the identity functor, traverse is just map.
+(define wander-fn
+  (make-wander
+   strong-fn
+   choice-fn
+   (lambda (traverse-fn f)
+     ;; traverse-fn : (a -> Id b) -> s -> Id t
+     ;; For identity functor, this is just (a -> b) -> s -> t
+     (lambda (s) (traverse-fn f s)))))
 
 ;;; ====
 ;;; Forget Profunctor (for Getters/Folds)
@@ -601,6 +658,240 @@
              (let* ([a (from-right e)]
                     [b (((p-affine-set inner) a) d)])
                (((p-affine-set outer) s) b))))))))
+
+;;; ====
+;;; Profunctor Traversal
+;;; ====
+;;;
+;;; Traversal s t a b ~ forall p. Wander p => p a b -> p s t
+;;;
+;;; A traversal focuses on zero or more targets within a structure.
+;;; The representation uses a traverse function and a fold function:
+;;;   PTraversal (((a -> b) -> s -> t) × (s -> List a))
+;;;
+;;; The traverse function works like map for the identity functor,
+;;; and the fold function extracts all targets as a list.
+
+;;; make-p-traversal : ((a -> b) -> s -> t) × (s -> List a) -> PTraversal s t a b
+(define (make-p-traversal traverse-fn fold-fn)
+  (list 'p-traversal traverse-fn fold-fn))
+
+;;; p-traversal? : alpha -> Boolean
+(define (p-traversal? x)
+  (and (pair? x) (eq? (car x) 'p-traversal)))
+
+;;; p-traversal-traverse : PTraversal -> ((a -> b) -> s -> t)
+(define (p-traversal-traverse ptrav)
+  (cadr ptrav))
+
+;;; p-traversal-fold : PTraversal -> (s -> List a)
+(define (p-traversal-fold-fn ptrav)
+  (caddr ptrav))
+
+;;; run-p-traversal : Wander -> PTraversal s t a b -> p a b -> p s t
+;;; Apply the traversal using a wander profunctor.
+(define (run-p-traversal wander ptrav pab)
+  (pwander wander (p-traversal-traverse ptrav) pab))
+
+;;; p-traversal-to-list : PTraversal × s -> List a
+;;; Get all targets as a list.
+(define (p-traversal-to-list ptrav s)
+  ((p-traversal-fold-fn ptrav) s))
+
+;;; p-traversal-over : PTraversal × (a -> b) × s -> t
+;;; Modify all targets.
+(define (p-traversal-over ptrav f s)
+  ((p-traversal-traverse ptrav) f s))
+
+;;; p-traversal-set : PTraversal × b × s -> t
+;;; Set all targets to same value.
+(define (p-traversal-set ptrav b s)
+  (p-traversal-over ptrav (const b) s))
+
+;;; p-traversal-compose : PTraversal s t a b × PTraversal a b c d -> PTraversal s t c d
+(define (p-traversal-compose outer inner)
+  (make-p-traversal
+   ;; traverse: (c -> d) -> s -> t
+   (lambda (f s)
+     ((p-traversal-traverse outer)
+      (lambda (a) ((p-traversal-traverse inner) f a))
+      s))
+   ;; fold: s -> List c
+   (lambda (s)
+     (apply append
+            (map (p-traversal-fold-fn inner)
+                 ((p-traversal-fold-fn outer) s))))))
+
+;;; ====
+;;; Common Profunctor Traversals
+;;; ====
+
+;;; p-traversal-each : PTraversal (List a) (List b) a b
+;;; Traverse each element of a list.
+(define p-traversal-each
+  (make-p-traversal
+   (lambda (f xs) (map f xs))
+   identity))
+
+;;; p-traversal-both : PTraversal (a . a) (b . b) a b
+;;; Traverse both elements of a same-typed pair.
+(define p-traversal-both
+  (make-p-traversal
+   (lambda (f p) (cons (f (car p)) (f (cdr p))))
+   (lambda (p) (list (car p) (cdr p)))))
+
+;;; p-traversal-filtered : (a -> Boolean) -> PTraversal (List a) (List a) a a
+;;; Traverse only elements matching predicate.
+(define (p-traversal-filtered pred)
+  (make-p-traversal
+   (lambda (f xs)
+     (map (lambda (x) (if (pred x) (f x) x)) xs))
+   (lambda (xs) (filter pred xs))))
+
+;;; ====
+;;; Profunctor Fold
+;;; ====
+;;;
+;;; Fold s a ~ forall p. (Profunctor p, Forget-compatible p) => p a a -> p s s
+;;;
+;;; A fold provides read-only access to zero or more targets.
+;;; It's the profunctor encoding of a fold/getter.
+;;; The representation is simply a function s -> List a.
+
+;;; make-p-fold : (s -> List a) -> PFold s a
+(define (make-p-fold fold-fn)
+  (list 'p-fold fold-fn))
+
+;;; p-fold? : alpha -> Boolean
+(define (p-fold? x)
+  (and (pair? x) (eq? (car x) 'p-fold)))
+
+;;; p-fold-fn : PFold -> (s -> List a)
+(define (p-fold-fn pfold)
+  (cadr pfold))
+
+;;; p-fold-to-list : PFold × s -> List a
+;;; Get all targets as a list.
+(define (p-fold-to-list pfold s)
+  ((p-fold-fn pfold) s))
+
+;;; p-fold-preview : PFold × s -> Maybe a
+;;; Get first target if any.
+(define (p-fold-preview pfold s)
+  (let ([targets ((p-fold-fn pfold) s)])
+    (if (null? targets) nothing (just (car targets)))))
+
+;;; p-fold-has : PFold × s -> Boolean
+;;; Check if any target exists.
+(define (p-fold-has pfold s)
+  (not (null? ((p-fold-fn pfold) s))))
+
+;;; p-fold-length : PFold × s -> Nat
+;;; Count targets.
+(define (p-fold-length pfold s)
+  (length ((p-fold-fn pfold) s)))
+
+;;; p-fold-all : PFold × (a -> Boolean) × s -> Boolean
+;;; Check if all targets satisfy predicate.
+(define (p-fold-all pfold pred s)
+  (andmap pred ((p-fold-fn pfold) s)))
+
+;;; p-fold-any : PFold × (a -> Boolean) × s -> Boolean
+;;; Check if any target satisfies predicate.
+(define (p-fold-any pfold pred s)
+  (ormap pred ((p-fold-fn pfold) s)))
+
+;;; p-fold-compose : PFold s a × PFold a b -> PFold s b
+(define (p-fold-compose outer inner)
+  (make-p-fold
+   (lambda (s)
+     (apply append
+            (map (p-fold-fn inner)
+                 ((p-fold-fn outer) s))))))
+
+;;; ====
+;;; Common Profunctor Folds
+;;; ====
+
+;;; p-fold-each : PFold (List a) a
+(define p-fold-each
+  (make-p-fold identity))
+
+;;; p-fold-filtered : (a -> Boolean) -> PFold (List a) a
+(define (p-fold-filtered pred)
+  (make-p-fold (lambda (xs) (filter pred xs))))
+
+;;; p-fold-taking : Nat -> PFold (List a) a
+(define (p-fold-taking n)
+  (make-p-fold (lambda (xs) (take-up-to-p n xs))))
+
+;;; take-up-to-p : Nat × List -> List (local helper)
+(define (take-up-to-p n xs)
+  (if (or (<= n 0) (null? xs))
+      '()
+      (cons (car xs) (take-up-to-p (- n 1) (cdr xs)))))
+
+;;; ====
+;;; Conversions to Traversal/Fold
+;;; ====
+
+;;; traversal->p-traversal : Traversal -> PTraversal
+(define (traversal->p-traversal trav)
+  (make-p-traversal
+   (traversal-traverse trav)
+   (traversal-fold trav)))
+
+;;; p-traversal->traversal : PTraversal -> Traversal
+(define (p-traversal->traversal ptrav)
+  (make-traversal
+   (p-traversal-traverse ptrav)
+   (p-traversal-fold-fn ptrav)))
+
+;;; p-lens->p-traversal : PLens -> PTraversal
+(define (p-lens->p-traversal plens)
+  (make-p-traversal
+   (lambda (f s)
+     (((p-lens-setter plens) s) (f ((p-lens-getter plens) s))))
+   (lambda (s) (list ((p-lens-getter plens) s)))))
+
+;;; p-prism->p-traversal : PPrism -> PTraversal
+(define (p-prism->p-traversal pprism)
+  (make-p-traversal
+   (lambda (f s)
+     (let ([e ((p-prism-match pprism) s)])
+       (if (left? e)
+           (from-left e)
+           ((p-prism-build pprism) (f (from-right e))))))
+   (lambda (s)
+     (let ([e ((p-prism-match pprism) s)])
+       (if (left? e) '() (list (from-right e)))))))
+
+;;; p-affine->p-traversal : PAffine -> PTraversal
+(define (p-affine->p-traversal paffine)
+  (make-p-traversal
+   (lambda (f s)
+     (let ([e ((p-affine-preview paffine) s)])
+       (if (left? e)
+           (from-left e)
+           (((p-affine-set paffine) s) (f (from-right e))))))
+   (lambda (s)
+     (let ([e ((p-affine-preview paffine) s)])
+       (if (left? e) '() (list (from-right e)))))))
+
+;;; p-traversal->p-fold : PTraversal -> PFold
+(define (p-traversal->p-fold ptrav)
+  (make-p-fold (p-traversal-fold-fn ptrav)))
+
+;;; p-lens->p-fold : PLens -> PFold
+(define (p-lens->p-fold plens)
+  (make-p-fold (lambda (s) (list ((p-lens-getter plens) s)))))
+
+;;; p-prism->p-fold : PPrism -> PFold
+(define (p-prism->p-fold pprism)
+  (make-p-fold
+   (lambda (s)
+     (let ([e ((p-prism-match pprism) s)])
+       (if (right? e) (list (from-right e)) '())))))
 
 ;;; ====
 ;;; Profunctor Grate
@@ -1117,7 +1408,70 @@
       [(and (eq? t1 'p-grate) (eq? t2 'p-iso))
        (p-grate-compose outer (p-iso->p-grate inner))]
 
+      ;; Traversal compositions
+      [(and (eq? t1 'p-traversal) (eq? t2 'p-traversal))
+       (p-traversal-compose outer inner)]
+
+      [(and (eq? t1 'p-lens) (eq? t2 'p-traversal))
+       (p-traversal-compose (p-lens->p-traversal outer) inner)]
+
+      [(and (eq? t1 'p-traversal) (eq? t2 'p-lens))
+       (p-traversal-compose outer (p-lens->p-traversal inner))]
+
+      [(and (eq? t1 'p-prism) (eq? t2 'p-traversal))
+       (p-traversal-compose (p-prism->p-traversal outer) inner)]
+
+      [(and (eq? t1 'p-traversal) (eq? t2 'p-prism))
+       (p-traversal-compose outer (p-prism->p-traversal inner))]
+
+      [(and (eq? t1 'p-affine) (eq? t2 'p-traversal))
+       (p-traversal-compose (p-affine->p-traversal outer) inner)]
+
+      [(and (eq? t1 'p-traversal) (eq? t2 'p-affine))
+       (p-traversal-compose outer (p-affine->p-traversal inner))]
+
+      [(and (eq? t1 'p-iso) (eq? t2 'p-traversal))
+       (p-traversal-compose (p-lens->p-traversal (p-iso->p-lens outer)) inner)]
+
+      [(and (eq? t1 'p-traversal) (eq? t2 'p-iso))
+       (p-traversal-compose outer (p-lens->p-traversal (p-iso->p-lens inner)))]
+
+      ;; Fold compositions (always produce a fold)
+      [(and (eq? t1 'p-fold) (eq? t2 'p-fold))
+       (p-fold-compose outer inner)]
+
+      [(eq? t1 'p-fold)
+       (p-fold-compose outer (->p-fold inner))]
+
+      [(eq? t2 'p-fold)
+       (p-fold-compose (->p-fold outer) inner)]
+
+      ;; Traversal + Fold = Fold
+      [(and (eq? t1 'p-traversal) (eq? t2 'p-fold))
+       (p-fold-compose (p-traversal->p-fold outer) inner)]
+
       [else (error 'p-optic-compose "Unsupported composition")])))
+
+;;; ->p-fold : POptic -> PFold
+;;; Convert any profunctor optic to a fold.
+(define (->p-fold o)
+  (case (p-optic-type o)
+    [(p-fold) o]
+    [(p-traversal) (p-traversal->p-fold o)]
+    [(p-lens) (p-lens->p-fold o)]
+    [(p-prism) (p-prism->p-fold o)]
+    [(p-affine) (p-traversal->p-fold (p-affine->p-traversal o))]
+    [(p-iso) (p-lens->p-fold (p-iso->p-lens o))]
+    [else (error '->p-fold "Cannot convert to fold")]))
+
+;;; p-iso->p-lens : PIso -> PLens
+;;; Convert a profunctor iso to a profunctor lens.
+(define (p-iso->p-lens piso)
+  (make-p-lens
+   (p-iso-forward piso)
+   (lambda (s)
+     (lambda (b)
+       ((p-iso-backward piso) b)))))
 
 ;;; p-iso->p-grate : PIso -> PGrate
 ;;; Convert a profunctor iso to a profunctor grate.

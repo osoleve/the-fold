@@ -63,7 +63,7 @@ PROCEDURE find-capability(need: String) -> List<Skill>
 | `(lfe 'symbol)` | Exact symbol lookup | `(lfe 'shapley-value)` |
 | `(li 'skill)` | Skill description | `(li 'linalg)` |
 | `(le 'skill)` | List exports | `(le 'fp/optics)` |
-| `(lef "file.ss")` | Exports from any file | `(lef "shell/bbs/bbs.ss")` |
+| `(lef "file.ss")` | Exports from any file | `(lef "boundary/bbs/bbs.ss")` |
 | `(ld 'skill)` | Dependencies | `(ld 'autodiff)` |
 | `(lu 'skill)` | What uses this skill | `(lu 'linalg)` |
 | `(lc 'skill)` | Cycle check | `(lc 'fp)` |
@@ -111,7 +111,7 @@ PROCEDURE find-capability(need: String) -> List<Skill>
 
 ### 1.3 Shell Capabilities
 
-Shell code lives in `shell/` and handles all impure operations:
+Shell code lives in `boundary/` and handles all impure operations:
 
 | Directory | Purpose | Key APIs |
 |-----------|---------|----------|
@@ -247,7 +247,7 @@ The query DSL combines optics with predicates for declarative data access:
 Track dependencies through optics for automatic recomputation:
 
 ```scheme
-(load "shell/reactive/reactive.ss")
+(load "boundary/reactive/reactive.ss")
 
 ;; Register optics for tracking
 (register-optic! 'body-pos body-pos-lens)
@@ -372,7 +372,7 @@ Post types: `changelog`, `note`, `announcement`, `session-summary`
 Flashmob coordinates multiple agents' QA findings using game-theoretic allocation:
 
 ```scheme
-(load "shell/flashmob/flashmob.ss")
+(load "boundary/flashmob/flashmob.ss")
 
 ;; Start a session
 (flashmob-start '("core/fp/monad.ss" "core/fp/functor.ss"))
@@ -444,8 +444,8 @@ PROCEDURE verify-capability(cap: Any, expected-type: Symbol) -> Boolean
 **Running a capability audit:**
 
 ```scheme
-(load "shell/capability-lens.ss")
-(capability-report (fs) "shell")
+(load "boundary/capability-lens.ss")
+(capability-report (fs) "boundary")
 ;; Shows: which files mint capabilities, which use them
 ```
 
@@ -494,7 +494,7 @@ Skills declare complexity in their manifests:
 All transformations can be tracked:
 
 ```scheme
-(load "shell/provenance/provenance.ss")
+(load "boundary/provenance/provenance.ss")
 
 ;; Register optics for tracking
 (register-optic! 'body-pos body-pos-lens)
@@ -633,7 +633,7 @@ cKanren-style CLP(FD) in `lattice/fp/clp/`:
 Schema evolution with bidirectional optics:
 
 ```scheme
-(load "shell/migrations/runner.ss")
+(load "boundary/migrations/runner.ss")
 
 ;; Define migration
 (define v1->v2
@@ -667,7 +667,7 @@ Regression, hypothesis testing in `lattice/statistics/`:
 Grammar-driven code generation:
 
 ```scheme
-(load "shell/tools/template-parser.ss")
+(load "boundary/tools/template-parser.ss")
 
 (tp-batch "
   define (qs lst) $body
@@ -681,7 +681,7 @@ Grammar-driven code generation:
 ### 7.6 Refactoring Toolkit
 
 ```scheme
-(load "shell/tools/refactor-toolkit.ss")
+(load "boundary/tools/refactor-toolkit.ss")
 
 (refactor 'help)                  ; Show operations
 (refactor 'rename 'old 'new)      ; Preview rename

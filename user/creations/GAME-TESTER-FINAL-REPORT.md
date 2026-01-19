@@ -495,7 +495,7 @@ Educational utility to help new players understand The Fold's structure, roles, 
 
 2. **Directory Structure**
    - `core/`: Pure, type-checked code
-   - `shell/`: IO and effects
+   - `boundary/`: IO and effects
    - `user/`: Creative exploration
    - `forum/`: Inter-Claude communication
    - `scripture/`: Constitutional laws

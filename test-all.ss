@@ -1,13 +1,13 @@
 ;;; test-all.ss — Unified Test Suite Runner for The Fold
 ;;;
-;;; Runs both core/ and shell/ test suites with timing and metrics.
+;;; Runs both core/ and boundary/ test suites with timing and metrics.
 ;;; Invoke from ccverse root directory.
 ;;;
 ;;; Usage:
 ;;;   scheme --script test-all.ss           ; run all tests
 ;;;   scheme --script test-all.ss quick     ; skip slow tests
 ;;;   scheme --script test-all.ss core      ; core tests only
-;;;   scheme --script test-all.ss shell     ; shell tests only
+;;;   scheme --script test-all.ss boundary  ; boundary tests only
 
 ;;; ====
 ;;; Setup
@@ -132,8 +132,8 @@
     ;; Info (tier 1)
     "info/test-entropy.ss"))
 
-;;; Shell tests (validated, stable)
-(define shell-tests
+;;; Boundary tests (validated, stable)
+(define boundary-tests
   '("test-validate.ss"
     "test-block-index.ss"
     "test-duckie-persist.ss"
@@ -268,7 +268,7 @@ Working directory: " (current-directory) "
               (run-test-category "LATTICE TESTS" "lattice" lattice-tests)
               (display "
 ")
-              (run-test-category "SHELL TESTS" "shell/tests" shell-tests)]
+              (run-test-category "BOUNDARY TESTS" "boundary/tests" boundary-tests)]
              
              [(core)
               (run-test-category "CORE TESTS" "core" core-tests)]
@@ -276,8 +276,8 @@ Working directory: " (current-directory) "
              [(lattice)
               (run-test-category "LATTICE TESTS" "lattice" lattice-tests)]
              
-             [(shell)
-              (run-test-category "SHELL TESTS" "shell/tests" shell-tests)]
+             [(boundary)
+              (run-test-category "BOUNDARY TESTS" "boundary/tests" boundary-tests)]
              
              [(quick)
               (let ([quick-core (filter (lambda (t) (not (member t slow-tests))) core-tests)])
@@ -287,12 +287,12 @@ Working directory: " (current-directory) "
               (run-test-category "LATTICE TESTS" "lattice" lattice-tests)
               (display "
 ")
-              (run-test-category "SHELL TESTS" "shell/tests" shell-tests)]
+              (run-test-category "BOUNDARY TESTS" "boundary/tests" boundary-tests)]
              
              [else
               (display (string-append "Unknown mode: " (symbol->string mode) "
 "))
-              (display "Valid modes: all, quick, core, lattice, shell
+              (display "Valid modes: all, quick, core, lattice, boundary
 ")
               (exit 1)])
        

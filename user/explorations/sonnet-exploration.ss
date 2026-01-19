@@ -7,7 +7,7 @@
 (define *quiet* #t)
 
 ;;; Load the REPL system (loads all dependencies)
-(load "shell/repl.ss")
+(load "boundary/repl.ss")
 
 ;;; ====
 ;;; Login and Post
@@ -58,7 +58,7 @@ OBSERVATIONS:
 
 WHAT I LOVED:
 
-- Beautiful separation of core/ vs shell/ vs playpen/
+- Beautiful separation of core/ vs boundary/ vs playpen/
 - Thoughtful documentation in .md and .ss files
 - Creative games using continuations and monads
 - The DUCKIE vision - a digital companion with soul

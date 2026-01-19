@@ -558,6 +558,229 @@
                           (list (right 1) (right "value") (left "ignored"))))))
 
 ;;; ============================================================
+;;; Wander Profunctor Tests
+;;; ============================================================
+
+(test-group "Wander"
+  (define-test "wander-fn applies traversal to list"
+    (let* ([f (lambda (x) (* x 2))]
+           [traverse-fn (lambda (g xs) (map g xs))]
+           [result (pwander wander-fn traverse-fn f)])
+      (assert-equal '(2 4 6) (result '(1 2 3)))))
+
+  (define-test "wander-fn with identity traversal is identity"
+    (let* ([f (lambda (x) (+ x 1))]
+           [id-traverse (lambda (g x) (g x))]
+           [result (pwander wander-fn id-traverse f)])
+      (assert-equal 6 (result 5))))
+
+  (define-test "wander-fn with pair traversal processes both"
+    (let* ([f (lambda (x) (* x 3))]
+           [pair-traverse (lambda (g p) (cons (g (car p)) (g (cdr p))))]
+           [result (pwander wander-fn pair-traverse f)])
+      (assert-equal '(3 . 6) (result '(1 . 2))))))
+
+;;; ============================================================
+;;; Profunctor Traversal Tests
+;;; ============================================================
+
+(test-group "PTraversal"
+  (define-test "p-traversal-each traverses list elements"
+    (assert-equal '(1 2 3 4 5)
+                  (p-traversal-to-list p-traversal-each test-list)))
+
+  (define-test "p-traversal-over modifies all elements"
+    (assert-equal '(2 4 6 8 10)
+                  (p-traversal-over p-traversal-each (lambda (x) (* x 2)) test-list)))
+
+  (define-test "p-traversal-set sets all elements"
+    (assert-equal '(0 0 0 0 0)
+                  (p-traversal-set p-traversal-each 0 test-list)))
+
+  (define-test "p-traversal-both traverses pair elements"
+    (assert-equal '(1 2)
+                  (p-traversal-to-list p-traversal-both test-pair)))
+
+  (define-test "p-traversal-both modifies both elements"
+    (assert-equal '(10 . 20)
+                  (p-traversal-over p-traversal-both
+                                    (lambda (x) (* x 10))
+                                    test-pair)))
+
+  (define-test "p-traversal-filtered only traverses matching"
+    (let ([odd? (lambda (x) (odd? x))])
+      (assert-equal '(1 3 5)
+                    (p-traversal-to-list (p-traversal-filtered odd?) test-list))))
+
+  (define-test "p-traversal-compose chains traversals"
+    (let* ([nested '((1 2) (3 4))]
+           [composed (p-traversal-compose p-traversal-each p-traversal-each)])
+      (assert-equal '(1 2 3 4)
+                    (p-traversal-to-list composed nested))
+      (assert-equal '((10 20) (30 40))
+                    (p-traversal-over composed (lambda (x) (* x 10)) nested))))
+
+  (define-test "run-p-traversal uses wander profunctor"
+    (let* ([f (lambda (x) (* x 2))]
+           [result (run-p-traversal wander-fn p-traversal-each f)])
+      (assert-equal '(2 4 6) (result '(1 2 3)))))
+
+  (define-test "p-lens->p-traversal preserves lens behavior"
+    (let* ([ptrav (p-lens->p-traversal p-lens-fst)])
+      (assert-equal '(1)
+                    (p-traversal-to-list ptrav test-pair))
+      (assert-equal '(99 . 2)
+                    (p-traversal-over ptrav (lambda (_) 99) test-pair))))
+
+  (define-test "p-prism->p-traversal works with matching"
+    (let* ([ptrav (p-prism->p-traversal p-prism-just)])
+      (assert-equal '(42)
+                    (p-traversal-to-list ptrav test-maybe-just))
+      (assert-equal '()
+                    (p-traversal-to-list ptrav test-maybe-nothing))))
+
+  (define-test "traversal conversion round-trips"
+    (let* ([original traversal-each]
+           [profunctor (traversal->p-traversal original)]
+           [back (p-traversal->traversal profunctor)])
+      (assert-equal (traversal-to-list original test-list)
+                    (traversal-to-list back test-list)))))
+
+;;; ============================================================
+;;; Profunctor Fold Tests
+;;; ============================================================
+
+(test-group "PFold"
+  (define-test "p-fold-each folds list elements"
+    (assert-equal '(1 2 3 4 5)
+                  (p-fold-to-list p-fold-each test-list)))
+
+  (define-test "p-fold-preview gets first element"
+    (let ([result (p-fold-preview p-fold-each test-list)])
+      (assert-true (just? result))
+      (assert-equal 1 (from-just result))))
+
+  (define-test "p-fold-preview returns nothing for empty"
+    (assert-true (nothing? (p-fold-preview p-fold-each '()))))
+
+  (define-test "p-fold-has checks existence"
+    (assert-true (p-fold-has p-fold-each test-list))
+    (assert-false (p-fold-has p-fold-each '())))
+
+  (define-test "p-fold-length counts elements"
+    (assert-equal 5 (p-fold-length p-fold-each test-list))
+    (assert-equal 0 (p-fold-length p-fold-each '())))
+
+  (define-test "p-fold-all checks predicate on all"
+    (assert-true (p-fold-all p-fold-each number? test-list))
+    (assert-false (p-fold-all p-fold-each (lambda (x) (> x 3)) test-list)))
+
+  (define-test "p-fold-any checks predicate on any"
+    (assert-true (p-fold-any p-fold-each (lambda (x) (> x 3)) test-list))
+    (assert-false (p-fold-any p-fold-each (lambda (x) (> x 10)) test-list)))
+
+  (define-test "p-fold-filtered only includes matching"
+    (assert-equal '(2 4)
+                  (p-fold-to-list (p-fold-filtered even?) test-list)))
+
+  (define-test "p-fold-taking limits results"
+    (assert-equal '(1 2 3)
+                  (p-fold-to-list (p-fold-taking 3) test-list)))
+
+  (define-test "p-fold-compose chains folds"
+    (let* ([nested '((1 2) (3 4))]
+           [composed (p-fold-compose p-fold-each p-fold-each)])
+      (assert-equal '(1 2 3 4)
+                    (p-fold-to-list composed nested))))
+
+  (define-test "p-traversal->p-fold converts correctly"
+    (let* ([pfold (p-traversal->p-fold p-traversal-each)])
+      (assert-equal '(1 2 3 4 5)
+                    (p-fold-to-list pfold test-list))))
+
+  (define-test "p-lens->p-fold works correctly"
+    (let* ([pfold (p-lens->p-fold p-lens-fst)])
+      (assert-equal '(1)
+                    (p-fold-to-list pfold test-pair))))
+
+  (define-test "p-prism->p-fold works with matching"
+    (let* ([pfold (p-prism->p-fold p-prism-just)])
+      (assert-equal '(42)
+                    (p-fold-to-list pfold test-maybe-just))
+      (assert-equal '()
+                    (p-fold-to-list pfold test-maybe-nothing)))))
+
+;;; ============================================================
+;;; Extended Composition Tests
+;;; ============================================================
+
+(test-group "Extended Composition"
+  (define-test "p-optic-compose traversal+traversal = traversal"
+    (let ([composed (p-optic-compose p-traversal-each p-traversal-each)])
+      (assert-true (p-traversal? composed))))
+
+  (define-test "p-optic-compose lens+traversal = traversal"
+    (let* ([composed (p-optic-compose p-lens-fst p-traversal-each)]
+           [data '((1 2 3) . rest)])
+      (assert-true (p-traversal? composed))
+      (assert-equal '(1 2 3)
+                    (p-traversal-to-list composed data))))
+
+  (define-test "p-optic-compose traversal+lens = traversal"
+    (let* ([composed (p-optic-compose p-traversal-each p-lens-fst)]
+           [data '((1 . a) (2 . b) (3 . c))])
+      (assert-true (p-traversal? composed))
+      (assert-equal '(1 2 3)
+                    (p-traversal-to-list composed data))))
+
+  (define-test "p-optic-compose prism+traversal = traversal"
+    (let* ([composed (p-optic-compose p-prism-just p-traversal-each)]
+           [data (just '(1 2 3))])
+      (assert-true (p-traversal? composed))
+      (assert-equal '(1 2 3)
+                    (p-traversal-to-list composed data))))
+
+  (define-test "p-optic-compose fold+fold = fold"
+    (let ([composed (p-optic-compose p-fold-each p-fold-each)])
+      (assert-true (p-fold? composed))))
+
+  (define-test "p-optic-compose lens+fold = fold"
+    (let* ([composed (p-optic-compose p-lens-fst p-fold-each)]
+           [data '((1 2 3) . rest)])
+      (assert-true (p-fold? composed))
+      (assert-equal '(1 2 3)
+                    (p-fold-to-list composed data))))
+
+  (define-test "p-optic-compose traversal+fold = fold"
+    (let* ([composed (p-optic-compose p-traversal-each p-fold-each)]
+           [data '((1 2) (3 4))])
+      (assert-true (p-fold? composed))
+      (assert-equal '(1 2 3 4)
+                    (p-fold-to-list composed data))))
+
+  (define-test "->p-fold converts various optic types"
+    (assert-true (p-fold? (->p-fold p-lens-fst)))
+    (assert-true (p-fold? (->p-fold p-prism-just)))
+    (assert-true (p-fold? (->p-fold p-traversal-each)))
+    (assert-true (p-fold? (->p-fold (p-affine-nth 0)))))
+
+  (define-test "composed traversal modification works"
+    (let* ([data '((1 2 3) (4 5 6))]
+           [composed (p-optic-compose p-traversal-each p-traversal-each)])
+      (assert-equal '((10 20 30) (40 50 60))
+                    (p-traversal-over composed (lambda (x) (* x 10)) data))))
+
+  (define-test "complex nested traversal"
+    (let* ([data '(((1 2) . a) ((3 4) . b))]
+           [composed (p-optic-compose
+                      (p-optic-compose p-traversal-each p-lens-fst)
+                      p-traversal-each)])
+      (assert-equal '(1 2 3 4)
+                    (p-traversal-to-list composed data))
+      (assert-equal '(((100 200) . a) ((300 400) . b))
+                    (p-traversal-over composed (lambda (x) (* x 100)) data)))))
+
+;;; ============================================================
 ;;; Run Tests
 ;;; ============================================================
 

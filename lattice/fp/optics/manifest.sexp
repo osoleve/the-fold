@@ -4,7 +4,7 @@
 ;;; enabling principled navigation and transformation of nested structures.
 
 (skill optics
-  (version "1.2.0")
+  (version "1.3.0")
   (tier 1)
   (path "lattice/fp/optics")
   (purity total)
@@ -111,7 +111,7 @@ Key features:
     iso->grate grate->setter
 
     ;; Unified Composition
-    optic-type optic-compose
+    optic-type optic-compose >>>
     ->traversal ->fold ->setter
     iso->lens iso->prism getter->fold
 
@@ -186,6 +186,26 @@ Key features:
     p-grate-review p-grate-over p-grate-zipWith
     p-grate-id p-grate-fn p-grate-pair-same p-grate-list-rep
     grate->p-grate p-grate->grate p-iso->p-grate
+
+    ;; Wander profunctor (for traversals)
+    make-wander wander? wander-strong wander-choice wander-wander
+    pwander wander-fn
+
+    ;; Profunctor Traversal
+    make-p-traversal p-traversal? p-traversal-traverse p-traversal-fold-fn
+    run-p-traversal p-traversal-to-list p-traversal-over p-traversal-set
+    p-traversal-compose
+    p-traversal-each p-traversal-both p-traversal-filtered
+    traversal->p-traversal p-traversal->traversal
+    p-lens->p-traversal p-prism->p-traversal p-affine->p-traversal
+
+    ;; Profunctor Fold
+    make-p-fold p-fold? p-fold-fn
+    p-fold-to-list p-fold-preview p-fold-has p-fold-length
+    p-fold-all p-fold-any p-fold-compose
+    p-fold-each p-fold-filtered p-fold-taking
+    p-traversal->p-fold p-lens->p-fold p-prism->p-fold
+    ->p-fold p-iso->p-lens
 
     ;; Unified profunctor optic composition
     p-optic-type p-optic-compose

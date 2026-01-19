@@ -79,7 +79,7 @@ opencode run "Your prompt" --print-logs
 # Get a second opinion on a module
 opencode run -m groq/qwen-qwq-32b \
   "Review this code for bugs, performance issues, and maintainability. Be critical." \
-  -f shell/commands.ss \
+  -f boundary/commands.ss \
   > docs/peer-review/opencode-commands-review.md
 ```
 

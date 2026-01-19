@@ -16,7 +16,7 @@
  ;;;
  ;;; core/    — Language kernel (minimal, axiomatic)
  ;;; lattice/ — Skill DAG (stdlib = tier 0, grows organically)
- ;;; shell/   — Impure boundary (IO, validation, capabilities)
+ ;;; boundary/   — Impure boundary (IO, validation, capabilities)
 
  ;;; ====
  ;;; DOMAIN HIERARCHY
@@ -122,35 +122,35 @@
    (tier . shepherd)
    (modules . (core/testing core/benchmarks core/util core/pipeline core/lsp)))
 
-  ((domain . shell)
+  ((domain . boundary)
    (description . "IO layer, validation, and user interface")
    (purity . impure)
    (tier . builder)
    (subdomains . (
      ((name . repl)
       (description . "Interactive environment and sessions")
-      (modules . (shell/repl)))
+      (modules . (boundary/repl)))
      ((name . storage)
       (description . "Persistence and CAS")
-      (modules . (shell/storage)))
+      (modules . (boundary/storage)))
      ((name . diagnostics)
       (description . "Profiling, debugging, analysis")
-      (modules . (shell/diagnostics shell/debug shell/introspect)))
+      (modules . (boundary/diagnostics boundary/debug boundary/introspect)))
      ((name . visualization)
       (description . "Graphics, UI, rendering")
-      (modules . (shell/ui)))
+      (modules . (boundary/ui)))
      ((name . integration)
       (description . "External systems: git, lsp, discord, mcp")
-      (modules . (shell/git shell/lsp shell/discord shell/mcp-server shell/pipeline)))
+      (modules . (boundary/git boundary/lsp boundary/discord boundary/mcp-server boundary/pipeline)))
      ((name . assistants)
       (description . "AI agents and helpers")
-      (modules . (shell/assistants)))
+      (modules . (boundary/assistants)))
      ((name . tools)
       (description . "Developer utilities")
-      (modules . (shell/tools shell/lens)))
+      (modules . (boundary/tools boundary/lens)))
      ((name . io)
       (description . "Filesystem, JSON, validation")
-      (modules . (shell/io)))))))
+      (modules . (boundary/io)))))))
 
  ;;; ====
  ;;; NAMING CONVENTIONS
@@ -207,11 +207,11 @@
  (classification-rules
 
   ((rule . "Pure computation without IO -> core/")
-   (rationale . "Maintains the core/shell separation")
+   (rationale . "Maintains the core/boundary separation")
    (test . "Does this function call any OS/network/file operations?"))
 
-  ((rule . "IO, validation, or effects -> shell/")
-   (rationale . "Defensive code lives in the shell")
+  ((rule . "IO, validation, or effects -> boundary/")
+   (rationale . "Defensive code lives in the boundary")
    (test . "Does this touch the outside world?"))
 
   ((rule . "Type class or FP abstraction -> core/fp/")
@@ -222,7 +222,7 @@
    (rationale . "Use domain-specific directories")
    (test . "Is this math? Which branch?"))
 
-  ((rule . "Developer tooling -> shell/tools/")
+  ((rule . "Developer tooling -> boundary/tools/")
    (rationale . "Keep tools consolidated")
    (test . "Is this for developer productivity?"))
 
@@ -240,16 +240,16 @@
 
  (tiers
   ((tier . player)
-   (description . "Can use shell/ functions, cannot modify")
-   (access . (read shell)))
+   (description . "Can use boundary/ functions, cannot modify")
+   (access . (read boundary)))
 
   ((tier . builder)
-   (description . "Can modify shell/, add utilities")
-   (access . (read core shell) (write shell)))
+   (description . "Can modify boundary/, add utilities")
+   (access . (read core boundary) (write boundary)))
 
   ((tier . shepherd)
    (description . "Can modify core/, architectural decisions")
-   (access . (read core shell) (write core shell))))
+   (access . (read core boundary) (write core boundary))))
 
  ;;; ====
  ;;; DIRECTORY STRUCTURE
@@ -296,7 +296,7 @@
    (automata "State machines, DFA/NFA")
    (pipeline "Agent workflows"))
 
-  (shell
+  (boundary
    (tests "Test suite")
    (tools "Developer tools")
    (ui "Graphics and visualization")
@@ -306,9 +306,9 @@
    (lsp "Language server protocol")
    (discord "Discord integration")
    (mcp-server "MCP integration")
-   (benchmarks "Shell benchmarks")
+   (benchmarks "Boundary benchmarks")
    (introspect "Code analysis")
-   ;; Future directories (shell reorg)
+   ;; Future directories (boundary reorg)
    ;; (repl "REPL and sessions")
    ;; (storage "Persistence")
    ;; (diagnostics "Profiling and analysis")
@@ -320,6 +320,6 @@
  (see-also . (
    "lattice/fp/NAMING-CONVENTIONS.sexp"
    "core/README.sexp"
-   "shell/README.sexp"
+   "boundary/README.sexp"
    "CLAUDE.md"
    "docs/language-reference.md")))

@@ -91,11 +91,14 @@
     make-traced traced? traced-run traced-monoid run-traced
     traced-extract traced-extend traced-duplicate
     traced-functor traced-comonad
+    ;; Copeek operations (for composition)
+    store-copeek env-copeek
     ;; Law verification
     verify-comonad-law-1 verify-comonad-law-2 verify-comonad-law-3
     verify-comonad-laws
-    ;; Composition
-    compose-comonads
+    ;; Composition (requires distributive law)
+    compose-comonads-with-dist* compose-comonads-with-dist
+    compose-comonads  ; DEPRECATED - use compose-comonads-with-dist
     ;; Display
     comonad->string store->string env->string)
    (kan-extension.ss

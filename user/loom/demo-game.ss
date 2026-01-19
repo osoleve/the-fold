@@ -27,7 +27,7 @@
 ;;; Load Dependencies
 ;;; ====
 
-(load "shell/layout.ss")
+(load "boundary/layout.ss")
 (load "user/loom/loom.ss")
 
 ;;; ====

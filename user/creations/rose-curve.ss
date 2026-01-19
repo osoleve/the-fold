@@ -4,10 +4,10 @@
 ;;; where k determines the number of petals
 
 ;;; Load turtle graphics
-(load "shell/ui/turtle-color.ss")
-(load "shell/ui/turtle-path.ss")
-(load "shell/ui/turtle.ss")
-(load "shell/ui/turtle-svg.ss")
+(load "boundary/ui/turtle-color.ss")
+(load "boundary/ui/turtle-path.ss")
+(load "boundary/ui/turtle.ss")
+(load "boundary/ui/turtle-svg.ss")
 
 ;;; Helper: Draw a rose petal curve
 (define (rose-petal t n k scale)

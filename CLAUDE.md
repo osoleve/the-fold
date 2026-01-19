@@ -62,10 +62,10 @@ Returns result on stdout, errors to stderr with exit codes: 0=success, 1=error, 
 
 ### Debugging
 
-The time-travel debugger lives in `shell/debug/debug-repl.ss`:
+The time-travel debugger lives in `boundary/debug/debug-repl.ss`:
 
 ```scheme
-(load "shell/debug/debug-repl.ss")
+(load "boundary/debug/debug-repl.ss")
 (debug expr)                     ; Start debugging
 (step)                           ; Single step
 (next)                           ; Step over
@@ -87,7 +87,7 @@ scheme --script test-all.ss
 # Test subsets
 scheme --script test-all.ss quick     # Skip slow tests
 scheme --script test-all.ss core      # Core tests only
-scheme --script test-all.ss shell     # Shell tests only
+scheme --script test-all.ss boundary  # Boundary tests only
 
 # Core tests
 scheme --script core/run-tests.ss
@@ -107,8 +107,8 @@ scheme --script lattice/autodiff/test-traced-optics.ss
 scheme --script lattice/statistics/test-statistics.ss
 scheme --script lattice/topology/homology-test.ss
 
-# Shell tests
-scheme --script shell/tests/test-string-utils.ss
+# Boundary tests
+scheme --script boundary/tests/test-string-utils.ss
 ```
 
 Test framework: `core/testing/test-framework.ss` provides unified API across all tests.
@@ -156,7 +156,7 @@ All content is **content-addressed** — the cryptographic hash IS the identity.
 |----|----|
 | `core/` | Language kernel — pure, minimal, axiomatic |
 | `lattice/` | Skill lattice — verified library DAG (includes "stdlib") |
-| `shell/` | Impure boundary — IO, validation, capabilities |
+| `boundary/` | Impure boundary — IO, validation, capabilities |
 | `user/` | Playground — experiments and demos |
 | `agents/` | Multi-agent ecosystem |
 | `ops/` | Operational deployment (systemd, scripts) |
@@ -171,7 +171,7 @@ All content is **content-addressed** — the cryptographic hash IS the identity.
 ┌─────────────────────────────────────┐
 │              user/                  │  Applications, experiments
 ├─────────────────────────────────────┤
-│              shell/                 │  ALL impure code lives here
+│              boundary/                 │  ALL impure code lives here
 ├─────────────────────────────────────┤
 │              lattice/               │  Verified skill DAG (pure)
 ├─────────────────────────────────────┤
@@ -263,7 +263,7 @@ The lattice is a DAG of verified skills. "Stdlib" = tier 0 (foundational nodes).
 | `matching.ss` | Gale-Shapley stable matching, hospital-residents |
 | `fair-division.ss` | Envy-free allocation, proportional division |
 
-These are pure functions - import them into shell code for applications like QA triage, resource allocation, or voting systems.
+These are pure functions - import them into boundary code for applications like QA triage, resource allocation, or voting systems.
 
 *Statistics (`lattice/statistics/`):* Linear/GLM regression (IRLS), regularization (ridge, lasso, elastic net), time series (AR, MA, exponential smoothing), hypothesis testing (t-test, F-test, ANOVA, chi-squared). Use `(li 'statistics)` for details.
 
@@ -338,7 +338,7 @@ Use namespaced form (`'dir/module`) when module names collide. The system warns 
 |----------|-----------|-------|
 | **Library code** | `(require 'module)` | Preferred. Handles dependencies, avoids double-loading, collision detection |
 | **Test scripts** | `(load "path.ss")` | OK for standalone scripts run via `scheme --script` |
-| **Shell modules** | `(require 'shell/bbs)` | Shell code can use require too |
+| **Boundary modules** | `(require 'boundary/bbs)` | Boundary code can use require too |
 | **REPL exploration** | Either | `require` is cleaner; `load` works for quick experiments |
 
 When creating new modules, prefer `(require ...)` chains over `(load ...)`. The module system tracks what's loaded and prevents redundant evaluation.
@@ -369,9 +369,9 @@ Use `/lattice-search` skill for full documentation. Quick reference:
 (lattice-would-cycle? 'from 'to)  ; Proactive cycle detection
 ```
 
-### Shell Subsystems
+### Boundary Subsystems
 
-Shell is organized into functional subdirectories:
+Boundary is organized into functional subdirectories:
 
 | Directory | Purpose | Key Modules |
 |----|----|----|
@@ -397,7 +397,7 @@ Shell is organized into functional subdirectories:
 | `tools/` | Utility & refactoring tools | refactor-toolkit.ss, template-*.ss |
 | `lsp/` | Language server protocol | lsp-server.ss, protocol.ss |
 | `web/` | Web tools | fold-tui (Rust CAS terminal explorer) |
-| `tests/` | Shell test suite | test-*.ss files |
+| `tests/` | Boundary test suite | test-*.ss files |
 
 ### Open Protocol System
 
@@ -452,10 +452,10 @@ Introspection: `(bundle-types bundle)`, `(bundle-protocols bundle)`, `(list-bund
 
 ### Refactoring Toolkit
 
-Unified interface for codebase refactoring operations (`shell/tools/refactor-toolkit.ss`):
+Unified interface for codebase refactoring operations (`boundary/tools/refactor-toolkit.ss`):
 
 ```scheme
-(load "shell/tools/refactor-toolkit.ss")
+(load "boundary/tools/refactor-toolkit.ss")
 
 ;; Help and discovery
 (refactor 'help)                           ; Show all operations
@@ -489,7 +489,7 @@ Terminal UI for exploring the content-addressed store:
 
 ```bash
 # Build
-cd shell/web/fold-explorer
+cd boundary/web/fold-explorer
 cargo build --release
 
 # Interactive TUI mode
@@ -508,7 +508,7 @@ Grammar-driven code construction for building S-expressions without tracking par
 **Batch Mode (Recommended):**
 
 ```scheme
-(load "shell/tools/template-parser.ss")
+(load "boundary/tools/template-parser.ss")
 
 ;; Build quicksort - template with holes, then fill them
 (tp-batch "
@@ -527,7 +527,7 @@ Grammar-driven code construction for building S-expressions without tracking par
 - Multi-token statements get implicit parentheses (no outer `()` needed)
 - Batch mode: `tp-batch` chains definitions/fills separated by `---`
 
-**Files:** `lattice/dsl/template/template.ss` (core), `shell/tools/template-session.ss` (session), `shell/tools/template-parser.ss` (parser)
+**Files:** `lattice/dsl/template/template.ss` (core), `boundary/tools/template-session.ss` (session), `boundary/tools/template-parser.ss` (parser)
 
 ---
 
@@ -540,9 +540,9 @@ Grammar-driven code construction for building S-expressions without tracking par
 - Core functions are total (enforced via **fuel** parameter)
 - Evaluation strategy is **call-by-value**
 
-### The Shell Is Fallen
+### The Boundary Is Fallen
 
-- `shell/` handles all IO
+- `boundary/` handles all IO
 - Contains all defensive logic
 - Validates before passing to Core
 - Mints capabilities from Outside
@@ -583,10 +583,10 @@ Everything is built in-house. Exceptions require approval from Andy.
 
 For agents operating within The Fold, see [`docs/agent-operating-manual.md`](docs/agent-operating-manual.md) — algorithmic procedures for:
 
-- **Capability discovery** — Lattice search (`lf`, `li`, `le`) and shell capability scanning
-- **Trust/verification** — Capability audits, static analysis, mint-only-in-shell rule
+- **Capability discovery** — Lattice search (`lf`, `li`, `le`) and boundary capability scanning
+- **Trust/verification** — Capability audits, static analysis, mint-only-in-boundary rule
 - **Fuel prediction** — Cost estimation, budgeting, parallel hazards
-- **Shell boundary** — Request/response protocol, validation checklist
+- **Boundary layer** — Request/response protocol, validation checklist
 - **Provenance** — Normalization, hashing, storing with refs, pinning
 
 ---

@@ -102,8 +102,8 @@
     "lattice/fp/analysis" "lattice/fp/clp" "lattice/statistics"
     "lattice/meta" "lattice/crypto" "lattice/topology" "lattice/optimization"
     "lattice/physics/lenses"
-    ;; Shell directories
-    "shell" "shell/tests" "shell/lsp"))
+    ;; Boundary directories
+    "boundary" "boundary/tests" "boundary/lsp"))
 
 ;;; *header-scan-limit* : Nat
 ;;; Number of lines to scan for header annotations
@@ -262,7 +262,7 @@
 ;;; *module-base-dirs* : (List String)
 ;;; Base directories for namespaced module resolution (e.g., 'diffgeo/charts → lattice/diffgeo/charts.ss)
 (define *module-base-dirs*
-  '("lattice" "core" "shell"))
+  '("lattice" "core" "boundary"))
 
 ;;; find-module-path : Symbol → (Option String)
 ;;; Find file path for a module using manifest-based index.
@@ -638,7 +638,7 @@
    [(string-starts-with? path "lattice/info/") "INFO-THEORY"]
    [(string-starts-with? path "core/util/") "UTIL"]
    [(string-starts-with? path "lattice/fp/") "FP"]
-   [(string-starts-with? path "shell/") "SHELL"]
+   [(string-starts-with? path "boundary/") "SHELL"]
    [else "OTHER"]))
 
 ;;; category-description : String → String
@@ -659,7 +659,7 @@
    [(string=? cat "INFO-THEORY") "information theory"]
    [(string=? cat "UTIL") "utilities"]
    [(string=? cat "FP") "functional programming toolkit"]
-   [(string=? cat "SHELL") "shell, REPL, IO"]
+   [(string=? cat "BOUNDARY") "boundary, REPL, IO"]
    [else ""]))
 
 ;;; group-modules-by-category : Unit → (Hashtable String (List Symbol))

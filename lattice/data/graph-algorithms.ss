@@ -18,12 +18,12 @@
 ;;;   - collection-utils.ss (collection-hashes, etc.)
 ;;;
 ;;; USAGE:
-;;;   (load "shell/store-api.ss")
+;;;   (load "boundary/store-api.ss")
 ;;;   (load "lattice/data/graph-algorithms.ss")
 ;;;   (define fs (make-fs-capability ".store"))
 ;;;   (shortest-path fs from-hash to-hash)
 
-(load "shell/store-api.ss")
+(load "boundary/store-api.ss")
 (load "lattice/data/collection-utils.ss")
 
 ;;; Dependencies for homology-based analysis (Section 8)

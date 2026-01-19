@@ -1,20 +1,21 @@
 ;;; lattice/autodiff/manifest.sexp — Automatic Differentiation Skill Manifest
 
 (skill autodiff
-  (version "0.2.0")
+  (version "0.3.0")
   (tier 1)
   (path "lattice/autodiff")
   (purity partial)  ; Uses mutable tape for efficiency
   (stability stable)
   (fuel-bound "O(n) forward pass, O(n) backward pass where n is tape length")
-  (deps (linalg numeric))  ; numeric for interval arithmetic
+  (deps (linalg numeric fp))  ; numeric for interval arithmetic, fp for optics
 
   (description
    "Reverse-mode automatic differentiation (backpropagation) using
     computational graphs. Supports gradient computation, Jacobian/Hessian
     matrices, higher-order derivatives, and a differentiable type class
-    for generic AD code. Includes sparse autodiff for large systems and
-    interval autodiff for verified optimization with monotonicity pruning.")
+    for generic AD code. Includes sparse autodiff for large systems,
+    interval autodiff for verified optimization with monotonicity pruning,
+    and traced-optics for computing gradients through optic-focused paths.")
 
   (keywords (autodiff automatic-differentiation gradient backpropagation
              reverse-mode forward-mode jacobian hessian interval-gradient
@@ -48,7 +49,12 @@
                       iv-traced-sqr iv-traced-sqrt iv-traced-exp iv-traced-log
                       iv-traced-sin iv-traced-cos iv-traced-pow
                       gradient-sign monotonicity-info all-monotonic?
-                      reduce-box-by-monotonicity))
+                      reduce-box-by-monotonicity)
+   (traced-optics trace-value untrace-value lift-at-optic
+                  optic-gradient optic-gradient-list optic-gradient-maybe
+                  grad-at optimize-at optimize-steps composed-gradient
+                  optic-value-and-gradient lift-const
+                  traced-sum traced-mean traced-l2-norm-sq))
 
   (modules
    (comp-graph "comp-graph.ss" "Computational graph DAG for representing computations")
@@ -60,4 +66,5 @@
    (typed-gradients "typed-gradients.ss" "Type-safe gradient computation")
    (profiling "profiling.ss" "Performance profiling and debugging tools")
    (symbolic-diff "symbolic-diff.ss" "Bridge symbolic expressions to traced autodiff")
-   (interval-autodiff "interval-autodiff.ss" "Interval autodiff for verified optimization")))
+   (interval-autodiff "interval-autodiff.ss" "Interval autodiff for verified optimization")
+   (traced-optics "traced-optics.ss" "Optics integration for gradient through focused paths")))

@@ -20,7 +20,7 @@
 ;;;   - index.ss (for module registry)
 
 (load "core/base/prelude.ss")
-(load "shell/tools/index.ss")
+(load "boundary/tools/index.ss")
 
 ;;; ====
 ;;; Graph Data Structures

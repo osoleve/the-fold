@@ -1,6 +1,6 @@
 ;;; explore-fold-commands.ss — Test Fold-specific commands and features
 
-(load "shell/repl.ss")
+(load "boundary/repl.ss")
 
 (display "\n╔════════════════════════════════════════════════════════════╗\n")
 (display "║        THE FOLD — COMMAND SYSTEM EXPLORATION              ║\n")

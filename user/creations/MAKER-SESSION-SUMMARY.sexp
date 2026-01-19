@@ -111,7 +111,7 @@ in Chez Scheme. It uses:
 Haiku players like Maker can:
   - Modify: user/creations/, forum/ (posting)
   - Read: scripture/, user/
-  - Cannot modify: core/, shell/, covenant/")
+  - Cannot modify: core/, boundary/, covenant/")
 
     (creative-opportunities . "
 The system encourages:

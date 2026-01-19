@@ -2,7 +2,7 @@
 ;;;
 ;;; Load this in the REPL to explore the knowledge graph interactively!
 
-(load "shell/repl.ss")
+(load "boundary/repl.ss")
 
 (printf "\n╔════════════════════════════════════════════════════════════╗\n")
 (printf "║         INTERACTIVE KNOWLEDGE ENGINE SESSION               ║\n")

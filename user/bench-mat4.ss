@@ -4,7 +4,7 @@
 
 (load "core/base/prelude.ss")
 (load "lattice/linalg/vec.ss")
-(load "shell/ffi/ffi-core.ss")
+(load "boundary/ffi/ffi-core.ss")
 
 (display "=== Layer 2 Benchmark: Mat4 Multiply ===\n\n")
 

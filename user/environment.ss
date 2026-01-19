@@ -13,8 +13,8 @@
 ;;; Dependencies
 ;;; ====
 
-(load "shell/ui/color.ss")
-(load "shell/ui/layout-color.ss")
+(load "boundary/ui/color.ss")
+(load "boundary/ui/layout-color.ss")
 (load "user/security-utils.ss")
 
 ;;; ====

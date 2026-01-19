@@ -7,8 +7,8 @@
 (source-directories (cons "core" (source-directories)))
 (load "core/blocks/block.ss")
 (load "core/base/sha256.ss")
-(load "shell/fs.ss")
-(load "shell/block-navigator.ss")
+(load "boundary/fs.ss")
+(load "boundary/block-navigator.ss")
 
 (printf "\n╔════════════════════════════════════════════════════════════╗\n")
 (printf "║   BLOCK NAVIGATOR + KNOWLEDGE ENGINE DEMONSTRATION         ║\n")

@@ -69,10 +69,10 @@ Note: Single-token commands need explicit parens since they're procedure calls.
 
 ### Debugging
 
-The time-travel debugger lives in `shell/debug/debug-repl.ss`:
+The time-travel debugger lives in `boundary/debug/debug-repl.ss`:
 
 ```scheme
-(load "shell/debug/debug-repl.ss")
+(load "boundary/debug/debug-repl.ss")
 (debug expr)                     ; Start debugging
 (step)                           ; Single step
 (next)                           ; Step over
@@ -101,7 +101,7 @@ scheme --script lattice/physics/diff/test-rollout.ss
 scheme --script lattice/meta/test-meta.ss
 
 # Shell tests
-scheme --script shell/tests/test-string-utils.ss
+scheme --script boundary/tests/test-string-utils.ss
 ```
 
 Test framework: `core/testing/test-framework.ss` provides unified API across all tests.
@@ -147,7 +147,7 @@ All content is **content-addressed** — the cryptographic hash IS the identity.
 |----|----|
 | `core/` | Language kernel — pure, minimal, axiomatic |
 | `lattice/` | Skill lattice — verified library DAG (includes "stdlib") |
-| `shell/` | Impure boundary — IO, validation, capabilities |
+| `boundary/` | Impure boundary — IO, validation, capabilities |
 | `user/` | Playground — experiments and demos |
 | `agents/` | Multi-agent ecosystem |
 | `ops/` | Operational deployment (systemd, scripts) |
@@ -160,7 +160,7 @@ All content is **content-addressed** — the cryptographic hash IS the identity.
 ┌─────────────────────────────────────┐
 │              user/                  │  Applications, experiments
 ├─────────────────────────────────────┤
-│              shell/                 │  ALL impure code lives here
+│              boundary/                 │  ALL impure code lives here
 ├─────────────────────────────────────┤
 │              lattice/               │  Verified skill DAG (pure)
 ├─────────────────────────────────────┤
@@ -410,7 +410,7 @@ Grammar-driven code construction for building S-expressions without tracking par
 **Batch Mode (Recommended):** Chain template + fills with `---`:
 
 ```scheme
-(load "shell/tools/template-parser.ss")
+(load "boundary/tools/template-parser.ss")
 
 ;; Build quicksort - template with holes, then fill them
 (tp-batch "
@@ -450,7 +450,7 @@ Grammar-driven code construction for building S-expressions without tracking par
 - Filling a hole with a value containing holes propagates those holes
 - Session manager provides undo support
 
-**Files:** `lattice/dsl/template/template.ss` (core), `shell/tools/template-session.ss` (session), `shell/tools/template-parser.ss` (parser)
+**Files:** `lattice/dsl/template/template.ss` (core), `boundary/tools/template-session.ss` (session), `boundary/tools/template-parser.ss` (parser)
 
 ---
 
@@ -465,7 +465,7 @@ Grammar-driven code construction for building S-expressions without tracking par
 
 ### The Shell Is Fallen
 
-- `shell/` handles all IO
+- `boundary/` handles all IO
 - Contains all defensive logic
 - Validates before passing to Core
 - Mints capabilities from Outside

@@ -2,8 +2,8 @@
 ;;;
 ;;; This script tests various features and reports any sharp edges found
 
-(load "shell/repl.ss")
-(load "shell/exploration-error-handler.ss")  ; Enhanced error formatting
+(load "boundary/repl.ss")
+(load "boundary/exploration-error-handler.ss")  ; Enhanced error formatting
 
 (display "╔════════════════════════════════════════════════════════════╗\n")
 (display "║         THE FOLD — COMPREHENSIVE EXPLORATION               ║\n")

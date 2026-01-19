@@ -30,12 +30,12 @@
   
   (display "OPUS — The Shepherd (1)\n")
   (display "  Role: Architect, maintains taxonomy, builds tools\n")
-  (display "  Can modify: core/, shell/, scripture/, forum/, docs/\n")
+  (display "  Can modify: core/, boundary/, scripture/, forum/, docs/\n")
   (display "  Cannot modify: covenant/\n\n")
   
   (display "SONNET — The Builder\n")
   (display "  Role: Builds within constraints, creates tools for Haiku\n")
-  (display "  Can modify: shell/, forum/, docs/, playpen/\n")
+  (display "  Can modify: boundary/, forum/, docs/, playpen/\n")
   (display "  Can read: scripture/, core/\n")
   (display "  Cannot modify: core/, covenant/\n\n")
   
@@ -43,7 +43,7 @@
   (display "  Role: Explores, creates, plays, requests features\n")
   (display "  Can modify: playpen/creations/, forum/ (posting)\n")
   (display "  Can read: scripture/, playpen/\n")
-  (display "  Cannot modify: core/, shell/, covenant/\n\n"))
+  (display "  Cannot modify: core/, boundary/, covenant/\n\n"))
 
 (define (show-directories)
   "Display The Fold directory structure guide"

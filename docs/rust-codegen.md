@@ -14,7 +14,7 @@ The Rust codegen system translates Scheme expressions into Rust functions that:
 ```scheme
 (load "core/lang/rust-codegen.ss")
 (load "core/lang/rust-compile.ss")
-(load "shell/ffi/rust-loader.ss")
+(load "boundary/ffi/rust-loader.ss")
 
 ;; 1. Create IR for a simple add function
 (define add-ir
@@ -23,11 +23,11 @@ The Rust codegen system translates Scheme expressions into Rust functions that:
 
 ;; 2. Generate Rust code and add to crate
 (compile-to-crate "add_nums" add-ir)
-;; → (ok "shell/ffi/rust-accel/src/generated/add_nums.rs")
+;; → (ok "boundary/ffi/rust-accel/src/generated/add_nums.rs")
 
 ;; 3. Build the crate
 (rust-build!)
-;; → (ok "shell/ffi/rust-accel/target/release/libfold_accel.so")
+;; → (ok "boundary/ffi/rust-accel/target/release/libfold_accel.so")
 
 ;; 4. Load and call
 (rust-load-fn! "fold_add_nums" '(i64 i64) 'i64)
@@ -328,7 +328,7 @@ core/lang/
 ├── rust-compile.ss      # Crate integration, cargo commands
 └── test-rust-codegen.ss # 235 unit tests
 
-shell/ffi/
+boundary/ffi/
 ├── ffi-core.ss          # Base FFI infrastructure
 ├── rust-loader.ss       # Dynamic function loading
 ├── bytevector-ffi.ss    # Zero-copy bytevector FFI + Layer 2 wrappers
@@ -500,7 +500,7 @@ The key breakthrough: **Chez Scheme bytevectors can be passed directly as `u8*` 
 
 ```scheme
 ;; Load bytevector FFI helpers
-(load "shell/ffi/bytevector-ffi.ss")
+(load "boundary/ffi/bytevector-ffi.ss")
 
 ;; Create bytevectors for matrices
 (define mat-a (make-mat4-bytevector))
@@ -574,7 +574,7 @@ The `rust-loader.ss` now supports bytevector types:
 For Layer 2+ acceleration with bytevectors:
 
 ```scheme
-(load "shell/ffi/bytevector-ffi.ss")
+(load "boundary/ffi/bytevector-ffi.ss")
 
 ;; Allocate bytevectors ONCE (reuse across many calls)
 (define mat (make-mat4-bytevector))

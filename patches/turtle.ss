@@ -76,8 +76,8 @@
                         ))
  
  (files .
-        ("shell/ui/turtle-color.ss"
-         "shell/ui/turtle-path.ss"
-         "shell/ui/turtle.ss"
-         "shell/ui/turtle-svg.ss"
-         "shell/ui/turtle-block.ss")))
+        ("boundary/ui/turtle-color.ss"
+         "boundary/ui/turtle-path.ss"
+         "boundary/ui/turtle.ss"
+         "boundary/ui/turtle-svg.ss"
+         "boundary/ui/turtle-block.ss")))

@@ -55,7 +55,7 @@ The Fold separates concerns into three layers with a strict purity boundary:
 +----+
 |   user/      Applications             |
 +----+
-|   shell/     IO, validation           |  <- Impure
+|   boundary/     IO, validation           |  <- Impure
 +====+
 |   lattice/   Verified skill DAG       |  <- Pure
 +----+
@@ -67,7 +67,7 @@ The Fold separates concerns into three layers with a strict purity boundary:
 |----|----|----|----|
 | Core | `core/` | Pure | Minimal, axiomatic language kernel |
 | Lattice | `lattice/` | Pure | Verified library DAG (~3,300 exports) |
-| Shell | `shell/` | Impure | IO boundary, validation, capabilities |
+| Shell | `boundary/` | Impure | IO boundary, validation, capabilities |
 | User | `user/` | Mixed | Applications and experiments |
 
 **The key invariant:** Core and Lattice assume perfect input. Shell provides all defensive logic, validation, and error handling. This separation keeps the pure layers simple and verifiable.
@@ -125,7 +125,7 @@ scheme --script test-all.ss
 |----|----|
 | `core/` | Language kernel: types, blocks, evaluation, normalization |
 | `lattice/` | Skill DAG: verified libraries organized by tier and domain |
-| `shell/` | IO boundary: REPL, storage, diagnostics, tooling |
+| `boundary/` | IO boundary: REPL, storage, diagnostics, tooling |
 | `user/` | Applications, experiments, demos |
 | `docs/` | Extended documentation |
 | `ops/` | Deployment and operations |

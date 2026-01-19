@@ -22,7 +22,7 @@ The most useful tool. Shows **exact locations** of paren errors:
 
 ```bash
 scheme -q <<'EOF'
-(load "shell/tools/paren-check.ss")
+(load "boundary/tools/paren-check.ss")
 (paren-locate "path/to/file.ss")
 EOF
 ```
@@ -39,7 +39,7 @@ Returns `#t` if file is balanced, `#f` otherwise:
 
 ```bash
 scheme -q <<'EOF'
-(load "shell/tools/paren-check.ss")
+(load "boundary/tools/paren-check.ss")
 (paren-ok? "path/to/file.ss")
 EOF
 ```
@@ -50,7 +50,7 @@ Returns list of error structs for further processing:
 
 ```bash
 scheme -q <<'EOF'
-(load "shell/tools/paren-check.ss")
+(load "boundary/tools/paren-check.ss")
 (paren-errors "path/to/file.ss")
 EOF
 ```
@@ -61,7 +61,7 @@ Line-by-line balance report (less precise but shows running totals):
 
 ```bash
 scheme -q <<'EOF'
-(load "shell/tools/paren-check.ss")
+(load "boundary/tools/paren-check.ss")
 (paren-check "path/to/file.ss")
 EOF
 ```
@@ -101,20 +101,20 @@ Exit codes: 0 = balanced, 1 = errors found.
 
 # 2. Run paren-locate
 scheme -q <<'EOF'
-(load "shell/tools/paren-check.ss")
-(paren-locate "shell/introspect/exports.ss")
+(load "boundary/tools/paren-check.ss")
+(paren-locate "boundary/introspect/exports.ss")
 EOF
 
 # Output:
-# shell/introspect/exports.ss:46:1: error: unclosed '(' - never closed
+# boundary/introspect/exports.ss:46:1: error: unclosed '(' - never closed
 
 # 3. The error is at line 46, column 1 - that's where the unclosed ( is!
 #    NOT at the end of the file where Scheme complained.
 
 # 4. Fix and verify:
 scheme -q <<'EOF'
-(load "shell/tools/paren-check.ss")
-(paren-ok? "shell/introspect/exports.ss")
+(load "boundary/tools/paren-check.ss")
+(paren-ok? "boundary/introspect/exports.ss")
 EOF
 # Output: #t
 ```
@@ -136,4 +136,4 @@ EOF
 
 ## File Location
 
-`shell/tools/paren-check.ss` - Load this to access all paren-checking functions.
+`boundary/tools/paren-check.ss` - Load this to access all paren-checking functions.

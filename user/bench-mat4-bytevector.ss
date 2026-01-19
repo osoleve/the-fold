@@ -3,8 +3,8 @@
 ;;; Tests whether bytevector pass-through eliminates marshaling overhead.
 
 (load "core/base/prelude.ss")
-(load "shell/ffi/ffi-core.ss")
-(load "shell/ffi/bytevector-ffi.ss")
+(load "boundary/ffi/ffi-core.ss")
+(load "boundary/ffi/bytevector-ffi.ss")
 
 (display "=== Bytevector FFI Benchmark ===\n\n")
 

@@ -12,7 +12,7 @@
 (load "core/blocks/normalize.ss")
 (load "core/blocks/expand.ss")
 (load "core/blocks/cas.ss")
-(load "shell/tools/benchmark.ss")
+(load "boundary/tools/benchmark.ss")
 
 (printf "\n╔═══════════════════════════════════════════════════════════════╗\n")
 (printf "║              CORE SYSTEM BENCHMARKS                           ║\n")

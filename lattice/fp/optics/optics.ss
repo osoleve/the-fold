@@ -987,6 +987,13 @@
       [else
        (traversal-compose (->traversal outer) (->traversal inner))])))
 
+;;; >>> : Optic -> Optic -> Optic
+;;; Left-to-right optic composition.
+;;; (>>> outer inner) focuses first through outer, then inner within that.
+;;; "Outer" and "inner" refer to structural nesting: outer contains inner.
+(define (>>> outer inner)
+  (optic-compose outer inner))
+
 ;;; ====
 ;;; Universal Conversion Helpers
 ;;; ====

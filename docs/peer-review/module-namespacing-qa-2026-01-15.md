@@ -23,7 +23,7 @@ Gemini reviewed the namespaced module resolution implementation and found it **f
 *   **Unreachable root modules via namespaced syntax**:
     *   **Location**: `find-module-path` (Line 233).
     *   **Issue**: It dispatches to `find-namespaced-module` *only* if the name contains a slash `/`.
-    *   **Consequence**: If a module exists at the root of a base directory (e.g., `shell/repl.ss`), its "namespace" path is `repl`. Because `repl` has no slash, `find-module-path` forces a simple search (`find-simple-module`). The user cannot force a namespaced lookup (e.g., "I want the repl from shell, not lattice") even if they wanted to.
+    *   **Consequence**: If a module exists at the root of a base directory (e.g., `boundary/repl.ss`), its "namespace" path is `repl`. Because `repl` has no slash, `find-module-path` forces a simple search (`find-simple-module`). The user cannot force a namespaced lookup (e.g., "I want the repl from shell, not lattice") even if they wanted to.
 
 ### 2. Missing Functionality
 
@@ -37,7 +37,7 @@ Gemini reviewed the namespaced module resolution implementation and found it **f
 
 *   **Brittle String Parsing**:
     *   **Location**: `path->namespace` (Lines 313-318).
-    *   **Issue**: The function uses hardcoded substring offsets (`8` for "lattice/", `5` for "core/", `6` for "shell/").
+    *   **Issue**: The function uses hardcoded substring offsets (`8` for "lattice/", `5` for "core/", `6` for "boundary/").
     *   **Consequence**: If `*module-base-dirs*` (Line 230) is ever updated (e.g., adding a "user" directory), this function will break or behave incorrectly without a matching manual update.
     *   **Suggestion**: Dynamically match against `*module-base-dirs*` instead of hardcoding the `cond` branches.
 

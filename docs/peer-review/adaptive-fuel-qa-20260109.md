@@ -4,8 +4,8 @@
 **Date:** 2026-01-09
 **Files Reviewed:**
 - `lattice/fp/control-systems/kalman.ss`
-- `shell/fuel/adaptive-allocator.ss`
-- `shell/fuel/adaptive-hof.ss`
+- `boundary/fuel/adaptive-allocator.ss`
+- `boundary/fuel/adaptive-hof.ss`
 - `lattice/fp/control-systems/test-kalman.ss`
 
 ---
@@ -38,7 +38,7 @@ The core Kalman filter implementation in `lattice/fp/control-systems/kalman.ss` 
 ## 5. Test Coverage Gaps
 
 - **Core Math:** **Good.** `lattice/fp/control-systems/test-kalman.ss` provides strong coverage for the underlying math.
-- **Integration:** **Missing.** There are no direct tests for `shell/fuel/adaptive-allocator.ss` or `shell/fuel/adaptive-hof.ss`. The system lacks integration tests verifying that:
+- **Integration:** **Missing.** There are no direct tests for `boundary/fuel/adaptive-allocator.ss` or `boundary/fuel/adaptive-hof.ss`. The system lacks integration tests verifying that:
   - The allocator actually converges on a stable cost.
   - Retries function as expected when fuel runs out.
   - `adaptive-map` handles errors or partial results correctly.
@@ -47,7 +47,7 @@ The core Kalman filter implementation in `lattice/fp/control-systems/kalman.ss` 
 
 ## Actionable Feedback
 
-1. **Add Integration Tests:** Create `shell/fuel/tests/test-adaptive-allocator.ss` to verify `adaptive-eval-element` logic (retries, convergence) and `adaptive-map`.
+1. **Add Integration Tests:** Create `boundary/fuel/tests/test-adaptive-allocator.ss` to verify `adaptive-eval-element` logic (retries, convergence) and `adaptive-map`.
 2. **Optimize History:** Replace the `take` implementation in `allocator-push-observation` with a more efficient structure (e.g., check length before consing, or use a vector ring-buffer) if history grows beyond small constants.
 3. **Refine Quoting:** Verify `(call (quote ,f) ...)` works for non-symbol functions. Consider passing `f` directly if the evaluator supports it.
 4. **Standardize Options:** Consider supporting a more idiomatic options interface (e.g., keyword arguments or a variadic property list) for `adaptive-map`.

@@ -3,10 +3,10 @@
 **Reviewer:** Gemini 3 Pro Preview
 **Date:** 2026-01-16
 **Files Reviewed:**
-- `shell/io/file-lock.ss` (new)
-- `shell/io/atomic.ss` (updated)
-- `shell/bbs/counter.ss` (updated)
-- `shell/bbs/heads.ss` (updated)
+- `boundary/io/file-lock.ss` (new)
+- `boundary/io/atomic.ss` (updated)
+- `boundary/bbs/counter.ss` (updated)
+- `boundary/bbs/heads.ss` (updated)
 
 ---
 
@@ -14,7 +14,7 @@
 
 ### 1. Critical Race Condition in Stale Lock Handling
 
-**File:** `shell/io/file-lock.ss:90`
+**File:** `boundary/io/file-lock.ss:90`
 
 **Issue:** Breaking a stale lock is not atomic.
 
@@ -35,9 +35,9 @@ If two processes (P1, P2) detect a stale lock simultaneously:
 
 ### 2. Lock Bypassing in Public Writers
 
-**File:** `shell/bbs/counter.ss:73` (`bbs-write-counter!`)
-**File:** `shell/bbs/heads.ss:67` (`bbs-write-head!`)
-**File:** `shell/bbs/heads.ss:77` (`bbs-delete-head!`)
+**File:** `boundary/bbs/counter.ss:73` (`bbs-write-counter!`)
+**File:** `boundary/bbs/heads.ss:67` (`bbs-write-head!`)
+**File:** `boundary/bbs/heads.ss:77` (`bbs-delete-head!`)
 
 **Issue:** These functions modify protected resources without acquiring the corresponding lock.
 
@@ -54,7 +54,7 @@ If two processes (P1, P2) detect a stale lock simultaneously:
 
 ### 3. Temporary File Collision
 
-**File:** `shell/io/atomic.ss:28`
+**File:** `boundary/io/atomic.ss:28`
 
 **Issue:** Fixed temporary filename suffix `.tmp` causes collisions for concurrent writers.
 
@@ -66,7 +66,7 @@ If two processes (P1, P2) detect a stale lock simultaneously:
 
 ### 4. Unreliable Process ID
 
-**File:** `shell/io/file-lock.ss:54`
+**File:** `boundary/io/file-lock.ss:54`
 
 **Issue:** `current-process-id` uses `(modulo addr 1000000)` of a pointer address.
 
@@ -76,7 +76,7 @@ This is not a valid PID. It is not unique across processes (collisions are likel
 
 ### 5. Redundant TOCTOU Check
 
-**File:** `shell/io/file-lock.ss:40`
+**File:** `boundary/io/file-lock.ss:40`
 
 **Issue:** `(if (file-exists? lock-path) ...)` before `call-with-output-file ... '(exclusive)`.
 

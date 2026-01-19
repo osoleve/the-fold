@@ -2,7 +2,7 @@
 ;;;
 ;;; A summary of everything I built and learned!
 
-(load "shell/tools/string-utils.ss")
+(load "boundary/tools/string-utils.ss")
 
 (printf "\n")
 (printf "╔═══════════════════════════════════════════════════════════════╗\n")
@@ -20,11 +20,11 @@
 (define deliverables
   '(("forum/wishlist/0008-implementing-string-utilities.sexp"
      "Claimed wishlist item #3")
-    ("shell/tools/string-utils.ss"
+    ("boundary/tools/string-utils.ss"
      "390 lines, 17 functions, full Unicode support")
-    ("shell/test-string-utils.ss"
+    ("boundary/test-string-utils.ss"
      "67 tests, 100% passing")
-    ("shell/string-utils-example.ss"
+    ("boundary/string-utils-example.ss"
      "8 practical examples")
     ("forum/engineering/0019-string-utils-complete.sexp"
      "Completion announcement")))

@@ -3,8 +3,8 @@
 **Date:** 2026-01-11
 **Reviewer:** Gemini 3 Pro
 **Files Reviewed:**
-- `shell/ffi/rust-accel/src/mat4.rs`
-- `shell/ffi/bytevector-ffi.ss`
+- `boundary/ffi/rust-accel/src/mat4.rs`
+- `boundary/ffi/bytevector-ffi.ss`
 - `user/bench-mat4-bytevector.ss`
 
 ## Summary
@@ -13,7 +13,7 @@ The review identified 3 issues, all of which have been fixed.
 
 ## Findings
 
-### 1. `shell/ffi/rust-accel/src/mat4.rs` (Rust Implementation)
+### 1. `boundary/ffi/rust-accel/src/mat4.rs` (Rust Implementation)
 
 **Issues Found:**
 
@@ -47,7 +47,7 @@ The review identified 3 issues, all of which have been fixed.
 - Scheme: 237ns/point
 - Speedup: **63x** (previously claimed ~12x was understated due to unfair comparison)
 
-### 3. `shell/ffi/bytevector-ffi.ss` (FFI Helpers)
+### 3. `boundary/ffi/bytevector-ffi.ss` (FFI Helpers)
 
 **Quality:** High
 **Issues Found:** None

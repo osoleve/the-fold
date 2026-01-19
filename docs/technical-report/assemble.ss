@@ -96,12 +96,12 @@
   (display "\nBuilding HTML versions for website...\n")
   ;; Build simple HTML report
   (display "  Building technical-report.html...\n")
-  (let ([result (system "scheme --script shell/tools/build-report.ss 2>&1")])
+  (let ([result (system "scheme --script boundary/tools/build-report.ss 2>&1")])
     (unless (zero? result)
       (display "  Warning: build-report.ss failed\n")))
   ;; Build navigable HTML report
   (display "  Building technical-report-nav.html...\n")
-  (let ([result (system "scheme --script shell/tools/build-nav-report.ss 2>&1")])
+  (let ([result (system "scheme --script boundary/tools/build-nav-report.ss 2>&1")])
     (unless (zero? result)
       (display "  Warning: build-nav-report.ss failed\n")))
   (display "HTML build complete.\n"))

@@ -64,10 +64,10 @@ build_report() {
 
     # Build HTML versions
     info "  Building HTML (simple)..."
-    scheme --script shell/tools/build-report.ss
+    scheme --script boundary/tools/build-report.ss
 
     info "  Building HTML (navigable)..."
-    scheme --script shell/tools/build-nav-report.ss
+    scheme --script boundary/tools/build-nav-report.ss
 
     log "Build complete."
     echo ""

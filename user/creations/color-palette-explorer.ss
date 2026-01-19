@@ -6,7 +6,7 @@
 ;;; Created by: Game Tester (Haiku Agent)
 ;;; Date: 2025-12-26
 
-(load "shell/layout.ss")
+(load "boundary/layout.ss")
 
 ;;; ====
 ;;; ASCII Character Density Levels

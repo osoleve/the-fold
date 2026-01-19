@@ -4,10 +4,10 @@
 ;;; This simulates the effect using parametric equations with damping.
 
 ;;; Load turtle graphics
-(load "shell/ui/turtle-color.ss")
-(load "shell/ui/turtle-path.ss")
-(load "shell/ui/turtle.ss")
-(load "shell/ui/turtle-svg.ss")
+(load "boundary/ui/turtle-color.ss")
+(load "boundary/ui/turtle-path.ss")
+(load "boundary/ui/turtle.ss")
+(load "boundary/ui/turtle-svg.ss")
 
 ;;; Harmonograph equations with damping
 ;;; x(t) = A1*sin(f1*t + p1)*exp(-d1*t) + A2*sin(f2*t + p2)*exp(-d2*t)

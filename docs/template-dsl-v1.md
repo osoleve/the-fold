@@ -2,7 +2,7 @@
 
 **Status:** Stable
 **Version:** 1.0
-**Location:** `lattice/dsl/template/` (core), `shell/tools/` (session, parser)
+**Location:** `lattice/dsl/template/` (core), `boundary/tools/` (session, parser)
 
 ## Overview
 
@@ -93,7 +93,7 @@ This enables incremental refinement of structure.
 Chain template + fills in one command using `---` separators:
 
 ```scheme
-(load "shell/tools/template-parser.ss")
+(load "boundary/tools/template-parser.ss")
 
 ;; Template has holes → Mode 1 (hole-filling)
 (tp-batch "
@@ -195,7 +195,7 @@ Convenience functions for common patterns:
 (template-status t)          ; Template → String
 ```
 
-### Session Manager (`shell/tools/template-session.ss`)
+### Session Manager (`boundary/tools/template-session.ss`)
 
 ```scheme
 ;; Session lifecycle
@@ -228,7 +228,7 @@ Convenience functions for common patterns:
 (ts-cond n)                  ; (cond (clause)...)
 ```
 
-### Parser (`shell/tools/template-parser.ss`)
+### Parser (`boundary/tools/template-parser.ss`)
 
 ```scheme
 ;; Main entry points
@@ -336,8 +336,8 @@ By auto-wrapping multi-token statements, we eliminate the boilerplate while pres
 # Core engine tests (25 tests)
 scheme --script lattice/dsl/template/test-template.ss
 
-# Shell tools tests (30 tests)
-scheme --script shell/tools/test-template-tools.ss
+# Boundary tools tests (30 tests)
+scheme --script boundary/tools/test-template-tools.ss
 ```
 
 ## Files
@@ -348,9 +348,9 @@ scheme --script shell/tools/test-template-tools.ss
 | `lattice/dsl/template/test-template.ss` | Core tests |
 | `lattice/dsl/template/manifest.sexp` | Skill metadata |
 | `lattice/dsl/template/README.sexp` | Module docs |
-| `shell/tools/template-session.ss` | Session manager |
-| `shell/tools/template-parser.ss` | Linear syntax parser |
-| `shell/tools/test-template-tools.ss` | Shell tools tests |
+| `boundary/tools/template-session.ss` | Session manager |
+| `boundary/tools/template-parser.ss` | Linear syntax parser |
+| `boundary/tools/test-template-tools.ss` | Boundary tools tests |
 
 ## Future Directions (v2 ideas)
 
@@ -372,4 +372,4 @@ scheme --script shell/tools/test-template-tools.ss
 - Batch mode with `---` separators
 - Quick templates for common patterns
 - Multi-definition accumulation
-- 55 tests total (25 core + 30 shell)
+- 55 tests total (25 core + 30 boundary)

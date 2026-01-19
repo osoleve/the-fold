@@ -12,7 +12,7 @@
 (load "core/base/prelude.ss")
 (load "user/creations/ascii-video.ss")
 (load "user/creations/sdf-raymarcher.ss")
-(load "shell/ui/animation.ss")
+(load "boundary/ui/animation.ss")
 
 ;;; ====
 ;;; Scene Configuration

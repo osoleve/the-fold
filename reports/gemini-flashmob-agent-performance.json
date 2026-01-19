@@ -2,7 +2,7 @@
   {
     "severity": "high",
     "line": 108,
-    "file": "shell/module/module-index.ss",
+    "file": "boundary/module/module-index.ss",
     "description": "Unnecessary string allocations in a loop. `substring` creates a new string object in every iteration of the loop, which is highly inefficient for a search function called during module lookup (a frequent operation).",
     "code_snippet": "(string=? (substring haystack i (+ i n-len)) needle)",
     "suggested_fix": "Use `string-ref` to compare characters directly in a loop to avoid allocations, or use a built-in search function like `string-contains` or `string-index` if the Scheme implementation provides them.",
@@ -12,7 +12,7 @@
   {
     "severity": "medium",
     "line": 62,
-    "file": "shell/module/manifest-scanner.ss",
+    "file": "boundary/module/manifest-scanner.ss",
     "description": "Quadratic time complexity in directory scanning. Using `append` to accumulate results from recursive calls into a state variable `result` leads to O(N²) behavior relative to the number of manifest files found, as each append copies the existing list.",
     "code_snippet": "(set! result (append (find-manifests path) result))",
     "suggested_fix": "Use a local recursive helper with an accumulator that uses `cons` to build the list in O(1), and then `reverse` the final result once at the end.",
@@ -22,7 +22,7 @@
   {
     "severity": "medium",
     "line": 69,
-    "file": "shell/module/module-index.ss",
+    "file": "boundary/module/module-index.ss",
     "description": "Redundant manifest processing. `module-index-build!` calls `manifest->namespaced-index`, which internally re-calls `manifest->module-index`. This causes the module list of every manifest to be parsed and processed twice during index construction.",
     "code_snippet": "(let ([namespaced-entries (manifest->namespaced-index manifest)])",
     "suggested_fix": "Refactor `manifest->namespaced-index` to accept the already-calculated `simple-entries` as an argument, or derive the namespaced entries directly within the loop in `module-index-build!`.",

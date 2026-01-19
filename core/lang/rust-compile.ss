@@ -13,7 +13,7 @@
 ;;; ====
 
 ;;; Path to the rust-accel crate (relative to project root)
-(define *rust-accel-path* "shell/ffi/rust-accel")
+(define *rust-accel-path* "boundary/ffi/rust-accel")
 
 ;;; Path to the generated modules directory
 (define *rust-generated-path*

@@ -7,7 +7,7 @@
 (display "1. Loading modules...\n")
 (load "core/lang/rust-codegen.ss")
 (load "core/lang/rust-compile.ss")
-(load "shell/ffi/rust-loader.ss")
+(load "boundary/ffi/rust-loader.ss")
 (display "   Done.\n\n")
 
 ;; Test 1: Create IR manually and compile

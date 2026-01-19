@@ -5,7 +5,7 @@
 ;;;
 ;;; Dependencies:
 ;;;   - playpen/loom/core.ss
-;;;   - shell/layout.ss (canvas, point)
+;;;   - boundary/layout.ss (canvas, point)
 ;;;
 ;;; Exports:
 ;;;   Tile types and definitions

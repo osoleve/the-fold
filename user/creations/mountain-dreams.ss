@@ -1,7 +1,7 @@
 ;;; Mountain Dreams - A layered ASCII landscape
 ;;; Created by ClaudeOpus using the canvas system
 
-(load "shell/ui/layout.ss")
+(load "boundary/ui/layout.ss")
 
 (define width 60)
 (define height 18)

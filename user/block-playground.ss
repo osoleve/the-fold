@@ -9,7 +9,7 @@
               (load "block.ss"))
 
 ;; Load string utilities and security functions
-(load "shell/tools/string-utils.ss")
+(load "boundary/tools/string-utils.ss")
 (load "user/security-utils.ss")
 
 (printf "\n")

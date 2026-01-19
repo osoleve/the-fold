@@ -22,7 +22,7 @@
 ;;; ====
 
 (load "core/base/prelude.ss")
-(load "shell/ui/layout.ss")
+(load "boundary/ui/layout.ss")
 (import (shell easing))
 (import (shell graphics-primitives))
 (import (shell layout-combinators))
@@ -254,9 +254,9 @@
 (display "║  You've completed the Graphics Library Tour!                 ║\n")
 (display "║                                                              ║\n")
 (display "║  Key files to explore:                                       ║\n")
-(display "║    shell/ui/layout.ss           - Canvas basics              ║\n")
-(display "║    shell/ui/graphics-primitives.ss - Shapes & patterns       ║\n")
-(display "║    shell/ui/layout-combinators.ss  - beside/above/connect    ║\n")
-(display "║    shell/ui/transforms.ss       - Transforms & groups        ║\n")
-(display "║    shell/ui/svg-renderer.ss     - Export to SVG              ║\n")
+(display "║    boundary/ui/layout.ss           - Canvas basics              ║\n")
+(display "║    boundary/ui/graphics-primitives.ss - Shapes & patterns       ║\n")
+(display "║    boundary/ui/layout-combinators.ss  - beside/above/connect    ║\n")
+(display "║    boundary/ui/transforms.ss       - Transforms & groups        ║\n")
+(display "║    boundary/ui/svg-renderer.ss     - Export to SVG              ║\n")
 (display "╚══════════════════════════════════════════════════════════════╝\n")

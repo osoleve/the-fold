@@ -30,7 +30,7 @@ repos:
       # Rust: cargo fmt check
       - id: rust-fmt
         name: Check Rust formatting (cargo fmt)
-        entry: bash -c 'cd shell/ffi/rust-accel && cargo fmt --check'
+        entry: bash -c 'cd boundary/ffi/rust-accel && cargo fmt --check'
         language: system
         pass_filenames: false
         stages: [pre-commit]
@@ -39,7 +39,7 @@ repos:
       # Rust: clippy (errors only, warnings allowed)
       - id: rust-clippy
         name: Run Clippy lints
-        entry: bash -c 'cd shell/ffi/rust-accel && cargo clippy --all-targets 2>&1 | grep -q "^error" && exit 1 || exit 0'
+        entry: bash -c 'cd boundary/ffi/rust-accel && cargo clippy --all-targets 2>&1 | grep -q "^error" && exit 1 || exit 0'
         language: system
         pass_filenames: false
         stages: [pre-commit]
@@ -48,7 +48,7 @@ repos:
       # Rust: cargo check (faster than full build)
       - id: rust-check
         name: Check Rust compiles (cargo check)
-        entry: bash -c 'cd shell/ffi/rust-accel && cargo check'
+        entry: bash -c 'cd boundary/ffi/rust-accel && cargo check'
         language: system
         pass_filenames: false
         stages: [pre-commit]

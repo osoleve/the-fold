@@ -14,10 +14,10 @@
 ;;; Dependencies:
 ;;;   lattice/meta/kg.ss
 ;;;   lattice/meta/dag.ss
-;;;   shell/io/process.ss (for test execution)
+;;;   boundary/io/process.ss (for test execution)
 
 (load "lattice/meta/dag.ss")
-(load "shell/io/process.ss")
+(load "boundary/io/process.ss")
 
 ;;; ====
 ;;; Skill Description
@@ -362,7 +362,7 @@
 
 ;;; run-test-file : String -> 'ok | (error . String)
 ;;; Run a single test file and return result
-;;; Uses shell/io/process.ss for proper exit code handling
+;;; Uses boundary/io/process.ss for proper exit code handling
 (define (run-test-file path)
   (guard (e [else `(error . ,(format "~a" e))])
          (let* ([cmd (format "scheme --script '~a' 2>&1" (shell-escape path))]

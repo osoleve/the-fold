@@ -14,7 +14,7 @@
 ;;; Try to load acceleration, but don't fail if unavailable
 (define *accel-enabled* #f)
 (guard (ex [else (set! *accel-enabled* #f)])
-       (load "shell/ffi/bvh-cache.ss")
+       (load "boundary/ffi/bvh-cache.ss")
        (when (accel-load!)
              (bind-bvh-procedures!)
              (set! *accel-enabled* #t)))

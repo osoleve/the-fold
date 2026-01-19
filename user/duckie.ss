@@ -269,7 +269,7 @@
 ;;; This is the soul, not the body.
 ;;; DUCKIE still needs:
 ;;;
-;;;   - A renderer (shell/layout.ss — the window)
+;;;   - A renderer (boundary/layout.ss — the window)
 ;;;   - A parser (core/parse.ss — the ears)
 ;;;   - Animation frames (the body language)
 ;;;   - A main loop (the heartbeat)

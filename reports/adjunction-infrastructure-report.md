@@ -706,7 +706,7 @@ The module identifies these future extensions:
 - Implement effect handlers as cofree comonad algebras
 - Use Yoneda to optimize category queries
 
-**In shell/**:
+**In boundary/**:
 - Profile codensity-queue vs current queue implementations
 - Build effect-aware protocol dispatch using cofree algebras
 - Implement lens optics explicitly as Store coalgebras
@@ -728,7 +728,7 @@ The module respects The Fold's three-layer architecture:
 ┌─────────────────────────────────────┐
 │   user/ (applications, demos)       │ Can use category structure
 ├─────────────────────────────────────┤
-│   shell/ (impure boundary)          │ Validates and wraps
+│   boundary/ (impure boundary)          │ Validates and wraps
 ├─────────────────────────────────────┤
 │   lattice/fp/category/ (pure core)  │ Total functions, verified laws
 ├─────────────────────────────────────┤

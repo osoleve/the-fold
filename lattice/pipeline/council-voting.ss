@@ -5,7 +5,7 @@
 ;;; aggregation rules (Schulze, Borda, Copeland, plurality) determine outcomes.
 ;;;
 ;;; This is Lattice code: pure stage construction.
-;;; Effect interpretation happens in shell/pipeline/interpreter.ss
+;;; Effect interpretation happens in boundary/pipeline/interpreter.ss
 ;;;
 ;;; Features:
 ;;;   - Ranked preference submission

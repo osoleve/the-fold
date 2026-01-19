@@ -1,8 +1,8 @@
 ;;; fun-exploration.ss - Let's have some fun with the new tools!
 
-(load "shell/repl.ss")
+(load "boundary/repl.ss")
 (load "lattice/data/graph-algorithms.ss")
-(load "shell/graph-export.ss")
+(load "boundary/graph-export.ss")
 
 (printf "\n")
 (printf "╔════════════════════════════════════════════════════════════╗\n")

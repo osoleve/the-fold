@@ -6,8 +6,8 @@
 ;;; This is Playpen code: the SDK for building roguelikes and dungeon crawlers.
 ;;;
 ;;; Dependencies:
-;;;   - shell/layout.ss (canvas, point, rect)
-;;;   - shell/ui/layers.ss (layer system)
+;;;   - boundary/layout.ss (canvas, point, rect)
+;;;   - boundary/ui/layers.ss (layer system)
 ;;;
 ;;; Exports:
 ;;;   Direction: 'north 'south 'east 'west 'northeast 'northwest 'southeast 'southwest
@@ -207,7 +207,7 @@
   (set! *next-entity-id* 0))
 
 ;;; ====
-;;; Point Utilities (extending shell/layout.ss)
+;;; Point Utilities (extending boundary/layout.ss)
 ;;; ====
 
 ;;; point-add : Point × Point -> Point

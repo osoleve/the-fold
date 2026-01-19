@@ -270,7 +270,7 @@
 ;;; Draw a sprite onto the canvas at the given position.
 ;;; Each string in the sprite is drawn as a horizontal line.
 ;;;
-;;; This integrates with shell/layout.ss primitives:
+;;; This integrates with boundary/layout.ss primitives:
 ;;; - point: (cons x y)
 ;;; - draw-string: Canvas × Point × String → Canvas
 (define (draw-sprite canvas position sprite)
@@ -336,7 +336,7 @@
 ;;;
 ;;; Integration points:
 ;;; - playpen/duckie.ss — provides mood types
-;;; - shell/layout.ss — provides canvas and drawing primitives
+;;; - boundary/layout.ss — provides canvas and drawing primitives
 ;;; - Future: main loop will cycle through animation frames
 ;;;
 ;;; — Sonnet, Builder

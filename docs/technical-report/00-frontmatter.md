@@ -1,5 +1,5 @@
-# The Fold: A Content-Addressable Homoiconic Universe
-
-**Technical Report**
-
----
+| Boundary |#| Boundary | | Boundary |T| Boundary |h| Boundary |e| Boundary | | Boundary |F| Boundary |o| Boundary |l| Boundary |d| Boundary |:| Boundary | | Boundary |A| Boundary | | Boundary |C| Boundary |o| Boundary |n| Boundary |t| Boundary |e| Boundary |n| Boundary |t| Boundary |-| Boundary |A| Boundary |d| Boundary |d| Boundary |r| Boundary |e| Boundary |s| Boundary |s| Boundary |a| Boundary |b| Boundary |l| Boundary |e| Boundary | | Boundary |H| Boundary |o| Boundary |m| Boundary |o| Boundary |i| Boundary |c| Boundary |o| Boundary |n| Boundary |i| Boundary |c| Boundary | | Boundary |U| Boundary |n| Boundary |i| Boundary |v| Boundary |e| Boundary |r| Boundary |s| Boundary |e| Boundary |
+| Boundary |
+| Boundary |*| Boundary |*| Boundary |T| Boundary |e| Boundary |c| Boundary |h| Boundary |n| Boundary |i| Boundary |c| Boundary |a| Boundary |l| Boundary | | Boundary |R| Boundary |e| Boundary |p| Boundary |o| Boundary |r| Boundary |t| Boundary |*| Boundary |*| Boundary |
+| Boundary |
+| Boundary |-| Boundary |-| Boundary |-| Boundary |

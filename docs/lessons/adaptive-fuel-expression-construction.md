@@ -5,7 +5,7 @@
 
 ## Executive Summary
 
-Fixed two issues in `shell/fuel/adaptive-hof.ss` related to constructing expressions for Core DSL evaluation. Key insight: the boundary between Scheme orchestration code and Core DSL evaluation requires careful handling of quoting, environments, and API ergonomics.
+Fixed two issues in `boundary/fuel/adaptive-hof.ss` related to constructing expressions for Core DSL evaluation. Key insight: the boundary between Scheme orchestration code and Core DSL evaluation requires careful handling of quoting, environments, and API ergonomics.
 
 ---
 
@@ -182,7 +182,7 @@ After making changes, a quick inline test validates the fix:
 
 ### Integration Testing
 
-The existing test suite (`shell/fuel/tests/test-adaptive-allocator.ss`) validates that the native functions still work correctly after refactoring.
+The existing test suite (`boundary/fuel/tests/test-adaptive-allocator.ss`) validates that the native functions still work correctly after refactoring.
 
 ### Rule
 

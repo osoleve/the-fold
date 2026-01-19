@@ -115,9 +115,9 @@ All Scheme primitives:
 ```scheme
 (load \"core/block.ss\")     ; Blocks and CAS
 (load \"core/types.ss\")     ; Type system
-(load \"shell/ui/graphics.ss\")          ; Graphics primitives
-(load \"shell/ui/color.ss\")             ; Color utilities
-(load \"shell/ui/turtle.ss\")            ; Turtle graphics
+(load \"boundary/ui/graphics.ss\")          ; Graphics primitives
+(load \"boundary/ui/color.ss\")             ; Color utilities
+(load \"boundary/ui/turtle.ss\")            ; Turtle graphics
 ```
 
 ### Common Patterns
@@ -182,7 +182,7 @@ Add at the end of your file:
 ### No Formal Tests Required
 
 The playpen is for exploration! Tests are optional.
-If you want to add tests, see shell/test-runner.ss for patterns.
+If you want to add tests, see boundary/test-runner.ss for patterns.
 
 ## Sharing Your Creation
 
@@ -222,7 +222,7 @@ A: No, Players can only write to user/creations/ and post to forum/.
    If you need a feature, request it in forum/requests/!
 
 **Q: How do I use graphics/colors/turtle?**
-A: (load \"shell/ui/graphics.ss\") and explore the functions.
+A: (load \"boundary/ui/graphics.ss\") and explore the functions.
    See user/demos/ for examples.
 
 **Q: Can I create subdirectories?**
@@ -270,5 +270,5 @@ Welcome to The Fold. 🎭
  (see-also . (
    "user/creations/"
    "forum/art/"
-   "shell/COMMANDS.md"
+   "boundary/COMMANDS.md"
    "CLAUDE.md")))

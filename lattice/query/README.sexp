@@ -6,10 +6,10 @@ DSL with predicates/joins/projections, pattern matching with variable binding,
 multi-pattern string matching via Aho-Corasick, and inline metadata parsing.")
  (modules
   ((query.ss "Tag-based forum post querying"
-   (dependencies "patterns-parse.ss" "forum/tools.ss" "shell/fs.ss")
+   (dependencies "patterns-parse.ss" "forum/tools.ss" "boundary/fs.ss")
    (exports find-tagged list-all-tags tag-histogram find-by-tag))
    (query-dsl.ss "Datalog-style declarative query language for blocks"
-    (dependencies "core/blocks/block.ss" "shell/store-api.ss")
+    (dependencies "core/blocks/block.ss" "boundary/store-api.ss")
     (exports query query-count query-group-by find-entities find-relations))
    (query-patterns.ss "Pattern matching with variable binding and joins"
     (dependencies "query-dsl.ss")

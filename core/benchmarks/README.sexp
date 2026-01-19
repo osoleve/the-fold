@@ -39,5 +39,5 @@ In REPL:
 ")
 
  (see-also . (
-   "shell/benchmarks/README.sexp"
+   "boundary/benchmarks/README.sexp"
    "core/util/profiling.ss")))

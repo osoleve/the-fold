@@ -61,7 +61,7 @@ fi
 
 # Rust checks (only if Rust files are staged)
 if [ -n "$RUST_STAGED" ]; then
-    RUST_DIR="shell/ffi/rust-accel"
+    RUST_DIR="boundary/ffi/rust-accel"
 
     # 3. Check Rust formatting
     echo -e "${YELLOW}[3/$TOTAL_CHECKS]${NC} Checking Rust formatting..."
