@@ -136,6 +136,8 @@ Tests are co-located with their modules (e.g., `test-vec.ss` next to `vec.ss`).
 
 **Note:** `assert-true` checks `(eq? #t expr)`, not just truthiness. Use `(assert-true (pair? x))` instead of `(assert-true x)` when x might be a truthy non-boolean like a pair from `assq`.
 
+**Performance tip:** When tests need expensive initialization (building indices, parsing manifests), use an "ensure" pattern: check if already initialized before building. See `kg-ensure!` and `lattice-ensure!` in `lattice/meta/` for examples. This reduced test-meta.ss runtime from 20s to 2s.
+
 ---
 
 ## Architecture Overview
@@ -367,6 +369,13 @@ Use `/lattice-search` skill for full documentation. Quick reference:
 ;; Validation
 (lc 'skill)         ; Cycle check (validate deps)
 (lattice-would-cycle? 'from 'to)  ; Proactive cycle detection
+```
+
+**Quiet mode:** Set `*meta-quiet*` to `#t` before loading meta modules to suppress "foo.ss loaded" messages. Useful for tests and scripts:
+
+```scheme
+(define *meta-quiet* #t)
+(load "lattice/meta/meta.ss")  ; No load messages printed
 ```
 
 ### Boundary Subsystems
