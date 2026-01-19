@@ -371,30 +371,34 @@ Use `/lattice-search` skill for full documentation. Quick reference:
 
 ### Boundary Subsystems
 
-Boundary is organized into functional subdirectories:
+Boundary is organized into functional subdirectories. Root-level files are entry points only:
+- `commands.ss` — REPL command registry
+- `toolkit.ss` — Development toolkit index
+- `run-tests.ss` — Boundary test runner
 
 | Directory | Purpose | Key Modules |
 |----|----|----|
-| `repl/` | REPL & session management | repl-daemon.ss, session-manager.ss |
-| `blocks/` | Block system tools | block-explorer.ss, block-navigator.ss |
-| `debug/` | Developer inspection | debug-repl.ss (time-travel debugger) |
-| `diagnostics/` | Profiling & analysis | fuel-viz.ss, profile-viewer.ss |
-| `storage/` | Persistence & identity | store-manager.ss, cas-persist.ss |
+| `repl/` | REPL & session management | repl.ss, repl-daemon.ss, session-manager.ss, history.ss |
+| `blocks/` | Block system tools | block-explorer.ss, block-navigator.ss, block-query.ss |
+| `debug/` | Debugging & errors | debug-repl.ss, error-fmt.ss, type-inspect.ss, xref.ss |
+| `diagnostics/` | Profiling & analysis | profiler-unified.ss, fuel-analysis.ss, profile-*.ss |
+| `storage/` | Persistence & identity | store-api.ss, cas-persist.ss, identity.ss |
 | `io/` | Low-level IO utilities | fs.ss, json.ss, process.ss |
 | `git/` | Git operations | git.ss, git-workflow.ss |
+| `tools/` | Developer utilities | edit.ss, refactor-toolkit.ss, autodoc.ss, capability-lens.ss |
 | `assistants/` | AI agents | duckie-*.ss |
 | `media/` | Creative tools | music-gen.ss, create-art.ss |
-| `ui/` | Graphics & display | graphics.ss, color.ss, layers.ss |
+| `ui/` | Graphics & display | graphics.ss, color.ss, layout.ss, layers.ss |
+| `tutorial/` | Tutorial system | tutorial.ss, interactive-tutorial.ss |
 | `discord/` | Discord bot integration | bot.js, bridge.js |
 | `mcp-server/` | MCP server integration | External tool access |
-| `lens/` | Optics & lenses | capability-lens.ss |
-| `introspect/` | System introspection | type-inspect.ss, xref.ss |
+| `lens/` | Code navigation lenses | call-graph.ss, navigator.ss, jump.ss |
+| `introspect/` | System introspection | complexity.ss, exports.ss, memory.ss, timing.ss |
 | `pipeline/` | Agent pipelines | workflow integration |
 | `provenance/` | Optic provenance tracking | provenance.ss, traced-optics.ss, query.ss |
 | `reactive/` | Reactive derivations | reactive.ss (optic dependency tracking) |
 | `bbs/` | Issue tracker | bbs.ss, ops.ss, index.ss |
 | `migrations/` | Schema migrations | runner.ss (CAS tree migration), registry.ss (version graph) |
-| `tools/` | Utility & refactoring tools | refactor-toolkit.ss, template-*.ss |
 | `lsp/` | Language server protocol | lsp-server.ss, protocol.ss |
 | `web/` | Web tools | fold-tui (Rust CAS terminal explorer) |
 | `tests/` | Boundary test suite | test-*.ss files |
