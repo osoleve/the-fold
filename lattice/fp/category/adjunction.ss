@@ -140,8 +140,12 @@
          [G-fmap (functor-fmap G)]
          [F-prime-fmap (functor-fmap F-prime)]
          [G-prime-fmap (functor-fmap G-prime)])
-    (let ([new-left (make-functor (lambda (f x) (F-prime-fmap (lambda (y) (F-fmap f y)) x)))]
-          [new-right (make-functor (lambda (f x) (G-fmap (lambda (y) (G-prime-fmap f y)) x)))])
+    (let ([new-left (make-named-functor
+                     (string->symbol (format "~a∘~a" (functor-name F-prime) (functor-name F)))
+                     (lambda (f x) (F-prime-fmap (lambda (y) (F-fmap f y)) x)))]
+          [new-right (make-named-functor
+                      (string->symbol (format "~a∘~a" (functor-name G) (functor-name G-prime)))
+                      (lambda (f x) (G-fmap (lambda (y) (G-prime-fmap f y)) x)))])
       (make-adjunction
        (string->symbol (format "~a∘~a" (adjunction-name adj2) (adjunction-name adj1)))
        new-left

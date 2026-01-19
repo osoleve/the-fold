@@ -247,13 +247,13 @@
 ;;; Product-exponential adjunction: (−×S) ⊣ (S→−)
 ;;; Produces the Store comonad. Use this to rigorously verify comonad-from-adjunction.
 (define test-functor-pair-S
-  (make-functor (lambda (f pair) (list (f (car pair)) (cadr pair)))))
+  (make-named-functor '−×S (lambda (f pair) (list (f (car pair)) (cadr pair)))))
 
 (define test-functor-func-S
-  (make-functor (lambda (f func) (lambda (s) (f (func s))))))
+  (make-named-functor 'S→− (lambda (f func) (lambda (s) (f (func s))))))
 
 (define adj-store-test
-  (let* ([FG-functor (make-functor
+  (let* ([FG-functor (make-named-functor '−×S∘S→−
                       (lambda (f x)
                         ((functor-fmap test-functor-pair-S)
                          (lambda (y) ((functor-fmap test-functor-func-S) f y)) x)))]

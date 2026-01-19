@@ -161,8 +161,12 @@
          [G-fmap (functor-fmap G)])
     ;; Compose functors: H∘F and K∘G
     ;; (H∘F)(f) = H(F(f)) applied to container
-    (let ([HF (make-functor (lambda (f x) (H-fmap (lambda (y) (F-fmap f y)) x)))]
-          [KG (make-functor (lambda (f x) (K-fmap (lambda (y) (G-fmap f y)) x)))])
+    (let ([HF (make-named-functor
+               (string->symbol (format "~a∘~a" (functor-name H) (functor-name F)))
+               (lambda (f x) (H-fmap (lambda (y) (F-fmap f y)) x)))]
+          [KG (make-named-functor
+               (string->symbol (format "~a∘~a" (functor-name K) (functor-name G)))
+               (lambda (f x) (K-fmap (lambda (y) (G-fmap f y)) x)))])
       (make-nat-transform
        (string->symbol
         (format "~a*~a" (nat-transform-name η) (nat-transform-name ε)))
@@ -200,8 +204,12 @@
          [G-fmap (functor-fmap G)])
     ;; F∘H and G∘H: (F∘H)(f) = F(H(f)), lifting H(f) through F
     ;; For x : F(H(A)), we map (λy. H(f)(y)) over the F-container
-    (let ([FH (make-functor (lambda (f x) (F-fmap (lambda (y) (H-fmap f y)) x)))]
-          [GH (make-functor (lambda (f x) (G-fmap (lambda (y) (H-fmap f y)) x)))])
+    (let ([FH (make-named-functor
+               (string->symbol (format "~a∘~a" (functor-name F) (functor-name H)))
+               (lambda (f x) (F-fmap (lambda (y) (H-fmap f y)) x)))]
+          [GH (make-named-functor
+               (string->symbol (format "~a∘~a" (functor-name G) (functor-name H)))
+               (lambda (f x) (G-fmap (lambda (y) (H-fmap f y)) x)))])
       (make-nat-transform
        (string->symbol (format "~a◁H" (nat-transform-name η)))
        FH
@@ -224,8 +232,12 @@
          [G-fmap (functor-fmap G)])
     ;; H∘F and H∘G: (H∘F)(f) = H(F(f)), lifting F(f) through H
     ;; For x : H(F(A)), we map (λy. F(f)(y)) over the H-container
-    (let ([HF (make-functor (lambda (f x) (H-fmap (lambda (y) (F-fmap f y)) x)))]
-          [HG (make-functor (lambda (f x) (H-fmap (lambda (y) (G-fmap f y)) x)))])
+    (let ([HF (make-named-functor
+               (string->symbol (format "~a∘~a" (functor-name H) (functor-name F)))
+               (lambda (f x) (H-fmap (lambda (y) (F-fmap f y)) x)))]
+          [HG (make-named-functor
+               (string->symbol (format "~a∘~a" (functor-name H) (functor-name G)))
+               (lambda (f x) (H-fmap (lambda (y) (G-fmap f y)) x)))])
       (make-nat-transform
        (string->symbol (format "H▷~a" (nat-transform-name η)))
        HF
