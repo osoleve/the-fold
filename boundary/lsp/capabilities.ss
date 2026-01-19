@@ -155,6 +155,177 @@
                                           #f)))
                                 #f)))))))
 
+;;; ====
+;;; Local Binding Inference
+;;; ====
+
+;;; parse-forms-with-lines : String → (List (form . start-line))
+;;; Parse all top-level forms with their starting line numbers.
+(define (parse-forms-with-lines content)
+  (guard (e [else '()])
+         (let ([lines (string-split content #\newline)]
+               [port (open-input-string content)])
+              (let loop ([acc '()] [last-pos 0])
+                   (let* ([before-pos (file-position port)]
+                          [form (read port)])
+                        (if (eof-object? form)
+                            (reverse acc)
+                            (let* ([start-line (count-newlines-before content before-pos)]
+                                   [after-pos (file-position port)]
+                                   [end-line (count-newlines-before content after-pos)])
+                                  (loop (cons (list form start-line end-line) acc)
+                                        after-pos))))))))
+
+;;; count-newlines-before : String × Int → Int
+;;; Count newlines in content before position (0-indexed line number).
+(define (count-newlines-before content pos)
+  (let ([len (min pos (string-length content))])
+       (let loop ([i 0] [count 0])
+            (if (>= i len)
+                count
+                (loop (+ i 1)
+                      (if (char=? (string-ref content i) #\newline)
+                          (+ count 1)
+                          count))))))
+
+;;; find-definition-containing-line : (List (form start end)) × Int → (form start end) | #f
+;;; Find the top-level definition that contains a given line.
+(define (find-definition-containing-line forms line)
+  (find (lambda (entry)
+               (let ([start (cadr entry)]
+                     [end (caddr entry)])
+                    (and (>= line start) (<= line end))))
+        forms))
+
+;;; extract-local-bindings : Sexp × Symbol → (List (Symbol . Sexp))
+;;; Extract all local bindings visible to a symbol reference within a form.
+;;; Walks the AST looking for let/let*/letrec/lambda forms containing the symbol.
+(define (extract-local-bindings form target-sym)
+  (extract-bindings-deep form target-sym '()))
+
+;;; extract-bindings-deep : Sexp × Symbol × Bindings → Bindings
+;;; Recursively extract bindings, accumulating those in scope.
+(define (extract-bindings-deep form target bindings)
+  (cond
+   ;; Found our target symbol - return accumulated bindings
+   [(eq? form target) bindings]
+   ;; Not a pair - nothing to extract
+   [(not (pair? form)) #f]
+   ;; Lambda: (fn (args...) body) or (lambda (args...) body)
+   [(memq (car form) '(fn lambda))
+    (if (>= (length form) 3)
+        (let* ([params (cadr form)]
+               [body (cddr form)]
+               [param-bindings (map (lambda (p) (cons p 'param))
+                                    (if (list? params) params (list params)))]
+               [new-bindings (append param-bindings bindings)])
+              (extract-in-body body target new-bindings))
+        #f)]
+   ;; Let forms: (let ((var val) ...) body)
+   [(memq (car form) '(let let* letrec))
+    (if (>= (length form) 3)
+        (let* ([bindings-part (cadr form)]
+               ;; Handle named let: (let name ((var val)...) body)
+               [named? (symbol? bindings-part)]
+               [let-bindings (if named? (caddr form) bindings-part)]
+               [body (if named? (cdddr form) (cddr form))]
+               [binding-pairs (if (list? let-bindings)
+                                  (filter-map (lambda (b)
+                                                      (if (and (pair? b) (symbol? (car b)))
+                                                          (cons (car b) (if (pair? (cdr b)) (cadr b) #f))
+                                                          #f))
+                                              let-bindings)
+                                  '())]
+               ;; For named let, include the loop name
+               [name-binding (if named? (list (cons bindings-part 'named-let)) '())]
+               [new-bindings (append name-binding binding-pairs bindings)])
+              (extract-in-body body target new-bindings))
+        #f)]
+   ;; Define: (define (name args...) body) or (define name value)
+   [(eq? (car form) 'define)
+    (if (< (length form) 3)
+        #f
+        (let ([name-part (cadr form)])
+             (if (pair? name-part)
+                 ;; (define (name args...) body...) - extract params and recurse
+                 (let* ([params (cdr name-part)]
+                        [body (cddr form)]
+                        [param-bindings (map (lambda (p) (cons p 'param))
+                                             (if (list? params) params '()))]
+                        [new-bindings (append param-bindings bindings)])
+                       (extract-in-body body target new-bindings))
+                 ;; (define name value) - just recurse into value
+                 (extract-bindings-deep (caddr form) target bindings))))]
+   ;; Other forms - search in subexpressions
+   [else
+    (extract-in-body form target bindings)]))
+
+;;; extract-in-body : (List Sexp) × Symbol × Bindings → Bindings | #f
+;;; Search through a list of forms for the target symbol.
+(define (extract-in-body forms target bindings)
+  (if (null? forms)
+      #f
+      (or (extract-bindings-deep (car forms) target bindings)
+          (extract-in-body (cdr forms) target bindings))))
+
+;;; try-infer-type-local : String × String × Int → String | #f
+;;; Try to infer type including local bindings at a specific line.
+(define (try-infer-type-local name content line)
+  (if (not *infer-available*)
+      #f
+      (guard (e [else #f])
+             (let* ([forms (parse-forms-with-lines content)]
+                    [def-entry (find-definition-containing-line forms line)]
+                    [sym (string->symbol name)])
+                   (if (not def-entry)
+                       ;; No definition at this line - fall back to basic inference
+                       (try-infer-type name content)
+                       ;; Found definition - extract local bindings
+                       (let* ([def-form (car def-entry)]
+                              [local-bindings (extract-local-bindings def-form sym)]
+                              [defs (parse-definitions content)]
+                              [base-env (build-tenv-from-defs defs)])
+                             (if (not local-bindings)
+                                 ;; Symbol not found in this definition - basic inference
+                                 (try-infer-type name content)
+                                 ;; Build environment with local bindings
+                                 (let ([env-with-locals (build-env-with-locals base-env local-bindings)])
+                                      (reset-fresh!)
+                                      (let ([lookup-type (tenv-lookup env-with-locals sym)])
+                                           (if lookup-type
+                                               (type->string lookup-type)
+                                               ;; Try inferring as expression
+                                               (let ([result (infer sym env-with-locals)])
+                                                    (if (eq? (car result) 'ok)
+                                                        (type->string (apply-subst (caddr result) (cadr result)))
+                                                        #f))))))))))))
+
+;;; build-env-with-locals : TEnv × (List (Symbol . Sexp)) → TEnv
+;;; Add local bindings to a type environment.
+;;; Infers types for bindings with initializers, uses fresh vars for params.
+(define (build-env-with-locals base-env local-bindings)
+  (let loop ([bindings local-bindings] [env base-env])
+       (if (null? bindings)
+           env
+           (let* ([binding (car bindings)]
+                  [var (car binding)]
+                  [init (cdr binding)])
+                 (cond
+                  ;; Parameter or named-let - use fresh type variable
+                  [(or (eq? init 'param) (eq? init 'named-let))
+                   (loop (cdr bindings) (tenv-extend env var (fresh-tvar)))]
+                  ;; Has initializer - try to infer its type
+                  [(and init (not (eq? init #f)))
+                   (guard (e [else (loop (cdr bindings) (tenv-extend env var (fresh-tvar)))])
+                          (let ([result (infer init env)])
+                               (if (eq? (car result) 'ok)
+                                   (let ([inferred-type (apply-subst (caddr result) (cadr result))])
+                                        (loop (cdr bindings) (tenv-extend env var inferred-type)))
+                                   (loop (cdr bindings) (tenv-extend env var (fresh-tvar))))))]
+                  ;; No initializer - fresh type variable
+                  [else
+                   (loop (cdr bindings) (tenv-extend env var (fresh-tvar)))])))))
+
 ;;; get-type-string : String → String | #f
 ;;; Get the type of a symbol as a string.
 ;;; Tries multiple sources: real inference, symbol index, primitives.
@@ -175,13 +346,18 @@
 ;;; compute-hover : Document × JsonObject → JsonObject | null
 ;;; Compute hover information for a position.
 ;;; Uses real type inference when available, falls back to index/primitives.
+;;; Now includes local binding inference for let/lambda-bound variables.
 (define (compute-hover doc position)
   (let ([symbol (symbol-at-position doc position)])
        (if (not symbol)
            'null
            (let* ([info (lookup-symbol-info symbol)]
-                  ;; Try real type inference first, then fall back to index/primitives
-                  [type-str (or (and *infer-available*
+                  [line (json-get position "line")]  ; 0-indexed line number
+                  ;; Try local type inference first (includes let bindings),
+                  ;; then basic inference, then fall back to index/primitives
+                  [type-str (or (and *infer-available* line
+                                     (try-infer-type-local symbol (document-content doc) line))
+                                (and *infer-available*
                                      (try-infer-type symbol (document-content doc)))
                                 (get-type-string symbol))]
                   [hover-text (format-hover-text symbol info type-str)])
