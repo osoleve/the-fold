@@ -20,6 +20,7 @@
 
 (load "core/base/prelude.ss")
 (load "lattice/linalg/matrix.ss")
+(load "lattice/linalg/matrix-decomp.ss")  ; Provides matrix-qr, needed by solvers
 (load "lattice/linalg/matrix-solvers.ss")
 (load "lattice/statistics/core/result-types.ss")
 (load "lattice/statistics/core/summary-stats.ss")
