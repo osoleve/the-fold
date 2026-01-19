@@ -19,6 +19,7 @@
  * - fold_lsp_lookup: Combined symbol lookup (hover + def + refs)
  * - fold_lsp_status: Check LSP server status
  * - fold_lsp_completion: Get code completion suggestions at position
+ * - fold_lsp_document_symbols: Get document symbols for file outline
  */
 
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
@@ -280,6 +281,21 @@ export const tools: Tool[] = [
         }
       },
       required: ['file', 'line', 'character']
+    }
+  },
+
+  {
+    name: 'fold_lsp_document_symbols',
+    description: 'Get document symbols for a Scheme file to show its outline/structure. Returns function definitions, variables, and other top-level forms with their locations and nested children.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          description: 'Path to the Scheme file (absolute or relative to project root)'
+        }
+      },
+      required: ['file']
     }
   }
 ];

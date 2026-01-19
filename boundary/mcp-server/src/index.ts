@@ -108,6 +108,8 @@ class FoldMCPServer {
             return await this.handleLspStatus();
           case 'fold_lsp_completion':
             return await this.handleLspCompletion(args);
+          case 'fold_lsp_document_symbols':
+            return await this.handleLspDocumentSymbols(args);
 
           default:
             throw new Error(`Unknown tool: ${name}`);
@@ -536,6 +538,41 @@ class FoldMCPServer {
     return {
       content: [{ type: 'text', text: lines.join('\n') }]
     };
+  }
+
+  private async handleLspDocumentSymbols(args: any) {
+    const { file } = args;
+
+    const symbols = await this.lspClient.documentSymbols(file);
+
+    if (!symbols || symbols.length === 0) {
+      return {
+        content: [{ type: 'text', text: 'No symbols found in this file.' }]
+      };
+    }
+
+    // Format symbols as a tree structure
+    const lines = [`Document symbols for ${file}:`, ''];
+    this.formatSymbolTree(symbols, lines, 0);
+
+    return {
+      content: [{ type: 'text', text: lines.join('\n') }]
+    };
+  }
+
+  /**
+   * Recursively format document symbols as a tree
+   */
+  private formatSymbolTree(symbols: any[], lines: string[], depth: number): void {
+    const indent = '  '.repeat(depth);
+    for (const sym of symbols) {
+      const kind = symbolKindName(sym.kind);
+      const line = sym.range?.start?.line !== undefined ? sym.range.start.line + 1 : '?';
+      lines.push(`${indent}${sym.name} [${kind}] :${line}`);
+      if (sym.children && sym.children.length > 0) {
+        this.formatSymbolTree(sym.children, lines, depth + 1);
+      }
+    }
   }
 
   /**

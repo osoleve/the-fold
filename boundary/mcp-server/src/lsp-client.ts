@@ -86,6 +86,14 @@ interface CompletionItem {
   insertTextFormat?: number; // 1 = PlainText, 2 = Snippet
 }
 
+interface DocumentSymbol {
+  name: string;
+  kind: number;
+  range: Range;
+  selectionRange: Range;
+  children?: DocumentSymbol[];
+}
+
 /**
  * LSP Client class
  * Manages LSP server process and provides high-level API
@@ -679,6 +687,45 @@ export class LSPClient {
       console.error('[LSP] Completion error:', e);
       return null;
     }
+  }
+
+  /**
+   * Get document symbols for file outline
+   */
+  async documentSymbols(filePath: string): Promise<DocumentSymbol[] | null> {
+    await this.ensureRunning();
+    const uri = await this.syncDocument(filePath);
+
+    try {
+      const result = await this.sendRequest('textDocument/documentSymbol', {
+        textDocument: { uri }
+      });
+
+      if (!result || !Array.isArray(result)) {
+        return null;
+      }
+
+      return result.map((item: any) => this.mapDocumentSymbol(item));
+    } catch (e) {
+      console.error('[LSP] Document symbols error:', e);
+      return null;
+    }
+  }
+
+  /**
+   * Recursively map a document symbol from LSP response
+   */
+  private mapDocumentSymbol(item: any): DocumentSymbol {
+    const symbol: DocumentSymbol = {
+      name: item.name,
+      kind: item.kind,
+      range: item.range,
+      selectionRange: item.selectionRange
+    };
+    if (item.children && Array.isArray(item.children)) {
+      symbol.children = item.children.map((c: any) => this.mapDocumentSymbol(c));
+    }
+    return symbol;
   }
 
   /**
