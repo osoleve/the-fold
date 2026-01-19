@@ -65,6 +65,28 @@
       s
       #f))
 
+;;; valid-scheme-command? : String → Boolean
+;;; Scheme command must be a safe path/name without shell metacharacters.
+;;; Allows: alphanumeric, hyphen, underscore, period, forward slash
+;;; This prevents command injection via FOLD_SCHEME_CMD environment variable.
+(define (valid-scheme-command? s)
+  (and (string? s)
+       (let ([len (string-length s)])
+            (and (> len 0)
+                 (<= len 256)  ; Reasonable max path length
+                 (let loop ([i 0])
+                      (if (>= i len)
+                          #t
+                          (let ([c (string-ref s i)])
+                               (if (or (char-alphabetic? c)
+                                       (char-numeric? c)
+                                       (char=? c #\-)
+                                       (char=? c #\_)
+                                       (char=? c #\.)
+                                       (char=? c #\/))
+                                   (loop (+ i 1))
+                                   #f))))))))
+
 ;;; ====
 ;;; Utilities
 ;;; ====
@@ -189,7 +211,15 @@
 ;;; ====
 
 (define (scheme-command)
-  (or (getenv "FOLD_SCHEME_CMD") "scheme"))
+  (let ([env-cmd (getenv "FOLD_SCHEME_CMD")])
+       (cond
+        [(not env-cmd) "scheme"]  ; Default
+        [(valid-scheme-command? env-cmd) env-cmd]
+        [else
+         ;; Log the rejection and use default
+         (display (format "WARNING: Invalid FOLD_SCHEME_CMD rejected: ~s (using 'scheme')\n"
+                          env-cmd))
+         "scheme"])))
 
 (define (spawn-worker! session-id)
   ;; SECURITY: Validate session-id to prevent command injection
