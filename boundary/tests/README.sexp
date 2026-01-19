@@ -1,7 +1,7 @@
 ((name "tests")
- (purpose "Comprehensive test suite for shell layer")
+ (purpose "Comprehensive test suite for boundary layer")
  (description
-  "Complete test coverage for shell subsystems including IO, validation,
+  "Complete test coverage for boundary subsystems including IO, validation,
    graphics, tools, REPL, and utilities. Tests verify defensive code,
    error handling, capability enforcement, and integration with core.
    Uses core/test-framework.ss for unified test API.")
@@ -94,7 +94,7 @@
   "Test file naming:
    - All tests use test-*.ss prefix (standardized 2026-01-08)
    - Tests live adjacent to code they test when possible
-   - boundary/tests/ holds shell-specific integration tests
+   - boundary/tests/ holds boundary-specific integration tests
 
    Test structure:
    - Load dependencies first
@@ -103,7 +103,7 @@
    - Include both positive and negative tests
    - Test error handling and edge cases")
  (adding-tests
-  "To add new shell tests:
+  "To add new boundary tests:
    1. Create test-<feature>.ss in boundary/tests/
    2. Load core/test-framework.ss
    3. Load module under test and dependencies

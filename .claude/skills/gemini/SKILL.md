@@ -87,7 +87,7 @@ gemini "Review the newly implemented higher-kinded types (HKTs) for ..."
 ```bash
 # Simulate user perspective on new feature
 gemini -m gemini-3-flash-preview \
-  --include-directories shell docs \
+  --include-directories boundary docs \
   --output-format json \
   "Act as a new user encountering this interface for the first time. What's confusing? What delights you?" \
   > user/feedback/gemini-ux-review-$(date +%Y%m%d).json
@@ -106,7 +106,7 @@ gemini -m gemini-3-pro-preview \
   > docs/peer-review/type-system-critique-$(date +%Y%m%d).md
 
 # Adversarial review of security-sensitive code
-gemini --include-directories shell \
+gemini --include-directories boundary \
   --output-format json \
   "You are a security auditor. Find vulnerabilities in validate.ss. Consider injection attacks, bypasses, and edge cases." \
   | jq -r '.findings[]' > reports/security-review.txt
@@ -117,7 +117,7 @@ gemini --include-directories shell \
 ```bash
 # Generate comprehensive tech debt inventory
 gemini -m gemini-3-pro-preview \
-  --include-directories core shell \
+  --include-directories core boundary \
   --output-format json \
   "Analyze this codebase for technical debt. Identify: duplicated code, missing tests, complex functions, outdated patterns, performance bottlenecks, and documentation gaps. Prioritize by impact." \
   > reports/tech-debt-$(date +%Y%m%d).json

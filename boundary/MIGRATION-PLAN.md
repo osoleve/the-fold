@@ -1,12 +1,12 @@
-# Shell Directory Reorganization Migration Plan
+# Boundary Directory Reorganization Migration Plan (Historical)
 
 **Epic:** fold-zbed
 **Plan Reference:** `/home/oso/.claude/plans/silly-bubbling-starlight.md`
-**Status:** Prepared, awaiting execution
+**Status:** COMPLETED - shell/ renamed to boundary/
 
 ## Overview
 
-Reorganize 70 shell root files into domain-based subdirectories per TAXONOMY.sexp.
+This plan originally described reorganizing 70 boundary root files into domain-based subdirectories per TAXONOMY.sexp. The directory was subsequently renamed from shell/ to boundary/ as part of architectural clarity improvements.
 
 ## Proposed Directory Structure
 
@@ -201,9 +201,9 @@ scheme --script test-all.ss
 ## Commit Strategy
 
 One commit per phase:
-1. "refactor(shell): Create new subdirectory structure"
-2. "refactor(shell): Move standalone files to domain directories"
-3. "refactor(shell): Move files with internal dependencies"
-4. "refactor(shell): Move foundational files with forwarding stubs"
-5. "refactor(shell): Move REPL infrastructure"
+1. "refactor(boundary): Create new subdirectory structure"
+2. "refactor(boundary): Move standalone files to domain directories"
+3. "refactor(boundary): Move files with internal dependencies"
+4. "refactor(boundary): Move foundational files with forwarding stubs"
+5. "refactor(boundary): Move REPL infrastructure"
 6. "docs(shell): Add README.sexp to new directories"

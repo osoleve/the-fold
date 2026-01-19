@@ -1,12 +1,12 @@
-;;; boundary/README.sexp — The Shell (IO Layer)
+;;; boundary/README.sexp — The Boundary (IO Layer)
 ;;;
-;;; This directory contains the defensive shell that wraps the pure core.
+;;; This directory contains the defensive boundary that wraps the pure core.
 
-((title . "The Shell: IO Layer")
+((title . "The Boundary: IO Layer")
  (tier-access . builder)
- (purity . "Shell code is impure, defensive, and effectful")
+ (purity . "Boundary code is impure, defensive, and effectful")
  (description . "
-The shell wraps core. It handles:
+The boundary wraps core. It handles:
 - File IO (reading, writing, persistence)
 - Validation (defensive checks before calling core)
 - Capabilities (minting unforgeable authority tokens)
@@ -50,7 +50,7 @@ Everything in boundary/ may:
    "  layers.ss            - Layer composition"
    ""
    "Testing & Quality:"
-   "  test-runner.ss       - Shell test runner"
+   "  test-runner.ss       - Boundary test runner"
    "  validate.ss          - Input validation"
    ""
    "Utilities:"
@@ -59,11 +59,11 @@ Everything in boundary/ may:
    "  git.ss               - Git integration"
    "  export.ss            - Data export"))
  (philosophy . "
-Shell protects core. It stands between the messy world
+Boundary protects core. It stands between the messy world
 (user input, files, network) and the pure core.
 
-Shell is defensive. Shell validates. Shell retries.
-Core trusts shell to only send valid input.
+Boundary is defensive. Boundary validates. Boundary retries.
+Core trusts boundary to only send valid input.
 ")
  (rules . (
    "Validate all inputs before calling core"
@@ -125,7 +125,7 @@ Shepherds maintain boundary/ architecture.
 Key responsibilities:
 - Capability model (fs.ss, capability.ss)
 - REPL stability (repl.ss, session-manager.ss)
-- Core/Shell boundary (what validates, what computes)
+- Core/Boundary layer (what validates, what computes)
 
 Before adding to boundary/:
 - Does this belong in core instead? (is it pure?)
@@ -140,7 +140,7 @@ Example (fs.ss):
   (invoke fs-cap 'read path)  ; fs.ss grants read access
 
 Capabilities:
-- Minted only by shell
+- Minted only by boundary
 - Passed to core for effect-requiring operations
 - Cannot be forged
 - Type: (Capability 'name metadata)

@@ -8,8 +8,8 @@ The scaffolding system (`boundary/tools/scaffold.ss`) provides code generation f
 ;; Load in REPL
 (load "boundary/tools/scaffold.ss")
 
-;; Create a new shell module
-(scaffold 'shell-module "my-module"
+;; Create a new boundary module
+(scaffold 'boundary-module "my-module"
           '((description . "Does cool things")
             (dependencies . "fs.ss, text.ss")))
 
@@ -28,15 +28,15 @@ The scaffolding system (`boundary/tools/scaffold.ss`) provides code generation f
 
 ## Built-in Templates
 
-### `shell-module`
-Generates a complete shell module with:
+### `boundary-module`
+Generates a complete boundary module with:
 - Module header with description
 - Dependency documentation
 - Example functions
 - Test file with test framework
 
 **Options:**
-- `description`: Module description (default: "A new shell module")
+- `description`: Module description (default: "A new boundary module")
 - `dependencies`: Comma-separated dependency list (default: "fs.ss, text.ss")
 
 ### `core-module`
@@ -120,10 +120,10 @@ All templates support these substitutions:
 
 ## Examples
 
-### Generate a Shell Module
+### Generate a Boundary Module
 
 ```scheme
-(scaffold 'shell-module "string-utils"
+(scaffold 'boundary-module "string-utils"
           '((description . "String manipulation utilities")
             (dependencies . "text.ss")))
 ```

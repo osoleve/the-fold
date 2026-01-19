@@ -67,10 +67,10 @@ The Fold separates concerns into three layers with a strict purity boundary:
 |----|----|----|----|
 | Core | `core/` | Pure | Minimal, axiomatic language kernel |
 | Lattice | `lattice/` | Pure | Verified library DAG (~3,300 exports) |
-| Shell | `boundary/` | Impure | IO boundary, validation, capabilities |
+| Boundary | `boundary/` | Impure | IO boundary, validation, capabilities |
 | User | `user/` | Mixed | Applications and experiments |
 
-**The key invariant:** Core and Lattice assume perfect input. Shell provides all defensive logic, validation, and error handling. This separation keeps the pure layers simple and verifiable.
+**The key invariant:** Core and Lattice assume perfect input. Boundary provides all defensive logic, validation, and error handling. This separation keeps the pure layers simple and verifiable.
 
 ---
 
@@ -80,7 +80,7 @@ The Fold separates concerns into three layers with a strict purity boundary:
 
 **Homoiconicity.** Everything is an S-expression—code, data, configuration, logs, documentation. The system can introspect everything.
 
-**Purity separation.** The pure layers (core, lattice) contain no IO, no mutation, no defensive code. The impure layer (shell) handles the messy world.
+**Purity separation.** The pure layers (core, lattice) contain no IO, no mutation, no defensive code. The impure layer (boundary) handles the messy world.
 
 **Fuel-based totality.** All core functions take a fuel parameter—a cost budget that ensures termination. Functions are total: they always return, either with a result or with fuel exhaustion.
 

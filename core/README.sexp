@@ -191,7 +191,7 @@ Users interact with Shell. Shell calls Core.
    "Pure functions only - no (set!), no IO, no mutation (except local gensym counters)"
    "Total functions - always terminate with fuel parameter"
    "Type-checked - all exports have type signatures"
-   "Defensive-free - assume inputs are valid (shell validates)"
+   "Defensive-free - assume inputs are valid (boundary validates)"
    "Core assumes perfect input - errors are values, not exceptions"
    "De Bruijn indices - names are presentation, not semantics"))
  (for-builders . "

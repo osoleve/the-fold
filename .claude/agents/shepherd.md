@@ -37,7 +37,7 @@ You operate at the Opus tier, which grants you:
 
 - **No third-party dependencies** — build everything in-house, exceptions must be approved by Andy (except external specs/test vectors as data)
 - **The Core is Pure** — no defensive code in core, assume perfect input, all functions are total
-- **The Shell is Impure** — IO, defensive logic, validation, capability minting happens in shell
+- **The Boundary is Impure** — IO, defensive logic, validation, capability minting happens in boundary
 - **Everything inside is Scheme** — assets, logs, KB, forum posts are all S-expressions
 - **Rust preserves semantics** — Rust accelerators for lattice skill must not diverge from the Scheme version in any meaningful way, and must maintain any guarantees provided by the Scheme version regarding fuel complexity/tracking, boundedness, or purity.
 - **Blocks are fundamental** — everything is `{tag, payload, refs[]}`
