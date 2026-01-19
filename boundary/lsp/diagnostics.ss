@@ -188,28 +188,64 @@
                        ;; Skip content inside strings
                        [in-string
                         (loop (+ i 1) depth in-string #f nxt-line nxt-col paren-stack errors)]
-                       ;; Comment handling (skip to end of line)
+                       ;; Line comment handling (skip to end of line)
                        [(char=? c #\;)
                         (let ([new-i (skip-to-newline content i)])
                              (loop new-i depth in-string #f (+ line 1) 1 paren-stack errors))]
-                       ;; Opening parens - use current line/col directly (O(1))
+                       ;; Hash-prefixed constructs
+                       [(and (char=? c #\#) (< (+ i 1) len))
+                        (let ([c2 (string-ref content (+ i 1))])
+                             (cond
+                              ;; #| block comment - skip to matching |#
+                              [(char=? c2 #\|)
+                               (let-values ([(new-i new-line new-col)
+                                             (skip-block-comment content (+ i 2) line (+ col 2))])
+                                           (loop new-i depth in-string #f new-line new-col paren-stack errors))]
+                              ;; #; datum comment - skip the next datum
+                              [(char=? c2 #\;)
+                               (let-values ([(new-i new-line new-col)
+                                             (skip-datum content (+ i 2) line (+ col 2))])
+                                           (loop new-i depth in-string #f new-line new-col paren-stack errors))]
+                              ;; Other # constructs (like #t, #f, #\char, #(...)) - just continue
+                              [else
+                               (loop (+ i 1) depth in-string #f nxt-line nxt-col paren-stack errors)]))]
+                       ;; Opening parens - track type along with position
+                       ;; Stack entries are (type line . col) where type is 'paren or 'bracket
                        [(char=? c #\()
                         (loop (+ i 1) (+ depth 1) in-string #f nxt-line nxt-col
-                              (cons (cons line col) paren-stack) errors)]
+                              (cons (list 'paren line col) paren-stack) errors)]
                        [(char=? c #\[)
                         (loop (+ i 1) (+ depth 1) in-string #f nxt-line nxt-col
-                              (cons (cons line col) paren-stack) errors)]
-                       ;; Closing parens
+                              (cons (list 'bracket line col) paren-stack) errors)]
+                       ;; Closing parens - verify type matches
                        [(char=? c #\))
                         (if (> depth 0)
-                            (loop (+ i 1) (- depth 1) in-string #f nxt-line nxt-col
-                                  (if (pair? paren-stack) (cdr paren-stack) '()) errors)
+                            (let* ([opener (if (pair? paren-stack) (car paren-stack) #f)]
+                                   [opener-type (if opener (car opener) #f)]
+                                   [mismatch? (and opener (eq? opener-type 'bracket))])
+                                  (if mismatch?
+                                      ;; Bracket opened, paren closed - error
+                                      (loop (+ i 1) (- depth 1) in-string #f nxt-line nxt-col
+                                            (if (pair? paren-stack) (cdr paren-stack) '())
+                                            (cons (make-mismatch-error path line col 'paren opener) errors))
+                                      ;; Matched correctly
+                                      (loop (+ i 1) (- depth 1) in-string #f nxt-line nxt-col
+                                            (if (pair? paren-stack) (cdr paren-stack) '()) errors)))
                             (loop (+ i 1) depth in-string #f nxt-line nxt-col paren-stack
                                   (cons (make-extra-close-error-fast path line col) errors)))]
                        [(char=? c #\])
                         (if (> depth 0)
-                            (loop (+ i 1) (- depth 1) in-string #f nxt-line nxt-col
-                                  (if (pair? paren-stack) (cdr paren-stack) '()) errors)
+                            (let* ([opener (if (pair? paren-stack) (car paren-stack) #f)]
+                                   [opener-type (if opener (car opener) #f)]
+                                   [mismatch? (and opener (eq? opener-type 'paren))])
+                                  (if mismatch?
+                                      ;; Paren opened, bracket closed - error
+                                      (loop (+ i 1) (- depth 1) in-string #f nxt-line nxt-col
+                                            (if (pair? paren-stack) (cdr paren-stack) '())
+                                            (cons (make-mismatch-error path line col 'bracket opener) errors))
+                                      ;; Matched correctly
+                                      (loop (+ i 1) (- depth 1) in-string #f nxt-line nxt-col
+                                            (if (pair? paren-stack) (cdr paren-stack) '()) errors)))
                             (loop (+ i 1) depth in-string #f nxt-line nxt-col paren-stack
                                   (cons (make-extra-close-error-fast path line col) errors)))]
                        ;; Other characters
@@ -224,6 +260,171 @@
                 (+ j 1)
                 (loop (+ j 1))))))
 
+;;; skip-block-comment : String × Int × Int × Int → (values Int Int Int)
+;;; Skip a #| |# block comment, handling nesting.
+;;; Returns (new-position new-line new-col).
+;;; Starts at position i which is right after the opening #|.
+(define (skip-block-comment content i line col)
+  (let ([len (string-length content)])
+       (let loop ([j i] [depth 1] [ln line] [cl col])
+            (cond
+             [(>= j len)
+              ;; Unterminated block comment - return end position
+              (values j ln cl)]
+             [(>= (+ j 1) len)
+              ;; Only one char left, can't match |# or #|
+              (let ([c (string-ref content j)])
+                   (if (char=? c #\newline)
+                       (loop (+ j 1) depth (+ ln 1) 1)
+                       (loop (+ j 1) depth ln (+ cl 1))))]
+             [else
+              (let ([c (string-ref content j)]
+                    [c2 (string-ref content (+ j 1))])
+                   (cond
+                    ;; Nested opening #|
+                    [(and (char=? c #\#) (char=? c2 #\|))
+                     (loop (+ j 2) (+ depth 1) ln (+ cl 2))]
+                    ;; Closing |#
+                    [(and (char=? c #\|) (char=? c2 #\#))
+                     (if (= depth 1)
+                         (values (+ j 2) ln (+ cl 2))  ;; Done
+                         (loop (+ j 2) (- depth 1) ln (+ cl 2)))]
+                    ;; Newline
+                    [(char=? c #\newline)
+                     (loop (+ j 1) depth (+ ln 1) 1)]
+                    ;; Other character
+                    [else
+                     (loop (+ j 1) depth ln (+ cl 1))]))]))))
+
+;;; skip-datum : String × Int × Int × Int → (values Int Int Int)
+;;; Skip a single datum for #; comments.
+;;; Returns (new-position new-line new-col).
+;;; Strategy: Track paren depth, handle strings, skip to end of atom.
+(define (skip-datum content i line col)
+  (let ([len (string-length content)])
+       ;; First skip whitespace
+       (let skip-ws ([j i] [ln line] [cl col])
+            (cond
+             [(>= j len) (values j ln cl)]
+             [(char-whitespace? (string-ref content j))
+              (if (char=? (string-ref content j) #\newline)
+                  (skip-ws (+ j 1) (+ ln 1) 1)
+                  (skip-ws (+ j 1) ln (+ cl 1)))]
+             ;; Start of datum - dispatch on first char
+             [else
+              (let ([c (string-ref content j)])
+                   (cond
+                    ;; String
+                    [(char=? c #\")
+                     (skip-string content (+ j 1) ln (+ cl 1))]
+                    ;; List/vector
+                    [(or (char=? c #\() (char=? c #\[))
+                     (skip-list content (+ j 1) ln (+ cl 1) 1)]
+                    ;; Character literal
+                    [(and (char=? c #\#) (< (+ j 1) len))
+                     (let ([c2 (string-ref content (+ j 1))])
+                          (cond
+                           ;; #( vector
+                           [(char=? c2 #\()
+                            (skip-list content (+ j 2) ln (+ cl 2) 1)]
+                           ;; #| block comment inside datum comment - skip it
+                           [(char=? c2 #\|)
+                            (let-values ([(nj nl nc) (skip-block-comment content (+ j 2) ln (+ cl 2))])
+                                        (skip-datum content nj nl nc))]
+                           ;; #; nested datum comment
+                           [(char=? c2 #\;)
+                            (let-values ([(nj nl nc) (skip-datum content (+ j 2) ln (+ cl 2))])
+                                        (skip-datum content nj nl nc))]
+                           ;; #\char - skip char literal
+                           [(char=? c2 #\\)
+                            (skip-atom content (+ j 2) ln (+ cl 2))]
+                           ;; Other # construct - treat as atom
+                           [else
+                            (skip-atom content j ln cl)]))]
+                    ;; Quote/quasiquote - skip the next datum too
+                    [(or (char=? c #\') (char=? c #\`) (char=? c #\,))
+                     (let ([at? (and (< (+ j 1) len) (char=? (string-ref content (+ j 1)) #\@))])
+                          (if at?
+                              (skip-datum content (+ j 2) ln (+ cl 2))
+                              (skip-datum content (+ j 1) ln (+ cl 1))))]
+                    ;; Regular atom (symbol, number)
+                    [else
+                     (skip-atom content j ln cl)]))]))))
+
+;;; skip-string : String × Int × Int × Int → (values Int Int Int)
+;;; Skip a string literal starting right after the opening quote.
+(define (skip-string content i line col)
+  (let ([len (string-length content)])
+       (let loop ([j i] [ln line] [cl col] [escape #f])
+            (cond
+             [(>= j len) (values j ln cl)]
+             [(let ([c (string-ref content j)])
+                   (cond
+                    [escape (loop (+ j 1) ln (+ cl 1) #f)]
+                    [(char=? c #\\) (loop (+ j 1) ln (+ cl 1) #t)]
+                    [(char=? c #\") (values (+ j 1) ln (+ cl 1))]
+                    [(char=? c #\newline) (loop (+ j 1) (+ ln 1) 1 #f)]
+                    [else (loop (+ j 1) ln (+ cl 1) #f)]))]))))
+
+;;; skip-list : String × Int × Int × Int × Int → (values Int Int Int)
+;;; Skip a list/vector starting right after the opening paren.
+(define (skip-list content i line col depth)
+  (let ([len (string-length content)])
+       (let loop ([j i] [ln line] [cl col] [d depth] [in-str #f] [esc #f])
+            (cond
+             [(>= j len) (values j ln cl)]
+             [else
+              (let ([c (string-ref content j)])
+                   (cond
+                    ;; Handle string escapes
+                    [esc (loop (+ j 1) ln (+ cl 1) d in-str #f)]
+                    [(and in-str (char=? c #\\))
+                     (loop (+ j 1) ln (+ cl 1) d in-str #t)]
+                    [(char=? c #\")
+                     (loop (+ j 1) ln (+ cl 1) d (not in-str) #f)]
+                    [in-str
+                     (if (char=? c #\newline)
+                         (loop (+ j 1) (+ ln 1) 1 d in-str #f)
+                         (loop (+ j 1) ln (+ cl 1) d in-str #f))]
+                    ;; Handle parens outside strings
+                    [(or (char=? c #\() (char=? c #\[))
+                     (loop (+ j 1) ln (+ cl 1) (+ d 1) in-str #f)]
+                    [(or (char=? c #\)) (char=? c #\]))
+                     (if (= d 1)
+                         (values (+ j 1) ln (+ cl 1))  ;; Done
+                         (loop (+ j 1) ln (+ cl 1) (- d 1) in-str #f))]
+                    ;; Handle ; comments inside list
+                    [(char=? c #\;)
+                     (let ([new-j (skip-to-newline content j)])
+                          (loop new-j (+ ln 1) 1 d in-str #f))]
+                    ;; Handle block comments inside list
+                    [(and (char=? c #\#) (< (+ j 1) len) (char=? (string-ref content (+ j 1)) #\|))
+                     (let-values ([(nj nl nc) (skip-block-comment content (+ j 2) ln (+ cl 2))])
+                                 (loop nj nl nc d in-str #f))]
+                    ;; Newline
+                    [(char=? c #\newline)
+                     (loop (+ j 1) (+ ln 1) 1 d in-str #f)]
+                    ;; Other
+                    [else (loop (+ j 1) ln (+ cl 1) d in-str #f)]))]))))
+
+;;; skip-atom : String × Int × Int × Int → (values Int Int Int)
+;;; Skip an atom (symbol, number, etc.).
+(define (skip-atom content i line col)
+  (let ([len (string-length content)])
+       (let loop ([j i] [ln line] [cl col])
+            (cond
+             [(>= j len) (values j ln cl)]
+             [else
+              (let ([c (string-ref content j)])
+                   (if (or (char-whitespace? c)
+                           (char=? c #\() (char=? c #\))
+                           (char=? c #\[) (char=? c #\])
+                           (char=? c #\") (char=? c #\;))
+                       (values j ln cl)
+                       (if (char=? c #\newline)
+                           (loop (+ j 1) (+ ln 1) 1)
+                           (loop (+ j 1) ln (+ cl 1)))))]))))
+
 ;;; compute-line-col : String × Int → (line . col)
 (define (compute-line-col content offset)
   (let loop ([i 0] [line 1] [col 1])
@@ -234,11 +435,29 @@
         [else
          (loop (+ i 1) line (+ col 1))])))
 
-;;; make-unclosed-error : String × (List (line . col)) → Error
+;;; make-unclosed-error : String × (List (type line col)) → Error
+;;; Stack entries are now (type line col) triples.
 (define (make-unclosed-error path paren-stack)
-  (let ([loc (if (pair? paren-stack) (car paren-stack) '(1 . 1))])
-       (make-error 'parse 'unclosed-list
-                   (make-span path (car loc) (cdr loc) (car loc) (+ (cdr loc) 1)))))
+  (let* ([entry (if (pair? paren-stack) (car paren-stack) #f)]
+         [ln (if entry (cadr entry) 1)]
+         [cl (if entry (caddr entry) 1)])
+        (make-error 'parse 'unclosed-list
+                    (make-span path ln cl ln (+ cl 1)))))
+
+;;; make-mismatch-error : String × Int × Int × Symbol × (type line col) → Error
+;;; Create an error for mismatched bracket types.
+;;; closer-type is 'paren or 'bracket (what was used to close).
+;;; opener is the stack entry (type line col) of the opener.
+(define (make-mismatch-error path close-line close-col closer-type opener)
+  (let* ([opener-type (car opener)]
+         [opener-line (cadr opener)]
+         [opener-col (caddr opener)]
+         [msg (if (eq? closer-type 'paren)
+                  "bracketed list terminated by parenthesis"
+                  "parenthesized list terminated by bracket")])
+        (make-error 'parse 'bracket-mismatch
+                    (make-span path close-line close-col close-line (+ close-col 1))
+                    msg)))
 
 ;;; make-extra-close-error : String × Int × String → Error
 ;;; Legacy version - computes line/col from offset (O(N) per call).

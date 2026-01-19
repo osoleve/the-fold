@@ -674,6 +674,23 @@ class FoldMCPServer {
     const transport = new StdioServerTransport();
     await this.server.connect(transport);
 
+    // Exit gracefully when stdin closes (parent disconnected)
+    process.stdin.on('end', () => {
+      console.error('stdin closed, exiting...');
+      process.exit(0);
+    });
+
+    process.stdin.on('close', () => {
+      console.error('stdin closed (close event), exiting...');
+      process.exit(0);
+    });
+
+    // Also handle the transport closing
+    this.server.onclose = () => {
+      console.error('MCP transport closed, exiting...');
+      process.exit(0);
+    };
+
     console.error('The Fold MCP Server started');
     console.error(`Connection ID: ${this.connectionId}`);
     console.error(`Active sessions: ${this.sessionManager.getSessionCount()}`);

@@ -222,7 +222,79 @@
             
             (define-test balanced-parens-escape-in-string
               (let ([errors (check-balanced-parens "(display \"\\\"(\\\"\")" "test.ss")])
-                   (assert-equal '() errors))))
+                   (assert-equal '() errors)))
+
+            ;; Block comment tests (#| |#)
+            (define-test balanced-parens-block-comment
+              ;; Parens inside block comments should not count
+              (let ([errors (check-balanced-parens "(define x #| (unmatched |# 1)" "test.ss")])
+                   (assert-equal '() errors)))
+
+            (define-test balanced-parens-block-comment-multiline
+              ;; Block comments can span multiple lines
+              (let ([errors (check-balanced-parens "(define x #|\n(unmatched\n|# 1)" "test.ss")])
+                   (assert-equal '() errors)))
+
+            (define-test balanced-parens-block-comment-nested
+              ;; Nested block comments
+              (let ([errors (check-balanced-parens "(define x #| outer #| inner |# outer |# 1)" "test.ss")])
+                   (assert-equal '() errors)))
+
+            (define-test balanced-parens-block-comment-with-paren-inside
+              ;; Opening paren inside block comment should not affect depth
+              (let ([errors (check-balanced-parens "#| ( |# (define x 1)" "test.ss")])
+                   (assert-equal '() errors)))
+
+            ;; Datum comment tests (#;)
+            (define-test balanced-parens-datum-comment-atom
+              ;; #; comments out an atom
+              (let ([errors (check-balanced-parens "(define #;commented x 1)" "test.ss")])
+                   (assert-equal '() errors)))
+
+            (define-test balanced-parens-datum-comment-list
+              ;; #; comments out an entire list
+              (let ([errors (check-balanced-parens "(define x #;(this is commented out) 1)" "test.ss")])
+                   (assert-equal '() errors)))
+
+            (define-test balanced-parens-datum-comment-nested-list
+              ;; #; handles nested lists
+              (let ([errors (check-balanced-parens "(define x #;(outer (inner)) 1)" "test.ss")])
+                   (assert-equal '() errors)))
+
+            (define-test balanced-parens-datum-comment-unbalanced-in-comment
+              ;; The datum comment itself must be balanced internally
+              ;; but the outer code should still be checked
+              (let ([errors (check-balanced-parens "(define x #;(balanced) 1)" "test.ss")])
+                   (assert-equal '() errors)))
+
+            (define-test balanced-parens-both-comment-types
+              ;; Combination of block and datum comments
+              (let ([errors (check-balanced-parens "(define x #| block |# #;datum 1)" "test.ss")])
+                   (assert-equal '() errors)))
+
+            ;; Bracket mismatch tests
+            (define-test balanced-parens-bracket-mismatch-paren-close-bracket
+              ;; (] is a mismatch - paren opened, bracket closed
+              (let ([errors (check-balanced-parens "(define x 1]" "test.ss")])
+                   (assert-true (pair? errors))
+                   ;; Should have a bracket-mismatch error
+                   (assert-equal 'bracket-mismatch (error-code (car errors)))))
+
+            (define-test balanced-parens-bracket-mismatch-bracket-close-paren
+              ;; [) is a mismatch - bracket opened, paren closed
+              (let ([errors (check-balanced-parens "[define x 1)" "test.ss")])
+                   (assert-true (pair? errors))
+                   (assert-equal 'bracket-mismatch (error-code (car errors)))))
+
+            (define-test balanced-parens-mixed-correct
+              ;; Properly matched mixed brackets
+              (let ([errors (check-balanced-parens "(let ([x 1] [y 2]) (+ x y))" "test.ss")])
+                   (assert-equal '() errors)))
+
+            (define-test balanced-parens-nested-mismatch
+              ;; Mismatch in nested context
+              (let ([errors (check-balanced-parens "(let ([x 1]) x]" "test.ss")])
+                   (assert-true (pair? errors)))))
 
 ;;; ====
 ;;; compute-line-col Tests
