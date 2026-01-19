@@ -698,7 +698,12 @@ rm -rf .fold-repl/   # Nuclear option
 
 **Atomic Writes:** Use `boundary/io/atomic.ss` for durable file writes—it provides fdatasync when FFI is available. Don't roll custom atomic-write functions.
 
-**QA Flashmob Pattern:** Many QA-generated issues get fixed but not closed. Check recent git commits before working on QA issues—they may already be resolved.
+**QA Flashmob Pattern:** Many QA-generated issues get fixed but not closed. Before working on any QA issue:
+1. Check `git log --oneline --grep="fold-XXXX"` for the issue ID
+2. Check `git log --oneline --grep="keyword"` for related fixes
+3. If already fixed, just close the issue with `(bbs-close 'fold-XXXX)`
+
+Example: In one session, 3 of 4 "open" LSP issues were already fixed but not closed in BBS.
 
 ---
 
