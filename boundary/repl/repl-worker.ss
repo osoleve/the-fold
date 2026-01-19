@@ -397,28 +397,30 @@
        (when (file-exists? path)
              (write-lastreq! session-id)  ; Track last request time (legacy)
              (write-expires! session-id)  ; Extend expiration with decay
-             (let* ([content (call-with-input-file path get-string-all)]
-                    [request (parse-session-request content)]
-                    [expr (if request
-                              (extract-expression request)
-                              content)]
-                    [expr-str (if (string? expr)
-                                  expr
-                                  (format "~s" expr))]
-                    [resp-path (response-path session-id)]
-                    [err-path (error-path session-id)])
-                   (when (file-exists? err-path)
-                         (delete-file err-path))
-                   (guard (e [else
-                              (write-error err-path (format-condition e))
-                              ;; Record error in history
-                              (history-record-if-enabled! session-id expr-str e 'error #f)])
-                          (let-values ([(result def-name eval-result)
-                                        (scheme-eval-and-capture session-id expr-str)])
-                               (write-response resp-path result)
-                               ;; Record success in history
-                               (history-record-if-enabled! session-id expr-str eval-result 'success def-name)))
-                   (delete-file path)))))
+             ;; Read content and delete request IMMEDIATELY to prevent race condition.
+             ;; If a new request arrives during eval, it won't be lost.
+             (let* ([content (call-with-input-file path get-string-all)])
+                   (delete-file path)  ; Delete before processing to minimize race window
+                   (let* ([request (parse-session-request content)]
+                          [expr (if request
+                                    (extract-expression request)
+                                    content)]
+                          [expr-str (if (string? expr)
+                                        expr
+                                        (format "~s" expr))]
+                          [resp-path (response-path session-id)]
+                          [err-path (error-path session-id)])
+                         (when (file-exists? err-path)
+                               (delete-file err-path))
+                         (guard (e [else
+                                    (write-error err-path (format-condition e))
+                                    ;; Record error in history
+                                    (history-record-if-enabled! session-id expr-str e 'error #f)])
+                                (let-values ([(result def-name eval-result)
+                                              (scheme-eval-and-capture session-id expr-str)])
+                                     (write-response resp-path result)
+                                     ;; Record success in history
+                                     (history-record-if-enabled! session-id expr-str eval-result 'success def-name))))))))
 
 (define (worker-loop session-id)
   (let loop ([last-heartbeat 0])

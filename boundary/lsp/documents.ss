@@ -16,6 +16,9 @@
 (load "boundary/lsp/json.ss")
 (load "boundary/lsp/protocol.ss")
 
+;;; Debug flag for document operations
+(define *doc-debug* #f)
+
 ;;; ====
 ;;; Document Structure
 ;;; ====
@@ -234,12 +237,26 @@
 ;;; doc-apply-changes! : String × Int × (List Change) → Document | #f
 ;;; Apply incremental changes to a document.
 ;;; Each change has optional range (if missing, it's a full replacement).
+;;; Validates that version is increasing to prevent sync issues.
 (define (doc-apply-changes! uri version changes)
   (let ([doc (doc-get uri)])
        (if (not doc)
            #f
-           (let ([new-content (apply-changes (document-content doc) changes)])
-                (doc-open! uri version new-content)))))
+           (let ([current-version (document-version doc)])
+                (cond
+                 ;; Version validation: new version should be > current
+                 [(and (number? version)
+                       (number? current-version)
+                       (<= version current-version))
+                  ;; Stale update - log warning but don't apply
+                  (when *doc-debug*
+                        (display (format "Warning: Stale document version for ~a (got ~a, have ~a)\n"
+                                        uri version current-version)))
+                  doc]  ; Return current doc unchanged
+                 [else
+                  ;; Valid update - apply changes
+                  (let ([new-content (apply-changes (document-content doc) changes)])
+                       (doc-open! uri version new-content))])))))
 
 ;;; apply-changes : String × (List Change) → String
 ;;; Apply a list of changes to content.
@@ -382,7 +399,7 @@
 (define (symbol-char? c)
   (or (char-alphabetic? c)
       (char-numeric? c)
-      (memv c '(#\- #\_ #\? #\! #\* #\+ #\/ #\< #\> #\= #\: #\@))))
+      (and (memv c '(#\- #\_ #\? #\! #\* #\+ #\/ #\< #\> #\= #\: #\@)) #t)))
 
 ;;; ====
 ;;; Span Re-export (for convenience)

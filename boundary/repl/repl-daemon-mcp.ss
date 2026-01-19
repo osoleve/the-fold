@@ -33,6 +33,7 @@
 (define *starting-timeout* 30)         ; seconds to wait for worker startup
 (define *cleanup-interval* 300)        ; 5 minutes in seconds
 (define *idle-timeout* 600)            ; 10 minutes without request - kill idle workers
+(define *max-workers* 50)              ; Maximum concurrent workers (DoS prevention)
 (define *last-cleanup* (time-second (current-time)))
 
 ;;; ====
@@ -137,21 +138,27 @@
   (if (or (not (integer? pid)) (<= pid 0))
       #f
       (if (windows?)
-          #f
+          ;; On Windows, use tasklist + find to check if process exists
+          ;; tasklist always exits 0, but piping to find fails if PID not found
+          (zero? (system (format "tasklist /FI \"PID eq ~a\" 2>nul | find \"~a\" >nul" pid pid)))
           (zero? (system (format "kill -0 ~a 2>/dev/null" pid))))))
 
+(define (request-pending? session-id)
+  ;; Check if there's a pending request file for this session.
+  (file-exists? (string-append *requests-dir* "/" session-id ".ss")))
+
 (define (worker-alive? session-id)
-  ;; A worker is alive only if BOTH:
-  ;; 1. It has a recent heartbeat (within timeout)
-  ;; 2. Its process is actually running
-  ;; This prevents "zombie" workers where the process died but heartbeat is stale.
+  ;; A worker is alive if:
+  ;; 1. It has a recent heartbeat (within timeout) AND process is running, OR
+  ;; 2. Process is running AND has a pending request (long-running job)
+  ;; The second condition prevents killing workers during long evaluations.
   (let* ([now (time-second (current-time))]
          [hb (read-number-file (heartbeat-path session-id))]
          [pid (read-number-file (pid-path session-id))])
-        (and hb
-             pid
-             (< (- now hb) *worker-timeout*)
-             (process-alive? pid))))
+        (and pid
+             (process-alive? pid)
+             (or (and hb (< (- now hb) *worker-timeout*))
+                 (request-pending? session-id)))))
 
 (define (terminate-worker! session-id)
   ;; SECURITY: Validate session-id (path construction) and pid (shell command)
@@ -189,23 +196,51 @@
   (unless (valid-session-id? session-id)
           (display (format "WARNING: Invalid session-id rejected: ~s\n" session-id))
           (error 'spawn-worker! "Invalid session-id" session-id))
-  (let* ([scheme (scheme-command)]
-         [script *worker-script*]
-         [log (log-path session-id)]
-         [cmd (if (windows?)
-                  (format "cmd.exe /c start /b \"\" \"~a\" --script ~a ~a"
-                          scheme script session-id)
-                  (format "~a --script ~a ~a > ~a 2>&1 &"
-                          scheme script session-id log))])
-        (call-with-output-file (starting-path session-id)
-                               (lambda (p)
-                                       (display (time-second (current-time)) p))
-                               'replace)
-        (system cmd)))
+  ;; Claim the "starting" slot first
+  (call-with-output-file (starting-path session-id)
+                         (lambda (p)
+                                 (display (time-second (current-time)) p))
+                         'replace)
+  ;; Double-check: if worker already has a PID and is alive, don't spawn duplicate
+  (let ([existing-pid (read-number-file (pid-path session-id))])
+       (unless (and existing-pid (process-alive? existing-pid))
+               ;; No existing worker, proceed with spawn
+               (let* ([scheme (scheme-command)]
+                      [script *worker-script*]
+                      [log (log-path session-id)]
+                      [cmd (if (windows?)
+                               (format "cmd.exe /c start /b \"\" \"~a\" --script ~a ~a"
+                                       scheme script session-id)
+                               (format "~a --script ~a ~a > ~a 2>&1 &"
+                                       scheme script session-id log))])
+                     (system cmd)))))
+
+(define (count-active-workers)
+  "Count number of active workers (alive or starting)."
+  (if (not (file-exists? *workers-dir*))
+      0
+      (let ([files (directory-list *workers-dir*)])
+           (let loop ([fs files] [count 0])
+                (if (null? fs)
+                    count
+                    (let ([f (car fs)])
+                         ;; Count .pid files with alive processes
+                         (if (and (string? f)
+                                  (> (string-length f) 4)
+                                  (string=? (substring f (- (string-length f) 4) (string-length f)) ".pid"))
+                             (let* ([session-id (substring f 0 (- (string-length f) 4))]
+                                    [pid (read-number-file (pid-path session-id))])
+                                   (if (and pid (or (process-alive? pid)
+                                                    (worker-starting? session-id)))
+                                       (loop (cdr fs) (+ count 1))
+                                       (loop (cdr fs) count)))
+                             (loop (cdr fs) count))))))))
 
 (define (ensure-worker! session-id)
-  (unless (or (worker-alive? session-id) (worker-starting? session-id))
-          (spawn-worker! session-id)))
+  ;; Check worker limit before spawning (DoS prevention)
+  (when (< (count-active-workers) *max-workers*)
+        (unless (or (worker-alive? session-id) (worker-starting? session-id))
+                (spawn-worker! session-id))))
 
 ;;; ====
 ;;; Cleanup

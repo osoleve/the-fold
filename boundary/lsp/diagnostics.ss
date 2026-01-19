@@ -159,9 +159,11 @@
 
 ;;; check-balanced-parens : String × String → (List Error)
 ;;; Check for unbalanced parentheses.
+;;; O(N) complexity - tracks line/col incrementally instead of rescanning.
 (define (check-balanced-parens content path)
   (let ([len (string-length content)])
        (let loop ([i 0] [depth 0] [in-string #f] [escape #f]
+                  [line 1] [col 1]  ;; Track line/col incrementally
                   [paren-stack '()] [errors '()])
             (if (>= i len)
                 ;; End of input
@@ -170,45 +172,49 @@
                     (reverse (cons (make-unclosed-error path paren-stack)
                                    errors))
                     (reverse errors))
-                (let ([c (string-ref content i)])
-                     (cond
-                      ;; Handle escape in string
-                      [escape
-                       (loop (+ i 1) depth in-string #f paren-stack errors)]
-                      ;; String handling
-                      [(and in-string (char=? c #\\))
-                       (loop (+ i 1) depth in-string #t paren-stack errors)]
-                      [(char=? c #\")
-                       (loop (+ i 1) depth (not in-string) #f paren-stack errors)]
-                      ;; Skip content inside strings
-                      [in-string
-                       (loop (+ i 1) depth in-string #f paren-stack errors)]
-                      ;; Comment handling (skip to end of line)
-                      [(char=? c #\;)
-                       (loop (skip-to-newline content i) depth in-string #f paren-stack errors)]
-                      ;; Opening parens
-                      [(char=? c #\()
-                       (loop (+ i 1) (+ depth 1) in-string #f
-                             (cons (compute-line-col content i) paren-stack) errors)]
-                      [(char=? c #\[)
-                       (loop (+ i 1) (+ depth 1) in-string #f
-                             (cons (compute-line-col content i) paren-stack) errors)]
-                      ;; Closing parens
-                      [(char=? c #\))
-                       (if (> depth 0)
-                           (loop (+ i 1) (- depth 1) in-string #f
-                                 (if (pair? paren-stack) (cdr paren-stack) '()) errors)
-                           (loop (+ i 1) depth in-string #f paren-stack
-                                 (cons (make-extra-close-error path i content) errors)))]
-                      [(char=? c #\])
-                       (if (> depth 0)
-                           (loop (+ i 1) (- depth 1) in-string #f
-                                 (if (pair? paren-stack) (cdr paren-stack) '()) errors)
-                           (loop (+ i 1) depth in-string #f paren-stack
-                                 (cons (make-extra-close-error path i content) errors)))]
-                      ;; Other characters
-                      [else
-                       (loop (+ i 1) depth in-string #f paren-stack errors)]))))))
+                (let* ([c (string-ref content i)]
+                       [nl? (char=? c #\newline)]
+                       [nxt-line (if nl? (+ line 1) line)]
+                       [nxt-col (if nl? 1 (+ col 1))])
+                      (cond
+                       ;; Handle escape in string
+                       [escape
+                        (loop (+ i 1) depth in-string #f nxt-line nxt-col paren-stack errors)]
+                       ;; String handling
+                       [(and in-string (char=? c #\\))
+                        (loop (+ i 1) depth in-string #t nxt-line nxt-col paren-stack errors)]
+                       [(char=? c #\")
+                        (loop (+ i 1) depth (not in-string) #f nxt-line nxt-col paren-stack errors)]
+                       ;; Skip content inside strings
+                       [in-string
+                        (loop (+ i 1) depth in-string #f nxt-line nxt-col paren-stack errors)]
+                       ;; Comment handling (skip to end of line)
+                       [(char=? c #\;)
+                        (let ([new-i (skip-to-newline content i)])
+                             (loop new-i depth in-string #f (+ line 1) 1 paren-stack errors))]
+                       ;; Opening parens - use current line/col directly (O(1))
+                       [(char=? c #\()
+                        (loop (+ i 1) (+ depth 1) in-string #f nxt-line nxt-col
+                              (cons (cons line col) paren-stack) errors)]
+                       [(char=? c #\[)
+                        (loop (+ i 1) (+ depth 1) in-string #f nxt-line nxt-col
+                              (cons (cons line col) paren-stack) errors)]
+                       ;; Closing parens
+                       [(char=? c #\))
+                        (if (> depth 0)
+                            (loop (+ i 1) (- depth 1) in-string #f nxt-line nxt-col
+                                  (if (pair? paren-stack) (cdr paren-stack) '()) errors)
+                            (loop (+ i 1) depth in-string #f nxt-line nxt-col paren-stack
+                                  (cons (make-extra-close-error-fast path line col) errors)))]
+                       [(char=? c #\])
+                        (if (> depth 0)
+                            (loop (+ i 1) (- depth 1) in-string #f nxt-line nxt-col
+                                  (if (pair? paren-stack) (cdr paren-stack) '()) errors)
+                            (loop (+ i 1) depth in-string #f nxt-line nxt-col paren-stack
+                                  (cons (make-extra-close-error-fast path line col) errors)))]
+                       ;; Other characters
+                       [else
+                        (loop (+ i 1) depth in-string #f nxt-line nxt-col paren-stack errors)]))))))
 
 ;;; skip-to-newline : String × Int → Int
 (define (skip-to-newline content i)
@@ -235,8 +241,16 @@
                    (make-span path (car loc) (cdr loc) (car loc) (+ (cdr loc) 1)))))
 
 ;;; make-extra-close-error : String × Int × String → Error
+;;; Legacy version - computes line/col from offset (O(N) per call).
 (define (make-extra-close-error path offset content)
   (let ([loc (compute-line-col content offset)])
        (make-error 'parse 'unexpected-char
                    (make-span path (car loc) (cdr loc) (car loc) (+ (cdr loc) 1))
                    ")")))
+
+;;; make-extra-close-error-fast : String × Int × Int → Error
+;;; O(1) version - takes line/col directly for incremental scanning.
+(define (make-extra-close-error-fast path line col)
+  (make-error 'parse 'unexpected-char
+              (make-span path line col line (+ col 1))
+              ")"))

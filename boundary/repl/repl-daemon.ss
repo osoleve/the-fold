@@ -168,14 +168,16 @@
 (define (process-request!)
   (let ([request (read-request)])
        (when request
+             ;; Delete request IMMEDIATELY after reading to prevent race condition.
+             ;; If a new request arrives during eval, it won't be lost.
+             (clear-request!)
              (clear-error!)
              (guard (e [else
                         (let ([msg (format-condition e)])
                              (write-error msg)
                              (write-response (format "ERROR: ~a" msg)))])
                     (let ([result (scheme-eval-and-capture request)])
-                         (write-response result)))
-             (clear-request!))))
+                         (write-response result))))))
 
 ;;; ====
 ;;; Main Daemon Loop
