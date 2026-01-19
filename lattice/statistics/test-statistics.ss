@@ -383,5 +383,5 @@
 ;;; Run All Tests
 ;;; ====
 
-(run-all-tests)
+(run-all-tests-and-exit)
 

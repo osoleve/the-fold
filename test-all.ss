@@ -66,25 +66,26 @@
 ;;; Test Runner
 ;;; ====
 
+;;; run-test-file : String x String -> Void
+;;; Run a test file as a subprocess (isolates exit calls).
+;;; Uses scheme --script which properly handles test file exits.
 (define (run-test-file base-dir filename)
-  (let ([start (current-time-ms)]
-        [path (string-append base-dir "/" filename)])
-       (display (string-append "  " filename " "))
-       (flush-output-port)
-       (guard (exn [else
-                    (let ([duration (- (current-time-ms) start)]
-                          [msg (if (condition? exn) (format-condition exn) "Unknown error")])
-                         (record-result! filename 'failed duration msg)
-                         (display "FAILED")
-                         (display (string-append " (" (format-duration-ms duration) ")"))
-                         (newline)
-                         (display (string-append "    Error: " msg))
-                         (newline))])
-              (load path)
-              (let ([duration (- (current-time-ms) start)])
-                   (record-result! filename 'passed duration)
-                   (display (string-append " (" (format-duration-ms duration) ") ok"))
-                   (newline)))))
+  (let* ([start (current-time-ms)]
+         [path (string-append base-dir "/" filename)]
+         [cmd (string-append "scheme --script " path " 2>&1")])
+    (display (string-append "  " filename " "))
+    (flush-output-port)
+    (let* ([exit-code (system cmd)]
+           [duration (- (current-time-ms) start)])
+      (if (= exit-code 0)
+          (begin
+            (record-result! filename 'passed duration)
+            (display (string-append "(" (format-duration-ms duration) ") ok"))
+            (newline))
+          (begin
+            (record-result! filename 'failed duration (string-append "exit code " (number->string exit-code)))
+            (display (string-append "FAILED (" (format-duration-ms duration) ")"))
+            (newline))))))
 
 ;;; ====
 ;;; Test Categories
@@ -120,17 +121,50 @@
     ;; Layer 7: Error System
     "base/test-error.ss"))
 
-;;; Lattice tests (skill tree - tier 0 foundational)
+;;; Lattice tests (skill tree - organized by tier)
 (define lattice-tests
-  '(;; Linear Algebra (tier 0)
+  '(;; === Tier 0: Foundational ===
+    ;; Linear Algebra
     "linalg/test-vec.ss"
     "linalg/test-matrix.ss"
     "linalg/test-matrix-decomp.ss"
     "linalg/test-matrix-solvers.ss"
-    ;; Data (tier 0)
+    ;; Data Structures
     "data/test-data-structures.ss"
-    ;; Info (tier 1)
-    "info/test-entropy.ss"))
+    "data/test-heap.ss"
+    ;; Algebra
+    "algebra/test-polynomial.ss"
+
+    ;; === Tier 1: Intermediate ===
+    ;; Numeric
+    "numeric/test-interval.ss"
+    "numeric/test-affine.ss"
+    "numeric/test-complex.ss"
+    "numeric/test-interpolate.ss"
+    ;; Info Theory
+    "info/test-entropy.ss"
+    ;; FP Core
+    "fp/optics/test-optics.ss"
+    "fp/category/test-comonad.ss"
+    "fp/category/test-natural-transform.ss"
+    "fp/clp/test-clp.ss"
+    "fp/game/test-voting-games.ss"
+    "fp/game/test-coop-games.ss"
+    ;; Statistics
+    "statistics/test-statistics.ss"
+    ;; Optimization
+    "optimization/test-optimize.ss"
+    "optimization/test-interval-global.ss"
+    ;; Autodiff
+    "autodiff/test-traced-optics.ss"
+
+    ;; === Tier 2: Advanced ===
+    ;; Physics (2D)
+    "physics/diff/test-rollout.ss"
+    ;; Topology
+    "topology/test-homology.ss"
+    ;; Meta
+    "meta/test-meta.ss"))
 
 ;;; Boundary tests (validated, stable)
 (define boundary-tests

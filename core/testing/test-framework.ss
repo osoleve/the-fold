@@ -323,10 +323,29 @@
 
 ;;; exit-with-summary : Unit → Unit
 ;;; Print summary and exit with appropriate code.
+;;; Note: Must be called within the same parameterize context as run-all-tests.
 (define (exit-with-summary)
   (print-summary)
   (when (> (ctx-failed) 0)
         (exit 1)))
+
+;;; run-all-tests-and-exit : Unit → Never
+;;; Run all tests and exit with appropriate code (0=all passed, 1=some failed).
+;;; Use this for standalone test scripts run via scheme --script.
+(define (run-all-tests-and-exit)
+  (parameterize ([current-context (make-test-context)])
+    (display "
+╔══════════════════════════════════════════════════════════╗
+")
+    (display "║           Running All Registered Tests                   ║
+")
+    (display "╚══════════════════════════════════════════════════════════╝
+")
+    (newline)
+    (for-each (lambda (group-entry)
+                      (run-group (car group-entry)))
+              (reverse *test-registry*))
+    (exit-with-summary)))
 
 ;;; ====
 ;;; Legacy Compatibility
