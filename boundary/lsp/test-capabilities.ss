@@ -40,6 +40,21 @@
 (test "complete-symbol-match? false start" #f (complete-symbol-match? "afoo bar" 1 3))
 (test "complete-symbol-match? false end" #f (complete-symbol-match? "foob bar" 0 3))
 
+;; Test find-symbol-positions excludes comments
+(test "find-symbol-positions excludes comment"
+      '(0)  ; Only first "foo", not the one in comment
+      (find-symbol-positions "foo ; foo in comment" "foo"))
+
+;; Test find-symbol-positions excludes strings
+(test "find-symbol-positions excludes string"
+      '(0)  ; Only first "foo", not the one in string
+      (find-symbol-positions "foo \"contains foo\"" "foo"))
+
+;; Test find-symbol-positions with mixed content
+(test "find-symbol-positions mixed"
+      '(0 24)  ; First and last "bar", not comment or string
+      (find-symbol-positions "bar ; bar comment\n\"bar\" bar" "bar"))
+
 ;; Clean up
 (doc-close! "file:///test-refs.ss")
 

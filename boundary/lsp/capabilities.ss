@@ -627,6 +627,29 @@
                        (loop end)))]
              [else (loop (+ i 1))]))))
 
+;;; inside-string? : String × Int → Boolean
+;;; Check if position is inside a string literal.
+;;; Scans from line start, tracking string state.
+(define (inside-string? content offset)
+  (let ([line-start (find-line-start content offset)])
+       (let loop ([i line-start] [in-string #f])
+            (cond
+             [(>= i offset) in-string]  ; Reached position, return state
+             [(and (not in-string) (char=? (string-ref content i) #\;))
+              #f]  ; Hit comment outside string - position can't be in string
+             [(char=? (string-ref content i) #\")
+              (loop (+ i 1) (not in-string))]  ; Toggle string state
+             [(and in-string (char=? (string-ref content i) #\\)
+                   (< (+ i 1) (string-length content)))
+              (loop (+ i 2) in-string)]  ; Skip escaped char
+             [else (loop (+ i 1) in-string)]))))
+
+;;; inside-string-or-comment? : String × Int → Boolean
+;;; Check if position is inside a string literal or comment.
+(define (inside-string-or-comment? content offset)
+  (or (inside-comment? content offset)
+      (inside-string? content offset)))
+
 ;;; find-line-start : String × Int → Int
 ;;; Find the start of the line containing offset.
 (define (find-line-start content offset)
@@ -1248,6 +1271,7 @@
 
 ;;; find-symbol-positions : String × String → (List Int)
 ;;; Find all positions where symbol appears as a complete identifier.
+;;; Excludes matches inside comments and string literals.
 (define (find-symbol-positions content symbol)
   (let ([sym-len (string-length symbol)]
         [content-len (string-length content)])
@@ -1258,8 +1282,9 @@
                        [pos (if found found content-len)])
                       (if (>= pos content-len)
                           (reverse acc)
-                          ;; Check if it's a complete symbol (not part of larger word)
-                          (if (complete-symbol-match? content pos sym-len)
+                          ;; Check if it's a complete symbol AND not in comment/string
+                          (if (and (complete-symbol-match? content pos sym-len)
+                                   (not (inside-string-or-comment? content pos)))
                               (loop (+ pos sym-len) (cons pos acc))
                               (loop (+ pos 1) acc))))))))
 
