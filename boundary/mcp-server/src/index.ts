@@ -18,6 +18,7 @@ import { randomUUID } from 'crypto';
 import { SessionManager, Session, Tier } from './session.js';
 import { sendRequest, initIPC, isDaemonRunning, waitForDaemon, getDaemonStatus } from './ipc.js';
 import { tools } from './tools.js';
+import { LSPClient, formatLocation, symbolKindName, severityName } from './lsp-client.js';
 
 /**
  * Main MCP server class
@@ -27,12 +28,18 @@ class FoldMCPServer {
   private sessionManager: SessionManager;
   private sessionsByConnection = new Map<string, string>(); // connection -> session ID
   private connectionId: string; // Unique per server instance for session isolation
+  private lspClient: LSPClient; // LSP client for Scheme code intelligence
+  private projectRoot: string;
 
   constructor() {
     // Generate unique connection ID for this server instance.
     // Each MCP client spawns its own server process via stdio transport,
     // so a unique ID per server instance provides true multi-session isolation.
     this.connectionId = `mcp_${randomUUID()}`;
+
+    // Determine project root (assume we're running from within the project)
+    this.projectRoot = process.env.FOLD_ROOT || process.cwd();
+    this.lspClient = new LSPClient(this.projectRoot);
 
     this.server = new Server(
       {
@@ -87,6 +94,25 @@ class FoldMCPServer {
             return await this.handleLogout(session);
           case 'fold_status':
             return await this.handleStatus(session);
+
+          // LSP Tools
+          case 'fold_lsp_hover':
+            return await this.handleLspHover(args);
+          case 'fold_lsp_definition':
+            return await this.handleLspDefinition(args);
+          case 'fold_lsp_references':
+            return await this.handleLspReferences(args);
+          case 'fold_lsp_symbols':
+            return await this.handleLspSymbols(args);
+          case 'fold_lsp_diagnostics':
+            return await this.handleLspDiagnostics(args);
+          case 'fold_lsp_format':
+            return await this.handleLspFormat(args);
+          case 'fold_lsp_lookup':
+            return await this.handleLspLookup(args);
+          case 'fold_lsp_status':
+            return await this.handleLspStatus();
+
           default:
             throw new Error(`Unknown tool: ${name}`);
         }
@@ -354,6 +380,222 @@ class FoldMCPServer {
       lines.push('⚠️  Daemon not running. Start with:');
       lines.push('    ./daemon.sh start');
     }
+
+    return {
+      content: [{ type: 'text', text: lines.join('\n') }]
+    };
+  }
+
+  // ============================================================
+  // LSP Tool Handlers
+  // ============================================================
+
+  /**
+   * Handle LSP hover - get type info and docs at position
+   */
+  private async handleLspHover(args: any) {
+    const { file, line, character } = args;
+
+    const result = await this.lspClient.hover(file, line, character);
+
+    if (!result) {
+      return {
+        content: [{ type: 'text', text: 'No hover information available at this position.' }]
+      };
+    }
+
+    return {
+      content: [{ type: 'text', text: result }]
+    };
+  }
+
+  /**
+   * Handle LSP definition - go to symbol definition
+   */
+  private async handleLspDefinition(args: any) {
+    const { file, line, character } = args;
+
+    const locations = await this.lspClient.definition(file, line, character);
+
+    if (!locations || locations.length === 0) {
+      return {
+        content: [{ type: 'text', text: 'No definition found for symbol at this position.' }]
+      };
+    }
+
+    const lines = ['Definition location(s):'];
+    for (const loc of locations) {
+      lines.push(`  ${formatLocation(loc)}`);
+    }
+
+    return {
+      content: [{ type: 'text', text: lines.join('\n') }]
+    };
+  }
+
+  /**
+   * Handle LSP references - find all references
+   */
+  private async handleLspReferences(args: any) {
+    const { file, line, character, includeDeclaration = true } = args;
+
+    const locations = await this.lspClient.references(file, line, character, includeDeclaration);
+
+    if (!locations || locations.length === 0) {
+      return {
+        content: [{ type: 'text', text: 'No references found for symbol at this position.' }]
+      };
+    }
+
+    const lines = [`Found ${locations.length} reference(s):`];
+    for (const loc of locations) {
+      lines.push(`  ${formatLocation(loc)}`);
+    }
+
+    return {
+      content: [{ type: 'text', text: lines.join('\n') }]
+    };
+  }
+
+  /**
+   * Handle LSP symbols - search workspace symbols
+   */
+  private async handleLspSymbols(args: any) {
+    const { query } = args;
+
+    const symbols = await this.lspClient.workspaceSymbol(query);
+
+    if (!symbols || symbols.length === 0) {
+      return {
+        content: [{ type: 'text', text: `No symbols found matching "${query}".` }]
+      };
+    }
+
+    const lines = [`Found ${symbols.length} symbol(s) matching "${query}":`];
+    for (const sym of symbols) {
+      const kind = symbolKindName(sym.kind);
+      const container = sym.containerName ? ` (in ${sym.containerName})` : '';
+      lines.push(`  ${sym.name} [${kind}]${container}`);
+      lines.push(`    ${formatLocation(sym.location)}`);
+    }
+
+    return {
+      content: [{ type: 'text', text: lines.join('\n') }]
+    };
+  }
+
+  /**
+   * Handle LSP diagnostics - get errors/warnings
+   */
+  private async handleLspDiagnostics(args: any) {
+    const { file } = args;
+
+    const diagnostics = await this.lspClient.getDiagnostics(file);
+
+    if (diagnostics.length === 0) {
+      return {
+        content: [{ type: 'text', text: `No diagnostics for ${file}. File looks clean!` }]
+      };
+    }
+
+    const lines = [`Found ${diagnostics.length} diagnostic(s) in ${file}:`];
+    for (const diag of diagnostics) {
+      const severity = severityName(diag.severity);
+      const line = diag.range.start.line + 1;
+      const col = diag.range.start.character + 1;
+      lines.push(`  [${severity}] Line ${line}:${col}: ${diag.message}`);
+    }
+
+    return {
+      content: [{ type: 'text', text: lines.join('\n') }]
+    };
+  }
+
+  /**
+   * Handle LSP format - format Scheme code
+   */
+  private async handleLspFormat(args: any) {
+    const { file } = args;
+
+    const formatted = await this.lspClient.format(file);
+
+    if (!formatted) {
+      return {
+        content: [{ type: 'text', text: 'Failed to format file.' }],
+        isError: true
+      };
+    }
+
+    return {
+      content: [{ type: 'text', text: formatted }]
+    };
+  }
+
+  /**
+   * Handle LSP lookup - combined hover + definition + references
+   */
+  private async handleLspLookup(args: any) {
+    const { file, line, character } = args;
+
+    const result = await this.lspClient.lookup(file, line, character);
+
+    const sections: string[] = [];
+
+    // Hover section
+    sections.push('=== Type Information ===');
+    if (result.hover) {
+      sections.push(result.hover);
+    } else {
+      sections.push('No type information available.');
+    }
+
+    // Definition section
+    sections.push('');
+    sections.push('=== Definition ===');
+    if (result.definition && result.definition.length > 0) {
+      for (const loc of result.definition) {
+        sections.push(formatLocation(loc));
+      }
+    } else {
+      sections.push('No definition found.');
+    }
+
+    // References section
+    sections.push('');
+    sections.push('=== References ===');
+    if (result.references && result.references.length > 0) {
+      sections.push(`Found ${result.references.length} reference(s):`);
+      for (const loc of result.references.slice(0, 20)) { // Limit to 20
+        sections.push(`  ${formatLocation(loc)}`);
+      }
+      if (result.references.length > 20) {
+        sections.push(`  ... and ${result.references.length - 20} more`);
+      }
+    } else {
+      sections.push('No references found.');
+    }
+
+    return {
+      content: [{ type: 'text', text: sections.join('\n') }]
+    };
+  }
+
+  /**
+   * Handle LSP status - check LSP server status
+   */
+  private async handleLspStatus() {
+    const running = this.lspClient.isRunning();
+
+    const lines = [
+      '=== LSP Server Status ===',
+      '',
+      `Status: ${running ? '✓ Running' : '○ Not started'}`,
+      `Project root: ${this.projectRoot}`,
+      '',
+      'The LSP server starts automatically on first use.',
+      'It provides type inference, go-to-definition, and other',
+      'code intelligence features for Scheme files.'
+    ];
 
     return {
       content: [{ type: 'text', text: lines.join('\n') }]
