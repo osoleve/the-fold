@@ -52,15 +52,29 @@
 ;;; compute-line-starts : String → Vector<Int>
 ;;; Compute byte offsets of each line start.
 ;;; Line 0 starts at offset 0.
+;;; Handles all LSP-spec line endings: \r\n (Windows), \n (Unix), \r (old Mac)
 (define (compute-line-starts content)
   (let* ([len (string-length content)]
          [starts (list 0)])  ; Line 0 starts at 0
         (let loop ([i 0] [acc starts])
              (if (>= i len)
                  (list->vector (reverse acc))
-                 (if (char=? (string-ref content i) #\newline)
-                     (loop (+ i 1) (cons (+ i 1) acc))
-                     (loop (+ i 1) acc))))))
+                 (let ([c (string-ref content i)])
+                   (cond
+                     ;; \r\n (Windows) - skip both, count as one line break
+                     [(and (char=? c #\return)
+                           (< (+ i 1) len)
+                           (char=? (string-ref content (+ i 1)) #\newline))
+                      (loop (+ i 2) (cons (+ i 2) acc))]
+                     ;; \n (Unix)
+                     [(char=? c #\newline)
+                      (loop (+ i 1) (cons (+ i 1) acc))]
+                     ;; \r alone (old Mac)
+                     [(char=? c #\return)
+                      (loop (+ i 1) (cons (+ i 1) acc))]
+                     ;; Regular character
+                     [else
+                      (loop (+ i 1) acc)]))))))
 
 ;;; line-count : Document → Int
 (define (line-count doc)
@@ -75,13 +89,25 @@
            (string-length (document-content doc)))))
 
 ;;; get-line-end : Document × Int → Int
-;;; Get the character offset where a line ends (before newline).
+;;; Get the character offset where a line ends (before any line ending chars).
+;;; Handles \r\n, \n, and \r line endings.
 (define (get-line-end doc line)
   (let* ([starts (document-line-starts doc)]
          [content (document-content doc)]
          [len (string-length content)])
         (if (< (+ line 1) (vector-length starts))
-            (- (vector-ref starts (+ line 1)) 1)  ; Before the \n
+            ;; There's a next line - work backward from next line start
+            (let* ([next-start (vector-ref starts (+ line 1))]
+                   [end (- next-start 1)])  ; Position of final line-ending char
+              ;; Check what line ending we have
+              (if (and (> end 0)
+                       (char=? (string-ref content end) #\newline)
+                       (char=? (string-ref content (- end 1)) #\return))
+                  ;; \r\n case - skip both
+                  (- end 1)
+                  ;; \n or \r case - just use end (which is position of the line ending)
+                  end))
+            ;; Last line - goes to end of content
             len)))
 
 ;;; get-line-content : Document × Int → String

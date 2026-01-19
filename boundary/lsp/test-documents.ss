@@ -65,6 +65,41 @@
 (test "empty doc get-line-content" "" (get-line-content empty-doc 0))
 
 ;;; ====
+;;; Line Ending Tests (LSP spec: \r\n, \n, \r)
+;;; ====
+
+(display "\nLine Endings:\n")
+
+;; Unix style (\n)
+(define unix-doc (make-document "file:///unix.ss" 1 "line1\nline2\nline3"))
+(test "unix line-count" 3 (line-count unix-doc))
+(test "unix line 0" "line1" (get-line-content unix-doc 0))
+(test "unix line 1" "line2" (get-line-content unix-doc 1))
+(test "unix line 2" "line3" (get-line-content unix-doc 2))
+
+;; Windows style (\r\n)
+(define windows-doc (make-document "file:///win.ss" 1 "line1\r\nline2\r\nline3"))
+(test "windows line-count" 3 (line-count windows-doc))
+(test "windows line 0" "line1" (get-line-content windows-doc 0))
+(test "windows line 1" "line2" (get-line-content windows-doc 1))
+(test "windows line 2" "line3" (get-line-content windows-doc 2))
+
+;; Old Mac style (\r)
+(define mac-doc (make-document "file:///mac.ss" 1 "line1\rline2\rline3"))
+(test "mac line-count" 3 (line-count mac-doc))
+(test "mac line 0" "line1" (get-line-content mac-doc 0))
+(test "mac line 1" "line2" (get-line-content mac-doc 1))
+(test "mac line 2" "line3" (get-line-content mac-doc 2))
+
+;; Mixed line endings (pathological but should handle)
+(define mixed-doc (make-document "file:///mixed.ss" 1 "unix\nwindows\r\nmac\rend"))
+(test "mixed line-count" 4 (line-count mixed-doc))
+(test "mixed line 0" "unix" (get-line-content mixed-doc 0))
+(test "mixed line 1" "windows" (get-line-content mixed-doc 1))
+(test "mixed line 2" "mac" (get-line-content mixed-doc 2))
+(test "mixed line 3" "end" (get-line-content mixed-doc 3))
+
+;;; ====
 ;;; Position Conversion Tests
 ;;; ====
 
