@@ -613,42 +613,63 @@
 
 ;;; inside-comment? : String × Int → Boolean
 ;;; Check if position is inside a line comment (after ; before newline).
+;;; Must check inside-string? first since ; inside a multi-line string isn't a comment.
 (define (inside-comment? content offset)
-  (let ([line-start (find-line-start content offset)])
-       (let loop ([i line-start])
-            (cond
-             [(>= i offset) #f]  ; Reached our position without seeing ;
-             [(char=? (string-ref content i) #\;) #t]  ; Found comment start
-             [(char=? (string-ref content i) #\")
-              ;; Skip past string
-              (let ([end (skip-string-forward content i)])
-                   (if (> end offset)
-                       #f  ; Position is inside string, not comment
-                       (loop end)))]
-             [else (loop (+ i 1))]))))
+  ;; If inside a string, can't be in a comment
+  (if (inside-string? content offset)
+      #f
+      ;; Check current line for ; before position
+      (let ([line-start (find-line-start content offset)])
+        (let loop ([i line-start])
+          (cond
+            [(>= i offset) #f]  ; Reached our position without seeing ;
+            [(char=? (string-ref content i) #\;) #t]  ; Found comment start
+            [(char=? (string-ref content i) #\")
+             ;; Skip past string on this line
+             (let ([end (skip-string-forward content i)])
+               (loop end))]
+            [else (loop (+ i 1))])))))
 
 ;;; inside-string? : String × Int → Boolean
 ;;; Check if position is inside a string literal.
-;;; Scans from line start, tracking string state.
+;;; Scans from file start to handle multi-line strings correctly.
 (define (inside-string? content offset)
-  (let ([line-start (find-line-start content offset)])
-       (let loop ([i line-start] [in-string #f])
-            (cond
-             [(>= i offset) in-string]  ; Reached position, return state
-             [(and (not in-string) (char=? (string-ref content i) #\;))
-              #f]  ; Hit comment outside string - position can't be in string
-             [(char=? (string-ref content i) #\")
-              (loop (+ i 1) (not in-string))]  ; Toggle string state
-             [(and in-string (char=? (string-ref content i) #\\)
-                   (< (+ i 1) (string-length content)))
-              (loop (+ i 2) in-string)]  ; Skip escaped char
-             [else (loop (+ i 1) in-string)]))))
+  (let ([len (string-length content)])
+    (let loop ([i 0] [in-string #f])
+      (cond
+        [(>= i offset) in-string]  ; Reached position, return state
+        [(>= i len) #f]            ; Past end of content
+        ;; Inside a string
+        [(and in-string (char=? (string-ref content i) #\\) (< (+ i 1) len))
+         (loop (+ i 2) #t)]        ; Skip escape sequence
+        [(and in-string (char=? (string-ref content i) #\"))
+         (loop (+ i 1) #f)]        ; End string
+        [in-string
+         (loop (+ i 1) #t)]        ; Continue in string
+        ;; Outside a string
+        [(char=? (string-ref content i) #\")
+         (loop (+ i 1) #t)]        ; Start string
+        [(char=? (string-ref content i) #\;)
+         ;; Comment - skip to end of line
+         (loop (skip-past-newline content i len) #f)]
+        [else
+         (loop (+ i 1) #f)]))))
 
 ;;; inside-string-or-comment? : String × Int → Boolean
 ;;; Check if position is inside a string literal or comment.
+;;; Checks string first since inside-comment? depends on string state.
 (define (inside-string-or-comment? content offset)
-  (or (inside-comment? content offset)
-      (inside-string? content offset)))
+  (or (inside-string? content offset)
+      (inside-comment? content offset)))
+
+;;; skip-past-newline : String × Int × Int → Int
+;;; Find the position after the next newline, or len if none.
+(define (skip-past-newline content start len)
+  (let loop ([i start])
+    (cond
+      [(>= i len) len]
+      [(char=? (string-ref content i) #\newline) (+ i 1)]
+      [else (loop (+ i 1))])))
 
 ;;; find-line-start : String × Int → Int
 ;;; Find the start of the line containing offset.

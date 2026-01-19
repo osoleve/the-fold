@@ -553,6 +553,44 @@
 ;; Test flatten-params: single element proper list
 (test "flatten-params single element" '(x) (flatten-params '(x)))
 
+;;; ====
+;;; Multi-line String/Comment Detection Tests
+;;; ====
+
+(display "\nMulti-line String/Comment Detection:\n")
+
+;; Test inside-string? for single-line strings
+(test "inside-string? outside" #f (inside-string? "foo bar" 3))
+(test "inside-string? inside" #t (inside-string? "foo \"bar\" baz" 6))
+(test "inside-string? at quote" #f (inside-string? "foo \"bar\" baz" 4))  ; At opening quote
+
+;; Test inside-string? for MULTI-LINE strings (the bug case)
+(define multiline-str "\"line1\nline2\nline3\"")
+(test "inside-string? multiline line1" #t (inside-string? multiline-str 3))   ; Inside line1
+(test "inside-string? multiline line2" #t (inside-string? multiline-str 10))  ; Inside line2
+(test "inside-string? multiline line3" #t (inside-string? multiline-str 16))  ; Inside line3
+
+;; Test inside-string? with escaped quotes
+(test "inside-string? escaped quote" #t (inside-string? "\"foo\\\"bar\"" 6))  ; After escaped quote
+
+;; Test inside-comment? for simple comments
+(test "inside-comment? in comment" #t (inside-comment? "foo ; comment" 8))
+(test "inside-comment? before comment" #f (inside-comment? "foo ; comment" 2))
+
+;; Test inside-comment? with ; inside string (should NOT be comment)
+(test "inside-comment? semicolon in string" #f (inside-comment? "\"foo ; bar\"" 6))
+
+;; Test inside-comment? with ; inside MULTI-LINE string (the bug case)
+(define multiline-with-semi "\"line1\n; fake comment\nline3\"")
+(test "inside-comment? multi-line ; in string" #f
+      (inside-comment? multiline-with-semi 10))  ; At the ; which is inside string
+
+;; Test find-symbol-positions with multi-line string
+(define multiline-code "foo\n\"bar\nfoo\nbaz\"\nfoo")
+(test "find-symbol-positions multi-line string"
+      '(0 18)  ; First foo and last foo, not foo inside string
+      (find-symbol-positions multiline-code "foo"))
+
 ;;; Summary
 (display "\n====\n")
 (printf "Passed: ~a, Failed: ~a\n" tests-passed tests-failed)
