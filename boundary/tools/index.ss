@@ -280,21 +280,12 @@
   (hashtable-clear! *symbol-index*)
   (hashtable-clear! *module-registry*)
   (hashtable-clear! *reverse-deps*)
-  ;; Scan key directories
-  (display "Indexing fabric/stitches...
-")
-  (index-directory "core")
-  (display "Indexing fabric/patterns...
-")
-  (index-directory "core")
-  (display "Indexing thimble...
-")
-  (index-directory "shell")
-  (display "Indexing playpen...
-")
-  (index-directory "user")
-  (display "Index complete.
-")
+  ;; Scan all key directories
+  (for-each (lambda (dir)
+              (when (file-exists? dir)
+                (index-directory dir)))
+            '("core" "lattice" "boundary" "user"))
+  (display "Index complete.\n")
   (index-stats))
 
 ;;; index-find : String → (List Entry)

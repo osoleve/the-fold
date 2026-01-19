@@ -14,9 +14,9 @@
 (load "boundary/lsp/protocol.ss")
 (load "boundary/lsp/documents.ss")
 
-;;; Load the error system if not already loaded
-(unless (top-level-bound? 'make-error)
-        (load "core/base/error.ss"))
+;;; Load the error system (always load - Chez has a built-in make-error
+;;; with different arity that we need to override)
+(load "core/base/error.ss")
 
 ;;; ====
 ;;; Error Phase to Severity Mapping

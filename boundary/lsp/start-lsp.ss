@@ -22,6 +22,14 @@
 ;;; Load and run the server
 (load "boundary/lsp/lsp-server.ss")
 
+;;; Load symbol index for hover/definition (redirect output to stderr
+;;; to avoid corrupting LSP protocol on stdout)
+(parameterize ([current-output-port (current-error-port)])
+  (guard (e [else (display "Warning: failed to load symbol index\n"
+                           (current-error-port))])
+         (load "boundary/tools/index.ss")
+         (index-refresh!)))
+
 ;;; Transfer captured ports to transport layer
 (set! *lsp-stdin* *captured-stdin*)
 (set! *lsp-stdout* *captured-stdout*)
