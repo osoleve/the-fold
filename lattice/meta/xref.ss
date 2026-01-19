@@ -381,10 +381,10 @@
 ;;; REPL Interface
 ;;; ====
 
-(printf "xref.ss loaded.\n")
-(printf "  (build-xref-cache!)       - Build call graph from sources\n")
-(printf "  (lxu 'fn)                 - What calls this function?\n")
-(printf "  (lxc 'fn)                 - What does this function call?\n")
-(printf "  (xref-callers 'fn)        - Get caller list\n")
-(printf "  (xref-callees 'fn)        - Get callee list\n")
-(printf "  (xref-stats)              - Show statistics\n")
+(meta-printf "xref.ss loaded.\n")
+(meta-printf "  (build-xref-cache!)       - Build call graph from sources\n")
+(meta-printf "  (lxu 'fn)                 - What calls this function?\n")
+(meta-printf "  (lxc 'fn)                 - What does this function call?\n")
+(meta-printf "  (xref-callers 'fn)        - Get caller list\n")
+(meta-printf "  (xref-callees 'fn)        - Get callee list\n")
+(meta-printf "  (xref-stats)              - Show statistics\n")

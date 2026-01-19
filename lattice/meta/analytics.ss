@@ -347,13 +347,13 @@
 ;;; REPL Interface
 ;;; ====
 
-(printf "analytics.ss loaded.\n")
-(printf "  (lattice-stats)               - Overall statistics\n")
-(printf "  (lattice-stats-pretty)        - Pretty stats\n")
-(printf "  (lattice-health)              - Health check\n")
-(printf "  (lattice-health-pretty)       - Pretty health report\n")
-(printf "  (lattice-coverage)            - Coverage analysis\n")
-(printf "  (lattice-coverage-pretty)     - Pretty coverage\n")
-(printf "  (skill-complexity 'skill)     - Skill complexity\n")
-(printf "  (lattice-purity-report)       - Purity analysis\n")
-(printf "  (ls), (lh)                    - Quick stats/health\n")
+(meta-printf "analytics.ss loaded.\n")
+(meta-printf "  (lattice-stats)               - Overall statistics\n")
+(meta-printf "  (lattice-stats-pretty)        - Pretty stats\n")
+(meta-printf "  (lattice-health)              - Health check\n")
+(meta-printf "  (lattice-health-pretty)       - Pretty health report\n")
+(meta-printf "  (lattice-coverage)            - Coverage analysis\n")
+(meta-printf "  (lattice-coverage-pretty)     - Pretty coverage\n")
+(meta-printf "  (skill-complexity 'skill)     - Skill complexity\n")
+(meta-printf "  (lattice-purity-report)       - Purity analysis\n")
+(meta-printf "  (ls), (lh)                    - Quick stats/health\n")

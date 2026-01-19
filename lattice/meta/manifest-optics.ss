@@ -267,10 +267,10 @@
 ;;; REPL Interface
 ;;; ============================================================
 
-(printf "manifest-optics.ss loaded.\n")
-(printf "  (alist-affine 'key)              - Affine for alist key\n")
-(printf "  (manifest-field 'field)          - Affine for manifest field\n")
-(printf "  (manifest-get manifest 'field)   - Get field with default\n")
-(printf "  (manifest-set manifest 'k v)     - Set field\n")
-(printf "  mf-version, mf-tier, etc.        - Pre-built field optics\n")
-(printf "  exports-each, modules-each       - Collection traversals\n")
+(meta-printf "manifest-optics.ss loaded.\n")
+(meta-printf "  (alist-affine 'key)              - Affine for alist key\n")
+(meta-printf "  (manifest-field 'field)          - Affine for manifest field\n")
+(meta-printf "  (manifest-get manifest 'field)   - Get field with default\n")
+(meta-printf "  (manifest-set manifest 'k v)     - Set field\n")
+(meta-printf "  mf-version, mf-tier, etc.        - Pre-built field optics\n")
+(meta-printf "  exports-each, modules-each       - Collection traversals\n")

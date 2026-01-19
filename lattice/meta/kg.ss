@@ -25,6 +25,21 @@
 (load "lattice/meta/manifest.ss")
 
 ;;; ====
+;;; Quiet Load Mode
+;;; ====
+
+;;; Set *meta-quiet* to #t before loading meta modules to suppress help text.
+;;; Useful for tests and scripts that don't need the REPL interface messages.
+;;; We check if it's already defined so callers can pre-set it before loading.
+(when (not (top-level-bound? '*meta-quiet*))
+      (set-top-level-value! '*meta-quiet* #f))
+
+;;; meta-printf : like printf, but suppressed when *meta-quiet* is true
+(define (meta-printf . args)
+  (unless (top-level-value '*meta-quiet*)
+          (apply printf args)))
+
+;;; ====
 ;;; Entity Types
 ;;; ====
 
@@ -360,12 +375,12 @@
 ;;; REPL Interface
 ;;; ====
 
-(printf "kg.ss loaded.\n")
-(printf "  (kg-build!)           - Build KG from manifests\n")
-(printf "  (kg-ensure!)          - Build only if not initialized\n")
-(printf "  (kg-skills)           - List all skills\n")
-(printf "  (kg-skill 'name)      - Get skill block\n")
-(printf "  (kg-modules 'name)    - Get skill modules\n")
-(printf "  (kg-deps 'name)       - Get skill dependencies\n")
-(printf "  (kg-uses 'name)       - Get skills that use this\n")
-(printf "  (kg-stats)            - Get statistics\n")
+(meta-printf "kg.ss loaded.\n")
+(meta-printf "  (kg-build!)           - Build KG from manifests\n")
+(meta-printf "  (kg-ensure!)          - Build only if not initialized\n")
+(meta-printf "  (kg-skills)           - List all skills\n")
+(meta-printf "  (kg-skill 'name)      - Get skill block\n")
+(meta-printf "  (kg-modules 'name)    - Get skill modules\n")
+(meta-printf "  (kg-deps 'name)       - Get skill dependencies\n")
+(meta-printf "  (kg-uses 'name)       - Get skills that use this\n")
+(meta-printf "  (kg-stats)            - Get statistics\n")

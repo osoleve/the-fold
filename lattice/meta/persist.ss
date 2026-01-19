@@ -288,9 +288,9 @@
 ;;; REPL Interface
 ;;; ====
 
-(printf "persist.ss loaded.\n")
-(printf "  (lattice-cache-valid?)         - Check cache validity\n")
-(printf "  (lattice-save-cache!)          - Save to cache\n")
-(printf "  (lattice-load-cache!)          - Load from cache\n")
-(printf "  (lattice-init-cached!)         - Init with caching\n")
-(printf "  (lattice-manifest-fingerprint) - Show fingerprint\n")
+(meta-printf "persist.ss loaded.\n")
+(meta-printf "  (lattice-cache-valid?)         - Check cache validity\n")
+(meta-printf "  (lattice-save-cache!)          - Save to cache\n")
+(meta-printf "  (lattice-load-cache!)          - Load from cache\n")
+(meta-printf "  (lattice-init-cached!)         - Init with caching\n")
+(meta-printf "  (lattice-manifest-fingerprint) - Show fingerprint\n")

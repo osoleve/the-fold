@@ -401,10 +401,10 @@
 ;;; REPL Interface
 ;;; ====
 
-(printf "bm25.ss loaded.\n")
-(printf "  (bm25-create)                  - Create empty index\n")
-(printf "  (bm25-add-doc idx id terms d)  - Add document\n")
-(printf "  (bm25-search idx terms k)      - Top-k search\n")
-(printf "  (bm25-search-string idx q k)   - Search with string\n")
-(printf "  (bm25-score idx id terms)      - Score document\n")
-(printf "  (bm25-stats idx)               - Index statistics\n")
+(meta-printf "bm25.ss loaded.\n")
+(meta-printf "  (bm25-create)                  - Create empty index\n")
+(meta-printf "  (bm25-add-doc idx id terms d)  - Add document\n")
+(meta-printf "  (bm25-search idx terms k)      - Top-k search\n")
+(meta-printf "  (bm25-search-string idx q k)   - Search with string\n")
+(meta-printf "  (bm25-score idx id terms)      - Score document\n")
+(meta-printf "  (bm25-stats idx)               - Index statistics\n")

@@ -445,12 +445,12 @@
 ;;; REPL Interface
 ;;; ====
 
-(printf "search.ss loaded.\n")
-(printf "  (lattice-index!)               - Build search indices\n")
-(printf "  (lattice-find \"query\")         - Full-text search\n")
-(printf "  (lattice-find-exact 'symbol)   - Exact match\n")
-(printf "  (lattice-complete \"prefix\")    - Autocomplete\n")
-(printf "  (lf \"query\")                   - Quick search\n")
-(printf "  (lfe 'symbol)                  - Quick exact search\n")
-(printf "  (lfp 'prefix)                  - Prefix search\n")
-(printf "  (lfs 'substr)                  - Substring search\n")
+(meta-printf "search.ss loaded.\n")
+(meta-printf "  (lattice-index!)               - Build search indices\n")
+(meta-printf "  (lattice-find \"query\")         - Full-text search\n")
+(meta-printf "  (lattice-find-exact 'symbol)   - Exact match\n")
+(meta-printf "  (lattice-complete \"prefix\")    - Autocomplete\n")
+(meta-printf "  (lf \"query\")                   - Quick search\n")
+(meta-printf "  (lfe 'symbol)                  - Quick exact search\n")
+(meta-printf "  (lfp 'prefix)                  - Prefix search\n")
+(meta-printf "  (lfs 'substr)                  - Substring search\n")

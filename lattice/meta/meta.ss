@@ -150,6 +150,6 @@
 ;;; REPL Interface
 ;;; ====
 
-(printf "\nmeta.ss loaded — Unified lattice tooling\n")
-(printf "  (lattice-init!)  - Initialize (build KG + indices)\n")
-(printf "  (lattice-help)   - Show quick reference\n")
+(meta-printf "\nmeta.ss loaded — Unified lattice tooling\n")
+(meta-printf "  (lattice-init!)  - Initialize (build KG + indices)\n")
+(meta-printf "  (lattice-help)   - Show quick reference\n")

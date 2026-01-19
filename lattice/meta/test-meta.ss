@@ -1,8 +1,18 @@
 ;;; lattice/meta/test-meta.ss — Tests for Lattice Meta-Tooling
 ;;;
 ;;; Run with: scheme --script lattice/meta/test-meta.ss
+;;;
+;;; Performance notes:
+;;; - Tests use kg-ensure! and lattice-ensure! instead of kg-build!/lattice-init!
+;;;   to avoid rebuilding the knowledge graph and search indices for each test.
+;;; - The exception is test-kg-build, which tests the actual build process.
+;;; - This reduces test runtime from ~20s to ~2s (9x speedup).
 
 (load "core/testing/test-framework.ss")
+
+;;; Suppress module load messages during tests
+(define *meta-quiet* #t)
+
 (load "lattice/meta/meta.ss")
 
 (display "\n====\n")

@@ -253,7 +253,7 @@
 ;;; REPL Interface
 ;;; ====
 
-(printf "type-search.ss loaded.\n")
-(printf "  (lf-type \"query\")      - Search types for query\n")
-(printf "  (lf-input \"Type\")      - Functions taking Type as input\n")
-(printf "  (lf-output \"Type\")     - Functions returning Type\n")
+(meta-printf "type-search.ss loaded.\n")
+(meta-printf "  (lf-type \"query\")      - Search types for query\n")
+(meta-printf "  (lf-input \"Type\")      - Functions taking Type as input\n")
+(meta-printf "  (lf-output \"Type\")     - Functions returning Type\n")

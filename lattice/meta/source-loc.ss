@@ -265,7 +265,7 @@
 ;;; REPL Interface
 ;;; ====
 
-(printf "source-loc.ss loaded.\n")
-(printf "  (build-source-location-cache!)  - Build cache from sources\n")
-(printf "  (get-source-location 'fn)       - Get (file . line) pair\n")
-(printf "  (format-source-location 'fn)    - Get \"file:line\" string\n")
+(meta-printf "source-loc.ss loaded.\n")
+(meta-printf "  (build-source-location-cache!)  - Build cache from sources\n")
+(meta-printf "  (get-source-location 'fn)       - Get (file . line) pair\n")
+(meta-printf "  (format-source-location 'fn)    - Get \"file:line\" string\n")

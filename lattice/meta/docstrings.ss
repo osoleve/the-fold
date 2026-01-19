@@ -231,7 +231,7 @@
 ;;; REPL Interface
 ;;; ====
 
-(printf "docstrings.ss loaded.\n")
-(printf "  (build-docstring-cache!)       - Build cache from sources\n")
-(printf "  (get-docstring 'fn)            - Get docstring for function\n")
-(printf "  (docstring-terms 'fn)          - Get search terms from docstring\n")
+(meta-printf "docstrings.ss loaded.\n")
+(meta-printf "  (build-docstring-cache!)       - Build cache from sources\n")
+(meta-printf "  (get-docstring 'fn)            - Get docstring for function\n")
+(meta-printf "  (docstring-terms 'fn)          - Get search terms from docstring\n")
