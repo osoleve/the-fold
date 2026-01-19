@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "fold-repl": {
+      "command": "node",
+      "args": ["boundary/mcp-server/dist/index.js"],
+      "env": {
+        "FOLD_ROOT": "/home/oso/fold"
+      }
+    }
+  }
+}
