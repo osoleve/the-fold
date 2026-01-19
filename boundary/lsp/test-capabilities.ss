@@ -517,6 +517,27 @@
 (test "find-number-end float" 5 (find-number-end "12.34abc" 0))
 (test "find-number-end negative" 4 (find-number-end "-123abc" 0))
 
+;;; ====
+;;; Parameter Flattening Tests
+;;; ====
+
+(display "\nParameter Flattening:\n")
+
+;; Test flatten-params: proper list
+(test "flatten-params proper list" '(a b c) (flatten-params '(a b c)))
+
+;; Test flatten-params: improper list (dotted tail)
+(test "flatten-params dotted tail" '(a b rest) (flatten-params '(a b . rest)))
+
+;; Test flatten-params: single symbol (variadic)
+(test "flatten-params single symbol" '(args) (flatten-params 'args))
+
+;; Test flatten-params: empty
+(test "flatten-params empty" '() (flatten-params '()))
+
+;; Test flatten-params: single element proper list
+(test "flatten-params single element" '(x) (flatten-params '(x)))
+
 ;;; Summary
 (display "\n====\n")
 (printf "Passed: ~a, Failed: ~a\n" tests-passed tests-failed)

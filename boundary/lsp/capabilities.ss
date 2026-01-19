@@ -202,6 +202,16 @@
 
 ;;; extract-local-bindings : Sexp × Symbol → (List (Symbol . Sexp))
 ;;; Extract all local bindings visible to a symbol reference within a form.
+;;; flatten-params : ParamSpec → (List Symbol)
+;;; Convert lambda parameter specs to a flat list of symbols.
+;;; Handles: proper list (a b c), improper list (a b . rest), single symbol args
+(define (flatten-params params)
+  (cond
+   [(null? params) '()]
+   [(symbol? params) (list params)]  ; single symbol or dotted tail
+   [(pair? params) (cons (car params) (flatten-params (cdr params)))]
+   [else '()]))
+
 ;;; Walks the AST looking for let/let*/letrec/lambda forms containing the symbol.
 (define (extract-local-bindings form target-sym)
   (extract-bindings-deep form target-sym '()))
@@ -220,7 +230,7 @@
         (let* ([params (cadr form)]
                [body (cddr form)]
                [param-bindings (map (lambda (p) (cons p 'param))
-                                    (if (list? params) params (list params)))]
+                                    (flatten-params params))]
                [new-bindings (append param-bindings bindings)])
               (extract-in-body body target new-bindings))
         #f)]
@@ -254,7 +264,7 @@
                  (let* ([params (cdr name-part)]
                         [body (cddr form)]
                         [param-bindings (map (lambda (p) (cons p 'param))
-                                             (if (list? params) params '()))]
+                                             (flatten-params params))]
                         [new-bindings (append param-bindings bindings)])
                        (extract-in-body body target new-bindings))
                  ;; (define name value) - just recurse into value
