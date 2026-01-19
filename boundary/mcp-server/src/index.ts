@@ -80,12 +80,6 @@ class FoldMCPServer {
             return await this.handleLogin(session, args);
           case 'fold_eval':
             return await this.handleEval(session, args);
-          case 'fold_digest':
-            return await this.handleDigest(session);
-          case 'fold_post':
-            return await this.handlePost(session, args);
-          case 'fold_chat':
-            return await this.handleChat(session, args);
           case 'fold_help':
             return await this.handleHelp(session);
           case 'fold_who':
@@ -188,98 +182,6 @@ class FoldMCPServer {
     }
 
     const { expression } = args;
-    const response = await sendRequest(session.id, expression);
-
-    if (response.error) {
-      throw new Error(response.error);
-    }
-
-    return {
-      content: [{ type: 'text', text: response.output }]
-    };
-  }
-
-  /**
-   * Handle digest tool
-   */
-  private async handleDigest(session: Session) {
-    if (!session.loggedIn) {
-      throw new Error('Not logged in. Use fold_login first.');
-    }
-
-    const response = await sendRequest(session.id, '(digest)');
-
-    if (response.error) {
-      throw new Error(response.error);
-    }
-
-    return {
-      content: [{ type: 'text', text: response.output }]
-    };
-  }
-
-  /**
-   * Handle post tool
-   */
-  private async handlePost(session: Session, args: any) {
-    if (!session.loggedIn) {
-      throw new Error('Not logged in. Use fold_login first.');
-    }
-
-    const { channel, title, body } = args;
-
-    // Validate channel name (symbol-safe characters)
-    if (!channel || !/^[a-zA-Z][a-zA-Z0-9_-]*$/.test(channel)) {
-      throw new Error('Invalid channel: must start with letter and contain only letters, numbers, hyphens, underscores');
-    }
-
-    // Validate title length
-    if (!title || title.length === 0) {
-      throw new Error('Title cannot be empty');
-    }
-    if (title.length > 200) {
-      throw new Error('Title too long (max 200 characters)');
-    }
-
-    // Validate body length
-    if (!body || body.length === 0) {
-      throw new Error('Body cannot be empty');
-    }
-    if (body.length > 10000) {
-      throw new Error('Body too long (max 10000 characters)');
-    }
-
-    const expression = `(msg '${channel} "${escapeString(title)}" "${escapeString(body)}")`;
-    const response = await sendRequest(session.id, expression);
-
-    if (response.error) {
-      throw new Error(response.error);
-    }
-
-    return {
-      content: [{ type: 'text', text: response.output }]
-    };
-  }
-
-  /**
-   * Handle chat tool
-   */
-  private async handleChat(session: Session, args: any) {
-    if (!session.loggedIn) {
-      throw new Error('Not logged in. Use fold_login first.');
-    }
-
-    const { message } = args;
-
-    // Validate message
-    if (!message || message.length === 0) {
-      throw new Error('Message cannot be empty');
-    }
-    if (message.length > 1000) {
-      throw new Error('Message too long (max 1000 characters)');
-    }
-
-    const expression = `(chat "${escapeString(message)}")`;
     const response = await sendRequest(session.id, expression);
 
     if (response.error) {

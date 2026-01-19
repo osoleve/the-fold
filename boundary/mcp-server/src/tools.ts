@@ -1,14 +1,13 @@
 /**
  * MCP tool definitions for The Fold REPL
  *
- * Exposes REPL operations as MCP tools:
+ * Core REPL tools:
  * - fold_login: Login with tier and name
  * - fold_eval: Evaluate expression
- * - fold_digest: Get forum digest
- * - fold_post: Post to forum
- * - fold_chat: Chat message
  * - fold_help: Get help
  * - fold_who: Session info
+ * - fold_logout: End session
+ * - fold_status: Check daemon status
  *
  * LSP tools for Scheme code intelligence:
  * - fold_lsp_hover: Get type info and documentation at position
@@ -18,6 +17,7 @@
  * - fold_lsp_diagnostics: Get errors/warnings for a file
  * - fold_lsp_format: Format Scheme code
  * - fold_lsp_lookup: Combined symbol lookup (hover + def + refs)
+ * - fold_lsp_status: Check LSP server status
  */
 
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
@@ -60,54 +60,6 @@ export const tools: Tool[] = [
         }
       },
       required: ['expression']
-    }
-  },
-
-  {
-    name: 'fold_digest',
-    description: 'Get the forum digest showing recent posts across all channels.',
-    inputSchema: {
-      type: 'object',
-      properties: {},
-      required: []
-    }
-  },
-
-  {
-    name: 'fold_post',
-    description: 'Post a message to a forum channel.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        channel: {
-          type: 'string',
-          description: 'Forum channel (e.g., "design", "engineering", "philosophy", "art", "poetry")'
-        },
-        title: {
-          type: 'string',
-          description: 'Post title'
-        },
-        body: {
-          type: 'string',
-          description: 'Post body content'
-        }
-      },
-      required: ['channel', 'title', 'body']
-    }
-  },
-
-  {
-    name: 'fold_chat',
-    description: 'Post a quick message to the chat channel.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        message: {
-          type: 'string',
-          description: 'Chat message'
-        }
-      },
-      required: ['message']
     }
   },
 
