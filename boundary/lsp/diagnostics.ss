@@ -253,12 +253,14 @@
                         (loop (+ i 1) depth in-string #f nxt-line nxt-col paren-stack errors)]))))))
 
 ;;; skip-to-newline : String × Int → Int
+;;; Returns position after the next newline, or len if no newline found.
 (define (skip-to-newline content i)
   (let ([len (string-length content)])
        (let loop ([j i])
-            (if (or (>= j len) (char=? (string-ref content j) #\newline))
-                (+ j 1)
-                (loop (+ j 1))))))
+            (cond
+             [(>= j len) len]  ; At end, return len (not len+1)
+             [(char=? (string-ref content j) #\newline) (+ j 1)]
+             [else (loop (+ j 1))]))))
 
 ;;; skip-block-comment : String × Int × Int × Int → (values Int Int Int)
 ;;; Skip a #| |# block comment, handling nesting.
