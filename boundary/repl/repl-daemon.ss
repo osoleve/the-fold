@@ -47,15 +47,8 @@
 (define (daemon-running?)
   (file-exists? *ready-file*))
 
-;;; atomic-write-file : String × (Port -> Void) -> Void
-;;; Write to temp file then rename for atomicity.
-;;; Clients never see partial or missing content.
-(define (atomic-write-file path writer)
-  (let ([temp-path (string-append path ".tmp")])
-    (call-with-output-file temp-path writer 'truncate)
-    (when (file-exists? path)
-      (delete-file path))
-    (rename-file temp-path path)))
+;;; Load atomic write support (provides fdatasync durability when FFI available)
+(load "boundary/io/atomic.ss")
 
 ;;; ====
 ;;; Request Processing
