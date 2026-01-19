@@ -344,10 +344,12 @@
                 (betainc-cf-loop a b x qab qap qam (+ m 1) h2 c2 d2)))))
 
 ;;; betainc-cf-result : compute final result
+;;; The regularized incomplete beta is I_x(a,b) = x^a*(1-x)^b / (a*B(a,b)) * CF
+;;; Note the division by 'a' - a common pitfall in implementations.
 (define (betainc-cf-result a b x h)
-  (* h (exp (+ (* a (log x))
-               (* b (log (- 1 x)))
-               (- (lbeta a b))))))
+  (* (/ h a) (exp (+ (* a (log x))
+                     (* b (log (- 1 x)))
+                     (- (lbeta a b))))))
 
 ;;; ====
 ;;; Binomial Coefficient

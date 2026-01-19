@@ -86,13 +86,10 @@
                    (assert-true (>= p 0))
                    (assert-true (<= p 1))))
             
-            ;; TODO: t-quantile test disabled - betainc has a fundamental bug
-            ;; See fold-zxpp: betainc(2,1,0.5) returns 0.5 instead of 0.25
-            ;; This causes t-cdf to return wrong values, breaking t-quantile
-            ;; #;(define-test "t-quantile inverts t-cdf approximately"
-            ;;   (let* ([t-val (t-quantile 0.975 30)]
-            ;;          [p-back (t-cdf t-val 30)])
-            ;;         (assert-true (< (abs (- p-back 0.975)) 0.01))))
+            (define-test "t-quantile inverts t-cdf approximately"
+              (let* ([t-val (t-quantile 0.975 30)]
+                     [p-back (t-cdf t-val 30)])
+                    (assert-true (< (abs (- p-back 0.975)) 0.01))))
             )
 
 ;;; ====
