@@ -205,6 +205,20 @@
       ;; At position 5: f runs t with 5, gets (5+10)=15, doubles to 30
       (assert-equal 30 (run-traced extended 5))))
 
+  (define-test "traced comonad law 1: extend extract = id"
+    (let* ([run-fn (lambda (acc) (+ acc 10))]
+           [t (make-traced run-fn monoid-sum)])
+      (assert-true
+       (verify-comonad-law-1
+        (traced-comonad monoid-sum)
+        t
+        (lambda (a b)
+          (and (traced? a) (traced? b)
+               ;; Check values at multiple accumulator positions
+               (equal? (run-traced a 0) (run-traced b 0))
+               (equal? (run-traced a 10) (run-traced b 10))
+               (equal? (run-traced a 25) (run-traced b 25))))))))
+
   (define-test "traced comonad law 2: extract . extend f = f"
     (let* ([run-fn (lambda (acc) (+ acc 1))]
            [t (make-traced run-fn monoid-sum)]
@@ -484,6 +498,31 @@
       ;; At position 5: inner env value = 5² = 25
       (assert-equal 25 (env-value (store-peek extended 5)))))
 
+  (define-test "store-env composition: law 1 (extend extract = id)"
+    (let* ([comonad (compose-comonads-with-dist
+                      store-comonad
+                      env-comonad
+                      dist-env-to-store)]
+           [w (make-store (lambda (s) (make-env (* s 10) (+ s 5))) 3)]
+           [ext (comonad-extend comonad)]
+           [extr (comonad-extract comonad)]
+           [result (ext extr w)])
+      ;; Check store position preserved
+      (assert-equal (store-position w) (store-position result))
+      ;; Check inner env values at multiple positions
+      (assert-equal (env-environment (store-peek w 0))
+                    (env-environment (store-peek result 0)))
+      (assert-equal (env-value (store-peek w 0))
+                    (env-value (store-peek result 0)))
+      (assert-equal (env-environment (store-peek w 3))
+                    (env-environment (store-peek result 3)))
+      (assert-equal (env-value (store-peek w 3))
+                    (env-value (store-peek result 3)))
+      (assert-equal (env-environment (store-peek w 7))
+                    (env-environment (store-peek result 7)))
+      (assert-equal (env-value (store-peek w 7))
+                    (env-value (store-peek result 7)))))
+
   (define-test "store-env composition: law 2 (extract . extend f = f)"
     (let* ([comonad (compose-comonads-with-dist
                       store-comonad
@@ -499,7 +538,29 @@
            [rhs (f w)])
       ;; At position 4: env=4, val=16, so f = 4 + 16 = 20
       (assert-equal rhs lhs)
-      (assert-equal 20 lhs))))
+      (assert-equal 20 lhs)))
+
+  (define-test "store-env composition: law 3 (extend f . extend g = extend (f . extend g))"
+    (let* ([comonad (compose-comonads-with-dist
+                      store-comonad
+                      env-comonad
+                      dist-env-to-store)]
+           [w (make-store (lambda (s) (make-env (* s 10) (* s s))) 3)]
+           [f (lambda (se) (* 2 (env-value (store-extract se))))]  ; double inner value
+           [g (lambda (se) (+ (env-environment (store-extract se))
+                              (env-value (store-extract se))))]    ; env + val
+           [ext (comonad-extend comonad)]
+           [lhs (ext f (ext g w))]
+           [rhs (ext (lambda (se) (f (ext g se))) w)])
+      ;; Check store positions match
+      (assert-equal (store-position lhs) (store-position rhs))
+      ;; Check inner env values at multiple positions
+      (assert-equal (env-value (store-peek lhs 0))
+                    (env-value (store-peek rhs 0)))
+      (assert-equal (env-value (store-peek lhs 3))
+                    (env-value (store-peek rhs 3)))
+      (assert-equal (env-value (store-peek lhs 7))
+                    (env-value (store-peek rhs 7))))))
 
 ;;; ====
 ;;; Run Tests
