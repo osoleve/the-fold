@@ -161,27 +161,30 @@
 
 ;;; parse-forms-with-lines : String → (List (form . start-line))
 ;;; Parse all top-level forms with their starting line numbers.
+;;; Uses incremental newline counting for O(N) performance.
 (define (parse-forms-with-lines content)
   (guard (e [else '()])
-         (let ([lines (string-split content #\newline)]
-               [port (open-input-string content)])
-              (let loop ([acc '()] [last-pos 0])
+         (let ([port (open-input-string content)])
+              (let loop ([acc '()] [last-pos 0] [last-line 0])
                    (let* ([before-pos (file-position port)]
                           [form (read port)])
                         (if (eof-object? form)
                             (reverse acc)
-                            (let* ([start-line (count-newlines-before content before-pos)]
+                            (let* ([start-line (+ last-line (count-newlines-between content last-pos before-pos))]
                                    [after-pos (file-position port)]
-                                   [end-line (count-newlines-before content after-pos)])
+                                   [end-line (+ start-line (count-newlines-between content before-pos after-pos))])
                                   (loop (cons (list form start-line end-line) acc)
-                                        after-pos))))))))
+                                        after-pos
+                                        end-line))))))))
 
-;;; count-newlines-before : String × Int → Int
-;;; Count newlines in content before position (0-indexed line number).
-(define (count-newlines-before content pos)
-  (let ([len (min pos (string-length content))])
-       (let loop ([i 0] [count 0])
-            (if (>= i len)
+;;; count-newlines-between : String × Int × Int → Int
+;;; Count newlines in content between start and end positions.
+;;; O(end - start) instead of O(end) for incremental counting.
+(define (count-newlines-between content start end)
+  (let ([len (string-length content)]
+        [safe-end (min end (string-length content))])
+       (let loop ([i start] [count 0])
+            (if (>= i safe-end)
                 count
                 (loop (+ i 1)
                       (if (char=? (string-ref content i) #\newline)
