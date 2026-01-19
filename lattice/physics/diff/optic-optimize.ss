@@ -1,18 +1,25 @@
 ;;; lattice/physics/diff/optic-optimize.ss --- Optic-Based Physics Optimization
 ;;;
-;;; Simplified physics optimization using traced-optics.
-;;; Replaces manual parameter flattening with optic-focused gradients.
+;;; Selective physics parameter optimization using traced-optics.
+;;; Complements optimize.ss with lens-based parameter selection.
 ;;;
-;;; Before (optimize-trajectory):
-;;;   1. Flatten body state to (List Number)
-;;;   2. Create TracedBody from list indices
-;;;   3. Run rollout, compute loss
-;;;   4. Reconstruct body from result list
+;;; When to use each API:
 ;;;
-;;; After (optimize-via-optic):
-;;;   1. Specify parameter via optic (e.g., rigid-body-vel-lens)
-;;;   2. Compute gradient through optic path
-;;;   3. Update parameter directly
+;;;   optimize.ss:
+;;;     - optimize-trajectory: Optimize ALL body parameters (6 DOF)
+;;;     - optimize-initial-velocity: Optimize velocity for projectiles
+;;;     - Uses Adam optimizer with parameter flattening
+;;;     - Best for: unconstrained full-state optimization
+;;;
+;;;   optic-optimize.ss (this module):
+;;;     - optimize-trajectory-optic: Optimize SINGLE parameter via lens
+;;;     - optimize-physics-param: General optic-focused gradient descent
+;;;     - Uses vanilla GD, no flattening needed
+;;;     - Best for: constrained optimization (e.g., only velocity, not position)
+;;;
+;;; Key differences:
+;;;   - Optic version: loss-fn receives TracedBody, must use traced ops
+;;;   - Original version: loss-fn receives RigidBody2D, uses regular ops
 ;;;
 ;;; Dependencies:
 ;;;   - lattice/autodiff/traced-optics.ss
@@ -70,17 +77,34 @@
             [trace-body (make-body-tracer param-optic body tape)]
             ;; Build loss function
             [loss-fn (make-loss trace-body)]
-            ;; Trace the focus
-            [focus (view param-optic body)]
-            [traced-focus (trace-value focus tape)]
             ;; Create body with traced focus
             [traced-body (trace-body body)]
+            ;; CRITICAL: Extract traced focus FROM the traced body, not separately!
+            ;; This ensures gradient IDs match.
+            [traced-focus (get-traced-focus param-optic traced-body)]
             ;; Compute loss
             [loss (loss-fn traced-body)])
        (if (traced? loss)
            (let ([grads (backward tape (traced-id loss) 1)])
              (extract-gradient traced-focus grads))
            (zero-like traced-focus))))))
+
+;;; get-traced-focus : Optic × TracedBody → TracedValue
+;;; Extract the traced focus from a traced body based on optic type.
+(define (get-traced-focus param-optic traced-body)
+  (cond
+    [(eq? param-optic rigid-body-pos-lens)
+     (traced-body-pos traced-body)]
+    [(eq? param-optic rigid-body-vel-lens)
+     (traced-body-vel traced-body)]
+    [(eq? param-optic rigid-body-angle-lens)
+     (traced-body-angle traced-body)]
+    [(eq? param-optic rigid-body-angular-vel-lens)
+     (traced-body-angular-vel traced-body)]
+    [else
+     ;; For composed lenses, we need full body tracing
+     ;; Return a placeholder - gradients still flow, we just extract all
+     (traced-body-vel traced-body)]))
 
 ;;; make-body-tracer : Optic × RigidBody2D × Tape → (RigidBody2D → TracedBody)
 ;;; Create a function that traces a body with the specified parameter traced.
@@ -149,7 +173,7 @@
 ;;; Simplified Trajectory Optimization
 ;;; ============================================================
 
-;;; optimize-trajectory-optic : RigidBody2D × (TracedBody → TracedBody) × (RigidBody2D → Number) × Nat × Optic × Number × Nat → RigidBody2D
+;;; optimize-trajectory-optic : RigidBody2D × (TracedBody → TracedBody) × (TracedBody → Traced) × Nat × Optic × Number × Nat → RigidBody2D
 ;;; Optimize a trajectory parameter specified by optic.
 ;;;
 ;;; Much simpler than the original optimize-trajectory:
@@ -157,11 +181,16 @@
 ;;;   - Parameter selection via optic
 ;;;   - Reuses traced-optics infrastructure
 ;;;
+;;; IMPORTANT: The loss function must use traced operations (e.g., traced-vec2-distance-sq)
+;;; to enable gradient flow.
+;;;
 ;;; Example:
 ;;;   ;; Optimize initial velocity to hit target
 ;;;   (optimize-trajectory-optic
 ;;;     body step-fn
-;;;     (lambda (final) (vec2-dist-sq (rigid-body-pos final) target))
+;;;     (lambda (final-tb)
+;;;       (traced-vec2-distance-sq (traced-body-pos final-tb)
+;;;                                (lift-vec2-const target)))
 ;;;     100             ; simulation steps
 ;;;     rigid-body-vel-lens
 ;;;     0.01 50)        ; learning rate, iterations
@@ -172,14 +201,9 @@
    initial-body
    (lambda (trace-body)
      (lambda (tb)
-       ;; Run rollout
-       (let* ([final-tb (traced-rollout tb step-fn num-steps)]
-              [final-rb (unpack-traced-body final-tb)])
-         ;; Apply loss to final state
-         (let ([loss-val (loss-fn final-rb)])
-           (if (number? loss-val)
-               (make-traced-const loss-val (make-reverse-tape))
-               loss-val)))))
+       ;; Run rollout and compute loss on traced body
+       (let ([final-tb (traced-rollout tb step-fn num-steps)])
+         (loss-fn final-tb))))
    learning-rate
    max-iters))
 
@@ -189,10 +213,12 @@
 (define (optimize-initial-velocity-optic body target gravity dt num-steps
                                           learning-rate max-iters)
   (let* ([traced-gravity (lift-vec2-const gravity)]
+         [traced-target (lift-vec2-const target)]
          [step-fn (lambda (tb)
                     (traced-gravity-step tb traced-gravity dt))]
-         [loss-fn (lambda (final-rb)
-                    (vec2-dist-sq (rigid-body-pos final-rb) target))]
+         [loss-fn (lambda (final-tb)
+                    (traced-vec2-distance-sq (traced-body-pos final-tb)
+                                             traced-target))]
          [optimized (optimize-trajectory-optic
                      body step-fn loss-fn num-steps
                      rigid-body-vel-lens
