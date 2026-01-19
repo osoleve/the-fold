@@ -456,7 +456,7 @@
       (if call-info
           (begin
            (test "find-enclosing-call fn name" "map" (car call-info))
-           (test "find-enclosing-call param idx" 1 (cdr call-info)))  ; 1 = first argument
+           (test "find-enclosing-call param idx" 0 (cdr call-info)))  ; 0 = first argument (0-indexed)
           (test "find-enclosing-call found" #t #f)))
 
 ;; Test extract-symbol-at

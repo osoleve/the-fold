@@ -581,7 +581,9 @@
              ;; Extract function name after the paren
              (let ([name (extract-symbol-at content (+ i 1))])
                   (if name
-                      (cons name param-count)
+                      ;; Subtract 1: the space after function name was counted
+                      ;; but it separates fn from arg1, not arg1 from arg2
+                      (cons name (max 0 (- param-count 1)))
                       #f))]
             ;; Nested closing paren
             [(char=? (string-ref content i) #\))
