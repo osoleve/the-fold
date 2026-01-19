@@ -208,9 +208,16 @@
                  [(eq? head 'call)
                   (eval-call* (cadr expr) (cddr expr) env remaining ctx)]
                  
-                 ;; Implicit application — (f args...)
-                 [else
-                  (eval-call* (car expr) (cdr expr) env remaining ctx)]))]))]))
+
+                ;; Doc — unevaluated metadata annotation
+                ;; Arguments are NOT evaluated; returns void.
+                ;; Used for type annotations, todos, descriptions.
+                [(eq? head 'doc)
+                 (make-ok (void) remaining ctx)]
+
+                ;; Implicit application — (f args...)
+                [else
+                 (eval-call* (car expr) (cdr expr) env remaining ctx)]))]))]))
 
 ;;; ====
 ;;; Public API (backward-compatible wrappers)

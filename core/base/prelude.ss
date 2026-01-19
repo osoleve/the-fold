@@ -372,6 +372,15 @@
   (syntax-rules ()
                 [(_ e ...) (or e ...)]))
 
+;;; doc : unevaluated metadata annotation
+;;; Arguments are NOT evaluated. Returns void.
+;;; Used for type annotations, todos, descriptions, etc.
+;;; Syntax: (doc 'tag args...) for contextual
+;;;         (doc target 'tag args...) for targeted
+(define-syntax doc
+  (syntax-rules ()
+    [(_ args ...) (void)]))
+
 ;;; ¬ : Boolean → Boolean
 ;;; Logical negation (not).
 (define ¬ not)

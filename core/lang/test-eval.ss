@@ -413,6 +413,28 @@
 (define suspend-b (eval-expr '(prim 'add 2 3) empty-env 2))
 (test "deterministic suspension" suspend-a suspend-b)
 
+;;; ====
+;;; Doc Special Form
+;;; ====
+(test-section "Doc Special Form")
+
+;; Doc returns void (represented as unspecified value in Chez)
+(define doc-result (eval-expr '(doc 'todo "test") empty-env 10))
+(test "doc returns ok" 'ok (car doc-result))
+(test "doc consumes 1 fuel" 9 (caddr doc-result))
+
+;; Doc does not evaluate its arguments
+(define doc-noop-result (eval-expr '(doc 'note (error "should not run")) empty-env 10))
+(test "doc doesn't evaluate args" 'ok (car doc-noop-result))
+
+;; Doc in sequence (via pseq, since core doesn't have begin)
+(test-ok "doc in pseq sequence" 42
+         (eval-expr '(pseq (doc 'type Int) 42) empty-env 20))
+
+;; Multiple docs in sequence
+(test-ok "multiple docs in pseq" 100
+         (eval-expr '(pseq (doc 'a) (pseq (doc 'b) 100)) empty-env 30))
+
 (newline)
 (display "✓ All evaluator tests complete.
 ")

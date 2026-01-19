@@ -444,5 +444,48 @@
    "Quick alias for dead code scanning.\n  Usage: (rdc)           - Scan entire codebase\n         (rdc \"path\")    - Scan specific path\n  Same as: (refactor 'dead-code)"
    (lambda args (apply rdc args))))
 
+;;; ====
+;;; Doc Commands (loaded dynamically)
+;;; ====
+
+;;; register-doc-commands! : -> void
+;;; Register doc search commands (call after loading lattice/meta/docs.ss)
+(define (register-doc-commands!)
+  (register-command!
+   'lf-todo
+   "Find all TODO docs"
+   "Search for (doc 'todo ...) forms across the codebase.\n  Usage: (lf-todo)\n  Displays file:line [todo] content for each match."
+   lf-todo)
+
+  (register-command!
+   'lf-fixme
+   "Find all FIXME docs"
+   "Search for (doc 'fixme ...) forms across the codebase.\n  Usage: (lf-fixme)\n  Displays file:line [fixme] content for each match."
+   lf-fixme)
+
+  (register-command!
+   'lf-types
+   "Find all type docs"
+   "Search for (doc 'type ...) forms across the codebase.\n  Usage: (lf-types)\n  Displays file:line [type] content for each match."
+   lf-types)
+
+  (register-command!
+   'lf-deprecated
+   "Find deprecated items"
+   "Search for (doc 'deprecated ...) forms across the codebase.\n  Usage: (lf-deprecated)\n  Displays file:line [deprecated] content for each match."
+   lf-deprecated)
+
+  (register-command!
+   'doc-stats
+   "Doc annotation statistics"
+   "Show count of doc annotations by tag type.\n  Usage: (doc-stats)\n  Returns: ((todo . N) (type . M) ...)"
+   doc-stats)
+
+  (register-command!
+   'doc-reindex!
+   "Rebuild doc index"
+   "Force rebuild of the doc annotation index.\n  Usage: (doc-reindex!)\n  Use after adding new (doc ...) forms to update the index."
+   doc-reindex!))
+
 ;;; Auto-register core commands on load
 (register-core-commands!)

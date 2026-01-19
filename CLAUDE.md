@@ -565,6 +565,38 @@ Grammar-driven code construction for building S-expressions without tracking par
 
 Assets, logs, knowledge base — all valid S-expressions. The system can introspect everything. Use `README.sexp` for directory documentation.
 
+### Typed Comments (Doc Forms)
+
+Use `(doc ...)` for searchable, introspectable annotations that survive in source:
+
+```scheme
+;; Contextual (belongs to enclosing definition)
+(define (add x y)
+  (doc 'type (-> Int Int))
+  (doc 'description "Adds two numbers")
+  (+ x y))
+
+;; Targeted (names what it documents)
+(doc factorial 'type (-> Int Int))
+(define (factorial n) ...)
+```
+
+**Semantics:**
+- Arguments are NOT evaluated (pure metadata)
+- Returns void — use in sequences, not value positions
+- Stripped during normalization — code with/without docs hashes identically
+- Extracted from source by tooling (`lf-todo`, `lf-types`)
+
+**Standard tags:** `'type`, `'description`, `'param`, `'returns`, `'todo`, `'fixme`, `'deprecated`, `'since`, `'see`, `'note`
+
+**Search commands** (after loading `lattice/meta/docs.ss`):
+```scheme
+(lf-todo)           ; Find all todos
+(lf-types)          ; Find all type annotations
+(docs-for 'symbol)  ; Find docs for specific target
+(doc-stats)         ; Count by tag
+```
+
 ### Normalization and Content Addressing
 
 S-expressions are α-normalized (de Bruijn indices) before hashing:

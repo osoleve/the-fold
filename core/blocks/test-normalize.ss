@@ -671,6 +671,83 @@ Test 44: Stuck terms contain valid S-expressions only
   (let ([str (format "~s" result)])
     (test "result is printable" #t (string? str))))
 
+;;; ====
+;;; Doc Form Normalization Tests
+;;; ====
+
+(display "
+Test 45: Doc form stripping in begin
+")
+;; Doc stripped from begin, leaving just the expression
+(test "doc stripped from begin"
+      '(+ x 1)
+      (normalize '(begin (doc 'type Int) (+ x 1))))
+
+;; Multiple docs stripped
+(test "multiple docs stripped"
+      'x
+      (normalize '(begin (doc 'a) (doc 'b) x)))
+
+;; Mixed content: docs and real expressions
+(test "docs filtered, exprs kept"
+      '(begin (+ a b) (+ c d))
+      (normalize '(begin (doc 'todo "test") (+ a b) (doc 'fixme "bug") (+ c d))))
+
+(display "
+Test 46: Empty body after doc stripping
+")
+;; Begin with only docs becomes (void)
+(test "only docs -> void"
+      '(void)
+      (normalize '(begin (doc 'todo "implement"))))
+
+(test "multiple docs only -> void"
+      '(void)
+      (normalize '(begin (doc 'a) (doc 'b) (doc 'c))))
+
+(display "
+Test 47: Single expr after doc stripping unwraps begin
+")
+;; begin (doc ...) x → x (unwrapped)
+(test "begin unwraps single expr"
+      '(+ x 1)
+      (normalize '(begin (doc 'type Int) (+ x 1))))
+
+(display "
+Test 48: Doc in value position preserved
+")
+;; Doc in non-sequence context stays (will return void at runtime)
+(test "doc in value position kept"
+      '(+ (doc 'type Int) 1)
+      (normalize '(+ (doc 'type Int) 1)))
+
+(test "doc in function call position kept"
+      '((doc 'note "test") x)
+      (normalize '((doc 'note "test") x)))
+
+(display "
+Test 49: Semantic identity - code with/without doc same hash
+")
+;; Same code, one with doc one without, should normalize identically
+(let ([with-doc (normalize '(begin (doc 'type (-> Int Int)) (fn (x) (+ x 1))))]
+      [without-doc (normalize '(fn (x) (+ x 1)))])
+  (test "code with doc = code without doc" with-doc without-doc))
+
+;; In nested structure
+(let ([with-doc (normalize '(fn (f) (begin (doc 'desc "apply twice") (f (f x)))))]
+      [without-doc (normalize '(fn (f) (f (f x))))])
+  (test "nested code with doc = without" with-doc without-doc))
+
+(display "
+Test 50: Doc content is data (not normalized as code)
+")
+;; The doc's contents should be preserved as-is, not α-normalized
+;; (doc 'type (-> x x)) should keep 'x' as symbol, not convert to (dv n)
+(let ([result (normalize '(begin (doc 'type (-> x x)) y))])
+  ;; Result should just be y (doc stripped), but if we inspect doc contents
+  ;; they'd be unchanged - test that begin with doc normalizes
+  (test "doc in begin normalizes to body" 'y result))
+
 (display "
 ✓ All tests complete.
 ")

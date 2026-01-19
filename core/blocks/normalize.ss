@@ -107,7 +107,22 @@
    
    ;; (quote datum) → (quote datum) unchanged
    [(eq? (car expr) 'quote) expr]
-   
+
+   ;; (doc ...) → stripped in sequence contexts, kept otherwise
+   ;; When kept, normalize to itself (data, not code)
+   [(eq? (car expr) 'doc) expr]
+
+   ;; (begin exprs...) → strip doc forms, handle empty
+   [(eq? (car expr) 'begin)
+    (let* ([body (cdr expr)]
+           [normalized (map (lambda (e) (normalize-with-env e env)) body)]
+           ;; Filter out doc forms (they're metadata, not semantics)
+           [filtered (filter (lambda (x) (not (and (pair? x) (eq? (car x) 'doc)))) normalized)])
+      (cond
+       [(null? filtered) '(void)]           ; empty body → void literal
+       [(= 1 (length filtered)) (car filtered)]  ; single expr → unwrap
+       [else (cons 'begin filtered)]))]
+
    ;; General list: normalize each element
    [else
     (map (lambda (e) (normalize-with-env e env)) expr)]))
