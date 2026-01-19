@@ -288,6 +288,36 @@
   (display "Index complete.\n")
   (index-stats))
 
+;;; index-refresh-file! : String → Void
+;;; Incrementally refresh index for a single file.
+;;; Removes old entries and re-scans the file.
+(define (index-refresh-file! path)
+  ;; 1. Get old module entry to find symbols to remove
+  (let ([old-entry (hashtable-ref *module-registry* path #f)])
+    (when old-entry
+      ;; Remove old symbol entries for this file
+      (for-each
+       (lambda (sym)
+         (hashtable-delete! *symbol-index* sym))
+       (cdr (assq 'defines old-entry)))
+      ;; Remove old reverse deps contributed by this file
+      (for-each
+       (lambda (loaded)
+         (let ([deps (hashtable-ref *reverse-deps* loaded '())])
+           (hashtable-set! *reverse-deps* loaded
+                           (filter (lambda (d) (not (string=? d path))) deps))))
+       (cdr (assq 'loads old-entry)))))
+  ;; 2. Re-scan the file (if it still exists)
+  (when (file-exists? path)
+    (let ([entry (scan-module path)])
+      (hashtable-set! *module-registry* path entry)
+      ;; Update reverse dependencies
+      (for-each
+       (lambda (loaded)
+         (let ([existing (hashtable-ref *reverse-deps* loaded '())])
+           (hashtable-set! *reverse-deps* loaded (cons path existing))))
+       (cdr (assq 'loads entry))))))
+
 ;;; index-find : String → (List Entry)
 ;;; Find symbols whose names contain pattern.
 (define (index-find pattern)

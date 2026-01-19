@@ -418,6 +418,12 @@ export class LSPClient {
       }
     });
 
+    // Also notify save to trigger symbol index refresh
+    this.sendNotification('textDocument/didSave', {
+      textDocument: { uri },
+      text: content
+    });
+
     return uri;
   }
 

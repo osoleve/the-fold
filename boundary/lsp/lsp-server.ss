@@ -94,8 +94,16 @@
 (define (handle-did-save params)
   (let* ([text-doc (json-get params "textDocument")]
          [uri (json-get text-doc "uri")]
-         [text (json-get params "text")])
+         [text (json-get params "text")]
+         [path (uri->path uri)])
         (lsp-log "Document saved: ~a" uri)
+        ;; Refresh symbol index for this file
+        (when (and (string? path)
+                   (string-ends-with? path ".ss")
+                   (top-level-bound? 'index-refresh-file!))
+          (guard (e [else (lsp-log "Index refresh failed: ~a" e)])
+                 (index-refresh-file! path)
+                 (lsp-log "Index refreshed for ~a" path)))
         (when text
               (let ([doc (doc-get uri)])
                    (when doc
