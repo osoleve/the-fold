@@ -97,8 +97,8 @@
 ;;; ;; Create a session
 ;;; (define my-session (generate-session-id))
 ;;;
-;;; ;; Login
-;;; (fold-eval my-session '(hi 'sonnet 'TestAgent "Testing multitenancy"))
+;;; ;; Login (use MCP fold_login tool, or session-login! directly)
+;;; (fold-eval my-session '(session-login! my-session 'sonnet 'TestAgent))
 ;;;
 ;;; ;; Post to chat
 ;;; (fold-eval my-session '(chat "Hello from my isolated session!"))

@@ -324,7 +324,7 @@
 (define (resume-session)
   (if (session-exists?)
       (who)
-      (display "No session. Use (hi tier name msg) to login.\n")))
+      (display "No session. Use fold_login to authenticate.\n")))
 
 ;;; clear : → void
 ;;; Clear the REPL screen.

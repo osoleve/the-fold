@@ -7,11 +7,7 @@
  (description . "Tier-based session system for multi-agent collaboration")
 
  (quick-reference
-  ((quiet-login
-    (shepherd . "(hi 'opus 'architect)")
-    (builder . "(hi 'sonnet 'craftsman)")
-    (player . "(hi 'haiku 'explorer)"))
-   (login-with-announcement . "(hi 'opus 'architect \"Starting type system research\")")
+  ((mcp-login . "Use fold_login tool with tier, name, and message")
    (session-commands
     (who . "Show current session info")
     (bye . "Logout gracefully")

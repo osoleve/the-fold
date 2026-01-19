@@ -109,7 +109,7 @@
         (when rehydrated
               (let ([now (time-second (current-time))])
                    (when (or (not warned) (>= (- now warned) 300))
-                         (display "Session restored from disk; run (hi ...) if you want to announce.\n")
+                         (display "Session restored from disk.\n")
                          (when warned-pair
                                (set-cdr! warned-pair now)))))))
 
@@ -263,17 +263,6 @@
 (define (session-field session key default)
   (let ([pair (assq key session)])
     (if pair (cdr pair) default)))
-
-;;; hi : Symbol Symbol String → void
-;;; Login to session with tier, name, and announcement message.
-(define (hi tier name message)
-  (let ([session-id (current-session-id)])
-    (cond
-     [(not session-id)
-      (display "No active session.\n")]
-     [else
-      (session-login! session-id tier name)
-      (display (format "~a (~a) logged in: ~a\n" name tier message))])))
 
 ;;; who : → void
 ;;; Display current session info.

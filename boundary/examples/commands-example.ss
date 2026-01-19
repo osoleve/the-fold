@@ -61,7 +61,7 @@
  (lambda (channel message)
          (let ([session (read-session)])
               (unless session
-                      (error 'quick-post "No active session. Use (hi tier name txt) first."))
+                      (error 'quick-post "No active session. Use fold_login first."))
               (let ([result (msg channel "Quick Post" message)])
                    (display "Posted!\n")
                    result))))

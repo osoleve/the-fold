@@ -216,7 +216,7 @@
 (define (start-tutorial . args)
   (let ((session (read-session)))
        (unless session
-               (error 'start-tutorial "No active session. Use (hi tier name msg) first."))
+               (error 'start-tutorial "No active session. Use fold_login first."))
        (let ((tier (cdr (assq 'tier session))))
             (cond
              ((null? args) (list-tutorials-for-tier tier))
