@@ -18,7 +18,7 @@ import { randomUUID } from 'crypto';
 import { SessionManager, Session, Tier } from './session.js';
 import { sendRequest, initIPC, isDaemonRunning, waitForDaemon, getDaemonStatus } from './ipc.js';
 import { tools } from './tools.js';
-import { LSPClient, formatLocation, symbolKindName, severityName } from './lsp-client.js';
+import { LSPClient, formatLocation, symbolKindName, severityName, completionKindName } from './lsp-client.js';
 
 /**
  * Main MCP server class
@@ -106,6 +106,8 @@ class FoldMCPServer {
             return await this.handleLspLookup(args);
           case 'fold_lsp_status':
             return await this.handleLspStatus();
+          case 'fold_lsp_completion':
+            return await this.handleLspCompletion(args);
 
           default:
             throw new Error(`Unknown tool: ${name}`);
@@ -498,6 +500,36 @@ class FoldMCPServer {
       'It provides type inference, go-to-definition, and other',
       'code intelligence features for Scheme files.'
     ];
+
+    return {
+      content: [{ type: 'text', text: lines.join('\n') }]
+    };
+  }
+
+  /**
+   * Handle LSP completion - get code completion suggestions
+   */
+  private async handleLspCompletion(args: any) {
+    const { file, line, character } = args;
+
+    const items = await this.lspClient.completion(file, line, character);
+
+    if (!items || items.length === 0) {
+      return {
+        content: [{ type: 'text', text: 'No completions available at this position.' }]
+      };
+    }
+
+    // Format completion items nicely
+    const lines = [`Found ${items.length} completion(s):`];
+    for (const item of items.slice(0, 50)) { // Limit to 50 items
+      const kind = completionKindName(item.kind);
+      const detail = item.detail ? ` - ${item.detail}` : '';
+      lines.push(`  ${item.label} [${kind}]${detail}`);
+    }
+    if (items.length > 50) {
+      lines.push(`  ... and ${items.length - 50} more`);
+    }
 
     return {
       content: [{ type: 'text', text: lines.join('\n') }]

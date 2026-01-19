@@ -78,6 +78,14 @@ interface Diagnostic {
   message: string;
 }
 
+interface CompletionItem {
+  label: string;
+  kind?: number;
+  detail?: string;
+  insertText?: string;
+  insertTextFormat?: number; // 1 = PlainText, 2 = Snippet
+}
+
 /**
  * LSP Client class
  * Manages LSP server process and provides high-level API
@@ -638,6 +646,42 @@ export class LSPClient {
   }
 
   /**
+   * Get completion suggestions at a position
+   */
+  async completion(filePath: string, line: number, character: number): Promise<CompletionItem[] | null> {
+    await this.ensureRunning();
+    const uri = await this.syncDocument(filePath);
+
+    try {
+      const result = await this.sendRequest('textDocument/completion', {
+        textDocument: { uri },
+        position: { line, character }
+      });
+
+      if (!result) {
+        return null;
+      }
+
+      // Handle both CompletionList and CompletionItem[] response formats
+      const items = result.items || result;
+      if (!Array.isArray(items)) {
+        return null;
+      }
+
+      return items.map((item: any) => ({
+        label: item.label,
+        kind: item.kind,
+        detail: item.detail,
+        insertText: item.insertText,
+        insertTextFormat: item.insertTextFormat
+      }));
+    } catch (e) {
+      console.error('[LSP] Completion error:', e);
+      return null;
+    }
+  }
+
+  /**
    * Convert position to character offset
    */
   private positionToOffset(lines: string[], position: Position): number {
@@ -734,4 +778,18 @@ export function severityName(severity: number | undefined): string {
     case 4: return 'Hint';
     default: return 'Unknown';
   }
+}
+
+/**
+ * Get human-readable completion item kind name
+ */
+export function completionKindName(kind: number | undefined): string {
+  const names: { [key: number]: string } = {
+    1: 'Text', 2: 'Method', 3: 'Function', 4: 'Constructor', 5: 'Field',
+    6: 'Variable', 7: 'Class', 8: 'Interface', 9: 'Module', 10: 'Property',
+    11: 'Unit', 12: 'Value', 13: 'Enum', 14: 'Keyword', 15: 'Snippet',
+    16: 'Color', 17: 'File', 18: 'Reference', 19: 'Folder', 20: 'EnumMember',
+    21: 'Constant', 22: 'Struct', 23: 'Event', 24: 'Operator', 25: 'TypeParameter'
+  };
+  return kind !== undefined ? (names[kind] || 'Unknown') : 'Unknown';
 }

@@ -18,6 +18,7 @@
  * - fold_lsp_format: Format Scheme code
  * - fold_lsp_lookup: Combined symbol lookup (hover + def + refs)
  * - fold_lsp_status: Check LSP server status
+ * - fold_lsp_completion: Get code completion suggestions at position
  */
 
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
@@ -256,6 +257,29 @@ export const tools: Tool[] = [
       type: 'object',
       properties: {},
       required: []
+    }
+  },
+
+  {
+    name: 'fold_lsp_completion',
+    description: 'Get code completion suggestions at a specific position in a Scheme file. Returns matching symbols, keywords, snippets, and primitives based on the prefix at that position.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          description: 'Path to the Scheme file (absolute or relative to project root)'
+        },
+        line: {
+          type: 'number',
+          description: 'Line number (0-indexed)'
+        },
+        character: {
+          type: 'number',
+          description: 'Character/column position (0-indexed)'
+        }
+      },
+      required: ['file', 'line', 'character']
     }
   }
 ];

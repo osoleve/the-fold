@@ -264,6 +264,17 @@
   (let ([pair (assq key session)])
     (if pair (cdr pair) default)))
 
+;;; hi : Symbol Symbol String → void
+;;; Login to session with tier, name, and announcement message.
+(define (hi tier name message)
+  (let ([session-id (current-session-id)])
+    (cond
+     [(not session-id)
+      (display "No active session.\n")]
+     [else
+      (session-login! session-id tier name)
+      (display (format "~a (~a) logged in: ~a\n" name tier message))])))
+
 ;;; who : → void
 ;;; Display current session info.
 (define (who)
