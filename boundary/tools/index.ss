@@ -10,6 +10,10 @@
 ;;;   (index-dependents "path")  - Get modules that depend on this one
 ;;;   (index-stats)              - Show index statistics
 ;;;
+;;; REPL shortcuts (pretty output):
+;;;   (? 'name)                  - Look up and display symbol info
+;;;   (?? "pattern")             - Search and display matching symbols
+;;;
 ;;; Shell code: performs I/O to scan files.
 ;;;
 ;;; Dependencies:
@@ -17,6 +21,7 @@
 
 (load "core/base/prelude.ss")
 (load "core/base/string/string-core.ss")
+(load "core/base/string/string-search.ss")
 
 ;;; ====
 ;;; Index Data Structures
@@ -354,10 +359,64 @@
         keys)
        (sort-entries-by-name results)))
 
+;;; ?? : String → Void
+;;; Quick search and display. Usage: (?? "variance")
+(define (?? pattern)
+  (let ([results (index-find pattern)])
+    (if (null? results)
+        (printf "  No matches for '~a'\n" pattern)
+        (begin
+          (printf "\n  ~a match~a for '~a':\n"
+                  (length results)
+                  (if (= 1 (length results)) "" "es")
+                  pattern)
+          (display "  ────────────────────────────────\n")
+          (for-each
+           (lambda (e)
+             (let ([name (cdr (assq 'name e))]
+                   [sig (cdr (assq 'signature e))]
+                   [file (cdr (assq 'file e))]
+                   [line (cdr (assq 'line e))])
+               (display "  ")
+               (display name)
+               (when sig (display " : ") (display sig))
+               (printf "\n    ~a:~a\n" file line)))
+           results)
+          (display "\n")))))
+
 ;;; index-lookup : Symbol → (Option Entry)
 ;;; Get entry for exact symbol name.
 (define (index-lookup name)
   (hashtable-ref *symbol-index* name #f))
+
+;;; index-show : Entry → Void
+;;; Pretty-print a symbol entry.
+(define (index-show entry)
+  (if (not entry)
+      (display "  (not found)\n")
+      (let ([name (cdr (assq 'name entry))]
+            [kind (cdr (assq 'kind entry))]
+            [file (cdr (assq 'file entry))]
+            [line (cdr (assq 'line entry))]
+            [sig (cdr (assq 'signature entry))]
+            [doc (cdr (assq 'docstring entry))])
+        (display "\n")
+        (display "  ") (display name)
+        (when sig
+          (display " : ") (display sig))
+        (display "\n")
+        (display "  ────────────────────────────────\n")
+        (printf "  ~a at ~a:~a\n" kind file line)
+        (when doc
+          (display "\n  ")
+          (display (string-replace doc "\n" "\n  "))
+          (display "\n"))
+        (display "\n"))))
+
+;;; ? : Symbol → Void
+;;; Quick lookup and display. Usage: (? 'vec-variance)
+(define (? name)
+  (index-show (index-lookup name)))
 
 ;;; index-module : String → (Option ModuleEntry)
 ;;; Get module entry by path.
