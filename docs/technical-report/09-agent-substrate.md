@@ -201,7 +201,7 @@ Council modes:
 
 **Pipeline Execution**:
 
-Pipelines are *pure definitions*—they describe what effects to perform but don't execute them. The shell interpreter runs pipelines:
+Pipelines are *pure definitions*—they describe what effects to perform but don't execute them. The pipeline interpreter runs pipelines:
 
 ```scheme
 (run-pipeline my-pipeline initial-context)

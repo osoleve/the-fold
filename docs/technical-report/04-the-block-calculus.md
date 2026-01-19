@@ -150,7 +150,7 @@ Core is *effect-free*. The Shell provides effects through a capability-based sys
 ;; Core function requires capability as argument
 (define (read-file cap path)
   (with-capability cap
-    (shell-read-file path)))
+    (boundary-read-file path)))
 ```
 
 **Monadic IO**: The FP toolkit (`lattice/fp/control/`) provides monadic abstractions:
@@ -270,7 +270,7 @@ Capabilities are unforgeable tokens authorizing specific effects. Implementation
 Shell catches all errors from Core and presents them to users:
 
 ```scheme
-(define (shell-eval expr fuel)
+(define (boundary-eval expr fuel)
   (guard (exn
           [(out-of-fuel? exn)
            (format-error "Computation exceeded fuel budget (~a)"

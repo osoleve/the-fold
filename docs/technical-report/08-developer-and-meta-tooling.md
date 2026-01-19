@@ -461,7 +461,7 @@ This keeps startup fast while providing rich functionality.
 **Pure/Impure Boundary**:
 
 - **Pure** (lattice): Manifest parsing, BM25 scoring, dependency analysis
-- **Impure** (shell): File I/O, index persistence, head file updates
+- **Impure** (boundary): File I/O, index persistence, head file updates
 
 The pure components are testable and reusable; the impure components handle the messy reality of file systems and concurrent access.
 

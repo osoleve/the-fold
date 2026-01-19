@@ -968,7 +968,7 @@ Block migrations (`block-migration.ss`) specialize the migration infrastructure 
 
 #### 7.9.4 Merkle DAG Correctness
 
-The shell runner (`boundary/migrations/runner.ss`) executes migrations against the CAS with Merkle DAG correctness.
+The boundary runner (`boundary/migrations/runner.ss`) executes migrations against the CAS with Merkle DAG correctness.
 
 **The problem**: In a content-addressed system, changing a block changes its hash. If block A references block B, and B is migrated to B', then A must also be updated to reference B' instead of B. This cascades up to the root.
 
