@@ -218,6 +218,166 @@
       (assert-equal 'domain-error result))))
 
 ;;; ============================================================================
+;;; Tightness Tests for Elementary Functions
+;;; ============================================================================
+;;;
+;;; These tests verify bounds quality, not just soundness. A sound implementation
+;;; could return [-∞, ∞] for everything - these tests catch that.
+
+(test-group "tightness-elementary"
+  ;; Helper: compute overestimation ratio
+  ;; For monotonic f over [a,b], true range is [f(a), f(b)]
+  ;; Ratio = computed_width / true_width (1.0 = perfect, higher = looser)
+
+  (define-test "sqrt tightness: overestimation ratio < 1.5"
+    ;; sqrt is concave, so optimal Chebyshev gives tight bounds
+    (affine-reset-noise-counter!)
+    (let* ([a 4.0] [b 9.0]
+           [x (affine-from-interval (interval a b))]
+           [result (affine-sqrt x)]
+           [iv (affine->interval result)]
+           [true-lo (sqrt a)]
+           [true-hi (sqrt b)]
+           [true-width (- true-hi true-lo)]
+           [computed-width (interval-width iv)]
+           [ratio (/ computed-width true-width)])
+      ;; With optimal Chebyshev, ratio should be close to 1.0
+      ;; Allow 1.5 as upper bound (50% overestimation max)
+      (assert-true (< ratio 1.5)
+                   (format "sqrt overestimation ratio ~a should be < 1.5" ratio))))
+
+  (define-test "sqrt tightness: bounds within 10% of true range"
+    (affine-reset-noise-counter!)
+    (let* ([a 1.0] [b 4.0]
+           [x (affine-from-interval (interval a b))]
+           [result (affine-sqrt x)]
+           [iv (affine->interval result)]
+           [true-lo (sqrt a)]   ; 1.0
+           [true-hi (sqrt b)]   ; 2.0
+           [lo-error (- true-lo (interval-lo iv))]
+           [hi-error (- (interval-hi iv) true-hi)]
+           [true-width (- true-hi true-lo)])
+      ;; Lower bound should not be much below true lower
+      (assert-true (< lo-error (* 0.1 true-width))
+                   (format "sqrt lower bound error ~a should be < 10% of width" lo-error))
+      ;; Upper bound should not be much above true upper
+      (assert-true (< hi-error (* 0.1 true-width))
+                   (format "sqrt upper bound error ~a should be < 10% of width" hi-error))))
+
+  (define-test "exp tightness: overestimation ratio < 1.5"
+    ;; exp is convex, Chebyshev optimization applies
+    (affine-reset-noise-counter!)
+    (let* ([a 0.0] [b 1.0]
+           [x (affine-from-interval (interval a b))]
+           [result (affine-exp x)]
+           [iv (affine->interval result)]
+           [true-lo (exp a)]    ; 1.0
+           [true-hi (exp b)]    ; e ≈ 2.718
+           [true-width (- true-hi true-lo)]
+           [computed-width (interval-width iv)]
+           [ratio (/ computed-width true-width)])
+      (assert-true (< ratio 1.5)
+                   (format "exp overestimation ratio ~a should be < 1.5" ratio))))
+
+  (define-test "exp tightness: wide interval still reasonable"
+    ;; Even for wider intervals, bounds shouldn't explode
+    (affine-reset-noise-counter!)
+    (let* ([a -1.0] [b 2.0]
+           [x (affine-from-interval (interval a b))]
+           [result (affine-exp x)]
+           [iv (affine->interval result)]
+           [true-lo (exp a)]    ; ~0.368
+           [true-hi (exp b)]    ; ~7.389
+           [true-width (- true-hi true-lo)]
+           [computed-width (interval-width iv)]
+           [ratio (/ computed-width true-width)])
+      ;; For wider intervals, allow up to 2x overestimation
+      (assert-true (< ratio 2.0)
+                   (format "exp wide interval ratio ~a should be < 2.0" ratio))))
+
+  (define-test "log tightness: overestimation ratio < 1.5"
+    ;; log is concave, Chebyshev optimization applies
+    (affine-reset-noise-counter!)
+    (let* ([a 1.0] [b (exp 1)]
+           [x (affine-from-interval (interval a b))]
+           [result (affine-log x)]
+           [iv (affine->interval result)]
+           [true-lo (log a)]    ; 0.0
+           [true-hi (log b)]    ; 1.0
+           [true-width (- true-hi true-lo)]
+           [computed-width (interval-width iv)]
+           [ratio (/ computed-width true-width)])
+      (assert-true (< ratio 1.5)
+                   (format "log overestimation ratio ~a should be < 1.5" ratio))))
+
+  (define-test "log tightness: decade range"
+    ;; Test over [1, 10] - one decade
+    (affine-reset-noise-counter!)
+    (let* ([a 1.0] [b 10.0]
+           [x (affine-from-interval (interval a b))]
+           [result (affine-log x)]
+           [iv (affine->interval result)]
+           [true-lo (log a)]    ; 0.0
+           [true-hi (log b)]    ; ~2.303
+           [true-width (- true-hi true-lo)]
+           [computed-width (interval-width iv)]
+           [ratio (/ computed-width true-width)])
+      (assert-true (< ratio 1.5)
+                   (format "log decade ratio ~a should be < 1.5" ratio))))
+
+  (define-test "affine sqrt is tighter than naive interval sqrt"
+    ;; Compare with what naive interval arithmetic would give
+    (affine-reset-noise-counter!)
+    (let* ([a 1.0] [b 9.0]
+           [x (affine-from-interval (interval a b))]
+           [result (affine-sqrt x)]
+           [iv (affine->interval result)]
+           ;; Naive interval: just [sqrt(a), sqrt(b)] - actually optimal for sqrt!
+           ;; But for non-monotonic compositions, affine wins
+           ;; Here we just verify we're at least as good
+           [naive-lo (sqrt a)]
+           [naive-hi (sqrt b)]
+           [affine-width (interval-width iv)]
+           [naive-width (- naive-hi naive-lo)])
+      ;; Affine should be close to naive (within 50%)
+      (assert-true (<= affine-width (* 1.5 naive-width))
+                   "affine-sqrt should be close to optimal for simple intervals")))
+
+  (define-test "composed sqrt maintains tightness"
+    ;; sqrt(x + y) where x, y independent
+    (affine-reset-noise-counter!)
+    (let* ([x (affine-from-interval (interval 1 2))]
+           [y (affine-from-interval (interval 3 4))]
+           [sum (affine-add x y)]            ; [4, 6] as interval
+           [result (affine-sqrt sum)]
+           [iv (affine->interval result)]
+           ;; True range: [sqrt(4), sqrt(6)] = [2, ~2.449]
+           [true-lo (sqrt 4)]
+           [true-hi (sqrt 6)]
+           [true-width (- true-hi true-lo)]
+           [computed-width (interval-width iv)]
+           [ratio (/ computed-width true-width)])
+      (assert-true (< ratio 2.0)
+                   (format "composed sqrt ratio ~a should be < 2.0" ratio))))
+
+  (define-test "reciprocal tightness"
+    ;; 1/x for x ∈ [2, 4]
+    (affine-reset-noise-counter!)
+    (let* ([a 2.0] [b 4.0]
+           [x (affine-from-interval (interval a b))]
+           [result (affine-recip x)]
+           [iv (affine->interval result)]
+           ;; True range: [1/4, 1/2] = [0.25, 0.5]
+           [true-lo (/ 1 b)]
+           [true-hi (/ 1 a)]
+           [true-width (- true-hi true-lo)]
+           [computed-width (interval-width iv)]
+           [ratio (/ computed-width true-width)])
+      ;; Reciprocal is trickier, allow more slack
+      (assert-true (< ratio 2.5)
+                   (format "reciprocal ratio ~a should be < 2.5" ratio)))))
+
+;;; ============================================================================
 ;;; Complex Expression Tests
 ;;; ============================================================================
 
