@@ -200,6 +200,41 @@
                     (and (>= line start) (<= line end))))
         forms))
 
+;;; search-let-initializers : Symbol × Bindings × Symbol × Bindings × Bindings → Bindings | #f
+;;; Search through let binding initializers for the target symbol.
+;;; Handles different scoping rules for let, let*, and letrec:
+;;;   - let: initializers see only outer bindings (parallel binding)
+;;;   - let*: each initializer sees outer + previous bindings (sequential)
+;;;   - letrec: initializers see outer + all let bindings (mutual recursion)
+(define (search-let-initializers let-type let-bindings target outer-bindings all-let-bindings)
+  (if (not (list? let-bindings))
+      #f
+      (let loop ([remaining let-bindings]
+                 [accumulated-bindings '()])  ; For let*, tracks previous bindings
+           (if (null? remaining)
+               #f
+               (let* ([binding (car remaining)]
+                      [init-expr (if (and (pair? binding) (pair? (cdr binding)))
+                                     (cadr binding)
+                                     #f)]
+                      ;; Choose bindings visible to this initializer based on let type
+                      [visible-bindings
+                       (case let-type
+                         [(let) outer-bindings]  ; Only outer scope
+                         [(let*) (append accumulated-bindings outer-bindings)]  ; Previous + outer
+                         [(letrec) (append all-let-bindings outer-bindings)]  ; All + outer
+                         [else outer-bindings])]
+                      ;; New binding for let* accumulation
+                      [new-binding (if (and (pair? binding) (symbol? (car binding)))
+                                       (cons (car binding) init-expr)
+                                       #f)])
+                     (or (and init-expr
+                              (extract-bindings-deep init-expr target visible-bindings))
+                         (loop (cdr remaining)
+                               (if new-binding
+                                   (cons new-binding accumulated-bindings)
+                                   accumulated-bindings))))))))
+
 ;;; extract-local-bindings : Sexp × Symbol → (List (Symbol . Sexp))
 ;;; Extract all local bindings visible to a symbol reference within a form.
 ;;; flatten-params : ParamSpec → (List Symbol)
@@ -237,7 +272,8 @@
    ;; Let forms: (let ((var val) ...) body)
    [(memq (car form) '(let let* letrec))
     (if (>= (length form) 3)
-        (let* ([bindings-part (cadr form)]
+        (let* ([let-type (car form)]
+               [bindings-part (cadr form)]
                ;; Handle named let: (let name ((var val)...) body)
                [named? (symbol? bindings-part)]
                [let-bindings (if named? (caddr form) bindings-part)]
@@ -251,8 +287,12 @@
                                   '())]
                ;; For named let, include the loop name
                [name-binding (if named? (list (cons bindings-part 'named-let)) '())]
-               [new-bindings (append name-binding binding-pairs bindings)])
-              (extract-in-body body target new-bindings))
+               [all-let-bindings (append name-binding binding-pairs)]
+               [new-bindings (append all-let-bindings bindings)])
+              ;; First, search in the initializers
+              (or (search-let-initializers let-type let-bindings target bindings all-let-bindings)
+                  ;; Then search in the body with all bindings
+                  (extract-in-body body target new-bindings)))
         #f)]
    ;; Define: (define (name args...) body) or (define name value)
    [(eq? (car form) 'define)

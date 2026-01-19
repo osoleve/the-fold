@@ -591,6 +591,51 @@
       '(0 18)  ; First foo and last foo, not foo inside string
       (find-symbol-positions multiline-code "foo"))
 
+;;; ====
+;;; Let Initializer Binding Tests
+;;; ====
+
+(display "\nLet Initializer Bindings:\n")
+
+;; Test that symbols in let initializers can find outer bindings
+(define let-init-form '(define (test-fn outer-var)
+                         (let ([x (+ outer-var 1)])
+                           x)))
+(test "let initializer finds param"
+      '((outer-var . param))
+      (extract-local-bindings let-init-form 'outer-var))
+
+;; Test let* sequential scoping - earlier bindings visible to later initializers
+(define let*-form '(define (test-fn p)
+                     (let* ([x (+ p 1)]
+                            [y (* x 2)])
+                       (+ x y))))
+(let ([bindings (extract-local-bindings let*-form 'x)])
+     (test "let* sequential scoping - x visible in y's initializer"
+           #t
+           (if (assq 'x bindings) #t #f)))
+
+;; Test let parallel binding - sibling bindings NOT visible
+(define let-form '(define (test-fn p)
+                    (let ([x (+ p 1)]
+                          [y (+ x 2)])  ; x here should NOT see let-bound x
+                      (+ x y))))
+(let ([bindings (extract-local-bindings let-form 'x)])
+     ;; For regular let, x in y's initializer should only find outer scope
+     (test "let parallel binding - x not visible to sibling"
+           #f
+           (if (assq 'x bindings) #t #f)))
+
+;; Test letrec - all bindings visible to all initializers
+(define letrec-form '(define (test-fn)
+                       (letrec ([even? (lambda (n) (if (= n 0) #t (odd? (- n 1))))]
+                                [odd? (lambda (n) (if (= n 0) #f (even? (- n 1))))])
+                         (even? 4))))
+(let ([bindings (extract-local-bindings letrec-form 'odd?)])
+     (test "letrec mutual recursion - odd? visible in even? init"
+           #t
+           (if (assq 'odd? bindings) #t #f)))
+
 ;;; Summary
 (display "\n====\n")
 (printf "Passed: ~a, Failed: ~a\n" tests-passed tests-failed)
