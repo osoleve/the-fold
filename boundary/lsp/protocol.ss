@@ -360,7 +360,29 @@
 
 ;;; uri->path : String → String
 ;;; Convert a file:// URI to a path.
+;;; Handles URL-encoded characters (%20 for space, etc.).
 (define (uri->path uri)
   (if (string-prefix? uri "file://")
-      (substring uri 7 (string-length uri))
+      (url-decode (substring uri 7 (string-length uri)))
       uri))
+
+;;; url-decode : String → String
+;;; Decode percent-encoded characters in a URL path.
+;;; %20 → space, %23 → #, etc.
+(define (url-decode str)
+  (let ([len (string-length str)])
+       (let loop ([i 0] [chars '()])
+            (cond
+             [(>= i len)
+              (list->string (reverse chars))]
+             [(and (char=? (string-ref str i) #\%)
+                   (< (+ i 2) len))
+              ;; Found %, try to decode next two hex digits
+              (let ([hex (substring str (+ i 1) (+ i 3))])
+                   (let ([code (string->number hex 16)])
+                        (if code
+                            (loop (+ i 3) (cons (integer->char code) chars))
+                            ;; Invalid hex, keep literal %
+                            (loop (+ i 1) (cons #\% chars)))))]
+             [else
+              (loop (+ i 1) (cons (string-ref str i) chars))]))))

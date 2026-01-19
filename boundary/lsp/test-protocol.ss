@@ -137,6 +137,17 @@
 (test "uri->path" "/home/test.ss" (uri->path "file:///home/test.ss"))
 (test "uri->path passthrough" "/already/path" (uri->path "/already/path"))
 
+;; URL decoding tests
+(test "uri->path with space" "/home/my project/test.ss"
+      (uri->path "file:///home/my%20project/test.ss"))
+(test "uri->path with hash" "/path/file#1.ss"
+      (uri->path "file:///path/file%231.ss"))
+(test "uri->path with percent" "/path/100%done.ss"
+      (uri->path "file:///path/100%25done.ss"))
+(test "url-decode plain" "hello" (url-decode "hello"))
+(test "url-decode space" "hello world" (url-decode "hello%20world"))
+(test "url-decode multiple" "a b c" (url-decode "a%20b%20c"))
+
 ;;; ====
 ;;; Response Construction Tests
 ;;; ====
