@@ -18,7 +18,7 @@ import { randomUUID } from 'crypto';
 import { SessionManager, Session, Tier } from './session.js';
 import { sendRequest, initIPC, isDaemonRunning, waitForDaemon, getDaemonStatus } from './ipc.js';
 import { tools } from './tools.js';
-import { LSPClient, formatLocation, symbolKindName, severityName, completionKindName } from './lsp-client.js';
+import { LSPClient, formatLocation, symbolKindName, severityName, completionKindName, semanticTokenTypeName, semanticTokenModifierNames } from './lsp-client.js';
 
 /**
  * Main MCP server class
@@ -110,6 +110,8 @@ class FoldMCPServer {
             return await this.handleLspCompletion(args);
           case 'fold_lsp_document_symbols':
             return await this.handleLspDocumentSymbols(args);
+          case 'fold_lsp_semantic_tokens':
+            return await this.handleLspSemanticTokens(args);
 
           default:
             throw new Error(`Unknown tool: ${name}`);
@@ -573,6 +575,53 @@ class FoldMCPServer {
         this.formatSymbolTree(sym.children, lines, depth + 1);
       }
     }
+  }
+
+  private async handleLspSemanticTokens(args: any) {
+    const { file } = args;
+
+    const tokens = await this.lspClient.semanticTokens(file);
+
+    if (!tokens || tokens.length === 0) {
+      return {
+        content: [{ type: 'text', text: 'No semantic tokens found in this file.' }]
+      };
+    }
+
+    // Format tokens grouped by type for readability
+    const byType: { [key: string]: any[] } = {};
+    for (const tok of tokens) {
+      const typeName = semanticTokenTypeName(tok.tokenType);
+      if (!byType[typeName]) {
+        byType[typeName] = [];
+      }
+      const mods = semanticTokenModifierNames(tok.modifiers);
+      byType[typeName].push({
+        line: tok.line + 1,  // 1-indexed for display
+        col: tok.character + 1,
+        len: tok.length,
+        mods: mods.length > 0 ? mods : undefined
+      });
+    }
+
+    // Build output
+    const lines = [`Semantic tokens for ${file}:`, `Total: ${tokens.length} tokens`, ''];
+    for (const [typeName, typeTokens] of Object.entries(byType)) {
+      lines.push(`${typeName} (${typeTokens.length}):`);
+      // Show first 10 of each type to avoid overwhelming output
+      const display = typeTokens.slice(0, 10);
+      for (const t of display) {
+        const modStr = t.mods ? ` [${t.mods.join(', ')}]` : '';
+        lines.push(`  :${t.line}:${t.col} len=${t.len}${modStr}`);
+      }
+      if (typeTokens.length > 10) {
+        lines.push(`  ... and ${typeTokens.length - 10} more`);
+      }
+    }
+
+    return {
+      content: [{ type: 'text', text: lines.join('\n') }]
+    };
   }
 
   /**

@@ -20,6 +20,7 @@
  * - fold_lsp_status: Check LSP server status
  * - fold_lsp_completion: Get code completion suggestions at position
  * - fold_lsp_document_symbols: Get document symbols for file outline
+ * - fold_lsp_semantic_tokens: Get semantic tokens for syntax highlighting
  */
 
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
@@ -287,6 +288,21 @@ export const tools: Tool[] = [
   {
     name: 'fold_lsp_document_symbols',
     description: 'Get document symbols for a Scheme file to show its outline/structure. Returns function definitions, variables, and other top-level forms with their locations and nested children.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          description: 'Path to the Scheme file (absolute or relative to project root)'
+        }
+      },
+      required: ['file']
+    }
+  },
+
+  {
+    name: 'fold_lsp_semantic_tokens',
+    description: 'Get semantic tokens for a Scheme file to enable rich syntax highlighting. Returns tokens with types (keyword, function, variable, string, number, comment, operator, macro, parameter, type) and modifiers (definition, declaration, readonly).',
     inputSchema: {
       type: 'object',
       properties: {

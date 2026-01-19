@@ -94,6 +94,14 @@ interface DocumentSymbol {
   children?: DocumentSymbol[];
 }
 
+interface SemanticToken {
+  line: number;
+  character: number;
+  length: number;
+  tokenType: number;
+  modifiers: number;
+}
+
 /**
  * LSP Client class
  * Manages LSP server process and provides high-level API
@@ -729,6 +737,48 @@ export class LSPClient {
   }
 
   /**
+   * Get semantic tokens for syntax highlighting
+   */
+  async semanticTokens(filePath: string): Promise<SemanticToken[] | null> {
+    await this.ensureRunning();
+    const uri = await this.syncDocument(filePath);
+
+    try {
+      const result = await this.sendRequest('textDocument/semanticTokens/full', {
+        textDocument: { uri }
+      });
+
+      if (!result || !result.data || !Array.isArray(result.data)) {
+        return null;
+      }
+
+      // Decode delta-encoded tokens: [deltaLine, deltaStart, length, tokenType, modifiers, ...]
+      const data = result.data;
+      const tokens: SemanticToken[] = [];
+      let line = 0;
+      let character = 0;
+
+      for (let i = 0; i < data.length; i += 5) {
+        const deltaLine = data[i];
+        const deltaStart = data[i + 1];
+        const length = data[i + 2];
+        const tokenType = data[i + 3];
+        const modifiers = data[i + 4];
+
+        line += deltaLine;
+        character = deltaLine > 0 ? deltaStart : character + deltaStart;
+
+        tokens.push({ line, character, length, tokenType, modifiers });
+      }
+
+      return tokens;
+    } catch (e) {
+      console.error('[LSP] Semantic tokens error:', e);
+      return null;
+    }
+  }
+
+  /**
    * Convert position to character offset
    */
   private positionToOffset(lines: string[], position: Position): number {
@@ -839,4 +889,49 @@ export function completionKindName(kind: number | undefined): string {
     21: 'Constant', 22: 'Struct', 23: 'Event', 24: 'Operator', 25: 'TypeParameter'
   };
   return kind !== undefined ? (names[kind] || 'Unknown') : 'Unknown';
+}
+
+/**
+ * Semantic token type names (matches server legend)
+ */
+export const SemanticTokenTypes = [
+  'keyword',    // 0
+  'function',   // 1
+  'variable',   // 2
+  'string',     // 3
+  'number',     // 4
+  'comment',    // 5
+  'operator',   // 6
+  'macro',      // 7
+  'parameter',  // 8
+  'type'        // 9
+];
+
+/**
+ * Semantic token modifier names
+ */
+export const SemanticTokenModifiers = [
+  'definition',   // bit 0
+  'declaration',  // bit 1
+  'readonly'      // bit 2
+];
+
+/**
+ * Get semantic token type name
+ */
+export function semanticTokenTypeName(type: number): string {
+  return SemanticTokenTypes[type] || 'unknown';
+}
+
+/**
+ * Get semantic token modifier names as array
+ */
+export function semanticTokenModifierNames(modifiers: number): string[] {
+  const names: string[] = [];
+  for (let i = 0; i < SemanticTokenModifiers.length; i++) {
+    if (modifiers & (1 << i)) {
+      names.push(SemanticTokenModifiers[i]);
+    }
+  }
+  return names;
 }
