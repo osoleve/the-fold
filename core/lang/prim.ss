@@ -8,7 +8,7 @@
 ;;; All primitives are total: they always return a value (or error value).
 ;;; All primitives are pure: same inputs = same outputs, no effects.
 ;;;
-;;; This is Core code: pure, total, assumes perfect input from Shell.
+;;; This is Core code: pure, total, assumes perfect input from Boundary.
 ;;;
 ;;; Dependencies:
 ;;;   - prelude.ss

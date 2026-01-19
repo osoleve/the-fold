@@ -468,7 +468,7 @@
         (nat-apply right-side (list nothing nothing))))
 
 ;;; Note: Input validation for nat-compose is tested in boundary/fp/test-category.ss
-;;; The lattice code is pure and assumes valid input; validation lives at the shell boundary.
+;;; The lattice code is pure and assumes valid input; validation lives at the boundary layer.
 
 ;;; ====
 ;;; Summary

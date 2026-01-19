@@ -325,7 +325,7 @@
 ;;; Structure: (wrapped contract value location)
 ;;;
 ;;; This is a pure representation - actual enforcement would happen
-;;; in the shell layer during evaluation.
+;;; in the boundary layer during evaluation.
 
 ;;; wrap : Any → Any → Symbol → Any
 (define (wrap contract value location)

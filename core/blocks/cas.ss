@@ -15,8 +15,8 @@
 ;;;   stored? : Bytevector → Boolean
 ;;;
 ;;; Note: The in-memory store uses mutation for the hashtable.
-;;; This is acceptable in Core. Shell provides optional filesystem
-;;; persistence (thimble/cas-persist.ss or thimble/fs.ss).
+;;; This is acceptable in Core. Boundary provides optional filesystem
+;;; persistence (boundary/storage/cas-persist.ss or boundary/io/fs.ss).
 ;;;
 ;;; This is Core code, but with bootstrap mutation for the store.
 ;;;
@@ -447,7 +447,7 @@
 ;;; SECURITY NOTE: This uses Scheme's standard 'read' which can execute
 ;;; code via reader macros (e.g., #. in some implementations). Only use
 ;;; with trusted data stored via store-sexpr!. For untrusted input,
-;;; validate at the shell layer before storage.
+;;; validate at the boundary layer before storage.
 (define (fetch-sexpr hash)
   (let ([blk (fetch hash)])
        (if blk

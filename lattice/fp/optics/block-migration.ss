@@ -22,7 +22,7 @@
 ;;; 4. **Payload type safety**: Only attempt sexpr parsing on known sexpr tags.
 ;;;
 ;;; This is Pure lattice code: block transformations without CAS mutation.
-;;; The shell layer (boundary/migrations/runner.ss) handles actual CAS I/O.
+;;; The boundary layer (boundary/migrations/runner.ss) handles actual CAS I/O.
 ;;;
 ;;; Dependencies:
 ;;;   - core/blocks/block.ss (for block record type)

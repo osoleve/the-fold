@@ -3,7 +3,7 @@
 //! Layer 2 FFI: string algorithms accelerated in Rust.
 //!
 //! IMPORTANT: All input strings are assumed to be valid UTF-8.
-//! The shell layer validates UTF-8 before calling these functions.
+//! The boundary layer validates UTF-8 before calling these functions.
 //! These functions operate on raw bytes for efficiency.
 //!
 //! Status codes:

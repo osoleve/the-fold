@@ -1,6 +1,6 @@
 ;;; boundary/fp/test-category.ss — Tests for Validated Category Entry Points
 ;;;
-;;; Tests the shell-layer validation wrappers in boundary/fp/category.ss.
+;;; Tests the boundary-layer validation wrappers in boundary/fp/category.ss.
 ;;; These wrappers validate inputs before calling pure lattice functions.
 ;;;
 ;;; Run: scheme --script boundary/fp/test-category.ss

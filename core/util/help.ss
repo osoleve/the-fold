@@ -7,7 +7,7 @@
 ;;;   (help-categories)         - List available categories
 ;;;   (help-by-category 'cat)   - List primitives in specific category
 ;;;
-;;; This is Core code: pure, total, assumes perfect input from Shell.
+;;; This is Core code: pure, total, assumes perfect input from Boundary.
 ;;;
 ;;; Dependencies:
 ;;;   - prim.ss (for primitive metadata)

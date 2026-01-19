@@ -545,7 +545,7 @@
 |                         User Layer                          |
 |              Applications, experiments, scripts             |
 +-------------------------------------------------------------+
-|                        Shell Layer                          |
+|                      Boundary Layer                         |
 |         IO, validation, capability minting, effects         |
 +-------------------------------------------------------------+
 |                        Core Layer                           |
@@ -565,11 +565,11 @@
 
                 <p><strong>Trust</strong>: Core assumes <em>perfect input</em>. It performs no validation, no defensive checks, no error recovery.</p>
 
-                <h3>2.2 The Shell Layer</h3>
-                <p>The Shell is "fallen"&mdash;it interacts with the impure outside world: File I/O, network, user input, validation and error handling, capability minting from external resources.</p>
+                <h3>2.2 The Boundary Layer</h3>
+                <p>The Boundary is "fallen"&mdash;it interacts with the impure outside world: File I/O, network, user input, validation and error handling, capability minting from external resources.</p>
 
                 <h3>2.3 The User Layer</h3>
-                <p>Applications and experiments that compose Shell and Core functionality. This layer has maximum freedom and minimum guarantees.</p>
+                <p>Applications and experiments that compose Boundary and Core functionality. This layer has maximum freedom and minimum guarantees.</p>
             </section>
 
             <section id="block-machine">
@@ -1147,7 +1147,7 @@ The Fold uses <em>call-by-value</em> (strict) evaluation:</p>
 <ol>
 <li>Arguments are evaluated before function application</li><li>Let bindings evaluate the bound expression before the body</li><li>No lazy evaluation or thunks in Core</li></ol>
 <p>
-<strong>Rationale</strong>: Call-by-value interacts predictably with effects (even though Core is pure, Shell is not) and simplifies reasoning about resource consumption.</p>
+<strong>Rationale</strong>: Call-by-value interacts predictably with effects (even though Core is pure, Boundary is not) and simplifies reasoning about resource consumption.</p>
 <h3>
 4.4 The Homoiconic Mechanism</h3>
 <p>
@@ -1178,9 +1178,9 @@ This bijection enables:</p>
 <ul>
 <li>Storing code in the CAS</li><li>Content-addressing programs</li><li>Metaprogramming via block manipulation</li><li>Serialization/deserialization of any value</li></ul>
 <h3>
-4.5 Effects and the Shell Boundary</h3>
+4.5 Effects and the Boundary Layer</h3>
 <p>
-Core is <em>effect-free</em>. The Shell provides effects through a capability-based system:</p>
+Core is <em>effect-free</em>. The Boundary provides effects through a capability-based system:</p>
 <p>
 <strong>Capability Types</strong>:</p>
 <pre><code class="language-scheme">(Cap FS T)    ; Filesystem capability producing T
@@ -1188,8 +1188,8 @@ Core is <em>effect-free</em>. The Shell provides effects through a capability-ba
 (Cap Time T)  ; Time/randomness capability producing T
 </code></pre>
 <p>
-<strong>Effect Boundary</strong>: A capability is a token authorizing specific operations. The Shell mints capabilities; Core code that needs effects must receive them as arguments:</p>
-<pre><code class="language-scheme">;; Shell mints a filesystem capability
+<strong>Effect Boundary</strong>: A capability is a token authorizing specific operations. The Boundary mints capabilities; Core code that needs effects must receive them as arguments:</p>
+<pre><code class="language-scheme">;; Boundary mints a filesystem capability
 (define fs-cap (mint-capability &#39;filesystem))
 
 ;; Core function requires capability as argument
@@ -1207,16 +1207,16 @@ Core is <em>effect-free</em>. The Shell provides effects through a capability-ba
 <p>
 This keeps Core pure while enabling practical programs.</p>
 <h3>
-4.6 Shell Implementation Details</h3>
+4.6 Boundary Implementation Details</h3>
 <p>
-The Shell (&quot;thimble&quot;) is the verification boundary—code below is trusted, code above is verified. This section details Shell&#39;s invariants and implementation.</p>
+The Boundary (&quot;thimble&quot;) is the verification boundary—code below is trusted, code above is verified. This section details the Boundary&#39;s invariants and implementation.</p>
 <h4>
-4.6.1 Shell Invariants</h4>
+4.6.1 Boundary Invariants</h4>
 <p>
-The Shell maintains these invariants before invoking Core:</p>
+The Boundary maintains these invariants before invoking Core:</p>
 <p>
 <strong>I1. Well-formed S-expressions</strong>: All input is syntactically valid. Malformed UTF-8, unbalanced parentheses, and invalid tokens are rejected before reaching Core.</p>
-<pre><code class="language-scheme">;; Shell validation pipeline
+<pre><code class="language-scheme">;; Boundary validation pipeline
 (define (validate-input raw-bytes)
   (let ([utf8-result (validate-utf8 raw-bytes)])
     (if (err? utf8-result)
@@ -1227,7 +1227,7 @@ The Shell maintains these invariants before invoking Core:</p>
               (ok-val sexpr-result))))))
 </code></pre>
 <p>
-<strong>I2. Type-compatible arguments</strong>: Values passed to typed Core functions satisfy their declared types. Shell performs runtime type checks at the boundary.</p>
+<strong>I2. Type-compatible arguments</strong>: Values passed to typed Core functions satisfy their declared types. Boundary performs runtime type checks at the boundary.</p>
 <pre><code class="language-scheme">;; Boundary check before Core call
 (define (call-core-function f args expected-types)
   (for-each
@@ -1240,7 +1240,7 @@ The Shell maintains these invariants before invoking Core:</p>
 <p>
 <strong>I3. Capability presence</strong>: Effectful operations receive valid capability tokens. No capability = no effect.</p>
 <p>
-<strong>I4. Fuel budget</strong>: Every Core invocation receives a finite fuel budget. Shell chooses the budget based on operation type and user configuration.</p>
+<strong>I4. Fuel budget</strong>: Every Core invocation receives a finite fuel budget. Boundary chooses the budget based on operation type and user configuration.</p>
 <h4>
 4.6.2 Capability Implementation</h4>
 <p>
@@ -1253,7 +1253,7 @@ Capabilities are unforgeable tokens authorizing specific effects. Implementation
     scope       ; Restrictions: paths, hosts, etc.
     revoked?))  ; Mutable: can be revoked
 
-;; Capability minting (Shell only)
+;; Capability minting (Boundary only)
 (define (mint-capability kind scope)
   (make-capability
     (crypto-random-bytes 16)
@@ -1272,7 +1272,7 @@ Capabilities are unforgeable tokens authorizing specific effects. Implementation
      (error &#39;scope-violation operation (capability-scope cap))]
     [else #t]))
 
-;; Usage in Shell
+;; Usage in Boundary
 (define (read-file cap path)
   (check-capability cap &#39;filesystem `(read ,path))
   (call-with-input-file path get-string-all))
@@ -1301,8 +1301,8 @@ Capabilities are unforgeable tokens authorizing specific effects. Implementation
 <h4>
 4.6.3 Error Handling</h4>
 <p>
-Shell catches all errors from Core and presents them to users:</p>
-<pre><code class="language-scheme">(define (shell-eval expr fuel)
+Boundary catches all errors from Core and presents them to users:</p>
+<pre><code class="language-scheme">(define (boundary-eval expr fuel)
   (guard (exn
           [(out-of-fuel? exn)
            (format-error &quot;Computation exceeded fuel budget (~a)&quot;
@@ -1328,7 +1328,7 @@ Shell catches all errors from Core and presents them to users:</p>
 <tbody>
 <tr>
 <td><code>parse-error</code></td>
-<td>Shell</td>
+<td>Boundary</td>
 <td>&quot;Syntax error at line N: ...&quot;</td>
 </tr>
 <tr>
@@ -1348,21 +1348,21 @@ Shell catches all errors from Core and presents them to users:</p>
 </tr>
 <tr>
 <td><code>capability-error</code></td>
-<td>Shell</td>
+<td>Boundary</td>
 <td>&quot;Operation requires capability C&quot;</td>
 </tr>
 <tr>
 <td><code>io-error</code></td>
-<td>Shell</td>
+<td>Boundary</td>
 <td>&quot;Cannot read file: ...&quot;</td>
 </tr>
 </tbody>
 </table>
 <h4>
-4.6.4 Shell/Core Protocol</h4>
+4.6.4 Boundary/Core Protocol</h4>
 <p>
 Communication follows a strict protocol:</p>
-<pre><code>Shell                           Core
+<pre><code>Boundary                        Core
   │                               │
   ├─── validate(input) ──────────►│
   │                               │
@@ -1378,7 +1378,7 @@ Communication follows a strict protocol:</p>
   │                               │
 </code></pre>
 <p>
-Core never initiates communication. Core never performs IO directly. All external interaction flows through Shell.</p>
+Core never initiates communication. Core never performs IO directly. All external interaction flows through Boundary.</p>
 <h3>
 4.7 Metaprogramming and the Type System</h3>
 <p>
@@ -3181,11 +3181,11 @@ Algebraic canonicalization extends semantic identity:</p>
 <p>
 The version byte (0x01) distinguishes algebraically-normalized hashes from α-only hashes (0x00), ensuring backwards compatibility.</p>
 <p>
-<strong>Why Pure Core + Impure Shell?</strong></p>
+<strong>Why Pure Core + Impure Boundary?</strong></p>
 <p>
 Separation enables verification:</p>
 <ul>
-<li>Core: small, pure, formally verifiable</li><li>Shell: practical, handles messy reality</li><li>Clear boundary for trust decisions</li><li>Neither compromises the other</li></ul>
+<li>Core: small, pure, formally verifiable</li><li>Boundary: practical, handles messy reality</li><li>Clear boundary for trust decisions</li><li>Neither compromises the other</li></ul>
 <h3>
 7.3 Performance Considerations</h3>
 <p>
@@ -3542,9 +3542,9 @@ The layered fallback ensures useful hover information is always available:</p>
 <p>
 These limitations are acceptable for initial deployment—the fallback ensures primitive operations always display types, and real inference succeeds for the common case of sequential top-level definitions.</p>
 <h3>
-7.6 Shell IO Infrastructure</h3>
+7.6 Boundary IO Infrastructure</h3>
 <p>
-The Shell layer provides IO primitives that maintain consistency guarantees despite operating in an impure environment.</p>
+The Boundary layer provides IO primitives that maintain consistency guarantees despite operating in an impure environment.</p>
 <h4>
 7.6.1 Atomic File Writes</h4>
 <p>
@@ -4263,7 +4263,7 @@ Block migrations (<code>block-migration.ss</code>) specialize the migration infr
 <h4>
 7.9.4 Merkle DAG Correctness</h4>
 <p>
-The shell runner (<code>boundary/migrations/runner.ss</code>) executes migrations against the CAS with Merkle DAG correctness.</p>
+The boundary runner (<code>boundary/migrations/runner.ss</code>) executes migrations against the CAS with Merkle DAG correctness.</p>
 <p>
 <strong>The problem</strong>: In a content-addressed system, changing a block changes its hash. If block A references block B, and B is migrated to B&#39;, then A must also be updated to reference B&#39; instead of B. This cascades up to the root.</p>
 <p>
@@ -4659,7 +4659,7 @@ dot  : (∀ (n) (→ (Vec n Num) (→ (Vec n Num) Num)))
 </tbody>
 </table>
 <p>
-The Fold&#39;s de Bruijn approach provides stronger α-equivalence guarantees. Unison&#39;s ability system is more integrated with the type system; The Fold separates effects into Shell.</p>
+The Fold&#39;s de Bruijn approach provides stronger α-equivalence guarantees. Unison&#39;s ability system is more integrated with the type system; The Fold separates effects into Boundary.</p>
 <p>
 <strong>IPFS</strong>: Content-addressed storage for arbitrary data. The Fold adapts similar Merkle DAG concepts for code specifically, adding normalization and typing.</p>
 <p>
@@ -4787,17 +4787,17 @@ Unlike Agda, Idris, or Lean, The Fold provides no:</p>
 <p>
 Dependent types are for specification, not theorem proving. Use external proof assistants for serious verification.</p>
 <h3>
-10.4 Shell is Unverified</h3>
+10.4 Boundary is Unverified</h3>
 <p>
-The Shell is <em>trusted but unverified</em>. We believe it maintains its invariants, but we have not mechanically verified this. The verification boundary is:</p>
+The Boundary is <em>trusted but unverified</em>. We believe it maintains its invariants, but we have not mechanically verified this. The verification boundary is:</p>
 <pre><code>   ┌─────────────────────────┐
-   │   Shell (trusted)       │  ← May have bugs
+   │   Boundary (trusted)    │  ← May have bugs
    ├─────────────────────────┤
    │   Core (verified*)      │  ← *Type-safe by construction
    └─────────────────────────┘
 </code></pre>
 <p>
-Core is verified in the sense that well-typed programs don&#39;t go wrong (within fuel bounds). Shell correctness is assured by testing and code review.</p>
+Core is verified in the sense that well-typed programs don&#39;t go wrong (within fuel bounds). Boundary correctness is assured by testing and code review.</p>
 <h3>
 10.5 Single-Node Only</h3>
 <p>
@@ -4857,7 +4857,7 @@ Typed quotation (as in MetaML or Typed Template Haskell) is not implemented. Met
 <p>
 <strong>Algebraic Effects</strong>: Integrate algebraic effects more deeply, replacing the current capability/monad approach.</p>
 <p>
-<strong>Linear Types</strong>: Add linear/affine types for safe resource management in Shell.</p>
+<strong>Linear Types</strong>: Add linear/affine types for safe resource management in Boundary.</p>
 <p>
 <strong>Incremental Type Checking</strong>: Cache type derivations in the CAS, enabling O(changed) re-checking instead of O(total).</p>
 <p>
@@ -5136,7 +5136,7 @@ v ::= (λ x : τ . e)                      ; Abstraction value
 <p>
 <strong>Key Philosophical Differences</strong>:</p>
 <ol>
-<li><strong>Effects</strong>: Unison treats effects as first-class abilities integrated into the type system. The Fold separates effects into Shell with capability types.</li></ol>
+<li><strong>Effects</strong>: Unison treats effects as first-class abilities integrated into the type system. The Fold separates effects into Boundary with capability types.</li></ol>
 <ol>
 <li><strong>Verification</strong>: The Fold emphasizes compositional verification with fuel bounds. Unison focuses on codebase management.</li></ol>
 <ol>

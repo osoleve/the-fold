@@ -109,9 +109,9 @@ PROCEDURE find-capability(need: String) -> List<Skill>
 | `tiles` | Board game SDK |
 | `pipeline` | Agent workflows |
 
-### 1.3 Shell Capabilities
+### 1.3 Boundary Capabilities
 
-Shell code lives in `boundary/` and handles all impure operations:
+Boundary code lives in `boundary/` and handles all impure operations:
 
 | Directory | Purpose | Key APIs |
 |-----------|---------|----------|
@@ -414,18 +414,18 @@ Flashmob coordinates multiple agents' QA findings using game-theoretic allocatio
 ```
 TRUST HIERARCHY:
 
-  Core (pure)     ← Trusts nothing, assumes perfect input
+  Core (pure)       ← Trusts nothing, assumes perfect input
        ↑
-  Shell (fallen)  ← Validates everything, mints capabilities
+  Boundary (fallen) ← Validates everything, mints capabilities
        ↑
-  Outside         ← Untrusted by definition
+  Outside           ← Untrusted by definition
 ```
 
 **Axioms:**
 1. Core code NEVER constructs capability records directly
-2. Only Shell's `mint-X-capability` functions create capabilities
+2. Only Boundary's `mint-X-capability` functions create capabilities
 3. Capability records are **opaque** — Core cannot forge them
-4. Shell validates ALL input before passing to Core
+4. Boundary validates ALL input before passing to Core
 
 ### 4.2 Capability Verification
 
@@ -766,7 +766,7 @@ Grammar-driven code generation:
 (normalize expr)       ; α-normalize
 ```
 
-### Shell
+### Boundary
 
 ```bash
 ./fold "expr"          # Evaluate (implicit parens)
@@ -778,11 +778,11 @@ Grammar-driven code generation:
 
 ## Invariants to Maintain
 
-1. **Never construct capabilities in Core** — always request from Shell
+1. **Never construct capabilities in Core** — always request from Boundary
 2. **Always budget fuel** — unbounded computation will suspend
 3. **Always record provenance** — store refs to inputs in output blocks
 4. **Normalize before hashing** — ensures α-equivalent = same hash
 5. **Pin important blocks** — prevents accidental garbage collection
-6. **Validate at boundaries** — Shell checks everything, Core trusts input
+6. **Validate at boundaries** — Boundary checks everything, Core trusts input
 7. **Register optics for reactive** — unregistered optics generate warnings
 8. **Close BBS issues when done** — maintain clean backlog

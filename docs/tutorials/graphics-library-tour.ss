@@ -23,10 +23,10 @@
 
 (load "core/base/prelude.ss")
 (load "boundary/ui/layout.ss")
-(import (shell easing))
-(import (shell graphics-primitives))
-(import (shell layout-combinators))
-(import (shell transforms))
+(import (boundary easing))
+(import (boundary graphics-primitives))
+(import (boundary layout-combinators))
+(import (boundary transforms))
 
 (display "\n")
 (display "╔══════════════════════════════════════════════════════════════╗\n")
@@ -223,9 +223,9 @@
 (define final (draw-string final (point 26 7) "CORE"))
 (define final (draw-string final (point 25 8) "(pure)"))
 
-;; Shell box
+;; Boundary box
 (define final (draw-box final (make-rect (point 2 5) 14 6) 'light))
-(define final (draw-string final (point 5 7) "SHELL"))
+(define final (draw-string final (point 4 7) "BOUNDARY"))
 (define final (draw-string final (point 4 8) "(impure)"))
 
 ;; User box
@@ -239,7 +239,7 @@
 (define final (draw-string final (point 26 15) "CAS"))
 
 ;; Arrows connecting components
-(define final (arrow final (point 16 8) (point 21 8) #\─))  ;; Shell -> Core
+(define final (arrow final (point 16 8) (point 21 8) #\─))  ;; Boundary -> Core
 (define final (arrow final (point 36 8) (point 41 8) #\─))  ;; Core -> User
 (define final (edge final (point 29 11) (point 29 13) 'straight))  ;; Core -> CAS (down)
 (define final (draw-string final (point 28 12) "v"))

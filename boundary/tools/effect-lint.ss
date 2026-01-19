@@ -372,7 +372,7 @@
        (display "\n")))
 
 ;;; ====
-;;; Core vs Shell Boundary Checking
+;;; Core vs Boundary Layer Checking
 ;;; ====
 
 ;;; check-core-purity : → Void

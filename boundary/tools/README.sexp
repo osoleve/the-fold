@@ -1,11 +1,11 @@
 ((name "tools")
  (purpose "Developer tools for code analysis, formatting, and scaffolding")
  (description
-  "Shell-level development tools providing IDE-like functionality.
+  "Boundary-level development tools providing IDE-like functionality.
    Includes refactoring, code coverage, formatting, dead code detection,
    module dependency analysis, benchmarking, scaffolding, documentation
    generation, and type-driven search. All tools handle IO defensively
-   and integrate with the shell subsystems.")
+   and integrate with the boundary subsystems.")
  (modules
   ((archextract.ss "Archive extraction and inspection utilities")
    (ast-format.ss "AST-aware formatter with style profiles (compact/verbose/diff-friendly)")

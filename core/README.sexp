@@ -184,8 +184,8 @@ Everything in core/ is:
 Core is the machine. It assumes perfect input. It never fails
 (except by returning an error value). It computes answers.
 
-Shell wraps Core, providing defensive validation and IO.
-Users interact with Shell. Shell calls Core.
+Boundary wraps Core, providing defensive validation and IO.
+Users interact with Boundary. Boundary calls Core.
 ")
  (rules . (
    "Pure functions only - no (set!), no IO, no mutation (except local gensym counters)"

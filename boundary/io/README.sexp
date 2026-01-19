@@ -8,11 +8,11 @@
  (purity . impure)
 
  (description . "
-IO operations and data format serialization for the Shell layer.
+IO operations and data format serialization for the Boundary layer.
 Provides capability-gated filesystem access and JSON handling.
 
 Key design: Filesystem access requires capability tokens that
-only the Shell can mint. Core code cannot directly access files.
+only the Boundary can mint. Core code cannot directly access files.
 ")
 
  (modules

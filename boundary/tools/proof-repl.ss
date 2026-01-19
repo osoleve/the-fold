@@ -588,7 +588,7 @@
 ;;; ====
 
 ;;; register-proof-commands! : -> void
-;;; Register proof sketcher commands with the shell command system.
+;;; Register proof sketcher commands with the boundary command system.
 (define (register-proof-commands!)
   (when (top-level-bound? 'register-command!)
         (register-command!

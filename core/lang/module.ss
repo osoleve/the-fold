@@ -65,7 +65,7 @@
 ;;; ====
 
 ;;; *manifest-module-index* : Hashtable Symbol → String | #f
-;;; Simple module names → file paths (populated by shell at startup)
+;;; Simple module names → file paths (populated by boundary at startup)
 (define *manifest-module-index* #f)
 
 ;;; *manifest-namespaced-index* : Hashtable Symbol → String | #f
@@ -73,7 +73,7 @@
 (define *manifest-namespaced-index* #f)
 
 ;;; register-manifest-index! : Hashtable Hashtable → Void
-;;; Shell calls this at startup to inject the manifest-derived index.
+;;; Boundary calls this at startup to inject the manifest-derived index.
 (define (register-manifest-index! simple-index namespaced-index)
   (set! *manifest-module-index* simple-index)
   (set! *manifest-namespaced-index* namespaced-index))
@@ -638,7 +638,7 @@
    [(string-starts-with? path "lattice/info/") "INFO-THEORY"]
    [(string-starts-with? path "core/util/") "UTIL"]
    [(string-starts-with? path "lattice/fp/") "FP"]
-   [(string-starts-with? path "boundary/") "SHELL"]
+   [(string-starts-with? path "boundary/") "BOUNDARY"]
    [else "OTHER"]))
 
 ;;; category-description : String → String
@@ -689,7 +689,7 @@
   (let* ([groups (group-modules-by-category)]
          [categories '("BASE" "BLOCKS" "LANG" "TYPES" "QUERY" "DATA"
                        "LINALG" "NUMERIC" "AUTODIFF" "RANDOM" "PIPELINE"
-                       "INFO-THEORY" "UTIL" "FP" "SHELL" "OTHER")])
+                       "INFO-THEORY" "UTIL" "FP" "BOUNDARY" "OTHER")])
         
         (for-each
          (lambda (cat)

@@ -91,7 +91,7 @@
 
 ;;; symbol->utf8 : Symbol → Bytevector
 ;;; Convert symbol name to UTF-8 bytes.
-;;; Note: NFC normalization is required in Shell before reaching Core.
+;;; Note: NFC normalization is required in Boundary before reaching Core.
 (define (symbol->utf8 sym)
   (string->utf8 (symbol->string sym)))
 

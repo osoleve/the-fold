@@ -146,7 +146,7 @@
   (test-true "verify-triangle-right composed"
              (verify-triangle-right composed '(a b))))
 ;;; Note: Input validation for adjunction-compose is tested in boundary/fp/test-category.ss
-;;; The lattice code is pure and assumes valid input; validation lives at the shell boundary.
+;;; The lattice code is pure and assumes valid input; validation lives at the boundary layer.
 
 ;;; ====
 ;;; Test: Predicate Edge Cases

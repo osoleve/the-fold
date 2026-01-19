@@ -442,7 +442,7 @@
 &#x2502;                         User Layer                          &#x2502;
 &#x2502;              Applications, experiments, scripts             &#x2502;
 &#x251C;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2524;
-&#x2502;                        Shell Layer                          &#x2502;
+&#x2502;                      Boundary Layer                         &#x2502;
 &#x2502;         IO, validation, capability minting, effects         &#x2502;
 &#x251C;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2524;
 &#x2502;                        Core Layer                           &#x2502;
@@ -462,8 +462,8 @@
 
                 <p><strong>Trust</strong>: Core assumes <em>perfect input</em>. It performs no validation, no defensive checks, no error recovery. If you pass malformed data to Core, behavior is undefined. This simplicity enables formal verification.</p>
 
-                <h3>2.2 The Shell Layer</h3>
-                <p>The Shell is \"fallen\"&mdash;it interacts with the impure outside world:</p>
+                <h3>2.2 The Boundary Layer</h3>
+                <p>The Boundary is \"fallen\"&mdash;it interacts with the impure outside world:</p>
                 <ul>
                     <li>File I/O, network, user input</li>
                     <li>Validation and error handling</li>

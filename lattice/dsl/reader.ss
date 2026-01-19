@@ -369,7 +369,7 @@
 ;;; ====
 ;;;
 ;;; These functions transform reader macro syntax to S-expressions.
-;;; Actual IO is handled by the shell layer.
+;;; Actual IO is handled by the boundary layer.
 
 ;;; expand-reader-macro : Char × α × SourceLoc × Readtable → (Option Sexp)
 ;;; Look up and apply a reader macro.

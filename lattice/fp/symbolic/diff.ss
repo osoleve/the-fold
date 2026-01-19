@@ -239,7 +239,7 @@
 ;;; Compute curl of a 3D vector field F = [F₁, F₂, F₃].
 ;;; vars should be [x, y, z]
 ;;; Returns [∂F₃/∂y - ∂F₂/∂z, ∂F₁/∂z - ∂F₃/∂x, ∂F₂/∂x - ∂F₁/∂y]
-;;; Assumes valid 3D input (shell layer validates).
+;;; Assumes valid 3D input (boundary layer validates).
 (define (curl field vars)
   (let ([F1 (car field)]
         [F2 (cadr field)]

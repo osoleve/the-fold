@@ -1,4 +1,4 @@
-;;; boundary/string-utils.ss — String Utilities (Shell Layer)
+;;; boundary/string-utils.ss — String Utilities (Boundary Layer)
 ;;;
 ;;; This module re-exports string utilities from core/prelude.ss
 ;;; and adds shell-specific extensions.

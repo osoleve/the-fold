@@ -100,7 +100,7 @@ scheme --script lattice/info/test-entropy.ss
 scheme --script lattice/physics/diff/test-rollout.ss
 scheme --script lattice/meta/test-meta.ss
 
-# Shell tests
+# Boundary tests
 scheme --script boundary/tests/test-string-utils.ss
 ```
 
@@ -375,9 +375,9 @@ Agent-facing navigation and introspection for the skill lattice. Builds a CAS-ba
 | `audit.ss` | Find gaps between source and manifests |
 | `meta.ss` | Unified entry point + `lattice-help` |
 
-### Shell Subsystems
+### Boundary Subsystems
 
-Shell is organized into functional subdirectories (with backwards-compatible stubs at root):
+Boundary is organized into functional subdirectories (with backwards-compatible stubs at root):
 
 | Directory | Purpose | Key Modules |
 |----|----|----|
@@ -399,7 +399,7 @@ Shell is organized into functional subdirectories (with backwards-compatible stu
 | `bbs/` | Issue tracker | bbs.ss, ops.ss, index.ss |
 | `tools/` | Utility tools | template-session.ss, template-parser.ss |
 | `lsp/` | Language server protocol | lsp-server.ss, protocol.ss |
-| `tests/` | Shell test suite | test-*.ss files |
+| `tests/` | Boundary test suite | test-*.ss files |
 
 Root-level files like `commands.ss` and `validate.ss` remain for shared infrastructure.
 
@@ -463,7 +463,7 @@ Grammar-driven code construction for building S-expressions without tracking par
 - Core functions are total (enforced via **fuel** parameter)
 - Evaluation strategy is **call-by-value**
 
-### The Shell Is Fallen
+### The Boundary Is Fallen
 
 - `boundary/` handles all IO
 - Contains all defensive logic

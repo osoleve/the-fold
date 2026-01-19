@@ -652,7 +652,7 @@
 |                         User Layer                          |
 |              Applications, experiments, scripts             |
 +-------------------------------------------------------------+
-|                        Shell Layer                          |
+|                      Boundary Layer                         |
 |         IO, validation, capability minting, effects         |
 +-------------------------------------------------------------+
 |                        Core Layer                           |
@@ -672,11 +672,11 @@
 
                 <p><strong>Trust</strong>: Core assumes <em>perfect input</em>. It performs no validation, no defensive checks, no error recovery.</p>
 
-                <h3>2.2 The Shell Layer</h3>
-                <p>The Shell is \"fallen\"&mdash;it interacts with the impure outside world: File I/O, network, user input, validation and error handling, capability minting from external resources.</p>
+                <h3>2.2 The Boundary Layer</h3>
+                <p>The Boundary is \"fallen\"&mdash;it interacts with the impure outside world: File I/O, network, user input, validation and error handling, capability minting from external resources.</p>
 
                 <h3>2.3 The User Layer</h3>
-                <p>Applications and experiments that compose Shell and Core functionality. This layer has maximum freedom and minimum guarantees.</p>
+                <p>Applications and experiments that compose Boundary and Core functionality. This layer has maximum freedom and minimum guarantees.</p>
             </section>
 
 ")

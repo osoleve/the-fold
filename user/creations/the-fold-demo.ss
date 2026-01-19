@@ -224,7 +224,7 @@
             (when (< (random 100) (* alpha 50))
               (frame-set! frame x y #\:))))
 
-    ;; Shell layer (bottom third) - lightest
+    ;; Boundary layer (bottom third) - lightest
     (do ([y y-shell (+ y 1)])
         ((>= y HEIGHT))
         (do ([x 0 (+ x 4)])

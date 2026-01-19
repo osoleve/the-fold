@@ -4,7 +4,7 @@
 
  (description . "Composable pipeline framework for multi-stage agent workflows.
 Pipelines are pure S-expressions composed via Arrow-style operators.
-Effects are interpreted by the shell layer.")
+Effects are interpreted by the boundary layer.")
 
  (modules
   ((stage.ss . "Core stage algebra - StageResult, composition operators")

@@ -129,7 +129,7 @@
 ;;; Create a quotient with basic simplifications.
 (define (quotient e1 e2)
   (cond
-   ;; Division by zero: return symbolic form (shell layer validates)
+   ;; Division by zero: return symbolic form (boundary layer validates)
    [(and (num? e2) (= (num-val e2) 0))
     (list '/ e1 e2)]
    ;; 0 / x = 0 (assuming x != 0)
@@ -164,7 +164,7 @@
      [(> (num-val exp) 0) (num 0)]
      [(< (num-val exp) 0)
       ;; 0^negative is undefined - return symbolic form
-      ;; Shell layer should validate/reject if needed
+      ;; Boundary layer should validate/reject if needed
       (list '^ base exp)]
      [else (num 1)])]  ;; 0^0 case
    ;; 1^n = 1

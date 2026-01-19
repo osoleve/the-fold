@@ -1,6 +1,6 @@
 ;;; fabric/stitches/pipeline/effects.ss — Pipeline Effect Definitions
 ;;;
-;;; Effects are staged operations that require interpretation by the shell.
+;;; Effects are staged operations that require interpretation by the boundary.
 ;;; This module defines the effect types; thimble/pipeline/interpreter.ss
 ;;; provides the actual implementations.
 ;;;

@@ -33,10 +33,10 @@ The system has three layers:
 | Layer | Purpose | Properties |
 |----|----|----|
 | **Core** | Language kernel | Pure, total (always terminates), assumes valid input |
-| **Shell** | IO boundary | Handles real-world messiness, validates input |
+| **Boundary** | IO boundary | Handles real-world messiness, validates input |
 | **User** | Applications | Built on verified foundations |
 
-The key insight: keep the mathematical core simple and pure; handle effects at a well-defined boundary. Core can be formally verified; Shell is pragmatic.
+The key insight: keep the mathematical core simple and pure; handle effects at a well-defined boundary. Core can be formally verified; Boundary is pragmatic.
 
 ---
 
