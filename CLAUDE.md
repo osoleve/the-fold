@@ -22,6 +22,7 @@ Repository: `git@github.com:osoleve/the-fold`
 ./fold -s dev "define x 10"        # Named session with -s flag
 ./fold -s dev "(begin x)"          # Retrieve variable value from session
 ./fold --status                    # Check if daemon is running
+./fold --sessions                  # List active worker sessions
 ```
 
 **Key features:**
@@ -686,6 +687,18 @@ rm -rf .fold-repl/   # Nuclear option
 2. **Load from project root** — All `(load ...)` paths are relative to `/home/oso/the-fold`
 3. **Land the Plane** — A session is NOT complete until work is committed and pushed
 4. **Maintain The Fold**
+
+---
+
+## Agent Notes
+
+**LSP+MCP Tooling (2026-01-19):** The fold-repl MCP tools (`fold_lsp_*`) work well for code exploration. `fold_lsp_symbols` finds definitions across the codebase, `fold_lsp_lookup` combines hover/definition/references in one call. Use these instead of grep for finding Scheme symbols.
+
+**BBS Cache Staleness:** After reloading modules with `(load ...)`, the BBS in-memory state may be stale. Run `(bbs-init!)` to refresh from disk if issues show incorrect status.
+
+**Atomic Writes:** Use `boundary/io/atomic.ss` for durable file writes—it provides fdatasync when FFI is available. Don't roll custom atomic-write functions.
+
+**QA Flashmob Pattern:** Many QA-generated issues get fixed but not closed. Check recent git commits before working on QA issues—they may already be resolved.
 
 ---
 
