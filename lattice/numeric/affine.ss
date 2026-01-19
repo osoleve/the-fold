@@ -353,19 +353,19 @@
 ;;; For monotonic functions with known convexity, we use optimal Chebyshev
 ;;; approximation: the line midway between tangent and secant equalizes
 ;;; the maximum positive and negative errors, cutting bounds ~2x vs naive.
-;;;
-;;; This helper generalizes the pattern used in affine-sqrt.
 
 ;;; affine-chebyshev-approx : Affine × (Num → Num) × (Num → Num) × Symbol → Affine
 ;;; Generic optimal linear approximation for monotonic functions.
-;;;   af - the affine form to approximate f over
-;;;   f  - the function to approximate
-;;;   f' - derivative of f
-;;;   convexity - 'convex (tangent below) or 'concave (tangent above)
+;;;   af           - the affine form to approximate f over
+;;;   f            - the function to approximate
+;;;   deriv-inverse - given slope β, returns x where f'(x) = β
+;;;   convexity    - 'convex (secant > tangent) or 'concave (tangent > secant)
 ;;;
-;;; The optimal linear approximation for convex/concave functions is the
-;;; midpoint between the secant line and the tangent line with matching slope.
-(define (affine-chebyshev-approx af f f-deriv convexity)
+;;; Examples of deriv-inverse:
+;;;   sqrt: f'(x) = 1/(2√x) = β  →  x = 1/(4β²)   →  (lambda (β) (/ 1 (* 4 β β)))
+;;;   exp:  f'(x) = exp(x) = β   →  x = log(β)    →  log
+;;;   log:  f'(x) = 1/x = β      →  x = 1/β       →  (lambda (β) (/ 1 β))
+(define (affine-chebyshev-approx af f deriv-inverse convexity)
   (let* ([iv (affine->interval af)]
          [a (interval-lo iv)]
          [b (interval-hi iv)]
@@ -381,16 +381,12 @@
               [beta (/ (- fb fa) (- b a))]
               ;; Secant intercept: line through (a, f(a)) with slope beta
               [alpha-secant (- fa (* beta a))]
-              ;; Tangent point: where f'(x) = beta
-              ;; For convex: tangent is below, for concave: tangent is above
-              ;; We need to find x where f'(x) = beta (if it exists in [a,b])
-              ;; For now, use midpoint x0 as approximation for tangent point
-              [x-tangent x0]
+              ;; Tangent point: where f'(x) = beta, clamped to [a, b]
+              [x-tangent (max a (min b (deriv-inverse beta)))]
               [alpha-tangent (- (f x-tangent) (* beta x-tangent))]
               ;; Optimal: midpoint between tangent and secant
               [alpha (/ (+ alpha-tangent alpha-secant) 2)]
-              ;; Error bound: half the gap
-              ;; For convex: secant > tangent, for concave: tangent > secant
+              ;; Error bound: half the gap (use abs for robustness)
               [delta-raw (/ (abs (- alpha-secant alpha-tangent)) 2)]
               ;; Add safety margin for floating point
               [delta (+ delta-raw (* 1e-14 (max (abs fa) (abs fb))))]
@@ -407,50 +403,17 @@
 ;;; Elementary Functions via Optimal Approximation
 ;;; ============================================================================
 ;;;
-;;; Use optimal Chebyshev approximation where possible for ~2x tighter bounds.
-;;; Fall back to conservative approximation for edge cases.
+;;; Use affine-chebyshev-approx for ~2x tighter bounds vs naive linearization.
 
 ;;; affine-exp : Affine → Affine
 ;;; Exponential function. exp is monotonically increasing and convex.
-;;; Uses optimal Chebyshev: midpoint between tangent and secant.
+;;; exp'(x) = exp(x) = β  →  x = log(β)
 (define (affine-exp af)
-  (let* ([iv (affine->interval af)]
-         [a (interval-lo iv)]
-         [b (interval-hi iv)]
-         [x0 (affine-center af)]
-         [r (affine-radius af)])
-    (cond
-      [(< r 1e-15)  ; Near-constant
-       (affine-constant (exp x0))]
-      [else
-       ;; Optimal Chebyshev for convex exp:
-       ;; - Secant (through endpoints) is ABOVE the curve
-       ;; - Tangent with same slope is BELOW the curve
-       ;; - Optimal line is midway between
-       (let* ([exp-a (exp a)]
-              [exp-b (exp b)]
-              [beta (/ (- exp-b exp-a) (- b a))]  ; Secant slope
-              ;; Secant intercept
-              [alpha-secant (- exp-a (* beta a))]
-              ;; Tangent point: where exp'(x) = exp(x) = beta → x = log(beta)
-              [x-tangent (max a (min b (log beta)))]
-              [alpha-tangent (- (exp x-tangent) (* beta x-tangent))]
-              ;; Optimal: midpoint (secant > tangent for convex)
-              [alpha (/ (+ alpha-tangent alpha-secant) 2)]
-              [delta-raw (/ (- alpha-secant alpha-tangent) 2)]
-              [delta (+ delta-raw (* 1e-14 (max (abs exp-a) (abs exp-b))))]
-              ;; Build affine form
-              [terms (affine-terms af)]
-              [center (+ alpha (* beta x0))]
-              [linear-terms (map (lambda (t) (cons (car t) (* beta (cdr t)))) terms)]
-              [error-term (if (< delta 1e-15)
-                              '()
-                              (list (cons (affine-fresh-noise-id!) delta)))])
-         (make-affine center (append linear-terms error-term)))])))
+  (affine-chebyshev-approx af exp log 'convex))
 
 ;;; affine-log : Affine → Affine | 'domain-error
 ;;; Natural logarithm. log is monotonically increasing and concave.
-;;; Uses optimal Chebyshev: midpoint between tangent and secant.
+;;; log'(x) = 1/x = β  →  x = 1/β
 (define (affine-log af)
   (let* ([iv (affine->interval af)]
          [a (interval-lo iv)]
@@ -458,40 +421,11 @@
     (cond
       [(<= b 0) 'domain-error]  ; Entirely non-positive
       [(<= a 0)
-       ;; Partially negative: clamp to small positive
+       ;; Partially non-positive: clamp to small positive
        (affine-log (make-affine (/ (+ 1e-300 b) 2)
                                 (list (cons (affine-fresh-noise-id!) (/ (- b 1e-300) 2)))))]
       [else
-       (let* ([x0 (affine-center af)]
-              [r (affine-radius af)])
-         (cond
-           [(< r 1e-15)  ; Near-constant
-            (affine-constant (log x0))]
-           [else
-            ;; Optimal Chebyshev for concave log:
-            ;; - Secant (through endpoints) is BELOW the curve
-            ;; - Tangent with same slope is ABOVE the curve
-            ;; - Optimal line is midway between
-            (let* ([log-a (log a)]
-                   [log-b (log b)]
-                   [beta (/ (- log-b log-a) (- b a))]  ; Secant slope
-                   ;; Secant intercept
-                   [alpha-secant (- log-a (* beta a))]
-                   ;; Tangent point: where log'(x) = 1/x = beta → x = 1/beta
-                   [x-tangent (max a (min b (/ 1 beta)))]
-                   [alpha-tangent (- (log x-tangent) (* beta x-tangent))]
-                   ;; Optimal: midpoint (tangent > secant for concave)
-                   [alpha (/ (+ alpha-tangent alpha-secant) 2)]
-                   [delta-raw (/ (- alpha-tangent alpha-secant) 2)]
-                   [delta (+ delta-raw (* 1e-14 (max (abs log-a) (abs log-b))))]
-                   ;; Build affine form
-                   [terms (affine-terms af)]
-                   [center (+ alpha (* beta x0))]
-                   [linear-terms (map (lambda (t) (cons (car t) (* beta (cdr t)))) terms)]
-                   [error-term (if (< delta 1e-15)
-                                   '()
-                                   (list (cons (affine-fresh-noise-id!) delta)))])
-              (make-affine center (append linear-terms error-term)))]))])))
+       (affine-chebyshev-approx af log (lambda (beta) (/ 1 beta)) 'concave)])))
 
 ;;; ============================================================================
 ;;; Min/Max Operations
