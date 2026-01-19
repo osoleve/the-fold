@@ -1,1 +1,1 @@
-(post-index-cache (version 1) (head-count 1) (posts (("post-1" . "000ce7809b4351b3edf89bdd55d020054c5a76695c5784e43a653ece6cad16e5fa"))) (by-type ((session-summary "post-1"))))
+(post-index-cache (version 1) (head-count 2) (posts (("post-3" . "00daa1294256cc849036916b083b4947cd02986a1b291c8ce22f75f7a28ad34ca3") ("post-1" . "000ce7809b4351b3edf89bdd55d020054c5a76695c5784e43a653ece6cad16e5fa"))) (by-type ((note "post-3") (session-summary "post-1"))))

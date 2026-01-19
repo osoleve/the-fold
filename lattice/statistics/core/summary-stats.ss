@@ -181,7 +181,8 @@
            (/ (vec-sum v) n))))
 
 ;;; vec-variance : Vec → Num
-;;; Sample variance of vector elements.
+;;; Sample variance using Bessel's correction (n-1 denominator).
+;;; For population variance (n denominator), use (/ (* var (- n 1)) n).
 (define (vec-variance v)
   (let* ([n (vector-length v)]
          [mu (vec-mean v)])
@@ -194,7 +195,7 @@
                           (loop (+ i 1) (+ ss (* d d)))))))))
 
 ;;; vec-std-dev : Vec → Num
-;;; Sample standard deviation of vector elements.
+;;; Sample standard deviation (sqrt of Bessel-corrected variance).
 (define (vec-std-dev v)
   (sqrt (vec-variance v)))
 
