@@ -1420,17 +1420,38 @@
   (json-obj "range" range
             "newText" new-text))
 
+;;; has-comments? : String → Boolean
+;;; Check if content contains comments (semicolons outside strings).
+;;; This is a conservative check - may have false positives for ; in strings,
+;;; but that's safe (we just skip formatting).
+(define (has-comments? content)
+  (let ([len (string-length content)])
+    (let loop ([i 0] [in-string #f])
+      (if (>= i len)
+          #f
+          (let ([c (string-ref content i)])
+            (cond
+             [(and (not in-string) (char=? c #\;)) #t]  ; Found comment
+             [(char=? c #\") (loop (+ i 1) (not in-string))]  ; Toggle string state
+             [(and in-string (char=? c #\\) (< (+ i 1) len))
+              (loop (+ i 2) in-string)]  ; Skip escaped char in string
+             [else (loop (+ i 1) in-string)]))))))
+
 ;;; format-scheme-code : String × Int → String | #f
 ;;; Format Scheme code. Returns formatted string or #f on error.
+;;; Returns #f if content contains comments (to avoid data loss).
 (define (format-scheme-code content tab-size)
   (guard (e [else #f])
-         (let* ([exprs (read-all-sexps content)]
-                [docs (map (lambda (expr)
-                                   (scheme-expr->doc expr tab-size))
-                           exprs)]
-                ;; Join with double newlines between top-level forms
-                [combined (join-docs-with-blanks docs)])
-               (pretty 80 combined))))
+         ;; Refuse to format if comments present - read discards them
+         (if (has-comments? content)
+             #f
+             (let* ([exprs (read-all-sexps content)]
+                    [docs (map (lambda (expr)
+                                       (scheme-expr->doc expr tab-size))
+                               exprs)]
+                    ;; Join with double newlines between top-level forms
+                    [combined (join-docs-with-blanks docs)])
+                   (pretty 80 combined)))))
 
 ;;; read-all-sexps : String → (List Sexp)
 ;;; Read all S-expressions from a string.
