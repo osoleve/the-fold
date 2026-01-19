@@ -118,10 +118,19 @@
           (let ([desc (cdr (assq 'description data))])
             (unless (string=? desc "")
               (printf "~nDescription:~n~a~n" desc)))
-          ;; Show blockers
-          (let ([blockers (bbs-blockers id-str)])
+          ;; Show blockers with status
+          (let ([blockers (bbs-blockers-with-status id-str)])
             (unless (null? blockers)
-              (printf "~nBlocked by:  ~a~n" blockers)))
+              (printf "~nBlocked by:  ")
+              (for-each
+               (lambda (b)
+                 (let ([id (car b)] [status (cdr b)])
+                   (case status
+                     [(open in_progress) (printf "~a " id)]
+                     [(closed) (printf "~a[closed] " id)]
+                     [(missing) (printf "~a[missing] " id)])))
+               blockers)
+              (printf "~n")))
           ;; Show blocking
           (let ([blocking (bbs-blocking id-str)])
             (unless (null? blocking)
@@ -256,6 +265,19 @@
 ;;; Alias for bbs-undep with clearer naming.
 (define (bbs-remove-blocker blocker blocked)
   (bbs-undep blocker blocked))
+
+;;; bbs-gc : -> Void
+;;; Garbage collect stale dependencies (where either issue is missing).
+(define (bbs-gc)
+  (let ([removed (bbs-gc-deps!)])
+    (if (null? removed)
+        (printf "No stale dependencies found.~n")
+        (begin
+          (printf "Removed ~a stale dependencies:~n" (length removed))
+          (for-each
+           (lambda (d)
+             (printf "  ~a -> ~a~n" (car d) (cdr d)))
+           removed)))))
 
 ;;; ====
 ;;; Label and Type Filtering

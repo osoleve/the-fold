@@ -371,11 +371,42 @@
                 *bbs-deps*))
   (bbs-save-deps!))
 
+;;; bbs-gc-deps! : -> (List (blocker . blocked))
+;;; Remove deps where either issue no longer exists. Returns removed deps.
+(define (bbs-gc-deps!)
+  (let* ([stale (filter (lambda (d)
+                          (or (not (bbs-fetch-issue-data (car d)))
+                              (not (bbs-fetch-issue-data (cdr d)))))
+                        *bbs-deps*)]
+         [kept (filter (lambda (d)
+                         (and (bbs-fetch-issue-data (car d))
+                              (bbs-fetch-issue-data (cdr d))))
+                       *bbs-deps*)])
+    (when (not (null? stale))
+      (set! *bbs-deps* kept)
+      (bbs-save-deps!))
+    stale))
+
 ;;; bbs-blockers : String -> (List String)
 ;;; Get IDs of issues that block the given issue.
 (define (bbs-blockers id)
   (map car
        (filter (lambda (d) (string=? (cdr d) id)) *bbs-deps*)))
+
+;;; bbs-blocker-status : String -> Symbol
+;;; Get status of a blocker: 'open, 'closed, 'in_progress, or 'missing.
+(define (bbs-blocker-status blocker-id)
+  (let ([data (bbs-fetch-issue-data blocker-id)])
+    (if data
+        (cdr (assq 'status data))
+        'missing)))
+
+;;; bbs-blockers-with-status : String -> (List (blocker-id . status))
+;;; Get blockers annotated with their current status.
+(define (bbs-blockers-with-status id)
+  (map (lambda (blocker-id)
+         (cons blocker-id (bbs-blocker-status blocker-id)))
+       (bbs-blockers id)))
 
 ;;; bbs-blocking : String -> (List String)
 ;;; Get IDs of issues that the given issue blocks.
