@@ -64,12 +64,15 @@
 ;;; Default: #f
 (define *strict-optic-registration?* #f)
 
+;;; *warned-optics-limit* : Nat
+;;; Maximum number of optics to track before auto-clearing the cache.
+;;; This prevents unbounded memory growth with ephemeral anonymous optics.
+;;; Default: 1000 (reasonable for typical shell sessions)
+(define *warned-optics-limit* 1000)
+
 ;;; *warned-optics* : Hashtable (Optic -> Boolean)
 ;;; Cache to avoid repeated warnings for the same optic.
-;;; NOTE: Uses eq-hashtable keyed on optic closures. For long-running processes
-;;; with many ephemeral anonymous optics, consider periodic reset-optic-warnings!
-;;; calls to prevent unbounded growth. A weak-eq-hashtable would be ideal but
-;;; the eq? identity of closures makes GC behavior unpredictable.
+;;; Auto-clears when size exceeds *warned-optics-limit* to prevent unbounded growth.
 (define *warned-optics* (make-eq-hashtable))
 
 ;;; reset-optic-warnings! : -> Void
@@ -94,6 +97,9 @@
             optic)]
     [*warn-unregistered-optics?*
      (unless (hashtable-ref *warned-optics* optic #f)
+       ;; Auto-clear cache if at limit (prevents unbounded growth)
+       (when (>= (hashtable-size *warned-optics*) *warned-optics-limit*)
+         (set! *warned-optics* (make-eq-hashtable)))
        (hashtable-set! *warned-optics* optic #t)
        (display "Warning: ")
        (display operation)
