@@ -194,6 +194,73 @@
         (assert-true (>= (- max-p min-p) 0))))))
 
 ;;; ====
+;;; SAV Strategy Tests
+;;; ====
+
+(test-group "triage-sav"
+  (define-test "sav triage returns result"
+    (flashmob-clear-agents!)
+    (for-each flashmob-create-agent! *test-agents*)
+    (let ([result (game-triage-sav *test-agents* *test-findings* 3)])
+      (assert-true (pair? result))
+      (assert-equal 'game/sav (cdr (assq 'strategy result)))))
+
+  (define-test "sav triage has proportionality metric"
+    (flashmob-clear-agents!)
+    (for-each flashmob-create-agent! *test-agents*)
+    (let* ([result (game-triage-sav *test-agents* *test-findings* 3)]
+           [prop (cdr (assq 'proportionality result))])
+      (assert-true (number? prop))
+      (assert-true (>= prop 0))
+      (assert-true (<= prop 1))))
+
+  (define-test "sav triage has coverage metric"
+    (flashmob-clear-agents!)
+    (for-each flashmob-create-agent! *test-agents*)
+    (let* ([result (game-triage-sav *test-agents* *test-findings* 3)]
+           [cov (cdr (assq 'coverage result))])
+      (assert-true (number? cov))
+      (assert-true (>= cov 0))
+      (assert-true (<= cov 1)))))
+
+;;; ====
+;;; CC Strategy Tests
+;;; ====
+
+(test-group "triage-cc"
+  (define-test "cc triage returns result"
+    (flashmob-clear-agents!)
+    (for-each flashmob-create-agent! *test-agents*)
+    (let ([result (game-triage-cc *test-agents* *test-findings* 3)])
+      (assert-true (pair? result))
+      (assert-equal 'game/cc (cdr (assq 'strategy result)))))
+
+  (define-test "cc triage has proportionality metric"
+    (flashmob-clear-agents!)
+    (for-each flashmob-create-agent! *test-agents*)
+    (let* ([result (game-triage-cc *test-agents* *test-findings* 3)]
+           [prop (cdr (assq 'proportionality result))])
+      (assert-true (number? prop))
+      (assert-true (>= prop 0))
+      (assert-true (<= prop 1))))
+
+  (define-test "cc triage has coverage metric"
+    (flashmob-clear-agents!)
+    (for-each flashmob-create-agent! *test-agents*)
+    (let* ([result (game-triage-cc *test-agents* *test-findings* 3)]
+           [cov (cdr (assq 'coverage result))])
+      (assert-true (number? cov))
+      (assert-true (>= cov 0))
+      (assert-true (<= cov 1))))
+
+  (define-test "cc triage selects findings"
+    (flashmob-clear-agents!)
+    (for-each flashmob-create-agent! *test-agents*)
+    (let* ([result (game-triage-cc *test-agents* *test-findings* 3)]
+           [selected (cdr (assq 'selected result))])
+      (assert-true (<= (length selected) 3)))))
+
+;;; ====
 ;;; Strategy Comparison Tests
 ;;; ====
 
@@ -248,7 +315,23 @@
     (for-each flashmob-create-agent! *test-agents*)
     (let ([recommended (flashmob-recommend-strategy *test-agents* *test-findings*)])
       (assert-true (or (eq? recommended 'simple)
-                       (eq? recommended 'game))))))
+                       (eq? recommended 'game)
+                       (eq? recommended 'game/sav)
+                       (eq? recommended 'game/cc)))))
+
+  (define-test "run with game/sav strategy"
+    (flashmob-clear-agents!)
+    (for-each flashmob-create-agent! *test-agents*)
+    (let ([result (flashmob-triage-run *test-agents* *test-findings*
+                                       'strategy 'game/sav 'k 3)])
+      (assert-equal 'game/sav (cdr (assq 'strategy result)))))
+
+  (define-test "run with game/cc strategy"
+    (flashmob-clear-agents!)
+    (for-each flashmob-create-agent! *test-agents*)
+    (let ([result (flashmob-triage-run *test-agents* *test-findings*
+                                       'strategy 'game/cc 'k 3)])
+      (assert-equal 'game/cc (cdr (assq 'strategy result))))))
 
 ;;; ====
 ;;; Block Tests

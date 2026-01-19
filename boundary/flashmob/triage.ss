@@ -32,17 +32,27 @@
 ;;; Run triage with specified or default strategy.
 ;;;
 ;;; Keyword arguments:
-;;;   'strategy - 'simple | 'game (default: *flashmob-default-strategy*)
+;;;   'strategy - 'simple | 'game | 'game/sav | 'game/cc
+;;;               (default: *flashmob-default-strategy*)
 ;;;   'k - Number of findings to select (default: 10)
+;;;
+;;; Strategy guide:
+;;;   - simple   : Fast, basic Borda + approval. Good baseline.
+;;;   - game     : PAV + Schulze. Balanced proportionality.
+;;;   - game/sav : SAV + Schulze. Filters noisy/over-approving agents.
+;;;   - game/cc  : CC + Schulze. Maximizes coverage (diverse perspectives).
 (define (flashmob-triage-run agent-ids findings . args)
   (let* ([strategy (triage-get-keyword-arg args 'strategy *flashmob-default-strategy*)]
          [k (triage-get-keyword-arg args 'k *flashmob-default-k*)])
     (case strategy
-      [(simple) (simple-triage agent-ids findings k)]
-      [(game)   (game-triage agent-ids findings k)]
+      [(simple)   (simple-triage agent-ids findings k)]
+      [(game)     (game-triage agent-ids findings k)]
+      [(game/sav) (game-triage-sav agent-ids findings k)]
+      [(game/cc)  (game-triage-cc agent-ids findings k)]
       [else
        (error 'flashmob-triage-run
-              "Unknown strategy: ~a (expected 'simple or 'game)" strategy)])))
+              "Unknown strategy: ~a (expected 'simple, 'game, 'game/sav, or 'game/cc)"
+              strategy)])))
 
 ;;; triage-get-keyword-arg : (List Any) Symbol Any -> Any
 ;;; Extract keyword argument from argument list.
@@ -186,18 +196,46 @@
 
 ;;; flashmob-recommend-strategy : (List Symbol) (List Alist) -> Symbol
 ;;; Recommend which strategy to use based on session characteristics.
+;;;
+;;; Strategy selection logic:
+;;;   - simple   : For >15 agents, <3 findings, or similar expertise
+;;;   - game/cc  : Default for diverse teams (best coverage)
+;;;   - game/sav : When some agents approve too many findings
+;;;   - game     : Standard balanced approach
 (define (flashmob-recommend-strategy agent-ids findings)
   (let ([n-agents (length agent-ids)]
         [n-findings (length findings)])
     (cond
-      ;; Too many agents for Shapley - use simple
+      ;; Too many agents for exact Shapley - sampling still works, but simple is faster
       [(> n-agents 15) 'simple]
       ;; Very few findings - doesn't matter much
       [(< n-findings 3) 'simple]
       ;; Check expertise variance - if agents are similar, use simple
       [(< (triage-expertise-variance agent-ids) 0.1) 'simple]
-      ;; Default to game for better fairness
-      [else 'game])))
+      ;; Check for over-approving agents - use SAV to filter noise
+      [(triage-noisy-approvers? agent-ids findings) 'game/sav]
+      ;; Default to CC for best coverage
+      [else 'game/cc])))
+
+;;; triage-noisy-approvers? : (List Symbol) (List Alist) -> Boolean
+;;; Check if any agent approves more than 80% of findings.
+;;; Indicates potential for noisy/spammy voting behavior.
+(define (triage-noisy-approvers? agent-ids findings)
+  (if (or (null? agent-ids) (null? findings))
+      #f
+      (let ([threshold 0.8]
+            [m (length findings)])
+        (any? (lambda (agent-id)
+                (let* ([ranked (flashmob-agent-rank-findings agent-id findings)]
+                       [approved (filter (lambda (pair) (>= (cdr pair) 0.3)) ranked)])
+                  (> (/ (length approved) m) threshold)))
+              agent-ids))))
+
+;;; any? : (a -> Bool) (List a) -> Bool
+(define (any? pred lst)
+  (and (not (null? lst))
+       (or (pred (car lst))
+           (any? pred (cdr lst)))))
 
 ;;; triage-expertise-variance : (List Symbol) -> Real
 ;;; Compute variance of agent expertise profiles.
@@ -262,3 +300,23 @@
 ;;; Get the strategy used from a triage result.
 (define (flashmob-triage-strategy result)
   (cdr (assq 'strategy result)))
+
+;;; flashmob-triage-proportionality : Alist -> Real
+;;; Get the proportionality score from a triage result.
+;;; Returns 0 if not computed (simple strategy).
+(define (flashmob-triage-proportionality result)
+  (let ([prop (assq 'proportionality result)])
+    (if prop (cdr prop) 0)))
+
+;;; flashmob-triage-coverage : Alist -> Real
+;;; Get the coverage score from a triage result.
+;;; Returns 1 if not computed (simple strategy).
+(define (flashmob-triage-coverage result)
+  (let ([cov (assq 'coverage result)])
+    (if cov (cdr cov) 1.0)))
+
+;;; flashmob-triage-notes : Alist -> Alist
+;;; Get any notes/warnings from a triage result.
+(define (flashmob-triage-notes result)
+  (let ([notes (assq 'notes result)])
+    (if notes (cdr notes) '())))

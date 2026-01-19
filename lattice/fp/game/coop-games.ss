@@ -795,3 +795,101 @@
                          (if (is-pivotal? g S i) (+ count 1) count)
                          (- fuel 1))))
             (outer (+ i 1) fuel))))))
+
+;;; ============================================================================
+;;; Shapley Value Approximation (Sampling)
+;;; ============================================================================
+;;;
+;;; For large N, exact Shapley computation is intractable (O(n*2^n)).
+;;; This section provides sampling-based approximation (Castro et al., 2009).
+
+;;; random-permutation : Nat → (Vector Nat)
+;;; Generate a random permutation of 0..n-1 using Fisher-Yates shuffle.
+(define (random-permutation n)
+  (let ([v (make-vector n)])
+    ;; Initialize with identity
+    (do ([i 0 (+ i 1)])
+        ((>= i n))
+      (vector-set! v i i))
+    ;; Fisher-Yates shuffle
+    (do ([i (- n 1) (- i 1)])
+        ((< i 1) v)
+      (let* ([j (random (+ i 1))]
+             [tmp (vector-ref v i)])
+        (vector-set! v i (vector-ref v j))
+        (vector-set! v j tmp)))))
+
+;;; shapley-value-sample : CoopGame × Nat × Nat → (Vector Real)
+;;; Approximate Shapley value using M random permutations.
+;;; Returns normalized values that sum to 1 (for attribution).
+;;;
+;;; Arguments:
+;;;   game        - Cooperative game
+;;;   num-samples - Number of random permutations to sample
+;;;   fuel        - Computation budget (currently unused, for API consistency)
+;;;
+;;; Algorithm (Castro et al., 2009):
+;;;   For each sampled permutation π:
+;;;     For each player i at position k in π:
+;;;       Compute marginal contribution: v(S∪{i}) - v(S)
+;;;       where S = players appearing before i in π
+;;;   Average over all samples
+;;;
+;;; Complexity: O(num-samples × N²) where N = number of players
+(define (shapley-value-sample game num-samples fuel)
+  (let* ([n (coop-game-players game)]
+         [sums (make-vector n 0.0)])
+    (if (= n 0)
+        sums
+        (begin
+          ;; Sample random permutations
+          (do ([sample 0 (+ sample 1)])
+              ((>= sample num-samples))
+            (let ([perm (random-permutation n)])
+              ;; Compute marginal contributions along this permutation
+              (let loop ([i 0] [coalition 0])
+                (when (< i n)
+                  (let* ([agent-idx (vector-ref perm i)]
+                         ;; v(S ∪ {i})
+                         [with-agent (bitwise-ior coalition
+                                                  (bitwise-arithmetic-shift-left 1 agent-idx))]
+                         [v-with (coop-game-value game with-agent)]
+                         ;; v(S)
+                         [v-without (if (= coalition 0) 0 (coop-game-value game coalition))]
+                         ;; Marginal contribution
+                         [marginal (- v-with v-without)])
+                    (vector-set! sums agent-idx
+                                 (+ (vector-ref sums agent-idx) marginal))
+                    (loop (+ i 1) with-agent))))))
+          ;; Average and normalize to sum to 1
+          (let* ([avg-values (let ([v (make-vector n 0.0)])
+                               (do ([i 0 (+ i 1)])
+                                   ((>= i n) v)
+                                 (vector-set! v i (/ (vector-ref sums i) num-samples))))]
+                 [total (let loop ([i 0] [sum 0])
+                          (if (>= i n)
+                              sum
+                              (loop (+ i 1) (+ sum (vector-ref avg-values i)))))])
+            (if (= total 0)
+                ;; Equal split if no contributions
+                (let ([equal-share (/ 1.0 n)])
+                  (do ([i 0 (+ i 1)])
+                      ((>= i n) avg-values)
+                    (vector-set! avg-values i equal-share)))
+                ;; Normalize to sum to 1
+                (begin
+                  (do ([i 0 (+ i 1)])
+                      ((>= i n) avg-values)
+                    (vector-set! avg-values i (/ (vector-ref avg-values i) total))))))))))
+
+;;; shapley-value-adaptive : CoopGame × Nat → (Vector Real)
+;;; Automatically choose exact vs sampling based on game size.
+;;; Uses exact Shapley for N ≤ 15, sampling for larger games.
+(define *shapley-exact-threshold* 15)
+(define *shapley-default-samples* 1000)
+
+(define (shapley-value-adaptive game fuel)
+  (let ([n (coop-game-players game)])
+    (if (<= n *shapley-exact-threshold*)
+        (shapley-value game fuel)
+        (shapley-value-sample game *shapley-default-samples* fuel))))

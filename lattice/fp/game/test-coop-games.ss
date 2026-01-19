@@ -443,6 +443,74 @@
 )
 
 ;;; ============================================================================
+;;; Shapley Sampling Tests
+;;; ============================================================================
+
+(test-group shapley-sampling
+
+  (define-test shapley-sample-symmetric-voting
+    ;; Symmetric 3-player majority: should converge to (1/3, 1/3, 1/3)
+    (let* ([g (make-weighted-voting-game '(1 1 1) 2)]
+           [phi (shapley-value-sample g 2000 1000)]
+           [tolerance 0.05])
+      ;; Check each player gets approximately 1/3
+      (assert-true (< (abs (- (vector-ref phi 0) 1/3)) tolerance)
+                   "Player 0 should get ~1/3")
+      (assert-true (< (abs (- (vector-ref phi 1) 1/3)) tolerance)
+                   "Player 1 should get ~1/3")
+      (assert-true (< (abs (- (vector-ref phi 2) 1/3)) tolerance)
+                   "Player 2 should get ~1/3")))
+
+  (define-test shapley-sample-normalization
+    ;; Sampled values should sum to 1 (normalized)
+    (let* ([g (make-weighted-voting-game '(1 1 1) 2)]
+           [phi (shapley-value-sample g 1000 1000)]
+           [total (+ (vector-ref phi 0)
+                     (vector-ref phi 1)
+                     (vector-ref phi 2))]
+           [tolerance 0.001])
+      (assert-true (< (abs (- total 1.0)) tolerance)
+                   "Sampled Shapley should sum to 1")))
+
+  (define-test shapley-sample-gloves-game
+    ;; 2 left-glove, 1 right-glove: right-glove holder gets more
+    (let* ([g (make-gloves-game 2 1)]
+           [phi (shapley-value-sample g 2000 1000)])
+      ;; Players 0 and 1 (left) should be equal
+      (assert-true (< (abs (- (vector-ref phi 0) (vector-ref phi 1))) 0.05)
+                   "Left-glove holders should have equal value")
+      ;; Player 2 (right) should have more than left holders
+      (assert-true (> (vector-ref phi 2) (vector-ref phi 0))
+                   "Right-glove holder should have more value")))
+
+  (define-test shapley-sample-additive-game
+    ;; Additive game: sample should approximate true Shapley
+    (let* ([g (make-additive-game '(10 20 30))]
+           [exact (shapley-value g 1000)]
+           [sample (shapley-value-sample g 2000 1000)]
+           [tolerance 0.1])
+      ;; Verify sample is close to exact (after scaling)
+      ;; Note: exact sums to v(N)=60, sample sums to 1
+      ;; So sample[i] ≈ exact[i]/60
+      (assert-true (< (abs (- (vector-ref sample 0) (/ 10.0 60))) tolerance)
+                   "Sampled player 0 should match normalized exact")
+      (assert-true (< (abs (- (vector-ref sample 1) (/ 20.0 60))) tolerance)
+                   "Sampled player 1 should match normalized exact")
+      (assert-true (< (abs (- (vector-ref sample 2) (/ 30.0 60))) tolerance)
+                   "Sampled player 2 should match normalized exact")))
+
+  (define-test shapley-adaptive-small-game
+    ;; For small games, adaptive should use exact
+    (let* ([g (make-weighted-voting-game '(1 1 1) 2)]
+           [phi (shapley-value-adaptive g 1000)])
+      ;; Should be exact 1/3 for symmetric game
+      (assert-equal 1/3 (vector-ref phi 0))
+      (assert-equal 1/3 (vector-ref phi 1))
+      (assert-equal 1/3 (vector-ref phi 2))))
+
+)
+
+;;; ============================================================================
 ;;; Run All Tests
 ;;; ============================================================================
 
