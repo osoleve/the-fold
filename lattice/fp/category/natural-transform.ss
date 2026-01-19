@@ -368,7 +368,8 @@
 ;;; The join/flatten operation: [[A]] → [A]
 ;;; This is the multiplication of the List monad
 (define nat-concat
-  (let ([list-list (make-functor (lambda (f xss) (map (lambda (xs) (map f xs)) xss)))])
+  (let ([list-list (make-named-functor 'list∘list
+                     (lambda (f xss) (map (lambda (xs) (map f xs)) xss)))])
     (make-nat-transform
      'concat
      list-list
@@ -378,22 +379,20 @@
 ;;; nat-pure-list : NatTransform from Identity to List
 ;;; η_A : A → [A], the unit of the List monad
 (define nat-pure-list
-  (let ([functor-id (make-functor (lambda (f x) (f x)))])  ; Identity functor
-    (make-nat-transform
-     'pure-list
-     functor-id
-     functor-list
-     list)))
+  (make-nat-transform
+   'pure-list
+   functor-id      ; From templates.ss
+   functor-list
+   list))
 
 ;;; nat-pure-maybe : NatTransform from Identity to Maybe
 ;;; η_A : A → Maybe A, wraps value in Just
 (define nat-pure-maybe
-  (let ([functor-id (make-functor (lambda (f x) (f x)))])
-    (make-nat-transform
-     'pure-maybe
-     functor-id
-     functor-maybe
-     just)))
+  (make-nat-transform
+   'pure-maybe
+   functor-id      ; From templates.ss
+   functor-maybe
+   just))
 
 ;;; ====
 ;;; Display

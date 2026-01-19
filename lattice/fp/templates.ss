@@ -316,6 +316,11 @@
 (define functor-either
   (make-named-functor 'either either-fmap))
 
+;;; functor-id : Identity functor
+;;; Id(f)(x) = f(x) — applies function directly to value
+(define functor-id
+  (make-named-functor 'id (lambda (f x) (f x))))
+
 ;;; ====
 ;;; Functor Operations
 ;;; ====

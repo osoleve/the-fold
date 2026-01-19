@@ -47,17 +47,10 @@
   (if (adjunction? adj) (cadr (cddddr adj)) #f))
 
 ;;; ====
-;;; Utilities
-;;; ====
-
-;;; functor-id : Functor
-;;; Identity functor: Id(f) = f, Id(x) = x
-(define functor-id
-  (make-functor (lambda (f x) (f x))))
-
-;;; ====
 ;;; Triangle Identities
 ;;; ====
+;;;
+;;; Note: functor-id is imported from templates.ss via natural-transform.ss
 
 ;;; verify-triangle-left : Adjunction × F(A) → Boolean
 ;;; Verify (ε ◁ F) ∘ (F ▷ η) = id_F at a specific value.
