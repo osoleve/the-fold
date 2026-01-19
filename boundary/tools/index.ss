@@ -16,6 +16,7 @@
 ;;;   - prelude.ss (list utilities)
 
 (load "core/base/prelude.ss")
+(load "core/base/string/string-core.ss")
 
 ;;; ====
 ;;; Index Data Structures
@@ -59,39 +60,44 @@
 
 ;;; index-extract-definitions : String × (List String) → (List Entry)
 ;;; Extract definition entries from file content.
+;;; Accumulates consecutive ;;; comment lines for multi-line docstrings.
 (define (index-extract-definitions path lines)
   (let loop ([lines lines]
              [line-num 1]
-             [prev-comment #f]
+             [prev-comments '()]  ; List of comment lines (reversed)
              [results '()])
        (if (null? lines)
            (reverse results)
            (let* ([line (car lines)]
                   [trimmed (string-trim line)])
                  (cond
-                  ;; Docstring comment (;;; name : signature)
+                  ;; Docstring comment (;;; ...) - accumulate
                   [(and (>= (string-length trimmed) 4)
                         (string-starts-with? trimmed ";;; "))
-                   (loop (cdr lines) (+ line-num 1) trimmed results)]
-                  
+                   (loop (cdr lines) (+ line-num 1)
+                         (cons trimmed prev-comments)  ; accumulate
+                         results)]
+
                   ;; Definition forms
                   [(string-starts-with? trimmed "(define ")
-                   (let ([entry (parse-define path line-num trimmed prev-comment)])
-                        (loop (cdr lines) (+ line-num 1) #f
+                   (let ([entry (parse-define path line-num trimmed
+                                              (reverse prev-comments))])
+                        (loop (cdr lines) (+ line-num 1) '()
                               (if entry (cons entry results) results)))]
-                  
+
                   [(string-starts-with? trimmed "(define-syntax ")
-                   (let ([entry (parse-define-syntax path line-num trimmed prev-comment)])
-                        (loop (cdr lines) (+ line-num 1) #f
+                   (let ([entry (parse-define-syntax path line-num trimmed
+                                                     (reverse prev-comments))])
+                        (loop (cdr lines) (+ line-num 1) '()
                               (if entry (cons entry results) results)))]
-                  
+
                   ;; Any other line clears the docstring context
                   [(and (> (string-length trimmed) 0)
                         (not (string-starts-with? trimmed ";;")))
-                   (loop (cdr lines) (+ line-num 1) #f results)]
-                  
+                   (loop (cdr lines) (+ line-num 1) '() results)]
+
                   [else
-                   (loop (cdr lines) (+ line-num 1) prev-comment results)])))))
+                   (loop (cdr lines) (+ line-num 1) prev-comments results)])))))
 
 ;;; parse-define : String × Nat × String × (Option String) → (Option Entry)
 ;;; Parse a define form and extract name.
@@ -160,21 +166,38 @@
       (char-numeric? c)
       (memv c '(#\- #\_ #\? #\! #\* #\+ #\/ #\< #\> #\= #\:))))
 
-;;; extract-signature : (Option String) → (Option String)
-;;; Extract type signature from docstring comment.
-(define (extract-signature comment)
-  (and comment
-       (let ([colon-pos (string-find-char comment #\:)])
-            (and colon-pos
-                 (< colon-pos (- (string-length comment) 1))
-                 (string-trim (substring comment (+ colon-pos 1) (string-length comment)))))))
+;;; extract-signature : (List String) → (Option String)
+;;; Extract type signature from first docstring comment line.
+;;; Looks for ";;; name : signature" pattern.
+(define (extract-signature comments)
+  (and (pair? comments)
+       (let* ([first-line (car comments)]
+              [colon-pos (string-find-char first-line #\:)])
+         (and colon-pos
+              (< colon-pos (- (string-length first-line) 1))
+              (string-trim (substring first-line (+ colon-pos 1) (string-length first-line)))))))
 
-;;; extract-docstring : (Option String) → (Option String)
-;;; Extract description from docstring comment.
-(define (extract-docstring comment)
-  (and comment
-       (> (string-length comment) 4)
-       (substring comment 4 (string-length comment))))
+;;; extract-docstring : (List String) → (Option String)
+;;; Extract description from docstring comments.
+;;; Uses lines after the first (signature line), or the part after ":"
+;;; on the first line if there's only one line.
+(define (extract-docstring comments)
+  (cond
+   [(null? comments) #f]
+   [(null? (cdr comments))
+    ;; Single line: extract text after ";;; " prefix
+    (let ([line (car comments)])
+      (and (> (string-length line) 4)
+           (substring line 4 (string-length line))))]
+   [else
+    ;; Multiple lines: join all lines after the first (signature line)
+    ;; Each line has ";;; " prefix to strip
+    (let ([doc-lines (map (lambda (line)
+                            (if (> (string-length line) 4)
+                                (substring line 4 (string-length line))
+                                ""))
+                          (cdr comments))])
+      (string-join doc-lines "\n"))]))
 
 ;;; string-find-char : String × Char → (Option Nat)
 (define (string-find-char str ch)
