@@ -1,10 +1,10 @@
 (skill diffgeo
-  (version "0.4.0")
+  (version "0.5.0")
   (tier 1)
   (path "lattice/diffgeo")
   (purity total)
   (stability experimental)
-  (fuel-bound "O(n⁴) for Riemann tensor, O(n²) for Christoffel symbols, O(k) for atlas operations")
+  (fuel-bound "O(n⁴) for Riemann tensor, O(n²) for Christoffel symbols, O(k·n²) for geodesic tracing")
   (deps (linalg))
 
   (description
@@ -16,18 +16,20 @@
     adjoint representations, and Baker-Campbell-Hausdorff approximations.
     Also provides Riemannian metric tensors, Christoffel symbols, Riemann curvature
     tensor, Ricci tensor, scalar curvature, and surface curvatures (Gaussian, mean,
-    principal) for 2D surfaces embedded in R³.")
+    principal) for 2D surfaces embedded in R³. Geodesic computation includes
+    numerical geodesic tracing, exponential/logarithm maps, parallel transport,
+    and geodesic distance.")
 
   (keywords (differential-geometry manifold chart atlas coordinates
              transition-function jacobian polar spherical cylindrical
              tangent-vector cotangent-vector tangent-space cotangent-space
              tangent-bundle cotangent-bundle pushforward pullback differential
              lie-group lie-algebra so2 so3 se2 se3 rotation rigid-transformation
-             exponential-map rodrigues adjoint bch interpolation slerp
+             exponential-map logarithm-map rodrigues adjoint bch interpolation slerp
              curvature metric riemannian christoffel riemann-tensor ricci-tensor
              scalar-curvature gaussian-curvature mean-curvature principal-curvature
-             surface fundamental-form))
-  (aliases (diffgeom manifolds smooth-manifolds lie-groups riemannian-geometry))
+             surface fundamental-form geodesic parallel-transport geodesic-distance))
+  (aliases (diffgeom manifolds smooth-manifolds lie-groups riemannian-geometry geodesics))
 
   (exports
    (charts
@@ -119,7 +121,27 @@
     surface-classify classify-point-curvature
     surface-normal surface-partial-u surface-partial-v
     ;; Standard surfaces
-    make-sphere-surface make-torus-surface make-paraboloid-surface make-saddle-surface))
+    make-sphere-surface make-torus-surface make-paraboloid-surface make-saddle-surface)
+
+   (geodesics
+    ;; Geodesic state
+    make-geodesic-state geodesic-state? geodesic-state-coords geodesic-state-velocity
+    ;; Geodesic ODE
+    geodesic-acceleration geodesic-derivative
+    ;; Numerical integration
+    rk4-geodesic-step trace-geodesic trace-geodesic-final
+    ;; Exponential map
+    exp-map exp-map-t
+    ;; Logarithm map
+    log-map
+    ;; Parallel transport
+    parallel-transport parallel-transport-along-geodesic
+    ;; Distance
+    geodesic-distance geodesic-length
+    ;; Interpolation
+    geodesic-interpolate
+    ;; Utilities
+    geodesic-spray))
 
   (modules
    (charts "charts.ss"
@@ -136,4 +158,9 @@
     "Riemannian curvature computations. Metric tensors, Christoffel symbols,
      Riemann curvature tensor, Ricci tensor, scalar curvature, and surface
      curvatures (Gaussian, mean, principal) with standard surfaces (sphere,
-     torus, paraboloid, saddle).")))
+     torus, paraboloid, saddle).")
+   (geodesics "geodesics.ss"
+    "Geodesic computation on Riemannian manifolds. Numerical geodesic tracing
+     via RK4, exponential map (shoot geodesic with initial velocity), logarithm
+     map (inverse via shooting method), parallel transport along geodesics,
+     geodesic distance, and geodesic interpolation.")))

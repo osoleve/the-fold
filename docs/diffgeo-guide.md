@@ -413,9 +413,306 @@ scheme --script lattice/diffgeo/test-charts.ss
 scheme --script lattice/diffgeo/test-tangent.ss
 ```
 
+## Riemannian Metrics and Curvature
+
+A **Riemannian metric** assigns an inner product to each tangent space, allowing measurement of lengths and angles on the manifold.
+
+### Metrics
+
+```scheme
+(require 'diffgeo/curvature)
+
+;; Create a metric on a chart
+(define cart (make-identity-chart 'R2 2))
+(define g (make-euclidean-metric cart))
+
+;; Evaluate metric at a point (returns matrix g_ij)
+(metric-at g (vector 1.0 2.0))
+; => identity matrix for Euclidean metric
+
+;; Standard metrics for curvilinear coordinates
+(define polar-chart (make-polar-chart))
+(define g-polar (make-polar-metric polar-chart))
+; ds² = dr² + r²dθ²
+
+(define spherical-chart (make-spherical-chart))
+(define g-spherical (make-spherical-metric spherical-chart))
+; ds² = dr² + r²dθ² + r²sin²θ dφ²
+```
+
+### Metric Operations
+
+```scheme
+;; Inner product ⟨v, w⟩_g = g_ij v^i w^j
+(metric-inner-product g coords v w)
+
+;; Norm ||v||_g = √⟨v, v⟩
+(metric-norm g coords v)
+
+;; Inverse metric g^{ij}
+(metric-inverse g coords)
+
+;; Determinant det(g)
+(metric-determinant g coords)
+```
+
+### Christoffel Symbols
+
+The **Christoffel symbols** Γ^k_ij are the connection coefficients for the Levi-Civita connection:
+$$\Gamma^k_{ij} = \frac{1}{2} g^{kl} \left( \partial_i g_{jl} + \partial_j g_{il} - \partial_l g_{ij} \right)$$
+
+```scheme
+;; Compute Christoffel symbols at coordinates
+(define gamma (christoffel-symbols g-polar (vector 2.0 0.5)))
+
+;; Access Γ^k_ij
+(christoffel-ref gamma k i j)
+```
+
+### Curvature Tensors
+
+```scheme
+;; Riemann curvature tensor R^l_ijk
+(define R (riemann-tensor g-spherical coords))
+(riemann-ref R l i j k)
+
+;; Ricci tensor R_ij (contraction of Riemann)
+(define Ric (ricci-tensor g-spherical coords))
+
+;; Scalar curvature R = g^{ij} R_ij
+(scalar-curvature g-spherical coords)
+
+;; Sectional curvature for plane spanned by X, Y
+(sectional-curvature g coords X Y)
+```
+
+### Surface Curvatures
+
+For 2D surfaces embedded in R³:
+
+```scheme
+;; Create a parametric surface
+(define sphere (make-sphere-surface 1.0))  ; Radius 1
+
+;; Evaluate at parameters (θ, φ)
+(surface-at sphere 1.0 0.5)  ; => (x, y, z)
+
+;; Gaussian curvature K = κ₁κ₂
+(gaussian-curvature sphere 1.0 0.5)  ; => 1.0 for unit sphere
+
+;; Mean curvature H = (κ₁ + κ₂)/2
+(mean-curvature sphere 1.0 0.5)
+
+;; Principal curvatures
+(principal-curvatures sphere 1.0 0.5)  ; => (κ₁ κ₂)
+
+;; Classification: elliptic, hyperbolic, parabolic, flat
+(surface-classify sphere 1.0 0.5)  ; => elliptic
+```
+
+Standard surfaces:
+- `(make-sphere-surface R)` — Sphere of radius R
+- `(make-torus-surface R r)` — Torus (R = major radius, r = minor)
+- `(make-paraboloid-surface)` — z = x² + y²
+- `(make-saddle-surface)` — z = x² - y² (hyperbolic paraboloid)
+
+## Geodesics
+
+**Geodesics** are locally length-minimizing curves — the generalization of straight lines to curved spaces. They satisfy the geodesic equation:
+$$\frac{d^2 x^k}{dt^2} + \Gamma^k_{ij} \frac{dx^i}{dt} \frac{dx^j}{dt} = 0$$
+
+### Geodesic Tracing
+
+```scheme
+(require 'diffgeo/geodesics)
+
+;; Trace a geodesic from point p with velocity v for time T
+(define states (trace-geodesic metric p v T n-steps))
+
+;; Each state contains position and velocity
+(geodesic-state-coords (car states))
+(geodesic-state-velocity (car states))
+
+;; Get just the final state (more efficient)
+(define final (trace-geodesic-final metric p v T n-steps))
+```
+
+### Exponential Map
+
+The **exponential map** exp_p(v) follows the geodesic starting at p with initial velocity v for time 1:
+
+```scheme
+;; exp_p(v) — endpoint after unit time
+(exp-map metric p v)            ; 100 integration steps
+(exp-map metric p v 200)        ; custom step count
+
+;; exp_p(tv) — endpoint at time t
+(exp-map-t metric p v t)
+```
+
+This maps the tangent space T_p M to the manifold M. Small tangent vectors map to nearby points.
+
+### Logarithm Map
+
+The **logarithm map** log_p(q) is the inverse of exp_p — it finds the initial velocity v such that exp_p(v) = q:
+
+```scheme
+;; Find v such that exp_p(v) = q
+(define result (log-map metric p q))
+
+;; Returns (ok v) on success, (err message) on failure
+(if (eq? (car result) 'ok)
+    (let ([v (cadr result)])
+      (printf "Initial velocity: ~a\n" v))
+    (printf "Failed: ~a\n" (cadr result)))
+```
+
+The log map uses a Newton shooting method: iteratively adjust v until exp_p(v) hits the target q.
+
+### Geodesic Distance
+
+The **geodesic distance** is the length of the shortest geodesic connecting two points:
+
+```scheme
+;; Distance between p and q
+(geodesic-distance metric p q)
+
+;; Arc length of a traced geodesic path
+(geodesic-length metric states)
+```
+
+For Euclidean space, this equals the straight-line distance. For curved spaces, geodesics curve with the space.
+
+### Geodesic Interpolation
+
+Smoothly interpolate between two points along the connecting geodesic:
+
+```scheme
+;; t=0 gives p, t=1 gives q
+(geodesic-interpolate metric p q 0.0)   ; => p
+(geodesic-interpolate metric p q 0.5)   ; => midpoint
+(geodesic-interpolate metric p q 1.0)   ; => q
+```
+
+### Parallel Transport
+
+**Parallel transport** moves a vector along a curve while keeping it "parallel" according to the connection. This preserves the metric norm.
+
+```scheme
+;; Transport vector V from p along geodesic with velocity v for time T
+(parallel-transport metric p v V T)
+
+;; Shorthand: transport to exp_p(v) (T=1)
+(parallel-transport-along-geodesic metric p v V)
+```
+
+The parallel transport equation is:
+$$\frac{dV^k}{dt} + \Gamma^k_{ij} \frac{dx^i}{dt} V^j = 0$$
+
+Key property: the transported tangent vector of a geodesic equals itself (geodesics parallel-transport their own tangent).
+
+### Example: Geodesics on a Sphere
+
+```scheme
+;; Create spherical metric
+(define chart (make-identity-chart 'sphere 2))
+(define metric (make-spherical-metric chart))
+
+;; Start near north pole, shoot toward equator
+(define p (vector 1.0 0.1 0.0))      ; r, θ, φ (near pole)
+(define v (vector 0.0 1.0 0.0))      ; Pure θ-velocity
+
+;; Trace geodesic (great circle)
+(define endpoint (exp-map metric p v 200))
+```
+
+### Visualization
+
+```scheme
+;; Shoot rays in all directions from a point
+;; Useful for visualizing the exponential map
+(geodesic-spray metric p n-rays radius n-steps)
+; Returns list of endpoints for evenly-spaced initial directions
+```
+
+## Module Reference
+
+### charts.ss
+
+| Function | Description |
+|----------|-------------|
+| `make-chart` | Create a coordinate chart |
+| `chart-apply` | Get coordinates of a point |
+| `chart-apply-inverse` | Get point from coordinates |
+| `make-transition` | Create transition function (unchecked) |
+| `transition-apply` | Apply transition with domain check |
+| `transition-jacobian` | Jacobian of transition |
+| `jacobian-determinant` | Determinant of Jacobian (any dimension) |
+| `make-atlas` | Create atlas from charts |
+| `atlas-find-chart` | Find chart containing point |
+
+### tangent.ss
+
+| Function | Description |
+|----------|-------------|
+| `make-tangent-vector` | Create tangent vector |
+| `tangent-change-chart` | Transform to new chart |
+| `make-cotangent-vector` | Create cotangent vector (1-form) |
+| `covector-apply` | Evaluate ⟨ω, v⟩ |
+| `pushforward` | Push tangent vector through map |
+| `pullback-at` | Pull cotangent vector back |
+| `make-tangent-space` | Create tangent space at point |
+| `make-tangent-bundle` | Create bundle over atlas |
+| `differential` | Compute df for scalar f |
+| `lie-bracket` | Compute [X, Y] at point |
+| `lie-bracket-field` | Create [X, Y] as vector field |
+
+### curvature.ss
+
+| Function | Description |
+|----------|-------------|
+| `make-metric` | Create Riemannian metric |
+| `make-euclidean-metric` | Flat metric (identity) |
+| `make-polar-metric` | ds² = dr² + r²dθ² |
+| `make-spherical-metric` | Spherical coordinates metric |
+| `metric-at` | Evaluate metric at coordinates |
+| `metric-inner-product` | ⟨v, w⟩_g |
+| `metric-norm` | \|\|v\|\|_g |
+| `christoffel-symbols` | Connection coefficients Γ^k_ij |
+| `riemann-tensor` | Riemann curvature R^l_ijk |
+| `ricci-tensor` | Ricci tensor R_ij |
+| `scalar-curvature` | Ricci scalar R |
+| `gaussian-curvature` | Surface Gaussian curvature K |
+| `mean-curvature` | Surface mean curvature H |
+| `principal-curvatures` | Principal curvatures κ₁, κ₂ |
+
+### geodesics.ss
+
+| Function | Description |
+|----------|-------------|
+| `trace-geodesic` | Trace geodesic, return all states |
+| `trace-geodesic-final` | Trace geodesic, return final state |
+| `exp-map` | Exponential map exp_p(v) at t=1 |
+| `exp-map-t` | Exponential map at time t |
+| `log-map` | Logarithm map (inverse of exp) |
+| `parallel-transport` | Transport vector along geodesic |
+| `geodesic-distance` | Distance between two points |
+| `geodesic-length` | Arc length of traced path |
+| `geodesic-interpolate` | Interpolate along geodesic |
+| `geodesic-spray` | Shoot rays for visualization |
+
+## Testing
+
+```bash
+scheme --script lattice/diffgeo/test-charts.ss
+scheme --script lattice/diffgeo/test-tangent.ss
+scheme --script lattice/diffgeo/test-curvature.ss
+scheme --script lattice/diffgeo/test-geodesics.ss
+```
+
 ## Future Work
 
 - Higher-order differential forms (k-forms)
-- Exterior derivative
-- Tensor fields and metric tensors
-- Geodesics and connections
+- Exterior derivative and de Rham cohomology
+- Covariant derivatives on general tensor fields
+- Geodesic deviation and Jacobi fields

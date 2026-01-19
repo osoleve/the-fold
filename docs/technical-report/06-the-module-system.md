@@ -15,7 +15,7 @@ Tier 0 (Foundational):     linalg, data, algebra, random, numeric
          ▼
 Tier 1 (Intermediate):     autodiff, geometry, diffgeo, query, fp, info, topology
          │                 Depend on Tier 0
-         │                 diffgeo provides charts, tangent spaces, Lie groups, curvature
+         │                 diffgeo provides charts, tangent spaces, Lie groups, curvature, geodesics
          │                 fp/optics provides composable data accessors (lenses, prisms, etc.)
          ▼
 Tier 2+ (Advanced):        physics/diff, physics/diff3d, physics/classical, sim, pipeline

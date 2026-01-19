@@ -1,0 +1,542 @@
+;;; lattice/diffgeo/geodesics.ss — Geodesic Computation
+;;; @module geodesics
+;;; @requires prelude vec matrix curvature
+;;;
+;;; Geodesic curves on Riemannian manifolds.
+;;;
+;;; This module provides:
+;;;   - Geodesic tracing (numerical integration of geodesic ODE)
+;;;   - Exponential map (shoot geodesic from point with initial velocity)
+;;;   - Logarithm map (inverse of exponential - find initial velocity)
+;;;   - Parallel transport along geodesics
+;;;   - Geodesic distance computation
+;;;
+;;; Mathematical Background:
+;;;   A geodesic is a curve γ(t) that parallel transports its own tangent vector.
+;;;   In coordinates, the geodesic equation is:
+;;;     d²x^k/dt² + Γ^k_{ij} (dx^i/dt)(dx^j/dt) = 0
+;;;
+;;;   The exponential map exp_p : T_p M → M sends a tangent vector v to the
+;;;   point reached by following the geodesic with initial velocity v for time 1.
+;;;
+;;;   The logarithm map log_p : M → T_p M is the (local) inverse of exp_p.
+;;;
+;;; This is Lattice code: pure, uses Core primitives.
+
+(load "core/base/prelude.ss")
+(load "lattice/linalg/vec.ss")
+(load "lattice/linalg/matrix.ss")
+(load "lattice/diffgeo/curvature.ss")
+
+;;; ============================================================================
+;;; Configuration
+;;; ============================================================================
+
+(define *geodesic-epsilon* 1e-7)      ; For Christoffel symbol computation
+(define *geodesic-tolerance* 1e-9)    ; Convergence tolerance for log map
+(define *geodesic-max-iterations* 50) ; Max iterations for log map shooting
+
+;;; ============================================================================
+;;; Geodesic State
+;;; ============================================================================
+
+;;; A geodesic state bundles position and velocity: (geodesic-state coords velocity)
+;;; This represents a point in the tangent bundle TM.
+
+(define (make-geodesic-state coords velocity)
+  (list 'geodesic-state coords velocity))
+
+(define (geodesic-state? x)
+  (and (pair? x) (eq? (car x) 'geodesic-state)))
+
+(define (geodesic-state-coords s) (list-ref s 1))
+(define (geodesic-state-velocity s) (list-ref s 2))
+
+;;; ============================================================================
+;;; Geodesic ODE
+;;; ============================================================================
+
+;;; The geodesic equation d²x^k/dt² + Γ^k_{ij} v^i v^j = 0
+;;; is converted to a first-order system:
+;;;   dx^k/dt = v^k
+;;;   dv^k/dt = -Γ^k_{ij} v^i v^j
+
+;;; geodesic-acceleration : Metric × Vec × Vec → Vec
+;;; Compute the geodesic acceleration: a^k = -Γ^k_{ij} v^i v^j
+(define (geodesic-acceleration metric coords velocity)
+  (let* ([n (metric-dim metric)]
+         [gamma (christoffel-symbols metric coords *geodesic-epsilon*)]
+         [accel (make-vector n 0)])
+    ;; a^k = -Σ_{ij} Γ^k_{ij} v^i v^j
+    (do ([k 0 (+ k 1)])
+        ((= k n) accel)
+      (let ([sum 0])
+        (do ([i 0 (+ i 1)])
+            ((= i n))
+          (do ([j 0 (+ j 1)])
+              ((= j n))
+            (set! sum (+ sum (* (christoffel-ref gamma k i j)
+                                (vector-ref velocity i)
+                                (vector-ref velocity j))))))
+        (vector-set! accel k (- sum))))))
+
+;;; geodesic-derivative : Metric × GeodesicState → (Vec . Vec)
+;;; Compute the derivative of the geodesic state (for RK4 integration).
+;;; Returns (dx/dt . dv/dt) = (v . -Γv²).
+(define (geodesic-derivative metric state)
+  (let ([coords (geodesic-state-coords state)]
+        [velocity (geodesic-state-velocity state)])
+    (cons velocity (geodesic-acceleration metric coords velocity))))
+
+;;; ============================================================================
+;;; Numerical Integration (RK4)
+;;; ============================================================================
+
+;;; rk4-geodesic-step : Metric × GeodesicState × Num → GeodesicState
+;;; Take one RK4 step of size dt.
+(define (rk4-geodesic-step metric state dt)
+  (let* ([x0 (geodesic-state-coords state)]
+         [v0 (geodesic-state-velocity state)]
+         [n (vector-length x0)]
+
+         ;; k1
+         [d1 (geodesic-derivative metric state)]
+         [dx1 (car d1)]
+         [dv1 (cdr d1)]
+
+         ;; k2: state at t + dt/2 using k1
+         [x2 (vec-add x0 (vec-scale (* 0.5 dt) dx1))]
+         [v2 (vec-add v0 (vec-scale (* 0.5 dt) dv1))]
+         [d2 (geodesic-derivative metric (make-geodesic-state x2 v2))]
+         [dx2 (car d2)]
+         [dv2 (cdr d2)]
+
+         ;; k3: state at t + dt/2 using k2
+         [x3 (vec-add x0 (vec-scale (* 0.5 dt) dx2))]
+         [v3 (vec-add v0 (vec-scale (* 0.5 dt) dv2))]
+         [d3 (geodesic-derivative metric (make-geodesic-state x3 v3))]
+         [dx3 (car d3)]
+         [dv3 (cdr d3)]
+
+         ;; k4: state at t + dt using k3
+         [x4 (vec-add x0 (vec-scale dt dx3))]
+         [v4 (vec-add v0 (vec-scale dt dv3))]
+         [d4 (geodesic-derivative metric (make-geodesic-state x4 v4))]
+         [dx4 (car d4)]
+         [dv4 (cdr d4)]
+
+         ;; Combine: x_new = x0 + (dt/6)(k1 + 2k2 + 2k3 + k4)
+         [dx-weighted (vec-scale (/ dt 6.0)
+                        (vec-add dx1
+                          (vec-add (vec-scale 2 dx2)
+                            (vec-add (vec-scale 2 dx3) dx4))))]
+         [dv-weighted (vec-scale (/ dt 6.0)
+                        (vec-add dv1
+                          (vec-add (vec-scale 2 dv2)
+                            (vec-add (vec-scale 2 dv3) dv4))))]
+
+         [x-new (vec-add x0 dx-weighted)]
+         [v-new (vec-add v0 dv-weighted)])
+
+    (make-geodesic-state x-new v-new)))
+
+;;; ============================================================================
+;;; Geodesic Tracing
+;;; ============================================================================
+
+;;; trace-geodesic : Metric × Vec × Vec × Num × Nat → (List GeodesicState)
+;;; Trace a geodesic from initial position with initial velocity for time T.
+;;; Returns a list of states sampled at n-steps+1 points (including start/end).
+(define (trace-geodesic metric initial-coords initial-velocity T n-steps)
+  (let* ([dt (/ T n-steps)]
+         [state0 (make-geodesic-state initial-coords initial-velocity)])
+    (let loop ([state state0] [i 0] [states (list state0)])
+      (if (>= i n-steps)
+          (reverse states)
+          (let ([next-state (rk4-geodesic-step metric state dt)])
+            (loop next-state (+ i 1) (cons next-state states)))))))
+
+;;; trace-geodesic-final : Metric × Vec × Vec × Num × Nat → GeodesicState
+;;; Trace a geodesic and return only the final state.
+(define (trace-geodesic-final metric initial-coords initial-velocity T n-steps)
+  (let* ([dt (/ T n-steps)]
+         [state (make-geodesic-state initial-coords initial-velocity)])
+    (let loop ([state state] [i 0])
+      (if (>= i n-steps)
+          state
+          (loop (rk4-geodesic-step metric state dt) (+ i 1))))))
+
+;;; ============================================================================
+;;; Exponential Map
+;;; ============================================================================
+
+;;; exp-map : Metric × Vec × Vec × [Nat] → Vec
+;;; Compute the exponential map: exp_p(v) = geodesic from p with velocity v at t=1.
+;;; The optional n-steps parameter controls integration accuracy (default 100).
+(define (exp-map metric base-coords tangent-vec . opts)
+  (let ([n-steps (if (null? opts) 100 (car opts))])
+    (geodesic-state-coords
+     (trace-geodesic-final metric base-coords tangent-vec 1.0 n-steps))))
+
+;;; exp-map-t : Metric × Vec × Vec × Num × [Nat] → Vec
+;;; Exponential map evaluated at time t (not just t=1).
+(define (exp-map-t metric base-coords tangent-vec t . opts)
+  (let ([n-steps (if (null? opts) 100 (car opts))])
+    (geodesic-state-coords
+     (trace-geodesic-final metric base-coords tangent-vec t n-steps))))
+
+;;; ============================================================================
+;;; Logarithm Map (Shooting Method)
+;;; ============================================================================
+
+;;; The logarithm map log_p(q) finds the initial velocity v such that exp_p(v) = q.
+;;; This is solved via shooting: iteratively adjust v to hit the target q.
+;;;
+;;; We use a Newton-like iteration:
+;;;   1. Shoot with current guess v
+;;;   2. Compute error e = exp_p(v) - q
+;;;   3. Estimate Jacobian J = d(exp_p)/dv numerically
+;;;   4. Update v ← v - J^{-1} e
+
+;;; log-map : Metric × Vec × Vec × [Nat × Num × Nat] → (Ok Vec) | (Err String)
+;;; Compute the logarithm map: find v such that exp_p(v) = q.
+;;; Returns (ok v) on success or (err message) if it fails to converge.
+;;;
+;;; Optional parameters:
+;;;   n-steps: integration steps for exp (default 100)
+;;;   tol: convergence tolerance (default *geodesic-tolerance*)
+;;;   max-iter: maximum iterations (default *geodesic-max-iterations*)
+(define (log-map metric p q . opts)
+  (let* ([n-steps (if (null? opts) 100 (car opts))]
+         [tol (if (or (null? opts) (null? (cdr opts)))
+                  *geodesic-tolerance*
+                  (cadr opts))]
+         [max-iter (if (or (null? opts) (null? (cdr opts)) (null? (cddr opts)))
+                       *geodesic-max-iterations*
+                       (caddr opts))]
+         [n (vector-length p)]
+         ;; Initial guess: straight-line velocity (works for small distances)
+         [v0 (vec-sub q p)]
+         [eps 1e-6])  ; For numerical Jacobian
+
+    (let loop ([v v0] [iter 0])
+      (if (>= iter max-iter)
+          (list 'err "log-map: failed to converge")
+          (let* ([q-shot (exp-map metric p v n-steps)]
+                 [error (vec-sub q-shot q)]
+                 [error-norm (vec-norm error)])
+            (if (< error-norm tol)
+                (list 'ok v)
+                ;; Compute numerical Jacobian d(exp_p)/dv
+                (let ([J (compute-exp-jacobian metric p v n-steps eps n)])
+                  ;; Solve J * dv = -error for dv
+                  (let ([dv (solve-linear-system J (vec-scale -1 error))])
+                    (if dv
+                        (loop (vec-add v dv) (+ iter 1))
+                        ;; Jacobian singular, try gradient descent step
+                        (loop (vec-sub v (vec-scale 0.1 error)) (+ iter 1)))))))))))
+
+;;; compute-exp-jacobian : Metric × Vec × Vec × Nat × Num × Nat → Matrix
+;;; Compute the Jacobian matrix of exp_p with respect to v.
+(define (compute-exp-jacobian metric p v n-steps eps n)
+  (let ([J (make-matrix n n 0)]
+        [v-plus (vec-copy v)]
+        [v-minus (vec-copy v)])
+    (do ([j 0 (+ j 1)])
+        ((= j n) J)
+      (let ([vj (vector-ref v j)])
+        ;; Perturb v[j]
+        (vector-set! v-plus j (+ vj eps))
+        (vector-set! v-minus j (- vj eps))
+        (let* ([q-plus (exp-map metric p v-plus n-steps)]
+               [q-minus (exp-map metric p v-minus n-steps)])
+          ;; J[i][j] = d(exp_i)/d(v_j)
+          (do ([i 0 (+ i 1)])
+              ((= i n))
+            (matrix-set! J i j
+              (/ (- (vector-ref q-plus i) (vector-ref q-minus i))
+                 (* 2 eps)))))
+        ;; Reset
+        (vector-set! v-plus j vj)
+        (vector-set! v-minus j vj)))))
+
+;;; solve-linear-system : Matrix × Vec → Vec | #f
+;;; Solve Ax = b using Gaussian elimination with partial pivoting.
+;;; Returns #f if the matrix is singular.
+(define (solve-linear-system A b)
+  (let* ([n (vector-length b)]
+         ;; Create augmented matrix [A|b]
+         [aug (make-vector n #f)])
+    ;; Initialize augmented matrix
+    (do ([i 0 (+ i 1)])
+        ((= i n))
+      (let ([row (make-vector (+ n 1) 0)])
+        (do ([j 0 (+ j 1)])
+            ((= j n))
+          (vector-set! row j (matrix-ref A i j)))
+        (vector-set! row n (vector-ref b i))
+        (vector-set! aug i row)))
+
+    ;; Forward elimination with partial pivoting
+    (let forward ([k 0])
+      (if (>= k n)
+          ;; Back substitution
+          (let ([x (make-vector n 0)])
+            (let back ([i (- n 1)])
+              (if (< i 0)
+                  x
+                  (let ([row (vector-ref aug i)]
+                        [sum (vector-ref row n)])
+                    (do ([j (+ i 1) (+ j 1)])
+                        ((= j n))
+                      (set! sum (- sum (* (vector-ref row j) (vector-ref x j)))))
+                    (let ([pivot (vector-ref row i)])
+                      (if (< (abs pivot) 1e-15)
+                          #f  ; Singular
+                          (begin
+                            (vector-set! x i (/ sum pivot))
+                            (back (- i 1)))))))))
+          ;; Find pivot
+          (let* ([max-row k]
+                 [max-val (abs (vector-ref (vector-ref aug k) k))])
+            (do ([i (+ k 1) (+ i 1)])
+                ((= i n))
+              (let ([val (abs (vector-ref (vector-ref aug i) k))])
+                (when (> val max-val)
+                  (set! max-val val)
+                  (set! max-row i))))
+            (if (< max-val 1e-15)
+                #f  ; Singular
+                (begin
+                  ;; Swap rows
+                  (when (not (= k max-row))
+                    (let ([tmp (vector-ref aug k)])
+                      (vector-set! aug k (vector-ref aug max-row))
+                      (vector-set! aug max-row tmp)))
+                  ;; Eliminate
+                  (let ([pivot-row (vector-ref aug k)]
+                        [pivot (vector-ref (vector-ref aug k) k)])
+                    (do ([i (+ k 1) (+ i 1)])
+                        ((= i n))
+                      (let* ([row (vector-ref aug i)]
+                             [factor (/ (vector-ref row k) pivot)])
+                        (do ([j k (+ j 1)])
+                            ((= j (+ n 1)))
+                          (vector-set! row j
+                            (- (vector-ref row j)
+                               (* factor (vector-ref pivot-row j))))))))
+                  (forward (+ k 1)))))))))
+
+;;; ============================================================================
+;;; Parallel Transport
+;;; ============================================================================
+
+;;; Parallel transport moves a vector along a curve while keeping it "parallel"
+;;; according to the connection. The parallel transport equation is:
+;;;   dV^k/dt + Γ^k_{ij} (dx^i/dt) V^j = 0
+;;;
+;;; We solve this ODE alongside the geodesic equation.
+
+;;; parallel-transport-derivative : Metric × Vec × Vec × Vec → Vec
+;;; Compute dV^k/dt = -Γ^k_{ij} (dx^i/dt) V^j for a vector V along a curve
+;;; with tangent vector (velocity).
+(define (parallel-transport-derivative metric coords velocity V)
+  (let* ([n (metric-dim metric)]
+         [gamma (christoffel-symbols metric coords *geodesic-epsilon*)]
+         [dV (make-vector n 0)])
+    ;; dV^k/dt = -Σ_{ij} Γ^k_{ij} v^i V^j
+    (do ([k 0 (+ k 1)])
+        ((= k n) dV)
+      (let ([sum 0])
+        (do ([i 0 (+ i 1)])
+            ((= i n))
+          (do ([j 0 (+ j 1)])
+              ((= j n))
+            (set! sum (+ sum (* (christoffel-ref gamma k i j)
+                                (vector-ref velocity i)
+                                (vector-ref V j))))))
+        (vector-set! dV k (- sum))))))
+
+;;; parallel-transport-step : Metric × GeodesicState × Vec × Num → (GeodesicState . Vec)
+;;; Take one RK4 step for both geodesic and parallel transport.
+(define (parallel-transport-step metric state V dt)
+  (let* ([x0 (geodesic-state-coords state)]
+         [v0 (geodesic-state-velocity state)]
+         [n (vector-length x0)]
+
+         ;; k1 for geodesic and transport
+         [d1 (geodesic-derivative metric state)]
+         [dx1 (car d1)]
+         [dv1 (cdr d1)]
+         [dV1 (parallel-transport-derivative metric x0 v0 V)]
+
+         ;; k2
+         [x2 (vec-add x0 (vec-scale (* 0.5 dt) dx1))]
+         [v2 (vec-add v0 (vec-scale (* 0.5 dt) dv1))]
+         [V2 (vec-add V (vec-scale (* 0.5 dt) dV1))]
+         [d2 (geodesic-derivative metric (make-geodesic-state x2 v2))]
+         [dx2 (car d2)]
+         [dv2 (cdr d2)]
+         [dV2 (parallel-transport-derivative metric x2 v2 V2)]
+
+         ;; k3
+         [x3 (vec-add x0 (vec-scale (* 0.5 dt) dx2))]
+         [v3 (vec-add v0 (vec-scale (* 0.5 dt) dv2))]
+         [V3 (vec-add V (vec-scale (* 0.5 dt) dV2))]
+         [d3 (geodesic-derivative metric (make-geodesic-state x3 v3))]
+         [dx3 (car d3)]
+         [dv3 (cdr d3)]
+         [dV3 (parallel-transport-derivative metric x3 v3 V3)]
+
+         ;; k4
+         [x4 (vec-add x0 (vec-scale dt dx3))]
+         [v4 (vec-add v0 (vec-scale dt dv3))]
+         [V4 (vec-add V (vec-scale dt dV3))]
+         [d4 (geodesic-derivative metric (make-geodesic-state x4 v4))]
+         [dx4 (car d4)]
+         [dv4 (cdr d4)]
+         [dV4 (parallel-transport-derivative metric x4 v4 V4)]
+
+         ;; Combine
+         [x-new (vec-add x0 (vec-scale (/ dt 6.0)
+                             (vec-add dx1 (vec-add (vec-scale 2 dx2)
+                               (vec-add (vec-scale 2 dx3) dx4)))))]
+         [v-new (vec-add v0 (vec-scale (/ dt 6.0)
+                             (vec-add dv1 (vec-add (vec-scale 2 dv2)
+                               (vec-add (vec-scale 2 dv3) dv4)))))]
+         [V-new (vec-add V (vec-scale (/ dt 6.0)
+                            (vec-add dV1 (vec-add (vec-scale 2 dV2)
+                              (vec-add (vec-scale 2 dV3) dV4)))))])
+
+    (cons (make-geodesic-state x-new v-new) V-new)))
+
+;;; parallel-transport : Metric × Vec × Vec × Vec × Num × [Nat] → Vec
+;;; Parallel transport vector V from point p along the geodesic with
+;;; initial velocity tangent-vec for time T.
+;;; Returns the transported vector at the endpoint.
+(define (parallel-transport metric p tangent-vec V T . opts)
+  (let* ([n-steps (if (null? opts) 100 (car opts))]
+         [dt (/ T n-steps)]
+         [state (make-geodesic-state p tangent-vec)])
+    (let loop ([state state] [V V] [i 0])
+      (if (>= i n-steps)
+          V
+          (let ([result (parallel-transport-step metric state V dt)])
+            (loop (car result) (cdr result) (+ i 1)))))))
+
+;;; parallel-transport-along-geodesic : Metric × Vec × Vec × Vec × [Nat] → Vec
+;;; Parallel transport V from p to exp_p(tangent-vec).
+;;; Shorthand for parallel-transport with T=1.
+(define (parallel-transport-along-geodesic metric p tangent-vec V . opts)
+  (apply parallel-transport metric p tangent-vec V 1.0 opts))
+
+;;; ============================================================================
+;;; Geodesic Distance
+;;; ============================================================================
+
+;;; geodesic-distance : Metric × Vec × Vec × [Nat × Num × Nat] → Num | (Err String)
+;;; Compute the geodesic distance between two points.
+;;; This is the length of the shortest geodesic connecting them.
+;;;
+;;; Algorithm:
+;;;   1. Find initial velocity v = log_p(q)
+;;;   2. Distance = ||v||_g = sqrt(g(v,v))
+(define (geodesic-distance metric p q . opts)
+  (let ([result (apply log-map metric p q opts)])
+    (if (and (pair? result) (eq? (car result) 'ok))
+        (let ([v (cadr result)])
+          (metric-norm metric p v))
+        result)))  ; Return the error
+
+;;; geodesic-length : Metric × (List GeodesicState) → Num
+;;; Compute the arc length of a traced geodesic by numerical integration.
+(define (geodesic-length metric states)
+  (if (or (null? states) (null? (cdr states)))
+      0
+      (let loop ([states states] [length 0])
+        (if (null? (cdr states))
+            length
+            (let* ([s1 (car states)]
+                   [s2 (cadr states)]
+                   [x1 (geodesic-state-coords s1)]
+                   [x2 (geodesic-state-coords s2)]
+                   [dx (vec-sub x2 x1)]
+                   ;; Use metric at midpoint for better accuracy
+                   [x-mid (vec-scale 0.5 (vec-add x1 x2))]
+                   [ds (metric-norm metric x-mid dx)])
+              (loop (cdr states) (+ length ds)))))))
+
+;;; ============================================================================
+;;; Geodesic Interpolation
+;;; ============================================================================
+
+;;; geodesic-interpolate : Metric × Vec × Vec × Num × [Nat × Num × Nat] → Vec | (Err String)
+;;; Interpolate between two points along the geodesic.
+;;; t=0 gives p, t=1 gives q.
+;;; Returns the interpolated point on success, or (err message) if log-map fails.
+(define (geodesic-interpolate metric p q t . opts)
+  (let ([result (apply log-map metric p q opts)])
+    (if (and (pair? result) (eq? (car result) 'ok))
+        (let* ([v (cadr result)]
+               [n-steps (if (null? opts) 100 (car opts))])
+          (exp-map-t metric p v t n-steps))
+        result)))  ; Propagate error instead of silent fallback
+
+;;; ============================================================================
+;;; Utilities
+;;; ============================================================================
+
+;;; geodesic-spray : Metric × Vec × Nat × Num × Nat → (List Vec)
+;;; Shoot geodesics in n-rays evenly-spaced directions from p.
+;;; Returns the endpoints after traveling distance r.
+;;; Useful for visualizing the exponential map.
+(define (geodesic-spray metric p n-rays radius n-steps)
+  (let ([dim (metric-dim metric)])
+    (if (not (= dim 2))
+        (error 'geodesic-spray "only 2D supported for now")
+        (let ([endpoints '()])
+          (do ([i 0 (+ i 1)])
+              ((= i n-rays) (reverse endpoints))
+            (let* ([angle (* 2 3.141592653589793 (/ i n-rays))]
+                   [v (vector (* radius (cos angle)) (* radius (sin angle)))]
+                   [endpoint (exp-map metric p v n-steps)])
+              (set! endpoints (cons endpoint endpoints))))))))
+
+;;; ============================================================================
+;;; Christoffel Symbol Caching (optional optimization)
+;;; ============================================================================
+
+;;; For repeated geodesic computations, we can cache Christoffel symbols.
+;;; This is especially useful when many geodesics start from the same point.
+
+(define *christoffel-cache* #f)
+(define *christoffel-cache-coords* #f)
+(define *christoffel-cache-metric* #f)
+
+(define (clear-christoffel-cache!)
+  (set! *christoffel-cache* #f)
+  (set! *christoffel-cache-coords* #f)
+  (set! *christoffel-cache-metric* #f))
+
+;;; ============================================================================
+;;; REPL Interface
+;;; ============================================================================
+
+(printf "geodesics.ss loaded — Geodesic Computation\n")
+(printf "  Geodesic Tracing:\n")
+(printf "    (trace-geodesic metric p v T n)       - Trace geodesic for time T\n")
+(printf "    (trace-geodesic-final metric p v T n) - Final state only\n")
+(printf "  Exponential Map:\n")
+(printf "    (exp-map metric p v [n-steps])        - exp_p(v) at t=1\n")
+(printf "    (exp-map-t metric p v t [n-steps])    - exp_p(v) at time t\n")
+(printf "  Logarithm Map:\n")
+(printf "    (log-map metric p q [n tol max])      - Find v: exp_p(v)=q\n")
+(printf "  Parallel Transport:\n")
+(printf "    (parallel-transport metric p v V T)   - Transport V along geodesic\n")
+(printf "  Distance:\n")
+(printf "    (geodesic-distance metric p q)        - Geodesic distance\n")
+(printf "    (geodesic-length metric states)       - Arc length of path\n")
+(printf "  Interpolation:\n")
+(printf "    (geodesic-interpolate metric p q t)   - Interpolate along geodesic\n")
+(printf "  Visualization:\n")
+(printf "    (geodesic-spray metric p n r steps)   - Shoot rays from p\n")
