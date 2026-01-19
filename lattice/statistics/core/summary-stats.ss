@@ -89,10 +89,41 @@
                 (+ (* (- 1 h) (list-ref sorted lo))
                    (* h (list-ref sorted hi)))))))
 
+;;; quantile-from-sorted : (Vector Num) × Num → Num
+;;; Compute p-th quantile from pre-sorted vector (internal helper).
+(define (quantile-from-sorted sorted-vec p)
+  (let* ([n (vector-length sorted-vec)]
+         [index (* p (- n 1))]
+         [lo (inexact->exact (floor index))]
+         [hi (inexact->exact (ceiling index))]
+         [h (- index lo)])
+    (if (= lo hi)
+        (vector-ref sorted-vec lo)
+        (+ (* (- 1 h) (vector-ref sorted-vec lo))
+           (* h (vector-ref sorted-vec hi))))))
+
+;;; quantiles : (List Num) × (List Num) → (List Num)
+;;; Compute multiple quantiles efficiently (sorts only once).
+;;; ps is a list of probabilities in [0, 1].
+;;; Returns list of quantile values in same order as ps.
+;;;
+;;; Example:
+;;;   (quantiles '(1 2 3 4 5 6 7 8 9 10) '(0.25 0.5 0.75))
+;;;   => (3.25 5.5 7.75)  ; Q1, median, Q3
+(define (quantiles xs ps)
+  (for-each
+    (lambda (p)
+      (when (or (< p 0) (> p 1))
+        (error 'quantiles "all probabilities must be in [0, 1]" p)))
+    ps)
+  (let ([sorted-vec (list->vector (list-sort < xs))])
+    (map (lambda (p) (quantile-from-sorted sorted-vec p)) ps)))
+
 ;;; iqr : (List Num) → Num
 ;;; Interquartile range (Q3 - Q1).
 (define (iqr xs)
-  (- (quantile xs 0.75) (quantile xs 0.25)))
+  (let ([qs (quantiles xs '(0.25 0.75))])
+    (- (cadr qs) (car qs))))
 
 ;;; range-stat : (List Num) → Num
 ;;; Range (max - min).
@@ -198,6 +229,11 @@
 ;;; p-th quantile of vector elements.
 (define (vec-quantile v p)
   (quantile (vector->list v) p))
+
+;;; vec-quantiles : Vec × (List Num) → (List Num)
+;;; Multiple quantiles of vector elements (sorts only once).
+(define (vec-quantiles v ps)
+  (quantiles (vector->list v) ps))
 
 ;;; vec-covariance : Vec × Vec → Num
 ;;; Sample covariance of two vectors.

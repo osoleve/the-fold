@@ -28,7 +28,7 @@
    (result-types LinearModelResult GLMResult TestResult ARResult MAResult
                  ANOVAResult ForecastResult)
    (summary-stats vec-mean vec-variance vec-std-dev vec-median vec-quantile
-                  vec-covariance vec-correlation)
+                  vec-quantiles quantiles vec-covariance vec-correlation)
    (design-matrix add-intercept standardize-columns dummy-encode polynomial-features
                   legendre-p chebyshev-t hermite-h laguerre-l
                   legendre-features chebyshev-features hermite-features laguerre-features

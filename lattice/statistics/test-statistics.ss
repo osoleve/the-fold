@@ -31,7 +31,35 @@
             
             (define-test "vec-quantile computes percentiles"
               (let ([xs (vector 1 2 3 4 5 6 7 8 9 10)])
-                   (assert-true (< (abs (- (vec-quantile xs 0.5) 5.5)) 0.01)))))
+                   (assert-true (< (abs (- (vec-quantile xs 0.5) 5.5)) 0.01))))
+
+            (define-test "quantiles computes multiple quantiles at once"
+              (let* ([xs '(1 2 3 4 5 6 7 8 9 10)]
+                     [qs (quantiles xs '(0.25 0.5 0.75))])
+                (assert-true (< (abs (- (car qs) 3.25)) 0.01))    ; Q1
+                (assert-true (< (abs (- (cadr qs) 5.5)) 0.01))    ; median
+                (assert-true (< (abs (- (caddr qs) 7.75)) 0.01)))) ; Q3
+
+            (define-test "quantiles matches individual quantile calls"
+              (let* ([xs '(5 2 8 1 9 3 7 4 6 10)]  ; unsorted
+                     [qs (quantiles xs '(0.1 0.5 0.9))]
+                     [q1 (quantile xs 0.1)]
+                     [q2 (quantile xs 0.5)]
+                     [q3 (quantile xs 0.9)])
+                (assert-true (< (abs (- (car qs) q1)) 1e-10))
+                (assert-true (< (abs (- (cadr qs) q2)) 1e-10))
+                (assert-true (< (abs (- (caddr qs) q3)) 1e-10))))
+
+            (define-test "vec-quantiles works on vectors"
+              (let* ([v (vector 1 2 3 4 5 6 7 8 9 10)]
+                     [qs (vec-quantiles v '(0.25 0.75))])
+                (assert-true (< (abs (- (car qs) 3.25)) 0.01))
+                (assert-true (< (abs (- (cadr qs) 7.75)) 0.01))))
+
+            (define-test "iqr uses batch quantiles"
+              ;; Verify iqr gives correct result (it now uses quantiles internally)
+              (let ([xs '(1 2 3 4 5 6 7 8 9 10)])
+                (assert-true (< (abs (- (iqr xs) 4.5)) 0.01)))))
 
 ;;; ====
 ;;; Distribution Tests
