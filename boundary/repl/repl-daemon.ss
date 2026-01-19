@@ -47,6 +47,16 @@
 (define (daemon-running?)
   (file-exists? *ready-file*))
 
+;;; atomic-write-file : String × (Port -> Void) -> Void
+;;; Write to temp file then rename for atomicity.
+;;; Clients never see partial or missing content.
+(define (atomic-write-file path writer)
+  (let ([temp-path (string-append path ".tmp")])
+    (call-with-output-file temp-path writer 'truncate)
+    (when (file-exists? path)
+      (delete-file path))
+    (rename-file temp-path path)))
+
 ;;; ====
 ;;; Request Processing
 ;;; ====
@@ -62,20 +72,16 @@
         (delete-file *request-file*)))
 
 (define (write-response result)
-  (when (file-exists? *response-file*)
-        (delete-file *response-file*))
-  (call-with-output-file *response-file*
-                         (lambda (p)
-                                 (if (string? result)
-                                     (display result p)
-                                     (pretty-print result p)))))
+  (atomic-write-file *response-file*
+                     (lambda (p)
+                       (if (string? result)
+                           (display result p)
+                           (pretty-print result p)))))
 
 (define (write-error msg)
-  (when (file-exists? *error-file*)
-        (delete-file *error-file*))
-  (call-with-output-file *error-file*
-                         (lambda (p)
-                                 (display msg p))))
+  (atomic-write-file *error-file*
+                     (lambda (p)
+                       (display msg p))))
 
 (define (clear-error!)
   (when (file-exists? *error-file*)

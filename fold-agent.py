@@ -8,6 +8,7 @@ Usage:
   ./fold "(+ 1 2)"                      # Explicit parens work too
   ./fold -s dev define x 10             # Named session, unquoted
   ./fold --status                       # Check if daemon is running
+  ./fold --sessions                     # List active sessions
   ./fold -c file.ss                     # Check file for paren errors
 
 Features:
@@ -113,6 +114,85 @@ def resolve_session(explicit_session):
     if file_session:
         return file_session
     return generate_session_id()
+
+def list_sessions():
+    """List active sessions with their status."""
+    workers_dir = os.path.join(REPL_DIR, "workers")
+    sessions_dir = ".fold-sessions"
+
+    if not os.path.exists(workers_dir):
+        return []
+
+    sessions = []
+    now = time.time()
+
+    # Find all pid files
+    for filename in os.listdir(workers_dir):
+        if not filename.endswith(".pid"):
+            continue
+
+        session_id = filename[:-4]  # Remove .pid
+        pid_file = os.path.join(workers_dir, filename)
+
+        try:
+            with open(pid_file, 'r') as f:
+                pid = int(f.read().strip())
+        except (IOError, ValueError):
+            continue
+
+        # Check if process is alive
+        try:
+            os.kill(pid, 0)
+        except OSError:
+            continue  # Process not running
+
+        # Get idle time from lastreq or heartbeat
+        idle_seconds = None
+        for suffix in [".lastreq", ".heartbeat"]:
+            ts_file = os.path.join(workers_dir, session_id + suffix)
+            if os.path.exists(ts_file):
+                try:
+                    mtime = os.path.getmtime(ts_file)
+                    idle_seconds = now - mtime
+                    break
+                except OSError:
+                    pass
+
+        # Try to get friendly name from session file
+        name = None
+        session_file = os.path.join(sessions_dir, session_id + ".session")
+        if os.path.exists(session_file):
+            try:
+                with open(session_file, 'r') as f:
+                    content = f.read()
+                    # Extract name from s-expression: ((name . foo) ...)
+                    import re
+                    match = re.search(r'\(name\s+\.\s+"?([^")\s]+)"?\)', content)
+                    if match:
+                        name = match.group(1)
+            except IOError:
+                pass
+
+        sessions.append({
+            "session_id": session_id,
+            "name": name,
+            "pid": pid,
+            "idle_seconds": idle_seconds
+        })
+
+    return sessions
+
+def format_idle_time(seconds):
+    """Format idle time as human-readable string."""
+    if seconds is None:
+        return "unknown"
+    if seconds < 60:
+        return f"{int(seconds)}s"
+    if seconds < 3600:
+        return f"{int(seconds / 60)}m"
+    if seconds < 86400:
+        return f"{int(seconds / 3600)}h"
+    return f"{int(seconds / 86400)}d"
 
 def ensure_dirs():
     os.makedirs(REQUESTS_DIR, exist_ok=True)
@@ -347,6 +427,7 @@ Examples:
   ./fold + 1 2                Evaluate (+ 1 2)
   ./fold -s dev define x 10   Define x in 'dev' session
   ./fold --status             Check if daemon is running
+  ./fold --sessions           List active sessions
   ./fold --no-auto-start x    Don't auto-start daemon
   ./fold -c file.ss           Check file for paren balance errors
 """
@@ -363,6 +444,8 @@ Examples:
                         help="Show current session and exit")
     parser.add_argument("--status", action="store_true",
                         help="Check daemon status and exit")
+    parser.add_argument("--sessions", action="store_true",
+                        help="List active sessions and exit")
     parser.add_argument("--no-auto-start", action="store_true",
                         help="Don't auto-start daemon if not running")
     parser.add_argument("--check-syntax", "-c", metavar="FILE",
@@ -382,6 +465,19 @@ Examples:
         else:
             print(f"{COLORS['yellow']}Daemon is not running{COLORS['reset']}")
             sys.exit(1)
+
+    # Handle --sessions early
+    if args.sessions:
+        sessions = list_sessions()
+        if not sessions:
+            print(f"{COLORS['yellow']}No active sessions{COLORS['reset']}")
+            sys.exit(0)
+        print(f"{COLORS['green']}Active sessions:{COLORS['reset']}")
+        for s in sessions:
+            name = s["name"] or s["session_id"][:12]
+            idle = format_idle_time(s["idle_seconds"])
+            print(f"  {name:<20} (pid {s['pid']}, idle {idle})")
+        sys.exit(0)
 
     explicit_session = args.session
     code = " ".join(args.code) if args.code else None

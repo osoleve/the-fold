@@ -3,6 +3,7 @@
 ;;; Tests comonad type class, Store, Env, Traced comonads, and law verification.
 
 (load "core/testing/test-framework.ss")
+(load "lattice/fp/templates.ss")  ; For monoid-sum, monoid-mempty, monoid-mappend
 (load "lattice/fp/category/comonad.ss")
 
 ;;; ====
@@ -171,13 +172,6 @@
 ;;; ====
 ;;; Traced Comonad Tests
 ;;; ====
-
-;;; Simple additive monoid for testing
-(define monoid-sum
-  (list 'monoid 0 +))
-
-(define (monoid-mempty m) (cadr m))
-(define (monoid-mappend m) (caddr m))
 
 (test-group "Traced Comonad"
 

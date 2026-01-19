@@ -220,6 +220,28 @@
                      (truncate-str (cdr (assq 'title data)) 40)))
            (reverse history))))))
 
+;;; bbs-show-blockers : String | Symbol -> Void
+;;; Show blockers for an issue with their current status.
+(define (bbs-show-blockers id)
+  (let* ([id-str (normalize-id id)]
+         [blockers (bbs-blockers-with-status id-str)])
+    (if (null? blockers)
+        (printf "~a has no blockers~n" id-str)
+        (begin
+          (printf "Blockers for ~a:~n" id-str)
+          (for-each
+           (lambda (b)
+             (let* ([blocker-id (car b)]
+                    [status (cdr b)]
+                    [status-str (case status
+                                  [(open) "[open]"]
+                                  [(in_progress) "[in progress]"]
+                                  [(closed) "[closed]"]
+                                  [(missing) "[not found]"]
+                                  [else (format "[~a]" status)])])
+               (printf "  ~a  ~a~n" (pad-right blocker-id 14) status-str)))
+           blockers)))))
+
 ;;; bbs-find : String -> Void
 ;;; Simple substring search in issue titles.
 (define (bbs-find query)
