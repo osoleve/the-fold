@@ -1021,17 +1021,37 @@
 ;;; ====
 
 ;;; compute-workspace-symbols : String → JsonArray
-;;; Search for symbols across all open documents matching query.
+;;; Search for symbols across the index (preferred) or open documents.
 (define (compute-workspace-symbols query)
-  (let* ([uris (doc-list)]
-         [all-symbols (apply append
-                             (map (lambda (uri)
+  ;; Try index first (covers entire codebase)
+  (let ([index-results (find-symbols-matching query)])
+    (if (pair? index-results)
+        ;; Convert index results to LSP SymbolInformation
+        (let ([symbols (filter-map
+                        (lambda (entry)
+                          (let ([name (cdr (assq 'name entry))]
+                                [file (cdr (assq 'file entry))]
+                                [line (cdr (assq 'line entry))]
+                                [kind (cdr (assq 'kind entry))])
+                            (and name file line
+                                 (make-symbol-information
+                                  (symbol->string name)
+                                  (symbol-kind->lsp-kind kind)
+                                  (path->uri file)
+                                  line))))
+                        index-results)])
+          (apply json-arr (if (> (length symbols) 100)
+                              (take symbols 100)
+                              symbols)))
+        ;; Fallback to open documents only
+        (let* ([uris (doc-list)]
+               [all-symbols (apply append
+                                   (map (lambda (uri)
                                           (document-symbols-for-workspace uri query))
-                                  uris))])
-        ;; Limit results
-        (apply json-arr (if (> (length all-symbols) 100)
-                            (take all-symbols 100)
-                            all-symbols))))
+                                        uris))])
+          (apply json-arr (if (> (length all-symbols) 100)
+                              (take all-symbols 100)
+                              all-symbols))))))
 
 ;;; document-symbols-for-workspace : String × String → (List JsonObject)
 ;;; Extract symbols from document that match query.

@@ -57,9 +57,9 @@
                                                      (reverse lines)
                                                      (loop (cons line lines)))))))))
 
-;;; extract-definitions : String × (List String) → (List Entry)
+;;; index-extract-definitions : String × (List String) → (List Entry)
 ;;; Extract definition entries from file content.
-(define (extract-definitions path lines)
+(define (index-extract-definitions path lines)
   (let loop ([lines lines]
              [line-num 1]
              [prev-comment #f]
@@ -221,7 +221,7 @@
 ;;; Scan a single module file.
 (define (scan-module path)
   (let* ([lines (read-file-lines path)]
-         [defs (extract-definitions path lines)]
+         [defs (index-extract-definitions path lines)]
          [loads (extract-loads lines)]
          [def-names (map (lambda (e) (cdr (assq 'name e))) defs)])
         ;; Register each definition in symbol index
