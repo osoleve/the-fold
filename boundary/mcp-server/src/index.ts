@@ -569,7 +569,8 @@ class FoldMCPServer {
     const indent = '  '.repeat(depth);
     for (const sym of symbols) {
       const kind = symbolKindName(sym.kind);
-      const line = sym.range?.start?.line !== undefined ? sym.range.start.line + 1 : '?';
+      // Use 0-indexed line numbers to match what hover/lookup/references expect
+      const line = sym.range?.start?.line !== undefined ? sym.range.start.line : '?';
       lines.push(`${indent}${sym.name} [${kind}] :${line}`);
       if (sym.children && sym.children.length > 0) {
         this.formatSymbolTree(sym.children, lines, depth + 1);
