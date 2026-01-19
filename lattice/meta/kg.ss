@@ -282,6 +282,14 @@
 (define (kg-initialized?)
   (not (null? *kg-skills*)))
 
+;;; kg-ensure! : -> Hash | #f
+;;; Build knowledge graph only if not already initialized.
+;;; Returns index root hash if built, #f if already initialized.
+(define (kg-ensure!)
+  (if (kg-initialized?)
+      #f
+      (kg-build!)))
+
 ;;; kg-skill : Symbol -> Block | #f
 ;;; Get skill block by name
 (define (kg-skill name)
@@ -354,6 +362,7 @@
 
 (printf "kg.ss loaded.\n")
 (printf "  (kg-build!)           - Build KG from manifests\n")
+(printf "  (kg-ensure!)          - Build only if not initialized\n")
 (printf "  (kg-skills)           - List all skills\n")
 (printf "  (kg-skill 'name)      - Get skill block\n")
 (printf "  (kg-modules 'name)    - Get skill modules\n")

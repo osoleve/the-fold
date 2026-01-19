@@ -63,6 +63,12 @@
         (build-source-location-cache!)
         (lattice-save-cache!))))
 
+;;; lattice-ensure! : -> void
+;;; Initialize only if not already ready. Use this in tests.
+(define (lattice-ensure!)
+  (unless *search-ready*
+          (lattice-init!)))
+
 ;;; lattice-init-fresh! : -> void
 ;;; Force full rebuild, ignoring cache
 (define (lattice-init-fresh!)
