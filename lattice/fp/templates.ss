@@ -269,17 +269,22 @@
 ;;; ====
 ;;;
 ;;; A functor allows mapping a function over a container.
-;;;   - fmap : (a → b) → F a → F b
+;;;   - fmap : (a → b) × F(a) → F(b)
 ;;;
 ;;; Laws:
 ;;;   - Identity: fmap id = id
 ;;;   - Composition: fmap (g . f) = fmap g . fmap f
+;;;
+;;; Note: Unlike Haskell's curried fmap, our fmap takes TWO arguments:
+;;;   ((functor-fmap F) func container)  ; correct - 2 args
+;;;   ((functor-fmap F) func)            ; returns partial application if func supports it
 
-;;; make-functor : ((α → β) → F α → F β) → Functor
+;;; make-functor : ((α → β) × F(α) → F(β)) → Functor
+;;; The fmap-fn should be a 2-argument function: (lambda (f container) ...).
 (define (make-functor fmap-fn)
   (list 'functor fmap-fn))
 
-;;; make-named-functor : Symbol × ((α → β) → F α → F β) → Functor
+;;; make-named-functor : Symbol × ((α → β) × F(α) → F(β)) → Functor
 ;;; Create a functor with a name for debugging.
 (define (make-named-functor name fmap-fn)
   (list 'functor fmap-fn name))
@@ -288,7 +293,8 @@
 (define (functor? x)
   (and (pair? x) (eq? (car x) 'functor)))
 
-;;; functor-fmap : Functor → ((α → β) → F α → F β)
+;;; functor-fmap : Functor → ((α → β) × F(α) → F(β))
+;;; Returns the fmap function, which takes 2 arguments: (func container).
 (define (functor-fmap f)
   (cadr f))
 
