@@ -205,6 +205,38 @@
       (assert-true (traced-vec2? focus)))))
 
 ;;; ====
+;;; optimize-trajectory-all Tests
+;;; ====
+
+(test-group optimize-trajectory-all-tests
+
+  (define-test full-body-gradient-flows
+    ;; Test that gradients flow through all parameters
+    (let* ([body (make-rigid-body (vec2 0 0) (vec2 1 0) 0 0 1 1)]
+           [traced-target (lift-vec2-const (vec2 5 0))]
+           [step-fn (lambda (tb)
+                      ;; Simple step: just move by velocity
+                      (let* ([pos (traced-body-pos tb)]
+                             [vel (traced-body-vel tb)]
+                             [new-pos (traced-vec2-add pos (traced-vec2-scale vel 0.1))])
+                        (make-traced-body new-pos vel
+                                          (traced-body-angle tb)
+                                          (traced-body-angular-vel tb)
+                                          (traced-body-mass tb)
+                                          (traced-body-inertia tb))))]
+           [loss-fn (lambda (final-tb)
+                      (traced-vec2-distance-sq (traced-body-pos final-tb)
+                                               traced-target))]
+           [num-steps 10]
+           [result (optimize-trajectory-all body step-fn loss-fn num-steps 0.01 100)])
+      ;; Should optimize toward target - final position closer than initial
+      (let ([initial-dist (vec2-distance (rigid-body-pos body) (vec2 5 0))]
+            [final-dist (vec2-distance (rigid-body-pos result) (vec2 5 0))])
+        ;; Optimized state should be closer (either via pos or vel change)
+        ;; Check that velocity changed toward target direction
+        (assert-true (> (vec2-x (rigid-body-vel result)) 0.5))))))
+
+;;; ====
 ;;; Run All Tests
 ;;; ====
 

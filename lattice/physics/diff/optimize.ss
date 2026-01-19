@@ -1,5 +1,17 @@
 ;;; core/diff-physics/optimize.ss --- Trajectory Optimization API
 ;;;
+;;; DEPRECATED: Prefer optic-optimize.ss for new code.
+;;;
+;;; This module uses manual parameter flattening which has known issues
+;;; with nested AD scopes. See optic-optimize.ss for cleaner implementations:
+;;;   optimize-trajectory        → optimize-trajectory-all
+;;;   optimize-initial-velocity  → optimize-initial-velocity-optic
+;;;
+;;; Kept for:
+;;;   - Adam optimizer (not yet available in optic-optimize)
+;;;   - Inverse physics (estimate-mass, estimate-gravity)
+;;;   - Checkpointed gradient computation
+;;;
 ;;; High-level API for differentiable physics optimization:
 ;;; - Gradient descent and variants (Adam, momentum)
 ;;; - Trajectory optimization
@@ -120,6 +132,8 @@
 ;;; ====
 
 ;;; optimize-initial-velocity : Vec2 × Vec2 × Vec2 × Number × Nat × Number × Nat → Vec2
+;;; DEPRECATED: Use optimize-initial-velocity-optic from optic-optimize.ss
+;;;
 ;;; Find initial velocity to hit target position.
 ;;;   start-pos: starting position
 ;;;   target-pos: desired final position
@@ -146,8 +160,12 @@
         (vec2 (car result) (cadr result))))
 
 ;;; optimize-trajectory : TracedBody × (TracedBody → TracedBody) × (RigidBody2D → Number) × Nat × Number × Nat → TracedBody
+;;; DEPRECATED: Use optimize-trajectory-all from optic-optimize.ss
+;;;
 ;;; Optimize initial body state to minimize final loss.
 ;;; This is a more general version that optimizes all state variables.
+;;;
+;;; NOTE: This function has nested AD scope issues. The optic version fixes this.
 (define (optimize-trajectory initial-body step-fn loss-fn num-steps
                              learning-rate max-iters)
   (let* ([mass (rigid-body-mass initial-body)]

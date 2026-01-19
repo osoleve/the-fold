@@ -1,25 +1,28 @@
 ;;; lattice/physics/diff/optic-optimize.ss --- Optic-Based Physics Optimization
 ;;;
-;;; Selective physics parameter optimization using traced-optics.
-;;; Complements optimize.ss with lens-based parameter selection.
+;;; Physics parameter optimization using traced-optics.
+;;; PREFERRED over optimize.ss - fixes nested AD scope issues, cleaner API.
 ;;;
-;;; When to use each API:
+;;; Available optimizers:
 ;;;
-;;;   optimize.ss:
-;;;     - optimize-trajectory: Optimize ALL body parameters (6 DOF)
-;;;     - optimize-initial-velocity: Optimize velocity for projectiles
-;;;     - Uses Adam optimizer with parameter flattening
-;;;     - Best for: unconstrained full-state optimization
+;;;   optimize-trajectory-optic     Optimize SINGLE parameter via lens
+;;;   optimize-trajectory-all       Optimize ALL 6 DOF (replaces optimize-trajectory)
+;;;   optimize-initial-velocity-optic  Find velocity to hit target
+;;;   optimize-physics-param        Low-level: single param gradient descent
+;;;   optimize-physics-all-params   Low-level: full body gradient descent
+;;;   sensitivity-at-optic          Sensitivity analysis
 ;;;
-;;;   optic-optimize.ss (this module):
-;;;     - optimize-trajectory-optic: Optimize SINGLE parameter via lens
-;;;     - optimize-physics-param: General optic-focused gradient descent
-;;;     - Uses vanilla GD, no flattening needed
-;;;     - Best for: constrained optimization (e.g., only velocity, not position)
+;;; Key advantages over optimize.ss:
+;;;   - No manual flattening/unflattening
+;;;   - Single AD scope (fixes nested scope bugs)
+;;;   - Parameter selection via lens composition
+;;;   - Type-safe (lenses catch access errors)
 ;;;
-;;; Key differences:
-;;;   - Optic version: loss-fn receives TracedBody, must use traced ops
-;;;   - Original version: loss-fn receives RigidBody2D, uses regular ops
+;;; IMPORTANT: Loss functions must use traced operations (e.g., traced-vec2-distance-sq)
+;;;
+;;; Migration guide (optimize.ss → optic-optimize.ss):
+;;;   optimize-trajectory        → optimize-trajectory-all
+;;;   optimize-initial-velocity  → optimize-initial-velocity-optic
 ;;;
 ;;; Dependencies:
 ;;;   - lattice/autodiff/traced-optics.ss
@@ -170,6 +173,64 @@
     [else value]))
 
 ;;; ============================================================
+;;; Full-Body Optimization (All 6 DOF)
+;;; ============================================================
+
+;;; optimize-physics-all-params : RigidBody2D × ((TracedBody → TracedBody) → (TracedBody → Traced)) × Number × Nat → RigidBody2D
+;;; Optimize all 6 physics parameters (pos, vel, angle, angular-vel).
+;;; Unlike optimize-physics-param which uses a lens for single param,
+;;; this traces the entire body state.
+;;;
+;;; Arguments:
+;;;   initial-body: Starting body state
+;;;   make-loss: Function that takes trace-body and returns a loss function
+;;;   learning-rate: Gradient descent step size
+;;;   max-iters: Number of optimization iterations
+(define (optimize-physics-all-params initial-body make-loss learning-rate max-iters)
+  (let loop ([body initial-body] [iter 0])
+    (if (>= iter max-iters)
+        body
+        (let-values ([(grad-pos grad-vel grad-angle grad-omega)
+                      (physics-full-gradient body make-loss)])
+          (let* ([new-pos (subtract-physics-grad (rigid-body-pos body) grad-pos learning-rate)]
+                 [new-vel (subtract-physics-grad (rigid-body-vel body) grad-vel learning-rate)]
+                 [new-angle (subtract-physics-grad (rigid-body-angle body) grad-angle learning-rate)]
+                 [new-omega (subtract-physics-grad (rigid-body-angular-vel body) grad-omega learning-rate)]
+                 [new-body (make-rigid-body new-pos new-vel new-angle new-omega
+                                            (rigid-body-mass body)
+                                            (rigid-body-inertia body))])
+            (loop new-body (+ iter 1)))))))
+
+;;; physics-full-gradient : RigidBody2D × ((TracedBody → TracedBody) → (TracedBody → Traced)) → (values Vec2 Vec2 Number Number)
+;;; Compute gradient of loss w.r.t. all 6 body parameters.
+;;; Returns (values grad-pos grad-vel grad-angle grad-omega).
+(define (physics-full-gradient body make-loss)
+  (with-fresh-ad-scope
+   (lambda ()
+     (let* ([tape (make-reverse-tape)]
+            ;; Trace all parameters
+            [traced-pos (lift-vec2 (rigid-body-pos body) tape)]
+            [traced-vel (lift-vec2 (rigid-body-vel body) tape)]
+            [traced-angle (make-traced-var (rigid-body-angle body) tape)]
+            [traced-omega (make-traced-var (rigid-body-angular-vel body) tape)]
+            [tb (make-traced-body traced-pos traced-vel traced-angle traced-omega
+                                  (rigid-body-mass body)
+                                  (rigid-body-inertia body))]
+            ;; Build loss function with full body tracer
+            [trace-body (lambda (b) tb)]  ; Just return the already-traced body
+            [loss-fn (make-loss trace-body)]
+            ;; Compute loss
+            [loss (loss-fn tb)])
+       (if (traced? loss)
+           (let ([grads (backward tape (traced-id loss) 1)])
+             ;; Extract all gradients
+             (values (extract-gradient traced-pos grads)
+                     (extract-gradient traced-vel grads)
+                     (extract-gradient traced-angle grads)
+                     (extract-gradient traced-omega grads)))
+           (values (vec2 0 0) (vec2 0 0) 0 0))))))
+
+;;; ============================================================
 ;;; Simplified Trajectory Optimization
 ;;; ============================================================
 
@@ -224,6 +285,36 @@
                      rigid-body-vel-lens
                      learning-rate max-iters)])
     (rigid-body-vel optimized)))
+
+;;; optimize-trajectory-all : RigidBody2D × (TracedBody → TracedBody) × (TracedBody → Traced) × Nat × Number × Nat → RigidBody2D
+;;; Optimize ALL body parameters (6 DOF) for a trajectory.
+;;;
+;;; This is the optic-based replacement for optimize-trajectory in optimize.ss.
+;;; Key differences:
+;;;   - No manual flattening/unflattening
+;;;   - Single AD scope (fixes nested scope issues)
+;;;   - Uses vanilla GD (not Adam) - simpler but may need more iterations
+;;;
+;;; IMPORTANT: The loss function must use traced operations.
+;;;
+;;; Example:
+;;;   (optimize-trajectory-all
+;;;     body step-fn
+;;;     (lambda (final-tb)
+;;;       (traced-vec2-distance-sq (traced-body-pos final-tb)
+;;;                                (lift-vec2-const target)))
+;;;     100 0.01 50)
+(define (optimize-trajectory-all initial-body step-fn loss-fn num-steps
+                                  learning-rate max-iters)
+  (optimize-physics-all-params
+   initial-body
+   (lambda (trace-body)
+     (lambda (tb)
+       ;; Run rollout and compute loss on traced body
+       (let ([final-tb (traced-rollout tb step-fn num-steps)])
+         (loss-fn final-tb))))
+   learning-rate
+   max-iters))
 
 ;;; ============================================================
 ;;; Sensitivity Analysis via Optics
