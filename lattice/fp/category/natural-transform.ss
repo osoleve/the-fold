@@ -55,18 +55,27 @@
        (= (length x) 5)))
 
 ;;; nat-transform-name : NatTransform → Symbol
+;;; Errors if η is not a valid nat-transform (fail-fast)
 (define (nat-transform-name η)
-  (if (nat-transform? η) (cadr η) 'unknown))
+  (if (nat-transform? η)
+      (cadr η)
+      (error 'nat-transform-name "expected nat-transform" η)))
 
 ;;; nat-transform-source : NatTransform → Functor
 ;;; The source functor F in η : F ⟹ G
+;;; Errors if η is not a valid nat-transform (fail-fast)
 (define (nat-transform-source η)
-  (if (nat-transform? η) (caddr η) #f))
+  (if (nat-transform? η)
+      (caddr η)
+      (error 'nat-transform-source "expected nat-transform" η)))
 
 ;;; nat-transform-target : NatTransform → Functor
 ;;; The target functor G in η : F ⟹ G
+;;; Errors if η is not a valid nat-transform (fail-fast)
 (define (nat-transform-target η)
-  (if (nat-transform? η) (cadddr η) #f))
+  (if (nat-transform? η)
+      (cadddr η)
+      (error 'nat-transform-target "expected nat-transform" η)))
 
 ;;; nat-transform-component : NatTransform → (F(A) → G(A))
 ;;; The component function η_A
@@ -248,6 +257,7 @@
 
 ;;; nat-iso-forward : NatIso → NatTransform
 ;;; The forward direction η : F ⟹ G
+;;; Errors if iso is not a valid nat-iso (fail-fast)
 (define (nat-iso-forward iso)
   (if (nat-iso? iso)
       (make-nat-transform
@@ -255,10 +265,11 @@
        (caddr iso)
        (cadddr iso)
        (car (cddddr iso)))
-      #f))
+      (error 'nat-iso-forward "expected nat-iso" iso)))
 
 ;;; nat-iso-inverse : NatIso → NatTransform
 ;;; The inverse direction ε : G ⟹ F
+;;; Errors if iso is not a valid nat-iso (fail-fast)
 (define (nat-iso-inverse iso)
   (if (nat-iso? iso)
       (make-nat-transform
@@ -266,7 +277,7 @@
        (cadddr iso)    ; G is now source
        (caddr iso)     ; F is now target
        (cadr (cddddr iso)))
-      #f))
+      (error 'nat-iso-inverse "expected nat-iso" iso)))
 
 ;;; ====
 ;;; Naturality Verification
