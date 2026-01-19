@@ -232,6 +232,92 @@
 (test-equal "6!! = 48" 48 (double-factorial 6))
 
 ;;; ====
+;;; Mathematical Identity Tests
+;;; ====
+;;; These test algebraic properties that must hold regardless of input.
+;;; They catch systematic errors (like missing factors) better than value-based tests.
+
+(printf "\n--- Betainc Identity Tests ---\n")
+
+;; I_x(a,1) = x^a  — when b=1, the integral simplifies
+(let ((x 0.3) (a 2.5))
+     (test "betainc(a,1,x) = x^a (a=2.5)" (expt x a) (betainc a 1 x) 1e-8))
+(let ((x 0.7) (a 4.0))
+     (test "betainc(a,1,x) = x^a (a=4.0)" (expt x a) (betainc a 1 x) 1e-8))
+(let ((x 0.5) (a 0.5))
+     (test "betainc(a,1,x) = x^a (a=0.5)" (expt x a) (betainc a 1 x) 1e-8))
+
+;; I_x(1,b) = 1 - (1-x)^b  — when a=1, the integral simplifies
+(let ((x 0.4) (b 3.0))
+     (test "betainc(1,b,x) = 1-(1-x)^b (b=3.0)" (- 1 (expt (- 1 x) b)) (betainc 1 b x) 1e-8))
+(let ((x 0.6) (b 2.5))
+     (test "betainc(1,b,x) = 1-(1-x)^b (b=2.5)" (- 1 (expt (- 1 x) b)) (betainc 1 b x) 1e-8))
+(let ((x 0.8) (b 0.7))
+     (test "betainc(1,b,x) = 1-(1-x)^b (b=0.7)" (- 1 (expt (- 1 x) b)) (betainc 1 b x) 1e-8))
+
+;; I_x(a,b) + I_{1-x}(b,a) = 1  — reflection formula
+(let ((x 0.3) (a 2.0) (b 3.0))
+     (test "betainc reflection (x=0.3)" 1.0 (+ (betainc a b x) (betainc b a (- 1 x))) 1e-8))
+(let ((x 0.7) (a 1.5) (b 2.5))
+     (test "betainc reflection (x=0.7)" 1.0 (+ (betainc a b x) (betainc b a (- 1 x))) 1e-8))
+(let ((x 0.5) (a 3.0) (b 3.0))
+     (test "betainc reflection (symmetric)" 1.0 (+ (betainc a b x) (betainc b a (- 1 x))) 1e-8))
+
+(printf "\n--- Gamma Identity Tests ---\n")
+
+;; Γ(n+1) = n! for positive integers — the defining property
+(let ((check-gamma-factorial
+       (lambda (n)
+         (let ((gamma-result (gamma (+ n 1)))
+               (factorial-result (factorial n)))
+              (< (abs (- gamma-result factorial-result)) 1e-6)))))
+     (if (and (check-gamma-factorial 0)
+              (check-gamma-factorial 1)
+              (check-gamma-factorial 5)
+              (check-gamma-factorial 10)
+              (check-gamma-factorial 12))
+         (begin
+          (set! tests-passed (+ tests-passed 1))
+          (printf "  [PASS] gamma(n+1) = n! for n=0,1,5,10,12\n"))
+         (begin
+          (set! tests-failed (+ tests-failed 1))
+          (printf "  [FAIL] gamma(n+1) = n! for integers\n"))))
+
+;; Γ(1/2) = √π — classic result from Gaussian integral
+(test "gamma(1/2) = sqrt(pi)" *sqrt-pi* (gamma 0.5) 1e-10)
+
+;; Γ(3/2) = √π/2 — derived from Γ(1/2) using recurrence
+(test "gamma(3/2) = sqrt(pi)/2" (/ *sqrt-pi* 2) (gamma 1.5) 1e-10)
+
+;; Γ(5/2) = 3√π/4 — further recurrence
+(test "gamma(5/2) = 3*sqrt(pi)/4" (* 0.75 *sqrt-pi*) (gamma 2.5) 1e-8)
+
+(printf "\n--- Lbeta Identity Tests ---\n")
+
+;; lbeta(a,b) = lgamma(a) + lgamma(b) - lgamma(a+b)
+;; This is the defining relationship between log-beta and log-gamma
+(let ((a 2.5) (b 3.5))
+     (let ((from-lgamma (- (+ (lgamma a) (lgamma b)) (lgamma (+ a b))))
+           (from-lbeta (lbeta a b)))
+          (test "lbeta(2.5,3.5) via lgamma" from-lgamma from-lbeta 1e-10)))
+(let ((a 0.7) (b 1.3))
+     (let ((from-lgamma (- (+ (lgamma a) (lgamma b)) (lgamma (+ a b))))
+           (from-lbeta (lbeta a b)))
+          (test "lbeta(0.7,1.3) via lgamma" from-lgamma from-lbeta 1e-10)))
+(let ((a 5.0) (b 7.0))
+     (let ((from-lgamma (- (+ (lgamma a) (lgamma b)) (lgamma (+ a b))))
+           (from-lbeta (lbeta a b)))
+          (test "lbeta(5,7) via lgamma" from-lgamma from-lbeta 1e-10)))
+
+;; lbeta symmetry: lbeta(a,b) = lbeta(b,a)
+(test "lbeta symmetry (2,5)" (lbeta 5 2) (lbeta 2 5) 1e-12)
+(test "lbeta symmetry (1.5,3.5)" (lbeta 3.5 1.5) (lbeta 1.5 3.5) 1e-12)
+
+;; exp(lbeta(a,b)) = beta(a,b)
+(let ((a 3.0) (b 4.0))
+     (test "exp(lbeta) = beta" (beta a b) (exp (lbeta a b)) 1e-10))
+
+;;; ====
 ;;; Summary
 ;;; ====
 
