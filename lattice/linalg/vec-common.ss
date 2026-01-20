@@ -1,26 +1,19 @@
-;;; core/linalg/vec-common.ss --- Common Vector Infrastructure
-;;;
-;;; Provides macros for generating dimension-specific vector operations.
-;;; This eliminates code duplication between vec2.ss and vec3.ss while
-;;; maintaining full performance (macros expand at compile time).
-;;;
-;;; This is Core code: pure, total, assumes reasonable input.
-;;;
-;;; The approach here uses explicit macro invocations where the caller
-;;; provides all necessary names. This is more verbose but works reliably
-;;; with Chez Scheme's syntax-rules which cannot concatenate symbols.
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-
 (load "core/base/prelude.ss")
 
+(doc 'module 'vec-common)
+(doc 'description "Macros for generating dimension-specific vector operations")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
+(doc 'note "Eliminates code duplication between vec2.ss and vec3.ss")
+(doc 'note "Maintains full performance (macros expand at compile time)")
+(doc 'note "Uses explicit macro invocations where caller provides all necessary names")
+(doc 'requires '(prelude))
 
-;;; ====
-;;; 2D Vector Generation Macros
-;;; ====
 
-;;; generate-vec2-core : Generate constructor, predicate, accessors
+(doc 'section '2d-vector-macros)
+
+(doc generate-vec2-core 'type 'syntax)
+(doc generate-vec2-core 'description "Generate constructor, predicate, accessors for Vec2")
 (define-syntax generate-vec2-core
   (syntax-rules ()
                 [(_ ctor pred? get-x get-y to-list from-list zero one unit-x unit-y)

@@ -1,36 +1,20 @@
-;;; core/linalg/iteration.ss --- Vector and Matrix Iteration Macros
-;;;
-;;; Provides high-level iteration abstractions to replace repetitive `do` loops
-;;; in linalg and numeric modules. These macros expand to efficient iterative
-;;; code without abstraction overhead.
-;;;
-;;; This is Core code: pure, total, assumes reasonable input.
-;;;
-;;; Patterns captured:
-;;;   1. vec-do! — iterate over vector indices with mutation
-;;;   2. vec-map-idx! — map with index over vector into new vector
-;;;   3. vec-fold-idx — fold with index access
-;;;   4. vec-zip-do! — iterate over two vectors simultaneously
-;;;   5. matrix-do! — iterate over matrix (i, j) with mutation
-;;;   6. matrix-fold-ij — fold over matrix with (i, j) access
-;;;
-;;; Usage philosophy:
-;;;   These macros abstract common patterns but expand to the same `do` loops
-;;;   that would be written by hand. No runtime overhead, just cleaner code.
-;;;
-;;; Dependencies:
-;;;   - None (pure macros, no runtime dependencies)
+(load "core/base/prelude.ss")
 
-;;; ====
-;;; Vector Iteration Macros
-;;; ====
+(doc 'module 'iteration)
+(doc 'description "Vector and matrix iteration macros for linalg")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
+(doc 'note "Provides high-level iteration abstractions to replace repetitive do loops")
+(doc 'note "These macros expand to efficient iterative code without abstraction overhead")
+(doc 'note "No runtime overhead, just cleaner code")
+(doc 'note "Pure macros (requires prelude for doc primitive)")
 
-;;; vec-do! : (idx-var vector body ...) -> unspecified
-;;; Execute body for each index in vector, binding idx-var.
-;;; Use for side-effecting operations on external targets.
-;;;
-;;; Example:
-;;;   (vec-do! i v (display (vector-ref v i)))
+(doc 'section 'vector-iteration)
+
+(doc vec-do! 'type '(syntax (idx-var vector body ...) unspecified))
+(doc vec-do! 'description "Execute body for each index in vector, binding idx-var")
+(doc vec-do! 'note "Use for side-effecting operations on external targets")
+(doc vec-do! 'example "(vec-do! i v (display (vector-ref v i)))")
 (define-syntax vec-do!
   (syntax-rules ()
                 [(_ idx vec body ...)
