@@ -114,8 +114,8 @@
 
 (if *pretty-available*
     (begin
-     ;; Test read-all-sexps
-     (let ([exprs (read-all-sexps "(+ 1 2) (- 3 4)")])
+     ;; Test read-all-sexps-from-string (renamed to avoid conflict with docs.ss)
+     (let ([exprs (read-all-sexps-from-string "(+ 1 2) (- 3 4)")])
           (test "read-all-sexps count" 2 (length exprs))
           (test "read-all-sexps first" '(+ 1 2) (car exprs)))
      
@@ -323,12 +323,17 @@
 (test "primitive-type unknown" #f (primitive-type "unknown-prim"))
 
 ;; Test format-hover-text with type info
-(let ([hover (format-hover-text "+" #f "(Int -> Int -> Int)")])
+(let ([hover (format-hover-text "+" #f "(Int -> Int -> Int)" #f)])
      (test "format-hover-text with type" #t (string? hover))
      (test "format-hover-text contains type" #t (string-contains? hover "Int")))
 
+;; Test format-hover-text with type and doc description
+(let ([hover (format-hover-text "add" #f "(Int -> Int -> Int)" "Adds two numbers")])
+     (test "format-hover-text with type+desc" #t (string? hover))
+     (test "format-hover-text contains desc" #t (string-contains? hover "Adds two numbers")))
+
 ;; Test format-hover-text with no info
-(let ([hover (format-hover-text "unknown-symbol" #f #f)])
+(let ([hover (format-hover-text "unknown-symbol" #f #f #f)])
      (test "format-hover-text unknown" #f hover))
 
 ;; Test compute-hover with primitive

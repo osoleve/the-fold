@@ -3018,6 +3018,22 @@ The category module provides first-class categorical structures that unify and e
 <li><strong>State/Store Adjunction</strong> (<code>state-store-adjunction.ss</code>): The canonical product-exponential adjunction (−)×S ⊣ (−)^S. Derives the State monad and Store comonad from first principles, and implements currying as adjunction transposition.</li></ul>
 <p>
 The key insight: <strong>all standard monads and comonads arise from adjunctions</strong>, and <strong>the O(1) bind optimization in effect systems is the Codensity monad</strong>. This provides both theoretical grounding and practical performance understanding.</p>
+<ul>
+<li><strong>Multi-Category Framework</strong> (<code>fp/category/multi/</code>): Extends the category infrastructure to handle inter-category functors and indexed natural transformations. The standard <code>NatTransform</code> has parametric components—a single function <code>∀A. F(A) → G(A)</code> that cannot access the object index. For the Free ⊣ Forgetful adjunction, the counit <code>ε_A : Free(U(A)) → A</code> needs to evaluate terms using algebra A&#39;s operations, but the parametric encoding has no access to A.</li></ul>
+<p>
+The solution: <strong>indexed natural transformations</strong> where <code>component-at(A)</code> receives the algebra explicitly:</p>
+<p>
+```scheme   ;; Standard (parametric): component ignores object index   (define η (make-nat-transform &#39;η F G (lambda (x) ...)))</p>
+<p>
+;; Indexed: component-at receives the object   (define ε (make-nat-indexed &#39;ε Free-U Id-Alg               (lambda (alg)         ; Receives algebra A                 (lambda (term)      ; Component function                   (eval-term alg term)))))  ; Uses A&#39;s operations   ```</p>
+<p>
+<strong>Modules</strong>:   | Module | Purpose |   |--------|---------|   | <code>category.ss</code> | First-class categories (<code>Category</code>), with <code>cat-Set</code> and <code>cat-Alg</code> (Eilenberg-Moore) |   | <code>functor-general.ss</code> | Inter-category functors (<code>FunctorGeneral</code>), Free/Forgetful functor constructors |   | <code>nat-transform-indexed.ss</code> | Indexed natural transformations (<code>NatIndexed</code>) with composition and whiskering |   | <code>adjunction-inter.ss</code> | Inter-category adjunctions (<code>AdjunctionInter</code>) with indexed unit/counit |   | <code>effect-adjunction.ss</code> | Effect adjunctions with correct counit: <code>ε_A(term) = eval-term A term</code> |</p>
+<p>
+<strong>Key types</strong>:   - <code>Category</code>: Explicit category with <code>obj?</code>, <code>mor?</code>, <code>dom</code>, <code>cod</code>, <code>id-at</code>, <code>compose</code>   - <code>FunctorGeneral</code>: Functor F : C → D with <code>on-obj</code> and <code>on-mor</code> mappings   - <code>NatIndexed</code>: Natural transformation with <code>component-at : Obj → (Value → Value)</code>   - <code>AdjunctionInter</code>: Adjunction L ⊣ R with indexed unit and counit</p>
+<p>
+**The counit evaluation pattern**:   ```scheme   (apply-counit adj algebra term)  ; → evaluates term using algebra&#39;s operations   (handle-via-counit adj algebra term)  ; Alias emphasizing effect handling   ```</p>
+<p>
+This makes the categorical semantics of effect handling precise: handling IS counit application, with the handler viewed as an algebra over the effect signature.</p>
 <p>
 <strong>Optics</strong> (<code>fp/optics/</code>):</p>
 <p>

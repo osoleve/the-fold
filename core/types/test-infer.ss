@@ -327,6 +327,41 @@
                               ((Wrap ref) ref))))])
      (test "case binds ref" '∀ (if (pair? result) (car result) 'not-pair)))
 
+;;; ====
+;;; Declared Types (from doc annotations)
+;;; ====
+(test-section "Declared Types")
+
+;; Clear any existing declared types
+(clear-declared-types!)
+
+;; Register a declared type manually
+(register-declared-type! 'my-add '(-> Int Int Int))
+
+;; Lookup should find it
+(test "lookup-declared-type finds registered" '(-> Int Int Int) (lookup-declared-type 'my-add))
+(test "lookup-declared-type returns #f for unknown" #f (lookup-declared-type 'unknown-fn))
+
+;; Infer should use declared type for unbound variable
+(reset-fresh!)
+(let ([result (infer 'my-add empty-tenv)])
+  (test "infer uses declared type" 'ok (car result))
+  (test "infer declared type correct" '(-> Int Int Int) (cadr result)))
+
+;; Register via register-doc-types!
+(register-doc-types! '((my-sub . (-> Int Int Int))
+                       (my-mul . (-> Int Int Int))))
+(test "register-doc-types! works" '(-> Int Int Int) (lookup-declared-type 'my-sub))
+
+;; Build tenv from declared types
+(let ([env (build-tenv-from-declared-types '(my-add my-sub my-unknown))])
+  (test "build-tenv includes my-add" '(-> Int Int Int) (tenv-lookup env 'my-add))
+  (test "build-tenv includes my-sub" '(-> Int Int Int) (tenv-lookup env 'my-sub))
+  (test "build-tenv skips unknown" #f (tenv-lookup env 'my-unknown)))
+
+;; Clean up
+(clear-declared-types!)
+
 (newline)
 (display "✓ All type inference tests complete.
 ")

@@ -394,9 +394,10 @@
    [(and (pair? expr) (eq? (car expr) 'quote))
     (infer-quoted (cadr expr))]
    
-   ;; Variable
+   ;; Variable: check env first, then declared types (from doc annotations)
    [(symbol? expr)
-    (let ([type (tenv-lookup env expr)])
+    (let ([type (or (tenv-lookup env expr)
+                    (lookup-declared-type expr))])
          (if type
              `(ok ,(instantiate type) ,empty-subst)
              `(error unbound-variable ,expr)))]
@@ -822,6 +823,60 @@
   (doc 'export #t)
   (let ([entry (assq op prim-types)])
        (if entry (cdr entry) #f)))
+
+(doc 'section 'declared-types)
+(doc 'note "Support for explicit type declarations from (doc symbol 'type ...) annotations. These are authoritative when present, taking precedence over inference.")
+
+(doc *declared-types* 'type '(Hashtable Symbol Type))
+(doc *declared-types* 'description "Types declared via doc annotations. Maps symbol -> type.")
+(define *declared-types* (make-eq-hashtable))
+
+(doc register-declared-type! 'type '(-> Symbol Type Void))
+(doc register-declared-type! 'description "Register an explicitly declared type for a symbol.")
+(doc register-declared-type! 'export #t)
+(define (register-declared-type! sym type)
+  (hashtable-set! *declared-types* sym type))
+
+(doc lookup-declared-type 'type '(-> Symbol (Maybe Type)))
+(doc lookup-declared-type 'description "Look up an explicitly declared type.")
+(doc lookup-declared-type 'export #t)
+(define (lookup-declared-type sym)
+  (let ([found (hashtable-ref *declared-types* sym #f)])
+    found))
+
+(doc clear-declared-types! 'type '(-> Void))
+(doc clear-declared-types! 'description "Clear all declared types (for testing/reset).")
+(doc clear-declared-types! 'export #t)
+(define (clear-declared-types!)
+  (set! *declared-types* (make-eq-hashtable)))
+
+(doc build-tenv-from-declared-types 'type '(-> (List Symbol) TEnv))
+(doc build-tenv-from-declared-types 'description "Build a type environment from declared types for the given symbols.")
+(doc build-tenv-from-declared-types 'export #t)
+(define (build-tenv-from-declared-types syms)
+  (let loop ([syms syms] [env empty-tenv])
+    (if (null? syms)
+        env
+        (let* ([sym (car syms)]
+               [declared (lookup-declared-type sym)])
+          (if declared
+              (loop (cdr syms) (tenv-extend env sym declared))
+              (loop (cdr syms) env))))))
+
+(doc register-doc-types! 'type '(-> (List (Pair Symbol Type)) Void))
+(doc register-doc-types! 'description "Register multiple declared types from a list of (symbol . type) pairs. Type can be quoted (from doc annotation) or direct.")
+(doc register-doc-types! 'export #t)
+(define (register-doc-types! type-decls)
+  (for-each
+   (lambda (decl)
+     (let* ([sym (car decl)]
+            [type-expr (cdr decl)]
+            ;; Handle quoted types: '(-> Int Int) -> (-> Int Int)
+            [type (if (and (pair? type-expr) (eq? (car type-expr) 'quote))
+                      (cadr type-expr)
+                      type-expr)])
+       (register-declared-type! sym type)))
+   type-decls))
 
 (define (infer-prim op args env)
   (doc 'type (-> Symbol (List Expr) TEnv (Result Type Error)))

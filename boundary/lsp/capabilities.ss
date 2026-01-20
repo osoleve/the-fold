@@ -24,6 +24,13 @@
        (load "boundary/tools/index.ss")
        (set! *index-available* #t))
 
+(doc 'note "Try to load doc annotation system for explicit type declarations")
+(define *docs-available* #f)
+(define *docs-quiet* #t)  ; Suppress "Doc index built" message
+(guard (e [else (set! *docs-available* #f)])
+       (load "lattice/meta/docs.ss")
+       (set! *docs-available* #t))
+
 (doc lookup-symbol-info 'type '(-> String (U (Alist Symbol Any) #f)))
 (doc lookup-symbol-info 'description "Look up symbol information from the index")
 (define (lookup-symbol-info name)
@@ -41,6 +48,52 @@
              (index-find prefix))
       '()))
 
+(doc 'section 'doc-annotation-integration)
+
+(doc lookup-doc-type 'type '(-> String (U String #f)))
+(doc lookup-doc-type 'description "Look up explicit type annotation from (doc symbol 'type ...) forms")
+(doc lookup-doc-type 'note "Authoritative when present - author's explicit declaration")
+(define (lookup-doc-type name)
+  (if (not *docs-available*)
+      #f
+      (guard (e [else #f])
+             (let* ([sym (string->symbol name)]
+                    [docs (docs-for sym)]
+                    ;; Find doc with 'type tag
+                    [type-doc (find (lambda (d) (eq? (caddr d) 'type)) docs)])
+               (if type-doc
+                   ;; content is at index 3, e.g. ('(-> Int Int)) from (doc f 'type '(-> Int Int))
+                   ;; The quote is captured in parsing, so we may get (quote (-> ...))
+                   (let* ([content (cadddr type-doc)]
+                          [first (and (pair? content) (car content))]
+                          ;; Unwrap quote if present: '(-> ...) => (-> ...)
+                          [type-expr (cond
+                                       [(not first) #f]
+                                       [(and (pair? first) (eq? (car first) 'quote))
+                                        (cadr first)]
+                                       [(pair? first) first]
+                                       [else #f])])
+                     (if type-expr
+                         (format "~s" type-expr)
+                         #f))
+                   #f)))))
+
+(doc lookup-doc-description 'type '(-> String (U String #f)))
+(doc lookup-doc-description 'description "Look up description from (doc symbol 'description ...) forms")
+(define (lookup-doc-description name)
+  (if (not *docs-available*)
+      #f
+      (guard (e [else #f])
+             (let* ([sym (string->symbol name)]
+                    [docs (docs-for sym)]
+                    [desc-doc (find (lambda (d) (eq? (caddr d) 'description)) docs)])
+               (if desc-doc
+                   (let ([content (cadddr desc-doc)])
+                     (if (and (pair? content) (string? (car content)))
+                         (car content)
+                         #f))
+                   #f)))))
+
 (doc 'section 'type-inference-integration)
 
 (doc 'note "Try to load type inference")
@@ -50,11 +103,57 @@
        (load "core/types/types.ss")
        (set! *infer-available* #t))
 
+(doc 'section 'doc-to-type-checker-bridge)
+(doc 'note "Bridge between doc annotation system and type checker. Populates declared types from doc index.")
+
+(doc *doc-types-loaded?* 'type 'Bool)
+(doc *doc-types-loaded?* 'description "Flag to track if doc types have been loaded into type checker.")
+(define *doc-types-loaded?* #f)
+
+(doc load-doc-types-into-checker! 'type '(-> Void))
+(doc load-doc-types-into-checker! 'description "Load all doc type annotations into the type checker's declared types table.")
+(doc load-doc-types-into-checker! 'note "Called lazily on first type inference. Builds doc index if needed.")
+(define (load-doc-types-into-checker!)
+  (when (and *docs-available* *infer-available* (not *doc-types-loaded?*))
+    (guard (e [else (void)])  ; Silently fail if something goes wrong
+      (ensure-doc-index!)
+      (let ([type-docs (lf-docs 'type)])
+        ;; Each doc is (file line tag content target)
+        ;; We want entries with a target (targeted doc annotations)
+        (for-each
+         (lambda (doc-entry)
+           (let ([content (cadddr doc-entry)]
+                 [target (list-ref doc-entry 4)])
+             (when (and target (pair? content))
+               ;; content is like ('(-> Int Int)) - extract the type
+               (let* ([first (car content)]
+                      [type (cond
+                              [(and (pair? first) (eq? (car first) 'quote))
+                               (cadr first)]
+                              [(pair? first) first]
+                              [else #f])])
+                 (when type
+                   (register-declared-type! target type))))))
+         type-docs))
+      (set! *doc-types-loaded?* #t))))
+
+(doc invalidate-doc-type-cache! 'type '(-> Void))
+(doc invalidate-doc-type-cache! 'description "Invalidate cached doc types so they reload on next inference. Call on file changes.")
+(doc invalidate-doc-type-cache! 'export #t)
+(define (invalidate-doc-type-cache!)
+  (set! *doc-types-loaded?* #f)
+  ;; Also clear declared types so stale entries don't persist
+  (when *infer-available*
+    (clear-declared-types!))
+  ;; Reset doc index so it rebuilds on next query
+  (when *docs-available*
+    (set! *doc-index-built?* #f)))
+
 ;;; Register capabilities state with the LSP state registry
 ;;; Note: These flags are set at load time based on what modules are available
 ;;; Resetting them doesn't make sense, so reset is a no-op
 (lsp-register-state! 'capabilities
-                     '(*pretty-available* *index-available* *infer-available*)
+                     '(*pretty-available* *index-available* *infer-available* *docs-available*)
                      (lambda () (void)))  ; No reset - these are load-time config
 
 (doc 'section 'type-inference-for-hover)
@@ -98,25 +197,34 @@
 
 (doc build-tenv-from-defs 'type '(-> (List (Pair Symbol Expr)) TEnv))
 (doc build-tenv-from-defs 'description "Build a type environment by inferring types for definitions")
-(doc build-tenv-from-defs 'note "Falls back to fresh type variables for failed inferences")
+(doc build-tenv-from-defs 'note "Uses declared types from doc annotations when available, falls back to inference")
 (define (build-tenv-from-defs defs)
   (if (not *infer-available*)
       empty-tenv
-      (let loop ([defs defs] [env empty-tenv])
-           (if (null? defs)
-               env
-               (let* ([def (car defs)]
-                      [name (car def)]
-                      [init (cdr def)])
-                     (guard (e [else (loop (cdr defs) env)])
-                            (reset-fresh!)
-                            (let ([result (infer init env)])
-                                 (if (eq? (car result) 'ok)
-                                     (let* ([type (cadr result)]
-                                            [s (caddr result)]
-                                            [gen-type (generalize env (apply-subst s type))])
-                                           (loop (cdr defs) (tenv-extend env name gen-type)))
-                                     (loop (cdr defs) env)))))))))
+      (begin
+        ;; Ensure doc types are loaded into type checker
+        (load-doc-types-into-checker!)
+        (let loop ([defs defs] [env empty-tenv])
+          (if (null? defs)
+              env
+              (let* ([def (car defs)]
+                     [name (car def)]
+                     [init (cdr def)]
+                     ;; Check for declared type first
+                     [declared (lookup-declared-type name)])
+                (if declared
+                    ;; Use declared type directly
+                    (loop (cdr defs) (tenv-extend env name declared))
+                    ;; Fall back to inference
+                    (guard (e [else (loop (cdr defs) env)])
+                           (reset-fresh!)
+                           (let ([result (infer init env)])
+                             (if (eq? (car result) 'ok)
+                                 (let* ([type (cadr result)]
+                                        [s (caddr result)]
+                                        [gen-type (generalize env (apply-subst s type))])
+                                   (loop (cdr defs) (tenv-extend env name gen-type)))
+                                 (loop (cdr defs) env)))))))))))
 
 (doc try-infer-type 'type '(-> String String (U String #f)))
 (doc try-infer-type 'description "Try to infer the type of a symbol in the context of a document")
@@ -387,52 +495,61 @@
 
 ;;; compute-hover : Document × JsonObject → JsonObject | null
 ;;; Compute hover information for a position.
-;;; Uses real type inference when available, falls back to index/primitives.
-;;; Now includes local binding inference for let/lambda-bound variables.
+;;; Priority order for type information:
+;;;   1. Explicit (doc 'type ...) annotation (author's declaration)
+;;;   2. Local type inference (let/lambda bindings)
+;;;   3. Global type inference (top-level definitions)
+;;;   4. Symbol index signature / primitive database
 (define (compute-hover doc position)
   (let ([symbol (symbol-at-position doc position)])
        (if (not symbol)
            'null
            (let* ([info (lookup-symbol-info symbol)]
                   [line (json-get position "line")]  ; 0-indexed line number
-                  ;; Try local type inference first (includes let bindings),
-                  ;; then basic inference, then fall back to index/primitives
-                  [type-str (or (and *infer-available* line
+                  ;; Check doc annotation first (authoritative), then inference, then fallback
+                  [type-str (or (lookup-doc-type symbol)
+                                (and *infer-available* line
                                      (try-infer-type-local symbol (document-content doc) line))
                                 (and *infer-available*
                                      (try-infer-type symbol (document-content doc)))
                                 (get-type-string symbol))]
-                  [hover-text (format-hover-text symbol info type-str)])
+                  ;; Also check for doc description
+                  [doc-desc (lookup-doc-description symbol)]
+                  [hover-text (format-hover-text symbol info type-str doc-desc)])
                  (if hover-text
                      (make-hover hover-text)
                      'null)))))
 
-;;; format-hover-text : String × (Alist | #f) × (String | #f) → String | #f
-;;; Format hover text from symbol info and type.
-(define (format-hover-text symbol info type-str)
-  (cond
-   ;; We have type information
-   [type-str
-    (let ([doc (and info (assq 'docstring info))])
-         (if (and doc (cdr doc))
-             (format "```scheme\n~a : ~a\n```\n\n~a" symbol type-str (cdr doc))
-             (format "```scheme\n~a : ~a\n```" symbol type-str)))]
-   ;; We have index info but no type
-   [info
-    (let ([kind (assq 'kind info)]
-          [doc (assq 'docstring info)])
-         (if (and doc (cdr doc))
-             (format "```scheme\n~a\n```\n*~a*\n\n~a"
-                     symbol
-                     (if kind (cdr kind) "symbol")
-                     (cdr doc))
-             (format "```scheme\n~a\n```" symbol)))]
-   ;; Check if it's a primitive
-   [(primitive-type symbol)
-    => (lambda (ptype)
-               (format "```scheme\n~a : ~a\n```\n\n*Primitive*" symbol ptype))]
-   ;; Nothing found
-   [else #f]))
+;;; format-hover-text : String × (Alist | #f) × (String | #f) × (String | #f) → String | #f
+;;; Format hover text from symbol info, type, and doc description.
+;;; doc-desc (from (doc 'description ...)) takes priority over index docstring.
+(define (format-hover-text symbol info type-str doc-desc)
+  (let ([description (or doc-desc
+                         (and info
+                              (let ([d (assq 'docstring info)])
+                                (and d (cdr d)))))])
+    (cond
+     ;; We have type information
+     [type-str
+      (if description
+          (format "```scheme\n~a : ~a\n```\n\n~a" symbol type-str description)
+          (format "```scheme\n~a : ~a\n```" symbol type-str))]
+     ;; We have description but no type
+     [description
+      (let ([kind (and info (assq 'kind info))])
+        (format "```scheme\n~a\n```\n*~a*\n\n~a"
+                symbol
+                (if kind (cdr kind) "symbol")
+                description))]
+     ;; We have index info but no type or description
+     [info
+      (format "```scheme\n~a\n```" symbol)]
+     ;; Check if it's a primitive
+     [(primitive-type symbol)
+      => (lambda (ptype)
+           (format "```scheme\n~a : ~a\n```\n\n*Primitive*" symbol ptype))]
+     ;; Nothing found
+     [else #f])))
 
 ;;; ====
 ;;; Primitive Type Database (shared between hover and completion)
@@ -1532,7 +1649,7 @@
          ;; Refuse to format if comments present - read discards them
          (if (has-comments? content)
              #f
-             (let* ([exprs (read-all-sexps content)]
+             (let* ([exprs (read-all-sexps-from-string content)]
                     [docs (map (lambda (expr)
                                        (scheme-expr->doc expr tab-size))
                                exprs)]
@@ -1540,9 +1657,10 @@
                     [combined (join-docs-with-blanks docs)])
                    (pretty 80 combined)))))
 
-;;; read-all-sexps : String → (List Sexp)
-;;; Read all S-expressions from a string.
-(define (read-all-sexps str)
+;;; read-all-sexps-from-string : String → (List Sexp)
+;;; Read all S-expressions from a string (not a file path).
+;;; Note: Named to avoid shadowing read-all-sexps from docs.ss which reads files.
+(define (read-all-sexps-from-string str)
   (let ([port (open-input-string str)])
        (let loop ([acc '()])
             (let ([expr (read port)])

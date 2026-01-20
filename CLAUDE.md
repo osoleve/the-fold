@@ -586,6 +586,7 @@ Use `(doc ...)` for searchable, introspectable annotations that survive in sourc
 - Returns void — use in sequences, not value positions
 - Stripped during normalization — code with/without docs hashes identically
 - Extracted from source by tooling (`lf-todo`, `lf-types`)
+- **Type annotations are authoritative** — `(doc f 'type ...)` takes precedence over inference
 
 **Standard tags:** `'type`, `'description`, `'param`, `'returns`, `'todo`, `'fixme`, `'deprecated`, `'since`, `'see`, `'note`
 
@@ -596,6 +597,12 @@ Use `(doc ...)` for searchable, introspectable annotations that survive in sourc
 (docs-for 'symbol)  ; Find docs for specific target
 (doc-stats)         ; Count by tag
 ```
+
+**Type Checker Integration:**
+Doc type annotations are used by both the LSP and type inference:
+- LSP hover shows doc-declared types with highest priority
+- Type inference (`core/types/infer.ss`) uses declared types via `lookup-declared-type`
+- Bridge: `load-doc-types-into-checker!` populates type checker from doc index
 
 ### Normalization and Content Addressing
 

@@ -264,6 +264,59 @@ The doc extraction system (`lattice/meta/docs.ss`) provides searchable, introspe
 | `lf-types` | `'type` tags |
 | `lf-deprecated` | `'deprecated` tags |
 
+#### 8.5.1 Type Checker Integration
+
+Doc type annotations are **authoritative**—they take precedence over type inference. The integration works at two levels:
+
+**Type Checker** (`core/types/infer.ss`):
+
+The type inference system maintains a `*declared-types*` hashtable populated from doc annotations:
+
+```scheme
+;; Register a declared type
+(register-declared-type! 'my-fn '(-> Int Int Int))
+
+;; Look up declared type (returns #f if not found)
+(lookup-declared-type 'my-fn)  ; => (-> Int Int Int)
+
+;; Bulk registration from doc annotations
+(register-doc-types! '((foo . (-> Int Bool))
+                       (bar . (-> String Int))))
+```
+
+When inferring a variable's type, the system checks declared types as a fallback:
+
+```scheme
+;; In infer.ss, variable lookup now does:
+(or (tenv-lookup env expr)           ; 1. Check local environment
+    (lookup-declared-type expr))      ; 2. Check declared types
+```
+
+**LSP Integration** (`boundary/lsp/capabilities.ss`):
+
+The LSP hover provider uses doc types as the **first** source of type information:
+
+```
+Priority order for hover types:
+1. (doc symbol 'type ...) annotation  ← Author's explicit declaration
+2. Local type inference (let bindings)
+3. Global type inference (top-level defs)
+4. Symbol index / primitive database
+```
+
+The bridge function `load-doc-types-into-checker!` lazily populates the type checker's declared types from the doc index:
+
+```scheme
+;; Data flow:
+(doc f 'type '(-> Int Int)) in source
+         ↓
+docs.ss extracts to *doc-index*
+         ↓
+load-doc-types-into-checker! registers in *declared-types*
+         ↓
+infer.ss uses declared type when inferring 'f
+```
+
 **Indexing Performance**:
 
 The indexer uses a cons+reverse pattern to avoid O(N²) append overhead when processing hundreds of files:

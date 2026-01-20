@@ -78,6 +78,8 @@
         (when (and (json-array? changes) (pair? (cdr changes)))
               (let ([change-list (cdr changes)])  ; Get list of changes
                    (lsp-log "Document changed: ~a (v~a, ~a changes)" uri version (length change-list))
+                   ;; Invalidate doc type cache so hover picks up new annotations
+                   (invalidate-doc-type-cache!)
                    ;; Apply changes incrementally
                    (doc-apply-changes! uri version change-list)
                    ;; Trigger diagnostics
