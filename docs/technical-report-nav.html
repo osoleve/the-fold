@@ -2143,6 +2143,96 @@ Such that: f(p) ≤ q ⟺ p ≤ g(q)</p>
 Examples of Galois connections:</p>
 <ul>
 <li>Ceiling ⊣ Inclusion (ℤ ⊆ ℝ)</li><li>Interior ⊣ Closure (topology)</li><li>Abstraction ⊣ Concretization (abstract interpretation)</li></ul>
+<h4>
+5.12.6 Logic as Adjunctions</h4>
+<p>
+Lawvere&#39;s insight (1969): logical connectives arise naturally from adjunctions. The Fold implements this via <code>logic-adjunction.ss</code>:</p>
+<p>
+<strong>The Diagonal Adjunction Chain</strong>: + ⊣ Δ ⊣ ×</p>
+<p>
+The diagonal functor Δ : C → C×C sends A to (A, A). It has:</p>
+<ul>
+<li><strong>Right adjoint ×</strong> (product): conjunction ∧</li><li><strong>Left adjoint +</strong> (coproduct): disjunction ∨</li></ul>
+<pre><code class="language-scheme">;; Diagonal: A → (A, A)
+(diagonal-obj 5)  ; → (5 . 5)
+
+;; Unit for Δ ⊣ ×: the diagonal embedding A → A×A
+(unit-diagonal-product 5)  ; → (5 . 5)
+
+;; Counit for + ⊣ Δ: the codiagonal A+A → A
+(counit-coproduct-diagonal (make-left 5))   ; → 5
+(counit-coproduct-diagonal (make-right 7))  ; → 7
+</code></pre>
+<p>
+<strong>Curry-Howard Correspondence</strong>: These adjunctions yield the logical connectives:</p>
+<table>
+<thead>
+<tr>
+<th>Category</th>
+<th>Logic</th>
+<th>Type Theory</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Product ×</td>
+<td>Conjunction ∧</td>
+<td>Pair types (A, B)</td>
+</tr>
+<tr>
+<td>Coproduct +</td>
+<td>Disjunction ∨</td>
+<td>Sum types A + B</td>
+</tr>
+<tr>
+<td>Right adjoint (×)</td>
+<td>Universal quantifier ∀</td>
+<td>Pi types Π</td>
+</tr>
+<tr>
+<td>Left adjoint (+)</td>
+<td>Existential quantifier ∃</td>
+<td>Sigma types Σ</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-scheme">;; Conjunction introduction/elimination
+(conj-intro &#39;a &#39;b)          ; → (a . b)
+(conj-elim-left (conj-intro &#39;a &#39;b))   ; → a
+
+;; Disjunction with case analysis
+(disj-elim (disj-intro-left 5)
+           (lambda (x) (* x 2))
+           (lambda (x) (+ x 100)))  ; → 10
+
+;; Existential: witness + proof
+(exists-intro 5 &quot;proof&quot;)  ; → (5 . &quot;proof&quot;)
+(exists-elim (exists-intro 5 &quot;p&quot;)
+             (lambda (w p) (* w 2)))  ; → 10
+</code></pre>
+<p>
+<strong>Quantifiers as Adjoints to Substitution</strong>: For dependent types, given f : I → J:</p>
+<ul>
+<li>Substitution f* : Fam(J) → Fam(I) (reindexing)</li><li>Σ_f ⊣ f* (existential, left adjoint)</li><li>f* ⊣ Π_f (universal, right adjoint)</li></ul>
+<pre><code class="language-scheme">;; A family: Vec indexed by Nat
+(define fam-vec
+  (make-family &#39;Nat
+    (lambda (n) (if (= n 0) &#39;Unit (list &#39;× &#39;A (list &#39;Vec (- n 1)))))))
+
+;; Substitution along f(n) = 2n
+(define fam-doubled (subst-family (lambda (n) (* n 2)) fam-vec &#39;Nat))
+(family-at fam-doubled 1)  ; = fam-vec at 2
+</code></pre>
+<p>
+Logical laws become type isomorphisms, verified computationally:</p>
+<pre><code class="language-scheme">;; Distributivity: A ∧ (B ∨ C) ≅ (A ∧ B) ∨ (A ∧ C)
+(define (distrib a-and-bc)
+  (let ([a (conj-elim-left a-and-bc)]
+        [bc (conj-elim-right a-and-bc)])
+    (disj-elim bc
+      (lambda (b) (disj-intro-left (conj-intro a b)))
+      (lambda (c) (disj-intro-right (conj-intro a c))))))
+</code></pre>
 <h3>
 5.13 Comonads</h3>
 <p>

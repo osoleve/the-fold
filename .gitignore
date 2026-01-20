@@ -1,5 +1,6 @@
 # Local Claude settings
 .claude/settings.local.json
+.claude/*.local.md
 
 # IDE
 .vscode/tasks.json
@@ -11,13 +12,18 @@
 
 # Content store
 # Track objects/ for BBS durability (27MB, acceptable)
-# Track heads/ for issue pointers
+# Track heads/bbs/ for issue pointers
 # Note: Must negate parent before children for git to see them
 !.store/
 .store/*
 !.store/objects/
 !.store/heads/
+.store/heads/history/
+.store/heads/flashmob/
 .store_archive/
+
+# Local CAS working directory
+.fold/
 
 # Build artifacts
 target/
@@ -35,8 +41,12 @@ nul
 # Archives
 archive/
 
-# BBS index cache (generated, can be rebuilt)
+# BBS runtime state (counters, caches)
+.bbs/counter
 .bbs/index.cache
+
+# Flashmob runtime state
+.flashmob/
 
 # BBS lock files (runtime only)
 *.flock
