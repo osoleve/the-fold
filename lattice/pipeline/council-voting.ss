@@ -1,41 +1,26 @@
-;;; lattice/pipeline/council-voting.ss — Voting Theory Integration for Councils
-;;;
-;;; Extends council.ss with ranked-choice voting using voting.ss.
-;;; Agents submit full preference rankings over proposals, and various
-;;; aggregation rules (Schulze, Borda, Copeland, plurality) determine outcomes.
-;;;
-;;; This is Lattice code: pure stage construction.
-;;; Effect interpretation happens in boundary/pipeline/interpreter.ss
-;;;
-;;; Features:
-;;;   - Ranked preference submission
-;;;   - Multiple voting rules (configurable)
-;;;   - Condorcet winner detection
-;;;   - Strategic voting analysis
-;;;
-;;; Dependencies:
-;;;   - lattice/pipeline/council.ss
-;;;   - lattice/fp/game/voting.ss
-
 (load "lattice/pipeline/council.ss")
 (load "lattice/fp/game/voting.ss")
 
-;;; ============================================================================
-;;; Voting Rule Selection
-;;; ============================================================================
+(doc 'module 'pipeline/council-voting)
+(doc 'description "Voting Theory Integration for Councils. Extends council.ss with ranked-choice voting using voting.ss. Agents submit full preference rankings over proposals, and various aggregation rules (Schulze, Borda, Copeland, plurality) determine outcomes.")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
+(doc 'note "Effect interpretation happens in boundary/pipeline/interpreter.ss")
+(doc 'features "Ranked preference submission; Multiple voting rules (configurable); Condorcet winner detection; Strategic voting analysis")
+(doc 'dependencies '(lattice/pipeline/council.ss lattice/fp/game/voting.ss))
 
-;;; voting-rule? : Any -> Boolean
+(doc 'section 'voting-rule-selection)
+
+(doc 'type '(-> Any Boolean))
 (define (voting-rule? x)
   (memq x '(plurality borda schulze copeland condorcet)))
 
 ;;; default-voting-rule : Symbol
 (define default-voting-rule 'schulze)
 
-;;; ============================================================================
-;;; Ranked Voting Council Configuration
-;;; ============================================================================
+(doc 'section 'ranked-voting-config)
 
-;;; make-ranked-vote-config : Fields -> RankedVoteConfig
+(doc 'type '(-> (List Symbol) (List Any) Symbol Boolean Boolean Nat RankedVoteConfig))
 (define (make-ranked-vote-config models
                                   proposals
                                   voting-rule
@@ -163,17 +148,10 @@
 (define (council-condorcet models proposals)
   (council-vote-ranked models proposals 'condorcet))
 
-;;; ============================================================================
-;;; Deliberation Protocol
-;;; ============================================================================
+(doc 'section 'deliberation-protocol)
+(doc 'description "A deliberation combines discussion rounds with final voting: 1. Present proposals to all agents, 2. Optional discussion rounds (sequential council), 3. Each agent submits a ranking, 4. Aggregate via voting rule")
 
-;;; A deliberation combines discussion rounds with final voting.
-;;; 1. Present proposals to all agents
-;;; 2. Optional discussion rounds (sequential council)
-;;; 3. Each agent submits a ranking
-;;; 4. Aggregate via voting rule
-
-;;; make-deliberation : Fields -> Deliberation
+(doc 'type '(-> String (List Any) (List Symbol) Nat Symbol Symbol Deliberation))
 (define (make-deliberation topic
                            proposals
                            voters
@@ -204,13 +182,11 @@
                 (list 'stage-effect 'deliberation
                       (list delib input)))))
 
-;;; ============================================================================
-;;; Deliberation Builders
-;;; ============================================================================
+(doc 'section 'deliberation-builders)
 
-;;; code-review-deliberation : (List Symbol) × (List String) → Deliberation
-;;; Create a code review deliberation.
-;;; verdicts: list of possible verdicts (e.g., '("approve" "request-changes" "reject"))
+(doc 'type '(-> (List Symbol) (List String) Deliberation))
+(doc 'description "Create a code review deliberation")
+(doc 'param 'verdicts "list of possible verdicts (e.g., '(\"approve\" \"request-changes\" \"reject\"))")
 (define (code-review-deliberation reviewers verdicts)
   (make-deliberation
    "Code Review"
@@ -242,12 +218,10 @@
    'borda  ; Borda rewards consensus
    #f))
 
-;;; ============================================================================
-;;; Result Analysis
-;;; ============================================================================
+(doc 'section 'result-analysis)
 
-;;; analyze-deliberation-result : RankedVoteResult → Alist
-;;; Analyze voting result for insights.
+(doc 'type '(-> RankedVoteResult Alist))
+(doc 'description "Analyze voting result for insights")
 (define (analyze-deliberation-result result)
   (let* ([profile (rvr-profile result)]
          [winner (rvr-winner result)]

@@ -1,20 +1,16 @@
-;;; lattice/optimization/line-search.ss --- Line Search Strategies
-;;;
-;;; Implements line search methods for finding step sizes in optimization.
-;;;
-;;; This is Lattice code: pure, total, assumes reasonable input.
-;;;
-;;; Methods:
-;;;   - Armijo (backtracking) line search
-;;;   - Wolfe conditions (strong and weak)
-;;;   - Exact line search for quadratics
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;   - autodiff/reverse-diff.ss
-
 (load "core/base/prelude.ss")
 (load "core/autodiff/reverse-diff.ss")
+
+(doc 'module 'line-search)
+(doc 'description "Line search strategies for finding step sizes in optimization")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
+
+(doc 'section 'overview)
+(doc 'note "Implements line search methods:
+  - Armijo (backtracking) line search
+  - Wolfe conditions (strong and weak)
+  - Exact line search for quadratics")
 
 ;;; ====
 ;;; Line Search Parameters

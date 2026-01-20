@@ -1,13 +1,11 @@
-;;; lattice/pipeline/test-council-voting.ss — Tests for Council Voting Integration
-;;;
-;;; Tests the integration of voting theory with the council framework.
-
 (load "core/testing/test-framework.ss")
 (load "lattice/pipeline/council-voting.ss")
 
-;;; ============================================================================
-;;; Configuration Tests
-;;; ============================================================================
+(doc 'module 'pipeline/test-council-voting)
+(doc 'description "Tests for Council Voting Integration. Tests the integration of voting theory with the council framework.")
+(doc 'layer 'lattice)
+
+(doc 'section 'configuration-tests)
 
 (test-group "ranked-vote-config"
 
@@ -33,9 +31,7 @@
 
 )
 
-;;; ============================================================================
-;;; Result Tests
-;;; ============================================================================
+(doc 'section 'result-tests)
 
 (test-group "ranked-vote-result"
 
@@ -56,9 +52,7 @@
 
 )
 
-;;; ============================================================================
-;;; Voting Rule Application Tests
-;;; ============================================================================
+(doc 'section 'voting-rule-application-tests)
 
 (test-group "apply-voting-rule"
 
@@ -97,9 +91,7 @@
 
 )
 
-;;; ============================================================================
-;;; Stage Creation Tests
-;;; ============================================================================
+(doc 'section 'stage-creation-tests)
 
 (test-group "council-stages"
 
@@ -119,9 +111,7 @@
 
 )
 
-;;; ============================================================================
-;;; Deliberation Tests
-;;; ============================================================================
+(doc 'section 'deliberation-tests)
 
 (test-group "deliberation"
 
@@ -171,9 +161,7 @@
 
 )
 
-;;; ============================================================================
-;;; Result Analysis Tests
-;;; ============================================================================
+(doc 'section 'result-analysis-tests)
 
 (test-group "result-analysis"
 
@@ -203,9 +191,7 @@
 
 )
 
-;;; ============================================================================
-;;; Helper Tests
-;;; ============================================================================
+(doc 'section 'helper-tests)
 
 (test-group "helpers"
 
@@ -225,8 +211,6 @@
 
 )
 
-;;; ============================================================================
-;;; Run Tests
-;;; ============================================================================
+(doc 'section 'run-tests)
 
 (run-all-tests)

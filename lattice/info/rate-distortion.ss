@@ -1,169 +1,144 @@
-;;; core/info-theory/rate-distortion.ss — Rate-Distortion Theory
-;;;
-;;; Implements rate-distortion theory functions:
-;;;   - Distortion measures (MSE, MAE, Hamming)
-;;;   - Rate-distortion functions for common sources
-;;;   - Quantization algorithms (scalar, Lloyd-Max)
-;;;   - Operational rate-distortion analysis
-;;;
-;;; Rate-distortion theory characterizes the fundamental tradeoff between
-;;; compression rate (bits) and reproduction fidelity (distortion).
-;;;
-;;; This is Core code: pure, total, assumes valid input.
-;;;
-;;; Dependencies:
-;;;   - entropy.ss (for entropy calculations)
-
 (load "lattice/info/entropy.ss")
 
-;;; ====
-;;; Distortion Measures
-;;; ====
+(doc 'module 'rate-distortion)
+(doc 'description "Rate-distortion theory: compression vs fidelity tradeoff")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
 
-;;; squared-error : Real × Real → Real
-;;; Squared error distortion d(x,y) = (x-y)^2
+(doc 'section 'distortion-measures)
+
 (define (squared-error x y)
+  (doc 'type '(-> Real Real Real))
+  (doc 'description "Squared error distortion d(x,y) = (x-y)^2")
   (* (- x y) (- x y)))
 
-;;; absolute-error : Real × Real → Real
-;;; Absolute error distortion d(x,y) = |x-y|
 (define (absolute-error x y)
+  (doc 'type '(-> Real Real Real))
+  (doc 'description "Absolute error distortion d(x,y) = |x-y|")
   (abs (- x y)))
 
-;;; hamming-distortion : α × α → Nat
-;;; Hamming distortion d(x,y) = 0 if x=y, 1 otherwise
 (define (hamming-distortion x y)
+  (doc 'type '(-> α α Nat))
+  (doc 'description "Hamming distortion d(x,y) = 0 if x=y, 1 otherwise")
   (if (equal? x y) 0 1))
 
-;;; mse : (List Real) × (List Real) → Real
-;;; Mean squared error: (1/n) * sum((xi - yi)^2)
 (define (mse xs ys)
+  (doc 'type '(-> (List Real) (List Real) Real))
+  (doc 'description "Mean squared error: (1/n) * sum((xi - yi)^2)")
   (if (null? xs)
       0
       (/ (fold-left + 0 (map squared-error xs ys))
          (length xs))))
 
-;;; mae : (List Real) × (List Real) → Real
-;;; Mean absolute error: (1/n) * sum(|xi - yi|)
 (define (mae xs ys)
+  (doc 'type '(-> (List Real) (List Real) Real))
+  (doc 'description "Mean absolute error: (1/n) * sum(|xi - yi|)")
   (if (null? xs)
       0
       (/ (fold-left + 0 (map absolute-error xs ys))
          (length xs))))
 
-;;; rmse : (List Real) × (List Real) → Real
-;;; Root mean squared error: sqrt(MSE)
 (define (rmse xs ys)
+  (doc 'type '(-> (List Real) (List Real) Real))
+  (doc 'description "Root mean squared error: sqrt(MSE)")
   (sqrt (mse xs ys)))
 
-;;; normalized-mse : (List Real) × (List Real) → Real
-;;; Normalized MSE: MSE / variance(original)
 (define (normalized-mse original reconstructed)
+  (doc 'type '(-> (List Real) (List Real) Real))
+  (doc 'description "Normalized MSE: MSE / variance(original)")
   (let ([m (mse original reconstructed)]
         [v (variance original)])
        (if (<= v 0)
            0
            (/ m v))))
 
-;;; snr : (List Real) × (List Real) → Real
-;;; Signal-to-noise ratio (linear): var(signal) / MSE
 (define (snr original reconstructed)
+  (doc 'type '(-> (List Real) (List Real) Real))
+  (doc 'description "Signal-to-noise ratio (linear): var(signal) / MSE")
   (let ([v (variance original)]
         [m (mse original reconstructed)])
        (if (<= m 0)
            +inf.0
            (/ v m))))
 
-;;; snr-db : (List Real) × (List Real) → Real
-;;; Signal-to-noise ratio in decibels: 10 * log10(SNR)
 (define (snr-db original reconstructed)
+  (doc 'type '(-> (List Real) (List Real) Real))
+  (doc 'description "Signal-to-noise ratio in decibels: 10 * log10(SNR)")
   (let ([s (snr original reconstructed)])
        (if (= s +inf.0)
            +inf.0
            (* 10 (/ (log2 s) (log2 10))))))
 
-;;; psnr : (List Real) × (List Real) × Real → Real
-;;; Peak signal-to-noise ratio in dB: 10 * log10(peak^2 / MSE)
 (define (psnr original reconstructed peak)
+  (doc 'type '(-> (List Real) (List Real) Real Real))
+  (doc 'description "Peak signal-to-noise ratio in dB")
   (let ([m (mse original reconstructed)])
        (if (<= m 0)
            +inf.0
            (* 10 (/ (log2 (/ (* peak peak) m)) (log2 10))))))
 
-;;; ====
-;;; Statistical Helpers
-;;; ====
+(doc 'section 'statistical-helpers)
 
-;;; mean : (List Real) → Real
 (define (mean xs)
+  (doc 'type '(-> (List Real) Real))
   (if (null? xs)
       0
       (/ (fold-left + 0 xs) (length xs))))
 
-;;; variance : (List Real) → Real
-;;; Population variance: (1/n) * sum((xi - mu)^2)
 (define (variance xs)
+  (doc 'type '(-> (List Real) Real))
+  (doc 'description "Population variance: (1/n) * sum((xi - mu)^2)")
   (if (null? xs)
       0
       (let ([mu (mean xs)])
            (/ (fold-left + 0 (map (lambda (x) (squared-error x mu)) xs))
               (length xs)))))
 
-;;; ====
-;;; Rate-Distortion Functions
-;;; ====
+(doc 'section 'rate-distortion-functions)
 
-;;; gaussian-rate-distortion : Real × Real → Real
-;;; Rate-distortion function for Gaussian source with variance sigma^2.
-;;; R(D) = (1/2) * log2(sigma^2 / D) for D <= sigma^2
-;;; R(D) = 0 for D > sigma^2
 (define (gaussian-rate-distortion variance distortion)
+  (doc 'type '(-> Real Real Real))
+  (doc 'description "Rate-distortion function for Gaussian source")
   (cond
    [(<= variance 0) 0]
    [(<= distortion 0) +inf.0]  ; Perfect reproduction needs infinite rate
    [(>= distortion variance) 0]  ; Large distortion needs zero rate
    [else (* 0.5 (log2 (/ variance distortion)))]))
 
-;;; gaussian-distortion-rate : Real × Real → Real
-;;; Distortion-rate function for Gaussian source.
-;;; D(R) = sigma^2 * 2^(-2R)
 (define (gaussian-distortion-rate variance rate)
+  (doc 'type '(-> Real Real Real))
+  (doc 'description "Distortion-rate function for Gaussian source")
   (if (<= rate 0)
       variance  ; Zero rate gives full variance as distortion
       (* variance (expt 2 (* -2 rate)))))
 
-;;; binary-rate-distortion : Real → Real
-;;; Rate-distortion function for binary symmetric source (p=0.5).
-;;; R(D) = 1 - H(D) for D <= 0.5
-;;; R(D) = 0 for D > 0.5
 (define (binary-rate-distortion distortion)
+  (doc 'type '(-> Real Real))
+  (doc 'description "Rate-distortion function for binary symmetric source")
   (cond
    [(<= distortion 0) 1]  ; Perfect reproduction
    [(>= distortion 0.5) 0]  ; Maximum distortion (random output)
    [else (- 1 (binary-entropy distortion))]))
 
-;;; binary-distortion-rate : Real → Real
-;;; Distortion-rate function for binary source.
-;;; D(R) = H^(-1)(1-R) where H is binary entropy
-;;; Approximated using binary search.
 (define (binary-distortion-rate rate)
+  (doc 'type '(-> Real Real))
+  (doc 'description "Distortion-rate function for binary source")
   (cond
    [(<= rate 0) 0.5]
    [(>= rate 1) 0]
    [else (binary-entropy-inverse (- 1 rate))]))
 
-;;; binary-entropy-inverse : Real → Real
-;;; Inverse of binary entropy function (for h in [0,1]).
-;;; Uses binary search to find p such that H(p) = h.
 (define (binary-entropy-inverse h)
+  (doc 'type '(-> Real Real))
+  (doc 'description "Inverse of binary entropy function via binary search")
   (if (<= h 0)
       0
       (if (>= h 1)
           0.5
           (binary-search-entropy h 0 0.5 0.0001))))
 
-;;; binary-search-entropy : Real × Real × Real × Real → Real
 (define (binary-search-entropy target low high tolerance)
+  (doc 'type '(-> Real Real Real Real Real))
   (let* ([mid (/ (+ low high) 2)]
          [h-mid (binary-entropy mid)])
         (cond
@@ -171,52 +146,40 @@
          [(< h-mid target) (binary-search-entropy target mid high tolerance)]
          [else (binary-search-entropy target low mid tolerance)])))
 
-;;; ====
-;;; Uniform Scalar Quantization
-;;; ====
+(doc 'section 'uniform-scalar-quantization)
 
-;;; uniform-quantize : Real × Real × Nat → Real
-;;; Quantize x to one of n uniform levels in [0, max-val].
-;;; Returns the quantized value (reconstruction level).
 (define (uniform-quantize x max-val n-levels)
+  (doc 'type '(-> Real Real Nat Real))
+  (doc 'description "Quantize x to one of n uniform levels in [0, max-val]")
   (let* ([step (/ max-val n-levels)]
          [level (min (- n-levels 1)
                      (max 0 (exact (floor (/ x step)))))]
          [reconstruction (+ (* step level) (/ step 2))])
         reconstruction))
 
-;;; uniform-quantize-list : (List Real) × Real × Nat → (List Real)
-;;; Quantize a list of values uniformly.
 (define (uniform-quantize-list xs max-val n-levels)
+  (doc 'type '(-> (List Real) Real Nat (List Real)))
+  (doc 'description "Quantize a list of values uniformly")
   (map (lambda (x) (uniform-quantize x max-val n-levels)) xs))
 
-;;; uniform-quantization-distortion : Real × Nat → Real
-;;; Theoretical MSE for uniform quantizer on uniform [0,max] source.
-;;; D = step^2 / 12 where step = max/n
 (define (uniform-quantization-distortion max-val n-levels)
+  (doc 'type '(-> Real Nat Real))
+  (doc 'description "Theoretical MSE for uniform quantizer")
   (let ([step (/ max-val n-levels)])
        (/ (* step step) 12)))
 
-;;; quantization-bits : Nat → Real
-;;; Bits needed for n-level quantizer: log2(n)
 (define (quantization-bits n-levels)
+  (doc 'type '(-> Nat Real))
+  (doc 'description "Bits needed for n-level quantizer: log2(n)")
   (if (<= n-levels 1)
       0
       (log2 n-levels)))
 
-;;; ====
-;;; Lloyd-Max Quantization
-;;; ====
-;;;
-;;; Lloyd-Max algorithm finds optimal quantization levels for a
-;;; given source distribution by iteratively refining:
-;;;   1. Decision boundaries (midpoints between levels)
-;;;   2. Reconstruction levels (centroids of regions)
+(doc 'section 'lloyd-max-quantization)
 
-;;; lloyd-max-quantizer : (List Real) × Nat × Nat → (List Real)
-;;; Train Lloyd-Max quantizer on samples.
-;;; Returns list of reconstruction levels.
 (define (lloyd-max-quantizer samples n-levels max-iter)
+  (doc 'type '(-> (List Real) Nat Nat (List Real)))
+  (doc 'description "Train Lloyd-Max quantizer on samples")
   (if (or (null? samples) (<= n-levels 0))
       '()
       (let* ([sorted (list-sort < samples)]

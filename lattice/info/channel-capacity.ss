@@ -1,51 +1,30 @@
-;;; core/info-theory/channel-capacity.ss — Channel Capacity Calculations
-;;;
-;;; Information-theoretic channel capacity for various channel models:
-;;;   - Binary Symmetric Channel (BSC)
-;;;   - Binary Erasure Channel (BEC)
-;;;   - Z-Channel (asymmetric binary)
-;;;   - Additive White Gaussian Noise (AWGN) Channel
-;;;   - Discrete Memoryless Channels (DMC)
-;;;
-;;; Channel capacity C = max_{p(x)} I(X;Y) is the theoretical maximum
-;;; rate at which information can be reliably transmitted.
-;;;
-;;; This is Core code: pure, total, assumes valid parameters.
-;;;
-;;; Dependencies:
-;;;   - entropy.ss (Shannon entropy, binary entropy, mutual information)
-
 (load "lattice/info/entropy.ss")
 
-;;; ====
-;;; Binary Symmetric Channel (BSC)
-;;; ====
-;;;
-;;; The BSC flips each bit with probability p:
-;;;   P(Y=0|X=0) = 1-p,  P(Y=1|X=0) = p
-;;;   P(Y=0|X=1) = p,    P(Y=1|X=1) = 1-p
-;;;
-;;; Capacity: C = 1 - H(p) where H is binary entropy
+(doc 'module 'channel-capacity)
+(doc 'description "Channel capacity calculations for various channel models")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
 
-;;; bsc-capacity : Real → Real
-;;; Channel capacity of BSC with crossover probability p.
-;;; Returns capacity in bits per channel use.
+(doc 'section 'binary-symmetric-channel)
+
 (define (bsc-capacity p)
+  (doc 'type '(-> Real Real))
+  (doc 'description "Channel capacity of BSC with crossover probability p")
   (cond
    [(<= p 0) 1.0]  ; No errors: perfect channel
    [(>= p 1) 1.0]  ; All flipped: still perfect (just inverted)
    [(= p 0.5) 0.0] ; Random output: no information
    [else (- 1 (binary-entropy p))]))
 
-;;; bsc-transition-matrix : Real → (List (List Real))
-;;; Transition probability matrix P(Y|X) for BSC.
 (define (bsc-transition-matrix p)
+  (doc 'type '(-> Real (List (List Real))))
+  (doc 'description "Transition probability matrix P(Y|X) for BSC")
   (list (list (- 1 p) p)
         (list p (- 1 p))))
 
-;;; bsc-mutual-information : Real × Real → Real
-;;; Mutual information I(X;Y) for BSC with input probability p-x (P(X=1)).
 (define (bsc-mutual-information p-crossover p-x)
+  (doc 'type '(-> Real Real Real))
+  (doc 'description "Mutual information I(X;Y) for BSC with input probability p-x")
   (let* ([p-y0 (+ (* (- 1 p-x) (- 1 p-crossover))
                   (* p-x p-crossover))]
          [p-y1 (- 1 p-y0)]
@@ -53,39 +32,21 @@
          [h-y-given-x (binary-entropy p-crossover)])
         (- h-y h-y-given-x)))
 
-;;; ====
-;;; Binary Erasure Channel (BEC)
-;;; ====
-;;;
-;;; The BEC either transmits correctly or erases with probability epsilon:
-;;;   P(Y=0|X=0) = 1-epsilon,  P(Y='?'|X=0) = epsilon
-;;;   P(Y=1|X=1) = 1-epsilon,  P(Y='?'|X=1) = epsilon
-;;;
-;;; Capacity: C = 1 - epsilon
+(doc 'section 'binary-erasure-channel)
 
-;;; bec-capacity : Real → Real
-;;; Channel capacity of BEC with erasure probability epsilon.
-;;; Returns capacity in bits per channel use.
 (define (bec-capacity epsilon)
+  (doc 'type '(-> Real Real))
+  (doc 'description "Channel capacity of BEC with erasure probability epsilon")
   (cond
    [(<= epsilon 0) 1.0]  ; No erasures: perfect channel
    [(>= epsilon 1) 0.0]  ; All erased: no information
    [else (- 1 epsilon)]))
 
-;;; ====
-;;; Z-Channel (Asymmetric Binary Channel)
-;;; ====
-;;;
-;;; The Z-channel only corrupts 1->0, not 0->1:
-;;;   P(Y=0|X=0) = 1,      P(Y=1|X=0) = 0
-;;;   P(Y=0|X=1) = p,      P(Y=1|X=1) = 1-p
-;;;
-;;; Capacity: C = log2(1 + (1-p) * p^(p/(1-p)))  for p > 0
-;;;           C = 1 for p = 0
+(doc 'section 'z-channel)
 
-;;; z-channel-capacity : Real → Real
-;;; Channel capacity of Z-channel with crossover probability p (1->0 only).
 (define (z-channel-capacity p)
+  (doc 'type '(-> Real Real))
+  (doc 'description "Channel capacity of Z-channel with crossover probability p")
   (cond
    [(<= p 0) 1.0]  ; No errors
    [(>= p 1) 0.0]  ; All 1s become 0s
@@ -94,78 +55,51 @@
            [term (expt p exponent)])
           (log2 (+ 1 (* (- 1 p) term))))]))
 
-;;; z-channel-transition-matrix : Real → (List (List Real))
-;;; Transition probability matrix P(Y|X) for Z-channel.
 (define (z-channel-transition-matrix p)
+  (doc 'type '(-> Real (List (List Real))))
+  (doc 'description "Transition probability matrix P(Y|X) for Z-channel")
   (list (list 1 0)
         (list p (- 1 p))))
 
-;;; ====
-;;; Additive White Gaussian Noise (AWGN) Channel
-;;; ====
-;;;
-;;; The AWGN channel: Y = X + N where N ~ N(0, sigma^2)
-;;; With power constraint E[X^2] <= P
-;;;
-;;; Capacity (Shannon-Hartley): C = (1/2) * log2(1 + SNR)
-;;; where SNR = P / sigma^2 (signal-to-noise ratio)
-;;;
-;;; For bandwidth W: C = W * log2(1 + P/(N0*W))
-;;; where N0 is noise spectral density
+(doc 'section 'awgn-channel)
 
-;;; awgn-capacity : Real → Real
-;;; Channel capacity of AWGN channel with signal-to-noise ratio (linear).
-;;; Returns capacity in bits per channel use.
 (define (awgn-capacity snr)
+  (doc 'type '(-> Real Real))
+  (doc 'description "AWGN channel capacity with signal-to-noise ratio (linear)")
   (cond
    [(<= snr 0) 0.0]  ; No signal power
    [else (* 0.5 (log2 (+ 1 snr)))]))
 
-;;; awgn-capacity-db : Real → Real
-;;; Channel capacity of AWGN channel with SNR in decibels.
 (define (awgn-capacity-db snr-db)
+  (doc 'type '(-> Real Real))
+  (doc 'description "AWGN channel capacity with SNR in decibels")
   (awgn-capacity (db-to-linear snr-db)))
 
-;;; awgn-capacity-bandwidth : Real × Real × Real → Real
-;;; Shannon-Hartley theorem: C = W * log2(1 + P/(N0*W))
-;;; Parameters:
-;;;   bandwidth: channel bandwidth in Hz
-;;;   signal-power: average signal power
-;;;   noise-density: noise power spectral density (N0)
 (define (awgn-capacity-bandwidth bandwidth signal-power noise-density)
+  (doc 'type '(-> Real Real Real Real))
+  (doc 'description "Shannon-Hartley theorem for bandwidth-limited channels")
   (let ([noise-power (* noise-density bandwidth)])
        (if (<= noise-power 0)
            +inf.0  ; Noiseless channel
            (* bandwidth (log2 (+ 1 (/ signal-power noise-power)))))))
 
-;;; snr-for-capacity : Real → Real
-;;; Required SNR (linear) to achieve target capacity in bits/use.
-;;; Inverse of awgn-capacity: SNR = 2^(2C) - 1
 (define (snr-for-capacity target-capacity)
+  (doc 'type '(-> Real Real))
+  (doc 'description "Required SNR to achieve target capacity")
   (- (expt 2 (* 2 target-capacity)) 1))
 
-;;; ====
-;;; Discrete Memoryless Channel (DMC)
-;;; ====
-;;;
-;;; A DMC is defined by transition matrix P(Y|X).
-;;; Capacity: C = max_{p(x)} I(X;Y)
-;;;
-;;; For symmetric channels, uniform input is optimal.
-;;; For general DMC, use Blahut-Arimoto algorithm.
+(doc 'section 'discrete-memoryless-channel)
 
-;;; dmc-mutual-information : (List (List Real)) × (List Real) → Real
-;;; Compute I(X;Y) for DMC with transition matrix and input distribution.
-;;; transition: P(Y|X) matrix where entry (i,j) = P(Y=j|X=i)
-;;; input-dist: P(X) distribution
 (define (dmc-mutual-information transition input-dist)
+  (doc 'type '(-> (List (List Real)) (List Real) Real))
+  (doc 'description "Compute I(X;Y) for DMC with transition matrix and input distribution")
   (let* ([output-dist (dmc-output-distribution transition input-dist)]
          [joint (dmc-joint-distribution transition input-dist)])
         (mutual-information-from-joint joint)))
 
-;;; dmc-output-distribution : (List (List Real)) × (List Real) → (List Real)
-;;; Compute P(Y) = sum_x P(Y|X=x) * P(X=x)
 (define (dmc-output-distribution transition input-dist)
+  (doc 'type '(-> (List (List Real)) (List Real) (List Real)))
+  (doc 'description "Compute P(Y) = sum_x P(Y|X=x) * P(X=x)")
   (let* ([n-outputs (if (null? transition) 0 (length (car transition)))]
          [n-inputs (length transition)])
         (map (lambda (j)
@@ -176,47 +110,35 @@
                                      (iota n-inputs))))
              (iota n-outputs))))
 
-;;; dmc-joint-distribution : (List (List Real)) × (List Real) → (List (List Real))
-;;; Compute joint distribution P(X,Y) = P(Y|X) * P(X)
 (define (dmc-joint-distribution transition input-dist)
+  (doc 'type '(-> (List (List Real)) (List Real) (List (List Real))))
+  (doc 'description "Compute joint distribution P(X,Y) = P(Y|X) * P(X)")
   (map (lambda (i)
                (let ([p-x (list-ref input-dist i)]
                      [row (list-ref transition i)])
                     (map (lambda (p-y-given-x) (* p-x p-y-given-x)) row)))
        (iota (length transition))))
 
-;;; dmc-capacity-symmetric : (List (List Real)) → Real
-;;; Capacity of symmetric DMC (uniform input is optimal).
-;;; A channel is symmetric if all rows are permutations of each other
-;;; and all columns are permutations of each other.
 (define (dmc-capacity-symmetric transition)
+  (doc 'type '(-> (List (List Real)) Real))
+  (doc 'description "Capacity of symmetric DMC (uniform input is optimal)")
   (let* ([n-inputs (length transition)]
          [uniform (make-uniform-dist n-inputs)])
         (dmc-mutual-information transition uniform)))
 
-;;; make-uniform-dist : Nat → (List Real)
-;;; Create uniform distribution over n outcomes.
 (define (make-uniform-dist n)
+  (doc 'type '(-> Nat (List Real)))
+  (doc 'description "Create uniform distribution over n outcomes")
   (if (<= n 0)
       '()
       (let ([p (/ 1.0 n)])
            (map (lambda (_) p) (iota n)))))
 
-;;; ====
-;;; Blahut-Arimoto Algorithm
-;;; ====
-;;;
-;;; Iterative algorithm to compute capacity of general DMC.
-;;; Converges to C = max I(X;Y) from any initial distribution.
+(doc 'section 'blahut-arimoto-algorithm)
 
-;;; blahut-arimoto : (List (List Real)) × Nat × Real → (List Real) × Real
-;;; Compute channel capacity using Blahut-Arimoto algorithm.
-;;; Returns: (optimal-input-dist . capacity)
-;;; Parameters:
-;;;   transition: P(Y|X) matrix
-;;;   max-iter: maximum iterations
-;;;   tolerance: convergence threshold
 (define (blahut-arimoto transition max-iter tolerance)
+  (doc 'type '(-> (List (List Real)) Nat Real (Pair (List Real) Real)))
+  (doc 'description "Compute channel capacity using Blahut-Arimoto algorithm")
   (let* ([n-inputs (length transition)]
          [init-dist (make-uniform-dist n-inputs)])
         (ba-iterate transition init-dist max-iter tolerance 0 0.0)))

@@ -1,42 +1,25 @@
-;;; fabric/stitches/pipeline/effects.ss — Pipeline Effect Definitions
-;;;
-;;; Effects are staged operations that require interpretation by the boundary.
-;;; This module defines the effect types; thimble/pipeline/interpreter.ss
-;;; provides the actual implementations.
-;;;
-;;; This is Core code: pure, describes effects without executing them.
-;;;
-;;; Effect Categories:
-;;;   - LLM: Call language models with prompts
-;;;   - Fold: Execute Fold/Scheme expressions
-;;;   - Shell: Run shell commands
-;;;   - Store: Read/write content-addressed storage
-;;;   - Log: Emit log entries
-;;;   - Checkpoint: Save/restore pipeline state
-;;;   - HTTP: Fetch URLs (for external APIs)
-;;;   - Await: Wait for external signals
-;;;
-;;; Dependencies:
-;;;   - pipeline/stage.ss
-
 (load "lattice/pipeline/stage.ss")
 
-;;; ====
-;;; Effect Construction Helpers
-;;; ====
+(doc 'module 'pipeline/effects)
+(doc 'description "Pipeline Effect Definitions. Effects are staged operations that require interpretation by the boundary. This module defines the effect types; boundary/pipeline/interpreter.ss provides the actual implementations.")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
+(doc 'note "Pure code that describes effects without executing them")
+(doc 'features "Effect Categories: LLM (Call language models with prompts), Fold (Execute Fold/Scheme expressions), Shell (Run shell commands), Store (Read/write content-addressed storage), Log (Emit log entries), Checkpoint (Save/restore pipeline state), HTTP (Fetch URLs for external APIs), Await (Wait for external signals)")
+(doc 'dependencies '(pipeline/stage.ss))
 
-;;; effect : Symbol -> Any -> Stage ctx i o
-;;; Create an effect stage with type and payload.
+(doc 'section 'effect-construction)
+
+(doc 'type '(-> Symbol Any (Stage ctx i o)))
+(doc 'description "Create an effect stage with type and payload")
 (define (effect type payload)
   (make-effect-stage type payload))
 
-;;; ====
-;;; LLM Effects
-;;; ====
+(doc 'section 'llm-effects)
 
-;;; llm : Symbol -> String -> Stage ctx String String
-;;; Call a language model with a prompt.
-;;; Model symbols: 'opus, 'sonnet, 'haiku, 'gemini-3, 'kimi, etc.
+(doc 'type '(-> Symbol String (Stage ctx String String)))
+(doc 'description "Call a language model with a prompt")
+(doc 'note "Model symbols: 'opus, 'sonnet, 'haiku, 'gemini-3, 'kimi, etc")
 (define (llm model prompt-template)
   (effect 'llm
           (list 'call model prompt-template)))
@@ -59,12 +42,10 @@
   (effect 'llm
           (list 'call-structured model prompt-template schema)))
 
-;;; ====
-;;; Fold Effects
-;;; ====
+(doc 'section 'fold-effects)
 
-;;; fold-eval : String -> Stage ctx i Any
-;;; Evaluate a Fold expression.
+(doc 'type '(-> String (Stage ctx i Any)))
+(doc 'description "Evaluate a Fold expression")
 (define (fold-eval expr-template)
   (effect 'fold
           (list 'eval expr-template)))
@@ -99,12 +80,10 @@
   (effect 'fold
           (list 'call 'browse (list channel n))))
 
-;;; ====
-;;; Shell Effects
-;;; ====
+(doc 'section 'shell-effects)
 
-;;; shell : String -> Stage ctx i String
-;;; Run a shell command, return stdout.
+(doc 'type '(-> String (Stage ctx i String)))
+(doc 'description "Run a shell command, return stdout")
 (define (shell cmd-template)
   (effect 'shell
           (list 'run cmd-template)))
@@ -127,12 +106,11 @@
   (effect 'shell
           (list 'run-bg cmd-template)))
 
-;;; ====
-;;; Store Effects (Content-Addressed Storage)
-;;; ====
+(doc 'section 'store-effects)
+(doc 'description "Content-Addressed Storage")
 
-;;; store-put : Stage ctx Any Hash
-;;; Store value in CAS, return hash.
+(doc 'type '(Stage ctx Any Hash))
+(doc 'description "Store value in CAS, return hash")
 (define store-put
   (effect 'store
           (list 'put)))
@@ -383,19 +361,12 @@
   (effect 'pipeline
           (list 'await run-id)))
 
-;;; ====
-;;; Template Expansion
-;;; ====
-;;;
-;;; Many effects take "templates" - strings with ${...} placeholders.
-;;; The interpreter expands these against:
-;;;   - ${input} - current stage input
-;;;   - ${ctx.field} - context fields
-;;;   - ${env.var} - environment variables
-;;;   - ${checkpoint.name} - checkpoint values
+(doc 'section 'template-expansion)
+(doc 'description "Many effects take templates - strings with ${...} placeholders")
+(doc 'note "The interpreter expands these against: ${input} (current stage input), ${ctx.field} (context fields), ${env.var} (environment variables), ${checkpoint.name} (checkpoint values)")
 
-;;; expand-template : String × (Alist String String) → String
-;;; Expand template with bindings (pure helper).
+(doc 'type '(-> String (Alist String String) String))
+(doc 'description "Expand template with bindings (pure helper)")
 (define (expand-template template bindings)
   (let loop ([chars (string->list template)]
              [result '()]
@@ -488,22 +459,13 @@
   (and (stage-effect? e)
        (eq? (stage-effect-type e) 'pipeline)))
 
-;;; ====
-;;; Discord Effects
-;;; ====
-;;;
-;;; Discord integration effects. These write to the discord-outbox
-;;; for the bridge.js watcher to pick up and post to Discord.
-;;;
-;;; The bot/bridge architecture:
-;;;   - Discord bot watches messages, logs to Fold via REPL IPC
-;;;   - Fold agents write to .fold-repl/discord-outbox/*.json
-;;;   - Bridge.js watches outbox, posts to Discord via webhooks
+(doc 'section 'discord-effects)
+(doc 'description "Discord integration effects. These write to the discord-outbox for the bridge.js watcher to pick up and post to Discord.")
+(doc 'note "Bot/bridge architecture: Discord bot watches messages, logs to Fold via REPL IPC; Fold agents write to .fold-repl/discord-outbox/*.json; Bridge.js watches outbox, posts to Discord via webhooks")
 
-;;; discord-post : Symbol -> String -> String -> Stage ctx i ()
-;;; Post a titled message to a Discord channel.
-;;; Channel: 'engineering, 'philosophy, 'design, 'art, 'poetry,
-;;;          'requests, 'wishlist, 'chat, 'news, 'bugs, 'arena, 'consult
+(doc 'type '(-> Symbol String String (Stage ctx i ())))
+(doc 'description "Post a titled message to a Discord channel")
+(doc 'note "Channels: 'engineering, 'philosophy, 'design, 'art, 'poetry, 'requests, 'wishlist, 'chat, 'news, 'bugs, 'arena, 'consult")
 (define (discord-post channel title body)
   (effect 'discord
           (list 'post channel title body)))

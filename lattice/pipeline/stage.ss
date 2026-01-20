@@ -1,39 +1,20 @@
-;;; fabric/stitches/pipeline/stage.ss — Core Stage Algebra
-;;;
-;;; Stages are the building blocks of pipelines. A Stage transforms
-;;; input to output within a context, producing a StageResult.
-;;;
-;;; Stage ctx i o = ctx -> i -> StageResult o
-;;;
-;;; This is Core code: pure, total, assumes reasonable input.
-;;; Effect interpretation happens in thimble/pipeline/interpreter.ss
-;;;
-;;; Features:
-;;;   - StageResult sum type (ok, err, retry, skip, halt, await)
-;;;   - Stage constructors (pure, read, ask, local)
-;;;   - Arrow-style composition (>>>, &&&, choice, ***)
-;;;   - Conditional stages (if, case, when, unless)
-;;;   - Monadic interface (bind, map, sequence)
-;;;   - Effect staging (perform, for interpreter)
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;   - fp/combinators.ss
-;;;
-;;; Laws:
-;;;   stage-pure x >>> f   = f applied to x
-;;;   f >>> stage-pure id  = f
-;;;   (f >>> g) >>> h      = f >>> (g >>> h)
-
 (load "core/base/prelude.ss")
 (load "lattice/fp/meta/combinators.ss")
 
-;;; ====
-;;; StageResult — Outcome of running a stage
-;;; ====
+(doc 'module 'pipeline/stage)
+(doc 'description "Core Stage Algebra. Stages are the building blocks of pipelines. A Stage transforms input to output within a context, producing a StageResult. Stage ctx i o = ctx -> i -> StageResult o")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
+(doc 'note "Effect interpretation happens in boundary/pipeline/interpreter.ss")
+(doc 'features "StageResult sum type (ok, err, retry, skip, halt, await); Stage constructors (pure, read, ask, local); Arrow-style composition (>>>, &&&, choice, ***); Conditional stages (if, case, when, unless); Monadic interface (bind, map, sequence); Effect staging (perform, for interpreter)")
+(doc 'dependencies '(prelude.ss fp/combinators.ss))
+(doc 'laws "stage-pure x >>> f = f applied to x; f >>> stage-pure id = f; (f >>> g) >>> h = f >>> (g >>> h)")
 
-;;; stage-ok : a -> StageResult a
-;;; Successful result with value.
+(doc 'section 'stage-result)
+(doc 'description "Outcome of running a stage")
+
+(doc 'type '(-> a (StageResult a)))
+(doc 'description "Successful result with value")
 (define (stage-ok value)
   (list 'stage-result 'ok value))
 
@@ -118,16 +99,10 @@
 ;;; stage-retry-delay : (StageResult α) → Nat
 (define (stage-retry-delay r) (list-ref r 3))
 
-;;; ====
-;;; Stage Representation
-;;; ====
-;;;
-;;; A stage is:
-;;;   ('stage name run-fn)
-;;;
-;;; Where run-fn : ctx -> input -> StageResult output
+(doc 'section 'stage-representation)
+(doc 'description "A stage is: ('stage name run-fn) where run-fn : ctx -> input -> StageResult output")
 
-;;; make-stage : Symbol -> (ctx -> i -> StageResult o) -> Stage ctx i o
+(doc 'type '(-> Symbol (-> ctx i (StageResult o)) (Stage ctx i o)))
 (define (make-stage name run-fn)
   (list 'stage name run-fn))
 
@@ -148,12 +123,10 @@
 (define (run-stage s ctx input)
   ((stage-run-fn s) ctx input))
 
-;;; ====
-;;; Basic Stage Constructors
-;;; ====
+(doc 'section 'basic-constructors)
 
-;;; stage-pure : a -> Stage ctx i a
-;;; Inject a constant value, ignoring input.
+(doc 'type '(-> a (Stage ctx i a)))
+(doc 'description "Inject a constant value, ignoring input")
 (define (stage-pure value)
   (make-stage 'pure
               (lambda (ctx input)
@@ -208,12 +181,10 @@
               (lambda (ctx input)
                       (stage-skip reason))))
 
-;;; ====
-;;; Arrow-Style Composition
-;;; ====
+(doc 'section 'arrow-composition)
 
-;;; stage-compose : Stage ctx a b -> Stage ctx b c -> Stage ctx a c
-;;; Sequential composition (left to right).
+(doc 'type '(-> (Stage ctx a b) (Stage ctx b c) (Stage ctx a c)))
+(doc 'description "Sequential composition (left to right)")
 (define (stage-compose s1 s2)
   (make-stage 'seq
               (lambda (ctx input)
@@ -334,12 +305,9 @@
 ;;; &&& : Stage ctx a b -> Stage ctx a c -> Stage ctx a (b . c)
 (define stage-&&& stage-fanout)
 
-;;; ====
-;;; ArrowChoice - Conditional Routing
-;;; ====
-;;;
-;;; Either type operations (left, right, left?, right?, from-left, from-right)
-;;; are provided by lattice/fp/meta/combinators.ss loaded above.
+(doc 'section 'arrow-choice)
+(doc 'description "Conditional Routing")
+(doc 'note "Either type operations (left, right, left?, right?, from-left, from-right) are provided by lattice/fp/meta/combinators.ss loaded above")
 
 ;;; stage-left : Stage ctx a b -> Stage ctx (Either a c) (Either b c)
 ;;; Apply stage to left values, pass right through.
@@ -382,12 +350,10 @@
 (define (stage-+++ s1 s2)
   (stage->>> (stage-left s1) (stage-right s2)))
 
-;;; ====
-;;; Conditional Stages
-;;; ====
+(doc 'section 'conditional-stages)
 
-;;; stage-if : (i -> Boolean) -> Stage ctx i o -> Stage ctx i o -> Stage ctx i o
-;;; Conditional stage based on predicate.
+(doc 'type '(-> (-> i Boolean) (Stage ctx i o) (Stage ctx i o) (Stage ctx i o)))
+(doc 'description "Conditional stage based on predicate")
 (define (stage-if pred then-stage else-stage)
   (make-stage 'if
               (lambda (ctx input)
@@ -428,12 +394,10 @@
                           (stage-ok input)
                           (stage-err 'guard-failed error-message input)))))
 
-;;; ====
-;;; Monadic Interface
-;;; ====
+(doc 'section 'monadic-interface)
 
-;;; stage-bind : Stage ctx a b -> (b -> Stage ctx b c) -> Stage ctx a c
-;;; Monadic bind for stages.
+(doc 'type '(-> (Stage ctx a b) (-> b (Stage ctx b c)) (Stage ctx a c)))
+(doc 'description "Monadic bind for stages")
 (define (stage-bind s f)
   (make-stage 'bind
               (lambda (ctx input)
@@ -474,12 +438,10 @@
 (define (stage-traverse f xs)
   (stage-sequence (map f xs)))
 
-;;; ====
-;;; Iteration and Looping
-;;; ====
+(doc 'section 'iteration-looping)
 
-;;; stage-fold : (b -> a -> Stage ctx a b) -> b -> List a -> Stage ctx _ b
-;;; Fold over a list with stages.
+(doc 'type '(-> (-> b a (Stage ctx a b)) b (List a) (Stage ctx _ b)))
+(doc 'description "Fold over a list with stages")
 (define (stage-fold f init xs)
   (if (null? xs)
       (stage-pure init)
@@ -521,15 +483,11 @@
                                             r))
                                    (stage-ok current)))))))
 
-;;; ====
-;;; Effect Staging (for interpreter)
-;;; ====
-;;;
-;;; Effects are staged operations that require interpretation.
-;;; The pure algebra just captures intent; interpreter executes.
+(doc 'section 'effect-staging)
+(doc 'description "Effects are staged operations that require interpretation. The pure algebra just captures intent; interpreter executes.")
 
-;;; make-effect-stage : Symbol -> Any -> Stage ctx i o
-;;; Create a stage that performs an effect.
+(doc 'type '(-> Symbol Any (Stage ctx i o)))
+(doc 'description "Create a stage that performs an effect")
 (define (make-effect-stage effect-type payload)
   (make-stage effect-type
               (lambda (ctx input)
@@ -564,12 +522,10 @@
 (define (fanout-effect-right e)
   (cdr (stage-effect-payload e)))
 
-;;; ====
-;;; Utility Stages
-;;; ====
+(doc 'section 'utility-stages)
 
-;;; stage-id : Stage ctx a a
-;;; Identity stage.
+(doc 'type '(Stage ctx a a))
+(doc 'description "Identity stage")
 (define stage-id stage-read)
 
 ;;; stage-const : b -> Stage ctx a b
@@ -618,12 +574,10 @@
               (lambda (ctx input)
                       (stage-ok (f ctx input)))))
 
-;;; ====
-;;; Error Handling
-;;; ====
+(doc 'section 'error-handling)
 
-;;; stage-catch : (StageResult -> Stage ctx i o) -> Stage ctx i o -> Stage ctx i o
-;;; Catch errors and handle them.
+(doc 'type '(-> (-> StageResult (Stage ctx i o)) (Stage ctx i o) (Stage ctx i o)))
+(doc 'description "Catch errors and handle them")
 (define (stage-catch handler stage)
   (make-stage 'catch
               (lambda (ctx input)
@@ -659,12 +613,10 @@
    (lambda (err) (stage-pure '()))
    (stage-map (lambda (x) (list 'some x)) stage)))
 
-;;; ====
-;;; Pipeline Construction Helpers
-;;; ====
+(doc 'section 'pipeline-construction)
 
-;;; pipeline : Symbol -> List Stage -> Stage
-;;; Name a sequence of stages.
+(doc 'type '(-> Symbol (List Stage) Stage))
+(doc 'description "Name a sequence of stages")
 (define (pipeline name . stages)
   (make-stage name
               (lambda (ctx input)
@@ -690,11 +642,9 @@
 (define (stage-trace label)
   (make-effect-stage 'log (list 'trace label)))
 
-;;; ====
-;;; Exports (conceptual - no module system in base Scheme)
-;;; ====
-;;;
-;;; StageResult:
+(doc 'section 'exports)
+(doc 'note "Conceptual - no module system in base Scheme")
+(doc 'description "StageResult exports:")
 ;;;   stage-ok, stage-err, stage-retry, stage-skip, stage-halt, stage-await
 ;;;   stage-ok?, stage-err?, stage-retry?, stage-skip?, stage-halt?, stage-await?
 ;;;   stage-result-tag, stage-result-value

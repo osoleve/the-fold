@@ -1,42 +1,26 @@
-;;; fabric/stitches/pipeline/council.ss — Multi-Model Council Primitive
-;;;
-;;; Councils enable structured deliberation between multiple LLMs.
-;;; Two modes:
-;;;   - Sequential rounds: Models respond in turns, seeing prior responses
-;;;   - Parallel synthesis: Models respond independently, then synthesize
-;;;
-;;; This is Core code: pure stage construction.
-;;; Effect interpretation happens in thimble/pipeline/interpreter.ss
-;;;
-;;; Features:
-;;;   - Sequential round-robin deliberation
-;;;   - Parallel independent responses
-;;;   - Synthesis/moderator stage
-;;;   - Consensus detection
-;;;   - Vote counting
-;;;
-;;; Dependencies:
-;;;   - pipeline/stage.ss
-;;;   - pipeline/effects.ss
-;;;   - pipeline/context.ss
-
 (load "lattice/pipeline/stage.ss")
 (load "lattice/pipeline/effects.ss")
 (load "lattice/pipeline/context.ss")
 
-;;; Helper: range from start to start+count-1
-;;; range-from : Nat × Nat → (List Nat)
+(doc 'module 'pipeline/council)
+(doc 'description "Multi-Model Council Primitive. Councils enable structured deliberation between multiple LLMs. Two modes: Sequential rounds (Models respond in turns, seeing prior responses), Parallel synthesis (Models respond independently, then synthesize)")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
+(doc 'note "Effect interpretation happens in boundary/pipeline/interpreter.ss")
+(doc 'features "Sequential round-robin deliberation; Parallel independent responses; Synthesis/moderator stage; Consensus detection; Vote counting")
+(doc 'dependencies '(pipeline/stage.ss pipeline/effects.ss pipeline/context.ss))
+
+(doc 'type '(-> Nat Nat (List Nat)))
+(doc 'description "Helper: range from start to start+count-1")
 (define (range-from start count)
   (let loop ([i 0] [acc '()])
        (if (= i count)
            (reverse acc)
            (loop (+ i 1) (cons (+ start i) acc)))))
 
-;;; ====
-;;; Council Configuration
-;;; ====
+(doc 'section 'council-configuration)
 
-;;; make-council-config : Fields -> CouncilConfig
+(doc 'type '(-> (List Symbol) Symbol Nat Symbol String (List String) String Boolean Nat CouncilConfig))
 (define (make-council-config models
                              mode
                              rounds
@@ -83,11 +67,9 @@
 ;;; council-timeout : CouncilConfig → Nat
 (define (council-timeout cfg) (list-ref cfg 9))
 
-;;; ====
-;;; Council Result Types
-;;; ====
+(doc 'section 'council-result-types)
 
-;;; make-council-result : Fields -> CouncilResult
+(doc 'type '(-> Alist String Boolean List Alist List CouncilResult))
 (define (make-council-result responses
                              synthesis
                              consensus-reached
@@ -122,17 +104,13 @@
 ;;; result-history : CouncilResult → (List (Alist Symbol String))
 (define (result-history r) (list-ref r 6))
 
-;;; ====
-;;; Sequential Council (Round-Robin)
-;;; ====
-;;;
-;;; Models take turns, each seeing all prior responses.
-;;; Useful for building on each other's ideas.
+(doc 'section 'sequential-council)
+(doc 'description "Round-Robin. Models take turns, each seeing all prior responses. Useful for building on each other's ideas.")
 
-;;; council-sequential : List Symbol -> Nat -> Symbol -> Stage ctx String CouncilResult
-;;; models: list of model names
-;;; rounds: number of rounds
-;;; moderator: model to synthesize at end
+(doc 'type '(-> (List Symbol) Nat Symbol (Stage ctx String CouncilResult)))
+(doc 'param 'models "list of model names")
+(doc 'param 'rounds "number of rounds")
+(doc 'param 'moderator "model to synthesize at end")
 (define (council-sequential models rounds moderator)
   (let ([default-prompts
           (map (lambda (r)
@@ -161,16 +139,12 @@
                                    60000)
                                   input)))))
 
-;;; ====
-;;; Parallel Council (Independent + Synthesize)
-;;; ====
-;;;
-;;; All models respond independently to same prompt.
-;;; A synthesizer combines the responses.
+(doc 'section 'parallel-council)
+(doc 'description "Independent + Synthesize. All models respond independently to same prompt. A synthesizer combines the responses.")
 
-;;; council-parallel : List Symbol -> Symbol -> Stage ctx String CouncilResult
-;;; models: list of model names
-;;; synthesizer: model to combine responses
+(doc 'type '(-> (List Symbol) Symbol (Stage ctx String CouncilResult)))
+(doc 'param 'models "list of model names")
+(doc 'param 'synthesizer "model to combine responses")
 (define (council-parallel models synthesizer)
   (council-parallel-with-prompt models synthesizer
                                 "Synthesize these independent perspectives into a coherent summary."))
@@ -375,12 +349,10 @@
                          #f))))
       #f))
 
-;;; ====
-;;; Common Council Patterns
-;;; ====
+(doc 'section 'common-patterns)
 
-;;; architectural-council : Stage ctx String CouncilResult
-;;; Standard council for architecture decisions.
+(doc 'type '(Stage ctx String CouncilResult))
+(doc 'description "Standard council for architecture decisions")
 (define architectural-council
   (council-sequential '(opus gemini-3) 3 'opus))
 

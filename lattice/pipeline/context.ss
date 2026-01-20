@@ -1,37 +1,24 @@
-;;; fabric/stitches/pipeline/context.ss — Pipeline Context and State
-;;;
-;;; Context is the read-only environment for pipeline execution.
-;;; State is the mutable accumulator threaded through stages.
-;;;
-;;; This is Core code: pure record definitions.
-;;;
-;;; Features:
-;;;   - PipelineContext: config, persona, session, fuel
-;;;   - PipelineState: log, artifacts, checkpoints, metrics
-;;;   - Context accessors and builders
-;;;   - State threading helpers
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-
 (load "core/base/prelude.ss")
 
-;;; ====
-;;; PipelineContext — Read-Only Environment
-;;; ====
-;;;
-;;; Context flows through the pipeline unchanged (unless stage-local).
-;;; Contains configuration, session info, and resource limits.
+(doc 'module 'pipeline/context)
+(doc 'description "Pipeline Context and State. Context is the read-only environment for pipeline execution. State is the mutable accumulator threaded through stages.")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
+(doc 'dependencies '(prelude.ss))
+(doc 'features "PipelineContext: config, persona, session, fuel; PipelineState: log, artifacts, checkpoints, metrics; Context accessors and builders; State threading helpers")
 
-;;; make-pipeline-context : Record fields
+(doc 'section 'pipeline-context)
+(doc 'description "Read-Only Environment. Context flows through the pipeline unchanged (unless stage-local). Contains configuration, session info, and resource limits.")
+
+(doc 'type '(-> Alist Persona String Symbol Alist Nat PipelineContext))
 (define (make-pipeline-context config persona session-id run-id env fuel)
   (list 'pipeline-context config persona session-id run-id env fuel))
 
-;;; pipeline-context? : Any -> Boolean
+(doc 'type '(-> Any Boolean))
 (define (pipeline-context? x)
   (and (pair? x) (eq? (car x) 'pipeline-context)))
 
-;;; Accessors
+(doc 'section 'accessors)
 (define (ctx-config ctx) (list-ref ctx 1))
 (define (ctx-persona ctx) (list-ref ctx 2))
 (define (ctx-session-id ctx) (list-ref ctx 3))
@@ -39,13 +26,13 @@
 (define (ctx-env ctx) (list-ref ctx 5))
 (define (ctx-fuel ctx) (list-ref ctx 6))
 
-;;; Context builders
+(doc 'section 'context-builders)
 
-;;; empty-context : PipelineContext
+(doc 'type 'PipelineContext)
 (define empty-context
   (make-pipeline-context '() #f "default" #f '() 10000))
 
-;;; ctx-with-config : PipelineContext -> Alist -> PipelineContext
+(doc 'type '(-> PipelineContext Alist PipelineContext))
 (define (ctx-with-config ctx config)
   (make-pipeline-context config
                          (ctx-persona ctx)
@@ -54,7 +41,7 @@
                          (ctx-env ctx)
                          (ctx-fuel ctx)))
 
-;;; ctx-with-persona : PipelineContext -> Persona -> PipelineContext
+(doc 'type '(-> PipelineContext Persona PipelineContext))
 (define (ctx-with-persona ctx persona)
   (make-pipeline-context (ctx-config ctx)
                          persona
@@ -63,7 +50,7 @@
                          (ctx-env ctx)
                          (ctx-fuel ctx)))
 
-;;; ctx-with-session : PipelineContext -> String -> PipelineContext
+(doc 'type '(-> PipelineContext String PipelineContext))
 (define (ctx-with-session ctx session-id)
   (make-pipeline-context (ctx-config ctx)
                          (ctx-persona ctx)
@@ -72,7 +59,7 @@
                          (ctx-env ctx)
                          (ctx-fuel ctx)))
 
-;;; ctx-with-run-id : PipelineContext -> String -> PipelineContext
+(doc 'type '(-> PipelineContext String PipelineContext))
 (define (ctx-with-run-id ctx run-id)
   (make-pipeline-context (ctx-config ctx)
                          (ctx-persona ctx)
@@ -81,7 +68,7 @@
                          (ctx-env ctx)
                          (ctx-fuel ctx)))
 
-;;; ctx-with-env : PipelineContext -> Alist -> PipelineContext
+(doc 'type '(-> PipelineContext Alist PipelineContext))
 (define (ctx-with-env ctx env)
   (make-pipeline-context (ctx-config ctx)
                          (ctx-persona ctx)
@@ -90,12 +77,12 @@
                          env
                          (ctx-fuel ctx)))
 
-;;; ctx-extend-env : PipelineContext -> Alist -> PipelineContext
-;;; Add to existing environment.
+(doc 'type '(-> PipelineContext Alist PipelineContext))
+(doc 'description "Add to existing environment")
 (define (ctx-extend-env ctx additions)
   (ctx-with-env ctx (append additions (ctx-env ctx))))
 
-;;; ctx-with-fuel : PipelineContext -> Nat -> PipelineContext
+(doc 'type '(-> PipelineContext Nat PipelineContext))
 (define (ctx-with-fuel ctx fuel)
   (make-pipeline-context (ctx-config ctx)
                          (ctx-persona ctx)
@@ -104,52 +91,49 @@
                          (ctx-env ctx)
                          fuel))
 
-;;; ctx-consume-fuel : PipelineContext -> Nat -> PipelineContext
-;;; Decrease fuel by amount.
+(doc 'type '(-> PipelineContext Nat PipelineContext))
+(doc 'description "Decrease fuel by amount")
 (define (ctx-consume-fuel ctx amount)
   (ctx-with-fuel ctx (max 0 (- (ctx-fuel ctx) amount))))
 
-;;; ctx-env-ref : PipelineContext -> Symbol -> Any
-;;; Look up environment variable.
+(doc 'type '(-> PipelineContext Symbol Any))
+(doc 'description "Look up environment variable")
 (define (ctx-env-ref ctx key)
   (let ([entry (assq key (ctx-env ctx))])
        (if entry (cdr entry) #f)))
 
-;;; ctx-config-ref : PipelineContext -> Symbol -> Any
-;;; Look up config value.
+(doc 'type '(-> PipelineContext Symbol Any))
+(doc 'description "Look up config value")
 (define (ctx-config-ref ctx key)
   (let ([entry (assq key (ctx-config ctx))])
        (if entry (cdr entry) #f)))
 
-;;; ====
-;;; PipelineState — Mutable Accumulator
-;;; ====
-;;;
-;;; State accumulates as pipeline runs: logs, artifacts, checkpoints.
-;;; Unlike context, state changes between stages.
+(doc 'section 'pipeline-state)
+(doc 'description "Mutable Accumulator. State accumulates as pipeline runs: logs, artifacts, checkpoints. Unlike context, state changes between stages.")
 
-;;; make-pipeline-state : Fields -> PipelineState
+(doc 'type '(-> List List List List List PipelineState))
 (define (make-pipeline-state log artifacts checkpoints metrics cache)
   (list 'pipeline-state log artifacts checkpoints metrics cache))
 
-;;; pipeline-state? : Any -> Boolean
+(doc 'type '(-> Any Boolean))
 (define (pipeline-state? x)
   (and (pair? x) (eq? (car x) 'pipeline-state)))
 
-;;; Accessors
+(doc 'section 'state-accessors)
 (define (state-log st) (list-ref st 1))
 (define (state-artifacts st) (list-ref st 2))
 (define (state-checkpoints st) (list-ref st 3))
 (define (state-metrics st) (list-ref st 4))
 (define (state-cache st) (list-ref st 5))
 
-;;; empty-state : PipelineState
+(doc 'type 'PipelineState)
 (define empty-state
   (make-pipeline-state '() '() '() '() '()))
 
-;;; State updaters (return new state, don't mutate)
+(doc 'section 'state-updaters)
+(doc 'description "Return new state, don't mutate")
 
-;;; state-add-log : PipelineState -> LogEntry -> PipelineState
+(doc 'type '(-> PipelineState LogEntry PipelineState))
 (define (state-add-log st entry)
   (make-pipeline-state (cons entry (state-log st))
                        (state-artifacts st)
@@ -202,19 +186,18 @@
   (let ([entry (assoc key (state-cache st))])
        (if entry (cdr entry) #f)))
 
-;;; ====
-;;; Log Entry Types
-;;; ====
+(doc 'section 'log-entry-types)
 
-;;; make-log-entry : Symbol -> String -> Any -> LogEntry
+(doc 'type '(-> Symbol String Any LogEntry))
 (define (make-log-entry level message data)
   (list 'log-entry level message data (current-timestamp)))
 
-;;; Simple timestamp (seconds since epoch approximation)
+(doc 'description "Simple timestamp (seconds since epoch approximation)")
 (define (current-timestamp)
-  0)  ; Interpreter will provide real timestamp
+  (doc 'note "Interpreter will provide real timestamp")
+  0)
 
-;;; log-entry-level : LogEntry -> Symbol
+(doc 'type '(-> LogEntry Symbol))
 (define (log-entry-level e) (list-ref e 1))
 
 ;;; log-entry-message : LogEntry -> String
@@ -226,13 +209,10 @@
 ;;; log-entry-timestamp : LogEntry -> Number
 (define (log-entry-timestamp e) (list-ref e 4))
 
-;;; ====
-;;; Run Record — Complete Pipeline Execution
-;;; ====
-;;;
-;;; Captures everything about a pipeline run for persistence/resume.
+(doc 'section 'run-record)
+(doc 'description "Complete Pipeline Execution. Captures everything about a pipeline run for persistence/resume.")
 
-;;; make-run-record : Fields -> RunRecord
+(doc 'type '(-> Symbol Symbol Any Any PipelineState Symbol Nat Nat Symbol RunRecord))
 (define (make-run-record pipeline-name
                          run-id
                          input
@@ -261,21 +241,12 @@
 (define (run-finished-at r) (list-ref r 8))
 (define (run-parent-id r) (list-ref r 9))
 
-;;; Run statuses
-;;;   'pending - not started
-;;;   'running - in progress
-;;;   'success - completed successfully
-;;;   'failed - completed with error
-;;;   'halted - stopped intentionally
-;;;   'awaiting - waiting for external signal
+(doc 'note "Run statuses: 'pending (not started), 'running (in progress), 'success (completed successfully), 'failed (completed with error), 'halted (stopped intentionally), 'awaiting (waiting for external signal)")
 
-;;; ====
-;;; Pipeline Definition Record
-;;; ====
-;;;
-;;; Named pipeline with configuration.
+(doc 'section 'pipeline-definition)
+(doc 'description "Named pipeline with configuration")
 
-;;; make-pipeline-def : Symbol -> Stage -> Alist -> PipelineDef
+(doc 'type '(-> Symbol Stage Alist PipelineDef))
 (define (make-pipeline-def name stage config)
   (list 'pipeline-def name stage config))
 
@@ -288,22 +259,12 @@
 (define (pipeline-def-stage p) (list-ref p 2))
 (define (pipeline-def-config p) (list-ref p 3))
 
-;;; Pipeline config keys:
-;;;   'model - default LLM model
-;;;   'fuel - default fuel limit
-;;;   'timeout - overall timeout (ms)
-;;;   'retry-policy - retry configuration
-;;;   'require-approval - needs human approval to start
-;;;   'schedule - cron/interval spec
-;;;   'tags - labels for organization
+(doc 'note "Pipeline config keys: 'model (default LLM model), 'fuel (default fuel limit), 'timeout (overall timeout ms), 'retry-policy (retry configuration), 'require-approval (needs human approval to start), 'schedule (cron/interval spec), 'tags (labels for organization)")
 
-;;; ====
-;;; Persona Integration
-;;; ====
-;;;
-;;; Personas provide system prompts and behavioral configuration.
+(doc 'section 'persona-integration)
+(doc 'description "Personas provide system prompts and behavioral configuration")
 
-;;; make-persona : Symbol -> String -> Alist -> Persona
+(doc 'type '(-> Symbol String Alist Persona))
 (define (make-persona name system-prompt config)
   (list 'persona name system-prompt config))
 
@@ -339,11 +300,9 @@
             (cons (if read (cdr read) '())
                   (if write (cdr write) '())))))
 
-;;; ====
-;;; Schedule Specification
-;;; ====
+(doc 'section 'schedule-specification)
 
-;;; make-cron-schedule : String -> Schedule
+(doc 'type '(-> String Schedule))
 (define (make-cron-schedule cron-expr)
   (list 'schedule 'cron cron-expr))
 
@@ -380,11 +339,9 @@
       (list-ref s 2)
       #f))
 
-;;; ====
-;;; Retry Policy
-;;; ====
+(doc 'section 'retry-policy)
 
-;;; make-retry-policy : Nat -> (Nat -> Nat) -> (Symbol -> Boolean) -> Symbol -> RetryPolicy
+(doc 'type '(-> Nat (-> Nat Nat) (-> Symbol Boolean) Symbol RetryPolicy))
 (define (make-retry-policy max-attempts delay-fn retry-on on-exhaust)
   (list 'retry-policy max-attempts delay-fn retry-on on-exhaust))
 
@@ -432,11 +389,10 @@
    (lambda (code) #t)  ; Retry all errors
    'fail))
 
-;;; ====
-;;; Context/State Pair for Threading
-;;; ====
+(doc 'section 'ctx-state-pair)
+(doc 'description "Context/State Pair for Threading")
 
-;;; make-ctx-state : PipelineContext -> PipelineState -> (Context . State)
+(doc 'type '(-> PipelineContext PipelineState (Pair Context State)))
 (define (make-ctx-state ctx state)
   (cons ctx state))
 
@@ -454,25 +410,12 @@
 (define (update-ctx cs f)
   (cons (f (ctx-of cs)) (state-of cs)))
 
-;;; ====
-;;; Discord Context Extensions
-;;; ====
-;;;
-;;; Discord context is stored in the environment as special keys.
-;;; This allows pipelines triggered by Discord to access message info.
-;;;
-;;; Discord context keys:
-;;;   - discord-message-id: ID of triggering message
-;;;   - discord-channel-id: Discord channel ID
-;;;   - discord-author-id: Discord user ID
-;;;   - discord-author-name: Discord username
-;;;   - discord-guild-id: Guild (server) ID
-;;;   - discord-content: Original message content
-;;;   - discord-reply-to: If replying to another message
+(doc 'section 'discord-context)
+(doc 'description "Discord context is stored in the environment as special keys. This allows pipelines triggered by Discord to access message info.")
+(doc 'note "Discord context keys: discord-message-id (ID of triggering message), discord-channel-id (Discord channel ID), discord-author-id (Discord user ID), discord-author-name (Discord username), discord-guild-id (Guild server ID), discord-content (Original message content), discord-reply-to (If replying to another message)")
 
-;;; make-discord-context : Alist -> Alist
-;;; Create Discord context alist from trigger data.
-;;; Input is alist from bot.js trigger file.
+(doc 'type '(-> Alist Alist))
+(doc 'description "Create Discord context alist from trigger data. Input is alist from bot.js trigger file")
 (define (make-discord-context trigger-data)
   (let ([get (lambda (key)
                      (let ([entry (assq key trigger-data)])
@@ -528,12 +471,10 @@
 (define (ctx-is-discord-triggered? ctx)
   (and (ctx-discord-message-id ctx) #t))
 
-;;; ====
-;;; Discord Trigger Schedule
-;;; ====
+(doc 'section 'discord-trigger-schedule)
 
-;;; make-discord-mention-schedule : Symbol -> Schedule
-;;; Trigger when @agent is mentioned in Discord.
+(doc 'type '(-> Symbol Schedule))
+(doc 'description "Trigger when @agent is mentioned in Discord")
 (define (make-discord-mention-schedule agent-name)
   (list 'schedule 'discord-mention agent-name))
 

@@ -1,35 +1,19 @@
-;;; fabric/stitches/pipeline/dsl.ss — User-Facing Pipeline DSL
-;;;
-;;; Provides a clean syntax for defining pipelines.
-;;; Pipelines are still S-expressions (homoiconic) but with
-;;; convenient constructors and combinators.
-;;;
-;;; This is Core code: pure stage construction.
-;;;
-;;; Features:
-;;;   - define-pipeline: Named pipeline definition
-;;;   - stage: Named stage wrapper
-;;;   - config: Pipeline configuration
-;;;   - Operator aliases for composition
-;;;   - Common patterns as functions
-;;;
-;;; Dependencies:
-;;;   - pipeline/stage.ss
-;;;   - pipeline/effects.ss
-;;;   - pipeline/context.ss
-;;;   - pipeline/council.ss
-
 (load "lattice/pipeline/stage.ss")
 (load "lattice/pipeline/effects.ss")
 (load "lattice/pipeline/context.ss")
 (load "lattice/pipeline/council.ss")
 
-;;; ====
-;;; Pipeline Definition
-;;; ====
+(doc 'module 'pipeline/dsl)
+(doc 'description "User-Facing Pipeline DSL. Provides a clean syntax for defining pipelines. Pipelines are still S-expressions (homoiconic) but with convenient constructors and combinators.")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
+(doc 'features "define-pipeline (Named pipeline definition); stage (Named stage wrapper); config (Pipeline configuration); Operator aliases for composition; Common patterns as functions")
+(doc 'dependencies '(pipeline/stage.ss pipeline/effects.ss pipeline/context.ss pipeline/council.ss))
 
-;;; define-pipeline* : Symbol -> Alist -> Stage -> PipelineDef
-;;; Create a named pipeline definition.
+(doc 'section 'pipeline-definition)
+
+(doc 'type '(-> Symbol Alist Stage PipelineDef))
+(doc 'description "Create a named pipeline definition")
 (define (define-pipeline* name config stage)
   (make-pipeline-def name stage config))
 
@@ -40,12 +24,10 @@
 ;;;     (>>> (stage-pure "input")
 ;;;          (llm 'sonnet "Process: ${input}"))))
 
-;;; ====
-;;; Stage Naming and Tracing
-;;; ====
+(doc 'section 'stage-naming-tracing)
 
-;;; named-stage : Symbol -> Stage -> Stage
-;;; Wrap a stage with a name for logging/debugging.
+(doc 'type '(-> Symbol Stage Stage))
+(doc 'description "Wrap a stage with a name for logging/debugging")
 (define (named-stage name stage)
   (make-stage name (stage-run-fn stage)))
 
@@ -53,12 +35,10 @@
 ;;; Alias for named-stage.
 (define stage* named-stage)
 
-;;; ====
-;;; Configuration Helpers
-;;; ====
+(doc 'section 'configuration-helpers)
 
-;;; config : Alist
-;;; Just an alias to make config clear in pipeline defs.
+(doc 'type 'Alist)
+(doc 'description "Just an alias to make config clear in pipeline defs")
 (define (config . pairs)
   pairs)
 
@@ -94,15 +74,11 @@
            (ctx-extend-env ctx bindings))
    stage))
 
-;;; ====
-;;; Operator Aliases
-;;; ====
+(doc 'section 'operator-aliases)
+(doc 'description "Infix-style operators (using >>> etc. directly from stage.ss). These are re-exported for convenience.")
 
-;;; Infix-style operators (using >>> etc. directly from stage.ss)
-;;; These are re-exported for convenience.
-
-;;; --> : Stage -> Stage -> Stage
-;;; Sequential composition (alias for >>>).
+(doc 'type '(-> Stage Stage Stage))
+(doc 'description "Sequential composition (alias for >>>)")
 (define --> stage->>>)
 
 ;;; <-- : Stage -> Stage -> Stage
@@ -115,12 +91,10 @@
 (define (pipe-into value stage-fn)
   (stage-fn value))
 
-;;; ====
-;;; Common Stage Patterns
-;;; ====
+(doc 'section 'common-stage-patterns)
 
-;;; parse-json : Stage ctx String Any
-;;; Parse JSON string to S-expression.
+(doc 'type '(Stage ctx String Any))
+(doc 'description "Parse JSON string to S-expression")
 (define parse-json
   (stage-arr
    (lambda (s)
@@ -149,12 +123,10 @@
    (lambda (lines)
            (list 'join-lines lines))))
 
-;;; ====
-;;; Flow Control Patterns
-;;; ====
+(doc 'section 'flow-control-patterns)
 
-;;; on-success : Stage -> Stage -> Stage
-;;; Run second stage only if first succeeds.
+(doc 'type '(-> Stage Stage Stage))
+(doc 'description "Run second stage only if first succeeds")
 (define (on-success s1 s2)
   (stage->>> s1 s2))
 
@@ -224,12 +196,10 @@
 (define (gate pred stage)
   (stage-if pred stage (stage-skip-with "Gate condition not met")))
 
-;;; ====
-;;; Collection Processing
-;;; ====
+(doc 'section 'collection-processing)
 
-;;; map-stage : Stage ctx a b -> Stage ctx (List a) (List b)
-;;; Apply stage to each element.
+(doc 'type '(-> (Stage ctx a b) (Stage ctx (List a) (List b))))
+(doc 'description "Apply stage to each element")
 (define (map-stage stage)
   (make-stage 'map
               (lambda (ctx input)
@@ -280,12 +250,10 @@
       lst
       (drop (- n 1) (cdr lst))))
 
-;;; ====
-;;; Parallel Execution
-;;; ====
+(doc 'section 'parallel-execution)
 
-;;; parallel : List Stage -> Stage ctx a (List b)
-;;; Run multiple stages in parallel on same input.
+(doc 'type '(-> (List Stage) (Stage ctx a (List b))))
+(doc 'description "Run multiple stages in parallel on same input")
 (define (parallel stages)
   (if (null? stages)
       (stage-pure '())
@@ -312,13 +280,10 @@
 ;;; At least one stage must succeed.
 (define any-of race)
 
-;;; ====
-;;; FSM Pipeline Pattern
-;;; ====
+(doc 'section 'fsm-pipeline-pattern)
 
-;;; fsm-pipeline : Alist (Symbol . (Stage . Alist)) -> Symbol -> Stage
-;;; Create FSM-based pipeline.
-;;; Each state maps to (stage . ((result-pred . next-state) ...))
+(doc 'type '(-> Alist Symbol Stage))
+(doc 'description "Create FSM-based pipeline. Each state maps to (stage . ((result-pred . next-state) ...))")
 (define (fsm-pipeline states initial-state accepting-states)
   (make-stage 'fsm
               (lambda (ctx input)

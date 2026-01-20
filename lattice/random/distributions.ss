@@ -1,52 +1,37 @@
-;;; fabric/stitches/random/distributions.ss — Probability Distributions
-;;;
-;;; Common probability distributions for random sampling.
-;;; All functions return State monad computations for composability.
-;;;
-;;; This is Core code: pure, total, assumes reasonable input.
-;;;
-;;; Features:
-;;;   - Uniform distributions (already in prng.ss)
-;;;   - Normal/Gaussian distribution (Box-Muller)
-;;;   - Exponential distribution
-;;;   - Poisson distribution
-;;;   - Geometric distribution
-;;;   - Binomial distribution
-;;;   - Bernoulli distribution
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;   - fp/state.ss
-;;;   - fp/transcendental.ss
-;;;   - random/prng.ss
-
 (load "core/base/prelude.ss")
 (load "lattice/fp/control/state.ss")
 (load "lattice/fp/numeric/transcendental.ss")
 (load "lattice/random/prng.ss")
 
-;;; ====
-;;; Bernoulli Distribution
-;;; ====
-;;;
-;;; Bernoulli(p): Returns #t with probability p, #f with probability 1-p
 
-;;; random-bernoulli : Real → (State RNG Bool)
-;;; Sample from Bernoulli(p). Returns #t with probability p.
+
+(doc 'module 'distributions)
+(doc 'description "Probability Distributions")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
+
+(doc 'section 'bernoulli-distribution)
+
+(doc "Bernoulli Distribution")
+
+
+
+
+
+
+
 (define (random-bernoulli p)
   (if (or (< p 0) (> p 1))
       (error 'random-bernoulli "probability must be in [0,1]" p)
       (state-map (lambda (u) (< u p)) random-float)))
 
-;;; ====
-;;; Exponential Distribution
-;;; ====
-;;;
-;;; Exponential(λ): Mean = 1/λ, models waiting times
 
-;;; random-exponential : Real → (State RNG Real)
-;;; Sample from Exponential(rate). Uses inverse transform method.
-;;; Mean = 1/rate, Variance = 1/rate^2
+(doc 'section 'exponential-distribution)
+
+(doc "Exponential Distribution")
+
+
+
 (define (random-exponential rate)
   (if (<= rate 0)
       (error 'random-exponential "rate must be positive" rate)
@@ -57,15 +42,13 @@
                               (/ (- (log-num u-safe)) rate)))
                  random-float)))
 
-;;; ====
-;;; Normal/Gaussian Distribution
-;;; ====
-;;;
-;;; Normal(μ, σ): Bell curve with mean μ and standard deviation σ
-;;; Uses Box-Muller transform.
 
-;;; random-normal-standard : (State RNG Real)
-;;; Sample from standard normal N(0, 1) using Box-Muller.
+(doc 'section 'normal/gaussian-distribution)
+
+(doc "Normal/Gaussian Distribution")
+
+
+
 (define random-normal-standard
   (state-bind random-float
               (lambda (u1)
@@ -80,16 +63,12 @@
                                                 ;; We only use z0 for simplicity
                                                 (state-pure z0)))))))
 
-;;; random-normal : Real × Real → (State RNG Real)
-;;; Sample from Normal(mean, stddev).
 (define (random-normal mean stddev)
   (if (<= stddev 0)
       (error 'random-normal "stddev must be positive" stddev)
       (state-map (lambda (z) (+ mean (* stddev z)))
                  random-normal-standard)))
 
-;;; random-normal-pair : (State RNG (Pair Real Real))
-;;; Generate two independent standard normals (more efficient).
 (define random-normal-pair
   (state-bind random-float
               (lambda (u1)
@@ -102,15 +81,13 @@
                                                  [z1 (* r (sin-num theta))])
                                                 (state-pure (cons z0 z1))))))))
 
-;;; ====
-;;; Geometric Distribution
-;;; ====
-;;;
-;;; Geometric(p): Number of trials until first success
-;;; P(X = k) = (1-p)^(k-1) * p for k = 1, 2, 3, ...
 
-;;; random-geometric : Real → (State RNG Int)
-;;; Sample from Geometric(p). Returns >= 1.
+(doc 'section 'geometric-distribution)
+
+(doc "Geometric Distribution")
+
+
+
 (define (random-geometric p)
   (if (or (<= p 0) (> p 1))
       (error 'random-geometric "p must be in (0,1]" p)
@@ -123,15 +100,13 @@
                                               (log-num (- 1 p))))))
                      random-float))))
 
-;;; ====
-;;; Poisson Distribution
-;;; ====
-;;;
-;;; Poisson(λ): Count of events in fixed interval, mean = λ
-;;; Uses Knuth's algorithm for small λ, rejection for large λ
 
-;;; random-poisson : Real → (State RNG Int)
-;;; Sample from Poisson(rate).
+(doc 'section 'poisson-distribution)
+
+(doc "Poisson Distribution")
+
+
+
 (define (random-poisson rate)
   (if (<= rate 0)
       (error 'random-poisson "rate must be positive" rate)
@@ -174,9 +149,6 @@
                                         (cons k g2)
                                         (loop g2))))))))))
 
-;;; log-gamma : Real → Real
-;;; Natural log of gamma function, using Stirling's approximation.
-;;; For positive integers: log-gamma(n+1) = log(n!)
 (define (log-gamma x)
   (if (<= x 0)
       (error 'log-gamma "x must be positive" x)
@@ -194,15 +166,13 @@
                    (* 0.5 (log-num (* 2 (pi-value))))
                    series-term)))))
 
-;;; ====
-;;; Binomial Distribution
-;;; ====
-;;;
-;;; Binomial(n, p): Number of successes in n Bernoulli(p) trials
-;;; Mean = n*p, Variance = n*p*(1-p)
 
-;;; random-binomial : Int × Real → (State RNG Int)
-;;; Sample from Binomial(n, p).
+(doc 'section 'binomial-distribution)
+
+(doc "Binomial Distribution")
+
+
+
 (define (random-binomial n p)
   (cond
    [(< n 0) (error 'random-binomial "n must be non-negative" n)]
@@ -238,15 +208,13 @@
                               ;; Simple acceptance (normal approx is good for large n)
                               (cons k g2))))))]))
 
-;;; ====
-;;; Gamma Distribution
-;;; ====
-;;;
-;;; Gamma(shape, rate): Generalization of exponential
-;;; Mean = shape/rate, Variance = shape/rate^2
 
-;;; random-gamma : Real × Real → (State RNG Real)
-;;; Sample from Gamma(shape, rate) using Marsaglia & Tsang's method.
+(doc 'section 'gamma-distribution)
+
+(doc "Gamma Distribution")
+
+
+
 (define (random-gamma shape rate)
   (cond
    [(<= shape 0) (error 'random-gamma "shape must be positive" shape)]
@@ -285,15 +253,13 @@
                                             (cons (/ (* d v3) rate) g2)
                                             (loop g2)))))))))]))
 
-;;; ====
-;;; Beta Distribution
-;;; ====
-;;;
-;;; Beta(α, β): Distribution on [0, 1]
-;;; Mean = α/(α+β)
 
-;;; random-beta : Real × Real → (State RNG Real)
-;;; Sample from Beta(alpha, beta) using gamma variates.
+(doc 'section 'beta-distribution)
+
+(doc "Beta Distribution")
+
+
+
 (define (random-beta alpha beta)
   (cond
    [(<= alpha 0) (error 'random-beta "alpha must be positive" alpha)]
@@ -305,13 +271,13 @@
                                     (lambda (y)
                                             (state-pure (/ x (+ x y)))))))]))
 
-;;; ====
-;;; Categorical/Discrete Distribution
-;;; ====
 
-;;; random-categorical : (List Real) → (State RNG Int)
-;;; Sample index 0..n-1 according to probability weights.
-;;; Weights are normalized automatically.
+(doc 'section 'categorical/discrete-distribution)
+
+(doc "Categorical/Discrete Distribution")
+
+
+
 (define (random-categorical weights)
   (if (null? weights)
       (error 'random-categorical "empty weight list")
@@ -329,18 +295,16 @@
                                                        i
                                                        (loop (cdr ws) new-acc (+ i 1)))))))))))))
 
-;;; ====
-;;; Multivariate Distributions
-;;; ====
 
-;;; random-normal-vector : Int × Real × Real → (State RNG (List Real))
-;;; Generate n independent normal samples.
+(doc 'section 'multivariate-distributions)
+
+(doc "Multivariate Distributions")
+
+
+
 (define (random-normal-vector n mean stddev)
   (random-list n (random-normal mean stddev)))
 
-;;; random-dirichlet : (List Real) → (State RNG (List Real))
-;;; Sample from Dirichlet distribution with concentration parameters.
-;;; Returns a probability vector that sums to 1.
 (define (random-dirichlet alphas)
   (if (null? alphas)
       (error 'random-dirichlet "empty alpha list")
@@ -351,58 +315,45 @@
                               (let ([total (fold-left + 0 gammas)])
                                    (state-pure (map (lambda (g) (/ g total)) gammas))))))))
 
-;;; positive? : Real → Bool
-;;; Check if number is positive.
 (define (positive? x) (> x 0))
 
-;;; andmap : (α → Bool) × (List α) → Bool
-;;; Helper: andmap for predicates
 (define (andmap pred lst)
   (cond
    [(null? lst) #t]
    [(pred (car lst)) (andmap pred (cdr lst))]
    [else #f]))
 
-;;; ====
-;;; Probability Density/Mass Functions (PDF/PMF)
-;;; ====
 
-;;; normal-pdf : Real × Real × Real → Real
-;;; PDF of Normal(mean, stddev) at x.
+(doc 'section 'probability-density/mass-functions-pdf/pmf)
+
+(doc "Probability Density/Mass Functions (PDF/PMF)")
+
+
+
 (define (normal-pdf x mean stddev)
   (let* ([z (/ (- x mean) stddev)]
          [coef (/ 1 (* stddev (sqrt (* 2 (pi-value)))))])
         (* coef (exp-num (* -0.5 z z)))))
 
-;;; standard-normal-pdf : Real → Real
-;;; Standard normal PDF
 (define (standard-normal-pdf x)
   (normal-pdf x 0 1))
 
-;;; exponential-pdf : Real × Real → Real
-;;; PDF of Exponential(rate) at x.
 (define (exponential-pdf x rate)
   (if (< x 0)
       0
       (* rate (exp-num (* (- rate) x)))))
 
-;;; uniform-pdf : Real × Real × Real → Real
-;;; PDF of Uniform(a, b) at x.
 (define (uniform-pdf x a b)
   (if (or (< x a) (> x b))
       0
       (/ 1 (- b a))))
 
-;;; poisson-pmf : Int × Real → Real
-;;; PMF of Poisson(rate) at k.
 (define (poisson-pmf k rate)
   (if (< k 0)
       0
       (/ (* (expt rate k) (exp-num (- rate)))
          (factorial k))))
 
-;;; binomial-pmf : Int × Int × Real → Real
-;;; PMF of Binomial(n, p) at k.
 (define (binomial-pmf k n p)
   (if (or (< k 0) (> k n))
       0
@@ -410,49 +361,37 @@
          (expt p k)
          (expt (- 1 p) (- n k)))))
 
-;;; geometric-pmf : Int × Real → Real
-;;; PMF of Geometric(p) at k (number of trials until first success).
-;;; k >= 1
 (define (geometric-pmf k p)
   (if (< k 1)
       0
       (* (expt (- 1 p) (- k 1)) p)))
 
-;;; bernoulli-pmf : Bool × Real → Real
-;;; Bernoulli PMF
 (define (bernoulli-pmf success? p)
   (if success? p (- 1 p)))
 
-;;; ====
-;;; Cumulative Distribution Functions (CDF)
-;;; ====
 
-;;; exponential-cdf : Real × Real → Real
-;;; CDF of Exponential(rate) at x.
+(doc 'section 'cumulative-distribution-functions-cdf)
+
+(doc "Cumulative Distribution Functions (CDF)")
+
+
+
 (define (exponential-cdf x rate)
   (if (< x 0)
       0
       (- 1 (exp-num (* (- rate) x)))))
 
-;;; uniform-cdf : Real × Real × Real → Real
-;;; CDF of Uniform(a, b) at x.
 (define (uniform-cdf x a b)
   (cond
    [(< x a) 0]
    [(> x b) 1]
    [else (/ (- x a) (- b a))]))
 
-;;; geometric-cdf : Int × Real → Real
-;;; CDF of Geometric(p) at k.
 (define (geometric-cdf k p)
   (if (< k 1)
       0
       (- 1 (expt (- 1 p) k))))
 
-;;; standard-normal-cdf : Real → Real
-;;; Standard Normal CDF (Approximation)
-;;; Uses Abramowitz and Stegun approximation (7.1.26)
-;;; Accurate to about 1.5e-7
 (define (standard-normal-cdf x)
   (let* ([a1 0.254829592]
          [a2 -0.284496736]
@@ -467,13 +406,9 @@
                     t (exp-num (* -0.5 x x))))])
         (* 0.5 (+ 1 (* sign y)))))
 
-;;; normal-cdf : Real × Real × Real → Real
-;;; Normal CDF
 (define (normal-cdf x mean stddev)
   (standard-normal-cdf (/ (- x mean) stddev)))
 
-;;; poisson-cdf : Int × Real → Real
-;;; CDF of Poisson(rate) at k (sum of PMF from 0 to k).
 (define (poisson-cdf k rate)
   (if (< k 0)
       0
@@ -482,12 +417,13 @@
                sum
                (loop (+ i 1) (+ sum (poisson-pmf i rate)))))))
 
-;;; ====
-;;; Quantile Functions (Inverse CDF)
-;;; ====
 
-;;; exponential-quantile : Real × Real → Real
-;;; Quantile (inverse CDF) of Exponential(rate) at p.
+(doc 'section 'quantile-functions-inverse-cdf)
+
+(doc "Quantile Functions (Inverse CDF)")
+
+
+
 (define (exponential-quantile p rate)
   (if (or (< p 0) (> p 1))
       (error 'exponential-quantile "p must be in [0,1]" p)
@@ -495,15 +431,11 @@
           +inf.0  ; infinity
           (/ (- (log-num (- 1 p))) rate))))
 
-;;; uniform-quantile : Real × Real × Real → Real
-;;; Uniform Quantile
 (define (uniform-quantile p a b)
   (if (or (< p 0) (> p 1))
       (error 'uniform-quantile "p must be in [0,1]" p)
       (+ a (* p (- b a)))))
 
-;;; geometric-quantile : Real × Real → Int
-;;; Geometric Quantile
 (define (geometric-quantile p prob)
   (if (or (< p 0) (> p 1))
       (error 'geometric-quantile "p must be in [0,1]" p)
@@ -512,10 +444,6 @@
           (ceiling (/ (log-num (- 1 p))
                       (log-num (- 1 prob)))))))
 
-;;; standard-normal-quantile : Real → Real
-;;; Standard Normal Quantile (Approximation)
-;;; Uses Rational Approximation (Abramowitz and Stegun)
-;;; Accurate for 0 < p < 1
 (define (standard-normal-quantile p)
   (if (or (<= p 0) (>= p 1))
       (error 'standard-normal-quantile "p must be in (0,1)" p)
@@ -532,23 +460,21 @@
              [den (+ 1 (* b1 t) (* b2 t t) (* b3 t t t))])
             (* sign (- t (/ num den))))))
 
-;;; normal-quantile : Real × Real × Real → Real
-;;; Normal Quantile
 (define (normal-quantile p mean stddev)
   (+ mean (* stddev (standard-normal-quantile p))))
 
-;;; ====
-;;; Helper Functions for Distributions
-;;; ====
 
-;;; factorial : Int → Int
+(doc 'section 'helper-functions-for-distributions)
+
+(doc "Helper Functions for Distributions")
+
+
+
 (define (factorial n)
   (if (<= n 1)
       1
       (* n (factorial (- n 1)))))
 
-;;; binomial-coeff : Int × Int → Int
-;;; C(n, k) = n! / (k! * (n-k)!)
 (define (binomial-coeff n k)
   (if (or (< k 0) (> k n))
       0

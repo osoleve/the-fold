@@ -1,56 +1,41 @@
-;;; core/info-theory/coding.ss — Coding Theory Functions
-;;;
-;;; Implements fundamental coding algorithms:
-;;;   - Huffman coding (optimal prefix-free codes)
-;;;   - Arithmetic coding (optimal fractional-bit codes)
-;;;   - Lempel-Ziv compression (dictionary-based)
-;;;   - Channel coding (error detection/correction)
-;;;
-;;; This is Core code: pure, total, assumes valid input.
-;;;
-;;; Dependencies:
-;;;   - entropy.ss (for entropy calculations)
-
 (load "lattice/info/entropy.ss")
 
-;;; ====
-;;; Huffman Coding
-;;; ====
-;;;
-;;; Huffman coding builds an optimal prefix-free code for a given
-;;; probability distribution. The average code length approaches
-;;; the entropy H(X) as closely as possible with integer bit lengths.
+(doc 'module 'coding)
+(doc 'description "Coding theory functions: Huffman, arithmetic, LZ78, RLE, and channel coding")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
 
-;;; make-huffman-leaf : Symbol × Real → Node
-;;; A Huffman tree node is either a leaf (symbol, prob) or
-;;; an internal node ((left . right), prob).
+(doc 'section 'huffman-coding)
+
 (define (make-huffman-leaf symbol prob)
+  (doc 'type '(-> Symbol Real Node))
+  (doc 'description "Create Huffman tree leaf node")
   (list 'leaf symbol prob))
 
-;;; make-huffman-internal : Node × Node → Node
 (define (make-huffman-internal left right)
+  (doc 'type '(-> Node Node Node))
+  (doc 'description "Create Huffman tree internal node")
   (list 'internal (cons left right) (+ (huffman-prob left) (huffman-prob right))))
 
-;;; huffman-leaf? : Node → Boolean
 (define (huffman-leaf? node)
+  (doc 'type '(-> Node Boolean))
   (eq? (car node) 'leaf))
 
-;;; huffman-symbol : Node → Symbol
 (define (huffman-symbol node)
+  (doc 'type '(-> Node Symbol))
   (cadr node))
 
-;;; huffman-children : Node → Node × Node
 (define (huffman-children node)
+  (doc 'type '(-> Node (Pair Node Node)))
   (cadr node))
 
-;;; huffman-prob : Node → Real
 (define (huffman-prob node)
+  (doc 'type '(-> Node Real))
   (caddr node))
 
-;;; build-huffman-tree : (List (Symbol × Real)) → Node
-;;; Build Huffman tree from symbol-probability pairs.
-;;; Input: ((sym1 . prob1) (sym2 . prob2) ...)
 (define (build-huffman-tree symbol-probs)
+  (doc 'type '(-> (List (Pair Symbol Real)) Node))
+  (doc 'description "Build Huffman tree from symbol-probability pairs")
   (if (null? symbol-probs)
       (make-huffman-leaf 'empty 0)
       (if (null? (cdr symbol-probs))
@@ -62,9 +47,9 @@
                              symbol-probs)])
                (huffman-build-loop (sort-by-prob leaves))))))
 
-;;; huffman-build-loop : (List Node) → Node
-;;; Main Huffman algorithm: repeatedly combine two lowest-prob nodes.
 (define (huffman-build-loop nodes)
+  (doc 'type '(-> (List Node) Node))
+  (doc 'description "Main Huffman algorithm loop: combine two lowest-prob nodes")
   (if (null? (cdr nodes))
       (car nodes)  ; Only one node left: it's the root
       (let* ([sorted (sort-by-prob nodes)]
@@ -74,34 +59,33 @@
              [combined (make-huffman-internal n1 n2)])
             (huffman-build-loop (cons combined rest)))))
 
-;;; sort-by-prob : (List Node) → (List Node)
-;;; Sort nodes by probability (ascending).
 (define (sort-by-prob nodes)
+  (doc 'type '(-> (List Node) (List Node)))
+  (doc 'description "Sort nodes by probability (ascending)")
   (list-sort (lambda (a b) (< (huffman-prob a) (huffman-prob b))) nodes))
 
-;;; list-sort : (α × α → Boolean) × (List α) → (List α)
-;;; Simple insertion sort (sufficient for small alphabets).
 (define (list-sort less? lst)
+  (doc 'type '(-> (-> α α Boolean) (List α) (List α)))
+  (doc 'description "Simple insertion sort for small alphabets")
   (if (null? lst)
       '()
       (insert-sorted less? (car lst) (list-sort less? (cdr lst)))))
 
-;;; insert-sorted : (α × α → Boolean) × α × (List α) → (List α)
 (define (insert-sorted less? x sorted)
+  (doc 'type '(-> (-> α α Boolean) α (List α) (List α)))
   (if (null? sorted)
       (list x)
       (if (less? x (car sorted))
           (cons x sorted)
           (cons (car sorted) (insert-sorted less? x (cdr sorted))))))
 
-;;; huffman-codes : Node → (List (Symbol × String))
-;;; Extract code assignments from Huffman tree.
-;;; Returns ((sym1 . "0110") (sym2 . "01") ...)
 (define (huffman-codes tree)
+  (doc 'type '(-> Node (List (Pair Symbol String))))
+  (doc 'description "Extract code assignments from Huffman tree")
   (huffman-codes-helper tree ""))
 
-;;; huffman-codes-helper : Node × String → (List (Symbol × String))
 (define (huffman-codes-helper node prefix)
+  (doc 'type '(-> Node String (List (Pair Symbol String))))
   (if (huffman-leaf? node)
       (list (cons (huffman-symbol node) prefix))
       (let* ([children (huffman-children node)]
@@ -110,9 +94,9 @@
             (append (huffman-codes-helper left (string-append prefix "0"))
                     (huffman-codes-helper right (string-append prefix "1"))))))
 
-;;; huffman-encode : (List Symbol) × (List (Symbol × String)) → String
-;;; Encode a message using Huffman code table.
 (define (huffman-encode message code-table)
+  (doc 'type '(-> (List Symbol) (List (Pair Symbol String)) String))
+  (doc 'description "Encode message using Huffman code table")
   (apply string-append
          (map (lambda (sym)
                       (let ([entry (assq sym code-table)])
@@ -121,13 +105,13 @@
                                (error "huffman-encode" "symbol not in code table" sym))))
               message)))
 
-;;; huffman-decode : String × Node → (List Symbol)
-;;; Decode a bitstring using Huffman tree.
 (define (huffman-decode bitstring tree)
+  (doc 'type '(-> String Node (List Symbol)))
+  (doc 'description "Decode bitstring using Huffman tree")
   (huffman-decode-helper bitstring tree tree '()))
 
-;;; huffman-decode-helper : String × Node × Node × (List Symbol) → (List Symbol)
 (define (huffman-decode-helper bits root current acc)
+  (doc 'type '(-> String Node Node (List Symbol) (List Symbol)))
   (cond
    [(and (string=? bits "") (huffman-leaf? current))
     (reverse (cons (huffman-symbol current) acc))]
@@ -144,9 +128,9 @@
            [next (if (char=? bit #\0) (car children) (cdr children))])
           (huffman-decode-helper rest root next acc))]))
 
-;;; huffman-average-length : (List (Symbol × String)) × (List (Symbol × Real)) → Real
-;;; Compute average code length given codes and probabilities.
 (define (huffman-average-length code-table symbol-probs)
+  (doc 'type '(-> (List (Pair Symbol String)) (List (Pair Symbol Real)) Real))
+  (doc 'description "Compute average code length given codes and probabilities")
   (fold-left + 0
              (map (lambda (sp)
                           (let* ([sym (car sp)]
@@ -155,9 +139,9 @@
                                 (* prob (string-length code))))
                   symbol-probs)))
 
-;;; huffman-efficiency : (List (Symbol × String)) × (List (Symbol × Real)) → Real
-;;; Ratio of entropy to average code length (should be close to 1).
 (define (huffman-efficiency code-table symbol-probs)
+  (doc 'type '(-> (List (Pair Symbol String)) (List (Pair Symbol Real)) Real))
+  (doc 'description "Ratio of entropy to average code length (ideally close to 1)")
   (let* ([probs (map cdr symbol-probs)]
          [h (entropy probs)]
          [avg-len (huffman-average-length code-table symbol-probs)])
@@ -165,22 +149,16 @@
             1.0  ; Degenerate case
             (/ h avg-len))))
 
-;;; ====
-;;; Arithmetic Coding
-;;; ====
-;;;
-;;; Arithmetic coding represents a message as a subinterval of [0,1).
-;;; It achieves optimal compression (approaches entropy exactly).
+(doc 'section 'arithmetic-coding)
 
-;;; arithmetic-encode : (List Symbol) × (List (Symbol × Real)) → Real × Real
-;;; Encode message to an interval [low, high).
-;;; Returns the interval as (low . high).
 (define (arithmetic-encode message symbol-probs)
+  (doc 'type '(-> (List Symbol) (List (Pair Symbol Real)) (Pair Real Real)))
+  (doc 'description "Encode message to interval [low, high) via arithmetic coding")
   (let ([cumulative (build-cumulative-probs symbol-probs)])
        (arithmetic-encode-helper message cumulative 0.0 1.0)))
 
-;;; arithmetic-encode-helper : (List Symbol) × (List (Symbol × Real × Real)) × Real × Real → Real × Real
 (define (arithmetic-encode-helper message cumulative low high)
+  (doc 'type '(-> (List Symbol) (List (List Symbol Real Real)) Real Real (Pair Real Real)))
   (if (null? message)
       (cons low high)
       (let* ([sym (car message)]
@@ -192,9 +170,9 @@
              [new-high (+ low (* range sym-high))])
             (arithmetic-encode-helper (cdr message) cumulative new-low new-high))))
 
-;;; build-cumulative-probs : (List (Symbol × Real)) → (List (Symbol × Real × Real))
-;;; Build cumulative probability table: ((sym low high) ...)
 (define (build-cumulative-probs symbol-probs)
+  (doc 'type '(-> (List (Pair Symbol Real)) (List (List Symbol Real Real))))
+  (doc 'description "Build cumulative probability table for arithmetic coding")
   (let loop ([remaining symbol-probs] [cumsum 0.0] [acc '()])
        (if (null? remaining)
            (reverse acc)
@@ -205,15 +183,15 @@
                        new-cumsum
                        (cons (list sym cumsum new-cumsum) acc))))))
 
-;;; arithmetic-decode : (Real × Real) × (List (Symbol × Real)) × Nat → (List Symbol)
-;;; Decode interval back to message of given length.
 (define (arithmetic-decode interval symbol-probs length)
+  (doc 'type '(-> (Pair Real Real) (List (Pair Symbol Real)) Nat (List Symbol)))
+  (doc 'description "Decode interval back to message of given length")
   (let ([cumulative (build-cumulative-probs symbol-probs)]
         [code (/ (+ (car interval) (cdr interval)) 2)])  ; Use midpoint
        (arithmetic-decode-helper code cumulative length '())))
 
-;;; arithmetic-decode-helper : Real × (List (Symbol × Real × Real)) × Nat × (List Symbol) → (List Symbol)
 (define (arithmetic-decode-helper code cumulative length acc)
+  (doc 'type '(-> Real (List (List Symbol Real Real)) Nat (List Symbol) (List Symbol)))
   (if (= length 0)
       (reverse acc)
       (let* ([sym-interval (find-symbol-for-code code cumulative)]
@@ -223,8 +201,8 @@
              [new-code (/ (- code sym-low) (- sym-high sym-low))])
             (arithmetic-decode-helper new-code cumulative (- length 1) (cons sym acc)))))
 
-;;; find-symbol-for-code : Real × (List (Symbol × Real × Real)) → (Symbol × Real × Real)
 (define (find-symbol-for-code code cumulative)
+  (doc 'type '(-> Real (List (List Symbol Real Real)) (List Symbol Real Real)))
   (let loop ([remaining cumulative])
        (if (null? remaining)
            (error "find-symbol-for-code" "code out of range")
@@ -235,29 +213,23 @@
                      entry
                      (loop (cdr remaining)))))))
 
-;;; arithmetic-code-length : (Real × Real) → Real
-;;; Bits needed to represent an interval (theoretical).
 (define (arithmetic-code-length interval)
+  (doc 'type '(-> (Pair Real Real) Real))
+  (doc 'description "Bits needed to represent interval (theoretical)")
   (let ([width (- (cdr interval) (car interval))])
        (if (<= width 0)
            +inf.0
            (- (log2 width)))))
 
-;;; ====
-;;; Lempel-Ziv Compression (LZ78-style)
-;;; ====
-;;;
-;;; LZ78 builds a dictionary of seen phrases during encoding.
-;;; Each output is (dictionary-index, next-symbol).
+(doc 'section 'lempel-ziv-coding)
 
-;;; lz78-encode : (List Symbol) → (List (Nat × Symbol))
-;;; Encode using LZ78 algorithm.
-;;; Returns list of (index, symbol) pairs.
 (define (lz78-encode message)
+  (doc 'type '(-> (List Symbol) (List (Pair Nat Symbol))))
+  (doc 'description "Encode using LZ78 dictionary-based compression")
   (lz78-encode-helper message '() 0 '()))
 
-;;; lz78-encode-helper : (List Symbol) × (List (Nat × (List Symbol))) × Nat × (List (Nat × Symbol)) → (List (Nat × Symbol))
 (define (lz78-encode-helper remaining dict next-index acc)
+  (doc 'type '(-> (List Symbol) (List (Pair Nat (List Symbol))) Nat (List (Pair Nat Symbol)) (List (Pair Nat Symbol))))
   (if (null? remaining)
       (reverse acc)
       (let* ([match (lz78-find-longest-match remaining dict)]
@@ -275,9 +247,9 @@
                                 (+ next-index 1)
                                 (cons (cons match-idx next-sym) acc)))))
 
-;;; lz78-find-longest-match : (List Symbol) × (List (Nat × (List Symbol))) → (Nat × Nat)
-;;; Find longest dictionary match. Returns (index, length).
 (define (lz78-find-longest-match message dict)
+  (doc 'type '(-> (List Symbol) (List (Pair Nat (List Symbol))) (List Nat Nat)))
+  (doc 'description "Find longest dictionary match")
   (let loop ([entries dict] [best-idx 0] [best-len 0])
        (if (null? entries)
            (list best-idx best-len)
@@ -289,9 +261,9 @@
                      (loop (cdr entries) (+ idx 1) match-len)  ; idx+1 because 0 is empty match
                      (loop (cdr entries) best-idx best-len))))))
 
-;;; prefix-match-length : (List α) × (List α) → Nat
-;;; Length of common prefix between two lists.
 (define (prefix-match-length a b)
+  (doc 'type '(-> (List α) (List α) Nat))
+  (doc 'description "Length of common prefix between two lists")
   (let loop ([a a] [b b] [len 0])
        (if (or (null? a) (null? b))
            len
@@ -299,13 +271,13 @@
                (loop (cdr a) (cdr b) (+ len 1))
                len))))
 
-;;; lz78-decode : (List (Nat × Symbol)) → (List Symbol)
-;;; Decode LZ78 compressed data.
 (define (lz78-decode encoded)
+  (doc 'type '(-> (List (Pair Nat Symbol)) (List Symbol)))
+  (doc 'description "Decode LZ78 compressed data")
   (lz78-decode-helper encoded '() '()))
 
-;;; lz78-decode-helper : (List (Nat × Symbol)) × (List (Nat × (List Symbol))) × (List Symbol) → (List Symbol)
 (define (lz78-decode-helper remaining dict acc)
+  (doc 'type '(-> (List (Pair Nat Symbol)) (List (Pair Nat (List Symbol))) (List Symbol) (List Symbol)))
   (if (null? remaining)
       (reverse acc)
       (let* ([entry (car remaining)]
@@ -320,31 +292,29 @@
              [new-dict (append dict (list (cons (length dict) phrase)))])
             (lz78-decode-helper (cdr remaining) new-dict (append (reverse phrase) acc)))))
 
-;;; take-n : Nat × (List α) → (List α)
 (define (take-n n lst)
+  (doc 'type '(-> Nat (List α) (List α)))
   (if (or (<= n 0) (null? lst))
       '()
       (cons (car lst) (take-n (- n 1) (cdr lst)))))
 
-;;; drop-n : Nat × (List α) → (List α)
 (define (drop-n n lst)
+  (doc 'type '(-> Nat (List α) (List α)))
   (if (or (<= n 0) (null? lst))
       lst
       (drop-n (- n 1) (cdr lst))))
 
-;;; ====
-;;; Run-Length Encoding
-;;; ====
+(doc 'section 'run-length-encoding)
 
-;;; rle-encode : (List α) → (List (α × Nat))
-;;; Run-length encode a sequence.
 (define (rle-encode message)
+  (doc 'type '(-> (List α) (List (Pair α Nat))))
+  (doc 'description "Run-length encode a sequence")
   (if (null? message)
       '()
       (rle-encode-helper (cdr message) (car message) 1 '())))
 
-;;; rle-encode-helper : (List α) × α × Nat × (List (α × Nat)) → (List (α × Nat))
 (define (rle-encode-helper remaining current count acc)
+  (doc 'type '(-> (List α) α Nat (List (Pair α Nat)) (List (Pair α Nat))))
   (cond
    [(null? remaining)
     (reverse (cons (cons current count) acc))]
@@ -356,80 +326,71 @@
                        1
                        (cons (cons current count) acc))]))
 
-;;; rle-decode : (List (α × Nat)) → (List α)
-;;; Decode run-length encoded data.
 (define (rle-decode encoded)
+  (doc 'type '(-> (List (Pair α Nat)) (List α)))
+  (doc 'description "Decode run-length encoded data")
   (apply append
          (map (lambda (pair)
                       (replicate (cdr pair) (car pair)))
               encoded)))
 
-;;; replicate : Nat × α → (List α)
 (define (replicate n x)
+  (doc 'type '(-> Nat α (List α)))
   (if (<= n 0)
       '()
       (cons x (replicate (- n 1) x))))
 
-;;; ====
-;;; Channel Coding: Error Detection
-;;; ====
+(doc 'section 'channel-coding)
 
-;;; parity-encode : (List Nat) → (List Nat)
-;;; Add even parity bit to end of message.
 (define (parity-encode bits)
+  (doc 'type '(-> (List Nat) (List Nat)))
+  (doc 'description "Add even parity bit to end of message")
   (let ([parity (fold-left (lambda (acc b) (bitwise-xor acc b)) 0 bits)])
        (append bits (list parity))))
 
-;;; parity-check : (List Nat) → Boolean
-;;; Check if message has valid even parity.
 (define (parity-check bits)
+  (doc 'type '(-> (List Nat) Boolean))
+  (doc 'description "Check if message has valid even parity")
   (= (fold-left (lambda (acc b) (bitwise-xor acc b)) 0 bits) 0))
 
-;;; parity-decode : (List Nat) → (List Nat)
-;;; Remove parity bit (returns message without checking).
 (define (parity-decode bits)
+  (doc 'type '(-> (List Nat) (List Nat)))
+  (doc 'description "Remove parity bit (returns message without checking)")
   (if (null? bits)
       '()
       (take-n (- (length bits) 1) bits)))
 
-;;; bitwise-xor : Nat × Nat → Nat
-;;; XOR for single bits (0 or 1).
 (define (bitwise-xor a b)
+  (doc 'type '(-> Nat Nat Nat))
+  (doc 'description "XOR for single bits (0 or 1)")
   (if (= a b) 0 1))
 
-;;; ====
-;;; Channel Coding: Repetition Code
-;;; ====
+(doc 'section 'repetition-code)
 
-;;; repetition-encode : (List Nat) × Nat → (List Nat)
-;;; Encode by repeating each bit n times.
 (define (repetition-encode bits n)
+  (doc 'type '(-> (List Nat) Nat (List Nat)))
+  (doc 'description "Encode by repeating each bit n times")
   (apply append (map (lambda (b) (replicate n b)) bits)))
 
-;;; repetition-decode : (List Nat) × Nat → (List Nat)
-;;; Decode by majority vote on each n-bit group.
 (define (repetition-decode bits n)
+  (doc 'type '(-> (List Nat) Nat (List Nat)))
+  (doc 'description "Decode by majority vote on each n-bit group")
   (if (null? bits)
       '()
       (cons (majority-vote (take-n n bits))
             (repetition-decode (drop-n n bits) n))))
 
-;;; majority-vote : (List Nat) → Nat
-;;; Return the majority bit (0 or 1).
 (define (majority-vote bits)
+  (doc 'type '(-> (List Nat) Nat))
+  (doc 'description "Return the majority bit (0 or 1)")
   (let ([ones (length (filter (lambda (b) (= b 1)) bits))])
        (if (> ones (/ (length bits) 2)) 1 0)))
 
-;;; ====
-;;; Channel Coding: Hamming Code (7,4)
-;;; ====
-;;;
-;;; Hamming(7,4) encodes 4 data bits into 7 bits, correcting 1 error.
-;;; Positions 1,2,4 are parity bits; positions 3,5,6,7 are data.
+(doc 'section 'hamming-code)
 
-;;; hamming74-encode : (List Nat) → (List Nat)
-;;; Encode 4 data bits into 7-bit Hamming codeword.
 (define (hamming74-encode data)
+  (doc 'type '(-> (List Nat) (List Nat)))
+  (doc 'description "Encode 4 data bits into 7-bit Hamming(7,4) codeword")
   (if (not (= (length data) 4))
       (error "hamming74-encode" "expected 4 data bits")
       (let* ([d1 (list-ref data 0)]
@@ -443,10 +404,9 @@
             ;; Output: p1 p2 d1 p4 d2 d3 d4 (positions 1-7)
             (list p1 p2 d1 p4 d2 d3 d4))))
 
-;;; hamming74-decode : (List Nat) → (List Nat)
-;;; Decode 7-bit Hamming codeword, correcting single bit error.
-;;; Returns 4 data bits.
 (define (hamming74-decode codeword)
+  (doc 'type '(-> (List Nat) (List Nat)))
+  (doc 'description "Decode 7-bit Hamming codeword, correcting single bit error")
   (if (not (= (length codeword) 7))
       (error "hamming74-decode" "expected 7-bit codeword")
       (let* ([p1 (list-ref codeword 0)]
@@ -471,9 +431,9 @@
                   (list-ref corrected 5)
                   (list-ref corrected 6)))))
 
-;;; flip-bit-at : (List Nat) × Nat → (List Nat)
-;;; Flip the bit at given index.
 (define (flip-bit-at bits idx)
+  (doc 'type '(-> (List Nat) Nat (List Nat)))
+  (doc 'description "Flip the bit at given index")
   (let loop ([remaining bits] [i 0] [acc '()])
        (if (null? remaining)
            (reverse acc)
@@ -481,9 +441,9 @@
                (loop (cdr remaining) (+ i 1) (cons (bitwise-xor (car remaining) 1) acc))
                (loop (cdr remaining) (+ i 1) (cons (car remaining) acc))))))
 
-;;; hamming74-syndrome : (List Nat) → Nat
-;;; Calculate syndrome (0 means no error).
 (define (hamming74-syndrome codeword)
+  (doc 'type '(-> (List Nat) Nat))
+  (doc 'description "Calculate syndrome (0 means no error)")
   (let* ([p1 (list-ref codeword 0)]
          [p2 (list-ref codeword 1)]
          [d1 (list-ref codeword 2)]
@@ -496,21 +456,19 @@
          [s4 (bitwise-xor (bitwise-xor (bitwise-xor p4 d2) d3) d4)])
         (+ s1 (* 2 s2) (* 4 s4))))
 
-;;; ====
-;;; Code Properties
-;;; ====
+(doc 'section 'code-properties)
 
-;;; hamming-distance : (List Nat) × (List Nat) → Nat
-;;; Number of positions where two codewords differ.
 (define (hamming-distance a b)
+  (doc 'type '(-> (List Nat) (List Nat) Nat))
+  (doc 'description "Number of positions where two codewords differ")
   (if (or (null? a) (null? b))
       0
       (+ (if (= (car a) (car b)) 0 1)
          (hamming-distance (cdr a) (cdr b)))))
 
-;;; minimum-distance : (List (List Nat)) → Nat
-;;; Minimum Hamming distance among all codeword pairs.
 (define (minimum-distance codewords)
+  (doc 'type '(-> (List (List Nat)) Nat))
+  (doc 'description "Minimum Hamming distance among all codeword pairs")
   (if (or (null? codewords) (null? (cdr codewords)))
       +inf.0
       (let ([first (car codewords)]
@@ -518,37 +476,35 @@
            (min (apply min (map (lambda (c) (hamming-distance first c)) rest))
                 (minimum-distance rest)))))
 
-;;; code-rate : Nat × Nat → Real
-;;; Code rate = k/n (information bits / total bits).
 (define (code-rate k n)
+  (doc 'type '(-> Nat Nat Real))
+  (doc 'description "Code rate = k/n (information bits / total bits)")
   (if (<= n 0)
       0
       (/ k n)))
 
-;;; error-correcting-capability : Nat → Nat
-;;; Number of errors correctable = floor((d-1)/2).
 (define (error-correcting-capability min-distance)
+  (doc 'type '(-> Nat Nat))
+  (doc 'description "Number of errors correctable = floor((d-1)/2)")
   (quotient (- min-distance 1) 2))
 
-;;; error-detecting-capability : Nat → Nat
-;;; Number of errors detectable = d-1.
 (define (error-detecting-capability min-distance)
+  (doc 'type '(-> Nat Nat))
+  (doc 'description "Number of errors detectable = d-1")
   (- min-distance 1))
 
-;;; ====
-;;; Compression Metrics
-;;; ====
+(doc 'section 'compression-metrics)
 
-;;; compression-ratio : Nat × Nat → Real
-;;; Original size / Compressed size.
 (define (compression-ratio original-size compressed-size)
+  (doc 'type '(-> Nat Nat Real))
+  (doc 'description "Original size / Compressed size")
   (if (<= compressed-size 0)
       +inf.0
       (/ original-size compressed-size)))
 
-;;; space-savings : Nat × Nat → Real
-;;; 1 - (compressed / original), as percentage-like value.
 (define (space-savings original-size compressed-size)
+  (doc 'type '(-> Nat Nat Real))
+  (doc 'description "1 - (compressed / original), as percentage-like value")
   (if (<= original-size 0)
       0
       (- 1 (/ compressed-size original-size))))
