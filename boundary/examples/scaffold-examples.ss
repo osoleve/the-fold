@@ -1,18 +1,15 @@
-;;; boundary/scaffold-examples.ss — Example Usage of Scaffolding System
-;;;
-;;; This file demonstrates how to use the scaffolding system effectively.
-;;; Run these examples in the REPL after loading scaffold.ss.
-;;;
-;;; Usage:
-;;;   (load "boundary/repl/repl.ss")
-;;;   (load "boundary/tools/scaffold.ss")
-;;;   ;; Then try examples below
+(doc 'module 'scaffold-examples)
+(doc 'description "Example Usage of Scaffolding System - Demonstrates how to use the scaffolding system effectively")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+(doc 'usage "
+  (load \"boundary/repl/repl.ss\")
+  (load \"boundary/tools/scaffold.ss\")
+  ;; Then try examples below
+")
 
-;;; ====
-;;; Example 1: Create a Simple Shell Module
-;;; ====
-
-;;; Generate a utility module for string manipulation
+(doc 'section 'example-1-shell-module)
+(doc 'note "Generate a utility module for string manipulation")
 (define (example-1-shell-module)
   (scaffold 'shell-module "string-helpers"
             '((description . "String manipulation utilities")
@@ -27,9 +24,7 @@
 ;;;   2. Edit boundary/test-string-helpers.ss to add tests
 ;;;   3. Run: scheme --script boundary/test-string-helpers.ss
 
-;;; ====
-;;; Example 2: Create a Pure Core Module
-;;; ====
+(doc 'section 'example-2-core-module)
 
 ;;; Generate a core module for mathematical operations
 (define (example-2-core-module)
@@ -288,9 +283,7 @@ TODO: Add examples
          (display "4. [ ] Document\n")
          (display "5. [ ] Commit\n")]))
 
-;;; ====
-;;; Help Functions
-;;; ====
+(doc 'section 'help-functions)
 
 ;;; Show all examples
 (define (show-all-examples)

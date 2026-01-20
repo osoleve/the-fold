@@ -1,31 +1,14 @@
-;;; boundary/archextract.ss --- ArchExtract: Seeing Structure in Code
-;;;
-;;; A tool for analyzing code structure and generating architecture visualizations.
-;;; Reads Scheme source files, extracts dependencies, and builds a dependency graph.
-;;;
-;;; This is Shell code: uses IO, handles file system operations.
-;;;
-;;; API:
-;;;   (analyze-module path)           - Analyze a single .ss file
-;;;   (analyze-directory path)        - Analyze all .ss files in a directory
-;;;   (build-dependency-graph modules)- Build graph from analyzed modules
-;;;   (find-cycles graph)             - Detect circular dependencies
-;;;   (critical-modules graph)        - Find modules with most dependents
-;;;   (render-graph-ascii graph)      - Render dependency graph as ASCII art
-;;;
-;;; Dependencies:
-;;;   - core/prelude.ss (for filter, fold-left, string-contains?, etc.)
-;;;
-;;; NOTE: string utilities provided by core/prelude.ss
-
 (load "core/base/prelude.ss")
 
-;;; ====
-;;; Path Utilities (reused from fs.ss patterns)
-;;; ====
+(doc 'module 'archextract)
+(doc 'description "ArchExtract: Seeing Structure in Code. Analyzes code structure and generates architecture visualizations. Reads Scheme source files, extracts dependencies, and builds a dependency graph.")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
 
-;;; find-last-sep : String -> Nat | #f
-;;; Find the last path separator (/ or \) in a path.
+(doc 'section 'path-utilities)
+
+(doc arch-find-last-sep 'type "(-> String (Maybe Nat))")
+(doc arch-find-last-sep 'description "Find the last path separator (/ or \\) in a path")
 (define (arch-find-last-sep path)
   (let loop ([i (- (string-length path) 1)])
        (cond

@@ -1,19 +1,15 @@
-;;; boundary/flashmob/test-flashmob.ss — Flashmob Test Suite
-;;;
-;;; Tests for the game-theoretic QA triage system.
-;;; Covers both simple and game strategies.
-;;;
-;;; Run with: scheme --script boundary/flashmob/test-flashmob.ss
-
 (load "core/testing/test-framework.ss")
 (load "boundary/flashmob/flashmob.ss")
 (load "boundary/flashmob/report.ss")
 
-;;; ====
-;;; Test Data
-;;; ====
+(doc 'module 'test-flashmob)
+(doc 'description "Flashmob Test Suite - Tests for the game-theoretic QA triage system. Covers both simple and game strategies.")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+(doc 'usage "scheme --script boundary/flashmob/test-flashmob.ss")
 
-;;; Sample findings for testing
+(doc 'section 'test-data)
+(doc 'note "Sample findings for testing")
 (define *test-findings*
   '(((file . "auth.ss")
      (line . 42)
@@ -59,9 +55,7 @@
 (define *test-agents*
   '(security-agent perf-agent correctness-agent style-agent))
 
-;;; ====
-;;; Agent Tests
-;;; ====
+(doc 'section 'agent-tests)
 
 (test-group "agents"
   (define-test "create default agent"
@@ -94,9 +88,7 @@
            [score (flashmob-agent-score-finding 'security-agent finding)])
       (assert-true (> score 0.5)))))
 
-;;; ====
-;;; Simple Strategy Tests
-;;; ====
+(doc 'section 'simple-strategy-tests)
 
 (test-group "triage-simple"
   (define-test "simple triage returns result"
@@ -147,9 +139,7 @@
                              (< (abs (- (cdr p) first-power)) 0.01))
                            power)))))
 
-;;; ====
-;;; Game Strategy Tests
-;;; ====
+(doc 'section 'game-strategy-tests)
 
 (test-group "triage-game"
   (define-test "game triage returns result"
@@ -193,9 +183,7 @@
         ;; Allow some variation
         (assert-true (>= (- max-p min-p) 0))))))
 
-;;; ====
-;;; SAV Strategy Tests
-;;; ====
+(doc 'section 'sav-strategy-tests)
 
 (test-group "triage-sav"
   (define-test "sav triage returns result"
@@ -223,9 +211,7 @@
       (assert-true (>= cov 0))
       (assert-true (<= cov 1)))))
 
-;;; ====
-;;; CC Strategy Tests
-;;; ====
+(doc 'section 'cc-strategy-tests)
 
 (test-group "triage-cc"
   (define-test "cc triage returns result"
@@ -260,9 +246,7 @@
            [selected (cdr (assq 'selected result))])
       (assert-true (<= (length selected) 3)))))
 
-;;; ====
-;;; Strategy Comparison Tests
-;;; ====
+(doc 'section 'strategy-comparison-tests)
 
 (test-group "strategy-comparison"
   (define-test "compare returns both strategies"
@@ -291,9 +275,7 @@
       (assert-true (>= overlap 0))
       (assert-true (<= overlap 1)))))
 
-;;; ====
-;;; Strategy Dispatcher Tests
-;;; ====
+(doc 'section 'strategy-dispatcher-tests)
 
 (test-group "dispatcher"
   (define-test "run with simple strategy"
@@ -333,9 +315,7 @@
                                        'strategy 'game/cc 'k 3)])
       (assert-equal 'game/cc (cdr (assq 'strategy result))))))
 
-;;; ====
-;;; Block Tests
-;;; ====
+(doc 'section 'block-tests)
 
 (test-group "blocks"
   (define-test "create finding block"
@@ -361,9 +341,7 @@
       (assert-true (pair? data))
       (assert-equal 'simple (cdr (assq 'strategy data))))))
 
-;;; ====
-;;; Report Tests
-;;; ====
+(doc 'section 'report-tests)
 
 (test-group "report"
   (define-test "json serialize string"
@@ -384,9 +362,7 @@
     (let ([result (json-serialize "hello\nworld")])
       (assert-true (string? result)))))
 
-;;; ====
-;;; Edge Case Tests
-;;; ====
+(doc 'section 'edge-case-tests)
 
 (test-group "edge-cases"
   (define-test "empty findings"
@@ -408,18 +384,14 @@
     (let ([result (simple-triage '(security-agent) *test-findings* 3)])
       (assert-equal 'simple (cdr (assq 'strategy result))))))
 
-;;; ====
-;;; Helper Functions
-;;; ====
+(doc 'section 'helper-functions)
 
 (define (for-all pred lst)
   (or (null? lst)
       (and (pred (car lst))
            (for-all pred (cdr lst)))))
 
-;;; ====
-;;; Run Tests
-;;; ====
+(doc 'section 'run-tests)
 
 (printf "~n=== Flashmob Test Suite ===~n~n")
 (run-all-tests)

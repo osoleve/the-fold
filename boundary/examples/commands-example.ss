@@ -1,15 +1,13 @@
-;;; boundary/commands-example.ss — Examples of Custom Commands
-;;;
-;;; This file shows how to extend the command system with custom commands.
-;;; Load this file after repl.ss to add example commands.
-;;;
-;;; Usage:
-;;;   (load "boundary/repl/repl.ss")
-;;;   (load "boundary/commands-example.ss")
+(doc 'module 'commands-example)
+(doc 'description "Examples of Custom Commands - Shows how to extend the command system with custom commands")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+(doc 'usage "
+  (load \"boundary/repl/repl.ss\")
+  (load \"boundary/commands-example.ss\")
+")
 
-;;; ====
-;;; Example 1: Simple Info Command
-;;; ====
+(doc 'section 'example-1-simple-info)
 
 (register-command!
  'system-info
@@ -29,9 +27,7 @@
            (display (caddr result))
            (cadr result))))
 
-;;; ====
-;;; Example 2: Command with Arguments
-;;; ====
+(doc 'section 'example-2-with-arguments)
 
 (register-command!
  'count-words
@@ -50,9 +46,7 @@
            (cadr result)
            (error 'count-words (caddr result)))))
 
-;;; ====
-;;; Example 3: Command that Uses The Fold Features
-;;; ====
+(doc 'section 'example-3-fold-features)
 
 (register-command!
  'quick-post
@@ -73,9 +67,7 @@
            (cadr result)
            (error 'quick-post (caddr result)))))
 
-;;; ====
-;;; Example 4: Command with Validation
-;;; ====
+(doc 'section 'example-4-with-validation)
 
 (register-command!
  'validate-hash
@@ -105,9 +97,7 @@
            (cadr result)
            (error 'validate-hash (caddr result)))))
 
-;;; ====
-;;; Example 5: Command with Error Handling
-;;; ====
+(doc 'section 'example-5-error-handling)
 
 (register-command!
  'safe-divide
@@ -129,9 +119,7 @@
             (display (format "Error: ~a\n" (caddr result)))
             #f))))
 
-;;; ====
-;;; Notify User
-;;; ====
+(doc 'section 'notify-user)
 
 (display "Example commands loaded. New commands available:\n")
 (display "  - system-info     : Show system information\n")

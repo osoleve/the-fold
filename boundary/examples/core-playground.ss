@@ -1,43 +1,32 @@
-;;; boundary/core-playground.ss — Interactive Core Experimentation Tools
-;;;
-;;; Created by Sauna (sonnet) during Deep Heat session
-;;;
-;;; A set of tools for experimenting with Core functions interactively.
-;;; Makes it easy to explore normalization, expansion, hashing, and blocks
-;;; without writing test files.
-;;;
-;;; This is Shell code: uses pretty-printing and formatting for display.
-;;;
-;;; Features:
-;;;   - Normalization experiments (S-expr → de Bruijn)
-;;;   - Expansion experiments (canonical → S-expr)
-;;;   - Round-trip testing (normalize + expand)
-;;;   - Expression hashing (content-addressed expressions)
-;;;   - Block construction and inspection
-;;;   - Free variable analysis
-;;;
-;;; Usage (after loading in REPL):
-;;;   (try-normalize '(lambda (x) (+ x 1)))
-;;;   (try-roundtrip '(lambda (x) x))
-;;;   (hash-expr '(lambda (x) x))
-;;;   (try-free-vars '(+ x y))
-;;;   (try-block 'my-tag #vu8(1 2 3) '())
+(doc 'module 'core-playground)
+(doc 'description "Interactive Core Experimentation Tools - Created by Sauna (sonnet) during Deep Heat session. Makes it easy to explore normalization, expansion, hashing, and blocks without writing test files.")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
 
-;;; ====
-;;; Dependencies
-;;; ====
-;;; These should be loaded by repl.ss or load-core:
-;;;   core/block.ss
-;;;   core/sha256.ss
-;;;   core/normalize.ss (via load-core)
-;;;   core/expand.ss (via load-core)
+(doc 'note "Features:")
+(doc 'note "- Normalization experiments (S-expr → de Bruijn)")
+(doc 'note "- Expansion experiments (canonical → S-expr)")
+(doc 'note "- Round-trip testing (normalize + expand)")
+(doc 'note "- Expression hashing (content-addressed expressions)")
+(doc 'note "- Block construction and inspection")
+(doc 'note "- Free variable analysis")
 
-;;; ====
-;;; Pretty Printing Utilities
-;;; ====
+(doc 'usage "
+  (try-normalize '(lambda (x) (+ x 1)))
+  (try-roundtrip '(lambda (x) x))
+  (hash-expr '(lambda (x) x))
+  (try-free-vars '(+ x y))
+  (try-block 'my-tag #vu8(1 2 3) '())
+")
 
-;;; print-boxed : String String → void
-;;; Print content in a nice box with a title.
+(doc 'section 'dependencies)
+(doc 'note "These should be loaded by repl.ss or load-core:")
+(doc 'note "core/block.ss, core/sha256.ss, core/normalize.ss, core/expand.ss")
+
+(doc 'section 'pretty-printing-utilities)
+
+(doc print-boxed 'type '(-> String String void))
+(doc print-boxed 'description "Print content in a nice box with a title")
 (define (print-boxed title content)
   (display "╔══════════════════════════════════════════════════════════════╗\n")
   (display "║ ")
@@ -55,12 +44,10 @@
   (display content)
   (display "\n\n"))
 
-;;; ====
-;;; Normalization Experiments
-;;; ====
+(doc 'section 'normalization-experiments)
 
-;;; try-normalize : Expr → void
-;;; Show the normalized (de Bruijn) form of an expression.
+(doc try-normalize 'type '(-> Expr void))
+(doc try-normalize 'description "Show the normalized (de Bruijn) form of an expression")
 (define (try-normalize expr)
   (print-boxed "NORMALIZE" "")
   (print-section "Input" (sexpr->string expr))
@@ -78,9 +65,7 @@
            (display "  No free variables (closed expression)\n\n")
            (print-section "Free variables" (sexpr->string fv)))))
 
-;;; ====
-;;; Expansion Experiments
-;;; ====
+(doc 'section 'expansion-experiments)
 
 ;;; try-expand : Expr × List<Symbol> → void
 ;;; Expand a normalized expression with specific variable names.
@@ -100,9 +85,7 @@
   (let ([expanded (expand-fresh canonical)])
        (print-section "Expanded with fresh symbols" (sexpr->string expanded))))
 
-;;; ====
-;;; Round-Trip Testing
-;;; ====
+(doc 'section 'round-trip-testing)
 
 ;;; try-roundtrip : Expr × [List<Symbol>] → void
 ;;; Normalize an expression then expand it back.
@@ -127,9 +110,7 @@
                       (display "✗ Round-trip failed: normalized forms differ!\n")
                       (print-section "Re-normalized" (sexpr->string renormalized))))))))
 
-;;; ====
-;;; Hashing Experiments
-;;; ====
+(doc 'section 'hashing-experiments)
 
 ;;; hash-expr : Expr → Bytevector
 ;;; Normalize an expression and return its hash.
@@ -173,9 +154,7 @@
                 (display "✓ Hashes match! Expressions are alpha-equivalent.\n")
                 (display "✗ Hashes differ. Expressions are NOT alpha-equivalent.\n")))))
 
-;;; ====
-;;; Block Experiments
-;;; ====
+(doc 'section 'block-experiments)
 
 ;;; try-block : Symbol × Bytevector × List<Bytevector> → void
 ;;; Build a block and show its structure and hash.
@@ -246,9 +225,7 @@
                       (display "✓ Round-trip successful! Blocks match.\n")
                       (display "✗ Round-trip failed! Blocks differ.\n"))))))
 
-;;; ====
-;;; Quick Demos
-;;; ====
+(doc 'section 'quick-demos)
 
 ;;; playground-demo : → void
 ;;; Run a quick demo of all playground features.

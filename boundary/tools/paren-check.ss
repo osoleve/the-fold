@@ -1,29 +1,20 @@
-;;; boundary/tools/paren-check.ss — Parenthesis Balance Checker
-;;;
-;;; Analyzes Scheme files for parenthesis balance issues.
-;;; Reports running balance per line and highlights imbalances.
-;;;
-;;; Usage:
-;;;   (paren-check "path/to/file.ss")           ; Full report
-;;;   (paren-check "path/to/file.ss" 100 150)   ; Lines 100-150 only
-;;;   (paren-balance "path/to/file.ss")         ; Just the final balance
-;;;   (paren-locate "path/to/file.ss")          ; Stack-based: exact error locations
-;;;   (paren-errors "path/to/file.ss")          ; Returns list of error structs
-;;;
-;;; This is Shell code: file IO for analysis.
-;;;
-;;; NOTE: string-trim provided by core/prelude.ss
-
 (load "core/base/prelude.ss")
 
-;;; ====
-;;; Core Balance Calculation
-;;; ====
+(doc 'module 'paren-check)
+(doc 'description "Parenthesis balance checker with detailed error reporting")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
 
-;;; count-parens : String -> (Values Int Int Int)
-;;; Count open and close parens in a string.
-;;; Returns (opens closes balance-delta).
-;;; Handles (, ), [, ], {, } and ignores chars in strings/comments.
+(doc 'note "Usage: (paren-check \"path/to/file.ss\") for full report")
+(doc 'note "(paren-check \"path/to/file.ss\" 100 150) for lines 100-150 only")
+(doc 'note "(paren-balance \"path/to/file.ss\") for just the final balance")
+(doc 'note "(paren-locate \"path/to/file.ss\") for stack-based exact error locations")
+(doc 'note "(paren-errors \"path/to/file.ss\") for list of error structs")
+
+(doc 'section 'core-balance)
+
+(doc count-parens 'type '(-> String (Values Int Int Int)))
+(doc count-parens 'description "Count open and close parens in a string, returns (opens closes balance-delta), handles (, ), [, ], {, } and ignores chars in strings/comments")
 (define (count-parens line)
   (let loop ([i 0]
              [opens 0]

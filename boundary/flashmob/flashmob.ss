@@ -1,48 +1,42 @@
-;;; boundary/flashmob/flashmob.ss — Flashmob Entry Point
-;;;
-;;; Game-theoretic QA triage system for The Fold.
-;;; Coordinates multiple agents to prioritize and attribute findings.
-;;;
-;;; Usage:
-;;;   (load "boundary/flashmob/flashmob.ss")
-;;;   (flashmob-start '("file1.ss" "file2.ss"))
-;;;   (flashmob-add-finding 'file "file1.ss" 'line 10 'severity 'high ...)
-;;;   (flashmob-triage)
-;;;   (flashmob-ranking)
-;;;   (flashmob-credits)
-;;;
-;;; This is Shell code: main entry point, loads all modules.
-
 (load "boundary/flashmob/triage.ss")
 (load "boundary/flashmob/history.ss")
 
-;;; ====
-;;; Current Session State
-;;; ====
+(doc 'module 'flashmob-main)
+(doc 'description "Game-theoretic QA triage system for The Fold. Coordinates multiple agents to prioritize and attribute findings.")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
 
-;;; *flashmob-current-session* : String | #f
-;;; ID of the currently active session.
+(doc 'usage "
+  (load \"boundary/flashmob/flashmob.ss\")
+  (flashmob-start '(\"file1.ss\" \"file2.ss\"))
+  (flashmob-add-finding 'file \"file1.ss\" 'line 10 'severity 'high ...)
+  (flashmob-triage)
+  (flashmob-ranking)
+  (flashmob-credits)
+")
+
+(doc 'section 'current-session-state)
+
+(doc *flashmob-current-session* 'type '(U String #f))
+(doc *flashmob-current-session* 'description "ID of the currently active session")
 (define *flashmob-current-session* #f)
 
-;;; *flashmob-session-agents* : (List Symbol)
-;;; Agents participating in the current session.
+(doc *flashmob-session-agents* 'type '(List Symbol))
+(doc *flashmob-session-agents* 'description "Agents participating in the current session")
 (define *flashmob-session-agents* '())
 
-;;; *flashmob-session-findings* : (List Alist)
-;;; Findings collected in the current session (in memory for quick access).
+(doc *flashmob-session-findings* 'type '(List Alist))
+(doc *flashmob-session-findings* 'description "Findings collected in the current session (in memory for quick access)")
 (define *flashmob-session-findings* '())
 
-;;; *flashmob-session-triage* : Alist | #f
-;;; Most recent triage result.
+(doc *flashmob-session-triage* 'type '(U Alist #f))
+(doc *flashmob-session-triage* 'description "Most recent triage result")
 (define *flashmob-session-triage* #f)
 
-;;; ====
-;;; Session Management
-;;; ====
+(doc 'section 'session-management)
 
-;;; flashmob-start : (List String) -> String
-;;; Start a new QA session for the given files.
-;;; Returns the session ID.
+(doc flashmob-start 'type '(-> (List String) String))
+(doc flashmob-start 'description "Start a new QA session for the given files. Returns the session ID.")
 (define (flashmob-start files)
   (when *flashmob-current-session*
     (printf "Warning: Closing previous session ~a~n" *flashmob-current-session*))
@@ -55,8 +49,8 @@
     (printf "Files under review: ~a~n" files)
     session-id))
 
-;;; flashmob-status : -> Void
-;;; Show current session status.
+(doc flashmob-status 'type '(-> Void))
+(doc flashmob-status 'description "Show current session status")
 (define (flashmob-status)
   (if (not *flashmob-current-session*)
       (printf "No active session. Use (flashmob-start files) to begin.~n")
@@ -76,8 +70,8 @@
                   (flashmob-format-pct (cdr (assq 'consensus *flashmob-session-triage*)))))
         (printf "~a~n" (make-string 60 #\-)))))
 
-;;; flashmob-stop : -> Void
-;;; End the current session and persist final state.
+(doc flashmob-stop 'type '(-> Void))
+(doc flashmob-stop 'description "End the current session and persist final state")
 (define (flashmob-stop)
   (if (not *flashmob-current-session*)
       (printf "No active session to stop.~n")
@@ -90,24 +84,18 @@
         (set! *flashmob-session-findings* '())
         (set! *flashmob-session-triage* #f))))
 
-;;; ====
-;;; Finding Management
-;;; ====
+(doc 'section 'finding-management)
 
-;;; flashmob-add-finding : . args -> Bytevector
-;;; Add a finding to the current session.
-;;;
-;;; Required keyword arguments:
-;;;   'file - File path
-;;;   'line - Line number
-;;;   'severity - 'critical | 'high | 'medium | 'low | 'info
-;;;   'category - 'security | 'performance | 'correctness | 'style | 'documentation
-;;;   'confidence - 0.0-1.0
-;;;   'agent - Agent ID that found this
-;;;
-;;; Optional:
-;;;   'title - Short description
-;;;   'description - Detailed description
+(doc flashmob-add-finding 'type '(-> . args Bytevector))
+(doc flashmob-add-finding 'description "Add a finding to the current session")
+(doc flashmob-add-finding 'param "'file - File path (required)")
+(doc flashmob-add-finding 'param "'line - Line number (required)")
+(doc flashmob-add-finding 'param "'severity - 'critical | 'high | 'medium | 'low | 'info (required)")
+(doc flashmob-add-finding 'param "'category - 'security | 'performance | 'correctness | 'style | 'documentation (required)")
+(doc flashmob-add-finding 'param "'confidence - 0.0-1.0 (required)")
+(doc flashmob-add-finding 'param "'agent - Agent ID that found this (required)")
+(doc flashmob-add-finding 'param "'title - Short description (optional)")
+(doc flashmob-add-finding 'param "'description - Detailed description (optional)")
 (define (flashmob-add-finding . args)
   (unless *flashmob-current-session*
     (error 'flashmob-add-finding "No active session"))
@@ -138,8 +126,8 @@
       (printf "Added finding: ~a [~a ~a]~n" title severity category)
       hash)))
 
-;;; flashmob-list-findings : -> Void
-;;; List all findings in current session.
+(doc flashmob-list-findings 'type '(-> Void))
+(doc flashmob-list-findings 'description "List all findings in current session")
 (define (flashmob-list-findings)
   (if (null? *flashmob-session-findings*)
       (printf "No findings yet.~n")
@@ -156,8 +144,8 @@
                    (fm-truncate (cdr (assq 'title f)) 40)))
          *flashmob-session-findings*))))
 
-;;; flashmob-show-finding : Int | Bytevector -> Void
-;;; Show details of a specific finding.
+(doc flashmob-show-finding 'type '(-> (U Int Bytevector) Void))
+(doc flashmob-show-finding 'description "Show details of a specific finding")
 (define (flashmob-show-finding id-or-hash)
   (let ([finding (if (number? id-or-hash)
                     (and (< id-or-hash (length *flashmob-session-findings*))
@@ -179,16 +167,12 @@
               (printf "~nDescription:~n~a~n" desc)))
           (printf "~a~n" (make-string 60 #\-))))))
 
-;;; ====
-;;; Triage Operations
-;;; ====
+(doc 'section 'triage-operations)
 
-;;; flashmob-triage : . args -> Alist
-;;; Run triage on current session.
-;;;
-;;; Optional keyword arguments:
-;;;   'strategy - 'simple | 'game (default: auto-recommended)
-;;;   'k - Number of findings to select (default: 10)
+(doc flashmob-triage 'type '(-> . args Alist))
+(doc flashmob-triage 'description "Run triage on current session")
+(doc flashmob-triage 'param "'strategy - 'simple | 'game (default: auto-recommended)")
+(doc flashmob-triage 'param "'k - Number of findings to select (default: 10)")
 (define (flashmob-triage . args)
   (unless *flashmob-current-session*
     (error 'flashmob-triage "No active session"))
@@ -211,8 +195,8 @@
     (printf "Consensus: ~a~n" (flashmob-format-pct (cdr (assq 'consensus result))))
     result))
 
-;;; flashmob-ranking : -> Void
-;;; Display the current ranking of findings.
+(doc flashmob-ranking 'type '(-> Void))
+(doc flashmob-ranking 'description "Display the current ranking of findings")
 (define (flashmob-ranking)
   (if (not *flashmob-session-triage*)
       (printf "No triage yet. Run (flashmob-triage) first.~n")
@@ -231,8 +215,8 @@
                       (fm-truncate (cdr (assq 'title f)) 40))
               (loop (cdr r) (+ i 1))))))))
 
-;;; flashmob-consensus : -> Real
-;;; Get the consensus confidence score.
+(doc flashmob-consensus 'type '(-> Real))
+(doc flashmob-consensus 'description "Get the consensus confidence score")
 (define (flashmob-consensus)
   (if (not *flashmob-session-triage*)
       (begin (printf "No triage yet.~n") 0)
@@ -240,8 +224,8 @@
         (printf "Consensus: ~a~n" (flashmob-format-pct score))
         score)))
 
-;;; flashmob-compare : -> Alist
-;;; Run both strategies and compare results.
+(doc flashmob-compare 'type '(-> Alist))
+(doc flashmob-compare 'description "Run both strategies and compare results")
 (define (flashmob-compare)
   (unless *flashmob-current-session*
     (error 'flashmob-compare "No active session"))
@@ -271,12 +255,10 @@
     (printf "~a~n" (make-string 60 #\=))
     result))
 
-;;; ====
-;;; Attribution
-;;; ====
+(doc 'section 'attribution)
 
-;;; flashmob-credits : -> Void
-;;; Display agent attribution credits.
+(doc flashmob-credits 'type '(-> Void))
+(doc flashmob-credits 'description "Display agent attribution credits")
 (define (flashmob-credits)
   (if (not *flashmob-session-triage*)
       (printf "No triage yet. Run (flashmob-triage) first.~n")
@@ -291,8 +273,8 @@
                    (flashmob-format-pct (cdr c))))
          (sort (lambda (a b) (> (cdr a) (cdr b))) credits)))))
 
-;;; flashmob-agent-power : -> Void
-;;; Display agent power indices.
+(doc flashmob-agent-power 'type '(-> Void))
+(doc flashmob-agent-power 'description "Display agent power indices")
 (define (flashmob-agent-power)
   (if (not *flashmob-session-triage*)
       (printf "No triage yet. Run (flashmob-triage) first.~n")
@@ -307,12 +289,10 @@
                    (flashmob-format-pct (cdr p))))
          (sort (lambda (a b) (> (cdr a) (cdr b))) power)))))
 
-;;; ====
-;;; History
-;;; ====
+(doc 'section 'history)
 
-;;; flashmob-history : -> Void
-;;; Show session history.
+(doc flashmob-history 'type '(-> Void))
+(doc flashmob-history 'description "Show session history")
 (define (flashmob-history)
   (let ([sessions (flashmob-all-sessions)])
     (printf "~a sessions:~n" (length sessions))
@@ -327,12 +307,10 @@
                    (cdr (assq 'finding-count stats))))))
      sessions)))
 
-;;; ====
-;;; Persistence Helpers
-;;; ====
+(doc 'section 'persistence-helpers)
 
-;;; flashmob-persist-session! : -> Void
-;;; Persist current session state to CAS.
+(doc flashmob-persist-session! 'type '(-> Void))
+(doc flashmob-persist-session! 'description "Persist current session state to CAS")
 (define (flashmob-persist-session!)
   (when *flashmob-current-session*
     (let* ([agent-hashes (list->vector
@@ -346,8 +324,8 @@
                                 finding-hashes
                                 triage-hash))))
 
-;;; flashmob-save-triage! : Alist -> Bytevector
-;;; Save triage result to CAS.
+(doc flashmob-save-triage! 'type '(-> Alist Bytevector))
+(doc flashmob-save-triage! 'description "Save triage result to CAS")
 (define (flashmob-save-triage! result)
   (let* ([session-hash (flashmob-read-head *flashmob-current-session*)]
          [strategy (cdr (assq 'strategy result))]
@@ -362,25 +340,23 @@
          [hash (flashmob-store! blk)])
     hash))
 
-;;; ====
-;;; Formatting Utilities
-;;; ====
+(doc 'section 'formatting-utilities)
 
-;;; flashmob-format-pct : Real -> String
+(doc flashmob-format-pct 'type '(-> Real String))
 (define (flashmob-format-pct n)
   (format "~,1f%" (* 100 n)))
 
-;;; flashmob-format-signed : Real -> String
+(doc flashmob-format-signed 'type '(-> Real String))
 (define (flashmob-format-signed n)
   (if (>= n 0)
       (format "+~,1f%" (* 100 n))
       (format "~,1f%" (* 100 n))))
 
-;;; flashmob-format-ratio : Real -> String
+(doc flashmob-format-ratio 'type '(-> Real String))
 (define (flashmob-format-ratio n)
   (format "~,2fx" n))
 
-;;; fm-get-keyword : (List Any) Symbol Any -> Any
+(doc fm-get-keyword 'type '(-> (List Any) Symbol Any Any))
 (define (fm-get-keyword args key default)
   (let loop ([lst args])
     (cond
@@ -389,29 +365,27 @@
      [(eq? (car lst) key) (cadr lst)]
      [else (loop (cdr lst))])))
 
-;;; fm-truncate : String Int -> String
+(doc fm-truncate 'type '(-> String Int String))
 (define (fm-truncate str max-len)
   (if (<= (string-length str) max-len)
       str
       (string-append (substring str 0 (- max-len 3)) "...")))
 
-;;; fm-pad-right : String Int -> String
+(doc fm-pad-right 'type '(-> String Int String))
 (define (fm-pad-right str width)
   (let ([len (string-length str)])
     (if (>= len width)
         str
         (string-append str (make-string (- width len) #\space)))))
 
-;;; fm-pad-left : String Int -> String
+(doc fm-pad-left 'type '(-> String Int String))
 (define (fm-pad-left str width)
   (let ([len (string-length str)])
     (if (>= len width)
         str
         (string-append (make-string (- width len) #\space) str))))
 
-;;; ====
-;;; Print Help
-;;; ====
+(doc 'section 'print-help)
 
 (printf "flashmob.ss loaded.~n")
 (printf "  (flashmob-start files)          - Start QA session~n")

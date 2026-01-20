@@ -1,13 +1,13 @@
-;;; boundary/flashmob/dogfood-run.ss — Dogfood test of flashmob on itself
-;;;
-;;; Run with: scheme --script boundary/flashmob/dogfood-run.ss
-
 (load "boundary/flashmob/flashmob.ss")
 (load "boundary/flashmob/report.ss")
 
-;;; ====
-;;; Setup Session
-;;; ====
+(doc 'module 'flashmob-dogfood)
+(doc 'description "Dogfood test of flashmob on itself")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+(doc 'usage "scheme --script boundary/flashmob/dogfood-run.ss")
+
+(doc 'section 'setup-session)
 
 (printf "~n=== FLASHMOB DOGFOOD TEST ===~n")
 (printf "Testing flashmob on its own codebase~n~n")
@@ -27,9 +27,8 @@
 
 (printf "~nRegistered 4 QA agents~n")
 
-;;; ====
-;;; Add Findings (simulating agent reports)
-;;; ====
+(doc 'section 'add-findings)
+(doc 'note "Simulating agent reports")
 
 ;; Security findings
 (flashmob-add-finding
@@ -137,9 +136,7 @@
 
 (printf "Added 10 findings across 4 categories~n~n")
 
-;;; ====
-;;; Run Both Strategies and Compare
-;;; ====
+(doc 'section 'run-and-compare)
 
 (printf "~n========================================~n")
 (printf "SIMPLE STRATEGY RESULTS~n")
@@ -219,9 +216,7 @@
       (printf "  ~a: ~,1f%~n" (car c) (* 100 (cdr c))))
     (cdr (assq 'credits game-result))))
 
-;;; ====
-;;; Direct Comparison
-;;; ====
+(doc 'section 'direct-comparison)
 
 (printf "~n~n========================================~n")
 (printf "STRATEGY COMPARISON~n")
@@ -273,7 +268,7 @@
 
 (printf "~n=== DOGFOOD TEST COMPLETE ===~n")
 
-;;; Helper
+(doc 'section 'helpers)
 (define (iota n)
   (let loop ([i 0] [acc '()])
     (if (>= i n)

@@ -1,14 +1,10 @@
-;;; boundary/demo-turtle.ss — Turtle Graphics Demonstrations
-;;;
-;;; Example drawings showcasing the turtle graphics system.
-;;;
-;;; Run with: scheme --script demo-turtle.ss
-;;;
-;;; Each demo creates an SVG file in the current directory.
+(doc 'module 'demo-turtle)
+(doc 'description "Turtle Graphics Demonstrations - Example drawings showcasing the turtle graphics system. Each demo creates an SVG file in the current directory.")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+(doc 'usage "scheme --script demo-turtle.ss")
 
-;;; ====
-;;; Load Turtle Modules
-;;; ====
+(doc 'section 'load-turtle-modules)
 
 (display "Loading turtle modules...\n")
 (load "turtle-color.ss")
@@ -17,9 +13,7 @@
 (load "turtle-svg.ss")
 (display "Ready!\n\n")
 
-;;; ====
-;;; Demo 1: Basic Square
-;;; ====
+(doc 'section 'demo-1-square)
 
 (define (demo-square)
   (display "Demo 1: Drawing a square...\n")
@@ -31,9 +25,7 @@
         (save-svg d "turtle-square.svg")
         (display "  Saved to turtle-square.svg\n")))
 
-;;; ====
-;;; Demo 2: Colorful Star
-;;; ====
+(doc 'section 'demo-2-star)
 
 (define (demo-star)
   (display "Demo 2: Drawing a colorful star...\n")
@@ -46,9 +38,7 @@
         (save-svg d "turtle-star.svg")
         (display "  Saved to turtle-star.svg\n")))
 
-;;; ====
-;;; Demo 3: Spiral
-;;; ====
+(doc 'section 'demo-3-spiral)
 
 (define (demo-spiral)
   (display "Demo 3: Drawing a spiral...\n")
@@ -230,9 +220,7 @@
         (save-svg d "turtle-circles.svg")
         (display "  Saved to turtle-circles.svg\n")))
 
-;;; ====
-;;; Run All Demos
-;;; ====
+(doc 'section 'run-all-demos)
 
 (define (run-demos)
   (display "=== Turtle Graphics Demos ===\n\n")

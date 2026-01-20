@@ -1,18 +1,18 @@
-;;; Demo/showcase for graphics primitives
-;;; Run this to see visual examples of all graphics features
-
 (import (chezscheme)
         (shell layout)
         (shell easing)
         (shell graphics-primitives))
 
+(doc 'module 'graphics-primitives-demo)
+(doc 'description "Demo/showcase for graphics primitives - Visual examples of all graphics features")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+
 (display "╔════════════════════════════════════════════════════════════════╗\n")
 (display "║      GRAPHICS PRIMITIVES DEMONSTRATION                        ║\n")
 (display "╚════════════════════════════════════════════════════════════════╝\n\n")
 
-;;; ====
-;;; Line Drawing
-;;; ====
+(doc 'section 'line-drawing)
 
 (display "─────────────────────────────────────────────────────────────────\n")
 (display " 1. LINE DRAWING\n")
@@ -35,9 +35,7 @@
       (display (canvas->string canvas))
       (newline))
 
-;;; ====
-;;; Box Drawing
-;;; ====
+(doc 'section 'box-drawing)
 
 (display "\n─────────────────────────────────────────────────────────────────\n")
 (display " 2. ROUNDED BOXES\n")
@@ -57,9 +55,7 @@
       (display (canvas->string canvas))
       (newline))
 
-;;; ====
-;;; Circle Drawing
-;;; ====
+(doc 'section 'circle-drawing)
 
 (display "\n─────────────────────────────────────────────────────────────────\n")
 (display " 3. CIRCLES\n")
@@ -153,9 +149,7 @@
       (display (canvas->string canvas))
       (newline))
 
-;;; ====
-;;; Summary
-;;; ====
+(doc 'section 'summary)
 
 (display "\n╔════════════════════════════════════════════════════════════════╗\n")
 (display "║  All graphics primitives demonstrated successfully!           ║\n")

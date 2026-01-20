@@ -1,46 +1,37 @@
-;;; boundary/flashmob/triage.ss — Flashmob Triage Strategy Dispatcher
-;;;
-;;; Provides unified interface for running triage with either strategy.
-;;; Supports A/B testing by running both strategies and comparing results.
-;;;
-;;; Usage:
-;;;   (flashmob-triage-run agents findings 'strategy 'simple)
-;;;   (flashmob-triage-run agents findings 'strategy 'game)
-;;;   (flashmob-triage-run agents findings)  ; Uses default
-;;;   (flashmob-triage-compare agents findings)  ; Run both
-;;;
-;;; This is Shell code: coordinates triage execution.
-
 (load "boundary/flashmob/triage-simple.ss")
 (load "boundary/flashmob/triage-game.ss")
 
-;;; ====
-;;; Configuration
-;;; ====
+(doc 'module 'triage-dispatcher)
+(doc 'description "Flashmob Triage Strategy Dispatcher - Unified interface for running triage strategies, supports A/B testing")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
 
-;;; Default strategy for triage.
+(doc 'usage "
+  (flashmob-triage-run agents findings 'strategy 'simple)
+  (flashmob-triage-run agents findings 'strategy 'game)
+  (flashmob-triage-run agents findings)  ; Uses default
+  (flashmob-triage-compare agents findings)  ; Run both
+")
+
+(doc 'section 'configuration)
+
+(doc *flashmob-default-strategy* 'description "Default strategy for triage")
 (define *flashmob-default-strategy* 'simple)
 
-;;; Default number of findings to select (0 = all).
+(doc *flashmob-default-k* 'description "Default number of findings to select (0 = all)")
 (define *flashmob-default-k* 10)
 
-;;; ====
-;;; Strategy Dispatcher
-;;; ====
+(doc 'section 'strategy-dispatcher)
 
-;;; flashmob-triage-run : (List Symbol) (List Alist) . args -> Alist
-;;; Run triage with specified or default strategy.
-;;;
-;;; Keyword arguments:
-;;;   'strategy - 'simple | 'game | 'game/sav | 'game/cc
-;;;               (default: *flashmob-default-strategy*)
-;;;   'k - Number of findings to select (default: 10)
-;;;
-;;; Strategy guide:
-;;;   - simple   : Fast, basic Borda + approval. Good baseline.
-;;;   - game     : PAV + Schulze. Balanced proportionality.
-;;;   - game/sav : SAV + Schulze. Filters noisy/over-approving agents.
-;;;   - game/cc  : CC + Schulze. Maximizes coverage (diverse perspectives).
+(doc flashmob-triage-run 'type '(-> (List Symbol) (List Alist) . args Alist))
+(doc flashmob-triage-run 'description "Run triage with specified or default strategy")
+(doc flashmob-triage-run 'param "'strategy - 'simple | 'game | 'game/sav | 'game/cc (default: *flashmob-default-strategy*)")
+(doc flashmob-triage-run 'param "'k - Number of findings to select (default: 10)")
+(doc flashmob-triage-run 'note "Strategy guide:")
+(doc flashmob-triage-run 'note "- simple: Fast, basic Borda + approval. Good baseline.")
+(doc flashmob-triage-run 'note "- game: PAV + Schulze. Balanced proportionality.")
+(doc flashmob-triage-run 'note "- game/sav: SAV + Schulze. Filters noisy/over-approving agents.")
+(doc flashmob-triage-run 'note "- game/cc: CC + Schulze. Maximizes coverage (diverse perspectives)")
 (define (flashmob-triage-run agent-ids findings . args)
   (let* ([strategy (triage-get-keyword-arg args 'strategy *flashmob-default-strategy*)]
          [k (triage-get-keyword-arg args 'k *flashmob-default-k*)])
@@ -64,23 +55,12 @@
      [(eq? (car lst) key) (cadr lst)]
      [else (loop (cdr lst))])))
 
-;;; ====
-;;; A/B Comparison
-;;; ====
+(doc 'section 'ab-comparison)
 
-;;; flashmob-triage-compare : (List Symbol) (List Alist) . args -> Alist
-;;; Run BOTH strategies and compare results.
-;;;
-;;; Keyword arguments:
-;;;   'k - Number of findings to select (default: 10)
-;;;
-;;; Returns:
-;;;   ((simple . <simple-result>)
-;;;    (game . <game-result>)
-;;;    (comparison . ((rank-correlation . <tau>)
-;;;                   (top-k-overlap . <ratio>)
-;;;                   (consensus-diff . <delta>)
-;;;                   (runtime-ratio . <simple/game>))))
+(doc flashmob-triage-compare 'type '(-> (List Symbol) (List Alist) . args Alist))
+(doc flashmob-triage-compare 'description "Run BOTH strategies and compare results")
+(doc flashmob-triage-compare 'param "'k - Number of findings to select (default: 10)")
+(doc flashmob-triage-compare 'returns "Alist with keys: simple, game, comparison (rank-correlation, top-k-overlap, consensus-diff, runtime-ratio)")
 (define (flashmob-triage-compare agent-ids findings . args)
   (let* ([k (triage-get-keyword-arg args 'k *flashmob-default-k*)]
          ;; Time both strategies
@@ -111,9 +91,7 @@
                      (simple-time-ns . ,simple-time)
                      (game-time-ns . ,game-time))))))
 
-;;; ====
-;;; Comparison Metrics
-;;; ====
+(doc 'section 'comparison-metrics)
 
 ;;; triage-kendall-tau : (List a) (List a) -> Real
 ;;; Compute Kendall's tau rank correlation coefficient.
@@ -190,18 +168,15 @@
       (append (map (lambda (x) (cons (car lst) x)) (cdr lst))
               (triage-all-pairs (cdr lst)))))
 
-;;; ====
-;;; Strategy Recommendation
-;;; ====
+(doc 'section 'strategy-recommendation)
 
-;;; flashmob-recommend-strategy : (List Symbol) (List Alist) -> Symbol
-;;; Recommend which strategy to use based on session characteristics.
-;;;
-;;; Strategy selection logic:
-;;;   - simple   : For >15 agents, <3 findings, or similar expertise
-;;;   - game/cc  : Default for diverse teams (best coverage)
-;;;   - game/sav : When some agents approve too many findings
-;;;   - game     : Standard balanced approach
+(doc flashmob-recommend-strategy 'type '(-> (List Symbol) (List Alist) Symbol))
+(doc flashmob-recommend-strategy 'description "Recommend which strategy to use based on session characteristics")
+(doc flashmob-recommend-strategy 'note "Strategy selection logic:")
+(doc flashmob-recommend-strategy 'note "- simple: For >15 agents, <3 findings, or similar expertise")
+(doc flashmob-recommend-strategy 'note "- game/cc: Default for diverse teams (best coverage)")
+(doc flashmob-recommend-strategy 'note "- game/sav: When some agents approve too many findings")
+(doc flashmob-recommend-strategy 'note "- game: Standard balanced approach")
 (define (flashmob-recommend-strategy agent-ids findings)
   (let ([n-agents (length agent-ids)]
         [n-findings (length findings)])
@@ -256,9 +231,7 @@
                          (length totals))])
         variance)))
 
-;;; ====
-;;; Timing Utility
-;;; ====
+(doc 'section 'timing-utility)
 
 ;;; current-time-ns : -> Int
 ;;; Get current time in nanoseconds (approximation).
@@ -267,9 +240,7 @@
     (+ (* (time-second t) 1000000000)
        (time-nanosecond t))))
 
-;;; ====
-;;; Triage Result Accessors
-;;; ====
+(doc 'section 'triage-result-accessors)
 
 ;;; flashmob-triage-ranking : Alist -> (List Alist)
 ;;; Get the ranking from a triage result.

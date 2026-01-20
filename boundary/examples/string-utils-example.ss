@@ -1,14 +1,13 @@
-;;; boundary/string-utils-example.ss — Examples of String Utilities Usage
-;;;
-;;; Demonstrates the canonical string utilities in boundary/string-utils.ss
-
 (load "boundary/tools/string-utils.ss")
+
+(doc 'module 'string-utils-example)
+(doc 'description "Examples of String Utilities Usage - Demonstrates the canonical string utilities in boundary/string-utils.ss")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
 
 (printf "\n=== String Utilities Examples ===\n\n")
 
-;;; ====
-;;; Example 1: Parsing CSV Data
-;;; ====
+(doc 'section 'example-1-parsing-csv)
 
 (printf "Example 1: Parsing CSV Data\n")
 (printf "----\n")
@@ -23,9 +22,7 @@
         (cadr fields)
         (caddr fields))
 
-;;; ====
-;;; Example 2: Processing Log Lines
-;;; ====
+(doc 'section 'example-2-log-lines)
 
 (printf "Example 2: Processing Log Lines\n")
 (printf "----\n")
@@ -44,9 +41,7 @@
 
 (printf "\n")
 
-;;; ====
-;;; Example 3: Building Paths
-;;; ====
+(doc 'section 'example-3-building-paths)
 
 (printf "Example 3: Building Paths\n")
 (printf "----\n")

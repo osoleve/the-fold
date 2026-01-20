@@ -1,36 +1,11 @@
-;;; boundary/tools/ast-format.ss — AST-aware Code Formatter
-;;;
-;;; Proper AST-aware formatting with style profiles.
-;;; Uses Wadler-Lindig pretty-printing combinators for optimal layout.
-;;;
-;;; This is Shell code: impure, does file I/O, handles user input.
-;;;
-;;; Features:
-;;;   - AST-aware (not line-by-line)
-;;;   - Style profiles (compact, verbose, diff-friendly)
-;;;   - Quote shorthand preservation ('x, `x, ,x, ,@x)
-;;;   - Dotted pair support (a . b)
-;;;   - Configurable via style records
-;;;
-;;; Limitations:
-;;;   - Comment preservation is LIMITED: only file header comments are
-;;;     preserved. Inline comments and comments between forms are lost
-;;;     because Scheme's `read` discards them. Full comment preservation
-;;;     would require a CST parser.
-;;;
-;;; Operations:
-;;;   (ast-format-file path [profile]) — Format file
-;;;   (ast-format-string code [profile]) — Format string
-;;;   (ast-format-expr expr [profile]) — Format expression
-;;;   (ast-format-check path [profile]) — Check if formatting needed
-;;;   (ast-format-diff path [profile]) — Show diff
-;;;
-;;; Dependencies:
-;;;   core/base/prelude.ss
-;;;   core/util/pretty.ss
-
 (load "core/base/prelude.ss")
 (load "core/util/pretty.ss")
+
+(doc 'module 'ast-format)
+(doc 'description "AST-aware code formatter using Wadler-Lindig pretty-printing combinators. Supports style profiles (compact, verbose, diff-friendly), quote shorthand preservation, and dotted pairs.")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+(doc 'note "Comment preservation is LIMITED: only file header comments are preserved. Inline comments are discarded by `read`.")
 
 ;;; ====
 ;;; Style Profiles

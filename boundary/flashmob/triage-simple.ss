@@ -1,28 +1,16 @@
-;;; boundary/flashmob/triage-simple.ss — Simple Triage Strategy
-;;;
-;;; Implements the simple A/B test strategy:
-;;;   - Selection: Approval voting (top K by count)
-;;;   - Ranking: Borda count
-;;;   - Power: Equal weights
-;;;   - Attribution: Proportional share
-;;;   - Consensus: Agreement ratio
-;;;
-;;; Complexity: O(N*M) where N = agents, M = findings
-;;;
-;;; This is Shell code: impure (agent lookups).
-
 (load "boundary/flashmob/agents.ss")
 
-;;; ====
-;;; Preference Building
-;;; ====
+(doc 'module 'triage-simple)
+(doc 'description "Simple Triage Strategy: Approval voting, Borda count, equal weights, proportional share, agreement ratio")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+(doc 'note "Complexity: O(N*M) where N = agents, M = findings")
 
-;;; Agents "vote" by ranking findings.
-;;; Each agent ranks findings based on expertise-weighted scoring.
+(doc 'section 'preference-building)
+(doc 'note "Agents \"vote\" by ranking findings based on expertise-weighted scoring")
 
-;;; simple-agent-rankings : (List Symbol) (List Alist) -> (List (List Alist))
-;;; Build preference profile: each agent's ranking of findings.
-;;; Returns list of rankings (one per agent), each ranking is list of finding-data.
+(doc simple-agent-rankings 'type '(-> (List Symbol) (List Alist) (List (List Alist))))
+(doc simple-agent-rankings 'description "Build preference profile: each agent's ranking of findings. Returns list of rankings (one per agent), each ranking is list of finding-data.")
 (define (simple-agent-rankings agent-ids findings)
   (map (lambda (agent-id)
          (let ([ranked (flashmob-agent-rank-findings agent-id findings)])
@@ -30,9 +18,7 @@
            (map car ranked)))
        agent-ids))
 
-;;; ====
-;;; Approval Voting Selection
-;;; ====
+(doc 'section 'approval-voting-selection)
 
 ;;; simple-approval-threshold : (List Alist) -> Real
 ;;; Calculate the approval threshold for findings.
@@ -73,9 +59,7 @@
          [top-k (take-up-to k sorted)])
     (map car top-k)))
 
-;;; ====
-;;; Borda Count Ranking
-;;; ====
+(doc 'section 'borda-count-ranking)
 
 ;;; simple-borda-score : Alist (List (List Alist)) -> Int
 ;;; Compute Borda score for a finding.
@@ -111,9 +95,7 @@
   (map (lambda (f) (cons f (simple-borda-score f rankings)))
        findings))
 
-;;; ====
-;;; Consensus Measurement
-;;; ====
+(doc 'section 'consensus-measurement)
 
 ;;; simple-pairwise-agreement : (List (List Alist)) Alist Alist -> Real
 ;;; Measure agreement on whether finding A should rank above B.
@@ -149,9 +131,7 @@
       (append (map (lambda (x) (cons (car lst) x)) (cdr lst))
               (simple-all-pairs (cdr lst)))))
 
-;;; ====
-;;; Attribution (Proportional Share)
-;;; ====
+(doc 'section 'attribution)
 
 ;;; simple-proportional-credits : (List Symbol) (List Alist) -> Alist
 ;;; Calculate proportional credit for each agent.
@@ -178,9 +158,7 @@
                    (cons (car c) (/ (cdr c) total-contrib)))
                  contributions)))))
 
-;;; ====
-;;; Power Indices (Equal for Simple Strategy)
-;;; ====
+(doc 'section 'power-indices)
 
 ;;; simple-power-indices : (List Symbol) -> Alist
 ;;; Power indices for simple strategy - all agents have equal power.
@@ -190,26 +168,14 @@
       (let ([equal-power (/ 1.0 (length agent-ids))])
         (map (lambda (id) (cons id equal-power)) agent-ids))))
 
-;;; ====
-;;; Main Triage Function
-;;; ====
+(doc 'section 'main-triage-function)
 
-;;; simple-triage : (List Symbol) (List Alist) Int -> Alist
-;;; Run the simple triage strategy.
-;;;
-;;; Arguments:
-;;;   agent-ids - List of participating agent IDs
-;;;   findings  - List of finding data alists
-;;;   k         - Number of top findings to select (0 = all)
-;;;
-;;; Returns:
-;;;   ((strategy . simple)
-;;;    (ranking . <sorted list of findings>)
-;;;    (selected . <top-k findings>)
-;;;    (consensus . <0-1 score>)
-;;;    (credits . <agent attribution>)
-;;;    (power . <power indices>)
-;;;    (scores . <borda scores for all>))
+(doc simple-triage 'type '(-> (List Symbol) (List Alist) Int Alist))
+(doc simple-triage 'description "Run the simple triage strategy")
+(doc simple-triage 'param "agent-ids - List of participating agent IDs")
+(doc simple-triage 'param "findings - List of finding data alists")
+(doc simple-triage 'param "k - Number of top findings to select (0 = all)")
+(doc simple-triage 'returns "Alist with keys: strategy, ranking, selected, consensus, credits, power, scores")
 (define (simple-triage agent-ids findings k)
   (if (or (null? agent-ids) (null? findings))
       `((strategy . simple)
@@ -236,9 +202,7 @@
           (power . ,power)
           (scores . ,scores)))))
 
-;;; ====
-;;; Utility Functions
-;;; ====
+(doc 'section 'utility-functions)
 
 ;;; take-up-to : Int (List a) -> (List a)
 ;;; Take up to n elements from list.

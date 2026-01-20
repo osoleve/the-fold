@@ -1,25 +1,21 @@
-;;; boundary/flashmob/bbs-bridge.ss — Flashmob to BBS Integration
-;;;
-;;; Creates BBS issues from flashmob findings.
-;;; Links findings to issues for traceability.
-;;;
-;;; Usage:
-;;;   (flashmob-to-bbs)                ; All top findings
-;;;   (flashmob-to-bbs 'count 5)       ; Top 5
-;;;   (flashmob-to-bbs 'severity 'high); High severity only
-;;;
-;;; This is Shell code: impure (BBS operations).
-
 (load "boundary/flashmob/flashmob.ss")
 (load "boundary/bbs/bbs.ss")
 
-;;; ====
-;;; Finding to Issue Conversion
-;;; ====
+(doc 'module 'flashmob-bbs-bridge)
+(doc 'description "Flashmob to BBS Integration - Creates BBS issues from flashmob findings and links them for traceability")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
 
-;;; flashmob-finding-to-issue : Alist -> String
-;;; Create a BBS issue from a finding.
-;;; Returns the new issue ID.
+(doc 'usage "
+  (flashmob-to-bbs)                ; All top findings
+  (flashmob-to-bbs 'count 5)       ; Top 5
+  (flashmob-to-bbs 'severity 'high); High severity only
+")
+
+(doc 'section 'finding-to-issue-conversion)
+
+(doc flashmob-finding-to-issue 'type '(-> Alist String))
+(doc flashmob-finding-to-issue 'description "Create a BBS issue from a finding. Returns the new issue ID.")
 (define (flashmob-finding-to-issue finding)
   (let* ([title (cdr (assq 'title finding))]
          [file (cdr (assq 'file finding))]
@@ -48,13 +44,8 @@
                 'labels labels
                 'created-by (format "flashmob/~a" agent-id))))
 
-;;; bbs-severity-to-priority : Symbol -> Int
-;;; Map flashmob severity to BBS priority.
-;;;   critical -> P0
-;;;   high     -> P1
-;;;   medium   -> P2
-;;;   low      -> P3
-;;;   info     -> P4
+(doc bbs-severity-to-priority 'type '(-> Symbol Int))
+(doc bbs-severity-to-priority 'description "Map flashmob severity to BBS priority: critical->P0, high->P1, medium->P2, low->P3, info->P4")
 (define (bbs-severity-to-priority severity)
   (case severity
     [(critical) 0]
@@ -64,8 +55,8 @@
     [(info) 4]
     [else 2]))  ; Default medium
 
-;;; bbs-category-to-type : Symbol -> Symbol
-;;; Map flashmob category to BBS issue type.
+(doc bbs-category-to-type 'type '(-> Symbol Symbol))
+(doc bbs-category-to-type 'description "Map flashmob category to BBS issue type")
 (define (bbs-category-to-type category)
   (case category
     [(security) 'bug]
@@ -75,20 +66,15 @@
     [(documentation) 'task]
     [else 'task]))
 
-;;; ====
-;;; Batch Operations
-;;; ====
+(doc 'section 'batch-operations)
 
-;;; flashmob-to-bbs : . args -> (List String)
-;;; Create BBS issues from triage results.
-;;;
-;;; Keyword arguments:
-;;;   'count - Maximum number of issues to create (default: 10)
-;;;   'severity - Only create for this severity or higher
-;;;   'category - Only create for this category
-;;;   'dry-run - If #t, show what would be created without creating
-;;;
-;;; Returns list of created issue IDs.
+(doc flashmob-to-bbs 'type '(-> . args (List String)))
+(doc flashmob-to-bbs 'description "Create BBS issues from triage results")
+(doc flashmob-to-bbs 'param "'count - Maximum number of issues to create (default: 10)")
+(doc flashmob-to-bbs 'param "'severity - Only create for this severity or higher")
+(doc flashmob-to-bbs 'param "'category - Only create for this category")
+(doc flashmob-to-bbs 'param "'dry-run - If #t, show what would be created without creating")
+(doc flashmob-to-bbs 'returns "List of created issue IDs")
 (define (flashmob-to-bbs . args)
   (unless *flashmob-session-triage*
     (error 'flashmob-to-bbs "No triage results. Run (flashmob-triage) first"))
@@ -125,8 +111,8 @@
             (printf "Done. Created ~a issues.~n" (length created-ids))
             created-ids)))))
 
-;;; bbs-bridge-filter-findings : (List Alist) Symbol Symbol -> (List Alist)
-;;; Filter findings by severity and/or category.
+(doc bbs-bridge-filter-findings 'type '(-> (List Alist) Symbol Symbol (List Alist)))
+(doc bbs-bridge-filter-findings 'description "Filter findings by severity and/or category")
 (define (bbs-bridge-filter-findings findings severity-filter category-filter)
   (filter
    (lambda (f)
@@ -136,14 +122,14 @@
               (eq? (cdr (assq 'category f)) category-filter))))
    findings))
 
-;;; bbs-bridge-severity>=? : Symbol Symbol -> Boolean
-;;; Is severity1 >= severity2 in priority?
+(doc bbs-bridge-severity>=? 'type '(-> Symbol Symbol Boolean))
+(doc bbs-bridge-severity>=? 'description "Is severity1 >= severity2 in priority?")
 (define (bbs-bridge-severity>=? s1 s2)
   (let ([order '(critical high medium low info)])
     (<= (bbs-bridge-position-of s1 order)
         (bbs-bridge-position-of s2 order))))
 
-;;; bbs-bridge-position-of : a (List a) -> Int
+(doc bbs-bridge-position-of 'type '(-> a (List a) Int))
 (define (bbs-bridge-position-of x lst)
   (let loop ([l lst] [i 0])
     (cond
@@ -151,13 +137,13 @@
       [(eq? (car l) x) i]
       [else (loop (cdr l) (+ i 1))])))
 
-;;; bbs-bridge-take : Int (List a) -> (List a)
+(doc bbs-bridge-take 'type '(-> Int (List a) (List a)))
 (define (bbs-bridge-take n lst)
   (if (or (<= n 0) (null? lst))
       '()
       (cons (car lst) (bbs-bridge-take (- n 1) (cdr lst)))))
 
-;;; bbs-bridge-get-keyword : (List Any) Symbol Any -> Any
+(doc bbs-bridge-get-keyword 'type '(-> (List Any) Symbol Any Any))
 (define (bbs-bridge-get-keyword args key default)
   (let loop ([lst args])
     (cond
@@ -166,13 +152,10 @@
      [(eq? (car lst) key) (cadr lst)]
      [else (loop (cdr lst))])))
 
-;;; ====
-;;; Traceability
-;;; ====
+(doc 'section 'traceability)
 
-;;; flashmob-issues-for-finding : Alist -> (List String)
-;;; Find BBS issues created from a finding.
-;;; Searches by title match.
+(doc flashmob-issues-for-finding 'type '(-> Alist (List String)))
+(doc flashmob-issues-for-finding 'description "Find BBS issues created from a finding. Searches by title match.")
 (define (flashmob-issues-for-finding finding)
   (let ([title (cdr (assq 'title finding))])
     (filter
@@ -182,8 +165,8 @@
               (string=? (cdr (assq 'title data)) title))))
      (bbs-all-ids))))
 
-;;; flashmob-link-finding-to-issue : Alist String -> Void
-;;; Add a comment to an issue linking back to the finding.
+(doc flashmob-link-finding-to-issue 'type '(-> Alist String Void))
+(doc flashmob-link-finding-to-issue 'description "Add a comment to an issue linking back to the finding")
 (define (flashmob-link-finding-to-issue finding issue-id)
   (let* ([file (cdr (assq 'file finding))]
          [line (cdr (assq 'line finding))]

@@ -1,40 +1,47 @@
-;;; boundary/ui/physics-colors.ss — Colored Physics ASCII Rendering
-;;;
-;;; Adds ANSI color to the physics ASCII renderer output.
-;;; Works by post-processing rendered frames with color mappings.
-;;;
-;;; This is Shell code: handles display formatting with ANSI.
-;;;
-;;; Usage:
-;;;   (load "boundary/ui/physics-colors.ss")
-;;;   (define world (make-world ...))
-;;;   (physics-display-colored world)   ; Display with colors
-;;;
-;;; Dependencies:
-;;;   - boundary/ui/ansi.ss
-;;;   - lattice/physics/classical/ascii-renderer.ss
-
 ;; Load physics renderer first (it loads ascii-video.ss which has conflicting names)
 (load "lattice/physics/classical/ascii-renderer.ss")
 ;; Then load our ansi module (overwrites the conflict with correct definitions)
 (load "boundary/ui/ansi.ss")
 
-;;; Local ANSI reset string (to avoid conflicts with ascii-video.ss)
+(doc 'module 'physics-colors)
+(doc 'description "Colored Physics ASCII Rendering — Adds ANSI color to the physics ASCII renderer output. Works by post-processing rendered frames with color mappings.")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+(doc 'note "Usage: (load \"boundary/ui/physics-colors.ss\") (define world (make-world ...)) (physics-display-colored world)")
+(doc 'note "Dependencies: boundary/ui/ansi.ss, lattice/physics/classical/ascii-renderer.ss")
+
+(doc *physics-ansi-reset* 'type String)
+(doc *physics-ansi-reset* 'description "Local ANSI reset string (to avoid conflicts with ascii-video.ss)")
 (define *physics-ansi-reset* "\x1B;[0m")
 
-;;; ====
-;;; Color Palette for Physics Elements
-;;; ====
+(doc 'section 'color-palette)
 
-;;; Physics element colors
-(define physics-static-color color-gray)         ; Static bodies
-(define physics-dynamic-color color-cyan)        ; Dynamic bodies
-(define physics-velocity-color color-green)      ; Velocity vectors
-(define physics-contact-color color-red)         ; Contact points
-(define physics-constraint-color color-yellow)   ; Constraints
-(define physics-aabb-color color-magenta)        ; Bounding boxes
+(doc physics-static-color 'type Color)
+(doc physics-static-color 'description "Static bodies color")
+(define physics-static-color color-gray)
 
-;;; Character → Color mapping for rendered output
+(doc physics-dynamic-color 'type Color)
+(doc physics-dynamic-color 'description "Dynamic bodies color")
+(define physics-dynamic-color color-cyan)
+
+(doc physics-velocity-color 'type Color)
+(doc physics-velocity-color 'description "Velocity vectors color")
+(define physics-velocity-color color-green)
+
+(doc physics-contact-color 'type Color)
+(doc physics-contact-color 'description "Contact points color")
+(define physics-contact-color color-red)
+
+(doc physics-constraint-color 'type Color)
+(doc physics-constraint-color 'description "Constraints color")
+(define physics-constraint-color color-yellow)
+
+(doc physics-aabb-color 'type Color)
+(doc physics-aabb-color 'description "Bounding boxes color")
+(define physics-aabb-color color-magenta)
+
+(doc char->physics-color 'type (-> Char (Maybe Color)))
+(doc char->physics-color 'description "Character → Color mapping for rendered output")
 (define (char->physics-color char)
   (case char
     [(#\#) physics-static-color]      ; Static bodies
@@ -45,12 +52,10 @@
     [(#\|) color-dark-gray]             ; AABB borders
     [else #f]))  ; No color (use default)
 
-;;; ====
-;;; Colored Frame Rendering
-;;; ====
+(doc 'section 'colored-frame-rendering)
 
-;;; colorize-char : Char → String
-;;; Apply ANSI color to a character based on its type.
+(doc colorize-char 'type (-> Char String))
+(doc colorize-char 'description "Apply ANSI color to a character based on its type.")
 (define (colorize-char char)
   (let ([color (char->physics-color char)])
     (if color
@@ -59,8 +64,8 @@
                        *physics-ansi-reset*)
         (string char))))
 
-;;; colorize-row : String → String
-;;; Apply colors to each character in a row.
+(doc colorize-row 'type (-> String String))
+(doc colorize-row 'description "Apply colors to each character in a row.")
 (define (colorize-row row)
   (let ([len (string-length row)])
     (let loop ([i 0] [acc '()])
@@ -69,8 +74,8 @@
           (loop (+ i 1)
                 (cons (colorize-char (string-ref row i)) acc))))))
 
-;;; frame-render-colored : Frame → String
-;;; Render frame to string with ANSI colors.
+(doc frame-render-colored 'type (-> Frame String))
+(doc frame-render-colored 'description "Render frame to string with ANSI colors.")
 (define (frame-render-colored frame)
   (let ([h (frame-height frame)])
     (let loop ([y 0] [acc '()])
@@ -80,12 +85,10 @@
                 (cons (string-append (colorize-row (vector-ref frame y)) "\n")
                       acc))))))
 
-;;; ====
-;;; High-Level API
-;;; ====
+(doc 'section 'high-level-api)
 
-;;; physics-render-colored : World × Int × Int → String
-;;; Render physics world to colored ASCII string.
+(doc physics-render-colored 'type (-> World Int Int String))
+(doc physics-render-colored 'description "Render physics world to colored ASCII string.")
 (define (physics-render-colored world width height)
   (let* ([config (make-render-config width height 3.0 (/ width 2) (/ height 4))]
          [renderer (make-world-renderer config (full-debug-options) (default-render-style))]
@@ -93,18 +96,18 @@
     (render-world! frame world renderer #f)
     (frame-render-colored frame)))
 
-;;; physics-display-colored : World → Void
-;;; Display physics world with colors (default 80x30).
+(doc physics-display-colored 'type (-> World Void))
+(doc physics-display-colored 'description "Display physics world with colors (default 80x30).")
 (define (physics-display-colored world)
   (physics-display-colored-size world 80 30))
 
-;;; physics-display-colored-size : World × Int × Int → Void
-;;; Display physics world with colors at specified size.
+(doc physics-display-colored-size 'type (-> World Int Int Void))
+(doc physics-display-colored-size 'description "Display physics world with colors at specified size.")
 (define (physics-display-colored-size world width height)
   (display (physics-render-colored world width height)))
 
-;;; physics-display-colored-debug : World × DebugOptions → Void
-;;; Display with specific debug options.
+(doc physics-display-colored-debug 'type (-> World DebugOptions Void))
+(doc physics-display-colored-debug 'description "Display with specific debug options.")
 (define (physics-display-colored-debug world debug-opts)
   (let* ([width 80]
          [height 30]
@@ -114,22 +117,18 @@
     (render-world! frame world renderer #f)
     (display (frame-render-colored frame))))
 
-;;; ====
-;;; Styled Render Configuration
-;;; ====
+(doc 'section 'styled-render-configuration)
 
-;;; make-colored-render-style : → RenderStyle
-;;; Style optimized for colored display (uses simpler characters).
+(doc make-colored-render-style 'type (-> RenderStyle))
+(doc make-colored-render-style 'description "Style optimized for colored display (uses simpler characters).")
 (define (make-colored-render-style)
   ;; With colors, we can use simpler characters since color conveys type
   (make-render-style #\o #\# #\- #\| #\+ #\> #\*))
 
-;;; ====
-;;; Legend Display
-;;; ====
+(doc 'section 'legend-display)
 
-;;; display-physics-legend : → Void
-;;; Show color legend for physics rendering.
+(doc display-physics-legend 'type (-> Void))
+(doc display-physics-legend 'description "Show color legend for physics rendering.")
 (define (display-physics-legend)
   (display (colored-text (make-style color-cyan #f #t #f #f #f) "Physics Color Legend:"))
   (newline)
@@ -154,9 +153,7 @@
   (display "Constraints")
   (newline))
 
-;;; ====
-;;; Module Load Message
-;;; ====
+(doc 'section 'module-load-message)
 
 (display (colored-text (style-fg color-cyan) "physics-colors.ss loaded."))
 (newline)

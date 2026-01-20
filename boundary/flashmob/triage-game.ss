@@ -1,52 +1,42 @@
-;;; boundary/flashmob/triage-game.ss — Game-Theoretic Triage Strategies
-;;;
-;;; Implements game-theoretic triage strategies using the full
-;;; lattice/fp/game/ toolkit:
-;;;
-;;; Strategies:
-;;;   - game      : PAV + Schulze. Balanced proportionality.
-;;;   - game/sav  : SAV + Schulze. Filters noisy/over-approving agents.
-;;;   - game/cc   : CC + Schulze. Maximizes coverage (diverse perspectives).
-;;;
-;;; Components:
-;;;   - Selection: PAV, SAV, or CC (from multi-winner.ss)
-;;;   - Ranking:   Schulze method (from voting.ss)
-;;;   - Power:     Banzhaf index (expertise-weighted)
-;;;   - Attribution: Shapley value (N≤15 exact, N>15 sampling)
-;;;   - Consensus: Core stability measure
-;;;   - Metrics:   Proportionality score, representation coverage
-;;;
-;;; Complexity:
-;;;   - Shapley: O(2^N) exact, O(M*N²) sampling (M=1000 default)
-;;;   - PAV/SAV: O(K*N*M) where K=committee size
-;;;   - CC:      O(K*N*M)
-;;;   - Schulze: O(N³) where N=candidates
-;;;
-;;; This module delegates to lattice/fp/game/ for core algorithms.
-;;;
-;;; This is Shell code: impure (agent lookups, lattice imports).
-
 (load "boundary/flashmob/agents.ss")
 (load "lattice/fp/game/voting.ss")
 (load "lattice/fp/game/multi-winner.ss")
 (load "lattice/fp/game/coop-games.ss")
 (load "lattice/fp/game/voting-games.ss")
 
-;;; ====
-;;; Constants
-;;; ====
+(doc 'module 'triage-game)
+(doc 'description "Game-Theoretic Triage Strategies using lattice/fp/game/ toolkit")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
 
-;;; Maximum agents for full Shapley value computation.
-;;; Beyond this, we fall back to proportional attribution.
+(doc 'note "Strategies:")
+(doc 'note "- game: PAV + Schulze. Balanced proportionality.")
+(doc 'note "- game/sav: SAV + Schulze. Filters noisy/over-approving agents.")
+(doc 'note "- game/cc: CC + Schulze. Maximizes coverage (diverse perspectives).")
+
+(doc 'note "Components:")
+(doc 'note "- Selection: PAV, SAV, or CC (from multi-winner.ss)")
+(doc 'note "- Ranking: Schulze method (from voting.ss)")
+(doc 'note "- Power: Banzhaf index (expertise-weighted)")
+(doc 'note "- Attribution: Shapley value (N≤15 exact, N>15 sampling)")
+(doc 'note "- Consensus: Core stability measure")
+(doc 'note "- Metrics: Proportionality score, representation coverage")
+
+(doc 'note "Complexity:")
+(doc 'note "- Shapley: O(2^N) exact, O(M*N²) sampling (M=1000 default)")
+(doc 'note "- PAV/SAV: O(K*N*M) where K=committee size")
+(doc 'note "- CC: O(K*N*M)")
+(doc 'note "- Schulze: O(N³) where N=candidates")
+
+(doc 'section 'constants)
+
+(doc *shapley-agent-limit* 'description "Maximum agents for full Shapley value computation. Beyond this, we fall back to proportional attribution.")
 (define *shapley-agent-limit* 15)
 
-;;; ====
-;;; Preference Building (for Schulze)
-;;; ====
+(doc 'section 'preference-building)
 
-;;; game-build-preference-profile : (List Symbol) (List Alist) -> PreferenceProfile
-;;; Build a preference profile for voting algorithms.
-;;; Each agent's ranking becomes a ballot.
+(doc game-build-preference-profile 'type '(-> (List Symbol) (List Alist) PreferenceProfile))
+(doc game-build-preference-profile 'description "Build a preference profile for voting algorithms. Each agent's ranking becomes a ballot.")
 (define (game-build-preference-profile agent-ids findings)
   (let ([rankings (map (lambda (agent-id)
                          (let ([ranked (flashmob-agent-rank-findings agent-id findings)])
@@ -67,13 +57,10 @@
           '()
           candidate-rankings))))
 
-;;; ====
-;;; Approval Profile Building (for PAV)
-;;; ====
+(doc 'section 'approval-profile-building)
 
-;;; game-build-approval-profile : (List Symbol) (List Alist) -> ApprovalProfile
-;;; Build an approval profile for PAV.
-;;; Each agent approves findings above a threshold.
+(doc game-build-approval-profile 'type '(-> (List Symbol) (List Alist) ApprovalProfile))
+(doc game-build-approval-profile 'description "Build an approval profile for PAV. Each agent approves findings above a threshold.")
 (define (game-build-approval-profile agent-ids findings)
   (let ([threshold 0.3])  ; Approve findings with score >= 0.3
     (map (lambda (agent-id)
@@ -83,14 +70,10 @@
                   approved)))
          agent-ids)))
 
-;;; ====
-;;; PAV Selection (delegates to lattice/fp/game/multi-winner.ss)
-;;; ====
+(doc 'section 'pav-selection)
 
-;;; game-pav-select : (List Symbol) (List Alist) Int -> (List Alist)
-;;; Select top K findings using PAV (Proportional Approval Voting).
-;;; PAV ensures proportional representation across categories.
-;;; Delegates to lattice pav-winners for the core algorithm.
+(doc game-pav-select 'type '(-> (List Symbol) (List Alist) Int (List Alist)))
+(doc game-pav-select 'description "Select top K findings using PAV (Proportional Approval Voting). PAV ensures proportional representation across categories. Delegates to lattice pav-winners for the core algorithm.")
 (define (game-pav-select agent-ids findings k)
   (if (or (null? agent-ids) (null? findings))
       '()
@@ -104,15 +87,10 @@
                         (if pair (cdr pair) #f)))
                     winners))))
 
-;;; ====
-;;; SAV Selection (delegates to lattice/fp/game/multi-winner.ss)
-;;; ====
+(doc 'section 'sav-selection)
 
-;;; game-sav-select : (List Symbol) (List Alist) Int -> (List Alist)
-;;; Select top K findings using SAV (Satisfaction Approval Voting).
-;;; SAV normalizes by approval set size, filtering noisy/spammy agents.
-;;; Agents who approve everything have diluted influence.
-;;; Delegates to lattice sav-winners for the core algorithm.
+(doc game-sav-select 'type '(-> (List Symbol) (List Alist) Int (List Alist)))
+(doc game-sav-select 'description "Select top K findings using SAV (Satisfaction Approval Voting). SAV normalizes by approval set size, filtering noisy/spammy agents. Agents who approve everything have diluted influence. Delegates to lattice sav-winners for the core algorithm.")
 (define (game-sav-select agent-ids findings k)
   (if (or (null? agent-ids) (null? findings))
       '()
@@ -126,15 +104,10 @@
                         (if pair (cdr pair) #f)))
                     winners))))
 
-;;; ====
-;;; CC Selection (delegates to lattice/fp/game/multi-winner.ss)
-;;; ====
+(doc 'section 'cc-selection)
 
-;;; game-cc-select : (List Symbol) (List Alist) Int -> (List Alist)
-;;; Select top K findings using Chamberlin-Courant method.
-;;; CC optimizes for coverage - ensures every agent has a champion finding.
-;;; Best for QA where you want diverse perspectives represented.
-;;; Delegates to lattice cc-greedy for the core algorithm.
+(doc game-cc-select 'type '(-> (List Symbol) (List Alist) Int (List Alist)))
+(doc game-cc-select 'description "Select top K findings using Chamberlin-Courant method. CC optimizes for coverage - ensures every agent has a champion finding. Best for QA where you want diverse perspectives represented. Delegates to lattice cc-greedy for the core algorithm.")
 (define (game-cc-select agent-ids findings k)
   (if (or (null? agent-ids) (null? findings))
       '()
@@ -148,14 +121,10 @@
                         (if pair (cdr pair) #f)))
                     winners))))
 
-;;; ====
-;;; Schulze Ranking (delegates to lattice/fp/game/voting.ss)
-;;; ====
+(doc 'section 'schulze-ranking)
 
-;;; game-schulze-ranking : (List Symbol) (List Alist) -> (List Alist)
-;;; Rank findings using Schulze method (beatpath).
-;;; Falls back to Borda if insufficient pairwise data.
-;;; Delegates to lattice schulze-ranking for the core algorithm.
+(doc game-schulze-ranking 'type '(-> (List Symbol) (List Alist) (List Alist)))
+(doc game-schulze-ranking 'description "Rank findings using Schulze method (beatpath). Falls back to Borda if insufficient pairwise data. Delegates to lattice schulze-ranking for the core algorithm.")
 (define (game-schulze-ranking agent-ids findings)
   (if (or (null? agent-ids) (< (length findings) 2))
       findings
@@ -206,13 +175,10 @@
                           (if pair (cdr pair) #f)))
                       ranked-titles)))))
 
-;;; ====
-;;; Banzhaf Power Indices
-;;; ====
+(doc 'section 'banzhaf-power-indices)
 
-;;; game-banzhaf-power : (List Symbol) -> Alist
-;;; Compute Banzhaf power indices weighted by expertise.
-;;; Returns alist of (agent-id . power).
+(doc game-banzhaf-power 'type '(-> (List Symbol) Alist))
+(doc game-banzhaf-power 'description "Compute Banzhaf power indices weighted by expertise. Returns alist of (agent-id . power).")
 (define (game-banzhaf-power agent-ids)
   (if (null? agent-ids)
       '()
@@ -237,18 +203,14 @@
              agent-ids
              (iota n)))))
 
-;;; ====
-;;; Shapley Attribution (delegates to lattice/fp/game/coop-games.ss)
-;;; ====
+(doc 'section 'shapley-attribution)
 
-;;; *shapley-sample-count* : Int
-;;; Number of permutation samples for approximate Shapley (N > 15).
+(doc *shapley-sample-count* 'type 'Int)
+(doc *shapley-sample-count* 'description "Number of permutation samples for approximate Shapley (N > 15)")
 (define *shapley-sample-count* 1000)
 
-;;; game-shapley-credits : (List Symbol) (List Alist) -> Alist
-;;; Compute Shapley value attribution.
-;;; Uses exact algorithm for N ≤ 15, sampling approximation for N > 15.
-;;; Delegates to lattice shapley-value and shapley-value-sample.
+(doc game-shapley-credits 'type '(-> (List Symbol) (List Alist) Alist))
+(doc game-shapley-credits 'description "Compute Shapley value attribution. Uses exact algorithm for N ≤ 15, sampling approximation for N > 15. Delegates to lattice shapley-value and shapley-value-sample.")
 (define (game-shapley-credits agent-ids findings)
   (if (null? agent-ids)
       '()
@@ -296,13 +258,10 @@
                          (+ total agent-contrib))
                        total))))))))
 
-;;; ====
-;;; Core Stability (Consensus)
-;;; ====
+(doc 'section 'core-stability)
 
-;;; game-core-consensus : (List Symbol) (List Alist) -> Real
-;;; Measure consensus using core stability concepts.
-;;; Returns 0-1 where 1 = perfect stability.
+(doc game-core-consensus 'type '(-> (List Symbol) (List Alist) Real))
+(doc game-core-consensus 'description "Measure consensus using core stability concepts. Returns 0-1 where 1 = perfect stability.")
 (define (game-core-consensus agent-ids findings)
   (if (or (null? agent-ids) (< (length findings) 2))
       1.0
@@ -357,26 +316,14 @@
                   (+ sum (vector-ref alloc i))
                   sum)))))
 
-;;; ====
-;;; Main Triage Function
-;;; ====
+(doc 'section 'main-triage-function)
 
-;;; game-triage : (List Symbol) (List Alist) Int -> Alist
-;;; Run the game-theoretic triage strategy.
-;;;
-;;; Arguments:
-;;;   agent-ids - List of participating agent IDs
-;;;   findings  - List of finding data alists
-;;;   k         - Number of top findings to select (0 = all)
-;;;
-;;; Returns:
-;;;   ((strategy . game)
-;;;    (ranking . <schulze-sorted findings>)
-;;;    (selected . <pav-selected findings>)
-;;;    (consensus . <core stability score>)
-;;;    (credits . <shapley attribution>)
-;;;    (power . <banzhaf indices>)
-;;;    (notes . <any warnings>))
+(doc game-triage 'type '(-> (List Symbol) (List Alist) Int Alist))
+(doc game-triage 'description "Run the game-theoretic triage strategy")
+(doc game-triage 'param "agent-ids - List of participating agent IDs")
+(doc game-triage 'param "findings - List of finding data alists")
+(doc game-triage 'param "k - Number of top findings to select (0 = all)")
+(doc game-triage 'returns "Alist with keys: strategy, ranking, selected, consensus, credits, power, notes")
 (define (game-triage agent-ids findings k)
   (if (or (null? agent-ids) (null? findings))
       `((strategy . game)
@@ -405,16 +352,11 @@
           (power . ,power)
           (notes . ,notes)))))
 
-;;; ====
-;;; SAV Strategy (game/sav)
-;;; ====
+(doc 'section 'sav-strategy)
 
-;;; game-triage-sav : (List Symbol) (List Alist) Int -> Alist
-;;; Run game triage with SAV selection (filters noisy agents).
-;;; SAV normalizes by approval set size - agents who approve everything
-;;; have diluted influence. Best when some agents are over-approving.
-;;;
-;;; Uses: SAV selection + Schulze ranking + Shapley/Banzhaf metrics
+(doc game-triage-sav 'type '(-> (List Symbol) (List Alist) Int Alist))
+(doc game-triage-sav 'description "Run game triage with SAV selection (filters noisy agents). SAV normalizes by approval set size - agents who approve everything have diluted influence. Best when some agents are over-approving.")
+(doc game-triage-sav 'note "Uses: SAV selection + Schulze ranking + Shapley/Banzhaf metrics")
 (define (game-triage-sav agent-ids findings k)
   (if (or (null? agent-ids) (null? findings))
       `((strategy . game/sav)
@@ -455,16 +397,11 @@
           (coverage . ,cov-score)
           (notes . ,notes)))))
 
-;;; ====
-;;; CC Strategy (game/cc)
-;;; ====
+(doc 'section 'cc-strategy)
 
-;;; game-triage-cc : (List Symbol) (List Alist) Int -> Alist
-;;; Run game triage with Chamberlin-Courant selection (optimizes coverage).
-;;; CC ensures every agent has at least one representative finding.
-;;; Best for QA where diverse perspectives matter.
-;;;
-;;; Uses: CC selection + Schulze ranking + Shapley/Banzhaf metrics
+(doc game-triage-cc 'type '(-> (List Symbol) (List Alist) Int Alist))
+(doc game-triage-cc 'description "Run game triage with Chamberlin-Courant selection (optimizes coverage). CC ensures every agent has at least one representative finding. Best for QA where diverse perspectives matter.")
+(doc game-triage-cc 'note "Uses: CC selection + Schulze ranking + Shapley/Banzhaf metrics")
 (define (game-triage-cc agent-ids findings k)
   (if (or (null? agent-ids) (null? findings))
       `((strategy . game/cc)
@@ -505,11 +442,9 @@
           (coverage . ,cov-score)
           (notes . ,notes)))))
 
-;;; ====
-;;; Utility Functions
-;;; ====
+(doc 'section 'utility-functions)
 
-;;; filter-map : (a -> b | #f) (List a) -> (List b)
+(doc filter-map 'type '(-> (-> a (U b #f)) (List a) (List b)))
 (define (filter-map f lst)
   (let loop ([lst lst] [acc '()])
     (if (null? lst)

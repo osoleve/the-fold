@@ -1,30 +1,23 @@
-;;; boundary/flashmob/history.ss — Flashmob CAS-Based History
-;;;
-;;; Session history is maintained through block references.
-;;; Each session block can reference a previous session, forming an
-;;; immutable audit trail in the CAS.
-;;;
-;;; Benefits over file-based history:
-;;;   - Immutable: Old sessions cannot be altered
-;;;   - Content-addressed: Full provenance tracking
-;;;   - Concurrent-safe: No file locking issues
-;;;   - Time-travel: Can inspect any historical state
-;;;
-;;; This is Shell code: impure (CAS operations).
-
 (load "boundary/flashmob/store.ss")
 
-;;; ====
-;;; Session Counter
-;;; ====
+(doc 'module 'flashmob-history)
+(doc 'description "Flashmob CAS-Based History - Session history maintained through block references, forming immutable audit trail")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
 
-;;; Persistent counter for session IDs.
-;;; Stored in .flashmob/counter file.
+(doc 'note "Benefits over file-based history:")
+(doc 'note "- Immutable: Old sessions cannot be altered")
+(doc 'note "- Content-addressed: Full provenance tracking")
+(doc 'note "- Concurrent-safe: No file locking issues")
+(doc 'note "- Time-travel: Can inspect any historical state")
+
+(doc 'section 'session-counter)
+(doc 'note "Persistent counter for session IDs, stored in .flashmob/counter file")
 
 (define *flashmob-counter-file* ".flashmob/counter")
 
-;;; flashmob-ensure-dir! : -> Void
-;;; Ensure the .flashmob directory exists.
+(doc flashmob-ensure-dir! 'type '(-> Void))
+(doc flashmob-ensure-dir! 'description "Ensure the .flashmob directory exists")
 (define (flashmob-ensure-dir!)
   (unless (file-exists? ".flashmob")
     (mkdir ".flashmob")))
@@ -59,13 +52,10 @@
     (flashmob-write-counter! next)
     (format "flashmob-~4,'0d" next)))
 
-;;; ====
-;;; Session Chain Navigation
-;;; ====
+(doc 'section 'session-chain-navigation)
 
-;;; flashmob-history-chain : String -> (List String)
-;;; Get the chain of session IDs, newest first.
-;;; Follows prev-refs to build the history.
+(doc flashmob-history-chain 'type '(-> String (List String)))
+(doc flashmob-history-chain 'description "Get the chain of session IDs, newest first. Follows prev-refs to build the history.")
 (define (flashmob-history-chain session-id)
   (let loop ([id session-id] [acc '()])
     (let ([blk (flashmob-fetch-session id)])
@@ -111,13 +101,10 @@
                 session-id  ; Found it - return the session ID
                 (loop (cdr blocks))))))))
 
-;;; ====
-;;; History Summary
-;;; ====
+(doc 'section 'history-summary)
 
-;;; flashmob-history-summary : String -> (List Alist)
-;;; Get a summary of session history.
-;;; Returns list of (session-id status finding-count triage-status timestamp).
+(doc flashmob-history-summary 'type '(-> String (List Alist)))
+(doc flashmob-history-summary 'description "Get a summary of session history. Returns list of (session-id status finding-count triage-status timestamp).")
 (define (flashmob-history-summary session-id)
   (let ([chain (flashmob-history-chain session-id)])
     (map (lambda (id)
@@ -131,12 +118,10 @@
                    (status . unknown)))))
          chain)))
 
-;;; ====
-;;; All Sessions
-;;; ====
+(doc 'section 'all-sessions)
 
-;;; flashmob-all-sessions : -> (List String)
-;;; Get all session IDs (from heads directory).
+(doc flashmob-all-sessions 'type '(-> (List String)))
+(doc flashmob-all-sessions 'description "Get all session IDs (from heads directory)")
 (define (flashmob-all-sessions)
   (flashmob-list-heads))
 
@@ -156,13 +141,10 @@
                            sessions)])
           (if (null? sorted) #f (car sorted))))))
 
-;;; ====
-;;; Session Lifecycle
-;;; ====
+(doc 'section 'session-lifecycle)
 
-;;; flashmob-create-session! : (List String) -> String
-;;; Create a new session for the given files.
-;;; Returns the new session ID.
+(doc flashmob-create-session! 'type '(-> (List String) String))
+(doc flashmob-create-session! 'description "Create a new session for the given files. Returns the new session ID.")
 (define (flashmob-create-session! files)
   (let* ([session-id (flashmob-next-session-id!)]
          [blk (make-session-block session-id files
@@ -199,12 +181,10 @@
 (define (flashmob-close-session! session-id)
   (flashmob-delete-head! session-id))
 
-;;; ====
-;;; Session Stats
-;;; ====
+(doc 'section 'session-stats)
 
-;;; flashmob-session-stats : String -> Alist | #f
-;;; Get statistics for a session.
+(doc flashmob-session-stats 'type '(-> String (U Alist #f)))
+(doc flashmob-session-stats 'description "Get statistics for a session")
 (define (flashmob-session-stats session-id)
   (let ([blk (flashmob-fetch-session session-id)])
     (if (not blk)

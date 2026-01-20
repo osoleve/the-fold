@@ -1,33 +1,13 @@
-;;; boundary/benchmark.ss — Benchmarking Harness
-;;;
-;;; Performance testing and comparison framework.
-;;; Measure execution time, memory allocation, and throughput.
-;;;
-;;; This is Shell code: timing, measurement, statistical analysis.
-;;;
-;;; Dependencies:
-;;;   boundary/introspect/timing.ss (if available)
-;;;   boundary/introspect/memory.ss (if available)
-;;;
-;;; Operations:
-;;;   (benchmark name thunk iterations) — Run benchmark
-;;;   (benchmark-compare name-thunk-pairs iterations) — Compare multiple
-;;;   (benchmark-suite suite-name benchmarks) — Run suite
-;;;   (benchmark-report results) — Generate report
-;;;   (benchmark-save results path) — Save results to file
-;;;
-;;; Features:
-;;;   - Accurate timing (nanosecond precision)
-;;;   - Memory allocation tracking
-;;;   - Statistical analysis (mean, median, stddev, percentiles)
-;;;   - Warmup iterations to reduce JIT noise
-;;;   - Comparison reports with relative performance
-;;;   - Historical tracking and regression detection
-;;;   - Multiple output formats (text, CSV, scheme)
+(define-syntax doc
+  (syntax-rules ()
+    [(_ args ...) (void)]))
 
-;;; ====
-;;; Configuration
-;;; ====
+(doc 'module 'benchmark)
+(doc 'description "Benchmarking Harness for performance testing and comparison. Measures execution time, memory allocation, and throughput with statistical analysis.")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+
+(doc 'section 'configuration)
 
 (define *default-iterations* 1000)
 (define *default-warmup-iterations* 100)

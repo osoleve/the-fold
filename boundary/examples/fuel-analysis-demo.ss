@@ -1,11 +1,13 @@
-;;; boundary/fuel-analysis-demo.ss — Demonstration of Fuel Analysis Tools
-;;;
-;;; This demonstrates how to use the fuel analysis tools to:
-;;;   1. Analyze fuel costs of individual operations
-;;;   2. Estimate computational complexity
-;;;   3. Compare different algorithms
-
 (load "boundary/diagnostics/fuel-analysis.ss")
+
+(doc 'module 'fuel-analysis-demo)
+(doc 'description "Demonstration of Fuel Analysis Tools")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+(doc 'note "Demonstrates how to:")
+(doc 'note "1. Analyze fuel costs of individual operations")
+(doc 'note "2. Estimate computational complexity")
+(doc 'note "3. Compare different algorithms")
 
 (display "\n")
 (display "════════════════════════════════════════════════════════════════\n")
@@ -13,9 +15,7 @@
 (display "════════════════════════════════════════════════════════════════\n")
 (display "\n")
 
-;;; ====
-;;; Example 1: Analyzing a Simple Function
-;;; ====
+(doc 'section 'example-1-simple-function)
 
 (display "Example 1: Analyzing a Simple Function\n")
 (display "────────────────────────────────────────────────────────────────\n")
@@ -31,9 +31,7 @@
 (print-analysis (analyze-fuel compute-simple 10))
 (display "\n")
 
-;;; ====
-;;; Example 2: Comparing List Operations
-;;; ====
+(doc 'section 'example-2-list-operations)
 
 (display "Example 2: Comparing List Operations\n")
 (display "────────────────────────────────────────────────────────────────\n")
@@ -67,9 +65,7 @@
  (estimate-complexity get-last make-list '(10 100 1000)))
 (display "\n")
 
-;;; ====
-;;; Example 3: Recursive vs Iterative
-;;; ====
+(doc 'section 'example-3-recursive-sum)
 
 (display "Example 3: Recursive Sum\n")
 (display "────────────────────────────────────────────────────────────────\n")
@@ -140,9 +136,7 @@
  (estimate-complexity is-empty make-list '(10 100 1000)))
 (display "\n")
 
-;;; ====
-;;; Summary
-;;; ====
+(doc 'section 'summary)
 
 (display "════════════════════════════════════════════════════════════════\n")
 (display "  KEY TAKEAWAYS\n")

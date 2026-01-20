@@ -1,24 +1,9 @@
-;;; boundary/tools/autodoc.ss — Auto-Documentation Extractor
-;;; @module autodoc
-;;; @requires prelude
-;;;
-;;; Generates REPL-friendly docs from code: signatures, examples,
-;;; and derived summaries. Stores as structured S-expression data.
-;;;
-;;; This is Shell-like code: performs I/O to scan files.
-;;;
-;;; API:
-;;;   (doc 'name)              — Show documentation for symbol
-;;;   (doc-search "pattern")   — Search docs by pattern
-;;;   (doc-category 'cat)      — List symbols in category
-;;;   (doc-examples 'name)     — Show examples for symbol
-;;;   (doc-stats)              — Show coverage statistics
-;;;   (doc-refresh!)           — Rebuild documentation index
-;;;
-;;; Dependencies:
-;;;   - prelude.ss (list utilities)
-
 (load "core/base/prelude.ss")
+
+(doc 'module 'autodoc)
+(doc 'description "Auto-Documentation Extractor. Generates REPL-friendly docs from code including signatures, examples, and derived summaries. Stores as structured S-expression data.")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
 
 ;;; ==== 
 ;;; Data Structures

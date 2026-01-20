@@ -1,21 +1,17 @@
-;;; boundary/universe-example.ss — Example usage of universe-serialize library
-;;;
-;;; This demonstrates how to use the universe serialization library
-;;; programmatically in your own Scheme code.
-;;;
-;;; Run with: scheme --script boundary/universe-example.ss
-;;;
-;;; NOTE: string-contains? provided by core/prelude.ss
-
 (load "core/base/prelude.ss")
 (import (shell universe-serialize))
+
+(doc 'module 'universe-example)
+(doc 'description "Example usage of universe-serialize library - Demonstrates how to use the universe serialization library programmatically")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+(doc 'usage "scheme --script boundary/universe-example.ss")
+(doc 'note "string-contains? provided by core/prelude.ss")
 
 (display "Universe Serialization Example\n")
 (display "====\n\n")
 
-;;; ====
-;;; Example 1: Scan for all .sexp files
-;;; ====
+(doc 'section 'example-1-scan-sexp-files)
 
 (display "Example 1: Scanning for .sexp files\n")
 (display "----\n")
@@ -33,9 +29,7 @@
                   (newline))
           all-sexp-files)
 
-;;; ====
-;;; Example 2: Filter by directory
-;;; ====
+(doc 'section 'example-2-filter-by-directory)
 
 (display "\nExample 2: Filtering by directory\n")
 (display "----\n")
@@ -59,9 +53,7 @@
       (display (- (length forum-files) 10))
       (display " more\n"))
 
-;;; ====
-;;; Example 3: Read and analyze content
-;;; ====
+(doc 'section 'example-3-analyze-content)
 
 (display "\nExample 3: Analyzing content\n")
 (display "----\n")
