@@ -18,6 +18,10 @@
 (load "lattice/fp/control-systems/state-space.ss")
 (load "lattice/fp/control-systems/transfer-function.ss")
 
+(doc 'module 'tf-convert)
+(doc 'description "Bidirectional conversion between state-space and transfer function representations")
+(doc 'layer 'lattice)
+
 ;;; ====
 ;;; State Space to Transfer Function
 ;;; ====

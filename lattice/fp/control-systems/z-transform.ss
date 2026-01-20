@@ -15,6 +15,10 @@
 (load "lattice/numeric/polynomial.ss")
 (load "lattice/fp/control-systems/discrete-control.ss")
 
+(doc 'module 'z-transform)
+(doc 'description "Discrete transfer functions in z-domain for discrete-time LTI systems")
+(doc 'layer 'lattice)
+
 ;;; ====
 ;;; Discrete Transfer Function Representation
 ;;; ====

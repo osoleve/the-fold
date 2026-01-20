@@ -27,6 +27,10 @@
 ;; Load field module (no conflicting names)
 (load "lattice/algebra/field.ss")
 
+(doc 'module 'poly-algebra)
+(doc 'description "Polynomial algebra integration for exact rational arithmetic in control systems")
+(doc 'layer 'lattice)
+
 ;;; ====
 ;;; Algebra Polynomial - Inline Implementation
 ;;; ====

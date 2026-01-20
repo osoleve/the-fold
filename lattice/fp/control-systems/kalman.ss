@@ -25,6 +25,10 @@
 
 (load "core/base/prelude.ss")
 
+(doc 'module 'kalman)
+(doc 'description "Scalar Kalman filter for online estimation with log-space variant")
+(doc 'layer 'lattice)
+
 ;;; ====
 ;;; Scalar Kalman Filter
 ;;; ====

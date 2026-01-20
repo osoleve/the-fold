@@ -14,6 +14,10 @@
 (load "core/base/prelude.ss")
 (load "lattice/numeric/polynomial.ss")
 
+(doc 'module 'transfer-function)
+(doc 'description "Transfer function representation for LTI systems with frequency response analysis")
+(doc 'layer 'lattice)
+
 ;;; ====
 ;;; Transfer Function Representation
 ;;; ====

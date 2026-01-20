@@ -10,6 +10,10 @@
 
 (load "core/base/prelude.ss")
 
+(doc 'module 'digital-pid)
+(doc 'description "Digital PID controller with anti-windup and derivative filtering")
+(doc 'layer 'lattice)
+
 ;;; ====
 ;;; PID Controller Structure
 ;;; ====

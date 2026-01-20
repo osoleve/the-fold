@@ -30,6 +30,10 @@
 (load "lattice/fp/control-systems/transfer-function.ss")
 (load "lattice/fp/control-systems/state-space.ss")
 
+(doc 'module 'stability)
+(doc 'description "Comprehensive stability analysis for LTI systems including Routh-Hurwitz, Lyapunov, Nyquist, and margin analysis")
+(doc 'layer 'lattice)
+
 ;;; ====
 ;;; Pole-Based Stability
 ;;; ====

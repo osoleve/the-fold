@@ -28,6 +28,10 @@
 (load "lattice/fp/rewrite/trace.ss")
 (load "lattice/fp/rewrite/sexp-zipper.ss")
 
+(doc 'module 'engine)
+(doc 'description "Pattern matching and rewriting engine with strategy combinators")
+(doc 'layer 'lattice)
+
 ;;; ====
 ;;; Constraint Checking
 ;;; ====
