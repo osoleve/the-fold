@@ -1,6 +1,7 @@
 (load "core/base/prelude.ss")
 (load "boundary/lsp/json.ss")
 (load "boundary/lsp/protocol.ss")
+(load "boundary/lsp/state.ss")
 
 (doc 'module 'lsp/documents)
 (doc 'description "Manages open documents and provides position conversion: in-memory document store, line offset computation, and UTF-16 ↔ character position conversion")
@@ -221,6 +222,11 @@
 
 (doc 'note "Global document store: uri → document")
 (define *documents* (make-hashtable string-hash string=?))
+
+;;; Register state with the LSP state registry
+(lsp-register-state! 'documents
+                     '(*documents*)
+                     (lambda () (hashtable-clear! *documents*)))
 
 (doc doc-open! 'type '(-> String Int String Document))
 (doc doc-open! 'description "Open a document (add to store)")

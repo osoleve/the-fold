@@ -1,6 +1,7 @@
 (load "core/base/prelude.ss")
 (load "boundary/tools/string-utils.ss")
 (load "boundary/lsp/json.ss")
+(load "boundary/lsp/state.ss")
 
 (doc 'module 'lsp/lsp-transport)
 (doc 'description "Handles LSP message framing over stdio: Content-Length header parsing, buffered reading from stdin, and writing with proper framing to stdout")
@@ -16,6 +17,9 @@
 (define *lsp-stdout* (standard-output-port))
 (define *lsp-stderr* (current-error-port))
 (define *lsp-running* #f)
+
+;;; Note: *progress-token-counter* is defined later in this file
+;;; Registration happens after it's defined
 
 (doc 'section 'header-parsing)
 
@@ -179,6 +183,14 @@
 
 (doc 'note "Progress tokens are simple incrementing integers")
 (define *progress-token-counter* 0)
+
+;;; Register transport state with the LSP state registry
+;;; Note: We don't reset ports - only runtime state
+(lsp-register-state! 'transport
+                     '(*lsp-running* *progress-token-counter*)
+                     (lambda ()
+                       (set! *lsp-running* #f)
+                       (set! *progress-token-counter* 0)))
 
 (doc next-progress-token 'type '(-> Int))
 (doc next-progress-token 'description "Generate a unique progress token")

@@ -20,6 +20,16 @@
 (define *client-capabilities* #f)
 (define *root-uri* #f)
 
+;;; Register state with the LSP state registry
+(lsp-register-state! 'server
+                     '(*server-initialized* *server-shutdown-requested*
+                       *client-capabilities* *root-uri*)
+                     (lambda ()
+                       (set! *server-initialized* #f)
+                       (set! *server-shutdown-requested* #f)
+                       (set! *client-capabilities* #f)
+                       (set! *root-uri* #f)))
+
 (doc 'section 'request-handlers)
 
 (doc handle-initialize 'type '(-> JsonObject JsonObject))

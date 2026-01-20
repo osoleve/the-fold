@@ -2,6 +2,7 @@
 (load "boundary/lsp/json.ss")
 (load "boundary/lsp/protocol.ss")
 (load "boundary/lsp/documents.ss")
+;; Note: state.ss is loaded via documents.ss
 
 (doc 'module 'lsp/capabilities)
 (doc 'description "Implements LSP language features: Hover (type information), Go-to-definition, Completion, and Document symbols. Integrates with boundary/tools/index.ss (symbol index), core/types/infer.ss (type inference), and boundary/lens/ (navigation).")
@@ -48,6 +49,13 @@
        (load "core/types/infer.ss")
        (load "core/types/types.ss")
        (set! *infer-available* #t))
+
+;;; Register capabilities state with the LSP state registry
+;;; Note: These flags are set at load time based on what modules are available
+;;; Resetting them doesn't make sense, so reset is a no-op
+(lsp-register-state! 'capabilities
+                     '(*pretty-available* *index-available* *infer-available*)
+                     (lambda () (void)))  ; No reset - these are load-time config
 
 (doc 'section 'type-inference-for-hover)
 
