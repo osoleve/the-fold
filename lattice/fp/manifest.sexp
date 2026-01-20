@@ -167,6 +167,19 @@ Key design principles:
        "proof-tactics.ss" ; Proof tactics for equational reasoning
        "sketch.ss")))    ; Program sketching with holes
 
+    ((subdir "category")
+     (description "Category theory foundations: adjunctions, natural transformations, Kan extensions")
+     (files (
+       "natural-transform.ss"    ; Natural transformations with composition
+       "adjunction.ss"           ; Adjunctions with triangle identities
+       "free-algebra.ss"         ; Free algebras and Free ⊣ Forgetful
+       "monad-derivation.ss"     ; Monads from adjunctions
+       "kan-extension.ss"        ; Left and right Kan extensions
+       "comonad.ss"              ; Comonads (Store, Env, Traced, Stream)
+       "state-store-adjunction.ss" ; State-Store adjunction
+       "logic-adjunction.ss"     ; Logic adjunctions (Galois connections)
+       "effect-category.ss")))   ; Categorical foundations of algebraic effects
+
     ;; Root-level modules
     ((subdir "")
      (description "Core FP infrastructure at lattice/fp root")
