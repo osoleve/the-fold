@@ -1,64 +1,49 @@
-;;; core/geometry/ascii-render.ss — ASCII Art Mesh Renderer
-;;;
-;;; Renders 3D meshes to colored ASCII art using BVH-accelerated ray casting.
-;;; Supports ANSI 256-color output for terminal display.
-;;;
-;;; This is Core code: pure rendering, assumes valid mesh input.
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;   - geometry.ss
-;;;   - mesh-sdf.ss
-
 (load "core/base/prelude.ss")
 (load "lattice/geometry/geometry.ss")
 (load "lattice/geometry/mesh-sdf.ss")
 
-;;; ====
-;;; ASCII Character Ramp
-;;; ====
+(doc 'module 'ascii-render)
+(doc 'description "ASCII art mesh renderer with BVH-accelerated ray casting and ANSI 256-color output")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
+(doc 'provides "Render 3D meshes to colored ASCII art for terminal display")
 
-;;; Characters ordered by visual density (dark to light)
-;;; ascii-ramp : String
+(doc 'section 'ascii-character-ramp)
+
 (define ascii-ramp " .:-=+*#%@")
-;;; ascii-ramp-len : Nat
+(doc ascii-ramp 'description "Characters ordered by visual density (dark to light)")
 (define ascii-ramp-len (string-length ascii-ramp))
 
-;;; intensity->char : Number → Char
-;;; Map intensity [0,1] to ASCII character
 (define (intensity->char intensity)
+  (doc 'type '(-> Number Char))
+  (doc 'description "Map intensity [0,1] to ASCII character")
   (let ([idx (min (- ascii-ramp-len 1)
                   (max 0 (inexact->exact (floor (* intensity ascii-ramp-len)))))])
        (string-ref ascii-ramp idx)))
 
-;;; ====
-;;; ANSI Color Codes
-;;; ====
+(doc 'section 'ansi-color-codes)
 
-;;; rgb->ansi256 : Number × Number × Number → Number
-;;; Convert RGB [0,1] to ANSI 256-color code
 (define (rgb->ansi256 r g b)
+  (doc 'type '(-> Number Number Number Number))
+  (doc 'description "Convert RGB [0,1] to ANSI 256-color code")
   (let ([ri (min 5 (max 0 (inexact->exact (round (* r 5)))))]
         [gi (min 5 (max 0 (inexact->exact (round (* g 5)))))]
         [bi (min 5 (max 0 (inexact->exact (round (* b 5)))))])
        (+ 16 (* ri 36) (* gi 6) bi)))
 
-;;; ansi-fg : Number → String
-;;; Generate ANSI escape for 256-color foreground
 (define (ansi-fg color-code)
+  (doc 'type '(-> Number String))
+  (doc 'description "Generate ANSI escape for 256-color foreground")
   (string-append "\x1b;[38;5;" (number->string color-code) "m"))
 
-;;; ansi-reset : String
-;;; ANSI escape sequence to reset terminal formatting
 (define ansi-reset "\x1b;[0m")
+(doc ansi-reset 'description "ANSI escape sequence to reset terminal formatting")
 
-;;; ====
-;;; Camera and Ray Generation
-;;; ====
+(doc 'section 'camera-and-ray-generation)
 
-;;; make-camera : Vec3 × Vec3 × Vec3 × Number × Number → Camera
-;;; Create camera with position, look-at point, up vector, and aspect ratio
 (define (make-camera pos look-at up fov aspect)
+  (doc 'type '(-> Vec3 Vec3 Vec3 Number Number Camera))
+  (doc 'description "Create camera with position, look-at point, up vector, FOV, and aspect ratio")
   (let* ([forward (vec3-normalize (vec3-sub look-at pos))]
          [right (vec3-normalize (vec3-cross forward up))]
          [cam-up (vec3-cross right forward)]
@@ -66,22 +51,33 @@
          [half-width (* half-height aspect)])
         (list 'camera pos forward right cam-up half-width half-height)))
 
-;;; camera-pos : Camera → Vec3
-(define (camera-pos cam) (list-ref cam 1))
-;;; camera-forward : Camera → Vec3
-(define (camera-forward cam) (list-ref cam 2))
-;;; camera-right : Camera → Vec3
-(define (camera-right cam) (list-ref cam 3))
-;;; camera-up : Camera → Vec3
-(define (camera-up cam) (list-ref cam 4))
-;;; camera-half-width : Camera → Real
-(define (camera-half-width cam) (list-ref cam 5))
-;;; camera-half-height : Camera → Real
-(define (camera-half-height cam) (list-ref cam 6))
+(define (camera-pos cam)
+  (doc 'type '(-> Camera Vec3))
+  (list-ref cam 1))
 
-;;; camera-ray : Camera × Number × Number → Ray3
-;;; Generate ray for normalized screen coords u,v in [-1,1]
+(define (camera-forward cam)
+  (doc 'type '(-> Camera Vec3))
+  (list-ref cam 2))
+
+(define (camera-right cam)
+  (doc 'type '(-> Camera Vec3))
+  (list-ref cam 3))
+
+(define (camera-up cam)
+  (doc 'type '(-> Camera Vec3))
+  (list-ref cam 4))
+
+(define (camera-half-width cam)
+  (doc 'type '(-> Camera Real))
+  (list-ref cam 5))
+
+(define (camera-half-height cam)
+  (doc 'type '(-> Camera Real))
+  (list-ref cam 6))
+
 (define (camera-ray cam u v)
+  (doc 'type '(-> Camera Number Number Ray3))
+  (doc 'description "Generate ray for normalized screen coords u,v in [-1,1]")
   (let* ([pos (camera-pos cam)]
          [dir (vec3-normalize
                (vec3-add
@@ -91,13 +87,11 @@
                 (vec3-scale (camera-up cam) (* v (camera-half-height cam)))))])
         (ray3 pos dir)))
 
-;;; ====
-;;; Mesh Rendering
-;;; ====
+(doc 'section 'mesh-rendering)
 
-;;; render-pixel-color : Mesh × Ray3 × Vec3 → (Number Number Number) | #f
-;;; Render a single ray, return RGB [0,1] or #f for background
 (define (render-pixel-color mesh ray light-dir)
+  (doc 'type '(-> Mesh Ray3 Vec3 (Maybe (List Number Number Number))))
+  (doc 'description "Render a single ray, return RGB [0,1] or #f for background")
   (let ([hit (mesh-intersect-ray mesh ray)])
        (if hit
            (let* ([point (car hit)]
@@ -112,14 +106,11 @@
                  (list r g b))
            #f)))
 
-;;; ====
-;;; Frame Rendering
-;;; ====
+(doc 'section 'frame-rendering)
 
-;;; render-frame : Mesh × Camera × Vec3 × Number × Number → String
-;;; Render mesh to colored ASCII string
-;;; width/height in characters
 (define (render-frame mesh cam light-dir width height)
+  (doc 'type '(-> Mesh Camera Vec3 Number Number String))
+  (doc 'description "Render mesh to colored ASCII string; width/height in characters")
   (let ([result '()])
        (do ([y 0 (+ y 1)])
            ((>= y height) (apply string-append (reverse result)))
@@ -143,20 +134,18 @@
                          (set! result (cons " " result)))))
            (set! result (cons (string-append ansi-reset "\n") result)))))
 
-;;; ====
-;;; Animation
-;;; ====
+(doc 'section 'animation)
 
-;;; rotate-camera-around : Vec3 × Number × Number → Vec3
-;;; Rotate camera position around Y axis at given distance
 (define (rotate-camera-around center angle distance)
+  (doc 'type '(-> Vec3 Number Number Vec3))
+  (doc 'description "Rotate camera position around Y axis at given distance")
   (let ([x (* distance (cos angle))]
         [z (* distance (sin angle))])
        (vec3-add center (vec3 x 0 z))))
 
-;;; render-spinning-frames : Mesh × Number × Number × Number × Number → (List String)
-;;; Render N frames of mesh spinning
 (define (render-spinning-frames mesh width height num-frames distance)
+  (doc 'type '(-> Mesh Number Number Number Number (List String)))
+  (doc 'description "Render N frames of mesh spinning")
   (let* ([bounds (mesh-bounds mesh)]
          [center (aabb-center bounds)]
          [extents (aabb-extents bounds)]
@@ -173,13 +162,11 @@
                            (render-frame mesh cam light-dir width height)))
              (iota num-frames))))
 
-;;; ====
-;;; Output Utilities
-;;; ====
+(doc 'section 'output-utilities)
 
-;;; frames->ansi-animation : (List String) × Number → Void
-;;; Play animation in terminal with delay (ms)
 (define (frames->ansi-animation frames delay-ms)
+  (doc 'type '(-> (List String) Number Void))
+  (doc 'description "Play animation in terminal with delay (ms)")
   (for-each (lambda (frame)
                     (display "\x1b;[2J\x1b;[H")  ; Clear screen, home cursor
                     (display frame)
@@ -191,9 +178,9 @@
                                     (loop)))))
             frames))
 
-;;; save-frame : String × String → Void
-;;; Save frame to file
 (define (save-frame frame filename)
+  (doc 'type '(-> String String Void))
+  (doc 'description "Save frame to file")
   (call-with-output-file filename
                          (lambda (port)
                                  (display frame port))))

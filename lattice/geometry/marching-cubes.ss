@@ -1,25 +1,15 @@
-;;; core/geometry/marching-cubes.ss — Marching Cubes Isosurface Extraction
-;;;
-;;; Implements the Marching Cubes algorithm for extracting triangle meshes
-;;; from implicit surfaces (SDFs). Given an SDF function, generates a triangle
-;;; mesh approximating the zero-level isosurface.
-;;;
-;;; This is Core code: pure, total, assumes reasonable input.
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;   - geometry.ss
-
 (load "core/base/prelude.ss")
 (load "lattice/geometry/geometry.ss")
 
-;;; ====
-;;; Marching Cubes Configuration
-;;; ====
+(doc 'module 'marching-cubes)
+(doc 'description "Marching Cubes algorithm for extracting triangle meshes from implicit surfaces (SDFs)")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
+(doc 'provides "Extract triangle mesh approximating zero-level isosurface from SDF function")
 
-;;; Edge table: which edges are intersected for each cube configuration
-;;; Edges are numbered 0-11 (4 on bottom face, 4 on top face, 4 vertical)
-;;; edge-table : (Vector Nat)
+(doc 'section 'marching-cubes-configuration)
+(doc 'note "Edge table: which edges are intersected for each cube configuration; Edges numbered 0-11 (4 on bottom face, 4 on top face, 4 vertical)")
+
 (define edge-table
   '#(#x0   #x109 #x203 #x30a #x406 #x50f #x605 #x70c
      #x80c #x905 #xa0f #xb06 #xc0a #xd03 #xe09 #xf00
@@ -54,9 +44,8 @@
      #xf00 #xe09 #xd03 #xc0a #xb06 #xa0f #x905 #x80c
      #x70c #x605 #x50f #x406 #x30a #x203 #x109 #x0))
 
-;;; Triangle table: simplified version (maps cube config to triangle count)
-;;; For full implementation, would map to specific triangle configurations
-;;; tri-table : (Vector Nat)
+(doc 'note "Triangle table: simplified version (maps cube config to triangle count); full implementation would map to specific triangle configurations")
+
 (define tri-table
   '#(0 1 1 2 1 2 2 3 1 2 2 3 2 3 3 2
      1 2 2 3 2 3 3 4 2 3 3 4 3 4 4 3
@@ -75,16 +64,14 @@
      3 4 4 5 4 5 3 4 4 5 5 2 3 4 2 1
      2 3 3 2 3 4 2 1 3 2 4 1 2 1 1 0))
 
-;;; ====
-;;; Grid and Cube Utilities
-;;; ====
+(doc 'section 'grid-and-cube-utilities)
 
-;;; marching-cubes-grid : SDF-Function × AABB × Number → (List Triangle3)
-;;; Extract triangle mesh from SDF using marching cubes
-;;; sdf-fn: implicit surface function (returns signed distance)
-;;; bounds: bounding box for extraction
-;;; resolution: number of grid cells per axis
 (define (marching-cubes-grid sdf-fn bounds resolution)
+  (doc 'type '(-> SDF-Function AABB Number (List Triangle3)))
+  (doc 'description "Extract triangle mesh from SDF using marching cubes")
+  (doc 'param 'sdf-fn "Implicit surface function (returns signed distance)")
+  (doc 'param 'bounds "Bounding box for extraction")
+  (doc 'param 'resolution "Number of grid cells per axis")
   (let* ([bmin (aabb-min bounds)]
          [bmax (aabb-max bounds)]
          [xmin (vec3-x bmin)] [ymin (vec3-y bmin)] [zmin (vec3-z bmin)]
@@ -117,9 +104,9 @@
                            [cube-tris (marching-cubes-cube corners values)])
                           (set! triangles (append triangles cube-tris))))))))
 
-;;; marching-cubes-cube : (List Point3) × (List Number) → (List Triangle3)
-;;; Generate triangles for a single cube based on corner values
 (define (marching-cubes-cube corners values)
+  (doc 'type '(-> (List Point3) (List Number) (List Triangle3)))
+  (doc 'description "Generate triangles for a single cube based on corner values")
   (let* ([cube-index (compute-cube-index values)]
          [edge-mask (vector-ref edge-table cube-index)])
         (if (or (= edge-mask 0) (= edge-mask #xfff))
@@ -130,9 +117,9 @@
                  ;; Full implementation would use tri-table
                  (generate-cube-triangles edge-points cube-index)))))
 
-;;; compute-cube-index : (List Number) → Number
-;;; Compute configuration index (0-255) based on which corners are inside
 (define (compute-cube-index values)
+  (doc 'type '(-> (List Number) Number))
+  (doc 'description "Compute configuration index (0-255) based on which corners are inside")
   (let loop ([vals values] [i 0] [index 0])
        (if (null? vals)
            index
@@ -142,9 +129,9 @@
                      (bitwise-ior index (bitwise-arithmetic-shift-left 1 i))
                      index)))))
 
-;;; compute-edge-intersections : (List Point3) × (List Number) × Number → (List Point3)
-;;; Compute intersection points on cube edges
 (define (compute-edge-intersections corners values edge-mask)
+  (doc 'type '(-> (List Point3) (List Number) Number (List Point3)))
+  (doc 'description "Compute intersection points on cube edges")
   (let ([edge-defs '((0 1) (1 2) (2 3) (3 0)  ; Bottom face
                      (4 5) (5 6) (6 7) (7 4)  ; Top face
                      (0 4) (1 5) (2 6) (3 7))]) ; Vertical edges
@@ -165,10 +152,9 @@
                                 (loop (cdr edges) (+ edge-idx 1) (cons point points)))
                           (loop (cdr edges) (+ edge-idx 1) points)))))))
 
-;;; generate-cube-triangles : (List Point3) × Number → (List Triangle3)
-;;; Generate triangles from edge intersection points
-;;; Simplified version: just generates triangles from first 3+ points
 (define (generate-cube-triangles edge-points cube-index)
+  (doc 'type '(-> (List Point3) Number (List Triangle3)))
+  (doc 'description "Generate triangles from edge intersection points; simplified version: just generates triangles from first 3+ points")
   (if (< (length edge-points) 3)
       '()
       (let ([num-tris (quotient (length edge-points) 3)])
@@ -178,17 +164,15 @@
                     (let ([tri (triangle3 (car pts) (cadr pts) (caddr pts))])
                          (loop (cdddr pts) (cons tri tris))))))))
 
-;;; ====
-;;; High-Level API
-;;; ====
+(doc 'section 'high-level-api)
 
-;;; marching-cubes : SDF-Function × Point3 × Number × Number → (List Triangle3)
-;;; Extract isosurface mesh from SDF
-;;; sdf-fn: signed distance function
-;;; center: center of extraction region
-;;; size: half-size of extraction region
-;;; resolution: grid resolution (cells per axis)
 (define (marching-cubes sdf-fn center size resolution)
+  (doc 'type '(-> SDF-Function Point3 Number Number (List Triangle3)))
+  (doc 'description "Extract isosurface mesh from SDF")
+  (doc 'param 'sdf-fn "Signed distance function")
+  (doc 'param 'center "Center of extraction region")
+  (doc 'param 'size "Half-size of extraction region")
+  (doc 'param 'resolution "Grid resolution (cells per axis)")
   (let* ([bmin (vec3 (- (vec3-x center) size)
                      (- (vec3-y center) size)
                      (- (vec3-z center) size))]
@@ -198,16 +182,16 @@
          [bounds (aabb bmin bmax)])
         (marching-cubes-grid sdf-fn bounds resolution)))
 
-;;; marching-cubes-sphere : Point3 × Number × Number → (List Triangle3)
-;;; Extract mesh for a sphere SDF
 (define (marching-cubes-sphere center radius resolution)
+  (doc 'type '(-> Point3 Number Number (List Triangle3)))
+  (doc 'description "Extract mesh for a sphere SDF")
   (let ([sdf-fn (lambda (p)
                         (- (vec3-length (vec3-sub p center)) radius))])
        (marching-cubes sdf-fn center (* radius 1.5) resolution)))
 
-;;; marching-cubes-torus : Point3 × Number × Number × Number → (List Triangle3)
-;;; Extract mesh for a torus SDF
 (define (marching-cubes-torus center major-radius minor-radius resolution)
+  (doc 'type '(-> Point3 Number Number Number (List Triangle3)))
+  (doc 'description "Extract mesh for a torus SDF")
   (let ([sdf-fn (lambda (p)
                         (let* ([offset (vec3-sub p center)]
                                [x (vec3-x offset)]

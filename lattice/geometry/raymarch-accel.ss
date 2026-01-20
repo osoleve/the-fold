@@ -1,16 +1,13 @@
-;;; lattice/geometry/raymarch-accel.ss — Transparent Rust-Accelerated Raymarching
-;;;
-;;; Provides mesh raymarching that transparently uses Rust acceleration if available,
-;;; with fallback to pure Scheme implementation.
-;;;
-;;; API matches the pure Scheme raymarching but adds fuel tracking:
-;;;   (raymarch-mesh/accel mesh ray params fuel) → (ok result fuel) | (suspended ...)
-;;;
-;;; This is Lattice code with Shell dependencies for acceleration.
-
 (load "lattice/geometry/raymarch.ss")
 
-;;; Try to load acceleration, but don't fail if unavailable
+(doc 'module 'raymarch-accel)
+(doc 'description "Transparent Rust-accelerated raymarching with fallback to pure Scheme")
+(doc 'layer 'lattice)
+(doc 'purity 'partial)
+(doc 'provides "Mesh raymarching that transparently uses Rust acceleration if available; API matches pure Scheme but adds fuel tracking")
+(doc 'note "Function: (raymarch-mesh/accel mesh ray params fuel) → (ok result fuel) | (suspended ...)")
+
+(doc 'note "Try to load acceleration, but don't fail if unavailable")
 (define *raymarch-accel-enabled* #f)
 (guard (ex [else (set! *raymarch-accel-enabled* #f)])
        (load "boundary/ffi/raymarch-ffi.ss")
@@ -20,22 +17,19 @@
              (bind-raymarch-procedures!)
              (set! *raymarch-accel-enabled* #t)))
 
-;;; ====
-;;; Acceleration Status
-;;; ====
+(doc 'section 'acceleration-status)
 
-;;; raymarch-accel-enabled? : → Boolean
-;;; Check if Rust raymarching acceleration is available
 (define (raymarch-accel-enabled?)
+  (doc 'type '(-> Boolean))
+  (doc 'description "Check if Rust raymarching acceleration is available")
   *raymarch-accel-enabled*)
 
-;;; ====
-;;; Fuel Cost Estimation (for Scheme fallback)
-;;; ====
+(doc 'section 'fuel-cost-estimation)
+(doc 'note "For Scheme fallback")
 
-;;; estimate-raymarch-fuel : Mesh × RaymarchParams → Nat
-;;; Estimate fuel cost for raymarching on this mesh
 (define (estimate-raymarch-fuel mesh params)
+  (doc 'type '(-> Mesh RaymarchParams Nat))
+  (doc 'description "Estimate fuel cost for raymarching on this mesh")
   (let* ([bvh (mesh-bvh mesh)]
          [nodes (bvh-count-nodes bvh)]
          [tris (bvh-count-triangles bvh)]
@@ -53,17 +47,12 @@
            (* avg-steps query-cost)
            normal-cost)))
 
-;;; ====
-;;; Accelerated Operations
-;;; ====
+(doc 'section 'accelerated-operations)
 
-;;; raymarch-mesh/accel : Mesh × Ray3 × RaymarchParams × Fuel → Result
-;;; Raymarching with fuel tracking.
-;;; Returns:
-;;;   (ok (hit-point normal t steps tri-idx) fuel) - hit
-;;;   (miss steps fuel) - no intersection
-;;;   (suspended (raymarch-mesh mesh ray params)) - out of fuel
 (define (raymarch-mesh/accel mesh ray params fuel)
+  (doc 'type '(-> Mesh Ray3 RaymarchParams Fuel Result))
+  (doc 'description "Raymarching with fuel tracking")
+  (doc 'returns "(ok (hit-point normal t steps tri-idx) fuel) | (miss steps fuel) | (suspended ...)")
   (if *raymarch-accel-enabled*
       ;; Use Rust acceleration
       (let* ([bvh (mesh-bvh mesh)]
@@ -115,12 +104,10 @@
                ;; Not enough fuel
                `(suspended (raymarch-mesh ,mesh ,ray ,params))))))
 
-;;; mesh-sdf-normal/accel : Mesh × Vec3 × Fuel → Result
-;;; Compute mesh SDF normal with fuel tracking.
-;;; Returns:
-;;;   (ok normal fuel) - success
-;;;   (suspended (mesh-sdf-gradient mesh point)) - out of fuel
 (define (mesh-sdf-normal/accel mesh point fuel)
+  (doc 'type '(-> Mesh Vec3 Fuel Result))
+  (doc 'description "Compute mesh SDF normal with fuel tracking")
+  (doc 'returns "(ok normal fuel) | (suspended ...)")
   (if *raymarch-accel-enabled*
       ;; Use Rust acceleration
       (let* ([bvh (mesh-bvh mesh)]
@@ -139,14 +126,11 @@
       (let ([normal (mesh-sdf-gradient mesh point)])
            `(ok ,normal ,fuel))))
 
-;;; ====
-;;; Convenience Wrappers
-;;; ====
+(doc 'section 'convenience-wrappers)
 
-;;; with-raymarch-accel : (→ α) → α
-;;; Run thunk with raymarching acceleration enabled (if available)
-;;; Ensures cleanup after execution
 (define (with-raymarch-accel thunk)
+  (doc 'type '(-> (-> α) α))
+  (doc 'description "Run thunk with raymarching acceleration enabled (if available); ensures cleanup after execution")
   (dynamic-wind
    (lambda () #f)
    thunk
@@ -154,10 +138,10 @@
            (when *raymarch-accel-enabled*
                  (cleanup-stale-handles!)))))
 
-;;; render-pixel/accel : Mesh × Ray3 × Vec3 × RaymarchParams × Fuel → Result
-;;; Render a single pixel with acceleration
-;;; Returns: (ok shading-value fuel) | (miss fuel) | (suspended ...)
 (define (render-pixel/accel mesh ray light-pos params fuel)
+  (doc 'type '(-> Mesh Ray3 Vec3 RaymarchParams Fuel Result))
+  (doc 'description "Render a single pixel with acceleration")
+  (doc 'returns "(ok shading-value fuel) | (miss fuel) | (suspended ...)")
   (let ([result (raymarch-mesh/accel mesh ray params fuel)])
        (case (car result)
              [(ok)
@@ -174,11 +158,10 @@
               `(ok 0.0 ,(caddr result))]  ; background = 0
              [else result])))
 
-;;; ====
-;;; Tests
-;;; ====
+(doc 'section 'tests)
 
 (define (run-raymarch-accel-tests)
+  (doc 'description "Run raymarch acceleration test suite")
   (display "Raymarch Acceleration Tests\n")
   (display "====\n")
   

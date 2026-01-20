@@ -1,17 +1,13 @@
-;;; lattice/geometry/bvh-accel.ss — Transparent Rust-Accelerated BVH Operations
-;;;
-;;; Provides BVH operations that transparently use Rust acceleration if available,
-;;; with fallback to pure Scheme implementation.
-;;;
-;;; API matches the pure Scheme BVH operations but adds fuel tracking:
-;;;   (bvh-closest-point/accel bvh point fuel) → (ok result fuel) | (suspended ...)
-;;;   (bvh-intersect-ray/accel bvh ray fuel) → (ok result fuel) | (suspended ...)
-;;;
-;;; This is Lattice code with Shell dependencies for acceleration.
-
 (load "lattice/geometry/bvh.ss")
 
-;;; Try to load acceleration, but don't fail if unavailable
+(doc 'module 'bvh-accel)
+(doc 'description "Transparent Rust-accelerated BVH operations with fallback to pure Scheme")
+(doc 'layer 'lattice)
+(doc 'purity 'partial)
+(doc 'provides "BVH operations that transparently use Rust acceleration if available; API matches pure Scheme BVH but adds fuel tracking")
+(doc 'note "Functions: (bvh-closest-point/accel bvh point fuel) → (ok result fuel) | (suspended ...), (bvh-intersect-ray/accel bvh ray fuel)")
+
+(doc 'note "Try to load acceleration, but don't fail if unavailable")
 (define *accel-enabled* #f)
 (guard (ex [else (set! *accel-enabled* #f)])
        (load "boundary/ffi/bvh-cache.ss")
@@ -19,22 +15,19 @@
              (bind-bvh-procedures!)
              (set! *accel-enabled* #t)))
 
-;;; ====
-;;; Acceleration Status
-;;; ====
+(doc 'section 'acceleration-status)
 
-;;; accel-enabled? : → Boolean
-;;; Check if Rust acceleration is available
 (define (accel-enabled?)
+  (doc 'type '(-> Boolean))
+  (doc 'description "Check if Rust acceleration is available")
   *accel-enabled*)
 
-;;; ====
-;;; Fuel Cost Estimation (for Scheme fallback)
-;;; ====
+(doc 'section 'fuel-cost-estimation)
+(doc 'note "For Scheme fallback")
 
-;;; estimate-closest-point-fuel : BVH → Nat
-;;; Estimate fuel cost for closest-point query on this BVH
 (define (estimate-closest-point-fuel bvh)
+  (doc 'type '(-> BVH Nat))
+  (doc 'description "Estimate fuel cost for closest-point query on this BVH")
   (let* ([nodes (bvh-count-nodes bvh)]
          [tris (bvh-count-triangles bvh)]
          ;; Match Rust costs: BASE=5, NODE=2, AABB=3, TRI=10
@@ -47,9 +40,9 @@
            (* nodes per-node)
            (* avg-tris-tested per-tri))))
 
-;;; estimate-ray-intersect-fuel : BVH → Nat
-;;; Estimate fuel cost for ray-intersect query on this BVH
 (define (estimate-ray-intersect-fuel bvh)
+  (doc 'type '(-> BVH Nat))
+  (doc 'description "Estimate fuel cost for ray-intersect query on this BVH")
   (let* ([nodes (bvh-count-nodes bvh)]
          [tris (bvh-count-triangles bvh)]
          ;; Match Rust costs: BASE=5, NODE=2, AABB=3, TRI_RAY=8
@@ -61,17 +54,12 @@
            (* nodes per-node)
            (* avg-tris-tested per-tri))))
 
-;;; ====
-;;; Accelerated Operations
-;;; ====
+(doc 'section 'accelerated-operations)
 
-;;; bvh-closest-point/accel : BVH × Point3 × Fuel → Result
-;;; Find closest point on BVH surface with fuel tracking.
-;;; Returns:
-;;;   (ok (Point3 Distance Triangle3) Fuel) - success
-;;;   (ok #f Fuel) - miss (no triangles)
-;;;   (suspended (bvh-closest-point bvh point)) - out of fuel
 (define (bvh-closest-point/accel bvh point fuel)
+  (doc 'type '(-> BVH Point3 Fuel Result))
+  (doc 'description "Find closest point on BVH surface with fuel tracking")
+  (doc 'returns "(ok (Point3 Distance Triangle3) Fuel) | (ok #f Fuel) | (suspended ...)")
   (if *accel-enabled*
       ;; Use Rust acceleration
       (let* ([handle (get-rust-handle bvh)]
@@ -98,13 +86,10 @@
                ;; Not enough fuel
                `(suspended (bvh-closest-point ,bvh ,point))))))
 
-;;; bvh-intersect-ray/accel : BVH × Ray3 × Fuel → Result
-;;; Find ray intersection with BVH with fuel tracking.
-;;; Returns:
-;;;   (ok (Triangle3 Distance) Fuel) - hit
-;;;   (ok #f Fuel) - miss
-;;;   (suspended (bvh-intersect-ray bvh ray)) - out of fuel
 (define (bvh-intersect-ray/accel bvh ray fuel)
+  (doc 'type '(-> BVH Ray3 Fuel Result))
+  (doc 'description "Find ray intersection with BVH with fuel tracking")
+  (doc 'returns "(ok (Triangle3 Distance) Fuel) | (ok #f Fuel) | (suspended ...)")
   (let ([origin (ray3-origin ray)]
         [direction (ray3-direction ray)])
        (if *accel-enabled*
@@ -132,14 +117,12 @@
                          `(ok ,result ,(- fuel estimated)))
                     `(suspended (bvh-intersect-ray ,bvh ,ray)))))))
 
-;;; ====
-;;; Convenience: Auto-detect and use best implementation
-;;; ====
+(doc 'section 'convenience-wrappers)
+(doc 'note "Auto-detect and use best implementation")
 
-;;; with-bvh-accel : (→ α) → α
-;;; Run thunk with BVH acceleration enabled (if available)
-;;; Ensures cleanup after execution
 (define (with-bvh-accel thunk)
+  (doc 'type '(-> (-> α) α))
+  (doc 'description "Run thunk with BVH acceleration enabled (if available); ensures cleanup after execution")
   (dynamic-wind
    (lambda () #f)
    thunk
@@ -147,11 +130,10 @@
            (when *accel-enabled*
                  (cleanup-stale-handles!)))))
 
-;;; ====
-;;; Tests
-;;; ====
+(doc 'section 'tests)
 
 (define (run-accel-tests)
+  (doc 'description "Run BVH acceleration test suite")
   (display "BVH Acceleration Tests\n")
   (display "====\n")
   

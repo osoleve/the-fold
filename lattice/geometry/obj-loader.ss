@@ -1,24 +1,17 @@
-;;; core/geometry/obj-loader.ss — Wavefront OBJ File Loader
-;;;
-;;; Loads triangle meshes from .obj files.
-;;; Supports: vertices (v), faces (f), basic format
-;;;
-;;; This is Core code: pure, total, assumes well-formed input.
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;   - geometry.ss
-
 (load "core/base/prelude.ss")
 (load "lattice/geometry/geometry.ss")
 
-;;; ====
-;;; OBJ Parsing
-;;; ====
+(doc 'module 'obj-loader)
+(doc 'description "Wavefront OBJ file loader for triangle meshes")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
+(doc 'provides "Load triangle meshes from .obj files; supports vertices (v), faces (f), basic format")
 
-;;; parse-obj-line : String → (Symbol . Data) | #f
-;;; Parse a single line of OBJ file
+(doc 'section 'obj-parsing)
+
 (define (parse-obj-line line)
+  (doc 'type '(-> String (Maybe (Pair Symbol Data))))
+  (doc 'description "Parse a single line of OBJ file")
   (let ([trimmed (string-trim line)])
        (cond
         [(string=? trimmed "") #f]
@@ -33,16 +26,16 @@
                 (cons 'face (parse-face (cdr parts)))]
                [else #f]))])))  ; Ignore other directives
 
-;;; parse-vertex : (List String) → Vec3
 (define (parse-vertex parts)
+  (doc 'type '(-> (List String) Vec3))
   (let ([nums (map string->number (filter (lambda (s) (> (string-length s) 0)) parts))])
        (if (>= (length nums) 3)
            (vec3 (car nums) (cadr nums) (caddr nums))
            (vec3 0 0 0))))
 
-;;; parse-face : (List String) → (List Number)
-;;; Handles "v", "v/vt", "v/vt/vn", "v//vn" formats
 (define (parse-face parts)
+  (doc 'type '(-> (List String) (List Number)))
+  (doc 'description "Handles v, v/vt, v/vt/vn, v//vn formats")
   (map (lambda (part)
                (let ([idx-str (car (string-split part #\/))])
                     (string->number idx-str)))
@@ -83,13 +76,11 @@
    [(pred (car lst)) (drop-while pred (cdr lst))]
    [else lst]))
 
-;;; ====
-;;; OBJ Loading
-;;; ====
+(doc 'section 'obj-loading)
 
-;;; load-obj-from-string : String → (List Triangle3)
-;;; Parse OBJ content and return list of triangles
 (define (load-obj-from-string content)
+  (doc 'type '(-> String (List Triangle3)))
+  (doc 'description "Parse OBJ content and return list of triangles")
   (let* ([lines (string-split content #\newline)]
          [parsed (filter identity (map parse-obj-line lines))]
          [vertices (list->vector
@@ -97,18 +88,17 @@
          [faces (map cdr (filter (lambda (p) (eq? (car p) 'face)) parsed))])
         (faces->triangles vertices faces)))
 
-;;; faces->triangles : (Vector Vec3) × (List (List Number)) → (List Triangle3)
-;;; Convert face indices to triangles (handles n-gons by fan triangulation)
 (define (faces->triangles vertices faces)
+  (doc 'type '(-> (Vector Vec3) (List (List Number)) (List Triangle3)))
+  (doc 'description "Convert face indices to triangles (handles n-gons by fan triangulation)")
   (apply append
          (map (lambda (face)
                       (face->triangles vertices face))
               faces)))
 
-;;; face->triangles : (Vector Vec3) × (List Number) → (List Triangle3)
-;;; Fan triangulation: for face [v0, v1, v2, v3, ...] creates triangles
-;;; (v0, v1, v2), (v0, v2, v3), etc.
 (define (face->triangles vertices face)
+  (doc 'type '(-> (Vector Vec3) (List Number) (List Triangle3)))
+  (doc 'description "Fan triangulation: for face [v0, v1, v2, v3, ...] creates triangles (v0, v1, v2), (v0, v2, v3), etc.")
   (if (< (length face) 3)
       '()
       (let ([v0 (get-vertex vertices (car face))])
@@ -122,27 +112,25 @@
                                curr
                                (cons (triangle3 v0 prev curr) tris))))))))
 
-;;; get-vertex : (Vector Vec3) × Number → Vec3
-;;; OBJ indices are 1-based, can be negative (relative)
 (define (get-vertex vertices idx)
+  (doc 'type '(-> (Vector Vec3) Number Vec3))
+  (doc 'description "OBJ indices are 1-based, can be negative (relative)")
   (let ([n (vector-length vertices)])
        (if (< idx 0)
            (vector-ref vertices (+ n idx))
            (vector-ref vertices (- idx 1)))))
 
-;;; ====
-;;; File Loading
-;;; ====
+(doc 'section 'file-loading)
 
-;;; load-obj-file : String → (List Triangle3)
 (define (load-obj-file filename)
+  (doc 'type '(-> String (List Triangle3)))
   (let ([content (call-with-input-file filename
                                        (lambda (port)
                                                (get-string-all port)))])
        (load-obj-from-string content)))
 
-;;; obj->mesh : String → Mesh
-;;; Load OBJ file and create mesh with BVH
 (define (obj->mesh filename)
+  (doc 'type '(-> String Mesh))
+  (doc 'description "Load OBJ file and create mesh with BVH")
   (load "lattice/geometry/mesh-sdf.ss")
   (make-mesh (load-obj-file filename)))

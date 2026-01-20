@@ -1,77 +1,61 @@
-;;; core/geometry/octree.ss — Octree Spatial Partitioning
-;;;
-;;; Provides octree data structure for spatial partitioning and acceleration
-;;; of geometric queries. An octree recursively subdivides 3D space into 8 octants.
-;;;
-;;; Compared to BVH:
-;;; - Octree: uniform spatial subdivision, simpler to build, better for uniform distributions
-;;; - BVH: object-space partitioning, more complex, better for non-uniform distributions
-;;;
-;;; This is Core code: pure, total, assumes reasonable input.
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;   - geometry.ss
-
 (load "core/base/prelude.ss")
 (load "lattice/geometry/geometry.ss")
 
-;;; ====
-;;; Octree Node Structure
-;;; ====
+(doc 'module 'octree)
+(doc 'description "Octree spatial partitioning for geometric query acceleration")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
+(doc 'provides "Octree data structure recursively subdividing 3D space into 8 octants")
+(doc 'note "Compared to BVH: Octree uses uniform spatial subdivision (simpler, better for uniform distributions), BVH uses object-space partitioning (more complex, better for non-uniform distributions)")
 
-;;; Octree node types:
-;;; - Leaf: (octree-leaf center size primitives)
-;;; - Internal: (octree-node center size children)
-;;; children is a vector of 8 octrees (one per octant)
+(doc 'section 'octree-node-structure)
+(doc 'note "Octree node types: Leaf (octree-leaf center size primitives), Internal (octree-node center size children where children is vector of 8 octrees)")
 
-;;; octree-leaf : Vec3 × Real × (List Triangle3) → Octree
 (define (octree-leaf center size primitives)
+  (doc 'type '(-> Vec3 Real (List Triangle3) Octree))
   (list 'octree-leaf center size primitives))
 
-;;; octree-node : Vec3 × Real × (Vector Octree) → Octree
 (define (octree-node center size children)
+  (doc 'type '(-> Vec3 Real (Vector Octree) Octree))
   (list 'octree-node center size children))
 
-;;; octree-leaf? : α → Bool
 (define (octree-leaf? node)
+  (doc 'type '(-> α Bool))
   (and (pair? node) (eq? (car node) 'octree-leaf)))
 
-;;; octree-node? : α → Bool
 (define (octree-node? node)
+  (doc 'type '(-> α Bool))
   (and (pair? node) (eq? (car node) 'octree-node)))
 
-;;; octree-center : Octree → Vec3
 (define (octree-center node)
+  (doc 'type '(-> Octree Vec3))
   (cadr node))
 
-;;; octree-size : Octree → Real
 (define (octree-size node)
+  (doc 'type '(-> Octree Real))
   (caddr node))
 
-;;; octree-primitives : Octree → (List Triangle3)
 (define (octree-primitives node)
+  (doc 'type '(-> Octree (List Triangle3)))
   (if (octree-leaf? node)
       (cadddr node)
       '()))
 
-;;; octree-children : Octree → (Vector Octree) | #f
 (define (octree-children node)
+  (doc 'type '(-> Octree (Maybe (Vector Octree))))
   (if (octree-node? node)
       (cadddr node)
       #f))
 
-;;; ====
-;;; Octree Construction
-;;; ====
+(doc 'section 'octree-construction)
 
-;;; octree-build : (List Triangle3) × Point3 × Number × Number × Number → Octree
-;;; Build an octree from triangles
-;;; center: center of root node
-;;; size: half-size of root node
-;;; max-depth: maximum subdivision depth
-;;; max-leaf-size: maximum triangles per leaf
 (define (octree-build triangles center size max-depth max-leaf-size)
+  (doc 'type '(-> (List Triangle3) Point3 Number Number Number Octree))
+  (doc 'description "Build an octree from triangles")
+  (doc 'param 'center "Center of root node")
+  (doc 'param 'size "Half-size of root node")
+  (doc 'param 'max-depth "Maximum subdivision depth")
+  (doc 'param 'max-leaf-size "Maximum triangles per leaf")
   (define (build-recursive tris ctr sz depth)
     (cond
      ;; Base case: max depth or few enough triangles
@@ -96,17 +80,17 @@
                      (octree-leaf ctr sz tris)
                      ;; Keep internal node - partitioning reduced search space
                      (octree-node ctr sz (list->vector children)))))]])
-  
+
   (build-recursive triangles center size 0))
 
-;;; all-children-leaves? : (List Octree) → Bool
 (define (all-children-leaves? children)
+  (doc 'type '(-> (List Octree) Bool))
   (and (= (length children) 8)
        (andmap octree-leaf? children)))
 
-;;; subdivide-octants : Vec3 × Real → (List (Vec3 × Real))
-;;; Return 8 octant centers and sizes
 (define (subdivide-octants center size)
+  (doc 'type '(-> Vec3 Real (List (Pair Vec3 Real))))
+  (doc 'description "Return 8 octant centers and sizes")
   (let* ([cx (vec3-x center)]
          [cy (vec3-y center)]
          [cz (vec3-z center)]
@@ -122,9 +106,9 @@
          (list (vec3 (+ cx hs) (+ cy hs) (- cz hs)) hs)  ; 6: ++-
          (list (vec3 (+ cx hs) (+ cy hs) (+ cz hs)) hs)))) ; 7: +++
 
-;;; triangle-intersects-octant? : Triangle3 × Vec3 × Real → Bool
-;;; Check if triangle intersects octant (cube centered at point with half-size)
 (define (triangle-intersects-octant? tri center size)
+  (doc 'type '(-> Triangle3 Vec3 Real Bool))
+  (doc 'description "Check if triangle intersects octant (cube centered at point with half-size)")
   (let* ([octant-aabb (aabb (vec3 (- (vec3-x center) size)
                                   (- (vec3-y center) size)
                                   (- (vec3-z center) size))
@@ -139,8 +123,8 @@
             (let ([tri-bbox (aabb-from-points tri-points)])
                  (aabb-overlaps? tri-bbox octant-aabb)))))
 
-;;; aabb-overlaps? : AABB × AABB → Bool
 (define (aabb-overlaps? a b)
+  (doc 'type '(-> AABB AABB Bool))
   (let ([amin (aabb-min a)]
         [amax (aabb-max a)]
         [bmin (aabb-min b)]
@@ -152,9 +136,9 @@
             (>= (vec3-z amax) (vec3-z bmin))
             (<= (vec3-z amin) (vec3-z bmax)))))
 
-;;; partition-triangles-octants : (List Triangle3) × (List (Vec3 × Real)) → (List (List Triangle3))
-;;; Partition triangles into 8 lists (one per octant)
 (define (partition-triangles-octants triangles octants)
+  (doc 'type '(-> (List Triangle3) (List (Pair Vec3 Real)) (List (List Triangle3))))
+  (doc 'description "Partition triangles into 8 lists (one per octant)")
   (map (lambda (octant)
                (let ([center (car octant)]
                      [size (cadr octant)])
@@ -163,19 +147,17 @@
                             triangles)))
        octants))
 
-;;; any : (α → Bool) × (List α) → Bool
 (define (any pred lst)
+  (doc 'type '(-> (-> α Bool) (List α) Bool))
   (and (not (null? lst))
        (or (pred (car lst))
            (any pred (cdr lst)))))
 
-;;; ====
-;;; Octree Queries
-;;; ====
+(doc 'section 'octree-queries)
 
-;;; octree-intersect-ray : Octree × Ray3 → (Triangle3 Number) | #f
-;;; Find closest triangle intersection along ray using octree
 (define (octree-intersect-ray octree ray)
+  (doc 'type '(-> Octree Ray3 (Maybe (Pair Triangle3 Number))))
+  (doc 'description "Find closest triangle intersection along ray using octree")
   (define (traverse node closest-t closest-tri)
     (cond
      [(not node)
@@ -209,11 +191,11 @@
                       children))]
      
      [else (if closest-tri (list closest-tri closest-t) #f)]))
-  
+
   (traverse octree #f #f))
 
-;;; ray-intersects-octant? : Ray3 × Vec3 × Real → Bool
 (define (ray-intersects-octant? ray center size)
+  (doc 'type '(-> Ray3 Vec3 Real Bool))
   (let ([octant-aabb (aabb (vec3 (- (vec3-x center) size)
                                  (- (vec3-y center) size)
                                  (- (vec3-z center) size))
@@ -222,12 +204,10 @@
                                  (+ (vec3-z center) size)))])
        (intersect-ray-aabb ray octant-aabb)))
 
-;;; ====
-;;; Octree Statistics
-;;; ====
+(doc 'section 'octree-statistics)
 
-;;; octree-depth : Octree → Number
 (define (octree-depth octree)
+  (doc 'type '(-> Octree Number))
   (cond
    [(not octree) 0]
    [(octree-leaf? octree) 1]
@@ -236,8 +216,8 @@
                          (vector->list (octree-children octree)))))]
    [else 0]))
 
-;;; octree-count-nodes : Octree → Number
 (define (octree-count-nodes octree)
+  (doc 'type '(-> Octree Number))
   (cond
    [(not octree) 0]
    [(octree-leaf? octree) 1]
@@ -246,8 +226,8 @@
                        (vector->list (octree-children octree)))))]
    [else 0]))
 
-;;; octree-count-leaves : Octree → Number
 (define (octree-count-leaves octree)
+  (doc 'type '(-> Octree Number))
   (cond
    [(not octree) 0]
    [(octree-leaf? octree) 1]
@@ -256,8 +236,8 @@
                   (vector->list (octree-children octree))))]
    [else 0]))
 
-;;; octree-count-triangles : Octree → Number
 (define (octree-count-triangles octree)
+  (doc 'type '(-> Octree Number))
   (cond
    [(not octree) 0]
    [(octree-leaf? octree) (length (octree-primitives octree))]

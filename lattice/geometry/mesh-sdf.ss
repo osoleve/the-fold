@@ -1,57 +1,38 @@
-;;; core/geometry/mesh-sdf.ss — Mesh Signed Distance Fields with BVH Acceleration
-;;;
-;;; Provides signed distance field (SDF) computation for triangle meshes.
-;;; Uses BVH acceleration structure for efficient queries.
-;;;
-;;; A mesh SDF is a function that returns the signed distance from any point
-;;; in space to the surface of the mesh:
-;;; - Negative inside the mesh
-;;; - Zero on the surface
-;;; - Positive outside the mesh
-;;;
-;;; This is Core code: pure, total, assumes reasonable input.
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;   - geometry.ss
-;;;   - bvh.ss
-
 (load "core/base/prelude.ss")
 (load "lattice/geometry/geometry.ss")
 (load "lattice/geometry/bvh.ss")
 
-;;; ====
-;;; Mesh Structure
-;;; ====
+(doc 'module 'mesh-sdf)
+(doc 'description "Mesh signed distance fields with BVH acceleration")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
+(doc 'provides "SDF computation for triangle meshes: signed distance from any point to surface (negative inside, zero on surface, positive outside)")
 
-;;; Mesh: (mesh triangles bvh)
-;;; Represents a triangle mesh with precomputed BVH for acceleration
+(doc 'section 'mesh-structure)
+(doc 'note "Mesh: (mesh triangles bvh) - represents a triangle mesh with precomputed BVH for acceleration")
 
-;;; make-mesh : (List Triangle3) → Mesh
 (define (make-mesh triangles)
+  (doc 'type '(-> (List Triangle3) Mesh))
   (let ([bvh (bvh-build triangles 10)])  ; Max 10 triangles per leaf
        (list 'mesh triangles bvh)))
 
-;;; mesh? : α → Bool
 (define (mesh? m)
+  (doc 'type '(-> α Bool))
   (and (pair? m) (eq? (car m) 'mesh)))
 
-;;; mesh-triangles : Mesh → (List Triangle3)
 (define (mesh-triangles m)
+  (doc 'type '(-> Mesh (List Triangle3)))
   (cadr m))
 
-;;; mesh-bvh : Mesh → BVH
 (define (mesh-bvh m)
+  (doc 'type '(-> Mesh BVH))
   (caddr m))
 
-;;; ====
-;;; Mesh SDF Computation
-;;; ====
+(doc 'section 'mesh-sdf-computation)
 
-;;; mesh-sdf : Mesh × Point3 → Number
-;;; Compute signed distance from point to mesh surface
-;;; Uses BVH for acceleration
 (define (mesh-sdf mesh point)
+  (doc 'type '(-> Mesh Point3 Number))
+  (doc 'description "Compute signed distance from point to mesh surface; uses BVH for acceleration")
   (let* ([bvh (mesh-bvh mesh)]
          [result (bvh-closest-point bvh point)])
         (if result
@@ -67,10 +48,9 @@
             ;; No triangles in mesh, return large positive distance
             1e10)))
 
-;;; mesh-sdf-gradient : Mesh × Point3 → Vec3
-;;; Compute gradient (normal) of the SDF at a point
-;;; Uses finite differences for numerical gradient
 (define (mesh-sdf-gradient mesh point)
+  (doc 'type '(-> Mesh Point3 Vec3))
+  (doc 'description "Compute gradient (normal) of the SDF at a point; uses finite differences for numerical gradient")
   (let* ([eps 0.001]
          [dx (- (mesh-sdf mesh (vec3-add point (vec3 eps 0 0)))
                 (mesh-sdf mesh (vec3-sub point (vec3 eps 0 0))))]
@@ -80,13 +60,11 @@
                 (mesh-sdf mesh (vec3-sub point (vec3 0 0 eps))))])
         (vec3-normalize (vec3 dx dy dz))))
 
-;;; ====
-;;; Mesh Construction Helpers
-;;; ====
+(doc 'section 'mesh-construction-helpers)
 
-;;; make-mesh-cube : Number → Mesh
-;;; Create a cube mesh centered at origin with given half-size
 (define (make-mesh-cube size)
+  (doc 'type '(-> Number Mesh))
+  (doc 'description "Create a cube mesh centered at origin with given half-size")
   (let* ([s size]
          [v000 (vec3 (- s) (- s) (- s))]
          [v001 (vec3 (- s) (- s) s)]
@@ -119,20 +97,18 @@
            (triangle3 v000 v101 v100))])
         (make-mesh triangles)))
 
-;;; subdivide-icosphere-triangles : (List Triangle3) × Number × Number → (List Triangle3)
-;;; Apply n levels of subdivision to a list of triangles.
-;;; Uses shared edge midpoint table to ensure adjacent triangles share exact vertices.
 (define (subdivide-icosphere-triangles triangles radius levels)
+  (doc 'type '(-> (List Triangle3) Number Number (List Triangle3)))
+  (doc 'description "Apply n levels of subdivision to a list of triangles; uses shared edge midpoint table to ensure adjacent triangles share exact vertices")
   (if (<= levels 0)
       triangles
       (let ([subdivided (subdivide-icosphere-once triangles radius)])
         (subdivide-icosphere-triangles subdivided radius (- levels 1)))))
 
-;;; subdivide-icosphere-once : (List Triangle3) × Number → (List Triangle3)
-;;; Single subdivision pass using shared edge midpoints.
-;;; Key insight: each edge midpoint is computed ONCE and shared by adjacent triangles.
-;;; Uses vertex identity (not coordinates) for edge keying to avoid floating-point issues.
 (define (subdivide-icosphere-once triangles radius)
+  (doc 'type '(-> (List Triangle3) Number (List Triangle3)))
+  (doc 'description "Single subdivision pass using shared edge midpoints")
+  (doc 'note "Key insight: each edge midpoint is computed ONCE and shared by adjacent triangles; uses vertex identity (not coordinates) for edge keying to avoid floating-point issues")
   ;; First, collect all unique vertices and assign stable IDs
   (let* ([vertex-id-table (make-eq-hashtable)]
          [next-id 0]
@@ -286,15 +262,11 @@
          (triangle3 m20-norm m12-norm v2)       ; Bottom-right triangle
          (triangle3 m01-norm m12-norm m20-norm)))) ; Center triangle
 
-;;; make-mesh-sphere-ico : Number × Number → Mesh
-;;; Create a sphere mesh using icosphere subdivision
-;;; radius: sphere radius
-;;; subdivisions: number of subdivision levels (0-3 recommended)
-;;;   - subdivision=0: 20 triangles (base icosahedron)
-;;;   - subdivision=1: 80 triangles
-;;;   - subdivision=2: 320 triangles
-;;;   - subdivision=3: 1280 triangles
 (define (make-mesh-sphere-ico radius subdivisions)
+  (doc 'type '(-> Number Number Mesh))
+  (doc 'description "Create a sphere mesh using icosphere subdivision")
+  (doc 'param 'radius "Sphere radius")
+  (doc 'param 'subdivisions "Number of subdivision levels (0-3 recommended): 0=20 triangles, 1=80, 2=320, 3=1280")
   ;; Start with icosahedron
   (let* ([phi (* 0.5 (+ 1 (sqrt 5)))]  ; Golden ratio
          [a (/ 1.0 (sqrt (+ 1 (* phi phi))))]
@@ -341,14 +313,12 @@
          [triangles (subdivide-icosphere-triangles base-triangles radius subdivisions)])
         (make-mesh triangles)))
 
-;;; ====
-;;; Mesh Ray Intersection
-;;; ====
+(doc 'section 'mesh-ray-intersection)
 
-;;; mesh-intersect-ray : Mesh × Ray3 → (Point3 Number Triangle3) | #f
-;;; Find closest intersection of ray with mesh
-;;; Returns (hit-point t-value triangle) or #f
 (define (mesh-intersect-ray mesh ray)
+  (doc 'type '(-> Mesh Ray3 (Maybe (List Point3 Number Triangle3))))
+  (doc 'description "Find closest intersection of ray with mesh")
+  (doc 'returns "(hit-point t-value triangle) or #f")
   (let ([result (bvh-intersect-ray (mesh-bvh mesh) ray)])
        (if result
            (let* ([triangle (car result)]
@@ -357,23 +327,21 @@
                  (list hit-point t triangle))
            #f)))
 
-;;; ====
-;;; Mesh Statistics
-;;; ====
+(doc 'section 'mesh-statistics)
 
-;;; mesh-triangle-count : Mesh → Number
 (define (mesh-triangle-count mesh)
+  (doc 'type '(-> Mesh Number))
   (length (mesh-triangles mesh)))
 
-;;; mesh-bvh-depth : Mesh → Number
 (define (mesh-bvh-depth mesh)
+  (doc 'type '(-> Mesh Number))
   (bvh-depth (mesh-bvh mesh)))
 
-;;; mesh-bvh-node-count : Mesh → Number
 (define (mesh-bvh-node-count mesh)
+  (doc 'type '(-> Mesh Number))
   (bvh-count-nodes (mesh-bvh mesh)))
 
-;;; mesh-bounds : Mesh → AABB
-;;; Get the bounding box of the entire mesh
 (define (mesh-bounds mesh)
+  (doc 'type '(-> Mesh AABB))
+  (doc 'description "Get the bounding box of the entire mesh")
   (bvh-bbox (mesh-bvh mesh)))

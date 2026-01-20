@@ -1,57 +1,37 @@
-;;; lattice/geometry/mesh-topology.ss — Topological Analysis of Triangle Meshes
-;;;
-;;; Bridges computational geometry with computational topology by converting
-;;; triangle meshes to simplicial complexes for homological analysis.
-;;;
-;;; This enables:
-;;;   1. Mesh integrity validation via Betti numbers
-;;;      - B_0: Connected components (should be 1 for a single solid)
-;;;      - B_1: Handles/tunnels (genus detection)
-;;;      - B_2: Enclosed voids (should be 0 for watertight mesh)
-;;;   2. Non-manifold geometry detection
-;;;      - Edges shared by >2 triangles
-;;;      - Vertices with non-disk-like neighborhoods
-;;;   3. Topology verification for procedural meshes (marching cubes, etc.)
-;;;
-;;; Key insight: A triangle mesh IS a 2-dimensional simplicial complex embedded
-;;; in 3D space. We abstract away the geometry, keeping only connectivity.
-;;;
-;;; TIER: 1 (depends on topology/homology, geometry/mesh-sdf)
-
 (load "lattice/topology/homology.ss")
 (load "lattice/geometry/mesh-sdf.ss")
 
-;;; ============================================================
-;;; VERTEX DEDUPLICATION
-;;; ============================================================
+(doc 'module 'mesh-topology)
+(doc 'description "Topological analysis of triangle meshes via simplicial complex conversion")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
+(doc 'provides "1. Mesh integrity validation via Betti numbers (B_0: connected components, B_1: handles/tunnels, B_2: enclosed voids)
+2. Non-manifold geometry detection (edges shared by >2 triangles, vertices with non-disk-like neighborhoods)
+3. Topology verification for procedural meshes")
+(doc 'note "Key insight: A triangle mesh IS a 2-dimensional simplicial complex embedded in 3D space - we abstract away geometry, keeping only connectivity")
 
-;;; Meshes may have duplicate vertices at the same position. We need to
-;;; identify them as a single topological vertex.
-;;;
-;;; Strategy: Quantize coordinates to a grid for hash-based deduplication.
-;;; This handles floating-point imprecision while maintaining correctness.
+(doc 'section 'vertex-deduplication)
+(doc 'note "Meshes may have duplicate vertices at same position; strategy: quantize coordinates to grid for hash-based deduplication, handling floating-point imprecision")
 
-;;; Default precision: positions within 1e-9 are considered identical
 (define mesh-topology-epsilon 1e-9)
+(doc mesh-topology-epsilon 'description "Default precision: positions within 1e-9 are considered identical")
 
-;;; quantize : Number → Integer
-;;; Map floating point to quantized integer for hashing.
 (define (quantize x)
+  (doc 'type '(-> Number Integer))
+  (doc 'description "Map floating point to quantized integer for hashing")
   (inexact->exact (round (/ x mesh-topology-epsilon))))
 
-;;; vec3-key : Vec3 → (List Integer Integer Integer)
-;;; Create a hashable key from a vec3 position.
 (define (vec3-key v)
+  (doc 'type '(-> Vec3 (List Integer Integer Integer)))
+  (doc 'description "Create a hashable key from a vec3 position")
   (list (quantize (vec3-x v))
         (quantize (vec3-y v))
         (quantize (vec3-z v))))
 
-;;; build-vertex-map : (List Triangle3) → (values HashTable (Vector Vec3))
-;;; Build a map from vec3 positions to unique vertex indices.
-;;; Returns:
-;;;   1. Hash table: vec3-key → vertex-index
-;;;   2. Vector: vertex-index → vec3 (for debugging/visualization)
 (define (build-vertex-map triangles)
+  (doc 'type '(-> (List Triangle3) (Values HashTable (Vector Vec3))))
+  (doc 'description "Build a map from vec3 positions to unique vertex indices")
+  (doc 'returns "1. Hash table: vec3-key → vertex-index, 2. Vector: vertex-index → vec3 (for debugging/visualization)")
   (let ([key->idx (make-hashtable equal-hash equal?)]
         [vertices '()]
         [next-idx 0])
@@ -71,26 +51,17 @@
       triangles)
     (values key->idx (list->vector (reverse vertices)))))
 
-;;; ============================================================
-;;; MESH → SIMPLICIAL COMPLEX CONVERSION
-;;; ============================================================
+(doc 'section 'mesh-to-simplicial-complex-conversion)
 
-;;; mesh->simplicial-complex : Mesh → SC
-;;; Convert a triangle mesh to a 2-dimensional simplicial complex.
-;;;
-;;; The conversion:
-;;;   - Each unique vertex position → 0-simplex
-;;;   - Each edge (shared positions) → 1-simplex
-;;;   - Each triangle → 2-simplex
-;;;
-;;; The simplicial complex automatically includes all faces due to
-;;; the closure property in sc-from-simplices.
 (define (mesh->simplicial-complex mesh)
+  (doc 'type '(-> Mesh SC))
+  (doc 'description "Convert a triangle mesh to a 2-dimensional simplicial complex")
+  (doc 'note "Conversion: each unique vertex position → 0-simplex, each edge → 1-simplex, each triangle → 2-simplex; simplicial complex automatically includes all faces due to closure property")
   (triangles->simplicial-complex (mesh-triangles mesh)))
 
-;;; triangles->simplicial-complex : (List Triangle3) → SC
-;;; Convert raw triangle list to simplicial complex.
 (define (triangles->simplicial-complex triangles)
+  (doc 'type '(-> (List Triangle3) SC))
+  (doc 'description "Convert raw triangle list to simplicial complex")
   (let-values ([(key->idx vertices) (build-vertex-map triangles)])
     ;; Convert each triangle to a 2-simplex
     (let ([simplices
@@ -108,51 +79,35 @@
       ;; Filter out degenerate triangles and build complex
       (sc-from-simplices (filter identity simplices)))))
 
-;;; ============================================================
-;;; TOPOLOGICAL INVARIANTS FOR MESHES
-;;; ============================================================
+(doc 'section 'topological-invariants)
 
-;;; mesh-betti-numbers : Mesh → (List Integer)
-;;; Compute Betti numbers (B_0, B_1, B_2) for a mesh.
-;;;
-;;; Interpretation:
-;;;   B_0 = number of connected components
-;;;   B_1 = number of "tunnels" or handles (genus-related)
-;;;   B_2 = number of enclosed voids
 (define (mesh-betti-numbers mesh)
+  (doc 'type '(-> Mesh (List Integer)))
+  (doc 'description "Compute Betti numbers (B_0, B_1, B_2) for a mesh")
+  (doc 'note "Interpretation: B_0 = connected components, B_1 = tunnels/handles (genus-related), B_2 = enclosed voids")
   (sc-betti-numbers (mesh->simplicial-complex mesh)))
 
-;;; mesh-euler-characteristic : Mesh → Integer
-;;; Compute Euler characteristic: χ = V - E + F
-;;; For a closed surface: χ = 2 - 2g where g is the genus.
 (define (mesh-euler-characteristic mesh)
+  (doc 'type '(-> Mesh Integer))
+  (doc 'description "Compute Euler characteristic: χ = V - E + F; for closed surface: χ = 2 - 2g where g is genus")
   (sc-euler (mesh->simplicial-complex mesh)))
 
-;;; mesh-f-vector : Mesh → (V E F)
-;;; Get the f-vector: (vertices, edges, faces).
 (define (mesh-f-vector mesh)
+  (doc 'type '(-> Mesh (List Integer Integer Integer)))
+  (doc 'description "Get the f-vector: (vertices, edges, faces)")
   (sc-f-vector (mesh->simplicial-complex mesh)))
 
-;;; mesh-connected-components : Mesh → Integer
-;;; Count connected components (same as B_0 but via union-find).
 (define (mesh-connected-components mesh)
+  (doc 'type '(-> Mesh Integer))
+  (doc 'description "Count connected components (same as B_0 but via union-find)")
   (sc-connected-components (mesh->simplicial-complex mesh)))
 
-;;; ============================================================
-;;; GENUS COMPUTATION
-;;; ============================================================
+(doc 'section 'genus-computation)
 
-;;; mesh-genus : Mesh → Integer | 'non-orientable | 'open
-;;; Compute the genus of a closed orientable surface.
-;;;
-;;; For closed orientable surfaces:
-;;;   χ = 2 - 2g  →  g = (2 - χ) / 2
-;;;
-;;; Returns:
-;;;   - Integer genus for closed orientable surfaces
-;;;   - 'open if B_2 ≠ 1 (not a closed surface)
-;;;   - 'non-orientable if genus computation gives non-integer (can happen over Z_2)
 (define (mesh-genus mesh)
+  (doc 'type '(-> Mesh (Union Integer Symbol)))
+  (doc 'description "Compute the genus of a closed orientable surface: χ = 2 - 2g → g = (2 - χ) / 2")
+  (doc 'returns "Integer genus | 'disconnected | 'open if B_2 ≠ 1 | 'non-orientable if non-integer genus")
   (let* ([betti (mesh-betti-numbers mesh)]
          [b0 (if (pair? betti) (car betti) 0)]
          [b2 (if (>= (length betti) 3) (caddr betti) 0)]
