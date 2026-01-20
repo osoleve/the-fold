@@ -62,8 +62,7 @@
   rigid-body-inv-inertia)
 
 (implement-protocol! 'col-static? 'rigid-body-2d
-  (lambda (b)
-    (< (rigid-body-inv-mass b) 0.0001)))
+  rigid-body-static?)
 
 (implement-protocol! 'col-pos 'rigid-body-2d
   rigid-body-pos)
@@ -74,7 +73,7 @@
 
 (implement-protocol! 'col-apply-impulse 'rigid-body-2d
   (lambda (b impulse contact)
-    (if (< (rigid-body-inv-mass b) 0.0001)
+    (if (rigid-body-static? b)
         b  ; Static body
         (let* ([inv-mass (rigid-body-inv-mass b)]
                [inv-i (rigid-body-inv-inertia b)]
