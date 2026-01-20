@@ -1,36 +1,32 @@
-;;; boundary/bbs/posts.ss — BBS Posts (Changelogs, Notes, Announcements)
-;;;
-;;; General-purpose posts for the bulletin board system.
-;;; Unlike issues, posts don't have status/priority/dependencies.
-;;;
-;;; Post types:
-;;;   'changelog         - Release notes, what changed
-;;;   'note              - General notes, documentation
-;;;   'announcement      - Important announcements
-;;;   'session-summary   - Summary of a work session
-;;;
-;;; Lock-aware design:
-;;;   - Public functions (post-write-counter!, post-next-id!) acquire locks
-;;;   - Internal functions (%post-write-counter!) for use when lock already held
-;;;
-;;; Usage:
-;;;   (post-create "Title" "Body..." 'changelog)
-;;;   (post-list)
-;;;   (post-show 'post-001)
-;;;
-;;; This is Shell code: impure (modifies state and filesystem).
-
 (load "boundary/bbs/store.ss")
 (load "boundary/bbs/post-index.ss")
 (load "boundary/io/file-lock.ss")
 
-;;; ====
-;;; Timestamp Generation
-;;; ====
+(doc 'module 'bbs/posts)
+(doc 'description "BBS Posts (Changelogs, Notes, Announcements)")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+(doc 'note "General-purpose posts for the bulletin board system.
+Unlike issues, posts don't have status/priority/dependencies.
 
-;;; post-timestamp : -> String
-;;; Generate an ISO 8601 timestamp for now.
+Post types:
+  'changelog         - Release notes, what changed
+  'note              - General notes, documentation
+  'announcement      - Important announcements
+  'session-summary   - Summary of a work session
+
+Lock-aware design:
+  - Public functions (post-write-counter!, post-next-id!) acquire locks
+  - Internal functions (%post-write-counter!) for use when lock already held")
+(doc 'example "(post-create \"Title\" \"Body...\" 'changelog)
+(post-list)
+(post-show 'post-001)")
+
+(doc 'section 'timestamp-generation)
+
 (define (post-timestamp)
+  (doc 'type (-> String))
+  (doc 'description "Generate an ISO 8601 timestamp for now")
   (let ([t (current-date)])
     (format "~4,'0d-~2,'0d-~2,'0dT~2,'0d:~2,'0d:~2,'0dZ"
             (date-year t)
@@ -40,19 +36,15 @@
             (date-minute t)
             (date-second t))))
 
-;;; ====
-;;; Configuration
-;;; ====
+(doc 'section 'configuration)
 
 (define *post-counter-file* ".bbs/post-counter")
 
-;;; ====
-;;; ID Generation
-;;; ====
+(doc 'section 'id-generation)
 
-;;; post-read-counter : -> Int
-;;; Read current counter value (or 0 if not exists).
 (define (post-read-counter)
+  (doc 'type (-> Int))
+  (doc 'description "Read current counter value (or 0 if not exists)")
   (guard (e [else 0])
     (if (file-exists? *post-counter-file*)
         (call-with-input-file *post-counter-file*
@@ -61,9 +53,9 @@
               (string->number line))))
         0)))
 
-;;; %post-write-counter! : Int -> Void
-;;; INTERNAL: Write counter value to file (caller must hold lock).
 (define (%post-write-counter! n)
+  (doc 'type (-> Int Void))
+  (doc 'description "INTERNAL: Write counter value to file (caller must hold lock)")
   (unless (file-exists? ".bbs")
     (mkdir ".bbs"))
   (call-with-atomic-output-file *post-counter-file*
@@ -72,16 +64,16 @@
       (newline port))
     '(replace)))
 
-;;; post-write-counter! : Int -> Void
-;;; PUBLIC: Write counter value to file with locking.
 (define (post-write-counter! n)
+  (doc 'type (-> Int Void))
+  (doc 'description "PUBLIC: Write counter value to file with locking")
   (with-file-lock *post-counter-file*
     (lambda ()
       (%post-write-counter! n))))
 
-;;; post-next-id! : -> String
-;;; Generate next post ID.
 (define (post-next-id!)
+  (doc 'type (-> String))
+  (doc 'description "Generate next post ID")
   (with-file-lock *post-counter-file*
     (lambda ()
       (let* ([n (+ (post-read-counter) 1)]
@@ -89,52 +81,45 @@
         (%post-write-counter! n)  ; Use internal version - already holding lock
         id))))
 
-;;; ====
-;;; Head Management (reuses bbs heads infrastructure)
-;;; ====
+(doc 'section 'head-management)
+(doc 'note "Reuses bbs heads infrastructure")
 
-;;; post-head-path : String -> String
-;;; Get filesystem path for a post's head file.
 (define (post-head-path id)
+  (doc 'type (-> String String))
+  (doc 'description "Get filesystem path for a post's head file")
   (string-append ".store/heads/bbs/" id ".head"))
 
-;;; post-read-head : String -> Bytevector | #f
-;;; Read the current hash for a post ID.
 (define (post-read-head id)
+  (doc 'type (-> String (Or Bytevector Boolean)))
+  (doc 'description "Read the current hash for a post ID")
   (bbs-read-head id))
 
-;;; post-write-head! : String Bytevector -> Void
-;;; Write the current hash for a post ID.
 (define (post-write-head! id hash)
+  (doc 'type (-> String Bytevector Void))
+  (doc 'description "Write the current hash for a post ID")
   (bbs-write-head! id hash))
 
-;;; post-list-heads : -> (List String)
-;;; List all post IDs that have head files.
 (define (post-list-heads)
+  (doc 'type (-> (List String)))
+  (doc 'description "List all post IDs that have head files")
   (filter (lambda (id) (string-starts-with? id "post-"))
           (bbs-list-heads)))
 
-;;; string-starts-with? : String String -> Boolean
 (define (string-starts-with? str prefix)
+  (doc 'type (-> String String Boolean))
   (and (>= (string-length str) (string-length prefix))
        (string=? (substring str 0 (string-length prefix)) prefix)))
 
-;;; ====
-;;; Post Operations
-;;; ====
+(doc 'section 'post-operations)
 
-;;; post-create : String String Symbol -> String
-;;; Create a new post and return its ID.
-;;;
-;;; Arguments:
-;;;   title     - Post title
-;;;   body      - Post body (markdown)
-;;;   post-type - 'changelog | 'note | 'announcement | 'session-summary
-;;;
-;;; Keyword arguments:
-;;;   'tags     - List of tag symbols (default: '())
-;;;   'author   - Author name (default: "system")
 (define (post-create title body post-type . args)
+  (doc 'type (-> String String Symbol String))
+  (doc 'description "Create a new post and return its ID")
+  (doc 'param 'title "Post title")
+  (doc 'param 'body "Post body (markdown)")
+  (doc 'param 'post-type "'changelog | 'note | 'announcement | 'session-summary")
+  (doc 'param 'tags "List of tag symbols (default: '())")
+  (doc 'param 'author "Author name (default: \"system\")")
   (let* ([tags (get-keyword-arg args 'tags '())]
          [author (get-keyword-arg args 'author "system")]
          [id (post-next-id!)]
@@ -147,33 +132,31 @@
     (post-index-add! id hash)
     id))
 
-;;; post-fetch : String -> Block | #f
-;;; Fetch a post by ID.
-;;; Uses index for O(1) hash lookup with auto-refresh from disk.
 (define (post-fetch id)
+  (doc 'type (-> String (Or Block Boolean)))
+  (doc 'description "Fetch a post by ID")
+  (doc 'note "Uses index for O(1) hash lookup with auto-refresh from disk")
   (let* ([id-str (if (symbol? id) (symbol->string id) id)]
          [hash (post-index-hash id-str)])
     (if hash
         (bbs-fetch hash)
         #f)))
 
-;;; post-fetch-data : String -> Alist | #f
-;;; Fetch and parse post data by ID.
 (define (post-fetch-data id)
+  (doc 'type (-> String (Or Alist Boolean)))
+  (doc 'description "Fetch and parse post data by ID")
   (let ([blk (post-fetch id)])
     (if blk
         (post-block-data blk)
         #f)))
 
-;;; post-update : String -> Bytevector
-;;; Update a post's content.
-;;;
-;;; Keyword arguments:
-;;;   'title       - New title
-;;;   'body        - New body
-;;;   'tags        - New tags
-;;;   'expect-hash - Expected current hash (for OCC)
 (define (post-update id . args)
+  (doc 'type (-> String Bytevector))
+  (doc 'description "Update a post's content")
+  (doc 'param 'title "New title")
+  (doc 'param 'body "New body")
+  (doc 'param 'tags "New tags")
+  (doc 'param 'expect-hash "Expected current hash (for OCC)")
   (let* ([current-hash (post-read-head id)])
     (unless current-hash
       (error 'post-update "Post not found" id))
@@ -201,13 +184,11 @@
         (post-index-update! id new-hash)
         new-hash))))
 
-;;; ====
-;;; Display Functions
-;;; ====
+(doc 'section 'display-functions)
 
-;;; post-show : String | Symbol -> Void
-;;; Display a post.
 (define (post-show id)
+  (doc 'type (-> (Or String Symbol) Void))
+  (doc 'description "Display a post")
   (let* ([id-str (if (symbol? id) (symbol->string id) id)]
          [data (post-fetch-data id-str)])
     (if data
@@ -228,15 +209,12 @@
           (printf "~a~n" (make-string 60 #\=)))
         (printf "Post not found: ~a~n" id-str))))
 
-;;; post-list : -> Void
-;;; List all posts.
-;;;
-;;; Keyword arguments:
-;;;   'type  - Filter by post type (default: show all)
-;;;   'limit - Maximum number to show (default: 20)
-;;;
-;;; Uses in-memory index for O(1) ID retrieval by type.
 (define (post-list . args)
+  (doc 'type (-> Void))
+  (doc 'description "List all posts")
+  (doc 'param 'type "Filter by post type (default: show all)")
+  (doc 'param 'limit "Maximum number to show (default: 20)")
+  (doc 'note "Uses in-memory index for O(1) ID retrieval by type")
   (let* ([type-filter (get-keyword-arg args 'type #f)]
          [limit (get-keyword-arg args 'limit 20)]
          ;; Use index for O(1) type filtering (vs O(n) disk reads)
@@ -271,31 +249,29 @@
     (when (> (length posts) limit)
       (printf "... and ~a more~n" (- (length posts) limit)))))
 
-;;; take-n : Int (List a) -> (List a)
-;;; Take at most n elements from a list.
 (define (take-n n lst)
+  (doc 'type (-> Int (List a) (List a)))
+  (doc 'description "Take at most n elements from a list")
   (if (or (<= n 0) (null? lst))
       '()
       (cons (car lst) (take-n (- n 1) (cdr lst)))))
 
-;;; pad-right : String Int -> String
-;;; Pad string with spaces on the right.
 (define (pad-right str width)
+  (doc 'type (-> String Int String))
+  (doc 'description "Pad string with spaces on the right")
   (let ([len (string-length str)])
     (if (>= len width)
         (substring str 0 width)
         (string-append str (make-string (- width len) #\space)))))
 
-;;; truncate-str : String Int -> String
-;;; Truncate string with ellipsis if too long.
 (define (truncate-str str max-len)
+  (doc 'type (-> String Int String))
+  (doc 'description "Truncate string with ellipsis if too long")
   (if (<= (string-length str) max-len)
       str
       (string-append (substring str 0 (- max-len 3)) "...")))
 
-;;; ====
-;;; REPL Interface
-;;; ====
+(doc 'section 'repl-interface)
 
 (printf "posts.ss loaded.~n")
 (printf "  (post-create title body type)  - Create post~n")

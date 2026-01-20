@@ -1,39 +1,15 @@
-;;; boundary/provenance/traced-optics.ss — Traced Optic Operations
-;;;
-;;; Wrappers around standard optic operations that record provenance.
-;;; Each traced operation performs the normal optic operation AND
-;;; logs a provenance record to the CAS.
-;;;
-;;; Usage:
-;;;   ;; Instead of (^. data lens-fst)
-;;;   (traced-view data lens-fst)
-;;;
-;;;   ;; Instead of (& data (.~ lens-fst 42))
-;;;   (traced-set lens-fst 42 data)
-;;;
-;;; The provenance record captures:
-;;;   - Source structure (hashed and stored)
-;;;   - Result (hashed and stored)
-;;;   - The optic used (by registered name if available)
-;;;   - Timestamp and identity
-;;;
-;;; This is Shell code: depends on provenance.ss for recording.
-;;;
-;;; Dependencies:
-;;;   - lattice/fp/optics/optics.ss (or require 'optics)
-;;;   - boundary/provenance/provenance.ss
-
 (load "lattice/fp/optics/optics.ss")
 (load "boundary/provenance/provenance.ss")
 
-;;; ============================================================
-;;; Traced View Operations
-;;; ============================================================
+(doc 'module 'traced-optics)
+(doc 'description "Traced optic operations that record provenance to CAS")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
 
-;;; traced-view : s Optic -> a
-;;; View through an optic with provenance tracking.
-;;; Equivalent to (^. s optic) but records the operation.
+(doc 'section 'traced-view-operations)
+
 (define (traced-view s optic)
+  (doc 'description "View through an optic with provenance tracking")
   (let ([result (^. s optic)])
     (record-optic-operation! 'view optic s result #f)
     result))
@@ -54,14 +30,10 @@
     (record-optic-operation! 'to-list optic s result #f)
     result))
 
-;;; ============================================================
-;;; Traced Modification Operations
-;;; ============================================================
+(doc 'section 'traced-modification-operations)
 
-;;; traced-set : Optic b s -> t
-;;; Set through an optic with provenance tracking.
-;;; Equivalent to (& s (.~ optic val)) but records the operation.
 (define (traced-set optic val s)
+  (doc 'description "Set through an optic with provenance tracking")
   (let ([result (& s (.~ optic val))])
     (record-optic-operation! 'set optic s result val)
     result))

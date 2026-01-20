@@ -1,33 +1,25 @@
-;;; boundary/debug/error-improvements.ss — Comprehensive Error Message Improvements
-;;;
-;;; Enhanced error messages with context, suggestions, and actionable fixes.
-;;; Integrates and improves upon existing error systems.
-;;;
-;;; Features:
-;;;   - Fixes ~s placeholder bugs in error messages
-;;;   - Provides context-aware suggestions for The Fold SDKs
-;;;   - Links to relevant tutorials and documentation
-;;;   - Shows related functions and examples
-;;;   - Integrates with the new help system
-;;;   - Provides quick fix suggestions
-;;;
-;;; Dependencies:
-;;;   core/prelude.ss, core/help.ss, boundary/debug/error-fmt.ss
-;;;
-;;; NOTE: string utilities provided by core/prelude.ss:
-;;;       string-contains?, string-trim, string-split, string-index-of
-;;;       Unique to this module: string-replace-all, string-find-pattern
-;;;
-;;; This is Shell code: provides user-facing error improvements.
-
 (load "core/base/prelude.ss")
-(load "core/util/help.ss")  ; For function suggestions
-(load "boundary/debug/error-fmt.ss")     ; For base error formatting
+(load "core/util/help.ss")
+(load "boundary/debug/error-fmt.ss")
 
-;;; ====
-;;; Enhanced Error Context Database
-;;; ====
+(doc 'module 'error-improvements)
+(doc 'description "Enhanced error messages with context, suggestions, and actionable fixes")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+(doc 'features
+     "Fixes ~s placeholder bugs in error messages"
+     "Provides context-aware suggestions for The Fold SDKs"
+     "Links to relevant tutorials and documentation"
+     "Shows related functions and examples"
+     "Integrates with the new help system"
+     "Provides quick fix suggestions")
+(doc 'note "String utilities from core/prelude.ss: string-contains?, string-trim, string-split, string-index-of")
+(doc 'note "Unique utilities: string-replace-all, string-find-pattern")
 
+(doc 'section 'error-context-database)
+
+(doc *enhanced-error-contexts* 'type '(List ErrorContext))
+(doc *enhanced-error-contexts* 'description "Database of error contexts for SDK-specific suggestions")
 (define *enhanced-error-contexts*
   `(
     ;; BoardCraft SDK errors
@@ -201,12 +193,11 @@
      (related-functions help apropos))
     ))
 
-;;; ====
-;;; Error Message Parsing Utilities
-;;; ====
+(doc 'section 'parsing-utilities)
 
 (define (extract-function-name error-msg)
-  "Extract function name from error message"
+  (doc 'type (-> String (Maybe Symbol)))
+  (doc 'description "Extract function name from error message")
   ;; Look for patterns like "function-name" or 'function-name
   (cond
    ;; Pattern: 'function-name is not bound
@@ -234,7 +225,8 @@
    [else #f]))
 
 (define (extract-variable-name error-msg)
-  "Extract variable name from error message"
+  (doc 'type (-> String (Maybe Symbol)))
+  (doc 'description "Extract variable name from error message")
   ;; Look for patterns like "variable-name" in not bound errors
   (cond
    [(and (string-contains? error-msg "'") (string-contains? error-msg "not bound"))
@@ -252,7 +244,8 @@
    [else #f]))
 
 (define (extract-filename error-msg)
-  "Extract filename from error message"
+  (doc 'type (-> String (Maybe String)))
+  (doc 'description "Extract filename from error message")
   (cond
    [(string-contains? error-msg "cannot find file")
     (let ([start (string-index-of error-msg #\')])
@@ -269,12 +262,11 @@
     (extract-filename error-msg)]  ; Same logic
    [else #f]))
 
-;;; ====
-;;; Enhanced Error Detection
-;;; ====
+(doc 'section 'error-detection)
 
 (define (detect-error-context-enhanced error-msg stack-trace)
-  "Enhanced error context detection with multiple strategies"
+  (doc 'type (-> String List ErrorContext))
+  (doc 'description "Enhanced error context detection with multiple strategies")
   (let loop ([contexts *enhanced-error-contexts*]
              [best-match '(general)])  ; Default fallback
        (if (null? contexts)
@@ -293,12 +285,11 @@
                      (loop (cdr contexts) ctx)
                      (loop (cdr contexts) best-match))))))
 
-;;; ====
-;;; Smart Suggestion Generation
-;;; ====
+(doc 'section 'suggestion-generation)
 
 (define (generate-suggestions error-msg context)
-  "Generate context-aware suggestions"
+  (doc 'type (-> String ErrorContext (List String)))
+  (doc 'description "Generate context-aware suggestions")
   (let* ([ctx-name (car context)]
          [ctx-data (cdr context)]
          [suggestion-templates (let ([s (assq 'suggestions ctx-data)])
@@ -320,7 +311,8 @@
              '()))))
 
 (define (format-related-functions funcs)
-  "Format related function suggestions"
+  (doc 'type (-> (List Symbol) String))
+  (doc 'description "Format related function suggestions")
   (string-append
    "Related functions you might find useful:
 "
@@ -330,12 +322,11 @@
     "
 ")))
 
-;;; ====
-;;; Tutorial and Documentation Links
-;;; ====
+(doc 'section 'documentation-links)
 
 (define (get-documentation-links context)
-  "Get relevant documentation links for context"
+  (doc 'type (-> ErrorContext (List String)))
+  (doc 'description "Get relevant documentation links for context")
   (let* ([ctx-name (car context)]
          [ctx-data (cdr context)]
          [tutorial (let ([t (assq 'tutorial ctx-data)])
@@ -359,12 +350,11 @@
                   "💡 All functions: (help)")]
                [else '()]))))
 
-;;; ====
-;;; Main Error Formatting Function
-;;; ====
+(doc 'section 'error-formatting)
 
 (define (format-enhanced-error condition)
-  "Format error with enhanced context and suggestions"
+  (doc 'type (-> Condition String))
+  (doc 'description "Format error with enhanced context and suggestions")
   (let* ([msg (condition-message condition)]
          [who (if (who-condition? condition) (condition-who condition) #f)]
          [irritants (if (irritants-condition? condition)
@@ -395,7 +385,8 @@
 ")))
 
 (define (fix-error-placeholders msg irritants)
-  "Fix ~s and other placeholder bugs in error messages"
+  (doc 'type (-> String List String))
+  (doc 'description "Fix ~s and other placeholder bugs in error messages")
   (if (null? irritants)
       ;; No irritants - fix unfilled placeholders
       (let ([fixed msg])
@@ -409,7 +400,8 @@
              (apply format (cons msg irritants)))))
 
 (define (format-context-section context)
-  "Format the context section of error message"
+  (doc 'type (-> ErrorContext String))
+  (doc 'description "Format the context section of error message")
   (if (eq? (car context) 'general)
       ""
       (let* ([ctx-name (symbol->string (car context))]
@@ -425,7 +417,8 @@
 "))))
 
 (define (format-suggestions-section suggestions)
-  "Format the suggestions section"
+  (doc 'type (-> (List String) String))
+  (doc 'description "Format the suggestions section")
   (if (null? suggestions)
       ""
       (string-append
@@ -438,7 +431,8 @@
 ")))
 
 (define (format-documentation-section doc-links)
-  "Format the documentation section"
+  (doc 'type (-> (List String) String))
+  (doc 'description "Format the documentation section")
   (if (null? doc-links)
       ""
       (string-append
@@ -450,12 +444,11 @@
 
 ")))
 
-;;; ====
-;;; String Utilities
-;;; ====
+(doc 'section 'string-utilities)
 
 (define (string-replace-all str pattern replacement)
-  "Replace all occurrences of pattern with replacement"
+  (doc 'type (-> String String String String))
+  (doc 'description "Replace all occurrences of pattern with replacement")
   (let loop ([s str]
              [result ""])
        (let ([idx (string-find-pattern s pattern)])
@@ -467,7 +460,8 @@
                 (string-append result s)))))
 
 (define (string-find-pattern str pattern)
-  "Find first occurrence of pattern in string"
+  (doc 'type (-> String String (Maybe Nat)))
+  (doc 'description "Find first occurrence of pattern in string")
   (let ([plen (string-length pattern)]
         [slen (string-length str)])
        (let loop ([i 0])
@@ -476,11 +470,9 @@
              [(string=? pattern (substring str i (+ i plen))) i]
              [else (loop (+ i 1))]))))
 
-;;; NOTE: string-trim, string-split, string-contains?, string-index-of provided by core/prelude.ss
+(doc 'note "string-trim, string-split, string-contains?, string-index-of provided by core/prelude.ss")
 
-;;; ====
-;;; Enhanced Guard Macro
-;;; ====
+(doc 'section 'enhanced-guard)
 
 (define-syntax enhanced-guard
   (syntax-rules ()
@@ -488,12 +480,11 @@
                  (guard (e (else (handler (format-enhanced-error e))))
                         body)]))
 
-;;; ====
-;;; Testing and Demonstration
-;;; ====
+(doc 'section 'testing-and-demo)
 
 (define (demo-enhanced-errors)
-  "Demonstrate the enhanced error system"
+  (doc 'type (-> Void))
+  (doc 'description "Demonstrate the enhanced error system")
   (display "
 ")
   (display "╔════════════════════════════════════════════════════════════╗
@@ -547,13 +538,11 @@
   (display "✅ Suggests related functions
 "))
 
-;;; ====
-;;; Integration with Existing System
-;;; ====
+(doc 'section 'integration)
 
-;; Override the standard error formatting to use our enhanced version
 (define (install-enhanced-error-handler!)
-  "Install the enhanced error handler as the default"
+  (doc 'type (-> Void))
+  (doc 'description "Install the enhanced error handler as the default")
   (display "Installing enhanced error handler...
 ")
   ;; This would integrate with the REPL's error handling

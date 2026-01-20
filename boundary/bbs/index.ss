@@ -1,67 +1,58 @@
-;;; boundary/bbs/index.ss — BBS In-Memory Indices
-;;;
-;;; Maintains in-memory indices for fast issue lookups.
-;;; Uses a disk-based cache (.bbs/index.cache) to avoid expensive
-;;; rebuilds on every session startup.
-;;;
-;;; Indices:
-;;;   *bbs-issues*     - hashtable: id-string -> hash-bytevector (O(1) lookup)
-;;;   *bbs-by-status*  - hashtable: status -> (id ...)
-;;;   *bbs-by-priority* - hashtable: priority -> (id ...)
-;;;   *bbs-deps*       - ((blocker-id . blocked-id) ...)
-;;;
-;;; Cache Strategy:
-;;;   - Save index with head-file count as version marker
-;;;   - On load: if count matches disk, use cache; else rebuild
-;;;   - Individual issues auto-refresh via bbs-issue-hash on cache miss
-;;;
-;;; This is Shell code: impure (maintains mutable state).
-
 (load "boundary/bbs/store.ss")
 (load "boundary/bbs/counter.ss")
 (load "boundary/io/atomic.ss")
 
-;;; ====
-;;; Index Cache
-;;; ====
+(doc 'module 'bbs/index)
+(doc 'description "BBS In-Memory Indices - Fast issue lookups with disk-based cache")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+(doc 'note "Maintains in-memory indices:
+  *bbs-issues*     - hashtable: id-string -> hash-bytevector (O(1) lookup)
+  *bbs-by-status*  - hashtable: status -> (id ...)
+  *bbs-by-priority* - hashtable: priority -> (id ...)
+  *bbs-deps*       - ((blocker-id . blocked-id) ...)")
+(doc 'note "Cache Strategy:
+  - Save index with head-file count as version marker
+  - On load: if count matches disk, use cache; else rebuild
+  - Individual issues auto-refresh via bbs-issue-hash on cache miss")
+
+(doc 'section 'index-cache)
 
 (define *bbs-index-cache-file* ".bbs/index.cache")
 (define *bbs-index-cache-version* 1)
 
-;;; ====
-;;; ID Normalization
-;;; ====
+(doc 'section 'id-normalization)
 
-;;; normalize-id : String|Symbol -> String
-;;; Convert an ID to string form. Accepts both symbols and strings.
 (define (normalize-id id)
+  (doc 'type (-> (Or String Symbol) String))
+  (doc 'description "Convert an ID to string form. Accepts both symbols and strings")
   (if (symbol? id) (symbol->string id) id))
 
-;;; ====
-;;; Global State
-;;; ====
+(doc 'section 'global-state)
 
-;;; All issues: hashtable id-string -> hash-bytevector (O(1) lookup)
+(doc *bbs-issues* 'type 'Hashtable)
+(doc *bbs-issues* 'description "All issues: hashtable id-string -> hash-bytevector (O(1) lookup)")
 (define *bbs-issues* (make-hashtable string-hash string=?))
 
-;;; Issues by status: hashtable status -> (id ...)
+(doc *bbs-by-status* 'type 'Hashtable)
+(doc *bbs-by-status* 'description "Issues by status: hashtable status -> (id ...)")
 (define *bbs-by-status* (make-eq-hashtable))
 
-;;; Issues by priority: hashtable priority -> (id ...)
+(doc *bbs-by-priority* 'type 'Hashtable)
+(doc *bbs-by-priority* 'description "Issues by priority: hashtable priority -> (id ...)")
 (define *bbs-by-priority* (make-eqv-hashtable))
 
-;;; Dependencies: ((blocker-id . blocked-id) ...)
+(doc *bbs-deps* 'type '(List (Pair String String)))
+(doc *bbs-deps* 'description "Dependencies: ((blocker-id . blocked-id) ...)")
 (define *bbs-deps* '())
 
-;;; ====
-;;; Index Cache Persistence
-;;; ====
+(doc 'section 'index-cache-persistence)
 
-;;; bbs-save-index-cache! : -> Void
-;;; Save the current index to disk cache.
-;;; Called after rebuild to speed up future startups.
-;;; Uses atomic write-then-rename to prevent corruption.
 (define (bbs-save-index-cache!)
+  (doc 'type (-> Void))
+  (doc 'description "Save the current index to disk cache")
+  (doc 'note "Called after rebuild to speed up future startups")
+  (doc 'note "Uses atomic write-then-rename to prevent corruption")
   (unless (file-exists? ".bbs")
     (mkdir ".bbs"))
   (guard (e [else #f])  ; Silently fail - cache is optional
@@ -83,9 +74,9 @@
           (newline port)))
       '(replace))))
 
-;;; hashtable->alist : Hashtable -> Alist
-;;; Convert hashtable to association list for serialization.
 (define (hashtable->alist ht)
+  (doc 'type (-> Hashtable Alist))
+  (doc 'description "Convert hashtable to association list for serialization")
   (let-values ([(keys vals) (hashtable-entries ht)])
     (let loop ([i 0] [acc '()])
       (if (>= i (vector-length keys))
@@ -93,9 +84,9 @@
           (loop (+ i 1)
                 (cons (cons (vector-ref keys i) (vector-ref vals i)) acc))))))
 
-;;; hashtable-map : Hashtable (K V -> R) -> (List R)
-;;; Map a function over hashtable entries, returning a list.
 (define (hashtable-map ht fn)
+  (doc 'type (-> Hashtable (-> K V R) (List R)))
+  (doc 'description "Map a function over hashtable entries, returning a list")
   (let-values ([(keys vals) (hashtable-entries ht)])
     (let loop ([i 0] [acc '()])
       (if (>= i (vector-length keys))
@@ -103,10 +94,10 @@
           (loop (+ i 1)
                 (cons (fn (vector-ref keys i) (vector-ref vals i)) acc))))))
 
-;;; bbs-load-index-cache! : -> Boolean
-;;; Try to load index from disk cache.
-;;; Returns #t if cache was valid and loaded, #f otherwise.
 (define (bbs-load-index-cache!)
+  (doc 'type (-> Boolean))
+  (doc 'description "Try to load index from disk cache")
+  (doc 'returns "#t if cache was valid and loaded, #f otherwise")
   (guard (e [else #f])
     (and (file-exists? *bbs-index-cache-file*)
          (let ([data (call-with-input-file *bbs-index-cache-file* read)])
@@ -152,14 +143,12 @@
                                 (bbs-load-deps!)
                                 #t))))))))))
 
-;;; ====
-;;; Index Building
-;;; ====
+(doc 'section 'index-building)
 
-;;; bbs-rebuild-indices! : -> Int
-;;; Rebuild all indices from head files.
-;;; Returns the number of issues indexed.
 (define (bbs-rebuild-indices!)
+  (doc 'type (-> Int))
+  (doc 'description "Rebuild all indices from head files")
+  (doc 'returns "The number of issues indexed")
   (set! *bbs-issues* (make-hashtable string-hash string=?))
   (set! *bbs-by-status* (make-eq-hashtable))
   (set! *bbs-by-priority* (make-eqv-hashtable))
@@ -202,13 +191,11 @@
 
     count))
 
-;;; ====
-;;; Index Updates
-;;; ====
+(doc 'section 'index-updates)
 
-;;; bbs-index-add! : String Bytevector -> Void
-;;; Add a new issue to the index.
 (define (bbs-index-add! id hash)
+  (doc 'type (-> String Bytevector Void))
+  (doc 'description "Add a new issue to the index")
   (let ([blk (bbs-fetch hash)])
     (when blk
       (let ([data (issue-block-data blk)])
@@ -226,9 +213,9 @@
                  [existing (hashtable-ref *bbs-by-priority* priority '())])
             (hashtable-set! *bbs-by-priority* priority (cons id existing))))))))
 
-;;; bbs-index-update! : String Bytevector Symbol Symbol Int Int -> Void
-;;; Update an issue in the index (handles status/priority changes).
 (define (bbs-index-update! id new-hash old-status new-status old-priority new-priority)
+  (doc 'type (-> String Bytevector Symbol Symbol Int Int Void))
+  (doc 'description "Update an issue in the index (handles status/priority changes)")
   ;; Update main index (O(1) hashtable update - replaces filter+cons)
   (hashtable-set! *bbs-issues* id new-hash)
 
@@ -252,45 +239,43 @@
     (let ([new-list (hashtable-ref *bbs-by-priority* new-priority '())])
       (hashtable-set! *bbs-by-priority* new-priority (cons id new-list)))))
 
-;;; ====
-;;; Index Queries
-;;; ====
+(doc 'section 'index-queries)
 
-;;; bbs-all-ids : -> (List String)
-;;; Get all issue IDs as a list. O(n) to build list from hashtable keys.
 (define (bbs-all-ids)
+  (doc 'type (-> (List String)))
+  (doc 'description "Get all issue IDs as a list. O(n) to build list from hashtable keys")
   (vector->list (hashtable-keys *bbs-issues*)))
 
-;;; bbs-all-issues : -> (List (String . Bytevector))
-;;; Get all issues as (id . hash) pairs (alist form for compatibility).
 (define (bbs-all-issues)
+  (doc 'type (-> (List (Pair String Bytevector))))
+  (doc 'description "Get all issues as (id . hash) pairs (alist form for compatibility)")
   (hashtable-map *bbs-issues* cons))
 
-;;; bbs-issues-by-status : Symbol -> (List String)
-;;; Get issue IDs with a given status.
 (define (bbs-issues-by-status status)
+  (doc 'type (-> Symbol (List String)))
+  (doc 'description "Get issue IDs with a given status")
   (hashtable-ref *bbs-by-status* status '()))
 
-;;; bbs-issues-by-priority : Int -> (List String)
-;;; Get issue IDs with a given priority.
 (define (bbs-issues-by-priority priority)
+  (doc 'type (-> Int (List String)))
+  (doc 'description "Get issue IDs with a given priority")
   (hashtable-ref *bbs-by-priority* priority '()))
 
-;;; bbs-issue-count : -> Int
-;;; Get total number of issues. O(1) with hashtable.
 (define (bbs-issue-count)
+  (doc 'type (-> Int))
+  (doc 'description "Get total number of issues. O(1) with hashtable")
   (hashtable-size *bbs-issues*))
 
-;;; bbs-issue-exists? : String -> Boolean
-;;; Check if an issue exists in the index. O(1) lookup.
 (define (bbs-issue-exists? id)
+  (doc 'type (-> String Boolean))
+  (doc 'description "Check if an issue exists in the index. O(1) lookup")
   (let ([id-str (normalize-id id)])
     (hashtable-contains? *bbs-issues* id-str)))
 
-;;; bbs-issue-hash : String|Symbol -> Bytevector | #f
-;;; Get the current hash for an issue ID. O(1) lookup.
-;;; Auto-refreshes from disk if issue not in index (handles cross-session creation).
 (define (bbs-issue-hash id)
+  (doc 'type (-> (Or String Symbol) (Or Bytevector Boolean)))
+  (doc 'description "Get the current hash for an issue ID. O(1) lookup")
+  (doc 'note "Auto-refreshes from disk if issue not in index (handles cross-session creation)")
   (let* ([id-str (normalize-id id)]
          [hash (hashtable-ref *bbs-issues* id-str #f)])
     (if hash
@@ -301,11 +286,11 @@
             (bbs-index-issue-from-disk! id-str disk-hash))
           disk-hash))))
 
-;;; bbs-index-issue-from-disk! : String Bytevector -> Void
-;;; Load a single issue into the index from its hash.
-;;; Used for auto-refresh when an issue exists on disk but not in memory.
-;;; Guards against duplicate indexing (e.g., from concurrent calls).
 (define (bbs-index-issue-from-disk! id hash)
+  (doc 'type (-> String Bytevector Void))
+  (doc 'description "Load a single issue into the index from its hash")
+  (doc 'note "Used for auto-refresh when an issue exists on disk but not in memory")
+  (doc 'note "Guards against duplicate indexing (e.g., from concurrent calls)")
   ;; Guard: skip if already indexed (prevents duplicates) - O(1) check
   (unless (hashtable-contains? *bbs-issues* id)
     (let ([blk (bbs-fetch hash)])
@@ -323,16 +308,14 @@
                    [existing (hashtable-ref *bbs-by-priority* priority '())])
               (hashtable-set! *bbs-by-priority* priority (cons id existing)))))))))
 
-;;; ====
-;;; Dependency Management
-;;; ====
+(doc 'section 'dependency-management)
 
 (define *bbs-deps-file* ".bbs/deps")
 
-;;; bbs-save-deps! : -> Void
-;;; Persist dependencies to disk.
-;;; Uses atomic write-then-rename to prevent corruption.
 (define (bbs-save-deps!)
+  (doc 'type (-> Void))
+  (doc 'description "Persist dependencies to disk")
+  (doc 'note "Uses atomic write-then-rename to prevent corruption")
   (unless (file-exists? ".bbs")
     (mkdir ".bbs"))
   (call-with-atomic-output-file *bbs-deps-file*
@@ -341,9 +324,9 @@
       (newline port))
     '(replace)))
 
-;;; bbs-load-deps! : -> Void
-;;; Load dependencies from disk.
 (define (bbs-load-deps!)
+  (doc 'type (-> Void))
+  (doc 'description "Load dependencies from disk")
   (guard (e [else (set! *bbs-deps* '())])
     (if (file-exists? *bbs-deps-file*)
         (set! *bbs-deps*
@@ -353,17 +336,17 @@
                     (if (eof-object? data) '() data)))))
         (set! *bbs-deps* '()))))
 
-;;; bbs-add-dep! : String String -> Void
-;;; Add a dependency: blocker-id blocks blocked-id.
 (define (bbs-add-dep! blocker-id blocked-id)
+  (doc 'type (-> String String Void))
+  (doc 'description "Add a dependency: blocker-id blocks blocked-id")
   (unless (assoc blocker-id
                  (filter (lambda (d) (string=? (cdr d) blocked-id)) *bbs-deps*))
     (set! *bbs-deps* (cons (cons blocker-id blocked-id) *bbs-deps*))
     (bbs-save-deps!)))
 
-;;; bbs-remove-dep! : String String -> Void
-;;; Remove a dependency.
 (define (bbs-remove-dep! blocker-id blocked-id)
+  (doc 'type (-> String String Void))
+  (doc 'description "Remove a dependency")
   (set! *bbs-deps*
         (filter (lambda (d)
                   (not (and (string=? (car d) blocker-id)
@@ -371,9 +354,10 @@
                 *bbs-deps*))
   (bbs-save-deps!))
 
-;;; bbs-gc-deps! : -> (List (blocker . blocked))
-;;; Remove deps where either issue no longer exists. Returns removed deps.
 (define (bbs-gc-deps!)
+  (doc 'type (-> (List (Pair String String))))
+  (doc 'description "Remove deps where either issue no longer exists")
+  (doc 'returns "Removed dependencies")
   (let* ([stale (filter (lambda (d)
                           (or (not (bbs-fetch-issue-data (car d)))
                               (not (bbs-fetch-issue-data (cdr d)))))
@@ -387,36 +371,36 @@
       (bbs-save-deps!))
     stale))
 
-;;; bbs-blockers : String -> (List String)
-;;; Get IDs of issues that block the given issue.
 (define (bbs-blockers id)
+  (doc 'type (-> String (List String)))
+  (doc 'description "Get IDs of issues that block the given issue")
   (map car
        (filter (lambda (d) (string=? (cdr d) id)) *bbs-deps*)))
 
-;;; bbs-blocker-status : String -> Symbol
-;;; Get status of a blocker: 'open, 'closed, 'in_progress, or 'missing.
 (define (bbs-blocker-status blocker-id)
+  (doc 'type (-> String Symbol))
+  (doc 'description "Get status of a blocker: 'open, 'closed, 'in_progress, or 'missing")
   (let ([data (bbs-fetch-issue-data blocker-id)])
     (if data
         (cdr (assq 'status data))
         'missing)))
 
-;;; bbs-blockers-with-status : String -> (List (blocker-id . status))
-;;; Get blockers annotated with their current status.
 (define (bbs-blockers-with-status id)
+  (doc 'type (-> String (List (Pair String Symbol))))
+  (doc 'description "Get blockers annotated with their current status")
   (map (lambda (blocker-id)
          (cons blocker-id (bbs-blocker-status blocker-id)))
        (bbs-blockers id)))
 
-;;; bbs-blocking : String -> (List String)
-;;; Get IDs of issues that the given issue blocks.
 (define (bbs-blocking id)
+  (doc 'type (-> String (List String)))
+  (doc 'description "Get IDs of issues that the given issue blocks")
   (map cdr
        (filter (lambda (d) (string=? (car d) id)) *bbs-deps*)))
 
-;;; bbs-is-blocked? : String -> Boolean
-;;; Check if an issue is blocked by any open issues.
 (define (bbs-is-blocked? id)
+  (doc 'type (-> String Boolean))
+  (doc 'description "Check if an issue is blocked by any open issues")
   (let ([blockers (bbs-blockers id)])
     (any (lambda (blocker-id)
            (let ([data (bbs-fetch-issue-data blocker-id)])
@@ -424,32 +408,30 @@
                   (not (eq? (cdr (assq 'status data)) 'closed)))))
          blockers)))
 
-;;; bbs-blocked-issues : -> (List String)
-;;; Get all issues that are blocked.
 (define (bbs-blocked-issues)
+  (doc 'type (-> (List String)))
+  (doc 'description "Get all issues that are blocked")
   (filter bbs-is-blocked?
           (bbs-issues-by-status 'open)))
 
-;;; bbs-ready-issues : -> (List String)
-;;; Get all open issues that are not blocked.
 (define (bbs-ready-issues)
+  (doc 'type (-> (List String)))
+  (doc 'description "Get all open issues that are not blocked")
   (filter (lambda (id) (not (bbs-is-blocked? id)))
           (bbs-issues-by-status 'open)))
 
-;;; any : (a -> Bool) (List a) -> Bool
 (define (any pred lst)
+  (doc 'type (-> (-> a Bool) (List a) Bool))
   (cond
    [(null? lst) #f]
    [(pred (car lst)) #t]
    [else (any pred (cdr lst))]))
 
-;;; ====
-;;; Statistics
-;;; ====
+(doc 'section 'statistics)
 
-;;; bbs-stats : -> Alist
-;;; Get statistics about the issue database.
 (define (bbs-stats)
+  (doc 'type (-> Alist))
+  (doc 'description "Get statistics about the issue database")
   `((total . ,(hashtable-size *bbs-issues*))
     (open . ,(length (bbs-issues-by-status 'open)))
     (in_progress . ,(length (bbs-issues-by-status 'in_progress)))

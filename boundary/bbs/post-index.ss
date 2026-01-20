@@ -1,37 +1,30 @@
-;;; boundary/bbs/post-index.ss — BBS In-Memory Post Indices
-;;;
-;;; Maintains in-memory indices for fast post lookups.
-;;; Uses a disk-based cache (.bbs/post-index.cache) to avoid expensive
-;;; rebuilds on every session startup.
-;;;
-;;; Indices:
-;;;   *bbs-posts*         - hashtable: id-string -> hash-bytevector (O(1) lookup)
-;;;   *bbs-posts-by-type* - hashtable: type -> (id ...)
-;;;
-;;; Cache Strategy:
-;;;   - Save index with head-file count as version marker
-;;;   - On load: if count matches disk, use cache; else rebuild
-;;;   - Individual posts auto-refresh via post-index-hash on cache miss
-;;;
-;;; Note: Unlike issues, posts do NOT have dependencies (blockers/blocking).
-;;; This simplifies the index - no dependency tracking or dep persistence needed.
-;;; If post relationships are added in the future, add deps infrastructure here.
-;;;
-;;; This is Shell code: impure (maintains mutable state).
-
 (load "boundary/bbs/store.ss")
 (load "boundary/io/atomic.ss")
 (load "boundary/io/file-lock.ss")
 
-;;; ====
-;;; Counter Functions (local copies to avoid circular dependency with posts.ss)
-;;; ====
+(doc 'module 'bbs/post-index)
+(doc 'description "BBS In-Memory Post Indices - Fast post lookups with disk-based cache")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+(doc 'note "Maintains in-memory indices:
+  *bbs-posts*         - hashtable: id-string -> hash-bytevector (O(1) lookup)
+  *bbs-posts-by-type* - hashtable: type -> (id ...)")
+(doc 'note "Cache Strategy:
+  - Save index with head-file count as version marker
+  - On load: if count matches disk, use cache; else rebuild
+  - Individual posts auto-refresh via post-index-hash on cache miss")
+(doc 'note "Unlike issues, posts do NOT have dependencies (blockers/blocking).
+This simplifies the index - no dependency tracking or dep persistence needed.
+If post relationships are added in the future, add deps infrastructure here.")
+
+(doc 'section 'counter-functions)
+(doc 'note "Local copies to avoid circular dependency with posts.ss")
 
 (define *post-counter-file* ".bbs/post-counter")
 
-;;; post-read-counter : -> Int
-;;; Read current counter value (or 0 if not exists).
 (define (post-read-counter)
+  (doc 'type (-> Int))
+  (doc 'description "Read current counter value (or 0 if not exists)")
   (guard (e [else 0])
     (if (file-exists? *post-counter-file*)
         (call-with-input-file *post-counter-file*
@@ -40,9 +33,9 @@
               (string->number line))))
         0)))
 
-;;; %post-write-counter! : Int -> Void
-;;; INTERNAL: Write counter value to file (caller must hold lock).
 (define (%post-write-counter! n)
+  (doc 'type (-> Int Void))
+  (doc 'description "INTERNAL: Write counter value to file (caller must hold lock)")
   (unless (file-exists? ".bbs")
     (mkdir ".bbs"))
   (call-with-atomic-output-file *post-counter-file*
@@ -51,41 +44,34 @@
       (newline port))
     '(replace)))
 
-;;; ====
-;;; Index Cache
-;;; ====
+(doc 'section 'index-cache)
 
 (define *post-index-cache-file* ".bbs/post-index.cache")
 (define *post-index-cache-version* 1)
 
-;;; ====
-;;; ID Normalization
-;;; ====
+(doc 'section 'id-normalization)
 
-;;; post-normalize-id : String|Symbol -> String
-;;; Convert an ID to string form. Accepts both symbols and strings.
 (define (post-normalize-id id)
+  (doc 'type (-> (Or String Symbol) String))
+  (doc 'description "Convert an ID to string form. Accepts both symbols and strings")
   (if (symbol? id) (symbol->string id) id))
 
-;;; ====
-;;; Global State
-;;; ====
+(doc 'section 'global-state)
 
-;;; All posts: hashtable id-string -> hash-bytevector (O(1) lookup)
+(doc *bbs-posts* 'type 'Hashtable)
+(doc *bbs-posts* 'description "All posts: hashtable id-string -> hash-bytevector (O(1) lookup)")
 (define *bbs-posts* (make-hashtable string-hash string=?))
 
-;;; Posts by type: hashtable type -> (id ...)
+(doc *bbs-posts-by-type* 'type 'Hashtable)
+(doc *bbs-posts-by-type* 'description "Posts by type: hashtable type -> (id ...)")
 (define *bbs-posts-by-type* (make-eq-hashtable))
 
-;;; ====
-;;; Index Cache Persistence
-;;; ====
+(doc 'section 'index-cache-persistence)
 
-;;; post-save-index-cache! : -> Void
-;;; Save the current index to disk cache.
-;;; Called after rebuild to speed up future startups.
-;;; Uses atomic write-then-rename to prevent corruption.
 (define (post-save-index-cache!)
+  (doc 'type (-> Void))
+  (doc 'description "Save the current index to disk cache")
+  (doc 'note "Called after rebuild to speed up future startups; uses atomic write-then-rename to prevent corruption")
   (unless (file-exists? ".bbs")
     (mkdir ".bbs"))
   (guard (e [else #f])  ; Silently fail - cache is optional
@@ -105,9 +91,9 @@
           (newline port)))
       '(replace))))
 
-;;; post-hashtable->alist : Hashtable -> Alist
-;;; Convert hashtable to association list for serialization.
 (define (post-hashtable->alist ht)
+  (doc 'type (-> Hashtable Alist))
+  (doc 'description "Convert hashtable to association list for serialization")
   (let-values ([(keys vals) (hashtable-entries ht)])
     (let loop ([i 0] [acc '()])
       (if (>= i (vector-length keys))
@@ -115,9 +101,9 @@
           (loop (+ i 1)
                 (cons (cons (vector-ref keys i) (vector-ref vals i)) acc))))))
 
-;;; post-hashtable-map : Hashtable (K V -> R) -> (List R)
-;;; Map a function over hashtable entries, returning a list.
 (define (post-hashtable-map ht fn)
+  (doc 'type (-> Hashtable (-> K V R) (List R)))
+  (doc 'description "Map a function over hashtable entries, returning a list")
   (let-values ([(keys vals) (hashtable-entries ht)])
     (let loop ([i 0] [acc '()])
       (if (>= i (vector-length keys))
@@ -125,10 +111,10 @@
           (loop (+ i 1)
                 (cons (fn (vector-ref keys i) (vector-ref vals i)) acc))))))
 
-;;; post-load-index-cache! : -> Boolean
-;;; Try to load index from disk cache.
-;;; Returns #t if cache was valid and loaded, #f otherwise.
 (define (post-load-index-cache!)
+  (doc 'type (-> Boolean))
+  (doc 'description "Try to load index from disk cache")
+  (doc 'returns "#t if cache was valid and loaded, #f otherwise")
   (guard (e [else #f])
     (and (file-exists? *post-index-cache-file*)
          (let ([data (call-with-input-file *post-index-cache-file* read)])
@@ -162,25 +148,22 @@
                                 (post-sync-counter-from-heads! disk-heads)
                                 #t))))))))))
 
-;;; post-list-disk-heads : -> (List String)
-;;; List all post IDs that have head files on disk.
-;;; (Duplicate of post-list-heads but clearer naming for index context)
 (define (post-list-disk-heads)
+  (doc 'type (-> (List String)))
+  (doc 'description "List all post IDs that have head files on disk")
+  (doc 'note "Duplicate of post-list-heads but clearer naming for index context")
   (filter (lambda (id) (string-starts-with? id "post-"))
           (bbs-list-heads)))
 
-;;; string-starts-with? : String String -> Boolean
 (define (string-starts-with? str prefix)
+  (doc 'type (-> String String Boolean))
   (and (>= (string-length str) (string-length prefix))
        (string=? (substring str 0 (string-length prefix)) prefix)))
 
-;;; post-sync-counter-from-heads! : (List String) -> Void
-;;; Sync the post counter to be >= max ID found in heads.
-;;; Prevents ID collisions when cache is stale.
-;;;
-;;; Uses file lock to prevent race condition where concurrent
-;;; processes could overwrite each other's counter updates.
 (define (post-sync-counter-from-heads! ids)
+  (doc 'type (-> (List String) Void))
+  (doc 'description "Sync the post counter to be >= max ID found in heads")
+  (doc 'note "Prevents ID collisions when cache is stale; uses file lock to prevent race condition")
   (let ([max-n 0])
     (for-each
      (lambda (id)
@@ -198,14 +181,12 @@
           (when (> max-n (post-read-counter))
             (%post-write-counter! max-n)))))))
 
-;;; ====
-;;; Index Building
-;;; ====
+(doc 'section 'index-building)
 
-;;; post-rebuild-indices! : -> Int
-;;; Rebuild all indices from head files.
-;;; Returns the number of posts indexed.
 (define (post-rebuild-indices!)
+  (doc 'type (-> Int))
+  (doc 'description "Rebuild all indices from head files")
+  (doc 'returns "The number of posts indexed")
   (set! *bbs-posts* (make-hashtable string-hash string=?))
   (set! *bbs-posts-by-type* (make-eq-hashtable))
 
@@ -238,13 +219,11 @@
 
     count))
 
-;;; ====
-;;; Index Updates
-;;; ====
+(doc 'section 'index-updates)
 
-;;; post-index-add! : String Bytevector -> Void
-;;; Add a new post to the index.
 (define (post-index-add! id hash)
+  (doc 'type (-> String Bytevector Void))
+  (doc 'description "Add a new post to the index")
   (let ([blk (bbs-fetch hash)])
     (when blk
       (let ([data (post-block-data blk)])
@@ -257,46 +236,44 @@
                  [existing (hashtable-ref *bbs-posts-by-type* post-type '())])
             (hashtable-set! *bbs-posts-by-type* post-type (cons id existing))))))))
 
-;;; post-index-update! : String Bytevector -> Void
-;;; Update a post in the index (type cannot change, so just update hash).
 (define (post-index-update! id new-hash)
+  (doc 'type (-> String Bytevector Void))
+  (doc 'description "Update a post in the index (type cannot change, so just update hash)")
   ;; Update main index (O(1) hashtable update)
   (hashtable-set! *bbs-posts* id new-hash))
 
-;;; ====
-;;; Index Queries
-;;; ====
+(doc 'section 'index-queries)
 
-;;; post-all-ids : -> (List String)
-;;; Get all post IDs as a list. O(n) to build list from hashtable keys.
 (define (post-all-ids)
+  (doc 'type (-> (List String)))
+  (doc 'description "Get all post IDs as a list. O(n) to build list from hashtable keys")
   (vector->list (hashtable-keys *bbs-posts*)))
 
-;;; post-all-posts : -> (List (String . Bytevector))
-;;; Get all posts as (id . hash) pairs (alist form for compatibility).
 (define (post-all-posts)
+  (doc 'type (-> (List (Pair String Bytevector))))
+  (doc 'description "Get all posts as (id . hash) pairs (alist form for compatibility)")
   (post-hashtable-map *bbs-posts* cons))
 
-;;; post-ids-by-type : Symbol -> (List String)
-;;; Get post IDs with a given type.
 (define (post-ids-by-type post-type)
+  (doc 'type (-> Symbol (List String)))
+  (doc 'description "Get post IDs with a given type")
   (hashtable-ref *bbs-posts-by-type* post-type '()))
 
-;;; post-index-count : -> Int
-;;; Get total number of posts. O(1) with hashtable.
 (define (post-index-count)
+  (doc 'type (-> Int))
+  (doc 'description "Get total number of posts. O(1) with hashtable")
   (hashtable-size *bbs-posts*))
 
-;;; post-index-exists? : String -> Boolean
-;;; Check if a post exists in the index. O(1) lookup.
 (define (post-index-exists? id)
+  (doc 'type (-> String Boolean))
+  (doc 'description "Check if a post exists in the index. O(1) lookup")
   (let ([id-str (post-normalize-id id)])
     (hashtable-contains? *bbs-posts* id-str)))
 
-;;; post-index-hash : String|Symbol -> Bytevector | #f
-;;; Get the current hash for a post ID. O(1) lookup.
-;;; Auto-refreshes from disk if post not in index (handles cross-session creation).
 (define (post-index-hash id)
+  (doc 'type (-> (Or String Symbol) (Or Bytevector Boolean)))
+  (doc 'description "Get the current hash for a post ID. O(1) lookup")
+  (doc 'note "Auto-refreshes from disk if post not in index (handles cross-session creation)")
   (let* ([id-str (post-normalize-id id)]
          [hash (hashtable-ref *bbs-posts* id-str #f)])
     (if hash
@@ -307,11 +284,10 @@
             (post-index-from-disk! id-str disk-hash))
           disk-hash))))
 
-;;; post-index-from-disk! : String Bytevector -> Void
-;;; Load a single post into the index from its hash.
-;;; Used for auto-refresh when a post exists on disk but not in memory.
-;;; Guards against duplicate indexing (e.g., from concurrent calls).
 (define (post-index-from-disk! id hash)
+  (doc 'type (-> String Bytevector Void))
+  (doc 'description "Load a single post into the index from its hash")
+  (doc 'note "Used for auto-refresh when a post exists on disk but not in memory; guards against duplicate indexing")
   ;; Guard: skip if already indexed (prevents duplicates) - O(1) check
   (unless (hashtable-contains? *bbs-posts* id)
     (let ([blk (bbs-fetch hash)])
@@ -325,13 +301,11 @@
                    [existing (hashtable-ref *bbs-posts-by-type* post-type '())])
               (hashtable-set! *bbs-posts-by-type* post-type (cons id existing)))))))))
 
-;;; ====
-;;; Statistics
-;;; ====
+(doc 'section 'statistics)
 
-;;; post-index-stats : -> Alist
-;;; Get statistics about the post database.
 (define (post-index-stats)
+  (doc 'type (-> Alist))
+  (doc 'description "Get statistics about the post database")
   `((total . ,(hashtable-size *bbs-posts*))
     (changelog . ,(length (post-ids-by-type 'changelog)))
     (note . ,(length (post-ids-by-type 'note)))

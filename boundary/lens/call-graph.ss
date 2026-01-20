@@ -1,23 +1,11 @@
-;;; boundary/lens/call-graph.ss — Call Graph Builder
-;;;
-;;; Builds forward and reverse call graphs from the codebase.
-;;; Used by lens navigation for finding callers/callees.
-;;;
-;;; This is Shell code: reads files, builds mutable indices.
-;;;
-;;; Usage:
-;;;   (call-graph-refresh!)       - Rebuild call graph from source
-;;;   (call-graph-callers 'sym)   - Get symbols that call sym
-;;;   (call-graph-callees 'sym)   - Get symbols that sym calls
-;;;   (call-graph-stats)          - Show call graph statistics
-;;;
-;;; Dependencies:
-;;;   boundary/tools/index.ss (symbol index)
-;;;   boundary/debug/xref.ss (cross-reference utilities)
+(load "core/base/prelude.ss")
 
-;;; ====
-;;; Call Graph Data Structures
-;;; ====
+(doc 'module 'call-graph)
+(doc 'description "Call graph builder for forward and reverse call relationships")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+
+(doc 'section 'call-graph-data-structures)
 
 ;;; Forward graph: symbol -> (list of symbols it calls)
 (define *forward-calls* (make-eq-hashtable))
@@ -31,14 +19,11 @@
 ;;; Index status
 (define *call-graph-built?* #f)
 
-;;; ====
-;;; S-Expression Analysis
-;;; ====
+(doc 'section 's-expression-analysis)
 
-;;; extract-calls-from-body : S-expr Symbol -> (List Symbol)
-;;; Extract all symbol references from an expression body.
-;;; Excludes the defining symbol itself and local bindings.
 (define (extract-calls-from-body expr defining-sym)
+  (doc 'description "Extract all symbol references from an expression body")
+  (doc 'note "Excludes the defining symbol itself and local bindings")
   (let ([locals (make-eq-hashtable)]
         [calls '()])
        ;; Add defining-sym to locals to avoid self-reference noise
@@ -241,13 +226,10 @@
 
 ;;; string-suffix? is provided by boundary/string-utils.ss with signature (suffix str)
 
-;;; ====
-;;; Public API
-;;; ====
+(doc 'section 'public-api)
 
-;;; call-graph-refresh! : -> void
-;;; Rebuild the entire call graph from source files.
 (define (call-graph-refresh!)
+  (doc 'description "Rebuild the entire call graph from source files")
   ;; Clear existing data
   (hashtable-clear! *forward-calls*)
   (hashtable-clear! *reverse-calls*)

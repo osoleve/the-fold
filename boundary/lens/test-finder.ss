@@ -1,21 +1,11 @@
-;;; boundary/lens/test-finder.ss — Test Discovery Module
-;;;
-;;; Finds tests related to functions using naming conventions.
-;;; Convention: test-<module>.ss files test symbols from <module>.ss
-;;;
-;;; This is Shell code: reads filesystem, scans files.
-;;;
-;;; Usage:
-;;;   (find-tests-for 'symbol-name)     - Find tests for a symbol
-;;;   (find-test-file "module.ss")      - Find test file for module
-;;;   (list-all-tests)                  - List all test files
-;;;
-;;; Dependencies:
-;;;   boundary/tools/index.ss (symbol index)
+(load "core/base/prelude.ss")
 
-;;; ====
-;;; Test Discovery
-;;; ====
+(doc 'module 'test-finder)
+(doc 'description "Test discovery module using naming conventions")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+
+(doc 'section 'test-discovery)
 
 ;;; find-test-file : String -> String | #f
 ;;; Given a module path, find its corresponding test file.

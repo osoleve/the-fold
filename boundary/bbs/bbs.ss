@@ -1,45 +1,39 @@
-;;; boundary/bbs/bbs.ss — BBS Entry Point
-;;;
-;;; CAS-native bulletin board system for issue tracking and posts.
-;;; Replaces beads with a native implementation using The Fold's CAS.
-;;;
-;;; Usage:
-;;;   (load "boundary/bbs/bbs.ss")
-;;;   (bbs-init!)
-;;;
-;;;   ;; Issues
-;;;   (bbs-create "Issue title" 'priority 2 'type 'task)
-;;;   (bbs-show 'fold-001)
-;;;   (bbs-list)
-;;;   (bbs-update 'fold-001 'status 'in_progress)
-;;;   (bbs-close 'fold-001 'reason "Done!")
-;;;
-;;;   ;; Posts (changelogs, notes, announcements)
-;;;   (post-create "Title" "Body..." 'changelog)
-;;;   (post-show 'post-1)
-;;;   (post-list)
-;;;
-;;; This is Shell code: loads all BBS modules.
-
 (load "boundary/bbs/ops.ss")
 (load "boundary/bbs/posts.ss")
 
-;;; ====
-;;; Initialization
-;;; ====
+(doc 'module 'bbs)
+(doc 'description "BBS Entry Point - CAS-native bulletin board system for issue tracking and posts")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+(doc 'note "Usage:
+  (bbs-init!)
 
-;;; *bbs-initialized* : Boolean
-;;; Track whether BBS has been initialized.
+  ;; Issues
+  (bbs-create \"Issue title\" 'priority 2 'type 'task)
+  (bbs-show 'fold-001)
+  (bbs-list)
+  (bbs-update 'fold-001 'status 'in_progress)
+  (bbs-close 'fold-001 'reason \"Done!\")
+
+  ;; Posts (changelogs, notes, announcements)
+  (post-create \"Title\" \"Body...\" 'changelog)
+  (post-show 'post-1)
+  (post-list)")
+
+(doc 'section 'initialization)
+
+(doc *bbs-initialized* 'type 'Boolean)
+(doc *bbs-initialized* 'description "Track whether BBS has been initialized")
 (define *bbs-initialized* #f)
 
-;;; *bbs-posts-initialized* : Boolean
-;;; Track whether post index has been initialized.
+(doc *bbs-posts-initialized* 'type 'Boolean)
+(doc *bbs-posts-initialized* 'description "Track whether post index has been initialized")
 (define *bbs-posts-initialized* #f)
 
-;;; bbs-init! : -> Int
-;;; Initialize the BBS system (issues and posts).
-;;; Tries cached index first, rebuilds only if cache is stale.
 (define (bbs-init!)
+  (doc 'type (-> Int))
+  (doc 'description "Initialize the BBS system (issues and posts)")
+  (doc 'note "Tries cached index first, rebuilds only if cache is stale")
   (if *bbs-initialized*
       (hashtable-size (let () *bbs-by-status*))  ; Return count without reinit
       (begin
@@ -56,10 +50,10 @@
           (bbs-init-posts!)
           count))))
 
-;;; bbs-init-posts! : -> Int
-;;; Initialize the post index.
-;;; Tries cached index first, rebuilds only if cache is stale.
 (define (bbs-init-posts!)
+  (doc 'type (-> Int))
+  (doc 'description "Initialize the post index")
+  (doc 'note "Tries cached index first, rebuilds only if cache is stale")
   (if *bbs-posts-initialized*
       (post-index-count)  ; Return count without reinit
       (let ([count (if (post-load-index-cache!)
@@ -71,19 +65,19 @@
         (printf "  Loaded ~a posts~n" count)
         count)))
 
-;;; bbs-init-posts-quiet! : -> Int
-;;; Initialize post index silently (for startup).
 (define (bbs-init-posts-quiet!)
+  (doc 'type (-> Int))
+  (doc 'description "Initialize post index silently (for startup)")
   (unless *bbs-posts-initialized*
     (unless (post-load-index-cache!)
       (post-rebuild-indices!))
     (set! *bbs-posts-initialized* #t))
   (post-index-count))
 
-;;; bbs-init-quiet! : -> Int
-;;; Initialize BBS silently (for startup).
-;;; Tries cached index first for fast startup.
 (define (bbs-init-quiet!)
+  (doc 'type (-> Int))
+  (doc 'description "Initialize BBS silently (for startup)")
+  (doc 'note "Tries cached index first for fast startup")
   (unless *bbs-initialized*
     (unless (bbs-load-index-cache!)
       (bbs-rebuild-indices!))
@@ -92,13 +86,11 @@
   (bbs-init-posts-quiet!)
   (hashtable-size *bbs-by-status*))
 
-;;; ====
-;;; Display Functions
-;;; ====
+(doc 'section 'display-functions)
 
-;;; bbs-show : String | Symbol -> Void
-;;; Display an issue.
 (define (bbs-show id)
+  (doc 'type (-> (Or String Symbol) Void))
+  (doc 'description "Display an issue")
   (let* ([id-str (normalize-id id)]
          [data (bbs-fetch-issue-data id-str)])
     (if data
@@ -138,13 +130,11 @@
           (printf "~a~n" (make-string 60 #\-)))
         (printf "Issue not found: ~a~n" id-str))))
 
-;;; bbs-list : -> Void
-;;; List issues.
-;;;
-;;; Keyword arguments:
-;;;   'status - Filter by status (default: show all open)
-;;;   'limit - Maximum number to show (default: 20)
 (define (bbs-list . args)
+  (doc 'type (-> Void))
+  (doc 'description "List issues")
+  (doc 'param 'status "Filter by status (default: show all open)")
+  (doc 'param 'limit "Maximum number to show (default: 20)")
   (let* ([status (get-keyword-arg args 'status 'open)]
          [limit (get-keyword-arg args 'limit 20)]
          [ids (if (eq? status 'all)
@@ -166,9 +156,9 @@
     (when (> (length ids) limit)
       (printf "... and ~a more~n" (- (length ids) limit)))))
 
-;;; bbs-ready : -> Void
-;;; Show issues ready to work on (open and not blocked).
 (define (bbs-ready . args)
+  (doc 'type (-> Void))
+  (doc 'description "Show issues ready to work on (open and not blocked)")
   (let* ([limit (get-keyword-arg args 'limit 20)]
          [ids (bbs-ready-issues)]
          [to-show (take-n limit ids)])
@@ -186,9 +176,9 @@
     (when (> (length ids) limit)
       (printf "... and ~a more~n" (- (length ids) limit)))))
 
-;;; bbs-blocked : -> Void
-;;; Show blocked issues.
 (define (bbs-blocked)
+  (doc 'type (-> Void))
+  (doc 'description "Show blocked issues")
   (let ([ids (bbs-blocked-issues)])
     (printf "~a blocked issues~n" (length ids))
     (printf "~a~n" (make-string 60 #\-))
@@ -201,9 +191,9 @@
            (printf "         blocked by: ~a~n" blockers))))
      ids)))
 
-;;; bbs-history : String | Symbol -> Void
-;;; Show version history of an issue.
 (define (bbs-history id)
+  (doc 'type (-> (Or String Symbol) Void))
+  (doc 'description "Show version history of an issue")
   (let* ([id-str (normalize-id id)]
          [history (bbs-issue-history-data id-str)])
     (if (null? history)
@@ -220,9 +210,9 @@
                      (truncate-str (cdr (assq 'title data)) 40)))
            (reverse history))))))
 
-;;; bbs-show-blockers : String | Symbol -> Void
-;;; Show blockers for an issue with their current status.
 (define (bbs-show-blockers id)
+  (doc 'type (-> (Or String Symbol) Void))
+  (doc 'description "Show blockers for an issue with their current status")
   (let* ([id-str (normalize-id id)]
          [blockers (bbs-blockers-with-status id-str)])
     (if (null? blockers)
@@ -242,9 +232,9 @@
                (printf "  ~a  ~a~n" (pad-right blocker-id 14) status-str)))
            blockers)))))
 
-;;; bbs-find : String -> Void
-;;; Simple substring search in issue titles.
 (define (bbs-find query)
+  (doc 'type (-> String Void))
+  (doc 'description "Simple substring search in issue titles")
   (let* ([query-lower (string-downcase query)]
          [matches (filter
                    (lambda (id)
@@ -266,31 +256,29 @@
                    (cdr (assq 'title data))))))
      (take-n 20 matches))))
 
-;;; bbs-find-exact : String | Symbol -> Void
-;;; Look up an issue by exact ID.
 (define (bbs-find-exact id)
+  (doc 'type (-> (Or String Symbol) Void))
+  (doc 'description "Look up an issue by exact ID")
   (bbs-show id))
 
-;;; ====
-;;; Convenience Aliases
-;;; ====
+(doc 'section 'convenience-aliases)
 
-;;; bbs-add-blocker : String|Symbol String|Symbol -> Void
-;;; Add a dependency where blocker blocks blocked.
-;;; Alias for bbs-dep with clearer naming.
-;;; Example: (bbs-add-blocker 'fold-001 'fold-002) means fold-001 blocks fold-002
 (define (bbs-add-blocker blocker blocked)
+  (doc 'type (-> (Or String Symbol) (Or String Symbol) Void))
+  (doc 'description "Add a dependency where blocker blocks blocked")
+  (doc 'note "Alias for bbs-dep with clearer naming")
+  (doc 'example "(bbs-add-blocker 'fold-001 'fold-002) means fold-001 blocks fold-002")
   (bbs-dep blocker blocked))
 
-;;; bbs-remove-blocker : String|Symbol String|Symbol -> Void
-;;; Remove a dependency.
-;;; Alias for bbs-undep with clearer naming.
 (define (bbs-remove-blocker blocker blocked)
+  (doc 'type (-> (Or String Symbol) (Or String Symbol) Void))
+  (doc 'description "Remove a dependency")
+  (doc 'note "Alias for bbs-undep with clearer naming")
   (bbs-undep blocker blocked))
 
-;;; bbs-gc : -> Void
-;;; Garbage collect stale dependencies (where either issue is missing).
 (define (bbs-gc)
+  (doc 'type (-> Void))
+  (doc 'description "Garbage collect stale dependencies (where either issue is missing)")
   (let ([removed (bbs-gc-deps!)])
     (if (null? removed)
         (printf "No stale dependencies found.~n")
@@ -301,14 +289,12 @@
              (printf "  ~a -> ~a~n" (car d) (cdr d)))
            removed)))))
 
-;;; ====
-;;; Label and Type Filtering
-;;; ====
+(doc 'section 'label-and-type-filtering)
 
-;;; bbs-by-label : Symbol -> (List String)
-;;; Get issue IDs that have a specific label.
-;;; Returns list of IDs (not displayed).
 (define (bbs-by-label label)
+  (doc 'type (-> Symbol (List String)))
+  (doc 'description "Get issue IDs that have a specific label")
+  (doc 'returns "List of IDs (not displayed)")
   (filter
    (lambda (id)
      (let ([data (bbs-fetch-issue-data id)])
@@ -317,9 +303,9 @@
               (memq label labels)))))
    (bbs-all-ids)))
 
-;;; bbs-list-by-label : Symbol -> Void
-;;; List issues with a specific label.
 (define (bbs-list-by-label label . args)
+  (doc 'type (-> Symbol Void))
+  (doc 'description "List issues with a specific label")
   (let* ([limit (get-keyword-arg args 'limit 20)]
          [ids (bbs-by-label label)]
          [to-show (take-n limit ids)])
@@ -338,9 +324,9 @@
     (when (> (length ids) limit)
       (printf "... and ~a more~n" (- (length ids) limit)))))
 
-;;; bbs-by-type : Symbol -> (List String)
-;;; Get issue IDs of a specific type (task, bug, feature, epic).
 (define (bbs-by-type type)
+  (doc 'type (-> Symbol (List String)))
+  (doc 'description "Get issue IDs of a specific type (task, bug, feature, epic)")
   (filter
    (lambda (id)
      (let ([data (bbs-fetch-issue-data id)])
@@ -348,9 +334,9 @@
             (eq? (cdr (assq 'type data)) type))))
    (bbs-all-ids)))
 
-;;; bbs-list-by-type : Symbol -> Void
-;;; List issues of a specific type.
 (define (bbs-list-by-type type . args)
+  (doc 'type (-> Symbol Void))
+  (doc 'description "List issues of a specific type")
   (let* ([limit (get-keyword-arg args 'limit 20)]
          [ids (bbs-by-type type)]
          [to-show (take-n limit ids)])
@@ -369,14 +355,12 @@
     (when (> (length ids) limit)
       (printf "... and ~a more~n" (- (length ids) limit)))))
 
-;;; ====
-;;; Enhanced Search
-;;; ====
+(doc 'section 'enhanced-search)
 
-;;; bbs-search : String -> Void
-;;; Search issues by title AND description (case-insensitive).
-;;; More comprehensive than bbs-find which only searches titles.
 (define (bbs-search query . args)
+  (doc 'type (-> String Void))
+  (doc 'description "Search issues by title AND description (case-insensitive)")
+  (doc 'note "More comprehensive than bbs-find which only searches titles")
   (let* ([limit (get-keyword-arg args 'limit 20)]
          [query-lower (string-downcase query)]
          [matches (filter
@@ -405,9 +389,9 @@
     (when (> (length matches) limit)
       (printf "... and ~a more~n" (- (length matches) limit)))))
 
-;;; bbs-labels : -> (List Symbol)
-;;; Get all unique labels in use across all issues.
 (define (bbs-labels)
+  (doc 'type (-> (List Symbol)))
+  (doc 'description "Get all unique labels in use across all issues")
   (let ([all-labels '()])
     (for-each
      (lambda (id)
@@ -424,9 +408,9 @@
             (string<? (symbol->string a) (symbol->string b)))
           all-labels)))
 
-;;; bbs-label-report : -> Void
-;;; Show all labels and their issue counts.
 (define (bbs-label-report)
+  (doc 'type (-> Void))
+  (doc 'description "Show all labels and their issue counts")
   (let ([labels (bbs-labels)])
     (printf "~a labels in use~n" (length labels))
     (printf "~a~n" (make-string 40 #\-))
@@ -436,32 +420,30 @@
          (printf "  ~a: ~a~n" (pad-right (symbol->string label) 20) count)))
      labels)))
 
-;;; ====
-;;; String Utilities
-;;; ====
+(doc 'section 'string-utilities)
 
-;;; take-n : Int (List a) -> (List a)
 (define (take-n n lst)
+  (doc 'type (-> Int (List a) (List a)))
   (if (or (<= n 0) (null? lst))
       '()
       (cons (car lst) (take-n (- n 1) (cdr lst)))))
 
-;;; pad-right : String Int -> String
 (define (pad-right str width)
+  (doc 'type (-> String Int String))
   (let ([len (string-length str)])
     (if (>= len width)
         str
         (string-append str (make-string (- width len) #\space)))))
 
-;;; truncate-str : String Int -> String
 (define (truncate-str str max-len)
+  (doc 'type (-> String Int String))
   (if (<= (string-length str) max-len)
       str
       (string-append (substring str 0 (- max-len 3)) "...")))
 
-;;; string-contains-ci? : String String -> Boolean
-;;; Case-insensitive substring search.
 (define (string-contains-ci? haystack needle)
+  (doc 'type (-> String String Boolean))
+  (doc 'description "Case-insensitive substring search")
   (let ([h-len (string-length haystack)]
         [n-len (string-length needle)])
     (and (<= n-len h-len)
@@ -471,8 +453,8 @@
             [(string-prefix-ci? haystack i needle) #t]
             [else (loop (+ i 1))])))))
 
-;;; string-prefix-ci? : String Int String -> Boolean
 (define (string-prefix-ci? str start prefix)
+  (doc 'type (-> String Int String Boolean))
   (let ([p-len (string-length prefix)])
     (let loop ([i 0])
       (cond
@@ -483,15 +465,12 @@
         (loop (+ i 1))]
        [else #f]))))
 
-;;; string-downcase : String -> String
 (define (string-downcase str)
+  (doc 'type (-> String String))
   (list->string
    (map char-downcase (string->list str))))
 
-
-;;; ====
-;;; Print Help
-;;; ====
+(doc 'section 'print-help)
 
 (printf "bbs.ss loaded.~n")
 (printf "  (bbs-init!)                     - Initialize BBS~n")

@@ -1,21 +1,11 @@
-;;; boundary/lens/jump.ss — Navigation Primitives
-;;;
-;;; Low-level navigation utilities for jumping to definitions,
-;;; locating references, and opening files at specific locations.
-;;;
-;;; This is Shell code: uses symbol index, formats output.
-;;;
-;;; Usage:
-;;;   (jump-to-def 'sym)         - Jump to symbol definition
-;;;   (jump-to-file path line)   - Format file:line location
-;;;   (jump-location 'sym)       - Get structured location data
-;;;
-;;; Dependencies:
-;;;   boundary/tools/index.ss (symbol index)
+(load "core/base/prelude.ss")
 
-;;; ====
-;;; Location Types
-;;; ====
+(doc 'module 'jump)
+(doc 'description "Navigation primitives for jumping to definitions and locating references")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+
+(doc 'section 'location-types)
 
 ;;; location : String × Nat × Nat -> Location
 ;;; Create a location record: (file line column)

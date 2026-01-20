@@ -1,23 +1,11 @@
-;;; boundary/lens/dep-slice.ss — Dependency Slicing
-;;;
-;;; Computes transitive dependency closures for symbols.
-;;; "Slice up" = what depends on this (transitively)
-;;; "Slice down" = what this depends on (transitively)
-;;;
-;;; This is Shell code: uses call graph data.
-;;;
-;;; Usage:
-;;;   (dep-slice-up 'sym)      - Transitive dependents (who uses this?)
-;;;   (dep-slice-down 'sym)    - Transitive dependencies (what does this need?)
-;;;   (dep-slice-both 'sym)    - Both directions
-;;;   (dep-slice-stats 'sym)   - Summary statistics
-;;;
-;;; Dependencies:
-;;;   boundary/lens/call-graph.ss
+(load "core/base/prelude.ss")
 
-;;; ====
-;;; Transitive Closure Computation
-;;; ====
+(doc 'module 'dep-slice)
+(doc 'description "Dependency slicing for transitive closure computation")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+
+(doc 'section 'transitive-closure)
 
 ;;; compute-closure : Symbol × (Symbol -> (List Symbol)) × Nat -> (List Symbol)
 ;;; Compute transitive closure using the given neighbor function.

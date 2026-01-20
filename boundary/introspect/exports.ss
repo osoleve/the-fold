@@ -1,33 +1,16 @@
-;;; boundary/introspect/exports.ss — Quick Export Discovery for Files
-;;;
-;;; Discover what symbols a file defines without needing a manifest.sexp.
-;;; Useful for understanding module APIs during development.
-;;;
-;;; This is Shell code: performs file I/O, parses Scheme source.
-;;;
-;;; Usage:
-;;;   (exports-of "lattice/fp/templates.ss")      ; List exported symbols
-;;;   (exports-of-pretty "lattice/fp/templates.ss") ; Pretty-print with grouping
-;;;   (lef "lattice/fp/templates.ss")             ; Quick alias
-;;;
-;;; Features:
-;;;   - Extracts all top-level (define ...) and (define-syntax ...) forms
-;;;   - Groups by category (predicates, constructors, operations)
-;;;   - Works with any .ss file, no manifest required
-;;;
-;;; Dependencies:
-;;;   core/base/prelude.ss
-
 (load "core/base/prelude.ss")
 
-;;; ====
-;;; Core Extraction
-;;; ====
+(doc 'module 'exports)
+(doc 'description "Quick export discovery for files without requiring manifest.sexp")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
 
-;;; exports-of : String -> (List Symbol)
-;;; Extract all top-level definitions from a Scheme file.
-;;; Returns list of defined symbol names, sorted alphabetically.
+(doc 'section 'core-extraction)
+
 (define (exports-of filepath)
+  (doc 'description "Extract all top-level definitions from a Scheme file")
+  (doc 'param 'filepath "Path to .ss file to analyze")
+  (doc 'returns "(List Symbol) - Sorted list of defined symbols")
   (guard (e [else
              (printf "Error reading ~a: ~a\n"
                      filepath
@@ -40,10 +23,9 @@
         (let ([defs (collect-file-definitions filepath)])
           (list-sort symbol<? (map car defs))))))
 
-;;; collect-file-definitions : String -> (List Symbol)
-;;; Collect all definitions from a file.
-;;; Warns on read errors rather than silently truncating.
 (define (collect-file-definitions filepath)
+  (doc 'description "Collect all definitions from a file")
+  (doc 'note "Warns on read errors rather than silently truncating")
   (call-with-input-file filepath
     (lambda (port)
       (let loop ([results '()])
@@ -60,10 +42,9 @@
              (let ([defs (extract-definitions expr)])
                (loop (append defs results)))]))))))
 
-;;; safe-read : Port -> (Values S-expr (or String #f))
-;;; Read from port, returning (values result #f) on success,
-;;; or (values #f error-message) on error.
 (define (safe-read port)
+  (doc 'description "Read from port with error recovery")
+  (doc 'returns "(values expr #f) on success, (values #f error-msg) on error")
   (guard (e [else
              (values #f (if (message-condition? e)
                             (condition-message e)
@@ -71,10 +52,9 @@
     (let ([expr (read port)])
       (values expr #f))))
 
-;;; extract-definitions : S-expr -> (List (Symbol . Symbol))
-;;; Extract defined names from a top-level expression.
-;;; Returns list of (name . form-type) pairs.
 (define (extract-definitions expr)
+  (doc 'description "Extract defined names from a top-level expression")
+  (doc 'returns "(List (Symbol . Symbol)) - List of (name . form-type) pairs")
   (cond
     [(not (pair? expr)) '()]
     ;; (define name value) or (define (name args...) body)
@@ -107,17 +87,14 @@
          '())]
     [else '()]))
 
-;;; symbol<? : Symbol x Symbol -> Boolean
-;;; Alphabetical comparison for symbols.
 (define (symbol<? a b)
+  (doc 'description "Alphabetical comparison for symbols")
   (string<? (symbol->string a) (symbol->string b)))
 
-;;; ====
-;;; Categorization
-;;; ====
+(doc 'section 'categorization)
 
-;;; Categorize symbols by naming convention
 (define (categorize-symbol sym)
+  (doc 'description "Categorize symbols by naming convention")
   (let ([name (symbol->string sym)])
     (cond
       ;; Predicates end with ?
@@ -131,24 +108,23 @@
       ;; Constants/instances (no dashes, not predicates)
       [else 'value])))
 
-;;; string-prefix? : String x String -> Boolean
 (define (string-prefix? prefix str)
+  (doc 'description "Check if string starts with prefix")
   (let ([plen (string-length prefix)]
         [slen (string-length str)])
     (and (>= slen plen)
          (string=? prefix (substring str 0 plen)))))
 
-;;; string-contains-char? : String x Char -> Boolean
 (define (string-contains-char? str ch)
+  (doc 'description "Check if string contains character")
   (let loop ([i 0])
     (cond
       [(>= i (string-length str)) #f]
       [(char=? (string-ref str i) ch) #t]
       [else (loop (+ i 1))])))
 
-;;; group-exports : (List Symbol) -> Alist
-;;; Group symbols by category.
 (define (group-exports symbols)
+  (doc 'description "Group symbols by category")
   (let ([groups (make-eq-hashtable)])
     (for-each
      (lambda (sym)
@@ -161,13 +137,10 @@
            (cons cat (reverse (hashtable-ref groups cat '()))))
          '(constructor predicate accessor-or-op value))))
 
-;;; ====
-;;; Pretty Printing
-;;; ====
+(doc 'section 'pretty-printing)
 
-;;; exports-of-pretty : String -> void
-;;; Pretty-print exports grouped by category.
 (define (exports-of-pretty filepath)
+  (doc 'description "Pretty-print exports grouped by category")
   (let ([symbols (exports-of filepath)])
     (if (null? symbols)
         (printf "No exports found in ~a\n" filepath)
@@ -188,8 +161,8 @@
              groups))
           (printf "~a\n" (make-string 60 #\─))))))
 
-;;; category-label : Symbol -> String
 (define (category-label cat)
+  (doc 'description "Convert category symbol to display label")
   (case cat
     [(constructor) "Constructors"]
     [(predicate) "Predicates"]
@@ -197,9 +170,8 @@
     [(value) "Values & Instances"]
     [else "Other"]))
 
-;;; print-symbol-columns : (List Symbol) x Nat x Nat -> void
-;;; Print symbols in columns.
 (define (print-symbol-columns syms cols width)
+  (doc 'description "Print symbols in columns")
   (let loop ([remaining syms] [col 0])
     (unless (null? remaining)
       (let ([sym (car remaining)])
@@ -212,20 +184,17 @@
   (let ([rem (remainder (length syms) cols)])
     (when (> rem 0) (newline))))
 
-;;; pad-right : String x Nat -> String
 (define (pad-right str width)
+  (doc 'description "Pad string to width with spaces on right")
   (let ([len (string-length str)])
     (if (>= len width)
         str
         (string-append str (make-string (- width len) #\space)))))
 
-;;; ====
-;;; Quick Summary
-;;; ====
+(doc 'section 'quick-summary)
 
-;;; exports-of-summary : String -> void
-;;; One-line summary of exports.
 (define (exports-of-summary filepath)
+  (doc 'description "One-line summary of exports")
   (let ([symbols (exports-of filepath)])
     (if (null? symbols)
         (printf "~a: (no exports)\n" filepath)
@@ -244,8 +213,8 @@
             ", "))
           (printf ")\n")))))
 
-;;; short-category : Symbol -> String
 (define (short-category cat)
+  (doc 'description "Convert category symbol to short label")
   (case cat
     [(constructor) "constructors"]
     [(predicate) "predicates"]
@@ -253,16 +222,16 @@
     [(value) "values"]
     [else "other"]))
 
-;;; string-join : (List String) x String -> String
 (define (string-join strs sep)
+  (doc 'description "Join strings with separator")
   (if (null? strs)
       ""
       (fold-left (lambda (acc s) (string-append acc sep s))
                  (car strs)
                  (cdr strs))))
 
-;;; filter-map helper
 (define (filter-map f lst)
+  (doc 'description "Map function over list, filtering out #f results")
   (let loop ([lst lst] [acc '()])
     (if (null? lst)
         (reverse acc)
@@ -271,18 +240,13 @@
               (loop (cdr lst) (cons result acc))
               (loop (cdr lst) acc))))))
 
-;;; ====
-;;; Convenience Aliases
-;;; ====
+(doc 'section 'convenience-aliases)
 
-;;; lef : String -> void
-;;; Quick "lattice export file" - pretty-print exports
 (define (lef filepath)
+  (doc 'description "Quick alias for exports-of-pretty (lattice export file)")
   (exports-of-pretty filepath))
 
-;;; ====
-;;; REPL Interface
-;;; ====
+(doc 'section 'repl-interface)
 
 (printf "\nexports.ss loaded — Quick export discovery\n")
 (printf "  (exports-of \"file.ss\")        - List exported symbols\n")

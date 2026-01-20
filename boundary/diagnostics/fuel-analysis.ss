@@ -1,70 +1,39 @@
-;;; boundary/diagnostics/fuel-analysis.ss — Primitive-Level Fuel Cost Analysis
-;;;
-;;; Analyze fuel costs by tracking primitive operations during evaluation.
-;;; This provides fine-grained cost analysis at the primitive level,
-;;; complementing the evaluation-level fuel profiler (fuel-profile.ss).
-;;;
-;;; Features:
-;;;   - Track all primitive calls during evaluation
-;;;   - Sum fuel costs based on prim-fuel-cost
-;;;   - Estimate computational complexity from fuel growth
-;;;
-;;; This is Shell code: uses parameters for instrumentation.
-;;;
-;;; USAGE:
-;;;
-;;;   1. Write functions using prim-instrumented instead of prim:
-;;;      (define (my-func x)
-;;;        (prim-instrumented 'add x 10))
-;;;
-;;;   2. Analyze fuel consumption:
-;;;      (analyze-fuel my-func 5)
-;;;      => ((total-fuel . 2)
-;;;          (primitive-calls . ((add . 1)))
-;;;          (result . 15))
-;;;
-;;;   3. Estimate complexity:
-;;;      (estimate-complexity
-;;;        my-func
-;;;        (lambda (n) n)  ; input generator
-;;;        '(10 100 1000)) ; sizes to test
-;;;      => ((complexity . "O(1)")
-;;;          (fuel-samples . ((10 . 2) (100 . 2) (1000 . 2)))
-;;;          (growth-factor . 1.0))
-;;;
-;;; See test-fuel-analysis.ss for comprehensive examples.
-;;; See fuel-analysis-demo.ss for practical demonstrations.
-;;;
-;;; Dependencies:
-;;;   - Inlines minimal code from core/prelude.ss
-;;;   - Inlines prim-fuel-cost from core/prim.ss
+(doc 'module 'fuel-analysis)
+(doc 'description "Primitive-Level Fuel Cost Analysis - analyze fuel costs by tracking primitive operations during evaluation")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
 
-;;; We need minimal prelude utilities
-;;; Inline them to avoid path issues
+(doc 'note "Features: track all primitive calls during evaluation, sum fuel costs based on prim-fuel-cost, estimate computational complexity from fuel growth")
 
-;;; fold-left : (β × α → β) × β × (List α) → β
+(doc 'section 'minimal-prelude-utilities)
+
 (define (fold-left f acc lst)
+  (doc 'description "Fold left over list")
   (if (null? lst)
       acc
       (fold-left f (f acc (car lst)) (cdr lst))))
 
-;;; filter : (α → Bool) × (List α) → (List α)
 (define (filter pred lst)
+  (doc 'description "Filter list by predicate")
   (cond
    [(null? lst) '()]
    [(pred (car lst)) (cons (car lst) (filter pred (cdr lst)))]
    [else (filter pred (cdr lst))]))
 
-;;; zip : (List α) × (List β) → (List (Pair α β))
 (define (zip xs ys)
+  (doc 'description "Zip two lists into pairs")
   (if (or (null? xs) (null? ys))
       '()
       (cons (cons (car xs) (car ys))
             (zip (cdr xs) (cdr ys)))))
 
-;;; Inline prim-fuel-cost from core/prim.ss
-;;; This avoids loading the entire core module
+(doc 'section 'prim-fuel-cost)
+
 (define (prim-fuel-cost op)
+  (doc 'description "Get fuel cost for a primitive operation (inlined from core/prim.ss)")
+  (doc 'param '(op "Primitive operation symbol"))
+  (doc 'returns "Nat or #f - fuel cost or #f if unknown")
+
   (case op
         ;; Tier 1 (Cost 1)
         [(number? integer? symbol? string? char? bytevector? block?
@@ -76,7 +45,7 @@
          1]
         [(eq? zero? positive? negative?)
          1]
-        
+
         ;; Tier 2 (Cost 2)
         [(add sub mul neg abs)
          2]
@@ -92,7 +61,7 @@
          2]
         [(bv-length vec-length string-length)
          2]
-        
+
         ;; Tier 3 (Cost 3)
         [(div mod)
          3]
@@ -104,7 +73,7 @@
          3]
         [(memq assq)
          3]
-        
+
         ;; Tier 4 (Cost 5)
         [(length reverse)
          5]
@@ -116,7 +85,7 @@
          5]
         [(symbol->string string->symbol)
          5]
-        
+
         ;; Tier 5 (Cost 10)
         [(string-append substring)
          10]
@@ -130,24 +99,29 @@
          10]
         [(string->number)
          10]
-        
+
         ;; Tier 6 (Cost 15)
         [(number->string)
          15]
-        
+
         ;; Tier 7 (Cost 100)
         [(sha256)
          100]
-        
+
         ;; Tier 8 (Cost 110)
         [(hash-block)
          110]
-        
+
         [else #f]))
 
-;;; Inline prim from core/prim.ss
-;;; Expanded version with commonly used operations
+(doc 'section 'inline-prim)
+
 (define (prim op . args)
+  (doc 'description "Inline prim dispatcher (expanded version with commonly used operations)")
+  (doc 'param '(op "Operation symbol"))
+  (doc 'param '(args "Operation arguments"))
+  (doc 'returns "Result or error")
+
   (case op
         ;; Arithmetic
         [(add) (apply + args)]
@@ -163,7 +137,7 @@
              (modulo (car args) (cadr args)))]
         [(neg) (- (car args))]
         [(abs) (abs (car args))]
-        
+
         ;; Comparison
         [(eq?) (equal? (car args) (cadr args))]
         [(lt?) (< (car args) (cadr args))]
@@ -173,7 +147,7 @@
         [(zero?) (zero? (car args))]
         [(positive?) (positive? (car args))]
         [(negative?) (negative? (car args))]
-        
+
         ;; List operations
         [(null?) (null? (car args))]
         [(pair?) (pair? (car args))]
@@ -184,12 +158,12 @@
         [(length) (length (car args))]
         [(append) (apply append args)]
         [(reverse) (reverse (car args))]
-        
+
         ;; Boolean
         [(not) (not (car args))]
         [(and) (and (car args) (cadr args))]
         [(or) (or (car args) (cadr args))]
-        
+
         ;; Type predicates
         [(number?) (number? (car args))]
         [(integer?) (integer? (car args))]
@@ -197,27 +171,21 @@
         [(string?) (string? (car args))]
         [(boolean?) (boolean? (car args))]
         [(list?) (list? (car args))]
-        
+
         [else `(error unknown-primitive ,op)]))
 
-;;; ====
-;;; Instrumentation State
-;;; ====
-
-;;; We use a parameter to track primitive calls during evaluation.
-;;; This is a thread-local mutable cell that holds:
-;;;   ((op . count) ...)
+(doc 'section 'instrumentation-state)
 
 (define *prim-trace* (make-parameter '()))
 
-;;; reset-prim-trace! : → void
-;;; Reset the primitive call trace.
 (define (reset-prim-trace!)
+  (doc 'description "Reset the primitive call trace")
   (*prim-trace* '()))
 
-;;; record-prim-call! : Symbol → void
-;;; Record a primitive call in the trace.
 (define (record-prim-call! op)
+  (doc 'description "Record a primitive call in the trace")
+  (doc 'param '(op "Primitive operation symbol"))
+
   (let ([trace (*prim-trace*)])
        (let ([existing (assq op trace)])
             (if existing
@@ -225,28 +193,29 @@
                                     (filter (lambda (p) (not (eq? (car p) op))) trace)))
                 (*prim-trace* (cons (cons op 1) trace))))))
 
-;;; get-prim-trace : → ((Symbol . Nat) ...)
-;;; Get the current primitive call trace.
 (define (get-prim-trace)
+  (doc 'description "Get the current primitive call trace")
+  (doc 'returns "List of (symbol . count) pairs")
   (*prim-trace*))
 
-;;; ====
-;;; Instrumented Primitive Dispatcher
-;;; ====
+(doc 'section 'instrumented-primitive-dispatcher)
 
-;;; prim-instrumented : Symbol × Args... → Value
-;;; Instrumented version of prim that records calls.
 (define (prim-instrumented op . args)
+  (doc 'description "Instrumented version of prim that records calls")
+  (doc 'param '(op "Operation symbol"))
+  (doc 'param '(args "Operation arguments"))
+  (doc 'returns "Result of operation")
+
   (record-prim-call! op)
   (apply prim op args))
 
-;;; ====
-;;; Fuel Cost Calculation
-;;; ====
+(doc 'section 'fuel-cost-calculation)
 
-;;; calculate-total-fuel : ((Symbol . Nat) ...) → Nat
-;;; Calculate total fuel cost from primitive call trace.
 (define (calculate-total-fuel trace)
+  (doc 'description "Calculate total fuel cost from primitive call trace")
+  (doc 'param '(trace "List of (symbol . count) pairs"))
+  (doc 'returns "Nat - total fuel cost")
+
   (fold-left
    (lambda (total entry)
            (let ([op (car entry)]
@@ -254,113 +223,87 @@
                 (let ([cost (prim-fuel-cost op)])
                      (if cost
                          (+ total (* count cost))
-                         total))))  ; Skip unknown primitives
+                         total))))
    0
    trace))
 
-;;; ====
-;;; Tool 1: analyze-fuel
-;;; ====
+(doc 'section 'tool-1-analyze-fuel)
 
-;;; analyze-fuel : (α → β) × α → ((total-fuel . Nat) (primitive-calls . ...) (result . β))
-;;; Analyze fuel consumption for a function call by tracing primitives.
-;;;
-;;; This is a simplified version that doesn't require full evaluation infrastructure.
-;;; It works by:
-;;;   1. Resetting the trace
-;;;   2. Calling the function (which calls prim operations)
-;;;   3. Recording what primitives were called
-;;;   4. Computing total fuel from the trace
-;;;
-;;; NOTE: This only works if the function being analyzed uses the `prim`
-;;; function directly. For proper analysis of arbitrary expressions,
-;;; you'd need to instrument the evaluator itself.
 (define (analyze-fuel func input)
+  (doc 'description "Analyze fuel consumption for a function call by tracing primitives")
+  (doc 'param '(func "Function to analyze"))
+  (doc 'param '(input "Input to function"))
+  (doc 'returns "Alist with total-fuel, primitive-calls, result or error")
+
   (guard (e [else
              `((total-fuel . 0)
                (primitive-calls . ())
                (error . ,(if (condition? e)
                              (condition-message e)
                              (format "~a" e))))])
-         ;; Reset trace
          (reset-prim-trace!)
-         
-         ;; Execute function
+
          (let ([result (func input)])
-              
-              ;; Get trace and calculate fuel
+
               (let* ([trace (get-prim-trace)]
                      [total-fuel (calculate-total-fuel trace)])
-                    
+
                     `((total-fuel . ,total-fuel)
                       (primitive-calls . ,trace)
                       (result . ,result))))))
 
-;;; ====
-;;; Simple Test Wrapper
-;;; ====
+(doc 'section 'simple-test-wrappers)
 
-;;; For testing, we can wrap primitive operations to demonstrate:
-
-;;; test-add : Nat → Nat
-;;; Test function that uses instrumented prim (adds input to itself).
 (define (test-add x)
+  (doc 'description "Test function that uses instrumented prim (adds input to itself)")
   (prim-instrumented 'add x x))
 
-;;; test-factorial : Nat → Nat
-;;; Factorial using instrumented primitives.
 (define (test-factorial n)
+  (doc 'description "Factorial using instrumented primitives")
   (if (prim-instrumented 'zero? n)
       1
       (prim-instrumented 'mul n (test-factorial (prim-instrumented 'sub n 1)))))
 
-;;; ====
-;;; Tool 2: estimate-complexity
-;;; ====
+(doc 'section 'tool-2-estimate-complexity)
 
-;;; estimate-complexity : (α → β) × (Nat → α) × (List Nat) → Result
-;;; Estimate computational complexity by running with multiple input sizes.
-;;;
-;;; Returns:
-;;;   ((complexity . "O(...)")
-;;;    (fuel-samples . ((size . fuel) ...))
-;;;    (growth-factor . ratio))
 (define (estimate-complexity func input-generator sizes)
+  (doc 'description "Estimate computational complexity by running with multiple input sizes")
+  (doc 'param '(func "Function to analyze"))
+  (doc 'param '(input-generator "Function: Nat -> Input"))
+  (doc 'param '(sizes "List of input sizes to test"))
+  (doc 'returns "Alist with complexity, fuel-samples, growth-factor")
+
   (guard (e [else
              `((error . ,(if (condition? e)
                              (condition-message e)
                              (format "~a" e))))])
-         
-         ;; Collect fuel samples for each size
+
          (let ([samples
                 (map (lambda (size)
                              (let* ([input (input-generator size)]
                                     [analysis (analyze-fuel func input)])
                                    (cons size (cdr (assq 'total-fuel analysis)))))
                      sizes)])
-              
-              ;; Analyze growth pattern
+
               (if (< (length samples) 2)
                   `((complexity . "insufficient-data")
                     (fuel-samples . ,samples)
                     (growth-factor . 0))
-                  
+
                   (let* ([sorted-samples (sort-samples samples)]
                          [complexity-class (classify-complexity sorted-samples)]
                          [growth-factor (calculate-growth-factor sorted-samples)])
-                        
+
                         `((complexity . ,complexity-class)
                           (fuel-samples . ,sorted-samples)
                           (growth-factor . ,growth-factor)))))))
 
-;;; sort-samples : ((Nat . Nat) ...) → ((Nat . Nat) ...)
-;;; Sort samples by size.
 (define (sort-samples samples)
+  (doc 'description "Sort samples by size")
   (sort-list samples (lambda (a b) (< (car a) (car b)))))
 
-;;; calculate-growth-factor : ((Nat . Nat) ...) → Real
-;;; Calculate average growth factor between consecutive samples.
 (define (calculate-growth-factor samples)
+  (doc 'description "Calculate average growth factor between consecutive samples")
   (if (< (length samples) 2)
       0
       (let* ([pairs (zip samples (cdr samples))]
@@ -380,9 +323,8 @@
                 0
                 (/ (fold-left + 0 ratios) (length ratios))))))
 
-;;; classify-complexity : ((Nat . Nat) ...) → String
-;;; Classify complexity based on growth pattern.
 (define (classify-complexity samples)
+  (doc 'description "Classify complexity based on growth pattern")
   (if (< (length samples) 2)
       "O(1)"
       (let* ([first (car samples)]
@@ -391,63 +333,53 @@
                             (exact->inexact (car first)))]
              [fuel-ratio (/ (exact->inexact (cdr last))
                             (exact->inexact (cdr first)))])
-            
+
             (cond
-             ;; Constant: fuel barely changes
              [(<= fuel-ratio 1.5)
               "O(1)"]
-             
-             ;; Linear: fuel grows proportionally to input
+
              [(and (> fuel-ratio (* 0.8 size-ratio))
                    (< fuel-ratio (* 1.5 size-ratio)))
               "O(n)"]
-             
-             ;; Quadratic: fuel grows with square of input
-             ;; Widened lower bound (0.5) to account for constant factors
+
              [(and (> fuel-ratio (* 0.5 size-ratio size-ratio))
                    (< fuel-ratio (* 1.5 size-ratio size-ratio)))
               "O(n²)"]
-             
-             ;; Cubic
+
              [(and (> fuel-ratio (* 0.5 size-ratio size-ratio size-ratio))
                    (< fuel-ratio (* 1.5 size-ratio size-ratio size-ratio)))
               "O(n³)"]
-             
-             ;; Logarithmic: very slow growth
+
              [(< fuel-ratio (* 2 (log size-ratio)))
               "O(log n)"]
-             
-             ;; Linearithmic
+
              [(and (> fuel-ratio (* 0.8 size-ratio (log size-ratio)))
                    (< fuel-ratio (* 1.5 size-ratio (log size-ratio))))
               "O(n log n)"]
-             
-             ;; Exponential: very fast growth
+
              [(> fuel-ratio (* 1.5 size-ratio size-ratio))
               "O(2^n) or worse"]
-             
-             ;; Unknown
+
              [else
               (format "unknown (~ax growth)"
                       (exact (round fuel-ratio)))]))))
 
-;;; ====
-;;; Pretty Printing
-;;; ====
+(doc 'section 'pretty-printing)
 
-;;; print-analysis : Analysis → void
-;;; Pretty print fuel analysis results.
 (define (print-analysis analysis)
+  (doc 'description "Pretty print fuel analysis results")
+  (doc 'param '(analysis "Analysis alist"))
+
   (display "\n╔══════════════════════════════════════════════════════════════╗\n")
   (display "║              PRIMITIVE FUEL ANALYSIS                         ║\n")
   (display "╚══════════════════════════════════════════════════════════════╝\n\n")
-  
+
   (let ([total-fuel (cdr (assq 'total-fuel analysis))]
         [prim-calls (cdr (assq 'primitive-calls analysis))]
         [result (assq 'result analysis)])
-       
+
        (display (format "Total Fuel: ~a\n\n" total-fuel))
-       
+
        (display "Primitive Calls:\n")
        (for-each
         (lambda (entry)
@@ -460,23 +392,24 @@
                           (display (format "  ~a: ~a calls (unknown cost)\n"
                                            op count)))))
         (sort-list prim-calls (lambda (a b) (> (cdr a) (cdr b)))))
-       
+
        (when result
              (display (format "\nResult: ~s\n" (cdr result))))))
 
-;;; print-complexity-analysis : ComplexityAnalysis → void
-;;; Pretty print complexity analysis results.
 (define (print-complexity-analysis analysis)
+  (doc 'description "Pretty print complexity analysis results")
+  (doc 'param '(analysis "Complexity analysis alist"))
+
   (display "\n╔══════════════════════════════════════════════════════════════╗\n")
   (display "║            COMPLEXITY ANALYSIS                               ║\n")
   (display "╚══════════════════════════════════════════════════════════════╝\n\n")
-  
+
   (let ([complexity (cdr (assq 'complexity analysis))]
         [samples (cdr (assq 'fuel-samples analysis))]
         [growth (cdr (assq 'growth-factor analysis))])
-       
+
        (display (format "Estimated Complexity: ~a\n\n" complexity))
-       
+
        (display "Fuel Samples:\n")
        (display "  Size       Fuel\n")
        (display "  ────────────────\n")
@@ -487,15 +420,14 @@
                                  (make-string (max 1 (- 11 (string-length (number->string (car sample))))) #\space)
                                  (cdr sample))))
         samples)
-       
+
        (display (format "\nAverage Growth Factor: ~a\n"
                         (if (number? growth)
                             (exact (round (* 100 growth)))
                             growth)))))
 
-;;; sort-list : (List α) × (α × α → Bool) → (List α)
-;;; Sort a list using comparison function (renamed to avoid conflicts).
 (define (sort-list lst less?)
+  (doc 'description "Sort a list using comparison function")
   (if (or (null? lst) (null? (cdr lst)))
       lst
       (let* ([pivot (car lst)]

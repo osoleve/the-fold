@@ -1,48 +1,33 @@
-;;; boundary/debug/xref.ss — Code Cross-Reference Tool
-;;;
-;;; Find all references to definitions across the codebase.
-;;; Helps understand where functions, variables, and other definitions are used.
-;;;
-;;; Features:
-;;;   - Find all uses of a symbol
-;;;   - Find all definitions of a symbol
-;;;   - Show context around each reference
-;;;   - Support for filtering by directory
-;;;   - Generate cross-reference reports
-;;;
-;;; This is Shell code: reads files, parses S-expressions.
-;;;
-;;; Usage:
-;;;   (xref-find-uses fs "hash-block")
-;;;   (xref-find-uses fs "hash-block" "core")  ; search only in core/
-;;;   (xref-find-defs fs "hash-block")
-;;;   (xref-report fs "hash-block" "xref-report.txt")
-;;;   (xref-index fs "core")  ; build index of all definitions
-;;;
-;;; Dependencies:
-;;;   boundary/io/fs.ss
-;;;   boundary/tools/edit.ss
-;;;   core/prelude.ss (for string-trim, etc.)
-;;;
-;;; NOTE: string-trim and string-split-lines provided by boundary/tools/string-utils.ss.
-
 (load "boundary/tools/string-utils.ss")
 
-;;; Set up source-directories to find shell modules
 (source-directories (cons "shell" (source-directories)))
 
-(load "fs.ss")
-(load "edit.ss")
+(load "boundary/io/fs.ss")
+(load "boundary/tools/edit.ss")
 
-;;; ====
-;;; S-Expression Walking
-;;; ====
+(doc 'module 'xref)
+(doc 'description "Find all references to definitions across the codebase")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+(doc 'features
+     "Find all uses of a symbol"
+     "Find all definitions of a symbol"
+     "Show context around each reference"
+     "Support for filtering by directory"
+     "Generate cross-reference reports")
+(doc 'usage "(xref-find-uses fs \"symbol-name\" [\"directory\"])")
+(doc 'usage "(xref-find-defs fs \"symbol-name\" [\"directory\"])")
+(doc 'usage "(xref-report fs \"symbol-name\" \"output-file\" [\"directory\"])")
+(doc 'usage "(xref-index fs \"directory\")")
+(doc 'note "string-trim and string-split-lines provided by boundary/tools/string-utils.ss")
 
-;;; find-symbol-in-sexpr : Symbol × S-expr × Nat → (List Nat)
-;;; Find all positions where symbol appears in s-expression.
-;;; Position is the nesting depth/index - used for reporting.
-;;; Returns list of line numbers where symbol appears (approximate).
+(doc 'section 'sexpr-walking)
+
 (define (find-symbol-in-sexpr sym sexpr context)
+  (doc 'type (-> Symbol Sexpr Nat (List Nat)))
+  (doc 'description "Find all positions where symbol appears in s-expression")
+  (doc 'note "Position is the nesting depth/index - used for reporting")
+  (doc 'returns "List of line numbers where symbol appears (approximate)")
   (let walk ([expr sexpr]
              [results '()]
              [depth 0])
@@ -56,18 +41,18 @@
               (walk (cdr expr) results (+ depth 1)))]
         [else results])))
 
-;;; is-definition? : S-expr → Boolean
-;;; Check if s-expression is a definition form.
 (define (is-definition? expr)
+  (doc 'type (-> Sexpr Boolean))
+  (doc 'description "Check if s-expression is a definition form")
   (and (pair? expr)
        (symbol? (car expr))
        (memq (car expr) '(define define-syntax let let* letrec letrec*
                           lambda λ case-lambda
                           define-record-type))))
 
-;;; extract-defined-name : S-expr → Symbol | #f
-;;; Extract the name being defined from a definition form.
 (define (extract-defined-name expr)
+  (doc 'type (-> Sexpr (Maybe Symbol)))
+  (doc 'description "Extract the name being defined from a definition form")
   (cond
    [(not (pair? expr)) #f]
    [(not (pair? (cdr expr))) #f]
@@ -96,17 +81,15 @@
                     #f)]
                [else #f]))]))
 
-;;; ====
-;;; File Analysis
-;;; ====
+(doc 'section 'file-analysis)
 
-;;; Reference = (file-path line-number context-line)
-;;; where context-line is the actual line of code
+(doc 'type-alias 'Reference '(Tuple String Nat String))
+(doc 'note "Reference = (file-path line-number context-line) where context-line is the actual line of code")
 
-;;; search-file-for-symbol : FS × String × Symbol → (List Reference)
-;;; Search a file for all occurrences of a symbol.
-;;; Returns list of references with file path, line number, and context.
 (define (search-file-for-symbol fs file-path sym)
+  (doc 'type (-> FS String Symbol (List Reference)))
+  (doc 'description "Search a file for all occurrences of a symbol")
+  (doc 'returns "List of references with file path, line number, and context")
   (guard (e [else '()])
          (let* ([content (read-text-file fs file-path)]
                 [lines (string-split-lines content)]
@@ -130,9 +113,9 @@
                                           (loop (+ line-no 1) (cons ref results)))
                                     (loop (+ line-no 1) results)))]))))))
 
-;;; find-symbol-in-expr : Symbol × S-expr → Boolean
-;;; Check if symbol appears anywhere in the expression.
 (define (find-symbol-in-expr sym expr)
+  (doc 'type (-> Symbol Sexpr Boolean))
+  (doc 'description "Check if symbol appears anywhere in the expression")
   (cond
    [(symbol? expr) (eq? expr sym)]
    [(pair? expr)
@@ -140,20 +123,18 @@
         (find-symbol-in-expr sym (cdr expr)))]
    [else #f]))
 
-;;; get-context-line : (List String) × Nat → String
-;;; Get the line at the given line number (1-indexed).
 (define (get-context-line lines line-no)
+  (doc 'type (-> (List String) Nat String))
+  (doc 'description "Get the line at the given line number (1-indexed)")
   (if (and (> line-no 0) (<= line-no (length lines)))
       (list-ref lines (- line-no 1))
       ""))
 
-;;; ====
-;;; Definition Finding
-;;; ====
+(doc 'section 'definition-finding)
 
-;;; find-definitions-in-file : FS × String × Symbol → (List Reference)
-;;; Find all definitions of a symbol in a file.
 (define (find-definitions-in-file fs file-path sym)
+  (doc 'type (-> FS String Symbol (List Reference)))
+  (doc 'description "Find all definitions of a symbol in a file")
   (guard (e [else '()])
          (let* ([content (read-text-file fs file-path)]
                 [lines (string-split-lines content)]
@@ -176,12 +157,10 @@
                                           (loop (+ line-no 1) (cons ref results)))
                                     (loop (+ line-no 1) results)))]))))))
 
-;;; ====
-;;; Directory Traversal
-;;; ====
+(doc 'section 'directory-traversal)
 
-;;; find-all-scheme-files : FS × String → (List String)
-;;; Recursively find all .ss files in a directory.
+(doc find-all-scheme-files 'type (-> FS String (List String)))
+(doc find-all-scheme-files 'description "Recursively find all .ss files in a directory")
 (define (find-all-scheme-files fs dir-path)
   (define (scheme-file? path)
     (and (>= (string-length path) 3)
@@ -223,13 +202,11 @@
                  [else
                   (loop rest result)])))))
 
-;;; ====
-;;; Public API
-;;; ====
+(doc 'section 'public-api)
 
-;;; xref-find-uses : FS × String × [String] → void
-;;; Find all uses of a symbol across the codebase.
 (define (xref-find-uses fs sym . opts)
+  (doc 'type (-> FS String [String] Void))
+  (doc 'description "Find all uses of a symbol across the codebase")
   (let* ([symbol (if (string? sym) (string->symbol sym) sym)]
          [dir (if (null? opts) "." (car opts))]
          [files (find-all-scheme-files fs dir)]
@@ -263,9 +240,9 @@
              all-refs))
         (display "\n")))
 
-;;; xref-find-defs : FS × String × [String] → void
-;;; Find all definitions of a symbol.
 (define (xref-find-defs fs sym . opts)
+  (doc 'type (-> FS String [String] Void))
+  (doc 'description "Find all definitions of a symbol")
   (let* ([symbol (if (string? sym) (string->symbol sym) sym)]
          [dir (if (null? opts) "." (car opts))]
          [files (find-all-scheme-files fs dir)]
@@ -292,9 +269,9 @@
              all-defs))
         (display "\n")))
 
-;;; xref-report : FS × String × String × [String] → void
-;;; Generate a comprehensive cross-reference report.
 (define (xref-report fs sym output-file . opts)
+  (doc 'type (-> FS String String [String] Void))
+  (doc 'description "Generate a comprehensive cross-reference report")
   (let* ([symbol (if (string? sym) (string->symbol sym) sym)]
          [dir (if (null? opts) "." (car opts))]
          [files (find-all-scheme-files fs dir)]
@@ -352,9 +329,9 @@
         
         (display (format "Report written to ~a\n" output-file))))
 
-;;; xref-index : FS × String → void
-;;; Build and display an index of all definitions in a directory.
 (define (xref-index fs dir-path)
+  (doc 'type (-> FS String Void))
+  (doc 'description "Build and display an index of all definitions in a directory")
   (let* ([files (find-all-scheme-files fs dir-path)]
          [index (make-eq-hashtable)])
         
@@ -399,12 +376,9 @@
               symbols))
         (display "\n")))
 
-;;; ====
-;;; Utilities
-;;; ====
-
-;;; NOTE: string-trim provided by core/prelude.ss
-;;; NOTE: remove-duplicates provided by core/base/prelude.ss
+(doc 'section 'utilities)
+(doc 'note "string-trim provided by core/prelude.ss")
+(doc 'note "remove-duplicates provided by core/base/prelude.ss")
 
 (display "Cross-reference tool loaded.\n")
 (display "Usage:\n")

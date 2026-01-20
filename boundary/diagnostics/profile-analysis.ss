@@ -1,30 +1,24 @@
-;;; boundary/diagnostics/profile-analysis.ss — Profile Analysis and Optimization Hints
-;;;
-;;; Analyzes profiler output to suggest optimizations:
-;;;   - Tail-call opportunities
-;;;   - Map/fold fusion candidates
-;;;   - O(n) → O(1) lookup improvements
-;;;   - Repeated computation detection
-;;;
-;;; This is Shell code: heuristic analysis with suggestions.
-;;;
-;;; Dependencies:
-;;;   - core/util/profile.ss
-
 (load "core/util/profile.ss")
 
-;;; ====
-;;; Hint Data Structure
-;;; ====
+(doc 'module 'profile-analysis)
+(doc 'description "Profile Analysis and Optimization Hints - analyzes profiler output to suggest optimizations")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
 
-;;; A hint is:
-;;;   (hint type severity location message suggestion)
-;;;
-;;; Types: tail-call, fusion, lookup, memoize, inline
-;;; Severity: info, warning, critical
+(doc 'note "Features: tail-call opportunities, map/fold fusion candidates, O(n) → O(1) lookup improvements, repeated computation detection")
+
+(doc 'section 'hint-data-structure)
 
 (define (make-hint type severity location message suggestion)
-  `(hint
+  (doc 'description "Create an optimization hint")
+  (doc 'param '(type "Hint type: tail-call, fusion, lookup, memoize, inline"))
+  (doc 'param '(severity "Severity: info, warning, critical"))
+  (doc 'param '(location "Location symbol or list"))
+  (doc 'param '(message "Hint message"))
+  (doc 'param '(suggestion "Suggestion text"))
+  (doc 'returns "Hint structure")
+
+  \`(hint
     (type . ,type)
     (severity . ,severity)
     (location . ,location)
@@ -41,19 +35,17 @@
 (define (hint-message h) (hint-get h 'message))
 (define (hint-suggestion h) (hint-get h 'suggestion))
 
-;;; ====
-;;; Pattern Detection: Tail-Call Opportunities
-;;; ====
-
-;;; Detect recursive calls that could be tail-calls
-;;; Pattern: (fix name (fn (args) ... (name ...)))
-;;; where (name ...) is not in tail position
+(doc 'section 'pattern-detection-tail-call)
 
 (define (detect-tail-call-opportunities p)
+  (doc 'description "Detect recursive calls that could be tail-calls")
+  (doc 'param '(p "Profiler"))
+  (doc 'returns "List of hints")
+
   (let* ([stats (profile-stats p)]
          [by-fn (cdr (assq 'by-function stats))]
          [recursive-fns (filter (lambda (entry)
-                                        (> (cddr entry) 10))  ; Called > 10 times
+                                        (> (cddr entry) 10))
                                 by-fn)])
         (map (lambda (entry)
                      (let ([name (car entry)]
@@ -69,17 +61,15 @@
                                    name))))
              recursive-fns)))
 
-;;; ====
-;;; Pattern Detection: Fusion Opportunities
-;;; ====
-
-;;; Detect consecutive map/filter/fold operations that could fuse
-;;; Pattern: (map f (map g xs)) → (map (compose f g) xs)
-;;; Pattern: (map f (filter p xs)) → (filter-map ...)
+(doc 'section 'pattern-detection-fusion)
 
 (define *fusable-ops* '(map filter foldl foldr))
 
 (define (detect-fusion-opportunities p)
+  (doc 'description "Detect consecutive map/filter/fold operations that could fuse")
+  (doc 'param '(p "Profiler"))
+  (doc 'returns "List of hints")
+
   (let* ([root (profiler-root p)]
          [pairs (find-adjacent-calls root *fusable-ops*)])
         (map (lambda (pair)
@@ -93,8 +83,8 @@
                            (format "Combine into single traversal: (fuse-~a-~a ...)" inner outer))))
              pairs)))
 
-;;; find-adjacent-calls : Node × List → List of pairs
 (define (find-adjacent-calls node ops)
+  (doc 'description "Find adjacent calls to operations in ops")
   (let* ([children (node-children node)]
          [pairs (find-adjacent-in-list children ops)]
          [recursive-pairs (apply append
@@ -115,23 +105,22 @@
                       (find-adjacent-in-list (cdr nodes) ops))
                 (find-adjacent-in-list (cdr nodes) ops)))))
 
-;;; ====
-;;; Pattern Detection: Expensive Lookups
-;;; ====
-
-;;; Detect repeated assq/assv/member calls that could use hashtables
-;;; Pattern: Many calls to assq with similar call patterns
+(doc 'section 'pattern-detection-lookup)
 
 (define *lookup-ops* '(assq assv assoc member memq memv elem))
 
 (define (detect-lookup-opportunities p)
+  (doc 'description "Detect repeated assq/member calls that could use hashtables")
+  (doc 'param '(p "Profiler"))
+  (doc 'returns "List of hints")
+
   (let* ([stats (profile-stats p)]
          [by-fn (cdr (assq 'by-function stats))]
          [lookup-fns (filter (lambda (entry)
                                      (member (car entry) *lookup-ops*))
                              by-fn)]
          [expensive (filter (lambda (entry)
-                                    (> (cadr entry) 100))  ; > 100 fuel
+                                    (> (cadr entry) 100))
                             lookup-fns)])
         (map (lambda (entry)
                      (let ([name (car entry)]
@@ -146,25 +135,24 @@
                            "Consider using a hashtable for O(1) lookup")))
              expensive)))
 
-;;; ====
-;;; Pattern Detection: Memoization Candidates
-;;; ====
-
-;;; Detect pure functions called many times (potential memoization)
+(doc 'section 'pattern-detection-memoize)
 
 (define (detect-memoization-candidates p)
+  (doc 'description "Detect pure functions called many times (potential memoization)")
+  (doc 'param '(p "Profiler"))
+  (doc 'returns "List of hints")
+
   (let* ([stats (profile-stats p)]
          [by-fn (cdr (assq 'by-function stats))]
          [frequent (filter (lambda (entry)
-                                   (and (> (cddr entry) 50)   ; > 50 calls
+                                   (and (> (cddr entry) 50)
                                         (not (member (car entry) *lookup-ops*))
                                         (not (eq? (car entry) 'if))
                                         (not (eq? (car entry) 'let))))
                            by-fn)]
-         ;; Filter to only pure-looking functions (no prim side effects)
          [candidates (filter (lambda (entry)
                                      (let ([fuel-per-call (/ (cadr entry) (cddr entry))])
-                                          (> fuel-per-call 5)))  ; Non-trivial work
+                                          (> fuel-per-call 5)))
                              frequent)])
         (map (lambda (entry)
                      (let ([name (car entry)]
@@ -180,20 +168,20 @@
                                    name))))
              candidates)))
 
-;;; ====
-;;; Pattern Detection: Inline Candidates
-;;; ====
-
-;;; Detect small functions called many times (inline candidates)
+(doc 'section 'pattern-detection-inline)
 
 (define (detect-inline-candidates p)
+  (doc 'description "Detect small functions called many times (inline candidates)")
+  (doc 'param '(p "Profiler"))
+  (doc 'returns "List of hints")
+
   (let* ([stats (profile-stats p)]
          [by-fn (cdr (assq 'by-function stats))]
          [frequent-small (filter (lambda (entry)
                                          (let ([fuel (cadr entry)]
                                                [calls (cddr entry)])
                                               (and (> calls 100)
-                                                   (< (/ fuel calls) 3))))  ; < 3 fuel per call
+                                                   (< (/ fuel calls) 3))))
                                  by-fn)])
         (map (lambda (entry)
                      (let ([name (car entry)]
@@ -209,13 +197,13 @@
                                    name))))
              frequent-small)))
 
-;;; ====
-;;; Full Analysis
-;;; ====
+(doc 'section 'full-analysis)
 
-;;; analyze-profile : Profiler → List of Hints
-;;; Run all analyses and collect hints
 (define (analyze-profile p)
+  (doc 'description "Run all analyses and collect hints")
+  (doc 'param '(p "Profiler"))
+  (doc 'returns "List of all hints")
+
   (append
    (detect-tail-call-opportunities p)
    (detect-fusion-opportunities p)
@@ -223,9 +211,7 @@
    (detect-memoization-candidates p)
    (detect-inline-candidates p)))
 
-;;; ====
-;;; Hint Rendering
-;;; ====
+(doc 'section 'hint-rendering)
 
 (define (severity-symbol sev)
   (case sev
@@ -235,36 +221,34 @@
         [else "  "]))
 
 (define (severity-color sev)
-  ;; ANSI color codes (if terminal supports)
-  ;; Use string constructor since \x1b syntax is invalid in Chez
   (let ([esc (integer->char 27)])
        (case sev
-             [(critical) (string esc #\[ #\3 #\1 #\m)]  ; Red
-             [(warning) (string esc #\[ #\3 #\3 #\m)]   ; Yellow
-             [(info) (string esc #\[ #\3 #\6 #\m)]      ; Cyan
+             [(critical) (string esc #\\[ #\\3 #\\1 #\\m)]
+             [(warning) (string esc #\\[ #\\3 #\\3 #\\m)]
+             [(info) (string esc #\\[ #\\3 #\\6 #\\m)]
              [else ""])))
 
 (define (reset-color)
-  (string (integer->char 27) #\[ #\0 #\m))
+  (string (integer->char 27) #\\[ #\\0 #\\m))
 
-;;; render-hint : Hint → String
 (define (render-hint h)
+  (doc 'description "Render a hint as a string")
   (let ([type (hint-type h)]
         [sev (hint-severity h)]
         [loc (hint-location h)]
         [msg (hint-message h)]
         [sug (hint-suggestion h)])
-       (format "  ~a [~a] ~a\n      ~a\n      >> ~a\n\n"
+       (format "  ~a [~a] ~a\\n      ~a\\n      >> ~a\\n\\n"
                (severity-symbol sev)
                type
                (if (symbol? loc) loc (format "~a" loc))
                msg
                sug)))
 
-;;; render-hints : List of Hints → String
 (define (render-hints hints)
+  (doc 'description "Render all hints as a string")
   (if (null? hints)
-      "  No optimization hints detected.\n"
+      "  No optimization hints detected.\\n"
       (apply string-append
              (map render-hint
                   (list-sort (lambda (a b)
@@ -278,23 +262,26 @@
                                            [else #f])))
                              hints)))))
 
-;;; display-analysis : Profiler → void
 (define (display-analysis p)
+  (doc 'description "Display optimization hints for a profile")
+  (doc 'param '(p "Profiler"))
+
   (let ([hints (analyze-profile p)])
-       (display "\n")
-       (display "  ====\n")
-       (display "           OPTIMIZATION HINTS\n")
-       (display "  ====\n\n")
+       (display "\\n")
+       (display "  ====\\n")
+       (display "           OPTIMIZATION HINTS\\n")
+       (display "  ====\\n\\n")
        (display (render-hints hints))
-       (display (format "  Total: ~a hints\n\n" (length hints)))))
+       (display (format "  Total: ~a hints\\n\\n" (length hints)))))
 
-;;; ====
-;;; Comparative Analysis
-;;; ====
+(doc 'section 'comparative-analysis)
 
-;;; compare-profiles : Profiler × Profiler → String
-;;; Compare two profile runs (before/after optimization)
 (define (compare-profiles p1 p2)
+  (doc 'description "Compare two profile runs (before/after optimization)")
+  (doc 'param '(p1 "Profiler before"))
+  (doc 'param '(p2 "Profiler after"))
+  (doc 'returns "String comparison report")
+
   (let* ([stats1 (profile-stats p1)]
          [stats2 (profile-stats p2)]
          [used1 (cdr (assq 'used-fuel stats1))]
@@ -302,16 +289,18 @@
          [diff (- used1 used2)]
          [pct (if (zero? used1) 0 (* 100.0 (/ diff used1)))])
         (format
-         "  Profile Comparison\n  ====\n  Before: ~a fuel\n  After:  ~a fuel\n  Saved:  ~a fuel (~a%)\n"
+         "  Profile Comparison\\n  ====\\n  Before: ~a fuel\\n  After:  ~a fuel\\n  Saved:  ~a fuel (~a%)\\n"
          used1 used2 diff (round pct))))
 
-;;; ====
-;;; Regression Detection
-;;; ====
+(doc 'section 'regression-detection)
 
-;;; check-regression : Profiler × Nat → List of Hints
-;;; Check if profile exceeds baseline by more than threshold %
 (define (check-regression p baseline threshold-pct)
+  (doc 'description "Check if profile exceeds baseline by more than threshold %")
+  (doc 'param '(p "Profiler"))
+  (doc 'param '(baseline "Baseline fuel count"))
+  (doc 'param '(threshold-pct "Threshold percentage"))
+  (doc 'returns "List of hints if regression detected")
+
   (let* ([stats (profile-stats p)]
          [used (cdr (assq 'used-fuel stats))]
          [pct-increase (if (zero? baseline) 0

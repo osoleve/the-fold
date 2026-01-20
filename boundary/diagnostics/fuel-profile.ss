@@ -1,28 +1,3 @@
-;;; boundary/diagnostics/fuel-profile.ss — Fuel Consumption Profiler
-;;;
-;;; Track and analyze fuel consumption during evaluation.
-;;; Helps identify performance bottlenecks and infinite loops.
-;;;
-;;; Features:
-;;;   - Profile expression evaluation fuel usage
-;;;   - Track fuel consumption per sub-expression
-;;;   - Identify expensive operations
-;;;   - Suggest fuel budgets
-;;;   - Detect potential non-termination
-;;;
-;;; This is Shell code: uses IO for display, delegates to Core.
-;;;
-;;; Usage:
-;;;   (fuel-profile expr fuel)
-;;;   (fuel-profile-detailed expr fuel)
-;;;   (fuel-recommend expr)
-;;;   (fuel-compare expr fuel-list)
-;;;   (fuel-analyze-file fs "file.ss" fuel)
-;;;
-;;; Dependencies:
-;;;   core/eval.ss
-;;;   boundary/tools/edit.ss
-
 ;;; Set up source-directories to find modules
 (source-directories (cons "core" (source-directories)))
 (source-directories (cons "shell" (source-directories)))
@@ -31,24 +6,29 @@
 (load "eval.ss")
 (load "edit.ss")
 
-;;; ====
-;;; Fuel Tracking
-;;; ====
+(doc 'module 'fuel-profile)
+(doc 'description "Fuel Consumption Profiler - track and analyze fuel consumption during evaluation")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
 
-;;; We track fuel consumption by running evaluation with decreasing
-;;; fuel budgets and observing when evaluation succeeds.
+(doc 'note "Features: profile expression evaluation fuel usage, track fuel consumption per sub-expression, identify expensive operations, suggest fuel budgets, detect potential non-termination")
 
-;;; fuel-profile : Expr × Nat → void
-;;; Profile fuel consumption for an expression.
+(doc 'section 'fuel-tracking)
+
 (define (fuel-profile expr fuel)
+  (doc 'description "Profile fuel consumption for an expression")
+  (doc 'param '(expr "Expression to profile"))
+  (doc 'param '(fuel "Fuel budget"))
+  (doc 'returns "void - displays profile report")
+
   (display "\n╔══════════════════════════════════════════════════════════════╗\n")
   (display "║                    FUEL PROFILE                              ║\n")
   (display "╚══════════════════════════════════════════════════════════════╝\n\n")
-  
+
   (display "Expression:\n")
   (display (format "  ~s\n\n" expr))
   (display (format "Initial fuel budget: ~a\n\n" fuel))
-  
+
   (let ([result (eval-expr empty-env expr fuel)])
        (cond
         [(error? result)
@@ -66,8 +46,7 @@
               (display "✓ Evaluation SUCCEEDED\n\n")
               (display "Result:\n")
               (display (format "  ~s\n\n" value))
-              
-              ;; Find minimum fuel required
+
               (display "Finding minimum fuel required...\n")
               (let ([min-fuel (find-min-fuel expr fuel)])
                    (display (format "  Minimum fuel: ~a\n" min-fuel))
@@ -77,21 +56,27 @@
                    (display "\n")
                    (fuel-usage-assessment min-fuel fuel)))])))
 
-;;; find-min-fuel : Expr × Nat → Nat
-;;; Binary search to find minimum fuel required for successful evaluation.
 (define (find-min-fuel expr max-fuel)
+  (doc 'description "Binary search to find minimum fuel required for successful evaluation")
+  (doc 'param '(expr "Expression to evaluate"))
+  (doc 'param '(max-fuel "Maximum fuel budget to search"))
+  (doc 'returns "Nat - minimum fuel needed")
+
   (let binary-search ([low 1] [high max-fuel])
        (if (<= (- high low) 1)
            high
            (let* ([mid (quotient (+ low high) 2)]
                   [result (eval-expr empty-env expr mid)])
                  (if (error? result)
-                     (binary-search mid high)  ; Need more fuel
-                     (binary-search low mid))))))  ; Can use less fuel
+                     (binary-search mid high)
+                     (binary-search low mid))))))
 
-;;; fuel-usage-assessment : Nat × Nat → void
-;;; Provide assessment of fuel usage.
 (define (fuel-usage-assessment used budget)
+  (doc 'description "Provide assessment of fuel usage")
+  (doc 'param '(used "Fuel used"))
+  (doc 'param '(budget "Total fuel budget"))
+  (doc 'returns "void - displays assessment")
+
   (let ([percent (/ used budget)])
        (cond
         [(< percent 0.1)
@@ -112,24 +97,25 @@
          (display "  → ⚠ Dangerously close to fuel exhaustion!\n")
          (display "  → Increase budget or optimize expression.\n")])))
 
-;;; ====
-;;; Detailed Profiling
-;;; ====
+(doc 'section 'detailed-profiling)
 
-;;; fuel-profile-detailed : Expr × Nat → void
-;;; Profile with multiple fuel levels to show scaling behavior.
 (define (fuel-profile-detailed expr base-fuel)
+  (doc 'description "Profile with multiple fuel levels to show scaling behavior")
+  (doc 'param '(expr "Expression to profile"))
+  (doc 'param '(base-fuel "Base fuel budget"))
+  (doc 'returns "void - displays detailed profile")
+
   (display "\n╔══════════════════════════════════════════════════════════════╗\n")
   (display "║              DETAILED FUEL PROFILE                           ║\n")
   (display "╚══════════════════════════════════════════════════════════════╝\n\n")
-  
+
   (display "Expression:\n")
   (display (format "  ~s\n\n" expr))
-  
+
   (display "Testing fuel levels:\n\n")
   (display "  Fuel    Status    Time (relative)\n")
   (display "  ─────────────────────────────────\n")
-  
+
   (let ([levels (list
                  (quotient base-fuel 10)
                  (quotient base-fuel 5)
@@ -153,21 +139,20 @@
         levels))
   (display "\n"))
 
-;;; ====
-;;; Fuel Recommendations
-;;; ====
+(doc 'section 'fuel-recommendations)
 
-;;; fuel-recommend : Expr → void
-;;; Recommend appropriate fuel budget for an expression.
 (define (fuel-recommend expr)
+  (doc 'description "Recommend appropriate fuel budget for an expression")
+  (doc 'param '(expr "Expression to analyze"))
+  (doc 'returns "void - displays recommendation")
+
   (display "\n╔══════════════════════════════════════════════════════════════╗\n")
   (display "║              FUEL RECOMMENDATION                             ║\n")
   (display "╚══════════════════════════════════════════════════════════════╝\n\n")
-  
+
   (display "Expression:\n")
   (display (format "  ~s\n\n" expr))
-  
-  ;; Try progressively larger fuel budgets
+
   (display "Testing fuel budgets...\n\n")
   (let try-fuel ([fuel 100])
        (if (> fuel 1000000)
@@ -189,20 +174,21 @@
                          (display (format "  Conservative: ~a (safety margin: 100%)\n"
                                           (* min-fuel 2)))))))))
 
-;;; ====
-;;; Fuel Comparison
-;;; ====
+(doc 'section 'fuel-comparison)
 
-;;; fuel-compare : Expr × (List Nat) → void
-;;; Compare expression behavior across different fuel levels.
 (define (fuel-compare expr fuel-levels)
+  (doc 'description "Compare expression behavior across different fuel levels")
+  (doc 'param '(expr "Expression to test"))
+  (doc 'param '(fuel-levels "List of fuel budgets to compare"))
+  (doc 'returns "void - displays comparison")
+
   (display "\n╔══════════════════════════════════════════════════════════════╗\n")
   (display "║                 FUEL COMPARISON                              ║\n")
   (display "╚══════════════════════════════════════════════════════════════╝\n\n")
-  
+
   (display "Expression:\n")
   (display (format "  ~s\n\n" expr))
-  
+
   (display "Results across fuel levels:\n\n")
   (for-each
    (lambda (fuel)
@@ -214,13 +200,15 @@
                 (display "\n")))
    fuel-levels))
 
-;;; ====
-;;; File Analysis
-;;; ====
+(doc 'section 'file-analysis)
 
-;;; fuel-analyze-file : FS × String × Nat → void
-;;; Analyze fuel consumption for all expressions in a file.
 (define (fuel-analyze-file fs file-path fuel)
+  (doc 'description "Analyze fuel consumption for all expressions in a file")
+  (doc 'param '(fs "Filesystem capability"))
+  (doc 'param '(file-path "Path to file"))
+  (doc 'param '(fuel "Fuel budget per expression"))
+  (doc 'returns "void - displays analysis report")
+
   (guard (e [else
              (display (format "Error reading file: ~a\n"
                               (if (condition? e)
@@ -228,13 +216,13 @@
                                   e)))])
          (let* ([content (read-text-file fs file-path)]
                 [port (open-input-string content)])
-               
+
                (display "\n╔══════════════════════════════════════════════════════════════╗\n")
                (display "║                FILE FUEL ANALYSIS                            ║\n")
                (display "╚══════════════════════════════════════════════════════════════╝\n\n")
                (display (format "File: ~a\n" file-path))
                (display (format "Fuel budget: ~a\n\n" fuel))
-               
+
                (let loop ([expr-num 1]
                           [total-fuel 0]
                           [failures '()])
@@ -271,27 +259,34 @@
                                        (display (format "~s\n\n" expr))
                                        (loop (+ expr-num 1) (+ total-fuel min-fuel) failures))]))]))))))
 
-;;; ====
-;;; Utilities
-;;; ====
+(doc 'section 'utilities)
 
-;;; time-difference : Time × Time → Time
-;;; Compute difference between two times.
 (define (time-difference t2 t1)
+  (doc 'description "Compute difference between two times")
+  (doc 'param '(t2 "Later time"))
+  (doc 'param '(t1 "Earlier time"))
+  (doc 'returns "Time duration")
+
   (make-time 'time-duration
              (- (time-nanosecond t2) (time-nanosecond t1))
              (- (time-second t2) (time-second t1))))
 
-;;; make-string : Nat × Char → String
-;;; Create a string of n copies of character c.
 (define (make-string-char n c)
+  (doc 'description "Create a string of n copies of character c")
+  (doc 'param '(n "Number of characters"))
+  (doc 'param '(c "Character to repeat"))
+  (doc 'returns "String")
+
   (list->string (make-list n c)))
 
 (define make-string make-string-char)
 
-;;; make-list : Nat × α → (List α)
-;;; Create a list of n copies of x.
 (define (make-list n x)
+  (doc 'description "Create a list of n copies of x")
+  (doc 'param '(n "Number of elements"))
+  (doc 'param '(x "Element to repeat"))
+  (doc 'returns "List")
+
   (let loop ([i 0] [result '()])
        (if (= i n)
            result

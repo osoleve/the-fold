@@ -1,44 +1,26 @@
-;;; boundary/introspect/timing.ss — Time Measurement for Benchmarks
-;;;
-;;; Measures elapsed wall-clock and CPU time for operations.
-;;; This is Shell code: impure, uses system time primitives.
-;;;
-;;; Capabilities:
-;;;   None required — time measurement is non-destructive observation.
-;;;
-;;; Operations:
-;;;   (time-thunk thunk) → TimingResult
-;;;   (benchmark name iterations thunk) → BenchmarkResult
-;;;   (compare-benchmarks results...) → ComparisonReport
-;;;
-;;; TimingResult:
-;;;   (timing elapsed-ns cpu-ns result)
-;;;
-;;; BenchmarkResult:
-;;;   (benchmark-result name iterations timings stats)
+(load "core/base/prelude.ss")
 
-;;; ====
-;;; Time Primitives
-;;; ====
+(doc 'module 'timing)
+(doc 'description "Time measurement for benchmarks using wall-clock and CPU time")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
 
-;;; current-nanoseconds : → Nat
-;;; High-resolution monotonic time in nanoseconds.
-;;; Uses Chez Scheme's (current-time 'time-monotonic).
+(doc 'section 'time-primitives)
+
 (define (current-nanoseconds)
+  (doc 'description "High-resolution monotonic time in nanoseconds")
+  (doc 'note "Uses Chez Scheme's current-time 'time-monotonic")
   (let ([t (current-time 'time-monotonic)])
        (+ (* (time-second t) 1000000000)
           (time-nanosecond t))))
 
-;;; current-cpu-nanoseconds : → Nat
-;;; CPU time consumed by this process in nanoseconds.
 (define (current-cpu-nanoseconds)
+  (doc 'description "CPU time consumed by this process in nanoseconds")
   (let ([t (current-time 'time-process)])
        (+ (* (time-second t) 1000000000)
           (time-nanosecond t))))
 
-;;; ====
-;;; Timing Result
-;;; ====
+(doc 'section 'timing-result)
 
 (define-record-type timing-result
   (fields
@@ -46,9 +28,8 @@
    cpu-ns        ; CPU nanoseconds consumed
    value))       ; The result of the timed computation
 
-;;; time-thunk : (→ A) → TimingResult
-;;; Execute thunk and measure elapsed time.
 (define (time-thunk thunk)
+  (doc 'description "Execute thunk and measure elapsed time")
   (let* ([start-wall (current-nanoseconds)]
          [start-cpu (current-cpu-nanoseconds)]
          [result (thunk)]
@@ -59,9 +40,7 @@
          (- end-cpu start-cpu)
          result)))
 
-;;; ====
-;;; Statistics
-;;; ====
+(doc 'section 'statistics)
 
 (define-record-type timing-stats
   (fields
@@ -102,9 +81,7 @@
          (inexact stddev)
          total)))
 
-;;; ====
-;;; Benchmark Result
-;;; ====
+(doc 'section 'benchmark-result)
 
 (define-record-type benchmark-result
   (fields
@@ -125,13 +102,10 @@
          [stats (compute-stats elapsed-samples)])
         (make-benchmark-result name iterations timings stats)))
 
-;;; ====
-;;; Warm-up Support
-;;; ====
+(doc 'section 'warmup-support)
 
-;;; benchmark-with-warmup : String × Nat × Nat × (→ A) → BenchmarkResult
-;;; Run warmup iterations (discarded), then benchmark iterations.
 (define (benchmark-with-warmup name warmup-iters bench-iters thunk)
+  (doc 'description "Run warmup iterations (discarded), then benchmark iterations")
   ;; Warmup phase (results discarded)
   (let loop ([i 0])
        (when (< i warmup-iters)
@@ -140,9 +114,7 @@
   ;; Actual benchmark
   (benchmark name bench-iters thunk))
 
-;;; ====
-;;; Comparison
-;;; ====
+(doc 'section 'comparison)
 
 (define-record-type benchmark-comparison
   (fields
@@ -163,13 +135,10 @@
                       candidates)])
         (make-benchmark-comparison baseline candidates ratios)))
 
-;;; ====
-;;; Formatting
-;;; ====
+(doc 'section 'formatting)
 
-;;; format-ns : Nat → String
-;;; Format nanoseconds in human-readable form.
 (define (format-ns ns)
+  (doc 'description "Format nanoseconds in human-readable form (s, ms, μs, ns)")
   (cond
    [(>= ns 1000000000) (format "~,2fs" (/ ns 1000000000.0))]
    [(>= ns 1000000) (format "~,2fms" (/ ns 1000000.0))]
@@ -223,14 +192,11 @@
                             (cdr ratio-pair))))
    (benchmark-comparison-ratios cmp)))
 
-;;; ====
-;;; Fuel-Aware Timing (Integration with Core)
-;;; ====
+(doc 'section 'fuel-aware-timing)
 
-;;; time-with-fuel : Nat × (→ A) → (TimingResult × Nat)
-;;; Execute a fuel-limited computation and return timing plus fuel remaining.
-;;; Note: Thunk should return (cons result fuel-remaining) for this to work.
 (define (time-with-fuel initial-fuel thunk)
+  (doc 'description "Execute fuel-limited computation and return timing plus fuel remaining")
+  (doc 'note "Thunk should return (cons result fuel-remaining)")
   (let* ([tr (time-thunk thunk)]
          [result-pair (timing-result-value tr)])
         (values tr

@@ -1,37 +1,12 @@
-;;; boundary/introspect/memory.ss — Memory Measurement and Analysis
-;;;
-;;; Measures memory consumption for operations and tracks allocations.
-;;; This is Shell code: impure, uses system memory primitives.
-;;;
-;;; Capabilities:
-;;;   None required — memory observation is non-destructive.
-;;;
-;;; Operations:
-;;;   (current-memory-usage) → MemorySnapshot
-;;;   (memory-thunk thunk) → MemoryResult
-;;;   (memory-benchmark name iterations thunk) → MemoryBenchmarkResult
-;;;   (gc-and-measure) → MemorySnapshot
-;;;
-;;; MemorySnapshot:
-;;;   (memory-snapshot bytes-allocated bytes-in-use gc-count timestamp)
-;;;
-;;; MemoryResult:
-;;;   (memory-result before after delta value)
+(load "core/base/prelude.ss")
 
-;;; ====
-;;; Memory Primitives
-;;; ====
+(doc 'module 'memory)
+(doc 'description "Memory measurement and analysis for operations and allocations")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+(doc 'note "Chez-specific memory primitives: bytes-allocated, current-memory-bytes, statistics")
 
-;;; Note: Chez Scheme provides several memory introspection facilities:
-;;;   (bytes-allocated) - total bytes ever allocated
-;;;   (current-memory-bytes) - approximate bytes currently in use
-;;;   (statistics) - detailed GC statistics
-;;;
-;;; These are Chez-specific. Other Scheme implementations may differ.
-
-;;; ====
-;;; Memory Snapshot
-;;; ====
+(doc 'section 'memory-snapshot)
 
 (define-record-type memory-snapshot
   (fields
@@ -40,9 +15,8 @@
    gc-count          ; Number of garbage collections so far
    timestamp-ns))    ; Nanosecond timestamp when snapshot was taken
 
-;;; current-memory-snapshot : → MemorySnapshot
-;;; Capture current memory state.
 (define (current-memory-snapshot)
+  (doc 'description "Capture current memory state snapshot")
   (let ([stats (statistics)])
        (make-memory-snapshot
         (bytes-allocated)
@@ -52,9 +26,7 @@
              (+ (* (time-second t) 1000000000)
                 (time-nanosecond t))))))
 
-;;; ====
-;;; Memory Delta
-;;; ====
+(doc 'section 'memory-delta)
 
 (define-record-type memory-delta
   (fields
@@ -62,8 +34,8 @@
    bytes-freed       ; Bytes freed (may be negative if growth)
    gc-triggered))    ; Number of GCs triggered during operation
 
-;;; compute-memory-delta : MemorySnapshot × MemorySnapshot → MemoryDelta
 (define (compute-memory-delta before after)
+  (doc 'description "Compute memory delta between two snapshots")
   (make-memory-delta
    (- (memory-snapshot-bytes-allocated after)
       (memory-snapshot-bytes-allocated before))
@@ -72,9 +44,7 @@
    (- (memory-snapshot-gc-count after)
       (memory-snapshot-gc-count before))))
 
-;;; ====
-;;; Memory Measurement
-;;; ====
+(doc 'section 'memory-measurement)
 
 (define-record-type memory-result
   (fields
@@ -83,26 +53,22 @@
    delta       ; MemoryDelta
    value))     ; Result of the computation
 
-;;; memory-thunk : (→ A) → MemoryResult
-;;; Execute thunk and measure memory impact.
 (define (memory-thunk thunk)
+  (doc 'description "Execute thunk and measure memory impact")
   (let* ([before (current-memory-snapshot)]
          [result (thunk)]
          [after (current-memory-snapshot)]
          [delta (compute-memory-delta before after)])
         (make-memory-result before after delta result)))
 
-;;; gc-and-measure : → MemorySnapshot
-;;; Force garbage collection then measure.
-;;; Useful for getting a clean baseline.
 (define (gc-and-measure)
+  (doc 'description "Force garbage collection then measure")
+  (doc 'note "Useful for getting a clean baseline")
   (collect)
   (collect)  ; Second pass for generational GC
   (current-memory-snapshot))
 
-;;; ====
-;;; Memory Benchmark
-;;; ====
+(doc 'section 'memory-benchmark)
 
 (define-record-type memory-stats
   (fields
@@ -162,13 +128,10 @@
          [stats (compute-memory-stats deltas)])
         (make-memory-benchmark-result name iterations results stats)))
 
-;;; ====
-;;; Formatting
-;;; ====
+(doc 'section 'formatting)
 
-;;; format-bytes : Nat → String
-;;; Format bytes in human-readable form.
 (define (format-bytes bytes)
+  (doc 'description "Format bytes in human-readable form (KB, MB, GB)")
   (cond
    [(>= (abs bytes) (* 1024 1024 1024))
     (format "~,2fGB" (/ bytes (* 1024.0 1024.0 1024.0)))]
@@ -229,13 +192,8 @@
   (display (format-memory-benchmark mbr))
   (newline))
 
-;;; ====
-;;; Allocation Tracking
-;;; ====
+(doc 'section 'allocation-tracking)
 
-;;; track-allocations : (→ A) → (A × AllocationProfile)
-;;; Execute thunk and return detailed allocation breakdown.
-;;; Note: This is a more detailed measurement using statistics.
 (define-record-type allocation-profile
   (fields
    bytes-allocated
@@ -259,13 +217,10 @@
           (- (sstats-gc-count stats-after) (sstats-gc-count stats-before))
           (- (sstats-gc-bytes stats-after) (sstats-gc-bytes stats-before))))))
 
-;;; ====
-;;; Memory Pressure Simulation
-;;; ====
+(doc 'section 'memory-pressure)
 
-;;; allocate-bytes : Nat → Bytevector
-;;; Allocate exactly n bytes (for testing memory behavior).
 (define (allocate-bytes n)
+  (doc 'description "Allocate exactly n bytes for testing memory behavior")
   (make-bytevector n 0))
 
 ;;; measure-under-pressure : Nat × (→ A) → MemoryResult

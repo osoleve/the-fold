@@ -1,48 +1,34 @@
-;;; boundary/debug/type-inspect.ss — Type Inspector and Visualizer
-;;;
-;;; Examine and display type information for expressions.
-;;; Helps understand what types are inferred and why.
-;;;
-;;; Features:
-;;;   - Infer and display types for expressions
-;;;   - Show type derivations step-by-step
-;;;   - Explain type errors in detail
-;;;   - Compare expected vs actual types
-;;;   - Visualize type structure
-;;;
-;;; This is Shell code: uses IO for display, delegates to Core.
-;;;
-;;; Usage:
-;;;   (type-inspect expr)
-;;;   (type-inspect-with-env expr env)
-;;;   (type-explain expr expected-type)
-;;;   (type-visualize type)
-;;;   (type-check-file fs "path/to/file.ss")
-;;;
-;;; Dependencies:
-;;;   core/infer.ss
-;;;   core/types.ss
-;;;   core/kinds.ss
-;;;   boundary/tools/edit.ss
-
-;;; Set up source-directories to find modules
 (source-directories (cons "core" (source-directories)))
 (source-directories (cons "shell" (source-directories)))
 
-;;; NOTE: string utilities provided by core/prelude.ss
-(load "prelude.ss")
-(load "types.ss")
-(load "kinds.ss")
-(load "infer.ss")
-(load "edit.ss")
+(load "core/base/prelude.ss")
+(load "core/types/types.ss")
+(load "core/types/kinds.ss")
+(load "core/types/infer.ss")
+(load "boundary/tools/edit.ss")
 
-;;; ====
-;;; Type Display Utilities
-;;; ====
+(doc 'module 'type-inspect)
+(doc 'description "Examine and display type information for expressions")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+(doc 'features
+     "Infer and display types for expressions"
+     "Show type derivations step-by-step"
+     "Explain type errors in detail"
+     "Compare expected vs actual types"
+     "Visualize type structure")
+(doc 'usage "(type-inspect expr)")
+(doc 'usage "(type-inspect-with-env expr env)")
+(doc 'usage "(type-explain expr expected-type)")
+(doc 'usage "(type-visualize type)")
+(doc 'usage "(type-check-file fs \"path/to/file.ss\")")
+(doc 'note "String utilities provided by core/prelude.ss")
 
-;;; type->string : Type → String
-;;; Convert a type to a human-readable string.
+(doc 'section 'type-display)
+
 (define (type->string type)
+  (doc 'type (-> Type String))
+  (doc 'description "Convert a type to a human-readable string")
   (cond
    [(symbol? type) (symbol->string type)]
    [(not (pair? type)) (format "~s" type)]
@@ -81,23 +67,21 @@
    [else (format "~s" type)]))
 
 
-;;; display-type : Type → void
-;;; Pretty-print a type with indentation for nested structures.
 (define (display-type type)
+  (doc 'type (-> Type Void))
+  (doc 'description "Pretty-print a type with indentation for nested structures")
   (display (type->string type)))
 
-;;; ====
-;;; Type Inspection
-;;; ====
+(doc 'section 'type-inspection)
 
-;;; type-inspect : Expr → void
-;;; Infer and display the type of an expression.
 (define (type-inspect expr)
+  (doc 'type (-> Expr Void))
+  (doc 'description "Infer and display the type of an expression")
   (type-inspect-with-env expr empty-tenv))
 
-;;; type-inspect-with-env : Expr × TEnv → void
-;;; Infer and display type with a given environment.
 (define (type-inspect-with-env expr env)
+  (doc 'type (-> Expr TEnv Void))
+  (doc 'description "Infer and display type with a given environment")
   (display "\n╔══════════════════════════════════════════════════════════════╗\n")
   (display "║                    TYPE INSPECTION                           ║\n")
   (display "╚══════════════════════════════════════════════════════════════╝\n\n")
@@ -123,9 +107,9 @@
               (display-type-structure type 1)
               (display "\n"))])))
 
-;;; display-type-structure : Type × Nat → void
-;;; Display type structure with indentation.
 (define (display-type-structure type depth)
+  (doc 'type (-> Type Nat Void))
+  (doc 'description "Display type structure with indentation")
   (let ([indent (make-string (* depth 2) #\space)])
        (cond
         [(symbol? type)
@@ -151,13 +135,11 @@
         [else
          (display (format "~a• ~a\n" indent (type->string type)))])))
 
-;;; ====
-;;; Type Explanation
-;;; ====
+(doc 'section 'type-explanation)
 
-;;; type-explain : Expr × Type → void
-;;; Check if expression has expected type and explain why/why not.
 (define (type-explain expr expected-type)
+  (doc 'type (-> Expr Type Void))
+  (doc 'description "Check if expression has expected type and explain why/why not")
   (display "\n╔══════════════════════════════════════════════════════════════╗\n")
   (display "║                   TYPE EXPLANATION                           ║\n")
   (display "╚══════════════════════════════════════════════════════════════╝\n\n")
@@ -191,9 +173,9 @@
          (display "✓ Type Check PASSED\n\n")
          (display "The expression has the expected type.\n")])))
 
-;;; compare-types : Type × Type → void
-;;; Display a comparison of two types.
 (define (compare-types expected actual)
+  (doc 'type (-> Type Type Void))
+  (doc 'description "Display a comparison of two types")
   (display "  Expected: ")
   (display-type expected)
   (display "\n  Actual:   ")
@@ -210,22 +192,20 @@
    [else
     (display "  → Types have different structure.\n")]))
 
-;;; ====
-;;; Type Visualization
-;;; ====
+(doc 'section 'type-visualization)
 
-;;; type-visualize : Type → void
-;;; Display a tree visualization of type structure.
 (define (type-visualize type)
+  (doc 'type (-> Type Void))
+  (doc 'description "Display a tree visualization of type structure")
   (display "\n╔══════════════════════════════════════════════════════════════╗\n")
   (display "║                  TYPE VISUALIZATION                          ║\n")
   (display "╚══════════════════════════════════════════════════════════════╝\n\n")
   
   (display-type-tree type "" ""))
 
-;;; display-type-tree : Type × String × String → void
-;;; Display type as a tree with box-drawing characters.
 (define (display-type-tree type prefix last-prefix)
+  (doc 'type (-> Type String String Void))
+  (doc 'description "Display type as a tree with box-drawing characters")
   (cond
    [(symbol? type)
     (display (format "~a~a\n" prefix type))]
@@ -254,13 +234,11 @@
    [else
     (display (format "~a~a\n" prefix type))]))
 
-;;; ====
-;;; File Type Checking
-;;; ====
+(doc 'section 'file-type-checking)
 
-;;; type-check-file : FS × String → void
-;;; Read a file, parse expressions, and check their types.
 (define (type-check-file fs file-path)
+  (doc 'type (-> FS String Void))
+  (doc 'description "Read a file, parse expressions, and check their types")
   (guard (e [else
              (display (format "Error reading file: ~a\n" (if (condition? e)
                                                              (condition-message e)
@@ -306,13 +284,11 @@
                                   (display "\n")
                                   (loop (+ expr-num 1) errors (+ successes 1))]))]))))))
 
-;;; ====
-;;; Type Environment Inspection
-;;; ====
+(doc 'section 'environment-inspection)
 
-;;; display-tenv : TEnv → void
-;;; Display a type environment.
 (define (display-tenv env)
+  (doc 'type (-> TEnv Void))
+  (doc 'description "Display a type environment")
   (display "\nType Environment:\n")
   (if (null? env)
       (display "  (empty)\n")
@@ -324,9 +300,9 @@
        env))
   (display "\n"))
 
-;;; tenv-inspect : TEnv → void
-;;; Show detailed information about a type environment.
 (define (tenv-inspect env)
+  (doc 'type (-> TEnv Void))
+  (doc 'description "Show detailed information about a type environment")
   (display "\n╔══════════════════════════════════════════════════════════════╗\n")
   (display "║              TYPE ENVIRONMENT INSPECTION                     ║\n")
   (display "╚══════════════════════════════════════════════════════════════╝\n\n")
@@ -346,13 +322,11 @@
                (display "\n"))
        env)))
 
-;;; ====
-;;; Batch Type Checking
-;;; ====
+(doc 'section 'batch-type-checking)
 
-;;; type-check-expressions : (List Expr) → void
-;;; Type-check a list of expressions and show results.
 (define (type-check-expressions exprs)
+  (doc 'type (-> (List Expr) Void))
+  (doc 'description "Type-check a list of expressions and show results")
   (display "\n╔══════════════════════════════════════════════════════════════╗\n")
   (display "║              BATCH TYPE CHECKING                             ║\n")
   (display "╚══════════════════════════════════════════════════════════════╝\n\n")

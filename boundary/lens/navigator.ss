@@ -1,30 +1,9 @@
-;;; boundary/lens/navigator.ss — REPL Integration for Lens Navigation
-;;;
-;;; Provides user-friendly REPL commands for codebase navigation.
-;;; This is the main entry point for the lens system.
-;;;
-;;; This is Shell code: orchestrates all lens modules.
-;;;
-;;; Usage:
-;;;   (lens-jump 'sym)           - Jump to definition
-;;;   (lens-callers 'sym)        - Who calls this?
-;;;   (lens-callees 'sym)        - What does this call?
-;;;   (lens-test 'sym)           - Find related tests
-;;;   (lens-slice-up 'sym)       - Transitive dependents
-;;;   (lens-slice-down 'sym)     - Transitive dependencies
-;;;   (lens-path 'from 'to)      - Find call path
-;;;   (lens-stats)               - Show lens statistics
-;;;   (lens-rebuild!)            - Rebuild all indices
-;;;
-;;; Dependencies:
-;;;   boundary/lens/call-graph.ss
-;;;   boundary/lens/test-finder.ss
-;;;   boundary/lens/dep-slice.ss
-;;;   boundary/lens/jump.ss
+(doc 'module 'navigator)
+(doc 'description "REPL integration for lens navigation - main entry point")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
 
-;;; ====
-;;; Module Loading
-;;; ====
+(doc 'section 'module-loading)
 
 (load "boundary/lens/call-graph.ss")
 (load "boundary/lens/test-finder.ss")

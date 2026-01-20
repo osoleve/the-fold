@@ -1,67 +1,37 @@
-;;; boundary/provenance/query.ss — Provenance Query API
-;;;
-;;; Query the provenance store to understand how values were created.
-;;; Primary use case: "Explain this value" - trace the lineage of any
-;;; CAS block or value back through all optic operations that created it.
-;;;
-;;; Features:
-;;;   - Query provenance by result hash (what created this?)
-;;;   - Query provenance by source hash (what transformations used this?)
-;;;   - Full lineage traversal (recursive origin tracking)
-;;;   - Human-readable explanations
-;;;
-;;; This is Shell code: uses filesystem for head lookups.
-;;;
-;;; Prerequisites (must be loaded before this file):
-;;;   - boundary/provenance/provenance.ss (or traced-optics.ss which loads it)
+(load "core/base/prelude.ss")
 
-;; Note: provenance.ss should already be loaded via traced-optics.ss
-;; Don't reload to avoid resetting hashtables
+(doc 'module 'provenance-query)
+(doc 'description "Query the provenance store to understand how values were created")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
 
-;;; ============================================================
-;;; Direct Queries
-;;; ============================================================
+(doc 'section 'direct-queries)
 
-;;; provenance-for-result : String -> Block | #f
-;;; Look up the provenance record that created a result.
-;;; Argument: hex hash string of the result value.
 (define (provenance-for-result result-hex)
+  (doc 'description "Look up the provenance record that created a result")
   (let ([head-path (provenance-by-result-path result-hex)])
     (let ([hash (read-head-hash head-path)])
       (and hash (fetch-persistent hash)))))
 
-;;; provenance-for-source : String -> Block | #f
-;;; Look up the provenance record that used a source.
-;;; Argument: hex hash string of the source value.
 (define (provenance-for-source source-hex)
+  (doc 'description "Look up the provenance record that used a source")
   (let ([head-path (provenance-by-source-path source-hex)])
     (let ([hash (read-head-hash head-path)])
       (and hash (fetch-persistent hash)))))
 
-;;; latest-provenance : -> Block | #f
-;;; Get the most recent provenance record.
 (define (latest-provenance)
+  (doc 'description "Get the most recent provenance record")
   (let ([hash (read-head-hash (provenance-log-head-path))])
     (and hash (fetch-persistent hash))))
 
-;;; ============================================================
-;;; Lineage Traversal
-;;; ============================================================
+(doc 'section 'lineage-traversal)
 
-;;; trace-lineage : String -> (List Block)
-;;; Trace the full lineage of a value back to its origins.
-;;; Returns a list of provenance records, oldest first.
-;;;
-;;; Algorithm:
-;;;   1. Find provenance record that created this result
-;;;   2. Get the source hash from that record
-;;;   3. Recursively find what created that source
-;;;   4. Continue until no more provenance found
 (define (trace-lineage result-hex)
+  (doc 'description "Trace the full lineage of a value back to its origins")
+  (doc 'returns "(List Block) - Provenance records, oldest first")
   (let loop ([current-hex result-hex]
              [acc '()]
              [visited (make-hashtable string-hash string=?)])
-    ;; Prevent infinite loops from circular references
     (if (hashtable-contains? visited current-hex)
         (reverse acc)
         (begin
@@ -72,10 +42,8 @@
                 (let ([source-hex (provenance-source-hash record)])
                   (loop source-hex (cons record acc) visited))))))))
 
-;;; trace-descendants : String -> (List Block)
-;;; Trace all values derived from a source (forward lineage).
-;;; Returns provenance records that used this value as source.
 (define (trace-descendants source-hex)
+  (doc 'description "Trace all values derived from a source (forward lineage)")
   (let loop ([current-hex source-hex]
              [acc '()]
              [visited (make-hashtable string-hash string=?)])
@@ -88,34 +56,27 @@
                 acc
                 (let ([result-hex (provenance-result-hash record)]
                       [new-acc (cons record acc)])
-                  ;; Continue searching from the result
                   (loop result-hex new-acc visited))))))))
 
-;;; ============================================================
-;;; Explain Value API
-;;; ============================================================
+(doc 'section 'explain-value-api)
 
-;;; explain-value : Any -> String
-;;; Generate a human-readable explanation of how a value was created.
-;;; The value is hashed and looked up in the provenance store.
 (define (explain-value value)
+  (doc 'description "Generate human-readable explanation of how a value was created")
   (let* ([hash (hash->hex (store-value! value))]
          [lineage (trace-lineage hash)])
     (if (null? lineage)
         (format "No provenance recorded for this value.\nHash: ~a" hash)
         (format-lineage hash lineage))))
 
-;;; explain-hash : String -> String
-;;; Generate explanation for a value given its hex hash.
 (define (explain-hash hex)
+  (doc 'description "Generate explanation for a value given its hex hash")
   (let ([lineage (trace-lineage hex)])
     (if (null? lineage)
         (format "No provenance recorded for hash: ~a" hex)
         (format-lineage hex lineage))))
 
-;;; format-lineage : String (List Block) -> String
-;;; Format a lineage as a human-readable explanation.
 (define (format-lineage result-hex lineage)
+  (doc 'description "Format a lineage as a human-readable explanation")
   (let ([lines '()]
         [step 1])
     (set! lines (cons (format "Lineage for ~a" (short-hash result-hex)) lines))
@@ -141,16 +102,14 @@
      lineage)
     (string-join (reverse lines) "\n")))
 
-;;; short-hash : String -> String
-;;; Truncate a hash for display.
 (define (short-hash hex)
+  (doc 'description "Truncate a hash for display")
   (if (> (string-length hex) 16)
       (string-append (substring hex 0 16) "...")
       hex))
 
-;;; string-join : (List String) String -> String
-;;; Join strings with a separator.
 (define (string-join strs sep)
+  (doc 'description "Join strings with a separator")
   (if (null? strs)
       ""
       (let loop ([rest (cdr strs)]
@@ -160,13 +119,10 @@
             (loop (cdr rest)
                   (string-append acc sep (car rest)))))))
 
-;;; ============================================================
-;;; Structured Queries
-;;; ============================================================
+(doc 'section 'structured-queries)
 
-;;; provenance-summary : Block -> Alist
-;;; Get a summary of a provenance record as an alist.
 (define (provenance-summary record)
+  (doc 'description "Get a summary of a provenance record as an alist")
   (let ([data (provenance-record-data record)])
     (if data
         `((operation . ,(cdr (assq 'operation data)))
@@ -178,41 +134,32 @@
           (agent . ,(or (cdr (assq 'agent-id data)) 'unknown)))
         '())))
 
-;;; lineage-summary : String -> (List Alist)
-;;; Get summaries for all steps in a lineage.
 (define (lineage-summary result-hex)
+  (doc 'description "Get summaries for all steps in a lineage")
   (map provenance-summary (trace-lineage result-hex)))
 
-;;; ============================================================
-;;; Value Retrieval
-;;; ============================================================
+(doc 'section 'value-retrieval)
 
-;;; provenance-get-source : Block -> Any | #f
-;;; Retrieve the source value from a provenance record.
 (define (provenance-get-source record)
+  (doc 'description "Retrieve the source value from a provenance record")
   (let ([source-hex (provenance-source-hash record)])
     (and source-hex (fetch-value (hex->hash source-hex)))))
 
-;;; provenance-get-result : Block -> Any | #f
-;;; Retrieve the result value from a provenance record.
 (define (provenance-get-result record)
+  (doc 'description "Retrieve the result value from a provenance record")
   (let ([result-hex (provenance-result-hash record)])
     (and result-hex (fetch-value (hex->hash result-hex)))))
 
-;;; provenance-get-value : Block -> Any | #f
-;;; Retrieve the set/over value from a provenance record.
 (define (provenance-get-value record)
+  (doc 'description "Retrieve the set/over value from a provenance record")
   (let ([value-hex (provenance-value-hash record)])
     (and value-hex (fetch-value (hex->hash value-hex)))))
 
-;;; ============================================================
-;;; Searching and Filtering
-;;; ============================================================
+(doc 'section 'searching-and-filtering)
 
-;;; find-provenance-by-optic : Symbol -> (List Block)
-;;; Find all provenance records that used a specific named optic.
-;;; Note: This is an expensive operation that scans the store.
 (define (find-provenance-by-optic optic-name)
+  (doc 'description "Find all provenance records that used a specific named optic")
+  (doc 'note "Expensive operation that scans the store")
   (let ([results '()])
     (for-each
      (lambda (hash)
@@ -223,9 +170,8 @@
      (store-hashes))
     results))
 
-;;; find-provenance-by-operation : Symbol -> (List Block)
-;;; Find all provenance records with a specific operation type.
 (define (find-provenance-by-operation op)
+  (doc 'description "Find all provenance records with a specific operation type")
   (let ([results '()])
     (for-each
      (lambda (hash)
@@ -236,9 +182,8 @@
      (store-hashes))
     results))
 
-;;; find-provenance-by-agent : Symbol -> (List Block)
-;;; Find all provenance records from a specific agent.
 (define (find-provenance-by-agent agent-id)
+  (doc 'description "Find all provenance records from a specific agent")
   (let ([results '()])
     (for-each
      (lambda (hash)
@@ -249,13 +194,10 @@
      (store-hashes))
     results))
 
-;;; ============================================================
-;;; Statistics
-;;; ============================================================
+(doc 'section 'statistics)
 
-;;; provenance-stats : -> Alist
-;;; Get statistics about provenance records in the store.
 (define (provenance-stats)
+  (doc 'description "Get statistics about provenance records in the store")
   (let ([total 0]
         [by-operation (make-hashtable symbol-hash eq?)]
         [by-optic (make-hashtable symbol-hash eq?)]
@@ -265,15 +207,12 @@
        (let ([blk (fetch-persistent hash)])
          (when (and blk (provenance-record? blk))
            (set! total (+ total 1))
-           ;; Count by operation
            (let ([op (provenance-operation blk)])
              (hashtable-update! by-operation op
                                 (lambda (n) (+ n 1)) 0))
-           ;; Count by optic
            (let ([optic (or (provenance-optic-name blk) 'anonymous)])
              (hashtable-update! by-optic optic
                                 (lambda (n) (+ n 1)) 0))
-           ;; Count by agent
            (let ([agent (or (provenance-agent-id blk) 'unknown)])
              (hashtable-update! by-agent agent
                                 (lambda (n) (+ n 1)) 0)))))
@@ -283,24 +222,20 @@
       (by-optic . ,(hashtable->alist by-optic))
       (by-agent . ,(hashtable->alist by-agent)))))
 
-;;; hashtable->alist : Hashtable -> Alist
 (define (hashtable->alist ht)
+  (doc 'description "Convert hashtable to alist")
   (let ([keys (vector->list (hashtable-keys ht))])
     (map (lambda (k) (cons k (hashtable-ref ht k #f))) keys)))
 
-;;; ============================================================
-;;; REPL Integration
-;;; ============================================================
+(doc 'section 'repl-integration)
 
-;;; explain : Any -> Void
-;;; User-friendly REPL command to explain a value.
 (define (explain value)
+  (doc 'description "User-friendly REPL command to explain a value")
   (display (explain-value value))
   (newline))
 
-;;; explain-last : -> Void
-;;; Explain the most recent traced operation.
 (define (explain-last)
+  (doc 'description "Explain the most recent traced operation")
   (let ([record (latest-provenance)])
     (if record
         (begin
@@ -311,35 +246,7 @@
           (display "No provenance records found.")
           (newline)))))
 
-;;; show-lineage : Any -> Void
-;;; Display the full lineage of a value.
 (define (show-lineage value)
+  (doc 'description "Display the full lineage of a value")
   (display (explain-value value))
   (newline))
-
-;;; ============================================================
-;;; Exports
-;;; ============================================================
-;;;
-;;; Direct Queries:
-;;;   provenance-for-result, provenance-for-source, latest-provenance
-;;;
-;;; Lineage Traversal:
-;;;   trace-lineage, trace-descendants
-;;;
-;;; Explain Value API:
-;;;   explain-value, explain-hash, format-lineage
-;;;   short-hash, provenance-summary, lineage-summary
-;;;
-;;; Value Retrieval:
-;;;   provenance-get-source, provenance-get-result, provenance-get-value
-;;;
-;;; Searching:
-;;;   find-provenance-by-optic, find-provenance-by-operation
-;;;   find-provenance-by-agent
-;;;
-;;; Statistics:
-;;;   provenance-stats
-;;;
-;;; REPL Integration:
-;;;   explain, explain-last, show-lineage
