@@ -1,25 +1,24 @@
-;;; task-tracker.ss - Task and Chore Tracking System for The Fold
-;;;
-;;; A lightweight task management system that uses the content-addressed
-;;; store to maintain an immutable audit trail of tasks and their status.
-;;;
-;;; Usage:
-;;;   (load "boundary/tools/task-tracker.ss")
-;;;   (task-new! "Fix format string injection" 'critical 'security)
-;;;   (task-list)
-;;;   (task-complete! <task-hash>)
-;;;   (task-note! <task-hash> "Additional finding...")
-;;;
+(define-syntax doc
+  (syntax-rules ()
+    [(_ args ...) (void)]))
 
 (unless (bound? '*fs*)
         (error 'task-tracker "Must load boundary/repl/repl.ss first for *fs* capability"))
 
-;;; Task structure stored as content-addressed blocks
-;;; {
-;;;   tag: 'task
-;;;   payload: (title priority category status created-by created-at)
-;;;   refs: [parent-task-hash notes...]
-;;; }
+(doc 'module 'task-tracker)
+(doc 'description "Lightweight task management using content-addressed store for immutable audit trail")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+
+(doc 'note "Task structure: {tag: 'task, payload: (title priority category status created-by created-at), refs: [parent-task-hash notes...]}")
+        (error 'task-tracker "Must load boundary/repl/repl.ss first for *fs* capability"))
+
+(doc 'module 'task-tracker)
+(doc 'description "Lightweight task management using content-addressed store for immutable audit trail")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+
+(doc 'note "Task structure: {tag: 'task, payload: (title priority category status created-by created-at), refs: [parent-task-hash notes...]}")
 
 (define *task-file* ".store/tasks.index")
 

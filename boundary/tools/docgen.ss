@@ -1,42 +1,13 @@
-;;; boundary/docgen.ss -- API Documentation Generator
-;;;
-;;; Extracts documentation from Scheme source files and generates
-;;; structured documentation as S-expressions.
-;;;
-;;; This is Shell code: reads files, parses comments, generates output.
-;;;
-;;; Documentation Patterns Recognized:
-;;;   - ;;; Triple-semicolon doc comments
-;;;   - ;;; function-name : Type -> Type -> Result
-;;;   - ;;; Export Summary sections
-;;;   - (define (function-name ...)) definitions
-;;;
-;;; Output Format:
-;;;   ((module . "module-name")
-;;;    (exports . ((name . "function-name")
-;;;                (signature . "Type -> Type -> Result")
-;;;                (doc . "Description")
-;;;                (file . "path/to/file.ss")
-;;;                (line . 42))))
-;;;
-;;; Key Functions:
-;;;   (docgen-file path)           -- Generate docs for single file
-;;;   (docgen-directory path)      -- Generate docs for all .ss files
-;;;   (docgen-index docs)          -- Create searchable index by name
-;;;   (docgen-summary docs)        -- Create human-readable summary
-;;;
-;;; Dependencies:
-;;;   - prelude.ss (for result types)
-;;;
-;;; NOTE: Run from project root directory.
-
-;;; Set up source-directories for module loading
 (source-directories (cons "shell" (source-directories)))
 (load "string-utils.ss")
 
-;;; ====
-;;; Configuration
-;;; ====
+(doc 'module 'docgen)
+(doc 'description "Extracts documentation from Scheme source files and generates structured documentation as S-expressions")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+(doc 'note "Run from project root directory")
+
+(doc 'section 'configuration)
 
 (define *doc-comment-prefix* ";;;")
 (define *export-summary-marker* "Export Summary")

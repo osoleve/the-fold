@@ -1,31 +1,18 @@
-;;; boundary/tools/termination-check.ss — Termination Checker Tooling
-;;;
-;;; REPL integration for the termination checker:
-;;;   (terminates? expr) — check if expression terminates
-;;;   (show-call-graph expr) — visualize recursive call structure
-;;;   (check-function def) — analyze a function definition
-;;;   (termination-report file) — analyze all functions in a file
-;;;
-;;; This is Shell code: provides REPL integration for core/types/termination.ss
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;   - termination.ss
-;;;   - types.ss
-
 (load "core/base/prelude.ss")
+
+(doc 'module 'termination-check)
+(doc 'description "REPL integration for termination checker with call graph analysis and batch reporting")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
 (load "core/types/types.ss")
 (load "core/types/dep-types.ss")
 (load "core/types/termination.ss")
 
-;;; ====
-;;; Termination Analysis Commands
-;;; ====
+(doc 'section 'termination-analysis)
 
-;;; terminates? : Expr × (List Symbol) → Boolean
-;;; Check if an expression terminates given its parameters.
-;;; Returns #t if termination can be proven, #f otherwise.
 (define (terminates? expr params)
+  (doc 'type "(-> Expr (List Symbol) Bool)")
+  (doc 'description "Check if expression terminates; returns #t if proven, #f otherwise")
   (let ([result (check-termination expr params)])
        (if (eq? (car result) 'ok)
            (begin

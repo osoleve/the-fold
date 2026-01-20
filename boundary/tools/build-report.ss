@@ -1,18 +1,12 @@
-;;; boundary/tools/build-report.ss — Technical Report Generator
-;;;
-;;; Builds the technical report HTML from markdown chapter files.
-;;; Dogfoods the lattice/dsl/markdown parser and renderer.
-;;;
-;;; This is Shell code: handles file I/O.
-;;;
-;;; Usage:
-;;;   scheme --script boundary/tools/build-report.ss
-;;;
-;;; Or from the REPL:
-;;;   (load "boundary/tools/build-report.ss")
-;;;   (build-report)
-
 (load "core/base/prelude.ss")
+
+(doc 'module 'build-report)
+(doc 'description "Builds the technical report HTML from markdown chapter files")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+(doc 'note "Dogfoods the lattice/dsl/markdown parser and renderer")
+(doc 'usage "scheme --script boundary/tools/build-report.ss")
+(doc 'usage "Or from REPL: (load \"boundary/tools/build-report.ss\") (build-report)")
 (load "lattice/dsl/markdown/block-parser.ss")
 (load "lattice/dsl/markdown/html.ss")
 

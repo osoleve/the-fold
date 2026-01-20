@@ -1,8 +1,9 @@
-;;; boundary/tools/build-demoscene-report.ss — Demoscene-styled Technical Report
-;;;
-;;; Builds the technical report with refined CRT/demoscene aesthetics.
-
 (load "core/base/prelude.ss")
+
+(doc 'module 'build-demoscene-report)
+(doc 'description "Builds the technical report with refined CRT/demoscene aesthetics")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
 (load "lattice/dsl/markdown/block-parser.ss")
 (load "lattice/dsl/markdown/html.ss")
 

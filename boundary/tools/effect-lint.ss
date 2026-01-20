@@ -1,38 +1,13 @@
-;;; boundary/tools/effect-lint.ss — Effect Typing and Linting
-;;;
-;;; Effect-aware analysis for The Fold:
-;;;   - Track which functions have effects (IO, mutation, etc.)
-;;;   - Enforce effect boundaries between pure/impure modules
-;;;   - Lint for effect violations in core code
-;;;   - Surface effect information in REPL tooling
-;;;
-;;; Effect Categories:
-;;;   - Pure: No observable effects
-;;;   - IO: File system, network, console
-;;;   - Mutation: State modification
-;;;   - Exception: May throw errors
-;;;   - NonTerminating: May not terminate
-;;;   - Async: Asynchronous operations
-;;;
-;;; This is Shell code: performs analysis with I/O.
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-
 (load "core/base/prelude.ss")
 
-;;; ====
-;;; Effect Types
-;;; ====
+(doc 'module 'effect-lint)
+(doc 'description "Effect-aware analysis for The Fold")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
 
-;;; Effects are represented as symbols:
-;;;   'pure - no effects
-;;;   'io - input/output
-;;;   'mutation - state changes
-;;;   'exception - may throw
-;;;   'nonterminating - may not halt
-;;;   'async - asynchronous operations
-;;;   'unknown - effect not determined
+(doc 'section 'effect-types)
+
+(doc 'note "Effects are represented as symbols: 'pure, 'io, 'mutation, 'exception, 'nonterminating, 'async, 'unknown")
 
 (define all-effects '(pure io mutation exception nonterminating async unknown))
 

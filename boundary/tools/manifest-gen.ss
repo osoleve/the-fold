@@ -1,52 +1,43 @@
-;;; boundary/tools/manifest-gen.ss — Manifest Generation Helper
-;;;
-;;; Tools to scan lattice skill directories and generate manifest.sexp files.
-;;; Extracts function definitions, type signatures, and module metadata.
-;;;
-;;; This is Shell code: reads files, handles IO.
-;;;
-;;; Usage:
-;;;   (manifest-scan "lattice/algebra")      ; Scan dir, return analysis
-;;;   (manifest-template 'algebra 0)         ; Generate template for tier 0 skill
-;;;   (manifest-generate "lattice/algebra")  ; Full generation
-;;;   (manifest-validate "manifest.sexp")    ; Validate existing manifest
-;;;
-;;; Dependencies:
-;;;   core/base/prelude.ss
-
 (load "core/base/prelude.ss")
 
-;;; ====
-;;; File Scanning
-;;; ====
+(doc 'module 'manifest-gen)
+(doc 'description "Tools to scan lattice skill directories and generate manifest.sexp files")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
 
-;;; list-scheme-files : String -> (List String)
-;;; List all .ss files in a directory (non-recursive)
+(doc 'note "Extracts function definitions, type signatures, and module metadata")
+(doc 'note "Usage: (manifest-scan \"lattice/algebra\") for directory analysis")
+(doc 'note "(manifest-template 'algebra 0) to generate template for tier 0 skill")
+(doc 'note "(manifest-generate \"lattice/algebra\") for full generation")
+(doc 'note "(manifest-validate \"manifest.sexp\") to validate existing manifest")
+
+(doc 'section 'file-scanning)
+
 (define (list-scheme-files dir)
+  (doc 'type '(-> String (List String)))
+  (doc 'description "List all .ss files in a directory (non-recursive)")
   (filter (lambda (f) (string-ends-with? f ".ss"))
           (directory-list dir)))
 
-;;; read-file-string : String -> String
-;;; Read entire file contents as string
 (define (read-file-string filepath)
+  (doc 'type '(-> String String))
+  (doc 'description "Read entire file contents as string")
   (call-with-input-file filepath
                         (lambda (port)
                                 (get-string-all port))))
 
-;;; string-ends-with? : String String -> Bool
 (define (string-ends-with? str suffix)
+  (doc 'type '(-> String String Bool))
   (let ([str-len (string-length str)]
         [suf-len (string-length suffix)])
        (and (>= str-len suf-len)
             (string=? (substring str (- str-len suf-len) str-len) suffix))))
 
-;;; ====
-;;; Source Code Parsing
-;;; ====
+(doc 'section 'source-parsing)
 
-;;; extract-defines : String -> (List Symbol)
-;;; Extract all top-level (define ...) names from source code
 (define (extract-defines source-code)
+  (doc 'type '(-> String (List Symbol)))
+  (doc 'description "Extract all top-level (define ...) names from source code")
   (let ([port (open-input-string source-code)])
        (let loop ([defines '()])
             (let ([expr (guard (e [else #f]) (read port))])
@@ -72,9 +63,9 @@
                    (loop (cons (cadr expr) defines))]
                   [else (loop defines)])))))
 
-;;; extract-header-metadata : String -> Alist
-;;; Extract @module, @requires from file header comments
 (define (extract-header-metadata source-code)
+  (doc 'type '(-> String Alist))
+  (doc 'description "Extract @module, @requires from file header comments")
   (let ([lines (string-split source-code #\newline)])
        (let loop ([lines lines]
                   [metadata '()]
@@ -144,13 +135,11 @@
                                [(char-whitespace? (car chars)) (loop (cdr chars))]
                                [else chars])))))
 
-;;; ====
-;;; Type Signature Extraction
-;;; ====
+(doc 'section 'type-signatures)
 
-;;; extract-type-signatures : String -> (List (Symbol . String))
-;;; Extract ;;; name : type comments
 (define (extract-type-signatures source-code)
+  (doc 'type '(-> String (List (Pair Symbol String))))
+  (doc 'description "Extract ;;; name : type comments")
   (let ([lines (string-split source-code #\newline)])
        (filter-map
         (lambda (line)
@@ -186,13 +175,11 @@
                     (loop (cdr lst) (cons result acc))
                     (loop (cdr lst) acc))))))
 
-;;; ====
-;;; Module Analysis
-;;; ====
+(doc 'section 'module-analysis)
 
-;;; analyze-module : String -> ModuleInfo
-;;; Analyze a single .ss file
 (define (analyze-module filepath)
+  (doc 'type '(-> String ModuleInfo))
+  (doc 'description "Analyze a single .ss file")
   (let* ([content (read-file-string filepath)]
          [filename (path-basename filepath)]
          [module-name (string->symbol (path-stem filename))]
@@ -236,13 +223,11 @@
              [(string=? (substring str i (+ i sub-len)) sub) i]
              [else (loop (- i 1))]))))
 
-;;; ====
-;;; Directory Scanning
-;;; ====
+(doc 'section 'directory-scanning)
 
-;;; manifest-scan : String -> SkillAnalysis
-;;; Scan a skill directory and return analysis
 (define (manifest-scan dir)
+  (doc 'type '(-> String SkillAnalysis))
+  (doc 'description "Scan a skill directory and return analysis")
   (let* ([files (list-scheme-files dir)]
          [skill-name (string->symbol (path-basename dir))]
          [modules (map (lambda (f)
@@ -256,13 +241,11 @@
           (modules . ,modules)
           (all-exports . ,(apply append (map (lambda (m) (cdr (assq 'exports m))) modules))))))
 
-;;; ====
-;;; Manifest Generation
-;;; ====
+(doc 'section 'manifest-generation)
 
-;;; manifest-template : Symbol Nat (List Symbol) String -> String
-;;; Generate a manifest.sexp template
 (define (manifest-template skill-name tier deps description)
+  (doc 'type '(-> Symbol Nat (List Symbol) String String))
+  (doc 'description "Generate a manifest.sexp template")
   (format ";;; lattice/~a/manifest.sexp — ~a Skill Manifest
 
 (skill ~a
@@ -295,9 +278,9 @@
           deps
           description))
 
-;;; manifest-generate : String -> String
-;;; Scan directory and generate complete manifest
 (define (manifest-generate dir)
+  (doc 'type '(-> String String))
+  (doc 'description "Scan directory and generate complete manifest")
   (let* ([analysis (manifest-scan dir)]
          [skill-name (cdr (assq 'skill analysis))]
          [modules (cdr (assq 'modules analysis))]
@@ -365,13 +348,11 @@
                acc
                (loop (cdr strs) (string-append acc sep (car strs)))))))
 
-;;; ====
-;;; Manifest Validation
-;;; ====
+(doc 'section 'manifest-validation)
 
-;;; manifest-validate : String -> (List String)
-;;; Validate a manifest file, return list of issues
 (define (manifest-validate filepath)
+  (doc 'type '(-> String (List String)))
+  (doc 'description "Validate a manifest file, return list of issues")
   (let* ([content (read-file-string filepath)]
          [sexp (guard (e [else #f])
                       (read (open-input-string content)))])
@@ -412,9 +393,7 @@
         (if has-exports? '() '("Missing (exports ...)"))
         (if has-modules? '() '("Missing (modules ...)")))))
 
-;;; ====
-;;; REPL Interface
-;;; ====
+(doc 'section 'repl-interface)
 
 (printf "manifest-gen loaded.\n")
 (printf "  (manifest-scan \"lattice/algebra\")     - Analyze skill directory\n")

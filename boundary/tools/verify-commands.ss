@@ -1,3 +1,12 @@
+(define-syntax doc
+  (syntax-rules ()
+    [(_ args ...) (void)]))
+
+(doc 'module 'verify-commands)
+(doc 'description "Command system verification and sanity checking")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+
 (define *quiet* #t)
 (load "boundary/repl/repl.ss")
 

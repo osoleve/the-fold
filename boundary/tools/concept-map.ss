@@ -1,34 +1,16 @@
-;;; boundary/tools/concept-map.ss --- ConceptMap Tool for The Fold
-;;;
-;;; Extracts the ontology/concept structure from the codebase.
-;;; Analyzes definitions, types, and relationships between concepts.
-;;;
-;;; This is Shell code: uses IO, handles file parsing.
-;;;
-;;; Dependencies:
-;;;   core/prelude.ss
-;;;
-;;; NOTE: string utilities provided by core/prelude.ss:
-;;;       string-contains?, string-split, string-join, string-starts-with?,
-;;;       string-ends-with?, string-downcase
-;;;       Unique to this module: string-split-at (splits at substring)
-;;;
-;;; API:
-;;;   (extract-definitions path) - Extract all define/define-record-type forms
-;;;   (extract-concepts path) - Find concept-related patterns (Block, Type, Hash)
-;;;   (find-relationships defs) - Infer relationships between concepts
-;;;   (build-concept-graph path) - Build a graph of concepts and their relationships
-;;;   (render-concept-map graph) - Render as readable text output
-
 (load "core/base/prelude.ss")
 
-;;; ====
-;;; S-expression File Reader
-;;; ====
+(doc 'module 'concept-map)
+(doc 'description "Extracts the ontology/concept structure from the codebase")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+(doc 'note "Analyzes definitions, types, and relationships between concepts")
 
-;;; read-sexps-from-file : String -> (List Sexpr)
-;;; Read all S-expressions from a file.
+(doc 'section 's-expression-file-reader)
+
 (define (read-sexps-from-file path)
+  (doc 'type "String -> (List Sexpr)")
+  (doc 'description "Read all S-expressions from a file")
   (if (not (file-exists? path))
       '()
       (call-with-input-file path

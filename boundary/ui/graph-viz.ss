@@ -1,18 +1,18 @@
-;;; boundary/ui/graph-viz.ss — Graph Visualization Utilities
-;;;
-;;; Complements boundary/ui/graph-export.ss with:
-;;;   - Layout algorithms (force-directed, tree, radial)
-;;;   - Turtle graphics rendering for block graphs
-;;;   - Interactive exploration utilities
-;;;
-;;; This is Shell code: uses filesystem, turtle graphics.
-;;;
-;;; Dependencies:
-;;;   - boundary/ui/graph-export.ss (for hash->short, block->label)
-;;;   - boundary/storage/store-api.ss (for store-get, store-all-hashes)
-;;;   - lattice/data/graph-algorithms.ss (for traversal)
-;;;   - lattice/linalg/vec2.ss (for layout math)
-;;;   - boundary/ui/turtle.ss (for rendering)
+(doc 'module 'graph-viz)
+(doc 'description "Graph visualization utilities - layout algorithms and turtle rendering for block graphs")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+
+(doc 'note "Complements boundary/ui/graph-export.ss with:")
+(doc 'note "- Layout algorithms (force-directed, tree, radial)")
+(doc 'note "- Turtle graphics rendering for block graphs")
+(doc 'note "- Interactive exploration utilities")
+
+(doc 'dependencies "boundary/ui/graph-export.ss (for hash->short, block->label)")
+(doc 'dependencies "boundary/storage/store-api.ss (for store-get, store-all-hashes)")
+(doc 'dependencies "lattice/data/graph-algorithms.ss (for traversal)")
+(doc 'dependencies "lattice/linalg/vec2.ss (for layout math)")
+(doc 'dependencies "boundary/ui/turtle.ss (for rendering)")
 
 (load "core/base/prelude.ss")
 (load "lattice/linalg/vec2.ss")
@@ -24,44 +24,40 @@
 (load "boundary/ui/turtle.ss")
 (load "boundary/ui/turtle-svg.ss")
 
-;;; ====
-;;; Layout Data Structures
-;;; ====
+(doc 'section 'layout-data-structures)
 
-;;; A layout maps hashes to positions: ((hash . vec2) ...)
-;;; Stored as an association list.
+(doc 'note "A layout maps hashes to positions: ((hash . vec2) ...)")
+(doc 'note "Stored as an association list")
 
-;;; layout-get : Layout × Hash → Vec2 | #f
+(doc layout-get 'type (-> Layout Hash (Union Vec2 Bool)))
 (define (layout-get layout hash)
   (let ([entry (assoc hash layout)])
        (if entry (cdr entry) #f)))
 
-;;; layout-set : Layout × Hash × Vec2 → Layout
+(doc layout-set 'type (-> Layout Hash Vec2 Layout))
 (define (layout-set layout hash pos)
   (cons (cons hash pos)
         (filter (lambda (e) (not (equal? (car e) hash))) layout)))
 
-;;; layout-all-positions : Layout → (List Vec2)
+(doc layout-all-positions 'type (-> Layout (List Vec2)))
 (define (layout-all-positions layout)
   (map cdr layout))
 
-;;; ====
-;;; Force-Directed Layout
-;;; ====
+(doc 'section 'force-directed-layout)
 
-;;; Simple force-directed layout using:
-;;;   - Repulsion between all nodes (Coulomb-like)
-;;;   - Attraction along edges (spring-like)
-;;;   - Gravity toward center
+(doc 'note "Simple force-directed layout using:")
+(doc 'note "- Repulsion between all nodes (Coulomb-like)")
+(doc 'note "- Attraction along edges (spring-like)")
+(doc 'note "- Gravity toward center")
 
-(define *force-layout-repulsion* 5000)    ; Node repulsion constant
-(define *force-layout-attraction* 0.01)   ; Edge attraction constant
-(define *force-layout-gravity* 0.01)      ; Center gravity
-(define *force-layout-damping* 0.85)      ; Velocity damping
-(define *force-layout-min-dist* 20)       ; Minimum distance between nodes
+(define *force-layout-repulsion* 5000)
+(define *force-layout-attraction* 0.01)
+(define *force-layout-gravity* 0.01)
+(define *force-layout-damping* 0.85)
+(define *force-layout-min-dist* 20)
 
-;;; force-layout-init : FS × (List Hash) × Number × Number → Layout
-;;; Initialize layout with random positions.
+(doc force-layout-init 'type (-> FS (List Hash) Number Number Layout))
+(doc force-layout-init 'description "Initialize layout with random positions")
 (define (force-layout-init fs hashes width height)
   (let ([cx (/ width 2)]
         [cy (/ height 2)]
@@ -77,8 +73,8 @@
                             (cons (cons (car h) (vec2 x y)) layout)
                             (+ i 1)))))))
 
-;;; force-layout-step : FS × Layout × (List Hash) × Number × Number → Layout
-;;; Perform one iteration of force-directed layout.
+(doc force-layout-step 'type (-> FS Layout (List Hash) Number Number Layout))
+(doc force-layout-step 'description "Perform one iteration of force-directed layout")
 (define (force-layout-step fs layout hashes width height)
   (let ([cx (/ width 2)]
         [cy (/ height 2)])
@@ -128,8 +124,8 @@
                                             (max 50 (min (- height 50) (vec2-y new-pos))))])
                             (loop (cdr h) (cons (cons hash clamped) new-layout))))))))
 
-;;; force-layout : FS × (List Hash) × Number → Layout
-;;; Run force-directed layout for given iterations.
+(doc force-layout 'type (-> FS (List Hash) Number Layout))
+(doc force-layout 'description "Run force-directed layout for given iterations")
 (define (force-layout fs hashes iterations)
   (let* ([width *turtle-viewport-width*]
          [height *turtle-viewport-height*]
@@ -139,13 +135,11 @@
                  l
                  (loop (+ i 1) (force-layout-step fs l hashes width height))))))
 
-;;; ====
-;;; Tree Layout (for DAGs)
-;;; ====
+(doc 'section 'tree-layout-for-dags)
 
-;;; tree-layout : FS × Hash × Number × Number → Layout
-;;; Layout graph as a tree rooted at given hash.
-;;; Uses BFS to assign levels, then spreads nodes horizontally.
+(doc tree-layout 'type (-> FS Hash Number Number Layout))
+(doc tree-layout 'description "Layout graph as a tree rooted at given hash")
+(doc tree-layout 'note "Uses BFS to assign levels, then spreads nodes horizontally")
 (define (tree-layout fs root-hash width height)
   (let ([levels (make-hashtable equal-hash equal?)]  ; hash -> level
         [level-counts (make-hashtable equal-hash equal?)]  ; level -> count
@@ -200,12 +194,10 @@
                            (loop (cdr hashes)
                                  (cons (cons hash (vec2 x y)) layout))))))))
 
-;;; ====
-;;; Radial Layout
-;;; ====
+(doc 'section 'radial-layout)
 
-;;; radial-layout : FS × Hash × Number × Number → Layout
-;;; Layout graph radially from a center node.
+(doc radial-layout 'type (-> FS Hash Number Number Layout))
+(doc radial-layout 'description "Layout graph radially from a center node")
 (define (radial-layout fs center-hash width height)
   (let ([cx (/ width 2)]
         [cy (/ height 2)]
@@ -256,14 +248,13 @@
                                                   (place-rings (+ ring 1)))))))))
        layout))
 
-;;; ====
-;;; Turtle Graphics Rendering
-;;; ====
+(doc 'section 'turtle-graphics-rendering)
 
-;;; Define gray color (not in standard palette)
+(doc 'note "Define gray color (not in standard palette)")
 (define color12-gray (make-color12 8 8 8))
 
-;;; Node colors by tag
+(doc tag->color 'type (-> Tag Color12))
+(doc tag->color 'description "Node colors by tag")
 (define (tag->color tag)
   (case tag
         [(expr sexpr) color12-blue]
@@ -274,8 +265,8 @@
         [(string symbol) color12-red]
         [else color12-gray]))
 
-;;; draw-node : Turtle × Vec2 × String × Color12 → Turtle
-;;; Draw a node as a circle with label.
+(doc draw-node 'type (-> Turtle Vec2 String Color12 Turtle))
+(doc draw-node 'description "Draw a node as a circle with label")
 (define (draw-node turtle pos label color)
   (let* ([x (vec2-x pos)]
          [y (vec2-y pos)]
@@ -288,8 +279,8 @@
          [t5 (draw-circle t4 15)])
         t5))
 
-;;; draw-circle : Turtle × Number → Turtle
-;;; Draw a circle of given radius at current position.
+(doc draw-circle 'type (-> Turtle Number Turtle))
+(doc draw-circle 'description "Draw a circle of given radius at current position")
 (define (draw-circle turtle radius)
   (let* ([cx (turtle-x turtle)]
          [cy (turtle-y turtle)]
@@ -305,8 +296,8 @@
                         [t-next (goto t x y)])
                        (loop t-next (+ angle 15)))))))
 
-;;; draw-edge : Turtle × Vec2 × Vec2 × Color12 → Turtle
-;;; Draw an edge between two nodes.
+(doc draw-edge 'type (-> Turtle Vec2 Vec2 Color12 Turtle))
+(doc draw-edge 'description "Draw an edge between two nodes")
 (define (draw-edge turtle from-pos to-pos color)
   (let* ([t1 (pu turtle)]
          [t2 (goto t1 (vec2-x from-pos) (vec2-y from-pos))]
@@ -316,8 +307,8 @@
          [t5 (goto t4 (vec2-x to-pos) (vec2-y to-pos))])
         t5))
 
-;;; goto : Turtle × Number × Number → Turtle
-;;; Move turtle to absolute position.
+(doc goto 'type (-> Turtle Number Number Turtle))
+(doc goto 'description "Move turtle to absolute position")
 (define (goto turtle x y)
   (let* ([dx (- x (turtle-x turtle))]
          [dy (- y (turtle-y turtle))]
@@ -329,16 +320,14 @@
                    [t2 (fd t1 dist)])
                   t2))))
 
-;;; rad->deg : Number → Number
+(doc rad->deg 'type (-> Number Number))
 (define (rad->deg rad)
   (* rad (/ 180 3.14159)))
 
-;;; ====
-;;; Graph Rendering Functions
-;;; ====
+(doc 'section 'graph-rendering-functions)
 
-;;; render-graph-turtle : FS × Layout × (List Hash) → Turtle
-;;; Render a graph to turtle graphics.
+(doc render-graph-turtle 'type (-> FS Layout (List Hash) Turtle))
+(doc render-graph-turtle 'description "Render a graph to turtle graphics")
 (define (render-graph-turtle fs layout hashes)
   (let ([turtle (make-turtle)])
        ;; Draw edges first (so nodes are on top)
@@ -372,9 +361,9 @@
                                               (ref-loop t3 (+ i 1))))))
                           (edge-loop t (cdr h))))))))
 
-;;; graph-to-svg : FS × (List Hash) × Symbol → String
-;;; Render graph to SVG string.
-;;; layout-type: 'force | 'tree | 'radial
+(doc graph-to-svg 'type (-> FS (List Hash) Symbol String))
+(doc graph-to-svg 'description "Render graph to SVG string")
+(doc graph-to-svg 'param "layout-type: 'force | 'tree | 'radial")
 (define (graph-to-svg fs hashes layout-type)
   (let* ([width *turtle-viewport-width*]
          [height *turtle-viewport-height*]
@@ -391,8 +380,8 @@
          [drawing (turtle->drawing turtle)])
         (drawing->svg drawing)))
 
-;;; graph-to-svg-file : FS × (List Hash) × Symbol × String → void
-;;; Render graph to SVG file.
+(doc graph-to-svg-file 'type (-> FS (List Hash) Symbol String Void))
+(doc graph-to-svg-file 'description "Render graph to SVG file")
 (define (graph-to-svg-file fs hashes layout-type output-path)
   (let ([svg (graph-to-svg fs hashes layout-type)])
        (call-with-output-file output-path
@@ -400,12 +389,10 @@
                                       (put-string port svg)))
        (display (format "Saved graph visualization to ~a\n" output-path))))
 
-;;; ====
-;;; Interactive Exploration
-;;; ====
+(doc 'section 'interactive-exploration)
 
-;;; show-neighborhood : FS × Hash × Number → void
-;;; Display ASCII visualization of nodes within N hops.
+(doc show-neighborhood 'type (-> FS Hash Number Void))
+(doc show-neighborhood 'description "Display ASCII visualization of nodes within N hops")
 (define (show-neighborhood fs center-hash radius)
   (let ([visited (make-visited)]
         [nodes-at-level (make-hashtable equal-hash equal?)])
@@ -451,8 +438,8 @@
                        (newline))
                   (level-loop (+ l 1))))))
 
-;;; trace-path : FS × Hash × Hash → void
-;;; Display step-by-step path between two nodes.
+(doc trace-path 'type (-> FS Hash Hash Void))
+(doc trace-path 'description "Display step-by-step path between two nodes")
 (define (trace-path fs from-hash to-hash)
   (let ([path (shortest-path fs from-hash to-hash)])
        (if (not path)
@@ -476,8 +463,8 @@
                                (loop (cdr p) (+ i 1)))))
             (display (format "\nTotal: ~a nodes\n" (length path)))))))
 
-;;; explore-block : FS × Hash → void
-;;; Display detailed information about a block and its connections.
+(doc explore-block 'type (-> FS Hash Void))
+(doc explore-block 'description "Display detailed information about a block and its connections")
 (define (explore-block fs hash)
   (let ([blk (store-get fs hash)])
        (if (not blk)
@@ -517,20 +504,18 @@
                            (take (min 5 (length incoming)) incoming)))
             (display "└─────────────────────────────────────┘\n")))))
 
-;;; ====
-;;; Quick Visualization Commands
-;;; ====
+(doc 'section 'quick-visualization-commands)
 
-;;; viz-recent : FS × Number → void
-;;; Visualize the N most recent blocks.
+(doc viz-recent 'type (-> FS Number Void))
+(doc viz-recent 'description "Visualize the N most recent blocks")
 (define (viz-recent fs count)
   (let* ([all-hashes (store-all-hashes fs)]
          [recent (take (min count (length all-hashes)) all-hashes)])
         (graph-to-svg-file fs recent 'force "recent-graph.svg")
         (show-neighborhood fs (if (null? recent) #f (car recent)) 2)))
 
-;;; viz-subgraph : FS × Hash × Number → void
-;;; Visualize a subgraph rooted at hash with given depth.
+(doc viz-subgraph 'type (-> FS Hash Number Void))
+(doc viz-subgraph 'description "Visualize a subgraph rooted at hash with given depth")
 (define (viz-subgraph fs root-hash depth)
   (let ([reachable (reachable-from fs root-hash)])
        ;; Limit to nodes within depth
@@ -538,9 +523,7 @@
                           'radial
                           "subgraph.svg")))
 
-;;; ====
-;;; Module Load Message
-;;; ====
+(doc 'section 'module-load-message)
 
 (display "Graph Visualization loaded.\n")
 (display "  Layouts: (force-layout fs hashes iterations)\n")

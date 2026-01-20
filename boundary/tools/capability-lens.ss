@@ -1,26 +1,20 @@
-;;; boundary/tools/capability-lens.ss --- Capability Lens (Effect/Authority Scan)
-;;;
-;;; Static analysis of Scheme sources to surface capability mint/use.
-;;; This is Shell code: reads files, parses S-expressions.
-;;;
-;;; Usage:
-;;;   (load "boundary/tools/capability-lens.ss")
-;;;   (capability-report (fs) "shell" "forum")
-;;;   (capability-scan (fs) "shell")   ; returns structured data
-
 (load "boundary/io/fs.ss")
 (load "boundary/ui/text.ss")
 (load "boundary/tools/edit.ss")
 (load "core/base/prelude.ss")
 
-;;; ====
-;;; Small Utilities
-;;; ====
+(doc 'module 'capability-lens)
+(doc 'description "Static analysis of Scheme sources to surface capability mint/use")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+(doc 'usage "(capability-report (fs) \"shell\" \"forum\")")
+(doc 'usage "(capability-scan (fs) \"shell\") ; returns structured data")
 
-;;; NOTE: string utilities (string-starts-with?, string-ends-with?, string-downcase,
-;;;       string-upcase, string-join) are provided by core/prelude.ss
+(doc 'section 'small-utilities)
 
-;;; string-prefix? and string-suffix? wrap prelude functions with consistent (pattern str) order
+(doc 'note "string utilities (string-starts-with?, string-ends-with?, string-downcase, string-upcase, string-join) are provided by core/prelude.ss")
+
+(doc 'note "string-prefix? and string-suffix? wrap prelude functions with consistent (pattern str) order")
 (define (string-prefix? prefix str) (string-starts-with? str prefix))
 (define (string-suffix? suffix str) (string-ends-with? str suffix))
 

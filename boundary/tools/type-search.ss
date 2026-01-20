@@ -1,43 +1,14 @@
-;;; boundary/tools/type-search.ss — Type-Driven Search Helpers
-;;;
-;;; Search for functions and values by their type signatures.
-;;; Supports pattern matching with type variables and partial types.
-;;;
-;;; Features:
-;;;   - Search by exact type signature
-;;;   - Search with type variables (wildcards)
-;;;   - Find functions with compatible signatures
-;;;   - Suggest combinator recipes
-;;;   - Integration with symbol index
-;;;
-;;; This is Shell code: uses the symbol index for lookups.
-;;;
-;;; Usage:
-;;;   (type-search "(-> Nat Nat)")           - Find Nat -> Nat functions
-;;;   (type-search "(-> a a)")               - Find identity-like functions
-;;;   (type-search "(-> (List a) Nat)")      - Find list length-like
-;;;   (type-search-return "Bool")            - Functions returning Bool
-;;;   (type-search-arg "String")             - Functions taking String
-;;;   (type-search-suggest "(-> Nat Bool)")  - Suggest compositions
-;;;   (type-search-help)                     - Show help
-;;;
-;;; Dependencies:
-;;;   boundary/tools/index.ss (symbol index)
-;;;   core/types/sig-parser.ss (signature parsing)
-
-;;; ====
-;;; Dependencies
-;;; ====
-
 (load "core/base/prelude.ss")
+
+(doc 'module 'type-search)
+(doc 'description "Type-driven search with pattern matching, type variables, and combinator suggestions")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
 (load "boundary/tools/string-utils.ss")
 
-;;; ====
-;;; Typed Index (Pre-parsed Signatures)
-;;; ====
+(doc 'section 'typed-index)
 
-;;; *typed-index* : Hashtable Symbol -> ParsedType
-;;; Pre-parsed type signatures for fast searching.
+(doc 'note "Pre-parsed type signatures for fast searching")
 (define *typed-index* (make-eq-hashtable))
 
 ;;; build-typed-index! : -> Void

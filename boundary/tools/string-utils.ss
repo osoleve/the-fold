@@ -1,53 +1,30 @@
-;;; boundary/string-utils.ss — String Utilities (Boundary Layer)
-;;;
-;;; This module re-exports string utilities from core/prelude.ss
-;;; and adds shell-specific extensions.
-;;;
-;;; CANONICAL SOURCE: core/prelude.ss
-;;; Shell code should load this file (or prelude.ss directly).
-;;;
-;;; Functions from prelude.ss:
-;;;   string-join, string-split (char only), string-trim, string-trim-left,
-;;;   string-trim-right, string-contains?, string-starts-with?, string-ends-with?,
-;;;   string-index-of, string-last-index-of, string-replace, string-reverse,
-;;;   string-empty?, string-blank?, string-all-match?, string-upcase,
-;;;   string-downcase, string-pad-left, string-pad-right, whitespace?,
-;;;   edit-distance
-;;;
-;;; Shell-specific additions:
-;;;   string-prefix? (alias for string-starts-with?)
-;;;   string-suffix? (alias for string-ends-with?)
-;;;   string-split-flex (accepts char or string delimiter)
-;;;   string-split-lines (handles Unix/Windows line endings)
-;;;   string-index (find char index)
-;;;   string-index-right (find last char index)
-;;;   string-replace-first (replace only first occurrence)
-
 (load "core/base/prelude.ss")
 
-;;; ====
-;;; Shell-Specific Aliases
-;;; ====
+(doc 'module 'string-utils)
+(doc 'description "String utilities re-exported from prelude.ss with shell-specific extensions")
+(doc 'layer 'boundary)
+(doc 'purity 'total)
+(doc 'note "Canonical source is core/prelude.ss; this adds shell-specific aliases and extensions")
 
-;;; string-prefix? : String × String → Boolean
-;;; Check if str starts with prefix.
-;;; Note: Argument order is (prefix str) for consistency with shell code patterns.
+(doc 'section 'shell-aliases)
+
 (define (string-prefix? prefix str)
+  (doc 'type "(-> String String Bool)")
+  (doc 'description "Check if str starts with prefix")
+  (doc 'note "Argument order is (prefix str) for consistency with shell code patterns")
   (string-starts-with? str prefix))
 
-;;; string-suffix? : String × String → Boolean
-;;; Check if str ends with suffix.
-;;; Note: Argument order is (suffix str) for consistency with shell code patterns.
 (define (string-suffix? suffix str)
+  (doc 'type "(-> String String Bool)")
+  (doc 'description "Check if str ends with suffix")
+  (doc 'note "Argument order is (suffix str) for consistency with shell code patterns")
   (string-ends-with? str suffix))
 
-;;; ====
-;;; Shell-Specific Extensions
-;;; ====
+(doc 'section 'shell-extensions)
 
-;;; string-index : String × Char → Integer | #f
-;;; Find first occurrence of character in string.
 (define (string-index str ch)
+  (doc 'type "(-> String Char (Option Integer))")
+  (doc 'description "Find first occurrence of character in string")
   (let ([len (string-length str)])
        (let loop ([i 0])
             (cond

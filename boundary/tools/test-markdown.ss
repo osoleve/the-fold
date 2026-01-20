@@ -1,6 +1,7 @@
-;;; boundary/tools/test-markdown.ss — Tests for Markdown Utilities
-;;;
-;;; Run from project root: scheme --script boundary/tools/test-markdown.ss
+(doc 'module 'test-markdown)
+(doc 'description "Tests for markdown utilities")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
 
 (load "boundary/tools/markdown.ss")
 

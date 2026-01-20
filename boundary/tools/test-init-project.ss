@@ -1,6 +1,7 @@
-;;; boundary/tools/test-init-project.ss — Tests for Project Initialization
-;;;
-;;; Run from project root: scheme --script boundary/tools/test-init-project.ss
+(doc 'module 'test-init-project)
+(doc 'description "Tests for project initialization")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
 
 (load "boundary/tools/init-project.ss")
 

@@ -1,54 +1,21 @@
-;;; boundary/scaffold.ss — Code Scaffolding and Templating System
-;;;
-;;; Generate boilerplate code from templates for rapid development.
-;;; Supports variable substitution, interactive prompts, and validation.
-;;;
-;;; This is Boundary code: IO-heavy, user interaction, file creation.
-;;;
-;;; Usage:
-;;;   (scaffold 'boundary-module "my-module" '((description . "Does things")))
-;;;   (scaffold 'core-module "my-pure-fn" '((description . "Pure computation")))
-;;;   (scaffold 'tool "my-tool" '((category . building)))
-;;;   (list-templates)
-;;;   (scaffold-interactive)
-;;;
-;;; Dependencies:
-;;;   boundary/io/fs.ss (for file operations)
-;;;   boundary/ui/text.ss (for text utilities)
-;;;   core/prelude.ss (for string utilities)
-;;;
-;;; NOTE: string utilities (string-join, string-split, string-trim, string-contains?,
-;;;       string-upcase, string-downcase, etc.) are provided by core/prelude.ss.
-;;;       string-search is unique to this module.
-
 (load "core/base/prelude.ss")
 
-;;; ====
-;;; Template Registry
-;;; ====
+(doc 'module 'scaffold)
+(doc 'description "Code scaffolding and templating system for rapid development")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+(doc 'note "string utilities (string-join, string-split, string-trim, etc.) from prelude.ss; string-search is unique to this module")
 
-;;; Template structure:
-;;;   ((name . <symbol>)
-;;;    (description . <string>)
-;;;    (variables . ((var-name . (prompt . default)) ...))
-;;;    (files . (((path . <string-template>)
-;;;               (content . <string-template>)) ...)))
-;;;
-;;; String templates support these substitutions:
-;;;   {{NAME}}         - module name (as provided)
-;;;   {{NAME-UPPER}}   - module name in UPPERCASE
-;;;   {{NAME-LOWER}}   - module name in lowercase
-;;;   {{DESCRIPTION}}  - description from variables
-;;;   {{AUTHOR}}       - author from session or variables
-;;;   {{TIMESTAMP}}    - current timestamp
-;;;   {{YEAR}}         - current year
-;;;   {{VAR-NAME}}     - custom variable from options
+(doc 'section 'template-registry)
+
+(doc 'note "Template structure: ((name . <symbol>) (description . <string>) (variables . ((var-name . (prompt . default)) ...)) (files . (((path . <template>) (content . <template>)) ...)))")
+(doc 'note "String template substitutions: {{NAME}}, {{NAME-UPPER}}, {{NAME-LOWER}}, {{DESCRIPTION}}, {{AUTHOR}}, {{TIMESTAMP}}, {{YEAR}}, {{VAR-NAME}}")
 
 (define *scaffold-templates* '())
 
-;;; define-template : Symbol × String × Alist × (List Alist) → void
-;;; Register a new template in the registry.
 (define (define-template name description variables files)
+  (doc 'type "(-> Symbol String Alist (List Alist) Void)")
+  (doc 'description "Register a new template in the registry")
   (let ([existing (assq name *scaffold-templates*)])
        (if existing
            (set! *scaffold-templates*
@@ -63,18 +30,16 @@
                                   (files . ,files)))
                        *scaffold-templates*)))))
 
-;;; get-template : Symbol → Alist | #f
 (define (get-template name)
+  (doc 'type "(-> Symbol (Option Alist))")
   (let ([entry (assq name *scaffold-templates*)])
        (if entry (cdr entry) #f)))
 
-;;; ====
-;;; String Substitution
-;;; ====
+(doc 'section 'string-substitution)
 
-;;; substitute-vars : String × Alist → String
-;;; Replace {{VAR}} placeholders with values from bindings.
 (define (substitute-vars template bindings)
+  (doc 'type "(-> String Alist String)")
+  (doc 'description "Replace {{VAR}} placeholders with values from bindings")
   (let loop ([str template])
        (let ([start (string-search "{{" str)])
             (if (not start)
@@ -92,9 +57,9 @@
                                 [after (substring str (+ end 2) (string-length str))])
                                (loop (string-append before value after)))))))))
 
-;;; string-search : String × String → Nat | #f
-;;; Find first occurrence of needle in haystack.
 (define (string-search needle haystack)
+  (doc 'type "(-> String String (Option Nat))")
+  (doc 'description "Find first occurrence of needle in haystack")
   (let ([nlen (string-length needle)]
         [hlen (string-length haystack)])
        (let loop ([i 0])
@@ -103,13 +68,11 @@
              [(string=? needle (substring haystack i (+ i nlen))) i]
              [else (loop (+ i 1))]))))
 
-;;; ====
-;;; Variable Resolution
-;;; ====
+(doc 'section 'variable-resolution)
 
-;;; build-bindings : String × Alist × Alist → Alist
-;;; Build substitution bindings from name, template vars, and options.
 (define (build-bindings name template-vars options)
+  (doc 'type "(-> String Alist Alist Alist)")
+  (doc 'description "Build substitution bindings from name, template vars, and options")
   (let* ([base `(("NAME" . ,name)
                  ("NAME-UPPER" . ,(string-upcase name))
                  ("NAME-LOWER" . ,(string-downcase name))

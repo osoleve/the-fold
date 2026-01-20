@@ -1,41 +1,16 @@
-;;; boundary/init-project.ss — Project Initialization Wizard
-;;;
-;;; Interactive wizard to set up new Fold projects with best practices.
-;;; Creates directory structure, boilerplate files, and configuration.
-;;;
-;;; This is Boundary code: creates files, sets up structure, user interaction.
-;;;
-;;; Dependencies:
-;;;   boundary/io/fs.ss
-;;;   boundary/tools/scaffold.ss (for templates)
-;;;   boundary/git/git-workflow.ss (for git init)
-;;;
-;;; Operations:
-;;;   (init-project name) — Initialize new project
-;;;   (init-project-interactive) — Interactive wizard
-;;;   (init-module name type) — Add new module to project
-;;;   (project-info) — Display project information
-;;;
-;;; Features:
-;;;   - Interactive prompts for project setup
-;;;   - Pre-configured directory structure
-;;;   - Template files (CLAUDE.md, README, etc.)
-;;;   - Git initialization
-;;;   - Test scaffolding
-;;;   - CI/CD setup options
-;;;
-;;; NOTE: string-join provided by core/prelude.ss
-
 (load "core/base/prelude.ss")
 
-;;; ====
-;;; Input Validation (SECURITY)
-;;; ====
+(doc 'module 'init-project)
+(doc 'description "Interactive wizard to set up new Fold projects with best practices")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
 
-;;; valid-project-name? : String → Boolean
-;;; Project names must be safe for use in shell commands and file paths.
-;;; Only alphanumeric characters, hyphens, and underscores allowed.
+(doc 'section 'input-validation-security)
+
 (define (valid-project-name? name)
+  (doc 'type "String → Boolean")
+  (doc 'description "Project names must be safe for use in shell commands and file paths")
+  (doc 'note "Only alphanumeric characters, hyphens, and underscores allowed")
   (let ([len (string-length name)])
        (and (> len 0)
             (<= len 64)  ; Reasonable max length

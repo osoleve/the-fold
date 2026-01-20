@@ -1,20 +1,15 @@
-;;; boundary/tools/build-nav-report.ss — Navigable Technical Report Generator
-;;;
-;;; Builds the chapter-navigable technical report by parsing markdown
-;;; chapters and injecting content into the template.
-;;;
-;;; Dogfoods the lattice/dsl/markdown parser.
-;;;
-;;; Usage:
-;;;   scheme --script boundary/tools/build-nav-report.ss
-
 (load "core/base/prelude.ss")
+
+(doc 'module 'build-nav-report)
+(doc 'description "Builds the chapter-navigable technical report by parsing markdown chapters and injecting content into the template")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+(doc 'note "Dogfoods the lattice/dsl/markdown parser")
+(doc 'usage "scheme --script boundary/tools/build-nav-report.ss")
 (load "lattice/dsl/markdown/block-parser.ss")
 (load "lattice/dsl/markdown/html.ss")
 
-;;; ============================================================
-;;; Configuration
-;;; ============================================================
+(doc 'section 'configuration)
 
 (define *report-source-dir* "docs/technical-report")
 (define *report-output-file* "/home/oso/fold/docs/technical-report-nav.html")
@@ -41,11 +36,10 @@
     ("appendix-e"       "appendix-e-comparison-with-unison.md")
     ("references"       "99-references.md")))
 
-;;; ============================================================
-;;; File I/O
-;;; ============================================================
+(doc 'section 'file-io)
 
 (define (read-file path)
+  (doc 'type "Path -> String")
   (call-with-input-file path
     (lambda (port)
       (let loop ([chars '()])
@@ -55,18 +49,17 @@
               (loop (cons c chars))))))))
 
 (define (write-file path content)
+  (doc 'type "Path × String -> Unit")
   (call-with-output-file path
     (lambda (port)
       (display content port))
     '(replace)))
 
-;;; ============================================================
-;;; Markdown Processing
-;;; ============================================================
+(doc 'section 'markdown-processing)
 
-;;; render-body : AST -> String
-;;; Render markdown AST to HTML, skipping the first H2 (already in template).
 (define (render-body ast)
+  (doc 'type "AST -> String")
+  (doc 'description "Render markdown AST to HTML, skipping the first H2 (already in template)")
   (if (and (pair? ast) (eq? (car ast) 'document))
       (let* ([blocks (cdr ast)]
              ;; Skip leading H2 if present
@@ -80,9 +73,9 @@
                (map render-html body-blocks)))
       (render-html ast)))
 
-;;; parse-chapter-body : String -> String
-;;; Parse markdown file and return just the body HTML (no H2).
 (define (parse-chapter-body filename)
+  (doc 'type "String -> String")
+  (doc 'description "Parse markdown file and return just the body HTML (no H2)")
   (let* ([path (string-append *report-source-dir* "/" filename)]
          [content (read-file path)]
          [result (parse-markdown content)])
@@ -92,21 +85,17 @@
                        (format-error (from-left result))
                        "</p>\n"))))
 
-;;; ============================================================
-;;; Template Generation
-;;; ============================================================
+(doc 'section 'template-generation)
 
-;;; generate-section : String × String -> String
-;;; Generate a complete section with content.
 (define (generate-section section-id content)
+  (doc 'type "String × String -> String")
+  (doc 'description "Generate a complete section with content")
   (string-append
    "            <section id=\"" section-id "\">\n"
    content
    "            </section>\n\n"))
 
-;;; ============================================================
-;;; HTML Template
-;;; ============================================================
+(doc 'section 'html-template)
 
 (define *page-header* "<!DOCTYPE html>
 <html lang=\"en\">
@@ -528,9 +517,7 @@
 </html>
 ")
 
-;;; ============================================================
-;;; Section Title Map
-;;; ============================================================
+(doc 'section 'section-title-map)
 
 (define *section-titles*
   '(("block-machine"    "3. The Block Machine")
@@ -556,13 +543,11 @@
   (let ([entry (assoc section-id *section-titles*)])
     (if entry (cadr entry) section-id)))
 
-;;; ============================================================
-;;; Build Process
-;;; ============================================================
+(doc 'section 'build-process)
 
-;;; build-section : (String × String) -> String
-;;; Build a complete section from section-id and filename.
 (define (build-section entry)
+  (doc 'type "(String × String) -> String")
+  (doc 'description "Build a complete section from section-id and filename")
   (let* ([section-id (car entry)]
          [filename (cadr entry)]
          [title (get-section-title section-id)]

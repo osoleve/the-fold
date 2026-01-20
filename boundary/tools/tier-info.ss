@@ -1,11 +1,15 @@
-;;; boundary/tools/tier-info.ss — Tier Information and Documentation
-;;;
-;;; Provides commands to view tier capabilities and authority model.
-;;; Helps users understand what they can do based on their tier.
+(define-syntax doc
+  (syntax-rules ()
+    [(_ args ...) (void)]))
 
-;;; tier-checklist : () → void
-;;; Display capabilities for all tiers.
+(doc 'module 'tier-info)
+(doc 'description "Tier capabilities and authority model documentation")
+(doc 'layer 'boundary)
+(doc 'purity 'total)
+
 (define (tier-checklist)
+  (doc 'type "(-> Void)")
+  (doc 'description "Display capabilities for all tiers")
   (display "\n  ┌────────────────────────────────────────────────────────────────────┐\n")
   (display   "  │                      TIER CAPABILITIES                             │\n")
   (display   "  └────────────────────────────────────────────────────────────────────┘\n\n")

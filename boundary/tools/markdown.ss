@@ -1,68 +1,54 @@
-;;; boundary/markdown.ss — Markdown Generation Helpers
-;;;
-;;; Utilities for generating Markdown-formatted text programmatically.
-;;; Useful for generating reports, prompts, and documentation.
-;;;
-;;; TIER ASSIGNMENT:
-;;;   Tier 5: Formatting utilities
-;;;
-;;; Usage:
-;;;   (load "boundary/markdown.ss")
-;;;   (bold "text") -> "**text**"
-;;;   (bullet-list '("a" "b")) -> "• a\\n• b"
-
 (load "boundary/tools/string-utils.ss")
 
-;;; ====
-;;; Inline Formatting
-;;; ====
+(doc 'module 'markdown)
+(doc 'description "Utilities for generating Markdown-formatted text programmatically")
+(doc 'layer 'boundary)
+(doc 'purity 'total)
 
-;;; bold : String → String
+(doc 'note "Useful for generating reports, prompts, and documentation")
+(doc 'note "Usage: (bold \"text\") -> \"**text**\"")
+
+(doc 'section 'inline-formatting)
+
 (define (bold text)
+  (doc 'type '(-> String String))
   (string-append "**" text "**"))
 
-;;; italic : String → String
 (define (italic text)
+  (doc 'type '(-> String String))
   (string-append "*" text "*"))
 
-;;; code : String → String
-;;; Inline code span
 (define (code text)
+  (doc 'type '(-> String String))
+  (doc 'description "Inline code span")
   (string-append "`" text "`"))
 
-;;; link : String String → String
-;;; [text](url)
 (define (link text url)
+  (doc 'type '(-> String String String))
+  (doc 'description "[text](url)")
   (string-append "[" text "](" url ")"))
 
-;;; ====
-;;; Block Formatting
-;;; ====
+(doc 'section 'block-formatting)
 
-;;; header : Integer String → String
-;;; # Title
 (define (header level text)
+  (doc 'type '(-> Integer String String))
+  (doc 'description "# Title")
   (string-append
    (make-string level #\#) " " text "\n"))
 
-;;; section : String String... → String
-;;; Creates a visual section with a title and content.
-;;; Uses a separator line for visual distinction in plain text/markdown.
-;;;
-;;; Example:
-;;; Title
-;;; ─────
-;;; Content...
 (define (section title . content)
+  (doc 'type '(-> String String ... String))
+  (doc 'description "Creates a visual section with a title and content")
+  (doc 'note "Uses a separator line for visual distinction in plain text/markdown")
   (string-append
    title "\n"
    (make-string (string-length title) #\─) "\n"
    (if (null? content) "" (apply string-append content))
    "\n\n"))
 
-;;; quote : String → String
-;;; > Blockquote
 (define (quote text)
+  (doc 'type '(-> String String))
+  (doc 'description "> Blockquote")
   (let ([lines (string-split text #\newline)])
        (string-append
         (string-join
@@ -82,15 +68,11 @@
                    (if (string-ends-with? text "\n") text (string-append text "\n"))
                    "```\n")]))
 
-;;; ====
-;;; Lists
-;;; ====
+(doc 'section 'lists)
 
-;;; bullet-list : List<String> [Integer] → String
-;;; Create a bulleted list. Optional indentation level.
-;;; bullet-list : List<String> [Integer] → String
-;;; Create a bulleted list. Optional indentation level.
 (define bullet-list
+  (doc 'type '(-> (List String) Integer String))
+  (doc 'description "Create a bulleted list with optional indentation level")
   (case-lambda
    [(items) (bullet-list items 0)]
    [(items indent)
@@ -103,9 +85,9 @@
                "\n")
               "\n")))]))
 
-;;; numbered-list : List<String> [Integer] → String
-;;; Create a numbered list. Optional indentation level.
 (define numbered-list
+  (doc 'type '(-> (List String) Integer String))
+  (doc 'description "Create a numbered list with optional indentation level")
   (case-lambda
    [(items) (numbered-list items 0)]
    [(items indent)

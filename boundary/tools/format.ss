@@ -1,34 +1,11 @@
-;;; boundary/format.ss — Code Formatter and Pretty-Printer
-;;;
-;;; Format Scheme code with consistent style and indentation.
-;;; Supports multiple formatting styles and customization.
-;;;
-;;; This is Shell code: reads/writes files, formats text.
-;;;
-;;; Dependencies:
-;;;   boundary/io/fs.ss (for file operations)
-;;;   boundary/ui/text.ss (for text utilities)
-;;;
-;;; Operations:
-;;;   (format-file path) — Format file in-place
-;;;   (format-string code) — Format code string
-;;;   (format-expr expr) — Format s-expression
-;;;   (format-check path) — Check if file needs formatting
-;;;   (format-diff path) — Show formatting diff
-;;;
-;;; Features:
-;;;   - Consistent indentation (2 spaces default)
-;;;   - Smart alignment for special forms
-;;;   - Configurable line length (80 chars default)
-;;;   - Preserves comments
-;;;   - Multiple formatting styles (compact, expanded, canonical)
-;;;   - Batch formatting for directories
-
 (load "core/base/prelude.ss")
 
-;;; ====
-;;; Configuration
-;;; ====
+(doc 'module 'format)
+(doc 'description "Format Scheme code with consistent style and indentation")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+
+(doc 'section 'configuration)
 
 (define *indent-width* 2)
 (define *max-line-length* 80)

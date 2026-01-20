@@ -1,6 +1,7 @@
-;;; boundary/tools/test-template-tools.ss — Tests for Template Shell Tools
-;;;
-;;; Tests for template-session.ss and template-parser.ss
+(doc 'module 'test-template-tools)
+(doc 'description "Tests for template session and parser tools")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
 
 (load "core/testing/test-framework.ss")
 (load "boundary/tools/template-parser.ss")

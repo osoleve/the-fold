@@ -1,9 +1,8 @@
-;;; boundary/tools/test-coverage.ss — Tests for Coverage Analyzer
-;;;
-;;; Run from project root: scheme --script boundary/tools/test-coverage.ss
-;;;
-;;; NOTE: The coverage module uses hashtable-walk which requires R6RS.
-;;; These tests focus on the available functionality.
+(doc 'module 'test-coverage)
+(doc 'description "Tests for coverage analyzer")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+(doc 'note "Coverage module uses hashtable-walk (R6RS)")
 
 (load "boundary/tools/coverage.ss")
 

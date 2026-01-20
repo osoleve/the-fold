@@ -1,6 +1,7 @@
-;;; boundary/tools/test-rewrite-repl.ss — Tests for Rewrite REPL Commands
-;;;
-;;; Run from project root: scheme --script boundary/tools/test-rewrite-repl.ss
+(doc 'module 'test-rewrite-repl)
+(doc 'description "Tests for rewrite REPL commands")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
 
 (load "boundary/tools/rewrite-repl.ss")
 

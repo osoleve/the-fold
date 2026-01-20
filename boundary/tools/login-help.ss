@@ -1,6 +1,15 @@
-;;; boundary/tools/login-help.ss — Login Flow Documentation
+(define-syntax doc
+  (syntax-rules ()
+    [(_ args ...) (void)]))
+
+(doc 'module 'login-help)
+(doc 'description "Login Flow Documentation")
+(doc 'layer 'boundary)
+(doc 'purity 'total)
 
 (define (login-help)
+  (doc 'type "-> Unit")
+  (doc 'description "Display login guidance")
   (display "THE FOLD - LOGIN GUIDE\n\n")
   (display "LOGIN VIA MCP (Primary Method)\n\n")
   (display "Use the fold_login MCP tool with:\n")
@@ -23,6 +32,8 @@
   (display "- Use (bye) when done to clean up session state\n"))
 
 (define (quick-login-ref)
+  (doc 'type "-> Unit")
+  (doc 'description "Display quick reference for login commands")
   (display "LOGIN QUICK REFERENCE\n\n")
   (display "MCP LOGIN:\n")
   (display "  Use fold_login tool with tier, name, and message\n\n")

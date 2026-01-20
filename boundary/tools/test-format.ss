@@ -1,6 +1,7 @@
-;;; boundary/tools/test-format.ss — Tests for Code Formatter
-;;;
-;;; Run from project root: scheme --script boundary/tools/test-format.ss
+(doc 'module 'test-format)
+(doc 'description "Tests for code formatter")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
 
 (load "boundary/tools/format.ss")
 

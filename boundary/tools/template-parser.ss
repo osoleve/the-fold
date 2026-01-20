@@ -1,34 +1,20 @@
-;;; boundary/tools/template-parser.ss — Linear Syntax Parser for Templates
-;;; @module template-parser
-;;; @requires boundary/tools/template-session
-;;;
-;;; Parses the EBNF-like linear syntax into template operations.
-;;;
-;;; Syntax:
-;;;   define $sig $body           → (ts-start '(define $sig $body))
-;;;   $name := factorial          → (ts-fill '$name 'factorial)
-;;;   $body := if $c $t $e        → (ts-fill '$body '(if $c $t $e))
-;;;   $cond := = n 0              → (ts-fill '$cond '(= n 0))  ; implicit parens
-;;;
-;;; Rules:
-;;;   1. Line starting with "$name :=" is a fill operation
-;;;   2. Otherwise, line is a new template definition
-;;;   3. Uses Scheme's `read` for proper parsing of strings, booleans, etc.
-;;;   4. Implicit parens: if >1 token, wrap in ()
-;;;   5. Single token stays as-is
-;;;
-;;; This is Shell code: impure, handles IO.
+(define-syntax doc
+  (syntax-rules ()
+    [(_ args ...) (void)]))
 
 (load "boundary/tools/template-session.ss")
 
-;;; ====
-;;; Tokenizer (Read-based)
-;;; ====
+(doc 'module 'template-parser)
+(doc 'description "Linear syntax parser for template operations with EBNF-like grammar")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+(doc 'note "Syntax rules: $name := value for fills, implicit parens for multi-token sequences")
 
-;;; tokenize : String → (List Sexpr)
-;;; Parse string into a list of S-expressions using Scheme's reader.
-;;; Handles strings, booleans, quoted forms, etc. correctly.
+(doc 'section 'tokenizer)
+
 (define (tokenize str)
+  (doc 'type "(-> String (List Sexpr))")
+  (doc 'description "Parse string into list of S-expressions using Scheme's reader")
   (let ([port (open-input-string str)])
     (let loop ([acc '()])
       (let ([datum (read port)])
@@ -36,14 +22,11 @@
             (reverse acc)
             (loop (cons datum acc)))))))
 
-;;; ====
-;;; Implicit Parens
-;;; ====
+(doc 'section 'implicit-parens)
 
-;;; apply-implicit-parens : (List Sexpr) → Sexpr
-;;; If list has >1 element, wrap in parens (make a list).
-;;; Single element stays as-is.
 (define (apply-implicit-parens tokens)
+  (doc 'type "(-> (List Sexpr) Sexpr)")
+  (doc 'description "Wrap multi-token sequences in parens; single tokens stay as-is")
   (cond
     [(null? tokens) '()]
     [(null? (cdr tokens)) (car tokens)]  ; Single token

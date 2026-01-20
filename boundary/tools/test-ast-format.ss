@@ -1,6 +1,7 @@
-;;; boundary/tools/test-ast-format.ss — Tests for AST-aware formatter
-;;;
-;;; Tests for style profiles, special form handling, and output correctness.
+(doc 'module 'test-ast-format)
+(doc 'description "Tests for AST-aware formatter with style profiles and special form handling")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
 
 (load "core/testing/test-framework.ss")
 (load "boundary/tools/ast-format.ss")

@@ -1,46 +1,34 @@
-;;; boundary/tools/tdd.ss — Test-Driven Development Workflow for The Fold
-;;;
-;;; Provides comprehensive TDD capabilities:
-;;;   • Watch mode with auto-test on file changes
-;;;   • Focused testing (specific modules, failing tests)
-;;;   • Quick feedback with sub-second test runs
-;;;   • Coverage reporting and trends
-;;;   • Test data generation and fixtures
-;;;   • Integration with existing test framework
-;;;
-;;; This is Shell code: uses IO, manages state, handles failures.
-;;;
-;;; Dependencies:
-;;;   - watch.ss (file watching)
-;;;   - test-framework.ss (test execution)
-;;;   - test-runner.ss (test discovery and reporting)
+(define-syntax doc
+  (syntax-rules ()
+    [(_ args ...) (void)]))
 
 (load "boundary/watch/watch.ss")
+
+(doc 'module 'tdd)
+(doc 'description "Test-driven development workflow with watch mode, focused testing, and quick feedback")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
 (load "core/test-framework.ss")
 (load "boundary/tests/test-runner.ss")
 
-;;; ====
-;;; Configuration
-;;; ====
+(doc 'section 'configuration)
 
 (define *tdd-enabled* #f)
 (define *tdd-watchers* '())
 (define *tdd-current-focus* 'all)
 (define *tdd-last-results* '())
 (define *tdd-coverage-enabled* #f)
-(define *tdd-test-history* (make-eq-hashtable))  ; test → (passes . failures)
+(define *tdd-test-history* (make-eq-hashtable))
 
-;;; Performance targets
-(define *tdd-target-runtime* 1000)  ; milliseconds - target for quick feedback
-(define *tdd-slow-test-threshold* 500)  ; milliseconds - warn about slow tests
+(doc 'note "Performance targets")
+(define *tdd-target-runtime* 1000)
+(define *tdd-slow-test-threshold* 500)
 
-;;; ====
-;;; Core TDD Functions
-;;; ====
+(doc 'section 'core-tdd-functions)
 
-;;; test:watch : [Symbol] → void
-;;; Start watching test files and auto-run on changes.
 (define (test:watch . args)
+  (doc 'type "(-> (Option Symbol) Void)")
+  (doc 'description "Start watching test files and auto-run on changes")
   (let ([focus (if (null? args) 'all (car args))])
        (stop-tdd-watchers!)  ; Clean up any existing watchers
        (set! *tdd-enabled* #t)

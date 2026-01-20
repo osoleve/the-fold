@@ -1,33 +1,16 @@
-;;; boundary/tools/flow-inspector.ss — Effect + Flow Inspector
-;;;
-;;; Trace effectful flows and data dependencies in The Fold:
-;;;   (trace-flow 'sym)      - Trace call paths with effect annotations
-;;;   (show-effects 'sym)    - Show effect analysis for a symbol
-;;;   (effect-boundary 'sym) - Find pure/impure transitions
-;;;   (call-slice 'sym)      - Effect-filtered call graph slice
-;;;
-;;; This is Shell code: performs analysis with I/O.
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;   - effect-lint.ss (infer-effect, effect-join)
-;;;   - call-graph.ss (call-graph-callers, call-graph-callees)
-;;;   - index.ss (index-lookup for file:line info)
-
 (load "core/base/prelude.ss")
 (load "boundary/tools/effect-lint.ss")
 (load "boundary/lens/call-graph.ss")
 (load "boundary/tools/index.ss")
 
-;;; ====
-;;; Data Structures
-;;; ====
+(doc 'module 'flow-inspector)
+(doc 'description "Trace effectful flows and data dependencies in The Fold")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
 
-;;; Flow node: represents a symbol with its effect
-;;; ((symbol . Symbol)
-;;;  (effect . Effect)
-;;;  (file . String | #f)
-;;;  (line . Nat | #f))
+(doc 'section 'data-structures)
+
+(doc 'note "Flow node: ((symbol . Symbol) (effect . Effect) (file . String | #f) (line . Nat | #f))")
 
 (define (make-flow-node symbol effect file line)
   `((symbol . ,symbol)

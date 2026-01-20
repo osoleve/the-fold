@@ -1,46 +1,16 @@
-;;; boundary/tools/index.ss — Symbol Index and Module Registry
-;;;
-;;; Provides discovery and navigation for The Fold codebase:
-;;;   (index-refresh!)           - Scan codebase and rebuild index
-;;;   (index-find "pattern")     - Find symbols matching pattern
-;;;   (index-lookup 'name)       - Get definition info for symbol
-;;;   (index-module "path")      - Get module info
-;;;   (index-exports "path")     - List exports from module
-;;;   (index-deps "path")        - Get module dependencies
-;;;   (index-dependents "path")  - Get modules that depend on this one
-;;;   (index-stats)              - Show index statistics
-;;;
-;;; REPL shortcuts (pretty output):
-;;;   (? 'name)                  - Look up and display symbol info
-;;;   (?? "pattern")             - Search and display matching symbols
-;;;
-;;; Shell code: performs I/O to scan files.
-;;;
-;;; Dependencies:
-;;;   - prelude.ss (list utilities)
-
 (load "core/base/prelude.ss")
 (load "core/base/string/string-core.ss")
 (load "core/base/string/string-search.ss")
 
-;;; ====
-;;; Index Data Structures
-;;; ====
+(doc 'module 'index)
+(doc 'description "Symbol Index and Module Registry - provides discovery and navigation for The Fold codebase")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
 
-;;; Symbol entry structure:
-;;;   ((name . <symbol>)
-;;;    (kind . <define|define-syntax|...>)
-;;;    (file . <path>)
-;;;    (line . <number>)
-;;;    (signature . <string or #f>)
-;;;    (docstring . <string or #f>)
-;;;    (module . <path>))
+(doc 'section 'index-data-structures)
 
-;;; Module entry structure:
-;;;   ((path . <string>)
-;;;    (defines . (<symbol> ...))
-;;;    (loads . (<path> ...))
-;;;    (scan-time . <timestamp>))
+(doc 'note "Symbol entry: ((name . symbol) (kind . define|define-syntax) (file . path) (line . number) (signature . string|#f) (docstring . string|#f) (module . path))")
+(doc 'note "Module entry: ((path . string) (defines . (symbol ...)) (loads . (path ...)) (scan-time . timestamp))")
 
 ;;; Global index state
 (define *symbol-index* (make-eq-hashtable))  ; symbol -> entry

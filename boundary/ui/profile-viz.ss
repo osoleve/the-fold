@@ -1,29 +1,26 @@
-;;; boundary/ui/profile-viz.ss — Profile Visualization
-;;;
-;;; ASCII-art visualizations for profiler output:
-;;;   - Flame graphs
-;;;   - Call trees with fuel bars
-;;;   - Fuel budget pie charts
-;;;
-;;; This is Shell code: handles display formatting.
-;;;
-;;; Dependencies:
-;;;   - core/util/profile.ss
+(doc 'module 'profile-viz)
+(doc 'description "Profile visualization - ASCII-art visualizations for profiler output")
+(doc 'layer 'boundary)
+(doc 'purity 'total)
+
+(doc 'note "ASCII-art visualizations for profiler output:")
+(doc 'note "- Flame graphs")
+(doc 'note "- Call trees with fuel bars")
+(doc 'note "- Fuel budget pie charts")
+(doc 'dependencies "core/util/profile.ss")
 
 (load "core/util/profile.ss")
 
-;;; ====
-;;; Flame Graph Rendering
-;;; ====
+(doc 'section 'flame-graph-rendering)
 
-;;; A flame graph shows call stacks with width proportional to fuel.
-;;; Stack frames are shown bottom-up (root at bottom).
+(doc 'note "A flame graph shows call stacks with width proportional to fuel")
+(doc 'note "Stack frames are shown bottom-up (root at bottom)")
 
-(define *flame-width* 60)  ; Total character width
+(define *flame-width* 60)
 (define *flame-chars* '(#\space #\. #\: #\| #\# #\@))
 
-;;; render-flame-graph : Profiler → String
-;;; Render an ASCII flame graph
+(doc render-flame-graph 'type (-> Profiler String))
+(doc render-flame-graph 'description "Render an ASCII flame graph")
 (define (render-flame-graph p)
   (let* ([root (profiler-root p)]
          [total-fuel (node-fuel-consumed root)]
@@ -34,8 +31,8 @@
          (apply string-append lines)
          "  " (make-string *flame-width* #\=) "\n")))
 
-;;; flame-lines : Node × Depth × Width × TotalFuel → List of Strings
-;;; Generate lines for a node and its children
+(doc flame-lines 'type (-> Node Depth Width TotalFuel (List String)))
+(doc flame-lines 'description "Generate lines for a node and its children")
 (define (flame-lines node depth width total-fuel)
   (let* ([fuel (node-fuel-consumed node)]
          [proportion (if (zero? total-fuel) 0 (/ fuel total-fuel))]
@@ -60,12 +57,10 @@
                                   (reverse children)))])
         (cons frame child-lines)))
 
-;;; ====
-;;; Horizontal Bar Chart
-;;; ====
+(doc 'section 'horizontal-bar-chart)
 
-;;; render-fuel-bars : Profiler × Nat → String
-;;; Render horizontal bars for top N functions
+(doc render-fuel-bars 'type (-> Profiler Nat String))
+(doc render-fuel-bars 'description "Render horizontal bars for top N functions")
 (define (render-fuel-bars p n)
   (let* ([hotspots (find-hotspots p n)]
          [max-name-len (apply max (cons 10 (map (lambda (h)
@@ -81,7 +76,7 @@
                      hotspots))
          "\n")))
 
-;;; render-bar : Hotspot × NameWidth × BarWidth → String
+(doc render-bar 'type (-> Hotspot NameWidth BarWidth String))
 (define (render-bar hotspot name-width bar-width)
   (let* ([name (car hotspot)]
          [pct (cadr hotspot)]
@@ -98,12 +93,10 @@
         (format "  ~a |~a| ~a% (~a)\n"
                 padded-name bar (round pct) calls)))
 
-;;; ====
-;;; Pie Chart (ASCII)
-;;; ====
+(doc 'section 'pie-chart-ascii)
 
-;;; render-pie-chart : Profiler × Nat → String
-;;; Render a simple ASCII pie chart legend
+(doc render-pie-chart 'type (-> Profiler Nat String))
+(doc render-pie-chart 'description "Render a simple ASCII pie chart legend")
 (define (render-pie-chart p n)
   (let* ([hotspots (find-hotspots p n)]
          [chars "ABCDEFGHIJ"]
@@ -125,12 +118,10 @@
          (apply string-append legend-lines)
          "\n")))
 
-;;; ====
-;;; Call Tree with Inline Bars
-;;; ====
+(doc 'section 'call-tree-with-inline-bars)
 
-;;; render-tree-with-bars : Profiler → String
-;;; Render call tree with inline fuel consumption bars
+(doc render-tree-with-bars 'type (-> Profiler String))
+(doc render-tree-with-bars 'description "Render call tree with inline fuel consumption bars")
 (define (render-tree-with-bars p)
   (let* ([root (profiler-root p)]
          [total (node-fuel-consumed root)])
@@ -140,7 +131,7 @@
          (tree-lines-with-bars root 0 total)
          "\n")))
 
-;;; tree-lines-with-bars : Node × Depth × TotalFuel → String
+(doc tree-lines-with-bars 'type (-> Node Depth TotalFuel String))
 (define (tree-lines-with-bars node depth total-fuel)
   (let* ([name (node-name node)]
          [fuel (node-fuel-consumed node)]
@@ -161,11 +152,9 @@
                            children)])
         (apply string-append (cons line child-lines))))
 
-;;; ====
-;;; Summary Statistics Box
-;;; ====
+(doc 'section 'summary-statistics-box)
 
-;;; render-summary-box : Profiler → String
+(doc render-summary-box 'type (-> Profiler String))
 (define (render-summary-box p)
   (let* ([stats (profile-stats p)]
          [total (cdr (assq 'total-fuel stats))]
@@ -191,12 +180,10 @@
          "  +----+\n"
          "\n")))
 
-;;; ====
-;;; Full Visual Report
-;;; ====
+(doc 'section 'full-visual-report)
 
-;;; render-full-report : Profiler → String
-;;; Generate complete visual profile report
+(doc render-full-report 'type (-> Profiler String))
+(doc render-full-report 'description "Generate complete visual profile report")
 (define (render-full-report p)
   (string-append
    (render-summary-box p)
@@ -204,7 +191,7 @@
    (render-tree-with-bars p)
    (render-flame-graph p)))
 
-;;; display-profile : Profiler → void
-;;; Display full profile visualization
+(doc display-profile 'type (-> Profiler Void))
+(doc display-profile 'description "Display full profile visualization")
 (define (display-profile p)
   (display (render-full-report p)))

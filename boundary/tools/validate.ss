@@ -1,37 +1,19 @@
-;;; boundary/validate.ss — Validation utilities for blocks and hashes
-;;;
-;;; Defensive validation functions that check structural invariants:
-;;;   - Block structure (tag, payload, refs are correct types)
-;;;   - Hash format (33-byte versioned addresses)
-;;;   - Reference validity (all refs are valid hashes)
-;;;   - Hex string format (66 hex characters)
-;;;
-;;; This is Shell code: defensive, validates before calling Core.
-;;; Core assumes perfect input, so Shell must validate at boundaries.
-;;;
-;;; All validators return a Result type (from prelude.ss):
-;;;   - (ok #t) for valid input
-;;;   - (error message) for validation failures
-;;;
-;;; Dependencies:
-;;;   - core/prelude.ss
-;;;   - core/block.ss
-;;;
-;;; NOTE: All shell files should be run from the ccverse root directory.
-
-;;; Set up source-directories to find core modules
 (source-directories (cons "core" (source-directories)))
 
 (load "base/prelude.ss")
+
+(doc 'module 'validate)
+(doc 'description "Defensive validation for blocks, hashes, and serialized data")
+(doc 'layer 'boundary)
+(doc 'purity 'total)
+(doc 'note "Core assumes perfect input; boundary must validate before calling core")
 (load "blocks/block.ss")
 
-;;; ====
-;;; Hash Validation
-;;; ====
+(doc 'section 'hash-validation)
 
-;;; hash? : Any -> Boolean
-;;; Predicate: is this a valid hash (33-byte address bytevector)?
 (define (hash? obj)
+  (doc 'type "(-> Any Bool)")
+  (doc 'description "Predicate: is this a valid hash (33-byte address bytevector)?")
   (and (bytevector? obj)
        (= (bytevector-length obj) address-size)))
 

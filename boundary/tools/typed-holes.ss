@@ -1,42 +1,18 @@
-;;; boundary/tools/typed-holes.ss — Type-Driven Development with Holes
-;;;
-;;; Agda/Idris-inspired workflow for The Fold:
-;;;   (?) or (? name) — placeholder expressions
-;;;   (hole-type expr) — show what type is needed
-;;;   (hole-fits expr) — show available bindings that fit
-;;;   (hole-refine expr) — narrow holes with partial info
-;;;   (case-split expr var) — split on sum type constructors
-;;;
-;;; Example:
-;;;   (let ((xs (list 1 2 3)))
-;;;     (map (?) xs))
-;;;
-;;;   Hole has type: (-> Int a)
-;;;   Available fits:
-;;;     - (fn (x) ...) where x : Int
-;;;     - square : (-> Int Int)
-;;;     - show : (-> Int String)
-;;;
-;;; This is Shell code: provides REPL integration.
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;   - infer.ss
-;;;   - types.ss
-;;;   - index.ss
-
 (load "core/base/prelude.ss")
+
+(doc 'module 'typed-holes)
+(doc 'description "Type-driven development with Agda/Idris-inspired hole workflow and synthesis")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
 (load "core/types/types.ss")
 (load "core/types/infer.ss")
 (load "boundary/tools/index.ss")
 
-;;; ====
-;;; Hole Detection
-;;; ====
+(doc 'section 'hole-detection)
 
-;;; hole? : Any → Boolean
-;;; Is this a hole expression?
 (define (hole? x)
+  (doc 'type "(-> Any Bool)")
+  (doc 'description "Is this a hole expression?")
   (or (eq? x '?)
       (and (pair? x) (eq? (car x) '?) (= (length x) 2))))
 

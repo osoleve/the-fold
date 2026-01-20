@@ -1,27 +1,17 @@
-;;; boundary/tools/template-session.ss — Template Session Manager
-;;; @module template-session
-;;; @requires lattice/dsl/template/template
-;;;
-;;; Stateful session manager for grammar-driven code construction.
-;;; Tracks current template, provides undo, displays status.
-;;;
-;;; This is Shell code: impure, handles state and IO.
-;;;
-;;; Usage:
-;;;   (ts-start '(define $sig $body))   ; Start session
-;;;   (ts-fill '$sig '($name $args))    ; Fill a hole
-;;;   (ts-holes)                         ; Show remaining holes
-;;;   (ts-undo)                          ; Revert last fill
-;;;   (ts-compile)                       ; Compile when complete
+(define-syntax doc
+  (syntax-rules ()
+    [(_ args ...) (void)]))
 
 (load "lattice/dsl/template/template.ss")
 
-;;; ====
-;;; Session State
-;;; ====
+(doc 'module 'template-session)
+(doc 'description "Stateful session manager for grammar-driven code construction")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
 
-;;; Current session state: #(template undo-stack completed-defs)
-;;; completed-defs accumulates finished definitions for multi-def sessions
+(doc 'section 'session-state)
+
+(doc 'note "Session state structure: #(template undo-stack completed-defs)")
 (define *template-session* (make-parameter #f))
 
 ;;; Completed definitions accumulator (for multi-definition sessions)

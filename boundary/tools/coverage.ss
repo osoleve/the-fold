@@ -1,32 +1,10 @@
-;;; boundary/coverage.ss — Code Coverage Analyzer
-;;;
-;;; Track which code is executed during tests and generate coverage reports.
-;;; Integrates with test-runner.ss for comprehensive test analysis.
-;;;
-;;; This is Shell code: instruments code, tracks execution, generates reports.
-;;;
-;;; Dependencies:
-;;;   boundary/test-runner.ss (for test execution)
-;;;   boundary/io/fs.ss (for file operations)
-;;;
-;;; Operations:
-;;;   (coverage-start) — Begin coverage tracking
-;;;   (coverage-stop) — Stop tracking and return results
-;;;   (coverage-report) — Generate coverage report
-;;;   (coverage-run-tests path) — Run tests with coverage
-;;;   (coverage-summary) — Display summary statistics
-;;;   (coverage-save path) — Save coverage data to file
-;;;
-;;; Features:
-;;;   - Line-level coverage tracking
-;;;   - Function-level coverage tracking
-;;;   - Branch coverage (if/cond clauses)
-;;;   - Integration with test runner
-;;;   - Multiple report formats (text, HTML-ready data, scheme)
-;;;   - Coverage comparison (regression detection)
-;;;   - Uncovered code highlighting
-
 (load "core/base/prelude.ss")
+
+(doc 'module 'coverage)
+(doc 'description "Track which code is executed during tests and generate coverage reports")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+(doc 'note "Integrates with test-runner.ss for comprehensive test analysis")
 
 ;;; ====
 ;;; Configuration

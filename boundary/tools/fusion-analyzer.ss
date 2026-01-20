@@ -1,39 +1,11 @@
-;;; boundary/tools/fusion-analyzer.ss --- Auto-Parallelization and Fusion Hints
-;;;
-;;; Provides auto-parallelization detection, fusion hints,
-;;; and safe rewrite suggestions for functional pipelines.
-;;; (Formerly boundary/tools/fusion-analyzer.ss)
-;;;
-;;; This is Shell code: provides user-facing interface to Core analysis.
-;;;
-;;; Features:
-;;;   - Fusion opportunity detection (map-map, filter-map, fold-map, etc.)
-;;;   - Parallelization opportunity detection (independent let, fanout, etc.)
-;;;   - Automatic optimization with configurable strategies
-;;;   - Equivalence verification for rewrites
-;;;   - Combined analysis reports
-;;;
-;;; API:
-;;;   analyze-fusion : Expr -> (List FusionOpportunity)
-;;;   suggest-parallel : Expr -> (List ParallelOpportunity)
-;;;   optimize : Expr -> Expr
-;;;   optimize-with-stats : Expr -> Analysis
-;;;   lzr-report : Expr -> Report
-;;;   verify-rewrite : Expr x Expr -> Boolean
-;;;
-;;; Dependencies:
-;;;   - core/fp/analysis/fusion-detect.ss
-;;;   - core/fp/analysis/parallel-detect.ss
-;;;   - core/fp/analysis/cost-analysis.ss
-;;;   - core/fp/rewrite/fusion-rules.ss
-;;;   - core/fp/rewrite/verify.ss
-;;;
-;;; Note: fusion-detect.ss and parallel-detect.ss both define `detect-at-depth`
-;;; so we capture the fusion detection function before loading parallel-detect.
-
 (load "lattice/fp/analysis/fusion-detect.ss")
 
-;;; Save fusion detection function before it gets shadowed by parallel-detect
+(doc 'module 'fusion-analyzer)
+(doc 'description "Auto-parallelization detection, fusion hints, and safe rewrite suggestions for functional pipelines")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+(doc 'note "fusion-detect.ss and parallel-detect.ss both define detect-at-depth, so we capture fusion detection function first")
+
 (define *lzr-fusion-detect* detect-fusion-static)
 
 (load "lattice/fp/analysis/parallel-detect.ss")
@@ -41,13 +13,11 @@
 (load "lattice/fp/rewrite/fusion-rules.ss")
 (load "lattice/fp/rewrite/verify.ss")
 
-;;; ====
-;;; Fusion Analysis Interface
-;;; ====
+(doc 'section 'fusion-analysis-interface)
 
-;;; analyze-fusion : Expr -> (List FusionOpportunity)
-;;; Analyze an expression for fusion opportunities.
 (define (analyze-fusion expr)
+  (doc 'type "Expr -> (List FusionOpportunity)")
+  (doc 'description "Analyze an expression for fusion opportunities")
   (if (or (null? expr) (not (pair? expr)))
       '()
       (*lzr-fusion-detect* expr)))

@@ -1,23 +1,16 @@
-;;; boundary/tools/edit.ss — Text File Editing Utilities
-;;;
-;;; Enables source code maintenance from within the REPL.
-;;; All operations are capability-gated through FS.
-;;;
-;;; This is Shell code: uses IO, handles files.
-;;;
-;;; Dependencies (must be loaded before this file):
-;;;   boundary/io/fs.ss
-;;;   boundary/ui/text.ss
-
 (load "boundary/tools/string-utils.ss")
 
-;;; ====
-;;; Core Text File Operations
-;;; ====
+(doc 'module 'edit)
+(doc 'description "Enables source code maintenance from within the REPL")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+(doc 'note "All operations are capability-gated through FS")
 
-;;; read-text-file : FS × Path → String
-;;; Read entire file as UTF-8 text.
+(doc 'section 'core-text-file-operations)
+
 (define (read-text-file fs path)
+  (doc 'type "FS × Path → String")
+  (doc 'description "Read entire file as UTF-8 text")
   (call-with-input-file path
                         (lambda (port)
                                 (get-string-all port))))

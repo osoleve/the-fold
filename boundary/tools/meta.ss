@@ -1,30 +1,24 @@
-;;; boundary/tools/meta.ss --- Inline Metadata Tag Parser
-;;;
-;;; Tags are inline markers that travel with text:
-;;;   @tag           - Simple boolean tag (e.g., @draft, @reviewed)
-;;;   @key:value     - Key-value pair (e.g., @priority:high, @status:complete)
-;;;   @see:path      - Reference to another file/resource
-;;;   @ref:id        - Reference to an ID
-;;;
-;;; This is Shell code: parsing text from Outside, handling edge cases.
-;;;
-;;; Design principles:
-;;;   - Tags start with @ and are at word boundaries
-;;;   - Email addresses (user@domain.com) are NOT tags
-;;;   - Tags are alphanumeric with hyphens/underscores allowed
-;;;   - Values in key:value can include paths, IDs, etc.
-;;;
-;;; Dependencies: core/base/prelude.ss
-
 (load "core/base/prelude.ss")
 
-;;; ====
-;;; Character Classification for Tags
-;;; ====
+(doc 'module 'meta)
+(doc 'description "Inline Metadata Tag Parser")
+(doc 'layer 'boundary)
+(doc 'purity 'total)
 
-;;; tag-start-char? : Char -> Boolean
-;;; Characters that can start a tag name (after @)
+(doc 'note "Tags are inline markers that travel with text")
+(doc 'note "@tag for simple boolean tag (e.g., @draft, @reviewed)")
+(doc 'note "@key:value for key-value pair (e.g., @priority:high)")
+(doc 'note "@see:path for reference to another file/resource")
+(doc 'note "@ref:id for reference to an ID")
+(doc 'note "Tags start with @ and are at word boundaries")
+(doc 'note "Email addresses (user@domain.com) are NOT tags")
+(doc 'note "Tags are alphanumeric with hyphens/underscores allowed")
+
+(doc 'section 'character-classification)
+
 (define (tag-start-char? c)
+  (doc 'type '(-> Char Boolean))
+  (doc 'description "Characters that can start a tag name (after @)")
   (or (char-alphabetic? c)
       (char=? c #\_)))
 
@@ -52,16 +46,13 @@
       ;; Also treat certain punctuation as boundaries
       (memq (car preceding-chars) '(#\( #\[ #\{ #\" #\' #\< #\newline))))
 
-;;; ====
-;;; Email Address Detection
-;;; ====
+(doc 'section 'email-detection)
 
-;;; Heuristic: if we see @something and it looks like domain.tld, skip it
-;;; We look ahead for domain-like patterns
+(doc 'note "Heuristic: if we see @something and it looks like domain.tld, skip it")
 
-;;; looks-like-email-domain? : List Char -> Boolean
-;;; Check if the characters after @ look like an email domain
 (define (looks-like-email-domain? chars)
+  (doc 'type '(-> (List Char) Boolean))
+  (doc 'description "Check if the characters after @ look like an email domain")
   (let loop ([cs chars] [seen-alpha #f] [seen-dot #f])
        (cond
         [(null? cs) (and seen-alpha seen-dot)]
@@ -89,13 +80,11 @@
                 (char-numeric? c)
                 (memq c '(#\. #\- #\_ #\+))))))
 
-;;; ====
-;;; Tag Parsing
-;;; ====
+(doc 'section 'tag-parsing)
 
-;;; parse-tag-name : List Char -> (name-string . remaining-chars) | #f
-;;; Parse a tag name starting from the character after @
 (define (parse-tag-name chars)
+  (doc 'type '(-> (List Char) (Maybe (Pair String (List Char)))))
+  (doc 'description "Parse a tag name starting from the character after @")
   (if (or (null? chars) (not (tag-start-char? (car chars))))
       #f
       (let loop ([cs chars] [acc '()])
@@ -157,14 +146,12 @@
                           ;; Simple tag
                           (cons (cons name #t) rest))))))]))
 
-;;; ====
-;;; Main Extraction
-;;; ====
+(doc 'section 'extraction)
 
-;;; extract-tags : String -> Alist
-;;; Extract all tags from text, returning an association list.
-;;; Multiple tags with same key are preserved (later values come first in result).
 (define (extract-tags text)
+  (doc 'type '(-> String Alist))
+  (doc 'description "Extract all tags from text, returning an association list")
+  (doc 'note "Multiple tags with same key are preserved (later values come first in result)")
   (let ([chars (string->list text)])
        (let loop ([cs chars] [preceding '()] [tags '()])
             (cond
@@ -178,13 +165,11 @@
              [else
               (loop (cdr cs) (list (car cs)) tags)]))))
 
-;;; ====
-;;; Query Functions
-;;; ====
+(doc 'section 'query-functions)
 
-;;; has-tag? : String x String -> Boolean
-;;; Check if text contains a specific tag (by name).
 (define (has-tag? text tag-name)
+  (doc 'type '(-> String String Boolean))
+  (doc 'description "Check if text contains a specific tag (by name)")
   (let ([tags (extract-tags text)])
        (if (assoc tag-name tags) #t #f)))
 
@@ -212,13 +197,11 @@
         '()
         tags)))
 
-;;; ====
-;;; Text Manipulation
-;;; ====
+(doc 'section 'text-manipulation)
 
-;;; strip-tags : String -> String
-;;; Remove all tags from text, leaving clean prose.
 (define (strip-tags text)
+  (doc 'type '(-> String String))
+  (doc 'description "Remove all tags from text, leaving clean prose")
   (let ([chars (string->list text)])
        (let loop ([cs chars] [preceding '()] [acc '()])
             (cond
@@ -269,15 +252,12 @@
              [else
               (loop (cdr cs) (list (car cs)) (cons (car cs) acc))]))))
 
-;;; ====
-;;; Tag Categories (Convenience)
-;;; ====
+(doc 'section 'tag-categories)
 
-;;; Common tag categories for The Fold
+(doc 'note "Common tag categories for The Fold")
 
-;;; status-tags : List String
-;;; Standard status indicators
 (define status-tags '("draft" "reviewed" "complete" "deprecated" "wip"))
+(doc status-tags 'description "Standard status indicators")
 
 ;;; priority-tags : List String
 ;;; Standard priority values
@@ -308,12 +288,10 @@
   (append (get-all-tag-values text "see")
           (get-all-tag-values text "ref")))
 
-;;; ====
-;;; Predicate Helpers
-;;; ====
+(doc 'section 'predicate-helpers)
 
-;;; is-draft? : String -> Boolean
 (define (is-draft? text)
+  (doc 'type '(-> String Boolean))
   (or (has-tag? text "draft")
       (equal? (get-tag-value text "status") "draft")))
 
