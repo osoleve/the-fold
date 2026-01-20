@@ -1,23 +1,10 @@
-;;; fabric/stitches/numerical/integrators.ss — Numerical Integration Methods
-;;;
-;;; Provides numerical integration (ODE solving) methods for physics
-;;; and scientific computing.
-;;;
-;;; This is Core code: pure, total, assumes reasonable input.
-;;;
-;;; Methods implemented:
-;;;   Explicit methods:
-;;;     - euler-step: First-order Euler method
-;;;     - midpoint-step: Second-order midpoint (RK2)
-;;;     - rk4-step: Fourth-order Runge-Kutta
-;;;   Symplectic methods (energy-conserving):
-;;;     - verlet-step: Störmer-Verlet (position Verlet)
-;;;     - velocity-verlet-step: Velocity Verlet
-;;;     - leapfrog-step: Leapfrog (equivalent to Verlet)
-;;;
-;;; Interface conventions:
-;;;   - f: (t, state) → derivative (for general ODEs)
-;;;   - a: (t, pos) → acceleration (for Newtonian mechanics)
+(load "core/base/prelude.ss")
+
+(doc 'module 'integrators)
+(doc 'description "Numerical integration (ODE solving) methods for physics and scientific computing")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
+(doc 'note "Explicit methods: euler-step, midpoint-step, rk4-step. Symplectic methods: verlet-step, velocity-verlet-step, leapfrog-step")
 ;;;   - state, pos, vel are vectors (lists of numbers)
 ;;;   - t is time (number)
 ;;;   - dt is timestep (number)
