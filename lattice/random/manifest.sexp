@@ -55,8 +55,7 @@
     prob-pure prob-bind prob-map prob-sequence
     ;; Conditioning and inference
     condition observe factor
-    sample-many expectation variance
-    importance-sample rejection-sample)
+    sample-many importance-sample rejection-sample)
    (variational-inference
     ;; Variational families
     make-mf-gaussian mf-gaussian? mf-gaussian-means mf-gaussian-log-stds

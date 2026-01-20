@@ -151,7 +151,7 @@ Key features:
     pleft pright
 
     ;; Closed profunctor (for grates)
-    make-closed closed? closed-profunctor closed-fn
+    make-closed closed-profunctor closed-fn
     pclosed closed-fn-instance
 
     ;; Basic profunctor instances
@@ -161,23 +161,23 @@ Key features:
 
     ;; Profunctor Iso
     make-p-iso p-iso? p-iso-forward p-iso-backward
-    p-iso-run p-iso-view p-iso-review p-iso-compose
-    p-iso-id p-iso-swapped p-iso-flipped
+    p-iso-compose
+    p-iso-id p-iso-swapped
 
     ;; Profunctor Lens
     make-p-lens p-lens? p-lens-getter p-lens-setter
-    p-lens-run p-view p-over p-set p-lens-compose
-    p-lens-fst p-lens-snd p-lens-id
+    p-view p-over p-set p-lens-compose
+    p-lens-fst p-lens-snd
 
     ;; Profunctor Prism
     make-p-prism p-prism? p-prism-match p-prism-build
-    p-prism-run p-preview p-review p-prism-compose
-    p-prism-just p-prism-left p-prism-right p-prism-id
+    p-preview p-review p-prism-compose
+    p-prism-just p-prism-left p-prism-right
 
     ;; Profunctor Affine
     make-p-affine p-affine? p-affine-preview p-affine-set
-    p-affine-run p-affine-get p-affine-set-fn p-affine-compose
-    p-affine-id p-affine-nth
+    p-affine-set-fn p-affine-compose
+    p-affine-nth
     p-lens->p-affine p-prism->p-affine
 
     ;; Profunctor Grate (categorical dual of Lens)

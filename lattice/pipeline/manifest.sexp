@@ -20,31 +20,8 @@
   (aliases (workflow agent-pipeline stages arrows))
 
   (exports
-   (stage stage-ok stage-err stage-retry stage-skip stage-halt stage-await
-          make-stage run-stage stage-pure stage-ask stage-fail
-          stage-compose stage->>> stage-<<< stage-first stage-second
-          stage-fanout stage-&&& stage-left stage-right stage-choice
-          stage-bind stage-map stage-sequence stage-traverse stage-fold
-          stage-if stage-when stage-unless stage-case stage-guard
-          stage-catch stage-recover stage-default pipeline)
-   (effects llm llm-with-system llm-json llm-structured fold-eval fold-call
-            shell shell-with-stdin store-put store-get store-has
-            log-info log-warn log-error checkpoint restore
-            http-get http-post http-json git-status git-diff git-commit git-push
-            bbs-create bbs-create-full bbs-update bbs-close bbs-ready bbs-show
-            discord-post discord-chat discord-reply await-discord-mention)
-   (council make-council-config council-sequential council-parallel
-            council-vote council-debate council-consensus
-            extract-consensus count-votes majority-position
-            architectural-council quick-review-council diverse-perspectives)
-   (dsl define-pipeline* named-stage stage* --> <-- pipe-into
-        parse-json to-json split-lines join-lines
-        on-success on-failure try-all retry with-retry-policy gate
-        map-stage filter-stage reduce-stage parallel race all-of any-of
-        fsm-pipeline ask-llm run-fold run-shell chain branch switch tap log)
-   (context make-pipeline-context empty-context ctx-with-config ctx-with-persona
-            ctx-with-fuel ctx-env-ref make-pipeline-state empty-state
-            make-persona make-retry-policy retry-exponential retry-linear))
+   ;; No exports annotated with (doc 'export #t) yet
+   )
 
   (modules
    (stage "stage.ss" "Core stage abstraction with arrow combinators")

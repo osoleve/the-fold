@@ -26,7 +26,8 @@
   (aliases (ds structures collections))
 
   (exports
-   (avl-tree sort heap stack queue set dict graph-algorithms collection-utils pagerank graph-matrix centrality graph-community))
+   ;; No exports annotated with (doc 'export #t) yet
+   )
 
   (modules
    (avl-tree "avl-tree.ss" "Self-balancing AVL tree with O(log n) operations")

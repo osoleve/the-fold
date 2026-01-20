@@ -19,16 +19,8 @@
   (aliases (lattice-meta lattice-tools skills))
 
   (exports
-   (kg kg-build! kg-skills kg-skill kg-modules kg-deps kg-uses kg-stats kg-exports)
-   (bm25 bm25-create bm25-add-doc bm25-search bm25-search-string bm25-score)
-   (search lattice-find lattice-find-exact lattice-complete lf lfe lfp lfs)
-   (type-search lf-type lf-input lf-output type-search)
-   (xref build-xref-cache! xref-callers xref-callees xref-callers-transitive
-         xref-callees-transitive xref-stats xref-most-called lxu lxc)
-   (dag lattice-deps lattice-deps-transitive lattice-uses lattice-uses-transitive
-        lattice-path lattice-roots lattice-leaves lattice-hubs lattice-graph ld lu)
-   (analytics lattice-stats lattice-health lattice-coverage ls lh)
-   (inspect lattice-describe lattice-info lattice-summary li le lm))
+   ;; No exports annotated with (doc 'export #t) yet
+   )
 
   (modules
    (kg "kg.ss" "CAS-backed knowledge graph builder from manifests")

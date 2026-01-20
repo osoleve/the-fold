@@ -19,12 +19,8 @@
   (aliases (physics-3d classical-physics-3d))
 
   (exports
-   (rigid-body3d mat3 inertia quaternion-rotation)
-   (shapes3d sphere box aabb geometry)
-   (collision-detection3d spatial-hash manifolds narrow-phase)
-   (constraints3d distance ball-socket hinge fixed spring anchor)
-   (constraint-solver3d baumgarte velocity-solve position-correct)
-   (world3d entities simulation queries materials))
+   ;; No exports annotated with (doc 'export #t) yet
+   )
 
   (modules
    (rigid-body3d "rigid-body3d.ss" "3D rigid body with quaternion orientation and inertia tensors")

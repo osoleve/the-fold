@@ -20,15 +20,7 @@
   (aliases (diff-physics-3d diff-sim-3d))
 
   (exports
-   (traced-vec3 lift operations gradients)
-   (traced-quaternion rotation integration)
-   (traced-body3d state forces impulses inertia)
-   (traced-integrators3d euler symplectic verlet gravity)
-   (smooth-collision3d sdf contact soft-materials)
-   (diff-collision3d sphere-collision ground-collision)
-   (diff-constraints3d spring anchor ball-socket hinge fixed)
-   (rollout3d trajectory checkpointing loss-functions)
-   (optimize3d gradient-descent adam sensitivity))
+   (traced-vec3 traced-vec3))
 
   (modules
    (traced-vec3 "traced-vec3.ss" "AD-enabled 3D vectors with smooth operations")

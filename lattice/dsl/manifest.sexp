@@ -25,7 +25,7 @@
             make-bool-dict bool-lit bool-and bool-or bool-not
             make-cond-dict cond-if make-let-dict tl-let tl-var
             make-stateful-dict state-get state-put state-pure state-bind
-            make-chronicle-dict ch-scene ch-choice ch-start ch-choose
+            ch-scene ch-choice ch-start ch-choose
             with-logging with-tracing with-memoization
             tagless-to-free free-to-tagless optimize-expr)
    (match make-clause parse-pattern-extended compile-match compile-match-expr
@@ -53,8 +53,7 @@
             stage-add stage-mul stage-if stage-let stage-lambda stage-app
             power-staged power-specialized compile-staged run-staged
             stage-match stage-fix infer-staged-type inline-staged)
-   (template hole? hole-name find-holes new-template template?
-             template-expr template-holes template-complete? template-hole-count
+   (template hole? hole-name find-holes new-template template-complete? template-hole-count
              fill-hole fill-holes compile-template try-compile-template
              template->string template-status holes->string wrap-if-multiple))
 

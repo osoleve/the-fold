@@ -42,8 +42,6 @@
    (aho-corasick make-automaton search build-trie compute-failures)
    (query find-tagged find-tagged-any list-all-tags tag-histogram
           tag-values tag-report)
-   (query-patterns pattern-query join-patterns match-pattern project-vars
-                   find-pattern count-pattern)
    (optic-query oquery oquery-where oquery-select oquery-pipe
                 oquery-first oquery-first-where
                 optic-where optic-having optic-select optic-at-index
@@ -60,7 +58,7 @@
                 key-lens)
    ;; Declarative query-macro DSL
    (query-macro from where-clause select-clause order-by-clause
-                limit-clause offset-clause run-query q>
+                limit-clause offset-clause run-query
                 =? /=? >? <? >=? <=? between? in? like?
                 null-at? exists-at? and? or? not?
                 @ @?

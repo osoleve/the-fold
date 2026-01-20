@@ -31,7 +31,7 @@
                 find-path-dijkstra find-path-astar find-reachable board-reachable)
    (visibility has-line-of-sight? board-has-los? calculate-fov board-fov
                shadowcast-fov visible-enemies tiles-in-sight)
-   (units make-unit game-state make-game-state game-place-unit game-move-unit
+   (units make-unit make-game-state game-place-unit game-move-unit
           game-get-unit-at game-all-units game-units-by-team game-visible-units)
    (turns make-turn-state turn-current-unit turn-spend-action turn-next-unit
           turn-end-turn calculate-initiative-order game-execute-action)

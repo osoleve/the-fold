@@ -19,16 +19,8 @@
   (aliases (physics-2d classical-physics))
 
   (exports
-   (integrators body-2d time-acc forces energy)
-   (rigid-body angular-motion inertia)
-   (collision-detection shapes spatial-hash manifolds)
-   (collision-response materials impulse resolution)
-   (constraints distance revolute spring weld)
-   (constraint-solver baumgarte position-correction)
-   (world entities simulation queries)
-   (particles emitters force-fields systems)
-   (raycasting ray-shape intersections)
-   (ascii-renderer render-config debug-options))
+   ;; No exports annotated with (doc 'export #t) yet
+   )
 
   (modules
    (integrators "integrators.ss" "Numerical integrators: Euler, Symplectic, Verlet, RK4")

@@ -25,8 +25,6 @@
 
   (exports
    ;; Core
-   (result-types LinearModelResult GLMResult TestResult ARResult MAResult
-                 ANOVAResult ForecastResult)
    (summary-stats vec-mean vec-variance vec-std-dev vec-median vec-quantile
                   vec-quantiles quantiles vec-covariance vec-correlation)
    (design-matrix add-intercept standardize-columns dummy-encode polynomial-features
@@ -44,10 +42,10 @@
 
    ;; Hypothesis Testing
    (distributions t-cdf t-quantile chi-squared-cdf chi-squared-quantile
-                  f-cdf f-quantile t-pvalue chi-squared-pvalue f-pvalue)
+                  f-cdf f-quantile chi-squared-pvalue f-pvalue)
    (t-test t-test-one-sample t-test-two-sample t-test-paired)
    (chi-squared chi-squared-test-goodness chi-squared-test-independence)
-   (anova anova-one-way anova-effect-size)
+   (anova anova-one-way)
    (f-test f-test-variance f-test-regression f-test-nested-models
            levene-test bartlett-test)
 

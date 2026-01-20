@@ -46,14 +46,11 @@
     with-transitions add-transition-to-substate resolve-initial-states
     find-state find-state-in-list get-initial-substate
     get-ancestors lca is-descendant?
-    ;; Configuration and execution
-    make-config config? config-active config-context
-    initial-config enter-state exit-state
     ;; Interpreter
-    step send send-many run-until current-state
+    step send
     ;; Validation
     validate-statechart reachable-states unreachable-states
-    find-deadlocks validate-transitions))
+    validate-transitions))
 
   (modules
    (statechart "statechart.ss" "Full statechart implementation: states, transitions, interpreter, validation")))

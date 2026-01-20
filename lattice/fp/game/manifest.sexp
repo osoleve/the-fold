@@ -27,12 +27,7 @@ cake cutting protocols, and adjusted winner.")
 
  (exports . (
    ;; normal-form.ss — Strategic Form Games
-   make-player player-name player-strategies
-   make-game game-players game-payoff
-   payoff-matrix best-response best-responses
-   is-nash-equilibrium? find-pure-nash
-   dominated-strategies iterated-elimination
-   mixed-strategy expected-payoff support
+   make-game game-payoff find-pure-nash
 
    ;; coop-games.ss — Cooperative Games
    coalition-empty coalition-singleton coalition-member?
@@ -41,7 +36,7 @@ cake cutting protocols, and adjusted winner.")
    make-coop-game coop-game? coop-game-players coop-game-value
    coop-game-grand-coalition
    allocation-total allocation-coalition-total imputation?
-   shapley-value allocation-in-core? core-excess nucleolus
+   shapley-value core-excess allocation-in-core? nucleolus
    nash-bargaining kalai-smorodinsky
    make-additive-game make-unanimity-game make-weighted-voting-game
    make-airport-game make-bankruptcy-game make-gloves-game
@@ -49,26 +44,16 @@ cake cutting protocols, and adjusted winner.")
    coop-game-simple?
    is-winning? is-blocking? is-pivotal? banzhaf-index
 
-   ;; matching.ss — Two-Sided Matching
-   make-matching-market matching-market?
-   market-proposers market-receivers
-   market-proposer-prefs market-receiver-prefs
-   stable-match stable-match-receiver-optimal
-   matching-stable? same-matched-agents?
-   make-assignment-game optimal-assignment
-   make-medical-residency-market make-school-choice-market
-
    ;; voting.ss — Social Choice
-   make-preference-profile profile-voters profile-num-candidates
-   profile-candidates profile-rankings
-   plurality-winner plurality-scores-all
-   borda-winner borda-scores-all
-   antiplurality-winner antiplurality-scores-all
+   make-preference-profile profile-voters profile-candidates
+   profile-num-candidates profile-rankings
+   plurality-winner borda-winner antiplurality-winner
+   plurality-scores-all borda-scores-all
    pairwise-margin pairwise-beats?
    condorcet-winner? condorcet-winner
    copeland-score copeland-winner
    schulze-strengths schulze-winner schulze-ranking
-   condorcet-cycle-example manipulation-possible?
+   manipulation-possible? condorcet-cycle-example
 
    ;; voting-games.ss — Voting-Games Bridge
    profile->majority-game profile->weighted-voting-game
@@ -92,21 +77,7 @@ cake cutting protocols, and adjusted winner.")
    monroe-greedy cc-greedy cc-total-satisfaction
    proportionality-score representation-coverage diversity-score
    profile->approval approval->profile
-   stv-example approval-example diverse-preferences-example
-
-   ;; fair-division.ss — Fair Division
-   make-cake cake? cake-players cake-set-valuation!
-   cake-valuation cake-total-value
-   make-piece piece-singleton piece-value piece-length piece-merge piece-empty
-   make-division division-assign! division-piece division->list
-   proportional? envy-free? equitable? pareto-optimal?
-   cut-and-choose dubins-spanier selfridge-conway
-   find-cut-point find-cut-point-from
-   make-adjusted-winner-problem adjusted-winner
-   make-discrete-problem discrete-problem-players discrete-problem-goods-count
-   discrete-problem-valuation round-robin discrete-allocation-value
-   envy-free-up-to-one? maximin-share
-   uniform-cake simple-cake-2 opposing-valuations-cake))
+   stv-example approval-example diverse-preferences-example))
 
  (modules . (
    (normal-form "normal-form.ss" "Strategic form games, Nash equilibrium, IESDS")

@@ -19,9 +19,7 @@
   (aliases (la lin-alg linear matrix-math))
 
   (exports
-   (vec vec2 vec3 quaternion matrix)
-   (matrix-decomp matrix-solvers matrix-eigen)
-   (iterative-solvers sparse graph-laplacian))
+   (vec vec))
 
   (modules
    (vec "vec.ss" "Generic vector operations")

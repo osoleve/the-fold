@@ -19,9 +19,7 @@
   (aliases (diff-physics diff-sim))
 
   (exports
-   (traced-body traced-vec2 traced-integrators)
-   (diff-collision smooth-collision diff-constraints)
-   (rollout optimize))
+   (traced-vec2 traced-vec2))
 
   (modules
    (traced-vec2 "traced-vec2.ss" "AD-enabled 2D vectors")

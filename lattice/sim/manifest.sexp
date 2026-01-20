@@ -20,16 +20,7 @@
   (aliases (simulation simulation-stream))
 
   (exports
-   (sim-state time data metadata)
-   (sim-unfold streams infinite lazy)
-   (simulate step varying-dt)
-   (sim-scan accumulate map)
-   (physics-state pos vel mass integrators)
-   (forces gravity spring drag combine)
-   (queries take at-time sample until)
-   (energy kinetic potential total)
-   (n-body multi-body systems)
-   (combinators par seq when switch))
+   (simulation-stream sim-unfold simulate sim-scan))
 
   (modules
    (simulation-stream "simulation-stream.ss" "Core simulation stream abstraction and utilities")))
