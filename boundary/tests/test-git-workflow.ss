@@ -1,8 +1,4 @@
-;;; boundary/test-git-workflow.ss — Tests for Git Workflow Helpers
-;;;
-;;; Validates conflict detection and workflow logic.
-
-;;; Mock dependencies
+(doc 'section 'mock-dependencies)
 (define (system . args) 0)
 (define (open-output-string) "")
 (define (get-output-string . args) "")
@@ -12,11 +8,17 @@
 
 (load "boundary/git/git-workflow.ss")
 
+(doc 'module 'test-git-workflow)
+(doc 'description "Tests for Git Workflow Helpers")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+(doc 'note "Validates conflict detection and workflow logic")
+
 (define test-count 0)
 (define pass-count 0)
 (define fail-count 0)
 
-;;; Test assertion helper
+(doc assert-equal 'description "Test assertion helper")
 (define (assert-equal name actual expected)
   (set! test-count (+ test-count 1))
   (if (equal? actual expected)
@@ -29,9 +31,7 @@
        (printf "    Expected: ~s\n" expected)
        (printf "    Actual:   ~s\n" actual))))
 
-;;; ====
-;;; Conflict Detection Tests
-;;; ====
+(doc 'section 'test-conflict-detection)
 
 (printf "\n=== Testing has-conflicts? ===\n")
 
@@ -47,9 +47,7 @@
               (has-conflicts? #f)
               #f)
 
-;;; ====
-;;; Test Summary
-;;; ====
+(doc 'section 'test-summary)
 
 (printf "\n====\n")
 (printf "Test Results:\n")
@@ -61,5 +59,5 @@
     (printf "\n✓ All tests passed!\n\n")
     (printf "\n✗ Some tests failed\n\n"))
 
-;;; Return success/failure
+(doc 'note "Return success/failure")
 (= fail-count 0)

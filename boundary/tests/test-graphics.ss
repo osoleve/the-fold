@@ -1,6 +1,4 @@
-;;; boundary/tests/test-graphics.ss — Tests for graphics.ss color serialization
-;;;
-;;; NOTE: Run from project root: scheme --script boundary/tests/test-graphics.ss
+(doc 'note "Run from project root: scheme --script boundary/tests/test-graphics.ss")
 
 (load "core/test-framework.ss")
 (load "core/base/prelude.ss")
@@ -11,14 +9,17 @@
 (load "boundary/ui/color.ss")
 (load "boundary/ui/graphics.ss")
 
+(doc 'module 'test-graphics)
+(doc 'description "Tests for graphics.ss color serialization")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+
 (display "\n")
 (display "====\n")
 (display "         GRAPHICS COLOR SERIALIZATION TESTS\n")
 (display "====\n")
 
-;;; ====
-;;; Color Serialization Tests
-;;; ====
+(doc 'section 'color-serialization-tests)
 
 (test-group color-serialization
             (define-test serialize-default-color
@@ -87,9 +88,7 @@
                      [result (deserialize-color bv 0)])
                     (assert-equal c (car result)))))
 
-;;; ====
-;;; Colored Canvas Block Tests
-;;; ====
+(doc 'section 'colored-canvas-block-tests)
 
 (test-group colored-canvas-block
             (define-test colored-canvas-roundtrip-simple
@@ -150,9 +149,7 @@
               (let* ([blk (make-block 'wrong-tag (make-bytevector 0) empty-refs)])
                     (assert-false (block->colored-canvas blk)))))
 
-;;; ====
-;;; Summary
-;;; ====
+(doc 'section 'summary)
 
 (display "\n")
 (display "====\n")

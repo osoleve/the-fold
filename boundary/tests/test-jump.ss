@@ -1,16 +1,18 @@
-;;; boundary/tests/test-jump.ss — Tests for Navigation Primitives
-;;;
-;;; Comprehensive test suite for boundary/lens/jump.ss
-;;; Tests location types, symbol lookup, and navigation utilities.
-
 (load "boundary/lens/call-graph.ss")
 (load "boundary/lens/jump.ss")
+
+(doc 'module 'test-jump)
+(doc 'description "Tests for Navigation Primitives")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+(doc 'note "Comprehensive test suite for boundary/lens/jump.ss")
+(doc 'note "Tests location types, symbol lookup, and navigation utilities")
 
 (define test-count 0)
 (define pass-count 0)
 (define fail-count 0)
 
-;;; Test assertion helper
+(doc assert-equal 'description "Test assertion helper")
 (define (assert-equal name actual expected)
   (set! test-count (+ test-count 1))
   (if (equal? actual expected)
@@ -29,9 +31,7 @@
 (define (assert-false name actual)
   (assert-equal name actual #f))
 
-;;; ====
-;;; Location Type Tests
-;;; ====
+(doc 'section 'location-type-tests)
 
 (printf "\n=== Testing make-location ===\n")
 
@@ -50,9 +50,7 @@
               (location-column (make-location "foo.ss" 1 0))
               0)
 
-;;; ====
-;;; location->string Tests
-;;; ====
+(doc 'section 'location-to-string-tests)
 
 (printf "\n=== Testing location->string ===\n")
 
@@ -68,9 +66,7 @@
               (location->string (make-location "foo.ss" 1 0))
               "foo.ss:1")
 
-;;; ====
-;;; read-file-lines Tests
-;;; ====
+(doc 'section 'read-file-lines-tests)
 
 (printf "\n=== Testing read-file-lines ===\n")
 
@@ -87,20 +83,18 @@
               (read-file-lines "/nonexistent/file/path.ss")
               '())
 
-;;; ====
-;;; jump-location Tests
-;;; ====
+(doc 'section 'jump-location-tests)
 
 (printf "\n=== Testing jump-location ===\n")
 
-;; Ensure call graph is built (provides some symbol index)
+(doc 'note "Ensure call graph is built (provides some symbol index)")
 (unless (call-graph-built?)
         (call-graph-refresh!))
 
 (assert-true "unknown symbol returns #f"
              (not (jump-location 'nonexistent-symbol-xyz-123)))
 
-;; If index-lookup is available, test it
+(doc 'note "If index-lookup is available, test it")
 (when (and (top-level-bound? 'index-lookup)
            (procedure? index-lookup))
       (printf "  (index-lookup available, running additional tests)\n")
@@ -112,9 +106,7 @@
                                  (assq 'file result)
                                  (assq 'line result))))))
 
-;;; ====
-;;; jump-locations Tests
-;;; ====
+(doc 'section 'jump-locations-tests)
 
 (printf "\n=== Testing jump-locations ===\n")
 
@@ -124,9 +116,7 @@
 (assert-true "unknown symbol returns empty list"
              (null? (jump-locations 'nonexistent-symbol-xyz-123)))
 
-;;; ====
-;;; jump-refs Tests
-;;; ====
+(doc 'section 'jump-refs-tests)
 
 (printf "\n=== Testing jump-refs ===\n")
 
@@ -136,9 +126,7 @@
 (assert-true "unknown symbol returns empty"
              (null? (jump-refs 'nonexistent-symbol-xyz-123)))
 
-;;; ====
-;;; filter-map-jump Tests
-;;; ====
+(doc 'section 'filter-map-jump-tests)
 
 (printf "\n=== Testing filter-map-jump ===\n")
 
@@ -158,9 +146,7 @@
               (filter-map-jump (lambda (x) (+ x 1)) '(1 2 3))
               '(2 3 4))
 
-;;; ====
-;;; Editor Format Tests
-;;; ====
+(doc 'section 'editor-format-tests)
 
 (printf "\n=== Testing Editor Format Functions ===\n")
 
@@ -186,9 +172,7 @@
                    (jump-vscode-format loc-no-col)
                    "foo.ss:1"))
 
-;;; ====
-;;; Edge Cases
-;;; ====
+(doc 'section 'edge-cases)
 
 (printf "\n=== Testing Edge Cases ===\n")
 
@@ -200,9 +184,7 @@
              (let ([loc (make-location "unicode/test.ss" 1 0)])
                   (string? (location->string loc))))
 
-;;; ====
-;;; Test Summary
-;;; ====
+(doc 'section 'test-summary)
 
 (printf "\n====\n")
 (printf "Test Results (jump):\n")
@@ -214,5 +196,5 @@
     (printf "\n✓ All tests passed!\n\n")
     (printf "\n✗ Some tests failed\n\n"))
 
-;;; Return success/failure
+(doc 'note "Return success/failure")
 (= fail-count 0)

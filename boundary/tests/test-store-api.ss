@@ -1,19 +1,20 @@
-;;; test-store-api.ss --- Comprehensive test suite for Store API
-
 (source-directories (cons "core" (source-directories)))
 (load "core/blocks/block.ss")
 (load "core/base/sha256.ss")
 (load "boundary/io/fs.ss")
 (load "boundary/storage/store-api.ss")
 
+(doc 'module 'test-store-api)
+(doc 'description "Comprehensive test suite for Store API")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+
 (printf "\n")
 (printf "====\n")
 (printf "              STORE API TEST SUITE                             \n")
 (printf "====\n\n")
 
-;;; ====
-;;; Test Harness
-;;; ====
+(doc 'section 'test-harness)
 
 (define tests-passed 0)
 (define tests-failed 0)
@@ -45,9 +46,8 @@
        (printf "  [FAIL] ~a\n" name)
        (printf "      Value ~s did not satisfy predicate\n" actual))))
 
-;;; ====
-;;; Test Setup - Create test store and blocks
-;;; ====
+(doc 'section 'test-setup)
+(doc 'note "Create test store and blocks")
 
 (printf "Setting up test environment...\n")
 (printf "----\n")
@@ -92,9 +92,8 @@
 
 (printf "Test blocks created.\n\n")
 
-;;; ====
-;;; Test 1: Core Storage Operations (store-put!, store-get, store-exists?)
-;;; ====
+(doc 'section 'test-1-core-storage-operations)
+(doc 'note "Testing store-put!, store-get, store-exists?")
 
 (printf "Testing Core Storage Operations:\n")
 (printf "----\n")
@@ -147,9 +146,8 @@
 
 (printf "\n")
 
-;;; ====
-;;; Test 2: Store Enumeration (store-all-hashes, store-count)
-;;; ====
+(doc 'section 'test-2-store-enumeration)
+(doc 'note "Testing store-all-hashes, store-count")
 
 (printf "Testing Store Enumeration:\n")
 (printf "----\n")
@@ -182,9 +180,7 @@
 
 (printf "\n")
 
-;;; ====
-;;; Test 3: store-all-blocks
-;;; ====
+(doc 'section 'test-3-store-all-blocks)
 
 (printf "Testing store-all-blocks:\n")
 (printf "----\n")
@@ -206,9 +202,7 @@
 
 (printf "\n")
 
-;;; ====
-;;; Test 4: store-filter
-;;; ====
+(doc 'section 'test-4-store-filter)
 
 (printf "Testing store-filter:\n")
 (printf "----\n")
@@ -239,9 +233,7 @@
 
 (printf "\n")
 
-;;; ====
-;;; Test 5: store-find-by-tag
-;;; ====
+(doc 'section 'test-5-store-find-by-tag)
 
 (printf "Testing store-find-by-tag:\n")
 (printf "----\n")
@@ -278,9 +270,7 @@
 
 (printf "\n")
 
-;;; ====
-;;; Test 6: store-find-by-payload
-;;; ====
+(doc 'section 'test-6-store-find-by-payload)
 
 (printf "Testing store-find-by-payload:\n")
 (printf "----\n")
@@ -316,9 +306,7 @@
 
 (printf "\n")
 
-;;; ====
-;;; Test 7: store-find-by-payload-contains
-;;; ====
+(doc 'section 'test-7-store-find-by-payload-contains)
 
 (printf "Testing store-find-by-payload-contains:\n")
 (printf "----\n")
@@ -351,9 +339,7 @@
 
 (printf "\n")
 
-;;; ====
-;;; Test 8: store-find-by-ref
-;;; ====
+(doc 'section 'test-8-store-find-by-ref)
 
 (printf "Testing store-find-by-ref:\n")
 (printf "----\n")
@@ -384,9 +370,8 @@
 
 (printf "\n")
 
-;;; ====
-;;; Test 9: Batch Operations (store-put-many!, store-get-many)
-;;; ====
+(doc 'section 'test-9-batch-operations)
+(doc 'note "Testing store-put-many!, store-get-many")
 
 (printf "Testing Batch Operations:\n")
 (printf "----\n")
@@ -448,9 +433,8 @@
 
 (printf "\n")
 
-;;; ====
-;;; Test 10: Statistics (store-stats, store-print-stats)
-;;; ====
+(doc 'section 'test-10-statistics)
+(doc 'note "Testing store-stats, store-print-stats")
 
 (printf "Testing Statistics:\n")
 (printf "----\n")
@@ -496,9 +480,8 @@
 
 (printf "\n")
 
-;;; ====
-;;; Test 11: Graph Navigation (store-get-refs, store-get-referrers)
-;;; ====
+(doc 'section 'test-11-graph-navigation)
+(doc 'note "Testing store-get-refs, store-get-referrers")
 
 (printf "Testing Graph Navigation:\n")
 (printf "----\n")
@@ -542,9 +525,7 @@
 
 (printf "\n")
 
-;;; ====
-;;; Test 12: Knowledge Graph Helpers
-;;; ====
+(doc 'section 'test-12-knowledge-graph-helpers)
 
 (printf "Testing Knowledge Graph Helpers:\n")
 (printf "----\n")
@@ -578,9 +559,7 @@
 
 (printf "\n")
 
-;;; ====
-;;; Test 13: Edge Cases
-;;; ====
+(doc 'section 'test-13-edge-cases)
 
 (printf "Testing Edge Cases:\n")
 (printf "----\n")
@@ -664,9 +643,8 @@
 
 (printf "\n")
 
-;;; ====
-;;; Test 14: string-contains? helper (internal function)
-;;; ====
+(doc 'section 'test-14-string-contains-helper)
+(doc 'note "Testing internal function")
 
 (printf "Testing string-contains? helper:\n")
 (printf "----\n")
@@ -694,18 +672,14 @@
 
 (printf "\n")
 
-;;; ====
-;;; Cleanup
-;;; ====
+(doc 'section 'cleanup)
 
 (printf "Cleaning up test stores...\n")
 (system (format "rm -rf ~a" test-store-path))
 (system "rm -rf .test-store-empty")
 (printf "Cleanup complete.\n\n")
 
-;;; ====
-;;; Summary
-;;; ====
+(doc 'section 'summary)
 
 (printf "====\n")
 (printf "                    TEST RESULTS                               \n")

@@ -1,15 +1,15 @@
-;;; Test suite for layout combinators (fold-q196)
-;;;
-;;; Tests canvas composition operations from layout.ss.
-;;; Note: Full combinator tests require library import mechanism.
-
 (load "boundary/ui/layout.ss")
+
+(doc 'module 'test-layout-combinators)
+(doc 'description "Test suite for layout combinators (fold-q196)")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+(doc 'note "Tests canvas composition operations from layout.ss")
+(doc 'note "Full combinator tests require library import mechanism")
 
 (display "Testing layout and composition...\n\n")
 
-;;; ====
-;;; Test 1: Canvas Composite
-;;; ====
+(doc 'section 'test-canvas-composite)
 
 (display "1. Testing canvas composite:\n")
 
@@ -28,9 +28,7 @@
       (newline)
       (display "  ✓ Composite works\n\n"))
 
-;;; ====
-;;; Test 2: Draw Box
-;;; ====
+(doc 'section 'test-draw-box)
 
 (display "2. Testing draw-box:\n")
 
@@ -41,9 +39,7 @@
       (newline)
       (display "  ✓ draw-box works\n\n"))
 
-;;; ====
-;;; Test 3: Multiple Composites
-;;; ====
+(doc 'section 'test-multiple-composites)
 
 (display "3. Testing multiple composites:\n")
 
@@ -62,9 +58,7 @@
       (newline)
       (display "  ✓ Multiple composites work\n\n"))
 
-;;; ====
-;;; Test 4: Transparency Handling
-;;; ====
+(doc 'section 'test-transparency-handling)
 
 (display "4. Testing composite with transparency:\n")
 
@@ -80,9 +74,7 @@
       (newline)
       (display "  ✓ Transparent composite works\n\n"))
 
-;;; ====
-;;; Test 5: Blit Operation
-;;; ====
+(doc 'section 'test-blit-operation)
 
 (display "5. Testing blit (region copy):\n")
 
@@ -99,9 +91,7 @@
       (newline)
       (display "  ✓ Blit works\n\n"))
 
-;;; ====
-;;; Test 6: Vertical String
-;;; ====
+(doc 'section 'test-vertical-string)
 
 (display "6. Testing draw-string-v (vertical):\n")
 
@@ -111,9 +101,7 @@
       (newline)
       (display "  ✓ Vertical string works\n\n"))
 
-;;; ====
-;;; Test 7: Draw Rectangle Outline
-;;; ====
+(doc 'section 'test-draw-rectangle-outline)
 
 (display "7. Testing draw-rect (outline):\n")
 

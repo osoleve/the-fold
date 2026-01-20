@@ -1,10 +1,10 @@
-;;; boundary/tests/test-alloc-tracker.ss --- Tests for Allocation Tracker
-;;;
-;;; Comprehensive tests for boundary/diagnostics/alloc-tracker.ss.
-;;; Validates byte formatting, allocation tracking, and tracker accumulation.
-
 (load "core/test-framework.ss")
 (load "boundary/diagnostics/alloc-tracker.ss")
+
+(doc 'module 'test-alloc-tracker)
+(doc 'description "Comprehensive tests for boundary/diagnostics/alloc-tracker.ss. Validates byte formatting, allocation tracking, and tracker accumulation.")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
 
 (display "\n")
 (display "====\n")
@@ -12,9 +12,7 @@
 (display "====\n")
 (display "\n")
 
-;;; ====
-;;; format-bytes Tests
-;;; ====
+(doc 'section 'format-bytes-tests)
 
 (test-group format-bytes
             
@@ -60,9 +58,7 @@
             
             )
 
-;;; ====
-;;; format-decimal Tests
-;;; ====
+(doc 'section 'format-decimal-tests)
 
 (test-group format-decimal
             
@@ -83,9 +79,7 @@
             
             )
 
-;;; ====
-;;; clean-decimal-string Tests
-;;; ====
+(doc 'section 'clean-decimal-string-tests)
 
 (test-group clean-decimal-string
             
@@ -106,9 +100,7 @@
             
             )
 
-;;; ====
-;;; get-allocation-stats Tests
-;;; ====
+(doc 'section 'get-allocation-stats-tests)
 
 (test-group get-allocation-stats
             
@@ -135,9 +127,7 @@
             
             )
 
-;;; ====
-;;; track-allocations Tests
-;;; ====
+(doc 'section 'track-allocations-tests)
 
 (test-group track-allocations
             
@@ -173,9 +163,7 @@
             
             )
 
-;;; ====
-;;; Allocation Tracker Tests
-;;; ====
+(doc 'section 'alloc-tracker-tests)
 
 (test-group alloc-tracker
             
@@ -216,9 +204,7 @@
             
             )
 
-;;; ====
-;;; Tracker Summary Tests
-;;; ====
+(doc 'section 'tracker-summary-tests)
 
 (test-group tracker-summary
             
@@ -250,9 +236,7 @@
             
             )
 
-;;; ====
-;;; Top-N Tests
-;;; ====
+(doc 'section 'top-n-tests)
 
 (test-group top-n
             
@@ -280,9 +264,7 @@
             
             )
 
-;;; ====
-;;; Integration Tests
-;;; ====
+(doc 'section 'integration-tests)
 
 (test-group integration
             
@@ -306,9 +288,7 @@
             
             )
 
-;;; ====
-;;; Summary
-;;; ====
+(doc 'section 'summary)
 
 (newline)
 (exit-with-summary)

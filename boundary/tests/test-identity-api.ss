@@ -1,14 +1,12 @@
-;;; boundary/tests/test-identity-api.ss — Identity API Tests (fold-n5z)
-;;;
-;;; Tests for the public identity API:
-;;;   - identity-exists?
-;;;   - identity-get
-;;;   - identity-create!
-;;;   - identity-update!
-;;;
-;;; Run from project root: scheme --script boundary/tests/test-identity-api.ss
+(doc 'note "Run from project root: scheme --script boundary/tests/test-identity-api.ss")
 
 (load "boundary/storage/identity.ss")
+
+(doc 'module 'test-identity-api)
+(doc 'description "Identity API Tests (fold-n5z)")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+(doc 'note "Tests for the public identity API: identity-exists?, identity-get, identity-create!, identity-update!")
 
 (define (test name expected actual)
   (display "  ")
@@ -28,16 +26,14 @@
   (display name)
   (newline))
 
-;;; Clean up test environment
+(doc cleanup-test-env! 'description "Clean up test environment")
 (define (cleanup-test-env!)
   (when (file-exists? ".store/heads/identity")
         (system "rm -rf .store/heads/identity"))
   (hashtable-clear! *store*)
   (hashtable-clear! *pinned*))
 
-;;; ====
-;;; Validation Tests
-;;; ====
+(doc 'section 'validation-tests)
 (test-section "Validation")
 
 (test "valid-role? accepts shepherd"
@@ -80,9 +76,7 @@
              (validate-role! 'invalid)
              #f))
 
-;;; ====
-;;; identity-exists? Tests
-;;; ====
+(doc 'section 'identity-exists-tests)
 (test-section "identity-exists?")
 
 (cleanup-test-env!)
@@ -101,9 +95,7 @@
       #f
       (identity-exists? 'bob))
 
-;;; ====
-;;; identity-create! Tests
-;;; ====
+(doc 'section 'identity-create-tests)
 (test-section "identity-create!")
 
 (test "create new identity returns alist"
@@ -142,9 +134,7 @@
              (identity-create! 'charlie 'admin)
              #f))
 
-;;; ====
-;;; identity-get Tests
-;;; ====
+(doc 'section 'identity-get-tests)
 (test-section "identity-get")
 
 (test "get existing identity returns alist"
@@ -174,9 +164,7 @@
                 (if (assq 'total-posts data) #t #f)
                 (if (assq 'preferences data) #t #f))))
 
-;;; ====
-;;; identity-update! Tests
-;;; ====
+(doc 'section 'identity-update-tests)
 (test-section "identity-update!")
 
 (test "update single field"
@@ -217,9 +205,7 @@
              (identity-update! 'alice 'not-a-list)
              #f))
 
-;;; ====
-;;; Registration Flow Tests
-;;; ====
+(doc 'section 'registration-flow-tests)
 (test-section "Registration Flow")
 
 (test "check username not taken"
@@ -247,9 +233,7 @@
              (identity-create! 'charlie 'builder)
              #f))
 
-;;; ====
-;;; API Contract Tests
-;;; ====
+(doc 'section 'api-contract-tests)
 (test-section "API Contracts")
 
 (test "identity-get returns alist or #f"
@@ -276,9 +260,7 @@
                 (assq 'total-posts data)
                 (eq? (cdr (assq 'total-posts data)) 5))))
 
-;;; ====
-;;; Edge Cases
-;;; ====
+(doc 'section 'edge-cases)
 (test-section "Edge Cases")
 
 (test "empty updates list does nothing"

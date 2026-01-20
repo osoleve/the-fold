@@ -1,9 +1,10 @@
-;;; Test suite for SVG concepts (fold-q196)
-;;;
-;;; Tests basic canvas-to-string rendering which underlies SVG generation.
-;;; Note: Full SVG library tests require library import mechanism.
-
 (load "boundary/ui/layout.ss")
+
+(doc 'module 'test-svg-renderer)
+(doc 'description "Test suite for SVG concepts (fold-q196) - tests basic canvas-to-string rendering which underlies SVG generation")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+(doc 'note "Full SVG library tests require library import mechanism")
 
 (display "Testing SVG-related concepts...\n\n")
 
@@ -17,9 +18,7 @@
              [(string=? (substring str i (+ i sub-len)) substr) #t]
              [else (loop (+ i 1))]))))
 
-;;; ====
-;;; Test 1: Canvas to String
-;;; ====
+(doc 'section 'test-1-canvas-to-string)
 
 (display "1. Testing canvas->string:\n")
 
@@ -39,9 +38,7 @@
           (display "  ✓ canvas->string works\n\n")
           (display "  ✗ FAILED: canvas->string broken\n\n")))
 
-;;; ====
-;;; Test 2: Special Characters
-;;; ====
+(doc 'section 'test-2-special-characters)
 
 (display "2. Testing special characters:\n")
 
@@ -58,9 +55,7 @@
       (newline)
       (display "  ✓ Unicode characters render correctly\n\n"))
 
-;;; ====
-;;; Test 3: Empty Canvas
-;;; ====
+(doc 'section 'test-3-empty-canvas)
 
 (display "3. Testing empty canvas:\n")
 
@@ -72,9 +67,7 @@
           (display "  ✓ Empty canvas produces output\n\n")
           (display "  ✗ FAILED: Empty canvas broken\n\n")))
 
-;;; ====
-;;; Test 4: Single Character
-;;; ====
+(doc 'section 'test-4-single-character)
 
 (display "4. Testing single character canvas:\n")
 
@@ -86,9 +79,7 @@
           (display "  ✓ Single char canvas works\n\n")
           (display "  ✗ FAILED: Single char broken\n\n")))
 
-;;; ====
-;;; Test 5: Large Canvas Performance
-;;; ====
+(doc 'section 'test-5-large-canvas-performance)
 
 (display "5. Testing large canvas:\n")
 
@@ -114,9 +105,7 @@
       (newline)
       (display "  ✓ Large canvas renders correctly\n\n"))
 
-;;; ====
-;;; Test 6: String Padding
-;;; ====
+(doc 'section 'test-6-string-padding)
 
 (display "6. Testing string-pad:\n")
 

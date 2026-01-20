@@ -1,10 +1,12 @@
-;;; boundary/tests/test-identity.ss — Identity System Tests
-;;;
-;;; Tests for the block-based identity management system.
-;;;
-;;; Run from project root: scheme --script boundary/tests/test-identity.ss
+(doc 'note "Run from project root: scheme --script boundary/tests/test-identity.ss")
 
 (load "boundary/storage/identity.ss")
+
+(doc 'module 'test-identity)
+(doc 'description "Identity System Tests")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+(doc 'note "Tests for the block-based identity management system")
 
 (define (test name expected actual)
   (display "  ")
@@ -24,17 +26,15 @@
   (display name)
   (newline))
 
-;;; Clean up test environment
+(doc cleanup-test-env! 'description "Clean up test environment")
 (define (cleanup-test-env!)
   (when (file-exists? ".store/heads/identity")
         (system "rm -rf .store/heads/identity"))
-  ;; Clear in-memory CAS store (hashtable-clear! is defined in Chez Scheme)
+  (doc 'note "Clear in-memory CAS store (hashtable-clear! is defined in Chez Scheme)")
   (hashtable-clear! *store*)
   (hashtable-clear! *pinned*))
 
-;;; ====
-;;; Identity Creation Tests
-;;; ====
+(doc 'section 'identity-creation-tests)
 (test-section "Identity Creation")
 
 (cleanup-test-env!)
@@ -73,9 +73,7 @@
       #f
       (identity-exists? 'bob))
 
-;;; ====
-;;; Identity Lookup Tests
-;;; ====
+(doc 'section 'identity-lookup-tests)
 (test-section "Identity Lookup")
 
 (test "lookup existing identity returns block"
@@ -94,9 +92,7 @@
       #f
       (get-identity-data 'missing))
 
-;;; ====
-;;; Identity Update Tests
-;;; ====
+(doc 'section 'identity-update-tests)
 (test-section "Identity Updates")
 
 (test "record session increments count"
@@ -124,9 +120,7 @@
        (record-post! 'alice)
        (cdr (assq 'total-posts (get-identity-data 'alice)))))
 
-;;; ====
-;;; Preference Management Tests
-;;; ====
+(doc 'section 'preference-management-tests)
 (test-section "Preference Management")
 
 (test "set preference adds to preferences"
@@ -154,9 +148,7 @@
              [prefs (cdr (assq 'preferences data))])
             (cdr (assq 'theme prefs))))
 
-;;; ====
-;;; Identity History Tests
-;;; ====
+(doc 'section 'identity-history-tests)
 (test-section "Identity History")
 
 (test "identity history is not empty"
@@ -179,14 +171,12 @@
 (test "newest version has highest session count"
       3
       (let* ([history (get-identity-history 'alice)]
-             ; History is returned newest-first, so last is oldest
+             (doc 'note "History is returned newest-first, so last is oldest")
              [newest (car (reverse history))]
              [data (decode-identity-payload (block-payload newest))])
             (cdr (assq 'session-count data))))
 
-;;; ====
-;;; Multiple Identities Tests
-;;; ====
+(doc 'section 'multiple-identities-tests)
 (test-section "Multiple Identities")
 
 (test "register second identity"
@@ -212,9 +202,7 @@
            (eq? (cdr (assq 'role (get-identity-data 'bob))) 'player)
            (eq? (cdr (assq 'role (get-identity-data 'charlie))) 'shepherd)))
 
-;;; ====
-;;; Block Structure Tests
-;;; ====
+(doc 'section 'block-structure-tests)
 (test-section "Block Structure")
 
 (test "new identity has no refs"
@@ -242,9 +230,7 @@
              [data (decode-identity-payload payload)])
             (list? data)))
 
-;;; ====
-;;; Error Handling Tests
-;;; ====
+(doc 'section 'error-handling-tests)
 (test-section "Error Handling")
 
 (test "cannot register duplicate identity"
@@ -260,9 +246,7 @@
                                (lambda (data) data))
              #f))
 
-;;; ====
-;;; Encoding/Decoding Tests
-;;; ====
+(doc 'section 'encoding-decoding-tests)
 (test-section "Encoding/Decoding")
 
 (test "encode-decode roundtrip preserves data"
@@ -285,9 +269,7 @@
                  (if (assq 'total-posts decoded) #t #f)
                  (if (assq 'preferences decoded) #t #f))))
 
-;;; ====
-;;; Timestamp Tests
-;;; ====
+(doc 'section 'timestamp-tests)
 (test-section "Timestamps")
 
 (test "timestamp has ISO8601 format"
@@ -311,7 +293,7 @@
       #t
       (let* ([old-data (get-identity-data 'dave)]
              [old-time (cdr (assq 'last-seen old-data))])
-            ;; Small delay to ensure timestamp changes
+            (doc 'note "Small delay to ensure timestamp changes")
             (sleep (make-time 'time-duration 0 1))
             (record-session! 'dave)
             (let* ([new-data (get-identity-data 'dave)]

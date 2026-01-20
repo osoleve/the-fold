@@ -1,8 +1,4 @@
-;;; boundary/tests/test-graphics-primitives.ss — Tests for graphics-primitives.ss
-;;;
-;;; Tests for advanced graphics primitives: lines, circles, gradients, polygons.
-;;;
-;;; NOTE: Run from project root: scheme --script boundary/tests/test-graphics-primitives.ss
+(doc 'note "Run from project root: scheme --script boundary/tests/test-graphics-primitives.ss")
 
 (load "core/test-framework.ss")
 (load "core/base/prelude.ss")
@@ -10,14 +6,17 @@
 (import (shell easing))
 (import (shell graphics-primitives))
 
+(doc 'module 'test-graphics-primitives)
+(doc 'description "Tests for advanced graphics primitives: lines, circles, gradients, polygons")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+
 (display "\n")
 (display "====\n")
 (display "         GRAPHICS PRIMITIVES TESTS\n")
 (display "====\n")
 
-;;; ====
-;;; Character Intensity Palette Tests
-;;; ====
+(doc 'section 'intensity-palette-tests)
 
 (test-group intensity-palettes
             (define-test palette-simple-exists
@@ -53,9 +52,7 @@
               ;; Values > 1 should clamp to 1
               (assert-equal #\@ (get-intensity-char intensity-palette-simple 1.5))))
 
-;;; ====
-;;; Line Drawing Tests
-;;; ====
+(doc 'section 'line-drawing-tests)
 
 (test-group line-drawing
             (define-test draw-line-horizontal
@@ -99,9 +96,7 @@
                     ;; End should be brighter
                     (assert-true (memv (canvas-ref c 9 2) palette)))))
 
-;;; ====
-;;; Rounded Box Tests
-;;; ====
+(doc 'section 'rounded-box-tests)
 
 (test-group rounded-box
             (define-test draw-rounded-box-ascii
@@ -137,9 +132,7 @@
                     ;; Should still render something
                     (assert-true (char? (canvas-ref c 0 0))))))
 
-;;; ====
-;;; Circle Drawing Tests
-;;; ====
+(doc 'section 'circle-drawing-tests)
 
 (test-group circle-drawing
             (define-test draw-circle-basic
@@ -174,9 +167,7 @@
                      [c (draw-circle c (point 2 2) 0 #\o)])
                     (assert-equal #\o (canvas-ref c 2 2)))))
 
-;;; ====
-;;; Gradient Fill Tests
-;;; ====
+(doc 'section 'gradient-fill-tests)
 
 (test-group gradient-fills
             (define-test gradient-fill-horizontal-basic
@@ -217,9 +208,7 @@
                     ;; Should not crash, return canvas unchanged
                     (assert-equal #\space (canvas-ref c-result 0 0)))))
 
-;;; ====
-;;; Polyline and Polygon Tests
-;;; ====
+(doc 'section 'polyline-polygon-tests)
 
 (test-group polyline-polygon
             (define-test draw-polyline-triangle
@@ -256,9 +245,8 @@
                      [c (draw-polygon c (list (point 1 1) (point 3 3)) #\*)])
                     (assert-equal #\space (canvas-ref c 1 1)))))
 
-;;; ====
-;;; Filled Polygon Tests (AET Algorithm)
-;;; ====
+(doc 'section 'filled-polygon-tests)
+(doc 'note "AET Algorithm")
 
 (test-group filled-polygon
             (define-test draw-filled-polygon-square
@@ -289,9 +277,7 @@
                     ;; Interior point
                     (assert-equal #\X (canvas-ref c 6 5)))))
 
-;;; ====
-;;; Style System Tests
-;;; ====
+(doc 'section 'style-system-tests)
 
 (test-group style-system
             (define-test make-style-basic
@@ -314,9 +300,7 @@
               (let ([ch (apply-opacity-block 0.5)])
                    (assert-true (char? ch)))))
 
-;;; ====
-;;; Path Drawing Tests
-;;; ====
+(doc 'section 'path-drawing-tests)
 
 (test-group path-drawing
             (define-test draw-path-move-and-line
@@ -348,9 +332,7 @@
                     (assert-equal #\# (canvas-ref c 1 1))
                     (assert-equal #\# (canvas-ref c 5 5)))))
 
-;;; ====
-;;; Draw With Style Tests
-;;; ====
+(doc 'section 'draw-with-style-tests)
 
 (test-group draw-with-style
             (define-test draw-circle-with-style
@@ -371,9 +353,7 @@
                     ;; Interior should have fill
                     (assert-equal #\. (canvas-ref c 5 3)))))
 
-;;; ====
-;;; Summary
-;;; ====
+(doc 'section 'summary)
 
 (display "\n")
 (display "====\n")

@@ -1,8 +1,11 @@
-;;; boundary/tests/test-tdd.ss — Test the TDD system itself
-
 (load "core/test-framework.ss")
 
-;;; Test basic TDD functionality
+(doc 'module 'test-tdd)
+(doc 'description "Test the TDD system itself")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+
+(doc 'section 'basic-tdd-functionality)
 (define-test "tdd-system-loads"
   (assert-true #t)  ; Basic sanity check
   (assert-equal 4 (+ 2 2)))

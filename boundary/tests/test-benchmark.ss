@@ -1,11 +1,11 @@
-;;; boundary/tests/test-benchmark.ss -- Tests for Benchmarking Harness
-
-;;; NOTE: Run from project root:
-;;;   scheme --script boundary/tests/test-benchmark.ss
-
 (load "core/base/prelude.ss")
 (load "core/test-framework.ss")
 (load "boundary/tools/benchmark.ss")
+
+(doc 'module 'test-benchmark)
+(doc 'description "Tests for Benchmarking Harness. NOTE: Run from project root: scheme --script boundary/tests/test-benchmark.ss")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
 
 (display "
 ")
@@ -16,9 +16,7 @@
 (display "====
 ")
 
-;;; ====
-;;; Statistical Function Tests
-;;; ====
+(doc 'section 'statistical-function-tests)
 
 (test-group statistical-tests
             (define-test mean-empty-test

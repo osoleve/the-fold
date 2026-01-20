@@ -1,13 +1,12 @@
-;;; boundary/test-meta.ss --- Tests for Inline Metadata Tag Parser
-;;;
-;;; Run with: scheme -q < test-meta.ss
-;;; From the boundary/ directory
-
 (load "meta.ss")
 
-;;; ====
-;;; Test Framework
-;;; ====
+(doc 'module 'test-meta)
+(doc 'description "Tests for Inline Metadata Tag Parser")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+(doc 'note "Run with: scheme -q < test-meta.ss from the boundary/ directory")
+
+(doc 'section 'test-framework)
 
 (define test-count 0)
 (define pass-count 0)
@@ -38,7 +37,7 @@
   (newline)
   (newline)
   
-  ;;; ----
+  (doc 'section 'basic-tag-extraction)
   (display "--- Basic Tag Extraction ---")
   (newline)
   
@@ -70,7 +69,7 @@
         '()
         (extract-tags ""))
   
-  ;;; ----
+  (doc 'section 'path-values)
   (display "--- Path Values ---")
   (newline)
   
@@ -86,7 +85,7 @@
         '(("see" . "../docs/decisions/001.md"))
         (extract-tags "@see:../docs/decisions/001.md"))
   
-  ;;; ----
+  (doc 'section 'email-address-exclusion)
   (display "--- Email Address Exclusion ---")
   (newline)
   
@@ -106,7 +105,7 @@
         '()
         (extract-tags "@ is just an at sign"))
   
-  ;;; ----
+  (doc 'section 'word-boundaries)
   (display "--- Word Boundaries ---")
   (newline)
   
@@ -122,7 +121,7 @@
         '(("important" . #t))
         (extract-tags "She said \"@important stuff\""))
   
-  ;;; ----
+  (doc 'section 'has-tag-tests)
   (display "--- has-tag? ---")
   (newline)
   
@@ -138,7 +137,7 @@
         #t
         (has-tag? "@status:complete" "status"))
   
-  ;;; ----
+  (doc 'section 'get-tag-value-tests)
   (display "--- get-tag-value ---")
   (newline)
   
@@ -154,7 +153,7 @@
         #f
         (get-tag-value "@draft" "status"))
   
-  ;;; ----
+  (doc 'section 'get-all-tag-values-tests)
   (display "--- get-all-tag-values ---")
   (newline)
   
@@ -166,7 +165,7 @@
         '()
         (get-all-tag-values "@todo" "see"))
   
-  ;;; ----
+  (doc 'section 'strip-tags-tests)
   (display "--- strip-tags ---")
   (newline)
   
@@ -190,7 +189,7 @@
         ""
         (strip-tags "@only @tags @here"))
   
-  ;;; ----
+  (doc 'section 'highlight-tags-tests)
   (display "--- highlight-tags ---")
   (newline)
   
@@ -206,7 +205,7 @@
         "user@domain.com [TAG:urgent]"
         (highlight-tags "user@domain.com @urgent"))
   
-  ;;; ----
+  (doc 'section 'convenience-functions)
   (display "--- Convenience Functions ---")
   (newline)
   
@@ -258,7 +257,7 @@
         #f
         (is-high-priority? "@priority:low"))
   
-  ;;; ----
+  (doc 'section 'edge-cases)
   (display "--- Edge Cases ---")
   (newline)
   
@@ -288,7 +287,7 @@
         '(("tag" . "value"))
         (extract-tags "@tag:value here"))
   
-  ;;; ----
+  (doc 'section 'real-world-examples)
   (display "--- Real World Examples ---")
   (newline)
   
@@ -305,8 +304,7 @@ The next step is normalization. @todo:implement @priority:high"))
         '(("draft" . #t) ("needs-review" . #t))
         (extract-tags "This documentation is @draft and @needs-review by the team."))
   
-  ;;; ----
-  ;;; Summary
+  (doc 'section 'summary)
   (newline)
   (display "=== Test Summary ===")
   (newline)
@@ -319,5 +317,5 @@ The next step is normalization. @todo:implement @priority:high"))
       (display "Some tests failed."))
   (newline))
 
-;;; Run the tests
+(doc 'note "Run the tests")
 (run-tests)

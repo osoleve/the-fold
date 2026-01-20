@@ -1,9 +1,10 @@
-;;; boundary/test-fuel-analysis.ss — Tests for Primitive-Level Fuel Analysis
-;;;
-;;; Test the fuel analysis tools to ensure they correctly track
-;;; primitive operations and estimate complexity.
-
 (load "boundary/diagnostics/fuel-analysis.ss")
+
+(doc 'module 'test-fuel-analysis)
+(doc 'description "Tests for Primitive-Level Fuel Analysis")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+(doc 'note "Test the fuel analysis tools to ensure they correctly track primitive operations and estimate complexity")
 
 (display "\n")
 (display "════════════════════════════════════════════════════════════════\n")
@@ -11,9 +12,7 @@
 (display "════════════════════════════════════════════════════════════════\n")
 (display "\n")
 
-;;; ====
-;;; Test 1: Simple Addition
-;;; ====
+(doc 'section 'test-simple-addition)
 
 (display "Test 1: Simple Addition\n")
 (display "────────────────────────────────────────────────────────────────\n")
@@ -30,9 +29,7 @@
 
 (display "\n")
 
-;;; ====
-;;; Test 2: Factorial (Recursive)
-;;; ====
+(doc 'section 'test-factorial-recursive)
 
 (display "Test 2: Factorial - Recursive Pattern\n")
 (display "────────────────────────────────────────────────────────────────\n")
@@ -57,20 +54,18 @@
 
 (display "\n")
 
-;;; ====
-;;; Test 3: List Length (Linear Complexity)
-;;; ====
+(doc 'section 'test-list-length-linear)
 
 (display "Test 3: Complexity Analysis - List Length\n")
 (display "────────────────────────────────────────────────────────────────\n")
 
-;;; Helper: list length using instrumented primitives
+(doc test-length 'description "List length using instrumented primitives")
 (define (test-length lst)
   (if (prim-instrumented 'null? lst)
       0
       (prim-instrumented 'add 1 (test-length (prim-instrumented 'cdr lst)))))
 
-;;; Helper: make list of size n
+(doc make-test-list 'description "Make list of size n")
 (define (make-test-list n)
   (if (= n 0)
       '()
@@ -91,14 +86,12 @@
 
 (display "\n")
 
-;;; ====
-;;; Test 4: Constant Time Operation
-;;; ====
+(doc 'section 'test-constant-time)
 
 (display "Test 4: Complexity Analysis - Constant Time\n")
 (display "────────────────────────────────────────────────────────────────\n")
 
-;;; Helper: constant time car operation
+(doc test-car 'description "Constant time car operation")
 (define (test-car lst)
   (prim-instrumented 'car lst))
 
@@ -117,14 +110,12 @@
 
 (display "\n")
 
-;;; ====
-;;; Test 5: Multiple Primitive Types
-;;; ====
+(doc 'section 'test-multiple-primitive-types)
 
 (display "Test 5: Multiple Primitive Types\n")
 (display "────────────────────────────────────────────────────────────────\n")
 
-;;; Helper: function using various primitives
+(doc test-multi 'description "Function using various primitives")
 (define (test-multi x)
   (let* ([neg-x (prim-instrumented 'neg x)]
          [abs-x (prim-instrumented 'abs neg-x)]
@@ -152,14 +143,12 @@
 
 (display "\n")
 
-;;; ====
-;;; Test 6: Fuel Cost Tiers
-;;; ====
+(doc 'section 'test-fuel-cost-tiers)
 
 (display "Test 6: Fuel Cost Tiers\n")
 (display "────────────────────────────────────────────────────────────────\n")
 
-;;; Helper: test different cost tiers
+(doc test-costs 'description "Test different cost tiers")
 (define (test-costs x)
   (let* ([;; Tier 1 (cost 1) - type predicate
           is-num (prim-instrumented 'number? x)]
@@ -181,14 +170,12 @@
 
 (display "\n")
 
-;;; ====
-;;; Test 7: Error Handling
-;;; ====
+(doc 'section 'test-error-handling)
 
 (display "Test 7: Error Handling\n")
 (display "────────────────────────────────────────────────────────────────\n")
 
-;;; Helper: function that might error
+(doc test-error 'description "Function that might error")
 (define (test-error x)
   (prim-instrumented 'div 10 x))
 
@@ -209,9 +196,7 @@
 
 (display "\n")
 
-;;; ====
-;;; Summary
-;;; ====
+(doc 'section 'summary)
 
 (display "════════════════════════════════════════════════════════════════\n")
 (display "  TEST SUITE COMPLETE\n")

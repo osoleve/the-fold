@@ -1,14 +1,12 @@
-;;; Test harness for boundary/tools/archextract.ss
-
-;;; Load dependencies from core
 (load "core/base/prelude.ss")
-
-;;; Load the archextract module
 (load "boundary/tools/archextract.ss")
 
-;;; ====
-;;; Test Framework
-;;; ====
+(doc 'module 'test-archextract)
+(doc 'description "Test harness for boundary/tools/archextract.ss")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+
+(doc 'section 'test-framework)
 
 (define *tests-passed* 0)
 (define *tests-failed* 0)
@@ -45,9 +43,7 @@
   (display " failed\n")
   (display "====\n"))
 
-;;; ====
-;;; Test Path Utilities
-;;; ====
+(doc 'section 'test-path-utilities)
 
 (display "\n")
 (display "====\n")
@@ -65,9 +61,7 @@
 (test "suffix true" #t (arch-string-suffix? ".ss" "foo.ss"))
 (test "suffix false" #f (arch-string-suffix? ".ss" "foo.txt"))
 
-;;; ====
-;;; Test Path Resolution
-;;; ====
+(doc 'section 'test-path-resolution)
 
 (display "\nTest 2: Path resolution\n")
 (test "normalize path" "foo/bar/baz" (normalize-path-sep "foo\\bar\\baz"))
@@ -79,9 +73,7 @@
 (test "resolve parts .." '("foo" "other.ss")
       (resolve-parts '("foo" "bar") '(".." "other.ss")))
 
-;;; ====
-;;; Test Load Extraction
-;;; ====
+(doc 'section 'test-load-extraction)
 
 (display "\nTest 3: Extract loads\n")
 (test "extract single load" '("prelude.ss")
@@ -93,9 +85,7 @@
 (test "extract nested load" '("nested.ss")
       (extract-loads '((when something (load "nested.ss")))))
 
-;;; ====
-;;; Test Define Extraction
-;;; ====
+(doc 'section 'test-define-extraction)
 
 (display "\nTest 4: Extract defines\n")
 (test "extract simple define" '(x)
@@ -107,9 +97,7 @@
 (test "extract define-record-type" '(my-record)
       (extract-defines '((define-record-type my-record (fields x y)))))
 
-;;; ====
-;;; Test Module Analysis
-;;; ====
+(doc 'section 'test-module-analysis)
 
 (display "\nTest 5: Analyze actual module (core/prelude.ss)\n")
 (let ([mod (analyze-module "core/base/prelude.ss")])
@@ -127,9 +115,7 @@
      ;; block.ss loads prelude.ss
      (test "block loads prelude" '("prelude.ss") (cdr (assq 'loads mod))))
 
-;;; ====
-;;; Test Directory Analysis
-;;; ====
+(doc 'section 'test-directory-analysis)
 
 (display "\nTest 7: Analyze directory (core/)\n")
 (let ([modules (analyze-directory "core")])
@@ -137,9 +123,7 @@
      (test-true "found prelude" (ormap (lambda (m) (string=? "prelude" (cdr (assq 'name m)))) modules))
      (test-true "found block" (ormap (lambda (m) (string=? "block" (cdr (assq 'name m)))) modules)))
 
-;;; ====
-;;; Test Graph Building
-;;; ====
+(doc 'section 'test-graph-building)
 
 (display "\nTest 8: Build dependency graph\n")
 (let* ([modules (analyze-directory "core")]
@@ -154,9 +138,7 @@
                                               (string=? (cdr e) "prelude")))
                              edges))))
 
-;;; ====
-;;; Test Cycle Detection
-;;; ====
+(doc 'section 'test-cycle-detection)
 
 (display "\nTest 9: Cycle detection\n")
 ;; Create a test graph with a cycle: a -> b -> c -> a
@@ -173,9 +155,7 @@
        [cycles (find-cycles graph)])
       (test "no cycles in DAG" '() cycles))
 
-;;; ====
-;;; Test Critical Modules
-;;; ====
+(doc 'section 'test-critical-modules)
 
 (display "\nTest 10: Critical modules\n")
 (let* ([nodes '("a" "b" "c")]
@@ -185,9 +165,7 @@
       (test "most critical" "c" (caar critical))
       (test "c has 2 dependents" 2 (cdar critical)))
 
-;;; ====
-;;; Test ASCII Rendering
-;;; ====
+(doc 'section 'test-ascii-rendering)
 
 (display "\nTest 11: ASCII rendering\n")
 (let* ([nodes '("foo" "bar")]
@@ -199,9 +177,7 @@
       (test-true "contains bar" (string-contains output "bar"))
       (test-true "contains arrow" (string-contains output "-->")))
 
-;;; ====
-;;; Integration Test: Full Report
-;;; ====
+(doc 'section 'integration-test-full-report)
 
 (display "\nTest 12: Full report generation\n")
 (let ([report (archextract-report "core")])
@@ -212,9 +188,7 @@
      (test-true "report has cycles section" (string-contains report "CYCLES"))
      (test-true "report has critical section" (string-contains report "CRITICAL MODULES")))
 
-;;; ====
-;;; Summary
-;;; ====
+(doc 'section 'summary)
 
 (test-summary)
 

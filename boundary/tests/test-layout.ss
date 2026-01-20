@@ -1,14 +1,13 @@
-;;; boundary/tests/test-layout.ss — Test vectors for Text Layout Primitives
-
 (load "core/base/prelude.ss")
 (load "boundary/ui/layout.ss")
 
-;;; NOTE: string utilities provided by core/prelude.ss
-;;;   - string-contains?
+(doc 'module 'test-layout)
+(doc 'description "Test vectors for Text Layout Primitives")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+(doc 'note "string utilities provided by core/prelude.ss - string-contains?")
 
-;;; ====
-;;; Test 1: Canvas Construction
-;;; ====
+(doc 'section 'test-canvas-construction)
 
 (display "Test 1: Canvas Construction\n")
 (define c1 (make-canvas 10 5))
@@ -18,9 +17,7 @@
 (display "  ref (5,2): '") (display (canvas-ref c1 5 2)) (display "'\n")
 (display "  ✓ Canvas created with correct dimensions\n")
 
-;;; ====
-;;; Test 2: Canvas Set and Ref
-;;; ====
+(doc 'section 'test-canvas-set-and-ref)
 
 (display "\nTest 2: Canvas Set and Ref\n")
 (define c2 (canvas-set c1 3 2 #\X))
@@ -32,9 +29,7 @@
 (newline)
 (display "  ✓ Functional update works correctly\n")
 
-;;; ====
-;;; Test 3: Out-of-Bounds Handling
-;;; ====
+(doc 'section 'test-out-of-bounds-handling)
 
 (display "\nTest 3: Out-of-Bounds Handling\n")
 (define c3 (canvas-set c1 -1 0 #\!))
@@ -50,9 +45,7 @@
 (newline)
 (display "  ✓ Out-of-bounds handled gracefully\n")
 
-;;; ====
-;;; Test 4: Draw Char
-;;; ====
+(doc 'section 'test-draw-char)
 
 (display "\nTest 4: Draw Char\n")
 (define c5 (draw-char (make-canvas 5 3) (point 2 1) #\@))
@@ -61,9 +54,7 @@
 (display "'\n")
 (display "  ✓ draw-char places character correctly\n")
 
-;;; ====
-;;; Test 5: Draw String Horizontal
-;;; ====
+(doc 'section 'test-draw-string-horizontal)
 
 (display "\nTest 5: Draw String Horizontal\n")
 (define c6 (draw-string (make-canvas 20 3) (point 2 1) "Hello, DUCKIE!"))
@@ -78,9 +69,7 @@
 (newline)
 (display "  ✓ draw-string works horizontally\n")
 
-;;; ====
-;;; Test 6: Draw String Clipping
-;;; ====
+(doc 'section 'test-draw-string-clipping)
 
 (display "\nTest 6: Draw String Clipping\n")
 (define c7 (draw-string (make-canvas 10 3) (point 5 1) "LongString"))
@@ -92,9 +81,7 @@
 (newline)
 (display "  ✓ draw-string clips at boundaries\n")
 
-;;; ====
-;;; Test 7: Draw String Vertical
-;;; ====
+(doc 'section 'test-draw-string-vertical)
 
 (display "\nTest 7: Draw String Vertical\n")
 (define c8 (draw-string-v (make-canvas 10 8) (point 3 1) "DUCKIE"))
@@ -109,9 +96,7 @@
 (newline)
 (display "  ✓ draw-string-v works vertically\n")
 
-;;; ====
-;;; Test 8: Draw Rectangle
-;;; ====
+(doc 'section 'test-draw-rectangle)
 
 (display "\nTest 8: Draw Rectangle\n")
 (define c9 (draw-rect (make-canvas 12 6)
@@ -128,9 +113,7 @@
 (newline)
 (display "  ✓ draw-rect creates proper outline\n")
 
-;;; ====
-;;; Test 9: Fill Rectangle
-;;; ====
+(doc 'section 'test-fill-rectangle)
 
 (display "\nTest 9: Fill Rectangle\n")
 (define c10 (fill-rect (make-canvas 12 6)
@@ -144,9 +127,7 @@
 (newline)
 (display "  ✓ fill-rect fills interior\n")
 
-;;; ====
-;;; Test 10: Composite
-;;; ====
+(doc 'section 'test-composite)
 
 (display "\nTest 10: Composite\n")
 (define c-dest (make-canvas 15 6))
@@ -167,9 +148,7 @@
 (newline)
 (display "  ✓ composite overlays correctly\n")
 
-;;; ====
-;;; Test 11: Blit
-;;; ====
+(doc 'section 'test-blit)
 
 (display "\nTest 11: Blit\n")
 (define c-source (draw-string (make-canvas 20 5) (point 0 0) "0123456789"))
@@ -188,9 +167,7 @@
 (newline)
 (display "  ✓ blit copies region correctly\n")
 
-;;; ====
-;;; Test 12: Canvas to String
-;;; ====
+(doc 'section 'test-canvas-to-string)
 
 (display "\nTest 12: Canvas to String\n")
 (define c13 (let* ([c (make-canvas 8 4)]
@@ -208,9 +185,7 @@
 (newline)
 (display "  ✓ canvas->string produces multi-line output\n")
 
-;;; ====
-;;; Test 13: DUCKIE Example from Spec
-;;; ====
+(doc 'section 'test-duckie-example)
 
 (display "\nTest 13: DUCKIE Example (ASCII Art)\n")
 (define c-duckie
@@ -226,9 +201,7 @@
 (newline)
 (display "  ✓ DUCKIE appears in the window!\n")
 
-;;; ====
-;;; Test 14: Box Drawing Styles
-;;; ====
+(doc 'section 'test-box-drawing-styles)
 
 (display "\nTest 14: Box Drawing Styles\n")
 
@@ -262,9 +235,7 @@
 
 (display "  ✓ Box drawing styles work correctly\n")
 
-;;; ====
-;;; Test 15: Complex Composition
-;;; ====
+(doc 'section 'test-complex-composition)
 
 (display "\nTest 15: Complex Composition (Nested Boxes)\n")
 (define c-complex
@@ -289,9 +260,7 @@
 (newline)
 (display "  ✓ Complex composition works!\n")
 
-;;; ====
-;;; Test 16: Word Splitting
-;;; ====
+(doc 'section 'test-word-splitting)
 
 (display "\nTest 16: Word Splitting\n")
 (define words1 (split-words "hello world"))
@@ -309,9 +278,7 @@
 (display words3) (newline)
 (display "  ✓ split-words works correctly\n")
 
-;;; ====
-;;; Test 17: Text Wrapping
-;;; ====
+(doc 'section 'test-text-wrapping)
 
 (display "\nTest 17: Text Wrapping\n")
 (define wrapped1 (wrap-text "hello world foo bar" 10))
@@ -333,9 +300,7 @@
 (display wrapped3) (newline)
 (display "  ✓ wrap-text handles edge cases\n")
 
-;;; ====
-;;; Test 18: Text Alignment
-;;; ====
+(doc 'section 'test-text-alignment)
 
 (display "\nTest 18: Text Alignment\n")
 (define al-left (align-left "hi" 10))
@@ -351,9 +316,7 @@
 (display (if (char=? (string-ref al-right 0) #\space) "#t" "#f")) (newline)
 (display "  ✓ Alignment functions work correctly\n")
 
-;;; ====
-;;; Test 19: Draw Lines
-;;; ====
+(doc 'section 'test-draw-lines)
 
 (display "\nTest 19: Draw Lines\n")
 (define c-lines (draw-lines (make-canvas 20 5)
@@ -368,9 +331,7 @@
 (display (if (char=? (canvas-ref c-lines 2 3) #\L) "#t" "#f")) (newline)
 (display "  ✓ draw-lines renders multiple lines\n")
 
-;;; ====
-;;; Test 20: Draw Text Block
-;;; ====
+(doc 'section 'test-draw-text-block)
 
 (display "\nTest 20: Draw Text Block (Wrapped + Aligned)\n")
 (define long-text "The quick brown fox jumps over the lazy dog near the river bank")
@@ -403,9 +364,7 @@
 (newline)
 (display "  ✓ draw-text-block wraps and aligns text\n")
 
-;;; ====
-;;; Test 21: Text Block in Box
-;;; ====
+(doc 'section 'test-text-block-in-box)
 
 (display "\nTest 21: Text Block in Box (DUCKIE Dialog)\n")
 (define dialog-text "Hello! I am DUCKIE. I live in The Fold and I am very happy to meet you!")
@@ -421,9 +380,7 @@
 (newline)
 (display "  ✓ Text flows naturally in dialog box!\n")
 
-;;; ====
-;;; Summary
-;;; ====
+(doc 'section 'summary)
 
 (display "\n")
 (display "═══════════════════════════════════════════════════════\n")

@@ -1,15 +1,16 @@
-;;; boundary/tests/test-memory.ss — Tests for Memory Measurement
-;;;
-;;; Comprehensive test suite for boundary/introspect/memory.ss
-;;; Tests memory snapshots, deltas, benchmarks, and allocation tracking.
-
 (load "boundary/introspect/memory.ss")
+
+(doc 'module 'test-memory)
+(doc 'description "Comprehensive test suite for boundary/introspect/memory.ss - Tests memory snapshots, deltas, benchmarks, and allocation tracking")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
 
 (define test-count 0)
 (define pass-count 0)
 (define fail-count 0)
 
-;;; Test assertion helper
+(doc 'section 'test-helpers)
+
 (define (assert-equal name actual expected)
   (set! test-count (+ test-count 1))
   (if (equal? actual expected)
@@ -28,9 +29,7 @@
 (define (assert-false name actual)
   (assert-equal name actual #f))
 
-;;; ====
-;;; memory-snapshot Tests
-;;; ====
+(doc 'section 'memory-snapshot-tests)
 
 (printf "\n=== Testing current-memory-snapshot ===\n")
 
@@ -50,9 +49,7 @@
      (assert-true "timestamp is positive"
                   (> (memory-snapshot-timestamp-ns snap) 0)))
 
-;;; ====
-;;; compute-memory-delta Tests
-;;; ====
+(doc 'section 'compute-memory-delta-tests)
 
 (printf "\n=== Testing compute-memory-delta ===\n")
 
@@ -70,9 +67,7 @@
       (assert-true "gc-triggered is non-negative"
                    (>= (memory-delta-gc-triggered delta) 0)))
 
-;;; ====
-;;; memory-thunk Tests
-;;; ====
+(doc 'section 'memory-thunk-tests)
 
 (printf "\n=== Testing memory-thunk ===\n")
 
@@ -96,9 +91,7 @@
                    (length (memory-result-value result))
                    100))
 
-;;; ====
-;;; gc-and-measure Tests
-;;; ====
+(doc 'section 'gc-and-measure-tests)
 
 (printf "\n=== Testing gc-and-measure ===\n")
 
@@ -109,9 +102,7 @@
      (assert-true "snapshot is recent"
                   (> (memory-snapshot-timestamp-ns snap) 0)))
 
-;;; ====
-;;; memory-benchmark Tests
-;;; ====
+(doc 'section 'memory-benchmark-tests)
 
 (printf "\n=== Testing memory-benchmark ===\n")
 
@@ -137,9 +128,7 @@
      (assert-true "has stats"
                   (memory-stats? (memory-benchmark-result-stats result))))
 
-;;; ====
-;;; memory-benchmark-with-gc Tests
-;;; ====
+(doc 'section 'memory-benchmark-with-gc-tests)
 
 (printf "\n=== Testing memory-benchmark-with-gc ===\n")
 
@@ -151,9 +140,7 @@
                    (memory-benchmark-result-iterations result)
                    3))
 
-;;; ====
-;;; compute-memory-stats Tests
-;;; ====
+(doc 'section 'compute-memory-stats-tests)
 
 (printf "\n=== Testing compute-memory-stats ===\n")
 
@@ -184,9 +171,7 @@
       (assert-true "mean is reasonable"
                    (= (memory-stats-mean-allocated stats) 150)))
 
-;;; ====
-;;; format-bytes Tests
-;;; ====
+(doc 'section 'format-bytes-tests)
 
 (printf "\n=== Testing format-bytes ===\n")
 
@@ -206,9 +191,7 @@
 (assert-true "negative bytes handled"
              (string? (format-bytes -1024)))
 
-;;; ====
-;;; format-memory-snapshot Tests
-;;; ====
+(doc 'section 'format-memory-snapshot-tests)
 
 (printf "\n=== Testing format-memory-snapshot ===\n")
 
@@ -226,9 +209,7 @@
       (assert-true "contains gc-count"
                    (string-contains? formatted "gc-count")))
 
-;;; ====
-;;; format-memory-delta Tests
-;;; ====
+(doc 'section 'format-memory-delta-tests)
 
 (printf "\n=== Testing format-memory-delta ===\n")
 
@@ -243,9 +224,7 @@
       (assert-true "contains freed"
                    (string-contains? formatted "freed")))
 
-;;; ====
-;;; format-memory-stats Tests
-;;; ====
+(doc 'section 'format-memory-stats-tests)
 
 (printf "\n=== Testing format-memory-stats ===\n")
 
@@ -263,9 +242,7 @@
       (assert-true "contains mean"
                    (string-contains? formatted "mean")))
 
-;;; ====
-;;; allocate-bytes Tests
-;;; ====
+(doc 'section 'allocate-bytes-tests)
 
 (printf "\n=== Testing allocate-bytes ===\n")
 
@@ -277,9 +254,7 @@
                    (bytevector-length bv)
                    1024))
 
-;;; ====
-;;; measure-under-pressure Tests
-;;; ====
+(doc 'section 'measure-under-pressure-tests)
 
 (printf "\n=== Testing measure-under-pressure ===\n")
 
@@ -292,9 +267,7 @@
                    (memory-result-value result)
                    'tested))
 
-;;; ====
-;;; Edge Cases
-;;; ====
+(doc 'section 'edge-cases)
 
 (printf "\n=== Testing Edge Cases ===\n")
 
@@ -310,9 +283,7 @@
 (assert-true "allocate zero bytes"
              (= (bytevector-length (allocate-bytes 0)) 0))
 
-;;; ====
-;;; Test Summary
-;;; ====
+(doc 'section 'test-summary)
 
 (printf "\n====\n")
 (printf "Test Results (memory):\n")
@@ -324,5 +295,5 @@
     (printf "\n✓ All tests passed!\n\n")
     (printf "\n✗ Some tests failed\n\n"))
 
-;;; Return success/failure
+(doc 'note "Return success/failure")
 (= fail-count 0)

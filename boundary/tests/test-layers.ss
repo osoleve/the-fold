@@ -1,22 +1,21 @@
-;;; boundary/tests/test-layers.ss — Tests for layers.ss
-;;;
-;;; Tests for canvas layering and depth composition system.
-;;;
-;;; NOTE: Run from project root: scheme --script boundary/tests/test-layers.ss
+(doc 'note "Run from project root: scheme --script boundary/tests/test-layers.ss")
 
 (load "core/test-framework.ss")
 (load "core/base/prelude.ss")
 (load "boundary/ui/layout.ss")
 (load "boundary/ui/layers.ss")
 
+(doc 'module 'test-layers)
+(doc 'description "Tests for canvas layering and depth composition system")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+
 (display "\n")
 (display "====\n")
 (display "         CANVAS LAYERING SYSTEM TESTS\n")
 (display "====\n")
 
-;;; ====
-;;; Transparency Tests
-;;; ====
+(doc 'section 'transparency-tests)
 
 (test-group transparency
             (define-test transparent-char-exists
@@ -39,9 +38,7 @@
                    (assert-true (transparent? (canvas-ref c 5 2)))
                    (assert-true (transparent? (canvas-ref c 9 4))))))
 
-;;; ====
-;;; Layer Construction Tests
-;;; ====
+(doc 'section 'layer-construction-tests)
 
 (test-group layer-construction
             (define-test make-layer-basic
@@ -68,9 +65,7 @@
                     (assert-equal 10 (point-x (layer-offset layer)))
                     (assert-equal 20 (point-y (layer-offset layer))))))
 
-;;; ====
-;;; Layer Setters Tests
-;;; ====
+(doc 'section 'layer-setters-tests)
 
 (test-group layer-setters
             (define-test layer-set-visible-test
@@ -109,9 +104,7 @@
                     (assert-equal 10 (layer-depth layer))
                     (assert-equal 99 (layer-depth reordered)))))
 
-;;; ====
-;;; Layer Stack Tests
-;;; ====
+(doc 'section 'layer-stack-tests)
 
 (test-group layer-stack
             (define-test make-empty-stack
@@ -158,9 +151,7 @@
                     (assert-equal 'second (layer-name (stack-find-layer stack 'second)))
                     (assert-false (stack-find-layer stack 'nonexistent)))))
 
-;;; ====
-;;; Stack Update Operations Tests
-;;; ====
+(doc 'section 'stack-update-operations-tests)
 
 (test-group stack-operations
             (define-test stack-update-layer-test
@@ -190,9 +181,7 @@
                     (assert-equal 'second (layer-name (car (stack-layers stack))))
                     (assert-equal 'first (layer-name (cadr (stack-layers stack)))))))
 
-;;; ====
-;;; Transparent Composition Tests
-;;; ====
+(doc 'section 'transparent-composition-tests)
 
 (test-group transparent-composition
             (define-test composite-transparent-basic
@@ -222,9 +211,7 @@
                     ;; * should appear at (6, 6) = (5+1, 5+1)
                     (assert-equal #\* (canvas-ref result 6 6)))))
 
-;;; ====
-;;; Layer Flattening Tests
-;;; ====
+(doc 'section 'layer-flattening-tests)
 
 (test-group layer-flattening
             (define-test flatten-single-layer
@@ -267,9 +254,7 @@
                     ;; Should see VISIBLE, not HIDDEN
                     (assert-equal #\V (canvas-ref result 0 0)))))
 
-;;; ====
-;;; Helper Constructor Tests
-;;; ====
+(doc 'section 'helper-constructor-tests)
 
 (test-group helper-constructors
             (define-test make-background-layer-test
@@ -296,9 +281,7 @@
                    (assert-equal 'ui (layer-name layer))
                    (assert-equal 100 (layer-depth layer)))))
 
-;;; ====
-;;; Layer Drawing Operations Tests
-;;; ====
+(doc 'section 'layer-drawing-operations-tests)
 
 (test-group layer-drawing
             (define-test layer-draw-string-test
@@ -331,9 +314,7 @@
                     ;; Check second line
                     (assert-equal #\( (canvas-ref (layer-canvas layer) 2 2)))))
 
-;;; ====
-;;; Alpha Blending Tests
-;;; ====
+(doc 'section 'alpha-blending-tests)
 
 (test-group alpha-blending
             (define-test blend-chars-full-transparent
@@ -366,9 +347,7 @@
                     (assert-equal layer (car pair))
                     (assert-equal 0.75 (cdr pair)))))
 
-;;; ====
-;;; Debug String Tests
-;;; ====
+(doc 'section 'debug-string-tests)
 
 (test-group debug-strings
             (define-test layer-to-string-test
@@ -389,9 +368,7 @@
                     (assert-true (string-contains? str "first"))
                     (assert-true (string-contains? str "second")))))
 
-;;; ====
-;;; Summary
-;;; ====
+(doc 'section 'summary)
 
 (display "\n")
 (display "====\n")

@@ -1,25 +1,16 @@
-;;; Test harness for boundary/tools/scaffold.ss
-;;;
-;;; This test file verifies the scaffolding system in isolation.
-
-;;; ====
-;;; Load Dependencies
-;;; ====
-
 (load "core/base/prelude.ss")
 
-;;; NOTE: string utilities provided by core/prelude.ss
-;;;   - string-upcase
-;;;   - string-downcase
-;;;   - string-contains?
+(doc 'module 'test-scaffold)
+(doc 'description "Test harness for boundary/tools/scaffold.ss - verifies scaffolding system in isolation")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
 
-;;; ====
-;;; Minimal Dependencies for Testing
-;;; ====
+(doc 'note "String utilities provided by core/prelude.ss: string-upcase, string-downcase, string-contains?")
 
-;;; Mock functions needed by scaffold.ss
+(doc 'section 'minimal-dependencies)
+(doc 'note "Mock functions needed by scaffold.ss")
 
-;;; Session mocking
+(doc 'section 'session-mocking)
 (define (session-exists?) #t)
 (define (read-session)
   '((name . TestAuthor)
@@ -45,15 +36,11 @@
 (define (timestamp-year ts)
   (substring ts 0 4))
 
-;;; ====
-;;; Load the module under test
-;;; ====
+(doc 'section 'load-module-under-test)
 
 (load "boundary/tools/scaffold.ss")
 
-;;; ====
-;;; Test Framework
-;;; ====
+(doc 'section 'test-framework)
 
 (define *test-count* 0)
 (define *test-passed* 0)
@@ -74,14 +61,12 @@
        (display actual)))
   (newline))
 
-;;; ====
-;;; Tests
-;;; ====
+(doc 'section 'tests)
 
 (display "Scaffolding System Tests\n")
 (display "====\n\n")
 
-;;; Test 1: Template registration
+(doc 'test "Template registration")
 (display "Test 1: Template registration\n")
 (define-template
   'test-template
@@ -97,14 +82,14 @@
            "A test template"
            (cdr (assq 'description tmpl))))
 
-;;; Test 2: String search
+(doc 'test "String search")
 (display "\nTest 2: String search utility\n")
 (test "finds substring at start" 0 (string-search "hello" "hello world"))
 (test "finds substring in middle" 6 (string-search "world" "hello world"))
 (test "returns #f when not found" #f (string-search "xyz" "hello world"))
 (test "finds empty string" 0 (string-search "" "hello"))
 
-;;; Test 3: Variable substitution
+(doc 'test "Variable substitution")
 (display "\nTest 3: Variable substitution\n")
 (let ([template "Hello {{NAME}}, your score is {{SCORE}}"]
       [bindings '(("NAME" . "Alice") ("SCORE" . "100"))])
@@ -124,7 +109,7 @@
            "No variables here"
            (substitute-vars template bindings)))
 
-;;; Test 4: Build bindings
+(doc 'test "Build bindings")
 (display "\nTest 4: Build bindings from name and options\n")
 (let ([bindings (build-bindings "my-module"
                                 '((description . ("Desc" . "Default description")))
@@ -137,7 +122,7 @@
      (test "includes timestamp" #t (string? (cdr (assoc "TIMESTAMP" bindings))))
      (test "includes year" #t (string? (cdr (assoc "YEAR" bindings)))))
 
-;;; Test 5: Template existence
+(doc 'test "Template existence")
 (display "\nTest 5: Built-in templates\n")
 (test "shell-module exists" #t (not (not (get-template 'shell-module))))
 (test "core-module exists" #t (not (not (get-template 'core-module))))
@@ -146,7 +131,7 @@
 (test "playground exists" #t (not (not (get-template 'playground))))
 (test "forum-post exists" #t (not (not (get-template 'forum-post))))
 
-;;; Test 6: Template structure validation
+(doc 'test "Template structure validation")
 (display "\nTest 6: Template structure\n")
 (let ([shell-tmpl (get-template 'shell-module)])
      (test "has description" #t (not (not (assq 'description shell-tmpl))))
@@ -157,7 +142,7 @@
           (test "first file has path" #t (not (not (assq 'path (car files)))))
           (test "first file has content" #t (not (not (assq 'content (car files)))))))
 
-;;; Test 7: Content generation for shell-module
+(doc 'test "Content generation for shell-module")
 (display "\nTest 7: Shell module content generation\n")
 (let* ([template (get-template 'shell-module)]
        [variables (cdr (assq 'variables template))]
@@ -171,7 +156,7 @@
       (test "contains author" #t (string-contains? content "TestAuthor"))
       (test "has Shell marker" #t (string-contains? content "This is Shell code")))
 
-;;; Test 8: Content generation for core-module
+(doc 'test "Content generation for core-module")
 (display "\nTest 8: Core module content generation\n")
 (let* ([template (get-template 'core-module)]
        [variables (cdr (assq 'variables template))]
@@ -185,20 +170,15 @@
       (test "has Core marker" #t (string-contains? content "This is Core code"))
       (test "loads prelude" #t (string-contains? content "prelude.ss")))
 
-;;; Test 9: Edge cases
+(doc 'test "Edge cases")
 (display "\nTest 9: Edge cases\n")
 (test "unknown template returns #f"
       #f
       (get-template 'nonexistent-template))
 
-;; Skip the nested test that causes issues
-;; (let ([nested "{{VAR1{{VAR2}}}}"]
-;;       [bindings '(("VAR1" . "A") ("VAR2" . "B"))])
-;;   (test "handles nested-looking braces"
-;;         #t
-;;         (string? (substitute-vars nested bindings))))
+(doc 'note "Nested test skipped - causes issues with variable substitution")
 
-;;; Test 10: Actual scaffolding (file generation)
+(doc 'test "Actual scaffolding (file generation)")
 (display "\nTest 10: Actual scaffolding\n")
 (set! *test-files-written* '())
 (scaffold 'test-template "my-test" '((var1 . "value1") (var2 . "value2")))
@@ -210,7 +190,7 @@
       (test "content has var1" #t (string-contains? content "value1"))
       (test "content has var2" #t (string-contains? content "value2")))
 
-;;; Test 11: Timestamp utilities
+(doc 'test "Timestamp utilities")
 (display "\nTest 11: Timestamp utilities\n")
 (let ([ts (current-timestamp)])
      (test "timestamp is string" #t (string? ts))
@@ -219,9 +199,7 @@
           (test "year is 4 chars" 4 (string-length year))
           (test "year value" "2025" year)))
 
-;;; ====
-;;; Test Summary
-;;; ====
+(doc 'section 'test-summary)
 
 (display "\n====\n")
 (display (format "Tests passed: ~a/~a\n" *test-passed* *test-count*))

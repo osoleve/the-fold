@@ -1,22 +1,21 @@
-;;; boundary/tests/test-layout-color.ss — Tests for layout-color.ss
-;;;
-;;; Tests for the color-enabled canvas layout system.
-;;;
-;;; NOTE: Run from project root: scheme --script boundary/tests/test-layout-color.ss
+(doc 'note "Run from project root: scheme --script boundary/tests/test-layout-color.ss")
 
 (load "core/test-framework.ss")
 (load "core/base/prelude.ss")
 (load "boundary/ui/color.ss")
 (load "boundary/ui/layout-color.ss")
 
+(doc 'module 'test-layout-color)
+(doc 'description "Tests for the color-enabled canvas layout system")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+
 (display "\n")
 (display "====\n")
 (display "         COLOR LAYOUT SYSTEM TESTS\n")
 (display "====\n")
 
-;;; ====
-;;; Point and Rect Tests
-;;; ====
+(doc 'section 'point-and-rect-tests)
 
 (test-group point-and-rect
             (define-test point-construction
@@ -31,9 +30,7 @@
                    (assert-equal 10 (rect-width r))
                    (assert-equal 5 (rect-height r)))))
 
-;;; ====
-;;; Canvas Construction Tests
-;;; ====
+(doc 'section 'canvas-construction-tests)
 
 (test-group canvas-construction
             (define-test make-canvas-basic
@@ -61,9 +58,7 @@
                      [ch (canvas-ref-char c 2 2)])
                     (assert-equal #\space ch))))
 
-;;; ====
-;;; Canvas Set Tests
-;;; ====
+(doc 'section 'canvas-set-tests)
 
 (test-group canvas-set
             (define-test canvas-set-basic
@@ -88,9 +83,7 @@
                     (assert-equal color-red (cell%-fg result))
                     (assert-equal color-blue (cell%-bg result)))))
 
-;;; ====
-;;; Drawing Primitives Tests
-;;; ====
+(doc 'section 'drawing-primitives-tests)
 
 (test-group drawing-primitives
             (define-test draw-char-basic
@@ -139,9 +132,7 @@
                     (assert-equal #\B (canvas-ref-char c 3 2))
                     (assert-equal #\C (canvas-ref-char c 3 3)))))
 
-;;; ====
-;;; Rectangle Drawing Tests
-;;; ====
+(doc 'section 'rectangle-drawing-tests)
 
 (test-group rectangle-drawing
             (define-test draw-rect-basic
@@ -189,9 +180,7 @@
                      [c (fill-rect c r #\X)])
                     (assert-equal #\space (canvas-ref-char c 0 0)))))
 
-;;; ====
-;;; Composition Tests
-;;; ====
+(doc 'section 'composition-tests)
 
 (test-group composition
             (define-test composite-basic
@@ -232,9 +221,7 @@
                     (assert-equal #\E (canvas-ref-char result 3 1))
                     (assert-equal #\G (canvas-ref-char result 4 1)))))
 
-;;; ====
-;;; Box Drawing Tests
-;;; ====
+(doc 'section 'box-drawing-tests)
 
 (test-group box-drawing
             (define-test draw-box-ascii
@@ -278,9 +265,7 @@
                     ;; No crash, just unchanged
                     (assert-true (canvas%? c)))))
 
-;;; ====
-;;; Canvas to String Tests
-;;; ====
+(doc 'section 'canvas-to-string-tests)
 
 (test-group canvas-to-string
             (define-test canvas-to-string-basic
@@ -300,9 +285,7 @@
                     ;; Should end with reset code
                     (assert-true (string-contains? str ansi-reset)))))
 
-;;; ====
-;;; Summary
-;;; ====
+(doc 'section 'summary)
 
 (display "\n")
 (display "====\n")

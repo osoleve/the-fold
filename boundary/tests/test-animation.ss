@@ -1,8 +1,9 @@
-;;; boundary/test-animation.ss — Tests for Animation and Easing
-;;;
-;;; Validates easing functions and animation utilities.
-
 (load "boundary/ui/animation.ss")
+
+(doc 'module 'test-animation)
+(doc 'description "Tests for Animation and Easing. Validates easing functions and animation utilities.")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
 
 (define test-count 0)
 (define pass-count 0)
@@ -34,9 +35,7 @@
        (printf "    Expected (near): ~s\n" expected)
        (printf "    Actual:         ~s\n" actual))))
 
-;;; ====
-;;; Linear Easing Tests
-;;; ====
+(doc 'section 'linear-easing-tests)
 
 (printf "\n=== Testing linear ===\n")
 
@@ -44,9 +43,7 @@
 (assert-near "linear 0.5" (linear 0.5) 0.5 0.0001)
 (assert-near "linear 1.0" (linear 1.0) 1.0 0.0001)
 
-;;; ====
-;;; Quadratic Easing Tests
-;;; ====
+(doc 'section 'quadratic-easing-tests)
 
 (printf "\n=== Testing quadratic ===\n")
 
@@ -62,9 +59,7 @@
 (assert-near "ease-in-out-quad 0.5" (ease-in-out-quad 0.5) 0.5 0.0001)
 (assert-near "ease-in-out-quad 1.0" (ease-in-out-quad 1.0) 1.0 0.0001)
 
-;;; ====
-;;; Animation Utilities Tests
-;;; ====
+(doc 'section 'animation-utilities-tests)
 
 (printf "\n=== Testing animation utilities ===\n")
 
@@ -85,9 +80,7 @@
 (assert-near "loop-t 0.75" (loop-t 0.75) 0.5 0.0001)
 (assert-near "loop-t 1.0" (loop-t 1.0) 0.0 0.0001)
 
-;;; ====
-;;; Test Summary
-;;; ====
+(doc 'section 'test-summary)
 
 (printf "\n====\n")
 (printf "Test Results:\n")

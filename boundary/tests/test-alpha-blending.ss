@@ -1,15 +1,14 @@
-;;; Test suite for alpha blending (fold-hb0m)
-;;;
-;;; Tests alpha compositing and layer z-indexing features.
-
 (load "boundary/ui/layout.ss")
 (load "boundary/ui/layers.ss")
 
+(doc 'module 'test-alpha-blending)
+(doc 'description "Test suite for alpha blending (fold-hb0m). Tests alpha compositing and layer z-indexing features.")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+
 (display "Testing alpha blending and z-index...\n\n")
 
-;;; ====
-;;; Test 1: blend-chars Function
-;;; ====
+(doc 'section 'test-1-blend-chars-function)
 
 (display "1. Testing blend-chars:\n")
 
@@ -31,9 +30,7 @@
           (display "  ✓ blend-chars works correctly\n\n")
           (display "  ✗ FAILED: blend-chars broken\n\n")))
 
-;;; ====
-;;; Test 2: composite-with-alpha
-;;; ====
+(doc 'section 'test-2-composite-with-alpha)
 
 (display "2. Testing composite-with-alpha:\n")
 
@@ -52,9 +49,7 @@
       (newline)
       (display "  ✓ composite-with-alpha works\n\n"))
 
-;;; ====
-;;; Test 3: Z-Index (Layer Depth)
-;;; ====
+(doc 'section 'test-3-z-index-layer-depth)
 
 (display "3. Testing z-index (layer depth):\n")
 
@@ -82,9 +77,7 @@
                (display "  ✓ Z-index ordering works correctly\n\n")
                (display "  ✗ FAILED: Z-index ordering broken\n\n"))))
 
-;;; ====
-;;; Test 4: Layer Reordering
-;;; ====
+(doc 'section 'test-4-layer-reordering)
 
 (display "4. Testing layer reordering:\n")
 
@@ -101,9 +94,7 @@
           (display "  ✓ Layers sorted by depth correctly\n\n")
           (display "  ✗ FAILED: Layer sorting broken\n\n")))
 
-;;; ====
-;;; Test 5: Alpha Palette
-;;; ====
+(doc 'section 'test-5-alpha-palette)
 
 (display "5. Testing alpha-palette:\n")
 
@@ -114,9 +105,7 @@
     (display "  ✓ Alpha palette has 5 levels\n\n")
     (display "  ✗ FAILED: Alpha palette wrong size\n\n"))
 
-;;; ====
-;;; Test 6: flatten-layers-with-alpha
-;;; ====
+(doc 'section 'test-6-flatten-layers-with-alpha)
 
 (display "6. Testing flatten-layers-with-alpha:\n")
 

@@ -1,14 +1,14 @@
-;;; boundary/introspect/test-introspect.ss — Tests for Introspection Tools
-;;;
-;;; Tests timing, memory, and complexity analysis modules.
-
 (load "boundary/introspect/timing.ss")
 (load "boundary/introspect/memory.ss")
 (load "boundary/introspect/complexity.ss")
 
-;;; ====
-;;; Test Harness
-;;; ====
+(doc 'module 'test-introspect)
+(doc 'description "Tests for Introspection Tools")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+(doc 'note "Tests timing, memory, and complexity analysis modules")
+
+(doc 'section 'test-harness)
 
 (define test-count 0)
 (define pass-count 0)
@@ -63,23 +63,21 @@
       (display "All tests passed!\n")
       (display "SOME TESTS FAILED\n")))
 
-;;; ====
-;;; Timing Tests
-;;; ====
+(doc 'section 'timing-tests)
 
 (test-section "Timing Module")
 
-;; Test current-nanoseconds returns positive number
+(doc 'note "Test current-nanoseconds returns positive number")
 (test-pred "current-nanoseconds returns positive"
            (lambda (x) (> x 0))
            (current-nanoseconds))
 
-;; Test current-cpu-nanoseconds returns non-negative
+(doc 'note "Test current-cpu-nanoseconds returns non-negative")
 (test-pred "current-cpu-nanoseconds returns non-negative"
            (lambda (x) (>= x 0))
            (current-cpu-nanoseconds))
 
-;; Test time-thunk produces timing-result
+(doc 'note "Test time-thunk produces timing-result")
 (let ([result (time-thunk (lambda () (+ 1 2)))])
      (test "time-thunk returns timing-result"
            #t
@@ -91,7 +89,7 @@
                 (lambda (x) (>= x 0))
                 (timing-result-elapsed-ns result)))
 
-;; Test compute-stats
+(doc 'note "Test compute-stats")
 (let ([stats (compute-stats '(100 200 300 400 500))])
      (test "stats min-ns"
            100
@@ -106,7 +104,7 @@
            300.0
            (timing-stats-median-ns stats)))
 
-;; Test benchmark runs correct iterations
+(doc 'note "Test benchmark runs correct iterations")
 (let ([counter 0]
       [result (benchmark "counter-test" 5
                          (lambda ()
@@ -122,7 +120,7 @@
            #t
            (timing-stats? (benchmark-result-stats result))))
 
-;; Test format-ns
+(doc 'note "Test format-ns")
 (test "format-ns nanoseconds"
       "500ns"
       (format-ns 500))
@@ -136,13 +134,11 @@
       "1.50s"
       (format-ns 1500000000))
 
-;;; ====
-;;; Memory Tests
-;;; ====
+(doc 'section 'memory-tests)
 
 (test-section "Memory Module")
 
-;; Test current-memory-snapshot
+(doc 'note "Test current-memory-snapshot")
 (let ([snap (current-memory-snapshot)])
      (test "current-memory-snapshot returns snapshot"
            #t
@@ -154,7 +150,7 @@
                 (lambda (x) (> x 0))
                 (memory-snapshot-bytes-in-use snap)))
 
-;; Test memory-thunk
+(doc 'note "Test memory-thunk")
 (let ([result (memory-thunk (lambda () (make-bytevector 1000 0)))])
      (test "memory-thunk returns memory-result"
            #t
@@ -166,13 +162,13 @@
                 (lambda (x) (>= x 1000))
                 (memory-delta-bytes-allocated (memory-result-delta result))))
 
-;; Test gc-and-measure
+(doc 'note "Test gc-and-measure")
 (let ([snap (gc-and-measure)])
      (test "gc-and-measure returns snapshot"
            #t
            (memory-snapshot? snap)))
 
-;; Test format-bytes
+(doc 'note "Test format-bytes")
 (test "format-bytes bytes"
       "500B"
       (format-bytes 500))
@@ -186,13 +182,11 @@
       "1.50GB"
       (format-bytes (* 1536 1024 1024)))
 
-;;; ====
-;;; Complexity Tests
-;;; ====
+(doc 'section 'complexity-tests)
 
 (test-section "Complexity Module")
 
-;; Test line-type classification
+(doc 'note "Test line-type classification")
 (test "line-type blank"
       'blank
       (line-type "   "))
@@ -203,7 +197,7 @@
       'code
       (line-type "(define x 42)"))
 
-;; Test string-trim
+(doc 'note "Test string-trim")
 (test "string-trim removes whitespace"
       "hello"
       (string-trim "  hello  "))
@@ -211,15 +205,15 @@
       ""
       (string-trim "   "))
 
-;; Test sexp-size
+(doc 'note "Test sexp-size")
 (test "sexp-size atom"
       1
       (sexp-size 'foo))
 (test "sexp-size simple list"
-      4  ; (+ x 1) = cons, +, cons, x, cons, 1, nil -> 4 nodes really
+      4  (doc 'note "(+ x 1) = cons, +, cons, x, cons, 1, nil -> 4 nodes really")
       (sexp-size '(+ x 1)))
 
-;; Test sexp-depth
+(doc 'note "Test sexp-depth")
 (test "sexp-depth atom"
       0
       (sexp-depth 'foo))
@@ -230,7 +224,7 @@
       3
       (sexp-depth '(a (b c))))
 
-;; Test definition detection
+(doc 'note "Test definition detection")
 (test "definition? recognizes define"
       #t
       (definition? '(define x 42)))
@@ -241,7 +235,7 @@
       #f
       (definition? '(+ 1 2)))
 
-;; Test extract-definition-name
+(doc 'note "Test extract-definition-name")
 (test "extract-definition-name simple"
       'x
       (extract-definition-name '(define x 42)))
@@ -252,29 +246,27 @@
       'point
       (extract-definition-name '(define-record-type point (fields x y))))
 
-;; Test extract-references
+(doc 'note "Test extract-references")
 (test "extract-references finds symbols"
       '(+ x y)
       (extract-references '(+ x y)))
 
-;; Test unique
+(doc 'note "Test unique")
 (test "unique removes duplicates"
       '(a b c)
       (unique '(a b a c b c)))
 
-;; Test complexity-score
+(doc 'note "Test complexity-score")
 (let ([def (make-definition-info 'test 'define 1 10 3 '(a b c))])
      (test-pred "complexity-score returns positive"
                 (lambda (x) (> x 0))
                 (complexity-score def)))
 
-;;; ====
-;;; Integration Test: Analyze this file
-;;; ====
+(doc 'section 'integration-self-analysis)
 
 (test-section "Integration: Self-Analysis")
 
-;; Analyze this test file
+(doc 'note "Analyze this test file")
 (let ([metrics (analyze-file "boundary/introspect/test-introspect.ss")])
      (test "analyze-file returns file-metrics"
            #t
@@ -292,8 +284,6 @@
                 (lambda (x) (>= x 3))  ; We load 3 files
                 (length (file-metrics-load-deps metrics))))
 
-;;; ====
-;;; Summary
-;;; ====
+(doc 'section 'summary)
 
 (test-summary)

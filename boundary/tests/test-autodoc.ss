@@ -1,9 +1,10 @@
-;;; boundary/tests/test-autodoc.ss — Tests for autodoc.ss
-;;;
-;;; Dependencies:
-;;;   - autodoc.ss
-
 (load "boundary/tools/autodoc.ss")
+
+(doc 'module 'test-autodoc)
+(doc 'description "Tests for autodoc.ss")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+(doc 'dependencies '(autodoc.ss))
 
 (define tests-passed 0)
 (define tests-failed 0)

@@ -1,9 +1,9 @@
-;;; boundary/test-string-utils.ss — Tests for String Utilities
-;;;
-;;; Comprehensive test suite for boundary/string-utils.ss
-;;; Validates all string operations with edge cases and Unicode handling.
-
 (load "boundary/tools/string-utils.ss")
+
+(doc 'module 'test-string-utils)
+(doc 'description "Comprehensive test suite for boundary/string-utils.ss - validates all string operations with edge cases and Unicode handling")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
 
 (define test-count 0)
 (define pass-count 0)
@@ -22,9 +22,7 @@
        (printf "    Expected: ~s\n" expected)
        (printf "    Actual:   ~s\n" actual))))
 
-;;; ====
-;;; String Splitting Tests
-;;; ====
+(doc 'section 'string-splitting-tests)
 
 (printf "\n=== Testing string-split ===\n")
 
@@ -56,9 +54,7 @@
               (string-split ",,," #\,)
               '("" "" "" ""))
 
-;;; ====
-;;; String Lines Tests
-;;; ====
+(doc 'section 'string-lines-tests)
 
 (printf "\n=== Testing string-split-lines ===\n")
 
@@ -78,9 +74,7 @@
               (string-split-lines "hello")
               '("hello"))
 
-;;; ====
-;;; String Join Tests
-;;; ====
+(doc 'section 'string-join-tests)
 
 (printf "\n=== Testing string-join ===\n")
 
@@ -104,9 +98,7 @@
               (string-join '("hello" "world") " ")
               "hello world")
 
-;;; ====
-;;; String Contains Tests
-;;; ====
+(doc 'section 'string-contains-tests)
 
 (printf "\n=== Testing string-contains? ===\n")
 
@@ -138,9 +130,7 @@
               (string-contains? "hello" "hello")
               #t)
 
-;;; ====
-;;; String Starts/Ends With Tests
-;;; ====
+(doc 'section 'string-starts-ends-tests)
 
 (printf "\n=== Testing string-starts-with? ===\n")
 
@@ -178,9 +168,7 @@
               (string-ends-with? "hello" "hello")
               #t)
 
-;;; ====
-;;; String Index Tests
-;;; ====
+(doc 'section 'string-index-tests)
 
 (printf "\n=== Testing string-index ===\n")
 
@@ -218,9 +206,7 @@
               (string-index-of "test" "")
               0)
 
-;;; ====
-;;; String Replace Tests
-;;; ====
+(doc 'section 'string-replace-tests)
 
 (printf "\n=== Testing string-replace ===\n")
 
@@ -258,9 +244,7 @@
               (string-replace-first "test" "x" "y")
               "test")
 
-;;; ====
-;;; String Trim Tests
-;;; ====
+(doc 'section 'string-trim-tests)
 
 (printf "\n=== Testing string-trim ===\n")
 
@@ -304,9 +288,7 @@
               (string-trim-right "  hello")
               "  hello")
 
-;;; ====
-;;; String Predicate Tests
-;;; ====
+(doc 'section 'string-predicate-tests)
 
 (printf "\n=== Testing string-empty? ===\n")
 
@@ -340,9 +322,7 @@
               (string-blank? "  a  ")
               #f)
 
-;;; ====
-;;; Unicode and Edge Cases
-;;; ====
+(doc 'section 'unicode-edge-cases)
 
 (printf "\n=== Testing Unicode handling ===\n")
 
@@ -362,9 +342,7 @@
               (string-split "🔥,💧,🌍" #\,)
               '("🔥" "💧" "🌍"))
 
-;;; ====
-;;; Additional String Search Tests
-;;; ====
+(doc 'section 'additional-string-search-tests)
 
 (printf "\n=== Testing string-last-index-of ===\n")
 
@@ -390,9 +368,7 @@
               (string-index-right "hello" #\x)
               #f)
 
-;;; ====
-;;; String Transformation Tests
-;;; ====
+(doc 'section 'string-transformation-tests)
 
 (printf "\n=== Testing string-reverse ===\n")
 
@@ -414,9 +390,7 @@
               (string-downcase "HELLO")
               "hello")
 
-;;; ====
-;;; String Padding Tests
-;;; ====
+(doc 'section 'string-padding-tests)
 
 (printf "\n=== Testing string-pad ===\n")
 
@@ -432,9 +406,7 @@
               (string-pad-right "hi" 5 #\space)
               "hi   ")
 
-;;; ====
-;;; Additional Predicate Tests
-;;; ====
+(doc 'section 'additional-predicate-tests)
 
 (printf "\n=== Testing string-all-match? ===\n")
 
@@ -446,9 +418,7 @@
               (string-all-match? "123a5" char-numeric?)
               #f)
 
-;;; ====
-;;; Integration and Edge Case Tests
-;;; ====
+(doc 'section 'integration-edge-case-tests)
 
 (printf "\n=== Testing Integration Cases ===\n")
 
@@ -475,9 +445,7 @@
               (string-empty? (string-trim "   "))
               #t)
 
-;;; ====
-;;; Test Summary
-;;; ====
+(doc 'section 'test-summary)
 
 (printf "\n====\n")
 (printf "Test Results:\n")
@@ -489,5 +457,5 @@
     (printf "\n✓ All tests passed!\n\n")
     (printf "\n✗ Some tests failed\n\n"))
 
-;;; Return success/failure
+(doc 'note "Return success/failure")
 (= fail-count 0)

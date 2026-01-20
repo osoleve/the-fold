@@ -1,9 +1,12 @@
-;;; boundary/tests/test-graph-viz.ss — Tests for Graph Visualization
-
-;;; NOTE: Run from project root: scheme --script boundary/tests/test-graph-viz.ss
+(doc 'note "Run from project root: scheme --script boundary/tests/test-graph-viz.ss")
 
 (load "core/testing/test-framework.ss")
 (load "boundary/ui/graph-viz.ss")
+
+(doc 'module 'test-graph-viz)
+(doc 'description "Tests for Graph Visualization")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
 
 (display "
 ══════════════════════════════════════════════════════════
@@ -11,9 +14,7 @@
 ══════════════════════════════════════════════════════════
 ")
 
-;;; ====
-;;; Layout Tests
-;;; ====
+(doc 'section 'layout-tests)
 
 (test-group layout-tests
             (define-test layout-get-set-test
@@ -36,9 +37,7 @@
                     (assert-equal 2 (length positions))
                     (assert-true (for-all vec2? positions)))))
 
-;;; ====
-;;; Tag Color Tests
-;;; ====
+(doc 'section 'tag-color-tests)
 
 (test-group tag-color-tests
             (define-test tag->color-test
@@ -47,9 +46,7 @@
               (assert-true (color12? (tag->color 'define)))
               (assert-true (color12? (tag->color 'unknown-tag)))))
 
-;;; ====
-;;; Drawing Helper Tests
-;;; ====
+(doc 'section 'drawing-helper-tests)
 
 (test-group drawing-helper-tests
             (define-test rad->deg-test
@@ -70,8 +67,6 @@
                     ;; Should have created paths
                     (assert-true (not (null? (turtle-paths t2)))))))
 
-;;; ====
-;;; Summary
-;;; ====
+(doc 'section 'summary)
 
 (print-summary)
