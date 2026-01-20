@@ -1,42 +1,27 @@
-;;; boundary/io/file-lock.ss — File Locking Primitives
-;;;
-;;; Provides file locking for atomic multi-step operations.
-;;; Uses a hybrid approach:
-;;;   1. Process-internal mutex (for thread safety)
-;;;   2. Lockfile with identity tokens (for cross-process safety)
-;;;   3. Optional flock() via FFI (when available, for automatic cleanup)
-;;;
-;;; Design:
-;;;   - Lock file contains identity token + PID + timestamp
-;;;   - Stale locks are broken safely using atomic rename
-;;;   - Real PID via FFI when available, fallback otherwise
-;;;   - Process death handled by flock() if available
-;;;
-;;; This is Shell code: impure (filesystem IO, synchronization).
-
 (load "core/base/prelude.ss")
 
-;;; ====
-;;; Configuration
-;;; ====
+(doc 'module 'file-lock)
+(doc 'description "File Locking Primitives — Provides file locking for atomic multi-step operations using a hybrid approach: process-internal mutex (for thread safety), lockfile with identity tokens (for cross-process safety), optional flock() via FFI (when available, for automatic cleanup).")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+(doc 'dependencies '(prelude))
+(doc 'note "Design: Lock file contains identity token + PID + timestamp. Stale locks are broken safely using atomic rename. Real PID via FFI when available, fallback otherwise. Process death handled by flock() if available.")
+
+(doc 'section 'configuration)
 
 (define *lock-poll-interval-ms* 10)    ; How often to retry acquiring lock
 (define *lock-timeout-ms* 5000)        ; Max time to wait for lock
 (define *lock-stale-threshold-s* 60)   ; Lock older than this is stale
 
-;;; ====
-;;; POSIX FFI Integration (Optional)
-;;; ====
-
-;;; We try to load posix-ffi for real PID and flock support.
-;;; If unavailable, fall back to lockfile-only approach.
+(doc 'section 'posix-ffi-integration)
+(doc 'note "We try to load posix-ffi for real PID and flock support. If unavailable, fall back to lockfile-only approach.")
 
 (define *posix-ffi-available* #f)
 (define *posix-ffi-checked* #f)
 
-;;; check-posix-ffi! : → Boolean
-;;; Check if POSIX FFI is available, load if possible
 (define (check-posix-ffi!)
+  (doc 'type (-> Bool))
+  (doc 'description "Check if POSIX FFI is available, load if possible.")
   (unless *posix-ffi-checked*
     (guard (e [else #f])
       (load "boundary/ffi/posix-ffi.ss")
@@ -46,19 +31,15 @@
     (set! *posix-ffi-checked* #t))
   *posix-ffi-available*)
 
-;;; ====
-;;; Process ID
-;;; ====
+(doc 'section 'process-id)
 
-;;; *lock-identity-token-cache* : String | #f
-;;; Cached identity token (lazily initialized to include PID)
+(doc *lock-identity-token-cache* 'type (Maybe String))
+(doc *lock-identity-token-cache* 'description "Cached identity token (lazily initialized to include PID).")
 (define *lock-identity-token-cache* #f)
 
-;;; get-lock-identity-token : → String
-;;; Get unique identity token for this process.
-;;; Lazily initialized to include PID (which requires FFI check).
-;;; Includes: PID + nanoseconds + counter for uniqueness.
 (define (get-lock-identity-token)
+  (doc 'type (-> String))
+  (doc 'description "Get unique identity token for this process. Lazily initialized to include PID (which requires FFI check). Includes: PID + nanoseconds + counter for uniqueness.")
   (unless *lock-identity-token-cache*
     (let* ([pid (current-process-id)]  ; Real PID via FFI if available
            [nanos (time-nanosecond (current-time))]
@@ -83,10 +64,10 @@
   *lock-identity-token-cache*)
 
 
-;;; current-process-id : → Number
-;;; Get current process ID.
-;;; Uses real PID via FFI when available, fallback to memory address otherwise.
 (define (current-process-id)
+  (doc 'type (-> Number))
+  (doc 'description "Get current process ID. Uses real PID via FFI when available, fallback to memory address otherwise.")
+  (doc 'export #t)
   (if (check-posix-ffi!)
       (posix-getpid)
       ;; Fallback: use memory address as pseudo-PID
@@ -94,22 +75,20 @@
         (foreign-free addr)
         (modulo addr 1000000))))
 
-;;; current-time-utc : → Number
-;;; Get current time as seconds since epoch.
 (define (current-time-utc)
+  (doc 'type (-> Number))
+  (doc 'description "Get current time as seconds since epoch.")
   (time-second (current-time)))
 
-;;; ====
-;;; Process-Internal Mutex
-;;; ====
+(doc 'section 'process-internal-mutex)
+(doc 'note "Global mutex table for path-based locking within process.")
 
-;;; Global mutex table for path-based locking within process
 (define *file-lock-mutexes* (make-hashtable string-hash string=?))
 (define *mutex-table-lock* (make-mutex))
 
-;;; get-path-mutex : String → Mutex
-;;; Get or create a mutex for a given path.
 (define (get-path-mutex path)
+  (doc 'type (-> String Mutex))
+  (doc 'description "Get or create a mutex for a given path.")
   (with-mutex *mutex-table-lock*
     (let ([existing (hashtable-ref *file-lock-mutexes* path #f)])
       (if existing
@@ -118,18 +97,16 @@
             (hashtable-set! *file-lock-mutexes* path new-mutex)
             new-mutex)))))
 
-;;; ====
-;;; Lock File Operations
-;;; ====
+(doc 'section 'lock-file-operations)
 
-;;; lock-file-path : String → String
-;;; Get the lock file path for a given resource.
 (define (lock-file-path path)
+  (doc 'type (-> String String))
+  (doc 'description "Get the lock file path for a given resource.")
   (string-append path ".lock"))
 
-;;; parse-lock-file : String → (token pid timestamp) | #f
-;;; Parse a lock file, returning its contents or #f if invalid.
 (define (parse-lock-file lock-path)
+  (doc 'type (-> String (Maybe (List String Number Number))))
+  (doc 'description "Parse a lock file, returning its contents (token pid timestamp) or #f if invalid.")
   (guard (e [else #f])
     (if (not (file-exists? lock-path))
         #f
@@ -148,9 +125,9 @@
                         (list token pid timestamp)
                         #f)))))))))
 
-;;; write-lock-content : Port → Void
-;;; Write lock file content with identity token, PID, and timestamp.
 (define (write-lock-content port)
+  (doc 'type (-> Port Void))
+  (doc 'description "Write lock file content with identity token, PID, and timestamp.")
   (put-string port (get-lock-identity-token))
   (newline port)
   (put-string port (number->string (current-process-id)))
@@ -158,10 +135,9 @@
   (put-string port (number->string (current-time-utc)))
   (newline port))
 
-;;; try-create-lock-file : String → Boolean
-;;; Attempt to create lock file atomically. Returns #t if successful.
-;;; Uses exclusive creation to prevent races.
 (define (try-create-lock-file lock-path)
+  (doc 'type (-> String Bool))
+  (doc 'description "Attempt to create lock file atomically. Returns #t if successful. Uses exclusive creation to prevent races.")
   (guard (e [else #f])
     ;; Check if lock exists
     (if (file-exists? lock-path)
@@ -179,9 +155,9 @@
             (and lock-info
                  (string=? (car lock-info) (get-lock-identity-token))))))))
 
-;;; lock-file-stale? : String → Boolean
-;;; Check if a lock file is stale (older than threshold).
 (define (lock-file-stale? lock-path)
+  (doc 'type (-> String Bool))
+  (doc 'description "Check if a lock file is stale (older than threshold).")
   (guard (e [else #t])  ; Treat errors as stale
     (let ([lock-info (parse-lock-file lock-path)])
       (if (not lock-info)
@@ -191,13 +167,9 @@
                  [age (- now timestamp)])
             (> age *lock-stale-threshold-s*))))))
 
-;;; break-stale-lock-safe : String → Boolean
-;;; Safely break a stale lock using atomic rename.
-;;; Returns #t if we successfully acquired the lock, #f if another process won.
-;;;
-;;; This fixes the race condition where two processes might both detect
-;;; a stale lock and try to break it simultaneously.
 (define (break-stale-lock-safe lock-path)
+  (doc 'type (-> String Bool))
+  (doc 'description "Safely break a stale lock using atomic rename. Returns #t if we successfully acquired the lock, #f if another process won. This fixes the race condition where two processes might both detect a stale lock and try to break it simultaneously.")
   (let ([temp-path (format "~a.~a.~a.breaking"
                            lock-path
                            (get-lock-identity-token)
@@ -219,9 +191,9 @@
         (and lock-info
              (string=? (car lock-info) (get-lock-identity-token)))))))
 
-;;; remove-lock-file : String → Void
-;;; Remove a lock file (only if we own it).
 (define (remove-lock-file lock-path)
+  (doc 'type (-> String Void))
+  (doc 'description "Remove a lock file (only if we own it).")
   (guard (e [else #f])
     (when (file-exists? lock-path)
       ;; Only remove if we own it
@@ -230,13 +202,12 @@
                    (string=? (car lock-info) (get-lock-identity-token)))
           (delete-file lock-path))))))
 
-;;; ====
-;;; High-Level Locking API
-;;; ====
+(doc 'section 'high-level-locking-api)
 
-;;; acquire-file-lock : String → Boolean
-;;; Acquire a file lock, waiting up to timeout. Returns #t if acquired.
 (define (acquire-file-lock path)
+  (doc 'type (-> String Bool))
+  (doc 'description "Acquire a file lock, waiting up to timeout. Returns #t if acquired.")
+  (doc 'export #t)
   (let* ([lock-path (lock-file-path path)]
          [deadline (+ (current-time-utc) (/ *lock-timeout-ms* 1000))])
     (let loop ()
@@ -255,24 +226,22 @@
          (sleep-ms *lock-poll-interval-ms*)
          (loop)]))))
 
-;;; release-file-lock : String → Void
-;;; Release a file lock.
 (define (release-file-lock path)
+  (doc 'type (-> String Void))
+  (doc 'description "Release a file lock.")
+  (doc 'export #t)
   (remove-lock-file (lock-file-path path)))
 
-;;; sleep-ms : Number → Void
-;;; Sleep for milliseconds.
 (define (sleep-ms ms)
+  (doc 'type (-> Number Void))
+  (doc 'description "Sleep for milliseconds.")
   ;; Convert to nanoseconds for sleep
   (sleep (make-time 'time-duration (* ms 1000000) 0)))
 
-;;; with-file-lock : String × (→ α) → α
-;;; Execute thunk while holding file lock.
-;;; Combines process-internal mutex with cross-process lock file.
-;;;
-;;; If POSIX FFI is available, also uses flock() for automatic
-;;; cleanup on process death.
 (define (with-file-lock path thunk)
+  (doc 'type (-> String (-> α) α))
+  (doc 'description "Execute thunk while holding file lock. Combines process-internal mutex with cross-process lock file. If POSIX FFI is available, also uses flock() for automatic cleanup on process death.")
+  (doc 'export #t)
   (let ([mutex (get-path-mutex path)])
     (with-mutex mutex
       ;; If POSIX FFI available, use flock for automatic cleanup
@@ -300,9 +269,7 @@
               thunk
               (lambda () (release-file-lock path))))))))
 
-;;; ====
-;;; Print Help
-;;; ====
+(doc 'section 'help)
 
 (display "file-lock.ss loaded.\n")
 (display "  Lock:   (with-file-lock path thunk)\n")

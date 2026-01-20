@@ -1,23 +1,21 @@
-;;; boundary/io/json.ss — JSON Parsing and Serialization
-;;;
-;;; Shared JSON utilities for all effect handlers.
-;;;
-;;; This is Shell code: defensive logic, handles malformed input.
-;;;
-;;; Exports:
-;;;   - parse-json-string : String -> Any | #f
-;;;   - json->string : Any -> String
-;;;   - json-escape : String -> String
+;;; Local doc macro - json.ss is self-contained, no prelude dependency
+(define-syntax doc
+  (syntax-rules ()
+    [(_ args ...) (void)]))
 
-;;; ====
-;;; JSON Parsing
-;;; ====
+(doc 'module 'json)
+(doc 'description "JSON Parsing and Serialization — Shared JSON utilities for all effect handlers. Objects become alists, arrays become lists.")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+(doc 'dependencies '())
+(doc 'note "Self-contained module with no prelude dependency. Handles malformed input defensively.")
 
-;;; parse-json-string : String -> Any | #f
-;;; Parse a JSON string into Scheme data structures.
-;;; Objects become alists, arrays become lists.
-;;; Returns #f on parse failure.
+(doc 'section 'json-parsing)
+
 (define (parse-json-string s)
+  (doc 'type (-> String (Maybe Any)))
+  (doc 'description "Parse a JSON string into Scheme data structures. Objects become alists, arrays become lists. Returns #f on parse failure.")
+  (doc 'export #t)
   (guard (ex [else #f])
          (if (or (not s) (string=? s ""))
              #f
@@ -27,9 +25,9 @@
                       (let-values ([(result rest) (parse-json-value trimmed 0)])
                                   result))))))
 
-;;; json-string-trim : String -> String
-;;; Remove leading/trailing whitespace.
 (define (json-string-trim s)
+  (doc 'type (-> String String))
+  (doc 'description "Remove leading/trailing whitespace.")
   (let* ([len (string-length s)]
          [start (let loop ([i 0])
                      (if (and (< i len) (char-whitespace? (string-ref s i)))
@@ -43,9 +41,9 @@
             ""
             (substring s start end))))
 
-;;; parse-json-value : String -> Integer -> (Values Any Integer)
-;;; Parse a JSON value starting at position, return value and end position.
 (define (parse-json-value s pos)
+  (doc 'type (-> String Integer (Values Any Integer)))
+  (doc 'description "Parse a JSON value starting at position, return value and end position.")
   (let ([pos (json-skip-whitespace s pos)])
        (if (>= pos (string-length s))
            (values #f pos)
@@ -60,16 +58,18 @@
                  [(char=? c #\n) (parse-json-null s pos)]
                  [else (values #f pos)])))))
 
-;;; json-skip-whitespace : String -> Integer -> Integer
 (define (json-skip-whitespace s pos)
+  (doc 'type (-> String Integer Integer))
+  (doc 'description "Skip whitespace in string starting at position.")
   (let ([len (string-length s)])
        (let loop ([i pos])
             (if (and (< i len) (char-whitespace? (string-ref s i)))
                 (loop (+ i 1))
                 i))))
 
-;;; parse-json-object : String -> Integer -> (Values Alist Integer)
 (define (parse-json-object s pos)
+  (doc 'type (-> String Integer (Values Alist Integer)))
+  (doc 'description "Parse a JSON object starting at position.")
   (let ([pos (+ pos 1)])  ; skip '{'
        (let loop ([pos (json-skip-whitespace s pos)]
                   [result '()])
@@ -86,8 +86,9 @@
                                                           (loop pos5 (cons (cons (string->symbol key) val) result)))))
                                      (values (reverse result) pos3))))))))
 
-;;; parse-json-array : String -> Integer -> (Values List Integer)
 (define (parse-json-array s pos)
+  (doc 'type (-> String Integer (Values List Integer)))
+  (doc 'description "Parse a JSON array starting at position.")
   (let ([pos (+ pos 1)])  ; skip '['
        (let loop ([pos (json-skip-whitespace s pos)]
                   [result '()])
@@ -99,8 +100,9 @@
                                      (loop (json-skip-whitespace s (+ pos3 1)) (cons val result))
                                      (loop pos3 (cons val result)))))))))
 
-;;; parse-json-string-value : String -> Integer -> (Values String Integer)
 (define (parse-json-string-value s pos)
+  (doc 'type (-> String Integer (Values String Integer)))
+  (doc 'description "Parse a JSON string value starting at position.")
   (let ([pos (+ pos 1)])  ; skip opening quote
        (let loop ([i pos]
                   [chars '()])
@@ -133,8 +135,9 @@
                            (values (list->string (reverse chars)) i))]
                       [else (loop (+ i 1) (cons c chars))]))))))
 
-;;; parse-json-number : String -> Integer -> (Values Number Integer)
 (define (parse-json-number s pos)
+  (doc 'type (-> String Integer (Values Number Integer)))
+  (doc 'description "Parse a JSON number starting at position.")
   (let ([len (string-length s)])
        (let loop ([i pos]
                   [chars '()])
@@ -149,34 +152,36 @@
                 (loop (+ i 1) (cons (string-ref s i) chars))
                 (values (string->number (list->string (reverse chars))) i)))))
 
-;;; parse-json-true : String -> Integer -> (Values #t Integer)
 (define (parse-json-true s pos)
+  (doc 'type (-> String Integer (Values Bool Integer)))
+  (doc 'description "Parse JSON true literal.")
   (if (and (<= (+ pos 4) (string-length s))
            (string=? (substring s pos (+ pos 4)) "true"))
       (values #t (+ pos 4))
       (values #f pos)))
 
-;;; parse-json-false : String -> Integer -> (Values #f Integer)
 (define (parse-json-false s pos)
+  (doc 'type (-> String Integer (Values Bool Integer)))
+  (doc 'description "Parse JSON false literal.")
   (if (and (<= (+ pos 5) (string-length s))
            (string=? (substring s pos (+ pos 5)) "false"))
       (values #f (+ pos 5))
       (values #f pos)))
 
-;;; parse-json-null : String -> Integer -> (Values '() Integer)
 (define (parse-json-null s pos)
+  (doc 'type (-> String Integer (Values List Integer)))
+  (doc 'description "Parse JSON null literal (returns empty list).")
   (if (and (<= (+ pos 4) (string-length s))
            (string=? (substring s pos (+ pos 4)) "null"))
       (values '() (+ pos 4))
       (values #f pos)))
 
-;;; ====
-;;; JSON Serialization
-;;; ====
+(doc 'section 'json-serialization)
 
-;;; json->string : Any -> String
-;;; Convert Scheme value to JSON string.
 (define (json->string v)
+  (doc 'type (-> Any String))
+  (doc 'description "Convert Scheme value to JSON string.")
+  (doc 'export #t)
   (cond
    [(string? v) (string-append "\"" (json-escape v) "\"")]
    [(number? v) (number->string v)]
@@ -193,8 +198,9 @@
     ;; Fallback: convert to string
     (string-append "\"" (json-escape (format "~a" v)) "\"")]))
 
-;;; json-object->string : Alist -> String
 (define (json-object->string alist)
+  (doc 'type (-> Alist String))
+  (doc 'description "Convert alist to JSON object string.")
   (string-append
    "{"
    (json-intersperse
@@ -206,16 +212,18 @@
          alist))
    "}"))
 
-;;; json-array->string : List -> String
 (define (json-array->string lst)
+  (doc 'type (-> List String))
+  (doc 'description "Convert list to JSON array string.")
   (string-append
    "["
    (json-intersperse ", " (map json->string lst))
    "]"))
 
-;;; json-escape : String -> String
-;;; Escape a string for JSON (handle quotes, newlines, backslashes, control chars).
 (define (json-escape s)
+  (doc 'type (-> String String))
+  (doc 'description "Escape a string for JSON (handle quotes, newlines, backslashes, control chars).")
+  (doc 'export #t)
   (let loop ([chars (string->list s)]
              [result '()])
        (if (null? chars)
@@ -237,8 +245,9 @@
                                      (cons #\\ result))))]
                  [else (loop (cdr chars) (cons c result))])))))
 
-;;; json-intersperse : String -> List String -> String
 (define (json-intersperse sep lst)
+  (doc 'type (-> String (List String) String))
+  (doc 'description "Join strings with separator.")
   (cond
    [(null? lst) ""]
    [(null? (cdr lst)) (car lst)]

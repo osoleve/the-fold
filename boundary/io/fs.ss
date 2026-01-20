@@ -1,86 +1,55 @@
-;;; boundary/io/fs.ss — Filesystem Capability Layer
-;;;
-;;; Optional filesystem persistence for the in-memory CAS.
-;;; Core CAS is in-memory only; Shell adds persistence when needed.
-;;; All operations are capability-gated.
-;;;
-;;; This is Shell code: impure, defensive, handles failure.
-;;;
-;;; Dependencies:
-;;;   core/prelude.ss
-;;;
-;;; NOTE: string utilities (string-starts-with?, string-ends-with?) provided by core/prelude.ss
-;;;       string-prefix? and string-suffix? are aliases (defined locally for convenience)
-;;;       string-rindex is unique to this module
-;;;
-;;; Capabilities:
-;;;   (make-fs-capability store-path) → FS
-;;;
-;;; Operations (require FS capability):
-;;;   (fs-store! fs block) → Bytevector (address)
-;;;   (fs-fetch fs hash) → Block | #f
-;;;   (fs-stored? fs hash) → Boolean
-;;;   (fs-pin! fs hash) → void
-;;;   (fs-sync! fs) → void
-;;;
-;;; Storage layout:
-;;;   {store-path}/
-;;;     objects/
-;;;       {aa}/
-;;;         {aabbccdd...}  ; block files named by full address
-;;;     pins/
-;;;       {hash}.pin       ; pinned addresses
-;;;     heads/
-;;;       {channel}.head   ; forum head pointers
-
-;;; ====
-;;; Capability Token
-;;; ====
-
-;;; Capabilities are opaque records — unforgeable at runtime.
-;;; Core cannot construct these; only Shell can mint them.
-
 (load "core/base/prelude.ss")
+
+(doc 'module 'fs)
+(doc 'description "Filesystem Capability Layer — Optional persistence for the in-memory CAS. Core CAS is in-memory only; Shell adds persistence when needed. All operations are capability-gated.")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+(doc 'dependencies '(prelude))
+(doc 'note "String utilities (string-starts-with?, string-ends-with?) provided by core/prelude.ss. string-prefix? and string-suffix? are aliases (defined locally for convenience). string-rindex is unique to this module.")
+
+(doc 'section 'capability-token)
+(doc 'note "Capabilities are opaque records — unforgeable at runtime. Core cannot construct these; only Shell can mint them.")
 
 (define-record-type fs-capability
   (fields store-path))
 
-;;; ====
-;;; Path Utilities
-;;; ====
+(doc 'section 'path-utilities)
 
-;;; hash->object-path : Bytevector × String → String
-;;; Convert hash to filesystem path under store.
-;;; Uses first 2 hex chars as subdirectory (like git).
 (define (hash->object-path hash store-path)
+  (doc 'type (-> Bytevector String String))
+  (doc 'description "Convert hash to filesystem path under store. Uses first 2 hex chars as subdirectory (like git).")
+  (doc 'export #t)
   (let* ([hex (hash->hex hash)]
          [prefix (substring hex 0 2)]
          [rest hex])
         (string-append store-path "/objects/" prefix "/" rest)))
 
-;;; hash->pin-path : Bytevector × String → String
 (define (hash->pin-path hash store-path)
+  (doc 'type (-> Bytevector String String))
+  (doc 'description "Convert hash to pin file path under store.")
+  (doc 'export #t)
   (string-append store-path "/pins/" (hash->hex hash) ".pin"))
 
-;;; ensure-parent-dir! : String → void
-;;; Create parent directory if it doesn't exist.
 (define (ensure-parent-dir! path)
+  (doc 'type (-> String Void))
+  (doc 'description "Create parent directory if it doesn't exist.")
   (let ([parent (path-parent path)])
        (when (and parent (not (file-exists? parent)))
              (ensure-parent-dir! parent)
              (mkdir parent))))
 
-;;; path-parent : String → String | #f
-;;; Extract parent directory from path.
 (define (path-parent path)
+  (doc 'type (-> String (Maybe String)))
+  (doc 'description "Extract parent directory from path.")
+  (doc 'export #t)
   (let ([sep-pos (find-last-sep path)])
        (if sep-pos
            (substring path 0 sep-pos)
            #f)))
 
-;;; find-last-sep : String → Nat | #f
-;;; Find the last path separator (/ or \) in a path.
 (define (find-last-sep path)
+  (doc 'type (-> String (Maybe Nat)))
+  (doc 'description "Find the last path separator (/ or \\) in a path.")
   (let loop ([i (- (string-length path) 1)])
        (cond
         [(< i 0) #f]
@@ -88,55 +57,59 @@
              (char=? (string-ref path i) #\\)) i]
         [else (loop (- i 1))])))
 
-;;; path-basename : String → String
-;;; Get filename from path (after last separator).
 (define (path-basename path)
+  (doc 'type (-> String String))
+  (doc 'description "Get filename from path (after last separator).")
+  (doc 'export #t)
   (let ([sep-pos (find-last-sep path)])
        (if sep-pos
            (substring path (+ sep-pos 1) (string-length path))
            path)))
 
-;;; path-stem : String → String
-;;; Remove directory and extension from filename.
 (define (path-stem path)
+  (doc 'type (-> String String))
+  (doc 'description "Remove directory and extension from filename.")
+  (doc 'export #t)
   (let* ([base (path-basename path)]
          [dot-pos (string-rindex base #\.)])
         (if dot-pos
             (substring base 0 dot-pos)
             base)))
 
-;;; string-suffix? : String × String → Boolean
-;;; Alias for string-ends-with? from prelude (note: reversed argument order)
+(doc string-suffix? 'type (-> String String Bool))
+(doc string-suffix? 'description "Alias for string-ends-with? from prelude (note: reversed argument order).")
+(doc string-suffix? 'export #t)
 (define (string-suffix? suffix str)
   (string-ends-with? str suffix))
 
-;;; string-prefix? : String × String → Boolean
-;;; Alias for string-starts-with? from prelude (note: reversed argument order)
+(doc string-prefix? 'type (-> String String Bool))
+(doc string-prefix? 'description "Alias for string-starts-with? from prelude (note: reversed argument order).")
+(doc string-prefix? 'export #t)
 (define (string-prefix? prefix str)
   (string-starts-with? str prefix))
 
-;;; string-rindex : String × Char → Nat | #f
-;;; Find last occurrence of char in string.
 (define (string-rindex str char)
+  (doc 'type (-> String Char (Maybe Nat)))
+  (doc 'description "Find last occurrence of char in string.")
+  (doc 'export #t)
   (let loop ([i (- (string-length str) 1)])
        (cond
         [(< i 0) #f]
         [(char=? (string-ref str i) char) i]
         [else (loop (- i 1))])))
 
-;;; ====
-;;; Store Initialization
-;;; ====
+(doc 'section 'store-initialization)
 
-;;; mint-fs-capability : String → FS
-;;; Mint a filesystem capability for the given store path.
-;;; Creates directory structure if needed.
 (define (mint-fs-capability store-path)
+  (doc 'type (-> String FsCapability))
+  (doc 'description "Mint a filesystem capability for the given store path. Creates directory structure if needed.")
+  (doc 'export #t)
   (ensure-store-structure! store-path)
   (make-fs-capability store-path))
 
-;;; ensure-store-structure! : String → void
 (define (ensure-store-structure! store-path)
+  (doc 'type (-> String Void))
+  (doc 'description "Ensure store directory structure exists (objects/, pins/, heads/).")
   (for-each
    (lambda (subdir)
            (let ([path (string-append store-path "/" subdir)])
@@ -145,13 +118,12 @@
                         (mkdir path))))
    '("objects" "pins" "heads")))
 
-;;; ====
-;;; Store Operations
-;;; ====
+(doc 'section 'store-operations)
 
-;;; fs-store! : FS × Block → Bytevector
-;;; Persist a block to disk and return its hash.
 (define (fs-store! fs blk)
+  (doc 'type (-> FsCapability Block Bytevector))
+  (doc 'description "Persist a block to disk and return its hash.")
+  (doc 'export #t)
   (let* ([hash (hash-block blk)]
          [path (hash->object-path hash (fs-capability-store-path fs))])
         (unless (file-exists? path)
@@ -162,10 +134,10 @@
                      (close-port port)))
         hash))
 
-;;; fs-fetch : FS × Bytevector → Block | #f
-;;; Load a block from disk by hash.
-;;; Returns #f if the block doesn't exist or is corrupt.
 (define (fs-fetch fs hash)
+  (doc 'type (-> FsCapability Bytevector (Maybe Block)))
+  (doc 'description "Load a block from disk by hash. Returns #f if the block doesn't exist or is corrupt.")
+  (doc 'export #t)
   (let ([path (hash->object-path hash (fs-capability-store-path fs))])
        (if (file-exists? path)
            (guard (e [else #f])  ; Return #f for corrupt blocks
@@ -175,36 +147,40 @@
                         (bytes->block bytes)))
            #f)))
 
-;;; fs-stored? : FS × Bytevector → Boolean
 (define (fs-stored? fs hash)
+  (doc 'type (-> FsCapability Bytevector Bool))
+  (doc 'description "Check if a block exists in the store.")
+  (doc 'export #t)
   (file-exists? (hash->object-path hash (fs-capability-store-path fs))))
 
-;;; fs-pin! : FS × Bytevector → void
-;;; Mark a hash as pinned (preserved during GC).
 (define (fs-pin! fs hash)
+  (doc 'type (-> FsCapability Bytevector Void))
+  (doc 'description "Mark a hash as pinned (preserved during GC).")
+  (doc 'export #t)
   (let ([path (hash->pin-path hash (fs-capability-store-path fs))])
        (ensure-parent-dir! path)
        (call-with-output-file path
                               (lambda (port)
                                       (put-string port (hash->hex hash))))))
 
-;;; fs-pinned? : FS × Bytevector → Boolean
 (define (fs-pinned? fs hash)
+  (doc 'type (-> FsCapability Bytevector Bool))
+  (doc 'description "Check if a hash is pinned.")
+  (doc 'export #t)
   (file-exists? (hash->pin-path hash (fs-capability-store-path fs))))
 
-;;; ====
-;;; Sync and Statistics
-;;; ====
+(doc 'section 'sync-and-statistics)
 
-;;; fs-sync! : FS → void
-;;; Force all pending writes to disk.
-;;; (Currently a no-op; writes are synchronous.)
 (define (fs-sync! fs)
+  (doc 'type (-> FsCapability Void))
+  (doc 'description "Force all pending writes to disk. Currently a no-op; writes are synchronous.")
+  (doc 'export #t)
   (void))
 
-;;; fs-object-count : FS → Nat
-;;; Count objects in the store (expensive — scans filesystem).
 (define (fs-object-count fs)
+  (doc 'type (-> FsCapability Nat))
+  (doc 'description "Count objects in the store (expensive — scans filesystem).")
+  (doc 'export #t)
   (let ([objects-path (string-append (fs-capability-store-path fs) "/objects")])
        (if (file-exists? objects-path)
            (fold-left
@@ -217,10 +193,10 @@
             (directory-list objects-path))
            0)))
 
-;;; fs-all-hashes : FS → (List Bytevector)
-;;; List all object hashes in the store (expensive — scans filesystem).
-;;; Returns a list of hash bytevectors.
 (define (fs-all-hashes fs)
+  (doc 'type (-> FsCapability (List Bytevector)))
+  (doc 'description "List all object hashes in the store (expensive — scans filesystem).")
+  (doc 'export #t)
   (let ([objects-path (string-append (fs-capability-store-path fs) "/objects")])
        (if (file-exists? objects-path)
            (apply append
@@ -235,13 +211,13 @@
                    (directory-list objects-path)))
            '())))
 
-;;; ====
-;;; Head Pointers (for forum channels)
-;;; ====
+(doc 'section 'head-pointers)
+(doc 'note "Head pointers for forum channels — track the latest block in each channel.")
 
-;;; fs-write-head! : FS × Symbol × Bytevector → void
-;;; Write a channel head pointer (overwrites if exists).
 (define (fs-write-head! fs channel hash)
+  (doc 'type (-> FsCapability Symbol Bytevector Void))
+  (doc 'description "Write a channel head pointer (overwrites if exists).")
+  (doc 'export #t)
   (let ([path (string-append (fs-capability-store-path fs)
                              "/heads/"
                              (symbol->string channel)
@@ -254,9 +230,10 @@
                               (lambda (port)
                                       (put-string port (hash->hex hash))))))
 
-;;; fs-read-head : FS × Symbol → Bytevector | #f
-;;; Read a channel head pointer.
 (define (fs-read-head fs channel)
+  (doc 'type (-> FsCapability Symbol (Maybe Bytevector)))
+  (doc 'description "Read a channel head pointer.")
+  (doc 'export #t)
   (let ([path (string-append (fs-capability-store-path fs)
                              "/heads/"
                              (symbol->string channel)
@@ -273,16 +250,16 @@
                                                (hex->hash clean))))
            #f)))
 
-;;; ====
-;;; Batch Operations
-;;; ====
+(doc 'section 'batch-operations)
 
-;;; fs-store-all! : FS × (List Block) → (List Bytevector)
-;;; Store multiple blocks, return their hashes.
 (define (fs-store-all! fs blocks)
+  (doc 'type (-> FsCapability (List Block) (List Bytevector)))
+  (doc 'description "Store multiple blocks, return their hashes.")
+  (doc 'export #t)
   (map (lambda (blk) (fs-store! fs blk)) blocks))
 
-;;; fs-fetch-all : FS × (List Bytevector) → (List (Block | #f))
-;;; Fetch multiple blocks by hash.
 (define (fs-fetch-all fs hashes)
+  (doc 'type (-> FsCapability (List Bytevector) (List (Maybe Block))))
+  (doc 'description "Fetch multiple blocks by hash.")
+  (doc 'export #t)
   (map (lambda (h) (fs-fetch fs h)) hashes))

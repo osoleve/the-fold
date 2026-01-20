@@ -1,30 +1,19 @@
-;;; boundary/io/process.ss — Process Execution Utilities
-;;;
-;;; Simple utilities for running shell commands and capturing output.
-;;; Provides a cleaner interface over Chez Scheme's open-process-ports.
-;;;
-;;; This is Shell code: handles IO, may fail, contains defensive logic.
-;;;
-;;; Usage:
-;;;   (shell-capture "ls -la")           ; Returns stdout as string
-;;;   (shell-capture-result "ls -la")    ; Returns (ok? stdout stderr exit-code)
-;;;   (shell-run "echo hello")           ; Returns #t/#f for success/failure
-;;;
-;;; Security:
-;;;   Use shell-escape for untrusted input in commands.
-
 (load "core/base/prelude.ss")
 
-;;; ====
-;;; Shell Escaping (Security Critical)
-;;; ====
+(doc 'module 'process)
+(doc 'description "Process Execution Utilities — Simple utilities for running shell commands and capturing output. Provides a cleaner interface over Chez Scheme's open-process-ports.")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+(doc 'dependencies '(prelude))
+(doc 'note "Security: Use shell-escape for untrusted input in commands.")
 
-;;; shell-escape : String -> String
-;;; Escape a string for safe use in shell single quotes.
-;;; Single quotes prevent all shell interpretation. To include a single quote
-;;; inside single quotes, we end the quote, add an escaped quote, and restart.
-;;; Example: "don't" becomes "don'\''t"
+(doc 'section 'shell-escaping)
+(doc 'note "Security critical section.")
+
 (define (shell-escape str)
+  (doc 'type (-> String String))
+  (doc 'description "Escape a string for safe use in shell single quotes. Single quotes prevent all shell interpretation. To include a single quote inside single quotes, we end the quote, add an escaped quote, and restart. Example: \"don't\" becomes \"don'\\''t\".")
+  (doc 'export #t)
   (let ([len (string-length str)])
     (let loop ([i 0] [chars '()])
       (if (>= i len)
@@ -35,18 +24,12 @@
                 (loop (+ i 1) (append (reverse (string->list "'\\''")) chars))
                 (loop (+ i 1) (cons c chars))))))))
 
-;;; ====
-;;; Core Process Execution
-;;; ====
+(doc 'section 'core-process-execution)
 
-;;; shell-capture-result : String -> (List Boolean String String Integer)
-;;; Execute a shell command and return structured result.
-;;; Returns: (ok? stdout stderr exit-code)
-;;;   ok?       - #t if exit code is 0
-;;;   stdout    - captured stdout as string
-;;;   stderr    - captured stderr as string
-;;;   exit-code - numeric exit code
 (define (shell-capture-result cmd)
+  (doc 'type (-> String (List Bool String String Integer)))
+  (doc 'description "Execute a shell command and return structured result. Returns: (ok? stdout stderr exit-code) where ok? is #t if exit code is 0.")
+  (doc 'export #t)
   (guard (ex [else
               (list #f ""
                     (format "Process error: ~a"
@@ -72,9 +55,9 @@
             (let-values ([(stdout exit-code) (extract-exit-code stdout-str)])
               (list (= exit-code 0) stdout stderr-str exit-code))))))))
 
-;;; extract-exit-code : String -> (Values String Integer)
-;;; Extract exit code marker from stdout, return (actual-stdout, exit-code).
 (define (extract-exit-code stdout-str)
+  (doc 'type (-> String (Values String Integer)))
+  (doc 'description "Extract exit code marker from stdout, return (actual-stdout, exit-code).")
   (let ([marker "__EXIT__"])
     (let ([idx (string-last-index-of stdout-str marker)])
       (if idx
@@ -93,9 +76,9 @@
           ;; No marker found - assume success
           (values stdout-str 0)))))
 
-;;; string-last-index-of : String String -> Integer | #f
-;;; Find last occurrence of needle in haystack.
 (define (string-last-index-of haystack needle)
+  (doc 'type (-> String String (Maybe Integer)))
+  (doc 'description "Find last occurrence of needle in haystack.")
   (let ([hlen (string-length haystack)]
         [nlen (string-length needle)])
     (let loop ([i (- hlen nlen)])
@@ -104,14 +87,12 @@
         [(string=? (substring haystack i (+ i nlen)) needle) i]
         [else (loop (- i 1))]))))
 
-;;; ====
-;;; Convenience Functions
-;;; ====
+(doc 'section 'convenience-functions)
 
-;;; shell-capture : String -> String
-;;; Execute command and return stdout as string.
-;;; Throws on non-zero exit code.
 (define (shell-capture cmd)
+  (doc 'type (-> String String))
+  (doc 'description "Execute command and return stdout as string. Throws on non-zero exit code.")
+  (doc 'export #t)
   (let ([result (shell-capture-result cmd)])
     (if (car result)
         (cadr result)  ; stdout
@@ -120,37 +101,44 @@
                        (list-ref result 3)
                        (caddr result))))))  ; stderr
 
-;;; shell-capture-stdout : String -> String
-;;; Execute command and return stdout, ignoring exit code.
-;;; Use when you want output regardless of success.
 (define (shell-capture-stdout cmd)
+  (doc 'type (-> String String))
+  (doc 'description "Execute command and return stdout, ignoring exit code. Use when you want output regardless of success.")
+  (doc 'export #t)
   (cadr (shell-capture-result cmd)))
 
-;;; shell-run : String -> Boolean
-;;; Execute command and return success status.
-;;; Use for commands where you only care about success/failure.
 (define (shell-run cmd)
+  (doc 'type (-> String Bool))
+  (doc 'description "Execute command and return success status. Use for commands where you only care about success/failure.")
+  (doc 'export #t)
   (car (shell-capture-result cmd)))
 
-;;; shell-run-quiet : String -> Boolean
-;;; Execute command silently, return success status.
-;;; Stderr is discarded.
 (define (shell-run-quiet cmd)
+  (doc 'type (-> String Bool))
+  (doc 'description "Execute command silently, return success status. Stderr is discarded.")
+  (doc 'export #t)
   (car (shell-capture-result (string-append cmd " 2>/dev/null"))))
 
-;;; ====
-;;; Result Accessors
-;;; ====
+(doc 'section 'result-accessors)
+(doc 'note "For use with shell-capture-result returns.")
 
-;;; For use with shell-capture-result returns
+(doc process-ok? 'type (-> (List Bool String String Integer) Bool))
+(doc process-ok? 'export #t)
 (define (process-ok? r) (car r))
+
+(doc process-stdout 'type (-> (List Bool String String Integer) String))
+(doc process-stdout 'export #t)
 (define (process-stdout r) (cadr r))
+
+(doc process-stderr 'type (-> (List Bool String String Integer) String))
+(doc process-stderr 'export #t)
 (define (process-stderr r) (caddr r))
+
+(doc process-exit-code 'type (-> (List Bool String String Integer) Integer))
+(doc process-exit-code 'export #t)
 (define (process-exit-code r) (list-ref r 3))
 
-;;; ====
-;;; REPL Interface
-;;; ====
+(doc 'section 'help)
 
 (printf "process.ss loaded.\n")
 (printf "  (shell-capture cmd)        - Run command, return stdout\n")
