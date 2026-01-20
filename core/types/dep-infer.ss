@@ -1,50 +1,3 @@
-;;; core/types/dep-infer.ss — Dependent Type Inference
-;;;
-;;; Extends bidirectional type inference to handle dependent types.
-;;;
-;;; Key extensions:
-;;;   - Pi type synthesis and checking
-;;;   - Sigma type synthesis and checking
-;;;   - Universe checking
-;;;   - Conversion checking via NbE
-;;;   - Dependent application with substitution
-;;;
-;;; This module loads and re-exports functionality from:
-;;;   - gadt-infer.ss: GADT declaration and case synthesis
-;;;   - existential-infer.ss: Existential pack/unpack synthesis
-;;;   - rank-n-infer.ss: Rank-N polymorphism (placeholder)
-;;;
-;;; Quick API Reference:
-;;;
-;;;   Synthesis (expression → type):
-;;;     (dep-synth 'Type ctx)                    → (ok (Type 1))
-;;;     (dep-synth '42 ctx)                      → (ok Int)
-;;;     (dep-synth 'x ctx)                       → (ok <type of x>)
-;;;     (dep-synth '(Π ((n : Nat)) (Vec n Int)) ctx) → (ok Type)
-;;;
-;;;   Checking (expression × type → ok/error):
-;;;     (dep-check '(fn ((x : Int)) x) '(Π ((x : Int)) Int) ctx) → (ok)
-;;;     (dep-check '(pair 1 2) '(Σ ((x : Int)) Int) ctx) → (ok)
-;;;
-;;;   Type checking (is type well-formed?):
-;;;     (dep-check-type '(Π ((n : Nat)) (Vec n Int)) ctx) → (ok Type)
-;;;
-;;;   Context management:
-;;;     (dep-ctx-extend ctx 'x 'Int)             ; Add x : Int
-;;;     (dep-ctx-extend-def ctx 'n 'Nat '(succ zero)) ; Add n : Nat = succ zero
-;;;     (dep-ctx-lookup ctx 'x)                  → Int (or #f)
-;;;
-;;; This is Core code: pure, total, assumes perfect input.
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;   - types.ss
-;;;   - dep-types.ss
-;;;   - nbe.ss
-;;;   - infer.ss (for base inference)
-;;;   - gadt.ss
-;;;   - existential.ss
-
 (load "core/base/prelude.ss")
 (load "core/types/types.ss")
 (load "core/types/dep-types.ss")
@@ -53,19 +6,20 @@
 (load "core/types/gadt.ss")
 (load "core/types/existential.ss")
 
-;;; ====
-;;; Extended Type Context
-;;; ====
+(doc 'module 'dep-infer)
+(doc 'description "Dependent type inference - extends bidirectional type inference to handle dependent types including Pi, Sigma, universes, conversion checking via NbE, and dependent application with substitution")
+(doc 'layer 'core)
 
-;;; A dependent type context tracks both type and term variables.
-;;; Term variables can appear in types.
+(doc 'section 'extended-type-context)
 
-;;; ctx-entry: (name . (type . value-opt))
-;;; value-opt is either a value or #f if abstract
-
+(doc empty-dep-ctx 'type Context)
+(doc empty-dep-ctx 'description "Empty dependent type context")
+(doc empty-dep-ctx 'export #t)
 (define empty-dep-ctx '())
 
-;;; dep-ctx-lookup : Context x Symbol -> (Option Type)
+(doc dep-ctx-lookup 'type (-> Context Symbol (Option Type)))
+(doc dep-ctx-lookup 'description "Look up the type of a variable in the context")
+(doc dep-ctx-lookup 'export #t)
 (define (dep-ctx-lookup ctx name)
   (let ([entry (assq name ctx)])
        (if entry
@@ -89,12 +43,11 @@
 (define (dep-ctx-extend-def ctx name type value)
   (cons (list name type value) ctx))
 
-;;; ====
-;;; Dependent Type Synthesis
-;;; ====
+(doc 'section 'dependent-type-synthesis)
 
-;;; dep-synth : Expr x Context -> (ok Type) | (error ...)
-;;; Synthesize a type for an expression in dependent context.
+(doc dep-synth 'type (-> Expr Context (Result Type Error)))
+(doc dep-synth 'description "Synthesize a type for an expression in dependent context")
+(doc dep-synth 'export #t)
 (define (dep-synth expr ctx)
   (cond
    ;; Universe

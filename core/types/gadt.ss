@@ -1,77 +1,41 @@
-;;; core/types/gadt.ss — Generalized Algebraic Data Types
-;;;
-;;; GADTs extend inductive types with type indices that can be refined
-;;; by pattern matching. The key innovation is that each constructor can
-;;; specify a more precise return type, and matching on that constructor
-;;; brings the type refinement into scope.
-;;;
-;;; Example:
-;;;   (gadt (Expr a)
-;;;     [Lit  : (-> Int (Expr Int))]
-;;;     [Add  : (-> (Expr Int) (Expr Int) (Expr Int))]
-;;;     [Eq   : (-> (Expr Int) (Expr Int) (Expr Bool))]
-;;;     [If   : (∀ (b) (-> (Expr Bool) (Expr b) (Expr b) (Expr b)))])
-;;;
-;;; When pattern matching on a GADT, the type index becomes an equality:
-;;;   (gadt-case (e : (Expr a))
-;;;     ((Lit n) ...)      ; Here we know a ~ Int
-;;;     ((Eq x y) ...)     ; Here we know a ~ Bool
-;;;
-;;; This is Core code: pure, total, assumes perfect input.
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;   - types.ss
-;;;   - dep-types.ss
-
 (load "core/base/prelude.ss")
 (load "core/types/types.ss")
 (load "core/types/dep-types.ss")
 
-;;; ====
-;;; GADT Grammar
-;;; ====
-;;;
-;;;   GADTDecl ::= (gadt TypeHead CtorDecl ...)
-;;;
-;;;   TypeHead ::= (Name IndexDecl ...)
-;;;   IndexDecl ::= Symbol                     ; Implicit kind Type
-;;;               | (Symbol : Kind)            ; Explicit kind
-;;;
-;;;   CtorDecl ::= [CtorName : CtorType]
-;;;   CtorType ::= Type                        ; Must return applied GADT type
-;;;
-;;; The return type of each constructor must be of the form (Name idx ...),
-;;; where the indices can be specific types (not just variables), enabling
-;;; type refinement.
+(doc 'module 'gadt)
+(doc 'description "Generalized Algebraic Data Types - GADTs extend inductive types with type indices that can be refined by pattern matching. The key innovation is that each constructor can specify a more precise return type, and matching on that constructor brings the type refinement into scope.")
+(doc 'layer 'core)
 
-;;; ====
-;;; GADT Type Predicates
-;;; ====
+(doc 'section 'gadt-grammar)
 
-;;; gadt-type? : SExpr → Boolean
-;;; Check if this is a GADT declaration.
+(doc 'section 'predicates)
+
+(doc gadt-type? 'type (-> SExpr Boolean))
+(doc gadt-type? 'description "Check if this is a GADT declaration")
+(doc gadt-type? 'export #t)
 (define (gadt-type? t)
   (and (pair? t) (eq? (car t) 'gadt)))
 
-;;; gadt-applied? : SExpr → Boolean
-;;; Check if this is an applied GADT type: (Name idx ...)
-;;; Returns #t if the head is a known GADT name.
+(doc gadt-applied? 'type (-> SExpr Any Boolean))
+(doc gadt-applied? 'description "Check if this is an applied GADT type: (Name idx ...). Returns #t if the head is a known GADT name")
+(doc gadt-applied? 'export #t)
 (define (gadt-applied? t registry)
   (and (pair? t)
        (symbol? (car t))
        (assq (car t) registry)))
 
-;;; gadt-ctor-decl? : SExpr → Boolean
-;;; Check if this is a valid constructor declaration: [Name : Type]
+(doc gadt-ctor-decl? 'type (-> SExpr Boolean))
+(doc gadt-ctor-decl? 'description "Check if this is a valid constructor declaration: [Name : Type]")
+(doc gadt-ctor-decl? 'export #t)
 (define (gadt-ctor-decl? d)
   (and (list? d)
        (= (length d) 3)
        (symbol? (car d))
        (eq? (cadr d) ':)))
 
-;;; gadt-well-formed? : SExpr → Boolean
-;;; Check if a GADT declaration is well-formed.
+(doc gadt-well-formed? 'type (-> SExpr Boolean))
+(doc gadt-well-formed? 'description "Check if a GADT declaration is well-formed")
+(doc gadt-well-formed? 'export #t)
 (define (gadt-well-formed? t)
   (and (gadt-type? t)
        (>= (length t) 2)
@@ -80,8 +44,9 @@
        (andmap gadt-index-decl? (cdadr t))  ; Index declarations
        (andmap gadt-ctor-decl? (cddr t))))  ; Constructor declarations
 
-;;; gadt-index-decl? : SExpr → Boolean
-;;; Check if this is a valid index declaration.
+(doc gadt-index-decl? 'type (-> SExpr Boolean))
+(doc gadt-index-decl? 'description "Check if this is a valid index declaration")
+(doc gadt-index-decl? 'export #t)
 (define (gadt-index-decl? d)
   (or (symbol? d)                 ; Implicit kind Type
       (and (list? d)              ; Explicit kind
@@ -89,12 +54,11 @@
            (symbol? (car d))
            (eq? (cadr d) ':))))
 
-;;; ====
-;;; GADT Accessors
-;;; ====
+(doc 'section 'accessors)
 
-;;; gadt-name : GADTDecl → Symbol
-;;; Extract the type name from a GADT declaration.
+(doc gadt-name 'type (-> GADTDecl Symbol))
+(doc gadt-name 'description "Extract the type name from a GADT declaration")
+(doc gadt-name 'export #t)
 (define (gadt-name t)
   (if (gadt-type? t)
       (caadr t)
@@ -223,11 +187,7 @@
     (gadt-ctor-forall-vars (pi-codomain t))]
    [else '()]))
 
-;;; ====
-;;; Type Refinement (The Core GADT Innovation)
-;;; ====
-
-;;; When we match on a GADT constructor, we learn type equalities.
+(doc 'section 'type-refinement)
 ;;; If we're matching a value of type (Expr a) against constructor Lit
 ;;; which returns (Expr Int), we learn that a = Int.
 

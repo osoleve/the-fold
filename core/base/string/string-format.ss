@@ -1,36 +1,36 @@
-;;; core/base/string/string-format.ss — String Formatting Operations
-;;;
-;;; Case conversion and padding utilities for string display.
+(doc 'module 'string-format)
+(doc 'description "Case conversion and padding utilities for string display.")
+(doc 'layer 'core)
 
-;;; ====
-;;; Case Conversion
-;;; ====
+(doc 'section 'case-conversion)
 
-;;; string-upcase : String → String
-;;; Convert string to uppercase.
 (define (string-upcase str)
+  (doc 'type (-> String String))
+  (doc 'description "Convert string to uppercase.")
+  (doc 'export #t)
   (list->string (map char-upcase (string->list str))))
 
-;;; string-downcase : String → String
-;;; Convert string to lowercase.
 (define (string-downcase str)
+  (doc 'type (-> String String))
+  (doc 'description "Convert string to lowercase.")
+  (doc 'export #t)
   (list->string (map char-downcase (string->list str))))
 
-;;; ====
-;;; Padding
-;;; ====
+(doc 'section 'padding)
 
-;;; string-pad-left : String × Integer × Char → String
-;;; Pad string on the left to reach target width.
 (define (string-pad-left str width pad-char)
+  (doc 'type (-> String Integer Char String))
+  (doc 'description "Pad string on the left to reach target width.")
+  (doc 'export #t)
   (let ([len (string-length str)])
        (if (>= len width)
            str
            (string-append (make-string (- width len) pad-char) str))))
 
-;;; string-pad-right : String × Integer × Char → String
-;;; Pad string on the right to reach target width.
 (define (string-pad-right str width pad-char)
+  (doc 'type (-> String Integer Char String))
+  (doc 'description "Pad string on the right to reach target width.")
+  (doc 'export #t)
   (let ([len (string-length str)])
        (if (>= len width)
            str

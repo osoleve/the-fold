@@ -1,28 +1,15 @@
-;;; core/util/cost-model.ss --- Pluggable Cost Model Abstraction
-;;;
-;;; Provides a framework for defining cost models used by the profiler.
-;;; Instead of hard-coded fuel tracking, cost models allow flexible
-;;; cost accounting for different analysis purposes.
-;;;
-;;; A cost model defines:
-;;;   - eval-cost:   cost of evaluating an expression
-;;;   - prim-cost:   cost of primitive operations (by name)
-;;;   - apply-cost:  cost of function application
-;;;   - aggregate:   how to combine costs (sum, max, etc.)
-;;;
-;;; This is Core code: pure, total, assumes perfect input.
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-
 (load "core/base/prelude.ss")
 
-;;; ====
-;;; Cost Model Interface
-;;; ====
+(doc 'module 'cost-model)
+(doc 'description "Pluggable Cost Model Abstraction. Provides a framework for defining cost models used by the profiler. Instead of hard-coded fuel tracking, cost models allow flexible cost accounting for different analysis purposes. A cost model defines: eval-cost (cost of evaluating an expression), prim-cost (cost of primitive operations by name), apply-cost (cost of function application), aggregate (how to combine costs like sum or max).")
+(doc 'layer 'core)
 
-;;; make-cost-model : Symbol × (Expr → Nat) × (Symbol → Nat) × Nat × ((List Nat) → Nat) → CostModel
+(doc 'section 'cost-model-interface)
+
 (define (make-cost-model name eval-cost prim-cost apply-cost aggregate)
+  (doc 'type (-> Symbol (-> Expr Nat) (-> Symbol Nat) Nat (-> (List Nat) Nat) CostModel))
+  (doc 'description "Create a cost model with the given cost functions and aggregation strategy.")
+  (doc 'export #t)
   `(cost-model
     (name . ,name)
     (eval-cost . ,eval-cost)
@@ -30,16 +17,18 @@
     (apply-cost . ,apply-cost)
     (aggregate . ,aggregate)))
 
-;;; cost-model? : α → Boolean
 (define (cost-model? cm)
+  (doc 'type (-> Any Bool))
+  (doc 'description "Test if value is a cost model.")
+  (doc 'export #t)
   (and (pair? cm) (eq? (car cm) 'cost-model)))
 
-;;; ====
-;;; Cost Model Accessors
-;;; ====
+(doc 'section 'cost-model-accessors)
 
-;;; cost-model-get : CostModel × Symbol → α
 (define (cost-model-get cm key)
+  (doc 'type (-> CostModel Symbol Any))
+  (doc 'description "Get field from cost model.")
+  (doc 'export #t)
   (let ([entry (assq key (cdr cm))])
        (and entry (cdr entry))))
 
@@ -63,12 +52,12 @@
 (define (cost-model-aggregate cm)
   (cost-model-get cm 'aggregate))
 
-;;; ====
-;;; Cost Computation Helpers
-;;; ====
+(doc 'section 'cost-computation-helpers)
 
-;;; compute-eval-cost : CostModel × Expr → Nat
 (define (compute-eval-cost cm expr)
+  (doc 'type (-> CostModel Expr Nat))
+  (doc 'description "Compute the cost of evaluating an expression using the given cost model.")
+  (doc 'export #t)
   ((cost-model-eval-cost cm) expr))
 
 ;;; compute-prim-cost : CostModel × Symbol → Nat
@@ -79,16 +68,11 @@
 (define (compute-aggregate cm costs)
   ((cost-model-aggregate cm) costs))
 
-;;; ====
-;;; Built-in Cost Models
-;;; ====
+(doc 'section 'built-in-cost-models)
 
-;;; fuel-cost-model : CostModel
-;;; The default fuel-based cost model.
-;;; - Each evaluation costs 1 unit
-;;; - Primitives are free
-;;; - Application costs 1 unit
-;;; - Costs are summed
+(doc fuel-cost-model 'type CostModel)
+(doc fuel-cost-model 'description "The default fuel-based cost model. Each evaluation costs 1 unit, primitives are free, application costs 1 unit, costs are summed.")
+(doc fuel-cost-model 'export #t)
 (define fuel-cost-model
   (make-cost-model
    'fuel
@@ -100,12 +84,9 @@
                0
                (fold-left + 0 costs)))))
 
-;;; weighted-cost-model : CostModel
-;;; A cost model that weighs expressions by complexity.
-;;; - Literals/symbols cost 1
-;;; - Lambdas cost 2
-;;; - Applications cost 3
-;;; - Let bindings cost 2
+(doc weighted-cost-model 'type CostModel)
+(doc weighted-cost-model 'description "A cost model that weighs expressions by complexity. Literals/symbols cost 1, lambdas cost 2, applications cost 3, let bindings cost 2.")
+(doc weighted-cost-model 'export #t)
 (define weighted-cost-model
   (make-cost-model
    'weighted
@@ -132,10 +113,9 @@
                0
                (fold-left + 0 costs)))))
 
-;;; memory-cost-model : CostModel
-;;; A cost model focused on memory allocation.
-;;; - Allocation-heavy operations are expensive
-;;; - Pure computation is cheap
+(doc memory-cost-model 'type CostModel)
+(doc memory-cost-model 'description "A cost model focused on memory allocation. Allocation-heavy operations are expensive, pure computation is cheap.")
+(doc memory-cost-model 'export #t)
 (define memory-cost-model
   (make-cost-model
    'memory
@@ -156,9 +136,9 @@
                0
                (fold-left + 0 costs)))))
 
-;;; max-depth-model : CostModel
-;;; A cost model that tracks maximum depth (not sum).
-;;; Useful for space complexity analysis.
+(doc max-depth-model 'type CostModel)
+(doc max-depth-model 'description "A cost model that tracks maximum depth (not sum). Useful for space complexity analysis.")
+(doc max-depth-model 'export #t)
 (define max-depth-model
   (make-cost-model
    'max-depth
@@ -170,15 +150,12 @@
                0
                (fold-left max 0 costs)))))
 
-;;; ====
-;;; Cost Tracker
-;;; ====
+(doc 'section 'cost-tracker)
 
-;;; A cost tracker accumulates costs during evaluation,
-;;; categorized by operation type.
-
-;;; make-cost-tracker : CostModel → CostTracker
 (define (make-cost-tracker model)
+  (doc 'type (-> CostModel CostTracker))
+  (doc 'description "Create a cost tracker that accumulates costs during evaluation, categorized by operation type.")
+  (doc 'export #t)
   `(cost-tracker
     (model . ,model)
     (costs . ())))   ; Alist of (category . accumulated-cost)
@@ -243,12 +220,12 @@
 (define (reset-tracker ct)
   (make-cost-tracker (cost-tracker-model ct)))
 
-;;; ====
-;;; Cost Model Composition
-;;; ====
+(doc 'section 'cost-model-composition)
 
-;;; combine-cost-models : CostModel × CostModel → CostModel
 (define (combine-cost-models cm1 cm2)
+  (doc 'type (-> CostModel CostModel CostModel))
+  (doc 'description "Combine two cost models additively.")
+  (doc 'export #t)
   (make-cost-model
    (string->symbol
     (string-append (symbol->string (cost-model-name cm1))
@@ -267,8 +244,10 @@
                0
                (fold-left + 0 costs)))))
 
-;;; scale-cost-model : CostModel × Nat → CostModel
 (define (scale-cost-model cm factor)
+  (doc 'type (-> CostModel Nat CostModel))
+  (doc 'description "Scale all costs in a cost model by a constant factor.")
+  (doc 'export #t)
   (make-cost-model
    (string->symbol
     (string-append (symbol->string (cost-model-name cm))

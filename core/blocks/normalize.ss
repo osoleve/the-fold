@@ -1,65 +1,44 @@
-;;; core/blocks/normalize.ss — S-expression α-normalization via de Bruijn indices
-;;; @module normalize
-;;; @requires prelude
-;;;
-;;; Converts named variables to positional indices, ensuring that
-;;; α-equivalent expressions produce identical canonical forms.
-;;;
-;;; (fn (x) x)           → (fn (dv 0))
-;;; (fn (x) (fn (y) x))  → (fn (fn (dv 1)))
-;;; (fn (x) (fn (y) y))  → (fn (fn (dv 0)))
-;;;
-;;; Binder forms recognized:
-;;;   (fn (var) body)     - single-argument function
-;;;   (let ((var val)) body) - single binding let
-;;;   (fix (f) body)      - recursive binding
-;;;
-;;; (dv n) represents a de Bruijn variable with index n.
-;;;
-;;; This is Core code: pure, total, assumes perfect input.
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-
 (load "core/base/prelude.ss")
 
-;;; ====
-;;; Environment (prefixed to avoid collision with eval.ss)
-;;; ====
+(doc 'module 'normalize)
+(doc 'description "S-expression α-normalization via de Bruijn indices. Ensures α-equivalent expressions produce identical forms.")
+(doc 'layer 'core)
 
-;;; An environment is a list of symbols, with the innermost binding first.
-;;; Index 0 refers to (car env), index 1 to (cadr env), etc.
+(doc 'section 'environment)
 
-;;; norm-env-empty : Env
-;;; The empty environment with no bindings.
+(doc norm-env-empty 'type Env)
+(doc norm-env-empty 'description "The empty environment with no bindings.")
+(doc norm-env-empty 'export #t)
 (define norm-env-empty '())
 
-;;; norm-env-extend : Env × Symbol → Env
-;;; Extend environment with a new symbol binding.
 (define (norm-env-extend env sym)
+  (doc 'type (-> Env Symbol Env))
+  (doc 'description "Extend environment with a new symbol binding.")
+  (doc 'export #t)
   (cons sym env))
 
-;;; norm-env-lookup : Env × Symbol → (Option Nat)
-;;; Returns the de Bruijn index if found, #f otherwise.
 (define (norm-env-lookup env sym)
+  (doc 'type (-> Env Symbol (Maybe Nat)))
+  (doc 'description "Returns the de Bruijn index if found, #f otherwise.")
+  (doc 'export #t)
   (let loop ([e env] [i 0])
        (cond
         [(null? e) #f]
         [(eq? (car e) sym) i]
         [else (loop (cdr e) (+ i 1))])))
 
-;;; ====
-;;; Normalization
-;;; ====
+(doc 'section 'normalization)
 
-;;; normalize : S-expr → S-expr
-;;; Convert an expression to de Bruijn form.
 (define (normalize expr)
+  (doc 'type (-> Any Any))
+  (doc 'description "Convert an expression to de Bruijn form.")
+  (doc 'export #t)
   (normalize-with-env expr norm-env-empty))
 
-;;; normalize-with-env : S-expr × Env → S-expr
-;;; Convert expression to de Bruijn form using given environment.
 (define (normalize-with-env expr env)
+  (doc 'type (-> Any Env Any))
+  (doc 'description "Convert expression to de Bruijn form using given environment.")
+  (doc 'export #t)
   (cond
    ;; Symbols: look up in environment
    [(symbol? expr)
@@ -127,18 +106,18 @@
    [else
     (map (lambda (e) (normalize-with-env e env)) expr)]))
 
-;;; ====
-;;; Free Variables
-;;; ====
+(doc 'section 'free-variables)
 
-;;; free-vars : S-expr → (List Symbol)
-;;; Collect free variables in the expression (before normalization).
 (define (free-vars expr)
+  (doc 'type (-> Any (List Symbol)))
+  (doc 'description "Collect free variables in the expression (before normalization).")
+  (doc 'export #t)
   (free-vars-with-env expr norm-env-empty))
 
-;;; free-vars-with-env : S-expr × Env → (List Symbol)
-;;; Collect free variables using given environment.
 (define (free-vars-with-env expr env)
+  (doc 'type (-> Any Env (List Symbol)))
+  (doc 'description "Collect free variables using given environment.")
+  (doc 'export #t)
   (cond
    [(symbol? expr)
     (if (norm-env-lookup env expr)
@@ -164,29 +143,15 @@
    [else
     (apply append (map (lambda (e) (free-vars-with-env e env)) expr))]))
 
-;;; Note: unique is provided by prelude.ss
-
-;;; ====
-;;; Algebraic Normalization (Phase 1 - before α-normalization)
-;;; ====
-;;;
-;;; Algebraic normalization canonicalizes expressions by exploiting
-;;; mathematical properties of operations:
-;;;   - Commutative: (+ a b) = (+ b a) → sort arguments
-;;;   - Associative: (+ (+ a b) c) = (+ a b c) → flatten
-;;;   - Parallel bindings: reorder independent let* bindings
-;;;   - Pure sequences: reorder independent pure expressions in begin
-;;;
-;;; CRITICAL: Must be applied BEFORE α-normalization (de Bruijn conversion).
-;;; Reordering bindings after de Bruijn conversion corrupts indices.
+(doc 'section 'algebraic-normalization)
 
 (load "core/blocks/op-properties.ss")
 (load "core/blocks/canonical-order.ss")
 
-;;; normalize-algebraic : S-expr → S-expr
-;;; Algebraic canonicalization of an expression.
-;;; Call this BEFORE normalize (α-normalization).
 (define (normalize-algebraic expr)
+  (doc 'type (-> Any Any))
+  (doc 'description "Algebraic canonicalization of expression. Call BEFORE normalize (α-norm).")
+  (doc 'export #t)
   (cond
     ;; Atoms pass through unchanged
     [(not (pair? expr)) expr]
@@ -245,10 +210,10 @@
     [else
      (map normalize-algebraic expr)]))
 
-;;; flatten-associative : Symbol × (List S-expr) → (List S-expr)
-;;; Flatten nested applications of an associative operator.
-;;; (+ (+ a b) c (+ d e)) → (a b c d e)
 (define (flatten-associative op args)
+  (doc 'type (-> Symbol (List Any) (List Any)))
+  (doc 'description "Flatten nested applications of an associative operator.")
+  (doc 'export #t)
   (apply append
          (map (lambda (arg)
                 (if (and (pair? arg) (eq? (car arg) op))
@@ -256,15 +221,12 @@
                     (list arg)))
               args)))
 
-;;; ====
-;;; Parallel Binding Canonicalization
-;;; ====
+(doc 'section 'parallel-binding-canonicalization)
 
-;;; normalize-parallel-let : S-expr → S-expr
-;;; Reorder let* bindings that don't depend on each other.
-;;; Bindings are sorted topologically (dependencies first),
-;;; with a stable tiebreaker for independent bindings.
 (define (normalize-parallel-let expr)
+  (doc 'type (-> Any Any))
+  (doc 'description "Reorder let* bindings topologically with stable tiebreaker.")
+  (doc 'export #t)
   (let* ([bindings (cadr expr)]
          [body (caddr expr)]
          [sorted (sort-bindings-by-deps bindings)]
@@ -274,10 +236,10 @@
          [norm-body (normalize-algebraic body)])
     `(let* ,norm-bindings ,norm-body)))
 
-;;; sort-bindings-by-deps : (List Binding) → (List Binding)
-;;; Topologically sort bindings, respecting dependencies.
-;;; Bindings without dependencies between them are sorted alphabetically.
 (define (sort-bindings-by-deps bindings)
+  (doc 'type (-> (List Binding) (List Binding)))
+  (doc 'description "Topologically sort bindings with alphabetical tiebreaker.")
+  (doc 'export #t)
   (let* ([bound-vars (map car bindings)]
          [deps-map (map (lambda (b)
                           (let* ([var (car b)]
@@ -288,8 +250,9 @@
                         bindings)])
     (topo-sort-stable bindings deps-map)))
 
-;;; topo-sort-stable : (List Binding) × (List (Var . Deps)) → (List Binding)
-;;; Topological sort with stable tiebreaker (alphabetical by var name).
+(doc topo-sort-stable 'type (-> (List Binding) (List (Var . Deps)) (List Binding)))
+(doc topo-sort-stable 'description "Topological sort with alphabetical tiebreaker.")
+(doc topo-sort-stable 'export #t)
 (define (topo-sort-stable bindings deps-map)
   (define (lookup-deps var)
     (let ([entry (assq var deps-map)])
@@ -326,24 +289,22 @@
                      [new-deps (remove-var next-var deps)])
                 (loop new-remaining new-deps (cons next-binding result))))))))
 
-;;; ====
-;;; Sequence Canonicalization
-;;; ====
+(doc 'section 'sequence-canonicalization)
 
-;;; normalize-begin : S-expr → S-expr
-;;; Sort begin expressions if all subexpressions are provably pure.
-;;; If any expression might have side effects, preserve original order.
 (define (normalize-begin expr)
+  (doc 'type (-> Any Any))
+  (doc 'description "Sort begin expressions if all subexpressions are provably pure.")
+  (doc 'export #t)
   (let* ([exprs (cdr expr)]
          [norm-exprs (map normalize-algebraic exprs)])
     (if (andmap expr-pure? norm-exprs)
         (cons 'begin (canonical-sort norm-exprs))
         (cons 'begin norm-exprs))))
 
-;;; expr-pure? : S-expr → Bool
-;;; Conservative purity check. Returns #t only for expressions
-;;; that are DEFINITELY pure. Unknown expressions default to impure.
 (define (expr-pure? expr)
+  (doc 'type (-> Any Boolean))
+  (doc 'description "Conservative purity check. Unknown expressions default to impure.")
+  (doc 'export #t)
   (cond
     ;; Literals are always pure
     [(or (number? expr) (boolean? expr) (string? expr) (char? expr)) #t]
@@ -372,44 +333,25 @@
 
     [else #f]))
 
-;;; ====
-;;; Combined Normalization
-;;; ====
+(doc 'section 'combined-normalization)
 
-;;; normalize-full : S-expr → S-expr
-;;; Full normalization: algebraic canonicalization followed by α-normalization.
-;;; Use this for version 1 content-addressed hashing.
 (define (normalize-full expr)
+  (doc 'type (-> Any Any))
+  (doc 'description "Full normalization: algebraic canonicalization then α-normalization. For v1 CAS hashing.")
+  (doc 'export #t)
   (normalize (normalize-algebraic expr)))
 
-;;; ====
-;;; Version 2 Normalization Pipeline
-;;; ====
-;;;
-;;; Version 2 adds:
-;;;   - Hash-consing for structural deduplication
-;;;   - Identity/absorbing element elimination
-;;;   - η-reduction for function canonicalization
-;;;   - (Future: polynomial canonicalization)
-;;;
-;;; Order of operations (CRITICAL - order matters!):
-;;;   1. η-reduction (while named variables exist)
-;;;   2. Identity/absorbing elimination
-;;;   3. Algebraic canonicalization (commutative sorting, etc.)
-;;;   4. α-normalization (de Bruijn indices)
-;;;   5. Hash-consing (structural deduplication)
+(doc 'section 'version-2-normalization)
 
 (load "core/blocks/hash-cons.ss")
 (load "core/blocks/poly-canon.ss")
 
-;;; ====
-;;; η-Reduction
-;;; ====
+(doc 'section 'eta-reduction)
 
-;;; eta-reduce : S-expr → S-expr
-;;; Transform (fn (x) (f x)) → f when x does not occur free in f.
-;;; This canonicalizes point-free style wrappers.
 (define (eta-reduce expr)
+  (doc 'type (-> Any Any))
+  (doc 'description "Transform (fn (x) (f x)) → f when x not free in f. Canonicalizes point-free wrappers.")
+  (doc 'export #t)
   (cond
     ;; Atoms pass through
     [(not (pair? expr)) expr]
@@ -458,14 +400,12 @@
     ;; General list: recurse
     [else (map eta-reduce expr)]))
 
-;;; ====
-;;; Identity/Absorbing Element Elimination
-;;; ====
+(doc 'section 'identity-elimination)
 
-;;; eliminate-identities : S-expr → S-expr
-;;; Remove identity elements from operations and simplify absorbing cases.
-;;; Recursively processes the entire expression tree.
 (define (eliminate-identities expr)
+  (doc 'type (-> Any Any))
+  (doc 'description "Remove identity elements from operations and simplify absorbing cases.")
+  (doc 'export #t)
   (cond
     ;; Atoms pass through
     [(not (pair? expr)) expr]
@@ -522,34 +462,31 @@
     ;; General list: recurse
     [else (map eliminate-identities expr)]))
 
-;;; any : (a → Bool) × (List a) → Bool
-;;; Returns #t if predicate is true for any element.
 (define (any pred lst)
+  (doc 'type (-> (-> Any Boolean) (List Any) Boolean))
+  (doc 'description "Returns #t if predicate is true for any element.")
+  (doc 'export #t)
   (cond
     [(null? lst) #f]
     [(pred (car lst)) #t]
     [else (any pred (cdr lst))]))
 
-;;; ====
-;;; Version 2 Algebraic Normalization
-;;; ====
+(doc 'section 'version-2-algebraic)
 
-;;; normalize-algebraic-v2 : S-expr → S-expr
-;;; Enhanced algebraic canonicalization with:
-;;;   - η-reduction
-;;;   - Identity/absorbing element elimination
-;;;   - Polynomial canonicalization for arithmetic subtrees
-;;;   - Standard algebraic canonicalization (commutative sorting, etc.)
 (define (normalize-algebraic-v2 expr)
+  (doc 'type (-> Any Any))
+  (doc 'description "Enhanced algebraic canonicalization with η-reduction, identity elim, poly-canon, and sorting.")
+  (doc 'export #t)
   (let* ([eta-reduced (eta-reduce expr)]
          [poly-canonicalized (poly-canonicalize-recursive eta-reduced)]
          [algebraically-sorted (normalize-algebraic poly-canonicalized)]
          [identities-eliminated (eliminate-identities algebraically-sorted)])
     identities-eliminated))
 
-;;; poly-canonicalize-recursive : S-expr → S-expr
-;;; Apply polynomial canonicalization recursively to all arithmetic subtrees.
 (define (poly-canonicalize-recursive expr)
+  (doc 'type (-> Any Any))
+  (doc 'description "Apply polynomial canonicalization recursively to all arithmetic subtrees.")
+  (doc 'export #t)
   (cond
     ;; Atoms pass through
     [(not (pair? expr)) expr]
@@ -581,91 +518,53 @@
     ;; General list: recurse
     [else (map poly-canonicalize-recursive expr)]))
 
-;;; ====
-;;; Version 2 Combined Normalization
-;;; ====
+(doc 'section 'version-2-combined)
 
-;;; normalize-v2 : S-expr → S-expr
-;;; Full version 2 normalization pipeline:
-;;;   η-reduction → poly-canon → algebraic → identity elimination → α → hash-cons
-;;; Identity elimination is applied LAST in the algebraic phase because
-;;; flattening may expose new identity opportunities (e.g., (+ (+ a 0) b)).
-;;; Use this for version 2 content-addressed hashing.
 (define (normalize-v2 expr)
+  (doc 'type (-> Any Any))
+  (doc 'description "Full v2 normalization: η → poly-canon → algebraic → identity elim → α → hash-cons. For v2 CAS hashing.")
+  (doc 'export #t)
   (hash-cons (normalize (normalize-algebraic-v2 expr))))
 
-;;; normalize-v2-no-hashcons : S-expr → S-expr
-;;; Version 2 without hash-consing (for testing/comparison).
 (define (normalize-v2-no-hashcons expr)
+  (doc 'type (-> Any Any))
+  (doc 'description "Version 2 without hash-consing (for testing/comparison).")
+  (doc 'export #t)
   (normalize (normalize-algebraic-v2 expr)))
 
-;;; ====
-;;; Version 3 Normalization Pipeline
-;;; ====
-;;;
-;;; Version 3 adds NbE (Normalization by Evaluation) to the pipeline.
-;;; NbE provides intrinsic reductions that were previously missing or
-;;; required external rewrite rules:
-;;;
-;;;   - β-reduction: ((fn (x) body) arg) → body[arg/x]
-;;;   - η-equivalence: structurally (via readback)
-;;;   - Pair projections: (fst (pair a b)) → a, (snd (pair a b)) → b
-;;;   - Sum projections: (case (Left a) ...) → left-branch[a]
-;;;   - Conditionals: (if #t a b) → a, (if #f a b) → b
-;;;
-;;; The v3 pipeline is:
-;;;   NbE → V2 algebraic → α-normalization → Hash-consing
-;;;
-;;; NbE is applied FIRST because it performs semantic reductions that
-;;; may expose opportunities for algebraic canonicalization.
-;;;
-;;; Order matters:
-;;;   1. NbE: Semantic evaluation and readback (β, projections, case)
-;;;   2. V2 algebraic: η-reduction, poly-canon, sorting, identity elim
-;;;   3. α-norm: De Bruijn indices
-;;;   4. Hash-cons: Structural deduplication
-;;;
-;;; Properties:
-;;;   - Backward compatible: v3 identifies MORE equivalences than v2
-;;;   - Monotonic: if v2-hash(a) = v2-hash(b), then v3-hash(a) = v3-hash(b)
-;;;   - Idempotent: normalize-v3(normalize-v3(x)) = normalize-v3(x)
-;;;   - Deterministic: same input → same output
+(doc 'section 'version-3-normalization)
 
 (load "core/blocks/nbe-normalize.ss")
 
-;;; normalize-v3 : S-expr → S-expr
-;;; Full version 3 normalization pipeline:
-;;;   NbE → η-reduction → poly-canon → algebraic → identity elim → α → hash-cons
-;;;
-;;; This is the most aggressive normalization mode, identifying the
-;;; maximum number of semantic equivalences.
 (define (normalize-v3 expr)
+  (doc 'type (-> Any Any))
+  (doc 'description "Full v3 normalization: NbE → η → poly-canon → algebraic → identity → α → hash-cons. Most aggressive mode.")
+  (doc 'export #t)
   (hash-cons
    (normalize
     (normalize-algebraic-v2
      (nbe-normalize-for-cas expr)))))
 
-;;; normalize-v3-no-hashcons : S-expr → S-expr
-;;; Version 3 without hash-consing (for testing/comparison).
 (define (normalize-v3-no-hashcons expr)
+  (doc 'type (-> Any Any))
+  (doc 'description "Version 3 without hash-consing (for testing/comparison).")
+  (doc 'export #t)
   (normalize
    (normalize-algebraic-v2
     (nbe-normalize-for-cas expr))))
 
-;;; normalize-v3-no-nbe : S-expr → S-expr
-;;; Version 3 without NbE (for testing/comparison).
-;;; Equivalent to normalize-v2.
 (define (normalize-v3-no-nbe expr)
+  (doc 'type (-> Any Any))
+  (doc 'description "Version 3 without NbE (equivalent to normalize-v2).")
+  (doc 'export #t)
   (normalize-v2 expr))
 
-;;; ====
-;;; V3 Normalization Diagnostics
-;;; ====
+(doc 'section 'v3-diagnostics)
 
-;;; normalize-v3-phases : S-expr → Alist
-;;; Run v3 normalization and return intermediate results at each phase.
-;;; Useful for debugging and understanding normalization behavior.
 (define (normalize-v3-phases expr)
+  (doc 'type (-> Any Alist))
+  (doc 'description "Run v3 normalization and return intermediate results at each phase.")
+  (doc 'export #t)
   (let* ([nbe-result (nbe-normalize-for-cas expr)]
          [alg-result (normalize-algebraic-v2 nbe-result)]
          [alpha-result (normalize alg-result)]
@@ -676,10 +575,10 @@
       (after-alpha . ,alpha-result)
       (final . ,final-result))))
 
-;;; v3-equivalence-report : S-expr × S-expr → Alist
-;;; Compare two expressions and report their normalization at each version.
-;;; Useful for understanding when and why expressions become equivalent.
 (define (v3-equivalence-report e1 e2)
+  (doc 'type (-> Any Any Alist))
+  (doc 'description "Compare two expressions and report normalization at each version.")
+  (doc 'export #t)
   (let* ([e1-v1 (normalize-full e1)]
          [e2-v1 (normalize-full e2)]
          [e1-v2 (normalize-v2 e1)]

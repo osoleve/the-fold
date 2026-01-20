@@ -1,58 +1,15 @@
-;;; core/types/dep-match.ss — Dependent Pattern Matching
-;;;
-;;; Extends pattern matching to handle dependent types with type refinement.
-;;; When we match on an indexed type, we learn information about the indices.
-;;;
-;;; Key concepts:
-;;;   1. Type refinement - matching on (cons x xs : Vec (succ n) A) refines n
-;;;   2. Coverage checking - ensuring all cases are handled
-;;;   3. Inaccessible patterns - patterns forced by type indices (dot patterns)
-;;;   4. Impossible cases - patterns that can't match due to index constraints
-;;;
-;;; Example:
-;;;   (match (v : Vec n A)
-;;;     [nil ...]                      ; Refines n ~ 0
-;;;     [(cons x xs) ...])             ; Refines n ~ (succ m), binds xs : Vec m A
-;;;
-;;;   (match (p : (= A x y))
-;;;     [refl ...])                    ; Refines x ~ y
-;;;
-;;; This is Core code: pure, total, assumes perfect input.
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;   - types.ss
-;;;   - dep-types.ss
-;;;   - gadt.ss
-
 (load "core/base/prelude.ss")
 (load "core/types/types.ss")
 (load "core/types/dep-types.ss")
 (load "core/types/gadt.ss")
 
-;;; ====
-;;; Dependent Match Grammar
-;;; ====
-;;;
-;;; (dep-match (scrutinee : Type)
-;;;   [pattern body]
-;;;   ...)
-;;;
-;;; Pattern ::= Var                    ; Binds variable
-;;;           | (Ctor pattern ...)     ; Constructor pattern
-;;;           | (. Expr)               ; Inaccessible (dot pattern)
-;;;           | _                      ; Wildcard
-;;;
-;;; Patterns may contain:
-;;;   - Variables that bind values
-;;;   - Dot patterns (. expr) for indices forced by the type
-;;;   - Wildcards for values we don't care about
+(doc 'module 'dep-match)
+(doc 'description "Dependent pattern matching with type refinement. Extends pattern matching to handle dependent types, learning information about indices during matching. Includes coverage checking, inaccessible patterns, and impossible case detection")
+(doc 'layer 'core)
 
-;;; ====
-;;; Type Any
-;;; ====
+(doc 'section 'dep-match-grammar)
 
-;;; A type refinement is a substitution learned from pattern matching.
+(doc 'section 'type-refinement)
 ;;; When we match on a constructor with specific return type indices,
 ;;; we learn equations between type variables and specific types.
 ;;;

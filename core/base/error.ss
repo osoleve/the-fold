@@ -1,29 +1,17 @@
-;;; core/base/error.ss — Unified Error System
-;;; @module error
-;;; @requires prelude span
-;;;
-;;; Standardized error types with:
-;;;   - Phase identification (where it happened)
-;;;   - Error codes (what happened)
-;;;   - Source context (location when available)
-;;;   - Suggestions (how to fix)
-;;;
-;;; Error = (error phase code context details...)
-;;;
-;;; This is Core code: pure, total.
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;   - span.ss (for source location tracking)
-
 (load "core/base/prelude.ss")
-(load "core/base/span.ss")  ; Imports make-span, span?, span-file, span-line, etc.
+(load "core/base/span.ss")
 
-;;; ====
-;;; Error Codes by Phase
-;;; ====
+(doc 'module 'error)
+(doc 'description "Unified error system. Standardized error types with phase identification (where it happened), error codes (what happened), source context (location when available), and suggestions (how to fix).")
+(doc 'layer 'core)
+(doc 'purity 'total)
+(doc 'dependencies '(prelude span))
+(doc 'note "Error = (error phase code context details...)")
 
-;;; Parse errors
+(doc 'section 'error-codes-by-phase)
+
+(doc *parse-errors* 'type (List (Pair Symbol String)))
+(doc *parse-errors* 'description "Parse error codes and messages.")
 (define *parse-errors*
   '((unexpected-eof    . "Unexpected end of input")
     (unexpected-char   . "Unexpected character")
@@ -32,7 +20,8 @@
     (invalid-number    . "Invalid number format")
     (invalid-escape    . "Invalid escape sequence")))
 
-;;; Type inference errors
+(doc *infer-errors* 'type (List (Pair Symbol String)))
+(doc *infer-errors* 'description "Type inference error codes and messages.")
 (define *infer-errors*
   '((unbound-variable  . "Variable is not defined")
     (type-mismatch     . "Types do not match")
@@ -42,7 +31,8 @@
     (unknown-primitive . "Unknown primitive operation")
     (if-test-not-bool  . "If condition must be boolean")))
 
-;;; Evaluation errors
+(doc *eval-errors* 'type (List (Pair Symbol String)))
+(doc *eval-errors* 'description "Evaluation error codes and messages.")
 (define *eval-errors*
   '((unbound-variable   . "Variable is not defined")
     (invalid-expression . "Cannot evaluate this expression")
@@ -52,7 +42,8 @@
     (out-of-bounds      . "Index out of bounds")
     (type-error         . "Runtime type error")))
 
-;;; Block/CAS errors
+(doc *block-errors* 'type (List (Pair Symbol String)))
+(doc *block-errors* 'description "Block/CAS error codes and messages.")
 (define *block-errors*
   '((invalid-tag       . "Invalid block tag")
     (invalid-payload   . "Invalid block payload")
@@ -60,50 +51,55 @@
     (hash-mismatch     . "Content hash does not match")
     (not-found         . "Block not found in store")))
 
-;;; ====
-;;; Error Construction
-;;; ====
+(doc 'section 'error-construction)
 
-;;; make-error : Phase × Code × Context × Details... → Error
-;;; Create a structured error.
 (define (make-error phase code context . details)
+  (doc 'type (-> Symbol Symbol Any Any ... Error))
+  (doc 'description "Create a structured error.")
+  (doc 'export #t)
   `(error ,phase ,code ,context ,@details))
 
-;;; error-phase : Error → (Option Symbol)
 (define (error-phase err)
+  (doc 'type (-> Error (Maybe Symbol)))
+  (doc 'description "Extract phase from error.")
+  (doc 'export #t)
   (and (error? err) (cadr err)))
 
-;;; error-code : Error → (Option Symbol)
 (define (error-code err)
+  (doc 'type (-> Error (Maybe Symbol)))
+  (doc 'description "Extract code from error.")
+  (doc 'export #t)
   (and (error? err) (caddr err)))
 
-;;; error-context : Error → (Option α)
 (define (error-context err)
+  (doc 'type (-> Error (Maybe α)))
+  (doc 'description "Extract context from error.")
+  (doc 'export #t)
   (and (error? err) (cadddr err)))
 
-;;; error-details : Error → (List α)
 (define (error-details err)
+  (doc 'type (-> Error (List α)))
+  (doc 'description "Extract details from error.")
+  (doc 'export #t)
   (and (error? err) (cddddr err)))
 
-;;; error? : α → Boolean
 (define (error? x)
+  (doc 'type (-> α Bool))
+  (doc 'description "Is this an error?")
+  (doc 'export #t)
   (and (pair? x)
        (eq? (car x) 'error)
        (>= (length x) 4)))
 
-;;; ====
-;;; Source Context (Spans)
-;;;
-;;; Span operations imported from span.ss:
-;;;   make-span, span?, span-file, span-line, span-column, no-span
-;;; ====
+(doc 'section 'source-context)
+(doc 'note "Span operations imported from span.ss: make-span, span?, span-file, span-line, span-column, no-span.")
 
-;;; ====
-;;; Error Message Lookup
-;;; ====
+(doc 'section 'error-message-lookup)
 
-;;; lookup-error-message : Symbol × Symbol → String
 (define (lookup-error-message phase code)
+  (doc 'type (-> Symbol Symbol String))
+  (doc 'description "Lookup error message for phase and code.")
+  (doc 'export #t)
   (let* ([table (case phase
                       [(parse) *parse-errors*]
                       [(infer) *infer-errors*]
@@ -115,13 +111,12 @@
             (cdr entry)
             (symbol->string code))))
 
-;;; ====
-;;; Error Formatting
-;;; ====
+(doc 'section 'error-formatting)
 
-;;; format-error : α → String
-;;; Format an error for display.
 (define (format-error err)
+  (doc 'type (-> α String))
+  (doc 'description "Format an error for display.")
+  (doc 'export #t)
   (if (not (error? err))
       (format "~a" err)
       (let* ([phase (error-phase err)]
@@ -137,12 +132,14 @@
              (format-details code details)
              (format-suggestion phase code details)))))
 
-;;; format-phase : Symbol → String
 (define (format-phase phase)
+  (doc 'type (-> Symbol String))
+  (doc 'description "Format phase for display.")
   (format "[~a] " phase))
 
-;;; format-location : α → String
 (define (format-location ctx)
+  (doc 'type (-> α String))
+  (doc 'description "Format location context for display.")
   (cond
    [(span? ctx)
     (let ([file (span-file ctx)]
@@ -154,8 +151,9 @@
    [(string? ctx) (format "~a: " ctx)]
    [else ""]))
 
-;;; format-details : Symbol × (List α) → String
 (define (format-details code details)
+  (doc 'type (-> Symbol (List α) String))
+  (doc 'description "Format error details for display.")
   (if (null? details)
       ""
       (case code
@@ -180,20 +178,20 @@
                  (format ": ~a" (car details))
                  "")])))
 
-;;; ====
-;;; Suggestions
-;;; ====
+(doc 'section 'suggestions)
 
-;;; format-suggestion : Symbol × Symbol × (List α) → String
 (define (format-suggestion phase code details)
+  (doc 'type (-> Symbol Symbol (List α) String))
+  (doc 'description "Format suggestion for error.")
   (let ([suggestion (get-suggestion phase code details)])
        (if suggestion
            (format "
   hint: ~a" suggestion)
            "")))
 
-;;; get-suggestion : Symbol × Symbol × (List α) → (Option String)
 (define (get-suggestion phase code details)
+  (doc 'type (-> Symbol Symbol (List α) (Maybe String)))
+  (doc 'description "Get suggestion text for error code.")
   (case code
         [(unbound-variable)
          (cond
@@ -218,27 +216,27 @@
          "Add a closing \" to complete the string"]
         [else #f]))
 
-;;; similar-to? : α × β → Boolean
-;;; Check if two symbols are similar (for typo detection).
 (define (similar-to? s1 s2)
+  (doc 'type (-> α β Bool))
+  (doc 'description "Check if two symbols are similar (for typo detection).")
   (and (symbol? s1) (symbol? s2)
        (let ([str1 (symbol->string s1)]
              [str2 (symbol->string s2)])
             (<= (edit-distance str1 str2) 2))))
 
-;;; ====
-;;; Pretty Printing
-;;; ====
+(doc 'section 'pretty-printing)
 
-;;; print-error : Error → Void
-;;; Print a formatted error to current output.
 (define (print-error err)
+  (doc 'type (-> Error Void))
+  (doc 'description "Print a formatted error to current output.")
+  (doc 'export #t)
   (display (format-error err))
   (newline))
 
-;;; print-error-with-source : Error × String → Void
-;;; Print error with source code context.
 (define (print-error-with-source err source)
+  (doc 'type (-> Error String Void))
+  (doc 'description "Print error with source code context.")
+  (doc 'export #t)
   (let ([ctx (error-context err)])
        (display (format-error err))
        (newline)
@@ -246,9 +244,9 @@
              (display-source-context source (span-line ctx) (span-column ctx)))
        (newline)))
 
-;;; display-source-context : String × Nat × Nat → Void
-;;; Show the relevant line with an underline pointer.
 (define (display-source-context source line col)
+  (doc 'type (-> String Nat Nat Void))
+  (doc 'description "Show the relevant line with an underline pointer.")
   (let ([lines (string-split source #\newline)])
        (when (and (> line 0) (<= line (length lines)))
              (let ([src-line (list-ref lines (- line 1))])
@@ -260,24 +258,31 @@
                   (display "^")
                   (newline)))))
 
-;;; NOTE: string-split is provided by prelude.ss (loaded above)
+(doc 'note "string-split is provided by prelude.ss (loaded above).")
 
-;;; ====
-;;; Error Helpers for Common Cases
-;;; ====
+(doc 'section 'error-helpers)
+(doc 'note "Helpers for common error cases.")
 
-;;; unbound-error : Symbol × Span → Error
 (define (unbound-error var span)
+  (doc 'type (-> Symbol Span Error))
+  (doc 'description "Create unbound variable error.")
+  (doc 'export #t)
   (make-error 'infer 'unbound-variable span var))
 
-;;; type-error : α × β × Span → Error
 (define (type-error expected actual span)
+  (doc 'type (-> α β Span Error))
+  (doc 'description "Create type mismatch error.")
+  (doc 'export #t)
   (make-error 'infer 'type-mismatch span expected actual))
 
-;;; parse-error : Symbol × String × Nat → Error
 (define (parse-error code expected position)
+  (doc 'type (-> Symbol String Nat Error))
+  (doc 'description "Create parse error.")
+  (doc 'export #t)
   (make-error 'parse code (make-span "<input>" 1 position 1 position) expected))
 
-;;; eval-error : Symbol × α × Span → Error
 (define (eval-error code value span)
+  (doc 'type (-> Symbol α Span Error))
+  (doc 'description "Create evaluation error.")
+  (doc 'export #t)
   (make-error 'eval code span value))

@@ -1,50 +1,41 @@
-;;; core/lang/fold-parse.ss — Fold Syntax Parser
-;;; @module fold-parse
-;;; @requires prelude span
-;;;
-;;; Parses Fold's S-expression syntax using spanned combinators.
-;;; Returns AST nodes with source spans for error reporting.
-;;;
-;;; Fold Syntax:
-;;;   expr = atom | list | quoted
-;;;   atom = number | string | symbol | boolean
-;;;   list = "(" expr* ")"
-;;;   quoted = "'" expr
-;;;   number = int | float
-;;;   string = '"' chars '"'
-;;;   symbol = identifier
-;;;   boolean = #t | #f
-;;;   comment = ";" to-end-of-line
-;;;
-;;; This is Core code: pure, total, assumes perfect input.
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;   - span.ss (spanned combinators)
-
 (load "core/base/prelude.ss")
 (load "core/lang/span.ss")
 
-;;; ====
-;;; Fold AST Types
-;;; ====
+(doc 'module 'fold-parse)
+(doc 'description "Fold Syntax Parser. Parses Fold's S-expression syntax using spanned combinators. Returns AST nodes with source spans for error reporting.")
+(doc 'layer 'core)
+(doc 'requires '(prelude span))
 
-;;; AST nodes are spanned values:
-;;;   (spanned value span)
-;;;
-;;; Values:
-;;;   - Numbers: just the number
-;;;   - Strings: just the string
-;;;   - Symbols: just the symbol
-;;;   - Booleans: #t or #f
-;;;   - Lists: list of spanned values
+(doc 'note "Fold Syntax:
+  expr = atom | list | quoted
+  atom = number | string | symbol | boolean
+  list = \"(\" expr* \")\"
+  quoted = \"'\" expr
+  number = int | float
+  string = '\"' chars '\"'
+  symbol = identifier
+  boolean = #t | #f
+  comment = \";\" to-end-of-line
 
-;;; ====
-;;; Lexical Elements
-;;; ====
+This is Core code: pure, total, assumes perfect input.")
 
-;;; fold-comment : SpannedParser Unit
-;;; Skip a line comment.
+(doc 'section 'ast)
+
+(doc 'note "AST nodes are spanned values:
+  (spanned value span)
+
+Values:
+  - Numbers: just the number
+  - Strings: just the string
+  - Symbols: just the symbol
+  - Booleans: #t or #f
+  - Lists: list of spanned values")
+
+(doc 'section 'lexical)
+
+(doc fold-comment 'type SpannedParser)
+(doc fold-comment 'description "Skip a line comment.")
+(doc fold-comment 'export #t)
 (define fold-comment
   (s-bind (s-char #\;) (lambda (_)
                                (s-bind (s-many (s-satisfy (lambda (c) (not (char=? c #\newline)))

@@ -1,105 +1,120 @@
-;;; core/types/sig-check.ss — Type Signature Parsing and Validation
-;;; @module sig-check
-;;; @requires prelude types kinds
-;;;
-;;; Unified module for parsing and validating type signatures.
-;;; Combines signature parsing and kind validation into a cohesive unit.
-;;;
-;;; Signature format:
-;;;   ;;; name : Type1 × Type2 → ResultType
-;;;   ;;; name : (List α) × α → (List α)
-;;;   ;;; name : ∀ α. α → α
-;;;
-;;; Type grammar:
-;;;   Type ::= BaseType | TypeVar | (TypeCon Type ...) | Type → Type | Type × Type
-;;;   BaseType ::= Int | Nat | Bool | String | Symbol | Char | Unit | Void | Hash | ...
-;;;   TypeVar ::= α | β | γ | ... | a | b | c | ... (lowercase single letters)
-;;;   TypeCon ::= List | Vector | Option | Maybe | Pair | Result | ...
-;;;
-;;; Quick API Reference:
-;;;
-;;;   Tokenization:
-;;;     (tokenize-sig "α → β")           → (ok ((symbol . α) (arrow . →) (symbol . β)))
-;;;
-;;;   Parsing:
-;;;     (parse-type tokens)              → (ok parsed-type remaining-tokens)
-;;;     (parse-sig-line ";;; f : α → β") → (ok (f . (-> α β)))
-;;;
-;;;   Validation:
-;;;     (check-type-kind '(-> Int Bool)) → (ok *)
-;;;     (check-file "core/types/infer.ss") → checks all ;;; signatures
-;;;
-;;;   Pretty printing:
-;;;     (format-type '(-> Int Bool))     → "Int → Bool"
-;;;
-;;; Usage as script:
-;;;   scheme --script core/types/type-annotation-check.ss [file ...]
-;;;
-;;; This is Core code: pure, total (parsing), assumes well-formed input files.
-;;;
-;;; Merged from: sig-parser.ss, type-annotation-check.ss
-
 (load "core/base/prelude.ss")
 (load "core/types/types.ss")
 (load "core/types/kinds.ss")
 
-;;; ====
-;;; Section 1: Special Characters
-;;; ====
+(doc 'module 'sig-check)
+(doc 'description "Unified module for parsing and validating type signatures. Combines signature parsing and kind validation into a cohesive unit.")
+(doc 'layer 'core)
+(doc 'requires '(prelude types kinds))
+(doc 'merged-from '(sig-parser.ss type-annotation-check.ss))
 
+(doc 'note "Signature format: ;;; name : Type1 × Type2 → ResultType, ;;; name : (List α) × α → (List α), ;;; name : ∀ α. α → α")
+
+(doc 'note "Type grammar: Type ::= BaseType | TypeVar | (TypeCon Type ...) | Type → Type | Type × Type; BaseType ::= Int | Nat | Bool | String | Symbol | Char | Unit | Void | Hash | ...; TypeVar ::= α | β | γ | ... | a | b | c | ... (lowercase single letters); TypeCon ::= List | Vector | Option | Maybe | Pair | Result | ...")
+
+(doc 'note "API: Tokenization: (tokenize-sig str) → (ok tokens); Parsing: (parse-type tokens) → (ok type remaining), (parse-sig-line line) → (ok (name . type)); Validation: (check-type-kind type) → (ok kind), (check-file file) → checks all signatures; Pretty: (format-type type) → string")
+
+(doc 'note "Usage as script: scheme --script core/types/type-annotation-check.ss [file ...]")
+
+(doc 'section 'special-characters)
+
+(doc %arrow 'type 'String)
+(doc %arrow 'description "Arrow character for function types.")
+(doc %arrow 'export #t)
 (define %arrow "→")
+
+(doc %times 'type 'String)
+(doc %times 'description "Times character for product types.")
+(doc %times 'export #t)
 (define %times "×")
+
+(doc %forall 'type 'String)
+(doc %forall 'description "Forall character for universal quantification.")
+(doc %forall 'export #t)
 (define %forall "∀")
+
+(doc %lparen 'type 'String)
+(doc %lparen 'description "Left parenthesis character.")
+(doc %lparen 'export #t)
 (define %lparen "(")
+
+(doc %rparen 'type 'String)
+(doc %rparen 'description "Right parenthesis character.")
+(doc %rparen 'export #t)
 (define %rparen ")")
+
+(doc %pipe 'type 'String)
+(doc %pipe 'description "Pipe character for union types.")
+(doc %pipe 'export #t)
 (define %pipe "|")
+
+(doc %dot 'type 'String)
+(doc %dot 'description "Dot character for forall body separator.")
+(doc %dot 'export #t)
 (define %dot ".")
 
-;;; ====
-;;; Section 2: Tokenizer
-;;; ====
+(doc 'section 'tokenizer)
 
-;;; Token types: symbol, arrow, times, lparen, rparen, pipe, forall, dot
-;;; make-token : Symbol × String → Token
+(doc 'note "Token types: symbol, arrow, times, lparen, rparen, pipe, forall, dot")
+
 (define (make-token type value)
+  (doc 'type '(-> Symbol String Token))
+  (doc 'description "Create a token with given type and value.")
+  (doc 'export #t)
   (cons type value))
 
-;;; token-type : Token → Symbol
-(define (token-type tok) (car tok))
+(define (token-type tok)
+  (doc 'type '(-> Token Symbol))
+  (doc 'description "Extract token type.")
+  (doc 'export #t)
+  (car tok))
 
-;;; token-value : Token → String
-(define (token-value tok) (cdr tok))
+(define (token-value tok)
+  (doc 'type '(-> Token String))
+  (doc 'description "Extract token value.")
+  (doc 'export #t)
+  (cdr tok))
 
-;;; Known base types
+(doc base-type-names 'type '(List Symbol))
+(doc base-type-names 'description "Known base type names.")
+(doc base-type-names 'export #t)
 (define base-type-names
   '(Int Nat Bool String Symbol Char Unit Void Hash Bytes
     Integer Number Real Rational Any))
 
-;;; Known type constructors
+(doc type-constructor-names 'type '(List Symbol))
+(doc type-constructor-names 'description "Known type constructor names.")
+(doc type-constructor-names 'export #t)
 (define type-constructor-names
   '(List Vector Option Maybe Pair Result Either Values
     Set Map Ref Block Cap Stream Delayed Functor Applicative Monad))
 
-;;; Type variable names (Greek letters and single lowercase)
+(doc greek-type-vars 'type '(List Symbol))
+(doc greek-type-vars 'description "Type variable names (Greek letters and single lowercase).")
+(doc greek-type-vars 'export #t)
 (define greek-type-vars
   '(α β γ δ ε ζ η θ ι κ λ μ ν ξ ο π ρ σ τ υ φ χ ψ ω))
 
-;;; type-var? : Symbol → Boolean
 (define (type-var? sym)
+  (doc 'type '(-> Symbol Bool))
+  (doc 'description "Check if symbol is a type variable (Greek letter or single lowercase).")
+  (doc 'export #t)
   (or (memq sym greek-type-vars)
       ;; Single lowercase letter
       (let ([s (symbol->string sym)])
            (and (= (string-length s) 1)
                 (char-lower-case? (string-ref s 0))))))
 
-;;; tokenize-sig : String → (List Token) | (error ...)
-;;; Tokenize a type signature string.
 (define (tokenize-sig str)
+  (doc 'type '(-> String (Result (List Token) Error)))
+  (doc 'description "Tokenize a type signature string.")
+  (doc 'export #t)
   (let ([len (string-length str)])
        (tokenize-from str 0 len '())))
 
-;;; tokenize-from : String × Nat × Nat × (List Token) → (Result (List Token) Error)
 (define (tokenize-from str pos len tokens)
+  (doc 'type '(-> String Nat Nat (List Token) (Result (List Token) Error)))
+  (doc 'description "Tokenize from position, accumulating tokens.")
   (if (>= pos len)
       `(ok ,(reverse tokens))
       (let ([ch (string-ref str pos)])
@@ -182,16 +197,17 @@
             
             [else `(error unexpected-char ,ch at ,pos)]))))
 
-;;; string-prefix-at? : String × Nat × String → Boolean
 (define (string-prefix-at? str pos prefix)
+  (doc 'type '(-> String Nat String Bool))
+  (doc 'description "Check if string has prefix at given position.")
   (let ([plen (string-length prefix)]
         [slen (string-length str)])
        (and (<= (+ pos plen) slen)
             (string=? (substring str pos (+ pos plen)) prefix))))
 
-;;; scan-symbol : String × Nat × Nat → (Values Symbol Nat)
-;;; Scan an identifier starting at pos.
 (define (scan-symbol str pos len)
+  (doc 'type '(-> String Nat Nat (Values Symbol Nat)))
+  (doc 'description "Scan an identifier starting at position.")
   (let loop ([end pos])
        (if (>= end len)
            (values (string->symbol (substring str pos end)) end)
@@ -205,9 +221,9 @@
                     (loop (+ end 1))
                     (values (string->symbol (substring str pos end)) end))))))
 
-;;; scan-greek : String × Nat × Nat → (Values Symbol|#f Nat)
-;;; Try to scan a Greek letter.
 (define (scan-greek str pos len)
+  (doc 'type '(-> String Nat Nat (Values (+ Symbol #f) Nat)))
+  (doc 'description "Try to scan a Greek letter. Returns #f if no match.")
   ;; Greek letters in UTF-8 are multi-byte
   ;; We check for common Greek letters used in type signatures
   (let ([remaining (- len pos)])
@@ -230,19 +246,19 @@
                               (values sym (+ pos sym-len))
                               (loop (cdr greeks)))))))))
 
-;;; ====
-;;; Section 3: Parser
-;;; ====
+(doc 'section 'parser)
 
-;;; Parser state: list of remaining tokens
-;;; Result: (ok ast remaining-tokens) | (error msg)
+(doc 'note "Parser state: list of remaining tokens. Result: (ok ast remaining-tokens) | (error msg)")
 
-;;; parse-type : (List Token) → (Result (× Type (List Token)) Error)
 (define (parse-type tokens)
+  (doc 'type '(-> (List Token) (Result (× Type (List Token)) Error)))
+  (doc 'description "Parse a type from tokens.")
+  (doc 'export #t)
   (parse-arrow tokens))
 
-;;; parse-arrow : (List Token) → (Result (× Type (List Token)) Error)
 (define (parse-arrow tokens)
+  (doc 'type '(-> (List Token) (Result (× Type (List Token)) Error)))
+  (doc 'description "Parse arrow (function) types.")
   (let ([result (parse-product tokens)])
        (if (not (eq? (car result) 'ok))
            result
@@ -260,8 +276,9 @@
                     ;; No arrow, return left
                     `(ok ,left ,rest))))))
 
-;;; parse-product : (List Token) → (Result (× Type (List Token)) Error)
 (define (parse-product tokens)
+  (doc 'type '(-> (List Token) (Result (× Type (List Token)) Error)))
+  (doc 'description "Parse product (×) types.")
   (let ([result (parse-union tokens)])
        (if (not (eq? (car result) 'ok))
            result
@@ -269,8 +286,9 @@
                  [rest (caddr result)])
                 (parse-product-rest (list first) rest)))))
 
-;;; parse-product-rest : (List Type) × (List Token) → (Result (× Type (List Token)) Error)
 (define (parse-product-rest acc tokens)
+  (doc 'type '(-> (List Type) (List Token) (Result (× Type (List Token)) Error)))
+  (doc 'description "Parse remaining product types after first component.")
   (if (and (pair? tokens)
            (eq? (token-type (car tokens)) 'times))
       (let ([result (parse-union (cdr tokens))])
@@ -284,8 +302,9 @@
           `(ok ,(car acc) ,tokens)
           `(ok (× ,@(reverse acc)) ,tokens))))
 
-;;; parse-union : (List Token) → (Result (× Type (List Token)) Error)
 (define (parse-union tokens)
+  (doc 'type '(-> (List Token) (Result (× Type (List Token)) Error)))
+  (doc 'description "Parse union (|) types.")
   (let ([result (parse-atom tokens)])
        (if (not (eq? (car result) 'ok))
            result
@@ -293,8 +312,9 @@
                  [rest (caddr result)])
                 (parse-union-rest (list first) rest)))))
 
-;;; parse-union-rest : (List Type) × (List Token) → (Result (× Type (List Token)) Error)
 (define (parse-union-rest acc tokens)
+  (doc 'type '(-> (List Type) (List Token) (Result (× Type (List Token)) Error)))
+  (doc 'description "Parse remaining union types after first component.")
   (if (and (pair? tokens)
            (eq? (token-type (car tokens)) 'pipe))
       (let ([result (parse-atom (cdr tokens))])
@@ -309,8 +329,9 @@
           ;; Convert A | B to (+ A B)
           `(ok (+ ,@(reverse acc)) ,tokens))))
 
-;;; parse-atom : (List Token) → (Result (× Type (List Token)) Error)
 (define (parse-atom tokens)
+  (doc 'type '(-> (List Token) (Result (× Type (List Token)) Error)))
+  (doc 'description "Parse atomic types (symbols, parens, forall).")
   (if (null? tokens)
       `(error unexpected-end-of-input)
       (let ([tok (car tokens)]
@@ -327,8 +348,9 @@
                  [else
                   `(error unexpected-token ,(token-type tok))]))))
 
-;;; parse-forall : (List Token) → (Result (× Type (List Token)) Error)
 (define (parse-forall tokens)
+  (doc 'type '(-> (List Token) (Result (× Type (List Token)) Error)))
+  (doc 'description "Parse forall (∀) types.")
   (let-values ([(vars rest) (parse-forall-vars tokens '())])
               (if (and (pair? rest)
                        (eq? (token-type (car rest)) 'dot))
@@ -340,8 +362,9 @@
                                 `(ok (∀ ,vars ,body) ,rest2))))
                   `(error expected-dot-in-forall))))
 
-;;; parse-forall-vars : (List Token) × (List Symbol) → (Values (List Symbol) (List Token))
 (define (parse-forall-vars tokens acc)
+  (doc 'type '(-> (List Token) (List Symbol) (Values (List Symbol) (List Token))))
+  (doc 'description "Parse forall variable list.")
   (if (or (null? tokens)
           (eq? (token-type (car tokens)) 'dot))
       (values (reverse acc) tokens)
@@ -349,8 +372,9 @@
           (parse-forall-vars (cdr tokens) (cons (token-value (car tokens)) acc))
           (values (reverse acc) tokens))))
 
-;;; parse-paren : (List Token) → (Result (× Type (List Token)) Error)
 (define (parse-paren tokens)
+  (doc 'type '(-> (List Token) (Result (× Type (List Token)) Error)))
+  (doc 'description "Parse parenthesized types or type applications.")
   (if (null? tokens)
       `(error unmatched-lparen)
       ;; Check if it starts with a type constructor or is just grouping
@@ -370,12 +394,14 @@
                             `(ok ,inner ,(cdr rest))
                             `(error expected-rparen))))))))
 
-;;; parse-type-app : Symbol × (List Token) → (Result (× Type (List Token)) Error)
 (define (parse-type-app con tokens)
+  (doc 'type '(-> Symbol (List Token) (Result (× Type (List Token)) Error)))
+  (doc 'description "Parse type constructor application.")
   (parse-type-args con '() tokens))
 
-;;; parse-type-args : Symbol × (List Type) × (List Token) → (Result (× Type (List Token)) Error)
 (define (parse-type-args con acc tokens)
+  (doc 'type '(-> Symbol (List Type) (List Token) (Result (× Type (List Token)) Error)))
+  (doc 'description "Parse type constructor arguments.")
   (if (null? tokens)
       `(error unmatched-lparen)
       (if (eq? (token-type (car tokens)) 'rparen)
@@ -391,13 +417,12 @@
                          [rest (caddr arg-result)])
                         (parse-type-args con (cons arg acc) rest)))))))
 
-;;; ====
-;;; Section 4: Signature Line Parser
-;;; ====
+(doc 'section 'signature-line-parser)
 
-;;; parse-sig-line : String → (ok (name . type)) | (error ...) | (skip)
-;;; Parse a signature comment line: ";;; name : Type"
 (define (parse-sig-line line)
+  (doc 'type '(-> String (+ (ok (× Symbol Type)) (error Error) (skip))))
+  (doc 'description "Parse a signature comment line: ;;; name : Type.")
+  (doc 'export #t)
   (let ([trimmed (string-trim line)])
        ;; Must start with ;;;
        (if (not (string-starts-with? trimmed ";;;"))
@@ -453,14 +478,12 @@
                                                                 `(ok (,(string->symbol name-part) . ,type))
                                                                 '(skip)))))))))))))))
 
-;;; ====
-;;; Section 5: Utilities
-;;; ====
+(doc 'section 'utilities)
 
-;;; type->internal : ParsedType → InternalType
-;;; Convert parsed type to internal representation used by kind checker.
-;;; Mainly handles notation differences.
 (define (type->internal parsed)
+  (doc 'type '(-> ParsedType InternalType))
+  (doc 'description "Convert parsed type to internal representation used by kind checker. Mainly handles notation differences.")
+  (doc 'export #t)
   (cond
    [(symbol? parsed) parsed]
    [(not (pair? parsed)) parsed]
@@ -484,9 +507,10 @@
    [else
     (map type->internal parsed)]))
 
-;;; format-type : Type → String
-;;; Pretty print a type for error messages.
 (define (format-type t)
+  (doc 'type '(-> Type String))
+  (doc 'description "Pretty print a type for error messages.")
+  (doc 'export #t)
   (cond
    [(symbol? t) (symbol->string t)]
    [(not (pair? t)) (format "~a" t)]
@@ -500,17 +524,32 @@
    [else
     (string-append "(" (string-join (map format-type t) " ") ")")]))
 
-;;; ====
-;;; Section 6: Result Tracking
-;;; ====
+(doc 'section 'result-tracking)
 
+(doc *total-sigs* 'type 'Nat)
+(doc *total-sigs* 'description "Total signatures found.")
 (define *total-sigs* 0)
+
+(doc *valid-sigs* 'type 'Nat)
+(doc *valid-sigs* 'description "Valid signatures count.")
 (define *valid-sigs* 0)
+
+(doc *invalid-sigs* 'type 'Nat)
+(doc *invalid-sigs* 'description "Invalid signatures count.")
 (define *invalid-sigs* 0)
+
+(doc *parse-errors* 'type '(List Error))
+(doc *parse-errors* 'description "Parse errors accumulated.")
 (define *parse-errors* '())
+
+(doc *kind-errors* 'type '(List Error))
+(doc *kind-errors* 'description "Kind errors accumulated.")
 (define *kind-errors* '())
 
 (define (reset-counters!)
+  (doc 'type '(-> Unit))
+  (doc 'description "Reset all counters and error lists.")
+  (doc 'export #t)
   (set! *total-sigs* 0)
   (set! *valid-sigs* 0)
   (set! *invalid-sigs* 0)
@@ -518,21 +557,32 @@
   (set! *kind-errors* '()))
 
 (define (record-parse-error! file line msg)
+  (doc 'type '(-> String Nat Error Unit))
+  (doc 'description "Record a parse error.")
+  (doc 'export #t)
   (set! *invalid-sigs* (+ *invalid-sigs* 1))
   (set! *parse-errors* (cons (list file line msg) *parse-errors*)))
 
 (define (record-kind-error! file line name type kind-error)
+  (doc 'type '(-> String Nat Symbol Type Error Unit))
+  (doc 'description "Record a kind error.")
+  (doc 'export #t)
   (set! *invalid-sigs* (+ *invalid-sigs* 1))
   (set! *kind-errors* (cons (list file line name type kind-error) *kind-errors*)))
 
 (define (record-valid!)
+  (doc 'type '(-> Unit))
+  (doc 'description "Increment valid signature count.")
+  (doc 'export #t)
   (set! *valid-sigs* (+ *valid-sigs* 1)))
 
-;;; ====
-;;; Section 7: Type Name Resolution
-;;; ====
+(doc 'section 'type-name-resolution)
 
-;;; Map from sig-parser names to kinds.ss names
+(doc 'note "Map from sig-parser names to kinds.ss names")
+
+(doc type-name-mapping 'type '(List (× Symbol Symbol)))
+(doc type-name-mapping 'description "Mapping from signature type names to internal type names.")
+(doc type-name-mapping 'export #t)
 (define type-name-mapping
   '((Integer . Int)
     (Number . Nat)
@@ -973,35 +1023,46 @@
     (ParallelOpportunity . Hash)
     (DependencyGraph . Hash)))
 
-;;; Greek letters used as type variables
+(doc greek-type-var-names 'type '(List Symbol))
+(doc greek-type-var-names 'description "Greek letters used as type variables.")
+(doc greek-type-var-names 'export #t)
 (define greek-type-var-names
   '(α β γ δ ε ζ η θ ι κ λ μ ν ξ ο π ρ σ τ υ φ χ ψ ω))
 
-;;; is-type-var? : Symbol → Boolean
 (define (is-type-var? sym)
+  (doc 'type '(-> Symbol Bool))
+  (doc 'description "Check if symbol is a type variable (Greek or single lowercase).")
+  (doc 'export #t)
   (or (memq sym greek-type-var-names)
       ;; Single lowercase letter
       (let ([s (symbol->string sym)])
            (and (= (string-length s) 1)
                 (char-lower-case? (string-ref s 0))))))
 
-;;; Convert signature type names to internal names
 (define (normalize-type-name sym)
+  (doc 'type '(-> Symbol Symbol))
+  (doc 'description "Convert signature type names to internal names.")
+  (doc 'export #t)
   (let ([entry (assq sym type-name-mapping)])
        (if entry (cdr entry) sym)))
 
-;;; Type constructors that use @ application syntax
+(doc type-constructors-with-application 'type '(List Symbol))
+(doc type-constructors-with-application 'description "Type constructors that use @ application syntax.")
+(doc type-constructors-with-application 'export #t)
 (define type-constructors-with-application
   '(List Vector Option Either Result Pair Maybe Ref Set Stream Delayed
     Functor Applicative Monad))
 
-;;; Type constructors that need implicit type parameters when used bare
+(doc bare-type-constructors 'type '(List Symbol))
+(doc bare-type-constructors 'description "Type constructors that need implicit type parameters when used bare.")
+(doc bare-type-constructors 'export #t)
 (define bare-type-constructors
   '(List Vector Option Set Ref Stream Delayed))
 
-;;; Convert parsed type to kind-checker format
-;;; Bare type constructors like `List` are converted to `(@ List α)` for kind checking
 (define (sig-type->kind-type parsed)
+  (doc 'type '(-> ParsedType InternalType))
+  (doc 'description "Convert parsed type to kind-checker format. Bare type constructors like List are converted to (@ List α) for kind checking.")
+  (doc 'export #t)
   (cond
    [(symbol? parsed)
     (let ([normalized (normalize-type-name parsed)])
@@ -1046,9 +1107,10 @@
              ;; Fallback: simple cons (for domain types that aren't in builtin-kinds)
              (cons head (map sig-type->kind-type (cdr parsed)))))]))
 
-;;; collect-type-vars : Type → (List Symbol)
-;;; Collect all type variables from a type expression.
 (define (collect-type-vars type)
+  (doc 'type '(-> Type (List Symbol)))
+  (doc 'description "Collect all type variables from a type expression.")
+  (doc 'export #t)
   (cond
    [(symbol? type)
     (if (is-type-var? type) (list type) '())]
@@ -1056,14 +1118,16 @@
    [else
     (apply append (map collect-type-vars type))]))
 
-;;; make-type-var-env : (List Symbol) → KindEnv
-;;; Create a kind environment mapping type variables to kind *.
 (define (make-type-var-env vars)
+  (doc 'type '(-> (List Symbol) KindEnv))
+  (doc 'description "Create a kind environment mapping type variables to kind *.")
+  (doc 'export #t)
   (map (lambda (v) (cons v '*)) (unique vars)))
 
-;;; check-type-kind : Type → (ok Kind) | (error ...)
-;;; Check that a type has a valid kind.
 (define (check-type-kind parsed-type)
+  (doc 'type '(-> Type (Result Kind Error)))
+  (doc 'description "Check that a type has a valid kind.")
+  (doc 'export #t)
   (let* ([internal-type (sig-type->kind-type parsed-type)]
          [type-vars (collect-type-vars internal-type)]
          [kenv (make-type-var-env type-vars)]
@@ -1073,12 +1137,12 @@
             `(error ,kind-result)
             `(ok ,kind-result))))
 
-;;; ====
-;;; Section 8: File Processing
-;;; ====
+(doc 'section 'file-processing)
 
-;;; read-file-lines : String → (List String)
 (define (read-file-lines filename)
+  (doc 'type '(-> String (List String)))
+  (doc 'description "Read all lines from a file.")
+  (doc 'export #t)
   (call-with-input-file filename
                         (lambda (port)
                                 (let loop ([lines '()])
@@ -1087,13 +1151,16 @@
                                               (reverse lines)
                                               (loop (cons line lines))))))))
 
-;;; check-file : String → (ok stats) | (error ...)
-;;; Check all type annotations in a file.
 (define (check-file filename)
+  (doc 'type '(-> String (Result Stats Error)))
+  (doc 'description "Check all type annotations in a file.")
+  (doc 'export #t)
   (let ([lines (read-file-lines filename)])
        (check-lines filename lines 1)))
 
 (define (check-lines filename lines line-num)
+  (doc 'type '(-> String (List String) Nat (Result Stats Error)))
+  (doc 'description "Check type signatures in file lines starting from line number.")
   (if (null? lines)
       '(ok)
       (let* ([line (car lines)]
@@ -1118,11 +1185,11 @@
                              (record-valid!)))
                    (check-lines filename (cdr lines) (+ line-num 1))]))))
 
-;;; ====
-;;; Section 9: Default Files to Check
-;;; ====
+(doc 'section 'default-files-to-check)
 
-;;; Core files that should have type-checked annotations
+(doc default-files 'type '(List String))
+(doc default-files 'description "Core files that should have type-checked annotations.")
+(doc default-files 'export #t)
 (define default-files
   '("core/base/prelude.ss"
     "core/types/types.ss"
@@ -1137,11 +1204,12 @@
     "lattice/linalg/vec.ss"
     "lattice/linalg/matrix.ss"))
 
-;;; ====
-;;; Section 10: Reporting
-;;; ====
+(doc 'section 'reporting)
 
 (define (report-results verbose?)
+  (doc 'type '(-> Bool Unit))
+  (doc 'description "Report checking results to stdout.")
+  (doc 'export #t)
   (display (format "~nType Annotation Check Results:~n"))
   (display (format "  Total signatures found: ~a~n" *total-sigs*))
   (display (format "  Valid: ~a~n" *valid-sigs*))
@@ -1168,12 +1236,11 @@
                                                 file line name (format-type type) kerr))))
                   (reverse *kind-errors*))))
 
-;;; ====
-;;; Section 11: Main Entry Point
-;;; ====
+(doc 'section 'main-entry-point)
 
-;;; Parse args for --verbose flag
 (define (parse-args args)
+  (doc 'type '(-> (List String) (Values Bool (List String))))
+  (doc 'description "Parse command-line args for --verbose flag.")
   (let loop ([args args] [verbose? #f] [files '()])
        (if (null? args)
            (values verbose? (reverse files))
@@ -1182,6 +1249,9 @@
                (loop (cdr args) verbose? (cons (car args) files))))))
 
 (define (sig-check-main args)
+  (doc 'type '(-> (List String) Int))
+  (doc 'description "Main entry point for signature checking. Returns exit code (0=success, 1=failure).")
+  (doc 'export #t)
   (reset-counters!)
   (let-values ([(verbose? file-args) (parse-args args)])
               (let ([files (if (null? file-args) default-files file-args)])

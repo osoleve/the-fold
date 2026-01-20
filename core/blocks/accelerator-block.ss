@@ -1,43 +1,20 @@
-;;; core/blocks/accelerator-block.ss — Block Format for Rust Accelerator Metadata
-;;;
-;;; Defines the block structure for storing accelerator manifests in CAS.
-;;; Each accelerator is stored as a block containing:
-;;;   - Tag: 'accelerator
-;;;   - Payload: S-expression manifest (UTF-8 encoded)
-;;;   - Refs: [source-hash, target-hash]
-;;;
-;;; This is Core code: defines the format, pure operations.
-
 (load "core/base/prelude.ss")
 (load "core/blocks/block.ss")
 
-;;; ====
-;;; Accelerator Manifest Format
-;;; ====
+(doc 'module 'accelerator-block)
+(doc 'description "Block format for Rust accelerator metadata. Stores accelerator manifests in CAS.")
+(doc 'layer 'core)
 
-;;; Example manifest:
-;;; (accelerator
-;;;   (name "bvh-closest-point")
-;;;   (version "0.1.0")
-;;;   (target "lattice/geometry/bvh.ss:bvh-closest-point")
-;;;   (rust-fn "fold_bvh_closest_point")
-;;;   (signature
-;;;     (inputs ((bvh . "BVH") (point . "Vec3") (fuel . "Nat")))
-;;;     (outputs ((status . "Enum") (closest . "Vec3?") (distance . "Real?") (fuel . "Nat"))))
-;;;   (fuel-model
-;;;     (base 5) (per-node 2) (per-aabb 3) (per-triangle 10))
-;;;   (source-hash "00abc123...")
-;;;   (scheme-hash "00def456..."))
+(doc 'section 'manifest-format)
 
-;;; ====
-;;; Manifest Construction
-;;; ====
+(doc 'section 'manifest-construction)
 
-;;; make-accelerator-manifest : String × String × String × String × List × List × List × Bytevector × Bytevector → List
-;;; Create an accelerator manifest S-expression
 (define (make-accelerator-manifest name version target rust-fn
                                    inputs outputs fuel-model
                                    source-hash scheme-hash)
+  (doc 'type (-> String String String String List List List Bytevector Bytevector List))
+  (doc 'description "Create an accelerator manifest S-expression.")
+  (doc 'export #t)
   `(accelerator
     (name ,name)
     (version ,version)
@@ -50,98 +27,110 @@
     (source-hash ,source-hash)
     (scheme-hash ,scheme-hash)))
 
-;;; ====
-;;; Block Operations
-;;; ====
+(doc 'section 'block-operations)
 
-;;; make-accelerator-block : List × Bytevector × Bytevector → Block
-;;; Create a block containing the accelerator manifest
-;;; source-hash: hash of block containing Rust source code
-;;; scheme-hash: hash of block containing original Scheme code
 (define (make-accelerator-block manifest source-hash scheme-hash)
+  (doc 'type (-> List Bytevector Bytevector Block))
+  (doc 'description "Create block containing accelerator manifest. Refs: [source-hash, scheme-hash].")
+  (doc 'export #t)
   (let ([payload (string->utf8 (format "~s" manifest))])
        (make-block 'accelerator payload (vector source-hash scheme-hash))))
 
-;;; accelerator-block? : Block → Boolean
-;;; Check if block is an accelerator block
 (define (accelerator-block? blk)
+  (doc 'type (-> Block Boolean))
+  (doc 'description "Check if block is an accelerator block.")
+  (doc 'export #t)
   (and (block? blk)
        (eq? (block-tag blk) 'accelerator)))
 
-;;; accelerator-block-manifest : Block → List
-;;; Extract manifest from accelerator block
 (define (accelerator-block-manifest blk)
+  (doc 'type (-> Block List))
+  (doc 'description "Extract manifest from accelerator block.")
+  (doc 'export #t)
   (let ([str (utf8->string (block-payload blk))])
        (read (open-input-string str))))
 
-;;; accelerator-block-source-hash : Block → Bytevector
-;;; Get the hash of the Rust source block
 (define (accelerator-block-source-hash blk)
+  (doc 'type (-> Block Bytevector))
+  (doc 'description "Get the hash of the Rust source block.")
+  (doc 'export #t)
   (vector-ref (block-refs blk) 0))
 
-;;; accelerator-block-scheme-hash : Block → Bytevector
-;;; Get the hash of the original Scheme code block
 (define (accelerator-block-scheme-hash blk)
+  (doc 'type (-> Block Bytevector))
+  (doc 'description "Get the hash of the original Scheme code block.")
+  (doc 'export #t)
   (vector-ref (block-refs blk) 1))
 
-;;; ====
-;;; Manifest Accessors
-;;; ====
+(doc 'section 'manifest-accessors)
 
-;;; manifest-get : List × Symbol → (+ Any #f)
-;;; Get a field from manifest
 (define (manifest-get manifest key)
+  (doc 'type (-> List Symbol (Maybe Any)))
+  (doc 'description "Get a field from manifest.")
+  (doc 'export #t)
   (let ([entry (assq key (cdr manifest))])
        (and entry (cadr entry))))
 
-;;; accelerator-name : List → String
 (define (accelerator-name manifest)
+  (doc 'type (-> List String))
+  (doc 'description "Extract accelerator name from manifest.")
+  (doc 'export #t)
   (manifest-get manifest 'name))
 
-;;; accelerator-version : List → String
 (define (accelerator-version manifest)
+  (doc 'type (-> List String))
+  (doc 'description "Extract accelerator version from manifest.")
+  (doc 'export #t)
   (manifest-get manifest 'version))
 
-;;; accelerator-target : List → String
 (define (accelerator-target manifest)
+  (doc 'type (-> List String))
+  (doc 'description "Extract accelerator target from manifest.")
+  (doc 'export #t)
   (manifest-get manifest 'target))
 
-;;; accelerator-rust-fn : List → String
 (define (accelerator-rust-fn manifest)
+  (doc 'type (-> List String))
+  (doc 'description "Extract Rust function name from manifest.")
+  (doc 'export #t)
   (manifest-get manifest 'rust-fn))
 
-;;; accelerator-fuel-model : List → List
 (define (accelerator-fuel-model manifest)
+  (doc 'type (-> List List))
+  (doc 'description "Extract fuel model from manifest.")
+  (doc 'export #t)
   (let ([fm (assq 'fuel-model (cdr manifest))])
        (and fm (cdr fm))))
 
-;;; ====
-;;; Rust Source Block
-;;; ====
+(doc 'section 'rust-source-block)
 
-;;; make-rust-source-block : String → Block
-;;; Create a block containing Rust source code
 (define (make-rust-source-block rust-source)
+  (doc 'type (-> String Block))
+  (doc 'description "Create a block containing Rust source code.")
+  (doc 'export #t)
   (make-block 'rust-source
               (string->utf8 rust-source)
               '#()))
 
-;;; rust-source-block? : Block → Boolean
 (define (rust-source-block? blk)
+  (doc 'type (-> Block Boolean))
+  (doc 'description "Check if block is a Rust source block.")
+  (doc 'export #t)
   (and (block? blk)
        (eq? (block-tag blk) 'rust-source)))
 
-;;; rust-source-block-code : Block → String
 (define (rust-source-block-code blk)
+  (doc 'type (-> Block String))
+  (doc 'description "Extract Rust source code from block.")
+  (doc 'export #t)
   (utf8->string (block-payload blk)))
 
-;;; ====
-;;; Example: BVH Accelerator Manifest
-;;; ====
+(doc 'section 'examples)
 
-;;; bvh-closest-point-manifest : Bytevector × Bytevector → List
-;;; Create manifest for the BVH closest-point accelerator
 (define (bvh-closest-point-manifest source-hash scheme-hash)
+  (doc 'type (-> Bytevector Bytevector List))
+  (doc 'description "Create manifest for the BVH closest-point accelerator.")
+  (doc 'export #t)
   (make-accelerator-manifest
    "bvh-closest-point"
    "0.1.0"
@@ -153,9 +142,10 @@
    source-hash
    scheme-hash))
 
-;;; bvh-intersect-ray-manifest : Bytevector × Bytevector → List
-;;; Create manifest for the BVH ray intersection accelerator
 (define (bvh-intersect-ray-manifest source-hash scheme-hash)
+  (doc 'type (-> Bytevector Bytevector List))
+  (doc 'description "Create manifest for the BVH ray intersection accelerator.")
+  (doc 'export #t)
   (make-accelerator-manifest
    "bvh-intersect-ray"
    "0.1.0"
@@ -167,11 +157,12 @@
    source-hash
    scheme-hash))
 
-;;; ====
-;;; Tests
-;;; ====
+(doc 'section 'tests)
 
 (define (test-accelerator-block)
+  (doc 'type (-> Boolean))
+  (doc 'description "Test suite for accelerator block operations.")
+  (doc 'export #t)
   (display "Accelerator Block Tests\n")
   (display "====\n")
   

@@ -1,39 +1,36 @@
-;;; core/types/kind-check.ss — Kind System Validation
-;;; @module kind-check
-;;; @requires prelude kinds nbe
-;;;
-;;; Validates the kind system for pre-commit sanity checks.
-;;;
-;;; Phase 1: Kind Sanity
-;;;   - All built-in kinds are well-formed
-;;;   - Kind inference succeeds on canonical type expressions
-;;;   - Kind unification behaves correctly
-;;;   - Kind normalization produces expected results
-;;;
-;;; Exit codes:
-;;;   0 — All checks pass
-;;;   1 — Kind validation failed
-;;;
-;;; Usage:
-;;;   scheme --script core/types/kind-check.ss
-;;;
-;;; This is Core code: pure, total, assumes perfect input.
-
 (load "core/base/prelude.ss")
 (load "core/types/types.ss")
 (load "core/types/kinds.ss")
 (load "core/lang/nbe.ss")
 
-;;; ====
-;;; Check Result Tracking
-;;; ====
+(doc 'module 'kind-check)
+(doc 'description "Validates the kind system for pre-commit sanity checks.")
+(doc 'layer 'core)
+(doc 'requires '(prelude kinds nbe))
 
+(doc 'note "Phase 1: Kind Sanity - All built-in kinds are well-formed, Kind inference succeeds on canonical type expressions, Kind unification behaves correctly, Kind normalization produces expected results")
+
+(doc 'note "Exit codes: 0 = All checks pass, 1 = Kind validation failed")
+
+(doc 'note "Usage: scheme --script core/types/kind-check.ss")
+
+(doc 'section 'check-result-tracking)
+
+(doc *check-failures* 'type '(List String))
+(doc *check-failures* 'description "List of failed check names.")
 (define *check-failures* '())
+
+(doc *check-count* 'type 'Nat)
+(doc *check-count* 'description "Total number of checks performed.")
 (define *check-count* 0)
+
+(doc *pass-count* 'type 'Nat)
+(doc *pass-count* 'description "Number of checks passed.")
 (define *pass-count* 0)
 
-;;; check : String × Boolean → Boolean
 (define (check name condition)
+  (doc 'type '(-> String Bool Bool))
+  (doc 'description "Run a check, record result, and return success status.")
   (set! *check-count* (+ *check-count* 1))
   (if condition
       (begin
@@ -43,8 +40,9 @@
        (set! *check-failures* (cons name *check-failures*))
        #f)))
 
-;;; report-results : → Unit
 (define (report-results)
+  (doc 'type '(-> Unit))
+  (doc 'description "Report check results to stdout.")
   (display (format "~nKind Check Results: ~a/~a passed~n" *pass-count* *check-count*))
   (if (null? *check-failures*)
       (display "All kind checks passed.\n")
@@ -54,9 +52,7 @@
                          (display (format "  - ~a~n" name)))
                  (reverse *check-failures*)))))
 
-;;; ====
-;;; 1. Built-in Kinds Well-Formedness
-;;; ====
+(doc 'section 'builtin-kinds-well-formedness)
 
 (display "Checking built-in kinds...\n")
 
@@ -75,11 +71,11 @@
 (check "K-sort produces valid kind" (kind? (K-sort)))
 (check "K-sort 1 produces valid kind" (kind? (K-sort 1)))
 
-;; All built-in type constructor kinds are well-formed
-;; Note: Block and Cap use 'Symbol as a domain (tag-kinded types),
-;; which is a special design choice. We skip them in strict kind checking.
-;;; check-builtin-kind : (× Symbol Kind) → Unit
+(doc 'note "Block and Cap use Symbol as a domain (tag-kinded types), which is a special design choice. We skip them in strict kind checking.")
+
 (define (check-builtin-kind entry)
+  (doc 'type '(-> (× Symbol Kind) Unit))
+  (doc 'description "Check that a builtin kind entry is well-formed.")
   (let ([name (car entry)]
         [k (cdr entry)])
        ;; Skip Block and Cap which have special tag-based kinds
@@ -88,15 +84,13 @@
 
 (for-each check-builtin-kind builtin-kinds)
 
-;;; ====
-;;; 2. Kind Inference on Canonical Types
-;;; ====
+(doc 'section 'kind-inference-on-canonical-types)
 
 (display "\nChecking kind inference on types...\n")
 
-;; Base types infer to *
-;;; check-base-type-kind : Symbol × Kind → Unit
 (define (check-base-type-kind name expected-kind)
+  (doc 'type '(-> Symbol Kind Unit))
+  (doc 'description "Check that a base type has the expected kind.")
   (let ([result (infer-kind name '())])
        (check (format "~a has kind ~a" name (kind->string expected-kind))
               (kind=? result expected-kind))))
@@ -148,22 +142,21 @@
 (check "(∀ (a b) (-> a b)) has kind *"
        (kind=? (infer-kind '(∀ (a b) (-> a b)) '()) K*))
 
-;; Note: Hole type '?' currently falls through to the symbol check in infer-kind
-;; and returns an error. This is a known limitation to address in a follow-up.
+(doc 'note "Hole type '?' currently falls through to the symbol check in infer-kind and returns an error. This is a known limitation to address in a follow-up.")
 
-;;; ====
-;;; 3. Kind Unification
-;;; ====
+(doc 'section 'kind-unification)
 
 (display "\nChecking kind unification...\n")
 
-;;; check-unifies : Kind × Kind × String → Unit
 (define (check-unifies k1 k2 desc)
+  (doc 'type '(-> Kind Kind String Unit))
+  (doc 'description "Check that two kinds unify successfully.")
   (let ([result (unify-kinds k1 k2)])
        (check (format "unify ~a" desc) (eq? (car result) 'ok))))
 
-;;; check-no-unify : Kind × Kind × String → Unit
 (define (check-no-unify k1 k2 desc)
+  (doc 'type '(-> Kind Kind String Unit))
+  (doc 'description "Check that two kinds fail to unify.")
   (let ([result (unify-kinds k1 k2)])
        (check (format "no-unify ~a" desc) (eq? (car result) 'error))))
 
@@ -185,14 +178,13 @@
 (check-unifies (K=> 'κa K*) (K=> K* K*) "(κa => *) with (* => *)")
 (check-unifies (K=> 'κa 'κb) (K=> K* K-constraint) "(κa => κb) with (* => Constraint)")
 
-;;; ====
-;;; 4. Kind Normalization
-;;; ====
+(doc 'section 'kind-normalization)
 
 (display "\nChecking kind normalization...\n")
 
-;;; check-normalizes : Kind × Kind × String → Unit
 (define (check-normalizes kind expected desc)
+  (doc 'type '(-> Kind Kind String Unit))
+  (doc 'description "Check that kind normalizes to expected form. Uses equal? for structural comparison since kind=? doesn't handle all cases (e.g., numbers in leveled sorts).")
   (let ([result (kind-nf kind)])
        ;; Use equal? for structural comparison since kind=? doesn't handle
        ;; all cases (e.g., numbers in leveled sorts)
@@ -209,18 +201,18 @@
 (check-normalizes (K=> K* K*) '(⇒ * *) "arrow normalizes")
 (check-normalizes (K=> K* (K=> K* K*)) '(⇒ * (⇒ * *)) "nested arrow normalizes")
 
-;;; ====
-;;; 5. Kind Equivalence
-;;; ====
+(doc 'section 'kind-equivalence)
 
 (display "\nChecking kind equivalence...\n")
 
-;;; check-equiv : Kind × Kind × String → Unit
 (define (check-equiv k1 k2 desc)
+  (doc 'type '(-> Kind Kind String Unit))
+  (doc 'description "Check that two kinds are equivalent.")
   (check (format "equiv ~a" desc) (kinds-equal? k1 k2)))
 
-;;; check-not-equiv : Kind × Kind × String → Unit
 (define (check-not-equiv k1 k2 desc)
+  (doc 'type '(-> Kind Kind String Unit))
+  (doc 'description "Check that two kinds are not equivalent.")
   (check (format "not-equiv ~a" desc) (not (kinds-equal? k1 k2))))
 
 ;; Same kinds are equivalent
@@ -235,17 +227,15 @@
 (check-not-equiv K* (K=> K* K*) "* /= (* => *)")
 (check-not-equiv '□ '(□ 1) "sort-0 /= sort-1")
 
-;; Pi kinds with same structure are equivalent (alpha equivalence)
 (check-equiv (K-pi 'f (K=> K* K*) K*) (K-pi 'g (K=> K* K*) K*)
              "Pi-alpha equivalence")
 
-;;; ====
-;;; 6. Type Class Kind Signatures
-;;; ====
+(doc 'section 'type-class-kind-signatures)
 
 (display "\nChecking type class kinds...\n")
 
-;; Verify type class kind signatures are well-formed
+(doc 'note "Verify type class kind signatures are well-formed")
+
 (check "TC-Functor has well-formed kind"
        (kind? (typeclass-kind TC-Functor)))
 
@@ -273,13 +263,9 @@
 (check "TC-Arrow has well-formed kind"
        (kind? (typeclass-kind TC-Arrow)))
 
-;;; ====
-;;; 7. Dependent Kind Constructs
-;;; ====
+(doc 'section 'dependent-kind-constructs)
 
 (display "\nChecking dependent kind constructs...\n")
-
-;; Sort predicates
 (check "sort? recognizes □" (sort? '□))
 (check "sort? recognizes (□ 0)" (sort? '(□ 0)))
 (check "sort? recognizes (□ 1)" (sort? '(□ 1)))
@@ -294,7 +280,8 @@
 (check "dep-kind? rejects *"
        (not (dep-kind? K*)))
 
-;; Dependent kind accessors
+(doc 'note "Dependent kind accessors")
+
 (let ([dk (K-pi 'f (K=> K* K*) K-constraint)])
      (check "dep-kind-var extracts var"
             (eq? (dep-kind-var dk) 'f))
@@ -303,12 +290,9 @@
      (check "dep-kind-codomain extracts codomain"
             (kind=? (dep-kind-codomain dk) K-constraint)))
 
-;;; ====
-;;; Summary
-;;; ====
+(doc 'section 'summary)
 
 (newline)
 (report-results)
 
-;; Exit with appropriate code
 (exit (if (null? *check-failures*) 0 1))

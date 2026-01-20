@@ -1,50 +1,29 @@
-;;; core/blocks/hash-cons.ss — Hash-consing for canonical S-expression construction
-;;; @module hash-cons
-;;; @requires prelude
-;;;
-;;; Provides a global canonicalization table that ensures structurally
-;;; identical S-expressions share the same physical memory representation.
-;;; This enables:
-;;;   - Fast equality via pointer comparison (eq? instead of equal?)
-;;;   - Memory deduplication for repeated subexpressions
-;;;   - Memoized normalization (same input → cached output)
-;;;
-;;; Based on arXiv:2509.20534 "Efficient Symbolic Computation via Hash Consing"
-;;; which demonstrates 3.2x speedup and 2x memory reduction.
-;;;
-;;; This is Core code: pure (except for the global table), assumes valid input.
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-
 (load "core/base/prelude.ss")
 
-;;; ====
-;;; Global Canonicalization Table
-;;; ====
+(doc 'module 'hash-cons)
+(doc 'description "Hash-consing for canonical S-expression construction. Enables fast equality and memory deduplication.")
+(doc 'layer 'core)
 
-;;; *cons-table* : Hashtable[S-expr, S-expr]
-;;; Maps expressions to their unique canonical representatives.
-;;; Uses equal? hashing for structural comparison.
+(doc 'section 'global-table)
+
+(doc *cons-table* 'type (Hashtable Any Any))
+(doc *cons-table* 'description "Maps expressions to their unique canonical representatives.")
 (define *cons-table* (make-hashtable equal-hash equal?))
 
-;;; *cons-table-hits* : Nat
-;;; Counter for cache hits (for diagnostics).
+(doc *cons-table-hits* 'type Nat)
+(doc *cons-table-hits* 'description "Counter for cache hits (diagnostics).")
 (define *cons-table-hits* 0)
 
-;;; *cons-table-misses* : Nat
-;;; Counter for cache misses (for diagnostics).
+(doc *cons-table-misses* 'type Nat)
+(doc *cons-table-misses* 'description "Counter for cache misses (diagnostics).")
 (define *cons-table-misses* 0)
 
-;;; ====
-;;; Core Hash-Consing Operations
-;;; ====
+(doc 'section 'core-operations)
 
-;;; hash-cons : S-expr → S-expr
-;;; Return the unique canonical representative for an S-expression.
-;;; Atoms (symbols, numbers, etc.) pass through unchanged.
-;;; Pairs are recursively canonicalized and deduplicated.
 (define (hash-cons x)
+  (doc 'type (-> Any Any))
+  (doc 'description "Return unique canonical representative for S-expression. Atoms pass through, pairs deduplicated.")
+  (doc 'export #t)
   (cond
     ;; Atoms are already effectively interned or immediate values
     [(not (pair? x)) x]
@@ -64,55 +43,49 @@
              (hashtable-set! *cons-table* probe probe)
              probe)))]))
 
-;;; hash-cons-list : (List S-expr) → (List S-expr)
-;;; Canonicalize a list of expressions.
 (define (hash-cons-list xs)
+  (doc 'type (-> (List Any) (List Any)))
+  (doc 'description "Canonicalize a list of expressions.")
+  (doc 'export #t)
   (hash-cons (map hash-cons xs)))
 
-;;; ====
-;;; Table Management
-;;; ====
+(doc 'section 'table-management)
 
-;;; hash-cons-reset! : → Void
-;;; Clear the canonicalization table and reset counters.
-;;; Call this periodically to prevent unbounded memory growth,
-;;; or after major GC cycles / batch operations.
 (define (hash-cons-reset!)
+  (doc 'type (-> Void))
+  (doc 'description "Clear canonicalization table and reset counters.")
+  (doc 'export #t)
   (set! *cons-table* (make-hashtable equal-hash equal?))
   (set! *cons-table-hits* 0)
   (set! *cons-table-misses* 0))
 
-;;; hash-cons-stats : → (hits . misses)
-;;; Return cache hit/miss statistics.
 (define (hash-cons-stats)
+  (doc 'type (-> (Pair Nat Nat)))
+  (doc 'description "Return cache hit/miss statistics.")
+  (doc 'export #t)
   (cons *cons-table-hits* *cons-table-misses*))
 
-;;; hash-cons-size : → Nat
-;;; Return number of entries in the canonicalization table.
 (define (hash-cons-size)
+  (doc 'type (-> Nat))
+  (doc 'description "Return number of entries in canonicalization table.")
+  (doc 'export #t)
   (hashtable-size *cons-table*))
 
-;;; hash-cons-hit-rate : → Number
-;;; Return cache hit rate as a fraction [0, 1].
-;;; Returns 0 if no lookups have been performed.
 (define (hash-cons-hit-rate)
+  (doc 'type (-> Number))
+  (doc 'description "Return cache hit rate as a fraction [0, 1].")
+  (doc 'export #t)
   (let ([total (+ *cons-table-hits* *cons-table-misses*)])
     (if (= total 0)
         0
         (/ *cons-table-hits* total))))
 
-;;; ====
-;;; Memoized Function Wrapper
-;;; ====
+(doc 'section 'memoization)
 
-;;; make-memoized : (S-expr → S-expr) → (S-expr → S-expr)
-;;; Wrap a function with hash-consing on both input and output.
-;;; The function will:
-;;;   1. Canonicalize input
-;;;   2. Check if result is cached
-;;;   3. If not, compute and canonicalize output
-;;;   4. Cache and return result
 (define (make-memoized f)
+  (doc 'type (-> (-> Any Any) (-> Any Any)))
+  (doc 'description "Wrap function with hash-consing on input/output and result caching.")
+  (doc 'export #t)
   (let ([cache (make-hashtable eq-hash eq?)])  ; Use eq? since inputs are hash-consed
     (lambda (x)
       (let* ([canon-x (hash-cons x)]
@@ -123,13 +96,12 @@
               (hashtable-set! cache canon-x result)
               result))))))
 
-;;; ====
-;;; Diagnostic Utilities
-;;; ====
+(doc 'section 'diagnostics)
 
-;;; hash-cons-report : → String
-;;; Generate a human-readable report of hash-consing statistics.
 (define (hash-cons-report)
+  (doc 'type (-> String))
+  (doc 'description "Generate human-readable report of hash-consing statistics.")
+  (doc 'export #t)
   (let ([stats (hash-cons-stats)])
     (format "Hash-cons stats: ~a hits, ~a misses, ~a entries, ~a% hit rate"
             (car stats)

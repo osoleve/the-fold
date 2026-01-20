@@ -1,48 +1,30 @@
-;;; core/blocks/expand.ss — De Bruijn expansion with symbol supply
-;;; @module expand
-;;; @requires prelude
-;;;
-;;; The inverse of normalize: given a de Bruijn form and a supply
-;;; of symbols, produce an S-expression with named variables.
-;;;
-;;; (expand '(fn (dv 0)) '(x))       → (fn (x) x)
-;;; (expand '(fn (fn (dv 1))) '(x y)) → (fn (x) (fn (y) x))
-;;;
-;;; Capture avoidance: expansion must not choose binder names that
-;;; capture free variables in the body. The symbol supply should
-;;; avoid names that appear free in the expression.
-;;;
-;;; This is Core code: pure, total, assumes perfect input.
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-
 (load "core/base/prelude.ss")
 
-;;; ====
-;;; Symbol Supply
-;;; ====
+(doc 'module 'expand)
+(doc 'description "De Bruijn expansion with symbol supply. Inverse of normalize.")
+(doc 'layer 'core)
 
-;;; A symbol supply is a list. We consume symbols as we encounter binders.
+(doc 'section 'symbol-supply)
 
-;;; supply-next : Supply → (Values Symbol Supply)
-;;; Take the next symbol from the supply.
 (define (supply-next supply)
+  (doc 'type (-> Supply (Values Symbol Supply)))
+  (doc 'description "Take the next symbol from the supply.")
+  (doc 'export #t)
   (values (car supply) (cdr supply)))
 
-;;; ====
-;;; Expansion
-;;; ====
+(doc 'section 'expansion)
 
-;;; expand : S-expr × (List Symbol) → S-expr
-;;; Convert de Bruijn form back to named form.
 (define (expand expr symbols)
+  (doc 'type (-> Any (List Symbol) Any))
+  (doc 'description "Convert de Bruijn form back to named form.")
+  (doc 'export #t)
   (let-values ([(result _) (expand-with-ctx expr '() symbols)])
               result))
 
-;;; expand-with-ctx : S-expr × (List Symbol) × Supply → (Values S-expr Supply)
-;;; Expand expression using context and symbol supply. Context is a list mapping de Bruijn index to symbol (innermost first).
 (define (expand-with-ctx expr ctx supply)
+  (doc 'type (-> Any (List Symbol) Supply (Values Any Supply)))
+  (doc 'description "Expand expression using context and symbol supply.")
+  (doc 'export #t)
   (cond
    ;; (dv n) → the symbol at index n in context
    [(and (pair? expr) (eq? (car expr) 'dv) (number? (cadr expr)))
@@ -94,13 +76,12 @@
              (let-values ([(expanded new-sup) (expand-with-ctx (car items) ctx sup)])
                          (loop (cdr items) (cons expanded acc) new-sup))))]))
 
-;;; ====
-;;; Default Symbol Generator
-;;; ====
+(doc 'section 'symbol-generator)
 
-;;; make-symbol-supply : Nat → (List Symbol)
-;;; Generate a list of symbols: x, y, z, x1, y1, z1, ...
 (define (make-symbol-supply n)
+  (doc 'type (-> Nat (List Symbol)))
+  (doc 'description "Generate list of symbols: x, y, z, x1, y1, z1, ...")
+  (doc 'export #t)
   (let ([bases '("x" "y" "z" "a" "b" "c" "f" "g" "h")])
        (let loop ([i 0] [acc '()])
             (if (>= i n)
@@ -112,7 +93,8 @@
                                  (string-append base (number->string cycle)))])
                       (loop (+ i 1) (cons (string->symbol name) acc)))))))
 
-;;; expand-fresh : S-expr → S-expr
-;;; Expand using a fresh symbol supply (convenience function).
 (define (expand-fresh expr)
+  (doc 'type (-> Any Any))
+  (doc 'description "Expand using a fresh symbol supply (convenience function).")
+  (doc 'export #t)
   (expand expr (make-symbol-supply 100)))

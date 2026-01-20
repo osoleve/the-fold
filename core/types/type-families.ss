@@ -1,58 +1,14 @@
-;;; core/types/type-families.ss — Associated Type Families
-;;;
-;;; Type families are type-level functions associated with type classes.
-;;; They enable types to vary with instances, generalizing functional dependencies.
-;;;
-;;; Key concepts:
-;;;   1. Associated type declaration (in class definition)
-;;;   2. Associated type instance (in instance definition)
-;;;   3. Type family reduction (during type checking)
-;;;
-;;; Example:
-;;;   (define-class (Collection c)
-;;;     (type Elem c)              ; Associated type: element type depends on c
-;;;     (empty : c)
-;;;     (insert : (-> (Elem c) c c)))
-;;;
-;;;   (define-instance (Collection (List a))
-;;;     (type Elem (List a) = a)   ; For List a, Elem is a
-;;;     (empty '())
-;;;     (insert cons))
-;;;
-;;; This is Core code: pure, total, assumes perfect input.
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;   - types.ss
-;;;   - kinds.ss
-
 (load "core/base/prelude.ss")
 (load "core/types/types.ss")
 (load "core/types/kinds.ss")
 
-;;; ====
-;;; Type Family Declaration Grammar
-;;; ====
-;;;
-;;; Associated Type Declaration (in type class):
-;;;   (type Name params...)
-;;;   (type Name params... : Kind)  ; with explicit kind
-;;;
-;;; Associated Type Instance:
-;;;   (type Name pattern = RHS)
-;;;
-;;; Examples:
-;;;   (type Elem c)              ; Elem takes one param, kind inferred
-;;;   (type Rep f : Type)        ; Rep takes one param, kind Type
-;;;   (type Key m : Type)        ; Key is indexed by m, returns Type
-;;;   (type Elem (List a) = a)   ; Instance: Elem of List a is a
+(doc 'module 'type-families)
+(doc 'description "Associated type families - type-level functions associated with type classes. They enable types to vary with instances, generalizing functional dependencies")
+(doc 'layer 'core)
 
-;;; ====
-;;; Type Family Declaration
-;;; ====
+(doc 'section 'type-family-grammar)
 
-;;; A type family declaration within a type class.
-;;; Represented as: (type-family name params kind)
+(doc 'section 'type-family-declaration)
 (define-record-type type-family
   (fields
    name      ; Symbol - the type family name (e.g., Elem, Rep, Key)

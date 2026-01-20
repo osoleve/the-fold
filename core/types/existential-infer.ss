@@ -1,17 +1,14 @@
-;;; core/types/existential-infer.ss — DEPRECATED: Backwards-compatibility stub
-;;;
-;;; This file has been merged into existential.ss.
-;;; Load existential.ss for all existential type functionality including inference.
-;;;
-;;; This stub exists only for backwards compatibility with code that
-;;; explicitly loads existential-infer.ss.
-
 (load "core/types/existential.ss")
 
-;;; All existential inference functions are now defined in existential.ss:
-;;;   - existential-infer-synth
-;;;   - existential-infer-synth-pack
-;;;   - existential-infer-synth-unpack
-;;;   - subst-types
-;;;   - check-all-types
-;;;   - extend-ctx-with-skolems
+(doc 'module 'existential-infer)
+(doc 'description "DEPRECATED: Backwards-compatibility stub. This file has been merged into existential.ss. Load existential.ss for all existential type functionality including inference.")
+(doc 'layer 'core)
+(doc 'deprecated #t)
+
+(doc 'note "All existential inference functions are now defined in existential.ss:")
+(doc 'note "- existential-infer-synth")
+(doc 'note "- existential-infer-synth-pack")
+(doc 'note "- existential-infer-synth-unpack")
+(doc 'note "- subst-types")
+(doc 'note "- check-all-types")
+(doc 'note "- extend-ctx-with-skolems")

@@ -1,57 +1,18 @@
-;;; core/types/existential.ss — Existential Types
-;;;
-;;; Existential types allow hiding type information behind an interface.
-;;; The key insight is that an existential packages a value with its
-;;; operations, but the concrete type is hidden from consumers.
-;;;
-;;; Syntax:
-;;;   Type:   (∃ ((a : Kind)) T)     ; Type a is hidden in T
-;;;   Pack:   (pack WitnessType Value : ExistentialType)
-;;;   Unpack: (unpack ((a val) packed-expr) body)
-;;;
-;;; Example:
-;;;   ;; A "showable" value hides its concrete type
-;;;   (: showable (∃ ((a : Type)) (× a (-> a String))))
-;;;   (define showable (pack Int 42 int->string : (∃ ((a : Type)) (× a (-> a String)))))
-;;;
-;;;   ;; Using it - we can't access the concrete type
-;;;   (unpack ((a pair) showable)
-;;;     (let ([val (fst pair)]
-;;;           [show (snd pair)])
-;;;       (show val)))  ; Returns "42"
-;;;
-;;; Existentials are related to Sigma types but with different scoping:
-;;; - Sigma types expose the first component's type in the second
-;;; - Existentials hide the type entirely
-;;;
-;;; This is Core code: pure, total, assumes perfect input.
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;   - types.ss
-;;;   - dep-types.ss
-
 (load "core/base/prelude.ss")
 (load "core/types/types.ss")
 (load "core/types/dep-types.ss")
 
-;;; ====
-;;; Existential Type Grammar
-;;; ====
-;;;
-;;;   ExistentialType ::= (∃ (Binding ...) Body)
-;;;
-;;;   Binding ::= (Symbol : Kind)
-;;;
-;;; The hidden type variables in Bindings can appear in Body.
+(doc 'module 'existential)
+(doc 'description "Existential types allow hiding type information behind an interface. Existentials package a value with its operations while keeping the concrete type hidden from consumers")
+(doc 'layer 'core)
 
-;;; ====
-;;; Existential Type Predicates
-;;; ====
+(doc 'section 'existential-grammar)
 
-;;; existential-type? : SExpr → Boolean
-;;; Check if this is an existential type.
-;;; Accepts both ∃ and exists as valid syntax.
+(doc 'section 'predicates)
+
+(doc existential-type? 'type (-> SExpr Boolean))
+(doc existential-type? 'description "Check if this is an existential type. Accepts both ∃ and exists as valid syntax")
+(doc existential-type? 'export #t)
 (define (existential-type? t)
   (and (pair? t) (or (eq? (car t) '∃) (eq? (car t) 'exists))))
 
@@ -234,18 +195,7 @@
       (caddr e)
       #f))
 
-;;; ====
-;;; Skolemization
-;;; ====
-;;;
-;;; When unpacking an existential, we introduce a fresh "skolem"
-;;; constant for the hidden type. This skolem is:
-;;; - Unknown to the outside world
-;;; - Must not escape in the result type
-;;;
-;;; Skolem escape checking ensures type soundness.
-
-;;; Skolem counter for generating fresh names
+(doc 'section 'skolemization)
 (define *skolem-counter* 0)
 
 ;;; reset-skolem-counter! : → Unit

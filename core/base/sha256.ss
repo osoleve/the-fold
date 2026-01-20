@@ -1,49 +1,43 @@
-;;; core/base/sha256.ss — SHA-256 implementation (FIPS 180-4)
-;;; @module sha256
-;;; @requires
-;;;
-;;; sha256 : Bytevector → Bytevector (32 bytes)
-;;;
-;;; This is Core code: pure, total, assumes perfect input.
-;;; The implementation follows FIPS 180-4 exactly.
-;;; Optimized for Chez Scheme using fixnum operations and fxvectors.
-;;;
-;;; Dependencies: NONE (self-contained cryptographic primitive)
-;;;
-;;; This is a BASE module — no internal core dependencies.
+;;; Local doc macro - sha256.ss is self-contained, no prelude dependency
+(define-syntax doc
+  (syntax-rules ()
+    [(_ args ...) (void)]))
 
-;;; ====
-;;; Local Utilities (for self-containment)
-;;; ====
+(doc 'module 'sha256)
+(doc 'description "SHA-256 implementation (FIPS 180-4). The implementation follows FIPS 180-4 exactly. Optimized for Chez Scheme using fixnum operations and fxvectors.")
+(doc 'layer 'core)
+(doc 'purity 'total)
+(doc 'dependencies '())
+(doc 'note "BASE module — no internal core dependencies. Self-contained cryptographic primitive.")
 
-;;; iota : Nat → (List Nat)
-;;; Generate list [0, 1, ..., n-1].
+(doc 'section 'local-utilities)
+(doc 'note "For self-containment.")
+
 (define (iota n)
+  (doc 'type (-> Nat (List Nat)))
+  (doc 'description "Generate list [0, 1, ..., n-1].")
   (let loop ([i 0] [acc '()])
        (if (= i n)
            (reverse acc)
            (loop (+ i 1) (cons i acc)))))
 
-;;; ====
-;;; 32-bit Arithmetic (mod 2^32) using Fixnums
-;;; ====
+(doc 'section '32bit-arithmetic)
+(doc 'note "mod 2^32 using Fixnums.")
 
-;;; u32 : Nat → Nat
-;;; Mask to 32-bit unsigned integer.
+(doc u32 'type Syntax)
+(doc u32 'description "Mask to 32-bit unsigned integer.")
 (define-syntax u32
   (syntax-rules ()
     [(_ x) (fxand x #xFFFFFFFF)]))
 
-;;; u32+ : Nat* → Nat
-;;; Add multiple values with 32-bit overflow.
+(doc u32+ 'type Syntax)
+(doc u32+ 'description "Add multiple values with 32-bit overflow.")
 (define-syntax u32+
   (syntax-rules ()
     [(_ . args) (fxand (fx+ . args) #xFFFFFFFF)]))
 
-;;; rotr32 : Nat × Nat → Nat
-;;; 32-bit right rotation.
-;;; Implemented as (x >> n) | ((x & mask) << (32 - n))
-;;; to avoid fixnum overflow on the left shift.
+(doc rotr32 'type Syntax)
+(doc rotr32 'description "32-bit right rotation. Implemented as (x >> n) | ((x & mask) << (32 - n)) to avoid fixnum overflow on the left shift.")
 (define-syntax rotr32
   (syntax-rules ()
     [(_ x n)
@@ -51,75 +45,71 @@
             (fxarithmetic-shift-left (fxand x (fx- (fxarithmetic-shift-left 1 n) 1))
                                      (fx- 32 n)))]))
 
-;;; shr : Nat × Nat → Nat
-;;; Right shift.
+(doc shr 'type Syntax)
+(doc shr 'description "Right shift.")
 (define-syntax shr
   (syntax-rules ()
     [(_ x n) (fxarithmetic-shift-right x n)]))
 
-;;; ====
-;;; SHA-256 Functions
-;;; ====
+(doc 'section 'sha256-functions)
 
-;;; Ch : Nat × Nat × Nat → Nat
-;;; SHA-256 Ch function: choose bits from y or z based on x.
+(doc Ch 'type Syntax)
+(doc Ch 'description "SHA-256 Ch function: choose bits from y or z based on x.")
 (define-syntax Ch
   (syntax-rules ()
     [(_ x y z) (fxxor (fxand x y)
                       (fxand (fxnot x) z))]))
 
-;;; Maj : Nat × Nat × Nat → Nat
-;;; SHA-256 Maj function: majority of three bits.
+(doc Maj 'type Syntax)
+(doc Maj 'description "SHA-256 Maj function: majority of three bits.")
 (define-syntax Maj
   (syntax-rules ()
     [(_ x y z) (fxxor (fxand x y)
                       (fxxor (fxand x z)
                              (fxand y z)))]))
 
-;;; Sigma0 : Nat → Nat
-;;; SHA-256 big sigma 0 function.
+(doc Sigma0 'type Syntax)
+(doc Sigma0 'description "SHA-256 big sigma 0 function.")
 (define-syntax Sigma0
   (syntax-rules ()
     [(_ x) (fxxor (rotr32 x 2)
                   (fxxor (rotr32 x 13)
                          (rotr32 x 22)))]))
 
-;;; Sigma1 : Nat → Nat
-;;; SHA-256 big sigma 1 function.
+(doc Sigma1 'type Syntax)
+(doc Sigma1 'description "SHA-256 big sigma 1 function.")
 (define-syntax Sigma1
   (syntax-rules ()
     [(_ x) (fxxor (rotr32 x 6)
                   (fxxor (rotr32 x 11)
                          (rotr32 x 25)))]))
 
-;;; sigma0 : Nat → Nat
-;;; SHA-256 small sigma 0 function.
+(doc sigma0 'type Syntax)
+(doc sigma0 'description "SHA-256 small sigma 0 function.")
 (define-syntax sigma0
   (syntax-rules ()
     [(_ x) (fxxor (rotr32 x 7)
                   (fxxor (rotr32 x 18)
                          (shr x 3)))]))
 
-;;; sigma1 : Nat → Nat
-;;; SHA-256 small sigma 1 function.
+(doc sigma1 'type Syntax)
+(doc sigma1 'description "SHA-256 small sigma 1 function.")
 (define-syntax sigma1
   (syntax-rules ()
     [(_ x) (fxxor (rotr32 x 17)
                   (fxxor (rotr32 x 19)
                          (shr x 10)))]))
 
-;;; ====
-;;; Constants
-;;; ====
+(doc 'section 'constants)
 
-;;; Initial hash values (first 32 bits of fractional parts of
-;;; square roots of first 8 primes)
+(doc H-init 'type FxVector)
+(doc H-init 'description "Initial hash values (first 32 bits of fractional parts of square roots of first 8 primes).")
 (define H-init
   (fxvector #x6a09e667 #xbb67ae85 #x3c6ef372 #xa54ff53a
             #x510e527f #x9b05688c #x1f83d9ab #x5be0cd19))
 
-;;; Round constants (first 32 bits of fractional parts of
-;;; cube roots of first 64 primes)
+(doc K 'type FxVector)
+(doc K 'description "Round constants (first 32 bits of fractional parts of cube roots of first 64 primes).")
 (define K
   (fxvector #x428a2f98 #x71374491 #xb5c0fbcf #xe9b5dba5
             #x3956c25b #x59f111f1 #x923f82a4 #xab1c5ed5
@@ -138,14 +128,12 @@
             #x748f82ee #x78a5636f #x84c87814 #x8cc70208
             #x90befffa #xa4506ceb #xbef9a3f7 #xc67178f2))
 
-;;; ====
-;;; Message Padding
-;;; ====
+(doc 'section 'message-padding)
 
-;;; pad-message : Bytevector → Bytevector
-;;; Pad to multiple of 64 bytes (512 bits).
-;;; Append 1 bit, zeros, then 64-bit big-endian length.
 (define (pad-message msg)
+  (doc 'type (-> Bytevector Bytevector))
+  (doc 'description "Pad to multiple of 64 bytes (512 bits). Append 1 bit, zeros, then 64-bit big-endian length.")
+  (doc 'export #t)
   (let* ([len (bytevector-length msg)]
          [bit-len (* 8 len)]
          ;; Need at least 9 bytes: 1 for 0x80, 8 for length
@@ -163,13 +151,11 @@
         (bytevector-u64-set! result (- padded-len 8) bit-len 'big)
         result))
 
-;;; ====
-;;; Message Schedule
-;;; ====
+(doc 'section 'message-schedule)
 
-;;; make-schedule : Bytevector × Nat → (FxVector Nat)
-;;; Create 64-word message schedule from 64-byte block at offset.
 (define (make-schedule msg offset)
+  (doc 'type (-> Bytevector Nat FxVector))
+  (doc 'description "Create 64-word message schedule from 64-byte block at offset.")
   (let ([W (make-fxvector 64)])
        ;; W[0..15]: 16 32-bit words from block (big-endian)
        (do ([i 0 (fx+ i 1)])
@@ -185,13 +171,11 @@
                               (fxvector-ref W (fx- i 16)))))
        W))
 
-;;; ====
-;;; Compression
-;;; ====
+(doc 'section 'compression)
 
-;;; compress : (FxVector Nat) × (FxVector Nat) → (FxVector Nat)
-;;; One round of compression (H, W) → H'
 (define (compress H W)
+  (doc 'type (-> FxVector FxVector FxVector))
+  (doc 'description "One round of compression (H, W) → H'.")
   (let ([a (fxvector-ref H 0)]
         [b (fxvector-ref H 1)]
         [c (fxvector-ref H 2)]
@@ -224,13 +208,12 @@
                  (u32+ (fxvector-ref H 6) g)
                  (u32+ (fxvector-ref H 7) h))))
 
-;;; ====
-;;; Main Entry Point
-;;; ====
+(doc 'section 'main-entry-point)
 
-;;; sha256 : Bytevector → Bytevector
-;;; Compute SHA-256 hash (32 bytes).
 (define (sha256 msg)
+  (doc 'type (-> Bytevector Bytevector))
+  (doc 'description "Compute SHA-256 hash (32 bytes).")
+  (doc 'export #t)
   (let* ([padded (pad-message msg)]
          [num-blocks (quotient (bytevector-length padded) 64)]
          [H (fxvector-copy H-init)])
@@ -246,9 +229,10 @@
                  (bytevector-u32-set! result (fx* i 4) (fxvector-ref H i) 'big))
              result)))
 
-;;; sha256-hex : Bytevector → String
-;;; Convenience: return hash as lowercase hexadecimal string.
 (define (sha256-hex msg)
+  (doc 'type (-> Bytevector String))
+  (doc 'description "Convenience: return hash as lowercase hexadecimal string.")
+  (doc 'export #t)
   (let ([hash (sha256 msg)]
         [hex-chars "0123456789abcdef"])
        (apply string-append
@@ -259,13 +243,12 @@
                                  (string-ref hex-chars (modulo b 16)))))
                    (iota 32)))))
 
-;;; ====
-;;; Hash/Hex Conversion Utilities
-;;; ====
+(doc 'section 'hash-hex-conversion)
 
-;;; hash->hex : Bytevector → String
-;;; Convert a hash (bytevector) to lowercase hex string.
 (define (hash->hex hash)
+  (doc 'type (-> Bytevector String))
+  (doc 'description "Convert a hash (bytevector) to lowercase hex string.")
+  (doc 'export #t)
   (let ([hex-chars "0123456789abcdef"])
        (apply string-append
               (map (lambda (i)
@@ -275,9 +258,10 @@
                                  (string-ref hex-chars (modulo b 16)))))
                    (iota (bytevector-length hash))))))
 
-;;; hex->hash : String → Bytevector
-;;; Convert a hex string to bytevector.
 (define (hex->hash hex)
+  (doc 'type (-> String Bytevector))
+  (doc 'description "Convert a hex string to bytevector.")
+  (doc 'export #t)
   (let* ([len (string-length hex)]
          [result (make-bytevector (quotient len 2))])
         (do ([i 0 (+ i 2)])
@@ -288,24 +272,22 @@
                                    (hex-digit (string-ref hex (+ i 1))))))
         result))
 
-;;; hex-digit : Char → Nat
-;;; Convert hex character to number.
 (define (hex-digit c)
+  (doc 'type (-> Char Nat))
+  (doc 'description "Convert hex character to number.")
   (cond
    [(char<=? #\0 c #\9) (- (char->integer c) (char->integer #\0))]
    [(char<=? #\a c #\f) (+ 10 (- (char->integer c) (char->integer #\a)))]
    [(char<=? #\A c #\F) (+ 10 (- (char->integer c) (char->integer #\A)))]
    [else 0]))
 
-;;; ====
-;;; Block Hashing (requires core/block.ss loaded first)
-;;; ====
+(doc 'section 'block-hashing)
+(doc 'note "Requires core/block.ss loaded first.")
 
-;;; hash-block : Block → Bytevector
-;;; Compute the versioned address of a block.
-;;; The SHA-256 hash is computed over the canonical serialization,
-;;; then prefixed with a version byte.
 (define (hash-block blk)
+  (doc 'type (-> Block Bytevector))
+  (doc 'description "Compute the versioned address of a block. The SHA-256 hash is computed over the canonical serialization, then prefixed with a version byte.")
+  (doc 'export #t)
   (let* ([hash (sha256 (block->bytes blk))]
          [address (make-bytevector address-size)])
         (bytevector-u8-set! address 0 address-version)

@@ -1,101 +1,44 @@
-;;; core/blocks/nbe-normalize.ss — NbE-based Normalization for CAS Hashing
-;;; @module nbe-normalize
-;;; @requires prelude nbe
-;;;
-;;; This module provides NbE (Normalization by Evaluation) based
-;;; normalization for the v3 CAS hashing pipeline.
-;;;
-;;; NbE normalization provides:
-;;;   - β-reduction: ((fn (x) body) arg) → body[arg/x]
-;;;   - η-equivalence: (fn (x) (f x)) ≡ f (when x not free in f)
-;;;   - Pair projection: (fst (pair a b)) → a, (snd (pair a b)) → b
-;;;   - Sum projection: (case (Left a) ...) → left-branch[a]
-;;;   - Conditional reduction: (if #t a b) → a, (if #f a b) → b
-;;;
-;;; All these reductions happen intrinsically during NbE evaluation,
-;;; eliminating the need for external rewrite rules and iteration.
-;;;
-;;; This is Core code: pure, total (with fuel bounding), assumes perfect input.
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;   - nbe.ss (fuel-bounded variants)
-
 (load "core/base/prelude.ss")
 (load "core/lang/nbe.ss")
 
-;;; ====
-;;; Configuration
-;;; ====
+(doc 'module 'nbe-normalize)
+(doc 'description "NbE-based normalization for CAS hashing. Provides β-reduction, η-equivalence, projections, and conditionals.")
+(doc 'layer 'core)
 
-;;; *nbe-cas-fuel* : Nat
-;;; Fuel limit for CAS normalization.
-;;; This value balances:
-;;;   - High enough for practical code (nested functions, recursion)
-;;;   - Low enough to catch divergence quickly (omega combinator)
-;;;
-;;; 10000 steps is ~10ms on modern hardware for well-behaved code.
+(doc 'section 'configuration)
+
+(doc *nbe-cas-fuel* 'type Nat)
+(doc *nbe-cas-fuel* 'description "Fuel limit for CAS normalization. 10000 steps ≈ 10ms for well-behaved code.")
 (define *nbe-cas-fuel* 10000)
 
-;;; ====
-;;; NbE Normalization for CAS
-;;; ====
+(doc 'section 'nbe-normalization)
 
-;;; nbe-normalize-for-cas : S-expr → S-expr
-;;; Normalize an expression using NbE for CAS hashing.
-;;;
-;;; This function:
-;;;   1. Evaluates the expression to semantic values (β-reduction)
-;;;   2. Reads back to normal form expressions
-;;;   3. Falls back gracefully on errors or fuel exhaustion
-;;;
-;;; Properties:
-;;;   - Idempotent: nbe-normalize-for-cas(nbe-normalize-for-cas(x)) = nbe-normalize-for-cas(x)
-;;;   - Deterministic: same input → same output
-;;;   - Total: always returns (may return original on failure)
-;;;
-;;; Example reductions:
-;;;   ((fn (x) x) 5)              → 5
-;;;   (fst (pair a b))            → a
-;;;   (snd (pair a b))            → b
-;;;   (case (Left 1) ...)         → [left branch with 1]
-;;;   (if #t then else)           → then
-;;;   ((fn (x) (x x)) (fn (x) ...)) → [original, stuck on fuel exhaustion]
 (define (nbe-normalize-for-cas expr)
+  (doc 'type (-> Any Any))
+  (doc 'description "Normalize expression using NbE for CAS hashing. Idempotent, deterministic, total.")
+  (doc 'export #t)
   ;; Use *nbe-cas-fuel* directly instead of nbe-normalize-safe's default
   ;; This allows CAS-specific fuel tuning independent of general NbE usage.
   (guard (ex [else expr])  ; Fall back on any error
          (let-values ([(result fuel) (normalize-closed-fuel expr *nbe-cas-fuel*)])
                      (if (> fuel 0) result expr))))
 
-;;; ====
-;;; NbE Normalization with Custom Fuel
-;;; ====
+(doc 'section 'custom-fuel)
 
-;;; nbe-normalize-with-fuel : S-expr × Nat → (Values S-expr Boolean)
-;;; Normalize with custom fuel, returning whether normalization completed.
-;;;
-;;; Returns (values normalized-expr completed?)
-;;; where completed? is #t if fuel was sufficient, #f if exhausted.
-;;;
-;;; Use this for diagnostic purposes or when you need to know if
-;;; the expression was fully reduced.
 (define (nbe-normalize-with-fuel expr fuel)
+  (doc 'type (-> Any Nat (Values Any Boolean)))
+  (doc 'description "Normalize with custom fuel. Returns (values normalized-expr completed?).")
+  (doc 'export #t)
   (guard (ex [else (values expr #f)])
          (let-values ([(result remaining) (normalize-closed-fuel expr fuel)])
                      (values result (> remaining 0)))))
 
-;;; ====
-;;; Utility: Check if Expression Needs NbE
-;;; ====
+(doc 'section 'utility)
 
-;;; nbe-reducible? : S-expr → Boolean
-;;; Heuristic check if an expression might benefit from NbE normalization.
-;;; Returns #t if the expression contains reducible forms.
-;;;
-;;; This can be used to skip NbE for expressions that are already
-;;; in normal form, though the overhead of NbE on normal forms is minimal.
 (define (nbe-reducible? expr)
+  (doc 'type (-> Any Boolean))
+  (doc 'description "Heuristic check if expression might benefit from NbE normalization.")
+  (doc 'export #t)
   (cond
    [(not (pair? expr)) #f]
 
@@ -136,16 +79,12 @@
    [(eq? (car expr) 'quote) #f]
    [else (ormap nbe-reducible? expr)]))
 
-;;; ====
-;;; Diagnostic: Trace Normalization Steps
-;;; ====
+(doc 'section 'diagnostics)
 
-;;; nbe-trace-normalize : S-expr × Nat → (List S-expr)
-;;; Trace the normalization process, returning intermediate forms.
-;;; Useful for debugging and understanding what NbE does.
-;;;
-;;; Note: This is expensive and should only be used for diagnostics.
 (define (nbe-trace-normalize expr max-steps)
+  (doc 'type (-> Any Nat (List Any)))
+  (doc 'description "Trace normalization process, returning intermediate forms. Expensive - diagnostics only.")
+  (doc 'export #t)
   (let ([trace '()])
     (let loop ([e expr] [steps max-steps])
       (set! trace (cons e trace))
@@ -156,22 +95,17 @@
                           (reverse trace)  ; Fixed point reached
                           (loop result (- steps 1))))))))
 
-;;; ====
-;;; Integration Points
-;;; ====
+(doc 'section 'integration)
 
-;;; The following functions provide the interface expected by
-;;; the v3 normalization pipeline in normalize.ss.
-
-;;; nbe-normalize-payload : S-expr → S-expr
-;;; Primary entry point for the normalization pipeline.
-;;; Alias for nbe-normalize-for-cas.
+(doc nbe-normalize-payload 'type (-> Any Any))
+(doc nbe-normalize-payload 'description "Primary entry point for normalization pipeline. Alias for nbe-normalize-for-cas.")
+(doc nbe-normalize-payload 'export #t)
 (define nbe-normalize-payload nbe-normalize-for-cas)
 
-;;; nbe-complete? : S-expr × S-expr → Boolean
-;;; Check if NbE normalization was complete (no fuel exhaustion).
-;;; Compares input and output to detect stuck terms.
 (define (nbe-complete? input output)
+  (doc 'type (-> Any Any Boolean))
+  (doc 'description "Check if NbE normalization was complete (no fuel exhaustion).")
+  (doc 'export #t)
   (not (and (pair? output)
             (or (eq? (car output) 'stuck-readback)
                 (eq? (car output) 'stuck-neutral)))))

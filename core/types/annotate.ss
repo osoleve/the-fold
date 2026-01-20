@@ -1,85 +1,61 @@
-;;; core/types/annotate.ss — Type-Annotated AST
-;;; @module annotate
-;;; @requires prelude types kinds infer
-;;;
-;;; Every expression, annotated with its type.
-;;;
-;;; The annotated AST makes types visible at every node.
-;;; This enables:
-;;;   - Type-guided evaluation
-;;;   - Pretty-printing with types
-;;;   - Type-preserving transformations
-;;;   - IDE features (hover for type)
-;;;
-;;; Annotated expressions have the form:
-;;;   (ann Type Expr)
-;;;
-;;; Where Expr may contain nested ann forms.
-;;;
-;;; This is Core code: pure, total, assumes perfect input.
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;   - types.ss
-;;;   - kinds.ss
-;;;   - infer.ss
-
 (load "core/base/prelude.ss")
 (load "core/types/types.ss")
 (load "core/types/kinds.ss")
 (load "core/types/infer.ss")
 
-;;; ====
-;;; Annotated AST
-;;; ====
+(doc 'module 'annotate)
+(doc 'description "Type-Annotated AST. Every expression annotated with its type. Enables type-guided evaluation, pretty-printing with types, type-preserving transformations, and IDE features.")
+(doc 'layer 'core)
+(doc 'note "Annotated expressions have the form: (ann Type Expr) where Expr may contain nested ann forms.")
 
-;;; An annotated expression wraps every subexpression with its type.
-;;;
-;;; (ann Type Expr)
-;;;
-;;; Examples:
-;;;   (ann Int 42)
-;;;   (ann (-> Int Int) (fn (x) (ann Int (prim 'add (ann Int x) (ann Int 1)))))
+(doc 'section 'annotated-ast)
 
-;;; ann : Type × Expr → AnnotatedExpr
 (define (ann type expr)
+  (doc 'type (-> Type Expr AnnotatedExpr))
+  (doc 'description "Construct an annotated expression: (ann Type Expr).")
+  (doc 'export #t)
   `(ann ,type ,expr))
 
-;;; ann? : α → Boolean
 (define (ann? e)
+  (doc 'type (-> Any Boolean))
+  (doc 'description "Test if value is an annotated expression.")
+  (doc 'export #t)
   (and (pair? e) (eq? (car e) 'ann)))
 
-;;; ann-type : AnnotatedExpr → Type
 (define (ann-type e)
+  (doc 'type (-> AnnotatedExpr Type))
+  (doc 'description "Extract the type from an annotated expression.")
+  (doc 'export #t)
   (if (ann? e) (cadr e) '?))
 
-;;; ann-expr : AnnotatedExpr → Expr
 (define (ann-expr e)
+  (doc 'type (-> AnnotatedExpr Expr))
+  (doc 'description "Extract the inner expression from an annotated expression.")
+  (doc 'export #t)
   (if (ann? e) (caddr e) e))
 
-;;; ====
-;;; Strip Annotations
-;;; ====
+(doc 'section 'strip-annotations)
 
-;;; strip-ann : AnnotatedExpr → Expr
-;;; Remove all type annotations, recovering the original expression.
 (define (strip-ann e)
+  (doc 'type (-> AnnotatedExpr Expr))
+  (doc 'description "Remove all type annotations, recovering the original expression.")
+  (doc 'export #t)
   (cond
    [(ann? e) (strip-ann (ann-expr e))]
    [(not (pair? e)) e]
    [else (map strip-ann e)]))
 
-;;; ====
-;;; Annotation Inference
-;;; ====
+(doc 'section 'annotation-inference)
 
-;;; annotate : Expr × TEnv → (ok AnnotatedExpr Subst) | (error ...)
-;;; Run type inference and produce an annotated expression.
 (define (annotate expr env)
+  (doc 'type (-> Expr TEnv (Result (Tuple AnnotatedExpr Subst) Error)))
+  (doc 'description "Run type inference and produce an annotated expression.")
+  (doc 'export #t)
   (annotate-with expr env empty-subst))
 
-;;; annotate-with : Expr × TEnv × Subst → (Result (× AnnotatedExpr Subst) Error)
 (define (annotate-with expr env subst)
+  (doc 'type (-> Expr TEnv Subst (Result (Tuple AnnotatedExpr Subst) Error)))
+  (doc 'description "Annotate expression with types using given environment and substitution.")
   (cond
    ;; Literals
    [(number? expr)
@@ -151,12 +127,11 @@
    
    [else `(error unsupported-expression ,expr)]))
 
-;;; ====
-;;; Lambda Annotation
-;;; ====
+(doc 'section 'lambda-annotation)
 
-;;; annotate-fn : (List Symbol) × Expr × TEnv × Subst → (Result (× AnnotatedExpr Subst) Error)
 (define (annotate-fn params body env subst)
+  (doc 'type (-> (List Symbol) Expr TEnv Subst (Result (Tuple AnnotatedExpr Subst) Error)))
+  (doc 'description "Annotate a lambda expression with inferred types.")
   (let* ([param-types (map (lambda (_) (fresh-tvar)) params)]
          [new-env (tenv-extend* env (map cons params param-types))]
          [result (annotate-with body new-env subst)])
@@ -173,16 +148,16 @@
                   `(ok ,(ann fn-type `(fn ,ann-params ,ann-body)) ,s))
             result)))
 
-;;; ====
-;;; Let Annotation
-;;; ====
+(doc 'section 'let-annotation)
 
-;;; annotate-let : (List (× Symbol Expr)) × Expr × TEnv × Subst → (Result (× AnnotatedExpr Subst) Error)
 (define (annotate-let bindings body env subst)
+  (doc 'type (-> (List (Tuple Symbol Expr)) Expr TEnv Subst (Result (Tuple AnnotatedExpr Subst) Error)))
+  (doc 'description "Annotate a let expression with inferred types.")
   (annotate-let-bindings bindings body env '() subst))
 
-;;; annotate-let-bindings : (List (× Symbol Expr)) × Expr × TEnv × (List (× Symbol AnnotatedExpr)) × Subst → (Result (× AnnotatedExpr Subst) Error)
 (define (annotate-let-bindings bindings body env ann-bindings subst)
+  (doc 'type (-> (List (Tuple Symbol Expr)) Expr TEnv (List (Tuple Symbol AnnotatedExpr)) Subst (Result (Tuple AnnotatedExpr Subst) Error)))
+  (doc 'description "Process let bindings one at a time, annotating each.")
   (if (null? bindings)
       ;; All bindings processed, annotate body
       (let* ([new-env (fold-left
@@ -220,12 +195,11 @@
                        s))
                 result))))
 
-;;; ====
-;;; Fix Annotation
-;;; ====
+(doc 'section 'fix-annotation)
 
-;;; annotate-fix : Symbol × Expr × TEnv × Subst → (Result (× AnnotatedExpr Subst) Error)
 (define (annotate-fix name fn-expr env subst)
+  (doc 'type (-> Symbol Expr TEnv Subst (Result (Tuple AnnotatedExpr Subst) Error)))
+  (doc 'description "Annotate a recursive fix expression with inferred types.")
   (let* ([fix-type (fresh-tvar)]
          [new-env (tenv-extend env name fix-type)]
          [result (annotate-with fn-expr new-env subst)])
@@ -241,12 +215,11 @@
                       unify-result))
             result)))
 
-;;; ====
-;;; If Annotation
-;;; ====
+(doc 'section 'if-annotation)
 
-;;; annotate-if : Expr × Expr × Expr × TEnv × Subst → (Result (× AnnotatedExpr Subst) Error)
 (define (annotate-if test then-expr else-expr env subst)
+  (doc 'type (-> Expr Expr Expr TEnv Subst (Result (Tuple AnnotatedExpr Subst) Error)))
+  (doc 'description "Annotate an if expression, checking test is Bool and unifying branches.")
   (let ([test-result (annotate-with test env subst)])
        (if (not (eq? (car test-result) 'ok))
            test-result
@@ -279,15 +252,11 @@
                                                            ,s5))
                                                    branch-result)))))))))))
 
-;;; ====
-;;; Case Annotation
-;;; ====
+(doc 'section 'case-annotation)
 
-;;; (case scrutinee ((Tag vars...) body) ...)
-;;; Pattern variables are bound to Hash type (block refs)
-
-;;; annotate-case : Expr × (List Clause) × TEnv × Subst → (Result (× AnnotatedExpr Subst) Error)
 (define (annotate-case scrutinee clauses env subst)
+  (doc 'type (-> Expr (List Clause) TEnv Subst (Result (Tuple AnnotatedExpr Subst) Error)))
+  (doc 'description "Annotate a case expression. Pattern variables are bound to Hash type.")
   (let ([scrut-result (annotate-with scrutinee env subst)])
        (if (not (eq? (car scrut-result) 'ok))
            scrut-result
@@ -295,8 +264,9 @@
                   [s1 (caddr scrut-result)])
                  (annotate-case-clauses ann-scrut clauses s1 env '() #f)))))
 
-;;; annotate-case-clauses : AnnScrutinee × (List Clause) × Subst × Env × AnnClauses × (Option Type) → (Result (× AnnotatedExpr Subst) Error)
 (define (annotate-case-clauses ann-scrut clauses subst env ann-clauses result-type)
+  (doc 'type (-> AnnotatedExpr (List Clause) Subst TEnv (List Clause) (Maybe Type) (Result (Tuple AnnotatedExpr Subst) Error)))
+  (doc 'description "Process case clauses, unifying their result types.")
   (if (null? clauses)
       (if result-type
           `(ok ,(ann (apply-subst subst result-type)
@@ -338,12 +308,11 @@
                            ann-scrut (cdr clauses) s2 env
                            (cons ann-clause ann-clauses) body-type)))))))
 
-;;; ====
-;;; Prim Annotation
-;;; ====
+(doc 'section 'prim-annotation)
 
-;;; annotate-prim : (+ Symbol (List α)) × (List Expr) × TEnv × Subst → (Result (× AnnotatedExpr Subst) Error)
 (define (annotate-prim op args env subst)
+  (doc 'type (-> (Either Symbol (List Any)) (List Expr) TEnv Subst (Result (Tuple AnnotatedExpr Subst) Error)))
+  (doc 'description "Annotate a primitive operation with inferred types.")
   (let ([op-sym (if (and (pair? op) (eq? (car op) 'quote))
                     (cadr op)
                     op)])
@@ -354,8 +323,9 @@
                      ;; Pass op-sym (the bare symbol) to avoid double-quoting
                      (annotate-prim-args op-sym inst-type args env '() subst))))))
 
-;;; annotate-prim-args : Symbol × Type × (List Expr) × TEnv × (List AnnotatedExpr) × Subst → (Result (× AnnotatedExpr Subst) Error)
 (define (annotate-prim-args op fn-type remaining env ann-args subst)
+  (doc 'type (-> Symbol Type (List Expr) TEnv (List AnnotatedExpr) Subst (Result (Tuple AnnotatedExpr Subst) Error)))
+  (doc 'description "Process primitive arguments one at a time, type-checking each.")
   (if (null? remaining)
       ;; All args processed
       (let ([result-type (if (function-type? fn-type)
@@ -392,12 +362,11 @@
                                      (cons ann-arg ann-args)
                                      s2)))))))))
 
-;;; ====
-;;; Application Annotation
-;;; ====
+(doc 'section 'application-annotation)
 
-;;; annotate-app : Expr × (List Expr) × TEnv × Subst → (Result (× AnnotatedExpr Subst) Error)
 (define (annotate-app fn args env subst)
+  (doc 'type (-> Expr (List Expr) TEnv Subst (Result (Tuple AnnotatedExpr Subst) Error)))
+  (doc 'description "Annotate a function application with inferred types.")
   (let ([fn-result (annotate-with fn env subst)])
        (if (not (eq? (car fn-result) 'ok))
            fn-result
@@ -406,8 +375,9 @@
                   [fn-type (apply-subst s1 (ann-type ann-fn))])
                  (annotate-app-args ann-fn fn-type args env '() s1)))))
 
-;;; annotate-app-args : AnnotatedExpr × Type × (List Expr) × TEnv × (List AnnotatedExpr) × Subst → (Result (× AnnotatedExpr Subst) Error)
 (define (annotate-app-args ann-fn fn-type remaining env ann-args subst)
+  (doc 'type (-> AnnotatedExpr Type (List Expr) TEnv (List AnnotatedExpr) Subst (Result (Tuple AnnotatedExpr Subst) Error)))
+  (doc 'description "Process application arguments one at a time, type-checking each.")
   (if (null? remaining)
       ;; All args processed
       (let ([result-type (if (function-type? fn-type)
@@ -459,12 +429,11 @@
        
        [else `(error not-a-function ,fn-type)])))
 
-;;; ====
-;;; Check-Mode Annotation
-;;; ====
+(doc 'section 'check-mode-annotation)
 
-;;; annotate-check : Expr × Type × TEnv × Subst → (Result (× AnnotatedExpr Subst) Error)
 (define (annotate-check expr expected env subst)
+  (doc 'type (-> Expr Type TEnv Subst (Result (Tuple AnnotatedExpr Subst) Error)))
+  (doc 'description "Annotate expression in checking mode against expected type.")
   (cond
    ;; Lambda against function type
    [(and (pair? expr) (eq? (car expr) 'fn) (function-type? expected))
@@ -497,13 +466,12 @@
                        unify-result))
              result))]))
 
-;;; ====
-;;; Convenience API
-;;; ====
+(doc 'section 'convenience-api)
 
-;;; annotate-expr : Expr → AnnotatedExpr | Error
-;;; Annotate an expression with types.
 (define (annotate-expr expr)
+  (doc 'type (-> Expr (Either AnnotatedExpr Error)))
+  (doc 'description "Annotate an expression with types. Main entry point.")
+  (doc 'export #t)
   (reset-fresh!)
   (let ([result (annotate expr empty-tenv)])
        (if (eq? (car result) 'ok)
@@ -512,33 +480,34 @@
                  (finalize-ann ann-e s))
            result)))
 
-;;; finalize-ann : AnnotatedExpr × Subst → AnnotatedExpr
-;;; Apply final substitution to all types in an annotated expression.
 (define (finalize-ann ann-e subst)
+  (doc 'type (-> AnnotatedExpr Subst AnnotatedExpr))
+  (doc 'description "Apply final substitution to all types in an annotated expression.")
   (cond
    [(ann? ann-e)
     (ann (apply-subst subst (ann-type ann-e))
          (finalize-ann-inner (ann-expr ann-e) subst))]
    [else ann-e]))
 
-;;; finalize-ann-inner : α × Subst → α
 (define (finalize-ann-inner e subst)
+  (doc 'type (-> Any Subst Any))
+  (doc 'description "Recursively apply substitution to nested annotated expressions.")
   (cond
    [(ann? e) (finalize-ann e subst)]
    [(not (pair? e)) e]
    [else (map (lambda (x) (finalize-ann-inner x subst)) e)]))
 
-;;; ====
-;;; Pretty Print Annotated Code
-;;; ====
+(doc 'section 'pretty-print)
 
-;;; pp-ann : AnnotatedExpr × Indent → String
-;;; Pretty-print annotated code showing types.
 (define (pp-ann ann-e)
+  (doc 'type (-> AnnotatedExpr String))
+  (doc 'description "Pretty-print annotated code showing types.")
+  (doc 'export #t)
   (pp-ann-indent ann-e 0))
 
-;;; pp-ann-indent : AnnotatedExpr × Nat → String
 (define (pp-ann-indent ann-e indent)
+  (doc 'type (-> AnnotatedExpr Nat String))
+  (doc 'description "Pretty-print with given indentation level.")
   (let ([ind (make-string indent #\space)])
        (if (ann? ann-e)
            (let ([type (ann-type ann-e)]
@@ -650,12 +619,12 @@
            ;; Not annotated
            (format "~s" ann-e))))
 
-;;; ====
-;;; Display Annotated Expression
-;;; ====
+(doc 'section 'display)
 
-;;; show-annotated : Expr → Unit
 (define (show-annotated expr)
+  (doc 'type (-> Expr Unit))
+  (doc 'description "Display an expression with inferred type annotations.")
+  (doc 'export #t)
   (let ([result (annotate-expr expr)])
        (if (and (pair? result) (eq? (car result) 'error))
            (begin

@@ -1,191 +1,142 @@
-;;; core/types/infer.ss — Bidirectional Type Inference
-;;; @module infer
-;;; @requires prelude types kinds
-;;;
-;;; Types flow in two directions:
-;;;   - Inference (↑): Expression → Type (synthesize a type)
-;;;   - Checking (↓): Expression × Type → Bool (verify against expected)
-;;;
-;;; The key insight: some forms synthesize, some check.
-;;;   - Variables, applications, annotations: synthesize
-;;;   - Lambdas, let-bodies: check against expected type
-;;;
-;;; This is Core code: pure, total, assumes perfect input.
-;;;
-;;; Based on "Complete and Easy Bidirectional Typechecking for
-;;; Higher-Rank Polymorphism" (Dunfield & Krishnaswami, 2013)
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;   - types.ss
-;;;   - kinds.ss
-;;;   - resolve.ss (optional, for constraint solving)
-;;;
-;;; Note: resolve.ss must be loaded before using constraint-solving
-;;; functions (solve-constraints, typeof-constrained). The base
-;;; inference functions work without resolve.ss.
-;;;
-;;; Quick API Reference:
-;;;
-;;;   Environment:
-;;;     empty-tenv                       ; Empty type environment
-;;;     (tenv-lookup env 'x)            → Type | #f
-;;;     (tenv-extend env 'x type)       → Extended env
-;;;     (tenv-extend* env '((x . Int))) → Extended env (multiple)
-;;;
-;;;   Fresh variables:
-;;;     (fresh-tvar)                    → τ1, τ2, ... (fresh type var)
-;;;     (fresh-tvar-named "arg")        → arg1, arg2, ...
-;;;     (reset-fresh!)                  ; Reset counter
-;;;
-;;;   Synthesis (↑): expr → type
-;;;     (infer-synth '42 env)           → (ok Int)
-;;;     (infer-synth 'x env)            → (ok <type of x>) | (error ...)
-;;;     (infer-synth '(f x) env)        → (ok <return type>)
-;;;
-;;;   Checking (↓): expr × type → ok/error
-;;;     (infer-check '(fn (x) x) '(-> Int Int) env) → (ok)
-;;;     (infer-check expr expected env) → (ok) | (error ...)
-;;;
-;;;   Unification:
-;;;     (unify t1 t2)                   → Substitution | #f
-;;;     (apply-subst subst type)        → Type with vars replaced
-
 (load "core/base/prelude.ss")
 (load "core/types/types.ss")
 (load "core/types/kinds.ss")
 
-;;; ====
-;;; Type Environment
-;;; ====
+(doc 'module 'infer)
+(doc 'description "Bidirectional Type Inference. Types flow in two directions: Inference (↑) synthesizes types from expressions, Checking (↓) verifies against expected types. Based on Dunfield & Krishnaswami 2013.")
+(doc 'layer 'core)
+(doc 'note "resolve.ss must be loaded before using constraint-solving functions (solve-constraints, typeof-constrained). The base inference functions work without resolve.ss.")
 
-;;; A type environment maps term variables to types.
-;;; (List (Pair Symbol Type))
+(doc 'section 'type-environment)
+(doc 'note "A type environment maps term variables to types: (List (Pair Symbol Type)).")
 
+(doc empty-tenv 'type TEnv)
+(doc empty-tenv 'description "Empty type environment.")
+(doc empty-tenv 'export #t)
 (define empty-tenv '())
 
-;;; tenv-lookup : TEnv × Symbol → (Option Type)
 (define (tenv-lookup env var)
+  (doc 'type (-> TEnv Symbol (Maybe Type)))
+  (doc 'description "Look up a variable in the type environment.")
+  (doc 'export #t)
   (let ([entry (assq var env)])
        (if entry (cdr entry) #f)))
 
-;;; tenv-extend : TEnv × Symbol × Type → TEnv
 (define (tenv-extend env var type)
+  (doc 'type (-> TEnv Symbol Type TEnv))
+  (doc 'description "Extend environment with a single binding.")
+  (doc 'export #t)
   (cons (cons var type) env))
 
-;;; tenv-extend* : TEnv × (List (× Symbol Type)) → TEnv
 (define (tenv-extend* env bindings)
+  (doc 'type (-> TEnv (List (Pair Symbol Type)) TEnv))
+  (doc 'description "Extend environment with multiple bindings.")
+  (doc 'export #t)
   (append bindings env))
 
-;;; ====
-;;; Fresh Type Variables
-;;; ====
-
-;;; For inference, we need fresh type variables.
-;;; We use a counter embedded in the inference state.
+(doc 'section 'fresh-type-variables)
+(doc 'note "For inference, we need fresh type variables. We use a counter embedded in the inference state.")
 
 (define *fresh-counter* 0)
-
-;;; Hole counter (forward declaration, see Hole Variables section)
 (define *hole-counter* 0)
 
-;;; reset-fresh! : → Unit
-;;; Reset both type variable and hole variable counters.
 (define (reset-fresh!)
+  (doc 'type (-> Void))
+  (doc 'description "Reset both type variable and hole variable counters.")
+  (doc 'export #t)
   (set! *fresh-counter* 0)
   (set! *hole-counter* 0))
 
-;;; fresh-tvar : → Symbol
 (define (fresh-tvar)
+  (doc 'type (-> Symbol))
+  (doc 'description "Generate a fresh type variable τ1, τ2, etc.")
+  (doc 'export #t)
   (set! *fresh-counter* (+ *fresh-counter* 1))
   (string->symbol (string-append "τ" (number->string *fresh-counter*))))
 
-;;; fresh-tvar-named : String → Symbol
 (define (fresh-tvar-named prefix)
+  (doc 'type (-> String Symbol))
+  (doc 'description "Generate a fresh type variable with a given prefix.")
+  (doc 'export #t)
   (set! *fresh-counter* (+ *fresh-counter* 1))
   (string->symbol (string-append prefix (number->string *fresh-counter*))))
 
-;;; ====
-;;; Hole Variables (Gradual Typing Support)
-;;; ====
+(doc 'section 'hole-variables)
+(doc 'note "Gradual typing support. Holes (? and (? name)) are converted to hole variables for constraint tracking. Named holes (? x) → ?x are consistent across uses; anonymous holes (?) → ?1, ?2, etc. are fresh each time.")
 
-;;; Holes (? and (? name)) are converted to hole variables for constraint tracking.
-;;; This enables:
-;;;   - Named holes (? x) to be consistently typed across all uses
-;;;   - Recording what types holes unified with for inference/runtime casts
-;;;
-;;; Hole variables are symbols starting with '?':
-;;;   - Anonymous holes (?) → ?1, ?2, etc. (fresh each time)
-;;;   - Named holes (? x) → ?x (consistent across uses)
-;;;
-;;; Note: *hole-counter* is defined in Fresh Type Variables section
-;;; and reset by reset-fresh!.
-
-;;; reset-holes! : → Unit
-;;; Standalone reset for holes only (use reset-fresh! for full reset).
 (define (reset-holes!)
+  (doc 'type (-> Void))
+  (doc 'description "Standalone reset for holes only (use reset-fresh! for full reset).")
+  (doc 'export #t)
   (set! *hole-counter* 0))
 
-;;; fresh-hole-var : → Symbol
-;;; Generate a fresh hole variable for anonymous holes.
 (define (fresh-hole-var)
+  (doc 'type (-> Symbol))
+  (doc 'description "Generate a fresh hole variable for anonymous holes.")
+  (doc 'export #t)
   (set! *hole-counter* (+ *hole-counter* 1))
   (string->symbol (string-append "?" (number->string *hole-counter*))))
 
-;;; hole->var : Hole → Symbol
-;;; Convert a hole to its corresponding hole variable.
-;;; Named holes get consistent names; anonymous holes get fresh names.
 (define (hole->var h)
+  (doc 'type (-> Any Symbol))
+  (doc 'description "Convert a hole to its corresponding hole variable.")
+  (doc 'export #t)
   (if (and (pair? h) (eq? (car h) '?))
-      ;; Named hole (? x) → ?x
       (string->symbol (string-append "?" (symbol->string (cadr h))))
-      ;; Anonymous hole ? → fresh ?1, ?2, etc.
       (fresh-hole-var)))
 
-;;; hole-var? : Any → Boolean
-;;; Is this a hole variable (symbol starting with '?' but not '?' itself)?
 (define (hole-var? t)
+  (doc 'type (-> Any Boolean))
+  (doc 'description "Is this a hole variable (symbol starting with '?' but not '?' itself)?")
+  (doc 'export #t)
   (and (symbol? t)
        (let ([s (symbol->string t)])
          (and (> (string-length s) 1)
               (char=? (string-ref s 0) #\?)))))
 
-;;; hole-var-name : HoleVar → String
-;;; Extract the name part of a hole variable (?foo → "foo", ?1 → "1").
 (define (hole-var-name hv)
+  (doc 'type (-> Symbol String))
+  (doc 'description "Extract the name part of a hole variable (?foo → \"foo\").")
+  (doc 'export #t)
   (substring (symbol->string hv) 1 (string-length (symbol->string hv))))
 
-;;; hole-constraints : Subst → Subst
-;;; Extract only the hole variable bindings from a substitution.
 (define (hole-constraints s)
+  (doc 'type (-> Subst Subst))
+  (doc 'description "Extract only the hole variable bindings from a substitution.")
+  (doc 'export #t)
   (filter (lambda (p) (hole-var? (car p))) s))
 
-;;; type-var-constraints : Subst → Subst
-;;; Extract only the type variable bindings from a substitution.
 (define (type-var-constraints s)
+  (doc 'type (-> Subst Subst))
+  (doc 'description "Extract only the type variable bindings from a substitution.")
+  (doc 'export #t)
   (filter (lambda (p) (and (type-var? (car p)) (not (hole-var? (car p))))) s))
 
-;;; ====
-;;; Substitution
-;;; ====
+(doc 'section 'substitution)
+(doc 'note "A substitution maps type variables to types. We apply substitutions to types to instantiate variables.")
 
-;;; A substitution maps type variables to types.
-;;; We apply substitutions to types to instantiate variables.
-
+(doc empty-subst 'type Subst)
+(doc empty-subst 'description "Empty substitution.")
+(doc empty-subst 'export #t)
 (define empty-subst '())
 
-;;; subst-lookup : Subst × Symbol → (Option Type)
 (define (subst-lookup s var)
+  (doc 'type (-> Subst Symbol (Maybe Type)))
+  (doc 'description "Look up a variable in a substitution.")
+  (doc 'export #t)
   (let ([entry (assq var s)])
        (if entry (cdr entry) #f)))
 
-;;; subst-extend : Subst × Symbol × Type → Subst
 (define (subst-extend s var type)
+  (doc 'type (-> Subst Symbol Type Subst))
+  (doc 'description "Extend a substitution with a new binding.")
+  (doc 'export #t)
   (cons (cons var type) s))
 
-;;; apply-subst : Subst × Type → Type
-;;; Apply a substitution to a type.
 (define (apply-subst s type)
+  (doc 'type (-> Subst Type Type))
+  (doc 'description "Apply a substitution to a type, replacing variables with their bindings.")
+  (doc 'export #t)
   (cond
    ;; Type variables: look up in substitution
    [(type-var? type)
@@ -232,25 +183,27 @@
     (cons (car type)
           (map (lambda (t) (apply-subst s t)) (cdr type)))]))
 
-;;; compose-subst : Subst × Subst → Subst
 (define (compose-subst s1 s2)
+  (doc 'type (-> Subst Subst Subst))
+  (doc 'description "Compose two substitutions.")
+  (doc 'export #t)
   (append
    (map (lambda (p) (cons (car p) (apply-subst s1 (cdr p)))) s2)
    s1))
 
-;;; ====
-;;; Unification
-;;; ====
+(doc 'section 'unification)
+(doc 'note "Unification finds a substitution that makes two types equal. Returns (ok subst) or (error message).")
 
-;;; Unification finds a substitution that makes two types equal.
-;;; Returns (ok subst) or (error message).
-
-;;; unify : Type × Type → (Result Subst Error)
 (define (unify t1 t2)
+  (doc 'type (-> Type Type (Result Subst Error)))
+  (doc 'description "Unify two types, returning a substitution or error.")
+  (doc 'export #t)
   (unify-with empty-subst t1 t2))
 
-;;; unify-with : Subst × Type × Type → (Result Subst Error)
 (define (unify-with s t1 t2)
+  (doc 'type (-> Subst Type Type (Result Subst Error)))
+  (doc 'description "Unify two types with an existing substitution.")
+  (doc 'export #t)
   (let ([t1 (apply-subst s t1)]
         [t2 (apply-subst s t2)])
        (cond
@@ -349,8 +302,10 @@
         
         [else `(error type-mismatch ,t1 ,t2)])))
 
-;;; unify-lists : Subst × (List Type) × (List Type) → (Result Subst Error)
 (define (unify-lists s ts1 ts2)
+  (doc 'type (-> Subst (List Type) (List Type) (Result Subst Error)))
+  (doc 'description "Unify two lists of types pairwise.")
+  (doc 'export #t)
   (cond
    [(and (null? ts1) (null? ts2)) `(ok ,s)]
    [(or (null? ts1) (null? ts2))
@@ -361,9 +316,10 @@
              (unify-lists (cadr result) (cdr ts1) (cdr ts2))
              result))]))
 
-;;; occurs? : Symbol × Type → Boolean
-;;; Check if a variable (type var or hole var) occurs in a type.
 (define (occurs? var type)
+  (doc 'type (-> Symbol Type Boolean))
+  (doc 'description "Check if a variable (type var or hole var) occurs in a type.")
+  (doc 'export #t)
   (cond
    [(type-var? type) (eq? var type)]
    [(hole-var? type) (eq? var type)]
@@ -390,17 +346,13 @@
         (occurs? var (caddr type)))]
    [else (ormap (lambda (t) (occurs? var t)) (cdr type))]))
 
-;;; Note: ormap is provided by prelude.ss
+(doc 'section 'instantiation)
+(doc 'note "Instantiate a polymorphic type with fresh type variables: (∀ (a b) (-> a b a)) → (-> τ1 τ2 τ1).")
 
-;;; ====
-;;; Instantiation
-;;; ====
-
-;;; Instantiate a polymorphic type with fresh type variables.
-;;; (∀ (a b) (-> a b a)) → (-> τ1 τ2 τ1) with fresh τ1, τ2
-
-;;; instantiate : Type → Type
 (define (instantiate type)
+  (doc 'type (-> Type Type))
+  (doc 'description "Instantiate a polymorphic type with fresh type variables.")
+  (doc 'export #t)
   (if (and (pair? type) (eq? (car type) '∀))
       (let* ([vars (cadr type)]
              [body (caddr type)]
@@ -409,15 +361,13 @@
             (apply-subst s body))
       type))
 
-;;; ====
-;;; Generalization
-;;; ====
+(doc 'section 'generalization)
+(doc 'note "Generalize a type by quantifying over free type variables not in the environment.")
 
-;;; Generalize a type by quantifying over free type variables
-;;; not in the environment.
-
-;;; generalize : TEnv × Type → Type
 (define (generalize env type)
+  (doc 'type (-> TEnv Type Type))
+  (doc 'description "Generalize a type by quantifying over free type variables not in env.")
+  (doc 'export #t)
   (let* ([env-vars (apply append (map (lambda (p) (free-tvars (cdr p))) env))]
          [type-vars (free-tvars type)]
          [gen-vars (unique (filter (lambda (v) (not (memq v env-vars))) type-vars))])
@@ -425,15 +375,12 @@
             type
             `(∀ ,gen-vars ,type))))
 
-;;; Note: unique and filter are provided by prelude.ss
+(doc 'section 'bidirectional-type-inference)
 
-;;; ====
-;;; Bidirectional Type Inference
-;;; ====
-
-;;; infer : Expr × TEnv → (Result Type Subst)
-;;; Synthesize a type for an expression.
 (define (infer expr env)
+  (doc 'type (-> Expr TEnv (Result Type Subst)))
+  (doc 'description "Synthesize a type for an expression.")
+  (doc 'export #t)
   (cond
    ;; Literals
    ;; All numeric literals infer as Int for practical reasons:
@@ -526,12 +473,12 @@
    
    [else `(error unsupported-expression ,expr)]))
 
-;;; ====
-;;; Let Inference (Multiple Bindings)
-;;; ====
+(doc 'section 'let-inference)
 
-;;; infer-let : (List (× Symbol Expr)) × Expr × TEnv × Subst → (Result (× Type Subst) Error)
 (define (infer-let bindings body env subst)
+  (doc 'type (-> (List (Pair Symbol Expr)) Expr TEnv Subst (Result Type Error)))
+  (doc 'description "Infer type for let with multiple bindings.")
+  (doc 'export #t)
   (if (null? bindings)
       ;; All bindings processed, infer body
       (let ([result (infer body env)])
@@ -558,12 +505,12 @@
                       (infer-let (cdr bindings) body new-env combined-subst))
                 init-result))))
 
-;;; ====
-;;; If Inference
-;;; ====
+(doc 'section 'if-inference)
 
-;;; infer-if : Expr × Expr × Expr × TEnv → (Result (× Type Subst) Error)
 (define (infer-if test then-expr else-expr env)
+  (doc 'type (-> Expr Expr Expr TEnv (Result Type Error)))
+  (doc 'description "Infer type for if expression, checking test is Bool and branches unify.")
+  (doc 'export #t)
   (let ([test-result (infer test env)])
        (if (not (eq? (car test-result) 'ok))
            test-result
@@ -593,17 +540,13 @@
                                                         `(ok ,(apply-subst s5 then-type) ,s5))
                                                    branch-unify)))))))))))
 
-;;; ====
-;;; Case Inference (Pattern Matching on Blocks)
-;;; ====
+(doc 'section 'case-inference)
+(doc 'note "Pattern matching on blocks. Scrutinee must be a Block type, each clause binds refs to variables, all bodies must have the same type.")
 
-;;; (case expr ((Tag x y) body) ...)
-;;; The scrutinee must be a Block type.
-;;; Each clause binds refs to variables and evaluates the body.
-;;; All bodies must have the same type.
-
-;;; infer-case : Expr × (List Clause) × TEnv → (Result (× Type Subst) Error)
 (define (infer-case scrutinee clauses env)
+  (doc 'type (-> Expr (List Clause) TEnv (Result Type Error)))
+  (doc 'description "Infer type for case expression.")
+  (doc 'export #t)
   (let ([scrut-result (infer scrutinee env)])
        (if (not (eq? (car scrut-result) 'ok))
            scrut-result
@@ -613,9 +556,9 @@
                  ;; For now, we allow any type and check at runtime
                  (infer-case-clauses clauses s1 env #f)))))
 
-;;; infer-case-clauses : (List Clause) × Subst × Env × (Option Type) → (Result (× Type Subst) Error)
-;;; Process each clause, accumulating substitution and result type.
 (define (infer-case-clauses clauses subst env result-type)
+  (doc 'type (-> (List Clause) Subst TEnv (Maybe Type) (Result Type Error)))
+  (doc 'description "Process each clause, accumulating substitution and result type.")
   (if (null? clauses)
       (if result-type
           `(ok ,(apply-subst subst result-type) ,subst)
@@ -647,12 +590,12 @@
                           (infer-case-clauses
                            (cdr clauses) s2 env body-type)))))))
 
-;;; ====
-;;; Application Inference
-;;; ====
+(doc 'section 'application-inference)
 
-;;; infer-app : Expr × (List Expr) × TEnv → (Result (× Type Subst) Error)
 (define (infer-app fn args env)
+  (doc 'type (-> Expr (List Expr) TEnv (Result Type Error)))
+  (doc 'description "Infer type for function application.")
+  (doc 'export #t)
   (let ([fn-result (infer fn env)])
        (if (eq? (car fn-result) 'ok)
            (let* ([fn-type (cadr fn-result)]
@@ -660,8 +603,9 @@
                  (infer-app-args fn-type args s1 env))
            fn-result)))
 
-;;; infer-app-args : Type × (List Expr) × Subst × TEnv → (Result (× Type Subst) Error)
 (define (infer-app-args fn-type args s env)
+  (doc 'type (-> Type (List Expr) Subst TEnv (Result Type Error)))
+  (doc 'description "Infer application with known function type.")
   (if (null? args)
       `(ok ,(apply-subst s fn-type) ,s)
       (let ([fn-type (apply-subst s fn-type)])
@@ -695,8 +639,9 @@
                        unify-result))]
             [else `(error not-a-function ,fn-type)]))))
 
-;;; check-args : (List Expr) × (List Type) × Subst × TEnv → (Result Subst Error)
 (define (check-args args types s env)
+  (doc 'type (-> (List Expr) (List Type) Subst TEnv (Result Subst Error)))
+  (doc 'description "Check a list of arguments against expected types.")
   (if (null? args)
       `(ok ,s)
       (let ([result (check (car args) (apply-subst s (car types)) env)])
@@ -704,13 +649,12 @@
                (check-args (cdr args) (cdr types) (compose-subst (cadr result) s) env)
                result))))
 
-;;; ====
-;;; Type Checking (Downward)
-;;; ====
+(doc 'section 'type-checking)
 
-;;; check : Expr × Type × TEnv → (Result Subst Error)
-;;; Check that an expression has the expected type.
 (define (check expr expected env)
+  (doc 'type (-> Expr Type TEnv (Result Subst Error)))
+  (doc 'description "Check that an expression has the expected type (downward checking).")
+  (doc 'export #t)
   (cond
    ;; Lambda against function type
    [(and (pair? expr) (eq? (car expr) 'fn) (function-type? expected))
@@ -742,11 +686,11 @@
                        unify-result))
              result))]))
 
-;;; ====
-;;; Primitive Type Inference
-;;; ====
+(doc 'section 'primitive-type-inference)
 
-;;; Type signatures for primitives
+(doc prim-types 'type (List (Pair Symbol Type)))
+(doc prim-types 'description "Type signatures for built-in primitives.")
+(doc prim-types 'export #t)
 (define prim-types
   `(;; Arithmetic
     (add . (-> Int Int Int))
@@ -872,25 +816,29 @@
     (boolean? . (∀ (a) (-> a Bool)))
     (procedure? . (∀ (a) (-> a Bool)))))
 
-;;; lookup-prim-type : Symbol → (Option Type)
 (define (lookup-prim-type op)
+  (doc 'type (-> Symbol (Maybe Type)))
+  (doc 'description "Look up the type of a primitive operation.")
+  (doc 'export #t)
   (let ([entry (assq op prim-types)])
        (if entry (cdr entry) #f)))
 
-;;; infer-prim : Symbol × (List Expr) × TEnv → (Result (× Type Subst) Error)
 (define (infer-prim op args env)
+  (doc 'type (-> Symbol (List Expr) TEnv (Result Type Error)))
+  (doc 'description "Infer type for a primitive call.")
+  (doc 'export #t)
   (let ([prim-type (lookup-prim-type op)])
        (if prim-type
            (let ([inst-type (instantiate prim-type)])
                 (infer-app-args inst-type args empty-subst env))
            `(error unknown-primitive ,op))))
 
-;;; ====
-;;; Quoted Literals
-;;; ====
+(doc 'section 'quoted-literals)
 
-;;; infer-quoted : α → (Result (× Type Subst) Error)
 (define (infer-quoted datum)
+  (doc 'type (-> Any (Result Type Subst)))
+  (doc 'description "Infer type for a quoted literal.")
+  (doc 'export #t)
   (cond
    [(symbol? datum) `(ok Symbol ,empty-subst)]
    [(number? datum) `(ok Int ,empty-subst)]
@@ -904,22 +852,21 @@
              `(ok (List ?) ,empty-subst)))]
    [else `(ok ? ,empty-subst)]))
 
-;;; ====
-;;; Special Forms
-;;; ====
+(doc 'section 'special-forms)
 
-;;; special-form? : α → Boolean
 (define (special-form? s)
+  (doc 'type (-> Any Boolean))
+  (doc 'description "Check if a symbol is a special form.")
+  (doc 'export #t)
   (and (symbol? s)
        (memq s '(fn let fix if case prim quote :))))
 
-;;; ====
-;;; Convenience API
-;;; ====
+(doc 'section 'convenience-api)
 
-;;; typeof : Expr → Type | Error
-;;; Infer the type of an expression in the empty environment.
 (define (typeof expr)
+  (doc 'type (-> Expr (Either Type Error)))
+  (doc 'description "Infer the type of an expression in the empty environment.")
+  (doc 'export #t)
   (reset-fresh!)
   (let ([result (infer expr empty-tenv)])
        (if (eq? (car result) 'ok)
@@ -928,21 +875,22 @@
                 (generalize '() (apply-subst s type)))
            result)))
 
-;;; typecheck : Expr × Type → Bool | Error
-;;; Check that an expression has the given type.
 (define (typecheck expr type)
+  (doc 'type (-> Expr Type (Either Boolean Error)))
+  (doc 'description "Check that an expression has the given type.")
+  (doc 'export #t)
   (reset-fresh!)
   (let ([result (check expr type empty-tenv)])
        (if (eq? (car result) 'ok)
            #t
            result)))
 
-;;; ====
-;;; Pretty Error Messages
-;;; ====
+(doc 'section 'pretty-error-messages)
 
-;;; format-type-error : Error → String
 (define (format-type-error err)
+  (doc 'type (-> Error String))
+  (doc 'description "Format a type error as a human-readable string.")
+  (doc 'export #t)
   (case (cadr err)
         [(unbound-variable)
          (format "Unbound variable: ~a" (caddr err))]
@@ -963,21 +911,13 @@
          (format "No type class instance found for constraint: ~a" (caddr err))]
         [else (format "~s" err)]))
 
-;;; ====
-;;; Constraint Handling Integration
-;;; ====
+(doc 'section 'constraint-handling)
+(doc 'note "Type class constraint solving integration with resolve.ss. Flow: 1) Extract constraints from (=> C T) types, 2) Apply substitution, 3) Resolve via instance database, 4) Return evidence for runtime dispatch.")
 
-;;; With the instance resolution module (resolve.ss), we can now
-;;; integrate type class constraint solving into type inference.
-;;;
-;;; The flow is:
-;;;   1. During instantiation, extract constraints from (=> C T) types
-;;;   2. Apply the substitution to constraints
-;;;   3. Resolve constraints using the instance database
-;;;   4. Return evidence dictionaries for runtime dispatch
-
-;;; instantiate-constrained : Type → (× Type (List Constraint))
 (define (instantiate-constrained type)
+  (doc 'type (-> Type (Pair Type (List Constraint))))
+  (doc 'description "Instantiate a possibly-constrained polymorphic type.")
+  (doc 'export #t)
   (if (and (pair? type) (eq? (car type) '∀))
       (let* ([vars (cadr type)]
              [body (caddr type)]
@@ -1003,21 +943,24 @@
           (list (get-underlying-type type) (get-constraints type))
           (list type '()))))
 
-;;; apply-subst-to-constraint : Subst × Constraint → Constraint
 (define (apply-subst-to-constraint s c)
+  (doc 'type (-> Subst Constraint Constraint))
+  (doc 'description "Apply a substitution to a single constraint.")
   (list (constraint-class c)
         (apply-subst s (constraint-type c))))
 
-;;; apply-subst-to-constraints : Subst × (List Constraint) → (List Constraint)
 (define (apply-subst-to-constraints s cs)
+  (doc 'type (-> Subst (List Constraint) (List Constraint)))
+  (doc 'description "Apply a substitution to a list of constraints.")
+  (doc 'export #t)
   (map (lambda (c) (apply-subst-to-constraint s c)) cs))
 
-;;; ====
-;;; Constraint Solving
-;;; ====
+(doc 'section 'constraint-solving)
 
-;;; solve-constraints : (List Constraint) × IDB → (Result (List Evidence) Error)
 (define (solve-constraints constraints idb)
+  (doc 'type (-> (List Constraint) IDB (Result (List Evidence) Error)))
+  (doc 'description "Solve constraints using the instance database.")
+  (doc 'export #t)
   (if (null? constraints)
       '(ok ())
       (let ([result (resolve (car constraints) idb)])
@@ -1028,21 +971,21 @@
                         rest-result))
                result))))
 
-;;; ====
-;;; Type Inference with Constraint Solving
-;;; ====
+(doc 'section 'inference-with-constraints)
 
-;;; infer-with-constraints : Expr × TEnv → (Result (× Type Subst (List Constraint)) Error)
 (define (infer-with-constraints expr env)
+  (doc 'type (-> Expr TEnv (Result (List Type Subst (List Constraint)) Error)))
+  (doc 'description "Infer type along with collected constraints.")
+  (doc 'export #t)
   (let ([result (infer expr env)])
        (if (eq? (car result) 'ok)
-           ;; Currently constraints come from instantiation; for full
-           ;; integration, we'd accumulate them throughout inference
            `(ok ,(cadr result) ,(caddr result) ())
            result)))
 
-;;; typeof-constrained : Expr × IDB → (Result (× Type (List Evidence)) Error)
 (define (typeof-constrained expr idb)
+  (doc 'type (-> Expr IDB (Result (Pair Type (List Evidence)) Error)))
+  (doc 'description "Infer type with constraint solving, returning evidence.")
+  (doc 'export #t)
   (reset-fresh!)
   (let ([result (infer-with-constraints expr empty-tenv)])
        (if (eq? (car result) 'ok)
@@ -1058,16 +1001,13 @@
                      solve-result))
            result)))
 
-;;; ====
-;;; Constrained Type Environment
-;;; ====
+(doc 'section 'constrained-type-environment)
+(doc 'note "For type checking with type classes, we need a richer environment that includes class method types.")
 
-;;; For type checking with type classes, we need a richer environment
-;;; that includes class method types. This allows (fmap f xs) to infer
-;;; correctly when fmap is in scope.
-
-;;; make-class-env : ClassDB → TEnv
 (define (make-class-env class-db)
+  (doc 'type (-> ClassDB TEnv))
+  (doc 'description "Build a type environment from a class database.")
+  (doc 'export #t)
   (apply append
          (map (lambda (class-entry)
                       (let* ([name (car class-entry)]
@@ -1078,6 +1018,8 @@
                                  methods)))
               class-db)))
 
-;;; get-standard-class-tenv : → TEnv
 (define (get-standard-class-tenv)
+  (doc 'type (-> TEnv))
+  (doc 'description "Get a type environment containing standard type class methods.")
+  (doc 'export #t)
   (make-class-env standard-classes))

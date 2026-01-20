@@ -1,115 +1,61 @@
-;;; core/blocks/cas.ss — Content-Addressed Store
-;;; @module cas
-;;; @requires prelude block sha256
-;;;
-;;; Every Block has a cryptographic hash that IS its identity.
-;;; Same content = same hash, forever.
-;;;
-;;; Pure operations:
-;;;   hash-block : Block → Bytevector (33-byte address)
-;;;
-;;; Store operations (in-memory only):
-;;;   store! : Block → Bytevector (store and return address)
-;;;   fetch : Bytevector → Block | #f
-;;;   pin! : Bytevector → void (mark as persistent)
-;;;   stored? : Bytevector → Boolean
-;;;
-;;; Note: The in-memory store uses mutation for the hashtable.
-;;; This is acceptable in Core. Boundary provides optional filesystem
-;;; persistence (boundary/storage/cas-persist.ss or boundary/io/fs.ss).
-;;;
-;;; This is Core code, but with bootstrap mutation for the store.
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;   - block.ss
-;;;   - sha256.ss
-;;;
-;;; See fabric/stitches/MODULES.md for full dependency graph.
-
 (load "core/base/prelude.ss")
 (load "core/blocks/block.ss")
 (load "core/base/sha256.ss")
 (load "core/blocks/normalize.ss")
 
-;;; ====
-;;; Hashing (Pure)
-;;; ====
+(doc 'module 'cas)
+(doc 'description "Content-Addressed Store. Every Block has a cryptographic hash that IS its identity.")
+(doc 'layer 'core)
 
-;;; ====
-;;; Address Version Constants
-;;; ====
+(doc 'section 'hashing)
 
-;;; address-version-alpha : Byte
-;;; Version 0x00: α-normalization only (de Bruijn indices).
-;;; This is the original hashing mode, preserved for compatibility.
+(doc 'section 'address-versions)
+
+(doc address-version-alpha 'type Byte)
+(doc address-version-alpha 'description "Version 0x00: α-normalization only (de Bruijn indices).")
+(doc address-version-alpha 'export #t)
 (define address-version-alpha #x00)
 
-;;; address-version-algebraic : Byte
-;;; Version 0x01: algebraic + α-normalization.
-;;; Applies commutative sorting, associative flattening, and
-;;; parallel binding reordering before de Bruijn conversion.
+(doc address-version-algebraic 'type Byte)
+(doc address-version-algebraic 'description "Version 0x01: algebraic + α-normalization with commutative sorting and flattening.")
+(doc address-version-algebraic 'export #t)
 (define address-version-algebraic #x01)
 
-;;; address-version-v2 : Byte
-;;; Version 0x02: enhanced normalization (v2).
-;;; Applies all v0x01 transformations PLUS:
-;;;   - η-reduction for function canonicalization
-;;;   - Identity/absorbing element elimination
-;;;   - Polynomial canonicalization for arithmetic expressions
-;;;   - Hash-consing for structural deduplication
+(doc address-version-v2 'type Byte)
+(doc address-version-v2 'description "Version 0x02: enhanced normalization with η-reduction, identity elimination, poly-canon, hash-consing.")
+(doc address-version-v2 'export #t)
 (define address-version-v2 #x02)
 
-;;; address-version-v3 : Byte
-;;; Version 0x03: NbE-enhanced normalization (v3).
-;;; Applies all v0x02 transformations PLUS:
-;;;   - β-reduction via NbE (Normalization by Evaluation)
-;;;   - Pair projection reduction: (fst (pair a b)) → a
-;;;   - Sum projection reduction: (case (Left a) ...) → left-branch
-;;;   - Conditional reduction: (if #t a b) → a
-;;;   - η-equivalence via semantic readback
-;;; This is the most aggressive semantic equivalence detection.
+(doc address-version-v3 'type Byte)
+(doc address-version-v3 'description "Version 0x03: NbE-enhanced normalization with β-reduction, projections, and semantic equivalence.")
+(doc address-version-v3 'export #t)
 (define address-version-v3 #x03)
 
-;;; ====
-;;; Hashing Functions
-;;; ====
+(doc 'section 'hashing-functions)
 
-;;; hash-block : Block → Bytevector
-;;; Compute the versioned address of a block (version 0x00).
-;;; The SHA-256 hash is computed over the canonical serialization,
-;;; then prefixed with a version byte.
-;;; NOTE: Does NOT apply normalization to payload. For raw bytes/tags.
 (define (hash-block blk)
+  (doc 'type (-> Block Bytevector))
+  (doc 'description "Compute versioned address of block (v0x00). No normalization applied.")
+  (doc 'export #t)
   (let* ([hash (sha256 (block->bytes blk))]
          [address (make-bytevector address-size)])
         (bytevector-u8-set! address 0 address-version)
         (bytevector-copy! hash 0 address 1 hash-size)
         address))
 
-;;; hash-sexpr : Symbol × S-expr → Bytevector
-;;; Hash an S-expression with α-normalization only (version 0x00).
-;;; This applies de Bruijn conversion to ensure α-equivalent
-;;; expressions get the same hash.
 (define (hash-sexpr tag sexpr)
+  (doc 'type (-> Symbol Any Bytevector))
+  (doc 'description "Hash S-expression with α-normalization only (v0x00). De Bruijn conversion for α-equivalence.")
+  (doc 'export #t)
   (let* ([normalized (normalize sexpr)]
          [payload (string->utf8 (format "~s" normalized))]
          [blk (make-block tag payload empty-refs)])
     (hash-block blk)))
 
-;;; hash-sexpr-algebraic : Symbol × S-expr → Bytevector
-;;; Hash an S-expression with full normalization (version 0x01).
-;;; Applies algebraic canonicalization (commutative sorting,
-;;; associative flattening, parallel binding reordering) BEFORE
-;;; α-normalization.
-;;;
-;;; This produces hashes where semantically equivalent expressions
-;;; (up to argument order in commutative operations, etc.) get
-;;; the same hash.
-;;;
-;;; IMPORTANT: The version byte is 0x01, distinct from version 0x00
-;;; hashes. This ensures no collision between the two modes.
 (define (hash-sexpr-algebraic tag sexpr)
+  (doc 'type (-> Symbol Any Bytevector))
+  (doc 'description "Hash S-expression with algebraic normalization (v0x01). Commutative sorting and flattening before α-norm.")
+  (doc 'export #t)
   (let* ([normalized (normalize-full sexpr)]
          [payload (string->utf8 (format "~s" normalized))]
          [blk (make-block tag payload empty-refs)]
@@ -119,20 +65,10 @@
     (bytevector-copy! hash 0 address 1 hash-size)
     address))
 
-;;; hash-sexpr-v2 : Symbol × S-expr → Bytevector
-;;; Hash an S-expression with version 2 normalization (version 0x02).
-;;; This applies the most aggressive canonicalization:
-;;;   - η-reduction: (fn (x) (f x)) → f
-;;;   - Identity elimination: (+ x 0) → x, (* x 1) → x
-;;;   - Absorbing elimination: (* x 0) → 0
-;;;   - Polynomial canonicalization: (+ (* a b) (* b a)) → (* 2 a b)
-;;;   - Algebraic canonicalization (commutative sorting, etc.)
-;;;   - α-normalization (de Bruijn indices)
-;;;   - Hash-consing (structural deduplication)
-;;;
-;;; Use this for maximum semantic equivalence detection.
-;;; Version byte 0x02 distinguishes from 0x00 and 0x01 hashes.
 (define (hash-sexpr-v2 tag sexpr)
+  (doc 'type (-> Symbol Any Bytevector))
+  (doc 'description "Hash S-expression with v2 normalization (v0x02). η-reduction, identity elim, poly-canon, hash-consing.")
+  (doc 'export #t)
   (let* ([normalized (normalize-v2 sexpr)]
          [payload (string->utf8 (format "~s" normalized))]
          [blk (make-block tag payload empty-refs)]
@@ -142,19 +78,10 @@
     (bytevector-copy! hash 0 address 1 hash-size)
     address))
 
-;;; hash-sexpr-v3 : Symbol × S-expr → Bytevector
-;;; Hash an S-expression with version 3 normalization (version 0x03).
-;;; This applies the most aggressive canonicalization using NbE:
-;;;   - β-reduction: ((fn (x) x) y) → y
-;;;   - η-equivalence: via semantic readback
-;;;   - Pair projection: (fst (pair a b)) → a
-;;;   - Sum projection: (case (Left a) ...) → left-branch[a]
-;;;   - Conditional: (if #t a b) → a
-;;;   - All v2 transformations (η-reduction, poly-canon, algebraic, etc.)
-;;;
-;;; Use this for maximum semantic equivalence detection.
-;;; Version byte 0x03 distinguishes from previous versions.
 (define (hash-sexpr-v3 tag sexpr)
+  (doc 'type (-> Symbol Any Bytevector))
+  (doc 'description "Hash S-expression with v3 normalization (v0x03). NbE with β-reduction, projections, and all v2 transforms.")
+  (doc 'export #t)
   (let* ([normalized (normalize-v3 sexpr)]
          [payload (string->utf8 (format "~s" normalized))]
          [blk (make-block tag payload empty-refs)]
@@ -164,29 +91,34 @@
     (bytevector-copy! hash 0 address 1 hash-size)
     address))
 
-;;; address-version : Bytevector → Byte
-;;; Extract the version byte from an address.
 (define (address-version-byte addr)
+  (doc 'type (-> Bytevector Byte))
+  (doc 'description "Extract the version byte from an address.")
+  (doc 'export #t)
   (bytevector-u8-ref addr 0))
 
-;;; address-algebraic? : Bytevector → Boolean
-;;; Check if an address was computed with algebraic normalization (v0x01).
 (define (address-algebraic? addr)
+  (doc 'type (-> Bytevector Boolean))
+  (doc 'description "Check if address was computed with algebraic normalization (v0x01).")
+  (doc 'export #t)
   (= (address-version-byte addr) address-version-algebraic))
 
-;;; address-v2? : Bytevector → Boolean
-;;; Check if an address was computed with v2 normalization (v0x02).
 (define (address-v2? addr)
+  (doc 'type (-> Bytevector Boolean))
+  (doc 'description "Check if address was computed with v2 normalization (v0x02).")
+  (doc 'export #t)
   (= (address-version-byte addr) address-version-v2))
 
-;;; address-v3? : Bytevector → Boolean
-;;; Check if an address was computed with v3 normalization (v0x03).
 (define (address-v3? addr)
+  (doc 'type (-> Bytevector Boolean))
+  (doc 'description "Check if address was computed with v3 normalization (v0x03).")
+  (doc 'export #t)
   (= (address-version-byte addr) address-version-v3))
 
-;;; hash->hex : Bytevector → String
-;;; Convert address bytes to hexadecimal string (for display).
 (define (hash->hex hash)
+  (doc 'type (-> Bytevector String))
+  (doc 'description "Convert address bytes to hexadecimal string for display.")
+  (doc 'export #t)
   (let ([hex-chars "0123456789abcdef"])
        (apply string-append
               (map (lambda (i)
@@ -196,9 +128,10 @@
                                  (string-ref hex-chars (modulo b 16)))))
                    (iota (bytevector-length hash))))))
 
-;;; hex->hash : String → Bytevector
-;;; Convert hexadecimal string to address bytes.
 (define (hex->hash str)
+  (doc 'type (-> String Bytevector))
+  (doc 'description "Convert hexadecimal string to address bytes.")
+  (doc 'export #t)
   (let* ([len (string-length str)]
          [result (make-bytevector (quotient len 2))])
         (do ([i 0 (+ i 1)])
@@ -209,83 +142,70 @@
                   (bytevector-u8-set! result i (+ (* hi 16) lo))))
         result))
 
-;;; char->hex-digit : Char → Nat
-;;; Convert hexadecimal character to numeric value (0-15).
 (define (char->hex-digit c)
+  (doc 'type (-> Char Nat))
+  (doc 'description "Convert hexadecimal character to numeric value (0-15).")
+  (doc 'export #t)
   (cond
    [(char<=? #\0 c #\9) (- (char->integer c) (char->integer #\0))]
    [(char<=? #\a c #\f) (+ 10 (- (char->integer c) (char->integer #\a)))]
    [(char<=? #\A c #\F) (+ 10 (- (char->integer c) (char->integer #\A)))]
    [else (error 'char->hex-digit "invalid hex character" c)]))
 
-;;; ====
-;;; In-Memory Store
-;;; ====
+(doc 'section 'in-memory-store)
 
-;;; The store is a hashtable: hash-bytes → Block
-;;; We use bytevector hashes as keys via equal-hash.
-;;;
-;;; THREAD SAFETY NOTE:
-;;; This implementation is NOT thread-safe. Concurrent access to the
-;;; hashtables (*store* and *pinned*) from multiple threads can lead to
-;;; race conditions and data corruption. If multi-threaded access is
-;;; required, external synchronization (e.g., mutexes) must be used to
-;;; serialize all store operations (store!, fetch, pin!, unpin!, gc!).
-;;;
-;;; For production use, consider:
-;;; - Wrapping store operations in a mutex
-;;; - Using a thread-safe concurrent data structure
-;;; - Ensuring all access goes through a single-threaded coordinator
-
-;;; *store* : (Hashtable Bytevector Block)
+(doc *store* 'type (Hashtable Bytevector Block))
+(doc *store* 'description "In-memory store hashtable. NOT thread-safe.")
 (define *store* (make-hashtable equal-hash equal?))
 
-;;; Pinned hashes are preserved during garbage collection.
-;;; (Not implemented yet — all stored blocks are retained.)
-
-;;; *pinned* : (Hashtable Bytevector Boolean)
+(doc *pinned* 'type (Hashtable Bytevector Boolean))
+(doc *pinned* 'description "Pinned hashes preserved during garbage collection.")
 (define *pinned* (make-hashtable equal-hash equal?))
 
-;;; store! : Block → Bytevector
-;;; Store a block and return its hash.
 (define (store! blk)
+  (doc 'type (-> Block Bytevector))
+  (doc 'description "Store a block and return its hash.")
+  (doc 'export #t)
   (let ([hash (hash-block blk)])
        (hashtable-set! *store* hash blk)
        hash))
 
-;;; fetch : Bytevector → Block | #f
-;;; Retrieve a block by its hash, or #f if not found.
 (define (fetch hash)
+  (doc 'type (-> Bytevector (Maybe Block)))
+  (doc 'description "Retrieve a block by its hash, or #f if not found.")
+  (doc 'export #t)
   (hashtable-ref *store* hash #f))
 
-;;; stored? : Bytevector → Boolean
-;;; Check if a block with this hash exists.
 (define (stored? hash)
+  (doc 'type (-> Bytevector Boolean))
+  (doc 'description "Check if a block with this hash exists.")
+  (doc 'export #t)
   (hashtable-contains? *store* hash))
 
-;;; pin! : Bytevector → void
-;;; Mark a hash as pinned (should not be garbage collected).
 (define (pin! hash)
+  (doc 'type (-> Bytevector Void))
+  (doc 'description "Mark a hash as pinned (should not be garbage collected).")
+  (doc 'export #t)
   (hashtable-set! *pinned* hash #t))
 
-;;; pinned? : Bytevector → Boolean
-;;; Check if a hash is currently pinned.
 (define (pinned? hash)
+  (doc 'type (-> Bytevector Boolean))
+  (doc 'description "Check if a hash is currently pinned.")
+  (doc 'export #t)
   (hashtable-ref *pinned* hash #f))
 
-;;; unpin! : Bytevector → void
-;;; Remove pin from a hash.
 (define (unpin! hash)
+  (doc 'type (-> Bytevector Void))
+  (doc 'description "Remove pin from a hash.")
+  (doc 'export #t)
   (hashtable-delete! *pinned* hash))
 
-;;; ====
-;;; Tree Operations (Transitive Pinning/Unpinning)
-;;; ====
+(doc 'section 'tree-operations)
 
-;;; collect-refs : Bytevector × (Bytevector → Block) → (List Bytevector)
-;;; Collect all transitive references from a block.
-;;; Uses iterative traversal. Prepends new refs to avoid O(N²) append.
 (define (collect-refs hash fetch)
+  (doc 'type (-> Bytevector (-> Bytevector Block) (List Bytevector)))
+  (doc 'description "Collect all transitive references from a block. Iterative traversal.")
+  (doc 'export #t)
   (let ([visited (make-hashtable equal-hash equal?)]
         [queue (list hash)]
         [results '()])
@@ -313,10 +233,10 @@
                                    (set! queue rest-queue)))
                           (loop))))))))
 
-;;; pin-tree! : Bytevector → Nat
-;;; Pin a hash and all its transitive references.
-;;; Returns the number of blocks pinned.
 (define (pin-tree! hash)
+  (doc 'type (-> Bytevector Nat))
+  (doc 'description "Pin a hash and all its transitive references. Returns number of blocks pinned.")
+  (doc 'export #t)
   (let* ([refs (collect-refs hash fetch)]
          [count 0])
         (for-each
@@ -327,10 +247,10 @@
          refs)
         count))
 
-;;; unpin-tree! : Bytevector → Nat
-;;; Unpin a hash and all its transitive references.
-;;; Returns the number of blocks unpinned.
 (define (unpin-tree! hash)
+  (doc 'type (-> Bytevector Nat))
+  (doc 'description "Unpin a hash and all its transitive references. Returns number of blocks unpinned.")
+  (doc 'export #t)
   (let* ([refs (collect-refs hash fetch)]
          [count 0])
         (for-each
@@ -341,14 +261,12 @@
          refs)
         count))
 
-;;; ====
-;;; Garbage Collection
-;;; ====
+(doc 'section 'garbage-collection)
 
-;;; gc! : → (values Nat Nat)
-;;; Remove all unpinned blocks from the store.
-;;; Returns (collected-count remaining-count).
 (define (gc!)
+  (doc 'type (-> (Values Nat Nat)))
+  (doc 'description "Remove all unpinned blocks from store. Returns (collected-count remaining-count).")
+  (doc 'export #t)
   (let ([to-remove '()]
         [initial-count (store-count)])
        ;; Collect unpinned hashes
@@ -364,11 +282,10 @@
         to-remove)
        (values (length to-remove) (store-count))))
 
-;;; gc-with-roots! : (List Bytevector) → (values Nat Nat)
-;;; Collect blocks not reachable from the given root hashes.
-;;; First pins all reachable blocks, then collects unpinned.
-;;; Returns (collected-count remaining-count).
 (define (gc-with-roots! roots)
+  (doc 'type (-> (List Bytevector) (Values Nat Nat)))
+  (doc 'description "Collect blocks not reachable from root hashes. Returns (collected-count remaining-count).")
+  (doc 'export #t)
   ;; Save current pins
   (let ([saved-pins (make-hashtable equal-hash equal?)])
        (vector-for-each
@@ -396,9 +313,10 @@
                     (hashtable-keys *store*))
                    (values collected remaining))))
 
-;;; gc-stats : → Alist
-;;; Return statistics about pinned vs unpinned blocks.
 (define (gc-stats)
+  (doc 'type (-> Alist))
+  (doc 'description "Return statistics about pinned vs unpinned blocks.")
+  (doc 'export #t)
   (let ([total 0]
         [pinned-count 0]
         [unpinned-count 0])
@@ -414,41 +332,34 @@
          (unpinned . ,unpinned-count)
          (gc-would-collect . ,unpinned-count))))
 
-;;; ====
-;;; Store Statistics
-;;; ====
+(doc 'section 'store-statistics)
 
-;;; store-count : → Nat
-;;; Number of blocks in the store.
 (define (store-count)
+  (doc 'type (-> Nat))
+  (doc 'description "Number of blocks in the store.")
+  (doc 'export #t)
   (hashtable-size *store*))
 
-;;; store-hashes : → (List Bytevector)
-;;; All hashes in the store.
 (define (store-hashes)
+  (doc 'type (-> (List Bytevector)))
+  (doc 'description "All hashes in the store.")
+  (doc 'export #t)
   (vector->list (hashtable-keys *store*)))
 
-;;; ====
-;;; Convenience: Store S-expressions
-;;; ====
+(doc 'section 'convenience)
 
-;;; These wrap S-expressions in blocks for storage.
-
-;;; store-sexpr! : Symbol × S-expr → Bytevector
-;;; Store an S-expression as a block with given tag.
 (define (store-sexpr! tag sexpr)
+  (doc 'type (-> Symbol Any Bytevector))
+  (doc 'description "Store an S-expression as a block with given tag.")
+  (doc 'export #t)
   (let* ([payload (string->utf8 (format "~s" sexpr))]
          [blk (make-block tag payload empty-refs)])
         (store! blk)))
 
-;;; fetch-sexpr : Bytevector → S-expr | #f
-;;; Retrieve and parse an S-expression block.
-;;;
-;;; SECURITY NOTE: This uses Scheme's standard 'read' which can execute
-;;; code via reader macros (e.g., #. in some implementations). Only use
-;;; with trusted data stored via store-sexpr!. For untrusted input,
-;;; validate at the boundary layer before storage.
 (define (fetch-sexpr hash)
+  (doc 'type (-> Bytevector (Maybe Any)))
+  (doc 'description "Retrieve and parse S-expression block. Uses 'read' - only for trusted data.")
+  (doc 'export #t)
   (let ([blk (fetch hash)])
        (if blk
            (guard (ex [else #f])  ; Return #f on parse error

@@ -1,148 +1,78 @@
-;;; core/types/dep-types.ss — Dependent Type Extensions
-;;;
-;;; Extends the base type system with dependent types:
-;;;   - Pi types (Π) — Dependent function types
-;;;   - Sigma types (Σ) — Dependent pair types
-;;;   - Universe hierarchy (Type₀, Type₁, ...)
-;;;
-;;; This module provides the syntax and predicates for dependent types.
-;;; Normalization and conversion checking is in nbe.ss.
-;;; Type checking rules are in dep-infer.ss.
-;;;
-;;; This is Core code: pure, total, assumes perfect input.
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;   - types.ss
-
 (load "core/base/prelude.ss")
 (load "core/types/types.ss")
 
-;;; ====
-;;; Extended Type Grammar
-;;; ====
-;;;
-;;; In addition to types.ss grammar:
-;;;
-;;;   Type ::= ...
-;;;          | (Π ((x : Type)) Type)    ; Pi type (dependent function)
-;;;          | (Σ ((x : Type)) Type)    ; Sigma type (dependent pair)
-;;;          | Type                      ; Universe (synonym for Type₀)
-;;;          | (Type n)                  ; Universe at level n
-;;;          | (data (Name params...) [ctor : type] ...)  ; Inductive type
-;;;
-;;; The arrow (-> A B) is sugar for (Π ((_ : A)) B) when _ is unused.
-;;; The product (× A B) is sugar for (Σ ((_ : A)) B) when _ is unused.
-;;;
-;;; Inductive Types:
-;;;
-;;;   (data (Name params...) [ctor : type] ...)
-;;;
-;;; Where:
-;;;   - Name is the type name (symbol)
-;;;   - params are type parameters: bare symbols (implicit Type) or (x : T)
-;;;   - ctor is a constructor name
-;;;   - type is the constructor's type (must return the inductive type)
-;;;
-;;; Example:
-;;;   (data (Vec A)
-;;;     [nil  : (Vec A)]
-;;;     [cons : (Π ((x : A)) (Π ((xs : (Vec A))) (Vec A)))])
-;;;
-;;;   (data (Nat)
-;;;     [zero : Nat]
-;;;     [succ : (Π ((n : Nat)) Nat)])
-;;;
-;;; Indexed Families:
-;;;   (data (Vec (n : Nat) A)
-;;;     [nil  : (Vec 0 A)]
-;;;     [cons : (Π ((x : A)) (Π ((m : Nat)) (Π ((xs : (Vec m A))) (Vec (succ m) A))))])
-;;;
-;;; Module Signatures (dependent types integration):
-;;;
-;;;   (sig Name
-;;;     [type T : Kind]           ; Abstract type declaration
-;;;     [type T = Type]           ; Type alias (transparent)
-;;;     [val name : Type]         ; Value export
-;;;     [data DataDecl]           ; Inductive type export
-;;;     [include SigName])        ; Signature inclusion
-;;;
-;;; Example:
-;;;   (sig Stack
-;;;     [type T : Type]                              ; Element type (abstract)
-;;;     [type Stack : (-> Type Type)]                ; Stack type constructor
-;;;     [val empty : (Π ((A : Type)) (Stack A))]     ; Polymorphic empty
-;;;     [val push : (Π ((A : Type)) (Π ((x : A)) (Π ((s : (Stack A))) (Stack A))))]
-;;;     [val pop : (Π ((A : Type)) (Π ((s : (Stack A))) (Stack A)))])
-;;;
-;;; Quick API Reference (constructors defined below):
-;;;
-;;;   (t-pi 'n 'Nat '(Vec Int n))         → (Π ((n : Nat)) (Vec Int n))
-;;;   (t-sigma 'x 'Int '(> x 0))          → (Σ ((x : Int)) (> x 0))
-;;;   (t-type 1)                          → (Type 1)
-;;;   (t-eq 'Nat 'x 'y)                   → (= Nat x y)
-;;;   (t-refine 'n 'Nat '(> n 0))         → (refine ((n : Nat)) (> n 0))
-;;;
-;;; Predicates: pi-type?, sigma-type?, universe-type?, equality-type?,
-;;;             refinement-type?, data-type?, sig-type?, dep-type?
+(doc 'module 'dep-types)
+(doc 'description "Extends the base type system with dependent types: Pi types (Π), Sigma types (Σ), and Universe hierarchy (Type₀, Type₁, ...).")
+(doc 'layer 'core)
 
-;;; ====
-;;; Dependent Type Predicates
-;;; ====
+(doc 'section 'extended-type-grammar)
 
-;;; pi-type? : Type → Boolean
+(doc 'section 'dependent-type-predicates)
+
 (define (pi-type? t)
+  (doc 'type (-> Type Boolean))
+  (doc 'description "Check if this is a Pi type (dependent function type).")
+  (doc 'export #t)
   (and (pair? t) (eq? (car t) 'Π)))
 
-;;; sigma-type? : Type → Boolean
 (define (sigma-type? t)
+  (doc 'type (-> Type Boolean))
+  (doc 'description "Check if this is a Sigma type (dependent pair type).")
+  (doc 'export #t)
   (and (pair? t) (eq? (car t) 'Σ)))
 
-;;; vec-type? : Type → Boolean
 (define (vec-type? t)
+  (doc 'type (-> Type Boolean))
+  (doc 'description "Check if this is a Vec type (dependent vector).")
+  (doc 'export #t)
   (and (pair? t) (eq? (car t) 'Vec)))
 
-;;; matrix-type? : Type → Boolean
 (define (matrix-type? t)
+  (doc 'type (-> Type Boolean))
+  (doc 'description "Check if this is a Matrix type (dependent matrix).")
+  (doc 'export #t)
   (and (pair? t) (eq? (car t) 'Matrix)))
 
-;;; universe-type? : Type → Boolean
 (define (universe-type? t)
+  (doc 'type (-> Type Boolean))
+  (doc 'description "Check if this is a universe type: Type or (Type n).")
+  (doc 'export #t)
   (or (eq? t 'Type)
       (and (pair? t) (eq? (car t) 'Type))))
 
-;;; equality-type? : Type → Boolean
-;;; Check if this is a propositional equality type: (= A x y)
 (define (equality-type? t)
+  (doc 'type (-> Type Boolean))
+  (doc 'description "Check if this is a propositional equality type: (= A x y).")
+  (doc 'export #t)
   (and (pair? t) (eq? (car t) '=)))
 
-;;; refinement-type? : Type → Boolean
-;;; Check if this is a refinement type: {x : T | P}
-;;; Syntax: (refine ((x : T)) P)
 (define (refinement-type? t)
+  (doc 'type (-> Type Boolean))
+  (doc 'description "Check if this is a refinement type: {x : T | P}. Syntax: (refine ((x : T)) P).")
+  (doc 'export #t)
   (and (pair? t) (eq? (car t) 'refine)))
 
-;;; data-type? : SExpr → Boolean
-;;; Check if this is an inductive type definition: (data (Name ...) [ctor : type] ...)
 (define (data-type? t)
+  (doc 'type (-> SExpr Boolean))
+  (doc 'description "Check if this is an inductive type definition: (data (Name ...) [ctor : type] ...).")
+  (doc 'export #t)
   (and (pair? t) (eq? (car t) 'data)))
 
-;;; dep-type? : Type → Boolean
-;;; Is this a dependent type construct?
 (define (dep-type? t)
+  (doc 'type (-> Type Boolean))
+  (doc 'description "Is this a dependent type construct?")
+  (doc 'export #t)
   (or (pi-type? t) (sigma-type? t) (universe-type? t)
       (vec-type? t) (matrix-type? t) (equality-type? t) (heq-type? t)
       (refinement-type? t) (data-type? t) (sig-type? t)
       (diff-type? t) (grad-type? t)))
 
-;;; ====
-;;; Pi Type Operations
-;;; ====
+(doc 'section 'pi-type-operations)
 
-;;; pi-type-well-formed? : SExpr → Boolean
-;;; Check if a Pi type expression is well-formed.
-;;; Form: (Π ((x : A)) B) or (Π ((x : A) (y : B)) C) for multiple params
 (define (pi-type-well-formed? t)
+  (doc 'type (-> SExpr Boolean))
+  (doc 'description "Check if a Pi type expression is well-formed. Form: (Π ((x : A)) B) or (Π ((x : A) (y : B)) C) for multiple params.")
+  (doc 'export #t)
   (and (pair? t)
        (eq? (car t) 'Π)
        (= (length t) 3)
@@ -152,30 +82,34 @@
                  (not (null? bindings))
                  (andmap typed-binding? bindings)))))
 
-;;; pi-var : Type → Symbol
-;;; Get the first bound variable of a Pi type.
 (define (pi-var t)
+  (doc 'type (-> Type Symbol))
+  (doc 'description "Get the first bound variable of a Pi type.")
+  (doc 'export #t)
   (if (pi-type? t)
       (caar (cadr t))
       #f))
 
-;;; pi-domain : Type → Type
-;;; Get the domain type of a Pi type.
 (define (pi-domain t)
+  (doc 'type (-> Type Type))
+  (doc 'description "Get the domain type of a Pi type.")
+  (doc 'export #t)
   (if (pi-type? t)
       (caddar (cadr t))  ; Third element of first binding
       'Void))
 
-;;; pi-codomain : Type → Type
-;;; Get the codomain type of a Pi type (may reference the bound var).
 (define (pi-codomain t)
+  (doc 'type (-> Type Type))
+  (doc 'description "Get the codomain type of a Pi type (may reference the bound var).")
+  (doc 'export #t)
   (if (pi-type? t)
       (caddr t)
       'Void))
 
-;;; pi-bindings : Type → (List (Symbol . Type))
-;;; Extract all bindings from a Pi type as alist.
 (define (pi-bindings t)
+  (doc 'type (-> Type (List (Pair Symbol Type))))
+  (doc 'description "Extract all bindings from a Pi type as alist.")
+  (doc 'export #t)
   (if (pi-type? t)
       (map (lambda (b) (cons (car b) (caddr b)))
            (cadr t))

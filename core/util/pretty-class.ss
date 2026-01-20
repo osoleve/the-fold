@@ -1,59 +1,23 @@
-;;; core/util/pretty-class.ss — Pretty Type Class Implementation
-;;; @module pretty-class
-;;; @requires prelude pretty
-;;;
-;;; Implementation functions for the Pretty type class instances.
-;;; Pretty returns Doc (from pretty.ss) for width-aware layout,
-;;; unlike Show which returns flat String.
-;;;
-;;; This is Core code: pure, total, assumes reasonable input.
-;;;
-;;; ====
-;;; Architecture: Pretty Type Class + Wadler-Lindig Layout
-;;; ====
-;;;
-;;; This module bridges the type class system with the layout algorithm:
-;;;
-;;;   pretty.ss (Layout Layer)
-;;;   ├── Doc type: abstract document representation
-;;;   ├── Combinators: text, line, nest, group, <>, hsep, sep, etc.
-;;;   ├── Layout: best, be, fits? (Wadler-Lindig optimal layout)
-;;;   └── Render: pretty : Nat × Doc → String
-;;;
-;;;   pretty-class.ss (Type Class Layer) [this file]
-;;;   ├── Instance functions: nat-pretty, bool-pretty, etc. : Value → Doc
-;;;   ├── Dispatch hook: *pretty-dispatch* for lattice type extension
-;;;   ├── Convenience: pretty-render, pp-value : Doc/Value → String
-;;;   └── Precedence helpers: parens-if, pretty-binop for expressions
-;;;
-;;;   lattice/fp/pretty-instances.ss (Extension)
-;;;   ├── Lattice instances: vec2-pretty, matrix-pretty, expr-pretty, etc.
-;;;   └── Registers lattice-pretty-dispatch via set-pretty-dispatch!
-;;;
-;;; Usage:
-;;;   - To pretty-print a value: (pp-value x) or (pprint-value x)
-;;;   - To build a Doc manually: use combinators from pretty.ss
-;;;   - To add new types: define *-pretty functions, register via dispatch
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;   - pretty.ss (for Doc type and combinators)
-
 (load "core/base/prelude.ss")
 (load "core/util/pretty.ss")
 
-;;; ====
-;;; Default Width
-;;; ====
+(doc 'module 'pretty-class)
+(doc 'description "Pretty Type Class Implementation. Implementation functions for the Pretty type class instances. Pretty returns Doc (from pretty.ss) for width-aware layout, unlike Show which returns flat String. This module bridges the type class system with the Wadler-Lindig layout algorithm. Architecture: pretty.ss provides the layout layer with Doc type and combinators; pretty-class.ss provides the type class layer with instance functions and dispatch hooks; lattice/fp/pretty-instances.ss extends with lattice types.")
+(doc 'layer 'core)
 
+(doc 'section 'default-width)
+
+(doc *default-pretty-width* 'type Nat)
+(doc *default-pretty-width* 'description "Default width for pretty printing values.")
+(doc *default-pretty-width* 'export #t)
 (define *default-pretty-width* 80)
 
-;;; ====
-;;; Primitive Pretty Implementations
-;;; ====
+(doc 'section 'primitive-pretty-implementations)
 
-;;; nat-pretty : Nat → Doc
 (define (nat-pretty n)
+  (doc 'type (-> Nat Doc))
+  (doc 'description "Pretty-print a natural number.")
+  (doc 'export #t)
   (text (number->string n)))
 
 ;;; nat-pretty-prec : Int → Nat → Doc
@@ -101,26 +65,25 @@
 (define (symbol-pretty-prec prec s)
   (symbol-pretty s))
 
-;;; ====
-;;; List Pretty Implementation
-;;; ====
+(doc 'section 'list-pretty-implementation)
 
-;;; list-pretty-with : (a → Doc) → (List a) → Doc
-;;; Pretty-print a list using element pretty-printer.
 (define (list-pretty-with elem-pretty lst)
+  (doc 'type (-> (-> a Doc) (List a) Doc))
+  (doc 'description "Pretty-print a list using element pretty-printer.")
+  (doc 'export #t)
   (if (null? lst)
       (text "()")
       (parens (sep (map elem-pretty lst)))))
 
-;;; *pretty-dispatch* : (Any → Doc) | #f
-;;; Hook for lattice modules to register a dispatch function.
-;;; When set, list-pretty uses this to infer element Pretty instances.
-;;; Lattice code sets this via (set-pretty-dispatch! fn).
+(doc *pretty-dispatch* 'type (Maybe (-> Any Doc)))
+(doc *pretty-dispatch* 'description "Hook for lattice modules to register a dispatch function. When set, list-pretty uses this to infer element Pretty instances. Lattice code sets this via set-pretty-dispatch!.")
+(doc *pretty-dispatch* 'export #t)
 (define *pretty-dispatch* #f)
 
-;;; set-pretty-dispatch! : (Any → Doc) → Void
-;;; Register a dispatch function for Pretty instance inference.
 (define (set-pretty-dispatch! fn)
+  (doc 'type (-> (-> Any Doc) Void))
+  (doc 'description "Register a dispatch function for Pretty instance inference.")
+  (doc 'export #t)
   (set! *pretty-dispatch* fn))
 
 ;;; core-elem-pretty : Any → Doc
@@ -144,9 +107,10 @@
       (*pretty-dispatch* x)
       (core-elem-pretty x)))
 
-;;; list-pretty : (List a) → Doc
-;;; Pretty-print a list, inferring element Pretty instances.
 (define (list-pretty lst)
+  (doc 'type (-> (List a) Doc))
+  (doc 'description "Pretty-print a list, inferring element Pretty instances.")
+  (doc 'export #t)
   (if (null? lst)
       (text "()")
       (parens (sep (map infer-elem-pretty lst)))))
@@ -175,22 +139,11 @@
    ;; For atoms, use infer-elem-pretty to get proper Pretty instance
    [else (infer-elem-pretty sexp)]))
 
-;;; ====
-;;; Precedence Helpers (for expressions)
-;;; ====
-;;;
-;;; Precedence levels (higher binds tighter):
-;;;   10: atoms (numbers, variables) - tightest
-;;;    9: function application
-;;;    8: exponentiation (^)
-;;;    7: multiplication, division (*, /)
-;;;    6: addition, subtraction (+, -)
-;;;    5: comparisons (<, >, ==, etc.)
-;;;    4: logical and (&&)
-;;;    3: logical or (||)
-;;;    2: conditional expressions
-;;;    0: top level (no context) - loosest
+(doc 'section 'precedence-helpers)
 
+(doc prec-atom 'type Int)
+(doc prec-atom 'description "Precedence level for atoms (numbers, variables) - tightest binding.")
+(doc prec-atom 'export #t)
 (define prec-atom 10)
 (define prec-app 9)
 (define prec-exp 8)
@@ -202,18 +155,16 @@
 (define prec-cond 2)
 (define prec-top 0)
 
-;;; parens-if : Bool → Doc → Doc
-;;; Wrap doc in parens if condition is true.
 (define (parens-if cond doc)
+  (doc 'type (-> Bool Doc Doc))
+  (doc 'description "Wrap doc in parens if condition is true.")
+  (doc 'export #t)
   (if cond (parens doc) doc))
 
-;;; pretty-binop : Int → Int → Doc → String → Doc → Doc
-;;; Pretty-print a binary operator with precedence handling.
-;;; prec: current context precedence
-;;; op-prec: operator precedence
-;;; left, right: operand Docs
-;;; op: operator string
 (define (pretty-binop prec op-prec left op right)
+  (doc 'type (-> Int Int Doc String Doc Doc))
+  (doc 'description "Pretty-print a binary operator with precedence handling. prec is current context precedence, op-prec is operator precedence, left and right are operand Docs, op is operator string.")
+  (doc 'export #t)
   (parens-if (> prec op-prec)
     (group (<> left (<> (text (string-append " " op " ")) right)))))
 
@@ -223,13 +174,12 @@
   (parens-if (> prec op-prec)
     (<> (text op) operand)))
 
-;;; ====
-;;; Convenience Functions
-;;; ====
+(doc 'section 'convenience-functions)
 
-;;; pretty-render : Doc → String
-;;; Render a Doc to string with default width.
 (define (pretty-render doc)
+  (doc 'type (-> Doc String))
+  (doc 'description "Render a Doc to string with default width.")
+  (doc 'export #t)
   (pretty *default-pretty-width* doc))
 
 ;;; pretty-render-width : Nat → Doc → String
@@ -249,17 +199,12 @@
   (display (pretty-render-width width doc))
   (newline))
 
-;;; ====
-;;; Value-to-String Convenience
-;;; ====
-;;;
-;;; These functions combine type class dispatch with layout rendering.
-;;; Use these when you want to pretty-print a value directly to String.
+(doc 'section 'value-to-string-convenience)
 
-;;; pp-value : Any → String
-;;; Pretty-print any value to string with default width.
-;;; Uses dispatch hook if set (for lattice types).
 (define (pp-value x)
+  (doc 'type (-> Any String))
+  (doc 'description "Pretty-print any value to string with default width. Uses dispatch hook if set (for lattice types).")
+  (doc 'export #t)
   (pretty-render (infer-elem-pretty x)))
 
 ;;; pp-value-width : Nat → Any → String
@@ -284,10 +229,6 @@
 ;;; ====
 ;;; sexp->doc provides a fallback for any S-expression when
 ;;; no specific Pretty instance is available.
-
-;;; ====
-;;; Module Loading Message
-;;; ====
 
 (display "pretty-class.ss loaded.\n")
 (display "  Pretty type class: Nat, Int, Bool, Char, String, Symbol, List.\n")

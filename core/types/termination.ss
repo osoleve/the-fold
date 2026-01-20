@@ -1,45 +1,16 @@
-;;; core/types/termination.ss --- Termination Checking for Type-Level Computation
-;;;
-;;; Ensures that type-level computation terminates, which is essential for
-;;; decidable type checking in a dependent type system.
-;;;
-;;; Approaches implemented:
-;;;   1. Structural recursion: recursive calls on structurally smaller arguments
-;;;   2. Lexicographic ordering: multiple arguments decreasing lexicographically
-;;;   3. Size-change termination: tracking how argument sizes change across calls
-;;;
-;;; The checker analyzes recursive definitions and verifies that they will
-;;; terminate. Non-terminating definitions are rejected with clear error messages.
-;;;
-;;; This is Core code: pure, total, assumes perfect input.
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;   - types.ss
-;;;   - dep-types.ss
-;;;
-;;; References:
-;;;   - "Size-Change Termination" (Lee, Jones, Ben-Amram)
-;;;   - "Termination Checking in Agda" (Abel)
-;;;   - "Foetus - Termination Checker for Simple Functional Programs" (Abel)
-
 (load "core/base/prelude.ss")
 (load "core/types/types.ss")
 (load "core/types/dep-types.ss")
 
-;;; ====
-;;; Size Relations
-;;; ====
+(doc 'module 'termination)
+(doc 'description "Termination checking for type-level computation. Ensures that type-level computation terminates, which is essential for decidable type checking in a dependent type system. Implements structural recursion, lexicographic ordering, and size-change termination")
+(doc 'layer 'core)
 
-;;; Size relations between arguments in recursive calls.
-;;; These are used to build size-change graphs.
+(doc 'section 'size-relations)
 
-;;; size-relation : Symbol
-;;; Represents how one argument relates to another in size:
-;;;   '<  — strictly smaller (structural subterm)
-;;;   '<= — smaller or equal
-;;;   '?  — unknown/unrelated
-
+(doc size-relation? 'type (-> Symbol Boolean))
+(doc size-relation? 'description "Check if this is a valid size relation: '<, '<=, or '?")
+(doc size-relation? 'export #t)
 (define (size-relation? r)
   (if (memq r '(< <= ?)) #t #f))
 

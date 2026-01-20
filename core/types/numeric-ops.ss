@@ -1,265 +1,250 @@
-;;; core/types/numeric-ops.ss — Pure Numeric Operations
-;;;
-;;; Explicit, promotion-aware arithmetic operations for Core/Lattice code.
-;;; These are the "opt-in" operators that don't shadow Scheme primitives.
-;;;
-;;; Naming convention: n+ n- n* n/ for numeric tower-aware ops
-;;;
-;;; This is Core code: pure, total, assumes reasonable input.
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;   - numeric-tower.ss
-;;;   - numeric-instances.ss
-
 (load "core/base/prelude.ss")
 (load "core/types/numeric-tower.ss")
 (load "core/types/numeric-instances.ss")
 
-;;; ============================================================================
-;;; Core Arithmetic (Promotion-Aware)
-;;; ============================================================================
+(doc 'module 'numeric-ops)
+(doc 'description "Pure numeric operations with explicit promotion-aware arithmetic. These are opt-in operators that don't shadow Scheme primitives. Naming convention: n+ n- n* n/ for numeric tower-aware ops.")
+(doc 'layer 'core)
 
-;;; These operators automatically promote operands to a common type.
-;;; They preserve exactness when both operands are exact.
+(doc 'section 'core-arithmetic-promotion-aware)
 
-;;; n+ : Num a => a × a → a
-;;; Promotion-aware addition.
 (define (n+ a b)
+  (doc 'type '(-> Num a => a a a))
+  (doc 'description "Promotion-aware addition. Automatically promotes operands to common type, preserving exactness when both operands are exact.")
+  (doc 'export #t)
   (let-values ([(a* b*) (promote-exact-pair a b)])
     (+ a* b*)))
 
-;;; n- : Num a => a × a → a
-;;; Promotion-aware subtraction.
 (define (n- a b)
+  (doc 'type '(-> Num a => a a a))
+  (doc 'description "Promotion-aware subtraction.")
+  (doc 'export #t)
   (let-values ([(a* b*) (promote-exact-pair a b)])
     (- a* b*)))
 
-;;; n* : Num a => a × a → a
-;;; Promotion-aware multiplication.
 (define (n* a b)
+  (doc 'type '(-> Num a => a a a))
+  (doc 'description "Promotion-aware multiplication.")
+  (doc 'export #t)
   (let-values ([(a* b*) (promote-exact-pair a b)])
     (* a* b*)))
 
-;;; n/ : Fractional a => a × a → a
-;;; Promotion-aware division.
-;;; Note: Integer division produces exact rational (not truncated).
 (define (n/ a b)
-  (/ a b))  ; Chez handles promotion correctly
+  (doc 'type '(-> Fractional a => a a a))
+  (doc 'description "Promotion-aware division. Integer division produces exact rational, not truncated.")
+  (doc 'export #t)
+  (/ a b))
 
-;;; n-neg : Num a => a → a
-;;; Negation.
 (define (n-neg a)
+  (doc 'type '(-> Num a => a a))
+  (doc 'description "Negation.")
+  (doc 'export #t)
   (- a))
 
-;;; n-abs : Num a => a → a
-;;; Absolute value.
 (define (n-abs a)
+  (doc 'type '(-> Num a => a a))
+  (doc 'description "Absolute value.")
+  (doc 'export #t)
   (abs a))
 
-;;; ============================================================================
-;;; Integer Operations (Integral)
-;;; ============================================================================
+(doc 'section 'integer-operations-integral)
 
-;;; n-quot : Integral a => a × a → a
-;;; Integer quotient (truncates toward zero).
 (define (n-quot a b)
+  (doc 'type '(-> Integral a => a a a))
+  (doc 'description "Integer quotient (truncates toward zero).")
+  (doc 'export #t)
   (quotient a b))
 
-;;; n-rem : Integral a => a × a → a
-;;; Integer remainder (sign follows dividend).
 (define (n-rem a b)
+  (doc 'type '(-> Integral a => a a a))
+  (doc 'description "Integer remainder (sign follows dividend).")
+  (doc 'export #t)
   (remainder a b))
 
-;;; n-div : Integral a => a × a → a
-;;; Integer division (truncates toward negative infinity).
 (define (n-div a b)
+  (doc 'type '(-> Integral a => a a a))
+  (doc 'description "Integer division (truncates toward negative infinity).")
+  (doc 'export #t)
   (floor (/ a b)))
 
-;;; n-mod : Integral a => a × a → a
-;;; Modulo (sign follows divisor).
 (define (n-mod a b)
+  (doc 'type '(-> Integral a => a a a))
+  (doc 'description "Modulo (sign follows divisor).")
+  (doc 'export #t)
   (modulo a b))
 
-;;; n-gcd : Integral a => a × a → a
-;;; Greatest common divisor.
 (define (n-gcd a b)
+  (doc 'type '(-> Integral a => a a a))
+  (doc 'description "Greatest common divisor.")
+  (doc 'export #t)
   (gcd a b))
 
-;;; n-lcm : Integral a => a × a → a
-;;; Least common multiple.
 (define (n-lcm a b)
+  (doc 'type '(-> Integral a => a a a))
+  (doc 'description "Least common multiple.")
+  (doc 'export #t)
   (lcm a b))
 
-;;; ============================================================================
-;;; Fractional Operations
-;;; ============================================================================
+(doc 'section 'fractional-operations)
 
-;;; n-recip : Fractional a => a → a
-;;; Reciprocal (1/a).
 (define (n-recip a)
+  (doc 'type '(-> Fractional a => a a))
+  (doc 'description "Reciprocal (1/a).")
+  (doc 'export #t)
   (/ 1 a))
 
-;;; ============================================================================
-;;; Floating Operations
-;;; ============================================================================
+(doc 'section 'floating-operations)
+(doc 'note "These operations convert to inexact if given exact input")
 
-;;; These operations convert to inexact if given exact input.
-
-;;; n-sqrt : Floating a => a → a
 (define (n-sqrt a)
+  (doc 'type '(-> Floating a => a a))
+  (doc 'export #t)
   (sqrt (if (and (exact? a) (real? a)) (exact->inexact a) a)))
 
-;;; n-exp : Floating a => a → a
 (define (n-exp a)
+  (doc 'type '(-> Floating a => a a))
+  (doc 'export #t)
   (exp (if (and (exact? a) (real? a)) (exact->inexact a) a)))
 
-;;; n-log : Floating a => a → a
 (define (n-log a)
+  (doc 'type '(-> Floating a => a a))
+  (doc 'export #t)
   (log (if (and (exact? a) (real? a)) (exact->inexact a) a)))
 
-;;; n-pow : Floating a => a × a → a
-;;; Exponentiation.
 (define (n-pow base exponent)
+  (doc 'type '(-> Floating a => a a a))
+  (doc 'description "Exponentiation.")
+  (doc 'export #t)
   (expt base exponent))
 
-;;; n-sin : Floating a => a → a
 (define (n-sin a)
+  (doc 'type '(-> Floating a => a a))
+  (doc 'export #t)
   (sin (if (and (exact? a) (real? a)) (exact->inexact a) a)))
 
-;;; n-cos : Floating a => a → a
 (define (n-cos a)
+  (doc 'type '(-> Floating a => a a))
+  (doc 'export #t)
   (cos (if (and (exact? a) (real? a)) (exact->inexact a) a)))
 
-;;; n-tan : Floating a => a → a
 (define (n-tan a)
+  (doc 'type '(-> Floating a => a a))
+  (doc 'export #t)
   (tan (if (and (exact? a) (real? a)) (exact->inexact a) a)))
 
-;;; n-asin : Floating a => a → a
 (define (n-asin a)
+  (doc 'type '(-> Floating a => a a))
+  (doc 'export #t)
   (asin (if (and (exact? a) (real? a)) (exact->inexact a) a)))
 
-;;; n-acos : Floating a => a → a
 (define (n-acos a)
+  (doc 'type '(-> Floating a => a a))
+  (doc 'export #t)
   (acos (if (and (exact? a) (real? a)) (exact->inexact a) a)))
 
-;;; n-atan : Floating a => a → a
-;;; Single-argument arctangent.
 (define (n-atan a)
+  (doc 'type '(-> Floating a => a a))
+  (doc 'description "Single-argument arctangent.")
+  (doc 'export #t)
   (atan (if (and (exact? a) (real? a)) (exact->inexact a) a)))
 
-;;; n-atan2 : Floating a => a × a → a
-;;; Two-argument arctangent (atan2).
 (define (n-atan2 y x)
+  (doc 'type '(-> Floating a => a a a))
+  (doc 'description "Two-argument arctangent (atan2).")
+  (doc 'export #t)
   (atan y x))
 
-;;; ============================================================================
-;;; Comparison Operations
-;;; ============================================================================
+(doc 'section 'comparison-operations)
 
-;;; n= : Eq a => a × a → Bool
-;;; Numeric equality (works across tower).
 (define (n= a b)
+  (doc 'type '(-> Eq a => a a Bool))
+  (doc 'description "Numeric equality (works across tower).")
+  (doc 'export #t)
   (= a b))
 
-;;; n< : Ord a => a × a → Bool
 (define (n< a b)
+  (doc 'type '(-> Ord a => a a Bool))
+  (doc 'export #t)
   (< a b))
 
-;;; n<= : Ord a => a × a → Bool
 (define (n<= a b)
+  (doc 'type '(-> Ord a => a a Bool))
+  (doc 'export #t)
   (<= a b))
 
-;;; n> : Ord a => a × a → Bool
 (define (n> a b)
+  (doc 'type '(-> Ord a => a a Bool))
+  (doc 'export #t)
   (> a b))
 
-;;; n>= : Ord a => a × a → Bool
 (define (n>= a b)
+  (doc 'type '(-> Ord a => a a Bool))
+  (doc 'export #t)
   (>= a b))
 
-;;; n-compare : Ord a => a × a → Symbol
-;;; Returns 'LT, 'EQ, or 'GT.
 (define (n-compare a b)
+  (doc 'type '(-> Ord a => a a Symbol))
+  (doc 'description "Returns 'LT, 'EQ, or 'GT.")
+  (doc 'export #t)
   (cond [(< a b) 'LT]
         [(> a b) 'GT]
         [else 'EQ]))
 
-;;; n-min : Ord a => a × a → a
 (define (n-min a b)
+  (doc 'type '(-> Ord a => a a a))
+  (doc 'export #t)
   (if (< a b) a b))
 
-;;; n-max : Ord a => a × a → a
 (define (n-max a b)
+  (doc 'type '(-> Ord a => a a a))
+  (doc 'export #t)
   (if (> a b) a b))
 
-;;; ============================================================================
-;;; Variadic Operations
-;;; ============================================================================
+(doc 'section 'variadic-operations)
 
-;;; n-sum : Num a => (List a) → a
-;;; Sum of a list of numbers.
 (define (n-sum xs)
+  (doc 'type '(-> Num a => (List a) a))
+  (doc 'description "Sum of a list of numbers.")
+  (doc 'export #t)
   (if (null? xs)
       0
       (fold-left n+ (car xs) (cdr xs))))
 
-;;; n-product : Num a => (List a) → a
-;;; Product of a list of numbers.
 (define (n-product xs)
+  (doc 'type '(-> Num a => (List a) a))
+  (doc 'description "Product of a list of numbers.")
+  (doc 'export #t)
   (if (null? xs)
       1
       (fold-left n* (car xs) (cdr xs))))
 
-;;; n-minimum : Ord a => (List a) → a
-;;; Minimum of a non-empty list.
 (define (n-minimum xs)
+  (doc 'type '(-> Ord a => (List a) a))
+  (doc 'description "Minimum of a non-empty list.")
+  (doc 'export #t)
   (if (null? xs)
       (error 'n-minimum "empty list")
       (fold-left n-min (car xs) (cdr xs))))
 
-;;; n-maximum : Ord a => (List a) → a
-;;; Maximum of a non-empty list.
 (define (n-maximum xs)
+  (doc 'type '(-> Ord a => (List a) a))
+  (doc 'description "Maximum of a non-empty list.")
+  (doc 'export #t)
   (if (null? xs)
       (error 'n-maximum "empty list")
       (fold-left n-max (car xs) (cdr xs))))
 
-;;; ============================================================================
-;;; Constants
-;;; ============================================================================
+(doc 'section 'constants)
 
-;;; n-pi : Floating a => a
+(doc n-pi 'type '(-> Floating a => a))
+(doc n-pi 'export #t)
 (define n-pi 3.141592653589793)
 
-;;; n-e : Floating a => a
+(doc n-e 'type '(-> Floating a => a))
+(doc n-e 'export #t)
 (define n-e 2.718281828459045)
 
-;;; n-tau : Floating a => a (2*pi)
+(doc n-tau 'type '(-> Floating a => a))
+(doc n-tau 'description "2*pi")
+(doc n-tau 'export #t)
 (define n-tau 6.283185307179586)
-
-;;; ============================================================================
-;;; Summary
-;;; ============================================================================
-
-;;; Core Arithmetic:
-;;;   n+, n-, n*, n/, n-neg, n-abs
-;;;
-;;; Integer Operations:
-;;;   n-quot, n-rem, n-div, n-mod, n-gcd, n-lcm
-;;;
-;;; Fractional:
-;;;   n-recip
-;;;
-;;; Floating:
-;;;   n-sqrt, n-exp, n-log, n-pow
-;;;   n-sin, n-cos, n-tan, n-asin, n-acos, n-atan, n-atan2
-;;;
-;;; Comparison:
-;;;   n=, n<, n<=, n>, n>=, n-compare, n-min, n-max
-;;;
-;;; Variadic:
-;;;   n-sum, n-product, n-minimum, n-maximum
-;;;
-;;; Constants:
-;;;   n-pi, n-e, n-tau

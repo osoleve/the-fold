@@ -1,257 +1,256 @@
-;;; core/types/contracts.ss — Contract System
-;;; @module contracts
-;;; @requires prelude types
-;;;
-;;; Contracts are first-class specifications that can be attached to values.
-;;; They provide runtime checking with blame tracking.
-;;;
-;;; Contract Types:
-;;;   - Flat contracts: Simple predicates
-;;;   - Function contracts: Pre/post conditions
-;;;   - Dependent contracts: Contracts that depend on values
-;;;   - Blame tracking: Identify contract violators
-;;;
-;;; This is Core code: pure, total, assumes perfect input.
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;   - types.ss
-
 (load "core/base/prelude.ss")
 (load "core/types/types.ss")
 
-;;; ====
-;;; Contract Grammar
-;;; ====
-;;;
-;;;   Contract ::= (Flat Predicate)                   ; Flat contract
-;;;              | (-> (Contract ...) Contract)       ; Function contract
-;;;              | (Dep (Var ...) Contract)           ; Dependent contract
-;;;              | (And Contract ...)                 ; Conjunction
-;;;              | (Or Contract ...)                  ; Disjunction
-;;;              | (Not Contract)                     ; Negation
-;;;              | Any                                ; Top contract (always satisfied)
-;;;              | None                               ; Bottom contract (never satisfied)
-;;;
-;;;   Predicate ::= (lambda (x) body)                ; Scheme predicate
-;;;
-;;;   Blame ::= (blame Party Location Message)
-;;;   Party ::= 'caller | 'callee
-;;;   Location ::= symbol (function name or source location)
+(doc 'module 'contracts)
+(doc 'description "Contract System - first-class specifications with runtime checking and blame tracking.")
+(doc 'layer 'core)
 
-;;; ====
-;;; Contract Predicates
-;;; ====
+(doc 'section 'contract-predicates)
 
-;;; contract? : Any → Boolean
-;;; Is this a well-formed contract?
 (define (contract? c)
+  (doc 'type (-> Any Boolean))
+  (doc 'description "Check if a value is a well-formed contract.")
+  (doc 'export #t)
   (cond
-   ;; Simple contracts
    [(eq? c 'Any) #t]
    [(eq? c 'None) #t]
    [(not (pair? c)) #f]
-   ;; Flat contract: (Flat pred)
    [(eq? (car c) 'Flat)
     (and (= (length c) 2)
          (procedure? (cadr c)))]
-   ;; Function contract: (-> (c1 ...) cresult)
    [(eq? (car c) '->)
     (and (= (length c) 3)
          (list? (cadr c))
          (andmap contract? (cadr c))
          (contract? (caddr c)))]
-   ;; Dependent contract: (Dep (vars...) body)
    [(eq? (car c) 'Dep)
     (and (= (length c) 3)
          (list? (cadr c))
          (andmap symbol? (cadr c))
          (contract? (caddr c)))]
-   ;; Conjunction: (And c1 c2 ...)
    [(eq? (car c) 'And)
     (andmap contract? (cdr c))]
-   ;; Disjunction: (Or c1 c2 ...)
    [(eq? (car c) 'Or)
     (andmap contract? (cdr c))]
-   ;; Negation: (Not c)
    [(eq? (car c) 'Not)
     (and (= (length c) 2)
          (contract? (cadr c)))]
    [else #f]))
 
-;;; flat-contract? : Any → Bool
 (define (flat-contract? c)
+  (doc 'type (-> Any Boolean))
+  (doc 'description "Check if a contract is a flat contract.")
+  (doc 'export #t)
   (and (pair? c) (eq? (car c) 'Flat)))
 
-;;; function-contract? : Any → Bool
 (define (function-contract? c)
+  (doc 'type (-> Any Boolean))
+  (doc 'description "Check if a contract is a function contract.")
+  (doc 'export #t)
   (and (pair? c) (eq? (car c) '->)))
 
-;;; dependent-contract? : Any → Bool
 (define (dependent-contract? c)
+  (doc 'type (-> Any Boolean))
+  (doc 'description "Check if a contract is a dependent contract.")
+  (doc 'export #t)
   (and (pair? c) (eq? (car c) 'Dep)))
 
-;;; ====
-;;; Contract Constructors
-;;; ====
+(doc 'section 'contract-constructors)
 
-;;; flat : (-> Any Bool) → Any
-;;; Create a flat contract from a predicate.
 (define (flat pred)
+  (doc 'type (-> (-> Any Boolean) Contract))
+  (doc 'description "Create a flat contract from a predicate.")
+  (doc 'export #t)
   `(Flat ,pred))
 
-;;; ->c : (List Any) → Any → Any
-;;; Create a function contract.
 (define (->c domain-contracts range-contract)
+  (doc 'type (-> (List Contract) Contract Contract))
+  (doc 'description "Create a function contract with domain and range contracts.")
+  (doc 'export #t)
   `(-> ,domain-contracts ,range-contract))
 
-;;; dep : (List Symbol) → Any → Any
-;;; Create a dependent contract.
 (define (dep vars body)
+  (doc 'type (-> (List Symbol) Contract Contract))
+  (doc 'description "Create a dependent contract with variables and body.")
+  (doc 'export #t)
   `(Dep ,vars ,body))
 
-;;; and/c : Any ... → Any
-;;; Conjunction of contracts.
 (define (and/c . contracts)
+  (doc 'type (-> Contract ... Contract))
+  (doc 'description "Conjunction of contracts - all must be satisfied.")
+  (doc 'export #t)
   (cons 'And contracts))
 
-;;; or/c : Any ... → Any
-;;; Disjunction of contracts.
 (define (or/c . contracts)
+  (doc 'type (-> Contract ... Contract))
+  (doc 'description "Disjunction of contracts - at least one must be satisfied.")
+  (doc 'export #t)
   (cons 'Or contracts))
 
-;;; not/c : Any → Any
-;;; Negation of a contract.
 (define (not/c contract)
+  (doc 'type (-> Contract Contract))
+  (doc 'description "Negation of a contract - must NOT be satisfied.")
+  (doc 'export #t)
   `(Not ,contract))
 
-;;; any/c : Symbol
-;;; Top contract - always satisfied.
+(doc any/c 'type 'Contract)
+(doc any/c 'description "Top contract - always satisfied.")
+(doc any/c 'export #t)
 (define any/c 'Any)
 
-;;; none/c : Symbol
-;;; Bottom contract - never satisfied.
+(doc none/c 'type 'Contract)
+(doc none/c 'description "Bottom contract - never satisfied.")
+(doc none/c 'export #t)
 (define none/c 'None)
 
-;;; ====
-;;; Common Flat Contracts
-;;; ====
+(doc 'section 'common-flat-contracts)
 
-;;; Natural number contract
+(doc nat/c 'type 'Contract)
+(doc nat/c 'description "Natural number contract (non-negative integer).")
+(doc nat/c 'export #t)
 (define nat/c
   (flat (lambda (x) (and (integer? x) (>= x 0)))))
 
-;;; Positive number contract
+(doc pos/c 'type 'Contract)
+(doc pos/c 'description "Positive number contract.")
+(doc pos/c 'export #t)
 (define pos/c
   (flat (lambda (x) (and (number? x) (> x 0)))))
 
-;;; Non-negative number contract
+(doc non-neg/c 'type 'Contract)
+(doc non-neg/c 'description "Non-negative number contract.")
+(doc non-neg/c 'export #t)
 (define non-neg/c
   (flat (lambda (x) (and (number? x) (>= x 0)))))
 
-;;; Integer contract
+(doc int/c 'type 'Contract)
+(doc int/c 'description "Integer contract.")
+(doc int/c 'export #t)
 (define int/c
   (flat integer?))
 
-;;; Boolean contract
+(doc bool/c 'type 'Contract)
+(doc bool/c 'description "Boolean contract.")
+(doc bool/c 'export #t)
 (define bool/c
   (flat boolean?))
 
-;;; String contract
+(doc string/c 'type 'Contract)
+(doc string/c 'description "String contract.")
+(doc string/c 'export #t)
 (define string/c
   (flat string?))
 
-;;; Symbol contract
+(doc symbol/c 'type 'Contract)
+(doc symbol/c 'description "Symbol contract.")
+(doc symbol/c 'export #t)
 (define symbol/c
   (flat symbol?))
 
-;;; List contract (any element type)
+(doc list/c 'type 'Contract)
+(doc list/c 'description "List contract (any element type).")
+(doc list/c 'export #t)
 (define list/c
   (flat list?))
 
-;;; Vector contract (any element type)
+(doc vector/c 'type 'Contract)
+(doc vector/c 'description "Vector contract (any element type).")
+(doc vector/c 'export #t)
 (define vector/c
   (flat vector?))
 
-;;; Procedure contract (any arity)
+(doc procedure/c 'type 'Contract)
+(doc procedure/c 'description "Procedure contract (any arity).")
+(doc procedure/c 'export #t)
 (define procedure/c
   (flat procedure?))
 
-;;; ====
-;;; Contract Accessors
-;;; ====
+(doc 'section 'contract-accessors)
 
-;;; flat-predicate : Any → (-> Any Bool)
 (define (flat-predicate c)
+  (doc 'type (-> Contract (-> Any Boolean)))
+  (doc 'description "Extract predicate from a flat contract.")
+  (doc 'export #t)
   (if (flat-contract? c)
       (cadr c)
       (lambda (x) #f)))
 
-;;; function-contract-domain : Any → (List Any)
 (define (function-contract-domain c)
+  (doc 'type (-> Contract (List Contract)))
+  (doc 'description "Extract domain contracts from a function contract.")
+  (doc 'export #t)
   (if (function-contract? c)
       (cadr c)
       '()))
 
-;;; function-contract-range : Any → Any
 (define (function-contract-range c)
+  (doc 'type (-> Contract Contract))
+  (doc 'description "Extract range contract from a function contract.")
+  (doc 'export #t)
   (if (function-contract? c)
       (caddr c)
       none/c))
 
-;;; dependent-contract-vars : Any → (List Symbol)
 (define (dependent-contract-vars c)
+  (doc 'type (-> Contract (List Symbol)))
+  (doc 'description "Extract variables from a dependent contract.")
+  (doc 'export #t)
   (if (dependent-contract? c)
       (cadr c)
       '()))
 
-;;; dependent-contract-body : Any → Any
 (define (dependent-contract-body c)
+  (doc 'type (-> Contract Contract))
+  (doc 'description "Extract body from a dependent contract.")
+  (doc 'export #t)
   (if (dependent-contract? c)
       (caddr c)
       none/c))
 
-;;; ====
-;;; Blame Tracking
-;;; ====
+(doc 'section 'blame-tracking)
 
-;;; A blame record tracks who violated a contract.
-;;; Structure: (blame party location message value)
-;;;
-;;;   party    : 'caller | 'callee
-;;;   location : symbol (function name or source location)
-;;;   message  : string (human-readable description)
-;;;   value    : the offending value
-
-;;; make-blame : Symbol → Symbol → String → Any → Any
 (define (make-blame party location message value)
+  (doc 'type (-> Symbol Symbol String Any Blame))
+  (doc 'description "Create a blame record: party is 'caller or 'callee.")
+  (doc 'export #t)
   `(blame ,party ,location ,message ,value))
 
-;;; blame? : Any → Bool
 (define (blame? x)
+  (doc 'type (-> Any Boolean))
+  (doc 'description "Check if a value is a blame record.")
+  (doc 'export #t)
   (and (pair? x)
        (eq? (car x) 'blame)
        (= (length x) 5)))
 
-;;; blame-party : Any → Symbol
 (define (blame-party b)
+  (doc 'type (-> Blame Symbol))
+  (doc 'description "Extract party from blame record.")
+  (doc 'export #t)
   (if (blame? b) (cadr b) #f))
 
-;;; blame-location : Any → Symbol
 (define (blame-location b)
+  (doc 'type (-> Blame Symbol))
+  (doc 'description "Extract location from blame record.")
+  (doc 'export #t)
   (if (blame? b) (caddr b) #f))
 
-;;; blame-message : Any → String
 (define (blame-message b)
+  (doc 'type (-> Blame String))
+  (doc 'description "Extract message from blame record.")
+  (doc 'export #t)
   (if (blame? b) (cadddr b) ""))
 
-;;; blame-value : Any → Any
 (define (blame-value b)
+  (doc 'type (-> Blame Any))
+  (doc 'description "Extract offending value from blame record.")
+  (doc 'export #t)
   (if (blame? b) (car (cddddr b)) #f))
 
-;;; flip-blame : Any → Any
-;;; Swap caller and callee (used when traversing contract boundaries).
 (define (flip-blame b)
+  (doc 'type (-> Blame Blame))
+  (doc 'description "Swap caller and callee - used when traversing contract boundaries.")
+  (doc 'export #t)
   (if (blame? b)
       (make-blame (if (eq? (blame-party b) 'caller) 'callee 'caller)
                   (blame-location b)
@@ -259,14 +258,12 @@
                   (blame-value b))
       b))
 
-;;; ====
-;;; Contract Checking (Pure - No Side Effects)
-;;; ====
+(doc 'section 'contract-checking)
 
-;;; check-flat : Any → Any → Symbol → Any
-;;; Check a flat contract against a value.
-;;; Returns (Ok value) if satisfied, (Err blame) otherwise.
 (define (check-flat contract value location)
+  (doc 'type (-> Contract Any Symbol (Result Any Blame)))
+  (doc 'description "Check a flat contract against a value - returns (Ok value) or (Err blame).")
+  (doc 'export #t)
   (cond
    [(eq? contract 'Any) `(Ok ,value)]
    [(eq? contract 'None)
@@ -279,13 +276,10 @@
                                 "Flat contract violated"
                                 value))))]
    [(eq? (car contract) 'And)
-    ;; Check all contracts in conjunction
     (check-and-contracts (cdr contract) value location)]
    [(eq? (car contract) 'Or)
-    ;; Check if any contract in disjunction is satisfied
     (check-or-contracts (cdr contract) value location)]
    [(eq? (car contract) 'Not)
-    ;; Negate the result
     (let ([result (check-flat (cadr contract) value location)])
          (if (eq? (car result) 'Ok)
              `(Err ,(make-blame 'callee location
@@ -297,8 +291,10 @@
                        "Not a flat contract"
                        value))]))
 
-;;; check-and-contracts : (List Any) → Any → Symbol → Any
 (define (check-and-contracts contracts value location)
+  (doc 'type (-> (List Contract) Any Symbol (Result Any Blame)))
+  (doc 'description "Check conjunction of contracts - all must be satisfied.")
+  (doc 'export #f)
   (if (null? contracts)
       `(Ok ,value)
       (let ([result (check-flat (car contracts) value location)])
@@ -306,8 +302,10 @@
                (check-and-contracts (cdr contracts) value location)
                result))))
 
-;;; check-or-contracts : (List Any) → Any → Symbol → Any
 (define (check-or-contracts contracts value location)
+  (doc 'type (-> (List Contract) Any Symbol (Result Any Blame)))
+  (doc 'description "Check disjunction of contracts - at least one must be satisfied.")
+  (doc 'export #f)
   (if (null? contracts)
       `(Err ,(make-blame 'callee location
                          "None of the contracts in disjunction satisfied"
@@ -317,45 +315,46 @@
                result
                (check-or-contracts (cdr contracts) value location)))))
 
-;;; ====
-;;; Contract Wrapping
-;;; ====
+(doc 'section 'contract-wrapping)
 
-;;; A wrapped value carries its contract and blame information.
-;;; Structure: (wrapped contract value location)
-;;;
-;;; This is a pure representation - actual enforcement would happen
-;;; in the boundary layer during evaluation.
-
-;;; wrap : Any → Any → Symbol → Any
 (define (wrap contract value location)
+  (doc 'type (-> Contract Any Symbol Wrapped))
+  (doc 'description "Wrap a value with its contract and location for deferred checking.")
+  (doc 'export #t)
   `(wrapped ,contract ,value ,location))
 
-;;; wrapped? : Any → Bool
 (define (wrapped? x)
+  (doc 'type (-> Any Boolean))
+  (doc 'description "Check if a value is contract-wrapped.")
+  (doc 'export #t)
   (and (pair? x)
        (eq? (car x) 'wrapped)
        (= (length x) 4)))
 
-;;; unwrap : Any → Any
 (define (unwrap w)
+  (doc 'type (-> Any Any))
+  (doc 'description "Extract the underlying value from a wrapped value.")
+  (doc 'export #t)
   (if (wrapped? w) (caddr w) w))
 
-;;; wrapped-contract : Any → Any
 (define (wrapped-contract w)
+  (doc 'type (-> Wrapped Contract))
+  (doc 'description "Extract the contract from a wrapped value.")
+  (doc 'export #t)
   (if (wrapped? w) (cadr w) any/c))
 
-;;; wrapped-location : Any → Symbol
 (define (wrapped-location w)
+  (doc 'type (-> Wrapped Symbol))
+  (doc 'description "Extract the location from a wrapped value.")
+  (doc 'export #t)
   (if (wrapped? w) (cadddr w) 'unknown))
 
-;;; ====
-;;; Contract Combinators
-;;; ====
+(doc 'section 'contract-combinators)
 
-;;; listof : Any → Any
-;;; Contract for a list of elements satisfying a contract.
 (define (listof elem-contract)
+  (doc 'type (-> Contract Contract))
+  (doc 'description "Contract for a list of elements all satisfying elem-contract.")
+  (doc 'export #t)
   (flat (lambda (lst)
                 (and (list? lst)
                      (andmap (lambda (x)
@@ -363,9 +362,10 @@
                                           (eq? (car result) 'Ok)))
                              lst)))))
 
-;;; vectorof : Any → Any
-;;; Contract for a vector of elements satisfying a contract.
 (define (vectorof elem-contract)
+  (doc 'type (-> Contract Contract))
+  (doc 'description "Contract for a vector of elements all satisfying elem-contract.")
+  (doc 'export #t)
   (flat (lambda (vec)
                 (and (vector? vec)
                      (let ([len (vector-length vec)])
@@ -378,26 +378,28 @@
                                         (and (eq? (car result) 'Ok)
                                              (loop (+ i 1)))))))))))
 
-;;; between/c : Int → Int → Any
-;;; Contract for numbers in a range [low, high].
 (define (between/c low high)
+  (doc 'type (-> Number Number Contract))
+  (doc 'description "Contract for numbers in range [low, high].")
+  (doc 'export #t)
   (flat (lambda (x)
                 (and (number? x)
                      (>= x low)
                      (<= x high)))))
 
-;;; one-of/c : Any ... → Any
-;;; Contract for values that are eq? to one of the given values.
 (define (one-of/c . values)
+  (doc 'type (-> Any ... Contract))
+  (doc 'description "Contract for values eq? to one of the given values.")
+  (doc 'export #t)
   (flat (lambda (x)
                 (if (memq x values) #t #f))))
 
-;;; ====
-;;; Contract Display
-;;; ====
+(doc 'section 'contract-display)
 
-;;; contract->string : Any → String
 (define (contract->string c)
+  (doc 'type (-> Contract String))
+  (doc 'description "Convert a contract to a human-readable string.")
+  (doc 'export #t)
   (cond
    [(eq? c 'Any) "any/c"]
    [(eq? c 'None) "none/c"]
@@ -424,8 +426,10 @@
     (string-append "(not/c " (contract->string (cadr c)) ")")]
    [else "???"]))
 
-;;; blame->string : Any → String
 (define (blame->string b)
+  (doc 'type (-> Blame String))
+  (doc 'description "Convert a blame record to a human-readable error message.")
+  (doc 'export #t)
   (if (blame? b)
       (string-append "Contract violation\n"
                      "  Party: " (symbol->string (blame-party b)) "\n"
@@ -434,41 +438,24 @@
                      "  Value: " (format "~s" (blame-value b)))
       "Invalid blame"))
 
-;;; ====
-;;; Higher-Order Contract Wrapping
-;;; ====
-;;;
-;;; contract-wrap applies a contract to a value, producing a wrapped value
-;;; that enforces the contract at runtime.
-;;;
-;;; For flat contracts: checks immediately
-;;; For function contracts: returns a wrapper procedure
-;;;
-;;; Blame assignment for function contracts:
-;;;   - Domain violations blame the CALLER (they passed bad arguments)
-;;;   - Range violations blame the CALLEE (function returned bad result)
-;;;   - Higher-order argument contracts get FLIPPED blame:
-;;;     If caller passes a callback that violates its contract when called,
-;;;     the callee is blamed (they misused the callback).
+(doc 'section 'higher-order-wrapping)
 
-;;; contract-wrap : Contract → Any → Symbol → (Ok Any) | (Err Blame)
-;;; Wrap a value with a contract. Returns wrapped/checked value or blame.
 (define (contract-wrap contract value location)
+  (doc 'type (-> Contract Any Symbol (Result Any Blame)))
+  (doc 'description "Wrap a value with a contract - flat contracts check immediately, function contracts wrap.")
+  (doc 'export #t)
   (cond
-   ;; Flat contracts: check immediately
    [(or (eq? contract 'Any)
         (eq? contract 'None)
         (flat-contract? contract)
         (and (pair? contract) (memq (car contract) '(And Or Not))))
     (check-flat contract value location)]
-   ;; Function contracts: wrap the procedure
    [(function-contract? contract)
     (if (procedure? value)
         `(Ok ,(wrap-function contract value location 'caller))
         `(Err ,(make-blame 'callee location
                            "Expected a procedure for function contract"
                            value)))]
-   ;; Dependent contracts: not yet supported for wrapping
    [(dependent-contract? contract)
     `(Err ,(make-blame 'callee location
                        "Dependent contract wrapping not yet implemented"
@@ -478,25 +465,21 @@
                        "Unknown contract type"
                        contract))]))
 
-;;; wrap-function : Contract → Procedure → Symbol → Symbol → Procedure
-;;; Wrap a procedure with a function contract.
-;;; blame-party is 'caller or 'callee - determines who gets blamed for domain violations.
 (define (wrap-function contract proc location blame-party)
+  (doc 'type (-> Contract Procedure Symbol Symbol Procedure))
+  (doc 'description "Wrap a procedure with a function contract - domain violations blame caller, range violations blame callee.")
+  (doc 'export #f)
   (let ([domain-contracts (function-contract-domain contract)]
         [range-contract (function-contract-range contract)])
     (lambda args
-      ;; Check arity
       (if (not (= (length args) (length domain-contracts)))
           (error 'contract-violation
                  (format "~a: expected ~a arguments, got ~a"
                          location (length domain-contracts) (length args)))
-          ;; Check domain contracts and wrap HO arguments
           (let ([wrapped-args (check-and-wrap-args domain-contracts args location blame-party)])
             (if (eq? (car wrapped-args) 'Err)
                 (error 'contract-violation (blame->string (cadr wrapped-args)))
-                ;; Call the function with wrapped arguments
                 (let ([result (apply proc (cadr wrapped-args))])
-                  ;; Check/wrap the result (blame callee for range violations)
                   (let ([checked-result (contract-wrap-with-blame
                                           range-contract result location
                                           (if (eq? blame-party 'caller) 'callee 'caller))])
@@ -504,9 +487,10 @@
                         (error 'contract-violation (blame->string (cadr checked-result)))
                         (cadr checked-result))))))))))
 
-;;; check-and-wrap-args : (List Contract) → (List Any) → Symbol → Symbol → (Ok (List Any)) | (Err Blame)
-;;; Check each argument against its contract, wrapping HO arguments.
 (define (check-and-wrap-args contracts args location blame-party)
+  (doc 'type (-> (List Contract) (List Any) Symbol Symbol (Result (List Any) Blame)))
+  (doc 'description "Check each argument against its contract, wrapping higher-order arguments.")
+  (doc 'export #f)
   (let loop ([cs contracts] [as args] [acc '()])
     (if (null? cs)
         `(Ok ,(reverse acc))
@@ -515,35 +499,30 @@
               result
               (loop (cdr cs) (cdr as) (cons (cadr result) acc)))))))
 
-;;; contract-wrap-with-blame : Contract → Any → Symbol → Symbol → (Ok Any) | (Err Blame)
-;;; Wrap with explicit blame party for domain/range checking.
 (define (contract-wrap-with-blame contract value location blame-party)
+  (doc 'type (-> Contract Any Symbol Symbol (Result Any Blame)))
+  (doc 'description "Wrap with explicit blame party - higher-order arguments get flipped blame.")
+  (doc 'export #f)
   (cond
-   ;; Flat contracts: check immediately
    [(or (eq? contract 'Any)
         (eq? contract 'None)
         (flat-contract? contract)
         (and (pair? contract) (memq (car contract) '(And Or Not))))
     (let ([result (check-flat contract value location)])
       (if (eq? (car result) 'Err)
-          ;; Adjust blame party
           (let ([b (cadr result)])
             `(Err ,(make-blame blame-party
                                (blame-location b)
                                (blame-message b)
                                (blame-value b))))
           result))]
-   ;; Function contracts: wrap with FLIPPED blame for HO arguments
    [(function-contract? contract)
     (if (procedure? value)
-        ;; Higher-order: flip blame because if caller passes f,
-        ;; and callee calls f incorrectly, callee is at fault
         `(Ok ,(wrap-function contract value location
                              (if (eq? blame-party 'caller) 'callee 'caller)))
         `(Err ,(make-blame blame-party location
                            "Expected a procedure for function contract"
                            value)))]
-   ;; Dependent contracts: not yet supported
    [(dependent-contract? contract)
     `(Err ,(make-blame blame-party location
                        "Dependent contract wrapping not yet implemented"
@@ -553,9 +532,10 @@
                        "Unknown contract type"
                        contract))]))
 
-;;; apply-contract : Contract → Any → Symbol → Any
-;;; Convenience function: apply contract, raise error on violation, return value on success.
 (define (apply-contract contract value location)
+  (doc 'type (-> Contract Any Symbol Any))
+  (doc 'description "Apply contract and raise error on violation, return value on success.")
+  (doc 'export #t)
   (let ([result (contract-wrap contract value location)])
     (if (eq? (car result) 'Err)
         (error 'contract-violation (blame->string (cadr result)))

@@ -1,48 +1,17 @@
-;;; core/types/tactics.ss --- Proof Tactics and Automation
-;;;
-;;; Provides automation for constructing proof terms in The Fold's type system.
-;;; Tactics transform proof goals into simpler subgoals until the proof is complete.
-;;;
-;;; Core concepts:
-;;;   - Goal: A proposition to be proved, with a context of hypotheses
-;;;   - Tactic: A function that transforms a goal into subgoals + proof builder
-;;;   - Proof state: Collection of remaining goals
-;;;
-;;; Basic tactics:
-;;;   - reflexivity: prove x = x using refl
-;;;   - symmetry: flip p : x = y to y = x
-;;;   - transitivity: chain p : x = y and q : y = z to x = z
-;;;   - congruence: apply f to both sides of equality
-;;;   - assumption: use a hypothesis from context
-;;;
-;;; Tactic combinators:
-;;;   - then: sequence two tactics
-;;;   - orelse: try first tactic, if fails try second
-;;;   - repeat: apply tactic until it fails
-;;;   - try: apply tactic, succeed even if it fails
-;;;
-;;; This is Core code: pure, total, assumes perfect input.
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;   - types.ss
-;;;   - dep-types.ss
-;;;   - dep-infer.ss (for type checking)
-
 (load "core/base/prelude.ss")
 (load "core/types/types.ss")
 (load "core/types/dep-types.ss")
 (load "core/types/dep-infer.ss")
 
-;;; ====
-;;; Proof Goals
-;;; ====
+(doc 'module 'tactics)
+(doc 'description "Proof tactics and automation for constructing proof terms. Tactics transform proof goals into simpler subgoals until the proof is complete. Includes reflexivity, symmetry, transitivity, congruence, assumption, and combinators")
+(doc 'layer 'core)
 
-;;; A goal represents a proposition to be proved with its context.
-;;; Structure: (goal context proposition)
-;;;   - context: List of (name . type) pairs (hypotheses)
-;;;   - proposition: The type/proposition to inhabit
+(doc 'section 'proof-goals)
 
+(doc make-goal 'type (-> Context Type Goal))
+(doc make-goal 'description "Create a proof goal with context and proposition")
+(doc make-goal 'export #t)
 (define (make-goal ctx prop)
   `(goal ,ctx ,prop))
 
@@ -87,12 +56,11 @@
 (define (tactic-error r)
   (if (tactic-failure? r) (cadr r) #f))
 
-;;; ====
-;;; Core Tactics
-;;; ====
+(doc 'section 'core-tactics)
 
-;;; reflexivity : Goal → TacticResult
-;;; Prove x = x using refl.
+(doc tactic-reflexivity 'type (-> Goal TacticResult))
+(doc tactic-reflexivity 'description "Prove x = x using refl")
+(doc tactic-reflexivity 'export #t)
 (define (tactic-reflexivity goal)
   (let ([prop (goal-proposition goal)])
        (if (not (equality-type? prop))

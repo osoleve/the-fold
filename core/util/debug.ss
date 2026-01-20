@@ -1,39 +1,16 @@
-;;; fabric/stitches/debug.ss — Stepping and Debugger for The Fold
-;;;
-;;; Interactive debugging capabilities built on fuel suspension:
-;;;   - Single-step execution
-;;;   - Step-n execution
-;;;   - Breakpoints on forms
-;;;   - Execution tracing
-;;;   - State inspection
-;;;   - Resume from suspension
-;;;
-;;; Debugger State:
-;;;   (debugger expr env fuel breakpoints trace history)
-;;;
-;;; This is Core code: pure evaluation with debugger wrapper.
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;   - eval.ss
-
 (load "core/base/prelude.ss")
 (load "core/lang/eval.ss")
 
-;;; ====
-;;; Debugger State
-;;; ====
+(doc 'module 'debug)
+(doc 'description "Stepping and Debugger for The Fold. Interactive debugging capabilities built on fuel suspension: single-step execution, step-n execution, breakpoints on forms, execution tracing, state inspection, resume from suspension. Debugger State: (debugger expr env fuel breakpoints trace history).")
+(doc 'layer 'core)
 
-;;; A debugger session tracks:
-;;;   - current expression
-;;;   - current environment
-;;;   - remaining fuel
-;;;   - breakpoints (list of predicates)
-;;;   - trace log (list of steps taken)
-;;;   - history (list of previous states for undo)
+(doc 'section 'debugger-state)
 
-;;; make-debugger : Expr × Env × Nat → Debugger
 (define (make-debugger expr . opts)
+  (doc 'type (-> Expr Env Nat Debugger))
+  (doc 'description "Create a debugger session. Tracks: current expression, current environment, remaining fuel, breakpoints (list of predicates), trace log (list of steps taken), history (list of previous states for undo).")
+  (doc 'export #t)
   (let ([env (if (and (pair? opts) (pair? (car opts)))
                  (car opts)
                  empty-env)]
@@ -51,19 +28,56 @@
          (status . ready))))
 
 (define (debugger? d)
+  (doc 'type (-> Any Bool))
+  (doc 'description "Test if value is a debugger session.")
+  (doc 'export #t)
   (and (pair? d) (eq? (car d) 'debugger)))
 
 (define (debugger-get d key)
+  (doc 'type (-> Debugger Symbol Any))
+  (doc 'description "Get field from debugger session.")
+  (doc 'export #t)
   (let ([entry (assq key (cdr d))])
        (and entry (cdr entry))))
 
+(doc debugger-expr 'type (-> Debugger Expr))
+(doc debugger-expr 'description "Get current expression from debugger.")
+(doc debugger-expr 'export #t)
 (define (debugger-expr d) (debugger-get d 'expr))
+
+(doc debugger-env 'type (-> Debugger Env))
+(doc debugger-env 'description "Get current environment from debugger.")
+(doc debugger-env 'export #t)
 (define (debugger-env d) (debugger-get d 'env))
+
+(doc debugger-fuel 'type (-> Debugger Nat))
+(doc debugger-fuel 'description "Get remaining fuel from debugger.")
+(doc debugger-fuel 'export #t)
 (define (debugger-fuel d) (debugger-get d 'fuel))
+
+(doc debugger-breakpoints 'type (-> Debugger (List Predicate)))
+(doc debugger-breakpoints 'description "Get breakpoints from debugger.")
+(doc debugger-breakpoints 'export #t)
 (define (debugger-breakpoints d) (debugger-get d 'breakpoints))
+
+(doc debugger-trace 'type (-> Debugger (List TraceEntry)))
+(doc debugger-trace 'description "Get execution trace from debugger.")
+(doc debugger-trace 'export #t)
 (define (debugger-trace d) (debugger-get d 'trace))
+
+(doc debugger-history 'type (-> Debugger (List DebuggerState)))
+(doc debugger-history 'description "Get state history from debugger for undo.")
+(doc debugger-history 'export #t)
 (define (debugger-history d) (debugger-get d 'history))
+
+(doc debugger-future 'type (-> Debugger (List DebuggerState)))
+(doc debugger-future 'description "Get future states from debugger for redo.")
+(doc debugger-future 'export #t)
 (define (debugger-future d) (or (debugger-get d 'future) '()))
+
+(doc debugger-status 'type (-> Debugger Symbol))
+(doc debugger-status 'description "Get current status from debugger.")
+(doc debugger-status 'export #t)
 (define (debugger-status d) (debugger-get d 'status))
 
 (define (debugger-set d key value)
@@ -80,18 +94,17 @@
              d
              updates))
 
-;;; ====
-;;; Single Step
-;;; ====
+(doc 'section 'single-step)
 
-;;; *step-fuel* : Fuel budget per debugger step
-;;; Each step gets enough fuel to complete one "logical" reduction.
+(doc *step-fuel* 'type Nat)
+(doc *step-fuel* 'description "Fuel budget per debugger step. Each step gets enough fuel to complete one logical reduction.")
+(doc *step-fuel* 'export #t)
 (define *step-fuel* 100)
 
-;;; step : Debugger → Debugger
-;;; Execute one reduction phase with per-step fuel budget.
-;;; Saves full state (including trace) to history for proper time-travel.
 (define (step d)
+  (doc 'type (-> Debugger Debugger))
+  (doc 'description "Execute one reduction phase with per-step fuel budget. Saves full state (including trace) to history for proper time-travel.")
+  (doc 'export #t)
   (let ([expr (debugger-expr d)]
         [env (debugger-env d)]
         [fuel (debugger-fuel d)]
@@ -141,8 +154,10 @@
                                       (status . error)
                                       (error . ,result)))])))))
 
-;;; step-n : Debugger × Nat → Debugger
 (define (step-n d n)
+  (doc 'type (-> Debugger Nat Debugger))
+  (doc 'description "Execute n reduction steps.")
+  (doc 'export #t)
   (if (or (zero? n)
           (eq? (debugger-status d) 'complete)
           (eq? (debugger-status d) 'error)
@@ -151,12 +166,12 @@
       d
       (step-n (step d) (- n 1))))
 
-;;; ====
-;;; Run to Completion / Breakpoint
-;;; ====
+(doc 'section 'run-to-completion)
 
-;;; run-until : Debugger × (Expr → Boolean) → Debugger
 (define (run-until d pred)
+  (doc 'type (-> Debugger (-> Expr Bool) Debugger))
+  (doc 'description "Run debugger until predicate is satisfied or completion.")
+  (doc 'export #t)
   (let loop ([d d])
        (let ([status (debugger-status d)]
              [expr (debugger-expr d)])
@@ -169,8 +184,10 @@
              [else
               (loop (step d))]))))
 
-;;; continue : Debugger → Debugger
 (define (continue d)
+  (doc 'type (-> Debugger Debugger))
+  (doc 'description "Continue execution until breakpoint or completion.")
+  (doc 'export #t)
   (let ([breakpoints (debugger-breakpoints d)])
        (if (null? breakpoints)
            ;; No breakpoints - run to completion
@@ -179,44 +196,54 @@
            (run-until d (lambda (e)
                                 (ormap (lambda (bp) (bp e)) breakpoints))))))
 
-;;; run-debug : Expr × Nat → Debugger
 (define (run-debug expr fuel)
+  (doc 'type (-> Expr Nat Debugger))
+  (doc 'description "Run expression with debugger to completion.")
+  (doc 'export #t)
   (continue (make-debugger expr empty-env fuel)))
 
-;;; ====
-;;; Breakpoints
-;;; ====
+(doc 'section 'breakpoints)
 
-;;; add-breakpoint : Debugger × (Expr → Boolean) → Debugger
 (define (add-breakpoint d pred)
+  (doc 'type (-> Debugger (-> Expr Bool) Debugger))
+  (doc 'description "Add a breakpoint predicate to debugger.")
+  (doc 'export #t)
   (let ([bps (debugger-breakpoints d)])
        (debugger-set d 'breakpoints (cons pred bps))))
 
-;;; clear-breakpoints : Debugger → Debugger
 (define (clear-breakpoints d)
+  (doc 'type (-> Debugger Debugger))
+  (doc 'description "Remove all breakpoints from debugger.")
+  (doc 'export #t)
   (debugger-set d 'breakpoints '()))
 
-;;; Common breakpoint predicates:
-
-;;; break-on-form : Symbol → (Expr → Boolean)
 (define (break-on-form sym)
+  (doc 'type (-> Symbol (-> Expr Bool)))
+  (doc 'description "Create a breakpoint predicate that triggers on forms starting with the given symbol.")
+  (doc 'export #t)
   (lambda (e)
           (and (pair? e) (eq? (car e) sym))))
 
-;;; break-on-var : Symbol → (Expr → Boolean)
 (define (break-on-var sym)
+  (doc 'type (-> Symbol (-> Expr Bool)))
+  (doc 'description "Create a breakpoint predicate that triggers on variable references.")
+  (doc 'export #t)
   (lambda (e) (eq? e sym)))
 
-;;; break-on-call : Symbol → (Expr → Boolean)
 (define (break-on-call name)
+  (doc 'type (-> Symbol (-> Expr Bool)))
+  (doc 'description "Create a breakpoint predicate that triggers on function calls.")
+  (doc 'export #t)
   (lambda (e)
           (and (pair? e)
                (or (eq? (car e) name)
                    (and (eq? (car e) 'call)
                         (eq? (cadr e) name))))))
 
-;;; break-on-value : → (Expr → Boolean)
 (define (break-on-value)
+  (doc 'type (-> (-> Expr Bool)))
+  (doc 'description "Create a breakpoint predicate that triggers on value expressions.")
+  (doc 'export #t)
   (lambda (e) (value? e)))
 
 ;;; ====

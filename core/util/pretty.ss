@@ -1,42 +1,15 @@
-;;; fabric/stitches/pretty.ss -- Pretty Printing Combinators
-;;;
-;;; Wadler-Lindig style pretty printer for optimal document layout.
-;;; Based on "A Prettier Printer" by Philip Wadler.
-;;;
-;;; This is Core code: pure, total, assumes reasonable input.
-;;;
-;;; Key concepts:
-;;;   Doc - Abstract document type
-;;;   text - Literal text (no newlines)
-;;;   line - Line break (or space when grouped)
-;;;   nest - Increase indentation for following lines
-;;;   group - Try to flatten to single line if it fits
-;;;
-;;; The layout algorithm chooses line breaks to fit within a page width.
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-
 (load "core/base/prelude.ss")
 
-;;; ====
-;;; Document Type
-;;; ====
-;;;
-;;; A Doc is one of:
-;;;   (doc-empty)           - Empty document
-;;;   (doc-text str)        - Literal text (must not contain newlines)
-;;;   (doc-line)            - Line break, or space if grouped
-;;;   (doc-hardline)        - Line break, never flattened
-;;;   (doc-nest n doc)      - Add n spaces to indentation
-;;;   (doc-concat d1 d2)    - Concatenate two documents
-;;;   (doc-group doc)       - Try to fit on one line
-;;;   (doc-union d1 d2)     - Choice: d1 if fits, else d2
+(doc 'module 'pretty)
+(doc 'description "Pretty Printing Combinators. Wadler-Lindig style pretty printer for optimal document layout, based on A Prettier Printer by Philip Wadler. Key concepts: Doc (abstract document type), text (literal text with no newlines), line (line break or space when grouped), nest (increase indentation), group (try to flatten to single line if it fits). The layout algorithm chooses line breaks to fit within a page width.")
+(doc 'layer 'core)
 
-;;; --- Constructors ---
+(doc 'section 'document-type)
 
-;;; doc-empty : → Doc
 (define (doc-empty)
+  (doc 'type (-> Doc))
+  (doc 'description "Create an empty document.")
+  (doc 'export #t)
   (vector 'doc-empty))
 
 ;;; doc-text : String → Doc
@@ -63,10 +36,12 @@
 (define (doc-union d1 d2)
   (vector 'doc-union d1 d2))
 
-;;; --- Predicates ---
+(doc 'section 'document-predicates)
 
-;;; doc? : α → Bool
 (define (doc? x)
+  (doc 'type (-> Any Bool))
+  (doc 'description "Test if value is a Doc.")
+  (doc 'export #t)
   (and (vector? x)
        (> (vector-length x) 0)
        (if (memq (vector-ref x 0)
@@ -140,43 +115,47 @@
 (define (doc-group doc)
   (vector 'doc-group doc (flatten-inner doc)))
 
-;;; ====
-;;; Primitive Documents
-;;; ====
+(doc 'section 'primitive-documents)
 
-;;; empty : Doc
-;;; The empty document.
+(doc empty 'type Doc)
+(doc empty 'description "The empty document.")
+(doc empty 'export #t)
 (define empty (doc-empty))
 
-;;; text : String → Doc
-;;; A literal string (should not contain newlines).
 (define (text s)
+  (doc 'type (-> String Doc))
+  (doc 'description "A literal string (should not contain newlines).")
+  (doc 'export #t)
   (if (string=? s "")
       empty
       (doc-text s)))
 
-;;; line : Doc
-;;; A line break. When flattened (in a group), becomes a space.
+(doc line 'type Doc)
+(doc line 'description "A line break. When flattened (in a group), becomes a space.")
+(doc line 'export #t)
 (define line (doc-line))
 
-;;; hardline : Doc
-;;; A line break that never flattens.
+(doc hardline 'type Doc)
+(doc hardline 'description "A line break that never flattens.")
+(doc hardline 'export #t)
 (define hardline (doc-hardline))
 
-;;; softline : Doc
-;;; A space that can become a line break if needed.
+(doc softline 'type Doc)
+(doc softline 'description "A space that can become a line break if needed.")
+(doc softline 'export #t)
 (define softline (doc-group line))
 
-;;; linebreak : Doc
-;;; A line break that becomes empty when flattened.
+(doc linebreak 'type Doc)
+(doc linebreak 'description "A line break that becomes empty when flattened.")
+(doc linebreak 'export #t)
 (define linebreak (doc-union (text "") (doc-line)))
 
-;;; ====
-;;; Combinators
-;;; ====
+(doc 'section 'combinators)
 
-;;; <> : Doc × Doc → Doc
 (define (<> d1 d2)
+  (doc 'type (-> Doc Doc Doc))
+  (doc 'description "Concatenate two documents.")
+  (doc 'export #t)
   (cond
    [(doc-empty? d1) d2]
    [(doc-empty? d2) d1]
@@ -194,12 +173,16 @@
 (define (<//> d1 d2)
   (<> d1 (<> linebreak d2)))
 
-;;; nest : Nat × Doc → Doc
 (define (nest n doc)
+  (doc 'type (-> Nat Doc Doc))
+  (doc 'description "Increase indentation by n spaces for following lines.")
+  (doc 'export #t)
   (doc-nest n doc))
 
-;;; group : Doc → Doc
 (define (group doc)
+  (doc 'type (-> Doc Doc))
+  (doc 'description "Try to flatten document to single line if it fits within page width.")
+  (doc 'export #t)
   (doc-group doc))
 
 ;;; align : Doc → Doc
@@ -214,12 +197,12 @@
 (define (indent n doc)
   (<> (text (make-string n #\space)) (nest n doc)))
 
-;;; ====
-;;; List Combinators
-;;; ====
+(doc 'section 'list-combinators)
 
-;;; concat : (List Doc) → Doc
 (define (concat docs)
+  (doc 'type (-> (List Doc) Doc))
+  (doc 'description "Concatenate a list of documents.")
+  (doc 'export #t)
   (if (null? docs)
       empty
       (fold-left <> (car docs) (cdr docs))))
@@ -247,12 +230,16 @@
       empty
       (fold-left </> (car docs) (cdr docs))))
 
-;;; sep : (List Doc) → Doc
 (define (sep docs)
+  (doc 'type (-> (List Doc) Doc))
+  (doc 'description "Separate documents with line breaks, grouped to try fitting on one line.")
+  (doc 'export #t)
   (group (vsep docs)))
 
-;;; cat : (List Doc) → Doc
 (define (cat docs)
+  (doc 'type (-> (List Doc) Doc))
+  (doc 'description "Concatenate documents vertically, grouped to try fitting on one line.")
+  (doc 'export #t)
   (group (vcat docs)))
 
 ;;; fill-sep : (List Doc) → Doc
@@ -270,12 +257,12 @@
       (cons (<> (car docs) sep)
             (punctuate sep (cdr docs)))))
 
-;;; ====
-;;; Bracketing Combinators
-;;; ====
+(doc 'section 'bracketing-combinators)
 
-;;; enclose : Doc × Doc × Doc → Doc
 (define (enclose left right doc)
+  (doc 'type (-> Doc Doc Doc Doc))
+  (doc 'description "Enclose a document between left and right brackets.")
+  (doc 'export #t)
   (<> left (<> doc right)))
 
 ;;; parens : Doc → Doc
@@ -320,16 +307,8 @@
    [(doc-union? doc) (doc-union-left doc)]  ; take flattened version
    [else doc]))
 
-;;; ====
-;;; Layout Algorithm (Simple Mode)
-;;; ====
-;;;
-;;; Simple Doc (for rendering):
-;;;   (sdoc-empty)
-;;;   (sdoc-text str sdoc)   - text followed by more
-;;;   (sdoc-line n sdoc)     - newline + n spaces, followed by more
+(doc 'section 'layout-algorithm)
 
-;;; sdoc-empty : → SDoc
 (define (sdoc-empty) (vector 'sdoc-empty))
 ;;; sdoc-text : String × SDoc → SDoc
 (define (sdoc-text str rest) (vector 'sdoc-text str rest))
@@ -429,12 +408,12 @@
    [(doc-union? doc) (doc-width (doc-union-left doc))]
    [else 0]))
 
-;;; ====
-;;; Rendering
-;;; ====
+(doc 'section 'rendering)
 
-;;; sdoc->string : SDoc → String
 (define (sdoc->string sd)
+  (doc 'type (-> SDoc String))
+  (doc 'description "Convert a simple doc to a string.")
+  (doc 'export #t)
   (let loop ([sd sd] [acc '()])
        (cond
         [(sdoc-empty? sd) (apply string-append (reverse acc))]
@@ -448,35 +427,42 @@
                      acc))]
         [else (apply string-append (reverse acc))])))
 
-;;; pretty : Nat × Doc → String
 (define (pretty width doc)
+  (doc 'type (-> Nat Doc String))
+  (doc 'description "Render a document to a string with the given page width.")
+  (doc 'export #t)
   (sdoc->string (best width 0 doc)))
 
-;;; pretty-print : Nat × Doc → Void
 (define (pretty-print width doc)
+  (doc 'type (-> Nat Doc Void))
+  (doc 'description "Print a document to stdout with the given page width.")
+  (doc 'export #t)
   (display (pretty width doc))
   (newline))
 
-;;; ====
-;;; Default Width
-;;; ====
+(doc 'section 'default-width)
 
+(doc *default-width* 'type Nat)
+(doc *default-width* 'description "Default page width for pretty printing.")
+(doc *default-width* 'export #t)
 (define *default-width* 80)
 
-;;; pp : Doc → String
 (define (pp doc)
+  (doc 'type (-> Doc String))
+  (doc 'description "Pretty-print a document using the default width.")
+  (doc 'export #t)
   (pretty *default-width* doc))
 
 ;;; pprint : Doc → Void
 (define (pprint doc)
   (pretty-print *default-width* doc))
 
-;;; ====
-;;; Convenience: S-expression Pretty Printing
-;;; ====
+(doc 'section 'sexp-pretty-printing)
 
-;;; sexp->doc : Sexp → Doc
 (define (sexp->doc sexp)
+  (doc 'type (-> Sexp Doc))
+  (doc 'description "Convert an S-expression to a Doc for pretty printing.")
+  (doc 'export #t)
   (cond
    [(null? sexp) (text "()")]
    [(pair? sexp)
@@ -488,13 +474,11 @@
    [(vector? sexp) (text "#(...)")]  ; simplified
    [else (text "?")]))
 
-;;; pretty-sexp : Nat × Sexp → String
 (define (pretty-sexp width sexp)
+  (doc 'type (-> Nat Sexp String))
+  (doc 'description "Pretty-print an S-expression to a string with the given page width.")
+  (doc 'export #t)
   (pretty width (sexp->doc sexp)))
-
-;;; ====
-;;; Export Summary
-;;; ====
 ;;;
 ;;; Types:
 ;;;   doc?, doc-empty?, doc-text?, doc-line?, doc-nest?, etc.

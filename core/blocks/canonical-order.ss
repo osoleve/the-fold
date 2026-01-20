@@ -1,42 +1,15 @@
-;;; core/blocks/canonical-order.ss — Canonical ordering for expression sorting
-;;; @module canonical-order
-;;; @requires prelude
-;;;
-;;; Defines a total order over S-expressions for deterministic sorting
-;;; during algebraic normalization. The order must be:
-;;;   - Total: Every pair of expressions is comparable
-;;;   - Stable: Same expressions always compare the same way
-;;;   - Deterministic: No randomness or external state
-;;;
-;;; This is Core code: pure, total, assumes perfect input.
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-
 (load "core/base/prelude.ss")
 
-;;; ====
-;;; Expression Class Ordering
-;;; ====
+(doc 'module 'canonical-order)
+(doc 'description "Canonical ordering for expression sorting. Total, stable, deterministic order over S-expressions.")
+(doc 'layer 'core)
 
-;;; Expressions are grouped into classes for comparison.
-;;; Within the same class, type-specific comparison is used.
-;;; Across classes, the class number determines order.
-;;;
-;;; Class ordering (lower = comes first):
-;;;   0: Numbers (sorted numerically)
-;;;   1: Booleans (#f < #t)
-;;;   2: Characters (by char code)
-;;;   3: Strings (lexicographic)
-;;;   4: Symbols (alphabetic by name)
-;;;   5: De Bruijn variables (by index)
-;;;   6: Quoted data (by structure)
-;;;   7: Compound expressions (recursive lexicographic)
-;;;   8: Other (fallback)
+(doc 'section 'expression-classes)
 
-;;; expr-order-class : S-expr → Nat
-;;; Returns the ordering class of an expression.
 (define (expr-order-class expr)
+  (doc 'type (-> Any Nat))
+  (doc 'description "Returns the ordering class of an expression (0-8).")
+  (doc 'export #t)
   (cond
     [(number? expr)  0]
     [(boolean? expr) 1]
@@ -51,14 +24,12 @@
     [(pair? expr)    7]  ; compound expression
     [else            8]))
 
-;;; ====
-;;; Main Comparison Functions
-;;; ====
+(doc 'section 'comparison-functions)
 
-;;; canonical<? : S-expr × S-expr → Bool
-;;; Returns #t if a should come before b in canonical order.
-;;; This is a strict total order: exactly one of a<b, a=b, b<a holds.
 (define (canonical<? a b)
+  (doc 'type (-> Any Any Boolean))
+  (doc 'description "Returns #t if a should come before b in canonical order. Strict total order.")
+  (doc 'export #t)
   (let ([ca (expr-order-class a)]
         [cb (expr-order-class b)])
     (cond
@@ -75,24 +46,25 @@
       [(= ca 7) (compound<? a b)]
       [else #f])))  ; class 8: equal by default
 
-;;; canonical=? : S-expr × S-expr → Bool
-;;; Returns #t if a and b are equal in canonical ordering.
 (define (canonical=? a b)
+  (doc 'type (-> Any Any Boolean))
+  (doc 'description "Returns #t if a and b are equal in canonical ordering.")
+  (doc 'export #t)
   (and (not (canonical<? a b))
        (not (canonical<? b a))))
 
-;;; canonical<=? : S-expr × S-expr → Bool
 (define (canonical<=? a b)
+  (doc 'type (-> Any Any Boolean))
+  (doc 'description "Less than or equal in canonical order.")
+  (doc 'export #t)
   (or (canonical<? a b) (canonical=? a b)))
 
-;;; ====
-;;; Type-Specific Comparisons
-;;; ====
+(doc 'section 'type-specific-comparisons)
 
-;;; number<? : Number × Number → Bool
-;;; Numeric comparison with special handling for exact vs inexact.
-;;; Exact numbers come before inexact numbers of the same value.
 (define (number<? a b)
+  (doc 'type (-> Number Number Boolean))
+  (doc 'description "Numeric comparison. Exact numbers come before inexact of same value.")
+  (doc 'export #t)
   (cond
     [(< a b) #t]
     [(> a b) #f]
@@ -101,29 +73,34 @@
     [(and (not (exact? a)) (exact? b)) #f]
     [else #f]))
 
-;;; boolean<? : Bool × Bool → Bool
-;;; #f < #t (false before true)
 (define (boolean<? a b)
+  (doc 'type (-> Boolean Boolean Boolean))
+  (doc 'description "#f < #t (false before true)")
+  (doc 'export #t)
   (and (not a) b))
 
-;;; symbol<? : Symbol × Symbol → Bool
-;;; Alphabetic comparison by symbol name.
 (define (symbol<? a b)
+  (doc 'type (-> Symbol Symbol Boolean))
+  (doc 'description "Alphabetic comparison by symbol name.")
+  (doc 'export #t)
   (string<? (symbol->string a) (symbol->string b)))
 
-;;; dv<? : (dv N) × (dv M) → Bool
-;;; De Bruijn variable comparison by index.
 (define (dv<? a b)
+  (doc 'type (-> Any Any Boolean))
+  (doc 'description "De Bruijn variable comparison by index.")
+  (doc 'export #t)
   (< (cadr a) (cadr b)))
 
-;;; quoted<? : (quote X) × (quote Y) → Bool
-;;; Quoted data comparison by comparing the quoted values.
 (define (quoted<? a b)
+  (doc 'type (-> Any Any Boolean))
+  (doc 'description "Quoted data comparison by comparing quoted values.")
+  (doc 'export #t)
   (datum<? (cadr a) (cadr b)))
 
-;;; datum<? : Datum × Datum → Bool
-;;; Comparison for arbitrary quoted data (not expressions).
 (define (datum<? a b)
+  (doc 'type (-> Any Any Boolean))
+  (doc 'description "Comparison for arbitrary quoted data (not expressions).")
+  (doc 'export #t)
   (cond
     [(and (null? a) (null? b)) #f]
     [(null? a) #t]
@@ -138,9 +115,10 @@
     ;; Atoms: use canonical<? for uniform handling
     [else (canonical<? a b)]))
 
-;;; compound<? : Pair × Pair → Bool
-;;; Lexicographic comparison of compound expressions.
 (define (compound<? a b)
+  (doc 'type (-> Pair Pair Boolean))
+  (doc 'description "Lexicographic comparison of compound expressions.")
+  (doc 'export #t)
   (cond
     [(and (null? a) (null? b)) #f]
     [(null? a) #t]
@@ -149,18 +127,18 @@
     [(canonical<? (car b) (car a)) #f]
     [else (compound<? (cdr a) (cdr b))]))
 
-;;; ====
-;;; Sorting Support
-;;; ====
+(doc 'section 'sorting-support)
 
-;;; canonical-sort : (List S-expr) → (List S-expr)
-;;; Sort a list of expressions in canonical order.
 (define (canonical-sort exprs)
+  (doc 'type (-> (List Any) (List Any)))
+  (doc 'description "Sort a list of expressions in canonical order.")
+  (doc 'export #t)
   (list-sort canonical<? exprs))
 
-;;; canonical-merge : (List S-expr) × (List S-expr) → (List S-expr)
-;;; Merge two sorted lists maintaining canonical order.
 (define (canonical-merge as bs)
+  (doc 'type (-> (List Any) (List Any) (List Any)))
+  (doc 'description "Merge two sorted lists maintaining canonical order.")
+  (doc 'export #t)
   (cond
     [(null? as) bs]
     [(null? bs) as]

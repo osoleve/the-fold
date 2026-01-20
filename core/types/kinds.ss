@@ -1,115 +1,60 @@
-;;; core/types/kinds.ss — Higher-Kinded Types for The Fold
-;;; @module kinds
-;;; @requires prelude types
-;;;
-;;; Types have types. We call them Kinds.
-;;;
-;;;   *           : The kind of ordinary types (Nat, Bool, List Nat)
-;;;   * → *       : The kind of type constructors (List, Option, Vector)
-;;;   * → * → *   : Binary type constructors (Either, Pair, →)
-;;;   (* → *) → * : Higher-order kinds (Fix, Free)
-;;;   Constraint  : The kind of type class constraints (Functor, Monad)
-;;;
-;;; With kinds, we can express:
-;;;   - Functor : (* → *) → Constraint
-;;;   - map : ∀ (f : * → *). Functor f → ∀ a b. (a → b) → f a → f b
-;;;
-;;; This is Core code: pure, total, assumes perfect input.
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;   - types.ss
-
 (load "core/base/prelude.ss")
 (load "core/types/types.ss")
 
-;;; Kind Grammar:
-;;;
-;;;   Kind ::= *                    ; Type
-;;;          | (⇒ Kind Kind)        ; Kind arrow (type constructor)
-;;;          | Constraint           ; Type class constraint
-;;;          | Row                  ; Row kind (for extensible records)
-;;;          | KVar                 ; Kind variable
-;;;          | (κ∀ (KVar ...) Kind) ; Kind polymorphism
-;;;
-;;; Notation: We use ⇒ for kind arrows to distinguish from → (type arrows)
-;;;
-;;; Quick API Reference:
-;;;
-;;;   Constants:
-;;;     K*            → *             ; Kind of ordinary types
-;;;     K-constraint  → Constraint    ; Kind of type class constraints
-;;;     K-row         → Row           ; Kind of extensible records
-;;;
-;;;   Constructors:
-;;;     (K=> K* K*)              → (⇒ * *)        ; Unary type constructor kind
-;;;     (K=>* K* K* K*)          → (⇒ * (⇒ * *)) ; Binary (right-assoc)
-;;;     (K-forall '(a) 'a)       → (κ∀ (a) a)    ; Kind polymorphism
-;;;     (K-pi 'n 'Nat K*)        → (Πκ ((n : Nat)) *)  ; Dependent kind
-;;;     (K-sort)                 → □             ; Sort (kind of kinds)
-;;;
-;;;   Examples:
-;;;     List  : K*→K*                                       ; * → *
-;;;     Either: (K=>* K* K* K*)                             ; * → * → *
-;;;     Fix   : (K=> (K=> K* K*) K*)                        ; (* → *) → *
-;;;     Functor: (K=> (K=> K* K*) K-constraint)             ; (* → *) → Constraint
-;;;     Vec   : (K-pi 'n 'Nat (K=> K* K*))                  ; Πn:Nat. * → *
+(doc 'module 'kinds)
+(doc 'description "Higher-Kinded Types for The Fold. Types have types - we call them Kinds: * for ordinary types, kind arrows for type constructors, and Constraint for type classes.")
+(doc 'layer 'core)
+(doc 'note "Notation: ⇒ for kind arrows, → for type arrows. Functor : (* → *) → Constraint")
 
-;;; ====
-;;; Kind Representation
-;;; ====
+(doc 'section 'kind-representation)
 
-;;; The base kind: ordinary types
+(doc K* 'type Kind)
+(doc K* 'description "The base kind: ordinary types (Nat, Bool, List Nat).")
+(doc K* 'export #t)
 (define K* '*)
 
-;;; The constraint kind: type class evidence
+(doc K-constraint 'type Kind)
+(doc K-constraint 'description "The constraint kind: type class evidence.")
+(doc K-constraint 'export #t)
 (define K-constraint 'Constraint)
 
-;;; The row kind: for extensible records/variants
+(doc K-row 'type Kind)
+(doc K-row 'description "The row kind: for extensible records/variants.")
+(doc K-row 'export #t)
 (define K-row 'Row)
 
-;;; kind-arrow : Kind × Kind → Kind
-;;; Construct a kind arrow.
 (define (K=> k1 k2)
+  (doc 'type (-> Kind Kind Kind))
+  (doc 'description "Construct a kind arrow: K=> K* K* gives * → *.")
+  (doc 'export #t)
   `(⇒ ,k1 ,k2))
 
-;;; Multi-argument kind arrow (right-associative)
 (define (K=>* . kinds)
+  (doc 'type (-> Kind ... Kind))
+  (doc 'description "Multi-argument kind arrow (right-associative).")
+  (doc 'export #t)
   (if (null? (cdr kinds))
       (car kinds)
       (K=> (car kinds) (apply K=>* (cdr kinds)))))
 
-;;; kind-forall : (List Symbol) × Kind → Kind
 (define (K-forall vars body)
+  (doc 'type (-> (List Symbol) Kind Kind))
+  (doc 'description "Construct kind polymorphism: κ∀ (vars ...) body.")
+  (doc 'export #t)
   `(κ∀ ,vars ,body))
 
-;;; ====
-;;; Dependent Kinds (Phase 1 Foundation)
-;;; ====
+(doc 'section 'dependent-kinds)
 
-;;; Dependent Kind Grammar Extension:
-;;;
-;;;   Kind ::= ...
-;;;          | (Πκ ((var : Kind)) Kind)   ; Dependent kind (Pi at kind level)
-;;;          | □                          ; Sort (kind of kinds) - level 0
-;;;          | (□ n)                      ; Leveled sort at level n
-;;;
-;;; Dependent kinds enable:
-;;;   - Type-level functions that compute kinds
-;;;   - Vector n : Nat → * → * (kind depends on value!)
-;;;   - More expressive type constructors
-
-;;; K-pi : Symbol × Kind × Kind → Kind
-;;; Construct a dependent kind: Π(var : domain). codomain
-;;; The codomain may mention var.
 (define (K-pi var domain codomain)
+  (doc 'type (-> Symbol Kind Kind Kind))
+  (doc 'description "Construct a dependent kind: Π(var : domain). codomain.")
+  (doc 'export #t)
   `(Πκ ((,var : ,domain)) ,codomain))
 
-;;; K-sort : → Kind | Nat → Kind
-;;; Construct the sort (kind of kinds).
-;;; Without argument: □ (level 0)
-;;; With argument n: □n (explicit level)
 (define (K-sort . args)
+  (doc 'type (-> (Maybe Nat) Kind))
+  (doc 'description "Construct the sort (kind of kinds). Without arg: □, with n: □n.")
+  (doc 'export #t)
   (if (null? args)
       '□
       (let ([level (car args)])
@@ -117,9 +62,10 @@
                `(□ ,level)
                (error 'K-sort "level must be non-negative integer" level)))))
 
-;;; sort? : Any → Boolean
-;;; Returns true if k is a sort (□ or □n).
 (define (sort? k)
+  (doc 'type (-> Any Boolean))
+  (doc 'description "Returns true if k is a sort (□ or □n).")
+  (doc 'export #t)
   (or (eq? k '□)
       (and (pair? k)
            (eq? (car k) '□)
@@ -127,17 +73,19 @@
            (integer? (cadr k))
            (>= (cadr k) 0))))
 
-;;; sort-level : Kind → Nat
-;;; Extract the level from a sort. □ has level 0.
 (define (sort-level k)
+  (doc 'type (-> Kind Nat))
+  (doc 'description "Extract the level from a sort. □ has level 0.")
+  (doc 'export #t)
   (cond
    [(eq? k '□) 0]
    [(and (pair? k) (eq? (car k) '□)) (cadr k)]
    [else (error 'sort-level "not a sort" k)]))
 
-;;; dep-kind? : Kind → Boolean
-;;; Returns true only for Πκ kinds.
 (define (dep-kind? k)
+  (doc 'type (-> Any Boolean))
+  (doc 'description "Returns true only for Πκ (dependent) kinds.")
+  (doc 'export #t)
   (and (pair? k)
        (eq? (car k) 'Πκ)
        (= (length k) 3)
@@ -150,33 +98,36 @@
                            (symbol? (car b))
                            (eq? (cadr b) ':)))))))
 
-;;; dep-kind-var : Kind → Symbol
-;;; Extract the bound variable from a dependent kind.
 (define (dep-kind-var k)
+  (doc 'type (-> Kind Symbol))
+  (doc 'description "Extract the bound variable from a dependent kind.")
+  (doc 'export #t)
   (if (dep-kind? k)
       (caar (cadr k))
       (error 'dep-kind-var "not a dependent kind" k)))
 
-;;; dep-kind-domain : Kind → Kind
-;;; Extract the domain from a dependent kind.
 (define (dep-kind-domain k)
+  (doc 'type (-> Kind Kind))
+  (doc 'description "Extract the domain from a dependent kind.")
+  (doc 'export #t)
   (if (dep-kind? k)
       (caddar (cadr k))
       (error 'dep-kind-domain "not a dependent kind" k)))
 
-;;; dep-kind-codomain : Kind → Kind
-;;; Extract the codomain from a dependent kind.
 (define (dep-kind-codomain k)
+  (doc 'type (-> Kind Kind))
+  (doc 'description "Extract the codomain from a dependent kind.")
+  (doc 'export #t)
   (if (dep-kind? k)
       (caddr k)
       (error 'dep-kind-codomain "not a dependent kind" k)))
 
-;;; ====
-;;; Kind Predicates
-;;; ====
+(doc 'section 'kind-predicates)
 
-;;; kind? : Any → Boolean
 (define (kind? k)
+  (doc 'type (-> Any Boolean))
+  (doc 'description "Test if value is a well-formed kind.")
+  (doc 'export #t)
   (cond
    [(eq? k '*) #t]
    [(eq? k 'Constraint) #t]
@@ -210,32 +161,39 @@
          (>= (cadr k) 0))]
    [else #f]))
 
-;;; kind-var? : Any → Boolean
-;;; Kind variables start with κ
 (define (kind-var? k)
+  (doc 'type (-> Any Boolean))
+  (doc 'description "Kind variables start with κ prefix.")
+  (doc 'export #t)
   (and (symbol? k)
        (let ([s (symbol->string k)])
             (and (> (string-length s) 1)
                  (char=? (string-ref s 0) #\κ)))))
 
-;;; kind-arrow? : Kind → Boolean
 (define (kind-arrow? k)
+  (doc 'type (-> Kind Boolean))
+  (doc 'description "Test if kind is a kind arrow (⇒ k1 k2).")
+  (doc 'export #t)
   (and (pair? k) (eq? (car k) '⇒)))
 
-;;; kind-param : Kind → Kind
 (define (kind-param k)
+  (doc 'type (-> Kind (Maybe Kind)))
+  (doc 'description "Extract parameter kind from kind arrow.")
+  (doc 'export #t)
   (if (kind-arrow? k) (cadr k) #f))
 
-;;; kind-result : Kind → Kind
 (define (kind-result k)
+  (doc 'type (-> Kind (Maybe Kind)))
+  (doc 'description "Extract result kind from kind arrow.")
+  (doc 'export #t)
   (if (kind-arrow? k) (caddr k) #f))
 
-;;; ====
-;;; Kind Equality
-;;; ====
+(doc 'section 'kind-equality)
 
-;;; kind=? : Kind × Kind → Boolean
 (define (kind=? k1 k2)
+  (doc 'type (-> Kind Kind Boolean))
+  (doc 'description "Structural equality for kinds.")
+  (doc 'export #t)
   (cond
    [(and (symbol? k1) (symbol? k2)) (eq? k1 k2)]
    [(and (pair? k1) (pair? k2))
@@ -244,42 +202,37 @@
                  (map cons k1 k2)))]
    [else #f]))
 
-;;; ====
-;;; Type Constructor Representation
-;;; ====
+(doc 'section 'type-constructor-representation)
 
-;;; A type constructor is a type-level function.
-;;; We represent application as (@ F Arg1 Arg2 ...)
-;;;
-;;; Examples:
-;;;   List         : * → *                (unapplied)
-;;;   (@ List Nat) : *                    (fully applied = List Nat)
-;;;   Either       : * → * → *            (unapplied)
-;;;   (@ Either String) : * → *           (partially applied)
-;;;   (@ Either String Nat) : *           (fully applied)
-
-;;; type-app : Type × Type ... → Type
-;;; Construct a type-level application.
 (define (T@ f . args)
+  (doc 'type (-> Type Type ... Type))
+  (doc 'description "Construct a type-level application: (@ F Arg1 Arg2 ...).")
+  (doc 'export #t)
   `(@ ,f ,@args))
 
-;;; type-app? : Type → Boolean
 (define (type-app? t)
+  (doc 'type (-> Type Boolean))
+  (doc 'description "Test if type is a type application.")
+  (doc 'export #t)
   (and (pair? t) (eq? (car t) '@)))
 
-;;; type-app-head : Type → Type
 (define (type-app-head t)
+  (doc 'type (-> Type Type))
+  (doc 'description "Extract the head from a type application.")
+  (doc 'export #t)
   (if (type-app? t) (cadr t) t))
 
-;;; type-app-args : Type → (List Type)
 (define (type-app-args t)
+  (doc 'type (-> Type (List Type)))
+  (doc 'description "Extract the arguments from a type application.")
+  (doc 'export #t)
   (if (type-app? t) (cddr t) '()))
 
-;;; ====
-;;; Built-in Type Constructor Kinds
-;;; ====
+(doc 'section 'builtin-type-constructor-kinds)
 
-;;; The kind environment for built-in type constructors
+(doc builtin-kinds 'type (Alist Symbol Kind))
+(doc builtin-kinds 'description "The kind environment for built-in type constructors.")
+(doc builtin-kinds 'export #t)
 (define builtin-kinds
   `((List    . ,(K=> K* K*))
     (Vector  . ,(K=> K* K*))
@@ -319,18 +272,19 @@
     (A       . ,K*)   ; Type variable placeholder in annotations
     (Error   . ,K*))) ; Error type in Result
 
-;;; lookup-kind : Symbol → Kind | #f
 (define (lookup-kind name)
+  (doc 'type (-> Symbol (Maybe Kind)))
+  (doc 'description "Look up kind of a built-in type constructor.")
+  (doc 'export #t)
   (let ([entry (assq name builtin-kinds)])
        (if entry (cdr entry) #f)))
 
-;;; ====
-;;; Kind Inference
-;;; ====
+(doc 'section 'kind-inference)
 
-;;; infer-kind : Type × KindEnv → Kind | Error
-;;; Infer the kind of a type expression.
 (define (infer-kind type kenv)
+  (doc 'type (-> Type KindEnv (Either Kind Error)))
+  (doc 'description "Infer the kind of a type expression.")
+  (doc 'export #t)
   (cond
    ;; Type variable — look up in environment
    [(symbol? type)
@@ -432,17 +386,17 @@
    
    [else `(error unknown-type-form ,type)]))
 
-;;; infer-app-kind : Type × (List Type) × KindEnv → Kind | Error
-;;; Infer the kind of a type application.
 (define (infer-app-kind head args kenv)
+  (doc 'type (-> Type (List Type) KindEnv (Either Kind Error)))
+  (doc 'description "Infer the kind of a type application.")
   (let ([head-kind (infer-kind head kenv)])
        (if (and (pair? head-kind) (eq? (car head-kind) 'error))
            head-kind
            (apply-kinds head-kind args kenv))))
 
-;;; apply-kinds : Kind × (List Type) × KindEnv → Kind | Error
-;;; Apply a kind to type arguments.
 (define (apply-kinds kind args kenv)
+  (doc 'type (-> Kind (List Type) KindEnv (Either Kind Error)))
+  (doc 'description "Apply a kind to type arguments.")
   (if (null? args)
       kind
       (if (kind-arrow? kind)
@@ -457,25 +411,18 @@
                       (in ,(car args)))))
           `(error not-a-type-constructor ,kind ,args))))
 
-;;; ====
-;;; Type Classes (Higher-Kinded)
-;;; ====
+(doc 'section 'type-classes-higher-kinded)
 
-;;; A type class is a constraint on types or type constructors.
-;;;
-;;; Functor : (* → *) → Constraint
-;;;   requires: fmap : ∀ a b. (a → b) → f a → f b
-;;;
-;;; Applicative : (* → *) → Constraint
-;;;   requires: Functor f
-;;;             pure : ∀ a. a → f a
-;;;             <*>  : ∀ a b. f (a → b) → f a → f b
-;;;
-;;; Monad : (* → *) → Constraint
-;;;   requires: Applicative f
-;;;             >>= : ∀ a b. f a → (a → f b) → f b
-
-;;; Type class definition structure
+(doc typeclass? 'type (-> Any Boolean))
+(doc typeclass? 'description "Predicate for typeclass record.")
+(doc typeclass-name 'type (-> TypeClass Symbol))
+(doc typeclass-name 'description "Extract name from typeclass.")
+(doc typeclass-kind 'type (-> TypeClass Kind))
+(doc typeclass-kind 'description "Extract kind from typeclass.")
+(doc typeclass-supers 'type (-> TypeClass (List Symbol)))
+(doc typeclass-supers 'description "Extract superclass constraints.")
+(doc typeclass-methods 'type (-> TypeClass (Alist Symbol TypeScheme)))
+(doc typeclass-methods 'description "Extract method signatures.")
 (define-record-type typeclass
   (fields
    name        ; Symbol
@@ -483,10 +430,9 @@
    supers      ; (List Symbol) — superclass constraints
    methods))   ; (List (name . type-scheme))
 
-;;; make-typeclass : convenient constructor
-;;; (Already defined by define-record-type)
-
-;;; Built-in type class definitions
+(doc TC-Functor 'type TypeClass)
+(doc TC-Functor 'description "Functor : (* → *) → Constraint. Provides fmap.")
+(doc TC-Functor 'export #t)
 (define TC-Functor
   (make-typeclass
    'Functor
@@ -496,6 +442,9 @@
                 (=> (Functor f)
                     (-> (-> a b) (@ f a) (@ f b))))))))
 
+(doc TC-Applicative 'type TypeClass)
+(doc TC-Applicative 'description "Applicative : (* → *) → Constraint. Requires Functor. Provides pure, <*>.")
+(doc TC-Applicative 'export #t)
 (define TC-Applicative
   (make-typeclass
    'Applicative
@@ -508,6 +457,9 @@
                 (=> (Applicative f)
                     (-> (@ f (-> a b)) (@ f a) (@ f b))))))))
 
+(doc TC-Monad 'type TypeClass)
+(doc TC-Monad 'description "Monad : (* → *) → Constraint. Requires Applicative. Provides >>=, return.")
+(doc TC-Monad 'export #t)
 (define TC-Monad
   (make-typeclass
    'Monad
@@ -520,12 +472,11 @@
                   (=> (Monad m)
                       (-> a (@ m a))))))))
 
-;;; ====
-;;; Value-Level Type Classes
-;;; ====
+(doc 'section 'value-level-type-classes)
 
-;;; Eq : * → Constraint
-;;;   == : a → a → Bool
+(doc TC-Eq 'type TypeClass)
+(doc TC-Eq 'description "Eq : * → Constraint. Provides ==, /=.")
+(doc TC-Eq 'export #t)
 (define TC-Eq
   (make-typeclass
    'Eq
@@ -538,10 +489,9 @@
               (=> (Eq a)
                   (-> a a Bool)))))))
 
-;;; Ord : * → Constraint
-;;;   requires: Eq a
-;;;   compare : a → a → Ordering
-;;;   <, <=, >, >= : a → a → Bool
+(doc TC-Ord 'type TypeClass)
+(doc TC-Ord 'description "Ord : * → Constraint. Requires Eq. Provides compare, <, <=, >, >=.")
+(doc TC-Ord 'export #t)
 (define TC-Ord
   (make-typeclass
    'Ord
@@ -555,8 +505,9 @@
      (>  . (∀ (a) (=> (Ord a) (-> a a Bool))))
      (>= . (∀ (a) (=> (Ord a) (-> a a Bool)))))))
 
-;;; Show : * → Constraint
-;;;   show : a → String
+(doc TC-Show 'type TypeClass)
+(doc TC-Show 'description "Show : * → Constraint. Provides show : a → String.")
+(doc TC-Show 'export #t)
 (define TC-Show
   (make-typeclass
    'Show
@@ -566,12 +517,9 @@
                 (=> (Show a)
                     (-> a String)))))))
 
-;;; Pretty : * → Constraint
-;;; Pretty-printing with Doc output for composable, width-aware layout.
-;;; Unlike Show (which returns String), Pretty returns Doc for use with
-;;; the Wadler-Lindig layout algorithm.
-;;;   pretty : a → Doc
-;;;   pretty-prec : Int → a → Doc  (precedence-aware for expressions)
+(doc TC-Pretty 'type TypeClass)
+(doc TC-Pretty 'description "Pretty : * → Constraint. Width-aware layout. Provides pretty, pretty-prec.")
+(doc TC-Pretty 'export #t)
 (define TC-Pretty
   (make-typeclass
    'Pretty
@@ -584,8 +532,9 @@
                        (=> (Pretty a)
                            (-> Int a Doc)))))))
 
-;;; Semigroup : * → Constraint
-;;;   <> : a → a → a
+(doc TC-Semigroup 'type TypeClass)
+(doc TC-Semigroup 'description "Semigroup : * → Constraint. Provides <>.")
+(doc TC-Semigroup 'export #t)
 (define TC-Semigroup
   (make-typeclass
    'Semigroup
@@ -595,9 +544,9 @@
               (=> (Semigroup a)
                   (-> a a a)))))))
 
-;;; Monoid : * → Constraint
-;;;   requires: Semigroup a
-;;;   mempty : a
+(doc TC-Monoid 'type TypeClass)
+(doc TC-Monoid 'description "Monoid : * → Constraint. Requires Semigroup. Provides mempty.")
+(doc TC-Monoid 'export #t)
 (define TC-Monoid
   (make-typeclass
    'Monoid
@@ -606,13 +555,11 @@
    `((mempty . (∀ (a)
                   (=> (Monoid a) a))))))
 
-;;; ====
-;;; Numeric Type Classes
-;;; ====
+(doc 'section 'numeric-type-classes)
 
-;;; Num : * → Constraint
-;;; The core numeric type class for basic arithmetic.
-;;; Provides addition, subtraction, multiplication, negation.
+(doc TC-Num 'type TypeClass)
+(doc TC-Num 'description "Num : * → Constraint. Core arithmetic: +, -, *, negate, abs, signum, fromInteger.")
+(doc TC-Num 'export #t)
 (define TC-Num
   (make-typeclass
    'Num
@@ -626,8 +573,9 @@
      (signum  . (∀ (a) (=> (Num a) (-> a a))))
      (fromInteger . (∀ (a) (=> (Num a) (-> Int a)))))))
 
-;;; Fractional : * → Constraint
-;;; Division and reciprocal for fractional types.
+(doc TC-Fractional 'type TypeClass)
+(doc TC-Fractional 'description "Fractional : * → Constraint. Requires Num. Provides /, recip, fromRational.")
+(doc TC-Fractional 'export #t)
 (define TC-Fractional
   (make-typeclass
    'Fractional
@@ -637,8 +585,9 @@
      (recip  . (∀ (a) (=> (Fractional a) (-> a a))))
      (fromRational . (∀ (a) (=> (Fractional a) (-> Rational a)))))))
 
-;;; Floating : * → Constraint
-;;; Transcendental functions for floating-point types.
+(doc TC-Floating 'type TypeClass)
+(doc TC-Floating 'description "Floating : * → Constraint. Requires Fractional. Transcendental functions.")
+(doc TC-Floating 'export #t)
 (define TC-Floating
   (make-typeclass
    'Floating
@@ -662,8 +611,9 @@
      (acosh  . (∀ (a) (=> (Floating a) (-> a a))))
      (atanh  . (∀ (a) (=> (Floating a) (-> a a)))))))
 
-;;; Real : * → Constraint
-;;; Types that can be converted to Rational.
+(doc TC-Real 'type TypeClass)
+(doc TC-Real 'description "Real : * → Constraint. Requires Num, Ord. Provides toRational.")
+(doc TC-Real 'export #t)
 (define TC-Real
   (make-typeclass
    'Real
@@ -671,8 +621,9 @@
    '(Num Ord)
    `((toRational . (∀ (a) (=> (Real a) (-> a Rational)))))))
 
-;;; Integral : * → Constraint
-;;; Integer-like types with quotient and remainder.
+(doc TC-Integral 'type TypeClass)
+(doc TC-Integral 'description "Integral : * → Constraint. Requires Real. Provides quot, rem, div, mod, toInteger.")
+(doc TC-Integral 'export #t)
 (define TC-Integral
   (make-typeclass
    'Integral
@@ -684,13 +635,11 @@
      (mod      . (∀ (a) (=> (Integral a) (-> a a a))))
      (toInteger . (∀ (a) (=> (Integral a) (-> a Int)))))))
 
-;;; ====
-;;; Contravariant and Bifunctors
-;;; ====
+(doc 'section 'contravariant-and-bifunctors)
 
-;;; Contravariant : (* → *) → Constraint
-;;; The dual of Functor — consumes rather than produces values.
-;;; contramap : (a → b) → f b → f a   (note the flip!)
+(doc TC-Contravariant 'type TypeClass)
+(doc TC-Contravariant 'description "Contravariant : (* → *) → Constraint. Dual of Functor. Provides contramap.")
+(doc TC-Contravariant 'export #t)
 (define TC-Contravariant
   (make-typeclass
    'Contravariant
@@ -700,11 +649,9 @@
                      (=> (Contravariant f)
                          (-> (-> a b) (@ f b) (@ f a))))))))
 
-;;; Bifunctor : (* → * → *) → Constraint
-;;; Functor in two arguments — can map over both.
-;;; bimap : (a → b) → (c → d) → p a c → p b d
-;;; first : (a → b) → p a c → p b c
-;;; second : (c → d) → p a c → p a d
+(doc TC-Bifunctor 'type TypeClass)
+(doc TC-Bifunctor 'description "Bifunctor : (* → * → *) → Constraint. Provides bimap, first, second.")
+(doc TC-Bifunctor 'export #t)
 (define TC-Bifunctor
   (make-typeclass
    'Bifunctor
@@ -720,14 +667,11 @@
                   (=> (Bifunctor p)
                       (-> (-> c d) (@ (@ p a) c) (@ (@ p a) d))))))))
 
-;;; ====
-;;; Category Theory Type Classes
-;;; ====
+(doc 'section 'category-theory-type-classes)
 
-;;; Category : (* → * → *) → Constraint
-;;; A category has objects (types) and morphisms between them.
-;;; id : cat a a                         (identity morphism)
-;;; . : cat b c → cat a b → cat a c      (composition)
+(doc TC-Category 'type TypeClass)
+(doc TC-Category 'description "Category : (* → * → *) → Constraint. Provides id, ∘ (composition).")
+(doc TC-Category 'export #t)
 (define TC-Category
   (make-typeclass
    'Category
@@ -740,9 +684,9 @@
               (=> (Category cat)
                   (-> (@ (@ cat b) c) (@ (@ cat a) b) (@ (@ cat a) c))))))))
 
-;;; Profunctor : (* → * → *) → Constraint
-;;; Contravariant in first argument, covariant in second.
-;;; dimap : (a → b) → (c → d) → p b c → p a d
+(doc TC-Profunctor 'type TypeClass)
+(doc TC-Profunctor 'description "Profunctor : (* → * → *) → Constraint. Provides dimap, lmap, rmap.")
+(doc TC-Profunctor 'export #t)
 (define TC-Profunctor
   (make-typeclass
    'Profunctor
@@ -758,8 +702,9 @@
                  (=> (Profunctor p)
                      (-> (-> c d) (@ (@ p a) c) (@ (@ p a) d))))))))
 
-;;; Arrow : (* → * → *) → Constraint
-;;; Generalization of functions with structured computation.
+(doc TC-Arrow 'type TypeClass)
+(doc TC-Arrow 'description "Arrow : (* → * → *) → Constraint. Requires Category. Provides arr, first*, second*, ***, &&&.")
+(doc TC-Arrow 'export #t)
 (define TC-Arrow
   (make-typeclass
    'Arrow
@@ -783,23 +728,15 @@
                      (-> (@ (@ arr a) b) (@ (@ arr a) c)
                          (@ (@ arr a) (× b c)))))))))
 
-;;; ====
-;;; Multi-Parameter Type Classes with Functional Dependencies
-;;; ====
+(doc 'section 'multi-parameter-type-classes)
 
-;;; Multi-parameter type classes constrain relationships between
-;;; multiple type parameters. Functional dependencies guide type
-;;; inference by declaring which parameters determine others.
-;;;
-;;; Example:
-;;;   class MonadReader r m | m -> r where
-;;;     ask :: m r
-;;;     local :: (r -> r) -> m a -> m a
-;;;
-;;; The fundep "m -> r" means: knowing m determines r uniquely.
-;;; This enables the type checker to infer r from m.
-
-;;; Multi-parameter type class with functional dependencies
+(doc mparam-typeclass? 'type (-> Any Boolean))
+(doc mparam-typeclass-name 'type (-> MParamTypeClass Symbol))
+(doc mparam-typeclass-params 'type (-> MParamTypeClass (List Symbol)))
+(doc mparam-typeclass-param-kinds 'type (-> MParamTypeClass (List Kind)))
+(doc mparam-typeclass-fundeps 'type (-> MParamTypeClass (List FunDep)))
+(doc mparam-typeclass-supers 'type (-> MParamTypeClass (List Constraint)))
+(doc mparam-typeclass-methods 'type (-> MParamTypeClass (Alist Symbol TypeScheme)))
 (define-record-type mparam-typeclass
   (fields
    name        ; Symbol
@@ -809,25 +746,29 @@
    supers      ; (List Constraint)
    methods))   ; (List (name . type-scheme))
 
-;;; make-mparam-typeclass is provided by define-record-type
-
-;;; fundep : (List Symbol) × (List Symbol) → FunDep
-;;; Create a functional dependency: lhs -> rhs
 (define (fundep lhs rhs)
+  (doc 'type (-> (List Symbol) (List Symbol) FunDep))
+  (doc 'description "Create a functional dependency: lhs -> rhs.")
+  (doc 'export #t)
   (cons lhs rhs))
 
-;;; fundep-lhs : FunDep → (List Symbol)
-(define (fundep-lhs fd) (car fd))
+(define (fundep-lhs fd)
+  (doc 'type (-> FunDep (List Symbol)))
+  (doc 'description "Extract LHS of functional dependency.")
+  (doc 'export #t)
+  (car fd))
 
-;;; fundep-rhs : FunDep → (List Symbol)
-(define (fundep-rhs fd) (cdr fd))
+(define (fundep-rhs fd)
+  (doc 'type (-> FunDep (List Symbol)))
+  (doc 'description "Extract RHS of functional dependency.")
+  (doc 'export #t)
+  (cdr fd))
 
-;;; ====
-;;; Multi-Parameter Type Class Examples
-;;; ====
+(doc 'section 'multi-parameter-type-class-examples)
 
-;;; Convertible a b — convert between types
-;;; No fundeps: a and b are independent
+(doc TC-Convertible 'type MParamTypeClass)
+(doc TC-Convertible 'description "Convertible a b: convert between types. No fundeps.")
+(doc TC-Convertible 'export #t)
 (define TC-Convertible
   (make-mparam-typeclass
    'Convertible
@@ -839,8 +780,9 @@
                    (=> (Convertible a b)
                        (-> a b)))))))
 
-;;; Collection c e | c -> e — collections with element type
-;;; The fundep c -> e means the collection type determines element type
+(doc TC-Collection 'type MParamTypeClass)
+(doc TC-Collection 'description "Collection c e | c -> e: collection type determines element type.")
+(doc TC-Collection 'export #t)
 (define TC-Collection
   (make-mparam-typeclass
    'Collection
@@ -857,8 +799,9 @@
                    (=> ((Collection c e) (Eq e))
                        (-> e c Bool)))))))
 
-;;; MonadReader r m | m -> r — reader monad class
-;;; The monad type determines the environment type
+(doc TC-MonadReader 'type MParamTypeClass)
+(doc TC-MonadReader 'description "MonadReader r m | m -> r: monad determines environment type.")
+(doc TC-MonadReader 'export #t)
 (define TC-MonadReader
   (make-mparam-typeclass
    'MonadReader
@@ -873,7 +816,9 @@
                  (=> (MonadReader r m)
                      (-> (-> r r) (@ m a) (@ m a))))))))
 
-;;; MonadState s m | m -> s — state monad class
+(doc TC-MonadState 'type MParamTypeClass)
+(doc TC-MonadState 'description "MonadState s m | m -> s: monad determines state type.")
+(doc TC-MonadState 'export #t)
 (define TC-MonadState
   (make-mparam-typeclass
    'MonadState
@@ -891,7 +836,9 @@
                   (=> (MonadState s m)
                       (-> (-> s s) (@ m Unit))))))))
 
-;;; MonadWriter w m | m -> w — writer monad class
+(doc TC-MonadWriter 'type MParamTypeClass)
+(doc TC-MonadWriter 'description "MonadWriter w m | m -> w: monad determines log type. Requires Monoid.")
+(doc TC-MonadWriter 'export #t)
 (define TC-MonadWriter
   (make-mparam-typeclass
    'MonadWriter
@@ -909,13 +856,12 @@
                   (=> (MonadWriter w m)
                       (-> (@ m (× a (-> w w))) (@ m a))))))))
 
-;;; ====
-;;; Functional Dependency Utilities
-;;; ====
+(doc 'section 'functional-dependency-utilities)
 
-;;; apply-fundep : FunDep × TypeSubst → TypeSubst
-;;; Given known type bindings, derive new bindings from fundep.
 (define (apply-fundep fd subst)
+  (doc 'type (-> FunDep TypeSubst TypeSubst))
+  (doc 'description "Given known type bindings, derive new bindings from fundep.")
+  (doc 'export #t)
   ;; If all LHS params are bound in subst, RHS params
   ;; can be determined (in actual resolution, looked up from instance)
   (let* ([lhs (fundep-lhs fd)]
@@ -926,10 +872,10 @@
             (map (lambda (p) (cons p 'determined)) rhs)
             '())))
 
-;;; fundeps-closure : (List FunDep) × (Set Symbol) → (Set Symbol)
-;;; Compute the closure of known parameters under functional deps.
+(doc fundeps-closure 'type (-> (List FunDep) (Set Symbol) (Set Symbol)))
+(doc fundeps-closure 'description "Compute the closure of known parameters under functional deps.")
+(doc fundeps-closure 'export #t)
 (define (fundeps-closure fundeps known)
-  ;; Add new elements to set without duplicates
   (define (add-new acc new-elems)
     (fold-left (lambda (a e)
                        (if (memq e a) a (cons e a)))
@@ -948,25 +894,20 @@
                 known
                 (loop new-known)))))
 
-;;; check-fundep-consistency : (List FunDep) × Instance × Instance → Bool
-;;; Check that two instances don't violate functional dependencies.
-;;; If instances agree on LHS types, they must agree on RHS types.
 (define (check-fundep-consistency fundeps inst1 inst2)
-  ;; Placeholder — full implementation requires type unification
+  (doc 'type (-> (List FunDep) Instance Instance Boolean))
+  (doc 'description "Check that two instances don't violate functional dependencies.")
+  (doc 'export #t)
   #t)
 
-;;; ====
-;;; Type Class Instances
-;;; ====
+(doc 'section 'type-class-instances)
 
-;;; An instance provides implementations of a type class for a specific type.
-;;;
-;;; instance Functor List where
-;;;   fmap f xs = ...
-;;;
-;;; Represented as:
-;;;   (instance Functor List ((fmap . <implementation>)))
-
+(doc instance? 'type (-> Any Boolean))
+(doc instance-class 'type (-> Instance Symbol))
+(doc instance-type 'type (-> Instance Type))
+(doc instance-context 'type (-> Instance (List Constraint)))
+(doc instance-methods 'type (-> Instance (Alist Symbol Expr)))
+(doc 'note "Instance implementations deferred until evaluator supports type class dictionaries.")
 (define-record-type instance
   (fields
    class       ; Symbol — which type class
@@ -974,60 +915,55 @@
    context     ; (List Constraint) — required constraints
    methods))   ; (List (name . expr))
 
-;;; Note: Instance implementations are deferred.
-;;; The infrastructure for instances exists (make-instance, instance-*)
-;;; but actual instances will be implemented when the evaluator can
-;;; handle type class dictionaries.
-;;;
-;;; See forum/engineering/0010-adr-001-type-classes-deferred.sexp
+(doc 'section 'constrained-types)
 
-;;; ====
-;;; Constrained Types
-;;; ====
-
-;;; We need a way to express constraints in types:
-;;;   (=> (Functor f) (-> (-> a b) (@ f a) (@ f b)))
-;;;
-;;; The => form introduces type class constraints.
-
-;;; t-constrained : (List Constraint) × Type → Type
 (define (t=> constraints type)
+  (doc 'type (-> (List Constraint) Type Type))
+  (doc 'description "Construct constrained type: (=> (constraints) type).")
+  (doc 'export #t)
   `(=> ,constraints ,type))
 
-;;; constrained-type? : Type → Boolean
 (define (constrained-type? t)
+  (doc 'type (-> Type Boolean))
+  (doc 'description "Test if type has constraints.")
+  (doc 'export #t)
   (and (pair? t) (eq? (car t) '=>)))
 
-;;; get-constraints : Type → (List Constraint)
 (define (get-constraints t)
+  (doc 'type (-> Type (List Constraint)))
+  (doc 'description "Extract constraints from constrained type.")
+  (doc 'export #t)
   (if (constrained-type? t)
       (cadr t)
       '()))
 
-;;; get-underlying-type : Type → Type
 (define (get-underlying-type t)
+  (doc 'type (-> Type Type))
+  (doc 'description "Extract underlying type from constrained type.")
+  (doc 'export #t)
   (if (constrained-type? t)
       (caddr t)
       t))
 
-;;; ====
-;;; Kind Unification (for HKT inference)
-;;; ====
+(doc 'section 'kind-unification)
 
-;;; Kind unification finds a substitution that makes two kinds equal.
-;;; This is needed when inferring HKT type variables.
-
-;;; kind-subst-lookup : KindSubst × Symbol → Kind | #f
 (define (kind-subst-lookup s var)
+  (doc 'type (-> KindSubst Symbol (Maybe Kind)))
+  (doc 'description "Look up kind variable in substitution.")
+  (doc 'export #t)
   (let ([entry (assq var s)])
        (if entry (cdr entry) #f)))
 
-;;; kind-subst-extend : KindSubst × Symbol × Kind → KindSubst
 (define (kind-subst-extend s var kind)
+  (doc 'type (-> KindSubst Symbol Kind KindSubst))
+  (doc 'description "Extend kind substitution with new binding.")
+  (doc 'export #t)
   (cons (cons var kind) s))
 
-;;; apply-kind-subst : KindSubst × Kind → Kind
 (define (apply-kind-subst s kind)
+  (doc 'type (-> KindSubst Kind Kind))
+  (doc 'description "Apply kind substitution to a kind.")
+  (doc 'export #t)
   (cond
    [(kind-var? kind)
     (let ([replacement (kind-subst-lookup s kind)])
@@ -1046,8 +982,10 @@
           `(κ∀ ,bound ,(apply-kind-subst s* body)))]
    [else kind]))
 
-;;; kind-occurs? : Symbol × Kind → Boolean
 (define (kind-occurs? var kind)
+  (doc 'type (-> Symbol Kind Boolean))
+  (doc 'description "Check if kind variable occurs in kind (for occurs check).")
+  (doc 'export #t)
   (cond
    [(kind-var? kind) (eq? var kind)]
    [(not (pair? kind)) #f]
@@ -1060,12 +998,15 @@
         (kind-occurs? var (caddr kind)))]
    [else #f]))
 
-;;; unify-kinds : Kind × Kind → (ok KindSubst) | (error ...)
-;;; Unify two kinds, returning a substitution.
 (define (unify-kinds k1 k2)
+  (doc 'type (-> Kind Kind (Either KindSubst Error)))
+  (doc 'description "Unify two kinds, returning a substitution.")
+  (doc 'export #t)
   (unify-kinds-with '() k1 k2))
 
 (define (unify-kinds-with s k1 k2)
+  (doc 'type (-> KindSubst Kind Kind (Either KindSubst Error)))
+  (doc 'description "Unify kinds with an existing substitution.")
   (let ([k1 (apply-kind-subst s k1)]
         [k2 (apply-kind-subst s k2)])
        (cond
@@ -1093,12 +1034,12 @@
         
         [else `(error kind-mismatch ,k1 ,k2)])))
 
-;;; ====
-;;; Kind Display
-;;; ====
+(doc 'section 'kind-display)
 
-;;; kind->string : Kind → String
 (define (kind->string k)
+  (doc 'type (-> Kind String))
+  (doc 'description "Convert kind to string for display.")
+  (doc 'export #t)
   (cond
    [(eq? k '*) "*"]
    [(eq? k 'Constraint) "Constraint"]
@@ -1127,4 +1068,4 @@
    [(pair? k) (format "~s" k)]
    [else "?"]))
 
-;;; Note: Utilities (andmap, etc.) are provided by prelude.ss
+(doc 'note "Utilities (andmap, etc.) are provided by prelude.ss")

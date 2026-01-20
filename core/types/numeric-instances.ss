@@ -1,67 +1,48 @@
-;;; core/types/numeric-instances.ss — Type Class Instance Dictionaries
-;;;
-;;; Instance dictionaries connecting Chez Scheme's native operations
-;;; to The Fold's type class system (defined in kinds.ss).
-;;;
-;;; Type Class Hierarchy:
-;;;   Num       : +, -, *, negate, abs, signum, fromInteger
-;;;   Integral  : quot, rem, div, mod, toInteger  (requires Num)
-;;;   Fractional: /, recip, fromRational           (requires Num)
-;;;   Floating  : pi, exp, log, sqrt, **, trig...  (requires Fractional)
-;;;
-;;; This is Core code: pure, total, assumes reasonable input.
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;   - numeric-tower.ss
-
 (load "core/base/prelude.ss")
 (load "core/types/numeric-tower.ss")
 
-;;; ============================================================================
-;;; Dictionary Representation
-;;; ============================================================================
+(doc 'module 'numeric-instances)
+(doc 'description "Type class instance dictionaries connecting Chez Scheme's native operations to The Fold's type class system. Type Class Hierarchy: Num (+, -, *, negate, abs, signum, fromInteger), Integral (quot, rem, div, mod, toInteger, requires Num), Fractional (/, recip, fromRational, requires Num), Floating (pi, exp, log, sqrt, **, trig..., requires Fractional).")
+(doc 'layer 'core)
 
-;;; Dictionaries are association lists: ((method-name . implementation) ...)
-;;; This matches the method lists in kinds.ss type class definitions.
-;;;
-;;; To invoke a method:
-;;;   (dict-invoke dict 'method-name args...)
-;;;
-;;; Dictionaries can be composed for superclass constraints.
+(doc 'section 'dictionary-representation)
+(doc 'note "Dictionaries are association lists: ((method-name . implementation) ...). This matches the method lists in kinds.ss type class definitions. To invoke a method: (dict-invoke dict 'method-name args...). Dictionaries can be composed for superclass constraints.")
 
-;;; dict-invoke : Dict × Symbol × Args... → Result
-;;; Look up and invoke a method from a dictionary.
 (define (dict-invoke dict method . args)
+  (doc 'type '(-> Dict Symbol Any))
+  (doc 'description "Look up and invoke a method from a dictionary.")
+  (doc 'export #t)
   (let ([entry (assq method dict)])
     (if entry
         (apply (cdr entry) args)
         (error 'dict-invoke "method not found" method))))
 
-;;; dict-lookup : Dict × Symbol → Procedure | #f
-;;; Look up a method without invoking.
 (define (dict-lookup dict method)
+  (doc 'type '(-> Dict Symbol (Maybe Procedure)))
+  (doc 'description "Look up a method without invoking.")
+  (doc 'export #t)
   (let ([entry (assq method dict)])
     (if entry (cdr entry) #f)))
 
-;;; dict-merge : Dict × Dict → Dict
-;;; Merge two dictionaries (second overrides first).
 (define (dict-merge d1 d2)
+  (doc 'type '(-> Dict Dict Dict))
+  (doc 'description "Merge two dictionaries (second overrides first).")
+  (doc 'export #t)
   (append d2 d1))
 
-;;; ============================================================================
-;;; Num Instances
-;;; ============================================================================
+(doc 'section 'num-instances)
+(doc 'note "Num provides: +, -, *, negate, abs, signum, fromInteger")
 
-;;; Num provides: +, -, *, negate, abs, signum, fromInteger
-
-;;; Helper: signum for any real
+(doc signum-real 'type '(-> Real Integer))
+(doc signum-real 'description "Helper: signum for any real")
 (define (signum-real x)
   (cond [(< x 0) -1]
         [(> x 0) 1]
         [else 0]))
 
-;;; Num instance for exact integers (Int, Fixnum, Bignum)
+(doc Num-Integer 'type 'Dict)
+(doc Num-Integer 'description "Num instance for exact integers (Int, Fixnum, Bignum)")
+(doc Num-Integer 'export #t)
 (define Num-Integer
   `((+           . ,+)
     (-           . ,-)
@@ -71,7 +52,9 @@
     (signum      . ,signum-real)
     (fromInteger . ,(lambda (x) x))))
 
-;;; Num instance for exact rationals
+(doc Num-Rational 'type 'Dict)
+(doc Num-Rational 'description "Num instance for exact rationals")
+(doc Num-Rational 'export #t)
 (define Num-Rational
   `((+           . ,+)
     (-           . ,-)
@@ -79,9 +62,11 @@
     (negate      . ,(lambda (x) (- x)))
     (abs         . ,abs)
     (signum      . ,signum-real)
-    (fromInteger . ,(lambda (x) (/ x 1)))))  ; Integer → Rational
+    (fromInteger . ,(lambda (x) (/ x 1)))))
 
-;;; Num instance for inexact reals (Float/Double)
+(doc Num-Real 'type 'Dict)
+(doc Num-Real 'description "Num instance for inexact reals (Float/Double)")
+(doc Num-Real 'export #t)
 (define Num-Real
   `((+           . ,+)
     (-           . ,-)
@@ -91,7 +76,9 @@
     (signum      . ,signum-real)
     (fromInteger . ,(lambda (x) (exact->inexact x)))))
 
-;;; Num instance for native complex
+(doc Num-Complex 'type 'Dict)
+(doc Num-Complex 'description "Num instance for native complex")
+(doc Num-Complex 'export #t)
 (define Num-Complex
   `((+           . ,+)
     (-           . ,-)
@@ -104,14 +91,12 @@
                           (/ z (magnitude z)))))
     (fromInteger . ,(lambda (x) (make-rectangular (exact->inexact x) 0)))))
 
-;;; ============================================================================
-;;; Integral Instances
-;;; ============================================================================
+(doc 'section 'integral-instances)
+(doc 'note "Integral provides: quot, rem, div, mod, toInteger. Integral implies Num.")
 
-;;; Integral provides: quot, rem, div, mod, toInteger
-;;; Integral implies Num.
-
-;;; Integral instance for exact integers
+(doc Integral-Integer 'type 'Dict)
+(doc Integral-Integer 'description "Integral instance for exact integers")
+(doc Integral-Integer 'export #t)
 (define Integral-Integer
   (dict-merge
    Num-Integer
@@ -121,14 +106,12 @@
      (mod       . ,modulo)
      (toInteger . ,(lambda (x) x)))))
 
-;;; ============================================================================
-;;; Fractional Instances
-;;; ============================================================================
+(doc 'section 'fractional-instances)
+(doc 'note "Fractional provides: /, recip, fromRational. Fractional implies Num.")
 
-;;; Fractional provides: /, recip, fromRational
-;;; Fractional implies Num.
-
-;;; Fractional instance for exact rationals
+(doc Fractional-Rational 'type 'Dict)
+(doc Fractional-Rational 'description "Fractional instance for exact rationals")
+(doc Fractional-Rational 'export #t)
 (define Fractional-Rational
   (dict-merge
    Num-Rational
@@ -136,7 +119,9 @@
      (recip        . ,(lambda (x) (/ 1 x)))
      (fromRational . ,(lambda (x) x)))))
 
-;;; Fractional instance for inexact reals
+(doc Fractional-Real 'type 'Dict)
+(doc Fractional-Real 'description "Fractional instance for inexact reals")
+(doc Fractional-Real 'export #t)
 (define Fractional-Real
   (dict-merge
    Num-Real
@@ -144,7 +129,9 @@
      (recip        . ,(lambda (x) (/ 1.0 x)))
      (fromRational . ,(lambda (x) (exact->inexact x))))))
 
-;;; Fractional instance for native complex
+(doc Fractional-Complex 'type 'Dict)
+(doc Fractional-Complex 'description "Fractional instance for native complex")
+(doc Fractional-Complex 'export #t)
 (define Fractional-Complex
   (dict-merge
    Num-Complex
@@ -152,14 +139,12 @@
      (recip        . ,(lambda (z) (/ 1 z)))
      (fromRational . ,(lambda (x) (make-rectangular (exact->inexact x) 0))))))
 
-;;; ============================================================================
-;;; Floating Instances
-;;; ============================================================================
+(doc 'section 'floating-instances)
+(doc 'note "Floating provides: pi, exp, log, sqrt, **, sin, cos, tan, etc. Floating implies Fractional.")
 
-;;; Floating provides: pi, exp, log, sqrt, **, sin, cos, tan, etc.
-;;; Floating implies Fractional.
-
-;;; Floating instance for inexact reals
+(doc Floating-Real 'type 'Dict)
+(doc Floating-Real 'description "Floating instance for inexact reals")
+(doc Floating-Real 'export #t)
 (define Floating-Real
   (dict-merge
    Fractional-Real
@@ -183,7 +168,9 @@
      (acosh . ,(lambda (x) (log (+ x (sqrt (- (* x x) 1))))))
      (atanh . ,(lambda (x) (/ (log (/ (+ 1 x) (- 1 x))) 2))))))
 
-;;; Floating instance for native complex
+(doc Floating-Complex 'type 'Dict)
+(doc Floating-Complex 'description "Floating instance for native complex")
+(doc Floating-Complex 'export #t)
 (define Floating-Complex
   (dict-merge
    Fractional-Complex
@@ -207,13 +194,12 @@
      (acosh . ,(lambda (z) (log (+ z (sqrt (- (* z z) 1))))))
      (atanh . ,(lambda (z) (/ (log (/ (+ 1 z) (- 1 z))) 2))))))
 
-;;; ============================================================================
-;;; Instance Selection
-;;; ============================================================================
+(doc 'section 'instance-selection)
 
-;;; select-num-dict : Value → Dict
-;;; Select appropriate Num dictionary based on value type.
 (define (select-num-dict x)
+  (doc 'type '(-> Value Dict))
+  (doc 'description "Select appropriate Num dictionary based on value type.")
+  (doc 'export #t)
   (let ([t (numeric-type x)])
     (case t
       [(Fixnum Bignum Integer) Num-Integer]
@@ -222,113 +208,124 @@
       [(Complex) Num-Complex]
       [else (error 'select-num-dict "not a number" x)])))
 
-;;; select-integral-dict : Value → Dict
-;;; Select Integral dictionary (only for integral types).
 (define (select-integral-dict x)
+  (doc 'type '(-> Value Dict))
+  (doc 'description "Select Integral dictionary (only for integral types).")
+  (doc 'export #t)
   (let ([t (numeric-type x)])
     (if (integral-type? t)
         Integral-Integer
         (error 'select-integral-dict "not an integral type" x t))))
 
-;;; select-fractional-dict : Value → Dict
-;;; Select Fractional dictionary.
 (define (select-fractional-dict x)
+  (doc 'type '(-> Value Dict))
+  (doc 'description "Select Fractional dictionary.")
+  (doc 'export #t)
   (let ([t (numeric-type x)])
     (case t
       [(Rational) Fractional-Rational]
       [(Real) Fractional-Real]
       [(Complex) Fractional-Complex]
-      ;; Integers can use Rational fractional
       [(Fixnum Bignum Integer) Fractional-Rational]
       [else (error 'select-fractional-dict "not a fractional type" x)])))
 
-;;; select-floating-dict : Value → Dict
-;;; Select Floating dictionary.
 (define (select-floating-dict x)
+  (doc 'type '(-> Value Dict))
+  (doc 'description "Select Floating dictionary.")
+  (doc 'export #t)
   (let ([t (numeric-type x)])
     (case t
       [(Real) Floating-Real]
       [(Complex) Floating-Complex]
-      ;; Exact types need conversion to float first
       [(Fixnum Bignum Integer Rational)
-       Floating-Real]  ; Will need to convert value
+       Floating-Real]
       [else (error 'select-floating-dict "not a floating type" x)])))
 
-;;; ============================================================================
-;;; Convenience: Type-Dispatched Operations
-;;; ============================================================================
+(doc 'section 'convenience-type-dispatched-operations)
+(doc 'note "These use dictionary dispatch internally but present a simple interface")
 
-;;; These use dictionary dispatch internally but present a simple interface.
-
-;;; num-add : Num a => a × a → a
 (define (num-add a b)
+  (doc 'type '(-> Num a => a a a))
+  (doc 'export #t)
   (let-values ([(a* b*) (promote-pair a b)])
     (dict-invoke (select-num-dict a*) '+ a* b*)))
 
-;;; num-sub : Num a => a × a → a
 (define (num-sub a b)
+  (doc 'type '(-> Num a => a a a))
+  (doc 'export #t)
   (let-values ([(a* b*) (promote-pair a b)])
     (dict-invoke (select-num-dict a*) '- a* b*)))
 
-;;; num-mul : Num a => a × a → a
 (define (num-mul a b)
+  (doc 'type '(-> Num a => a a a))
+  (doc 'export #t)
   (let-values ([(a* b*) (promote-pair a b)])
     (dict-invoke (select-num-dict a*) '* a* b*)))
 
-;;; num-negate : Num a => a → a
 (define (num-negate a)
+  (doc 'type '(-> Num a => a a))
+  (doc 'export #t)
   (dict-invoke (select-num-dict a) 'negate a))
 
-;;; num-abs : Num a => a → a
 (define (num-abs a)
+  (doc 'type '(-> Num a => a a))
+  (doc 'export #t)
   (dict-invoke (select-num-dict a) 'abs a))
 
-;;; frac-div : Fractional a => a × a → a
 (define (frac-div a b)
+  (doc 'type '(-> Fractional a => a a a))
+  (doc 'export #t)
   (let-values ([(a* b*) (promote-pair a b)])
     (dict-invoke (select-fractional-dict a*) '/ a* b*)))
 
-;;; frac-recip : Fractional a => a → a
 (define (frac-recip a)
+  (doc 'type '(-> Fractional a => a a))
+  (doc 'export #t)
   (dict-invoke (select-fractional-dict a) 'recip a))
 
-;;; float-sqrt : Floating a => a → a
 (define (float-sqrt a)
+  (doc 'type '(-> Floating a => a a))
+  (doc 'export #t)
   (let ([a* (if (exact? a) (exact->inexact a) a)])
     (dict-invoke (select-floating-dict a*) 'sqrt a*)))
 
-;;; float-sin : Floating a => a → a
 (define (float-sin a)
+  (doc 'type '(-> Floating a => a a))
+  (doc 'export #t)
   (let ([a* (if (exact? a) (exact->inexact a) a)])
     (dict-invoke (select-floating-dict a*) 'sin a*)))
 
-;;; float-cos : Floating a => a → a
 (define (float-cos a)
+  (doc 'type '(-> Floating a => a a))
+  (doc 'export #t)
   (let ([a* (if (exact? a) (exact->inexact a) a)])
     (dict-invoke (select-floating-dict a*) 'cos a*)))
 
-;;; float-exp : Floating a => a → a
 (define (float-exp a)
+  (doc 'type '(-> Floating a => a a))
+  (doc 'export #t)
   (let ([a* (if (exact? a) (exact->inexact a) a)])
     (dict-invoke (select-floating-dict a*) 'exp a*)))
 
-;;; float-log : Floating a => a → a
 (define (float-log a)
+  (doc 'type '(-> Floating a => a a))
+  (doc 'export #t)
   (let ([a* (if (exact? a) (exact->inexact a) a)])
     (dict-invoke (select-floating-dict a*) 'log a*)))
 
-;;; ============================================================================
-;;; Eq and Ord Instances
-;;; ============================================================================
+(doc 'section 'eq-and-ord-instances)
+(doc 'note "These are simpler - Scheme's = and < work across the numeric tower")
 
-;;; These are simpler - Scheme's = and < work across the numeric tower.
-
-;;; Eq instance for all numbers
+(doc Eq-Number 'type 'Dict)
+(doc Eq-Number 'description "Eq instance for all numbers")
+(doc Eq-Number 'export #t)
 (define Eq-Number
   `((== . ,=)
     (/= . ,(lambda (a b) (not (= a b))))))
 
-;;; Ord instance for real numbers (complex is not orderable)
+(doc Ord-Real 'type 'Dict)
+(doc Ord-Real 'description "Ord instance for real numbers (complex is not orderable)")
+(doc Ord-Real 'export #t)
 (define Ord-Real
   (dict-merge
    Eq-Number
@@ -340,28 +337,3 @@
      (<= . ,<=)
      (>  . ,>)
      (>= . ,>=))))
-
-;;; ============================================================================
-;;; Summary
-;;; ============================================================================
-
-;;; Exports:
-;;;
-;;; Dictionary operations:
-;;;   dict-invoke, dict-lookup, dict-merge
-;;;
-;;; Instance dictionaries:
-;;;   Num-Integer, Num-Rational, Num-Real, Num-Complex
-;;;   Integral-Integer
-;;;   Fractional-Rational, Fractional-Real, Fractional-Complex
-;;;   Floating-Real, Floating-Complex
-;;;   Eq-Number, Ord-Real
-;;;
-;;; Instance selection:
-;;;   select-num-dict, select-integral-dict
-;;;   select-fractional-dict, select-floating-dict
-;;;
-;;; Type-dispatched operations:
-;;;   num-add, num-sub, num-mul, num-negate, num-abs
-;;;   frac-div, frac-recip
-;;;   float-sqrt, float-sin, float-cos, float-exp, float-log

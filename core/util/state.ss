@@ -1,38 +1,14 @@
-;;; fabric/stitches/state.ss — The State Monad
-;;;
-;;; Pure state threading for The Fold.
-;;;
-;;; State computations are functions: State → (Value × State)
-;;; We represent pairs as 2-element lists for simplicity.
-;;;
-;;; This module provides:
-;;;   - State monad combinators (return, bind, get, put, modify)
-;;;   - State monad runners (run-state, eval-state, exec-state)
-;;;   - Utility combinators (sequence, traverse, etc.)
-;;;
-;;; The State monad enables:
-;;;   - Game state management without mutation
-;;;   - Pure simulation loops
-;;;   - Deterministic replay (same input state = same output)
-;;;
-;;; Type: State s a = s → (a × s)
-;;;
-;;; This is Core code: pure, total, assumes perfect input.
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-
 (load "core/base/prelude.ss")
 
-;;; ====
-;;; State Monad Primitives (as Fold expressions)
-;;; ====
+(doc 'module 'state)
+(doc 'description "The State Monad. Pure state threading for The Fold. State computations are functions: State → (Value × State). We represent pairs as 2-element lists for simplicity. This module provides: State monad combinators (return, bind, get, put, modify), State monad runners (run-state, eval-state, exec-state), Utility combinators (sequence, traverse, etc.). The State monad enables: game state management without mutation, pure simulation loops, deterministic replay (same input state = same output). Type: State s a = s → (a × s).")
+(doc 'layer 'core)
 
-;;; These definitions are Fold expressions that can be evaluated
-;;; by the eval.ss evaluator. They're defined here as quoted
-;;; S-expressions for inclusion in the prelude.
+(doc 'section 'state-monad-primitives)
 
-;;; state-return-def : Sexp
+(doc state-return-def 'type Sexp)
+(doc state-return-def 'description "State monad return (pure) as Fold expression for inclusion in prelude.")
+(doc state-return-def 'export #t)
 (define state-return-def
   '(state-return . (fn (a)
                        (fn (s) (prim 'list a s)))))
@@ -66,11 +42,11 @@
   '(state-gets . (fn (f)
                      (fn (s) (prim 'list (f s) s)))))
 
-;;; ====
-;;; State Runners
-;;; ====
+(doc 'section 'state-runners)
 
-;;; run-state-def : Sexp
+(doc run-state-def 'type Sexp)
+(doc run-state-def 'description "State monad runner that returns both value and final state.")
+(doc run-state-def 'export #t)
 (define run-state-def
   '(run-state . (fn (ma)
                     (fn (init-s)
@@ -88,11 +64,11 @@
                      (fn (init-s)
                          (prim 'car (prim 'cdr (ma init-s)))))))
 
-;;; ====
-;;; State Monad Combinators
-;;; ====
+(doc 'section 'state-monad-combinators)
 
-;;; state-map-def : Sexp
+(doc state-map-def 'type Sexp)
+(doc state-map-def 'description "State monad fmap (functor map).")
+(doc state-map-def 'export #t)
 (define state-map-def
   '(state-map . (fn (f)
                     (fn (ma)
@@ -149,11 +125,11 @@
 ;;;
 ;;; These can be verified by evaluation.
 
-;;; ====
-;;; Practical Combinators
-;;; ====
+(doc 'section 'practical-combinators)
 
-;;; state-sequence-def : Sexp
+(doc state-sequence-def 'type Sexp)
+(doc state-sequence-def 'description "Sequence a list of state computations.")
+(doc state-sequence-def 'export #t)
 (define state-sequence-def
   '(state-sequence . (fix seq (fn (ms)
                                   (if (prim 'null? ms)
@@ -249,11 +225,11 @@
   '(get-y . (fn (pos)
                 (prim 'list (prim 'car (prim 'cdr pos)) pos))))
 
-;;; ====
-;;; All State Definitions (for prelude)
-;;; ====
+(doc 'section 'prelude-integration)
 
-;;; state-prelude-defs : (List Sexp)
+(doc state-prelude-defs 'type (List Sexp))
+(doc state-prelude-defs 'description "All state monad definitions for inclusion in prelude.")
+(doc state-prelude-defs 'export #t)
 (define state-prelude-defs
   (list
    state-return-def

@@ -1,23 +1,16 @@
-;;; fabric/stitches/profile.ss — Inline Performance Profiler
-;;;
-;;; Tracks fuel consumption, call counts, and timing during evaluation.
-;;; Builds hierarchical call trees for performance analysis.
-;;;
-;;; This is Core code: pure profiling data collection.
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;   - eval.ss
-
 (load "core/base/prelude.ss")
 (load "core/lang/eval.ss")
 
-;;; ====
-;;; Call Tree Data Structures
-;;; ====
+(doc 'module 'profile)
+(doc 'description "Inline Performance Profiler. Tracks fuel consumption, call counts, and timing during evaluation. Builds hierarchical call trees for performance analysis.")
+(doc 'layer 'core)
 
-;;; make-node : Symbol × Nat → Node
+(doc 'section 'call-tree-data-structures)
+
 (define (make-node name start-fuel)
+  (doc 'type (-> Symbol Nat Node))
+  (doc 'description "Create a profiler node for a function call.")
+  (doc 'export #t)
   `(node
     (name . ,name)
     (start-fuel . ,start-fuel)
@@ -96,12 +89,12 @@
           [(symbol? head) head]
           [else 'expr]))]))
 
-;;; ====
-;;; Profiler State
-;;; ====
+(doc 'section 'profiler-state)
 
-;;; make-profiler : Expr × Env × Nat → Profiler
 (define (make-profiler expr env fuel)
+  (doc 'type (-> Expr Env Nat Profiler))
+  (doc 'description "Create a profiler session for an expression.")
+  (doc 'export #t)
   `(profiler
     (expr . ,expr)
     (env . ,env)
@@ -138,13 +131,12 @@
              p
              updates))
 
-;;; ====
-;;; Simple Profiling (Run to Completion)
-;;; ====
+(doc 'section 'simple-profiling)
 
-;;; profile-expr : Expr × Fuel → Profiler
-;;; Profile an expression with given fuel budget (simple approach)
 (define (profile-expr expr fuel)
+  (doc 'type (-> Expr Nat Profiler))
+  (doc 'description "Profile an expression with given fuel budget (simple approach).")
+  (doc 'export #t)
   (let* ([env empty-env]
          [result (eval-expr expr env fuel)])
         (cond
@@ -209,12 +201,12 @@
             (status . error)
             (result . ,result))])))
 
-;;; ====
-;;; Statistics Extraction
-;;; ====
+(doc 'section 'statistics-extraction)
 
-;;; flatten-tree : Node → List of (name . fuel-consumed)
 (define (flatten-tree node)
+  (doc 'type (-> Node (List (Pair Symbol Nat))))
+  (doc 'description "Flatten a call tree into a list of (name . fuel-consumed) pairs.")
+  (doc 'export #t)
   (let ([self (cons (node-name node) (node-fuel-consumed node))]
         [children (node-children node)])
        (cons self
@@ -241,8 +233,10 @@
                      (loop (cdr calls)
                            (cons (cons name (cons fuel 1)) acc)))))))
 
-;;; profile-stats : Profiler → Alist
 (define (profile-stats p)
+  (doc 'type (-> Profiler Alist))
+  (doc 'description "Extract statistics from a profiler session.")
+  (doc 'export #t)
   (let* ([root (profiler-root p)]
          [total-fuel (profiler-initial-fuel p)]
          [used-fuel (node-fuel-consumed root)]
@@ -254,12 +248,12 @@
                              (/ used-fuel total-fuel)))
           (by-function . ,by-name))))
 
-;;; ====
-;;; Hotspot Analysis
-;;; ====
+(doc 'section 'hotspot-analysis)
 
-;;; find-hotspots : Profiler × Nat → List of (name fuel% calls)
 (define (find-hotspots p n)
+  (doc 'type (-> Profiler Nat (List (Triple Symbol Number Nat))))
+  (doc 'description "Find the top n functions by fuel consumption with percentages and call counts.")
+  (doc 'export #t)
   (let* ([stats (profile-stats p)]
          [by-fn (cdr (assq 'by-function stats))]
          [total (cdr (assq 'used-fuel stats))]
@@ -282,12 +276,12 @@
       '()
       (cons (car lst) (take-up-to (- n 1) (cdr lst)))))
 
-;;; ====
-;;; Call Tree Rendering
-;;; ====
+(doc 'section 'call-tree-rendering)
 
-;;; render-tree : Node × Nat → String
 (define (render-tree node depth)
+  (doc 'type (-> Node Nat String))
+  (doc 'description "Render a call tree as an indented string.")
+  (doc 'export #t)
   (let* ([indent (make-string (* depth 2) #\space)]
          [name (node-name node)]
          [fuel (node-fuel-consumed node)]
@@ -338,16 +332,18 @@
                             all-paths)])
         (take-up-to n sorted)))
 
-;;; ====
-;;; Public API
-;;; ====
+(doc 'section 'public-api)
 
-;;; profile : Expr × Nat → Profiler
+(doc profile 'type (-> Expr Nat Profiler))
+(doc profile 'description "Profile an expression with given fuel budget.")
+(doc profile 'export #t)
 (define (profile expr fuel)
   (profile-expr expr fuel))
 
-;;; profile-report : Profiler → Void
 (define (profile-report p)
+  (doc 'type (-> Profiler Void))
+  (doc 'description "Display a profiler report to stdout with statistics, hotspots, and call tree.")
+  (doc 'export #t)
   (let* ([stats (profile-stats p)]
          [total (cdr (assq 'total-fuel stats))]
          [used (cdr (assq 'used-fuel stats))]

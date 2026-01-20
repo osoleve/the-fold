@@ -1,39 +1,38 @@
-;;; core/base/string/string-search.ss — String Search Operations
-;;;
-;;; Find, match, and replace operations for strings.
-;;; Includes prefix/suffix checks, substring search, and edit distance.
+(doc 'module 'string-search)
+(doc 'description "Find, match, and replace operations for strings. Includes prefix/suffix checks, substring search, and edit distance.")
+(doc 'layer 'core)
 
-;;; ====
-;;; Prefix/Suffix Matching
-;;; ====
+(doc 'section 'prefix-suffix-matching)
 
-;;; string-starts-with? : String × String → Boolean
-;;; Check if string starts with prefix.
 (define (string-starts-with? str prefix)
+  (doc 'type (-> String String Boolean))
+  (doc 'description "Check if string starts with prefix.")
+  (doc 'export #t)
   (let ([str-len (string-length str)]
         [pre-len (string-length prefix)])
        (and (<= pre-len str-len)
             (string=? (substring str 0 pre-len) prefix))))
 
-;;; string-prefix? : String × String → Boolean
-;;; Alias for string-starts-with? (common naming convention).
+(doc string-prefix? 'type (-> String String Boolean))
+(doc string-prefix? 'description "Alias for string-starts-with? (common naming convention).")
+(doc string-prefix? 'export #t)
 (define string-prefix? string-starts-with?)
 
-;;; string-ends-with? : String × String → Boolean
-;;; Check if string ends with suffix.
 (define (string-ends-with? str suffix)
+  (doc 'type (-> String String Boolean))
+  (doc 'description "Check if string ends with suffix.")
+  (doc 'export #t)
   (let ([str-len (string-length str)]
         [suf-len (string-length suffix)])
        (and (<= suf-len str-len)
             (string=? (substring str (- str-len suf-len) str-len) suffix))))
 
-;;; ====
-;;; Substring Search
-;;; ====
+(doc 'section 'substring-search)
 
-;;; string-contains? : String × String → Boolean
-;;; Check if haystack contains needle as substring.
 (define (string-contains? haystack needle)
+  (doc 'type (-> String String Boolean))
+  (doc 'description "Check if haystack contains needle as substring.")
+  (doc 'export #t)
   (let ([h-len (string-length haystack)]
         [n-len (string-length needle)])
        (cond
@@ -46,10 +45,10 @@
                [(string=? (substring haystack i (+ i n-len)) needle) #t]
                [else (loop (+ i 1))]))])))
 
-;;; string-index-of : String × String → (Maybe Integer)
-;;; Find first occurrence of needle in haystack.
-;;; Returns index or #f if not found.
 (define (string-index-of haystack needle)
+  (doc 'type (-> String String (Maybe Integer)))
+  (doc 'description "Find first occurrence of needle in haystack. Returns index or #f if not found.")
+  (doc 'export #t)
   (let ([h-len (string-length haystack)]
         [n-len (string-length needle)])
        (cond
@@ -62,10 +61,10 @@
                [(string=? (substring haystack i (+ i n-len)) needle) i]
                [else (loop (+ i 1))]))])))
 
-;;; string-last-index-of : String × String → (Maybe Integer)
-;;; Find last occurrence of needle in haystack.
-;;; Returns index or #f if not found.
 (define (string-last-index-of haystack needle)
+  (doc 'type (-> String String (Maybe Integer)))
+  (doc 'description "Find last occurrence of needle in haystack. Returns index or #f if not found.")
+  (doc 'export #t)
   (let ([h-len (string-length haystack)]
         [n-len (string-length needle)])
        (cond
@@ -78,13 +77,12 @@
                [(string=? (substring haystack i (+ i n-len)) needle) i]
                [else (loop (- i 1))]))])))
 
-;;; ====
-;;; Replace
-;;; ====
+(doc 'section 'replace)
 
-;;; string-replace : String × String × String → String
-;;; Replace all occurrences of old with new.
 (define (string-replace str old new)
+  (doc 'type (-> String String String String))
+  (doc 'description "Replace all occurrences of old with new.")
+  (doc 'export #t)
   (let ([old-len (string-length old)])
        (cond
         [(= old-len 0) str]
@@ -100,13 +98,12 @@
                                                  new)))
                        (string-append result (substring str start (string-length str))))))])))
 
-;;; ====
-;;; Fuzzy Matching
-;;; ====
+(doc 'section 'fuzzy-matching)
 
-;;; edit-distance : String × String → Nat
-;;; Compute the Levenshtein distance between two strings.
 (define (edit-distance s1 s2)
+  (doc 'type (-> String String Nat))
+  (doc 'description "Compute the Levenshtein distance between two strings.")
+  (doc 'export #t)
   (let ([len1 (string-length s1)]
         [len2 (string-length s2)])
        (cond

@@ -1,60 +1,75 @@
-;;; core/base/span.ss — Source Location Spans
-;;; @module span
-;;; @requires prelude
-;;;
-;;; Defines the Span data structure for source location tracking.
-;;; Moved from core/lang/span.ss to resolve dependency cycle.
-;;;
-;;; Span = (span file line column end-line end-column)
-;;;
-;;; This is Core code: pure, total.
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-
 (load "core/base/prelude.ss")
 
-;;; ====
-;;; Source Spans
-;;; ====
+(doc 'module 'span)
+(doc 'description "Source location spans. Defines the Span data structure for source location tracking. Moved from core/lang/span.ss to resolve dependency cycle.")
+(doc 'layer 'core)
+(doc 'purity 'total)
+(doc 'dependencies '(prelude))
+(doc 'note "Span = (span file line column end-line end-column)")
 
-;;; make-span : String × Nat × Nat × Nat × Nat → Span
-;;; Create a source span.
+(doc 'section 'source-spans)
+
 (define (make-span file line column end-line end-column)
+  (doc 'type (-> String Nat Nat Nat Nat Span))
+  (doc 'description "Create a source span.")
+  (doc 'export #t)
   (list 'span file line column end-line end-column))
 
-;;; span? : Any → Boolean
 (define (span? x)
+  (doc 'type (-> Any Bool))
+  (doc 'description "Is this a span?")
+  (doc 'export #t)
   (and (pair? x) (eq? (car x) 'span)))
 
-;;; span-file : Span → String
-;;; Span accessors
-(define (span-file s) (list-ref s 1))
-;;; span-line : Span → Nat
-(define (span-line s) (list-ref s 2))
-;;; span-column : Span → Nat
-(define (span-column s) (list-ref s 3))
-;;; span-end-line : Span → Nat
-(define (span-end-line s) (list-ref s 4))
-;;; span-end-column : Span → Nat
-(define (span-end-column s) (list-ref s 5))
+(define (span-file s)
+  (doc 'type (-> Span String))
+  (doc 'description "Span accessor for file.")
+  (doc 'export #t)
+  (list-ref s 1))
 
-;;; no-span : Span
-;;; Placeholder span for when location is unknown.
+(define (span-line s)
+  (doc 'type (-> Span Nat))
+  (doc 'description "Span accessor for line.")
+  (doc 'export #t)
+  (list-ref s 2))
+
+(define (span-column s)
+  (doc 'type (-> Span Nat))
+  (doc 'description "Span accessor for column.")
+  (doc 'export #t)
+  (list-ref s 3))
+
+(define (span-end-line s)
+  (doc 'type (-> Span Nat))
+  (doc 'description "Span accessor for end line.")
+  (doc 'export #t)
+  (list-ref s 4))
+
+(define (span-end-column s)
+  (doc 'type (-> Span Nat))
+  (doc 'description "Span accessor for end column.")
+  (doc 'export #t)
+  (list-ref s 5))
+
+(doc no-span 'type Span)
+(doc no-span 'description "Placeholder span for when location is unknown.")
+(doc no-span 'export #t)
 (define no-span (make-span "<unknown>" 0 0 0 0))
 
-;;; merge-spans : Span × Span → Span
-;;; Create a span from start of first to end of second.
 (define (merge-spans s1 s2)
+  (doc 'type (-> Span Span Span))
+  (doc 'description "Create a span from start of first to end of second.")
+  (doc 'export #t)
   (make-span (span-file s1)
              (span-line s1)
              (span-column s1)
              (span-end-line s2)
              (span-end-column s2)))
 
-;;; format-span : Span → String
-;;; Format span for display.
 (define (format-span s)
+  (doc 'type (-> Span String))
+  (doc 'description "Format span for display.")
+  (doc 'export #t)
   (if (span? s)
       (string-append (span-file s) ":"
                      (number->string (span-line s)) ":"

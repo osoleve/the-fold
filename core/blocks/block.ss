@@ -1,108 +1,92 @@
-;;; core/blocks/block.ss — The fundamental unit of The Fold
-;;; @module block
-;;; @requires prelude
-;;;
-;;; Block = {tag, payload, refs[]}
-;;;
-;;; - tag: Symbol identifying the block type
-;;; - payload: Bytevector of raw data
-;;; - refs: Vector of addresses (each address is a 33-byte bytevector)
-;;;
-;;; This is Core code: pure, total, assumes perfect input.
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;
-;;; See core/blocks/MODULES.md for full dependency graph.
-
 (load "core/base/prelude.ss")
 
-;;; ====
-;;; Compat: ~s format directive (Chez 9.5 compatibility)
-;;; ====
+(doc 'module 'block)
+(doc 'description "The fundamental unit of The Fold: Block = {tag, payload, refs[]}")
+(doc 'layer 'core)
 
-;;; sexpr->string : Any → String
-;;; Convert any s-expression to a string using write semantics.
-;;; This provides ~s behavior for Chez 9.5 which lacks it.
+(doc 'section 'compat)
+
 (define (sexpr->string obj)
+  (doc 'type (-> Any String))
+  (doc 'description "Convert any s-expression to a string using write semantics. Provides ~s behavior for Chez 9.5.")
+  (doc 'export #t)
   (let ([port (open-output-string)])
        (write obj port)
        (get-output-string port)))
 
-;;; ====
-;;; Block Construction and Access
-;;; ====
+(doc 'section 'block-construction)
 
-;;; A Block is represented as an immutable record.
+(doc make-block 'type (-> Symbol Bytevector (Vector Bytevector) Block))
+(doc make-block 'description "Construct a new block with tag, payload, and refs.")
+(doc make-block 'export #t)
 
-;;; make-block : Symbol × Bytevector × (Vector Bytevector) → Block
-;;; Construct a new block with tag, payload, and refs.
+(doc block? 'type (-> Any Boolean))
+(doc block? 'description "Predicate to test if a value is a block.")
+(doc block? 'export #t)
 
-;;; block? : α → Boolean
-;;; Predicate to test if a value is a block.
+(doc block-tag 'type (-> Block Symbol))
+(doc block-tag 'description "Extract the tag from a block.")
+(doc block-tag 'export #t)
 
-;;; block-tag : Block → Symbol
-;;; Extract the tag from a block.
+(doc block-payload 'type (-> Block Bytevector))
+(doc block-payload 'description "Extract the payload from a block.")
+(doc block-payload 'export #t)
 
-;;; block-payload : Block → Bytevector
-;;; Extract the payload from a block.
+(doc block-refs 'type (-> Block (Vector Bytevector)))
+(doc block-refs 'description "Extract the refs vector from a block.")
+(doc block-refs 'export #t)
 
-;;; block-refs : Block → (Vector Bytevector)
-;;; Extract the refs vector from a block.
 (define-record-type block
-  (nongenerative fold-block-record-v1)  ; Stable UID for cross-session compatibility
+  (nongenerative fold-block-record-v1)
   (fields tag payload refs))
 
-;;; ====
-;;; Canonical Serialization
-;;;
-;;; Format (all lengths little-endian u32):
-;;;   [tag-len : 4 bytes][tag : tag-len bytes (UTF-8, NFC)]
-;;;   [payload-len : 4 bytes][payload : payload-len bytes]
-;;;   [refs-count : 4 bytes][ref₀ : 33 bytes]...[refₙ : 33 bytes]
-;;;
-;;; Hash size is fixed at 32 bytes (SHA-256).
-;;; Address size is 33 bytes (version byte + hash bytes).
-;;; ====
+(doc 'section 'serialization)
 
-;;; hash-size : Nat
-;;; The size of a hash in bytes (SHA-256 = 32 bytes).
+(doc hash-size 'type Nat)
+(doc hash-size 'description "The size of a hash in bytes (SHA-256 = 32 bytes).")
+(doc hash-size 'export #t)
 (define hash-size 32)
 
-;;; address-version : Nat
-;;; The version byte for addresses (currently 0).
+(doc address-version 'type Nat)
+(doc address-version 'description "The version byte for addresses (currently 0).")
+(doc address-version 'export #t)
 (define address-version 0)
 
-;;; address-size : Nat
-;;; The size of an address in bytes (version byte + hash).
+(doc address-size 'type Nat)
+(doc address-size 'description "The size of an address in bytes (version byte + hash).")
+(doc address-size 'export #t)
 (define address-size (+ 1 hash-size))
 
-;;; u32->bytes-le : Nat → Bytevector
-;;; Encode a 32-bit unsigned integer as 4 bytes, little-endian.
 (define (u32->bytes-le n)
+  (doc 'type (-> Nat Bytevector))
+  (doc 'description "Encode a 32-bit unsigned integer as 4 bytes, little-endian.")
+  (doc 'export #t)
   (let ([bv (make-bytevector 4)])
        (bytevector-u32-set! bv 0 n 'little)
        bv))
 
-;;; bytes-le->u32 : Bytevector × Nat → Nat
-;;; Decode a 32-bit unsigned integer from bytes at offset, little-endian.
 (define (bytes-le->u32 bv offset)
+  (doc 'type (-> Bytevector Nat Nat))
+  (doc 'description "Decode a 32-bit unsigned integer from bytes at offset, little-endian.")
+  (doc 'export #t)
   (bytevector-u32-ref bv offset 'little))
 
-;;; symbol->utf8 : Symbol → Bytevector
-;;; Convert symbol name to UTF-8 bytes.
-;;; Note: NFC normalization is required in Boundary before reaching Core.
 (define (symbol->utf8 sym)
+  (doc 'type (-> Symbol Bytevector))
+  (doc 'description "Convert symbol name to UTF-8 bytes. NFC normalization required in Boundary.")
+  (doc 'export #t)
   (string->utf8 (symbol->string sym)))
 
-;;; utf8->symbol : Bytevector → Symbol
-;;; Convert UTF-8 bytes to symbol.
 (define (utf8->symbol bv)
+  (doc 'type (-> Bytevector Symbol))
+  (doc 'description "Convert UTF-8 bytes to symbol.")
+  (doc 'export #t)
   (string->symbol (utf8->string bv)))
 
-;;; bytevector-concat : (List Bytevector) → Bytevector
-;;; Concatenate a list of bytevectors into one.
 (define (bytevector-concat bvs)
+  (doc 'type (-> (List Bytevector) Bytevector))
+  (doc 'description "Concatenate a list of bytevectors into one.")
+  (doc 'export #t)
   (let* ([total (fold-left + 0 (map bytevector-length bvs))]
          [result (make-bytevector total)]
          [pos 0])
@@ -113,9 +97,10 @@
          bvs)
         result))
 
-;;; block->bytes : Block → Bytevector
-;;; Serialize a block to its canonical byte representation.
 (define (block->bytes blk)
+  (doc 'type (-> Block Bytevector))
+  (doc 'description "Serialize a block to its canonical byte representation.")
+  (doc 'export #t)
   (let* ([tag-bytes (symbol->utf8 (block-tag blk))]
          [payload (block-payload blk)]
          [refs (block-refs blk)]
@@ -132,12 +117,10 @@
           (u32->bytes-le refs-count)
           (bytevector-concat (vector->list refs))))))
 
-;;; bytes->block : Bytevector → Block
-;;; Deserialize a block from its canonical byte representation.
-;;; Validates bounds to prevent malformed input from causing errors.
-;;; Supports both 32-byte (legacy) and 33-byte (versioned) ref sizes
-;;; for backwards compatibility with older block formats.
 (define (bytes->block bv)
+  (doc 'type (-> Bytevector Block))
+  (doc 'description "Deserialize a block from canonical bytes. Validates bounds. Supports 32-byte and 33-byte refs.")
+  (doc 'export #t)
   (let ([bv-len (bytevector-length bv)])
        ;; Ensure minimum size for tag length field
        (when (< bv-len 4)
@@ -192,21 +175,22 @@
                       (set! pos (+ pos actual-ref-size))))
              (make-block tag payload refs))))
 
-;;; ====
-;;; Block Utilities
-;;; ====
+(doc 'section 'utilities)
 
-;;; empty-payload : Bytevector
-;;; The empty bytevector, for blocks with no payload.
+(doc empty-payload 'type Bytevector)
+(doc empty-payload 'description "The empty bytevector, for blocks with no payload.")
+(doc empty-payload 'export #t)
 (define empty-payload (make-bytevector 0))
 
-;;; empty-refs : (Vector Bytevector)
-;;; The empty vector, for blocks with no references.
+(doc empty-refs 'type (Vector Bytevector))
+(doc empty-refs 'description "The empty vector, for blocks with no references.")
+(doc empty-refs 'export #t)
 (define empty-refs (vector))
 
-;;; block-equal? : Block × Block → Boolean
-;;; Structural equality of blocks.
 (define (block-equal? a b)
+  (doc 'type (-> Block Block Boolean))
+  (doc 'description "Structural equality of blocks.")
+  (doc 'export #t)
   (and (eq? (block-tag a) (block-tag b))
        (bytevector=? (block-payload a) (block-payload b))
        (= (vector-length (block-refs a)) (vector-length (block-refs b)))

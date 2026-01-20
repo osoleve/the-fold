@@ -1,80 +1,70 @@
-;;; core/lang/module.ss — Module System for The Fold
-;;; @module module
-;;; @requires prelude
-;;;
-;;; Provides a module loader that:
-;;;   - Tracks loaded modules to avoid reloading
-;;;   - Automatically loads dependencies in order
-;;;   - Parses @module/@requires annotations from file headers
-;;;   - Records load times for performance metrics
-;;;   - Provides discovery functions for LLMs and users
-;;;
-;;; Usage:
-;;;   (require 'compile)        ; Load module and its dependencies
-;;;   (require 'eval 'infer)    ; Load multiple modules
-;;;   (modules)                 ; List all registered modules
-;;;   (module-info 'eval)       ; Show module details (deps, path, status)
-;;;   (module-stats)            ; Show load times
-;;;   (module-deps 'eval)       ; Show dependencies of a module
-;;;
-;;; Module Header Format (at top of .ss files):
-;;;   ;;; @module eval
-;;;   ;;; @requires prelude block prim
-;;;
-;;; Dependencies:
-;;;   - prelude.ss (must be loaded first manually)
-
 (load "core/base/prelude.ss")
 
-;;; ====
-;;; Module Registry
-;;; ====
+(doc 'module 'module)
+(doc 'description "Module System for The Fold. Provides a module loader that tracks loaded modules, automatically loads dependencies, parses @module/@requires annotations from file headers, records load times, and provides discovery functions.")
+(doc 'layer 'core)
+(doc 'requires '(prelude))
 
-;;; *module-registry* : Hashtable Symbol → (loaded? load-time-ms)
+(doc 'note "Usage:
+  (require 'compile)        ; Load module and its dependencies
+  (require 'eval 'infer)    ; Load multiple modules
+  (modules)                 ; List all registered modules
+  (module-info 'eval)       ; Show module details (deps, path, status)
+  (module-stats)            ; Show load times
+  (module-deps 'eval)       ; Show dependencies of a module
+
+Module Header Format (at top of .ss files):
+  ;;; @module eval
+  ;;; @requires prelude block prim
+
+Dependencies:
+  - prelude.ss (must be loaded first manually)")
+
+(doc 'section 'registry)
+
+(doc *module-registry* 'type (Hashtable Symbol (Pair Boolean Nat)))
+(doc *module-registry* 'description "Maps module names to (loaded? . load-time-ms).")
 (define *module-registry* (make-eq-hashtable))
 
-;;; *module-deps* : Hashtable Symbol → (List Symbol)
-;;; Declared dependencies for each module
+(doc *module-deps* 'type (Hashtable Symbol (List Symbol)))
+(doc *module-deps* 'description "Declared dependencies for each module.")
 (define *module-deps* (make-eq-hashtable))
 
-;;; *load-order* : List Symbol
-;;; Order in which modules were loaded (for diagnostics)
+(doc *load-order* 'type (List Symbol))
+(doc *load-order* 'description "Order in which modules were loaded (for diagnostics).")
 (define *load-order* '(prelude))
 
-;;; *loading-stack* : List Symbol
-;;; Stack of modules currently being loaded (for circular dependency detection)
+(doc *loading-stack* 'type (List Symbol))
+(doc *loading-stack* 'description "Stack of modules currently being loaded (for circular dependency detection).")
 (define *loading-stack* '())
 
-;;; Register prelude as already loaded (we loaded it above)
+(doc 'note "Register prelude as already loaded (we loaded it above)")
 (hashtable-set! *module-registry* 'prelude (cons #t 0))
 
-;;; ====
-;;; Module Path Registry
-;;; ====
+(doc 'section 'paths)
 
-;;; *module-paths* : Hashtable Symbol → String
-;;; Maps module names to file paths (includes both pre-registered and discovered)
+(doc *module-paths* 'type (Hashtable Symbol String))
+(doc *module-paths* 'description "Maps module names to file paths (includes both pre-registered and discovered).")
 (define *module-paths* (make-eq-hashtable))
 
-;;; *header-cache* : Hashtable String → (name . deps) | #f
-;;; Cache for parsed headers (keyed by file path)
+(doc *header-cache* 'type (Hashtable String (Maybe (Pair Symbol (List Symbol)))))
+(doc *header-cache* 'description "Cache for parsed headers (keyed by file path).")
 (define *header-cache* (make-hashtable string-hash string=?))
 
-;;; ====
-;;; Manifest-Based Module Index
-;;; ====
+(doc 'section 'manifest)
 
-;;; *manifest-module-index* : Hashtable Symbol → String | #f
-;;; Simple module names → file paths (populated by boundary at startup)
+(doc *manifest-module-index* 'type (Maybe (Hashtable Symbol String)))
+(doc *manifest-module-index* 'description "Simple module names → file paths (populated by boundary at startup).")
 (define *manifest-module-index* #f)
 
-;;; *manifest-namespaced-index* : Hashtable Symbol → String | #f
-;;; Namespaced module names (skill/module) → file paths (always unambiguous)
+(doc *manifest-namespaced-index* 'type (Maybe (Hashtable Symbol String)))
+(doc *manifest-namespaced-index* 'description "Namespaced module names (skill/module) → file paths (always unambiguous).")
 (define *manifest-namespaced-index* #f)
 
-;;; register-manifest-index! : Hashtable Hashtable → Void
-;;; Boundary calls this at startup to inject the manifest-derived index.
 (define (register-manifest-index! simple-index namespaced-index)
+  (doc 'type (-> (Hashtable Symbol String) (Hashtable Symbol String) Void))
+  (doc 'description "Boundary calls this at startup to inject the manifest-derived index.")
+  (doc 'export #t)
   (set! *manifest-module-index* simple-index)
   (set! *manifest-namespaced-index* namespaced-index))
 
@@ -109,9 +99,10 @@
 ;;; Number of lines to scan for header annotations
 (define *header-scan-limit* 60)
 
-;;; register-module-path! : Symbol × String → void
-;;; Register a module's file path.
 (define (register-module-path! name path)
+  (doc 'type (-> Symbol String Void))
+  (doc 'description "Register a module's file path.")
+  (doc 'export #t)
   (hashtable-set! *module-paths* name path))
 
 ;;; Initialize known module paths (core modules)

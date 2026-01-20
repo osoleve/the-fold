@@ -1,25 +1,9 @@
-;;; core/types/types.ss — The Type System of The Fold
-;;; @module types
-;;; @requires prelude
-;;;
-;;; Types are Blocks. Types are S-expressions. Types are data.
-;;;
-;;; The type system is:
-;;;   - Structural: types describe shape, not name
-;;;   - Homoiconic: types are valid S-expressions, storable in CAS
-;;;   - Bidirectional: inference flows both up and down
-;;;   - Capability-aware: effects are visible in types
-;;;   - Gradual: holes allow partial specification
-;;;
-;;; This is Core code: pure, total, assumes perfect input.
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;
-;;; See fabric/stitches/MODULES.md for full dependency graph.
-
 (load "core/base/prelude.ss")
-;;;
+
+(doc 'module 'types)
+(doc 'description "The Type System of The Fold. Types are Blocks, S-expressions, and data. Structural, homoiconic, bidirectional, capability-aware, and gradual.")
+(doc 'layer 'core)
+
 ;;; Type Grammar:
 ;;;
 ;;;   Type ::= BaseType
@@ -43,11 +27,11 @@
 ;;;   TVar ::= symbol starting with lowercase
 ;;;   Capability ::= FS | Net | Time | ...
 
-;;; ====
-;;; Base Types
-;;; ====
+(doc 'section 'base-types)
 
-;;; The primitive types of The Fold
+(doc base-types 'type (List Symbol))
+(doc base-types 'description "The primitive types of The Fold.")
+(doc base-types 'export #t)
 (define base-types
   '(Nat      ; Natural numbers (0, 1, 2, ...)
     Int      ; Integers (..., -1, 0, 1, ...)
@@ -60,17 +44,18 @@
     Void     ; No values (bottom for returns)
     Hash))   ; 33-byte versioned address (block reference)
 
-;;; base-type? : Any → Boolean
 (define (base-type? t)
+  (doc 'type (-> Any Boolean))
+  (doc 'description "Check if t is a base type.")
+  (doc 'export #t)
   (if (memq t base-types) #t #f))
 
-;;; ====
-;;; Type Predicates
-;;; ====
+(doc 'section 'type-predicates)
 
-;;; type? : Any → Boolean
-;;; Is this a well-formed type expression?
 (define (type? t)
+  (doc 'type (-> Any Boolean))
+  (doc 'description "Is this a well-formed type expression?")
+  (doc 'export #t)
   (cond
    ;; Base types
    [(base-type? t) #t]
@@ -118,152 +103,187 @@
    [(eq? (car t) 'Cap) (and (= (length t) 3) (symbol? (cadr t)) (type? (caddr t)))]
    [else #f]))
 
-;;; variant? : Any → Boolean
-;;; Is this a valid sum type variant?
 (define (variant? v)
+  (doc 'type (-> Any Boolean))
+  (doc 'description "Is this a valid sum type variant?")
+  (doc 'export #t)
   (and (pair? v)
        (symbol? (car v))
        (andmap type? (cdr v))))
 
 ;;; Note: andmap is provided by prelude.ss
 
-;;; ====
-;;; Type Constructors
-;;; ====
+(doc 'section 'type-constructors)
 
-;;; t-> : Type ... → Type
-;;; Construct a function type.
 (define (t-> . types)
+  (doc 'type (-> Type ... Type))
+  (doc 'description "Construct a function type.")
+  (doc 'export #t)
   (cons '-> types))
 
-;;; t× : Type ... → Type
-;;; Construct a product type.
 (define (t× . types)
+  (doc 'type (-> Type ... Type))
+  (doc 'description "Construct a product type.")
+  (doc 'export #t)
   (cons '× types))
 
-;;; t+ : (Tag × Type ...) ... → Type
-;;; Construct a sum type.
 (define (t+ . variants)
+  (doc 'type (-> (× Tag Type ...) ... Type))
+  (doc 'description "Construct a sum type.")
+  (doc 'export #t)
   (cons '+ variants))
 
-;;; t-list : Type → Type
 (define (t-list elem-type)
+  (doc 'type (-> Type Type))
+  (doc 'description "Construct a List type.")
+  (doc 'export #t)
   `(List ,elem-type))
 
-;;; t-vector : Type → Type
 (define (t-vector elem-type)
+  (doc 'type (-> Type Type))
+  (doc 'description "Construct a Vector type.")
+  (doc 'export #t)
   `(Vector ,elem-type))
 
-;;; t-block : Symbol × Type → Type
 (define (t-block tag payload-type)
+  (doc 'type (-> Symbol Type Type))
+  (doc 'description "Construct a Block type.")
+  (doc 'export #t)
   `(Block ,tag ,payload-type))
 
-;;; t-ref : Type → Type
 (define (t-ref target-type)
+  (doc 'type (-> Type Type))
+  (doc 'description "Construct a Ref type.")
+  (doc 'export #t)
   `(Ref ,target-type))
 
-;;; t-forall : (List Symbol) × Type → Type
-;;; Simple form: vars are symbols, all assumed kind *
 (define (t-forall vars body)
+  (doc 'type (-> (List Symbol) Type Type))
+  (doc 'description "Construct a universally quantified type. Simple form: vars are symbols, all assumed kind *.")
+  (doc 'export #t)
   `(∀ ,vars ,body))
 
-;;; t-forall-kinded : (List (Symbol × Kind)) × Type → Type
-;;; Kinded form: vars are (name : kind) pairs for HKT support
-;;; Example: (t-forall-kinded '((f . (* → *)) (a . *)) '(@ f a))
-;;;          → (∀ ((f : (⇒ * *)) (a : *)) (@ f a))
 (define (t-forall-kinded kinded-vars body)
+  (doc 'type (-> (List (× Symbol Kind)) Type Type))
+  (doc 'description "Construct a kinded forall. Vars are (name . kind) pairs for HKT support.")
+  (doc 'export #t)
   `(∀ ,(map (lambda (pair) `(,(car pair) : ,(cdr pair))) kinded-vars) ,body))
 
-;;; t-rec : Symbol × Type → Type
 (define (t-rec var body)
+  (doc 'type (-> Symbol Type Type))
+  (doc 'description "Construct a recursive type (μ var body).")
+  (doc 'export #t)
   `(μ ,var ,body))
 
-;;; t-cap : Symbol × Type → Type
 (define (t-cap cap-name inner-type)
+  (doc 'type (-> Symbol Type Type))
+  (doc 'description "Construct a capability-requiring type.")
+  (doc 'export #t)
   `(Cap ,cap-name ,inner-type))
 
-;;; t-hole : → Type
 (define (t-hole)
+  (doc 'type (-> Type))
+  (doc 'description "Construct an anonymous type hole.")
+  (doc 'export #t)
   '?)
 
-;;; t-named-hole : Symbol → Type
 (define (t-named-hole name)
+  (doc 'type (-> Symbol Type))
+  (doc 'description "Construct a named type hole.")
+  (doc 'export #t)
   `(? ,name))
 
-;;; ====
-;;; Type Accessors
-;;; ====
+(doc 'section 'type-accessors)
 
-;;; function-type? : Type → Boolean
 (define (function-type? t)
+  (doc 'type (-> Type Boolean))
+  (doc 'description "Is this a function type?")
+  (doc 'export #t)
   (and (pair? t) (eq? (car t) '->)))
 
-;;; function-param-types : Type → (List Type)
 (define (function-param-types t)
+  (doc 'type (-> Type (List Type)))
+  (doc 'description "Extract parameter types from a function type.")
+  (doc 'export #t)
   (if (function-type? t)
       (reverse (cdr (reverse (cdr t))))  ; All but first and last
       '()))
 
-;;; function-return-type : Type → Type
 (define (function-return-type t)
+  (doc 'type (-> Type Type))
+  (doc 'description "Extract return type from a function type.")
+  (doc 'export #t)
   (if (function-type? t)
       (car (reverse (cdr t)))  ; Last element
       'Void))
 
-;;; product-type? : Type → Boolean
 (define (product-type? t)
+  (doc 'type (-> Type Boolean))
+  (doc 'description "Is this a product type?")
+  (doc 'export #t)
   (and (pair? t) (eq? (car t) '×)))
 
-;;; product-types : Type → (List Type)
 (define (product-types t)
+  (doc 'type (-> Type (List Type)))
+  (doc 'description "Extract component types from a product type.")
+  (doc 'export #t)
   (if (product-type? t) (cdr t) '()))
 
-;;; sum-type? : Type → Boolean
 (define (sum-type? t)
+  (doc 'type (-> Type Boolean))
+  (doc 'description "Is this a sum type?")
+  (doc 'export #t)
   (and (pair? t) (eq? (car t) '+)))
 
-;;; sum-variants : Type → (List (Tag × Type ...))
 (define (sum-variants t)
+  (doc 'type (-> Type (List (× Tag Type ...))))
+  (doc 'description "Extract variants from a sum type.")
+  (doc 'export #t)
   (if (sum-type? t) (cdr t) '()))
 
-;;; hole? : Type → Boolean
 (define (hole? t)
+  (doc 'type (-> Type Boolean))
+  (doc 'description "Is this a type hole?")
+  (doc 'export #t)
   (or (eq? t '?)
       (and (pair? t) (eq? (car t) '?))))
 
-;;; type-var? : Type → Boolean
 (define (type-var? t)
+  (doc 'type (-> Type Boolean))
+  (doc 'description "Is this a type variable?")
+  (doc 'export #t)
   (and (symbol? t)
        (not (base-type? t))
        (not (eq? t '?))
        (char-lower-case? (string-ref (symbol->string t) 0))))
 
-;;; ====
-;;; Kind-Annotated Type Variables (HKT Support)
-;;; ====
+(doc 'section 'kinded-type-variables)
 
-;;; A kinded type variable has the form (name : kind)
-;;; Example: (f : (⇒ * *)) means f has kind * → *
-
-;;; kinded-tvar? : Any → Boolean
-;;; Is this a kind-annotated type variable?
 (define (kinded-tvar? x)
+  (doc 'type (-> Any Boolean))
+  (doc 'description "Is this a kind-annotated type variable? Form: (name : kind)")
+  (doc 'export #t)
   (and (pair? x)
        (= (length x) 3)
        (symbol? (car x))
        (eq? (cadr x) ':)))
 
-;;; kinded-tvar-name : KindedTVar → Symbol
 (define (kinded-tvar-name ktv)
+  (doc 'type (-> KindedTVar Symbol))
+  (doc 'description "Extract the name from a kinded type variable.")
+  (doc 'export #t)
   (car ktv))
 
-;;; kinded-tvar-kind : KindedTVar → Kind
 (define (kinded-tvar-kind ktv)
+  (doc 'type (-> KindedTVar Kind))
+  (doc 'description "Extract the kind from a kinded type variable.")
+  (doc 'export #t)
   (caddr ktv))
 
-;;; forall-vars : Type → (List Symbol)
-;;; Extract variable names from a forall, handling both simple and kinded forms.
 (define (forall-vars t)
+  (doc 'type (-> Type (List Symbol)))
+  (doc 'description "Extract variable names from a forall, handling both simple and kinded forms.")
+  (doc 'export #t)
   (if (and (pair? t) (eq? (car t) '∀))
       (let ([vars (cadr t)])
            (map (lambda (v)
@@ -273,10 +293,10 @@
                 vars))
       '()))
 
-;;; forall-var-kinds : Type → (List (Symbol . Kind))
-;;; Extract variable names with their kinds from a forall.
-;;; Simple vars get kind *, kinded vars get their annotated kind.
 (define (forall-var-kinds t)
+  (doc 'type (-> Type (List (× Symbol Kind))))
+  (doc 'description "Extract variable names with their kinds from a forall. Simple vars get kind *, kinded vars get their annotated kind.")
+  (doc 'export #t)
   (if (and (pair? t) (eq? (car t) '∀))
       (let ([vars (cadr t)])
            (map (lambda (v)
@@ -286,13 +306,12 @@
                 vars))
       '()))
 
-;;; ====
-;;; Type Equality
-;;; ====
+(doc 'section 'type-equality)
 
-;;; type=? : Type × Type → Boolean
-;;; Structural equality of types.
 (define (type=? t1 t2)
+  (doc 'type (-> Type Type Boolean))
+  (doc 'description "Structural equality of types.")
+  (doc 'export #t)
   (cond
    [(and (symbol? t1) (symbol? t2)) (eq? t1 t2)]
    [(and (pair? t1) (pair? t2))
@@ -301,16 +320,18 @@
                  (map cons t1 t2)))]
    [else #f]))
 
-;;; ====
-;;; Free Type Variables
-;;; ====
+(doc 'section 'free-type-variables)
 
-;;; free-tvars : Type → (List Symbol)
-;;; Collect free type variables in a type.
 (define (free-tvars t)
+  (doc 'type (-> Type (List Symbol)))
+  (doc 'description "Collect free type variables in a type.")
+  (doc 'export #t)
   (free-tvars-with '() t))
 
 (define (free-tvars-with bound t)
+  (doc 'type (-> (List Symbol) Type (List Symbol)))
+  (doc 'description "Helper: collect free type variables with bound context.")
+  (doc 'export #f)
   (cond
    [(type-var? t)
     (if (memq t bound) '() (list t))]
@@ -332,13 +353,12 @@
    [else
     (apply append (map (lambda (sub) (free-tvars-with bound sub)) (cdr t)))]))
 
-;;; ====
-;;; Type Substitution
-;;; ====
+(doc 'section 'type-substitution)
 
-;;; subst-type : Type × Symbol × Type → Type
-;;; Substitute tvar with replacement in type.
 (define (subst-type type tvar replacement)
+  (doc 'type (-> Type Symbol Type Type))
+  (doc 'description "Substitute tvar with replacement in type.")
+  (doc 'export #t)
   (cond
    [(eq? type tvar) replacement]
    [(or (base-type? type) (hole? type)) type]
@@ -363,44 +383,77 @@
     (cons (car type)
           (map (lambda (sub) (subst-type sub tvar replacement)) (cdr type)))]))
 
-;;; ====
-;;; Common Type Patterns
-;;; ====
+(doc 'section 'common-type-patterns)
 
-;;; Some frequently used types
-
+(doc T-unit 'type Type)
+(doc T-unit 'description "The Unit type constant.")
+(doc T-unit 'export #t)
 (define T-unit 'Unit)
+
+(doc T-bool 'type Type)
+(doc T-bool 'description "The Bool type constant.")
+(doc T-bool 'export #t)
 (define T-bool 'Bool)
+
+(doc T-nat 'type Type)
+(doc T-nat 'description "The Nat type constant.")
+(doc T-nat 'export #t)
 (define T-nat 'Nat)
+
+(doc T-int 'type Type)
+(doc T-int 'description "The Int type constant.")
+(doc T-int 'export #t)
 (define T-int 'Int)
+
+(doc T-char 'type Type)
+(doc T-char 'description "The Char type constant.")
+(doc T-char 'export #t)
 (define T-char 'Char)
+
+(doc T-string 'type Type)
+(doc T-string 'description "The String type constant.")
+(doc T-string 'export #t)
 (define T-string 'String)
+
+(doc T-symbol 'type Type)
+(doc T-symbol 'description "The Symbol type constant.")
+(doc T-symbol 'export #t)
 (define T-symbol 'Symbol)
+
+(doc T-bytes 'type Type)
+(doc T-bytes 'description "The Bytes type constant.")
+(doc T-bytes 'export #t)
 (define T-bytes 'Bytes)
+
+(doc T-hash 'type Type)
+(doc T-hash 'description "The Hash type constant.")
+(doc T-hash 'export #t)
 (define T-hash 'Hash)
 
-;;; t-option : Type → Type
-;;; Option type as a sum: (+ (None) (Some T))
 (define (t-option t)
+  (doc 'type (-> Type Type))
+  (doc 'description "Option type as a sum: (+ (None) (Some T)).")
+  (doc 'export #t)
   (t+ '(None) `(Some ,t)))
 
-;;; t-result : Type × Type → Type
-;;; Result type: (+ (Ok T) (Err E))
 (define (t-result ok-type err-type)
+  (doc 'type (-> Type Type Type))
+  (doc 'description "Result type: (+ (Ok T) (Err E)).")
+  (doc 'export #t)
   (t+ `(Ok ,ok-type) `(Err ,err-type)))
 
-;;; t-pair : Type × Type → Type
-;;; Pair as product
 (define (t-pair t1 t2)
+  (doc 'type (-> Type Type Type))
+  (doc 'description "Pair as product type.")
+  (doc 'export #t)
   (t× t1 t2))
 
-;;; ====
-;;; Type Display
-;;; ====
+(doc 'section 'type-display)
 
-;;; type->string : Type → String
-;;; Pretty-print a type.
 (define (type->string t)
+  (doc 'type (-> Type String))
+  (doc 'description "Pretty-print a type.")
+  (doc 'export #t)
   (cond
    [(symbol? t) (symbol->string t)]
    [(eq? t '?) "?"]
@@ -420,31 +473,30 @@
                    ")")]
    [else (format "~s" t)]))
 
-;;; join-strings : String × (List String) → String
 (define (join-strings sep strs)
+  (doc 'type (-> String (List String) String))
+  (doc 'description "Join strings with separator.")
+  (doc 'export #t)
   (if (null? strs)
       ""
       (fold-left (lambda (acc s) (string-append acc sep s))
                  (car strs)
                  (cdr strs))))
 
-;;; ====
-;;; Type as Block
-;;; ====
+(doc 'section 'type-as-block)
 
-;;; Types can be serialized to blocks for storage in the CAS.
-;;; This makes the type system homoiconic with the rest of The Fold.
-
-;;; type->block : Type → Block
-;;; Serialize a type to a block.
 (define (type->block t)
+  (doc 'type (-> Type Block))
+  (doc 'description "Serialize a type to a block for CAS storage.")
+  (doc 'export #t)
   (make-block 'type
               (string->utf8 (format "~s" t))
               (vector)))
 
-;;; block->type : Block → Type | #f
-;;; Deserialize a type from a block.
 (define (block->type blk)
+  (doc 'type (-> Block (Maybe Type)))
+  (doc 'description "Deserialize a type from a block. Returns #f if invalid.")
+  (doc 'export #t)
   (if (eq? (block-tag blk) 'type)
       (let ([t (read (open-input-string (utf8->string (block-payload blk))))])
            (if (type? t) t #f))
