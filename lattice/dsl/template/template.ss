@@ -1,39 +1,33 @@
-;;; lattice/dsl/template/template.ss — Grammar-Driven Code Construction
-;;; @module template
-;;; @requires core/base/prelude
-;;;
-;;; A DSL for constructing S-expressions via EBNF-like production statements.
-;;; Holes ($name) are non-terminals that get filled incrementally.
-;;; Once all holes are filled, the template compiles to an S-expression.
-;;;
-;;; This is Lattice code: pure, total, no IO.
-;;;
-;;; Key concepts:
-;;;   - Holes: Symbols starting with $ (e.g., $body, $args)
-;;;   - Templates: Expressions containing holes
-;;;   - Filling: Replace a hole with a value (which may contain new holes)
-;;;   - Compilation: Extract the final S-expression when complete
-
 (load "core/base/prelude.ss")
 
-;;; ====
-;;; Compat: sexpr->string (from block.ss)
-;;; ====
+(doc 'module 'template)
+(doc 'description "Grammar-Driven Code Construction - DSL for constructing S-expressions via EBNF-like production statements")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
 
-;;; sexpr->string : Any → String
-;;; Convert any s-expression to a string using write semantics.
+(doc 'note "Holes ($name) are non-terminals that get filled incrementally.
+Once all holes are filled, the template compiles to an S-expression")
+
+(doc 'note "Key concepts:
+  - Holes: Symbols starting with $ (e.g., $body, $args)
+  - Templates: Expressions containing holes
+  - Filling: Replace a hole with a value (which may contain new holes)
+  - Compilation: Extract the final S-expression when complete")
+
+(doc 'section 'compat-utilities)
+
 (define (sexpr->string obj)
+  (doc 'type (-> Any String))
+  (doc 'description "Convert any s-expression to a string using write semantics")
   (let ([port (open-output-string)])
     (write obj port)
     (get-output-string port)))
 
-;;; ====
-;;; Hole Detection
-;;; ====
+(doc 'section 'hole-detection)
 
-;;; hole? : Any → Bool
-;;; Returns #t if x is a hole (symbol starting with $).
 (define (hole? x)
+  (doc 'type (-> Any Bool))
+  (doc 'description "Returns #t if x is a hole (symbol starting with $)")
   (and (symbol? x)
        (let ([s (symbol->string x)])
          (and (> (string-length s) 1)

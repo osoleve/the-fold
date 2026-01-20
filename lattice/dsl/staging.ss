@@ -1,72 +1,59 @@
-;;; core/dsl/staging.ss — Multi-Stage Programming
-;;;
-;;; Compile-time code generation with type safety.
-;;;
-;;; Staging Annotations:
-;;;   <expr>   ; Quote: code to be generated (bracket/lift)
-;;;   ~expr    ; Splice: insert computed code (escape/run)
-;;;   !expr    ; Run: execute at current stage (run/exec)
-;;;
-;;; Example - Compile-time power function:
-;;;   (define (power n)
-;;;     (if (= n 0)
-;;;         <1>
-;;;         <(* ~(power (- n 1)) x)>))
-;;;
-;;;   (power 3) ; Generates: <(* (* (* 1 x) x) x)>
-;;;
-;;; This is Core code: pure, total, assumes reasonable input.
-;;; Builds on quasiquotation for the underlying expansion.
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;   - fp/combinators.ss
-;;;   - quasi.ss
-
 (load "core/base/prelude.ss")
 (load "lattice/fp/meta/combinators.ss")
 (load "lattice/dsl/quasi.ss")
 
-;;; ====
-;;; Staging Annotations (S-expression representation)
-;;; ====
-;;;
-;;; We use explicit forms rather than reader syntax for Core:
-;;;   (stage-quote expr)     ; <expr>
-;;;   (stage-splice expr)    ; ~expr
-;;;   (stage-run expr)       ; !expr
+(doc 'module 'staging)
+(doc 'description "Multi-Stage Programming - Compile-time code generation with type safety")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
 
-;;; ====
-;;; Code Type Representation
-;;; ====
-;;;
-;;; Code values wrap expressions with their stage level.
-;;; (Code n a) represents code at stage n with result type a.
+(doc 'note "Staging Annotations:
+  <expr>   ; Quote: code to be generated (bracket/lift)
+  ~expr    ; Splice: insert computed code (escape/run)
+  !expr    ; Run: execute at current stage (run/exec)")
 
-;;; make-code : Int × Sexp → Code
-;;; Create a code value at a given stage.
+(doc 'note "Example - Compile-time power function:
+  (define (power n)
+    (if (= n 0)
+        <1>
+        <(* ~(power (- n 1)) x)>))
+
+  (power 3) ; Generates: <(* (* (* 1 x) x) x)>")
+
+(doc 'note "Builds on quasiquotation for the underlying expansion")
+
+(doc 'section 'staging-annotations)
+(doc 'note "We use explicit forms rather than reader syntax for Core:
+  (stage-quote expr)     ; <expr>
+  (stage-splice expr)    ; ~expr
+  (stage-run expr)       ; !expr")
+
+(doc 'section 'code-type-representation)
+(doc 'note "Code values wrap expressions with their stage level.
+(Code n a) represents code at stage n with result type a")
+
+(doc make-code 'type (-> Int Sexp Code))
+(doc 'description "Create a code value at a given stage")
 (define (make-code stage expr)
   (list 'Code stage expr))
 
-;;; code? : α → Boolean
 (define (code? x)
+  (doc 'type (-> Any Boolean))
   (and (pair? x) (eq? (car x) 'Code)))
 
-;;; code-stage : Code → Int
 (define (code-stage c)
+  (doc 'type (-> Code Int))
   (if (code? c) (cadr c) 0))
 
-;;; code-expr : Code → Sexp
 (define (code-expr c)
+  (doc 'type (-> Code Sexp))
   (if (code? c) (caddr c) c))
 
-;;; ====
-;;; Staging Detection
-;;; ====
+(doc 'section 'staging-detection)
 
-;;; stage-quote? : α → Boolean
-;;; Check if expression is a staging quote: (stage-quote expr) or <expr>
 (define (stage-quote? x)
+  (doc 'type (-> Any Boolean))
+  (doc 'description "Check if expression is a staging quote: (stage-quote expr) or <expr>")
   (and (pair? x)
        (or (eq? (car x) 'stage-quote)
            (eq? (car x) 'bracket)

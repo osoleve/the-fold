@@ -1,37 +1,30 @@
-;;; core/dsl/reader.ss — Reader Extensions and Custom Notation
-;;;
-;;; Domain-specific syntax via reader macros.
-;;;
-;;; Core Capability:
-;;;   #vec[1 2 3]           → (vector 1 2 3)
-;;;   #mat[[1 2][3 4]]      → (matrix '((1 2) (3 4)))
-;;;   #sql{SELECT * FROM t} → (sql-query ...)
-;;;   #re/pattern/flags     → (regex "pattern" 'flags)
-;;;
-;;; Reader Dispatch:
-;;;   (define-reader-macro #\v
-;;;     (lambda (port) (read-vector-literal port)))
-;;;
-;;; This is Core code: pure, total, assumes reasonable input.
-;;; Note: Actual IO happens in shell; this provides the framework.
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;   - fp/combinators.ss
-
 (load "core/base/prelude.ss")
 (load "lattice/fp/meta/combinators.ss")
 
-;;; ====
-;;; Readtable Data Structure
-;;; ====
-;;;
-;;; A readtable maps dispatch characters to reader macros.
-;;; Readtables can be stacked for scoped extensions.
+(doc 'module 'reader)
+(doc 'description "Reader Extensions and Custom Notation - Domain-specific syntax via reader macros")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
 
-;;; make-readtable : → Readtable
-;;; Create an empty readtable.
+(doc 'note "Core Capability:
+  #vec[1 2 3]           → (vector 1 2 3)
+  #mat[[1 2][3 4]]      → (matrix '((1 2) (3 4)))
+  #sql{SELECT * FROM t} → (sql-query ...)
+  #re/pattern/flags     → (regex \"pattern\" 'flags)")
+
+(doc 'note "Reader Dispatch:
+  (define-reader-macro #\\v
+    (lambda (port) (read-vector-literal port)))")
+
+(doc 'note "Actual IO happens in shell; this provides the framework")
+
+(doc 'section 'readtable-data-structure)
+(doc 'note "A readtable maps dispatch characters to reader macros.
+Readtables can be stacked for scoped extensions")
+
 (define (make-readtable)
+  (doc 'type (-> Readtable))
+  (doc 'description "Create an empty readtable")
   (list 'readtable '()))
 
 ;;; readtable? : α → Boolean

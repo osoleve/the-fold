@@ -1,44 +1,41 @@
-;;; playpen/chronicle/chronicle.ss — Chronicle: A Narrative DSL
-;;;
-;;; Chronicle is a next-generation narrative engine that dogfoods:
-;;;   - Quasiquotation (dsl/quasi.ss) for template expansion
-;;;   - Parser combinators (fp/parser.ss) for DSL parsing
-;;;   - Maybe/Either monads (fp/combinators.ss) for error handling
-;;;   - Optionally: Probability monad for procedural narrative
-;;;
-;;; Core Concepts:
-;;;   - Scene: A narrative moment with text, choices, and effects
-;;;   - Chronicle: A graph of scenes connected by transitions
-;;;   - State: Player variables, flags, inventory
-;;;   - Guard: First-class predicate on state
-;;;   - Effect: State transformation
-;;;   - Template: Quasiquoted text with state interpolation
-;;;
-;;; DSL Example:
-;;;   (chronicle "my-story"
-;;;     (scene 'intro
-;;;       (text "Welcome, ${player-name}. The door awaits.")
-;;;       (choice "Open the door" -> 'hallway)
-;;;       (choice "Turn back" -> 'ending
-;;;         :when (not (flag? 'committed))))
-;;;     (scene 'hallway
-;;;       (on-enter (set! 'committed #t))
-;;;       (text "A long corridor stretches before you.")
-;;;       (choice "Continue" -> 'ending)))
-
-;;; ====
-;;; Dependencies
-;;; ====
-
 (load "core/base/prelude.ss")
 (load "lattice/fp/meta/combinators.ss")
 (load "lattice/dsl/quasi.ss")
 
-;;; ====
-;;; Core Types
-;;; ====
+(doc 'module 'chronicle)
+(doc 'description "Chronicle: A Narrative DSL - Next-generation narrative engine")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
 
-;;; Chronicle : A complete narrative
+(doc 'note "Dogfoods:
+  - Quasiquotation (dsl/quasi.ss) for template expansion
+  - Parser combinators (fp/parser.ss) for DSL parsing
+  - Maybe/Either monads (fp/combinators.ss) for error handling
+  - Optionally: Probability monad for procedural narrative")
+
+(doc 'note "Core Concepts:
+  - Scene: A narrative moment with text, choices, and effects
+  - Chronicle: A graph of scenes connected by transitions
+  - State: Player variables, flags, inventory
+  - Guard: First-class predicate on state
+  - Effect: State transformation
+  - Template: Quasiquoted text with state interpolation")
+
+(doc 'note "DSL Example:
+  (chronicle \"my-story\"
+    (scene 'intro
+      (text \"Welcome, ${player-name}. The door awaits.\")
+      (choice \"Open the door\" -> 'hallway)
+      (choice \"Turn back\" -> 'ending
+        :when (not (flag? 'committed))))
+    (scene 'hallway
+      (on-enter (set! 'committed #t))
+      (text \"A long corridor stretches before you.\")
+      (choice \"Continue\" -> 'ending)))")
+
+(doc 'section 'core-types)
+
+(doc 'note "Chronicle : A complete narrative")
 (define-record-type chronicle%
   (fields id title scenes start-scene meta))
 
@@ -75,11 +72,9 @@
 (define choice-effects choice%-effects)
 (define choice-meta choice%-meta)
 
-;;; ====
-;;; State Management
-;;; ====
+(doc 'section 'state-management)
+(doc 'note "State is an immutable record with vars, flags, inventory")
 
-;;; State is an immutable record with vars, flags, inventory
 (define-record-type cstate%
   (fields vars flags inventory meta))
 
@@ -143,12 +138,9 @@
            (cons (cons key value) (remq p alist))
            (cons (cons key value) alist))))
 
-;;; ====
-;;; Guards - First-Class Predicates
-;;; ====
-
-;;; A guard is a function: State -> Boolean
-;;; Guards compose with combinators
+(doc 'section 'guards)
+(doc 'note "A guard is a function: State -> Boolean")
+(doc 'note "Guards compose with combinators")
 
 (define (guard-always) (lambda (s) #t))
 (define (guard-never) (lambda (s) #f))

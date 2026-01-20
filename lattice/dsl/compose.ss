@@ -1,56 +1,44 @@
-;;; core/dsl/compose.ss --- Modular DSL Composition
-;;;
-;;; Enables combining independent DSLs without modification.
-;;; The core problem: Two DSLs (e.g., Arithmetic and State) need to work
-;;; together, but neither knows about the other.
-;;;
-;;; This module provides three composition strategies:
-;;;
-;;; 1. Data Types à la Carte (Swierstra's pattern)
-;;;    - Combine functors via coproduct
-;;;    - Type-safe injection via row polymorphism
-;;;    - Free monad over coproduct = composed DSL
-;;;
-;;; 2. Effect Composition
-;;;    - Stack effect handlers
-;;;    - Effect row manipulation
-;;;    - Lift between effect rows
-;;;
-;;; 3. Tagless Composition
-;;;    - Dictionary intersection
-;;;    - Modular interpreters
-;;;    - Constraint satisfaction
-;;;
-;;; This is Core code: pure, total, assumes reasonable input.
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;   - dsl/tagless.ss
-;;;   - fp/control/free.ss
-;;;   - fp/control/effects.ss
-
 (load "core/base/prelude.ss")
 (load "lattice/dsl/tagless.ss")
 (load "lattice/fp/control/free.ss")
 (load "lattice/fp/control/effects.ss")
 
-;;; ====
-;;; Part 1: Data Types à la Carte
-;;; ====
-;;;
-;;; The key insight: if we have functors F and G, their coproduct
-;;; F + G is also a functor. We can then use Free (F + G) to get
-;;; a DSL with operations from both F and G.
-;;;
-;;; Functor coproduct: (+ f g) a = Inl (f a) | Inr (g a)
+(doc 'module 'compose)
+(doc 'description "Modular DSL Composition - Enables combining independent DSLs without modification")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
 
-;;; ----
-;;; Functor Coproduct
-;;; ----
+(doc 'note "The core problem: Two DSLs (e.g., Arithmetic and State) need to work together, but neither knows about the other")
 
-;;; inl : f a -> (+ f g) a
-;;; Inject into left of coproduct
+(doc 'note "Three composition strategies:
+
+1. Data Types à la Carte (Swierstra's pattern)
+   - Combine functors via coproduct
+   - Type-safe injection via row polymorphism
+   - Free monad over coproduct = composed DSL
+
+2. Effect Composition
+   - Stack effect handlers
+   - Effect row manipulation
+   - Lift between effect rows
+
+3. Tagless Composition
+   - Dictionary intersection
+   - Modular interpreters
+   - Constraint satisfaction")
+
+(doc 'section 'data-types-a-la-carte)
+(doc 'note "The key insight: if we have functors F and G, their coproduct
+F + G is also a functor. We can then use Free (F + G) to get
+a DSL with operations from both F and G")
+
+(doc 'note "Functor coproduct: (+ f g) a = Inl (f a) | Inr (g a)")
+
+(doc 'section 'functor-coproduct)
+
 (define (inl fa)
+  (doc 'type (-> (f a) (+ f g a)))
+  (doc 'description "Inject into left of coproduct")
   (list 'inl fa))
 
 ;;; inr : g a -> (+ f g) a

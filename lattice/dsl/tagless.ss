@@ -1,38 +1,33 @@
-;;; fabric/stitches/dsl/tagless.ss — Tagless Final DSL Pattern
-;;;
-;;; Implements the Tagless Final encoding for embedded DSLs.
-;;; This is an alternative to Free monads that avoids intermediate
-;;; data structures and enables better optimization.
-;;;
-;;; Key Concepts:
-;;;   - DSL defined as an "algebra" (type class interface)
-;;;   - Programs are functions parameterized by algebra dictionary
-;;;   - Interpreters are algebra instances (different dictionaries)
-;;;   - Extensibility via dictionary composition
-;;;
-;;; Advantages over Free:
-;;;   - No intermediate AST construction
-;;;   - Direct interpretation (better performance)
-;;;   - Extensible without modifying original definition
-;;;   - Modular interpreters via dictionary composition
-;;;
-;;; Disadvantages:
-;;;   - Programs cannot be inspected/transformed as data
-;;;   - Requires discipline to thread dictionaries
-;;;
-;;; This is Core code: pure, total, assumes reasonable input.
-
 (load "core/base/prelude.ss")
 
-;;; ====
-;;; Algebra Definition
-;;; ====
-;;;
-;;; An algebra is a dictionary of operations.
-;;; define-algebra creates:
-;;;   - A constructor (make-<name>-dict ...)
-;;;   - Accessors for each operation (<name>-<op> dict)
-;;;   - A predicate (<name>-dict? x)
+(doc 'module 'tagless)
+(doc 'description "Tagless Final DSL Pattern - Alternative to Free monads that avoids intermediate data structures")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
+
+(doc 'note "Key Concepts:
+  - DSL defined as an \"algebra\" (type class interface)
+  - Programs are functions parameterized by algebra dictionary
+  - Interpreters are algebra instances (different dictionaries)
+  - Extensibility via dictionary composition")
+
+(doc 'note "Advantages over Free:
+  - No intermediate AST construction
+  - Direct interpretation (better performance)
+  - Extensible without modifying original definition
+  - Modular interpreters via dictionary composition")
+
+(doc 'note "Disadvantages:
+  - Programs cannot be inspected/transformed as data
+  - Requires discipline to thread dictionaries")
+
+(doc 'section 'algebra-definition)
+(doc 'note "An algebra is a dictionary of operations")
+
+(doc 'note "define-algebra creates:
+  - A constructor (make-<name>-dict ...)
+  - Accessors for each operation (<name>-<op> dict)
+  - A predicate (<name>-dict? x)")
 
 (define-syntax define-algebra
   (syntax-rules ()
@@ -54,13 +49,11 @@
 ;;; For now, we'll use a simpler record-based approach
 ;;; that doesn't require macros for each algebra.
 
-;;; ====
-;;; Generic Dictionary Operations
-;;; ====
+(doc 'section 'generic-dictionary-operations)
 
-;;; make-dict : Symbol × (List (Symbol . Procedure)) → Dict
-;;; Create a dictionary with named operations.
 (define (make-dict tag ops)
+  (doc 'type (-> Symbol (List (Pair Symbol Procedure)) Dict))
+  (doc 'description "Create a dictionary with named operations")
   (cons tag ops))
 
 ;;; dict-tag : Dict → Symbol

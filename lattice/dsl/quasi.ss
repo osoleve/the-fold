@@ -1,71 +1,61 @@
-;;; fabric/stitches/dsl/quasi.ss — Quasiquotation and Syntax Templates
-;;;
-;;; Pattern-based code generation for DSLs and macros.
-;;;
-;;; Core Operations:
-;;;   `expr           → (quasiquote expr)    ; quote with holes
-;;;   ,expr           → (unquote expr)       ; fill hole with value
-;;;   ,@expr          → (unquote-splicing expr) ; splice list
-;;;
-;;; The qq-expand function transforms quasiquoted forms into
-;;; runtime list construction code:
-;;;
-;;;   `(a ,b c)     → (list 'a b 'c)
-;;;   `(a ,@xs b)   → (append (list 'a) xs (list 'b))
-;;;   `(a . ,b)     → (cons 'a b)
-;;;
-;;; Nested quasiquotes work correctly:
-;;;   ``(,a ,,b)    → (list 'quasiquote (list (list 'unquote 'a) (list 'unquote b)))
-;;;
-;;; This is Core code: pure, total, assumes reasonable input.
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;   - fp/combinators.ss (for Maybe)
-
 (load "core/base/prelude.ss")
 (load "lattice/fp/meta/combinators.ss")
 
-;;; ====
-;;; Quasiquote Detection
-;;; ====
+(doc 'module 'quasi)
+(doc 'description "Quasiquotation and Syntax Templates - Pattern-based code generation for DSLs and macros")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
 
-;;; quasiquote? : α → Boolean
+(doc 'note "Core Operations:
+  `expr           → (quasiquote expr)    ; quote with holes
+  ,expr           → (unquote expr)       ; fill hole with value
+  ,@expr          → (unquote-splicing expr) ; splice list")
+
+(doc 'note "The qq-expand function transforms quasiquoted forms into
+runtime list construction code:
+
+  `(a ,b c)     → (list 'a b 'c)
+  `(a ,@xs b)   → (append (list 'a) xs (list 'b))
+  `(a . ,b)     → (cons 'a b)")
+
+(doc 'note "Nested quasiquotes work correctly:
+  ``(,a ,,b)    → (list 'quasiquote (list (list 'unquote 'a) (list 'unquote b)))")
+
+(doc 'section 'quasiquote-detection)
+
 (define (quasiquote? x)
+  (doc 'type (-> Any Boolean))
   (and (pair? x)
        (eq? (car x) 'quasiquote)
        (pair? (cdr x))
        (null? (cddr x))))
 
-;;; unquote? : α → Boolean
 (define (unquote? x)
+  (doc 'type (-> Any Boolean))
   (and (pair? x)
        (eq? (car x) 'unquote)
        (pair? (cdr x))
        (null? (cddr x))))
 
-;;; unquote-splicing? : α → Boolean
 (define (unquote-splicing? x)
+  (doc 'type (-> Any Boolean))
   (and (pair? x)
        (eq? (car x) 'unquote-splicing)
        (pair? (cdr x))
        (null? (cddr x))))
 
-;;; ====
-;;; Quasiquote Expansion
-;;; ====
-;;;
-;;; qq-expand transforms a quasiquoted expression into code that
-;;; constructs the result at runtime.
-;;;
-;;; The depth parameter tracks nesting:
-;;;   depth = 1: we're inside one quasiquote, unquotes are active
-;;;   depth = 2: we're inside ``, unquotes are data
-;;;   etc.
+(doc 'section 'quasiquote-expansion)
+(doc 'note "qq-expand transforms a quasiquoted expression into code that
+constructs the result at runtime")
 
-;;; qq-expand : Sexp → Sexp
-;;; Expand a (quasiquote expr) form.
+(doc 'note "The depth parameter tracks nesting:
+  depth = 1: we're inside one quasiquote, unquotes are active
+  depth = 2: we're inside ``, unquotes are data
+  etc.")
+
 (define (qq-expand expr)
+  (doc 'type (-> Sexp Sexp))
+  (doc 'description "Expand a (quasiquote expr) form")
   (if (quasiquote? expr)
       (qq-expand-depth (cadr expr) 1)
       (error 'qq-expand "expected quasiquote form" expr)))
@@ -230,15 +220,12 @@
       (qq-expand expr)
       expr))
 
-;;; ====
-;;; Syntax Objects (Source Location Tracking)
-;;; ====
-;;;
-;;; A syntax object wraps a datum with source location information.
-;;; This enables error messages that point to the original DSL code.
+(doc 'section 'syntax-objects)
+(doc 'note "A syntax object wraps a datum with source location information.
+This enables error messages that point to the original DSL code")
 
-;;; make-syntax : α × SourceLoc → Syntax
 (define (make-syntax datum source-loc)
+  (doc 'type (-> Any SourceLoc Syntax))
   (list 'syntax datum source-loc))
 
 ;;; syntax? : α → Boolean

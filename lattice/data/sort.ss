@@ -1,21 +1,17 @@
-;;; lattice/data/sort.ss — Sorting Algorithms
-;;;
-;;; Purely functional sorting algorithms for lists.
-;;; Provides merge sort (stable, O(n log n)) and quicksort (O(n log n) average).
-;;;
-;;; All sorting functions take an optional comparator; default is < (ascending).
-;;; Comparator (cmp a b) should return #t if a should come before b.
-;;;
-;;; TIER: 0 (no lattice dependencies)
+(load "core/base/prelude.ss")
 
-;;;============================================================================
-;;; Merge Sort — Stable, O(n log n) guaranteed
-;;;============================================================================
+(doc 'module 'sort)
+(doc 'description "Sorting algorithms for lists")
+(doc 'layer 'lattice)
+(doc 'tier 0)
+(doc 'purity 'total)
 
-;;; merge : (List α) × (List α) × (α × α → Boolean) → (List α)
-;;; Merge two sorted lists into one sorted list.
-;;; For stability: when equal, take from left list first.
+(doc 'section 'merge-sort)
+
 (define (merge xs ys cmp)
+  (doc 'type (-> (List α) (List α) (-> α α Boolean) (List α)))
+  (doc 'description "Merge two sorted lists into one sorted list")
+  (doc 'note "For stability: when equal, take from left list first")
   (cond
     [(null? xs) ys]
     [(null? ys) xs]
@@ -25,20 +21,20 @@
     [else
      (cons (car ys) (merge xs (cdr ys) cmp))]))
 
-;;; split-at : (List α) × Nat → (List α) × (List α)
-;;; Split list at position n. Returns (first-n-elements, rest).
 (define (split-at lst n)
+  (doc 'type (-> (List α) Nat (Pair (List α) (List α))))
+  (doc 'description "Split list at position n")
   (if (or (= n 0) (null? lst))
       (cons '() lst)
       (let ([rest (split-at (cdr lst) (- n 1))])
         (cons (cons (car lst) (car rest))
               (cdr rest)))))
 
-;;; merge-sort-by : (α × α → Boolean) × (List α) → (List α)
-;;; Sort list using merge sort with custom comparator.
-;;; Stable: equal elements maintain their original order.
-;;; Complexity: O(n log n) time, O(n) space.
 (define (merge-sort-by cmp lst)
+  (doc 'type (-> (-> α α Boolean) (List α) (List α)))
+  (doc 'description "Sort list using merge sort with custom comparator")
+  (doc 'note "Stable: equal elements maintain their original order")
+  (doc 'complexity "O(n log n) time, O(n) space")
   (let ([len (length lst)])
     (if (<= len 1)
         lst
@@ -50,35 +46,29 @@
                  (merge-sort-by cmp right)
                  cmp)))))
 
-;;; merge-sort : (List α) → (List α)
-;;; Sort list in ascending order using merge sort.
 (define (merge-sort lst)
+  (doc 'type (-> (List α) (List α)))
+  (doc 'description "Sort list in ascending order using merge sort")
   (merge-sort-by < lst))
 
-;;; sort : (List α) → (List α)
-;;; Sort list in ascending order (alias for merge-sort).
 (define sort merge-sort)
+(doc sort 'description "Sort list in ascending order (alias for merge-sort)")
 
-;;; sort-by : (α × α → Boolean) × (List α) → (List α)
-;;; Sort list with custom comparator (alias for merge-sort-by).
 (define sort-by merge-sort-by)
+(doc sort-by 'description "Sort list with custom comparator (alias for merge-sort-by)")
 
-;;; stable-sort : (List α) → (List α)
-;;; Stable sort in ascending order (alias for merge-sort).
 (define stable-sort merge-sort)
+(doc stable-sort 'description "Stable sort in ascending order (alias for merge-sort)")
 
-;;; stable-sort-by : (α × α → Boolean) × (List α) → (List α)
-;;; Stable sort with custom comparator.
 (define stable-sort-by merge-sort-by)
+(doc stable-sort-by 'description "Stable sort with custom comparator")
 
-;;;============================================================================
-;;; Quicksort — O(n log n) average, O(n²) worst case
-;;;============================================================================
+(doc 'section 'quicksort)
 
-;;; partition : (α × α → Boolean) × α × (List α) → (List α) × (List α) × (List α)
-;;; Partition list into (less-than, equal-to, greater-than) pivot.
-;;; Three-way partition handles duplicates efficiently.
 (define (partition cmp pivot lst)
+  (doc 'type (-> (-> α α Boolean) α (List α) (List (List α) (List α) (List α))))
+  (doc 'description "Partition list into (less-than, equal-to, greater-than) pivot")
+  (doc 'note "Three-way partition handles duplicates efficiently")
   (let loop ([xs lst] [lt '()] [eq '()] [gt '()])
     (if (null? xs)
         (list (reverse lt) (reverse eq) (reverse gt))
@@ -91,11 +81,11 @@
             [else
              (loop (cdr xs) lt (cons x eq) gt)])))))
 
-;;; quicksort-by : (α × α → Boolean) × (List α) → (List α)
-;;; Sort list using quicksort with custom comparator.
-;;; Not stable: equal elements may be reordered.
-;;; Complexity: O(n log n) average, O(n²) worst case.
 (define (quicksort-by cmp lst)
+  (doc 'type (-> (-> α α Boolean) (List α) (List α)))
+  (doc 'description "Sort list using quicksort with custom comparator")
+  (doc 'note "Not stable: equal elements may be reordered")
+  (doc 'complexity "O(n log n) average, O(n²) worst case")
   (if (or (null? lst) (null? (cdr lst)))
       lst
       (let* ([pivot (car lst)]
@@ -107,46 +97,42 @@
                 (cons pivot eq)
                 (quicksort-by cmp gt)))))
 
-;;; quicksort : (List α) → (List α)
-;;; Sort list in ascending order using quicksort.
 (define (quicksort lst)
+  (doc 'type (-> (List α) (List α)))
+  (doc 'description "Sort list in ascending order using quicksort")
   (quicksort-by < lst))
 
-;;;============================================================================
-;;; Insertion Sort — O(n²), but O(n) for nearly-sorted lists
-;;;============================================================================
+(doc 'section 'insertion-sort)
 
-;;; insert-sorted : (α × α → Boolean) × α × (List α) → (List α)
-;;; Insert element into sorted list maintaining order.
 (define (insert-sorted cmp x sorted)
+  (doc 'type (-> (-> α α Boolean) α (List α) (List α)))
+  (doc 'description "Insert element into sorted list maintaining order")
   (cond
     [(null? sorted) (list x)]
     [(cmp x (car sorted)) (cons x sorted)]
     [else (cons (car sorted) (insert-sorted cmp x (cdr sorted)))]))
 
-;;; insertion-sort-by : (α × α → Boolean) × (List α) → (List α)
-;;; Sort list using insertion sort with custom comparator.
-;;; Stable: equal elements maintain their original order.
-;;; Complexity: O(n²) average, O(n) for nearly-sorted input.
 (define (insertion-sort-by cmp lst)
+  (doc 'type (-> (-> α α Boolean) (List α) (List α)))
+  (doc 'description "Sort list using insertion sort with custom comparator")
+  (doc 'note "Stable: equal elements maintain their original order")
+  (doc 'complexity "O(n²) average, O(n) for nearly-sorted input")
   (fold-left (lambda (sorted x) (insert-sorted cmp x sorted))
              '()
              lst))
 
-;;; insertion-sort : (List α) → (List α)
-;;; Sort list in ascending order using insertion sort.
 (define (insertion-sort lst)
+  (doc 'type (-> (List α) (List α)))
+  (doc 'description "Sort list in ascending order using insertion sort")
   (insertion-sort-by < lst))
 
-;;;============================================================================
-;;; Sort by Key — Sort by a derived value
-;;;============================================================================
+(doc 'section 'sort-by-key)
 
-;;; sort-by-key : (α → β) × (List α) → (List α)
-;;; Sort list by a key function (Schwartzian transform).
-;;; Uses merge sort internally for stability.
-;;; Example: (sort-by-key string-length '("aaa" "b" "cc")) => ("b" "cc" "aaa")
 (define (sort-by-key key-fn lst)
+  (doc 'type (-> (-> α β) (List α) (List α)))
+  (doc 'description "Sort list by a key function (Schwartzian transform)")
+  (doc 'note "Uses merge sort internally for stability")
+  (doc 'example "(sort-by-key string-length '(\"aaa\" \"b\" \"cc\")) => (\"b\" \"cc\" \"aaa\")")
   ;; Decorate
   (let* ([decorated (map (lambda (x) (cons (key-fn x) x)) lst)]
          ;; Sort by key
@@ -154,67 +140,63 @@
     ;; Undecorate
     (map cdr sorted)))
 
-;;; sort-by-key-desc : (α → β) × (List α) → (List α)
-;;; Sort list by key function in descending order.
 (define (sort-by-key-desc key-fn lst)
+  (doc 'type (-> (-> α β) (List α) (List α)))
+  (doc 'description "Sort list by key function in descending order")
   (let* ([decorated (map (lambda (x) (cons (key-fn x) x)) lst)]
          [sorted (merge-sort-by (lambda (a b) (> (car a) (car b))) decorated)])
     (map cdr sorted)))
 
-;;;============================================================================
-;;; Descending Order Variants
-;;;============================================================================
+(doc 'section 'descending-variants)
 
-;;; sort-desc : (List α) → (List α)
-;;; Sort list in descending order.
 (define (sort-desc lst)
+  (doc 'type (-> (List α) (List α)))
+  (doc 'description "Sort list in descending order")
   (merge-sort-by > lst))
 
-;;; quicksort-desc : (List α) → (List α)
-;;; Sort list in descending order using quicksort.
 (define (quicksort-desc lst)
+  (doc 'type (-> (List α) (List α)))
+  (doc 'description "Sort list in descending order using quicksort")
   (quicksort-by > lst))
 
-;;;============================================================================
-;;; Utility Functions
-;;;============================================================================
+(doc 'section 'utilities)
 
-;;; sorted? : (List α) → Boolean
-;;; Check if list is sorted in ascending order.
 (define (sorted? lst)
+  (doc 'type (-> (List α) Boolean))
+  (doc 'description "Check if list is sorted in ascending order")
   (sorted-by? < lst))
 
-;;; sorted-by? : (α × α → Boolean) × (List α) → Boolean
-;;; Check if list is sorted according to comparator.
 (define (sorted-by? cmp lst)
+  (doc 'type (-> (-> α α Boolean) (List α) Boolean))
+  (doc 'description "Check if list is sorted according to comparator")
   (or (null? lst)
       (null? (cdr lst))
       (and (not (cmp (cadr lst) (car lst)))  ; car <= cadr
            (sorted-by? cmp (cdr lst)))))
 
-;;; sorted-desc? : (List α) → Boolean
-;;; Check if list is sorted in descending order.
 (define (sorted-desc? lst)
+  (doc 'type (-> (List α) Boolean))
+  (doc 'description "Check if list is sorted in descending order")
   (sorted-by? > lst))
 
-;;; unique-sorted : (List α) → (List α)
-;;; Remove adjacent duplicates from a sorted list.
 (define (unique-sorted lst)
+  (doc 'type (-> (List α) (List α)))
+  (doc 'description "Remove adjacent duplicates from a sorted list")
   (if (or (null? lst) (null? (cdr lst)))
       lst
       (if (equal? (car lst) (cadr lst))
           (unique-sorted (cdr lst))
           (cons (car lst) (unique-sorted (cdr lst))))))
 
-;;; sort-unique : (List α) → (List α)
-;;; Sort list and remove duplicates.
 (define (sort-unique lst)
+  (doc 'type (-> (List α) (List α)))
+  (doc 'description "Sort list and remove duplicates")
   (unique-sorted (sort lst)))
 
-;;; nth-smallest : Nat × (List α) → α
-;;; Find the nth smallest element (0-indexed).
-;;; Uses quickselect for O(n) average performance.
 (define (nth-smallest n lst)
+  (doc 'type (-> Nat (List α) α))
+  (doc 'description "Find the nth smallest element (0-indexed)")
+  (doc 'note "Uses quickselect for O(n) average performance")
   (if (null? lst)
       (error 'nth-smallest "List is empty")
       (let* ([pivot (car lst)]
@@ -231,35 +213,37 @@
           [else
            (nth-smallest (- n lt-len 1 (length eq)) gt)]))))
 
-;;; median : (List α) → α
-;;; Find the median element.
 (define (median lst)
+  (doc 'type (-> (List α) α))
+  (doc 'description "Find the median element")
   (let ([len (length lst)])
     (if (= len 0)
         (error 'median "Cannot find median of empty list")
         (nth-smallest (quotient len 2) lst))))
 
-;;; min-element : (List α) → α
-;;; Find minimum element. O(n).
 (define (min-element lst)
+  (doc 'type (-> (List α) α))
+  (doc 'description "Find minimum element")
+  (doc 'complexity "O(n)")
   (if (null? lst)
       (error 'min-element "Cannot find min of empty list")
       (fold-left (lambda (m x) (if (< x m) x m))
                  (car lst)
                  (cdr lst))))
 
-;;; max-element : (List α) → α
-;;; Find maximum element. O(n).
 (define (max-element lst)
+  (doc 'type (-> (List α) α))
+  (doc 'description "Find maximum element")
+  (doc 'complexity "O(n)")
   (if (null? lst)
       (error 'max-element "Cannot find max of empty list")
       (fold-left (lambda (m x) (if (> x m) x m))
                  (car lst)
                  (cdr lst))))
 
-;;; min-by : (α → β) × (List α) → α
-;;; Find element with minimum key value.
 (define (min-by key-fn lst)
+  (doc 'type (-> (-> α β) (List α) α))
+  (doc 'description "Find element with minimum key value")
   (if (null? lst)
       (error 'min-by "Cannot find min of empty list")
       (car (fold-left (lambda (best x)
@@ -270,9 +254,9 @@
                       (cons (car lst) (key-fn (car lst)))
                       (cdr lst)))))
 
-;;; max-by : (α → β) × (List α) → α
-;;; Find element with maximum key value.
 (define (max-by key-fn lst)
+  (doc 'type (-> (-> α β) (List α) α))
+  (doc 'description "Find element with maximum key value")
   (if (null? lst)
       (error 'max-by "Cannot find max of empty list")
       (car (fold-left (lambda (best x)
@@ -283,23 +267,21 @@
                       (cons (car lst) (key-fn (car lst)))
                       (cdr lst)))))
 
-;;;============================================================================
-;;; Top-K and Bottom-K
-;;;============================================================================
+(doc 'section 'top-k)
 
-;;; take-sorted : Nat × (List α) → (List α)
-;;; Get first n elements of sorted list.
 (define (take-sorted n lst)
+  (doc 'type (-> Nat (List α) (List α)))
+  (doc 'description "Get first n elements of sorted list")
   (if (or (= n 0) (null? lst))
       '()
       (cons (car lst) (take-sorted (- n 1) (cdr lst)))))
 
-;;; top-k : Nat × (List α) → (List α)
-;;; Get k largest elements (in descending order).
 (define (top-k k lst)
+  (doc 'type (-> Nat (List α) (List α)))
+  (doc 'description "Get k largest elements (in descending order)")
   (take-sorted k (sort-desc lst)))
 
-;;; bottom-k : Nat × (List α) → (List α)
-;;; Get k smallest elements (in ascending order).
 (define (bottom-k k lst)
+  (doc 'type (-> Nat (List α) (List α)))
+  (doc 'description "Get k smallest elements (in ascending order)")
   (take-sorted k (sort lst)))

@@ -1,52 +1,51 @@
-;;; lattice/data/stack.ss — LIFO Stack
-;;;
-;;; Immutable functional stack using simple list representation.
-;;; All operations return new structures without modifying originals.
-;;;
-;;; Stack α = (List α)
-;;;
-;;; TIER: 0 (no lattice dependencies)
+(load "core/base/prelude.ss")
 
-;;; stack-empty : Stack
-;;; The empty stack.
+(doc 'module 'stack)
+(doc 'description "LIFO Stack")
+(doc 'layer 'lattice)
+(doc 'tier 0)
+(doc 'purity 'total)
+(doc 'note "Immutable functional stack using simple list representation")
+
 (define stack-empty '())
+(doc stack-empty 'type 'Stack)
+(doc stack-empty 'description "The empty stack")
 
-;;; stack-empty? : Stack → Boolean
-;;; Check if stack is empty.
 (define (stack-empty? stack)
+  (doc 'type (-> Stack Boolean))
+  (doc 'description "Check if stack is empty")
   (null? stack))
 
-;;; stack-push : α Stack → Stack
-;;; Push element onto stack. Returns new stack.
 (define (stack-push elem stack)
+  (doc 'type (-> α Stack Stack))
+  (doc 'description "Push element onto stack")
   (cons elem stack))
 
-;;; stack-pop : Stack → (Values Stack α)
-;;; Pop top element from stack. Returns (new-stack, element).
-;;; Error if stack is empty.
 (define (stack-pop stack)
+  (doc 'type (-> Stack (Values Stack α)))
+  (doc 'description "Pop top element from stack")
   (if (null? stack)
       (error 'stack-pop "Cannot pop from empty stack")
       (values (cdr stack) (car stack))))
 
-;;; stack-peek : Stack → α
-;;; Get top element without removing. Error if empty.
 (define (stack-peek stack)
+  (doc 'type (-> Stack α))
+  (doc 'description "Get top element without removing")
   (if (null? stack)
       (error 'stack-peek "Cannot peek empty stack")
       (car stack)))
 
-;;; stack-size : Stack → Nat
-;;; Get number of elements in stack.
 (define (stack-size stack)
+  (doc 'type (-> Stack Nat))
+  (doc 'description "Get number of elements in stack")
   (length stack))
 
-;;; stack->list : (Stack α) → (List α)
-;;; Convert stack to list (top to bottom).
 (define (stack->list stack)
+  (doc 'type (-> Stack (List α)))
+  (doc 'description "Convert stack to list (top to bottom)")
   stack)
 
-;;; list->stack : (List α) → (Stack α)
-;;; Convert list to stack (first element becomes top).
 (define (list->stack lst)
+  (doc 'type (-> (List α) Stack))
+  (doc 'description "Convert list to stack (first element becomes top)")
   lst)

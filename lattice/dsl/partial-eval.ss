@@ -1,53 +1,45 @@
-;;; lattice/dsl/partial-eval.ss — Partial Evaluation
-;;;
-;;; Specialize code given partial inputs. Transforms program P with
-;;; known static inputs S into specialized program P_S.
-;;;
-;;; Example:
-;;;   (define (power n x)
-;;;     (if (= n 0) 1 (* x (power (- n 1) x))))
-;;;
-;;;   (partial-eval (power 3 _))
-;;;   ; → (lambda (x) (* x (* x (* x 1))))
-;;;
-;;; This is Core code: pure, total, assumes reasonable input.
-;;;
-;;; Features:
-;;;   - Binding-time analysis (static vs dynamic)
-;;;   - Online partial evaluation (specialize during execution)
-;;;   - Offline partial evaluation (analyze first, then specialize)
-;;;   - Unfolding bounds for termination
-;;;   - Arity raising and lowering
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;   - staging.ss
-;;;   - fp/meta/combinators.ss
-
 (load "core/base/prelude.ss")
 (load "lattice/dsl/staging.ss")
 (load "lattice/fp/meta/combinators.ss")
 
-;;; ====
-;;; Binding Time Representation
-;;; ====
-;;;
-;;; Binding times classify when a value is known:
-;;;   - 'static  : Known at specialization time
-;;;   - 'dynamic : Only known at runtime
-;;;   - 'bottom  : Unknown (for analysis initialization)
+(doc 'module 'partial-eval)
+(doc 'description "Partial Evaluation - Specialize code given partial inputs")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
 
-;;; bt-static : BindingTime
+(doc 'note "Transforms program P with known static inputs S into specialized program P_S")
+
+(doc 'note "Example:
+  (define (power n x)
+    (if (= n 0) 1 (* x (power (- n 1) x))))
+
+  (partial-eval (power 3 _))
+  ; → (lambda (x) (* x (* x (* x 1))))")
+
+(doc 'note "Features:
+  - Binding-time analysis (static vs dynamic)
+  - Online partial evaluation (specialize during execution)
+  - Offline partial evaluation (analyze first, then specialize)
+  - Unfolding bounds for termination
+  - Arity raising and lowering")
+
+(doc 'section 'binding-time-representation)
+(doc 'note "Binding times classify when a value is known:
+  - 'static  : Known at specialization time
+  - 'dynamic : Only known at runtime
+  - 'bottom  : Unknown (for analysis initialization)")
+
 (define bt-static 'static)
+(doc bt-static 'type 'BindingTime)
 
-;;; bt-dynamic : BindingTime
 (define bt-dynamic 'dynamic)
+(doc bt-dynamic 'type 'BindingTime)
 
-;;; bt-bottom : BindingTime
 (define bt-bottom 'bottom)
+(doc bt-bottom 'type 'BindingTime)
 
-;;; bt? : α → Boolean
 (define (bt? x)
+  (doc 'type (-> Any Boolean))
   (memq x '(static dynamic bottom)))
 
 ;;; bt-join : BindingTime × BindingTime → BindingTime

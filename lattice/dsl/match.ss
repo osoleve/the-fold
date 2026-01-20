@@ -1,44 +1,35 @@
-;;; core/dsl/match.ss — Pattern Matching Compilation
-;;;
-;;; Efficient pattern matching for DSLs.
-;;;
-;;; Compiles pattern matches to decision trees:
-;;;   (match expr
-;;;     [(Lit n) ...]
-;;;     [(Add (Lit 0) x) x]      ; Optimization rules
-;;;     [(Add x (Lit 0)) x]
-;;;     [(Add (Lit a) (Lit b)) (Lit (+ a b))]
-;;;     [(Add x y) (Add x y)])
-;;;
-;;; Compilation Strategies:
-;;;   1. Decision trees (minimize tests)
-;;;   2. Backtracking automata
-;;;   3. Guards and views
-;;;   4. Exhaustiveness checking (via pattern-check.ss)
-;;;   5. Redundancy detection (via pattern-check.ss)
-;;;
-;;; This is Core code: pure, total, assumes reasonable input.
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;   - types/pattern-check.ss
-;;;   - fp/combinators.ss
-
 (load "core/base/prelude.ss")
 (load "lattice/fp/meta/combinators.ss")
 (load "core/types/pattern-check.ss")
 
-;;; ====
-;;; Pattern AST (Extended)
-;;; ====
-;;;
-;;; Additional pattern forms for DSL use:
-;;;   (as name pattern)          - as-pattern, binds whole match
-;;;   (view f pattern)           - view pattern, transforms then matches
-;;;   (active name args)         - active pattern for extensibility
+(doc 'module 'match)
+(doc 'description "Pattern Matching Compilation - Efficient pattern matching for DSLs")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
 
-;;; make-as-pattern : Symbol × Pattern → Pattern
+(doc 'note "Compiles pattern matches to decision trees:
+  (match expr
+    [(Lit n) ...]
+    [(Add (Lit 0) x) x]      ; Optimization rules
+    [(Add x (Lit 0)) x]
+    [(Add (Lit a) (Lit b)) (Lit (+ a b))]
+    [(Add x y) (Add x y)])")
+
+(doc 'note "Compilation Strategies:
+  1. Decision trees (minimize tests)
+  2. Backtracking automata
+  3. Guards and views
+  4. Exhaustiveness checking (via pattern-check.ss)
+  5. Redundancy detection (via pattern-check.ss)")
+
+(doc 'section 'pattern-ast-extended)
+(doc 'note "Additional pattern forms for DSL use:
+  (as name pattern)          - as-pattern, binds whole match
+  (view f pattern)           - view pattern, transforms then matches
+  (active name args)         - active pattern for extensibility")
+
 (define (make-as-pattern name inner)
+  (doc 'type (-> Symbol Pattern Pattern))
   (make-pattern 'as (cons name inner)))
 
 ;;; make-view-pattern : Expr × Pattern → Pattern
@@ -62,19 +53,16 @@
 (define (active-pattern-name p) (car (pattern-data p)))
 (define (active-pattern-args p) (cdr (pattern-data p)))
 
-;;; ====
-;;; Decision Tree Representation
-;;; ====
-;;;
-;;; Decision trees represent compiled pattern matches.
-;;;
-;;; DecisionTree ::= (leaf action bindings)
-;;;                | (fail)
-;;;                | (switch scrutinee branches default)
-;;;                | (guard condition success failure)
+(doc 'section 'decision-tree-representation)
+(doc 'note "Decision trees represent compiled pattern matches")
 
-;;; make-leaf : Expr × Bindings → DecisionTree
+(doc 'note "DecisionTree ::= (leaf action bindings)
+               | (fail)
+               | (switch scrutinee branches default)
+               | (guard condition success failure)")
+
 (define (make-leaf action bindings)
+  (doc 'type (-> Expr Bindings DecisionTree))
   (list 'leaf action bindings))
 
 ;;; make-fail : → DecisionTree
