@@ -136,6 +136,20 @@ The handler's return-case and effect-cases become operation implementations.")
                     effect-cases)])
     (make-algebra sig 'handler-result ops)))
 
+;;; algebra-to-handler : Algebra → Handler
+;;; Convert an algebra back to a handler for effect evaluation.
+;;; This is the inverse of handler-to-algebra (up to representation).
+(define (algebra-to-handler alg)
+  (doc 'type '(-> Algebra Handler))
+  (doc 'description "Convert an algebra to a handler.
+The 'pure operation becomes return-case, other operations become effect-cases.
+This enables using algebraic structures to interpret effects.")
+  (let* ([ops (algebra-ops alg)]
+         [pure-entry (assq 'pure ops)]
+         [pure-fn (if pure-entry (cdr pure-entry) identity)]
+         [effect-cases (filter (lambda (entry) (not (eq? (car entry) 'pure))) ops)])
+    (deep-handler pure-fn effect-cases)))
+
 ;;; ====
 ;;; Free Effect Adjunction
 ;;; ====
@@ -202,16 +216,22 @@ This is the categorical foundation underlying algebraic effects.")
          ;; ε_A : Eff Σ (carrier A) → A
          ;; Given by evaluating the effectful computation in algebra A
          ;;
-         ;; In practice: the counit is parameterized by the target algebra,
-         ;; which is the handler. We represent this abstractly.
+         ;; IMPORTANT LIMITATION:
+         ;; The counit is indexed by the target algebra A. In our encoding,
+         ;; NatTransform components are parametric (they receive values, not
+         ;; the object index). The counit here is therefore PARTIAL:
+         ;; - For pure values: correctly extracts the value
+         ;; - For impure effects: returns unchanged (cannot evaluate without algebra)
+         ;;
+         ;; To actually evaluate effects, use `evaluate-counit` which takes
+         ;; the algebra explicitly, or use `handle` with a converted handler.
          [counit
           (make-nat-transform
            (string->symbol (format "ε-~a" (signature-name sig)))
            free-functor
            functor-id
-           ;; The counit component is abstract: it needs an algebra
-           ;; This is a placeholder that returns pure values unchanged
-           ;; Real evaluation happens via `handle` with a specific handler
+           ;; Partial counit: works for pure, identity on impure
+           ;; For full evaluation, use evaluate-counit with an algebra
            (lambda (eff)
              (if (eff-pure? eff)
                  (eff-pure-value eff)
@@ -249,6 +269,38 @@ This is the categorical foundation underlying algebraic effects.")
 (doc adj-effect-nondet 'description "Free ⊣ Forgetful for NonDet effect")
 (define adj-effect-nondet
   (make-effect-adjunction sig-effect-nondet))
+
+;;; ====
+;;; Counit Evaluation
+;;; ====
+
+(doc 'section 'counit-evaluation)
+(doc 'description "Explicit Counit Evaluation
+
+The counit ε_A : Eff Σ (carrier A) → A requires the target algebra A to
+perform evaluation. Since NatTransform cannot carry the algebra, we provide
+explicit evaluation functions that take the algebra as an argument.
+
+This is the 'fold' or 'catamorphism' of the free monad: recursively
+interpret the effect tree using the algebra's operations.")
+
+;;; evaluate-counit : Adjunction × Algebra × Eff → Value
+;;; Evaluate an effect using an algebra (explicit counit instantiation).
+;;; This is the proper way to interpret effects categorically.
+(define (evaluate-counit adj alg eff)
+  (doc 'type '(-> Adjunction Algebra (Eff e a) Value))
+  (doc 'description "Evaluate an effect in an algebra.
+This is the counit ε_A applied to a specific algebra A.
+Converts the algebra to a handler and runs the effect through it.")
+  (handle (algebra-to-handler alg) eff))
+
+;;; evaluate-with-algebra : Algebra × Eff → Value
+;;; Shorthand when you have an algebra but not the adjunction.
+(define (evaluate-with-algebra alg eff)
+  (doc 'type '(-> Algebra (Eff e a) Value))
+  (doc 'description "Evaluate an effect directly with an algebra.
+Convenience function that converts algebra to handler and runs.")
+  (handle (algebra-to-handler alg) eff))
 
 ;;; ====
 ;;; Handler Composition as Adjunction Composition
@@ -512,8 +564,11 @@ Effect Signatures:
   sig-effect-state, sig-effect-reader, sig-effect-writer
   sig-effect-exception, sig-effect-nondet
 
-Handlers as Algebras:
-  handler-to-algebra
+Handlers and Algebras:
+  handler-to-algebra, algebra-to-handler
+
+Counit Evaluation:
+  evaluate-counit, evaluate-with-algebra
 
 Effect Adjunctions:
   make-effect-adjunction

@@ -56,6 +56,45 @@
            [pure-op (algebra-op alg 'pure)])
       (assert-equal 10 (pure-op 5))))
 
+  (define-test "algebra-to-handler roundtrips handler"
+    (let* ([h (deep-handler (lambda (x) (* x 3)) '())]
+           [sig (make-signature 'test '((pure . 1)) '())]
+           [alg (handler-to-algebra h sig)]
+           [h2 (algebra-to-handler alg)]
+           [result (handle h2 (eff-return 7))])
+      (assert-equal 21 result)))
+
+  (define-test "algebra-to-handler creates working handler"
+    (let* ([alg (make-algebra
+                  (make-signature 'double '((pure . 1)) '())
+                  'number
+                  `((pure . ,(lambda (x) (* x 2)))))]
+           [h (algebra-to-handler alg)]
+           [result (handle h (eff-return 5))])
+      (assert-equal 10 result)))
+
+  ;;; ====
+  ;;; Counit Evaluation (Critical: tests actual effect evaluation)
+  ;;; ====
+
+  (define-test "evaluate-counit evaluates pure effects"
+    (let* ([alg (make-algebra
+                  (make-signature 'id '((pure . 1)) '())
+                  'any
+                  `((pure . ,identity)))]
+           [eff (eff-return 42)]
+           [result (evaluate-counit adj-effect-state alg eff)])
+      (assert-equal 42 result)))
+
+  (define-test "evaluate-counit evaluates with transformation"
+    (let* ([alg (make-algebra
+                  (make-signature 'triple '((pure . 1)) '())
+                  'number
+                  `((pure . ,(lambda (x) (* x 3)))))]
+           [eff (eff-return 10)]
+           [result (evaluate-with-algebra alg eff)])
+      (assert-equal 30 result)))
+
   ;;; ====
   ;;; Effect Adjunctions
   ;;; ====

@@ -13,7 +13,9 @@
    (logic-adjunction.ss "Logical connectives as adjunctions: × ⊣ Δ ⊣ + and Σ ⊣ f* ⊣ Π")
    (monad-derivation.ss "Unified monad derivation from adjunctions (F -| G yields monad on G.F)")
    (comonad.ss "Comonad type class, Store/Env/Traced comonads, adjunction derivation")
-   (kan-extension.ss "Left/Right Kan extensions and Codensity monad")))
+   (kan-extension.ss "Left/Right Kan extensions and Codensity monad")
+   (effect-category.ss "Categorical foundations for algebraic effects: Free Effect ⊣ Forgetful")
+   (state-store-adjunction.ss "State-Store adjunction relating State monad and Store comonad")))
 
  (key-concepts
   ((natural-transformation "Morphism between functors: eta : F ==> G with components eta_A : F(A) -> G(A)")
@@ -44,7 +46,14 @@
    (substitution-functor "f* : Fam(J) → Fam(I): reindexing along f : I → J")
    (sigma-adjunction "Σ ⊣ f*: existential quantification as left adjoint")
    (pi-adjunction "f* ⊣ Π: universal quantification as right adjoint")
-   (beck-chevalley "Substitution commutes with quantification along pullbacks")))
+   (beck-chevalley "Substitution commutes with quantification along pullbacks")
+   ;; Effect category concepts
+   (effect-signature-as-algebra "Effect signatures are algebraic signatures with operations as term constructors")
+   (handler-as-algebra "A handler is an algebra over the effect signature: return-case + effect-cases")
+   (free-effect-adjunction "Free_Σ ⊣ Forgetful_Σ where Free builds Eff terms, Forgetful extracts carrier")
+   (handler-composition-adjunction "Nesting handlers h₁(h₂(eff)) = composing adjunctions F₂∘F₁ ⊣ G₁∘G₂")
+   (effect-rows-functors "Effect rows as objects in functor category [Set,Set], extension as coproduct injection")
+   (continuations-kan "Captured continuations k : Response → Eff e a are left Kan extensions Lan_η")))
 
  (dependencies (fp/templates fp/meta/combinators base))
 
@@ -164,6 +173,29 @@
     compose-comonads  ; DEPRECATED - use compose-comonads-with-dist
     ;; Display
     comonad->string store->string env->string)
+   (effect-category.ss
+    ;; Effect signatures as algebraic signatures
+    effect-sig-to-signature
+    sig-effect-state sig-effect-reader sig-effect-writer
+    sig-effect-exception sig-effect-nondet
+    ;; Handlers and algebras (bidirectional conversion)
+    handler-to-algebra algebra-to-handler
+    ;; Counit evaluation (explicit algebra-parameterized evaluation)
+    evaluate-counit evaluate-with-algebra
+    ;; Effect adjunctions
+    make-effect-adjunction
+    adj-effect-state adj-effect-reader adj-effect-writer
+    adj-effect-exception adj-effect-nondet
+    ;; Adjunction composition
+    compose-effect-adjunctions handlers-commute?
+    ;; Effect rows as functors
+    make-row-functor row-extension-morphism
+    ;; Continuations as Kan extensions
+    continuation-as-kan kan-extension? kan-resume kan-factor
+    ;; Verification
+    verify-effect-unit verify-effect-naturality
+    ;; Display
+    effect-adjunction->string)
    (kan-extension.ss
     ;; Right Kan Extension
     make-ran ran? ran-k ran-f ran-computation ran-apply
@@ -207,6 +239,11 @@
      algebraic theory. Free Monoid yields List monad, Free Group yields
      formal word monad. This is the foundation of algebraic effects:
      effect signatures are algebraic theories, handlers are algebras.")
+   (effect-handler-ordering
+    "Handler composition corresponds to adjunction composition: h₁(h₂(eff))
+     gives F₂∘F₁ ⊣ G₁∘G₂. The reversal in right adjoints explains why
+     effect handler order matters semantically. State-inside-Exception vs
+     Exception-inside-State give different rollback behaviors.")
    (logic-as-adjunctions
     "Lawvere's insight: logical connectives arise from adjunctions.
      The diagonal Δ has product (×) as right adjoint and coproduct (+) as left.
