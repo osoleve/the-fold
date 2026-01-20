@@ -284,6 +284,11 @@
         20
         (algebra-hom-apply composed 5)))
 
+;; Regression test: missing arity in test-values should not crash
+;; (Previously crashed with (cdr #f) when arity not found in test-values)
+(test-true "verify-homomorphism: handles missing arity gracefully"
+           (verify-homomorphism exp-hom '()))  ; Empty test-values
+
 ;;; ====
 ;;; Test: Term Representation
 ;;; ====

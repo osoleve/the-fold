@@ -270,10 +270,10 @@
                    #f)]
               ;; n-arity: check with provided test values
               [else
-               (let ([vals (cdr (assv arity test-values))])
-                 (if (not vals)
+               (let ([entry (assv arity test-values)])
+                 (if (not entry)
                      (loop (cdr ops))  ; No test values for this arity, skip
-                     (let check-vals ([vals vals])
+                     (let check-vals ([vals (cdr entry)])
                        (if (null? vals)
                            (loop (cdr ops))
                            (let* ([args (car vals)]
