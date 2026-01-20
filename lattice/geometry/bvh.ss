@@ -13,32 +13,39 @@
 (doc 'note "BVH node types: Leaf (bvh-leaf bbox primitives), Internal (bvh-node bbox left right)")
 
 (define (bvh-leaf bbox primitives)
+  (doc 'export #t)
   (doc 'type '(-> AABB (List Triangle3) BVH))
   (list 'bvh-leaf bbox primitives))
 
 (define (bvh-node bbox left right)
+  (doc 'export #t)
   (doc 'type '(-> AABB BVH BVH BVH))
   (list 'bvh-node bbox left right))
 
 (define (bvh-leaf? node)
+  (doc 'export #t)
   (doc 'type '(-> α Bool))
   (and (pair? node) (eq? (car node) 'bvh-leaf)))
 
 (define (bvh-node? node)
+  (doc 'export #t)
   (doc 'type '(-> α Bool))
   (and (pair? node) (eq? (car node) 'bvh-node)))
 
 (define (bvh-bbox node)
+  (doc 'export #t)
   (doc 'type '(-> BVH AABB))
   (cadr node))
 
 (define (bvh-primitives node)
+  (doc 'export #t)
   (doc 'type '(-> BVH (List Triangle3)))
   (if (bvh-leaf? node)
       (caddr node)
       '()))
 
 (define (bvh-left node)
+  (doc 'export #t)
   (doc 'type '(-> BVH (| BVH #f)))
   (if (bvh-node? node)
       (caddr node)
@@ -53,6 +60,7 @@
 (doc 'section 'helpers)
 
 (define (triangle-centroid tri)
+  (doc 'export #t)
   (doc 'type '(-> Triangle3 Point3))
   (let ([p1 (triangle3-p1 tri)]
         [p2 (triangle3-p2 tri)]
@@ -60,6 +68,7 @@
        (vec3-scale (vec3-add (vec3-add p1 p2) p3) (/ 1.0 3.0))))
 
 (define (compute-triangles-bbox triangles)
+  (doc 'export #t)
   (doc 'type '(-> (List Triangle3) AABB))
   (doc 'description "Compute bounding box containing all triangle vertices")
   (if (null? triangles)
@@ -73,6 +82,7 @@
            (aabb-from-points points))))
 
 (define (longest-axis bbox)
+  (doc 'export #t)
   (doc 'type '(-> AABB Nat))
   (doc 'returns "0 for X, 1 for Y, 2 for Z")
   (let* ([extents (aabb-extents bbox)]
@@ -85,6 +95,7 @@
          [else 2])))
 
 (define (get-axis-coord point axis)
+  (doc 'export #t)
   (doc 'type '(-> Vec3 Nat Real))
   (case axis
         [(0) (vec3-x point)]
@@ -95,6 +106,7 @@
 (doc 'section 'bvh-construction)
 
 (define (bvh-build triangles max-leaf-size)
+  (doc 'export #t)
   (doc 'type '(-> (List Triangle3) Number BVH))
   (doc 'description "Build a BVH from a list of triangles")
   (doc 'param 'max-leaf-size "maximum number of triangles in a leaf node")
@@ -128,6 +140,7 @@
 (doc 'section 'bvh-traversal)
 
 (define (bvh-intersect-ray bvh ray)
+  (doc 'export #t)
   (doc 'type '(-> BVH Ray3 (| (List Triangle3 Number) #f)))
   (doc 'description "Find closest triangle intersection along ray")
   (doc 'returns "(triangle t-value) or #f if no intersection")
@@ -259,6 +272,7 @@
 (doc 'section 'bvh-statistics)
 
 (define (bvh-depth bvh)
+  (doc 'export #t)
   (doc 'type '(-> BVH Number))
   (doc 'description "Compute the maximum depth of the BVH tree")
   (cond
@@ -270,6 +284,7 @@
    [else 0]))
 
 (define (bvh-count-nodes bvh)
+  (doc 'export #t)
   (doc 'type '(-> BVH Number))
   (doc 'description "Count total number of nodes in the BVH")
   (cond
@@ -282,6 +297,7 @@
    [else 0]))
 
 (define (bvh-count-leaves bvh)
+  (doc 'export #t)
   (doc 'type '(-> BVH Number))
   (doc 'description "Count number of leaf nodes")
   (cond
@@ -293,6 +309,7 @@
    [else 0]))
 
 (define (bvh-count-triangles bvh)
+  (doc 'export #t)
   (doc 'type '(-> BVH Number))
   (doc 'description "Count total number of triangles in the BVH")
   (cond

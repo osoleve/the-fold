@@ -32,23 +32,33 @@
 (doc 'note "2. Multiplicative inverses: for a ≠ 0, ∃ a⁻¹ such that a × a⁻¹ = 1")
 (doc 'note "3. Division: a / b = a × b⁻¹")
 (define (make-field elements add-op mul-op zero one neg-fn div-fn equal-fn)
+  (doc 'export #t)
   (list 'field elements add-op mul-op zero one neg-fn div-fn equal-fn))
 
 ;;; field? : α → Boolean
 (define (field? x)
+  (doc 'export #t)
   (and (list? x)
        (>= (length x) 9)
        (eq? (car x) 'field)))
 
 ;;; Field accessors
 (define (field-elements f) (list-ref f 1))
+(doc 'export #t)
 (define (field-add-op f) (list-ref f 2))
+(doc 'export #t)
 (define (field-mul-op f) (list-ref f 3))
+(doc 'export #t)
 (define (field-zero f) (list-ref f 4))
+(doc 'export #t)
 (define (field-one f) (list-ref f 5))
+(doc 'export #t)
 (define (field-neg-fn f) (list-ref f 6))
+(doc 'export #t)
 (define (field-div-fn f) (list-ref f 7))
+(doc 'export #t)
 (define (field-equal-fn f) (list-ref f 8))
+(doc 'export #t)
 
 ;;; ====
 ;;; Field Operations
@@ -56,37 +66,45 @@
 
 ;;; field-add : Field × Element × Element → Element
 (define (field-add f a b)
+  (doc 'export #t)
   ((field-add-op f) a b))
 
 ;;; field-mul : Field × Element × Element → Element
 (define (field-mul f a b)
+  (doc 'export #t)
   ((field-mul-op f) a b))
 
 ;;; field-neg : Field × Element → Element
 (define (field-neg f a)
+  (doc 'export #t)
   ((field-neg-fn f) a))
 
 ;;; field-sub : Field × Element × Element → Element
 (define (field-sub f a b)
+  (doc 'export #t)
   (field-add f a (field-neg f b)))
 
 ;;; field-div : Field × Element × Element → Element
 ;;; Division: a / b. Assumes b ≠ 0.
 (define (field-div f a b)
+  (doc 'export #t)
   ((field-div-fn f) a b))
 
 ;;; field-inv : Field × Element → Element
 ;;; Multiplicative inverse: 1 / a. Assumes a ≠ 0.
 (define (field-inv f a)
+  (doc 'export #t)
   (field-div f (field-one f) a))
 
 ;;; field-equal? : Field × Element × Element → Boolean
 (define (field-equal? f a b)
+  (doc 'export #t)
   ((field-equal-fn f) a b))
 
 ;;; field-power : Field × Element × Integer → Element
 ;;; Compute a^n. Supports negative exponents (a^{-n} = 1/a^n).
 (define (field-power f a n)
+  (doc 'export #t)
   (cond
     [(= n 0) (field-one f)]
     [(< n 0) (field-inv f (field-power f a (- n)))]
@@ -104,6 +122,7 @@
 ;;; field->ring : Field → Ring
 ;;; Extract the underlying ring structure from a field.
 (define (field->ring f)
+  (doc 'export #t)
   (make-ring
    (field-elements f)
    (field-add-op f)
@@ -119,6 +138,7 @@
 
 ;;; Q-field : Field
 ;;; The field of rational numbers (using Scheme's exact rationals).
+(doc Q-field 'export #t)
 (define Q-field
   (make-field
    '()           ; Elements not enumerable (infinite)
@@ -133,6 +153,7 @@
 ;;; R-field : Field
 ;;; The field of real numbers (using Scheme's inexact numbers).
 ;;; Note: This is approximate arithmetic, not exact reals.
+(doc R-field 'export #t)
 (define R-field
   (make-field
    '()           ; Elements not enumerable
@@ -148,6 +169,7 @@
 ;;; Create the finite field Z_p of integers modulo prime p.
 ;;; WARNING: Does not verify p is prime; caller must ensure this.
 (define (make-field-zp p)
+  (doc 'export #t)
   (make-field
    (range 0 p)
    (lambda (a b) (modulo (+ a b) p))         ; Addition mod p
@@ -162,6 +184,7 @@
 ;;; Compute modular multiplicative inverse using extended Euclidean algorithm.
 ;;; Returns a⁻¹ such that a × a⁻¹ ≡ 1 (mod m).
 (define (mod-inverse a m)
+  (doc 'export #t)
   (let loop ([old-r m] [r (modulo a m)]
              [old-s 0] [s 1])
     (if (= r 0)

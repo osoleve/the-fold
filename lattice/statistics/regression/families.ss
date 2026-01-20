@@ -45,6 +45,7 @@
 ;;; Deviance: D = sum((y - mu)²)
 ;;; Canonical link: identity
 
+(doc gaussian-family 'export #t)
 (define gaussian-family
   (make-glm-family
    'gaussian
@@ -66,6 +67,7 @@
 ;;; Deviance: D = 2 * sum(y*log(y/mu) + (1-y)*log((1-y)/(1-mu)))
 ;;; Canonical link: logit
 
+(doc binomial-family 'export #t)
 (define binomial-family
   (make-glm-family
    'binomial
@@ -94,6 +96,7 @@
 ;;; Deviance: D = 2 * sum(y*log(y/mu) - (y - mu))
 ;;; Canonical link: log
 
+(doc poisson-family 'export #t)
 (define poisson-family
   (make-glm-family
    'poisson
@@ -121,6 +124,7 @@
 ;;; Deviance: D = -2 * sum(log(y/mu) - (y - mu)/mu)
 ;;; Canonical link: inverse (1/mu)
 
+(doc gamma-family 'export #t)
 (define gamma-family
   (make-glm-family
    'gamma

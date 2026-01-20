@@ -9,6 +9,7 @@
 (doc 'section 'quotas)
 
 (define (droop-quota num-voters num-seats)
+  (doc 'export #t)
   (doc 'type '(-> Nat Nat Nat))
   (doc 'description "Droop quota: floor(votes / (seats + 1)) + 1. Most common quota - ensures at most k candidates can meet quota. Example: 100 voters, 5 seats → floor(100/6) + 1 = 17")
   (+ (floor (/ num-voters (+ num-seats 1))) 1))
@@ -18,6 +19,7 @@
 ;;; More proportional but can leave seats unfilled in edge cases.
 ;;; Example: 100 voters, 5 seats → 20
 (define (hare-quota num-voters num-seats)
+  (doc 'export #t)
   (floor (/ num-voters num-seats)))
 
 (doc 'section 'stv)
@@ -71,6 +73,7 @@
 ;;; Run STV election to fill k seats using given quota function.
 ;;; Returns list of elected candidates in order of election.
 (define (stv profile num-seats quota-fn)
+  (doc 'export #t)
   (if (profile-empty? profile)
       '()
       (let* ([candidates (profile-candidates profile)]
@@ -133,11 +136,13 @@
 ;;; stv-droop : PreferenceProfile × Nat → (List Candidate)
 ;;; STV with Droop quota (most common variant).
 (define (stv-droop profile num-seats)
+  (doc 'export #t)
   (stv profile num-seats droop-quota))
 
 ;;; stv-hare : PreferenceProfile × Nat → (List Candidate)
 ;;; STV with Hare quota (more proportional).
 (define (stv-hare profile num-seats)
+  (doc 'export #t)
   (stv profile num-seats hare-quota))
 
 (doc 'section 'approval-voting)
@@ -149,25 +154,30 @@
 ;;; make-approval-profile : (List (List Candidate)) → ApprovalProfile
 ;;; Create approval profile from list of approval sets.
 (define (make-approval-profile approval-lists)
+  (doc 'export #t)
   (map list->set approval-lists))
 
 ;;; approval-profile-voters : ApprovalProfile → Nat
 (define (approval-profile-voters profile)
+  (doc 'export #t)
   (length profile))
 
 ;;; approval-profile-candidates : ApprovalProfile → (List Candidate)
 ;;; Get all candidates mentioned in any ballot.
 (define (approval-profile-candidates profile)
+  (doc 'export #t)
   (list->set (apply append profile)))
 
 ;;; approval-count : Candidate × ApprovalProfile → Nat
 ;;; Count how many voters approve of a candidate.
 (define (approval-count candidate profile)
+  (doc 'export #t)
   (count-if (lambda (approvals) (member candidate approvals)) profile))
 
 ;;; approval-scores : ApprovalProfile → (List (Candidate . Nat))
 ;;; Get approval scores for all candidates.
 (define (approval-scores profile)
+  (doc 'export #t)
   (let ([candidates (approval-profile-candidates profile)])
     (map (lambda (c) (cons c (approval-count c profile)))
          candidates)))
@@ -176,6 +186,7 @@
 ;;; Select k candidates with highest approval counts.
 ;;; Basic approval voting - not proportional (popular candidates sweep).
 (define (approval-winners profile num-seats)
+  (doc 'export #t)
   (let* ([scores (approval-scores profile)]
          [sorted (sort (lambda (a b) (> (cdr a) (cdr b))) scores)])
     (take-up-to num-seats (map car sorted))))
@@ -198,6 +209,7 @@
 ;;; pav-score : Candidate × ApprovalProfile × (List Candidate) → Real
 ;;; PAV score for adding candidate c given already-elected committee.
 (define (pav-score candidate profile elected)
+  (doc 'export #t)
   (apply +
          (map (lambda (approvals)
                 (if (member candidate approvals)
@@ -211,6 +223,7 @@
 ;;; Sequential PAV: greedily add candidate maximizing marginal PAV score.
 ;;; Returns elected committee.
 (define (pav-winners profile num-seats)
+  (doc 'export #t)
   (let ([candidates (approval-profile-candidates profile)])
     (pav-loop profile candidates '() num-seats)))
 
@@ -236,6 +249,7 @@
 ;;; sav-score : Candidate × ApprovalProfile → Real
 ;;; SAV score: sum over voters of (1/|approval set|) if they approve candidate.
 (define (sav-score candidate profile)
+  (doc 'export #t)
   (apply +
          (map (lambda (approvals)
                 (if (and (member candidate approvals) (> (length approvals) 0))
@@ -246,6 +260,7 @@
 ;;; sav-winners : ApprovalProfile × Nat → (List Candidate)
 ;;; Select k candidates with highest SAV scores.
 (define (sav-winners profile num-seats)
+  (doc 'export #t)
   (let* ([candidates (approval-profile-candidates profile)]
          [scores (map (lambda (c) (cons c (sav-score c profile))) candidates)]
          [sorted (sort (lambda (a b) (> (cdr a) (cdr b))) scores)])
@@ -274,6 +289,7 @@
 ;;; Strategy: iteratively add candidate who maximizes total satisfaction
 ;;; for voters not yet well-represented.
 (define (monroe-greedy profile num-seats)
+  (doc 'export #t)
   (if (profile-empty? profile)
       '()
       (let* ([candidates (profile-candidates profile)]
@@ -325,6 +341,7 @@
 ;;; Greedy Chamberlin-Courant: iteratively add candidate maximizing
 ;;; marginal satisfaction improvement.
 (define (cc-greedy profile num-seats)
+  (doc 'export #t)
   (if (profile-empty? profile)
       '()
       (let* ([candidates (profile-candidates profile)]
@@ -358,6 +375,7 @@
 ;;; cc-total-satisfaction : PreferenceProfile × (List Candidate) → Nat
 ;;; Total CC satisfaction score for a committee.
 (define (cc-total-satisfaction profile committee)
+  (doc 'export #t)
   (let ([num-candidates (if (null? profile) 0 (length (car profile)))])
     (apply + (map (lambda (ranking)
                     (best-satisfaction ranking committee num-candidates))
@@ -372,6 +390,7 @@
 ;;; 1.0 = perfect proportionality, 0.0 = worst case.
 ;;; Uses variance of representation quality across voters.
 (define (proportionality-score profile committee)
+  (doc 'export #t)
   (if (or (profile-empty? profile) (null? committee))
       0
       (let* ([num-candidates (length (car profile))]
@@ -389,6 +408,7 @@
 ;;; representation-coverage : ApprovalProfile × (List Candidate) → Real
 ;;; Fraction of voters who approve at least one elected candidate.
 (define (representation-coverage approval-profile committee)
+  (doc 'export #t)
   (if (null? approval-profile)
       1
       (let ([covered (count-if (lambda (approvals)
@@ -406,6 +426,7 @@
 ;;; Measure committee diversity using pairwise distance function.
 ;;; Higher score = more diverse committee.
 (define (diversity-score committee distance-fn)
+  (doc 'export #t)
   (if (< (length committee) 2)
       0
       (let* ([pairs (all-pairs committee)]
@@ -427,12 +448,14 @@
 ;;; profile->approval : PreferenceProfile × Nat → ApprovalProfile
 ;;; Convert ranked profile to approval profile by approving top k candidates.
 (define (profile->approval profile k)
+  (doc 'export #t)
   (map (lambda (ranking) (take-up-to k ranking)) profile))
 
 ;;; approval->profile : ApprovalProfile → PreferenceProfile
 ;;; Convert approval profile to ranked profile (arbitrary order within approved).
 ;;; Non-approved candidates placed at end in arbitrary order.
 (define (approval->profile approval-profile)
+  (doc 'export #t)
   (let ([all-candidates (approval-profile-candidates approval-profile)])
     (map (lambda (approvals)
            (append approvals
@@ -446,6 +469,7 @@
 ;;; stv-example : → PreferenceProfile
 ;;; Classic STV example: 9 voters, 3 seats, parties roughly proportional.
 (define (stv-example)
+  (doc 'export #t)
   (make-preference-profile
    '((a b c d)    ; 4 voters prefer party A
      (a b c d)
@@ -460,6 +484,7 @@
 ;;; approval-example : → ApprovalProfile
 ;;; Example where basic approval and PAV differ.
 (define (approval-example)
+  (doc 'export #t)
   (make-approval-profile
    '((a b)        ; 4 voters approve A and B
      (a b)
@@ -474,6 +499,7 @@
 ;;; diverse-preferences-example : → PreferenceProfile
 ;;; Example with diverse preferences showing Monroe/CC in action.
 (define (diverse-preferences-example)
+  (doc 'export #t)
   (make-preference-profile
    '((a b c d e)  ; Group 1: 3 voters
      (a b c d e)

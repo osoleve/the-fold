@@ -15,6 +15,7 @@
 
 (doc 'section 'simple-moving-average-smoother)
 (define (moving-average xs window)
+  (doc 'export #t)
   (doc 'type '(-> Vec Nat Vec))
   (doc 'description "Simple moving average smoother")
   (doc 'note "Returns smoothed series of length n - window + 1")
@@ -41,6 +42,7 @@
 ;;; Weighted moving average using custom weights.
 ;;; Weight vector determines the window size.
 (define (weighted-moving-average xs weights)
+  (doc 'export #t)
   (let* ([n (vector-length xs)]
          [k (vector-length weights)]
          [m (- n k -1)]
@@ -70,6 +72,7 @@
 ;;; Exponential moving average (same length as input).
 ;;; Alpha in (0, 1): higher = more weight on recent.
 (define (exponential-moving-average xs alpha)
+  (doc 'export #t)
   (let* ([n (vector-length xs)]
          [result (make-vector n)])
         (vector-set! result 0 (vector-ref xs 0))
@@ -90,6 +93,7 @@
 ;;; Fit MA(q) model using the innovations algorithm.
 ;;; The innovations algorithm recursively estimates MA coefficients from ACF.
 (define (ma-fit xs q)
+  (doc 'export #t)
   (let* ([n (vector-length xs)]
          [mean (vec-mean xs)])
         (if (< n (+ q 3))
@@ -240,6 +244,7 @@
 ;;; Multi-step ahead forecasting for MA(q).
 ;;; Note: MA(q) forecasts revert to mean after q steps.
 (define (ma-forecast model xs h)
+  (doc 'export #t)
   (let* ([theta (ma-coefficients model)]
          [mean (ma-intercept model)]
          [sigma (ma-sigma model)]
@@ -332,6 +337,7 @@
 ;;; 1. Fit AR(p+q) to get preliminary residuals
 ;;; 2. Estimate MA(q) parameters from residuals
 (define (arma-fit-simple xs p q)
+  (doc 'export #t)
   (let* ([n (vector-length xs)])
         (if (< n (+ p q 5))
             (list 'error 'insufficient-data n p q)

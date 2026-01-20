@@ -151,6 +151,7 @@ Algorithm:
 ;;; lbfgs : ((List TracedValue) → TracedValue) × (List Number) × ConvergenceCriteria → OptResult
 ;;; L-BFGS optimization with default history size.
 (define (lbfgs f x0 criteria)
+  (doc 'export #t)
   (lbfgs-full f x0 10 criteria))
 
 ;;; lbfgs-full : ((List TracedValue) → TracedValue) × (List Number) × Nat × ConvergenceCriteria → OptResult
@@ -197,6 +198,7 @@ Algorithm:
 ;;; minimize : ((List TracedValue) → TracedValue) × (List Number) → OptResult
 ;;; Minimize function using L-BFGS with default settings.
 (define (minimize f x0)
+  (doc 'export #t)
   (lbfgs f x0 *default-convergence*))
 
 ;;; minimize-with : ((List TracedValue) → TracedValue) × (List Number) × Symbol → OptResult

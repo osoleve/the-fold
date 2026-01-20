@@ -18,25 +18,30 @@
 (doc 'note "Examples: Coalition 0 = {} (empty), Coalition 1 = {0}, Coalition 5 = {0, 2} (binary 101), Coalition 7 = {0, 1, 2} (binary 111)")
 
 (define coalition-empty 0)
+(doc 'export #t)
 (doc coalition-empty 'type 'Coalition)
 (doc coalition-empty 'description "The empty coalition (no players)")
 
 (define (coalition-singleton i)
+  (doc 'export #t)
   (doc 'type '(-> Nat Coalition))
   (doc 'description "Coalition containing only player i")
   (bitwise-arithmetic-shift-left 1 i))
 
 (define (coalition-member? i S)
+  (doc 'export #t)
   (doc 'type '(-> Nat Coalition Boolean))
   (doc 'description "Is player i in coalition S?")
   (= 1 (bitwise-and 1 (bitwise-arithmetic-shift-right S i))))
 
 (define (coalition-union S T)
+  (doc 'export #t)
   (doc 'type '(-> Coalition Coalition Coalition))
   (doc 'description "Union of two coalitions")
   (bitwise-ior S T))
 
 (define (coalition-intersection S T)
+  (doc 'export #t)
   (doc 'type '(-> Coalition Coalition Coalition))
   (doc 'description "Intersection of two coalitions")
   (bitwise-and S T))
@@ -47,16 +52,19 @@
   (bitwise-and S (bitwise-not T)))
 
 (define (coalition-complement S n)
+  (doc 'export #t)
   (doc 'type '(-> Coalition Nat Coalition))
   (doc 'description "Complement of S w.r.t. grand coalition of n players")
   (bitwise-xor S (- (bitwise-arithmetic-shift-left 1 n) 1)))
 
 (define (coalition-size S)
+  (doc 'export #t)
   (doc 'type '(-> Coalition Nat))
   (doc 'description "Number of players in coalition S")
   (bitwise-bit-count S))
 
 (define (coalition->list S)
+  (doc 'export #t)
   (doc 'type '(-> Coalition (List Nat)))
   (doc 'description "Convert coalition to list of player indices")
   (let loop ([S S] [i 0] [acc '()])
@@ -69,12 +77,14 @@
                   acc)))))
 
 (define (list->coalition players)
+  (doc 'export #t)
   (doc 'type '(-> (List Nat) Coalition))
   (doc 'description "Convert list of player indices to coalition")
   (fold-left coalition-union coalition-empty
              (map coalition-singleton players)))
 
 (define (all-coalitions n)
+  (doc 'export #t)
   (doc 'type '(-> Nat (List Coalition)))
   (doc 'description "Generate all 2^n coalitions for n players")
   (iota (bitwise-arithmetic-shift-left 1 n)))
@@ -91,26 +101,31 @@
   (fields n v))
 
 (define (make-coop-game n v)
+  (doc 'export #t)
   (doc 'type '(-> Nat (-> Coalition Real) CoopGame))
   (doc 'description "Create a cooperative game with n players and characteristic function v")
   (make-coop-game% n v))
 
 (define (coop-game? x)
+  (doc 'export #t)
   (doc 'type '(-> Any Boolean))
   (doc 'description "Is x a cooperative game?")
   (coop-game%? x))
 
 (define (coop-game-players g)
+  (doc 'export #t)
   (doc 'type '(-> CoopGame Nat))
   (doc 'description "Number of players in the game")
   (coop-game%-n g))
 
 (define (coop-game-value g S)
+  (doc 'export #t)
   (doc 'type '(-> CoopGame Coalition Real))
   (doc 'description "Get characteristic function value for coalition S")
   ((coop-game%-v g) S))
 
 (define (coop-game-grand-coalition g)
+  (doc 'export #t)
   (doc 'type '(-> CoopGame Coalition))
   (doc 'description "The grand coalition N = {0, 1, ..., n-1}")
   (- (bitwise-arithmetic-shift-left 1 (coop-game-players g)) 1))
@@ -119,6 +134,7 @@
 (doc 'note "An allocation x is a vector of payoffs, one per player where x[i] = payoff to player i")
 
 (define (allocation-total x)
+  (doc 'export #t)
   (doc 'type '(-> (Vector Real) Real))
   (doc 'description "Sum of all payoffs in allocation")
   (let loop ([i 0] [sum 0])
@@ -127,6 +143,7 @@
         (loop (+ i 1) (+ sum (vector-ref x i))))))
 
 (define (allocation-coalition-total x S)
+  (doc 'export #t)
   (doc 'type '(-> (Vector Real) Coalition Real))
   (doc 'description "Sum of payoffs for players in coalition S")
   (let loop ([S S] [i 0] [sum 0])
@@ -142,6 +159,7 @@
 (doc 'note "An imputation satisfies: 1. Efficiency: sum(x) = v(N), 2. Individual rationality: x[i] >= v({i}) for all i")
 
 (define (imputation? g x)
+  (doc 'export #t)
   (doc 'type '(-> CoopGame (Vector Real) Boolean))
   (doc 'description "Is x an imputation for game g?")
   (let ([n (coop-game-players g)]
@@ -179,6 +197,7 @@
      (vector-ref fact-cache n)))
 
 (define (shapley-value g fuel)
+  (doc 'export #t)
   (doc 'type '(-> CoopGame Nat (Vector Real)))
   (doc 'description "Compute Shapley value for all players")
   (doc 'param 'fuel "Bounds computation (set to 2^n for exact result)")
@@ -228,11 +247,13 @@
 ;;; e(S, x) = v(S) - sum_{i in S}(x_i)
 ;;; Positive excess = coalition S can do better by deviating.
 (define (core-excess g x S)
+  (doc 'export #t)
   (- (coop-game-value g S) (allocation-coalition-total x S)))
 
 ;;; allocation-in-core? : CoopGame × (Vector Real) → Boolean
 ;;; Is allocation x in the core of game g?
 (define (allocation-in-core? g x)
+  (doc 'export #t)
   (let ([n (coop-game-players g)]
         [grand (coop-game-grand-coalition g)])
     (and
@@ -277,6 +298,7 @@
 ;;; Compute the nucleolus using iterated LP.
 ;;; fuel bounds the number of LP iterations.
 (define (nucleolus g fuel)
+  (doc 'export #t)
   (let* ([n (coop-game-players g)]
          [grand (coop-game-grand-coalition g)]
          [v-grand (coop-game-value g grand)]
@@ -498,6 +520,7 @@
 ;;; Nash bargaining solution: maximize product of gains over disagreement.
 ;;; For symmetric surplus, each player gets: d_i + (v(N) - d_0 - d_1) / 2
 (define (nash-bargaining g)
+  (doc 'export #t)
   (if (not (= 2 (coop-game-players g)))
       (error 'nash-bargaining "requires 2-player game")
       (let* ([bs (bargaining-set g)]
@@ -511,6 +534,7 @@
 ;;; kalai-smorodinsky : CoopGame → (Vector Real)
 ;;; Kalai-Smorodinsky solution: allocate proportionally to ideal gains.
 (define (kalai-smorodinsky g)
+  (doc 'export #t)
   (if (not (= 2 (coop-game-players g)))
       (error 'kalai-smorodinsky "requires 2-player game")
       (let* ([bs (bargaining-set g)]
@@ -538,6 +562,7 @@
 ;;; Additive game: v(S) = sum of individual values.
 ;;; Core is singleton (Shapley = individual values).
 (define (make-additive-game values)
+  (doc 'export #t)
   (let* ([n (length values)]
          [v-vec (list->vector values)])
     (make-coop-game
@@ -549,6 +574,7 @@
 ;;; Unanimity game u_T: v(S) = 1 if T ⊆ S, else 0.
 ;;; These form a basis for all cooperative games.
 (define (make-unanimity-game n T)
+  (doc 'export #t)
   (make-coop-game
    n
    (lambda (S)
@@ -558,6 +584,7 @@
 ;;; Weighted voting game: coalition wins if sum of weights >= quota.
 ;;; v(S) = 1 if winning, 0 otherwise.
 (define (make-weighted-voting-game weights quota)
+  (doc 'export #t)
   (let* ([n (length weights)]
          [w-vec (list->vector weights)])
     (make-coop-game
@@ -570,6 +597,7 @@
 ;;; v(S) = max_{i in S}(c_i) (cost that coalition S must pay).
 ;;; Note: This is a cost game; Shapley gives fair cost allocation.
 (define (make-airport-game costs)
+  (doc 'export #t)
   (let* ([n (length costs)]
          [c-vec (list->vector costs)])
     (make-coop-game
@@ -584,6 +612,7 @@
 ;;; Bankruptcy game: estate E divided among creditors with claims c_i.
 ;;; v(S) = max(0, E - sum_{j not in S}(c_j))
 (define (make-bankruptcy-game estate claims)
+  (doc 'export #t)
   (let* ([n (length claims)]
          [c-vec (list->vector claims)]
          [total-claims (apply + claims)])
@@ -599,6 +628,7 @@
 ;;; v(S) = min(left gloves in S, right gloves in S)
 ;;; Players 0..L-1 have left gloves, L..L+R-1 have right gloves.
 (define (make-gloves-game L R)
+  (doc 'export #t)
   (let ([n (+ L R)])
     (make-coop-game
      n
@@ -624,6 +654,7 @@
 ;;; coop-game-superadditive? : CoopGame × Nat → Boolean
 ;;; Check if v(S ∪ T) >= v(S) + v(T) for disjoint S, T.
 (define (coop-game-superadditive? g fuel)
+  (doc 'export #t)
   (let* ([n (coop-game-players g)]
          [grand (coop-game-grand-coalition g)])
     (let outer ([S 0] [fuel fuel])
@@ -645,6 +676,7 @@
 ;;; Check if v(S ∪ T) + v(S ∩ T) >= v(S) + v(T) for all S, T.
 ;;; Convex games always have non-empty core.
 (define (coop-game-convex? g fuel)
+  (doc 'export #t)
   (let* ([n (coop-game-players g)]
          [grand (coop-game-grand-coalition g)])
     (let outer ([S 0] [fuel fuel])
@@ -663,6 +695,7 @@
 ;;; coop-game-monotonic? : CoopGame × Nat → Boolean
 ;;; Check if S ⊆ T implies v(S) <= v(T).
 (define (coop-game-monotonic? g fuel)
+  (doc 'export #t)
   (let* ([n (coop-game-players g)]
          [grand (coop-game-grand-coalition g)])
     (let outer ([S 0] [fuel fuel])
@@ -680,6 +713,7 @@
 ;;; coop-game-simple? : CoopGame → Boolean
 ;;; Check if game values are only 0 or 1 (voting game).
 (define (coop-game-simple? g)
+  (doc 'export #t)
   (let ([grand (coop-game-grand-coalition g)])
     (let loop ([S 0])
       (if (> S grand)
@@ -696,11 +730,13 @@
 ;;; is-winning? : CoopGame × Coalition → Boolean
 ;;; Is coalition S winning? (for simple games)
 (define (is-winning? g S)
+  (doc 'export #t)
   (= 1 (coop-game-value g S)))
 
 ;;; is-blocking? : CoopGame × Coalition → Boolean
 ;;; Is coalition S blocking? (complement is not winning)
 (define (is-blocking? g S)
+  (doc 'export #t)
   (let ([n (coop-game-players g)])
     (not (is-winning? g (coalition-complement S n)))))
 
@@ -708,6 +744,7 @@
 ;;; Is player i pivotal in coalition S?
 ;;; (S is winning but S \ {i} is not)
 (define (is-pivotal? g S i)
+  (doc 'export #t)
   (and (coalition-member? i S)
        (is-winning? g S)
        (not (is-winning? g (coalition-difference S (coalition-singleton i))))))
@@ -716,6 +753,7 @@
 ;;; Banzhaf power index: probability of being pivotal.
 ;;; (normalized so index sums to 1)
 (define (banzhaf-index g fuel)
+  (doc 'export #t)
   (let* ([n (coop-game-players g)]
          [grand (coop-game-grand-coalition g)]
          [raw-scores (make-vector n 0)])

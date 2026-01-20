@@ -41,6 +41,7 @@
 ;;; g(mu) = mu
 ;;; Canonical link for Gaussian family.
 
+(doc identity-link 'export #t)
 (define identity-link
   (make-link-function
    'identity
@@ -58,6 +59,7 @@
 ;;; g(mu) = log(mu / (1 - mu))
 ;;; Canonical link for Binomial family.
 
+(doc logit-link 'export #t)
 (define logit-link
   (make-link-function
    'logit
@@ -81,6 +83,7 @@
 ;;; g(mu) = log(mu)
 ;;; Canonical link for Poisson family.
 
+(doc log-link 'export #t)
 (define log-link
   (make-link-function
    'log
@@ -102,6 +105,7 @@
 ;;; g(mu) = Phi^(-1)(mu) where Phi is standard normal CDF
 ;;; Alternative link for Binomial family.
 
+(doc probit-link 'export #t)
 (define probit-link
   (make-link-function
    'probit
@@ -156,6 +160,7 @@
 ;;; g(mu) = 1/mu
 ;;; Canonical link for Gamma family.
 
+(doc inverse-link 'export #t)
 (define inverse-link
   (make-link-function
    'inverse

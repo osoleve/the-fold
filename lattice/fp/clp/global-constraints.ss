@@ -11,6 +11,7 @@
 (doc 'section 'all-different-constraint)
 
 (define (all-different vars)
+  (doc 'export #t)
   (doc 'type '(-> (List LVar) (-> CStore (Maybe CStore))))
   (doc 'description "Constrain all variables to have different values")
   (doc 'note "Uses combination of: (1) Remove singleton values from other domains (2) Check for Hall set violations")
@@ -99,6 +100,7 @@
         [else (loop (cdr lst) (cons (car lst) seen) (cons (car lst) acc))])))
 
 (define (post-all-different cs vars)
+  (doc 'export #t)
   (doc 'type '(-> CStore (List LVar) (Maybe CStore)))
   (doc 'description "Post all-different constraint and propagate")
   (if (< (length vars) 2)
@@ -108,6 +110,7 @@
 (doc 'section 'element-constraint)
 
 (define (element index array value)
+  (doc 'export #t)
   (doc 'type '(-> LVar (List Int) LVar (-> CStore (Maybe CStore))))
   (doc 'description "Constrain: array[index] = value")
   (doc 'note "index is 1-based (like SICStus/ECLiPSe convention)")
@@ -153,6 +156,7 @@
                                               cs2))))))))))
 
 (define (post-element cs index array value)
+  (doc 'export #t)
   (doc 'type '(-> CStore LVar (List Int) LVar (Maybe CStore)))
   (doc 'description "Post element constraint and register for re-propagation")
   (post-constraint cs 'element (list index value) (element index array value)))
@@ -160,6 +164,7 @@
 (doc 'section 'sum-constraint)
 
 (define (sum-fd vars result)
+  (doc 'export #t)
   (doc 'type '(-> (List LVar) (Or LVar Int) (-> CStore (Maybe CStore))))
   (doc 'description "Constrain: sum(vars) = result")
   (lambda (cs)
@@ -228,6 +233,7 @@
                                                       #f))))))))))))
 
 (define (post-sum-fd cs vars result)
+  (doc 'export #t)
   (doc 'type '(-> CStore (List LVar) (Or LVar Int) (Maybe CStore)))
   (doc 'description "Post sum constraint and register for re-propagation")
   (let ([all-vars (if (lvar? result) (cons result vars) vars)])
@@ -236,6 +242,7 @@
 (doc 'section 'count-constraint)
 
 (define (count-fd value vars n)
+  (doc 'export #t)
   (doc 'type '(-> Int (List LVar) (Or LVar Int) (-> CStore (Maybe CStore))))
   (doc 'description "Constrain: count of value in vars = n")
   (lambda (cs)
@@ -328,6 +335,7 @@
                               #f)))))))
 
 (define (post-count-fd cs value vars n)
+  (doc 'export #t)
   (doc 'type '(-> CStore Int (List LVar) (Union LVar Int) (Maybe CStore)))
   (doc 'description "Post count constraint and register for re-propagation")
   (let ([all-vars (if (lvar? n) (cons n vars) vars)])

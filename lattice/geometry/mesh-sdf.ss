@@ -12,25 +12,30 @@
 (doc 'note "Mesh: (mesh triangles bvh) - represents a triangle mesh with precomputed BVH for acceleration")
 
 (define (make-mesh triangles)
+  (doc 'export #t)
   (doc 'type '(-> (List Triangle3) Mesh))
   (let ([bvh (bvh-build triangles 10)])  ; Max 10 triangles per leaf
        (list 'mesh triangles bvh)))
 
 (define (mesh? m)
+  (doc 'export #t)
   (doc 'type '(-> α Bool))
   (and (pair? m) (eq? (car m) 'mesh)))
 
 (define (mesh-triangles m)
+  (doc 'export #t)
   (doc 'type '(-> Mesh (List Triangle3)))
   (cadr m))
 
 (define (mesh-bvh m)
+  (doc 'export #t)
   (doc 'type '(-> Mesh BVH))
   (caddr m))
 
 (doc 'section 'mesh-sdf-computation)
 
 (define (mesh-sdf mesh point)
+  (doc 'export #t)
   (doc 'type '(-> Mesh Point3 Number))
   (doc 'description "Compute signed distance from point to mesh surface; uses BVH for acceleration")
   (let* ([bvh (mesh-bvh mesh)]
@@ -49,6 +54,7 @@
             1e10)))
 
 (define (mesh-sdf-gradient mesh point)
+  (doc 'export #t)
   (doc 'type '(-> Mesh Point3 Vec3))
   (doc 'description "Compute gradient (normal) of the SDF at a point; uses finite differences for numerical gradient")
   (let* ([eps 0.001]
@@ -63,6 +69,7 @@
 (doc 'section 'mesh-construction-helpers)
 
 (define (make-mesh-cube size)
+  (doc 'export #t)
   (doc 'type '(-> Number Mesh))
   (doc 'description "Create a cube mesh centered at origin with given half-size")
   (let* ([s size]
@@ -98,6 +105,7 @@
         (make-mesh triangles)))
 
 (define (subdivide-icosphere-triangles triangles radius levels)
+  (doc 'export #t)
   (doc 'type '(-> (List Triangle3) Number Number (List Triangle3)))
   (doc 'description "Apply n levels of subdivision to a list of triangles; uses shared edge midpoint table to ensure adjacent triangles share exact vertices")
   (if (<= levels 0)
@@ -239,6 +247,7 @@
 ;;; Subdivide a single triangle on the sphere surface into 4 triangles.
 ;;; NOTE: Use subdivide-icosphere-triangles for proper vertex sharing.
 (define (subdivide-icosphere-triangle tri radius)
+  (doc 'export #t)
   (let* ([v0 (triangle3-p1 tri)]
          [v1 (triangle3-p2 tri)]
          [v2 (triangle3-p3 tri)]
@@ -263,6 +272,7 @@
          (triangle3 m01-norm m12-norm m20-norm)))) ; Center triangle
 
 (define (make-mesh-sphere-ico radius subdivisions)
+  (doc 'export #t)
   (doc 'type '(-> Number Number Mesh))
   (doc 'description "Create a sphere mesh using icosphere subdivision")
   (doc 'param 'radius "Sphere radius")
@@ -316,6 +326,7 @@
 (doc 'section 'mesh-ray-intersection)
 
 (define (mesh-intersect-ray mesh ray)
+  (doc 'export #t)
   (doc 'type '(-> Mesh Ray3 (Maybe (List Point3 Number Triangle3))))
   (doc 'description "Find closest intersection of ray with mesh")
   (doc 'returns "(hit-point t-value triangle) or #f")
@@ -330,18 +341,22 @@
 (doc 'section 'mesh-statistics)
 
 (define (mesh-triangle-count mesh)
+  (doc 'export #t)
   (doc 'type '(-> Mesh Number))
   (length (mesh-triangles mesh)))
 
 (define (mesh-bvh-depth mesh)
+  (doc 'export #t)
   (doc 'type '(-> Mesh Number))
   (bvh-depth (mesh-bvh mesh)))
 
 (define (mesh-bvh-node-count mesh)
+  (doc 'export #t)
   (doc 'type '(-> Mesh Number))
   (bvh-count-nodes (mesh-bvh mesh)))
 
 (define (mesh-bounds mesh)
+  (doc 'export #t)
   (doc 'type '(-> Mesh AABB))
   (doc 'description "Get the bounding box of the entire mesh")
   (bvh-bbox (mesh-bvh mesh)))

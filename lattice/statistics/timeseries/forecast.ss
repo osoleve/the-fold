@@ -16,6 +16,7 @@
 
 (doc 'section 'forecast-accuracy-metrics)
 (define (mae actual forecast)
+  (doc 'export #t)
   (let* ([n (min (vector-length actual) (vector-length forecast))]
          [sum (let loop ([i 0] [s 0])
                    (if (= i n)
@@ -28,6 +29,7 @@
 ;;; mse : Vec × Vec → Num
 ;;; Mean Squared Error: (1/n) * sum((actual - forecast)^2)
 (define (mse actual forecast)
+  (doc 'export #t)
   (let* ([n (min (vector-length actual) (vector-length forecast))]
          [sum (let loop ([i 0] [s 0])
                    (if (= i n)
@@ -41,12 +43,14 @@
 ;;; rmse : Vec × Vec → Num
 ;;; Root Mean Squared Error: sqrt(MSE)
 (define (rmse actual forecast)
+  (doc 'export #t)
   (sqrt (mse actual forecast)))
 
 ;;; mape : Vec × Vec → Num
 ;;; Mean Absolute Percentage Error: (100/n) * sum(|actual - forecast| / |actual|)
 ;;; Note: Excludes zero values to avoid division by zero.
 (define (mape actual forecast)
+  (doc 'export #t)
   (let* ([n (min (vector-length actual) (vector-length forecast))])
         (let loop ([i 0] [s 0] [count 0])
              (if (= i n)
@@ -63,6 +67,7 @@
 ;;; Symmetric Mean Absolute Percentage Error.
 ;;; SMAPE = (100/n) * sum(|actual - forecast| / ((|actual| + |forecast|) / 2))
 (define (smape actual forecast)
+  (doc 'export #t)
   (let* ([n (min (vector-length actual) (vector-length forecast))])
         (let loop ([i 0] [s 0] [count 0])
              (if (= i n)
@@ -80,6 +85,7 @@
 ;;; Mean Absolute Scaled Error.
 ;;; MASE = MAE / MAE_naive where naive is one-step seasonal naive.
 (define (mase actual forecast training-data period)
+  (doc 'export #t)
   (let* ([mae-forecast (mae actual forecast)]
          ;; Compute in-sample MAE of seasonal naive
          [n (vector-length training-data)]
@@ -101,6 +107,7 @@
 ;;; naive-forecast : Vec × Nat → Vec
 ;;; Naive forecast: predict last observed value for all horizons.
 (define (naive-forecast xs h)
+  (doc 'export #t)
   (let* ([n (vector-length xs)]
          [last-val (vector-ref xs (- n 1))]
          [forecasts (make-vector h)])
@@ -112,6 +119,7 @@
 ;;; Drift forecast: extend the line from first to last observation.
 ;;; f_{n+h} = x_n + h * (x_n - x_1) / (n - 1)
 (define (drift-forecast xs h)
+  (doc 'export #t)
   (let* ([n (vector-length xs)]
          [first-val (vector-ref xs 0)]
          [last-val (vector-ref xs (- n 1))]
@@ -125,6 +133,7 @@
 ;;; seasonal-naive-forecast : Vec × Nat × Nat → Vec
 ;;; Seasonal naive: forecast = value from same season last period.
 (define (seasonal-naive-forecast xs period h)
+  (doc 'export #t)
   (let* ([n (vector-length xs)]
          [forecasts (make-vector h)])
         (do ([i 0 (+ i 1)])
@@ -136,6 +145,7 @@
 ;;; mean-forecast : Vec × Nat → Vec
 ;;; Mean forecast: predict the mean of all observations.
 (define (mean-forecast xs h)
+  (doc 'export #t)
   (let* ([n (vector-length xs)]
          [mean (/ (let loop ([i 0] [s 0])
                        (if (= i n)
@@ -155,6 +165,7 @@
 ;;; Compute prediction intervals given forecasts and residuals.
 ;;; Uses residual standard deviation and normality assumption.
 (define (forecast-intervals forecasts residuals confidence)
+  (doc 'export #t)
   (let* ([h (vector-length forecasts)]
          [n (vector-length residuals)]
          ;; Compute residual standard deviation
@@ -204,6 +215,7 @@
 ;;; forecast-accuracy : Vec × Vec → AccuracyResult
 ;;; Compute all accuracy metrics for a forecast.
 (define (forecast-accuracy actual forecast)
+  (doc 'export #t)
   (list 'accuracy-result
         (cons 'mae (mae actual forecast))
         (cons 'mse (mse actual forecast))
@@ -217,6 +229,7 @@
 ;;; U = 1 means forecast equals naive.
 ;;; U > 1 means forecast is worse than naive.
 (define (theil-u actual forecast naive-forecast)
+  (doc 'export #t)
   (let* ([mse-forecast (mse actual forecast)]
          [mse-naive (mse actual naive-forecast)])
         (sqrt (/ mse-forecast (max mse-naive 1e-10)))))
@@ -226,6 +239,7 @@
 ;;; TS = Cumulative Forecast Error / MAD
 ;;; |TS| > 4 suggests systematic bias.
 (define (tracking-signal actual forecast)
+  (doc 'export #t)
   (let* ([n (min (vector-length actual) (vector-length forecast))]
          [errors (make-vector n)]
          [_ (do ([i 0 (+ i 1)])
@@ -256,6 +270,7 @@
 ;;; forecast-fn: function to generate forecasts
 ;;; Returns vector of RMSE values for each fold.
 (define (time-series-cv xs initial horizon fit-fn forecast-fn)
+  (doc 'export #t)
   (let* ([n (vector-length xs)]
          [num-folds (max 1 (- n initial horizon))]
          [rmses (make-vector num-folds)])
@@ -288,6 +303,7 @@
 ;;; combine-forecasts-mean : (List Vec) → Vec
 ;;; Simple average of multiple forecasts.
 (define (combine-forecasts-mean forecasts)
+  (doc 'export #t)
   (if (null? forecasts)
       (vector)
       (let* ([h (vector-length (car forecasts))]
@@ -306,6 +322,7 @@
 ;;; combine-forecasts-weighted : (List Vec) × Vec → Vec
 ;;; Weighted combination of forecasts.
 (define (combine-forecasts-weighted forecasts weights)
+  (doc 'export #t)
   (if (null? forecasts)
       (vector)
       (let* ([h (vector-length (car forecasts))]

@@ -17,6 +17,7 @@
 (define *affine-next-noise-id* 0)
 
 (define (affine-fresh-noise-id!)
+  (doc 'export #t)
   (doc 'type '(-> Nat))
   (doc 'description "Generate a fresh noise symbol ID")
   (doc 'warning "IMPURE: modifies global state. In pure contexts, use explicit noise ID threading.")
@@ -25,6 +26,7 @@
     id))
 
 (define (affine-reset-noise-counter!)
+  (doc 'export #t)
   (doc 'type '(-> Void))
   (doc 'description "Reset noise counter. Useful for testing reproducibility.")
   (set! *affine-next-noise-id* 0))
@@ -36,6 +38,7 @@
 (doc 'invariant "Zero coefficients are not stored")
 
 (define (make-affine x0 terms)
+  (doc 'export #t)
   (doc 'type '(-> Real Alist Affine))
   (doc 'description "Create an affine form from center and terms. Terms are (noise-id . coefficient) pairs.")
   ;; Filter out zero terms and sort by noise ID
@@ -43,6 +46,7 @@
     (list 'affine x0 (sort (lambda (a b) (< (car a) (car b))) nonzero))))
 
 (define (affine? x)
+  (doc 'export #t)
   (doc 'type '(-> Any Boolean))
   (doc 'description "Test if value is an affine form")
   (and (pair? x)
@@ -52,21 +56,25 @@
 ;;; affine-center : Affine → Real
 ;;; Get central value x₀.
 (define (affine-center af)
+  (doc 'export #t)
   (cadr af))
 
 ;;; affine-terms : Affine → Alist
 ;;; Get noise terms as ((id . coef) ...).
 (define (affine-terms af)
+  (doc 'export #t)
   (caddr af))
 
 ;;; affine-constant : Real → Affine
 ;;; Create a constant affine form (no noise terms).
 (define (affine-constant x)
+  (doc 'export #t)
   (make-affine x '()))
 
 ;;; affine-noise : Real × Real → Affine
 ;;; Create an affine form with one noise symbol: x0 + x1*ε_new
 (define (affine-noise x0 x1)
+  (doc 'export #t)
   (if (zero? x1)
       (affine-constant x0)
       (make-affine x0 (list (cons (affine-fresh-noise-id!) x1)))))
@@ -79,6 +87,7 @@
 ;;; Convert interval [lo, hi] to affine form: mid + radius*ε_new
 ;;; The new noise symbol represents uncertainty within the interval.
 (define (affine-from-interval iv)
+  (doc 'export #t)
   (let ([lo (interval-lo iv)]
         [hi (interval-hi iv)])
     (let ([mid (/ (+ lo hi) 2)]
@@ -89,6 +98,7 @@
 ;;; Convert affine form back to interval.
 ;;; The interval is [x0 - Σ|xi|, x0 + Σ|xi|].
 (define (affine->interval af)
+  (doc 'export #t)
   (let ([x0 (affine-center af)]
         [terms (affine-terms af)])
     (let ([total-deviation (fold-left + 0 (map (lambda (t) (abs (cdr t))) terms))])
@@ -98,6 +108,7 @@
 ;;; affine-radius : Affine → Real
 ;;; Total radius (sum of absolute deviations).
 (define (affine-radius af)
+  (doc 'export #t)
   (fold-left + 0 (map (lambda (t) (abs (cdr t))) (affine-terms af))))
 
 ;;; ============================================================================
@@ -110,6 +121,7 @@
 ;;; affine-neg : Affine → Affine
 ;;; Negate: -(x₀ + Σxᵢεᵢ) = -x₀ + Σ(-xᵢ)εᵢ
 (define (affine-neg af)
+  (doc 'export #t)
   (make-affine (- (affine-center af))
                (map (lambda (t) (cons (car t) (- (cdr t))))
                     (affine-terms af))))
@@ -134,18 +146,21 @@
 ;;; affine-add : Affine × Affine → Affine
 ;;; Addition: (x₀ + Σxᵢεᵢ) + (y₀ + Σyᵢεᵢ) = (x₀+y₀) + Σ(xᵢ+yᵢ)εᵢ
 (define (affine-add af1 af2)
+  (doc 'export #t)
   (make-affine (+ (affine-center af1) (affine-center af2))
                (merge-terms (affine-terms af1) (affine-terms af2) +)))
 
 ;;; affine-sub : Affine × Affine → Affine
 ;;; Subtraction. When af1 = af2, all terms cancel! This solves the dependency problem.
 (define (affine-sub af1 af2)
+  (doc 'export #t)
   (make-affine (- (affine-center af1) (affine-center af2))
                (merge-terms (affine-terms af1) (affine-terms af2) -)))
 
 ;;; affine-scale : Affine × Real → Affine
 ;;; Scalar multiplication: k*(x₀ + Σxᵢεᵢ) = k*x₀ + Σ(k*xᵢ)εᵢ
 (define (affine-scale af k)
+  (doc 'export #t)
   (make-affine (* k (affine-center af))
                (map (lambda (t) (cons (car t) (* k (cdr t))))
                     (affine-terms af))))
@@ -153,6 +168,7 @@
 ;;; affine-add-constant : Affine × Real → Affine
 ;;; Add a constant: (x₀ + Σxᵢεᵢ) + c = (x₀+c) + Σxᵢεᵢ
 (define (affine-add-constant af c)
+  (doc 'export #t)
   (make-affine (+ (affine-center af) c)
                (affine-terms af)))
 
@@ -173,6 +189,7 @@
 ;;; a new noise symbol. |Σxᵢεᵢ| ≤ rx, |Σyᵢεᵢ| ≤ ry, so the product
 ;;; is bounded by rx*ry.
 (define (affine-mul af1 af2)
+  (doc 'export #t)
   (let* ([x0 (affine-center af1)]
          [y0 (affine-center af2)]
          [terms1 (affine-terms af1)]
@@ -196,6 +213,7 @@
 ;;; The quadratic term (Σxᵢεᵢ)² is bounded by r² where r = Σ|xᵢ|.
 ;;; But we can be smarter: (Σxᵢεᵢ)² ∈ [0, r²] with center r²/2.
 (define (affine-sqr af)
+  (doc 'export #t)
   (let* ([x0 (affine-center af)]
          [terms (affine-terms af)]
          [r (affine-radius af)])
@@ -212,6 +230,7 @@
 ;;; affine-recip : Affine → Affine | 'division-by-zero
 ;;; Reciprocal 1/x̂ using linearization at center with conservative error bounds.
 (define (affine-recip af)
+  (doc 'export #t)
   (let* ([iv (affine->interval af)]
          [a (interval-lo iv)]
          [b (interval-hi iv)])
@@ -254,6 +273,7 @@
 ;;; affine-div : Affine × Affine → Affine | 'division-by-zero
 ;;; Division: x̂/ŷ = x̂ * (1/ŷ)
 (define (affine-div af1 af2)
+  (doc 'export #t)
   (let ([recip (affine-recip af2)])
     (if (eq? recip 'division-by-zero)
         'division-by-zero
@@ -262,6 +282,7 @@
 ;;; affine-sqrt : Affine → Affine | 'domain-error
 ;;; Square root using Chebyshev approximation.
 (define (affine-sqrt af)
+  (doc 'export #t)
   (let* ([iv (affine->interval af)]
          [lo (interval-lo iv)]
          [hi (interval-hi iv)])
@@ -345,12 +366,14 @@
 ;;; Exponential function. exp is monotonically increasing and convex.
 ;;; exp'(x) = exp(x) = β  →  x = log(β)
 (define (affine-exp af)
+  (doc 'export #t)
   (affine-chebyshev-approx af exp log 'convex))
 
 ;;; affine-log : Affine → Affine | 'domain-error
 ;;; Natural logarithm. log is monotonically increasing and concave.
 ;;; log'(x) = 1/x = β  →  x = 1/β
 (define (affine-log af)
+  (doc 'export #t)
   (let* ([iv (affine->interval af)]
          [a (interval-lo iv)]
          [b (interval-hi iv)])
@@ -370,6 +393,7 @@
 ;;; affine-min : Affine × Affine → Affine
 ;;; Minimum of two affine forms. Conservative approximation.
 (define (affine-min af1 af2)
+  (doc 'export #t)
   (let ([iv1 (affine->interval af1)]
         [iv2 (affine->interval af2)])
     (cond
@@ -387,6 +411,7 @@
 ;;; affine-max : Affine × Affine → Affine
 ;;; Maximum of two affine forms. Conservative approximation.
 (define (affine-max af1 af2)
+  (doc 'export #t)
   (let ([iv1 (affine->interval af1)]
         [iv2 (affine->interval af2)])
     (cond
@@ -402,6 +427,7 @@
 ;;; affine-abs : Affine → Affine
 ;;; Absolute value.
 (define (affine-abs af)
+  (doc 'export #t)
   (let ([iv (affine->interval af)])
     (cond
       [(>= (interval-lo iv) 0) af]              ; Entirely non-negative
@@ -419,32 +445,39 @@
 
 ;;; affine-definitely-positive? : Affine → Boolean
 (define (affine-definitely-positive? af)
+  (doc 'export #t)
   (> (interval-lo (affine->interval af)) 0))
 
 ;;; affine-definitely-negative? : Affine → Boolean
 (define (affine-definitely-negative? af)
+  (doc 'export #t)
   (< (interval-hi (affine->interval af)) 0))
 
 ;;; affine-possibly-zero? : Affine → Boolean
 (define (affine-possibly-zero? af)
+  (doc 'export #t)
   (let ([iv (affine->interval af)])
     (and (<= (interval-lo iv) 0)
          (>= (interval-hi iv) 0))))
 
 ;;; affine-definitely< : Affine × Affine → Boolean
 (define (affine-definitely< af1 af2)
+  (doc 'export #t)
   (interval-definitely< (affine->interval af1) (affine->interval af2)))
 
 ;;; affine-definitely<= : Affine × Affine → Boolean
 (define (affine-definitely<= af1 af2)
+  (doc 'export #t)
   (interval-definitely<= (affine->interval af1) (affine->interval af2)))
 
 ;;; affine-definitely> : Affine × Affine → Boolean
 (define (affine-definitely> af1 af2)
+  (doc 'export #t)
   (affine-definitely< af2 af1))
 
 ;;; affine-definitely>= : Affine × Affine → Boolean
 (define (affine-definitely>= af1 af2)
+  (doc 'export #t)
   (affine-definitely<= af2 af1))
 
 ;;; ============================================================================
@@ -453,6 +486,7 @@
 
 ;;; affine->string : Affine → String
 (define (affine->string af)
+  (doc 'export #t)
   (let ([x0 (affine-center af)]
         [terms (affine-terms af)])
     (if (null? terms)
@@ -471,20 +505,30 @@
 
 ;;; affine-print : Affine → Void
 (define (affine-print af)
+  (doc 'export #t)
   (display (affine->string af)))
 
 ;;; ============================================================================
 ;;; Convenience Aliases
 ;;; ============================================================================
 
+(doc af+ 'export #t)
 (define af+ affine-add)
+(doc af- 'export #t)
 (define af- affine-sub)
+(doc af* 'export #t)
 (define af* affine-mul)
+(doc af/ 'export #t)
 (define af/ affine-div)
+(doc af-neg 'export #t)
 (define af-neg affine-neg)
+(doc af-sqr 'export #t)
 (define af-sqr affine-sqr)
+(doc af-sqrt 'export #t)
 (define af-sqrt affine-sqrt)
+(doc af-exp 'export #t)
 (define af-exp affine-exp)
+(doc af-log 'export #t)
 (define af-log affine-log)
 
 ;;; ============================================================================
@@ -494,6 +538,7 @@
 ;;; affine-sum : (Listof Affine) → Affine
 ;;; Sum of a list of affine forms.
 (define (affine-sum afs)
+  (doc 'export #t)
   (if (null? afs)
       (affine-constant 0)
       (fold-left affine-add (car afs) (cdr afs))))
@@ -501,6 +546,7 @@
 ;;; affine-product : (Listof Affine) → Affine
 ;;; Product of a list of affine forms.
 (define (affine-product afs)
+  (doc 'export #t)
   (if (null? afs)
       (affine-constant 1)
       (fold-left affine-mul (car afs) (cdr afs))))
@@ -508,6 +554,7 @@
 ;;; affine-linear-combination : (Listof Real) × (Listof Affine) → Affine
 ;;; Compute Σ cᵢ * x̂ᵢ (exact for affine operations).
 (define (affine-linear-combination coeffs afs)
+  (doc 'export #t)
   (affine-sum (map affine-scale afs coeffs)))
 
 ;;; ============================================================================
@@ -518,6 +565,7 @@
 ;;; Evaluate polynomial using Horner's method.
 ;;; Coefficients are [a0, a1, a2, ...] for a0 + a1*x + a2*x^2 + ...
 (define (affine-horner coeffs x)
+  (doc 'export #t)
   (if (null? coeffs)
       (affine-constant 0)
       (let loop ([cs (reverse coeffs)] [acc (affine-constant 0)])

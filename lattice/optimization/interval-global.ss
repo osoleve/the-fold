@@ -25,6 +25,7 @@ to enable aggressive pruning of other branches")
 (doc 'section 'convergence-criteria)
 
 (define (make-interval-convergence width-tol max-iter . gap-tol-opt)
+  (doc 'export #t)
   (doc 'type '(-> Real Nat Real IntervalConvergence))
   (doc 'description "Create convergence criteria for interval optimization")
   (doc 'param 'width-tol "Stop when box width below this tolerance")
@@ -62,12 +63,15 @@ to enable aggressive pruning of other branches")
 
 ;;; interval-opt-result? : Any → Boolean
 (define (interval-opt-result? x)
+  (doc 'export #t)
   (and (pair? x)
        (eq? (car x) 'interval-opt-result)))
 
 ;;; Accessors
 (define (ior-candidates result) (list-ref result 1))
+(doc 'export #t)
 (define (ior-best-upper result) (list-ref result 2))
+(doc 'export #t)
 (define (ior-iterations result) (list-ref result 3))
 (define (ior-reason result) (list-ref result 4))
 
@@ -82,12 +86,14 @@ to enable aggressive pruning of other branches")
 ;;; ior-best-point : IntervalOptResult → (List Real) | #f
 ;;; Get the midpoint of the best candidate box.
 (define (ior-best-point result)
+  (doc 'export #t)
   (let ([best (ior-best-box result)])
     (and best (box-midpoint best))))
 
 ;;; ior-solution-box : IntervalOptResult → Box | #f
 ;;; Get the hull (union) of all candidate boxes — a single conservative enclosure.
 (define (ior-solution-box result)
+  (doc 'export #t)
   (let ([candidates (ior-candidates result)])
     (if (null? candidates)
         #f
@@ -208,6 +214,7 @@ to enable aggressive pruning of other branches")
 ;;;
 ;;; Guarantee: For any x in the domain, f(x) >= interval-lo of all candidates.
 (define (interval-minimize f-interval initial-box criteria . f-scalar-opt)
+  (doc 'export #t)
   (let* ([f-scalar (if (null? f-scalar-opt)
                        (lambda (pt) (eval-at-point f-interval pt))
                        (car f-scalar-opt))]
@@ -303,6 +310,7 @@ to enable aggressive pruning of other branches")
 ;;; interval-maximize : (Box → Interval) × Box × IntervalConvergence [× (List Real → Real)] → IntervalOptResult
 ;;; Global maximization by minimizing -f.
 (define (interval-maximize f-interval initial-box criteria . f-scalar-opt)
+  (doc 'export #t)
   (let* ([neg-f-interval (lambda (box) (interval-neg (f-interval box)))]
          [neg-f-scalar (if (null? f-scalar-opt)
                            #f  ; Let interval-minimize derive it
@@ -323,6 +331,7 @@ to enable aggressive pruning of other branches")
 ;;; interval-find-minimum : (Box → Interval) × Box → (List Real)
 ;;; Simplified interface returning just the best point.
 (define (interval-find-minimum f-interval box)
+  (doc 'export #t)
   (let ([result (interval-minimize f-interval box *default-interval-convergence*)])
     (or (ior-best-point result)
         (box-midpoint box))))
@@ -334,6 +343,7 @@ to enable aggressive pruning of other branches")
 ;;; interval-sphere : Box → Interval
 ;;; Sphere function: f(x) = sum(x_i^2). Global min at origin.
 (define (interval-sphere box)
+  (doc 'export #t)
   (fold-left interval-add
              (interval-singleton 0)
              (map interval-sqr box)))
@@ -346,6 +356,7 @@ to enable aggressive pruning of other branches")
 ;;; Rosenbrock function (2D): f(x,y) = (1-x)^2 + 100(y-x^2)^2
 ;;; Global min at (1, 1) with value 0.
 (define (interval-rosenbrock box)
+  (doc 'export #t)
   (let* ([x (car box)]
          [y (cadr box)]
          [one (interval-singleton 1)]
@@ -368,6 +379,7 @@ to enable aggressive pruning of other branches")
 ;;; Highly multimodal, global min at origin.
 ;;; Note: Without interval cos, we use a conservative bound.
 (define (interval-rastrigin box)
+  (doc 'export #t)
   (let* ([n (length box)]
          [ten-n (interval-singleton (* 10 n))]
          ;; For each x_i: x_i^2 - 10*cos(2π*x_i)
@@ -429,6 +441,7 @@ to enable aggressive pruning of other branches")
 ;;; derivatives over the input box. Use interval-gradient from
 ;;; lattice/autodiff/interval-autodiff.ss to compute this automatically.
 (define (interval-minimize-with-gradient f-interval grad-fn initial-box criteria . f-scalar-opt)
+  (doc 'export #t)
   (let* ([f-scalar (if (null? f-scalar-opt)
                        (lambda (pt) (eval-at-point f-interval pt))
                        (car f-scalar-opt))]
@@ -548,6 +561,7 @@ to enable aggressive pruning of other branches")
 ;;; interval-find-minimum-with-gradient : (Box -> Interval) x (Box -> (List Interval)) x Box -> (List Real)
 ;;; Simplified interface with gradient-based monotonicity pruning.
 (define (interval-find-minimum-with-gradient f-interval grad-fn box)
+  (doc 'export #t)
   (let ([result (interval-minimize-with-gradient f-interval grad-fn box *default-interval-convergence*)])
     (or (ior-best-point result)
         (box-midpoint box))))

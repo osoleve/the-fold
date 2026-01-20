@@ -18,6 +18,7 @@ we avoid unnecessary bisections. If a contractor returns 'empty, we prune immedi
 (doc 'section 'contractors)
 
 (define (contract-all contractors box)
+  (doc 'export #t)
   (doc 'type '(-> (List Contractor) Box (Union Box 'empty)))
   (doc 'description "Apply all contractors in sequence until fixpoint or empty")
   (contract-fixpoint contractors box 100))
@@ -25,6 +26,7 @@ we avoid unnecessary bisections. If a contractor returns 'empty, we prune immedi
 ;;; contract-fixpoint : (List Contractor) × Box × Nat → Box | 'empty
 ;;; Apply contractors repeatedly until no change or fuel exhausted.
 (define (contract-fixpoint contractors box fuel)
+  (doc 'export #t)
   (if (<= fuel 0)
       box
       (let ([new-box (contract-once contractors box)])
@@ -56,6 +58,7 @@ we avoid unnecessary bisections. If a contractor returns 'empty, we prune immedi
 (doc 'section 'basic-contractors)
 
 (define (make-bound-contractor dim lo hi)
+  (doc 'export #t)
   (doc 'type '(-> Nat Real Real Contractor))
   (doc 'description "Create contractor that constrains dimension i to [lo, hi]")
   (lambda (box)
@@ -69,6 +72,7 @@ we avoid unnecessary bisections. If a contractor returns 'empty, we prune immedi
 ;;; make-equality-contractor : Nat × Real → Contractor
 ;;; Constrain dimension i to equal value v.
 (define (make-equality-contractor dim v)
+  (doc 'export #t)
   (lambda (box)
     (let ([iv (list-ref box dim)])
       (if (interval-contains? iv v)
@@ -80,6 +84,7 @@ we avoid unnecessary bisections. If a contractor returns 'empty, we prune immedi
 We can derive bounds on each variable from the others")
 
 (define (make-linear-le-contractor coeffs rhs)
+  (doc 'export #t)
   (doc 'type '(-> (List (Pair Nat Real)) Real Contractor))
   (doc 'description "Contractor for: sum(coef_i * x_i) <= rhs")
   (doc 'param 'coeffs "List of (dimension . coefficient) pairs")
@@ -164,6 +169,7 @@ We can derive bounds on each variable from the others")
 ;;; Contractor for: sum(coef_i * x_i) >= rhs
 ;;; Equivalent to: sum(-coef_i * x_i) <= -rhs
 (define (make-linear-ge-contractor coeffs rhs)
+  (doc 'export #t)
   (let ([neg-coeffs (map (lambda (p) (cons (car p) (- (cdr p)))) coeffs)])
     (make-linear-le-contractor neg-coeffs (- rhs))))
 
@@ -171,6 +177,7 @@ We can derive bounds on each variable from the others")
 ;;; Contractor for: sum(coef_i * x_i) = rhs
 ;;; Combines le and ge contractors.
 (define (make-linear-eq-contractor coeffs rhs)
+  (doc 'export #t)
   (let ([le-contractor (make-linear-le-contractor coeffs rhs)]
         [ge-contractor (make-linear-ge-contractor coeffs rhs)])
     (lambda (box)
@@ -182,6 +189,7 @@ We can derive bounds on each variable from the others")
 (doc 'section 'quadratic-contractors)
 
 (define (make-sphere-contractor center radius-sq)
+  (doc 'export #t)
   (doc 'type '(-> (List Real) Real Contractor))
   (doc 'description "Contractor for: sum((x_i - center_i)²) ≤ radius²")
   (doc 'note "Useful for trust region constraints")
@@ -239,6 +247,7 @@ We can derive bounds on each variable from the others")
 (doc 'section 'constrained-optimization)
 
 (define (interval-minimize-constrained f-interval initial-box criteria contractors)
+  (doc 'export #t)
   (doc 'type '(-> (-> Box Interval) Box IntervalConvergence (List Contractor) IntervalOptResult))
   (doc 'description "Global minimization with constraint contractors")
   (doc 'note "Contractors are applied before each bisection to shrink boxes")
@@ -338,6 +347,7 @@ We can derive bounds on each variable from the others")
 ;;; make-box-constraint : (List (Real × Real)) → (List Contractor)
 ;;; Create bound contractors for each dimension from (lo, hi) pairs.
 (define (make-box-constraints bounds)
+  (doc 'export #t)
   (let loop ([dim 0] [bs bounds] [acc '()])
     (if (null? bs)
         (reverse acc)

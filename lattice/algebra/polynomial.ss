@@ -28,33 +28,39 @@
 (doc 'note "descending order (for numeric/control theory applications).")
 (doc 'note "Ascending order is more natural for algebraic operations.")
 (define (make-polynomial field coeffs)
+  (doc 'export #t)
   (doc 'type '(-> Field (List Coeff) Polynomial))
   (doc 'description "Create a polynomial over field F with given coefficients")
   (doc 'description "Automatically normalizes (strips trailing zeros)")
   (list 'polynomial field (poly-normalize-coeffs field coeffs)))
 (define (polynomial? p)
+  (doc 'export #t)
   (and (pair? p)
        (eq? (car p) 'polynomial)))
 
 ;;; poly-field : Polynomial → Field
 ;;; Get the coefficient field.
 (define (poly-field p)
+  (doc 'export #t)
   (cadr p))
 
 ;;; poly-coeffs : Polynomial → (List Coeff)
 ;;; Get coefficient list in ascending power order.
 (define (poly-coeffs p)
+  (doc 'export #t)
   (caddr p))
 
 ;;; poly-degree : Polynomial → Nat
 ;;; Degree of polynomial. Zero polynomial has degree -1 by convention.
 (define (poly-degree p)
+  (doc 'export #t)
   (let ([coeffs (poly-coeffs p)])
     (- (length coeffs) 1)))
 
 ;;; poly-leading-coeff : Polynomial → Coeff
 ;;; Get leading (highest-degree) coefficient.
 (define (poly-leading-coeff p)
+  (doc 'export #t)
   (let ([coeffs (poly-coeffs p)])
     (if (null? coeffs)
         (field-zero (poly-field p))
@@ -63,6 +69,7 @@
 ;;; poly-coeff-at : Polynomial × Nat → Coeff
 ;;; Get coefficient of x^k.
 (define (poly-coeff-at p k)
+  (doc 'export #t)
   (let ([coeffs (poly-coeffs p)]
         [F (poly-field p)])
     (if (>= k (length coeffs))
@@ -83,6 +90,7 @@
 ;;; poly-zero? : Polynomial → Boolean
 ;;; Check if polynomial is zero.
 (define (poly-zero? p)
+  (doc 'export #t)
   (let ([F (poly-field p)]
         [coeffs (poly-coeffs p)])
     (and (= (length coeffs) 1)
@@ -95,21 +103,25 @@
 ;;; poly-zero-over : Field → Polynomial
 ;;; The zero polynomial over F.
 (define (poly-zero-over field)
+  (doc 'export #t)
   (make-polynomial field (list (field-zero field))))
 
 ;;; poly-one-over : Field → Polynomial
 ;;; The constant polynomial 1 over F.
 (define (poly-one-over field)
+  (doc 'export #t)
   (make-polynomial field (list (field-one field))))
 
 ;;; poly-constant : Field × Coeff → Polynomial
 ;;; Create constant polynomial.
 (define (poly-constant field c)
+  (doc 'export #t)
   (make-polynomial field (list c)))
 
 ;;; poly-monomial : Field × Coeff × Nat → Polynomial
 ;;; Create monomial c*x^n.
 (define (poly-monomial field coeff degree)
+  (doc 'export #t)
   (let ([zero (field-zero field)])
     (if ((field-equal-fn field) coeff zero)
         (poly-zero-over field)
@@ -119,6 +131,7 @@
 ;;; poly-x : Field → Polynomial
 ;;; The polynomial x (the indeterminate).
 (define (poly-x field)
+  (doc 'export #t)
   (poly-monomial field (field-one field) 1))
 
 ;;; ====
@@ -128,6 +141,7 @@
 ;;; poly-add : Polynomial × Polynomial → Polynomial
 ;;; Add two polynomials over the same field.
 (define (poly-add p1 p2)
+  (doc 'export #t)
   (let* ([F (poly-field p1)]
          [c1 (poly-coeffs p1)]
          [c2 (poly-coeffs p2)]
@@ -145,6 +159,7 @@
 ;;; poly-neg : Polynomial → Polynomial
 ;;; Negate a polynomial.
 (define (poly-neg p)
+  (doc 'export #t)
   (let* ([F (poly-field p)]
          [neg (field-neg-fn F)])
     (make-polynomial F (map neg (poly-coeffs p)))))
@@ -152,11 +167,13 @@
 ;;; poly-sub : Polynomial × Polynomial → Polynomial
 ;;; Subtract polynomials.
 (define (poly-sub p1 p2)
+  (doc 'export #t)
   (poly-add p1 (poly-neg p2)))
 
 ;;; poly-scale : Polynomial × Coeff → Polynomial
 ;;; Multiply polynomial by scalar.
 (define (poly-scale p c)
+  (doc 'export #t)
   (let* ([F (poly-field p)]
          [mul (field-mul-op F)])
     (make-polynomial F (map (lambda (a) (mul c a)) (poly-coeffs p)))))
@@ -164,6 +181,7 @@
 ;;; poly-mul : Polynomial × Polynomial → Polynomial
 ;;; Multiply two polynomials (convolution).
 (define (poly-mul p1 p2)
+  (doc 'export #t)
   (let* ([F (poly-field p1)]
          [c1 (poly-coeffs p1)]
          [c2 (poly-coeffs p2)]
@@ -196,6 +214,7 @@
 ;;; poly-power : Polynomial × Nat → Polynomial
 ;;; Raise polynomial to power n using repeated squaring.
 (define (poly-power p n)
+  (doc 'export #t)
   (cond
     [(= n 0) (poly-one-over (poly-field p))]
     [(= n 1) p]
@@ -212,6 +231,7 @@
 ;;; poly-equal? : Polynomial × Polynomial → Boolean
 ;;; Check if two polynomials are equal.
 (define (poly-equal? p1 p2)
+  (doc 'export #t)
   (let* ([F (poly-field p1)]
          [eq-fn (field-equal-fn F)]
          [c1 (poly-coeffs p1)]
@@ -230,6 +250,7 @@
 ;;; Division with remainder: p1 = q * p2 + r where deg(r) < deg(p2).
 ;;; Returns (quotient . remainder).
 (define (poly-divmod p1 p2)
+  (doc 'export #t)
   (let* ([F (poly-field p1)]
          [d2 (poly-degree p2)])
     (if (poly-zero? p2)
@@ -257,16 +278,19 @@
 ;;; poly-div : Polynomial × Polynomial → Polynomial
 ;;; Get quotient of division.
 (define (poly-div p1 p2)
+  (doc 'export #t)
   (car (poly-divmod p1 p2)))
 
 ;;; poly-mod : Polynomial × Polynomial → Polynomial
 ;;; Get remainder of division.
 (define (poly-mod p1 p2)
+  (doc 'export #t)
   (cdr (poly-divmod p1 p2)))
 
 ;;; poly-divides? : Polynomial × Polynomial → Boolean
 ;;; Check if p1 divides p2 (p2 = q * p1 for some q).
 (define (poly-divides? p1 p2)
+  (doc 'export #t)
   (poly-zero? (poly-mod p2 p1)))
 
 ;;; ====
@@ -277,6 +301,7 @@
 ;;; Compute GCD using Euclidean algorithm.
 ;;; Returns monic GCD (leading coeff = 1).
 (define (poly-gcd p1 p2)
+  (doc 'export #t)
   (let ([F (poly-field p1)])
     (if (poly-zero? p2)
         (poly-make-monic p1)
@@ -285,6 +310,7 @@
 ;;; poly-make-monic : Polynomial → Polynomial
 ;;; Scale polynomial so leading coefficient is 1.
 (define (poly-make-monic p)
+  (doc 'export #t)
   (if (poly-zero? p)
       p
       (let* ([F (poly-field p)]
@@ -296,6 +322,7 @@
 ;;; Extended Euclidean algorithm.
 ;;; Returns (gcd, s, t) such that gcd = s*p1 + t*p2.
 (define (poly-extended-gcd p1 p2)
+  (doc 'export #t)
   (let ([F (poly-field p1)])
     (poly-ext-gcd-loop p1 p2
                        (poly-one-over F) (poly-zero-over F)
@@ -323,6 +350,7 @@
 ;;; poly-lcm : Polynomial × Polynomial → Polynomial
 ;;; Least common multiple.
 (define (poly-lcm p1 p2)
+  (doc 'export #t)
   (if (or (poly-zero? p1) (poly-zero? p2))
       (poly-zero-over (poly-field p1))
       (poly-div (poly-mul p1 p2) (poly-gcd p1 p2))))
@@ -334,6 +362,7 @@
 ;;; poly-eval : Polynomial × Coeff → Coeff
 ;;; Evaluate polynomial at point using Horner's method.
 (define (poly-eval p x)
+  (doc 'export #t)
   (let* ([F (poly-field p)]
          [coeffs (reverse (poly-coeffs p))]  ; descending for Horner
          [add (field-add-op F)]
@@ -352,6 +381,7 @@
 ;;; poly-derivative : Polynomial → Polynomial
 ;;; Formal derivative: d/dx (sum a_k x^k) = sum k*a_k x^{k-1}
 (define (poly-derivative p)
+  (doc 'export #t)
   (let* ([F (poly-field p)]
          [coeffs (poly-coeffs p)]
          [add (field-add-op F)])
@@ -385,6 +415,7 @@
 ;;; Square-free part: p / gcd(p, p')
 ;;; Removes repeated roots.
 (define (poly-square-free p)
+  (doc 'export #t)
   (let ([p-prime (poly-derivative p)])
     (if (poly-zero? p-prime)
         p  ; Constant polynomial
@@ -394,6 +425,7 @@
 ;;; Yun's algorithm for square-free factorization.
 ;;; Returns list of (factor . multiplicity) pairs.
 (define (poly-square-free-factorization p)
+  (doc 'export #t)
   (let ([F (poly-field p)])
     (if (poly-zero? p)
         '()
@@ -423,6 +455,7 @@
 ;;; Lagrange interpolation through points [(x_0, y_0), ..., (x_n, y_n)].
 ;;; Returns unique polynomial p of degree ≤ n with p(x_i) = y_i.
 (define (poly-lagrange-interpolate F points)
+  (doc 'export #t)
   (if (null? points)
       (poly-zero-over F)
       (let ([n (length points)]
@@ -464,6 +497,7 @@
 ;;; Newton interpolation using divided differences.
 ;;; Often more efficient for incremental point addition.
 (define (poly-newton-interpolate F points)
+  (doc 'export #t)
   (if (null? points)
       (poly-zero-over F)
       (let* ([xs (map car points)]
@@ -533,6 +567,7 @@
 ;;; Note: Elements are polynomials, operations are polynomial operations.
 ;;; Returns a Ring (not Field) since F[x] is not a field.
 (define (make-polynomial-ring F)
+  (doc 'export #t)
   (make-ring
    '()  ; Elements not enumerable (infinite)
    (lambda (p1 p2) (poly-add p1 p2))    ; Addition
@@ -550,6 +585,7 @@
 ;;; poly->string : Polynomial × [Symbol] → String
 ;;; Pretty-print polynomial. Optional variable name (default 'x).
 (define (poly->string p . opts)
+  (doc 'export #t)
   (let* ([var (if (null? opts) 'x (car opts))]
          [F (poly-field p)]
          [coeffs (poly-coeffs p)]
@@ -612,4 +648,5 @@
 
 ;;; poly-ring : Polynomial → Field
 ;;; Alias for poly-field for backwards compatibility.
+(doc poly-ring 'export #t)
 (define poly-ring poly-field)

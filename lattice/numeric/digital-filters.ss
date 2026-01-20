@@ -16,11 +16,13 @@
 ;;; rectangular-window : Integer → (Vector Number)
 ;;; All ones (no windowing).
 (define (rectangular-window n)
+  (doc 'export #t)
   (make-vector n 1.0))
 
 ;;; hamming-window : Integer → (Vector Number)
 ;;; Hamming window: 0.54 - 0.46*cos(2*pi*n/(N-1))
 (define (hamming-window n)
+  (doc 'export #t)
   (if (= n 1)
       (vector 1.0)
       (let ([result (make-vector n)]
@@ -34,6 +36,7 @@
 ;;; hann-window : Integer → (Vector Number)
 ;;; Hann window: 0.5 * (1 - cos(2*pi*n/(N-1)))
 (define (hann-window n)
+  (doc 'export #t)
   (if (= n 1)
       (vector 1.0)
       (let ([result (make-vector n)]
@@ -46,6 +49,7 @@
 ;;; blackman-window : Integer → (Vector Number)
 ;;; Blackman window: 0.42 - 0.5*cos(2*pi*n/(N-1)) + 0.08*cos(4*pi*n/(N-1))
 (define (blackman-window n)
+  (doc 'export #t)
   (if (= n 1)
       (vector 1.0)
       (let ([result (make-vector n)]
@@ -61,6 +65,7 @@
 ;;; Kaiser window with shape parameter beta.
 ;;; beta = 0: rectangular, beta = 5.0: similar to Hamming, beta = 8.6: similar to Blackman
 (define (kaiser-window n beta)
+  (doc 'export #t)
   (if (= n 1)
       (vector 1.0)
       (let* ([result (make-vector n)]
@@ -77,6 +82,7 @@
 ;;; Modified Bessel function of the first kind, order 0.
 ;;; Uses polynomial approximation.
 (define (bessel-i0 x)
+  (doc 'export #t)
   (let ([ax (abs x)])
        (if (< ax 3.75)
            ;; Polynomial approximation for small x
@@ -110,6 +116,7 @@
 ;;; sinc : Number → Number
 ;;; Normalized sinc function: sin(pi*x)/(pi*x), sinc(0) = 1
 (define (sinc x)
+  (doc 'export #t)
   (if (< (abs x) 1e-10)
       1.0
       (let ([px (* (pi-value) x)])
@@ -121,6 +128,7 @@
 ;;; order: filter order (length = order + 1)
 ;;; window-fn: window function (e.g., hamming-window)
 (define (fir-lowpass cutoff order window-fn)
+  (doc 'export #t)
   (let* ([n (+ order 1)]
          [half (/ order 2.0)]
          [window (window-fn n)]
@@ -138,6 +146,7 @@
 ;;; Design FIR highpass filter using spectral inversion.
 ;;; cutoff: normalized cutoff frequency (0 to 1)
 (define (fir-highpass cutoff order window-fn)
+  (doc 'export #t)
   (let* ([lp (fir-lowpass cutoff order window-fn)]
          [n (vector-length lp)]
          [half (quotient n 2)]
@@ -152,6 +161,7 @@
 ;;; Design FIR bandpass filter.
 ;;; low, high: normalized band edges (0 to 1)
 (define (fir-bandpass low high order window-fn)
+  (doc 'export #t)
   (let* ([lp-high (fir-lowpass high order window-fn)]
          [lp-low (fir-lowpass low order window-fn)]
          [n (vector-length lp-high)]
@@ -166,6 +176,7 @@
 ;;; Design FIR bandstop (notch) filter.
 ;;; low, high: normalized band edges (0 to 1)
 (define (fir-bandstop low high order window-fn)
+  (doc 'export #t)
   (let* ([bp (fir-bandpass low high order window-fn)]
          [n (vector-length bp)]
          [half (quotient n 2)]
@@ -184,6 +195,7 @@
 ;;; Apply FIR filter to signal using convolution.
 ;;; Returns output with same length as input (valid mode with padding).
 (define (fir-filter signal coeffs)
+  (doc 'export #t)
   (convolve signal coeffs 'same))
 
 ;;; ====
@@ -199,21 +211,25 @@
 ;;; make-iir-filter : (Vector Number) × (Vector Number) → IIR-Filter
 ;;; Create an IIR filter structure.
 (define (make-iir-filter b a)
+  (doc 'export #t)
   `((type . iir)
     (b . ,b)
     (a . ,a)))
 
 ;;; iir-filter? : Any → Boolean
 (define (iir-filter? f)
+  (doc 'export #t)
   (and (pair? f)
        (eq? (cdr (assq 'type f)) 'iir)))
 
 ;;; iir-filter-b : IIR-Filter → (Vector Number)
 (define (iir-filter-b f)
+  (doc 'export #t)
   (cdr (assq 'b f)))
 
 ;;; iir-filter-a : IIR-Filter → (Vector Number)
 (define (iir-filter-a f)
+  (doc 'export #t)
   (cdr (assq 'a f)))
 
 ;;; ====
@@ -224,6 +240,7 @@
 ;;; Apply IIR filter using direct form I.
 ;;; y[n] = (1/a0) * (b0*x[n] + b1*x[n-1] + ... - a1*y[n-1] - a2*y[n-2] - ...)
 (define (iir-filter-signal signal b a)
+  (doc 'export #t)
   (let* ([n (vector-length signal)]
          [nb (vector-length b)]
          [na (vector-length a)]
@@ -269,32 +286,40 @@
 ;;; Create a biquad section with coefficients b0, b1, b2, a1, a2.
 ;;; Note: a0 is assumed to be 1 (normalized form).
 (define (make-biquad b0 b1 b2 a1 a2)
+  (doc 'export #t)
   `((type . biquad)
     (b0 . ,b0) (b1 . ,b1) (b2 . ,b2)
     (a1 . ,a1) (a2 . ,a2)))
 
 ;;; biquad? : Any → Boolean
 (define (biquad? x)
+  (doc 'export #t)
   (and (pair? x) (eq? (cdr (assq 'type x)) 'biquad)))
 
 ;;; biquad-b0 : Biquad → Number
 (define (biquad-b0 bq) (cdr (assq 'b0 bq)))
+(doc 'export #t)
 
 ;;; biquad-b1 : Biquad → Number
 (define (biquad-b1 bq) (cdr (assq 'b1 bq)))
+(doc 'export #t)
 
 ;;; biquad-b2 : Biquad → Number
 (define (biquad-b2 bq) (cdr (assq 'b2 bq)))
+(doc 'export #t)
 
 ;;; biquad-a1 : Biquad → Number
 (define (biquad-a1 bq) (cdr (assq 'a1 bq)))
+(doc 'export #t)
 
 ;;; biquad-a2 : Biquad → Number
 (define (biquad-a2 bq) (cdr (assq 'a2 bq)))
+(doc 'export #t)
 
 ;;; biquad-filter : (Vector Number) × Biquad → (Vector Number)
 ;;; Apply biquad filter using transposed direct form II.
 (define (biquad-filter signal bq)
+  (doc 'export #t)
   (let* ([n (vector-length signal)]
          [b0 (biquad-b0 bq)]
          [b1 (biquad-b1 bq)]
@@ -315,6 +340,7 @@
 ;;; cascade-biquads : (Vector Number) × (List Biquad) → (Vector Number)
 ;;; Apply a cascade of biquad sections.
 (define (cascade-biquads signal biquads)
+  (doc 'export #t)
   (if (null? biquads)
       signal
       (cascade-biquads (biquad-filter signal (car biquads))
@@ -329,6 +355,7 @@
 ;;; Poles are equally spaced on the left half of unit circle.
 ;;; For order N, poles are at s_k = exp(j * π * (2k + N + 1) / (2N)) for k = 0..N-1
 (define (butterworth-lowpass-poles order)
+  (doc 'export #t)
   (let loop ([k 0] [poles '()])
        (if (= k order)
            (reverse poles)
@@ -342,6 +369,7 @@
 ;;; Maps analog pole to digital pole.
 ;;; fc: prewarped critical frequency
 (define (bilinear-transform s fc)
+  (doc 'export #t)
   (let* ([t (/ 1.0 fc)]
          [st (complex-scale t s)])
         ;; z = (1 + s*T/2) / (1 - s*T/2)
@@ -353,6 +381,7 @@
 ;;; cutoff: normalized cutoff frequency (0 to 1)
 ;;; order: filter order
 (define (butterworth-lowpass cutoff order)
+  (doc 'export #t)
   ;; Prewarp cutoff frequency
   (let* ([wc (* (pi-value) cutoff)]
          [fc (tan wc)]
@@ -373,6 +402,7 @@
 ;;; poles-zeros->tf : (List Complex) × (List Complex) → IIR-Filter
 ;;; Convert poles and zeros to transfer function coefficients.
 (define (poles-zeros->tf poles zeros)
+  (doc 'export #t)
   ;; Build numerator from zeros: product of (z - zero_i)
   (let* ([b (poly-from-roots zeros)]
          ;; Build denominator from poles: product of (z - pole_i)
@@ -402,6 +432,7 @@
 ;;; Returns coefficients [c_n, c_{n-1}, ..., c_1, c_0] where
 ;;; p(z) = c_n*z^n + c_{n-1}*z^{n-1} + ... + c_0
 (define (poly-from-roots roots)
+  (doc 'export #t)
   (if (null? roots)
       (vector (make-complex 1 0))
       (let loop ([roots roots] [coeffs (vector (make-complex 1 0))])
@@ -414,6 +445,7 @@
 ;;; poly-mul-binomial : (Vector Complex) × Complex → (Vector Complex)
 ;;; Multiply polynomial by (z - root).
 (define (poly-mul-binomial coeffs root)
+  (doc 'export #t)
   (let* ([n (vector-length coeffs)]
          [result (make-vector (+ n 1) (complex-zero))])
         ;; result = coeffs * z - coeffs * root
@@ -442,6 +474,7 @@
 ;;; ripple: passband ripple in dB (e.g., 0.5)
 ;;; order: filter order
 (define (chebyshev1-lowpass cutoff ripple order)
+  (doc 'export #t)
   ;; Calculate epsilon from ripple
   (let* ([eps (sqrt (- (expt 10 (/ ripple 10)) 1))]
          [wc (* (pi-value) cutoff)]
@@ -455,6 +488,7 @@
 ;;; chebyshev1-poles : Integer × Number → (List Complex)
 ;;; Compute Chebyshev Type I analog poles.
 (define (chebyshev1-poles order eps)
+  (doc 'export #t)
   (let* ([mu (/ 1.0 order (asinh (/ 1.0 eps)))])
         (let loop ([k 0] [poles '()])
              (if (= k order)
@@ -488,6 +522,7 @@
 ;;; Compute frequency response of IIR filter.
 ;;; Returns (frequencies . H(e^jw)) where frequencies are normalized (0 to pi).
 (define (freqz filter n-points)
+  (doc 'export #t)
   (let* ([b (iir-filter-b filter)]
          [a (iir-filter-a filter)]
          [freqs (make-vector n-points)]
@@ -503,6 +538,7 @@
 ;;; eval-transfer-function : Vector × Vector × Complex → Complex
 ;;; Evaluate H(z) = B(z)/A(z) at z.
 (define (eval-transfer-function b a z)
+  (doc 'export #t)
   (let ([num (eval-poly b z)]
         [den (eval-poly a z)])
        (complex-div num den)))
@@ -511,6 +547,7 @@
 ;;; Evaluate polynomial at z using Horner's method.
 ;;; Coefficients are [b0, b1, ...] for b0 + b1*z^-1 + b2*z^-2 + ...
 (define (eval-poly coeffs z)
+  (doc 'export #t)
   (let* ([n (vector-length coeffs)]
          [z-inv (complex-div (make-complex 1 0) z)])
         ;; Horner's method starting from highest degree term
@@ -527,6 +564,7 @@
 ;;; magnitude-response : IIR-Filter × Integer → ((Vector Number) × (Vector Number))
 ;;; Compute magnitude response in dB.
 (define (magnitude-response filter n-points)
+  (doc 'export #t)
   (let* ([fr (freqz filter n-points)]
          [freqs (car fr)]
          [response (cdr fr)]
@@ -546,6 +584,7 @@
 ;;; phase-response : IIR-Filter × Integer → ((Vector Number) × (Vector Number))
 ;;; Compute phase response in radians.
 (define (phase-response filter n-points)
+  (doc 'export #t)
   (let* ([fr (freqz filter n-points)]
          [freqs (car fr)]
          [response (cdr fr)]
@@ -561,6 +600,7 @@
 ;;; make-filter-state : IIR-Filter → Filter-State
 ;;; Create stateful filter for sample-by-sample processing.
 (define (make-filter-state filter)
+  (doc 'export #t)
   (let* ([b (iir-filter-b filter)]
          [a (iir-filter-a filter)]
          [nb (vector-length b)]
@@ -573,11 +613,13 @@
 
 ;;; filter-state? : Any → Boolean
 (define (filter-state? x)
+  (doc 'export #t)
   (and (pair? x) (eq? (cdr (assq 'type x)) 'filter-state)))
 
 ;;; filter-process-sample! : Filter-State × Number → Number
 ;;; Process one sample through the filter, updating state.
 (define (filter-process-sample! state sample)
+  (doc 'export #t)
   (let* ([b (cdr (assq 'b state))]
          [a (cdr (assq 'a state))]
          [x-hist (cdr (assq 'x-hist state))]
@@ -612,6 +654,7 @@
 ;;; filter-reset! : Filter-State → void
 ;;; Reset filter state to zero.
 (define (filter-reset! state)
+  (doc 'export #t)
   (let ([x-hist (cdr (assq 'x-hist state))]
         [y-hist (cdr (assq 'y-hist state))])
        (let ([nx (vector-length x-hist)]
@@ -631,6 +674,7 @@
 ;;; Simple DC blocking filter.
 ;;; r: pole radius (0.99 typical, higher = slower cutoff)
 (define (dc-blocker r)
+  (doc 'export #t)
   (make-iir-filter (vector 1.0 -1.0)
                    (vector 1.0 (- r))))
 
@@ -638,6 +682,7 @@
 ;;; Simple one-pole lowpass filter.
 ;;; a: coefficient (0 to 1), lower = slower response
 (define (one-pole-lowpass a)
+  (doc 'export #t)
   (make-iir-filter (vector a)
                    (vector 1.0 (- a 1))))
 
@@ -645,12 +690,14 @@
 ;;; Simple one-pole highpass filter.
 ;;; a: coefficient (0 to 1)
 (define (one-pole-highpass a)
+  (doc 'export #t)
   (make-iir-filter (vector (/ (+ 1 (- a 1)) 2) (/ (- (+ 1 (- a 1))) 2))
                    (vector 1.0 (- a 1))))
 
 ;;; moving-average : Integer → (Vector Number)
 ;;; FIR moving average filter coefficients.
 (define (moving-average n)
+  (doc 'export #t)
   (let ([coeff (/ 1.0 n)])
        (make-vector n coeff)))
 
@@ -661,6 +708,7 @@
 ;;; impulse-response : IIR-Filter × Integer → (Vector Number)
 ;;; Compute impulse response of filter.
 (define (impulse-response filter n)
+  (doc 'export #t)
   (let ([impulse (make-vector n 0.0)])
        (vector-set! impulse 0 1.0)
        (iir-filter-signal impulse
@@ -670,6 +718,7 @@
 ;;; step-response : IIR-Filter × Integer → (Vector Number)
 ;;; Compute step response of filter.
 (define (step-response filter n)
+  (doc 'export #t)
   (let ([step (make-vector n 1.0)])
        (iir-filter-signal step
                           (iir-filter-b filter)

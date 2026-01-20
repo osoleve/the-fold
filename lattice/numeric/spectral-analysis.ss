@@ -23,6 +23,7 @@
 ;;;
 ;;; Returns: DFT of the windowed frame
 (define (stft-frame signal start frame-len window-type)
+  (doc 'export #t)
   (let* ([n (vector-length signal)]
          [window (make-window window-type frame-len)]
          [frame (make-vector frame-len 0)])
@@ -53,6 +54,7 @@
 ;;; Example:
 ;;;   (stft signal 512 256 'hann)  ; 50% overlap
 (define (stft signal frame-len hop-len window-type)
+  (doc 'export #t)
   (let* ([n (vector-length signal)]
          ;; Calculate number of frames
          [num-frames (+ 1 (quotient (- n frame-len) hop-len))]
@@ -76,6 +78,7 @@
 ;;;
 ;;; Note: Uses overlap-add method with window normalization.
 (define (istft frames frame-len hop-len window-type)
+  (doc 'export #t)
   (let* ([num-frames (vector-length frames)]
          ;; Calculate output length
          [signal-len (+ frame-len (* (- num-frames 1) hop-len))]
@@ -123,6 +126,7 @@
 ;;;
 ;;; Parameters same as stft.
 (define (spectrogram signal frame-len hop-len window-type)
+  (doc 'export #t)
   (let* ([stft-result (stft signal frame-len hop-len window-type)]
          [num-frames (vector-length stft-result)])
         (if (= num-frames 0)
@@ -139,6 +143,7 @@
 ;;;
 ;;; Returns |X[k,n]|² for each time-frequency bin.
 (define (power-spectrogram signal frame-len hop-len window-type)
+  (doc 'export #t)
   (let* ([stft-result (stft signal frame-len hop-len window-type)]
          [num-frames (vector-length stft-result)])
         (if (= num-frames 0)
@@ -155,6 +160,7 @@
 ;;;
 ;;; Returns 20*log₁₀(|X[k,n]| + ε) where ε = 1e-10 prevents log(0).
 (define (log-spectrogram signal frame-len hop-len window-type)
+  (doc 'export #t)
   (let* ([spec (spectrogram signal frame-len hop-len window-type)]
          [num-frames (vector-length spec)])
         (if (= num-frames 0)
@@ -193,6 +199,7 @@
 ;;; Note: For fs parameter, we assume fs=1 (normalized frequency).
 ;;; To get actual PSD, multiply by fs.
 (define (periodogram signal window-type)
+  (doc 'export #t)
   (let* ([n (vector-length signal)]
          [window (make-window window-type n)]
          [windowed (apply-window signal window)]
@@ -234,6 +241,7 @@
 ;;; - segment-len = 256, hop-len = 128 (50% overlap)
 ;;; - window-type = 'hann or 'hamming
 (define (welch-psd signal segment-len hop-len window-type)
+  (doc 'export #t)
   (let* ([n (vector-length signal)]
          [num-segments (+ 1 (quotient (- n segment-len) hop-len))]
          [psd (make-vector segment-len 0)]
@@ -281,6 +289,7 @@
 ;;;
 ;;; Returns: Frequency values for each bin [0, fs/n, 2*fs/n, ..., fs/2]
 (define (spectrogram-frequencies n fs)
+  (doc 'export #t)
   (freq-bins n fs))
 
 ;;; spectrogram-times : Integer × Integer × Integer × Number → Vector[Number]
@@ -294,6 +303,7 @@
 ;;;
 ;;; Returns: Time values for each frame center
 (define (spectrogram-times signal-len frame-len hop-len fs)
+  (doc 'export #t)
   (let* ([num-frames (+ 1 (quotient (- signal-len frame-len) hop-len))]
          [times (make-vector num-frames)])
         (do ([i 0 (+ i 1)])
@@ -314,6 +324,7 @@
 ;;;
 ;;; The centroid indicates the "brightness" of a sound.
 (define (spectral-centroid freqs power-spectrum)
+  (doc 'export #t)
   (let ([n (vector-length power-spectrum)])
        (let loop ([k 0] [weighted-sum 0] [total-power 0])
             (if (= k n)
@@ -333,6 +344,7 @@
 ;;;
 ;;; Indicates how spread out the spectrum is.
 (define (spectral-bandwidth freqs power-spectrum centroid)
+  (doc 'export #t)
   (let ([n (vector-length power-spectrum)])
        (let loop ([k 0] [weighted-variance 0] [total-power 0])
             (if (= k n)
@@ -359,6 +371,7 @@
 ;;;
 ;;; Returns: Rolloff frequency
 (define (spectral-rolloff freqs power-spectrum threshold)
+  (doc 'export #t)
   (let* ([n (vector-length power-spectrum)]
          ;; Compute total energy
          [total-energy (let loop ([k 0] [sum 0])

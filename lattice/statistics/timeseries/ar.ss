@@ -24,6 +24,7 @@
 (doc 'note "where R is the Toeplitz matrix of autocorrelations and r = [rho_1, ..., rho_p]'")
 (doc 'note "Uses Levinson-Durbin algorithm for O(p²) performance instead of O(p³)")
 (define (ar-fit xs p)
+  (doc 'export #t)
   (doc 'type '(-> Vec Nat (or ARResult Error)))
   (doc 'description "Fit AR(p) model using Yule-Walker equations")
   (let* ([n (vector-length xs)]
@@ -107,6 +108,7 @@
 ;;; Multi-step ahead forecasting.
 ;;; Returns point forecasts and confidence intervals.
 (define (ar-forecast model xs h)
+  (doc 'export #t)
   (let* ([phi (ar-coefficients model)]
          [mean (ar-intercept model)]
          [sigma (ar-sigma model)]
@@ -190,6 +192,7 @@
 ;;; Select optimal AR order using AIC.
 ;;; Fits AR(1), AR(2), ..., AR(max-p) and returns best order.
 (define (ar-select-order xs max-p)
+  (doc 'export #t)
   (let* ([n (vector-length xs)]
          [max-p (min max-p (quotient n 3))]  ; Limit by data size
          [aics (make-vector (+ max-p 1))])
@@ -213,6 +216,7 @@
 ;;; Bayesian Information Criterion.
 ;;; BIC = n * log(sigma^2) + log(n) * (p + 1)
 (define (ar-bic model)
+  (doc 'export #t)
   (let* ([n (vector-length (ar-fitted model))]
          [p (ar-order model)]
          [sigma (ar-sigma model)])

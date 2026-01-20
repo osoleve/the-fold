@@ -11,41 +11,50 @@
 (doc 'description "An isomorphism represents a reversible transformation. Iso s t a b means: s ≅ a and t ≅ b with consistent transformations. For simple isos: Iso' s a means s ≅ a. Laws: forward . backward = id, backward . forward = id")
 
 (define (make-iso forward backward)
+  (doc 'export #t)
   (doc 'type '(-> (-> s a) (-> b t) (Iso s t a b)))
   (doc 'description "For simple isos, s=t and a=b, so: (s → a) × (a → s)")
   (list 'iso forward backward))
 
 ;;; iso? : α → Boolean
 (define (iso? x)
+  (doc 'export #t)
   (and (pair? x) (eq? (car x) 'iso)))
 
 ;;; iso-forward : Iso s t a b → (s → a)
 (define (iso-forward i)
+  (doc 'export #t)
   (cadr i))
 
 ;;; iso-backward : Iso s t a b → (b → t)
 (define (iso-backward i)
+  (doc 'export #t)
   (caddr i))
 
 ;;; iso-view : Iso × s → a
 (define (iso-view iso s)
+  (doc 'export #t)
   ((iso-forward iso) s))
 
 ;;; iso-review : Iso × b → t
 (define (iso-review iso b)
+  (doc 'export #t)
   ((iso-backward iso) b))
 
 ;;; iso-over : Iso × (a → b) × s → t
 (define (iso-over iso f s)
+  (doc 'export #t)
   ((iso-backward iso) (f ((iso-forward iso) s))))
 
 ;;; iso-flip : Iso s t a b → Iso b a t s
 ;;; Reverse the direction of an iso.
 (define (iso-flip iso)
+  (doc 'export #t)
   (make-iso (iso-backward iso) (iso-forward iso)))
 
 ;;; iso-compose : Iso s t a b × Iso a b c d → Iso s t c d
 (define (iso-compose outer inner)
+  (doc 'export #t)
   (make-iso
    (compose2 (iso-forward inner) (iso-forward outer))
    (compose2 (iso-backward outer) (iso-backward inner))))
@@ -56,11 +65,13 @@
 
 ;;; iso-id : Iso a a a a
 ;;; Identity isomorphism.
+(doc iso-id 'export #t)
 (define iso-id
   (make-iso identity identity))
 
 ;;; iso-curried : Iso ((a, b) → c) (a → b → c)
 ;;; Curry/uncurry isomorphism.
+(doc iso-curried 'export #t)
 (define iso-curried
   (make-iso
    (lambda (f) (lambda (a) (lambda (b) (f (cons a b)))))
@@ -68,11 +79,13 @@
 
 ;;; iso-flipped : Iso (a → b → c) (b → a → c)
 ;;; Argument flip isomorphism.
+(doc iso-flipped 'export #t)
 (define iso-flipped
   (make-iso flip flip))
 
 ;;; iso-swapped : Iso (a, b) (b, a)
 ;;; Swap pair components.
+(doc iso-swapped 'export #t)
 (define iso-swapped
   (make-iso
    (lambda (p) (cons (cdr p) (car p)))
@@ -80,11 +93,13 @@
 
 ;;; iso-reversed : Iso (List a) (List a)
 ;;; List reversal (self-inverse).
+(doc iso-reversed 'export #t)
 (define iso-reversed
   (make-iso reverse reverse))
 
 ;;; iso-assoc-list : Iso ((a, b), c) (a, (b, c))
 ;;; Pair association.
+(doc iso-assoc-list 'export #t)
 (define iso-assoc-list
   (make-iso
    (lambda (abc) (cons (caar abc) (cons (cdar abc) (cdr abc))))
@@ -92,6 +107,7 @@
 
 ;;; iso-maybe-either : Iso (Maybe a) (Either () a)
 ;;; Maybe as Either with unit left.
+(doc iso-maybe-either 'export #t)
 (define iso-maybe-either
   (make-iso
    (lambda (m) (if (just? m) (right (from-just m)) (left '())))
@@ -99,6 +115,7 @@
 
 ;;; iso-cons : Iso (a, List a) (NonEmpty a)
 ;;; Pair of head+tail as non-empty list (represented as regular list).
+(doc iso-cons 'export #t)
 (define iso-cons
   (make-iso
    (lambda (p) (cons (car p) (cdr p)))
@@ -124,6 +141,7 @@
 
 ;;; lens-id : Lens a a
 ;;; Identity lens.
+(doc lens-id 'export #t)
 (define lens-id
   (make-lens identity (lambda (a _s) a)))
 
@@ -146,6 +164,7 @@
 ;;; prism-over : Prism × (a → b) × s → t
 ;;; Modify through a prism if target exists.
 (define (prism-over prism f s)
+  (doc 'export #t)
   (let ([maybe-a (preview prism s)])
     (if (nothing? maybe-a)
         s
@@ -154,10 +173,12 @@
 ;;; prism-set : Prism × b × s → t
 ;;; Set through a prism if target exists.
 (define (prism-set prism b s)
+  (doc 'export #t)
   (prism-over prism (const b) s))
 
 ;;; prism-compose : Prism s t a b × Prism a b c d → Prism s t c d
 (define (prism-compose outer inner)
+  (doc 'export #t)
   (make-prism
    ;; match: s → Maybe c
    (lambda (s)
@@ -171,11 +192,13 @@
 
 ;;; prism-id : Prism a a
 ;;; Identity prism.
+(doc prism-id 'export #t)
 (define prism-id
   (make-prism just identity))
 
 ;;; prism-nil : Prism (List a) ()
 ;;; Prism matching empty list.
+(doc prism-nil 'export #t)
 (define prism-nil
   (make-prism
    (lambda (xs) (if (null? xs) (just '()) nothing))
@@ -183,6 +206,7 @@
 
 ;;; prism-cons : Prism (List a) (a, List a)
 ;;; Prism matching non-empty list as head-tail pair.
+(doc prism-cons 'export #t)
 (define prism-cons
   (make-prism
    (lambda (xs) (if (null? xs) nothing (just (cons (car xs) (cdr xs)))))
@@ -193,6 +217,7 @@
 ;;; Note: This is an Affine, not a Prism, because we cannot lawfully
 ;;; "review" a single element back into a list without knowing the context.
 (define (affine-nth n)
+  (doc 'export #t)
   (make-affine
    (lambda (xs)
      (if (< n (length xs))
@@ -228,31 +253,38 @@
 
 ;;; make-affine : (s → Maybe a) × (b → s → t) → Affine s t a b
 (define (make-affine getter setter)
+  (doc 'export #t)
   (list 'affine getter setter))
 
 ;;; affine? : α → Boolean
 (define (affine? x)
+  (doc 'export #t)
   (and (pair? x) (eq? (car x) 'affine)))
 
 ;;; affine-getter : Affine → (s → Maybe a)
 (define (affine-getter a)
+  (doc 'export #t)
   (cadr a))
 
 ;;; affine-setter : Affine → (b → s → t)
 (define (affine-setter a)
+  (doc 'export #t)
   (caddr a))
 
 ;;; affine-preview : Affine × s → Maybe a
 (define (affine-preview affine s)
+  (doc 'export #t)
   ((affine-getter affine) s))
 
 ;;; affine-set : Affine × b × s → t
 (define (affine-set affine b s)
+  (doc 'export #t)
   ((affine-setter affine) b s))
 
 ;;; affine-over : Affine × (a → b) × s → t
 ;;; Modify if target exists.
 (define (affine-over affine f s)
+  (doc 'export #t)
   (let ([maybe-a ((affine-getter affine) s)])
     (if (nothing? maybe-a)
         s
@@ -260,6 +292,7 @@
 
 ;;; affine-compose : Affine s t a b × Affine a b c d → Affine s t c d
 (define (affine-compose outer inner)
+  (doc 'export #t)
   (make-affine
    ;; getter: s → Maybe c
    (lambda (s)
@@ -277,6 +310,7 @@
             s))))))
 
 ;;; affine-id : Affine a a
+(doc affine-id 'export #t)
 (define affine-id
   (make-affine just (lambda (a _s) a)))
 
@@ -286,12 +320,14 @@
 
 ;;; lens->affine : Lens s t a b → Affine s t a b
 (define (lens->affine lens)
+  (doc 'export #t)
   (make-affine
    (lambda (s) (just ((lens-getter lens) s)))
    (lens-setter lens)))
 
 ;;; prism->affine : Prism s t a b → Affine s t a b
 (define (prism->affine prism)
+  (doc 'export #t)
   (make-affine
    (prism-match prism)
    (lambda (b s)
@@ -317,28 +353,34 @@
 ;;; The function takes an applicative-lifted transformation.
 ;;; For concrete ops, we provide direct list-based accessors.
 (define (make-traversal traverse-fn fold-targets)
+  (doc 'export #t)
   (list 'traversal traverse-fn fold-targets))
 
 ;;; traversal? : α → Boolean
 (define (traversal? x)
+  (doc 'export #t)
   (and (pair? x) (eq? (car x) 'traversal)))
 
 ;;; traversal-traverse : Traversal → ((a → F b) → s → F t)
 (define (traversal-traverse t)
+  (doc 'export #t)
   (cadr t))
 
 ;;; traversal-fold : Traversal → (s → List a)
 ;;; Get all targets as a list.
 (define (traversal-fold t)
+  (doc 'export #t)
   (caddr t))
 
 ;;; traversal-to-list : Traversal × s → List a
 (define (traversal-to-list trav s)
+  (doc 'export #t)
   ((traversal-fold trav) s))
 
 ;;; traversal-over : Traversal × (a → b) × s → t
 ;;; Modify all targets.
 (define (traversal-over trav f s)
+  (doc 'export #t)
   ;; Use identity applicative for pure mapping
   ((traversal-traverse trav)
    (lambda (a) (f a))
@@ -347,10 +389,12 @@
 ;;; traversal-set : Traversal × b × s → t
 ;;; Set all targets to same value.
 (define (traversal-set trav b s)
+  (doc 'export #t)
   (traversal-over trav (const b) s))
 
 ;;; traversal-compose : Traversal s t a b × Traversal a b c d → Traversal s t c d
 (define (traversal-compose outer inner)
+  (doc 'export #t)
   (make-traversal
    ;; traverse: (c → F d) → s → F t
    (lambda (f s)
@@ -369,6 +413,7 @@
 
 ;;; traversal-each : Traversal (List a) (List b) a b
 ;;; Traverse each element of a list.
+(doc traversal-each 'export #t)
 (define traversal-each
   (make-traversal
    (lambda (f xs) (map f xs))
@@ -377,6 +422,7 @@
 ;;; traversal-filtered : (a → Boolean) → Traversal (List a) (List a) a a
 ;;; Traverse only elements matching predicate.
 (define (traversal-filtered pred)
+  (doc 'export #t)
   (make-traversal
    (lambda (f xs)
      (map (lambda (x) (if (pred x) (f x) x)) xs))
@@ -384,6 +430,7 @@
 
 ;;; traversal-both : Traversal (a, a) (b, b) a b
 ;;; Traverse both elements of a pair of same type.
+(doc traversal-both 'export #t)
 (define traversal-both
   (make-traversal
    (lambda (f p) (cons (f (car p)) (f (cdr p))))
@@ -391,6 +438,7 @@
 
 ;;; traversal-left : Traversal (Either a c) (Either b c) a b
 ;;; Traverse Left values.
+(doc traversal-left 'export #t)
 (define traversal-left
   (make-traversal
    (lambda (f e) (if (left? e) (left (f (from-left e))) e))
@@ -398,6 +446,7 @@
 
 ;;; traversal-right : Traversal (Either c a) (Either c b) a b
 ;;; Traverse Right values.
+(doc traversal-right 'export #t)
 (define traversal-right
   (make-traversal
    (lambda (f e) (if (right? e) (right (f (from-right e))) e))
@@ -405,6 +454,7 @@
 
 ;;; traversal-just : Traversal (Maybe a) (Maybe b) a b
 ;;; Traverse Just values.
+(doc traversal-just 'export #t)
 (define traversal-just
   (make-traversal
    (lambda (f m) (if (just? m) (just (f (from-just m))) nothing))
@@ -416,12 +466,14 @@
 
 ;;; lens->traversal : Lens s t a b → Traversal s t a b
 (define (lens->traversal lens)
+  (doc 'export #t)
   (make-traversal
    (lambda (f s) (set-lens lens (f (view lens s)) s))
    (lambda (s) (list (view lens s)))))
 
 ;;; prism->traversal : Prism s t a b → Traversal s t a b
 (define (prism->traversal prism)
+  (doc 'export #t)
   (make-traversal
    (lambda (f s)
      (let ([maybe-a (preview prism s)])
@@ -434,6 +486,7 @@
 
 ;;; affine->traversal : Affine s t a b → Traversal s t a b
 (define (affine->traversal affine)
+  (doc 'export #t)
   (make-traversal
    (lambda (f s)
      (let ([maybe-a (affine-preview affine s)])
@@ -453,53 +506,64 @@
 
 ;;; make-fold : (s → List a) → Fold s a
 (define (make-fold fold-fn)
+  (doc 'export #t)
   (list 'fold fold-fn))
 
 ;;; fold-optic? : α → Boolean
 (define (fold-optic? x)
+  (doc 'export #t)
   (and (pair? x) (eq? (car x) 'fold)))
 
 ;;; fold-optic-fn : Fold → (s → List a)
 (define (fold-optic-fn f)
+  (doc 'export #t)
   (cadr f))
 
 ;;; fold-to-list : Fold × s → List a
 (define (fold-to-list fold s)
+  (doc 'export #t)
   ((fold-optic-fn fold) s))
 
 ;;; fold-preview : Fold × s → Maybe a
 ;;; Get first target if any.
 (define (fold-preview fold s)
+  (doc 'export #t)
   (let ([targets ((fold-optic-fn fold) s)])
     (if (null? targets) nothing (just (car targets)))))
 
 ;;; fold-has : Fold × s → Boolean
 ;;; Check if any target exists.
 (define (fold-has fold s)
+  (doc 'export #t)
   (not (null? ((fold-optic-fn fold) s))))
 
 ;;; fold-length : Fold × s → Nat
 ;;; Count targets.
 (define (fold-length fold s)
+  (doc 'export #t)
   (length ((fold-optic-fn fold) s)))
 
 ;;; fold-all : Fold × (a → Boolean) × s → Boolean
 ;;; Check if all targets satisfy predicate.
 (define (fold-all fold pred s)
+  (doc 'export #t)
   (andmap pred ((fold-optic-fn fold) s)))
 
 ;;; fold-any : Fold × (a → Boolean) × s → Boolean
 ;;; Check if any target satisfies predicate.
 (define (fold-any fold pred s)
+  (doc 'export #t)
   (ormap pred ((fold-optic-fn fold) s)))
 
 ;;; fold-sum : Fold × s → Number
 ;;; Sum numeric targets.
 (define (fold-sum fold s)
+  (doc 'export #t)
   (apply + ((fold-optic-fn fold) s)))
 
 ;;; fold-compose : Fold s a × Fold a b → Fold s b
 (define (fold-compose outer inner)
+  (doc 'export #t)
   (make-fold
    (lambda (s)
      (apply append
@@ -511,15 +575,18 @@
 ;;; ====
 
 ;;; fold-each : Fold (List a) a
+(doc fold-each 'export #t)
 (define fold-each
   (make-fold identity))
 
 ;;; fold-filtered : (a → Boolean) → Fold (List a) a
 (define (fold-filtered pred)
+  (doc 'export #t)
   (make-fold (lambda (xs) (filter pred xs))))
 
 ;;; fold-taking : Nat → Fold (List a) a
 (define (fold-taking n)
+  (doc 'export #t)
   (make-fold (lambda (xs) (take-up-to n xs))))
 
 ;;; take-up-to : Nat × List → List
@@ -530,6 +597,7 @@
 
 ;;; fold-dropping : Nat → Fold (List a) a
 (define (fold-dropping n)
+  (doc 'export #t)
   (make-fold (lambda (xs) (drop-up-to n xs))))
 
 ;;; drop-up-to : Nat × List → List
@@ -544,14 +612,17 @@
 
 ;;; traversal->fold : Traversal s t a b → Fold s a
 (define (traversal->fold trav)
+  (doc 'export #t)
   (make-fold (traversal-fold trav)))
 
 ;;; lens->fold : Lens s a → Fold s a
 (define (lens->fold lens)
+  (doc 'export #t)
   (make-fold (lambda (s) (list (view lens s)))))
 
 ;;; prism->fold : Prism s a → Fold s a
 (define (prism->fold prism)
+  (doc 'export #t)
   (make-fold (lambda (s)
     (let ([maybe-a (preview prism s)])
       (if (nothing? maybe-a) '() (list (from-just maybe-a)))))))
@@ -564,22 +635,27 @@
 
 ;;; make-getter : (s → a) → Getter s a
 (define (make-getter get-fn)
+  (doc 'export #t)
   (list 'getter get-fn))
 
 ;;; getter? : α → Boolean
 (define (getter? x)
+  (doc 'export #t)
   (and (pair? x) (eq? (car x) 'getter)))
 
 ;;; getter-fn : Getter → (s → a)
 (define (getter-fn g)
+  (doc 'export #t)
   (cadr g))
 
 ;;; getter-view : Getter × s → a
 (define (getter-view getter s)
+  (doc 'export #t)
   ((getter-fn getter) s))
 
 ;;; getter-compose : Getter s a × Getter a b → Getter s b
 (define (getter-compose outer inner)
+  (doc 'export #t)
   (make-getter
    (compose2 (getter-fn inner) (getter-fn outer))))
 
@@ -588,19 +664,23 @@
 ;;; ====
 
 ;;; getter-id : Getter a a
+(doc getter-id 'export #t)
 (define getter-id
   (make-getter identity))
 
 ;;; getter-fst : Getter (a, b) a
+(doc getter-fst 'export #t)
 (define getter-fst
   (make-getter car))
 
 ;;; getter-snd : Getter (a, b) b
+(doc getter-snd 'export #t)
 (define getter-snd
   (make-getter cdr))
 
 ;;; getter-to : (s → a) → Getter s a
 ;;; Lift any function to a getter.
+(doc getter-to 'export #t)
 (define getter-to make-getter)
 
 ;;; ====
@@ -609,10 +689,12 @@
 
 ;;; lens->getter : Lens s a → Getter s a
 (define (lens->getter lens)
+  (doc 'export #t)
   (make-getter (lens-getter lens)))
 
 ;;; iso->getter : Iso s a → Getter s a
 (define (iso->getter iso)
+  (doc 'export #t)
   (make-getter (iso-forward iso)))
 
 ;;; ============================================================
@@ -623,26 +705,32 @@
 
 ;;; make-setter : ((a → b) → s → t) → Setter s t a b
 (define (make-setter over-fn)
+  (doc 'export #t)
   (list 'setter over-fn))
 
 ;;; setter? : α → Boolean
 (define (setter? x)
+  (doc 'export #t)
   (and (pair? x) (eq? (car x) 'setter)))
 
 ;;; setter-over-fn : Setter → ((a → b) → s → t)
 (define (setter-over-fn s)
+  (doc 'export #t)
   (cadr s))
 
 ;;; setter-over : Setter × (a → b) × s → t
 (define (setter-over setter f s)
+  (doc 'export #t)
   ((setter-over-fn setter) f s))
 
 ;;; setter-set : Setter × b × s → t
 (define (setter-set setter b s)
+  (doc 'export #t)
   ((setter-over-fn setter) (const b) s))
 
 ;;; setter-compose : Setter s t a b × Setter a b c d → Setter s t c d
 (define (setter-compose outer inner)
+  (doc 'export #t)
   (make-setter
    (lambda (f s)
      ((setter-over-fn outer)
@@ -655,17 +743,20 @@
 
 ;;; setter-mapped : Setter (List a) (List b) a b
 ;;; Set over list elements.
+(doc setter-mapped 'export #t)
 (define setter-mapped
   (make-setter map))
 
 ;;; setter-arg : Setter (a → r) (b → r) a b
 ;;; Modify function argument (contravariant).
+(doc setter-arg 'export #t)
 (define setter-arg
   (make-setter
    (lambda (f g) (compose2 g f))))
 
 ;;; setter-result : Setter (r → a) (r → b) a b
 ;;; Modify function result (covariant).
+(doc setter-result 'export #t)
 (define setter-result
   (make-setter
    (lambda (f g) (compose2 f g))))
@@ -676,14 +767,17 @@
 
 ;;; lens->setter : Lens s t a b → Setter s t a b
 (define (lens->setter lens)
+  (doc 'export #t)
   (make-setter (lambda (f s) (over lens f s))))
 
 ;;; traversal->setter : Traversal s t a b → Setter s t a b
 (define (traversal->setter trav)
+  (doc 'export #t)
   (make-setter (lambda (f s) (traversal-over trav f s))))
 
 ;;; iso->setter : Iso s t a b → Setter s t a b
 (define (iso->setter iso)
+  (doc 'export #t)
   (make-setter (lambda (f s) (iso-over iso f s))))
 
 ;;; ============================================================
@@ -709,44 +803,52 @@
 
 ;;; make-grate : (((s → a) → b) → t) → Grate s t a b
 (define (make-grate cotraverse-fn)
+  (doc 'export #t)
   (list 'grate cotraverse-fn))
 
 ;;; grate? : α → Boolean
 (define (grate? x)
+  (doc 'export #t)
   (and (pair? x) (eq? (car x) 'grate)))
 
 ;;; grate-cotraverse-fn : Grate → (((s → a) → b) → t)
 (define (grate-cotraverse-fn g)
+  (doc 'export #t)
   (cadr g))
 
 ;;; grate-review : Grate × b → t
 ;;; Inject a constant value through the grate.
 ;;; review g b = cotraverse (\_ -> b)
 (define (grate-review grate b)
+  (doc 'export #t)
   ((grate-cotraverse-fn grate) (lambda (_) b)))
 
 ;;; grate-over : Grate × (a → b) × s → t
 ;;; Modify through the grate.
 ;;; over g f s = cotraverse (\sa -> f (sa s))
 (define (grate-over grate f s)
+  (doc 'export #t)
   ((grate-cotraverse-fn grate)
    (lambda (sa) (f (sa s)))))
 
 ;;; grate-set : Grate × b × s → t
 ;;; Set through the grate (ignores structure, just reviews).
 (define (grate-set grate b _s)
+  (doc 'export #t)
   (grate-review grate b))
 
 ;;; grate-zipWith : Grate × (a → a → b) × s × s → t
 ;;; The defining operation of grates: zip two structures together.
 ;;; zipWithOf g f s1 s2 = cotraverse (\sa -> f (sa s1) (sa s2))
 (define (grate-zipWith grate f s1 s2)
+  (doc 'export #t)
   ((grate-cotraverse-fn grate)
    (lambda (sa) (f (sa s1) (sa s2)))))
 
 ;;; grate-zipWith3 : Grate × (a → a → a → b) × s × s × s → t
 ;;; Zip three structures together.
 (define (grate-zipWith3 grate f s1 s2 s3)
+  (doc 'export #t)
   ((grate-cotraverse-fn grate)
    (lambda (sa) (f (sa s1) (sa s2) (sa s3)))))
 
@@ -754,10 +856,12 @@
 ;;; Zip two structures into pairs (when a = b = pair type).
 ;;; Specialized zipWith with cons.
 (define (grate-zip grate s1 s2)
+  (doc 'export #t)
   (grate-zipWith grate cons s1 s2))
 
 ;;; grate-compose : Grate s t a b × Grate a b c d → Grate s t c d
 (define (grate-compose outer inner)
+  (doc 'export #t)
   (make-grate
    (lambda (sctod)
      ;; outer : ((s → a) → b) → t
@@ -779,6 +883,7 @@
 
 ;;; grate-id : Grate a a
 ;;; Identity grate.
+(doc grate-id 'export #t)
 (define grate-id
   (make-grate
    (lambda (satob) (satob identity))))
@@ -786,6 +891,7 @@
 ;;; grate-fn : Grate (x → a) (x → b) a b
 ;;; The canonical grate for functions.
 ;;; Functions can be "zipped" by applying multiple functions to the same input.
+(doc grate-fn 'export #t)
 (define grate-fn
   (make-grate
    (lambda (satob)
@@ -797,6 +903,7 @@
 ;;; grate-pair-same : Grate (a . a) (b . b) a b
 ;;; Grate for pairs where both elements have the same type.
 ;;; Allows zipping pairs together.
+(doc grate-pair-same 'export #t)
 (define grate-pair-same
   (make-grate
    (lambda (satob)
@@ -808,6 +915,7 @@
 ;;; Grate for fixed-length lists (representable functor).
 ;;; Only valid when all lists have exactly length n.
 (define (grate-list-rep n)
+  (doc 'export #t)
   (make-grate
    (lambda (satob)
      (let loop ([i 0] [acc '()])
@@ -823,6 +931,7 @@
 ;;; iso->grate : Iso s t a b → Grate s t a b
 ;;; Every iso is a grate.
 (define (iso->grate iso)
+  (doc 'export #t)
   (make-grate
    (lambda (satob)
      ((iso-backward iso)
@@ -831,6 +940,7 @@
 ;;; grate->setter : Grate s t a b → Setter s t a b
 ;;; Grates can be used as setters.
 (define (grate->setter grate)
+  (doc 'export #t)
   (make-setter
    (lambda (f s)
      (grate-over grate f s))))
@@ -859,11 +969,13 @@
 
 ;;; optic-type : Optic → Symbol
 (define (optic-type o)
+  (doc 'export #t)
   (if (pair? o) (car o) 'unknown))
 
 ;;; optic-compose : Optic × Optic → Optic
 ;;; Unified composition that returns appropriate type.
 (define (optic-compose outer inner)
+  (doc 'export #t)
   (let ([t1 (optic-type outer)]
         [t2 (optic-type inner)])
     (cond
@@ -954,6 +1066,7 @@
 ;;; (>>> outer inner) focuses first through outer, then inner within that.
 ;;; "Outer" and "inner" refer to structural nesting: outer contains inner.
 (define (>>> outer inner)
+  (doc 'export #t)
   (optic-compose outer inner))
 
 ;;; ====
@@ -962,6 +1075,7 @@
 
 ;;; ->traversal : Optic → Traversal
 (define (->traversal o)
+  (doc 'export #t)
   (case (optic-type o)
     [(traversal) o]
     [(lens) (lens->traversal o)]
@@ -975,6 +1089,7 @@
 
 ;;; ->fold : Optic → Fold
 (define (->fold o)
+  (doc 'export #t)
   (case (optic-type o)
     [(fold) o]
     [(getter) (getter->fold o)]
@@ -988,6 +1103,7 @@
 
 ;;; ->setter : Optic → Setter
 (define (->setter o)
+  (doc 'export #t)
   (case (optic-type o)
     [(setter) o]
     [(lens) (lens->setter o)]
@@ -1002,18 +1118,21 @@
 
 ;;; iso->lens : Iso s t a b → Lens s t a b
 (define (iso->lens iso)
+  (doc 'export #t)
   (make-lens
    (iso-forward iso)
    (lambda (b _s) ((iso-backward iso) b))))
 
 ;;; iso->prism : Iso s t a b → Prism s t a b
 (define (iso->prism iso)
+  (doc 'export #t)
   (make-prism
    (lambda (s) (just ((iso-forward iso) s)))
    (iso-backward iso)))
 
 ;;; getter->fold : Getter s a → Fold s a
 (define (getter->fold getter)
+  (doc 'export #t)
   (make-fold (lambda (s) (list ((getter-fn getter) s)))))
 
 ;;; ============================================================
@@ -1022,6 +1141,7 @@
 
 ;;; ^. : s × Optic → a (view through any readable optic)
 (define (^. s optic)
+  (doc 'export #t)
   (case (optic-type optic)
     [(lens) (view optic s)]
     [(getter) (getter-view optic s)]
@@ -1037,6 +1157,7 @@
 
 ;;; ^? : s × Optic → Maybe a (preview through any optic)
 (define (^? s optic)
+  (doc 'export #t)
   (case (optic-type optic)
     [(lens) (just (view optic s))]
     [(getter) (just (getter-view optic s))]
@@ -1052,6 +1173,7 @@
 
 ;;; ^.. : s × Optic → List a (get all targets)
 (define (^.. s optic)
+  (doc 'export #t)
   (case (optic-type optic)
     [(lens) (list (view optic s))]
     [(getter) (list (getter-view optic s))]
@@ -1066,6 +1188,7 @@
 
 ;;; .~ : Optic × b → (s → t) (set through optic)
 (define (.~ optic val)
+  (doc 'export #t)
   (lambda (s)
     (case (optic-type optic)
       [(lens) (set-lens optic val s)]
@@ -1079,6 +1202,7 @@
 
 ;;; %~ : Optic × (a → b) → (s → t) (modify through optic)
 (define (%~ optic f)
+  (doc 'export #t)
   (lambda (s)
     (case (optic-type optic)
       [(lens) (over optic f s)]
@@ -1092,6 +1216,7 @@
 
 ;;; & : s × (s → t) → t (reverse application for chaining)
 (define (& s f) (f s))
+(doc 'export #t)
 
 ;;; ============================================================
 ;;; Part 11: Law Verification
@@ -1099,6 +1224,7 @@
 
 ;;; verify-iso-laws : Iso × (List a) × (List b) → Boolean
 (define (verify-iso-laws iso test-as test-bs)
+  (doc 'export #t)
   (and
    ;; forward . backward = id (for b values)
    (andmap (lambda (b)
@@ -1112,6 +1238,7 @@
 ;;; verify-lens-laws : Lens × (List (s, a)) → Boolean
 ;;; Test values are pairs of (source, new-value).
 (define (verify-lens-laws lens test-pairs)
+  (doc 'export #t)
   (andmap
    (lambda (pair)
      (let ([s (car pair)]
@@ -1128,6 +1255,7 @@
 
 ;;; verify-prism-laws : Prism × (List a) × (List s) → Boolean
 (define (verify-prism-laws prism test-as test-ss)
+  (doc 'export #t)
   (and
    ;; Preview-Review: preview (review a) = Just a
    (andmap (lambda (a)
@@ -1143,6 +1271,7 @@
 
 ;;; verify-traversal-laws : Traversal × (List s) → Boolean
 (define (verify-traversal-laws trav test-ss)
+  (doc 'export #t)
   (andmap
    (lambda (s)
      (and
@@ -1160,6 +1289,7 @@
 ;;;   - Identity: grate-over id = id
 ;;;   - Composition: grate-over g . grate-over f = grate-over (g . f)
 (define (verify-grate-laws grate test-ss)
+  (doc 'export #t)
   (andmap
    (lambda (s)
      (and

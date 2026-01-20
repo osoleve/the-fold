@@ -23,6 +23,7 @@
 (doc 'note "Ridge regression minimizes: ||y - X*beta||² + lambda * ||beta||²")
 (doc 'note "Closed-form solution: beta = (X'X + lambda*I)^(-1) X'y")
 (define (ridge-fit X y lambda)
+  (doc 'export #t)
   (doc 'type '(-> Matrix Vec Num (or LinearModelResult Error)))
   (doc 'description "Fit ridge regression with given lambda")
   (doc 'note "X should be standardized (except intercept column if present)")
@@ -98,6 +99,7 @@
 ;;;   max-iter: maximum iterations (default 1000)
 ;;;   tol: convergence tolerance (default 1e-6)
 (define (lasso-fit X y lambda . opts)
+  (doc 'export #t)
   (let* ([max-iter (if (>= (length opts) 1) (car opts) 1000)]
          [tol (if (>= (length opts) 2) (cadr opts) 1e-6)]
          [n (matrix-rows X)]
@@ -213,6 +215,7 @@
 ;;;   lambda: regularization strength
 ;;;   alpha: mixing parameter in [0,1] (1=lasso, 0=ridge)
 (define (elastic-net-fit X y lambda alpha . opts)
+  (doc 'export #t)
   (let* ([max-iter (if (>= (length opts) 1) (car opts) 1000)]
          [tol (if (>= (length opts) 2) (cadr opts) 1e-6)]
          [n (matrix-rows X)]
@@ -276,6 +279,7 @@
 ;;;   k: number of folds (default 5)
 ;;;   method: 'ridge, 'lasso, or 'elastic-net
 (define (cross-validate-lambda X y lambdas k method . opts)
+  (doc 'export #t)
   (let* ([alpha (if (>= (length opts) 1) (car opts) 1)]  ; For elastic net
          [n (matrix-rows X)]
          [fold-size (quotient n k)]

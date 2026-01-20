@@ -54,12 +54,14 @@
 (doc 'section 'mesh-to-simplicial-complex-conversion)
 
 (define (mesh->simplicial-complex mesh)
+  (doc 'export #t)
   (doc 'type '(-> Mesh SC))
   (doc 'description "Convert a triangle mesh to a 2-dimensional simplicial complex")
   (doc 'note "Conversion: each unique vertex position → 0-simplex, each edge → 1-simplex, each triangle → 2-simplex; simplicial complex automatically includes all faces due to closure property")
   (triangles->simplicial-complex (mesh-triangles mesh)))
 
 (define (triangles->simplicial-complex triangles)
+  (doc 'export #t)
   (doc 'type '(-> (List Triangle3) SC))
   (doc 'description "Convert raw triangle list to simplicial complex")
   (let-values ([(key->idx vertices) (build-vertex-map triangles)])
@@ -82,22 +84,26 @@
 (doc 'section 'topological-invariants)
 
 (define (mesh-betti-numbers mesh)
+  (doc 'export #t)
   (doc 'type '(-> Mesh (List Integer)))
   (doc 'description "Compute Betti numbers (B_0, B_1, B_2) for a mesh")
   (doc 'note "Interpretation: B_0 = connected components, B_1 = tunnels/handles (genus-related), B_2 = enclosed voids")
   (sc-betti-numbers (mesh->simplicial-complex mesh)))
 
 (define (mesh-euler-characteristic mesh)
+  (doc 'export #t)
   (doc 'type '(-> Mesh Integer))
   (doc 'description "Compute Euler characteristic: χ = V - E + F; for closed surface: χ = 2 - 2g where g is genus")
   (sc-euler (mesh->simplicial-complex mesh)))
 
 (define (mesh-f-vector mesh)
+  (doc 'export #t)
   (doc 'type '(-> Mesh (List Integer Integer Integer)))
   (doc 'description "Get the f-vector: (vertices, edges, faces)")
   (sc-f-vector (mesh->simplicial-complex mesh)))
 
 (define (mesh-connected-components mesh)
+  (doc 'export #t)
   (doc 'type '(-> Mesh Integer))
   (doc 'description "Count connected components (same as B_0 but via union-find)")
   (sc-connected-components (mesh->simplicial-complex mesh)))
@@ -105,6 +111,7 @@
 (doc 'section 'genus-computation)
 
 (define (mesh-genus mesh)
+  (doc 'export #t)
   (doc 'type '(-> Mesh (Union Integer Symbol)))
   (doc 'description "Compute the genus of a closed orientable surface: χ = 2 - 2g → g = (2 - χ) / 2")
   (doc 'returns "Integer genus | 'disconnected | 'open if B_2 ≠ 1 | 'non-orientable if non-integer genus")
@@ -134,6 +141,7 @@
 ;;; Count how many triangles share each edge.
 ;;; Key: sorted pair of vertex indices, Value: count
 (define (mesh-edge-counts mesh)
+  (doc 'export #t)
   (let-values ([(key->idx vertices) (build-vertex-map (mesh-triangles mesh))])
     (let ([edge-count (make-hashtable equal-hash equal?)])
       (for-each
@@ -166,12 +174,14 @@
 ;;; The vertex condition catches "pinch points" where multiple surfaces
 ;;; meet at a single vertex (e.g., hourglass shape = two cones at one point).
 (define (mesh-is-manifold? mesh)
+  (doc 'export #t)
   (and (mesh-edges-are-manifold? mesh)
        (mesh-vertices-are-manifold? mesh)))
 
 ;;; mesh-edges-are-manifold? : Mesh → Boolean
 ;;; Check edge condition: every edge shared by 1-2 triangles.
 (define (mesh-edges-are-manifold? mesh)
+  (doc 'export #t)
   (let ([edge-counts (mesh-edge-counts mesh)])
     (let-values ([(keys) (hashtable-keys edge-counts)])
       (let loop ([i 0])
@@ -188,6 +198,7 @@
 ;;; (interior vertex) or line segment (boundary vertex) - both are connected.
 ;;; Disconnected links indicate "pinch points" (non-manifold vertices).
 (define (mesh-vertices-are-manifold? mesh)
+  (doc 'export #t)
   (let* ([sc (mesh->simplicial-complex mesh)]
          [vertices (sc-vertices sc)])
     (let loop ([vs vertices])
@@ -301,6 +312,7 @@
 ;;; Check if mesh is a closed surface (no boundary edges).
 ;;; Every edge must be shared by exactly 2 triangles.
 (define (mesh-is-closed? mesh)
+  (doc 'export #t)
   (let ([edge-counts (mesh-edge-counts mesh)])
     (let-values ([(keys) (hashtable-keys edge-counts)])
       (let loop ([i 0])
@@ -314,6 +326,7 @@
 ;;; mesh-boundary-edges : Mesh → (List (Int . Int))
 ;;; Find all boundary edges (edges shared by only 1 triangle).
 (define (mesh-boundary-edges mesh)
+  (doc 'export #t)
   (let ([edge-counts (mesh-edge-counts mesh)])
     (let-values ([(keys) (hashtable-keys edge-counts)])
       (let loop ([i 0] [result '()])
@@ -329,6 +342,7 @@
 ;;; mesh-non-manifold-edges : Mesh → (List (Int . Int))
 ;;; Find non-manifold edges (shared by >2 triangles).
 (define (mesh-non-manifold-edges mesh)
+  (doc 'export #t)
   (let ([edge-counts (mesh-edge-counts mesh)])
     (let-values ([(keys) (hashtable-keys edge-counts)])
       (let loop ([i 0] [result '()])
@@ -348,6 +362,7 @@
 ;;; mesh-topology-summary : Mesh → Void
 ;;; Print a comprehensive topological analysis of a mesh.
 (define (mesh-topology-summary mesh)
+  (doc 'export #t)
   (let* ([sc (mesh->simplicial-complex mesh)]
          [f-vec (sc-f-vector sc)]
          [betti (sc-betti-numbers sc)]
@@ -379,6 +394,7 @@
 ;;; Check if mesh is watertight (closed manifold with no voids).
 ;;; A watertight mesh has B_0=1, B_1=0 (for sphere-like), B_2=1.
 (define (mesh-is-watertight? mesh)
+  (doc 'export #t)
   (and (mesh-is-manifold? mesh)
        (mesh-is-closed? mesh)
        (let ([betti (mesh-betti-numbers mesh)])
@@ -390,6 +406,7 @@
 ;;; Check if mesh has the topology of a sphere.
 ;;; Sphere: B = (1, 0, 1), χ = 2
 (define (mesh-is-sphere-topology? mesh)
+  (doc 'export #t)
   (let ([betti (mesh-betti-numbers mesh)])
     (and (= (length betti) 3)
          (= (car betti) 1)     ; B_0 = 1
@@ -401,6 +418,7 @@
 ;;; Check if mesh has the topology of a torus.
 ;;; Torus (over Z_2): B = (1, 2, 1), χ = 0
 (define (mesh-is-torus-topology? mesh)
+  (doc 'export #t)
   (let ([betti (mesh-betti-numbers mesh)])
     (and (= (length betti) 3)
          (= (car betti) 1)     ; B_0 = 1

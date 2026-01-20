@@ -19,6 +19,7 @@
 ;;; Returns 0 if x < xs[0], n-2 if x >= xs[n-1].
 ;;; Uses binary search: O(log n) instead of O(n).
 (define (binary-search-segment xs x)
+  (doc 'export #t)
   (let ([n (length xs)])
     (if (<= n 1)
         0
@@ -53,12 +54,14 @@
 ;;; Linear interpolation: lerp(a, b, t) = a + t×(b - a)
 ;;; When t=0 returns a, when t=1 returns b.
 (define (lerp a b t)
+  (doc 'export #t)
   (+ a (* t (- b a))))
 
 ;;; lerp-inverse : Num × Num × Num → Num
 ;;; Inverse linear interpolation: find t such that lerp(a, b, t) = v
 ;;; Returns (v - a) / (b - a).
 (define (lerp-inverse a b v)
+  (doc 'export #t)
   (if (= a b)
       0.0
       (/ (- v a) (- b a))))
@@ -69,6 +72,7 @@
 ;;; For x outside the range, uses the nearest endpoint value.
 ;;; Uses binary search for O(log n) segment lookup.
 (define (interp-linear points x)
+  (doc 'export #t)
   (cond
    [(null? points) 0]
    [(null? (cdr points)) (cdar points)]
@@ -97,6 +101,7 @@
 ;;; Compute the i-th Lagrange basis polynomial L_i(x).
 ;;; L_i(x) = ∏_{j≠i} (x - x_j) / (x_i - x_j)
 (define (lagrange-basis xs i x)
+  (doc 'export #t)
   (let ([xi (list-ref xs i)]
         [n (length xs)])
     (let loop ([j 0] [result 1.0])
@@ -113,6 +118,7 @@
 ;;; Given x-values xs and y-values ys, evaluate at x.
 ;;; P(x) = Σ y_i × L_i(x)
 (define (interp-lagrange xs ys x)
+  (doc 'export #t)
   (let ([n (length xs)])
     (let loop ([i 0] [result 0.0])
       (if (>= i n)
@@ -129,6 +135,7 @@
 ;;; Compute Newton's divided differences table (first column only).
 ;;; Returns coefficients for Newton polynomial form.
 (define (divided-differences xs ys)
+  (doc 'export #t)
   (let* ([n (length xs)]
          [table (make-vector n 0)])
     ;; Initialize with y values
@@ -157,6 +164,7 @@
 ;;; Newton polynomial interpolation using divided differences.
 ;;; More efficient for evaluating at multiple points.
 (define (interp-newton xs ys x)
+  (doc 'export #t)
   (let ([coeffs (divided-differences xs ys)]
         [n (length xs)])
     ;; Horner-like evaluation of Newton form
@@ -180,6 +188,7 @@
 ;;;   h01(t) = -2t³ + 3t²
 ;;;   h11(t) = t³ - t²
 (define (interp-hermite p0 p1 m0 m1 t)
+  (doc 'export #t)
   (let* ([t2 (* t t)]
          [t3 (* t2 t)]
          [h00 (+ (* 2 t3) (* -3 t2) 1)]
@@ -195,6 +204,7 @@
 ;;; Estimate tangent at middle point using Catmull-Rom formula.
 ;;; Given three consecutive y-values and x-spacing.
 (define (hermite-tangent-estimate y-prev y-curr y-next dx)
+  (doc 'export #t)
   (/ (- y-next y-prev) (* 2 dx)))
 
 ;;; ====
@@ -210,6 +220,7 @@
 ;;; Returns solution x of length n.
 ;;; Time complexity: O(n), Space: O(n)
 (define (thomas-algorithm a-sub b-diag c-sup d-rhs)
+  (doc 'export #t)
   (let* ([n (vector-length b-diag)]
          [c-prime (make-vector n 0.0)]
          [d-prime (make-vector n 0.0)]
@@ -245,6 +256,7 @@
 ;;; Natural boundary: S''(x_0) = S''(x_n) = 0
 ;;; Uses Thomas algorithm for O(n) time complexity.
 (define (cubic-spline-natural xs ys)
+  (doc 'export #t)
   (let* ([n (length xs)]
          [n-1 (- n 1)])
     (if (< n 2)
@@ -321,6 +333,7 @@
 ;;; Evaluate cubic spline at point x.
 ;;; Uses binary search for O(log n) segment lookup.
 (define (spline-eval spline xs x)
+  (doc 'export #t)
   (let ([n (vector-length spline)])
     (if (= n 0)
         0
@@ -341,6 +354,7 @@
 ;;; interp-cubic-spline : (List Num) × (List Num) × Num → Num
 ;;; Cubic spline interpolation with natural boundary conditions.
 (define (interp-cubic-spline xs ys x)
+  (doc 'export #t)
   (let ([spline (cubic-spline-natural xs ys)])
     (spline-eval spline xs x)))
 
@@ -351,6 +365,7 @@
 ;;; bezier-linear : (Num × Num) × (Num × Num) × Num → (Num × Num)
 ;;; Linear Bezier (line segment).
 (define (bezier-linear p0 p1 t)
+  (doc 'export #t)
   (cons (lerp (car p0) (car p1) t)
         (lerp (cdr p0) (cdr p1) t)))
 
@@ -358,6 +373,7 @@
 ;;; Quadratic Bezier curve.
 ;;; B(t) = (1-t)²P₀ + 2(1-t)tP₁ + t²P₂
 (define (bezier-quadratic p0 p1 p2 t)
+  (doc 'export #t)
   (let* ([u (- 1 t)]
          [u2 (* u u)]
          [t2 (* t t)]
@@ -371,6 +387,7 @@
 ;;; Cubic Bezier curve.
 ;;; B(t) = (1-t)³P₀ + 3(1-t)²tP₁ + 3(1-t)t²P₂ + t³P₃
 (define (bezier-cubic p0 p1 p2 p3 t)
+  (doc 'export #t)
   (let* ([u (- 1 t)]
          [u2 (* u u)]
          [u3 (* u2 u)]
@@ -386,6 +403,7 @@
 ;;; bezier-general : (List (Num × Num)) × Num → (Num × Num)
 ;;; General Bezier curve of arbitrary degree using de Casteljau's algorithm.
 (define (bezier-general control-points t)
+  (doc 'export #t)
   (if (null? control-points)
       '(0 . 0)
       (let decasteljau ([points control-points])
@@ -402,6 +420,7 @@
 ;;; bezier-derivative : (List (Num × Num)) × Num → (Num × Num)
 ;;; Compute derivative (tangent vector) of Bezier curve at t.
 (define (bezier-derivative control-points t)
+  (doc 'export #t)
   (let ([n (- (length control-points) 1)])
     (if (< n 1)
         '(0 . 0)
@@ -429,6 +448,7 @@
 ;;; of the Vandermonde-like matrix grows exponentially. For high-degree fits,
 ;;; consider Chebyshev approximation or orthogonal polynomial bases instead.
 (define (polyfit xs ys degree)
+  (doc 'export #t)
   (let* ([n (length xs)]
          [m (+ degree 1)]
          ;; Build Vandermonde-like matrix A where A[i,j] = x_i^j
@@ -460,6 +480,7 @@
 ;;; Simple linear regression: fit y = mx + b.
 ;;; Returns (slope . intercept).
 (define (linreg xs ys)
+  (doc 'export #t)
   (let* ([n (length xs)]
          [sum-x (apply + xs)]
          [sum-y (apply + ys)]
@@ -473,6 +494,7 @@
 ;;; linreg-r2 : (List Num) × (List Num) → Num
 ;;; Compute R² (coefficient of determination) for linear regression.
 (define (linreg-r2 xs ys)
+  (doc 'export #t)
   (let* ([reg (linreg xs ys)]
          [m (car reg)]
          [b (cdr reg)]
@@ -493,6 +515,7 @@
 ;;; Generate n Chebyshev nodes in [-1, 1].
 ;;; x_k = cos((2k+1)π/(2n)) for k = 0, ..., n-1
 (define (chebyshev-nodes n)
+  (doc 'export #t)
   (let ([pi 3.141592653589793])
     (let loop ([k 0] [result '()])
       (if (= k n)
@@ -504,6 +527,7 @@
 ;;; chebyshev-nodes-interval : Int × Num × Num → (List Num)
 ;;; Generate n Chebyshev nodes in interval [a, b].
 (define (chebyshev-nodes-interval n a b)
+  (doc 'export #t)
   (let ([nodes (chebyshev-nodes n)])
     (map (lambda (x)
            (+ (* 0.5 (- b a) (+ x 1)) a))
@@ -512,6 +536,7 @@
 ;;; chebyshev-t : Int × Num → Num
 ;;; Compute Chebyshev polynomial T_n(x) using recurrence.
 (define (chebyshev-t n x)
+  (doc 'export #t)
   (cond
    [(= n 0) 1]
    [(= n 1) x]
@@ -525,6 +550,7 @@
 ;;; Compute Chebyshev expansion coefficients for function f.
 ;;; Approximates f on [-1, 1] with n terms.
 (define (chebyshev-coeffs f n)
+  (doc 'export #t)
   (let ([nodes (chebyshev-nodes n)]
         [pi 3.141592653589793])
     (let loop ([k 0] [result '()])
@@ -540,6 +566,7 @@
 ;;; chebyshev-eval : (List Num) × Num → Num
 ;;; Evaluate Chebyshev series at point x using Clenshaw's algorithm.
 (define (chebyshev-eval coeffs x)
+  (doc 'export #t)
   (let ([n (length coeffs)])
     (if (= n 0)
         0
@@ -559,6 +586,7 @@
 ;;; knots: knot vector, i: index, p: degree, x: evaluation point.
 ;;; Uses Cox-de Boor recursion.
 (define (bspline-basis knots i p x)
+  (doc 'export #t)
   (let ([n (vector-length knots)])
     (cond
      [(= p 0)
@@ -596,6 +624,7 @@
 ;;; Evaluate B-spline curve at parameter t.
 ;;; knots: knot vector, control-points: control polygon, p: degree
 (define (bspline-curve knots control-points p t)
+  (doc 'export #t)
   (let ([n (length control-points)])
     (let loop ([i 0] [x 0.0] [y 0.0])
       (if (= i n)

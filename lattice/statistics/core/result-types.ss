@@ -189,6 +189,7 @@
 (define (ar-fitted r) (list-ref r 4))
 (define (ar-sigma r) (list-ref r 5))
 (define (ar-aic r) (list-ref r 6))
+(doc 'export #t)
 (define (ar-order r) (list-ref r 7))
 
 (doc 'section 'forecast-results)

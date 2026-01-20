@@ -13,6 +13,7 @@
   (fields strategies1 strategies2 payoffs))
 
 (define (make-game strats1 strats2 payoff-lists)
+  (doc 'export #t)
   (doc 'type '(-> (List Symbol) (List Symbol) (List (List (Pair Number Number))) Game))
   (doc 'description "Create a normal form game from lists")
   (let ([s1 (list->vector strats1)]
@@ -29,6 +30,7 @@
       (vector-length (game%-strategies2 game))))
 
 (define (game-payoff game i j)
+  (doc 'export #t)
   (doc 'type '(-> Game Nat Nat (Pair Number Number)))
   (doc 'description "Get payoff pair for strategy profile (i, j)")
   (vector-ref (vector-ref (game%-payoffs game) i) j))
@@ -237,6 +239,7 @@
 ;;; find-pure-nash : Game → (List (Pair Nat Nat))
 ;;; Find all pure strategy Nash equilibria.
 (define (find-pure-nash game)
+  (doc 'export #t)
   (let ([n1 (game-num-strategies game 0)]
         [n2 (game-num-strategies game 1)])
        (filter (lambda (profile)

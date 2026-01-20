@@ -37,6 +37,7 @@ Empty list = pure LP, all indices = pure ILP")
 
 ;;; make-ilp : Vec x Matrix x Vec x List -> ILP
 (define (make-ilp c A b integer-vars)
+  (doc 'export #t)
   (list 'ilp c A b integer-vars))
 
 ;;; Accessors
@@ -227,6 +228,7 @@ Empty list = pure LP, all indices = pure ILP")
 ;;; ilp-solve : ILP -> ILPResult
 ;;; Solve ILP using branch-and-bound.
 (define (ilp-solve ilp)
+  (doc 'export #t)
   (let* ([c (ilp-c ilp)]
          [A (ilp-A ilp)]
          [b (ilp-b ilp)]
@@ -427,6 +429,7 @@ Empty list = pure LP, all indices = pure ILP")
 ;;; ilp-solve-cutting-plane : ILP -> ILPResult
 ;;; Solve ILP using cutting plane method with Gomory cuts.
 (define (ilp-solve-cutting-plane ilp)
+  (doc 'export #t)
   (let* ([integers (ilp-integers ilp)]
          [lp (ilp->lp ilp)])
     (let iterate ([current-lp lp] [cuts-added 0])
@@ -475,6 +478,7 @@ Empty list = pure LP, all indices = pure ILP")
 ;;; Solve 0-1 knapsack: maximize v'x s.t. w'x <= W, x in {0,1}
 ;;; Returns (solution . value) or 'infeasible.
 (define (knapsack-solve values weights capacity)
+  (doc 'export #t)
   (let* ([n (vector-length values)]
          [m 1]  ; one constraint
          ;; Minimize -v'x (to maximize v'x)
@@ -521,6 +525,7 @@ Empty list = pure LP, all indices = pure ILP")
 ;;; c is cost vector for each set.
 ;;; Returns list of set indices to select.
 (define (set-cover-solve coverage costs)
+  (doc 'export #t)
   (let* ([m (matrix-rows coverage)]
          [n (matrix-cols coverage)]
          ;; Constraint: each element must be covered (sum of covering sets >= 1)

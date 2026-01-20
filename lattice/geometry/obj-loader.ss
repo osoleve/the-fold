@@ -10,6 +10,7 @@
 (doc 'section 'obj-parsing)
 
 (define (parse-obj-line line)
+  (doc 'export #t)
   (doc 'type '(-> String (Maybe (Pair Symbol Data))))
   (doc 'description "Parse a single line of OBJ file")
   (let ([trimmed (string-trim line)])
@@ -27,6 +28,7 @@
                [else #f]))])))  ; Ignore other directives
 
 (define (parse-vertex parts)
+  (doc 'export #t)
   (doc 'type '(-> (List String) Vec3))
   (let ([nums (map string->number (filter (lambda (s) (> (string-length s) 0)) parts))])
        (if (>= (length nums) 3)
@@ -34,6 +36,7 @@
            (vec3 0 0 0))))
 
 (define (parse-face parts)
+  (doc 'export #t)
   (doc 'type '(-> (List String) (List Number)))
   (doc 'description "Handles v, v/vt, v/vt/vn, v//vn formats")
   (map (lambda (part)
@@ -79,6 +82,7 @@
 (doc 'section 'obj-loading)
 
 (define (load-obj-from-string content)
+  (doc 'export #t)
   (doc 'type '(-> String (List Triangle3)))
   (doc 'description "Parse OBJ content and return list of triangles")
   (let* ([lines (string-split content #\newline)]
@@ -89,6 +93,7 @@
         (faces->triangles vertices faces)))
 
 (define (faces->triangles vertices faces)
+  (doc 'export #t)
   (doc 'type '(-> (Vector Vec3) (List (List Number)) (List Triangle3)))
   (doc 'description "Convert face indices to triangles (handles n-gons by fan triangulation)")
   (apply append
@@ -97,6 +102,7 @@
               faces)))
 
 (define (face->triangles vertices face)
+  (doc 'export #t)
   (doc 'type '(-> (Vector Vec3) (List Number) (List Triangle3)))
   (doc 'description "Fan triangulation: for face [v0, v1, v2, v3, ...] creates triangles (v0, v1, v2), (v0, v2, v3), etc.")
   (if (< (length face) 3)
@@ -113,6 +119,7 @@
                                (cons (triangle3 v0 prev curr) tris))))))))
 
 (define (get-vertex vertices idx)
+  (doc 'export #t)
   (doc 'type '(-> (Vector Vec3) Number Vec3))
   (doc 'description "OBJ indices are 1-based, can be negative (relative)")
   (let ([n (vector-length vertices)])
@@ -123,6 +130,7 @@
 (doc 'section 'file-loading)
 
 (define (load-obj-file filename)
+  (doc 'export #t)
   (doc 'type '(-> String (List Triangle3)))
   (let ([content (call-with-input-file filename
                                        (lambda (port)
@@ -130,6 +138,7 @@
        (load-obj-from-string content)))
 
 (define (obj->mesh filename)
+  (doc 'export #t)
   (doc 'type '(-> String Mesh))
   (doc 'description "Load OBJ file and create mesh with BVH")
   (load "lattice/geometry/mesh-sdf.ss")

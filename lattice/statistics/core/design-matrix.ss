@@ -14,6 +14,7 @@
 
 (doc 'section 'intercept-handling)
 (define (add-intercept X)
+  (doc 'export #t)
   (doc 'type '(-> Matrix Matrix))
   (doc 'description "Prepend a column of 1s to the matrix")
   (let* ([m (matrix-rows X)]
@@ -72,6 +73,7 @@
 ;;; Returns (standardized-matrix, means-vector, stds-vector).
 ;;; Note: Columns with std=0 are left unchanged (set to 0).
 (define (standardize-columns X)
+  (doc 'export #t)
   (let* ([m (matrix-rows X)]
          [n (matrix-cols X)]
          [means (make-vector n)]
@@ -139,6 +141,7 @@
 ;;; Uses (k-1) columns for k categories (reference coding).
 ;;; First unique value is the reference category.
 (define (dummy-encode categories)
+  (doc 'export #t)
   (let* ([n (length categories)]
          [levels (unique-values categories)]
          [k (length levels)]
@@ -193,6 +196,7 @@
 ;;; [x1, x2, x1^2, x1*x2, x2^2]
 ;;; Currently only supports single-column expansion for simplicity.
 (define (polynomial-features X degree)
+  (doc 'export #t)
   (let* ([m (matrix-rows X)]
          [n (matrix-cols X)]
          [total-cols (+ n (* n degree))]  ; original + powers
@@ -296,6 +300,7 @@
 ;;; P_0(x) = 1, P_1(x) = x
 ;;; P_n(x) = ((2n-1)·x·P_{n-1}(x) - (n-1)·P_{n-2}(x)) / n
 (define (legendre-p n x)
+  (doc 'export #t)
   (cond
    [(= n 0) 1]
    [(= n 1) x]
@@ -313,6 +318,7 @@
 ;;; T_0(x) = 1, T_1(x) = x
 ;;; T_n(x) = 2x·T_{n-1}(x) - T_{n-2}(x)
 (define (chebyshev-t n x)
+  (doc 'export #t)
   (cond
    [(= n 0) 1]
    [(= n 1) x]
@@ -329,6 +335,7 @@
 ;;; He_n(x) = x·He_{n-1}(x) - (n-1)·He_{n-2}(x)
 ;;; Note: Uses probabilist's convention, not physicist's.
 (define (hermite-h n x)
+  (doc 'export #t)
   (cond
    [(= n 0) 1]
    [(= n 1) x]
@@ -344,6 +351,7 @@
 ;;; L_0(x) = 1, L_1(x) = 1 - x
 ;;; L_n(x) = ((2n-1-x)·L_{n-1}(x) - (n-1)·L_{n-2}(x)) / n
 (define (laguerre-l n x)
+  (doc 'export #t)
   (cond
    [(= n 0) 1]
    [(= n 1) (- 1 x)]
@@ -365,6 +373,7 @@
 ;;; Maps input to [-1, 1] before evaluation for numerical stability.
 ;;; Columns: [P_0(x), P_1(x), ..., P_degree(x)]
 (define (legendre-features xs degree)
+  (doc 'export #t)
   (let* ([n (vector-length xs)]
          [ncols (+ degree 1)]
          ;; Map to [-1, 1]
@@ -388,6 +397,7 @@
 ;;; Maps input to [-1, 1] before evaluation.
 ;;; Columns: [T_0(x), T_1(x), ..., T_degree(x)]
 (define (chebyshev-features xs degree)
+  (doc 'export #t)
   (let* ([n (vector-length xs)]
          [ncols (+ degree 1)]
          [x-min (vec-min xs)]
@@ -410,6 +420,7 @@
 ;;; Standardizes input (z-score) before evaluation.
 ;;; Columns: [He_0(x), He_1(x), ..., He_degree(x)]
 (define (hermite-features xs degree)
+  (doc 'export #t)
   (let* ([n (vector-length xs)]
          [ncols (+ degree 1)]
          ;; Standardize for Hermite (Gaussian weighting)
@@ -432,6 +443,7 @@
 ;;; Shifts input so minimum is 0 (for [0, ∞) domain).
 ;;; Columns: [L_0(x), L_1(x), ..., L_degree(x)]
 (define (laguerre-features xs degree)
+  (doc 'export #t)
   (let* ([n (vector-length xs)]
          [ncols (+ degree 1)]
          ;; Shift to [0, ∞)
@@ -449,6 +461,7 @@
 ;;; Create design matrix with specified orthogonal polynomial basis.
 ;;; basis: 'legendre, 'chebyshev, 'hermite, or 'laguerre
 (define (orthogonal-features xs degree basis)
+  (doc 'export #t)
   (case basis
     [(legendre) (legendre-features xs degree)]
     [(chebyshev) (chebyshev-features xs degree)]

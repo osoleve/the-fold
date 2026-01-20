@@ -10,6 +10,7 @@
 (doc 'note "A preference profile is a list of rankings.")
 
 (define (make-preference-profile rankings)
+  (doc 'export #t)
   (doc 'type '(-> (List (List Candidate)) PreferenceProfile))
   (doc 'description "Create a preference profile from a list of rankings. Each ranking is a list of candidates in order of preference (best first). Example: ((a b c) (b a c) (c b a)) = 3 voters ranking candidates a,b,c")
   (doc 'note "Validates that: (1) All rankings contain the same candidates, (2) No ranking contains duplicate candidates")
@@ -33,20 +34,24 @@
 ;;; profile-voters : PreferenceProfile -> Int
 ;;; Number of voters in the profile.
 (define (profile-voters profile)
+  (doc 'export #t)
   (length profile))
 
 ;;; profile-candidates : PreferenceProfile -> (List Candidate)
 ;;; Get list of candidates from profile.
 (define (profile-candidates profile)
+  (doc 'export #t)
   (if (null? profile) '() (car profile)))
 
 ;;; profile-num-candidates : PreferenceProfile -> Int
 (define (profile-num-candidates profile)
+  (doc 'export #t)
   (if (null? profile) 0 (length (car profile))))
 
 ;;; profile-rankings : PreferenceProfile -> (List (List Candidate))
 ;;; Get all rankings (the profile itself, for consistency).
 (define (profile-rankings profile)
+  (doc 'export #t)
   profile)
 
 ;;; profile-empty? : PreferenceProfile -> Bool
@@ -178,21 +183,25 @@
 ;;; plurality-winner : PreferenceProfile -> Candidate
 ;;; Winner under plurality rule (most first-place votes).
 (define (plurality-winner profile)
+  (doc 'export #t)
   (positional-winner profile (plurality-scores (profile-num-candidates profile))))
 
 ;;; borda-winner : PreferenceProfile -> Candidate
 ;;; Winner under Borda count.
 (define (borda-winner profile)
+  (doc 'export #t)
   (positional-winner profile (borda-scores (profile-num-candidates profile))))
 
 ;;; antiplurality-winner : PreferenceProfile -> Candidate
 ;;; Winner under anti-plurality (veto) rule.
 (define (antiplurality-winner profile)
+  (doc 'export #t)
   (positional-winner profile (antiplurality-scores (profile-num-candidates profile))))
 
 ;;; plurality-scores-all : PreferenceProfile -> (List (Candidate . Int))
 ;;; Get plurality scores for all candidates.
 (define (plurality-scores-all profile)
+  (doc 'export #t)
   (let ([candidates (profile-candidates profile)]
         [scores (plurality-scores (profile-num-candidates profile))])
     (map (lambda (c) (cons c (positional-score c profile scores)))
@@ -201,6 +210,7 @@
 ;;; borda-scores-all : PreferenceProfile -> (List (Candidate . Int))
 ;;; Get Borda scores for all candidates.
 (define (borda-scores-all profile)
+  (doc 'export #t)
   (let ([candidates (profile-candidates profile)]
         [scores (borda-scores (profile-num-candidates profile))])
     (map (lambda (c) (cons c (positional-score c profile scores)))
@@ -209,6 +219,7 @@
 (doc 'section 'condorcet-methods)
 
 (define (pairwise-margin a b profile)
+  (doc 'export #t)
   (doc 'type '(-> Candidate Candidate PreferenceProfile Int))
   (doc 'description "Number of voters preferring a over b, minus those preferring b over a. Positive = a beats b, negative = b beats a, zero = tie")
   (let ([a-over-b (count-if (lambda (ranking)
@@ -226,11 +237,13 @@
 ;;; pairwise-beats? : Candidate Candidate PreferenceProfile -> Bool
 ;;; Does candidate a beat b in pairwise comparison?
 (define (pairwise-beats? a b profile)
+  (doc 'export #t)
   (> (pairwise-margin a b profile) 0))
 
 ;;; condorcet-winner? : Candidate PreferenceProfile -> Bool
 ;;; Is this candidate a Condorcet winner (beats all others pairwise)?
 (define (condorcet-winner? candidate profile)
+  (doc 'export #t)
   (let ([others (remove candidate (profile-candidates profile))])
     (for-all? (lambda (other) (pairwise-beats? candidate other profile))
               others)))
@@ -238,6 +251,7 @@
 ;;; condorcet-winner : PreferenceProfile -> Candidate | #f
 ;;; Find the Condorcet winner if one exists, #f otherwise.
 (define (condorcet-winner profile)
+  (doc 'export #t)
   (let ([candidates (profile-candidates profile)])
     (let loop ([cs candidates])
       (cond
@@ -256,6 +270,7 @@
 (doc 'note "Copeland score = (wins) - (losses) in pairwise comparisons.")
 
 (define (copeland-score candidate profile)
+  (doc 'export #t)
   (doc 'type '(-> Candidate PreferenceProfile Int))
   (doc 'description "Compute Copeland score (wins - losses). Ties count as 0.5 for each (but we use integer: win=1, loss=-1, tie=0)")
   (let ([others (remove candidate (profile-candidates profile))])
@@ -270,6 +285,7 @@
 ;;; Winner under Copeland method.
 ;;; Returns #f for empty profiles.
 (define (copeland-winner profile)
+  (doc 'export #t)
   (if (profile-empty? profile)
       #f
       (argmax (lambda (c) (copeland-score c profile))
@@ -324,6 +340,7 @@
 ;;; schulze-strengths : PreferenceProfile -> (Vector (Vector Int))
 ;;; Compute strongest path strengths using Floyd-Warshall variant.
 (define (schulze-strengths profile)
+  (doc 'export #t)
   (let* ([margin (build-margin-matrix profile)]
          [n (vector-length margin)]
          [strength (make-vector n)])
@@ -356,6 +373,7 @@
 ;;; Find winner using Schulze method.
 ;;; Returns #f for empty profiles.
 (define (schulze-winner profile)
+  (doc 'export #t)
   (if (profile-empty? profile)
       #f
       (let* ([candidates (profile-candidates profile)]
@@ -382,6 +400,7 @@
 ;;; Full ranking using Schulze method.
 ;;; Returns empty list for empty profiles.
 (define (schulze-ranking profile)
+  (doc 'export #t)
   (if (profile-empty? profile)
       '()
       (let* ([candidates (profile-candidates profile)]
@@ -407,6 +426,7 @@
 ;;; WARNING: O(N!) complexity - only practical for N <= 9 candidates.
 ;;; For N=10, there are 3.6 million permutations to check per voter.
 (define (manipulation-possible? profile voting-rule voter-idx)
+  (doc 'export #t)
   (let* ([true-ranking (list-ref profile voter-idx)]
          [candidates (profile-candidates profile)]
          [true-winner (voting-rule profile)]
@@ -449,6 +469,7 @@
 ;;; The classic Condorcet paradox: A>B>C, B>C>A, C>A>B
 ;;; No Condorcet winner exists.
 (define (condorcet-cycle-example)
+  (doc 'export #t)
   (make-preference-profile
    '((a b c)    ; 1 voter: a > b > c
      (b c a)    ; 1 voter: b > c > a

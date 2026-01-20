@@ -19,6 +19,7 @@
 Structure: (convergence-criteria grad-tol f-tol x-tol max-iter)")
 
 (define (make-convergence-criteria grad-tol f-tol x-tol max-iter)
+  (doc 'export #t)
   (doc 'type '(-> Number Number Number Nat ConvergenceCriteria))
   (doc 'description "Create convergence criteria
   grad-tol: stop when ||gradient|| < grad-tol
@@ -64,6 +65,7 @@ Structure: (convergence-state iter f-val grad-norm f-change x-change)")
 (doc 'section 'convergence-checking)
 
 (define (converged? criteria state)
+  (doc 'export #t)
   (doc 'type '(-> ConvergenceCriteria ConvergenceState (Either Bool Symbol)))
   (doc 'description "Check if optimization has converged.
 Returns #f if not converged, or a symbol indicating why:

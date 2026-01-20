@@ -22,6 +22,7 @@ Composable optics for accessing and traversing content-addressed blocks:
 
 Note: Modifying a block creates a new block (immutable record).
 The new block will have a different hash.")
+(doc block-tag-lens 'export #t)
 (define block-tag-lens
   (make-lens
    block-tag
@@ -32,6 +33,7 @@ The new block will have a different hash.")
 
 (doc block-payload-lens 'type '(Lens Block Bytevector))
 (doc block-payload-lens 'description "Focus on the payload of a block.")
+(doc block-payload-lens 'export #t)
 (define block-payload-lens
   (make-lens
    block-payload
@@ -42,6 +44,7 @@ The new block will have a different hash.")
 
 (doc block-refs-lens 'type '(Lens Block (Vector Bytevector)))
 (doc block-refs-lens 'description "Focus on the refs vector of a block.")
+(doc block-refs-lens 'export #t)
 (define block-refs-lens
   (make-lens
    block-refs
@@ -53,6 +56,7 @@ The new block will have a different hash.")
 (doc 'section 'ref-access)
 
 (define (block-ref-at n)
+  (doc 'export #t)
   (doc 'type '(-> Nat (Affine Block Bytevector)))
   (doc 'description "Focus on a specific ref by index.
 Returns nothing if index is out of bounds.")
@@ -82,6 +86,7 @@ Returns nothing if index is out of bounds.")
 
 (doc block-refs-each 'type '(Traversal Block Block Bytevector Bytevector))
 (doc block-refs-each 'description "Traverse over all refs in a block.")
+(doc block-refs-each 'export #t)
 (define block-refs-each
   (make-traversal
    ;; traverse: (Bytevector -> Bytevector) -> Block -> Block
@@ -100,6 +105,7 @@ Returns nothing if index is out of bounds.")
      (vector->list (block-refs blk)))))
 
 (define (block-refs-count blk)
+  (doc 'export #t)
   (doc 'type '(-> Block Nat))
   (doc 'description "Helper: count number of refs in a block.")
   (vector-length (block-refs blk)))
@@ -107,6 +113,7 @@ Returns nothing if index is out of bounds.")
 (doc 'section 'cas-aware)
 
 (define (follow-ref fetch)
+  (doc 'export #t)
   (doc 'type '(-> (-> Bytevector (Maybe Block)) (Affine Bytevector Block)))
   (doc 'description "Create an affine that follows a ref (hash) to its block.
 The fetch function should be like CAS's fetch: hash -> Block | #f.
@@ -125,11 +132,13 @@ are derived from content. We return the ref unchanged.")
      ref)))
 
 (define (block-child-at fetch n)
+  (doc 'export #t)
   (doc 'type '(-> (-> Bytevector (Maybe Block)) Nat (Affine Block Block)))
   (doc 'description "Compose block-ref-at with follow-ref to access a child block.")
   (affine-compose (block-ref-at n) (follow-ref fetch)))
 
 (define (block-children-each fetch)
+  (doc 'export #t)
   (doc 'type '(-> (-> Bytevector (Maybe Block)) (Traversal Block ? Block Block)))
   (doc 'description "Traverse all child blocks (following refs through CAS).
 This composes block-refs-each with follow-ref.
@@ -160,6 +169,7 @@ missing refs (hashes not in CAS).")
 (doc 'section 'type-prisms)
 
 (define (block-type-prism expected-tag)
+  (doc 'export #t)
   (doc 'type '(-> Symbol (Prism Block Block)))
   (doc 'description "Match blocks with a specific tag.")
   (make-prism
@@ -173,26 +183,31 @@ missing refs (hashes not in CAS).")
 
 (doc block-lambda-prism 'type '(Prism Block Block))
 (doc block-lambda-prism 'description "Match blocks with 'lambda tag.")
+(doc block-lambda-prism 'export #t)
 (define block-lambda-prism
   (block-type-prism 'lambda))
 
 (doc block-app-prism 'type '(Prism Block Block))
 (doc block-app-prism 'description "Match blocks with 'app tag.")
+(doc block-app-prism 'export #t)
 (define block-app-prism
   (block-type-prism 'app))
 
 (doc block-ref-prism 'type '(Prism Block Block))
 (doc block-ref-prism 'description "Match blocks with 'ref tag.")
+(doc block-ref-prism 'export #t)
 (define block-ref-prism
   (block-type-prism 'ref))
 
 (doc block-literal-prism 'type '(Prism Block Block))
 (doc block-literal-prism 'description "Match blocks with 'lit tag.")
+(doc block-literal-prism 'export #t)
 (define block-literal-prism
   (block-type-prism 'lit))
 
 (doc block-expr-prism 'type '(Prism Block Block))
 (doc block-expr-prism 'description "Match blocks with 'expr tag (stored S-expressions).")
+(doc block-expr-prism 'export #t)
 (define block-expr-prism
   (block-type-prism 'expr))
 
@@ -200,6 +215,7 @@ missing refs (hashes not in CAS).")
 
 (doc block-payload-string-iso 'type '(Iso Bytevector String))
 (doc block-payload-string-iso 'description "Convert between bytevector payload and UTF-8 string.")
+(doc block-payload-string-iso 'export #t)
 (define block-payload-string-iso
   (make-iso
    utf8->string
@@ -207,12 +223,14 @@ missing refs (hashes not in CAS).")
 
 (doc block-payload-as-string-lens 'type '(Lens Block String))
 (doc block-payload-as-string-lens 'description "Access block payload as a string (assuming UTF-8 encoding).")
+(doc block-payload-as-string-lens 'export #t)
 (define block-payload-as-string-lens
   (lens-compose block-payload-lens (iso->lens block-payload-string-iso)))
 
 (doc block-payload-sexpr-affine 'type '(Affine Block Sexp))
 (doc block-payload-sexpr-affine 'description "Access block payload as an S-expression.
 Returns nothing if payload cannot be parsed as valid S-expression.")
+(doc block-payload-sexpr-affine 'export #t)
 (define block-payload-sexpr-affine
   (make-affine
    ;; getter: Block -> Maybe Sexp
@@ -237,6 +255,7 @@ Returns nothing if payload cannot be parsed as valid S-expression.")
 (doc 'section 'composition)
 
 (define (>>> outer inner)
+  (doc 'export #t)
   (doc 'type '(-> Optic Optic Optic))
   (doc 'description "Left-to-right optic composition (like >>>).
 (a >>> b) focuses first on a's target, then b within that.")
@@ -245,22 +264,26 @@ Returns nothing if payload cannot be parsed as valid S-expression.")
 (doc 'section 'utilities)
 
 (define (block-has-refs? blk)
+  (doc 'export #t)
   (doc 'type '(-> Block Boolean))
   (doc 'description "Check if block has any refs.")
   (> (vector-length (block-refs blk)) 0))
 
 (define (block-is-leaf? blk)
+  (doc 'export #t)
   (doc 'type '(-> Block Boolean))
   (doc 'description "Check if block is a leaf (no refs).")
   (= (vector-length (block-refs blk)) 0))
 
 (define (block-tag-is? tag)
+  (doc 'export #t)
   (doc 'type '(-> Symbol (-> Block Boolean)))
   (doc 'description "Check if block has specific tag.")
   (lambda (blk)
     (eq? (block-tag blk) tag)))
 
 (define (collect-block-tree fetch root)
+  (doc 'export #t)
   (doc 'type '(-> (-> Bytevector (Maybe Block)) Block (List Block)))
   (doc 'description "Collect all blocks reachable from a root block (DFS).
 Does not include duplicates (based on refs visited).")

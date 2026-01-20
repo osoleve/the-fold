@@ -14,12 +14,14 @@
 ;;; power-of-2? : Integer → Boolean
 ;;; Check if n is a power of 2.
 (define (power-of-2? n)
+  (doc 'export #t)
   (and (> n 0)
        (= 0 (bitwise-and n (- n 1)))))
 
 ;;; log2 : Integer → Integer
 ;;; Compute log base 2 of n (assuming n is a power of 2).
 (define (log2-int n)
+  (doc 'export #t)
   (if (<= n 1)
       0
       (+ 1 (log2-int (quotient n 2)))))
@@ -27,6 +29,7 @@
 ;;; bit-reverse : Integer × Integer → Integer
 ;;; Reverse the bits of index i using nbits bits.
 (define (bit-reverse i nbits)
+  (doc 'export #t)
   (let loop ([i i] [result 0] [bits nbits])
        (if (= bits 0)
            result
@@ -37,6 +40,7 @@
 ;;; bit-reverse-copy : Vector → Vector
 ;;; Create a bit-reversed copy of the input vector.
 (define (bit-reverse-copy v)
+  (doc 'export #t)
   (let* ([n (vector-length v)]
          [nbits (log2-int n)]
          [result (make-vector n)])
@@ -59,6 +63,7 @@
 ;;; - Non-power-of-2 sizes
 ;;; - Verification of FFT correctness
 (define (dft-naive x)
+  (doc 'export #t)
   (let* ([n (vector-length x)]
          [result (make-vector n)]
          [two-pi (* 2 (pi-value))])
@@ -78,6 +83,7 @@
 ;;;
 ;;; x[n] = (1/N) * Σ(k=0 to N-1) X[k] * e^(2πi*kn/N)
 (define (idft-naive X)
+  (doc 'export #t)
   (let* ([n (vector-length X)]
          [result (make-vector n)]
          [two-pi (* 2 (pi-value))])
@@ -102,6 +108,7 @@
 ;;;
 ;;; This is the iterative implementation (bottom-up).
 (define (fft-radix2-inplace! a)
+  (doc 'export #t)
   (let* ([n (vector-length a)]
          [log2n (log2-int n)]
          [two-pi (* 2 (pi-value))])
@@ -137,6 +144,7 @@
 ;;; Requirements: Input length must be a power of 2.
 ;;; Complexity: O(N log N)
 (define (fft-radix2 x)
+  (doc 'export #t)
   (if (not (power-of-2? (vector-length x)))
       (error 'fft-radix2 "input length must be power of 2" (vector-length x))
       (let ([a (bit-reverse-copy x)])
@@ -145,6 +153,7 @@
 ;;; ifft-radix2-inplace! : Vector[Complex] → Vector[Complex]
 ;;; Compute inverse FFT in-place.
 (define (ifft-radix2-inplace! a)
+  (doc 'export #t)
   (let* ([n (vector-length a)]
          [log2n (log2-int n)]
          [two-pi (* 2 (pi-value))])
@@ -177,6 +186,7 @@
 ;;; Requirements: Input length must be a power of 2.
 ;;; Complexity: O(N log N)
 (define (ifft-radix2 X)
+  (doc 'export #t)
   (if (not (power-of-2? (vector-length X)))
       (error 'ifft-radix2 "input length must be power of 2" (vector-length X))
       (let ([a (bit-reverse-copy X)])
@@ -191,6 +201,7 @@
 ;;; - Power-of-2 sizes: Use FFT (O(N log N))
 ;;; - Other sizes: Use naive DFT (O(N²))
 (define (dft x)
+  (doc 'export #t)
   (if (power-of-2? (vector-length x))
       (fft-radix2 x)
       (dft-naive x)))
@@ -198,6 +209,7 @@
 ;;; idft : Vector[Complex] → Vector[Complex]
 ;;; Compute inverse DFT using the most appropriate algorithm.
 (define (idft X)
+  (doc 'export #t)
   (if (power-of-2? (vector-length X))
       (ifft-radix2 X)
       (idft-naive X)))
@@ -209,6 +221,7 @@
 ;;; real->complex-vec : Vector[Number] → Vector[Complex]
 ;;; Convert real-valued vector to complex vector.
 (define (real->complex-vec v)
+  (doc 'export #t)
   (let* ([n (vector-length v)]
          [result (make-vector n)])
         (do ([i 0 (+ i 1)])
@@ -218,6 +231,7 @@
 ;;; complex->real-vec : Vector[Complex] → Vector[Number]
 ;;; Extract real parts from complex vector.
 (define (complex->real-vec v)
+  (doc 'export #t)
   (let* ([n (vector-length v)]
          [result (make-vector n)])
         (do ([i 0 (+ i 1)])
@@ -227,11 +241,13 @@
 ;;; dft-real : Vector[Number] → Vector[Complex]
 ;;; Compute DFT of real-valued signal.
 (define (dft-real x)
+  (doc 'export #t)
   (dft (real->complex-vec x)))
 
 ;;; idft-real : Vector[Complex] → Vector[Number]
 ;;; Compute inverse DFT and extract real part.
 (define (idft-real X)
+  (doc 'export #t)
   (complex->real-vec (idft X)))
 
 ;;; ====
@@ -241,6 +257,7 @@
 ;;; magnitude-spectrum : Vector[Complex] → Vector[Number]
 ;;; Compute magnitude spectrum from DFT output.
 (define (magnitude-spectrum X)
+  (doc 'export #t)
   (let* ([n (vector-length X)]
          [result (make-vector n)])
         (do ([i 0 (+ i 1)])
@@ -250,6 +267,7 @@
 ;;; phase-spectrum : Vector[Complex] → Vector[Number]
 ;;; Compute phase spectrum from DFT output.
 (define (phase-spectrum X)
+  (doc 'export #t)
   (let* ([n (vector-length X)]
          [result (make-vector n)])
         (do ([i 0 (+ i 1)])
@@ -259,6 +277,7 @@
 ;;; power-spectrum : Vector[Complex] → Vector[Number]
 ;;; Compute power spectrum (magnitude squared).
 (define (power-spectrum X)
+  (doc 'export #t)
   (let* ([n (vector-length X)]
          [result (make-vector n)])
         (do ([i 0 (+ i 1)])
@@ -274,6 +293,7 @@
 ;;; Compute frequency bin centers for DFT of length n at sample rate fs.
 ;;; Returns vector of frequencies [0, fs/n, 2*fs/n, ..., (n-1)*fs/n]
 (define (freq-bins n fs)
+  (doc 'export #t)
   (let ([result (make-vector n)]
         [df (/ fs n)])
        (do ([i 0 (+ i 1)])
@@ -288,6 +308,7 @@
 ;;; Pad vector with zeros to length n.
 ;;; If input is longer than n, truncate.
 (define (zero-pad v n)
+  (doc 'export #t)
   (let* ([m (vector-length v)]
          [result (make-vector n (if (> m 0)
                                     (if (complex? (vector-ref v 0))
@@ -301,6 +322,7 @@
 ;;; next-power-of-2 : Integer → Integer
 ;;; Find the next power of 2 >= n.
 (define (next-power-of-2 n)
+  (doc 'export #t)
   (let loop ([p 1])
        (if (>= p n)
            p
@@ -309,6 +331,7 @@
 ;;; zero-pad-power-of-2 : Vector → Vector
 ;;; Pad vector to next power of 2 length.
 (define (zero-pad-power-of-2 v)
+  (doc 'export #t)
   (let ([n (vector-length v)])
        (if (power-of-2? n)
            v

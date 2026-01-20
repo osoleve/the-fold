@@ -18,6 +18,7 @@
 
 (doc 'section 'ordinary-least-squares)
 (define (linear-model-fit X y)
+  (doc 'export #t)
   (doc 'type '(-> Matrix Vec (or LinearModelResult Error)))
   (doc 'description "Fit linear model y = X*beta + epsilon using OLS")
   (doc 'note "X should include intercept column if desired")
@@ -139,6 +140,7 @@
 ;;; Fit weighted linear model: minimize sum(w_i * (y_i - X_i*beta)^2)
 ;;; Equivalent to OLS on (sqrt(W)*X, sqrt(W)*y).
 (define (weighted-linear-fit X y weights)
+  (doc 'export #t)
   (let* ([n (matrix-rows X)]
          [p (matrix-cols X)])
         (if (or (not (= n (vector-length y)))
@@ -262,6 +264,7 @@
 ;;; linear-model-predict : LinearModelResult × Matrix → Vec
 ;;; Predict y values for new X.
 (define (linear-model-predict model X-new)
+  (doc 'export #t)
   (matrix-vec-mul X-new (linear-model-coefficients model)))
 
 ;;; linear-model-predict-interval : LinearModelResult × Matrix × Num → (List Vec Vec Vec)

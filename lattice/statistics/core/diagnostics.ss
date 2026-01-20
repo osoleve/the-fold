@@ -27,6 +27,7 @@
             XtX-inv
             (matrix-mul (matrix-mul X XtX-inv) (matrix-transpose X)))))
 (define (hat-matrix-diagonal X)
+  (doc 'export #t)
   (doc 'type '(-> Matrix Vec))
   (doc 'description "Compute only the diagonal of the hat matrix (leverage values)")
   (doc 'note "More efficient than computing full H for large n")
@@ -89,6 +90,7 @@
             (vector-set! r i (/ (vector-ref raw-residuals i) sigma)))))
 
 (define (residuals-studentized raw-residuals leverage sigma)
+  (doc 'export #t)
   (doc 'type '(-> Vec Vec Num Vec))
   (doc 'description "Internally studentized residuals: r_i = e_i / (sigma * sqrt(1 - h_ii))")
   (doc 'note "These have approximately unit variance even with non-constant variance")
@@ -127,6 +129,7 @@
 (doc 'section 'influence-measures)
 
 (define (cooks-distance raw-residuals leverage p mse)
+  (doc 'export #t)
   (doc 'type '(-> Vec Vec Nat Num Vec))
   (doc 'description "Cook's distance measures the influence of each observation on all fitted values")
   (doc 'note "D_i = (1/p) * (e_i^2 / mse) * (h_ii / (1 - h_ii)^2)")
@@ -171,6 +174,7 @@
 (doc 'section 'collinearity-diagnostics)
 
 (define (vif X)
+  (doc 'export #t)
   (doc 'type '(-> Matrix Vec))
   (doc 'description "Variance Inflation Factor for each predictor")
   (doc 'note "VIF_j = 1 / (1 - R²_j) where R²_j is the R² from regressing x_j on other predictors")

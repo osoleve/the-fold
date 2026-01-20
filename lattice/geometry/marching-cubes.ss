@@ -11,6 +11,7 @@
 (doc 'note "Edge table: which edges are intersected for each cube configuration; Edges numbered 0-11 (4 on bottom face, 4 on top face, 4 vertical)")
 
 (define edge-table
+  (doc 'export #t)
   '#(#x0   #x109 #x203 #x30a #x406 #x50f #x605 #x70c
      #x80c #x905 #xa0f #xb06 #xc0a #xd03 #xe09 #xf00
      #x190 #x99  #x393 #x29a #x596 #x49f #x795 #x69c
@@ -47,6 +48,7 @@
 (doc 'note "Triangle table: simplified version (maps cube config to triangle count); full implementation would map to specific triangle configurations")
 
 (define tri-table
+  (doc 'export #t)
   '#(0 1 1 2 1 2 2 3 1 2 2 3 2 3 3 2
      1 2 2 3 2 3 3 4 2 3 3 4 3 4 4 3
      1 2 2 3 2 3 3 4 2 3 3 4 3 4 4 3
@@ -67,6 +69,7 @@
 (doc 'section 'grid-and-cube-utilities)
 
 (define (marching-cubes-grid sdf-fn bounds resolution)
+  (doc 'export #t)
   (doc 'type '(-> SDF-Function AABB Number (List Triangle3)))
   (doc 'description "Extract triangle mesh from SDF using marching cubes")
   (doc 'param 'sdf-fn "Implicit surface function (returns signed distance)")
@@ -105,6 +108,7 @@
                           (set! triangles (append triangles cube-tris))))))))
 
 (define (marching-cubes-cube corners values)
+  (doc 'export #t)
   (doc 'type '(-> (List Point3) (List Number) (List Triangle3)))
   (doc 'description "Generate triangles for a single cube based on corner values")
   (let* ([cube-index (compute-cube-index values)]
@@ -118,6 +122,7 @@
                  (generate-cube-triangles edge-points cube-index)))))
 
 (define (compute-cube-index values)
+  (doc 'export #t)
   (doc 'type '(-> (List Number) Number))
   (doc 'description "Compute configuration index (0-255) based on which corners are inside")
   (let loop ([vals values] [i 0] [index 0])
@@ -130,6 +135,7 @@
                      index)))))
 
 (define (compute-edge-intersections corners values edge-mask)
+  (doc 'export #t)
   (doc 'type '(-> (List Point3) (List Number) Number (List Point3)))
   (doc 'description "Compute intersection points on cube edges")
   (let ([edge-defs '((0 1) (1 2) (2 3) (3 0)  ; Bottom face
@@ -153,6 +159,7 @@
                           (loop (cdr edges) (+ edge-idx 1) points)))))))
 
 (define (generate-cube-triangles edge-points cube-index)
+  (doc 'export #t)
   (doc 'type '(-> (List Point3) Number (List Triangle3)))
   (doc 'description "Generate triangles from edge intersection points; simplified version: just generates triangles from first 3+ points")
   (if (< (length edge-points) 3)
@@ -167,6 +174,7 @@
 (doc 'section 'high-level-api)
 
 (define (marching-cubes sdf-fn center size resolution)
+  (doc 'export #t)
   (doc 'type '(-> SDF-Function Point3 Number Number (List Triangle3)))
   (doc 'description "Extract isosurface mesh from SDF")
   (doc 'param 'sdf-fn "Signed distance function")
@@ -183,6 +191,7 @@
         (marching-cubes-grid sdf-fn bounds resolution)))
 
 (define (marching-cubes-sphere center radius resolution)
+  (doc 'export #t)
   (doc 'type '(-> Point3 Number Number (List Triangle3)))
   (doc 'description "Extract mesh for a sphere SDF")
   (let ([sdf-fn (lambda (p)
@@ -190,6 +199,7 @@
        (marching-cubes sdf-fn center (* radius 1.5) resolution)))
 
 (define (marching-cubes-torus center major-radius minor-radius resolution)
+  (doc 'export #t)
   (doc 'type '(-> Point3 Number Number Number (List Triangle3)))
   (doc 'description "Extract mesh for a torus SDF")
   (let ([sdf-fn (lambda (p)

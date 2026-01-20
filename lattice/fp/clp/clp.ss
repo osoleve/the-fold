@@ -13,16 +13,19 @@
 (doc 'note "CLP goals are functions: CStore → (Stream CStore). They can fail (return empty stream) or succeed with modified store.")
 
 (define (clp-succeed cs)
+  (doc 'export #t)
   (doc 'type '(-> CStore (Stream CStore)))
   (doc 'description "Goal that always succeeds with the given store")
   (stream-cons cs (lambda () stream-nil)))
 
 (define (clp-fail cs)
+  (doc 'export #t)
   (doc 'type '(-> CStore (Stream CStore)))
   (doc 'description "Goal that always fails")
   stream-nil)
 
 (define (clp-goal propagator)
+  (doc 'export #t)
   (doc 'type '(-> (-> CStore (Maybe CStore)) (-> CStore (Stream CStore))))
   (doc 'description "Lift a propagator to a goal")
   (lambda (cs)
@@ -34,6 +37,7 @@
 (doc 'section 'goal-combinators)
 
 (define (clp-conj g1 g2)
+  (doc 'export #t)
   (doc 'type '(-> Goal Goal Goal))
   (doc 'description "Conjunction: run g1 then g2")
   (lambda (cs)
@@ -42,6 +46,7 @@
            (g1 cs))))
 
 (define (clp-disj g1 g2)
+  (doc 'export #t)
   (doc 'type '(-> Goal Goal Goal))
   (doc 'description "Disjunction: try both g1 and g2")
   (lambda (cs)
@@ -50,6 +55,7 @@
            (lambda () (g2 cs)))))
 
 (define (clp-conj* goals)
+  (doc 'export #t)
   (doc 'type '(-> (List Goal) Goal))
   (doc 'description "Conjunction of multiple goals")
   (if (null? goals)
@@ -57,6 +63,7 @@
       (clp-conj (car goals) (clp-conj* (cdr goals)))))
 
 (define (clp-disj* goals)
+  (doc 'export #t)
   (doc 'type '(-> (List Goal) Goal))
   (doc 'description "Disjunction of multiple goals")
   (if (null? goals)
@@ -67,16 +74,19 @@
 (doc 'note "These wrap constraint functions as goals")
 
 (define (goal-in-range var lo hi)
+  (doc 'export #t)
   (doc 'type '(-> LVar Int Int Goal))
   (doc 'description "Constrain var to range [lo, hi]")
   (clp-goal (in-range var lo hi)))
 
 (define (goal-in-domain var vals)
+  (doc 'export #t)
   (doc 'type '(-> LVar (List Int) Goal))
   (doc 'description "Constrain var to list of values")
   (clp-goal (in-domain var vals)))
 
 (define (goal-=fd x y)
+  (doc 'export #t)
   (doc 'type '(-> (Or LVar Int) (Or LVar Int) Goal))
   (doc 'description "Constraint x = y")
   (doc 'note "Uses post-=fd to register constraint for re-propagation during labeling")
@@ -87,6 +97,7 @@
                    (clp-fail cs)))))
 
 (define (goal-<fd x y)
+  (doc 'export #t)
   (doc 'type '(-> (Or LVar Int) (Or LVar Int) Goal))
   (doc 'description "Constraint x < y")
   (doc 'note "Uses post-<fd to register constraint for re-propagation during labeling")
@@ -97,6 +108,7 @@
                    (clp-fail cs)))))
 
 (define (goal-<=fd x y)
+  (doc 'export #t)
   (doc 'type '(-> (Or LVar Int) (Or LVar Int) Goal))
   (doc 'description "Constraint x <= y")
   (lambda (cs)
@@ -106,6 +118,7 @@
                    (clp-fail cs)))))
 
 (define (goal->fd x y)
+  (doc 'export #t)
   (doc 'type '(-> (Or LVar Int) (Or LVar Int) Goal))
   (doc 'description "Constraint x > y")
   (lambda (cs)
@@ -115,6 +128,7 @@
                    (clp-fail cs)))))
 
 (define (goal->=fd x y)
+  (doc 'export #t)
   (doc 'type '(-> (Or LVar Int) (Or LVar Int) Goal))
   (doc 'description "Constraint x >= y")
   (lambda (cs)
@@ -124,6 +138,7 @@
                    (clp-fail cs)))))
 
 (define (goal-=/=fd x y)
+  (doc 'export #t)
   (doc 'type '(-> (Or LVar Int) (Or LVar Int) Goal))
   (doc 'description "Constraint x ≠ y (disequality)")
   (lambda (cs)
@@ -133,6 +148,7 @@
                    (clp-fail cs)))))
 
 (define (goal-+fd x y z)
+  (doc 'export #t)
   (doc 'type '(-> (Or LVar Int) (Or LVar Int) (Or LVar Int) Goal))
   (doc 'description "Constraint x + y = z")
   (lambda (cs)
@@ -142,6 +158,7 @@
                    (clp-fail cs)))))
 
 (define (goal--fd x y z)
+  (doc 'export #t)
   (doc 'type '(-> (Or LVar Int) (Or LVar Int) (Or LVar Int) Goal))
   (doc 'description "Constraint x - y = z")
   (lambda (cs)
@@ -151,6 +168,7 @@
                    (clp-fail cs)))))
 
 (define (goal-*fd x y z)
+  (doc 'export #t)
   (doc 'type '(-> (Or LVar Int) (Or LVar Int) (Or LVar Int) Goal))
   (doc 'description "Constraint x * y = z")
   (lambda (cs)
@@ -160,6 +178,7 @@
                    (clp-fail cs)))))
 
 (define (goal-all-different vars)
+  (doc 'export #t)
   (doc 'type '(-> (List LVar) Goal))
   (doc 'description "Constraint that all variables have distinct values")
   (doc 'note "Uses post-constraint to register for re-propagation during labeling")
@@ -170,6 +189,7 @@
                    (clp-fail cs)))))
 
 (define (goal-sum-fd vars result)
+  (doc 'export #t)
   (doc 'type '(-> (List LVar) (Or LVar Int) Goal))
   (doc 'description "Constraint that sum of vars equals result")
   (doc 'note "Uses post-constraint to register for re-propagation during labeling")
@@ -182,12 +202,14 @@
 (doc 'section 'labeling-goals)
 
 (define (goal-label vars)
+  (doc 'export #t)
   (doc 'type '(-> (List LVar) Goal))
   (doc 'description "Default labeling strategy (first-fail, min-value)")
   (lambda (cs)
           (label cs vars)))
 
 (define (goal-label-with var-order val-select vars)
+  (doc 'export #t)
   (doc 'type '(-> VarOrder ValSelect (List LVar) Goal))
   (doc 'description "Custom labeling with specified variable ordering and value selection strategies")
   (lambda (cs)
@@ -196,6 +218,7 @@
 (doc 'section 'running-clp)
 
 (define (run-clp n goal-fn vars)
+  (doc 'export #t)
   (doc 'type '(-> Nat (-> Goal) (List (List Int))))
   (doc 'description "Run CLP goal and return up to n solutions")
   (doc 'note "The goal-fn receives fresh variables and returns a goal")
@@ -215,6 +238,7 @@
                   (take-solutions (- n 1) (stream-tail stream) vars)))))
 
 (define (run-clp* n vars goal)
+  (doc 'export #t)
   (doc 'type '(-> Nat (List LVar) Goal (List CStore)))
   (doc 'description "Run goal and return solution stores")
   (let* ([cs (make-cstore)]
@@ -224,6 +248,7 @@
 (doc 'section 'convenience-api)
 
 (define (clp-solve vars goal)
+  (doc 'export #t)
   (doc 'type '(-> (List LVar) Goal (Maybe CStore)))
   (doc 'description "Find first solution or #f")
   (let* ([cs (make-cstore)]
@@ -233,11 +258,13 @@
             (stream-head solutions))))
 
 (define (clp-all vars goal)
+  (doc 'export #t)
   (doc 'type '(-> (List LVar) Goal (List CStore)))
   (doc 'description "Find all solutions (with reasonable limit of 1000)")
   (run-clp* 1000 vars goal))
 
 (define (clp-count goal)
+  (doc 'export #t)
   (doc 'type '(-> Goal Nat))
   (doc 'description "Count solutions (up to limit of 10000)")
   (let* ([cs (make-cstore)]
@@ -255,6 +282,7 @@
 (doc 'section 'examples-n-queens)
 
 (define (n-queens n)
+  (doc 'export #t)
   (doc 'type '(-> Nat Goal))
   (doc 'description "Set up N-Queens problem as a CLP goal")
   (let ([queens (map (lambda (i) (make-lvar 'q)) (range 0 n))])
@@ -333,6 +361,7 @@
 (doc 'section 'examples-send-more-money)
 
 (define (send-more-money)
+  (doc 'export #t)
   (doc 'type '(-> Goal))
   (doc 'description "Classic cryptarithmetic puzzle: SEND + MORE = MONEY")
   (let ([s (make-lvar 's)]
@@ -389,6 +418,7 @@
 (doc 'section 'help)
 
 (define (clp-help)
+  (doc 'export #t)
   (doc 'type '(-> Void))
   (doc 'description "Print CLP(FD) help message with available constraints and operations")
   (display "CLP(FD) - Constraint Logic Programming over Finite Domains\n\n")

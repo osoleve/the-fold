@@ -13,6 +13,7 @@
 
 (doc 'section 'one-way-anova)
 (define (anova-one-way groups)
+  (doc 'export #t)
   (doc 'type '(-> (List Vec) ANOVAResult))
   (doc 'description "Test H0: all group means are equal")
   (doc 'note "F = (SS_between / df_between) / (SS_within / df_within)")

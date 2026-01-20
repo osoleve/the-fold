@@ -6,6 +6,7 @@
 (doc 'section 'propagation-loop)
 
 (define (propagate cs)
+  (doc 'export #t)
   (doc 'type '(-> CStore (Maybe CStore)))
   (doc 'description "Run propagation until fixpoint or failure using default fuel limit")
   (propagate-with-fuel cs 10000))
@@ -47,6 +48,7 @@
 (doc 'section 'posting-constraints)
 
 (define (post-constraint cs type vars propagator)
+  (doc 'export #t)
   (doc 'type '(-> CStore Symbol (List LVar) (-> CStore (Maybe CStore)) (Maybe CStore)))
   (doc 'description "Create a constraint, add it to the store, and run initial propagation")
   (let* ([constraint (make-constraint type vars propagator)]
@@ -66,6 +68,7 @@
        (and cs1 (propagate cs1))))
 
 (define (post-=fd cs x y)
+  (doc 'export #t)
   (doc 'type '(-> CStore (Or LVar Int) (Or LVar Int) (Maybe CStore)))
   (doc 'description "Post equality constraint and propagate")
   (let ([vars (filter lvar? (list x y))])
@@ -74,6 +77,7 @@
            (post-constraint cs '=fd vars (=fd x y)))))
 
 (define (post-<fd cs x y)
+  (doc 'export #t)
   (doc 'type '(-> CStore (Or LVar Int) (Or LVar Int) (Maybe CStore)))
   (doc 'description "Post less-than constraint and propagate")
   (let ([vars (filter lvar? (list x y))])
@@ -82,6 +86,7 @@
            (post-constraint cs '<fd vars (<fd x y)))))
 
 (define (post-<=fd cs x y)
+  (doc 'export #t)
   (doc 'type '(-> CStore (Or LVar Int) (Or LVar Int) (Maybe CStore)))
   (doc 'description "Post less-or-equal constraint and propagate")
   (let ([vars (filter lvar? (list x y))])
@@ -90,14 +95,17 @@
            (post-constraint cs '<=fd vars (<=fd x y)))))
 
 (define (post->fd cs x y)
+  (doc 'export #t)
   (doc 'type '(-> CStore (Or LVar Int) (Or LVar Int) (Maybe CStore)))
   (post-<fd cs y x))
 
 (define (post->=fd cs x y)
+  (doc 'export #t)
   (doc 'type '(-> CStore (Or LVar Int) (Or LVar Int) (Maybe CStore)))
   (post-<=fd cs y x))
 
 (define (post-=/=fd cs x y)
+  (doc 'export #t)
   (doc 'type '(-> CStore (Or LVar Int) (Or LVar Int) (Maybe CStore)))
   (doc 'description "Post disequality constraint and propagate")
   (let ([vars (filter lvar? (list x y))])
@@ -106,6 +114,7 @@
            (post-constraint cs '=/=fd vars (=/=fd x y)))))
 
 (define (post-+fd cs x y z)
+  (doc 'export #t)
   (doc 'type '(-> CStore (Or LVar Int) (Or LVar Int) (Or LVar Int) (Maybe CStore)))
   (doc 'description "Post addition constraint and propagate")
   (let ([vars (filter lvar? (list x y z))])
@@ -114,6 +123,7 @@
            (post-constraint cs '+fd vars (+fd x y z)))))
 
 (define (post--fd cs x y z)
+  (doc 'export #t)
   (doc 'type '(-> CStore (Or LVar Int) (Or LVar Int) (Or LVar Int) (Maybe CStore)))
   (doc 'description "Post subtraction constraint and propagate")
   (let ([vars (filter lvar? (list x y z))])
@@ -122,6 +132,7 @@
            (post-constraint cs '-fd vars (-fd x y z)))))
 
 (define (post-*fd cs x y z)
+  (doc 'export #t)
   (doc 'type '(-> CStore (Or LVar Int) (Or LVar Int) (Or LVar Int) (Maybe CStore)))
   (doc 'description "Post multiplication constraint and propagate")
   (let ([vars (filter lvar? (list x y z))])

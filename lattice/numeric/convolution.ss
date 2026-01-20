@@ -28,6 +28,7 @@
 ;;;
 ;;; (f * g)[n] = Σ(k=0 to M-1) f[n-k] * g[k]
 (define (convolve-direct-full signal kernel)
+  (doc 'export #t)
   (let* ([n (vector-length signal)]
          [m (vector-length kernel)])
         (if (or (= n 0) (= m 0))
@@ -49,6 +50,7 @@
 ;;; Compute 'same' mode convolution (output length = signal length).
 ;;; Complexity: O(N * M)
 (define (convolve-direct-same signal kernel)
+  (doc 'export #t)
   (let* ([n (vector-length signal)]
          [m (vector-length kernel)]
          [result (make-vector n 0)]
@@ -69,6 +71,7 @@
 ;;; Output length: N - M + 1 (or 0 if M > N)
 ;;; Complexity: O((N-M+1) * M)
 (define (convolve-direct-valid signal kernel)
+  (doc 'export #t)
   (let* ([n (vector-length signal)]
          [m (vector-length kernel)]
          [output-len (max 0 (+ (- n m) 1))])
@@ -95,6 +98,7 @@
 ;;;
 ;;; Convolution Theorem: conv(f, g) = IFFT(FFT(f) * FFT(g))
 (define (convolve-fft signal kernel)
+  (doc 'export #t)
   (let* ([n (vector-length signal)]
          [m (vector-length kernel)]
          [output-len (+ n m -1)]
@@ -133,6 +137,7 @@
 ;;; - Small kernels (M < 32): Use direct convolution
 ;;; - Large kernels: Use FFT-based convolution
 (define (convolve signal kernel mode)
+  (doc 'export #t)
   (let ([m (vector-length kernel)])
        (cond
         [(< m 32)
@@ -178,6 +183,7 @@
 ;;;
 ;;; (f ⋆ g)[n] = Σ(k=0 to M-1) f[n+k] * g[k]
 (define (correlate-direct signal kernel mode)
+  (doc 'export #t)
   (let* ([n (vector-length signal)]
          [m (vector-length kernel)])
         (case mode
@@ -224,6 +230,7 @@
 ;;; correlate : Vector[Number] × Vector[Number] × Symbol → Vector[Number]
 ;;; Compute cross-correlation with automatic algorithm selection.
 (define (correlate signal kernel mode)
+  (doc 'export #t)
   (let ([m (vector-length kernel)])
        (if (< m 32)
            (correlate-direct signal kernel mode)
@@ -235,6 +242,7 @@
 ;;; Compute auto-correlation (signal correlated with itself).
 ;;; Useful for detecting periodicity and self-similarity.
 (define (autocorrelate signal mode)
+  (doc 'export #t)
   (correlate signal signal mode))
 
 ;;; ====
@@ -248,12 +256,14 @@
 ;;; The matched filter is the time-reversed complex conjugate of the template,
 ;;; but for real signals it's just cross-correlation.
 (define (matched-filter signal template)
+  (doc 'export #t)
   (correlate signal template 'same))
 
 ;;; find-peaks : Vector[Number] × Number → Vector[Integer]
 ;;; Find indices where signal exceeds threshold.
 ;;; Useful for detecting matched filter hits.
 (define (find-peaks signal threshold)
+  (doc 'export #t)
   (let ([n (vector-length signal)]
         [peaks '()])
        (if (< n 3)
@@ -277,6 +287,7 @@
 ;;; vector-reverse : Vector → Vector
 ;;; Reverse a vector (for convolution/correlation conversion).
 (define (vector-reverse v)
+  (doc 'export #t)
   (let* ([n (vector-length v)]
          [result (make-vector n)])
         (do ([i 0 (+ i 1)])
@@ -287,6 +298,7 @@
 ;;; Normalize signal to have zero mean and unit variance.
 ;;; Useful for preprocessing before correlation.
 (define (normalize-signal signal)
+  (doc 'export #t)
   (let ([n (vector-length signal)])
        (if (= n 0)
            (vector)  ; Empty input => empty output
@@ -329,6 +341,7 @@
 ;;; This is a placeholder for future implementation.
 ;;; Currently not implemented - would require matrix data structure.
 (define (convolve-2d image kernel)
+  (doc 'export #t)
   (error 'convolve-2d "2D convolution not yet implemented"
          "Requires matrix data structure"))
 
@@ -342,6 +355,7 @@
 ;;;
 ;;; Efficient implementation using FFT.
 (define (convolve-circular signal kernel)
+  (doc 'export #t)
   (let* ([n (vector-length signal)]
          [m (vector-length kernel)])
         (if (not (= n m))

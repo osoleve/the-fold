@@ -11,6 +11,7 @@
 (doc 'section 'variable-ordering-strategies)
 
 (define (input-order cs vars)
+  (doc 'export #t)
   (doc 'type '(-> CStore (List LVar) (Maybe LVar)))
   (doc 'description "Select the first unbound (non-singleton domain) variable")
   (let loop ([vars vars])
@@ -26,6 +27,7 @@
                [else (loop (cdr vars))]))])))
 
 (define (first-fail cs vars)
+  (doc 'export #t)
   (doc 'type '(-> CStore (List LVar) (Maybe LVar)))
   (doc 'description "Select the variable with smallest domain (fail first)")
   (let loop ([vars vars] [best #f] [best-size +inf.0])
@@ -48,6 +50,7 @@
                             (loop (cdr vars) best best-size)))])))))
 
 (define (most-constrained cs vars)
+  (doc 'export #t)
   (doc 'type '(-> CStore (List LVar) (Maybe LVar)))
   (doc 'description "Select variable with smallest domain-to-constraint ratio (dom/deg)")
   (doc 'note "Uses number of constraints as tie-breaker for first-fail")
@@ -71,6 +74,7 @@
                              (loop (cdr vars) best best-score)))])))))
 
 (define (max-regret cs vars)
+  (doc 'export #t)
   (doc 'type '(-> CStore (List LVar) (Maybe LVar)))
   (doc 'description "Select variable with largest difference between two smallest values")
   (let loop ([vars vars] [best #f] [best-regret -1])
@@ -95,16 +99,19 @@
 (doc 'section 'value-selection-strategies)
 
 (define (min-value dom)
+  (doc 'export #t)
   (doc 'type '(-> Domain Int))
   (doc 'description "Select minimum value from domain")
   (domain-min dom))
 
 (define (max-value dom)
+  (doc 'export #t)
   (doc 'type '(-> Domain Int))
   (doc 'description "Select maximum value from domain")
   (domain-max dom))
 
 (define (mid-value dom)
+  (doc 'export #t)
   (doc 'type '(-> Domain Int))
   (doc 'description "Select middle value from domain")
   (let* ([lo (domain-min dom)]
@@ -122,11 +129,13 @@
 (doc 'section 'labeling-functions)
 
 (define (label cs vars)
+  (doc 'export #t)
   (doc 'type '(-> CStore (List LVar) (Stream CStore)))
   (doc 'description "Label variables using default strategy (first-fail, min-value)")
   (label-with first-fail min-value cs vars))
 
 (define (label-with var-order val-select cs vars)
+  (doc 'export #t)
   (doc 'type '(-> VarOrder ValSelect CStore (List LVar) (Stream CStore)))
   (doc 'description "Label variables with custom strategies")
   (doc 'returns "Stream of all solutions")
@@ -165,6 +174,7 @@
 (doc 'section 'convenience-labeling)
 
 (define (label-all cs vars)
+  (doc 'export #t)
   (doc 'type '(-> CStore (List LVar) (List CStore)))
   (doc 'description "Get all solutions as a list (may be expensive for large search spaces)")
   (doc 'note "Default limit of 1000 solutions")
@@ -184,6 +194,7 @@
             (stream->list-limit (stream-tail stream) (- limit 1)))))
 
 (define (label-first cs vars)
+  (doc 'export #t)
   (doc 'type '(-> CStore (List LVar) (Maybe CStore)))
   (doc 'description "Get first solution or #f if none")
   (let ([solutions (label cs vars)])
@@ -192,6 +203,7 @@
            (stream-head solutions))))
 
 (define (label-count cs vars)
+  (doc 'export #t)
   (doc 'type '(-> CStore (List LVar) Nat))
   (doc 'description "Count solutions (with limit of 10000 to prevent infinite counting)")
   (label-count-with-limit cs vars 10000))
@@ -207,6 +219,7 @@
 (doc 'section 'strategy-constructors)
 
 (define (make-labeling-strategy var-order val-select)
+  (doc 'export #t)
   (doc 'type '(-> VarOrder ValSelect (-> CStore (List LVar) (Stream CStore))))
   (doc 'description "Create a labeling function from component strategies")
   (lambda (cs vars)

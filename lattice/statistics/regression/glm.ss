@@ -30,6 +30,7 @@
 (doc 'note "   f. eta = X * beta")
 (doc 'note "3. Compute standard errors from (X'WX)^(-1)")
 (define (glm-fit family link X y . opts)
+  (doc 'export #t)
   (doc 'type '(-> GLMFamily LinkFunction Matrix Vec (or GLMResult Error)))
   (doc 'description "Fit a GLM using IRLS")
   (doc 'param 'family "GLM family (gaussian, binomial, poisson, gamma)")
@@ -268,12 +269,14 @@
 ;;; Fit binary logistic regression.
 ;;; y should be 0/1 binary response.
 (define (logistic-fit X y . opts)
+  (doc 'export #t)
   (apply glm-fit binomial-family logit-link X y opts))
 
 ;;; poisson-fit : Matrix × Vec → GLMResult | Error
 ;;; Fit Poisson regression.
 ;;; y should be non-negative counts.
 (define (poisson-fit X y . opts)
+  (doc 'export #t)
   (apply glm-fit poisson-family log-link X y opts))
 
 ;;; gamma-fit : Matrix × Vec → GLMResult | Error
@@ -294,6 +297,7 @@
 ;;; glm-predict : GLMResult × Matrix → Vec
 ;;; Predict on response scale.
 (define (glm-predict model X-new)
+  (doc 'export #t)
   (let* ([beta (glm-coefficients model)]
          [link-name (glm-link model)]
          [link (case link-name

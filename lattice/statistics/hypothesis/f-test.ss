@@ -13,6 +13,7 @@
 
 (doc 'section 'variance-ratio-test)
 (define (f-test-variance xs ys)
+  (doc 'export #t)
   (doc 'type '(-> Vec Vec TestResult))
   (doc 'description "Test H0: var(x) = var(y) vs H1: var(x) != var(y)")
   (doc 'note "F = var(x) / var(y) follows F(n1-1, n2-1) under H0")
@@ -57,6 +58,7 @@
 ;;; More robust than F-test to non-normality.
 ;;; Tests H0: all group variances are equal.
 (define (levene-test groups)
+  (doc 'export #t)
   (let* ([k (length groups)]
          ;; Transform: Z_ij = |X_ij - median(X_i)|
          [z-groups (map (lambda (g)
@@ -85,6 +87,7 @@
 ;;; Bartlett's test for homogeneity of variances.
 ;;; Assumes normal distributions; sensitive to non-normality.
 (define (bartlett-test groups)
+  (doc 'export #t)
   (let* ([k (length groups)]
          [ns (map vector-length groups)]
          [n (apply + ns)]
@@ -116,6 +119,7 @@
 ;;; F = (R² / (p-1)) / ((1-R²) / (n-p))
 ;;; where p includes intercept.
 (define (f-test-regression r-squared n p)
+  (doc 'export #t)
   (let* ([df1 (- p 1)]          ; Regression df (excluding intercept)
          [df2 (- n p)]          ; Residual df
          [f-stat (if (or (<= df1 0) (<= df2 0) (>= r-squared 1))
@@ -136,6 +140,7 @@
 ;;; p-full: number of parameters in full model
 ;;; p-reduced: number of parameters in reduced model
 (define (f-test-nested-models r2-full r2-reduced n p-full p-reduced)
+  (doc 'export #t)
   (let* ([df1 (- p-full p-reduced)]      ; Additional parameters
          [df2 (- n p-full)]               ; Residual df
          [r2-diff (- r2-full r2-reduced)]

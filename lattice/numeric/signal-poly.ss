@@ -47,9 +47,11 @@
 
 ;;; sig-poly-coeffs : SigPolynomial → (List Coeff)
 (define (sig-poly-coeffs p) (caddr p))
+(doc 'export #t)
 
 ;;; sig-poly-degree : SigPolynomial → Nat
 (define (sig-poly-degree p)
+  (doc 'export #t)
   (let ([coeffs (sig-poly-coeffs p)])
     (max 0 (- (length coeffs) 1))))
 
@@ -174,6 +176,7 @@
 
 ;;; sig-poly-gcd : SigPolynomial × SigPolynomial → SigPolynomial
 (define (sig-poly-gcd p1 p2)
+  (doc 'export #t)
   (if (sig-poly-zero? p2)
       (sig-poly-make-monic p1)
       (sig-poly-gcd p2 (sig-poly-mod p1 p2))))
@@ -196,6 +199,7 @@
 ;;; numeric->signal-poly : NumericPoly → SigPolynomial
 ;;; Convert from numeric polynomial (descending vector) to signal polynomial (ascending list).
 (define (numeric->signal-poly p)
+  (doc 'export #t)
   (let* ([coeffs (num-poly-coeffs-sig p)]
          [ascending (reverse coeffs)])
     (sig-make-polynomial Q-field-sig ascending)))
@@ -203,6 +207,7 @@
 ;;; signal->numeric-poly : SigPolynomial → NumericPoly
 ;;; Convert signal polynomial to numeric polynomial.
 (define (signal->numeric-poly p)
+  (doc 'export #t)
   (let* ([coeffs (sig-poly-coeffs p)]
          [descending (reverse coeffs)]
          [vec (list->vector descending)])
@@ -215,6 +220,7 @@
 ;;; filter-num-poly : IIR-Filter → SigPolynomial
 ;;; Get filter numerator as signal polynomial.
 (define (filter-num-poly f)
+  (doc 'export #t)
   (let* ([b (iir-filter-b f)]
          [coeffs (vector->list b)])
     ;; IIR filter coefficients are already in order [b0, b1, ...]
@@ -224,6 +230,7 @@
 ;;; filter-den-poly : IIR-Filter → SigPolynomial
 ;;; Get filter denominator as signal polynomial.
 (define (filter-den-poly f)
+  (doc 'export #t)
   (let* ([a (iir-filter-a f)]
          [coeffs (vector->list a)])
     (sig-make-polynomial Q-field-sig coeffs)))
@@ -232,6 +239,7 @@
 ;;; Check if numerator and denominator share common factors.
 ;;; Returns #t if filter is already minimal (no pole-zero cancellation possible).
 (define (filter-coprime? f)
+  (doc 'export #t)
   (let* ([num (filter-num-poly f)]
          [den (filter-den-poly f)]
          [gcd-poly (sig-poly-gcd num den)])
@@ -240,6 +248,7 @@
 ;;; filter-simplify : IIR-Filter → IIR-Filter
 ;;; Simplify filter by canceling common numerator/denominator factors.
 (define (filter-simplify f)
+  (doc 'export #t)
   (let* ([num (filter-num-poly f)]
          [den (filter-den-poly f)]
          [gcd-poly (sig-poly-gcd num den)])
@@ -301,6 +310,7 @@
 ;;; Check if digital filter is stable using Jury criterion.
 ;;; A discrete-time system is stable if all poles are inside unit circle.
 (define (filter-stable? f)
+  (doc 'export #t)
   (let* ([den (filter-den-poly f)]
          [coeffs (sig-poly-coeffs den)]
          [len (length coeffs)]
@@ -362,6 +372,7 @@
 ;;; Returns (quotient . remainder).
 ;;; This is polynomial division in the signal domain.
 (define (deconvolve y h)
+  (doc 'export #t)
   (let* ([y-poly (sig-make-polynomial Q-field-sig (vector->list y))]
          [h-poly (sig-make-polynomial Q-field-sig (vector->list h))]
          [qr (sig-poly-divmod y-poly h-poly)]
@@ -373,6 +384,7 @@
 ;;; deconvolve-exact? : Vector × Vector × Vector → Boolean
 ;;; Check if deconvolution is exact (no remainder).
 (define (deconvolve-exact? y h x)
+  (doc 'export #t)
   (let* ([result (deconvolve y h)]
          [remainder (cdr result)])
     (vector-all-zero? remainder)))
@@ -394,6 +406,7 @@
 ;;; H_total(z) = H1(z) * H2(z)
 ;;; Numerator = B1 * B2, Denominator = A1 * A2
 (define (filter-cascade f1 f2)
+  (doc 'export #t)
   (let* ([num1 (filter-num-poly f1)]
          [den1 (filter-den-poly f1)]
          [num2 (filter-num-poly f2)]
@@ -409,6 +422,7 @@
 ;;; Parallel combination of two filters.
 ;;; H_total(z) = H1(z) + H2(z) = (B1*A2 + B2*A1) / (A1*A2)
 (define (filter-parallel f1 f2)
+  (doc 'export #t)
   (let* ([num1 (filter-num-poly f1)]
          [den1 (filter-den-poly f1)]
          [num2 (filter-num-poly f2)]
@@ -428,6 +442,7 @@
 ;;; sig-poly->string : SigPolynomial × Symbol → String
 ;;; Convert polynomial to string representation.
 (define (sig-poly->string p var)
+  (doc 'export #t)
   (let* ([coeffs (sig-poly-coeffs p)]
          [n (length coeffs)]
          [var-str (symbol->string var)])
@@ -455,6 +470,7 @@
 ;;; filter->string : IIR-Filter → String
 ;;; Display filter transfer function.
 (define (filter->string f)
+  (doc 'export #t)
   (let* ([num (filter-num-poly f)]
          [den (filter-den-poly f)])
     (string-append "H(z) = (" (sig-poly->string num 'z) ") / ("

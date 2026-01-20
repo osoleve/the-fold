@@ -22,6 +22,7 @@ Usage:
 (doc 'section 'unified-interface)
 
 (define (minimize f x0 . opts)
+  (doc 'export #t)
   (doc 'type '(-> (-> (List TracedValue) TracedValue) (List Number) OptResult))
   (doc 'description "Minimize a function starting from x0")
   (doc 'param 'method "Optional: 'sgd, 'momentum, 'adam, 'rmsprop, 'adagrad, 'lbfgs, 'newton, 'newton-cg")

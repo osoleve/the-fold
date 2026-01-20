@@ -35,6 +35,7 @@ Algorithms:
 ;;;   x0: initial point
 ;;;   criteria: convergence criteria
 (define (newton-method f x0 criteria)
+  (doc 'export #t)
   (newton-method-full f x0 criteria #t 1e-6))
 
 ;;; newton-method-full : ((List TracedValue) → TracedValue) × (List Number) × ConvergenceCriteria × Bool × Number → OptResult
@@ -180,6 +181,7 @@ Algorithms:
 ;;;   x0: initial point
 ;;;   criteria: convergence criteria
 (define (newton-cg f x0 criteria)
+  (doc 'export #t)
   (newton-cg-full f x0 criteria 50 1e-5))
 
 ;;; newton-cg-full : ((List TracedValue) → TracedValue) × (List Number) × ConvergenceCriteria × Nat × Number → OptResult

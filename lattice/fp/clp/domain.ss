@@ -12,6 +12,7 @@
 (doc 'section 'domain-constructors)
 
 (define (make-domain lo hi)
+  (doc 'export #t)
   (doc 'type '(-> Int Int Domain))
   (doc 'description "Create a domain from a range [lo, hi]")
   (doc 'returns "Empty domain if lo > hi")
@@ -20,11 +21,13 @@
       (list (cons lo hi))))
 
 (define (domain-singleton n)
+  (doc 'export #t)
   (doc 'type '(-> Int Domain))
   (doc 'description "Create a domain containing a single value")
   (list (cons n n)))
 
 (define (domain-from-list vals)
+  (doc 'export #t)
   (doc 'type '(-> (List Int) Domain))
   (doc 'description "Create a domain from an explicit list of values")
   (doc 'note "Values need not be sorted or unique")
@@ -73,11 +76,13 @@
                 (<= (caar x) (cdar x))))))
 
 (define (domain-empty? dom)
+  (doc 'export #t)
   (doc 'type '(-> Domain Bool))
   (doc 'description "Check if domain is empty")
   (null? dom))
 
 (define (domain-singleton? dom)
+  (doc 'export #t)
   (doc 'type '(-> Domain Bool))
   (doc 'description "Check if domain contains exactly one value")
   (and (pair? dom)
@@ -85,6 +90,7 @@
        (= (caar dom) (cdar dom))))
 
 (define (domain-contains? dom n)
+  (doc 'export #t)
   (doc 'type '(-> Domain Int Bool))
   (doc 'description "Check if domain contains a specific value")
   (let loop ([intervals dom])
@@ -97,6 +103,7 @@
 (doc 'section 'domain-accessors)
 
 (define (domain-size dom)
+  (doc 'export #t)
   (doc 'type '(-> Domain Nat))
   (doc 'description "Count the number of values in the domain")
   (let loop ([intervals dom] [count 0])
@@ -106,6 +113,7 @@
                  (+ count (+ 1 (- (cdar intervals) (caar intervals))))))))
 
 (define (domain-min dom)
+  (doc 'export #t)
   (doc 'type '(-> Domain (Maybe Int)))
   (doc 'description "Get the minimum value in the domain")
   (if (null? dom)
@@ -113,6 +121,7 @@
       (caar dom)))
 
 (define (domain-max dom)
+  (doc 'export #t)
   (doc 'type '(-> Domain (Maybe Int)))
   (doc 'description "Get the maximum value in the domain")
   (if (null? dom)
@@ -136,6 +145,7 @@
 (doc 'section 'domain-operations)
 
 (define (domain-intersect dom1 dom2)
+  (doc 'export #t)
   (doc 'type '(-> Domain Domain Domain))
   (doc 'description "Compute intersection of two domains")
   (let loop ([d1 dom1] [d2 dom2] [acc '()])
@@ -164,6 +174,7 @@
                        [else (loop (cdr d1) (cdr d2) new-acc)]))]))])))
 
 (define (domain-union dom1 dom2)
+  (doc 'export #t)
   (doc 'type '(-> Domain Domain Domain))
   (doc 'description "Compute union of two domains")
   (merge-intervals (append dom1 dom2)))
@@ -200,6 +211,7 @@
   (< (car i1) (car i2)))
 
 (define (domain-subtract-value dom n)
+  (doc 'export #t)
   (doc 'type '(-> Domain Int Domain))
   (doc 'description "Remove a single value from the domain")
   (let loop ([intervals dom] [acc '()])
@@ -267,6 +279,7 @@
                        (cons (cons lo1 (- lo2 1)) acc))]))])))
 
 (define (domain-restrict-min dom n)
+  (doc 'export #t)
   (doc 'type '(-> Domain Int Domain))
   (doc 'description "Keep only values >= n")
   (let loop ([intervals dom] [acc '()])
@@ -289,6 +302,7 @@
                  (loop (cdr intervals) (cons (cons n hi) acc))]))])))
 
 (define (domain-restrict-max dom n)
+  (doc 'export #t)
   (doc 'type '(-> Domain Int Domain))
   (doc 'description "Keep only values <= n")
   (let loop ([intervals dom] [acc '()])
@@ -313,6 +327,7 @@
 (doc 'section 'domain-enumeration)
 
 (define (domain->list dom)
+  (doc 'export #t)
   (doc 'type '(-> Domain (List Int)))
   (doc 'description "Convert domain to explicit list of values")
   (doc 'note "WARNING: Only use for small domains!")
@@ -372,6 +387,7 @@
 (doc 'section 'domain-display)
 
 (define (domain->string dom)
+  (doc 'export #t)
   (doc 'type '(-> Domain String))
   (doc 'description "Convert domain to readable string representation")
   (if (null? dom)

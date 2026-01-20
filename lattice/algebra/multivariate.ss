@@ -23,6 +23,7 @@
 (doc 'note "Example: x^2 * y * z^3 is ((x . 2) (y . 1) (z . 3))")
 (doc 'note "The constant monomial 1 is ()")
 (define (make-monomial pairs)
+  (doc 'export #t)
   (let ([filtered (filter (lambda (p) (> (cdr p) 0)) pairs)])
     (sort-by-var filtered)))
 
@@ -37,15 +38,18 @@
 ;;; mono-one : → Monomial
 ;;; The constant monomial 1.
 (define (mono-one) '())
+(doc 'export #t)
 
 ;;; mono-var : Symbol → Monomial
 ;;; Single variable: x^1
 (define (mono-var v)
+  (doc 'export #t)
   (list (cons v 1)))
 
 ;;; mono-power : Symbol × Nat → Monomial
 ;;; Single variable power: x^n
 (define (mono-power v n)
+  (doc 'export #t)
   (if (= n 0)
       '()
       (list (cons v n))))
@@ -53,22 +57,26 @@
 ;;; mono-degree : Monomial → Nat
 ;;; Total degree of monomial (sum of exponents).
 (define (mono-degree m)
+  (doc 'export #t)
   (apply + (map cdr m)))
 
 ;;; mono-degree-in : Monomial × Symbol → Nat
 ;;; Degree in specific variable.
 (define (mono-degree-in m v)
+  (doc 'export #t)
   (let ([pair (assq v m)])
     (if pair (cdr pair) 0)))
 
 ;;; mono-vars : Monomial → (List Symbol)
 ;;; Variables appearing in monomial.
 (define (mono-vars m)
+  (doc 'export #t)
   (map car m))
 
 ;;; mono-mul : Monomial × Monomial → Monomial
 ;;; Multiply monomials (add exponents).
 (define (mono-mul m1 m2)
+  (doc 'export #t)
   (mono-merge m1 m2))
 
 ;;; mono-merge : merge two sorted alists, adding exponents
@@ -93,6 +101,7 @@
 ;;; mono-divides? : Monomial × Monomial → Boolean
 ;;; Does m1 divide m2? (all exponents of m1 ≤ corresponding in m2)
 (define (mono-divides? m1 m2)
+  (doc 'export #t)
   (let loop ([m1 m1] [m2 m2])
     (cond
       [(null? m1) #t]
@@ -110,6 +119,7 @@
 ;;; mono-div : Monomial × Monomial → Monomial
 ;;; Divide m1 by m2 (subtract exponents). Assumes m2 divides m1.
 (define (mono-div m1 m2)
+  (doc 'export #t)
   (mono-div-helper m1 m2))
 
 (define (mono-div-helper m1 m2)
@@ -134,6 +144,7 @@
 ;;; mono-lcm : Monomial × Monomial → Monomial
 ;;; Least common multiple (max of each exponent).
 (define (mono-lcm m1 m2)
+  (doc 'export #t)
   (mono-lcm-helper m1 m2))
 
 (define (mono-lcm-helper m1 m2)
@@ -155,6 +166,7 @@
 ;;; mono-gcd : Monomial × Monomial → Monomial
 ;;; Greatest common divisor (min of each exponent).
 (define (mono-gcd m1 m2)
+  (doc 'export #t)
   (mono-gcd-helper m1 m2))
 
 (define (mono-gcd-helper m1 m2)
@@ -178,6 +190,7 @@
 
 ;;; mono-equal? : Monomial × Monomial → Boolean
 (define (mono-equal? m1 m2)
+  (doc 'export #t)
   (equal? m1 m2))
 
 ;;; ====
@@ -192,6 +205,7 @@
 ;;; Lexicographic order with given variable ordering.
 ;;; Returns -1 if m1 < m2, 0 if m1 = m2, +1 if m1 > m2.
 (define (mono-compare-lex m1 m2 vars)
+  (doc 'export #t)
   (let loop ([vs vars])
     (if (null? vs)
         0
@@ -206,6 +220,7 @@
 ;;; mono-compare-grlex : Monomial × Monomial × (List Symbol) → Integer
 ;;; Graded lexicographic order (degree first, then lex).
 (define (mono-compare-grlex m1 m2 vars)
+  (doc 'export #t)
   (let ([d1 (mono-degree m1)]
         [d2 (mono-degree m2)])
     (cond
@@ -217,6 +232,7 @@
 ;;; Graded reverse lexicographic order.
 ;;; Compare by degree first, then by REVERSE lex on NEGATIVE exponents.
 (define (mono-compare-grevlex m1 m2 vars)
+  (doc 'export #t)
   (let ([d1 (mono-degree m1)]
         [d2 (mono-degree m2)])
     (cond
@@ -238,6 +254,7 @@
 ;;; make-ordering : Symbol × (List Symbol) → (Monomial × Monomial → Integer)
 ;;; Create a monomial comparison function.
 (define (make-ordering type vars)
+  (doc 'export #t)
   (case type
     [(lex) (lambda (m1 m2) (mono-compare-lex m1 m2 vars))]
     [(grlex deglex) (lambda (m1 m2) (mono-compare-grlex m1 m2 vars))]
@@ -258,25 +275,32 @@
 
 ;;; make-mpoly : Field × (List Symbol) × (M×M→Int) × (List (Coeff × Monomial)) → MPoly
 (define (make-mpoly F vars ordering terms)
+  (doc 'export #t)
   (list 'mpoly F vars ordering (mpoly-normalize F ordering terms)))
 
 ;;; mpoly? : Any → Boolean
 (define (mpoly? p)
+  (doc 'export #t)
   (and (pair? p) (eq? (car p) 'mpoly)))
 
 ;;; mpoly-field : MPoly → Field
 (define (mpoly-field p) (list-ref p 1))
+(doc 'export #t)
 ;;; Backward compatibility alias
+(doc mpoly-ring 'export #t)
 (define mpoly-ring mpoly-field)
 
 ;;; mpoly-vars : MPoly → (List Symbol)
 (define (mpoly-vars p) (list-ref p 2))
+(doc 'export #t)
 
 ;;; mpoly-ordering : MPoly → (M×M→Int)
 (define (mpoly-ordering p) (list-ref p 3))
+(doc 'export #t)
 
 ;;; mpoly-terms : MPoly → (List (Coeff × Monomial))
 (define (mpoly-terms p) (list-ref p 4))
+(doc 'export #t)
 
 ;;; mpoly-normalize : Field × (M×M→Int) × (List (Coeff × Monomial)) → (List ...)
 ;;; Combine like terms, remove zeros, sort by ordering (descending).
@@ -334,24 +358,29 @@
 
 ;;; mpoly-zero : Field × (List Symbol) × (M×M→Int) → MPoly
 (define (mpoly-zero F vars ordering)
+  (doc 'export #t)
   (make-mpoly F vars ordering (list (cons (field-zero F) (mono-one)))))
 
 ;;; mpoly-one : Field × (List Symbol) × (M×M→Int) → MPoly
 (define (mpoly-one F vars ordering)
+  (doc 'export #t)
   (make-mpoly F vars ordering (list (cons (field-one F) (mono-one)))))
 
 ;;; mpoly-constant : Field × (List Symbol) × (M×M→Int) × Coeff → MPoly
 (define (mpoly-constant F vars ordering c)
+  (doc 'export #t)
   (make-mpoly F vars ordering (list (cons c (mono-one)))))
 
 ;;; mpoly-var : Field × (List Symbol) × (M×M→Int) × Symbol → MPoly
 ;;; Create polynomial for single variable.
 (define (mpoly-var F vars ordering v)
+  (doc 'export #t)
   (make-mpoly F vars ordering (list (cons (field-one F) (mono-var v)))))
 
 ;;; mpoly-from-terms : Field × (List Symbol) × Symbol × (List (Coeff × Monomial)) → MPoly
 ;;; Convenience: create mpoly with specified ordering type.
 (define (mpoly-from-terms F vars ordering-type terms)
+  (doc 'export #t)
   (let ([ordering (make-ordering ordering-type vars)])
     (make-mpoly F vars ordering terms)))
 
@@ -361,6 +390,7 @@
 
 ;;; mpoly-zero? : MPoly → Boolean
 (define (mpoly-zero? p)
+  (doc 'export #t)
   (let* ([F (mpoly-field p)]
          [terms (mpoly-terms p)]
          [eq-fn (field-equal-fn F)]
@@ -372,24 +402,29 @@
 ;;; mpoly-degree : MPoly → Nat
 ;;; Total degree (maximum degree of any term).
 (define (mpoly-degree p)
+  (doc 'export #t)
   (apply max (map (lambda (t) (mono-degree (cdr t))) (mpoly-terms p))))
 
 ;;; mpoly-degree-in : MPoly × Symbol → Nat
 ;;; Degree in specific variable.
 (define (mpoly-degree-in p v)
+  (doc 'export #t)
   (apply max (map (lambda (t) (mono-degree-in (cdr t) v)) (mpoly-terms p))))
 
 ;;; mpoly-leading-term : MPoly → (Coeff × Monomial)
 ;;; Leading term (largest monomial according to ordering).
 (define (mpoly-leading-term p)
+  (doc 'export #t)
   (car (mpoly-terms p)))
 
 ;;; mpoly-leading-coeff : MPoly → Coeff
 (define (mpoly-leading-coeff p)
+  (doc 'export #t)
   (car (mpoly-leading-term p)))
 
 ;;; mpoly-leading-mono : MPoly → Monomial
 (define (mpoly-leading-mono p)
+  (doc 'export #t)
   (cdr (mpoly-leading-term p)))
 
 ;;; ====
@@ -398,6 +433,7 @@
 
 ;;; mpoly-add : MPoly × MPoly → MPoly
 (define (mpoly-add p1 p2)
+  (doc 'export #t)
   (let ([F (mpoly-field p1)]
         [vars (mpoly-vars p1)]
         [ordering (mpoly-ordering p1)])
@@ -406,6 +442,7 @@
 
 ;;; mpoly-neg : MPoly → MPoly
 (define (mpoly-neg p)
+  (doc 'export #t)
   (let* ([F (mpoly-field p)]
          [neg (field-neg-fn F)])
     (make-mpoly (mpoly-field p)
@@ -416,10 +453,12 @@
 
 ;;; mpoly-sub : MPoly × MPoly → MPoly
 (define (mpoly-sub p1 p2)
+  (doc 'export #t)
   (mpoly-add p1 (mpoly-neg p2)))
 
 ;;; mpoly-scale : MPoly × Coeff → MPoly
 (define (mpoly-scale p c)
+  (doc 'export #t)
   (let ([F (mpoly-field p)]
         [mul (field-mul-op (mpoly-field p))])
     (make-mpoly (mpoly-field p)
@@ -431,6 +470,7 @@
 ;;; mpoly-mul-term : MPoly × (Coeff × Monomial) → MPoly
 ;;; Multiply polynomial by single term.
 (define (mpoly-mul-term p term)
+  (doc 'export #t)
   (let* ([F (mpoly-field p)]
          [mul (field-mul-op F)]
          [c (car term)]
@@ -446,6 +486,7 @@
 ;;; mpoly-mul : MPoly × MPoly → MPoly
 ;;; Multiply polynomials (distribute).
 (define (mpoly-mul p1 p2)
+  (doc 'export #t)
   (let ([F (mpoly-field p1)]
         [vars (mpoly-vars p1)]
         [ordering (mpoly-ordering p1)])
@@ -458,6 +499,7 @@
 
 ;;; mpoly-power : MPoly × Nat → MPoly
 (define (mpoly-power p n)
+  (doc 'export #t)
   (cond
     [(= n 0) (mpoly-one (mpoly-field p) (mpoly-vars p) (mpoly-ordering p))]
     [(= n 1) p]
@@ -473,6 +515,7 @@
 
 ;;; mpoly-equal? : MPoly × MPoly → Boolean
 (define (mpoly-equal? p1 p2)
+  (doc 'export #t)
   (let* ([F (mpoly-field p1)]
          [eq-fn (field-equal-fn F)]
          [t1 (mpoly-terms p1)]
@@ -493,6 +536,7 @@
 ;;; Returns (list-of-quotients . remainder).
 ;;; The remainder has no term divisible by any leading term of g_i.
 (define (mpoly-divmod f gs)
+  (doc 'export #t)
   (let* ([F (mpoly-field f)]
          [vars (mpoly-vars f)]
          [ordering (mpoly-ordering f)]
@@ -541,6 +585,7 @@
 ;;; mpoly-eval : MPoly × (List (Symbol × Coeff)) → Coeff
 ;;; Evaluate polynomial at given point (variable → value mapping).
 (define (mpoly-eval p env)
+  (doc 'export #t)
   (let* ([F (mpoly-field p)]
          [add (field-add-op F)]
          [mul (field-mul-op F)]
@@ -582,6 +627,7 @@
 
 ;;; mpoly->string : MPoly → String
 (define (mpoly->string p)
+  (doc 'export #t)
   (let* ([F (mpoly-field p)]
          [terms (mpoly-terms p)]
          [zero (field-zero F)]

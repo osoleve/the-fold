@@ -22,6 +22,7 @@ Algorithms:
 (doc 'section 'gradient-descent)
 
 (define (gradient-descent f x0 lr criteria)
+  (doc 'export #t)
   (doc 'type '(-> (-> (List TracedValue) TracedValue) (List Number) Number ConvergenceCriteria OptResult))
   (doc 'description "Vanilla gradient descent with fixed learning rate")
   (doc 'param 'f "Objective function (uses traced operations)")
@@ -47,6 +48,7 @@ Algorithms:
                             (loop x-new new-state)))))))
 
 (define (sgd f x0 lr max-iters)
+  (doc 'export #t)
   (doc 'type '(-> (-> (List TracedValue) TracedValue) (List Number) Number Nat (List Number)))
   (doc 'description "Simple SGD interface (no convergence tracking)")
   (doc 'param 'f "Objective function")
@@ -63,6 +65,7 @@ Algorithms:
 (doc 'section 'momentum)
 
 (define (momentum f x0 lr beta criteria)
+  (doc 'export #t)
   (doc 'type '(-> (-> (List TracedValue) TracedValue) (List Number) Number Number ConvergenceCriteria OptResult))
   (doc 'description "Gradient descent with momentum (heavy ball method)")
   (doc 'param 'f "Objective function")
@@ -95,6 +98,7 @@ Algorithms:
 (doc 'section 'adam)
 
 (define (adam f x0 lr criteria)
+  (doc 'export #t)
   (doc 'type '(-> (-> (List TracedValue) TracedValue) (List Number) Number ConvergenceCriteria OptResult))
   (doc 'description "Adam optimizer with default hyperparameters")
   (doc 'param 'f "Objective function")
@@ -152,6 +156,7 @@ Algorithms:
 (doc 'section 'rmsprop)
 
 (define (rmsprop f x0 lr criteria)
+  (doc 'export #t)
   (doc 'type '(-> (-> (List TracedValue) TracedValue) (List Number) Number ConvergenceCriteria OptResult))
   (doc 'description "RMSprop optimizer")
   (doc 'param 'f "Objective function")
@@ -198,6 +203,7 @@ Algorithms:
 (doc 'section 'adagrad)
 
 (define (adagrad f x0 lr criteria)
+  (doc 'export #t)
   (doc 'type '(-> (-> (List TracedValue) TracedValue) (List Number) Number ConvergenceCriteria OptResult))
   (doc 'description "Adagrad optimizer (adaptive gradient)")
   (doc 'param 'f "Objective function")

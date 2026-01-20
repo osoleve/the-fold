@@ -29,6 +29,7 @@
 ;;; ACF(k) = Cov(X_t, X_{t+k}) / Var(X)
 ;;; Returns vector of length max-lag + 1.
 (define (acf xs max-lag)
+  (doc 'export #t)
   (let* ([n (vector-length xs)]
          [max-lag (min max-lag (- n 1))]
          [acf-vals (make-vector (+ max-lag 1))]
@@ -63,6 +64,7 @@
 ;;; PACF(k) is the correlation between X_t and X_{t+k} after removing
 ;;; the linear effect of X_{t+1}, ..., X_{t+k-1}.
 (define (pacf xs max-lag)
+  (doc 'export #t)
   (let* ([n (vector-length xs)]
          [max-lag (min max-lag (- n 1))]
          [acf-vals (acf xs max-lag)]
@@ -129,6 +131,7 @@
 ;;; Tests H0: rho_1 = ... = rho_m = 0 (no autocorrelation up to lag m).
 ;;; Q = n(n+2) * sum_{k=1}^m (rho_k^2 / (n-k)) ~ chi-sq(m) under H0.
 (define (ljung-box-test xs m)
+  (doc 'export #t)
   (let* ([n (vector-length xs)]
          [m (min m (- n 1))]
          [acf-vals (acf xs m)]
@@ -147,6 +150,7 @@
 ;;; Simpler version of portmanteau test.
 ;;; Q = n * sum_{k=1}^m rho_k^2 ~ chi-sq(m)
 (define (box-pierce-test xs m)
+  (doc 'export #t)
   (let* ([n (vector-length xs)]
          [m (min m (- n 1))]
          [acf-vals (acf xs m)]
@@ -167,6 +171,7 @@
 ;;; CCF(k) = Cor(X_t, Y_{t+k})
 ;;; Returns vector for lags -max-lag, ..., 0, ..., max-lag.
 (define (ccf xs ys max-lag)
+  (doc 'export #t)
   (let* ([n (min (vector-length xs) (vector-length ys))]
          [max-lag (min max-lag (- n 1))]
          [ccf-vals (make-vector (+ (* 2 max-lag) 1))]

@@ -18,6 +18,7 @@
 ;;; - Highest side lobes (-13 dB)
 ;;; - Use when no windowing is desired
 (define (rectangular-window n)
+  (doc 'export #t)
   (let ([result (make-vector n)])
        (do ([i 0 (+ i 1)])
            ((= i n) result)
@@ -33,6 +34,7 @@
 ;;; - Commonly used for general purpose spectral analysis
 ;;; - End points go to zero
 (define (hann-window n)
+  (doc 'export #t)
   (let ([result (make-vector n)]
         [two-pi (* 2 (pi-value))]
         [n-1 (- n 1)])
@@ -51,6 +53,7 @@
 ;;; - Non-zero endpoints (unlike Hann)
 ;;; - Optimized to minimize first side lobe
 (define (hamming-window n)
+  (doc 'export #t)
   (let ([result (make-vector n)]
         [two-pi (* 2 (pi-value))]
         [n-1 (- n 1)])
@@ -68,6 +71,7 @@
 ;;; - Wider main lobe than Hann/Hamming
 ;;; - Good for applications requiring low spectral leakage
 (define (blackman-window n)
+  (doc 'export #t)
   (let ([result (make-vector n)]
         [two-pi (* 2 (pi-value))]
         [four-pi (* 4 (pi-value))]
@@ -90,6 +94,7 @@
 ;;; - Side lobes at -27 dB
 ;;; - Simple and computationally efficient
 (define (bartlett-window n)
+  (doc 'export #t)
   (let ([result (make-vector n)]
         [n-1 (- n 1)]
         [mid (/ (- n 1) 2.0)])
@@ -109,6 +114,7 @@
 ;;;
 ;;; We compute until terms become negligibly small (< 1e-10).
 (define (bessel-i0 x)
+  (doc 'export #t)
   (let ([half-x (/ x 2)])
        (let loop ([k 0]
                   [term 1.0]
@@ -138,6 +144,7 @@
 ;;; - beta = 5.44: For audio applications
 ;;; - beta = 8.6: For low side lobe applications
 (define (kaiser-window n beta)
+  (doc 'export #t)
   (let ([result (make-vector n)]
         [denom (bessel-i0 beta)]
         [n-1 (- n 1)]
@@ -161,6 +168,7 @@
 ;;;
 ;;; Returns: windowed signal w[n] * x[n]
 (define (apply-window signal window)
+  (doc 'export #t)
   (let* ([n (vector-length signal)]
          [m (vector-length window)])
         (if (not (= n m))
@@ -176,6 +184,7 @@
 ;;; apply-window-complex : Vector[Complex] × Vector[Number] → Vector[Complex]
 ;;; Apply a window function to a complex-valued signal.
 (define (apply-window-complex signal window)
+  (doc 'export #t)
   (let* ([n (vector-length signal)]
          [m (vector-length window)])
         (if (not (= n m))
@@ -201,6 +210,7 @@
 ;;;
 ;;; Used for normalizing spectral estimates.
 (define (window-energy window)
+  (doc 'export #t)
   (let ([n (vector-length window)])
        (let loop ([i 0] [sum 0])
             (if (= i n)
@@ -214,6 +224,7 @@
 ;;;
 ;;; Used for normalizing amplitude estimates.
 (define (window-power window)
+  (doc 'export #t)
   (let ([n (vector-length window)])
        (let loop ([i 0] [sum 0])
             (if (= i n)
@@ -239,6 +250,7 @@
 ;;;   (make-window 'hann 512)
 ;;;   (make-window 'kaiser 512 8.6)
 (define (make-window type n . params)
+  (doc 'export #t)
   (case type
         [(rectangular boxcar) (rectangular-window n)]
         [(hann hanning) (hann-window n)]

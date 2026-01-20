@@ -13,6 +13,7 @@
 
 (doc 'section 'goodness-of-fit-test)
 (define (chi-squared-test-goodness observed expected)
+  (doc 'export #t)
   (doc 'type '(-> Vec Vec TestResult))
   (doc 'description "Test H0: observed frequencies match expected frequencies")
   (doc 'note "chi-sq = sum((O - E)² / E)")
@@ -64,6 +65,7 @@
 ;;; chi-sq = sum((O_ij - E_ij)² / E_ij)
 ;;; where E_ij = (row_i_total * col_j_total) / grand_total
 (define (chi-squared-test-independence table)
+  (doc 'export #t)
   (let* ([nrows (matrix-rows table)]
          [ncols (matrix-cols table)]
          ;; Compute row and column totals

@@ -32,31 +32,41 @@
 (doc 'note "3. Distributive: a × (b + c) = (a × b) + (a × c)")
 (doc 'note "                (a + b) × c = (a × c) + (b × c)")
 (define (make-ring elements add-op mul-op zero one neg-fn equal-fn)
+  (doc 'export #t)
   (list 'ring elements add-op mul-op zero one neg-fn equal-fn))
 
 ;;; ring? : α → Boolean
 (define (ring? x)
+  (doc 'export #t)
   (and (list? x)
        (>= (length x) 8)
        (eq? (car x) 'ring)))
 
 ;;; ring-elements : Ring → (List Element)
 (define (ring-elements r) (list-ref r 1))
+(doc 'export #t)
 ;;; ring-add-op : Ring → (Element × Element → Element)
 (define (ring-add-op r) (list-ref r 2))
+(doc 'export #t)
 ;;; ring-mul-op : Ring → (Element × Element → Element)
 (define (ring-mul-op r) (list-ref r 3))
+(doc 'export #t)
 ;;; ring-zero : Ring → Element
 (define (ring-zero r) (list-ref r 4))
+(doc 'export #t)
 ;;; ring-one : Ring → Element
 (define (ring-one r) (list-ref r 5))
+(doc 'export #t)
 ;;; ring-neg-fn : Ring → (Element → Element)
 (define (ring-neg-fn r) (list-ref r 6))
+(doc 'export #t)
 ;;; ring-equal-fn : Ring → (Element × Element → Boolean)
 (define (ring-equal-fn r) (list-ref r 7))
+(doc 'export #t)
 
 ;;; ring-order : Ring → Integer
 (define (ring-order r)
+  (doc 'export #t)
   (length (ring-elements r)))
 
 ;;; ====
@@ -65,29 +75,35 @@
 
 ;;; ring-add : Ring × Element × Element → Element
 (define (ring-add r a b)
+  (doc 'export #t)
   ((ring-add-op r) a b))
 
 ;;; ring-mul : Ring × Element × Element → Element
 (define (ring-mul r a b)
+  (doc 'export #t)
   ((ring-mul-op r) a b))
 
 ;;; ring-neg : Ring × Element → Element
 ;;; Additive inverse: -a
 (define (ring-neg r a)
+  (doc 'export #t)
   ((ring-neg-fn r) a))
 
 ;;; ring-sub : Ring × Element × Element → Element
 ;;; Subtraction: a - b = a + (-b)
 (define (ring-sub r a b)
+  (doc 'export #t)
   (ring-add r a (ring-neg r b)))
 
 ;;; ring-equal? : Ring × Element × Element → Boolean
 (define (ring-equal? r a b)
+  (doc 'export #t)
   ((ring-equal-fn r) a b))
 
 ;;; ring-power : Ring × Element × Natural → Element
 ;;; Compute a^n using repeated squaring.
 (define (ring-power r a n)
+  (doc 'export #t)
   (cond
    [(= n 0) (ring-one r)]
    [(= n 1) a]
@@ -100,6 +116,7 @@
 ;;; ring-sum : Ring × (List Element) → Element
 ;;; Sum of a list of elements.
 (define (ring-sum r elements)
+  (doc 'export #t)
   (if (null? elements)
       (ring-zero r)
       (let loop ([elems (cdr elements)] [acc (car elements)])
@@ -110,6 +127,7 @@
 ;;; ring-product : Ring × (List Element) → Element
 ;;; Product of a list of elements.
 (define (ring-product r elements)
+  (doc 'export #t)
   (if (null? elements)
       (ring-one r)
       (let loop ([elems (cdr elements)] [acc (car elements)])
@@ -124,6 +142,7 @@
 ;;; is-commutative-ring? : Ring → Boolean
 ;;; Check if multiplication is commutative: a × b = b × a
 (define (is-commutative-ring? r)
+  (doc 'export #t)
   (let ([elems (ring-elements r)])
        (let outer-loop ([as elems])
             (if (null? as)
@@ -142,6 +161,7 @@
 ;;; is-zero-divisor? : Ring × Element → Boolean
 ;;; Check if a is a zero divisor: ∃b≠0 such that a×b=0 or b×a=0
 (define (is-zero-divisor? r a)
+  (doc 'export #t)
   (let ([elems (ring-elements r)]
         [zero (ring-zero r)])
        (if (ring-equal? r a zero)
@@ -158,6 +178,7 @@
 
 ;;; has-zero-divisors? : Ring → Boolean
 (define (has-zero-divisors? r)
+  (doc 'export #t)
   (let ([elems (ring-elements r)])
        (let loop ([as elems])
             (if (null? as)
@@ -169,12 +190,14 @@
 ;;; is-integral-domain? : Ring → Boolean
 ;;; An integral domain is a commutative ring with no zero divisors.
 (define (is-integral-domain? r)
+  (doc 'export #t)
   (and (is-commutative-ring? r)
        (not (has-zero-divisors? r))))
 
 ;;; is-unit? : Ring × Element → Boolean
 ;;; Check if element has a multiplicative inverse.
 (define (is-unit? r a)
+  (doc 'export #t)
   (let ([elems (ring-elements r)]
         [one (ring-one r)])
        (let loop ([bs elems])
@@ -187,6 +210,7 @@
 ;;; ring-units : Ring → (List Element)
 ;;; Return all units (invertible elements) in the ring.
 (define (ring-units r)
+  (doc 'export #t)
   (filter (lambda (a) (is-unit? r a))
           (ring-elements r)))
 
@@ -197,6 +221,7 @@
 ;;; make-ring-zn : Natural → Ring
 ;;; Create the ring Z_n of integers modulo n.
 (define (make-ring-zn n)
+  (doc 'export #t)
   (let ([elements (range 0 n)])
        (make-ring
         elements
@@ -215,6 +240,7 @@
 ;;; Use ONLY for testing with small values. For production, use make-ring-zn
 ;;; for modular arithmetic, or represent Z symbolically.
 (define (make-ring-z)
+  (doc 'export #t)
   (let ([elements (range -100 101)])
        (make-ring
         elements
@@ -236,26 +262,33 @@
 
 ;;; make-ring-homomorphism : Ring × Ring × (Element → Element) → Homomorphism
 (define (make-ring-homomorphism source target phi)
+  (doc 'export #t)
   (list 'ring-homomorphism source target phi))
 
 ;;; ring-hom? : α → Boolean
 (define (ring-hom? h)
+  (doc 'export #t)
   (and (list? h) (eq? (car h) 'ring-homomorphism)))
 
 ;;; ring-hom-source : RingHomomorphism → Ring
 (define (ring-hom-source h) (list-ref h 1))
+(doc 'export #t)
 ;;; ring-hom-target : RingHomomorphism → Ring
 (define (ring-hom-target h) (list-ref h 2))
+(doc 'export #t)
 ;;; ring-hom-phi : RingHomomorphism → (Element → Element)
 (define (ring-hom-phi h) (list-ref h 3))
+(doc 'export #t)
 
 ;;; ring-hom-apply : Homomorphism × Element → Element
 (define (ring-hom-apply h a)
+  (doc 'export #t)
   ((ring-hom-phi h) a))
 
 ;;; is-valid-ring-homomorphism? : Homomorphism → Boolean
 ;;; Verify homomorphism properties.
 (define (is-valid-ring-homomorphism? h)
+  (doc 'export #t)
   (let ([r (ring-hom-source h)]
         [s (ring-hom-target h)]
         [phi (ring-hom-phi h)])
@@ -284,6 +317,7 @@
 ;;; ring-hom-kernel : Homomorphism → (List Element)
 ;;; The kernel is {a ∈ R | φ(a) = 0_S}
 (define (ring-hom-kernel h)
+  (doc 'export #t)
   (let ([r (ring-hom-source h)]
         [s (ring-hom-target h)]
         [phi (ring-hom-phi h)])
@@ -294,6 +328,7 @@
 ;;; ring-hom-image : Homomorphism → (List Element)
 ;;; The image is {φ(a) | a ∈ R}
 (define (ring-hom-image h)
+  (doc 'export #t)
   (let ([phi (ring-hom-phi h)]
         [r (ring-hom-source h)])
        (unique-with-equal
@@ -310,20 +345,25 @@
 
 ;;; make-ideal : Ring × (List Element) → Ideal
 (define (make-ideal r elements)
+  (doc 'export #t)
   (list 'ideal r elements))
 
 ;;; ideal? : α → Boolean
 (define (ideal? i)
+  (doc 'export #t)
   (and (list? i) (eq? (car i) 'ideal)))
 
 ;;; ideal-ring : Ideal → Ring
 (define (ideal-ring i) (list-ref i 1))
+(doc 'export #t)
 ;;; ideal-elements : Ideal → (List Element)
 (define (ideal-elements i) (list-ref i 2))
+(doc 'export #t)
 
 ;;; is-valid-ideal? : Ideal → Boolean
 ;;; Verify ideal properties.
 (define (is-valid-ideal? ideal)
+  (doc 'export #t)
   (let ([r (ideal-ring ideal)]
         [i-elems (ideal-elements ideal)]
         [r-elems (ring-elements r)])
@@ -350,6 +390,7 @@
 ;;; make-principal-ideal : Ring × Element → Ideal
 ;;; Generate the principal ideal <a> = {r×a | r ∈ R}
 (define (make-principal-ideal r a)
+  (doc 'export #t)
   (let ([elems (unique-with-equal
                 (map (lambda (r-elem) (ring-mul r r-elem a))
                      (ring-elements r))
@@ -359,6 +400,7 @@
 ;;; ideal-sum : Ideal × Ideal → Ideal
 ;;; I + J = {i + j | i ∈ I, j ∈ J}
 (define (ideal-sum i1 i2)
+  (doc 'export #t)
   (let* ([r (ideal-ring i1)]
          [elems (unique-with-equal
                  (apply append
@@ -374,6 +416,7 @@
 ;;; I × J = {finite sums of i×j | i ∈ I, j ∈ J}
 ;;; Computes additive closure via fixed-point iteration
 (define (ideal-product i1 i2)
+  (doc 'export #t)
   (let* ([r (ideal-ring i1)]
          [eq-fn (ring-equal-fn r)]
          [initial-products (apply append
@@ -398,6 +441,7 @@
 ;;; is-prime-ideal? : Ideal → Boolean
 ;;; I is prime if a×b ∈ I implies a ∈ I or b ∈ I
 (define (is-prime-ideal? ideal)
+  (doc 'export #t)
   (let ([r (ideal-ring ideal)]
         [i-elems (ideal-elements ideal)]
         [r-elems (ring-elements r)])
@@ -422,6 +466,7 @@
 ;;; I is maximal if it's proper and no proper ideal contains it
 ;;; Equivalently: for every x ∉ I, the ideal <I ∪ {x}> = R
 (define (is-maximal-ideal? ideal)
+  (doc 'export #t)
   (let ([r (ideal-ring ideal)]
         [i-elems (ideal-elements ideal)]
         [r-elems (ring-elements r)]

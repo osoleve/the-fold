@@ -14,6 +14,7 @@
 
 (doc 'section 'one-sample-t-test)
 (define (t-test-one-sample xs . opts)
+  (doc 'export #t)
   (doc 'type '(-> Vec TestResult))
   (doc 'description "Test H0: mean = mu0 vs H1: mean != mu0 (two-tailed)")
   (doc 'param 'xs "sample data")
@@ -51,6 +52,7 @@
 ;;;   equal-variance?: assume equal variances (default #t for Student's t)
 ;;;   confidence: confidence level for CI (default 0.95)
 (define (t-test-two-sample xs ys . opts)
+  (doc 'export #t)
   (let* ([equal-variance? (if (>= (length opts) 1) (car opts) #t)]
          [confidence (if (>= (length opts) 2) (cadr opts) 0.95)])
         (if equal-variance?
@@ -124,6 +126,7 @@
 ;;; Test H0: mean(x - y) = 0 vs H1: mean(x - y) != 0.
 ;;; Equivalent to one-sample t-test on differences.
 (define (t-test-paired xs ys . opts)
+  (doc 'export #t)
   (let* ([confidence (if (>= (length opts) 1) (car opts) 0.95)]
          [n (vector-length xs)])
         (if (not (= n (vector-length ys)))

@@ -43,6 +43,7 @@
 ;;; Input: phi = #(phi_1 phi_2 ... phi_p)
 ;;; Output: Polynomial 1 - phi_1*z - phi_2*z^2 - ... - phi_p*z^p (ascending order)
 (define (ar-char-poly-vec phi)
+  (doc 'export #t)
   (let* ([p (vector-length phi)]
          ;; Build coefficients in ascending order: [1, -phi_1, -phi_2, ..., -phi_p]
          [coeffs (let loop ([k 0] [acc '()])
@@ -62,6 +63,7 @@
 ;;; Create AR companion polynomial: z^p - phi_1*z^{p-1} - ... - phi_p
 ;;; Used for stability analysis (roots should be inside unit circle).
 (define (ar-companion-poly phi)
+  (doc 'export #t)
   (let* ([p (vector-length phi)]
          ;; Build coefficients in ascending order: [-phi_p, ..., -phi_1, 1]
          ;; Loop builds in reverse, so reverse at end
@@ -90,6 +92,7 @@
 ;;; Input: theta = #(theta_1 theta_2 ... theta_q)
 ;;; Output: Polynomial 1 + theta_1*z + theta_2*z^2 + ... + theta_q*z^q
 (define (ma-char-poly theta)
+  (doc 'export #t)
   (let* ([q (vector-length theta)]
          [coeffs (let loop ([k 0] [acc '()])
                    (if (> k q)
@@ -108,6 +111,7 @@
 ;;; Find common factors between AR and MA polynomials.
 ;;; Non-trivial GCD indicates potential model reduction.
 (define (arma-common-factors phi theta)
+  (doc 'export #t)
   (let* ([ar-poly (ar-char-poly-vec phi)]
          [ma-poly (ma-char-poly theta)])
     (poly-gcd ar-poly ma-poly)))
@@ -116,6 +120,7 @@
 ;;; Check if ARMA model has common AR-MA factors (reducible).
 ;;; Returns #t if GCD has degree > 0.
 (define (arma-reducible? phi theta)
+  (doc 'export #t)
   (let ([gcd-poly (arma-common-factors phi theta)])
     (> (poly-degree gcd-poly) 0)))
 
@@ -175,6 +180,7 @@
 ;;; Simple stability check for AR(1) and AR(2) models.
 ;;; For higher orders, use numerical root finding.
 (define (ar-stable-simple? phi)
+  (doc 'export #t)
   (let ([p (vector-length phi)])
     (cond
       [(= p 0) #t]  ; No AR component
@@ -196,6 +202,7 @@
 ;;; ma-invertible-simple? : Vec → Boolean
 ;;; Simple invertibility check for MA(1) and MA(2) models.
 (define (ma-invertible-simple? theta)
+  (doc 'export #t)
   (let ([q (vector-length theta)])
     (cond
       [(= q 0) #t]  ; No MA component
@@ -250,6 +257,7 @@
 ;;; psi_j = sum_{k=1}^{min(j,p)} phi_k * psi_{j-k} for j >= 1
 ;;; with psi_0 = 1.
 (define (ar-forecast-weights phi n-ahead)
+  (doc 'export #t)
   (let ([p (vector-length phi)])
     (let loop ([j 0] [psi '()])
       (if (> j n-ahead)

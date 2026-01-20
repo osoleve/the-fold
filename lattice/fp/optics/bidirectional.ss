@@ -22,6 +22,7 @@ Migration = Named, versioned isomorphism with:
 (doc 'section 'migration-type)
 
 (define (make-migration name from-version to-version iso)
+  (doc 'export #t)
   (doc 'type '(-> Symbol Version Version PIso Migration))
   (doc 'description "Create a named migration between two versions.
 The iso's forward transforms from-version to to-version,
@@ -29,24 +30,29 @@ and the backward transforms to-version back to from-version.")
   (list 'migration name from-version to-version iso))
 
 (define (migration? x)
+  (doc 'export #t)
   (doc 'type '(-> Any Boolean))
   (and (pair? x) (eq? (car x) 'migration)))
 
 (define (migration-name m)
+  (doc 'export #t)
   (doc 'type '(-> Migration Symbol))
   (cadr m))
 
 (define (migration-from m)
+  (doc 'export #t)
   (doc 'type '(-> Migration Version))
   (doc 'description "The source version this migration transforms from.")
   (caddr m))
 
 (define (migration-to m)
+  (doc 'export #t)
   (doc 'type '(-> Migration Version))
   (doc 'description "The target version this migration transforms to.")
   (cadddr m))
 
 (define (migration-iso m)
+  (doc 'export #t)
   (doc 'type '(-> Migration PIso))
   (doc 'description "The underlying profunctor iso.")
   (car (cddddr m)))
@@ -54,18 +60,21 @@ and the backward transforms to-version back to from-version.")
 (doc 'section 'core-operations)
 
 (define (migrate m data)
+  (doc 'export #t)
   (doc 'type '(-> Migration Data Data))
   (doc 'description "Apply the migration in the forward direction.
 Transforms data from `from-version` to `to-version`.")
   ((p-iso-forward (migration-iso m)) data))
 
 (define (rollback m data)
+  (doc 'export #t)
   (doc 'type '(-> Migration Data Data))
   (doc 'description "Apply the migration in the backward direction.
 Transforms data from `to-version` back to `from-version`.")
   ((p-iso-backward (migration-iso m)) data))
 
 (define (migration-apply m data direction)
+  (doc 'export #t)
   (doc 'type '(-> Migration Data Direction Data))
   (doc 'description "Apply migration in specified direction ('forward or 'backward).")
   (case direction
@@ -76,6 +85,7 @@ Transforms data from `to-version` back to `from-version`.")
 (doc 'section 'composition)
 
 (define (migration-compose m1 m2)
+  (doc 'export #t)
   (doc 'type '(-> Migration Migration Migration))
   (doc 'description "Compose two migrations: (m1 ; m2) where m1.to = m2.from.
 Result transforms from m1.from to m2.to.
@@ -106,6 +116,7 @@ Backward: m2.backward then m1.backward")
                     combined-iso)))
 
 (define (migration-chain migrations)
+  (doc 'export #t)
   (doc 'type '(-> (List Migration) Migration))
   (doc 'description "Compose a list of migrations into a single migration.
 Migrations must form a valid chain: each m.to = next m.from.")
@@ -117,6 +128,7 @@ Migrations must form a valid chain: each m.to = next m.from.")
 (doc 'section 'reversal)
 
 (define (migration-flip m)
+  (doc 'export #t)
   (doc 'type '(-> Migration Migration))
   (doc 'description "Reverse a migration: swap forward/backward and from/to versions.")
   (let* ([iso (migration-iso m)]
@@ -133,11 +145,13 @@ Migrations must form a valid chain: each m.to = next m.from.")
 (doc 'section 'builders)
 
 (define (make-migration-from-functions name from-ver to-ver forward backward)
+  (doc 'export #t)
   (doc 'type '(-> Symbol Version Version (-> a b) (-> b a) Migration))
   (doc 'description "Create a migration from forward and backward functions.")
   (make-migration name from-ver to-ver (make-p-iso forward backward)))
 
 (define (make-identity-migration name version)
+  (doc 'export #t)
   (doc 'type '(-> Symbol Version Migration))
   (doc 'description "Create a no-op migration (useful as a base case).")
   (make-migration name version version p-iso-id))
@@ -145,12 +159,14 @@ Migrations must form a valid chain: each m.to = next m.from.")
 (doc 'section 'predicates)
 
 (define (migration-versions-match? m from to)
+  (doc 'export #t)
   (doc 'type '(-> Migration Version Version Boolean))
   (doc 'description "Check if migration transforms between given versions.")
   (and (equal? (migration-from m) from)
        (equal? (migration-to m) to)))
 
 (define (migration-compatible? m1 m2)
+  (doc 'export #t)
   (doc 'type '(-> Migration Migration Boolean))
   (doc 'description "Check if two migrations can be composed (m1 ; m2).")
   (equal? (migration-to m1) (migration-from m2)))
@@ -158,6 +174,7 @@ Migrations must form a valid chain: each m.to = next m.from.")
 (doc 'section 'verification)
 
 (define (verify-migration-laws m test-as test-bs)
+  (doc 'export #t)
   (doc 'type '(-> Migration (List a) (List b) Boolean))
   (doc 'description "Verify that migration satisfies iso laws on test data.
 test-as: data in from-version format
@@ -168,6 +185,7 @@ test-bs: data in to-version format")
 (doc 'section 'description)
 
 (define (migration-describe m)
+  (doc 'export #t)
   (doc 'type '(-> Migration String))
   (doc 'description "Generate a human-readable description of a migration.")
   (format "Migration '~a': ~a -> ~a"

@@ -12,6 +12,7 @@
 
 (doc 'section 'simple-exponential-smoothing-ses)
 (define (simple-exponential-smooth xs alpha)
+  (doc 'export #t)
   (doc 'type '(-> Vec Num SESResult))
   (doc 'description "Single exponential smoothing: s_t = alpha * x_t + (1-alpha) * s_{t-1}")
   (doc 'note "Alpha in (0, 1): higher alpha = more weight on recent observations")
@@ -31,6 +32,7 @@
 ;;; ses-forecast : SESResult × Nat → Vec
 ;;; Forecast h steps ahead using SES (all forecasts are the last smoothed value).
 (define (ses-forecast result h)
+  (doc 'export #t)
   (let* ([last-level (cadddr result)]
          [forecasts (make-vector h)])
         (do ([i 0 (+ i 1)])
@@ -40,6 +42,7 @@
 ;;; optimize-ses-alpha : Vec → Num
 ;;; Find optimal alpha minimizing SSE via grid search.
 (define (optimize-ses-alpha xs)
+  (doc 'export #t)
   (let* ([n (vector-length xs)]
          [best-alpha 0.1]
          [best-sse +inf.0])
@@ -69,6 +72,7 @@
 ;;; Level: l_t = alpha * x_t + (1-alpha) * (l_{t-1} + b_{t-1})
 ;;; Trend: b_t = beta * (l_t - l_{t-1}) + (1-beta) * b_{t-1}
 (define (holt-smooth xs alpha beta)
+  (doc 'export #t)
   (let* ([n (vector-length xs)]
          [level (make-vector n)]
          [trend (make-vector n)]
@@ -101,6 +105,7 @@
 ;;; Forecast h steps ahead using Holt's method.
 ;;; Forecast: f_{t+h} = l_t + h * b_t
 (define (holt-forecast result h)
+  (doc 'export #t)
   (let* ([last-level (list-ref result 4)]
          [last-trend (list-ref result 5)]
          [forecasts (make-vector h)])
@@ -135,6 +140,7 @@
 ;;; period: seasonal period (e.g., 12 for monthly, 4 for quarterly)
 ;;; type: 'additive or 'multiplicative
 (define (holt-winters xs alpha beta gamma period type)
+  (doc 'export #t)
   (if (eq? type 'multiplicative)
       (holt-winters-multiplicative xs alpha beta gamma period)
       (holt-winters-additive xs alpha beta gamma period)))
@@ -259,6 +265,7 @@
 ;;; hw-forecast : HWResult × Nat → Vec
 ;;; Forecast h steps ahead using Holt-Winters.
 (define (hw-forecast result h)
+  (doc 'export #t)
   (let* ([type (cadr result)]
          [period (list-ref result 4)]
          [seasonal (list-ref result 7)]
@@ -315,6 +322,7 @@
 ;;; Holt's method with damped trend for more conservative forecasts.
 ;;; phi: damping parameter (0, 1), typically 0.8-0.98
 (define (holt-damped xs alpha beta phi)
+  (doc 'export #t)
   (let* ([n (vector-length xs)]
          [level (make-vector n)]
          [trend (make-vector n)]

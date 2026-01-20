@@ -11,6 +11,7 @@
 
 (doc 'section 'simple-differencing)
 (define (vec-diff xs)
+  (doc 'export #t)
   (let* ([n (vector-length xs)]
          [m (- n 1)]
          [result (make-vector m)])
@@ -25,6 +26,7 @@
 ;;; difference(xs, 0) = xs
 ;;; difference(xs, d) = difference(vec-diff(xs), d-1)
 (define (difference xs d)
+  (doc 'export #t)
   (if (<= d 0)
       xs
       (difference (vec-diff xs) (- d 1))))
@@ -37,6 +39,7 @@
 ;;; Difference with lag k: x'[i] = x[i] - x[i-k]
 ;;; Result has length n-k.
 (define (lag-diff xs k)
+  (doc 'export #t)
   (let* ([n (vector-length xs)]
          [m (- n k)]
          [result (make-vector m)])
@@ -50,6 +53,7 @@
 ;;; Seasonal differencing of order D with period s.
 ;;; Applies lag-s difference D times.
 (define (seasonal-difference xs s D)
+  (doc 'export #t)
   (if (<= D 0)
       xs
       (seasonal-difference (lag-diff xs s) s (- D 1))))
@@ -63,6 +67,7 @@
 ;;; Given differences, reconstruct original series starting from init.
 ;;; If x' = diff(x), then integrate(x', x[0]) = x
 (define (integrate diffs init)
+  (doc 'export #t)
   (let* ([n (vector-length diffs)]
          [result (make-vector (+ n 1))])
         (vector-set! result 0 init)
@@ -144,6 +149,7 @@
 ;;; log-transform : Vec → Vec
 ;;; Apply log transform (for variance stabilization).
 (define (log-transform xs)
+  (doc 'export #t)
   (let* ([n (vector-length xs)]
          [result (make-vector n)])
         (do ([i 0 (+ i 1)])
@@ -164,6 +170,7 @@
 ;;; lambda = 0: log(x)
 ;;; lambda != 0: (x^lambda - 1) / lambda
 (define (box-cox xs lambda)
+  (doc 'export #t)
   (let* ([n (vector-length xs)]
          [result (make-vector n)])
         (if (< (abs lambda) 1e-10)

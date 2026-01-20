@@ -11,6 +11,7 @@
 (doc 'section 'profile-conversion)
 
 (define (profile->majority-game profile)
+  (doc 'export #t)
   (doc 'type '(-> PreferenceProfile CoopGame))
   (doc 'description "Convert a preference profile to a simple majority game. Coalition S is winning iff |S| > n/2 (can control plurality outcome). This is the classical model: each voter has equal weight")
   (let* ([n (profile-voters profile)]
@@ -25,6 +26,7 @@
 ;;; Uses strict majority quota: floor(total/2) + 1 to ensure proper simple game.
 ;;; Useful for modeling electoral systems with vote weights.
 (define (profile->weighted-voting-game profile weights)
+  (doc 'export #t)
   (let ([n (profile-voters profile)])
     (if (not (= n (length weights)))
         (error 'profile->weighted-voting-game
@@ -48,6 +50,7 @@
 ;;;
 ;;; Use profile->majority-game for most practical applications.
 (define (profile->rule-induced-game profile voting-rule)
+  (doc 'export #t)
   (let* ([n (profile-voters profile)]
          [candidates (profile-candidates profile)])
     (make-coop-game
@@ -98,6 +101,7 @@
 (doc 'section 'power-indices)
 
 (define (shapley-shubik-index profile)
+  (doc 'export #t)
   (doc 'type '(-> PreferenceProfile (Vector Real)))
   (doc 'description "Shapley-Shubik power index for voters based on induced majority game. This measures the probability that a voter is pivotal (turns a losing coalition into a winning one) under random orderings")
   (let* ([game (profile->majority-game profile)]
@@ -108,6 +112,7 @@
 ;;; shapley-shubik-weighted : PreferenceProfile × (List Real) → (Vector Real)
 ;;; Shapley-Shubik index with custom voter weights.
 (define (shapley-shubik-weighted profile weights)
+  (doc 'export #t)
   (let* ([game (profile->weighted-voting-game profile weights)]
          [n (profile-voters profile)]
          [fuel (expt 2 n)])
@@ -118,6 +123,7 @@
 ;;; Returns power distribution that sums to 1 (proportional to pivotal counts).
 ;;; Note: This is the normalized index, not the absolute probability of being pivotal.
 (define (banzhaf-voting-power profile)
+  (doc 'export #t)
   (let* ([game (profile->majority-game profile)]
          [n (profile-voters profile)]
          [fuel (* n (expt 2 n))])
@@ -126,6 +132,7 @@
 ;;; banzhaf-weighted : PreferenceProfile × (List Real) → (Vector Real)
 ;;; Banzhaf index with custom voter weights.
 (define (banzhaf-weighted profile weights)
+  (doc 'export #t)
   (let* ([game (profile->weighted-voting-game profile weights)]
          [n (profile-voters profile)]
          [fuel (* n (expt 2 n))])
@@ -134,6 +141,7 @@
 (doc 'section 'power-analysis)
 
 (define (voter-is-dictator? profile voter-idx)
+  (doc 'export #t)
   (doc 'type '(-> PreferenceProfile Nat Boolean))
   (doc 'description "Is voter i a dictator? (singleton coalition is winning)")
   (let ([game (profile->majority-game profile)])
@@ -143,12 +151,14 @@
 ;;; Is voter i a dummy? (never pivotal in any coalition)
 ;;; Shapley value = 0 for dummy voters.
 (define (voter-is-dummy? profile voter-idx)
+  (doc 'export #t)
   (let* ([ss-index (shapley-shubik-index profile)])
     (= 0 (vector-ref ss-index voter-idx))))
 
 ;;; voter-has-veto? : PreferenceProfile × Nat → Boolean
 ;;; Does voter i have veto power? (complement of {i} is not winning)
 (define (voter-has-veto? profile voter-idx)
+  (doc 'export #t)
   (let* ([game (profile->majority-game profile)]
          [n (profile-voters profile)]
          [everyone-but-i (coalition-difference
@@ -159,6 +169,7 @@
 ;;; minimal-winning-coalitions : PreferenceProfile → (List Coalition)
 ;;; Find all minimal winning coalitions (removing any member makes it losing).
 (define (minimal-winning-coalitions profile)
+  (doc 'export #t)
   (let* ([game (profile->majority-game profile)]
          [n (profile-voters profile)]
          [grand (coop-game-grand-coalition game)])
@@ -170,6 +181,7 @@
 ;;; is-minimal-winning? : CoopGame × Coalition → Boolean
 ;;; Is coalition S minimal winning? (winning but no proper subset is winning)
 (define (is-minimal-winning? game S)
+  (doc 'export #t)
   (and (is-winning? game S)
        (let ([members (coalition->list S)])
          (for-all? (lambda (i)
@@ -198,6 +210,7 @@
 ;;; Herfindahl-Hirschman Index of power concentration.
 ;;; HHI = sum(p_i^2), ranges from 1/n (equal) to 1 (monopoly).
 (define (power-concentration power-vec)
+  (doc 'export #t)
   (let loop ([i 0] [sum 0])
     (if (>= i (vector-length power-vec))
         sum
@@ -210,6 +223,7 @@
 ;;; Uses discrete formula: G = (Σ (2i - n - 1) * x_i) / (n * Σ x_i)
 ;;; where x_i are sorted values and i is 1-indexed.
 (define (power-gini power-vec)
+  (doc 'export #t)
   (let* ([n (vector-length power-vec)]
          [sorted (sort < (vector->list power-vec))]
          [total (apply + sorted)])
@@ -226,6 +240,7 @@
 (doc 'section 'strategic-implications)
 
 (define (decisive-for-candidate profile voting-rule candidate)
+  (doc 'export #t)
   (doc 'type '(-> PreferenceProfile (Profile -> Candidate) Candidate (List Coalition)))
   (doc 'description "Find coalitions that can guarantee candidate c wins by voting strategically")
   (let* ([n (profile-voters profile)]
@@ -258,6 +273,7 @@
 ;;; Find coalitions that can prevent candidate c from winning.
 ;;; A coalition blocks c if by ranking c last, c cannot win regardless of others.
 (define (blocking-for-candidate profile voting-rule candidate)
+  (doc 'export #t)
   (let* ([n (profile-voters profile)]
          [candidates (profile-candidates profile)]
          [others (remove candidate candidates)]
@@ -291,6 +307,7 @@
 ;;; Create weighted voting game from state electoral vote allocations.
 ;;; Input: list of (state-name . electoral-votes)
 (define (make-electoral-college-game state-votes)
+  (doc 'export #t)
   (let* ([weights (map cdr state-votes)]
          [total (apply + weights)]
          [quota (+ (quotient total 2) 1)])
@@ -299,6 +316,7 @@
 ;;; electoral-college-power : (List (Pair Symbol Nat)) → (List (Pair Symbol Real))
 ;;; Compute Banzhaf power for each state in electoral college.
 (define (electoral-college-power state-votes)
+  (doc 'export #t)
   (let* ([game (make-electoral-college-game state-votes)]
          [n (length state-votes)]
          [fuel (* n (expt 2 n))]
@@ -312,6 +330,7 @@
 ;;; Compute voting power per capita for each state.
 ;;; First list: electoral votes, second list: populations.
 (define (power-per-capita state-votes state-pops)
+  (doc 'export #t)
   (let* ([power (electoral-college-power state-votes)]
          [pop-lookup (lambda (name)
                        (let ([found (assoc name state-pops)])
@@ -330,6 +349,7 @@
 ;;; us-electoral-college-2020 : → (List (Pair Symbol Nat))
 ;;; Simplified US Electoral College allocation (selected large states).
 (define (us-electoral-college-2020)
+  (doc 'export #t)
   '((CA . 55) (TX . 38) (FL . 29) (NY . 29) (PA . 20)
     (IL . 20) (OH . 18) (GA . 16) (MI . 16) (NC . 15)))
 
@@ -337,6 +357,7 @@
 ;;; UN Security Council voting: 5 permanent members with veto, 10 temporary.
 ;;; A resolution passes if at least 9 vote yes AND all P5 vote yes.
 (define (un-security-council)
+  (doc 'export #t)
   (make-coop-game
    15  ; 5 permanent + 10 temporary
    (lambda (S)
@@ -352,6 +373,7 @@
 ;;; simple-3-voter-example : → PreferenceProfile
 ;;; Simple 3-voter, 3-candidate profile for demonstrations.
 (define (simple-3-voter-example)
+  (doc 'export #t)
   (make-preference-profile
    '((a b c)    ; Voter 0: a > b > c
      (b a c)    ; Voter 1: b > a > c

@@ -104,6 +104,7 @@
 ;;;   (quantiles '(1 2 3 4 5 6 7 8 9 10) '(0.25 0.5 0.75))
 ;;;   => (3.25 5.5 7.75)  ; Q1, median, Q3
 (define (quantiles xs ps)
+  (doc 'export #t)
   (for-each
     (lambda (p)
       (when (or (< p 0) (> p 1))
@@ -168,6 +169,7 @@
 ;;; vec-mean : Vec → Num
 ;;; Mean of vector elements.
 (define (vec-mean v)
+  (doc 'export #t)
   (let ([n (vector-length v)])
        (if (= n 0)
            (error 'vec-mean "empty vector")
@@ -177,6 +179,7 @@
 ;;; Sample variance using Bessel's correction (n-1 denominator).
 ;;; For population variance (n denominator), use (/ (* var (- n 1)) n).
 (define (vec-variance v)
+  (doc 'export #t)
   (let* ([n (vector-length v)]
          [mu (vec-mean v)])
         (if (<= n 1)
@@ -190,6 +193,7 @@
 ;;; vec-std-dev : Vec → Num
 ;;; Sample standard deviation (sqrt of Bessel-corrected variance).
 (define (vec-std-dev v)
+  (doc 'export #t)
   (sqrt (vec-variance v)))
 
 ;;; vec-min : Vec → Num
@@ -217,21 +221,25 @@
 ;;; vec-median : Vec → Num
 ;;; Median of vector elements.
 (define (vec-median v)
+  (doc 'export #t)
   (median (vector->list v)))
 
 ;;; vec-quantile : Vec × Num → Num
 ;;; p-th quantile of vector elements.
 (define (vec-quantile v p)
+  (doc 'export #t)
   (quantile (vector->list v) p))
 
 ;;; vec-quantiles : Vec × (List Num) → (List Num)
 ;;; Multiple quantiles of vector elements (sorts only once).
 (define (vec-quantiles v ps)
+  (doc 'export #t)
   (quantiles (vector->list v) ps))
 
 ;;; vec-covariance : Vec × Vec → Num
 ;;; Sample covariance of two vectors.
 (define (vec-covariance v1 v2)
+  (doc 'export #t)
   (let* ([n (vector-length v1)])
         (if (not (= n (vector-length v2)))
             (error 'vec-covariance "vectors must have same length")
@@ -249,6 +257,7 @@
 ;;; vec-correlation : Vec × Vec → Num
 ;;; Pearson correlation of two vectors.
 (define (vec-correlation v1 v2)
+  (doc 'export #t)
   (let ([cov (vec-covariance v1 v2)]
         [s1 (vec-std-dev v1)]
         [s2 (vec-std-dev v2)])

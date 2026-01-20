@@ -18,6 +18,7 @@
 (doc 'note "F_t(x|df) = 1 - 0.5 * I_{df/(df+x^2)}(df/2, 0.5)  for x >= 0")
 (doc 'note "          = 0.5 * I_{df/(df+x^2)}(df/2, 0.5)      for x < 0")
 (define (t-cdf x df)
+  (doc 'export #t)
   (doc 'type '(-> Num Num Num))
   (doc 'description "CDF of Student's t-distribution with df degrees of freedom")
   (if (<= df 0)
@@ -32,6 +33,7 @@
 ;;; Quantile function (inverse CDF) of t-distribution.
 ;;; Uses Newton-Raphson iteration.
 (define (t-quantile p df)
+  (doc 'export #t)
   (cond
    [(<= p 0) (error 't-quantile "p must be in (0, 1)" p)]
    [(>= p 1) (error 't-quantile "p must be in (0, 1)" p)]
@@ -84,6 +86,7 @@
 ;;; chi-squared-cdf : Num × Num → Num
 ;;; CDF of chi-squared distribution with df degrees of freedom.
 (define (chi-squared-cdf x df)
+  (doc 'export #t)
   (cond
    [(<= df 0) (error 'chi-squared-cdf "df must be positive" df)]
    [(< x 0) 0]
@@ -94,6 +97,7 @@
 ;;; Quantile function of chi-squared distribution.
 ;;; Uses Newton-Raphson iteration.
 (define (chi-squared-quantile p df)
+  (doc 'export #t)
   (cond
    [(<= p 0) (error 'chi-squared-quantile "p must be in (0, 1)" p)]
    [(>= p 1) (error 'chi-squared-quantile "p must be in (0, 1)" p)]
@@ -131,6 +135,7 @@
 ;;; f-cdf : Num × Num × Num → Num
 ;;; CDF of F-distribution with df1, df2 degrees of freedom.
 (define (f-cdf x df1 df2)
+  (doc 'export #t)
   (cond
    [(<= df1 0) (error 'f-cdf "df1 must be positive" df1)]
    [(<= df2 0) (error 'f-cdf "df2 must be positive" df2)]
@@ -144,6 +149,7 @@
 ;;; Quantile function of F-distribution.
 ;;; Uses Newton-Raphson iteration.
 (define (f-quantile p df1 df2)
+  (doc 'export #t)
   (cond
    [(<= p 0) (error 'f-quantile "p must be in (0, 1)" p)]
    [(>= p 1) (error 'f-quantile "p must be in (0, 1)" p)]
@@ -216,9 +222,11 @@
 ;;; chi-squared-pvalue : Num × Num → Num
 ;;; Upper-tail p-value for chi-squared statistic.
 (define (chi-squared-pvalue chi-sq df)
+  (doc 'export #t)
   (- 1 (chi-squared-cdf chi-sq df)))
 
 ;;; f-pvalue : Num × Num × Num → Num
 ;;; Upper-tail p-value for F-statistic.
 (define (f-pvalue f-stat df1 df2)
+  (doc 'export #t)
   (- 1 (f-cdf f-stat df1 df2)))

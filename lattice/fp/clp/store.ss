@@ -18,21 +18,25 @@
 (doc 'note "pending: List of lvar-ids needing propagation")
 
 (define (make-cstore)
+  (doc 'export #t)
   (doc 'type '(-> CStore))
   (doc 'description "Create an empty constraint store")
   (list 'cstore empty-subst '() '() '()))
 
 (define (cstore? x)
+  (doc 'export #t)
   (doc 'type '(-> α Bool))
   (doc 'description "Check if value is a constraint store")
   (and (pair? x) (eq? (car x) 'cstore) (= (length x) 5)))
 
 (define (cstore-subst cs)
+  (doc 'export #t)
   (doc 'type '(-> CStore Substitution))
   (doc 'description "Get substitution from store")
   (list-ref cs 1))
 
 (define (cstore-domains cs)
+  (doc 'export #t)
   (doc 'type '(-> CStore (Alist LVarId Domain)))
   (doc 'description "Get domain bindings from store")
   (list-ref cs 2))
@@ -82,6 +86,7 @@
 (doc 'section 'domain-operations-on-store)
 
 (define (cstore-get-domain cs var)
+  (doc 'export #t)
   (doc 'type '(-> CStore LVar Domain))
   (doc 'description "Get the domain of a variable")
   (doc 'note "Returns #f for unconstrained (meaning no finite domain)")
@@ -93,6 +98,7 @@
                 #f))))  ; #f means unconstrained
 
 (define (cstore-set-domain cs var dom)
+  (doc 'export #t)
   (doc 'type '(-> CStore LVar Domain (Maybe CStore)))
   (doc 'description "Set the domain of a variable")
   (doc 'returns "#f if domain is empty, otherwise updated store")
@@ -130,6 +136,7 @@
   (filter (lambda (pair) (not (equal? (car pair) key))) alist))
 
 (define (cstore-narrow-domain cs var new-dom)
+  (doc 'export #t)
   (doc 'type '(-> CStore LVar Domain (Maybe CStore)))
   (doc 'description "Intersect variable's domain with given domain")
   (doc 'returns "#f if intersection is empty")
@@ -149,6 +156,7 @@
 (doc 'section 'binding-operations)
 
 (define (cstore-bind-var cs var val)
+  (doc 'export #t)
   (doc 'type '(-> CStore LVar Int (Maybe CStore)))
   (doc 'description "Bind a variable to a specific integer value")
   (doc 'note "Checks domain constraint and updates substitution")
@@ -166,6 +174,7 @@
                      cs1)))))
 
 (define (cstore-unify cs u v)
+  (doc 'export #t)
   (doc 'type '(-> CStore α α (Maybe CStore)))
   (doc 'description "Unify two terms, respecting domain constraints")
   (doc 'returns "Updated store or #f on failure")
@@ -291,12 +300,14 @@
   (list-ref c 4))
 
 (define (cstore-add-constraint cs constraint)
+  (doc 'export #t)
   (doc 'type '(-> CStore Constraint CStore))
   (doc 'description "Add a constraint to the store")
   (let ([constraints (cstore-constraints cs)])
        (cstore-set-constraints cs (cons constraint constraints))))
 
 (define (cstore-constraints-for-var cs var)
+  (doc 'export #t)
   (doc 'type '(-> CStore LVar (List Constraint)))
   (doc 'description "Get all constraints involving a variable")
   (let ([id (lvar-id var)])
@@ -354,6 +365,7 @@
        (and dom (domain-singleton? dom))))
 
 (define (cstore-get-value cs var)
+  (doc 'export #t)
   (doc 'type '(-> CStore LVar (Maybe Int)))
   (doc 'description "Get the value of a ground variable")
   (let ([val (walk var (cstore-subst cs))])
@@ -365,6 +377,7 @@
 (doc 'section 'reification)
 
 (define (cstore-walk cs term)
+  (doc 'export #t)
   (doc 'type '(-> CStore Term Term))
   (doc 'description "Walk a term through the store's substitution")
   (walk term (cstore-subst cs)))

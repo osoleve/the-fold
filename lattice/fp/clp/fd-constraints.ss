@@ -17,12 +17,14 @@
 (doc 'section 'domain-declaration-constraints)
 
 (define (in-range var lo hi)
+  (doc 'export #t)
   (doc 'type '(-> LVar Int Int (-> CStore (Maybe CStore))))
   (doc 'description "Constrain variable to be in range [lo, hi]")
   (lambda (cs)
           (cstore-narrow-domain cs var (make-domain lo hi))))
 
 (define (in-domain var values)
+  (doc 'export #t)
   (doc 'type '(-> LVar (List Int) (-> CStore (Maybe CStore))))
   (doc 'description "Constrain variable to be one of the given values")
   (lambda (cs)
@@ -31,6 +33,7 @@
 (doc 'section 'equality-constraints)
 
 (define (=fd x y)
+  (doc 'export #t)
   (doc 'type '(-> (Or LVar Int) (Or LVar Int) (-> CStore (Maybe CStore))))
   (doc 'description "Constrain two values to be equal (in the FD sense)")
   (lambda (cs)
@@ -90,6 +93,7 @@
 (doc 'section 'comparison-constraints)
 
 (define (<fd x y)
+  (doc 'export #t)
   (doc 'type '(-> (Or LVar Int) (Or LVar Int) (-> CStore (Maybe CStore))))
   (doc 'description "Constrain x < y")
   (lambda (cs)
@@ -138,6 +142,7 @@
         [else cs])))
 
 (define (<=fd x y)
+  (doc 'export #t)
   (doc 'type '(-> (Or LVar Int) (Or LVar Int) (-> CStore (Maybe CStore))))
   (doc 'description "Constrain x <= y")
   (lambda (cs)
@@ -184,16 +189,19 @@
         [else cs])))
 
 (define (>fd x y)
+  (doc 'export #t)
   (doc 'type '(-> (Or LVar Int) (Or LVar Int) (-> CStore (Maybe CStore))))
   (doc 'description "Constrain x > y")
   (<fd y x))
 
 (define (>=fd x y)
+  (doc 'export #t)
   (doc 'type '(-> (Or LVar Int) (Or LVar Int) (-> CStore (Maybe CStore))))
   (doc 'description "Constrain x >= y")
   (<=fd y x))
 
 (define (=/=fd x y)
+  (doc 'export #t)
   (doc 'type '(-> (Or LVar Int) (Or LVar Int) (-> CStore (Maybe CStore))))
   (doc 'description "Constrain x ≠ y (disequality)")
   (lambda (cs)
@@ -240,6 +248,7 @@
 (doc 'section 'arithmetic-constraints)
 
 (define (+fd x y z)
+  (doc 'export #t)
   (doc 'type '(-> (Or LVar Int) (Or LVar Int) (Or LVar Int) (-> CStore (Maybe CStore))))
   (doc 'description "Constrain x + y = z using bounds consistency")
   (lambda (cs)
@@ -334,11 +343,13 @@
    [else cs]))
 
 (define (-fd x y z)
+  (doc 'export #t)
   (doc 'type '(-> (Or LVar Int) (Or LVar Int) (Or LVar Int) (-> CStore (Maybe CStore))))
   (doc 'description "Constrain x - y = z, which is x = z + y")
   (+fd z y x))  ; z + y = x
 
 (define (*fd x y z)
+  (doc 'export #t)
   (doc 'type '(-> (Or LVar Int) (Or LVar Int) (Or LVar Int) (-> CStore (Maybe CStore))))
   (doc 'description "Constrain x * y = z using bounds consistency")
   (lambda (cs)
@@ -397,6 +408,7 @@
 (doc 'section 'absolute-value)
 
 (define (abs-fd x y)
+  (doc 'export #t)
   (doc 'type '(-> (Or LVar Int) (Or LVar Int) (-> CStore (Maybe CStore))))
   (doc 'description "Constrain |x| = y")
   (lambda (cs)

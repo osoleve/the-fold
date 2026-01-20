@@ -50,6 +50,7 @@ Supports:
 ;;; make-lp : Vec x Matrix x Vec -> LP
 ;;; Create an LP problem in standard form.
 (define (make-lp c A b)
+  (doc 'export #t)
   (list 'lp c A b))
 
 ;;; Accessors
@@ -395,6 +396,7 @@ Supports:
 ;;; lp-solve : LP -> LPResult
 ;;; Solve LP using two-phase simplex method.
 (define (lp-solve lp)
+  (doc 'export #t)
   (let* ([A (lp-A lp)]
          [b (lp-b lp)]
          [c (lp-c lp)]
@@ -435,6 +437,7 @@ Supports:
 ;;; Dual:   maximize b'y s.t. A'y <= c
 ;;;       = minimize -b'y s.t. A'y + s = c, s >= 0
 (define (lp-dual lp)
+  (doc 'export #t)
   (let* ([c (lp-c lp)]
          [A (lp-A lp)]
          [b (lp-b lp)]
@@ -461,6 +464,7 @@ Supports:
 ;;; Compute shadow prices (dual variables) y = c_B' * B^-1.
 ;;; Shadow price y_i is the rate of change of z* w.r.t. b_i.
 (define (lp-shadow-prices lp result)
+  (doc 'export #t)
   (if (not (lp-optimal? result))
       '(error not-optimal)
       (let* ([A (lp-A lp)]
@@ -477,6 +481,7 @@ Supports:
 ;;; Compute reduced costs for all variables.
 ;;; Reduced cost c_j - y' * A_j measures cost of increasing x_j.
 (define (lp-reduced-costs lp result)
+  (doc 'export #t)
   (if (not (lp-optimal? result))
       '(error not-optimal)
       (let* ([A (lp-A lp)]

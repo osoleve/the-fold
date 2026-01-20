@@ -17,6 +17,7 @@
 ;;; Haar wavelet scaling (low-pass) filter coefficients.
 ;;; The simplest wavelet: h = [1/√2, 1/√2]
 (define (haar-scaling-filter)
+  (doc 'export #t)
   (let ([sqrt2-inv (/ 1 (sqrt 2))])
        (vector sqrt2-inv sqrt2-inv)))
 
@@ -24,6 +25,7 @@
 ;;; Haar wavelet (high-pass) filter coefficients.
 ;;; g = [1/√2, -1/√2]
 (define (haar-wavelet-filter)
+  (doc 'export #t)
   (let ([sqrt2-inv (/ 1 (sqrt 2))])
        (vector sqrt2-inv (- sqrt2-inv))))
 
@@ -31,6 +33,7 @@
 ;;; Daubechies-4 (db2) scaling filter.
 ;;; Length 4, provides better smoothness than Haar.
 (define (daubechies-4-scaling-filter)
+  (doc 'export #t)
   (let ([sqrt3 (sqrt 3)]
         [denom (* 4 (sqrt 2))])
        (vector (/ (+ 1 sqrt3) denom)
@@ -42,6 +45,7 @@
 ;;; Compute wavelet filter from scaling filter using QMF relationship.
 ;;; g[n] = (-1)^n * h[N-1-n]
 (define (qmf-wavelet-from-scaling h)
+  (doc 'export #t)
   (let* ([n (vector-length h)]
          [g (make-vector n)])
         (do ([i 0 (+ i 1)])
@@ -53,12 +57,14 @@
 ;;; daubechies-4-wavelet-filter : → Vector[Number]
 ;;; Daubechies-4 wavelet filter derived from scaling filter.
 (define (daubechies-4-wavelet-filter)
+  (doc 'export #t)
   (qmf-wavelet-from-scaling (daubechies-4-scaling-filter)))
 
 ;;; daubechies-6-scaling-filter : → Vector[Number]
 ;;; Daubechies-6 (db3) scaling filter.
 ;;; Length 6, higher smoothness.
 (define (daubechies-6-scaling-filter)
+  (doc 'export #t)
   (vector 0.3326705529509569
           0.8068915093133388
           0.4598775021193313
@@ -68,6 +74,7 @@
 
 ;;; daubechies-6-wavelet-filter : → Vector[Number]
 (define (daubechies-6-wavelet-filter)
+  (doc 'export #t)
   (qmf-wavelet-from-scaling (daubechies-6-scaling-filter)))
 
 ;;; ====
@@ -77,6 +84,7 @@
 ;;; reverse-filter : Vector[Number] → Vector[Number]
 ;;; Time-reverse a filter (needed for synthesis filters).
 (define (reverse-filter h)
+  (doc 'export #t)
   (let* ([n (vector-length h)]
          [result (make-vector n)])
         (do ([i 0 (+ i 1)])
@@ -92,6 +100,7 @@
 ;;;
 ;;; Used for both approximation (scaling filter) and detail (wavelet filter).
 (define (convolve-downsample signal filter factor)
+  (doc 'export #t)
   (let* ([n (vector-length signal)]
          [m (vector-length filter)]
          ;; Output length after downsampling
@@ -125,6 +134,7 @@
 ;;;
 ;;; Used for synthesis from approximation and detail coefficients.
 (define (upsample-convolve coeffs filter factor)
+  (doc 'export #t)
   (let* ([n (vector-length coeffs)]
          [m (vector-length filter)]
          ;; Output length
@@ -158,6 +168,7 @@
 ;;;
 ;;; Both outputs are downsampled by 2.
 (define (dwt-step signal h g)
+  (doc 'export #t)
   (let ([approx (convolve-downsample signal h 2)]
         [detail (convolve-downsample signal g 2)])
        (cons approx detail)))
@@ -179,6 +190,7 @@
 ;;;
 ;;; The approximation is at the coarsest scale, details are ordered from coarse to fine.
 (define (dwt signal levels h g)
+  (doc 'export #t)
   (let loop ([current signal]
              [level 0]
              [details '()])
@@ -194,6 +206,7 @@
 ;;;
 ;;; Reconstructs signal from approximation and detail coefficients.
 (define (idwt-step approx detail h g target-len)
+  (doc 'export #t)
   (let* ([up-approx (upsample-convolve approx h 2)]
          [up-detail (upsample-convolve detail g 2)]
          ;; Determine actual output length (take minimum to handle odd lengths)
@@ -217,6 +230,7 @@
 ;;;
 ;;; Returns: Reconstructed signal
 (define (idwt coeffs target-len h g)
+  (doc 'export #t)
   (if (null? coeffs)
       (make-vector 0)
       (let loop ([approx (car coeffs)]
@@ -250,6 +264,7 @@
 ;;;
 ;;; Returns: (cons h g) where h is scaling filter, g is wavelet filter
 (define (get-wavelet-filters family)
+  (doc 'export #t)
   (case family
         [(haar) (cons (haar-scaling-filter) (haar-wavelet-filter))]
         [(db2 db4) (cons (daubechies-4-scaling-filter) (daubechies-4-wavelet-filter))]
@@ -263,6 +278,7 @@
 ;;;   (dwt-family signal 3 'haar)
 ;;;   (dwt-family signal 4 'db4)
 (define (dwt-family signal levels family)
+  (doc 'export #t)
   (let* ([filters (get-wavelet-filters family)]
          [h (car filters)]
          [g (cdr filters)])
@@ -271,6 +287,7 @@
 ;;; idwt-family : List × Integer × Symbol → Vector[Number]
 ;;; Inverse DWT using a named wavelet family.
 (define (idwt-family coeffs target-len family)
+  (doc 'export #t)
   (let* ([filters (get-wavelet-filters family)]
          [h (car filters)]
          [g (cdr filters)])
@@ -290,27 +307,32 @@
 ;;; where approx is the smoothest approximation and each detail
 ;;; captures fluctuations at a specific scale.
 (define (wavelet-decompose signal levels family)
+  (doc 'export #t)
   (dwt-family signal levels family))
 
 ;;; wavelet-reconstruct : List × Integer × Symbol → Vector[Number]
 ;;; Reconstruct signal from multi-resolution components.
 (define (wavelet-reconstruct coeffs target-len family)
+  (doc 'export #t)
   (idwt-family coeffs target-len family))
 
 ;;; get-approximation : List → Vector[Number]
 ;;; Extract approximation coefficients from DWT result.
 (define (get-approximation dwt-result)
+  (doc 'export #t)
   (car dwt-result))
 
 ;;; get-details : List → List[Vector[Number]]
 ;;; Extract detail coefficients from DWT result (coarse to fine).
 (define (get-details dwt-result)
+  (doc 'export #t)
   (cdr dwt-result))
 
 ;;; get-detail-level : List × Integer → Vector[Number]
 ;;; Get detail coefficients at a specific level.
 ;;; Level 1 is finest, level n is coarsest.
 (define (get-detail-level dwt-result level)
+  (doc 'export #t)
   (let* ([details (get-details dwt-result)]
          [num-details (length details)]
          ;; Details are stored coarse-to-fine, so reverse indexing
@@ -326,6 +348,7 @@
 ;;; hard-threshold : Number × Number → Number
 ;;; Hard thresholding: set to zero if |x| < threshold.
 (define (hard-threshold x threshold)
+  (doc 'export #t)
   (if (< (abs x) threshold)
       0
       x))
@@ -333,6 +356,7 @@
 ;;; soft-threshold : Number × Number → Number
 ;;; Soft thresholding: shrink toward zero by threshold amount.
 (define (soft-threshold x threshold)
+  (doc 'export #t)
   (cond
    [(> x threshold) (- x threshold)]
    [(< x (- threshold)) (+ x threshold)]
@@ -345,6 +369,7 @@
 ;;; - 'hard : Hard thresholding
 ;;; - 'soft : Soft thresholding
 (define (threshold-coefficients coeffs threshold type)
+  (doc 'export #t)
   (let* ([n (vector-length coeffs)]
          [result (make-vector n)]
          [threshold-fn (case type
@@ -373,6 +398,7 @@
 ;;;
 ;;; Returns: Denoised signal
 (define (wavelet-denoise signal levels family threshold threshold-type)
+  (doc 'export #t)
   (let* ([coeffs (dwt-family signal levels family)]
          [approx (car coeffs)]
          [details (cdr coeffs)]
@@ -391,6 +417,7 @@
 ;;; wavelet-energy : Vector[Number] → Number
 ;;; Compute energy (sum of squares) of wavelet coefficients.
 (define (wavelet-energy coeffs)
+  (doc 'export #t)
   (let ([n (vector-length coeffs)])
        (let loop ([i 0] [energy 0])
             (if (= i n)
@@ -403,11 +430,13 @@
 ;;;
 ;;; Returns: List of energies (approximation energy_n ... energy_1)
 (define (wavelet-energy-distribution dwt-result)
+  (doc 'export #t)
   (map wavelet-energy dwt-result))
 
 ;;; wavelet-energy-ratio : List → List[Number]
 ;;; Compute fraction of total energy at each level.
 (define (wavelet-energy-ratio dwt-result)
+  (doc 'export #t)
   (let* ([energies (wavelet-energy-distribution dwt-result)]
          [total-energy (apply + energies)])
         (map (lambda (e) (/ e total-energy)) energies)))

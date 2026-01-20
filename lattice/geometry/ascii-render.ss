@@ -11,10 +11,12 @@
 (doc 'section 'ascii-character-ramp)
 
 (define ascii-ramp " .:-=+*#%@")
+(doc 'export #t)
 (doc ascii-ramp 'description "Characters ordered by visual density (dark to light)")
 (define ascii-ramp-len (string-length ascii-ramp))
 
 (define (intensity->char intensity)
+  (doc 'export #t)
   (doc 'type '(-> Number Char))
   (doc 'description "Map intensity [0,1] to ASCII character")
   (let ([idx (min (- ascii-ramp-len 1)
@@ -24,6 +26,7 @@
 (doc 'section 'ansi-color-codes)
 
 (define (rgb->ansi256 r g b)
+  (doc 'export #t)
   (doc 'type '(-> Number Number Number Number))
   (doc 'description "Convert RGB [0,1] to ANSI 256-color code")
   (let ([ri (min 5 (max 0 (inexact->exact (round (* r 5)))))]
@@ -32,16 +35,19 @@
        (+ 16 (* ri 36) (* gi 6) bi)))
 
 (define (ansi-fg color-code)
+  (doc 'export #t)
   (doc 'type '(-> Number String))
   (doc 'description "Generate ANSI escape for 256-color foreground")
   (string-append "\x1b;[38;5;" (number->string color-code) "m"))
 
 (define ansi-reset "\x1b;[0m")
+(doc 'export #t)
 (doc ansi-reset 'description "ANSI escape sequence to reset terminal formatting")
 
 (doc 'section 'camera-and-ray-generation)
 
 (define (make-camera pos look-at up fov aspect)
+  (doc 'export #t)
   (doc 'type '(-> Vec3 Vec3 Vec3 Number Number Camera))
   (doc 'description "Create camera with position, look-at point, up vector, FOV, and aspect ratio")
   (let* ([forward (vec3-normalize (vec3-sub look-at pos))]
@@ -52,30 +58,37 @@
         (list 'camera pos forward right cam-up half-width half-height)))
 
 (define (camera-pos cam)
+  (doc 'export #t)
   (doc 'type '(-> Camera Vec3))
   (list-ref cam 1))
 
 (define (camera-forward cam)
+  (doc 'export #t)
   (doc 'type '(-> Camera Vec3))
   (list-ref cam 2))
 
 (define (camera-right cam)
+  (doc 'export #t)
   (doc 'type '(-> Camera Vec3))
   (list-ref cam 3))
 
 (define (camera-up cam)
+  (doc 'export #t)
   (doc 'type '(-> Camera Vec3))
   (list-ref cam 4))
 
 (define (camera-half-width cam)
+  (doc 'export #t)
   (doc 'type '(-> Camera Real))
   (list-ref cam 5))
 
 (define (camera-half-height cam)
+  (doc 'export #t)
   (doc 'type '(-> Camera Real))
   (list-ref cam 6))
 
 (define (camera-ray cam u v)
+  (doc 'export #t)
   (doc 'type '(-> Camera Number Number Ray3))
   (doc 'description "Generate ray for normalized screen coords u,v in [-1,1]")
   (let* ([pos (camera-pos cam)]
@@ -90,6 +103,7 @@
 (doc 'section 'mesh-rendering)
 
 (define (render-pixel-color mesh ray light-dir)
+  (doc 'export #t)
   (doc 'type '(-> Mesh Ray3 Vec3 (Maybe (List Number Number Number))))
   (doc 'description "Render a single ray, return RGB [0,1] or #f for background")
   (let ([hit (mesh-intersect-ray mesh ray)])
@@ -109,6 +123,7 @@
 (doc 'section 'frame-rendering)
 
 (define (render-frame mesh cam light-dir width height)
+  (doc 'export #t)
   (doc 'type '(-> Mesh Camera Vec3 Number Number String))
   (doc 'description "Render mesh to colored ASCII string; width/height in characters")
   (let ([result '()])
@@ -137,6 +152,7 @@
 (doc 'section 'animation)
 
 (define (rotate-camera-around center angle distance)
+  (doc 'export #t)
   (doc 'type '(-> Vec3 Number Number Vec3))
   (doc 'description "Rotate camera position around Y axis at given distance")
   (let ([x (* distance (cos angle))]
@@ -144,6 +160,7 @@
        (vec3-add center (vec3 x 0 z))))
 
 (define (render-spinning-frames mesh width height num-frames distance)
+  (doc 'export #t)
   (doc 'type '(-> Mesh Number Number Number Number (List String)))
   (doc 'description "Render N frames of mesh spinning")
   (let* ([bounds (mesh-bounds mesh)]
@@ -165,6 +182,7 @@
 (doc 'section 'output-utilities)
 
 (define (frames->ansi-animation frames delay-ms)
+  (doc 'export #t)
   (doc 'type '(-> (List String) Number Void))
   (doc 'description "Play animation in terminal with delay (ms)")
   (for-each (lambda (frame)
@@ -179,6 +197,7 @@
             frames))
 
 (define (save-frame frame filename)
+  (doc 'export #t)
   (doc 'type '(-> String String Void))
   (doc 'description "Save frame to file")
   (call-with-output-file filename

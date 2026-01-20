@@ -69,6 +69,7 @@
 ;;;   direction: search direction
 ;;; Returns: (new-x step-size)
 (define (armijo-backtrack f x grad direction)
+  (doc 'export #t)
   (armijo-backtrack-full f x grad direction *initial-step* *armijo-c1* *backtrack-rho* *max-ls-iters*))
 
 ;;; armijo-backtrack-full : ((List Number) → Number) × (List Number) × (List Number) × (List Number) × Number × Number × Number × Nat → (List Number × Number)
@@ -122,6 +123,7 @@
 ;;;   direction: search direction
 ;;; Returns: (new-x step-size)
 (define (wolfe-line-search f x grad direction)
+  (doc 'export #t)
   (wolfe-line-search-full f x grad direction *initial-step* *armijo-c1* *wolfe-c2* *default-alpha-max* *max-ls-iters*))
 
 ;;; wolfe-line-search-full : ((List TracedValue) → TracedValue) × (List Number) × (List Number) × (List Number) × Number × Number × Number × Number × Nat → (List Number × Number)
