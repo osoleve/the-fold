@@ -10,6 +10,7 @@
   ((natural-transform.ss "Natural transformations between functors with composition")
    (adjunction.ss "Adjoint functors, triangle identities, and Galois connections")
    (free-algebra.ss "Generalized Free -| Forgetful adjunctions for algebraic signatures")
+   (logic-adjunction.ss "Logical connectives as adjunctions: × ⊣ Δ ⊣ + and Σ ⊣ f* ⊣ Π")
    (monad-derivation.ss "Unified monad derivation from adjunctions (F -| G yields monad on G.F)")
    (comonad.ss "Comonad type class, Store/Env/Traced comonads, adjunction derivation")
    (kan-extension.ss "Left/Right Kan extensions and Codensity monad")))
@@ -34,7 +35,16 @@
    (free-forgetful-adjunction "Free -| Forgetful: builds term algebra from set, forgets to carrier")
    (right-kan-extension "(Ran K F) a = forall b. (a -> K b) -> F b")
    (left-kan-extension "(Lan K F) a = exists b. (K b -> a, F b)")
-   (codensity-monad "Ran_Id M: gives O(1) amortized bind for any monad M")))
+   (codensity-monad "Ran_Id M: gives O(1) amortized bind for any monad M")
+   ;; Logic as adjunctions
+   (diagonal-functor "Δ : C → C×C sending A ↦ (A, A) and f ↦ (f, f)")
+   (product-adjunction "× ⊣ Δ: product as right adjoint to diagonal")
+   (coproduct-adjunction "+ ⊣ Δ: coproduct as left adjoint to diagonal")
+   (curry-howard "Logic ↔ Type Theory ↔ Category Theory correspondence")
+   (substitution-functor "f* : Fam(J) → Fam(I): reindexing along f : I → J")
+   (sigma-adjunction "Σ ⊣ f*: existential quantification as left adjoint")
+   (pi-adjunction "f* ⊣ Π: universal quantification as right adjoint")
+   (beck-chevalley "Substitution commutes with quantification along pullbacks")))
 
  (dependencies (fp/templates fp/meta/combinators base))
 
@@ -90,6 +100,28 @@
     adj-free-magma adj-free-semigroup adj-free-monoid adj-free-group
     ;; Display
     signature->string algebra->string term->string)
+   (logic-adjunction.ss
+    ;; Pair category operations
+    make-pair-obj pair-fst pair-snd make-pair-mor
+    ;; Diagonal functor
+    diagonal-obj diagonal-mor functor-diagonal
+    ;; Product/coproduct functors
+    functor-product functor-coproduct
+    make-left make-right left? right? from-left from-right
+    ;; Adjunctions
+    adj-diagonal-product adj-coproduct-diagonal
+    unit-diagonal-product counit-diagonal-product
+    unit-coproduct-diagonal counit-coproduct-diagonal
+    ;; Dependent type families
+    make-family family? family-index family-at
+    subst-family make-subst-functor
+    sigma-along pi-along
+    make-sigma-type make-sigma-pair sigma-fst sigma-snd
+    make-pi-type make-pi-fn pi-apply
+    ;; Curry-Howard logical connectives
+    conj-intro conj-elim-left conj-elim-right
+    disj-intro-left disj-intro-right disj-elim
+    exists-intro exists-elim forall-intro forall-elim)
    (monad-derivation.ss
     ;; MonadOps record
     make-monad-ops monad-ops? monad-ops-name
@@ -174,7 +206,14 @@
      The monad derived from this adjunction is the 'free monad' for that
      algebraic theory. Free Monoid yields List monad, Free Group yields
      formal word monad. This is the foundation of algebraic effects:
-     effect signatures are algebraic theories, handlers are algebras.")))
+     effect signatures are algebraic theories, handlers are algebras.")
+   (logic-as-adjunctions
+    "Lawvere's insight: logical connectives arise from adjunctions.
+     The diagonal Δ has product (×) as right adjoint and coproduct (+) as left.
+     This gives × ⊣ Δ ⊣ + which corresponds to ∧ ⊣ Δ ⊣ ∨ in logic.
+     For dependent types, substitution f* has Σ as left adjoint (∃) and
+     Π as right adjoint (∀), giving Σ ⊣ f* ⊣ Π. The Curry-Howard
+     correspondence emerges directly from these adjunctions.")))
 
  (future-work
   ((functor-categories "Categories with functors as objects, nat transforms as morphisms")
