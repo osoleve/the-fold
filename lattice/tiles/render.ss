@@ -1,25 +1,14 @@
-;;; playpen/boardcraft/render.ss — Board Rendering (ASCII Art)
-;;;
-;;; ASCII art rendering for tile-based boards.
-;;; Helps visualize boards, pathfinding results, and field of view.
-;;;
-;;; Implements:
-;;;   • Square grid rendering
-;;;   • Hexagonal grid rendering
-;;;   • Customizable tile styles
-;;;   • Overlay support (paths, FOV, units)
-;;;
-;;; Dependencies:
-;;;   - playpen/boardcraft/core.ss
+(doc 'module 'tiles/render)
+(doc 'description "ASCII art rendering for tile-based boards")
+(doc 'layer 'lattice)
+(doc 'purity 'partial)
 
-;;; ====
-;;; Tile Style Protocol
-;;; ====
-
-;;; A style is a function: Tile → String (single character)
-;;; Default styles for common tile types
+(doc 'section 'tile-style)
 
 (define (default-tile-char tile)
+  (doc 'description "Default character mapping for common tile types")
+  (doc 'type '(-> Tile String))
+  (doc 'returns "Single character string representing tile")
   (case (tile-type tile)
         [(floor empty) "."]
         [(wall) "#"]
@@ -29,20 +18,15 @@
         [(forest) "T"]
         [else "?"]))
 
-;;; ====
-;;; Square Grid Rendering
-;;; ====
+(doc 'section 'square-rendering)
 
-;;; render-square-board : Board × MetaData × StyleFn → String
-;;; Render a square board as ASCII art
-;;;
-;;; Parameters:
-;;;   board - the board to render
-;;;   meta - board metadata (contains width, height)
-;;;   style-fn - function mapping tiles to characters
-;;;
-;;; Returns: String containing the ASCII art representation
 (define (render-square-board board meta style-fn)
+  (doc 'description "Render a square board as ASCII art")
+  (doc 'type '(-> Board MetaData (-> Tile String) String))
+  (doc 'param 'board "The board to render")
+  (doc 'param 'meta "Board metadata (contains width, height)")
+  (doc 'param 'style-fn "Function mapping tiles to characters")
+  (doc 'returns "String containing the ASCII art representation")
   (let ([width (cdr (assq 'width meta))]
         [height (cdr (assq 'height meta))])
        (let loop-y ([y 0] [lines '()])
@@ -61,16 +45,11 @@
                                           " ")])
                                (loop-x (+ x 1) (cons char chars)))))))))
 
-;;; render-square-board-with-overlay : Board × MetaData × StyleFn × (List Coord) × String → String
-;;; Render square board with highlighted coordinates
-;;;
-;;; Parameters:
-;;;   board - the board to render
-;;;   meta - board metadata
-;;;   style-fn - tile style function
-;;;   overlay - list of coordinates to highlight
-;;;   overlay-char - character to use for overlay
 (define (render-square-board-with-overlay board meta style-fn overlay overlay-char)
+  (doc 'description "Render square board with highlighted coordinates")
+  (doc 'param 'overlay "List of coordinates to highlight")
+  (doc 'param 'overlay-char "Character to use for overlay")
+  (doc 'returns "String containing rendered board with overlay")
   (let ([width (cdr (assq 'width meta))]
         [height (cdr (assq 'height meta))]
         [overlay-set (let ([ht (make-hashtable equal-hash equal?)])
@@ -94,27 +73,12 @@
                                        [else " "])])
                                (loop-x (+ x 1) (cons char chars)))))))))
 
-;;; ====
-;;; Hexagonal Grid Rendering
-;;; ====
+(doc 'section 'hex-rendering)
+(doc 'note "Hex grid uses staggered layout with axial coordinates (q, r)")
 
-;;; Hex grid rendering is more complex due to the offset layout.
-;;; We render hexes in a staggered grid pattern:
-;;;
-;;;   / \ / \ / \
-;;;  |0,0|1,0|2,0|
-;;;   \ / \ / \ /
-;;;    |0,1|1,1|
-;;;     \ / \ /
-;;;
-;;; This uses axial coordinates (q, r)
-
-;;; render-hex-board : Board × MetaData × StyleFn → String
-;;; Render hexagonal board as ASCII art
-;;;
-;;; This is a simplified hex rendering. Each hex is represented
-;;; by a single character in a staggered grid.
 (define (render-hex-board board meta style-fn)
+  (doc 'description "Render hexagonal board as ASCII art. Simplified rendering with single character per hex.")
+  (doc 'type '(-> Board MetaData (-> Tile String) String))
   (let* ([radius (cdr (assq 'radius meta))]
          [coords (board-tiles board)]
          ;; Find bounds
@@ -152,9 +116,9 @@
                                                  "  ")])
                                       (loop-q (+ q 1) (cons char chars))))))))))
 
-;;; render-hex-board-with-overlay : Board × MetaData × StyleFn × (List Coord) × String → String
-;;; Render hex board with highlighted coordinates
 (define (render-hex-board-with-overlay board meta style-fn overlay overlay-char)
+  (doc 'description "Render hex board with highlighted coordinates")
+  (doc 'type '(-> Board MetaData (-> Tile String) (List Coord) String String))
   (let* ([radius (cdr (assq 'radius meta))]
          [coords (board-tiles board)]
          [overlay-set (let ([ht (make-hashtable equal-hash equal?)])
@@ -197,13 +161,11 @@
                                               [else "  "])])
                                       (loop-q (+ q 1) (cons char chars))))))))))
 
-;;; ====
-;;; High-Level Rendering
-;;; ====
+(doc 'section 'high-level)
 
-;;; render-board : Board × StyleFn → String
-;;; Render board using default style
 (define (render-board board style-fn)
+  (doc 'description "Render board using default style. Dispatches to shape-specific renderer.")
+  (doc 'type '(-> Board (-> Tile String) String))
   (let ([shape (board%-shape board)]
         [meta (board%-meta board)])
        (case shape
@@ -211,9 +173,9 @@
              [(hex hexagonal) (render-hex-board board meta style-fn)]
              [else (error 'render-board "Unsupported shape" shape)])))
 
-;;; render-board-with-overlay : Board × StyleFn × (List Coord) × String → String
-;;; Render board with overlay
 (define (render-board-with-overlay board style-fn overlay overlay-char)
+  (doc 'description "Render board with overlay. Dispatches to shape-specific renderer.")
+  (doc 'type '(-> Board (-> Tile String) (List Coord) String String))
   (let ([shape (board%-shape board)]
         [meta (board%-meta board)])
        (case shape
@@ -221,19 +183,19 @@
              [(hex hexagonal) (render-hex-board-with-overlay board meta style-fn overlay overlay-char)]
              [else (error 'render-board-with-overlay "Unsupported shape" shape)])))
 
-;;; display-board : Board × StyleFn → Void
-;;; Display board to stdout
 (define (display-board board style-fn)
+  (doc 'description "Display board to stdout")
+  (doc 'type '(-> Board (-> Tile String) Void))
   (display (render-board board style-fn)))
 
-;;; display-board-with-path : Board × StyleFn × (List Coord) → Void
-;;; Display board with path highlighted
 (define (display-board-with-path board style-fn path)
+  (doc 'description "Display board with path highlighted using '*' character")
+  (doc 'type '(-> Board (-> Tile String) (List Coord) Void))
   (display (render-board-with-overlay board style-fn path "*")))
 
-;;; display-board-with-fov : Board × StyleFn × (List Coord) → Void
-;;; Display board with field of view highlighted
 (define (display-board-with-fov board style-fn fov)
+  (doc 'description "Display board with field of view highlighted using '+' character")
+  (doc 'type '(-> Board (-> Tile String) (List Coord) Void))
   (display (render-board-with-overlay board style-fn fov "+")))
 
 ;;; ====

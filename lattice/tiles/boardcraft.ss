@@ -1,14 +1,10 @@
-;;; playpen/boardcraft/boardcraft.ss — BoardCraft SDK Main Loader
-;;;
-;;; Load this file to access the complete BoardCraft SDK.
-;;;
-;;; Usage:
-;;;   (load "lattice/tiles/boardcraft.ss")
-;;;
-;;; This loads all modules in the correct order.
-
 (display "Loading BoardCraft SDK...
 ")
+
+(doc 'module 'tiles/boardcraft)
+(doc 'description "BoardCraft SDK main loader - loads all tile game modules")
+(doc 'layer 'lattice)
+(doc 'purity 'partial)
 
 ;;; Core types and utilities
 (display "  Loading core.ss...
@@ -73,8 +69,11 @@
 ")
 (newline)
 
-;;; Quick reference
+(doc 'section 'quick-reference)
+
 (define (boardcraft-help)
+  (doc 'description "Display BoardCraft SDK quick reference guide")
+  (doc 'returns "Void - prints help text to stdout")
   (display "╔══════════════════════════════════════════════════════════════╗
 ")
   (display "║  BOARDCRAFT SDK — Quick Reference                           ║

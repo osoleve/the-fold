@@ -1,29 +1,18 @@
-;;; playpen/boardcraft/triangle.ss — Triangular Tile Implementation
-;;;
-;;; Triangular tiles create interesting tessellations where triangles
-;;; alternate between "up" (pointing up) and "down" (pointing down).
-;;;
-;;; Used in games like TriHex and various tessellation puzzles.
-;;;
-;;; Dependencies:
-;;;   - playpen/boardcraft/core.ss
+(doc 'module 'tiles/triangle)
+(doc 'description "Triangular tile implementation with alternating up/down orientations")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
 
-;;; ====
-;;; Triangular Coordinates
-;;; ====
-
-;;; Triangular tiles use a coordinate system where each position
-;;; in a (row, col) grid can contain 2 triangles: one pointing up,
-;;; one pointing down.
-;;;
-;;; We use a 3-tuple: (row, col, orientation)
-;;;   where orientation is 'up or 'down
+(doc 'section 'coordinates)
+(doc 'note "Coordinate system: (row, col, orientation) where orientation is 'up or 'down")
 
 (define-record-type triangle-coord%
   (fields row col orientation))
 
-;;; triangle-coord : Integer × Integer × Symbol → TriangleCoord
 (define (triangle-coord row col orientation)
+  (doc 'description "Create triangular coordinate")
+  (doc 'type '(-> Integer Integer Symbol TriangleCoord))
+  (doc 'param 'orientation "Must be 'up or 'down")
   (if (not (memq orientation '(up down)))
       (error 'triangle-coord "Orientation must be 'up or 'down" orientation)
       (make-triangle-coord% row col orientation)))
@@ -45,50 +34,30 @@
      (* (triangle-col t) 1000)
      (if (eq? (triangle-orientation t) 'up) 0 1)))
 
-;;; ====
-;;; Orientation and Alternation
-;;; ====
+(doc 'section 'orientation)
+(doc 'note "Triangles alternate based on (row + col) parity")
 
-;;; In a standard triangular grid, triangles alternate:
-;;;   Row 0: up down up down ...
-;;;   Row 1: down up down up ...
-;;;
-;;; The orientation depends on (row + col) parity
-
-;;; triangle-default-orientation : Integer × Integer → Symbol
-;;; Get the default orientation for a position based on parity
 (define (triangle-default-orientation row col)
+  (doc 'description "Get default orientation for a position based on parity")
+  (doc 'type '(-> Integer Integer Symbol))
   (if (even? (+ row col))
       'up
       'down))
 
-;;; triangle-flip : TriangleCoord → TriangleCoord
-;;; Flip a triangle to its opposite orientation at the same position
 (define (triangle-flip t)
+  (doc 'description "Flip triangle to opposite orientation at same position")
+  (doc 'type '(-> TriangleCoord TriangleCoord))
   (triangle-coord (triangle-row t)
                   (triangle-col t)
                   (if (eq? (triangle-orientation t) 'up) 'down 'up)))
 
-;;; ====
-;;; Neighbor Calculations
-;;; ====
+(doc 'section 'neighbors)
+(doc 'note "UP triangle has 3 edge neighbors: left-down, right-down, below-up")
+(doc 'note "DOWN triangle has 3 edge neighbors: left-up, right-up, above-down")
 
-;;; Triangles have 3 edge-adjacent neighbors.
-;;; The specific neighbors depend on orientation:
-;;;
-;;; UP triangle (△):
-;;;   - Left neighbor (same row, col-1, down)
-;;;   - Right neighbor (same row, col+1, down)
-;;;   - Below (row+1, same col, up)
-;;;
-;;; DOWN triangle (▽):
-;;;   - Left neighbor (same row, col-1, up)
-;;;   - Right neighbor (same row, col+1, up)
-;;;   - Above (row-1, same col, down)
-
-;;; triangle-neighbors-edge : TriangleCoord → (List TriangleCoord)
-;;; Get the 3 edge-adjacent neighbors
 (define (triangle-neighbors-edge t)
+  (doc 'description "Get 3 edge-adjacent neighbors")
+  (doc 'type '(-> TriangleCoord (List TriangleCoord)))
   (let ([row (triangle-row t)]
         [col (triangle-col t)]
         [ori (triangle-orientation t)])
@@ -102,11 +71,10 @@
                  (triangle-coord row (+ col 1) 'up)
                  (triangle-coord (- row 1) col 'down)))))
 
-;;; triangle-neighbors-vertex : TriangleCoord → (List TriangleCoord)
-;;; Get vertex-adjacent neighbors (sharing a corner but not edge)
-;;; Up triangles have 3 vertex neighbors (diagonal connections)
-;;; Down triangles have 3 vertex neighbors
 (define (triangle-neighbors-vertex t)
+  (doc 'description "Get vertex-adjacent neighbors (sharing a corner but not edge)")
+  (doc 'type '(-> TriangleCoord (List TriangleCoord)))
+  (doc 'returns "3 vertex neighbors")
   (let ([row (triangle-row t)]
         [col (triangle-col t)]
         [ori (triangle-orientation t)])
@@ -120,40 +88,30 @@
                  (triangle-coord (+ row 1) col 'down)
                  (triangle-coord (+ row 1) (+ col 1) 'up)))))
 
-;;; triangle-neighbors-all : TriangleCoord → (List TriangleCoord)
-;;; Get all neighbors (edge + vertex)
 (define (triangle-neighbors-all t)
+  (doc 'description "Get all neighbors (edge + vertex + flip)")
+  (doc 'type '(-> TriangleCoord (List TriangleCoord)))
+  (doc 'returns "7 neighbors total")
   (append (triangle-neighbors-edge t)
           (triangle-neighbors-vertex t)
           ;; Include the flipped triangle at same position
           (list (triangle-flip t))))
 
-;;; triangle-neighbors : TriangleCoord × Symbol → (List TriangleCoord)
-;;; Generic neighbor function
-;;;   'edge — 3 edge-adjacent neighbors
-;;;   'vertex — 3 vertex-adjacent neighbors
-;;;   'all — all 7 neighbors (edge + vertex + flip)
 (define (triangle-neighbors coord mode)
+  (doc 'description "Generic neighbor function. Mode: 'edge, 'vertex, or 'all")
+  (doc 'type '(-> TriangleCoord Symbol (List TriangleCoord)))
   (case mode
         [(edge)   (triangle-neighbors-edge coord)]
         [(vertex) (triangle-neighbors-vertex coord)]
         [(all)    (triangle-neighbors-all coord)]
         [else     (error 'triangle-neighbors "Invalid mode" mode)]))
 
-;;; ====
-;;; Distance Metrics
-;;; ====
+(doc 'section 'distance)
 
-;;; For triangular grids, distance is more complex than square/hex.
-;;; We'll use a simple metric: minimum number of edge-transitions.
-;;;
-;;; This is essentially BFS distance, but for simple cases we can
-;;; approximate with Manhattan-like distance.
-
-;;; triangle-distance-manhattan : TriangleCoord × TriangleCoord → Integer
-;;; Approximate distance (sum of row/col differences)
-;;; This is an underestimate of true triangle distance
 (define (triangle-distance-manhattan t1 t2)
+  (doc 'description "Approximate distance (sum of row/col differences). Underestimates true distance.")
+  (doc 'type '(-> TriangleCoord TriangleCoord Integer))
+  (doc 'note "For exact distance, use pathfinding (BFS/Dijkstra)")
   (+ (abs (- (triangle-row t2) (triangle-row t1)))
      (abs (- (triangle-col t2) (triangle-col t1)))
      (if (eq? (triangle-orientation t1) (triangle-orientation t2)) 0 1)))
@@ -161,17 +119,11 @@
 ;;; For exact distance, we'd need pathfinding (BFS/Dijkstra)
 ;;; which will be in the pathfinding module
 
-;;; ====
-;;; Line Drawing
-;;; ====
+(doc 'section 'line-drawing)
 
-;;; Line drawing in triangular space is complex due to alternating
-;;; orientations. For now, provide a simple stepped approach.
-
-;;; triangle-line : TriangleCoord × TriangleCoord → (List TriangleCoord)
-;;; Get triangles on approximate line from t1 to t2
-;;; Uses row-major stepping
 (define (triangle-line t1 t2)
+  (doc 'description "Get triangles on approximate line from t1 to t2. Uses row-major stepping.")
+  (doc 'type '(-> TriangleCoord TriangleCoord (List TriangleCoord)))
   (let* ([r1 (triangle-row t1)]
          [c1 (triangle-col t1)]
          [r2 (triangle-row t2)]
@@ -191,14 +143,11 @@
                             [coord (triangle-coord r c ori)])
                            (loop (+ i 1) (cons coord coords))))))))
 
-;;; ====
-;;; Range and Area
-;;; ====
+(doc 'section 'range)
 
-;;; triangle-range : TriangleCoord × Integer → (List TriangleCoord)
-;;; Get all triangles within approximate distance N
-;;; Uses Manhattan approximation
 (define (triangle-range center radius)
+  (doc 'description "Get all triangles within approximate distance N. Uses Manhattan approximation.")
+  (doc 'type '(-> TriangleCoord Integer (List TriangleCoord)))
   (let ([cr (triangle-row center)]
         [cc (triangle-col center)])
        (let loop ([r (- cr radius)] [c (- cc radius)] [coords '()])
@@ -218,23 +167,20 @@
                            '()))])
                     (loop r (+ c 1) (append new-coords coords)))]))))
 
-;;; ====
-;;; Board Creation
-;;; ====
+(doc 'section 'board-creation)
 
-;;; make-triangle-board : Integer × Integer × [Tile] → Board
-;;; Create a rectangular triangular board
-;;;   rows: number of rows
-;;;   cols: number of columns
-;;;   Each (row, col) contains 2 triangles (up and down)
 (define make-triangle-board
   (case-lambda
    [(rows cols)
+    (doc 'description "Create rectangular triangular board. Each (row, col) contains 2 triangles.")
+    (doc 'type '(-> Integer Integer Board))
     (make-board 'triangle
                 `((rows . ,rows) (cols . ,cols))
                 triangle-coord-hash
                 triangle-coord-equal?)]
    [(rows cols default-tile)
+    (doc 'description "Create rectangular triangular board with default tile fill")
+    (doc 'type '(-> Integer Integer Tile Board))
     (let ([board (make-board 'triangle
                              `((rows . ,rows) (cols . ,cols))
                              triangle-coord-hash
@@ -265,14 +211,11 @@
         [cols (triangle-board-cols board)])
        (and (>= r 0) (< r rows) (>= c 0) (< c cols))))
 
-;;; ====
-;;; Rotation and Reflection
-;;; ====
+(doc 'section 'transformations)
 
-;;; triangle-rotate-180 : TriangleCoord × (Integer Integer) → TriangleCoord
-;;; Rotate triangle 180° around a center point
-;;; This flips the triangle and inverts position
 (define (triangle-rotate-180 coord center-r center-c)
+  (doc 'description "Rotate triangle 180° around center point. Flips orientation and inverts position.")
+  (doc 'type '(-> TriangleCoord Integer Integer TriangleCoord))
   (let ([r (triangle-row coord)]
         [c (triangle-col coord)]
         [ori (triangle-orientation coord)])
@@ -280,9 +223,9 @@
                        (- (* 2 center-c) c)
                        (if (eq? ori 'up) 'down 'up))))
 
-;;; triangle-reflect-horizontal : TriangleCoord × Integer → TriangleCoord
-;;; Reflect triangle across vertical axis at column C
 (define (triangle-reflect-horizontal coord axis-col)
+  (doc 'description "Reflect triangle across vertical axis at column C")
+  (doc 'type '(-> TriangleCoord Integer TriangleCoord))
   (let ([r (triangle-row coord)]
         [c (triangle-col coord)]
         [ori (triangle-orientation coord)])
@@ -290,9 +233,9 @@
                        (- (* 2 axis-col) c)
                        ori)))
 
-;;; triangle-reflect-vertical : TriangleCoord × Integer → TriangleCoord
-;;; Reflect triangle across horizontal axis at row R
 (define (triangle-reflect-vertical coord axis-row)
+  (doc 'description "Reflect triangle across horizontal axis at row R. Flips orientation.")
+  (doc 'type '(-> TriangleCoord Integer TriangleCoord))
   (let ([r (triangle-row coord)]
         [c (triangle-col coord)]
         [ori (triangle-orientation coord)])

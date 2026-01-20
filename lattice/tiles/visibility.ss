@@ -1,36 +1,16 @@
-;;; playpen/boardcraft/visibility.ss — Line of Sight and Visibility
-;;;
-;;; Visibility and line-of-sight algorithms for tile-based board games.
-;;;
-;;; Implements:
-;;;   • Line-of-sight (LOS) checking between two coordinates
-;;;   • Field of view (FOV) calculation from a position
-;;;   • Raycast visibility with blocking tiles
-;;;   • Generic algorithms that work with any tile shape
-;;;
-;;; Dependencies:
-;;;   - playpen/boardcraft/core.ss
-;;;   - playpen/boardcraft/pathfinding.ss (for priority queue)
+(doc 'module 'tiles/visibility)
+(doc 'description "Line of sight and field of view algorithms for tile-based games")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
 
-;;; ====
-;;; Line of Sight
-;;; ====
+(doc 'section 'line-of-sight)
 
-;;; has-line-of-sight? : Board × Coord × Coord × (Coord × Coord → List Coord) × (Coord → Bool) → Boolean
-;;; Check if there's a clear line of sight from origin to target
-;;;
-;;; Parameters:
-;;;   board - the game board
-;;;   origin - starting coordinate
-;;;   target - target coordinate
-;;;   line-fn - function that returns list of coordinates along line from A to B
-;;;   blocks-vision-fn - predicate to check if coordinate blocks vision
-;;;
-;;; Returns: #t if line of sight is clear, #f if blocked
-;;;
-;;; The line-fn should return coordinates in order from origin to target (exclusive of origin, inclusive of target).
-;;; A tile blocks vision if blocks-vision-fn returns #t.
 (define (has-line-of-sight? board origin target line-fn blocks-vision-fn)
+  (doc 'description "Check if there's clear line of sight from origin to target")
+  (doc 'type '(-> Board Coord Coord (-> Coord Coord (List Coord)) (-> Coord Bool) Bool))
+  (doc 'param 'line-fn "Returns coordinates along line (exclusive of origin, inclusive of target)")
+  (doc 'param 'blocks-vision-fn "Predicate checking if coordinate blocks vision")
+  (doc 'returns "#t if line of sight is clear, #f if blocked")
   (let ([line (line-fn origin target)])
        (let loop ([coords line])
             (cond
@@ -39,35 +19,25 @@
              [(blocks-vision-fn (car coords)) #f] ; Blocked by this tile
              [else (loop (cdr coords))])))) ; Continue along line
 
-;;; board-has-los? : Board × Coord × Coord × (Coord × Coord → List Coord) → Boolean
-;;; Check line of sight using board's vision-blocking property
 (define (board-has-los? board origin target line-fn)
+  (doc 'description "Check line of sight using board's vision-blocking tile property")
+  (doc 'type '(-> Board Coord Coord (-> Coord Coord (List Coord)) Bool))
   (has-line-of-sight?
    board origin target line-fn
    (lambda (coord)
            (let ([tile (board-get board coord)])
                 (and tile (tile-get-prop tile 'blocks-vision #f))))))
 
-;;; ====
-;;; Field of View
-;;; ====
+(doc 'section 'field-of-view)
 
-;;; calculate-fov : Board × Coord × Integer × (Coord → List Coord) × (Coord × Coord → List Coord) × (Coord → Bool) → (List Coord)
-;;; Calculate field of view from origin within radius
-;;;
-;;; Parameters:
-;;;   board - the game board
-;;;   origin - viewing position
-;;;   max-radius - maximum vision distance
-;;;   neighbor-fn - function to get neighbors
-;;;   line-fn - function to draw line between two coordinates
-;;;   blocks-vision-fn - predicate to check if coordinate blocks vision
-;;;
-;;; Returns: List of visible coordinates
-;;;
-;;; Uses simple raycast FOV: for each tile in range, cast a ray and check LOS.
-;;; More sophisticated algorithms (shadowcasting) could be added later.
 (define (calculate-fov board origin max-radius neighbor-fn line-fn blocks-vision-fn)
+  (doc 'description "Calculate field of view from origin within radius. Uses simple raycast FOV.")
+  (doc 'type '(-> Board Coord Integer (-> Coord (List Coord)) (-> Coord Coord (List Coord)) (-> Coord Bool) (List Coord)))
+  (doc 'param 'neighbor-fn "Function to get neighbors")
+  (doc 'param 'line-fn "Function to draw line between two coordinates")
+  (doc 'param 'blocks-vision-fn "Predicate checking if coordinate blocks vision")
+  (doc 'returns "List of visible coordinates")
+  (doc 'note "More sophisticated algorithms (shadowcasting) could be added later")
   (let ([visible (make-hashtable equal-hash equal?)])
        ;; Origin is always visible
        (hashtable-set! visible origin #t)
@@ -101,9 +71,9 @@
                                  valid-neighbors)
                                 (loop (append rest-q valid-neighbors) visited distance))))))))
 
-;;; board-fov : Board × Coord × Integer × (Coord → List Coord) × (Coord × Coord → List Coord) → (List Coord)
-;;; Calculate field of view using board's vision-blocking property
 (define (board-fov board origin max-radius neighbor-fn line-fn)
+  (doc 'description "Calculate field of view using board's vision-blocking tile property")
+  (doc 'type '(-> Board Coord Integer (-> Coord (List Coord)) (-> Coord Coord (List Coord)) (List Coord)))
   (calculate-fov
    board origin max-radius
    neighbor-fn
@@ -112,55 +82,30 @@
            (let ([tile (board-get board coord)])
                 (and tile (tile-get-prop tile 'blocks-vision #f))))))
 
-;;; ====
-;;; Shadowcast Field of View (Recursive Shadowcasting)
-;;; ====
+(doc 'section 'shadowcasting)
 
-;;; shadowcast-fov : Board × Coord × Integer × (Coord → List Coord) × (Coord → Bool) × (Coord → Bool) → (List Coord)
-;;; Calculate field of view using recursive shadowcasting algorithm
-;;;
-;;; Parameters:
-;;;   board - the game board
-;;;   origin - viewing position
-;;;   max-radius - maximum vision distance
-;;;   neighbor-fn - function to get neighbors
-;;;   blocks-vision-fn - predicate to check if coordinate blocks vision
-;;;   distance-fn - function to compute distance between two coordinates
-;;;
-;;; Returns: List of visible coordinates
-;;;
-;;; This is a placeholder for a more sophisticated shadowcasting implementation.
-;;; For now, we use the simple raycast FOV.
 (define (shadowcast-fov board origin max-radius neighbor-fn line-fn blocks-vision-fn distance-fn)
+  (doc 'description "Calculate field of view using recursive shadowcasting. Currently a placeholder using raycast FOV.")
+  (doc 'type '(-> Board Coord Integer (-> Coord (List Coord)) (-> Coord Coord (List Coord)) (-> Coord Bool) (-> Coord Coord Number) (List Coord)))
+  (doc 'todo "Implement proper shadowcasting algorithm")
   ;; TODO: Implement proper shadowcasting
   ;; For now, use simple raycast FOV
   (calculate-fov board origin max-radius neighbor-fn line-fn blocks-vision-fn))
 
-;;; ====
-;;; Visibility Utilities
-;;; ====
+(doc 'section 'utilities)
 
-;;; visible-enemies : Board × Coord × Integer × (Coord → List Coord) × (Coord × Coord → List Coord) × (Coord → Bool) → (List Coord)
-;;; Get all enemy positions visible from origin
-;;;
-;;; Parameters:
-;;;   board - the game board
-;;;   origin - viewing position
-;;;   max-radius - maximum vision distance
-;;;   neighbor-fn - function to get neighbors
-;;;   line-fn - function to draw line
-;;;   is-enemy-fn - predicate to check if coordinate has enemy
-;;;
-;;; Returns: List of visible enemy coordinates
 (define (visible-enemies board origin max-radius neighbor-fn line-fn is-enemy-fn)
+  (doc 'description "Get all enemy positions visible from origin")
+  (doc 'type '(-> Board Coord Integer (-> Coord (List Coord)) (-> Coord Coord (List Coord)) (-> Coord Bool) (List Coord)))
+  (doc 'param 'is-enemy-fn "Predicate to check if coordinate has enemy")
+  (doc 'returns "List of visible enemy coordinates")
   (let ([visible-tiles (board-fov board origin max-radius neighbor-fn line-fn)])
        (filter is-enemy-fn visible-tiles)))
 
-;;; tiles-in-sight : Board × Coord × Coord × (Coord × Coord → List Coord) → (List Coord)
-;;; Get all tiles along line of sight from origin to target
-;;;
-;;; Returns: List of coordinates along the line (including origin and target)
 (define (tiles-in-sight board origin target line-fn)
+  (doc 'description "Get all tiles along line of sight from origin to target")
+  (doc 'type '(-> Board Coord Coord (-> Coord Coord (List Coord)) (List Coord)))
+  (doc 'returns "List of coordinates along the line (including origin and target)")
   (cons origin (line-fn origin target)))
 
 ;;; ====

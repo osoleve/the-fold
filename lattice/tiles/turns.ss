@@ -1,42 +1,19 @@
-;;; playpen/boardcraft/turns.ss — Turn-Based Game System
-;;;
-;;; Manages turn-based gameplay including turn order, action points,
-;;; phases, and turn history.
-;;;
-;;; Implements:
-;;;   • Turn order management
-;;;   • Action point system
-;;;   • Turn phase tracking
-;;;   • Turn history/log
-;;;   • Initiative-based ordering
-;;;
-;;; Dependencies:
-;;;   - playpen/boardcraft/core.ss
-;;;   - playpen/boardcraft/units.ss
+(doc 'module 'tiles/turns)
+(doc 'description "Turn-based game system: turn order, action points, phases, history")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
 
-;;; ====
-;;; Turn State
-;;; ====
-
-;;; A Turn State manages the current game turn.
-;;;
-;;; turn-state:
-;;;   - turn-number: current turn number (starts at 1)
-;;;   - active-unit: ID of currently active unit
-;;;   - turn-order: ordered list of unit IDs
-;;;   - action-points: hashtable of unit-id → remaining action points
-;;;   - phase: current phase symbol ('movement, 'action, 'end)
-;;;   - history: list of (turn-number . action) entries
+(doc 'section 'turn-state)
+(doc 'note "Turn state fields: turn-number, active-unit, turn-order, action-points, phase, history")
 
 (define-record-type turn-state%
   (fields turn-number active-unit turn-order action-points phase history))
 
-;;; make-turn-state : (List UnitId) × Hashtable → TurnState
-;;; Create initial turn state
-;;;
-;;; unit-order: list of unit IDs in turn order
-;;; max-actions: hashtable mapping unit-id → max action points
 (define (make-turn-state unit-order max-actions)
+  (doc 'description "Create initial turn state")
+  (doc 'type '(-> (List UnitId) Hashtable TurnState))
+  (doc 'param 'unit-order "List of unit IDs in turn order")
+  (doc 'param 'max-actions "Hashtable mapping unit-id → max action points")
   (let ([ap-table (make-hashtable equal-hash equal?)])
        ;; Initialize action points
        (for-each
@@ -51,9 +28,9 @@
                          'movement  ; initial phase
                          '())))  ; empty history
 
-;;; make-turn-state-from-game : GameState → TurnState
-;;; Create turn state from game state with default action points
 (define (make-turn-state-from-game gs)
+  (doc 'description "Create turn state from game state with default 2 action points per unit")
+  (doc 'type '(-> GameState TurnState))
   (let* ([units (game-all-units gs)]
          [unit-ids (map (lambda (entry) (unit%-id (cdr entry))) units)]
          [max-actions (make-hashtable equal-hash equal?)])
@@ -64,13 +41,11 @@
          unit-ids)
         (make-turn-state unit-ids max-actions)))
 
-;;; ====
-;;; Turn Queries
-;;; ====
+(doc 'section 'queries)
 
-;;; turn-current-unit : TurnState → UnitId | #f
-;;; Get currently active unit ID
 (define (turn-current-unit ts)
+  (doc 'description "Get currently active unit ID")
+  (doc 'type '(-> TurnState (Maybe UnitId)))
   (turn-state%-active-unit ts))
 
 ;;; turn-current-phase : TurnState → Symbol
@@ -94,13 +69,11 @@
   (and (eq? (turn-current-unit ts) unit-id)
        (> (turn-actions-remaining ts unit-id) 0)))
 
-;;; ====
-;;; Turn Actions
-;;; ====
+(doc 'section 'actions)
 
-;;; turn-spend-action : TurnState × UnitId × Integer → TurnState
-;;; Spend action points
 (define (turn-spend-action ts unit-id cost)
+  (doc 'description "Spend action points")
+  (doc 'type '(-> TurnState UnitId Integer TurnState))
   (let ([ap-table (hashtable-copy (turn-state%-action-points ts) #t)]
         [current (hashtable-ref (turn-state%-action-points ts) unit-id 0)])
        (hashtable-set! ap-table unit-id (max 0 (- current cost)))
@@ -111,9 +84,9 @@
                          (turn-state%-phase ts)
                          (turn-state%-history ts))))
 
-;;; turn-log-action : TurnState × Symbol × Any → TurnState
-;;; Add action to history
 (define (turn-log-action ts action-type details)
+  (doc 'description "Add action to history")
+  (doc 'type '(-> TurnState Symbol Any TurnState))
   (let ([entry (list (turn-state%-turn-number ts)
                      (turn-state%-active-unit ts)
                      action-type
@@ -126,13 +99,11 @@
                          (turn-state%-phase ts)
                          (cons entry history))))
 
-;;; ====
-;;; Turn Advancement
-;;; ====
+(doc 'section 'advancement)
 
-;;; turn-next-phase : TurnState → TurnState
-;;; Advance to next phase in turn
 (define (turn-next-phase ts)
+  (doc 'description "Advance to next phase in turn (movement → action → end → movement)")
+  (doc 'type '(-> TurnState TurnState))
   (let ([current-phase (turn-state%-phase ts)])
        (make-turn-state% (turn-state%-turn-number ts)
                          (turn-state%-active-unit ts)
@@ -144,11 +115,10 @@
                                [(end) 'movement])
                          (turn-state%-history ts))))
 
-;;; turn-next-unit : TurnState × Hashtable → TurnState
-;;; Advance to next unit in turn order
-;;;
-;;; max-actions: hashtable of unit-id → max action points (for refresh)
 (define (turn-next-unit ts max-actions)
+  (doc 'description "Advance to next unit in turn order. Refreshes action points for next unit.")
+  (doc 'type '(-> TurnState Hashtable TurnState))
+  (doc 'param 'max-actions "Hashtable of unit-id → max action points for refresh")
   (let* ([order (turn-state%-turn-order ts)]
          [current (turn-state%-active-unit ts)]
          [current-idx (let loop ([idx 0] [lst order])
@@ -177,13 +147,11 @@
 (define (turn-end-turn ts max-actions)
   (turn-next-unit ts max-actions))
 
-;;; ====
-;;; Turn History
-;;; ====
+(doc 'section 'history)
 
-;;; turn-history : TurnState → (List Entry)
-;;; Get turn history (most recent first)
 (define (turn-history ts)
+  (doc 'description "Get turn history (most recent first)")
+  (doc 'type '(-> TurnState (List Entry)))
   (turn-state%-history ts))
 
 ;;; turn-recent-actions : TurnState × Integer → (List Entry)
@@ -196,16 +164,11 @@
            (reverse result)
            (loop (cdr actions) (+ count 1) (cons (car actions) result)))))
 
-;;; ====
-;;; Initiative System
-;;; ====
+(doc 'section 'initiative)
 
-;;; calculate-initiative-order : (List Unit) → (List UnitId)
-;;; Calculate turn order based on unit initiative
-;;;
-;;; Units with higher 'initiative property go first.
-;;; Ties are broken by unit ID.
 (define (calculate-initiative-order units)
+  (doc 'description "Calculate turn order based on unit initiative. Higher initiative goes first, ties broken by ID.")
+  (doc 'type '(-> (List Unit) (List UnitId)))
   (let ([sorted
          (sort (lambda (u1 u2)
                        (let ([init1 (unit-get-prop u1 'initiative 0)]
@@ -217,9 +180,9 @@
                units)])
        (map unit%-id sorted)))
 
-;;; make-turn-state-with-initiative : GameState → TurnState
-;;; Create turn state with initiative-based order
 (define (make-turn-state-with-initiative gs)
+  (doc 'description "Create turn state with initiative-based order")
+  (doc 'type '(-> GameState TurnState))
   (let* ([units-with-coords (game-all-units gs)]
          [units (map cdr units-with-coords)]
          [initiative-order (calculate-initiative-order units)]
@@ -232,31 +195,25 @@
          units)
         (make-turn-state initiative-order max-actions)))
 
-;;; ====
-;;; Integrated Turn System
-;;; ====
+(doc 'section 'integration)
 
-;;; game-with-turns : GameState × TurnState → GameWithTurns
-;;; Combine game state with turn state
 (define-record-type game-with-turns%
   (fields game turns))
 
-;;; make-game-with-turns : GameState → GameWithTurns
-;;; Create game with turn system
+(doc game-with-turns% 'description "Combines game state with turn state")
+
 (define (make-game-with-turns gs)
+  (doc 'description "Create game with turn system")
+  (doc 'type '(-> GameState GameWithTurns))
   (make-game-with-turns% gs (make-turn-state-from-game gs)))
 
-;;; game-execute-action : GameWithTurns × Symbol × Procedure × Integer → GameWithTurns | #f
-;;; Execute an action if unit can act
-;;;
-;;; Parameters:
-;;;   gwt: game with turns
-;;;   action-type: symbol describing action (e.g., 'move, 'attack)
-;;;   action-fn: (GameState → GameState) - function to execute
-;;;   cost: action point cost
-;;;
-;;; Returns: new GameWithTurns if action succeeds, #f otherwise
 (define (game-execute-action gwt action-type action-fn cost)
+  (doc 'description "Execute action if unit can act")
+  (doc 'type '(-> GameWithTurns Symbol (-> GameState GameState) Integer (Maybe GameWithTurns)))
+  (doc 'param 'action-type "Symbol describing action (e.g., 'move, 'attack)")
+  (doc 'param 'action-fn "Function to execute: GameState → GameState")
+  (doc 'param 'cost "Action point cost")
+  (doc 'returns "New GameWithTurns if action succeeds, #f otherwise")
   (let* ([ts (game-with-turns%-turns gwt)]
          [gs (game-with-turns%-game gwt)]
          [active (turn-current-unit ts)])
