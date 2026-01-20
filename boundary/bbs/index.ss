@@ -211,7 +211,10 @@
           ;; Index by priority
           (let* ([priority (cdr (assq 'priority data))]
                  [existing (hashtable-ref *bbs-by-priority* priority '())])
-            (hashtable-set! *bbs-by-priority* priority (cons id existing))))))))
+            (hashtable-set! *bbs-by-priority* priority (cons id existing)))
+
+          ;; Persist cache so other processes see the change
+          (bbs-save-index-cache!))))))
 
 (define (bbs-index-update! id new-hash old-status new-status old-priority new-priority)
   (doc 'type (-> String Bytevector Symbol Symbol Int Int Void))
@@ -237,7 +240,10 @@
                       (filter (lambda (x) (not (string=? x id))) old-list)))
     ;; Add to new priority
     (let ([new-list (hashtable-ref *bbs-by-priority* new-priority '())])
-      (hashtable-set! *bbs-by-priority* new-priority (cons id new-list)))))
+      (hashtable-set! *bbs-by-priority* new-priority (cons id new-list))))
+
+  ;; Persist cache so other processes see the change
+  (bbs-save-index-cache!))
 
 (doc 'section 'index-queries)
 
