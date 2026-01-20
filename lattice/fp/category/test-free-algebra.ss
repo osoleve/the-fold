@@ -157,6 +157,134 @@
       ((algebra-op alg-integer-group 'inv) 5))
 
 ;;; ====
+;;; Test: Algebra Validation
+;;; ====
+
+(section "Algebra Validation")
+
+;; Helper to check if substring exists
+(define (string-contains s sub)
+  (let loop ([i 0])
+    (cond
+      [(> (+ i (string-length sub)) (string-length s)) #f]
+      [(string=? (substring s i (+ i (string-length sub))) sub) #t]
+      [else (loop (+ i 1))])))
+
+;; Valid algebras pass validation
+(test-true "algebra-valid? on list monoid"
+           (algebra-valid? alg-list-monoid))
+
+(test-true "algebra-valid? on integer group"
+           (algebra-valid? alg-integer-group))
+
+;; validate-algebra returns (ok alg) for valid algebras
+(let ([result (validate-algebra alg-list-monoid)])
+  (test "validate-algebra returns ok for valid algebra"
+        'ok
+        (car result)))
+
+;; Missing operations are caught
+(let* ([incomplete-ops `((e . ,(lambda () '())))]  ; Missing * operation
+       [bad-alg (make-algebra sig-monoid 'list incomplete-ops)]
+       [result (validate-algebra bad-alg)])
+  (test "validate-algebra catches missing operations"
+        'err
+        (car result))
+  (test-true "error message mentions missing op"
+             (string-contains (cadr result) "*")))
+
+;; Non-procedure implementations are caught
+(let* ([bad-ops `((e . ,(lambda () '()))
+                  (* . "not-a-procedure"))]  ; Not a procedure!
+       [bad-alg (make-algebra sig-monoid 'list bad-ops)]
+       [result (validate-algebra bad-alg)])
+  (test "validate-algebra catches non-procedure"
+        'err
+        (car result)))
+
+;; Extra operations produce ok with warning
+(let* ([extra-ops `((e . ,(lambda () '()))
+                    (* . ,append)
+                    (bonus . ,(lambda (x) x)))]  ; Extra op
+       [alg (make-algebra sig-monoid 'list extra-ops)]
+       [result (validate-algebra alg)])
+  (test "validate-algebra ok with extra ops"
+        'ok
+        (car result))
+  (test "extra ops returned as warning"
+        '(bonus)
+        (caddr result)))
+
+;;; ====
+;;; Test: Algebra Homomorphisms
+;;; ====
+
+(section "Algebra Homomorphisms")
+
+;; Define a homomorphism from sum-monoid to product-monoid via exp
+;; exp(0) = 1 (identity maps to identity)
+;; exp(a + b) = exp(a) * exp(b) (preserves operation)
+(define exp-hom
+  (make-algebra-hom alg-sum-monoid alg-product-monoid exp))
+
+(test-true "algebra-hom? on exp-hom"
+           (algebra-hom? exp-hom))
+
+(test "algebra-hom-source"
+      alg-sum-monoid
+      (algebra-hom-source exp-hom))
+
+(test "algebra-hom-target"
+      alg-product-monoid
+      (algebra-hom-target exp-hom))
+
+(test-true "algebra-hom-function is procedure"
+           (procedure? (algebra-hom-function exp-hom)))
+
+;; Test applying homomorphism
+(test "algebra-hom-apply on 0"
+      1  ; exp(0) = 1 (exact integer in Chez)
+      (algebra-hom-apply exp-hom 0))
+
+(test "algebra-hom-apply on 1"
+      (exp 1)
+      (algebra-hom-apply exp-hom 1))
+
+;; Test identity homomorphism
+(let ([id-hom (identity-algebra-hom alg-sum-monoid)])
+  (test-true "identity-algebra-hom is algebra-hom"
+             (algebra-hom? id-hom))
+  (test "identity hom preserves value"
+        42
+        (algebra-hom-apply id-hom 42)))
+
+;; Test homomorphism verification
+;; exp : (Z,+,0) → (R,*,1) is a homomorphism
+;; Format: ((arity . ((arg1 arg2 ...) (arg1 arg2 ...) ...)))
+(test-true "verify-homomorphism: exp is homomorphism"
+           (verify-homomorphism exp-hom
+                                `((2 . ((1 2) (3 4) (0 5))))))
+
+;; Non-homomorphism: square function (a+b)² ≠ a² + b²
+(let ([bad-hom (make-algebra-hom alg-sum-monoid alg-sum-monoid
+                                  (lambda (x) (* x x)))])
+  (test-false "verify-homomorphism: square is NOT homomorphism"
+              (verify-homomorphism bad-hom
+                                   `((2 . ((2 3)))))))
+
+;; Test composition
+(define double-hom
+  (make-algebra-hom alg-sum-monoid alg-sum-monoid
+                    (lambda (x) (* 2 x))))
+
+(let ([composed (compose-algebra-hom double-hom double-hom)])
+  (test-true "compose-algebra-hom produces algebra-hom"
+             (algebra-hom? composed))
+  (test "composed hom quadruples"
+        20
+        (algebra-hom-apply composed 5)))
+
+;;; ====
 ;;; Test: Term Representation
 ;;; ====
 

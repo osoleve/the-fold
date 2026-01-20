@@ -69,12 +69,18 @@
     signature-operations signature-laws signature-op-arity signature-has-op?
     ;; Algebras (concrete implementations)
     make-algebra algebra? algebra-signature algebra-carrier algebra-ops algebra-op
+    ;; Algebra validation
+    validate-algebra algebra-valid? make-validated-algebra
+    ;; Algebra homomorphisms
+    make-algebra-hom algebra-hom? algebra-hom-source algebra-hom-target
+    algebra-hom-function algebra-hom-apply verify-homomorphism
+    compose-algebra-hom identity-algebra-hom
     ;; Terms (syntax trees in free algebra)
     make-gen gen? gen-value term-op? term?
     ;; Term operations
     free-fmap normalize-term eval-term eval-in-algebra make-algebra-evaluator
     ;; Adjunction construction
-    make-free-functor make-forgetful-functor
+    make-free-functor make-forgetful-functor forget-carrier
     make-free-unit make-free-counit make-free-adjunction
     ;; Pre-built signatures
     sig-magma sig-semigroup sig-monoid sig-commutative-monoid sig-group sig-abelian-group

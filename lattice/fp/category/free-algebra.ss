@@ -24,6 +24,55 @@
 ;;;   - adjunction.ss (for adjunction infrastructure)
 ;;;   - rewrite/rule.ss (for rewrite rules)
 ;;;   - rewrite/engine.ss (for pattern matching and normalization)
+;;;
+;;; ====
+;;; Confluence of Rewrite Rules
+;;; ====
+;;;
+;;; When defining custom signatures with rewrite rules (laws), confluence
+;;; determines whether normalization produces consistent results.
+;;;
+;;; WHAT IS CONFLUENCE?
+;;; A rule set is confluent if every term reaches the same normal form
+;;; regardless of which rules are applied first. Non-confluent rules can
+;;; give different answers depending on reduction order.
+;;;
+;;; Example of non-confluence:
+;;;   Rule 1: (f (g x)) → (h x)
+;;;   Rule 2: (g x) → x
+;;;   Term: (f (g a))
+;;;   Path A: Apply rule 1 first → (h a)
+;;;   Path B: Apply rule 2 first → (f a) — stuck, different result
+;;;
+;;; WHEN RULES ARE LIKELY CONFLUENT:
+;;; - Non-overlapping left-hand sides: patterns don't match the same terms
+;;; - Terminating + locally confluent: all critical pairs rejoin
+;;; - Oriented toward simpler terms: each rule reduces complexity
+;;; - Orthogonal systems: no critical overlaps between rule patterns
+;;;
+;;; WARNING SIGNS OF NON-CONFLUENCE:
+;;; - Overlapping patterns: two rules can both match a term
+;;; - Circular rewrites: A → B and B → A (or indirect cycles)
+;;; - Missing cases: some overlap combinations lack a joining rule
+;;; - Commutativity without ordering: (f x y) ↔ (f y x) loops forever
+;;;
+;;; PRE-BUILT SIGNATURES:
+;;; The signatures defined below (sig-monoid, sig-group, etc.) are designed
+;;; to be confluent. They use standard orientations:
+;;; - Identity laws reduce toward the non-identity term
+;;; - Associativity normalizes to right-association
+;;; - Inverse laws reduce toward the identity
+;;; - Commutativity is intentionally omitted (would cause non-termination)
+;;;
+;;; CUSTOM SIGNATURES:
+;;; When creating your own signature, verify:
+;;; 1. Each rule strictly reduces term size or complexity
+;;; 2. Overlapping patterns have consistent outcomes (critical pair analysis)
+;;; 3. No rule can undo another rule's effect
+;;;
+;;; For advanced users: the Knuth-Bendix completion procedure can sometimes
+;;; transform non-confluent rules into confluent ones, but this is not
+;;; automated here.
 
 (load "lattice/fp/category/adjunction.ss")
 (load "lattice/fp/rewrite/rule.ss")
@@ -110,6 +159,147 @@
 (define (algebra-op alg op-name)
   (let ([entry (assq op-name (algebra-ops alg))])
     (and entry (cdr entry))))
+
+;;; validate-algebra : Algebra → (ok Algebra) | (err String)
+;;; Validate that an algebra correctly implements its signature.
+;;; Checks:
+;;;   1. All signature operations have implementations
+;;;   2. All implementations are procedures
+;;;   3. No extra operations beyond the signature
+(define (validate-algebra alg)
+  (if (not (algebra? alg))
+      (list 'err "Not an algebra")
+      (let* ([sig (algebra-signature alg)]
+             [sig-ops (signature-operations sig)]
+             [alg-ops (algebra-ops alg)]
+             [sig-names (map car sig-ops)]
+             [alg-names (map car alg-ops)])
+        ;; Check for missing operations
+        (let ([missing (filter (lambda (name) (not (assq name alg-ops))) sig-names)])
+          (if (pair? missing)
+              (list 'err (format "Missing operations: ~a" missing))
+              ;; Check all implementations are procedures
+              (let ([non-procs (filter (lambda (entry)
+                                         (not (procedure? (cdr entry))))
+                                       alg-ops)])
+                (if (pair? non-procs)
+                    (list 'err (format "Non-procedure implementations: ~a"
+                                       (map car non-procs)))
+                    ;; Check for extra operations (warning, not error)
+                    (let ([extra (filter (lambda (name) (not (assq name sig-ops))) alg-names)])
+                      (if (pair? extra)
+                          (list 'ok alg extra)  ; ok with warning
+                          (list 'ok alg))))))))))
+
+;;; algebra-valid? : Algebra → Boolean
+;;; Quick predicate for algebra validity.
+(define (algebra-valid? alg)
+  (let ([result (validate-algebra alg)])
+    (and (pair? result) (eq? (car result) 'ok))))
+
+;;; make-validated-algebra : Signature × Symbol × OpImplList → Algebra
+;;; Like make-algebra but validates and raises error on failure.
+(define (make-validated-algebra sig carrier ops)
+  (let* ([alg (make-algebra sig carrier ops)]
+         [result (validate-algebra alg)])
+    (if (eq? (car result) 'err)
+        (error 'make-validated-algebra (cadr result))
+        alg)))
+
+;;; ====
+;;; Algebra Homomorphisms
+;;; ====
+;;;
+;;; An algebra homomorphism h : A → B is a function that preserves structure:
+;;;   For each n-ary operation σ:  h(σ_A(a₁,...,aₙ)) = σ_B(h(a₁),...,h(aₙ))
+;;;   For 0-ary operations (constants):  h(e_A) = e_B
+
+;;; make-algebra-hom : Algebra × Algebra × (Any → Any) → AlgebraHom
+;;; Create an algebra homomorphism from source to target.
+;;; The function f should preserve the algebraic structure.
+(define (make-algebra-hom source target f)
+  (list 'algebra-hom source target f))
+
+;;; algebra-hom? : Any → Boolean
+(define (algebra-hom? x)
+  (and (pair? x)
+       (eq? (car x) 'algebra-hom)
+       (= (length x) 4)))
+
+;;; algebra-hom-source : AlgebraHom → Algebra
+(define (algebra-hom-source h)
+  (if (algebra-hom? h) (cadr h) #f))
+
+;;; algebra-hom-target : AlgebraHom → Algebra
+(define (algebra-hom-target h)
+  (if (algebra-hom? h) (caddr h) #f))
+
+;;; algebra-hom-function : AlgebraHom → (Any → Any)
+(define (algebra-hom-function h)
+  (if (algebra-hom? h) (cadddr h) #f))
+
+;;; algebra-hom-apply : AlgebraHom × Any → Any
+;;; Apply a homomorphism to a value.
+(define (algebra-hom-apply h x)
+  ((algebra-hom-function h) x))
+
+;;; verify-homomorphism : AlgebraHom × TestValues → Boolean
+;;; Verify the homomorphism law for each operation on test values.
+;;; test-values: alist of (arity . values-list) for generating test cases
+;;; Returns #t if all tests pass.
+(define (verify-homomorphism hom test-values)
+  (let* ([source (algebra-hom-source hom)]
+         [target (algebra-hom-target hom)]
+         [f (algebra-hom-function hom)]
+         [sig (algebra-signature source)]
+         [ops (signature-operations sig)])
+    ;; For each operation, verify h(σ(args)) = σ(h(args))
+    (let loop ([ops ops])
+      (if (null? ops)
+          #t
+          (let* ([op-entry (car ops)]
+                 [op-name (car op-entry)]
+                 [arity (cdr op-entry)]
+                 [source-op (algebra-op source op-name)]
+                 [target-op (algebra-op target op-name)])
+            (cond
+              ;; 0-arity: h(e_A) = e_B
+              [(= arity 0)
+               (if (equal? (f (source-op)) (target-op))
+                   (loop (cdr ops))
+                   #f)]
+              ;; n-arity: check with provided test values
+              [else
+               (let ([vals (cdr (assv arity test-values))])
+                 (if (not vals)
+                     (loop (cdr ops))  ; No test values for this arity, skip
+                     (let check-vals ([vals vals])
+                       (if (null? vals)
+                           (loop (cdr ops))
+                           (let* ([args (car vals)]
+                                  [lhs (f (apply source-op args))]
+                                  [rhs (apply target-op (map f args))])
+                             (if (equal? lhs rhs)
+                                 (check-vals (cdr vals))
+                                 #f))))))]))))))
+
+;;; compose-algebra-hom : AlgebraHom × AlgebraHom → AlgebraHom
+;;; Compose two homomorphisms: (g ∘ h)(x) = g(h(x))
+;;; Precondition: target of h = source of g
+(define (compose-algebra-hom g h)
+  (let ([h-target (algebra-hom-target h)]
+        [g-source (algebra-hom-source g)])
+    (if (not (eq? h-target g-source))
+        (error 'compose-algebra-hom "Target of h must equal source of g")
+        (make-algebra-hom
+         (algebra-hom-source h)
+         (algebra-hom-target g)
+         (lambda (x) (algebra-hom-apply g (algebra-hom-apply h x)))))))
+
+;;; identity-algebra-hom : Algebra → AlgebraHom
+;;; The identity homomorphism on an algebra.
+(define (identity-algebra-hom alg)
+  (make-algebra-hom alg alg (lambda (x) x)))
 
 ;;; ====
 ;;; Term Representation
@@ -230,14 +420,31 @@
 
 ;;; make-forgetful-functor : Signature → Functor
 ;;; The Forgetful functor: Alg(Σ) → Set
-;;; G(A) = carrier of A
-;;; G(h) = underlying function of algebra homomorphism
-;;; In our setting, we represent this as identity on values since
-;;; algebras are first-class and we can always extract carriers.
+;;;
+;;; Categorical semantics:
+;;;   On objects:    G(A) = carrier set of algebra A
+;;;   On morphisms:  G(h : A → B) = underlying function h : |A| → |B|
+;;;
+;;; In our Scheme encoding:
+;;;   - Algebras are first-class values containing their carriers
+;;;   - Algebra homomorphisms are represented as functions
+;;;   - Therefore G(h)(x) = h(x), which is just function application
+;;;
+;;; This is correct categorically: the forgetful functor "forgets" the
+;;; algebraic structure and retains only the underlying set/function.
+;;; The apparent simplicity reflects that Set is the "base" category.
 (define (make-forgetful-functor sig)
   (make-named-functor
    (string->symbol (format "Forget-~a" (signature-name sig)))
-   (lambda (f x) (f x))))  ; Identity-like: just apply f
+   ;; fmap for forgetful: given h : A → B (underlying function),
+   ;; produce Forget(h) : Forget(A) → Forget(B)
+   ;; Since Forget(A) = carrier elements, this is just h itself.
+   (lambda (h x) (h x))))
+
+;;; forget-carrier : Algebra → Symbol
+;;; Extract the carrier type from an algebra (forgetful functor on objects).
+(define (forget-carrier alg)
+  (algebra-carrier alg))
 
 ;;; ====
 ;;; Unit and Counit
