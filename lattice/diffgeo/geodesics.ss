@@ -63,9 +63,10 @@
 
 ;;; geodesic-acceleration : Metric × Vec × Vec → Vec
 ;;; Compute the geodesic acceleration: a^k = -Γ^k_{ij} v^i v^j
+;;; Uses cached Christoffel symbols when possible.
 (define (geodesic-acceleration metric coords velocity)
   (let* ([n (metric-dim metric)]
-         [gamma (christoffel-symbols metric coords *geodesic-epsilon*)]
+         [gamma (cached-christoffel-symbols metric coords *geodesic-epsilon*)]
          [accel (make-vector n 0)])
     ;; a^k = -Σ_{ij} Γ^k_{ij} v^i v^j
     (do ([k 0 (+ k 1)])
@@ -340,9 +341,10 @@
 ;;; parallel-transport-derivative : Metric × Vec × Vec × Vec → Vec
 ;;; Compute dV^k/dt = -Γ^k_{ij} (dx^i/dt) V^j for a vector V along a curve
 ;;; with tangent vector (velocity).
+;;; Uses cached Christoffel symbols when possible.
 (define (parallel-transport-derivative metric coords velocity V)
   (let* ([n (metric-dim metric)]
-         [gamma (christoffel-symbols metric coords *geodesic-epsilon*)]
+         [gamma (cached-christoffel-symbols metric coords *geodesic-epsilon*)]
          [dV (make-vector n 0)])
     ;; dV^k/dt = -Σ_{ij} Γ^k_{ij} v^i V^j
     (do ([k 0 (+ k 1)])
@@ -503,20 +505,81 @@
               (set! endpoints (cons endpoint endpoints))))))))
 
 ;;; ============================================================================
-;;; Christoffel Symbol Caching (optional optimization)
+;;; Christoffel Symbol Caching
 ;;; ============================================================================
 
-;;; For repeated geodesic computations, we can cache Christoffel symbols.
-;;; This is especially useful when many geodesics start from the same point.
+;;; For repeated geodesic computations, we cache Christoffel symbols.
+;;; This is especially useful during RK4 integration where intermediate
+;;; stages evaluate at nearby coordinates.
+;;;
+;;; Cache invalidation strategy:
+;;;   - Different metric object → invalidate
+;;;   - Coords differ by more than tolerance → invalidate
+;;;
+;;; The tolerance is set larger than the epsilon used for numerical
+;;; differentiation in christoffel-symbols, but small enough to maintain
+;;; accuracy during geodesic integration.
 
 (define *christoffel-cache* #f)
 (define *christoffel-cache-coords* #f)
 (define *christoffel-cache-metric* #f)
+(define *christoffel-cache-epsilon* #f)
+(define *christoffel-cache-tolerance* 1e-3)  ; Cache hit tolerance (sized for RK4 stages)
+(define *christoffel-cache-hits* 0)
+(define *christoffel-cache-misses* 0)
 
 (define (clear-christoffel-cache!)
   (set! *christoffel-cache* #f)
   (set! *christoffel-cache-coords* #f)
-  (set! *christoffel-cache-metric* #f))
+  (set! *christoffel-cache-metric* #f)
+  (set! *christoffel-cache-epsilon* #f))
+
+(define (reset-christoffel-cache-stats!)
+  (set! *christoffel-cache-hits* 0)
+  (set! *christoffel-cache-misses* 0))
+
+(define (christoffel-cache-stats)
+  (let ([total (+ *christoffel-cache-hits* *christoffel-cache-misses*)])
+    (list 'hits *christoffel-cache-hits*
+          'misses *christoffel-cache-misses*
+          'hit-rate (if (> total 0)
+                        (/ *christoffel-cache-hits* total)
+                        0))))
+
+;;; coords-close? : Vec × Vec × Num → Bool
+;;; Check if two coordinate vectors are within tolerance (L∞ norm).
+(define (coords-close? c1 c2 tol)
+  (let ([n1 (vector-length c1)]
+        [n2 (vector-length c2)])
+    (and (= n1 n2)  ; Dimension must match
+         (let loop ([i 0])
+           (if (>= i n1)
+               #t
+               (if (> (abs (- (vector-ref c1 i) (vector-ref c2 i))) tol)
+                   #f
+                   (loop (+ i 1))))))))
+
+;;; cached-christoffel-symbols : Metric × Vec × Num → ChristoffelTensor
+;;; Return Christoffel symbols, using cache when possible.
+;;; Cache key includes: metric identity, epsilon value, and coordinate proximity.
+(define (cached-christoffel-symbols metric coords epsilon)
+  (if (and *christoffel-cache*
+           (eq? metric *christoffel-cache-metric*)
+           (= epsilon *christoffel-cache-epsilon*)  ; Epsilon must match exactly
+           *christoffel-cache-coords*
+           (coords-close? coords *christoffel-cache-coords* *christoffel-cache-tolerance*))
+      ;; Cache hit
+      (begin
+        (set! *christoffel-cache-hits* (+ *christoffel-cache-hits* 1))
+        *christoffel-cache*)
+      ;; Cache miss - compute and store
+      (let ([gamma (christoffel-symbols metric coords epsilon)])
+        (set! *christoffel-cache-misses* (+ *christoffel-cache-misses* 1))
+        (set! *christoffel-cache* gamma)
+        (set! *christoffel-cache-coords* (vec-copy coords))
+        (set! *christoffel-cache-metric* metric)
+        (set! *christoffel-cache-epsilon* epsilon)
+        gamma)))
 
 ;;; ============================================================================
 ;;; REPL Interface
@@ -540,3 +603,6 @@
 (printf "    (geodesic-interpolate metric p q t)   - Interpolate along geodesic\n")
 (printf "  Visualization:\n")
 (printf "    (geodesic-spray metric p n r steps)   - Shoot rays from p\n")
+(printf "  Caching:\n")
+(printf "    (clear-christoffel-cache!)            - Clear symbol cache\n")
+(printf "    (christoffel-cache-stats)             - Show cache hit/miss stats\n")

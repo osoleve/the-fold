@@ -209,6 +209,94 @@
       (assert-true (approx-equal? dist 3.0 *test-tolerance*)))))
 
 ;;; ============================================================================
+;;; Christoffel Caching Tests
+;;; ============================================================================
+
+(test-group "christoffel-caching"
+  (define euclidean-chart (make-identity-chart 'euclidean-2d 2))
+  (define euclidean-metric (make-euclidean-metric euclidean-chart))
+
+  (define-test "cache reduces computation during geodesic trace"
+    ;; Clear cache and stats before test
+    (clear-christoffel-cache!)
+    (reset-christoffel-cache-stats!)
+    ;; Trace a geodesic - this makes many calls to geodesic-acceleration
+    ;; which should benefit from caching
+    (let* ([p (vector 0.0 0.0)]
+           [v (vector 1.0 0.0)]
+           [_ (trace-geodesic euclidean-metric p v 1.0 100)]
+           [stats (christoffel-cache-stats)]
+           [hits (cadr (memq 'hits stats))]
+           [misses (cadr (memq 'misses stats))]
+           [total (+ hits misses)]
+           [hit-rate (/ hits total)])
+      ;; With 100 RK4 steps × 4 stages = 400 calls
+      ;; Within each RK4 step, k2 and k3 evaluate at similar coords,
+      ;; so we expect ~50% cache hits (k2 caches, k3 hits; k4 new point)
+      (assert-true (> hits 0))
+      ;; Hit rate should be meaningful (> 25%)
+      (assert-true (> hit-rate 1/4))))
+
+  (define-test "cache invalidates on metric change"
+    (clear-christoffel-cache!)
+    (reset-christoffel-cache-stats!)
+    ;; First call with euclidean metric
+    (let* ([p (vector 1.0 1.0)]
+           [v (vector 0.1 0.0)]
+           [_ (geodesic-acceleration euclidean-metric p v)])
+      ;; Create different metric and call again
+      (let* ([other-chart (make-identity-chart 'other-2d 2)]
+             [other-metric (make-euclidean-metric other-chart)]
+             [_ (geodesic-acceleration other-metric p v)]
+             [stats (christoffel-cache-stats)]
+             [misses (cadr (memq 'misses stats))])
+        ;; Should have 2 misses (different metric objects)
+        (assert-equal 2 misses))))
+
+  (define-test "cache invalidates on large coordinate change"
+    (clear-christoffel-cache!)
+    (reset-christoffel-cache-stats!)
+    ;; First call
+    (let* ([p1 (vector 0.0 0.0)]
+           [v (vector 0.1 0.0)]
+           [_ (geodesic-acceleration euclidean-metric p1 v)])
+      ;; Second call at far away point
+      (let* ([p2 (vector 100.0 100.0)]  ; Way outside tolerance
+             [_ (geodesic-acceleration euclidean-metric p2 v)]
+             [stats (christoffel-cache-stats)]
+             [misses (cadr (memq 'misses stats))])
+        ;; Should have 2 misses (coords differ)
+        (assert-equal 2 misses))))
+
+  (define-test "cache hits on nearby coordinates"
+    (clear-christoffel-cache!)
+    (reset-christoffel-cache-stats!)
+    ;; First call
+    (let* ([p1 (vector 1.0 1.0)]
+           [v (vector 0.1 0.0)]
+           [_ (geodesic-acceleration euclidean-metric p1 v)])
+      ;; Second call at very close point (within 1e-3 tolerance)
+      (let* ([p2 (vector 1.0001 1.0001)]  ; Within tolerance
+             [_ (geodesic-acceleration euclidean-metric p2 v)]
+             [stats (christoffel-cache-stats)]
+             [hits (cadr (memq 'hits stats))])
+        ;; Should have 1 hit
+        (assert-equal 1 hits))))
+
+  (define-test "cache invalidates on epsilon change"
+    (clear-christoffel-cache!)
+    (reset-christoffel-cache-stats!)
+    ;; First call with default epsilon
+    (let* ([p (vector 1.0 1.0)]
+           [_ (cached-christoffel-symbols euclidean-metric p 1e-7)])
+      ;; Second call with different epsilon
+      (let* ([_ (cached-christoffel-symbols euclidean-metric p 1e-5)]
+             [stats (christoffel-cache-stats)]
+             [misses (cadr (memq 'misses stats))])
+        ;; Should have 2 misses (different epsilon values)
+        (assert-equal 2 misses)))))
+
+;;; ============================================================================
 ;;; Run Tests
 ;;; ============================================================================
 

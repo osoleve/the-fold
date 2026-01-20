@@ -141,7 +141,10 @@
     ;; Interpolation
     geodesic-interpolate
     ;; Utilities
-    geodesic-spray))
+    geodesic-spray
+    ;; Caching
+    clear-christoffel-cache! reset-christoffel-cache-stats! christoffel-cache-stats
+    cached-christoffel-symbols))
 
   (modules
    (charts "charts.ss"
@@ -163,4 +166,5 @@
     "Geodesic computation on Riemannian manifolds. Numerical geodesic tracing
      via RK4, exponential map (shoot geodesic with initial velocity), logarithm
      map (inverse via shooting method), parallel transport along geodesics,
-     geodesic distance, and geodesic interpolation.")))
+     geodesic distance, and geodesic interpolation. Includes Christoffel symbol
+     caching for improved performance during repeated evaluations.")))
