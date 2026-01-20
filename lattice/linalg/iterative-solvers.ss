@@ -1,71 +1,64 @@
-;;; core/linalg/iterative-solvers.ss --- Iterative Linear System Solvers
-;;;
-;;; Implements iterative methods for solving Ax = b:
-;;;   - jacobi : Jacobi iteration (parallelizable, slow convergence)
-;;;   - gauss-seidel : Gauss-Seidel iteration (faster convergence)
-;;;   - sor : Successive Over-Relaxation (accelerated Gauss-Seidel)
-;;;   - conjugate-gradient : CG method (for symmetric positive-definite)
-;;;   - gmres : GMRES (for general systems)
-;;;
-;;; Best for large sparse systems where direct methods are expensive.
-;;;
-;;; This is Core code: pure (except where noted), total, assumes reasonable input.
-;;;
-;;; Dependencies (must be loaded by client in correct order):
-;;;   - prelude.ss
-;;;   - vec.ss
-;;;   - matrix.ss
-;;;
-;;; Do NOT load dependencies here to avoid redefinition issues.
+(doc 'module 'iterative-solvers
+     'description "Iterative Linear System Solvers
 
-;;; ====
-;;; Constants
-;;; ====
+Implements iterative methods for solving Ax = b:
+  - jacobi : Jacobi iteration (parallelizable, slow convergence)
+  - gauss-seidel : Gauss-Seidel iteration (faster convergence)
+  - sor : Successive Over-Relaxation (accelerated Gauss-Seidel)
+  - conjugate-gradient : CG method (for symmetric positive-definite)
+  - gmres : GMRES (for general systems)
 
-;;; Default tolerance for convergence
+Best for large sparse systems where direct methods are expensive.
+
+This is Core code: pure (except where noted), total, assumes reasonable input.
+
+Dependencies (must be loaded by client in correct order):
+  - prelude.ss
+  - vec.ss
+  - matrix.ss
+
+Do NOT load dependencies here to avoid redefinition issues.")
+
+(doc 'module 'constants
+     'description "Default tolerance for convergence and maximum iterations")
 (define *iterative-tolerance* 1e-10)
-
-;;; Maximum iterations
 (define *iterative-max-iterations* 10000)
 
-;;; ====
-;;; Convergence Checking
-;;; ====
+(doc 'section 'convergence-checking
+     'description "Residual computation and convergence tests")
 
-;;; residual : Matrix × Vec × Vec → Num
-;;; Compute ||Ax - b||
+(doc residual
+     'type (-> Matrix Vec Vec Num)
+     'description "Compute ||Ax - b||")
 (define (residual a x b)
   (let ([ax (matrix-vec-mul a x)])
        (vec-norm (vec-sub ax b))))
 
-;;; converged? : Num × Num → Boolean
+(doc converged?
+     'type (-> Num Num Boolean))
 (define (converged? res tol)
   (< res tol))
 
-;;; ====
-;;; Jacobi Iteration
-;;; ====
+(doc 'section 'jacobi-iteration
+     'description "Jacobi iteration for solving Ax = b")
 
-;;; jacobi : Matrix × Vec × [Vec] × [Nat] × [Num] → (Vec iterations residual) | Error
-;;;
-;;; Solve Ax = b using Jacobi iteration.
-;;;
-;;; Algorithm:
-;;;   x^{k+1}_i = (b_i - Σ_{j≠i} a_ij * x^k_j) / a_ii
-;;;
-;;; Properties:
-;;;   - Each component updated independently (parallelizable)
-;;;   - Converges if A is strictly diagonally dominant
-;;;   - Slower convergence than Gauss-Seidel
-;;;
-;;; Arguments:
-;;;   a        - n×n coefficient matrix
-;;;   b        - n-element right-hand side vector
-;;;   x0       - Initial guess (default: zero vector)
-;;;   max-iter - Maximum iterations
-;;;   tol      - Convergence tolerance
-;;;
-;;; Returns: (list solution iterations final-residual) or error
+(doc jacobi
+     'type (-> Matrix Vec [Vec] [Nat] [Num] (or (list Vec Nat Num) Error))
+     'description "Solve Ax = b using Jacobi iteration.
+
+Algorithm:
+  x^{k+1}_i = (b_i - Σ_{j≠i} a_ij * x^k_j) / a_ii
+
+Properties:
+  - Each component updated independently (parallelizable)
+  - Converges if A is strictly diagonally dominant
+  - Slower convergence than Gauss-Seidel"
+     'param '(a "n×n coefficient matrix")
+     'param '(b "n-element right-hand side vector")
+     'param '(x0 "Initial guess (default: zero vector)")
+     'param '(max-iter "Maximum iterations")
+     'param '(tol "Convergence tolerance")
+     'returns "(list solution iterations final-residual) or error")
 (define (jacobi a b . opts)
   (let* ([n (matrix-rows a)]
          [m (matrix-cols a)])
@@ -92,7 +85,8 @@
                           *iterative-tolerance*)])
                 (jacobi-loop a b x0 0 max-iter tol n))])))
 
-;;; jacobi-loop : Matrix × Vec × Vec × Nat × Nat × Num × Nat → (Vec Nat Num) | Error
+(doc jacobi-loop
+     'type (-> Matrix Vec Vec Nat Nat Num Nat (or (list Vec Nat Num) Error)))
 (define (jacobi-loop a b x iter max-iter tol n)
   (let ([res (residual a x b)])
        (cond
@@ -121,23 +115,21 @@
                                 (vector-set! x-new i (/ (- (vector-ref b i) sum) a-ii))))))
               (jacobi-loop a b x-new (+ iter 1) max-iter tol n))])))
 
-;;; ====
-;;; Gauss-Seidel Iteration
-;;; ====
+(doc 'section 'gauss-seidel-iteration
+     'description "Gauss-Seidel iteration for solving Ax = b")
 
-;;; gauss-seidel : Matrix × Vec × [Vec] × [Nat] × [Num] → (Vec Nat Num) | Error
-;;;
-;;; Solve Ax = b using Gauss-Seidel iteration.
-;;;
-;;; Algorithm:
-;;;   x^{k+1}_i = (b_i - Σ_{j<i} a_ij * x^{k+1}_j - Σ_{j>i} a_ij * x^k_j) / a_ii
-;;;
-;;; Properties:
-;;;   - Uses latest values immediately (sequential)
-;;;   - Converges faster than Jacobi for most problems
-;;;   - Converges if A is symmetric positive-definite or strictly diagonally dominant
-;;;
-;;; Arguments: Same as jacobi
+(doc gauss-seidel
+     'type (-> Matrix Vec [Vec] [Nat] [Num] (or (list Vec Nat Num) Error))
+     'description "Solve Ax = b using Gauss-Seidel iteration.
+
+Algorithm:
+  x^{k+1}_i = (b_i - Σ_{j<i} a_ij * x^{k+1}_j - Σ_{j>i} a_ij * x^k_j) / a_ii
+
+Properties:
+  - Uses latest values immediately (sequential)
+  - Converges faster than Jacobi for most problems
+  - Converges if A is symmetric positive-definite or strictly diagonally dominant"
+     'note "Arguments same as jacobi")
 (define (gauss-seidel a b . opts)
   (let* ([n (matrix-rows a)]
          [m (matrix-cols a)])
@@ -164,7 +156,8 @@
                           *iterative-tolerance*)])
                 (gauss-seidel-loop a b (vector-copy x0) 0 max-iter tol n))])))
 
-;;; gauss-seidel-loop : Matrix × Vec × Vec × Nat × Nat × Num × Nat → (Vec Nat Num) | Error
+(doc gauss-seidel-loop
+     'type (-> Matrix Vec Vec Nat Nat Num Nat (or (list Vec Nat Num) Error)))
 (define (gauss-seidel-loop a b x iter max-iter tol n)
   (let ([res (residual a x b)])
        (cond
@@ -191,33 +184,30 @@
                              (vector-set! x i (/ (- (vector-ref b i) sum) a-ii))))))
          (gauss-seidel-loop a b x (+ iter 1) max-iter tol n)])))
 
-;;; ====
-;;; Successive Over-Relaxation (SOR)
-;;; ====
+(doc 'section 'sor
+     'description "Successive Over-Relaxation (SOR)")
 
-;;; sor : Matrix × Vec × Num × [Vec] × [Nat] × [Num] → (Vec Nat Num) | Error
-;;;
-;;; Solve Ax = b using SOR (Successive Over-Relaxation).
-;;;
-;;; Algorithm:
-;;;   x^{k+1}_i = (1-ω)x^k_i + ω * GS_update_i
-;;;
-;;; where GS_update is the Gauss-Seidel update.
-;;;
-;;; Properties:
-;;;   - ω ∈ (0, 2) for convergence
-;;;   - ω = 1 gives Gauss-Seidel
-;;;   - ω > 1 is over-relaxation (acceleration)
-;;;   - ω < 1 is under-relaxation (damping for stability)
-;;;   - Optimal ω depends on spectrum of A
-;;;
-;;; Arguments:
-;;;   a        - n×n coefficient matrix
-;;;   b        - n-element right-hand side vector
-;;;   omega    - Relaxation parameter (typically 1.0 to 1.9)
-;;;   x0       - Initial guess
-;;;   max-iter - Maximum iterations
-;;;   tol      - Convergence tolerance
+(doc sor
+     'type (-> Matrix Vec Num [Vec] [Nat] [Num] (or (list Vec Nat Num) Error))
+     'description "Solve Ax = b using SOR (Successive Over-Relaxation).
+
+Algorithm:
+  x^{k+1}_i = (1-ω)x^k_i + ω * GS_update_i
+
+where GS_update is the Gauss-Seidel update.
+
+Properties:
+  - ω ∈ (0, 2) for convergence
+  - ω = 1 gives Gauss-Seidel
+  - ω > 1 is over-relaxation (acceleration)
+  - ω < 1 is under-relaxation (damping for stability)
+  - Optimal ω depends on spectrum of A"
+     'param '(a "n×n coefficient matrix")
+     'param '(b "n-element right-hand side vector")
+     'param '(omega "Relaxation parameter (typically 1.0 to 1.9)")
+     'param '(x0 "Initial guess")
+     'param '(max-iter "Maximum iterations")
+     'param '(tol "Convergence tolerance"))
 (define (sor a b omega . opts)
   (cond
    [(or (<= omega 0) (>= omega 2))
@@ -248,7 +238,8 @@
                             *iterative-tolerance*)])
                   (sor-loop a b omega (vector-copy x0) 0 max-iter tol n))]))]))
 
-;;; sor-loop : Matrix × Vec × Num × Vec × Nat × Nat × Num × Nat → (Vec Nat Num) | Error
+(doc sor-loop
+     'type (-> Matrix Vec Num Vec Nat Nat Num Nat (or (list Vec Nat Num) Error)))
 (define (sor-loop a b omega x iter max-iter tol n)
   (let ([res (residual a x b)])
        (cond
@@ -277,31 +268,30 @@
                               (vector-set! x i x-new)))))
          (sor-loop a b omega x (+ iter 1) max-iter tol n)])))
 
-;;; ====
-;;; Conjugate Gradient Method
-;;; ====
+(doc 'section 'conjugate-gradient
+     'description "Conjugate Gradient method for symmetric positive-definite systems")
 
-;;; conjugate-gradient : Matrix × Vec × [Vec] × [Nat] × [Num] → (Vec Nat Num) | Error
-;;;
-;;; Solve Ax = b using the Conjugate Gradient method.
-;;;
-;;; Requirements:
-;;;   - A must be symmetric positive-definite
-;;;
-;;; Properties:
-;;;   - Guaranteed to converge in at most n iterations (exact arithmetic)
-;;;   - Optimal for SPD systems
-;;;   - Much faster than stationary methods for well-conditioned systems
-;;;
-;;; Algorithm:
-;;;   r_0 = b - Ax_0
-;;;   p_0 = r_0
-;;;   For k = 0, 1, ...
-;;;     α_k = (r_k · r_k) / (p_k · Ap_k)
-;;;     x_{k+1} = x_k + α_k * p_k
-;;;     r_{k+1} = r_k - α_k * Ap_k
-;;;     β_k = (r_{k+1} · r_{k+1}) / (r_k · r_k)
-;;;     p_{k+1} = r_{k+1} + β_k * p_k
+(doc conjugate-gradient
+     'type (-> Matrix Vec [Vec] [Nat] [Num] (or (list Vec Nat Num) Error))
+     'description "Solve Ax = b using the Conjugate Gradient method.
+
+Requirements:
+  - A must be symmetric positive-definite
+
+Properties:
+  - Guaranteed to converge in at most n iterations (exact arithmetic)
+  - Optimal for SPD systems
+  - Much faster than stationary methods for well-conditioned systems
+
+Algorithm:
+  r_0 = b - Ax_0
+  p_0 = r_0
+  For k = 0, 1, ...
+    α_k = (r_k · r_k) / (p_k · Ap_k)
+    x_{k+1} = x_k + α_k * p_k
+    r_{k+1} = r_k - α_k * Ap_k
+    β_k = (r_{k+1} · r_{k+1}) / (r_k · r_k)
+    p_{k+1} = r_{k+1} + β_k * p_k")
 (define (conjugate-gradient a b . opts)
   (let* ([n (matrix-rows a)]
          [m (matrix-cols a)])
@@ -336,8 +326,9 @@
                     (cg-loop a b (vector-copy x0) r0 (vector-copy r0)
                              (vec-dot r0 r0) 0 max-iter tol n)))])))
 
-;;; cg-loop : Matrix × Vec × Vec × Vec × Vec × Num × Nat × Nat × Num × Nat → (Vec Nat Num) | Error
-;;; a, b: system; x: current solution; r: residual; p: search direction; rr: r·r
+(doc cg-loop
+     'type (-> Matrix Vec Vec Vec Vec Num Nat Nat Num Nat (or (list Vec Nat Num) Error))
+     'description "CG loop: a, b=system; x=current solution; r=residual; p=search direction; rr=r·r")
 (define (cg-loop a b x r p rr iter max-iter tol n)
   (let ([r-norm (sqrt rr)])
        (cond
@@ -363,23 +354,22 @@
                          (cg-loop a b x-new r-new p-new rr-new
                                   (+ iter 1) max-iter tol n))))])))
 
-;;; ====
-;;; Preconditioned Conjugate Gradient
-;;; ====
+(doc 'section 'preconditioned-cg
+     'description "Preconditioned Conjugate Gradient")
 
-;;; pcg : Matrix × Vec × Preconditioner × [Vec] × [Nat] × [Num] → (Vec Nat Num) | Error
-;;;
-;;; Solve Ax = b using Preconditioned Conjugate Gradient.
-;;;
-;;; The preconditioner M is represented as a function that solves Mz = r.
-;;; Common preconditioners:
-;;;   - Jacobi: M = diag(A), solve-precond = (lambda (r) (vec-div r (diag a)))
-;;;   - ILU: Incomplete LU factorization
-;;;   - SSOR: Symmetric SOR
-;;;
-;;; Algorithm modification:
-;;;   z_k = M^{-1} r_k
-;;;   Use z instead of r for direction updates
+(doc pcg
+     'type (-> Matrix Vec Preconditioner [Vec] [Nat] [Num] (or (list Vec Nat Num) Error))
+     'description "Solve Ax = b using Preconditioned Conjugate Gradient.
+
+The preconditioner M is represented as a function that solves Mz = r.
+Common preconditioners:
+  - Jacobi: M = diag(A), solve-precond = (lambda (r) (vec-div r (diag a)))
+  - ILU: Incomplete LU factorization
+  - SSOR: Symmetric SOR
+
+Algorithm modification:
+  z_k = M^{-1} r_k
+  Use z instead of r for direction updates")
 (define (pcg a b solve-precond . opts)
   (let* ([n (matrix-rows a)]
          [m (matrix-cols a)])
@@ -416,7 +406,8 @@
                     (pcg-loop a b solve-precond (vector-copy x0) r0 z0 p0
                               rz0 0 max-iter tol n)))])))
 
-;;; pcg-loop : Matrix × Vec × Proc × Vec × Vec × Vec × Vec × Num × Nat × Nat × Num × Nat → ...
+(doc pcg-loop
+     'type (-> Matrix Vec Proc Vec Vec Vec Vec Num Nat Nat Num Nat ...))
 (define (pcg-loop a b solve-precond x r z p rz iter max-iter tol n)
   (let ([r-norm (vec-norm r)])
        (cond
@@ -439,26 +430,23 @@
                          (pcg-loop a b solve-precond x-new r-new z-new p-new
                                    rz-new (+ iter 1) max-iter tol n))))])))
 
-;;; ====
-;;; GMRES (Generalized Minimum Residual)
-;;; ====
+(doc 'section 'gmres
+     'description "GMRES (Generalized Minimum Residual)")
 
-;;; gmres : Matrix × Vec × [Nat] × [Vec] × [Nat] × [Num] → (Vec Nat Num) | Error
-;;;
-;;; Solve Ax = b using GMRES (restarted).
-;;;
-;;; Properties:
-;;;   - Works for general (non-symmetric) matrices
-;;;   - Minimizes residual over Krylov subspace
-;;;   - Memory grows with iterations; restart controls memory
-;;;
-;;; Arguments:
-;;;   a        - n×n coefficient matrix
-;;;   b        - n-element right-hand side vector
-;;;   restart  - Restart after this many iterations (default: 30)
-;;;   x0       - Initial guess
-;;;   max-iter - Maximum total iterations
-;;;   tol      - Convergence tolerance
+(doc gmres
+     'type (-> Matrix Vec [Nat] [Vec] [Nat] [Num] (or (list Vec Nat Num) Error))
+     'description "Solve Ax = b using GMRES (restarted).
+
+Properties:
+  - Works for general (non-symmetric) matrices
+  - Minimizes residual over Krylov subspace
+  - Memory grows with iterations; restart controls memory"
+     'param '(a "n×n coefficient matrix")
+     'param '(b "n-element right-hand side vector")
+     'param '(restart "Restart after this many iterations (default: 30)")
+     'param '(x0 "Initial guess")
+     'param '(max-iter "Maximum total iterations")
+     'param '(tol "Convergence tolerance"))
 (define (gmres a b . opts)
   (let* ([n (matrix-rows a)]
          [m (matrix-cols a)])
@@ -491,8 +479,9 @@
                           *iterative-tolerance*)])
                 (gmres-outer a b restart (vector-copy x0) 0 max-iter tol n))])))
 
-;;; gmres-outer : Matrix × Vec × Nat × Vec × Nat × Nat × Num × Nat → (Vec Nat Num) | Error
-;;; Outer loop for restarted GMRES
+(doc gmres-outer
+     'type (-> Matrix Vec Nat Vec Nat Nat Num Nat (or (list Vec Nat Num) Error))
+     'description "Outer loop for restarted GMRES")
 (define (gmres-outer a b restart x total-iter max-iter tol n)
   (let* ([ax (matrix-vec-mul a x)]
          [r (vec-sub b ax)]
@@ -514,8 +503,9 @@
                              (list x-new new-total final-res)
                              (gmres-outer a b restart x-new new-total max-iter tol n)))))])))
 
-;;; gmres-arnoldi : Matrix × Vec × Vec × Vec × Num × Nat × Num × Nat → (Vec Nat Num) | Error
-;;; Inner GMRES using Arnoldi process
+(doc gmres-arnoldi
+     'type (-> Matrix Vec Vec Vec Num Nat Num Nat (or (list Vec Nat Num) Error))
+     'description "Inner GMRES using Arnoldi process")
 (define (gmres-arnoldi a b x0 r0 beta restart tol n)
   ;; V: matrix of Arnoldi vectors (n × (restart+1))
   ;; H: upper Hessenberg matrix ((restart+1) × restart)
@@ -533,7 +523,8 @@
          [sn (make-vector k 0.0)])
         (gmres-arnoldi-loop a h-data v-list g cs sn 0 k tol n x0 r0)))
 
-;;; gmres-arnoldi-loop : ... → (Vec Nat Num) | Error
+(doc gmres-arnoldi-loop
+     'type (-> ... (or (list Vec Nat Num) Error)))
 (define (gmres-arnoldi-loop a h-data v-list g cs sn j k tol n x0 r0)
   (if (>= j k)
       ;; Reached restart limit - solve least squares and return
@@ -594,8 +585,9 @@
                            (orth-loop (+ i 1)
                                       (vec-sub w-curr (vec-scale h-ij vi)))))))))
 
-;;; apply-givens-rotations : Vec × Vec × Vec × Nat × Nat → Void
-;;; Apply stored Givens rotations to column j of H
+(doc apply-givens-rotations
+     'type (-> Vec Vec Vec Nat Nat Void)
+     'description "Apply stored Givens rotations to column j of H")
 (define (apply-givens-rotations h-data cs sn j k)
   (do ([i 0 (+ i 1)])
       ((= i j))
@@ -610,8 +602,9 @@
             (vector-set! h-data h-ij-idx new-hij)
             (vector-set! h-data h-i1j-idx new-hi1j))))
 
-;;; compute-givens : Num × Num → (Num . Num)
-;;; Compute Givens rotation (c, s) such that [c s; -s c] * [a; b] = [r; 0]
+(doc compute-givens
+     'type (-> Num Num (cons Num Num))
+     'description "Compute Givens rotation (c, s) such that [c s; -s c] * [a; b] = [r; 0]")
 (define (compute-givens a-val b-val)
   (cond
    [(= b-val 0)
@@ -627,8 +620,9 @@
            [s (* c t)])
           (cons c s))]))
 
-;;; gmres-solve-update : Vec × List × Vec × Nat × Nat × Vec → (Vec Nat Num)
-;;; Solve triangular system and update x
+(doc gmres-solve-update
+     'type (-> Vec List Vec Nat Nat Vec (list Vec Nat Num))
+     'description "Solve triangular system and update x")
 (define (gmres-solve-update h-data v-list g m n x0)
   (let ([y (make-vector m 0.0)]
         [k (if (= m 0) 1 m)])  ; Prevent division by zero
@@ -666,11 +660,11 @@
                                 0.0)])
                  (list x-new m res-norm)))))
 
-;;; ====
-;;; Utilities
-;;; ====
+(doc 'section 'utilities
+     'description "Utility functions for iterative solvers")
 
-;;; vector-copy : Vec → Vec
+(doc vector-copy
+     'type (-> Vec Vec))
 (define (vector-copy v)
   (let* ([n (vector-length v)]
          [result (make-vector n 0)])
@@ -678,8 +672,9 @@
             ((= i n) result)
             (vector-set! result i (vector-ref v i)))))
 
-;;; make-jacobi-preconditioner : Matrix → (Vec → Vec)
-;;; Create Jacobi (diagonal) preconditioner
+(doc make-jacobi-preconditioner
+     'type (-> Matrix (-> Vec Vec))
+     'description "Create Jacobi (diagonal) preconditioner")
 (define (make-jacobi-preconditioner a)
   (let* ([n (matrix-rows a)]
          [diag-inv (make-vector n 0.0)])
@@ -696,8 +691,9 @@
                          (vector-set! z i (* (vector-ref r i)
                                              (vector-ref diag-inv i))))))))
 
-;;; is-diagonally-dominant? : Matrix → Boolean
-;;; Check if matrix is strictly diagonally dominant
+(doc is-diagonally-dominant?
+     'type (-> Matrix Boolean)
+     'description "Check if matrix is strictly diagonally dominant")
 (define (is-diagonally-dominant? a)
   (let ([n (matrix-rows a)])
        (let loop ([i 0])
@@ -715,8 +711,9 @@
                           (loop (+ i 1))
                           #f))))))
 
-;;; spectral-radius-estimate : Matrix × [Nat] → Num | Error
-;;; Estimate spectral radius using power iteration
+(doc spectral-radius-estimate
+     'type (-> Matrix [Nat] (or Num Error))
+     'description "Estimate spectral radius using power iteration")
 (define (spectral-radius-estimate a . opts)
   (let* ([max-iter (if (pair? opts) (car opts) 100)]
          [n (matrix-rows a)]

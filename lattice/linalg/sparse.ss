@@ -1,40 +1,34 @@
-;;; fabric/stitches/sparse.ss — Sparse Matrix Operations
-;;;
-;;; Efficient storage and operations for sparse matrices.
-;;;
-;;; Sparse formats:
-;;; - COO (Coordinate): (sparse-coo rows cols row-indices col-indices values)
-;;; - CSR (Compressed Sparse Row): (sparse-csr rows cols row-ptrs col-indices values)
-;;; - CSC (Compressed Sparse Column): (sparse-csc rows cols col-ptrs row-indices values)
-;;;
-;;; Floating-point tolerance:
-;;; - *sparse-epsilon* controls threshold for treating values as zero
-;;; - Operations drop values |v| < epsilon to prevent fill-in from FP errors
-;;; - Use (sparse-drop-below tol m) to clean up after untolerated operations
-;;;
-;;; This is Core code: pure, total, assumes reasonable input.
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;   - vec.ss
-;;;   - matrix.ss
+(doc 'module 'sparse
+     'description "Sparse Matrix Operations
 
-;;; ====
-;;; Floating-Point Tolerance
-;;; ====
+Efficient storage and operations for sparse matrices.
 
-;;; Default tolerance for sparse operations.
-;;; Values with |v| < *sparse-epsilon* are treated as zero.
+Sparse formats:
+- COO (Coordinate): (sparse-coo rows cols row-indices col-indices values)
+- CSR (Compressed Sparse Row): (sparse-csr rows cols row-ptrs col-indices values)
+- CSC (Compressed Sparse Column): (sparse-csc rows cols col-ptrs row-indices values)
+
+Floating-point tolerance:
+- *sparse-epsilon* controls threshold for treating values as zero
+- Operations drop values |v| < epsilon to prevent fill-in from FP errors
+- Use (sparse-drop-below tol m) to clean up after untolerated operations
+
+This is Core code: pure, total, assumes reasonable input.
+
+Dependencies:
+  - prelude.ss
+  - vec.ss
+  - matrix.ss")
+
+(doc 'module 'floating-point-tolerance
+     'description "Default tolerance for sparse operations - values with |v| < *sparse-epsilon* are treated as zero")
 (define *sparse-epsilon* 1e-15)
 
-;;; ====
-;;; COO (Coordinate) Format
-;;; ====
-;;;
-;;; Most flexible format. Good for constructing sparse matrices.
-;;; Stores triplets: (row_i, col_j, value)
+(doc 'section 'coo-format
+     'description "COO (Coordinate) format - most flexible, good for construction. Stores triplets: (row_i, col_j, value)")
 
-;;; sparse-coo? : Any → Boolean
+(doc sparse-coo?
+     'type (-> Any Boolean))
 (define (sparse-coo? m)
   (and (pair? m)
        (eq? (car m) 'sparse-coo)
@@ -95,14 +89,11 @@
               (vector-ref vals k)]
              [else (loop (+ k 1))]))))
 
-;;; ====
-;;; CSR (Compressed Sparse Row) Format
-;;; ====
-;;;
-;;; Efficient for row slicing and matrix-vector multiplication.
-;;; row_ptrs[i] gives index into col_indices/values where row i starts.
+(doc 'section 'csr-format
+     'description "CSR (Compressed Sparse Row) format - efficient for row slicing and matrix-vector multiplication")
 
-;;; sparse-csr? : Any → Boolean
+(doc sparse-csr?
+     'type (-> Any Boolean))
 (define (sparse-csr? m)
   (and (pair? m)
        (eq? (car m) 'sparse-csr)
@@ -236,14 +227,12 @@
                                result)])
             ((< k start) result))))
 
-;;; ====
-;;; Format Conversions
-;;; ====
+(doc 'section 'format-conversions
+     'description "Conversions between sparse matrix formats")
 
-;;; coo->csr : SparseCOO → SparseCSR
-;;; Convert COO to CSR format.
-;;; Uses sort-based algorithm to avoid O(rows) auxiliary storage.
-;;; Complexity: O(nnz log nnz) time, O(nnz) space.
+(doc coo->csr
+     'type (-> SparseCOO SparseCSR)
+     'description "Convert COO to CSR format. Uses sort-based algorithm. Complexity: O(nnz log nnz) time, O(nnz) space.")
 (define (coo->csr coo)
   (let* ([rows (sparse-coo-rows coo)]
          [cols (sparse-coo-cols coo)]
@@ -486,12 +475,12 @@
 (define (sparse-csc->dense csc)
   (sparse-csr->dense (csc->csr csc)))
 
-;;; ====
-;;; Sparse Matrix-Vector Multiplication
-;;; ====
+(doc 'section 'sparse-matvec
+     'description "Sparse matrix-vector multiplication")
 
-;;; sparse-csr-vec-mul : SparseCSR × Vec → Vec | Error
-;;; y = A * x where A is sparse CSR. O(nnz).
+(doc sparse-csr-vec-mul
+     'type (-> SparseCSR Vec (or Vec Error))
+     'description "y = A * x where A is sparse CSR. O(nnz).")
 (define (sparse-csr-vec-mul m v)
   (let* ([rows (sparse-csr-rows m)]
          [cols (sparse-csr-cols m)]
@@ -683,15 +672,12 @@
                    (vec-copy (sparse-csc-row-indices csc))
                    (vec-copy (sparse-csc-values csc))))
 
-;;; ====
-;;; Sparse Matrix-Matrix Multiplication
-;;; ====
+(doc 'section 'sparse-matmul
+     'description "Sparse matrix-matrix multiplication")
 
-;;; sparse-csr-mul : SparseCSR × SparseCSR × [Num] → SparseCSR | Error
-;;; C = A * B where A is m×k and B is k×n.
-;;; Uses sparse row accumulator (hash table) for each output row.
-;;; Drops values with |v| < epsilon to prevent floating-point fill-in.
-;;; Complexity: O(nnz_a * avg_nnz_per_row_b) time, O(max_nnz_per_output_row) space.
+(doc sparse-csr-mul
+     'type (-> SparseCSR SparseCSR [Num] (or SparseCSR Error))
+     'description "C = A * B where A is m×k and B is k×n. Uses sparse row accumulator (hash table). Drops values with |v| < epsilon. Complexity: O(nnz_a * avg_nnz_per_row_b) time.")
 (define (sparse-csr-mul a b . eps-arg)
   (let ([eps (if (null? eps-arg) *sparse-epsilon* (car eps-arg))]
         [ma (sparse-csr-rows a)] [ka (sparse-csr-cols a)]

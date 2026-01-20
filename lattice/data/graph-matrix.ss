@@ -1,37 +1,24 @@
-;;; graph-matrix.ss — Adjacency Matrix Graph Representation
-;;;
-;;; Matrix-based graph representation for linear algebra graph algorithms.
-;;; Supports both dense and sparse matrix formats.
-;;;
-;;; Graph representation:
-;;;   - Nodes are numbered 0 to n-1
-;;;   - Edge (i,j) means node i connects to node j
-;;;   - For weighted graphs, A[i,j] = weight of edge (i,j)
-;;;   - For unweighted graphs, A[i,j] = 1 if edge exists, 0 otherwise
-;;;
-;;; This is Core code: pure, total, assumes reasonable input.
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;   - matrix.ss
-;;;   - sparse.ss
-;;;   - heap.ss (for O(log n) priority queue operations)
-
 (load "core/base/prelude.ss")
+
+(doc 'module 'graph-matrix)
+(doc 'description "Adjacency matrix graph representation for linear algebra graph algorithms")
+(doc 'layer 'lattice)
+
+(doc 'note "Matrix-based graph representation supporting both dense and sparse formats:
+  - Nodes are numbered 0 to n-1
+  - Edge (i,j) means node i connects to node j
+  - For weighted graphs, A[i,j] = weight of edge (i,j)
+  - For unweighted graphs, A[i,j] = 1 if edge exists, 0 otherwise")
 (load "lattice/linalg/vec.ss")
 (load "lattice/linalg/matrix.ss")
 (load "lattice/linalg/sparse.ss")
 (load "lattice/data/heap.ss")
 
-;;; ====
-;;; Edge List Representation
-;;; ====
-;;;
-;;; Edge lists are the input format for graph construction:
-;;;   - Unweighted: ((from to) ...)
-;;;   - Weighted: ((from to weight) ...)
+(doc 'section 'edge-list-representation)
+(doc 'description "Edge lists are input format for graph construction: unweighted ((from to) ...) or weighted ((from to weight) ...)")
 
-;;; edge-list? : Any → Boolean
+(doc edge-list? 'type '(-> Any Boolean))
+(doc edge-list? 'description "Check if value is a valid edge list")
 (define (edge-list? edges)
   (and (list? edges)
        (or (null? edges)
@@ -68,19 +55,16 @@
                       0
                       edges))))
 
-;;; ====
-;;; Dense Adjacency Matrix
-;;; ====
-
-;;; Maximum node count for dense adjacency matrices.
-;;; Beyond this threshold, use edges->sparse-adjacency instead.
+(doc 'constant '*dense-adjacency-max-nodes*)
+(doc 'description "Maximum node count for dense adjacency matrices; beyond this, use sparse format")
 (define *dense-adjacency-max-nodes* 10000)
 
-;;; edges->adjacency-matrix : (List Edge) × (Option Nat) × (Option Boolean) → Matrix
-;;; Convert edge list to dense adjacency matrix.
-;;; Optional node-count overrides inferred count.
-;;; If undirected is #t, adds both (i,j) and (j,i) for each edge.
-;;; Raises error if n > *dense-adjacency-max-nodes* (use sparse matrix instead).
+(doc edges->adjacency-matrix 'type '(-> (List Edge) [Nat] [Boolean] Matrix))
+(doc edges->adjacency-matrix 'description "Convert edge list to dense adjacency matrix")
+(doc edges->adjacency-matrix 'param 'edges "Edge list")
+(doc edges->adjacency-matrix 'param 'node-count "Optional node count (default: inferred from edges)")
+(doc edges->adjacency-matrix 'param 'undirected "If #t, adds both (i,j) and (j,i) for each edge")
+(doc edges->adjacency-matrix 'note "Raises error if n > *dense-adjacency-max-nodes* (use sparse matrix instead)")
 (define (edges->adjacency-matrix edges . opts)
   (let* ([n (if (and (not (null? opts)) (car opts))
                 (car opts)
@@ -472,13 +456,9 @@
                       (matrix-add result power)
                       (matrix-mul power m))))))
 
-;;; ====
-;;; Matrix-Based Graph Distance Algorithms
-;;; ====
-
-;;; matrix-power-fast : Matrix × Nat → Matrix
-;;; Compute A^k using repeated squaring (binary exponentiation).
-;;; Complexity: O(log k) matrix multiplications instead of O(k).
+(doc matrix-power-fast 'type '(-> Matrix Nat Matrix))
+(doc matrix-power-fast 'description "Compute A^k using repeated squaring (binary exponentiation)")
+(doc matrix-power-fast 'note "Complexity: O(log k) matrix multiplications instead of O(k)")
 (define (matrix-power-fast m k)
   (cond [(= k 0) (identity (matrix-rows m))]
         [(= k 1) m]
@@ -488,14 +468,13 @@
         [else
          (matrix-mul m (matrix-power-fast m (- k 1)))]))
 
-;;; *infinity* : Num
-;;; Representation of infinity for distance matrices.
+(doc 'constant '*infinity*)
+(doc 'description "Representation of infinity for distance matrices")
 (define *infinity* 1e308)
 
-;;; transitive-closure : Matrix → Matrix
-;;; Compute transitive closure using Warshall's algorithm.
-;;; Entry (i,j) = 1 iff j is reachable from i (any path length).
-;;; Complexity: O(n³)
+(doc transitive-closure 'type '(-> Matrix Matrix))
+(doc transitive-closure 'description "Compute transitive closure using Warshall's algorithm; entry (i,j) = 1 iff j reachable from i")
+(doc transitive-closure 'note "Complexity: O(n³)")
 (define (transitive-closure adj)
   (let* ([n (matrix-rows adj)]
          [data (vector-copy (matrix-data adj))])
@@ -518,15 +497,11 @@
                                (vector-set! data ij 1))))))
         (list 'matrix n n data)))
 
-;;; floyd-warshall : Matrix → Matrix
-;;; All-pairs shortest paths using Floyd-Warshall algorithm.
-;;; Input: weighted adjacency matrix (0 means no edge, except diagonal).
-;;;        For negative edge weights, use a separate "has-edge" matrix or
-;;;        ensure the adjacency matrix uses *infinity* for non-edges.
-;;; Output: distance matrix where D[i,j] = shortest path length i→j.
-;;; Uses *infinity* for unreachable pairs.
-;;; Complexity: O(n³)
-;;; Note: Detects negative cycles (diagonal becomes negative after algorithm).
+(doc floyd-warshall 'type '(-> Matrix Matrix))
+(doc floyd-warshall 'description "All-pairs shortest paths using Floyd-Warshall algorithm")
+(doc floyd-warshall 'param 'adj "Weighted adjacency matrix (0 means no edge, except diagonal)")
+(doc floyd-warshall 'returns "Distance matrix where D[i,j] = shortest path length i→j; *infinity* for unreachable pairs")
+(doc floyd-warshall 'note "Complexity: O(n³); detects negative cycles (diagonal becomes negative)")
 (define (floyd-warshall adj)
   (let* ([n (matrix-rows adj)]
          [data (make-vector (* n n) *infinity*)])
@@ -568,26 +543,13 @@
                   [(< (matrix-ref dist i i) 0) #t]
                   [else (loop (+ i 1))]))))
 
-;;; ====
-;;; Dijkstra's Algorithm (Single-Source Shortest Paths)
-;;; ====
-
-;;; dijkstra : Matrix|SparseCSR × Nat → (Vector Distance) × (Vector Predecessor)
-;;; Compute shortest paths from source to all other nodes.
-;;; Returns (distances . predecessors) where:
-;;;   - distances[i] = shortest distance from source to i
-;;;   - predecessors[i] = previous node on shortest path, or -1 if unreachable
-;;;
-;;; Time complexity: O((V + E) log V) with heap-based neighbor iteration.
-;;; For weighted graphs with non-negative weights.
-;;; Supports both dense Matrix and SparseCSR adjacency matrices.
-;;;
-;;; Uses lazy deletion: when a shorter path is found, we insert a new
-;;; (distance, node) pair rather than updating in place. Already-visited
-;;; nodes are skipped when extracted from the heap.
-;;;
-;;; Example:
-;;;   (dijkstra adj 0) => (#(0 3 5 7) . #(-1 0 1 2))
+(doc dijkstra 'type '(-> (Union Matrix SparseCSR) Nat (Pair Vector Vector)))
+(doc dijkstra 'description "Compute single-source shortest paths using Dijkstra's algorithm with heap-based extraction")
+(doc dijkstra 'param 'adj "Adjacency matrix (dense or sparse)")
+(doc dijkstra 'param 'source "Source node")
+(doc dijkstra 'returns "Pair of (distances . predecessors) vectors")
+(doc dijkstra 'note "Time complexity: O((V + E) log V); for non-negative weights only")
+(doc dijkstra 'note "Uses lazy deletion: inserts new (distance, node) pairs rather than updating")
 (define (dijkstra adj source)
   (let* ([n (adjacency-matrix-node-count adj)]
          [dist (make-vector n *infinity*)]

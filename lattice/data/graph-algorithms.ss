@@ -1,27 +1,24 @@
-;;; graph-algorithms.ss — Graph Algorithms for Block Reference Networks
-;;;
-;;; This library provides graph algorithms for analyzing the directed graph
-;;; formed by block references. Blocks are nodes, and refs are directed edges.
-;;;
-;;; DESIGN PRINCIPLES:
-;;;   - Pure functional where possible (except fs-capability access)
-;;;   - Efficient visited-set tracking to avoid cycles
-;;;   - Composable with existing store-api and collection-utils
-;;;   - Return meaningful results (#f for not-found, '() for empty sets)
-;;;
-;;; TIER ASSIGNMENT:
-;;;   Tier 6: Traversal and path operations
-;;;   Tier 7: Full graph analysis (connected components, cycles, etc.)
-;;;
-;;; DEPENDENCIES:
-;;;   - store-api.ss (store-get, store-all-hashes, store-get-refs, etc.)
-;;;   - collection-utils.ss (collection-hashes, etc.)
-;;;
-;;; USAGE:
-;;;   (load "boundary/storage/store-api.ss")
-;;;   (load "lattice/data/graph-algorithms.ss")
-;;;   (define fs (make-fs-capability ".store"))
-;;;   (shortest-path fs from-hash to-hash)
+(load "core/base/prelude.ss")
+
+(doc 'module 'graph-algorithms)
+(doc 'description "Graph algorithms for analyzing directed graphs formed by block references")
+(doc 'layer 'lattice)
+
+(doc 'note "DESIGN PRINCIPLES:
+  - Pure functional where possible (except fs-capability access)
+  - Efficient visited-set tracking to avoid cycles
+  - Composable with existing store-api and collection-utils
+  - Return meaningful results (#f for not-found, '() for empty sets)")
+
+(doc 'note "TIER ASSIGNMENT:
+  Tier 6: Traversal and path operations
+  Tier 7: Full graph analysis (connected components, cycles, etc.)")
+
+(doc 'note "USAGE:
+  (load \"boundary/storage/store-api.ss\")
+  (load \"lattice/data/graph-algorithms.ss\")
+  (define fs (make-fs-capability \".store\"))
+  (shortest-path fs from-hash to-hash)")
 
 (load "boundary/storage/store-api.ss")
 (load "lattice/data/collection-utils.ss")
@@ -31,16 +28,8 @@
 ;;; All homology functions now use Z_2 arithmetic via this module
 (load "lattice/topology/homology.ss")
 
-;;; ====
-;;; Section 1: Helper Functions
-;;; ====
-
-;;; --- Visited Set Management ---
-;;; We use a hash table for O(1) membership testing.
-;;; Keys are bytevectors (block hashes), values are #t.
-
-;;; bytevector-hash : Bytevector → Integer
-;;; Hash function for bytevectors (FNV-1a inspired).
+(doc bytevector-hash 'type '(-> Bytevector Integer))
+(doc bytevector-hash 'description "Hash function for bytevectors (FNV-1a inspired)")
 (define (bytevector-hash bv)
   (let ([len (bytevector-length bv)])
        (let loop ([i 0] [h 2166136261])  ; FNV offset basis
@@ -196,20 +185,11 @@
   (map hash-block (store-find-by-ref fs hash)))
 
 
-;;; ====
-;;; Section 2: Traversal Primitives (Tier 6)
-;;; ====
-
-;;; bfs-traverse : FSCap Hash (Hash Block → Void) → Void
-;;; Breadth-first traversal starting from start-hash.
-;;; Calls visit-fn with (hash, block) for each visited node.
-;;; Follows outgoing references (block-refs).
-;;;
-;;; Example:
-;;;   (bfs-traverse fs root-hash
-;;;     (lambda (h b)
-;;;       (printf "Visiting: ~a" (block-tag b))
-;;;       (newline)))
+(doc bfs-traverse 'type '(-> FSCap Hash (-> Hash Block Void) Void))
+(doc bfs-traverse 'description "Breadth-first traversal starting from start-hash; calls visit-fn for each visited node")
+(doc bfs-traverse 'param 'fs "File system capability")
+(doc bfs-traverse 'param 'start-hash "Starting hash")
+(doc bfs-traverse 'param 'visit-fn "Function called with (hash, block) for each visited node")
 (define (bfs-traverse fs start-hash visit-fn)
   (let loop ([queue (queue-enqueue (make-queue) start-hash)]
              [visited (make-visited)])
@@ -228,16 +208,8 @@
                                                 (loop (queue-enqueue-all rest-queue unvisited)
                                                       (visited-add visited current))))))))))
 
-;;; dfs-traverse : FSCap Hash (Hash Block → Void) → Void
-;;; Depth-first traversal starting from start-hash.
-;;; Calls visit-fn with (hash, block) for each visited node.
-;;; Follows outgoing references (block-refs).
-;;;
-;;; Example:
-;;;   (dfs-traverse fs root-hash
-;;;     (lambda (h b)
-;;;       (printf "Visiting: ~a" (block-tag b))
-;;;       (newline)))
+(doc dfs-traverse 'type '(-> FSCap Hash (-> Hash Block Void) Void))
+(doc dfs-traverse 'description "Depth-first traversal starting from start-hash; calls visit-fn for each visited node")
 (define (dfs-traverse fs start-hash visit-fn)
   (let loop ([stack (stack-push (make-stack) start-hash)]
              [visited (make-visited)])
@@ -276,18 +248,9 @@
                                                       (visited-add visited current))))))))))
 
 
-;;; ====
-;;; Section 3: Path Finding Algorithms (Tier 6)
-;;; ====
-
-;;; shortest-path : FSCap Hash Hash → (Maybe (List Hash))
-;;; Find shortest path from from-hash to to-hash using BFS.
-;;; Returns list of hashes representing path, or #f if no path exists.
-;;; The path includes both endpoints.
-;;;
-;;; Example:
-;;;   (shortest-path fs block-a-hash block-c-hash)
-;;;   => (#vu8(...) #vu8(...) #vu8(...))  ; A -> B -> C
+(doc shortest-path 'type '(-> FSCap Hash Hash (Maybe (List Hash))))
+(doc shortest-path 'description "Find shortest path from from-hash to to-hash using BFS; returns list of hashes or #f")
+(doc shortest-path 'returns "List of hashes representing path (includes both endpoints), or #f if no path exists")
 (define (shortest-path fs from-hash to-hash)
   (if (bytevector=? from-hash to-hash)
       (list from-hash)  ; Same node, trivial path
@@ -382,18 +345,9 @@
                                                     new-visited))))))))))
 
 
-;;; ====
-;;; Section 4: Graph Analysis (Tier 7)
-;;; ====
-
-;;; connected-components : FSCap → (List (List Hash))
-;;; Find all connected components in the graph.
-;;; Treats the graph as undirected (follows both refs and referrers).
-;;; Returns list of components, each component is a list of hashes.
-;;;
-;;; Example:
-;;;   (connected-components fs)
-;;;   => (((hash1 hash2 hash3)) ((hash4 hash5)))  ; Two components
+(doc connected-components 'type '(-> FSCap (List (List Hash))))
+(doc connected-components 'description "Find all connected components treating graph as undirected; returns list of components")
+(doc connected-components 'note "Treats the graph as undirected (follows both refs and referrers)")
 (define (connected-components fs)
   (let ([all-hashes (store-all-hashes fs)]
         [visited (make-visited)]
@@ -424,14 +378,8 @@
         all-hashes)
        components))
 
-;;; find-cycles : FSCap → (List (List Hash))
-;;; Find all cycles in the directed graph.
-;;; Returns list of cycles, each cycle is a list of hashes.
-;;; Uses DFS-based cycle detection.
-;;;
-;;; Example:
-;;;   (find-cycles fs)
-;;;   => (((hashA hashB hashC hashA)))  ; Cycle A -> B -> C -> A
+(doc find-cycles 'type '(-> FSCap (List (List Hash))))
+(doc find-cycles 'description "Find all cycles in the directed graph using DFS-based cycle detection")
 (define (find-cycles fs)
   (let ([all-hashes (store-all-hashes fs)]
         [cycles '()]
@@ -515,15 +463,9 @@
                      (and (hashtable-contains? hash-set (car l))
                           (loop (cdr l))))))))
 
-;;; topological-sort : FSCap → (Maybe (List Hash))
-;;; Perform topological sort on the directed graph.
-;;; Returns sorted list of hashes (dependencies before dependents),
-;;; or #f if the graph contains cycles.
-;;;
-;;; Example:
-;;;   (topological-sort fs)
-;;;   => (#vu8(...) #vu8(...) #vu8(...))  ; Sorted order
-;;;   or #f if cyclic
+(doc topological-sort 'type '(-> FSCap (Maybe (List Hash))))
+(doc topological-sort 'description "Perform topological sort; returns sorted list or #f if graph contains cycles")
+(doc topological-sort 'returns "Sorted list of hashes (dependencies before dependents), or #f if cyclic")
 (define (topological-sort fs)
   (let ([all-hashes (store-all-hashes fs)]
         [result '()]
@@ -805,41 +747,15 @@
                     (loop (cdr ts) (string-append result " -> " (car ts))))))))
 
 
-;;; ====
-;;; Section 8: Homology-Based Cycle Analysis (Tier 7)
-;;; ====
+(doc 'section 'homology-based-cycle-analysis)
+(doc 'description "Algebraic topology tools for analyzing cycles in graphs using simplicial homology")
+(doc 'note "H_0 (0-th homology) captures connected components; H_1 (1st homology) captures independent cycles")
+(doc 'note "Betti numbers: beta_0 = number of connected components, beta_1 = number of independent cycles")
+(doc 'note "All homology functions use canonical Z_2 implementation from topology/homology.ss for exact mod-2 arithmetic")
 
-;;; This section provides algebraic topology tools for analyzing cycles
-;;; in graphs using simplicial homology. For a graph:
-;;;   - H_0 (0-th homology) captures connected components
-;;;   - H_1 (1st homology) captures independent cycles
-;;;
-;;; The Betti numbers are:
-;;;   - beta_0 = dim(H_0) = number of connected components
-;;;   - beta_1 = dim(H_1) = number of independent cycles
-;;;
-;;; IMPLEMENTATION NOTES:
-;;;   - All homology functions use the canonical Z_2 implementation
-;;;     from topology/homology.ss for exact mod-2 arithmetic
-;;;   - Betti numbers via sc-betti-numbers
-;;;   - Cycle basis via z2-null-space of sc-boundary-matrix
-;;;   - Bridge functions (graph->simplicial-complex) convert graph to SC
-;;;
-;;; Dependencies:
-;;;   - lattice/topology/homology.ss (Z_2 homology, boundary matrices, null space)
-
-;;; --- Graph to Simplicial Complex Conversion ---
-
-;;; graph->simplicial-complex : (List Edge) × (List Vertex) → SC
-;;; Convert a graph (edge list + vertex list) to a 1-dimensional simplicial complex.
-;;; Vertices become 0-simplices, edges become 1-simplices.
-;;;
-;;; Edge format: (v1 . v2) or (v1 v2) - both are supported
-;;; Returns a simplicial complex suitable for homology computation.
-;;;
-;;; Example:
-;;;   (graph->simplicial-complex '((0 . 1) (1 . 2) (2 . 0)) '(0 1 2))
-;;;   => simplicial complex for a triangle
+(doc graph->simplicial-complex 'type '(-> (List Edge) (List Vertex) SC))
+(doc graph->simplicial-complex 'description "Convert graph to 1-dimensional simplicial complex; vertices become 0-simplices, edges become 1-simplices")
+(doc graph->simplicial-complex 'note "Edge format: (v1 . v2) or (v1 v2) - both are supported")
 (define (graph->simplicial-complex edges vertices)
   ;; Create 0-simplices (vertices) and 1-simplices (edges)
   ;; Handles both (v1 . v2) dotted pair and (v1 v2) list formats
@@ -914,21 +830,9 @@
             (edge-loop (cdr es) (+ col 1)))))
       mat)))
 
-;;; --- Betti Number Computation ---
-
-;;; graph-betti-numbers : (List Edge) × (List Vertex) → (beta0 . beta1)
-;;; Compute Betti numbers for a graph using Z_2 homology.
-;;;
-;;; For a graph (1-dimensional simplicial complex):
-;;;   beta_0 = number of connected components
-;;;   beta_1 = number of independent cycles (cyclomatic complexity)
-;;;
-;;; Uses the canonical Z_2 homology implementation from topology/homology.ss
-;;; which provides exact mod-2 arithmetic (no floating-point tolerance).
-;;;
-;;; Example:
-;;;   (graph-betti-numbers '((0 . 1) (1 . 2) (2 . 0)) '(0 1 2))
-;;;   => (1 . 1)  ; 1 component, 1 independent cycle (triangle)
+(doc graph-betti-numbers 'type '(-> (List Edge) (List Vertex) (Pair Nat Nat)))
+(doc graph-betti-numbers 'description "Compute Betti numbers using Z_2 homology: beta_0 (components), beta_1 (independent cycles)")
+(doc graph-betti-numbers 'note "Uses canonical Z_2 homology implementation from topology/homology.ss with exact mod-2 arithmetic")
 (define (graph-betti-numbers edges vertices)
   (let ([sc (graph->simplicial-complex edges vertices)])
     (if (null? edges)
@@ -960,25 +864,9 @@
      adj)
     (graph-betti-numbers edges vertices)))
 
-;;; --- Cycle Basis from Homology ---
-
-;;; cycle-basis-homology : (List Edge) × (List Vertex) → (List Cycle)
-;;; Compute a basis for H_1 (first homology group).
-;;; Returns a list of fundamental cycles, where each cycle is a list of edges.
-;;; The number of cycles equals beta_1.
-;;;
-;;; Uses Z_2 homology from topology/homology.ss for exact mod-2 arithmetic.
-;;; No floating-point tolerance issues.
-;;;
-;;; Algorithm:
-;;;   1. Build Z_2 boundary matrix ∂_1 via sc-boundary-matrix
-;;;   2. Find null space of ∂_1 via z2-null-space (exact Z_2 kernel)
-;;;   3. Each basis vector of ker(∂_1) represents a cycle
-;;;   4. Convert to edge lists (1 = edge in cycle, 0 = not)
-;;;
-;;; Example:
-;;;   (cycle-basis-homology '((0 . 1) (1 . 2) (2 . 0)) '(0 1 2))
-;;;   => (((0 . 1) (1 . 2) (2 . 0)))  ; one fundamental cycle
+(doc cycle-basis-homology 'type '(-> (List Edge) (List Vertex) (List Cycle)))
+(doc cycle-basis-homology 'description "Compute basis for H_1 using Z_2 homology; returns fundamental cycles (number equals beta_1)")
+(doc cycle-basis-homology 'note "Algorithm: Build Z_2 boundary matrix, find null space via z2-null-space, convert to edge lists")
 (define (cycle-basis-homology edges vertices)
   (let* ([sc (graph->simplicial-complex edges vertices)]
          [n-edges (length edges)]

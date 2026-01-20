@@ -1,30 +1,31 @@
-;;; core/linalg/numeric-instances.ss --- Num/Fractional/Floating instances for Vec and Matrix
-;;;
-;;; This module provides numeric type class instances for Vec and Matrix,
-;;; enabling element-wise arithmetic operations:
-;;;   (vec+ v1 v2)        ; element-wise addition
-;;;   (vec* v1 v2)        ; element-wise multiplication (Hadamard)
-;;;   (vec-sin v)         ; element-wise sin
-;;;   (matrix+ m1 m2)     ; element-wise addition
-;;;   (matrix-sin m)      ; element-wise sin
-;;;
-;;; This is Core code: pure, total, assumes reasonable input.
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;   - vec.ss
-;;;   - matrix.ss
-
 (load "core/base/prelude.ss")
 (load "lattice/linalg/vec.ss")
 (load "lattice/linalg/matrix.ss")
 
-;;; ====
-;;; Vec Num Instance
-;;; ====
+(doc 'module 'numeric-instances
+     'description "Num/Fractional/Floating instances for Vec and Matrix
 
-;;; vec+ : Vec Num × Vec Num → Vec Num | Error
-;;; Element-wise addition.
+This module provides numeric type class instances for Vec and Matrix,
+enabling element-wise arithmetic operations:
+  (vec+ v1 v2)        ; element-wise addition
+  (vec* v1 v2)        ; element-wise multiplication (Hadamard)
+  (vec-sin v)         ; element-wise sin
+  (matrix+ m1 m2)     ; element-wise addition
+  (matrix-sin m)      ; element-wise sin
+
+This is Core code: pure, total, assumes reasonable input.
+
+Dependencies:
+  - prelude.ss
+  - vec.ss
+  - matrix.ss")
+
+(doc 'section 'vec-num-instance
+     'description "Num type class instance for Vec - element-wise arithmetic")
+
+(doc vec+
+     'type (-> (Vec Num) (Vec Num) (or (Vec Num) Error))
+     'description "Element-wise addition")
 (define vec+ vec-add)
 
 ;;; vec- : Vec Num × Vec Num → Vec Num | Error
@@ -71,12 +72,12 @@
 (define (vec-recip v)
   (vec-map (lambda (x) (/ 1 x)) v))
 
-;;; ====
-;;; Vec Floating Instance
-;;; ====
+(doc 'section 'vec-floating-instance
+     'description "Floating type class instance for Vec - transcendental functions")
 
-;;; vec-pi : Nat → Vec Num
-;;; Create a vector of n copies of pi.
+(doc vec-pi
+     'type (-> Nat (Vec Num))
+     'description "Create a vector of n copies of pi")
 (define (vec-pi n)
   (make-vec n 3.141592653589793))
 
@@ -164,12 +165,12 @@
 (define (vec-atanh v)
   (vec-map (lambda (x) (/ (log (/ (+ 1 x) (- 1 x))) 2)) v))
 
-;;; ====
-;;; Matrix Num Instance
-;;; ====
+(doc 'section 'matrix-num-instance
+     'description "Num type class instance for Matrix - element-wise arithmetic")
 
-;;; matrix+ : Matrix Num × Matrix Num → Matrix Num | Error
-;;; Element-wise addition.
+(doc matrix+
+     'type (-> (Matrix Num) (Matrix Num) (or (Matrix Num) Error))
+     'description "Element-wise addition")
 (define matrix+ matrix-add)
 
 ;;; matrix- : Matrix Num × Matrix Num → Matrix Num | Error

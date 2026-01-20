@@ -1,21 +1,22 @@
-;;; fabric/stitches/matrix-solvers.ss — Linear Equation Solvers
-;;;
-;;; Solvers for Ax = b and related problems.
-;;;
-;;; This is Core code: pure, total, assumes reasonable input.
-;;;
-;;; Dependencies (must be loaded by client in correct order):
-;;;   - prelude.ss
-;;;   - matrix.ss
-;;;   - matrix-decomp.ss
-;;;   - matrix-solvers.ss (this file)
+(doc 'module 'matrix-solvers
+     'description "Linear Equation Solvers
 
-;;; ====
-;;; Basic Substitution Utilities
-;;; ====
+Solvers for Ax = b and related problems.
 
-;;; matrix-forward-substitute : Matrix × Vec → Vec
-;;; Solve Ly = b where L is lower triangular.
+This is Core code: pure, total, assumes reasonable input.
+
+Dependencies (must be loaded by client in correct order):
+  - prelude.ss
+  - matrix.ss
+  - matrix-decomp.ss
+  - matrix-solvers.ss (this file)")
+
+(doc 'section 'substitution
+     'description "Basic forward and back substitution utilities")
+
+(doc matrix-forward-substitute
+     'type (-> Matrix Vec Vec)
+     'description "Solve Ly = b where L is lower triangular")
 (define (matrix-forward-substitute l b)
   (let* ([n (vector-length b)]
          [y (make-vector n 0)])
@@ -46,12 +47,12 @@
                  (vector-set! x i (/ (- (vector-ref y i) sum)
                                      (matrix-ref u i i)))))))
 
-;;; ====
-;;; LU-Based Solvers
-;;; ====
+(doc 'section 'lu-solvers
+     'description "LU decomposition-based solvers")
 
-;;; matrix-solve : Matrix × Vec → Vec | Error
-;;; Solve Ax = b for square A using LU decomposition.
+(doc matrix-solve
+     'type (-> Matrix Vec (or Vec Error))
+     'description "Solve Ax = b for square A using LU decomposition")
 (define (matrix-solve a b)
   (let ([lu (matrix-lu a)])
        (if (and (pair? lu) (eq? (car lu) 'error))
@@ -118,13 +119,12 @@
                       [parity (permutation-parity p)])
                      (* parity det-u))))))
 
-;;; ====
-;;; Least Squares
-;;; ====
+(doc 'section 'least-squares
+     'description "Least squares solutions for overdetermined systems")
 
-;;; matrix-least-squares : Matrix × Vec → Vec | Error
-;;; Solve the overdetermined system Ax = b in the least-squares sense using QR.
-;;; Assumes A is m x n with m >= n.
+(doc matrix-least-squares
+     'type (-> Matrix Vec (or Vec Error))
+     'description "Solve the overdetermined system Ax = b in the least-squares sense using QR. Assumes A is m x n with m >= n.")
 (define (matrix-least-squares a b)
   (let ([qr (matrix-qr a)])
        (if (and (pair? qr) (eq? (car qr) 'error))
@@ -211,12 +211,12 @@
            inv
            (* (frobenius-norm a) (frobenius-norm inv)))))
 
-;;; ====
-;;; Toeplitz Solvers
-;;; ====
+(doc 'section 'toeplitz-solvers
+     'description "Levinson-Durbin recursion for Toeplitz systems")
 
-;;; levinson-durbin : Vec → Vec
-;;; Solve the Yule-Walker equations using Levinson-Durbin recursion.
+(doc levinson-durbin
+     'type (-> Vec Vec)
+     'description "Solve the Yule-Walker equations using Levinson-Durbin recursion.")
 ;;;
 ;;; Input:  r = [r_0, r_1, ..., r_p] autocorrelations (r_0 = 1 for normalized ACF)
 ;;; Output: phi = [phi_1, ..., phi_p] the AR coefficients

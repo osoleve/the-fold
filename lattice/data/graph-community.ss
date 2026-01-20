@@ -1,77 +1,48 @@
-;;; lattice/data/graph-community.ss — Community Detection and MST Algorithms
-;;;
-;;; Graph algorithms for community structure and spanning trees:
-;;;   - Label propagation community detection
-;;;   - Modularity calculation and optimization
-;;;   - Prim's minimum spanning tree
-;;;   - Kruskal's minimum spanning tree (with union-find)
-;;;   - Connected components analysis
-;;;
-;;; This is Core code: pure, total, assumes reasonable input.
-;;;
-;;; Quick Start:
-;;;   (load "lattice/data/graph-community.ss")  ; loads dependencies automatically
-;;;
-;;;   ;; Community detection on social network
-;;;   (define g (edges->adjacency-matrix social-edges 34 #t))
-;;;   (define labels (label-propagation g))     ; => #(0 0 0 1 1 1 ...)
-;;;   (num-communities labels)                  ; => 2
-;;;   (communities->partition labels)           ; => ((0 1 2 ...) (3 4 5 ...))
-;;;   (modularity g labels)                     ; => 0.42  (Q > 0.3 is good)
-;;;
-;;;   ;; Minimum spanning tree from adjacency matrix
-;;;   (define mst (prim-mst weighted-adj))      ; => ((0 1 2) (1 2 3) ...)
-;;;   (mst-weight mst)                          ; => 15  total weight
-;;;
-;;;   ;; MST from edge list (more efficient for sparse graphs)
-;;;   (kruskal-mst '((0 1 2) (1 2 3) (0 2 4)) 3)  ; => ((0 1 2) (1 2 3))
-;;;
-;;;   ;; Connectivity analysis
-;;;   (is-connected? g)                         ; => #t or #f
-;;;   (connected-components g)                  ; => #(0 0 0 1 1 1)  component IDs
-;;;
-;;; Complexity:
-;;;   - label-propagation: O(k·n²) where k = iterations (matrix-based)
-;;;   - modularity: O(n²)
-;;;   - prim-mst: O((V + E) log V) with heap-based min extraction
-;;;   - kruskal-mst: O(m log m) for sorting + O(m·α(n)) for union-find
-;;;   - connected-components: O(n + m) BFS
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;   - vec.ss
-;;;   - matrix.ss
-;;;   - graph-matrix.ss
-;;;   - heap.ss (for O(log n) priority queue operations)
-;;;   - ilp.ss (for modularity-ilp)
+(load "core/base/prelude.ss")
+
+(doc 'module 'graph-community)
+(doc 'description "Community detection and minimum spanning tree algorithms")
+(doc 'layer 'lattice)
+
+(doc 'note "Graph algorithms for community structure and spanning trees:
+  - Label propagation community detection
+  - Modularity calculation and optimization
+  - Prim's minimum spanning tree
+  - Kruskal's minimum spanning tree (with union-find)
+  - Connected components analysis")
+
+(doc 'note "Quick Start:
+  (load \"lattice/data/graph-community.ss\")
+
+  ;; Community detection
+  (define g (edges->adjacency-matrix social-edges 34 #t))
+  (define labels (label-propagation g))     ; => #(0 0 0 1 1 1 ...)
+  (num-communities labels)                  ; => 2
+  (communities->partition labels)           ; => ((0 1 2 ...) (3 4 5 ...))
+  (modularity g labels)                     ; => 0.42  (Q > 0.3 is good)
+
+  ;; Minimum spanning tree
+  (define mst (prim-mst weighted-adj))      ; => ((0 1 2) (1 2 3) ...)
+  (mst-weight mst)                          ; => 15  total weight
+  (kruskal-mst '((0 1 2) (1 2 3) (0 2 4)) 3)  ; => ((0 1 2) (1 2 3))")
+
+(doc 'note "Complexity:
+  - label-propagation: O(k·n²) where k = iterations (matrix-based)
+  - modularity: O(n²)
+  - prim-mst: O((V + E) log V) with heap-based min extraction
+  - kruskal-mst: O(m log m) for sorting + O(m·α(n)) for union-find
+  - connected-components: O(n + m) BFS")
 
 (load "lattice/data/graph-matrix.ss")
 (load "lattice/optimization/ilp.ss")
 
-;;; ====
-;;; Community Detection: Label Propagation
-;;; ====
-
-;;; label-propagation : Matrix × [Nat] × [Nat] → Vector
-;;;
-;;; Detect communities using label propagation algorithm.
-;;; Each node adopts the most frequent label among its neighbors.
-;;; Converges when no node changes its label.
-;;;
-;;; Arguments:
-;;;   adj      - Adjacency matrix (undirected works best)
-;;;   max-iter - Maximum iterations (default: 100)
-;;;   seed     - Random seed for node ordering (default: 42)
-;;;
-;;; Returns: Vector of community labels (0-indexed integers)
-;;;
-;;; Notes:
-;;;   - Complexity: O(k·n²) with adjacency matrix (O(km) with adjacency list)
-;;;   - Seed controls node visit order; ties broken by lowest-index neighbor
-;;;   - Works best on graphs with clear community structure
-;;;
-;;; Example:
-;;;   (label-propagation (karate-club-graph)) => ~2 communities
+(doc label-propagation 'type '(-> Matrix [Nat] [Nat] Vector))
+(doc label-propagation 'description "Detect communities using label propagation; nodes adopt most frequent neighbor label")
+(doc label-propagation 'param 'adj "Adjacency matrix (undirected works best)")
+(doc label-propagation 'param 'max-iter "Maximum iterations (default: 100)")
+(doc label-propagation 'param 'seed "Random seed for node ordering (default: 42)")
+(doc label-propagation 'returns "Vector of community labels (0-indexed integers)")
+(doc label-propagation 'note "Complexity: O(k·n²) with adjacency matrix; works best on graphs with clear community structure")
 (define (label-propagation adj . opts)
   (let* ([n (matrix-rows adj)]
          [max-iter (if (and (pair? opts) (integer? (car opts)))
@@ -173,25 +144,11 @@
 (define (num-communities labels)
   (length (communities->partition labels)))
 
-;;; ====
-;;; Modularity
-;;; ====
-
-;;; modularity : Matrix × Vector → Num
-;;;
-;;; Compute modularity Q of a partition.
-;;; Modularity measures the quality of a community partition:
-;;; Q = (1/2m) Σ [A_ij - k_i*k_j/(2m)] δ(c_i, c_j)
-;;;
-;;; Arguments:
-;;;   adj    - Adjacency matrix (undirected)
-;;;   labels - Community labels (vector of integers)
-;;;
-;;; Returns: Modularity score in [-0.5, 1]
-;;;          Q > 0.3 generally indicates good community structure
-;;;
-;;; Example:
-;;;   (modularity karate-adj (label-propagation karate-adj)) => ~0.4
+(doc modularity 'type '(-> Matrix Vector Num))
+(doc modularity 'description "Compute modularity Q: (1/2m) Σ [A_ij - k_i*k_j/(2m)] δ(c_i, c_j)")
+(doc modularity 'param 'adj "Adjacency matrix (undirected)")
+(doc modularity 'param 'labels "Community labels (vector of integers)")
+(doc modularity 'returns "Modularity score in [-0.5, 1]; Q > 0.3 indicates good community structure")
 (define (modularity adj labels)
   (let* ([n (matrix-rows adj)]
          ;; Total edges (2m for undirected = sum of all entries)
@@ -236,35 +193,13 @@
                  sum
                  (loop (+ i 1) (+ sum (vector-ref data i)))))))
 
-;;; ====
-;;; Minimum Spanning Tree: Prim's Algorithm
-;;; ====
-
-;;; prim-mst : Matrix|SparseCSR × [Nat] → (List Edge)
-;;;
-;;; Compute minimum spanning tree using Prim's algorithm.
-;;; Starts from a given node and greedily adds the minimum weight edge
-;;; connecting the tree to a new node.
-;;;
-;;; Arguments:
-;;;   adj   - Weighted adjacency matrix (0 = no edge), dense or sparse
-;;;   start - Starting node (default: 0)
-;;;
-;;; Returns: List of edges (from to weight) forming the MST
-;;;
-;;; Complexity: O((V + E) log V) with heap-based neighbor iteration.
-;;; Supports both dense Matrix and SparseCSR adjacency matrices.
-;;;
-;;; Uses lazy deletion: when a better edge is found, we insert a new
-;;; (weight, node, parent) triple rather than updating. Already-visited
-;;; nodes are skipped when extracted from the heap.
-;;;
-;;; Notes:
-;;;   - For disconnected graphs, returns MST of the component containing start
-;;;   - For unweighted graphs, any spanning tree is minimum
-;;;
-;;; Example:
-;;;   (prim-mst weighted-adj) => ((0 1 2) (1 2 3) (0 3 1))
+(doc prim-mst 'type '(-> (Union Matrix SparseCSR) [Nat] (List Edge)))
+(doc prim-mst 'description "Compute minimum spanning tree using Prim's algorithm with heap-based extraction")
+(doc prim-mst 'param 'adj "Weighted adjacency matrix (0 = no edge), dense or sparse")
+(doc prim-mst 'param 'start "Starting node (default: 0)")
+(doc prim-mst 'returns "List of edges (from to weight) forming the MST")
+(doc prim-mst 'note "Complexity: O((V + E) log V); uses lazy deletion for efficiency")
+(doc prim-mst 'note "For disconnected graphs, returns MST of component containing start")
 (define (prim-mst adj . opts)
   (let* ([n (adjacency-matrix-node-count adj)]
          [start (if (pair? opts) (car opts) 0)]
@@ -365,26 +300,12 @@
 (define (mst-weight edges)
   (fold-left (lambda (sum edge) (+ sum (caddr edge))) 0 edges))
 
-;;; ====
-;;; Minimum Spanning Tree: Kruskal's Algorithm
-;;; ====
-
-;;; kruskal-mst : (List Edge) × Nat → (List Edge)
-;;;
-;;; Compute minimum spanning tree using Kruskal's algorithm.
-;;; Sorts edges by weight and greedily adds edges that don't create cycles.
-;;; Uses union-find for cycle detection.
-;;;
-;;; Arguments:
-;;;   edges - List of edges (from to weight)
-;;;   n     - Number of nodes
-;;;
-;;; Returns: List of edges forming the MST
-;;;
-;;; Complexity: O(m log m) for sorting, O(m α(n)) for union-find
-;;;
-;;; Example:
-;;;   (kruskal-mst '((0 1 2) (1 2 3) (0 2 4)) 3) => ((0 1 2) (1 2 3))
+(doc kruskal-mst 'type '(-> (List Edge) Nat (List Edge)))
+(doc kruskal-mst 'description "Compute minimum spanning tree using Kruskal's algorithm with union-find")
+(doc kruskal-mst 'param 'edges "List of edges (from to weight)")
+(doc kruskal-mst 'param 'n "Number of nodes")
+(doc kruskal-mst 'returns "List of edges forming the MST")
+(doc kruskal-mst 'note "Complexity: O(m log m) for sorting, O(m α(n)) for union-find")
 (define (kruskal-mst edges n)
   (let* (;; Sort edges by weight (ascending)
          [sorted-edges (list-sort (lambda (a b) (< (caddr a) (caddr b)))
@@ -482,37 +403,12 @@
 (define (mst-from-adjacency adj)
   (prim-mst adj))
 
-;;; ====
-;;; ILP-Based Modularity Optimization
-;;; ====
-
-;;; modularity-ilp : Matrix → Vector
-;;;
-;;; Compute optimal 2-community partition maximizing modularity using ILP.
-;;; Uses exact integer linear programming to find the global optimum.
-;;;
-;;; Arguments:
-;;;   adj - Adjacency matrix (undirected)
-;;;
-;;; Returns: Vector of community labels (0 or 1 for each node)
-;;;
-;;; Notes:
-;;;   - Complexity: Exponential in worst case (exact optimization)
-;;;   - Recommended for small graphs (n < 20) due to ILP complexity
-;;;   - For large graphs, use label-propagation instead
-;;;
-;;; Algorithm:
-;;;   Modularity Q = (1/2m) Σ B[i,j]·δ(c_i, c_j) where B[i,j] = A[i,j] - k_i·k_j/(2m)
-;;;   For 2 communities with x_i ∈ {0,1}:
-;;;     - Nodes in same community if x_i = x_j
-;;;     - δ(c_i, c_j) = x_i·x_j + (1-x_i)·(1-x_j) = 2·x_i·x_j - x_i - x_j + 1
-;;;
-;;;   Objective: maximize Σ B[i,j]·(2·y[i,j] - x[i] - x[j] + 1)
-;;;   where y[i,j] = x[i]·x[j] (linearized with standard constraints)
-;;;
-;;; Example:
-;;;   (load "lattice/optimization/ilp.ss")  ; Required for ILP solver
-;;;   (modularity-ilp two-triangles-adj) => #(0 0 0 1 1 1)
+(doc modularity-ilp 'type '(-> Matrix Vector))
+(doc modularity-ilp 'description "Compute optimal 2-community partition maximizing modularity using exact ILP")
+(doc modularity-ilp 'param 'adj "Adjacency matrix (undirected)")
+(doc modularity-ilp 'returns "Vector of community labels (0 or 1 for each node)")
+(doc modularity-ilp 'note "Complexity: Exponential in worst case; recommended for small graphs (n < 20)")
+(doc modularity-ilp 'note "For large graphs, use label-propagation instead")
 (define (modularity-ilp adj)
   (let* ([n (matrix-rows adj)]
          ;; Compute modularity matrix B[i,j] = A[i,j] - k_i·k_j/(2m)

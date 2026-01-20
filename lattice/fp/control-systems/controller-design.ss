@@ -1,27 +1,8 @@
-;;; lattice/fp/control-systems/controller-design.ss — Controller Design
-;;;
-;;; Design and synthesis of controllers for linear time-invariant systems.
-;;;
-;;; This module provides:
-;;;   - PID controller design (tuning methods)
-;;;   - Pole placement / state feedback
-;;;   - Observer design (full-order and reduced-order)
-;;;   - LQR (Linear Quadratic Regulator)
-;;;   - LQG (LQR with Kalman filter)
-;;;   - Basic H-infinity concepts
-;;;
-;;; This is Core code: pure, total, assumes reasonable input.
-;;;
-;;; Dependencies:
-;;;   - core/base/prelude.ss
-;;;   - lattice/linalg/matrix.ss
-;;;   - lattice/linalg/matrix-eigen.ss
-;;;   - lattice/linalg/matrix-solvers.ss
-;;;   - lattice/fp/control-systems/state-space.ss
-;;;   - lattice/fp/control-systems/transfer-function.ss
-;;;   - lattice/fp/control-systems/stability.ss
-
 (load "core/base/prelude.ss")
+(doc 'module "Controller Design")
+(doc 'description "Design and synthesis of controllers for linear time-invariant systems. Provides PID controller design (tuning methods), pole placement / state feedback, observer design (full-order and reduced-order), LQR (Linear Quadratic Regulator), LQG (LQR with Kalman filter), basic H-infinity concepts")
+(doc 'purity "pure, total, assumes reasonable input")
+(doc 'dependencies "core/base/prelude.ss, lattice/linalg/matrix.ss, lattice/linalg/matrix-eigen.ss, lattice/linalg/matrix-solvers.ss, lattice/fp/control-systems/state-space.ss, lattice/fp/control-systems/transfer-function.ss, lattice/fp/control-systems/stability.ss")
 (load "lattice/linalg/matrix.ss")
 (load "lattice/linalg/matrix-eigen.ss")
 (load "lattice/linalg/matrix-solvers.ss")
@@ -29,19 +10,12 @@
 (load "lattice/fp/control-systems/transfer-function.ss")
 (load "lattice/fp/control-systems/stability.ss")
 
-;;; ====
-;;; PID Controller Design
-;;; ====
-
-;;; PID transfer function: C(s) = Kp + Ki/s + Kd*s
-;;;                            = (Kd*s^2 + Kp*s + Ki) / s
-;;;
-;;; Various tuning methods are provided.
-
-;;; pid-tf : Number × Number × Number → TF
-;;; Create PID controller as transfer function.
-;;; Parameters: Kp (proportional), Ki (integral), Kd (derivative)
 (define (pid-tf Kp Ki Kd)
+  (doc 'type "Number × Number × Number → TF")
+  (doc 'description "Create PID controller as transfer function. C(s) = Kp + Ki/s + Kd*s = (Kd*s^2 + Kp*s + Ki) / s")
+  (doc 'param "Kp — proportional gain")
+  (doc 'param "Ki — integral gain")
+  (doc 'param "Kd — derivative gain")
   (if (zero? Kd)
       (if (zero? Ki)
           ;; P only: C(s) = Kp
@@ -51,13 +25,12 @@
       ;; PID: C(s) = (Kd*s^2 + Kp*s + Ki) / s
       (tf-from-lists (list Kd Kp Ki) '(1 0))))
 
-;;; pid-design-zn-open-loop : Number × Number × Number → (Kp Ki Kd)
-;;; Ziegler-Nichols open-loop tuning from step response.
-;;; Parameters:
-;;;   K  = process gain (steady-state gain)
-;;;   L  = dead time (delay)
-;;;   T  = time constant
 (define (pid-design-zn-open-loop K L T)
+  (doc 'type "Number × Number × Number → (Kp Ki Kd)")
+  (doc 'description "Ziegler-Nichols open-loop tuning from step response")
+  (doc 'param "K — process gain (steady-state gain)")
+  (doc 'param "L — dead time (delay)")
+  (doc 'param "T — time constant")
   (let* ([Kp (* (/ 1.2 K) (/ T L))]
          [Ti (* 2 L)]
          [Td (* 0.5 L)]
@@ -65,12 +38,11 @@
          [Kd (* Kp Td)])
         (list Kp Ki Kd)))
 
-;;; pid-design-zn-closed-loop : Number × Number → (Kp Ki Kd)
-;;; Ziegler-Nichols closed-loop (ultimate gain) tuning.
-;;; Parameters:
-;;;   Ku = ultimate gain (at oscillation)
-;;;   Tu = oscillation period
 (define (pid-design-zn-closed-loop Ku Tu)
+  (doc 'type "Number × Number → (Kp Ki Kd)")
+  (doc 'description "Ziegler-Nichols closed-loop (ultimate gain) tuning")
+  (doc 'param "Ku — ultimate gain (at oscillation)")
+  (doc 'param "Tu — oscillation period")
   (let* ([Kp (* 0.6 Ku)]
          [Ti (* 0.5 Tu)]
          [Td (* 0.125 Tu)]
@@ -78,13 +50,11 @@
          [Kd (* Kp Td)])
         (list Kp Ki Kd)))
 
-;;; pid-design-imc : TF × Number → (Kp Ki Kd)
-;;; Internal Model Control (IMC) based PID tuning.
-;;; Works for first-order plus dead time (FOPDT) models.
-;;; Parameters:
-;;;   plant = first-order plant transfer function K/(Ts+1)
-;;;   lambda = desired closed-loop time constant
 (define (pid-design-imc plant lambda)
+  (doc 'type "TF × Number → (Kp Ki Kd)")
+  (doc 'description "Internal Model Control (IMC) based PID tuning. Works for first-order plus dead time (FOPDT) models")
+  (doc 'param "plant — first-order plant transfer function K/(Ts+1)")
+  (doc 'param "lambda — desired closed-loop time constant")
   (let* ([poles (tf-poles plant)]
          [zeros (tf-zeros plant)]
          ;; Extract FOPDT parameters
@@ -99,35 +69,22 @@
                    [Kd 0])  ; No derivative for basic IMC
                   (list Kp Ki Kd)))))
 
-;;; pid-design-lambda : Number × Number × Number × Number → (Kp Ki Kd)
-;;; Lambda tuning method (IMC variant).
-;;; Parameters:
-;;;   K = process gain
-;;;   tau = process time constant
-;;;   theta = dead time
-;;;   lambda = desired closed-loop time constant (typically = theta)
 (define (pid-design-lambda K tau theta lambda)
+  (doc 'type "Number × Number × Number × Number → (Kp Ki Kd)")
+  (doc 'description "Lambda tuning method (IMC variant)")
+  (doc 'param "K — process gain")
+  (doc 'param "tau — process time constant")
+  (doc 'param "theta — dead time")
+  (doc 'param "lambda — desired closed-loop time constant (typically = theta)")
   (let* ([Kp (/ tau (* K (+ lambda theta)))]
          [Ti tau]
          [Ki (/ Kp Ti)])
         (list Kp Ki 0)))
 
-;;; ====
-;;; State Feedback / Pole Placement
-;;; ====
-
-;;; State feedback: u = -K*x where K is the feedback gain matrix.
-;;; Closed-loop system: x' = (A - B*K)*x
-;;; Goal: place eigenvalues of (A-BK) at desired locations.
-
-;;; pole-placement-ackermann : SS × (List Complex) → Matrix | Error
-;;; Compute state feedback gain K using Ackermann's formula.
-;;; Places closed-loop poles at specified locations.
-;;; Only works for SISO systems (single input).
-;;;
-;;; Formula: K = [0 0 ... 0 1] * inv(C_n) * p(A)
-;;; where C_n is controllability matrix and p(s) = desired char poly
 (define (pole-placement-ackermann sys desired-poles)
+  (doc 'type "SS × (List Complex) → Matrix | Error")
+  (doc 'description "Compute state feedback gain K using Ackermann's formula. State feedback: u = -K*x where K is the feedback gain matrix. Closed-loop system: x' = (A - B*K)*x. Places closed-loop poles at specified locations. Only works for SISO systems (single input)")
+  (doc 'note "Formula: K = [0 0 ... 0 1] * inv(C_n) * p(A) where C_n is controllability matrix and p(s) = desired char poly")
   (let* ([A (ss-A sys)]
          [B (ss-B sys)]
          [n (ss-order sys)]
@@ -150,17 +107,16 @@
                             [K (matrix-mul temp pA)])
                            K))))))
 
-;;; make-row-vector : Nat × Nat → Matrix
-;;; Create row vector with 1 at position idx, 0 elsewhere.
 (define (make-row-vector n idx)
+  (doc 'type "Nat × Nat → Matrix")
+  (doc 'description "Create row vector with 1 at position idx, 0 elsewhere")
   (let ([result (make-matrix 1 n 0)])
        (matrix-set! result 0 idx 1)
        result))
 
-;;; poly-eval-matrix : Poly × Matrix → Matrix
-;;; Evaluate polynomial at matrix argument.
-;;; p(A) = a_n*A^n + ... + a_1*A + a_0*I
 (define (poly-eval-matrix poly A)
+  (doc 'type "Poly × Matrix → Matrix")
+  (doc 'description "Evaluate polynomial at matrix argument. p(A) = a_n*A^n + ... + a_1*A + a_0*I")
   (let* ([coeffs (poly-coeffs poly)]
          [n (matrix-rows A)]
          [I (identity n)]
@@ -175,10 +131,9 @@
                            (matrix-add (matrix-mul A result)
                                        (matrix-scale (vector-ref coeffs (+ i 1)) I))))))))
 
-;;; pole-placement-bass-gura : SS × (List Complex) → Matrix | Error
-;;; Compute state feedback gain using Bass-Gura formula.
-;;; More numerically stable than Ackermann for higher-order systems.
 (define (pole-placement-bass-gura sys desired-poles)
+  (doc 'type "SS × (List Complex) → Matrix | Error")
+  (doc 'description "Compute state feedback gain using Bass-Gura formula. More numerically stable than Ackermann for higher-order systems")
   (let* ([A (ss-A sys)]
          [B (ss-B sys)]
          [n (ss-order sys)]
@@ -203,10 +158,9 @@
                    [K (matrix-mul (vector->row-matrix delta) WC-inv)])
                   K))))
 
-;;; characteristic-polynomial : Matrix → Poly
-;;; Compute characteristic polynomial det(sI - A).
-;;; Uses Faddeev-LeVerrier method.
 (define (characteristic-polynomial A)
+  (doc 'type "Matrix → Poly")
+  (doc 'description "Compute characteristic polynomial det(sI - A). Uses Faddeev-LeVerrier method")
   (let* ([n (matrix-rows A)]
          [coeffs (make-vector (+ n 1) 0)]
          [M (identity n)])
@@ -223,17 +177,17 @@
                        (vector-set! coeffs k c-k)
                        (loop (+ k 1) M-new))))))
 
-;;; matrix-trace : Matrix → Number
 (define (matrix-trace M)
+  (doc 'type "Matrix → Number")
   (let ([n (min (matrix-rows M) (matrix-cols M))])
        (let loop ([i 0] [sum 0])
             (if (>= i n)
                 sum
                 (loop (+ i 1) (+ sum (matrix-ref M i i)))))))
 
-;;; poly-coeffs-vector : Poly × Nat → Vector
-;;; Extract coefficient vector of length n (padded with zeros).
 (define (poly-coeffs-vector poly n)
+  (doc 'type "Poly × Nat → Vector")
+  (doc 'description "Extract coefficient vector of length n (padded with zeros)")
   (let* ([coeffs (poly-coeffs poly)]
          [len (vector-length coeffs)]
          [result (make-vector n 0)])
@@ -246,25 +200,25 @@
                        (vector-set! result dst-idx (vector-ref coeffs src-idx)))))
         result))
 
-;;; vector-sub : Vector × Vector → Vector
 (define (vector-sub v1 v2)
+  (doc 'type "Vector × Vector → Vector")
   (let* ([n (vector-length v1)]
          [result (make-vector n 0)])
         (do ([i 0 (+ i 1)])
             ((= i n) result)
             (vector-set! result i (- (vector-ref v1 i) (vector-ref v2 i))))))
 
-;;; vector->row-matrix : Vector → Matrix
 (define (vector->row-matrix v)
+  (doc 'type "Vector → Matrix")
   (let* ([n (vector-length v)]
          [result (make-matrix 1 n 0)])
         (do ([i 0 (+ i 1)])
             ((= i n) result)
             (matrix-set! result 0 i (vector-ref v i)))))
 
-;;; bass-gura-W : Vector × Nat → Matrix
-;;; Build the W transformation matrix for Bass-Gura.
 (define (bass-gura-W alpha n)
+  (doc 'type "Vector × Nat → Matrix")
+  (doc 'description "Build the W transformation matrix for Bass-Gura")
   (let ([W (make-matrix n n 0)])
        ;; W is upper triangular with specific pattern
        (do ([i 0 (+ i 1)])
@@ -274,20 +228,10 @@
                ((= j n))
                (matrix-set! W i j (vector-ref alpha (- j i)))))))
 
-;;; ====
-;;; Observer Design
-;;; ====
-
-;;; Observer (state estimator): x_hat' = A*x_hat + B*u + L*(y - C*x_hat)
-;;;                                    = (A - L*C)*x_hat + B*u + L*y
-;;; Goal: place eigenvalues of (A-LC) for fast estimation.
-;;; By duality: observer gain L is computed like feedback gain K
-;;; for the dual system (A', C', B').
-
-;;; observer-design-ackermann : SS × (List Complex) → Matrix | Error
-;;; Design observer gain L using Ackermann's formula on dual system.
-;;; desired-poles are for the observer (typically 2-10x faster than controller).
 (define (observer-design-ackermann sys desired-poles)
+  (doc 'type "SS × (List Complex) → Matrix | Error")
+  (doc 'description "Design observer gain L using Ackermann's formula on dual system. Observer (state estimator): x_hat' = A*x_hat + B*u + L*(y - C*x_hat) = (A - L*C)*x_hat + B*u + L*y. Goal: place eigenvalues of (A-LC) for fast estimation. By duality: observer gain L is computed like feedback gain K for the dual system (A', C', B')")
+  (doc 'param "desired-poles — for the observer (typically 2-10x faster than controller)")
   (let* ([A (ss-A sys)]
          [C (ss-C sys)]
          [n (ss-order sys)]
@@ -311,28 +255,18 @@
                       ;; L = K^T
                       (matrix-transpose Kt-result))))))
 
-;;; observer-design-place : SS × (List Complex) → Matrix | Error
-;;; Design observer gain by direct pole placement.
 (define (observer-design-place sys desired-poles)
+  (doc 'type "SS × (List Complex) → Matrix | Error")
+  (doc 'description "Design observer gain by direct pole placement")
   (observer-design-ackermann sys desired-poles))
 
-;;; ====
-;;; LQR - Linear Quadratic Regulator
-;;; ====
-
-;;; LQR minimizes: J = integral(x'Qx + u'Ru) dt
-;;; Solution: u = -K*x where K = R^{-1}*B'*P
-;;; P satisfies the continuous algebraic Riccati equation (CARE):
-;;;   A'P + PA - PBR^{-1}B'P + Q = 0
-
-;;; lqr : SS × Matrix × Matrix → (K P eigenvalues) | Error
-;;; Compute LQR controller gain.
-;;; Parameters:
-;;;   sys = state space system
-;;;   Q   = state weighting matrix (n×n, positive semi-definite)
-;;;   R   = control weighting matrix (m×m, positive definite)
-;;; Returns: K (gain), P (Riccati solution), closed-loop eigenvalues
 (define (lqr sys Q R)
+  (doc 'type "SS × Matrix × Matrix → (K P eigenvalues) | Error")
+  (doc 'description "Compute LQR controller gain. LQR minimizes: J = integral(x'Qx + u'Ru) dt. Solution: u = -K*x where K = R^{-1}*B'*P. P satisfies the continuous algebraic Riccati equation (CARE): A'P + PA - PBR^{-1}B'P + Q = 0")
+  (doc 'param "sys — state space system")
+  (doc 'param "Q — state weighting matrix (n×n, positive semi-definite)")
+  (doc 'param "R — control weighting matrix (m×m, positive definite)")
+  (doc 'returns "K (gain), P (Riccati solution), closed-loop eigenvalues")
   (let* ([A (ss-A sys)]
          [B (ss-B sys)]
          [n (ss-order sys)]
@@ -351,11 +285,9 @@
                                 (qr-algorithm-shifted Acl 100 1e-10))])
                   (list K P cl-eigs)))))
 
-;;; solve-care : Matrix × Matrix × Matrix × Matrix × Nat → Matrix | Error
-;;; Solve continuous algebraic Riccati equation using Newton iteration.
-;;; A'P + PA - PBR^{-1}B'P + Q = 0
-;;; Uses direct Lyapunov solver for small systems (n < 15), iterative for larger.
 (define (solve-care A B Q R max-iter)
+  (doc 'type "Matrix × Matrix × Matrix × Matrix × Nat → Matrix | Error")
+  (doc 'description "Solve continuous algebraic Riccati equation using Newton iteration. A'P + PA - PBR^{-1}B'P + Q = 0. Uses direct Lyapunov solver for small systems (n < 15), iterative for larger")
   (let* ([n (matrix-rows A)]
          [At (matrix-transpose A)]
          [Bt (matrix-transpose B)]
@@ -388,18 +320,9 @@
                                   [P-new (matrix-add P dP)])
                                  (loop P-new (+ iter 1)))))))))
 
-;;; ====
-;;; Direct Lyapunov Equation Solver
-;;; ====
-;;;
-;;; Solves A'X + XA = -Q using vectorization:
-;;; (I ⊗ A' + A' ⊗ I) vec(X) = -vec(Q)
-;;;
-;;; This is O(n^6) but numerically stable, suitable for n < 20.
-
-;;; kronecker-product : Matrix × Matrix → Matrix
-;;; Compute Kronecker product A ⊗ B
 (define (kronecker-product A B)
+  (doc 'type "Matrix × Matrix → Matrix")
+  (doc 'description "Compute Kronecker product A ⊗ B. Direct Lyapunov equation solver: Solves A'X + XA = -Q using vectorization (I ⊗ A' + A' ⊗ I) vec(X) = -vec(Q). This is O(n^6) but numerically stable, suitable for n < 20")
   (let* ([pa (matrix-rows A)]
          [qa (matrix-cols A)]
          [pb (matrix-rows B)]
@@ -419,9 +342,9 @@
                                           (+ (* j qb) l)
                                           (* a-ij (matrix-ref B k l))))))))))
 
-;;; matrix-vec : Matrix → Vector
-;;; Vectorize matrix column-major: vec([a1 a2 ... an]) = [a1; a2; ...; an]
 (define (matrix-vec M)
+  (doc 'type "Matrix → Vector")
+  (doc 'description "Vectorize matrix column-major: vec([a1 a2 ... an]) = [a1; a2; ...; an]")
   (let* ([rows (matrix-rows M)]
          [cols (matrix-cols M)]
          [result (make-vector (* rows cols) 0)])
@@ -432,9 +355,9 @@
                 (vector-set! result (+ (* j rows) i)
                              (matrix-ref M i j))))))
 
-;;; matrix-unvec : Vector × Nat × Nat → Matrix
-;;; Inverse of vec: reshape vector to m×n matrix (column-major)
 (define (matrix-unvec v m n)
+  (doc 'type "Vector × Nat × Nat → Matrix")
+  (doc 'description "Inverse of vec: reshape vector to m×n matrix (column-major)")
   (let ([result (make-matrix m n 0)])
        (do ([j 0 (+ j 1)])
            [(= j n) result]
@@ -443,10 +366,9 @@
                (matrix-set! result i j
                             (vector-ref v (+ (* j m) i)))))))
 
-;;; lyapunov-solve : Matrix × Matrix → Matrix
-;;; Solve continuous Lyapunov equation: A'X + XA = -Q
-;;; Uses direct vectorization method for stability.
 (define (lyapunov-solve A Q)
+  (doc 'type "Matrix × Matrix → Matrix")
+  (doc 'description "Solve continuous Lyapunov equation: A'X + XA = -Q. Uses direct vectorization method for stability")
   (let* ([n (matrix-rows A)]
          [At (matrix-transpose A)]
          [I (identity n)]
@@ -478,9 +400,9 @@
                                 (vector-set! x-vec i (matrix-ref x-mat i 0)))
                             (matrix-unvec x-vec n n)))))))
 
-;;; matrix-solve-lu : Matrix × Matrix → Matrix | Error
-;;; Solve A*X = B using LU decomposition
 (define (matrix-solve-lu A B)
+  (doc 'type "Matrix × Matrix → Matrix | Error")
+  (doc 'description "Solve A*X = B using LU decomposition")
   (guard (e [else `(error lu-solve-failed)])
          (let ([lu-result (matrix-lu A)])
               (if (and (pair? lu-result) (eq? (car lu-result) 'error))
@@ -493,9 +415,9 @@
                          [X (back-sub U Y)])
                         X)))))
 
-;;; forward-sub : Matrix × Matrix → Matrix
-;;; Solve L*Y = B for lower triangular L
 (define (forward-sub L B)
+  (doc 'type "Matrix × Matrix → Matrix")
+  (doc 'description "Solve L*Y = B for lower triangular L")
   (let* ([n (matrix-rows L)]
          [m (matrix-cols B)]
          [Y (make-matrix n m 0)])
@@ -514,9 +436,9 @@
                                (if (zero? diag) 1e-10 diag))])
                       (matrix-set! Y i j val))))))
 
-;;; back-sub : Matrix × Matrix → Matrix
-;;; Solve U*X = Y for upper triangular U
 (define (back-sub U Y)
+  (doc 'type "Matrix × Matrix → Matrix")
+  (doc 'description "Solve U*X = Y for upper triangular U")
   (let* ([n (matrix-rows U)]
          [m (matrix-cols Y)]
          [X (make-matrix n m 0)])
@@ -535,10 +457,9 @@
                                (if (zero? diag) 1e-10 diag))])
                       (matrix-set! X i j val))))))
 
-;;; lyapunov-solve-iterative : Matrix × Matrix × Nat → Matrix
-;;; Fallback iterative Lyapunov solver: A'X + XA = -Q
-;;; Uses Smith iteration for improved convergence.
 (define (lyapunov-solve-iterative A Q max-iter)
+  (doc 'type "Matrix × Matrix × Nat → Matrix")
+  (doc 'description "Fallback iterative Lyapunov solver: A'X + XA = -Q. Uses Smith iteration for improved convergence")
   (let* ([n (matrix-rows A)]
          [At (matrix-transpose A)]
          ;; Initial guess using stationary iteration
@@ -557,14 +478,14 @@
                                   [X-new (matrix-sub X (matrix-scale alpha residual))])
                                  (loop X-new (+ iter 1)))))))))
 
-;;; lyapunov-solve-simple : Matrix × Matrix × Nat → Matrix
-;;; DEPRECATED: Use lyapunov-solve instead for better numerical properties.
-;;; Simple iterative Lyapunov solver: A'X + XA = -Q
 (define (lyapunov-solve-simple A Q max-iter)
+  (doc 'type "Matrix × Matrix × Nat → Matrix")
+  (doc 'description "DEPRECATED: Use lyapunov-solve instead for better numerical properties. Simple iterative Lyapunov solver: A'X + XA = -Q")
+  (doc 'deprecated #t)
   (lyapunov-solve-iterative A Q max-iter))
 
-;;; matrix-frobenius-norm-local : Matrix → Number
 (define (matrix-frobenius-norm-local M)
+  (doc 'type "Matrix → Number")
   (let* ([rows (matrix-rows M)]
          [cols (matrix-cols M)])
         (sqrt (let loop ([i 0] [sum 0])
@@ -577,18 +498,9 @@
                                              (inner (+ j 1)
                                                     (+ row-sum (expt (matrix-ref M i j) 2))))))))))))
 
-;;; ====
-;;; Discrete LQR
-;;; ====
-
-;;; Discrete LQR minimizes: J = sum(x'Qx + u'Ru)
-;;; Solution: u[k] = -K*x[k] where K = (R + B'PB)^{-1}*B'PA
-;;; P satisfies discrete algebraic Riccati equation (DARE):
-;;;   P = A'PA - A'PB(R + B'PB)^{-1}B'PA + Q
-
-;;; dlqr : SS × Matrix × Matrix → (K P eigenvalues) | Error
-;;; Compute discrete LQR controller gain.
 (define (dlqr sys Q R)
+  (doc 'type "SS × Matrix × Matrix → (K P eigenvalues) | Error")
+  (doc 'description "Compute discrete LQR controller gain. Discrete LQR minimizes: J = sum(x'Qx + u'Ru). Solution: u[k] = -K*x[k] where K = (R + B'PB)^{-1}*B'PA. P satisfies discrete algebraic Riccati equation (DARE): P = A'PA - A'PB(R + B'PB)^{-1}B'PA + Q")
   (let* ([A (ss-A sys)]
          [B (ss-B sys)]
          [n (ss-order sys)]
@@ -609,9 +521,9 @@
                                 (qr-algorithm-shifted Acl 100 1e-10))])
                   (list K P cl-eigs)))))
 
-;;; solve-dare : Matrix × Matrix × Matrix × Matrix × Nat → Matrix | Error
-;;; Solve discrete algebraic Riccati equation using iteration.
 (define (solve-dare A B Q R max-iter)
+  (doc 'type "Matrix × Matrix × Matrix × Matrix × Nat → Matrix | Error")
+  (doc 'description "Solve discrete algebraic Riccati equation using iteration")
   (let* ([At (matrix-transpose A)]
          [Bt (matrix-transpose B)]
          [P Q])
@@ -630,28 +542,12 @@
                            P-new
                            (loop P-new (+ iter 1))))))))
 
-;;; ====
-;;; LQG - Linear Quadratic Gaussian
-;;; ====
-
-;;; LQG combines LQR state feedback with matrix Kalman filter state estimation.
-;;; This is the full MATRIX Kalman filter for state-space control systems.
-;;; (For scalar Kalman filtering, see kalman.ss)
-;;;
-;;; Controller: u = -K*x_hat
-;;; Estimator: x_hat' = A*x_hat + B*u + L*(y - C*x_hat)
-;;;
-;;; Design:
-;;; 1. Design LQR gain K using Q, R
-;;; 2. Design Kalman filter gain L using Qn (process noise), Rn (measurement noise)
-
-;;; lqg : SS × Matrix × Matrix × Matrix × Matrix → (K L) | Error
-;;; Design LQG controller with optimal state estimation.
-;;; Parameters:
-;;;   sys = state space system
-;;;   Q, R = LQR weights (state and control)
-;;;   Qn, Rn = Noise covariances (process and measurement)
 (define (lqg sys Q R Qn Rn)
+  (doc 'type "SS × Matrix × Matrix × Matrix × Matrix → (K L) | Error")
+  (doc 'description "Design LQG controller with optimal state estimation. LQG combines LQR state feedback with matrix Kalman filter state estimation. This is the full MATRIX Kalman filter for state-space control systems. (For scalar Kalman filtering, see kalman.ss). Controller: u = -K*x_hat. Estimator: x_hat' = A*x_hat + B*u + L*(y - C*x_hat). Design: 1. Design LQR gain K using Q, R. 2. Design Kalman filter gain L using Qn (process noise), Rn (measurement noise)")
+  (doc 'param "sys — state space system")
+  (doc 'param "Q, R — LQR weights (state and control)")
+  (doc 'param "Qn, Rn — Noise covariances (process and measurement)")
   (let* (;; Design LQR controller
          [lqr-result (lqr sys Q R)])
         (if (and (pair? lqr-result) (eq? (car lqr-result) 'error))
@@ -673,27 +569,16 @@
                                   [L (matrix-mul P-filter (matrix-mul Ct Rn-inv))])
                                  (list K L))))))))
 
-;;; ====
-;;; H-infinity Control Basics
-;;; ====
-
-;;; H-infinity control minimizes the H-infinity norm of a closed-loop
-;;; transfer function, providing robust performance guarantees.
-;;;
-;;; The H-infinity norm is: ||G||_inf = sup_w |G(jw)|
-;;; For a state-space system, this requires solving a pair of Riccati equations.
-
-;;; hinf-norm : TF → Number | Error
-;;; Compute H-infinity norm of a transfer function.
-;;; Uses bisection on frequency response.
 (define (hinf-norm tf)
+  (doc 'type "TF → Number | Error")
+  (doc 'description "Compute H-infinity norm of a transfer function. H-infinity control minimizes the H-infinity norm of a closed-loop transfer function, providing robust performance guarantees. The H-infinity norm is: ||G||_inf = sup_w |G(jw)|. Uses bisection on frequency response")
   (let* ([w-test (logspace -4 4 1000)]
          [mags (tf-magnitude tf w-test)]
          [max-mag (vector-max mags)])
         max-mag))
 
-;;; vector-max : Vector → Number
 (define (vector-max v)
+  (doc 'type "Vector → Number")
   (let ([n (vector-length v)])
        (let loop ([i 1] [max-val (vector-ref v 0)])
             (if (>= i n)
@@ -701,19 +586,14 @@
                 (let ([val (vector-ref v i)])
                      (loop (+ i 1) (if (> val max-val) val max-val)))))))
 
-;;; hinf-bounded? : TF × Number → Boolean
-;;; Check if H-infinity norm is bounded by gamma.
 (define (hinf-bounded? tf gamma)
+  (doc 'type "TF × Number → Boolean")
+  (doc 'description "Check if H-infinity norm is bounded by gamma")
   (< (hinf-norm tf) gamma))
 
-;;; ====
-;;; Compensator Synthesis
-;;; ====
-
-;;; closed-loop-tf : TF × TF → TF
-;;; Compute closed-loop transfer function for unity negative feedback.
-;;; T(s) = G(s)C(s) / (1 + G(s)C(s))
 (define (closed-loop-tf plant controller)
+  (doc 'type "TF × TF → TF")
+  (doc 'description "Compute closed-loop transfer function for unity negative feedback. T(s) = G(s)C(s) / (1 + G(s)C(s))")
   (let* ([GC (tf-series plant controller)]
          [num-GC (tf-num GC)]
          [den-GC (tf-den GC)]
@@ -721,9 +601,9 @@
          [new-den (poly-add den-GC num-GC)])
         (make-tf num-GC new-den)))
 
-;;; sensitivity-tf : TF × TF → TF
-;;; Compute sensitivity transfer function S(s) = 1/(1 + G(s)C(s)).
 (define (sensitivity-tf plant controller)
+  (doc 'type "TF × TF → TF")
+  (doc 'description "Compute sensitivity transfer function S(s) = 1/(1 + G(s)C(s))")
   (let* ([GC (tf-series plant controller)]
          [num-GC (tf-num GC)]
          [den-GC (tf-den GC)]
@@ -731,46 +611,41 @@
          [new-den (poly-add den-GC num-GC)])
         (make-tf den-GC new-den)))
 
-;;; complementary-sensitivity-tf : TF × TF → TF
-;;; Compute complementary sensitivity T(s) = G(s)C(s)/(1 + G(s)C(s)).
-;;; Note: S + T = 1
 (define (complementary-sensitivity-tf plant controller)
+  (doc 'type "TF × TF → TF")
+  (doc 'description "Compute complementary sensitivity T(s) = G(s)C(s)/(1 + G(s)C(s))")
+  (doc 'note "S + T = 1")
   (closed-loop-tf plant controller))
 
-;;; ====
-;;; Lead/Lag Compensator Design
-;;; ====
-
-;;; lead-compensator : Number × Number × Number → TF
-;;; Create a lead compensator: C(s) = Kc * (s + z)/(s + p) where z < p.
-;;; Lead compensators add phase lead at crossover frequency.
-;;; Parameters: Kc = gain, zero = magnitude of zero (zero at s = -zero), pole = magnitude of pole
 (define (lead-compensator Kc zero pole)
+  (doc 'type "Number × Number × Number → TF")
+  (doc 'description "Create a lead compensator: C(s) = Kc * (s + z)/(s + p) where z < p. Lead compensators add phase lead at crossover frequency")
+  (doc 'param "Kc — gain")
+  (doc 'param "zero — magnitude of zero (zero at s = -zero)")
+  (doc 'param "pole — magnitude of pole")
   ;; C(s) = Kc * (s + zero) / (s + pole)
   ;; Numerator: Kc*s + Kc*zero → coeffs (Kc, Kc*zero)
   ;; Denominator: s + pole → coeffs (1, pole)
   (tf-from-lists (list Kc (* Kc zero))
                  (list 1 pole)))
 
-;;; lag-compensator : Number × Number × Number → TF
-;;; Create a lag compensator: C(s) = Kc * (s + z)/(s + p) where z > p.
-;;; Lag compensators increase low-frequency gain.
-;;; Parameters: Kc = gain, zero = magnitude of zero, pole = magnitude of pole
 (define (lag-compensator Kc zero pole)
+  (doc 'type "Number × Number × Number → TF")
+  (doc 'description "Create a lag compensator: C(s) = Kc * (s + z)/(s + p) where z > p. Lag compensators increase low-frequency gain")
+  (doc 'param "Kc — gain")
+  (doc 'param "zero — magnitude of zero")
+  (doc 'param "pole — magnitude of pole")
   ;; C(s) = Kc * (s + zero) / (s + pole)
   (tf-from-lists (list Kc (* Kc zero))
                  (list 1 pole)))
 
-;;; lead-lag-compensator : Number × Number × Number × Number × Number → TF
-;;; Create lead-lag compensator (product of lead and lag sections).
 (define (lead-lag-compensator Kc z-lead p-lead z-lag p-lag)
+  (doc 'type "Number × Number × Number × Number × Number → TF")
+  (doc 'description "Create lead-lag compensator (product of lead and lag sections)")
   (tf-series (lead-compensator 1 z-lead p-lead)
              (lag-compensator Kc z-lag p-lag)))
 
-;;; ====
-;;; Utility
-;;; ====
-
-;;; controller-info : String
 (define (controller-info)
+  (doc 'type "→ String")
+  (doc 'description "Controller Design Module information")
   "Controller Design Module: PID design, pole placement, LQR/LQG, observer design")

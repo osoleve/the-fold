@@ -1,52 +1,35 @@
-;;; core/data/pagerank.ss — PageRank Algorithm
-;;;
-;;; PageRank importance scoring using eigenvalue computation.
-;;; Based on the algorithm from "The PageRank Citation Ranking:
-;;; Bringing Order to the Web" by Page et al.
-;;;
-;;; Algorithm:
-;;;   PR(p) = (1-d)/N + d * Σ(PR(q)/L(q))
-;;;   where q links to p, L(q) is out-degree of q, d is damping factor
-;;;
-;;; Implementation uses power iteration on the Google matrix:
-;;;   G = d*M + (1-d)*E/N
-;;;   where M is the column-stochastic transition matrix
-;;;   and E is the all-ones matrix
-;;;
-;;; This is Core code: pure, total, assumes reasonable input.
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;   - vec.ss
-;;;   - matrix.ss
-;;;   - matrix-eigen.ss
-;;;   - graph-matrix.ss
+(load "core/base/prelude.ss")
 
-;;; ====
-;;; Constants
-;;; ====
+(doc 'module 'pagerank)
+(doc 'description "PageRank importance scoring using eigenvalue computation")
+(doc 'layer 'lattice)
 
-;;; Default damping factor (probability of following a link)
+(doc 'note "Based on 'The PageRank Citation Ranking: Bringing Order to the Web' by Page et al.")
+
+(doc 'note "Algorithm:
+  PR(p) = (1-d)/N + d * Σ(PR(q)/L(q))
+  where q links to p, L(q) is out-degree of q, d is damping factor")
+
+(doc 'note "Implementation uses power iteration on Google matrix:
+  G = d*M + (1-d)*E/N
+  where M is column-stochastic transition matrix and E is all-ones matrix")
+
+(doc 'constant '*default-damping-factor*)
+(doc 'description "Default damping factor (probability of following a link)")
 (define *default-damping-factor* 0.85)
 
-;;; Default tolerance for convergence
+(doc 'constant '*pagerank-tolerance*)
+(doc 'description "Default tolerance for convergence")
 (define *pagerank-tolerance* 1e-8)
 
-;;; Default maximum iterations
+(doc 'constant '*pagerank-max-iterations*)
+(doc 'description "Default maximum iterations")
 (define *pagerank-max-iterations* 100)
 
-;;; ====
-;;; Transition Matrix Construction
-;;; ====
-
-;;; adjacency->transition : Matrix → Matrix
-;;; Convert adjacency matrix to column-stochastic transition matrix.
-;;; Each column sums to 1 (represents probability distribution).
-;;; For PageRank, we need column-stochastic (not row-stochastic).
-;;;
-;;; Convention: A[i][j] = 1 means edge from i to j (i points to j).
-;;; Transition: M[j][i] = 1/out-degree(i) if there's edge i→j.
-;;; This makes column i sum to 1 (node i's vote distributed to neighbors).
+(doc adjacency->transition 'type '(-> Matrix Matrix))
+(doc adjacency->transition 'description "Convert adjacency matrix to column-stochastic transition matrix for PageRank")
+(doc adjacency->transition 'note "Convention: A[i][j] = 1 means edge i→j; M[j][i] = 1/out-degree(i)")
+(doc adjacency->transition 'note "Column i sums to 1 (node i's vote distributed to neighbors)")
 (define (adjacency->transition adj)
   (let* ([n (matrix-rows adj)]
          [m (matrix-cols adj)])
@@ -92,13 +75,10 @@
                 sum
                 (loop (+ i 1) (+ sum (matrix-ref m i j)))))))
 
-;;; ====
-;;; Google Matrix Construction
-;;; ====
-
-;;; make-google-matrix : Matrix × Num → Matrix
-;;; Construct the Google matrix: G = d*M + (1-d)*E/N
-;;; where M is transition matrix, E is all-ones, d is damping factor.
+(doc make-google-matrix 'type '(-> Matrix Num Matrix))
+(doc make-google-matrix 'description "Construct Google matrix: G = d*M + (1-d)*E/N")
+(doc make-google-matrix 'param 'transition-matrix "Column-stochastic transition matrix M")
+(doc make-google-matrix 'param 'damping-factor "Damping factor d")
 (define (make-google-matrix transition-matrix damping-factor)
   (let* ([n (matrix-rows transition-matrix)]
          [teleport (/ (- 1.0 damping-factor) n)]
@@ -114,20 +94,13 @@
                       (vector-set! google-data idx g-ij))))
         (list 'matrix n n google-data)))
 
-;;; ====
-;;; PageRank Computation
-;;; ====
-
-;;; pagerank-from-matrix : Matrix × [Num] × [Nat] × [Num] → Vec | Error
-;;; Compute PageRank scores from adjacency matrix.
-;;;
-;;; Arguments:
-;;;   adj      - Adjacency matrix (directed graph)
-;;;   damping  - Damping factor (default: 0.85)
-;;;   max-iter - Maximum iterations (default: *pagerank-max-iterations*)
-;;;   tol      - Convergence tolerance (default: *pagerank-tolerance*)
-;;;
-;;; Returns: Vector of PageRank scores (one per node)
+(doc pagerank-from-matrix 'type '(-> Matrix [Num] [Nat] [Num] (Union Vec Error)))
+(doc pagerank-from-matrix 'description "Compute PageRank scores from adjacency matrix using power iteration")
+(doc pagerank-from-matrix 'param 'adj "Adjacency matrix (directed graph)")
+(doc pagerank-from-matrix 'param 'damping "Damping factor (default: 0.85)")
+(doc pagerank-from-matrix 'param 'max-iter "Maximum iterations (default: 100)")
+(doc pagerank-from-matrix 'param 'tol "Convergence tolerance (default: 1e-8)")
+(doc pagerank-from-matrix 'returns "Vector of PageRank scores (one per node)")
 (define (pagerank-from-matrix adj . opts)
   (let* ([damping (if (and (pair? opts) (number? (car opts)))
                       (car opts)
@@ -156,8 +129,8 @@
                        ;; Use power iteration to find stationary distribution
                        (pagerank-power-iteration google v0 max-iter tol))))))
 
-;;; pagerank-power-iteration : Matrix × Vec × Nat × Num → Vec | Error
-;;; Specialized power iteration for PageRank (doesn't normalize eigenvalue).
+(doc pagerank-power-iteration 'type '(-> Matrix Vec Nat Num (Union Vec Error)))
+(doc pagerank-power-iteration 'description "Specialized power iteration for PageRank (doesn't normalize eigenvalue)")
 (define (pagerank-power-iteration google v0 max-iter tol)
   (let loop ([v v0] [iter 0])
        (if (>= iter max-iter)
@@ -185,21 +158,14 @@
 (define (vec-sum v)
   (vec-fold + 0 v))
 
-;;; ====
-;;; Edge List Interface
-;;; ====
-
-;;; pagerank : (List Edge) × [Nat] × [Num] × [Nat] × [Num] → Vec | Error
-;;; Compute PageRank from edge list.
-;;;
-;;; Arguments:
-;;;   edges    - Edge list ((from to) ...) or ((from to weight) ...)
-;;;   n        - Number of nodes (default: inferred from edges)
-;;;   damping  - Damping factor (default: 0.85)
-;;;   max-iter - Maximum iterations (default: 100)
-;;;   tol      - Convergence tolerance (default: 1e-8)
-;;;
-;;; Returns: Vector of PageRank scores
+(doc pagerank 'type '(-> (List Edge) [Nat] [Num] [Nat] [Num] (Union Vec Error)))
+(doc pagerank 'description "Compute PageRank from edge list")
+(doc pagerank 'param 'edges "Edge list ((from to) ...) or ((from to weight) ...)")
+(doc pagerank 'param 'n "Number of nodes (default: inferred from edges)")
+(doc pagerank 'param 'damping "Damping factor (default: 0.85)")
+(doc pagerank 'param 'max-iter "Maximum iterations (default: 100)")
+(doc pagerank 'param 'tol "Convergence tolerance (default: 1e-8)")
+(doc pagerank 'returns "Vector of PageRank scores")
 (define (pagerank edges . opts)
   (let* ([n (if (and (pair? opts) (integer? (car opts)))
                 (car opts)
@@ -213,22 +179,14 @@
                  adj
                  (apply pagerank-from-matrix (cons adj rest1))))))
 
-;;; ====
-;;; Personalized PageRank
-;;; ====
-
-;;; personalized-pagerank : Matrix × Vec × [Num] × [Nat] × [Num] → Vec | Error
-;;; Compute Personalized PageRank with custom teleportation vector.
-;;;
-;;; Arguments:
-;;;   adj           - Adjacency matrix
-;;;   teleport-vec  - Teleportation probability distribution (must sum to 1)
-;;;   damping       - Damping factor (default: 0.85)
-;;;   max-iter      - Maximum iterations (default: 100)
-;;;   tol           - Convergence tolerance (default: 1e-8)
-;;;
-;;; The teleportation vector determines where random jumps go.
-;;; Standard PageRank uses uniform distribution.
+(doc personalized-pagerank 'type '(-> Matrix Vec [Num] [Nat] [Num] (Union Vec Error)))
+(doc personalized-pagerank 'description "Compute Personalized PageRank with custom teleportation vector")
+(doc personalized-pagerank 'param 'adj "Adjacency matrix")
+(doc personalized-pagerank 'param 'teleport-vec "Teleportation probability distribution (must sum to 1)")
+(doc personalized-pagerank 'param 'damping "Damping factor (default: 0.85)")
+(doc personalized-pagerank 'param 'max-iter "Maximum iterations (default: 100)")
+(doc personalized-pagerank 'param 'tol "Convergence tolerance (default: 1e-8)")
+(doc personalized-pagerank 'note "Standard PageRank uses uniform distribution; teleportation vector determines where random jumps go")
 (define (personalized-pagerank adj teleport-vec . opts)
   (let* ([n (matrix-rows adj)]
          [damping (if (and (pair? opts) (number? (car opts)))
@@ -269,13 +227,8 @@
                                   [v0 (make-vec n (/ 1.0 n))])
                                  (pagerank-power-iteration google v0 max-iter tol))))))))
 
-;;; ====
-;;; Utilities
-;;; ====
-
-;;; top-k-nodes : Vec × Nat → (List (Nat . Num))
-;;; Return top k nodes by PageRank score.
-;;; Returns list of (node-index . score) pairs, sorted by score descending.
+(doc top-k-nodes 'type '(-> Vec Nat (List (Pair Nat Num))))
+(doc top-k-nodes 'description "Return top k nodes by PageRank score, sorted descending")
 (define (top-k-nodes scores k)
   (let* ([n (vector-length scores)]
          [pairs (let loop ([i 0] [acc '()])

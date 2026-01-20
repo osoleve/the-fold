@@ -1,28 +1,29 @@
-;;; core/linalg/quaternion.ss — Quaternion Math Library
-;;;
-;;; Pure, functional quaternion operations for 3D rotations.
-;;;
-;;; A quaternion is represented as: (quat w x y z)
-;;; where w is the scalar part and (x, y, z) is the vector part.
-;;;
-;;; Quaternions represent rotations as q = cos(θ/2) + sin(θ/2)(xi + yj + zk)
-;;; where (x, y, z) is the unit rotation axis and θ is the rotation angle.
-;;;
-;;; This is Core code: pure, total, assumes reasonable input.
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;   - linalg/vec3.ss
-
 (load "core/base/prelude.ss")
 (load "lattice/linalg/vec3.ss")
 
-;;; ====
-;;; Quaternion Construction
-;;; ====
+(doc 'module 'quaternion
+     'description "Quaternion Math Library
 
-;;; quat : Number × Number × Number × Number → Quaternion
-;;; Create a quaternion (w, x, y, z).
+Pure, functional quaternion operations for 3D rotations.
+
+A quaternion is represented as: (quat w x y z)
+where w is the scalar part and (x, y, z) is the vector part.
+
+Quaternions represent rotations as q = cos(θ/2) + sin(θ/2)(xi + yj + zk)
+where (x, y, z) is the unit rotation axis and θ is the rotation angle.
+
+This is Core code: pure, total, assumes reasonable input.
+
+Dependencies:
+  - prelude.ss
+  - linalg/vec3.ss")
+
+(doc 'section 'quaternion-construction
+     'description "Quaternion constructors and factory functions")
+
+(doc quat
+     'type (-> Number Number Number Number Quaternion)
+     'description "Create a quaternion (w, x, y, z)")
 (define (quat w x y z)
   (list 'quat w x y z))
 
@@ -219,12 +220,12 @@
 (define (list->quat lst)
   (quat (car lst) (cadr lst) (caddr lst) (cadddr lst)))
 
-;;; ====
-;;; Basic Arithmetic
-;;; ====
+(doc 'section 'quaternion-arithmetic
+     'description "Basic quaternion arithmetic operations")
 
-;;; quat-add : Quaternion × Quaternion → Quaternion
-;;; Quaternion addition.
+(doc quat-add
+     'type (-> Quaternion Quaternion Quaternion)
+     'description "Quaternion addition")
 (define (quat-add a b)
   (quat (+ (quat-w a) (quat-w b))
         (+ (quat-x a) (quat-x b))
@@ -369,13 +370,12 @@
                   (quat-add (quat-scale a s0)
                             (quat-scale b s1))))))
 
-;;; ====
-;;; Rotation Operations
-;;; ====
+(doc 'section 'rotation-operations
+     'description "Quaternion rotation and conversion operations")
 
-;;; quat-rotate-vec3 : Quaternion × Vec3 → Vec3
-;;; Rotate a vector by the quaternion.
-;;; v' = q * v * q^(-1) for unit quaternion.
+(doc quat-rotate-vec3
+     'type (-> Quaternion Vec3 Vec3)
+     'description "Rotate a vector by the quaternion. v' = q * v * q^(-1) for unit quaternion.")
 (define (quat-rotate-vec3 q v)
   (let* ([qv (quat 0 (vec3-x v) (vec3-y v) (vec3-z v))]
          [result (quat-mul (quat-mul q qv) (quat-conjugate q))])

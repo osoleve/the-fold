@@ -1,50 +1,41 @@
-;;; fabric/stitches/matrix-eigen.ss — Eigenvalue and Eigenvector Computation
-;;;
-;;; Algorithms for computing eigenvalues and eigenvectors:
-;;;   - Power iteration (dominant eigenvalue)
-;;;   - QR algorithm (all eigenvalues)
-;;;   - Inverse iteration (eigenvector for given eigenvalue)
-;;;   - Eigenvalue decomposition
-;;;
-;;; This is Core code: pure (except where noted), total, assumes reasonable input.
-;;;
-;;; Dependencies (must be loaded by client in correct order):
-;;;   - prelude.ss
-;;;   - vec.ss
-;;;   - matrix.ss
-;;;   - matrix-decomp.ss (for QR decomposition)
-;;;
-;;; Do NOT load dependencies here to avoid redefinition issues.
+(doc 'module 'matrix-eigen
+     'description "Eigenvalue and Eigenvector Computation
 
-;;; ====
-;;; Constants
-;;; ====
+Algorithms for computing eigenvalues and eigenvectors:
+  - Power iteration (dominant eigenvalue)
+  - QR algorithm (all eigenvalues)
+  - Inverse iteration (eigenvector for given eigenvalue)
+  - Eigenvalue decomposition
 
-;;; Default tolerance for convergence tests
+This is Core code: pure (except where noted), total, assumes reasonable input.
+
+Dependencies (must be loaded by client in correct order):
+  - prelude.ss
+  - vec.ss
+  - matrix.ss
+  - matrix-decomp.ss (for QR decomposition)
+
+Do NOT load dependencies here to avoid redefinition issues.")
+
+(doc 'module 'constants
+     'description "Default tolerance and maximum iterations for eigenvalue computations")
 (define *eigen-tolerance* 1e-10)
-
-;;; Maximum iterations for iterative methods
 (define *eigen-max-iterations* 1000)
 
-;;; ====
-;;; Power Iteration
-;;; ====
+(doc 'section 'power-iteration
+     'description "Power iteration for finding dominant eigenvalue")
 
-;;; power-iteration : Matrix × [Vec] × [Nat] × [Num] → (eigenvalue × eigenvector) | Error
-;;;
-;;; Find the dominant eigenvalue (largest absolute value) and corresponding
-;;; eigenvector using the power method.
-;;;
-;;; Arguments:
-;;;   a       - Square matrix
-;;;   v0      - Initial guess vector (default: unit vector)
-;;;   max-iter - Maximum iterations (default: *eigen-max-iterations*)
-;;;   tol     - Convergence tolerance (default: *eigen-tolerance*)
-;;;
-;;; Returns: (eigenvalue . eigenvector) or error
-;;;
-;;; The power method iteratively computes A*v, normalizes, and repeats.
-;;; Converges to the eigenvector for the eigenvalue with largest |λ|.
+(doc power-iteration
+     'type (-> Matrix [Vec] [Nat] [Num] (or (cons Num Vec) Error))
+     'description "Find the dominant eigenvalue (largest absolute value) and corresponding eigenvector using the power method.
+
+The power method iteratively computes A*v, normalizes, and repeats.
+Converges to the eigenvector for the eigenvalue with largest |λ|."
+     'param '(a "Square matrix")
+     'param '(v0 "Initial guess vector (default: unit vector)")
+     'param '(max-iter "Maximum iterations")
+     'param '(tol "Convergence tolerance")
+     'returns "(eigenvalue . eigenvector) or error")
 (define (power-iteration a . opts)
   (let* ([n (matrix-rows a)]
          [m (matrix-cols a)])
@@ -86,11 +77,11 @@
                           (cons lambda-new v-new)
                           (power-iteration-loop a v-new (+ iter 1) max-iter tol lambda-new)))))))
 
-;;; ====
-;;; QR Algorithm
-;;; ====
+(doc 'section 'qr-algorithm
+     'description "QR algorithm for computing all eigenvalues")
 
-;;; qr-algorithm : Matrix × [Nat] × [Num] → Vec | Error
+(doc qr-algorithm
+     'type (-> Matrix [Nat] [Num] (or Vec Error)))
 ;;;
 ;;; Compute all eigenvalues using the QR algorithm.
 ;;;
@@ -460,11 +451,11 @@
                                                  (matrix-set! eigenvectors j i (vector-ref v-i j)))
                                              (loop (+ i 1))))))))])))))
 
-;;; ====
-;;; Symmetric Matrix Eigenvalue (more efficient)
-;;; ====
+(doc 'section 'symmetric-eigen
+     'description "More efficient eigenvalue decomposition for symmetric matrices")
 
-;;; symmetric-eigen : Matrix × [Nat] × [Num] → (eigenvalues . eigenvectors) | Error
+(doc symmetric-eigen
+     'type (-> Matrix [Nat] [Num] (or (cons Vec Matrix) Error)))
 ;;;
 ;;; Compute eigenvalue decomposition for symmetric matrices.
 ;;; Uses the fact that symmetric matrices have real eigenvalues and
