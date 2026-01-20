@@ -1,72 +1,51 @@
-;;; boundary/repl/fold-client.ss — Multi-Session Client for The Fold REPL
-;;;
-;;; Provides functions for Claude agents to interact with the REPL daemon
-;;; in a multi-tenant safe way. Each agent uses a unique session-id.
-;;;
-;;; Usage (from Claude Code):
-;;;   1. Generate a unique session-id (use UUID or agent ID)
-;;;   2. Use Write tool to write request to .fold-repl/requests/<session-id>.ss
-;;;   3. Use Read tool to read response from .fold-repl/responses/<session-id>.txt
-;;;
-;;; Request Format:
-;;;   ((session-id . "your-unique-id")
-;;;    (expression . <scheme-expression>)
-;;;    (timestamp . <unix-timestamp>))
-;;;
-;;; This file is for documentation and can be loaded for testing.
+(doc 'module 'fold-client)
+(doc 'description "Multi-Session Client for The Fold REPL - provides functions for Claude agents to interact with the REPL daemon")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+(doc 'note "For documentation and testing. Claude agents should use Write/Read tools directly")
 
-;;; ====
-;;; Client Configuration
-;;; ====
+(doc 'section 'client-configuration)
 
 (define *repl-dir* ".fold-repl")
 (define *requests-dir* ".fold-repl/requests")
 (define *responses-dir* ".fold-repl/responses")
 
-;;; ====
-;;; Request/Response Helpers
-;;; ====
+(doc 'section 'request-response-helpers)
 
-;;; make-request : String Scheme → String
-;;; Create a request S-expression string for the given session and expression.
+(doc make-request 'type "String Scheme → String")
+(doc make-request 'description "Create a request S-expression string for the given session and expression")
 (define (make-request session-id expr)
   (format "~s"
           `((session-id . ,session-id)
             (expression . ,expr)
             (timestamp . ,(time-second (current-time))))))
 
-;;; request-path : String → String
-;;; Get the file path for a session's request.
+(doc request-path 'type "String → String")
+(doc request-path 'description "Get the file path for a session's request")
 (define (request-path session-id)
   (string-append *requests-dir* "/" session-id ".ss"))
 
-;;; response-path : String → String
-;;; Get the file path for a session's response.
+(doc response-path 'type "String → String")
+(doc response-path 'description "Get the file path for a session's response")
 (define (response-path session-id)
   (string-append *responses-dir* "/" session-id ".txt"))
 
-;;; ====
-;;; Synchronous Client (for testing)
-;;; ====
+(doc 'section 'synchronous-client-for-testing)
 
-;;; fold-eval : String Scheme → String
-;;; Send a request to the daemon and wait for response.
-;;; NOTE: This is for testing only. Claude agents should use
-;;;       Write/Read tools directly for better control.
+(doc fold-eval 'type "String Scheme → String")
+(doc fold-eval 'description "Send a request to the daemon and wait for response")
+(doc fold-eval 'note "This is for testing only. Claude agents should use Write/Read tools directly for better control")
 (define (fold-eval session-id expr)
   (let ([req-path (request-path session-id)]
         [resp-path (response-path session-id)])
-       
-       ;; Clear any stale response
+
        (when (file-exists? resp-path)
              (delete-file resp-path))
-       
-       ;; Write request
+
        (call-with-output-file req-path
                               (lambda (p)
                                       (display (make-request session-id expr) p)))
-       
-       ;; Poll for response (max 30 seconds)
+
        (let loop ([attempts 300])
             (cond
              [(file-exists? resp-path)
@@ -76,32 +55,29 @@
              [(= attempts 0)
               "ERROR: Timeout waiting for response"]
              [else
-              (sleep (make-time 'time-duration 100000000 0))  ; 100ms
+              (sleep (make-time 'time-duration 100000000 0))
               (loop (- attempts 1))]))))
 
-;;; ====
-;;; Session Management
-;;; ====
+(doc 'section 'session-management)
 
-;;; generate-session-id : → String
-;;; Generate a unique session ID.
+(doc generate-session-id 'type "→ String")
+(doc generate-session-id 'description "Generate a unique session ID")
 (define (generate-session-id)
   (format "session-~a-~a"
           (time-second (current-time))
           (random 1000000)))
 
-;;; ====
-;;; Example Usage
-;;; ====
-;;;
-;;; ;; Create a session
-;;; (define my-session (generate-session-id))
-;;;
-;;; ;; Login (use MCP fold_login tool, or session-login! directly)
-;;; (fold-eval my-session '(session-login! my-session 'sonnet 'TestAgent))
-;;;
-;;; ;; Post to chat
-;;; (fold-eval my-session '(chat "Hello from my isolated session!"))
-;;;
-;;; ;; Check who I am
-;;; (fold-eval my-session '(who))
+(doc 'section 'example-usage)
+(doc 'example "
+;; Create a session
+(define my-session (generate-session-id))
+
+;; Login (use MCP fold_login tool, or session-login! directly)
+(fold-eval my-session '(session-login! my-session 'sonnet 'TestAgent))
+
+;; Post to chat
+(fold-eval my-session '(chat \"Hello from my isolated session!\"))
+
+;; Check who I am
+(fold-eval my-session '(who))
+")

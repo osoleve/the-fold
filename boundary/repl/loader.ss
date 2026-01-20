@@ -1,45 +1,34 @@
-;;; boundary/repl/loader.ss — Tracked loading with smart reload
-;;;
-;;; Provides load! for interactive development:
-;;;   (load! "path")  - Load file and track it
-;;;   (load!)         - Reload all tracked files in order
-;;;
-;;; Does NOT shadow Chez's load - use load! explicitly for tracking.
+(doc 'module 'loader)
+(doc 'description "Tracked loading with smart reload for interactive development")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+(doc 'note "Does NOT shadow Chez's load - use load! explicitly for tracking")
 
-;;; ====
-;;; State
-;;; ====
+(doc 'section 'state)
 
-;;; *loaded-files* : (List String)
-;;; Files loaded via load!, in load order. No duplicates.
+(doc *loaded-files* 'type "(List String)")
+(doc *loaded-files* 'description "Files loaded via load!, in load order. No duplicates")
 (define *loaded-files* '())
 
-;;; ====
-;;; Core Implementation
-;;; ====
+(doc 'section 'core-implementation)
 
-;;; normalize-path : String -> String
-;;; Normalize a file path for consistent tracking.
+(doc normalize-path 'type "String -> String")
+(doc normalize-path 'description "Normalize a file path for consistent tracking")
 (define (normalize-path path)
-  ;; For now, just use the path as-is
-  ;; Could expand to absolute path if needed
   path)
 
-;;; track-file! : String -> Void
-;;; Add file to tracking (at end if not present, or move to end if present).
+(doc track-file! 'type "String -> Void")
+(doc track-file! 'description "Add file to tracking (at end if not present, or move to end if present)")
 (define (track-file! path)
   (let ([norm (normalize-path path)])
-    ;; Remove if already present (we'll re-add at end)
     (set! *loaded-files*
           (filter (lambda (f) (not (string=? f norm)))
                   *loaded-files*))
-    ;; Add at end
     (set! *loaded-files*
           (append *loaded-files* (list norm)))))
 
-;;; load-with-error-handling : String -> Any
-;;; Load a file with graceful error handling.
-;;; Returns the result or prints error and returns #f.
+(doc load-with-error-handling 'type "String -> Any")
+(doc load-with-error-handling 'description "Load a file with graceful error handling. Returns the result or prints error and returns #f")
 (define (load-with-error-handling path)
   (guard (e [else
              (display (format "Error loading ~a: ~a\n" path
@@ -49,19 +38,15 @@
              #f])
     (load path)))
 
-;;; ====
-;;; Public API
-;;; ====
+(doc 'section 'public-api)
 
-;;; load! : [String] -> Any
-;;; Load and track a file, or reload all tracked files.
-;;;
-;;; (load! "path")  - Load file and track it for later reload
-;;; (load!)         - Reload all tracked files in order
+(doc load! 'type "[String] -> Any")
+(doc load! 'description "Load and track a file, or reload all tracked files")
+(doc load! 'example "(load! \"path\")  - Load file and track it for later reload")
+(doc load! 'example "(load!)         - Reload all tracked files in order")
 (define load!
   (case-lambda
     [()
-     ;; Reload all tracked files
      (if (null? *loaded-files*)
          (display "No files tracked. Use (load! \"path\") first.\n")
          (begin
@@ -73,14 +58,13 @@
             *loaded-files*)
            (display "Done.\n")))]
     [(path)
-     ;; Load and track
      (let ([result (load-with-error-handling path)])
        (when result
          (track-file! path))
        result)]))
 
-;;; loaded : -> Void
-;;; Show currently tracked files.
+(doc loaded 'type "-> Void")
+(doc loaded 'description "Show currently tracked files")
 (define (loaded)
   (if (null? *loaded-files*)
       (display "No files tracked.\n")
@@ -91,8 +75,8 @@
            (display (format "  ~a\n" path)))
          *loaded-files*))))
 
-;;; unload! : String -> Void
-;;; Remove a file from tracking (does not undefine its bindings).
+(doc unload! 'type "String -> Void")
+(doc unload! 'description "Remove a file from tracking (does not undefine its bindings)")
 (define (unload! path)
   (let ([norm (normalize-path path)])
     (set! *loaded-files*
@@ -100,15 +84,13 @@
                   *loaded-files*))
     (display (format "Untracked: ~a\n" norm))))
 
-;;; clear-loaded! : -> Void
-;;; Clear all tracked files.
+(doc clear-loaded! 'type "-> Void")
+(doc clear-loaded! 'description "Clear all tracked files")
 (define (clear-loaded!)
   (set! *loaded-files* '())
   (display "Cleared all tracked files.\n"))
 
-;;; ====
-;;; Loader Banner (respects *quiet* mode)
-;;; ====
+(doc 'section 'startup-banner)
 
 (unless (and (top-level-bound? '*quiet*) *quiet*)
   (display "Tracked loader ready.\n")

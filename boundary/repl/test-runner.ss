@@ -1,37 +1,28 @@
-;;; boundary/repl/test-runner.ss — Test discovery and runner
-;;;
-;;; Provides test-module for quick testing during development:
-;;;   (test-module "path/to/module.ss")  - Find and run associated tests
-;;;
-;;; Discovers tests using these patterns (in order):
-;;;   1. test-<name>.ss in same directory
-;;;   2. <name>-test.ss in same directory
-;;;   3. tests/test-<name>.ss in same directory
-;;;
-;;; This is Shell code: uses IO.
+(doc 'module 'test-runner)
+(doc 'description "Test discovery and runner for quick testing during development")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
 
-;;; ====
-;;; Path Utilities
-;;; ====
+(doc 'section 'path-utilities)
 
-;;; path-directory : String -> String
-;;; Extract directory from a path (everything before last /).
+(doc path-directory 'type "String -> String")
+(doc path-directory 'description "Extract directory from a path (everything before last /)")
 (define (path-directory path)
   (let ([idx (string-rindex path #\/)])
     (if idx
         (substring path 0 idx)
         ".")))
 
-;;; path-basename : String -> String
-;;; Extract filename from a path (everything after last /).
+(doc path-basename 'type "String -> String")
+(doc path-basename 'description "Extract filename from a path (everything after last /)")
 (define (path-basename path)
   (let ([idx (string-rindex path #\/)])
     (if idx
         (substring path (+ idx 1) (string-length path))
         path)))
 
-;;; path-stem : String -> String
-;;; Extract filename without extension.
+(doc path-stem 'type "String -> String")
+(doc path-stem 'description "Extract filename without extension")
 (define (path-stem path)
   (let* ([base (path-basename path)]
          [idx (string-rindex base #\.)])
@@ -39,8 +30,8 @@
         (substring base 0 idx)
         base)))
 
-;;; string-rindex : String Char -> Int | #f
-;;; Find last index of char in string.
+(doc string-rindex 'type "String Char -> Int | #f")
+(doc string-rindex 'description "Find last index of char in string")
 (define (string-rindex str char)
   (let loop ([i (- (string-length str) 1)])
     (cond
@@ -48,39 +39,35 @@
      [(char=? (string-ref str i) char) i]
      [else (loop (- i 1))])))
 
-;;; path-join : String String -> String
-;;; Join two path components.
+(doc path-join 'type "String String -> String")
+(doc path-join 'description "Join two path components")
 (define (path-join dir file)
   (if (string=? dir ".")
       file
       (string-append dir "/" file)))
 
-;;; ====
-;;; Test Discovery
-;;; ====
+(doc 'section 'test-discovery)
 
-;;; find-test-files : String -> (List String)
-;;; Find test files associated with a module.
-;;; Returns list of existing test file paths.
+(doc find-test-files 'type "String -> (List String)")
+(doc find-test-files 'description "Find test files associated with a module. Returns list of existing test file paths.")
 (define (find-test-files module-path)
+  (doc 'description "Discovers tests using these patterns (in order):
+  1. test-<name>.ss in same directory
+  2. <name>-test.ss in same directory
+  3. tests/test-<name>.ss subdirectory")
   (let* ([dir (path-directory module-path)]
          [stem (path-stem module-path)]
          [candidates (list
-                      ;; test-<name>.ss in same directory
                       (path-join dir (string-append "test-" stem ".ss"))
-                      ;; <name>-test.ss in same directory
                       (path-join dir (string-append stem "-test.ss"))
-                      ;; tests/test-<name>.ss subdirectory
                       (path-join (path-join dir "tests")
                                  (string-append "test-" stem ".ss")))])
     (filter file-exists? candidates)))
 
-;;; ====
-;;; Test Running
-;;; ====
+(doc 'section 'test-running)
 
-;;; run-test-file : String -> Boolean
-;;; Run a test file. Returns #t if successful, #f on error.
+(doc run-test-file 'type "String -> Boolean")
+(doc run-test-file 'description "Run a test file. Returns #t if successful, #f on error")
 (define (run-test-file path)
   (display (format "Running: ~a\n" path))
   (guard (e [else
@@ -93,18 +80,11 @@
     (display "  OK\n")
     #t))
 
-;;; ====
-;;; Public API
-;;; ====
+(doc 'section 'public-api)
 
-;;; test-module : String -> Void
-;;; Find and run tests associated with a module.
-;;;
-;;; Example:
-;;;   (test-module "boundary/bbs/ops.ss")
-;;;   ; Looks for: boundary/bbs/test-ops.ss
-;;;   ;            boundary/bbs/ops-test.ss
-;;;   ;            boundary/bbs/tests/test-ops.ss
+(doc test-module 'type "String -> Void")
+(doc test-module 'description "Find and run tests associated with a module")
+(doc test-module 'example "(test-module \"boundary/bbs/ops.ss\")")
 (define (test-module module-path)
   (let ([test-files (find-test-files module-path)])
     (cond
@@ -125,8 +105,8 @@
               [total (length results)])
           (display (format "Results: ~a/~a passed\n" passed total))))])))
 
-;;; test-dir : String -> Void
-;;; Find and run all test files in a directory.
+(doc test-dir 'type "String -> Void")
+(doc test-dir 'description "Find and run all test files in a directory")
 (define (test-dir dir-path)
   (let ([files (directory-list dir-path)])
     (let ([test-files (filter
@@ -146,9 +126,7 @@
                (run-test-file (path-join dir-path f)))
              test-files))))))
 
-;;; ====
-;;; Startup Banner (respects *quiet* mode)
-;;; ====
+(doc 'section 'startup-banner)
 
 (unless (and (top-level-bound? '*quiet*) *quiet*)
   (display "Test runner ready.\n")

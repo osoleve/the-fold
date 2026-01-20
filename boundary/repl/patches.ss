@@ -1,40 +1,19 @@
-;;; boundary/repl/patches.ss — The Fold Patch System
-;;;
-;;; Patches are loadable packages of functionality that extend The Fold.
-;;; Like fabric patches sewn onto cloth, software patches, or synth patches.
-;;;
-;;; Usage:
-;;;   (patches)              ; List available patches
-;;;   (apply-patch 'turtle)  ; Load a patch
-;;;   (patch-info 'turtle)   ; Show patch details
-;;;   (applied-patches)      ; List loaded patches
-;;;
-;;; Patch Manifest Format (in patches/<name>.ss):
-;;;   ((name . <symbol>)
-;;;    (description . <string>)
-;;;    (version . <string>)
-;;;    (provides . (<symbol> ...))    ; Functions/values provided
-;;;    (requires . (<symbol> ...))    ; Other patches needed first
-;;;    (files . (<path> ...)))        ; Files to load, in order
-;;;
-;;; This is Shell code: manages loading and state.
-
-;;; NOTE: string utilities provided by core/prelude.ss
 (load "core/base/prelude.ss")
 
-;;; ====
-;;; Configuration
-;;; ====
+(doc 'module 'patches)
+(doc 'description "The Fold Patch System - loadable packages that extend The Fold like fabric patches, software patches, or synth patches")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+
+(doc 'section 'configuration)
 
 (define *patches-dir* "patches")
-(define *applied-patches* '())  ; List of applied patch names
+(define *applied-patches* '())
 
-;;; ====
-;;; Patch Registry
-;;; ====
+(doc 'section 'patch-registry)
 
-;;; scan-patches : -> (List Symbol)
-;;; Scan the patches directory for available patches.
+(doc scan-patches 'type "-> (List Symbol)")
+(doc scan-patches 'description "Scan the patches directory for available patches")
 (define (scan-patches)
   (if (file-exists? *patches-dir*)
       (let ([files (directory-list *patches-dir*)])
@@ -47,8 +26,8 @@
             files))
       '()))
 
-;;; path-strip-extension : String -> String
-;;; Remove .ss extension from filename.
+(doc path-strip-extension 'type "String -> String")
+(doc path-strip-extension 'description "Remove .ss extension from filename")
 (define (path-strip-extension filename)
   (let ([len (string-length filename)])
        (if (and (>= len 3)
@@ -56,7 +35,7 @@
            (substring filename 0 (- len 3))
            filename)))
 
-;;; filter-map : (A -> B | #f) (List A) -> (List B)
+(doc filter-map 'type "(A -> B | #f) (List A) -> (List B)")
 (define (filter-map f lst)
   (let loop ([lst lst] [acc '()])
        (if (null? lst)
@@ -66,25 +45,19 @@
                     (loop (cdr lst) (cons result acc))
                     (loop (cdr lst) acc))))))
 
-;;; ====
-;;; Input Validation
-;;; ====
+(doc 'section 'input-validation)
 
-;;; valid-patch-name? : Symbol → Boolean
-;;; Patch names must contain only safe characters (no path separators or ..).
-;;; This prevents path traversal attacks in read-manifest.
+(doc valid-patch-name? 'type "Symbol -> Boolean")
+(doc valid-patch-name? 'description "Patch names must contain only safe characters (no path separators or ..). Prevents path traversal attacks in read-manifest")
 (define (valid-patch-name? name)
   (let* ([s (symbol->string name)]
          [len (string-length s)])
         (and (> len 0)
-             (<= len 64)  ; Reasonable max length
-             ;; No path separators or parent directory references
+             (<= len 64)
              (not (string-contains? s "/"))
              (not (string-contains? s "\\"))
              (not (string-contains? s ".."))
-             ;; Must start with letter
              (char-alphabetic? (string-ref s 0))
-             ;; Only alphanumeric, hyphen, underscore allowed
              (let loop ([i 0])
                   (if (>= i len)
                       #t
@@ -96,15 +69,12 @@
                                (loop (+ i 1))
                                #f)))))))
 
-;;; ====
-;;; Manifest Handling
-;;; ====
+(doc 'section 'manifest-handling)
 
-;;; read-manifest : Symbol -> Alist | #f
-;;; Read a patch manifest from the patches directory.
-;;; SECURITY: Validates patch name to prevent path traversal.
+(doc read-manifest 'type "Symbol -> Alist | #f")
+(doc read-manifest 'description "Read a patch manifest from the patches directory. Validates patch name to prevent path traversal")
+(doc read-manifest 'note "SECURITY: Validates patch name before constructing path")
 (define (read-manifest name)
-  ;; SECURITY: Validate patch name before constructing path
   (unless (valid-patch-name? name)
           (display (format "  WARNING: Invalid patch name rejected: ~s\n" name))
           (error 'read-manifest "Invalid patch name" name))
@@ -116,26 +86,23 @@
                                                 (read p))))
            #f)))
 
-;;; manifest-get : Alist Symbol Any -> Any
-;;; Get a field from a manifest with default.
+(doc manifest-get 'type "Alist Symbol Any -> Any")
+(doc manifest-get 'description "Get a field from a manifest with default")
 (define (manifest-get manifest key default)
   (let ([pair (assq key manifest)])
        (if pair (cdr pair) default)))
 
-;;; ====
-;;; Patch Loading
-;;; ====
+(doc 'section 'patch-loading)
 
-;;; patch-applied? : Symbol -> Bool
+(doc patch-applied? 'type "Symbol -> Bool")
 (define (patch-applied? name)
   (memq name *applied-patches*))
 
-;;; apply-patch : Symbol -> Bool
-;;; Load a patch by name. Returns #t on success.
-;;; SECURITY: Validates patch name to prevent path traversal.
+(doc apply-patch 'type "Symbol -> Bool")
+(doc apply-patch 'description "Load a patch by name. Returns #t on success. Validates patch name to prevent path traversal")
+(doc apply-patch 'note "SECURITY: Validates patch name early")
 (define (apply-patch name)
   (cond
-   ;; SECURITY: Validate patch name early
    [(not (valid-patch-name? name))
     (display (format "  ERROR: Invalid patch name: ~a\n" name))
     (display "  Patch names must be alphanumeric with hyphens/underscores only.\n")
@@ -152,20 +119,18 @@
               #f)
              (apply-patch-from-manifest name manifest)))]))
 
-;;; apply-patch-from-manifest : Symbol Alist -> Bool
+(doc apply-patch-from-manifest 'type "Symbol Alist -> Bool")
 (define (apply-patch-from-manifest name manifest)
   (let ([requires (manifest-get manifest 'requires '())]
         [files (manifest-get manifest 'files '())]
         [description (manifest-get manifest 'description "No description")])
-       
-       ;; Check dependencies
+
        (let ([missing (filter (lambda (dep) (not (patch-applied? dep))) requires)])
             (if (not (null? missing))
                 (begin
                  (display (format "  Missing dependencies: ~a\n" missing))
                  (display "  Apply them first, or use (apply-patch-recursive 'name)\n")
                  #f)
-                ;; Load files
                 (begin
                  (display (format "  Applying patch: ~a\n" name))
                  (display (format "  ~a\n" description))
@@ -181,8 +146,8 @@
                            (display "  ✗ Failed to load patch files\n")
                            #f))))))))
 
-;;; load-patch-files : (List String) -> Bool
-;;; Load a list of files in order.
+(doc load-patch-files 'type "(List String) -> Bool")
+(doc load-patch-files 'description "Load a list of files in order")
 (define (load-patch-files files)
   (guard (e [else
              (display (format "  Load error: ~a\n"
@@ -195,8 +160,8 @@
           files)
          #t))
 
-;;; apply-patch-recursive : Symbol -> Bool
-;;; Apply a patch and all its dependencies.
+(doc apply-patch-recursive 'type "Symbol -> Bool")
+(doc apply-patch-recursive 'description "Apply a patch and all its dependencies")
 (define (apply-patch-recursive name)
   (let ([manifest (read-manifest name)])
        (if (not manifest)
@@ -204,7 +169,6 @@
             (display (format "  ERROR: Patch '~a' not found.\n" name))
             #f)
            (let ([requires (manifest-get manifest 'requires '())])
-                ;; Apply dependencies first
                 (let ([deps-ok (fold-left
                                 (lambda (ok dep)
                                         (and ok
@@ -216,28 +180,24 @@
                          (apply-patch name)
                          #f))))))
 
-;;; ====
-;;; Namespace Integration
-;;; ====
+(doc 'section 'namespace-integration)
 
-;;; register-patch-symbols! : (List Symbol) -> void
-;;; Add patch-provided symbols to the global whitelist.
+(doc register-patch-symbols! 'type "(List Symbol) -> void")
+(doc register-patch-symbols! 'description "Add patch-provided symbols to the global whitelist")
 (define (register-patch-symbols! symbols)
   (when (top-level-bound? 'add-global!)
         (for-each add-global! symbols)))
 
-;;; ====
-;;; User Interface
-;;; ====
+(doc 'section 'user-interface)
 
-;;; patches : -> void
-;;; List all available patches with status.
+(doc patches 'type "-> void")
+(doc patches 'description "List all available patches with status")
 (define (patches)
   (display "\n")
   (display "╔══════════════════════════════════════════════════════════════╗\n")
   (display "║                    AVAILABLE PATCHES                        ║\n")
   (display "╚══════════════════════════════════════════════════════════════╝\n\n")
-  
+
   (let ([available (scan-patches)])
        (if (null? available)
            (display "  No patches found in patches/ directory.\n")
@@ -252,19 +212,19 @@
                           (display (format "  [~a] ~a\n" status name))
                           (display (format "      ~a\n" desc))))
             available)))
-  
+
   (display "\n")
   (display "  Use (apply-patch 'name) to load a patch.\n")
   (display "  Use (apply-patch-recursive 'name) to load with dependencies.\n")
   (display "  Use (patch-info 'name) for details.\n\n"))
 
-;;; applied-patches : -> (List Symbol)
-;;; Return list of currently applied patches.
+(doc applied-patches 'type "-> (List Symbol)")
+(doc applied-patches 'description "Return list of currently applied patches")
 (define (applied-patches)
   *applied-patches*)
 
-;;; patch-info : Symbol -> void
-;;; Display detailed information about a patch.
+(doc patch-info 'type "Symbol -> void")
+(doc patch-info 'description "Display detailed information about a patch")
 (define (patch-info name)
   (let ([manifest (read-manifest name)])
        (if (not manifest)
@@ -275,33 +235,31 @@
             (when (patch-applied? name)
                   (display "[APPLIED] "))
             (display "─────────────────────────────────────\n")
-            
+
             (display (format "│ ~a\n"
                              (manifest-get manifest 'description "No description")))
             (display (format "│ Version: ~a\n"
                              (manifest-get manifest 'version "unknown")))
-            
+
             (let ([requires (manifest-get manifest 'requires '())])
                  (unless (null? requires)
                          (display (format "│ Requires: ~a\n" requires))))
-            
+
             (let ([provides (manifest-get manifest 'provides '())])
                  (display (format "│ Provides: ~a functions\n" (length provides)))
                  (when (< (length provides) 20)
                        (display (format "│   ~a\n" provides))))
-            
+
             (let ([files (manifest-get manifest 'files '())])
                  (display (format "│ Files: ~a\n" (length files)))
                  (for-each
                   (lambda (f) (display (format "│   ~a\n" f)))
                   files))
-            
+
             (display "└────────────────────────────────────────────────────\n")))))
 
-;;; ====
-;;; Convenience
-;;; ====
+(doc 'section 'convenience)
 
-;;; patch : Symbol -> Bool
-;;; Alias for apply-patch (shorter to type).
+(doc patch 'type "Symbol -> Bool")
+(doc patch 'description "Alias for apply-patch (shorter to type)")
 (define patch apply-patch)

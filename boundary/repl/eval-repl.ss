@@ -1,62 +1,42 @@
-;;; boundary/repl/eval-repl.ss — Typed Evaluation REPL Commands
-;;;
-;;; Provides REPL commands for the compilation pipeline:
-;;;   (fold-eval expr)     - Evaluate a Fold expression
-;;;   (fold-type expr)     - Type-check and show type
-;;;   (fold-parse str)     - Parse a string and show AST
-;;;   (fold-compile str)   - Full pipeline with diagnostics
-;;;
-;;; All errors display with source location context.
-;;;
-;;; Dependencies:
-;;;   - core/compile.ss (the compilation pipeline)
-;;;   - core/error.ss (error formatting)
-
-;;; ====
-;;; Load Dependencies
-;;; ====
-
-;; Ensure core is in path
 (source-directories (cons "core" (source-directories)))
 
 (load "core/lang/compile.ss")
 (load "core/base/error.ss")
 
-;;; ====
-;;; Error Display with Source Context
-;;; ====
+(doc 'module 'eval-repl)
+(doc 'description "Typed Evaluation REPL Commands - provides REPL commands for the compilation pipeline")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+(doc 'note "All errors display with source location context")
 
-;;; Current source being processed (for error display)
+(doc 'section 'error-display-with-source-context)
+
+(doc *current-source* 'description "Current source being processed (for error display)")
 (define *current-source* #f)
 
-;;; display-fold-error : Result × String → void
-;;; Display an error with source context if available.
+(doc display-fold-error 'type "Result × String → void")
+(doc display-fold-error 'description "Display an error with source context if available")
 (define (display-fold-error result source)
   (cond
    [(result-error? result)
     (let* ([phase (result-phase result)]
            [error-type (result-error-type result)]
            [details (result-error-details result)]
-           ;; Find span in details (could be first or second element)
            [span (find-span-in-details details)]
            [other-details (remove-span-from-details details)])
-          ;; Display location
           (when (and span (span? span) (> (span-line span) 0))
                 (display (format-span span))
                 (display ": "))
-          ;; Display phase and error type
           (display "[")
           (display phase)
           (display "] ")
           (display (lookup-error-message phase error-type))
-          ;; Display additional details
           (when (pair? other-details)
                 (display ": ")
                 (if (pair? (cdr other-details))
                     (write other-details)
                     (write (car other-details))))
           (newline)
-          ;; Display source context
           (when (and span (span? span) (> (span-line span) 0) source)
                 (display-source-context source (span-line span) (span-column span))))]
    [else
@@ -64,7 +44,7 @@
     (write result)
     (newline)]))
 
-;;; find-span-in-details : List → Span | #f
+(doc find-span-in-details 'type "List → Span | #f")
 (define (find-span-in-details details)
   (cond
    [(null? details) #f]
@@ -72,16 +52,14 @@
    [(pair? (cdr details)) (find-span-in-details (cdr details))]
    [else #f]))
 
-;;; remove-span-from-details : List → List
+(doc remove-span-from-details 'type "List → List")
 (define (remove-span-from-details details)
   (filter (lambda (x) (not (span? x))) details))
 
-;;; ====
-;;; Parse Command
-;;; ====
+(doc 'section 'parse-command)
 
-;;; fold-parse-string : String → void
-;;; Parse a string and display the AST or error.
+(doc fold-parse-string 'type "String → void")
+(doc fold-parse-string 'description "Parse a string and display the AST or error")
 (define (fold-parse-string input)
   (set! *current-source* input)
   (let ([result (adapt-parse input)])
@@ -91,8 +69,7 @@
             (pretty-print (result-value result)))
            (display-fold-error result input))))
 
-;;; fold-parse : Any → void
-;;; Wrapper that handles both strings and quoted expressions.
+(doc fold-parse 'description "Wrapper that handles both strings and quoted expressions")
 (define-syntax fold-parse
   (syntax-rules ()
                 [(_ str)
@@ -102,12 +79,10 @@
                       (display "AST:\n")
                       (pretty-print 'str)))]))
 
-;;; ====
-;;; Type Check Command
-;;; ====
+(doc 'section 'type-check-command)
 
-;;; fold-type-string : String → void
-;;; Type-check a string and display the type or error.
+(doc fold-type-string 'type "String → void")
+(doc fold-type-string 'description "Type-check a string and display the type or error")
 (define (fold-type-string input)
   (set! *current-source* input)
   (let ([result (compile input 'to 'infer)])
@@ -118,7 +93,6 @@
                 (if (and (pair? context)
                          (pair? (car context))
                          (eq? (caar context) 'substitution))
-                    ;; Extract and apply substitution to get final type
                     (let ([subst (cadar context)])
                          (write typed-result)
                          (newline))
@@ -127,19 +101,16 @@
                      (newline))))
            (display-fold-error result input))))
 
-;;; fold-type : Any → void
-;;; Type-check an expression.
+(doc fold-type 'description "Type-check an expression")
 (define-syntax fold-type
   (syntax-rules ()
                 [(_ expr)
                  (fold-type-string (format "~s" 'expr))]))
 
-;;; ====
-;;; Eval Command
-;;; ====
+(doc 'section 'eval-command)
 
-;;; fold-eval-string : String [× Nat] → void
-;;; Evaluate a string and display the result or error.
+(doc fold-eval-string 'type "String [× Nat] → void")
+(doc fold-eval-string 'description "Evaluate a string and display the result or error")
 (define (fold-eval-string input . fuel-arg)
   (set! *current-source* input)
   (let* ([fuel (if (null? fuel-arg) 10000 (car fuel-arg))]
@@ -157,8 +128,7 @@
          [else
           (display-fold-error result input)])))
 
-;;; fold-eval : Any → void
-;;; Evaluate an expression.
+(doc fold-eval 'description "Evaluate an expression")
 (define-syntax fold-eval
   (syntax-rules ()
                 [(_ expr)
@@ -166,12 +136,10 @@
                 [(_ expr fuel)
                  (fold-eval-string (format "~s" 'expr) fuel)]))
 
-;;; ====
-;;; Full Pipeline Command
-;;; ====
+(doc 'section 'full-pipeline-command)
 
-;;; fold-compile-string : String → void
-;;; Run full pipeline with diagnostics at each phase.
+(doc fold-compile-string 'type "String → void")
+(doc fold-compile-string 'description "Run full pipeline with diagnostics at each phase")
 (define (fold-compile-string input)
   (set! *current-source* input)
   (display "─── Parse ───\n")
@@ -205,16 +173,16 @@
             (display "  ✗ Parse error:\n")
             (display-fold-error parse-result input)))))
 
-;;; fold-compile : Any → void
+(doc fold-compile 'description "Full pipeline with diagnostics")
 (define-syntax fold-compile
   (syntax-rules ()
                 [(_ expr)
                  (fold-compile-string (format "~s" 'expr))]))
 
-;;; ====
-;;; Help
-;;; ====
+(doc 'section 'help)
 
+(doc fold-eval-help 'type "-> void")
+(doc fold-eval-help 'description "Display help for fold evaluation commands")
 (define (fold-eval-help)
   (display "\n")
   (display "  ┌────────────────────────────────────────────────────────────────────┐\n")

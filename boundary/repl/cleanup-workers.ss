@@ -1,6 +1,8 @@
-;;; boundary/repl/cleanup-workers.ss — One-shot cleanup of stale worker processes
-;;;
-;;; Usage: scheme --script boundary/repl/cleanup-workers.ss
+(doc 'module 'cleanup-workers)
+(doc 'description "One-shot cleanup of stale worker processes")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+(doc 'usage "scheme --script boundary/repl/cleanup-workers.ss")
 
 (load "boundary/repl/repl-daemon-mcp.ss")
 
