@@ -1,54 +1,17 @@
-;;; core/fp/control/effects.ss --- Algebraic Effect Handlers for The Fold
-;;;
-;;; Algebraic effects provide a structured way to handle side effects.
-;;; Effects are declared, used in computations, and handled by interpreters.
-;;;
-;;; This is Core code: pure, total, assumes reasonable input.
-;;;
-;;; Features:
-;;;   - Effect signatures: define operations with parameter/result types
-;;;   - Eff monad: Effectful computations
-;;;   - Effect handlers: Deep and shallow semantics
-;;;   - Effect rows/unions: Track multiple effects
-;;;   - Common effects: State, Reader, Writer, Exception, NonDet, Async
-;;;   - Handler composition and nesting
-;;;   - Type-safe effect constraints (runtime representation)
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;   - fp/combinators.ss
-;;;   - fp/continuation.ss
-;;;
-;;; Design Notes:
-;;;   We use a free monad-like encoding where effects are operations
-;;;   that can be interpreted by handlers. Effect rows are represented
-;;;   as lists of effect labels, enabling effect polymorphism.
-;;;
-;;;   Deep handlers handle the entire continuation recursively.
-;;;   Shallow handlers only handle the immediate continuation.
-
 (load "core/base/prelude.ss")
 (load "lattice/fp/meta/combinators.ss")
 (load "lattice/fp/control/continuation.ss")
 
-;;; ====
-;;; Effect Signature Representation
-;;; ====
-;;;
-;;; An effect signature defines a set of operations with their
-;;; parameter and result types. At runtime, we represent this
-;;; as structured data for introspection and type checking.
-;;;
-;;; Effect signature: (effect-sig name (list of operations))
-;;; Operation: (op name param-type result-type)
-;;;
-;;; Example:
-;;;   (define-effect-sig 'State
-;;;     (list (make-operation 'get 'Unit 's)
-;;;           (make-operation 'put 's 'Unit)))
+(doc 'module 'effects)
+(doc 'description "Algebraic effect handlers for The Fold. Provides structured side effect handling with effect signatures, effect handlers (deep and shallow), effect rows, and common effects (State, Reader, Writer, Exception, NonDet, Async).")
+(doc 'layer 'lattice)
+(doc 'note "Uses a free monad-like encoding where effects are operations interpreted by handlers. Effect rows enable effect polymorphism. Deep handlers handle the entire continuation recursively, shallow handlers only handle the immediate continuation.")
 
 ;;; make-effect-sig : Symbol -> (List Operation) -> EffectSig
 (define (make-effect-sig name operations)
+  (doc 'description "Create an effect signature defining a set of operations with their parameter and result types. At runtime this is structured data for introspection and type checking.")
+  (doc 'type '(-> Symbol (List Operation) EffectSig))
+  (doc 'example "(make-effect-sig 'State (list (make-operation 'get 'Unit 's) (make-operation 'put 's 'Unit)))")
   (list 'effect-sig name operations))
 
 ;;; effect-sig? : Any -> Boolean

@@ -1,38 +1,10 @@
-;;; fabric/stitches/fp/dsl.ss — DSL Builder Utilities
-;;;
-;;; High-level utilities for building domain-specific languages.
-;;; Combines Free monads, interpreters, and compositional patterns.
-;;;
-;;; This is Core code: pure, total, assumes reasonable input.
-;;;
-;;; Features:
-;;;   - DSL definition macros/helpers
-;;;   - Interpreter composition
-;;;   - Command pattern implementation
-;;;   - Expression builders
-;;;   - Smart constructors
-;;;   - DSL combinators
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;   - fp/free.ss
-;;;   - fp/effects.ss
-
 (load "core/base/prelude.ss")
 (load "lattice/fp/control/free.ss")
 (load "lattice/fp/control/effects.ss")
 
-;;; ====
-;;; Command/Instruction Definitions
-;;; ====
-;;;
-;;; A DSL is defined by its instruction set.
-;;; Each instruction has a tag, parameters, and a continuation.
-;;; This follows the Free monad command pattern:
-;;;   (tag payload continuation)
-;;; where continuation receives the result of interpreting the instruction.
-
-;;; make-instruction : Symbol -> Any -> Continuation -> Instruction
+(doc 'module 'dsl)
+(doc 'description "Command/Instruction Definitions A DSL is defined by its instruction set. Each instruction has a tag, parameters, and a continuation. This follows the Free monad command pattern: (tag payload continuation)")
+(doc 'layer 'lattice)
 (define (make-instruction tag payload k)
   (list tag payload k))
 

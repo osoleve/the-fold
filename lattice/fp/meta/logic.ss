@@ -1,35 +1,10 @@
-;;; fabric/stitches/fp/logic.ss — Logic Programming and Unification
-;;;
-;;; Implements core logic programming primitives including unification,
-;;; substitutions, logic variables, and goal combinators. This enables
-;;; building constraint solvers and relational programs.
-;;;
-;;; This is Core code: pure, total, assumes reasonable input.
-;;;
-;;; Features:
-;;;   - Logic variables and substitutions
-;;;   - Unification algorithm
-;;;   - Goal monad (success/failure with multiple solutions)
-;;;   - Goal combinators (conj, disj, conde, fresh)
-;;;   - Reification (converting logic vars to values)
-;;;   - Relational arithmetic
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;   - fp/combinators.ss
-;;;   - fp/stream.ss
-
 (load "core/base/prelude.ss")
 (load "lattice/fp/meta/combinators.ss")
 (load "lattice/fp/data/stream.ss")
 
-;;; ====
-;;; Logic Variables
-;;; ====
-;;;
-;;; Logic variables are placeholders that can be unified with values.
-;;; Each variable has a unique identifier.
-
+(doc 'module 'logic)
+(doc 'description "Logic Variables Logic variables are placeholders that can be unified with values. Each variable has a unique identifier.")
+(doc 'layer 'lattice)
 (define *lvar-counter* 0)
 
 ;;; make-lvar : Symbol → LVar

@@ -1,51 +1,9 @@
-;;; lattice/fp/data/tree-zipper.ss — Tree Zipper for Rose Trees
-;;;
-;;; A zipper for rose trees (n-ary trees) enabling efficient navigation
-;;; and local modification. The zipper maintains a focus on a subtree
-;;; along with a path (context) that enables reconstruction.
-;;;
-;;; This is Core code: pure, total, assumes reasonable input.
-;;;
-;;; Rose tree structure:
-;;;   (Tree a) = Node a [Tree a]
-;;;   A node with a label and list of children.
-;;;
-;;; Tree zipper structure:
-;;;   (TreeZipper a) = (Tree a, [Crumb a])
-;;;   where Crumb a = (a, [Tree a], [Tree a])
-;;;     - parent label
-;;;     - left siblings (reversed, closest first)
-;;;     - right siblings
-;;;
-;;; Features:
-;;;   - Tree construction and inspection
-;;;   - Navigation (up, down-left, down-right, left-sibling, right-sibling)
-;;;   - Modification (get, set, modify, insert-child, delete)
-;;;   - Path tracking and reconstruction
-;;;   - Comonad instance
-;;;
-;;; References:
-;;;   - Huet, "The Zipper" (1997) JFP 7(5):549-554
-;;;   - Conor McBride, "Clowns to the Left of me, Jokers to the Right"
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;   - combinators.ss (for Maybe)
-
 (load "core/base/prelude.ss")
 (load "lattice/fp/meta/combinators.ss")
 
-;;; ====
-;;; Rose Tree Type
-;;; ====
-;;;
-;;; A rose tree (multi-way tree) consists of a node value and
-;;; a list of children (which are themselves trees).
-;;;
-;;; Tree a = Node a [Tree a]
-
-;;; tree-tag : Symbol
-;;; Tag for tree data type.
+(doc 'module 'tree-zipper)
+(doc 'description "Rose Tree Type A rose tree (multi-way tree) consists of a node value and a list of children (which are themselves trees). Tree a = Node a [Tree a] tree-tag : Symbol")
+(doc 'layer 'lattice)
 (define tree-tag 'rose-tree)
 
 ;;; make-tree : a x (List (Tree a)) -> (Tree a)

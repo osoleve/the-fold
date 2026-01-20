@@ -1,37 +1,9 @@
-;;; fabric/stitches/fp/stream.ss — Lazy Streams and Generators
-;;;
-;;; Lazy streams enable infinite sequences and demand-driven evaluation.
-;;; This is useful for processing large or infinite data sets efficiently.
-;;;
-;;; This is Core code: pure, total, assumes reasonable input.
-;;;
-;;; Features:
-;;;   - Lazy stream type (thunks for delayed computation)
-;;;   - Stream constructors (cons, iterate, repeat, cycle)
-;;;   - Stream transformers (map, filter, take, drop)
-;;;   - Stream combinators (zip, interleave, merge)
-;;;   - Unfold and generators
-;;;   - Memoized streams
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;   - fp/combinators.ss
-
 (load "core/base/prelude.ss")
 (load "lattice/fp/meta/combinators.ss")
 
-;;; ====
-;;; Stream Type
-;;; ====
-;;;
-;;; A stream is either:
-;;;   - stream-nil: the empty stream
-;;;   - (stream-cons head thunk): head value with lazy tail
-;;;
-;;; The thunk is a nullary procedure that, when called, produces
-;;; the rest of the stream.
-
-;;; stream-nil : (Stream α)
+(doc 'module 'stream)
+(doc 'description "Stream Type A stream is either: - stream-nil: the empty stream - (stream-cons head thunk): head value with lazy tail The thunk is a nullary procedure that, when called, produces")
+(doc 'layer 'lattice)
 (define stream-nil '(stream-nil))
 
 ;;; stream-nil? : (Stream α) → Bool

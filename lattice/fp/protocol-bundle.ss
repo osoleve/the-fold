@@ -1,48 +1,8 @@
-;;; lattice/fp/protocol-bundle.ss — Protocol Bundle System
-;;;
-;;; Reduces boilerplate when implementing multiple related protocols for a type.
-;;; Enables registering 6+ protocol implementations with a single call.
-;;;
-;;; Usage:
-;;;   ;; Define a bundle of related protocols (metadata only)
-;;;   (define-protocol-bundle body-ops
-;;;     ((body-pos body-set-pos) "pos")
-;;;     ((body-vel body-set-vel) "vel")
-;;;     ((body-mass body-set-mass) "mass"))
-;;;
-;;;   ;; Derive from naming convention: <prefix>-<field>, <prefix>-with-<field>
-;;;   (derive-bundle! body-ops 'rigid-body-2d rigid-body)
-;;;
-;;;   ;; Derive with overrides for semantic exceptions
-;;;   (derive-bundle! body-ops 'particle particle
-;;;     ("mass" (lambda (p) 1.0) (lambda (p m) p)))
-;;;
-;;;   ;; Explicit implementation (when convention doesn't apply)
-;;;   (implement-bundle! body-ops 'custom-body
-;;;     ("pos" custom-get-pos custom-set-pos)
-;;;     ("vel" custom-get-vel custom-set-vel)
-;;;     ("mass" custom-get-mass custom-set-mass))
-;;;
-;;; Design Principles:
-;;;   - Bundles are metadata: protocols must be defined separately via define-protocol
-;;;   - derive-bundle! uses naming conventions for minimal boilerplate
-;;;   - implement-bundle! provides explicit control when conventions don't apply
-;;;   - Compile-time symbol construction via syntax-case (not runtime eval)
-;;;
-;;; Dependencies:
-;;;   - lattice/fp/protocol.ss
-
 (load "lattice/fp/protocol.ss")
 
-;;; ====
-;;; Bundle Data Structures
-;;; ====
-
-;;; A bundle is metadata describing a set of protocol pairs (getter/setter).
-;;; Structure: (protocol-bundle name (slot ...))
-;;; Each slot: (bundle-slot getter-proto setter-proto label)
-
-;;; make-protocol-bundle : Symbol × (List Slot) → Bundle
+(doc 'module 'protocol-bundle)
+(doc 'description "Bundle Data Structures A bundle is metadata describing a set of protocol pairs (getter/setter). Structure: (protocol-bundle name (slot ...)) Each slot: (bundle-slot getter-proto setter-proto label) make-protocol-bundle : Symbol × (List Slot) → Bundle")
+(doc 'layer 'lattice)
 (define (make-protocol-bundle name slots)
   (list 'protocol-bundle name slots))
 

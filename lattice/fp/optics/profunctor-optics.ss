@@ -1,57 +1,11 @@
-;;; lattice/fp/optics/profunctor-optics.ss — Profunctor Optics
-;;;
-;;; An abstract encoding of optics where optics are polymorphic functions
-;;; `p a b -> p s t` constrained by profunctor type classes. This approach:
-;;;
-;;;   - Enables automatic optic type inference via constraints
-;;;   - Provides elegant composition (just function composition)
-;;;   - Offers a stronger theoretical foundation
-;;;
-;;; The profunctor hierarchy mirrors the optic hierarchy:
-;;;
-;;;   Profunctor           → Iso (dimap)
-;;;   Strong Profunctor    → Lens (pfirst, psecond)
-;;;   Choice Profunctor    → Prism (pleft, pright)
-;;;   Strong + Choice      → Affine
-;;;
-;;; This module uses dictionary-passing style for type classes, consistent
-;;; with the rest of lattice/fp.
-;;;
-;;; This is Core code: pure, total, assumes reasonable input.
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;   - fp/meta/combinators.ss
-;;;   - fp/templates.ss (for Maybe, Either)
-;;;   - fp/optics/optics.ss (for concrete optic conversion)
-
 (load "core/base/prelude.ss")
 (load "lattice/fp/meta/combinators.ss")
 (load "lattice/fp/templates.ss")
 (load "lattice/fp/optics/optics.ss")
 
-;;; ============================================================
-;;; Part 1: Profunctor Type Class
-;;; ============================================================
-;;;
-;;; A profunctor is a bifunctor that is contravariant in its first
-;;; argument and covariant in its second:
-;;;
-;;;   class Profunctor p where
-;;;     dimap :: (a' -> a) -> (b -> b') -> p a b -> p a' b'
-;;;     lmap  :: (a' -> a) -> p a b -> p a' b
-;;;     rmap  :: (b -> b') -> p a b -> p a b'
-;;;
-;;; Laws:
-;;;   - dimap id id = id
-;;;   - dimap (f . g) (h . k) = dimap g h . dimap f k
-;;;
-;;; We represent profunctor dictionaries as tagged lists with the
-;;; essential operations.
-
-;;; make-profunctor : (dimap) -> Profunctor p
-;;; Create a profunctor dictionary from dimap.
-;;; lmap and rmap are derived: lmap f = dimap f id, rmap g = dimap id g
+(doc 'module 'profunctor-optics)
+(doc 'description "Part 1: Profunctor Type Class A profunctor is a bifunctor that is contravariant in its first argument and covariant in its second: class Profunctor p where dimap :: (a' -> a) -> (b -> b') -> p a b -> p a' b'")
+(doc 'layer 'lattice)
 (define (make-profunctor dimap-fn)
   (list 'profunctor
         dimap-fn

@@ -1,42 +1,9 @@
-;;; fabric/stitches/fp/free.ss — Free Monad
-;;;
-;;; The Free monad allows building monads from any functor. This enables
-;;; defining DSLs as data structures that can be interpreted in multiple ways.
-;;;
-;;; Free f a = Pure a | Free (f (Free f a))
-;;;
-;;; Given a functor f, Free f is automatically a monad. This is powerful
-;;; for building embedded DSLs: define your language as a functor, then
-;;; get monadic composition for free.
-;;;
-;;; This is Core code: pure, total, assumes reasonable input.
-;;;
-;;; Features:
-;;;   - Free monad construction (pure-free, free)
-;;;   - Monad operations (free-bind, free-map)
-;;;   - Interpreters (fold-free, iter-free)
-;;;   - Lifting into Free (lift-free)
-;;;   - Example DSL patterns
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;   - fp/combinators.ss
-
 (load "core/base/prelude.ss")
 (load "lattice/fp/meta/combinators.ss")
 
-;;; ====
-;;; Free Monad Representation
-;;; ====
-;;;
-;;; Free f a is either:
-;;;   ('pure a)                    — A pure value
-;;;   ('free functor-value)        — A suspended computation
-;;;
-;;; Where functor-value is (f (Free f a))
-
-;;; pure-free : a -> Free f a
-;;; Inject a pure value into Free.
+(doc 'module 'free)
+(doc 'description "Free Monad Representation Free f a is either: ('pure a)                    — A pure value ('free functor-value)        — A suspended computation Where functor-value is (f (Free f a))")
+(doc 'layer 'lattice)
 (define (pure-free x)
   (list 'pure x))
 

@@ -1,32 +1,8 @@
-;;; lattice/fp/pretty-instances.ss — Pretty Type Class Instances for Lattice Types
-;;; @module pretty-instances
-;;; @requires pretty-class linalg numeric algebra
-;;;
-;;; Provides Pretty type class instances for:
-;;;   - Vectors (Vec, Vec2, Vec3, Vec4)
-;;;   - Matrices
-;;;   - Complex numbers
-;;;   - Polynomials
-;;;   - Symbolic expressions
-;;;
-;;; This module extends the core Pretty type class to lattice types,
-;;; enabling unified pretty-printing across the system.
-;;;
-;;; Dependencies:
-;;;   - core/util/pretty-class.ss
-;;;   - Various lattice modules
-
 (load "core/util/pretty-class.ss")
 
-;;; ====
-;;; Vec2 Pretty (tagged list: (vec2 x y))
-;;; ====
-;;;
-;;; Note: Scheme vectors use scheme-vec-pretty from core/util/pretty-class.ss
-;;; Vec2/Vec3 are tagged lists like (vec2 x y), not Scheme vectors.
-
-;;; vec2-pretty : Vec2 → Doc
-;;; Pretty-print a 2D vector as [x, y]
+(doc 'module 'pretty-instances)
+(doc 'description "Vec2 Pretty (tagged list: (vec2 x y)) Note: Scheme vectors use scheme-vec-pretty from core/util/pretty-class.ss Vec2/Vec3 are tagged lists like (vec2 x y), not Scheme vectors. vec2-pretty : Vec2 → Doc Pretty-print a 2D vector as [x, y]")
+(doc 'layer 'lattice)
 (define (vec2-pretty v)
   (brackets
    (<> (text (number->string (cadr v)))
