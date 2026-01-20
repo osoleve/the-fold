@@ -173,17 +173,17 @@
 (define (<//> d1 d2)
   (<> d1 (<> linebreak d2)))
 
-(define (nest n doc)
+(define (nest n d)
   (doc 'type (-> Nat Doc Doc))
   (doc 'description "Increase indentation by n spaces for following lines.")
   (doc 'export #t)
-  (doc-nest n doc))
+  (doc-nest n d))
 
-(define (group doc)
+(define (group d)
   (doc 'type (-> Doc Doc))
   (doc 'description "Try to flatten document to single line if it fits within page width.")
   (doc 'export #t)
-  (doc-group doc))
+  (doc-group d))
 
 ;;; align : Doc → Doc
 (define (align doc)
@@ -259,11 +259,11 @@
 
 (doc 'section 'bracketing-combinators)
 
-(define (enclose left right doc)
+(define (enclose left right d)
   (doc 'type (-> Doc Doc Doc Doc))
   (doc 'description "Enclose a document between left and right brackets.")
   (doc 'export #t)
-  (<> left (<> doc right)))
+  (<> left (<> d right)))
 
 ;;; parens : Doc → Doc
 (define (parens doc)
@@ -427,17 +427,17 @@
                      acc))]
         [else (apply string-append (reverse acc))])))
 
-(define (pretty width doc)
+(define (pretty width d)
   (doc 'type (-> Nat Doc String))
   (doc 'description "Render a document to a string with the given page width.")
   (doc 'export #t)
-  (sdoc->string (best width 0 doc)))
+  (sdoc->string (best width 0 d)))
 
-(define (pretty-print width doc)
+(define (pretty-print width d)
   (doc 'type (-> Nat Doc Void))
   (doc 'description "Print a document to stdout with the given page width.")
   (doc 'export #t)
-  (display (pretty width doc))
+  (display (pretty width d))
   (newline))
 
 (doc 'section 'default-width)
@@ -447,11 +447,11 @@
 (doc *default-width* 'export #t)
 (define *default-width* 80)
 
-(define (pp doc)
+(define (pp d)
   (doc 'type (-> Doc String))
   (doc 'description "Pretty-print a document using the default width.")
   (doc 'export #t)
-  (pretty *default-width* doc))
+  (pretty *default-width* d))
 
 ;;; pprint : Doc → Void
 (define (pprint doc)

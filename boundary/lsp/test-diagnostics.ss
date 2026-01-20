@@ -330,8 +330,8 @@
             
             (define-test skip-to-newline-no-newline
               (let ([result (skip-to-newline "; comment" 0)])
-                   ;; Should go to end + 1
-                   (assert-equal 10 result)))
+                   ;; Should return len when no newline found (doc: "or len if no newline found")
+                   (assert-equal 9 result)))
             
             (define-test skip-to-newline-middle
               (let ([result (skip-to-newline "abc; comment\ndef" 3)])
