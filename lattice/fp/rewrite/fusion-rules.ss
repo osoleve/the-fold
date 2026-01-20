@@ -29,13 +29,34 @@
 (load "lattice/fp/rewrite/engine.ss")
 (load "lattice/fp/rewrite/laws.ss")
 
-;;; ====
-;;; Map-Map Fusion
-;;; ====
+(doc 'module 'rewrite/fusion-rules)
+(doc 'description "Fusion Rewrite Rules")
+(doc 'layer 'lattice)
 
-;;; map-map-fuse : map f (map g xs) = map (compose f g) xs
-;;; Two consecutive maps fuse into one map with composed function.
-;;; Eliminates intermediate list allocation.
+(doc 'description "Fusion rules for combining traversals into single passes.
+These rules eliminate intermediate data structures by fusing
+consecutive operations (deforestation/short-cut fusion).
+
+Key Fusion Categories:
+  - map-map fusion: Combine consecutive maps into single map
+  - filter-map fusion: Fuse filter with map into filter-map
+  - fold-map fusion: Absorb map into fold's combining function
+  - flatMap fusion: Fuse flatten/concat with map
+  - stream fusion: Fuse stream operations
+
+Cycle Prevention:
+  All rules are strictly forward-directed (unfused -> fused).
+  The fused form is canonical; no reverse rules exist.
+  This ensures termination and prevents oscillation.
+
+This is Lattice code: pure, total, assumes reasonable input.")
+
+(doc 'section "Map-Map Fusion")
+
+(doc map-map-fuse 'description "map f (map g xs) = map (compose f g) xs
+Two consecutive maps fuse into one map with composed function.
+Eliminates intermediate list allocation.")
+
 (define map-map-fuse
   (make-rule 'map-map-fuse
              '(map (?f) (map (?g) (?xs)))
@@ -240,13 +261,11 @@
              'category 'fusion
              'direction 'forward))
 
-;;; ====
-;;; Initialize Fusion Laws
-;;; ====
+(doc 'section "Initialize Fusion Laws")
 
-;;; init-fusion-laws! : -> void
-;;; Register all fusion rules in the law registry.
 (define (init-fusion-laws!)
+  (doc 'type (-> Void))
+  (doc 'description "Register all fusion rules in the law registry.")
   ;; Map-Map Fusion
   (register-law! map-map-fuse)
   
@@ -285,13 +304,11 @@
 ;;; Initialize on load
 (init-fusion-laws!)
 
-;;; ====
-;;; Convenience Strategies
-;;; ====
+(doc 'section "Convenience Strategies")
 
-;;; fusion-rules : -> (List Rule)
-;;; Get all fusion rules.
 (define (fusion-rules)
+  (doc 'type (-> (List Rule)))
+  (doc 'description "Get all fusion rules.")
   (laws-by-category 'fusion))
 
 ;;; fusion-simplify : Strategy
@@ -313,27 +330,24 @@
   (repeat (seq fusion-simplify-once
                (try (rules->strategy (list compose-id-left compose-id-right))))))
 
-;;; ====
-;;; Fusion Analysis
-;;; ====
+(doc 'section "Fusion Analysis")
 
-;;; count-traversals : Expr -> Nat
-;;; Count the number of list traversals in an expression.
-;;; Useful for measuring fusion effectiveness.
 (define (count-traversals expr)
-  (define traversal-ops '(map filter foldl foldr flatten reverse
-                          stream-map stream-filter stream-take))
-  (cond
+  (doc 'type (-> Expr Nat))
+  (doc 'description "Count the number of list traversals in an expression. Useful for measuring fusion effectiveness.")
+  (let ([traversal-ops '(map filter foldl foldr flatten reverse
+                          stream-map stream-filter stream-take)])
+    (cond
    [(null? expr) 0]
    [(not (pair? expr)) 0]
-   [(memq (car expr) traversal-ops)
-    (+ 1 (apply + (map count-traversals (cdr expr))))]
-   [else
-    (apply + (map count-traversals expr))]))
+     [(memq (car expr) traversal-ops)
+      (+ 1 (apply + (map count-traversals (cdr expr))))]
+     [else
+      (apply + (map count-traversals expr))])))
 
-;;; fusion-potential : Expr -> (Values Nat Nat)
-;;; Returns (before-count . after-count) showing traversal reduction.
 (define (fusion-potential expr)
+  (doc 'type (-> Expr (Pair Nat Nat)))
+  (doc 'description "Returns (before-count . after-count) showing traversal reduction.")
   (let* ([before (count-traversals expr)]
          [after-expr (fusion-simplify expr)]
          [after (count-traversals (or after-expr expr))])

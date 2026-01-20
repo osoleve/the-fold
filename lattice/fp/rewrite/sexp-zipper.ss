@@ -1,45 +1,39 @@
-;;; lattice/fp/rewrite/sexp-zipper.ss — Zipper for S-expressions
-;;;
-;;; Provides efficient navigation and modification of S-expression trees.
-;;; Treats S-expressions as rose trees where:
-;;;   - Lists have their elements as children
-;;;   - Atoms (symbols, numbers, etc.) are leaves
-;;;
-;;; This enables O(1) local modifications and efficient traversal
-;;; without rebuilding entire expression trees.
-;;;
-;;; This is Lattice code: pure, depends on tree-zipper.
-;;;
-;;; Dependencies:
-;;;   - core/base/prelude.ss
-;;;   - lattice/fp/meta/combinators.ss
-;;;   - lattice/fp/data/tree-zipper.ss
-;;;   - lattice/fp/data/zipper-lens.ss
-
 (load "core/base/prelude.ss")
 (load "lattice/fp/meta/combinators.ss")
 (load "lattice/fp/data/tree-zipper.ss")
 (load "lattice/fp/data/zipper-lens.ss")
 
-;;; ====
-;;; S-expression to Rose Tree Conversion
-;;; ====
-;;;
-;;; An S-expression is converted to a rose tree where:
-;;;   - The tree value at each node is the S-expression itself
-;;;   - For lists, children are the tree representations of elements
-;;;   - For atoms, children are empty (leaf nodes)
-;;;
-;;; Example: (+ (* 2 3) 4)
-;;;   Tree value = (+ (* 2 3) 4)
-;;;   Children = [tree(+), tree((* 2 3)), tree(4)]
-;;;
-;;; Note: We store the FULL expression as value, not just the head.
-;;; This enables pattern matching at each position.
+(doc 'module 'rewrite/sexp-zipper)
+(doc 'description "Zipper for S-expressions")
+(doc 'layer 'lattice)
 
-;;; sexp->tree : Sexp -> (Tree Sexp)
-;;; Convert an S-expression to rose tree format.
+(doc 'description "Provides efficient navigation and modification of S-expression trees.
+Treats S-expressions as rose trees where:
+  - Lists have their elements as children
+  - Atoms (symbols, numbers, etc.) are leaves
+
+This enables O(1) local modifications and efficient traversal
+without rebuilding entire expression trees.
+
+This is Lattice code: pure, depends on tree-zipper.")
+
+(doc 'section "S-expression to Rose Tree Conversion")
+
+(doc 'description "An S-expression is converted to a rose tree where:
+  - The tree value at each node is the S-expression itself
+  - For lists, children are the tree representations of elements
+  - For atoms, children are empty (leaf nodes)
+
+Example: (+ (* 2 3) 4)
+  Tree value = (+ (* 2 3) 4)
+  Children = [tree(+), tree((* 2 3)), tree(4)]
+
+Note: We store the FULL expression as value, not just the head.
+This enables pattern matching at each position.")
+
 (define (sexp->tree expr)
+  (doc 'type (-> Sexp (Tree Sexp)))
+  (doc 'description "Convert an S-expression to rose tree format.")
   (if (pair? expr)
       (make-tree expr (map sexp->tree expr))
       (make-tree expr '())))

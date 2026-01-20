@@ -1,39 +1,36 @@
-;;; core/fp/rewrite/proof-tactics.ss --- Proof Tactics Wrapping Rewrite Strategies
-;;;
-;;; Provides proof tactics that expose engine.ss strategies to users for
-;;; equational reasoning. Tactics transform proof goals into subgoals,
-;;; building on the rewrite engine's pattern matching and strategy combinators.
-;;;
-;;; Core Tactics:
-;;;   tactic-refl        : Prove x = x reflexively
-;;;   tactic-sym         : Transform y = x goal to x = y
-;;;   tactic-trans       : Split x = z into x = mid, mid = z
-;;;   tactic-rewrite     : Apply a named law from the registry
-;;;
-;;; Strategy-Based Tactics:
-;;;   tactic-topdown     : Apply strategy top-down through expression
-;;;   tactic-bottomup    : Apply strategy bottom-up through expression
-;;;   tactic-try         : Apply tactic, succeed even if it fails
-;;;   tactic-repeat      : Apply tactic until fixed point
-;;;
-;;; Automation:
-;;;   tactic-auto        : Try common tactics automatically
-;;;   tactic-search      : Bounded search with cycle detection
-;;;
-;;; Tactic Combinators:
-;;;   tactic-then        : Sequential composition
-;;;   tactic-orelse      : Try first, then second on failure
-;;;
-;;; This is Core code: pure, total, assumes perfect input.
-;;;
-;;; Dependencies:
-;;;   - core/base/prelude.ss
-;;;   - core/fp/rewrite/engine.ss
-;;;   - core/fp/rewrite/laws.ss
-
 (load "core/base/prelude.ss")
 (load "lattice/fp/rewrite/engine.ss")
 (load "lattice/fp/rewrite/laws.ss")
+
+(doc 'module 'rewrite/proof-tactics)
+(doc 'description "Proof Tactics Wrapping Rewrite Strategies")
+(doc 'layer 'lattice)
+
+(doc 'description "Provides proof tactics that expose engine.ss strategies to users for
+equational reasoning. Tactics transform proof goals into subgoals,
+building on the rewrite engine's pattern matching and strategy combinators.
+
+Core Tactics:
+  tactic-refl        : Prove x = x reflexively
+  tactic-sym         : Transform y = x goal to x = y
+  tactic-trans       : Split x = z into x = mid, mid = z
+  tactic-rewrite     : Apply a named law from the registry
+
+Strategy-Based Tactics:
+  tactic-topdown     : Apply strategy top-down through expression
+  tactic-bottomup    : Apply strategy bottom-up through expression
+  tactic-try         : Apply tactic, succeed even if it fails
+  tactic-repeat      : Apply tactic until fixed point
+
+Automation:
+  tactic-auto        : Try common tactics automatically
+  tactic-search      : Bounded search with cycle detection
+
+Tactic Combinators:
+  tactic-then        : Sequential composition
+  tactic-orelse      : Try first, then second on failure
+
+This is Lattice code: pure, total, assumes perfect input.")
 
 ;;; ====
 ;;; Proof Goal Structure

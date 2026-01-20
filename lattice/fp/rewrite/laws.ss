@@ -1,37 +1,32 @@
-;;; core/fp/rewrite/laws.ss — Standard FP Law Library
-;;;
-;;; Encodes algebraic laws as rewrite rules:
-;;;   - Monoid laws (identity, associativity)
-;;;   - Semigroup laws (associativity)
-;;;   - Functor laws (identity, composition)
-;;;   - Applicative laws (identity, composition, homomorphism, interchange)
-;;;   - Monad laws (left identity, right identity, associativity)
-;;;   - Lambda calculus (beta reduction, eta reduction)
-;;;
-;;; Each law is a named rewrite rule that can be applied to transform
-;;; expressions according to well-known algebraic identities.
-;;;
-;;; This is Core code: pure, total, assumes reasonable input.
-;;;
-;;; Dependencies:
-;;;   - core/base/prelude.ss
-;;;   - core/fp/rewrite/rule.ss
-;;;   - core/fp/rewrite/engine.ss
-
 (load "core/base/prelude.ss")
 (load "lattice/fp/rewrite/rule.ss")
 (load "lattice/fp/rewrite/engine.ss")
 
-;;; ====
-;;; Law Registry
-;;; ====
+(doc 'module 'rewrite/laws)
+(doc 'description "Standard FP Law Library")
+(doc 'layer 'lattice)
 
-;;; Global registry of all laws
+(doc 'description "Encodes algebraic laws as rewrite rules:
+  - Monoid laws (identity, associativity)
+  - Semigroup laws (associativity)
+  - Functor laws (identity, composition)
+  - Applicative laws (identity, composition, homomorphism, interchange)
+  - Monad laws (left identity, right identity, associativity)
+  - Lambda calculus (beta reduction, eta reduction)
+
+Each law is a named rewrite rule that can be applied to transform
+expressions according to well-known algebraic identities.
+
+This is Lattice code: pure, total, assumes reasonable input.")
+
+(doc 'section "Law Registry")
+
 (define *law-registry* (make-eq-hashtable))
+(doc *law-registry* 'description "Global registry of all laws")
 
-;;; register-law! : Rule → void
-;;; Add a law to the registry.
 (define (register-law! law)
+  (doc 'type (-> Rule Void))
+  (doc 'description "Add a law to the registry.")
   (hashtable-set! *law-registry* (rule-name law) law))
 
 ;;; get-law : Symbol → Rule | #f

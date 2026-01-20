@@ -1,49 +1,41 @@
-;;; core/fp/rewrite/sketch.ss — Proof Sketch Data Structures
-;;;
-;;; A Sketch is a Trace with holes — an incomplete proof that can be
-;;; progressively refined through tactic application. Following Gemini's
-;;; design recommendation, we reuse trace infrastructure rather than
-;;; duplicating it.
-;;;
-;;; Key insight: A hole is simply a trace step with rule-name 'unknown.
-;;; This allows us to leverage verify.ss logic for checking plausibility.
-;;;
-;;; Sketch Structure:
-;;;   ((trace . Trace)         - The underlying trace (may have holes)
-;;;    (goals . (List Goal))   - Outstanding goals to discharge
-;;;    (context . Alist)       - Ambient facts, hypotheses, lemmas
-;;;    (history . (List Sketch)) - Previous states for undo
-;;;    (focused . Nat | #f))   - Index of currently focused goal
-;;;
-;;; Goal Structure:
-;;;   ((from . Expr)           - Expression to transform
-;;;    (to . Expr)             - Target expression (or 'any for open)
-;;;    (status . Symbol)       - 'open, 'discharged, 'blocked
-;;;    (hints . (List Symbol)) - Suggested tactics/rules)
-;;;
-;;; This is Core code: pure, total, assumes perfect input.
-;;;
-;;; Dependencies:
-;;;   - core/base/prelude.ss
-;;;   - core/fp/rewrite/trace.ss
-;;;   - core/fp/rewrite/rule.ss
-;;;   - core/fp/rewrite/engine.ss
-;;;   - core/fp/rewrite/verify.ss
-
 (load "core/base/prelude.ss")
 (load "lattice/fp/rewrite/trace.ss")
 (load "lattice/fp/rewrite/rule.ss")
 (load "lattice/fp/rewrite/engine.ss")
 (load "lattice/fp/rewrite/verify.ss")
 
-;;; ====
-;;; Goal Construction
-;;; ====
+(doc 'module 'rewrite/sketch)
+(doc 'description "Proof Sketch Data Structures")
+(doc 'layer 'lattice)
 
-;;; make-goal : Expr × Expr → Goal
-;;; Create a new goal from source to target expression.
-;;; Use 'any as target for open-ended goals.
+(doc 'description "A Sketch is a Trace with holes — an incomplete proof that can be
+progressively refined through tactic application. Following Gemini's
+design recommendation, we reuse trace infrastructure rather than
+duplicating it.
+
+Key insight: A hole is simply a trace step with rule-name 'unknown.
+This allows us to leverage verify.ss logic for checking plausibility.
+
+Sketch Structure:
+  ((trace . Trace)         - The underlying trace (may have holes)
+   (goals . (List Goal))   - Outstanding goals to discharge
+   (context . Alist)       - Ambient facts, hypotheses, lemmas
+   (history . (List Sketch)) - Previous states for undo
+   (focused . Nat | #f))   - Index of currently focused goal
+
+Goal Structure:
+  ((from . Expr)           - Expression to transform
+   (to . Expr)             - Target expression (or 'any for open)
+   (status . Symbol)       - 'open, 'discharged, 'blocked
+   (hints . (List Symbol)) - Suggested tactics/rules)
+
+This is Lattice code: pure, total, assumes perfect input.")
+
+(doc 'section "Goal Construction")
+
 (define (make-goal from to)
+  (doc 'type (-> Expr Expr Goal))
+  (doc 'description "Create a new goal from source to target expression. Use 'any as target for open-ended goals.")
   `((from . ,from)
     (to . ,to)
     (status . open)
