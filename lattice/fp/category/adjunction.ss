@@ -2,13 +2,17 @@
 ;;;
 ;;; An adjunction F ⊣ G consists of:
 ;;;   - Left adjoint F : C → D
-;;;   - Right adjoint G : D → C  
+;;;   - Right adjoint G : D → C
 ;;;   - Unit η : Id_C ⟹ G∘F
 ;;;   - Counit ε : F∘G ⟹ Id_D
 ;;;
 ;;; Triangle identities:
 ;;;   (ε ◁ F) ∘ (F ▷ η) = id_F
 ;;;   (G ▷ ε) ∘ (η ◁ G) = id_G
+;;;
+;;; See also:
+;;;   - free-algebra.ss: Generalized Free ⊣ Forgetful for arbitrary algebraic signatures
+;;;   - monad-derivation.ss: Derive monads from adjunctions
 
 (load "lattice/fp/category/natural-transform.ss")
 

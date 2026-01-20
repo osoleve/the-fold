@@ -9,6 +9,7 @@
  (modules
   ((natural-transform.ss "Natural transformations between functors with composition")
    (adjunction.ss "Adjoint functors, triangle identities, and Galois connections")
+   (free-algebra.ss "Generalized Free -| Forgetful adjunctions for algebraic signatures")
    (monad-derivation.ss "Unified monad derivation from adjunctions (F -| G yields monad on G.F)")
    (comonad.ss "Comonad type class, Store/Env/Traced comonads, adjunction derivation")
    (kan-extension.ss "Left/Right Kan extensions and Codensity monad")))
@@ -28,6 +29,9 @@
    (env-comonad "Env e a = (e, a): value with environment (dual of Reader)")
    (traced-comonad "Traced m a = m->a: function from monoidal accumulator")
    (monad-from-adjunction "Every adjunction F -| G yields monad: return=eta, join=G(eps_F)")
+   (free-algebra "Term algebra over generators from a carrier set, modulo equational laws")
+   (algebraic-signature "Operations (with arities) + equational laws defining an algebraic theory")
+   (free-forgetful-adjunction "Free -| Forgetful: builds term algebra from set, forgets to carrier")
    (right-kan-extension "(Ran K F) a = forall b. (a -> K b) -> F b")
    (left-kan-extension "(Lan K F) a = exists b. (K b -> a, F b)")
    (codensity-monad "Ran_Id M: gives O(1) amortized bind for any monad M")))
@@ -59,6 +63,27 @@
     make-galois galois? galois-lower galois-upper
     galois-closure galois-kernel galois-floor-ceil
     adjunction->string)
+   (free-algebra.ss
+    ;; Signatures (algebraic theories)
+    make-signature signature? signature-name
+    signature-operations signature-laws signature-op-arity signature-has-op?
+    ;; Algebras (concrete implementations)
+    make-algebra algebra? algebra-signature algebra-carrier algebra-ops algebra-op
+    ;; Terms (syntax trees in free algebra)
+    make-gen gen? gen-value term-op? term?
+    ;; Term operations
+    free-fmap normalize-term eval-term eval-in-algebra make-algebra-evaluator
+    ;; Adjunction construction
+    make-free-functor make-forgetful-functor
+    make-free-unit make-free-counit make-free-adjunction
+    ;; Pre-built signatures
+    sig-magma sig-semigroup sig-monoid sig-commutative-monoid sig-group sig-abelian-group
+    ;; Pre-built algebras
+    alg-list-monoid alg-sum-monoid alg-product-monoid alg-integer-group
+    ;; Pre-built adjunctions
+    adj-free-magma adj-free-semigroup adj-free-monoid adj-free-group
+    ;; Display
+    signature->string algebra->string term->string)
    (monad-derivation.ss
     ;; MonadOps record
     make-monad-ops monad-ops? monad-ops-name
@@ -137,7 +162,13 @@
     "Instead of nested bind structure (left-associative, O(n^2)),
      Codensity accumulates continuations in a queue and applies them
      all at once during lowering (right-associative, O(n)).
-     The 'queue' is a defunctionalized continuation representation.")))
+     The 'queue' is a defunctionalized continuation representation.")
+   (free-algebras-and-effects
+    "Every algebraic signature yields a Free -| Forgetful adjunction.
+     The monad derived from this adjunction is the 'free monad' for that
+     algebraic theory. Free Monoid yields List monad, Free Group yields
+     formal word monad. This is the foundation of algebraic effects:
+     effect signatures are algebraic theories, handlers are algebras.")))
 
  (future-work
   ((functor-categories "Categories with functors as objects, nat transforms as morphisms")
