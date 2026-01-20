@@ -15,7 +15,30 @@
    (comonad.ss "Comonad type class, Store/Env/Traced comonads, adjunction derivation")
    (kan-extension.ss "Left/Right Kan extensions and Codensity monad")
    (effect-category.ss "Categorical foundations for algebraic effects: Free Effect ⊣ Forgetful")
-   (state-store-adjunction.ss "State-Store adjunction relating State monad and Store comonad")))
+   (state-store-adjunction.ss "State-Store adjunction relating State monad and Store comonad")
+   ;; Multi-category submodule
+   (multi/ "Inter-category framework: first-class categories, indexed natural transforms, correct Free⊣U counit")))
+
+ ;; Multi-category submodule details
+ (submodule-multi
+  ((path "category/multi")
+   (purpose "Multi-category framework for inter-category adjunctions with indexed counit evaluation")
+   (rationale
+    "Standard NatTransform has parametric components (∀A. F(A) → G(A)) that cannot access
+     the object index. For Free ⊣ Forgetful, the counit ε_A : Free(U(A)) → A needs algebra A
+     to evaluate terms. Indexed transforms provide component-at(A) for proper object access.")
+   (files
+    ((category.ss "Categories as first-class values: cat-Set, cat-Alg")
+     (functor-general.ss "Inter-category functors F : C → D with source/target")
+     (nat-transform-indexed.ss "Indexed transformations where component receives object")
+     (adjunction-inter.ss "Adjunctions with indexed unit/counit")
+     (effect-adjunction.ss "Free⊣Forgetful with correct eval-term counit")))
+   (key-exports
+    (make-category cat-Set cat-Alg
+     make-functor-general make-free-functor-gen make-forgetful-functor-gen
+     make-nat-indexed nat-indexed-at nat-indexed-apply
+     make-adjunction-inter apply-counit
+     make-free-forgetful-adjunction-gen handle-via-counit run-with-algebra))))
 
  (key-concepts
   ((natural-transformation "Morphism between functors: eta : F ==> G with components eta_A : F(A) -> G(A)")

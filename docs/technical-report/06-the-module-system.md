@@ -297,6 +297,44 @@ The category module provides first-class categorical structures that unify and e
 
 The key insight: **all standard monads and comonads arise from adjunctions**, and **the O(1) bind optimization in effect systems is the Codensity monad**. This provides both theoretical grounding and practical performance understanding.
 
+- **Multi-Category Framework** (`fp/category/multi/`): Extends the category infrastructure to handle inter-category functors and indexed natural transformations. The standard `NatTransform` has parametric components—a single function `∀A. F(A) → G(A)` that cannot access the object index. For the Free ⊣ Forgetful adjunction, the counit `ε_A : Free(U(A)) → A` needs to evaluate terms using algebra A's operations, but the parametric encoding has no access to A.
+
+  The solution: **indexed natural transformations** where `component-at(A)` receives the algebra explicitly:
+
+  ```scheme
+  ;; Standard (parametric): component ignores object index
+  (define η (make-nat-transform 'η F G (lambda (x) ...)))
+
+  ;; Indexed: component-at receives the object
+  (define ε (make-nat-indexed 'ε Free-U Id-Alg
+              (lambda (alg)         ; Receives algebra A
+                (lambda (term)      ; Component function
+                  (eval-term alg term)))))  ; Uses A's operations
+  ```
+
+  **Modules**:
+  | Module | Purpose |
+  |--------|---------|
+  | `category.ss` | First-class categories (`Category`), with `cat-Set` and `cat-Alg` (Eilenberg-Moore) |
+  | `functor-general.ss` | Inter-category functors (`FunctorGeneral`), Free/Forgetful functor constructors |
+  | `nat-transform-indexed.ss` | Indexed natural transformations (`NatIndexed`) with composition and whiskering |
+  | `adjunction-inter.ss` | Inter-category adjunctions (`AdjunctionInter`) with indexed unit/counit |
+  | `effect-adjunction.ss` | Effect adjunctions with correct counit: `ε_A(term) = eval-term A term` |
+
+  **Key types**:
+  - `Category`: Explicit category with `obj?`, `mor?`, `dom`, `cod`, `id-at`, `compose`
+  - `FunctorGeneral`: Functor F : C → D with `on-obj` and `on-mor` mappings
+  - `NatIndexed`: Natural transformation with `component-at : Obj → (Value → Value)`
+  - `AdjunctionInter`: Adjunction L ⊣ R with indexed unit and counit
+
+  **The counit evaluation pattern**:
+  ```scheme
+  (apply-counit adj algebra term)  ; → evaluates term using algebra's operations
+  (handle-via-counit adj algebra term)  ; Alias emphasizing effect handling
+  ```
+
+  This makes the categorical semantics of effect handling precise: handling IS counit application, with the handler viewed as an algebra over the effect signature.
+
 **Optics** (`fp/optics/`):
 
 A complete hierarchy of composable optics for principled data access and transformation:

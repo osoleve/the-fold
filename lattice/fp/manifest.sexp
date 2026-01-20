@@ -178,7 +178,17 @@ Key design principles:
        "comonad.ss"              ; Comonads (Store, Env, Traced, Stream)
        "state-store-adjunction.ss" ; State-Store adjunction
        "logic-adjunction.ss"     ; Logic adjunctions (Galois connections)
-       "effect-category.ss")))   ; Categorical foundations of algebraic effects
+       "effect-category.ss"))    ; Categorical foundations of algebraic effects
+     ;; Submodule: multi-category framework
+     (submodules (
+       ((subdir "multi")
+        (description "Inter-category framework: first-class categories, indexed transforms, correct counit")
+        (files (
+          "category.ss"              ; Categories as first-class values
+          "functor-general.ss"       ; Inter-category functors F : C → D
+          "nat-transform-indexed.ss" ; Indexed natural transformations
+          "adjunction-inter.ss"      ; Inter-category adjunctions
+          "effect-adjunction.ss"))))))  ; Effect adjunctions with correct counit
 
     ;; Root-level modules
     ((subdir "")
