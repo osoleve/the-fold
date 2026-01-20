@@ -42,8 +42,7 @@
    (sparse-autodiff sparse-jacobian sparse-hessian))
 
   (modules
-   (comp-graph "comp-graph.ss" "Computational graph DAG for representing computations")
-   (reverse-diff "reverse-diff.ss" "Reverse-mode AD with tape-based gradients")
+   ;; Note: comp-graph.ss and reverse-diff.ss are in core/autodiff/ (core layer)
    (higher-order-diff "higher-order-diff.ss" "Jacobian, Hessian, and vector products")
    (differentiable "differentiable.ss" "Differentiable type class for generic AD")
    (differentiable-signal "differentiable-signal.ss" "Differentiable signal processing")
