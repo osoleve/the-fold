@@ -133,17 +133,20 @@ class FoldMCPServer {
    */
   private getOrCreateSession(): Session {
     let sessionId = this.sessionsByConnection.get(this.connectionId);
-    if (!sessionId) {
-      const session = this.sessionManager.createSession();
-      sessionId = session.id;
-      this.sessionsByConnection.set(this.connectionId, sessionId);
+
+    // Check if we have a cached session ID
+    if (sessionId) {
+      const session = this.sessionManager.getSession(sessionId);
+      if (session) {
+        return session;
+      }
+      // Session was cleaned up (expired), remove stale mapping
+      this.sessionsByConnection.delete(this.connectionId);
     }
 
-    const session = this.sessionManager.getSession(sessionId);
-    if (!session) {
-      throw new Error('Session not found');
-    }
-
+    // Create new session
+    const session = this.sessionManager.createSession();
+    this.sessionsByConnection.set(this.connectionId, session.id);
     return session;
   }
 
