@@ -346,6 +346,20 @@ Use namespaced form (`'dir/module`) when module names collide. The system warns 
 
 When creating new modules, prefer `(require ...)` chains over `(load ...)`. The module system tracks what's loaded and prevents redundant evaluation.
 
+**Module Reloading:**
+
+```scheme
+(reload! 'parse)              ; Reload single module
+(reload-with-dependents! 'parse)  ; Reload module + all dependents
+(rel! 'parse)                 ; Alias for reload!
+(rel+! 'parse)                ; Alias for reload-with-dependents!
+
+(module-dependents 'parse)    ; Show direct dependents
+(all-dependents 'parse)       ; Show transitive dependents
+```
+
+Reloading requires modules to use `@requires` annotations in their headers. The reload respects topological order (dependencies before dependents).
+
 **Meta-Tooling (`lattice/meta/`):**
 
 Use `/lattice-search` skill for full documentation. Quick reference:
