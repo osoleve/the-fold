@@ -1,27 +1,28 @@
 ;;; lattice/fp/clp/manifest.sexp — CLP(FD) Skill Manifest
 
-((skill . clp)
- (version . "0.1.0")
- (tier . 1)
- (path . "lattice/fp/clp")
- (purity . partial)
- (stability . experimental)
- (fuel-bound . "O(d^n) worst case where d=max domain size, n=vars; practical O(n*d*c) with propagation")
+(skill clp
+  (version "0.1.0")
+  (tier 1)
+  (path "lattice/fp/clp")
+  (purity partial)
+  (stability experimental)
+  (fuel-bound "O(d^n) worst case where d=max domain size, n=vars; practical O(n*d*c) with propagation")
 
- (deps . (fp))
+  (deps (fp))
 
- (description . "cKanren-style constraint logic programming with finite domains.
-Extends miniKanren with arithmetic constraints, global constraints like
-all-different, and intelligent search strategies. Supports classic problems
-like N-Queens, Sudoku, cryptarithmetic, and scheduling.")
+  (description
+   "cKanren-style constraint logic programming with finite domains.
+    Extends miniKanren with arithmetic constraints, global constraints like
+    all-different, and intelligent search strategies. Supports classic problems
+    like N-Queens, Sudoku, cryptarithmetic, and scheduling.")
 
- (keywords . (clp constraint-logic-programming finite-domain cKanren
-              constraint-propagation arc-consistency n-queens sudoku
-              cryptarithmetic scheduling combinatorial))
+  (keywords (clp constraint-logic-programming finite-domain cKanren
+             constraint-propagation arc-consistency n-queens sudoku
+             cryptarithmetic scheduling combinatorial))
 
- (aliases . (clp fd ckanren constraint-logic))
+  (aliases (clp fd ckanren constraint-logic))
 
- (exports . (
+  (exports
    ;; Domain operations
    make-domain domain-singleton domain-from-list
    domain-empty? domain-singleton? domain-size
@@ -68,13 +69,13 @@ like N-Queens, Sudoku, cryptarithmetic, and scheduling.")
    run-clp run-clp* clp-solve clp-all clp-count
 
    ;; Examples
-   n-queens send-more-money clp-help))
+   n-queens send-more-money clp-help)
 
- (modules . (
+  (modules
    (domain "domain.ss" "Finite domain representation with intervals")
    (store "store.ss" "Constraint store with domains and propagators")
    (fd-constraints "fd-constraints.ss" "Arithmetic FD constraints")
    (global-constraints "global-constraints.ss" "Global constraints (all-different, etc.)")
    (propagate "propagate.ss" "Arc/bounds consistency propagation engine")
    (label "label.ss" "Variable/value selection strategies for search")
-   (clp "clp.ss" "Unified entry point and goal API"))))
+   (clp "clp.ss" "Unified entry point and goal API")))

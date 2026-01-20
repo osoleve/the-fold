@@ -1,31 +1,32 @@
 ;;; lattice/fp/game/manifest.sexp — Game Theory Skill Manifest
 
-((skill . game)
- (version . "0.2.0")
- (tier . 1)
- (path . "lattice/fp/game")
- (purity . total)
- (stability . stable)
- (fuel-bound . "O(2^n) for n players in cooperative games; O(n*m) for matching")
+(skill game
+  (version "0.2.0")
+  (tier 1)
+  (path "lattice/fp/game")
+  (purity total)
+  (stability stable)
+  (fuel-bound "O(2^n) for n players in cooperative games; O(n*m) for matching")
 
- (deps . (linalg optimization))
+  (deps (linalg optimization))
 
- (description . "Comprehensive game theory library covering non-cooperative games,
-cooperative (coalitional) games, two-sided matching, social choice/voting theory,
-multi-winner elections, and fair division. Implements Nash equilibrium, Shapley value,
-Gale-Shapley stable matching, Schulze voting, STV, PAV, Monroe/Chamberlin-Courant,
-cake cutting protocols, and adjusted winner.")
+  (description
+   "Comprehensive game theory library covering non-cooperative games,
+    cooperative (coalitional) games, two-sided matching, social choice/voting theory,
+    multi-winner elections, and fair division. Implements Nash equilibrium, Shapley value,
+    Gale-Shapley stable matching, Schulze voting, STV, PAV, Monroe/Chamberlin-Courant,
+    cake cutting protocols, and adjusted winner.")
 
- (keywords . (game-theory nash-equilibrium shapley-value cooperative-games
-              matching stable-matching gale-shapley voting social-choice
-              condorcet schulze multi-winner stv approval-voting pav
-              monroe chamberlin-courant proportional-representation
-              committee-selection fair-division cake-cutting envy-free
-              proportional adjusted-winner power-indices banzhaf))
+  (keywords (game-theory nash-equilibrium shapley-value cooperative-games
+             matching stable-matching gale-shapley voting social-choice
+             condorcet schulze multi-winner stv approval-voting pav
+             monroe chamberlin-courant proportional-representation
+             committee-selection fair-division cake-cutting envy-free
+             proportional adjusted-winner power-indices banzhaf))
 
- (aliases . (game games game-theory))
+  (aliases (game games game-theory))
 
- (exports . (
+  (exports
    ;; normal-form.ss — Strategic Form Games
    make-game game-payoff find-pure-nash
 
@@ -77,13 +78,13 @@ cake cutting protocols, and adjusted winner.")
    monroe-greedy cc-greedy cc-total-satisfaction
    proportionality-score representation-coverage diversity-score
    profile->approval approval->profile
-   stv-example approval-example diverse-preferences-example))
+   stv-example approval-example diverse-preferences-example)
 
- (modules . (
+  (modules
    (normal-form "normal-form.ss" "Strategic form games, Nash equilibrium, IESDS")
    (coop-games "coop-games.ss" "Coalitional games, Shapley value, core, bargaining")
    (matching "matching.ss" "Two-sided matching, Gale-Shapley, assignment games")
    (voting "voting.ss" "Social choice: plurality, Borda, Condorcet, Schulze")
    (voting-games "voting-games.ss" "Bridge: voting rules to simple games, power indices")
    (multi-winner "multi-winner.ss" "STV, approval voting, PAV, Monroe, Chamberlin-Courant")
-   (fair-division "fair-division.ss" "Cake cutting, adjusted winner, EF1, maximin share"))))
+   (fair-division "fair-division.ss" "Cake cutting, adjusted winner, EF1, maximin share")))
