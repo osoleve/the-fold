@@ -1,22 +1,3 @@
-;;; core/dynamics/stability.ss — Stability Analysis for Dynamical Systems
-;;;
-;;; Fixed point detection, linearization, eigenvalue analysis, and stability
-;;; classification for continuous-time dynamical systems. Supports:
-;;;   - Fixed point (equilibrium) detection
-;;;   - Jacobian matrix computation (linearization)
-;;;   - Eigenvalue-based stability classification
-;;;   - Stability types: stable/unstable node, saddle, spiral, center
-;;;
-;;; This is Core code: pure, total, assumes reasonable input.
-;;;
-;;; Dependencies:
-;;;   - core/base/prelude.ss
-;;;   - core/linalg/vec.ss
-;;;   - core/linalg/matrix.ss
-;;;   - core/linalg/matrix-eigen.ss
-;;;   - core/numeric/complex.ss
-;;;   - core/dynamics/ode-system.ss
-
 (load "core/base/prelude.ss")
 (load "lattice/linalg/vec.ss")
 (load "lattice/linalg/matrix.ss")
@@ -24,21 +5,23 @@
 (load "lattice/numeric/complex.ss")
 (load "lattice/sim/dynamics/ode-system.ss")
 
-;;; ====
-;;; Fixed Point Detection
-;;; ====
+(doc 'module 'stability)
+(doc 'description "Fixed point detection, linearization, eigenvalue analysis, and stability classification for continuous-time dynamical systems")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
+(doc 'features "Fixed point (equilibrium) detection, Jacobian matrix computation (linearization), Eigenvalue-based stability classification, Stability types: stable/unstable node, saddle, spiral, center")
 
-;;; find-fixed-point-newton : Any × Any × Number × Number × Nat → Any
-;;; Find a fixed point using Newton's method.
-;;; Returns approximate equilibrium point or #f if not found.
-;;;
-;;; Arguments:
-;;;   sys - ODE system
-;;;   initial-guess - starting point for Newton iteration
-;;;   tolerance - convergence tolerance
-;;;   step-size - finite difference step for Jacobian
-;;;   max-iter - maximum iterations
+(doc 'section 'fixed-point-detection)
+
 (define (find-fixed-point-newton sys initial-guess tolerance step-size max-iter)
+  (doc 'type '(-> Any Any Number Number Nat Any))
+  (doc 'description "Find a fixed point using Newton's method")
+  (doc 'param 'sys "ODE system")
+  (doc 'param 'initial-guess "starting point for Newton iteration")
+  (doc 'param 'tolerance "convergence tolerance")
+  (doc 'param 'step-size "finite difference step for Jacobian")
+  (doc 'param 'max-iter "maximum iterations")
+  (doc 'returns "approximate equilibrium point or #f if not found")
   (let loop ([x initial-guess] [iter 0])
        (if (>= iter max-iter)
            #f  ; Failed to converge
@@ -53,31 +36,24 @@
                             [x-new (vec-sub x delta)])
                            (loop x-new (+ iter 1))))))))
 
-;;; is-fixed-point? : Any × Any × Number → Bool
-;;; Check if a point is a fixed point (equilibrium) within tolerance.
 (define (is-fixed-point? sys point tolerance)
+  (doc 'type '(-> Any Any Number Bool))
+  (doc 'description "Check if a point is a fixed point (equilibrium) within tolerance")
   (< (vector-field-norm sys 0 point) tolerance))
 
-;;; refine-fixed-point : Any × Any × Number × Number → Any
-;;; Refine a fixed point estimate using Newton iteration.
 (define (refine-fixed-point sys point tolerance step-size)
+  (doc 'type '(-> Any Any Number Number Any))
+  (doc 'description "Refine a fixed point estimate using Newton iteration")
   (find-fixed-point-newton sys point tolerance step-size 20))
 
-;;; ====
-;;; Jacobian Matrix Computation
-;;; ====
+(doc 'section 'jacobian-matrix-computation)
 
-;;; compute-jacobian : Any × Any × Number → Any
-;;; Compute the Jacobian matrix of a vector field at a point.
-;;; Uses finite differences for numerical differentiation.
-;;;
-;;; For f : R^n → R^n, Jacobian J[i,j] = ∂f_i/∂x_j
-;;;
-;;; Arguments:
-;;;   sys - ODE system
-;;;   point - point at which to compute Jacobian
-;;;   h - step size for finite differences
 (define (compute-jacobian sys point h)
+  (doc 'type '(-> Any Any Number Any))
+  (doc 'description "Compute the Jacobian matrix of a vector field at a point using finite differences for numerical differentiation. For f : R^n → R^n, Jacobian J[i,j] = ∂f_i/∂x_j")
+  (doc 'param 'sys "ODE system")
+  (doc 'param 'point "point at which to compute Jacobian")
+  (doc 'param 'h "step size for finite differences")
   (let* ([n (vector-length point)]
          [f0 (eval-vector-field sys 0 point)]
          [jac-data (make-vector (* n n) 0)])
@@ -97,20 +73,17 @@
                            (vector-set! jac-data (+ (* i n) j) df-dxj)))))
         (list 'matrix n n jac-data)))
 
-;;; linearize-at-equilibrium : Any × Any × Number → Any
-;;; Linearize an ODE system at an equilibrium point.
-;;; Returns the Jacobian matrix A where dx/dt ≈ A(x - x*)
 (define (linearize-at-equilibrium sys equilibrium step-size)
+  (doc 'type '(-> Any Any Number Any))
+  (doc 'description "Linearize an ODE system at an equilibrium point")
+  (doc 'returns "the Jacobian matrix A where dx/dt ≈ A(x - x*)")
   (compute-jacobian sys equilibrium step-size))
 
-;;; ====
-;;; Matrix Utilities (Simple Implementations)
-;;; ====
+(doc 'section 'matrix-utilities)
 
-;;; matrix-invert-simple : Any → Any
-;;; Simple matrix inversion using Gauss-Jordan elimination.
-;;; Only works for small matrices - uses simple pivoting.
 (define (matrix-invert-simple m)
+  (doc 'type '(-> Any Any))
+  (doc 'description "Simple matrix inversion using Gauss-Jordan elimination. Only works for small matrices - uses simple pivoting")
   (let* ([n (matrix-rows m)]
          [data (matrix-data m)]
          ;; Create augmented matrix [A | I]
@@ -170,16 +143,11 @@
                                   (vector-ref aug (+ (* i (* n 2)) (+ n j))))))
              (list 'matrix n n inv-data))))
 
-;;; ====
-;;; 2x2 Eigenvalue Computation
-;;; ====
+(doc 'section '2x2-eigenvalue-computation)
 
-;;; matrix-eigenvalues-2d : Any → (List Complex)
-;;; Compute eigenvalues of a 2x2 matrix analytically.
-;;; For A = [[a, b], [c, d]], eigenvalues satisfy:
-;;;   λ² - (a+d)λ + (ad-bc) = 0
-;;;   λ = (trace ± sqrt(trace² - 4*det)) / 2
 (define (matrix-eigenvalues-2d m)
+  (doc 'type '(-> Any (List Complex)))
+  (doc 'description "Compute eigenvalues of a 2x2 matrix analytically. For A = [[a, b], [c, d]], eigenvalues satisfy: λ² - (a+d)λ + (ad-bc) = 0, λ = (trace ± sqrt(trace² - 4*det)) / 2")
   (let* ([a (matrix-ref m 0 0)]
          [b (matrix-ref m 0 1)]
          [c (matrix-ref m 1 0)]
@@ -199,9 +167,9 @@
                  (list (make-complex (+ half-trace (/ sqrt-disc 2)) 0)
                        (make-complex (- half-trace (/ sqrt-disc 2)) 0))))))
 
-;;; matrix-dominant-eigenvalue : Any → Complex
-;;; Estimate dominant (largest magnitude) eigenvalue using power iteration.
 (define (matrix-dominant-eigenvalue m)
+  (doc 'type '(-> Any Complex))
+  (doc 'description "Estimate dominant (largest magnitude) eigenvalue using power iteration")
   (let* ([n (matrix-rows m)]
          [v0 (vec-ones n)]
          [result (power-iteration m v0 100 1e-8)])
@@ -209,9 +177,9 @@
             (make-complex 0 0)  ; Failed - return zero
             (make-complex (car result) 0))))
 
-;;; power-iteration : Any × Any × Nat × Number → (Number × Any)
-;;; Simple power iteration to find dominant eigenvalue.
 (define (power-iteration m v max-iter tol)
+  (doc 'type '(-> Any Any Nat Number (Pair Number Any)))
+  (doc 'description "Simple power iteration to find dominant eigenvalue")
   (let loop ([v-curr v] [iter 0] [lambda-prev 0])
        (if (>= iter max-iter)
            (cons lambda-prev v-curr)
@@ -226,15 +194,12 @@
                      (cons lambda-curr v-next)
                      (loop v-next (+ iter 1) lambda-curr))))))
 
-;;; ====
-;;; Eigenvalue-Based Stability Classification
-;;; ====
+(doc 'section 'eigenvalue-based-stability-classification)
 
-;;; classify-stability-2d : (List Complex) → Symbol
-;;; Classify stability for 2D system based on eigenvalues.
-;;; Returns: 'stable-node, 'unstable-node, 'saddle, 'stable-spiral,
-;;;          'unstable-spiral, 'center, 'degenerate
 (define (classify-stability-2d eigenvalues)
+  (doc 'type '(-> (List Complex) Symbol))
+  (doc 'description "Classify stability for 2D system based on eigenvalues")
+  (doc 'returns "'stable-node, 'unstable-node, 'saddle, 'stable-spiral, 'unstable-spiral, 'center, or 'degenerate")
   (if (not (= (length eigenvalues) 2))
       'invalid-dimension
       (let* ([lambda1 (car eigenvalues)]
@@ -259,41 +224,37 @@
               'saddle]
              [else 'degenerate]))))
 
-;;; analyze-stability : Any × Any × Number → (Symbol × (List Complex))
-;;; Analyze stability of an equilibrium point.
-;;; Returns (stability-type . eigenvalues)
 (define (analyze-stability sys equilibrium step-size)
+  (doc 'type '(-> Any Any Number (Pair Symbol (List Complex))))
+  (doc 'description "Analyze stability of an equilibrium point")
+  (doc 'returns "(stability-type . eigenvalues)")
   (let* ([jac (linearize-at-equilibrium sys equilibrium step-size)]
          [eigenvalues (matrix-eigenvalues-2d jac)])
         (cons (classify-stability-2d eigenvalues) eigenvalues)))
 
-;;; ====
-;;; Stability Predicates
-;;; ====
+(doc 'section 'stability-predicates)
 
-;;; stable? : Symbol → Bool
-;;; Check if a stability type is stable.
 (define (stable? stability-type)
+  (doc 'type '(-> Symbol Bool))
+  (doc 'description "Check if a stability type is stable")
   (if (memq stability-type '(stable-node stable-spiral)) #t #f))
 
-;;; asymptotically-stable? : Symbol → Bool
-;;; Check if equilibrium is asymptotically stable.
 (define (asymptotically-stable? stability-type)
+  (doc 'type '(-> Symbol Bool))
+  (doc 'description "Check if equilibrium is asymptotically stable")
   (if (memq stability-type '(stable-node stable-spiral)) #t #f))
 
-;;; unstable? : Symbol → Bool
-;;; Check if a stability type is unstable.
 (define (unstable? stability-type)
+  (doc 'type '(-> Symbol Bool))
+  (doc 'description "Check if a stability type is unstable")
   (if (memq stability-type '(unstable-node unstable-spiral saddle)) #t #f))
 
-;;; ====
-;;; Higher-Dimensional Stability
-;;; ====
+(doc 'section 'higher-dimensional-stability)
 
-;;; classify-stability-nd : (List Complex) → Symbol
-;;; Classify stability for n-dimensional system based on eigenvalues.
-;;; Returns: 'stable, 'unstable, 'neutrally-stable, or 'unknown
 (define (classify-stability-nd eigenvalues)
+  (doc 'type '(-> (List Complex) Symbol))
+  (doc 'description "Classify stability for n-dimensional system based on eigenvalues")
+  (doc 'returns "'stable, 'unstable, 'neutrally-stable, or 'unknown")
   (let ([max-real (apply max (map complex-real eigenvalues))]
         [min-real (apply min (map complex-real eigenvalues))])
        (cond
@@ -302,9 +263,9 @@
         [(and (< max-real 1e-10) (> min-real -1e-10)) 'neutrally-stable]
         [else 'saddle-type])))
 
-;;; analyze-stability-nd : Any × Any × Number → (Symbol × (List Complex))
-;;; Analyze stability for n-dimensional system.
 (define (analyze-stability-nd sys equilibrium step-size)
+  (doc 'type '(-> Any Any Number (Pair Symbol (List Complex))))
+  (doc 'description "Analyze stability for n-dimensional system")
   (let* ([jac (linearize-at-equilibrium sys equilibrium step-size)]
          [n (matrix-rows jac)])
         (if (<= n 2)
@@ -316,34 +277,29 @@
                                   'unstable)])
                   (cons stability (list dom-eval))))))
 
-;;; ====
-;;; Standard System Analysis
-;;; ====
+(doc 'section 'standard-system-analysis)
 
-;;; analyze-linear-system : Any → (Symbol × (List Complex))
-;;; Analyze stability of a linear ODE system dx/dt = Ax.
 (define (analyze-linear-system A)
+  (doc 'type '(-> Any (Pair Symbol (List Complex))))
+  (doc 'description "Analyze stability of a linear ODE system dx/dt = Ax")
   (let ([eigenvalues (matrix-eigenvalues-2d A)])
        (cons (classify-stability-2d eigenvalues) eigenvalues)))
 
-;;; ====
-;;; Trajectory Analysis
-;;; ====
+(doc 'section 'trajectory-analysis)
 
-;;; estimate-basin-of-attraction : Any × Any × Number × (List Any) → (List Any)
-;;; Estimate basin of attraction by testing which initial conditions
-;;; converge to the given equilibrium.
-;;; Returns list of initial conditions that converge.
 (define (estimate-basin-of-attraction sys equilibrium radius grid-points)
+  (doc 'type '(-> Any Any Number (List Any) (List Any)))
+  (doc 'description "Estimate basin of attraction by testing which initial conditions converge to the given equilibrium")
+  (doc 'returns "list of initial conditions that converge")
   (filter (lambda (point)
                   ;; Check if point is within radius of equilibrium
                   (< (vec-norm (vec-sub point equilibrium)) radius))
           grid-points))
 
-;;; is-stable-numerically? : Any × Any × Number × Number × Nat → Bool
-;;; Test stability by numerical integration from nearby initial condition.
-;;; Returns #t if trajectory appears to converge to equilibrium.
 (define (is-stable-numerically? sys equilibrium perturbation-size time-steps dt)
+  (doc 'type '(-> Any Any Number Number Nat Bool))
+  (doc 'description "Test stability by numerical integration from nearby initial condition")
+  (doc 'returns "#t if trajectory appears to converge to equilibrium")
   ;; Create small perturbation
   (let* ([n (vector-length equilibrium)]
          [perturbation (vec-scale perturbation-size (vec-ones n))]
@@ -355,9 +311,9 @@
              (< (vec-norm (vec-sub final-state equilibrium))
                 (* 2 perturbation-size)))))
 
-;;; integrate-euler : Any × Number × Any × Number × Nat → (List Any)
-;;; Simple forward Euler integration (for testing).
 (define (integrate-euler sys t0 state0 dt n)
+  (doc 'type '(-> Any Number Any Number Nat (List Any)))
+  (doc 'description "Simple forward Euler integration (for testing)")
   (let loop ([t t0] [state state0] [i 0] [result (list state0)])
        (if (>= i n)
            (reverse result)
