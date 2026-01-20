@@ -1,38 +1,35 @@
-;;; lattice/optimization/interval-global.ss — Interval Branch-and-Bound Global Optimization
-;;;
-;;; Guaranteed enclosure of global minima using interval arithmetic. Unlike
-;;; gradient-based methods (which find local minima), this provides rigorous
-;;; bounds: the true global minimum lies within the returned interval.
-;;;
-;;; Algorithm: Branch-and-bound with best-first search
-;;;   1. Maintain work list of boxes (priority queue by interval lower bound)
-;;;   2. For each box, compute interval enclosure of objective
-;;;   3. Prune boxes whose lower bound exceeds best known upper bound
-;;;   4. Bisect boxes along widest dimension until tolerance met
-;;;   5. Return candidate boxes containing potential global minima
-;;;
-;;; Key insight: Update best-upper on EVERY evaluation (not just when converged)
-;;; to enable aggressive pruning of other branches.
-;;;
-;;; TIER: 1 (depends on numeric/interval, data/heap)
-;;;
-;;; Author: Claude Opus 4.5
-;;; Created: 2026-01-16
-
 (load "core/base/prelude.ss")
 (load "lattice/numeric/interval.ss")
 (load "lattice/data/heap.ss")
 
-;;; ============================================================================
-;;; Interval Optimization Criteria
-;;; ============================================================================
+(doc 'module 'interval-global)
+(doc 'description "Interval branch-and-bound global optimization with guaranteed bounds")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
 
-;;; make-interval-convergence : Real × Nat × Real → IntervalConvergence
-;;; Create convergence criteria for interval optimization.
-;;;   width-tol: stop when box width below this tolerance
-;;;   max-iter: stop after this many box evaluations
-;;;   gap-tol: stop when (upper - lower) bound gap below this tolerance
+(doc 'section 'overview)
+(doc 'note "Guaranteed enclosure of global minima using interval arithmetic.
+Unlike gradient-based methods (which find local minima), this provides rigorous bounds:
+the true global minimum lies within the returned interval.
+
+Algorithm: Branch-and-bound with best-first search
+  1. Maintain work list of boxes (priority queue by interval lower bound)
+  2. For each box, compute interval enclosure of objective
+  3. Prune boxes whose lower bound exceeds best known upper bound
+  4. Bisect boxes along widest dimension until tolerance met
+  5. Return candidate boxes containing potential global minima
+
+Key insight: Update best-upper on EVERY evaluation (not just when converged)
+to enable aggressive pruning of other branches")
+
+(doc 'section 'convergence-criteria)
+
 (define (make-interval-convergence width-tol max-iter . gap-tol-opt)
+  (doc 'type '(-> Real Nat Real IntervalConvergence))
+  (doc 'description "Create convergence criteria for interval optimization")
+  (doc 'param 'width-tol "Stop when box width below this tolerance")
+  (doc 'param 'max-iter "Stop after this many box evaluations")
+  (doc 'param 'gap-tol "Stop when (upper - lower) bound gap below this tolerance (optional, defaults to width-tol)")
   (let ([gap-tol (if (null? gap-tol-opt) width-tol (car gap-tol-opt))])
     (list 'interval-convergence width-tol max-iter gap-tol)))
 

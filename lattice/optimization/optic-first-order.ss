@@ -1,60 +1,46 @@
-;;; lattice/optimization/optic-first-order.ss --- Optic-Based First-Order Optimization
-;;;
-;;; Wrappers around first-order optimizers that use optics to specify which
-;;; parameters to optimize within a structure.
-;;;
-;;; Instead of flattening structures to lists, these functions use optics
-;;; to focus on specific parameters, enabling:
-;;;   - Direct optimization of nested structure fields
-;;;   - Type-safe parameter access via lens composition
-;;;   - No manual flattening/unflattening
-;;;
-;;; Example:
-;;;   ;; Optimize velocity to minimize distance to target
-;;;   (adam-at rigid-body-vel-lens body
-;;;            (lambda (b) (vec2-dist-sq (body-final-pos b) target))
-;;;            0.01 100)
-;;;
-;;; Dependencies:
-;;;   - lattice/autodiff/traced-optics.ss
-;;;   - lattice/optimization/first-order.ss
-
 (load "lattice/autodiff/traced-optics.ss")
 (load "lattice/optimization/first-order.ss")
 
-;;; ============================================================
-;;; Optic-Based SGD
-;;; ============================================================
+(doc 'module 'optic-first-order)
+(doc 'description "Optic-based first-order optimization for structured parameters")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
 
-;;; sgd-at : Optic × s × (s-traced → Traced) × Number × Nat → s
-;;; SGD optimization at optic focus.
-;;;
-;;; Arguments:
-;;;   optic: Lens/Affine focusing on parameter to optimize
-;;;   structure: The structure containing the parameter
-;;;   loss-fn: Loss function from traced structure to traced scalar
-;;;   lr: Learning rate
-;;;   max-iters: Maximum iterations
-;;;
-;;; Returns: Structure with optimized parameter at focus
+(doc 'section 'overview)
+(doc 'note "Wrappers around first-order optimizers that use optics to specify which
+parameters to optimize within a structure.
+
+Instead of flattening structures to lists, these functions use optics to focus on
+specific parameters, enabling:
+  - Direct optimization of nested structure fields
+  - Type-safe parameter access via lens composition
+  - No manual flattening/unflattening
+
+Example:
+  ;; Optimize velocity to minimize distance to target
+  (adam-at rigid-body-vel-lens body
+           (lambda (b) (vec2-dist-sq (body-final-pos b) target))
+           0.01 100)")
+
+(doc 'section 'sgd)
+
 (define (sgd-at optic structure loss-fn lr max-iters)
+  (doc 'type '(-> Optic s (-> s-traced Traced) Number Nat s))
+  (doc 'description "SGD optimization at optic focus")
+  (doc 'param 'optic "Lens/Affine focusing on parameter to optimize")
+  (doc 'param 'structure "The structure containing the parameter")
+  (doc 'param 'loss-fn "Loss function from traced structure to traced scalar")
+  (doc 'param 'lr "Learning rate")
+  (doc 'param 'max-iters "Maximum iterations")
+  (doc 'returns "Structure with optimized parameter at focus")
   (optimize-steps optic structure loss-fn lr max-iters))
 
-;;; ============================================================
-;;; Optic-Based Momentum
-;;; ============================================================
+(doc 'section 'momentum)
 
-;;; momentum-at : Optic × s × (s-traced → Traced) × Number × Number × Nat → s
-;;; Gradient descent with momentum at optic focus.
-;;;
-;;; Arguments:
-;;;   optic: Lens focusing on parameter to optimize
-;;;   structure: The structure containing the parameter
-;;;   loss-fn: Loss function from traced structure to traced scalar
-;;;   lr: Learning rate
-;;;   beta: Momentum coefficient (typically 0.9)
-;;;   max-iters: Maximum iterations
 (define (momentum-at optic structure loss-fn lr beta max-iters)
+  (doc 'type '(-> Optic s (-> s-traced Traced) Number Number Nat s))
+  (doc 'description "Gradient descent with momentum at optic focus")
+  (doc 'param 'beta "Momentum coefficient (typically 0.9)")
   (let* ([focus (view optic structure)]
          [velocity (zero-like-value focus)])
     (let loop ([s structure] [v velocity] [iter 0])
@@ -67,25 +53,15 @@
                  [new-s (set-lens optic new-focus s)])
             (loop new-s new-v (+ iter 1)))))))
 
-;;; ============================================================
-;;; Optic-Based Adam
-;;; ============================================================
+(doc 'section 'adam)
 
-;;; adam-at : Optic × s × (s-traced → Traced) × Number × Nat → s
-;;; Adam optimization at optic focus.
-;;;
-;;; Uses default Adam hyperparameters:
-;;;   beta1 = 0.9 (first moment decay)
-;;;   beta2 = 0.999 (second moment decay)
-;;;   epsilon = 1e-8 (numerical stability)
-;;;
-;;; Arguments:
-;;;   optic: Lens focusing on parameter to optimize
-;;;   structure: The structure containing the parameter
-;;;   loss-fn: Loss function
-;;;   lr: Learning rate
-;;;   max-iters: Maximum iterations
 (define (adam-at optic structure loss-fn lr max-iters)
+  (doc 'type '(-> Optic s (-> s-traced Traced) Number Nat s))
+  (doc 'description "Adam optimization at optic focus with default hyperparameters")
+  (doc 'note "Uses default Adam hyperparameters:
+  beta1 = 0.9 (first moment decay)
+  beta2 = 0.999 (second moment decay)
+  epsilon = 1e-8 (numerical stability)")
   (adam-at-full optic structure loss-fn lr 0.9 0.999 1e-8 max-iters))
 
 ;;; adam-at-full : Optic × s × (s-traced → Traced) × Number × Number × Number × Number × Nat → s
@@ -111,21 +87,12 @@
                  [new-s (set-lens optic new-focus s)])
             (loop new-s new-m new-v (+ t 1)))))))
 
-;;; ============================================================
-;;; Optic-Based RMSprop
-;;; ============================================================
+(doc 'section 'rmsprop)
 
-;;; rmsprop-at : Optic × s × (s-traced → Traced) × Number × Number × Nat → s
-;;; RMSprop optimization at optic focus.
-;;;
-;;; Arguments:
-;;;   optic: Lens focusing on parameter
-;;;   structure: Structure containing parameter
-;;;   loss-fn: Loss function
-;;;   lr: Learning rate
-;;;   gamma: Decay rate (typically 0.9)
-;;;   max-iters: Maximum iterations
 (define (rmsprop-at optic structure loss-fn lr gamma max-iters)
+  (doc 'type '(-> Optic s (-> s-traced Traced) Number Number Nat s))
+  (doc 'description "RMSprop optimization at optic focus")
+  (doc 'param 'gamma "Decay rate (typically 0.9)")
   (let* ([focus (view optic structure)]
          [sq-avg (zero-like-value focus)])  ; Running average of squared gradients
     (let loop ([s structure] [sq-avg sq-avg] [iter 0])

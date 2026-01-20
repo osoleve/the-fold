@@ -1,30 +1,24 @@
-;;; lattice/optimization/lbfgs.ss --- Limited-Memory BFGS Quasi-Newton Method
-;;;
-;;; L-BFGS approximates the inverse Hessian using a limited history of
-;;; gradient differences. This is memory-efficient for large problems.
-;;;
-;;; This is Lattice code: pure, total, assumes reasonable input.
-;;;
-;;; Algorithm:
-;;;   - Store m most recent (s, y) pairs where:
-;;;     s = x_{k+1} - x_k
-;;;     y = grad_{k+1} - grad_k
-;;;   - Use two-loop recursion to compute H_k * g efficiently
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;   - autodiff/reverse-diff.ss
-;;;   - optimization/convergence.ss
-;;;   - optimization/line-search.ss
-
 (load "core/base/prelude.ss")
 (load "core/autodiff/reverse-diff.ss")
 (load "lattice/optimization/convergence.ss")
 (load "lattice/optimization/line-search.ss")
 
-;;; ====
-;;; L-BFGS History Structure
-;;; ====
+(doc 'module 'lbfgs)
+(doc 'description "Limited-memory BFGS quasi-Newton method for large-scale optimization")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
+
+(doc 'section 'overview)
+(doc 'note "L-BFGS approximates the inverse Hessian using a limited history of gradient differences.
+This is memory-efficient for large problems.
+
+Algorithm:
+  - Store m most recent (s, y) pairs where:
+    s = x_{k+1} - x_k
+    y = grad_{k+1} - grad_k
+  - Use two-loop recursion to compute H_k * g efficiently")
+
+(doc 'section 'history-structure)
 
 ;;; L-BFGS history stores recent (s, y, rho) tuples.
 ;;; Structure: (lbfgs-history max-size current-size s-list y-list rho-list)

@@ -1,24 +1,3 @@
-;;; lattice/optimization/newton.ss --- Newton and Quasi-Newton Methods
-;;;
-;;; Second-order optimization methods using Hessian information.
-;;;
-;;; This is Lattice code: pure, total, assumes reasonable input.
-;;;
-;;; Algorithms:
-;;;   - Pure Newton's method
-;;;   - Modified Newton (positive-definite Hessian enforcement)
-;;;   - Newton-CG (conjugate gradient for Newton direction)
-;;;   - Gauss-Newton (for least squares)
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;   - linalg/matrix.ss
-;;;   - linalg/matrix-solvers.ss
-;;;   - autodiff/reverse-diff.ss
-;;;   - autodiff/higher-order-diff.ss
-;;;   - optimization/convergence.ss
-;;;   - optimization/line-search.ss
-
 (load "core/base/prelude.ss")
 (load "lattice/linalg/matrix.ss")
 (load "lattice/linalg/matrix-decomp.ss")
@@ -28,9 +7,20 @@
 (load "lattice/optimization/convergence.ss")
 (load "lattice/optimization/line-search.ss")
 
-;;; ====
-;;; Newton's Method
-;;; ====
+(doc 'module 'newton)
+(doc 'description "Newton and quasi-Newton methods using second-order Hessian information")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
+
+(doc 'section 'overview)
+(doc 'note "Second-order optimization methods using Hessian information.
+Algorithms:
+  - Pure Newton's method
+  - Modified Newton (positive-definite Hessian enforcement)
+  - Newton-CG (conjugate gradient for Newton direction)
+  - Gauss-Newton (for least squares)")
+
+(doc 'section 'newtons-method)
 
 ;;; Newton's method computes the search direction by solving:
 ;;;   H * d = -g

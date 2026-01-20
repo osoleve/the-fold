@@ -1,28 +1,24 @@
-;;; lattice/optimization/lp.ss --- Linear Programming (Simplex Method)
-;;;
-;;; Pure functional implementation of linear programming using the
-;;; revised simplex method. Supports:
-;;;   - Standard form LP: minimize c'x subject to Ax = b, x >= 0
-;;;   - Dual LP construction
-;;;   - Sensitivity analysis (shadow prices, reduced costs)
-;;;   - Infeasibility and unboundedness detection
-;;;   - Bland's anti-cycling rule
-;;;
-;;; This is Lattice code: pure, total, assumes reasonable input.
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;   - linalg (vec, matrix, matrix-solvers)
-
 (load "core/base/prelude.ss")
 (load "lattice/linalg/vec.ss")
 (load "lattice/linalg/matrix.ss")
 (load "lattice/linalg/matrix-decomp.ss")
 (load "lattice/linalg/matrix-solvers.ss")
 
-;;; ====
-;;; Constants
-;;; ====
+(doc 'module 'lp)
+(doc 'description "Linear programming using the revised simplex method")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
+
+(doc 'section 'overview)
+(doc 'note "Pure functional implementation of linear programming using the revised simplex method.
+Supports:
+  - Standard form LP: minimize c'x subject to Ax = b, x >= 0
+  - Dual LP construction
+  - Sensitivity analysis (shadow prices, reduced costs)
+  - Infeasibility and unboundedness detection
+  - Bland's anti-cycling rule")
+
+(doc 'section 'constants)
 
 (define *lp-tolerance* 1e-10)
 (define *lp-max-iterations* 10000)

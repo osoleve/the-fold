@@ -1,19 +1,3 @@
-;;; lattice/optimization/optimize.ss --- Unified Optimization API
-;;;
-;;; Main entry point for optimization. Loads all optimizers and provides
-;;; a unified interface for minimizing functions.
-;;;
-;;; This is Lattice code: pure, total, assumes reasonable input.
-;;;
-;;; Usage:
-;;;   (minimize f x0)                    ; L-BFGS with defaults
-;;;   (minimize f x0 'adam)              ; Adam optimizer
-;;;   (minimize f x0 'newton)            ; Newton's method
-;;;   (minimize-bounded f x0 lo hi)      ; L-BFGS-B with bounds
-;;;
-;;; Dependencies:
-;;;   - All optimization submodules
-
 (load "core/base/prelude.ss")
 (load "lattice/optimization/convergence.ss")
 (load "lattice/optimization/line-search.ss")
@@ -21,21 +5,31 @@
 (load "lattice/optimization/newton.ss")
 (load "lattice/optimization/lbfgs.ss")
 
-;;; ====
-;;; Unified Minimization Interface
-;;; ====
+(doc 'module 'optimize)
+(doc 'description "Unified optimization API - main entry point for all optimizers")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
 
-;;; minimize : ((List TracedValue) → TracedValue) × (List Number) × ... → OptResult
-;;; Minimize a function starting from x0.
-;;; Optional arguments:
-;;;   method: 'sgd, 'momentum, 'adam, 'rmsprop, 'adagrad, 'lbfgs, 'newton, 'newton-cg
-;;;   criteria: ConvergenceCriteria (or use defaults)
-;;;
-;;; Examples:
-;;;   (minimize f x0)                    ; L-BFGS with defaults
-;;;   (minimize f x0 'adam)              ; Adam with defaults
-;;;   (minimize f x0 'lbfgs criteria)    ; L-BFGS with custom criteria
+(doc 'section 'overview)
+(doc 'note "Main entry point for optimization. Loads all optimizers and provides a unified interface.
+
+Usage:
+  (minimize f x0)                    ; L-BFGS with defaults
+  (minimize f x0 'adam)              ; Adam optimizer
+  (minimize f x0 'newton)            ; Newton's method
+  (minimize-bounded f x0 lo hi)      ; L-BFGS-B with bounds")
+
+(doc 'section 'unified-interface)
+
 (define (minimize f x0 . opts)
+  (doc 'type '(-> (-> (List TracedValue) TracedValue) (List Number) OptResult))
+  (doc 'description "Minimize a function starting from x0")
+  (doc 'param 'method "Optional: 'sgd, 'momentum, 'adam, 'rmsprop, 'adagrad, 'lbfgs, 'newton, 'newton-cg")
+  (doc 'param 'criteria "Optional: ConvergenceCriteria (or use defaults)")
+  (doc 'note "Examples:
+  (minimize f x0)                    ; L-BFGS with defaults
+  (minimize f x0 'adam)              ; Adam with defaults
+  (minimize f x0 'lbfgs criteria)    ; L-BFGS with custom criteria")
   (let* ([method (if (and (pair? opts) (symbol? (car opts)))
                      (car opts)
                      'lbfgs)]
@@ -75,27 +69,25 @@
               [else
                (lbfgs f x0 criteria)])))
 
-;;; minimize-bounded : ((List TracedValue) → TracedValue) × (List Number) × (List Number) × (List Number) × ... → OptResult
-;;; Minimize with box constraints.
-;;;   f: objective function
-;;;   x0: initial point
-;;;   lower: lower bounds (use -inf.0 for no lower bound)
-;;;   upper: upper bounds (use +inf.0 for no upper bound)
 (define (minimize-bounded f x0 lower upper . opts)
+  (doc 'type '(-> (-> (List TracedValue) TracedValue) (List Number) (List Number) (List Number) OptResult))
+  (doc 'description "Minimize with box constraints")
+  (doc 'param 'f "Objective function")
+  (doc 'param 'x0 "Initial point")
+  (doc 'param 'lower "Lower bounds (use -inf.0 for no lower bound)")
+  (doc 'param 'upper "Upper bounds (use +inf.0 for no upper bound)")
   (let ([criteria (if (and (pair? opts) (convergence-criteria? (car opts)))
                       (car opts)
                       *default-convergence*)])
        (lbfgs-b f x0 lower upper criteria)))
 
-;;; ====
-;;; Learning Rate Finder
-;;; ====
+(doc 'section 'learning-rate-finder)
 
-;;; find-learning-rate : ((List TracedValue) → TracedValue) × (List Number) × Number × Number × Nat → (List (Number × Number))
-;;; Find good learning rate by exponentially increasing lr and tracking loss.
-;;; Returns list of (learning-rate, loss) pairs.
-;;; Look for the steepest descent region before loss explodes.
 (define (find-learning-rate f x0 lr-min lr-max num-steps)
+  (doc 'type '(-> (-> (List TracedValue) TracedValue) (List Number) Number Number Nat (List (Pair Number Number))))
+  (doc 'description "Find good learning rate by exponentially increasing lr and tracking loss")
+  (doc 'returns "List of (learning-rate, loss) pairs")
+  (doc 'note "Look for the steepest descent region before loss explodes")
   (let* ([lr-mult (expt (/ lr-max lr-min) (/ 1 (- num-steps 1)))])
         (let loop ([x x0]
                    [lr lr-min]
@@ -122,14 +114,12 @@
   ;; Callback support would require modifying individual optimizers
   (minimize f x0 method criteria))
 
-;;; ====
-;;; Common Test Functions
-;;; ====
+(doc 'section 'test-functions)
 
-;;; rosenbrock : (List Number) → Number
-;;; Rosenbrock function: f(x,y) = (1-x)^2 + 100*(y-x^2)^2
-;;; Minimum at (1, 1) with f = 0
 (define (rosenbrock args)
+  (doc 'type '(-> (List Number) Number))
+  (doc 'description "Rosenbrock function: f(x,y) = (1-x)^2 + 100*(y-x^2)^2")
+  (doc 'note "Minimum at (1, 1) with f = 0")
   (let ([x (car args)]
         [y (cadr args)])
        (+ (* (- 1 x) (- 1 x))
@@ -168,16 +158,14 @@
           (expt (- 2.25 (+ x (* (- 1 (* y y)) x))) 2)
           (expt (- 2.625 (+ x (* (- 1 (* y y y)) x))) 2))))
 
-;;; ====
-;;; Method Selection Heuristics
-;;; ====
+(doc 'section 'method-selection)
 
-;;; suggest-method : Nat × Bool × Bool → Symbol
-;;; Suggest optimization method based on problem characteristics.
-;;;   n: number of variables
-;;;   is-smooth: whether function is smooth (continuous second derivatives)
-;;;   is-convex: whether function is convex
 (define (suggest-method n is-smooth is-convex)
+  (doc 'type '(-> Nat Boolean Boolean Symbol))
+  (doc 'description "Suggest optimization method based on problem characteristics")
+  (doc 'param 'n "Number of variables")
+  (doc 'param 'is-smooth "Whether function is smooth (continuous second derivatives)")
+  (doc 'param 'is-convex "Whether function is convex")
   (cond
    ;; Small convex smooth problems: Newton is fastest
    [(and is-smooth is-convex (< n 100))
@@ -192,37 +180,34 @@
    [else
     'adam]))
 
-;;; ====
-;;; Exported Summary
-;;; ====
+(doc 'section 'summary)
+(doc 'note "Available optimizers:
 
-;;; Available optimizers:
-;;;
-;;; First-order (gradient only):
-;;;   - gradient-descent : Basic gradient descent with fixed learning rate
-;;;   - sgd             : Stochastic gradient descent (alias)
-;;;   - momentum        : Gradient descent with momentum
-;;;   - nesterov        : Nesterov accelerated gradient
-;;;   - adam            : Adaptive moment estimation
-;;;   - adamw           : Adam with decoupled weight decay
-;;;   - rmsprop         : RMSprop adaptive learning rate
-;;;   - adagrad         : Adagrad adaptive learning rate
-;;;
-;;; Second-order (uses Hessian):
-;;;   - newton-method   : Newton's method with line search
-;;;   - modified-newton : Newton with positive-definite Hessian enforcement
-;;;   - newton-cg       : Truncated Newton using conjugate gradient
-;;;   - gauss-newton    : For nonlinear least squares
-;;;
-;;; Quasi-Newton (approximates Hessian):
-;;;   - lbfgs           : Limited-memory BFGS (default)
-;;;   - lbfgs-b         : L-BFGS with box constraints
-;;;
-;;; Line search methods:
-;;;   - armijo-backtrack    : Backtracking with Armijo condition
-;;;   - wolfe-line-search   : Strong Wolfe conditions
-;;;
-;;; Convergence:
-;;;   - make-convergence-criteria : Create custom stopping conditions
-;;;   - *default-convergence*     : Default convergence criteria
-;;;   - converged?                : Check if optimization converged
+First-order (gradient only):
+  - gradient-descent : Basic gradient descent with fixed learning rate
+  - sgd             : Stochastic gradient descent (alias)
+  - momentum        : Gradient descent with momentum
+  - nesterov        : Nesterov accelerated gradient
+  - adam            : Adaptive moment estimation
+  - adamw           : Adam with decoupled weight decay
+  - rmsprop         : RMSprop adaptive learning rate
+  - adagrad         : Adagrad adaptive learning rate
+
+Second-order (uses Hessian):
+  - newton-method   : Newton's method with line search
+  - modified-newton : Newton with positive-definite Hessian enforcement
+  - newton-cg       : Truncated Newton using conjugate gradient
+  - gauss-newton    : For nonlinear least squares
+
+Quasi-Newton (approximates Hessian):
+  - lbfgs           : Limited-memory BFGS (default)
+  - lbfgs-b         : L-BFGS with box constraints
+
+Line search methods:
+  - armijo-backtrack    : Backtracking with Armijo condition
+  - wolfe-line-search   : Strong Wolfe conditions
+
+Convergence:
+  - make-convergence-criteria : Create custom stopping conditions
+  - *default-convergence*     : Default convergence criteria
+  - converged?                : Check if optimization converged")

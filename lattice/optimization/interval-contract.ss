@@ -1,34 +1,25 @@
-;;; lattice/optimization/interval-contract.ss — Constraint Contractors for Interval Optimization
-;;;
-;;; Integrates constraint propagation with interval branch-and-bound.
-;;; Contractors shrink boxes based on constraints, enabling more aggressive
-;;; pruning than bisection alone.
-;;;
-;;; A contractor is: Box → Box | 'empty
-;;; It returns a (possibly smaller) box satisfying the constraint,
-;;; or 'empty if no feasible point exists.
-;;;
-;;; Key insight: Apply contractors BEFORE bisection. If propagation
-;;; shrinks the box significantly, we avoid unnecessary bisections.
-;;; If a contractor returns 'empty, we prune immediately.
-;;;
-;;; TIER: 1 (depends on numeric/interval, optimization/interval-global)
-;;;
-;;; Author: Claude Opus 4.5
-;;; Created: 2026-01-16
-
 (load "lattice/optimization/interval-global.ss")
 
-;;; ============================================================================
-;;; Contractor Type and Combinators
-;;; ============================================================================
+(doc 'module 'interval-contract)
+(doc 'description "Constraint contractors for interval optimization with constraint propagation")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
 
-;;; A contractor narrows a box based on a constraint.
-;;; contractor : Box → Box | 'empty
+(doc 'section 'overview)
+(doc 'note "Integrates constraint propagation with interval branch-and-bound.
+Contractors shrink boxes based on constraints, enabling more aggressive pruning than bisection alone.
 
-;;; contract-all : (List Contractor) × Box → Box | 'empty
-;;; Apply all contractors in sequence until fixpoint or empty.
+A contractor is: Box → Box | 'empty
+It returns a (possibly smaller) box satisfying the constraint, or 'empty if no feasible point exists.
+
+Key insight: Apply contractors BEFORE bisection. If propagation shrinks the box significantly,
+we avoid unnecessary bisections. If a contractor returns 'empty, we prune immediately.")
+
+(doc 'section 'contractors)
+
 (define (contract-all contractors box)
+  (doc 'type '(-> (List Contractor) Box (Union Box 'empty)))
+  (doc 'description "Apply all contractors in sequence until fixpoint or empty")
   (contract-fixpoint contractors box 100))
 
 ;;; contract-fixpoint : (List Contractor) × Box × Nat → Box | 'empty
@@ -62,13 +53,11 @@
                   (= (interval-hi (car b1)) (interval-hi (car b2)))
                   (loop (cdr b1) (cdr b2)))))))
 
-;;; ============================================================================
-;;; Basic Contractors
-;;; ============================================================================
+(doc 'section 'basic-contractors)
 
-;;; make-bound-contractor : Nat × Real × Real → Contractor
-;;; Constrain dimension i to [lo, hi].
 (define (make-bound-contractor dim lo hi)
+  (doc 'type '(-> Nat Real Real Contractor))
+  (doc 'description "Create contractor that constrains dimension i to [lo, hi]")
   (lambda (box)
     (let* ([iv (list-ref box dim)]
            [new-lo (max (interval-lo iv) lo)]
@@ -86,17 +75,14 @@
           (list-update box dim (interval-singleton v))
           'empty))))
 
-;;; ============================================================================
-;;; Linear Constraint Contractors
-;;; ============================================================================
-;;;
-;;; For constraints of the form: a₁x₁ + a₂x₂ + ... ≤ b
-;;; We can derive bounds on each variable from the others.
+(doc 'section 'linear-contractors)
+(doc 'note "For constraints of the form: a₁x₁ + a₂x₂ + ... ≤ b
+We can derive bounds on each variable from the others")
 
-;;; make-linear-le-contractor : (List (Nat × Real)) × Real → Contractor
-;;; Contractor for: sum(coef_i * x_i) <= rhs
-;;; coeffs is list of (dimension . coefficient) pairs.
 (define (make-linear-le-contractor coeffs rhs)
+  (doc 'type '(-> (List (Pair Nat Real)) Real Contractor))
+  (doc 'description "Contractor for: sum(coef_i * x_i) <= rhs")
+  (doc 'param 'coeffs "List of (dimension . coefficient) pairs")
   (lambda (box)
     (linear-le-contract coeffs rhs box)))
 
@@ -193,14 +179,12 @@
             'empty
             (ge-contractor box1))))))
 
-;;; ============================================================================
-;;; Quadratic Constraint Contractors
-;;; ============================================================================
+(doc 'section 'quadratic-contractors)
 
-;;; make-sphere-contractor : (List Real) × Real → Contractor
-;;; Contractor for: sum((x_i - center_i)²) ≤ radius²
-;;; Useful for trust region constraints.
 (define (make-sphere-contractor center radius-sq)
+  (doc 'type '(-> (List Real) Real Contractor))
+  (doc 'description "Contractor for: sum((x_i - center_i)²) ≤ radius²")
+  (doc 'note "Useful for trust region constraints")
   (lambda (box)
     ;; For each dimension, compute bound from others
     (let loop ([dim 0] [current-box box])
@@ -252,14 +236,12 @@
                           [else (- c (interval-hi iv))])])
          (loop (+ d 1) (cdr ivs) (cdr cs) (+ sum (* min-dist min-dist))))])))
 
-;;; ============================================================================
-;;; Constrained Interval Minimization
-;;; ============================================================================
+(doc 'section 'constrained-optimization)
 
-;;; interval-minimize-constrained : (Box → Interval) × Box × IntervalConvergence × (List Contractor) → IntervalOptResult
-;;; Global minimization with constraint contractors.
-;;; Contractors are applied before each bisection to shrink boxes.
 (define (interval-minimize-constrained f-interval initial-box criteria contractors)
+  (doc 'type '(-> (-> Box Interval) Box IntervalConvergence (List Contractor) IntervalOptResult))
+  (doc 'description "Global minimization with constraint contractors")
+  (doc 'note "Contractors are applied before each bisection to shrink boxes")
   (let* ([width-tol (ic-width-tol criteria)]
          [max-iter (ic-max-iter criteria)]
          [gap-tol (ic-gap-tol criteria)]
@@ -364,9 +346,3 @@
           (loop (+ dim 1) (cdr bs)
                 (cons (make-bound-contractor dim lo hi) acc))))))
 
-;;; ============================================================================
-;;; Load Message
-;;; ============================================================================
-
-(display "Interval constraint contractors loaded.\n")
-(display "Use (interval-minimize-constrained f-interval box criteria contractors).\n")

@@ -1,39 +1,32 @@
-;;; lattice/optimization/ilp.ss --- Integer Linear Programming
-;;;
-;;; Extends LP with integer constraints via branch-and-bound and cutting planes.
-;;; Supports:
-;;;   - Mixed integer programs (some variables integer, some continuous)
-;;;   - Pure integer programs (all variables integer)
-;;;   - Binary programs (0-1 variables)
-;;;   - Gomory cutting planes
-;;;   - Classic applications: knapsack, set cover
-;;;
-;;; This is Lattice code: pure, total, assumes reasonable input.
-;;;
-;;; Dependencies:
-;;;   - lp.ss (linear programming)
-
 (load "lattice/optimization/lp.ss")
 
-;;; ====
-;;; Constants
-;;; ====
+(doc 'module 'ilp)
+(doc 'description "Integer linear programming with branch-and-bound and cutting planes")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
+
+(doc 'section 'overview)
+(doc 'note "Extends LP with integer constraints via branch-and-bound and Gomory cutting planes.
+Supports:
+  - Mixed integer programs (some variables integer, some continuous)
+  - Pure integer programs (all variables integer)
+  - Binary programs (0-1 variables)
+  - Classic applications: knapsack, set cover")
+
+(doc 'section 'constants)
 
 (define *ilp-tolerance* 1e-6)
 (define *ilp-max-nodes* 10000)
 (define *ilp-max-cuts* 100)
 
-;;; ====
-;;; ILP Data Structures
-;;; ====
+(doc 'section 'data-structures)
+(doc 'note "An ILP extends LP with integer variable constraints: (ilp c A b integer-vars)
+where integer-vars is a list of variable indices that must be integer.
+Empty list = pure LP, all indices = pure ILP")
 
-;;; An ILP extends LP with integer variable constraints:
-;;;   (ilp c A b integer-vars)
-;;; where integer-vars is a list of variable indices that must be integer.
-;;; Empty list = pure LP, all indices = pure ILP.
-
-;;; ilp? : Any -> Boolean
 (define (ilp? x)
+  (doc 'type '(-> Any Boolean))
+  (doc 'description "Check if value is an ILP structure")
   (and (pair? x)
        (eq? (car x) 'ilp)
        (= (length x) 5)
