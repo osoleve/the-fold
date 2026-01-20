@@ -1,17 +1,18 @@
-;;; boundary/tests/test-error-improvements.ss — Tests for Error Improvements
-;;;
-;;; Comprehensive test suite for boundary/debug/error-improvements.ss
-;;; Validates enhanced error context detection, suggestion generation,
-;;; and documentation linking.
-
 (load "boundary/debug/error-improvements.ss")
+
+(doc 'module 'test-error-improvements)
+(doc 'description "Tests for Error Improvements")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+(doc 'note "Comprehensive test suite for boundary/debug/error-improvements.ss")
+(doc 'note "Validates enhanced error context detection, suggestion generation, and documentation linking")
 
 (define test-count 0)
 (define pass-count 0)
 (define fail-count 0)
 
-;;; Test assertion helper
 (define (assert-equal name actual expected)
+(doc assert-equal 'description "Test assertion helper")
   (set! test-count (+ test-count 1))
   (if (equal? actual expected)
       (begin
@@ -83,9 +84,7 @@
        (printf "  ✗ ~a\n" name)
        (printf "    Expected non-empty list, got: ~s\n" lst))))
 
-;;; ====
-;;; String Utility Tests
-;;; ====
+(doc 'section 'string-utility-tests)
 
 (printf "\n=== Testing string utilities ===\n")
 
@@ -127,9 +126,7 @@
 ;; string-index-of is provided by prelude.ss, not error-improvements.ss
 ;; Testing it is covered in prelude tests
 
-;;; ====
-;;; Error Message Parsing Tests
-;;; ====
+(doc 'section 'error-message-parsing-tests)
 
 (printf "\n=== Testing extract-function-name ===\n")
 
@@ -162,9 +159,7 @@
 (assert-false "extract when no filename in message"
               (extract-filename "generic error"))
 
-;;; ====
-;;; Enhanced Error Context Detection Tests
-;;; ====
+(doc 'section 'enhanced-error-context-detection-tests)
 
 (printf "\n=== Testing detect-error-context-enhanced ===\n")
 
@@ -204,9 +199,7 @@
               (car (detect-error-context-enhanced "random unknown error" '()))
               'general)
 
-;;; ====
-;;; Suggestion Generation Tests
-;;; ====
+(doc 'section 'suggestion-generation-tests)
 
 (printf "\n=== Testing generate-suggestions ===\n")
 
@@ -230,9 +223,7 @@
                        (generate-suggestions "type mismatch in expression"
                                              (detect-error-context-enhanced "type mismatch in expression" '())))
 
-;;; ====
-;;; Documentation Links Tests
-;;; ====
+(doc 'section 'documentation-links-tests)
 
 (printf "\n=== Testing get-documentation-links ===\n")
 
@@ -248,9 +239,7 @@
                        (get-documentation-links
                         (detect-error-context-enhanced "help is not bound" '())))
 
-;;; ====
-;;; Placeholder Fixing Tests
-;;; ====
+(doc 'section 'placeholder-fixing-tests)
 
 (printf "\n=== Testing fix-error-placeholders ===\n")
 
@@ -280,9 +269,7 @@
                               (when (not (string-contains? result "test"))
                                     (error 'test "Expected formatted value")))))
 
-;;; ====
-;;; Format Context Section Tests
-;;; ====
+(doc 'section 'format-context-section-tests)
 
 (printf "\n=== Testing format-context-section ===\n")
 
@@ -300,9 +287,7 @@
                   (detect-error-context-enhanced "tilemap is not bound" '()))
                  "Loom")
 
-;;; ====
-;;; Format Suggestions Section Tests
-;;; ====
+(doc 'section 'format-suggestions-section-tests)
 
 (printf "\n=== Testing format-suggestions-section ===\n")
 
@@ -318,9 +303,7 @@
                  (format-suggestions-section '("Test suggestion"))
                  "Test suggestion")
 
-;;; ====
-;;; Format Documentation Section Tests
-;;; ====
+(doc 'section 'format-documentation-section-tests)
 
 (printf "\n=== Testing format-documentation-section ===\n")
 
@@ -336,9 +319,7 @@
                  (format-documentation-section '("Test link"))
                  "Test link")
 
-;;; ====
-;;; Format Related Functions Tests
-;;; ====
+(doc 'section 'format-related-functions-tests)
 
 (printf "\n=== Testing format-related-functions ===\n")
 
@@ -350,9 +331,7 @@
                  (format-related-functions '(help apropos))
                  "(help 'help)")
 
-;;; ====
-;;; Integration Tests - format-enhanced-error
-;;; ====
+(doc 'section 'format-enhanced-error-integration)
 
 (printf "\n=== Testing format-enhanced-error integration ===\n")
 
@@ -380,9 +359,7 @@
                                                (error 'test "Expected BoardCraft context")))])
                                 (error 'make-hex-board "not bound"))))
 
-;;; ====
-;;; Enhanced Guard Macro Tests
-;;; ====
+(doc 'section 'enhanced-guard-macro-tests)
 
 (printf "\n=== Testing enhanced-guard macro ===\n")
 
@@ -394,9 +371,7 @@
                                   (when (not (string? formatted))
                                         (error 'test "Expected string from handler"))))))
 
-;;; ====
-;;; Edge Cases
-;;; ====
+(doc 'section 'edge-cases)
 
 (printf "\n=== Testing edge cases ===\n")
 
@@ -440,9 +415,7 @@
                               (when (not (list? result))
                                     (error 'test "Expected list result")))))
 
-;;; ====
-;;; Demo Function Test
-;;; ====
+(doc 'section 'demo-function-test)
 
 (printf "\n=== Testing demo function ===\n")
 
@@ -450,9 +423,7 @@
                  (lambda ()
                          (demo-enhanced-errors)))
 
-;;; ====
-;;; Test Summary
-;;; ====
+(doc 'section 'test-summary)
 
 (printf "\n====\n")
 (printf "Test Results:\n")
@@ -464,5 +435,4 @@
     (printf "\n✓ All tests passed!\n\n")
     (printf "\n✗ Some tests failed\n\n"))
 
-;;; Return success/failure
 (= fail-count 0)

@@ -1,11 +1,14 @@
-;;; Test harness for boundary/tools/validate.ss
-;;;
-;;; Run from ccverse root: scheme --script boundary/test-validate.ss
-
 (load "boundary/tools/validate.ss")
 
-;;; Helper to test validations (now using Result type)
-;;; Validators return (ok #t) for valid or (error message) for invalid
+(doc 'module 'test-validate)
+(doc 'note "Run from ccverse root: scheme --script boundary/test-validate.ss")
+(doc 'description "Test harness for boundary/tools/validate.ss")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+
+(doc 'section 'test-helpers)
+
+(doc 'note "Helper to test validations - Validators return (ok #t) for valid or (error message) for invalid")
 (define (test-valid name validator obj expected-valid)
   (display "  ")
   (display name)
@@ -40,9 +43,7 @@
 (display "Validation Tests (boundary/tools/validate.ss)\n")
 (display "====\n\n")
 
-;;; ====
-;;; Hash Validation Tests
-;;; ====
+(doc 'section 'hash-validation-tests)
 
 (display "Test 1: Hash validation\n")
 (define valid-hash (make-bytevector address-size #xAB))
@@ -59,9 +60,7 @@
 (test-valid "non-bytevector" validate-hash 42 #f)
 (test-valid "string instead of hash" validate-hash "abcd" #f)
 
-;;; ====
-;;; Hex String Validation Tests
-;;; ====
+(doc 'section 'hex-string-validation-tests)
 
 (display "\nTest 2: Hex string validation\n")
 (define valid-hex "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef00")
@@ -80,9 +79,7 @@
 (test-valid "invalid hex chars" validate-hex-string invalid-hex #f)
 (test-valid "non-string" validate-hex-string 123 #f)
 
-;;; ====
-;;; Reference Validation Tests
-;;; ====
+(doc 'section 'reference-validation-tests)
 
 (display "\nTest 3: Reference validation\n")
 (define hash1 (make-bytevector address-size #x11))
@@ -104,9 +101,7 @@
 (test-valid "refs with bad hash" validate-refs refs-with-bad #f)
 (test-valid "refs as list" validate-refs refs-not-vector #f)
 
-;;; ====
-;;; Tag Validation Tests
-;;; ====
+(doc 'section 'tag-validation-tests)
 
 (display "\nTest 4: Tag validation\n")
 (test-pred "valid tag predicate" tag-valid? 'test #t)
@@ -116,9 +111,7 @@
 (test-valid "tag as string" validate-tag "greeting" #f)
 (test-valid "tag as number" validate-tag 42 #f)
 
-;;; ====
-;;; Payload Validation Tests
-;;; ====
+(doc 'section 'payload-validation-tests)
 
 (display "\nTest 5: Payload validation\n")
 (define valid-payload (string->utf8 "hello"))
@@ -131,9 +124,7 @@
 (test-valid "payload as string" validate-payload invalid-payload #f)
 (test-valid "payload as number" validate-payload 42 #f)
 
-;;; ====
-;;; Block Validation Tests
-;;; ====
+(doc 'section 'block-validation-tests)
 
 (display "\nTest 6: Block validation\n")
 (define valid-block (make-block 'test
@@ -157,9 +148,7 @@
 (test-valid "non-block object" validate-block 'not-a-block #f)
 (test-valid "number instead of block" validate-block 42 #f)
 
-;;; ====
-;;; Serialization Validation Tests
-;;; ====
+(doc 'section 'serialization-validation-tests)
 
 (display "\nTest 7: Serialization validation\n")
 (define serialized-valid (block->bytes valid-block))
@@ -174,7 +163,8 @@
 (test-valid "truncated serialized" validate-serialized truncated #f)
 (test-valid "non-bytevector" validate-serialized "not bytes" #f)
 
-;;; Test round-trip: serialize, validate, deserialize
+(doc 'section 'round-trip-validation-tests)
+
 (display "\nTest 8: Round-trip validation\n")
 (define original (make-block 'data (string->utf8 "test data") (vector hash1)))
 (define serialized (block->bytes original))
@@ -202,9 +192,7 @@
     (display "✓\n")
     (display "✗\n"))
 
-;;; ====
-;;; Hex Character Tests
-;;; ====
+(doc 'section 'hex-character-tests)
 
 (display "\nTest 9: Hex character validation\n")
 (test-pred "digit 0" hex-char? #\0 #t)
@@ -217,9 +205,7 @@
 (test-pred "letter z" hex-char? #\z #f)
 (test-pred "space" hex-char? #\space #f)
 
-;;; ====
-;;; Edge Cases
-;;; ====
+(doc 'section 'edge-cases)
 
 (display "\nTest 10: Edge cases\n")
 

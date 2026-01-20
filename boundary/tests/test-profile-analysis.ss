@@ -1,25 +1,16 @@
-;;; boundary/tests/test-profile-analysis.ss — Tests for Profile Analysis Heuristics
-;;;
-;;; Tests the optimization hint detection in profile-analysis.ss:
-;;;   - Hint data structure
-;;;   - Tail-call opportunity detection
-;;;   - Fusion opportunity detection
-;;;   - Lookup opportunity detection
-;;;   - Memoization candidate detection
-;;;   - Inline candidate detection
-;;;   - Hint rendering
-;;;   - Profile comparison and regression detection
-
 (load "core/test-framework.ss")
 (load "boundary/diagnostics/profile-analysis.ss")
 
-;;; ====
-;;; Mock Profiler Construction
-;;; ====
+(doc 'module 'test-profile-analysis)
+(doc 'description "Tests the optimization hint detection in profile-analysis.ss")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
 
-;;; Create a mock profiler with specified stats
-;;; by-function is list of (name fuel . calls)
+(doc 'section 'mock-profiler-construction)
+
 (define (make-mock-profiler total-fuel used-fuel by-function root)
+  (doc 'description "Create a mock profiler with specified stats")
+  (doc 'param "by-function is list of (name fuel . calls)")
   `(profiler
     (initial-fuel . ,total-fuel)
     (root . ,root)
@@ -28,7 +19,7 @@
                    (efficiency . ,(if (zero? total-fuel) 0 (/ used-fuel total-fuel)))
                    (by-function . ,by-function)))))
 
-;;; Override profile-stats for mock profilers
+(doc 'description "Override profile-stats for mock profilers")
 (define original-profile-stats profile-stats)
 
 (define (profile-stats p)
@@ -36,8 +27,8 @@
       (cdr (assq 'mock-stats (cdr p)))
       (original-profile-stats p)))
 
-;;; Create a mock node for tree testing
 (define (make-mock-node name children)
+  (doc 'description "Create a mock node for tree testing")
   `(node
     (name . ,name)
     (start-fuel . 1000)
@@ -45,9 +36,7 @@
     (children . ,children)
     (call-count . 1)))
 
-;;; ====
-;;; Hint Data Structure Tests
-;;; ====
+(doc 'section 'hint-data-structure-tests)
 
 (test-group hint-data-structure
             
@@ -81,9 +70,7 @@
               (assert-false (hint? "string")))
             )
 
-;;; ====
-;;; Tail-Call Opportunity Detection Tests
-;;; ====
+(doc 'section 'tail-call-detection-tests)
 
 (test-group tail-call-detection
             
@@ -119,9 +106,7 @@
                     (assert-equal 2 (length hints))))  ; foo and bar, not baz
             )
 
-;;; ====
-;;; Fusion Opportunity Detection Tests
-;;; ====
+(doc 'section 'fusion-detection-tests)
 
 (test-group fusion-detection
             
@@ -176,9 +161,7 @@
                     (assert-equal 1 (length hints))))
             )
 
-;;; ====
-;;; Lookup Opportunity Detection Tests
-;;; ====
+(doc 'section 'lookup-detection-tests)
 
 (test-group lookup-detection
             
@@ -220,9 +203,7 @@
                     (assert-equal '() (detect-lookup-opportunities p))))
             )
 
-;;; ====
-;;; Memoization Candidate Detection Tests
-;;; ====
+(doc 'section 'memoization-detection-tests)
 
 (test-group memoization-detection
             
@@ -261,9 +242,7 @@
                     (assert-equal 'warning (hint-severity (car hints)))))
             )
 
-;;; ====
-;;; Inline Candidate Detection Tests
-;;; ====
+(doc 'section 'inline-detection-tests)
 
 (test-group inline-detection
             
@@ -292,9 +271,7 @@
                     (assert-equal 'info (hint-severity (car hints)))))
             )
 
-;;; ====
-;;; Full Analysis Tests
-;;; ====
+(doc 'section 'full-analysis-tests)
 
 (test-group full-analysis
             
@@ -323,9 +300,7 @@
                     (assert-equal '() hints)))
             )
 
-;;; ====
-;;; Hint Rendering Tests
-;;; ====
+(doc 'section 'hint-rendering-tests)
 
 (test-group hint-rendering
             
@@ -371,9 +346,7 @@
                                            (< pos-warn pos-info))))))
             )
 
-;;; ====
-;;; Profile Comparison Tests
-;;; ====
+(doc 'section 'profile-comparison-tests)
 
 (test-group profile-comparison
             
@@ -393,9 +366,7 @@
                     (assert-true (and (string-contains result "50") #t))))  ; ~50%
             )
 
-;;; ====
-;;; Regression Detection Tests
-;;; ====
+(doc 'section 'regression-detection-tests)
 
 (test-group regression-detection
             
@@ -424,11 +395,10 @@
                     (assert-equal '() hints)))
             )
 
-;;; ====
-;;; Helper: string-contains
-;;; ====
+(doc 'section 'helper-string-contains)
 
 (define (string-contains str substr)
+  (doc 'description "Check if string contains substring")
   (let ([str-len (string-length str)]
         [sub-len (string-length substr)])
        (let loop ([i 0])
@@ -437,8 +407,6 @@
              [(string=? (substring str i (+ i sub-len)) substr) i]
              [else (loop (+ i 1))]))))
 
-;;; ====
-;;; Run Tests
-;;; ====
+(doc 'section 'run-tests)
 
 (run-all-tests)

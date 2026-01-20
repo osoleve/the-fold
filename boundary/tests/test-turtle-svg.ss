@@ -1,8 +1,4 @@
-;;; boundary/tests/test-turtle-svg.ss — Tests for turtle-svg.ss
-;;;
-;;; Tests for SVG generation from turtle graphics drawings.
-;;;
-;;; NOTE: Run from project root: scheme --script boundary/tests/test-turtle-svg.ss
+(doc 'note "Run from project root: scheme --script boundary/tests/test-turtle-svg.ss")
 
 (load "core/test-framework.ss")
 (load "core/base/prelude.ss")
@@ -11,14 +7,17 @@
 (load "boundary/ui/turtle.ss")
 (load "boundary/ui/turtle-svg.ss")
 
+(doc 'module 'test-turtle-svg)
+(doc 'description "Tests for SVG generation from turtle graphics drawings")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+
 (display "\n")
 (display "====\n")
 (display "         TURTLE SVG GENERATION TESTS\n")
 (display "====\n")
 
-;;; ====
-;;; SVG Header/Footer Tests
-;;; ====
+(doc 'section 'svg-header-footer-tests)
 
 (test-group svg-structure
             (define-test svg-header-basic
@@ -50,9 +49,7 @@
                    (assert-true (string-contains? bg "480"))
                    (assert-true (string-contains? bg "#FFFFFF")))))
 
-;;; ====
-;;; Number Formatting Tests
-;;; ====
+(doc 'section 'number-formatting-tests)
 
 (test-group number-formatting
             (define-test format-number-integer
@@ -72,9 +69,7 @@
               (let ([result (format-number 0.5)])
                    (assert-true (string? result)))))
 
-;;; ====
-;;; Coordinate Formatting Tests
-;;; ====
+(doc 'section 'coord-formatting-tests)
 
 (test-group coord-formatting
             (define-test format-coord-move
@@ -88,9 +83,7 @@
               (let ([result (format-coord "L" 50.5 75.25)])
                    (assert-true (string-contains? result "L")))))
 
-;;; ====
-;;; Path Command Recognition Tests
-;;; ====
+(doc 'section 'path-command-recognition-tests)
 
 (test-group path-commands
             (define-test move-to-recognized
@@ -128,9 +121,7 @@
                    (assert-equal 0 (arc-start-angle cmd))
                    (assert-equal 90 (arc-end-angle cmd)))))
 
-;;; ====
-;;; Circle to SVG Tests
-;;; ====
+(doc 'section 'circle-svg-tests)
 
 (test-group circle-svg
             (define-test circle-svg-basic
@@ -150,9 +141,7 @@
                     (assert-true (string-contains? svg "fill="))
                     (assert-false (string-contains? svg "fill=\"none\"")))))
 
-;;; ====
-;;; Polygon to SVG Tests
-;;; ====
+(doc 'section 'polygon-svg-tests)
 
 (test-group polygon-svg
             (define-test polygon-svg-basic
@@ -171,9 +160,7 @@
                     (assert-true (string-contains? result "10"))
                     (assert-true (string-contains? result "20")))))
 
-;;; ====
-;;; Arc to SVG Tests
-;;; ====
+(doc 'section 'arc-svg-tests)
 
 (test-group arc-svg
             (define-test arc-svg-basic
@@ -192,9 +179,7 @@
                     (assert-true (string-contains? svg "1"))  ; large-arc flag
                     )))
 
-;;; ====
-;;; Path Segment Tests
-;;; ====
+(doc 'section 'path-segment-tests)
 
 (test-group path-segments
             (define-test segment-to-path-d-basic
@@ -220,9 +205,7 @@
                     (assert-true (string-contains? result "stroke="))
                     (assert-true (string-contains? result "stroke-width=")))))
 
-;;; ====
-;;; Paths to SVG Tests
-;;; ====
+(doc 'section 'paths-to-svg-tests)
 
 (test-group paths-to-svg
             (define-test paths-to-svg-empty
@@ -243,9 +226,7 @@
                     (assert-true (string-contains? svg "<path"))
                     (assert-true (string-contains? svg "<circle")))))
 
-;;; ====
-;;; Drawing to SVG Tests
-;;; ====
+(doc 'section 'drawing-to-svg-tests)
 
 (test-group drawing-to-svg
             (define-test drawing-to-svg-empty
@@ -275,9 +256,7 @@
                     (assert-true (string? svg))
                     (assert-true (string-contains? svg "<svg")))))
 
-;;; ====
-;;; Utility Tests
-;;; ====
+(doc 'section 'utility-tests)
 
 (test-group utilities
             (define-test exists-predicate
@@ -293,9 +272,7 @@
               (let ([result (deg->rad 90)])
                    (assert-true (< (abs (- result (/ pi 2))) 0.001)))))
 
-;;; ====
-;;; Color Conversion Tests
-;;; ====
+(doc 'section 'color-conversion-tests)
 
 (test-group color-conversion
             (define-test color12-to-svg-hex-black
@@ -312,9 +289,7 @@
                    (assert-true (string-contains? hex "#"))
                    (assert-equal 7 (string-length hex)))))
 
-;;; ====
-;;; Summary
-;;; ====
+(doc 'section 'summary)
 
 (display "\n")
 (display "====\n")

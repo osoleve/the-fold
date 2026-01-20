@@ -1,16 +1,19 @@
-;;; boundary/tests/test-test-finder.ss — Tests for Test Discovery Module
-;;;
-;;; Comprehensive test suite for boundary/lens/test-finder.ss
-;;; Tests test file discovery, symbol reference checking, and test name extraction.
-;;; (Yes, this is a test file for the test finder - quite meta!)
-
 (load "boundary/lens/test-finder.ss")
+
+(doc 'module 'test-test-finder)
+(doc 'description "Comprehensive test suite for test-finder.ss")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+(doc 'note "Tests test file discovery, symbol reference checking, and test name extraction")
+(doc 'note "Yes, this is a test file for the test finder - quite meta!")
 
 (define test-count 0)
 (define pass-count 0)
 (define fail-count 0)
 
-;;; Test assertion helper
+(doc 'section 'test-framework)
+
+(doc 'description "Test assertion helper")
 (define (assert-equal name actual expected)
   (set! test-count (+ test-count 1))
   (if (equal? actual expected)
@@ -29,9 +32,7 @@
 (define (assert-false name actual)
   (assert-equal name actual #f))
 
-;;; ====
-;;; path-basename Tests
-;;; ====
+(doc 'section 'path-basename-tests)
 
 (printf "\n=== Testing path-basename ===\n")
 
@@ -51,9 +52,7 @@
               (path-basename "/file.ss")
               "file.ss")
 
-;;; ====
-;;; path-dirname Tests
-;;; ====
+(doc 'section 'path-dirname-tests)
 
 (printf "\n=== Testing path-dirname ===\n")
 
@@ -73,9 +72,7 @@
               (path-dirname "/file.ss")
               "")
 
-;;; ====
-;;; string-rindex Tests
-;;; ====
+(doc 'section 'string-rindex-tests)
 
 (printf "\n=== Testing string-rindex ===\n")
 
@@ -99,9 +96,7 @@
               (string-rindex "foo/bar/baz" #\/)
               7)
 
-;;; ====
-;;; string-prefix? Tests
-;;; ====
+(doc 'section 'string-prefix-tests)
 
 (printf "\n=== Testing string-prefix? ===\n")
 
@@ -120,9 +115,7 @@
 (assert-false "prefix longer than string"
               (string-prefix? "te" "test-"))
 
-;;; ====
-;;; is-test-file? Tests
-;;; ====
+(doc 'section 'is-test-file-tests)
 
 (printf "\n=== Testing is-test-file? ===\n")
 
@@ -141,9 +134,7 @@
 (assert-false "tests in name but not prefix"
               (is-test-file? "my-tests.ss"))
 
-;;; ====
-;;; contains-symbol? Tests
-;;; ====
+(doc 'section 'contains-symbol-tests)
 
 (printf "\n=== Testing contains-symbol? ===\n")
 
@@ -165,9 +156,7 @@
 (assert-true "symbol in complex expr"
              (contains-symbol? '(define (test-it) (foo x y)) 'foo))
 
-;;; ====
-;;; extract-test-name-from-expr Tests
-;;; ====
+(doc 'section 'extract-test-name-tests)
 
 (printf "\n=== Testing extract-test-name-from-expr ===\n")
 
@@ -192,9 +181,7 @@
 (assert-false "define without test- prefix"
               (extract-test-name-from-expr '(define (helper x) x)))
 
-;;; ====
-;;; find-test-file Tests
-;;; ====
+(doc 'section 'find-test-file-tests)
 
 (printf "\n=== Testing find-test-file ===\n")
 
@@ -208,9 +195,7 @@
 (assert-false "returns #f for nonexistent"
               (find-test-file "/nonexistent/module.ss"))
 
-;;; ====
-;;; find-all-test-files Tests
-;;; ====
+(doc 'section 'find-all-test-files-tests)
 
 (printf "\n=== Testing find-all-test-files ===\n")
 
@@ -227,9 +212,7 @@
              (ormap (lambda (f) (string-contains? f "test-test-finder.ss"))
                     (find-all-test-files)))
 
-;;; ====
-;;; find-test-files-in Tests
-;;; ====
+(doc 'section 'find-test-files-in-tests)
 
 (printf "\n=== Testing find-test-files-in ===\n")
 
@@ -243,9 +226,7 @@
               (find-test-files-in "/nonexistent/directory")
               '())
 
-;;; ====
-;;; extract-test-names Tests
-;;; ====
+(doc 'section 'extract-test-names-tests)
 
 (printf "\n=== Testing extract-test-names ===\n")
 
@@ -258,9 +239,7 @@
               (extract-test-names "/nonexistent/file.ss")
               '())
 
-;;; ====
-;;; find-tests-for Tests
-;;; ====
+(doc 'section 'find-tests-for-tests)
 
 (printf "\n=== Testing find-tests-for ===\n")
 
@@ -278,9 +257,7 @@
              (let ([tests (find-tests-for 'nonexistent-symbol-xyz-123)])
                   (null? tests)))
 
-;;; ====
-;;; search-all-tests-for Tests
-;;; ====
+(doc 'section 'search-all-tests-for-tests)
 
 (printf "\n=== Testing search-all-tests-for ===\n")
 
@@ -293,9 +270,7 @@
                   ;; assert-equal is used in many test files
                   (> (length tests) 0)))
 
-;;; ====
-;;; filter-map-test Tests
-;;; ====
+(doc 'section 'filter-map-test-tests)
 
 (printf "\n=== Testing filter-map-test ===\n")
 
@@ -311,9 +286,7 @@
               (filter-map-test (lambda (x) x) '())
               '())
 
-;;; ====
-;;; test-file-references-symbol? Tests
-;;; ====
+(doc 'section 'test-file-references-symbol-tests)
 
 (printf "\n=== Testing test-file-references-symbol? ===\n")
 
@@ -327,9 +300,7 @@
 (assert-false "nonexistent file returns false"
               (test-file-references-symbol? "/nonexistent/file.ss" 'foo))
 
-;;; ====
-;;; Edge Cases
-;;; ====
+(doc 'section 'edge-cases)
 
 (printf "\n=== Testing Edge Cases ===\n")
 
@@ -348,9 +319,7 @@
 (assert-true "contains-symbol in empty list"
              (not (contains-symbol? '() 'foo)))
 
-;;; ====
-;;; Test Summary
-;;; ====
+(doc 'section 'summary)
 
 (printf "\n====\n")
 (printf "Test Results (test-finder):\n")
@@ -362,5 +331,5 @@
     (printf "\n✓ All tests passed!\n\n")
     (printf "\n✗ Some tests failed\n\n"))
 
-;;; Return success/failure
+(doc 'description "Return success/failure")
 (= fail-count 0)

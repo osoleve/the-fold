@@ -1,11 +1,12 @@
-;;; boundary/tests/test-refactor-integrated.ss -- Tests for Integrated Refactoring Engine
-
-;;; NOTE: Run from project root:
-;;;   scheme --script boundary/tests/test-refactor-integrated.ss
-
 (load "core/base/prelude.ss")
 (load "core/test-framework.ss")
 (load "boundary/tools/refactor-integrated.ss")
+
+(doc 'module 'test-refactor-integrated)
+(doc 'description "Tests for Integrated Refactoring Engine")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+(doc 'note "Run from project root: scheme --script boundary/tests/test-refactor-integrated.ss")
 
 (display "
 ")
@@ -16,9 +17,7 @@
 (display "====
 ")
 
-;;; ====
-;;; Change Representation Tests
-;;; ====
+(doc 'section 'change-representation-tests)
 
 (test-group change-representation-tests
             (define-test make-ref-change-test
@@ -38,9 +37,7 @@
               (assert-false (ref-change? '(1 2 3)))
               (assert-false (ref-change? (vector 'wrong-tag 1 2 3 4 5 6 7)))))
 
-;;; ====
-;;; File Scanning Tests
-;;; ====
+(doc 'section 'file-scanning-tests)
 
 (test-group file-scanning-tests
             (define-test find-scheme-files-test
@@ -59,9 +56,7 @@
               (assert-true (string-contains-word? "bar" "bar"))         ; Exact match
               (assert-false (string-contains-word? "foobar" "bar"))))   ; Substring only
 
-;;; ====
-;;; String Utility Tests
-;;; ====
+(doc 'section 'string-utility-tests)
 
 (test-group string-utility-tests
             (define-test string-find-substring-test
@@ -86,10 +81,8 @@
               (assert-false (scheme-identifier-char? #\())
               (assert-false (scheme-identifier-char? #\))))
             
-            ;;; ====
-            ;;; Semantic Scanner Tests
-            ;;; ====
-            
+            (doc 'section 'semantic-scanner-tests)
+
             (test-group semantic-scanner-tests
                         (define-test scan-token-regions-basic-test
                           ;; Simple code with no strings or comments
@@ -135,10 +128,8 @@
                                     ;; Should find the outer |# not the inner one
                                     (assert-true (> end 20))))))
             
-            ;;; ====
-            ;;; Position and Region Tests
-            ;;; ====
-            
+            (doc 'section 'position-region-tests)
+
             (test-group position-region-tests
                         (define-test position-in-code-test
                           (let ([regions '((code 0 10) (string 10 20) (code 20 30))])
@@ -152,10 +143,8 @@
                                (assert-equal 'string (find-region-type regions 15))
                                (assert-equal 'line-comment (find-region-type regions 25)))))
             
-            ;;; ====
-            ;;; Symbol Occurrence Finding Tests
-            ;;; ====
-            
+            (doc 'section 'symbol-occurrence-tests)
+
             (test-group symbol-occurrence-tests
                         (define-test find-symbol-occurrences-code-test
                           ;; Find symbol in code only
@@ -183,10 +172,8 @@
                                  [occs (find-symbol-occurrences-semantic content "foo")])
                                 (assert-equal 1 (length occs)))))  ; Only the standalone foo
             
-            ;;; ====
-            ;;; String Replace Word Tests
-            ;;; ====
-            
+            (doc 'section 'string-replace-tests)
+
             (test-group string-replace-tests
                         (define-test string-replace-word-simple-test
                           (assert-equal "(define bar 10)"
@@ -203,10 +190,8 @@
                           ;; Only the standalone foo should be replaced
                           ))
             
-            ;;; ====
-            ;;; Signature Extraction Tests
-            ;;; ====
-            
+            (doc 'section 'signature-extraction-tests)
+
             (test-group signature-extraction-tests
                         (define-test parse-param-list-simple-test
                           (assert-equal '(a b c) (parse-param-list "a b c")))
@@ -221,10 +206,8 @@
                                (let ([params (extract-param-string str 13)])  ; After "foo "
                                     (assert-true (string? params))))))
             
-            ;;; ====
-            ;;; Change Grouping Tests
-            ;;; ====
-            
+            (doc 'section 'change-grouping-tests)
+
             (test-group change-grouping-tests
                         (define-test group-changes-by-file-test
                           (let* ([c1 (make-ref-change 'rename "a.ss" "old" "new" 1 1 'ctx)]
@@ -237,10 +220,8 @@
                                      (assert-true (pair? a-group))
                                      (assert-equal 2 (length (cdr a-group)))))))
             
-            ;;; ====
-            ;;; Take-N Helper Tests
-            ;;; ====
-            
+            (doc 'section 'helper-tests)
+
             (test-group helper-tests
                         (define-test take-n-test
                           (assert-equal '(1 2) (take-n '(1 2 3 4 5) 2))
@@ -253,10 +234,8 @@
                           (assert-equal '() (take-up-to '(1 2 3) 0))
                           (assert-equal '(1 2 3) (take-up-to '(1 2 3) 10))))
             
-            ;;; ====
-            ;;; State Management Tests
-            ;;; ====
-            
+            (doc 'section 'state-tests)
+
             (test-group state-tests
                         (define-test pending-changes-initial-test
                           ;; Clear any existing changes
@@ -268,10 +247,8 @@
                           (refactor-clear!)
                           (assert-equal '() *pending-changes*)))
             
-            ;;; ====
-            ;;; Integration Tests (No File I/O)
-            ;;; ====
-            
+            (doc 'section 'integration-tests)
+
             (test-group integration-tests
                         (define-test refactor-status-test
                           ;; Just verify it doesn't error
@@ -285,10 +262,8 @@
                           (refactor-preview-changes)
                           (assert-true #t)))
             
-            ;;; ====
-            ;;; Context Extraction Tests
-            ;;; ====
-            
+            (doc 'section 'context-extraction-tests)
+
             (test-group context-extraction-tests
                         (define-test extract-context-line-test
                           (let* ([content "line one\nline two\nline three\n"]
@@ -306,10 +281,8 @@
                           (assert-equal 2 (count-newlines-before "line1\nline2\nline3" 7))
                           (assert-equal 3 (count-newlines-before "a\nb\nc\nd" 6))))
             
-            ;;; ====
-            ;;; Call Detection Tests
-            ;;; ====
-            
+            (doc 'section 'call-detection-tests)
+
             (test-group call-detection-tests
                         (define-test find-calls-in-expr-simple-test
                           (let ([calls (find-calls-in-expr '(foo 1 2) 'foo)])
@@ -329,10 +302,8 @@
                           (let ([calls (find-calls-in-expr '(quote (foo 1 2)) 'foo)])
                                (assert-equal 0 (length calls)))))
             
-            ;;; ====
-            ;;; Call Transformation Tests
-            ;;; ====
-            
+            (doc 'section 'transform-tests)
+
             (test-group transform-tests
                         (define-test transform-call-simple-test
                           (let ([result (transform-call '(foo a b) 'bar '(0 1))])
@@ -346,33 +317,31 @@
                                ;; b should come before a in the result
                                (assert-true (string? result)))))
             
-            ;;; ====
-            ;;; Helper Functions Used in Tests
-            ;;; ====
-            
-            ;;; any : (a -> Bool) x (List a) -> Bool
+            (doc 'section 'helper-functions)
+
             (define (any pred lst)
+              (doc 'type "(a -> Bool) x (List a) -> Bool")
               (cond
                [(null? lst) #f]
                [(pred (car lst)) #t]
                [else (any pred (cdr lst))]))
             
-            ;;; every : (a -> Bool) x (List a) -> Bool
             (define (every pred lst)
+              (doc 'type "(a -> Bool) x (List a) -> Bool")
               (cond
                [(null? lst) #t]
                [(not (pred (car lst))) #f]
                [else (every pred (cdr lst))]))
             
-            ;;; find : (a -> Bool) x (List a) -> a | #f
             (define (find pred lst)
+              (doc 'type "(a -> Bool) x (List a) -> a | #f")
               (cond
                [(null? lst) #f]
                [(pred (car lst)) (car lst)]
                [else (find pred (cdr lst))]))
             
-            ;;; string-contains? : String x String -> Bool
             (define (string-contains? str sub)
+              (doc 'type "String x String -> Bool")
               (let ([slen (string-length str)]
                     [sublen (string-length sub)])
                    (let loop ([i 0])
@@ -381,10 +350,8 @@
                          [(string=? sub (substring str i (+ i sublen))) #t]
                          [else (loop (+ i 1))]))))
             
-            ;;; ====
-            ;;; Run Tests
-            ;;; ====
-            
+            (doc 'section 'run-tests)
+
             (display "
 ")
             (display "====

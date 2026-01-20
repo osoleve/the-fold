@@ -1,33 +1,35 @@
-;;; Test the command system
-
-;; Load in quiet mode
 (define *quiet* #t)
 (load "boundary/repl/repl.ss")
 
-;; Test 1: List all commands
+(doc 'module 'test-commands)
+(doc 'description "Basic command system tests - listing, help, invocation, error handling")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+
+(doc 'section 'list-commands)
 (display "\n=== Test 1: List all commands ===\n")
 (commands)
 
-;; Test 2: Get help on specific command
+(doc 'section 'command-help)
 (display "\n=== Test 2: Help on 'digest' command ===\n")
 (help 'digest)
 
-;; Test 3: Test cmd function with valid command
+(doc 'section 'invoke-command)
 (display "\n=== Test 3: Invoke version via cmd ===\n")
 (let ([result (cmd 'version)])
      (display (format "Result: ~a\n" result)))
 
-;; Test 4: Test unknown command with suggestion
+(doc 'section 'unknown-command-with-typo)
 (display "\n=== Test 4: Unknown command (typo) ===\n")
 (let ([result (cmd 'chatt "test")])
      (display (format "Result: ~a\n" result)))
 
-;; Test 5: Test unknown command without good suggestion
+(doc 'section 'unknown-command-no-suggestion)
 (display "\n=== Test 5: Unknown command (no suggestion) ===\n")
 (let ([result (cmd 'foobar)])
      (display (format "Result: ~a\n" result)))
 
-;; Test 6: Direct function call
+(doc 'section 'direct-call)
 (display "\n=== Test 6: Direct version call ===\n")
 (version)
 

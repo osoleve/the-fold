@@ -1,17 +1,18 @@
-;;; boundary/tests/test-exploration-error-handler.ss — Tests for Exploration Error Handler
-;;;
-;;; Comprehensive test suite for boundary/debug/exploration-error-handler.ss
-;;; Validates error formatting for exploration scripts, placeholder fixes,
-;;; and condition handling.
-
 (load "boundary/debug/exploration-error-handler.ss")
+
+(doc 'module 'test-exploration-error-handler)
+(doc 'description "Tests for Exploration Error Handler")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+(doc 'note "Comprehensive test suite for boundary/debug/exploration-error-handler.ss")
+(doc 'note "Validates error formatting for exploration scripts, placeholder fixes, and condition handling")
 
 (define test-count 0)
 (define pass-count 0)
 (define fail-count 0)
 
-;;; Test assertion helper
 (define (assert-equal name actual expected)
+(doc assert-equal 'description "Test assertion helper")
   (set! test-count (+ test-count 1))
   (if (equal? actual expected)
       (begin
@@ -59,9 +60,7 @@
        (printf "  ✗ ~a\n" name)
        (printf "    Expected truthy value, got: ~s\n" value))))
 
-;;; ====
-;;; String Utility Tests
-;;; ====
+(doc 'section 'string-utility-tests)
 
 (printf "\n=== Testing string utilities ===\n")
 
@@ -100,9 +99,7 @@
               (string-find-pattern "test" "")
               0)
 
-;;; ====
-;;; Fix Format Placeholders Tests
-;;; ====
+(doc 'section 'fix-format-placeholders-tests)
 
 (printf "\n=== Testing fix-format-placeholders ===\n")
 
@@ -150,9 +147,7 @@
               (fix-format-placeholders "")
               "")
 
-;;; ====
-;;; Fill Format Placeholders Tests
-;;; ====
+(doc 'section 'fill-format-placeholders-tests)
 
 (printf "\n=== Testing fill-format-placeholders ===\n")
 
@@ -181,9 +176,7 @@
                               (when (not (string? result))
                                     (error 'test "Expected string result")))))
 
-;;; ====
-;;; Format Condition Message Tests
-;;; ====
+(doc 'section 'format-condition-message-tests)
 
 (printf "\n=== Testing format-condition-message ===\n")
 
@@ -209,9 +202,7 @@
               (format-condition-message "~s is invalid" #f '())
               "<value> is invalid")
 
-;;; ====
-;;; Format Exploration Error Tests
-;;; ====
+(doc 'section 'format-exploration-error-tests)
 
 (printf "\n=== Testing format-exploration-error ===\n")
 
@@ -241,9 +232,7 @@
                                                (error 'test "Expected who in output")))])
                                 (error 'test-func "test error"))))
 
-;;; ====
-;;; Condition Inspection Helper Tests
-;;; ====
+(doc 'section 'condition-inspection-helper-tests)
 
 (printf "\n=== Testing condition inspection helpers ===\n")
 
@@ -277,9 +266,7 @@
                                                       (list? irritants)))])
                                 (error 'test "error" 42))))
 
-;;; ====
-;;; Exploration Guard Macro Tests
-;;; ====
+(doc 'section 'exploration-guard-macro-tests)
 
 (printf "\n=== Testing exploration-guard macro ===\n")
 
@@ -310,9 +297,7 @@
                               (when (not (string? received))
                                     (error 'test "Handler didn't receive string")))))
 
-;;; ====
-;;; Real-World Error Scenarios
-;;; ====
+(doc 'section 'real-world-error-scenarios)
 
 (printf "\n=== Testing real-world error scenarios ===\n")
 
@@ -356,9 +341,7 @@
                                                (error 'test "Expected string")))])
                                 (vector-ref (vector 1 2 3) 10))))
 
-;;; ====
-;;; Edge Cases
-;;; ====
+(doc 'section 'edge-cases)
 
 (printf "\n=== Testing edge cases ===\n")
 
@@ -396,9 +379,7 @@
                               (when (not (= result 42))
                                     (error 'test "Expected normal return value")))))
 
-;;; ====
-;;; Comparison with Raw condition-message
-;;; ====
+(doc 'section 'comparison-with-raw-condition-message)
 
 (printf "\n=== Testing improvements over raw condition-message ===\n")
 
@@ -414,9 +395,7 @@
                                                (error 'test "Format should fix ~s")))])
                                 (string-ref "x" 5))))
 
-;;; ====
-;;; Demo Function Test
-;;; ====
+(doc 'section 'demo-function-test)
 
 (printf "\n=== Testing demo function ===\n")
 
@@ -424,9 +403,7 @@
                  (lambda ()
                          (demonstrate-error-formatting)))
 
-;;; ====
-;;; Integration with Exploration Scripts Pattern
-;;; ====
+(doc 'section 'integration-with-exploration-scripts)
 
 (printf "\n=== Testing exploration script pattern ===\n")
 
@@ -442,9 +419,7 @@
                               (when (not (string? (car results)))
                                     (error 'test "Should have formatted error")))))
 
-;;; ====
-;;; Test Summary
-;;; ====
+(doc 'section 'test-summary)
 
 (printf "\n====\n")
 (printf "Test Results:\n")
@@ -456,5 +431,4 @@
     (printf "\n✓ All tests passed!\n\n")
     (printf "\n✗ Some tests failed\n\n"))
 
-;;; Return success/failure
 (= fail-count 0)

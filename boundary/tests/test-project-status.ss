@@ -1,23 +1,21 @@
-;;; boundary/test-project-status.ss --- Tests for Project Status Module
-;;;
-;;; Run from ccverse root: scheme --script boundary/test-project-status.ss
-;;;
-;;; Dependencies: core/prelude.ss, boundary/tools/project-status.ss
-
-;;; ====
-;;; Setup
-;;; ====
-
 (load "core/base/prelude.ss")
 (load "boundary/tools/project-status.ss")
 
-;;; Test counter
+(doc 'module 'test-project-status)
+(doc 'description "Tests for Project Status Module")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+(doc 'note "Run from ccverse root: scheme --script boundary/test-project-status.ss")
+
+(doc 'section 'test-framework)
+
+(doc 'description "Test counter")
 (define *tests-run* 0)
 (define *tests-passed* 0)
 
-;;; test : String x Boolean -> void
-;;; Run a single test.
 (define (test name passed?)
+  (doc 'type "String x Boolean -> void")
+  (doc 'description "Run a single test")
   (set! *tests-run* (+ *tests-run* 1))
   (display "  ")
   (display name)
@@ -43,9 +41,7 @@
 (define (test-alist-has-key name key alist)
   (test name (assq key alist)))
 
-;;; ====
-;;; Tests
-;;; ====
+(doc 'section 'tests)
 
 (display "\n")
 (display "+====+\n")
@@ -53,7 +49,7 @@
 (display "+====+\n")
 (display "\n")
 
-;;; ---- Path Utilities ----
+(doc 'section 'path-utilities-tests)
 
 (display "Test 1: Path utilities\n")
 
@@ -81,7 +77,7 @@
 (test-true "starts-with? rejects non-prefix"
            (not (starts-with? "foo-test.ss" "test-")))
 
-;;; ---- String Utilities ----
+(doc 'section 'string-utilities-tests)
 
 (display "\nTest 2: String utilities\n")
 
@@ -105,7 +101,7 @@
             '("a" "b")
             (string-split "a||b" #\|))
 
-;;; ---- Test File Detection ----
+(doc 'section 'test-file-detection-tests)
 
 (display "\nTest 3: Test file detection\n")
 
@@ -121,7 +117,7 @@
 (test-true "is-test-file? rejects non-scheme"
            (not (is-test-file? "test-foo.txt")))
 
-;;; ---- Scheme File Detection ----
+(doc 'section 'scheme-file-detection-tests)
 
 (display "\nTest 4: Scheme file detection\n")
 
@@ -131,7 +127,7 @@
 (test-true "is-scheme-file? rejects .txt"
            (not (is-scheme-file? "foo.txt")))
 
-;;; ---- Blank/Comment Detection ----
+(doc 'section 'blank-comment-detection-tests)
 
 (display "\nTest 5: Blank and comment detection\n")
 
@@ -150,7 +146,7 @@
 (test-true "is-blank-or-comment? rejects code"
            (not (is-blank-or-comment? "(define x 5)")))
 
-;;; ---- Git Status Parsing ----
+(doc 'section 'git-status-parsing-tests)
 
 (display "\nTest 6: Git status parsing\n")
 
@@ -168,7 +164,7 @@
      (test-true "untracked file captured"
                 (member "new-file.ss" (cdr (assq 'untracked untracked-result)))))
 
-;;; ---- Commit Parsing ----
+(doc 'section 'commit-parsing-tests)
 
 (display "\nTest 7: Commit parsing\n")
 
@@ -183,7 +179,7 @@
                  "2 hours ago"
                  (cdr (assq 'time commit))))
 
-;;; ---- Integration Tests (on actual repo) ----
+(doc 'section 'integration-tests)
 
 (display "\nTest 8: Integration tests (counting in current directory)\n")
 
@@ -211,7 +207,7 @@
      (test-true "recent-commits has at least 1 commit"
                 (> (length commits) 0)))
 
-;;; ---- Full Status Test ----
+(doc 'section 'full-status-test)
 
 (display "\nTest 9: Full project status\n")
 
@@ -223,7 +219,7 @@
      (test-alist-has-key "status has git-status" 'git-status status)
      (test-alist-has-key "status has last-commit" 'last-commit status))
 
-;;; ---- Health Check ----
+(doc 'section 'health-check-test)
 
 (display "\nTest 10: Health check\n")
 
@@ -233,9 +229,7 @@
      (test-true "health is valid value"
                 (memq h '(healthy dirty unknown))))
 
-;;; ====
-;;; Summary
-;;; ====
+(doc 'section 'summary)
 
 (display "\n")
 (display "+====+\n")
@@ -251,7 +245,7 @@
      (display "\n  Some tests failed!\n\n")
      (exit 1)))
 
-;;; ---- Demo: Show the report ----
+(doc 'section 'demo)
 
 (display "Demo: Running project-status-report on ccverse...\n")
 (project-status-report)

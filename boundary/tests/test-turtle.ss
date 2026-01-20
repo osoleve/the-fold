@@ -1,23 +1,17 @@
-;;; boundary/test-turtle.ss — Turtle Graphics Test Suite
-;;;
-;;; Comprehensive tests for the turtle graphics system.
-;;;
-;;; Run with: scheme --script test-turtle.ss
-;;;
-;;; Dependencies: All turtle modules
+(doc 'note "Run with: scheme --script test-turtle.ss")
 
-;;; ====
-;;; Load Dependencies
-;;; ====
+(doc 'section 'load-dependencies)
 
 (load "core/base/prelude.ss")
 
-;;; NOTE: string utilities provided by core/prelude.ss
-;;;   - string-contains?
+(doc 'module 'test-turtle)
+(doc 'description "Comprehensive tests for the turtle graphics system")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+(doc 'note "Dependencies: All turtle modules")
+(doc 'note "string utilities provided by core/prelude.ss: string-contains?")
 
-;;; ====
-;;; Test Framework
-;;; ====
+(doc 'section 'test-framework)
 
 (define *test-count* 0)
 (define *pass-count* 0)
@@ -87,9 +81,7 @@
       (display "All tests passed!\n")
       (display "Some tests failed.\n")))
 
-;;; ====
-;;; Load Turtle Modules
-;;; ====
+(doc 'section 'load-turtle-modules)
 
 (display "Loading turtle modules...\n")
 (load "turtle-color.ss")
@@ -98,9 +90,7 @@
 (load "turtle-svg.ss")
 (display "Modules loaded.\n")
 
-;;; ====
-;;; Color Tests
-;;; ====
+(doc 'section 'color-tests)
 
 (test-section "Color12 Construction")
 
@@ -161,9 +151,7 @@
      (test "all equal g" 0 (color12-g c1))
      (test "all equal b" 0 (color12-b c1)))
 
-;;; ====
-;;; Path Command Tests
-;;; ====
+(doc 'section 'path-command-tests)
 
 (test-section "Path Commands")
 
@@ -184,9 +172,7 @@
      (test "circle-radius" 50 (circle-radius c))
      (test "circle-fill?" #t (circle-fill? c)))
 
-;;; ====
-;;; Turtle State Tests
-;;; ====
+(doc 'section 'turtle-state-tests)
 
 (test-section "Turtle Default State")
 
@@ -277,9 +263,7 @@
        [t2 (setpc t #xF00)])
       (test "setpc int" 15 (color12-r (turtle-pen-color t2))))
 
-;;; ====
-;;; Drawing Tests
-;;; ====
+(doc 'section 'drawing-tests)
 
 (test-section "Drawing Extraction")
 
@@ -289,9 +273,7 @@
       (test "drawing height" 480 (drawing-height d))
       (test "drawing has paths" 2 (length (drawing-paths d))))  ; move-to + line-to
 
-;;; ====
-;;; SVG Generation Tests
-;;; ====
+(doc 'section 'svg-generation-tests)
 
 (test-section "SVG Structure")
 
@@ -314,9 +296,7 @@
       (test "svg has path" #t (string-contains? svg "<path"))
       (test "svg closes" #t (string-contains? svg "</svg>")))
 
-;;; ====
-;;; Shape Tests
-;;; ====
+(doc 'section 'shape-tests)
 
 (test-section "Shapes")
 
@@ -333,9 +313,7 @@
       (test "polygon cmd" #t (polygon? (car paths)))
       (test "polygon points" 4 (length (polygon-points (car paths)))))
 
-;;; ====
-;;; Convenience Functions
-;;; ====
+(doc 'section 'convenience-functions)
 
 (test-section "Convenience Shapes")
 
@@ -351,8 +329,6 @@
       ;; Star draws: initial move-to + 5 lines
       (test "star draws" 6 (length paths)))
 
-;;; ====
-;;; Summary
-;;; ====
+(doc 'section 'summary)
 
 (test-summary)

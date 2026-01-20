@@ -1,15 +1,15 @@
-;;; boundary/tests/test-call-graph.ss — Tests for Call Graph Construction
-;;;
-;;; Comprehensive test suite for boundary/lens/call-graph.ss
-;;; Tests call graph building, caller/callee extraction, and path finding.
-
 (load "boundary/lens/call-graph.ss")
+
+(doc 'module 'test-call-graph)
+(doc 'description "Tests for call graph construction - building, caller/callee extraction, path finding")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
 
 (define test-count 0)
 (define pass-count 0)
 (define fail-count 0)
 
-;;; Test assertion helper
+(doc 'section 'test-helpers)
 (define (assert-equal name actual expected)
   (set! test-count (+ test-count 1))
   (if (equal? actual expected)
@@ -28,9 +28,7 @@
 (define (assert-false name actual)
   (assert-equal name actual #f))
 
-;;; ====
-;;; Helper Function Tests
-;;; ====
+(doc 'section 'remove-duplicates-tests)
 
 (printf "\n=== Testing remove-duplicates-eq ===\n")
 
@@ -54,9 +52,7 @@
               (remove-duplicates-eq '(x x x x))
               '(x))
 
-;;; ====
-;;; extract-calls-from-body Tests
-;;; ====
+(doc 'section 'extract-calls-tests)
 
 (printf "\n=== Testing extract-calls-from-body ===\n")
 
@@ -98,9 +94,7 @@
                    (member 'local result))
               #f)
 
-;;; ====
-;;; extract-definition-info Tests
-;;; ====
+(doc 'section 'extract-definition-tests)
 
 (printf "\n=== Testing extract-definition-info ===\n")
 
@@ -127,9 +121,7 @@
               (extract-definition-info 'symbol)
               #f)
 
-;;; ====
-;;; find-scheme-files Tests
-;;; ====
+(doc 'section 'find-scheme-files-tests)
 
 (printf "\n=== Testing find-scheme-files ===\n")
 
@@ -150,30 +142,22 @@
               (find-scheme-files "/nonexistent/path")
               '())
 
-;;; ====
-;;; Call Graph Operations Tests
-;;; ====
+(doc 'section 'call-graph-ops)
 
 (printf "\n=== Testing call-graph-built? ===\n")
-
-;; Clear state before testing
 (hashtable-clear! *forward-calls*)
 (hashtable-clear! *reverse-calls*)
 (set! *call-graph-built?* #f)
 
 (assert-false "graph not built initially"
               (call-graph-built?))
-
-;;; Build graph for testing
 (printf "\n=== Building call graph for tests ===\n")
 (call-graph-refresh!)
 
 (assert-true "graph built after refresh"
              (call-graph-built?))
 
-;;; ====
-;;; call-graph-callers/callees Tests
-;;; ====
+(doc 'section 'callers-callees-tests)
 
 (printf "\n=== Testing call-graph-callers/callees ===\n")
 
@@ -184,13 +168,10 @@
              (list? (call-graph-callees 'foo)))
 
 (assert-true "known function has callees"
-             ;; call-graph-refresh! should have callees like display, for-each, etc.
              (let ([callees (call-graph-callees 'call-graph-refresh!)])
                   (> (length callees) 0)))
 
-;;; ====
-;;; call-graph-path Tests
-;;; ====
+(doc 'section 'path-tests)
 
 (printf "\n=== Testing call-graph-path ===\n")
 
@@ -213,9 +194,7 @@
                       (and (list? paths)
                            (andmap list? paths)))))
 
-;;; ====
-;;; filter-map Tests
-;;; ====
+(doc 'section 'filter-map-tests)
 
 (printf "\n=== Testing filter-map ===\n")
 
@@ -235,9 +214,7 @@
               (filter-map (lambda (x) x) '())
               '())
 
-;;; ====
-;;; Test Summary
-;;; ====
+(doc 'section 'test-summary)
 
 (printf "\n====\n")
 (printf "Test Results (call-graph):\n")
@@ -248,6 +225,4 @@
 (if (= fail-count 0)
     (printf "\n✓ All tests passed!\n\n")
     (printf "\n✗ Some tests failed\n\n"))
-
-;;; Return success/failure
 (= fail-count 0)

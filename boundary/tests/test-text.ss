@@ -1,6 +1,9 @@
-;;; Test harness for boundary/ui/text.ss
-
 (load "boundary/ui/text.ss")
+
+(doc 'module 'test-text)
+(doc 'description "Test harness for boundary/ui/text.ss - text hygiene validation")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
 
 (define (test name expected actual)
   (display "  ")
@@ -24,7 +27,9 @@
       (display "✗"))
   (newline))
 
-;;; Helper to check that a thunk raises an error
+(doc 'section 'helper-functions)
+
+(doc raises? 'description "Check that a thunk raises an error")
 (define (raises? thunk)
   (guard (exn [else #t])
          (thunk)
@@ -33,24 +38,26 @@
 (display "Text Hygiene Tests\n")
 (display "====\n\n")
 
-;;; Test 1: Clean ASCII text passes
+(doc 'section 'validation-tests)
+
+(doc 'test "Clean ASCII text passes")
 (display "Test 1: Clean ASCII text\n")
 (let ([result (validate-text "Hello, World!")])
      (test "ok?" #t (text-result-ok? result))
      (test "value" "Hello, World!" (text-result-value result))
      (test "no warnings" '() (text-result-warnings result)))
 
-;;; Test 2: Allowed whitespace
+(doc 'test "Allowed whitespace")
 (display "\nTest 2: Allowed whitespace\n")
 (let ([result (validate-text "line1\nline2\ttabbed")])
      (test "ok?" #t (text-result-ok? result)))
 
-;;; Test 3: Control characters rejected
+(doc 'test "Control characters rejected")
 (display "\nTest 3: Control characters\n")
 (let ([result (validate-text (string #\a #\nul #\b))])
      (test "rejected" #f (text-result-ok? result)))
 
-;;; Test 4: Zero-width space detected
+(doc 'test "Zero-width space detected")
 (display "\nTest 4: Invisible characters (ZWSP)\n")
 (let* ([zwsp (integer->char #x200B)]
        [evil-str (string #\h #\e #\l zwsp #\l #\o)]
@@ -58,14 +65,14 @@
       (test "ok with warnings" #t (text-result-ok? result))
       (test "has warnings" #t (> (length (text-result-warnings result)) 0)))
 
-;;; Test 5: Strip invisible
+(doc 'test "Strip invisible")
 (display "\nTest 5: Strip invisible\n")
 (let* ([zwsp (integer->char #x200B)]
        [evil-str (string #\h #\e #\l zwsp #\l #\o)]
        [clean (strip-invisible evil-str)])
       (test "stripped" "hello" clean))
 
-;;; Test 6: Bidi override warning
+(doc 'test "Bidi override characters")
 (display "\nTest 6: Bidi override characters\n")
 (let* ([rlo (integer->char #x202E)]  ; RIGHT-TO-LEFT OVERRIDE
        [evil-str (string #\a #\b rlo #\c)]
@@ -73,7 +80,7 @@
       (test "ok with warnings" #t (text-result-ok? result))
       (test "has warnings" #t (> (length (text-result-warnings result)) 0)))
 
-;;; Test 7: Sanitize text
+(doc 'test "Sanitize text")
 (display "\nTest 7: Sanitize text\n")
 (let* ([zwsp (integer->char #x200B)]
        [bom (integer->char #xFEFF)]
@@ -81,38 +88,38 @@
        [clean (sanitize-text messy)])
       (test "sanitized" "hello" clean))
 
-;;; Test 8: Symbol validation
+(doc 'test "Symbol validation")
 (display "\nTest 8: Symbol validation\n")
 (let ([result (validate-symbol "valid-symbol")])
      (test "ok" #t (text-result-ok? result)))
 (let ([result (validate-symbol "")])
      (test "empty rejected" #f (text-result-ok? result)))
 
-;;; Test 9: ASCII only check
+(doc 'test "ASCII-only detection")
 (display "\nTest 9: ASCII-only detection\n")
 (test "ascii" #t (ascii-only? "hello123"))
 (test "unicode" #f (ascii-only? "héllo"))
 
-;;; Test 10: Confusable detection
+(doc 'test "Homoglyph/confusable detection")
 (display "\nTest 10: Homoglyph/confusable detection\n")
 (test "clean ASCII" #f (contains-confusable? "hello"))
 ;; Cyrillic 'а' looks like Latin 'a'
 (let ([cyrillic-a (integer->char #x0430)])
      (test "cyrillic а" #t (contains-confusable? (string #\h #\e #\l #\l cyrillic-a))))
 
-;;; Test 11: Safe-text API
+(doc 'test "safe-text API")
 (display "\nTest 11: safe-text API\n")
 (test "clean" "hello" (safe-text "hello"))
 (let* ([zwsp (integer->char #x200B)]
        [messy (string #\h zwsp #\i)])
       (test "sanitized" "hi" (safe-text messy)))
 
-;;; Test 12: Safe-symbol API
+(doc 'test "safe-symbol API")
 (display "\nTest 12: safe-symbol API\n")
 (test "valid" 'hello (safe-symbol "hello"))
 (test "invalid" #f (safe-symbol ""))
 
-;;; Test 13: Private use characters
+(doc 'test "Private use characters")
 (display "\nTest 13: Private use characters\n")
 (let* ([pua (integer->char #xE000)]
        [str (string #\a pua #\b)]
@@ -120,21 +127,23 @@
       (test "ok with warnings" #t (text-result-ok? result))
       (test "has PUA warning" #t (> (length (text-result-warnings result)) 0)))
 
-;;; Test 14: Noncharacters rejected
+(doc 'test "Noncharacter rejection")
 (display "\nTest 14: Noncharacter rejection\n")
 (let* ([nonchar (integer->char #xFFFE)]
        [str (string #\a nonchar #\b)]
        [result (validate-text str)])
       (test "rejected" #f (text-result-ok? result)))
 
-;;; Test 15: NFC normalization - ASCII passthrough
+(doc 'section 'nfc-normalization-tests)
+
+(doc 'test "NFC normalization - ASCII passthrough")
 (display "\nTest 15: NFC normalization - ASCII passthrough\n")
 (test "normalize-nfc ascii" "hello" (normalize-nfc "hello"))
 (test "normalize-nfc empty" "" (normalize-nfc ""))
 (test "normalize-nfc numbers" "12345" (normalize-nfc "12345"))
 (test "normalize-nfc mixed ascii" "Hello, World! 123" (normalize-nfc "Hello, World! 123"))
 
-;;; Test 16: NFC normalization - precomposed characters passthrough
+(doc 'test "NFC normalization - precomposed characters")
 (display "\nTest 16: NFC normalization - precomposed characters\n")
 (let* ([e-acute (integer->char #x00E9)]  ; precomposed e-acute
        [str (string #\h e-acute #\l #\l #\o)])
@@ -143,7 +152,7 @@
        [str (string #\E #\s #\p #\a n-tilde #\a)])
       (test "precomposed n-tilde unchanged" str (normalize-nfc str)))
 
-;;; Test 17: NFC normalization - decomposed to precomposed
+(doc 'test "NFC normalization - decomposed to precomposed")
 (display "\nTest 17: NFC normalization - decomposed to precomposed\n")
 ;; e + combining acute accent -> e-acute
 (let* ([base-e (integer->char #x0065)]       ; 'e'
@@ -169,7 +178,7 @@
        [expected (string n-tilde)])
       (test "decomposed n+tilde -> precomposed" expected (normalize-nfc decomposed)))
 
-;;; Test 18: NFC normalization - canonical equivalence
+(doc 'test "NFC normalization - canonical equivalence")
 (display "\nTest 18: NFC normalization - canonical equivalence\n")
 ;; Both precomposed and decomposed forms should normalize to the same result
 (let* ([e-acute-precomposed (integer->char #x00E9)]
@@ -181,7 +190,7 @@
             (normalize-nfc precomposed)
             (normalize-nfc decomposed)))
 
-;;; Test 19: NFC normalization - multiple combining marks
+(doc 'test "NFC normalization - multiple combining marks")
 (display "\nTest 19: NFC normalization - multiple combining marks\n")
 ;; o + combining diaeresis + combining macron (should stay as combining marks)
 (let* ([base-o (integer->char #x006F)]
@@ -193,7 +202,7 @@
        [expected (string o-diaeresis combining-macron)])
       (test "multiple combining marks - partial compose" expected (normalize-nfc input)))
 
-;;; Test 20: NFC normalization - uppercase variants
+(doc 'test "NFC normalization - uppercase variants")
 (display "\nTest 20: NFC normalization - uppercase variants\n")
 (let* ([base-E (integer->char #x0045)]       ; 'E'
        [combining-acute (integer->char #x0301)]
@@ -209,7 +218,7 @@
        [expected (string A-grave)])
       (test "uppercase decomposed A+grave -> precomposed" expected (normalize-nfc decomposed)))
 
-;;; Test 21: NFC normalization - non-Latin scripts (passthrough)
+(doc 'test "NFC normalization - non-Latin scripts")
 (display "\nTest 21: NFC normalization - non-Latin scripts\n")
 ;; Greek letters without diacritics should pass through
 (let* ([alpha (integer->char #x03B1)]  ; lowercase alpha
@@ -222,7 +231,7 @@
        [str (string alpha-tonos)])
       (test "Greek alpha-tonos unchanged" str (normalize-nfc str)))
 
-;;; Test 22: NFC normalization - combining mark ordering (CCC)
+(doc 'test "NFC normalization - combining mark ordering")
 (display "\nTest 22: NFC normalization - combining mark ordering\n")
 ;; When multiple combining marks, they should be ordered by CCC
 (let* ([base-a (integer->char #x0061)]
@@ -239,7 +248,7 @@
             (normalize-nfc right-order)
             (normalize-nfc wrong-order)))
 
-;;; Test 23: NFC normalization - homoglyph context (Cyrillic lookalikes)
+(doc 'test "NFC normalization - homoglyphs unchanged")
 (display "\nTest 23: NFC normalization - homoglyphs unchanged\n")
 ;; Cyrillic letters that look like Latin should remain Cyrillic
 ;; (homoglyph detection is separate from NFC)
@@ -247,7 +256,7 @@
        [str (string cyrillic-a)])
       (test "Cyrillic-a stays Cyrillic" str (normalize-nfc str)))
 
-;;; Test 24: NFC normalization - extended Latin
+(doc 'test "NFC normalization - extended Latin")
 (display "\nTest 24: NFC normalization - extended Latin\n")
 ;; S with caron (decomposed)
 (let* ([base-S (integer->char #x0053)]       ; 'S'
@@ -265,7 +274,7 @@
        [expected (string z-dot)])
       (test "z+dot -> z-dot" expected (normalize-nfc decomposed)))
 
-;;; Test 25: NFC idempotency
+(doc 'test "NFC normalization - idempotency")
 (display "\nTest 25: NFC normalization - idempotency\n")
 ;; Normalizing an already-NFC string should return the same string
 (let* ([e-acute (integer->char #x00E9)]

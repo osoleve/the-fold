@@ -1,30 +1,21 @@
-;;; boundary/test-concept-map.ss --- Tests for ConceptMap Tool
-;;;
-;;; Verifies concept extraction and relationship inference.
-;;;
-;;; Run with:
-;;;   cd shell && scheme -q < test-concept-map.ss
-;;; Or from repl.ss:
-;;;   (load "boundary/test-concept-map.ss")
+(doc 'module 'test-concept-map)
+(doc 'description "Tests for ConceptMap tool - concept extraction and relationship inference")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+(doc 'note "Run with: cd shell && scheme -q < test-concept-map.ss")
 
-;; Determine the base path based on current directory
+(doc 'section 'test-setup)
 (define *test-base-path*
   (if (file-exists? "concept-map.ss")
-      "."  ; We're in boundary/
-      "shell"))  ; We're in root
-
-;; Load the module under test
+      "."
+      "shell"))
 (load (string-append *test-base-path* "/concept-map.ss"))
-
-;; Compute path to core/ relative to current directory
 (define *core-path*
   (if (file-exists? "concept-map.ss")
-      "../core"    ; We're in boundary/
-      "core"))     ; We're in root
+      "../core"
+      "core"))
 
-;;; ====
-;;; Test Utilities
-;;; ====
+(doc 'section 'test-utilities)
 
 (define test-count 0)
 (define pass-count 0)
@@ -70,9 +61,7 @@
   (newline)
   (display "====\n"))
 
-;;; ====
-;;; Tests: String Utilities
-;;; ====
+(doc 'section 'string-utilities)
 
 (display "\n=== String Utilities ===\n")
 
@@ -104,9 +93,7 @@
       "hello"
       (string-downcase "HELLO"))
 
-;;; ====
-;;; Tests: Symbol Classification
-;;; ====
+(doc 'section 'symbol-classification)
 
 (display "\n=== Symbol Classification ===\n")
 
@@ -134,9 +121,7 @@
       'capability
       (classify-concept 'FS))
 
-;;; ====
-;;; Tests: Symbol Collection
-;;; ====
+(doc 'section 'symbol-collection)
 
 (display "\n=== Symbol Collection ===\n")
 
@@ -153,13 +138,9 @@
       (let ([counts (count-occurrences '(a b a))])
            (list (assq 'a counts) (assq 'b counts))))
 
-;;; ====
-;;; Tests: Definition Extraction
-;;; ====
+(doc 'section 'definition-extraction)
 
 (display "\n=== Definition Extraction ===\n")
-
-;; Test on actual core/block.ss
 (let ([defs (extract-definitions (string-append *core-path* "/block.ss"))])
      (test-pred "extract-definitions finds definitions"
                 (lambda (x) (> (length x) 0))
@@ -180,9 +161,7 @@
                                x))
                 defs))
 
-;;; ====
-;;; Tests: Concept Extraction
-;;; ====
+(doc 'section 'concept-extraction)
 
 (display "\n=== Concept Extraction ===\n")
 
@@ -202,17 +181,13 @@
                              (and block-concept
                                   (> (cdr (assq 'occurrences block-concept)) 0))))
                 concepts))
-
-;; Helper for find
 (define (find pred lst)
   (cond
    [(null? lst) #f]
    [(pred (car lst)) (car lst)]
    [else (find pred (cdr lst))]))
 
-;;; ====
-;;; Tests: Relationship Finding
-;;; ====
+(doc 'section 'relationship-finding)
 
 (display "\n=== Relationship Finding ===\n")
 
@@ -229,9 +204,7 @@
                                 x))
                  rels))
 
-;;; ====
-;;; Tests: Graph Building
-;;; ====
+(doc 'section 'graph-building)
 
 (display "\n=== Graph Building ===\n")
 
@@ -250,9 +223,7 @@
                              (and src (string? (cdr src)))))
                 graph))
 
-;;; ====
-;;; Tests: Rendering
-;;; ====
+(doc 'section 'rendering)
 
 (display "\n=== Rendering ===\n")
 
@@ -270,13 +241,9 @@
                  (lambda (s) (string-contains? s "block.ss"))
                  output))
 
-;;; ====
-;;; Tests: Full Integration
-;;; ====
+(doc 'section 'full-integration)
 
 (display "\n=== Full Integration ===\n")
-
-;; Test on types.ss as well
 (let ([graph (build-concept-graph (string-append *core-path* "/types.ss"))])
      (test-pred "types.ss graph has Type concept"
                 (lambda (g)
@@ -284,9 +251,7 @@
                              (assq 'Type concepts)))
                 graph))
 
-;;; ====
-;;; Demo Output
-;;; ====
+(doc 'section 'demo-output)
 
 (display "\n=== Demo: Concept Map for core/block.ss ===\n")
 (let ([graph (concept-map (string-append *core-path* "/block.ss"))])
@@ -296,14 +261,9 @@
 (let ([graph (concept-map (string-append *core-path* "/types.ss"))])
      (void))
 
-;;; ====
-;;; Report
-;;; ====
+(doc 'section 'test-summary)
 
 (report-results)
-
-;; Exit with appropriate code (only when running as script)
-;; Comment out for interactive use
 (when (not (terminal-port? (current-input-port)))
       (if (> fail-count 0)
           (exit 1)

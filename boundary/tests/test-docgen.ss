@@ -1,17 +1,14 @@
-;;; boundary/test-docgen.ss -- Tests for API Documentation Generator
-;;;
-;;; Tests the docgen module's parsing and documentation generation.
-;;;
-;;; Run with: scheme --script boundary/test-docgen.ss
-
-;;; Set up paths
 (source-directories (cons "core" (source-directories)))
 
-;;; Load test framework
 (load "core/test-framework.ss")
-
-;;; Load the module under test
 (load "boundary/tools/docgen.ss")
+
+(doc 'module 'test-docgen)
+(doc 'description "Tests for API Documentation Generator")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+(doc 'note "Tests the docgen module's parsing and documentation generation")
+(doc 'note "Run with: scheme --script boundary/tests/test-docgen.ss")
 
 (display "
 Docgen Tests
@@ -20,9 +17,7 @@ Docgen Tests
 
 ")
 
-;;; ====
-;;; String Utility Tests
-;;; ====
+(doc 'section 'string-utilities)
 
 (test-group string-utilities
             
@@ -56,9 +51,7 @@ Docgen Tests
               (assert-equal "hello" (string-join '("hello") ", "))
               (assert-equal "" (string-join '() ", "))))
 
-;;; ====
-;;; Path Utility Tests
-;;; ====
+(doc 'section 'path-utilities)
 
 (test-group path-utilities
             
@@ -77,9 +70,7 @@ Docgen Tests
               (assert-equal "module" (path->module-name "path/to/module.ss"))
               (assert-equal "test" (path->module-name "test.ss"))))
 
-;;; ====
-;;; Doc Comment Detection Tests
-;;; ====
+(doc 'section 'doc-comment-detection)
 
 (test-group doc-comment-detection
             
@@ -107,9 +98,7 @@ Docgen Tests
               (assert-false (section-header? ";;; Regular comment"))
               (assert-false (section-header? ";; Not a doc comment"))))
 
-;;; ====
-;;; Signature Parsing Tests
-;;; ====
+(doc 'section 'signature-parsing)
 
 (test-group signature-parsing
             
@@ -134,9 +123,7 @@ Docgen Tests
               (let ([result (parse-signature ";;; test : a -> b")])
                    (assert-true (pair? result)))))
 
-;;; ====
-;;; Function Definition Parsing Tests
-;;; ====
+(doc 'section 'function-definition-parsing)
 
 (test-group function-definition-parsing
             
@@ -154,9 +141,7 @@ Docgen Tests
               (assert-equal 'bar (extract-function-name "(define (bar a b c) body)"))
               (assert-equal 'x (extract-function-name "(define x 42)"))))
 
-;;; ====
-;;; Export Summary Tests
-;;; ====
+(doc 'section 'export-summary)
 
 (test-group export-summary
             
@@ -187,9 +172,7 @@ Docgen Tests
               (let ([names (parse-export-line "Type: make-foo, foo?")])
                    (assert-equal 2 (length names)))))
 
-;;; ====
-;;; Full Documentation Extraction Tests
-;;; ====
+(doc 'section 'full-extraction)
 
 (test-group full-extraction
             
@@ -216,9 +199,7 @@ Docgen Tests
                      [first-exp (car exports)])
                     (assert-true (string-contains? (cdr (assq 'doc first-exp)) "helper")))))
 
-;;; ====
-;;; Main API Tests
-;;; ====
+(doc 'section 'main-api)
 
 (test-group main-api
             
@@ -257,9 +238,7 @@ Docgen Tests
                     (assert-true (string-contains? summary "test"))
                     (assert-true (string-contains? summary "foo")))))
 
-;;; ====
-;;; Query Function Tests
-;;; ====
+(doc 'section 'query-functions)
 
 (test-group query-functions
             
@@ -280,9 +259,7 @@ Docgen Tests
                     (assert-equal 1 (length results))
                     (assert-equal 'foobar (car (car results))))))
 
-;;; ====
-;;; Integration Tests
-;;; ====
+(doc 'section 'integration)
 
 (test-group integration
             
@@ -303,9 +280,7 @@ Docgen Tests
                     ;; numeric.ss has many exports
                     (assert-true (> (length exports) 5)))))
 
-;;; ====
-;;; Run Summary
-;;; ====
+(doc 'section 'run-summary)
 
 (newline)
 (print-summary)

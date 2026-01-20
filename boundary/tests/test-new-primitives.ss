@@ -1,12 +1,21 @@
-;;; Quick test for newly implemented graphics primitives
-
 (import (chezscheme)
         (shell layout)
         (shell graphics-primitives))
 
+(define-syntax doc
+  (syntax-rules ()
+    [(_ target tag value) (void)]
+    [(_ tag value) (void)]))
+
+(doc 'module 'test-new-primitives)
+(doc 'description "Quick test for newly implemented graphics primitives")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+
 (display "Testing newly implemented graphics primitives...\n\n")
 
-;;; Test polyline
+(doc 'section 'test-polyline)
+
 (display "1. Testing polyline:\n")
 (let* ([canvas (make-canvas 30 10)]
        [points (list (point 2 2) (point 10 2) (point 10 7) (point 2 7))]
@@ -15,7 +24,8 @@
       (newline)
       (display "  ✓ Polyline works\n\n"))
 
-;;; Test polygon (closed polyline)
+(doc 'section 'test-polygon)
+
 (display "2. Testing polygon (closed):\n")
 (let* ([canvas (make-canvas 30 12)]
        [points (list (point 5 2) (point 15 2) (point 20 6) (point 15 10) (point 5 10))]
@@ -24,7 +34,8 @@
       (newline)
       (display "  ✓ Polygon works\n\n"))
 
-;;; Test filled polygon
+(doc 'section 'test-filled-polygon)
+
 (display "3. Testing filled polygon:\n")
 (let* ([canvas (make-canvas 30 12)]
        [points (list (point 5 2) (point 15 2) (point 20 6) (point 15 10) (point 5 10))]
@@ -33,7 +44,8 @@
       (newline)
       (display "  ✓ Filled polygon works\n\n"))
 
-;;; Test path drawing
+(doc 'section 'test-path-drawing)
+
 (display "4. Testing path drawing:\n")
 (let* ([canvas (make-canvas 30 12)]
        [path (list
@@ -46,7 +58,8 @@
       (newline)
       (display "  ✓ Path drawing works\n\n"))
 
-;;; Test styling system
+(doc 'section 'test-styling-system)
+
 (display "5. Testing styling system:\n")
 (let* ([canvas (make-canvas 30 12)]
        [style (make-style #\● #\○ 1.0)]

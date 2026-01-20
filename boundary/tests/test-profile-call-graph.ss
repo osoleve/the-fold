@@ -1,13 +1,11 @@
-;;; boundary/tests/test-profile-call-graph.ss — Tests for Call Graph Builder
-;;;
-;;; Comprehensive test suite for profile-call-graph.ss
-;;; Tests graph construction, edge extraction, metrics, cycle detection.
-
 (load "boundary/diagnostics/profile-call-graph.ss")
 
-;;; ====
-;;; Test Harness
-;;; ====
+(doc 'module 'test-profile-call-graph)
+(doc 'description "Comprehensive test suite for profile-call-graph.ss")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+
+(doc 'section 'test-harness)
 
 (define test-count 0)
 (define pass-count 0)
@@ -58,12 +56,10 @@
         (printf "~a tests FAILED\n" fail-count)
         (exit 1)))
 
-;;; ====
-;;; Mock Node Construction
-;;; ====
+(doc 'section 'mock-node-construction)
 
-;;; Create a mock profiler node for testing
 (define (mock-node name start-fuel end-fuel children)
+  (doc 'description "Create a mock profiler node for testing")
   `(node
     (name . ,name)
     (start-fuel . ,start-fuel)
@@ -79,9 +75,7 @@
     (children . ,children)
     (call-count . ,count)))
 
-;;; ====
-;;; Graph Construction Tests
-;;; ====
+(doc 'section 'graph-construction-tests)
 
 (define (test-graph-construction)
   (printf "\n=== Graph Construction Tests ===\n")
@@ -123,9 +117,7 @@
                            (assq 'helper edges)
                            '(helper . 3)))))
 
-;;; ====
-;;; Edge Operations Tests
-;;; ====
+(doc 'section 'edge-operations-tests)
 
 (define (test-edge-operations)
   (printf "\n=== Edge Operations Tests ===\n")
@@ -169,9 +161,7 @@
             (assert-equal "b has two callers"
                           (length callers) 2))))
 
-;;; ====
-;;; Graph Metrics Tests
-;;; ====
+(doc 'section 'graph-metrics-tests)
 
 (define (test-graph-metrics)
   (printf "\n=== Graph Metrics Tests ===\n")
@@ -243,9 +233,7 @@
                      (call-graph-total-calls g)
                      0)))
 
-;;; ====
-;;; Cycle Detection Tests
-;;; ====
+(doc 'section 'cycle-detection-tests)
 
 (define (test-cycle-detection)
   (printf "\n=== Cycle Detection Tests ===\n")
@@ -308,9 +296,7 @@
             (assert-true "depth terminates with cycles"
                          (>= depth 0)))))
 
-;;; ====
-;;; Critical Path Tests
-;;; ====
+(doc 'section 'critical-path-tests)
 
 (define (test-critical-path)
   (printf "\n=== Critical Path Tests ===\n")
@@ -360,9 +346,7 @@
              (assert-equal "single node path"
                            path '(lone)))))
 
-;;; ====
-;;; ASCII Visualization Tests
-;;; ====
+(doc 'section 'ascii-visualization-tests)
 
 (define (test-ascii-visualization)
   (printf "\n=== ASCII Visualization Tests ===\n")
@@ -396,8 +380,8 @@
             (assert-true "shows total nodes"
                          (string-contains summary "Total nodes")))))
 
-;;; Helper: Check if string contains substring
 (define (string-contains str substr)
+  (doc 'description "Check if string contains substring")
   (let ([str-len (string-length str)]
         [sub-len (string-length substr)])
        (let loop ([i 0])
@@ -406,9 +390,7 @@
              [(string=? (substring str i (+ i sub-len)) substr) #t]
              [else (loop (+ i 1))]))))
 
-;;; ====
-;;; Profiler Integration Tests
-;;; ====
+(doc 'section 'profiler-integration-tests)
 
 (define (test-profiler-integration)
   (printf "\n=== Profiler Integration Tests ===\n")
@@ -455,8 +437,6 @@
         (assert-equal "child cost is 20"
                       (hashtable-ref costs 'child 0) 20)))
 
-;;; ====
-;;; Run All Tests
-;;; ====
+(doc 'section 'run-all-tests)
 
 (run-tests)

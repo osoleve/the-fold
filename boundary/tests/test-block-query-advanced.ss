@@ -1,5 +1,3 @@
-;;; Tests for advanced block query capabilities
-
 (load "core/blocks/block.ss")
 (load "core/base/sha256.ss")
 (load "core/blocks/cas.ss")
@@ -9,13 +7,14 @@
 (import (shell block-query))
 (import (shell block-query-advanced))
 
-;;; ====
-;;; Test Setup: Create blocks with varying characteristics
-;;; ====
+(doc 'module 'test-block-query-advanced)
+(doc 'description "Tests for advanced block query capabilities - size, depth, time, composition")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+
+(doc 'section 'test-setup)
 
 (display "Setting up test blocks...\n")
-
-;; Small blocks (< 100 bytes)
 (define tiny-block
   (make-block 'tiny
               (string->utf8 "x")
@@ -25,64 +24,45 @@
   (make-block 'small
               (string->utf8 "This is a small payload")
               empty-refs))
-
-;; Medium blocks (100-1000 bytes)
 (define medium-block
   (make-block 'medium
               (string->utf8 (make-string 500 #\a))
               empty-refs))
-
-;; Large blocks (> 1000 bytes)
 (define large-block
   (make-block 'large
               (string->utf8 (make-string 2000 #\b))
               empty-refs))
-
-;; Store the size test blocks
 (define hash-tiny (store! tiny-block))
 (define hash-small (store! small-block))
 (define hash-medium (store! medium-block))
 (define hash-large (store! large-block))
-
-;; Blocks for depth testing
-;; Leaf: no references (depth 0)
 (define leaf-block
   (make-block 'leaf
               (string->utf8 "leaf node")
               empty-refs))
 (define hash-leaf (store! leaf-block))
-
-;; Branch1: references one leaf (depth 1)
 (define branch1-block
   (make-block 'branch1
               (string->utf8 "points to leaf")
               (vector hash-leaf)))
 (define hash-branch1 (store! branch1-block))
-
-;; Branch2: references branch1 (depth 2)
 (define branch2-block
   (make-block 'branch2
               (string->utf8 "points to branch1")
               (vector hash-branch1)))
 (define hash-branch2 (store! branch2-block))
-
-;; Multi-ref: references multiple blocks at different depths
 (define multi-ref-block
   (make-block 'multi
               (string->utf8 "points to leaf and branch1")
               (vector hash-leaf hash-branch1)))
 (define hash-multi (store! multi-ref-block))
-
-;; Deep: references branch2 (depth 3)
 (define deep-block
   (make-block 'deep
               (string->utf8 "deep reference chain")
               (vector hash-branch2)))
 (define hash-deep (store! deep-block))
 
-;;; ====
-;;; Test Size-based Queries
-;;; ====
+(doc 'section 'size-queries)
 
 (display "\n=== Testing Size-based Queries ===\n")
 
@@ -105,9 +85,7 @@
 (define empty-block (make-block 'empty empty-payload empty-refs))
 (assert ((payload-size-bytes 0) empty-block))
 
-;;; ====
-;;; Test Graph Depth Queries
-;;; ====
+(doc 'section 'depth-queries)
 
 (display "\n=== Testing Graph Depth Queries ===\n")
 
@@ -138,31 +116,18 @@
 (assert (not ((depth-between 0 1 fetch) branch2-block)))
 
 (display "Testing multi-ref depth (takes max)...\n")
-;; multi-ref points to leaf (depth 0) and branch1 (depth 1)
-;; So its depth should be max(0, 1) + 1 = 2
 (assert ((depth-exactly 2 fetch) multi-ref-block))
 
-;;; ====
-;;; Test Time-based Queries
-;;; ====
+(doc 'section 'time-queries)
 
 (display "\n=== Testing Time-based Queries ===\n")
-
-;; Create mock timestamp metadata
-;; Map blocks to timestamps (simulating creation times)
 (define timestamp-table (make-eq-hashtable))
-
-;; Helper to set timestamps
 (define (set-timestamp! blk time)
   (hashtable-set! timestamp-table blk time))
-
-;; Set some test timestamps
 (set-timestamp! tiny-block 1000)
 (set-timestamp! small-block 2000)
 (set-timestamp! medium-block 3000)
 (set-timestamp! large-block 4000)
-
-;; Metadata function that looks up timestamps
 (define (get-timestamp blk)
   (hashtable-ref timestamp-table blk #f))
 
@@ -185,9 +150,7 @@
 (display "Testing with unknown timestamp...\n")
 (assert (not ((created-after 1000 get-timestamp) leaf-block)))
 
-;;; ====
-;;; Test Higher-Order Query Composition
-;;; ====
+(doc 'section 'composition)
 
 (display "\n=== Testing Higher-Order Composition ===\n")
 
@@ -239,9 +202,7 @@
       (assert (enhanced medium-block))
       (assert (not (enhanced small-block))))
 
-;;; ====
-;;; Combined Advanced Queries
-;;; ====
+(doc 'section 'combined-queries)
 
 (display "\n=== Testing Combined Queries ===\n")
 
@@ -264,9 +225,6 @@
      (assert (not (pattern large-block))))  ;; outside time range
 
 (display "Testing complex composition...\n")
-;; Find blocks that are either:
-;; - Small and created early, OR
-;; - Large and deep
 (let ([pattern (query-any-of (list
                               (query-all-of (list
                                              (payload-size-between 0 100)
@@ -274,13 +232,10 @@
                               (query-all-of (list
                                              (payload-size-between 1000 10000)
                                              (depth-at-least 2 fetch)))))])
-     (assert (pattern tiny-block))  ;; small and early
-     ;; Would need a large deep block to test second condition
+     (assert (pattern tiny-block))
      (assert (not (pattern medium-block))))
 
-;;; ====
-;;; Integration with Basic Queries
-;;; ====
+(doc 'section 'integration)
 
 (display "\n=== Testing Integration with Basic Queries ===\n")
 
@@ -295,7 +250,6 @@
      (assert (not (pattern leaf-block))))
 
 (display "Testing query-and with size and content...\n")
-;; Use query-and from basic library with advanced size query
 (let ([pattern (query-and
                 (payload-contains "leaf")
                 (payload-size-between 5 20))])

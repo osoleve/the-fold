@@ -1,12 +1,12 @@
-;;; boundary/test-color.ss — Test vectors for Color System
-;;;
-;;; Run with: scheme --script boundary/test-color.ss
-
 (load "boundary/ui/color.ss")
 
-;;; ====
-;;; Test 1: Color Construction
-;;; ====
+(doc 'module 'test-color)
+(doc 'description "Test vectors for color system - construction, ANSI codes, cells, helpers")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+(doc 'note "Run with: scheme --script boundary/tests/test-color.ss")
+
+(doc 'section 'color-construction)
 
 (display "Test 1: Color Construction\n")
 
@@ -26,9 +26,7 @@
 
 (display "  ✓ Color construction works\n")
 
-;;; ====
-;;; Test 2: Color Constants
-;;; ====
+(doc 'section 'color-constants)
 
 (display "\nTest 2: Color Constants\n")
 
@@ -50,9 +48,7 @@
 
 (display "  ✓ Color constants accessible\n")
 
-;;; ====
-;;; Test 3: ANSI Code Generation
-;;; ====
+(doc 'section 'ansi-codes)
 
 (display "\nTest 3: ANSI Code Generation\n")
 
@@ -77,9 +73,7 @@
 
 (display "  ✓ ANSI code generation works\n")
 
-;;; ====
-;;; Test 4: Cell Construction
-;;; ====
+(doc 'section 'cell-construction)
 
 (display "\nTest 4: Cell Construction\n")
 
@@ -99,28 +93,21 @@
 
 (display "  ✓ Cell construction works\n")
 
-;;; ====
-;;; Test 5: Color Helpers
-;;; ====
+(doc 'section 'color-helpers)
 
 (display "\nTest 5: Color Helpers\n")
 
-;; Test lerp-color
 (define c1 (rgb 0 0 0))
 (define c2 (rgb 100 200 255))
 (define c-mid (lerp-color c1 c2 0.5))
 (display "  Lerp midpoint R: ")
 (display (= (list-ref c-mid 1) 50))
 (display " (expected #t)\n")
-
-;; Test darken
 (define c-bright (rgb 200 200 200))
 (define c-dark (darken c-bright 0.5))
 (display "  Darken reduces values: ")
 (display (< (list-ref c-dark 1) (list-ref c-bright 1)))
 (display " (expected #t)\n")
-
-;; Test lighten
 (define c-dim (rgb 100 100 100))
 (define c-light (lighten c-dim 0.5))
 (display "  Lighten increases values: ")
@@ -129,9 +116,7 @@
 
 (display "  ✓ Color helpers work\n")
 
-;;; ====
-;;; Test 6: Mood Colors
-;;; ====
+(doc 'section 'mood-colors)
 
 (display "\nTest 6: Mood Colors\n")
 
@@ -152,9 +137,7 @@
 
 (display "  ✓ Mood color mapping works\n")
 
-;;; ====
-;;; Test 7: Energy Colors
-;;; ====
+(doc 'section 'energy-colors)
 
 (display "\nTest 7: Energy Colors\n")
 
@@ -168,7 +151,6 @@
 (display (color-rgb? energy-high))
 (display " (expected #t)\n")
 
-;; Energy should be brighter at high values
 (display "  High energy is brighter: ")
 (define low-r (list-ref energy-low 1))
 (define high-r (list-ref energy-high 1))
@@ -177,9 +159,7 @@
 
 (display "  ✓ Energy gradient works\n")
 
-;;; ====
-;;; Summary
-;;; ====
+(doc 'section 'test-summary)
 
 (display "\n")
 (display "═══════════════════════════════════════════\n")

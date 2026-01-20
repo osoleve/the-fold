@@ -1,73 +1,55 @@
-;;; boundary/test-block-navigator.ss — Tests for Block Navigator
-;;;
-;;; Test suite for the block-navigator module.
-;;; Verifies navigation, analytics, search, and visualization functions.
-
 (load "core/blocks/block.ss")
 (load "core/base/sha256.ss")
 (load "boundary/io/fs.ss")
 (load "boundary/blocks/block-navigator.ss")
+
+(doc 'module 'test-block-navigator)
+(doc 'description "Test suite for block-navigator - verifies navigation, analytics, search, and visualization")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
 
 (display "╔══════════════════════════════════════════════════════════════╗\n")
 (display "║           BLOCK NAVIGATOR TEST SUITE                        ║\n")
 (display "╚══════════════════════════════════════════════════════════════╝\n")
 (newline)
 
-;;; ====
-;;; Test Setup: Create a test store with sample blocks
-;;; ====
+(doc 'section 'test-setup)
 
 (define test-store-path ".store-test-navigator")
-
-;;; Clean up old test store
 (when (file-exists? test-store-path)
       (system (format "rm -rf ~a" test-store-path)))
 
 (define test-fs (mint-fs-capability test-store-path))
-
-;;; Create some test blocks with various structures
-
-;; Block 1: A simple data block (orphan)
 (define blk1 (make-block 'data
                          (string->utf8 "This is a simple data block")
                          (vector)))
 (define hash1 (fs-store! test-fs blk1))
 (fs-pin! test-fs hash1)
 (display (format "Created block 1: ~a\n" (hash->hex hash1)))
-
-;; Block 2: A code block (orphan)
 (define blk2 (make-block 'code
                          (string->utf8 "(define (hello) (display \"Hello, World!\"))")
                          (vector)))
 (define hash2 (fs-store! test-fs blk2))
 (fs-pin! test-fs hash2)
 (display (format "Created block 2: ~a\n" (hash->hex hash2)))
-
-;; Block 3: A block that references block 1
 (define blk3 (make-block 'metadata
                          (string->utf8 "Metadata for data block")
                          (vector hash1)))
 (define hash3 (fs-store! test-fs blk3))
 (fs-pin! test-fs hash3)
 (display (format "Created block 3: ~a (refs block 1)\n" (hash->hex hash3)))
-
-;; Block 4: A block that references both block 1 and 2
 (define blk4 (make-block 'composite
                          (string->utf8 "Composite block with multiple refs")
                          (vector hash1 hash2)))
 (define hash4 (fs-store! test-fs blk4))
 (fs-pin! test-fs hash4)
 (display (format "Created block 4: ~a (refs blocks 1, 2)\n" (hash->hex hash4)))
-
-;; Block 5: A chain block referencing block 3
 (define blk5 (make-block 'chain
                          (string->utf8 "Chain continuation")
                          (vector hash3)))
 (define hash5 (fs-store! test-fs blk5))
 (fs-pin! test-fs hash5)
 (display (format "Created block 5: ~a (refs block 3)\n" (hash->hex hash5)))
-
-;; Block 6: Another block referencing block 1 (making it popular)
 (define blk6 (make-block 'reference
                          (string->utf8 "Another reference to block 1")
                          (vector hash1)))
@@ -84,9 +66,7 @@
 (display "  - Block 4, 5, 6: No inbound refs [ORPHANS]\n")
 (newline)
 
-;;; ====
-;;; Test 1: Block Stats
-;;; ====
+(doc 'section 'block-stats)
 
 (display "═══════════════════════════════════════════════════════════════\n")
 (display "TEST 1: Block Statistics\n")
@@ -95,9 +75,7 @@
 
 (block-stats test-fs)
 
-;;; ====
-;;; Test 2: Find Popular Blocks
-;;; ====
+(doc 'section 'find-popular)
 
 (display "═══════════════════════════════════════════════════════════════\n")
 (display "TEST 2: Most Popular Blocks\n")
@@ -106,9 +84,7 @@
 
 (find-popular test-fs 3)
 
-;;; ====
-;;; Test 3: Find Orphans
-;;; ====
+(doc 'section 'find-orphans)
 
 (display "═══════════════════════════════════════════════════════════════\n")
 (display "TEST 3: Orphan Blocks\n")
@@ -117,9 +93,7 @@
 
 (find-orphans test-fs)
 
-;;; ====
-;;; Test 4: Explore a Block
-;;; ====
+(doc 'section 'explore-block)
 
 (display "═══════════════════════════════════════════════════════════════\n")
 (display "TEST 4: Explore Block 4 (composite with multiple refs)\n")
@@ -129,9 +103,7 @@
 (let ([prefix (substring (hash->hex hash4) 0 8)])
      (explore test-fs prefix))
 
-;;; ====
-;;; Test 5: Visualize Tree
-;;; ====
+(doc 'section 'visualize-tree)
 
 (display "═══════════════════════════════════════════════════════════════\n")
 (display "TEST 5: Visualize Block Tree (from block 5, depth 3)\n")
@@ -141,9 +113,7 @@
 (let ([prefix (substring (hash->hex hash5) 0 8)])
      (visualize-tree test-fs prefix 3))
 
-;;; ====
-;;; Test 6: Search with Ranking
-;;; ====
+(doc 'section 'search-ranked)
 
 (display "═══════════════════════════════════════════════════════════════\n")
 (display "TEST 6: Search for 'block'\n")
@@ -152,9 +122,7 @@
 
 (search-ranked test-fs "block")
 
-;;; ====
-;;; Test 7: Show Lineage
-;;; ====
+(doc 'section 'show-lineage)
 
 (display "═══════════════════════════════════════════════════════════════\n")
 (display "TEST 7: Show Lineage (from block 5)\n")
@@ -164,9 +132,7 @@
 (let ([prefix (substring (hash->hex hash5) 0 8)])
      (show-lineage test-fs prefix))
 
-;;; ====
-;;; Test Summary
-;;; ====
+(doc 'section 'test-summary)
 
 (display "═══════════════════════════════════════════════════════════════\n")
 (display "ALL TESTS COMPLETED\n")
@@ -183,8 +149,6 @@
 (display "  (search-ranked (fs) \"query\")        ; Search with ranking\n")
 (display "  (show-lineage (fs) \"hash\")          ; Show reference chain\n")
 (newline)
-
-;;; Clean up test store
 (display "Cleaning up test store...\n")
 (system (format "rm -rf ~a" test-store-path))
 (display "Test complete!\n")

@@ -1,15 +1,17 @@
-;;; boundary/tests/test-timing.ss — Tests for Time Measurement
-;;;
-;;; Comprehensive test suite for boundary/introspect/timing.ss
-;;; Tests timing primitives, benchmarks, statistics, and comparisons.
-
 (load "boundary/introspect/timing.ss")
+
+(doc 'module 'test-timing)
+(doc 'description "Comprehensive test suite for boundary/introspect/timing.ss - timing primitives, benchmarks, statistics, and comparisons")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
 
 (define test-count 0)
 (define pass-count 0)
 (define fail-count 0)
 
-;;; Test assertion helper
+(doc 'section 'test-helpers)
+
+(doc assert-equal 'description "Test assertion helper")
 (define (assert-equal name actual expected)
   (set! test-count (+ test-count 1))
   (if (equal? actual expected)
@@ -28,9 +30,7 @@
 (define (assert-false name actual)
   (assert-equal name actual #f))
 
-;;; ====
-;;; current-nanoseconds Tests
-;;; ====
+(doc 'section 'current-nanoseconds-tests)
 
 (printf "\n=== Testing current-nanoseconds ===\n")
 
@@ -49,9 +49,7 @@
                        (when (< i 1000) (loop (+ i 1))))
                   (> (current-nanoseconds) t1)))
 
-;;; ====
-;;; current-cpu-nanoseconds Tests
-;;; ====
+(doc 'section 'current-cpu-nanoseconds-tests)
 
 (printf "\n=== Testing current-cpu-nanoseconds ===\n")
 
@@ -67,9 +65,7 @@
                            acc))
                   (>= (current-cpu-nanoseconds) t1)))
 
-;;; ====
-;;; timing-result Tests
-;;; ====
+(doc 'section 'timing-result-tests)
 
 (printf "\n=== Testing time-thunk ===\n")
 
@@ -95,9 +91,7 @@
                    (length (timing-result-value result))
                    100))
 
-;;; ====
-;;; compute-stats Tests
-;;; ====
+(doc 'section 'compute-stats-tests)
 
 (printf "\n=== Testing compute-stats ===\n")
 
@@ -148,9 +142,7 @@
                    (timing-stats-mean-ns stats)
                    0))
 
-;;; ====
-;;; benchmark Tests
-;;; ====
+(doc 'section 'benchmark-tests)
 
 (printf "\n=== Testing benchmark ===\n")
 
@@ -179,9 +171,7 @@
      (assert-true "has stats"
                   (timing-stats? (benchmark-result-stats result))))
 
-;;; ====
-;;; benchmark-with-warmup Tests
-;;; ====
+(doc 'section 'benchmark-with-warmup-tests)
 
 (printf "\n=== Testing benchmark-with-warmup ===\n")
 
@@ -193,9 +183,7 @@
                    (benchmark-result-iterations result)
                    5))
 
-;;; ====
-;;; compare-benchmarks Tests
-;;; ====
+(doc 'section 'compare-benchmarks-tests)
 
 (printf "\n=== Testing compare-benchmarks ===\n")
 
@@ -221,9 +209,7 @@
       (assert-true "ratio is a pair"
                    (pair? (car (benchmark-comparison-ratios comparison)))))
 
-;;; ====
-;;; format-ns Tests
-;;; ====
+(doc 'section 'format-ns-tests)
 
 (printf "\n=== Testing format-ns ===\n")
 
@@ -239,9 +225,7 @@
 (assert-true "seconds format"
              (string-contains? (format-ns 5000000000) "s"))
 
-;;; ====
-;;; format-timing Tests
-;;; ====
+(doc 'section 'format-timing-tests)
 
 (printf "\n=== Testing format-timing ===\n")
 
@@ -256,9 +240,7 @@
       (assert-true "contains cpu"
                    (string-contains? formatted "cpu")))
 
-;;; ====
-;;; format-stats Tests
-;;; ====
+(doc 'section 'format-stats-tests)
 
 (printf "\n=== Testing format-stats ===\n")
 
@@ -282,9 +264,7 @@
       (assert-true "contains stddev"
                    (string-contains? formatted "stddev")))
 
-;;; ====
-;;; format-benchmark Tests
-;;; ====
+(doc 'section 'format-benchmark-tests)
 
 (printf "\n=== Testing format-benchmark ===\n")
 
@@ -299,9 +279,7 @@
       (assert-true "contains iterations"
                    (string-contains? formatted "3")))
 
-;;; ====
-;;; time-with-fuel Tests
-;;; ====
+(doc 'section 'time-with-fuel-tests)
 
 (printf "\n=== Testing time-with-fuel ===\n")
 
@@ -320,9 +298,7 @@
                           fuel-left
                           0))
 
-;;; ====
-;;; Edge Cases
-;;; ====
+(doc 'section 'edge-cases)
 
 (printf "\n=== Testing Edge Cases ===\n")
 
@@ -339,9 +315,7 @@
                     [cmp (compare-benchmarks baseline '())])
                    (null? (benchmark-comparison-ratios cmp))))
 
-;;; ====
-;;; Test Summary
-;;; ====
+(doc 'section 'test-summary)
 
 (printf "\n====\n")
 (printf "Test Results (timing):\n")
@@ -353,5 +327,5 @@
     (printf "\n✓ All tests passed!\n\n")
     (printf "\n✗ Some tests failed\n\n"))
 
-;;; Return success/failure
+(doc 'note "Return success/failure")
 (= fail-count 0)

@@ -1,12 +1,14 @@
-;;; Advanced test for command system - test registration/unregistration
-
-;; Load in quiet mode
 (define *quiet* #t)
 (load "boundary/repl/repl.ss")
 
+(doc 'module 'test-commands-advanced)
+(doc 'description "Advanced command system tests - registration, unregistration, error handling")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+
 (display "\n=== Advanced Command System Tests ===\n\n")
 
-;; Test 1: Register a custom command
+(doc 'section 'register-custom-command)
 (display "Test 1: Register custom command 'greet'\n")
 (register-command!
  'greet
@@ -21,29 +23,29 @@
 (display "Registered. Command list:\n")
 (commands)
 
-;; Test 2: Use the custom command
+(doc 'section 'invoke-custom-command)
 (display "\nTest 2: Invoke custom command\n")
 (let ([result1 (cmd 'greet)]
       [result2 (cmd 'greet "Alice")])
      (display (format "Result 1: ~a\n" result1))
      (display (format "Result 2: ~a\n" result2)))
 
-;; Test 3: Get help on custom command
+(doc 'section 'help-custom-command)
 (display "\nTest 3: Help on custom command\n")
 (help 'greet)
 
-;; Test 4: Unregister the command
+(doc 'section 'unregister-command)
 (display "\nTest 4: Unregister custom command\n")
 (unregister-command! 'greet)
 (display "Unregistered. Command list:\n")
 (commands)
 
-;; Test 5: Try to use unregistered command
+(doc 'section 'use-unregistered-command)
 (display "\nTest 5: Try to use unregistered command\n")
 (let ([result (cmd 'greet)])
      (display (format "Result: ~a\n" result)))
 
-;; Test 6: Test error handling in command
+(doc 'section 'error-handling)
 (display "\nTest 6: Command with error\n")
 (register-command!
  'errortest

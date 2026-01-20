@@ -1,15 +1,17 @@
-;;; boundary/test-duckie-loop.ss — Tests for DUCKIE Main Loop
-;;;
-;;; Validates command parsing and state transitions.
-
 (load "boundary/assistants/duckie-loop.ss")
+
+(doc 'module 'test-duckie-loop)
+(doc 'description "Tests for DUCKIE Main Loop")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+(doc 'note "Validates command parsing and state transitions")
 
 (define test-count 0)
 (define pass-count 0)
 (define fail-count 0)
 
-;;; Test assertion helper
 (define (assert-equal name actual expected)
+(doc assert-equal 'description "Test assertion helper")
   (set! test-count (+ test-count 1))
   (if (equal? actual expected)
       (begin
@@ -21,9 +23,7 @@
        (printf "    Expected: ~s\n" expected)
        (printf "    Actual:   ~s\n" actual))))
 
-;;; ====
-;;; Command Parsing Tests
-;;; ====
+(doc 'section 'command-parsing-tests)
 
 (printf "\n=== Testing parse-command ===\n")
 
@@ -40,9 +40,7 @@
 (assert-equal "parse unknown" (parse-command "jump") #f)
 (assert-equal "parse empty" (parse-command "") #f)
 
-;;; ====
-;;; Loop State Tests
-;;; ====
+(doc 'section 'loop-state-tests)
 
 (printf "\n=== Testing loop state ===\n")
 
@@ -60,9 +58,7 @@
       (let ([state3 (loop-state-set-running state #f)])
            (assert-equal "loop-state-set-running" (loop-state-running state3) #f)))
 
-;;; ====
-;;; Tick Tests
-;;; ====
+(doc 'section 'tick-tests)
 
 (printf "\n=== Testing tick ===\n")
 
@@ -82,9 +78,7 @@
              [duckie10 (loop-state-duckie state10)])
             (assert-equal "tick energy drains at frame 10" (duckie-energy duckie10) (- (duckie-energy duckie) 1))))
 
-;;; ====
-;;; Test Summary
-;;; ====
+(doc 'section 'test-summary)
 
 (printf "\n====\n")
 (printf "Test Results:\n")
@@ -96,5 +90,4 @@
     (printf "\n✓ All tests passed!\n\n")
     (printf "\n✗ Some tests failed\n\n"))
 
-;;; Return success/failure
 (= fail-count 0)

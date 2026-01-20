@@ -1,12 +1,15 @@
-;;; boundary/test-toolkit.ss — Basic Tests for Development Toolkit
-;;;
-;;; Smoke tests to verify toolkit components load and work.
-;;;
-;;; Usage: scheme --script boundary/test-toolkit.ss
+(doc 'note "Usage: scheme --script boundary/test-toolkit.ss")
 
-;;; Set up paths
+(doc 'section 'setup)
+
+(doc 'note "Set up paths")
 (source-directories (cons "shell" (source-directories)))
 (source-directories (cons "core" (source-directories)))
+
+(doc 'module 'test-toolkit)
+(doc 'description "Smoke tests to verify toolkit components load and work")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
 
 (display "═══════════════════════════════════════════════════════════\n")
 (display "  TOOLKIT SMOKE TESTS\n")
@@ -29,9 +32,7 @@
          (set! pass-count (+ pass-count 1))
          (display "PASS\n")))
 
-;;; ====
-;;; Test Module Dependency Analyzer
-;;; ====
+(doc 'section 'module-dependency-analyzer)
 
 (display "\n─────────────────────────────────────────────────────────\n")
 (display "Module Dependency Analyzer\n")
@@ -54,9 +55,7 @@
                         (unless (string=? result "boundary/io/fs.ss")
                                 (error 'test (format "Expected boundary/io/fs.ss, got ~a" result))))))
 
-;;; ====
-;;; Test Cross-Referencer
-;;; ====
+(doc 'section 'cross-referencer)
 
 (display "\n─────────────────────────────────────────────────────────\n")
 (display "Cross-Referencer\n")
@@ -78,9 +77,7 @@
                         (unless (eq? name 'foo)
                                 (error 'test (format "Expected 'foo, got ~a" name))))))
 
-;;; ====
-;;; Test Block Diff
-;;; ====
+(doc 'section 'block-diff)
 
 (display "\n─────────────────────────────────────────────────────────\n")
 (display "Block Diff Utility\n")
@@ -106,9 +103,7 @@
                              (unless (= sim 1.0)
                                      (error 'test "Identical blocks should have similarity 1.0"))))))
 
-;;; ====
-;;; Test Type Inspector
-;;; ====
+(doc 'section 'type-inspector)
 
 (display "\n─────────────────────────────────────────────────────────\n")
 (display "Type Inspector\n")
@@ -130,9 +125,7 @@
                         (unless (string-contains? type-str "→")
                                 (error 'test "Function type should contain arrow")))))
 
-;;; ====
-;;; Test Fuel Profiler
-;;; ====
+(doc 'section 'fuel-profiler)
 
 (display "\n─────────────────────────────────────────────────────────\n")
 (display "Fuel Profiler\n")
@@ -149,9 +142,7 @@
                         (unless (and (> min-fuel 0) (< min-fuel 1000))
                                 (error 'test "Min fuel should be reasonable")))))
 
-;;; ====
-;;; Test Store Analyzer
-;;; ====
+(doc 'section 'store-analyzer)
 
 (display "\n─────────────────────────────────────────────────────────\n")
 (display "Store Analyzer\n")
@@ -173,9 +164,7 @@
                         (unless (= (length buckets) 6)
                                 (error 'test "Should create 6 buckets")))))
 
-;;; ====
-;;; Test Toolkit Index
-;;; ====
+(doc 'section 'toolkit-index)
 
 (display "\n─────────────────────────────────────────────────────────\n")
 (display "Toolkit Index\n")
@@ -185,9 +174,7 @@
            (lambda ()
                    (load "toolkit.ss")))
 
-;;; ====
-;;; Summary
-;;; ====
+(doc 'section 'summary)
 
 (display "\n═══════════════════════════════════════════════════════════\n")
 (display "  TEST SUMMARY\n")

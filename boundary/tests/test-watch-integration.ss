@@ -1,14 +1,13 @@
-;;; boundary/test-watch-integration.ss — Integration test for watch system
-;;;
-;;; This test verifies the complete watch system works end-to-end.
-;;; Run this to validate the implementation.
+(doc 'module 'test-watch-integration)
+(doc 'description "Integration test for watch system - verifies the complete watch system works end-to-end")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+(doc 'note "Run this to validate the implementation")
 
 (display "Watch System Integration Test\n")
 (display "====\n\n")
 
-;;; ====
-;;; Test 1: Load watch system
-;;; ====
+(doc 'section 'load-watch-system-test)
 
 (display "Test 1: Loading watch system... ")
 (guard (e [else
@@ -22,9 +21,7 @@
        (load "boundary/watch/watch.ss")
        (display "✓\n"))
 
-;;; ====
-;;; Test 2: Verify exports
-;;; ====
+(doc 'section 'verify-exports-test)
 
 (display "Test 2: Verifying exports... ")
 (let ([required-bindings
@@ -49,9 +46,7 @@
       required-bindings)
      (display "✓\n"))
 
-;;; ====
-;;; Test 3: Configuration values
-;;; ====
+(doc 'section 'configuration-values-test)
 
 (display "Test 3: Checking configuration... ")
 (unless (and (number? *watch-poll-interval*)
@@ -66,9 +61,7 @@
         (exit 1))
 (display "✓\n")
 
-;;; ====
-;;; Test 4: Create and stop a watcher
-;;; ====
+(doc 'section 'create-stop-watcher-test)
 
 (display "Test 4: Creating and stopping watcher... ")
 (guard (e [else
@@ -101,9 +94,7 @@
        
        (display "✓\n"))
 
-;;; ====
-;;; Test 5: Load daemon integration
-;;; ====
+(doc 'section 'load-daemon-integration-test)
 
 (display "Test 5: Loading daemon integration... ")
 (guard (e [else
@@ -117,9 +108,7 @@
        (load "boundary/watch-daemon-integration.ss")
        (display "✓\n"))
 
-;;; ====
-;;; Test 6: Verify daemon integration exports
-;;; ====
+(doc 'section 'verify-daemon-integration-test)
 
 (display "Test 6: Verifying daemon integration... ")
 (let ([required-bindings
@@ -142,9 +131,7 @@
       required-bindings)
      (display "✓\n"))
 
-;;; ====
-;;; Test 7: Load examples
-;;; ====
+(doc 'section 'load-examples-test)
 
 (display "Test 7: Loading examples... ")
 (guard (e [else
@@ -158,9 +145,7 @@
        (load "boundary/watch-example.ss")
        (display "✓\n"))
 
-;;; ====
-;;; Test 8: Verify example exports
-;;; ====
+(doc 'section 'verify-example-exports-test)
 
 (display "Test 8: Verifying examples... ")
 (let ([required-bindings
@@ -183,9 +168,7 @@
       required-bindings)
      (display "✓\n"))
 
-;;; ====
-;;; Test 9: Verify glob matching
-;;; ====
+(doc 'section 'verify-glob-matching-test)
 
 (display "Test 9: Testing glob matching... ")
 (unless (and (glob-match? "*.ss" "test.ss")
@@ -198,9 +181,7 @@
         (exit 1))
 (display "✓\n")
 
-;;; ====
-;;; Test 10: Cleanup
-;;; ====
+(doc 'section 'cleanup-test)
 
 (display "Test 10: Cleanup... ")
 (guard (e [else
@@ -209,9 +190,7 @@
        (stop-watching)
        (display "✓\n"))
 
-;;; ====
-;;; Summary
-;;; ====
+(doc 'section 'summary)
 
 (display "\n")
 (display "═══════════════════════════════════════\n")

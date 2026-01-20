@@ -1,11 +1,12 @@
-;;; boundary/test-duckie-persist.ss — Tests for DUCKIE CAS Persistence
-;;;
-;;; Tests save/load, state updates, and memory operations.
-
-;;; Ensure we're running from ccverse root
 (source-directories (cons "shell" (cons "core" (cons "user" (source-directories)))))
 
 (load "boundary/assistants/duckie-persist.ss")
+
+(doc 'module 'test-duckie-persist)
+(doc 'description "Tests for DUCKIE CAS Persistence")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+(doc 'note "Tests save/load, state updates, and memory operations")
 
 (display "DUCKIE Persistence Tests\n")
 (display "====\n\n")
@@ -14,6 +15,7 @@
 (define tests-failed 0)
 
 (define (test name expected actual)
+(doc test 'description "Test assertion helper")
   (if (equal? expected actual)
       (begin
        (set! tests-passed (+ tests-passed 1))
@@ -25,9 +27,7 @@
        (display ", got ") (write actual)
        (newline))))
 
-;;; ====
-;;; Setup: Clear state
-;;; ====
+(doc 'section 'setup)
 
 (display "Setup:\n")
 
@@ -39,9 +39,7 @@
 
 (test "initial no active duckie" #f (current-duckie))
 
-;;; ====
-;;; Create New DUCKIE
-;;; ====
+(doc 'section 'create-new-duckie)
 
 (display "\nCreate New DUCKIE:\n")
 
@@ -55,9 +53,7 @@
 (test "current-duckie set" #t (pair? (current-duckie)))
 (test "current-duckie-hash set" #t (bytevector? (current-duckie-hash)))
 
-;;; ====
-;;; Save/Load Round-Trip
-;;; ====
+(doc 'section 'save-load-round-trip)
 
 (display "\nSave/Load Round-Trip:\n")
 
@@ -69,9 +65,7 @@
 
 (test "duckie-exists?" #t (duckie-exists? (current-duckie-hash)))
 
-;;; ====
-;;; State Updates
-;;; ====
+(doc 'section 'state-updates)
 
 (display "\nState Updates:\n")
 
@@ -100,9 +94,7 @@
        [d (idle!)])
       (test "idle! changes state" #f (equal? before-hash (current-duckie-hash))))
 
-;;; ====
-;;; Memory Operations
-;;; ====
+(doc 'section 'memory-operations)
 
 (display "\nMemory Operations:\n")
 
@@ -116,9 +108,7 @@
      (test "recall returns memories" 2 (length memories))
      (test "memories are blocks" #t (andmap block? memories)))
 
-;;; ====
-;;; Adopt Existing DUCKIE
-;;; ====
+(doc 'section 'adopt-existing-duckie)
 
 (display "\nAdopt Existing DUCKIE:\n")
 
@@ -132,9 +122,7 @@
      (adopt-duckie! quackers-hash)
      (test "adopted Quackers" "Quackers" (duckie-name (current-duckie))))
 
-;;; ====
-;;; Pinning
-;;; ====
+(doc 'section 'pinning)
 
 (display "\nPinning:\n")
 
@@ -145,9 +133,7 @@
       ;; Memories should also be pinned
       (test "has pinned blocks" #t (> pinned-before 0)))
 
-;;; ====
-;;; Store Statistics
-;;; ====
+(doc 'section 'store-statistics)
 
 (display "\nStore Statistics:\n")
 
@@ -157,9 +143,7 @@
      (test "stats duckie-active" 1 (cdr (assq 'duckie-active stats)))
      (test "stats duckie-memories" 2 (cdr (assq 'duckie-memories stats))))
 
-;;; ====
-;;; Summary
-;;; ====
+(doc 'section 'summary)
 
 (newline)
 (display "====\n")

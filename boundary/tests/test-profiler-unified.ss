@@ -1,19 +1,11 @@
-;;; boundary/tests/test-profiler-unified.ss --- Tests for Unified Profiler
-;;;
-;;; Comprehensive tests for boundary/diagnostics/profiler-unified.ss, boundary/diagnostics/profile-persist.ss,
-;;; and the new profile-repl.ss commands.
-;;;
-;;; Validates:
-;;;   - Unified profiler creation and structure
-;;;   - Cost model integration
-;;;   - Memory tracking integration
-;;;   - Call graph integration
-;;;   - Profile persistence (save/load)
-;;;   - Statistics extraction
-
 (load "core/test-framework.ss")
 (load "boundary/diagnostics/profiler-unified.ss")
 (load "boundary/diagnostics/profile-persist.ss")
+
+(doc 'module 'test-profiler-unified)
+(doc 'description "Comprehensive tests for unified profiler, persistence, and profile-repl commands")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
 
 (display "\n")
 (display "====\n")
@@ -21,21 +13,18 @@
 (display "====\n")
 (display "\n")
 
-;;; ====
-;;; Test Expressions
-;;; ====
+(doc 'section 'test-expressions)
 
-;;; Simple expression for quick tests
-;;; Uses eval.ss format: (prim 'op args...)
+(doc 'description "Simple expression for quick tests - uses eval.ss format: (prim 'op args...)")
 (define simple-expr '(prim 'add 1 2))
 
-;;; Literal expressions
+(doc 'description "Literal expressions")
 (define literal-expr '(quote 42))
 
-;;; Let binding expression
+(doc 'description "Let binding expression")
 (define let-expr '(let ((x 5)) x))
 
-;;; Recursive expression for more complex tests
+(doc 'description "Recursive expression for more complex tests")
 (define recursive-expr
   '(fix factorial
     (fn (n)
@@ -43,9 +32,7 @@
             1
             (prim 'mul n (call factorial (prim 'sub n 1)))))))
 
-;;; ====
-;;; Unified Profiler Creation Tests
-;;; ====
+(doc 'section 'unified-profiler-creation-tests)
 
 (test-group unified-profiler-creation
             
@@ -78,9 +65,7 @@
             
             )
 
-;;; ====
-;;; Unified Profiler Status Tests
-;;; ====
+(doc 'section 'unified-profiler-status-tests)
 
 (test-group unified-profiler-status
             
@@ -98,9 +83,7 @@
             
             )
 
-;;; ====
-;;; Profile Options Tests
-;;; ====
+(doc 'section 'profile-options-tests)
 
 (test-group profile-options
             
@@ -127,9 +110,7 @@
             
             )
 
-;;; ====
-;;; Unified Statistics Tests
-;;; ====
+(doc 'section 'unified-statistics-tests)
 
 (test-group unified-statistics
             
@@ -167,9 +148,7 @@
             
             )
 
-;;; ====
-;;; Cost Model Integration Tests
-;;; ====
+(doc 'section 'cost-model-integration-tests)
 
 (test-group cost-model-integration
             
@@ -197,9 +176,7 @@
             
             )
 
-;;; ====
-;;; Memory Tracking Integration Tests
-;;; ====
+(doc 'section 'memory-tracking-tests)
 
 (test-group memory-tracking
             
@@ -223,9 +200,7 @@
             
             )
 
-;;; ====
-;;; Call Graph Integration Tests
-;;; ====
+(doc 'section 'call-graph-integration-tests)
 
 (test-group call-graph-integration
             
@@ -245,9 +220,7 @@
             
             )
 
-;;; ====
-;;; Report Rendering Tests
-;;; ====
+(doc 'section 'report-rendering-tests)
 
 (test-group report-rendering
             
@@ -278,9 +251,7 @@
             
             )
 
-;;; ====
-;;; Serialization Tests
-;;; ====
+(doc 'section 'serialization-tests)
 
 (test-group serialization
             
@@ -316,9 +287,7 @@
             
             )
 
-;;; ====
-;;; Profile Persistence Tests
-;;; ====
+(doc 'section 'persistence-tests)
 
 (test-group persistence
             
@@ -367,9 +336,7 @@
             
             )
 
-;;; ====
-;;; Profile Comparison Tests
-;;; ====
+(doc 'section 'comparison-tests)
 
 (test-group comparison
             
@@ -397,9 +364,7 @@
             
             )
 
-;;; ====
-;;; CSV Export Tests
-;;; ====
+(doc 'section 'csv-export-tests)
 
 (test-group csv-export
             
@@ -423,9 +388,7 @@
             
             )
 
-;;; ====
-;;; Convenience Function Tests
-;;; ====
+(doc 'section 'convenience-function-tests)
 
 (test-group convenience-functions
             
@@ -449,9 +412,7 @@
             
             )
 
-;;; ====
-;;; Time Helpers Tests
-;;; ====
+(doc 'section 'time-helpers-tests)
 
 (test-group time-helpers
             
@@ -469,9 +430,7 @@
             
             )
 
-;;; ====
-;;; Summary
-;;; ====
+(doc 'section 'summary)
 
 (newline)
 (exit-with-summary)

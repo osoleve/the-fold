@@ -1,8 +1,10 @@
-;;; Comprehensive demo of the command system
-
-;; Load in quiet mode
 (define *quiet* #t)
 (load "boundary/repl/repl.ss")
+
+(doc 'module 'test-commands-demo)
+(doc 'description "Comprehensive demo of command system - discovery, help, routing, error recovery, registration")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
 
 (display "\n")
 (display "╔═══════════════════════════════════════════════════════════════════╗\n")
@@ -10,13 +12,13 @@
 (display "╚═══════════════════════════════════════════════════════════════════╝\n")
 (display "\n")
 
-;; Feature 1: Command Discovery
+(doc 'section 'command-discovery)
 (display "FEATURE 1: Command Discovery\n")
 (display "────────────────────────────────────────────────────────────────────\n")
 (display "The (commands) function lists all registered commands:\n\n")
 (commands)
 
-;; Feature 2: Help System
+(doc 'section 'help-system)
 (display "\nFEATURE 2: Help System\n")
 (display "────────────────────────────────────────────────────────────────────\n")
 (display "General help with (help):\n")
@@ -25,7 +27,7 @@
 (display "\nCommand-specific help with (help 'command-name):\n")
 (help 'version)
 
-;; Feature 3: Command Routing
+(doc 'section 'command-routing)
 (display "\nFEATURE 3: Command Routing\n")
 (display "────────────────────────────────────────────────────────────────────\n")
 (display "Invoke commands via (cmd 'name args...):\n\n")
@@ -33,7 +35,7 @@
 (let ([result (cmd 'version)])
      (display (format "~a\n" (car result))))
 
-;; Feature 4: Error Recovery
+(doc 'section 'error-recovery)
 (display "\nFEATURE 4: Error Recovery\n")
 (display "────────────────────────────────────────────────────────────────────\n")
 (display "Unknown command with typo detection:\n")
@@ -46,7 +48,7 @@
 (let ([result (cmd 'unknown-cmd)])
      (display (format "~a\n" (cadr result))))
 
-;; Feature 5: Dynamic Registration
+(doc 'section 'dynamic-registration)
 (display "\nFEATURE 5: Dynamic Command Registration\n")
 (display "────────────────────────────────────────────────────────────────────\n")
 (display "Register new command at runtime:\n\n")
@@ -74,7 +76,7 @@
 (let ([result (cmd 'hello)])
      (display (format "~a\n" result)))
 
-;; Feature 6: Direct Convenience Functions
+(doc 'section 'direct-functions)
 (display "\nFEATURE 6: Direct Convenience Functions\n")
 (display "────────────────────────────────────────────────────────────────────\n")
 (display "All registered commands also available as direct functions:\n\n")

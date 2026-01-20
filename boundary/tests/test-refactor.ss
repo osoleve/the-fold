@@ -1,11 +1,12 @@
-;;; boundary/tests/test-refactor.ss -- Tests for Refactoring Toolkit
-
-;;; NOTE: Run from project root:
-;;;   scheme --script boundary/tests/test-refactor.ss
-
 (load "core/base/prelude.ss")
 (load "core/test-framework.ss")
 (load "boundary/tools/refactor.ss")
+
+(doc 'module 'test-refactor)
+(doc 'description "Tests for Refactoring Toolkit")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+(doc 'note "Run from project root: scheme --script boundary/tests/test-refactor.ss")
 
 (display "
 ")
@@ -16,9 +17,7 @@
 (display "====
 ")
 
-;;; ====
-;;; Source Location Tests
-;;; ====
+(doc 'section 'source-location-tests)
 
 (test-group loc-tests
             (define-test make-loc-test
@@ -34,9 +33,7 @@
               (assert-false (loc? 'not-a-loc))
               (assert-false (loc? '(1 2 3)))))
 
-;;; ====
-;;; Change Tests
-;;; ====
+(doc 'section 'change-tests)
 
 (test-group change-tests
             (define-test make-change-test
@@ -53,9 +50,7 @@
                     (assert-true (string? s))
                     (assert-true (> (string-length s) 0)))))
 
-;;; ====
-;;; S-Expression Traversal Tests
-;;; ====
+(doc 'section 'sexp-traversal-tests)
 
 (test-group sexp-traversal-tests
             (define-test sexp-symbols-test
@@ -86,9 +81,7 @@
                    (assert-equal '(a (X c) d)
                                  (sexp-replace-at-path sexp '(cdr car car) 'X)))))
 
-;;; ====
-;;; Rename Symbol Tests
-;;; ====
+(doc 'section 'rename-symbol-tests)
 
 (test-group rename-tests
             (define-test rename-simple-test
@@ -113,9 +106,7 @@
                    (assert-equal 'define (car renamed))
                    (assert-equal 'bar (caadr renamed)))))
 
-;;; ====
-;;; Extract Function Tests
-;;; ====
+(doc 'section 'extract-function-tests)
 
 (test-group extract-tests
             (define-test extract-function-simple-test
@@ -140,9 +131,7 @@
                    ;; Should have binding and body
                    (assert-true (pair? (cadr result))))))
 
-;;; ====
-;;; Inline Function Tests
-;;; ====
+(doc 'section 'inline-function-tests)
 
 (test-group inline-tests
             (define-test find-definition-test
@@ -172,9 +161,7 @@
                     [def '(define (add x y) (+ x y))])
                    (assert-equal '(+ 3 4) (inline-call call def)))))
 
-;;; ====
-;;; Free Variables Tests
-;;; ====
+(doc 'section 'free-variables-tests)
 
 (test-group free-vars-tests
             (define-test free-vars-symbol-test
@@ -205,9 +192,7 @@
                    (assert-false (if (member 'x fv) #t #f))
                    (assert-false (if (member 'y fv) #t #f)))))
 
-;;; ====
-;;; Unique Tests
-;;; ====
+(doc 'section 'unique-tests)
 
 (test-group unique-tests
             (define-test unique-removes-duplicates
@@ -219,9 +204,7 @@
             (define-test unique-empty
               (assert-equal '() (unique '()))))
 
-;;; ====
-;;; Helper Function Tests
-;;; ====
+(doc 'section 'helper-function-tests)
 
 (test-group helper-tests
             (define-test take-test
@@ -234,9 +217,7 @@
               (assert-equal '(1 2 3) (drop '(1 2 3) 0))
               (assert-equal '() (drop '(1 2 3) 5))))
 
-;;; ====
-;;; Semantic Search Tests
-;;; ====
+(doc 'section 'semantic-search-tests)
 
 (test-group search-tests
             (define-test find-functions-test
@@ -261,9 +242,7 @@
                     ;; foo appears in definition, and two calls
                     (assert-true (> (length usages) 2)))))
 
-;;; ====
-;;; Session Tests
-;;; ====
+(doc 'section 'session-tests)
 
 (test-group session-tests
             (define-test make-session-test
@@ -277,9 +256,7 @@
                    (session-add-change! s c)
                    (assert-equal 1 (length (session-changes s))))))
 
-;;; ====
-;;; Introduce Parameter Tests
-;;; ====
+(doc 'section 'introduce-parameter-tests)
 
 (test-group introduce-param-tests
             (define-test introduce-parameter-test
@@ -296,9 +273,7 @@
                              't)])
                    (assert-equal '(if (> x t) x t) result))))
 
-;;; ====
-;;; Run Tests
-;;; ====
+(doc 'section 'run-tests)
 
 (display "
 ")

@@ -1,16 +1,18 @@
-;;; boundary/tests/test-navigator.ss — Tests for Navigation Utilities
-;;;
-;;; Comprehensive test suite for boundary/lens/navigator.ss
-;;; Tests high-level lens navigation commands and query interface.
-
 (load "boundary/lens/navigator.ss")
+
+(doc 'module 'test-navigator)
+(doc 'description "Tests for Navigation Utilities")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+(doc 'note "Comprehensive test suite for boundary/lens/navigator.ss")
+(doc 'note "Tests high-level lens navigation commands and query interface")
 
 (define test-count 0)
 (define pass-count 0)
 (define fail-count 0)
 
-;;; Test assertion helper
 (define (assert-equal name actual expected)
+(doc assert-equal 'description "Test assertion helper")
   (set! test-count (+ test-count 1))
   (if (equal? actual expected)
       (begin
@@ -28,18 +30,14 @@
 (define (assert-false name actual)
   (assert-equal name actual #f))
 
-;;; ====
-;;; Setup - Ensure graph is built
-;;; ====
+(doc 'section 'setup)
 
 (printf "\n=== Setting up navigator tests ===\n")
 (unless (call-graph-built?)
         (lens-rebuild!))
 (printf "Lens system ready.\n")
 
-;;; ====
-;;; lens-query Tests
-;;; ====
+(doc 'section 'lens-query-tests)
 
 (printf "\n=== Testing lens-query ===\n")
 
@@ -78,9 +76,7 @@
                   (and (pair? result)
                        (eq? (car result) 'error))))
 
-;;; ====
-;;; Query Result Content Tests
-;;; ====
+(doc 'section 'query-result-content-tests)
 
 (printf "\n=== Testing query result content ===\n")
 
@@ -100,18 +96,14 @@
              (let ([result (lens-query 'foo 'slice-down)])
                   (list? (cadr result))))
 
-;;; ====
-;;; call-graph-built? Integration Tests
-;;; ====
+(doc 'section 'call-graph-built-integration)
 
 (printf "\n=== Testing call-graph-built? integration ===\n")
 
 (assert-true "graph is built after lens-rebuild"
              (call-graph-built?))
 
-;;; ====
-;;; find-all-test-files Integration Tests
-;;; ====
+(doc 'section 'find-all-test-files-integration)
 
 (printf "\n=== Testing find-all-test-files integration ===\n")
 
@@ -127,9 +119,7 @@
                                   (string-starts-with? basename "test-")))
                      (find-all-test-files)))
 
-;;; ====
-;;; Utility Function Availability Tests
-;;; ====
+(doc 'section 'utility-function-availability-tests)
 
 (printf "\n=== Testing utility function availability ===\n")
 
@@ -166,9 +156,7 @@
 (assert-true "lens-query is defined"
              (procedure? lens-query))
 
-;;; ====
-;;; take Function Tests (used by navigator)
-;;; ====
+(doc 'section 'take-function-tests)
 
 (printf "\n=== Testing take function (used internally) ===\n")
 
@@ -180,9 +168,7 @@
       ;; We'll test the expected behavior
       )
 
-;;; ====
-;;; Edge Cases
-;;; ====
+(doc 'section 'edge-cases)
 
 (printf "\n=== Testing Edge Cases ===\n")
 
@@ -197,9 +183,7 @@
                   ;; May be ok with #f or error
                   (pair? result)))
 
-;;; ====
-;;; Test Summary
-;;; ====
+(doc 'section 'test-summary)
 
 (printf "\n====\n")
 (printf "Test Results (navigator):\n")
@@ -211,5 +195,4 @@
     (printf "\n✓ All tests passed!\n\n")
     (printf "\n✗ Some tests failed\n\n"))
 
-;;; Return success/failure
 (= fail-count 0)

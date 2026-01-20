@@ -1,129 +1,21 @@
-;;; boundary/test-runner.ss — Comprehensive Test Runner for The Fold
-;;;
-;;; ====
-;;; OVERVIEW
-;;; ====
-;;;
-;;; A production-ready test runner designed for The Fold's test suite.
-;;; Provides fast, reliable test execution with rich reporting and
-;;; multiple execution modes.
-;;;
-;;; Features:
-;;;   • Auto-discovery of test files (test-*.ss, *-test.ss patterns)
-;;;   • Detailed timing information per test file
-;;;   • Color-coded output for immediate visual feedback
-;;;   • Pattern-based filtering for focused testing
-;;;   • Summary statistics including slowest tests
-;;;   • REPL integration for interactive development
-;;;   • Proper error handling and reporting
-;;;   • Exit codes for CI/CD integration
-;;;
-;;; ====
-;;; USAGE
-;;; ====
-;;;
-;;; Command Line:
-;;;   scheme --script boundary/tests/test-runner.ss              Run all tests
-;;;   scheme --script boundary/tests/test-runner.ss core         Run core/ tests only
-;;;   scheme --script boundary/tests/test-runner.ss boundary     Run boundary/ tests only
-;;;   scheme --script boundary/tests/test-runner.ss --pattern <text>
-;;;                                                     Filter tests by pattern
-;;;   scheme --script boundary/tests/test-runner.ss --list       List available tests
-;;;   scheme --script boundary/tests/test-runner.ss --help       Show help message
-;;;
-;;; From REPL (interactive):
-;;;   (load "boundary/test-runner.ss")
-;;;   (run-tests)                      Run all tests
-;;;   (run-tests 'core)                Run core/ tests only
-;;;   (run-tests 'boundary)            Run boundary/ tests only
-;;;   (run-tests-matching "block")     Filter by pattern
-;;;   (run-test-file "core/test-block.ss")  Run single file
-;;;   (list-available-tests)           Show available tests
-;;;
-;;; ====
-;;; OUTPUT
-;;; ====
-;;;
-;;; Test results use color coding:
-;;;   GREEN  - Test passed
-;;;   RED    - Test failed
-;;;   YELLOW - Warning or skipped
-;;;   CYAN   - Test file names
-;;;   GRAY   - Timing information
-;;;
-;;; Summary includes:
-;;;   • Total test files run
-;;;   • Pass/fail counts
-;;;   • Total execution time
-;;;   • Top 5 slowest tests
-;;;   • Detailed error messages for failures
-;;;
-;;; Exit codes:
-;;;   0 - All tests passed
-;;;   1 - One or more tests failed
-;;;
-;;; ====
-;;; INTEGRATION
-;;; ====
-;;;
-;;; CI/CD:
-;;;   The runner exits with code 1 on failure, making it suitable
-;;;   for continuous integration pipelines.
-;;;
-;;; REPL Daemon:
-;;;   Can be called from within REPL sessions. Test state is isolated
-;;;   per invocation - no global pollution.
-;;;
-;;; ====
-;;; ARCHITECTURE
-;;; ====
-;;;
-;;; The test runner operates in three phases:
-;;;
-;;; 1. Discovery
-;;;    - Curated lists of stable tests (*-test-files*)
-;;;    - Pattern-based filtering when requested
-;;;
-;;; 2. Execution
-;;;    - Each test file runs in isolated guard block
-;;;    - Timing measured per file
-;;;    - Errors caught and recorded
-;;;
-;;; 3. Reporting
-;;;    - Results aggregated across all runs
-;;;    - Summary statistics computed
-;;;    - Exit code determined
-;;;
-;;; Test files are loaded via (load path) which executes them
-;;; immediately. Most test files use the test-framework.ss which
-;;; provides define-test, assert-equal, etc.
-;;;
-;;; ====
-;;; DEPENDENCIES
-;;; ====
-;;;
-;;; Required:
-;;;   - core/prelude.ss (string utilities)
-;;;
-;;; Optional (for tests themselves):
-;;;   - core/test-framework.ss (used by most test files)
-
-;;; ====
-;;; Load Dependencies
-;;; ====
+(doc 'module 'test-runner)
+(doc 'description "Comprehensive Test Runner for The Fold")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+(doc 'note "A production-ready test runner designed for The Fold's test suite")
+(doc 'note "Provides fast, reliable test execution with rich reporting and multiple execution modes")
+(doc 'section 'usage)
+(doc 'section 'output)
+(doc 'section 'integration)
+(doc 'section 'architecture)
+(doc 'section 'dependencies)
 
 (load "core/base/prelude.ss")
 
-;;; NOTE: string utilities provided by core/prelude.ss
-;;;   - string-contains?
-;;;   - string-starts-with?
-;;;   - string-ends-with?
+(doc 'section 'ansi-color-codes)
 
-;;; ====
-;;; ANSI Color Codes
-;;; ====
-
-(define *use-color* #t)  ; Can be disabled for non-TTY output
+(doc 'description "Can be disabled for non-TTY output")
+(define *use-color* #t)
 
 (define (ansi-code code)
   (if *use-color*
@@ -152,9 +44,7 @@
 (define (gray text)    (colorize ansi-gray text))
 (define (bold text)    (colorize ansi-bold text))
 
-;;; ====
-;;; Timing Utilities
-;;; ====
+(doc 'section 'timing-utilities)
 
 (define (current-time-ms)
   (let ([t (current-time)])
@@ -176,13 +66,11 @@
          (string-append (number->string min) "m "
                         (number->string sec) "s"))]))
 
-;;; ====
-;;; Test Discovery
-;;; ====
+(doc 'section 'test-discovery)
 
-;;; list-directory : String → (List String)
-;;; List all files in a directory using system commands
 (define (list-directory dir)
+  (doc 'type "String → (List String)")
+  (doc 'description "List all files in a directory using system commands")
   (guard (e [else '()])
          ;; Detect Windows vs Unix
          (let* ([is-windows (string-contains? (current-directory) "c:")]
@@ -201,24 +89,22 @@
                                           (reverse result))
                                          (loop (cons line result)))))))))
 
-;;; is-test-file? : String → Boolean
-;;; Check if filename matches test file patterns
 (define (is-test-file? filename)
+  (doc 'type "String → Boolean")
+  (doc 'description "Check if filename matches test file patterns")
   (and (string-ends-with? filename ".ss")
        (or (string-starts-with? filename "test-")
            (string-ends-with? filename "-test.ss"))))
 
-;;; discover-test-files : String → (List String)
-;;; Find all test files in a directory
 (define (discover-test-files dir)
+  (doc 'type "String → (List String)")
+  (doc 'description "Find all test files in a directory")
   (filter is-test-file? (list-directory dir)))
 
-;;; ====
-;;; Test Results Registry
-;;; ====
+(doc 'section 'test-results-registry)
 
-;;; Test result: (file status duration-ms error-message)
-;;; Status: 'passed | 'failed | 'skipped | 'error
+(doc 'description "Test result: (file status duration-ms error-message)")
+(doc 'description "Status: 'passed | 'failed | 'skipped | 'error")
 (define *test-results* '())
 (define *total-start-time* 0)
 
@@ -237,13 +123,11 @@
 (define (total-test-duration)
   (fold-left + 0 (map caddr *test-results*)))
 
-;;; ====
-;;; Test Execution
-;;; ====
+(doc 'section 'test-execution)
 
-;;; run-test-file : String → Unit
-;;; Execute a single test file with timing and error handling
 (define (run-test-file path)
+  (doc 'type "String → Unit")
+  (doc 'description "Execute a single test file with timing and error handling")
   (let ([start (current-time-ms)]
         [filename (if (string-contains? path "/")
                       (let loop ([i (- (string-length path) 1)])
@@ -279,11 +163,9 @@
                    (display (string-append " (" (gray (format-duration-ms duration)) ")"))
                    (newline)))))
 
-;;; ====
-;;; Test Categories and Discovery
-;;; ====
+(doc 'section 'test-categories)
 
-;;; Well-known test file lists (curated for stability)
+(doc 'description "Well-known test file lists (curated for stability)")
 (define *core-test-files*
   '("test-prelude.ss"
     "test-sha256.ss"
@@ -325,18 +207,16 @@
     "test-commands-advanced.ss"
     "test-repl-integration.ss"))
 
-;;; filter-tests-by-pattern : String × (List String) → (List String)
-;;; Filter test files by pattern match
 (define (filter-tests-by-pattern pattern test-files)
+  (doc 'type "String × (List String) → (List String)")
+  (doc 'description "Filter test files by pattern match")
   (filter (lambda (f) (string-contains? f pattern)) test-files))
 
-;;; ====
-;;; Test Runners
-;;; ====
+(doc 'section 'test-runners)
 
-;;; run-test-category : String × String × (List String) → Unit
-;;; Run a category of tests (core, boundary, etc.)
 (define (run-test-category category-name dir test-files)
+  (doc 'type "String × String × (List String) → Unit")
+  (doc 'description "Run a category of tests (core, boundary, etc.)")
   (display (bold "────────────────────────────────────────────────────────────────\n"))
   (display (bold (string-append "  " category-name " (" dir "/)\n")))
   (display (bold "────────────────────────────────────────────────────────────────\n"))
@@ -352,9 +232,9 @@
   
   (newline))
 
-;;; run-tests : [Symbol | (List String)] → Unit
-;;; Main test runner - can be called from REPL
 (define run-tests
+  (doc 'type "[Symbol | (List String)] → Unit")
+  (doc 'description "Main test runner - can be called from REPL")
   (case-lambda
    [() (run-all-tests-impl)]
    [(category)
@@ -367,9 +247,9 @@
       (display (red (string-append "Unknown category: " (symbol->string category) "\n")))
       (display "Valid categories: all, core, boundary\n")])]))
 
-;;; run-tests-matching : String → Unit
-;;; Run tests matching a pattern
 (define (run-tests-matching pattern)
+  (doc 'type "String → Unit")
+  (doc 'description "Run tests matching a pattern")
   (reset-results!)
   (print-header (string-append "PATTERN: " pattern))
   
@@ -425,12 +305,10 @@
   
   (print-summary))
 
-;;; ====
-;;; Output Formatting
-;;; ====
+(doc 'section 'output-formatting)
 
-;;; print-header : String → Unit
 (define (print-header title)
+  (doc 'type "String → Unit")
   (display "\n")
   (display (bold "╔══════════════════════════════════════════════════════════════╗\n"))
   (display (bold (string-append "║  THE FOLD — TEST RUNNER: " title)))
@@ -534,13 +412,11 @@
    [(less? x (car sorted)) (cons x sorted)]
    [else (cons (car sorted) (insert x (cdr sorted) less?))]))
 
-;;; ====
-;;; Test Listing
-;;; ====
+(doc 'section 'test-listing)
 
-;;; list-available-tests : Unit → Unit
-;;; Display all available test files organized by category
 (define (list-available-tests)
+  (doc 'type "Unit → Unit")
+  (doc 'description "Display all available test files organized by category")
   (display "\n")
   (display (bold "╔══════════════════════════════════════════════════════════════╗\n"))
   (display (bold "║              AVAILABLE TESTS                                 ║\n"))
@@ -577,26 +453,22 @@
   (display "  Filter:        scheme --script boundary/test-runner.ss --pattern <text>\n")
   (display "\n"))
 
-;;; ====
-;;; Watch Mode (Stub for Future Implementation)
-;;; ====
+(doc 'section 'watch-mode)
 
-;;; watch-tests : Unit → Unit
-;;; Watch for file changes and re-run tests (NYI)
 (define (watch-tests)
+  (doc 'type "Unit → Unit")
+  (doc 'description "Watch for file changes and re-run tests (NYI)")
   (display (yellow "Watch mode not yet implemented.\n"))
   (display "This feature will:\n")
   (display "  - Monitor core/ and boundary/ for .ss file changes\n")
   (display "  - Re-run affected tests automatically\n")
   (display "  - Provide fast feedback during development\n"))
 
-;;; ====
-;;; Command-Line Interface
-;;; ====
+(doc 'section 'command-line-interface)
 
-;;; parse-args : (List String) → Unit
-;;; Parse command-line arguments and execute appropriate action
 (define (parse-args args)
+  (doc 'type "(List String) → Unit")
+  (doc 'description "Parse command-line arguments and execute appropriate action")
   (cond
    [(null? args)
     (run-tests 'all)]
@@ -631,8 +503,8 @@
     (print-help)
     (exit 1)]))
 
-;;; print-help : Unit → Unit
 (define (print-help)
+  (doc 'type "Unit → Unit")
   (display "\n")
   (display (bold "THE FOLD — TEST RUNNER\n"))
   (display "\n")
@@ -659,11 +531,9 @@
   (display "  (list-available-tests)         ; show available tests\n")
   (display "\n"))
 
-;;; ====
-;;; Main Entry Point
-;;; ====
+(doc 'section 'main-entry-point)
 
-;;; Global flag to track if loaded
+(doc 'description "Global flag to track if loaded")
 (define *test-runner-loaded* #f)
 
 ;;; Add core to source-directories if not present

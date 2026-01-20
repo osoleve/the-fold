@@ -1,17 +1,19 @@
-;;; boundary/tests/test-dep-slice.ss — Tests for Dependency Slicing
-;;;
-;;; Comprehensive test suite for boundary/lens/dep-slice.ss
-;;; Tests transitive dependency computation and impact analysis.
-
 (load "boundary/lens/call-graph.ss")
 (load "boundary/lens/dep-slice.ss")
+
+(doc 'module 'test-dep-slice)
+(doc 'description "Tests for Dependency Slicing")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+(doc 'note "Comprehensive test suite for boundary/lens/dep-slice.ss")
+(doc 'note "Tests transitive dependency computation and impact analysis")
 
 (define test-count 0)
 (define pass-count 0)
 (define fail-count 0)
 
-;;; Test assertion helper
 (define (assert-equal name actual expected)
+(doc assert-equal 'description "Test assertion helper")
   (set! test-count (+ test-count 1))
   (if (equal? actual expected)
       (begin
@@ -29,18 +31,14 @@
 (define (assert-false name actual)
   (assert-equal name actual #f))
 
-;;; ====
-;;; Setup - Build call graph first
-;;; ====
+(doc 'section 'setup)
 
 (printf "\n=== Setting up call graph for dep-slice tests ===\n")
 (unless (call-graph-built?)
         (call-graph-refresh!))
 (printf "Call graph ready.\n")
 
-;;; ====
-;;; compute-closure Tests
-;;; ====
+(doc 'section 'compute-closure-tests)
 
 (printf "\n=== Testing compute-closure ===\n")
 
@@ -57,9 +55,7 @@
              (let ([result (compute-closure 'nonexistent-symbol-xyz call-graph-callers 5)])
                   (null? result)))
 
-;;; ====
-;;; dep-slice-up Tests
-;;; ====
+(doc 'section 'dep-slice-up-tests)
 
 (printf "\n=== Testing dep-slice-up ===\n")
 
@@ -74,9 +70,7 @@
 (assert-true "unknown symbol has empty slice-up"
              (null? (dep-slice-up 'nonexistent-symbol-xyz)))
 
-;;; ====
-;;; dep-slice-down Tests
-;;; ====
+(doc 'section 'dep-slice-down-tests)
 
 (printf "\n=== Testing dep-slice-down ===\n")
 
@@ -94,9 +88,7 @@
                    ;; All direct should be in slice
                    (andmap (lambda (d) (member d slice)) direct)))
 
-;;; ====
-;;; dep-slice-both Tests
-;;; ====
+(doc 'section 'dep-slice-both-tests)
 
 (printf "\n=== Testing dep-slice-both ===\n")
 
@@ -118,9 +110,7 @@
                     [down-direct (dep-slice-down 'call-graph-callers 5)])
                    (equal? down-from-both down-direct)))
 
-;;; ====
-;;; dep-slice-layers-up Tests
-;;; ====
+(doc 'section 'dep-slice-layers-up-tests)
 
 (printf "\n=== Testing dep-slice-layers-up ===\n")
 
@@ -137,9 +127,7 @@
                   (or (null? layers)
                       (andmap (lambda (l) (> (car l) 0)) layers))))
 
-;;; ====
-;;; dep-slice-layers-down Tests
-;;; ====
+(doc 'section 'dep-slice-layers-down-tests)
 
 (printf "\n=== Testing dep-slice-layers-down ===\n")
 
@@ -155,9 +143,7 @@
                                            (list? (cdr l))))
                               layers))))
 
-;;; ====
-;;; dep-impact Tests
-;;; ====
+(doc 'section 'dep-impact-tests)
 
 (printf "\n=== Testing dep-impact ===\n")
 
@@ -183,9 +169,7 @@
              (let ([result (dep-impact 'foo)])
                   (number? (cdr (assq 'transitive-dependents result)))))
 
-;;; ====
-;;; dep-complexity Tests
-;;; ====
+(doc 'section 'dep-complexity-tests)
 
 (printf "\n=== Testing dep-complexity ===\n")
 
@@ -211,9 +195,7 @@
              (let ([result (dep-complexity 'foo)])
                   (number? (cdr (assq 'transitive-dependencies result)))))
 
-;;; ====
-;;; Edge Cases
-;;; ====
+(doc 'section 'edge-cases)
 
 (printf "\n=== Testing Edge Cases ===\n")
 
@@ -228,9 +210,7 @@
              (let ([result (dep-complexity 'nonexistent-symbol-xyz)])
                   (= (cdr (assq 'complexity-score result)) 0)))
 
-;;; ====
-;;; Test Summary
-;;; ====
+(doc 'section 'test-summary)
 
 (printf "\n====\n")
 (printf "Test Results (dep-slice):\n")
@@ -242,5 +222,4 @@
     (printf "\n✓ All tests passed!\n\n")
     (printf "\n✗ Some tests failed\n\n"))
 
-;;; Return success/failure
 (= fail-count 0)

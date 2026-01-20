@@ -1,18 +1,21 @@
-;;; Test suite for polygon fill optimization (fold-k60j)
-;;;
-;;; Tests the Active Edge Table (AET) polygon fill algorithm concepts.
-;;; The actual optimized implementation is in boundary/ui/graphics-primitives.ss
-;;; This test validates the AET algorithm logic.
-
 (load "boundary/ui/layout.ss")
+
+(doc 'module 'test-polygon-fill)
+(doc 'description "Tests the Active Edge Table (AET) polygon fill algorithm concepts")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+(doc 'note "The actual optimized implementation is in boundary/ui/graphics-primitives.ss")
+(doc 'see "fold-k60j")
 
 (display "Testing AET polygon fill concepts...\n\n")
 
-;;; ====
-;;; AET Helper Functions (mirrors graphics-primitives.ss)
-;;; ====
+(doc 'section 'aet-helper-functions)
 
-;;; make-edge-entry : Point × Point → EdgeEntry | #f
+(doc 'note "Mirrors graphics-primitives.ss")
+
+(doc 'type "Point × Point → EdgeEntry | #f")
+(doc 'description "Create an edge entry for the Active Edge Table")
+(define (make-edge-entry p1 p2)
 (define (make-edge-entry p1 p2)
   (let ([y1 (point-y p1)]
         [y2 (point-y p2)]
@@ -30,8 +33,9 @@
 (define (edge-x e) (caddr e))
 (define (edge-inverse-slope e) (cadddr e))
 
-;;; build-edge-table : (List Point) → (List EdgeEntry)
 (define (build-edge-table points)
+  (doc 'type "(List Point) → (List EdgeEntry)")
+  (doc 'description "Build sorted edge table from polygon points")
   (let loop ([pts points]
              [first-pt (car points)]
              [result '()])
@@ -44,9 +48,7 @@
                       first-pt
                       (if entry (cons entry result) result))))))
 
-;;; ====
-;;; Test 1: Edge Entry Creation
-;;; ====
+(doc 'section 'test-1-edge-entry-creation)
 
 (display "1. Testing edge entry creation:\n")
 
@@ -65,9 +67,7 @@
           (display "  ✓ Edge entry correct\n\n")
           (display "  ✗ FAILED: Edge entry incorrect\n\n")))
 
-;;; ====
-;;; Test 2: Horizontal Edge Skipping
-;;; ====
+(doc 'section 'test-2-horizontal-edge-skipping)
 
 (display "2. Testing horizontal edge skipping:\n")
 
@@ -78,9 +78,7 @@
           (display "  ✓ Horizontal edge correctly returns #f\n\n")
           (display "  ✗ FAILED: Should have returned #f\n\n")))
 
-;;; ====
-;;; Test 3: Edge Table Building (Triangle)
-;;; ====
+(doc 'section 'test-3-edge-table-triangle)
 
 (display "3. Testing edge table for triangle:\n")
 
@@ -97,9 +95,7 @@
           (display "  ✓ Edge table correctly built (2 non-horizontal edges)\n\n")
           (display "  ✗ FAILED: Wrong number of edges\n\n")))
 
-;;; ====
-;;; Test 4: Edge Table for Rectangle
-;;; ====
+(doc 'section 'test-4-edge-table-rectangle)
 
 (display "4. Testing edge table for rectangle:\n")
 
@@ -117,9 +113,7 @@
           (display "  ✓ Rectangle edge table correct\n\n")
           (display "  ✗ FAILED: Wrong number of edges\n\n")))
 
-;;; ====
-;;; Test 5: X-Intersection Calculation
-;;; ====
+(doc 'section 'test-5-x-intersection)
 
 (display "5. Testing x-intersection along scanline:\n")
 
@@ -133,9 +127,7 @@
           (display "  ✓ X-intersection correct\n\n")
           (display "  ✗ FAILED: X-intersection wrong\n\n")))
 
-;;; ====
-;;; Test 6: Sorted Edge Table
-;;; ====
+(doc 'section 'test-6-sorted-edge-table)
 
 (display "6. Testing edge table sorting by y-min:\n")
 
@@ -157,9 +149,7 @@
                    (check (cdr lst))
                    (display "  ✗ FAILED: Not sorted\n\n")))))
 
-;;; ====
-;;; Test 7: Visual Test - Simple Fill
-;;; ====
+(doc 'section 'test-7-visual-simple-fill)
 
 (display "7. Visual test - manual scanline fill:\n")
 

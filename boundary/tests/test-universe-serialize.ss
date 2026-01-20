@@ -1,19 +1,14 @@
-;;; boundary/universe-serialize-test.ss — Tests for Universe Serialization
-;;;
-;;; Test harness for boundary/storage/universe-serialize.ss
-
-;;; Load dependencies
 (load "core/base/prelude.ss")
 
-;;; NOTE: string utilities provided by core/prelude.ss
-;;;   - string-contains?
+(doc 'module 'test-universe-serialize)
+(doc 'description "Test harness for boundary/storage/universe-serialize.ss")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+(doc 'note "string utilities provided by core/prelude.ss: string-contains?")
 
-;;; Load the library
 (import (shell universe-serialize))
 
-;;; ====
-;;; Test Infrastructure
-;;; ====
+(doc 'section 'test-infrastructure)
 
 (define test-count 0)
 (define pass-count 0)
@@ -51,9 +46,7 @@
        (display actual)))
   (newline))
 
-;;; ====
-;;; Test Data Setup
-;;; ====
+(doc 'section 'test-data-setup)
 
 ;;; Create a temporary test directory with .sexp files
 (define test-dir "./test-universe")
@@ -105,17 +98,16 @@
                          (lambda (port)
                                  (display "((this is not valid scheme" port))))
 
-;;; ====
-;;; Run Tests
-;;; ====
+(doc 'section 'run-tests)
 
 (display "Universe Serialization Tests\n")
 (display "====\n\n")
 
-;;; Setup
+(doc 'section 'setup)
+
 (setup-test-dir!)
 
-;;; Test 1: Path utilities
+(doc 'section 'path-utilities-tests)
 (display "Test 1: Path utilities\n")
 (test "sexp-file? positive" #t (sexp-file? "test.sexp"))
 (test "sexp-file? negative" #f (sexp-file? "test.ss"))
@@ -127,7 +119,7 @@
       "forum/test.sexp"
       (make-relative-path "/home/fold/" "/home/fold/forum/test.sexp"))
 
-;;; Test 2: File scanning
+(doc 'section 'file-scanning-tests)
 (display "\nTest 2: File scanning\n")
 (define all-sexp-files (scan-sexp-files test-dir))
 (display "  Found files:\n")
@@ -155,7 +147,7 @@
       (or (pred (car lst))
           (any pred (cdr lst)))))
 
-;;; Test 3: Filtered scanning
+(doc 'section 'filtered-scanning-tests)
 (display "\nTest 3: Filtered scanning\n")
 (define forum-files (scan-sexp-files-filtered test-dir '("forum")))
 (display "  Forum files:\n")
@@ -178,7 +170,7 @@
       #f
       (any (lambda (f) (string-contains? f "forum")) multi-filter))
 
-;;; Test 4: Reading individual files
+(doc 'section 'reading-files-tests)
 (display "\nTest 4: Reading individual files\n")
 (define test-file (string-append test-dir "/forum/poetry/test1.sexp"))
 (define read-data (read-sexp-file test-file))
@@ -192,7 +184,7 @@
 (define broken-data (read-sexp-file broken-file))
 (test "broken file returns #f" #f broken-data)
 
-;;; Test 5: Full universe serialization
+(doc 'section 'full-universe-serialization-tests)
 (display "\nTest 5: Full universe serialization\n")
 (define universe (serialize-universe test-dir))
 (test-pred "universe is proper list" pair? universe)
@@ -216,7 +208,7 @@
       (and (> (string-length first-path) 0)
            (char=? (string-ref first-path 0) #\/)))
 
-;;; Test 6: Filtered serialization
+(doc 'section 'filtered-serialization-tests)
 (display "\nTest 6: Filtered serialization\n")
 (define forum-universe (serialize-universe-filtered test-dir '("forum")))
 (define forum-files-data (cadr (car forum-universe)))
@@ -228,7 +220,7 @@
       #t
       (< (length forum-files-data) (length files-list)))
 
-;;; Test 7: Writing universe to file
+(doc 'section 'writing-universe-tests)
 (display "\nTest 7: Writing universe to file\n")
 (define output-file (string-append test-dir "/universe-dump.sexp"))
 (write-universe universe output-file #f)
@@ -253,7 +245,7 @@
 (display " bytes\n")
 (test "pretty output is larger" #t (> size-pretty size-compact))
 
-;;; Test 8: Empty directory handling
+(doc 'section 'empty-directory-tests)
 (display "\nTest 8: Empty directory handling\n")
 (define empty-dir (string-append test-dir "/empty"))
 (mkdir empty-dir)
@@ -263,9 +255,7 @@
 (define empty-files (cadr (car empty-universe)))
 (test "empty universe has no files" '() empty-files)
 
-;;; ====
-;;; Test Summary
-;;; ====
+(doc 'section 'test-summary)
 
 (display "\n====\n")
 (display "Test Summary\n")
@@ -286,7 +276,8 @@
      (display "\n✗ Some tests failed.\n")
      (exit 1)))
 
-;;; Cleanup
+(doc 'section 'cleanup)
+
 (display "\nCleaning up test directory...\n")
 (clean-test-dir!)
 

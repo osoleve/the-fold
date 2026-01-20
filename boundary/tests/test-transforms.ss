@@ -1,15 +1,14 @@
-;;; Test suite for transform operations (fold-q196)
-;;;
-;;; Tests transform concepts to verify correctness of the design.
-;;; Note: Actual library tests require library import mechanism.
-
 (load "boundary/ui/layout.ss")
+
+(doc 'module 'test-transforms)
+(doc 'description "Test suite for transform operations (fold-q196) - tests transform concepts to verify correctness of the design")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+(doc 'note "Actual library tests require library import mechanism")
 
 (display "Testing transform concepts...\n\n")
 
-;;; ====
-;;; Test 1: Basic Canvas Operations
-;;; ====
+(doc 'section 'canvas-operations)
 
 (display "1. Testing canvas operations:\n")
 
@@ -20,9 +19,7 @@
           (display "  ✓ Canvas set/ref works\n\n")
           (display "  ✗ FAILED: Canvas set/ref broken\n\n")))
 
-;;; ====
-;;; Test 2: Point Operations
-;;; ====
+(doc 'section 'point-operations)
 
 (display "2. Testing point operations:\n")
 
@@ -33,9 +30,7 @@
           (display "  ✓ Point operations work\n\n")
           (display "  ✗ FAILED: Point operations broken\n\n")))
 
-;;; ====
-;;; Test 3: Canvas Dimensions
-;;; ====
+(doc 'section 'canvas-dimensions)
 
 (display "3. Testing canvas dimensions:\n")
 
@@ -45,9 +40,7 @@
           (display "  ✓ Canvas dimensions correct\n\n")
           (display "  ✗ FAILED: Canvas dimensions incorrect\n\n")))
 
-;;; ====
-;;; Test 4: Canvas Rendering
-;;; ====
+(doc 'section 'canvas-rendering)
 
 (display "4. Testing canvas rendering:\n")
 
@@ -60,9 +53,7 @@
       (newline)
       (display "  ✓ Canvas rendering works\n\n"))
 
-;;; ====
-;;; Test 5: Out-of-Bounds Access
-;;; ====
+(doc 'section 'out-of-bounds)
 
 (display "5. Testing out-of-bounds handling:\n")
 
@@ -78,9 +69,7 @@
           (display "  ✓ Out-of-bounds returns space\n\n")
           (display "  ✗ FAILED: Out-of-bounds handling broken\n\n")))
 
-;;; ====
-;;; Test 6: Composite Operation
-;;; ====
+(doc 'section 'composite-operation)
 
 (display "6. Testing composite operation:\n")
 
@@ -98,9 +87,7 @@
                (display "  ✓ Composite places content correctly\n\n")
                (display "  ✗ FAILED: Composite placement incorrect\n\n"))))
 
-;;; ====
-;;; Test 7: Draw String
-;;; ====
+(doc 'section 'draw-string)
 
 (display "7. Testing draw-string:\n")
 
@@ -113,9 +100,7 @@
                (display "  ✓ draw-string works correctly\n\n")
                (display "  ✗ FAILED: draw-string broken\n\n"))))
 
-;;; ====
-;;; Test 8: Fill Rectangle
-;;; ====
+(doc 'section 'fill-rectangle)
 
 (display "8. Testing fill-rect:\n")
 

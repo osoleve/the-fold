@@ -1,11 +1,13 @@
-;;; boundary/tests/test-type-search.ss -- Tests for Type-Driven Search
-
-;;; NOTE: Run from project root:
-;;;   scheme --script boundary/tests/test-type-search.ss
+(doc 'note "Run from project root: scheme --script boundary/tests/test-type-search.ss")
 
 (load "core/base/prelude.ss")
 (load "core/test-framework.ss")
 (load "boundary/tools/type-search.ss")
+
+(doc 'module 'test-type-search)
+(doc 'description "Tests for Type-Driven Search")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
 
 (display "
 ")
@@ -16,9 +18,7 @@
 (display "====
 ")
 
-;;; ====
-;;; Type Pattern Recognition Tests
-;;; ====
+(doc 'section 'type-pattern-recognition-tests)
 
 (test-group type-pattern-tests
             (define-test wildcard-is-pattern-test
@@ -47,9 +47,7 @@
               (assert-false (type-pattern? 42))
               (assert-false (type-pattern? "string"))))
 
-;;; ====
-;;; Type Variable Tests
-;;; ====
+(doc 'section 'type-variable-tests)
 
 (test-group type-variable-tests
             (define-test lowercase-is-variable-test
@@ -67,9 +65,7 @@
               (assert-false (type-variable? 'an))
               (assert-false (type-variable? 'the))))
 
-;;; ====
-;;; Base Type Tests
-;;; ====
+(doc 'section 'base-type-tests)
 
 (test-group base-type-tests
             (define-test nat-is-base-test
@@ -95,9 +91,7 @@
               (assert-false (base-type? 'a))
               (assert-false (base-type? 'CustomType))))
 
-;;; ====
-;;; Type Matching Tests
-;;; ====
+(doc 'section 'type-matching-tests)
 
 (test-group type-matching-tests
             (define-test wildcard-matches-any-test
@@ -142,9 +136,7 @@
                    (assert-true (pair? env))
                    (assert-equal 'Nat (cdr (assq 'a env))))))
 
-;;; ====
-;;; Match List Tests
-;;; ====
+(doc 'section 'match-list-tests)
 
 (test-group match-list-tests
             (define-test match-list-empty-test
@@ -164,9 +156,7 @@
               (assert-false (match-list '(a b) '(Nat) '()))
               (assert-false (match-list '(a) '(Nat Bool) '()))))
 
-;;; ====
-;;; Type Equality Tests
-;;; ====
+(doc 'section 'type-equality-tests)
 
 (test-group type-equality-tests
             (define-test simple-type-equal-test
@@ -180,9 +170,7 @@
             (define-test nested-type-equal-test
               (assert-true (type-equal? '(-> (List Nat) Bool) '(-> (List Nat) Bool)))))
 
-;;; ====
-;;; Signature Parsing Tests
-;;; ====
+(doc 'section 'signature-parsing-tests)
 
 (test-group signature-parsing-tests
             (define-test parse-simple-function-test
@@ -212,9 +200,7 @@
               (let ([sig (parse-signature "Nat")])
                    (assert-equal 'Nat sig))))
 
-;;; ====
-;;; Infix Signature Parsing Tests
-;;; ====
+(doc 'section 'infix-parsing-tests)
 
 (test-group infix-parsing-tests
             (define-test string-split-arrow-test
@@ -236,9 +222,7 @@
                    (assert-true (pair? comp))
                    (assert-equal 'List (car comp)))))
 
-;;; ====
-;;; String Utility Tests
-;;; ====
+(doc 'section 'string-utility-tests)
 
 (test-group string-utility-tests
             (define-test string-find-substring-test
@@ -251,9 +235,7 @@
               (assert-false (string-prefix-at? "hello" "world" 0))
               (assert-true (string-prefix-at? "abc" "abc" 0))))
 
-;;; ====
-;;; List Helper Tests
-;;; ====
+(doc 'section 'list-helper-tests)
 
 (test-group list-helper-tests
             (define-test last-test
@@ -273,9 +255,7 @@
               (assert-equal '(1 2) (take-up-to '(1 2) 5))
               (assert-equal '() (take-up-to '(1 2) 0))))
 
-;;; ====
-;;; Suggestion Creation Tests
-;;; ====
+(doc 'section 'suggestion-tests)
 
 (test-group suggestion-tests
             (define-test make-suggestion-direct-test
@@ -288,9 +268,7 @@
               (let ([sug (make-suggestion 'compose '(f g) '(-> Nat Bool))])
                    (assert-equal 'compose (cdr (assq 'kind sug))))))
 
-;;; ====
-;;; Type Normalization Tests
-;;; ====
+(doc 'section 'normalization-tests)
 
 (test-group normalization-tests
             (define-test normalize-simple-type-test
@@ -304,9 +282,7 @@
               (let ([norm (normalize-type '(forall (a) (-> a a)))])
                    (assert-true (pair? norm)))))
 
-;;; ====
-;;; Typed Index Tests
-;;; ====
+(doc 'section 'typed-index-tests)
 
 (test-group typed-index-tests
             (define-test typed-index-initial-size-test
@@ -317,9 +293,7 @@
               ;; Getting non-existent symbol should return #f
               (assert-false (typed-index-get 'nonexistent-symbol-xyz-123))))
 
-;;; ====
-;;; Integration Tests (Mock Data)
-;;; ====
+(doc 'section 'integration-tests)
 
 (test-group integration-tests
             ;; Set up mock symbol index for testing
@@ -339,9 +313,7 @@
               (let ([results (search-by-arg 'String)])
                    (assert-true (list? results)))))
 
-;;; ====
-;;; Edge Case Tests
-;;; ====
+(doc 'section 'edge-case-tests)
 
 (test-group edge-case-tests
             (define-test empty-env-match-test
@@ -369,15 +341,9 @@
                    (assert-equal 'Nat (cdr (assq 'a env)))
                    (assert-equal 'Bool (cdr (assq 'b env))))))
 
-;;; ====
-;;; Helper Functions Used in Tests
-;;; ====
+(doc 'note "Helper Functions Used in Tests: The module already defines 'any', 'last', 'butlast', 'take-up-to'")
 
-;;; Note: The module already defines 'any', 'last', 'butlast', 'take-up-to'
-
-;;; ====
-;;; Run Tests
-;;; ====
+(doc 'section 'run-tests)
 
 (display "
 ")

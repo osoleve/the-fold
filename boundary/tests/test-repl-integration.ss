@@ -1,8 +1,12 @@
-;;; Test normal REPL loading and integration
-
 (load "boundary/repl/repl.ss")
 
-;; Verify commands are available
+(doc 'module 'test-repl-integration)
+(doc 'description "Test normal REPL loading and integration")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+
+(doc 'section 'verification-tests)
+
 (display "\n=== Verification Tests ===\n\n")
 
 (display "1. Check (commands) function exists: ")

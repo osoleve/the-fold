@@ -1,16 +1,18 @@
-;;; boundary/tests/test-error-fmt.ss — Tests for Error Formatter
-;;;
-;;; Comprehensive test suite for boundary/debug/error-fmt.ss
-;;; Validates error formatting, colorization, suggestions, and placeholder fixes.
-
 (load "boundary/debug/error-fmt.ss")
+
+(doc 'module 'test-error-fmt)
+(doc 'description "Tests for Error Formatter")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+(doc 'note "Comprehensive test suite for boundary/debug/error-fmt.ss")
+(doc 'note "Validates error formatting, colorization, suggestions, and placeholder fixes")
 
 (define test-count 0)
 (define pass-count 0)
 (define fail-count 0)
 
-;;; Test assertion helper
 (define (assert-equal name actual expected)
+(doc assert-equal 'description "Test assertion helper")
   (set! test-count (+ test-count 1))
   (if (equal? actual expected)
       (begin
@@ -22,8 +24,8 @@
        (printf "    Expected: ~s\n" expected)
        (printf "    Actual:   ~s\n" actual))))
 
-;;; Test helper for string contains
 (define (assert-contains name actual substring)
+(doc assert-contains 'description "Test helper for string contains")
   (set! test-count (+ test-count 1))
   (if (string-contains? actual substring)
       (begin
@@ -35,8 +37,8 @@
        (printf "    Expected substring: ~s\n" substring)
        (printf "    Actual string:      ~s\n" actual))))
 
-;;; Test helper for verifying no error thrown
 (define (assert-no-error name thunk)
+(doc assert-no-error 'description "Test helper for verifying no error thrown")
   (set! test-count (+ test-count 1))
   (guard (e [else
              (set! fail-count (+ fail-count 1))
@@ -46,9 +48,7 @@
          (set! pass-count (+ pass-count 1))
          (printf "  ✓ ~a\n" name)))
 
-;;; ====
-;;; errorf Tests
-;;; ====
+(doc 'section 'errorf-tests)
 
 (printf "\n=== Testing errorf ===\n")
 
@@ -77,9 +77,7 @@
                                                (error 'test "Expected both substitutions")))])
                                 (errorf 'test "Values: ~a and ~s" "foo" "bar"))))
 
-;;; ====
-;;; String Utility Tests
-;;; ====
+(doc 'section 'string-utility-tests)
 
 (printf "\n=== Testing string utilities ===\n")
 
@@ -131,9 +129,7 @@
               (list-slice '(a b c) 0 10)
               '(a b c))
 
-;;; ====
-;;; Placeholder Fixing Tests
-;;; ====
+(doc 'section 'placeholder-fixing-tests)
 
 (printf "\n=== Testing placeholder fixing ===\n")
 
@@ -157,9 +153,7 @@
               (fix-unfilled-placeholders "Plain text")
               "Plain text")
 
-;;; ====
-;;; Format Message Tests
-;;; ====
+(doc 'section 'format-message-tests)
 
 (printf "\n=== Testing format-message ===\n")
 
@@ -177,9 +171,7 @@
                               (when (not (string-contains? result "test"))
                                     (error 'test "Expected formatted value")))))
 
-;;; ====
-;;; Suggestion Tests
-;;; ====
+(doc 'section 'suggestion-tests)
 
 (printf "\n=== Testing suggest-fixes ===\n")
 
@@ -203,9 +195,7 @@
               (suggest-fixes "unknown error occurred")
               '())
 
-;;; ====
-;;; Colorization Tests
-;;; ====
+(doc 'section 'colorization-tests)
 
 (printf "\n=== Testing colorization ===\n")
 
@@ -230,9 +220,7 @@
 ;; Re-enable for remaining tests
 (set! *use-colors* #t)
 
-;;; ====
-;;; Error Header Formatting Tests
-;;; ====
+(doc 'section 'error-header-formatting-tests)
 
 (printf "\n=== Testing error header formatting ===\n")
 
@@ -252,9 +240,7 @@
                  (format-error-header *level-warning* #f #f #f #f)
                  "WARN")
 
-;;; ====
-;;; Format Error Simple Tests
-;;; ====
+(doc 'section 'format-error-simple-tests)
 
 (printf "\n=== Testing format-error-simple ===\n")
 
@@ -266,9 +252,7 @@
                  (format-error-simple "Test error")
                  "ERROR")
 
-;;; ====
-;;; Format Error With Location Tests
-;;; ====
+(doc 'section 'format-error-with-location-tests)
 
 (printf "\n=== Testing format-error-with-location ===\n")
 
@@ -284,9 +268,7 @@
                  (format-error-with-location "Test error" "test.ss" 10 5)
                  "Test error")
 
-;;; ====
-;;; Format Suggestions Tests
-;;; ====
+(doc 'section 'format-suggestions-tests)
 
 (printf "\n=== Testing format-suggestions ===\n")
 
@@ -312,9 +294,7 @@
 ;; Re-enable
 (set! *show-suggestions* #t)
 
-;;; ====
-;;; Integration Tests
-;;; ====
+(doc 'section 'integration-tests)
 
 (printf "\n=== Testing integration scenarios ===\n")
 
@@ -349,9 +329,7 @@
                               (when (not (string? result))
                                     (error 'test "Expected string result")))))
 
-;;; ====
-;;; Edge Cases
-;;; ====
+(doc 'section 'edge-cases)
 
 (printf "\n=== Testing edge cases ===\n")
 
@@ -391,9 +369,7 @@
               (fix-unfilled-placeholders "")
               "")
 
-;;; ====
-;;; Test Summary
-;;; ====
+(doc 'section 'test-summary)
 
 (printf "\n====\n")
 (printf "Test Results:\n")
@@ -405,5 +381,4 @@
     (printf "\n✓ All tests passed!\n\n")
     (printf "\n✗ Some tests failed\n\n"))
 
-;;; Return success/failure
 (= fail-count 0)

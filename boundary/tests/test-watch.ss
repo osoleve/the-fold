@@ -1,6 +1,9 @@
-;;; Test harness for boundary/watch/watch.ss
-
 (load "boundary/watch/watch.ss")
+
+(doc 'module 'test-watch)
+(doc 'description "Test harness for boundary/watch/watch.ss")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
 
 (define (test name expected actual)
   (display "  ")
@@ -15,7 +18,8 @@
        (display actual)))
   (newline))
 
-;;; Test helpers
+(doc 'section 'test-helpers)
+
 (define test-dir "./test-watch-tmp")
 
 (define (clean-test-dir!)
@@ -37,7 +41,7 @@
 (display "File Watching System Tests\n")
 (display "====\n\n")
 
-;;; Test 1: Glob pattern matching
+(doc 'section 'glob-pattern-matching-tests)
 (display "Test 1: Glob pattern matching\n")
 (test "exact match" #t (glob-match? "foo.ss" "foo.ss"))
 (test "no match" #f (glob-match? "foo.ss" "bar.ss"))
@@ -47,7 +51,7 @@
 (test "wildcard ? no match" #f (glob-match? "foo?.ss" "foo12.ss"))
 (test "multiple *" #t (glob-match? "*-*-*.ss" "foo-bar-baz.ss"))
 
-;;; Test 2: File modification time
+(doc 'section 'file-modification-time-tests)
 (display "\nTest 2: File modification time\n")
 (setup-test-dir!)
 (let ([test-file (string-append test-dir "/mtime-test.txt")])
@@ -59,7 +63,7 @@
           (let ([mtime2 (file-mtime test-file)])
                (test "mtime updated" #t (> mtime2 mtime1)))))
 
-;;; Test 3: Scan paths (single file)
+(doc 'section 'scan-paths-single-file-tests)
 (display "\nTest 3: Scan paths (single file)\n")
 (let ([test-file (string-append test-dir "/scan-test.txt")])
      (write-test-file test-file "test")
@@ -67,7 +71,7 @@
           (test "single file found" 1 (length paths))
           (test "correct path" test-file (car paths))))
 
-;;; Test 4: Scan paths (directory with pattern)
+(doc 'section 'scan-paths-directory-tests)
 (display "\nTest 4: Scan paths (directory with pattern)\n")
 (write-test-file (string-append test-dir "/test1.ss") "1")
 (write-test-file (string-append test-dir "/test2.ss") "2")
@@ -75,7 +79,7 @@
 (let ([paths (scan-paths test-dir "*.ss")])
      (test "found .ss files" 2 (length paths)))
 
-;;; Test 5: Watcher creation
+(doc 'section 'watcher-creation-tests)
 (display "\nTest 5: Watcher creation\n")
 (let* ([test-file (string-append test-dir "/watch-target.txt")]
        [triggered #f]
@@ -89,7 +93,7 @@
            (test "has action" #t (procedure? (watcher-action w)))
            (stop-watcher! w)))
 
-;;; Test 6: Change detection
+(doc 'section 'change-detection-tests)
 (display "\nTest 6: Change detection\n")
 (let* ([test-file (string-append test-dir "/change-detect.txt")]
        [changed-files '()]
@@ -108,7 +112,7 @@
                  (test "correct file" test-file (car changed-files)))
            (stop-watcher! w)))
 
-;;; Test 7: Directory watching
+(doc 'section 'directory-watching-tests)
 (display "\nTest 7: Directory watching\n")
 (let* ([changed-files '()]
        [action (lambda (files) (set! changed-files files))])
@@ -123,7 +127,7 @@
            (test "new file detected" #t (not (null? changed-files)))
            (stop-watcher! w)))
 
-;;; Test 8: Multiple watchers
+(doc 'section 'multiple-watchers-tests)
 (display "\nTest 8: Multiple watchers\n")
 (let* ([file1 (string-append test-dir "/multi1.txt")]
        [file2 (string-append test-dir "/multi2.txt")]
@@ -144,7 +148,7 @@
            (stop-watcher! w1)
            (stop-watcher! w2)))
 
-;;; Test 9: Stop all watchers
+(doc 'section 'stop-all-watchers-tests)
 (display "\nTest 9: Stop all watchers\n")
 (let ([w1 (watch-file (string-append test-dir "/stop1.txt")
                       (lambda (f) (void)))]
@@ -161,7 +165,7 @@
                  (mutex-release *registry-mutex*)
                  empty))))
 
-;;; Test 10: Debouncing
+(doc 'section 'debouncing-tests)
 (display "\nTest 10: Debouncing\n")
 (let* ([test-file (string-append test-dir "/debounce.txt")]
        [trigger-count 0]
@@ -181,7 +185,8 @@
            (test "debouncing works" #t (<= trigger-count 2))
            (stop-watcher! w)))
 
-;;; Cleanup
+(doc 'section 'cleanup)
+
 (display "\nCleaning up...\n")
 (stop-watching)
 (clean-test-dir!)

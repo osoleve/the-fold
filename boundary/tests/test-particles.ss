@@ -1,9 +1,3 @@
-;;; boundary/tests/test-particles.ss — Tests for particles.ss
-;;;
-;;; Tests for the particle effects system.
-;;;
-;;; NOTE: Run from project root: scheme --script boundary/tests/test-particles.ss
-
 (load "core/test-framework.ss")
 (load "core/base/prelude.ss")
 (load "boundary/ui/color.ss")
@@ -11,14 +5,18 @@
 (load "boundary/ui/animation.ss")
 (load "boundary/ui/particles.ss")
 
+(doc 'module 'test-particles)
+(doc 'description "Tests for the particle effects system")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+(doc 'note "Run from project root: scheme --script boundary/tests/test-particles.ss")
+
 (display "\n")
 (display "====\n")
 (display "         PARTICLE EFFECTS SYSTEM TESTS\n")
 (display "====\n")
 
-;;; ====
-;;; Particle Construction Tests
-;;; ====
+(doc 'section 'particle-construction)
 
 (test-group particle-construction
             (define-test make-particle-basic
@@ -43,9 +41,7 @@
                      [p (update-particle p)])  ; lifetime becomes 0
                     (assert-false (particle-alive? p)))))
 
-;;; ====
-;;; Particle Age Tests
-;;; ====
+(doc 'section 'particle-age)
 
 (test-group particle-age
             (define-test particle-age-at-birth
@@ -73,9 +69,7 @@
                                  (loop (+ i 1) (update-particle particle))))])
                     (assert-true (> (particle-age p) 0.8)))))
 
-;;; ====
-;;; Particle Update Tests
-;;; ====
+(doc 'section 'particle-update)
 
 (test-group particle-update
             (define-test update-particle-moves-by-velocity
@@ -97,9 +91,7 @@
                     (assert-equal color-cyan (particle-color p))
                     (assert-equal 100 (particle-max-life p)))))
 
-;;; ====
-;;; Update Particles List Tests
-;;; ====
+(doc 'section 'update-particles-list)
 
 (test-group update-particles-list
             (define-test update-particles-removes-dead
@@ -122,9 +114,7 @@
             (define-test update-particles-empty-list
               (assert-equal '() (update-particles '()))))
 
-;;; ====
-;;; Heart Emitter Tests
-;;; ====
+(doc 'section 'heart-emitter)
 
 (test-group heart-emitter
             (define-test emit-hearts-produces-particles
@@ -147,9 +137,7 @@
                                                 (< (point-y (particle-velocity p)) 0))
                                         hearts)))))
 
-;;; ====
-;;; Sparkle Emitter Tests
-;;; ====
+(doc 'section 'sparkle-emitter)
 
 (test-group sparkle-emitter
             (define-test emit-sparkles-produces-particles
@@ -166,9 +154,7 @@
                         (assert-true (exists positive? xs))
                         (assert-true (exists negative? xs))))))
 
-;;; ====
-;;; Bubble Emitter Tests
-;;; ====
+(doc 'section 'bubble-emitter)
 
 (test-group bubble-emitter
             (define-test emit-bubbles-produces-particles
@@ -183,9 +169,7 @@
                                                  (< (point-y (particle-velocity p)) 0))
                                          bubbles)))))
 
-;;; ====
-;;; Ripple Emitter Tests
-;;; ====
+(doc 'section 'ripple-emitter)
 
 (test-group ripple-emitter
             (define-test emit-ripple-produces-particles
@@ -202,9 +186,7 @@
                         (assert-true (exists positive? xs))
                         (assert-true (exists negative? xs))))))
 
-;;; ====
-;;; Star Emitter Tests
-;;; ====
+(doc 'section 'star-emitter)
 
 (test-group star-emitter
             (define-test emit-stars-produces-particles
@@ -220,9 +202,7 @@
                                                       (= 0 (point-y (particle-velocity p)))))
                                          stars)))))
 
-;;; ====
-;;; ZZZ (Sleep) Emitter Tests
-;;; ====
+(doc 'section 'zzz-emitter)
 
 (test-group zzz-emitter
             (define-test emit-zzz-produces-particles
@@ -245,9 +225,7 @@
                                                  (< (point-y (particle-velocity p)) 0))
                                          zzz)))))
 
-;;; ====
-;;; Music Notes Emitter Tests
-;;; ====
+(doc 'section 'notes-emitter)
 
 (test-group notes-emitter
             (define-test emit-notes-produces-particles
@@ -261,9 +239,7 @@
                                                  (< (point-y (particle-velocity p)) 0))
                                          notes)))))
 
-;;; ====
-;;; Exclamation Emitter Tests
-;;; ====
+(doc 'section 'exclamation-emitter)
 
 (test-group exclamation-emitter
             (define-test emit-exclamation-produces-particles
@@ -278,9 +254,7 @@
                                                 (char=? #\! (particle-char p)))
                                         ex)))))
 
-;;; ====
-;;; Particle System Tests
-;;; ====
+(doc 'section 'particle-system)
 
 (test-group particle-system
             (define-test make-particle-system-empty
@@ -307,9 +281,7 @@
                     ;; Particles should still be alive after 1 update
                     (assert-equal initial-count (length sys)))))
 
-;;; ====
-;;; Mood-Based Emission Tests
-;;; ====
+(doc 'section 'mood-emission)
 
 (test-group mood-emission
             (define-test emit-by-mood-happy
@@ -331,9 +303,7 @@
               (let ([particles (emit-by-mood (point 50 50) 'unknown-mood)])
                    (assert-true (null? particles)))))
 
-;;; ====
-;;; Interaction-Based Emission Tests
-;;; ====
+(doc 'section 'interaction-emission)
 
 (test-group interaction-emission
             (define-test emit-by-interaction-pet
@@ -354,9 +324,7 @@
               (let ([particles (emit-by-interaction (point 50 50) 'unknown)])
                    (assert-true (null? particles)))))
 
-;;; ====
-;;; Rendering Tests
-;;; ====
+(doc 'section 'particle-rendering)
 
 (test-group particle-rendering
             (define-test render-particle-on-canvas
@@ -389,9 +357,7 @@
                     ;; Should have rendered something
                     (assert-true (canvas%? c)))))
 
-;;; ====
-;;; Summary
-;;; ====
+(doc 'section 'summary)
 
 (display "\n")
 (display "====\n")

@@ -1,15 +1,15 @@
-;;; boundary/tests/test-complexity.ss — Tests for Complexity Analysis
-;;;
-;;; Comprehensive test suite for boundary/introspect/complexity.ss
-;;; Tests file analysis, complexity scoring, coverage, and dependency graphs.
-
 (load "boundary/introspect/complexity.ss")
+
+(doc 'module 'test-complexity)
+(doc 'description "Tests for complexity analysis - file analysis, scoring, coverage, dependency graphs")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
 
 (define test-count 0)
 (define pass-count 0)
 (define fail-count 0)
 
-;;; Test assertion helper
+(doc 'section 'test-helpers)
 (define (assert-equal name actual expected)
   (set! test-count (+ test-count 1))
   (if (equal? actual expected)
@@ -28,9 +28,7 @@
 (define (assert-false name actual)
   (assert-equal name actual #f))
 
-;;; ====
-;;; line-type Tests
-;;; ====
+(doc 'section 'line-type-tests)
 
 (printf "\n=== Testing line-type ===\n")
 
@@ -58,9 +56,7 @@
               (line-type "  (define foo 42)")
               'code)
 
-;;; ====
-;;; string-count-char Tests
-;;; ====
+(doc 'section 'string-count-char-tests)
 
 (printf "\n=== Testing string-count-char ===\n")
 
@@ -84,9 +80,7 @@
               (string-count-char "((()))" #\()
               3)
 
-;;; ====
-;;; sexp-size Tests
-;;; ====
+(doc 'section 'sexp-size-tests)
 
 (printf "\n=== Testing sexp-size ===\n")
 
@@ -110,9 +104,7 @@
               (sexp-size '())
               0)
 
-;;; ====
-;;; sexp-depth Tests
-;;; ====
+(doc 'section 'sexp-depth-tests)
 
 (printf "\n=== Testing sexp-depth ===\n")
 
@@ -136,9 +128,7 @@
               (sexp-depth '((((a)))))
               5)
 
-;;; ====
-;;; extract-references Tests
-;;; ====
+(doc 'section 'extract-references-tests)
 
 (printf "\n=== Testing extract-references ===\n")
 
@@ -163,9 +153,7 @@
               (extract-references '())
               '())
 
-;;; ====
-;;; definition? Tests
-;;; ====
+(doc 'section 'definition-predicate-tests)
 
 (printf "\n=== Testing definition? ===\n")
 
@@ -187,9 +175,7 @@
 (assert-false "atom is not definition"
               (definition? 'foo))
 
-;;; ====
-;;; extract-definition-name Tests
-;;; ====
+(doc 'section 'extract-definition-name-tests)
 
 (printf "\n=== Testing extract-definition-name ===\n")
 
@@ -212,9 +198,7 @@
 (assert-false "non-definition"
               (extract-definition-name '(if a b c)))
 
-;;; ====
-;;; load-form? Tests
-;;; ====
+(doc 'section 'load-form-tests)
 
 (printf "\n=== Testing load-form? ===\n")
 
@@ -227,9 +211,7 @@
 (assert-false "not a load form"
               (load-form? '(define foo 42)))
 
-;;; ====
-;;; extract-load-path Tests
-;;; ====
+(doc 'section 'extract-load-path-tests)
 
 (printf "\n=== Testing extract-load-path ===\n")
 
@@ -240,9 +222,7 @@
 (assert-false "non-load returns #f"
               (extract-load-path '(define foo 42)))
 
-;;; ====
-;;; scheme-file? Tests
-;;; ====
+(doc 'section 'scheme-file-tests)
 
 (printf "\n=== Testing scheme-file? ===\n")
 
@@ -258,9 +238,7 @@
 (assert-false "short name"
               (scheme-file? "ab"))
 
-;;; ====
-;;; count-paren-delta Tests
-;;; ====
+(doc 'section 'count-paren-delta-tests)
 
 (printf "\n=== Testing count-paren-delta ===\n")
 
@@ -288,13 +266,9 @@
               (count-paren-delta "(foo \"a\\\"b\" baz)")
               0)
 
-;;; ====
-;;; analyze-file Tests
-;;; ====
+(doc 'section 'analyze-file-tests)
 
 (printf "\n=== Testing analyze-file ===\n")
-
-;; Test with a known file
 (let ([metrics (analyze-file "boundary/introspect/complexity.ss")])
      (assert-true "returns file-metrics"
                   (file-metrics? metrics))
@@ -312,9 +286,7 @@
      (assert-true "has load deps"
                   (list? (file-metrics-load-deps metrics))))
 
-;;; ====
-;;; complexity-score Tests
-;;; ====
+(doc 'section 'complexity-score-tests)
 
 (printf "\n=== Testing complexity-score ===\n")
 
@@ -326,11 +298,9 @@
                    (complexity-score simple-def)
                    (+ (* 5 1)    ; size * 1
                       (* 2 5)    ; depth * 5
-                      (* 1 2)))) ; refs * 2
+                      (* 1 2))))
 
-;;; ====
-;;; high-complexity? Tests
-;;; ====
+(doc 'section 'high-complexity-tests)
 
 (printf "\n=== Testing high-complexity? ===\n")
 
@@ -343,9 +313,7 @@
      (assert-true "complex def above threshold"
                   (high-complexity? complex-def 50)))
 
-;;; ====
-;;; filter-map Tests
-;;; ====
+(doc 'section 'filter-map-tests)
 
 (printf "\n=== Testing filter-map ===\n")
 
@@ -361,9 +329,7 @@
               (filter-map (lambda (x) x) '())
               '())
 
-;;; ====
-;;; Edge Cases
-;;; ====
+(doc 'section 'edge-cases)
 
 (printf "\n=== Testing Edge Cases ===\n")
 
@@ -380,9 +346,7 @@
                     (analyze-file "/nonexistent/file.ss")
                     #f))
 
-;;; ====
-;;; Test Summary
-;;; ====
+(doc 'section 'test-summary)
 
 (printf "\n====\n")
 (printf "Test Results (complexity):\n")
@@ -393,6 +357,4 @@
 (if (= fail-count 0)
     (printf "\n✓ All tests passed!\n\n")
     (printf "\n✗ Some tests failed\n\n"))
-
-;;; Return success/failure
 (= fail-count 0)

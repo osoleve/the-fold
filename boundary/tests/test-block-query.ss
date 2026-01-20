@@ -1,5 +1,3 @@
-;;; Tests for block query language
-
 (load "core/blocks/block.ss")
 (load "core/base/sha256.ss")
 (load "core/blocks/cas.ss")
@@ -7,7 +5,12 @@
 
 (import (shell block-query))
 
-;; Create some test blocks
+(doc 'module 'test-block-query)
+(doc 'description "Tests for block query language - basic query primitives and combinators")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+
+(doc 'section 'test-setup)
 (define test-block-1
   (make-block 'expr
               (string->utf8 "(lambda (x) (+ x 1))")
@@ -28,7 +31,7 @@
 (define hash-2 (store! test-block-2))
 (define hash-3 (store! test-block-3))
 
-;; Test tag-is
+(doc 'section 'tag-queries)
 (display "Testing tag-is...\n")
 (assert ((tag-is 'expr) test-block-1))
 (assert (not ((tag-is 'expr) test-block-2)))
@@ -38,17 +41,17 @@
 (assert ((tag-matches "^test-") test-block-2))
 (assert (not ((tag-matches "^test-") test-block-1)))
 
-;; Test payload-contains
+(doc 'section 'payload-queries)
 (display "Testing payload-contains...\n")
 (assert ((payload-contains "lambda") test-block-1))
 (assert (not ((payload-contains "lambda") test-block-2)))
 
-;; Test refs-count
+(doc 'section 'refs-queries)
 (display "Testing refs-count...\n")
 (assert ((refs-count zero?) test-block-1))
 (assert ((refs-count (lambda (n) (> n 0))) test-block-3))
 
-;; Test query combinators
+(doc 'section 'query-combinators)
 (display "Testing query-and...\n")
 (assert ((query-and (tag-is 'expr) (payload-contains "lambda")) test-block-1))
 (assert (not ((query-and (tag-is 'expr) (payload-contains "define")) test-block-1)))
@@ -61,7 +64,7 @@
 (assert ((query-not (tag-is 'expr)) test-block-2))
 (assert (not ((query-not (tag-is 'expr)) test-block-1)))
 
-;; Test full query execution
+(doc 'section 'query-execution)
 (display "Testing query-blocks...\n")
 (let ([results (query-blocks (tag-matches "^(expr|test-)"))])
      (assert (= (length results) 2)))
