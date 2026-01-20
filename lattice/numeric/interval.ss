@@ -1,43 +1,21 @@
-;;; lattice/numeric/interval.ss — Interval Arithmetic
-;;;
-;;; Verified numerical computation with rigorous bounds. Every operation
-;;; guarantees the true mathematical result lies within the computed interval.
-;;;
-;;; Author: Claude Opus 4.5
-;;; Created: 2026-01-16
-;;;
-;;; Usage:
-;;;   (load "lattice/numeric/interval.ss")
-;;;   (define x (make-interval 2 3))
-;;;   (define y (make-interval 1 2))
-;;;   (interval-add x y)  ; => (interval 3 5)
-;;;
-;;; Invariant: For all operations f, if x ∈ [a,b] and y ∈ [c,d],
-;;;            then f(x,y) ∈ f([a,b], [c,d]).
-;;;
-;;; ROUNDING MODES: This module provides both standard and rigorous operations.
-;;; Standard ops (interval-add, etc.) use round-to-nearest for speed.
-;;; Rigorous ops (interval-add-rigorous, etc.) use directed rounding via
-;;; fl-next-up/fl-next-down for guaranteed enclosure at ~2x cost.
-
 (load "core/base/prelude.ss")
 
-;;; ============================================================================
-;;; Directed Rounding (IEEE 754 Simulation)
-;;; ============================================================================
-;;;
-;;; IEEE 754 double-precision floats have a natural ordering when interpreted
-;;; as 64-bit integers (for positive numbers). We exploit this to implement
-;;; "next up" and "next down" operations that return the adjacent representable
-;;; floating-point values.
-;;;
-;;; These enable directed rounding: round-down for lower bounds, round-up for
-;;; upper bounds, guaranteeing the computed interval encloses the true result.
+(doc 'module 'interval)
+(doc 'description "Verified numerical computation with rigorous bounds. Every operation guarantees the true mathematical result lies within the computed interval.")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
+(doc 'author "Claude Opus 4.5")
+(doc 'created "2026-01-16")
+(doc 'note "ROUNDING MODES: This module provides both standard and rigorous operations. Standard ops (interval-add, etc.) use round-to-nearest for speed. Rigorous ops (interval-add-rigorous, etc.) use directed rounding via fl-next-up/fl-next-down for guaranteed enclosure at ~2x cost.")
+(doc 'invariant "For all operations f, if x ∈ [a,b] and y ∈ [c,d], then f(x,y) ∈ f([a,b], [c,d]).")
 
-;;; fl-next-up : Flonum → Flonum
-;;; Return the smallest flonum greater than x.
-;;; Special cases: +inf → +inf, NaN → NaN, -0 → smallest positive denormal
+(doc 'section 'directed-rounding)
+(doc 'note "IEEE 754 double-precision floats have a natural ordering when interpreted as 64-bit integers (for positive numbers). We exploit this to implement next up and next down operations that return the adjacent representable floating-point values. These enable directed rounding: round-down for lower bounds, round-up for upper bounds, guaranteeing the computed interval encloses the true result.")
+
 (define (fl-next-up x)
+  (doc 'type '(-> Flonum Flonum))
+  (doc 'description "Return the smallest flonum greater than x")
+  (doc 'note "Special cases: +inf → +inf, NaN → NaN, -0 → smallest positive denormal")
   (cond
     [(not (= x x)) x]                    ; NaN stays NaN
     [(= x +inf.0) +inf.0]                ; +inf stays +inf
@@ -55,10 +33,10 @@
          (bytevector-u64-native-set! bv 0 new-bits)
          (bytevector-ieee-double-native-ref bv 0)))]))
 
-;;; fl-next-down : Flonum → Flonum
-;;; Return the largest flonum less than x.
-;;; Special cases: -inf → -inf, NaN → NaN, +0 → smallest negative denormal
 (define (fl-next-down x)
+  (doc 'type '(-> Flonum Flonum))
+  (doc 'description "Return the largest flonum less than x")
+  (doc 'note "Special cases: -inf → -inf, NaN → NaN, +0 → smallest negative denormal")
   (cond
     [(not (= x x)) x]                    ; NaN stays NaN
     [(= x -inf.0) -inf.0]                ; -inf stays -inf
@@ -77,16 +55,12 @@
          (bytevector-u64-native-set! bv 0 new-bits)
          (bytevector-ieee-double-native-ref bv 0)))]))
 
-;;; ============================================================================
-;;; Directed Rounding Arithmetic
-;;; ============================================================================
-;;;
-;;; These operations round the result in a specified direction.
-;;; Used to guarantee interval bounds enclose the true mathematical result.
+(doc 'section 'directed-rounding-arithmetic)
+(doc 'note "These operations round the result in a specified direction. Used to guarantee interval bounds enclose the true mathematical result.")
 
-;;; add-down : Real × Real → Real
-;;; Add with rounding toward -∞.
 (define (add-down a b)
+  (doc 'type '(-> Real Real Real))
+  (doc 'description "Add with rounding toward -∞")
   (let ([r (+ a b)])
     (if (or (infinite? r) (nan? r)) r (fl-next-down r))))
 

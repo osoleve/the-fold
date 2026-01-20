@@ -47,20 +47,11 @@
 ;;;   - thimble/store-api.ss (store-filter, store-find-by-tag, etc.)
 ;;;   - fabric/stitches/block.ss (block accessors)
 
-;;; ====
-;;; Dependencies
-;;; ====
+(doc 'section 'dependencies)
+(doc 'description "Assumes these are already loaded: store-api.ss (store-filter, store-all-blocks, store-find-by-tag, etc.) and block.ss (make-block, block-tag, block-payload, block-refs)")
 
-;;; Assumes these are already loaded:
-;;;   - store-api.ss (store-filter, store-all-blocks, store-find-by-tag, etc.)
-;;;   - block.ss (make-block, block-tag, block-payload, block-refs)
-
-;;; ====
-;;; Section 1: Predicate Builders
-;;; ====
-;;;
-;;; These functions build predicates (Block -> Boolean) from query patterns.
-;;; Each pattern type has a corresponding predicate builder.
+(doc 'section 'predicate-builders)
+(doc 'description "These functions build predicates (Block -> Boolean) from query patterns. Each pattern type has a corresponding predicate builder.")
 
 ;;; build-tag-predicate : Symbol → (→ Block Bool)
 ;;; Creates a predicate that matches blocks with the given tag.

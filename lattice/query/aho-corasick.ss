@@ -1,21 +1,26 @@
-;;; core/query/aho-corasick.ss --- Aho-Corasick Multi-Pattern String Matching
-;;;
-;;; Dogfooding new data structures: Queue for BFS, Dict for transitions
+(load "core/base/prelude.ss")
+
+(doc 'module 'aho-corasick)
+(doc 'description "Aho-Corasick Multi-Pattern String Matching")
+(doc 'note "Dogfooding new data structures: Queue for BFS, Dict for transitions")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
+
 (load "lattice/data/queue.ss")
 (load "lattice/data/set.ss")
 (load "lattice/data/dict.ss")
 
-;;; State = (id Dict Set Nat) where Dict: Char -> Nat, Set of patterns,  Nat is failure link
+(doc 'note "State = (id Dict Set Nat) where Dict: Char -> Nat, Set of patterns, Nat is failure link")
 (define-record-type ac-state
   (fields id trans output fail))
 
-;;; make-state : Nat → ACState
 (define (make-state id)
+  (doc 'type '(-> Nat ACState))
   (make-ac-state id dict-empty set-empty 0))
 
-;;; build-trie : (List String) → (Vector ACState)
-;;; Build trie with mutable vector to avoid O(N^2) copying
 (define (build-trie patterns)
+  (doc 'type '(-> (List String) (Vector ACState)))
+  (doc 'description "Build trie with mutable vector to avoid O(N^2) copying")
   (let* ([total-chars (fold-left (lambda (acc p) (+ acc (string-length p))) 0 patterns)]
          [capacity (max 64 (+ total-chars 1))]  ; Pre-allocate with estimated capacity
          [states (make-vector capacity #f)]
@@ -31,9 +36,9 @@
                                                     next-id)])
                       (loop-patterns (cdr patterns) new-id))))))
 
-;;; insert-pattern-mut! : String × (Vector ACState) × (→ Nat) × (→ Nat Void) × Nat → Nat
-;;; Mutable version: mutates states vector in place
 (define (insert-pattern-mut! pattern states get-size set-size! next-id)
+  (doc 'type '(-> String (Vector ACState) (-> Nat) (-> Nat Void) Nat Nat))
+  (doc 'description "Mutable version: mutates states vector in place")
   (let loop-chars ([chars (string->list pattern)]
                    [sid 0]
                    [next-id next-id])
@@ -66,9 +71,9 @@
                            (vector-set! states sid updated-parent)
                            (loop-chars (cdr chars) next-id (+ next-id 1))))))))
 
-;;; compute-failures : (Vector ACState) → (Vector ACState)
-;;; Compute failures using Queue BFS (dogfooding!) with in-place mutation
 (define (compute-failures states)
+  (doc 'type '(-> (Vector ACState) (Vector ACState)))
+  (doc 'description "Compute failures using Queue BFS (dogfooding!) with in-place mutation")
   (let* ([root (vector-ref states 0)]
          [children (dict-values (ac-state-trans root))]
          [init-q (fold-left (lambda (q child) (queue-enqueue child q))
@@ -77,8 +82,8 @@
         (bfs-mut! states init-q)
         states))
 
-;;; bfs-mut! : (Vector ACState) × Queue → Void
 (define (bfs-mut! states queue)
+  (doc 'type '(-> (Vector ACState) Queue Void))
   (if (queue-empty? queue)
       (void)
       (let-values ([(q2 sid) (queue-dequeue queue)])
@@ -103,8 +108,8 @@
                                        (loop-trans (cdr keys)
                                                    (queue-enqueue child-id q)))))))))
 
-;;; find-fail : (Vector ACState) × Nat × Char → Nat
 (define (find-fail states sid ch)
+  (doc 'type '(-> (Vector ACState) Nat Char Nat))
   (let* ([state (vector-ref states sid)]
          [fail-id (ac-state-fail state)])
         (if (= fail-id 0)
@@ -115,14 +120,14 @@
                      next
                      (find-fail states fail-id ch))))))
 
-;;; Main API
+(doc 'section 'main-api)
 
-;;; make-automaton : (List String) → (Vector ACState)
 (define (make-automaton patterns)
+  (doc 'type '(-> (List String) (Vector ACState)))
   (compute-failures (build-trie patterns)))
 
-;;; search : (Vector ACState) × String → (List (Pair Nat String))
 (define (search automaton text)
+  (doc 'type '(-> (Vector ACState) String (List (Pair Nat String))))
   (let loop ([chars (string->list text)]
              [pos 0]
              [sid 0]
@@ -141,8 +146,8 @@
                                     outputs)
                                matches))))))
 
-;;; get-next : (Vector ACState) × Nat × Char → Nat
 (define (get-next automaton sid ch)
+  (doc 'type '(-> (Vector ACState) Nat Char Nat))
   (let ([next (dict-lookup ch (ac-state-trans (vector-ref automaton sid)))])
        (if next
            next

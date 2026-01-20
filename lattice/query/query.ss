@@ -1,14 +1,11 @@
-;;; core/query/query.ss --- Tag Query Tools (Stub)
-;;;
-;;; Note: The original forum-based query functionality has been removed.
-;;; This file provides stub implementations for backward compatibility.
+(doc 'module 'query)
+(doc 'description "Tag Query Tools (Stub)")
+(doc 'note "The original forum-based query functionality has been removed. This file provides stub implementations for backward compatibility.")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
 
-;;; ====
-;;; Stub Functions
-;;; ====
-
-;;; These functions originally queried forum posts by tags.
-;;; They now return empty results since the forum has been removed.
+(doc 'section 'stub-functions)
+(doc 'description "These functions originally queried forum posts by tags. They now return empty results since the forum has been removed.")
 
 (define (find-tagged fs key value) '())
 (define (find-tagged-any fs key) '())
