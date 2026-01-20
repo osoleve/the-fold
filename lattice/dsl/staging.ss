@@ -35,17 +35,21 @@
 (doc make-code 'type (-> Int Sexp Code))
 (doc 'description "Create a code value at a given stage")
 (define (make-code stage expr)
+  (doc 'export #t)
   (list 'Code stage expr))
 
 (define (code? x)
+  (doc 'export #t)
   (doc 'type (-> Any Boolean))
   (and (pair? x) (eq? (car x) 'Code)))
 
 (define (code-stage c)
+  (doc 'export #t)
   (doc 'type (-> Code Int))
   (if (code? c) (cadr c) 0))
 
 (define (code-expr c)
+  (doc 'export #t)
   (doc 'type (-> Code Sexp))
   (if (code? c) (caddr c) c))
 
@@ -145,6 +149,7 @@
 ;;; stage-expand : Sexp × Int → Sexp
 ;;; Expand staged expression at given level.
 (define (stage-expand expr level)
+  (doc 'export #t)
   (cond
    ;; Stage quote: <expr> → (make-code (+ level 1) (stage-expand expr (+ level 1)))
    [(stage-quote? expr)
@@ -213,6 +218,7 @@
 ;;; code-combine : Code × Code × (α × β → γ) → Code
 ;;; Combine two code values with a binary operation.
 (define (code-combine c1 c2 op-name)
+  (doc 'export #t)
   (let ([s1 (code-stage c1)]
         [s2 (code-stage c2)]
         [e1 (code-expr c1)]
@@ -224,11 +230,13 @@
 ;;; code-lift : Value → Code
 ;;; Lift a runtime value to stage-1 code.
 (define (code-lift val)
+  (doc 'export #t)
   (make-code 1 `(quote ,val)))
 
 ;;; code-unlift : Code → Value
 ;;; Extract value from stage-0 code (must be a literal).
 (define (code-unlift c)
+  (doc 'export #t)
   (if (and (code? c) (= (code-stage c) 0))
       (code-expr c)
       (error 'code-unlift "not stage-0 code" c)))
@@ -245,6 +253,7 @@
 ;;; code-well-staged? : Code × Int → Boolean
 ;;; Check if code is at or below the expected stage.
 (define (code-well-staged? c expected)
+  (doc 'export #t)
   (<= (code-stage c) expected))
 
 ;;; ====
@@ -256,11 +265,13 @@
 ;;; stage-add : Code × Code → Code
 ;;; Staged addition.
 (define (stage-add c1 c2)
+  (doc 'export #t)
   (code-combine c1 c2 '+))
 
 ;;; stage-mul : Code × Code → Code
 ;;; Staged multiplication.
 (define (stage-mul c1 c2)
+  (doc 'export #t)
   (code-combine c1 c2 '*))
 
 ;;; stage-sub : Code × Code → Code
@@ -276,6 +287,7 @@
 ;;; stage-if : Code × Code × Code → Code
 ;;; Staged conditional.
 (define (stage-if cond-c then-c else-c)
+  (doc 'export #t)
   (let ([s (code-stage cond-c)])
        (if (and (= s (code-stage then-c))
                 (= s (code-stage else-c)))
@@ -287,6 +299,7 @@
 ;;; stage-let : Symbol × Code × Code → Code
 ;;; Staged let binding.
 (define (stage-let var val-c body-c)
+  (doc 'export #t)
   (let ([s (code-stage val-c)])
        (if (= s (code-stage body-c))
            (make-code s `(let ([,var ,(code-expr val-c)])
@@ -296,12 +309,14 @@
 ;;; stage-lambda : (List Symbol) × Code → Code
 ;;; Staged lambda.
 (define (stage-lambda params body-c)
+  (doc 'export #t)
   (make-code (code-stage body-c)
              `(lambda ,params ,(code-expr body-c))))
 
 ;;; stage-app : Code × (List Code) → Code
 ;;; Staged function application.
 (define (stage-app func-c args-c)
+  (doc 'export #t)
   (let ([s (code-stage func-c)])
        (if (andmap (lambda (c) (= s (code-stage c))) args-c)
            (make-code s `(,(code-expr func-c) ,@(map code-expr args-c)))
@@ -344,6 +359,7 @@
 ;;; power-staged : Int → Code
 ;;; Generate code for x^n.
 (define (power-staged n)
+  (doc 'export #t)
   (if (= n 0)
       (make-code 1 '1)
       (make-code 1 `(* ,(code-expr (power-staged (- n 1))) x))))
@@ -351,6 +367,7 @@
 ;;; power-specialized : Int → (Int → Int)
 ;;; Return a specialized power function.
 (define (power-specialized n)
+  (doc 'export #t)
   (let ([code (power-staged n)])
        (list 'specialized-power n (code-expr code))))
 
@@ -374,11 +391,13 @@
 ;;; compile-staged : Sexp → Sexp
 ;;; Compile a staged expression.
 (define (compile-staged expr)
+  (doc 'export #t)
   (stage-expand expr 0))
 
 ;;; run-staged : Code → Value
 ;;; Run stage-0 code.
 (define (run-staged c)
+  (doc 'export #t)
   (if (= (code-stage c) 0)
       (code-expr c)
       (error 'run-staged "cannot run higher-stage code" c)))
@@ -397,6 +416,7 @@
 ;;; stage-match : Code × (List Clause) → Code
 ;;; Staged pattern match.
 (define (stage-match scrut-c clauses)
+  (doc 'export #t)
   (let ([s (code-stage scrut-c)])
        (make-code s
                   `(match ,(code-expr scrut-c)
@@ -411,6 +431,7 @@
 ;;; stage-fix : (Code → Code) → Code
 ;;; Staged fixed-point combinator.
 (define (stage-fix f)
+  (doc 'export #t)
   (let* ([rec-name (gensym 'rec)]
          [dummy (make-code 1 rec-name)]
          [body (f dummy)])
@@ -447,6 +468,7 @@
 ;;; infer-staged-type : Sexp × TypeEnv × Int → Type
 ;;; Infer the type of a staged expression.
 (define (infer-staged-type expr env level)
+  (doc 'export #t)
   (cond
    [(stage-quote? expr)
     `(Code ,(+ level 1) ,(infer-staged-type (cadr expr) env (+ level 1)))]
@@ -472,6 +494,7 @@
 ;;; inline-staged : Sexp → Sexp
 ;;; Inline staged computations where possible.
 (define (inline-staged expr)
+  (doc 'export #t)
   (cond
    [(stage-quote? expr)
     (let ([inner (inline-staged (cadr expr))])

@@ -8,11 +8,16 @@
 (doc 'description "These functions originally queried forum posts by tags. They now return empty results since the forum has been removed.")
 
 (define (find-tagged fs key value) '())
+(doc 'export #t)
 (define (find-tagged-any fs key) '())
+(doc 'export #t)
 (define (collect-all-posts fs) '())
 (define (list-all-tags fs) '())
+(doc 'export #t)
 (define (tag-histogram fs) '())
+(doc 'export #t)
 (define (tag-values fs key) '())
+(doc 'export #t)
 (define (tag-value-histogram fs key) '())
 
 (define (print-tagged fs key value)
@@ -27,3 +32,4 @@
 (define (find-by-tag key value) '())
 (define (tags) (display "Tag query functionality has been removed.\n"))
 (define (tag-report) (display "Tag query functionality has been removed.\n"))
+  (doc 'export #t)

@@ -11,6 +11,7 @@
 (doc 'section 'hmac-core)
 
 (define (make-hmac hash-fn block-size output-size)
+  (doc 'export #t)
   (doc 'type '(-> (-> Bytevector Bytevector) Integer Integer (-> Bytevector Bytevector Bytevector)))
   (doc 'description "Create an HMAC function for a given hash, block size, and output size")
   (doc 'param 'hash-fn "The hash function (e.g., sha256, sha512)")
@@ -60,30 +61,36 @@
 
 (doc hmac-sha256 'type '(-> Bytevector Bytevector Bytevector))
 (doc hmac-sha256 'description "HMAC using SHA-256. Block size: 64 bytes, Output: 32 bytes")
+(doc hmac-sha256 'export #t)
 (define hmac-sha256 (make-hmac sha256 64 32))
 
 ;;; hmac-sha512 : Bytevector × Bytevector → Bytevector
 ;;; HMAC using SHA-512.
 ;;; Block size: 128 bytes, Output: 64 bytes
+(doc hmac-sha512 'export #t)
 (define hmac-sha512 (make-hmac sha512 128 64))
 
 ;;; hmac-sha384 : Bytevector × Bytevector → Bytevector
 ;;; HMAC using SHA-384.
 ;;; Block size: 128 bytes (same as SHA-512), Output: 48 bytes
+(doc hmac-sha384 'export #t)
 (define hmac-sha384 (make-hmac sha384 128 48))
 
 (doc 'section 'hex-convenience)
 
 (define (hmac-sha256-hex key message)
+  (doc 'export #t)
   (doc 'type '(-> Bytevector Bytevector String))
   (hash->hex (hmac-sha256 key message)))
 
 ;;; hmac-sha512-hex : Bytevector × Bytevector → String
 (define (hmac-sha512-hex key message)
+  (doc 'export #t)
   (hash->hex (hmac-sha512 key message)))
 
 ;;; hmac-sha384-hex : Bytevector × Bytevector → String
 (define (hmac-sha384-hex key message)
+  (doc 'export #t)
   (hash->hex (hmac-sha384 key message)))
 
 ;;; hash->hex : Bytevector → String

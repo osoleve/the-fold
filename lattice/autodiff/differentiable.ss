@@ -34,6 +34,7 @@
 ;;;     (d+ d-instance (d-sq d-instance x) (d-sq d-instance y)))
 
 ;;; TC-Differentiable : TypeClass
+(doc TC-Differentiable 'export #t)
 (define TC-Differentiable
   (make-typeclass
    'Differentiable
@@ -79,6 +80,7 @@
     (d-cos   . ,cos)))
 
 ;;; inst-Differentiable-Real : Instance
+(doc inst-Differentiable-Real 'export #t)
 (define inst-Differentiable-Real
   (make-instance 'Differentiable 'Real '() differentiable-real-methods))
 
@@ -107,6 +109,7 @@
     (d-cos   . ,dual-cos)))
 
 ;;; inst-Differentiable-Dual : Instance
+(doc inst-Differentiable-Dual 'export #t)
 (define inst-Differentiable-Dual
   (make-instance 'Differentiable 'Dual '() differentiable-dual-methods))
 
@@ -135,6 +138,7 @@
     (d-cos   . ,traced-cos)))
 
 ;;; inst-Differentiable-Traced : Instance
+(doc inst-Differentiable-Traced 'export #t)
 (define inst-Differentiable-Traced
   (make-instance 'Differentiable 'Traced '() differentiable-traced-methods))
 

@@ -42,19 +42,25 @@
 
 
 (define (make-mf-gaussian means log-stds)
+  (doc 'export #t)
   (list 'mf-gaussian means log-stds))
 
 (define (mf-gaussian? v)
+  (doc 'export #t)
   (and (pair? v) (eq? (car v) 'mf-gaussian)))
 
 (define (mf-gaussian-means v) (cadr v))
+(doc 'export #t)
 
 (define (mf-gaussian-log-stds v) (caddr v))
+(doc 'export #t)
 
 (define (mf-gaussian-stds v)
+  (doc 'export #t)
   (map exp (mf-gaussian-log-stds v)))
 
 (define (mf-gaussian-dim v)
+  (doc 'export #t)
   (length (mf-gaussian-means v)))
 
 
@@ -74,6 +80,7 @@
                  (loop (- k 1) new-rng (cons sample acc))))))
 
 (define (mf-gaussian-reparam vfamily epsilons)
+  (doc 'export #t)
   (let ([means (mf-gaussian-means vfamily)]
         [log-stds (mf-gaussian-log-stds vfamily)])
        (map (lambda (mu log-s eps)
@@ -88,6 +95,7 @@
        t-means t-log-stds epsilons))
 
 (define (sample-mf-gaussian vfamily prng)
+  (doc 'export #t)
   (let-values ([(epsilons new-prng) (sample-standard-normals (mf-gaussian-dim vfamily) prng)])
               (values (mf-gaussian-reparam vfamily epsilons) new-prng)))
 
@@ -99,6 +107,7 @@
 
 
 (define (mf-gaussian-log-prob vfamily z)
+  (doc 'export #t)
   (let ([means (mf-gaussian-means vfamily)]
         [log-stds (mf-gaussian-log-stds vfamily)])
        (fold-left + 0
@@ -107,6 +116,7 @@
                        z means log-stds))))
 
 (define (mf-gaussian-entropy vfamily)
+  (doc 'export #t)
   (let ([log-stds (mf-gaussian-log-stds vfamily)])
        (* (length log-stds)
           (+ 0.5 (* 0.5 (log (* 2 3.141592653589793)))
@@ -120,16 +130,21 @@
 
 
 (define (make-full-gaussian means chol-flat)
+  (doc 'export #t)
   (list 'full-gaussian means chol-flat))
 
 (define (full-gaussian? v)
+  (doc 'export #t)
   (and (pair? v) (eq? (car v) 'full-gaussian)))
 
 (define (full-gaussian-means v) (cadr v))
+(doc 'export #t)
 
 (define (full-gaussian-chol v) (caddr v))
+(doc 'export #t)
 
 (define (full-gaussian-dim v)
+  (doc 'export #t)
   (length (full-gaussian-means v)))
 
 (define (chol-flat-to-matrix flat n)
@@ -150,6 +165,7 @@
   (/ (* n (+ n 1)) 2))
 
 (define (full-gaussian-reparam vfamily epsilons)
+  (doc 'export #t)
   (let* ([means (full-gaussian-means vfamily)]
          [flat (full-gaussian-chol vfamily)]
          [n (length means)]
@@ -166,10 +182,12 @@
       (cons (car lst) (take (cdr lst) (- n 1)))))
 
 (define (sample-full-gaussian vfamily prng)
+  (doc 'export #t)
   (let-values ([(epsilons new-prng) (sample-standard-normals (full-gaussian-dim vfamily) prng)])
               (values (full-gaussian-reparam vfamily epsilons) new-prng)))
 
 (define (full-gaussian-log-prob vfamily z)
+  (doc 'export #t)
   (let* ([means (full-gaussian-means vfamily)]
          [flat (full-gaussian-chol vfamily)]
          [n (length means)]
@@ -211,6 +229,7 @@
       (last (cdr lst))))
 
 (define (full-gaussian-entropy vfamily)
+  (doc 'export #t)
   (let* ([n (full-gaussian-dim vfamily)]
          [flat (full-gaussian-chol vfamily)]
          [L (chol-flat-to-matrix flat n)]
@@ -227,6 +246,7 @@
 
 
 (define (vfamily-dim v)
+  (doc 'export #t)
   (cond [(mf-gaussian? v) (mf-gaussian-dim v)]
         [(full-gaussian? v) (full-gaussian-dim v)]
         [else (error 'vfamily-dim "Unknown variational family" v)]))
@@ -242,11 +262,13 @@
         [else (error 'vfamily-log-prob "Unknown variational family" v)]))
 
 (define (vfamily-entropy v)
+  (doc 'export #t)
   (cond [(mf-gaussian? v) (mf-gaussian-entropy v)]
         [(full-gaussian? v) (full-gaussian-entropy v)]
         [else (error 'vfamily-entropy "Unknown variational family" v)]))
 
 (define (vfamily-params v)
+  (doc 'export #t)
   (cond [(mf-gaussian? v)
          (append (mf-gaussian-means v) (mf-gaussian-log-stds v))]
         [(full-gaussian? v)
@@ -254,6 +276,7 @@
         [else (error 'vfamily-params "Unknown variational family" v)]))
 
 (define (vfamily-from-params type dim params)
+  (doc 'export #t)
   (case type
     [(mf-gaussian)
      (let ([means (take params dim)]
@@ -278,6 +301,7 @@
 
 
 (define (elbo-estimate log-joint vfamily prng K)
+  (doc 'export #t)
   (let loop ([k K] [rng prng] [total 0])
        (if (= k 0)
            (values (/ total K) rng)
@@ -287,6 +311,7 @@
                         (loop (- k 1) new-rng (+ total (- log-p log-q)))))))
 
 (define (elbo-with-entropy log-joint vfamily prng K)
+  (doc 'export #t)
   (let* ([H (vfamily-entropy vfamily)])
         (let loop ([k K] [rng prng] [total 0])
              (if (= k 0)
@@ -302,6 +327,7 @@
 
 
 (define (elbo-gradient-mf traced-log-joint means log-stds epsilons)
+  (doc 'export #t)
   (let* ([d (length means)]
          [params (append means log-stds)])
         ;; gradient's f receives individual traced arguments via (apply f traced-args)
@@ -335,6 +361,7 @@
 
 
 (define (traced-log-normal-pdf-sum observations t-mu variance)
+  (doc 'export #t)
   (let ([log-norm-const (make-traced-const (* -0.5 (log (* 2 3.141592653589793 variance))) #f)]
         [half (make-traced-const 0.5 #f)]
         [var-const (make-traced-const variance #f)])
@@ -351,6 +378,7 @@
                       (loop (cdr obs) (traced-add acc term)))))))
 
 (define (make-traced-log-joint-normal-mean observations known-var prior-mean prior-var)
+  (doc 'export #t)
   (lambda (t-z)
     (let* ([t-mu (car t-z)]
            ;; Prior: log N(mu | prior-mean, prior-var)
@@ -411,6 +439,7 @@
       (fold-left traced-add (car lst) (cdr lst))))
 
 (define (traced-log-normal-pdf z t-mu t-log-sigma)
+  (doc 'export #t)
   (let* ([const-term (make-traced-const (* -0.5 (log (* 2 3.141592653589793))) #f)]
          [z-const (make-traced-const z #f)]
          [diff (traced-sub z-const t-mu)]
@@ -429,6 +458,7 @@
 
 
 (define (vi-step-mf log-joint vfamily prng learning-rate)
+  (doc 'export #t)
   (let* ([d (mf-gaussian-dim vfamily)]
          [means (mf-gaussian-means vfamily)]
          [log-stds (mf-gaussian-log-stds vfamily)])
@@ -454,24 +484,30 @@
 
 
 (define (make-adam-state num-params)
+  (doc 'export #t)
   (list 'adam-state
         (make-list num-params 0)    ; First moment (m)
         (make-list num-params 0)    ; Second moment (v)
         1))                          ; Time step t
 
 (define (adam-state? x)
+  (doc 'export #t)
   (and (pair? x) (eq? (car x) 'adam-state)))
 
 (define (adam-state-m s) (cadr s))
+(doc 'export #t)
 
 (define (adam-state-v s) (caddr s))
+(doc 'export #t)
 
 (define (adam-state-t s) (cadddr s))
+(doc 'export #t)
 
 (define (make-list n val)
   (if (<= n 0) '() (cons val (make-list (- n 1) val))))
 
 (define (adam-update state grads lr beta1 beta2 epsilon)
+  (doc 'export #t)
   (let* ([m (adam-state-m state)]
          [v (adam-state-v state)]
          [t (adam-state-t state)]
@@ -493,6 +529,7 @@
          [new-state (list 'adam-state new-m new-v (+ t 1))])
         (values new-state deltas)))
 
+(doc vi-step-adam 'export #t)
 (define vi-step-adam
   (case-lambda
     [(log-joint vfamily prng adam-state lr)
@@ -522,6 +559,7 @@
                                                [new-vfamily (vfamily-from-params type d new-params)])
                                               (values new-vfamily new-prng new-adam))))))]))
 
+(doc vi-step-adam-traced 'export #t)
 (define vi-step-adam-traced
   (case-lambda
     [(traced-log-joint vfamily prng adam-state lr)
@@ -555,6 +593,7 @@
 
 
 
+(doc vi-fit 'export #t)
 (define vi-fit
   (case-lambda
     [(log-joint initial-vfamily num-iters learning-rate)
@@ -594,6 +633,7 @@
                                                        (cons (cons iter elbo) elbo-history)
                                                        elbo-history)))))))]))
 
+(doc vi-fit-traced 'export #t)
 (define vi-fit-traced
   (case-lambda
     [(log-joint traced-log-joint initial-vfamily num-iters learning-rate)
@@ -633,13 +673,17 @@
                                                        elbo-history)))))))]))
 
 (define (vi-result? x)
+  (doc 'export #t)
   (and (pair? x) (eq? (car x) 'vi-result)))
 
 (define (vi-result-vfamily r) (cadr r))
+(doc 'export #t)
 
 (define (vi-result-elbo-history r) (caddr r))
+(doc 'export #t)
 
 (define (vi-result-iterations r) (cadddr r))
+(doc 'export #t)
 
 
 (doc 'section 'convenience-common-model-fitting)
@@ -648,6 +692,7 @@
 
 
 
+(doc vi-fit-normal-mean 'export #t)
 (define vi-fit-normal-mean
   (case-lambda
     [(observations known-variance)
@@ -671,6 +716,7 @@
             [init-vfamily (make-mf-gaussian (list 0.0) (list 0.0))])
            (vi-fit-traced log-joint traced-log-joint init-vfamily num-iters lr))]))
 
+(doc vi-fit-linear-regression 'export #t)
 (define vi-fit-linear-regression
   (case-lambda
     [(X y)
@@ -710,6 +756,7 @@
 
 
 (define (vi-summary result)
+  (doc 'export #t)
   (let* ([vfamily (vi-result-vfamily result)]
          [history (vi-result-elbo-history result)]
          [final-elbo (if (null? history) #f (cdar (last-pair history)))]
@@ -735,6 +782,7 @@
       (last-pair (cdr lst))))
 
 (define (vi-check-convergence result threshold)
+  (doc 'export #t)
   (let ([history (vi-result-elbo-history result)])
        (if (< (length history) 2)
            #f

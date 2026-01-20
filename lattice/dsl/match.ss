@@ -120,6 +120,7 @@
 
 ;;; make-clause : Pattern × (Option Expr) × Expr → MatchClause
 (define (make-clause pattern guard body)
+  (doc 'export #t)
   (list 'clause pattern guard body))
 
 ;;; clause? : α → Boolean
@@ -138,6 +139,7 @@
 ;;; parse-pattern-extended : SExpr → Pattern
 ;;; Parse pattern with extended forms.
 (define (parse-pattern-extended sexpr)
+  (doc 'export #t)
   (cond
    ;; As-pattern: (as name pattern)
    [(and (pair? sexpr)
@@ -268,6 +270,7 @@
 ;;; compile-match : Expr × (List MatchClause) → DecisionTree
 ;;; Compile match expression to decision tree.
 (define (compile-match scrutinee clauses)
+  (doc 'export #t)
   (if (null? clauses)
       (make-fail)
       (compile-clauses (list scrutinee)
@@ -538,6 +541,7 @@
 ;;; compile-match-expr : SExpr → Expr
 ;;; Compile a match expression from S-expression syntax.
 (define (compile-match-expr sexpr)
+  (doc 'export #t)
   (if (and (pair? sexpr) (eq? (car sexpr) 'match))
       (let* ([scrutinee (cadr sexpr)]
              [clause-sexprs (cddr sexpr)]
@@ -554,6 +558,7 @@
 
 ;;; make-first-class-pattern : Symbol × Pattern → FirstClassPattern
 (define (make-first-class-pattern name pattern)
+  (doc 'export #t)
   (list 'fcp name pattern))
 
 ;;; fcp? : α → Boolean
@@ -571,6 +576,7 @@
 
 ;;; register-pattern! : Symbol × SExpr → Void
 (define (register-pattern! name pattern-sexpr)
+  (doc 'export #t)
   (let ([pattern (parse-pattern-extended pattern-sexpr)])
        (set! *pattern-registry*
              (cons (cons name (make-first-class-pattern name pattern))
@@ -578,6 +584,7 @@
 
 ;;; lookup-pattern : Symbol → (Option FirstClassPattern)
 (define (lookup-pattern name)
+  (doc 'export #t)
   (let ([entry (assq name *pattern-registry*)])
        (if entry (just (cdr entry)) nothing)))
 
@@ -588,17 +595,20 @@
 ;;; pat-and : Pattern × Pattern → Pattern
 ;;; Match if both patterns match.
 (define (pat-and p1 p2)
+  (doc 'export #t)
   (make-guard-pattern p1 `(matches? scrutinee ,p2)))
 
 ;;; pat-not : Pattern → Pattern
 ;;; Match if pattern does not match.
 (define (pat-not p)
+  (doc 'export #t)
   (make-guard-pattern (make-wildcard-pattern)
                       `(not (matches? scrutinee ,p))))
 
 ;;; pat-repeat : Pattern × Nat × Nat → Pattern
 ;;; Match pattern n to m times (for lists).
 (define (pat-repeat p min-count max-count)
+  (doc 'export #t)
   (make-active-pattern 'repeat (list p min-count max-count)))
 
 ;;; ====
@@ -616,6 +626,7 @@
 
 ;;; register-active-pattern! : Symbol × Procedure → Void
 (define (register-active-pattern! name matcher)
+  (doc 'export #t)
   (set! *active-patterns*
         (cons (cons name (make-active-pattern-def name matcher))
               *active-patterns*)))

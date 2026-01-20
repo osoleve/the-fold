@@ -8,6 +8,7 @@
 (doc 'section 'binary-symmetric-channel)
 
 (define (bsc-capacity p)
+  (doc 'export #t)
   (doc 'type '(-> Real Real))
   (doc 'description "Channel capacity of BSC with crossover probability p")
   (cond
@@ -17,12 +18,14 @@
    [else (- 1 (binary-entropy p))]))
 
 (define (bsc-transition-matrix p)
+  (doc 'export #t)
   (doc 'type '(-> Real (List (List Real))))
   (doc 'description "Transition probability matrix P(Y|X) for BSC")
   (list (list (- 1 p) p)
         (list p (- 1 p))))
 
 (define (bsc-mutual-information p-crossover p-x)
+  (doc 'export #t)
   (doc 'type '(-> Real Real Real))
   (doc 'description "Mutual information I(X;Y) for BSC with input probability p-x")
   (let* ([p-y0 (+ (* (- 1 p-x) (- 1 p-crossover))
@@ -35,6 +38,7 @@
 (doc 'section 'binary-erasure-channel)
 
 (define (bec-capacity epsilon)
+  (doc 'export #t)
   (doc 'type '(-> Real Real))
   (doc 'description "Channel capacity of BEC with erasure probability epsilon")
   (cond
@@ -45,6 +49,7 @@
 (doc 'section 'z-channel)
 
 (define (z-channel-capacity p)
+  (doc 'export #t)
   (doc 'type '(-> Real Real))
   (doc 'description "Channel capacity of Z-channel with crossover probability p")
   (cond
@@ -56,6 +61,7 @@
           (log2 (+ 1 (* (- 1 p) term))))]))
 
 (define (z-channel-transition-matrix p)
+  (doc 'export #t)
   (doc 'type '(-> Real (List (List Real))))
   (doc 'description "Transition probability matrix P(Y|X) for Z-channel")
   (list (list 1 0)
@@ -64,6 +70,7 @@
 (doc 'section 'awgn-channel)
 
 (define (awgn-capacity snr)
+  (doc 'export #t)
   (doc 'type '(-> Real Real))
   (doc 'description "AWGN channel capacity with signal-to-noise ratio (linear)")
   (cond
@@ -71,11 +78,13 @@
    [else (* 0.5 (log2 (+ 1 snr)))]))
 
 (define (awgn-capacity-db snr-db)
+  (doc 'export #t)
   (doc 'type '(-> Real Real))
   (doc 'description "AWGN channel capacity with SNR in decibels")
   (awgn-capacity (db-to-linear snr-db)))
 
 (define (awgn-capacity-bandwidth bandwidth signal-power noise-density)
+  (doc 'export #t)
   (doc 'type '(-> Real Real Real Real))
   (doc 'description "Shannon-Hartley theorem for bandwidth-limited channels")
   (let ([noise-power (* noise-density bandwidth)])
@@ -84,6 +93,7 @@
            (* bandwidth (log2 (+ 1 (/ signal-power noise-power)))))))
 
 (define (snr-for-capacity target-capacity)
+  (doc 'export #t)
   (doc 'type '(-> Real Real))
   (doc 'description "Required SNR to achieve target capacity")
   (- (expt 2 (* 2 target-capacity)) 1))
@@ -91,6 +101,7 @@
 (doc 'section 'discrete-memoryless-channel)
 
 (define (dmc-mutual-information transition input-dist)
+  (doc 'export #t)
   (doc 'type '(-> (List (List Real)) (List Real) Real))
   (doc 'description "Compute I(X;Y) for DMC with transition matrix and input distribution")
   (let* ([output-dist (dmc-output-distribution transition input-dist)]
@@ -98,6 +109,7 @@
         (mutual-information-from-joint joint)))
 
 (define (dmc-output-distribution transition input-dist)
+  (doc 'export #t)
   (doc 'type '(-> (List (List Real)) (List Real) (List Real)))
   (doc 'description "Compute P(Y) = sum_x P(Y|X=x) * P(X=x)")
   (let* ([n-outputs (if (null? transition) 0 (length (car transition)))]
@@ -111,6 +123,7 @@
              (iota n-outputs))))
 
 (define (dmc-joint-distribution transition input-dist)
+  (doc 'export #t)
   (doc 'type '(-> (List (List Real)) (List Real) (List (List Real))))
   (doc 'description "Compute joint distribution P(X,Y) = P(Y|X) * P(X)")
   (map (lambda (i)
@@ -120,6 +133,7 @@
        (iota (length transition))))
 
 (define (dmc-capacity-symmetric transition)
+  (doc 'export #t)
   (doc 'type '(-> (List (List Real)) Real))
   (doc 'description "Capacity of symmetric DMC (uniform input is optimal)")
   (let* ([n-inputs (length transition)]
@@ -127,6 +141,7 @@
         (dmc-mutual-information transition uniform)))
 
 (define (make-uniform-dist n)
+  (doc 'export #t)
   (doc 'type '(-> Nat (List Real)))
   (doc 'description "Create uniform distribution over n outcomes")
   (if (<= n 0)
@@ -137,6 +152,7 @@
 (doc 'section 'blahut-arimoto-algorithm)
 
 (define (blahut-arimoto transition max-iter tolerance)
+  (doc 'export #t)
   (doc 'type '(-> (List (List Real)) Nat Real (Pair (List Real) Real)))
   (doc 'description "Compute channel capacity using Blahut-Arimoto algorithm")
   (let* ([n-inputs (length transition)]
@@ -146,6 +162,7 @@
 ;;; ba-iterate : (List (List Real)) × (List Real) × Nat × Real × Nat × Real → (List Real) × Real
 ;;; Internal iteration for Blahut-Arimoto.
 (define (ba-iterate transition dist max-iter tolerance iter prev-capacity)
+  (doc 'export #t)
   (let* ([output-dist (dmc-output-distribution transition dist)]
          [phi (ba-compute-phi transition dist output-dist)]
          [new-dist (ba-update-dist phi)]
@@ -159,6 +176,7 @@
 ;;; ba-compute-phi : (List (List Real)) × (List Real) × (List Real) → (List Real)
 ;;; Compute phi_i = exp(sum_j p(y_j|x_i) * log(p(y_j|x_i)/p(y_j)))
 (define (ba-compute-phi transition input-dist output-dist)
+  (doc 'export #t)
   (map (lambda (row)
                (let ([terms (map (lambda (p-y-given-x p-y)
                                          (if (or (<= p-y-given-x 0) (<= p-y 0))
@@ -171,6 +189,7 @@
 ;;; ba-update-dist : (List Real) → (List Real)
 ;;; Update input distribution: p'(x) proportional to p(x) * phi(x)
 (define (ba-update-dist phi)
+  (doc 'export #t)
   (let ([total (fold-left + 0 phi)])
        (if (<= total 0)
            phi  ; Avoid division by zero
@@ -183,6 +202,7 @@
 ;;; dmc-capacity-upper-bound : (List (List Real)) → Real
 ;;; Upper bound on capacity: log2(number of outputs)
 (define (dmc-capacity-upper-bound transition)
+  (doc 'export #t)
   (if (null? transition)
       0
       (log2 (length (car transition)))))
@@ -190,6 +210,7 @@
 ;;; dmc-capacity-lower-bound : (List (List Real)) → Real
 ;;; Lower bound: capacity with uniform input.
 (define (dmc-capacity-lower-bound transition)
+  (doc 'export #t)
   (dmc-capacity-symmetric transition))
 
 ;;; ====
@@ -200,6 +221,7 @@
 ;;; Capacity of q-ary symmetric channel.
 ;;; Each symbol is replaced by a uniformly random different symbol with prob p.
 (define (qary-symmetric-capacity q p)
+  (doc 'export #t)
   (cond
    [(<= q 1) 0]
    [(<= p 0) (log2 q)]  ; Perfect channel
@@ -213,12 +235,14 @@
 ;;; Capacity of parallel channels with individual capacities.
 ;;; Total capacity is sum of individual capacities.
 (define (parallel-channel-capacity capacities)
+  (doc 'export #t)
   (fold-left + 0 capacities))
 
 ;;; cascaded-channel-capacity-bound : Real × Real → Real
 ;;; Upper bound on capacity of cascaded (serial) channels.
 ;;; C_total <= min(C1, C2) by data processing inequality.
 (define (cascaded-channel-capacity-bound c1 c2)
+  (doc 'export #t)
   (min c1 c2))
 
 ;;; ====
@@ -229,16 +253,19 @@
 ;;; Check if rate R is achievable for channel with capacity C.
 ;;; By Shannon's theorem: R <= C is achievable with vanishing error.
 (define (achievable-rate? rate capacity)
+  (doc 'export #t)
   (<= rate capacity))
 
 ;;; max-reliable-rate : Real → Real
 ;;; Maximum rate for reliable communication = capacity.
 (define (max-reliable-rate capacity)
+  (doc 'export #t)
   capacity)
 
 ;;; spectral-efficiency : Real × Real → Real
 ;;; Spectral efficiency = Rate / Bandwidth (bits/s/Hz)
 (define (spectral-efficiency rate bandwidth)
+  (doc 'export #t)
   (if (<= bandwidth 0)
       +inf.0
       (/ rate bandwidth)))
@@ -254,6 +281,7 @@
 ;;; Random coding exponent for BSC at rate R.
 ;;; E_r(R) = max_p [I(X;Y) - R] for uniform distribution.
 (define (bsc-random-coding-exponent p-crossover rate)
+  (doc 'export #t)
   (let ([capacity (bsc-capacity p-crossover)])
        (if (>= rate capacity)
            0.0  ; No positive exponent above capacity
@@ -263,6 +291,7 @@
 ;;; Sphere-packing (upper) bound exponent for AWGN.
 ;;; E_sp(R) for rates below capacity.
 (define (awgn-sphere-packing-exponent snr rate)
+  (doc 'export #t)
   (let ([capacity (awgn-capacity snr)])
        (if (>= rate capacity)
            0.0
@@ -276,11 +305,13 @@
 ;;; db-to-linear : Real → Real
 ;;; Convert decibels to linear scale: 10^(dB/10)
 (define (db-to-linear db)
+  (doc 'export #t)
   (expt 10 (/ db 10)))
 
 ;;; linear-to-db : Real → Real
 ;;; Convert linear to decibels: 10 * log10(x)
 (define (linear-to-db x)
+  (doc 'export #t)
   (if (<= x 0)
       -inf.0
       (* 10 (log10 x))))
@@ -297,6 +328,7 @@
 ;;; channel-summary : Symbol × Real → String
 ;;; Generate human-readable capacity summary for common channels.
 (define (channel-summary channel-type param)
+  (doc 'export #t)
   (case channel-type
         [(bsc)
          (format "BSC (p=~a): C = ~a bits/use" param (bsc-capacity param))]

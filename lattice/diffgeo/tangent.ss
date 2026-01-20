@@ -21,6 +21,7 @@
 
 (doc tangent-vector? 'type '(-> Any Boolean))
 (define (tangent-vector? x)
+  (doc 'export #t)
   (and (pair? x)
        (eq? (car x) 'tangent-vector)
        (= (length x) 4)
@@ -29,18 +30,22 @@
 
 ;;; tangent-vector-point : TangentVector → Point
 (define (tangent-vector-point tv)
+  (doc 'export #t)
   (list-ref tv 1))
 
 ;;; tangent-vector-chart : TangentVector → Chart
 (define (tangent-vector-chart tv)
+  (doc 'export #t)
   (list-ref tv 2))
 
 ;;; tangent-vector-components : TangentVector → Vec
 (define (tangent-vector-components tv)
+  (doc 'export #t)
   (list-ref tv 3))
 
 ;;; tangent-vector-dim : TangentVector → Nat
 (define (tangent-vector-dim tv)
+  (doc 'export #t)
   (vector-length (tangent-vector-components tv)))
 
 ;;; ============================================================================
@@ -50,6 +55,7 @@
 ;;; make-tangent-vector : Point × Chart × Vec → TangentVector | Error
 ;;; Create a tangent vector at a point, expressed in chart coordinates.
 (define (make-tangent-vector point chart components)
+  (doc 'export #t)
   (cond
    [(not (chart-contains? chart point))
     `(error point-not-in-chart ,(chart-name chart))]
@@ -61,11 +67,13 @@
 ;;; tangent-zero : Point × Chart → TangentVector
 ;;; The zero tangent vector at a point.
 (define (tangent-zero point chart)
+  (doc 'export #t)
   (make-tangent-vector point chart (vec-zeros (chart-dim chart))))
 
 ;;; tangent-basis-vector : Point × Chart × Nat → TangentVector
 ;;; The i-th basis vector ∂/∂xⁱ at a point.
 (define (tangent-basis-vector point chart i)
+  (doc 'export #t)
   (make-tangent-vector point chart (vec-unit (chart-dim chart) i)))
 
 ;;; ============================================================================
@@ -75,6 +83,7 @@
 ;;; tangent-add : TangentVector × TangentVector → TangentVector | Error
 ;;; Add two tangent vectors (must be at the same point, same chart).
 (define (tangent-add tv1 tv2)
+  (doc 'export #t)
   (let ([p1 (tangent-vector-point tv1)]
         [p2 (tangent-vector-point tv2)]
         [c1 (tangent-vector-chart tv1)]
@@ -93,6 +102,7 @@
 ;;; tangent-sub : TangentVector × TangentVector → TangentVector | Error
 ;;; Subtract tangent vectors.
 (define (tangent-sub tv1 tv2)
+  (doc 'export #t)
   (let ([p1 (tangent-vector-point tv1)]
         [p2 (tangent-vector-point tv2)]
         [c1 (tangent-vector-chart tv1)]
@@ -111,6 +121,7 @@
 ;;; tangent-scale : Num × TangentVector → TangentVector
 ;;; Scalar multiplication of a tangent vector.
 (define (tangent-scale k tv)
+  (doc 'export #t)
   (make-tangent-vector
    (tangent-vector-point tv)
    (tangent-vector-chart tv)
@@ -118,6 +129,7 @@
 
 ;;; tangent-negate : TangentVector → TangentVector
 (define (tangent-negate tv)
+  (doc 'export #t)
   (tangent-scale -1 tv))
 
 ;;; ============================================================================
@@ -131,6 +143,7 @@
 ;;; tangent-change-chart : TangentVector × Chart → TangentVector | Error
 ;;; Express a tangent vector in a different chart.
 (define (tangent-change-chart tv new-chart)
+  (doc 'export #t)
   (let* ([point (tangent-vector-point tv)]
          [old-chart (tangent-vector-chart tv)]
          [old-components (tangent-vector-components tv)])
@@ -160,6 +173,7 @@
 
 ;;; cotangent-vector? : Any → Boolean
 (define (cotangent-vector? x)
+  (doc 'export #t)
   (and (pair? x)
        (eq? (car x) 'cotangent-vector)
        (= (length x) 4)
@@ -168,18 +182,22 @@
 
 ;;; cotangent-vector-point : CotangentVector → Point
 (define (cotangent-vector-point cv)
+  (doc 'export #t)
   (list-ref cv 1))
 
 ;;; cotangent-vector-chart : CotangentVector → Chart
 (define (cotangent-vector-chart cv)
+  (doc 'export #t)
   (list-ref cv 2))
 
 ;;; cotangent-vector-components : CotangentVector → Vec
 (define (cotangent-vector-components cv)
+  (doc 'export #t)
   (list-ref cv 3))
 
 ;;; cotangent-vector-dim : CotangentVector → Nat
 (define (cotangent-vector-dim cv)
+  (doc 'export #t)
   (vector-length (cotangent-vector-components cv)))
 
 ;;; ============================================================================
@@ -189,6 +207,7 @@
 ;;; make-cotangent-vector : Point × Chart × Vec → CotangentVector | Error
 ;;; Create a cotangent vector (1-form) at a point.
 (define (make-cotangent-vector point chart components)
+  (doc 'export #t)
   (cond
    [(not (chart-contains? chart point))
     `(error point-not-in-chart ,(chart-name chart))]
@@ -200,11 +219,13 @@
 ;;; cotangent-zero : Point × Chart → CotangentVector
 ;;; The zero cotangent vector at a point.
 (define (cotangent-zero point chart)
+  (doc 'export #t)
   (make-cotangent-vector point chart (vec-zeros (chart-dim chart))))
 
 ;;; cotangent-basis-form : Point × Chart × Nat → CotangentVector
 ;;; The i-th basis 1-form dxⁱ at a point.
 (define (cotangent-basis-form point chart i)
+  (doc 'export #t)
   (make-cotangent-vector point chart (vec-unit (chart-dim chart) i)))
 
 ;;; ============================================================================
@@ -213,6 +234,7 @@
 
 ;;; cotangent-add : CotangentVector × CotangentVector → CotangentVector | Error
 (define (cotangent-add cv1 cv2)
+  (doc 'export #t)
   (let ([p1 (cotangent-vector-point cv1)]
         [p2 (cotangent-vector-point cv2)]
         [c1 (cotangent-vector-chart cv1)]
@@ -230,6 +252,7 @@
 
 ;;; cotangent-sub : CotangentVector × CotangentVector → CotangentVector | Error
 (define (cotangent-sub cv1 cv2)
+  (doc 'export #t)
   (let ([p1 (cotangent-vector-point cv1)]
         [p2 (cotangent-vector-point cv2)]
         [c1 (cotangent-vector-chart cv1)]
@@ -247,6 +270,7 @@
 
 ;;; cotangent-scale : Num × CotangentVector → CotangentVector
 (define (cotangent-scale k cv)
+  (doc 'export #t)
   (make-cotangent-vector
    (cotangent-vector-point cv)
    (cotangent-vector-chart cv)
@@ -254,6 +278,7 @@
 
 ;;; cotangent-negate : CotangentVector → CotangentVector
 (define (cotangent-negate cv)
+  (doc 'export #t)
   (cotangent-scale -1 cv))
 
 ;;; ============================================================================
@@ -265,6 +290,7 @@
 ;;; covector-apply : CotangentVector × TangentVector → Num | Error
 ;;; Apply a cotangent vector to a tangent vector: ⟨ω, v⟩.
 (define (covector-apply cv tv)
+  (doc 'export #t)
   (let ([p1 (cotangent-vector-point cv)]
         [p2 (tangent-vector-point tv)]
         [c1 (cotangent-vector-chart cv)]
@@ -294,6 +320,7 @@
 ;;; cotangent-change-chart : CotangentVector × Chart → CotangentVector | Error
 ;;; Express a cotangent vector in a different chart.
 (define (cotangent-change-chart cv new-chart)
+  (doc 'export #t)
   (let* ([point (cotangent-vector-point cv)]
          [old-chart (cotangent-vector-chart cv)]
          [old-components (cotangent-vector-components cv)])
@@ -328,6 +355,7 @@
 ;;; Push a tangent vector forward through a map.
 ;;; f is the map in coordinate form, from source-chart to target-chart.
 (define (pushforward f tv source-chart target-chart)
+  (doc 'export #t)
   (let* ([point (tangent-vector-point tv)]
          [tv-in-source (tangent-change-chart tv source-chart)])
     (if (and (pair? tv-in-source) (eq? (car tv-in-source) 'error))
@@ -354,6 +382,7 @@
 ;;; pullback-at : (Vec → Vec) × CotangentVector × Point × Chart × Chart → CotangentVector | Error
 ;;; Pull back a cotangent vector to a specific source point.
 (define (pullback-at f cv source-point source-chart target-chart)
+  (doc 'export #t)
   (let ([cv-in-target (cotangent-change-chart cv target-chart)])
     (if (and (pair? cv-in-target) (eq? (car cv-in-target) 'error))
         cv-in-target
@@ -373,25 +402,30 @@
 
 ;;; A tangent space is: (tangent-space point chart dim)
 (define (tangent-space? x)
+  (doc 'export #t)
   (and (pair? x)
        (eq? (car x) 'tangent-space)
        (= (length x) 4)))
 
 ;;; tangent-space-point : TangentSpace → Point
 (define (tangent-space-point ts)
+  (doc 'export #t)
   (list-ref ts 1))
 
 ;;; tangent-space-chart : TangentSpace → Chart
 (define (tangent-space-chart ts)
+  (doc 'export #t)
   (list-ref ts 2))
 
 ;;; tangent-space-dim : TangentSpace → Nat
 (define (tangent-space-dim ts)
+  (doc 'export #t)
   (list-ref ts 3))
 
 ;;; make-tangent-space : Point × Chart → TangentSpace | Error
 ;;; Create the tangent space at a point.
 (define (make-tangent-space point chart)
+  (doc 'export #t)
   (if (chart-contains? chart point)
       (list 'tangent-space point chart (chart-dim chart))
       `(error point-not-in-chart ,(chart-name chart))))
@@ -399,6 +433,7 @@
 ;;; tangent-space-basis : TangentSpace → (List TangentVector)
 ;;; Get the coordinate basis vectors {∂/∂x¹, ..., ∂/∂xⁿ}.
 (define (tangent-space-basis ts)
+  (doc 'export #t)
   (let ([point (tangent-space-point ts)]
         [chart (tangent-space-chart ts)]
         [n (tangent-space-dim ts)])
@@ -411,6 +446,7 @@
 ;;; tangent-space-vector : TangentSpace × Vec → TangentVector
 ;;; Create a tangent vector in this tangent space from components.
 (define (tangent-space-vector ts components)
+  (doc 'export #t)
   (make-tangent-vector
    (tangent-space-point ts)
    (tangent-space-chart ts)
@@ -424,25 +460,30 @@
 
 ;;; A cotangent space is: (cotangent-space point chart dim)
 (define (cotangent-space? x)
+  (doc 'export #t)
   (and (pair? x)
        (eq? (car x) 'cotangent-space)
        (= (length x) 4)))
 
 ;;; cotangent-space-point : CotangentSpace → Point
 (define (cotangent-space-point cs)
+  (doc 'export #t)
   (list-ref cs 1))
 
 ;;; cotangent-space-chart : CotangentSpace → Chart
 (define (cotangent-space-chart cs)
+  (doc 'export #t)
   (list-ref cs 2))
 
 ;;; cotangent-space-dim : CotangentSpace → Nat
 (define (cotangent-space-dim cs)
+  (doc 'export #t)
   (list-ref cs 3))
 
 ;;; make-cotangent-space : Point × Chart → CotangentSpace | Error
 ;;; Create the cotangent space at a point.
 (define (make-cotangent-space point chart)
+  (doc 'export #t)
   (if (chart-contains? chart point)
       (list 'cotangent-space point chart (chart-dim chart))
       `(error point-not-in-chart ,(chart-name chart))))
@@ -450,6 +491,7 @@
 ;;; cotangent-space-basis : CotangentSpace → (List CotangentVector)
 ;;; Get the coordinate basis forms {dx¹, ..., dxⁿ}.
 (define (cotangent-space-basis cs)
+  (doc 'export #t)
   (let ([point (cotangent-space-point cs)]
         [chart (cotangent-space-chart cs)]
         [n (cotangent-space-dim cs)])
@@ -462,6 +504,7 @@
 ;;; cotangent-space-form : CotangentSpace × Vec → CotangentVector
 ;;; Create a cotangent vector in this space from components.
 (define (cotangent-space-form cs components)
+  (doc 'export #t)
   (make-cotangent-vector
    (cotangent-space-point cs)
    (cotangent-space-chart cs)
@@ -479,6 +522,7 @@
 
 ;;; A tangent bundle is: (tangent-bundle atlas)
 (define (tangent-bundle? x)
+  (doc 'export #t)
   (and (pair? x)
        (eq? (car x) 'tangent-bundle)
        (= (length x) 2)
@@ -486,22 +530,26 @@
 
 ;;; tangent-bundle-atlas : TangentBundle → Atlas
 (define (tangent-bundle-atlas tb)
+  (doc 'export #t)
   (list-ref tb 1))
 
 ;;; make-tangent-bundle : Atlas → TangentBundle
 ;;; Create the tangent bundle over a manifold given by an atlas.
 (define (make-tangent-bundle atlas)
+  (doc 'export #t)
   (list 'tangent-bundle atlas))
 
 ;;; tangent-bundle-dim : TangentBundle → Nat | #f
 ;;; The dimension of the tangent bundle is 2n where n is the base dimension.
 (define (tangent-bundle-dim tb)
+  (doc 'export #t)
   (let ([base-dim (atlas-dim (tangent-bundle-atlas tb))])
     (if base-dim (* 2 base-dim) #f)))
 
 ;;; tangent-bundle-fiber : TangentBundle × Point → TangentSpace | Error
 ;;; Get the fiber (tangent space) at a point.
 (define (tangent-bundle-fiber tb point)
+  (doc 'export #t)
   (let* ([atlas (tangent-bundle-atlas tb)]
          [chart (atlas-find-chart atlas point)])
     (if chart
@@ -512,6 +560,7 @@
 ;;; Create a section (vector field) of the tangent bundle.
 ;;; component-fn takes (point, chart) and returns component vector.
 (define (tangent-bundle-section tb component-fn)
+  (doc 'export #t)
   (lambda (point)
     (let* ([atlas (tangent-bundle-atlas tb)]
            [chart (atlas-find-chart atlas point)])
@@ -527,6 +576,7 @@
 
 ;;; A cotangent bundle is: (cotangent-bundle atlas)
 (define (cotangent-bundle? x)
+  (doc 'export #t)
   (and (pair? x)
        (eq? (car x) 'cotangent-bundle)
        (= (length x) 2)
@@ -534,19 +584,23 @@
 
 ;;; cotangent-bundle-atlas : CotangentBundle → Atlas
 (define (cotangent-bundle-atlas ctb)
+  (doc 'export #t)
   (list-ref ctb 1))
 
 ;;; make-cotangent-bundle : Atlas → CotangentBundle
 (define (make-cotangent-bundle atlas)
+  (doc 'export #t)
   (list 'cotangent-bundle atlas))
 
 ;;; cotangent-bundle-dim : CotangentBundle → Nat | #f
 (define (cotangent-bundle-dim ctb)
+  (doc 'export #t)
   (let ([base-dim (atlas-dim (cotangent-bundle-atlas ctb))])
     (if base-dim (* 2 base-dim) #f)))
 
 ;;; cotangent-bundle-fiber : CotangentBundle × Point → CotangentSpace | Error
 (define (cotangent-bundle-fiber ctb point)
+  (doc 'export #t)
   (let* ([atlas (cotangent-bundle-atlas ctb)]
          [chart (atlas-find-chart atlas point)])
     (if chart
@@ -556,6 +610,7 @@
 ;;; cotangent-bundle-section : CotangentBundle × (Point × Chart → Vec) → (Point → CotangentVector)
 ;;; Create a section (1-form field) of the cotangent bundle.
 (define (cotangent-bundle-section ctb component-fn)
+  (doc 'export #t)
   (lambda (point)
     (let* ([atlas (cotangent-bundle-atlas ctb)]
            [chart (atlas-find-chart atlas point)])
@@ -574,6 +629,7 @@
 ;;; Compute the differential of a scalar function at a point.
 ;;; f is the function in coordinate form.
 (define (differential f point chart . epsilon-arg)
+  (doc 'export #t)
   (let* ([eps (if (null? epsilon-arg) *jacobian-epsilon* (car epsilon-arg))]
          [coords (chart-apply chart point)]
          [n (chart-dim chart)]
@@ -607,6 +663,7 @@
 ;;; Performance: O(N) field evaluations where N is the manifold dimension.
 ;;; We compute all partial derivatives first, then assemble the bracket algebraically.
 (define (lie-bracket X Y point chart . epsilon-arg)
+  (doc 'export #t)
   (let* ([eps (if (null? epsilon-arg) *jacobian-epsilon* (car epsilon-arg))]
          [coords (chart-apply chart point)]
          [n (chart-dim chart)]
@@ -684,6 +741,7 @@
 ;;;                     → (Point → TangentVector)
 ;;; Create a new vector field that is the Lie bracket of X and Y.
 (define (lie-bracket-field X Y chart . epsilon-arg)
+  (doc 'export #t)
   (let ([eps (if (null? epsilon-arg) *jacobian-epsilon* (car epsilon-arg))])
     (lambda (point)
       (lie-bracket X Y point chart eps))))

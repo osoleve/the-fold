@@ -57,6 +57,7 @@
 ;;;   (extract-tags "Hello @status:complete @todo")
 ;;;   => ((status . "complete") (todo . #t))
 (define (extract-tags text)
+  (doc 'export #t)
   (let ([positions (extract-tag-positions text)])
        (map (lambda (pos)
                     (let ([key (car pos)]
@@ -72,6 +73,7 @@
 ;;;   (extract-tag-positions "Hi @todo:fix this")
 ;;;   => ((todo "fix" 3 12))
 (define (extract-tag-positions text)
+  (doc 'export #t)
   (let ([len (string-length text)])
        (let loop ([i 0] [results '()])
             (if (>= i len)
@@ -97,6 +99,7 @@
 ;;; Parse a tag starting at position i (the @).
 ;;; Returns (key value start end) or #f if not a valid tag.
 (define (parse-tag-at text i)
+  (doc 'export #t)
   (let ([len (string-length text)]
         [start i])
        ;; Skip the @
@@ -178,6 +181,7 @@
 ;;; format-tag : Symbol x (U String #t) -> String
 ;;; Format a tag as @key or @key:value.
 (define (format-tag key value)
+  (doc 'export #t)
   (if (eq? value #t)
       (string-append "@" (symbol->string key))
       (string-append "@" (symbol->string key) ":" value)))
@@ -185,6 +189,7 @@
 ;;; tags->string : (Listof (Pair Symbol (U String #t))) -> String
 ;;; Format multiple tags as space-separated string.
 (define (tags->string tags)
+  (doc 'export #t)
   (if (null? tags)
       ""
       (let loop ([ts tags] [acc ""])
@@ -202,17 +207,20 @@
 ;;; has-tag? : (Listof (Pair Symbol Any)) x Symbol -> Boolean
 ;;; True if tags contain the given key.
 (define (has-tag? tags key)
+  (doc 'export #t)
   (and (assq key tags) #t))
 
 ;;; get-tag : (Listof (Pair Symbol Any)) x Symbol -> (U String #t #f)
 ;;; Get value for a tag key, or #f if not present.
 (define (get-tag tags key)
+  (doc 'export #t)
   (let ([pair (assq key tags)])
        (if pair (cdr pair) #f)))
 
 ;;; filter-tags-by-key : (Listof (Pair Symbol Any)) x (Symbol -> Boolean) -> List
 ;;; Filter tags by a predicate on keys.
 (define (filter-tags-by-key tags pred)
+  (doc 'export #t)
   (filter (lambda (pair) (pred (car pair))) tags))
 
 ;;; filter : (α → Boolean) × (List α) → (List α)
@@ -279,6 +287,7 @@
 ;;; safe-extract-tags : String -> (Listof (Pair Symbol (U String #t)))
 ;;; Extract tags with sanitized values.
 (define (safe-extract-tags text)
+  (doc 'export #t)
   (map (lambda (pair)
                (let ([key (car pair)]
                      [val (cdr pair)])

@@ -10,6 +10,7 @@
 
 (doc 'note "Square tiles use simple Cartesian coordinates (x, y). Origin is typically at (0, 0) with x increasing right, y increasing down. This matches array indexing: board[y][x]")
 
+(doc square-coord 'export #t)
 (define square-coord coord)
 (doc square-coord 'type '(-> Integer Integer Coord))
 
@@ -63,6 +64,7 @@
        square-offset-8))
 
 (define (square-neighbors coord mode)
+  (doc 'export #t)
   (doc 'type '(-> Coord Symbol (List Coord)))
   (doc 'description "Generic neighbor function with movement type: 'ortho (4 orthogonal), 'diag (4 diagonal), 'all (all 8)")
   (case mode
@@ -103,6 +105,7 @@
 (doc 'section 'range-and-area)
 
 (define (square-line c1 c2)
+  (doc 'export #t)
   (doc 'type '(-> Coord Coord (List Coord)))
   (doc 'description "Get all coordinates on a straight line from c1 to c2. Uses Bresenham's line algorithm")
   (let* ([x1 (coord-x c1)]
@@ -126,6 +129,7 @@
                             (loop new-x new-y new-err new-coords)))))))
 
 (define (square-range center radius metric)
+  (doc 'export #t)
   (doc 'type '(-> Coord Integer Symbol (List Coord)))
   (doc 'description "Get all coordinates within range of center using specified metric: 'manhattan, 'chebyshev, or 'euclidean")
   (let ([cx (coord-x center)]
@@ -169,6 +173,7 @@
 
 (doc make-square-board 'type '(-> Integer Integer (Maybe Tile) Board))
 (doc make-square-board 'description "Create a rectangular square board with optional default tile")
+(doc make-square-board 'export #t)
 (define make-square-board
   (case-lambda
    [(width height)
@@ -191,6 +196,7 @@
   (alist-ref (board-meta board) 'height))
 
 (define (square-in-bounds? board coord)
+  (doc 'export #t)
   (doc 'type '(-> Board Coord Boolean))
   (doc 'description "Check if coordinate is within board bounds")
   (let ([x (coord-x coord)]

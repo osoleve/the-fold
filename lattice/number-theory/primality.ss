@@ -9,6 +9,7 @@
 (doc 'section 'trial-division)
 
 (define (prime? n)
+  (doc 'export #t)
   (doc 'type '(-> Int Boolean))
   (doc 'description "Deterministic primality test using trial division. For large numbers, prefer miller-rabin? for speed")
   (doc 'complexity "O(√n)")
@@ -28,6 +29,7 @@
 ;;; composite? : Int → Boolean
 ;;; Returns #t if n is composite (not prime and > 1).
 (define (composite? n)
+  (doc 'export #t)
   (and (> n 1) (not (prime? n))))
 
 (doc 'section 'miller-rabin)
@@ -71,6 +73,7 @@
 (doc miller-rabin? 'description "Probabilistic primality test using Miller-Rabin algorithm. Optional second argument specifies number of rounds (default 20). Error probability: at most 4^(-k) for k rounds")
 (doc miller-rabin? 'complexity "O(k log³n)")
 (define (miller-rabin? n . args)
+  (doc 'export #t)
   (let ([rounds (if (null? args) 20 (car args))])
     (cond
      [(< n 2) #f]
@@ -126,6 +129,7 @@
 (doc 'section 'integer-factorization)
 
 (define (trial-division n)
+  (doc 'export #t)
   (doc 'type '(-> Int (List Int)))
   (doc 'description "Factor n using trial division. Returns sorted list of prime factors (with repetition)")
   (doc 'complexity "O(√n)")
@@ -142,6 +146,7 @@
         (loop n (if (= d 2) 3 (+ d 2)) factors)]))]))
 
 (define (factorize n)
+  (doc 'export #t)
   (doc 'type '(-> Int (List Int)))
   (doc 'description "Factor n into prime factors. Returns sorted list of prime factors (with repetition). Uses Pollard's rho for large factors, trial division for small")
   (cond
@@ -253,6 +258,7 @@
 (doc 'section 'factor-representation)
 
 (define (prime-factorization n)
+  (doc 'export #t)
   (doc 'type '(-> Int (List (Pair Int Int))))
   (doc 'description "Return prime factorization as list of (prime . exponent) pairs")
   (doc 'example "(prime-factorization 12) → ((2 . 2) (3 . 1))")
@@ -277,6 +283,7 @@
 ;;; divisors : Int → (List Int)
 ;;; Return all positive divisors of n in sorted order.
 (define (divisors n)
+  (doc 'export #t)
   (if (< n 1)
       '()
       (let* ([pf (prime-factorization n)])
@@ -310,6 +317,7 @@
 (doc 'section 'number-theoretic-functions)
 
 (define (lcm a b)
+  (doc 'export #t)
   (doc 'type '(-> Int Int Int))
   (doc 'description "Least common multiple")
   (if (or (= a 0) (= b 0))
@@ -319,14 +327,17 @@
 ;;; lcm* : (List Int) → Int
 ;;; LCM of a list of integers.
 (define (lcm* lst)
+  (doc 'export #t)
   (fold-left lcm 1 lst))
 
 ;;; gcd* : (List Int) → Int
 ;;; GCD of a list of integers.
 (define (gcd* lst)
+  (doc 'export #t)
   (fold-left gcd 0 lst))
 
 (define (euler-totient n)
+  (doc 'export #t)
   (doc 'type '(-> Int Int))
   (doc 'description "Euler's totient function φ(n). Returns count of integers in [1,n] coprime to n")
   (doc 'formula "φ(n) = n × ∏(1 - 1/p) for all prime factors p")
@@ -344,6 +355,7 @@
          pf))))
 
 (define (carmichael-lambda n)
+  (doc 'export #t)
   (doc 'type '(-> Int Int))
   (doc 'description "Carmichael's lambda function λ(n). Smallest m such that a^m ≡ 1 (mod n) for all a coprime to n")
   (if (< n 1)
@@ -368,6 +380,7 @@
 ;;; Returns 0 if n has squared prime factor,
 ;;; (-1)^k if n is product of k distinct primes.
 (define (mobius n)
+  (doc 'export #t)
   (if (< n 1)
       0
       (let ([pf (prime-factorization n)])
@@ -378,6 +391,7 @@
 ;;; radical : Int → Int
 ;;; Radical of n: product of distinct prime factors.
 (define (radical n)
+  (doc 'export #t)
   (if (< n 1)
       1
       (let ([pf (prime-factorization n)])
@@ -386,6 +400,7 @@
 (doc 'section 'primality-utilities)
 
 (define (next-prime n)
+  (doc 'export #t)
   (doc 'type '(-> Int Int))
   (doc 'description "Return smallest prime greater than n")
   (cond
@@ -401,6 +416,7 @@
 ;;; prev-prime : Int → Int | #f
 ;;; Return largest prime less than n, or #f if none exists.
 (define (prev-prime n)
+  (doc 'export #t)
   (cond
    [(<= n 2) #f]
    [(= n 3) 2]
@@ -415,6 +431,7 @@
 ;;; nth-prime : Int → Int
 ;;; Return the nth prime (1-indexed: nth-prime 1 = 2).
 (define (nth-prime n)
+  (doc 'export #t)
   (if (< n 1)
       2
       (let loop ([count 0] [p 2])
@@ -423,6 +440,7 @@
             (loop (+ count 1) (next-prime p))))))
 
 (define (primes-up-to n)
+  (doc 'export #t)
   (doc 'type '(-> Int (List Int)))
   (doc 'description "Return all primes up to and including n using Sieve of Eratosthenes")
   (if (< n 2)
@@ -449,16 +467,19 @@
 ;;; prime-pi : Int → Int
 ;;; Prime counting function π(n): number of primes ≤ n.
 (define (prime-pi n)
+  (doc 'export #t)
   (length (primes-up-to n)))
 
 ;;; coprime? : Int × Int → Boolean
 ;;; Test if a and b are coprime (gcd = 1).
 (define (coprime? a b)
+  (doc 'export #t)
   (= (gcd a b) 1))
 
 (doc 'section 'perfect-powers)
 
 (define (isqrt n)
+  (doc 'export #t)
   (doc 'type '(-> Int Int))
   (doc 'description "Integer square root: largest k such that k² ≤ n")
   (cond
@@ -474,11 +495,13 @@
 
 ;;; is-perfect-square? : Int → Boolean
 (define (is-perfect-square? n)
+  (doc 'export #t)
   (and (>= n 0)
        (let ([r (isqrt n)])
          (= (* r r) n))))
 
 (define (is-perfect-power? n)
+  (doc 'export #t)
   (doc 'type '(-> Int (Union Boolean (Pair Int Int))))
   (doc 'description "Test if n = a^b for some a > 1 and b > 1. Returns (a . b) if found, #f otherwise")
   (if (< n 2)
@@ -496,6 +519,7 @@
 ;;; Compute floor(n^(1/k)) and verify.
 ;;; Returns the root if exact, #f if not exact.
 (define (integer-root n k)
+  (doc 'export #t)
   (if (or (< n 1) (< k 1))
       #f
       (let ([guess (inexact->exact (floor (expt n (/ 1 k))))])
@@ -512,6 +536,7 @@
 (doc 'section 'legendre-jacobi-symbols)
 
 (define (legendre-symbol a p)
+  (doc 'export #t)
   (doc 'type '(-> Int Int Int))
   (doc 'description "Legendre symbol (a/p) for prime p. Returns 1 if a is quadratic residue mod p, -1 if quadratic non-residue, 0 if p divides a")
   (let ([result (mod-expt a (quotient (- p 1) 2) p)])
@@ -522,6 +547,7 @@
      [else result])))  ; Shouldn't happen for prime p
 
 (define (jacobi-symbol a n)
+  (doc 'export #t)
   (doc 'type '(-> Int Int Int))
   (doc 'description "Jacobi symbol (a/n) for odd positive n. Generalization of Legendre symbol")
   (cond

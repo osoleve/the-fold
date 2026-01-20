@@ -29,9 +29,11 @@
   - 'dynamic : Only known at runtime
   - 'bottom  : Unknown (for analysis initialization)")
 
+(doc bt-static 'export #t)
 (define bt-static 'static)
 (doc bt-static 'type 'BindingTime)
 
+(doc bt-dynamic 'export #t)
 (define bt-dynamic 'dynamic)
 (doc bt-dynamic 'type 'BindingTime)
 
@@ -120,6 +122,7 @@
 ;;; bta : Sexp × BTEnv → BindingTime
 ;;; Determine binding time of expression.
 (define (bta expr env)
+  (doc 'export #t)
   (cond
    ;; Literals are static
    [(or (number? expr) (boolean? expr) (string? expr) (null? expr))
@@ -189,6 +192,7 @@
 ;;; bta-annotate : Sexp × BTEnv → AnnotatedSexp
 ;;; Annotate expression with binding times at each node.
 (define (bta-annotate expr env)
+  (doc 'export #t)
   (let ([bt (bta expr env)])
        (cond
         [(or (number? expr) (boolean? expr) (string? expr) (null? expr) (symbol? expr))
@@ -351,6 +355,7 @@
 ;;; pe-online : Sexp × StaticStore × PEState → (Pair Sexp PEState)
 ;;; Partially evaluate expression online.
 (define (pe-online expr store state)
+  (doc 'export #t)
   (cond
    ;; Self-evaluating literals
    [(or (number? expr) (boolean? expr) (string? expr))
@@ -693,6 +698,7 @@
 ;;; pe-offline : Sexp × BTEnv × StaticStore × PEState → (Pair Sexp PEState)
 ;;; Partially evaluate using offline strategy (BTA-guided).
 (define (pe-offline expr bt-env store state)
+  (doc 'export #t)
   (let ([bt (bta expr bt-env)])
        (if (eq? bt bt-static)
            ;; Static expression: evaluate completely
@@ -810,6 +816,7 @@
 ;;; Partially evaluate expression with given static bindings.
 ;;; Uses online strategy by default.
 (define (partial-eval expr static-bindings)
+  (doc 'export #t)
   (let* ([store (fold-left (lambda (s b)
                                    (static-store-extend s (car b) (cdr b)))
                            (make-static-store)
@@ -821,6 +828,7 @@
 ;;; partial-eval-offline : Sexp × (List (Symbol . Value)) → Sexp
 ;;; Partially evaluate using offline (BTA-guided) strategy.
 (define (partial-eval-offline expr static-bindings)
+  (doc 'export #t)
   (let* ([store (fold-left (lambda (s b)
                                    (static-store-extend s (car b) (cdr b)))
                            (make-static-store)
@@ -836,12 +844,14 @@
 ;;; specialize : Sexp × (List Symbol) × (List Value) → Sexp
 ;;; Specialize expression for given parameter values.
 (define (specialize expr params values)
+  (doc 'export #t)
   (partial-eval expr (map cons params values)))
 
 ;;; specialize-function : Sexp × (List (Symbol . Value)) → Sexp
 ;;; Specialize a function definition for given static parameters.
 ;;; Returns a new function with remaining dynamic parameters.
 (define (specialize-function func-def static-bindings)
+  (doc 'export #t)
   (cond
    [(and (pair? func-def) (eq? (car func-def) 'define))
     (let* ([sig (cadr func-def)]
@@ -875,6 +885,7 @@
 ;;; memo-specialize : Sexp × (List (Symbol . Value)) × Nat → Sexp
 ;;; Specialize with memoization of intermediate results.
 (define (memo-specialize expr static-bindings unfold-limit)
+  (doc 'export #t)
   (let* ([store (fold-left (lambda (s b)
                                    (static-store-extend s (car b) (cdr b)))
                            (make-static-store)
@@ -943,6 +954,7 @@
 ;;; futamura-1 : Interpreter × Program → Target
 ;;; First Futamura projection: interpreter + program → compiled program
 (define (futamura-1 interp program)
+  (doc 'export #t)
   (partial-eval `(,interp ',program env) '()))
 
 ;;; ====
@@ -954,6 +966,7 @@
 ;;; simplify : Sexp → Sexp
 ;;; Simplify expression (constant folding, identity elimination).
 (define (simplify expr)
+  (doc 'export #t)
   (cond
    [(not (pair? expr)) expr]
    

@@ -24,10 +24,12 @@
 
 ;;; interval-traced : Interval x Nat x Tape -> IntervalTracedValue
 (define (interval-traced iv id tape)
+  (doc 'export #t)
   (list 'interval-traced iv id tape))
 
 ;;; interval-traced? : Any -> Boolean
 (define (interval-traced? x)
+  (doc 'export #t)
   (and (pair? x)
        (eq? (car x) 'interval-traced)))
 
@@ -100,6 +102,7 @@
 ;;; iv-traced-add : IntervalTracedValue x IntervalTracedValue -> IntervalTracedValue
 ;;; d(a+b)/da = 1, d(a+b)/db = 1 (constant gradients)
 (define (iv-traced-add a b)
+  (doc 'export #t)
   (let* ([av (interval-traced-value a)]
          [bv (interval-traced-value b)]
          [result (interval-add av bv)]
@@ -115,6 +118,7 @@
 ;;; iv-traced-sub : IntervalTracedValue x IntervalTracedValue -> IntervalTracedValue
 ;;; d(a-b)/da = 1, d(a-b)/db = -1
 (define (iv-traced-sub a b)
+  (doc 'export #t)
   (let* ([av (interval-traced-value a)]
          [bv (interval-traced-value b)]
          [result (interval-sub av bv)]
@@ -130,6 +134,7 @@
 ;;; iv-traced-mul : IntervalTracedValue x IntervalTracedValue -> IntervalTracedValue
 ;;; d(a*b)/da = b, d(a*b)/db = a (gradients are the other operand)
 (define (iv-traced-mul a b)
+  (doc 'export #t)
   (let* ([av (interval-traced-value a)]
          [bv (interval-traced-value b)]
          [result (interval-mul av bv)]
@@ -144,6 +149,7 @@
 ;;; iv-traced-div : IntervalTracedValue x IntervalTracedValue -> IntervalTracedValue
 ;;; d(a/b)/da = 1/b, d(a/b)/db = -a/b^2
 (define (iv-traced-div a b)
+  (doc 'export #t)
   (let* ([av (interval-traced-value a)]
          [bv (interval-traced-value b)]
          [result (interval-div av bv)])
@@ -179,6 +185,7 @@
 ;;; iv-traced-sqr : IntervalTracedValue -> IntervalTracedValue
 ;;; d(a^2)/da = 2a
 (define (iv-traced-sqr a)
+  (doc 'export #t)
   (let* ([av (interval-traced-value a)]
          [result (interval-sqr av)]
          [tape (and (interval-traced? a) (interval-traced-tape a))])
@@ -191,6 +198,7 @@
 ;;; iv-traced-sqrt : IntervalTracedValue -> IntervalTracedValue
 ;;; d(sqrt(a))/da = 1/(2*sqrt(a))
 (define (iv-traced-sqrt a)
+  (doc 'export #t)
   (let* ([av (interval-traced-value a)]
          [result (interval-sqrt av)])
     (if (eq? result 'domain-error)
@@ -213,6 +221,7 @@
 ;;; iv-traced-exp : IntervalTracedValue -> IntervalTracedValue
 ;;; d(exp(a))/da = exp(a)
 (define (iv-traced-exp a)
+  (doc 'export #t)
   (let* ([av (interval-traced-value a)]
          [result (interval-exp av)]
          [tape (and (interval-traced? a) (interval-traced-tape a))])
@@ -225,6 +234,7 @@
 ;;; iv-traced-log : IntervalTracedValue -> IntervalTracedValue
 ;;; d(log(a))/da = 1/a
 (define (iv-traced-log a)
+  (doc 'export #t)
   (let* ([av (interval-traced-value a)]
          [result (interval-log av)])
     (if (eq? result 'domain-error)
@@ -242,6 +252,7 @@
 ;;; iv-traced-sin : IntervalTracedValue -> IntervalTracedValue
 ;;; d(sin(a))/da = cos(a)
 (define (iv-traced-sin a)
+  (doc 'export #t)
   (let* ([av (interval-traced-value a)]
          [result (interval-sin av)]
          [grad (interval-cos av)]  ; Gradient is cos over the interval
@@ -253,6 +264,7 @@
 ;;; iv-traced-cos : IntervalTracedValue -> IntervalTracedValue
 ;;; d(cos(a))/da = -sin(a)
 (define (iv-traced-cos a)
+  (doc 'export #t)
   (let* ([av (interval-traced-value a)]
          [result (interval-cos av)]
          [grad (interval-neg (interval-sin av))]  ; Gradient is -sin
@@ -264,6 +276,7 @@
 ;;; iv-traced-pow : IntervalTracedValue x Number -> IntervalTracedValue
 ;;; d(a^n)/da = n * a^(n-1)
 (define (iv-traced-pow base n)
+  (doc 'export #t)
   (let* ([bv (interval-traced-value base)]
          [result (interval-pow bv n)]
          [tape (and (interval-traced? base) (interval-traced-tape base))])
@@ -330,6 +343,7 @@
 ;;; Returns a list of intervals, one per input dimension, bounding the
 ;;; partial derivatives over the box.
 (define (interval-gradient f box)
+  (doc 'export #t)
   (reset-interval-traced-ids!)
   (let* ([tape (make-interval-tape)]
          [traced-inputs (map (lambda (iv) (make-interval-traced-var iv tape))
@@ -370,6 +384,7 @@
 ;;; Determine the sign of a gradient interval.
 ;;; Returns: 'positive, 'negative, 'zero, or 'mixed
 (define (gradient-sign iv)
+  (doc 'export #t)
   (let ([lo (interval-lo iv)]
         [hi (interval-hi iv)])
     (cond
@@ -381,12 +396,14 @@
 ;;; monotonicity-info : (List Interval) -> (List Symbol)
 ;;; Analyze monotonicity in each dimension.
 (define (monotonicity-info grad-intervals)
+  (doc 'export #t)
   (map gradient-sign grad-intervals))
 
 ;;; all-monotonic? : (List Interval) -> Boolean
 ;;; True if gradient doesn't contain zero in ANY dimension.
 ;;; This means the minimum must be on a corner of the box.
 (define (all-monotonic? grad-intervals)
+  (doc 'export #t)
   (not (any (lambda (iv)
               (interval-contains-zero? iv))
             grad-intervals)))
@@ -419,6 +436,7 @@
 ;;; Returns 'minimum-on-boundary if box would reduce to a single point,
 ;;; indicating the minimum is at a corner.
 (define (reduce-box-by-monotonicity box grad-intervals)
+  (doc 'export #t)
   (let loop ([box box] [grads grad-intervals] [idx 0] [new-box '()])
     (cond
       [(null? box)

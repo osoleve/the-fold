@@ -24,6 +24,7 @@ runtime list construction code:
 (doc 'section 'quasiquote-detection)
 
 (define (quasiquote? x)
+  (doc 'export #t)
   (doc 'type (-> Any Boolean))
   (and (pair? x)
        (eq? (car x) 'quasiquote)
@@ -31,6 +32,7 @@ runtime list construction code:
        (null? (cddr x))))
 
 (define (unquote? x)
+  (doc 'export #t)
   (doc 'type (-> Any Boolean))
   (and (pair? x)
        (eq? (car x) 'unquote)
@@ -38,6 +40,7 @@ runtime list construction code:
        (null? (cddr x))))
 
 (define (unquote-splicing? x)
+  (doc 'export #t)
   (doc 'type (-> Any Boolean))
   (and (pair? x)
        (eq? (car x) 'unquote-splicing)
@@ -54,6 +57,7 @@ constructs the result at runtime")
   etc.")
 
 (define (qq-expand expr)
+  (doc 'export #t)
   (doc 'type (-> Sexp Sexp))
   (doc 'description "Expand a (quasiquote expr) form")
   (if (quasiquote? expr)
@@ -216,6 +220,7 @@ constructs the result at runtime")
 ;;; expand-quasiquote : Sexp → Sexp
 ;;; Top-level entry point. If not a quasiquote, returns as-is.
 (define (expand-quasiquote expr)
+  (doc 'export #t)
   (if (quasiquote? expr)
       (qq-expand expr)
       expr))
@@ -225,6 +230,7 @@ constructs the result at runtime")
 This enables error messages that point to the original DSL code")
 
 (define (make-syntax datum source-loc)
+  (doc 'export #t)
   (doc 'type (-> Any SourceLoc Syntax))
   (list 'syntax datum source-loc))
 
@@ -236,10 +242,12 @@ This enables error messages that point to the original DSL code")
 
 ;;; syntax-datum : Syntax → α
 (define (syntax-datum stx)
+  (doc 'export #t)
   (cadr stx))
 
 ;;; syntax-source : Syntax → SourceLoc
 (define (syntax-source stx)
+  (doc 'export #t)
   (caddr stx))
 
 ;;; make-source-loc : String × Int × Int → SourceLoc
@@ -272,11 +280,13 @@ This enables error messages that point to the original DSL code")
 ;;; datum->syntax : α × Syntax → Syntax
 ;;; Wrap a datum with the source location from another syntax object.
 (define (datum->syntax datum stx)
+  (doc 'export #t)
   (make-syntax datum (if (syntax? stx) (syntax-source stx) no-source)))
 
 ;;; syntax->datum : Syntax → α
 ;;; Strip syntax wrapper, recursively.
 (define (syntax->datum stx)
+  (doc 'export #t)
   (cond
    [(syntax? stx) (syntax->datum (syntax-datum stx))]
    [(pair? stx) (cons (syntax->datum (car stx))
@@ -319,11 +329,13 @@ This enables error messages that point to the original DSL code")
 ;;; syntax-match : Syntax × Pattern → (Option Bindings)
 ;;; Match syntax against pattern, returning bindings or nothing.
 (define (syntax-match stx pattern)
+  (doc 'export #t)
   (let ([datum (if (syntax? stx) (syntax-datum stx) stx)])
        (pattern-match datum pattern '())))
 
 ;;; pattern-match : α × Pattern × Bindings → (Option Bindings)
 (define (pattern-match datum pattern bindings)
+  (doc 'export #t)
   (cond
    ;; Wildcard matches anything
    [(eq? pattern '_)
@@ -411,6 +423,7 @@ This enables error messages that point to the original DSL code")
 ;;; instantiate-template : Sexp × Bindings → Sexp
 ;;; Fill in a template with bindings from pattern match.
 (define (instantiate-template template bindings)
+  (doc 'export #t)
   (cond
    [(symbol? template)
     (let ([binding (assq template bindings)])

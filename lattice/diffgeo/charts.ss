@@ -21,6 +21,7 @@
 
 (doc chart? 'type '(-> Any Boolean))
 (define (chart? x)
+  (doc 'export #t)
   (and (pair? x)
        (eq? (car x) 'chart)
        (= (length x) 6)
@@ -32,22 +33,27 @@
 
 (doc chart-name 'type '(-> Chart Symbol))
 (define (chart-name c)
+  (doc 'export #t)
   (list-ref c 1))
 
 (doc chart-dim 'type '(-> Chart Nat))
 (define (chart-dim c)
+  (doc 'export #t)
   (list-ref c 2))
 
 (doc chart-domain-pred 'type '(-> Chart (-> Point Bool)))
 (define (chart-domain-pred c)
+  (doc 'export #t)
   (list-ref c 3))
 
 (doc chart-coord-map 'type '(-> Chart (-> Point Vec)))
 (define (chart-coord-map c)
+  (doc 'export #t)
   (list-ref c 4))
 
 (doc chart-inverse-map 'type '(-> Chart (-> Vec Point)))
 (define (chart-inverse-map c)
+  (doc 'export #t)
   (list-ref c 5))
 
 (doc 'section 'chart-construction)
@@ -55,6 +61,7 @@
 (doc make-chart 'type '(-> Symbol Nat (-> Point Bool) (-> Point Vec) (-> Vec Point) Chart))
 (doc make-chart 'description "Create a coordinate chart")
 (define (make-chart name dim domain-pred coord-map inverse-map)
+  (doc 'export #t)
   (list 'chart name dim domain-pred coord-map inverse-map))
 
 (doc 'section 'chart-operations)
@@ -62,11 +69,13 @@
 (doc chart-contains? 'type '(-> Chart Point Bool))
 (doc chart-contains? 'description "Check if a point is in the chart's domain")
 (define (chart-contains? chart point)
+  (doc 'export #t)
   ((chart-domain-pred chart) point))
 
 (doc chart-apply 'type '(-> Chart Point (Or Vec Error)))
 (doc chart-apply 'description "Apply the coordinate map to get coordinates")
 (define (chart-apply chart point)
+  (doc 'export #t)
   (if (chart-contains? chart point)
       ((chart-coord-map chart) point)
       `(error point-not-in-domain ,(chart-name chart))))
@@ -74,6 +83,7 @@
 (doc chart-apply-inverse 'type '(-> Chart Vec Point))
 (doc chart-apply-inverse 'description "Apply the inverse map to get a point from coordinates")
 (define (chart-apply-inverse chart coords)
+  (doc 'export #t)
   ((chart-inverse-map chart) coords))
 
 (doc 'section 'transition-functions)
@@ -85,6 +95,7 @@
 (doc make-transition 'note "Returned function does NOT verify domain membership (for performance)")
 (doc make-transition 'see 'transition-apply)
 (define (make-transition chart-from chart-to)
+  (doc 'export #t)
   (if (not (= (chart-dim chart-from) (chart-dim chart-to)))
       #f
       (lambda (coords)
@@ -95,6 +106,7 @@
 (doc transition-apply 'description "Apply the transition function from chart-from to chart-to")
 (doc transition-apply 'note "Verifies that the intermediate point lies in the target chart's domain")
 (define (transition-apply chart-from chart-to coords)
+  (doc 'export #t)
   (if (not (= (chart-dim chart-from) (chart-dim chart-to)))
       `(error dimension-mismatch ,(chart-dim chart-from) ,(chart-dim chart-to))
       (let ([point ((chart-inverse-map chart-from) coords)])
@@ -116,6 +128,7 @@
 (doc jacobian-numerical 'param "coords: R^n")
 (doc jacobian-numerical 'returns "m×n matrix")
 (define (jacobian-numerical f coords . epsilon-arg)
+  (doc 'export #t)
   (let* ([eps (if (null? epsilon-arg) *jacobian-epsilon* (car epsilon-arg))]
          [n (vector-length coords)]
          [f0 (f coords)]
@@ -144,6 +157,7 @@
 (doc transition-jacobian 'type '(-> Chart Chart Vec (Optional Num) Matrix))
 (doc transition-jacobian 'description "Compute the Jacobian of the transition function at given coordinates")
 (define (transition-jacobian chart-from chart-to coords . epsilon-arg)
+  (doc 'export #t)
   (let ([transition (make-transition chart-from chart-to)]
         [eps (if (null? epsilon-arg) *jacobian-epsilon* (car epsilon-arg))])
     (if transition
@@ -157,6 +171,7 @@
 
 (doc atlas? 'type '(-> Any Boolean))
 (define (atlas? x)
+  (doc 'export #t)
   (and (pair? x)
        (eq? (car x) 'atlas)
        (= (length x) 3)
@@ -165,10 +180,12 @@
 
 ;;; atlas-name : Atlas → Symbol
 (define (atlas-name a)
+  (doc 'export #t)
   (list-ref a 1))
 
 ;;; atlas-charts : Atlas → (List Chart)
 (define (atlas-charts a)
+  (doc 'export #t)
   (list-ref a 2))
 
 ;;; ====
@@ -179,6 +196,7 @@
 ;;; Create an atlas from a list of charts.
 ;;; All charts must have the same dimension.
 (define (make-atlas name charts)
+  (doc 'export #t)
   (if (null? charts)
       (list 'atlas name '())
       (let ([dim (chart-dim (car charts))])
@@ -189,6 +207,7 @@
 ;;; atlas-dim : Atlas → Nat | #f
 ;;; Get the dimension of the atlas (from its charts).
 (define (atlas-dim a)
+  (doc 'export #t)
   (let ([charts (atlas-charts a)])
     (if (null? charts)
         #f
@@ -196,6 +215,7 @@
 
 ;;; atlas-chart-count : Atlas → Nat
 (define (atlas-chart-count a)
+  (doc 'export #t)
   (length (atlas-charts a)))
 
 ;;; ====
@@ -205,6 +225,7 @@
 ;;; atlas-add-chart : Atlas × Chart → Atlas | Error
 ;;; Add a chart to an atlas.
 (define (atlas-add-chart atlas chart)
+  (doc 'export #t)
   (let ([charts (atlas-charts atlas)]
         [dim (atlas-dim atlas)])
     (cond
@@ -216,6 +237,7 @@
 ;;; atlas-find-chart : Atlas × Point → Chart | #f
 ;;; Find a chart containing the given point.
 (define (atlas-find-chart atlas point)
+  (doc 'export #t)
   (let loop ([charts (atlas-charts atlas)])
     (cond
      [(null? charts) #f]
@@ -225,6 +247,7 @@
 ;;; atlas-find-chart-by-name : Atlas × Symbol → Chart | #f
 ;;; Find a chart by name.
 (define (atlas-find-chart-by-name atlas name)
+  (doc 'export #t)
   (let loop ([charts (atlas-charts atlas)])
     (cond
      [(null? charts) #f]
@@ -235,6 +258,7 @@
 ;;; Get coordinates for a point in some chart.
 ;;; Returns (chart-name . coords) pair.
 (define (atlas-coords atlas point)
+  (doc 'export #t)
   (let ([chart (atlas-find-chart atlas point)])
     (if chart
         (cons (chart-name chart) (chart-apply chart point))
@@ -248,6 +272,7 @@
 ;;; Check if two charts have overlapping domains.
 ;;; Uses a list of test points (in chart-a's coordinates).
 (define (charts-overlap? chart-a chart-b test-coords)
+  (doc 'export #t)
   (let loop ([coords test-coords])
     (if (null? coords)
         #f
@@ -260,6 +285,7 @@
 ;;; Check if the transition between charts is smooth at test points.
 ;;; "Smooth" here means the Jacobian exists and is non-singular.
 (define (transition-smooth? chart-from chart-to test-coords . epsilon-arg)
+  (doc 'export #t)
   (let ([eps (if (null? epsilon-arg) *jacobian-epsilon* (car epsilon-arg))])
     (let loop ([coords test-coords])
       (if (null? coords)
@@ -278,6 +304,7 @@
 ;;; For small matrices (up to 3×3), use explicit formulas for efficiency.
 ;;; For larger matrices, use LU decomposition via matrix-det.
 (define (jacobian-determinant J)
+  (doc 'export #t)
   (let ([n (matrix-rows J)])
     (cond
      [(not (= n (matrix-cols J)))
@@ -307,6 +334,7 @@
 ;;; make-identity-chart : Symbol × Nat → Chart
 ;;; Create a chart where coordinates equal the point (R^n identity).
 (define (make-identity-chart name dim)
+  (doc 'export #t)
   (make-chart name dim
               (lambda (p) #t)           ; All R^n is the domain
               (lambda (p) p)            ; Identity map
@@ -317,6 +345,7 @@
 ;;; Domain: R^2 \ {origin and negative x-axis}
 ;;; Coordinates: (r, θ) where r > 0 and θ ∈ (-π, π]
 (define (make-polar-chart)
+  (doc 'export #t)
   (make-chart 'polar 2
               ;; Domain: not origin, not negative x-axis
               (lambda (p)
@@ -339,6 +368,7 @@
 ;;; make-cartesian-chart : → Chart
 ;;; Create a 2D Cartesian coordinate chart (identity on R^2).
 (define (make-cartesian-chart)
+  (doc 'export #t)
   (make-identity-chart 'cartesian 2))
 
 ;;; make-spherical-chart : → Chart
@@ -347,6 +377,7 @@
 ;;; Excludes z-axis (singularity) and atan branch cut (y=0, x≤0)
 ;;; Coordinates: (r, θ, φ) where r > 0, θ ∈ (0, π), φ ∈ (-π, π)
 (define (make-spherical-chart)
+  (doc 'export #t)
   (make-chart 'spherical 3
               ;; Domain: not z-axis AND not atan branch cut
               (lambda (p)
@@ -378,6 +409,7 @@
 ;;; Excludes z-axis (singularity) and atan branch cut (y=0, x≤0)
 ;;; Coordinates: (ρ, φ, z) where ρ > 0, φ ∈ (-π, π)
 (define (make-cylindrical-chart)
+  (doc 'export #t)
   (make-chart 'cylindrical 3
               ;; Domain: not z-axis AND not atan branch cut
               (lambda (p)

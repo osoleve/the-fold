@@ -19,6 +19,7 @@
   (make-ac-state id dict-empty set-empty 0))
 
 (define (build-trie patterns)
+  (doc 'export #t)
   (doc 'type '(-> (List String) (Vector ACState)))
   (doc 'description "Build trie with mutable vector to avoid O(N^2) copying")
   (let* ([total-chars (fold-left (lambda (acc p) (+ acc (string-length p))) 0 patterns)]
@@ -72,6 +73,7 @@
                            (loop-chars (cdr chars) next-id (+ next-id 1))))))))
 
 (define (compute-failures states)
+  (doc 'export #t)
   (doc 'type '(-> (Vector ACState) (Vector ACState)))
   (doc 'description "Compute failures using Queue BFS (dogfooding!) with in-place mutation")
   (let* ([root (vector-ref states 0)]
@@ -123,10 +125,12 @@
 (doc 'section 'main-api)
 
 (define (make-automaton patterns)
+  (doc 'export #t)
   (doc 'type '(-> (List String) (Vector ACState)))
   (compute-failures (build-trie patterns)))
 
 (define (search automaton text)
+  (doc 'export #t)
   (doc 'type '(-> (Vector ACState) String (List (Pair Nat String))))
   (let loop ([chars (string->list text)]
              [pos 0]

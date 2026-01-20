@@ -109,12 +109,14 @@
 (doc blake2b 'type '(case-lambda
                       ((Bytevector) Bytevector)
                       ((Bytevector Integer) Bytevector)))
+(doc blake2b 'export #t)
 (define blake2b
   (case-lambda
     [(msg) (blake2b-full msg #vu8() 64)]
     [(msg outlen) (blake2b-full msg #vu8() outlen)]))
 
 ;;; blake2b-keyed : Bytevector × Bytevector [× Integer] → Bytevector
+(doc blake2b-keyed 'export #t)
 (define blake2b-keyed
   (case-lambda
     [(key msg) (blake2b-full msg key 64)]
@@ -174,12 +176,14 @@
 (doc blake2b-hex 'type '(case-lambda
                           ((Bytevector) String)
                           ((Bytevector Integer) String)))
+(doc blake2b-hex 'export #t)
 (define blake2b-hex
   (case-lambda
     [(msg) (hash->hex (blake2b msg))]
     [(msg outlen) (hash->hex (blake2b msg outlen))]))
 
 ;;; blake2b-keyed-hex : Bytevector × Bytevector [× Integer] → String
+(doc blake2b-keyed-hex 'export #t)
 (define blake2b-keyed-hex
   (case-lambda
     [(key msg) (hash->hex (blake2b-keyed key msg))]

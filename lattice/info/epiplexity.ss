@@ -10,6 +10,7 @@
 (doc 'section 'prequential-epiplexity)
 
 (define (prequential-epiplexity online-losses final-losses)
+  (doc 'export #t)
   (doc 'type '(-> (List Number) (List Number) Number))
   (doc 'description "Estimate epiplexity from online and final loss sequences")
   (cond
@@ -21,6 +22,7 @@
                (map - online-losses final-losses))]))
 
 (define (prequential-epiplexity-scalar online-losses baseline-loss)
+  (doc 'export #t)
   (doc 'type '(-> (List Number) Number Number))
   (doc 'description "Estimate epiplexity assuming constant final baseline loss")
   (if (null? online-losses)
@@ -32,6 +34,7 @@
 (doc 'section 'requential-epiplexity)
 
 (define (requential-epiplexity teacher-dists student-dists)
+  (doc 'export #t)
   (doc 'type '(-> (List (List Number)) (List (List Number)) Number))
   (doc 'description "Estimate epiplexity using Requential Coding (Teacher-Student approach)")
   (cond

@@ -43,6 +43,7 @@
 
 (doc metric? 'type '(-> Any Boolean))
 (define (metric? x)
+  (doc 'export #t)
   (and (pair? x)
        (eq? (car x) 'metric)
        (= (length x) 3)
@@ -51,14 +52,17 @@
 
 ;;; metric-chart : Metric → Chart
 (define (metric-chart m)
+  (doc 'export #t)
   (list-ref m 1))
 
 ;;; metric-fn : Metric → (Vec → Matrix)
 (define (metric-fn m)
+  (doc 'export #t)
   (list-ref m 2))
 
 ;;; metric-dim : Metric → Nat
 (define (metric-dim m)
+  (doc 'export #t)
   (chart-dim (metric-chart m)))
 
 ;;; ============================================================================
@@ -68,16 +72,19 @@
 ;;; make-metric : Chart × (Vec → Matrix) → Metric
 ;;; Create a metric tensor on a chart.
 (define (make-metric chart metric-function)
+  (doc 'export #t)
   (list 'metric chart metric-function))
 
 ;;; metric-at : Metric × Vec → Matrix
 ;;; Evaluate the metric tensor at coordinates.
 (define (metric-at m coords)
+  (doc 'export #t)
   ((metric-fn m) coords))
 
 ;;; metric-at-point : Metric × Point → Matrix
 ;;; Evaluate the metric tensor at a point.
 (define (metric-at-point m point)
+  (doc 'export #t)
   (let* ([chart (metric-chart m)]
          [coords (chart-apply chart point)])
     (metric-at m coords)))
@@ -89,6 +96,7 @@
 ;;; make-euclidean-metric : Chart → Metric
 ;;; The flat Euclidean metric: g_ij = δ_ij (identity matrix).
 (define (make-euclidean-metric chart)
+  (doc 'export #t)
   (let ([n (chart-dim chart)])
     (make-metric chart
                  (lambda (coords)
@@ -100,6 +108,7 @@
 ;;;   g = | 1   0  |
 ;;;       | 0   r² |
 (define (make-polar-metric chart)
+  (doc 'export #t)
   (make-metric chart
                (lambda (coords)
                  (let ([r (vector-ref coords 0)])
@@ -113,6 +122,7 @@
 ;;;       | 0   r²   0           |
 ;;;       | 0   0    r²sin²θ     |
 (define (make-spherical-metric chart)
+  (doc 'export #t)
   (make-metric chart
                (lambda (coords)
                  (let* ([r (vector-ref coords 0)]
@@ -128,6 +138,7 @@
 ;;; The metric for cylindrical coordinates (ρ, φ, z):
 ;;;   ds² = dρ² + ρ² dφ² + dz²
 (define (make-cylindrical-metric chart)
+  (doc 'export #t)
   (make-metric chart
                (lambda (coords)
                  (let ([rho (vector-ref coords 0)])
@@ -142,11 +153,13 @@
 ;;; metric-inverse : Metric × Vec → Matrix
 ;;; Compute the inverse metric g^{ij} at coordinates.
 (define (metric-inverse m coords)
+  (doc 'export #t)
   (matrix-inverse (metric-at m coords)))
 
 ;;; metric-inner-product : Metric × Vec × Vec × Vec → Num
 ;;; Compute the inner product ⟨v, w⟩_g = g_ij v^i w^j at coordinates.
 (define (metric-inner-product m coords v w)
+  (doc 'export #t)
   (let* ([g (metric-at m coords)]
          [gw (matrix-vec-mul g w)])
     (vec-dot v gw)))
@@ -154,11 +167,13 @@
 ;;; metric-norm : Metric × Vec × Vec → Num
 ;;; Compute the norm ||v||_g = sqrt(⟨v, v⟩_g) at coordinates.
 (define (metric-norm m coords v)
+  (doc 'export #t)
   (sqrt (metric-inner-product m coords v v)))
 
 ;;; metric-determinant : Metric × Vec → Num
 ;;; Compute det(g) at coordinates.
 (define (metric-determinant m coords)
+  (doc 'export #t)
   (matrix-det (metric-at m coords)))
 
 ;;; ============================================================================
@@ -176,6 +191,7 @@
 ;;; Compute all Christoffel symbols at coordinates.
 ;;; Returns Γ[k][i][j] for all indices.
 (define (christoffel-symbols m coords . epsilon-arg)
+  (doc 'export #t)
   (let* ([eps (if (null? epsilon-arg) *curvature-epsilon* (car epsilon-arg))]
          [n (metric-dim m)]
          [g (metric-at m coords)]
@@ -237,6 +253,7 @@
 ;;; christoffel-ref : Christoffel × Nat × Nat × Nat → Num
 ;;; Access Γ^k_ij from a Christoffel symbol array.
 (define (christoffel-ref gamma k i j)
+  (doc 'export #t)
   (vector-ref (vector-ref (vector-ref gamma k) i) j))
 
 ;;; ============================================================================
@@ -253,6 +270,7 @@
 ;;; Compute the Riemann curvature tensor at coordinates.
 ;;; Returns R[l][i][j][k] for all indices.
 (define (riemann-tensor m coords . epsilon-arg)
+  (doc 'export #t)
   (let* ([eps (if (null? epsilon-arg) *curvature-epsilon* (car epsilon-arg))]
          [n (metric-dim m)]
          ;; Compute Christoffel symbols and their derivatives
@@ -342,6 +360,7 @@
 ;;; riemann-ref : Riemann × Nat × Nat × Nat × Nat → Num
 ;;; Access R^l_{ijk} from a Riemann tensor.
 (define (riemann-ref R l i j k)
+  (doc 'export #t)
   (array-4d-ref R l i j k))
 
 ;;; ============================================================================
@@ -357,6 +376,7 @@
 ;;; Compute the Ricci tensor at coordinates.
 ;;; Returns R_{ij} as an n×n matrix.
 (define (ricci-tensor m coords . epsilon-arg)
+  (doc 'export #t)
   (let* ([eps (if (null? epsilon-arg) *curvature-epsilon* (car epsilon-arg))]
          [n (metric-dim m)]
          [R (riemann-tensor m coords eps)]
@@ -384,6 +404,7 @@
 ;;; scalar-curvature : Metric × Vec × [Num] → Num
 ;;; Compute the scalar curvature at coordinates.
 (define (scalar-curvature m coords . epsilon-arg)
+  (doc 'export #t)
   (let* ([eps (if (null? epsilon-arg) *curvature-epsilon* (car epsilon-arg))]
          [n (metric-dim m)]
          [ric (ricci-tensor m coords eps)]
@@ -421,6 +442,7 @@
 
 ;;; surface? : Any → Boolean
 (define (surface? x)
+  (doc 'export #t)
   (and (pair? x)
        (eq? (car x) 'surface)
        (= (length x) 2)
@@ -428,23 +450,27 @@
 
 ;;; surface-param : Surface → (Vec → Vec)
 (define (surface-param s)
+  (doc 'export #t)
   (list-ref s 1))
 
 ;;; make-surface : (Vec → Vec) → Surface
 ;;; Create a surface from a parametrization.
 ;;; The function takes (u, v) as a 2-vector and returns (x, y, z) as a 3-vector.
 (define (make-surface param-fn)
+  (doc 'export #t)
   (list 'surface param-fn))
 
 ;;; surface-at : Surface × Num × Num → Vec
 ;;; Evaluate the surface at parameter values.
 (define (surface-at surf u v)
+  (doc 'export #t)
   ((surface-param surf) (vector u v)))
 
 ;;; first-fundamental-form : Surface × Num × Num × [Num] → (Values Num Num Num)
 ;;; Compute the first fundamental form coefficients E, F, G.
 ;;; Returns a list (E F G).
 (define (first-fundamental-form surf u v . epsilon-arg)
+  (doc 'export #t)
   (let* ([eps (if (null? epsilon-arg) *curvature-epsilon* (car epsilon-arg))]
          [r_u (surface-partial-u surf u v eps)]
          [r_v (surface-partial-v surf u v eps)]
@@ -457,6 +483,7 @@
 ;;; Compute the second fundamental form coefficients L, M, N.
 ;;; Returns a list (L M N).
 (define (second-fundamental-form surf u v . epsilon-arg)
+  (doc 'export #t)
   (let* ([eps (if (null? epsilon-arg) *curvature-epsilon* (car epsilon-arg))]
          [n (surface-normal surf u v eps)]
          [r_uu (surface-partial-uu surf u v eps)]
@@ -470,6 +497,7 @@
 ;;; gaussian-curvature : Surface × Num × Num × [Num] → Num
 ;;; Compute the Gaussian curvature K = (LN - M²)/(EG - F²).
 (define (gaussian-curvature surf u v . epsilon-arg)
+  (doc 'export #t)
   (let* ([eps (if (null? epsilon-arg) *curvature-epsilon* (car epsilon-arg))]
          [ff1 (first-fundamental-form surf u v eps)]
          [ff2 (second-fundamental-form surf u v eps)]
@@ -483,6 +511,7 @@
 ;;; mean-curvature : Surface × Num × Num × [Num] → Num
 ;;; Compute the mean curvature H = (EN + GL - 2FM)/(2(EG - F²)).
 (define (mean-curvature surf u v . epsilon-arg)
+  (doc 'export #t)
   (let* ([eps (if (null? epsilon-arg) *curvature-epsilon* (car epsilon-arg))]
          [ff1 (first-fundamental-form surf u v eps)]
          [ff2 (second-fundamental-form surf u v eps)]
@@ -498,6 +527,7 @@
 ;;; These are eigenvalues of the shape operator (Weingarten map).
 ;;; κ₁, κ₂ = H ± sqrt(H² - K)
 (define (principal-curvatures surf u v . epsilon-arg)
+  (doc 'export #t)
   (let* ([eps (if (null? epsilon-arg) *curvature-epsilon* (car epsilon-arg))]
          [K (gaussian-curvature surf u v eps)]
          [H (mean-curvature surf u v eps)]
@@ -515,6 +545,7 @@
 ;;; surface-partial-u : Surface × Num × Num × Num → Vec
 ;;; Compute ∂r/∂u at (u, v).
 (define (surface-partial-u surf u v eps)
+  (doc 'export #t)
   (let ([r-plus (surface-at surf (+ u eps) v)]
         [r-minus (surface-at surf (- u eps) v)])
     (vec-scale (/ 1.0 (* 2 eps)) (vec-sub r-plus r-minus))))
@@ -522,6 +553,7 @@
 ;;; surface-partial-v : Surface × Num × Num × Num → Vec
 ;;; Compute ∂r/∂v at (u, v).
 (define (surface-partial-v surf u v eps)
+  (doc 'export #t)
   (let ([r-plus (surface-at surf u (+ v eps))]
         [r-minus (surface-at surf u (- v eps))])
     (vec-scale (/ 1.0 (* 2 eps)) (vec-sub r-plus r-minus))))
@@ -560,6 +592,7 @@
 ;;; surface-normal : Surface × Num × Num × Num → Vec
 ;;; Compute the unit normal n = (r_u × r_v)/|r_u × r_v|.
 (define (surface-normal surf u v eps)
+  (doc 'export #t)
   (let* ([r_u (surface-partial-u surf u v eps)]
          [r_v (surface-partial-v surf u v eps)]
          [cross (vec3-cross r_u r_v)]
@@ -585,6 +618,7 @@
 ;;; Create a sphere of radius R parametrized by (θ, φ).
 ;;; θ ∈ [0, π] (polar), φ ∈ [0, 2π) (azimuthal)
 (define (make-sphere-surface R)
+  (doc 'export #t)
   (make-surface
    (lambda (params)
      (let ([theta (vector-ref params 0)]
@@ -597,6 +631,7 @@
 ;;; Create a torus with major radius R and minor radius r.
 ;;; Parameters: (u, v) both in [0, 2π).
 (define (make-torus-surface R r)
+  (doc 'export #t)
   (make-surface
    (lambda (params)
      (let ([u (vector-ref params 0)]
@@ -608,6 +643,7 @@
 ;;; make-paraboloid-surface : → Surface
 ;;; Create a paraboloid z = x² + y² parametrized by (u, v) = (x, y).
 (define (make-paraboloid-surface)
+  (doc 'export #t)
   (make-surface
    (lambda (params)
      (let ([u (vector-ref params 0)]
@@ -617,6 +653,7 @@
 ;;; make-saddle-surface : → Surface
 ;;; Create a saddle (hyperbolic paraboloid) z = x² - y².
 (define (make-saddle-surface)
+  (doc 'export #t)
   (make-surface
    (lambda (params)
      (let ([u (vector-ref params 0)]
@@ -630,6 +667,7 @@
 ;;; classify-point-curvature : Num × Num → Symbol
 ;;; Classify a point based on its Gaussian and mean curvatures.
 (define (classify-point-curvature K H)
+  (doc 'export #t)
   (cond
    [(> K 0) 'elliptic]        ; Both principal curvatures same sign
    [(< K 0) 'hyperbolic]      ; Principal curvatures opposite signs
@@ -639,6 +677,7 @@
 ;;; surface-classify : Surface × Num × Num × [Num] → Symbol
 ;;; Classify a surface point.
 (define (surface-classify surf u v . epsilon-arg)
+  (doc 'export #t)
   (let* ([eps (if (null? epsilon-arg) *curvature-epsilon* (car epsilon-arg))]
          [K (gaussian-curvature surf u v eps)]
          [H (mean-curvature surf u v eps)])
@@ -656,6 +695,7 @@
 ;;; sectional-curvature : Metric × Vec × Vec × Vec × [Num] → Num
 ;;; Compute the sectional curvature for the plane spanned by X and Y at coords.
 (define (sectional-curvature m coords X Y . epsilon-arg)
+  (doc 'export #t)
   (let* ([eps (if (null? epsilon-arg) *curvature-epsilon* (car epsilon-arg))]
          [n (metric-dim m)]
          [g (metric-at m coords)]

@@ -8,16 +8,19 @@
 (doc 'section 'basic-modular-ops)
 
 (define (mod+ a b m)
+  (doc 'export #t)
   (doc 'type '(-> Int Int Int Int))
   (doc 'description "Modular addition: (a + b) mod m. Assumes m > 0")
   (modulo (+ a b) m))
 
 (define (mod- a b m)
+  (doc 'export #t)
   (doc 'type '(-> Int Int Int Int))
   (doc 'description "Modular subtraction: (a - b) mod m. Assumes m > 0")
   (modulo (- a b) m))
 
 (define (mod* a b m)
+  (doc 'export #t)
   (doc 'type '(-> Int Int Int Int))
   (doc 'description "Modular multiplication: (a * b) mod m. Assumes m > 0")
   (modulo (* a b) m))
@@ -25,6 +28,7 @@
 (doc 'section 'modular-exponentiation)
 
 (define (mod-expt base exp m)
+  (doc 'export #t)
   (doc 'type '(-> Int Nat Int Int))
   (doc 'description "Modular exponentiation using square-and-multiply algorithm. Computes (base^exp) mod m efficiently")
   (doc 'complexity "O(log exp)")
@@ -46,6 +50,7 @@
 (doc 'section 'extended-euclidean)
 
 (define (extended-gcd a b)
+  (doc 'export #t)
   (doc 'type '(-> Int Int (List Int)))
   (doc 'description "Extended Euclidean algorithm. Returns (gcd a b, x, y) where gcd = ax + by (Bézout's identity)")
   (if (= b 0)
@@ -63,6 +68,7 @@
 ;;; gcd : Int × Int → Int
 ;;; Greatest common divisor using Euclidean algorithm.
 (define (gcd a b)
+  (doc 'export #t)
   (if (= b 0)
       (abs a)
       (gcd b (modulo a b))))
@@ -70,6 +76,7 @@
 (doc 'section 'modular-inverse)
 
 (define (mod-inverse a m)
+  (doc 'export #t)
   (doc 'type '(-> Int Int (Union Int Boolean)))
   (doc 'description "Compute modular multiplicative inverse of a modulo m. Returns x such that (a * x) ≡ 1 (mod m), or #f if no inverse exists. Inverse exists iff gcd(a, m) = 1")
   (let* ([result (extended-gcd a m)]
@@ -82,6 +89,7 @@
 (doc 'section 'chinese-remainder-theorem)
 
 (define (crt remainders moduli)
+  (doc 'export #t)
   (doc 'type '(-> (List Int) (List Int) (Union Int Boolean)))
   (doc 'description "Chinese Remainder Theorem solver. Given remainders [a1, a2, ..., ak] and moduli [m1, m2, ..., mk], find x such that x ≡ ai (mod mi) for all i")
   (doc 'note "Assumes all moduli are pairwise coprime. Returns #f if moduli are not pairwise coprime")
@@ -108,6 +116,7 @@
 (doc 'note "Montgomery multiplication is an optimization for modular multiplication when doing many multiplications with the same modulus. It works in Montgomery space where numbers are represented as aR mod m")
 
 (define (montgomery-reduce T m R m-prime)
+  (doc 'export #t)
   (doc 'type '(-> Int Int Int Int Int))
   (doc 'description "Montgomery reduction: converts from Montgomery space back to normal. Given T, modulus m, R (power of 2), and m' (negative inverse of m mod R), computes (T * R^-1) mod m. This is an internal helper for Montgomery multiplication")
   (let* ([t (modulo (* T m-prime) R)]
@@ -121,6 +130,7 @@
 ;;; Given modulus m, finds R (smallest power of 2 > m) and R' (R^-1 mod m).
 ;;; Returns (R, m') where m' = -m^-1 mod R.
 (define (montgomery-setup m)
+  (doc 'export #t)
   (let* ([R (let loop ([r 1])
                  (if (> r m)
                      r
@@ -136,16 +146,19 @@
 ;;; R (power of 2 > m), and m' = -m^-1 mod R,
 ;;; returns (a * b * R^-1) mod m, which is (ab)R mod m (still in Montgomery space).
 (define (montgomery-mult a b m R m-prime)
+  (doc 'export #t)
   (montgomery-reduce (* a b) m R m-prime))
 
 ;;; to-montgomery : Int × Int × Int → Int
 ;;; Convert a to Montgomery space: (a * R) mod m.
 (define (to-montgomery a m R)
+  (doc 'export #t)
   (modulo (* a R) m))
 
 ;;; from-montgomery : Int × Int × Int × Int → Int
 ;;; Convert from Montgomery space back to normal: (a * R^-1) mod m.
 (define (from-montgomery a m R m-prime)
+  (doc 'export #t)
   (montgomery-reduce a m R m-prime))
 
 ;;; montgomery-expt : Int × Nat × Int → Int
@@ -153,6 +166,7 @@
 ;;; Computes (base^exp) mod m using Montgomery representation.
 ;;; More efficient than regular mod-expt for large exponents.
 (define (montgomery-expt base exp m)
+  (doc 'export #t)
   (if (= m 1)
       0
       (let* ([setup (montgomery-setup m)]

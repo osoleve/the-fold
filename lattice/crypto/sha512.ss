@@ -190,6 +190,7 @@
 (doc 'section 'main-entry-point)
 
 (define (sha512 msg)
+  (doc 'export #t)
   (doc 'type '(-> Bytevector Bytevector))
   (doc 'description "Compute SHA-512 hash (64 bytes)")
   (let* ([padded (pad-message-512 msg)]
@@ -210,6 +211,7 @@
 ;;; sha512-hex : Bytevector → String
 ;;; Convenience: return hash as lowercase hexadecimal string.
 (define (sha512-hex msg)
+  (doc 'export #t)
   (let ([hash (sha512 msg)]
         [hex-chars "0123456789abcdef"])
        (apply string-append
@@ -239,6 +241,7 @@
 ;;; sha384 : Bytevector → Bytevector
 ;;; Compute SHA-384 hash (48 bytes).
 (define (sha384 msg)
+  (doc 'export #t)
   (let* ([padded (pad-message-512 msg)]
          [num-blocks (quotient (bytevector-length padded) 128)]
          [H (vector-copy H-init-384)])
@@ -256,6 +259,7 @@
 
 ;;; sha384-hex : Bytevector → String
 (define (sha384-hex msg)
+  (doc 'export #t)
   (let ([hash (sha384 msg)]
         [hex-chars "0123456789abcdef"])
        (apply string-append

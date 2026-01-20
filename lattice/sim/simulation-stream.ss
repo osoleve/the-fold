@@ -47,6 +47,7 @@
 (doc 'note "Two variants: (1) sim-unfold: step returns (value . next-seed) or #f to terminate, (2) sim-unfold-infinite: step always returns (value . next-seed)")
 
 (define (sim-unfold step seed)
+  (doc 'export #t)
   (doc 'type '(-> (-> seed (U (Pair value seed) #f)) seed (Stream value)))
   (doc 'description "Build a stream from a step function that may terminate. Step function returns (value . new-seed) to continue, or #f to stop")
   (let ([result (step seed)])
@@ -71,6 +72,7 @@
 (doc 'section 'simulation-stream-constructor)
 
 (define (simulate initial step-fn dt)
+  (doc 'export #t)
   (doc 'type '(-> SimState (-> SimState SimState) Number (Stream SimState)))
   (doc 'description "Create an infinite stream of simulation states")
   (doc 'param 'initial "starting simulation state")
@@ -113,6 +115,7 @@
 (doc 'section 'scan-running-fold)
 (doc 'note "scan produces a stream of accumulated values: scan f z [s1, s2, s3, ...] = [z, f(z,s1), f(f(z,s1),s2), ...]")
 
+(doc sim-scan 'export #t)
 (define sim-scan stream-scan)
 (doc sim-scan 'type '(-> (-> acc value acc) acc (Stream value) (Stream acc)))
 (doc sim-scan 'description "Running fold over a stream, producing stream of intermediate results. Alias for stream-scan with simulation-specific naming")

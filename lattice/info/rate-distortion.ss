@@ -8,21 +8,25 @@
 (doc 'section 'distortion-measures)
 
 (define (squared-error x y)
+  (doc 'export #t)
   (doc 'type '(-> Real Real Real))
   (doc 'description "Squared error distortion d(x,y) = (x-y)^2")
   (* (- x y) (- x y)))
 
 (define (absolute-error x y)
+  (doc 'export #t)
   (doc 'type '(-> Real Real Real))
   (doc 'description "Absolute error distortion d(x,y) = |x-y|")
   (abs (- x y)))
 
 (define (hamming-distortion x y)
+  (doc 'export #t)
   (doc 'type '(-> α α Nat))
   (doc 'description "Hamming distortion d(x,y) = 0 if x=y, 1 otherwise")
   (if (equal? x y) 0 1))
 
 (define (mse xs ys)
+  (doc 'export #t)
   (doc 'type '(-> (List Real) (List Real) Real))
   (doc 'description "Mean squared error: (1/n) * sum((xi - yi)^2)")
   (if (null? xs)
@@ -31,6 +35,7 @@
          (length xs))))
 
 (define (mae xs ys)
+  (doc 'export #t)
   (doc 'type '(-> (List Real) (List Real) Real))
   (doc 'description "Mean absolute error: (1/n) * sum(|xi - yi|)")
   (if (null? xs)
@@ -39,11 +44,13 @@
          (length xs))))
 
 (define (rmse xs ys)
+  (doc 'export #t)
   (doc 'type '(-> (List Real) (List Real) Real))
   (doc 'description "Root mean squared error: sqrt(MSE)")
   (sqrt (mse xs ys)))
 
 (define (normalized-mse original reconstructed)
+  (doc 'export #t)
   (doc 'type '(-> (List Real) (List Real) Real))
   (doc 'description "Normalized MSE: MSE / variance(original)")
   (let ([m (mse original reconstructed)]
@@ -53,6 +60,7 @@
            (/ m v))))
 
 (define (snr original reconstructed)
+  (doc 'export #t)
   (doc 'type '(-> (List Real) (List Real) Real))
   (doc 'description "Signal-to-noise ratio (linear): var(signal) / MSE")
   (let ([v (variance original)]
@@ -62,6 +70,7 @@
            (/ v m))))
 
 (define (snr-db original reconstructed)
+  (doc 'export #t)
   (doc 'type '(-> (List Real) (List Real) Real))
   (doc 'description "Signal-to-noise ratio in decibels: 10 * log10(SNR)")
   (let ([s (snr original reconstructed)])
@@ -70,6 +79,7 @@
            (* 10 (/ (log2 s) (log2 10))))))
 
 (define (psnr original reconstructed peak)
+  (doc 'export #t)
   (doc 'type '(-> (List Real) (List Real) Real Real))
   (doc 'description "Peak signal-to-noise ratio in dB")
   (let ([m (mse original reconstructed)])
@@ -80,12 +90,14 @@
 (doc 'section 'statistical-helpers)
 
 (define (mean xs)
+  (doc 'export #t)
   (doc 'type '(-> (List Real) Real))
   (if (null? xs)
       0
       (/ (fold-left + 0 xs) (length xs))))
 
 (define (variance xs)
+  (doc 'export #t)
   (doc 'type '(-> (List Real) Real))
   (doc 'description "Population variance: (1/n) * sum((xi - mu)^2)")
   (if (null? xs)
@@ -97,6 +109,7 @@
 (doc 'section 'rate-distortion-functions)
 
 (define (gaussian-rate-distortion variance distortion)
+  (doc 'export #t)
   (doc 'type '(-> Real Real Real))
   (doc 'description "Rate-distortion function for Gaussian source")
   (cond
@@ -106,6 +119,7 @@
    [else (* 0.5 (log2 (/ variance distortion)))]))
 
 (define (gaussian-distortion-rate variance rate)
+  (doc 'export #t)
   (doc 'type '(-> Real Real Real))
   (doc 'description "Distortion-rate function for Gaussian source")
   (if (<= rate 0)
@@ -113,6 +127,7 @@
       (* variance (expt 2 (* -2 rate)))))
 
 (define (binary-rate-distortion distortion)
+  (doc 'export #t)
   (doc 'type '(-> Real Real))
   (doc 'description "Rate-distortion function for binary symmetric source")
   (cond
@@ -121,6 +136,7 @@
    [else (- 1 (binary-entropy distortion))]))
 
 (define (binary-distortion-rate rate)
+  (doc 'export #t)
   (doc 'type '(-> Real Real))
   (doc 'description "Distortion-rate function for binary source")
   (cond
@@ -129,6 +145,7 @@
    [else (binary-entropy-inverse (- 1 rate))]))
 
 (define (binary-entropy-inverse h)
+  (doc 'export #t)
   (doc 'type '(-> Real Real))
   (doc 'description "Inverse of binary entropy function via binary search")
   (if (<= h 0)
@@ -149,6 +166,7 @@
 (doc 'section 'uniform-scalar-quantization)
 
 (define (uniform-quantize x max-val n-levels)
+  (doc 'export #t)
   (doc 'type '(-> Real Real Nat Real))
   (doc 'description "Quantize x to one of n uniform levels in [0, max-val]")
   (let* ([step (/ max-val n-levels)]
@@ -158,17 +176,20 @@
         reconstruction))
 
 (define (uniform-quantize-list xs max-val n-levels)
+  (doc 'export #t)
   (doc 'type '(-> (List Real) Real Nat (List Real)))
   (doc 'description "Quantize a list of values uniformly")
   (map (lambda (x) (uniform-quantize x max-val n-levels)) xs))
 
 (define (uniform-quantization-distortion max-val n-levels)
+  (doc 'export #t)
   (doc 'type '(-> Real Nat Real))
   (doc 'description "Theoretical MSE for uniform quantizer")
   (let ([step (/ max-val n-levels)])
        (/ (* step step) 12)))
 
 (define (quantization-bits n-levels)
+  (doc 'export #t)
   (doc 'type '(-> Nat Real))
   (doc 'description "Bits needed for n-level quantizer: log2(n)")
   (if (<= n-levels 1)
@@ -178,6 +199,7 @@
 (doc 'section 'lloyd-max-quantization)
 
 (define (lloyd-max-quantizer samples n-levels max-iter)
+  (doc 'export #t)
   (doc 'type '(-> (List Real) Nat Nat (List Real)))
   (doc 'description "Train Lloyd-Max quantizer on samples")
   (if (or (null? samples) (<= n-levels 0))
@@ -198,6 +220,7 @@
 ;;; lloyd-max-iterate : (List Real) × (List Real) × Nat → (List Real)
 ;;; Iterate Lloyd-Max algorithm until convergence or max iterations.
 (define (lloyd-max-iterate samples levels iter)
+  (doc 'export #t)
   (if (<= iter 0)
       levels
       (let* ([boundaries (compute-boundaries levels)]
@@ -209,6 +232,7 @@
 ;;; compute-boundaries : (List Real) → (List Real)
 ;;; Compute decision boundaries as midpoints between levels.
 (define (compute-boundaries levels)
+  (doc 'export #t)
   (if (or (null? levels) (null? (cdr levels)))
       '()
       (cons (/ (+ (car levels) (cadr levels)) 2)
@@ -217,12 +241,14 @@
 ;;; compute-centroids : (List Real) × (List Real) → (List Real)
 ;;; Compute centroids of each region defined by boundaries.
 (define (compute-centroids samples boundaries)
+  (doc 'export #t)
   (let ([regions (partition-by-boundaries samples boundaries)])
        (map region-centroid regions)))
 
 ;;; partition-by-boundaries : (List Real) × (List Real) → (List (List Real))
 ;;; Partition samples into regions based on boundaries.
 (define (partition-by-boundaries samples boundaries)
+  (doc 'export #t)
   (let ([n-regions (+ (length boundaries) 1)])
        (map (lambda (i)
                     (filter (lambda (x) (in-region? x i boundaries)) samples))
@@ -255,6 +281,7 @@
 ;;; lloyd-max-quantize : Real × (List Real) → Real
 ;;; Quantize x using Lloyd-Max levels.
 (define (lloyd-max-quantize x levels)
+  (doc 'export #t)
   (if (null? levels)
       0
       (let ([boundaries (compute-boundaries levels)])
@@ -262,6 +289,7 @@
 
 ;;; find-region-level : Real × (List Real) × (List Real) × Nat → Real
 (define (find-region-level x levels boundaries i)
+  (doc 'export #t)
   (cond
    [(null? boundaries) (car (reverse levels))]
    [(< x (car boundaries)) (list-ref levels i)]
@@ -274,11 +302,13 @@
 ;;; vq-codebook-distance : (List Real) × (List Real) → Real
 ;;; Euclidean distance between two vectors.
 (define (vq-codebook-distance v1 v2)
+  (doc 'export #t)
   (sqrt (fold-left + 0 (map squared-error v1 v2))))
 
 ;;; vq-find-nearest : (List Real) × (List (List Real)) → Nat
 ;;; Find index of nearest codebook vector.
 (define (vq-find-nearest vector codebook)
+  (doc 'export #t)
   (let loop ([cb codebook] [i 0] [best-i 0] [best-dist +inf.0])
        (if (null? cb)
            best-i
@@ -290,6 +320,7 @@
 ;;; vq-quantize : (List Real) × (List (List Real)) → (List Real)
 ;;; Quantize vector using codebook.
 (define (vq-quantize vector codebook)
+  (doc 'export #t)
   (list-ref codebook (vq-find-nearest vector codebook)))
 
 ;;; ====
@@ -300,6 +331,7 @@
 ;;; Compute operational (rate, distortion) point for a quantized signal.
 ;;; Returns (rate-in-bits, mse-distortion).
 (define (operational-rate-distortion original quantized)
+  (doc 'export #t)
   (let* ([distortion (mse original quantized)]
          [unique-levels (unique-values quantized)]
          [rate (log2 (length unique-levels))])
@@ -307,12 +339,14 @@
 
 ;;; unique-values : (List α) → (List α)
 ;;; Alias for unique from prelude (provided for semantic clarity in this context).
+(doc unique-values 'export #t)
 (define unique-values unique)
 
 ;;; rd-gap : Real × Real × Real → Real
 ;;; Gap between operational point and rate-distortion bound.
 ;;; gap = R_operational - R_theoretical(D_operational)
 (define (rd-gap op-rate op-distortion variance)
+  (doc 'export #t)
   (let ([theoretical-rate (gaussian-rate-distortion variance op-distortion)])
        (- op-rate theoretical-rate)))
 
@@ -323,6 +357,7 @@
 ;;; quantizer-entropy : (List Real) → Real
 ;;; Entropy of quantizer output distribution (in bits).
 (define (quantizer-entropy quantized)
+  (doc 'export #t)
   (let* ([counts (count-values quantized)]
          [total (length quantized)]
          [probs (map (lambda (c) (/ c total)) (map cdr counts))])
@@ -331,6 +366,7 @@
 ;;; count-values : (List α) → (List (α × Nat))
 ;;; Count occurrences of each value.
 (define (count-values lst)
+  (doc 'export #t)
   (let loop ([remaining lst] [counts '()])
        (if (null? remaining)
            counts
@@ -356,6 +392,7 @@
 ;;; entropy-coded-rate : (List Real) → Real
 ;;; Rate achievable with optimal entropy coding of quantizer output.
 (define (entropy-coded-rate quantized)
+  (doc 'export #t)
   (quantizer-entropy quantized))
 
 ;;; ====
@@ -366,6 +403,7 @@
 ;;; Quantize with subtractive dither.
 ;;; Dither value should be uniform in [-step/2, step/2].
 (define (dither-quantize x max-val n-levels dither)
+  (doc 'export #t)
   (let* ([step (/ max-val n-levels)]
          [dithered-x (+ x dither)]
          [quantized (uniform-quantize dithered-x max-val n-levels)])
@@ -378,11 +416,13 @@
 ;;; high-rate-bits-per-sample : Real × Real → Real
 ;;; High-rate approximation: R ≈ (1/2) * log2(sigma^2 / D)
 ;;; Same as Gaussian rate-distortion for large rates.
+(doc high-rate-bits-per-sample 'export #t)
 (define high-rate-bits-per-sample gaussian-rate-distortion)
 
 ;;; high-rate-distortion : Real × Real → Real
 ;;; High-rate approximation: D ≈ sigma^2 * 2^(-2R)
 ;;; Same as Gaussian distortion-rate.
+(doc high-rate-distortion 'export #t)
 (define high-rate-distortion gaussian-distortion-rate)
 
 ;;; ====
@@ -392,6 +432,7 @@
 ;;; rd-summary : (List Real) × (List Real) × Real → String
 ;;; Generate summary of rate-distortion performance.
 (define (rd-summary original quantized peak-val)
+  (doc 'export #t)
   (let* ([op-rd (operational-rate-distortion original quantized)]
          [rate (car op-rd)]
          [dist (cdr op-rd)]

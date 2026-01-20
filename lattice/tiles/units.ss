@@ -11,6 +11,7 @@
   (fields id type team properties))
 
 (define (make-unit id type team properties)
+  (doc 'export #t)
   (doc 'description "Create a new unit")
   (doc 'type '(-> Symbol Symbol Symbol Alist Unit))
   (make-unit% id type team properties))
@@ -42,6 +43,7 @@
   (fields board coord->unit unit->coord))
 
 (define (make-game-state board)
+  (doc 'export #t)
   (doc 'description "Create initial game state with empty units")
   (doc 'type '(-> Board GameState))
   (make-game-state% board
@@ -54,6 +56,7 @@
   (game-state%-board gs))
 
 (define (game-place-unit gs unit coord)
+  (doc 'export #t)
   (doc 'description "Place unit at coordinate. Removes unit from old position if it exists.")
   (doc 'type '(-> GameState Unit Coord GameState))
   (let ([c->u (hashtable-copy (game-state%-coord->unit gs) #t)]
@@ -81,6 +84,7 @@
 ;;; game-get-unit-at : GameState × Coord → Unit | #f
 ;;; Get unit at coordinate
 (define (game-get-unit-at gs coord)
+  (doc 'export #t)
   (hashtable-ref (game-state%-coord->unit gs) coord #f))
 
 ;;; game-get-unit-coord : GameState × Symbol → Coord | #f
@@ -91,6 +95,7 @@
 ;;; game-all-units : GameState → (List (Coord . Unit))
 ;;; Get all units with their positions
 (define (game-all-units gs)
+  (doc 'export #t)
   (let ([c->u (game-state%-coord->unit gs)])
        (map (lambda (coord)
                     (cons coord (hashtable-ref c->u coord #f)))
@@ -99,6 +104,7 @@
 ;;; game-units-by-team : GameState × Symbol → (List (Coord . Unit))
 ;;; Get all units of a specific team
 (define (game-units-by-team gs team)
+  (doc 'export #t)
   (filter (lambda (entry)
                   (eq? (unit%-team (cdr entry)) team))
           (game-all-units gs)))
@@ -106,6 +112,7 @@
 (doc 'section 'movement)
 
 (define (game-move-unit gs unit-id dest neighbor-fn)
+  (doc 'export #t)
   (doc 'description "Move unit to destination if reachable. Checks movement range.")
   (doc 'type '(-> GameState Symbol Coord (-> Coord (List Coord)) (Maybe GameState)))
   (doc 'returns "New game state if move is valid, #f otherwise")
@@ -136,6 +143,7 @@
 (doc 'section 'visibility)
 
 (define (game-visible-units gs unit-id neighbor-fn line-fn)
+  (doc 'export #t)
   (doc 'description "Get all units visible to a specific unit (uses unit's vision property)")
   (doc 'type '(-> GameState Symbol (-> Coord (List Coord)) (-> Coord Coord (List Coord)) (List Unit)))
   (let* ([board (game-board gs)]

@@ -38,6 +38,7 @@
 ;;; vec : a ... -> Vec a
 ;;; Variadic vector construction.
 (define (vec . elems)
+  (doc 'export #t)
   (list->vector elems))
 
 ;;; ====

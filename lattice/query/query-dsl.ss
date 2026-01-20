@@ -139,6 +139,7 @@
 ;;;   (refs-to hash)           - Blocks referencing hash
 ;;;   Bare patterns            - Shorthand for (match pattern)
 (define (interpret-query expr)
+  (doc 'export #t)
   (cond
    ;; Null or empty - match everything
    [(null? expr)
@@ -243,6 +244,7 @@
 ;;; project : (List Symbol) × (List Block) → (List Alist)
 ;;; Project specific fields from a list of blocks.
 (define (project fields blocks)
+  (doc 'export #t)
   (map (lambda (block)
                (extract-fields block fields))
        blocks))
@@ -257,12 +259,14 @@
 ;;; Find all blocks that contain a reference to the given hash.
 ;;; Uses store-find-by-ref from store-api.
 (define (refs-to-query fs target-hash)
+  (doc 'export #t)
   (store-find-by-ref fs target-hash))
 
 ;;; refs-from-query : FSCap × Bytevector → (List Block)
 ;;; Find all blocks that are referenced BY the block at hash.
 ;;; Returns the blocks pointed to by the given block's refs.
 (define (refs-from-query fs source-hash)
+  (doc 'export #t)
   (let ([source-block (store-get fs source-hash)])
        (if source-block
            (let ([refs (block-refs source-block)])
@@ -282,6 +286,7 @@
 ;;; Follow references transitively up to max-depth levels.
 ;;; Returns all reachable blocks within depth limit.
 (define (refs-transitive fs start-hash max-depth)
+  (doc 'export #t)
   (let ([visited (make-hashtable bytevector-hash bytevector=?)]
         [result '()])
        (let bfs ([frontier (list start-hash)]
@@ -315,6 +320,7 @@
 ;;; query-count : FSCap × Sexp → Nat
 ;;; Count blocks matching the query.
 (define (query-count fs expr)
+  (doc 'export #t)
   (length (query fs expr)))
 
 ;;; query-group-by : FSCap × Symbol × Sexp → Alist
@@ -325,6 +331,7 @@
 ;;;   (query-group-by fs 'tag '())  ; Group all blocks by tag
 ;;;   -> ((entity . [blocks...]) (relation . [blocks...]))
 (define (query-group-by fs field expr)
+  (doc 'export #t)
   (let ([blocks (query fs expr)])
        (let loop ([blocks blocks]
                   [groups '()])
@@ -385,6 +392,7 @@
 ;;;     (query-count fs '(tag . entity))
 ;;;     (query-group-by fs 'tag '())
 (define (query fs expr)
+  (doc 'export #t)
   (cond
    ;; Empty query - return all blocks
    [(null? expr)
@@ -436,32 +444,38 @@
 ;;; find-entities : FSCap → (List Block)
 ;;; Find all entity blocks.
 (define (find-entities fs)
+  (doc 'export #t)
   (query fs '(tag . entity)))
 
 ;;; find-relations : FSCap → (List Block)
 ;;; Find all relation blocks.
 (define (find-relations fs)
+  (doc 'export #t)
   (query fs '(tag . relation)))
 
 ;;; find-collections : FSCap → (List Block)
 ;;; Find all collection blocks.
 (define (find-collections fs)
+  (doc 'export #t)
   (query fs '(tag . collection)))
 
 ;;; find-by-content : FSCap × String → (List Block)
 ;;; Find blocks whose payload contains the given string.
 (define (find-by-content fs substring)
+  (doc 'export #t)
   (query fs `(payload-contains . ,substring)))
 
 ;;; find-with-refs : FSCap → (List Block)
 ;;; Find all blocks that have at least one reference.
 (define (find-with-refs fs)
+  (doc 'export #t)
   (query fs '(has-refs . #t)))
 
 ;;; find-orphans : FSCap → (List Block)
 ;;; Find blocks that are not referenced by any other block.
 ;;; These are "root" blocks or potentially orphaned data.
 (define (find-orphans fs)
+  (doc 'export #t)
   (let* ([all-blocks (store-all-blocks fs)]
          [all-hashes (map hash-block all-blocks)]
          [referenced-hashes (make-hashtable bytevector-hash bytevector=?)])
@@ -489,31 +503,37 @@
 ;;; make-tag-query : Symbol → Sexp
 ;;; Create a tag match query expression.
 (define (make-tag-query tag)
+  (doc 'export #t)
   `(tag . ,tag))
 
 ;;; make-content-query : String → Sexp
 ;;; Create a content search query expression.
 (define (make-content-query substring)
+  (doc 'export #t)
   `(payload-contains . ,substring))
 
 ;;; make-and-query : (List Sexp) → Sexp
 ;;; Combine queries with AND.
 (define (make-and-query queries)
+  (doc 'export #t)
   `(and ,@queries))
 
 ;;; make-or-query : (List Sexp) → Sexp
 ;;; Combine queries with OR.
 (define (make-or-query queries)
+  (doc 'export #t)
   `(or ,@queries))
 
 ;;; make-not-query : Sexp → Sexp
 ;;; Negate a query.
 (define (make-not-query query)
+  (doc 'export #t)
   `(not ,query))
 
 ;;; make-select-query : (List Symbol) × Sexp → Sexp
 ;;; Create a projection query.
 (define (make-select-query fields where-query)
+  (doc 'export #t)
   `(select ,fields (where ,where-query)))
 
 ;;; ====

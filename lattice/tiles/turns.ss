@@ -10,6 +10,7 @@
   (fields turn-number active-unit turn-order action-points phase history))
 
 (define (make-turn-state unit-order max-actions)
+  (doc 'export #t)
   (doc 'description "Create initial turn state")
   (doc 'type '(-> (List UnitId) Hashtable TurnState))
   (doc 'param 'unit-order "List of unit IDs in turn order")
@@ -44,6 +45,7 @@
 (doc 'section 'queries)
 
 (define (turn-current-unit ts)
+  (doc 'export #t)
   (doc 'description "Get currently active unit ID")
   (doc 'type '(-> TurnState (Maybe UnitId)))
   (turn-state%-active-unit ts))
@@ -72,6 +74,7 @@
 (doc 'section 'actions)
 
 (define (turn-spend-action ts unit-id cost)
+  (doc 'export #t)
   (doc 'description "Spend action points")
   (doc 'type '(-> TurnState UnitId Integer TurnState))
   (let ([ap-table (hashtable-copy (turn-state%-action-points ts) #t)]
@@ -116,6 +119,7 @@
                          (turn-state%-history ts))))
 
 (define (turn-next-unit ts max-actions)
+  (doc 'export #t)
   (doc 'description "Advance to next unit in turn order. Refreshes action points for next unit.")
   (doc 'type '(-> TurnState Hashtable TurnState))
   (doc 'param 'max-actions "Hashtable of unit-id → max action points for refresh")
@@ -145,6 +149,7 @@
 ;;; turn-end-turn : TurnState × Hashtable → TurnState
 ;;; End current unit's turn and advance to next
 (define (turn-end-turn ts max-actions)
+  (doc 'export #t)
   (turn-next-unit ts max-actions))
 
 (doc 'section 'history)
@@ -167,6 +172,7 @@
 (doc 'section 'initiative)
 
 (define (calculate-initiative-order units)
+  (doc 'export #t)
   (doc 'description "Calculate turn order based on unit initiative. Higher initiative goes first, ties broken by ID.")
   (doc 'type '(-> (List Unit) (List UnitId)))
   (let ([sorted
@@ -208,6 +214,7 @@
   (make-game-with-turns% gs (make-turn-state-from-game gs)))
 
 (define (game-execute-action gwt action-type action-fn cost)
+  (doc 'export #t)
   (doc 'description "Execute action if unit can act")
   (doc 'type '(-> GameWithTurns Symbol (-> GameState GameState) Integer (Maybe GameWithTurns)))
   (doc 'param 'action-type "Symbol describing action (e.g., 'move, 'attack)")

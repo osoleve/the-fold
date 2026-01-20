@@ -9,6 +9,7 @@
 
 (doc 'section 'coordinate-systems)
 
+(doc axial-coord 'export #t)
 (define axial-coord coord)
 (doc axial-coord 'type '(-> Integer Integer AxialCoord))
 (doc axial-coord 'description "AXIAL COORDINATES (q, r) - Most commonly used for hex grids. q = column (roughly), r = row (roughly). Simple 2D representation.")
@@ -17,6 +18,7 @@
   (fields x y z))
 
 (define (cubic-coord x y z)
+  (doc 'export #t)
   (doc 'type '(-> Integer Integer Integer CubicCoord))
   (doc 'description "CUBIC COORDINATES (x, y, z) where x + y + z = 0 - Best for symmetric operations")
   (if (not (= (+ x y z) 0))
@@ -78,6 +80,7 @@
            (error 'hex-neighbor "Invalid direction" dir))))
 
 (define (hex-neighbors coord)
+  (doc 'export #t)
   (doc 'type '(-> AxialCoord (List AxialCoord)))
   (doc 'description "Get all 6 neighbors")
   (map (lambda (dir) (hex-neighbor coord (car dir)))
@@ -108,6 +111,7 @@
 (doc 'section 'distance)
 
 (define (hex-distance c1 c2)
+  (doc 'export #t)
   (doc 'type '(-> AxialCoord AxialCoord Integer))
   (doc 'description "Manhattan distance in hex space (minimum number of hex steps). This is the natural distance metric for hexagons.")
   (let* ([cube1 (axial->cubic c1)]
@@ -120,6 +124,7 @@
 (doc 'section 'line-and-range)
 
 (define (hex-line c1 c2)
+  (doc 'export #t)
   (doc 'type '(-> AxialCoord AxialCoord (List AxialCoord)))
   (doc 'description "Get hexes on a straight line from c1 to c2. Uses linear interpolation in cubic space")
   (let* ([cube1 (axial->cubic c1)]
@@ -163,6 +168,7 @@
                                 (loop (+ i 1) (cons (cubic->axial final-cube) coords)))))))))
 
 (define (hex-range center radius)
+  (doc 'export #t)
   (doc 'type '(-> AxialCoord Integer (List AxialCoord)))
   (doc 'description "Get all hexes within N steps of center")
   (let* ([cc (axial->cubic center)]
@@ -181,6 +187,7 @@
                                     (inner (+ y 1) (cons (cubic-coord x y z) res))))))))))
 
 (define (hex-ring center radius)
+  (doc 'export #t)
   (doc 'type '(-> AxialCoord Integer (List AxialCoord)))
   (doc 'description "Get all hexes at exactly N steps from center")
   (hex-neighbors-at-distance center radius))
@@ -188,6 +195,7 @@
 (doc 'section 'rotation-reflection)
 
 (define (hex-rotate-left center coord)
+  (doc 'export #t)
   (doc 'type '(-> AxialCoord AxialCoord AxialCoord))
   (doc 'description "Rotate coord 60° counter-clockwise around center")
   (let* ([rel (axial-coord (- (coord-x coord) (coord-x center))
@@ -202,6 +210,7 @@
                      (+ (coord-y result) (coord-y center)))))
 
 (define (hex-rotate-right center coord)
+  (doc 'export #t)
   (doc 'type '(-> AxialCoord AxialCoord AxialCoord))
   (doc 'description "Rotate coord 60° clockwise around center")
   (let* ([rel (axial-coord (- (coord-x coord) (coord-x center))
@@ -219,6 +228,7 @@
 
 (doc make-hex-board 'type '(-> Symbol Integer (Maybe Tile) Board))
 (doc make-hex-board 'description "Create a hexagonal board with radius N. coord-system: 'axial or 'offset, radius: distance from center to edge")
+(doc make-hex-board 'export #t)
 (define make-hex-board
   (case-lambda
    [(coord-system radius)

@@ -23,6 +23,7 @@
 Readtables can be stacked for scoped extensions")
 
 (define (make-readtable)
+  (doc 'export #t)
   (doc 'type (-> Readtable))
   (doc 'description "Create an empty readtable")
   (list 'readtable '()))
@@ -37,12 +38,14 @@ Readtables can be stacked for scoped extensions")
 
 ;;; readtable-lookup : Readtable × Char → (Option Macro)
 (define (readtable-lookup rt char)
+  (doc 'export #t)
   (let ([entry (assv char (readtable-entries rt))])
        (if entry (just (cdr entry)) nothing)))
 
 ;;; readtable-extend : Readtable × Char × Macro → Readtable
 ;;; Add or replace a reader macro in the readtable.
 (define (readtable-extend rt char macro)
+  (doc 'export #t)
   (let* ([entries (readtable-entries rt)]
          [filtered (filter (lambda (e) (not (char=? (car e) char))) entries)]
          [new-entries (cons (cons char macro) filtered)])
@@ -106,6 +109,7 @@ Readtables can be stacked for scoped extensions")
 
 ;;; make-reader-macro : Symbol × Procedure × (Option Char) → ReaderMacro
 (define (make-reader-macro name transform delimiter)
+  (doc 'export #t)
   (list 'reader-macro name transform delimiter))
 
 ;;; reader-macro? : α → Boolean
@@ -281,6 +285,7 @@ Readtables can be stacked for scoped extensions")
 
 ;;; vector-reader-macro : ReaderMacro
 ;;; #v[1 2 3] → (vector 1 2 3)
+(doc vector-reader-macro 'export #t)
 (define vector-reader-macro
   (make-reader-macro 'vector
                      (lambda (contents source-loc)
@@ -289,6 +294,7 @@ Readtables can be stacked for scoped extensions")
 
 ;;; matrix-reader-macro : ReaderMacro
 ;;; #m[[1 2][3 4]] → (matrix '((1 2) (3 4)))
+(doc matrix-reader-macro 'export #t)
 (define matrix-reader-macro
   (make-reader-macro 'matrix
                      (lambda (contents source-loc)
@@ -297,6 +303,7 @@ Readtables can be stacked for scoped extensions")
 
 ;;; regex-reader-macro : ReaderMacro
 ;;; #r/pattern/flags → (regex "pattern" 'flags)
+(doc regex-reader-macro 'export #t)
 (define regex-reader-macro
   (make-reader-macro 'regex
                      (lambda (contents source-loc)
@@ -310,6 +317,7 @@ Readtables can be stacked for scoped extensions")
 
 ;;; set-reader-macro : ReaderMacro
 ;;; #s{1 2 3} → (set 1 2 3)
+(doc set-reader-macro 'export #t)
 (define set-reader-macro
   (make-reader-macro 'set
                      (lambda (contents source-loc)
@@ -319,6 +327,7 @@ Readtables can be stacked for scoped extensions")
 ;;; hash-reader-macro : ReaderMacro
 ;;; #h{a 1 b 2} → (hash 'a 1 'b 2)
 ;;; Odd-length input is an error (keys must have values).
+(doc hash-reader-macro 'export #t)
 (define hash-reader-macro
   (make-reader-macro 'hash
                      (lambda (contents source-loc)
@@ -345,6 +354,7 @@ Readtables can be stacked for scoped extensions")
 
 ;;; default-readtable : Readtable
 ;;; The standard readtable with common extensions.
+(doc default-readtable 'export #t)
 (define default-readtable
   (let ([rt (make-readtable)])
        (fold-left
@@ -367,6 +377,7 @@ Readtables can be stacked for scoped extensions")
 ;;; expand-reader-macro : Char × α × SourceLoc × Readtable → (Option Sexp)
 ;;; Look up and apply a reader macro.
 (define (expand-reader-macro dispatch-char contents source-loc readtable)
+  (doc 'export #t)
   (let ([result (readtable-lookup readtable dispatch-char)])
        (if (just? result)
            (let* ([macro (from-just result)]
@@ -489,6 +500,7 @@ Readtables can be stacked for scoped extensions")
 ;;; compose-readtables : (List Readtable) → Readtable
 ;;; Merge readtables, later entries override earlier.
 (define (compose-readtables readtables)
+  (doc 'export #t)
   (fold-left
    (lambda (acc rt)
            (fold-left

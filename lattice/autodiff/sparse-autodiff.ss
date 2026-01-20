@@ -256,6 +256,7 @@
 
 ;;; sparse-jacobian : ((Traced ...) → (List Traced)) × (List Number) → SparseCOO
 (define (sparse-jacobian f args)
+  (doc 'export #t)
   (let* ([n (length args)]
          [sample-result (apply f (map (lambda (x) (make-traced-var x (make-reverse-tape)))
                                       args))]
@@ -363,6 +364,7 @@
 
 ;;; sparse-hessian : ((Traced ...) → Traced) × (List Number) → SparseCOO
 (define (sparse-hessian f args)
+  (doc 'export #t)
   (let* ([n (length args)]
          [epsilon 1e-6]
          ;; Get gradient at central point

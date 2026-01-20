@@ -164,6 +164,7 @@
 (doc 'section 'high-level)
 
 (define (render-board board style-fn)
+  (doc 'export #t)
   (doc 'description "Render board using default style. Dispatches to shape-specific renderer.")
   (doc 'type '(-> Board (-> Tile String) String))
   (let ([shape (board%-shape board)]
@@ -174,6 +175,7 @@
              [else (error 'render-board "Unsupported shape" shape)])))
 
 (define (render-board-with-overlay board style-fn overlay overlay-char)
+  (doc 'export #t)
   (doc 'description "Render board with overlay. Dispatches to shape-specific renderer.")
   (doc 'type '(-> Board (-> Tile String) (List Coord) String String))
   (let ([shape (board%-shape board)]
@@ -184,16 +186,19 @@
              [else (error 'render-board-with-overlay "Unsupported shape" shape)])))
 
 (define (display-board board style-fn)
+  (doc 'export #t)
   (doc 'description "Display board to stdout")
   (doc 'type '(-> Board (-> Tile String) Void))
   (display (render-board board style-fn)))
 
 (define (display-board-with-path board style-fn path)
+  (doc 'export #t)
   (doc 'description "Display board with path highlighted using '*' character")
   (doc 'type '(-> Board (-> Tile String) (List Coord) Void))
   (display (render-board-with-overlay board style-fn path "*")))
 
 (define (display-board-with-fov board style-fn fov)
+  (doc 'export #t)
   (doc 'description "Display board with field of view highlighted using '+' character")
   (doc 'type '(-> Board (-> Tile String) (List Coord) Void))
   (display (render-board-with-overlay board style-fn fov "+")))

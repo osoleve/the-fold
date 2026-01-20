@@ -12,6 +12,7 @@
 (doc 'section 'value-tracing)
 
 (define (trace-value v tape)
+  (doc 'export #t)
   (doc 'type '(-> alpha Tape alpha-traced))
   (doc 'description "Recursively trace value based on structure - follows 'pair of traced' pattern")
   (cond
@@ -30,6 +31,7 @@
 ;;; untrace-value : alpha-traced -> alpha
 ;;; Extract numerical values from traced structure.
 (define (untrace-value v)
+  (doc 'export #t)
   (cond
     [(traced? v) (traced-value v)]
     [(traced-vec2? v) (unpack-traced-vec2 v)]
@@ -55,6 +57,7 @@
 ;;; the "pair of traced" pattern - the container is untraced, only
 ;;; the leaves (at optic focus) are traced.
 (define (lift-at-optic optic s tape)
+  (doc 'export #t)
   ;; Fail-fast on traced containers (per Gemini QA feedback)
   (when (traced? s)
     (error 'lift-at-optic
@@ -159,6 +162,7 @@
 ;;; Returns:
 ;;;   Gradient of the loss with respect to the focus, same shape as focus.
 (define (optic-gradient loss-fn optic s)
+  (doc 'export #t)
   (with-fresh-ad-scope
    (lambda ()
      (let ([tape (make-reverse-tape)])
@@ -220,6 +224,7 @@
 ;;; Compute gradient for each focus of a traversal.
 ;;; Returns a list of gradients, one per focus.
 (define (optic-gradient-list loss-fn trav s)
+  (doc 'export #t)
   (with-fresh-ad-scope
    (lambda ()
      (let ([tape (make-reverse-tape)])
@@ -239,6 +244,7 @@
 ;;; Compute gradient through a partial optic (prism/affine).
 ;;; Returns nothing if the optic doesn't match, just(gradient) otherwise.
 (define (optic-gradient-maybe loss-fn affine s)
+  (doc 'export #t)
   (with-fresh-ad-scope
    (lambda ()
      (let ([tape (make-reverse-tape)])
@@ -260,6 +266,7 @@
 ;;; Shorthand for optic-gradient with curried argument order.
 ;;; Preferred for pipeline style: (grad-at my-lens my-struct my-loss)
 (define (grad-at optic s loss-fn)
+  (doc 'export #t)
   (optic-gradient loss-fn optic s))
 
 ;;; optimize-at : Optic x s x (s-traced -> Traced) x Number -> s
@@ -267,6 +274,7 @@
 ;;; Updates: focus' = focus - rate * gradient
 ;;; Note: For traversals, use optimize-traversal instead.
 (define (optimize-at optic s loss-fn rate)
+  (doc 'export #t)
   (let ([otype (optic-type optic)])
     (case otype
       [(lens iso affine)
@@ -335,6 +343,7 @@
 ;;; optimize-steps : Optic x s x (s-traced -> Traced) x Number x Nat -> s
 ;;; Multiple gradient descent steps.
 (define (optimize-steps optic s loss-fn rate n)
+  (doc 'export #t)
   (if (<= n 0)
       s
       (optimize-steps optic
@@ -353,6 +362,7 @@
 ;;; Gradient through composed optics.
 ;;; Equivalent to: (optic-gradient loss-fn (>>> outer inner) s)
 (define (composed-gradient loss-fn outer inner s)
+  (doc 'export #t)
   (optic-gradient loss-fn (>>> outer inner) s))
 
 ;;; ============================================================
@@ -363,11 +373,13 @@
 ;;; Wrap a value as a constant (no gradient flow).
 ;;; Use for values that shouldn't be differentiated.
 (define (lift-const v)
+  (doc 'export #t)
   v)  ; Simply return as-is (no tracing)
 
 ;;; traced-sum : (List Traced) -> Traced
 ;;; Sum a list of traced values.
 (define (traced-sum traced-list)
+  (doc 'export #t)
   (if (null? traced-list)
       0  ; Empty sum is 0 (constant)
       (fold-left traced-add (car traced-list) (cdr traced-list))))
@@ -375,6 +387,7 @@
 ;;; traced-mean : (List Traced) -> Traced
 ;;; Mean of traced values.
 (define (traced-mean traced-list)
+  (doc 'export #t)
   (if (null? traced-list)
       0
       (traced-div (traced-sum traced-list) (length traced-list))))
@@ -382,6 +395,7 @@
 ;;; traced-l2-norm-sq : (List Traced) -> Traced
 ;;; Squared L2 norm: sum of squares.
 (define (traced-l2-norm-sq traced-list)
+  (doc 'export #t)
   (traced-sum (map traced-sq traced-list)))
 
 ;;; ============================================================
@@ -391,6 +405,7 @@
 ;;; optic-value-and-gradient : ((s-traced -> Traced) x Optic x s) -> (Values Number gradient)
 ;;; Compute both loss value and gradient in one pass.
 (define (optic-value-and-gradient loss-fn optic s)
+  (doc 'export #t)
   (with-fresh-ad-scope
    (lambda ()
      (let ([tape (make-reverse-tape)])

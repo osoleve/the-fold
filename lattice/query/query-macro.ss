@@ -20,6 +20,7 @@
 ;;; Create equality predicate via optic.
 ;;; (=? name-lens "alpha") => (lambda (it) (equal? (^. it name-lens) "alpha"))
 (define (=? optic value)
+  (doc 'export #t)
   (lambda (it)
     (let ([result (^? it optic)])
       (and (just? result)
@@ -28,6 +29,7 @@
 ;;; /=? : Optic × Value → (Target → Bool)
 ;;; Create inequality predicate via optic.
 (define (/=? optic value)
+  (doc 'export #t)
   (lambda (it)
     (let ([result (^? it optic)])
       (and (just? result)
@@ -36,6 +38,7 @@
 ;;; >? : Optic × Number → (Target → Bool)
 ;;; Create greater-than predicate via optic.
 (define (>? optic value)
+  (doc 'export #t)
   (lambda (it)
     (let ([result (^? it optic)])
       (and (just? result)
@@ -44,6 +47,7 @@
 ;;; <? : Optic × Number → (Target → Bool)
 ;;; Create less-than predicate via optic.
 (define (<? optic value)
+  (doc 'export #t)
   (lambda (it)
     (let ([result (^? it optic)])
       (and (just? result)
@@ -52,6 +56,7 @@
 ;;; >=? : Optic × Number → (Target → Bool)
 ;;; Create greater-or-equal predicate via optic.
 (define (>=? optic value)
+  (doc 'export #t)
   (lambda (it)
     (let ([result (^? it optic)])
       (and (just? result)
@@ -60,6 +65,7 @@
 ;;; <=? : Optic × Number → (Target → Bool)
 ;;; Create less-or-equal predicate via optic.
 (define (<=? optic value)
+  (doc 'export #t)
   (lambda (it)
     (let ([result (^? it optic)])
       (and (just? result)
@@ -68,6 +74,7 @@
 ;;; between? : Optic × Number × Number → (Target → Bool)
 ;;; Create range predicate via optic (inclusive).
 (define (between? optic low high)
+  (doc 'export #t)
   (lambda (it)
     (let ([result (^? it optic)])
       (and (just? result)
@@ -77,6 +84,7 @@
 ;;; in? : Optic × (List Value) → (Target → Bool)
 ;;; Create set membership predicate via optic.
 (define (in? optic values)
+  (doc 'export #t)
   (lambda (it)
     (let ([result (^? it optic)])
       (and (just? result)
@@ -85,6 +93,7 @@
 ;;; like? : Optic × String → (Target → Bool)
 ;;; Create substring match predicate via optic.
 (define (like? optic pattern)
+  (doc 'export #t)
   (lambda (it)
     (let ([result (^? it optic)])
       (and (just? result)
@@ -135,12 +144,14 @@
 ;;; null? : Optic → (Target → Bool)
 ;;; Check if optic target is null/nothing.
 (define (null-at? optic)
+  (doc 'export #t)
   (lambda (it)
     (nothing? (^? it optic))))
 
 ;;; exists-at? : Optic → (Target → Bool)
 ;;; Check if optic target exists.
 (define (exists-at? optic)
+  (doc 'export #t)
   (lambda (it)
     (just? (^? it optic))))
 
@@ -151,18 +162,21 @@
 ;;; and? : Pred ... → Pred
 ;;; Combine predicates with AND.
 (define (and? . preds)
+  (doc 'export #t)
   (lambda (it)
     (andmap (lambda (p) (p it)) preds)))
 
 ;;; or? : Pred ... → Pred
 ;;; Combine predicates with OR.
 (define (or? . preds)
+  (doc 'export #t)
   (lambda (it)
     (ormap (lambda (p) (p it)) preds)))
 
 ;;; not? : Pred → Pred
 ;;; Negate a predicate.
 (define (not? pred)
+  (doc 'export #t)
   (lambda (it)
     (not (pred it))))
 
@@ -176,6 +190,7 @@
 
 ;;; @ : Target × Optic ... → Value
 ;;; View through one or more optics.
+(doc @ 'export #t)
 (define @
   (case-lambda
     [(target optic)
@@ -189,6 +204,7 @@
 
 ;;; @? : Target × Optic ... → Maybe Value
 ;;; Preview through one or more optics.
+(doc @? 'export #t)
 (define @?
   (case-lambda
     [(target optic)
@@ -248,11 +264,13 @@
 ;;; from : Source × Optic → Query
 ;;; Start a query from a source through an optic.
 (define (from source optic)
+  (doc 'export #t)
   (make-query-record source optic))
 
 ;;; where-clause : Query × Pred → Query
 ;;; Add a filter predicate to the query.
 (define (where-clause q pred)
+  (doc 'export #t)
   (if (qr-where q)
       ;; Combine with existing predicate using AND
       (update-query-record q 'where (and? (qr-where q) pred))
@@ -261,10 +279,12 @@
 ;;; select-clause : Query × Proj → Query
 ;;; Add a projection function to the query.
 (define (select-clause q proj)
+  (doc 'export #t)
   (update-query-record q 'select proj))
 
 ;;; order-by-clause : Query × KeyFn [× Direction] → Query
 ;;; Add ordering to the query.
+(doc order-by-clause 'export #t)
 (define order-by-clause
   (case-lambda
     [(q key-fn)
@@ -277,11 +297,13 @@
 ;;; limit-clause : Query × Nat → Query
 ;;; Limit the number of results.
 (define (limit-clause q n)
+  (doc 'export #t)
   (update-query-record q 'limit n))
 
 ;;; offset-clause : Query × Nat → Query
 ;;; Skip the first n results.
 (define (offset-clause q n)
+  (doc 'export #t)
   (update-query-record q 'offset n))
 
 ;;; ============================================================
@@ -291,6 +313,7 @@
 ;;; run-query : Query → (List Result)
 ;;; Execute a query and return results.
 (define (run-query q)
+  (doc 'export #t)
   (let* ([source (qr-source q)]
          [optic (qr-optic q)]
          [where-pred (qr-where q)]
@@ -343,16 +366,19 @@
 ;;; count-query : Query → Nat
 ;;; Count results matching the query.
 (define (count-query q)
+  (doc 'export #t)
   (length (run-query q)))
 
 ;;; sum-query : Query × KeyFn → Number
 ;;; Sum values extracted from query results.
 (define (sum-query q key-fn)
+  (doc 'export #t)
   (apply + (map key-fn (run-query q))))
 
 ;;; avg-query : Query × KeyFn → Number
 ;;; Average values extracted from query results.
 (define (avg-query q key-fn)
+  (doc 'export #t)
   (let ([results (run-query q)])
     (if (null? results)
         0
@@ -362,6 +388,7 @@
 ;;; min-query : Query × KeyFn → Maybe Value
 ;;; Find minimum value in query results.
 (define (min-query q key-fn)
+  (doc 'export #t)
   (let ([results (run-query q)])
     (if (null? results)
         nothing
@@ -370,6 +397,7 @@
 ;;; max-query : Query × KeyFn → Maybe Value
 ;;; Find maximum value in query results.
 (define (max-query q key-fn)
+  (doc 'export #t)
   (let ([results (run-query q)])
     (if (null? results)
         nothing
@@ -378,6 +406,7 @@
 ;;; group-query : Query × KeyFn → Alist
 ;;; Group query results by a key function.
 (define (group-query q key-fn)
+  (doc 'export #t)
   (let ([results (run-query q)]
         [groups (make-hashtable equal-hash equal?)])
     (for-each
@@ -456,6 +485,7 @@
 ;;; first-result : Query → Maybe Result
 ;;; Get the first result from a query.
 (define (first-result q)
+  (doc 'export #t)
   (let ([results (run-query q)])
     (if (null? results)
         nothing
@@ -464,11 +494,13 @@
 ;;; any-result? : Query → Bool
 ;;; Check if query has any results.
 (define (any-result? q)
+  (doc 'export #t)
   (not (null? (run-query q))))
 
 ;;; all-match? : Query × Pred → Bool
 ;;; Check if all query results match a predicate.
 (define (all-match? q pred)
+  (doc 'export #t)
   (andmap pred (run-query q)))
 
 ;;; ============================================================
@@ -478,6 +510,7 @@
 ;;; select-fields : (List Optic) → (Target → Alist)
 ;;; Create a projection that extracts multiple fields.
 (define (select-fields . optic-pairs)
+  (doc 'export #t)
   (lambda (it)
     (map (lambda (pair)
            (cons (car pair) (^. it (cdr pair))))
@@ -486,6 +519,7 @@
 ;;; pluck : Optic → (Target → Value)
 ;;; Create a projection that extracts a single field.
 (define (pluck optic)
+  (doc 'export #t)
   (lambda (it)
     (^. it optic)))
 

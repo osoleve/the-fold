@@ -14,6 +14,7 @@ computation through vector arithmetic.")
 (doc 'section 'traced-vec2-construction)
 
 (define (traced-vec2 x y)
+  (doc 'export #t)
   (doc 'type '(-> TracedValue TracedValue TracedVec2))
   (doc 'description "Create a traced 2D vector from traced x and y components")
   (list 'traced-vec2 x y))

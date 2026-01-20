@@ -21,6 +21,7 @@
 
 
 (define (random-bernoulli p)
+  (doc 'export #t)
   (if (or (< p 0) (> p 1))
       (error 'random-bernoulli "probability must be in [0,1]" p)
       (state-map (lambda (u) (< u p)) random-float)))
@@ -33,6 +34,7 @@
 
 
 (define (random-exponential rate)
+  (doc 'export #t)
   (if (<= rate 0)
       (error 'random-exponential "rate must be positive" rate)
       (state-map (lambda (u)
@@ -49,6 +51,7 @@
 
 
 
+(doc random-normal-standard 'export #t)
 (define random-normal-standard
   (state-bind random-float
               (lambda (u1)
@@ -64,11 +67,13 @@
                                                 (state-pure z0)))))))
 
 (define (random-normal mean stddev)
+  (doc 'export #t)
   (if (<= stddev 0)
       (error 'random-normal "stddev must be positive" stddev)
       (state-map (lambda (z) (+ mean (* stddev z)))
                  random-normal-standard)))
 
+(doc random-normal-pair 'export #t)
 (define random-normal-pair
   (state-bind random-float
               (lambda (u1)
@@ -89,6 +94,7 @@
 
 
 (define (random-geometric p)
+  (doc 'export #t)
   (if (or (<= p 0) (> p 1))
       (error 'random-geometric "p must be in (0,1]" p)
       (if (= p 1)
@@ -108,6 +114,7 @@
 
 
 (define (random-poisson rate)
+  (doc 'export #t)
   (if (<= rate 0)
       (error 'random-poisson "rate must be positive" rate)
       (if (< rate 30)
@@ -150,6 +157,7 @@
                                         (loop g2))))))))))
 
 (define (log-gamma x)
+  (doc 'export #t)
   (if (<= x 0)
       (error 'log-gamma "x must be positive" x)
       (if (< x 7)
@@ -174,6 +182,7 @@
 
 
 (define (random-binomial n p)
+  (doc 'export #t)
   (cond
    [(< n 0) (error 'random-binomial "n must be non-negative" n)]
    [(or (< p 0) (> p 1)) (error 'random-binomial "p must be in [0,1]" p)]
@@ -216,6 +225,7 @@
 
 
 (define (random-gamma shape rate)
+  (doc 'export #t)
   (cond
    [(<= shape 0) (error 'random-gamma "shape must be positive" shape)]
    [(<= rate 0) (error 'random-gamma "rate must be positive" rate)]
@@ -261,6 +271,7 @@
 
 
 (define (random-beta alpha beta)
+  (doc 'export #t)
   (cond
    [(<= alpha 0) (error 'random-beta "alpha must be positive" alpha)]
    [(<= beta 0) (error 'random-beta "beta must be positive" beta)]
@@ -279,6 +290,7 @@
 
 
 (define (random-categorical weights)
+  (doc 'export #t)
   (if (null? weights)
       (error 'random-categorical "empty weight list")
       (let* ([total (fold-left + 0 weights)])
@@ -303,9 +315,11 @@
 
 
 (define (random-normal-vector n mean stddev)
+  (doc 'export #t)
   (random-list n (random-normal mean stddev)))
 
 (define (random-dirichlet alphas)
+  (doc 'export #t)
   (if (null? alphas)
       (error 'random-dirichlet "empty alpha list")
       (if (not (andmap positive? alphas))

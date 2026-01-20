@@ -22,12 +22,15 @@
 
 
 (define (make-prob state-comp)
+  (doc 'export #t)
   (cons 'prob state-comp))
 
 (define (prob? x)
+  (doc 'export #t)
   (and (pair? x) (eq? (car x) 'prob)))
 
 (define (prob-state p)
+  (doc 'export #t)
   (cdr p))
 
 
@@ -37,16 +40,20 @@
 
 
 
+(doc prob-get-prng 'export #t)
 (define prob-get-prng
   (state-gets car))
 
 (define (prob-put-prng new-prng)
+  (doc 'export #t)
   (state-modify (lambda (s) (cons new-prng (cdr s)))))
 
+(doc prob-get-weight 'export #t)
 (define prob-get-weight
   (state-gets cdr))
 
 (define (prob-add-weight log-w)
+  (doc 'export #t)
   (state-modify (lambda (s) (cons (car s) (+ (cdr s) log-w)))))
 
 
@@ -57,6 +64,7 @@
 
 
 (define (run-prob p prng)
+  (doc 'export #t)
   (let ([result (run-state (prob-state p) (cons prng 0.0))])
        (let ([value (car result)]
              [final-state (cdr result)])
@@ -64,9 +72,11 @@
                   (car final-state)))))
 
 (define (sample-prob p prng)
+  (doc 'export #t)
   (car (car (run-prob p prng))))
 
 (define (weight-prob p prng)
+  (doc 'export #t)
   (cdr (car (run-prob p prng))))
 
 
@@ -77,9 +87,11 @@
 
 
 (define (prob-pure x)
+  (doc 'export #t)
   (make-prob (state-pure x)))
 
 (define (prob-bind p f)
+  (doc 'export #t)
   (make-prob
    (state-bind (prob-state p)
                (lambda (a)
@@ -89,6 +101,7 @@
   (prob-bind p1 (lambda (_) p2)))
 
 (define (prob-map f p)
+  (doc 'export #t)
   (prob-bind p (lambda (a) (prob-pure (f a)))))
 
 (define (prob-ap pf pa)
@@ -106,6 +119,7 @@
 
 
 (define (sample dist)
+  (doc 'export #t)
   (make-prob
    (make-state
     (lambda (ps)
@@ -161,6 +175,7 @@
 
 
 (define (factor log-prob)
+  (doc 'export #t)
   (make-prob (prob-add-weight log-prob)))
 
 (define (score likelihood)
@@ -169,6 +184,7 @@
       (factor (log-num likelihood))))
 
 (define (observe likelihood-fn observed)
+  (doc 'export #t)
   (score (likelihood-fn observed)))
 
 (define (observe-dist likelihood-fn p)
@@ -178,6 +194,7 @@
                                 (prob-pure x)))))
 
 (define (condition pred p)
+  (doc 'export #t)
   (prob-bind p
              (lambda (x)
                      (if (pred x)
@@ -201,6 +218,7 @@
   (sample-prob p (make-pcg seed 1)))
 
 (define (sample-many p seed n)
+  (doc 'export #t)
   (if (<= n 0)
       '()
       (let loop ([prng (make-pcg seed 1)] [count n] [acc '()])
@@ -268,6 +286,7 @@
 
 
 (define (rejection-sample p seed max-tries)
+  (doc 'export #t)
   (let loop ([prng (make-pcg seed 1)] [tries max-tries])
        (if (<= tries 0)
            nothing
@@ -310,6 +329,7 @@
 
 
 (define (prob-sequence probs)
+  (doc 'export #t)
   (if (null? probs)
       (prob-pure '())
       (prob-bind (car probs)

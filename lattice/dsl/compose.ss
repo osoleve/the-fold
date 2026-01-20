@@ -37,6 +37,7 @@ a DSL with operations from both F and G")
 (doc 'section 'functor-coproduct)
 
 (define (inl fa)
+  (doc 'export #t)
   (doc 'type (-> (f a) (+ f g a)))
   (doc 'description "Inject into left of coproduct")
   (list 'inl fa))
@@ -44,14 +45,17 @@ a DSL with operations from both F and G")
 ;;; inr : g a -> (+ f g) a
 ;;; Inject into right of coproduct
 (define (inr ga)
+  (doc 'export #t)
   (list 'inr ga))
 
 ;;; inl? : (+ f g) a -> Boolean
 (define (inl? x)
+  (doc 'export #t)
   (and (pair? x) (eq? (car x) 'inl)))
 
 ;;; inr? : (+ f g) a -> Boolean
 (define (inr? x)
+  (doc 'export #t)
   (and (pair? x) (eq? (car x) 'inr)))
 
 ;;; from-inl : (+ f g) a -> f a
@@ -64,6 +68,7 @@ a DSL with operations from both F and G")
 ;;; Functor instance for coproduct. Takes the mapping function f and the
 ;;; fmap implementations for each side of the coproduct.
 (define (coproduct-fmap f fmap-f fmap-g fg)
+  (doc 'export #t)
   (if (inl? fg)
       (inl (fmap-f f (from-inl fg)))
       (inr (fmap-g f (from-inr fg)))))
@@ -126,6 +131,7 @@ a DSL with operations from both F and G")
 
 ;;; make-functor-row : (List Symbol) -> FunctorRow
 (define (make-functor-row functors)
+  (doc 'export #t)
   (list 'functor-row functors))
 
 ;;; functor-row? : Any -> Boolean
@@ -151,12 +157,14 @@ a DSL with operations from both F and G")
 
 ;;; functor-row-extend : FunctorRow -> Symbol -> FunctorRow
 (define (functor-row-extend row functor)
+  (doc 'export #t)
   (if (functor-row-contains? row functor)
       row
       (make-functor-row (cons functor (functor-row-functors row)))))
 
 ;;; functor-row-union : FunctorRow -> FunctorRow -> FunctorRow
 (define (functor-row-union row1 row2)
+  (doc 'export #t)
   (let loop ([fs (functor-row-functors row2)] [result row1])
        (if (null? fs)
            result
@@ -205,6 +213,7 @@ a DSL with operations from both F and G")
 ;;; inject : FunctorRow -> TaggedFunctor -> (+ row) a
 ;;; Inject a tagged functor into a row
 (define (inject row tf)
+  (doc 'export #t)
   (let ([tag (tagged-functor-tag tf)]
         [value (tagged-functor-value tf)])
        (let ([index (functor-row-index row tag)])
@@ -344,6 +353,7 @@ a DSL with operations from both F and G")
 
 ;;; make-handler-stack : (List Handler) → HandlerStack
 (define (make-handler-stack handlers)
+  (doc 'export #t)
   (list 'handler-stack handlers))
 
 ;;; handler-stack? : α → Boolean
@@ -359,6 +369,7 @@ a DSL with operations from both F and G")
 ;;; If the final result is a procedure (from function-returning handlers
 ;;; like state+writer-handler), pass optional init-values to it.
 (define (run-with-stack stack eff . init-values)
+  (doc 'export #t)
   (let loop ([handlers (handler-stack-handlers stack)] [computation eff])
        (if (null? handlers)
            (let ([result (if (eff-pure? computation)
@@ -454,6 +465,7 @@ a DSL with operations from both F and G")
 ;;; combine-effect-handlers : (List Handler) → Handler
 ;;; Combine multiple independent effect handlers
 (define (combine-effect-handlers handlers)
+  (doc 'export #t)
   (if (null? handlers)
       (deep-handler identity '())
       (fold-right compose-handlers
@@ -547,6 +559,7 @@ a DSL with operations from both F and G")
 ;;; make-interface : Symbol × (List Symbol) → Interface
 ;;; Define an interface as a named set of required operations
 (define (make-interface name operations)
+  (doc 'export #t)
   (list 'interface name operations))
 
 ;;; interface? : α → Boolean
@@ -562,6 +575,7 @@ a DSL with operations from both F and G")
 ;;; dict-satisfies? : Dict × Interface → Boolean
 ;;; Check if a dictionary implements an interface
 (define (dict-satisfies? d iface)
+  (doc 'export #t)
   (let loop ([ops (interface-operations iface)])
        (or (null? ops)
            (and (dict-has? d (car ops))
@@ -570,6 +584,7 @@ a DSL with operations from both F and G")
 ;;; assert-interface : Dict × Interface → Dict
 ;;; Assert that dict satisfies interface, error otherwise
 (define (assert-interface d iface)
+  (doc 'export #t)
   (if (dict-satisfies? d iface)
       d
       (error 'assert-interface
@@ -617,6 +632,7 @@ a DSL with operations from both F and G")
 
 ;;; make-interpreter : Symbol × (Unit → Dict) → Interpreter
 (define (make-interpreter name make-dict-fn)
+  (doc 'export #t)
   (list 'interpreter name make-dict-fn))
 
 ;;; interpreter? : α → Boolean
@@ -632,6 +648,7 @@ a DSL with operations from both F and G")
 ;;; combine-interpreters : (List Interpreter) → Dict
 ;;; Combine multiple interpreters into one dictionary
 (define (combine-interpreters interps)
+  (doc 'export #t)
   (dict-concat (map interpreter-make interps)))
 
 ;;; ----
@@ -643,6 +660,7 @@ a DSL with operations from both F and G")
 
 ;;; make-transformer : Symbol × (Dict → Dict) → Transformer
 (define (make-transformer name transform-fn)
+  (doc 'export #t)
   (list 'transformer name transform-fn))
 
 ;;; transformer? : α → Boolean
@@ -658,6 +676,7 @@ a DSL with operations from both F and G")
 ;;; chain-transformers : (List Transformer) × Dict → Dict
 ;;; Apply multiple transformers in sequence
 (define (chain-transformers transformers d)
+  (doc 'export #t)
   (fold-left (lambda (dict trans)
                      (transformer-apply trans dict))
              d
@@ -687,6 +706,7 @@ a DSL with operations from both F and G")
 
 ;;; extend-dsl : Dict × (List (Symbol . Procedure)) → Dict
 (define (extend-dsl base-dict new-ops)
+  (doc 'export #t)
   (dict-extend base-dict new-ops))
 
 ;;; Pattern 2: Restriction
@@ -695,6 +715,7 @@ a DSL with operations from both F and G")
 ;;; restrict-dsl : Dict × (List Symbol) → Dict
 ;;; Keep only the specified operations
 (define (restrict-dsl d allowed-ops)
+  (doc 'export #t)
   (make-dict (dict-tag d)
              (filter (lambda (pair)
                              (memq (car pair) allowed-ops))
@@ -743,6 +764,7 @@ a DSL with operations from both F and G")
 ;;; AST-building dictionary. The dict-factory should return a dictionary
 ;;; whose operations build AST nodes instead of computing values.
 (define (tagless->free program ast-dict)
+  (doc 'export #t)
   (program ast-dict))
 
 ;;; make-ast-dict : Symbol × (List (Symbol . (α → Sexp))) → Dict
@@ -775,6 +797,7 @@ a DSL with operations from both F and G")
 ;;; free->tagless : (Sexp × Dict → α) × Sexp → (Dict → α)
 ;;; Convert a Free term to a tagless program using a provided interpreter.
 (define (free->tagless interpret-fn term)
+  (doc 'export #t)
   (lambda (d)
           (interpret-fn term d)))
 
@@ -873,6 +896,7 @@ a DSL with operations from both F and G")
 ;;; verify-composition : Dict × (List Interface) → Boolean
 ;;; Verify that a composed dictionary satisfies all interfaces
 (define (verify-composition d interfaces)
+  (doc 'export #t)
   (let loop ([ifaces interfaces])
        (or (null? ifaces)
            (and (dict-satisfies? d (car ifaces))

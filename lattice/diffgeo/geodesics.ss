@@ -29,13 +29,17 @@
 (doc 'note "This represents a point in the tangent bundle TM")
 
 (define (make-geodesic-state coords velocity)
+  (doc 'export #t)
   (list 'geodesic-state coords velocity))
 
 (define (geodesic-state? x)
+  (doc 'export #t)
   (and (pair? x) (eq? (car x) 'geodesic-state)))
 
 (define (geodesic-state-coords s) (list-ref s 1))
+(doc 'export #t)
 (define (geodesic-state-velocity s) (list-ref s 2))
+(doc 'export #t)
 
 ;;; ============================================================================
 ;;; Geodesic ODE
@@ -50,6 +54,7 @@
 ;;; Compute the geodesic acceleration: a^k = -Γ^k_{ij} v^i v^j
 ;;; Uses cached Christoffel symbols when possible.
 (define (geodesic-acceleration metric coords velocity)
+  (doc 'export #t)
   (let* ([n (metric-dim metric)]
          [gamma (cached-christoffel-symbols metric coords *geodesic-epsilon*)]
          [accel (make-vector n 0)])
@@ -70,6 +75,7 @@
 ;;; Compute the derivative of the geodesic state (for RK4 integration).
 ;;; Returns (dx/dt . dv/dt) = (v . -Γv²).
 (define (geodesic-derivative metric state)
+  (doc 'export #t)
   (let ([coords (geodesic-state-coords state)]
         [velocity (geodesic-state-velocity state)])
     (cons velocity (geodesic-acceleration metric coords velocity))))
@@ -81,6 +87,7 @@
 ;;; rk4-geodesic-step : Metric × GeodesicState × Num → GeodesicState
 ;;; Take one RK4 step of size dt.
 (define (rk4-geodesic-step metric state dt)
+  (doc 'export #t)
   (let* ([x0 (geodesic-state-coords state)]
          [v0 (geodesic-state-velocity state)]
          [n (vector-length x0)]
@@ -134,6 +141,7 @@
 (doc trace-geodesic 'description "Trace a geodesic from initial position with initial velocity for time T")
 (doc trace-geodesic 'returns "List of states sampled at n-steps+1 points (including start/end)")
 (define (trace-geodesic metric initial-coords initial-velocity T n-steps)
+  (doc 'export #t)
   (let* ([dt (/ T n-steps)]
          [state0 (make-geodesic-state initial-coords initial-velocity)])
     (let loop ([state state0] [i 0] [states (list state0)])
@@ -145,6 +153,7 @@
 ;;; trace-geodesic-final : Metric × Vec × Vec × Num × Nat → GeodesicState
 ;;; Trace a geodesic and return only the final state.
 (define (trace-geodesic-final metric initial-coords initial-velocity T n-steps)
+  (doc 'export #t)
   (let* ([dt (/ T n-steps)]
          [state (make-geodesic-state initial-coords initial-velocity)])
     (let loop ([state state] [i 0])
@@ -160,6 +169,7 @@
 (doc exp-map 'description "Compute the exponential map: exp_p(v) = geodesic from p with velocity v at t=1")
 (doc exp-map 'param "n-steps: optional integration steps (default 100)")
 (define (exp-map metric base-coords tangent-vec . opts)
+  (doc 'export #t)
   (let ([n-steps (if (null? opts) 100 (car opts))])
     (geodesic-state-coords
      (trace-geodesic-final metric base-coords tangent-vec 1.0 n-steps))))
@@ -167,6 +177,7 @@
 ;;; exp-map-t : Metric × Vec × Vec × Num × [Nat] → Vec
 ;;; Exponential map evaluated at time t (not just t=1).
 (define (exp-map-t metric base-coords tangent-vec t . opts)
+  (doc 'export #t)
   (let ([n-steps (if (null? opts) 100 (car opts))])
     (geodesic-state-coords
      (trace-geodesic-final metric base-coords tangent-vec t n-steps))))
@@ -191,6 +202,7 @@
 (doc log-map 'param "tol: convergence tolerance (default *geodesic-tolerance*)")
 (doc log-map 'param "max-iter: maximum iterations (default *geodesic-max-iterations*)")
 (define (log-map metric p q . opts)
+  (doc 'export #t)
   (let* ([n-steps (if (null? opts) 100 (car opts))]
          [tol (if (or (null? opts) (null? (cdr opts)))
                   *geodesic-tolerance*
@@ -400,6 +412,7 @@
 ;;; initial velocity tangent-vec for time T.
 ;;; Returns the transported vector at the endpoint.
 (define (parallel-transport metric p tangent-vec V T . opts)
+  (doc 'export #t)
   (let* ([n-steps (if (null? opts) 100 (car opts))]
          [dt (/ T n-steps)]
          [state (make-geodesic-state p tangent-vec)])
@@ -413,6 +426,7 @@
 ;;; Parallel transport V from p to exp_p(tangent-vec).
 ;;; Shorthand for parallel-transport with T=1.
 (define (parallel-transport-along-geodesic metric p tangent-vec V . opts)
+  (doc 'export #t)
   (apply parallel-transport metric p tangent-vec V 1.0 opts))
 
 ;;; ============================================================================
@@ -427,6 +441,7 @@
 ;;;   1. Find initial velocity v = log_p(q)
 ;;;   2. Distance = ||v||_g = sqrt(g(v,v))
 (define (geodesic-distance metric p q . opts)
+  (doc 'export #t)
   (let ([result (apply log-map metric p q opts)])
     (if (and (pair? result) (eq? (car result) 'ok))
         (let ([v (cadr result)])
@@ -436,6 +451,7 @@
 ;;; geodesic-length : Metric × (List GeodesicState) → Num
 ;;; Compute the arc length of a traced geodesic by numerical integration.
 (define (geodesic-length metric states)
+  (doc 'export #t)
   (if (or (null? states) (null? (cdr states)))
       0
       (let loop ([states states] [length 0])
@@ -460,6 +476,7 @@
 ;;; t=0 gives p, t=1 gives q.
 ;;; Returns the interpolated point on success, or (err message) if log-map fails.
 (define (geodesic-interpolate metric p q t . opts)
+  (doc 'export #t)
   (let ([result (apply log-map metric p q opts)])
     (if (and (pair? result) (eq? (car result) 'ok))
         (let* ([v (cadr result)]
@@ -476,6 +493,7 @@
 ;;; Returns the endpoints after traveling distance r.
 ;;; Useful for visualizing the exponential map.
 (define (geodesic-spray metric p n-rays radius n-steps)
+  (doc 'export #t)
   (let ([dim (metric-dim metric)])
     (if (not (= dim 2))
         (error 'geodesic-spray "only 2D supported for now")
@@ -512,16 +530,19 @@
 (define *christoffel-cache-misses* 0)
 
 (define (clear-christoffel-cache!)
+  (doc 'export #t)
   (set! *christoffel-cache* #f)
   (set! *christoffel-cache-coords* #f)
   (set! *christoffel-cache-metric* #f)
   (set! *christoffel-cache-epsilon* #f))
 
 (define (reset-christoffel-cache-stats!)
+  (doc 'export #t)
   (set! *christoffel-cache-hits* 0)
   (set! *christoffel-cache-misses* 0))
 
 (define (christoffel-cache-stats)
+  (doc 'export #t)
   (let ([total (+ *christoffel-cache-hits* *christoffel-cache-misses*)])
     (list 'hits *christoffel-cache-hits*
           'misses *christoffel-cache-misses*
@@ -546,6 +567,7 @@
 ;;; Return Christoffel symbols, using cache when possible.
 ;;; Cache key includes: metric identity, epsilon value, and coordinate proximity.
 (define (cached-christoffel-symbols metric coords epsilon)
+  (doc 'export #t)
   (if (and *christoffel-cache*
            (eq? metric *christoffel-cache-metric*)
            (= epsilon *christoffel-cache-epsilon*)  ; Epsilon must match exactly

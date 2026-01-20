@@ -90,44 +90,52 @@
 (doc 'note "Simplex = (simplex vertices) where vertices is a sorted list of vertex labels (any comparable values)")
 
 (define (make-simplex vertices)
+  (doc 'export #t)
   (doc 'type '(-> (List Vertex) Simplex))
   (doc 'description "Create a simplex from a list of vertices")
   (doc 'note "Vertices are sorted for canonical representation. Duplicate vertices are removed (degenerate simplices normalized)")
   (list 'simplex (unique-sorted (sort-by generic<? vertices))))
 
 (define (simplex? x)
+  (doc 'export #t)
   (doc 'type '(-> α Boolean))
   (doc 'description "Check if value is a simplex")
   (and (pair? x) (eq? (car x) 'simplex)))
 
 (define (simplex-vertices s)
+  (doc 'export #t)
   (doc 'type '(-> Simplex (List Vertex)))
   (doc 'description "Get the sorted vertex list of a simplex")
   (cadr s))
 
 (define (simplex-dim s)
+  (doc 'export #t)
   (doc 'type '(-> Simplex Integer))
   (doc 'description "Get the dimension of a simplex (number of vertices - 1)")
   (doc 'note "A 0-simplex (single vertex) has dimension 0")
   (- (length (simplex-vertices s)) 1))
 
 (define (simplex-empty? s)
+  (doc 'export #t)
   (doc 'type '(-> Simplex Boolean))
   (doc 'description "Check if simplex is the empty simplex (no vertices)")
   (null? (simplex-vertices s)))
 
 (define (simplex-equal? s1 s2)
+  (doc 'export #t)
   (doc 'type '(-> Simplex Simplex Boolean))
   (doc 'description "Check if two simplices are equal (same vertices)")
   (doc 'note "Since vertices are sorted, we can use equal?")
   (equal? (simplex-vertices s1) (simplex-vertices s2)))
 
 (define (simplex-contains-vertex? s v)
+  (doc 'export #t)
   (doc 'type '(-> Simplex Vertex Boolean))
   (doc 'description "Check if a simplex contains a specific vertex")
   (set-member? v (simplex-vertices s)))
 
 (define (simplex-face? s1 s2)
+  (doc 'export #t)
   (doc 'type '(-> Simplex Simplex Boolean))
   (doc 'description "Check if s1 is a face of s2 (s1's vertices are a subset of s2's)")
   (set-subset? (simplex-vertices s1) (simplex-vertices s2)))
@@ -144,6 +152,7 @@
       [else (loop (cdr remaining) (+ idx 1) (cons (car remaining) acc))])))
 
 (define (simplex-facets s)
+  (doc 'export #t)
   (doc 'type '(-> Simplex (List Simplex)))
   (doc 'description "Get all facets (codimension-1 faces) of a simplex")
   (doc 'note "Each facet is obtained by removing one vertex. Returns list of (dim-1)-simplices. A vertex (0-simplex) has no facets")
@@ -158,6 +167,7 @@
                     (cons (make-simplex (remove-at verts i)) acc)))))))
 
 (define (simplex-faces-of-dim s k)
+  (doc 'export #t)
   (doc 'type '(-> Simplex Integer (List Simplex)))
   (doc 'description "Get all k-dimensional faces of a simplex")
   (doc 'note "A k-face has k+1 vertices")
@@ -182,6 +192,7 @@
        (combinations (cdr lst) k))]))
 
 (define (simplex-all-faces s)
+  (doc 'export #t)
   (doc 'type '(-> Simplex (List Simplex)))
   (doc 'description "Get all faces of a simplex, including the simplex itself")
   (doc 'note "Ordered from dimension 0 up to the simplex's dimension")
@@ -191,6 +202,7 @@
                 (iota (+ d 1))))))
 
 (define (simplex-proper-faces s)
+  (doc 'export #t)
   (doc 'type '(-> Simplex (List Simplex)))
   (doc 'description "Get all proper faces (faces excluding the simplex itself)")
   (let ([d (simplex-dim s)])
@@ -214,10 +226,12 @@
 
 (doc sc-empty 'type 'SimplicalComplex)
 (doc sc-empty 'description "The empty simplicial complex")
+(doc sc-empty 'export #t)
 (define sc-empty
   (list 'sc (vector) -1))
 
 (define (sc? x)
+  (doc 'export #t)
   (doc 'type '(-> α Boolean))
   (and (pair? x) (eq? (car x) 'sc)))
 
@@ -226,6 +240,7 @@
   (cadr sc))
 
 (define (sc-max-dim sc)
+  (doc 'export #t)
   (doc 'type '(-> SC Integer))
   (caddr sc))
 
@@ -267,6 +282,7 @@
     [else (simplex-in-list? s (cdr lst))]))
 
 (define (sc-add-simplex sc s)
+  (doc 'export #t)
   (doc 'type '(-> SC Simplex SC))
   (doc 'description "Add a simplex and all its faces to the complex")
   (doc 'note "This ensures the closure property is maintained")
@@ -277,6 +293,7 @@
               (cdr to-add)))))
 
 (define (sc-from-simplices simplices)
+  (doc 'export #t)
   (doc 'type '(-> (List Simplex) SC))
   (doc 'description "Build a simplicial complex from a list of simplices")
   (doc 'note "Automatically adds all faces to maintain closure property")
@@ -287,6 +304,7 @@
               (cdr remaining)))))
 
 (define (sc-contains? sc s)
+  (doc 'export #t)
   (doc 'type '(-> SC Simplex Boolean))
   (doc 'description "Check if a simplex is in the complex")
   (let* ([dim (simplex-dim s)]
@@ -296,6 +314,7 @@
         (simplex-in-list? s (vector-ref vec dim)))))
 
 (define (sc-simplices sc)
+  (doc 'export #t)
   (doc 'type '(-> SC (List Simplex)))
   (doc 'description "Get all simplices in the complex as a flat list")
   (let* ([vec (sc-simplices-by-dim sc)]
@@ -306,6 +325,7 @@
           (loop (+ i 1) (append (reverse (vector-ref vec i)) acc))))))
 
 (define (sc-simplices-dim sc k)
+  (doc 'export #t)
   (doc 'type '(-> SC Integer (List Simplex)))
   (doc 'description "Get all simplices of a specific dimension")
   (let ([vec (sc-simplices-by-dim sc)])
@@ -314,27 +334,32 @@
         (vector-ref vec k))))
 
 (define (sc-vertices sc)
+  (doc 'export #t)
   (doc 'type '(-> SC (List Vertex)))
   (doc 'description "Get all vertices (0-simplices) in the complex")
   (map (lambda (s) (car (simplex-vertices s)))
        (sc-simplices-dim sc 0)))
 
 (define (sc-edges sc)
+  (doc 'export #t)
   (doc 'type '(-> SC (List Simplex)))
   (doc 'description "Get all edges (1-simplices) in the complex")
   (sc-simplices-dim sc 1))
 
 (define (sc-faces sc)
+  (doc 'export #t)
   (doc 'type '(-> SC (List Simplex)))
   (doc 'description "Get all faces (2-simplices) in the complex")
   (sc-simplices-dim sc 2))
 
 (define (sc-count sc)
+  (doc 'export #t)
   (doc 'type '(-> SC Integer))
   (doc 'description "Count total number of simplices")
   (length (sc-simplices sc)))
 
 (define (sc-count-dim sc k)
+  (doc 'export #t)
   (doc 'type '(-> SC Integer Integer))
   (doc 'description "Count simplices of a given dimension")
   (length (sc-simplices-dim sc k)))
@@ -342,6 +367,7 @@
 (doc 'section 'skeleton-subcomplex)
 
 (define (sc-skeleton sc k)
+  (doc 'export #t)
   (doc 'type '(-> SC Integer SC))
   (doc 'description "Get the k-skeleton: all simplices of dimension ≤ k")
   (let* ([vec (sc-simplices-by-dim sc)]
@@ -354,17 +380,20 @@
     (list 'sc new-vec k)))
 
 (define (sc-star sc s)
+  (doc 'export #t)
   (doc 'type '(-> SC Simplex (List Simplex)))
   (doc 'description "Get the star of a simplex: all simplices that contain it as a face")
   (filter (lambda (t) (simplex-face? s t))
           (sc-simplices sc)))
 
 (define (sc-closed-star sc s)
+  (doc 'export #t)
   (doc 'type '(-> SC Simplex SC))
   (doc 'description "Get the closed star: the smallest subcomplex containing the star")
   (sc-from-simplices (sc-star sc s)))
 
 (define (sc-link sc s)
+  (doc 'export #t)
   (doc 'type '(-> SC Simplex SC))
   (doc 'description "Get the link of a simplex: faces of the closed star that don't intersect s")
   (doc 'note "Link(s) = {t ∈ Cl(St(s)) | t ∩ s = ∅}")
@@ -386,9 +415,11 @@ For now we use integer coefficients (Z-chains)")
   terms)
 
 (doc chain-empty 'type 'Chain)
+(doc chain-empty 'export #t)
 (define chain-empty '())
 
 (define (chain-add-term chain coeff s)
+  (doc 'export #t)
   (doc 'type '(-> Chain Integer Simplex Chain))
   (doc 'description "Add a term to a chain, combining coefficients if simplex already present")
   (let loop ([remaining chain] [acc '()] [found #f])
@@ -406,6 +437,7 @@ For now we use integer coefficients (Z-chains)")
        (loop (cdr remaining) (cons (car remaining) acc) found)])))
 
 (define (simplex-boundary s)
+  (doc 'export #t)
   (doc 'type '(-> Simplex Chain))
   (doc 'description "Compute the boundary of a simplex as a chain")
   (doc 'note "∂[v0, v1, ..., vn] = Σ (-1)^i [v0, ..., v̂i, ..., vn] where v̂i means vi is omitted")
@@ -421,6 +453,7 @@ For now we use integer coefficients (Z-chains)")
                 (loop (+ i 1) (chain-add-term chain sign face))))))))
 
 (define (chain-boundary chain)
+  (doc 'export #t)
   (doc 'type '(-> Chain Chain))
   (doc 'description "Extend boundary operator linearly to chains")
   (doc 'note "∂(Σ ai·σi) = Σ ai·∂σi")
@@ -449,6 +482,7 @@ For now we use integer coefficients (Z-chains)")
 (doc 'section 'topological-invariants)
 
 (define (sc-euler sc)
+  (doc 'export #t)
   (doc 'type '(-> SC Integer))
   (doc 'description "Compute Euler characteristic: χ = Σ (-1)^k f_k")
   (doc 'note "where f_k is the number of k-simplices")
@@ -461,6 +495,7 @@ For now we use integer coefficients (Z-chains)")
             (loop (+ k 1) (+ sum (* sign count))))))))
 
 (define (sc-f-vector sc)
+  (doc 'export #t)
   (doc 'type '(-> SC (List Integer)))
   (doc 'description "Get the f-vector: (f_0, f_1, ..., f_d)")
   (doc 'note "where f_k = number of k-simplices")
@@ -476,39 +511,47 @@ For now we use integer coefficients (Z-chains)")
 Filtered Simplex = (filtered-simplex simplex value)")
 
 (define (make-filtered-simplex s value)
+  (doc 'export #t)
   (doc 'type '(-> Simplex Number FilteredSimplex))
   (list 'filtered-simplex s value))
 
 (define (filtered-simplex? x)
+  (doc 'export #t)
   (doc 'type '(-> α Boolean))
   (and (pair? x) (eq? (car x) 'filtered-simplex)))
 
 (define (filtered-simplex-base fs)
+  (doc 'export #t)
   (doc 'type '(-> FilteredSimplex Simplex))
   (cadr fs))
 
 (define (filtered-simplex-value fs)
+  (doc 'export #t)
   (doc 'type '(-> FilteredSimplex Number))
   (caddr fs))
 
 (doc 'section 'convenience-constructors)
 
 (define (vertex v)
+  (doc 'export #t)
   (doc 'type '(-> Vertex Simplex))
   (doc 'description "Create a 0-simplex (single vertex)")
   (make-simplex (list v)))
 
 (define (edge v1 v2)
+  (doc 'export #t)
   (doc 'type '(-> Vertex Vertex Simplex))
   (doc 'description "Create a 1-simplex from two vertices")
   (make-simplex (list v1 v2)))
 
 (define (triangle v1 v2 v3)
+  (doc 'export #t)
   (doc 'type '(-> Vertex Vertex Vertex Simplex))
   (doc 'description "Create a 2-simplex from three vertices")
   (make-simplex (list v1 v2 v3)))
 
 (define (tetrahedron v1 v2 v3 v4)
+  (doc 'export #t)
   (doc 'type '(-> Vertex Vertex Vertex Vertex Simplex))
   (doc 'description "Create a 3-simplex from four vertices")
   (make-simplex (list v1 v2 v3 v4)))
@@ -516,11 +559,13 @@ Filtered Simplex = (filtered-simplex simplex value)")
 (doc 'section 'standard-complexes)
 
 (define (sc-simplex n)
+  (doc 'export #t)
   (doc 'type '(-> Integer SC))
   (doc 'description "Create the standard n-simplex with vertices 0, 1, ..., n")
   (sc-from-simplices (list (make-simplex (iota (+ n 1))))))
 
 (define (sc-boundary-of-simplex n)
+  (doc 'export #t)
   (doc 'type '(-> Integer SC))
   (doc 'description "Create the boundary of the standard n-simplex")
   (doc 'note "This is homeomorphic to S^(n-1)")
@@ -528,6 +573,7 @@ Filtered Simplex = (filtered-simplex simplex value)")
     (sc-from-simplices (simplex-facets s))))
 
 (define (sc-discrete vertices)
+  (doc 'export #t)
   (doc 'type '(-> (List Vertex) SC))
   (doc 'description "Create a discrete complex (just vertices, no higher simplices)")
   (sc-from-simplices (map vertex vertices)))

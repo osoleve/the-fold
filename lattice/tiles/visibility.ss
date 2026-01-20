@@ -6,6 +6,7 @@
 (doc 'section 'line-of-sight)
 
 (define (has-line-of-sight? board origin target line-fn blocks-vision-fn)
+  (doc 'export #t)
   (doc 'description "Check if there's clear line of sight from origin to target")
   (doc 'type '(-> Board Coord Coord (-> Coord Coord (List Coord)) (-> Coord Bool) Bool))
   (doc 'param 'line-fn "Returns coordinates along line (exclusive of origin, inclusive of target)")
@@ -20,6 +21,7 @@
              [else (loop (cdr coords))])))) ; Continue along line
 
 (define (board-has-los? board origin target line-fn)
+  (doc 'export #t)
   (doc 'description "Check line of sight using board's vision-blocking tile property")
   (doc 'type '(-> Board Coord Coord (-> Coord Coord (List Coord)) Bool))
   (has-line-of-sight?
@@ -31,6 +33,7 @@
 (doc 'section 'field-of-view)
 
 (define (calculate-fov board origin max-radius neighbor-fn line-fn blocks-vision-fn)
+  (doc 'export #t)
   (doc 'description "Calculate field of view from origin within radius. Uses simple raycast FOV.")
   (doc 'type '(-> Board Coord Integer (-> Coord (List Coord)) (-> Coord Coord (List Coord)) (-> Coord Bool) (List Coord)))
   (doc 'param 'neighbor-fn "Function to get neighbors")
@@ -72,6 +75,7 @@
                                 (loop (append rest-q valid-neighbors) visited distance))))))))
 
 (define (board-fov board origin max-radius neighbor-fn line-fn)
+  (doc 'export #t)
   (doc 'description "Calculate field of view using board's vision-blocking tile property")
   (doc 'type '(-> Board Coord Integer (-> Coord (List Coord)) (-> Coord Coord (List Coord)) (List Coord)))
   (calculate-fov
@@ -85,6 +89,7 @@
 (doc 'section 'shadowcasting)
 
 (define (shadowcast-fov board origin max-radius neighbor-fn line-fn blocks-vision-fn distance-fn)
+  (doc 'export #t)
   (doc 'description "Calculate field of view using recursive shadowcasting. Currently a placeholder using raycast FOV.")
   (doc 'type '(-> Board Coord Integer (-> Coord (List Coord)) (-> Coord Coord (List Coord)) (-> Coord Bool) (-> Coord Coord Number) (List Coord)))
   (doc 'todo "Implement proper shadowcasting algorithm")
@@ -95,6 +100,7 @@
 (doc 'section 'utilities)
 
 (define (visible-enemies board origin max-radius neighbor-fn line-fn is-enemy-fn)
+  (doc 'export #t)
   (doc 'description "Get all enemy positions visible from origin")
   (doc 'type '(-> Board Coord Integer (-> Coord (List Coord)) (-> Coord Coord (List Coord)) (-> Coord Bool) (List Coord)))
   (doc 'param 'is-enemy-fn "Predicate to check if coordinate has enemy")
@@ -103,6 +109,7 @@
        (filter is-enemy-fn visible-tiles)))
 
 (define (tiles-in-sight board origin target line-fn)
+  (doc 'export #t)
   (doc 'description "Get all tiles along line of sight from origin to target")
   (doc 'type '(-> Board Coord Coord (-> Coord Coord (List Coord)) (List Coord)))
   (doc 'returns "List of coordinates along the line (including origin and target)")

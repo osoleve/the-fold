@@ -14,6 +14,7 @@
 (doc 'section 'bhattacharyya-distance)
 
 (define (bhattacharyya-coefficient p q)
+  (doc 'export #t)
   (doc 'type '(-> (List Real) (List Real) Real))
   (doc 'description "Bhattacharyya coefficient BC(P,Q) = sum(sqrt(p_i * q_i)), range [0, 1]")
   (if (or (null? p) (null? q))
@@ -26,6 +27,7 @@
                       p q))))
 
 (define (bhattacharyya-distance p q)
+  (doc 'export #t)
   (doc 'type '(-> (List Real) (List Real) Real))
   (doc 'description "Bhattacharyya distance D_B(P,Q) = -ln(BC(P,Q)), range [0, +inf)")
   (let ([bc (bhattacharyya-coefficient p q)])
@@ -36,6 +38,7 @@
 (doc 'section 'hellinger-distance)
 
 (define (hellinger-distance p q)
+  (doc 'export #t)
   (doc 'type '(-> (List Real) (List Real) Real))
   (doc 'description "Hellinger distance, symmetric measure in [0, 1], H^2 = 1 - BC")
   (if (or (null? p) (null? q))
@@ -49,6 +52,7 @@
            (sqrt (* 0.5 sum-sq)))))
 
 (define (hellinger-distance-from-bc bc)
+  (doc 'export #t)
   (doc 'type '(-> Real Real))
   (doc 'description "Compute Hellinger distance from Bhattacharyya coefficient: H = sqrt(1 - BC)")
   (sqrt (- 1 (max 0 (min 1 bc)))))
@@ -56,6 +60,7 @@
 (doc 'section 'total-variation-distance)
 
 (define (total-variation-distance p q)
+  (doc 'export #t)
   (doc 'type '(-> (List Real) (List Real) Real))
   (doc 'description "Total variation distance TV(P,Q) = 1/2 * sum(|p_i - q_i|), range [0, 1]")
   (if (or (null? p) (null? q))
@@ -68,6 +73,7 @@
 (doc 'section 'chi-squared-divergence)
 
 (define (chi-squared-divergence p q)
+  (doc 'export #t)
   (doc 'type '(-> (List Real) (List Real) Real))
   (doc 'description "Chi-squared divergence χ²(P||Q) = sum((p_i - q_i)^2 / q_i)")
   (if (or (null? p) (null? q))
@@ -83,6 +89,7 @@
                       p q))))
 
 (define (symmetric-chi-squared p q)
+  (doc 'export #t)
   (doc 'type '(-> (List Real) (List Real) Real))
   (doc 'description "Symmetric chi-squared divergence: (χ²(P||Q) + χ²(Q||P)) / 2")
   (let ([pq (chi-squared-divergence p q)]
@@ -94,6 +101,7 @@
 (doc 'section 'jeffreys-divergence)
 
 (define (jeffreys-divergence p q)
+  (doc 'export #t)
   (doc 'type '(-> (List Real) (List Real) Real))
   (doc 'description "Jeffreys divergence J(P,Q) = D_KL(P||Q) + D_KL(Q||P), symmetric KL")
   (let ([kl-pq (kl-divergence p q)]
@@ -103,6 +111,7 @@
 (doc 'section 'alpha-divergence)
 
 (define (alpha-divergence alpha p q)
+  (doc 'export #t)
   (doc 'type '(-> Real (List Real) (List Real) Real))
   (doc 'description "Alpha-divergence (Rényi divergence), generalizes KL, Hellinger, chi-squared")
   (cond
@@ -137,6 +146,7 @@
 (doc 'section 'squared-hellinger-distance)
 
 (define (squared-hellinger-distance p q)
+  (doc 'export #t)
   (doc 'type '(-> (List Real) (List Real) Real))
   (doc 'description "Squared Hellinger distance H²(P,Q) = 1 - BC(P,Q)")
   (let ([bc (bhattacharyya-coefficient p q)])
@@ -145,6 +155,7 @@
 (doc 'section 'triangular-discrimination)
 
 (define (triangular-discrimination p q)
+  (doc 'export #t)
   (doc 'type '(-> (List Real) (List Real) Real))
   (doc 'description "Triangular discrimination Δ(P,Q) = sum((p_i - q_i)^2 / (p_i + q_i))")
   (if (or (null? p) (null? q))
@@ -160,11 +171,13 @@
 
 (doc 'section 'pearson-and-neyman)
 
+(doc pearson-divergence 'export #t)
 (define pearson-divergence chi-squared-divergence)
 (doc pearson-divergence 'type '(-> (List Real) (List Real) Real))
 (doc pearson-divergence 'description "Pearson chi-squared divergence (alias for chi-squared-divergence)")
 
 (define (neyman-divergence p q)
+  (doc 'export #t)
   (doc 'type '(-> (List Real) (List Real) Real))
   (doc 'description "Neyman chi-squared divergence (reverse Pearson)")
   (chi-squared-divergence q p))
@@ -172,6 +185,7 @@
 (doc 'section 'k-divergence)
 
 (define (k-divergence p q)
+  (doc 'export #t)
   (doc 'type '(-> (List Real) (List Real) Real))
   (doc 'description "K-divergence: symmetric measure based on harmonic mean")
   (if (or (null? p) (null? q))
@@ -189,6 +203,7 @@
 (doc 'section 'squared-loss-divergence)
 
 (define (squared-loss p q)
+  (doc 'export #t)
   (doc 'type '(-> (List Real) (List Real) Real))
   (doc 'description "Squared loss (squared L2 distance): sum((p_i - q_i)^2)")
   (if (or (null? p) (null? q))
@@ -200,6 +215,7 @@
                       p q))))
 
 (define (euclidean-distance p q)
+  (doc 'export #t)
   (doc 'type '(-> (List Real) (List Real) Real))
   (doc 'description "Euclidean distance (L2 norm): sqrt(sum((p_i - q_i)^2))")
   (sqrt (squared-loss p q)))
@@ -207,6 +223,7 @@
 (doc 'section 'matusita-distance)
 
 (define (matusita-distance p q)
+  (doc 'export #t)
   (doc 'type '(-> (List Real) (List Real) Real))
   (doc 'description "Matusita distance: sqrt(sum((sqrt(p_i) - sqrt(q_i))^2))")
   (if (or (null? p) (null? q))
@@ -221,6 +238,7 @@
 
 (doc 'section 'fidelity)
 
+(doc fidelity 'export #t)
 (define fidelity bhattacharyya-coefficient)
 (doc fidelity 'type '(-> (List Real) (List Real) Real))
 (doc fidelity 'description "Fidelity F(P,Q) = sum(sqrt(p_i * q_i)), quantum analogy")
@@ -228,6 +246,7 @@
 (doc 'section 'summary-statistics)
 
 (define (all-divergences p q)
+  (doc 'export #t)
   (doc 'type '(-> (List Real) (List Real) (List (Pair Symbol Real))))
   (doc 'description "Compute multiple divergence measures for comparison")
   (list
@@ -248,6 +267,7 @@
 (doc 'section 'utility-functions)
 
 (define (valid-distribution? p)
+  (doc 'export #t)
   (doc 'type '(-> (List Real) Boolean))
   (doc 'description "Check if list is a valid probability distribution")
   (and (not (null? p))
@@ -256,6 +276,7 @@
             (< (abs (- sum 1.0)) 1e-6))))
 
 (define (normalize-distribution weights)
+  (doc 'export #t)
   (doc 'type '(-> (List Real) (List Real)))
   (doc 'description "Normalize non-negative weights to sum to 1")
   (let ([total (fold-left + 0 weights)])

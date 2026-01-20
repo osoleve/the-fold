@@ -25,6 +25,7 @@
 ;;; Note: This always uses reverse mode since f uses traced operations.
 ;;; For forward mode Jacobian, use jacobian-dual with dual operations.
 (define (jacobian f args)
+  (doc 'export #t)
   (let* ([n (length args)]
          [sample-result (apply f (map (lambda (x) (make-traced-var x (make-reverse-tape)))
                                       args))]
@@ -39,6 +40,7 @@
 ;;; Compute Jacobian using reverse mode (efficient when m <= n).
 ;;; Requires m backward passes.
 (define (jacobian-reverse f args n m)
+  (doc 'export #t)
   (let ([result (make-vector (* m n) 0)])
        ;; For each output i, compute gradient (row i of Jacobian)
        (do ([i 0 (+ i 1)])
@@ -66,6 +68,7 @@
 ;;; Requires n forward passes.
 ;;; Note: f must use dual operations (dual-add, dual-mul, etc.)
 (define (jacobian-forward f args n m)
+  (doc 'export #t)
   (let ([result (make-vector (* m n) 0)])
        ;; For each input j, compute column j of Jacobian
        (do ([j 0 (+ j 1)])
@@ -99,6 +102,7 @@
 ;;; hessian : ((Traced ...) → Traced) × (List Number) → Matrix
 ;;; Compute the Hessian matrix of a scalar function at a point.
 (define (hessian f args)
+  (doc 'export #t)
   (let ([n (length args)])
        (hessian-reverse-forward f args n)))
 
@@ -193,6 +197,7 @@
 ;;; Compute vector-Jacobian product v^T J at point args.
 ;;; v is a vector of length m (number of outputs).
 (define (vjp f args v)
+  (doc 'export #t)
   (reset-traced-ids!)
   (let* ([tape (make-reverse-tape)]
          [traced-args (map (lambda (x) (make-traced-var x tape)) args)]
@@ -239,6 +244,7 @@
 ;;; Compute Jacobian-vector product Jv at point args.
 ;;; v is a vector of length n (number of inputs).
 (define (jvp f args v)
+  (doc 'export #t)
   (let* ([dual-args (map (lambda (x dx) (dual x dx)) args v)]
          [outputs (apply f dual-args)])
         ;; Check for dual? first since duals are also lists
@@ -253,6 +259,7 @@
 ;;; grad : ((Traced ...) → Traced) × (List Number) → (List Number)
 ;;; Compute gradient of scalar function (wrapper for clarity).
 (define (grad f args)
+  (doc 'export #t)
   (gradient f args))
 
 ;;; directional-derivative : ((Traced ...) → Traced) × (List Number) × (List Number) → Number
@@ -298,6 +305,7 @@
 ;;;   (hessian-exact (lambda (x y) (hd-add (hd-sq x) (hd-sq y))) '(1 2))
 ;;;   -> Matrix with H[0,0]=2, H[1,1]=2, H[0,1]=H[1,0]=0
 (define (hessian-exact f args)
+  (doc 'export #t)
   (hessian-forward f args))
 
 ;;; second-derivative-exact : (Hyperdual → Hyperdual) × Number → Number
@@ -307,6 +315,7 @@
 ;;;   (second-derivative-exact hd-sin 0)  ; -> -sin(0) = 0
 ;;;   (second-derivative-exact hd-exp 0)  ; -> e^0 = 1
 (define (second-derivative-exact f x)
+  (doc 'export #t)
   (second-derivative-forward f x))
 
 ;;; ====

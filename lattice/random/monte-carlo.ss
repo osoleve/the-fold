@@ -116,6 +116,7 @@
 
 
 (define (importance-sample f weight-fn proposal-sampler n)
+  (doc 'export #t)
   (state-bind (random-list n proposal-sampler)
               (lambda (samples)
                       (let* ([weights (map weight-fn samples)]
@@ -153,6 +154,7 @@
 
 
 (define (rejection-sample target-density M proposal-sampler proposal-density)
+  (doc 'export #t)
   (make-state
    (lambda (gen)
            (let loop ([g gen])

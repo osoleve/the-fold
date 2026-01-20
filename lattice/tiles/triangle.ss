@@ -10,6 +10,7 @@
   (fields row col orientation))
 
 (define (triangle-coord row col orientation)
+  (doc 'export #t)
   (doc 'description "Create triangular coordinate")
   (doc 'type '(-> Integer Integer Symbol TriangleCoord))
   (doc 'param 'orientation "Must be 'up or 'down")
@@ -98,6 +99,7 @@
           (list (triangle-flip t))))
 
 (define (triangle-neighbors coord mode)
+  (doc 'export #t)
   (doc 'description "Generic neighbor function. Mode: 'edge, 'vertex, or 'all")
   (doc 'type '(-> TriangleCoord Symbol (List TriangleCoord)))
   (case mode
@@ -109,6 +111,7 @@
 (doc 'section 'distance)
 
 (define (triangle-distance-manhattan t1 t2)
+  (doc 'export #t)
   (doc 'description "Approximate distance (sum of row/col differences). Underestimates true distance.")
   (doc 'type '(-> TriangleCoord TriangleCoord Integer))
   (doc 'note "For exact distance, use pathfinding (BFS/Dijkstra)")
@@ -122,6 +125,7 @@
 (doc 'section 'line-drawing)
 
 (define (triangle-line t1 t2)
+  (doc 'export #t)
   (doc 'description "Get triangles on approximate line from t1 to t2. Uses row-major stepping.")
   (doc 'type '(-> TriangleCoord TriangleCoord (List TriangleCoord)))
   (let* ([r1 (triangle-row t1)]
@@ -146,6 +150,7 @@
 (doc 'section 'range)
 
 (define (triangle-range center radius)
+  (doc 'export #t)
   (doc 'description "Get all triangles within approximate distance N. Uses Manhattan approximation.")
   (doc 'type '(-> TriangleCoord Integer (List TriangleCoord)))
   (let ([cr (triangle-row center)]
@@ -169,6 +174,7 @@
 
 (doc 'section 'board-creation)
 
+(doc make-triangle-board 'export #t)
 (define make-triangle-board
   (case-lambda
    [(rows cols)

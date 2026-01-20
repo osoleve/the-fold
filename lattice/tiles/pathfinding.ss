@@ -52,6 +52,7 @@
 (doc 'section 'bfs)
 
 (define (bfs-path start goal neighbor-fn walkable-fn)
+  (doc 'export #t)
   (doc 'description "Find shortest path using BFS (unweighted)")
   (doc 'type '(-> Coord Coord (-> Coord (List Coord)) (-> Coord Bool) (Maybe (List Coord))))
   (doc 'param 'start "Starting coordinate")
@@ -86,6 +87,7 @@
 (doc 'section 'dijkstra)
 
 (define (dijkstra-path start goal neighbor-fn cost-fn walkable-fn)
+  (doc 'export #t)
   (doc 'description "Find shortest weighted path using Dijkstra's algorithm")
   (doc 'type '(-> Coord Coord (-> Coord (List Coord)) (-> Coord Number) (-> Coord Bool) (Maybe (List Coord))))
   (doc 'param 'start "Starting coordinate")
@@ -125,6 +127,7 @@
 (doc 'section 'astar)
 
 (define (astar-path start goal neighbor-fn cost-fn heuristic-fn walkable-fn)
+  (doc 'export #t)
   (doc 'description "Find shortest path using A* with heuristic. Heuristic must be admissible.")
   (doc 'type '(-> Coord Coord (-> Coord (List Coord)) (-> Coord Number) (-> Coord Coord Number) (-> Coord Bool) (Maybe (List Coord))))
   (doc 'param 'start "Starting coordinate")
@@ -180,6 +183,7 @@
            999))) ; High cost for missing tiles
 
 (define (find-path-bfs board start goal neighbor-fn)
+  (doc 'export #t)
   (doc 'description "Find path on board using BFS")
   (doc 'type '(-> Board Coord Coord (-> Coord (List Coord)) (Maybe (List Coord))))
   (bfs-path start goal
@@ -187,6 +191,7 @@
             (lambda (c) (board-walkable? board c))))
 
 (define (find-path-dijkstra board start goal neighbor-fn)
+  (doc 'export #t)
   (doc 'description "Find path on board using Dijkstra")
   (doc 'type '(-> Board Coord Coord (-> Coord (List Coord)) (Maybe (List Coord))))
   (dijkstra-path start goal
@@ -195,6 +200,7 @@
                  (lambda (c) (board-walkable? board c))))
 
 (define (find-path-astar board start goal neighbor-fn heuristic-fn)
+  (doc 'export #t)
   (doc 'description "Find path on board using A*")
   (doc 'type '(-> Board Coord Coord (-> Coord (List Coord)) (-> Coord Coord Number) (Maybe (List Coord))))
   (astar-path start goal
@@ -206,6 +212,7 @@
 (doc 'section 'reachability)
 
 (define (find-reachable start max-cost neighbor-fn walkable-fn cost-fn)
+  (doc 'export #t)
   (doc 'description "Find all coordinates reachable within N movement points")
   (doc 'type '(-> Coord Integer (-> Coord (List Coord)) (-> Coord Bool) (-> Coord Number) (List (Pair Coord Number))))
   (doc 'returns "List of (coord . cost) pairs")
@@ -237,6 +244,7 @@
                             (loop (append rest-q new-entries))))))))
 
 (define (board-reachable board start max-cost neighbor-fn)
+  (doc 'export #t)
   (doc 'description "Find all tiles reachable within movement budget on board")
   (doc 'type '(-> Board Coord Integer (-> Coord (List Coord)) (List (Pair Coord Number))))
   (find-reachable start max-cost

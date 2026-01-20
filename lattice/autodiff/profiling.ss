@@ -11,6 +11,7 @@
 (doc 'section 'tape-statistics)
 
 (define (tape-stats tape)
+  (doc 'export #t)
   (doc 'type '(-> MutableTape Stats))
   (let* ([entries (reverse-tape-entries tape)]
          [size (length entries)]

@@ -15,6 +15,7 @@
 ;;; traced-vec3 : TracedValue × TracedValue × TracedValue → TracedVec3
 ;;; Create a traced 3D vector from traced x, y, and z components.
 (define (traced-vec3 x y z)
+  (doc 'export #t)
   (list 'traced-vec3 x y z))
 
 ;;; traced-vec3? : Any → Boolean

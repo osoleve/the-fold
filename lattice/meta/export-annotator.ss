@@ -87,7 +87,7 @@
   (let* ([prefix "(define ("]
          [plen (string-length prefix)]
          [nlen (string-length name)])
-    (and (>= (string-length line) (+ plen nlen))
+    (and (> (string-length line) (+ plen nlen))  ; Must have char after name
          (string=? name (substring line plen (+ plen nlen)))
          (let ([next-char (string-ref line (+ plen nlen))])
            (or (char=? next-char #\space)

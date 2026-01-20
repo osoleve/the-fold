@@ -26,6 +26,7 @@ Once all holes are filled, the template compiles to an S-expression")
 (doc 'section 'hole-detection)
 
 (define (hole? x)
+  (doc 'export #t)
   (doc 'type (-> Any Bool))
   (doc 'description "Returns #t if x is a hole (symbol starting with $)")
   (and (symbol? x)
@@ -36,6 +37,7 @@ Once all holes are filled, the template compiles to an S-expression")
 ;;; hole-name : Symbol → Symbol
 ;;; Extract the name from a hole: $foo → foo
 (define (hole-name h)
+  (doc 'export #t)
   (let ([s (symbol->string h)])
     (string->symbol (substring s 1 (string-length s)))))
 
@@ -43,6 +45,7 @@ Once all holes are filled, the template compiles to an S-expression")
 ;;; Recursively find all holes in an expression.
 ;;; Returns unique holes in order of first occurrence (left-to-right).
 (define (find-holes expr)
+  (doc 'export #t)
   (define (collect expr)
     (cond
       [(hole? expr) (list expr)]
@@ -57,6 +60,7 @@ Once all holes are filled, the template compiles to an S-expression")
 ;;; holes->string : (List Symbol) → String
 ;;; Format hole list for display: ($a $b $c) → "$a, $b, $c"
 (define (holes->string holes)
+  (doc 'export #t)
   (if (null? holes)
       ""
       (let loop ([h holes] [acc ""])
@@ -78,16 +82,19 @@ Once all holes are filled, the template compiles to an S-expression")
 ;;; new-template : Expr → Template
 ;;; Create a template from an expression, computing holes.
 (define (new-template expr)
+  (doc 'export #t)
   (make-template expr (find-holes expr)))
 
 ;;; template-complete? : Template → Bool
 ;;; Returns #t if the template has no unfilled holes.
 (define (template-complete? t)
+  (doc 'export #t)
   (null? (template-holes t)))
 
 ;;; template-hole-count : Template → Nat
 ;;; Returns the number of unfilled holes.
 (define (template-hole-count t)
+  (doc 'export #t)
   (length (template-holes t)))
 
 ;;; ====
@@ -107,6 +114,7 @@ Once all holes are filled, the template compiles to an S-expression")
 ;;; Fill a single hole, returning a new template.
 ;;; The value may contain holes, which propagate to the result.
 (define (fill-hole t hole-sym value)
+  (doc 'export #t)
   (let ([new-expr (subst-hole (template-expr t) hole-sym value)])
     (new-template new-expr)))
 
@@ -114,6 +122,7 @@ Once all holes are filled, the template compiles to an S-expression")
 ;;; Fill multiple holes from an association list.
 ;;; alist: ((hole-sym . value) ...)
 (define (fill-holes t alist)
+  (doc 'export #t)
   (if (null? alist)
       t
       (fill-holes (fill-hole t (caar alist) (cdar alist))
@@ -126,6 +135,7 @@ Once all holes are filled, the template compiles to an S-expression")
 ;;; compile-template : Template → Expr | Error
 ;;; If complete, return the expression; otherwise error.
 (define (compile-template t)
+  (doc 'export #t)
   (if (template-complete? t)
       (template-expr t)
       (error 'compile-template
@@ -134,6 +144,7 @@ Once all holes are filled, the template compiles to an S-expression")
 ;;; try-compile-template : Template → (Ok Expr) | (Err (List Symbol))
 ;;; Safe compilation that returns a result type.
 (define (try-compile-template t)
+  (doc 'export #t)
   (if (template-complete? t)
       (list 'ok (template-expr t))
       (list 'err (template-holes t))))
@@ -145,11 +156,13 @@ Once all holes are filled, the template compiles to an S-expression")
 ;;; template->string : Template → String
 ;;; Pretty-print a template expression.
 (define (template->string t)
+  (doc 'export #t)
   (sexpr->string (template-expr t)))
 
 ;;; template-status : Template → String
 ;;; Return a status string describing remaining holes.
 (define (template-status t)
+  (doc 'export #t)
   (let ([holes (template-holes t)])
     (if (null? holes)
         "Complete!"
@@ -163,6 +176,7 @@ Once all holes are filled, the template compiles to an S-expression")
 ;;; If list has >1 element, wrap in parens (make a list).
 ;;; Single element stays as-is.
 (define (wrap-if-multiple tokens)
+  (doc 'export #t)
   (if (and (pair? tokens) (null? (cdr tokens)))
       (car tokens)
       tokens))

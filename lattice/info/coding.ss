@@ -8,32 +8,39 @@
 (doc 'section 'huffman-coding)
 
 (define (make-huffman-leaf symbol prob)
+  (doc 'export #t)
   (doc 'type '(-> Symbol Real Node))
   (doc 'description "Create Huffman tree leaf node")
   (list 'leaf symbol prob))
 
 (define (make-huffman-internal left right)
+  (doc 'export #t)
   (doc 'type '(-> Node Node Node))
   (doc 'description "Create Huffman tree internal node")
   (list 'internal (cons left right) (+ (huffman-prob left) (huffman-prob right))))
 
 (define (huffman-leaf? node)
+  (doc 'export #t)
   (doc 'type '(-> Node Boolean))
   (eq? (car node) 'leaf))
 
 (define (huffman-symbol node)
+  (doc 'export #t)
   (doc 'type '(-> Node Symbol))
   (cadr node))
 
 (define (huffman-children node)
+  (doc 'export #t)
   (doc 'type '(-> Node (Pair Node Node)))
   (cadr node))
 
 (define (huffman-prob node)
+  (doc 'export #t)
   (doc 'type '(-> Node Real))
   (caddr node))
 
 (define (build-huffman-tree symbol-probs)
+  (doc 'export #t)
   (doc 'type '(-> (List (Pair Symbol Real)) Node))
   (doc 'description "Build Huffman tree from symbol-probability pairs")
   (if (null? symbol-probs)
@@ -80,6 +87,7 @@
           (cons (car sorted) (insert-sorted less? x (cdr sorted))))))
 
 (define (huffman-codes tree)
+  (doc 'export #t)
   (doc 'type '(-> Node (List (Pair Symbol String))))
   (doc 'description "Extract code assignments from Huffman tree")
   (huffman-codes-helper tree ""))
@@ -95,6 +103,7 @@
                     (huffman-codes-helper right (string-append prefix "1"))))))
 
 (define (huffman-encode message code-table)
+  (doc 'export #t)
   (doc 'type '(-> (List Symbol) (List (Pair Symbol String)) String))
   (doc 'description "Encode message using Huffman code table")
   (apply string-append
@@ -106,6 +115,7 @@
               message)))
 
 (define (huffman-decode bitstring tree)
+  (doc 'export #t)
   (doc 'type '(-> String Node (List Symbol)))
   (doc 'description "Decode bitstring using Huffman tree")
   (huffman-decode-helper bitstring tree tree '()))
@@ -129,6 +139,7 @@
           (huffman-decode-helper rest root next acc))]))
 
 (define (huffman-average-length code-table symbol-probs)
+  (doc 'export #t)
   (doc 'type '(-> (List (Pair Symbol String)) (List (Pair Symbol Real)) Real))
   (doc 'description "Compute average code length given codes and probabilities")
   (fold-left + 0
@@ -140,6 +151,7 @@
                   symbol-probs)))
 
 (define (huffman-efficiency code-table symbol-probs)
+  (doc 'export #t)
   (doc 'type '(-> (List (Pair Symbol String)) (List (Pair Symbol Real)) Real))
   (doc 'description "Ratio of entropy to average code length (ideally close to 1)")
   (let* ([probs (map cdr symbol-probs)]
@@ -152,6 +164,7 @@
 (doc 'section 'arithmetic-coding)
 
 (define (arithmetic-encode message symbol-probs)
+  (doc 'export #t)
   (doc 'type '(-> (List Symbol) (List (Pair Symbol Real)) (Pair Real Real)))
   (doc 'description "Encode message to interval [low, high) via arithmetic coding")
   (let ([cumulative (build-cumulative-probs symbol-probs)])
@@ -171,6 +184,7 @@
             (arithmetic-encode-helper (cdr message) cumulative new-low new-high))))
 
 (define (build-cumulative-probs symbol-probs)
+  (doc 'export #t)
   (doc 'type '(-> (List (Pair Symbol Real)) (List (List Symbol Real Real))))
   (doc 'description "Build cumulative probability table for arithmetic coding")
   (let loop ([remaining symbol-probs] [cumsum 0.0] [acc '()])
@@ -184,6 +198,7 @@
                        (cons (list sym cumsum new-cumsum) acc))))))
 
 (define (arithmetic-decode interval symbol-probs length)
+  (doc 'export #t)
   (doc 'type '(-> (Pair Real Real) (List (Pair Symbol Real)) Nat (List Symbol)))
   (doc 'description "Decode interval back to message of given length")
   (let ([cumulative (build-cumulative-probs symbol-probs)]
@@ -202,6 +217,7 @@
             (arithmetic-decode-helper new-code cumulative (- length 1) (cons sym acc)))))
 
 (define (find-symbol-for-code code cumulative)
+  (doc 'export #t)
   (doc 'type '(-> Real (List (List Symbol Real Real)) (List Symbol Real Real)))
   (let loop ([remaining cumulative])
        (if (null? remaining)
@@ -214,6 +230,7 @@
                      (loop (cdr remaining)))))))
 
 (define (arithmetic-code-length interval)
+  (doc 'export #t)
   (doc 'type '(-> (Pair Real Real) Real))
   (doc 'description "Bits needed to represent interval (theoretical)")
   (let ([width (- (cdr interval) (car interval))])
@@ -224,6 +241,7 @@
 (doc 'section 'lempel-ziv-coding)
 
 (define (lz78-encode message)
+  (doc 'export #t)
   (doc 'type '(-> (List Symbol) (List (Pair Nat Symbol))))
   (doc 'description "Encode using LZ78 dictionary-based compression")
   (lz78-encode-helper message '() 0 '()))
@@ -248,6 +266,7 @@
                                 (cons (cons match-idx next-sym) acc)))))
 
 (define (lz78-find-longest-match message dict)
+  (doc 'export #t)
   (doc 'type '(-> (List Symbol) (List (Pair Nat (List Symbol))) (List Nat Nat)))
   (doc 'description "Find longest dictionary match")
   (let loop ([entries dict] [best-idx 0] [best-len 0])
@@ -272,6 +291,7 @@
                len))))
 
 (define (lz78-decode encoded)
+  (doc 'export #t)
   (doc 'type '(-> (List (Pair Nat Symbol)) (List Symbol)))
   (doc 'description "Decode LZ78 compressed data")
   (lz78-decode-helper encoded '() '()))
@@ -307,6 +327,7 @@
 (doc 'section 'run-length-encoding)
 
 (define (rle-encode message)
+  (doc 'export #t)
   (doc 'type '(-> (List α) (List (Pair α Nat))))
   (doc 'description "Run-length encode a sequence")
   (if (null? message)
@@ -327,6 +348,7 @@
                        (cons (cons current count) acc))]))
 
 (define (rle-decode encoded)
+  (doc 'export #t)
   (doc 'type '(-> (List (Pair α Nat)) (List α)))
   (doc 'description "Decode run-length encoded data")
   (apply append
@@ -343,17 +365,20 @@
 (doc 'section 'channel-coding)
 
 (define (parity-encode bits)
+  (doc 'export #t)
   (doc 'type '(-> (List Nat) (List Nat)))
   (doc 'description "Add even parity bit to end of message")
   (let ([parity (fold-left (lambda (acc b) (bitwise-xor acc b)) 0 bits)])
        (append bits (list parity))))
 
 (define (parity-check bits)
+  (doc 'export #t)
   (doc 'type '(-> (List Nat) Boolean))
   (doc 'description "Check if message has valid even parity")
   (= (fold-left (lambda (acc b) (bitwise-xor acc b)) 0 bits) 0))
 
 (define (parity-decode bits)
+  (doc 'export #t)
   (doc 'type '(-> (List Nat) (List Nat)))
   (doc 'description "Remove parity bit (returns message without checking)")
   (if (null? bits)
@@ -368,11 +393,13 @@
 (doc 'section 'repetition-code)
 
 (define (repetition-encode bits n)
+  (doc 'export #t)
   (doc 'type '(-> (List Nat) Nat (List Nat)))
   (doc 'description "Encode by repeating each bit n times")
   (apply append (map (lambda (b) (replicate n b)) bits)))
 
 (define (repetition-decode bits n)
+  (doc 'export #t)
   (doc 'type '(-> (List Nat) Nat (List Nat)))
   (doc 'description "Decode by majority vote on each n-bit group")
   (if (null? bits)
@@ -381,6 +408,7 @@
             (repetition-decode (drop-n n bits) n))))
 
 (define (majority-vote bits)
+  (doc 'export #t)
   (doc 'type '(-> (List Nat) Nat))
   (doc 'description "Return the majority bit (0 or 1)")
   (let ([ones (length (filter (lambda (b) (= b 1)) bits))])
@@ -389,6 +417,7 @@
 (doc 'section 'hamming-code)
 
 (define (hamming74-encode data)
+  (doc 'export #t)
   (doc 'type '(-> (List Nat) (List Nat)))
   (doc 'description "Encode 4 data bits into 7-bit Hamming(7,4) codeword")
   (if (not (= (length data) 4))
@@ -405,6 +434,7 @@
             (list p1 p2 d1 p4 d2 d3 d4))))
 
 (define (hamming74-decode codeword)
+  (doc 'export #t)
   (doc 'type '(-> (List Nat) (List Nat)))
   (doc 'description "Decode 7-bit Hamming codeword, correcting single bit error")
   (if (not (= (length codeword) 7))
@@ -442,6 +472,7 @@
                (loop (cdr remaining) (+ i 1) (cons (car remaining) acc))))))
 
 (define (hamming74-syndrome codeword)
+  (doc 'export #t)
   (doc 'type '(-> (List Nat) Nat))
   (doc 'description "Calculate syndrome (0 means no error)")
   (let* ([p1 (list-ref codeword 0)]
@@ -459,6 +490,7 @@
 (doc 'section 'code-properties)
 
 (define (hamming-distance a b)
+  (doc 'export #t)
   (doc 'type '(-> (List Nat) (List Nat) Nat))
   (doc 'description "Number of positions where two codewords differ")
   (if (or (null? a) (null? b))
@@ -467,6 +499,7 @@
          (hamming-distance (cdr a) (cdr b)))))
 
 (define (minimum-distance codewords)
+  (doc 'export #t)
   (doc 'type '(-> (List (List Nat)) Nat))
   (doc 'description "Minimum Hamming distance among all codeword pairs")
   (if (or (null? codewords) (null? (cdr codewords)))
@@ -477,6 +510,7 @@
                 (minimum-distance rest)))))
 
 (define (code-rate k n)
+  (doc 'export #t)
   (doc 'type '(-> Nat Nat Real))
   (doc 'description "Code rate = k/n (information bits / total bits)")
   (if (<= n 0)
@@ -484,11 +518,13 @@
       (/ k n)))
 
 (define (error-correcting-capability min-distance)
+  (doc 'export #t)
   (doc 'type '(-> Nat Nat))
   (doc 'description "Number of errors correctable = floor((d-1)/2)")
   (quotient (- min-distance 1) 2))
 
 (define (error-detecting-capability min-distance)
+  (doc 'export #t)
   (doc 'type '(-> Nat Nat))
   (doc 'description "Number of errors detectable = d-1")
   (- min-distance 1))
@@ -496,6 +532,7 @@
 (doc 'section 'compression-metrics)
 
 (define (compression-ratio original-size compressed-size)
+  (doc 'export #t)
   (doc 'type '(-> Nat Nat Real))
   (doc 'description "Original size / Compressed size")
   (if (<= compressed-size 0)
@@ -503,6 +540,7 @@
       (/ original-size compressed-size)))
 
 (define (space-savings original-size compressed-size)
+  (doc 'export #t)
   (doc 'type '(-> Nat Nat Real))
   (doc 'description "1 - (compressed / original), as percentage-like value")
   (if (<= original-size 0)

@@ -12,20 +12,25 @@
 (doc "Scheme uses arbitrary precision integers, but we simulate 64-bit and 32-bit operations for PRNG algorithms.")
 
 (doc "Masks for fixed-width arithmetic")
+(doc mask-32 'export #t)
 (define mask-32 (- (expt 2 32) 1))
+(doc mask-64 'export #t)
 (define mask-64 (- (expt 2 64) 1))
 
 (define (u32 n)
+  (doc 'export #t)
   (doc 'type '(-> Int Int))
   (doc 'description "Truncate to unsigned 32-bit")
   (bitwise-and n mask-32))
 
 (define (u64 n)
+  (doc 'export #t)
   (doc 'type '(-> Int Int))
   (doc 'description "Truncate to unsigned 64-bit")
   (bitwise-and n mask-64))
 
 (define (rotl32 x k)
+  (doc 'export #t)
   (doc 'type '(-> Int Int Int))
   (doc 'description "32-bit left rotation")
   (let ([x (u32 x)]
@@ -34,11 +39,13 @@
                          (ash x (- k 32))))))
 
 (define (rotr32 x k)
+  (doc 'export #t)
   (doc 'type '(-> Int Int Int))
   (doc 'description "32-bit right rotation")
   (rotl32 x (- 32 k)))
 
 (define (rotl64 x k)
+  (doc 'export #t)
   (doc 'type '(-> Int Int Int))
   (doc 'description "64-bit left rotation")
   (let ([x (u64 x)]
@@ -47,6 +54,7 @@
                          (ash x (- k 64))))))
 
 (define (rotr64 x k)
+  (doc 'export #t)
   (doc 'type '(-> Int Int Int))
   (doc 'description "64-bit right rotation")
   (rotl64 x (- 64 k)))
@@ -56,15 +64,19 @@
 (doc "Simple, high-quality generator often used to initialize other generators from a single seed. State: single 64-bit integer")
 
 (define (make-splitmix seed)
+  (doc 'export #t)
   (list 'splitmix (u64 seed)))
 
 (define (splitmix? x)
+  (doc 'export #t)
   (and (pair? x) (eq? (car x) 'splitmix)))
 
 (define (splitmix-state sm)
+  (doc 'export #t)
   (cadr sm))
 
 (define (splitmix-next sm)
+  (doc 'export #t)
   (let* ([s (u64 (+ (splitmix-state sm) #x9e3779b97f4a7c15))]
          [z (u64 (* (bitwise-xor s (ash s -30))
                     #xbf58476d1ce4e5b9))]
@@ -73,6 +85,7 @@
          [z (bitwise-xor z (ash z -31))])
         (cons z (make-splitmix s))))
 
+(doc splitmix-random 'export #t)
 (define splitmix-random
   (make-state splitmix-next))
 
@@ -81,6 +94,7 @@
 (doc "High-quality, statistically excellent generator. We implement PCG-XSH-RR (32-bit output, 64-bit state). State: (state . inc) where both are 64-bit")
 
 (define (make-pcg seed stream)
+  (doc 'export #t)
   (doc 'type '(-> Int Int RNG))
   (doc 'description "Create PCG state from seed and stream id. Different stream IDs give independent sequences")
   (let* ([inc (u64 (bitwise-ior (ash stream 1) 1))]
@@ -91,13 +105,17 @@
         (list 'pcg state3 inc)))
 
 (define (pcg? x)
+  (doc 'export #t)
   (and (pair? x) (eq? (car x) 'pcg)))
 
 (define (pcg-state p) (cadr p))
+(doc 'export #t)
 
 (define (pcg-inc p) (caddr p))
+(doc 'export #t)
 
 (define (pcg-next p)
+  (doc 'export #t)
   (let* ([state (pcg-state p)]
          [inc (pcg-inc p)]
          ;; XSH-RR output function
@@ -110,6 +128,7 @@
          [new-state (u64 (+ (* state #x5851f42d4c957f2d) inc))])
         (cons output (list 'pcg new-state inc))))
 
+(doc pcg-random 'export #t)
 (define pcg-random
   (make-state pcg-next))
 
@@ -121,6 +140,7 @@
 
 
 (define (make-xorshift128 seed)
+  (doc 'export #t)
   (let* ([sm0 (make-splitmix seed)]
          [r1 (splitmix-next sm0)]
          [s0 (car r1)]
@@ -133,13 +153,17 @@
               (if (= s1 0) 1 s1))))
 
 (define (xorshift128? x)
+  (doc 'export #t)
   (and (pair? x) (eq? (car x) 'xorshift128)))
 
 (define (xorshift128-s0 xs) (cadr xs))
+(doc 'export #t)
 
 (define (xorshift128-s1 xs) (caddr xs))
+(doc 'export #t)
 
 (define (xorshift128-next xs)
+  (doc 'export #t)
   (let* ([s0 (xorshift128-s0 xs)]
          [s1 (xorshift128-s1 xs)]
          [result (u64 (+ s0 s1))]
@@ -151,6 +175,7 @@
          [new-s1 (rotl64 s1-new 37)])
         (cons result (list 'xorshift128 new-s0 new-s1))))
 
+(doc xorshift128-random 'export #t)
 (define xorshift128-random
   (make-state xorshift128-next))
 
@@ -162,6 +187,7 @@
 
 
 (define (random-u32-from gen-state)
+  (doc 'export #t)
   (cond
    [(pcg? gen-state) pcg-random]
    [(splitmix? gen-state)
@@ -171,6 +197,7 @@
    [else (error 'random-u32 "unknown generator type" gen-state)]))
 
 (define (random-u64-from gen-state)
+  (doc 'export #t)
   (cond
    [(pcg? gen-state)
     ;; PCG produces 32 bits, combine two
@@ -184,6 +211,7 @@
    [(xorshift128? gen-state) xorshift128-random]
    [else (error 'random-u64 "unknown generator type" gen-state)]))
 
+(doc random-float 'export #t)
 (define random-float
   (make-state
    (lambda (gen)
@@ -212,10 +240,12 @@
             [else (error 'random-float "unknown generator" gen)]))))
 
 (define (random-float-range lo hi)
+  (doc 'export #t)
   (state-map (lambda (u) (+ lo (* u (- hi lo))))
              random-float))
 
 (define (random-int-range lo hi)
+  (doc 'export #t)
   (if (> lo hi)
       (error 'random-int-range "lo must be <= hi" lo hi)
       (let* ([range (+ (- hi lo) 1)]
@@ -240,6 +270,7 @@
                                     (cons (+ lo (modulo bits range)) new-gen)
                                     (loop new-gen)))))))))
 
+(doc random-bool 'export #t)
 (define random-bool
   (state-map (lambda (n) (odd? n))
              (make-state
@@ -258,12 +289,14 @@
 
 
 (define (random-element lst)
+  (doc 'export #t)
   (if (null? lst)
       (error 'random-element "empty list")
       (state-map (lambda (i) (list-ref lst i))
                  (random-int-range 0 (- (length lst) 1)))))
 
 (define (shuffle lst)
+  (doc 'export #t)
   (let ([vec (list->vector lst)]
         [n (length lst)])
        (letrec ([shuffle-step
@@ -280,6 +313,7 @@
                (shuffle-step 0))))
 
 (define (sample k lst)
+  (doc 'export #t)
   (let ([n (length lst)])
        (cond
         [(> k n) (error 'sample "k > list length" k n)]
@@ -334,6 +368,7 @@
 
 
 (define (random-list n gen)
+  (doc 'export #t)
   (if (<= n 0)
       (state-pure '())
       (state-bind gen

@@ -10,6 +10,7 @@
 (doc 'note "A Coordinate is a position on a board. Different tile shapes use different coordinate representations. All coordinates must support: (coord-x coord) → Number, (coord-y coord) → Number, (coord-equal? coord1 coord2) → Boolean, (coord-hash coord) → Integer (for hash tables)")
 
 (define (coord x y)
+  (doc 'export #t)
   (doc 'type '(-> Number Number Coordinate))
   (doc 'description "Generic coordinate constructor (used for simple 2D coords)")
   (cons x y))
@@ -37,6 +38,7 @@
 (doc 'note "A Tile represents game state at a board position. Tiles are opaque to the SDK; games define their structure. The SDK only cares about tiles for: Pathfinding (is tile walkable?), Movement cost (how expensive to enter?), Blocking (does tile block line of sight?). Games implement these predicates: (tile-walkable? tile) → Boolean, (tile-cost tile) → Number (default 1), (tile-blocks? tile) → Boolean (default #f)")
 
 (define (make-tile type data)
+  (doc 'export #t)
   (doc 'type '(-> Symbol Alist Tile))
   (doc 'description "Default tile implementation: just a symbol or data structure")
   (cons type data))
@@ -86,6 +88,7 @@
 
 (doc make-board 'type '(-> Symbol Alist Board))
 (doc make-board 'description "Create a board with optional custom hash/equality functions")
+(doc make-board 'export #t)
 (define make-board
   (case-lambda
    [(shape-type meta)
@@ -102,10 +105,12 @@
   (board%-meta b))
 
 (define (board-get board coord)
+  (doc 'export #t)
   (doc 'type '(-> Board Coordinate (Maybe Tile)))
   (hashtable-ref (board%-tiles board) coord #f))
 
 (define (board-set board coord tile)
+  (doc 'export #t)
   (doc 'type '(-> Board Coordinate Tile Board))
   (let ([new-tiles (hashtable-copy (board%-tiles board) #t)])
        (hashtable-set! new-tiles coord tile)
@@ -125,10 +130,12 @@
             (vector->list (hashtable-keys ht)))))
 
 (define (board-coords board)
+  (doc 'export #t)
   (doc 'type '(-> Board (List Coordinate)))
   (map car (board-tiles board)))
 
 (define (board-size board)
+  (doc 'export #t)
   (doc 'type '(-> Board Integer))
   (doc 'description "Returns the number of tiles currently stored on the board. NOTE: This counts stored tiles, not theoretical capacity. For an empty sparse board (created without default-tile), this returns 0. For geometric capacity (e.g., how many hexes fit in the radius), use shape-specific functions like hex-board-capacity.")
   (hashtable-size (board%-tiles board)))
@@ -181,16 +188,19 @@
         [else 0]))
 
 (define (manhattan-distance x1 y1 x2 y2)
+  (doc 'export #t)
   (doc 'type '(-> Number Number Number Number Number))
   (doc 'description "Manhattan distance (L1 metric)")
   (+ (abs (- x2 x1)) (abs (- y2 y1))))
 
 (define (chebyshev-distance x1 y1 x2 y2)
+  (doc 'export #t)
   (doc 'type '(-> Number Number Number Number Number))
   (doc 'description "Chebyshev distance (L∞ metric, king's move in chess)")
   (max (abs (- x2 x1)) (abs (- y2 y1))))
 
 (define (euclidean-distance x1 y1 x2 y2)
+  (doc 'export #t)
   (doc 'type '(-> Number Number Number Number Number))
   (doc 'description "Euclidean distance (L2 metric)")
   (sqrt (+ (expt (- x2 x1) 2) (expt (- y2 y1) 2))))
