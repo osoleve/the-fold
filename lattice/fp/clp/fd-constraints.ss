@@ -1,52 +1,38 @@
-;;; lattice/fp/clp/fd-constraints.ss — Finite Domain Arithmetic Constraints
-;;;
-;;; Implements arithmetic constraints over finite domains:
-;;;   - Equality: =fd
-;;;   - Comparison: <fd, <=fd, >fd, >=fd, =/=fd
-;;;   - Arithmetic: +fd, -fd, *fd
-;;;
-;;; Each constraint consists of:
-;;;   - A goal constructor that posts the constraint
-;;;   - A propagator that enforces arc consistency
-;;;
-;;; Dependencies:
-;;;   - store.ss
-;;;   - domain.ss
-
 (load "lattice/fp/clp/store.ss")
 
-;;; ====
-;;; Constraint Goal Pattern
-;;; ====
-;;;
-;;; Each constraint follows this pattern:
-;;; 1. Goal constructor: creates constraint and adds to store
-;;; 2. Propagator: enforces constraint by narrowing domains
-;;; 3. Initial propagation: run propagator when constraint posted
+(doc 'module 'fd-constraints)
+(doc 'description "Finite Domain Arithmetic Constraints")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
+(doc 'note "Implements arithmetic constraints over finite domains with arc consistency propagation")
+(doc 'exports "in-range, in-domain, =fd, <fd, <=fd, >fd, >=fd, =/=fd, +fd, -fd, *fd, abs-fd")
+(doc 'dependencies "store.ss, domain.ss")
 
-;;; ====
-;;; Domain Declaration Constraints
-;;; ====
+(doc 'section 'constraint-pattern)
+(doc 'note "Each constraint follows this pattern:")
+(doc 'note "1. Goal constructor: creates constraint and adds to store")
+(doc 'note "2. Propagator: enforces constraint by narrowing domains")
+(doc 'note "3. Initial propagation: run propagator when constraint posted")
 
-;;; in-range : LVar × Int × Int → (CStore → (Maybe CStore))
-;;; Constrain variable to be in range [lo, hi].
+(doc 'section 'domain-declaration-constraints)
+
 (define (in-range var lo hi)
+  (doc 'type '(-> LVar Int Int (-> CStore (Maybe CStore))))
+  (doc 'description "Constrain variable to be in range [lo, hi]")
   (lambda (cs)
           (cstore-narrow-domain cs var (make-domain lo hi))))
 
-;;; in-domain : LVar × (List Int) → (CStore → (Maybe CStore))
-;;; Constrain variable to be one of the given values.
 (define (in-domain var values)
+  (doc 'type '(-> LVar (List Int) (-> CStore (Maybe CStore))))
+  (doc 'description "Constrain variable to be one of the given values")
   (lambda (cs)
           (cstore-narrow-domain cs var (domain-from-list values))))
 
-;;; ====
-;;; Equality Constraints
-;;; ====
+(doc 'section 'equality-constraints)
 
-;;; =fd : (LVar | Int) × (LVar | Int) → (CStore → (Maybe CStore))
-;;; Constrain two values to be equal (in the FD sense).
 (define (=fd x y)
+  (doc 'type '(-> (Or LVar Int) (Or LVar Int) (-> CStore (Maybe CStore))))
+  (doc 'description "Constrain two values to be equal (in the FD sense)")
   (lambda (cs)
           (cond
            ;; Both are integers - just check equality
@@ -65,9 +51,9 @@
            [else
             (=fd-var-var cs x y)])))
 
-;;; =fd-var-const : CStore × LVar × Int → (Maybe CStore)
-;;; Constrain variable to equal a constant.
 (define (=fd-var-const cs var val)
+  (doc 'type '(-> CStore LVar Int (Maybe CStore)))
+  (doc 'description "Constrain variable to equal a constant")
   (let ([dom (cstore-get-domain cs var)])
        (cond
         ;; No domain - just set to singleton
@@ -79,9 +65,9 @@
         ;; Value not in domain - fail
         [else #f])))
 
-;;; =fd-var-var : CStore × LVar × LVar → (Maybe CStore)
-;;; Constrain two variables to be equal.
 (define (=fd-var-var cs x y)
+  (doc 'type '(-> CStore LVar LVar (Maybe CStore)))
+  (doc 'description "Constrain two variables to be equal")
   (let ([dom-x (cstore-get-domain cs x)]
         [dom-y (cstore-get-domain cs y)])
        (cond
@@ -101,13 +87,11 @@
         ;; Neither has domain - no propagation needed yet
         [else cs])))
 
-;;; ====
-;;; Comparison Constraints
-;;; ====
+(doc 'section 'comparison-constraints)
 
-;;; <fd : (LVar | Int) × (LVar | Int) → (CStore → (Maybe CStore))
-;;; Constrain x < y.
 (define (<fd x y)
+  (doc 'type '(-> (Or LVar Int) (Or LVar Int) (-> CStore (Maybe CStore))))
+  (doc 'description "Constrain x < y")
   (lambda (cs)
           (cond
            ;; Both constants
@@ -134,8 +118,9 @@
            [else
             (<fd-var-var cs x y)])))
 
-;;; <fd-var-var : CStore × LVar × LVar → (Maybe CStore)
 (define (<fd-var-var cs x y)
+  (doc 'type '(-> CStore LVar LVar (Maybe CStore)))
+  (doc 'description "Propagate x < y constraint for two variables")
   (let ([dom-x (cstore-get-domain cs x)]
         [dom-y (cstore-get-domain cs y)])
        (cond
@@ -152,9 +137,9 @@
                cs2)]
         [else cs])))
 
-;;; <=fd : (LVar | Int) × (LVar | Int) → (CStore → (Maybe CStore))
-;;; Constrain x <= y.
 (define (<=fd x y)
+  (doc 'type '(-> (Or LVar Int) (Or LVar Int) (-> CStore (Maybe CStore))))
+  (doc 'description "Constrain x <= y")
   (lambda (cs)
           (cond
            ;; Both constants
@@ -179,8 +164,9 @@
            [else
             (<=fd-var-var cs x y)])))
 
-;;; <=fd-var-var : CStore × LVar × LVar → (Maybe CStore)
 (define (<=fd-var-var cs x y)
+  (doc 'type '(-> CStore LVar LVar (Maybe CStore)))
+  (doc 'description "Propagate x <= y constraint for two variables")
   (let ([dom-x (cstore-get-domain cs x)]
         [dom-y (cstore-get-domain cs y)])
        (cond
@@ -197,19 +183,19 @@
                cs2)]
         [else cs])))
 
-;;; >fd : (LVar | Int) × (LVar | Int) → (CStore → (Maybe CStore))
-;;; Constrain x > y.
 (define (>fd x y)
+  (doc 'type '(-> (Or LVar Int) (Or LVar Int) (-> CStore (Maybe CStore))))
+  (doc 'description "Constrain x > y")
   (<fd y x))
 
-;;; >=fd : (LVar | Int) × (LVar | Int) → (CStore → (Maybe CStore))
-;;; Constrain x >= y.
 (define (>=fd x y)
+  (doc 'type '(-> (Or LVar Int) (Or LVar Int) (-> CStore (Maybe CStore))))
+  (doc 'description "Constrain x >= y")
   (<=fd y x))
 
-;;; =/=fd : (LVar | Int) × (LVar | Int) → (CStore → (Maybe CStore))
-;;; Constrain x ≠ y (disequality).
 (define (=/=fd x y)
+  (doc 'type '(-> (Or LVar Int) (Or LVar Int) (-> CStore (Maybe CStore))))
+  (doc 'description "Constrain x ≠ y (disequality)")
   (lambda (cs)
           (cond
            ;; Both constants
@@ -228,15 +214,17 @@
            [else
             (=/=fd-var-var cs x y)])))
 
-;;; =/=fd-var-const : CStore × LVar × Int → (Maybe CStore)
 (define (=/=fd-var-const cs var val)
+  (doc 'type '(-> CStore LVar Int (Maybe CStore)))
+  (doc 'description "Constrain variable to not equal constant")
   (let ([dom (cstore-get-domain cs var)])
        (if dom
            (cstore-set-domain cs var (domain-subtract-value dom val))
            cs)))  ; No domain = unconstrained, can't propagate yet
 
-;;; =/=fd-var-var : CStore × LVar × LVar → (Maybe CStore)
 (define (=/=fd-var-var cs x y)
+  (doc 'type '(-> CStore LVar LVar (Maybe CStore)))
+  (doc 'description "Constrain two variables to be unequal")
   (let ([dom-x (cstore-get-domain cs x)]
         [dom-y (cstore-get-domain cs y)])
        (cond
@@ -249,13 +237,11 @@
         ;; Can't propagate yet
         [else cs])))
 
-;;; ====
-;;; Arithmetic Constraints
-;;; ====
+(doc 'section 'arithmetic-constraints)
 
-;;; +fd : (LVar | Int) × (LVar | Int) × (LVar | Int) → (CStore → (Maybe CStore))
-;;; Constrain x + y = z using bounds consistency.
 (define (+fd x y z)
+  (doc 'type '(-> (Or LVar Int) (Or LVar Int) (Or LVar Int) (-> CStore (Maybe CStore))))
+  (doc 'description "Constrain x + y = z using bounds consistency")
   (lambda (cs)
           ;; Handle various combinations of constants and variables
           (let ([x-val (fd-value cs x)]
@@ -282,9 +268,9 @@
                 [else
                  (+fd-bounds cs x y z)]))))
 
-;;; fd-value : CStore × (LVar | Int) → (Maybe Int)
-;;; Get the value of a term if it's ground or singleton.
 (define (fd-value cs term)
+  (doc 'type '(-> CStore (Or LVar Int) (Maybe Int)))
+  (doc 'description "Get the value of a term if it's ground or singleton")
   (cond
    [(integer? term) term]
    [(lvar? term)
@@ -294,9 +280,9 @@
              #f))]
    [else #f]))
 
-;;; +fd-bounds : CStore × (LVar | Int) × (LVar | Int) × (LVar | Int) → (Maybe CStore)
-;;; Bounds propagation for x + y = z.
 (define (+fd-bounds cs x y z)
+  (doc 'type '(-> CStore (Or LVar Int) (Or LVar Int) (Or LVar Int) (Maybe CStore)))
+  (doc 'description "Bounds propagation for x + y = z")
   (let* ([x-bounds (fd-bounds cs x)]
          [y-bounds (fd-bounds cs y)]
          [z-bounds (fd-bounds cs z)])
@@ -321,9 +307,9 @@
                         cs3))
             cs)))
 
-;;; fd-bounds : CStore × (LVar | Int) → (Maybe (Int × Int))
-;;; Get bounds of a term.
 (define (fd-bounds cs term)
+  (doc 'type '(-> CStore (Or LVar Int) (Maybe (Pair Int Int))))
+  (doc 'description "Get bounds of a term")
   (cond
    [(integer? term) (cons term term)]
    [(lvar? term)
@@ -333,9 +319,9 @@
              #f))]
    [else #f]))
 
-;;; fd-narrow-bounds : CStore × (LVar | Int) × Int × Int → (Maybe CStore)
-;;; Narrow a term's bounds.
 (define (fd-narrow-bounds cs term lo hi)
+  (doc 'type '(-> CStore (Or LVar Int) Int Int (Maybe CStore)))
+  (doc 'description "Narrow a term's bounds")
   (cond
    [(integer? term)
     (if (and (>= term lo) (<= term hi)) cs #f)]
@@ -347,14 +333,14 @@
              cs))]
    [else cs]))
 
-;;; -fd : (LVar | Int) × (LVar | Int) × (LVar | Int) → (CStore → (Maybe CStore))
-;;; Constrain x - y = z, which is x = z + y.
 (define (-fd x y z)
+  (doc 'type '(-> (Or LVar Int) (Or LVar Int) (Or LVar Int) (-> CStore (Maybe CStore))))
+  (doc 'description "Constrain x - y = z, which is x = z + y")
   (+fd z y x))  ; z + y = x
 
-;;; *fd : (LVar | Int) × (LVar | Int) × (LVar | Int) → (CStore → (Maybe CStore))
-;;; Constrain x * y = z using bounds consistency.
 (define (*fd x y z)
+  (doc 'type '(-> (Or LVar Int) (Or LVar Int) (Or LVar Int) (-> CStore (Maybe CStore))))
+  (doc 'description "Constrain x * y = z using bounds consistency")
   (lambda (cs)
           (let ([x-val (fd-value cs x)]
                 [y-val (fd-value cs y)]
@@ -388,10 +374,10 @@
                 [else
                  (*fd-bounds cs x y z)]))))
 
-;;; *fd-bounds : CStore × (LVar | Int) × (LVar | Int) × (LVar | Int) → (Maybe CStore)
-;;; Bounds propagation for x * y = z.
-;;; This is more complex due to sign considerations.
 (define (*fd-bounds cs x y z)
+  (doc 'type '(-> CStore (Or LVar Int) (Or LVar Int) (Or LVar Int) (Maybe CStore)))
+  (doc 'description "Bounds propagation for x * y = z")
+  (doc 'note "More complex due to sign considerations")
   (let* ([x-bounds (fd-bounds cs x)]
          [y-bounds (fd-bounds cs y)]
          [z-bounds (fd-bounds cs z)])
@@ -408,13 +394,11 @@
                   (fd-narrow-bounds cs z new-z-lo new-z-hi))
             cs)))
 
-;;; ====
-;;; Absolute Value
-;;; ====
+(doc 'section 'absolute-value)
 
-;;; abs-fd : (LVar | Int) × (LVar | Int) → (CStore → (Maybe CStore))
-;;; Constrain |x| = y.
 (define (abs-fd x y)
+  (doc 'type '(-> (Or LVar Int) (Or LVar Int) (-> CStore (Maybe CStore))))
+  (doc 'description "Constrain |x| = y")
   (lambda (cs)
           (let ([x-val (fd-value cs x)]
                 [y-val (fd-value cs y)])

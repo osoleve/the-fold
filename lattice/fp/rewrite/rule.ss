@@ -1,36 +1,32 @@
-;;; core/fp/rewrite/rule.ss — Rewrite Rule Data Structures
-;;;
-;;; Core data structures for representing rewrite rules.
-;;; A rule captures LHS → RHS transformation with pattern variables.
-;;;
-;;; Pattern Language:
-;;;   (?x)           - Metavariable, matches any expression, binds to x
-;;;   (?x number)    - Constrained metavar, must satisfy predicate
-;;;   literal        - Must match exactly
-;;;   (f (?x) (?y))  - Structural match with nested metavars
-;;;
-;;; Rule Structure:
-;;;   ((name . Symbol)           - Rule identifier
-;;;    (lhs . Pattern)           - Left-hand side pattern
-;;;    (rhs . Template)          - Right-hand side template
-;;;    (category . Symbol)       - e.g., 'monoid, 'functor, 'monad
-;;;    (direction . Symbol)      - 'forward, 'backward, 'bidirectional
-;;;    (conditions . List))      - Optional side conditions
-;;;
-;;; This is Core code: pure, total, assumes reasonable input.
-;;;
-;;; Dependencies:
-;;;   - core/base/prelude.ss
-
 (load "core/base/prelude.ss")
 
-;;; ====
-;;; Helper: Option Extraction
-;;; ====
+(doc 'module 'rule)
+(doc 'description "Rewrite Rule Data Structures
 
-;;; get-opt : List × Symbol × Any → Any
-;;; Extract an option from a plist-style options list.
+Core data structures for representing rewrite rules.
+A rule captures LHS → RHS transformation with pattern variables.
+
+Pattern Language:
+  (?x)           - Metavariable, matches any expression, binds to x
+  (?x number)    - Constrained metavar, must satisfy predicate
+  literal        - Must match exactly
+  (f (?x) (?y))  - Structural match with nested metavars
+
+Rule Structure:
+  ((name . Symbol)           - Rule identifier
+   (lhs . Pattern)           - Left-hand side pattern
+   (rhs . Template)          - Right-hand side template
+   (category . Symbol)       - e.g., 'monoid, 'functor, 'monad
+   (direction . Symbol)      - 'forward, 'backward, 'bidirectional
+   (conditions . List))      - Optional side conditions")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
+
+(doc 'section 'helper-option-extraction)
+
 (define (get-opt opts key default)
+  (doc 'type '(-> List Symbol Any Any))
+  (doc 'description "Extract an option from a plist-style options list.")
   (let loop ([opts opts])
        (cond
         [(null? opts) default]
@@ -38,17 +34,15 @@
         [(eq? (car opts) key) (cadr opts)]
         [else (loop (cddr opts))])))
 
-;;; ====
-;;; Rule Construction
-;;; ====
+(doc 'section 'rule-construction)
 
-;;; make-rule : Symbol × Pattern × Template × Opts... → Rule
-;;; Create a rewrite rule.
-;;; Options:
-;;;   'category sym  - Rule category (default: 'custom)
-;;;   'direction sym - Rule direction (default: 'forward)
-;;;   'conditions ls - Side conditions (default: '())
 (define (make-rule name lhs rhs . opts)
+  (doc 'type '(-> Symbol Pattern Template Options Rule))
+  (doc 'description "Create a rewrite rule.
+Options:
+  'category sym  - Rule category (default: 'custom)
+  'direction sym - Rule direction (default: 'forward)
+  'conditions ls - Side conditions (default: '())")
   `((name . ,name)
     (lhs . ,lhs)
     (rhs . ,rhs)
@@ -56,86 +50,78 @@
     (direction . ,(get-opt opts 'direction 'forward))
     (conditions . ,(get-opt opts 'conditions '()))))
 
-;;; ====
-;;; Rule Predicates
-;;; ====
+(doc 'section 'rule-predicates)
 
-;;; rule? : Any → Boolean
-;;; Check if x is a valid rule structure.
 (define (rule? x)
+  (doc 'type '(-> Any Boolean))
+  (doc 'description "Check if x is a valid rule structure.")
   (and (pair? x)
        (assq 'name x)
        (assq 'lhs x)
        (assq 'rhs x)))
 
-;;; ====
-;;; Rule Accessors
-;;; ====
+(doc 'section 'rule-accessors)
 
-;;; rule-name : Rule → Symbol
 (define (rule-name r)
+  (doc 'type '(-> Rule Symbol))
   (cdr (assq 'name r)))
 
-;;; rule-lhs : Rule → Pattern
 (define (rule-lhs r)
+  (doc 'type '(-> Rule Pattern))
   (cdr (assq 'lhs r)))
 
-;;; rule-rhs : Rule → Template
 (define (rule-rhs r)
+  (doc 'type '(-> Rule Template))
   (cdr (assq 'rhs r)))
 
-;;; rule-category : Rule → Symbol
 (define (rule-category r)
+  (doc 'type '(-> Rule Symbol))
   (let ([cat (assq 'category r)])
        (if cat (cdr cat) 'custom)))
 
-;;; rule-direction : Rule → Symbol
 (define (rule-direction r)
+  (doc 'type '(-> Rule Symbol))
   (let ([dir (assq 'direction r)])
        (if dir (cdr dir) 'forward)))
 
-;;; rule-conditions : Rule → List
 (define (rule-conditions r)
+  (doc 'type '(-> Rule List))
   (let ([cond (assq 'conditions r)])
        (if cond (cdr cond) '())))
 
-;;; ====
-;;; Metavariable Detection
-;;; ====
+(doc 'section 'metavariable-detection)
 
-;;; metavar? : Any → Boolean
-;;; Check if pattern element is a metavariable.
-;;; Metavariables are lists starting with a ?-prefixed symbol.
 (define (metavar? x)
+  (doc 'type '(-> Any Boolean))
+  (doc 'description "Check if pattern element is a metavariable.
+Metavariables are lists starting with a ?-prefixed symbol.")
   (and (pair? x)
        (symbol? (car x))
        (let ([s (symbol->string (car x))])
             (and (> (string-length s) 0)
                  (char=? (string-ref s 0) #\?)))))
 
-;;; metavar-name : Pattern → Symbol
-;;; Extract the variable name from a metavariable.
-;;; (?x) → x, (?foo constraint) → foo
 (define (metavar-name mv)
+  (doc 'type '(-> Pattern Symbol))
+  (doc 'description "Extract the variable name from a metavariable.
+(?x) → x, (?foo constraint) → foo")
   (let* ([sym (car mv)]
          [s (symbol->string sym)])
         (string->symbol (substring s 1 (string-length s)))))
 
-;;; metavar-constraint : Pattern → Symbol | #f
-;;; Extract the constraint from a metavariable, if any.
-;;; (?x) → #f, (?x number) → number
 (define (metavar-constraint mv)
+  (doc 'type '(-> Pattern (Union Symbol Boolean)))
+  (doc 'description "Extract the constraint from a metavariable, if any.
+(?x) → #f, (?x number) → number")
   (if (and (pair? mv) (pair? (cdr mv)))
       (cadr mv)
       #f))
 
-;;; ====
-;;; Pattern Utilities
-;;; ====
+(doc 'section 'pattern-utilities)
 
-;;; pattern-vars : Pattern → (List Symbol)
-;;; Collect all metavariable names from a pattern.
 (define (pattern-vars pattern)
+  (doc 'type '(-> Pattern (List Symbol)))
+  (doc 'description "Collect all metavariable names from a pattern.")
   (cond
    [(metavar? pattern)
     (list (metavar-name pattern))]
@@ -144,9 +130,9 @@
             (pattern-vars (cdr pattern)))]
    [else '()]))
 
-;;; pattern-vars-unique : Pattern → (List Symbol)
-;;; Collect unique metavariable names from a pattern.
 (define (pattern-vars-unique pattern)
+  (doc 'type '(-> Pattern (List Symbol)))
+  (doc 'description "Collect unique metavariable names from a pattern.")
   (let ([vars (pattern-vars pattern)])
        (let loop ([vs vars] [seen '()] [acc '()])
             (cond
@@ -154,27 +140,23 @@
              [(memq (car vs) seen) (loop (cdr vs) seen acc)]
              [else (loop (cdr vs) (cons (car vs) seen) (cons (car vs) acc))]))))
 
-;;; ====
-;;; Rule Display
-;;; ====
+(doc 'section 'rule-display)
 
-;;; rule->string : Rule → String
-;;; Format a rule for display.
 (define (rule->string r)
+  (doc 'type '(-> Rule String))
+  (doc 'description "Format a rule for display.")
   (format "~a: ~a → ~a [~a]"
           (rule-name r)
           (rule-lhs r)
           (rule-rhs r)
           (rule-category r)))
 
-;;; ====
-;;; Rule Validation
-;;; ====
+(doc 'section 'rule-validation)
 
-;;; valid-rule? : Rule → Boolean
-;;; Check if a rule is well-formed:
-;;; - All RHS variables must appear in LHS
 (define (valid-rule? r)
+  (doc 'type '(-> Rule Boolean))
+  (doc 'description "Check if a rule is well-formed:
+- All RHS variables must appear in LHS")
   (let ([lhs-vars (pattern-vars-unique (rule-lhs r))]
         [rhs-vars (pattern-vars-unique (rule-rhs r))])
        (for-all (lambda (v) (memq v lhs-vars)) rhs-vars)))

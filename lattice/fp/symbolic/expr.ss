@@ -1,37 +1,22 @@
-;;; core/fp/symbolic/expr.ss — Symbolic Expression Representation
-;;;
-;;; Core symbolic expression data structures for computer algebra.
-;;; Uses S-expressions as a natural representation.
-;;;
-;;; This is Core code: pure, total, assumes reasonable input.
-;;;
-;;; Expression Types:
-;;;   - (num n) : Numeric constant
-;;;   - (var x) : Symbolic variable
-;;;   - (+ e1 e2 ...) : Sum
-;;;   - (* e1 e2 ...) : Product
-;;;   - (- e1 e2) : Difference (or negation if unary)
-;;;   - (/ e1 e2) : Division
-;;;   - (^ e1 e2) : Exponentiation
-;;;   - (fn arg) : Function application (sin, cos, exp, log, etc.)
-;;;
-;;; Dependencies:
-;;;   - core/prelude.ss
-
 (load "core/base/prelude.ss")
 
-;;; ====
-;;; Expression Constructors
-;;; ====
+(doc 'module 'expr)
+(doc 'description "Core symbolic expression data structures for computer algebra")
+(doc 'note "Uses S-expressions as natural representation")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
+(doc 'types "num, var, +, *, -, /, ^, function-application")
 
-;;; num : Number → Expr
-;;; Create a numeric constant.
+(doc 'section 'expression-constructors)
+
 (define (num n)
+  (doc 'type '(-> Number Expr))
+  (doc 'description "Create numeric constant expression")
   (list 'num n))
 
-;;; var : Symbol → Expr
-;;; Create a symbolic variable.
 (define (var x)
+  (doc 'type '(-> Symbol Expr))
+  (doc 'description "Create symbolic variable expression")
   (list 'var x))
 
 ;;; make-sum : (List Expr) → Expr
@@ -75,13 +60,11 @@
 (define (make-app fn arg)
   (list fn arg))
 
-;;; ====
-;;; Smart Constructors (with simplification)
-;;; ====
+(doc 'section 'smart-constructors)
 
-;;; sum : Expr × Expr → Expr
-;;; Create a sum with basic simplifications.
 (define (sum e1 e2)
+  (doc 'type '(-> Expr Expr Expr))
+  (doc 'description "Create sum with basic simplifications")
   (cond
    ;; 0 + x = x
    [(and (num? e1) (= (num-val e1) 0)) e2]
@@ -93,9 +76,9 @@
    ;; Default: create sum
    [else (list '+ e1 e2)]))
 
-;;; product : Expr × Expr → Expr
-;;; Create a product with basic simplifications.
 (define (product e1 e2)
+  (doc 'type '(-> Expr Expr Expr))
+  (doc 'description "Create product with basic simplifications")
   (cond
    ;; 0 * x = 0
    [(and (num? e1) (= (num-val e1) 0)) (num 0)]
@@ -109,9 +92,9 @@
    ;; Default: create product
    [else (list '* e1 e2)]))
 
-;;; difference : Expr × Expr → Expr
-;;; Create a difference with basic simplifications.
 (define (difference e1 e2)
+  (doc 'type '(-> Expr Expr Expr))
+  (doc 'description "Create difference with basic simplifications")
   (cond
    ;; x - 0 = x
    [(and (num? e2) (= (num-val e2) 0)) e1]
@@ -125,9 +108,9 @@
    ;; Default
    [else (list '- e1 e2)]))
 
-;;; quotient : Expr × Expr → Expr
-;;; Create a quotient with basic simplifications.
 (define (quotient e1 e2)
+  (doc 'type '(-> Expr Expr Expr))
+  (doc 'description "Create quotient with basic simplifications")
   (cond
    ;; Division by zero: return symbolic form (boundary layer validates)
    [(and (num? e2) (= (num-val e2) 0))
@@ -144,15 +127,10 @@
    ;; Default
    [else (list '/ e1 e2)]))
 
-;;; power : Expr × Expr → Expr
-;;; Create a power with basic simplifications.
-;;;
-;;; Note: 0^0 is undefined mathematically, but this implementation
-;;; follows the common convention in computer algebra systems and
-;;; returns 1. This is consistent with the empty product interpretation
-;;; and simplifies many combinatorial formulas. Override this behavior
-;;; in shell code if needed.
 (define (power base exp)
+  (doc 'type '(-> Expr Expr Expr))
+  (doc 'description "Create power with basic simplifications")
+  (doc 'note "0^0 returns 1 following CAS convention")
   (cond
    ;; x^0 = 1 (including 0^0 = 1, see note above)
    [(and (num? exp) (= (num-val exp) 0)) (num 1)]
@@ -177,12 +155,11 @@
    ;; Default
    [else (list '^ base exp)]))
 
-;;; ====
-;;; Expression Predicates
-;;; ====
+(doc 'section 'predicates)
 
-;;; num? : α → Bool
 (define (num? e)
+  (doc 'type '(-> α Bool))
+  (doc 'description "Test if expression is numeric constant")
   (and (pair? e) (eq? (car e) 'num)))
 
 ;;; var? : α → Bool
@@ -321,23 +298,12 @@
    ;; Default: not equal
    [else #f]))
 
-;;; ====
-;;; Pattern Matching
-;;; ====
+(doc 'section 'pattern-matching)
+(doc 'note "Patterns: (num _), (var _), (+ p1 p2), (* p1 p2), (? pred), _, literal")
 
-;;; A pattern is:
-;;;   (num _) — match any number, bind to _
-;;;   (var _) — match any variable, bind to _
-;;;   (+ p1 p2) — match sum
-;;;   (* p1 p2) — match product
-;;;   (? pred) — match if predicate holds
-;;;   _ — match anything (wildcard)
-;;;   literal — match exactly
-
-;;; match-expr : Expr × Pattern → Bindings | #f
-;;; Try to match expression against pattern.
-;;; Returns alist of bindings or #f if no match.
 (define (match-expr expr pattern)
+  (doc 'type '(-> Expr Pattern (Maybe Bindings)))
+  (doc 'description "Try to match expression against pattern, returns alist of bindings or #f")
   (cond
    ;; Wildcard matches anything
    [(eq? pattern '_) '()]
@@ -462,13 +428,11 @@
                         #f))
                #f))))
 
-;;; ====
-;;; Free Variables
-;;; ====
+(doc 'section 'free-variables)
 
-;;; free-vars : Expr → (List Symbol)
-;;; Get all free variables in an expression.
 (define (free-vars e)
+  (doc 'type '(-> Expr (List Symbol)))
+  (doc 'description "Get all free variables in expression")
   (cond
    [(num? e) '()]
    [(var? e) (list (var-name e))]
@@ -486,14 +450,11 @@
    [(app? e) (free-vars (app-arg e))]
    [else '()]))
 
-;;; ====
-;;; Substitution
-;;; ====
+(doc 'section 'substitution)
 
-;;; subst : Expr × Symbol × Expr → Expr
-;;; Substitute val for var-sym in expression.
-;;; Uses smart constructors to maintain simplification invariants.
 (define (subst expr var-sym val)
+  (doc 'type '(-> Expr Symbol Expr Expr))
+  (doc 'description "Substitute val for var-sym in expression using smart constructors")
   (cond
    [(num? expr) expr]
    [(var? expr)
@@ -527,13 +488,11 @@
     (make-app (app-fn expr) (subst (app-arg expr) var-sym val))]
    [else expr]))
 
-;;; ====
-;;; Expression Display
-;;; ====
+(doc 'section 'display)
 
-;;; expr->string : Expr → String
-;;; Convert expression to readable string.
 (define (expr->string e)
+  (doc 'type '(-> Expr String))
+  (doc 'description "Convert expression to readable string")
   (cond
    [(num? e) (number->string (num-val e))]
    [(var? e) (symbol->string (var-name e))]
@@ -561,16 +520,14 @@
                    "(" (expr->string (app-arg e)) ")")]
    [else "?"]))
 
-;;; ====
-;;; Common Function Constructors
-;;; ====
+(doc 'section 'common-functions)
 
-;;; sym-sin : Expr → Expr
-;;; Trigonometric sine function.
+(doc sym-sin 'type '(-> Expr Expr))
+(doc sym-sin 'description "Trigonometric sine function")
 (define (sym-sin e) (make-app 'sin e))
 
-;;; sym-cos : Expr → Expr
-;;; Trigonometric cosine function.
+(doc sym-cos 'type '(-> Expr Expr))
+(doc sym-cos 'description "Trigonometric cosine function")
 (define (sym-cos e) (make-app 'cos e))
 
 ;;; sym-tan : Expr → Expr

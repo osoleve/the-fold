@@ -1,40 +1,25 @@
-;;; lattice/fp/symbolic/integrate.ss — Symbolic Integration
-;;;
-;;; Compute antiderivatives symbolically.
-;;; Implements:
-;;;   - Basic antiderivatives (power rule, trig, exp, log)
-;;;   - Integration by parts
-;;;   - Substitution (u-substitution)
-;;;   - Partial fractions (basic)
-;;;   - Trigonometric substitutions
-;;;   - Table-based lookup
-;;;   - Definite integral evaluation
-;;;
-;;; This is Core code: pure, total, assumes reasonable input.
-;;;
-;;; Dependencies:
-;;;   - lattice/fp/symbolic/diff.ss (includes expr.ss)
-;;;   - lattice/fp/symbolic/simplify.ss
-
 (load "lattice/fp/symbolic/diff.ss")
 (load "lattice/fp/symbolic/simplify.ss")
 
-;;; ====
-;;; Main Integration Entry Point
-;;; ====
+(doc 'module 'integrate)
+(doc 'description "Compute antiderivatives symbolically")
+(doc 'features "Basic antiderivatives, integration by parts, u-substitution, partial fractions, trig substitutions, table-based lookup, definite integrals")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
 
-;;; integrate : Expr × Symbol → Expr | #f
-;;; Compute the indefinite integral of expr with respect to var-sym.
-;;; Returns #f if unable to integrate.
+(doc 'section 'main-integration)
+
 (define (integrate expr var-sym)
+  (doc 'type '(-> Expr Symbol (Maybe Expr)))
+  (doc 'description "Compute indefinite integral of expr with respect to var-sym, returns #f if unable")
   (let ([result (integrate-internal expr var-sym 0)])
        (if result
            (simplify result)
            #f)))
 
-;;; integrate-internal : Expr × Symbol × Depth → Expr | #f
-;;; Internal integration with depth tracking to prevent infinite recursion.
 (define (integrate-internal expr var-sym depth)
+  (doc 'type '(-> Expr Symbol Nat (Maybe Expr)))
+  (doc 'description "Internal integration with depth tracking to prevent infinite recursion")
   (if (> depth 20)
       #f  ;; Recursion limit
       (or
@@ -47,13 +32,11 @@
        (integrate-by-parts expr var-sym depth)
        (integrate-partial-fractions expr var-sym depth))))
 
-;;; ====
-;;; Integration Table (Common Integrals)
-;;; ====
+(doc 'section 'integration-table)
 
-;;; integrate-table : Expr × Symbol → Expr | #f
-;;; Table-based lookup for common integrals.
 (define (integrate-table expr var-sym)
+  (doc 'type '(-> Expr Symbol (Maybe Expr)))
+  (doc 'description "Table-based lookup for common integrals")
   (let ([x (var var-sym)])
        (cond
         ;; ∫ c dx = c*x
@@ -174,12 +157,11 @@
                           (num? (pow-exp (car terms)))
                           (= (num-val (pow-exp (car terms))) 2)))))))
 
-;;; ====
-;;; Basic Integration Rules
-;;; ====
+(doc 'section 'basic-integration-rules)
 
-;;; integrate-basic : Expr × Symbol × Depth → Expr | #f
 (define (integrate-basic expr var-sym depth)
+  (doc 'type '(-> Expr Symbol Nat (Maybe Expr)))
+  (doc 'description "Apply basic integration rules: sum, product with constants, difference, power")
   (cond
    ;; ∫ (f + g) dx = ∫f dx + ∫g dx
    [(sum? expr)
@@ -306,13 +288,11 @@
         
         [else #f])))
 
-;;; ====
-;;; U-Substitution
-;;; ====
+(doc 'section 'u-substitution)
 
-;;; integrate-by-substitution : Expr × Symbol × Depth → Expr | #f
-;;; Try u-substitution for various common patterns.
 (define (integrate-by-substitution expr var-sym depth)
+  (doc 'type '(-> Expr Symbol Nat (Maybe Expr)))
+  (doc 'description "Try u-substitution for common patterns")
   (or
    ;; ∫ f(g(x)) * g'(x) dx = F(g(x))
    (try-substitution-pattern expr var-sym depth)
@@ -421,13 +401,11 @@
   ;; sqrt(x^2 - a^2): x = a*sec(t)
   #f)  ;; TODO: implement
 
-;;; ====
-;;; Integration by Parts
-;;; ====
+(doc 'section 'integration-by-parts)
 
-;;; integrate-by-parts : Expr × Symbol × Depth → Expr | #f
-;;; Try integration by parts: ∫u dv = uv - ∫v du
 (define (integrate-by-parts expr var-sym depth)
+  (doc 'type '(-> Expr Symbol Nat (Maybe Expr)))
+  (doc 'description "Try integration by parts: ∫u dv = uv - ∫v du")
   (if (not (product? expr))
       #f
       (let ([factors (product-factors expr)])
@@ -485,13 +463,11 @@
                      (difference (product u v) int-v-du)
                      #f)))))
 
-;;; ====
-;;; Partial Fractions (Basic)
-;;; ====
+(doc 'section 'partial-fractions)
 
-;;; integrate-partial-fractions : Expr × Symbol × Depth → Expr | #f
-;;; Integrate rational functions using partial fractions.
 (define (integrate-partial-fractions expr var-sym depth)
+  (doc 'type '(-> Expr Symbol Nat (Maybe Expr)))
+  (doc 'description "Integrate rational functions using partial fractions")
   ;; Only handle simple cases for now
   (if (not (quotient? expr))
       #f
@@ -645,14 +621,12 @@
    [(= (length exprs) 1) (car exprs)]
    [else (fold-left sum (car exprs) (cdr exprs))]))
 
-;;; ====
-;;; Definite Integrals
-;;; ====
+(doc 'section 'definite-integrals)
 
-;;; definite-integral : Expr × Symbol × Expr × Expr → Expr | #f
-;;; Compute definite integral from a to b.
-;;; Returns F(b) - F(a) where F is the antiderivative.
 (define (definite-integral expr var-sym a b)
+  (doc 'type '(-> Expr Symbol Expr Expr (Maybe Expr)))
+  (doc 'description "Compute definite integral from a to b")
+  (doc 'note "Returns F(b) - F(a) where F is the antiderivative")
   (let ([F (integrate expr var-sym)])
        (if F
            (simplify (difference (subst F var-sym b)
@@ -672,18 +646,16 @@
                 (definite-integral expr var-sym (num a) (num b)))
            #f)))
 
-;;; ====
-;;; Convenience Functions
-;;; ====
+(doc 'section 'convenience-functions)
 
-;;; antiderivative : Expr × Symbol → Expr | #f
-;;; Alias for integrate.
+(doc antiderivative 'type '(-> Expr Symbol (Maybe Expr)))
+(doc antiderivative 'description "Alias for integrate")
 (define antiderivative integrate)
 
-;;; ∫ : Expr × Symbol → Expr | #f
-;;; Unicode alias for integrate.
+(doc ∫ 'type '(-> Expr Symbol (Maybe Expr)))
+(doc ∫ 'description "Unicode alias for integrate")
 (define ∫ integrate)
 
-;;; primitive : Expr × Symbol → Expr | #f
-;;; Another common name for antiderivative.
+(doc primitive 'type '(-> Expr Symbol (Maybe Expr)))
+(doc primitive 'description "Another common name for antiderivative")
 (define primitive integrate)

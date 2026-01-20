@@ -1,77 +1,71 @@
-;;; lattice/fp/category/monad-derivation.ss — Unified Monad Derivation from Adjunctions
-;;;
-;;; Every adjunction F ⊣ G gives rise to a monad on the composite G∘F:
-;;;   - return = η (unit of the adjunction)
-;;;   - join = G(ε_F) where ε is the counit
-;;;   - bind m f = join (fmap f m)
-;;;
-;;; This module provides:
-;;;   - monad-from-adjunction: derive monad operations from any adjunction
-;;;   - MonadOps record: return, bind, join, fmap
-;;;   - Example derivations: List monad from Free monoid adjunction
-;;;   - State adjunction and its derived monad
-;;;
-;;; This is Core code: pure, total, assumes reasonable input.
-;;;
-;;; Dependencies:
-;;;   - adjunction.ss
-;;;   - natural-transform.ss
-;;;   - templates.ss (for functor definitions)
-
 (load "lattice/fp/category/adjunction.ss")
 
-;;; ====
-;;; MonadOps Record
-;;; ====
-;;;
-;;; A MonadOps bundles the four core monad operations:
-;;;   - return : a → M a
-;;;   - fmap : (a → b) → M a → M b
-;;;   - join : M (M a) → M a
-;;;   - bind : M a → (a → M b) → M b
+(doc 'module 'monad-derivation)
+(doc 'description "Unified Monad Derivation from Adjunctions
 
-;;; make-monad-ops : Symbol × (a → M a) × ((a → b) → M a → M b) × (M (M a) → M a) × (M a → (a → M b) → M b) → MonadOps
+Every adjunction F ⊣ G gives rise to a monad on the composite G∘F:
+  - return = η (unit of the adjunction)
+  - join = G(ε_F) where ε is the counit
+  - bind m f = join (fmap f m)
+
+This module provides:
+  - monad-from-adjunction: derive monad operations from any adjunction
+  - MonadOps record: return, bind, join, fmap
+  - Example derivations: List monad from Free monoid adjunction
+  - State adjunction and its derived monad")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
+
+(doc 'section 'monad-ops-record)
+(doc 'description "MonadOps Record
+
+A MonadOps bundles the four core monad operations:
+  - return : a → M a
+  - fmap : (a → b) → M a → M b
+  - join : M (M a) → M a
+  - bind : M a → (a → M b) → M b")
+
 (define (make-monad-ops name return-fn fmap-fn join-fn bind-fn)
+  (doc 'type '(-> Symbol (-> a (M a)) (-> (-> a b) (M a) (M b)) (-> (M (M a)) (M a)) (-> (M a) (-> a (M b)) (M b)) MonadOps))
   (list 'monad-ops name return-fn fmap-fn join-fn bind-fn))
 
-;;; monad-ops? : Any → Boolean
 (define (monad-ops? x)
+  (doc 'type '(-> Any Boolean))
   (and (pair? x)
        (eq? (car x) 'monad-ops)
        (= (length x) 6)))
 
-;;; monad-ops-name : MonadOps → Symbol
 (define (monad-ops-name m)
+  (doc 'type '(-> MonadOps Symbol))
   (if (monad-ops? m) (cadr m) 'unknown))
 
-;;; monad-ops-return : MonadOps → (a → M a)
 (define (monad-ops-return m)
+  (doc 'type '(-> MonadOps (-> a (M a))))
   (if (monad-ops? m) (caddr m) #f))
 
-;;; monad-ops-fmap : MonadOps → ((a → b) → M a → M b)
 (define (monad-ops-fmap m)
+  (doc 'type '(-> MonadOps (-> (-> a b) (M a) (M b))))
   (if (monad-ops? m) (cadddr m) #f))
 
-;;; monad-ops-join : MonadOps → (M (M a) → M a)
 (define (monad-ops-join m)
+  (doc 'type '(-> MonadOps (-> (M (M a)) (M a))))
   (if (monad-ops? m) (car (cddddr m)) #f))
 
-;;; monad-ops-bind : MonadOps → (M a → (a → M b) → M b)
 (define (monad-ops-bind m)
+  (doc 'type '(-> MonadOps (-> (M a) (-> a (M b)) (M b))))
   (if (monad-ops? m) (cadr (cddddr m)) #f))
 
-;;; ====
-;;; Monad Derivation from Adjunction
-;;; ====
-;;;
-;;; Given an adjunction F ⊣ G, the composite G∘F forms a monad where:
-;;;   - The carrier functor is G∘F
-;;;   - return = η : Id → G∘F (unit of the adjunction)
-;;;   - join = G(ε_F) : G∘F∘G∘F → G∘F (applying G to counit at F)
-;;;
-;;; The key insight: ε : F∘G → Id, so ε_F(A) : F(G(F(A))) → F(A)
-;;; Applying G: G(ε_F(A)) : G(F(G(F(A)))) → G(F(A))
-;;; This gives us join: (G∘F)∘(G∘F) → G∘F
+(doc 'section 'monad-derivation)
+(doc 'description "Monad Derivation from Adjunction
+
+Given an adjunction F ⊣ G, the composite G∘F forms a monad where:
+  - The carrier functor is G∘F
+  - return = η : Id → G∘F (unit of the adjunction)
+  - join = G(ε_F) : G∘F∘G∘F → G∘F (applying G to counit at F)
+
+The key insight: ε : F∘G → Id, so ε_F(A) : F(G(F(A))) → F(A)
+Applying G: G(ε_F(A)) : G(F(G(F(A)))) → G(F(A))
+This gives us join: (G∘F)∘(G∘F) → G∘F")
 
 ;;; monad-from-adjunction : Adjunction → MonadOps
 ;;; Derive monad operations from an adjunction F ⊣ G.
@@ -108,36 +102,34 @@
 
         (make-monad-ops name return-fn fmap-fn join-fn bind-fn)))))
 
-;;; ====
-;;; Example: List Monad from Free Monoid Adjunction
-;;; ====
-;;;
-;;; The free monoid adjunction List ⊣ Id (or more precisely, Free ⊣ Forgetful)
-;;; gives rise to the List monad:
-;;;   - return x = [x] (singleton list)
-;;;   - join = concat (flatten nested lists)
-;;;   - bind xs f = concat (map f xs)
+(doc 'section 'list-monad-example)
+(doc 'description "Example: List Monad from Free Monoid Adjunction
 
-;;; monad-list-derived : MonadOps
-;;; List monad derived from adj-free-list.
+The free monoid adjunction List ⊣ Id (or more precisely, Free ⊣ Forgetful)
+gives rise to the List monad:
+  - return x = [x] (singleton list)
+  - join = concat (flatten nested lists)
+  - bind xs f = concat (map f xs)")
+
+(doc monad-list-derived 'type 'MonadOps)
+(doc monad-list-derived 'description "List monad derived from adj-free-list")
 (define monad-list-derived
   (monad-from-adjunction adj-free-list))
 
-;;; ====
-;;; State Adjunction and Monad
-;;; ====
-;;;
-;;; The State monad arises from the adjunction (- × S) ⊣ (- ^ S):
-;;;   - Left adjoint F: A ↦ A × S (product with state)
-;;;   - Right adjoint G: B ↦ S → B (functions from state)
-;;;   - Unit η_A : A → (S → A × S), η_A(a) = λs. (a, s)
-;;;   - Counit ε_B : (S → B) × S → B, ε_B(f, s) = f(s)
-;;;
-;;; The resulting monad on G∘F is:
-;;;   M A = S → (A × S)
-;;;
-;;; This is exactly the State monad, where computations thread state through.
-;;; Note: Reader monad (S → A) requires a different construction.
+(doc 'section 'state-adjunction)
+(doc 'description "State Adjunction and Monad
+
+The State monad arises from the adjunction (- × S) ⊣ (- ^ S):
+  - Left adjoint F: A ↦ A × S (product with state)
+  - Right adjoint G: B ↦ S → B (functions from state)
+  - Unit η_A : A → (S → A × S), η_A(a) = λs. (a, s)
+  - Counit ε_B : (S → B) × S → B, ε_B(f, s) = f(s)
+
+The resulting monad on G∘F is:
+  M A = S → (A × S)
+
+This is exactly the State monad, where computations thread state through.
+Note: Reader monad (S → A) requires a different construction.")
 
 ;;; make-state-adjunction : Type → Adjunction
 ;;; Create the product/exponential adjunction for a fixed state type S.
@@ -201,49 +193,47 @@
 (define monad-state-derived
   (monad-from-adjunction adj-state-example))
 
-;;; ====
-;;; State Monad Operations
-;;; ====
-;;;
-;;; The monad derived from the State adjunction is M A = S → (A × S).
-;;; Provide convenience functions for working with this pattern.
+(doc 'section 'state-utilities)
+(doc 'description "State Monad Operations
 
-;;; run-state : (S → (A × S)) × S → (A × S)
-;;; Run a state computation with initial state.
+The monad derived from the State adjunction is M A = S → (A × S).
+Provide convenience functions for working with this pattern.")
+
 (define (run-state m s)
+  (doc 'type '(-> (-> S (* A S)) S (* A S)))
+  (doc 'description "Run a state computation with initial state")
   (m s))
 
-;;; eval-state : (S → (A × S)) × S → A
-;;; Run computation and return just the value.
 (define (eval-state m s)
+  (doc 'type '(-> (-> S (* A S)) S A))
+  (doc 'description "Run computation and return just the value")
   (car (run-state m s)))
 
-;;; exec-state : (S → (A × S)) × S → S
-;;; Run computation and return just the final state.
 (define (exec-state m s)
+  (doc 'type '(-> (-> S (* A S)) S S))
+  (doc 'description "Run computation and return just the final state")
   (cdr (run-state m s)))
 
-;;; ====
-;;; Monad Law Verification
-;;; ====
-;;;
-;;; A monad must satisfy three laws:
-;;;   1. Left identity:  bind (return a) f = f a
-;;;   2. Right identity: bind m return = m
-;;;   3. Associativity:  bind (bind m f) g = bind m (λx. bind (f x) g)
-;;;
-;;; NOTE: The basic verify-* functions use Scheme's `equal?` for comparison.
-;;; This works for data-based monads (List, Maybe, Either) but FAILS for
-;;; function-based monads (State, Reader, Continuation) because functions
-;;; are compared by reference, not extensionally.
-;;;
-;;; For function-based monads, use the verify-*-with-eq variants that accept
-;;; a custom equality predicate. Example for State monad:
-;;;
-;;;   (define (state-eq s m1 m2)
-;;;     (equal? (run-state m1 s) (run-state m2 s)))
-;;;
-;;;   (verify-left-identity-with-eq ops a f (lambda (x y) (state-eq 0 x y)))
+(doc 'section 'monad-law-verification)
+(doc 'description "Monad Law Verification
+
+A monad must satisfy three laws:
+  1. Left identity:  bind (return a) f = f a
+  2. Right identity: bind m return = m
+  3. Associativity:  bind (bind m f) g = bind m (λx. bind (f x) g)
+
+NOTE: The basic verify-* functions use Scheme's equal? for comparison.
+This works for data-based monads (List, Maybe, Either) but FAILS for
+function-based monads (State, Reader, Continuation) because functions
+are compared by reference, not extensionally.
+
+For function-based monads, use the verify-*-with-eq variants that accept
+a custom equality predicate. Example for State monad:
+
+  (define (state-eq s m1 m2)
+    (equal? (run-state m1 s) (run-state m2 s)))
+
+  (verify-left-identity-with-eq ops a f (lambda (x y) (state-eq 0 x y)))")
 
 ;;; verify-left-identity : MonadOps × a × (a → M b) → Boolean
 ;;; Check: bind (return a) f = f a

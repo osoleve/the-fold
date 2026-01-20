@@ -1,33 +1,18 @@
-;;; lattice/fp/symbolic/poly-canonical.ss — Polynomial Canonical Form Integration
-;;;
-;;; Integrates lattice/algebra/polynomial.ss with symbolic math modules
-;;; for GCD-based simplification and partial fraction decomposition.
-;;;
-;;; Benefits:
-;;;   - Polynomial GCD for expression simplification
-;;;   - Exact partial fraction decomposition via polynomial division
-;;;   - Polynomial canonical form conversion
-;;;   - Square-free factorization for symbolic expressions
-;;;
-;;; This is Lattice code: pure, functional, assumes reasonable input.
-;;;
-;;; Dependencies:
-;;;   - lattice/algebra/polynomial.ss
-;;;   - lattice/algebra/field.ss
-;;;   - lattice/fp/symbolic/expr.ss
-;;;   - lattice/fp/symbolic/simplify.ss
-
 (load "lattice/algebra/field.ss")
 (load "lattice/algebra/polynomial.ss")
 (load "lattice/fp/symbolic/expr.ss")
 (load "lattice/fp/symbolic/simplify.ss")
 
-;;; ====
-;;; Rational Field for Exact Coefficient Arithmetic
-;;; ====
+(doc 'module 'poly-canonical)
+(doc 'description "Integrate polynomial algebra with symbolic math for GCD-based simplification and partial fractions")
+(doc 'features "Polynomial GCD, exact partial fraction decomposition, canonical form conversion, square-free factorization")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
 
-;;; Q-field : Field
-;;; The field of rational numbers.
+(doc 'section 'rational-field)
+
+(doc Q-field-sym 'type 'Field)
+(doc Q-field-sym 'description "Field of rational numbers for exact coefficient arithmetic")
 (define Q-field-sym
   (make-field
    '()                                    ; Infinite field
@@ -39,15 +24,12 @@
    (lambda (a b) (/ a b))                 ; Division
    =))                                    ; Equality
 
-;;; ====
-;;; Conversion: Symbolic Expression ↔ Polynomial
-;;; ====
+(doc 'section 'conversion)
 
-;;; expr->polynomial : Expr × Symbol × Field → AlgebraPoly | #f
-;;; Convert a symbolic expression to a polynomial over the given field.
-;;; Returns #f if the expression is not a polynomial in the given variable.
-;;; The variable becomes the indeterminate; all other symbols are treated as constants.
 (define (expr->polynomial expr var-sym field)
+  (doc 'type '(-> Expr Symbol Field (Maybe AlgebraPoly)))
+  (doc 'description "Convert symbolic expression to polynomial over given field")
+  (doc 'note "Returns #f if expression is not polynomial; variable becomes indeterminate, other symbols are constants")
   (if (not (polynomial-expr? expr var-sym))
       #f
       (let ([degree (expr-degree expr var-sym)])
@@ -204,14 +186,12 @@
     [(= c 1) (power x (num k))]
     [else (product (num c) (power x (num k)))]))
 
-;;; ====
-;;; GCD-Based Simplification for Rational Expressions
-;;; ====
+(doc 'section 'gcd-simplification)
 
-;;; simplify-rational : Expr × Symbol → Expr
-;;; Simplify a rational expression (quotient of polynomials) using GCD.
-;;; This cancels common polynomial factors in numerator/denominator.
 (define (simplify-rational expr var-sym)
+  (doc 'type '(-> Expr Symbol Expr))
+  (doc 'description "Simplify rational expression using polynomial GCD")
+  (doc 'note "Cancels common polynomial factors in numerator and denominator")
   (if (not (quotient? expr))
       expr
       (let* ([numer (quot-numer expr)]
@@ -229,15 +209,12 @@
                     (quotient (polynomial->expr numer-reduced var-sym)
                               (polynomial->expr denom-reduced var-sym)))))))))
 
-;;; ====
-;;; Partial Fraction Decomposition
-;;; ====
+(doc 'section 'partial-fractions)
 
-;;; partial-fractions : Expr × Symbol → Expr | #f
-;;; Decompose a proper rational function into partial fractions.
-;;; Returns #f if decomposition fails.
-;;; Input should be P(x)/Q(x) where deg(P) < deg(Q).
 (define (partial-fractions expr var-sym)
+  (doc 'type '(-> Expr Symbol (Maybe Expr)))
+  (doc 'description "Decompose proper rational function into partial fractions")
+  (doc 'note "Input should be P(x)/Q(x) where deg(P) < deg(Q); returns #f if decomposition fails")
   (if (not (quotient? expr))
       #f
       (let* ([numer (quot-numer expr)]
@@ -334,14 +311,11 @@
         (product expr1 expr2)
         (polynomial->expr (poly-lcm poly1 poly2) var-sym))))
 
-;;; ====
-;;; Square-Free Factorization for Symbolic Expressions
-;;; ====
+(doc 'section 'square-free-factorization)
 
-;;; expr-square-free : Expr × Symbol → Expr
-;;; Compute square-free part of polynomial expression.
-;;; Removes repeated factors.
 (define (expr-square-free expr var-sym)
+  (doc 'type '(-> Expr Symbol Expr))
+  (doc 'description "Compute square-free part of polynomial expression by removing repeated factors")
   (let ([poly (expr->polynomial expr var-sym Q-field-sym)])
     (if poly
         (polynomial->expr (poly-square-free poly) var-sym)

@@ -1,172 +1,174 @@
-;;; lattice/fp/category/free-algebra.ss — Free Algebras and Generalized Free ⊣ Forgetful
-;;;
-;;; Generalizes the Free ⊣ Forgetful adjunction pattern (seen in adj-free-list)
-;;; to arbitrary algebraic signatures: Monoid, Group, Magma, Ring, etc.
-;;;
-;;; Key abstraction: A Signature describes an algebraic structure
-;;;   - operations: list of (op-name . arity)
-;;;   - laws: list of rewrite rules for normalization
-;;;
-;;; An Algebra bundles:
-;;;   - signature: the algebraic theory
-;;;   - carrier: the underlying set (represented as type tag)
-;;;   - ops: alist of (op-name . implementation)
-;;;
-;;; The Free ⊣ Forgetful adjunction for signature Σ:
-;;;   - Free(X) = term algebra over generators from X
-;;;   - Forgetful(A) = underlying carrier set of algebra A
-;;;   - Unit η: x ↦ (gen x) — embed as generator
-;;;   - Counit ε: term ↦ evaluate term in algebra (extracting ops from algebra)
-;;;
-;;; This is Core code: pure, total, assumes reasonable input.
-;;;
-;;; Dependencies:
-;;;   - adjunction.ss (for adjunction infrastructure)
-;;;   - rewrite/rule.ss (for rewrite rules)
-;;;   - rewrite/engine.ss (for pattern matching and normalization)
-;;;
-;;; ====
-;;; Confluence of Rewrite Rules
-;;; ====
-;;;
-;;; When defining custom signatures with rewrite rules (laws), confluence
-;;; determines whether normalization produces consistent results.
-;;;
-;;; WHAT IS CONFLUENCE?
-;;; A rule set is confluent if every term reaches the same normal form
-;;; regardless of which rules are applied first. Non-confluent rules can
-;;; give different answers depending on reduction order.
-;;;
-;;; Example of non-confluence:
-;;;   Rule 1: (f (g x)) → (h x)
-;;;   Rule 2: (g x) → x
-;;;   Term: (f (g a))
-;;;   Path A: Apply rule 1 first → (h a)
-;;;   Path B: Apply rule 2 first → (f a) — stuck, different result
-;;;
-;;; WHEN RULES ARE LIKELY CONFLUENT:
-;;; - Non-overlapping left-hand sides: patterns don't match the same terms
-;;; - Terminating + locally confluent: all critical pairs rejoin
-;;; - Oriented toward simpler terms: each rule reduces complexity
-;;; - Orthogonal systems: no critical overlaps between rule patterns
-;;;
-;;; WARNING SIGNS OF NON-CONFLUENCE:
-;;; - Overlapping patterns: two rules can both match a term
-;;; - Circular rewrites: A → B and B → A (or indirect cycles)
-;;; - Missing cases: some overlap combinations lack a joining rule
-;;; - Commutativity without ordering: (f x y) ↔ (f y x) loops forever
-;;;
-;;; PRE-BUILT SIGNATURES:
-;;; The signatures defined below (sig-monoid, sig-group, etc.) are designed
-;;; to be confluent. They use standard orientations:
-;;; - Identity laws reduce toward the non-identity term
-;;; - Associativity normalizes to right-association
-;;; - Inverse laws reduce toward the identity
-;;; - Commutativity is intentionally omitted (would cause non-termination)
-;;;
-;;; CUSTOM SIGNATURES:
-;;; When creating your own signature, verify:
-;;; 1. Each rule strictly reduces term size or complexity
-;;; 2. Overlapping patterns have consistent outcomes (critical pair analysis)
-;;; 3. No rule can undo another rule's effect
-;;;
-;;; For advanced users: the Knuth-Bendix completion procedure can sometimes
-;;; transform non-confluent rules into confluent ones, but this is not
-;;; automated here.
-
 (load "lattice/fp/category/adjunction.ss")
 (load "lattice/fp/rewrite/rule.ss")
 (load "lattice/fp/rewrite/engine.ss")
 
-;;; ====
-;;; Signature Definition
-;;; ====
-;;;
-;;; A signature describes an algebraic theory:
-;;;   - name: identifying symbol
-;;;   - operations: ((op-name . arity) ...)  e.g., ((e . 0) (* . 2))
-;;;   - laws: list of rewrite rules for normalization
+(doc 'module 'free-algebra)
+(doc 'description "Free Algebras and Generalized Free ⊣ Forgetful
 
-;;; make-signature : Symbol × OpList × RuleList → Signature
-;;; Create a signature for an algebraic theory.
-;;; ops: list of (op-name . arity) pairs
-;;; laws: list of rewrite rules for term normalization
+Generalizes the Free ⊣ Forgetful adjunction pattern (seen in adj-free-list)
+to arbitrary algebraic signatures: Monoid, Group, Magma, Ring, etc.
+
+Key abstraction: A Signature describes an algebraic structure
+  - operations: list of (op-name . arity)
+  - laws: list of rewrite rules for normalization
+
+An Algebra bundles:
+  - signature: the algebraic theory
+  - carrier: the underlying set (represented as type tag)
+  - ops: alist of (op-name . implementation)
+
+The Free ⊣ Forgetful adjunction for signature Σ:
+  - Free(X) = term algebra over generators from X
+  - Forgetful(A) = underlying carrier set of algebra A
+  - Unit η: x ↦ (gen x) — embed as generator
+  - Counit ε: term ↦ evaluate term in algebra (extracting ops from algebra)")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
+
+(doc 'section 'confluence)
+(doc 'description "Confluence of Rewrite Rules
+
+When defining custom signatures with rewrite rules (laws), confluence
+determines whether normalization produces consistent results.
+
+WHAT IS CONFLUENCE?
+A rule set is confluent if every term reaches the same normal form
+regardless of which rules are applied first. Non-confluent rules can
+give different answers depending on reduction order.
+
+Example of non-confluence:
+  Rule 1: (f (g x)) → (h x)
+  Rule 2: (g x) → x
+  Term: (f (g a))
+  Path A: Apply rule 1 first → (h a)
+  Path B: Apply rule 2 first → (f a) — stuck, different result
+
+WHEN RULES ARE LIKELY CONFLUENT:
+- Non-overlapping left-hand sides: patterns don't match the same terms
+- Terminating + locally confluent: all critical pairs rejoin
+- Oriented toward simpler terms: each rule reduces complexity
+- Orthogonal systems: no critical overlaps between rule patterns
+
+WARNING SIGNS OF NON-CONFLUENCE:
+- Overlapping patterns: two rules can both match a term
+- Circular rewrites: A → B and B → A (or indirect cycles)
+- Missing cases: some overlap combinations lack a joining rule
+- Commutativity without ordering: (f x y) ↔ (f y x) loops forever
+
+PRE-BUILT SIGNATURES:
+The signatures defined below (sig-monoid, sig-group, etc.) are designed
+to be confluent. They use standard orientations:
+- Identity laws reduce toward the non-identity term
+- Associativity normalizes to right-association
+- Inverse laws reduce toward the identity
+- Commutativity is intentionally omitted (would cause non-termination)
+
+CUSTOM SIGNATURES:
+When creating your own signature, verify:
+1. Each rule strictly reduces term size or complexity
+2. Overlapping patterns have consistent outcomes (critical pair analysis)
+3. No rule can undo another rule's effect
+
+For advanced users: the Knuth-Bendix completion procedure can sometimes
+transform non-confluent rules into confluent ones, but this is not
+automated here.")
+
+(doc 'section 'signature-definition)
+(doc 'description "Signature Definition
+
+A signature describes an algebraic theory:
+  - name: identifying symbol
+  - operations: ((op-name . arity) ...)  e.g., ((e . 0) (* . 2))
+  - laws: list of rewrite rules for normalization")
+
 (define (make-signature name ops laws)
+  (doc 'type '(-> Symbol OpList RuleList Signature))
+  (doc 'description "Create a signature for an algebraic theory
+ops: list of (op-name . arity) pairs
+laws: list of rewrite rules for term normalization")
   (list 'signature name ops laws))
 
-;;; signature? : Any → Boolean
 (define (signature? x)
+  (doc 'type '(-> Any Boolean))
+  (doc 'description "Test if value is a signature")
   (and (pair? x)
        (eq? (car x) 'signature)
        (= (length x) 4)))
 
-;;; signature-name : Signature → Symbol
 (define (signature-name sig)
+  (doc 'type '(-> Signature Symbol))
+  (doc 'description "Get the name of a signature")
   (if (signature? sig) (cadr sig) 'unknown))
 
-;;; signature-operations : Signature → OpList
 (define (signature-operations sig)
+  (doc 'type '(-> Signature OpList))
+  (doc 'description "Get the operations list from a signature")
   (if (signature? sig) (caddr sig) '()))
 
-;;; signature-laws : Signature → RuleList
 (define (signature-laws sig)
+  (doc 'type '(-> Signature RuleList))
+  (doc 'description "Get the rewrite laws from a signature")
   (if (signature? sig) (cadddr sig) '()))
 
-;;; signature-op-arity : Signature × Symbol → Nat | #f
-;;; Get the arity of an operation in the signature.
 (define (signature-op-arity sig op-name)
+  (doc 'type '(-> Signature Symbol (Maybe Nat)))
+  (doc 'description "Get the arity of an operation in the signature")
   (let ([entry (assq op-name (signature-operations sig))])
     (and entry (cdr entry))))
 
-;;; signature-has-op? : Signature × Symbol → Boolean
 (define (signature-has-op? sig op-name)
+  (doc 'type '(-> Signature Symbol Boolean))
+  (doc 'description "Test if signature has an operation")
   (and (assq op-name (signature-operations sig)) #t))
 
-;;; ====
-;;; Algebra Definition
-;;; ====
-;;;
-;;; An Algebra bundles a signature with a concrete implementation.
-;;; The ops alist maps operation names to procedures.
+(doc 'section 'algebra-definition)
+(doc 'description "Algebra Definition
 
-;;; make-algebra : Signature × Symbol × OpImplList → Algebra
-;;; Create an algebra over a signature.
-;;; carrier: a symbol identifying the carrier type
-;;; ops: alist of (op-name . procedure)
+An Algebra bundles a signature with a concrete implementation.
+The ops alist maps operation names to procedures.")
+
 (define (make-algebra sig carrier ops)
+  (doc 'type '(-> Signature Symbol OpImplList Algebra))
+  (doc 'description "Create an algebra over a signature
+carrier: a symbol identifying the carrier type
+ops: alist of (op-name . procedure)")
   (list 'algebra sig carrier ops))
 
-;;; algebra? : Any → Boolean
 (define (algebra? x)
+  (doc 'type '(-> Any Boolean))
+  (doc 'description "Test if value is an algebra")
   (and (pair? x)
        (eq? (car x) 'algebra)
        (= (length x) 4)))
 
-;;; algebra-signature : Algebra → Signature
 (define (algebra-signature alg)
+  (doc 'type '(-> Algebra Signature))
+  (doc 'description "Get the signature from an algebra")
   (if (algebra? alg) (cadr alg) #f))
 
-;;; algebra-carrier : Algebra → Symbol
 (define (algebra-carrier alg)
+  (doc 'type '(-> Algebra Symbol))
+  (doc 'description "Get the carrier type symbol from an algebra")
   (if (algebra? alg) (caddr alg) 'unknown))
 
-;;; algebra-ops : Algebra → OpImplList
 (define (algebra-ops alg)
+  (doc 'type '(-> Algebra OpImplList))
+  (doc 'description "Get the operations implementation list")
   (if (algebra? alg) (cadddr alg) '()))
 
-;;; algebra-op : Algebra × Symbol → Procedure | #f
-;;; Get the implementation of an operation.
 (define (algebra-op alg op-name)
+  (doc 'type '(-> Algebra Symbol (Maybe Procedure)))
+  (doc 'description "Get the implementation of an operation")
   (let ([entry (assq op-name (algebra-ops alg))])
     (and entry (cdr entry))))
 
-;;; validate-algebra : Algebra → (ok Algebra) | (err String)
-;;; Validate that an algebra correctly implements its signature.
-;;; Checks:
-;;;   1. All signature operations have implementations
-;;;   2. All implementations are procedures
-;;;   3. No extra operations beyond the signature
 (define (validate-algebra alg)
+  (doc 'type '(-> Algebra (Result Algebra String)))
+  (doc 'description "Validate that an algebra correctly implements its signature
+Checks:
+  1. All signature operations have implementations
+  2. All implementations are procedures
+  3. No extra operations beyond the signature")
   (if (not (algebra? alg))
       (list 'err "Not an algebra")
       (let* ([sig (algebra-signature alg)]
@@ -191,56 +193,55 @@
                           (list 'ok alg extra)  ; ok with warning
                           (list 'ok alg))))))))))
 
-;;; algebra-valid? : Algebra → Boolean
-;;; Quick predicate for algebra validity.
 (define (algebra-valid? alg)
+  (doc 'type '(-> Algebra Boolean))
+  (doc 'description "Quick predicate for algebra validity")
   (let ([result (validate-algebra alg)])
     (and (pair? result) (eq? (car result) 'ok))))
 
-;;; make-validated-algebra : Signature × Symbol × OpImplList → Algebra
-;;; Like make-algebra but validates and raises error on failure.
 (define (make-validated-algebra sig carrier ops)
+  (doc 'type '(-> Signature Symbol OpImplList Algebra))
+  (doc 'description "Like make-algebra but validates and raises error on failure")
   (let* ([alg (make-algebra sig carrier ops)]
          [result (validate-algebra alg)])
     (if (eq? (car result) 'err)
         (error 'make-validated-algebra (cadr result))
         alg)))
 
-;;; ====
-;;; Algebra Homomorphisms
-;;; ====
-;;;
-;;; An algebra homomorphism h : A → B is a function that preserves structure:
-;;;   For each n-ary operation σ:  h(σ_A(a₁,...,aₙ)) = σ_B(h(a₁),...,h(aₙ))
-;;;   For 0-ary operations (constants):  h(e_A) = e_B
+(doc 'section 'algebra-homomorphisms)
+(doc 'description "Algebra Homomorphisms
 
-;;; make-algebra-hom : Algebra × Algebra × (Any → Any) → AlgebraHom
-;;; Create an algebra homomorphism from source to target.
-;;; The function f should preserve the algebraic structure.
+An algebra homomorphism h : A → B is a function that preserves structure:
+  For each n-ary operation σ:  h(σ_A(a₁,...,aₙ)) = σ_B(h(a₁),...,h(aₙ))
+  For 0-ary operations (constants):  h(e_A) = e_B")
+
 (define (make-algebra-hom source target f)
+  (doc 'type '(-> Algebra Algebra (-> Any Any) AlgebraHom))
+  (doc 'description "Create an algebra homomorphism from source to target.
+The function f should preserve the algebraic structure.")
   (list 'algebra-hom source target f))
 
-;;; algebra-hom? : Any → Boolean
 (define (algebra-hom? x)
+  (doc 'type '(-> Any Boolean))
   (and (pair? x)
        (eq? (car x) 'algebra-hom)
        (= (length x) 4)))
 
-;;; algebra-hom-source : AlgebraHom → Algebra
 (define (algebra-hom-source h)
+  (doc 'type '(-> AlgebraHom Algebra))
   (if (algebra-hom? h) (cadr h) #f))
 
-;;; algebra-hom-target : AlgebraHom → Algebra
 (define (algebra-hom-target h)
+  (doc 'type '(-> AlgebraHom Algebra))
   (if (algebra-hom? h) (caddr h) #f))
 
-;;; algebra-hom-function : AlgebraHom → (Any → Any)
 (define (algebra-hom-function h)
+  (doc 'type '(-> AlgebraHom (-> Any Any)))
   (if (algebra-hom? h) (cadddr h) #f))
 
-;;; algebra-hom-apply : AlgebraHom × Any → Any
-;;; Apply a homomorphism to a value.
 (define (algebra-hom-apply h x)
+  (doc 'type '(-> AlgebraHom Any Any))
+  (doc 'description "Apply a homomorphism to a value")
   ((algebra-hom-function h) x))
 
 ;;; verify-homomorphism : AlgebraHom × TestValues → Boolean
@@ -301,28 +302,27 @@
 (define (identity-algebra-hom alg)
   (make-algebra-hom alg alg (lambda (x) x)))
 
-;;; ====
-;;; Term Representation
-;;; ====
-;;;
-;;; Terms in the free algebra are built from:
-;;;   - Generators: (gen x) — elements from the carrier set
-;;;   - Operations: (op-name term ...) — operation applied to subterms
-;;;   - Constants: just the op-name for 0-arity operations
+(doc 'section 'term-representation)
+(doc 'description "Term Representation
 
-;;; make-gen : Any → Generator
-;;; Create a generator (embedding of a carrier element into the free algebra).
+Terms in the free algebra are built from:
+  - Generators: (gen x) — elements from the carrier set
+  - Operations: (op-name term ...) — operation applied to subterms
+  - Constants: just the op-name for 0-arity operations")
+
 (define (make-gen x)
+  (doc 'type '(-> Any Generator))
+  (doc 'description "Create a generator (embedding of a carrier element into the free algebra)")
   (list 'gen x))
 
-;;; gen? : Any → Boolean
 (define (gen? t)
+  (doc 'type '(-> Any Boolean))
   (and (pair? t)
        (eq? (car t) 'gen)
        (= (length t) 2)))
 
-;;; gen-value : Generator → Any
 (define (gen-value g)
+  (doc 'type '(-> Generator Any))
   (if (gen? g) (cadr g) g))
 
 ;;; term-op? : Signature × Any → Boolean
@@ -404,36 +404,34 @@
       ;; Literal value: pass through (for generators that aren't wrapped)
       [else term])))
 
-;;; ====
-;;; Functors for Free ⊣ Forgetful
-;;; ====
+(doc 'section 'free-forgetful-functors)
 
-;;; make-free-functor : Signature → Functor
-;;; The Free functor: Set → Alg(Σ)
-;;; F(X) = term algebra over X (as generators)
-;;; F(f) = map f over generators in terms
 (define (make-free-functor sig)
+  (doc 'type '(-> Signature Functor))
+  (doc 'description "The Free functor: Set → Alg(Σ)
+F(X) = term algebra over X (as generators)
+F(f) = map f over generators in terms")
   (make-named-functor
    (string->symbol (format "Free-~a" (signature-name sig)))
    (lambda (f term)
      (free-fmap sig f term))))
 
-;;; make-forgetful-functor : Signature → Functor
-;;; The Forgetful functor: Alg(Σ) → Set
-;;;
-;;; Categorical semantics:
-;;;   On objects:    G(A) = carrier set of algebra A
-;;;   On morphisms:  G(h : A → B) = underlying function h : |A| → |B|
-;;;
-;;; In our Scheme encoding:
-;;;   - Algebras are first-class values containing their carriers
-;;;   - Algebra homomorphisms are represented as functions
-;;;   - Therefore G(h)(x) = h(x), which is just function application
-;;;
-;;; This is correct categorically: the forgetful functor "forgets" the
-;;; algebraic structure and retains only the underlying set/function.
-;;; The apparent simplicity reflects that Set is the "base" category.
 (define (make-forgetful-functor sig)
+  (doc 'type '(-> Signature Functor))
+  (doc 'description "The Forgetful functor: Alg(Σ) → Set
+
+Categorical semantics:
+  On objects:    G(A) = carrier set of algebra A
+  On morphisms:  G(h : A → B) = underlying function h : |A| → |B|
+
+In our Scheme encoding:
+  - Algebras are first-class values containing their carriers
+  - Algebra homomorphisms are represented as functions
+  - Therefore G(h)(x) = h(x), which is just function application
+
+This is correct categorically: the forgetful functor forgets the
+algebraic structure and retains only the underlying set/function.
+The apparent simplicity reflects that Set is the base category.")
   (make-named-functor
    (string->symbol (format "Forget-~a" (signature-name sig)))
    ;; fmap for forgetful: given h : A → B (underlying function),
@@ -525,27 +523,27 @@
   (lambda (term)
     (eval-in-algebra alg term)))
 
-;;; ====
-;;; Pre-built Signatures
-;;; ====
+(doc 'section 'prebuilt-signatures)
 
-;;; sig-magma : Signature for Magma (one binary operation, no laws)
+(doc sig-magma 'type 'Signature)
+(doc sig-magma 'description "Signature for Magma (one binary operation, no laws)")
 (define sig-magma
   (make-signature 'magma
     '((* . 2))
     '()))
 
-;;; sig-semigroup : Signature for Semigroup (associative binary operation)
+(doc sig-semigroup 'type 'Signature)
+(doc sig-semigroup 'description "Signature for Semigroup (associative binary operation)")
 (define sig-semigroup
   (make-signature 'semigroup
     '((* . 2))
     (list
-      ;; Associativity: (* (* x y) z) → (* x (* y z))
       (make-rule 'assoc
                  '(* (* (?x) (?y)) (?z))
                  '(* (?x) (* (?y) (?z)))))))
 
-;;; sig-monoid : Signature for Monoid (identity + associativity)
+(doc sig-monoid 'type 'Signature)
+(doc sig-monoid 'description "Signature for Monoid (identity + associativity)")
 (define sig-monoid
   (make-signature 'monoid
     '((e . 0) (* . 2))
@@ -563,19 +561,19 @@
                  '(* (* (?x) (?y)) (?z))
                  '(* (?x) (* (?y) (?z)))))))
 
-;;; sig-commutative-monoid : Signature for Commutative Monoid
+(doc sig-commutative-monoid 'type 'Signature)
+(doc sig-commutative-monoid 'description "Signature for Commutative Monoid.
+Note: Full commutativity normalization requires ordered rewriting.
+For simplicity, we don't add commutativity to avoid non-confluence.")
 (define sig-commutative-monoid
   (make-signature 'comm-monoid
     '((e . 0) (* . 2))
     (append
       (signature-laws sig-monoid)
-      (list
-        ;; Commutativity: (* x y) → (* y x) when x > y (canonical ordering)
-        ;; Note: Full commutativity normalization requires ordered rewriting.
-        ;; For simplicity, we don't add commutativity to avoid non-confluence.
-        ))))
+      (list))))
 
-;;; sig-group : Signature for Group (monoid + inverses)
+(doc sig-group 'type 'Signature)
+(doc sig-group 'description "Signature for Group (monoid + inverses)")
 (define sig-group
   (make-signature 'group
     '((e . 0) (* . 2) (inv . 1))
@@ -599,58 +597,64 @@
                    '(inv e)
                    'e)))))
 
-;;; sig-abelian-group : Signature for Abelian Group
+(doc sig-abelian-group 'type 'Signature)
+(doc sig-abelian-group 'description "Signature for Abelian Group.
+Commutativity omitted for confluence")
 (define sig-abelian-group
   (make-signature 'abelian-group
     '((e . 0) (* . 2) (inv . 1))
-    (signature-laws sig-group)))  ; Commutativity omitted for confluence
+    (signature-laws sig-group)))
 
-;;; ====
-;;; Pre-built Algebras
-;;; ====
+(doc 'section 'prebuilt-algebras)
 
-;;; alg-list-monoid : Algebra for List monoid
+(doc alg-list-monoid 'type 'Algebra)
+(doc alg-list-monoid 'description "Algebra for List monoid")
 (define alg-list-monoid
   (make-algebra sig-monoid 'list
     `((e . ,(lambda () '()))
       (* . ,append))))
 
-;;; alg-sum-monoid : Algebra for Integer sum monoid
+(doc alg-sum-monoid 'type 'Algebra)
+(doc alg-sum-monoid 'description "Algebra for Integer sum monoid")
 (define alg-sum-monoid
   (make-algebra sig-monoid 'number
     `((e . ,(lambda () 0))
       (* . ,+))))
 
-;;; alg-product-monoid : Algebra for Integer product monoid
+(doc alg-product-monoid 'type 'Algebra)
+(doc alg-product-monoid 'description "Algebra for Integer product monoid")
 (define alg-product-monoid
   (make-algebra sig-monoid 'number
     `((e . ,(lambda () 1))
       (* . ,*))))
 
-;;; alg-integer-group : Algebra for Integer addition group
+(doc alg-integer-group 'type 'Algebra)
+(doc alg-integer-group 'description "Algebra for Integer addition group")
 (define alg-integer-group
   (make-algebra sig-group 'integer
     `((e . ,(lambda () 0))
       (* . ,+)
       (inv . ,-))))
 
-;;; ====
-;;; Adjunction Instances
-;;; ====
+(doc 'section 'adjunction-instances)
 
-;;; adj-free-magma : Free ⊣ Forgetful for Magma
+(doc adj-free-magma 'type 'Adjunction)
+(doc adj-free-magma 'description "Free ⊣ Forgetful for Magma")
 (define adj-free-magma
   (make-free-adjunction sig-magma))
 
-;;; adj-free-semigroup : Free ⊣ Forgetful for Semigroup
+(doc adj-free-semigroup 'type 'Adjunction)
+(doc adj-free-semigroup 'description "Free ⊣ Forgetful for Semigroup")
 (define adj-free-semigroup
   (make-free-adjunction sig-semigroup))
 
-;;; adj-free-monoid : Free ⊣ Forgetful for Monoid
+(doc adj-free-monoid 'type 'Adjunction)
+(doc adj-free-monoid 'description "Free ⊣ Forgetful for Monoid")
 (define adj-free-monoid
   (make-free-adjunction sig-monoid))
 
-;;; adj-free-group : Free ⊣ Forgetful for Group
+(doc adj-free-group 'type 'Adjunction)
+(doc adj-free-group 'description "Free ⊣ Forgetful for Group")
 (define adj-free-group
   (make-free-adjunction sig-group))
 
@@ -691,43 +695,48 @@
                          (cdr term))))]
     [else (format "~a" term)]))
 
-;;; ====
-;;; Exports
-;;; ====
-;;;
-;;; Signature:
-;;;   make-signature, signature?, signature-name
-;;;   signature-operations, signature-laws
-;;;   signature-op-arity, signature-has-op?
-;;;
-;;; Algebra:
-;;;   make-algebra, algebra?, algebra-signature
-;;;   algebra-carrier, algebra-ops, algebra-op
-;;;
-;;; Terms:
-;;;   make-gen, gen?, gen-value
-;;;   term-op?, term?
-;;;
-;;; Term Operations:
-;;;   free-fmap, normalize-term, eval-term
-;;;   eval-in-algebra, make-algebra-evaluator
-;;;
-;;; Functors and Adjunction:
-;;;   make-free-functor, make-forgetful-functor
-;;;   make-free-unit, make-free-counit
-;;;   make-free-adjunction
-;;;
-;;; Pre-built Signatures:
-;;;   sig-magma, sig-semigroup, sig-monoid
-;;;   sig-commutative-monoid, sig-group, sig-abelian-group
-;;;
-;;; Pre-built Algebras:
-;;;   alg-list-monoid, alg-sum-monoid, alg-product-monoid
-;;;   alg-integer-group
-;;;
-;;; Pre-built Adjunctions:
-;;;   adj-free-magma, adj-free-semigroup
-;;;   adj-free-monoid, adj-free-group
-;;;
-;;; Display:
-;;;   signature->string, algebra->string, term->string
+(doc 'section 'exports)
+(doc 'description "Exports
+
+Signature:
+  make-signature, signature?, signature-name
+  signature-operations, signature-laws
+  signature-op-arity, signature-has-op?
+
+Algebra:
+  make-algebra, algebra?, algebra-signature
+  algebra-carrier, algebra-ops, algebra-op
+  validate-algebra, algebra-valid?, make-validated-algebra
+
+Algebra Homomorphisms:
+  make-algebra-hom, algebra-hom?, algebra-hom-source
+  algebra-hom-target, algebra-hom-function, algebra-hom-apply
+  verify-homomorphism, compose-algebra-hom, identity-algebra-hom
+
+Terms:
+  make-gen, gen?, gen-value
+  term-op?, term?
+
+Term Operations:
+  free-fmap, normalize-term, eval-term
+  eval-in-algebra, make-algebra-evaluator
+
+Functors and Adjunction:
+  make-free-functor, make-forgetful-functor
+  make-free-unit, make-free-counit
+  make-free-adjunction, forget-carrier
+
+Pre-built Signatures:
+  sig-magma, sig-semigroup, sig-monoid
+  sig-commutative-monoid, sig-group, sig-abelian-group
+
+Pre-built Algebras:
+  alg-list-monoid, alg-sum-monoid, alg-product-monoid
+  alg-integer-group
+
+Pre-built Adjunctions:
+  adj-free-magma, adj-free-semigroup
+  adj-free-monoid, adj-free-group
+
+Display:
+  signature->string, algebra->string, term->string")

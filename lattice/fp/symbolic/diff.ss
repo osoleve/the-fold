@@ -1,58 +1,49 @@
-;;; core/fp/symbolic/diff.ss — Symbolic Differentiation
-;;;
-;;; Symbolic computation of derivatives for algebraic expressions.
-;;; Implements derivative rules, partial derivatives, gradients, Jacobians, and Hessians.
-;;;
-;;; This is Core code: pure, total, assumes reasonable input.
-;;;
-;;; Dependencies:
-;;;   - core/fp/symbolic/expr.ss
-
 (load "lattice/fp/symbolic/expr.ss")
 
-;;; ====
-;;; Helper Functions for Simplification
-;;; ====
+(doc 'module 'diff)
+(doc 'description "Symbolic computation of derivatives for algebraic expressions")
+(doc 'features "Derivative rules, partial derivatives, gradients, Jacobians, Hessians, curl, divergence, Laplacian")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
 
-;;; fold-sum : (List Expr) → Expr
-;;; Fold a list of expressions into a sum using smart constructors.
+(doc 'section 'helper-functions)
+
 (define (fold-sum exprs)
+  (doc 'type '(-> (List Expr) Expr))
+  (doc 'description "Fold list of expressions into sum using smart constructors")
   (cond
    [(null? exprs) (num 0)]
    [(null? (cdr exprs)) (car exprs)]
    [else (sum (car exprs) (fold-sum (cdr exprs)))]))
 
-;;; fold-product : (List Expr) → Expr
-;;; Fold a list of expressions into a product using smart constructors.
 (define (fold-product exprs)
+  (doc 'type '(-> (List Expr) Expr))
+  (doc 'description "Fold list of expressions into product using smart constructors")
   (cond
    [(null? exprs) (num 1)]
    [(null? (cdr exprs)) (car exprs)]
    [else (product (car exprs) (fold-product (cdr exprs)))]))
 
-;;; ====
-;;; Basic Differentiation
-;;; ====
+(doc 'section 'basic-differentiation)
 
-;;; deriv : Expr × Symbol → Expr
-;;; Compute the derivative of expr with respect to var-sym.
-;;; Uses the standard calculus differentiation rules.
 (define (deriv expr var-sym)
+  (doc 'type '(-> Expr Symbol Expr))
+  (doc 'description "Compute derivative of expr with respect to var-sym using standard calculus rules")
   (cond
    ;; d/dx[c] = 0 (constant rule)
    [(num? expr) (num 0)]
-   
+
    ;; d/dx[x] = 1, d/dx[y] = 0 (variable rule)
    [(var? expr)
     (if (eq? (var-name expr) var-sym)
         (num 1)
         (num 0))]
-   
+
    ;; d/dx[f + g] = f' + g' (sum rule)
    [(sum? expr)
     (let ([terms (sum-terms expr)])
          (fold-sum (map (lambda (e) (deriv e var-sym)) terms)))]
-   
+
    ;; d/dx[f * g] = f' * g + f * g' (product rule)
    [(product? expr)
     (let ([factors (product-factors expr)])
@@ -76,7 +67,7 @@
                                (iota (length factors))
                                factors)))
                  (iota (length factors))))]))]
-   
+
    ;; d/dx[f - g] = f' - g' (difference rule)
    [(difference? expr)
     (if (diff-right expr)
@@ -85,7 +76,7 @@
                     (deriv (diff-right expr) var-sym))
         ;; Unary negation: d/dx[-f] = -f'
         (make-neg (deriv (diff-left expr) var-sym)))]
-   
+
    ;; d/dx[f / g] = (f' * g - f * g') / g^2 (quotient rule)
    [(quotient? expr)
     (let ([f (quot-numer expr)]
@@ -94,7 +85,7 @@
           (difference (product (deriv f var-sym) g)
                       (product f (deriv g var-sym)))
           (power g (num 2))))]
-   
+
    ;; d/dx[f^g] = f^g * (g' * ln(f) + g * f'/f) (generalized power rule)
    ;; Special cases:
    ;;   - f^n (constant exponent): n * f^(n-1) * f'
@@ -118,21 +109,20 @@
            (product expr
                     (sum (product (deriv g var-sym) (sym-log f))
                          (product g (quotient (deriv f var-sym) f))))]))]
-   
+
    ;; d/dx[fn(u)] = fn'(u) * u' (chain rule)
    [(app? expr)
     (let ([fn (app-fn expr)]
           [u (app-arg expr)]
           [du (deriv (app-arg expr) var-sym)])
          (product (deriv-fn fn u) du))]
-   
+
    ;; Unknown expression type
    [else (num 0)]))
 
-;;; deriv-fn : Symbol × Expr → Expr
-;;; Compute the derivative of a named function.
-;;; Returns the derivative function evaluated at the given argument.
 (define (deriv-fn fn arg)
+  (doc 'type '(-> Symbol Expr Expr))
+  (doc 'description "Compute derivative of named function, returns derivative evaluated at argument")
   (case fn
         ;; d/du[sin(u)] = cos(u)
         [(sin) (sym-cos arg)]
@@ -161,86 +151,64 @@
         ;; Unknown function: return symbolic derivative
         [else (make-app 'D (make-app fn arg))]))
 
-;;; ====
-;;; Partial Derivatives
-;;; ====
+(doc 'section 'partial-derivatives)
 
-;;; partial : Expr × Symbol → Expr
-;;; Compute partial derivative ∂expr/∂var-sym.
-;;; Alias for deriv (in single-variable case, partial = total derivative).
 (define (partial expr var-sym)
+  (doc 'type '(-> Expr Symbol Expr))
+  (doc 'description "Compute partial derivative ∂expr/∂var-sym (alias for deriv)")
   (deriv expr var-sym))
 
-;;; ====
-;;; Gradient
-;;; ====
+(doc 'section 'gradient)
 
-;;; gradient : Expr × (List Symbol) → (List Expr)
-;;; Compute the gradient ∇f = [∂f/∂x₁, ∂f/∂x₂, ..., ∂f/∂xₙ].
-;;; Returns a list of partial derivatives.
 (define (gradient expr vars)
+  (doc 'type '(-> Expr (List Symbol) (List Expr)))
+  (doc 'description "Compute gradient ∇f = [∂f/∂x₁, ∂f/∂x₂, ..., ∂f/∂xₙ]")
   (map (lambda (v) (partial expr v)) vars))
 
-;;; ====
-;;; Jacobian Matrix
-;;; ====
+(doc 'section 'jacobian)
 
-;;; jacobian : (List Expr) × (List Symbol) → (List (List Expr))
-;;; Compute the Jacobian matrix for vector-valued function f: ℝⁿ → ℝᵐ.
-;;; exprs = [f₁, f₂, ..., fₘ] (output components)
-;;; vars = [x₁, x₂, ..., xₙ] (input variables)
-;;; Returns m×n matrix where J[i][j] = ∂fᵢ/∂xⱼ
 (define (jacobian exprs vars)
+  (doc 'type '(-> (List Expr) (List Symbol) (List (List Expr))))
+  (doc 'description "Compute Jacobian matrix for vector-valued function f: ℝⁿ → ℝᵐ")
+  (doc 'note "exprs = [f₁, ..., fₘ], vars = [x₁, ..., xₙ], returns m×n matrix where J[i][j] = ∂fᵢ/∂xⱼ")
   (map (lambda (expr) (gradient expr vars)) exprs))
 
-;;; ====
-;;; Hessian Matrix
-;;; ====
+(doc 'section 'hessian)
 
-;;; hessian : Expr × (List Symbol) → (List (List Expr))
-;;; Compute the Hessian matrix H = [∂²f/∂xᵢ∂xⱼ].
-;;; Returns n×n symmetric matrix of second partial derivatives.
 (define (hessian expr vars)
+  (doc 'type '(-> Expr (List Symbol) (List (List Expr))))
+  (doc 'description "Compute Hessian matrix H = [∂²f/∂xᵢ∂xⱼ]")
+  (doc 'note "Returns n×n symmetric matrix of second partial derivatives")
   (map (lambda (vi)
                (map (lambda (vj)
                             (deriv (deriv expr vi) vj))
                     vars))
        vars))
 
-;;; ====
-;;; Higher-Order Derivatives
-;;; ====
+(doc 'section 'higher-order-derivatives)
 
-;;; deriv-n : Expr × Symbol × Nat → Expr
-;;; Compute nth derivative of expr with respect to var-sym.
 (define (deriv-n expr var-sym n)
+  (doc 'type '(-> Expr Symbol Nat Expr))
+  (doc 'description "Compute nth derivative of expr with respect to var-sym")
   (if (<= n 0)
       expr
       (deriv-n (deriv expr var-sym) var-sym (- n 1))))
 
-;;; ====
-;;; Directional Derivative
-;;; ====
+(doc 'section 'directional-derivative)
 
-;;; directional-derivative : Expr × (List Symbol) × (List Expr) → Expr
-;;; Compute the directional derivative ∇f · v.
-;;; vars = [x₁, x₂, ..., xₙ]
-;;; direction = [v₁, v₂, ..., vₙ] (direction vector as expressions)
-;;; Returns ∇f · v = Σ(∂f/∂xᵢ * vᵢ)
 (define (directional-derivative expr vars direction)
+  (doc 'type '(-> Expr (List Symbol) (List Expr) Expr))
+  (doc 'description "Compute directional derivative ∇f · v")
+  (doc 'note "Returns ∇f · v = Σ(∂f/∂xᵢ * vᵢ)")
   (let ([grad (gradient expr vars)])
        (fold-sum (map product grad direction))))
 
-;;; ====
-;;; Curl (for 3D vector fields)
-;;; ====
+(doc 'section 'curl)
 
-;;; curl : (List Expr) × (List Symbol) → (List Expr)
-;;; Compute curl of a 3D vector field F = [F₁, F₂, F₃].
-;;; vars should be [x, y, z]
-;;; Returns [∂F₃/∂y - ∂F₂/∂z, ∂F₁/∂z - ∂F₃/∂x, ∂F₂/∂x - ∂F₁/∂y]
-;;; Assumes valid 3D input (boundary layer validates).
 (define (curl field vars)
+  (doc 'type '(-> (List Expr) (List Symbol) (List Expr)))
+  (doc 'description "Compute curl of 3D vector field F = [F₁, F₂, F₃]")
+  (doc 'note "vars should be [x, y, z], returns [∂F₃/∂y - ∂F₂/∂z, ∂F₁/∂z - ∂F₃/∂x, ∂F₂/∂x - ∂F₁/∂y]")
   (let ([F1 (car field)]
         [F2 (cadr field)]
         [F3 (caddr field)]
@@ -252,23 +220,18 @@
         (difference (deriv F1 z) (deriv F3 x))
         (difference (deriv F2 x) (deriv F1 y)))))
 
-;;; ====
-;;; Divergence (for vector fields)
-;;; ====
+(doc 'section 'divergence)
 
-;;; divergence : (List Expr) × (List Symbol) → Expr
-;;; Compute divergence of a vector field F = [F₁, F₂, ..., Fₙ].
-;;; Returns ∇ · F = Σ(∂Fᵢ/∂xᵢ)
-;;; Assumes valid input with same number of field components and variables.
 (define (divergence field vars)
+  (doc 'type '(-> (List Expr) (List Symbol) Expr))
+  (doc 'description "Compute divergence of vector field F = [F₁, F₂, ..., Fₙ]")
+  (doc 'note "Returns ∇ · F = Σ(∂Fᵢ/∂xᵢ)")
   (fold-sum (map deriv field vars)))
 
-;;; ====
-;;; Laplacian (scalar field)
-;;; ====
+(doc 'section 'laplacian)
 
-;;; laplacian : Expr × (List Symbol) → Expr
-;;; Compute the Laplacian ∇²f = Σ(∂²f/∂xᵢ²).
-;;; Returns sum of all unmixed second partial derivatives.
 (define (laplacian expr vars)
+  (doc 'type '(-> Expr (List Symbol) Expr))
+  (doc 'description "Compute Laplacian ∇²f = Σ(∂²f/∂xᵢ²)")
+  (doc 'note "Returns sum of all unmixed second partial derivatives")
   (fold-sum (map (lambda (v) (deriv (deriv expr v) v)) vars)))

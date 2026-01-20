@@ -1,87 +1,78 @@
-;;; lattice/fp/category/state-store-adjunction.ss — State/Store Adjunction
-;;;
-;;; The product-exponential adjunction is the canonical source of State and Store:
-;;;
-;;;   (−) × S  ⊣  (−)^S
-;;;   Product     Exponential (function type)
-;;;
-;;; Where:
-;;;   - Left adjoint F = (−) × S: adds state component
-;;;   - Right adjoint G = (−)^S: takes function from state
-;;;
-;;; This yields:
-;;;   - Monad G∘F = (−)^S ∘ ((−) × S) = S → (S × −) = State S
-;;;   - Comonad F∘G = ((−) × S) ∘ (−)^S = (S → −) × S = Store S
-;;;
-;;; The adjunction's:
-;;;   - Unit η : a → (S → S × a) given by η(a) = λs. (s, a)
-;;;   - Counit ε : (S → a) × S → a given by ε(f, s) = f(s)
-;;;
-;;; This is Core code: pure, total, assumes reasonable input.
-;;;
-;;; Features:
-;;;   - Product functor (−) × S
-;;;   - Exponential functor (−)^S
-;;;   - The adjunction with unit/counit
-;;;   - Derived State monad operations
-;;;   - Derived Store comonad operations
-;;;   - Verification that derived operations match hand-coded ones
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;   - fp/category/adjunction.ss
-;;;   - fp/category/comonad.ss
-
 (load "core/base/prelude.ss")
 (load "lattice/fp/meta/combinators.ss")
 (load "lattice/fp/templates.ss")
 (load "lattice/fp/category/adjunction.ss")
 (load "lattice/fp/category/comonad.ss")
 
-;;; ====
-;;; Product Functor: (−) × S
-;;; ====
-;;;
-;;; (−) × S maps:
-;;;   - Objects: a ↦ a × S = (a, S)
-;;;   - Morphisms: f : a → b ↦ f × id_S : (a, S) → (b, S)
+(doc 'module 'state-store-adjunction)
+(doc 'description "State/Store Adjunction
 
-;;; make-product-functor : S → Functor
-;;; Create the product functor (−) × S for a fixed state type S.
-;;; In our untyped setting, S is implicit in the structure.
+The product-exponential adjunction is the canonical source of State and Store:
+
+  (−) × S  ⊣  (−)^S
+  Product     Exponential (function type)
+
+Where:
+  - Left adjoint F = (−) × S: adds state component
+  - Right adjoint G = (−)^S: takes function from state
+
+This yields:
+  - Monad G∘F = (−)^S ∘ ((−) × S) = S → (S × −) = State S
+  - Comonad F∘G = ((−) × S) ∘ (−)^S = (S → −) × S = Store S
+
+The adjunction's:
+  - Unit η : a → (S → S × a) given by η(a) = λs. (s, a)
+  - Counit ε : (S → a) × S → a given by ε(f, s) = f(s)")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
+(doc 'note "Features:
+  - Product functor (−) × S
+  - Exponential functor (−)^S
+  - The adjunction with unit/counit
+  - Derived State monad operations
+  - Derived Store comonad operations
+  - Verification that derived operations match hand-coded ones")
+
+(doc 'section 'product-functor)
+(doc 'description "Product Functor: (−) × S
+
+(−) × S maps:
+  - Objects: a ↦ a × S = (a, S)
+  - Morphisms: f : a → b ↦ f × id_S : (a, S) → (b, S)")
+
 (define (make-product-functor)
-  ;; fmap f (a, s) = (f a, s)
+  (doc 'type '(-> Functor))
+  (doc 'description "Create the product functor (−) × S for a fixed state type S.
+In our untyped setting, S is implicit in the structure.
+fmap f (a, s) = (f a, s)")
   (make-functor
    (lambda (f pair)
      (cons (f (car pair)) (cdr pair)))))
 
-;;; product-functor : Functor
-;;; The product functor (−) × S.
+(doc product-functor 'type 'Functor)
+(doc product-functor 'description "The product functor (−) × S")
 (define product-functor (make-product-functor))
 
-;;; ====
-;;; Exponential Functor: (−)^S
-;;; ====
-;;;
-;;; (−)^S maps:
-;;;   - Objects: a ↦ (S → a)
-;;;   - Morphisms: f : a → b ↦ (f ∘ −) : (S → a) → (S → b)
+(doc 'section 'exponential-functor)
+(doc 'description "Exponential Functor: (−)^S
 
-;;; make-exponential-functor : → Functor
-;;; Create the exponential functor (−)^S.
+(−)^S maps:
+  - Objects: a ↦ (S → a)
+  - Morphisms: f : a → b ↦ (f ∘ −) : (S → a) → (S → b)")
+
 (define (make-exponential-functor)
-  ;; fmap f g = f ∘ g for g : S → a
+  (doc 'type '(-> Functor))
+  (doc 'description "Create the exponential functor (−)^S.
+fmap f g = f ∘ g for g : S → a")
   (make-functor
    (lambda (f g)
      (lambda (s) (f (g s))))))
 
-;;; exponential-functor : Functor
-;;; The exponential functor (−)^S.
+(doc exponential-functor 'type 'Functor)
+(doc exponential-functor 'description "The exponential functor (−)^S")
 (define exponential-functor (make-exponential-functor))
 
-;;; ====
-;;; The Adjunction: (−) × S ⊣ (−)^S
-;;; ====
+(doc 'section 'adjunction)
 
 ;;; make-state-store-unit : → NatTransform
 ;;; Unit η : Id ⟹ (−)^S ∘ ((−) × S)
@@ -132,12 +123,11 @@
    (make-state-store-unit)
    (make-state-store-counit)))
 
-;;; ====
-;;; Derived State Monad
-;;; ====
-;;;
-;;; The monad G∘F = (−)^S ∘ ((−) × S) is the State monad.
-;;; State S a = S → (a × S)
+(doc 'section 'derived-state-monad)
+(doc 'description "Derived State Monad
+
+The monad G∘F = (−)^S ∘ ((−) × S) is the State monad.
+State S a = S → (a × S)")
 
 ;;; state-from-adjunction-return : a → State S a
 ;;; Derived: return = η (unit of adjunction)
@@ -162,12 +152,11 @@
      (let ([result (m s)])
        (cons (f (car result)) (cdr result))))))
 
-;;; ====
-;;; Derived Store Comonad
-;;; ====
-;;;
-;;; The comonad F∘G = ((−) × S) ∘ (−)^S is the Store comonad.
-;;; Store S a = (S → a) × S
+(doc 'section 'derived-store-comonad)
+(doc 'description "Derived Store Comonad
+
+The comonad F∘G = ((−) × S) ∘ (−)^S is the Store comonad.
+Store S a = (S → a) × S")
 
 ;;; store-from-adjunction-extract : Store S a → a
 ;;; Derived: extract = ε (counit of adjunction)
@@ -266,19 +255,18 @@
    store-from-adjunction-extract
    store-from-adjunction-extend))
 
-;;; ====
-;;; Categorical Interpretation
-;;; ====
-;;;
-;;; The adjunction (−) × S ⊣ (−)^S can be understood as:
-;;;
-;;; Hom(A × S, B) ≅ Hom(A, S → B)
-;;;
-;;; This is currying! The isomorphism is:
-;;;   - Left to right: f : A × S → B ↦ curry(f) : A → S → B
-;;;   - Right to left: g : A → S → B ↦ uncurry(g) : A × S → B
-;;;
-;;; The adjunction encodes the curry/uncurry isomorphism categorically.
+(doc 'section 'categorical-interpretation)
+(doc 'description "Categorical Interpretation
+
+The adjunction (−) × S ⊣ (−)^S can be understood as:
+
+Hom(A × S, B) ≅ Hom(A, S → B)
+
+This is currying! The isomorphism is:
+  - Left to right: f : A × S → B ↦ curry(f) : A → S → B
+  - Right to left: g : A → S → B ↦ uncurry(g) : A × S → B
+
+The adjunction encodes the curry/uncurry isomorphism categorically.")
 
 ;;; curry-via-adjunction : ((a × S) → b) → (a → S → b)
 ;;; Curry using adjunction transpose.

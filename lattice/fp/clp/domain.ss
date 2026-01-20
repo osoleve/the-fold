@@ -1,50 +1,41 @@
-;;; lattice/fp/clp/domain.ss — Finite Domain Representation
-;;;
-;;; Implements finite domains for constraint logic programming using
-;;; an interval-based representation for efficiency. Domains are
-;;; represented as sorted, non-overlapping interval lists.
-;;;
-;;; This is Lattice code: pure, may use fuel for large operations.
-;;;
-;;; Representation:
-;;;   Domain = ((lo1 . hi1) (lo2 . hi2) ...)
-;;;   where lo1 <= hi1 < lo2 <= hi2 < ...
-;;;   representing {lo1..hi1} ∪ {lo2..hi2} ∪ ...
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-
 (load "core/base/prelude.ss")
 
-;;; ====
-;;; Domain Constructors
-;;; ====
+(doc 'module 'domain)
+(doc 'description "Finite Domain Representation")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
+(doc 'note "Implements finite domains using an interval-based representation for efficiency. Domains are sorted, non-overlapping interval lists.")
+(doc 'note "Representation: Domain = ((lo1 . hi1) (lo2 . hi2) ...) where lo1 <= hi1 < lo2 <= hi2 < ... representing {lo1..hi1} ∪ {lo2..hi2} ∪ ...")
+(doc 'exports "make-domain, domain-singleton, domain-from-list, domain predicates, domain operations, domain enumeration, domain comparison")
+(doc 'dependencies "prelude.ss")
 
-;;; make-domain : Int × Int → Domain
-;;; Create a domain from a range [lo, hi].
-;;; Returns empty domain if lo > hi.
+(doc 'section 'domain-constructors)
+
 (define (make-domain lo hi)
+  (doc 'type '(-> Int Int Domain))
+  (doc 'description "Create a domain from a range [lo, hi]")
+  (doc 'returns "Empty domain if lo > hi")
   (if (> lo hi)
       '()
       (list (cons lo hi))))
 
-;;; domain-singleton : Int → Domain
-;;; Create a domain containing a single value.
 (define (domain-singleton n)
+  (doc 'type '(-> Int Domain))
+  (doc 'description "Create a domain containing a single value")
   (list (cons n n)))
 
-;;; domain-from-list : (List Int) → Domain
-;;; Create a domain from an explicit list of values.
-;;; Values need not be sorted or unique.
 (define (domain-from-list vals)
+  (doc 'type '(-> (List Int) Domain))
+  (doc 'description "Create a domain from an explicit list of values")
+  (doc 'note "Values need not be sorted or unique")
   (if (null? vals)
       '()
       (let ([sorted (list-sort < (list-uniq vals))])
            (intervals-from-sorted sorted))))
 
-;;; intervals-from-sorted : (List Int) → Domain
-;;; Convert sorted unique list to interval representation.
 (define (intervals-from-sorted sorted)
+  (doc 'type '(-> (List Int) Domain))
+  (doc 'description "Convert sorted unique list to interval representation")
   (if (null? sorted)
       '()
       (let loop ([vals (cdr sorted)]
@@ -60,22 +51,20 @@
              (loop (cdr vals) (car vals) (car vals)
                    (cons (cons start end) acc))]))))
 
-;;; list-uniq : (List α) → (List α)
-;;; Remove duplicates from a list (preserves first occurrence).
 (define (list-uniq lst)
+  (doc 'type '(-> (List α) (List α)))
+  (doc 'description "Remove duplicates from a list (preserves first occurrence)")
   (let loop ([lst lst] [seen '()] [acc '()])
        (cond
         [(null? lst) (reverse acc)]
         [(member (car lst) seen) (loop (cdr lst) seen acc)]
         [else (loop (cdr lst) (cons (car lst) seen) (cons (car lst) acc))])))
 
-;;; ====
-;;; Domain Predicates
-;;; ====
+(doc 'section 'domain-predicates)
 
-;;; domain? : α → Bool
-;;; Check if value is a valid domain.
 (define (domain? x)
+  (doc 'type '(-> α Bool))
+  (doc 'description "Check if value is a valid domain")
   (and (list? x)
        (or (null? x)
            (and (pair? (car x))
@@ -83,21 +72,21 @@
                 (integer? (cdar x))
                 (<= (caar x) (cdar x))))))
 
-;;; domain-empty? : Domain → Bool
-;;; Check if domain is empty.
 (define (domain-empty? dom)
+  (doc 'type '(-> Domain Bool))
+  (doc 'description "Check if domain is empty")
   (null? dom))
 
-;;; domain-singleton? : Domain → Bool
-;;; Check if domain contains exactly one value.
 (define (domain-singleton? dom)
+  (doc 'type '(-> Domain Bool))
+  (doc 'description "Check if domain contains exactly one value")
   (and (pair? dom)
        (null? (cdr dom))
        (= (caar dom) (cdar dom))))
 
-;;; domain-contains? : Domain × Int → Bool
-;;; Check if domain contains a specific value.
 (define (domain-contains? dom n)
+  (doc 'type '(-> Domain Int Bool))
+  (doc 'description "Check if domain contains a specific value")
   (let loop ([intervals dom])
        (cond
         [(null? intervals) #f]
@@ -105,54 +94,50 @@
         [(<= n (cdar intervals)) #t]  ; lo <= n <= hi
         [else (loop (cdr intervals))])))
 
-;;; ====
-;;; Domain Accessors
-;;; ====
+(doc 'section 'domain-accessors)
 
-;;; domain-size : Domain → Nat
-;;; Count the number of values in the domain.
 (define (domain-size dom)
+  (doc 'type '(-> Domain Nat))
+  (doc 'description "Count the number of values in the domain")
   (let loop ([intervals dom] [count 0])
        (if (null? intervals)
            count
            (loop (cdr intervals)
                  (+ count (+ 1 (- (cdar intervals) (caar intervals))))))))
 
-;;; domain-min : Domain → (Maybe Int)
-;;; Get the minimum value in the domain.
 (define (domain-min dom)
+  (doc 'type '(-> Domain (Maybe Int)))
+  (doc 'description "Get the minimum value in the domain")
   (if (null? dom)
       #f
       (caar dom)))
 
-;;; domain-max : Domain → (Maybe Int)
-;;; Get the maximum value in the domain.
 (define (domain-max dom)
+  (doc 'type '(-> Domain (Maybe Int)))
+  (doc 'description "Get the maximum value in the domain")
   (if (null? dom)
       #f
       (cdr (list-last dom))))
 
-;;; list-last : (List α) → α
-;;; Get the last element of a non-empty list.
 (define (list-last lst)
+  (doc 'type '(-> (List α) α))
+  (doc 'description "Get the last element of a non-empty list")
   (if (null? (cdr lst))
       (car lst)
       (list-last (cdr lst))))
 
-;;; domain-bounds : Domain → (Maybe (Int × Int))
-;;; Get (min, max) bounds of domain.
 (define (domain-bounds dom)
+  (doc 'type '(-> Domain (Maybe (Pair Int Int))))
+  (doc 'description "Get (min, max) bounds of domain")
   (if (null? dom)
       #f
       (cons (domain-min dom) (domain-max dom))))
 
-;;; ====
-;;; Domain Operations
-;;; ====
+(doc 'section 'domain-operations)
 
-;;; domain-intersect : Domain × Domain → Domain
-;;; Compute intersection of two domains.
 (define (domain-intersect dom1 dom2)
+  (doc 'type '(-> Domain Domain Domain))
+  (doc 'description "Compute intersection of two domains")
   (let loop ([d1 dom1] [d2 dom2] [acc '()])
        (cond
         [(or (null? d1) (null? d2))
@@ -178,14 +163,14 @@
                        [(> hi1 hi2) (loop d1 (cdr d2) new-acc)]
                        [else (loop (cdr d1) (cdr d2) new-acc)]))]))])))
 
-;;; domain-union : Domain × Domain → Domain
-;;; Compute union of two domains.
 (define (domain-union dom1 dom2)
+  (doc 'type '(-> Domain Domain Domain))
+  (doc 'description "Compute union of two domains")
   (merge-intervals (append dom1 dom2)))
 
-;;; merge-intervals : (List Interval) → Domain
-;;; Merge and normalize a list of intervals.
 (define (merge-intervals intervals)
+  (doc 'type '(-> (List Interval) Domain))
+  (doc 'description "Merge and normalize a list of intervals")
   (if (null? intervals)
       '()
       (let ([sorted (list-sort interval<? intervals)])
@@ -209,14 +194,14 @@
                                   next
                                   (cons current acc))))])))))
 
-;;; interval<? : Interval × Interval → Bool
-;;; Compare intervals by their lower bound.
 (define (interval<? i1 i2)
+  (doc 'type '(-> Interval Interval Bool))
+  (doc 'description "Compare intervals by their lower bound")
   (< (car i1) (car i2)))
 
-;;; domain-subtract-value : Domain × Int → Domain
-;;; Remove a single value from the domain.
 (define (domain-subtract-value dom n)
+  (doc 'type '(-> Domain Int Domain))
+  (doc 'description "Remove a single value from the domain")
   (let loop ([intervals dom] [acc '()])
        (cond
         [(null? intervals)
@@ -247,9 +232,9 @@
                        (cons (cons (+ n 1) hi)
                              (cons (cons lo (- n 1)) acc)))]))])))
 
-;;; domain-subtract : Domain × Domain → Domain
-;;; Remove all values in dom2 from dom1.
 (define (domain-subtract dom1 dom2)
+  (doc 'type '(-> Domain Domain Domain))
+  (doc 'description "Remove all values in dom2 from dom1")
   (let loop ([d1 dom1] [d2 dom2] [acc '()])
        (cond
         [(null? d1) (reverse acc)]
@@ -281,9 +266,9 @@
                        (cdr d2)
                        (cons (cons lo1 (- lo2 1)) acc))]))])))
 
-;;; domain-restrict-min : Domain × Int → Domain
-;;; Keep only values >= n.
 (define (domain-restrict-min dom n)
+  (doc 'type '(-> Domain Int Domain))
+  (doc 'description "Keep only values >= n")
   (let loop ([intervals dom] [acc '()])
        (cond
         [(null? intervals)
@@ -303,9 +288,9 @@
                 [else
                  (loop (cdr intervals) (cons (cons n hi) acc))]))])))
 
-;;; domain-restrict-max : Domain × Int → Domain
-;;; Keep only values <= n.
 (define (domain-restrict-max dom n)
+  (doc 'type '(-> Domain Int Domain))
+  (doc 'description "Keep only values <= n")
   (let loop ([intervals dom] [acc '()])
        (cond
         [(null? intervals)
@@ -325,14 +310,12 @@
                 [else
                  (reverse (cons (cons lo n) acc))]))])))
 
-;;; ====
-;;; Domain Enumeration
-;;; ====
+(doc 'section 'domain-enumeration)
 
-;;; domain->list : Domain → (List Int)
-;;; Convert domain to explicit list of values.
-;;; WARNING: Only use for small domains!
 (define (domain->list dom)
+  (doc 'type '(-> Domain (List Int)))
+  (doc 'description "Convert domain to explicit list of values")
+  (doc 'note "WARNING: Only use for small domains!")
   (let loop ([intervals dom] [acc '()])
        (if (null? intervals)
            (reverse acc)
@@ -342,16 +325,16 @@
                  (loop (cdr intervals)
                        (append (reverse (range lo (+ hi 1))) acc))))))
 
-;;; range : Int × Int → (List Int)
-;;; Generate list [lo, lo+1, ..., hi-1].
 (define (range lo hi)
+  (doc 'type '(-> Int Int (List Int)))
+  (doc 'description "Generate list [lo, lo+1, ..., hi-1]")
   (if (>= lo hi)
       '()
       (cons lo (range (+ lo 1) hi))))
 
-;;; domain-for-each : Domain × (Int → ()) → ()
-;;; Apply procedure to each value in domain.
 (define (domain-for-each dom proc)
+  (doc 'type '(-> Domain (-> Int Void) Void))
+  (doc 'description "Apply procedure to each value in domain")
   (for-each
    (lambda (interval)
            (let loop ([n (car interval)])
@@ -360,9 +343,9 @@
                       (loop (+ n 1)))))
    dom))
 
-;;; domain-fold : Domain × α × (Int × α → α) → α
-;;; Fold over domain values.
 (define (domain-fold dom init f)
+  (doc 'type '(-> Domain α (-> Int α α) α))
+  (doc 'description "Fold over domain values")
   (let loop ([intervals dom] [acc init])
        (if (null? intervals)
            acc
@@ -374,27 +357,23 @@
                           (loop (cdr intervals) acc)
                           (inner (+ n 1) (f n acc))))))))
 
-;;; ====
-;;; Domain Comparison
-;;; ====
+(doc 'section 'domain-comparison)
 
-;;; domain=? : Domain × Domain → Bool
-;;; Check if two domains are equal.
 (define (domain=? dom1 dom2)
+  (doc 'type '(-> Domain Domain Bool))
+  (doc 'description "Check if two domains are equal")
   (equal? dom1 dom2))
 
-;;; domain-subset? : Domain × Domain → Bool
-;;; Check if dom1 is a subset of dom2.
 (define (domain-subset? dom1 dom2)
+  (doc 'type '(-> Domain Domain Bool))
+  (doc 'description "Check if dom1 is a subset of dom2")
   (domain-empty? (domain-subtract dom1 dom2)))
 
-;;; ====
-;;; Domain Display
-;;; ====
+(doc 'section 'domain-display)
 
-;;; domain->string : Domain → String
-;;; Convert domain to readable string representation.
 (define (domain->string dom)
+  (doc 'type '(-> Domain String))
+  (doc 'description "Convert domain to readable string representation")
   (if (null? dom)
       "{}"
       (string-append
@@ -405,18 +384,18 @@
                ", "))
        "}")))
 
-;;; interval->string : Interval → String
-;;; Convert interval to string.
 (define (interval->string interval)
+  (doc 'type '(-> Interval String))
+  (doc 'description "Convert interval to string")
   (let ([lo (car interval)]
         [hi (cdr interval)])
        (if (= lo hi)
            (number->string lo)
            (string-append (number->string lo) ".." (number->string hi)))))
 
-;;; list-intersperse : (List α) × α → (List α)
-;;; Intersperse separator between list elements.
 (define (list-intersperse lst sep)
+  (doc 'type '(-> (List α) α (List α)))
+  (doc 'description "Intersperse separator between list elements")
   (cond
    [(null? lst) '()]
    [(null? (cdr lst)) lst]

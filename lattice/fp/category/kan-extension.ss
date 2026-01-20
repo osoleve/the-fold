@@ -1,65 +1,60 @@
-;;; lattice/fp/category/kan-extension.ss --- Kan Extensions
-;;;
-;;; Kan extensions are the most universal constructions in category theory.
-;;; Every concept in category theory can be expressed as a Kan extension.
-;;;
-;;; This module implements:
-;;;   - Right Kan Extension (Ran_K F): universal approximation from above
-;;;   - Left Kan Extension (Lan_K F): universal approximation from below
-;;;   - Codensity monad: Ran_Id M, which gives O(1) bind for any monad M
-;;;
-;;; Key Insight: The O(1) bind optimizations in free.ss and effects.ss
-;;; ARE the Codensity transformation. This module makes that explicit.
-;;;
-;;; This is Core code: pure, total, assumes reasonable input.
-;;;
-;;; Theory:
-;;; -------
-;;; Given functors K : C -> D and F : C -> E, the Right Kan Extension
-;;; Ran_K F : D -> E satisfies:
-;;;
-;;;   Nat(G . K, F) ~ Nat(G, Ran_K F)
-;;;
-;;; In Haskell-like notation:
-;;;   (Ran K F) a = forall b. (a -> K b) -> F b
-;;;
-;;; The Left Kan Extension satisfies the dual:
-;;;   Nat(F, G . K) ~ Nat(Lan_K F, G)
-;;;
-;;; In Haskell-like notation:
-;;;   (Lan K F) a = exists b. (K b -> a, F b)
-;;;
-;;; The Codensity Monad:
-;;; --------------------
-;;; When K = Id, we get Codensity M = Ran_Id M:
-;;;   Codensity M a = forall r. (a -> M r) -> M r
-;;;
-;;; This is EXACTLY the continuation-passing style representation that
-;;; gives O(1) amortized bind. The existing free-queue and eff-queue
-;;; structures are implementations of this pattern.
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;   - fp/meta/combinators.ss
-;;;   - fp/templates.ss
-
 (load "core/base/prelude.ss")
 (load "lattice/fp/meta/combinators.ss")
 (load "lattice/fp/templates.ss")
 
-;;; ============================================================
-;;; Right Kan Extension: Ran_K F
-;;; ============================================================
-;;;
-;;; (Ran K F) a = forall b. (a -> K b) -> F b
-;;;
-;;; In Scheme, we represent this as a function that takes a "continuation"
-;;; (a function a -> K b) and produces F b.
-;;;
-;;; Structure:
-;;;   ('ran k-functor f-functor computation)
-;;;
-;;; Where computation : (a -> K b) -> F b for all b
+(doc 'module 'kan-extension)
+(doc 'description "Kan Extensions
+
+Kan extensions are the most universal constructions in category theory.
+Every concept in category theory can be expressed as a Kan extension.
+
+This module implements:
+  - Right Kan Extension (Ran_K F): universal approximation from above
+  - Left Kan Extension (Lan_K F): universal approximation from below
+  - Codensity monad: Ran_Id M, which gives O(1) bind for any monad M
+
+Key Insight: The O(1) bind optimizations in free.ss and effects.ss
+ARE the Codensity transformation. This module makes that explicit.")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
+
+(doc 'section 'theory)
+(doc 'description "Theory
+
+Given functors K : C -> D and F : C -> E, the Right Kan Extension
+Ran_K F : D -> E satisfies:
+
+  Nat(G . K, F) ~ Nat(G, Ran_K F)
+
+In Haskell-like notation:
+  (Ran K F) a = forall b. (a -> K b) -> F b
+
+The Left Kan Extension satisfies the dual:
+  Nat(F, G . K) ~ Nat(Lan_K F, G)
+
+In Haskell-like notation:
+  (Lan K F) a = exists b. (K b -> a, F b)
+
+The Codensity Monad:
+When K = Id, we get Codensity M = Ran_Id M:
+  Codensity M a = forall r. (a -> M r) -> M r
+
+This is EXACTLY the continuation-passing style representation that
+gives O(1) amortized bind. The existing free-queue and eff-queue
+structures are implementations of this pattern.")
+
+(doc 'section 'right-kan-extension)
+(doc 'description "Right Kan Extension: Ran_K F
+
+(Ran K F) a = forall b. (a -> K b) -> F b
+
+In Scheme, we represent this as a function that takes a continuation
+(a function a -> K b) and produces F b.
+
+Structure:
+  ('ran k-functor f-functor computation)
+
+Where computation : (a -> K b) -> F b for all b")
 
 ;;; make-ran : Functor -> Functor -> ((a -> K b) -> F b) -> Ran K F a
 ;;; Create a Right Kan extension value.
@@ -148,20 +143,19 @@
               ;; For proper lifting, use codensity-lift which uses m-bind.
               fa)))
 
-;;; ============================================================
-;;; Left Kan Extension: Lan_K F
-;;; ============================================================
-;;;
-;;; (Lan K F) a = exists b. (K b -> a, F b)
-;;;
-;;; In Scheme, we represent this as a pair:
-;;;   - A function K b -> a
-;;;   - An F b value
-;;;
-;;; Structure:
-;;;   ('lan k-functor f-functor k-morphism f-value)
-;;;
-;;; Where k-morphism : K b -> a and f-value : F b
+(doc 'section 'left-kan-extension)
+(doc 'description "Left Kan Extension: Lan_K F
+
+(Lan K F) a = exists b. (K b -> a, F b)
+
+In Scheme, we represent this as a pair:
+  - A function K b -> a
+  - An F b value
+
+Structure:
+  ('lan k-functor f-functor k-morphism f-value)
+
+Where k-morphism : K b -> a and f-value : F b")
 
 ;;; make-lan : Functor -> Functor -> (K b -> a) -> F b -> Lan K F a
 ;;; Create a Left Kan extension value.
@@ -239,41 +233,32 @@
          )
     (g-fmap k-morph gkb)))
 
-;;; ============================================================
-;;; Codensity Monad: Ran_Id M
-;;; ============================================================
-;;;
-;;; The Codensity monad is the right Kan extension of M along Id:
-;;;
-;;;   Codensity M a = Ran_Id M a
-;;;                 = forall r. (a -> Id r) -> M r
-;;;                 = forall r. (a -> r) -> M r
-;;;                 = forall r. (a -> M r) -> M r
-;;;
-;;; Wait, that last step needs explanation. Since Id r = r, we have:
-;;;   forall r. (a -> r) -> M r
-;;;
-;;; But we often write it as:
-;;;   forall r. (a -> M r) -> M r
-;;;
-;;; This is because we can always lift: (a -> r) to (a -> M r) via M's pure.
-;;; The standard Codensity encoding uses the (a -> M r) -> M r form.
-;;;
-;;; KEY INSIGHT:
-;;; -----------
-;;; This is EXACTLY what free-queue and eff-queue implement!
-;;;
-;;; free-queue: ('free-queue base-free fmap continuation-queue)
-;;;   where continuation-queue is List (a -> Free f b)
-;;;   This accumulates continuations instead of rebuilding structure.
-;;;
-;;; eff-queue: ('eff-queue base-eff continuation-queue)
-;;;   where continuation-queue is List (a -> Eff e b)
-;;;   Same pattern: defer traversal by queuing continuations.
-;;;
-;;; Both represent: forall r. (a -> M r) -> M r
-;;; where the "continuation queue" represents the composition of all
-;;; the (a -> M r) functions waiting to be applied.
+(doc 'section 'codensity-monad)
+(doc 'description "Codensity Monad: Ran_Id M
+
+The Codensity monad is the right Kan extension of M along Id:
+
+  Codensity M a = Ran_Id M a
+                = forall r. (a -> Id r) -> M r
+                = forall r. (a -> r) -> M r
+                = forall r. (a -> M r) -> M r
+
+The standard Codensity encoding uses the (a -> M r) -> M r form.
+
+KEY INSIGHT:
+This is EXACTLY what free-queue and eff-queue implement!
+
+free-queue: ('free-queue base-free fmap continuation-queue)
+  where continuation-queue is List (a -> Free f b)
+  This accumulates continuations instead of rebuilding structure.
+
+eff-queue: ('eff-queue base-eff continuation-queue)
+  where continuation-queue is List (a -> Eff e b)
+  Same pattern: defer traversal by queuing continuations.
+
+Both represent: forall r. (a -> M r) -> M r
+where the continuation queue represents the composition of all
+the (a -> M r) functions waiting to be applied.")
 
 ;;; ====
 ;;; Codensity Representation
@@ -384,25 +369,24 @@
 ;;;
 ;;; Same pattern!
 
-;;; ====
-;;; Codensity for List (Difference Lists)
-;;; ====
-;;;
-;;; A classic example: Codensity List is isomorphic to difference lists,
-;;; giving O(1) append instead of O(n).
-;;;
-;;; Normal list append: [1,2] ++ [3,4] = 1 : 2 : [3,4] (traverses left list)
-;;; Difference list: (\xs -> 1:2:xs) . (\xs -> 3:4:xs) = \xs -> 1:2:3:4:xs
-;;;
-;;; However, there are TWO representations:
-;;;
-;;; 1. Generic Codensity: forall r. (a -> [r]) -> [r]
-;;;    - This gives O(1) BIND, but append still uses `append` internally
-;;;    - Use codensity-list-singleton and codensity-list-append
-;;;
-;;; 2. True Difference Lists: [a] -> [a] (endomorphisms)
-;;;    - This gives O(1) APPEND via function composition
-;;;    - Use dlist-* functions below
+(doc 'section 'codensity-list)
+(doc 'description "Codensity for List (Difference Lists)
+
+A classic example: Codensity List is isomorphic to difference lists,
+giving O(1) append instead of O(n).
+
+Normal list append: [1,2] ++ [3,4] = 1 : 2 : [3,4] (traverses left list)
+Difference list: (\\xs -> 1:2:xs) . (\\xs -> 3:4:xs) = \\xs -> 1:2:3:4:xs
+
+However, there are TWO representations:
+
+1. Generic Codensity: forall r. (a -> [r]) -> [r]
+   - This gives O(1) BIND, but append still uses append internally
+   - Use codensity-list-singleton and codensity-list-append
+
+2. True Difference Lists: [a] -> [a] (endomorphisms)
+   - This gives O(1) APPEND via function composition
+   - Use dlist-* functions below")
 
 ;;; codensity-list-singleton : a -> Codensity List a
 (define (codensity-list-singleton x)
@@ -547,38 +531,36 @@
 (define (codensity-monad-lower cm)
   (list-ref cm 4))
 
-;;; ============================================================
-;;; Relationship to Yoneda
-;;; ============================================================
-;;;
-;;; The Yoneda lemma states:
-;;;   Nat(Hom(A, -), F) ~ F A
-;;;
-;;; Codensity is related to Yoneda:
-;;;   Codensity M a = forall r. (a -> M r) -> M r
-;;;                 ~ Nat(Hom(a, M -), M)
-;;;
-;;; When M = Id, Codensity Id a ~ a (by Yoneda).
-;;; This is why Codensity preserves the monad structure.
+(doc 'section 'yoneda-relationship)
+(doc 'description "Relationship to Yoneda
 
-;;; ============================================================
-;;; The Key Theorem
-;;; ============================================================
-;;;
-;;; For any monad M:
-;;;   1. Codensity M is a monad
-;;;   2. lift : M ~> Codensity M is a monad morphism
-;;;   3. lower : Codensity M ~> M is a monad morphism
-;;;   4. lower . lift = id (retraction)
-;;;
-;;; This means Codensity M is always "at least as good" as M,
-;;; and the composition lower . lift is the identity.
-;;;
-;;; The O(1) bind of Codensity comes from the fact that:
-;;;   (m >>= f) >>= g = m >>= (\x -> f x >>= g)
-;;;
-;;; Instead of nested binds (left-associative, O(n^2)),
-;;; Codensity reassociates to right-associative (O(n)).
+The Yoneda lemma states:
+  Nat(Hom(A, -), F) ~ F A
+
+Codensity is related to Yoneda:
+  Codensity M a = forall r. (a -> M r) -> M r
+                ~ Nat(Hom(a, M -), M)
+
+When M = Id, Codensity Id a ~ a (by Yoneda).
+This is why Codensity preserves the monad structure.")
+
+(doc 'section 'key-theorem)
+(doc 'description "The Key Theorem
+
+For any monad M:
+  1. Codensity M is a monad
+  2. lift : M ~> Codensity M is a monad morphism
+  3. lower : Codensity M ~> M is a monad morphism
+  4. lower . lift = id (retraction)
+
+This means Codensity M is always at least as good as M,
+and the composition lower . lift is the identity.
+
+The O(1) bind of Codensity comes from the fact that:
+  (m >>= f) >>= g = m >>= (\\x -> f x >>= g)
+
+Instead of nested binds (left-associative, O(n^2)),
+Codensity reassociates to right-associative (O(n)).")
 
 ;;; ============================================================
 ;;; Comparison with Existing Implementation

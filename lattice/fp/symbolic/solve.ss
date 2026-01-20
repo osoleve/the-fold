@@ -1,33 +1,18 @@
-;;; lattice/fp/symbolic/solve.ss — Symbolic Equation Solving
-;;;
-;;; Solve equations symbolically.
-;;;
-;;; Features:
-;;;   - Linear equation solving: ax + b = 0 → x = -b/a
-;;;   - Quadratic formula: ax² + bx + c = 0
-;;;   - Cubic formula (Cardano's) - returns all 3 roots
-;;;   - Polynomial root extraction (auto-expands factored forms)
-;;;   - Symbolic Gaussian elimination for linear systems
-;;;
-;;; This is Lattice code: pure, functional, assumes reasonable input.
-;;;
-;;; Dependencies:
-;;;   - lattice/fp/symbolic/expr.ss
-;;;   - lattice/fp/symbolic/simplify.ss
-;;;   - lattice/fp/symbolic/poly-canonical.ss
-
 (load "lattice/fp/symbolic/expr.ss")
 (load "lattice/fp/symbolic/simplify.ss")
 
-;;; ====
-;;; Equation Representation
-;;; ====
+(doc 'module 'solve)
+(doc 'description "Solve equations symbolically")
+(doc 'features "Linear, quadratic, cubic formulas, polynomial roots, symbolic Gaussian elimination")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
 
-;;; An equation is represented as (= lhs rhs), or equivalently
-;;; we can work with "lhs - rhs = 0" form (single expression).
+(doc 'section 'equation-representation)
+(doc 'note "Equation represented as (= lhs rhs) or lhs - rhs = 0 form")
 
-;;; make-equation : Expr × Expr → Equation
 (define (make-equation lhs rhs)
+  (doc 'type '(-> Expr Expr Equation))
+  (doc 'description "Create equation from left and right hand sides")
   (list '= lhs rhs))
 
 ;;; equation? : Any → Boolean
@@ -304,14 +289,12 @@
     [(= (length factors) 1) (car factors)]
     [else (cons '* factors)]))
 
-;;; ====
-;;; Linear Equation Solving
-;;; ====
+(doc 'section 'linear-solving)
 
-;;; solve-linear : Expr × Symbol → Expr | #f
-;;; Solve ax + b = 0 for x.
-;;; Returns the solution x = -b/a, or #f if not solvable.
 (define (solve-linear expr var-sym)
+  (doc 'type '(-> Expr Symbol (Maybe Expr)))
+  (doc 'description "Solve linear equation ax + b = 0 for x")
+  (doc 'note "Returns x = -b/a, or #f if not solvable")
   (let-values ([(a b) (collect-linear-coeffs expr var-sym)])
     (cond
       ;; a = 0: no solution (or infinite if b = 0)
@@ -323,14 +306,12 @@
       [else
        (simplify (quotient (make-neg b) a))])))
 
-;;; ====
-;;; Quadratic Equation Solving
-;;; ====
+(doc 'section 'quadratic-solving)
 
-;;; solve-quadratic : Expr × Symbol → (List Expr) | #f
-;;; Solve ax² + bx + c = 0 using the quadratic formula.
-;;; Returns list of solutions (may include symbolic sqrt).
 (define (solve-quadratic expr var-sym)
+  (doc 'type '(-> Expr Symbol (Maybe (List Expr))))
+  (doc 'description "Solve quadratic equation ax² + bx + c = 0 using quadratic formula")
+  (doc 'note "Returns list of solutions, may include symbolic sqrt")
   (let ([coeffs (extract-poly-coefficients expr var-sym)])
     (if (or (not coeffs) (not (= (length coeffs) 3)))
         #f
@@ -350,15 +331,12 @@
           (list (simplify (sum neg-b-over-2a sqrt-disc-over-2a))
                 (simplify (difference neg-b-over-2a sqrt-disc-over-2a)))))))
 
-;;; ====
-;;; Cubic Equation Solving (Cardano's Formula)
-;;; ====
+(doc 'section 'cubic-solving)
 
-;;; solve-cubic : Expr × Symbol → (List Expr) | #f
-;;; Solve ax³ + bx² + cx + d = 0 using Cardano's formula.
-;;; First converts to depressed cubic t³ + pt + q = 0.
-;;; Returns all 3 roots (using cube roots of unity ω = (-1 + i√3)/2).
 (define (solve-cubic expr var-sym)
+  (doc 'type '(-> Expr Symbol (Maybe (List Expr))))
+  (doc 'description "Solve cubic equation ax³ + bx² + cx + d = 0 using Cardano's formula")
+  (doc 'note "Converts to depressed cubic, returns all 3 roots using cube roots of unity")
   (let ([coeffs (extract-poly-coefficients expr var-sym)])
     (if (or (not coeffs) (not (= (length coeffs) 4)))
         #f
@@ -448,14 +426,11 @@
         (reverse acc)
         (loop (+ i 1) (cons i acc)))))
 
-;;; ====
-;;; Main Solve Interface
-;;; ====
+(doc 'section 'main-interface)
 
-;;; diff-to-sum : Expr → Expr
-;;; Convert difference (- a b) to sum (+ a (- b)) recursively.
-;;; This enables expand to distribute products over differences.
 (define (diff-to-sum expr)
+  (doc 'type '(-> Expr Expr))
+  (doc 'description "Convert difference to sum recursively to enable expansion over differences")
   (cond
     [(num? expr) expr]
     [(var? expr) expr]
@@ -480,11 +455,10 @@
      (make-app (app-fn expr) (diff-to-sum (app-arg expr)))]
     [else expr]))
 
-;;; solve : Equation × Symbol → (List Expr) | Expr | #f
-;;; Solve an equation for the given variable.
-;;; Returns list of solutions, single solution, 'infinite, or #f.
-;;; Auto-expands factored forms like (x-1)(x-2) before solving.
 (define (solve eq var-sym)
+  (doc 'type '(-> Equation Symbol (Maybe (U (List Expr) Expr Symbol))))
+  (doc 'description "Solve equation for given variable")
+  (doc 'note "Returns list of solutions, single solution, 'infinite, or #f; auto-expands factored forms")
   (let* ([expr (if (equation? eq)
                    (equation->expr eq)
                    eq)]  ; Allow passing expression directly (assumed = 0)
@@ -504,14 +478,12 @@
       [(and (not (list? solutions)) solutions) solutions]
       [else #f])))
 
-;;; ====
-;;; Linear System Solving (Symbolic Gaussian Elimination)
-;;; ====
+(doc 'section 'linear-systems)
 
-;;; solve-linear-system : (List Equation) × (List Symbol) → (Alist Symbol Expr) | #f
-;;; Solve system of linear equations using symbolic Gaussian elimination.
-;;; Returns alist mapping variables to their solutions.
 (define (solve-linear-system equations vars)
+  (doc 'type '(-> (List Equation) (List Symbol) (Maybe (Alist Symbol Expr))))
+  (doc 'description "Solve system of linear equations using symbolic Gaussian elimination")
+  (doc 'note "Returns alist mapping variables to solutions")
   (let* ([n (length vars)]
          [exprs (map (lambda (eq)
                        (if (equation? eq) (equation->expr eq) eq))

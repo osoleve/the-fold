@@ -1,45 +1,39 @@
-;;; lattice/fp/category/comonad.ss — Comonad Type Class and Instances
-;;;
-;;; A comonad is the categorical dual of a monad. Where a monad allows
-;;; composing effectful computations (sequencing with context), a comonad
-;;; allows decomposing context-dependent values (observing with context).
-;;;
-;;; Comonad W has three operations:
-;;;   - extract  : W a → a           (observe the focused value)
-;;;   - extend   : (W a → b) → W a → W b  (apply contextual function everywhere)
-;;;   - duplicate: W a → W (W a)     (derived: duplicate = extend id)
-;;;
-;;; Comonad laws:
-;;;   1. extend extract = id         (extending observation is identity)
-;;;   2. extract . extend f = f      (observing extended = applying function)
-;;;   3. extend f . extend g = extend (f . extend g)  (associativity)
-;;;
-;;; Key insight: Every adjunction F ⊣ G yields a comonad F∘G with:
-;;;   - extract = ε (counit)
-;;;   - duplicate = F(η_G) (lift unit into F)
-;;;
-;;; This is Core code: pure, total, assumes reasonable input.
-;;;
-;;; Features:
-;;;   - Comonad type class definition
-;;;   - Comonad derivation from adjunctions
-;;;   - Store comonad (dual of State monad)
-;;;   - Env comonad (dual of Reader monad)
-;;;   - Traced comonad (dual of Writer monad)
-;;;   - Law verification utilities
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;   - fp/category/adjunction.ss
-
 (load "core/base/prelude.ss")
 (load "lattice/fp/meta/combinators.ss")
 (load "lattice/fp/templates.ss")
 (load "lattice/fp/category/adjunction.ss")
 
-;;; ====
-;;; Comonad Type Class
-;;; ====
+(doc 'module 'comonad)
+(doc 'description "Comonad Type Class and Instances
+
+A comonad is the categorical dual of a monad. Where a monad allows
+composing effectful computations (sequencing with context), a comonad
+allows decomposing context-dependent values (observing with context).
+
+Comonad W has three operations:
+  - extract  : W a → a           (observe the focused value)
+  - extend   : (W a → b) → W a → W b  (apply contextual function everywhere)
+  - duplicate: W a → W (W a)     (derived: duplicate = extend id)
+
+Comonad laws:
+  1. extend extract = id         (extending observation is identity)
+  2. extract . extend f = f      (observing extended = applying function)
+  3. extend f . extend g = extend (f . extend g)  (associativity)
+
+Key insight: Every adjunction F ⊣ G yields a comonad F∘G with:
+  - extract = ε (counit)
+  - duplicate = F(η_G) (lift unit into F)")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
+(doc 'note "Features:
+  - Comonad type class definition
+  - Comonad derivation from adjunctions
+  - Store comonad (dual of State monad)
+  - Env comonad (dual of Reader monad)
+  - Traced comonad (dual of Writer monad)
+  - Law verification utilities")
+
+(doc 'section 'comonad-type-class)
 
 ;;; make-comonad : Functor × (W a → a) × ((W a → b) → W a → W b) → Comonad
 ;;; Create a comonad from its functor and core operations.
@@ -154,24 +148,23 @@
                      (G-fmap f gfga))           ; G-fmap f : G(F(G(a))) → G(b)
                    duplicated)))))))
 
-;;; ====
-;;; Store Comonad
-;;; ====
-;;;
-;;; Store s a = (s → a, s)
-;;;
-;;; A position s in a space, plus a function to get a value at any position.
-;;; This is the comonad dual of State s a = s → (a, s).
-;;;
-;;; Store arises from the product-exponential adjunction:
-;;;   (−) × S ⊣ (−)^S
-;;;
-;;; The comonad is (−) × S ∘ (−)^S = (S → −) × S = Store S
-;;;
-;;; Key uses:
-;;;   - Profunctor optics (lenses are Store coalgebras)
-;;;   - Cellular automata (Store over grid positions)
-;;;   - Memoization with position tracking
+(doc 'section 'store-comonad)
+(doc 'description "Store Comonad
+
+Store s a = (s → a, s)
+
+A position s in a space, plus a function to get a value at any position.
+This is the comonad dual of State s a = s → (a, s).
+
+Store arises from the product-exponential adjunction:
+  (−) × S ⊣ (−)^S
+
+The comonad is (−) × S ∘ (−)^S = (S → −) × S = Store S
+
+Key uses:
+  - Profunctor optics (lenses are Store coalgebras)
+  - Cellular automata (Store over grid positions)
+  - Memoization with position tracking")
 
 ;;; store-tag : Symbol
 (define store-tag 'store)
@@ -265,15 +258,14 @@
 (define (store-copeek pos-store val-store)
   (store-peek val-store (store-position pos-store)))
 
-;;; ====
-;;; Env Comonad (CoReader)
-;;; ====
-;;;
-;;; Env e a = (e, a)
-;;;
-;;; A value paired with an environment. Dual of Reader e a = e → a.
-;;; This is the simplest comonad: extract gets the value, extend
-;;; distributes the environment.
+(doc 'section 'env-comonad)
+(doc 'description "Env Comonad (CoReader)
+
+Env e a = (e, a)
+
+A value paired with an environment. Dual of Reader e a = e → a.
+This is the simplest comonad: extract gets the value, extend
+distributes the environment.")
 
 ;;; env-tag : Symbol
 (define env-tag 'env)
@@ -339,14 +331,13 @@
 (define (env-copeek pos-env val-env)
   (env-value val-env))
 
-;;; ====
-;;; Traced Comonad (CoWriter)
-;;; ====
-;;;
-;;; Traced m a = m → a (where m is a Monoid)
-;;;
-;;; A function from accumulated trace to value. Dual of Writer m a = (a, m).
-;;; The comonad threads a monoid through, allowing dependency tracking.
+(doc 'section 'traced-comonad)
+(doc 'description "Traced Comonad (CoWriter)
+
+Traced m a = m → a (where m is a Monoid)
+
+A function from accumulated trace to value. Dual of Writer m a = (a, m).
+The comonad threads a monoid through, allowing dependency tracking.")
 
 ;;; traced-tag : Symbol
 (define traced-tag 'traced)
@@ -457,22 +448,21 @@
        (verify-comonad-law-2 comonad f wa)
        (verify-comonad-law-3 comonad f g wa eq?)))
 
-;;; ====
-;;; Comonad Composition
-;;; ====
-;;;
-;;; IMPORTANT: Unlike the common misconception, comonads do NOT always compose.
-;;; Comonad composition requires a "distributive law" δ : W2(W1(a)) → W1(W2(a))
-;;; satisfying coherence conditions (dual to monad distributive laws).
-;;;
-;;; Without a distributive law, the extend operation cannot be defined correctly
-;;; because there's no canonical way to "push" the outer comonad structure
-;;; through the inner one.
-;;;
-;;; Specific comonad pairs that DO compose naturally:
-;;;   - Env E with any comonad (Env is "left-distributive")
-;;;   - Any comonad with Store S (Store has special structure)
-;;;   - Comonads from the same adjunction
+(doc 'section 'comonad-composition)
+(doc 'description "Comonad Composition
+
+IMPORTANT: Unlike the common misconception, comonads do NOT always compose.
+Comonad composition requires a distributive law δ : W2(W1(a)) → W1(W2(a))
+satisfying coherence conditions (dual to monad distributive laws).
+
+Without a distributive law, the extend operation cannot be defined correctly
+because there's no canonical way to push the outer comonad structure
+through the inner one.
+
+Specific comonad pairs that DO compose naturally:
+  - Env E with any comonad (Env is left-distributive)
+  - Any comonad with Store S (Store has special structure)
+  - Comonads from the same adjunction")
 
 ;;; compose-comonads-with-dist* : Comonad × Comonad × DistLaw × Copeek → Comonad
 ;;; Compose two comonads given a distributive law δ : W2(W1(a)) → W1(W2(a))

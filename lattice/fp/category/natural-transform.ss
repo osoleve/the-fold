@@ -1,121 +1,113 @@
-;;; lattice/fp/category/natural-transform.ss — Natural Transformations
-;;;
-;;; Natural transformations are morphisms between functors.
-;;; Given functors F, G : C → D, a natural transformation η : F ⟹ G
-;;; assigns to each object A a morphism η_A : F(A) → G(A) such that
-;;; for every morphism f : A → B, the naturality square commutes:
-;;;
-;;;        F(A) ----η_A----> G(A)
-;;;         |                 |
-;;;       F(f)              G(f)
-;;;         |                 |
-;;;         v                 v
-;;;        F(B) ----η_B----> G(B)
-;;;
-;;; That is: G(f) ∘ η_A = η_B ∘ F(f)
-;;;
-;;; This is Core code: pure, total, assumes reasonable input.
-;;;
-;;; Features:
-;;;   - Natural transformation definition
-;;;   - Vertical composition (η ∘ ε)
-;;;   - Horizontal composition (η * ε)
-;;;   - Whiskering operations (F ▷ η and η ◁ G)
-;;;   - Natural isomorphism detection
-;;;   - Naturality condition verification
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;   - fp/meta/combinators.ss
-;;;   - fp/templates.ss (for functor definitions)
-
 (load "core/base/prelude.ss")
 (load "lattice/fp/meta/combinators.ss")
 (load "lattice/fp/templates.ss")
 
-;;; ====
-;;; Natural Transformation Definition
-;;; ====
-;;;
-;;; A natural transformation is represented as:
-;;;   (nat-transform name source-functor target-functor component-fn)
-;;;
-;;; Where component-fn : ∀A. F(A) → G(A)
-;;; In our untyped setting, component-fn is a single polymorphic function.
+(doc 'module 'natural-transform)
+(doc 'description "Natural Transformations
 
-;;; make-nat-transform : Symbol × Functor × Functor × (F(A) → G(A)) → NatTransform
-;;; Create a natural transformation from F to G.
+Natural transformations are morphisms between functors.
+Given functors F, G : C → D, a natural transformation η : F ⟹ G
+assigns to each object A a morphism η_A : F(A) → G(A) such that
+for every morphism f : A → B, the naturality square commutes:
+
+       F(A) ----η_A----> G(A)
+        |                 |
+      F(f)              G(f)
+        |                 |
+        v                 v
+       F(B) ----η_B----> G(B)
+
+That is: G(f) ∘ η_A = η_B ∘ F(f)")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
+(doc 'note "Features:
+  - Natural transformation definition
+  - Vertical composition (η ∘ ε)
+  - Horizontal composition (η * ε)
+  - Whiskering operations (F ▷ η and η ◁ G)
+  - Natural isomorphism detection
+  - Naturality condition verification")
+
+(doc 'section 'definition)
+(doc 'description "Natural Transformation Definition
+
+A natural transformation is represented as:
+  (nat-transform name source-functor target-functor component-fn)
+
+Where component-fn : ∀A. F(A) → G(A)
+In our untyped setting, component-fn is a single polymorphic function.")
+
 (define (make-nat-transform name source target component)
+  (doc 'type '(-> Symbol Functor Functor (-> (F A) (G A)) NatTransform))
+  (doc 'description "Create a natural transformation from F to G")
   (list 'nat-transform name source target component))
 
-;;; nat-transform? : Any → Boolean
 (define (nat-transform? x)
+  (doc 'type '(-> Any Boolean))
   (and (pair? x)
        (eq? (car x) 'nat-transform)
        (= (length x) 5)))
 
-;;; nat-transform-name : NatTransform → Symbol
-;;; Errors if η is not a valid nat-transform (fail-fast)
 (define (nat-transform-name η)
+  (doc 'type '(-> NatTransform Symbol))
+  (doc 'description "Get the name of a natural transformation.
+Errors if η is not a valid nat-transform (fail-fast)")
   (if (nat-transform? η)
       (cadr η)
       (error 'nat-transform-name "expected nat-transform" η)))
 
-;;; nat-transform-source : NatTransform → Functor
-;;; The source functor F in η : F ⟹ G
-;;; Errors if η is not a valid nat-transform (fail-fast)
 (define (nat-transform-source η)
+  (doc 'type '(-> NatTransform Functor))
+  (doc 'description "The source functor F in η : F ⟹ G.
+Errors if η is not a valid nat-transform (fail-fast)")
   (if (nat-transform? η)
       (caddr η)
       (error 'nat-transform-source "expected nat-transform" η)))
 
-;;; nat-transform-target : NatTransform → Functor
-;;; The target functor G in η : F ⟹ G
-;;; Errors if η is not a valid nat-transform (fail-fast)
 (define (nat-transform-target η)
+  (doc 'type '(-> NatTransform Functor))
+  (doc 'description "The target functor G in η : F ⟹ G.
+Errors if η is not a valid nat-transform (fail-fast)")
   (if (nat-transform? η)
       (cadddr η)
       (error 'nat-transform-target "expected nat-transform" η)))
 
-;;; nat-transform-component : NatTransform → (F(A) → G(A))
-;;; The component function η_A
-;;; Errors if η is not a valid nat-transform (fail-fast, fold-zxnw fix)
 (define (nat-transform-component η)
+  (doc 'type '(-> NatTransform (-> (F A) (G A))))
+  (doc 'description "The component function η_A.
+Errors if η is not a valid nat-transform (fail-fast)")
   (if (nat-transform? η)
       (car (cddddr η))
       (error 'nat-transform-component "expected nat-transform" η)))
 
-;;; nat-apply : NatTransform × F(A) → G(A)
-;;; Apply the natural transformation at a value.
-;;; η_A(x) for x : F(A)
 (define (nat-apply η x)
+  (doc 'type '(-> NatTransform (F A) (G A)))
+  (doc 'description "Apply the natural transformation at a value.
+η_A(x) for x : F(A)")
   ((nat-transform-component η) x))
 
-;;; ====
-;;; Identity Natural Transformation
-;;; ====
+(doc 'section 'identity)
 
-;;; nat-id : Functor → NatTransform
-;;; The identity natural transformation id_F : F ⟹ F
-;;; Components are all identity functions: (id_F)_A = id_{F(A)}
 (define (nat-id functor)
+  (doc 'type '(-> Functor NatTransform))
+  (doc 'description "The identity natural transformation id_F : F ⟹ F
+Components are all identity functions: (id_F)_A = id_{F(A)}")
   (make-nat-transform 'id functor functor id))
 
-;;; ====
-;;; Vertical Composition
-;;; ====
-;;;
-;;; Given η : F ⟹ G and ε : G ⟹ H, their vertical composition
-;;; (ε ∘ η) : F ⟹ H has components (ε ∘ η)_A = ε_A ∘ η_A
-;;;
-;;;        F(A) ---η_A---> G(A) ---ε_A---> H(A)
+(doc 'section 'vertical-composition)
+(doc 'description "Vertical Composition
 
-;;; nat-compose : NatTransform × NatTransform → NatTransform
-;;; Vertical composition: (ε ∘ η) where η : F ⟹ G and ε : G ⟹ H
-;;; Precondition: both arguments are valid nat-transforms,
-;;;               target of η equals source of ε.
-;;; This is pure lattice code; use boundary/fp/category.ss for validated entry points.
+Given η : F ⟹ G and ε : G ⟹ H, their vertical composition
+(ε ∘ η) : F ⟹ H has components (ε ∘ η)_A = ε_A ∘ η_A
+
+       F(A) ---η_A---> G(A) ---ε_A---> H(A)")
+
 (define (nat-compose ε η)
+  (doc 'type '(-> NatTransform NatTransform NatTransform))
+  (doc 'description "Vertical composition: (ε ∘ η) where η : F ⟹ G and ε : G ⟹ H
+Precondition: both arguments are valid nat-transforms,
+              target of η equals source of ε.
+This is pure lattice code; use boundary/fp/category.ss for validated entry points.")
   (let ([source (nat-transform-source η)]
         [target (nat-transform-target ε)]
         [η-comp (nat-transform-component η)]
@@ -127,23 +119,23 @@
      target
      (lambda (x) (ε-comp (η-comp x))))))
 
-;;; nat-∘ : Alias for nat-compose
+(doc nat-∘ 'type '(-> NatTransform NatTransform NatTransform))
+(doc nat-∘ 'description "Alias for nat-compose")
 (define nat-∘ nat-compose)
 
-;;; ====
-;;; Horizontal Composition
-;;; ====
-;;;
-;;; Given η : F ⟹ G and ε : H ⟹ K (where these are functors between
-;;; appropriate categories), their horizontal composition (η * ε)
-;;; is defined as:
-;;;
-;;; If F, G : C → D and H, K : D → E, then
-;;; (η * ε) : H∘F ⟹ K∘G with components:
-;;; (η * ε)_A = K(η_A) ∘ ε_{F(A)} = ε_{G(A)} ∘ H(η_A)
-;;;
-;;; In our setting with endofunctors on the category of Scheme values,
-;;; this simplifies to composing the functors and transformations.
+(doc 'section 'horizontal-composition)
+(doc 'description "Horizontal Composition
+
+Given η : F ⟹ G and ε : H ⟹ K (where these are functors between
+appropriate categories), their horizontal composition (η * ε)
+is defined as:
+
+If F, G : C → D and H, K : D → E, then
+(η * ε) : H∘F ⟹ K∘G with components:
+(η * ε)_A = K(η_A) ∘ ε_{F(A)} = ε_{G(A)} ∘ H(η_A)
+
+In our setting with endofunctors on the category of Scheme values,
+this simplifies to composing the functors and transformations.")
 
 ;;; nat-horizontal : NatTransform × NatTransform → NatTransform
 ;;; Horizontal composition: (η * ε)
@@ -177,20 +169,20 @@
        (lambda (x)
          (K-fmap η-comp (ε-comp x)))))))
 
-;;; nat-* : Alias for nat-horizontal
+(doc nat-* 'type '(-> NatTransform NatTransform NatTransform))
+(doc nat-* 'description "Alias for nat-horizontal")
 (define nat-* nat-horizontal)
 
-;;; ====
-;;; Whiskering Operations
-;;; ====
-;;;
-;;; Whiskering composes a natural transformation with a functor.
-;;;
-;;; Right whiskering (η ◁ H): Given η : F ⟹ G and H : D → C,
-;;; produces (η ◁ H) : F∘H ⟹ G∘H with (η ◁ H)_A = η_{H(A)}
-;;;
-;;; Left whiskering (H ▷ η): Given H : D → E and η : F ⟹ G,
-;;; produces (H ▷ η) : H∘F ⟹ H∘G with (H ▷ η)_A = H(η_A)
+(doc 'section 'whiskering)
+(doc 'description "Whiskering Operations
+
+Whiskering composes a natural transformation with a functor.
+
+Right whiskering (η ◁ H): Given η : F ⟹ G and H : D → C,
+produces (η ◁ H) : F∘H ⟹ G∘H with (η ◁ H)_A = η_{H(A)}
+
+Left whiskering (H ▷ η): Given H : D → E and η : F ⟹ G,
+produces (H ▷ η) : H∘F ⟹ H∘G with (H ▷ η)_A = H(η_A)")
 
 ;;; nat-whisker-right : NatTransform × Functor → NatTransform
 ;;; Right whiskering: (η ◁ H) : F∘H ⟹ G∘H
@@ -217,7 +209,8 @@
        ;; (η ◁ H)_A = η_{H(A)}, but since η-comp is polymorphic, just η-comp
        η-comp))))
 
-;;; nat-◁ : Alias for nat-whisker-right
+(doc nat-◁ 'type '(-> NatTransform Functor NatTransform))
+(doc nat-◁ 'description "Alias for nat-whisker-right")
 (define nat-◁ nat-whisker-right)
 
 ;;; nat-whisker-left : Functor × NatTransform → NatTransform
@@ -245,16 +238,16 @@
        ;; (H ▷ η)_A = H(η_A): map η-comp over H-container
        (lambda (x) (H-fmap η-comp x))))))
 
-;;; nat-▷ : Alias for nat-whisker-left
+(doc nat-▷ 'type '(-> Functor NatTransform NatTransform))
+(doc nat-▷ 'description "Alias for nat-whisker-left")
 (define nat-▷ nat-whisker-left)
 
-;;; ====
-;;; Natural Isomorphisms
-;;; ====
-;;;
-;;; A natural isomorphism is a natural transformation where each
-;;; component is an isomorphism. η : F ⟹ G is a natural iso if
-;;; there exists ε : G ⟹ F such that ε ∘ η = id_F and η ∘ ε = id_G.
+(doc 'section 'natural-isomorphisms)
+(doc 'description "Natural Isomorphisms
+
+A natural isomorphism is a natural transformation where each
+component is an isomorphism. η : F ⟹ G is a natural iso if
+there exists ε : G ⟹ F such that ε ∘ η = id_F and η ∘ ε = id_G.")
 
 ;;; make-nat-iso : Symbol × Functor × Functor × (F(A) → G(A)) × (G(A) → F(A)) → NatIso
 ;;; Create a natural isomorphism with explicit inverse.
@@ -291,15 +284,14 @@
        (cadr (cddddr iso)))
       (error 'nat-iso-inverse "expected nat-iso" iso)))
 
-;;; ====
-;;; Naturality Verification
-;;; ====
-;;;
-;;; Given η : F ⟹ G, verify the naturality condition:
-;;; For all f : A → B, G(f) ∘ η_A = η_B ∘ F(f)
-;;;
-;;; Since we can't quantify over all morphisms, we test with
-;;; specific values and functions.
+(doc 'section 'naturality-verification)
+(doc 'description "Naturality Verification
+
+Given η : F ⟹ G, verify the naturality condition:
+For all f : A → B, G(f) ∘ η_A = η_B ∘ F(f)
+
+Since we can't quantify over all morphisms, we test with
+specific values and functions.")
 
 ;;; check-naturality : NatTransform × (A → B) × F(A) → Boolean
 ;;; Check that naturality holds for a specific morphism and value.
@@ -324,12 +316,11 @@
             (check-naturality η (car tc) (cdr tc)))
           test-cases))
 
-;;; ====
-;;; Common Natural Transformations
-;;; ====
+(doc 'section 'common-transformations)
 
-;;; nat-head : NatTransform from List to Maybe
-;;; η_A : [A] → Maybe A, returns Just (head) or Nothing
+(doc nat-head 'type 'NatTransform)
+(doc nat-head 'description "NatTransform from List to Maybe
+η_A : [A] → Maybe A, returns Just (head) or Nothing")
 (define nat-head
   (make-nat-transform
    'head
@@ -340,8 +331,9 @@
          nothing
          (just (car xs))))))
 
-;;; nat-singleton : NatTransform from Maybe to List
-;;; η_A : Maybe A → [A], Nothing → [], Just x → [x]
+(doc nat-singleton 'type 'NatTransform)
+(doc nat-singleton 'description "NatTransform from Maybe to List
+η_A : Maybe A → [A], Nothing → [], Just x → [x]")
 (define nat-singleton
   (make-nat-transform
    'singleton
@@ -364,8 +356,9 @@
          (right (from-just m))
          (left default-error)))))
 
-;;; nat-either-to-maybe : NatTransform from Either to Maybe
-;;; Forgets the error, keeping only success
+(doc nat-either-to-maybe 'type 'NatTransform)
+(doc nat-either-to-maybe 'description "NatTransform from Either to Maybe.
+Forgets the error, keeping only success")
 (define nat-either-to-maybe
   (make-nat-transform
    'either->maybe
@@ -376,9 +369,10 @@
          (just (from-right e))
          nothing))))
 
-;;; nat-concat : NatTransform from (List ∘ List) to List
-;;; The join/flatten operation: [[A]] → [A]
-;;; This is the multiplication of the List monad
+(doc nat-concat 'type 'NatTransform)
+(doc nat-concat 'description "NatTransform from (List ∘ List) to List.
+The join/flatten operation: [[A]] → [A]
+This is the multiplication of the List monad")
 (define nat-concat
   (let ([list-list (make-named-functor 'list∘list
                      (lambda (f xss) (map (lambda (xs) (map f xs)) xss)))])
@@ -388,21 +382,23 @@
      functor-list
      (lambda (xss) (apply append xss)))))
 
-;;; nat-pure-list : NatTransform from Identity to List
-;;; η_A : A → [A], the unit of the List monad
+(doc nat-pure-list 'type 'NatTransform)
+(doc nat-pure-list 'description "NatTransform from Identity to List.
+η_A : A → [A], the unit of the List monad")
 (define nat-pure-list
   (make-nat-transform
    'pure-list
-   functor-id      ; From templates.ss
+   functor-id
    functor-list
    list))
 
-;;; nat-pure-maybe : NatTransform from Identity to Maybe
-;;; η_A : A → Maybe A, wraps value in Just
+(doc nat-pure-maybe 'type 'NatTransform)
+(doc nat-pure-maybe 'description "NatTransform from Identity to Maybe.
+η_A : A → Maybe A, wraps value in Just")
 (define nat-pure-maybe
   (make-nat-transform
    'pure-maybe
-   functor-id      ; From templates.ss
+   functor-id
    functor-maybe
    just))
 

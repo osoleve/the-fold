@@ -1,95 +1,90 @@
-;;; lattice/fp/clp/store.ss — Constraint Store for CLP(FD)
-;;;
-;;; Extends the miniKanren substitution with finite domains and
-;;; constraint tracking. The constraint store maintains:
-;;;   - Substitution (from logic.ss)
-;;;   - Domain bindings for logic variables
-;;;   - Active constraints
-;;;   - Pending propagation queue
-;;;
-;;; This is Lattice code: pure operations, may need fuel for propagation.
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;   - logic.ss
-;;;   - domain.ss
-
 (load "core/base/prelude.ss")
 (load "lattice/fp/meta/logic.ss")
 (load "lattice/fp/clp/domain.ss")
 
-;;; ====
-;;; Constraint Store Structure
-;;; ====
-;;;
-;;; CStore = (cstore subst domains constraints pending)
-;;;   subst       : Substitution from logic.ss (variable -> value bindings)
-;;;   domains     : Alist of (lvar-id . domain) for FD variables
-;;;   constraints : List of active constraints
-;;;   pending     : List of lvar-ids needing propagation
+(doc 'module 'store)
+(doc 'description "Constraint Store for CLP(FD)")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
+(doc 'note "Extends the miniKanren substitution with finite domains and constraint tracking. May need fuel for propagation.")
+(doc 'exports "make-cstore, cstore?, cstore accessors/setters, domain operations, binding operations, constraint management, reification")
+(doc 'dependencies "prelude.ss, logic.ss, domain.ss")
 
-;;; make-cstore : → CStore
-;;; Create an empty constraint store.
+(doc 'section 'constraint-store-structure)
+(doc 'note "CStore = (cstore subst domains constraints pending)")
+(doc 'note "subst: Substitution from logic.ss (variable -> value bindings)")
+(doc 'note "domains: Alist of (lvar-id . domain) for FD variables")
+(doc 'note "constraints: List of active constraints")
+(doc 'note "pending: List of lvar-ids needing propagation")
+
 (define (make-cstore)
+  (doc 'type '(-> CStore))
+  (doc 'description "Create an empty constraint store")
   (list 'cstore empty-subst '() '() '()))
 
-;;; cstore? : α → Bool
-;;; Check if value is a constraint store.
 (define (cstore? x)
+  (doc 'type '(-> α Bool))
+  (doc 'description "Check if value is a constraint store")
   (and (pair? x) (eq? (car x) 'cstore) (= (length x) 5)))
 
-;;; cstore-subst : CStore → Substitution
 (define (cstore-subst cs)
+  (doc 'type '(-> CStore Substitution))
+  (doc 'description "Get substitution from store")
   (list-ref cs 1))
 
-;;; cstore-domains : CStore → (Alist LVarId Domain)
 (define (cstore-domains cs)
+  (doc 'type '(-> CStore (Alist LVarId Domain)))
+  (doc 'description "Get domain bindings from store")
   (list-ref cs 2))
 
-;;; cstore-constraints : CStore → (List Constraint)
 (define (cstore-constraints cs)
+  (doc 'type '(-> CStore (List Constraint)))
+  (doc 'description "Get active constraints from store")
   (list-ref cs 3))
 
-;;; cstore-pending : CStore → (List LVarId)
 (define (cstore-pending cs)
+  (doc 'type '(-> CStore (List LVarId)))
+  (doc 'description "Get pending propagation queue from store")
   (list-ref cs 4))
 
-;;; cstore-set-subst : CStore × Substitution → CStore
 (define (cstore-set-subst cs subst)
+  (doc 'type '(-> CStore Substitution CStore))
+  (doc 'description "Set substitution in store")
   (list 'cstore subst
         (cstore-domains cs)
         (cstore-constraints cs)
         (cstore-pending cs)))
 
-;;; cstore-set-domains : CStore × (Alist LVarId Domain) → CStore
 (define (cstore-set-domains cs domains)
+  (doc 'type '(-> CStore (Alist LVarId Domain) CStore))
+  (doc 'description "Set domain bindings in store")
   (list 'cstore (cstore-subst cs)
         domains
         (cstore-constraints cs)
         (cstore-pending cs)))
 
-;;; cstore-set-constraints : CStore × (List Constraint) → CStore
 (define (cstore-set-constraints cs constraints)
+  (doc 'type '(-> CStore (List Constraint) CStore))
+  (doc 'description "Set active constraints in store")
   (list 'cstore (cstore-subst cs)
         (cstore-domains cs)
         constraints
         (cstore-pending cs)))
 
-;;; cstore-set-pending : CStore × (List LVarId) → CStore
 (define (cstore-set-pending cs pending)
+  (doc 'type '(-> CStore (List LVarId) CStore))
+  (doc 'description "Set pending propagation queue in store")
   (list 'cstore (cstore-subst cs)
         (cstore-domains cs)
         (cstore-constraints cs)
         pending))
 
-;;; ====
-;;; Domain Operations on Store
-;;; ====
+(doc 'section 'domain-operations-on-store)
 
-;;; cstore-get-domain : CStore × LVar → Domain
-;;; Get the domain of a variable. Returns unconstrained if not set.
-;;; Unconstrained is represented as #f (meaning no finite domain).
 (define (cstore-get-domain cs var)
+  (doc 'type '(-> CStore LVar Domain))
+  (doc 'description "Get the domain of a variable")
+  (doc 'note "Returns #f for unconstrained (meaning no finite domain)")
   (let ([id (lvar-id var)]
         [domains (cstore-domains cs)])
        (let ([binding (assoc id domains)])
@@ -97,10 +92,11 @@
                 (cdr binding)
                 #f))))  ; #f means unconstrained
 
-;;; cstore-set-domain : CStore × LVar × Domain → (Maybe CStore)
-;;; Set the domain of a variable. Returns #f if domain is empty.
-;;; Only adds variable to pending queue if domain actually changed.
 (define (cstore-set-domain cs var dom)
+  (doc 'type '(-> CStore LVar Domain (Maybe CStore)))
+  (doc 'description "Set the domain of a variable")
+  (doc 'returns "#f if domain is empty, otherwise updated store")
+  (doc 'note "Only adds variable to pending queue if domain actually changed")
   (if (domain-empty? dom)
       #f  ; Failure - empty domain
       (let* ([id (lvar-id var)]
@@ -122,42 +118,40 @@
                   (cstore-constraints cs)
                   new-pending))))
 
-;;; alist-update : Key × Value × Alist → Alist
-;;; Update or insert key-value pair in alist.
 (define (alist-update key val alist)
+  (doc 'type '(-> Key Value Alist Alist))
+  (doc 'description "Update or insert key-value pair in alist")
   (cons (cons key val)
         (alist-remove key alist)))
 
-;;; alist-remove : Key × Alist → Alist
-;;; Remove all entries with given key.
 (define (alist-remove key alist)
+  (doc 'type '(-> Key Alist Alist))
+  (doc 'description "Remove all entries with given key")
   (filter (lambda (pair) (not (equal? (car pair) key))) alist))
 
-;;; cstore-narrow-domain : CStore × LVar × Domain → (Maybe CStore)
-;;; Intersect variable's domain with given domain.
-;;; Returns #f if intersection is empty.
 (define (cstore-narrow-domain cs var new-dom)
+  (doc 'type '(-> CStore LVar Domain (Maybe CStore)))
+  (doc 'description "Intersect variable's domain with given domain")
+  (doc 'returns "#f if intersection is empty")
   (let ([current (cstore-get-domain cs var)])
        (if current
            (cstore-set-domain cs var (domain-intersect current new-dom))
            (cstore-set-domain cs var new-dom))))
 
-;;; cstore-remove-value : CStore × LVar × Int → (Maybe CStore)
-;;; Remove a single value from variable's domain.
 (define (cstore-remove-value cs var val)
+  (doc 'type '(-> CStore LVar Int (Maybe CStore)))
+  (doc 'description "Remove a single value from variable's domain")
   (let ([current (cstore-get-domain cs var)])
        (if current
            (cstore-set-domain cs var (domain-subtract-value current val))
            cs)))  ; No domain = unconstrained, nothing to remove
 
-;;; ====
-;;; Binding Operations
-;;; ====
+(doc 'section 'binding-operations)
 
-;;; cstore-bind-var : CStore × LVar × Int → (Maybe CStore)
-;;; Bind a variable to a specific integer value.
-;;; Checks domain constraint and updates substitution.
 (define (cstore-bind-var cs var val)
+  (doc 'type '(-> CStore LVar Int (Maybe CStore)))
+  (doc 'description "Bind a variable to a specific integer value")
+  (doc 'note "Checks domain constraint and updates substitution")
   (let ([dom (cstore-get-domain cs var)])
        ;; Check domain constraint if one exists
        (if (and dom (not (domain-contains? dom val)))
@@ -171,10 +165,10 @@
                      ;; No domain - just bind
                      cs1)))))
 
-;;; cstore-unify : CStore × α × α → (Maybe CStore)
-;;; Unify two terms, respecting domain constraints.
-;;; Returns updated store or #f on failure.
 (define (cstore-unify cs u v)
+  (doc 'type '(-> CStore α α (Maybe CStore)))
+  (doc 'description "Unify two terms, respecting domain constraints")
+  (doc 'returns "Updated store or #f on failure")
   (let* ([subst (cstore-subst cs)]
          [u (walk u subst)]
          [v (walk v subst)])
@@ -202,9 +196,9 @@
          ;; Cannot unify
          [else #f])))
 
-;;; cstore-bind-term : CStore × LVar × Term → (Maybe CStore)
-;;; Bind a variable to a term (integer, variable, or structure).
 (define (cstore-bind-term cs var term)
+  (doc 'type '(-> CStore LVar Term (Maybe CStore)))
+  (doc 'description "Bind a variable to a term (integer, variable, or structure)")
   (cond
    ;; Binding to an integer - check domain
    [(integer? term)
@@ -246,9 +240,9 @@
         (let ([subst (extend-subst var term (cstore-subst cs))])
              (cstore-set-subst cs subst)))]))
 
-;;; occurs? : LVar × Term × Substitution → Bool
-;;; Check if variable occurs in term (for occurs check).
 (define (occurs? var term subst)
+  (doc 'type '(-> LVar Term Substitution Bool))
+  (doc 'description "Check if variable occurs in term (for occurs check)")
   (let ([term (walk term subst)])
        (cond
         [(lvar? term) (lvar=? var term)]
@@ -256,48 +250,55 @@
                           (occurs? var (cdr term) subst))]
         [else #f])))
 
-;;; ====
-;;; Constraint Management
-;;; ====
-
-;;; Constraint = (constraint id type vars propagator)
-;;;   id         : Unique identifier
-;;;   type       : Symbol naming the constraint type
-;;;   vars       : List of LVars involved
-;;;   propagator : (CStore → (Maybe CStore))
+(doc 'section 'constraint-management)
+(doc 'note "Constraint = (constraint id type vars propagator)")
+(doc 'note "id: Unique identifier")
+(doc 'note "type: Symbol naming the constraint type")
+(doc 'note "vars: List of LVars involved")
+(doc 'note "propagator: (CStore → (Maybe CStore))")
 
 (define *constraint-counter* 0)
 
-;;; make-constraint : Symbol × (List LVar) × (CStore → (Maybe CStore)) → Constraint
 (define (make-constraint type vars propagator)
+  (doc 'type '(-> Symbol (List LVar) (-> CStore (Maybe CStore)) Constraint))
+  (doc 'description "Create a new constraint with unique ID")
   (set! *constraint-counter* (+ *constraint-counter* 1))
   (list 'constraint *constraint-counter* type vars propagator))
 
-;;; constraint? : α → Bool
 (define (constraint? x)
+  (doc 'type '(-> α Bool))
+  (doc 'description "Check if value is a constraint")
   (and (pair? x) (eq? (car x) 'constraint)))
 
-;;; constraint-id : Constraint → Int
-(define (constraint-id c) (list-ref c 1))
+(define (constraint-id c)
+  (doc 'type '(-> Constraint Int))
+  (doc 'description "Get constraint ID")
+  (list-ref c 1))
 
-;;; constraint-type : Constraint → Symbol
-(define (constraint-type c) (list-ref c 2))
+(define (constraint-type c)
+  (doc 'type '(-> Constraint Symbol))
+  (doc 'description "Get constraint type")
+  (list-ref c 2))
 
-;;; constraint-vars : Constraint → (List LVar)
-(define (constraint-vars c) (list-ref c 3))
+(define (constraint-vars c)
+  (doc 'type '(-> Constraint (List LVar)))
+  (doc 'description "Get variables involved in constraint")
+  (list-ref c 3))
 
-;;; constraint-propagator : Constraint → (CStore → (Maybe CStore))
-(define (constraint-propagator c) (list-ref c 4))
+(define (constraint-propagator c)
+  (doc 'type '(-> Constraint (-> CStore (Maybe CStore))))
+  (doc 'description "Get constraint propagator function")
+  (list-ref c 4))
 
-;;; cstore-add-constraint : CStore × Constraint → CStore
-;;; Add a constraint to the store.
 (define (cstore-add-constraint cs constraint)
+  (doc 'type '(-> CStore Constraint CStore))
+  (doc 'description "Add a constraint to the store")
   (let ([constraints (cstore-constraints cs)])
        (cstore-set-constraints cs (cons constraint constraints))))
 
-;;; cstore-constraints-for-var : CStore × LVar → (List Constraint)
-;;; Get all constraints involving a variable.
 (define (cstore-constraints-for-var cs var)
+  (doc 'type '(-> CStore LVar (List Constraint)))
+  (doc 'description "Get all constraints involving a variable")
   (let ([id (lvar-id var)])
        (filter
         (lambda (c)
@@ -305,93 +306,85 @@
                      (constraint-vars c)))
         (cstore-constraints cs))))
 
-;;; any : (α → Bool) × (List α) → Bool
-;;; Check if predicate is true for any element.
 (define (any pred lst)
+  (doc 'type '(-> (-> α Bool) (List α) Bool))
+  (doc 'description "Check if predicate is true for any element")
   (cond
    [(null? lst) #f]
    [(pred (car lst)) #t]
    [else (any pred (cdr lst))]))
 
-;;; ====
-;;; Propagation Queue
-;;; ====
+(doc 'section 'propagation-queue)
 
-;;; cstore-add-pending : CStore × LVar → CStore
-;;; Add variable to propagation queue.
 (define (cstore-add-pending cs var)
+  (doc 'type '(-> CStore LVar CStore))
+  (doc 'description "Add variable to propagation queue")
   (let* ([id (lvar-id var)]
          [pending (cstore-pending cs)])
         (if (member id pending)
             cs
             (cstore-set-pending cs (cons id pending)))))
 
-;;; cstore-pop-pending : CStore → (Maybe (LVarId × CStore))
-;;; Pop a variable from propagation queue.
 (define (cstore-pop-pending cs)
+  (doc 'type '(-> CStore (Maybe (Pair LVarId CStore))))
+  (doc 'description "Pop a variable from propagation queue")
   (let ([pending (cstore-pending cs)])
        (if (null? pending)
            #f
            (cons (car pending)
                  (cstore-set-pending cs (cdr pending))))))
 
-;;; cstore-clear-pending : CStore → CStore
-;;; Clear the propagation queue.
 (define (cstore-clear-pending cs)
+  (doc 'type '(-> CStore CStore))
+  (doc 'description "Clear the propagation queue")
   (cstore-set-pending cs '()))
 
-;;; ====
-;;; Ground/Singleton Detection
-;;; ====
+(doc 'section 'ground-singleton-detection)
 
-;;; cstore-ground? : CStore × LVar → Bool
-;;; Check if variable is bound to a ground (non-variable) value.
 (define (cstore-ground? cs var)
+  (doc 'type '(-> CStore LVar Bool))
+  (doc 'description "Check if variable is bound to a ground (non-variable) value")
   (let ([val (walk var (cstore-subst cs))])
        (not (lvar? val))))
 
-;;; cstore-singleton? : CStore × LVar → Bool
-;;; Check if variable has a singleton domain.
 (define (cstore-singleton? cs var)
+  (doc 'type '(-> CStore LVar Bool))
+  (doc 'description "Check if variable has a singleton domain")
   (let ([dom (cstore-get-domain cs var)])
        (and dom (domain-singleton? dom))))
 
-;;; cstore-get-value : CStore × LVar → (Maybe Int)
-;;; Get the value of a ground variable.
 (define (cstore-get-value cs var)
+  (doc 'type '(-> CStore LVar (Maybe Int)))
+  (doc 'description "Get the value of a ground variable")
   (let ([val (walk var (cstore-subst cs))])
        (if (integer? val)
            val
            (let ([dom (cstore-get-domain cs var)])
                 (and dom (domain-singleton? dom) (domain-min dom))))))
 
-;;; ====
-;;; Reification
-;;; ====
+(doc 'section 'reification)
 
-;;; cstore-walk : CStore × Term → Term
-;;; Walk a term through the store's substitution.
 (define (cstore-walk cs term)
+  (doc 'type '(-> CStore Term Term))
+  (doc 'description "Walk a term through the store's substitution")
   (walk term (cstore-subst cs)))
 
-;;; cstore-walk* : CStore × Term → Term
-;;; Deep walk a term through the store's substitution.
 (define (cstore-walk* cs term)
+  (doc 'type '(-> CStore Term Term))
+  (doc 'description "Deep walk a term through the store's substitution")
   (walk* term (cstore-subst cs)))
 
-;;; cstore-reify : CStore × Term → Term
-;;; Reify a term, replacing unbound variables with readable names.
 (define (cstore-reify cs term)
+  (doc 'type '(-> CStore Term Term))
+  (doc 'description "Reify a term, replacing unbound variables with readable names")
   (let ([walked (cstore-walk* cs term)])
        (reify walked)))
 
-;;; ====
-;;; Store Display
-;;; ====
+(doc 'section 'store-display)
 
-;;; cstore->string : CStore → String
-;;; Convert store to readable string for debugging.
 (define (cstore->string cs)
+  (doc 'type '(-> CStore String))
+  (doc 'description "Convert store to readable string for debugging")
   (string-append
    "(cstore\n"
    "  subst: " (format-subst (cstore-subst cs)) "\n"

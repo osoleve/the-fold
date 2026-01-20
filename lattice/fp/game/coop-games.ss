@@ -1,89 +1,64 @@
-;;; lattice/fp/game/coop-games.ss — Cooperative (Coalitional) Game Theory
-;;;
-;;; Implements cooperative games with transferable utility (TU games).
-;;; Supports Shapley value, core stability, bargaining solutions,
-;;; and classic game constructors.
-;;;
-;;; This is Lattice code: pure, total, assumes reasonable input.
-;;;
-;;; A cooperative game consists of:
-;;;   - N players (indexed 0, 1, ... n-1)
-;;;   - Characteristic function v: 2^N → Real
-;;;     where v(S) is the value coalition S can achieve
-;;;
-;;; Key concepts:
-;;;   - Coalition: subset of players (bitmask representation)
-;;;   - Allocation: division of v(N) among players
-;;;   - Imputation: efficient + individually rational allocation
-;;;   - Core: allocations no coalition would deviate from
-;;;   - Shapley value: unique fair allocation satisfying axioms
-;;;
-;;; Constraint: n ≤ 60 players (fixnum bitmask limit on 64-bit)
-;;;
-;;; Dependencies:
-;;;   - core/base/prelude.ss
-
 (load "core/base/prelude.ss")
 (load "lattice/linalg/vec.ss")
 (load "lattice/linalg/matrix.ss")
 (load "lattice/linalg/matrix-solvers.ss")
 (load "lattice/optimization/lp.ss")
 
-;;; ============================================================================
-;;; Coalition Representation (Bitmask)
-;;; ============================================================================
-;;;
-;;; Coalitions are represented as integers where bit i = 1 means player i
-;;; is in the coalition. This gives O(1) membership, union, intersection.
-;;;
-;;; Examples:
-;;;   Coalition 0 = {} (empty)
-;;;   Coalition 1 = {0} (just player 0)
-;;;   Coalition 5 = {0, 2} (binary 101)
-;;;   Coalition 7 = {0, 1, 2} (binary 111)
+(doc 'module 'coop-games)
+(doc 'description "Cooperative (Coalitional) Game Theory with transferable utility")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
+(doc 'note "Constraint: n ≤ 60 players (fixnum bitmask limit on 64-bit)")
 
-;;; coalition-empty : Coalition
-;;; The empty coalition (no players).
+(doc 'note "A cooperative game consists of N players (indexed 0, 1, ... n-1) and a characteristic function v: 2^N → Real where v(S) is the value coalition S can achieve")
+(doc 'note "Key concepts: Coalition (subset of players, bitmask representation), Allocation (division of v(N) among players), Imputation (efficient + individually rational allocation), Core (allocations no coalition would deviate from), Shapley value (unique fair allocation satisfying axioms)")
+
+(doc 'section 'coalition-representation)
+(doc 'note "Coalitions are represented as integers where bit i = 1 means player i is in the coalition. This gives O(1) membership, union, intersection")
+(doc 'note "Examples: Coalition 0 = {} (empty), Coalition 1 = {0}, Coalition 5 = {0, 2} (binary 101), Coalition 7 = {0, 1, 2} (binary 111)")
+
 (define coalition-empty 0)
+(doc coalition-empty 'type 'Coalition)
+(doc coalition-empty 'description "The empty coalition (no players)")
 
-;;; coalition-singleton : Nat → Coalition
-;;; Coalition containing only player i.
 (define (coalition-singleton i)
+  (doc 'type '(-> Nat Coalition))
+  (doc 'description "Coalition containing only player i")
   (bitwise-arithmetic-shift-left 1 i))
 
-;;; coalition-member? : Nat × Coalition → Boolean
-;;; Is player i in coalition S?
 (define (coalition-member? i S)
+  (doc 'type '(-> Nat Coalition Boolean))
+  (doc 'description "Is player i in coalition S?")
   (= 1 (bitwise-and 1 (bitwise-arithmetic-shift-right S i))))
 
-;;; coalition-union : Coalition × Coalition → Coalition
-;;; Union of two coalitions.
 (define (coalition-union S T)
+  (doc 'type '(-> Coalition Coalition Coalition))
+  (doc 'description "Union of two coalitions")
   (bitwise-ior S T))
 
-;;; coalition-intersection : Coalition × Coalition → Coalition
-;;; Intersection of two coalitions.
 (define (coalition-intersection S T)
+  (doc 'type '(-> Coalition Coalition Coalition))
+  (doc 'description "Intersection of two coalitions")
   (bitwise-and S T))
 
-;;; coalition-difference : Coalition × Coalition → Coalition
-;;; Set difference S \ T (players in S but not T).
 (define (coalition-difference S T)
+  (doc 'type '(-> Coalition Coalition Coalition))
+  (doc 'description "Set difference S \\ T (players in S but not T)")
   (bitwise-and S (bitwise-not T)))
 
-;;; coalition-complement : Coalition × Nat → Coalition
-;;; Complement of S w.r.t. grand coalition of n players.
 (define (coalition-complement S n)
+  (doc 'type '(-> Coalition Nat Coalition))
+  (doc 'description "Complement of S w.r.t. grand coalition of n players")
   (bitwise-xor S (- (bitwise-arithmetic-shift-left 1 n) 1)))
 
-;;; coalition-size : Coalition → Nat
-;;; Number of players in coalition S.
 (define (coalition-size S)
+  (doc 'type '(-> Coalition Nat))
+  (doc 'description "Number of players in coalition S")
   (bitwise-bit-count S))
 
-;;; coalition->list : Coalition → (List Nat)
-;;; Convert coalition to list of player indices.
 (define (coalition->list S)
+  (doc 'type '(-> Coalition (List Nat)))
+  (doc 'description "Convert coalition to list of player indices")
   (let loop ([S S] [i 0] [acc '()])
     (if (= S 0)
         (reverse acc)
@@ -93,77 +68,67 @@
                   (cons i acc)
                   acc)))))
 
-;;; list->coalition : (List Nat) → Coalition
-;;; Convert list of player indices to coalition.
 (define (list->coalition players)
+  (doc 'type '(-> (List Nat) Coalition))
+  (doc 'description "Convert list of player indices to coalition")
   (fold-left coalition-union coalition-empty
              (map coalition-singleton players)))
 
-;;; all-coalitions : Nat → (List Coalition)
-;;; Generate all 2^n coalitions for n players.
 (define (all-coalitions n)
+  (doc 'type '(-> Nat (List Coalition)))
+  (doc 'description "Generate all 2^n coalitions for n players")
   (iota (bitwise-arithmetic-shift-left 1 n)))
 
-;;; coalition-subset? : Coalition × Coalition → Boolean
-;;; Is S a subset of T?
 (define (coalition-subset? S T)
+  (doc 'type '(-> Coalition Coalition Boolean))
+  (doc 'description "Is S a subset of T?")
   (= S (coalition-intersection S T)))
 
-;;; ============================================================================
-;;; Cooperative Game Record Type
-;;; ============================================================================
-
-;;; A cooperative game (TU game) is defined by:
-;;;   - n: number of players
-;;;   - v: characteristic function (Coalition → Real)
-;;;        Satisfies v({}) = 0
+(doc 'section 'cooperative-game-record-type)
+(doc 'note "A cooperative game (TU game) is defined by n (number of players) and v (characteristic function Coalition → Real where v({}) = 0)")
 
 (define-record-type coop-game%
   (fields n v))
 
-;;; make-coop-game : Nat × (Coalition → Real) → CoopGame
-;;; Create a cooperative game with n players and characteristic function v.
 (define (make-coop-game n v)
+  (doc 'type '(-> Nat (-> Coalition Real) CoopGame))
+  (doc 'description "Create a cooperative game with n players and characteristic function v")
   (make-coop-game% n v))
 
-;;; coop-game? : Any → Boolean
-;;; Is x a cooperative game?
 (define (coop-game? x)
+  (doc 'type '(-> Any Boolean))
+  (doc 'description "Is x a cooperative game?")
   (coop-game%? x))
 
-;;; coop-game-players : CoopGame → Nat
-;;; Number of players in the game.
 (define (coop-game-players g)
+  (doc 'type '(-> CoopGame Nat))
+  (doc 'description "Number of players in the game")
   (coop-game%-n g))
 
-;;; coop-game-value : CoopGame × Coalition → Real
-;;; Get characteristic function value for coalition S.
 (define (coop-game-value g S)
+  (doc 'type '(-> CoopGame Coalition Real))
+  (doc 'description "Get characteristic function value for coalition S")
   ((coop-game%-v g) S))
 
-;;; coop-game-grand-coalition : CoopGame → Coalition
-;;; The grand coalition N = {0, 1, ..., n-1}.
 (define (coop-game-grand-coalition g)
+  (doc 'type '(-> CoopGame Coalition))
+  (doc 'description "The grand coalition N = {0, 1, ..., n-1}")
   (- (bitwise-arithmetic-shift-left 1 (coop-game-players g)) 1))
 
-;;; ============================================================================
-;;; Allocations
-;;; ============================================================================
-;;;
-;;; An allocation x is a vector of payoffs, one per player.
-;;; x[i] = payoff to player i
+(doc 'section 'allocations)
+(doc 'note "An allocation x is a vector of payoffs, one per player where x[i] = payoff to player i")
 
-;;; allocation-total : (Vector Real) → Real
-;;; Sum of all payoffs in allocation.
 (define (allocation-total x)
+  (doc 'type '(-> (Vector Real) Real))
+  (doc 'description "Sum of all payoffs in allocation")
   (let loop ([i 0] [sum 0])
     (if (>= i (vector-length x))
         sum
         (loop (+ i 1) (+ sum (vector-ref x i))))))
 
-;;; allocation-coalition-total : (Vector Real) × Coalition → Real
-;;; Sum of payoffs for players in coalition S.
 (define (allocation-coalition-total x S)
+  (doc 'type '(-> (Vector Real) Coalition Real))
+  (doc 'description "Sum of payoffs for players in coalition S")
   (let loop ([S S] [i 0] [sum 0])
     (if (= S 0)
         sum
@@ -173,17 +138,12 @@
                   (+ sum (vector-ref x i))
                   sum)))))
 
-;;; ============================================================================
-;;; Imputations
-;;; ============================================================================
-;;;
-;;; An imputation satisfies:
-;;;   1. Efficiency: sum(x) = v(N)
-;;;   2. Individual rationality: x[i] >= v({i}) for all i
+(doc 'section 'imputations)
+(doc 'note "An imputation satisfies: 1. Efficiency: sum(x) = v(N), 2. Individual rationality: x[i] >= v({i}) for all i")
 
-;;; imputation? : CoopGame × (Vector Real) → Boolean
-;;; Is x an imputation for game g?
 (define (imputation? g x)
+  (doc 'type '(-> CoopGame (Vector Real) Boolean))
+  (doc 'description "Is x an imputation for game g?")
   (let ([n (coop-game-players g)]
         [grand (coop-game-grand-coalition g)])
     (and
@@ -197,23 +157,13 @@
                     (coop-game-value g (coalition-singleton i)))
                 (loop (+ i 1))))))))
 
-;;; ============================================================================
-;;; Shapley Value
-;;; ============================================================================
-;;;
-;;; The Shapley value is the unique allocation satisfying:
-;;;   - Efficiency: sum(phi_i) = v(N)
-;;;   - Symmetry: symmetric players get equal payoffs
-;;;   - Null player: player with zero marginal contribution gets zero
-;;;   - Additivity: phi(v + w) = phi(v) + phi(w)
-;;;
-;;; Formula (subset-based, O(n * 2^n)):
-;;;   phi_i = SUM over S not containing i of:
-;;;           [|S|!(n-|S|-1)!/n!] × [v(S ∪ {i}) - v(S)]
+(doc 'section 'shapley-value)
+(doc 'note "The Shapley value is the unique allocation satisfying: Efficiency (sum(phi_i) = v(N)), Symmetry (symmetric players get equal payoffs), Null player (player with zero marginal contribution gets zero), Additivity (phi(v + w) = phi(v) + phi(w))")
+(doc 'note "Formula (subset-based, O(n * 2^n)): phi_i = SUM over S not containing i of [|S|!(n-|S|-1)!/n!] × [v(S ∪ {i}) - v(S)]")
 
-;;; factorial : Nat → Nat
-;;; Compute n! (memoized via vector cache).
 (define (make-factorial-cache max-n)
+  (doc 'type '(-> Nat (Vector Nat)))
+  (doc 'description "Compute n! (memoized via vector cache)")
   (let ([cache (make-vector (+ max-n 1) 1)])
     (let loop ([i 1])
       (when (<= i max-n)
@@ -221,18 +171,17 @@
         (loop (+ i 1))))
     cache))
 
-;;; shapley-weight : Nat × Nat × (Vector Nat) → Real
-;;; Weight for coalition of size s in game with n players.
-;;; = s!(n-s-1)!/n!
 (define (shapley-weight s n fact-cache)
+  (doc 'type '(-> Nat Nat (Vector Nat) Real))
+  (doc 'description "Weight for coalition of size s in game with n players: s!(n-s-1)!/n!")
   (/ (* (vector-ref fact-cache s)
         (vector-ref fact-cache (- n s 1)))
      (vector-ref fact-cache n)))
 
-;;; shapley-value : CoopGame × Nat → (Vector Real)
-;;; Compute Shapley value for all players.
-;;; fuel bounds computation (set to 2^n for exact result).
 (define (shapley-value g fuel)
+  (doc 'type '(-> CoopGame Nat (Vector Real)))
+  (doc 'description "Compute Shapley value for all players")
+  (doc 'param 'fuel "Bounds computation (set to 2^n for exact result)")
   (let* ([n (coop-game-players g)]
          [fact-cache (make-factorial-cache n)]
          [result (make-vector n 0)])

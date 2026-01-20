@@ -1,61 +1,32 @@
-;;; core/fp/control/random-effect.ss --- Random Effect for Algebraic Effects
-;;;
-;;; The Random effect provides pure, reproducible random number generation
-;;; within effectful computations. It threads PRNG state implicitly,
-;;; enabling composable stochastic simulations.
-;;;
-;;; This is Core code: pure, total, assumes reasonable input.
-;;;
-;;; Features:
-;;;   - random-uniform: Generate float in [0, 1)
-;;;   - random-int: Generate integer in [lo, hi]
-;;;   - random-choice: Pick random element from list
-;;;   - random-sample-dist: Sample from a distribution (State computation)
-;;;   - random-shuffle-eff: Fisher-Yates shuffle
-;;;   - Deterministic, reproducible results given same seed
-;;;
-;;; Usage:
-;;;   (run-random seed computation)
-;;;   (handle-random seed computation)  ; alias
-;;;
-;;; Dependencies:
-;;;   - effects.ss (algebraic effects framework)
-;;;   - random/prng.ss (PRNG implementations)
-;;;
-;;; IMPORTANT: Load order matters! prng.ss uses state.ss which defines
-;;; run-state for State monad. effects.ss defines run-state for State effect.
-;;; This file loads prng.ss first, then effects.ss, so effects.ss wins.
-
-;; Load effects FIRST
-;; effects.ss defines run-state for handling State effects
 (load "lattice/fp/control/effects.ss")
-
-;; Now load PRNG - this will load state.ss which redefines run-state
-;; for the State monad. This is the order we want: state.ss's run-state
-;; should be the final definition so that State monad closures work correctly.
 (load "lattice/random/prng.ss")
 
-;; Alias for State monad's run-state (now the current definition from state.ss)
+(doc 'module 'random-effect)
+(doc 'description "The Random effect provides pure, reproducible random number generation within effectful computations, threading PRNG state implicitly.")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
+(doc 'features "random-uniform, random-int, random-choice, random-sample-dist, random-shuffle-eff, deterministic reproducible results given same seed")
+(doc 'note "Load order matters - effects.ss defines run-state for State effect, prng.ss uses state.ss which defines run-state for State monad")
+
 (define (run-state-monad st initial-state)
+  (doc 'type '(-> (State s a) s (Pair a s)))
+  (doc 'description "Alias for State monad's run-state - now the current definition from state.ss")
   ((state-fn st) initial-state))
 
-;; Preserve effects.ss's State effect handler before it gets shadowed
-;; This uses run-state-helper which is still available
 (define (run-state-eff init-state eff)
+  (doc 'type '(-> s (Eff State a) (Pair a s)))
+  (doc 'description "Preserve effects.ss State effect handler before it gets shadowed - uses run-state-helper")
   (run-state-helper init-state eff))
 
-;; Alias the prng functions for use in the handler
-;; These are now correctly defined after prng.ss is loaded
 (define prng-random-float random-float)
+(doc prng-random-float 'description "Alias the prng functions for use in the handler")
+
 (define prng-random-int-range random-int-range)
 (define prng-random-float-range random-float-range)
 (define prng-random-bool random-bool)
 
-;;; ====
-;;; Random Effect Signature
-;;; ====
+(doc 'section 'random-effect-signature)
 
-;;; Random effect signature
 (define sig-Random
   (make-effect-sig 'Random
                    (list (make-operation 'uniform 'Unit 'Float)
@@ -64,58 +35,55 @@
                          (make-operation 'sample '(State g a) 'a)
                          (make-operation 'bool 'Unit 'Boolean)
                          (make-operation 'float-range '(Float Float) 'Float))))
+(doc sig-Random 'type 'EffectSig)
+(doc sig-Random 'description "Random effect signature")
 
-;;; ====
-;;; Random Effect Operations
-;;; ====
+(doc 'section 'random-effect-operations)
 
-;;; random-uniform-eff : Eff Random Float
-;;; Generate a random float in [0, 1).
 (define random-uniform-eff
   (perform (make-effect 'random-uniform '())))
+(doc random-uniform-eff 'type '(Eff Random Float))
+(doc random-uniform-eff 'description "Generate a random float in [0, 1)")
 
-;;; random-int-eff : Int -> Int -> Eff Random Int
-;;; Generate a random integer in [lo, hi] (inclusive).
 (define (random-int-eff lo hi)
+  (doc 'type '(-> Int Int (Eff Random Int)))
+  (doc 'description "Generate a random integer in [lo, hi] (inclusive)")
   (perform (make-effect 'random-int (cons lo hi))))
 
-;;; random-choice-eff : List a -> Eff Random a
-;;; Pick a random element from a non-empty list.
 (define (random-choice-eff lst)
+  (doc 'type '(-> (List a) (Eff Random a)))
+  (doc 'description "Pick a random element from a non-empty list")
   (if (null? lst)
       (eff-throw "random-choice-eff: empty list")
       (perform (make-effect 'random-choice lst))))
 
-;;; random-bool-eff : Eff Random Boolean
-;;; Generate a random boolean.
 (define random-bool-eff
   (perform (make-effect 'random-bool '())))
+(doc random-bool-eff 'type '(Eff Random Boolean))
+(doc random-bool-eff 'description "Generate a random boolean")
 
-;;; random-float-eff : Float -> Float -> Eff Random Float
-;;; Generate a random float in [lo, hi).
 (define (random-float-eff lo hi)
+  (doc 'type '(-> Float Float (Eff Random Float)))
+  (doc 'description "Generate a random float in [lo, hi)")
   (perform (make-effect 'random-float (cons lo hi))))
 
-;;; random-sample-dist : (State GenState a) -> Eff Random a
-;;; Sample from a distribution (State monad computation).
-;;; This bridges the existing distributions to the effect system.
 (define (random-sample-dist dist)
+  (doc 'type '(-> (State GenState a) (Eff Random a)))
+  (doc 'description "Sample from a distribution (State monad computation) - bridges existing distributions to the effect system")
   (perform (make-effect 'random-sample dist)))
 
-;;; ====
-;;; Derived Random Operations
-;;; ====
+(doc 'section 'derived-random-operations)
 
-;;; random-bernoulli-eff : Float -> Eff Random Boolean
-;;; Sample from Bernoulli(p) - true with probability p.
 (define (random-bernoulli-eff p)
+  (doc 'type '(-> Float (Eff Random Boolean)))
+  (doc 'description "Sample from Bernoulli(p) - true with probability p")
   (eff-bind random-uniform-eff
             (lambda (u)
                     (eff-return (< u p)))))
 
-;;; random-weighted-eff : List (a . Number) -> Eff Random a
-;;; Pick an element weighted by associated numbers.
 (define (random-weighted-eff weighted-list)
+  (doc 'type '(-> (List (Pair a Number)) (Eff Random a)))
+  (doc 'description "Pick an element weighted by associated numbers")
   (if (null? weighted-list)
       (eff-throw "random-weighted-eff: empty list")
       (let ([total (fold-left + 0 (map cdr weighted-list))])
@@ -130,17 +98,15 @@
                                                 (caar lst)
                                                 (loop (cdr lst) new-acc)))))))))))
 
-;;; random-list-eff : Nat -> Eff Random a -> Eff Random (List a)
-;;; Generate a list of n random values.
 (define (random-list-eff n gen)
+  (doc 'type '(-> Nat (Eff Random a) (Eff Random (List a))))
+  (doc 'description "Generate a list of n random values")
   (eff-replicate n gen))
 
-;;; shuffle-with-swaps : List a -> List (Int . Int) -> List a
-;;; Apply Fisher-Yates swaps to a list using vector for O(1) access.
-;;; Takes a list and a list of (i . j) swap pairs.
 (define (shuffle-with-swaps lst swaps)
+  (doc 'type '(-> (List a) (List (Pair Int Int)) (List a)))
+  (doc 'description "Apply Fisher-Yates swaps to a list using vector for O(1) access - takes a list and a list of (i . j) swap pairs")
   (let ([vec (list->vector lst)])
-       ;; Apply each swap in order
        (for-each
         (lambda (swap)
                 (let ([i (car swap)]
@@ -152,20 +118,14 @@
         swaps)
        (vector->list vec)))
 
-;;; random-shuffle-eff : List a -> Eff Random (List a)
-;;; Fisher-Yates shuffle using Random effect.
-;;;
-;;; This implementation converts to a vector, performs O(1) swaps, then
-;;; converts back to a list, achieving O(N) total complexity.
-;;;
-;;; The shuffle is performed by collecting all random indices first,
-;;; then applying them to a mutable vector. This ensures determinism
-;;; and compatibility with the effect system.
 (define (random-shuffle-eff lst)
+  (doc 'type '(-> (List a) (Eff Random (List a))))
+  (doc 'description "Fisher-Yates shuffle using Random effect - O(N) total complexity")
+  (doc 'note "Converts to vector, performs O(1) swaps, then converts back to list")
+  (doc 'note "Collects all random indices first then applies them to a mutable vector for determinism and effect system compatibility")
   (let ([n (length lst)])
        (if (<= n 1)
            (eff-return lst)
-           ;; Collect all random indices needed for the shuffle
            (letrec ([collect-indices
                      (lambda (i acc)
                              (if (>= i (- n 1))
@@ -177,29 +137,26 @@
                              (lambda (swaps)
                                      (eff-return (shuffle-with-swaps lst swaps))))))))
 
-;;; ====
-;;; Random Effect Handler
-;;; ====
+(doc 'section 'random-effect-handler)
 
-;;; run-random : Integer -> Eff Random a -> a
-;;; Handle Random effect with a PCG generator seeded from given value.
-;;; Returns the final value (discards generator state).
 (define (run-random seed eff)
+  (doc 'type '(-> Integer (Eff Random a) a))
+  (doc 'description "Handle Random effect with a PCG generator seeded from given value - returns the final value (discards generator state)")
   (run-random-with-gen (make-pcg seed 1) eff))
 
-;;; run-random-with-state-eff : Integer -> Eff Random a -> (a . GenState)
-;;; Handle Random effect, returning both value and final generator state.
 (define (run-random-with-state-eff seed eff)
+  (doc 'type '(-> Integer (Eff Random a) (Pair a GenState)))
+  (doc 'description "Handle Random effect, returning both value and final generator state")
   (run-random-helper (make-pcg seed 1) eff))
 
-;;; run-random-with-gen : GenState -> Eff Random a -> a
-;;; Handle Random effect with an existing generator.
 (define (run-random-with-gen gen eff)
+  (doc 'type '(-> GenState (Eff Random a) a))
+  (doc 'description "Handle Random effect with an existing generator")
   (car (run-random-helper gen eff)))
 
-;;; run-random-helper : GenState -> Eff Random a -> (a . GenState)
-;;; Core handler implementation.
 (define (run-random-helper gen eff)
+  (doc 'type '(-> GenState (Eff Random a) (Pair a GenState)))
+  (doc 'description "Core handler implementation")
   (cond
    [(eff-pure? eff)
     (cons (eff-pure-value eff) gen)]
@@ -207,14 +164,12 @@
     (let ([effect (eff-op-effect eff)]
           [k (eff-op-cont eff)])
          (case (effect-tag effect)
-               ;; Uniform float in [0, 1)
                [(random-uniform)
                 (let* ([result (run-state-monad prng-random-float gen)]
                        [val (car result)]
                        [new-gen (cdr result)])
                       (run-random-helper new-gen (k val)))]
-               
-               ;; Integer in [lo, hi]
+
                [(random-int)
                 (let* ([bounds (effect-payload effect)]
                        [lo (car bounds)]
@@ -223,8 +178,7 @@
                        [val (car result)]
                        [new-gen (cdr result)])
                       (run-random-helper new-gen (k val)))]
-               
-               ;; Random element from list
+
                [(random-choice)
                 (let* ([lst (effect-payload effect)]
                        [n (length lst)]
@@ -232,15 +186,13 @@
                        [idx (car result)]
                        [new-gen (cdr result)])
                       (run-random-helper new-gen (k (list-ref lst idx))))]
-               
-               ;; Random boolean
+
                [(random-bool)
                 (let* ([result (run-state-monad prng-random-bool gen)]
                        [val (car result)]
                        [new-gen (cdr result)])
                       (run-random-helper new-gen (k val)))]
-               
-               ;; Float in [lo, hi)
+
                [(random-float)
                 (let* ([bounds (effect-payload effect)]
                        [lo (car bounds)]
@@ -249,119 +201,75 @@
                        [val (car result)]
                        [new-gen (cdr result)])
                       (run-random-helper new-gen (k val)))]
-               
-               ;; Sample from distribution (State computation)
+
                [(random-sample)
                 (let* ([dist (effect-payload effect)]
                        [result (run-state-monad dist gen)]
                        [val (car result)]
                        [new-gen (cdr result)])
                       (run-random-helper new-gen (k val)))]
-               
-               ;; Split generator into two independent streams
+
                [(random-split)
                 (let ([children (gen-split gen)])
-                     ;; Return the pair of children, continue with second child
-                     ;; so returned generators and continuation use independent streams
                      (run-random-helper (cadr children) (k children)))]
-               
-               ;; Generate random bytes
+
                [(random-bytes)
                 (let* ([n (effect-payload effect)]
                        [result (run-state-monad (random-bytes n) gen)]
                        [bytes (car result)]
                        [new-gen (cdr result)])
                       (run-random-helper new-gen (k bytes)))]
-               
-               ;; Get current generator state (for serialization)
+
                [(get-random-state)
                 (run-random-helper gen (k gen))]
-               
-               ;; Unknown effect - pass through
+
                [else
                 (make-eff-op effect
                              (lambda (resp)
                                      (run-random-helper gen (k resp))))]))]))
 
-;;; handle-random : Integer -> Eff Random a -> a
-;;; Alias for run-random for API consistency with issue description.
 (define handle-random run-random)
+(doc handle-random 'type '(-> Integer (Eff Random a) a))
+(doc handle-random 'description "Alias for run-random for API consistency")
 
-;;; with-random-eff : Integer -> Eff Random a -> Eff e a
-;;; Run Random effect in a scope, returning only the result.
 (define (with-random-eff seed eff)
+  (doc 'type '(-> Integer (Eff Random a) (Eff e a)))
+  (doc 'description "Run Random effect in a scope, returning only the result")
   (eff-return (run-random seed eff)))
 
-;;; ====
-;;; Split Operation (for Parallel Simulations)
-;;; ====
+(doc 'section 'split-operation)
+(doc 'note "For parallel simulations")
 
-;;; random-split-eff : Eff Random (GenState . GenState)
-;;; Split the current generator into two independent streams.
-;;; Returns a pair of generator states for use in parallel computations.
 (define random-split-eff
   (perform (make-effect 'random-split '())))
+(doc random-split-eff 'type '(Eff Random (Pair GenState GenState)))
+(doc random-split-eff 'description "Split the current generator into two independent streams - returns a pair of generator states for use in parallel computations")
 
-;;; ====
-;;; Random Bytes (for UUIDs, Crypto Placeholders, etc.)
-;;; ====
+(doc 'section 'random-bytes)
+(doc 'note "For UUIDs, crypto placeholders, etc")
 
-;;; random-bytes-eff : Nat -> Eff Random Bytevector
-;;; Generate a bytevector of n random bytes.
 (define (random-bytes-eff n)
+  (doc 'type '(-> Nat (Eff Random Bytevector)))
+  (doc 'description "Generate a bytevector of n random bytes")
   (perform (make-effect 'random-bytes n)))
 
-;;; ====
-;;; Serialization API (for Resumable Sessions)
-;;; ====
+(doc 'section 'serialization-api)
+(doc 'note "For resumable sessions")
 
-;;; get-random-state-eff : Eff Random GenState
-;;; Get the current generator state (for serialization).
 (define get-random-state-eff
   (perform (make-effect 'get-random-state '())))
+(doc get-random-state-eff 'type '(Eff Random GenState))
+(doc get-random-state-eff 'description "Get the current generator state (for serialization)")
 
-;;; serialize-random-state : GenState -> String
-;;; Convert generator state to a storable string.
 (define serialize-random-state gen->string)
+(doc serialize-random-state 'type '(-> GenState String))
+(doc serialize-random-state 'description "Convert generator state to a storable string")
 
-;;; deserialize-random-state : String -> GenState
-;;; Parse generator state from string.
 (define deserialize-random-state string->gen)
+(doc deserialize-random-state 'type '(-> String GenState))
+(doc deserialize-random-state 'description "Parse generator state from string")
 
-;;; run-random-resume : String -> Eff Random a -> a
-;;; Resume a random computation from serialized state.
 (define (run-random-resume state-string eff)
+  (doc 'type '(-> String (Eff Random a) a))
+  (doc 'description "Resume a random computation from serialized state")
   (run-random-with-gen (deserialize-random-state state-string) eff))
-
-;;; ====
-;;; Example Usage
-;;; ====
-;;;
-;;; ;; Basic uniform random
-;;; (run-random 42 random-uniform-eff)
-;;; ; => 0.123... (deterministic for seed 42)
-;;;
-;;; ;; Random integer in range
-;;; (run-random 42 (random-int-eff 1 6))
-;;; ; => some integer 1-6
-;;;
-;;; ;; Multiple random values
-;;; (run-random 42
-;;;   (eff-bind random-uniform-eff
-;;;             (lambda (u1)
-;;;               (eff-bind random-uniform-eff
-;;;                         (lambda (u2)
-;;;                           (eff-return (list u1 u2)))))))
-;;;
-;;; ;; Monte Carlo simulation
-;;; (run-random 42
-;;;   (eff-bind (random-list-eff 1000
-;;;               (eff-bind random-uniform-eff
-;;;                         (lambda (x)
-;;;                           (eff-bind random-uniform-eff
-;;;                                     (lambda (y)
-;;;                                       (eff-return (if (<= (+ (* x x) (* y y)) 1) 1 0)))))))
-;;;             (lambda (hits)
-;;;               (eff-return (* 4.0 (/ (fold-left + 0 hits) 1000))))))
-;;; ; => approximately 3.14
-

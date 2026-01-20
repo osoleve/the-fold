@@ -1,31 +1,18 @@
-;;; lattice/fp/clp/label.ss — Labeling Strategies for CLP(FD)
-;;;
-;;; Implements variable ordering and value selection strategies
-;;; for the search phase of constraint solving.
-;;;
-;;; Variable Ordering Strategies:
-;;;   - input-order: Select first unbound variable
-;;;   - first-fail: Select variable with smallest domain
-;;;   - most-constrained: Smallest domain / largest degree
-;;;
-;;; Value Selection Strategies:
-;;;   - min-value: Select minimum value in domain
-;;;   - max-value: Select maximum value in domain
-;;;   - mid-value: Select middle value
-;;;
-;;; Dependencies:
-;;;   - propagate.ss
-;;;   - stream.ss (for solution enumeration)
-
 (load "lattice/fp/clp/propagate.ss")
 
-;;; ====
-;;; Variable Ordering Strategies
-;;; ====
+(doc 'module 'label)
+(doc 'description "Labeling Strategies for CLP(FD)")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
+(doc 'note "Implements variable ordering and value selection strategies for the search phase of constraint solving")
+(doc 'exports "input-order, first-fail, most-constrained, max-regret, min-value, max-value, mid-value, label, label-with, label-all, label-first, label-count")
+(doc 'dependencies "propagate.ss, stream.ss (for solution enumeration)")
 
-;;; input-order : CStore × (List LVar) → (Maybe LVar)
-;;; Select the first unbound (non-singleton domain) variable.
+(doc 'section 'variable-ordering-strategies)
+
 (define (input-order cs vars)
+  (doc 'type '(-> CStore (List LVar) (Maybe LVar)))
+  (doc 'description "Select the first unbound (non-singleton domain) variable")
   (let loop ([vars vars])
        (cond
         [(null? vars) #f]
@@ -38,9 +25,9 @@
                 var]
                [else (loop (cdr vars))]))])))
 
-;;; first-fail : CStore × (List LVar) → (Maybe LVar)
-;;; Select the variable with smallest domain (fail first).
 (define (first-fail cs vars)
+  (doc 'type '(-> CStore (List LVar) (Maybe LVar)))
+  (doc 'description "Select the variable with smallest domain (fail first)")
   (let loop ([vars vars] [best #f] [best-size +inf.0])
        (if (null? vars)
            best
@@ -60,10 +47,10 @@
                             (loop (cdr vars) var size)
                             (loop (cdr vars) best best-size)))])))))
 
-;;; most-constrained : CStore × (List LVar) → (Maybe LVar)
-;;; Select variable with smallest domain-to-constraint ratio (dom/deg).
-;;; Uses number of constraints as tie-breaker for first-fail.
 (define (most-constrained cs vars)
+  (doc 'type '(-> CStore (List LVar) (Maybe LVar)))
+  (doc 'description "Select variable with smallest domain-to-constraint ratio (dom/deg)")
+  (doc 'note "Uses number of constraints as tie-breaker for first-fail")
   (let loop ([vars vars] [best #f] [best-score +inf.0])
        (if (null? vars)
            best
@@ -83,9 +70,9 @@
                              (loop (cdr vars) var score)
                              (loop (cdr vars) best best-score)))])))))
 
-;;; max-regret : CStore × (List LVar) → (Maybe LVar)
-;;; Select variable with largest difference between two smallest values.
 (define (max-regret cs vars)
+  (doc 'type '(-> CStore (List LVar) (Maybe LVar)))
+  (doc 'description "Select variable with largest difference between two smallest values")
   (let loop ([vars vars] [best #f] [best-regret -1])
        (if (null? vars)
            best
@@ -105,23 +92,21 @@
                              (loop (cdr vars) var regret)
                              (loop (cdr vars) best best-regret)))])))))
 
-;;; ====
-;;; Value Selection Strategies
-;;; ====
+(doc 'section 'value-selection-strategies)
 
-;;; min-value : Domain → Int
-;;; Select minimum value from domain.
 (define (min-value dom)
+  (doc 'type '(-> Domain Int))
+  (doc 'description "Select minimum value from domain")
   (domain-min dom))
 
-;;; max-value : Domain → Int
-;;; Select maximum value from domain.
 (define (max-value dom)
+  (doc 'type '(-> Domain Int))
+  (doc 'description "Select maximum value from domain")
   (domain-max dom))
 
-;;; mid-value : Domain → Int
-;;; Select middle value from domain.
 (define (mid-value dom)
+  (doc 'type '(-> Domain Int))
+  (doc 'description "Select middle value from domain")
   (let* ([lo (domain-min dom)]
          [hi (domain-max dom)]
          [mid (quotient (+ lo hi) 2)])
@@ -134,19 +119,17 @@
                   [(domain-contains? dom (- mid offset)) (- mid offset)]
                   [else (loop (+ offset 1))])))))
 
-;;; ====
-;;; Labeling Functions
-;;; ====
+(doc 'section 'labeling-functions)
 
-;;; label : CStore × (List LVar) → (Stream CStore)
-;;; Label variables using default strategy (first-fail, min-value).
 (define (label cs vars)
+  (doc 'type '(-> CStore (List LVar) (Stream CStore)))
+  (doc 'description "Label variables using default strategy (first-fail, min-value)")
   (label-with first-fail min-value cs vars))
 
-;;; label-with : VarOrder × ValSelect × CStore × (List LVar) → (Stream CStore)
-;;; Label variables with custom strategies.
-;;; Returns a stream of all solutions.
 (define (label-with var-order val-select cs vars)
+  (doc 'type '(-> VarOrder ValSelect CStore (List LVar) (Stream CStore)))
+  (doc 'description "Label variables with custom strategies")
+  (doc 'returns "Stream of all solutions")
   (let ([var (var-order cs vars)])
        (if (not var)
            ;; All variables labeled - this is a solution
@@ -157,10 +140,9 @@
                     stream-nil  ; No valid values - fail
                     (label-values var-order val-select cs vars var dom))))))
 
-;;; label-values : VarOrder × ValSelect × CStore × (List LVar) × LVar × Domain
-;;;                → (Stream CStore)
-;;; Try each value in domain for the selected variable.
 (define (label-values var-order val-select cs vars var dom)
+  (doc 'type '(-> VarOrder ValSelect CStore (List LVar) LVar Domain (Stream CStore)))
+  (doc 'description "Try each value in domain for the selected variable")
   (if (domain-empty? dom)
       stream-nil
       (let* ([val (val-select dom)]
@@ -174,65 +156,63 @@
              (lambda ()
                      (label-values var-order val-select cs vars var remaining-dom))))))
 
-;;; try-value : CStore × LVar × Int → (Maybe CStore)
-;;; Try assigning a value to a variable and propagate.
 (define (try-value cs var val)
+  (doc 'type '(-> CStore LVar Int (Maybe CStore)))
+  (doc 'description "Try assigning a value to a variable and propagate")
   (let ([cs1 (cstore-set-domain cs var (domain-singleton val))])
        (and cs1 (propagate cs1))))
 
-;;; ====
-;;; Convenience Labeling
-;;; ====
+(doc 'section 'convenience-labeling)
 
-;;; label-all : CStore × (List LVar) → (List CStore)
-;;; Get all solutions as a list (may be expensive for large search spaces).
 (define (label-all cs vars)
+  (doc 'type '(-> CStore (List LVar) (List CStore)))
+  (doc 'description "Get all solutions as a list (may be expensive for large search spaces)")
+  (doc 'note "Default limit of 1000 solutions")
   (label-all-with-limit cs vars 1000))
 
-;;; label-all-with-limit : CStore × (List LVar) × Nat → (List CStore)
-;;; Get up to n solutions.
 (define (label-all-with-limit cs vars limit)
+  (doc 'type '(-> CStore (List LVar) Nat (List CStore)))
+  (doc 'description "Get up to n solutions")
   (stream->list-limit (label cs vars) limit))
 
-;;; stream->list-limit : Stream × Nat → List
-;;; Convert stream to list with limit.
 (define (stream->list-limit stream limit)
+  (doc 'type '(-> Stream Nat List))
+  (doc 'description "Convert stream to list with limit")
   (if (or (<= limit 0) (stream-nil? stream))
       '()
       (cons (stream-head stream)
             (stream->list-limit (stream-tail stream) (- limit 1)))))
 
-;;; label-first : CStore × (List LVar) → (Maybe CStore)
-;;; Get first solution or #f if none.
 (define (label-first cs vars)
+  (doc 'type '(-> CStore (List LVar) (Maybe CStore)))
+  (doc 'description "Get first solution or #f if none")
   (let ([solutions (label cs vars)])
        (if (stream-nil? solutions)
            #f
            (stream-head solutions))))
 
-;;; label-count : CStore × (List LVar) → Nat
-;;; Count solutions (with limit to prevent infinite counting).
 (define (label-count cs vars)
+  (doc 'type '(-> CStore (List LVar) Nat))
+  (doc 'description "Count solutions (with limit of 10000 to prevent infinite counting)")
   (label-count-with-limit cs vars 10000))
 
-;;; label-count-with-limit : CStore × (List LVar) × Nat → Nat
 (define (label-count-with-limit cs vars limit)
+  (doc 'type '(-> CStore (List LVar) Nat Nat))
+  (doc 'description "Count solutions up to specified limit")
   (let loop ([stream (label cs vars)] [count 0])
        (if (or (>= count limit) (stream-nil? stream))
            count
            (loop (stream-tail stream) (+ count 1)))))
 
-;;; ====
-;;; Strategy Constructors
-;;; ====
+(doc 'section 'strategy-constructors)
 
-;;; make-labeling-strategy : VarOrder × ValSelect → (CStore × (List LVar) → (Stream CStore))
-;;; Create a labeling function from component strategies.
 (define (make-labeling-strategy var-order val-select)
+  (doc 'type '(-> VarOrder ValSelect (-> CStore (List LVar) (Stream CStore))))
+  (doc 'description "Create a labeling function from component strategies")
   (lambda (cs vars)
           (label-with var-order val-select cs vars)))
 
-;;; Common strategies
+(doc 'note "Common pre-defined labeling strategies")
 (define label-ff-min (make-labeling-strategy first-fail min-value))
 (define label-ff-max (make-labeling-strategy first-fail max-value))
 (define label-mc-min (make-labeling-strategy most-constrained min-value))

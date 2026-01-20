@@ -1,107 +1,79 @@
-;;; fabric/stitches/fp/state.ss — State Monad
-;;;
-;;; The State monad threads state through a computation without explicit
-;;; passing. It enables pure, composable stateful computations.
-;;;
-;;; State s a = s -> (a, s)
-;;;
-;;; A State computation takes an initial state and returns a value
-;;; along with a (possibly modified) state.
-;;;
-;;; This is Core code: pure, total, assumes reasonable input.
-;;;
-;;; Features:
-;;;   - Core State operations (run-state, get, put, modify)
-;;;   - Monad operations (state-pure, state-bind, state-map)
-;;;   - Convenience (eval-state, exec-state)
-;;;   - State combinators (gets, state-sequence, state-map-m)
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;   - fp/combinators.ss
-
 (load "core/base/prelude.ss")
 (load "lattice/fp/meta/combinators.ss")
 
-;;; ====
-;;; State Representation
-;;; ====
-;;;
-;;; State s a is represented as a tagged function:
-;;;   ('state . (s -> (a . s)))
-;;;
-;;; The function takes a state and returns a pair of (value . new-state).
+(doc 'module 'state)
+(doc 'description "The State monad threads state through a computation without explicit passing, enabling pure composable stateful computations.")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
+(doc 'type "State s a = s -> (a, s)")
+(doc 'note "A State computation takes an initial state and returns a value along with a possibly modified state")
 
-;;; make-state : (s -> (a . s)) -> State s a
-;;; Create a State computation from a function.
+(doc 'section 'state-representation)
+(doc 'note "State s a is represented as a tagged function: ('state . (s -> (a . s)))")
+
 (define (make-state run-fn)
+  (doc 'type '(-> (-> s (Pair a s)) (State s a)))
+  (doc 'description "Create a State computation from a function")
   (cons 'state run-fn))
 
-;;; state? : Any -> Boolean
 (define (state? x)
+  (doc 'type '(-> Any Boolean))
   (and (pair? x) (eq? (car x) 'state)))
 
-;;; state-fn : State s a -> (s -> (a . s))
-;;; Extract the underlying function.
 (define (state-fn st)
+  (doc 'type '(-> (State s a) (-> s (Pair a s))))
+  (doc 'description "Extract the underlying function")
   (cdr st))
 
-;;; ====
-;;; Running State Computations
-;;; ====
+(doc 'section 'running-state)
 
-;;; run-state : State s a -> s -> (a . s)
-;;; Run a State computation with an initial state.
-;;; Returns a pair of (result . final-state).
 (define (run-state st initial-state)
+  (doc 'type '(-> (State s a) s (Pair a s)))
+  (doc 'description "Run a State computation with an initial state, returns (result . final-state)")
   ((state-fn st) initial-state))
 
-;;; eval-state : State s a -> s -> a
-;;; Run a State computation and return only the result.
 (define (eval-state st initial-state)
+  (doc 'type '(-> (State s a) s a))
+  (doc 'description "Run a State computation and return only the result")
   (car (run-state st initial-state)))
 
-;;; exec-state : State s a -> s -> s
-;;; Run a State computation and return only the final state.
 (define (exec-state st initial-state)
+  (doc 'type '(-> (State s a) s s))
+  (doc 'description "Run a State computation and return only the final state")
   (cdr (run-state st initial-state)))
 
-;;; ====
-;;; Core State Operations
-;;; ====
+(doc 'section 'core-state-operations)
 
-;;; get : State s s
-;;; Get the current state.
 (define state-get
   (make-state (lambda (s) (cons s s))))
+(doc state-get 'type '(State s s))
+(doc state-get 'description "Get the current state")
 
-;;; put : s -> State s ()
-;;; Replace the current state.
 (define (state-put new-state)
+  (doc 'type '(-> s (State s ())))
+  (doc 'description "Replace the current state")
   (make-state (lambda (s) (cons '() new-state))))
 
-;;; modify : (s -> s) -> State s ()
-;;; Modify the state using a function.
 (define (state-modify f)
+  (doc 'type '(-> (-> s s) (State s ())))
+  (doc 'description "Modify the state using a function")
   (make-state (lambda (s) (cons '() (f s)))))
 
-;;; gets : (s -> a) -> State s a
-;;; Get a value derived from the current state.
 (define (state-gets f)
+  (doc 'type '(-> (-> s a) (State s a)))
+  (doc 'description "Get a value derived from the current state")
   (make-state (lambda (s) (cons (f s) s))))
 
-;;; ====
-;;; Monad Operations
-;;; ====
+(doc 'section 'monad-operations)
 
-;;; state-pure : a -> State s a
-;;; Lift a value into State (return/pure).
 (define (state-pure x)
+  (doc 'type '(-> a (State s a)))
+  (doc 'description "Lift a value into State (return/pure)")
   (make-state (lambda (s) (cons x s))))
 
-;;; state-bind : State s a -> (a -> State s b) -> State s b
-;;; Sequence two State computations (>>=).
 (define (state-bind st f)
+  (doc 'type '(-> (State s a) (-> a (State s b)) (State s b)))
+  (doc 'description "Sequence two State computations (>>=)")
   (make-state
    (lambda (s)
            (let* ([result (run-state st s)]
@@ -109,32 +81,30 @@
                   [s2 (cdr result)])
                  (run-state (f a) s2)))))
 
-;;; state-then : State s a -> State s b -> State s b
-;;; Sequence two State computations, discarding the first result (>>).
 (define (state-then st1 st2)
+  (doc 'type '(-> (State s a) (State s b) (State s b)))
+  (doc 'description "Sequence two State computations, discarding the first result (>>)")
   (state-bind st1 (lambda (_) st2)))
 
-;;; state-map : (a -> b) -> State s a -> State s b
-;;; Map a function over the result of a State computation.
 (define (state-map f st)
+  (doc 'type '(-> (-> a b) (State s a) (State s b)))
+  (doc 'description "Map a function over the result of a State computation")
   (state-bind st (lambda (a) (state-pure (f a)))))
 
-;;; state-ap : State s (a -> b) -> State s a -> State s b
-;;; Apply a State-wrapped function to a State-wrapped value.
 (define (state-ap st-f st-a)
+  (doc 'type '(-> (State s (-> a b)) (State s a) (State s b)))
+  (doc 'description "Apply a State-wrapped function to a State-wrapped value")
   (state-bind st-f
               (lambda (f)
                       (state-bind st-a
                                   (lambda (a)
                                           (state-pure (f a)))))))
 
-;;; ====
-;;; State Combinators
-;;; ====
+(doc 'section 'state-combinators)
 
-;;; state-sequence : (List (State s a)) -> State s (List a)
-;;; Sequence a list of State computations, collecting results.
 (define (state-sequence states)
+  (doc 'type '(-> (List (State s a)) (State s (List a))))
+  (doc 'description "Sequence a list of State computations, collecting results")
   (if (null? states)
       (state-pure '())
       (state-bind (car states)
@@ -143,73 +113,62 @@
                                       (lambda (xs)
                                               (state-pure (cons x xs))))))))
 
-;;; state-map-m : (a -> State s b) -> (List a) -> State s (List b)
-;;; Map a State-returning function over a list.
 (define (state-map-m f lst)
+  (doc 'type '(-> (-> a (State s b)) (List a) (State s (List b))))
+  (doc 'description "Map a State-returning function over a list")
   (state-sequence (map f lst)))
 
-;;; state-for-each : (List a) -> (a -> State s ()) -> State s ()
-;;; Execute a State action for each element (for side effects).
 (define (state-for-each lst f)
+  (doc 'type '(-> (List a) (-> a (State s ())) (State s ())))
+  (doc 'description "Execute a State action for each element (for side effects)")
   (if (null? lst)
       (state-pure '())
       (state-then (f (car lst))
                   (state-for-each (cdr lst) f))))
 
-;;; state-when : Boolean -> State s () -> State s ()
-;;; Execute State action only when condition is true.
 (define (state-when condition action)
+  (doc 'type '(-> Boolean (State s ()) (State s ())))
+  (doc 'description "Execute State action only when condition is true")
   (if condition
       action
       (state-pure '())))
 
-;;; state-unless : Boolean -> State s () -> State s ()
-;;; Execute State action only when condition is false.
 (define (state-unless condition action)
+  (doc 'type '(-> Boolean (State s ()) (State s ())))
+  (doc 'description "Execute State action only when condition is false")
   (state-when (not condition) action))
 
-;;; ====
-;;; State with Lenses
-;;; ====
-;;;
-;;; These combinators work with lenses from fp/lens.ss
-;;; to focus on parts of the state.
+(doc 'section 'state-with-lenses)
+(doc 'note "These combinators work with lenses from fp/lens.ss to focus on parts of the state")
 
-;;; state-view : Lens s a -> State s a
-;;; View a part of the state through a lens.
-;;; Requires: (load "lattice/fp/optics/lens.ss")
 (define (state-view lens)
+  (doc 'type '(-> (Lens s a) (State s a)))
+  (doc 'description "View a part of the state through a lens - requires fp/optics/lens.ss")
   (state-gets (lambda (s) (view lens s))))
 
-;;; state-set : Lens s a -> a -> State s ()
-;;; Set a part of the state through a lens.
-;;; Requires: (load "lattice/fp/optics/lens.ss")
 (define (state-set lens val)
+  (doc 'type '(-> (Lens s a) a (State s ())))
+  (doc 'description "Set a part of the state through a lens - requires fp/optics/lens.ss")
   (state-modify (lambda (s) (set lens val s))))
 
-;;; state-over : Lens s a -> (a -> a) -> State s ()
-;;; Modify a part of the state through a lens.
-;;; Requires: (load "lattice/fp/optics/lens.ss")
 (define (state-over lens f)
+  (doc 'type '(-> (Lens s a) (-> a a) (State s ())))
+  (doc 'description "Modify a part of the state through a lens - requires fp/optics/lens.ss")
   (state-modify (lambda (s) (over lens f s))))
 
-;;; ====
-;;; Labeled State (Named State Monad)
-;;; ====
-;;;
-;;; For computations with multiple named state components,
-;;; use an alist as state with key-lens from lens.ss.
+(doc 'section 'labeled-state)
+(doc 'note "For computations with multiple named state components, use an alist as state with key-lens from lens.ss")
 
-;;; state-get-key : k -> State (Alist k v) (Maybe v)
-;;; Get a value by key from an alist state.
 (define (state-get-key key)
+  (doc 'type '(-> k (State (Alist k v) (Maybe v))))
+  (doc 'description "Get a value by key from an alist state")
   (state-gets (lambda (alist)
                       (let ([pair (assoc key alist)])
                            (if pair (just (cdr pair)) nothing)))))
 
-;;; state-put-key : k -> v -> State (Alist k v) ()
-;;; Set a value by key in an alist state.
 (define (state-put-key key val)
+  (doc 'type '(-> k v (State (Alist k v) ())))
+  (doc 'description "Set a value by key in an alist state")
   (state-modify (lambda (alist)
                         (let ([new-pair (cons key val)])
                              (let loop ([lst alist] [acc '()])
@@ -219,9 +178,9 @@
                                     (append (reverse acc) (cons new-pair (cdr lst)))]
                                    [else (loop (cdr lst) (cons (car lst) acc))]))))))
 
-;;; state-modify-key : k -> (v -> v) -> v -> State (Alist k v) ()
-;;; Modify a value by key, using default if key doesn't exist.
 (define (state-modify-key key f default)
+  (doc 'type '(-> k (-> v v) v (State (Alist k v) ())))
+  (doc 'description "Modify a value by key, using default if key doesn't exist")
   (state-bind (state-get-key key)
               (lambda (maybe-val)
                       (let ([val (if (just? maybe-val)
@@ -229,46 +188,42 @@
                                      default)])
                            (state-put-key key (f val))))))
 
-;;; ====
-;;; Counter State (Common Pattern)
-;;; ====
+(doc 'section 'counter-state)
+(doc 'note "Common pattern for counter state")
 
-;;; state-inc : State Nat Nat
-;;; Increment counter state, return old value.
 (define state-inc
   (state-bind state-get
               (lambda (n)
                       (state-then (state-put (+ n 1))
                                   (state-pure n)))))
+(doc state-inc 'type '(State Nat Nat))
+(doc state-inc 'description "Increment counter state, return old value")
 
-;;; state-dec : State Nat Nat
-;;; Decrement counter state, return old value.
 (define state-dec
   (state-bind state-get
               (lambda (n)
                       (state-then (state-put (- n 1))
                                   (state-pure n)))))
+(doc state-dec 'type '(State Nat Nat))
+(doc state-dec 'description "Decrement counter state, return old value")
 
-;;; state-add : Nat -> State Nat ()
-;;; Add to counter state.
 (define (state-add n)
+  (doc 'type '(-> Nat (State Nat ())))
+  (doc 'description "Add to counter state")
   (state-modify (lambda (x) (+ x n))))
 
-;;; fresh : State Nat Nat
-;;; Generate a fresh unique number.
 (define fresh state-inc)
+(doc fresh 'type '(State Nat Nat))
+(doc fresh 'description "Generate a fresh unique number")
 
-;;; ====
-;;; Stack State (Common Pattern)
-;;; ====
+(doc 'section 'stack-state)
+(doc 'note "Common pattern for stack state")
 
-;;; state-push : a -> State (List a) ()
-;;; Push a value onto a stack state.
 (define (state-push x)
+  (doc 'type '(-> a (State (List a) ())))
+  (doc 'description "Push a value onto a stack state")
   (state-modify (lambda (stack) (cons x stack))))
 
-;;; state-pop : State (List a) (Maybe a)
-;;; Pop a value from a stack state.
 (define state-pop
   (state-bind state-get
               (lambda (stack)
@@ -276,110 +231,52 @@
                           (state-pure nothing)
                           (state-then (state-put (cdr stack))
                                       (state-pure (just (car stack))))))))
+(doc state-pop 'type '(State (List a) (Maybe a)))
+(doc state-pop 'description "Pop a value from a stack state")
 
-;;; state-peek : State (List a) (Maybe a)
-;;; Peek at the top of a stack state.
 (define state-peek
   (state-gets (lambda (stack)
                       (if (null? stack)
                           nothing
                           (just (car stack))))))
+(doc state-peek 'type '(State (List a) (Maybe a)))
+(doc state-peek 'description "Peek at the top of a stack state")
 
-;;; ====
-;;; Accumulator State (Common Pattern - O(1) Writer Pattern)
-;;; ====
-;;;
-;;; Performance note: This implementation uses cons-based accumulation
-;;; for O(1) single-element appends, but requires O(N) reversal when
-;;; reading the final result. For write-heavy workloads, this is much
-;;; faster than repeated O(N) appends.
-;;;
-;;; The accumulated list is stored in reverse order internally.
-;;; Use `state-get-log` to retrieve in correct order.
+(doc 'section 'accumulator-state)
+(doc 'note "Common pattern - O(1) Writer Pattern")
+(doc 'note "Uses cons-based accumulation for O(1) single-element appends")
+(doc 'note "Requires O(N) reversal when reading final result")
+(doc 'note "For write-heavy workloads this is much faster than repeated O(N) appends")
+(doc 'note "The accumulated list is stored in reverse order internally - use state-get-log to retrieve in correct order")
 
-;;; state-tell : a -> State (List a) ()
-;;; Append a value to an accumulator (like Writer).
-;;; O(1) operation using cons-based accumulation.
 (define (state-tell x)
+  (doc 'type '(-> a (State (List a) ())))
+  (doc 'description "Append a value to an accumulator (like Writer) - O(1) operation using cons-based accumulation")
   (state-modify (lambda (acc) (cons x acc))))
 
-;;; state-tell-all : (List a) -> State (List a) ()
-;;; Append all values to an accumulator.
-;;; O(N) where N is length of xs.
 (define (state-tell-all xs)
+  (doc 'type '(-> (List a) (State (List a) ())))
+  (doc 'description "Append all values to an accumulator - O(N) where N is length of xs")
   (state-modify (lambda (acc)
-                        ;; Add xs in reverse order to maintain final order after reversal
                         (let loop ([remaining xs] [result acc])
                              (if (null? remaining)
                                  result
                                  (loop (cdr remaining) (cons (car remaining) result)))))))
 
-;;; state-listen : State (List a) (List a)
-;;; Get the current accumulator in correct order.
-;;; O(N) reversal to restore order.
 (define state-listen
   (state-bind state-get
               (lambda (acc) (state-pure (reverse acc)))))
+(doc state-listen 'type '(State (List a) (List a)))
+(doc state-listen 'description "Get the current accumulator in correct order - O(N) reversal to restore order")
 
-;;; state-get-log : State (List a) (List a)
-;;; Alias for state-listen - get accumulator in correct order.
 (define state-get-log state-listen)
+(doc state-get-log 'type '(State (List a) (List a)))
+(doc state-get-log 'description "Alias for state-listen - get accumulator in correct order")
 
-;;; state-clear : State (List a) (List a)
-;;; Clear the accumulator, returning old value in correct order.
-;;; O(N) reversal to restore order.
 (define state-clear
   (state-bind state-get
               (lambda (acc)
                       (state-then (state-put '())
                                   (state-pure (reverse acc))))))
-
-;;; ====
-;;; do-notation Simulation
-;;; ====
-;;;
-;;; Since we don't have macros, we use explicit bind chains.
-;;; The pattern is:
-;;;
-;;; (state-bind action1
-;;;             (lambda (x)
-;;;                     (state-bind action2
-;;;                                 (lambda (y)
-;;;                                         (state-pure (f x y))))))
-;;;
-;;; Or using state-let* helper:
-
-;;; state-let* helper not possible without macros, but we can
-;;; use nested lambdas as shown above.
-
-;;; ====
-;;; Example Usage (for documentation)
-;;; ====
-;;;
-;;; ;; Simple counter
-;;; (define count-to-3
-;;;   (state-bind fresh
-;;;               (lambda (a)
-;;;                       (state-bind fresh
-;;;                                   (lambda (b)
-;;;                                           (state-bind fresh
-;;;                                                       (lambda (c)
-;;;                                                               (state-pure (list a b c)))))))))
-;;; (eval-state count-to-3 0)  ; => (0 1 2)
-;;; (exec-state count-to-3 0)  ; => 3
-;;;
-;;; ;; Stack operations
-;;; (define stack-ops
-;;;   (state-then (state-push 1)
-;;;               (state-then (state-push 2)
-;;;                           (state-then (state-push 3)
-;;;                                       state-pop))))
-;;; (run-state stack-ops '())  ; => ((just . 3) . (2 1))
-;;;
-;;; ;; Accumulator (Writer pattern)
-;;; (define log-ops
-;;;   (state-then (state-tell "started")
-;;;               (state-then (state-tell "working")
-;;;                           (state-then (state-tell "done")
-;;;                                       state-listen))))
-;;; (eval-state log-ops '())  ; => ("started" "working" "done")
+(doc state-clear 'type '(State (List a) (List a)))
+(doc state-clear 'description "Clear the accumulator, returning old value in correct order - O(N) reversal to restore order")
