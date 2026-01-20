@@ -1,22 +1,9 @@
-;;; lattice/meta/xref.ss — Cross-Reference Tracking
-;;;
-;;; Track function call relationships for impact analysis.
-;;; Enables "what calls this?" and "what does this call?" queries.
-;;;
-;;; This is Lattice code: impure (reads files), used during indexing.
-;;;
-;;; Usage:
-;;;   (build-xref-cache!)               ; Build call graph from sources
-;;;   (xref-callers 'symbol)            ; What functions call this?
-;;;   (xref-callees 'symbol)            ; What does this function call?
-;;;   (lxu 'symbol)                     ; Quick "lattice xref uses"
-;;;   (lxc 'symbol)                     ; Quick "lattice xref calls"
-;;;
-;;; Dependencies: lattice/meta/source-loc.ss (for definition locations)
+(doc 'module 'xref)
+(doc 'description "Cross-reference tracking for function call relationships and impact analysis")
+(doc 'layer 'lattice)
+(doc 'purity 'partial)
 
-;;; ====
-;;; State
-;;; ====
+(doc 'section 'state)
 
 ;;; Call graph indices
 ;;; callers: symbol -> (list of symbols that call it)

@@ -1,21 +1,10 @@
-;;; lattice/meta/cache-migration.ss — Bidirectional Cache Format Migrations
-;;;
-;;; Enables smooth upgrades of the lattice cache format without forcing
-;;; full rebuilds. When the cache format changes, migrations automatically
-;;; transform old cache data to the new format.
-;;;
-;;; Key insight: The cache contains structured data (alists, lists) that
-;;; can be transformed using the same schema migration primitives we use
-;;; for block payloads.
-;;;
-;;; This is Lattice code: pure transformations on cache S-expressions.
-;;;
-;;; Dependencies:
-;;;   lattice/fp/optics/bidirectional.ss
-;;;   lattice/fp/optics/schema.ss
-
 (load "lattice/fp/optics/bidirectional.ss")
 (load "lattice/fp/optics/schema.ss")
+
+(doc 'module 'cache-migration)
+(doc 'description "Bidirectional cache format migrations for smooth upgrades")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
 
 ;;; ============================================================
 ;;; Part 1: Cache Migration Registry

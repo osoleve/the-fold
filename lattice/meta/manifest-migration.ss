@@ -1,23 +1,10 @@
-;;; lattice/meta/manifest-migration.ss — Bidirectional Manifest Schema Migrations
-;;;
-;;; Enables smooth evolution of the manifest.sexp schema across the lattice.
-;;; When the manifest schema changes, migrations automatically transform
-;;; old manifests to the new format on read.
-;;;
-;;; Use cases:
-;;;   - Add required fields with defaults
-;;;   - Rename fields (e.g., 'deps' -> 'dependencies')
-;;;   - Restructure nested data (e.g., flatten exports)
-;;;   - Transform values (e.g., string tiers to integers)
-;;;
-;;; This is Lattice code: pure transformations on manifest S-expressions.
-;;;
-;;; Dependencies:
-;;;   lattice/fp/optics/bidirectional.ss
-;;;   lattice/fp/optics/schema.ss
-
 (load "lattice/fp/optics/bidirectional.ss")
 (load "lattice/fp/optics/schema.ss")
+
+(doc 'module 'manifest-migration)
+(doc 'description "Bidirectional manifest schema migrations for smooth evolution")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
 
 ;;; ============================================================
 ;;; Part 1: Manifest Version Detection

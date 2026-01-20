@@ -1,20 +1,9 @@
-;;; lattice/meta/audit.ss — Manifest Audit Tool
-;;;
-;;; Detects gaps between source code definitions and manifest exports.
-;;; Helps maintain manifest accuracy by finding:
-;;; - Functions defined in source but missing from exports
-;;; - Files in skill directories not listed in manifest modules
-;;;
-;;; Usage:
-;;;   (audit-skill 'fp)              ; Audit single skill
-;;;   (audit-skill-pretty 'fp)       ; Pretty-print audit
-;;;   (audit-file "path/to/file.ss") ; Audit single file
-;;;   (suggest-exports 'fp)          ; Generate exports for missing
-;;;
+(doc 'module 'audit)
+(doc 'description "Manifest audit tool - detects gaps between source code definitions and manifest exports")
+(doc 'layer 'lattice)
+(doc 'purity 'partial)
 
-;;; ====
-;;; Source File Analysis
-;;; ====
+(doc 'section 'source-file-analysis)
 
 ;;; read-file-as-string : Path -> String
 (define (read-file-as-string filepath)

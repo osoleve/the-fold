@@ -1,19 +1,9 @@
-;;; lattice/meta/manifest-optics.ss — Optics for Manifest Navigation
-;;;
-;;; Provides composable optics for accessing nested manifest structures.
-;;; Replaces the common `(cdr (or (assq 'key alist) '(key . default)))` pattern.
-;;;
-;;; This is Lattice code: pure, uses fp/optics primitives.
-;;;
-;;; Usage:
-;;;   (^. manifest (manifest-field 'version))        ; Get version
-;;;   (^? manifest (manifest-field 'fuel-bound))     ; Get optional field
-;;;   (& manifest (.~ (manifest-field 'tier) 2))     ; Set tier
-;;;
-;;; Dependencies:
-;;;   lattice/fp/optics/optics.ss
-
 (load "lattice/fp/optics/optics.ss")
+
+(doc 'module 'manifest-optics)
+(doc 'description "Composable optics for accessing nested manifest structures")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
 
 ;;; ============================================================
 ;;; Part 1: Alist Optics
@@ -267,10 +257,13 @@
 ;;; REPL Interface
 ;;; ============================================================
 
-(meta-printf "manifest-optics.ss loaded.\n")
-(meta-printf "  (alist-affine 'key)              - Affine for alist key\n")
-(meta-printf "  (manifest-field 'field)          - Affine for manifest field\n")
-(meta-printf "  (manifest-get manifest 'field)   - Get field with default\n")
-(meta-printf "  (manifest-set manifest 'k v)     - Set field\n")
-(meta-printf "  mf-version, mf-tier, etc.        - Pre-built field optics\n")
-(meta-printf "  exports-each, modules-each       - Collection traversals\n")
+;; REPL help (suppressed if *meta-quiet* is set)
+(when (not (and (top-level-bound? '*meta-quiet*)
+                (top-level-value '*meta-quiet*)))
+  (display "manifest-optics.ss loaded.\n")
+  (display "  (alist-affine 'key)              - Affine for alist key\n")
+  (display "  (manifest-field 'field)          - Affine for manifest field\n")
+  (display "  (manifest-get manifest 'field)   - Get field with default\n")
+  (display "  (manifest-set manifest 'k v)     - Set field\n")
+  (display "  mf-version, mf-tier, etc.        - Pre-built field optics\n")
+  (display "  exports-each, modules-each       - Collection traversals\n"))

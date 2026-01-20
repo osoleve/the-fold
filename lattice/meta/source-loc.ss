@@ -1,20 +1,9 @@
-;;; lattice/meta/source-loc.ss — Source Location Tracking
-;;;
-;;; Track file paths and line numbers for symbol definitions.
-;;; Enables jump-to-definition workflows and better error messages.
-;;;
-;;; This is Lattice code: impure (reads files), used during indexing.
-;;;
-;;; Usage:
-;;;   (build-source-location-cache!)      ; Build cache from sources
-;;;   (get-source-location 'symbol)       ; Get (file . line) or #f
-;;;   (format-source-location 'symbol)    ; Get "file:line" string
-;;;
-;;; Dependencies: None (standalone module)
+(doc 'module 'source-loc)
+(doc 'description "Source location tracking for jump-to-definition workflows")
+(doc 'layer 'lattice)
+(doc 'purity 'partial)
 
-;;; ====
-;;; State
-;;; ====
+(doc 'section 'state)
 
 ;;; Global source location cache: symbol -> (file . line)
 (define *source-locations* (make-hashtable symbol-hash eq?))

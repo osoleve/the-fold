@@ -1,24 +1,10 @@
-;;; lattice/meta/persist.ss — Lattice Index Persistence
-;;;
-;;; Saves and loads the knowledge graph and search indices to avoid
-;;; rebuilding on every session. Uses a manifest fingerprint for
-;;; cache invalidation.
-;;;
-;;; This is Lattice code: impure (file I/O).
-;;;
-;;; Usage:
-;;;   (lattice-cache-path)           ; Get cache file path
-;;;   (lattice-save-cache!)          ; Save current state to cache
-;;;   (lattice-load-cache!)          ; Load from cache if valid
-;;;   (lattice-cache-valid?)         ; Check if cache is usable
-;;;   (lattice-manifest-fingerprint) ; Compute current fingerprint
-;;;
-;;; Dependencies:
-;;;   core/base/prelude.ss
-;;;   core/base/sha256.ss
-
 (load "core/base/prelude.ss")
 (load "core/base/sha256.ss")
+
+(doc 'module 'persist)
+(doc 'description "Lattice index persistence with manifest fingerprint cache invalidation")
+(doc 'layer 'lattice)
+(doc 'purity 'partial)
 
 ;;; ====
 ;;; Cache Configuration

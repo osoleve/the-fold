@@ -1,23 +1,10 @@
-;;; lattice/meta/inspect.ss — Skill Introspection
-;;;
-;;; Detailed inspection of skills, modules, and exports.
-;;; Provides structured information for agent consumption.
-;;;
-;;; This is Lattice code: pure (mostly), uses Core primitives.
-;;;
-;;; Usage:
-;;;   (lattice-describe 'skill)         ; Full skill description
-;;;   (lattice-exports 'skill)          ; List all exports
-;;;   (lattice-modules 'skill)          ; List all modules
-;;;   (lattice-signature 'export)       ; Type signature (if available)
-;;;
-;;; Dependencies:
-;;;   lattice/meta/kg.ss
-;;;   lattice/meta/dag.ss
-;;;   boundary/io/process.ss (for test execution)
-
 (load "lattice/meta/dag.ss")
 (load "boundary/io/process.ss")
+
+(doc 'module 'inspect)
+(doc 'description "Skill introspection providing detailed information for agent consumption")
+(doc 'layer 'lattice)
+(doc 'purity 'partial)
 
 ;;; ====
 ;;; Skill Description

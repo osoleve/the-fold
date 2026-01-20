@@ -1,28 +1,12 @@
-;;; lattice/meta/kg.ss — Lattice Knowledge Graph Builder
-;;;
-;;; Builds a CAS-backed knowledge graph from lattice manifest files.
-;;; Skills, modules, and exports become entities linked by typed relations.
-;;;
-;;; This is Lattice code: pure, uses Core primitives.
-;;;
-;;; Usage:
-;;;   (kg-build!)                    ; Build KG from all manifests
-;;;   (kg-persist! fs root-hash)     ; Persist to store
-;;;   (kg-load fs)                   ; Load from store
-;;;   (kg-skills)                    ; List all skills
-;;;   (kg-skill 'linalg)             ; Get skill entity
-;;;   (kg-modules 'linalg)           ; Get modules for skill
-;;;   (kg-deps 'linalg)              ; Get dependencies
-;;;
-;;; Dependencies:
-;;;   core/base/prelude.ss
-;;;   core/blocks/block.ss
-;;;   lattice/meta/manifest.ss (pure manifest parsing)
-
 (load "core/base/prelude.ss")
 (load "core/base/sha256.ss")
 (load "core/blocks/block.ss")
 (load "lattice/meta/manifest.ss")
+
+(doc 'module 'kg)
+(doc 'description "Lattice knowledge graph builder from manifest files")
+(doc 'layer 'lattice)
+(doc 'purity 'partial)
 
 ;;; ====
 ;;; Quiet Load Mode

@@ -1,28 +1,15 @@
-;;; lattice/meta/analytics.ss — Lattice Analytics
-;;;
-;;; Statistics, health checks, and coverage analysis for the skill lattice.
-;;;
-;;; This is Lattice code: pure (mostly), uses Core primitives.
-;;;
-;;; Usage:
-;;;   (lattice-stats)       ; Overall statistics
-;;;   (lattice-health)      ; Health check report
-;;;   (lattice-coverage)    ; Coverage analysis
-;;;   (lattice-complexity)  ; Complexity metrics
-;;;
-;;; Dependencies:
-;;;   lattice/meta/kg.ss
-;;;   lattice/meta/dag.ss
-
 (load "lattice/meta/dag.ss")
 
-;;; ====
-;;; Overall Statistics
-;;; ====
+(doc 'module 'analytics)
+(doc 'description "Statistics, health checks, and coverage analysis for the skill lattice")
+(doc 'layer 'lattice)
+(doc 'purity 'partial)
 
-;;; lattice-stats : -> Alist
-;;; Get overall lattice statistics
+(doc 'section 'overall-statistics)
+
 (define (lattice-stats)
+  (doc 'type "-> Alist")
+  (doc 'description "Get overall lattice statistics")
   (let* ([skills (kg-skills)]
          [num-skills (length skills)]
          [num-modules (fold-left (lambda (acc s) (+ acc (length (kg-modules s)))) 0 skills)]
@@ -43,8 +30,8 @@
           (max-depth . ,max-depth)
           (avg-deps . ,(exact->inexact avg-deps)))))
 
-;;; lattice-stats-pretty : -> void
-;;; Print statistics in a nice format
+(doc 'type "-> Void")
+(doc 'description "Print statistics in a nice format")
 (define (lattice-stats-pretty)
   (if (not (kg-initialized?))
       (begin
@@ -62,17 +49,16 @@
            (printf "  Max Depth:    ~a\n" (cdr (assq 'max-depth stats)))
            (printf "  Avg Deps:     ~a\n" (round-to (cdr (assq 'avg-deps stats)) 2)))))
 
-;;; round-to : Number Int -> Number
+(doc 'type "Number -> Int -> Number")
+(doc 'description "Round number to specified decimal places")
 (define (round-to n places)
   (let ([factor (expt 10 places)])
        (/ (round (* n factor)) factor)))
 
-;;; ====
-;;; Health Checks
-;;; ====
+(doc 'section 'health-checks)
 
-;;; lattice-health : -> HealthReport
-;;; Run health checks on the lattice
+(doc 'type "-> HealthReport")
+(doc 'description "Run health checks on the lattice")
 (define (lattice-health)
   (let* ([issues '()]
          [warnings '()]

@@ -1,27 +1,9 @@
-;;; lattice/meta/docs.ss — S-expression Doc Form Extraction
-;;;
-;;; Extract (doc ...) forms from source files for search and inspection.
-;;; Unlike ;;; comments (which are stripped by reader), doc forms are
-;;; first-class S-expressions that survive in source.
-;;;
-;;; Syntax:
-;;;   (doc 'tag content...)        ; contextual - belongs to enclosing def
-;;;   (doc target 'tag content...) ; targeted - names what it documents
-;;;
-;;; Standard tags: 'type, 'description, 'param, 'returns, 'todo, 'fixme,
-;;;                'deprecated, 'since, 'see, 'note
-;;;
-;;; Usage:
-;;;   (lf-docs 'todo)              ; Find all todos
-;;;   (lf-docs 'type)              ; Find all type annotations
-;;;   (docs-for 'add)              ; Find docs for specific target
-;;;   (doc-stats)                  ; Summary counts by tag
-;;;
-;;; This is Lattice code: impure (reads files), used during indexing.
+(doc 'module 'docs)
+(doc 'description "S-expression doc form extraction for search and inspection")
+(doc 'layer 'lattice)
+(doc 'purity 'partial)
 
-;;; ====
-;;; Dependencies
-;;; ====
+(doc 'section 'dependencies)
 
 ;; Respect existing *meta-quiet* if set, otherwise default to #f
 (define *docs-quiet*

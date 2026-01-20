@@ -1,18 +1,9 @@
-;;; lattice/meta/type-search.ss — Type-Aware Search
-;;;
-;;; Adds type-aware filtering to the lattice search.
-;;; Uses the existing BM25 search and filters results by type signature.
-;;;
-;;; Usage:
-;;;   (lf-type "Monad")           ; Search exports mentioning Monad in type
-;;;   (lf-input "Matrix")         ; Functions that take Matrix as input
-;;;   (lf-output "Maybe")         ; Functions that return Maybe
-;;;
-;;; Requires lattice/meta/search.ss to be loaded first.
+(doc 'module 'type-search)
+(doc 'description "Type-aware search with filtering by type signatures")
+(doc 'layer 'lattice)
+(doc 'purity 'partial)
 
-;;; ====
-;;; Type Signature Utilities
-;;; ====
+(doc 'section 'type-signature-utilities)
 
 ;;; has-type-sig? : String -> Bool
 ;;; Check if a docstring contains a type signature (has : and ->)
