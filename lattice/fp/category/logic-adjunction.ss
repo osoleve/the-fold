@@ -306,15 +306,20 @@
 
 ;;; make-subst-functor : (I → J) × Type → Functor
 ;;; Create the substitution functor f* for a given f : I → J.
+;;;
+;;; For objects: f*(P) at i = P at f(i)  (see subst-family)
+;;; For morphisms: given h : P → Q in Fam(J), produce f*h : f*P → f*Q
+;;;                where (f*h)_i = h_{f(i)}
 (define (make-subst-functor f i-type)
   (make-named-functor
    (string->symbol (format "~a*" f))
-   ;; fmap for families: given h : P → Q in Fam(J), produce f*h : f*P → f*Q
-   ;; At the term level, this is just composition
-   (lambda (h fam-i)
-     ;; h is a family morphism, fam-i is already substituted
-     ;; For now, treat h as a function and compose
-     (lambda (i) (h ((caddr fam-i) i))))))
+   ;; fmap: transform family morphisms
+   ;; h : P → Q is a function mapping types in family P to types in family Q
+   ;; f*h : f*P → f*Q maps types at index i by applying h at index f(i)
+   (lambda (h fam-over-j)
+     ;; Return a properly wrapped family over I
+     (make-family i-type
+                  (lambda (i) (h (family-at fam-over-j (f i))))))))
 
 ;;; ====
 ;;; Sigma (Existential) as Left Adjoint to Substitution

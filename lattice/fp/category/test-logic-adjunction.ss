@@ -225,6 +225,25 @@
       (family-at fam-vec 2)
       (family-at fam-vec-doubled 1))
 
+;; Substitution functor
+(define subst-double (make-subst-functor (lambda (n) (* n 2)) 'Nat))
+
+(test-true "make-subst-functor creates functor"
+           (functor? subst-double))
+
+;; Test fmap: transform a family morphism
+;; h wraps types in a list
+(define (type-wrapper t) (list 'Wrapped t))
+(define transformed-fam
+  ((functor-fmap subst-double) type-wrapper fam-vec))
+
+(test-true "subst-functor fmap returns family"
+           (family? transformed-fam))
+
+(test "subst-functor fmap applies h at f(i)"
+      '(Wrapped (× A (Vec 1)))
+      (family-at transformed-fam 1))  ; h(fam-vec(2)) since f(1)=2
+
 ;;; ====
 ;;; Test: Sigma and Pi Types
 ;;; ====

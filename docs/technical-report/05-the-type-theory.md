@@ -808,6 +808,81 @@ Examples of Galois connections:
 - Interior ⊣ Closure (topology)
 - Abstraction ⊣ Concretization (abstract interpretation)
 
+#### 5.12.6 Logic as Adjunctions
+
+Lawvere's insight (1969): logical connectives arise naturally from adjunctions. The Fold implements this via `logic-adjunction.ss`:
+
+**The Diagonal Adjunction Chain**: + ⊣ Δ ⊣ ×
+
+The diagonal functor Δ : C → C×C sends A to (A, A). It has:
+- **Right adjoint ×** (product): conjunction ∧
+- **Left adjoint +** (coproduct): disjunction ∨
+
+```scheme
+;; Diagonal: A → (A, A)
+(diagonal-obj 5)  ; → (5 . 5)
+
+;; Unit for Δ ⊣ ×: the diagonal embedding A → A×A
+(unit-diagonal-product 5)  ; → (5 . 5)
+
+;; Counit for + ⊣ Δ: the codiagonal A+A → A
+(counit-coproduct-diagonal (make-left 5))   ; → 5
+(counit-coproduct-diagonal (make-right 7))  ; → 7
+```
+
+**Curry-Howard Correspondence**: These adjunctions yield the logical connectives:
+
+| Category | Logic | Type Theory |
+|----------|-------|-------------|
+| Product × | Conjunction ∧ | Pair types (A, B) |
+| Coproduct + | Disjunction ∨ | Sum types A + B |
+| Right adjoint (×) | Universal quantifier ∀ | Pi types Π |
+| Left adjoint (+) | Existential quantifier ∃ | Sigma types Σ |
+
+```scheme
+;; Conjunction introduction/elimination
+(conj-intro 'a 'b)          ; → (a . b)
+(conj-elim-left (conj-intro 'a 'b))   ; → a
+
+;; Disjunction with case analysis
+(disj-elim (disj-intro-left 5)
+           (lambda (x) (* x 2))
+           (lambda (x) (+ x 100)))  ; → 10
+
+;; Existential: witness + proof
+(exists-intro 5 "proof")  ; → (5 . "proof")
+(exists-elim (exists-intro 5 "p")
+             (lambda (w p) (* w 2)))  ; → 10
+```
+
+**Quantifiers as Adjoints to Substitution**: For dependent types, given f : I → J:
+- Substitution f* : Fam(J) → Fam(I) (reindexing)
+- Σ_f ⊣ f* (existential, left adjoint)
+- f* ⊣ Π_f (universal, right adjoint)
+
+```scheme
+;; A family: Vec indexed by Nat
+(define fam-vec
+  (make-family 'Nat
+    (lambda (n) (if (= n 0) 'Unit (list '× 'A (list 'Vec (- n 1)))))))
+
+;; Substitution along f(n) = 2n
+(define fam-doubled (subst-family (lambda (n) (* n 2)) fam-vec 'Nat))
+(family-at fam-doubled 1)  ; = fam-vec at 2
+```
+
+Logical laws become type isomorphisms, verified computationally:
+
+```scheme
+;; Distributivity: A ∧ (B ∨ C) ≅ (A ∧ B) ∨ (A ∧ C)
+(define (distrib a-and-bc)
+  (let ([a (conj-elim-left a-and-bc)]
+        [bc (conj-elim-right a-and-bc)])
+    (disj-elim bc
+      (lambda (b) (disj-intro-left (conj-intro a b)))
+      (lambda (c) (disj-intro-right (conj-intro a c))))))
+```
+
 ### 5.13 Comonads
 
 A **comonad** is the categorical dual of a monad. Where monads encode effects and sequencing, comonads encode contexts and decomposition. A comonad W on a category C consists of:
