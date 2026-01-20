@@ -285,6 +285,8 @@ The category module provides first-class categorical structures that unify and e
 
 - **Adjunctions** (`adjunction.ss`): Pairs of functors F ⊣ G with unit and counit satisfying triangle identities. Includes transpose operations (curry/uncurry via the hom-set bijection), adjunction composition, and the free monoid adjunction `adj-free-list`.
 
+- **Free Algebras** (`free-algebra.ss`): Generalized Free ⊣ Forgetful adjunction for arbitrary algebraic signatures. Define a signature (operations with arities + equational laws), create algebras implementing it, and automatically derive the adjunction. Pre-built signatures include Magma, Semigroup, Monoid, and Group. Also provides algebra validation and algebra homomorphisms (structure-preserving maps with composition).
+
 - **Monad Derivation** (`monad-derivation.ss`): Every adjunction F ⊣ G yields a monad G∘F via `monad-from-adjunction`. Derives return from the unit η and join from G(ε). The List monad is derived automatically from `adj-free-list`. Includes monad law verification.
 
 - **Comonads** (`comonad.ss`): Full comonad type class with Store, Env, and Traced comonads. `comonad-from-adjunction` derives comonads from adjunctions (F∘G). Comonad composition requires a **distributive law** δ : W₂(W₁(a)) → W₁(W₂(a)) satisfying coherence conditions—`compose-comonads-with-dist` implements this correctly with position-aware extraction via the `copeek` abstraction.
