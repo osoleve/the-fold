@@ -1,89 +1,50 @@
-;;; lattice/query/optic-query.ss — Optic-Based Query Language
-;;;
-;;; Build declarative queries using optics as the path language.
-;;; Optics encode "how to reach" data; this module adds:
-;;;   - Predicate filtering at optic foci
-;;;   - Projection of specific fields
-;;;   - Aggregation over query results
-;;;
-;;; DESIGN PRINCIPLES:
-;;;   - Optics define the path through data structures
-;;;   - Predicates filter which targets to keep
-;;;   - Projectors transform results
-;;;   - Composable: build complex queries from simple parts
-;;;
-;;; CORE API:
-;;;
-;;;   (oquery s optic)              ; Get all targets via optic
-;;;   (oquery-where s optic pred)   ; Filter targets by predicate
-;;;   (oquery-select s optic proj)  ; Project targets
-;;;   (oquery-pipe s optic pred proj) ; Filter then project
-;;;
-;;; COMBINATORS (for composition):
-;;;
-;;;   (optic-where optic pred)      ; Filtered traversal
-;;;   (optic-select optic proj)     ; Projected getter
-;;;   (optic-having optic inner-optic pred)  ; Filter by nested value
-;;;
-;;; AGGREGATIONS:
-;;;
-;;;   (oquery-count s optic pred)   ; Count matching targets
-;;;   (oquery-sum s optic pred)     ; Sum numeric targets
-;;;   (oquery-any s optic pred)     ; Any target matches?
-;;;   (oquery-all s optic pred)     ; All targets match?
-;;;
-;;; EXAMPLE:
-;;;
-;;;   ;; Find all bodies with positive y-velocity, return their positions
-;;;   (oquery-pipe world
-;;;     (>>> world-bodies-trav)
-;;;     (lambda (b) (> (^. b body-vel-y) 0))
-;;;     (lambda (b) (^. b body-pos)))
-;;;
-;;;   ;; Using combinators for reusable queries
-;;;   (define fast-bodies
-;;;     (optic-where bodies-trav
-;;;       (lambda (b) (> (body-speed b) 100))))
-;;;
-;;;   (^.. world (>>> world-bodies fast-bodies))
-;;;
-;;; Dependencies:
-;;;   - lattice/fp/optics/optics.ss (optic tower)
-
 (load "lattice/fp/optics/optics.ss")
 
-;;; ============================================================
-;;; Part 1: Core Query Functions
-;;; ============================================================
+(doc 'module 'optic-query)
+(doc 'description "Optic-Based Query Language")
+(doc 'note "Build declarative queries using optics as the path language. Optics encode how to reach data; this module adds predicate filtering, projection, and aggregation.")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
 
-;;; oquery : s × Optic s a → (List a)
-;;; Get all targets reachable via optic.
-;;; This is essentially (^.. s optic) with a clearer query semantics.
+(doc 'section 'design-principles)
+(doc 'description "Optics define the path through data structures. Predicates filter which targets to keep. Projectors transform results. Composable: build complex queries from simple parts.")
+
+(doc 'section 'core-api)
+(doc 'description "oquery, oquery-where, oquery-select, oquery-pipe")
+
+(doc 'section 'combinators)
+(doc 'description "optic-where (filtered traversal), optic-select (projected getter), optic-having (filter by nested value)")
+
+(doc 'section 'aggregations)
+(doc 'description "oquery-count, oquery-sum, oquery-any, oquery-all")
+
+(doc 'section 'core-query-functions)
+
 (define (oquery s optic)
+  (doc 'type '(-> s (Optic s a) (List a)))
+  (doc 'description "Get all targets reachable via optic. Essentially (^.. s optic) with clearer query semantics.")
   (^.. s optic))
 
-;;; oquery-where : s × Optic s a × (a → Bool) → (List a)
-;;; Get targets matching a predicate.
 (define (oquery-where s optic pred)
+  (doc 'type '(-> s (Optic s a) (-> a Bool) (List a)))
+  (doc 'description "Get targets matching a predicate")
   (filter pred (^.. s optic)))
 
-;;; oquery-select : s × Optic s a × (a → b) → (List b)
-;;; Project all targets through a function.
 (define (oquery-select s optic proj)
+  (doc 'type '(-> s (Optic s a) (-> a b) (List b)))
+  (doc 'description "Project all targets through a function")
   (map proj (^.. s optic)))
 
-;;; oquery-pipe : s × Optic s a × (a → Bool) × (a → b) → (List b)
-;;; Filter then project: the most common query pattern.
 (define (oquery-pipe s optic pred proj)
+  (doc 'type '(-> s (Optic s a) (-> a Bool) (-> a b) (List b)))
+  (doc 'description "Filter then project: the most common query pattern")
   (map proj (filter pred (^.. s optic))))
 
-;;; oquery-first : s × Optic s a → Maybe a
-;;; Get first target if any exist.
 (define (oquery-first s optic)
+  (doc 'type '(-> s (Optic s a) (Maybe a)))
+  (doc 'description "Get first target if any exist")
   (^? s optic))
 
-;;; oquery-first-where : s × Optic s a × (a → Bool) → Maybe a
-;;; Get first target matching predicate.
 (define (oquery-first-where s optic pred)
   (let loop ([targets (^.. s optic)])
     (cond

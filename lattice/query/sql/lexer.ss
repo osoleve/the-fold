@@ -1,14 +1,10 @@
-;;; playpen/sql/lexer.ss — SQL Lexer (Token Parsers)
-;;;
-;;; Token parsers for SQL keywords, operators, and literals.
-;;; Uses the parser combinator library for case-insensitive keyword matching.
-;;;
-;;; Dependencies:
-;;;   - fabric/stitches/fp/parser.ss
-;;;   - fabric/stitches/fp/parser-dsl.ss
-
-;;; Load dependencies - assumes running from project root
 (define *sql-lexer-loaded* #t)
+
+(doc 'module 'sql-lexer)
+(doc 'description "SQL Lexer (Token Parsers)")
+(doc 'note "Token parsers for SQL keywords, operators, and literals. Uses the parser combinator library for case-insensitive keyword matching.")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
 
 ;;; Set up source directories for loading
 (let ([stitches-path (string-append (current-directory) "/fabric/stitches")])

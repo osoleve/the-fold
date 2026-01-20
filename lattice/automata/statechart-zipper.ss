@@ -1,37 +1,19 @@
-;;; lattice/automata/statechart-zipper.ss — Zipper for Statechart Navigation
-;;;
-;;; Provides efficient navigation and modification of statechart hierarchies
-;;; using tree-zipper. Key benefits over manual traversal:
-;;;   - O(1) parent navigation (vs O(n) find-state)
-;;;   - Free ancestor tracking from crumbs
-;;;   - Efficient LCA computation
-;;;   - Local modification without full tree rebuild
-;;;
-;;; This is Lattice code: pure, depends on core and fp/data.
-;;;
-;;; Dependencies:
-;;;   - core/base/prelude.ss
-;;;   - lattice/fp/meta/combinators.ss
-;;;   - lattice/fp/data/tree-zipper.ss
-
 (load "core/base/prelude.ss")
 (load "lattice/fp/meta/combinators.ss")
 (load "lattice/fp/data/tree-zipper.ss")
 
-;;; ====
-;;; State Tree Conversion
-;;; ====
-;;;
-;;; Statechart states form a rose tree where:
-;;;   - Node value = state record
-;;;   - Children = substates
-;;;
-;;; We convert to/from the tree-zipper's rose tree format.
+(doc 'module 'statechart-zipper)
+(doc 'description "Efficient navigation and modification of statechart hierarchies using tree-zipper")
+(doc 'benefits "O(1) parent navigation (vs O(n) find-state), free ancestor tracking from crumbs, efficient LCA computation, local modification without full tree rebuild")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
 
-;;; state->tree : State -> (Tree State)
-;;; Convert a state hierarchy to a rose tree for zipper navigation.
-;;; The tree value at each node is the full state record.
+(doc 'section 'state-tree-conversion)
+(doc 'description "Statechart states form a rose tree where node value = state record and children = substates. Convert to/from tree-zipper's rose tree format")
+
 (define (state->tree state)
+  (doc 'type '(-> State (Tree State)))
+  (doc 'description "Convert a state hierarchy to a rose tree for zipper navigation. The tree value at each node is the full state record")
   (let ([substates (state-substates state)])
     (make-tree state
                (map state->tree substates))))

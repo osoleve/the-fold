@@ -1,53 +1,39 @@
-;;; lattice/fp/category/adjunction.ss — Adjoint Functors
-;;;
-;;; An adjunction F ⊣ G consists of:
-;;;   - Left adjoint F : C → D
-;;;   - Right adjoint G : D → C
-;;;   - Unit η : Id_C ⟹ G∘F
-;;;   - Counit ε : F∘G ⟹ Id_D
-;;;
-;;; Triangle identities:
-;;;   (ε ◁ F) ∘ (F ▷ η) = id_F
-;;;   (G ▷ ε) ∘ (η ◁ G) = id_G
-;;;
-;;; See also:
-;;;   - free-algebra.ss: Generalized Free ⊣ Forgetful for arbitrary algebraic signatures
-;;;   - monad-derivation.ss: Derive monads from adjunctions
-
 (load "lattice/fp/category/natural-transform.ss")
 
-;;; ====
-;;; Adjunction Definition
-;;; ====
+(doc 'module 'adjunction)
+(doc 'description "Adjoint Functors - An adjunction F ⊣ G consists of left adjoint F : C → D, right adjoint G : D → C, unit η : Id_C ⟹ G∘F, and counit ε : F∘G ⟹ Id_D. Triangle identities: (ε ◁ F) ∘ (F ▷ η) = id_F and (G ▷ ε) ∘ (η ◁ G) = id_G.")
+(doc 'see-also '(free-algebra.ss monad-derivation.ss))
 
-;;; make-adjunction : Symbol × Functor × Functor × NatTransform × NatTransform → Adjunction
+(doc 'section 'adjunction-definition)
+
 (define (make-adjunction name left right unit counit)
+  (doc 'type '(-> Symbol Functor Functor NatTransform NatTransform Adjunction))
   (list 'adjunction name left right unit counit))
 
-;;; adjunction? : Any → Boolean
 (define (adjunction? x)
+  (doc 'type '(-> Any Boolean))
   (and (pair? x)
        (eq? (car x) 'adjunction)
        (= (length x) 6)))
 
-;;; adjunction-name : Adjunction → Symbol
 (define (adjunction-name adj)
+  (doc 'type '(-> Adjunction Symbol))
   (if (adjunction? adj) (cadr adj) 'unknown))
 
-;;; adjunction-left : Adjunction → Functor
 (define (adjunction-left adj)
+  (doc 'type '(-> Adjunction Functor))
   (if (adjunction? adj) (caddr adj) #f))
 
-;;; adjunction-right : Adjunction → Functor
 (define (adjunction-right adj)
+  (doc 'type '(-> Adjunction Functor))
   (if (adjunction? adj) (cadddr adj) #f))
 
-;;; adjunction-unit : Adjunction → NatTransform
 (define (adjunction-unit adj)
+  (doc 'type '(-> Adjunction NatTransform))
   (if (adjunction? adj) (car (cddddr adj)) #f))
 
-;;; adjunction-counit : Adjunction → NatTransform
 (define (adjunction-counit adj)
+  (doc 'type '(-> Adjunction NatTransform))
   (if (adjunction? adj) (cadr (cddddr adj)) #f))
 
 ;;; ====

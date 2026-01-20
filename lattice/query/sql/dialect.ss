@@ -1,18 +1,10 @@
-;;; playpen/sql/dialect.ss — SQL Dialect Translation
-;;;
-;;; Translates SQL AST between dialects:
-;;;   - ansi    : ANSI SQL (baseline)
-;;;   - mysql   : MySQL 8.x
-;;;   - pgsql   : PostgreSQL 15+
-;;;   - tsql    : T-SQL (SQL Server)
-;;;   - oracle  : Oracle 19c+
-;;;
-;;; Dependencies:
-;;;   - playpen/sql/types.ss
-;;;   - playpen/sql/format.ss
-
-;;; Load dependencies - assumes running from project root
 (define *sql-dialect-loaded* #t)
+
+(doc 'module 'sql-dialect)
+(doc 'description "SQL Dialect Translation")
+(doc 'note "Translates SQL AST between dialects: ansi (ANSI SQL baseline), mysql (MySQL 8.x), pgsql (PostgreSQL 15+), tsql (T-SQL SQL Server), oracle (Oracle 19c+)")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
 
 (unless (top-level-bound? '*sql-types-loaded*)
         (load "lattice/query/sql/types.ss"))

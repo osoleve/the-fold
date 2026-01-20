@@ -1,51 +1,12 @@
-;;; core/query/query-dsl.ss --- Datalog-style Declarative Query Language for The Fold
-;;;
-;;; A composable, declarative query DSL for querying blocks in the store.
-;;; Inspired by Datalog's pattern matching and relational algebra.
-;;;
-;;; DESIGN PRINCIPLES:
-;;;   - Declarative: Describe WHAT you want, not HOW to get it
-;;;   - Composable: Build complex queries from simple primitives
-;;;   - Extensible: Easy to add new query operators
-;;;   - Efficient: Leverage existing store-api operations
-;;;
-;;; QUERY LANGUAGE SYNTAX:
-;;;
-;;;   Pattern queries:
-;;;     (match (tag . symbol))           ; Match blocks by tag
-;;;     (match (payload-contains . str)) ; Match payload substring
-;;;     (match (payload-matches . pred)) ; Match payload by predicate
-;;;     (match (has-refs))               ; Match blocks with any refs
-;;;     (match (refs-count . n))         ; Match blocks with exactly n refs
-;;;
-;;;   Compound queries:
-;;;     (and query1 query2 ...)          ; All conditions must match
-;;;     (or query1 query2 ...)           ; Any condition matches
-;;;     (not query)                      ; Negation
-;;;
-;;;   Reference queries:
-;;;     (refs-to hash)                   ; Blocks that reference this hash
-;;;     (refs-from hash)                 ; Blocks referenced BY this hash
-;;;
-;;;   Projection queries:
-;;;     (select (field1 field2 ...)      ; Return only these fields
-;;;       (where query))                 ; From blocks matching query
-;;;
-;;;   Aggregation:
-;;;     (count query)                    ; Count matching blocks
-;;;     (group-by field query)           ; Group results by field
-;;;
-;;; USAGE:
-;;;   (query fs '(match (tag . entity)))
-;;;   (query fs '(and (tag . entity) (payload-contains . "Turing")))
-;;;   (query fs '(select (tag payload-size) (where (tag . entity))))
-;;;
-;;; TIER ASSIGNMENT:
-;;;   Tier 6-7: Query interpretation and execution (complex computation)
-;;;
-;;; Dependencies:
-;;;   - thimble/store-api.ss (store-filter, store-find-by-tag, etc.)
-;;;   - fabric/stitches/block.ss (block accessors)
+(doc 'module 'query-dsl)
+(doc 'description "Datalog-style Declarative Query Language for The Fold")
+(doc 'note "A composable, declarative query DSL for querying blocks in the store. Inspired by Datalog's pattern matching and relational algebra.")
+(doc 'layer 'lattice)
+(doc 'purity 'partial)
+(doc 'tier '6-7)
+
+(doc 'section 'design-principles)
+(doc 'description "Declarative: describe WHAT you want, not HOW to get it. Composable: build complex queries from simple primitives. Extensible: easy to add new query operators. Efficient: leverage existing store-api operations.")
 
 (doc 'section 'dependencies)
 (doc 'description "Assumes these are already loaded: store-api.ss (store-filter, store-all-blocks, store-find-by-tag, etc.) and block.ss (make-block, block-tag, block-payload, block-refs)")

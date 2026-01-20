@@ -1,25 +1,14 @@
-;;; lattice/numeric/polynomial.ss — Polynomial Algebra
-;;;
-;;; Polynomial representation and operations for control theory,
-;;; signal processing, and numerical analysis.
-;;;
-;;; Polynomials are represented with coefficients in descending power order:
-;;;   p(x) = a_n*x^n + a_{n-1}*x^{n-1} + ... + a_1*x + a_0
-;;;   stored as #(a_n a_{n-1} ... a_1 a_0)
-;;;
-;;; This is Core code: pure, total, assumes reasonable input.
-;;;
-;;; Dependencies:
-;;;   - core/base/prelude.ss
-;;;   - lattice/numeric/complex.ss
-;;;   - lattice/linalg/matrix.ss
-;;;   - lattice/linalg/matrix-eigen.ss
-
 (load "core/base/prelude.ss")
 (load "lattice/numeric/complex.ss")
 (load "lattice/linalg/matrix.ss")
 (load "lattice/linalg/matrix-decomp.ss")
 (load "lattice/linalg/matrix-eigen.ss")
+
+(doc 'module 'polynomial)
+(doc 'description "Polynomial representation and operations for control theory, signal processing, and numerical analysis")
+(doc 'note "Polynomials represented with coefficients in descending power order: p(x) = a_n*x^n + ... + a_0 stored as #(a_n ... a_0)")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
 
 ;;; ====
 ;;; Polynomial Representation

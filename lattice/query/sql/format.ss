@@ -1,13 +1,10 @@
-;;; playpen/sql/format.ss — SQL Pretty Printer
-;;;
-;;; Formats SQL AST back to readable SQL strings.
-;;; Supports configurable formatting options.
-;;;
-;;; Dependencies:
-;;;   - playpen/sql/types.ss
-
-;;; Load dependencies - assumes running from project root
 (define *sql-format-loaded* #t)
+
+(doc 'module 'sql-format)
+(doc 'description "SQL Pretty Printer")
+(doc 'note "Formats SQL AST back to readable SQL strings. Supports configurable formatting options.")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
 
 (unless (top-level-bound? '*sql-types-loaded*)
         (load "lattice/query/sql/types.ss"))

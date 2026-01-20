@@ -1,21 +1,11 @@
-;;; lattice/crypto/blake2b.ss — BLAKE2b implementation (RFC 7693)
-;;;
-;;; BLAKE2b is a cryptographic hash function faster than MD5, SHA-1, SHA-2,
-;;; and SHA-3, yet is at least as secure as SHA-3.
-;;;
-;;; Features:
-;;;   - Configurable output length (1-64 bytes)
-;;;   - Optional key for MAC mode (up to 64 bytes)
-;;;   - Optional salt and personalization
-;;;
-;;; blake2b : Bytevector [× Integer] → Bytevector
-;;; blake2b-keyed : Bytevector × Bytevector [× Integer] → Bytevector
-;;;
-;;; TIER: 0 (no lattice dependencies)
+(doc 'module 'blake2b)
+(doc 'description "BLAKE2b cryptographic hash function (RFC 7693) - faster than MD5, SHA-1, SHA-2, and SHA-3, yet at least as secure as SHA-3")
+(doc 'features "Configurable output length (1-64 bytes), optional key for MAC mode (up to 64 bytes), optional salt and personalization")
+(doc 'tier 0)
+(doc 'layer 'lattice)
+(doc 'purity 'total)
 
-;;; ============================================================
-;;; 64-bit Arithmetic
-;;; ============================================================
+(doc 'section '64-bit-arithmetic)
 
 (define u64-mask #xFFFFFFFFFFFFFFFF)
 
@@ -30,11 +20,9 @@
          (bitwise-arithmetic-shift-right x n)
          (bitwise-arithmetic-shift-left x (- 64 n)))))
 
-;;; ============================================================
-;;; BLAKE2b Constants
-;;; ============================================================
+(doc 'section 'blake2b-constants)
 
-;;; Initialization vector (same as SHA-512)
+(doc 'note "Initialization vector (same as SHA-512)")
 (define IV
   (vector #x6a09e667f3bcc908 #xbb67ae8584caa73b
           #x3c6ef372fe94f82b #xa54ff53a5f1d36f1
@@ -57,13 +45,11 @@
     (vector  0  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15)
     (vector 14 10  4  8  9 15 13  6  1 12  0  2 11  7  5  3)))
 
-;;; ============================================================
-;;; BLAKE2b Mixing Function G
-;;; ============================================================
+(doc 'section 'blake2b-mixing)
 
-;;; G : Vector × Integer × Integer × Integer × Integer × Integer × Integer → Void
-;;; The mixing function. Modifies v in place.
 (define (G v a b c d x y)
+  (doc 'type '(-> Vector Integer Integer Integer Integer Integer Integer Void))
+  (doc 'description "The mixing function. Modifies v in place")
   (let ([va (vector-ref v a)]
         [vb (vector-ref v b)]
         [vc (vector-ref v c)]
@@ -81,12 +67,10 @@
     (vector-set! v c vc)
     (vector-set! v d vd)))
 
-;;; ============================================================
-;;; BLAKE2b Compression Function
-;;; ============================================================
+(doc 'section 'blake2b-compression)
 
-;;; blake2b-compress : Vector × Bytevector × Integer × Integer × Boolean → Void
 (define (blake2b-compress h block offset t last)
+  (doc 'type '(-> Vector Bytevector Integer Integer Boolean Void))
   (let ([v (make-vector 16)])
     ;; v[0..7] = h[0..7]
     (do ([i 0 (+ i 1)]) ((= i 8))
@@ -120,11 +104,11 @@
                                        (bitwise-xor (vector-ref v i)
                                                     (vector-ref v (+ i 8)))))))))
 
-;;; ============================================================
-;;; Main Entry Points
-;;; ============================================================
+(doc 'section 'main-entry-points)
 
-;;; blake2b : Bytevector [× Integer] → Bytevector
+(doc blake2b 'type '(case-lambda
+                      ((Bytevector) Bytevector)
+                      ((Bytevector Integer) Bytevector)))
 (define blake2b
   (case-lambda
     [(msg) (blake2b-full msg #vu8() 64)]
@@ -185,11 +169,11 @@
     (bytevector-copy! bv2 0 result len1 len2)
     result))
 
-;;; ============================================================
-;;; Hex Convenience Functions
-;;; ============================================================
+(doc 'section 'hex-convenience)
 
-;;; blake2b-hex : Bytevector [× Integer] → String
+(doc blake2b-hex 'type '(case-lambda
+                          ((Bytevector) String)
+                          ((Bytevector Integer) String)))
 (define blake2b-hex
   (case-lambda
     [(msg) (hash->hex (blake2b msg))]

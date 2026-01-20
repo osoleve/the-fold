@@ -1,23 +1,12 @@
-;;; core/numeric/spectral-analysis.ss — Spectral Analysis Tools
-;;;
-;;; Spectral analysis tools for signal processing including:
-;;; - Short-Time Fourier Transform (STFT) and Spectrograms
-;;; - Power Spectral Density (PSD) estimation
-;;; - Welch's method for PSD estimation
-;;; - Periodogram analysis
-;;;
-;;; This is Core code: pure, total, assumes reasonable input.
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;   - complex.ss
-;;;   - dft.ss
-;;;   - window-functions.ss
-
 (load "core/base/prelude.ss")
 (load "lattice/numeric/complex.ss")
 (load "lattice/numeric/dft.ss")
 (load "lattice/numeric/window-functions.ss")
+
+(doc 'module 'spectral-analysis)
+(doc 'description "Spectral analysis tools: STFT, spectrograms, PSD estimation, Welch's method, periodogram analysis")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
 
 ;;; ====
 ;;; Short-Time Fourier Transform (STFT)

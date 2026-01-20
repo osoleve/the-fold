@@ -1,104 +1,93 @@
-;;; core/automata/statechart.ss --- Statechart DSL
-;;;
-;;; A hierarchical state machine (statechart) implementation following
-;;; Harel's statechart semantics with extensions for simulation.
-;;;
-;;; Features:
-;;;   - Hierarchical/nested states (composite states)
-;;;   - Parallel/orthogonal regions
-;;;   - Entry/exit actions
-;;;   - Guard conditions on transitions
-;;;   - Event-driven transitions with payloads
-;;;   - History states (shallow and deep)
-;;;   - DSL syntax for declarative definition
-;;;   - Statechart interpreter/executor
-;;;   - State validation and reachability analysis
-;;;
-;;; This is Core code: pure, total, assumes reasonable input.
-;;;
-;;; Dependencies:
-;;;   - core/base/prelude.ss
-;;;   - core/fp/meta/combinators.ss
-
 (load "core/base/prelude.ss")
 (load "lattice/fp/meta/combinators.ss")
 
-;;; ====
-;;; State Types and Constructors
-;;; ====
-;;;
-;;; States can be:
-;;;   - Atomic: simple states with no substates
-;;;   - Composite: contain other states (hierarchical)
-;;;   - Parallel: contain orthogonal regions (concurrent)
-;;;   - History: reference to previously active state
-;;;   - Initial: pseudo-state marking default entry
-;;;   - Final: terminal state
+(doc 'module 'statechart)
+(doc 'description "Hierarchical state machine (statechart) implementation following Harel's statechart semantics with extensions for simulation")
+(doc 'features "Hierarchical/nested states, parallel/orthogonal regions, entry/exit actions, guard conditions, event-driven transitions, history states, DSL syntax, interpreter/executor, validation and reachability analysis")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
 
-;;; --- State Record ---
-;;; A state is represented as:
-;;;   (state <id> <type> <entry-action> <exit-action> <substates> <transitions> <parent> <data>)
+(doc 'section 'state-types)
+(doc 'description "States can be: Atomic (simple), Composite (hierarchical), Parallel (concurrent), History (previous state reference), Initial (default entry), Final (terminal)")
 
-;;; make-state : Symbol × Symbol × (Option Action) × (Option Action) × (List State) × (List Transition) × (Option Symbol) × (List α) → State
+(doc 'note "State record: (state <id> <type> <entry-action> <exit-action> <substates> <transitions> <parent> <data>)")
+
 (define (make-state id type entry-action exit-action substates transitions parent data)
+  (doc 'type '(-> Symbol Symbol (Option Action) (Option Action) (List State) (List Transition) (Option Symbol) (List α) State))
   (list 'state id type entry-action exit-action substates transitions parent data))
 
-;;; state? : α → Boolean
 (define (state? x)
+  (doc 'type '(-> α Boolean))
   (and (list? x)
        (>= (length x) 9)
        (eq? (car x) 'state)))
 
-;;; state-id : State → Symbol
-(define (state-id s) (list-ref s 1))
-;;; state-type : State → Symbol
-(define (state-type s) (list-ref s 2))
-;;; state-entry-action : State → (Option Action)
-(define (state-entry-action s) (list-ref s 3))
-;;; state-exit-action : State → (Option Action)
-(define (state-exit-action s) (list-ref s 4))
-;;; state-substates : State → (List State)
-(define (state-substates s) (list-ref s 5))
-;;; state-transitions : State → (List Transition)
-(define (state-transitions s) (list-ref s 6))
-;;; state-parent : State → (Option Symbol)
-(define (state-parent s) (list-ref s 7))
-;;; state-data : State → (List α)
-(define (state-data s) (list-ref s 8))
+(define (state-id s)
+  (doc 'type '(-> State Symbol))
+  (list-ref s 1))
 
-;;; State type predicates
-;;; atomic-state? : α → Boolean
+(define (state-type s)
+  (doc 'type '(-> State Symbol))
+  (list-ref s 2))
+
+(define (state-entry-action s)
+  (doc 'type '(-> State (Option Action)))
+  (list-ref s 3))
+
+(define (state-exit-action s)
+  (doc 'type '(-> State (Option Action)))
+  (list-ref s 4))
+
+(define (state-substates s)
+  (doc 'type '(-> State (List State)))
+  (list-ref s 5))
+
+(define (state-transitions s)
+  (doc 'type '(-> State (List Transition)))
+  (list-ref s 6))
+
+(define (state-parent s)
+  (doc 'type '(-> State (Option Symbol)))
+  (list-ref s 7))
+
+(define (state-data s)
+  (doc 'type '(-> State (List α)))
+  (list-ref s 8))
+
+(doc 'section 'state-predicates)
+
 (define (atomic-state? s)
+  (doc 'type '(-> α Boolean))
   (and (state? s) (eq? (state-type s) 'atomic)))
 
-;;; composite-state? : α → Boolean
 (define (composite-state? s)
+  (doc 'type '(-> α Boolean))
   (and (state? s) (eq? (state-type s) 'composite)))
 
-;;; parallel-state? : α → Boolean
 (define (parallel-state? s)
+  (doc 'type '(-> α Boolean))
   (and (state? s) (eq? (state-type s) 'parallel)))
 
-;;; history-state? : α → Boolean
 (define (history-state? s)
+  (doc 'type '(-> α Boolean))
   (and (state? s)
        (or (eq? (state-type s) 'history-shallow)
            (eq? (state-type s) 'history-deep))))
 
-;;; shallow-history-state? : α → Boolean
 (define (shallow-history-state? s)
+  (doc 'type '(-> α Boolean))
   (and (state? s) (eq? (state-type s) 'history-shallow)))
 
-;;; deep-history-state? : α → Boolean
 (define (deep-history-state? s)
+  (doc 'type '(-> α Boolean))
   (and (state? s) (eq? (state-type s) 'history-deep)))
 
-;;; initial-state? : α → Boolean
 (define (initial-state? s)
+  (doc 'type '(-> α Boolean))
   (and (state? s) (eq? (state-type s) 'initial)))
 
-;;; final-state? : α → Boolean
 (define (final-state? s)
+  (doc 'type '(-> α Boolean))
   (and (state? s) (eq? (state-type s) 'final)))
 
 ;;; --- Simple State Constructors ---

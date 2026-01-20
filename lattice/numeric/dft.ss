@@ -1,18 +1,11 @@
-;;; fabric/stitches/dft.ss — Discrete Fourier Transform and Fast Fourier Transform
-;;;
-;;; Comprehensive DFT/FFT implementation for signal processing, spectral analysis,
-;;; and convolution operations.
-;;;
-;;; This is Core code: pure, total, assumes reasonable input.
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;   - complex.ss
-;;;   - vec.ss
-
 (load "core/base/prelude.ss")
 (load "lattice/numeric/complex.ss")
 (load "lattice/linalg/vec.ss")
+
+(doc 'module 'dft)
+(doc 'description "Comprehensive DFT/FFT implementation for signal processing, spectral analysis, and convolution operations")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
 
 ;;; ====
 ;;; Utilities

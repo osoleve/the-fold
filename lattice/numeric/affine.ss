@@ -1,78 +1,50 @@
-;;; lattice/numeric/affine.ss — Affine Arithmetic
-;;;
-;;; Affine forms for tighter bounds via correlation tracking.
-;;; Solves the "dependency problem" in interval arithmetic.
-;;;
-;;; Author: Claude Opus 4.5
-;;; Created: 2026-01-17
-;;;
-;;; An affine form represents a quantity as:
-;;;   x̂ = x₀ + x₁ε₁ + x₂ε₂ + ... + xₙεₙ
-;;;
-;;; where x₀ is the central value, xᵢ are partial deviations, and
-;;; εᵢ are noise symbols with values in [-1, 1].
-;;;
-;;; Key insight: When two affine forms share noise symbols (from the same
-;;; original variable), operations automatically account for correlations.
-;;;
-;;; Example of the dependency problem:
-;;;   Interval: x = [1,2], x - x = [1,2] - [1,2] = [-1, 1]  (WRONG!)
-;;;   Affine:   x̂ = 1.5 + 0.5ε₁, x̂ - x̂ = 0  (CORRECT!)
-;;;
-;;; Usage:
-;;;   (load "lattice/numeric/affine.ss")
-;;;   (define x (affine-from-interval (interval 1 2)))
-;;;   (affine-sub x x)  ; => affine form with zero deviation
-;;;   (affine->interval (affine-sub x x))  ; => [0, 0]
-
 (load "core/base/prelude.ss")
 (load "lattice/numeric/interval.ss")
 
-;;; ============================================================================
-;;; Noise Symbol Management
-;;; ============================================================================
-;;;
-;;; Each noise symbol ε_i represents an independent source of uncertainty.
-;;; We track them globally to ensure unique IDs.
+(doc 'module 'affine)
+(doc 'description "Affine forms for tighter bounds via correlation tracking. Solves the dependency problem in interval arithmetic.")
+(doc 'author "Claude Opus 4.5")
+(doc 'created "2026-01-17")
+(doc 'layer 'lattice)
+(doc 'purity 'partial)
+(doc 'note "An affine form represents a quantity as: x̂ = x₀ + x₁ε₁ + x₂ε₂ + ... + xₙεₙ where x₀ is the central value, xᵢ are partial deviations, and εᵢ are noise symbols with values in [-1, 1].")
+(doc 'note "Key insight: When two affine forms share noise symbols (from the same original variable), operations automatically account for correlations.")
+(doc 'example "Dependency problem: Interval: x = [1,2], x - x = [1,2] - [1,2] = [-1, 1] (WRONG!) Affine: x̂ = 1.5 + 0.5ε₁, x̂ - x̂ = 0 (CORRECT!)")
+
+(doc 'section 'noise-symbols)
+(doc 'note "Each noise symbol ε_i represents an independent source of uncertainty. We track them globally to ensure unique IDs.")
 
 (define *affine-next-noise-id* 0)
 
-;;; affine-fresh-noise-id! : → Nat
-;;; Generate a fresh noise symbol ID. IMPURE: modifies global state.
-;;; In pure contexts, use explicit noise ID threading.
 (define (affine-fresh-noise-id!)
+  (doc 'type '(-> Nat))
+  (doc 'description "Generate a fresh noise symbol ID")
+  (doc 'warning "IMPURE: modifies global state. In pure contexts, use explicit noise ID threading.")
   (let ([id *affine-next-noise-id*])
     (set! *affine-next-noise-id* (+ id 1))
     id))
 
-;;; affine-reset-noise-counter! : → Void
-;;; Reset noise counter. Useful for testing reproducibility.
 (define (affine-reset-noise-counter!)
+  (doc 'type '(-> Void))
+  (doc 'description "Reset noise counter. Useful for testing reproducibility.")
   (set! *affine-next-noise-id* 0))
 
-;;; ============================================================================
-;;; Affine Form Type
-;;; ============================================================================
-;;;
-;;; Representation: (affine x0 ((id1 . x1) (id2 . x2) ...))
-;;; - x0: central value (real number)
-;;; - terms: association list of (noise-id . coefficient) pairs
-;;;
-;;; Invariants:
-;;; - Noise IDs in terms are unique
-;;; - Terms are sorted by noise ID (for efficient merge)
-;;; - Zero coefficients are not stored
+(doc 'section 'affine-type)
+(doc 'note "Representation: (affine x0 ((id1 . x1) (id2 . x2) ...)) where x0 is central value (real number), terms is association list of (noise-id . coefficient) pairs")
+(doc 'invariant "Noise IDs in terms are unique")
+(doc 'invariant "Terms are sorted by noise ID for efficient merge")
+(doc 'invariant "Zero coefficients are not stored")
 
-;;; make-affine : Real × Alist → Affine
-;;; Create an affine form from center and terms.
-;;; Terms are (noise-id . coefficient) pairs.
 (define (make-affine x0 terms)
+  (doc 'type '(-> Real Alist Affine))
+  (doc 'description "Create an affine form from center and terms. Terms are (noise-id . coefficient) pairs.")
   ;; Filter out zero terms and sort by noise ID
   (let ([nonzero (filter (lambda (term) (not (zero? (cdr term)))) terms)])
     (list 'affine x0 (sort (lambda (a b) (< (car a) (car b))) nonzero))))
 
-;;; affine? : Any → Boolean
 (define (affine? x)
+  (doc 'type '(-> Any Boolean))
+  (doc 'description "Test if value is an affine form")
   (and (pair? x)
        (eq? (car x) 'affine)
        (= (length x) 3)))

@@ -1,14 +1,10 @@
-;;; playpen/sql/validate.ss — SQL Semantic Validation
-;;;
-;;; Validates SQL AST for semantic correctness.
-;;; Uses applicative validation to accumulate ALL errors.
-;;;
-;;; Dependencies:
-;;;   - playpen/sql/types.ss
-;;;   - fabric/stitches/fp/validation.ss
-
-;;; Load dependencies - assumes running from project root
 (define *sql-validate-loaded* #t)
+
+(doc 'module 'sql-validate)
+(doc 'description "SQL Semantic Validation")
+(doc 'note "Validates SQL AST for semantic correctness. Uses applicative validation to accumulate ALL errors.")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
 
 ;;; Set up source directories for loading
 (let ([stitches-path (string-append (current-directory) "/fabric/stitches")])

@@ -1,18 +1,11 @@
-;;; lattice/crypto/sha512.ss — SHA-512 implementation (FIPS 180-4)
-;;;
-;;; SHA-512 hash function producing 64-byte (512-bit) digests.
-;;;
-;;; sha512 : Bytevector → Bytevector (64 bytes)
-;;; sha512-hex : Bytevector → String
-;;;
-;;; Uses 64-bit arithmetic with explicit masking since Chez Scheme
-;;; fixnums are 61 bits. Follows FIPS 180-4 specification exactly.
-;;;
-;;; TIER: 0 (no lattice dependencies)
+(doc 'module 'sha512)
+(doc 'description "SHA-512 hash function producing 64-byte (512-bit) digests (FIPS 180-4)")
+(doc 'note "Uses 64-bit arithmetic with explicit masking since Chez Scheme fixnums are 61 bits. Follows FIPS 180-4 specification exactly")
+(doc 'tier 0)
+(doc 'layer 'lattice)
+(doc 'purity 'total)
 
-;;; ============================================================
-;;; 64-bit Arithmetic (mod 2^64)
-;;; ============================================================
+(doc 'section '64-bit-arithmetic)
 
 ;;; u64-mask : used for masking to 64 bits
 (define u64-mask #xFFFFFFFFFFFFFFFF)
@@ -39,12 +32,10 @@
 (define (shr64 x n)
   (bitwise-arithmetic-shift-right x n))
 
-;;; ============================================================
-;;; SHA-512 Functions
-;;; ============================================================
+(doc 'section 'sha512-functions)
 
-;;; Ch : Integer × Integer × Integer → Integer
 (define (Ch x y z)
+  (doc 'type '(-> Integer Integer Integer Integer))
   (bitwise-xor (bitwise-and x y)
                (bitwise-and (bitwise-not x) z)))
 
@@ -78,12 +69,9 @@
                     (bitwise-xor (rotr64 x 61)
                                  (shr64 x 6)))))
 
-;;; ============================================================
-;;; Constants
-;;; ============================================================
+(doc 'section 'constants)
 
-;;; Initial hash values (first 64 bits of fractional parts of
-;;; square roots of first 8 primes)
+(doc 'note "Initial hash values (first 64 bits of fractional parts of square roots of first 8 primes)")
 (define H-init-512
   (vector #x6a09e667f3bcc908 #xbb67ae8584caa73b
           #x3c6ef372fe94f82b #xa54ff53a5f1d36f1
@@ -115,14 +103,11 @@
     #x28db77f523047d84 #x32caab7b40c72493 #x3c9ebe0a15c9bebc #x431d67c49c100d4c
     #x4cc5d4becb3e42b6 #x597f299cfc657e2a #x5fcb6fab3ad6faec #x6c44198c4a475817))
 
-;;; ============================================================
-;;; Message Padding
-;;; ============================================================
+(doc 'section 'message-padding)
 
-;;; pad-message-512 : Bytevector → Bytevector
-;;; Pad to multiple of 128 bytes (1024 bits).
-;;; Append 1 bit, zeros, then 128-bit big-endian length.
 (define (pad-message-512 msg)
+  (doc 'type '(-> Bytevector Bytevector))
+  (doc 'description "Pad to multiple of 128 bytes (1024 bits). Append 1 bit, zeros, then 128-bit big-endian length")
   (let* ([len (bytevector-length msg)]
          [bit-len (* 8 len)]
          ;; Need at least 17 bytes: 1 for 0x80, 16 for length
@@ -202,13 +187,11 @@
                (u64+ (vector-ref H 6) g)
                (u64+ (vector-ref H 7) h))))
 
-;;; ============================================================
-;;; Main Entry Point
-;;; ============================================================
+(doc 'section 'main-entry-point)
 
-;;; sha512 : Bytevector → Bytevector
-;;; Compute SHA-512 hash (64 bytes).
 (define (sha512 msg)
+  (doc 'type '(-> Bytevector Bytevector))
+  (doc 'description "Compute SHA-512 hash (64 bytes)")
   (let* ([padded (pad-message-512 msg)]
          [num-blocks (quotient (bytevector-length padded) 128)]
          [H (vector-copy H-init-512)])
@@ -244,11 +227,9 @@
            (reverse acc)
            (loop (+ i 1) (cons i acc)))))
 
-;;; ============================================================
-;;; SHA-384 (truncated SHA-512)
-;;; ============================================================
+(doc 'section 'sha384)
 
-;;; SHA-384 uses SHA-512 with different initial values and truncates to 48 bytes
+(doc 'note "SHA-384 uses SHA-512 with different initial values and truncates to 48 bytes")
 (define H-init-384
   (vector #xcbbb9d5dc1059ed8 #x629a292a367cd507
           #x9159015a3070dd17 #x152fecd8f70e5939

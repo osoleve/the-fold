@@ -1,26 +1,13 @@
-;;; core/numeric/digital-filters.ss — Digital Filter Library
-;;;
-;;; Comprehensive digital filter implementations including:
-;;; - FIR filters (Finite Impulse Response)
-;;; - IIR filters (Infinite Impulse Response)
-;;; - Filter design tools (windowing, Butterworth, Chebyshev)
-;;; - Frequency response analysis
-;;; - Real-time filtering capabilities
-;;;
-;;; This is Core code: pure, total, assumes reasonable input.
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;   - complex.ss
-;;;   - dft.ss
-;;;   - convolution.ss
-;;;   - vec.ss
-
 (load "core/base/prelude.ss")
 (load "lattice/numeric/complex.ss")
 (load "lattice/numeric/dft.ss")
 (load "lattice/numeric/convolution.ss")
 (load "lattice/linalg/vec.ss")
+
+(doc 'module 'digital-filters)
+(doc 'description "Comprehensive digital filter library: FIR, IIR, Butterworth, Chebyshev, frequency response analysis, real-time filtering")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
 
 ;;; ====
 ;;; Window Functions

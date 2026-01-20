@@ -1,36 +1,20 @@
-;;; lattice/fp/control-systems/discrete-control.ss — Discrete Control Systems
-;;;
-;;; Discretization methods for converting continuous-time state-space
-;;; systems to discrete-time, plus discrete-time simulation.
-;;;
-;;; This is Core code: pure, total, assumes reasonable input.
-;;;
-;;; Dependencies:
-;;;   - core/base/prelude.ss
-;;;   - lattice/fp/control-systems/state-space.ss
-;;;   - lattice/linalg/matrix.ss
-;;;   - lattice/linalg/matrix-solvers.ss
-
 (load "core/base/prelude.ss")
 (load "lattice/linalg/matrix.ss")
 (load "lattice/linalg/matrix-solvers.ss")
 (load "lattice/linalg/matrix-eigen.ss")
 (load "lattice/fp/control-systems/state-space.ss")
 
-;;; ====
-;;; Discrete State Space Representation
-;;; ====
+(doc 'module 'discrete-control)
+(doc 'description "Discretization methods for converting continuous-time state-space systems to discrete-time, plus discrete-time simulation")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
 
-;;; A discrete state-space system uses the same (ss A B C D) structure
-;;; but with the interpretation:
-;;;   x[k+1] = A*x[k] + B*u[k]
-;;;   y[k]   = C*x[k] + D*u[k]
-;;;
-;;; We add metadata to distinguish discrete from continuous systems.
+(doc 'section 'discrete-state-space)
+(doc 'description "A discrete state-space system uses the same (ss A B C D) structure but with the interpretation: x[k+1] = A*x[k] + B*u[k], y[k] = C*x[k] + D*u[k]. We add metadata to distinguish discrete from continuous systems")
 
-;;; make-dss : Matrix × Matrix × Matrix × Matrix × Number → SS
-;;; Create a discrete-time state-space system with sample time Ts.
 (define (make-dss A B C D Ts)
+  (doc 'type '(-> Matrix Matrix Matrix Matrix Number (U SS Error)))
+  (doc 'description "Create a discrete-time state-space system with sample time Ts")
   (let ([result (make-ss A B C D)])
        (if (error-result? result)
            result

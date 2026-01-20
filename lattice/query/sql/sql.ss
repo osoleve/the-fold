@@ -1,23 +1,10 @@
-;;; playpen/sql/sql.ss — SQL DSL Public API
-;;;
-;;; High-level API for parsing, validating, and formatting SQL.
-;;; This module re-exports the essential functions from sub-modules.
-;;;
-;;; Usage:
-;;;   (load "lattice/query/sql/sql.ss")
-;;;   (parse-sql "SELECT * FROM users")
-;;;   (check-sql "SELECT name FROM users WHERE id = 1")
-;;;   (reformat-sql "select NAME from USERS" '((uppercase-keywords . #t)))
-;;;
-;;; Dependencies:
-;;;   - playpen/sql/types.ss
-;;;   - playpen/sql/lexer.ss
-;;;   - playpen/sql/parser.ss
-;;;   - playpen/sql/validate.ss
-;;;   - playpen/sql/format.ss
-
-;;; Load dependencies - assumes running from project root
 (define *sql-loaded* #t)
+
+(doc 'module 'sql)
+(doc 'description "SQL DSL Public API")
+(doc 'note "High-level API for parsing, validating, and formatting SQL. Re-exports essential functions from sub-modules.")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
 
 (unless (top-level-bound? '*sql-parser-loaded*)
         (load "lattice/query/sql/parser.ss"))

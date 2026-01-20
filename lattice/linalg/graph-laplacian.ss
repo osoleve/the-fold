@@ -1,86 +1,37 @@
-;;; core/linalg/graph-laplacian.ss — Graph Laplacian Matrices
-;;;
-;;; @module graph-laplacian
-;;; @requires prelude matrix matrix-eigen graph-matrix
-;;;
-;;; Laplacian matrices for spectral graph theory and analysis.
-;;;
-;;; Provides three types of Laplacian:
-;;;   - Unnormalized (combinatorial): L = D - A
-;;;   - Normalized symmetric: L_sym = I - D^(-1/2) A D^(-1/2)
-;;;   - Random walk: L_rw = I - D^(-1) A
-;;;
-;;; Key properties of the Laplacian:
-;;;   - L is positive semi-definite for undirected graphs
-;;;   - Smallest eigenvalue is always 0 (with eigenvector [1,1,...,1])
-;;;   - Number of zero eigenvalues = number of connected components
-;;;   - Second smallest eigenvalue (Fiedler value) = algebraic connectivity
-;;;
-;;; Applications:
-;;;   - Graph partitioning / spectral clustering
-;;;   - Community detection
-;;;   - Graph connectivity analysis
-;;;   - Random walk simulation
-;;;   - Network flow analysis
-;;;
-;;; This is Core code: pure, total, assumes reasonable input.
-;;;
-;;; Dependencies (loaded by client):
-;;;   - prelude.ss
-;;;   - matrix.ss
-;;;   - matrix-eigen.ss
-;;;   - graph-matrix.ss
+(doc 'module 'graph-laplacian)
+(doc 'description "Laplacian matrices for spectral graph theory and analysis")
+(doc 'requires '(prelude matrix matrix-eigen graph-matrix))
+(doc 'note "Provides three types of Laplacian:")
+(doc 'note "  - Unnormalized (combinatorial): L = D - A")
+(doc 'note "  - Normalized symmetric: L_sym = I - D^(-1/2) A D^(-1/2)")
+(doc 'note "  - Random walk: L_rw = I - D^(-1) A")
+(doc 'note "Key properties: L is PSD for undirected, smallest eigenvalue is 0")
+(doc 'note "Applications: spectral clustering, community detection, connectivity")
 
-;;; ====
-;;; Unnormalized (Combinatorial) Laplacian
-;;; ====
-
-;;; laplacian : (Matrix Real) → (Matrix Real)
-;;; L = D - A
-;;; Compute the unnormalized Laplacian matrix.
-;;;
-;;; Properties:
-;;;   - L[i,i] = degree(i)
-;;;   - L[i,j] = -A[i,j] for i ≠ j
-;;;   - Row sums and column sums are zero (for undirected)
-;;;   - Positive semi-definite
-;;;
-;;; Example:
-;;;   (laplacian (edges->adjacency-matrix '((0 1) (1 2) (2 0)) 3 #t))
-;;;   ; Returns 3x3 Laplacian for triangle graph
+(doc 'section 'unnormalized-laplacian)
 (define (laplacian adj)
+  (doc 'type '(-> Matrix Matrix))
+  (doc 'description "Compute unnormalized Laplacian: L = D - A")
+  (doc 'note "L[i,i] = degree(i), L[i,j] = -A[i,j] for i ≠ j")
   (let* ([d (degree-matrix adj)]
          [a (if (sparse-csr? adj)
                 (sparse-csr->dense adj)
                 adj)])
         (matrix-sub d a)))
 
-;;; laplacian-from-edges : (List Edge) × Nat → (Matrix Real)
-;;; Convenience function to create Laplacian directly from edge list.
-;;; Assumes undirected graph.
 (define (laplacian-from-edges edges . opts)
+  (doc 'type '(-> (List Edge) Nat Matrix))
+  (doc 'description "Create Laplacian directly from edge list (undirected)")
   (let ([n (if (null? opts) #f (car opts))])
        (laplacian (edges->adjacency-matrix edges n #t))))
 
-;;; ====
-;;; Normalized Symmetric Laplacian
-;;; ====
+(doc 'section 'normalized-laplacian)
 
-;;; laplacian-normalized : (Matrix Real) → (Matrix Real)
-;;; L_sym = I - D^(-1/2) A D^(-1/2)
-;;;       = D^(-1/2) L D^(-1/2)
-;;;
-;;; The normalized symmetric Laplacian has eigenvalues in [0, 2].
-;;; More suitable for spectral clustering as it normalizes for degree.
-;;;
-;;; Properties:
-;;;   - Eigenvalues in [0, 2] for undirected graphs
-;;;   - Symmetric (inherits symmetry from A if undirected)
-;;;   - Better behaved for graphs with varying node degrees
-;;;
-;;; Note: Isolated nodes (degree 0) cause division by zero.
-;;; This function assigns 0 to such entries.
 (define (laplacian-normalized adj)
+  (doc 'type '(-> Matrix Matrix))
+  (doc 'description "Normalized symmetric Laplacian: L_sym = I - D^(-1/2) A D^(-1/2)")
+  (doc 'note "Eigenvalues in [0, 2] for undirected graphs")
+  (doc 'note "Better for spectral clustering, normalizes for degree variation")
   (let* ([n (adjacency-matrix-node-count adj)]
          [a (if (sparse-csr? adj)
                 (sparse-csr->dense adj)

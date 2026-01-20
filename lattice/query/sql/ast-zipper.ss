@@ -1,26 +1,13 @@
-;;; lattice/query/sql/ast-zipper.ss — Zipper for SQL AST Navigation
-;;;
-;;; Provides efficient navigation and transformation of SQL AST trees.
-;;; Key benefits over visitor pattern:
-;;;   - Immutable traversal and collection (no set!)
-;;;   - Edit-while-traversing patterns
-;;;   - Current position tracking
-;;;   - Context awareness (path to root)
-;;;
-;;; SQL AST nodes have structure: (sql-ast tag span data...)
-;;; Children are AST nodes found recursively in the data fields.
-;;;
-;;; This is Lattice code: pure, total, no IO.
-;;;
-;;; Dependencies:
-;;;   - lattice/query/sql/types.ss
-;;;   - lattice/fp/data/tree-zipper.ss
-;;;   - lattice/fp/data/zipper-lens.ss
-
 (load "core/base/prelude.ss")
 (load "lattice/fp/meta/combinators.ss")
 (load "lattice/fp/data/tree-zipper.ss")
 (load "lattice/fp/data/zipper-lens.ss")
+
+(doc 'module 'ast-zipper)
+(doc 'description "Zipper for SQL AST Navigation")
+(doc 'note "Provides efficient navigation and transformation of SQL AST trees. Key benefits over visitor pattern: immutable traversal and collection (no set!), edit-while-traversing patterns, current position tracking, context awareness (path to root)")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
 
 ;;; ====
 ;;; AST to Rose Tree Conversion

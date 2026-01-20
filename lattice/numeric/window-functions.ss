@@ -1,15 +1,9 @@
-;;; core/numeric/window-functions.ss — Window Functions for Signal Processing
-;;;
-;;; Window functions (or apodization functions) are used in signal processing
-;;; to reduce spectral leakage when performing Fourier analysis on finite-length
-;;; signals. They smooth the signal at its boundaries to minimize discontinuities.
-;;;
-;;; This is Core code: pure, total, assumes reasonable input.
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-
 (load "core/base/prelude.ss")
+
+(doc 'module 'window-functions)
+(doc 'description "Window functions for signal processing: reduce spectral leakage, smooth signal boundaries for Fourier analysis")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
 
 ;;; ====
 ;;; Basic Window Functions

@@ -1,47 +1,34 @@
-;;; core/number-theory/modular.ss — Modular Arithmetic
-;;; @module modular
-;;; @requires prelude
-;;;
-;;; Foundational modular arithmetic for number theory and cryptography.
-;;;
-;;; This is Core code: pure, total, assumes perfect input.
-;;;
-;;; Dependencies: core/base/prelude.ss
-
 (load "core/base/prelude.ss")
 
-;;; ====
-;;; Basic Modular Operations
-;;; ====
+(doc 'module 'modular)
+(doc 'description "Foundational modular arithmetic for number theory and cryptography")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
 
-;;; mod+ : Int × Int × Int → Int
-;;; Modular addition: (a + b) mod m
-;;; Assumes m > 0.
+(doc 'section 'basic-modular-ops)
+
 (define (mod+ a b m)
+  (doc 'type '(-> Int Int Int Int))
+  (doc 'description "Modular addition: (a + b) mod m. Assumes m > 0")
   (modulo (+ a b) m))
 
-;;; mod- : Int × Int × Int → Int
-;;; Modular subtraction: (a - b) mod m
-;;; Assumes m > 0.
 (define (mod- a b m)
+  (doc 'type '(-> Int Int Int Int))
+  (doc 'description "Modular subtraction: (a - b) mod m. Assumes m > 0")
   (modulo (- a b) m))
 
-;;; mod* : Int × Int × Int → Int
-;;; Modular multiplication: (a * b) mod m
-;;; Assumes m > 0.
 (define (mod* a b m)
+  (doc 'type '(-> Int Int Int Int))
+  (doc 'description "Modular multiplication: (a * b) mod m. Assumes m > 0")
   (modulo (* a b) m))
 
-;;; ====
-;;; Modular Exponentiation
-;;; ====
+(doc 'section 'modular-exponentiation)
 
-;;; mod-expt : Int × Nat × Int → Int
-;;; Modular exponentiation using square-and-multiply algorithm.
-;;; Computes (base^exp) mod m efficiently.
-;;; Time complexity: O(log exp)
-;;; Assumes m > 0, exp >= 0.
 (define (mod-expt base exp m)
+  (doc 'type '(-> Int Nat Int Int))
+  (doc 'description "Modular exponentiation using square-and-multiply algorithm. Computes (base^exp) mod m efficiently")
+  (doc 'complexity "O(log exp)")
+  (doc 'note "Assumes m > 0, exp >= 0")
   (let loop ([b (modulo base m)]
              [e exp]
              [result 1])
@@ -56,15 +43,11 @@
                (quotient e 2)
                result)])))
 
-;;; ====
-;;; Extended Euclidean Algorithm
-;;; ====
+(doc 'section 'extended-euclidean)
 
-;;; extended-gcd : Int × Int → (List Int)
-;;; Extended Euclidean algorithm.
-;;; Returns (gcd a b, x, y) where gcd = ax + by.
-;;; Bézout's identity.
 (define (extended-gcd a b)
+  (doc 'type '(-> Int Int (List Int)))
+  (doc 'description "Extended Euclidean algorithm. Returns (gcd a b, x, y) where gcd = ax + by (Bézout's identity)")
   (if (= b 0)
       (list a 1 0)
       (let* ([q (quotient a b)]
@@ -84,15 +67,11 @@
       (abs a)
       (gcd b (modulo a b))))
 
-;;; ====
-;;; Modular Inverse
-;;; ====
+(doc 'section 'modular-inverse)
 
-;;; mod-inverse : Int × Int → Int | #f
-;;; Compute modular multiplicative inverse of a modulo m.
-;;; Returns x such that (a * x) ≡ 1 (mod m), or #f if no inverse exists.
-;;; Inverse exists iff gcd(a, m) = 1.
 (define (mod-inverse a m)
+  (doc 'type '(-> Int Int (Union Int Boolean)))
+  (doc 'description "Compute modular multiplicative inverse of a modulo m. Returns x such that (a * x) ≡ 1 (mod m), or #f if no inverse exists. Inverse exists iff gcd(a, m) = 1")
   (let* ([result (extended-gcd a m)]
          [g (car result)]
          [x (cadr result)])
@@ -100,22 +79,12 @@
             (modulo x m)
             #f)))
 
-;;; ====
-;;; Chinese Remainder Theorem
-;;; ====
+(doc 'section 'chinese-remainder-theorem)
 
-;;; crt : (List Int) × (List Int) → Int | #f
-;;; Chinese Remainder Theorem solver.
-;;; Given remainders [a1, a2, ..., ak] and moduli [m1, m2, ..., mk],
-;;; find x such that:
-;;;   x ≡ a1 (mod m1)
-;;;   x ≡ a2 (mod m2)
-;;;   ...
-;;;   x ≡ ak (mod mk)
-;;;
-;;; Assumes all moduli are pairwise coprime.
-;;; Returns #f if moduli are not pairwise coprime.
 (define (crt remainders moduli)
+  (doc 'type '(-> (List Int) (List Int) (Union Int Boolean)))
+  (doc 'description "Chinese Remainder Theorem solver. Given remainders [a1, a2, ..., ak] and moduli [m1, m2, ..., mk], find x such that x ≡ ai (mod mi) for all i")
+  (doc 'note "Assumes all moduli are pairwise coprime. Returns #f if moduli are not pairwise coprime")
   (if (or (null? remainders) (null? moduli))
       0
       (let ([M (fold-left * 1 moduli)])
@@ -134,20 +103,13 @@
                                     (+ result (* ai Mi yi)))
                               #f)))))))
 
-;;; ====
-;;; Montgomery Multiplication
-;;; ====
+(doc 'section 'montgomery-multiplication)
 
-;;; Montgomery multiplication is an optimization for modular multiplication
-;;; when doing many multiplications with the same modulus.
-;;; It works in "Montgomery space" where numbers are represented as aR mod m.
+(doc 'note "Montgomery multiplication is an optimization for modular multiplication when doing many multiplications with the same modulus. It works in Montgomery space where numbers are represented as aR mod m")
 
-;;; montgomery-reduce : Int × Int × Int × Int → Int
-;;; Montgomery reduction: converts from Montgomery space back to normal.
-;;; Given T, modulus m, R (power of 2), and m' (negative inverse of m mod R),
-;;; computes (T * R^-1) mod m.
-;;; This is an internal helper for Montgomery multiplication.
 (define (montgomery-reduce T m R m-prime)
+  (doc 'type '(-> Int Int Int Int Int))
+  (doc 'description "Montgomery reduction: converts from Montgomery space back to normal. Given T, modulus m, R (power of 2), and m' (negative inverse of m mod R), computes (T * R^-1) mod m. This is an internal helper for Montgomery multiplication")
   (let* ([t (modulo (* T m-prime) R)]
          [u (quotient (+ T (* t m)) R)])
         (if (>= u m)

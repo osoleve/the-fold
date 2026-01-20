@@ -1,20 +1,12 @@
-;;; fabric/stitches/convolution.ss — Convolution and Correlation Operations
-;;;
-;;; Comprehensive convolution and correlation implementations for signal processing,
-;;; filtering, template matching, and feature extraction.
-;;;
-;;; This is Core code: pure, total, assumes reasonable input.
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;   - complex.ss
-;;;   - dft.ss
-;;;   - vec.ss
-
 (load "core/base/prelude.ss")
 (load "lattice/numeric/complex.ss")
 (load "lattice/numeric/dft.ss")
 (load "lattice/linalg/vec.ss")
+
+(doc 'module 'convolution)
+(doc 'description "Comprehensive convolution and correlation implementations for signal processing, filtering, template matching, and feature extraction")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
 
 ;;; ====
 ;;; Convolution Modes

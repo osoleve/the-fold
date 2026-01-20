@@ -1,13 +1,10 @@
-;;; playpen/sql/types.ss — SQL AST Types
-;;;
-;;; Abstract Syntax Tree definitions for ANSI SQL DML statements.
-;;; All nodes include source spans for error reporting.
-;;;
-;;; Dependencies:
-;;;   - fabric/stitches/fp/parser-dsl.ss (for spans)
+(define *sql-types-loaded* #t)
 
-;;; Load dependencies - assumes running from project root
-(define *sql-types-loaded* #t)  ; Guard against multiple loads
+(doc 'module 'sql-types)
+(doc 'description "SQL AST Types")
+(doc 'note "Abstract Syntax Tree definitions for ANSI SQL DML statements. All nodes include source spans for error reporting.")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
 
 ;;; Set up source directories for loading
 (let ([stitches-path (string-append (current-directory) "/fabric/stitches")])

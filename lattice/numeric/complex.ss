@@ -1,16 +1,10 @@
-;;; fabric/stitches/complex.ss — Complex Number Arithmetic
-;;;
-;;; Comprehensive complex number support for signal processing,
-;;; quantum computing, and advanced mathematics.
-;;;
-;;; This is Core code: pure, total, assumes reasonable input.
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;   - fp/transcendental.ss
-
 (load "core/base/prelude.ss")
 (load "lattice/fp/numeric/transcendental.ss")
+
+(doc 'module 'complex)
+(doc 'description "Comprehensive complex number arithmetic for signal processing, quantum computing, and advanced mathematics")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
 
 ;;; ====
 ;;; Complex Number Representation

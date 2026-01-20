@@ -1,35 +1,18 @@
-;;; core/query/patterns-parse.ss --- Inline Metadata Tag Parser
-;;;
-;;; Extracts @-tags from text for queryable metadata.
-;;;
-;;; Syntax:
-;;;   @key:value  - key-value pair
-;;;   @key        - standalone flag (value = #t)
-;;;   @key:multi:part - hierarchical tags
-;;;
-;;; This is Shell-tier code: pure text processing, defensive parsing.
-;;; No dependencies on Core or other Shell modules.
-;;;
-;;; Usage:
-;;;   (extract-tags "Hello @status:complete world @todo")
-;;;   => ((status . "complete") (todo . #t))
-;;;
-;;;   (extract-tag-positions "Hello @status:complete")
-;;;   => ((status "complete" 6 22))  ; start and end positions
+(doc 'module 'patterns-parse)
+(doc 'description "Inline Metadata Tag Parser")
+(doc 'note "Extracts @-tags from text for queryable metadata")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
 
-;;; ====
-;;; Tag Pattern Matching
-;;; ====
+(doc 'section 'tag-syntax)
+(doc 'description "@key:value for key-value pairs, @key for standalone flags, @key:multi:part for hierarchical tags")
 
-;;; A tag is: @key or @key:value
-;;; - Key starts with lowercase letter [a-z]
-;;; - Key contains [a-z0-9-]
-;;; - Value (optional) contains [a-z0-9_./-]
-;;; - Must follow whitespace or line start
+(doc 'section 'tag-pattern-matching)
+(doc 'description "A tag is @key or @key:value. Key starts with lowercase letter [a-z], contains [a-z0-9-]. Value (optional) contains [a-z0-9_./-]. Must follow whitespace or line start.")
 
-;;; char-key-start? : Char -> Boolean
-;;; True if char can start a tag key.
 (define (char-key-start? c)
+  (doc 'type '(-> Char Boolean))
+  (doc 'description "True if char can start a tag key")
   (and (char>=? c #\a) (char<=? c #\z)))
 
 ;;; char-key? : Char -> Boolean

@@ -1,22 +1,10 @@
-;;; core/numeric/wavelet.ss — Wavelet Transform Implementation
-;;;
-;;; Wavelet transforms for multi-resolution signal analysis.
-;;;
-;;; This module implements:
-;;; - Wavelet basis functions (Haar, Daubechies families)
-;;; - Discrete Wavelet Transform (DWT) via filter banks
-;;; - Inverse DWT
-;;; - Multi-resolution analysis and decomposition
-;;; - Wavelet packet decomposition
-;;;
-;;; This is Core code: pure, total, assumes reasonable input.
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;   - vec.ss
-
 (load "core/base/prelude.ss")
 (load "lattice/linalg/vec.ss")
+
+(doc 'module 'wavelet)
+(doc 'description "Wavelet transforms for multi-resolution signal analysis: Haar, Daubechies, DWT, IDWT, multi-resolution decomposition")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
 
 ;;; ====
 ;;; Wavelet Filter Coefficients

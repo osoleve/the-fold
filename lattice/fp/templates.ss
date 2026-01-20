@@ -1,27 +1,15 @@
-;;; lattice/fp/templates.ss — FP Code Templates and Pattern Generator
-;;;
-;;; Template generator for common FP patterns including:
-;;;   - Monoids: Types with associative binary operation and identity
-;;;   - Foldable: Types that can be folded/reduced
-;;;   - Traversable: Types that can be traversed with effects
-;;;   - Lenses: First-class getters and setters for nested data
-;;;   - Functors: Mappable containers
-;;;   - Applicatives: Apply functions inside contexts
-;;;
-;;; This is Core code: pure, total, assumes reasonable input.
-;;;
-;;; Features:
-;;;   - Template generators for type class instances
-;;;   - Code snippets with best-practice defaults
-;;;   - Customizable templates with hooks
-;;;   - Laws verification templates
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;   - fp/meta/combinators.ss
-
 (load "core/base/prelude.ss")
 (load "lattice/fp/meta/combinators.ss")
+
+(doc 'module 'templates)
+(doc 'description "Template generator for common FP patterns including: Monoids, Foldable, Traversable, Lenses, Functors, Applicatives")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
+(doc 'features "- Template generators for type class instances
+  - Code snippets with best-practice defaults
+  - Customizable templates with hooks
+  - Laws verification templates")
+(doc 'dependencies '(core/base/prelude.ss lattice/fp/meta/combinators.ss))
 
 ;;; ====
 ;;; Monoid Templates

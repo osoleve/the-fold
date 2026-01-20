@@ -1,44 +1,18 @@
-;;; core/query/query-patterns.ss --- Datalog-style Pattern Matching with Variable Binding
-;;;
-;;; Extends query-dsl.ss with advanced pattern matching capabilities:
-;;;   - Variable binding (symbols starting with ?)
-;;;   - Multi-pattern joins based on shared variables
-;;;   - Relation pattern matching
-;;;   - Constraint evaluation
-;;;
-;;; SYNTAX:
-;;;
-;;;   Pattern matching with variables:
-;;;     (?subject relation-type ?object)
-;;;     (?entity attribute-name ?value)
-;;;
-;;;   Multi-pattern joins:
-;;;     (pattern-query fs
-;;;       '((?person invented ?concept))
-;;;       '((?concept year ?y))
-;;;       '(< ?y 1940))
-;;;
-;;;   Returns list of binding environments:
-;;;     (((person . hash1) (concept . hash2) (y . 1936))
-;;;      ((person . hash3) (concept . hash4) (y . 1938))
-;;;      ...)
-;;;
-;;; DESIGN:
-;;;   - Variables are symbols starting with ?
-;;;   - Constants are other values
-;;;   - Patterns match against relation blocks
-;;;   - Shared variables create joins
-;;;   - Constraints filter results
-;;;
-;;; TIER: 7-8 (Complex computation with search)
+(doc 'module 'query-patterns)
+(doc 'description "Datalog-style Pattern Matching with Variable Binding")
+(doc 'note "Extends query-dsl.ss with advanced pattern matching capabilities: variable binding (symbols starting with ?), multi-pattern joins based on shared variables, relation pattern matching, and constraint evaluation")
+(doc 'layer 'lattice)
+(doc 'purity 'partial)
+(doc 'tier '7-8)
 
-;;; ====
-;;; Variable Recognition
-;;; ====
+(doc 'section 'design)
+(doc 'description "Variables are symbols starting with ?. Constants are other values. Patterns match against relation blocks. Shared variables create joins. Constraints filter results.")
 
-;;; variable? : α → Boolean
-;;; Check if a symbol represents a variable (starts with ?).
+(doc 'section 'variable-recognition)
+
 (define (variable? x)
+  (doc 'type '(-> α Boolean))
+  (doc 'description "Check if a symbol represents a variable (starts with ?)")
   (and (symbol? x)
        (let ([str (symbol->string x)])
             (and (> (string-length str) 0)

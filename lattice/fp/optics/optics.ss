@@ -1,56 +1,18 @@
-;;; lattice/fp/optics/optics.ss — Comprehensive Optics Tower
-;;;
-;;; A complete hierarchy of optics for composable data access:
-;;;
-;;;              Fold
-;;;             /    \
-;;;        Getter    Traversal
-;;;             \    /    \
-;;;              Affine   Setter
-;;;             /    \     |
-;;;          Prism   Lens  |
-;;;             \    /    /
-;;;               Iso ----
-;;;
-;;; Each optic type provides different capabilities:
-;;;   - Iso: Reversible transformation (exactly 1 target, bidirectional)
-;;;   - Lens: Focus on exactly 1 part of a product type
-;;;   - Prism: Focus on 1 variant of a sum type (0 or 1 target)
-;;;   - Affine: Focus on at most 1 target (Lens ∩ Prism)
-;;;   - Traversal: Focus on 0 or more targets
-;;;   - Fold: Read-only access to 0 or more targets
-;;;   - Getter: Read-only access to exactly 1 target
-;;;   - Setter: Write-only modification of 0 or more targets
-;;;
-;;; This is Core code: pure, total, assumes reasonable input.
-;;;
-;;; Design: We use concrete representations for clarity and efficiency,
-;;; with composition functions that respect the hierarchy. For the
-;;; profunctor-based approach (more abstract), see profunctor-optics.ss.
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;   - fp/meta/combinators.ss
-
 (load "core/base/prelude.ss")
 (load "lattice/fp/meta/combinators.ss")
-(load "lattice/fp/templates.ss")  ; Base lens/prism definitions
+(load "lattice/fp/templates.ss")
 
-;;; ============================================================
-;;; Part 1: Isomorphisms (Iso)
-;;; ============================================================
-;;;
-;;; An isomorphism represents a reversible transformation.
-;;; Iso s t a b means: s ≅ a and t ≅ b with consistent transformations.
-;;; For simple isos: Iso' s a means s ≅ a.
-;;;
-;;; Laws:
-;;;   - forward . backward = id
-;;;   - backward . forward = id
+(doc 'module 'optics)
+(doc 'description "Comprehensive Optics Tower - A complete hierarchy of optics for composable data access")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
 
-;;; make-iso : (s → a) × (b → t) → Iso s t a b
-;;; For simple isos, s=t and a=b, so: (s → a) × (a → s)
+(doc 'section 'iso)
+(doc 'description "An isomorphism represents a reversible transformation. Iso s t a b means: s ≅ a and t ≅ b with consistent transformations. For simple isos: Iso' s a means s ≅ a. Laws: forward . backward = id, backward . forward = id")
+
 (define (make-iso forward backward)
+  (doc 'type '(-> (-> s a) (-> b t) (Iso s t a b)))
+  (doc 'description "For simple isos, s=t and a=b, so: (s → a) × (a → s)")
   (list 'iso forward backward))
 
 ;;; iso? : α → Boolean

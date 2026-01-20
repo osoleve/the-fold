@@ -1,31 +1,21 @@
-;;; lattice/crypto/hmac.ss — HMAC (RFC 2104)
-;;;
-;;; Keyed-Hash Message Authentication Code.
-;;;
-;;; HMAC provides message authentication using any cryptographic hash function.
-;;; HMAC(K, m) = H((K' ⊕ opad) || H((K' ⊕ ipad) || m))
-;;;
-;;; Where:
-;;;   K' = key padded or hashed to block size
-;;;   ipad = 0x36 repeated to block size
-;;;   opad = 0x5c repeated to block size
-;;;
-;;; TIER: 1 (depends on hash functions)
-
 (load "core/base/sha256.ss")
 (load "lattice/crypto/sha512.ss")
 
-;;; ============================================================
-;;; HMAC Core Implementation
-;;; ============================================================
+(doc 'module 'hmac)
+(doc 'description "Keyed-Hash Message Authentication Code (RFC 2104). Provides message authentication using any cryptographic hash function")
+(doc 'formula "HMAC(K, m) = H((K' ⊕ opad) || H((K' ⊕ ipad) || m)) where K' = key padded or hashed to block size, ipad = 0x36 repeated, opad = 0x5c repeated")
+(doc 'tier 1)
+(doc 'layer 'lattice)
+(doc 'purity 'total)
 
-;;; make-hmac : (Bytevector → Bytevector) × Integer × Integer → (Bytevector × Bytevector → Bytevector)
-;;; Create an HMAC function for a given hash, block size, and output size.
-;;;
-;;; hash-fn: The hash function (e.g., sha256, sha512)
-;;; block-size: Hash block size in bytes (64 for SHA-256, 128 for SHA-512)
-;;; output-size: Hash output size in bytes (32 for SHA-256, 64 for SHA-512)
+(doc 'section 'hmac-core)
+
 (define (make-hmac hash-fn block-size output-size)
+  (doc 'type '(-> (-> Bytevector Bytevector) Integer Integer (-> Bytevector Bytevector Bytevector)))
+  (doc 'description "Create an HMAC function for a given hash, block size, and output size")
+  (doc 'param 'hash-fn "The hash function (e.g., sha256, sha512)")
+  (doc 'param 'block-size "Hash block size in bytes (64 for SHA-256, 128 for SHA-512)")
+  (doc 'param 'output-size "Hash output size in bytes (32 for SHA-256, 64 for SHA-512)")
   (lambda (key message)
     (let* ([key-len (bytevector-length key)]
            ;; If key > block-size, hash it; if shorter, pad with zeros
@@ -66,13 +56,10 @@
     (bytevector-copy! bv2 0 result len1 len2)
     result))
 
-;;; ============================================================
-;;; Pre-defined HMAC Functions
-;;; ============================================================
+(doc 'section 'predefined-hmac)
 
-;;; hmac-sha256 : Bytevector × Bytevector → Bytevector
-;;; HMAC using SHA-256.
-;;; Block size: 64 bytes, Output: 32 bytes
+(doc hmac-sha256 'type '(-> Bytevector Bytevector Bytevector))
+(doc hmac-sha256 'description "HMAC using SHA-256. Block size: 64 bytes, Output: 32 bytes")
 (define hmac-sha256 (make-hmac sha256 64 32))
 
 ;;; hmac-sha512 : Bytevector × Bytevector → Bytevector
@@ -85,12 +72,10 @@
 ;;; Block size: 128 bytes (same as SHA-512), Output: 48 bytes
 (define hmac-sha384 (make-hmac sha384 128 48))
 
-;;; ============================================================
-;;; Hex Convenience Functions
-;;; ============================================================
+(doc 'section 'hex-convenience)
 
-;;; hmac-sha256-hex : Bytevector × Bytevector → String
 (define (hmac-sha256-hex key message)
+  (doc 'type '(-> Bytevector Bytevector String))
   (hash->hex (hmac-sha256 key message)))
 
 ;;; hmac-sha512-hex : Bytevector × Bytevector → String

@@ -1,14 +1,10 @@
-;;; playpen/sql/parser.ss — SQL Grammar Parser
-;;;
-;;; Parser combinators for ANSI SQL DML statements.
-;;; Uses operator precedence parsing for expressions.
-;;;
-;;; Dependencies:
-;;;   - playpen/sql/types.ss
-;;;   - playpen/sql/lexer.ss
-
-;;; Load dependencies - assumes running from project root
 (define *sql-parser-loaded* #t)
+
+(doc 'module 'sql-parser)
+(doc 'description "SQL Grammar Parser")
+(doc 'note "Parser combinators for ANSI SQL DML statements. Uses operator precedence parsing for expressions.")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
 
 (unless (top-level-bound? '*sql-types-loaded*)
         (load "lattice/query/sql/types.ss"))

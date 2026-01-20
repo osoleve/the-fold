@@ -1,37 +1,19 @@
-;;; lattice/numeric/complex-bridge.ss — Bridge Between Native and Custom Complex
-;;;
-;;; The Fold uses two complex number representations:
-;;;
-;;;   Native:  Chez Scheme's 1+2i (efficient, works with +, *, sin, etc.)
-;;;   Custom:  (complex 1 2)       (serializable, content-addressable)
-;;;
-;;; This module provides seamless conversion between them:
-;;;
-;;;   - Use native complex for CALCULATION (fast, full operator support)
-;;;   - Use custom complex for STORAGE (CAS hashing, block serialization)
-;;;
-;;; Pattern:
-;;;   (complex-store                        ; Serialize result
-;;;     (some-native-complex-calculation    ; Calculate with native
-;;;       (complex-compute c1)              ; Convert input to native
-;;;       (complex-compute c2)))
-;;;
-;;; This is Lattice code: pure functions for complex number conversion.
-;;;
-;;; Dependencies:
-;;;   - core/base/prelude.ss
-;;;   - lattice/numeric/complex.ss
-
 (load "core/base/prelude.ss")
 (load "lattice/numeric/complex.ss")
 
-;;; ============================================================================
-;;; Conversion: Custom → Native
-;;; ============================================================================
+(doc 'module 'complex-bridge)
+(doc 'description "Bridge between native Chez complex and custom serializable complex numbers")
+(doc 'note "The Fold uses two complex representations: Native (Chez 1+2i, efficient) and Custom ((complex 1 2), serializable)")
+(doc 'note "Use native complex for CALCULATION (fast, full operator support). Use custom complex for STORAGE (CAS hashing, block serialization).")
+(doc 'pattern "(complex-store (some-native-complex-calculation (complex-compute c1) (complex-compute c2)))")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
 
-;;; complex->native : CustomComplex → NativeComplex
-;;; Convert lattice (complex r i) to Chez native complex.
+(doc 'section 'custom-to-native)
+
 (define (complex->native c)
+  (doc 'type '(-> CustomComplex NativeComplex))
+  (doc 'description "Convert lattice (complex r i) to Chez native complex")
   (if (custom-complex? c)
       (make-rectangular (complex-real c) (complex-imag c))
       (error 'complex->native "not a custom complex" c)))

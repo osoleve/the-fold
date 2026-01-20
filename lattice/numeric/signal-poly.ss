@@ -1,24 +1,11 @@
-;;; lattice/numeric/signal-poly.ss — Polynomial Algebra for Signal Processing
-;;;
-;;; Integrates lattice/algebra/polynomial.ss with signal processing modules
-;;; for exact filter analysis and polynomial-based signal operations.
-;;;
-;;; Benefits:
-;;;   - Exact filter coefficient computation
-;;;   - Filter stability analysis via polynomial operations
-;;;   - Filter simplification (pole-zero cancellation)
-;;;   - Deconvolution as polynomial division
-;;;
-;;; This is Lattice code: pure, functional, assumes reasonable input.
-;;;
-;;; Dependencies:
-;;;   - lattice/algebra/field.ss
-;;;   - lattice/algebra/polynomial.ss
-;;;   - lattice/numeric/digital-filters.ss
-
 (load "lattice/algebra/field.ss")
 (load "lattice/algebra/polynomial.ss")
 (load "lattice/numeric/digital-filters.ss")
+
+(doc 'module 'signal-poly)
+(doc 'description "Polynomial algebra for signal processing: exact filter analysis, stability analysis, filter simplification, deconvolution")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
 
 ;;; ====
 ;;; Field Definition for Signal Processing

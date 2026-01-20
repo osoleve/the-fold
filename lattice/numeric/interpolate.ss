@@ -1,24 +1,14 @@
-;;; lattice/numeric/interpolate.ss — Interpolation and Curve Fitting
-;;; @module interpolate
-;;; @requires prelude, vec, matrix, matrix-solvers, polynomial
-;;;
-;;; Numerical interpolation, splines, Bezier curves, and curve fitting.
-;;;
-;;; This is Core code: pure, total, assumes perfect input.
-;;;
-;;; Dependencies:
-;;;   - core/base/prelude.ss
-;;;   - lattice/linalg/vec.ss
-;;;   - lattice/linalg/matrix.ss
-;;;   - lattice/linalg/matrix-solvers.ss
-;;;   - lattice/numeric/polynomial.ss
-
 (load "core/base/prelude.ss")
 (load "lattice/linalg/vec.ss")
 (load "lattice/linalg/matrix.ss")
 (load "lattice/linalg/matrix-decomp.ss")
 (load "lattice/linalg/matrix-solvers.ss")
 (load "lattice/numeric/polynomial.ss")
+
+(doc 'module 'interpolate)
+(doc 'description "Numerical interpolation, splines, Bezier curves, and curve fitting")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
 
 ;;; ====
 ;;; Binary Search Helper (for O(log n) segment lookup)

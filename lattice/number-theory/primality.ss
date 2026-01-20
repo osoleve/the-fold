@@ -1,27 +1,17 @@
-;;; lattice/number-theory/primality.ss — Primality Testing and Integer Factorization
-;;; @module primality
-;;; @requires prelude, modular
-;;;
-;;; Number-theoretic algorithms for primality testing and factorization.
-;;;
-;;; This is Core code: pure, total, assumes perfect input.
-;;;
-;;; Dependencies:
-;;;   - core/base/prelude.ss
-;;;   - lattice/number-theory/modular.ss (for mod-expt, gcd)
-
 (load "core/base/prelude.ss")
 (load "lattice/number-theory/modular.ss")
 
-;;; ====
-;;; Trial Division Primality Test
-;;; ====
+(doc 'module 'primality)
+(doc 'description "Number-theoretic algorithms for primality testing and factorization")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
 
-;;; prime? : Int → Boolean
-;;; Deterministic primality test using trial division.
-;;; Time complexity: O(√n)
-;;; For large numbers, prefer miller-rabin? for speed.
+(doc 'section 'trial-division)
+
 (define (prime? n)
+  (doc 'type '(-> Int Boolean))
+  (doc 'description "Deterministic primality test using trial division. For large numbers, prefer miller-rabin? for speed")
+  (doc 'complexity "O(√n)")
   (cond
    [(< n 2) #f]
    [(= n 2) #t]
@@ -40,14 +30,11 @@
 (define (composite? n)
   (and (> n 1) (not (prime? n))))
 
-;;; ====
-;;; Miller-Rabin Primality Test
-;;; ====
+(doc 'section 'miller-rabin)
 
-;;; miller-rabin-witness? : Int × Int → Boolean
-;;; Test if a is a Miller-Rabin witness for n being composite.
-;;; Internal helper for miller-rabin?.
 (define (miller-rabin-witness? a n)
+  (doc 'type '(-> Int Int Boolean))
+  (doc 'description "Test if a is a Miller-Rabin witness for n being composite. Internal helper for miller-rabin?")
   (let* ([n-1 (- n 1)]
          ;; Write n-1 = d × 2^r where d is odd
          [factor-result (factor-out-2s n-1)]
@@ -78,11 +65,11 @@
         (loop (quotient d 2) (+ r 1))
         (cons d r))))
 
-;;; miller-rabin? : Int [Int] → Boolean
-;;; Probabilistic primality test using Miller-Rabin algorithm.
-;;; Optional second argument specifies number of rounds (default 20).
-;;; Error probability: at most 4^(-k) for k rounds.
-;;; Time complexity: O(k log³n)
+(doc miller-rabin? 'type '(case-lambda
+                                   ((Int) Boolean)
+                                   ((Int Int) Boolean)))
+(doc miller-rabin? 'description "Probabilistic primality test using Miller-Rabin algorithm. Optional second argument specifies number of rounds (default 20). Error probability: at most 4^(-k) for k rounds")
+(doc miller-rabin? 'complexity "O(k log³n)")
 (define (miller-rabin? n . args)
   (let ([rounds (if (null? args) 20 (car args))])
     (cond
@@ -136,15 +123,12 @@
       '()
       (cons (car lst) (take (- n 1) (cdr lst)))))
 
-;;; ====
-;;; Integer Factorization
-;;; ====
+(doc 'section 'integer-factorization)
 
-;;; trial-division : Int → (List Int)
-;;; Factor n using trial division.
-;;; Returns sorted list of prime factors (with repetition).
-;;; Time complexity: O(√n)
 (define (trial-division n)
+  (doc 'type '(-> Int (List Int)))
+  (doc 'description "Factor n using trial division. Returns sorted list of prime factors (with repetition)")
+  (doc 'complexity "O(√n)")
   (cond
    [(< n 2) '()]
    [else
@@ -157,11 +141,9 @@
        [else
         (loop n (if (= d 2) 3 (+ d 2)) factors)]))]))
 
-;;; factorize : Int → (List Int)
-;;; Factor n into prime factors.
-;;; Returns sorted list of prime factors (with repetition).
-;;; Uses Pollard's rho for large factors, trial division for small.
 (define (factorize n)
+  (doc 'type '(-> Int (List Int)))
+  (doc 'description "Factor n into prime factors. Returns sorted list of prime factors (with repetition). Uses Pollard's rho for large factors, trial division for small")
   (cond
    [(< n 2) '()]
    [(prime? n) (list n)]
@@ -203,11 +185,10 @@
           (append (pollard-rho-factorize d)
                   (pollard-rho-factorize (quotient n d)))))]))
 
-;;; pollard-rho : Int → Int
-;;; Find a non-trivial factor of n using Pollard's rho algorithm.
-;;; Returns n if no factor found (n might be prime).
-;;; Expected time: O(n^(1/4))
 (define (pollard-rho n)
+  (doc 'type '(-> Int Int))
+  (doc 'description "Find a non-trivial factor of n using Pollard's rho algorithm. Returns n if no factor found (n might be prime)")
+  (doc 'complexity "O(n^(1/4)) expected")
   (cond
    [(even? n) 2]
    [else
@@ -220,11 +201,9 @@
                 result
                 (try-c (+ c 1))))))]))
 
-;;; pollard-rho-single : Int × Int → Int
-;;; Single run of Pollard's rho with polynomial f(x) = x² + c.
-;;; Uses batched GCD computation: accumulates |x-y| products and computes
-;;; GCD every 128 iterations, reducing GCD operations by ~128x.
 (define (pollard-rho-single n c)
+  (doc 'type '(-> Int Int Int))
+  (doc 'description "Single run of Pollard's rho with polynomial f(x) = x² + c. Uses batched GCD computation: accumulates |x-y| products and computes GCD every 128 iterations, reducing GCD operations by ~128x")
   (let ([f (lambda (x) (modulo (+ (* x x) c) n))]
         [batch-size 128])
     (let outer-loop ([x 2] [y 2] [iter 0])
@@ -271,14 +250,12 @@
              [(and (> d 1) (< d n)) d]
              [else n]))))))
 
-;;; ====
-;;; Factor Representation
-;;; ====
+(doc 'section 'factor-representation)
 
-;;; prime-factorization : Int → (List (Int . Int))
-;;; Return prime factorization as list of (prime . exponent) pairs.
-;;; Example: (prime-factorization 12) → ((2 . 2) (3 . 1))
 (define (prime-factorization n)
+  (doc 'type '(-> Int (List (Pair Int Int))))
+  (doc 'description "Return prime factorization as list of (prime . exponent) pairs")
+  (doc 'example "(prime-factorization 12) → ((2 . 2) (3 . 1))")
   (let ([factors (factorize n)])
     (if (null? factors)
         '()
@@ -330,13 +307,11 @@
 (define (flatmap f lst)
   (apply append (map f lst)))
 
-;;; ====
-;;; Number-Theoretic Functions
-;;; ====
+(doc 'section 'number-theoretic-functions)
 
-;;; lcm : Int × Int → Int
-;;; Least common multiple.
 (define (lcm a b)
+  (doc 'type '(-> Int Int Int))
+  (doc 'description "Least common multiple")
   (if (or (= a 0) (= b 0))
       0
       (abs (quotient (* a b) (gcd a b)))))
@@ -351,11 +326,10 @@
 (define (gcd* lst)
   (fold-left gcd 0 lst))
 
-;;; euler-totient : Int → Int
-;;; Euler's totient function φ(n).
-;;; Returns count of integers in [1,n] coprime to n.
-;;; φ(n) = n × ∏(1 - 1/p) for all prime factors p
 (define (euler-totient n)
+  (doc 'type '(-> Int Int))
+  (doc 'description "Euler's totient function φ(n). Returns count of integers in [1,n] coprime to n")
+  (doc 'formula "φ(n) = n × ∏(1 - 1/p) for all prime factors p")
   (if (< n 1)
       0
       (let ([pf (prime-factorization n)])
@@ -369,10 +343,9 @@
          1
          pf))))
 
-;;; carmichael-lambda : Int → Int
-;;; Carmichael's lambda function λ(n).
-;;; Smallest m such that a^m ≡ 1 (mod n) for all a coprime to n.
 (define (carmichael-lambda n)
+  (doc 'type '(-> Int Int))
+  (doc 'description "Carmichael's lambda function λ(n). Smallest m such that a^m ≡ 1 (mod n) for all a coprime to n")
   (if (< n 1)
       0
       (let ([pf (prime-factorization n)])
@@ -410,13 +383,11 @@
       (let ([pf (prime-factorization n)])
         (fold-left * 1 (map car pf)))))
 
-;;; ====
-;;; Primality Utilities
-;;; ====
+(doc 'section 'primality-utilities)
 
-;;; next-prime : Int → Int
-;;; Return smallest prime greater than n.
 (define (next-prime n)
+  (doc 'type '(-> Int Int))
+  (doc 'description "Return smallest prime greater than n")
   (cond
    [(< n 2) 2]
    [(= n 2) 3]
@@ -451,9 +422,9 @@
             (prev-prime p)
             (loop (+ count 1) (next-prime p))))))
 
-;;; primes-up-to : Int → (List Int)
-;;; Return all primes up to and including n using Sieve of Eratosthenes.
 (define (primes-up-to n)
+  (doc 'type '(-> Int (List Int)))
+  (doc 'description "Return all primes up to and including n using Sieve of Eratosthenes")
   (if (< n 2)
       '()
       (let ([sieve (make-vector (+ n 1) #t)])
@@ -485,13 +456,11 @@
 (define (coprime? a b)
   (= (gcd a b) 1))
 
-;;; ====
-;;; Perfect Powers
-;;; ====
+(doc 'section 'perfect-powers)
 
-;;; isqrt : Int → Int
-;;; Integer square root: largest k such that k² ≤ n.
 (define (isqrt n)
+  (doc 'type '(-> Int Int))
+  (doc 'description "Integer square root: largest k such that k² ≤ n")
   (cond
    [(< n 0) 0]
    [(= n 0) 0]
@@ -509,10 +478,9 @@
        (let ([r (isqrt n)])
          (= (* r r) n))))
 
-;;; is-perfect-power? : Int → Boolean | (Int . Int)
-;;; Test if n = a^b for some a > 1 and b > 1.
-;;; Returns (a . b) if found, #f otherwise.
 (define (is-perfect-power? n)
+  (doc 'type '(-> Int (Union Boolean (Pair Int Int))))
+  (doc 'description "Test if n = a^b for some a > 1 and b > 1. Returns (a . b) if found, #f otherwise")
   (if (< n 2)
       #f
       (let* ([max-exp (+ 1 (inexact->exact (floor (/ (log n) (log 2)))))])
@@ -541,15 +509,11 @@
              [(< x-k n) (refine (+ x 1))]
              [else (refine (- x 1))]))))))
 
-;;; ====
-;;; Legendre and Jacobi Symbols
-;;; ====
+(doc 'section 'legendre-jacobi-symbols)
 
-;;; legendre-symbol : Int × Int → Int
-;;; Legendre symbol (a/p) for prime p.
-;;; Returns 1 if a is quadratic residue mod p,
-;;; -1 if quadratic non-residue, 0 if p divides a.
 (define (legendre-symbol a p)
+  (doc 'type '(-> Int Int Int))
+  (doc 'description "Legendre symbol (a/p) for prime p. Returns 1 if a is quadratic residue mod p, -1 if quadratic non-residue, 0 if p divides a")
   (let ([result (mod-expt a (quotient (- p 1) 2) p)])
     (cond
      [(= result 0) 0]
@@ -557,10 +521,9 @@
      [(= result (- p 1)) -1]
      [else result])))  ; Shouldn't happen for prime p
 
-;;; jacobi-symbol : Int × Int → Int
-;;; Jacobi symbol (a/n) for odd positive n.
-;;; Generalization of Legendre symbol.
 (define (jacobi-symbol a n)
+  (doc 'type '(-> Int Int Int))
+  (doc 'description "Jacobi symbol (a/n) for odd positive n. Generalization of Legendre symbol")
   (cond
    [(not (and (odd? n) (> n 0))) 0]  ; Invalid input
    [(= n 1) 1]
@@ -596,18 +559,4 @@
                      [recur (jacobi-symbol (modulo n a-odd) a-odd)])
                 (* two-contrib flip-sign recur))))]))]))
 
-;;; ====
-;;; Export List (for reference)
-;;; ====
-
-;;; Exports:
-;;;   prime? composite?
-;;;   miller-rabin?
-;;;   trial-division factorize prime-factorization
-;;;   divisors
-;;;   gcd lcm gcd* lcm*
-;;;   euler-totient carmichael-lambda mobius radical
-;;;   next-prime prev-prime nth-prime primes-up-to prime-pi
-;;;   coprime?
-;;;   isqrt is-perfect-square? is-perfect-power? integer-root
-;;;   legendre-symbol jacobi-symbol
+(doc 'exports "prime? composite? miller-rabin? trial-division factorize prime-factorization divisors gcd lcm gcd* lcm* euler-totient carmichael-lambda mobius radical next-prime prev-prime nth-prime primes-up-to prime-pi coprime? isqrt is-perfect-square? is-perfect-power? integer-root legendre-symbol jacobi-symbol")

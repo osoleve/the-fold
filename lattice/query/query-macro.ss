@@ -1,47 +1,13 @@
-;;; lattice/query/query-macro.ss — Declarative Optic Query DSL
-;;;
-;;; A macro-based query language that compiles to optic-query primitives.
-;;; Provides SQL-like syntax for querying data through optic paths.
-;;;
-;;; DESIGN GOALS:
-;;;   - Declarative: Write WHAT you want, not HOW to get it
-;;;   - Composable: Build complex queries from simple clauses
-;;;   - Readable: SQL-like syntax that's easy to understand
-;;;   - Efficient: Compiles to existing optimized primitives
-;;;
-;;; CORE SYNTAX:
-;;;
-;;;   (from source optic
-;;;     (where pred)
-;;;     (select proj)
-;;;     (order-by key [direction])
-;;;     (limit n)
-;;;     (offset n))
-;;;
-;;; PREDICATE SHORTHANDS (using `it` to reference current target):
-;;;
-;;;   (where (> (@ it vel-y) 0))     ; Compare via optic
-;;;   (where (=? name "alpha"))      ; Shorthand equality
-;;;   (where (>? vel-y 0))           ; Shorthand comparison
-;;;   (where (and? (>? x 0) (<? y 10))) ; Compound predicates
-;;;
-;;; EXAMPLES:
-;;;
-;;;   ;; Find bodies with positive y-velocity, return their positions
-;;;   (from world world-each-body
-;;;     (where (>? body-vel-y 0))
-;;;     (select body-pos-lens))
-;;;
-;;;   ;; More complex query with ordering
-;;;   (from world world-each-body
-;;;     (where (and? (>? body-pos-x 0) (<? body-pos-x 100)))
-;;;     (order-by body-pos-y)
-;;;     (limit 10))
-;;;
-;;; Dependencies:
-;;;   - lattice/query/optic-query.ss
-
 (load "lattice/query/optic-query.ss")
+
+(doc 'module 'query-macro)
+(doc 'description "Declarative Optic Query DSL")
+(doc 'note "A macro-based query language that compiles to optic-query primitives. Provides SQL-like syntax for querying data through optic paths.")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
+
+(doc 'section 'design-goals)
+(doc 'description "Declarative: write WHAT you want, not HOW to get it. Composable: build complex queries from simple clauses. Readable: SQL-like syntax that's easy to understand. Efficient: compiles to existing optimized primitives.")
 
 ;;; ============================================================
 ;;; Part 1: Predicate Combinators
