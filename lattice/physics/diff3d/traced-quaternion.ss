@@ -1,25 +1,14 @@
-;;; core/diff-physics-3d/traced-quaternion.ss --- Differentiable Quaternion Operations
-;;;
-;;; Traced quaternion operations for automatic differentiation through 3D rotations.
-;;; A traced-quat is a quadruple of traced scalar values (w, x, y, z).
-;;;
-;;; Quaternion notation: q = w + xi + yj + zk
-;;; Unit quaternions represent rotations: q = cos(θ/2) + sin(θ/2)(axis)
-;;;
-;;; This is Core code: pure, total, assumes reasonable input.
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;   - linalg/quaternion.ss
-;;;   - diff-physics-3d/traced-vec3.ss
-
 (load "core/base/prelude.ss")
 (load "lattice/linalg/quaternion.ss")
 (load "lattice/physics/diff3d/traced-vec3.ss")
 
-;;; ====
-;;; Traced Quaternion Construction
-;;; ====
+(doc 'module 'traced-quaternion)
+(doc 'description "Differentiable Quaternion Operations - Traced quaternion operations for automatic differentiation through 3D rotations. A traced-quat is a quadruple of traced scalar values (w, x, y, z).")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
+(doc 'note "Quaternion notation: q = w + xi + yj + zk. Unit quaternions represent rotations: q = cos(θ/2) + sin(θ/2)(axis)")
+
+(doc 'section 'construction)
 
 ;;; traced-quat : TracedValue × TracedValue × TracedValue × TracedValue → TracedQuat
 ;;; Create a traced quaternion from traced w, x, y, z components.

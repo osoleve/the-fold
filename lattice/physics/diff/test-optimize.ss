@@ -1,17 +1,18 @@
-;;; core/diff-physics/test-optimize.ss --- Tests for Trajectory Optimization
-;;;
-;;; Comprehensive tests for optimization algorithms including:
-;;; - Gradient descent
-;;; - Gradient descent with momentum
-;;; - Adam optimizer
-;;; - Trajectory optimization
-;;; - Inverse physics (parameter estimation)
-;;; - Sensitivity analysis
-;;;
-;;; Run with: scheme --script core/diff-physics/test-optimize.ss
-
 (load "core/test-framework.ss")
 (load "lattice/physics/diff/optimize.ss")
+
+(doc 'module 'test-optimize)
+(doc 'description "Tests for Trajectory Optimization
+
+Comprehensive tests for optimization algorithms including:
+- Gradient descent
+- Gradient descent with momentum
+- Adam optimizer
+- Trajectory optimization
+- Inverse physics (parameter estimation)
+- Sensitivity analysis")
+(doc 'layer 'lattice)
+(doc 'note "Run with: scheme --script lattice/physics/diff/test-optimize.ss")
 
 (display "
 ====

@@ -1,20 +1,3 @@
-;;; core/diff-physics-3d/optimize3d.ss --- 3D Trajectory Optimization API
-;;;
-;;; High-level API for differentiable 3D physics optimization:
-;;; - Gradient descent and variants (Adam, momentum)
-;;; - Trajectory optimization
-;;; - Inverse physics (parameter estimation)
-;;; - Sensitivity analysis
-;;;
-;;; This is Core code: pure, total, assumes reasonable input.
-;;;
-;;; Dependencies:
-;;;   - core/base/prelude.ss
-;;;   - core/linalg/vec3.ss
-;;;   - core/linalg/quaternion.ss
-;;;   - core/autodiff/reverse-diff.ss
-;;;   - core/diff-physics-3d modules
-
 (load "core/base/prelude.ss")
 (load "lattice/linalg/vec3.ss")
 (load "lattice/linalg/quaternion.ss")
@@ -25,9 +8,12 @@
 (load "lattice/physics/diff3d/traced-integrators3d.ss")
 (load "lattice/physics/diff3d/rollout3d.ss")
 
-;;; ====
-;;; Gradient Descent (reusable from 2D, included for completeness)
-;;; ====
+(doc 'module 'optimize3d)
+(doc 'description "3D Trajectory Optimization API - High-level API for differentiable 3D physics optimization: gradient descent and variants (Adam, momentum), trajectory optimization, inverse physics (parameter estimation), sensitivity analysis.")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
+
+(doc 'section 'gradient-descent)
 
 ;;; gradient-descent-step-3d : (List Number) × (List Number) × Number → (List Number)
 ;;; Single gradient descent update: x = x - lr * grad

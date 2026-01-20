@@ -1,32 +1,24 @@
-;;; core/diff-physics/diff-constraints.ss --- Differentiable Constraint Solver
-;;;
-;;; Constraint system with gradient support using truncated unrolling.
-;;; Implements soft constraint forces that enable differentiable simulation.
-;;;
-;;; Supported constraint types:
-;;; - Distance constraint (fixed distance between points)
-;;; - Spring constraint (soft distance with stiffness)
-;;; - Revolute joint (shared pivot point)
-;;; - Anchor constraint (pin to world point)
-;;;
-;;; This is Core code: pure, total, assumes reasonable input.
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;   - linalg/vec2.ss
-;;;   - autodiff/reverse-diff.ss
-;;;   - diff-physics/traced-vec2.ss
-;;;   - diff-physics/traced-body.ss
-
 (load "core/base/prelude.ss")
 (load "lattice/linalg/vec2.ss")
 (load "core/autodiff/reverse-diff.ss")
 (load "lattice/physics/diff/traced-vec2.ss")
 (load "lattice/physics/diff/traced-body.ss")
 
-;;; ====
-;;; Spring Constraint (Naturally Differentiable)
-;;; ====
+(doc 'module 'diff-constraints)
+(doc 'description "Differentiable Constraint Solver
+
+Constraint system with gradient support using truncated unrolling.
+Implements soft constraint forces that enable differentiable simulation.
+
+Supported constraint types:
+- Distance constraint (fixed distance between points)
+- Spring constraint (soft distance with stiffness)
+- Revolute joint (shared pivot point)
+- Anchor constraint (pin to world point)")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
+
+(doc 'section 'spring-constraint)
 
 ;;; Springs are inherently smooth - the simplest differentiable constraint.
 

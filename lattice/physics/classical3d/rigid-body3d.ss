@@ -1,25 +1,13 @@
-;;; user/physics3d/rigid-body3d.ss --- 3D Rigid Body Dynamics
-;;;
-;;; Defines the 3D rigid body data structure with:
-;;;   - Position (Vec3) and linear velocity (Vec3)
-;;;   - Orientation (Quaternion) and angular velocity (Vec3)
-;;;   - Mass and inverse mass
-;;;   - Inertia tensor and inverse inertia tensor (3x3 matrices)
-;;;
-;;; Key difference from 2D: inertia is a 3x3 tensor, not a scalar.
-;;;
-;;; This is User code: may use shell utilities.
-;;;
-;;; Dependencies:
-;;;   - core/linalg/vec3.ss
-;;;   - core/linalg/quaternion.ss
-
 (load "lattice/linalg/vec3.ss")
 (load "lattice/linalg/quaternion.ss")
 
-;;; ====
-;;; 3x3 Matrix Utilities (for Inertia Tensors)
-;;; ====
+(doc 'module 'rigid-body3d)
+(doc 'description "3D Rigid Body Dynamics - Defines the 3D rigid body data structure with: Position (Vec3) and linear velocity (Vec3), Orientation (Quaternion) and angular velocity (Vec3), Mass and inverse mass, Inertia tensor and inverse inertia tensor (3x3 matrices).")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
+(doc 'note "Key difference from 2D: inertia is a 3x3 tensor, not a scalar.")
+
+(doc 'section 'mat3-utilities)
 
 ;;; mat3-identity : → Mat3
 ;;; Identity 3x3 matrix.

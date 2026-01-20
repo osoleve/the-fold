@@ -1,31 +1,3 @@
-;;; core/diff-physics/optimize.ss --- Trajectory Optimization API
-;;;
-;;; DEPRECATED: Prefer optic-optimize.ss for new code.
-;;;
-;;; This module uses manual parameter flattening which has known issues
-;;; with nested AD scopes. See optic-optimize.ss for cleaner implementations:
-;;;   optimize-trajectory        → optimize-trajectory-all
-;;;   optimize-initial-velocity  → optimize-initial-velocity-optic
-;;;
-;;; Kept for:
-;;;   - Adam optimizer (not yet available in optic-optimize)
-;;;   - Inverse physics (estimate-mass, estimate-gravity)
-;;;   - Checkpointed gradient computation
-;;;
-;;; High-level API for differentiable physics optimization:
-;;; - Gradient descent and variants (Adam, momentum)
-;;; - Trajectory optimization
-;;; - Inverse physics (parameter estimation)
-;;; - Sensitivity analysis
-;;;
-;;; This is Core code: pure, total, assumes reasonable input.
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;   - linalg/vec2.ss
-;;;   - autodiff/reverse-diff.ss
-;;;   - diff-physics modules
-
 (load "core/base/prelude.ss")
 (load "lattice/linalg/vec2.ss")
 (load "core/autodiff/reverse-diff.ss")
@@ -34,9 +6,29 @@
 (load "lattice/physics/diff/traced-integrators.ss")
 (load "lattice/physics/diff/rollout.ss")
 
-;;; ====
-;;; Gradient Descent
-;;; ====
+(doc 'module 'optimize)
+(doc 'deprecated "Prefer optic-optimize.ss for new code")
+(doc 'description "Trajectory Optimization API
+
+DEPRECATED: This module uses manual parameter flattening which has known issues
+with nested AD scopes. See optic-optimize.ss for cleaner implementations:
+  optimize-trajectory        → optimize-trajectory-all
+  optimize-initial-velocity  → optimize-initial-velocity-optic
+
+Kept for:
+  - Adam optimizer (not yet available in optic-optimize)
+  - Inverse physics (estimate-mass, estimate-gravity)
+  - Checkpointed gradient computation
+
+High-level API for differentiable physics optimization:
+- Gradient descent and variants (Adam, momentum)
+- Trajectory optimization
+- Inverse physics (parameter estimation)
+- Sensitivity analysis")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
+
+(doc 'section 'gradient-descent)
 
 ;;; gradient-descent-step : (List Number) × (List Number) × Number → (List Number)
 ;;; Single gradient descent update: x = x - lr * grad

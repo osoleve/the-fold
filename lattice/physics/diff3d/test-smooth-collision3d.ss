@@ -1,9 +1,10 @@
-;;; core/diff-physics-3d/test-smooth-collision3d.ss --- Tests for smooth-collision3d
-;;;
-;;; Run with: scheme --script core/diff-physics-3d/test-smooth-collision3d.ss
-
 (load "core/test-framework.ss")
 (load "lattice/physics/diff3d/smooth-collision3d.ss")
+
+(doc 'module 'test-smooth-collision3d)
+(doc 'description "Tests for smooth-collision3d")
+(doc 'layer 'lattice)
+(doc 'note "Run with: scheme --script lattice/physics/diff3d/test-smooth-collision3d.ss")
 
 (display "\n")
 (display "====\n")

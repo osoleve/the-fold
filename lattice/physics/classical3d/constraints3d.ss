@@ -1,42 +1,15 @@
-;;; user/physics3d/constraints3d.ss — 3D Constraint Data Structures
-;;;
-;;; Defines the base constraint types for 3D physics joints:
-;;;   - Distance constraint: Fixed distance between anchor points
-;;;   - Ball-socket joint: Shared pivot point (3 DOF removed)
-;;;   - Hinge joint: Shared pivot + aligned axis (5 DOF removed)
-;;;   - Fixed joint: No relative motion (6 DOF removed)
-;;;   - Spring constraint: Soft distance with stiffness/damping
-;;;
-;;; This is user code: interfaces with core but may have pragmatic shortcuts.
-;;;
-;;; Dependencies:
-;;;   - core/base/prelude.ss
-;;;   - core/linalg/vec3.ss
-;;;   - core/linalg/quaternion.ss
-
 (load "core/base/prelude.ss")
 (load "lattice/linalg/vec3.ss")
 (load "lattice/linalg/quaternion.ss")
 
-;;; ====
-;;; Base Constraint Structure
-;;; ====
+(doc 'module 'constraints3d)
+(doc 'description "3D Constraint Data Structures - Defines the base constraint types for 3D physics joints: Distance constraint (fixed distance between anchor points), Ball-socket joint (shared pivot point, 3 DOF removed), Hinge joint (shared pivot + aligned axis, 5 DOF removed), Fixed joint (no relative motion, 6 DOF removed), Spring constraint (soft distance with stiffness/damping).")
+(doc 'layer 'lattice)
+(doc 'purity 'partial)
 
-;;; A constraint connects two bodies (or one body to world) with
-;;; specific movement restrictions.
-;;;
-;;; Structure: (list 'constraint-3d type id entity-a entity-b data
-;;;                  solver-velocity solver-position cached-lambda)
-;;;
-;;; Fields:
-;;;   - type: Symbol ('distance-3d, 'ball-socket-3d, 'hinge-3d, 'fixed-3d, 'spring-3d)
-;;;   - id: Unique identifier
-;;;   - entity-a: ID of first entity
-;;;   - entity-b: ID of second entity (or #f for world anchor)
-;;;   - data: Type-specific parameters
-;;;   - solver-velocity: Function (world constraint dt) -> void
-;;;   - solver-position: Function (world constraint) -> void
-;;;   - cached-lambda: Cached impulse for warm starting
+(doc 'section 'base-constraint-structure)
+
+(doc 'note "A constraint connects two bodies (or one body to world) with specific movement restrictions. Structure: (list 'constraint-3d type id entity-a entity-b data solver-velocity solver-position cached-lambda). Fields: type (Symbol: 'distance-3d, 'ball-socket-3d, 'hinge-3d, 'fixed-3d, 'spring-3d), id (unique identifier), entity-a (ID of first entity), entity-b (ID of second entity or #f for world anchor), data (type-specific parameters), solver-velocity (Function (world constraint dt) -> void), solver-position (Function (world constraint) -> void), cached-lambda (cached impulse for warm starting)")
 
 ;;; make-constraint-3d : Symbol × Any × Any × Any × Any × Proc × Proc × Any → Constraint3D
 (define (make-constraint-3d type id entity-a entity-b data

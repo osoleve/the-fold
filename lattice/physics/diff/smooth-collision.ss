@@ -1,28 +1,21 @@
-;;; core/diff-physics/smooth-collision.ss --- Differentiable Collision Primitives
-;;;
-;;; Signed Distance Functions (SDFs) and soft contact models for differentiable
-;;; physics. SDFs provide smooth, differentiable representations of geometry.
-;;;
-;;; Key insight: Standard collision detection returns discrete contact/no-contact.
-;;; For differentiable physics, we use continuous penalty forces based on
-;;; penetration depth, computed via SDFs.
-;;;
-;;; This is Core code: pure, total, assumes reasonable input.
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;   - linalg/vec2.ss
-;;;   - autodiff/reverse-diff.ss
-;;;   - diff-physics/traced-vec2.ss
-
 (load "core/base/prelude.ss")
 (load "lattice/linalg/vec2.ss")
 (load "core/autodiff/reverse-diff.ss")
 (load "lattice/physics/diff/traced-vec2.ss")
 
-;;; ====
-;;; Signed Distance Functions (SDFs)
-;;; ====
+(doc 'module 'smooth-collision)
+(doc 'description "Differentiable Collision Primitives
+
+Signed Distance Functions (SDFs) and soft contact models for differentiable
+physics. SDFs provide smooth, differentiable representations of geometry.
+
+Key insight: Standard collision detection returns discrete contact/no-contact.
+For differentiable physics, we use continuous penalty forces based on
+penetration depth, computed via SDFs.")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
+
+(doc 'section 'signed-distance-functions)
 
 ;;; An SDF returns:
 ;;;   - negative values: inside the shape

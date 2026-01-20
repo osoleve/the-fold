@@ -1,18 +1,19 @@
-;;; core/diff-physics/test-traced-body.ss --- Tests for Traced Rigid Body
-;;;
-;;; Comprehensive tests for differentiable rigid body operations including:
-;;; - Construction and accessors
-;;; - State updates (immutable)
-;;; - Conversion to/from regular rigid body
-;;; - Velocity at point
-;;; - Impulse and force application
-;;; - Coordinate transformations
-;;; - Energy and momentum
-;;;
-;;; Run with: scheme --script core/diff-physics/test-traced-body.ss
-
 (load "core/test-framework.ss")
 (load "lattice/physics/diff/traced-body.ss")
+
+(doc 'module 'test-traced-body)
+(doc 'description "Tests for Traced Rigid Body
+
+Comprehensive tests for differentiable rigid body operations including:
+- Construction and accessors
+- State updates (immutable)
+- Conversion to/from regular rigid body
+- Velocity at point
+- Impulse and force application
+- Coordinate transformations
+- Energy and momentum")
+(doc 'layer 'lattice)
+(doc 'note "Run with: scheme --script lattice/physics/diff/test-traced-body.ss")
 
 (display "
 ====

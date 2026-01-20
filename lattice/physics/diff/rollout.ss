@@ -1,22 +1,3 @@
-;;; core/diff-physics/rollout.ss --- Multi-Step Simulation with Checkpointing
-;;;
-;;; Rollout functions for simulating physics over multiple timesteps with
-;;; gradient computation. Includes checkpointing for memory efficiency.
-;;;
-;;; Memory management:
-;;; - Naive rollout: O(T) memory for T timesteps (stores full tape)
-;;; - Checkpointed: O(sqrt(T)) memory (stores checkpoints, recomputes segments)
-;;;
-;;; This is Core code: pure, total, assumes reasonable input.
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;   - linalg/vec2.ss
-;;;   - autodiff/reverse-diff.ss
-;;;   - diff-physics/traced-vec2.ss
-;;;   - diff-physics/traced-body.ss
-;;;   - diff-physics/traced-integrators.ss
-
 (load "core/base/prelude.ss")
 (load "lattice/linalg/vec2.ss")
 (load "core/autodiff/reverse-diff.ss")
@@ -24,9 +5,19 @@
 (load "lattice/physics/diff/traced-body.ss")
 (load "lattice/physics/diff/traced-integrators.ss")
 
-;;; ====
-;;; Basic Rollout (Full Tape)
-;;; ====
+(doc 'module 'rollout)
+(doc 'description "Multi-Step Simulation with Checkpointing
+
+Rollout functions for simulating physics over multiple timesteps with
+gradient computation. Includes checkpointing for memory efficiency.
+
+Memory management:
+- Naive rollout: O(T) memory for T timesteps (stores full tape)
+- Checkpointed: O(sqrt(T)) memory (stores checkpoints, recomputes segments)")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
+
+(doc 'section 'basic-rollout)
 
 ;;; traced-rollout : TracedBody × (TracedBody → TracedBody) × Nat → TracedBody
 ;;; Roll out simulation for n steps using step function.

@@ -1,25 +1,18 @@
-;;; core/diff-physics/traced-body.ss --- Differentiable Rigid Body State
-;;;
-;;; Traced rigid body state for automatic differentiation through physics.
-;;; A traced body contains traced position, velocity, angle, and angular velocity.
-;;; Mass and inertia are treated as constants (non-differentiable) by default.
-;;;
-;;; This is Core code: pure, total, assumes reasonable input.
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;   - linalg/vec2.ss
-;;;   - user/physics/rigid-body.ss
-;;;   - diff-physics/traced-vec2.ss
-
 (load "core/base/prelude.ss")
 (load "lattice/linalg/vec2.ss")
 (load "lattice/physics/classical/rigid-body.ss")
 (load "lattice/physics/diff/traced-vec2.ss")
 
-;;; ====
-;;; Traced Rigid Body Data Structure
-;;; ====
+(doc 'module 'traced-body)
+(doc 'description "Differentiable Rigid Body State
+
+Traced rigid body state for automatic differentiation through physics.
+A traced body contains traced position, velocity, angle, and angular velocity.
+Mass and inertia are treated as constants (non-differentiable) by default.")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
+
+(doc 'section 'traced-rigid-body-data-structure)
 
 ;;; A traced rigid body has:
 ;;;   - pos: position (TracedVec2)

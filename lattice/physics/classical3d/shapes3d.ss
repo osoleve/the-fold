@@ -1,20 +1,11 @@
-;;; user/physics3d/shapes3d.ss --- 3D Collision Shapes
-;;;
-;;; Defines 3D shape primitives for collision detection:
-;;;   - Sphere3D: center + radius
-;;;   - Box3D: center + half-extents (axis-aligned)
-;;;   - AABB3D: min/max corners (axis-aligned bounding box)
-;;;
-;;; This is User code: may use shell utilities.
-;;;
-;;; Dependencies:
-;;;   - core/linalg/vec3.ss
-
 (load "lattice/linalg/vec3.ss")
 
-;;; ====
-;;; Sphere3D
-;;; ====
+(doc 'module 'shapes3d)
+(doc 'description "3D Collision Shapes - Defines 3D shape primitives for collision detection: Sphere3D (center + radius), Box3D (center + half-extents, axis-aligned), AABB3D (min/max corners, axis-aligned bounding box).")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
+
+(doc 'section 'sphere3d)
 
 ;;; sphere3d : Vec3 × Number → Sphere3D
 ;;; Create a sphere with given center and radius.

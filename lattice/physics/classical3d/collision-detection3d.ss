@@ -1,28 +1,14 @@
-;;; user/physics3d/collision-detection3d.ss --- 3D Collision Detection
-;;;
-;;; Comprehensive collision detection for 3D physics including:
-;;;   - AABB3D (Axis-Aligned Bounding Box)
-;;;   - Sphere primitives
-;;;   - Box3D (oriented box)
-;;;   - Broad phase (spatial hash)
-;;;
-;;; Manifold structure: (list normal-vec3 penetration contact-vec3)
-;;;   normal: unit vector from A toward B
-;;;   penetration: positive overlap depth
-;;;   contact: world-space contact point
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;   - vec3.ss
-;;;   - shapes3d.ss
-
 (load "core/base/prelude.ss")
 (load "lattice/linalg/vec3.ss")
 (load "lattice/physics/classical3d/shapes3d.ss")
 
-;;; ====
-;;; Point-in-Shape Tests
-;;; ====
+(doc 'module 'collision-detection3d)
+(doc 'description "3D Collision Detection - Comprehensive collision detection for 3D physics including: AABB3D (Axis-Aligned Bounding Box), Sphere primitives, Box3D (oriented box), Broad phase (spatial hash).")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
+(doc 'note "Manifold structure: (list normal-vec3 penetration contact-vec3) where normal is unit vector from A toward B, penetration is positive overlap depth, contact is world-space contact point")
+
+(doc 'section 'point-in-shape-tests)
 
 ;;; point-in-aabb3d? : Vec3 × AABB3D → Boolean
 (define (point-in-aabb3d? point aabb)

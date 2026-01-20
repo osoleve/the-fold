@@ -1,15 +1,16 @@
-;;; lattice/physics/diff/test-optic-optimize.ss --- Tests for Optic-Based Optimization
-;;;
-;;; Tests for optic-optimize.ss including:
-;;; - physics-optic-gradient computation
-;;; - optimize-trajectory-optic with various lenses
-;;; - optimize-initial-velocity-optic
-;;; - sensitivity-at-optic
-;;;
-;;; Run with: scheme --script lattice/physics/diff/test-optic-optimize.ss
-
 (load "core/testing/test-framework.ss")
 (load "lattice/physics/diff/optic-optimize.ss")
+
+(doc 'module 'test-optic-optimize)
+(doc 'description "Tests for Optic-Based Optimization
+
+Tests for optic-optimize.ss including:
+- physics-optic-gradient computation
+- optimize-trajectory-optic with various lenses
+- optimize-initial-velocity-optic
+- sensitivity-at-optic")
+(doc 'layer 'lattice)
+(doc 'note "Run with: scheme --script lattice/physics/diff/test-optic-optimize.ss")
 
 (display "
 ====

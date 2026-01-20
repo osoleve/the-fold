@@ -1,29 +1,16 @@
-;;; core/diff-physics-3d/traced-body3d.ss --- Differentiable 3D Rigid Body State
-;;;
-;;; Traced 3D rigid body state for automatic differentiation through physics.
-;;; A traced body contains traced position, velocity, orientation (quaternion),
-;;; and angular velocity. Mass and inertia tensor are constants.
-;;;
-;;; State dimension: 13 (3 pos + 3 vel + 4 quat + 3 omega)
-;;;
-;;; This is Core code: pure, total, assumes reasonable input.
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;   - linalg/vec3.ss
-;;;   - autodiff/reverse-diff.ss
-;;;   - diff-physics-3d/traced-vec3.ss
-;;;   - diff-physics-3d/traced-quaternion.ss
-
 (load "core/base/prelude.ss")
 (load "lattice/linalg/vec3.ss")
 (load "core/autodiff/reverse-diff.ss")
 (load "lattice/physics/diff3d/traced-vec3.ss")
 (load "lattice/physics/diff3d/traced-quaternion.ss")
 
-;;; ====
-;;; Mat3 Operations for Inertia Tensors
-;;; ====
+(doc 'module 'traced-body3d)
+(doc 'description "Differentiable 3D Rigid Body State - Traced 3D rigid body state for automatic differentiation through physics. A traced body contains traced position, velocity, orientation (quaternion), and angular velocity. Mass and inertia tensor are constants.")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
+(doc 'note "State dimension: 13 (3 pos + 3 vel + 4 quat + 3 omega)")
+
+(doc 'section 'mat3-operations)
 
 ;;; mat3-identity : → Mat3
 (define (mat3-identity)

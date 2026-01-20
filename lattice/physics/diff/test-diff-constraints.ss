@@ -1,18 +1,19 @@
-;;; core/diff-physics/test-diff-constraints.ss --- Tests for Differentiable Constraints
-;;;
-;;; Comprehensive tests for the constraint solver including:
-;;; - Spring constraints
-;;; - Distance constraints
-;;; - Anchor constraints
-;;; - Revolute joints
-;;; - Angular springs
-;;; - Multi-body constraint systems
-;;;
-;;; Run with: scheme --script core/diff-physics/test-diff-constraints.ss
-
 (load "core/test-framework.ss")
 (load "lattice/physics/diff/diff-constraints.ss")
 (load "lattice/physics/diff/traced-integrators.ss")
+
+(doc 'module 'test-diff-constraints)
+(doc 'description "Tests for Differentiable Constraints
+
+Comprehensive tests for the constraint solver including:
+- Spring constraints
+- Distance constraints
+- Anchor constraints
+- Revolute joints
+- Angular springs
+- Multi-body constraint systems")
+(doc 'layer 'lattice)
+(doc 'note "Run with: scheme --script lattice/physics/diff/test-diff-constraints.ss")
 
 (display "
 ====

@@ -1,17 +1,18 @@
-;;; core/diff-physics/test-rollout.ss --- Tests for Simulation Rollout
-;;;
-;;; Comprehensive tests for multi-step physics simulation including:
-;;; - Basic rollout
-;;; - Trajectory recording
-;;; - Checkpointing for memory efficiency
-;;; - Loss functions
-;;; - Projectile motion
-;;; - Substepping
-;;;
-;;; Run with: scheme --script core/diff-physics/test-rollout.ss
-
 (load "core/test-framework.ss")
 (load "lattice/physics/diff/rollout.ss")
+
+(doc 'module 'test-rollout)
+(doc 'description "Tests for Simulation Rollout
+
+Comprehensive tests for multi-step physics simulation including:
+- Basic rollout
+- Trajectory recording
+- Checkpointing for memory efficiency
+- Loss functions
+- Projectile motion
+- Substepping")
+(doc 'layer 'lattice)
+(doc 'note "Run with: scheme --script lattice/physics/diff/test-rollout.ss")
 
 (display "
 ====

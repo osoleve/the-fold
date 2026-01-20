@@ -1,24 +1,3 @@
-;;; user/physics3d/world3d.ss — 3D Physics World
-;;;
-;;; The physics world coordinates all 3D physics components:
-;;;   - Body management (add, remove, query)
-;;;   - Collision detection (broad + narrow phase)
-;;;   - Collision resolution (impulse + correction)
-;;;   - Constraint solving
-;;;   - Integration (forces, velocity, position)
-;;;
-;;; This is user code: interfaces with core but may have pragmatic shortcuts.
-;;;
-;;; Dependencies:
-;;;   - core/base/prelude.ss
-;;;   - core/linalg/vec3.ss
-;;;   - core/linalg/quaternion.ss
-;;;   - user/physics3d/rigid-body3d.ss
-;;;   - user/physics3d/shapes3d.ss
-;;;   - user/physics3d/collision-detection3d.ss
-;;;   - user/physics3d/constraints3d.ss
-;;;   - user/physics3d/constraint-solver3d.ss
-
 (load "core/base/prelude.ss")
 (load "lattice/linalg/vec3.ss")
 (load "lattice/linalg/quaternion.ss")
@@ -27,16 +6,14 @@
 (load "lattice/physics/classical3d/collision-detection3d.ss")
 (load "lattice/physics/classical3d/constraint-solver3d.ss")
 
-;;; ====
-;;; Physics Entity 3D
-;;; ====
+(doc 'module 'world3d)
+(doc 'description "3D Physics World - The physics world coordinates all 3D physics components: Body management (add, remove, query), Collision detection (broad + narrow phase), Collision resolution (impulse + correction), Constraint solving, Integration (forces, velocity, position).")
+(doc 'layer 'lattice)
+(doc 'purity 'partial)
 
-;;; A physics entity combines:
-;;;   - id: unique identifier
-;;;   - body: 3D rigid body (position, velocity, orientation, angular velocity)
-;;;   - shape: collision shape
-;;;   - material: physics material (restitution, friction)
-;;;   - user-data: optional user data
+(doc 'section 'physics-entity)
+
+(doc 'note "A physics entity combines: id (unique identifier), body (3D rigid body with position, velocity, orientation, angular velocity), shape (collision shape), material (physics material with restitution and friction), user-data (optional user data)")
 
 ;;; make-entity-3d : Any × RigidBody3D × Shape3D × Material × Any → Entity3D
 (define (make-entity-3d id body shape material user-data)

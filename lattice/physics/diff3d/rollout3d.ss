@@ -1,24 +1,3 @@
-;;; core/diff-physics-3d/rollout3d.ss --- Multi-Step 3D Simulation with Checkpointing
-;;;
-;;; Rollout functions for simulating 3D physics over multiple timesteps with
-;;; gradient computation. Includes checkpointing for memory efficiency.
-;;;
-;;; Memory management:
-;;; - Naive rollout: O(T) memory for T timesteps (stores full tape)
-;;; - Checkpointed: O(sqrt(T)) memory (stores checkpoints, recomputes segments)
-;;;
-;;; This is Core code: pure, total, assumes reasonable input.
-;;;
-;;; Dependencies:
-;;;   - core/base/prelude.ss
-;;;   - core/linalg/vec3.ss
-;;;   - core/linalg/quaternion.ss
-;;;   - core/autodiff/reverse-diff.ss
-;;;   - core/diff-physics-3d/traced-vec3.ss
-;;;   - core/diff-physics-3d/traced-quaternion.ss
-;;;   - core/diff-physics-3d/traced-body3d.ss
-;;;   - core/diff-physics-3d/traced-integrators3d.ss
-
 (load "core/base/prelude.ss")
 (load "lattice/linalg/vec3.ss")
 (load "lattice/linalg/quaternion.ss")
@@ -28,9 +7,13 @@
 (load "lattice/physics/diff3d/traced-body3d.ss")
 (load "lattice/physics/diff3d/traced-integrators3d.ss")
 
-;;; ====
-;;; Basic Rollout (Full Tape)
-;;; ====
+(doc 'module 'rollout3d)
+(doc 'description "Multi-Step 3D Simulation with Checkpointing - Rollout functions for simulating 3D physics over multiple timesteps with gradient computation. Includes checkpointing for memory efficiency.")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
+(doc 'note "Memory management: Naive rollout uses O(T) memory for T timesteps (stores full tape). Checkpointed uses O(sqrt(T)) memory (stores checkpoints, recomputes segments).")
+
+(doc 'section 'basic-rollout)
 
 ;;; traced-rollout-3d : TracedBody3D × (TracedBody3D → TracedBody3D) × Nat → TracedBody3D
 ;;; Roll out simulation for n steps using step function.

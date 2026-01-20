@@ -1,26 +1,3 @@
-;;; core/diff-physics-3d/diff-constraints3d.ss --- Differentiable 3D Constraint Solver
-;;;
-;;; Constraint system with gradient support using truncated unrolling.
-;;; Implements soft constraint forces that enable differentiable simulation.
-;;;
-;;; Supported constraint types:
-;;; - Spring constraint (soft distance with stiffness)
-;;; - Distance constraint (stiff spring)
-;;; - Ball-socket joint (point-to-point, 3 DOF removed)
-;;; - Hinge joint (5 DOF removed)
-;;; - Fixed joint (6 DOF removed)
-;;; - Anchor constraint (pin to world point)
-;;;
-;;; This is Core code: pure, total, assumes reasonable input.
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;   - linalg/vec3.ss
-;;;   - autodiff/reverse-diff.ss
-;;;   - diff-physics-3d/traced-vec3.ss
-;;;   - diff-physics-3d/traced-quaternion.ss
-;;;   - diff-physics-3d/traced-body3d.ss
-
 (load "core/base/prelude.ss")
 (load "lattice/linalg/vec3.ss")
 (load "core/autodiff/reverse-diff.ss")
@@ -28,11 +5,15 @@
 (load "lattice/physics/diff3d/traced-quaternion.ss")
 (load "lattice/physics/diff3d/traced-body3d.ss")
 
-;;; ====
-;;; Spring Constraint (Naturally Differentiable)
-;;; ====
+(doc 'module 'diff-constraints3d)
+(doc 'description "Differentiable 3D Constraint Solver - Constraint system with gradient support using truncated unrolling. Implements soft constraint forces that enable differentiable simulation.")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
+(doc 'note "Supported constraint types: Spring constraint (soft distance with stiffness), Distance constraint (stiff spring), Ball-socket joint (point-to-point, 3 DOF removed), Hinge joint (5 DOF removed), Fixed joint (6 DOF removed), Anchor constraint (pin to world point)")
 
-;;; Springs are inherently smooth - the simplest differentiable constraint.
+(doc 'section 'spring-constraints)
+
+(doc 'note "Springs are inherently smooth - the simplest differentiable constraint.")
 
 ;;; traced-spring-force-3d : TracedVec3 × TracedVec3 × Number × Number → TracedVec3
 ;;; Compute spring force between two points.

@@ -1,45 +1,25 @@
-;;; user/physics/constraint-solver.ss — Constraint Solvers
-;;;
-;;; Sequential impulse solvers for 2D physics constraints:
-;;;   - Distance constraint (1 DOF)
-;;;   - Revolute joint (2 DOF)
-;;;   - Spring constraint (soft 1 DOF)
-;;;   - Weld joint (3 DOF)
-;;;
-;;; Each solver has:
-;;;   - Velocity solver: Applies corrective impulses
-;;;   - Position solver: Fixes positional drift
-;;;
-;;; Uses Baumgarte stabilization for position correction.
-;;;
-;;; This is Core code: pure constraint math with world mutation.
-;;;
-;;; Dependencies:
-;;;   - core/base/prelude.ss
-;;;   - core/linalg/vec2.ss
-;;;   - user/physics/rigid-body.ss
-;;;   - user/physics/constraints.ss
 
 (load "core/base/prelude.ss")
 (load "lattice/linalg/vec2.ss")
 (load "lattice/physics/classical/rigid-body.ss")
 (load "lattice/physics/classical/constraints.ss")
 
-;;; ====
-;;; Solver Constants
-;;; ====
+
+(doc 'module 'constraint-solver)
+(doc 'description "Sequential impulse solvers for 2D physics constraints")
+(doc 'layer 'lattice)
+(doc 'purity 'partial)
+(doc 'section 'solver)
 
 (define *baumgarte-factor* 0.2)      ; Position correction bias
 (define *position-slop* 0.005)       ; Allow small penetration
 (define *angular-slop* 0.0001)       ; Allow small angle error
 
-;;; ====
-;;; Helper: Apply Impulse to Entity
-;;; ====
+(doc 'section 'helper:)
 
-;;; apply-constraint-impulse! : World x Any x Vec2 x Vec2 -> Void
-;;; Apply an impulse at a world point to an entity.
-;;; Updates both linear and angular velocity.
+(doc "apply-constraint-impulse! : World x Any x Vec2 x Vec2 -> Void")
+(doc "Apply an impulse at a world point to an entity.")
+(doc "Updates both linear and angular velocity.")
 (define (apply-constraint-impulse! world entity-id impulse world-point)
   (let ([entity (world-get-entity world entity-id)])
        (when (and entity (not (entity-static? entity)))
@@ -54,12 +34,10 @@
                    (world-update-entity! world entity-id
                                          (lambda (e) (entity-with-body e new-body)))))))
 
-;;; ====
-;;; Distance Constraint Solver
-;;; ====
+(doc 'section 'distance)
 
-;;; solve-distance-velocity : World x Constraint x Number -> Void
-;;; Solve velocity constraint for distance joint.
+(doc 'solve-distance-velocity 'type 'World x Constraint x Number -> Void)
+(doc "Solve velocity constraint for distance joint.")
 (define (solve-distance-velocity world constraint dt)
   (let* ([data (constraint-data constraint)]
          [local-a (distance-data-anchor-a data)]
@@ -143,8 +121,8 @@
                     (when entity-b-id
                           (apply-constraint-impulse! world entity-b-id impulse pos-b))))))
 
-;;; correct-distance-position : World x Constraint -> Void
-;;; Apply position correction for distance constraint.
+(doc 'correct-distance-position 'type 'World x Constraint -> Void)
+(doc "Apply position correction for distance constraint.")
 (define (correct-distance-position world constraint)
   (let* ([data (constraint-data constraint)]
          [target-dist (distance-data-target data)]
@@ -213,13 +191,11 @@
                                             (world-update-entity! world entity-b-id
                                                                   (lambda (e) (entity-with-body e new-body)))))))))))
 
-;;; ====
-;;; Revolute Joint Solver (2 DOF Point Constraint)
-;;; ====
+(doc 'section 'revolute)
 
-;;; solve-revolute-velocity : World x Constraint x Number -> Void
-;;; Solve velocity constraint for revolute joint.
-;;; Both anchors must move together (2D point-to-point).
+(doc 'solve-revolute-velocity 'type 'World x Constraint x Number -> Void)
+(doc "Solve velocity constraint for revolute joint.")
+(doc "Both anchors must move together (2D point-to-point).")
 (define (solve-revolute-velocity world constraint dt)
   (let* ([data (constraint-data constraint)]
          [local-a (revolute-data-anchor-a data)]
@@ -308,8 +284,8 @@
                     (when entity-b-id
                           (apply-constraint-impulse! world entity-b-id impulse pos-b))))))
 
-;;; correct-revolute-position : World x Constraint -> Void
-;;; Apply position correction for revolute joint.
+(doc 'correct-revolute-position 'type 'World x Constraint -> Void)
+(doc "Apply position correction for revolute joint.")
 (define (correct-revolute-position world constraint)
   (let* ([entity-a-id (constraint-entity-a constraint)]
          [entity-b-id (constraint-entity-b constraint)]
@@ -370,13 +346,11 @@
                                             (world-update-entity! world entity-b-id
                                                                   (lambda (e) (entity-with-body e new-body)))))))))))
 
-;;; ====
-;;; Spring Constraint Solver (Soft 1 DOF)
-;;; ====
+(doc 'section 'spring)
 
-;;; solve-spring-velocity : World x Constraint x Number -> Void
-;;; Solve velocity constraint for spring (soft constraint).
-;;; No position correction needed - spring force handles it.
+(doc 'solve-spring-velocity 'type 'World x Constraint x Number -> Void)
+(doc "Solve velocity constraint for spring (soft constraint).")
+(doc "No position correction needed - spring force handles it.")
 (define (solve-spring-velocity world constraint dt)
   (let* ([data (constraint-data constraint)]
          [rest-length (spring-data-rest-length data)]
@@ -431,16 +405,14 @@
                     (when entity-b-id
                           (apply-constraint-impulse! world entity-b-id (vec2-neg impulse) pos-b))))))
 
-;;; Springs don't need position correction (soft constraint)
+(doc "Springs don't need position correction (soft constraint)")
 (define (correct-spring-position world constraint)
   (void))
 
-;;; ====
-;;; Weld Joint Solver (3 DOF: 2 position + 1 angle)
-;;; ====
+(doc 'section 'weld)
 
-;;; solve-weld-velocity : World x Constraint x Number -> Void
-;;; Solve velocity constraint for weld joint (no relative motion).
+(doc 'solve-weld-velocity 'type 'World x Constraint x Number -> Void)
+(doc "Solve velocity constraint for weld joint (no relative motion).")
 (define (solve-weld-velocity world constraint dt)
   ;; First solve the point constraint (same as revolute)
   (solve-revolute-velocity world constraint dt)
@@ -496,8 +468,8 @@
                                (world-update-entity! world entity-b-id
                                                      (lambda (e) (entity-with-body e new-body)))))))))
 
-;;; correct-weld-position : World x Constraint -> Void
-;;; Apply position and angle correction for weld joint.
+(doc 'correct-weld-position 'type 'World x Constraint -> Void)
+(doc "Apply position and angle correction for weld joint.")
 (define (correct-weld-position world constraint)
   ;; First correct the point constraint
   (correct-revolute-position world constraint)
@@ -546,12 +518,10 @@
                                             (world-update-entity! world entity-b-id
                                                                   (lambda (e) (entity-with-body e new-body)))))))))))
 
-;;; ====
-;;; Constraint Factory Functions
-;;; ====
+(doc 'section 'constraint)
 
-;;; make-distance-joint : Any x Any x Any x Vec2 x Vec2 x Number -> Constraint
-;;; Create a distance constraint between two entities.
+(doc 'make-distance-joint 'type 'Any x Any x Any x Vec2 x Vec2 x Number -> Constraint)
+(doc "Create a distance constraint between two entities.")
 (define (make-distance-joint id entity-a entity-b local-anchor-a local-anchor-b distance)
   (make-constraint 'distance id entity-a entity-b
                    (make-distance-constraint-data local-anchor-a local-anchor-b distance)
@@ -559,8 +529,8 @@
                    correct-distance-position
                    0))  ; cached lambda
 
-;;; make-revolute-joint : Any x Any x Any x Vec2 x Vec2 -> Constraint
-;;; Create a revolute joint between two entities.
+(doc 'make-revolute-joint 'type 'Any x Any x Any x Vec2 x Vec2 -> Constraint)
+(doc "Create a revolute joint between two entities.")
 (define (make-revolute-joint id entity-a entity-b local-anchor-a local-anchor-b)
   (make-constraint 'revolute id entity-a entity-b
                    (make-revolute-constraint-data local-anchor-a local-anchor-b)
@@ -568,8 +538,8 @@
                    correct-revolute-position
                    (vec2 0 0)))  ; cached lambda (2D)
 
-;;; make-spring-joint : Any x Any x Any x Vec2 x Vec2 x Number x Number x Number -> Constraint
-;;; Create a spring constraint between two entities.
+(doc 'make-spring-joint 'type 'Any x Any x Any x Vec2 x Vec2 x Number x Number x Number -> Constraint)
+(doc "Create a spring constraint between two entities.")
 (define (make-spring-joint id entity-a entity-b local-anchor-a local-anchor-b
                            rest-length stiffness damping)
   (make-constraint 'spring id entity-a entity-b
@@ -578,9 +548,8 @@
                    solve-spring-velocity
                    correct-spring-position
                    0))
-
-;;; make-weld-joint : Any x Any x Any x Vec2 x Vec2 x Number -> Constraint
-;;; Create a weld joint between two entities.
+(doc 'make-weld-joint 'type 'Any x Any x Any x Vec2 x Vec2 x Number -> Constraint)
+(doc "Create a weld joint between two entities.")
 (define (make-weld-joint id entity-a entity-b local-anchor-a local-anchor-b ref-angle)
   (make-constraint 'weld id entity-a entity-b
                    (make-weld-constraint-data local-anchor-a local-anchor-b ref-angle)

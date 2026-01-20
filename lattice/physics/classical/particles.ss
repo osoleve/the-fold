@@ -1,50 +1,33 @@
-;;; lattice/physics/classical/particles.ss — 2D Particle System
-;;;
-;;; Physics-integrated particle simulation for effects like:
-;;;   - Explosions, sparks, smoke, fire
-;;;   - Trail effects
-;;;   - Environmental effects (rain, snow, debris)
-;;;
-;;; This is Lattice code: pure, functional, uses vec2 and PRNG.
-;;;
-;;; Features:
-;;;   - Particle emitters with configurable rate, spread, velocity
-;;;   - Particle lifetime and age-based effects
-;;;   - Force fields: gravity, wind, attractors, drag, turbulence
-;;;   - Optional collision with world geometry
-;;;   - Efficient list-based management (no mutation)
-;;;
-;;; Dependencies:
-;;;   - core/base/prelude.ss
-;;;   - lattice/linalg/vec2.ss
-;;;   - lattice/random/prng.ss
 
 (load "core/base/prelude.ss")
 (load "lattice/linalg/vec2.ss")
 (load "lattice/random/prng.ss")
 
-;;; ====
-;;; Particle Type
-;;; ====
 
-;;; Particle : lightweight physics object
-;;;   - pos       : Vec2 - current position
-;;;   - vel       : Vec2 - current velocity
-;;;   - lifetime  : Number - frames remaining (or seconds if using dt)
-;;;   - max-life  : Number - initial lifetime (for age calculation)
-;;;   - size      : Number - particle size (for rendering/collision)
-;;;   - color     : Any - particle color (user-defined representation)
-;;;   - user-data : Any - arbitrary user data
+(doc 'module 'particles)
+(doc 'description "2D particle system with emitters and force fields")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
+(doc 'section 'particle)
 
-;;; make-particle : Vec2 × Vec2 × Number × Number × Number × Any × Any → Particle
+(doc "Particle : lightweight physics object")
+(doc "  - pos       : Vec2 - current position")
+(doc "  - vel       : Vec2 - current velocity")
+(doc "  - lifetime  : Number - frames remaining (or seconds if using dt)")
+(doc "  - max-life  : Number - initial lifetime (for age calculation)")
+(doc "  - size      : Number - particle size (for rendering/collision)")
+(doc "  - color     : Any - particle color (user-defined representation)")
+(doc "  - user-data : Any - arbitrary user data")
+
 (define (make-particle pos vel lifetime max-life size color user-data)
+  (doc 'type '(make-particle : Vec2 × Vec2 × Number × Number × Number × Any × Any → Particle))
   (list 'particle pos vel lifetime max-life size color user-data))
 
-;;; particle? : Any → Boolean
+(doc "particle? : Any → Boolean")
 (define (particle? p)
   (and (pair? p) (eq? (car p) 'particle)))
 
-;;; Accessors
+(doc "Accessors")
 (define (particle-pos p) (list-ref p 1))
 (define (particle-vel p) (list-ref p 2))
 (define (particle-lifetime p) (list-ref p 3))
@@ -53,13 +36,13 @@
 (define (particle-color p) (list-ref p 6))
 (define (particle-user-data p) (list-ref p 7))
 
-;;; particle-alive? : Particle → Boolean
-;;; Check if particle is still alive.
+(doc "particle-alive? : Particle → Boolean")
+(doc "Check if particle is still alive.")
 (define (particle-alive? p)
   (> (particle-lifetime p) 0))
 
-;;; particle-age : Particle → Real[0,1]
-;;; Get normalized age (0=just born, 1=about to die).
+(doc 'particle-age 'type 'Particle → Real[0,1])
+(doc "Get normalized age (0=just born, 1=about to die).")
 (define (particle-age p)
   (let ([lifetime (particle-lifetime p)]
         [max-life (particle-max-life p)])
@@ -67,8 +50,8 @@
            1.0
            (- 1.0 (/ lifetime max-life)))))
 
-;;; particle-with-pos : Particle × Vec2 → Particle
 (define (particle-with-pos p new-pos)
+  (doc 'type '(particle-with-pos : Particle × Vec2 → Particle))
   (make-particle new-pos
                  (particle-vel p)
                  (particle-lifetime p)
@@ -77,8 +60,8 @@
                  (particle-color p)
                  (particle-user-data p)))
 
-;;; particle-with-vel : Particle × Vec2 → Particle
 (define (particle-with-vel p new-vel)
+  (doc 'type '(particle-with-vel : Particle × Vec2 → Particle))
   (make-particle (particle-pos p)
                  new-vel
                  (particle-lifetime p)
@@ -87,8 +70,8 @@
                  (particle-color p)
                  (particle-user-data p)))
 
-;;; particle-with-state : Particle × Vec2 × Vec2 × Number → Particle
 (define (particle-with-state p new-pos new-vel new-lifetime)
+  (doc 'type '(particle-with-state : Particle × Vec2 × Vec2 × Number → Particle))
   (make-particle new-pos
                  new-vel
                  new-lifetime
@@ -97,35 +80,33 @@
                  (particle-color p)
                  (particle-user-data p)))
 
-;;; ====
-;;; Force Fields
-;;; ====
+(doc 'section 'force)
 
-;;; A force field is a function: Particle → Vec2
-;;; The force is applied as acceleration (assumes unit mass particles).
+(doc "A force field is a function: Particle → Vec2")
+(doc "The force is applied as acceleration (assumes unit mass particles).")
 
-;;; gravity-field : Vec2 → ForceField
-;;; Constant gravitational acceleration.
+(doc 'gravity-field 'type 'Vec2 → ForceField)
+(doc "Constant gravitational acceleration.")
 (define (gravity-field g)
   (lambda (p) g))
 
-;;; wind-field : Vec2 × Number → ForceField
-;;; Wind force proportional to strength.
+(doc 'wind-field 'type 'Vec2 × Number → ForceField)
+(doc "Wind force proportional to strength.")
 (define (wind-field direction strength)
   (let ([force (vec2-scale (vec2-normalize direction) strength)])
        (lambda (p) force)))
 
-;;; drag-field : Number → ForceField
-;;; Velocity-proportional drag (slows particles).
+(doc 'drag-field 'type 'Number → ForceField)
+(doc "Velocity-proportional drag (slows particles).")
 (define (drag-field coefficient)
   (lambda (p)
           (vec2-scale (particle-vel p) (- coefficient))))
 
-;;; attractor-field : Vec2 × Number × Number → ForceField
-;;; Point attractor/repeller.
-;;;   center: attraction point
-;;;   strength: positive = attract, negative = repel
-;;;   falloff: 1=linear, 2=inverse-square (realistic)
+(doc 'attractor-field 'type 'Vec2 × Number × Number → ForceField)
+(doc "Point attractor/repeller.")
+(doc "  center: attraction point")
+(doc "  strength: positive = attract, negative = repel")
+(doc "  falloff: 1=linear, 2=inverse-square (realistic)")
 (define (attractor-field center strength falloff)
   (lambda (p)
           (let* ([to-center (vec2-sub center (particle-pos p))]
@@ -135,8 +116,8 @@
                     (let ([magnitude (/ strength (expt dist falloff))])
                          (vec2-scale (vec2-normalize to-center) magnitude))))))
 
-;;; vortex-field : Vec2 × Number × Number → ForceField
-;;; Swirling vortex around a center point.
+(doc 'vortex-field 'type 'Vec2 × Number × Number → ForceField)
+(doc "Swirling vortex around a center point.")
 (define (vortex-field center strength falloff)
   (lambda (p)
           (let* ([to-center (vec2-sub center (particle-pos p))]
@@ -147,9 +128,9 @@
                            [magnitude (/ strength (expt dist falloff))])
                           (vec2-scale tangent magnitude))))))
 
-;;; turbulence-field : Number × Number × Number → ForceField
-;;; Pseudo-random noise-based turbulence.
-;;; Uses simple hash-based noise for determinism.
+(doc 'turbulence-field 'type 'Number × Number × Number → ForceField)
+(doc "Pseudo-random noise-based turbulence.")
+(doc "Uses simple hash-based noise for determinism.")
 (define (turbulence-field scale strength seed)
   (lambda (p)
           (let* ([pos (particle-pos p)]
@@ -164,8 +145,8 @@
                  [force (vec2-from-angle angle)])
                 (vec2-scale force strength))))
 
-;;; combine-fields : (List ForceField) → ForceField
-;;; Sum multiple force fields.
+(doc 'combine-fields 'type '(List ForceField) → ForceField)
+(doc "Sum multiple force fields.")
 (define (combine-fields fields)
   (lambda (p)
           (fold-left (lambda (total field)
@@ -173,12 +154,10 @@
                      (vec2 0 0)
                      fields)))
 
-;;; ====
-;;; Particle Update
-;;; ====
+(doc 'section 'particle)
 
-;;; integrate-particle : Particle × ForceField × Number → Particle
-;;; Update particle using symplectic Euler integration.
+(doc 'integrate-particle 'type 'Particle × ForceField × Number → Particle)
+(doc "Update particle using symplectic Euler integration.")
 (define (integrate-particle p field dt)
   (let* ([accel (field p)]
          [new-vel (vec2-add (particle-vel p) (vec2-scale accel dt))]
@@ -186,42 +165,40 @@
          [new-life (- (particle-lifetime p) dt)])
         (particle-with-state p new-pos new-vel new-life)))
 
-;;; update-particle : Particle × ForceField × Number → Particle
-;;; Alias for integrate-particle.
+(doc 'update-particle 'type 'Particle × ForceField × Number → Particle)
+(doc "Alias for integrate-particle.")
 (define update-particle integrate-particle)
 
-;;; update-particles : (List Particle) × ForceField × Number → (List Particle)
-;;; Update all particles and remove dead ones.
+(doc 'update-particles 'type '(List Particle) × ForceField × Number → (List Particle))
+(doc "Update all particles and remove dead ones.")
 (define (update-particles particles field dt)
   (filter particle-alive?
           (map (lambda (p) (integrate-particle p field dt))
                particles)))
 
-;;; ====
-;;; Emitter Type
-;;; ====
+(doc 'section 'emitter)
 
-;;; Emitter: particle source
-;;;   - pos           : Vec2 - emitter position
-;;;   - rate          : Number - particles per second
-;;;   - spread        : Number - half-angle spread (radians)
-;;;   - direction     : Vec2 - emission direction (unit vector)
-;;;   - speed-min     : Number - minimum initial speed
-;;;   - speed-max     : Number - maximum initial speed
-;;;   - lifetime-min  : Number - minimum particle lifetime
-;;;   - lifetime-max  : Number - maximum particle lifetime
-;;;   - size-min      : Number - minimum particle size
-;;;   - size-max      : Number - maximum particle size
-;;;   - color         : Any - particle color
-;;;   - user-data     : Any - passed to spawned particles
-;;;   - accumulator   : Number - fractional particle accumulator
+(doc "Emitter: particle source")
+(doc "  - pos           : Vec2 - emitter position")
+(doc "  - rate          : Number - particles per second")
+(doc "  - spread        : Number - half-angle spread (radians)")
+(doc "  - direction     : Vec2 - emission direction (unit vector)")
+(doc "  - speed-min     : Number - minimum initial speed")
+(doc "  - speed-max     : Number - maximum initial speed")
+(doc "  - lifetime-min  : Number - minimum particle lifetime")
+(doc "  - lifetime-max  : Number - maximum particle lifetime")
+(doc "  - size-min      : Number - minimum particle size")
+(doc "  - size-max      : Number - maximum particle size")
+(doc "  - color         : Any - particle color")
+(doc "  - user-data     : Any - passed to spawned particles")
+(doc "  - accumulator   : Number - fractional particle accumulator")
 
-;;; make-emitter : ... → Emitter
 (define (make-emitter pos rate spread direction
                       speed-min speed-max
                       lifetime-min lifetime-max
                       size-min size-max
                       color user-data)
+  (doc 'type '(make-emitter : ... → Emitter))
   (list 'emitter
         pos rate spread (vec2-normalize direction)
         speed-min speed-max
@@ -229,12 +206,11 @@
         size-min size-max
         color user-data
         0))  ; accumulator
-
-;;; emitter? : Any → Boolean
+(doc "emitter? : Any → Boolean")
 (define (emitter? e)
   (and (pair? e) (eq? (car e) 'emitter)))
 
-;;; Emitter accessors
+(doc "Emitter accessors")
 (define (emitter-pos e) (list-ref e 1))
 (define (emitter-rate e) (list-ref e 2))
 (define (emitter-spread e) (list-ref e 3))
@@ -249,8 +225,8 @@
 (define (emitter-user-data e) (list-ref e 12))
 (define (emitter-accumulator e) (list-ref e 13))
 
-;;; emitter-with-pos : Emitter × Vec2 → Emitter
 (define (emitter-with-pos e new-pos)
+  (doc 'type '(emitter-with-pos : Emitter × Vec2 → Emitter))
   (list 'emitter
         new-pos
         (emitter-rate e)
@@ -266,8 +242,8 @@
         (emitter-user-data e)
         (emitter-accumulator e)))
 
-;;; emitter-with-direction : Emitter × Vec2 → Emitter
 (define (emitter-with-direction e new-dir)
+  (doc 'type '(emitter-with-direction : Emitter × Vec2 → Emitter))
   (list 'emitter
         (emitter-pos e)
         (emitter-rate e)
@@ -283,8 +259,8 @@
         (emitter-user-data e)
         (emitter-accumulator e)))
 
-;;; emitter-with-accumulator : Emitter × Number → Emitter
 (define (emitter-with-accumulator e acc)
+  (doc 'type '(emitter-with-accumulator : Emitter × Number → Emitter))
   (list 'emitter
         (emitter-pos e)
         (emitter-rate e)
@@ -300,12 +276,10 @@
         (emitter-user-data e)
         acc))
 
-;;; ====
-;;; Emitter Emission
-;;; ====
+(doc 'section 'emitter)
 
-;;; spawn-particle : Emitter × RNG → (Particle × RNG)
-;;; Spawn a single particle from the emitter.
+(doc 'spawn-particle 'type 'Emitter × RNG → (Particle × RNG))
+(doc "Spawn a single particle from the emitter.")
 (define (spawn-particle e rng)
   (let* (;; Random angle within spread
          [r1 (run-state (random-float-range (- (emitter-spread e))
@@ -344,9 +318,9 @@
                                   (emitter-user-data e))])
         (cons particle rng4)))
 
-;;; emitter-emit : Emitter × Number × RNG → (List Particle) × Emitter × RNG
-;;; Emit particles based on rate and dt.
-;;; Returns (particles new-emitter new-rng).
+(doc 'emitter-emit 'type 'Emitter × Number × RNG → (List Particle) × Emitter × RNG)
+(doc "Emit particles based on rate and dt.")
+(doc "Returns (particles new-emitter new-rng).")
 (define (emitter-emit e dt rng)
   (let* ([to-emit (+ (emitter-accumulator e) (* (emitter-rate e) dt))]
          [count (inexact->exact (floor to-emit))]
@@ -360,57 +334,53 @@
                         [r-next (cdr result)])
                        (loop (- n 1) (cons p particles) r-next))))))
 
-;;; ====
-;;; Particle System
-;;; ====
+(doc 'section 'particle)
 
-;;; ParticleSystem: manages emitters, particles, and forces
-;;;   - emitters  : (List Emitter)
-;;;   - particles : (List Particle)
-;;;   - forces    : ForceField (combined)
+(doc "ParticleSystem: manages emitters, particles, and forces")
+(doc "  - emitters  : (List Emitter)")
+(doc "  - particles : (List Particle)")
+(doc "  - forces    : ForceField (combined)")
 
-;;; make-particle-system : (List Emitter) × (List Particle) × ForceField → ParticleSystem
 (define (make-particle-system emitters particles forces)
+  (doc 'type '(make-particle-system : (List Emitter) × (List Particle) × ForceField → ParticleSystem))
   (list 'particle-system emitters particles forces))
 
-;;; particle-system? : Any → Boolean
+(doc "particle-system? : Any → Boolean")
 (define (particle-system? ps)
   (and (pair? ps) (eq? (car ps) 'particle-system)))
 
-;;; Accessors
+(doc "Accessors")
 (define (particle-system-emitters ps) (list-ref ps 1))
 (define (particle-system-particles ps) (list-ref ps 2))
 (define (particle-system-forces ps) (list-ref ps 3))
 
-;;; particle-system-count : ParticleSystem → Nat
-;;; Count active particles.
+(doc 'particle-system-count 'type 'ParticleSystem → Nat)
+(doc "Count active particles.")
 (define (particle-system-count ps)
   (length (particle-system-particles ps)))
 
-;;; particle-system-add-emitter : ParticleSystem × Emitter → ParticleSystem
 (define (particle-system-add-emitter ps emitter)
+  (doc 'type '(particle-system-add-emitter : ParticleSystem × Emitter → ParticleSystem))
   (make-particle-system (cons emitter (particle-system-emitters ps))
                         (particle-system-particles ps)
                         (particle-system-forces ps)))
 
-;;; particle-system-add-force : ParticleSystem × ForceField → ParticleSystem
 (define (particle-system-add-force ps field)
+  (doc 'type '(particle-system-add-force : ParticleSystem × ForceField → ParticleSystem))
   (make-particle-system (particle-system-emitters ps)
                         (particle-system-particles ps)
                         (combine-fields (list (particle-system-forces ps) field))))
 
-;;; particle-system-add-particles : ParticleSystem × (List Particle) → ParticleSystem
 (define (particle-system-add-particles ps new-particles)
+  (doc 'type '(particle-system-add-particles : ParticleSystem × (List Particle) → ParticleSystem))
   (make-particle-system (particle-system-emitters ps)
                         (append new-particles (particle-system-particles ps))
                         (particle-system-forces ps)))
 
-;;; ====
-;;; Particle System Update
-;;; ====
+(doc 'section 'particle)
 
-;;; particle-system-step : ParticleSystem × Number × RNG → (ParticleSystem × RNG)
-;;; Step the particle system forward by dt.
+(doc 'particle-system-step 'type 'ParticleSystem × Number × RNG → (ParticleSystem × RNG))
+(doc "Step the particle system forward by dt.")
 (define (particle-system-step ps dt rng)
   (let* ([forces (particle-system-forces ps)]
          ;; Update existing particles
@@ -437,17 +407,15 @@
          [new-system (make-particle-system new-emitters all-particles forces)])
         (cons new-system new-rng)))
 
-;;; ====
-;;; Convenience Constructors
-;;; ====
+(doc 'section 'convenience)
 
-;;; make-empty-system : → ParticleSystem
-;;; Create an empty particle system with no forces.
+(doc 'make-empty-system 'type '→ ParticleSystem)
+(doc "Create an empty particle system with no forces.")
 (define (make-empty-system)
   (make-particle-system '() '() (lambda (p) (vec2 0 0))))
 
-;;; make-simple-emitter : Vec2 × Number → Emitter
-;;; Create a simple upward emitter with defaults.
+(doc 'make-simple-emitter 'type 'Vec2 × Number → Emitter)
+(doc "Create a simple upward emitter with defaults.")
 (define (make-simple-emitter pos rate)
   (make-emitter pos
                 rate
@@ -459,8 +427,8 @@
                 'white       ; color
                 #f))         ; no user data
 
-;;; make-explosion-emitter : Vec2 × Number → Emitter
-;;; Create an omnidirectional burst emitter.
+(doc 'make-explosion-emitter 'type 'Vec2 × Number → Emitter)
+(doc "Create an omnidirectional burst emitter.")
 (define (make-explosion-emitter pos particle-count)
   (make-emitter pos
                 (* particle-count 60)  ; all in one frame (at 60fps)
@@ -472,8 +440,8 @@
                 'orange                ; color
                 #f))
 
-;;; make-fountain-emitter : Vec2 → Emitter
-;;; Create a fountain-style upward emitter.
+(doc 'make-fountain-emitter 'type 'Vec2 → Emitter)
+(doc "Create a fountain-style upward emitter.")
 (define (make-fountain-emitter pos)
   (make-emitter pos
                 50           ; 50 particles/second
@@ -485,8 +453,8 @@
                 'cyan        ; color
                 #f))
 
-;;; make-fire-emitter : Vec2 → Emitter
-;;; Create a fire-style emitter.
+(doc 'make-fire-emitter 'type 'Vec2 → Emitter)
+(doc "Create a fire-style emitter.")
 (define (make-fire-emitter pos)
   (make-emitter pos
                 100          ; dense
@@ -498,13 +466,11 @@
                 'red         ; color
                 #f))
 
-;;; ====
-;;; Burst Emission (One-Shot)
-;;; ====
+(doc 'section 'burst)
 
-;;; burst : Vec2 × Number × Number × Number × Any × RNG → (List Particle) × RNG
-;;; Create a burst of particles at a position.
-;;; spread: angle spread (radians), speed: initial speed, count: particle count
+(doc 'burst 'type 'Vec2 × Number × Number × Number × Any × RNG → (List Particle) × RNG)
+(doc "Create a burst of particles at a position.")
+(doc "spread: angle spread (radians), speed: initial speed, count: particle count")
 (define (burst pos spread speed lifetime count color rng)
   (let loop ([n count] [particles '()] [r rng])
        (if (<= n 0)
@@ -519,8 +485,8 @@
                   [p (make-particle pos vel lifetime lifetime 3 color #f)])
                  (loop (- n 1) (cons p particles) rng2)))))
 
-;;; explosion-burst : Vec2 × Number × RNG → (List Particle) × RNG
-;;; Create an explosion burst.
+(doc 'explosion-burst 'type 'Vec2 × Number × RNG → (List Particle) × RNG)
+(doc "Create an explosion burst.")
 (define (explosion-burst pos count rng)
   (let loop ([n count] [particles '()] [r rng])
        (if (<= n 0)
@@ -538,39 +504,35 @@
                   [p (make-particle pos vel lifetime lifetime 4 'orange #f)])
                  (loop (- n 1) (cons p particles) rng3)))))
 
-;;; ====
-;;; Particle Queries
-;;; ====
+(doc 'section 'particle)
 
-;;; particles-in-radius : (List Particle) × Vec2 × Number → (List Particle)
-;;; Find all particles within radius of a point.
+(doc 'particles-in-radius 'type '(List Particle) × Vec2 × Number → (List Particle))
+(doc "Find all particles within radius of a point.")
 (define (particles-in-radius particles center radius)
   (let ([r-sq (* radius radius)])
        (filter (lambda (p)
                        (<= (vec2-distance-sq (particle-pos p) center) r-sq))
                particles)))
 
-;;; particles-by-age : (List Particle) × Number × Number → (List Particle)
-;;; Find particles with age in [min-age, max-age].
+(doc 'particles-by-age 'type '(List Particle) × Number × Number → (List Particle))
+(doc "Find particles with age in [min-age, max-age].")
 (define (particles-by-age particles min-age max-age)
   (filter (lambda (p)
                   (let ([age (particle-age p)])
                        (and (>= age min-age) (<= age max-age))))
           particles))
 
-;;; oldest-particles : (List Particle) × Number → (List Particle)
-;;; Get the n oldest particles.
+(doc 'oldest-particles 'type '(List Particle) × Number → (List Particle))
+(doc "Get the n oldest particles.")
 (define (oldest-particles particles n)
   (take n (sort (lambda (a b)
                         (> (particle-age a) (particle-age b)))
                 particles)))
 
-;;; ====
-;;; Collision Support (Optional)
-;;; ====
+(doc 'section 'collision)
 
-;;; particle-bounce : Particle × Vec2 × Number → Particle
-;;; Bounce particle off a surface with given normal and restitution.
+(doc 'particle-bounce 'type 'Particle × Vec2 × Number → Particle)
+(doc "Bounce particle off a surface with given normal and restitution.")
 (define (particle-bounce p normal restitution)
   (let* ([vel (particle-vel p)]
          [dot (vec2-dot vel normal)]
@@ -578,8 +540,8 @@
          [new-vel (vec2-scale reflected restitution)])
         (particle-with-vel p new-vel)))
 
-;;; particle-in-bounds? : Particle × Vec2 × Vec2 → Boolean
-;;; Check if particle is within rectangular bounds.
+(doc "particle-in-bounds? : Particle × Vec2 × Vec2 → Boolean")
+(doc "Check if particle is within rectangular bounds.")
 (define (particle-in-bounds? p min-corner max-corner)
   (let ([pos (particle-pos p)])
        (and (>= (vec2-x pos) (vec2-x min-corner))
@@ -587,18 +549,16 @@
             (>= (vec2-y pos) (vec2-y min-corner))
             (<= (vec2-y pos) (vec2-y max-corner)))))
 
-;;; filter-bounds : (List Particle) × Vec2 × Vec2 → (List Particle)
-;;; Remove particles outside bounds.
+(doc 'filter-bounds 'type '(List Particle) × Vec2 × Vec2 → (List Particle))
+(doc "Remove particles outside bounds.")
 (define (filter-bounds particles min-corner max-corner)
   (filter (lambda (p) (particle-in-bounds? p min-corner max-corner))
           particles))
 
-;;; ====
-;;; Statistics
-;;; ====
+(doc 'section 'statistics)
 
-;;; particle-system-stats : ParticleSystem → Alist
-;;; Get statistics about the particle system.
+(doc 'particle-system-stats 'type 'ParticleSystem → Alist)
+(doc "Get statistics about the particle system.")
 (define (particle-system-stats ps)
   (let* ([particles (particle-system-particles ps)]
          [count (length particles)]
@@ -617,9 +577,7 @@
           (average-age . ,avg-age)
           (average-speed . ,avg-speed))))
 
-;;; ====
-;;; Module Load Message
-;;; ====
+(doc 'section 'module)
 
 (display "Particle System loaded.\n")
 (display "  Create: (make-particle-system emitters particles forces)\n")

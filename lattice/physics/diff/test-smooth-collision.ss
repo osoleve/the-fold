@@ -1,16 +1,17 @@
-;;; core/diff-physics/test-smooth-collision.ss --- Tests for Differentiable Collision
-;;;
-;;; Comprehensive tests for smooth collision primitives including:
-;;; - Signed Distance Functions (SDFs)
-;;; - Circle-circle and circle-plane contacts
-;;; - Soft contact forces
-;;; - Friction models
-;;; - Material properties
-;;;
-;;; Run with: scheme --script core/diff-physics/test-smooth-collision.ss
-
 (load "core/test-framework.ss")
 (load "lattice/physics/diff/smooth-collision.ss")
+
+(doc 'module 'test-smooth-collision)
+(doc 'description "Tests for Differentiable Collision
+
+Comprehensive tests for smooth collision primitives including:
+- Signed Distance Functions (SDFs)
+- Circle-circle and circle-plane contacts
+- Soft contact forces
+- Friction models
+- Material properties")
+(doc 'layer 'lattice)
+(doc 'note "Run with: scheme --script lattice/physics/diff/test-smooth-collision.ss")
 
 (display "
 ====

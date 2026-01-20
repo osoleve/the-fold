@@ -1,23 +1,3 @@
-;;; core/diff-physics/diff-collision.ss --- Differentiable Collision Response
-;;;
-;;; Impulse-based collision response with gradient support.
-;;; Combines soft contact forces with rigid body dynamics.
-;;;
-;;; For fully differentiable physics, this module provides:
-;;; 1. Soft contact model (via smooth-collision.ss)
-;;; 2. Contact geometry gradients (analytical)
-;;; 3. Integration with traced rigid bodies
-;;;
-;;; This is Core code: pure, total, assumes reasonable input.
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;   - linalg/vec2.ss
-;;;   - autodiff/reverse-diff.ss
-;;;   - diff-physics/traced-vec2.ss
-;;;   - diff-physics/traced-body.ss
-;;;   - diff-physics/smooth-collision.ss
-
 (load "core/base/prelude.ss")
 (load "lattice/linalg/vec2.ss")
 (load "core/autodiff/reverse-diff.ss")
@@ -25,9 +5,20 @@
 (load "lattice/physics/diff/traced-body.ss")
 (load "lattice/physics/diff/smooth-collision.ss")
 
-;;; ====
-;;; Circle-Circle Collision Response
-;;; ====
+(doc 'module 'diff-collision)
+(doc 'description "Differentiable Collision Response
+
+Impulse-based collision response with gradient support.
+Combines soft contact forces with rigid body dynamics.
+
+For fully differentiable physics, this module provides:
+1. Soft contact model (via smooth-collision.ss)
+2. Contact geometry gradients (analytical)
+3. Integration with traced rigid bodies")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
+
+(doc 'section 'circle-circle-collision-response)
 
 ;;; traced-circle-collision-force : TracedBody × Number × TracedBody × Number × SoftMaterial → (TracedVec2 × TracedValue)
 ;;; Compute soft contact force and torque between two circular bodies.

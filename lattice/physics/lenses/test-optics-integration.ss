@@ -1,13 +1,13 @@
-;;; lattice/physics/lenses/test-optics-integration.ss — Tests for Physics Optics Integration
-;;;
-;;; Run with: scheme --script lattice/physics/lenses/test-optics-integration.ss
-
+(load "core/base/prelude.ss")
 (load "core/testing/test-framework.ss")
 (load "lattice/physics/lenses/optics-integration.ss")
 
-;;; ====
-;;; Test Fixtures
-;;; ====
+(doc 'module 'test-optics-integration)
+(doc 'description "Tests for Physics Optics Integration")
+(doc 'layer 'lattice)
+(doc 'note "Run with: scheme --script lattice/physics/lenses/test-optics-integration.ss")
+
+(doc 'section 'test-fixtures)
 
 (define test-body
   (make-rigid-body (vec2 10 20)   ; pos
@@ -49,9 +49,7 @@
                                        1.0))
          (cons 'particle test-particle))))
 
-;;; ====
-;;; Optics Operators Tests
-;;; ====
+(doc 'section 'optics-operators-tests)
 
 (test-group "Optics Operators with Physics Lenses"
   (define-test "^. view with body-pos-lens"
@@ -99,9 +97,7 @@
         (assert-equal 20 (vec2-x (rigid-body-pos new-body2)))
         (assert-equal 4 (vec2-y (rigid-body-vel new-body2)))))))
 
-;;; ====
-;;; Composition Operator Tests
-;;; ====
+(doc 'section 'composition-operator-tests)
 
 (test-group ">>> Composition Operator"
   (define-test ">>> composes lenses left-to-right"
@@ -122,9 +118,7 @@
         (assert-true (just? maybe-player))
         (assert-equal 10 (vec2-x (rigid-body-pos (from-just maybe-player))))))))
 
-;;; ====
-;;; Traversal Tests
-;;; ====
+(doc 'section 'traversal-tests)
 
 (test-group "Physics Traversals"
   (define-test "bodies-each traverses all bodies"
@@ -159,9 +153,7 @@
       (assert-equal 1 (length parts))
       (assert-true (particle? (car parts))))))
 
-;;; ====
-;;; Affine Tests
-;;; ====
+(doc 'section 'affine-tests)
 
 (test-group "Physics Affines"
   (define-test "affine-rigid-angle works on rigid body"
@@ -200,9 +192,7 @@
       ;; Should return same particle unchanged
       (assert-true (particle? modified)))))
 
-;;; ====
-;;; World Optics Tests
-;;; ====
+(doc 'section 'world-optics-tests)
 
 (test-group "World Optics"
   (define-test "world-body finds existing body"
@@ -238,9 +228,7 @@
            [all (traversal-to-list world-all-bodies new-world)])
       (assert-true (> (vec2-y (view body-pos-lens (car all))) 999)))))
 
-;;; ====
-;;; Convenience Function Tests
-;;; ====
+(doc 'section 'convenience-function-tests)
 
 (test-group "Convenience Functions"
   (define-test "body-view works"
@@ -275,9 +263,7 @@
       (assert-equal 110 (vec2-x (rigid-body-pos new-body)))
       (assert-equal 220 (vec2-y (rigid-body-pos new-body))))))
 
-;;; ====
-;;; Fold Operation Tests
-;;; ====
+(doc 'section 'fold-operation-tests)
 
 (test-group "Fold Operations"
   (define-test "total-mass sums masses"
@@ -300,9 +286,7 @@
       (assert-equal 1 (length nearby))
       (assert-true (particle? (car nearby))))))
 
-;;; ====
-;;; Physics Step Tests
-;;; ====
+(doc 'section 'physics-step-tests)
 
 (test-group "Physics Step Functions"
   (define-test "step-body integrates position"
@@ -331,9 +315,7 @@
         ;; Player started at (10, 20) with vel (1, 2)
         (assert-true (< (abs (- (vec2-x player-pos) 10.1)) 0.001))))))
 
-;;; ====
-;;; Integration Example Tests
-;;; ====
+(doc 'section 'integration-example-tests)
 
 (test-group "Integration Examples"
   (define-test "complete physics update pipeline"
@@ -369,8 +351,6 @@
       ;; Enemy vel.y was -2, now 98
       (assert-equal 98 (vec2-y (view body-vel-lens enemy))))))
 
-;;; ====
-;;; Run Tests
-;;; ====
+(doc 'section 'run-tests)
 
 (run-all-tests)

@@ -1,10 +1,11 @@
-;;; core/diff-physics-3d/test-rollout3d.ss --- Tests for rollout3d and optimize3d
-;;;
-;;; Run with: scheme --script core/diff-physics-3d/test-rollout3d.ss
-
 (load "core/test-framework.ss")
-(load "lattice/physics/classical3d/rigid-body3d.ss")  ; For make-rigid-body-3d, inertia-solid-sphere
+(load "lattice/physics/classical3d/rigid-body3d.ss")
 (load "lattice/physics/diff3d/optimize3d.ss")
+
+(doc 'module 'test-rollout3d)
+(doc 'description "Tests for rollout3d and optimize3d")
+(doc 'layer 'lattice)
+(doc 'note "Run with: scheme --script lattice/physics/diff3d/test-rollout3d.ss")
 
 (display "\n")
 (display "====\n")

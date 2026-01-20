@@ -1,87 +1,70 @@
-;;; user/physics/raycasting.ss — 2D Raycasting for Physics Engine
-;;;
-;;; Comprehensive raycasting against 2D shapes:
-;;;   - AABB (slab method)
-;;;   - Circle (quadratic intersection)
-;;;   - Convex polygon (edge iteration)
-;;;   - Generic shape dispatch
-;;;
-;;; This is Core code: pure, total, assumes reasonable input.
-;;;
-;;; Dependencies:
-;;;   - core/base/prelude.ss
-;;;   - core/linalg/vec2.ss
-;;;   - user/physics/collision-detection.ss (shape types)
 
 (load "core/base/prelude.ss")
 (load "lattice/linalg/vec2.ss")
 (load "lattice/physics/classical/collision-detection.ss")
 
-;;; ====
-;;; Constants
-;;; ====
+
+(doc 'module 'raycasting)
+(doc 'description "2D raycasting against shapes")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
+(doc 'section 'constants)
 
 (define *ray-epsilon* 1e-10)
 
-;;; ====
-;;; Ray2 Data Structure
-;;; ====
+(doc 'section 'ray2)
 
-;;; make-ray2 : Vec2 x Vec2 x Number -> Ray2
-;;; Create a 2D ray with origin, direction (auto-normalized), and max distance.
+(doc "make-ray2 : Vec2 x Vec2 x Number -> Ray2")
+(doc "Create a 2D ray with origin, direction (auto-normalized), and max distance.")
 (define (make-ray2 origin direction max-dist)
   (list 'ray2 origin (vec2-normalize direction) max-dist))
 
-;;; ray2? : Any -> Boolean
+(doc "ray2? : Any -> Boolean")
 (define (ray2? r)
   (and (pair? r) (eq? (car r) 'ray2)))
 
-;;; ray2-origin : Ray2 -> Vec2
+(doc "ray2-origin : Ray2 -> Vec2")
 (define (ray2-origin r) (list-ref r 1))
 
-;;; ray2-direction : Ray2 -> Vec2
+(doc "ray2-direction : Ray2 -> Vec2")
 (define (ray2-direction r) (list-ref r 2))
 
-;;; ray2-max-dist : Ray2 -> Number
+(doc "ray2-max-dist : Ray2 -> Number")
 (define (ray2-max-dist r) (list-ref r 3))
 
-;;; ray2-point-at : Ray2 x Number -> Vec2
-;;; Get point at parameter t along ray.
+(doc "ray2-point-at : Ray2 x Number -> Vec2")
+(doc "Get point at parameter t along ray.")
 (define (ray2-point-at ray t)
   (vec2-add (ray2-origin ray)
             (vec2-scale (ray2-direction ray) t)))
 
-;;; ====
-;;; HitInfo Data Structure
-;;; ====
+(doc 'section 'hitinfo)
 
-;;; make-hit-info : Number x Vec2 x Vec2 x Shape -> HitInfo
-;;; Create hit result with distance (t), hit point, surface normal, and shape.
+(doc 'make-hit-info 'type 'Number x Vec2 x Vec2 x Shape -> HitInfo)
+(doc "Create hit result with distance (t), hit point, surface normal, and shape.")
 (define (make-hit-info distance point normal shape)
   (list 'hit-info distance point normal shape))
 
-;;; hit-info? : Any -> Boolean
+(doc "hit-info? : Any -> Boolean")
 (define (hit-info? h)
   (and (pair? h) (eq? (car h) 'hit-info)))
 
-;;; hit-info-distance : HitInfo -> Number
 (define (hit-info-distance h) (list-ref h 1))
+  (doc 'type '(hit-info-distance : HitInfo -> Number))
 
-;;; hit-info-point : HitInfo -> Vec2
 (define (hit-info-point h) (list-ref h 2))
+  (doc 'type '(hit-info-point : HitInfo -> Vec2))
 
-;;; hit-info-normal : HitInfo -> Vec2
 (define (hit-info-normal h) (list-ref h 3))
+  (doc 'type '(hit-info-normal : HitInfo -> Vec2))
 
-;;; hit-info-shape : HitInfo -> Shape
 (define (hit-info-shape h) (list-ref h 4))
+  (doc 'type '(hit-info-shape : HitInfo -> Shape))
 
-;;; ====
-;;; Ray-AABB Intersection (Slab Method)
-;;; ====
+(doc 'section 'ray-aabb)
 
-;;; ray2-aabb : Ray2 x AABB -> HitInfo | #f
-;;; Cast ray against AABB using slab method.
+(doc "ray2-aabb : Ray2 x AABB -> HitInfo or #f")
+(doc "Cast ray against AABB using slab method.")
 (define (ray2-aabb ray aabb)
   (let* ([origin (ray2-origin ray)]
          [dir (ray2-direction ray)]
@@ -149,12 +132,10 @@
                                  (make-hit-info t point normal aabb))
                            #f))])))))
 
-;;; ====
-;;; Ray-Circle Intersection (Quadratic)
-;;; ====
+(doc 'section 'ray-circle)
 
-;;; ray2-circle : Ray2 x Circle -> HitInfo | #f
-;;; Cast ray against circle using quadratic formula.
+(doc "ray2-circle : Ray2 x Circle -> HitInfo or #f")
+(doc "Cast ray against circle using quadratic formula.")
 (define (ray2-circle ray circle)
   (let* ([origin (ray2-origin ray)]
          [dir (ray2-direction ray)]
@@ -187,13 +168,11 @@
                                      [normal (vec2-normalize (vec2-sub point center))])
                                     (make-hit-info t point normal circle))))])))))
 
-;;; ====
-;;; Ray-Segment Intersection (Helper)
-;;; ====
+(doc 'section 'ray-segment)
 
-;;; ray2-segment : Vec2 x Vec2 x Vec2 x Vec2 -> (t . u) | #f
-;;; Intersect ray with line segment.
-;;; Returns (t . u) where t is ray param and u is segment param [0,1].
+(doc "ray2-segment : Vec2 x Vec2 x Vec2 x Vec2 -> (t . u) or #f")
+(doc "Intersect ray with line segment.")
+(doc "Returns (t . u) where t is ray param and u is segment param [0,1].")
 (define (ray2-segment-intersection ray-origin ray-dir p1 p2)
   (let* ([edge (vec2-sub p2 p1)]
          [origin-to-p1 (vec2-sub p1 ray-origin)]
@@ -206,12 +185,10 @@
                       (cons t u)
                       #f)))))
 
-;;; ====
-;;; Ray-Polygon Intersection
-;;; ====
+(doc 'section 'ray-polygon)
 
-;;; ray2-polygon : Ray2 x Polygon -> HitInfo | #f
-;;; Cast ray against convex polygon, finding closest edge hit.
+(doc "ray2-polygon : Ray2 x Polygon -> HitInfo or #f")
+(doc "Cast ray against convex polygon, finding closest edge hit.")
 (define (ray2-polygon ray polygon)
   (let* ([origin (ray2-origin ray)]
          [dir (ray2-direction ray)]
@@ -242,8 +219,8 @@
                                      (loop (+ i 1) (car result) normal))
                                (loop (+ i 1) best-t best-normal))))))))
 
-;;; ray2-polygon-exit : Ray2 x Polygon x Number -> HitInfo | #f
-;;; Find exit point when ray origin is inside polygon.
+(doc "ray2-polygon-exit : Ray2 x Polygon x Number -> HitInfo or #f")
+(doc "Find exit point when ray origin is inside polygon.")
 (define (ray2-polygon-exit ray polygon max-dist)
   (let* ([origin (ray2-origin ray)]
          [dir (ray2-direction ray)]
@@ -267,12 +244,10 @@
                                  (loop (+ i 1) (car result) normal))
                            (loop (+ i 1) best-t best-normal)))))))
 
-;;; ====
-;;; Generic Shape Dispatch
-;;; ====
+(doc 'section 'generic)
 
-;;; ray2-shape : Ray2 x Shape -> HitInfo | #f
-;;; Cast ray against any supported shape type.
+(doc "ray2-shape : Ray2 x Shape -> HitInfo or #f")
+(doc "Cast ray against any supported shape type.")
 (define (ray2-shape ray shape)
   (cond
    [(aabb? shape) (ray2-aabb ray shape)]
@@ -280,17 +255,15 @@
    [(polygon? shape) (ray2-polygon ray shape)]
    [else #f]))
 
-;;; ====
-;;; Convenience Constructors
-;;; ====
+(doc 'section 'convenience)
 
-;;; make-ray2-infinite : Vec2 x Vec2 -> Ray2
-;;; Create a ray with effectively infinite max distance.
+(doc "make-ray2-infinite : Vec2 x Vec2 -> Ray2")
+(doc "Create a ray with effectively infinite max distance.")
 (define (make-ray2-infinite origin direction)
   (make-ray2 origin direction 1e308))
 
-;;; make-ray2-between : Vec2 x Vec2 -> Ray2
-;;; Create a ray from start to end point.
+(doc "make-ray2-between : Vec2 x Vec2 -> Ray2")
+(doc "Create a ray from start to end point.")
 (define (make-ray2-between start end)
   (let ([diff (vec2-sub end start)])
        (make-ray2 start diff (vec2-magnitude diff))))

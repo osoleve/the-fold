@@ -1,10 +1,10 @@
-;;; core/diff-physics-3d/test-traced-vec3.ss --- Tests for traced-vec3
-;;;
-;;; Tests for differentiable 3D vector operations.
-;;; Run with: scheme --script core/diff-physics-3d/test-traced-vec3.ss
-
 (load "core/test-framework.ss")
 (load "lattice/physics/diff3d/traced-vec3.ss")
+
+(doc 'module 'test-traced-vec3)
+(doc 'description "Tests for traced-vec3 - Tests for differentiable 3D vector operations")
+(doc 'layer 'lattice)
+(doc 'note "Run with: scheme --script lattice/physics/diff3d/test-traced-vec3.ss")
 
 (display "
 ====

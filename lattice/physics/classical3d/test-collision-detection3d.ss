@@ -1,9 +1,10 @@
-;;; user/physics3d/test-collision-detection3d.ss --- Tests for collision-detection3d
-;;;
-;;; Run with: scheme --script user/physics3d/test-collision-detection3d.ss
-
 (load "core/test-framework.ss")
 (load "lattice/physics/classical3d/collision-detection3d.ss")
+
+(doc 'module 'test-collision-detection3d)
+(doc 'description "Tests for collision-detection3d")
+(doc 'layer 'lattice)
+(doc 'note "Run with: scheme --script lattice/physics/classical3d/test-collision-detection3d.ss")
 
 (display "\n")
 (display "====\n")

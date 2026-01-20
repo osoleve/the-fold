@@ -1,43 +1,38 @@
-;;; lattice/physics/diff/optic-optimize.ss --- Optic-Based Physics Optimization
-;;;
-;;; Physics parameter optimization using traced-optics.
-;;; PREFERRED over optimize.ss - fixes nested AD scope issues, cleaner API.
-;;;
-;;; Available optimizers:
-;;;
-;;;   optimize-trajectory-optic     Optimize SINGLE parameter via lens
-;;;   optimize-trajectory-all       Optimize ALL 6 DOF (replaces optimize-trajectory)
-;;;   optimize-initial-velocity-optic  Find velocity to hit target
-;;;   optimize-physics-param        Low-level: single param gradient descent
-;;;   optimize-physics-all-params   Low-level: full body gradient descent
-;;;   sensitivity-at-optic          Sensitivity analysis
-;;;
-;;; Key advantages over optimize.ss:
-;;;   - No manual flattening/unflattening
-;;;   - Single AD scope (fixes nested scope bugs)
-;;;   - Parameter selection via lens composition
-;;;   - Type-safe (lenses catch access errors)
-;;;
-;;; IMPORTANT: Loss functions must use traced operations (e.g., traced-vec2-distance-sq)
-;;;
-;;; Migration guide (optimize.ss → optic-optimize.ss):
-;;;   optimize-trajectory        → optimize-trajectory-all
-;;;   optimize-initial-velocity  → optimize-initial-velocity-optic
-;;;
-;;; Dependencies:
-;;;   - lattice/autodiff/traced-optics.ss
-;;;   - lattice/physics/lenses/lenses.ss
-;;;   - lattice/physics/diff/traced-body.ss
-
 (load "lattice/autodiff/traced-optics.ss")
 (load "lattice/physics/lenses/lenses.ss")
 (load "lattice/physics/diff/traced-body.ss")
 (load "lattice/physics/diff/traced-integrators.ss")
 (load "lattice/physics/diff/rollout.ss")
 
-;;; ============================================================
-;;; Core Optic-Based Optimization
-;;; ============================================================
+(doc 'module 'optic-optimize)
+(doc 'description "Optic-Based Physics Optimization
+
+Physics parameter optimization using traced-optics.
+PREFERRED over optimize.ss - fixes nested AD scope issues, cleaner API.
+
+Available optimizers:
+  optimize-trajectory-optic     Optimize SINGLE parameter via lens
+  optimize-trajectory-all       Optimize ALL 6 DOF (replaces optimize-trajectory)
+  optimize-initial-velocity-optic  Find velocity to hit target
+  optimize-physics-param        Low-level: single param gradient descent
+  optimize-physics-all-params   Low-level: full body gradient descent
+  sensitivity-at-optic          Sensitivity analysis
+
+Key advantages over optimize.ss:
+  - No manual flattening/unflattening
+  - Single AD scope (fixes nested scope bugs)
+  - Parameter selection via lens composition
+  - Type-safe (lenses catch access errors)
+
+IMPORTANT: Loss functions must use traced operations (e.g., traced-vec2-distance-sq)
+
+Migration guide (optimize.ss → optic-optimize.ss):
+  optimize-trajectory        → optimize-trajectory-all
+  optimize-initial-velocity  → optimize-initial-velocity-optic")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
+
+(doc 'section 'core-optic-optimization)
 
 ;;; optimize-physics-param : Optic × RigidBody2D × ((TracedBody → Traced) → loss) × Number × Nat → RigidBody2D
 ;;; Optimize a physics parameter specified by optic.

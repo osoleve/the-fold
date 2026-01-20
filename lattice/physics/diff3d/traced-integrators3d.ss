@@ -1,22 +1,3 @@
-;;; core/diff-physics-3d/traced-integrators3d.ss --- Differentiable 3D Physics Integration
-;;;
-;;; Differentiable numerical integration for 3D physics simulation.
-;;; Supports gradient computation through time-stepping for trajectory
-;;; optimization and inverse problems.
-;;;
-;;; Key difference from 2D: quaternion integration requires special care
-;;; to maintain unit length and avoid singularities.
-;;;
-;;; This is Core code: pure, total, assumes reasonable input.
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;   - linalg/vec3.ss
-;;;   - autodiff/reverse-diff.ss
-;;;   - diff-physics-3d/traced-vec3.ss
-;;;   - diff-physics-3d/traced-quaternion.ss
-;;;   - diff-physics-3d/traced-body3d.ss
-
 (load "core/base/prelude.ss")
 (load "lattice/linalg/vec3.ss")
 (load "core/autodiff/reverse-diff.ss")
@@ -24,27 +5,23 @@
 (load "lattice/physics/diff3d/traced-quaternion.ss")
 (load "lattice/physics/diff3d/traced-body3d.ss")
 
-;;; ====
-;;; Symplectic Euler Integration for 3D Rigid Bodies
-;;; ====
+(doc 'module 'traced-integrators3d)
+(doc 'description "Differentiable 3D Physics Integration - Differentiable numerical integration for 3D physics simulation. Supports gradient computation through time-stepping for trajectory optimization and inverse problems.")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
+(doc 'note "Key difference from 2D: quaternion integration requires special care to maintain unit length and avoid singularities.")
 
-;;; The symplectic Euler method is:
-;;;   v_{n+1} = v_n + a_n * dt
-;;;   x_{n+1} = x_n + v_{n+1} * dt
-;;;   omega_{n+1} = omega_n + alpha_n * dt
-;;;   q_{n+1} = normalize(q_n + 0.5 * dt * omega_quat * q_n)
-;;;
-;;; For quaternion integration, we use the derivative:
-;;;   dq/dt = 0.5 * omega_quat * q
-;;; where omega_quat = (0, omega_x, omega_y, omega_z)
+(doc 'section 'symplectic-euler)
 
-;;; traced-euler-step-3d : TracedBody3D × TracedVec3 × TracedVec3 × Number → TracedBody3D
-;;; Perform one symplectic Euler integration step.
-;;;   body: current body state
-;;;   accel: linear acceleration (force / mass)
-;;;   angular-accel: angular acceleration (I^-1 * torque)
-;;;   dt: time step (constant, not traced)
+(doc 'note "The symplectic Euler method is: v_{n+1} = v_n + a_n * dt, x_{n+1} = x_n + v_{n+1} * dt, omega_{n+1} = omega_n + alpha_n * dt, q_{n+1} = normalize(q_n + 0.5 * dt * omega_quat * q_n). For quaternion integration, we use the derivative: dq/dt = 0.5 * omega_quat * q where omega_quat = (0, omega_x, omega_y, omega_z)")
+
 (define (traced-euler-step-3d body accel angular-accel dt)
+  (doc 'type (-> TracedBody3D TracedVec3 TracedVec3 Number TracedBody3D))
+  (doc 'description "Perform one symplectic Euler integration step")
+  (doc 'param 'body "current body state")
+  (doc 'param 'accel "linear acceleration (force / mass)")
+  (doc 'param 'angular-accel "angular acceleration (I^-1 * torque)")
+  (doc 'param 'dt "time step (constant, not traced)")
   (if (traced-body-3d-static? body)
       body  ; Static bodies don't move
       (let* (;; Update velocities first (symplectic)

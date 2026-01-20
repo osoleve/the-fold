@@ -1,13 +1,13 @@
-;;; lattice/physics/lenses/test-lenses.ss — Tests for Physics Lenses
-;;;
-;;; Run with: scheme --script lattice/physics/lenses/test-lenses.ss
-
+(load "core/base/prelude.ss")
 (load "core/testing/test-framework.ss")
 (load "lattice/physics/lenses/lenses.ss")
 
-;;; ====
-;;; Test Fixtures
-;;; ====
+(doc 'module 'test-lenses)
+(doc 'description "Tests for Physics Lenses")
+(doc 'layer 'lattice)
+(doc 'note "Run with: scheme --script lattice/physics/lenses/test-lenses.ss")
+
+(doc 'section 'test-fixtures)
 
 (define test-body
   (make-rigid-body (vec2 10 20)   ; pos
@@ -26,9 +26,7 @@
                  'red             ; color
                  #f))             ; user-data
 
-;;; ====
-;;; Vec2 Lens Tests
-;;; ====
+(doc 'section 'vec2-lens-tests)
 
 (test-group "Vec2 Lenses"
   (define-test "vec2-x-lens view"
@@ -52,9 +50,7 @@
       (assert-equal 20 (vec2-x v))
       (assert-equal 20 (vec2-y v)))))
 
-;;; ====
-;;; RigidBody Lens Tests
-;;; ====
+(doc 'section 'rigid-body-lens-tests)
 
 (test-group "RigidBody Lenses"
   (define-test "rigid-body-pos-lens view"
@@ -101,9 +97,7 @@
                          test-body)])
       (assert-equal 1.5 (rigid-body-angle new-body)))))
 
-;;; ====
-;;; Composed Lens Tests
-;;; ====
+(doc 'section 'composed-lens-tests)
 
 (test-group "Composed Lenses"
   (define-test "rigid-body-pos-x-lens view"
@@ -134,9 +128,7 @@
       (let ([new-body (set-lens composed 42 test-body)])
         (assert-equal 42 (vec2-x (rigid-body-pos new-body)))))))
 
-;;; ====
-;;; Particle Lens Tests
-;;; ====
+(doc 'section 'particle-lens-tests)
 
 (test-group "Particle Lenses"
   (define-test "particle-pos-lens view"
@@ -180,9 +172,7 @@
       (assert-equal 5 (vec2-x (particle-pos new-p)))
       (assert-equal 99 (vec2-y (particle-pos new-p))))))
 
-;;; ====
-;;; Generic Body Lens Tests
-;;; ====
+(doc 'section 'generic-body-lens-tests)
 
 (test-group "Generic Body Lenses"
   (define-test "body-pos-lens works on rigid-body"
@@ -244,9 +234,7 @@
     (assert-equal 1.0 (view particle-mass-lens
                             (set-lens particle-mass-lens 999 test-particle)))))
 
-;;; ====
-;;; Dot Notation Tests
-;;; ====
+(doc 'section 'dot-notation-tests)
 
 (test-group "Dot Notation"
   (define-test "(body. pos) view"
@@ -291,9 +279,7 @@
   (define-test "(body. color) view on particle"
     (assert-equal 'red (view (body. color) test-particle))))
 
-;;; ====
-;;; Lens Laws Tests
-;;; ====
+(doc 'section 'lens-laws-tests)
 
 (test-group "Lens Laws"
   ;; Get-Put: set l (view l s) s = s
@@ -321,9 +307,7 @@
       (assert-equal (rigid-body-angle body-via-two)
                     (rigid-body-angle body-direct)))))
 
-;;; ====
-;;; Aliases Tests
-;;; ====
+(doc 'section 'aliases-tests)
 
 (test-group "Aliases"
   (define-test "position-lens alias"
@@ -342,9 +326,7 @@
     (assert-equal (view rigid-body-angle-lens test-body)
                   (view rotation-lens test-body))))
 
-;;; ====
-;;; Integration Utility Tests
-;;; ====
+(doc 'section 'integration-utility-tests)
 
 (test-group "Integration Utilities"
   (define-test "integrate-position-via-lens"
@@ -359,8 +341,6 @@
       (assert-equal expected-x (vec2-x (rigid-body-pos new-body)))
       (assert-equal expected-y (vec2-y (rigid-body-pos new-body))))))
 
-;;; ====
-;;; Run Tests
-;;; ====
+(doc 'section 'run-tests)
 
 (run-all-tests)

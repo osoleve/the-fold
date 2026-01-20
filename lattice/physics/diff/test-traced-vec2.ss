@@ -1,19 +1,20 @@
-;;; core/diff-physics/test-traced-vec2.ss --- Tests for Traced Vec2 Operations
-;;;
-;;; Comprehensive tests for differentiable 2D vector operations including:
-;;; - Construction and conversion
-;;; - Arithmetic operations
-;;; - Dot and cross products
-;;; - Length and distance
-;;; - Normalization
-;;; - Rotation and transformation
-;;; - Smooth approximations
-;;; - Gradient utilities
-;;;
-;;; Run with: scheme --script core/diff-physics/test-traced-vec2.ss
-
 (load "core/test-framework.ss")
 (load "lattice/physics/diff/traced-vec2.ss")
+
+(doc 'module 'test-traced-vec2)
+(doc 'description "Tests for Traced Vec2 Operations
+
+Comprehensive tests for differentiable 2D vector operations including:
+- Construction and conversion
+- Arithmetic operations
+- Dot and cross products
+- Length and distance
+- Normalization
+- Rotation and transformation
+- Smooth approximations
+- Gradient utilities")
+(doc 'layer 'lattice)
+(doc 'note "Run with: scheme --script lattice/physics/diff/test-traced-vec2.ss")
 
 (display "
 ====

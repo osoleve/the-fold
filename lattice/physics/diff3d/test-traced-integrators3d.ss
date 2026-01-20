@@ -1,9 +1,10 @@
-;;; core/diff-physics-3d/test-traced-integrators3d.ss --- Tests for traced-integrators3d
-;;;
-;;; Run with: scheme --script core/diff-physics-3d/test-traced-integrators3d.ss
-
 (load "core/test-framework.ss")
 (load "lattice/physics/diff3d/traced-integrators3d.ss")
+
+(doc 'module 'test-traced-integrators3d)
+(doc 'description "Tests for traced-integrators3d")
+(doc 'layer 'lattice)
+(doc 'note "Run with: scheme --script lattice/physics/diff3d/test-traced-integrators3d.ss")
 
 (display "\n")
 (display "====\n")

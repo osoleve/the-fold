@@ -1,125 +1,115 @@
-;;; core/diff-physics/traced-vec2.ss --- Differentiable 2D Vector Operations
-;;;
-;;; Traced vec2 operations for automatic differentiation through physics.
-;;; A traced-vec2 is a pair of traced scalar values, enabling gradient
-;;; computation through vector arithmetic.
-;;;
-;;; This is Core code: pure, total, assumes reasonable input.
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;   - linalg/vec2.ss
-;;;   - autodiff/reverse-diff.ss
-
 (load "core/base/prelude.ss")
 (load "lattice/linalg/vec2.ss")
 (load "core/autodiff/reverse-diff.ss")
 
-;;; ====
-;;; Traced Vec2 Construction
-;;; ====
+(doc 'module 'traced-vec2)
+(doc 'description "Differentiable 2D Vector Operations
 
-;;; traced-vec2 : TracedValue × TracedValue → TracedVec2
-;;; Create a traced 2D vector from traced x and y components.
+Traced vec2 operations for automatic differentiation through physics.
+A traced-vec2 is a pair of traced scalar values, enabling gradient
+computation through vector arithmetic.")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
+
+(doc 'section 'traced-vec2-construction)
+
 (define (traced-vec2 x y)
+  (doc 'type '(-> TracedValue TracedValue TracedVec2))
+  (doc 'description "Create a traced 2D vector from traced x and y components")
   (list 'traced-vec2 x y))
 
-;;; traced-vec2? : Any → Boolean
 (define (traced-vec2? v)
+  (doc 'type '(-> Any Boolean))
   (and (pair? v) (eq? (car v) 'traced-vec2)))
 
-;;; traced-vec2-x : TracedVec2 → TracedValue
-(define (traced-vec2-x v) (cadr v))
+(define (traced-vec2-x v)
+  (doc 'type '(-> TracedVec2 TracedValue))
+  (cadr v))
 
-;;; traced-vec2-y : TracedVec2 → TracedValue
-(define (traced-vec2-y v) (caddr v))
+(define (traced-vec2-y v)
+  (doc 'type '(-> TracedVec2 TracedValue))
+  (caddr v))
 
-;;; traced-vec2-zero : Tape → TracedVec2
-;;; Create traced zero vector.
 (define (traced-vec2-zero tape)
+  (doc 'type '(-> Tape TracedVec2))
+  (doc 'description "Create traced zero vector")
   (traced-vec2 (make-traced-var 0 tape)
                (make-traced-var 0 tape)))
 
-;;; ====
-;;; Conversion Between Vec2 and TracedVec2
-;;; ====
+(doc 'section 'vec2-conversion)
 
-;;; lift-vec2 : Vec2 × Tape → TracedVec2
-;;; Convert regular vec2 to traced vec2 (creates traced variables).
 (define (lift-vec2 v tape)
+  (doc 'type '(-> Vec2 Tape TracedVec2))
+  (doc 'description "Convert regular vec2 to traced vec2 (creates traced variables)")
   (traced-vec2 (make-traced-var (vec2-x v) tape)
                (make-traced-var (vec2-y v) tape)))
 
-;;; lift-vec2-const : Vec2 → TracedVec2
-;;; Convert regular vec2 to traced vec2 with constant components.
-;;; Constants have zero gradient and don't need tape tracking.
 (define (lift-vec2-const v)
+  (doc 'type '(-> Vec2 TracedVec2))
+  (doc 'description "Convert regular vec2 to traced vec2 with constant components.
+Constants have zero gradient and don't need tape tracking")
   (traced-vec2 (vec2-x v) (vec2-y v)))
 
-;;; unpack-traced-vec2 : TracedVec2 → Vec2
-;;; Extract numeric values from traced vec2.
 (define (unpack-traced-vec2 tv)
+  (doc 'type '(-> TracedVec2 Vec2))
+  (doc 'description "Extract numeric values from traced vec2")
   (vec2 (traced-value (traced-vec2-x tv))
         (traced-value (traced-vec2-y tv))))
 
-;;; traced-vec2->list : TracedVec2 → (List TracedValue)
-;;; Extract components as list.
 (define (traced-vec2->list tv)
+  (doc 'type '(-> TracedVec2 (List TracedValue)))
+  (doc 'description "Extract components as list")
   (list (traced-vec2-x tv) (traced-vec2-y tv)))
 
-;;; ====
-;;; Basic Arithmetic
-;;; ====
+(doc 'section 'basic-arithmetic)
 
-;;; traced-vec2-add : TracedVec2 × TracedVec2 → TracedVec2
-;;; Vector addition with gradient tracking.
 (define (traced-vec2-add a b)
+  (doc 'type '(-> TracedVec2 TracedVec2 TracedVec2))
+  (doc 'description "Vector addition with gradient tracking")
   (traced-vec2 (traced-add (traced-vec2-x a) (traced-vec2-x b))
                (traced-add (traced-vec2-y a) (traced-vec2-y b))))
 
-;;; traced-vec2-sub : TracedVec2 × TracedVec2 → TracedVec2
-;;; Vector subtraction.
 (define (traced-vec2-sub a b)
+  (doc 'type '(-> TracedVec2 TracedVec2 TracedVec2))
+  (doc 'description "Vector subtraction")
   (traced-vec2 (traced-sub (traced-vec2-x a) (traced-vec2-x b))
                (traced-sub (traced-vec2-y a) (traced-vec2-y b))))
 
-;;; traced-vec2-neg : TracedVec2 → TracedVec2
-;;; Negate a vector.
 (define (traced-vec2-neg v)
+  (doc 'type '(-> TracedVec2 TracedVec2))
+  (doc 'description "Negate a vector")
   (traced-vec2 (traced-neg (traced-vec2-x v))
                (traced-neg (traced-vec2-y v))))
 
-;;; traced-vec2-mul : TracedVec2 × TracedVec2 → TracedVec2
-;;; Component-wise multiplication (Hadamard product).
 (define (traced-vec2-mul a b)
+  (doc 'type '(-> TracedVec2 TracedVec2 TracedVec2))
+  (doc 'description "Component-wise multiplication (Hadamard product)")
   (traced-vec2 (traced-mul (traced-vec2-x a) (traced-vec2-x b))
                (traced-mul (traced-vec2-y a) (traced-vec2-y b))))
 
-;;; traced-vec2-div : TracedVec2 × TracedVec2 → TracedVec2
-;;; Component-wise division.
 (define (traced-vec2-div a b)
+  (doc 'type '(-> TracedVec2 TracedVec2 TracedVec2))
+  (doc 'description "Component-wise division")
   (traced-vec2 (traced-div (traced-vec2-x a) (traced-vec2-x b))
                (traced-div (traced-vec2-y a) (traced-vec2-y b))))
 
-;;; traced-vec2-scale : TracedVec2 × TracedValue → TracedVec2
-;;; Scalar multiplication.
 (define (traced-vec2-scale v s)
+  (doc 'type '(-> TracedVec2 TracedValue TracedVec2))
+  (doc 'description "Scalar multiplication")
   (traced-vec2 (traced-mul (traced-vec2-x v) s)
                (traced-mul (traced-vec2-y v) s)))
 
-;;; traced-vec2-scale-inv : TracedVec2 × TracedValue → TracedVec2
-;;; Scalar division (v / s).
 (define (traced-vec2-scale-inv v s)
+  (doc 'type '(-> TracedVec2 TracedValue TracedVec2))
+  (doc 'description "Scalar division (v / s)")
   (traced-vec2 (traced-div (traced-vec2-x v) s)
                (traced-div (traced-vec2-y v) s)))
 
-;;; ====
-;;; Products
-;;; ====
+(doc 'section 'products)
 
-;;; traced-vec2-dot : TracedVec2 × TracedVec2 → TracedValue
-;;; Dot product.
 (define (traced-vec2-dot a b)
+  (doc 'type '(-> TracedVec2 TracedVec2 TracedValue))
+  (doc 'description "Dot product")
   (traced-add (traced-mul (traced-vec2-x a) (traced-vec2-x b))
               (traced-mul (traced-vec2-y a) (traced-vec2-y b))))
 
@@ -130,9 +120,7 @@
   (traced-sub (traced-mul (traced-vec2-x a) (traced-vec2-y b))
               (traced-mul (traced-vec2-y a) (traced-vec2-x b))))
 
-;;; ====
-;;; Length and Distance
-;;; ====
+(doc 'section 'length-and-distance)
 
 ;;; traced-vec2-magnitude-sq : TracedVec2 → TracedValue
 ;;; Squared magnitude (avoids sqrt).
@@ -168,9 +156,7 @@
 (define (traced-vec2-smooth-distance a b epsilon)
   (traced-vec2-smooth-magnitude (traced-vec2-sub a b) epsilon))
 
-;;; ====
-;;; Normalization
-;;; ====
+(doc 'section 'normalization)
 
 ;;; traced-vec2-normalize : TracedVec2 → TracedVec2
 ;;; Return unit vector in same direction.
@@ -193,9 +179,7 @@
            (lift-vec2-const (vec2-zero))
            (traced-vec2-normalize v))))
 
-;;; ====
-;;; Rotation and Transformation
-;;; ====
+(doc 'section 'rotation-and-transformation)
 
 ;;; traced-vec2-rotate : TracedVec2 × TracedValue → TracedVec2
 ;;; Rotate vector by angle (radians).
@@ -245,9 +229,7 @@
 (define (traced-vec2-reject a b)
   (traced-vec2-sub a (traced-vec2-project a b)))
 
-;;; ====
-;;; Interpolation
-;;; ====
+(doc 'section 'interpolation)
 
 ;;; traced-vec2-lerp : TracedVec2 × TracedVec2 × TracedValue → TracedVec2
 ;;; Linear interpolation between a and b.
@@ -256,9 +238,8 @@
   (traced-vec2-add (traced-vec2-scale a (traced-sub 1 t))
                    (traced-vec2-scale b t)))
 
-;;; ====
-;;; Comparison (Non-differentiable - use carefully)
-;;; ====
+(doc 'section 'comparison)
+(doc 'note "Non-differentiable - use carefully")
 
 ;;; traced-vec2-min : TracedVec2 × TracedVec2 → TracedVec2
 ;;; Component-wise minimum.
@@ -282,9 +263,7 @@
        (traced-vec2 (if (> ax bx) (traced-vec2-x a) (traced-vec2-x b))
                     (if (> ay by) (traced-vec2-y a) (traced-vec2-y b)))))
 
-;;; ====
-;;; Smooth Approximations for Non-differentiable Operations
-;;; ====
+(doc 'section 'smooth-approximations)
 
 ;;; traced-softplus : TracedValue × Number → TracedValue
 ;;; Smooth approximation of ReLU: log(1 + exp(α*x)) / α
@@ -316,9 +295,7 @@
 (define (traced-smooth-clamp x lo hi alpha)
   (traced-softmin2 (traced-softmax2 x lo alpha) hi alpha))
 
-;;; ====
-;;; Gradient Utilities
-;;; ====
+(doc 'section 'gradient-utilities)
 
 ;;; vec2-gradient : ((TracedVec2) → TracedValue) × Vec2 → Vec2
 ;;; Compute gradient of scalar function f at point p.

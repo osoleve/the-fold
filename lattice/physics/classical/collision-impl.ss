@@ -1,24 +1,33 @@
-;;; lattice/physics/classical/collision-impl.ss — Collision Protocol Implementations
+(load "core/base/prelude.ss")
+(doc "lattice/physics/classical/collision-impl.ss — Collision Protocol Implementations")
+
+(doc 'module 'collision-impl)
+(doc 'description "Collision protocol implementations for standard body types")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
 ;;;
-;;; Registers collision protocol implementations for standard body types:
-;;;   - body-2d      : Simple 2D body (no rotation)
-;;;   - rigid-body-2d : Full 2D rigid body with rotation
-;;;   - particle     : Lightweight particle (implicit unit mass)
+(doc "Registers collision protocol implementations for standard body types:")
+(doc "  - body-2d      : Simple 2D body (no rotation)")
+(doc "  - rigid-body-2d : Full 2D rigid body with rotation")
+(doc "  - particle     : Lightweight particle (implicit unit mass)")
 ;;;
-;;; Dependencies:
-;;;   - collision-protocol.ss
-;;;   - integrators.ss (for Body2D)
-;;;   - rigid-body.ss (for RigidBody2D)
-;;;   - particles.ss (for Particle)
+(doc "Dependencies:")
+(doc "  - collision-protocol.ss")
+(doc "  - integrators.ss (for Body2D)")
+(doc "  - rigid-body.ss (for RigidBody2D)")
+(doc "  - particles.ss (for Particle)")
 
 (load "lattice/physics/classical/collision-protocol.ss")
 (load "lattice/physics/classical/integrators.ss")
 (load "lattice/physics/classical/rigid-body.ss")
 (load "lattice/physics/classical/particles.ss")
 
-;;; ====
-;;; Body2D Implementation (no rotation)
-;;; ====
+
+(doc 'module 'collision-impl)
+(doc 'description "Collision protocol implementations for standard body types")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
+(doc 'section 'body2d)
 
 (implement-protocol! 'col-inv-mass 'body-2d
   body-inv-mass)
@@ -44,9 +53,7 @@
                                  (vec2-scale impulse (body-inv-mass b)))])
           (body-with-vel b new-vel)))))
 
-;;; ====
-;;; RigidBody2D Implementation (with rotation)
-;;; ====
+(doc 'section 'rigidbody2d)
 
 (implement-protocol! 'col-inv-mass 'rigid-body-2d
   rigid-body-inv-mass)
@@ -81,9 +88,7 @@
            (rigid-body-with-vel b new-vel)
            new-omega)))))
 
-;;; ====
-;;; Particle Implementation (lightweight, unit mass)
-;;; ====
+(doc 'section 'particle)
 
 (implement-protocol! 'col-inv-mass 'particle
   (lambda (p) 1.0))  ; Implicit unit mass
@@ -107,9 +112,7 @@
     (let ([new-vel (vec2-add (particle-vel p) impulse)])
       (particle-with-vel p new-vel))))
 
-;;; ====
-;;; Print Help
-;;; ====
+(doc 'section 'print)
 
 (display "collision-impl.ss loaded.\n")
 (display "  Collision protocols registered for: body-2d, rigid-body-2d, particle\n")

@@ -1,9 +1,10 @@
-;;; user/physics3d/test-constraints3d.ss --- Tests for constraints3d and constraint-solver3d
-;;;
-;;; Run with: scheme --script user/physics3d/test-constraints3d.ss
-
 (load "core/test-framework.ss")
 (load "lattice/physics/classical3d/constraint-solver3d.ss")
+
+(doc 'module 'test-constraints3d)
+(doc 'description "Tests for constraints3d and constraint-solver3d")
+(doc 'layer 'lattice)
+(doc 'note "Run with: scheme --script lattice/physics/classical3d/test-constraints3d.ss")
 
 (display "\n")
 (display "====\n")

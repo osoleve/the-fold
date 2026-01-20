@@ -1,16 +1,17 @@
-;;; core/diff-physics/test-diff-collision.ss --- Tests for Differentiable Collision Response
-;;;
-;;; Comprehensive tests for impulse-based collision response including:
-;;; - Circle-circle collision forces
-;;; - Ground collision
-;;; - Multi-body collision system
-;;; - Contact detection utilities
-;;; - Complete collision steps
-;;;
-;;; Run with: scheme --script core/diff-physics/test-diff-collision.ss
-
 (load "core/test-framework.ss")
 (load "lattice/physics/diff/diff-collision.ss")
+
+(doc 'module 'test-diff-collision)
+(doc 'description "Tests for Differentiable Collision Response
+
+Comprehensive tests for impulse-based collision response including:
+- Circle-circle collision forces
+- Ground collision
+- Multi-body collision system
+- Contact detection utilities
+- Complete collision steps")
+(doc 'layer 'lattice)
+(doc 'note "Run with: scheme --script lattice/physics/diff/test-diff-collision.ss")
 
 (display "
 ====

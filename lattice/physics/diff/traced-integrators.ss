@@ -1,27 +1,19 @@
-;;; core/diff-physics/traced-integrators.ss --- Differentiable Physics Integration
-;;;
-;;; Differentiable numerical integration for physics simulation.
-;;; Supports gradient computation through time-stepping for trajectory
-;;; optimization and inverse problems.
-;;;
-;;; This is Core code: pure, total, assumes reasonable input.
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;   - linalg/vec2.ss
-;;;   - autodiff/reverse-diff.ss
-;;;   - diff-physics/traced-vec2.ss
-;;;   - diff-physics/traced-body.ss
-
 (load "core/base/prelude.ss")
 (load "lattice/linalg/vec2.ss")
 (load "core/autodiff/reverse-diff.ss")
 (load "lattice/physics/diff/traced-vec2.ss")
 (load "lattice/physics/diff/traced-body.ss")
 
-;;; ====
-;;; Symplectic Euler Integration
-;;; ====
+(doc 'module 'traced-integrators)
+(doc 'description "Differentiable Physics Integration
+
+Differentiable numerical integration for physics simulation.
+Supports gradient computation through time-stepping for trajectory
+optimization and inverse problems.")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
+
+(doc 'section 'symplectic-euler-integration)
 
 ;;; The symplectic Euler method is:
 ;;;   v_{n+1} = v_n + a_n * dt

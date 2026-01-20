@@ -1,36 +1,17 @@
-;;; core/diff-physics-3d/smooth-collision3d.ss --- Differentiable 3D Collision Primitives
-;;;
-;;; Signed Distance Functions (SDFs) and soft contact models for differentiable
-;;; 3D physics. SDFs provide smooth, differentiable representations of geometry.
-;;;
-;;; Key insight: Standard collision detection returns discrete contact/no-contact.
-;;; For differentiable physics, we use continuous penalty forces based on
-;;; penetration depth, computed via SDFs.
-;;;
-;;; This is Core code: pure, total, assumes reasonable input.
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;   - linalg/vec3.ss
-;;;   - autodiff/reverse-diff.ss
-;;;   - diff-physics-3d/traced-vec3.ss
-
 (load "core/base/prelude.ss")
 (load "lattice/linalg/vec3.ss")
 (load "core/autodiff/reverse-diff.ss")
 (load "lattice/physics/diff3d/traced-vec3.ss")
 
-;;; ====
-;;; Signed Distance Functions (SDFs)
-;;; ====
+(doc 'module 'smooth-collision3d)
+(doc 'description "Differentiable 3D Collision Primitives - Signed Distance Functions (SDFs) and soft contact models for differentiable 3D physics. SDFs provide smooth, differentiable representations of geometry.")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
+(doc 'note "Key insight: Standard collision detection returns discrete contact/no-contact. For differentiable physics, we use continuous penalty forces based on penetration depth, computed via SDFs.")
 
-;;; An SDF returns:
-;;;   - negative values: inside the shape
-;;;   - zero: on the boundary
-;;;   - positive values: outside the shape
-;;;
-;;; The gradient of an SDF at any point gives the direction to the nearest
-;;; surface point (i.e., the outward normal when normalized).
+(doc 'section 'signed-distance-functions)
+
+(doc 'note "An SDF returns: negative values (inside the shape), zero (on the boundary), positive values (outside the shape). The gradient of an SDF at any point gives the direction to the nearest surface point (i.e., the outward normal when normalized).")
 
 ;;; traced-sdf-sphere : TracedVec3 × TracedVec3 × Number → TracedValue
 ;;; SDF for a sphere centered at `center` with given `radius`.

@@ -1,9 +1,10 @@
-;;; user/physics3d/test-shapes3d.ss --- Tests for shapes3d
-;;;
-;;; Run with: scheme --script user/physics3d/test-shapes3d.ss
-
 (load "core/test-framework.ss")
 (load "lattice/physics/classical3d/shapes3d.ss")
+
+(doc 'module 'test-shapes3d)
+(doc 'description "Tests for shapes3d")
+(doc 'layer 'lattice)
+(doc 'note "Run with: scheme --script lattice/physics/classical3d/test-shapes3d.ss")
 
 (display "\n")
 (display "====\n")

@@ -1,10 +1,10 @@
-;;; core/diff-physics-3d/test-traced-quaternion.ss --- Tests for traced-quaternion
-;;;
-;;; Tests for differentiable quaternion operations.
-;;; Run with: scheme --script core/diff-physics-3d/test-traced-quaternion.ss
-
 (load "core/test-framework.ss")
 (load "lattice/physics/diff3d/traced-quaternion.ss")
+
+(doc 'module 'test-traced-quaternion)
+(doc 'description "Tests for traced-quaternion - Tests for differentiable quaternion operations")
+(doc 'layer 'lattice)
+(doc 'note "Run with: scheme --script lattice/physics/diff3d/test-traced-quaternion.ss")
 
 (display "
 ====

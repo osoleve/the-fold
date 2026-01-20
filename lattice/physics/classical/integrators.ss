@@ -1,38 +1,23 @@
-;;; fabric/stitches/physics-2d/integrators.ss — 2D Physics Integration
-;;;
-;;; Physics integration specialized for 2D game physics, wrapping the
-;;; generic numerical integration library with vec2 support.
-;;;
-;;; This is Core code: pure, total, assumes reasonable input.
-;;;
-;;; Features:
-;;;   - Vec2-based state representation
-;;;   - Multiple integration methods (Euler, Verlet, RK4)
-;;;   - Sub-stepping for stable simulation
-;;;   - Time accumulator for fixed timestep
-;;;   - Energy metrics for debugging
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;   - vec2.ss (2D vector math)
-;;;   - numerical/integrators.ss (generic methods)
 
 (load "core/base/prelude.ss")
 (load "lattice/linalg/vec2.ss")
 (load "lattice/physics/classical/numerical/integrators.ss")
 
-;;; ====
-;;; 2D Physics Body State
-;;; ====
 
-;;; A physics body in 2D has:
-;;;   - pos: position (vec2)
-;;;   - vel: velocity (vec2)
-;;;   - mass: mass (number > 0)
-;;;   - inv-mass: inverse mass (0 for static bodies)
+(doc 'module 'integrators)
+(doc 'description "2D physics integration with vec2 support")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
+(doc 'section '2d)
 
-;;; make-body-2d : Vec2 × Vec2 × Number → Body2D
-;;; Create a 2D physics body.
+(doc "A physics body in 2D has:")
+(doc "  - pos: position (vec2)")
+(doc "  - vel: velocity (vec2)")
+(doc "  - mass: mass (number > 0)")
+(doc "  - inv-mass: inverse mass (0 for static bodies)")
+
+(doc "make-body-2d : Vec2 × Vec2 × Number → Body2D")
+(doc "Create a 2D physics body.")
 (define (make-body-2d pos vel mass)
   (list 'body-2d
         pos
@@ -40,79 +25,75 @@
         mass
         (if (= mass 0) 0 (/ 1 mass))))
 
-;;; body-2d? : Any → Boolean
+(doc "body-2d? : Any → Boolean")
 (define (body-2d? b)
   (and (pair? b) (eq? (car b) 'body-2d)))
 
-;;; body-pos : Body2D → Vec2
 (define (body-pos b) (list-ref b 1))
+  (doc 'type '(body-pos : Body2D → Vec2))
 
-;;; body-vel : Body2D → Vec2
 (define (body-vel b) (list-ref b 2))
+  (doc 'type '(body-vel : Body2D → Vec2))
 
-;;; body-mass : Body2D → Number
 (define (body-mass b) (list-ref b 3))
+  (doc 'type '(body-mass : Body2D → Number))
 
-;;; body-inv-mass : Body2D → Number
 (define (body-inv-mass b) (list-ref b 4))
+  (doc 'type '(body-inv-mass : Body2D → Number))
 
-;;; body-static? : Body2D → Boolean
+(doc "body-static? : Body2D → Boolean")
 (define (body-static? b) (= (body-inv-mass b) 0))
 
-;;; body-with-pos : Body2D × Vec2 → Body2D
-;;; Update body position.
+(doc 'body-with-pos 'type 'Body2D × Vec2 → Body2D)
+(doc "Update body position.")
 (define (body-with-pos b new-pos)
   (make-body-2d new-pos (body-vel b) (body-mass b)))
 
-;;; body-with-vel : Body2D × Vec2 → Body2D
-;;; Update body velocity.
+(doc 'body-with-vel 'type 'Body2D × Vec2 → Body2D)
+(doc "Update body velocity.")
 (define (body-with-vel b new-vel)
   (make-body-2d (body-pos b) new-vel (body-mass b)))
 
-;;; body-with-state : Body2D × Vec2 × Vec2 → Body2D
-;;; Update body position and velocity.
+(doc 'body-with-state 'type 'Body2D × Vec2 × Vec2 → Body2D)
+(doc "Update body position and velocity.")
 (define (body-with-state b new-pos new-vel)
   (make-body-2d new-pos new-vel (body-mass b)))
 
-;;; make-static-body : Vec2 → Body2D
-;;; Create a static (immovable) body.
+(doc 'make-static-body 'type 'Vec2 → Body2D)
+(doc "Create a static (immovable) body.")
 (define (make-static-body pos)
   (make-body-2d pos (vec2 0 0) 0))
 
-;;; ====
-;;; Vec2 to State Conversion
-;;; ====
+(doc 'section 'vec2)
 
-;;; Vec2 ↔ list state conversion for generic integrators
+(doc "Vec2 ↔ list state conversion for generic integrators")
 
-;;; vec2->state : Vec2 → State
+(doc "vec2->state : Vec2 → State")
 (define (vec2->state v)
   (list (vec2-x v) (vec2-y v)))
 
-;;; state->vec2 : State → Vec2
+(doc "state->vec2 : State → Vec2")
 (define (state->vec2 s)
   (vec2 (car s) (cadr s)))
 
-;;; body->state : Body2D → (Pos-State × Vel-State)
-;;; Convert body to generic state representation.
+(doc "body->state : Body2D → (Pos-State × Vel-State)")
+(doc "Convert body to generic state representation.")
 (define (body->state b)
   (list (vec2->state (body-pos b))
         (vec2->state (body-vel b))))
 
-;;; state->body : (Pos-State × Vel-State) × Number → Body2D
-;;; Convert generic state back to body.
+(doc "state->body : (Pos-State × Vel-State) × Number → Body2D")
+(doc "Convert generic state back to body.")
 (define (state->body s mass)
   (make-body-2d (state->vec2 (car s))
                 (state->vec2 (cadr s))
                 mass))
 
-;;; ====
-;;; 2D Integration Methods
-;;; ====
+(doc 'section '2d)
 
-;;; integrate-body-euler : Body2D × (Body2D → Vec2) × Number → Body2D
-;;; Integrate a body forward using Euler method.
-;;; force-fn: (body) → force vector
+(doc 'integrate-body-euler 'type 'Body2D × (Body2D → Vec2) × Number → Body2D)
+(doc "Integrate a body forward using Euler method.")
+(doc "force-fn: (body) → force vector")
 (define (integrate-body-euler body force-fn dt)
   (if (body-static? body)
       body
@@ -122,8 +103,8 @@
              [new-pos (vec2-add (body-pos body) (vec2-scale new-vel dt))])
             (body-with-state body new-pos new-vel))))
 
-;;; integrate-body-symplectic : Body2D × (Body2D → Vec2) × Number → Body2D
-;;; Integrate using symplectic Euler (more stable).
+(doc 'integrate-body-symplectic 'type 'Body2D × (Body2D → Vec2) × Number → Body2D)
+(doc "Integrate using symplectic Euler (more stable).")
 (define (integrate-body-symplectic body force-fn dt)
   (if (body-static? body)
       body
@@ -135,8 +116,8 @@
              [new-pos (vec2-add (body-pos body) (vec2-scale new-vel dt))])
             (body-with-state body new-pos new-vel))))
 
-;;; integrate-body-verlet : Body2D × (Body2D → Vec2) × Number → Body2D
-;;; Integrate using velocity Verlet method.
+(doc 'integrate-body-verlet 'type 'Body2D × (Body2D → Vec2) × Number → Body2D)
+(doc "Integrate using velocity Verlet method.")
 (define (integrate-body-verlet body force-fn dt)
   (if (body-static? body)
       body
@@ -158,9 +139,9 @@
                                 (vec2-scale (vec2-add accel accel-new) half-dt))])
             (body-with-state body new-pos new-vel))))
 
-;;; integrate-body-rk4 : Body2D × ((Body2D × Number) → Vec2) × Number × Number → Body2D
-;;; Integrate using RK4 method.
-;;; force-fn: (body, time) → force vector
+(doc "integrate-body-rk4 : Body2D × ((Body2D × Number) → Vec2) × Number × Number → Body2D")
+(doc "Integrate using RK4 method.")
+(doc "force-fn: (body, time) → force vector")
 (define (integrate-body-rk4 body force-fn t dt)
   (if (body-static? body)
       body
@@ -183,42 +164,40 @@
              [new-vel (state->vec2 (drop new-state 2))])
             (body-with-state body new-pos new-vel))))
 
-;;; ====
-;;; Time Accumulator (Fixed Timestep)
-;;; ====
+(doc 'section 'time)
 
-;;; A time accumulator manages fixed timestep with interpolation
-;;;   - accumulator: remaining time to simulate
-;;;   - fixed-dt: fixed timestep
-;;;   - max-steps: maximum substeps per frame
+(doc "A time accumulator manages fixed timestep with interpolation")
+(doc "  - accumulator: remaining time to simulate")
+(doc "  - fixed-dt: fixed timestep")
+(doc "  - max-steps: maximum substeps per frame")
 
-;;; make-time-acc : Number × Number → TimeAcc
 (define (make-time-acc fixed-dt max-steps)
+  (doc 'type '(make-time-acc : Number × Number → TimeAcc))
   (list 'time-acc 0 fixed-dt max-steps))
 
-;;; time-acc? : Any → Boolean
+(doc "time-acc? : Any → Boolean")
 (define (time-acc? t) (and (pair? t) (eq? (car t) 'time-acc)))
 
-;;; time-acc-remaining : TimeAcc → Number
 (define (time-acc-remaining t) (list-ref t 1))
+  (doc 'type '(time-acc-remaining : TimeAcc → Number))
 
-;;; time-acc-fixed-dt : TimeAcc → Number
 (define (time-acc-fixed-dt t) (list-ref t 2))
+  (doc 'type '(time-acc-fixed-dt : TimeAcc → Number))
 
-;;; time-acc-max-steps : TimeAcc → Number
 (define (time-acc-max-steps t) (list-ref t 3))
+  (doc 'type '(time-acc-max-steps : TimeAcc → Number))
 
-;;; time-acc-add : TimeAcc × Number → TimeAcc
-;;; Add elapsed time to accumulator.
+(doc 'time-acc-add 'type 'TimeAcc × Number → TimeAcc)
+(doc "Add elapsed time to accumulator.")
 (define (time-acc-add t dt)
   (list 'time-acc
         (+ (time-acc-remaining t) dt)
         (time-acc-fixed-dt t)
         (time-acc-max-steps t)))
 
-;;; time-acc-consume : TimeAcc → (TimeAcc × Number)
-;;; Consume one fixed timestep if available.
-;;; Returns updated accumulator and number of steps consumed.
+(doc 'time-acc-consume 'type 'TimeAcc → (TimeAcc × Number))
+(doc "Consume one fixed timestep if available.")
+(doc "Returns updated accumulator and number of steps consumed.")
 (define (time-acc-consume t)
   (let ([remaining (time-acc-remaining t)]
         [fixed-dt (time-acc-fixed-dt t)])
@@ -230,19 +209,17 @@
                  1)
            (list t 0))))
 
-;;; time-acc-alpha : TimeAcc → Number
-;;; Get interpolation factor (0 to 1) for rendering.
+(doc 'time-acc-alpha 'type 'TimeAcc → Number)
+(doc "Get interpolation factor (0 to 1) for rendering.")
 (define (time-acc-alpha t)
   (let ([remaining (time-acc-remaining t)]
         [fixed-dt (time-acc-fixed-dt t)])
        (/ remaining fixed-dt)))
 
-;;; ====
-;;; Sub-stepping
-;;; ====
+(doc 'section 'sub-stepping)
 
-;;; substep-body : Body2D × (Body2D → Vec2) × Number × Nat × Symbol → Body2D
-;;; Integrate body with n substeps using specified method.
+(doc 'substep-body 'type 'Body2D × (Body2D → Vec2) × Number × Nat × Symbol → Body2D)
+(doc "Integrate body with n substeps using specified method.")
 (define (substep-body body force-fn dt n method)
   (let ([sub-dt (/ dt n)])
        (let loop ([b body] [i 0])
@@ -255,8 +232,8 @@
                                    [else (integrate-body-symplectic b force-fn sub-dt)])])
                      (loop new-b (+ i 1)))))))
 
-;;; integrate-with-substeps : Body2D × (Body2D → Vec2) × TimeAcc → (Body2D × TimeAcc)
-;;; Integrate body consuming all available fixed timesteps.
+(doc 'integrate-with-substeps 'type 'Body2D × (Body2D → Vec2) × TimeAcc → (Body2D × TimeAcc))
+(doc "Integrate body consuming all available fixed timesteps.")
 (define (integrate-with-substeps body force-fn time-acc)
   (let ([fixed-dt (time-acc-fixed-dt time-acc)]
         [max-steps (time-acc-max-steps time-acc)])
@@ -269,31 +246,27 @@
                       (let ([new-b (integrate-body-verlet b force-fn fixed-dt)])
                            (loop new-b new-t (+ steps 1))))))))
 
-;;; ====
-;;; Interpolation for Rendering
-;;; ====
+(doc 'section 'interpolation)
 
-;;; interpolate-body : Body2D × Body2D × Number → Body2D
-;;; Interpolate between two body states for smooth rendering.
-;;; alpha = 0 gives body-prev, alpha = 1 gives body-curr.
+(doc 'interpolate-body 'type 'Body2D × Body2D × Number → Body2D)
+(doc "Interpolate between two body states for smooth rendering.")
+(doc "alpha = 0 gives body-prev, alpha = 1 gives body-curr.")
 (define (interpolate-body body-prev body-curr alpha)
   (let* ([pos (vec2-lerp (body-pos body-prev) (body-pos body-curr) alpha)]
          [vel (vec2-lerp (body-vel body-prev) (body-vel body-curr) alpha)])
         (body-with-state body-curr pos vel)))
 
-;;; ====
-;;; Common Force Functions
-;;; ====
+(doc 'section 'common)
 
-;;; gravity-force : Number → (Body2D → Vec2)
-;;; Create gravity force function (pointing downward in screen coords).
+(doc 'gravity-force 'type 'Number → (Body2D → Vec2))
+(doc "Create gravity force function (pointing downward in screen coords).")
 (define (gravity-force g)
   (lambda (body)
           (vec2 0 (* g (body-mass body)))))
 
-;;; spring-force : Vec2 × Number × Number → (Body2D → Vec2)
-;;; Create spring force toward anchor point.
-;;; k: spring constant, damping: damping coefficient
+(doc 'spring-force 'type 'Vec2 × Number × Number → (Body2D → Vec2))
+(doc "Create spring force toward anchor point.")
+(doc "k: spring constant, damping: damping coefficient")
 (define (spring-force anchor k damping)
   (lambda (body)
           (let* ([pos (body-pos body)]
@@ -303,61 +276,62 @@
                  [damp-f (vec2-scale vel (- damping))])
                 (vec2-add spring-f damp-f))))
 
-;;; drag-force : Number → (Body2D → Vec2)
-;;; Create drag force proportional to velocity.
+(doc 'drag-force 'type 'Number → (Body2D → Vec2))
+(doc "Create drag force proportional to velocity.")
 (define (drag-force coefficient)
   (lambda (body)
           (vec2-scale (body-vel body) (- coefficient))))
 
-;;; constant-force : Vec2 → (Body2D → Vec2)
-;;; Create constant force (ignores body).
+(doc 'constant-force 'type 'Vec2 → (Body2D → Vec2))
+(doc "Create constant force (ignores body).")
 (define (constant-force f)
   (lambda (body) f))
 
-;;; combine-forces : ((Body2D → Vec2) ...) → (Body2D → Vec2)
-;;; Combine multiple force functions.
+(doc 'combine-forces 'type '((Body2D → Vec2) ...) → (Body2D → Vec2))
+(doc "Combine multiple force functions.")
 (define (combine-forces . force-fns)
   (lambda (body)
           (fold-left (lambda (total f) (vec2-add total (f body)))
                      (vec2 0 0)
                      force-fns)))
 
-;;; ====
-;;; Energy Calculations
-;;; ====
+(doc 'section 'energy)
 
-;;; body-kinetic-energy : Body2D → Number
 (define (body-kinetic-energy body)
+  (doc 'type '(body-kinetic-energy : Body2D → Number))
   (* 0.5 (body-mass body) (vec2-magnitude-sq (body-vel body))))
 
-;;; body-potential-energy : Body2D × Number × Number → Number
-;;; Gravitational potential energy (y increases downward).
+(doc 'body-potential-energy 'type 'Body2D × Number × Number → Number)
+(doc "Gravitational potential energy (y increases downward).")
 (define (body-potential-energy body g y-ref)
   (* (body-mass body) g (- y-ref (vec2-y (body-pos body)))))
 
-;;; body-spring-energy : Body2D × Vec2 × Number → Number
-;;; Spring potential energy.
+(doc 'body-spring-energy 'type 'Body2D × Vec2 × Number → Number)
+(doc "Spring potential energy.")
 (define (body-spring-energy body anchor k)
   (let ([dist (vec2-length (vec2-sub (body-pos body) anchor))])
        (* 0.5 k dist dist)))
 
-;;; body-total-energy : Body2D × Number × Number → Number
-;;; Total mechanical energy (KE + gravitational PE).
+(doc 'body-total-energy 'type 'Body2D × Number × Number → Number)
+(doc "Total mechanical energy (KE + gravitational PE).")
 (define (body-total-energy body g y-ref)
   (+ (body-kinetic-energy body)
      (body-potential-energy body g y-ref)))
 
-;;; ====
-;;; Rigid Body Integration (with Rotation)
-;;; ====
+(doc 'section 'rigid)
 
-;;; Load rigid body module
+(doc "Load rigid body module")
 (load "lattice/physics/classical/rigid-body.ss")
 
-;;; integrate-rigid-body-symplectic : RigidBody2D x Vec2 x Number x Number -> RigidBody2D
-;;; Integrate a rigid body using symplectic Euler.
-;;; linear-accel: linear acceleration (force/mass)
-;;; angular-accel: angular acceleration (torque/inertia)
+
+(doc 'module 'integrators)
+(doc 'description "2D physics integration with vec2 support")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
+(doc 'integrate-rigid-body-symplectic 'type 'RigidBody2D x Vec2 x Number x Number -> RigidBody2D)
+(doc "Integrate a rigid body using symplectic Euler.")
+(doc "linear-accel: linear acceleration (force/mass)")
+(doc "angular-accel: angular acceleration (torque/inertia)")
 (define (integrate-rigid-body-symplectic body linear-accel angular-accel dt)
   (if (rigid-body-static? body)
       body
@@ -373,8 +347,8 @@
                            (* new-omega dt))])
             (rigid-body-with-state body new-pos new-vel new-angle new-omega))))
 
-;;; integrate-rigid-body-euler : RigidBody2D x Vec2 x Number x Number -> RigidBody2D
-;;; Integrate a rigid body using forward Euler.
+(doc 'integrate-rigid-body-euler 'type 'RigidBody2D x Vec2 x Number x Number -> RigidBody2D)
+(doc "Integrate a rigid body using forward Euler.")
 (define (integrate-rigid-body-euler body linear-accel angular-accel dt)
   (if (rigid-body-static? body)
       body
@@ -390,10 +364,10 @@
              [new-omega (+ omega (* angular-accel dt))])
             (rigid-body-with-state body new-pos new-vel new-angle new-omega))))
 
-;;; integrate-rigid-body-verlet : RigidBody2D x (RigidBody2D -> Vec2) x (RigidBody2D -> Number) x Number -> RigidBody2D
-;;; Integrate a rigid body using velocity Verlet.
-;;; force-fn: body -> force vector
-;;; torque-fn: body -> torque scalar
+(doc 'integrate-rigid-body-verlet 'type 'RigidBody2D x (RigidBody2D -> Vec2) x (RigidBody2D -> Number) x Number -> RigidBody2D)
+(doc "Integrate a rigid body using velocity Verlet.")
+(doc "force-fn: body -> force vector")
+(doc "torque-fn: body -> torque scalar")
 (define (integrate-rigid-body-verlet body force-fn torque-fn dt)
   (if (rigid-body-static? body)
       body
@@ -422,15 +396,15 @@
              [new-omega (+ omega (* 0.5 (+ alpha alpha-new) dt))])
             (rigid-body-with-state body new-pos new-vel new-angle new-omega))))
 
-;;; rigid-body-gravity-force : Vec2 -> (RigidBody2D -> Vec2)
-;;; Create gravity force function for rigid bodies.
+(doc 'rigid-body-gravity-force 'type 'Vec2 -> (RigidBody2D -> Vec2))
+(doc "Create gravity force function for rigid bodies.")
 (define (rigid-body-gravity-force gravity)
   (lambda (body)
           (vec2-scale gravity (rigid-body-mass body))))
 
-;;; rigid-body-damping-force : Number x Number -> (RigidBody2D -> Vec2) x (RigidBody2D -> Number)
-;;; Create linear and angular damping functions.
-;;; Returns (values linear-damping-fn angular-damping-fn)
+(doc 'rigid-body-damping-force 'type 'Number x Number -> (RigidBody2D -> Vec2) x (RigidBody2D -> Number))
+(doc "Create linear and angular damping functions.")
+(doc "Returns (values linear-damping-fn angular-damping-fn)")
 (define (rigid-body-damping linear-coeff angular-coeff)
   (values
    (lambda (body)
@@ -438,8 +412,8 @@
    (lambda (body)
            (* (- angular-coeff) (rigid-body-angular-vel body)))))
 
-;;; rigid-body-lerp : RigidBody2D x RigidBody2D x Number -> RigidBody2D
-;;; Interpolate between two rigid body states.
+(doc 'rigid-body-lerp 'type 'RigidBody2D x RigidBody2D x Number -> RigidBody2D)
+(doc "Interpolate between two rigid body states.")
 (define (rigid-body-lerp body-prev body-curr alpha)
   (let* ([pos (vec2-lerp (rigid-body-pos body-prev)
                          (rigid-body-pos body-curr)

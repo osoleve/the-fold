@@ -1,9 +1,10 @@
-;;; user/physics3d/test-rigid-body3d.ss --- Tests for rigid-body3d
-;;;
-;;; Run with: scheme --script user/physics3d/test-rigid-body3d.ss
-
 (load "core/test-framework.ss")
 (load "lattice/physics/classical3d/rigid-body3d.ss")
+
+(doc 'module 'test-rigid-body3d)
+(doc 'description "Tests for rigid-body3d")
+(doc 'layer 'lattice)
+(doc 'note "Run with: scheme --script lattice/physics/classical3d/test-rigid-body3d.ss")
 
 (display "\n")
 (display "====\n")

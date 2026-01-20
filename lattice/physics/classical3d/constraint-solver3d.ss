@@ -1,36 +1,16 @@
-;;; user/physics3d/constraint-solver3d.ss — 3D Constraint Solvers
-;;;
-;;; Sequential impulse solvers for 3D physics constraints:
-;;;   - Distance constraint (1 DOF)
-;;;   - Ball-socket joint (3 DOF constraint)
-;;;   - Hinge joint (5 DOF constraint)
-;;;   - Fixed joint (6 DOF constraint)
-;;;   - Spring constraint (soft 1 DOF)
-;;;
-;;; Each solver has:
-;;;   - Velocity solver: Applies corrective impulses
-;;;   - Position solver: Fixes positional drift
-;;;
-;;; Uses Baumgarte stabilization for position correction.
-;;;
-;;; This is user code: pragmatic implementation with world mutation.
-;;;
-;;; Dependencies:
-;;;   - core/base/prelude.ss
-;;;   - core/linalg/vec3.ss
-;;;   - core/linalg/quaternion.ss
-;;;   - user/physics3d/rigid-body3d.ss
-;;;   - user/physics3d/constraints3d.ss
-
 (load "core/base/prelude.ss")
 (load "lattice/linalg/vec3.ss")
 (load "lattice/linalg/quaternion.ss")
 (load "lattice/physics/classical3d/rigid-body3d.ss")
 (load "lattice/physics/classical3d/constraints3d.ss")
 
-;;; ====
-;;; Solver Constants
-;;; ====
+(doc 'module 'constraint-solver3d)
+(doc 'description "3D Constraint Solvers - Sequential impulse solvers for 3D physics constraints: Distance constraint (1 DOF), Ball-socket joint (3 DOF constraint), Hinge joint (5 DOF constraint), Fixed joint (6 DOF constraint), Spring constraint (soft 1 DOF).")
+(doc 'layer 'lattice)
+(doc 'purity 'partial)
+(doc 'note "Each solver has: Velocity solver (applies corrective impulses), Position solver (fixes positional drift). Uses Baumgarte stabilization for position correction.")
+
+(doc 'section 'solver-constants)
 
 (define *baumgarte-factor-3d* 0.2)      ; Position correction bias
 (define *position-slop-3d* 0.005)       ; Allow small penetration

@@ -1,25 +1,3 @@
-;;; core/diff-physics-3d/diff-collision3d.ss --- Differentiable 3D Collision Response
-;;;
-;;; Impulse-based collision response with gradient support for 3D.
-;;; Combines soft contact forces with rigid body dynamics.
-;;;
-;;; For fully differentiable physics, this module provides:
-;;; 1. Soft contact model (via smooth-collision3d.ss)
-;;; 2. Contact geometry gradients (analytical)
-;;; 3. Integration with traced 3D rigid bodies
-;;;
-;;; Key difference from 2D: torque is a Vec3 (cross product), not scalar.
-;;;
-;;; This is Core code: pure, total, assumes reasonable input.
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;   - linalg/vec3.ss
-;;;   - autodiff/reverse-diff.ss
-;;;   - diff-physics-3d/traced-vec3.ss
-;;;   - diff-physics-3d/traced-body3d.ss
-;;;   - diff-physics-3d/smooth-collision3d.ss
-
 (load "core/base/prelude.ss")
 (load "lattice/linalg/vec3.ss")
 (load "core/autodiff/reverse-diff.ss")
@@ -28,9 +6,13 @@
 (load "lattice/physics/diff3d/traced-integrators3d.ss")
 (load "lattice/physics/diff3d/smooth-collision3d.ss")
 
-;;; ====
-;;; Sphere-Sphere Collision Response
-;;; ====
+(doc 'module 'diff-collision3d)
+(doc 'description "Differentiable 3D Collision Response - Impulse-based collision response with gradient support for 3D. Combines soft contact forces with rigid body dynamics.")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
+(doc 'note "For fully differentiable physics, this module provides: 1. Soft contact model (via smooth-collision3d.ss), 2. Contact geometry gradients (analytical), 3. Integration with traced 3D rigid bodies. Key difference from 2D: torque is a Vec3 (cross product), not scalar.")
+
+(doc 'section 'sphere-sphere-collision)
 
 ;;; traced-sphere-collision-force : TracedBody3D × Number × TracedBody3D × Number × SoftMaterial3D → (Values TracedVec3 TracedVec3)
 ;;; Compute soft contact force and torque between two spherical bodies.

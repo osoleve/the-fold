@@ -1,19 +1,12 @@
-;;; core/diff-physics-3d/traced-vec3.ss --- Differentiable 3D Vector Operations
-;;;
-;;; Traced vec3 operations for automatic differentiation through 3D physics.
-;;; A traced-vec3 is a triple of traced scalar values, enabling gradient
-;;; computation through vector arithmetic.
-;;;
-;;; This is Core code: pure, total, assumes reasonable input.
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;   - linalg/vec3.ss
-;;;   - autodiff/reverse-diff.ss
-
 (load "core/base/prelude.ss")
 (load "lattice/linalg/vec3.ss")
 (load "core/autodiff/reverse-diff.ss")
+
+(doc 'module 'traced-vec3)
+(doc 'description "Differentiable 3D Vector Operations - Traced vec3 operations for automatic differentiation through 3D physics. A traced-vec3 is a triple of traced scalar values, enabling gradient computation through vector arithmetic.")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
+(doc 'note "This is Core code: pure, total, assumes reasonable input.")
 
 ;;; ====
 ;;; Traced Vec3 Construction

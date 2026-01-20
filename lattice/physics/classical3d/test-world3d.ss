@@ -1,9 +1,10 @@
-;;; user/physics3d/test-world3d.ss --- Tests for world3d
-;;;
-;;; Run with: scheme --script user/physics3d/test-world3d.ss
-
 (load "core/test-framework.ss")
 (load "lattice/physics/classical3d/world3d.ss")
+
+(doc 'module 'test-world3d)
+(doc 'description "Tests for world3d")
+(doc 'layer 'lattice)
+(doc 'note "Run with: scheme --script lattice/physics/classical3d/test-world3d.ss")
 
 (display "\n")
 (display "====\n")

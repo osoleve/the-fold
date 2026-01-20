@@ -1,19 +1,3 @@
-;;; fabric/stitches/physics-2d/world.ss — 2D Physics World
-;;;
-;;; The physics world coordinates all physics components:
-;;;   - Body management (add, remove, query)
-;;;   - Collision detection (broad + narrow phase)
-;;;   - Collision resolution (impulse + correction)
-;;;   - Integration (forces, velocity, position)
-;;;
-;;; This is Core code: pure simulation step, with world mutation.
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;   - vec2.ss
-;;;   - physics-2d/integrators.ss
-;;;   - physics-2d/collision-detection.ss
-;;;   - physics-2d/collision-response.ss
 
 (load "core/base/prelude.ss")
 (load "lattice/linalg/vec2.ss")
@@ -24,60 +8,61 @@
 (load "lattice/physics/classical/constraints.ss")
 (load "lattice/physics/classical/constraint-solver.ss")
 
-;;; ====
-;;; Physics Entity
-;;; ====
 
-;;; A physics entity combines:
-;;;   - id: unique identifier
-;;;   - body: physics body (position, velocity, mass)
-;;;   - shape: collision shape
-;;;   - material: physics material (restitution, friction)
-;;;   - user-data: optional user data
+(doc 'module 'world)
+(doc 'description "2D physics world with collision detection and resolution")
+(doc 'layer 'lattice)
+(doc 'purity 'partial)
+(doc 'section 'physics)
 
-;;; make-entity : Any × Body2D × Shape × Material × Any → Entity
+(doc "A physics entity combines:")
+(doc "  - id: unique identifier")
+(doc "  - body: physics body (position, velocity, mass)")
+(doc "  - shape: collision shape")
+(doc "  - material: physics material (restitution, friction)")
+(doc "  - user-data: optional user data")
+
 (define (make-entity id body shape material user-data)
+  (doc 'type '(make-entity : Any × Body2D × Shape × Material × Any → Entity))
   (list 'entity id body shape material user-data))
 
-;;; entity? : Any → Boolean
+(doc "entity? : Any → Boolean")
 (define (entity? e)
   (and (pair? e) (eq? (car e) 'entity)))
 
-;;; entity-id : Entity → Any
 (define (entity-id e) (list-ref e 1))
+  (doc 'type '(entity-id : Entity → Any))
 
-;;; entity-body : Entity → Body2D
 (define (entity-body e) (list-ref e 2))
+  (doc 'type '(entity-body : Entity → Body2D))
 
-;;; entity-shape : Entity → Shape
 (define (entity-shape e) (list-ref e 3))
+  (doc 'type '(entity-shape : Entity → Shape))
 
-;;; entity-material : Entity → Material
 (define (entity-material e) (list-ref e 4))
+  (doc 'type '(entity-material : Entity → Material))
 
-;;; entity-user-data : Entity → Any
 (define (entity-user-data e) (list-ref e 5))
+  (doc 'type '(entity-user-data : Entity → Any))
 
-;;; entity-with-body : Entity × Body2D → Entity
 (define (entity-with-body e new-body)
+  (doc 'type '(entity-with-body : Entity × Body2D → Entity))
   (make-entity (entity-id e) new-body (entity-shape e)
                (entity-material e) (entity-user-data e)))
 
-;;; entity-pos : Entity → Vec2
 (define (entity-pos e) (body-pos (entity-body e)))
+  (doc 'type '(entity-pos : Entity → Vec2))
 
-;;; entity-vel : Entity → Vec2
 (define (entity-vel e) (body-vel (entity-body e)))
+  (doc 'type '(entity-vel : Entity → Vec2))
 
-;;; entity-static? : Entity → Boolean
+(doc "entity-static? : Entity → Boolean")
 (define (entity-static? e) (body-static? (entity-body e)))
 
-;;; ====
-;;; Shape Transformation
-;;; ====
+(doc 'section 'shape)
 
-;;; transform-shape : Shape × Vec2 → Shape
-;;; Translate a shape by the given offset.
+(doc 'transform-shape 'type 'Shape × Vec2 → Shape)
+(doc "Translate a shape by the given offset.")
 (define (transform-shape shape offset)
   (cond
    [(aabb? shape)
@@ -92,8 +77,8 @@
           (polygon-vertices shape)))]
    [else shape]))
 
-;;; entity-world-shape : Entity → Shape
-;;; Get entity's shape in world coordinates.
+(doc 'entity-world-shape 'type 'Entity → Shape)
+(doc "Get entity's shape in world coordinates.")
 (define (entity-world-shape e)
   (let ([shape (entity-shape e)]
         [pos (entity-pos e)])
@@ -101,38 +86,36 @@
        ;; (For now, assume shapes are already in world coords from body pos)
        shape))
 
-;;; ====
-;;; Physics World
-;;; ====
+(doc 'section 'physics)
 
-;;; A physics world contains:
-;;;   - entities: hashtable of id → entity
-;;;   - gravity: gravity force vector
-;;;   - spatial-hash: broad phase structure
-;;;   - config: world configuration
+(doc "A physics world contains:")
+(doc "  - entities: hashtable of id → entity")
+(doc "  - gravity: gravity force vector")
+(doc "  - spatial-hash: broad phase structure")
+(doc "  - config: world configuration")
 
-;;; make-world-config : → WorldConfig
 (define (make-world-config)
+  (doc 'type '(make-world-config : → WorldConfig))
   (list 'world-config
         0.016667            ; fixed-dt (60 fps)
         10                  ; max-substeps
         8                   ; solver-iterations
         32))                ; spatial-hash-cell-size
 
-;;; config-fixed-dt : WorldConfig → Number
 (define (config-fixed-dt c) (list-ref c 1))
+  (doc 'type '(config-fixed-dt : WorldConfig → Number))
 
-;;; config-max-substeps : WorldConfig → Nat
 (define (config-max-substeps c) (list-ref c 2))
+  (doc 'type '(config-max-substeps : WorldConfig → Nat))
 
-;;; config-solver-iterations : WorldConfig → Nat
 (define (config-solver-iterations c) (list-ref c 3))
+  (doc 'type '(config-solver-iterations : WorldConfig → Nat))
 
-;;; config-cell-size : WorldConfig → Number
 (define (config-cell-size c) (list-ref c 4))
+  (doc 'type '(config-cell-size : WorldConfig → Number))
 
-;;; make-world : Vec2 → World
-;;; Create a new physics world with given gravity.
+(doc 'make-world 'type 'Vec2 → World)
+(doc "Create a new physics world with given gravity.")
 (define (make-world gravity)
   (let ([config (make-world-config)])
        (list 'world
@@ -144,30 +127,30 @@
                             (config-max-substeps config))
              (make-hashtable equal-hash equal?))))  ; constraints
 
-;;; world? : Any → Boolean
+(doc "world? : Any → Boolean")
 (define (world? w)
   (and (pair? w) (eq? (car w) 'world)))
 
-;;; world-entities : World → Hashtable
 (define (world-entities w) (list-ref w 1))
+  (doc 'type '(world-entities : World → Hashtable))
 
-;;; world-gravity : World → Vec2
 (define (world-gravity w) (list-ref w 2))
+  (doc 'type '(world-gravity : World → Vec2))
 
-;;; world-spatial-hash : World → SpatialHash
 (define (world-spatial-hash w) (list-ref w 3))
+  (doc 'type '(world-spatial-hash : World → SpatialHash))
 
-;;; world-config : World → WorldConfig
 (define (world-config w) (list-ref w 4))
+  (doc 'type '(world-config : World → WorldConfig))
 
-;;; world-time-acc : World → TimeAcc
 (define (world-time-acc w) (list-ref w 5))
+  (doc 'type '(world-time-acc : World → TimeAcc))
 
-;;; world-constraints : World → Hashtable
 (define (world-constraints w) (list-ref w 6))
+  (doc 'type '(world-constraints : World → Hashtable))
 
-;;; world-with-time-acc : World × TimeAcc → World
 (define (world-with-time-acc w new-acc)
+  (doc 'type '(world-with-time-acc : World × TimeAcc → World))
   (list 'world
         (world-entities w)
         (world-gravity w)
@@ -176,102 +159,94 @@
         new-acc
         (world-constraints w)))
 
-;;; ====
-;;; Entity Management
-;;; ====
+(doc 'section 'entity)
 
-;;; world-add-entity! : World × Entity → Void
-;;; Add an entity to the world.
+(doc "world-add-entity! : World × Entity → Void")
+(doc "Add an entity to the world.")
 (define (world-add-entity! world entity)
   (hashtable-set! (world-entities world)
                   (entity-id entity)
                   entity))
 
-;;; world-remove-entity! : World × Any → Void
-;;; Remove an entity by id.
+(doc "world-remove-entity! : World × Any → Void")
+(doc "Remove an entity by id.")
 (define (world-remove-entity! world id)
   (hashtable-delete! (world-entities world) id))
 
-;;; world-get-entity : World × Any → Entity | #f
-;;; Get entity by id.
+(doc 'world-get-entity 'type 'World × Any → MaybeEntity)
+(doc "Get entity by id.")
 (define (world-get-entity world id)
   (hashtable-ref (world-entities world) id #f))
 
-;;; world-entity-list : World → (List Entity)
-;;; Get all entities as a list.
+(doc 'world-entity-list 'type 'World → (List Entity))
+(doc "Get all entities as a list.")
 (define (world-entity-list world)
   (let-values ([(keys vals) (hashtable-entries (world-entities world))])
               (vector->list vals)))
 
-;;; world-update-entity! : World × Any × (Entity → Entity) → Void
-;;; Update an entity by applying a function.
+(doc "world-update-entity! : World × Any × (Entity → Entity) → Void")
+(doc "Update an entity by applying a function.")
 (define (world-update-entity! world id f)
   (let ([entity (world-get-entity world id)])
        (when entity
              (hashtable-set! (world-entities world) id (f entity)))))
 
-;;; ====
-;;; Constraint Management
-;;; ====
+(doc 'section 'constraint)
 
-;;; world-add-constraint! : World × Constraint → Void
-;;; Add a constraint to the world.
+(doc "world-add-constraint! : World × Constraint → Void")
+(doc "Add a constraint to the world.")
 (define (world-add-constraint! world constraint)
   (let ([id (constraint-id constraint)])
        (hashtable-set! (world-constraints world) id constraint)))
 
-;;; world-remove-constraint! : World × Any → Void
-;;; Remove a constraint by id.
+(doc "world-remove-constraint! : World × Any → Void")
+(doc "Remove a constraint by id.")
 (define (world-remove-constraint! world id)
   (hashtable-delete! (world-constraints world) id))
 
-;;; world-get-constraint : World × Any → Constraint | #f
-;;; Get a constraint by id.
+(doc 'world-get-constraint 'type 'World × Any → Constraint or #f)
+(doc "Get a constraint by id.")
 (define (world-get-constraint world id)
   (hashtable-ref (world-constraints world) id #f))
 
-;;; world-constraint-list : World → (List Constraint)
-;;; Get all constraints as a list.
+(doc 'world-constraint-list 'type 'World → (List Constraint))
+(doc "Get all constraints as a list.")
 (define (world-constraint-list world)
   (let-values ([(keys vals) (hashtable-entries (world-constraints world))])
               (vector->list vals)))
 
-;;; world-update-constraint! : World × Any × (Constraint → Constraint) → Void
-;;; Update a constraint by applying a function.
+(doc "world-update-constraint! : World × Any × (Constraint → Constraint) → Void")
+(doc "Update a constraint by applying a function.")
 (define (world-update-constraint! world id f)
   (let ([constraint (world-get-constraint world id)])
        (when constraint
              (hashtable-set! (world-constraints world) id (f constraint)))))
 
-;;; ====
-;;; Force Accumulation
-;;; ====
+(doc 'section 'force)
 
-;;; A force accumulator for an entity
+(doc "A force accumulator for an entity")
 (define (make-force-acc)
   (make-hashtable equal-hash equal?))
 
-;;; force-acc-add! : ForceAcc × Any × Vec2 → Void
-;;; Add force to an entity's accumulator.
+(doc "force-acc-add! : ForceAcc × Any × Vec2 → Void")
+(doc "Add force to an entity's accumulator.")
 (define (force-acc-add! acc id force)
   (let ([current (hashtable-ref acc id (vec2 0 0))])
        (hashtable-set! acc id (vec2-add current force))))
 
-;;; force-acc-get : ForceAcc × Any → Vec2
-;;; Get accumulated force for an entity.
+(doc 'force-acc-get 'type 'ForceAcc × Any → Vec2)
+(doc "Get accumulated force for an entity.")
 (define (force-acc-get acc id)
   (hashtable-ref acc id (vec2 0 0)))
 
-;;; force-acc-clear! : ForceAcc → Void
+(doc "force-acc-clear! : ForceAcc → Void")
 (define (force-acc-clear! acc)
   (hashtable-clear! acc))
 
-;;; ====
-;;; World Step
-;;; ====
+(doc 'section 'world)
 
-;;; world-step! : World × Number → Void
-;;; Step the physics simulation forward by dt seconds.
+(doc "world-step! : World × Number → Void")
+(doc "Step the physics simulation forward by dt seconds.")
 (define (world-step! world dt)
   (let* ([config (world-config world)]
          [fixed-dt (config-fixed-dt config)]
@@ -290,8 +265,8 @@
                         (world-fixed-step! world fixed-dt)
                         (loop new-acc (+ steps 1))))))))
 
-;;; world-fixed-step! : World × Number → Void
-;;; Perform one fixed-timestep physics update.
+(doc "world-fixed-step! : World × Number → Void")
+(doc "Perform one fixed-timestep physics update.")
 (define (world-fixed-step! world dt)
   ;; 1. Apply forces and integrate velocities
   (world-integrate-velocities! world dt)
@@ -316,8 +291,8 @@
                   (world-correct-constraint-positions! world constraints)
                   (iter-loop (+ i 1))))))
 
-;;; world-resolve-collision-velocities! : World × (List Collision) → Void
-;;; Resolve collision velocity constraints (impulses only, no position correction).
+(doc "world-resolve-collision-velocities! : World × (List Collision) → Void")
+(doc "Resolve collision velocity constraints (impulses only, no position correction).")
 (define (world-resolve-collision-velocities! world collisions)
   (for-each
    (lambda (collision)
@@ -344,8 +319,8 @@
                                                          (lambda (e) (entity-with-body e new-body-b))))))))
    collisions))
 
-;;; world-correct-collision-positions! : World × (List Collision) → Void
-;;; Apply position correction for collisions.
+(doc "world-correct-collision-positions! : World × (List Collision) → Void")
+(doc "Apply position correction for collisions.")
 (define (world-correct-collision-positions! world collisions)
   (for-each
    (lambda (collision)
@@ -370,9 +345,9 @@
                                                          (lambda (e) (entity-with-body e new-body-b))))))))
    collisions))
 
-;;; world-solve-constraint-velocities! : World × (List Constraint) × Number → Void
-;;; Solve velocity constraints for all joints.
-;;; Dispatches to constraint-specific solvers.
+(doc "world-solve-constraint-velocities! : World × (List Constraint) × Number → Void")
+(doc "Solve velocity constraints for all joints.")
+(doc "Dispatches to constraint-specific solvers.")
 (define (world-solve-constraint-velocities! world constraints dt)
   (for-each
    (lambda (c)
@@ -380,8 +355,8 @@
                  ((constraint-solver-velocity c) world c dt)))
    constraints))
 
-;;; world-correct-constraint-positions! : World × (List Constraint) → Void
-;;; Apply position correction for all joints.
+(doc "world-correct-constraint-positions! : World × (List Constraint) → Void")
+(doc "Apply position correction for all joints.")
 (define (world-correct-constraint-positions! world constraints)
   (for-each
    (lambda (c)
@@ -389,8 +364,8 @@
                  ((constraint-solver-position c) world c)))
    constraints))
 
-;;; world-integrate-velocities! : World × Number → Void
-;;; Apply forces and update velocities (first half of integration).
+(doc "world-integrate-velocities! : World × Number → Void")
+(doc "Apply forces and update velocities (first half of integration).")
 (define (world-integrate-velocities! world dt)
   (let ([gravity (world-gravity world)]
         [entities (world-entity-list world)])
@@ -411,8 +386,8 @@
                                                             (entity-with-body ent new-body))))))
         entities)))
 
-;;; world-integrate-positions! : World × Number → Void
-;;; Update positions from velocities.
+(doc "world-integrate-positions! : World × Number → Void")
+(doc "Update positions from velocities.")
 (define (world-integrate-positions! world dt)
   (let ([entities (world-entity-list world)])
        (for-each
@@ -427,13 +402,11 @@
                                                             (entity-with-body ent new-body))))))
         entities)))
 
-;;; ====
-;;; Collision Detection
-;;; ====
+(doc 'section 'collision)
 
-;;; world-detect-collisions : World → (List Collision)
-;;; Detect all collisions in the world.
-;;; Returns list of (entity-a entity-b manifold).
+(doc 'world-detect-collisions 'type 'World → (List Collision))
+(doc "Detect all collisions in the world.")
+(doc "Returns list of (entity-a entity-b manifold).")
 (define (world-detect-collisions world)
   (let* ([hash (world-spatial-hash world)]
          [entities (world-entity-list world)])
@@ -471,48 +444,46 @@
               entities)
              collisions)))
 
-;;; make-pair-key : Any × Any → Any
-;;; Create a canonical key for a pair of ids.
+(doc 'make-pair-key 'type 'Any × Any → Any)
+(doc "Create a canonical key for a pair of ids.")
 (define (make-pair-key a b)
   (if (< (equal-hash a) (equal-hash b))
       (cons a b)
       (cons b a)))
 
 
-;;; ====
-;;; Convenience Constructors
-;;; ====
+(doc 'section 'convenience)
 
-;;; make-circle-entity : Any × Vec2 × Number × Number × Material → Entity
-;;; Create a circular physics entity.
+(doc 'make-circle-entity 'type 'Any × Vec2 × Number × Number × Material → Entity)
+(doc "Create a circular physics entity.")
 (define (make-circle-entity id pos radius mass material)
   (let ([body (make-body-2d pos (vec2 0 0) mass)]
         [shape (make-circle pos radius)])
        (make-entity id body shape material #f)))
 
-;;; make-box-entity : Any × Vec2 × Vec2 × Number × Material → Entity
-;;; Create a box physics entity.
+(doc 'make-box-entity 'type 'Any × Vec2 × Vec2 × Number × Material → Entity)
+(doc "Create a box physics entity.")
 (define (make-box-entity id pos half-extents mass material)
   (let ([body (make-body-2d pos (vec2 0 0) mass)]
         [shape (make-box pos half-extents)])
        (make-entity id body shape material #f)))
 
-;;; make-static-circle : Any × Vec2 × Number × Material → Entity
-;;; Create a static circular entity.
+(doc 'make-static-circle 'type 'Any × Vec2 × Number × Material → Entity)
+(doc "Create a static circular entity.")
 (define (make-static-circle id pos radius material)
   (let ([body (make-static-body pos)]
         [shape (make-circle pos radius)])
        (make-entity id body shape material #f)))
 
-;;; make-static-box : Any × Vec2 × Vec2 × Material → Entity
-;;; Create a static box entity.
+(doc 'make-static-box 'type 'Any × Vec2 × Vec2 × Material → Entity)
+(doc "Create a static box entity.")
 (define (make-static-box id pos half-extents material)
   (let ([body (make-static-body pos)]
         [shape (make-box pos half-extents)])
        (make-entity id body shape material #f)))
 
-;;; make-ground : Any × Number × Number × Number → Entity
-;;; Create a static ground plane at given y position.
+(doc 'make-ground 'type 'Any × Number × Number × Number → Entity)
+(doc "Create a static ground plane at given y position.")
 (define (make-ground id y width material)
   (let* ([half-width (/ width 2)]
          [pos (vec2 0 y)]
@@ -521,12 +492,10 @@
                            (vec2 half-width y))])
         (make-entity id body shape material #f)))
 
-;;; ====
-;;; World Queries
-;;; ====
+(doc 'section 'world)
 
-;;; world-query-aabb : World × AABB → (List Entity)
-;;; Find all entities overlapping an AABB.
+(doc 'world-query-aabb 'type 'World × AABB → (List Entity))
+(doc "Find all entities overlapping an AABB.")
 (define (world-query-aabb world aabb)
   ;; Rebuild spatial hash with current entities
   (let* ([hash (world-spatial-hash world)]
@@ -545,8 +514,8 @@
               (map (lambda (id) (world-get-entity world id))
                    candidates)))))
 
-;;; world-query-point : World × Vec2 → (List Entity)
-;;; Find all entities containing a point.
+(doc 'world-query-point 'type 'World × Vec2 → (List Entity))
+(doc "Find all entities containing a point.")
 (define (world-query-point world point)
   (let ([entities (world-entity-list world)])
        (filter
@@ -559,8 +528,8 @@
                       [else #f])))
         entities)))
 
-;;; world-raycast-closest : World × Ray2 → (Entity . HitInfo) | #f
-;;; Cast ray through world, returning closest hit with full shape testing.
+(doc 'world-raycast-closest 'type 'World × Ray2 → (Entity . HitInfo) or #f)
+(doc "Cast ray through world, returning closest hit with full shape testing.")
 (define (world-raycast-closest world ray)
   (let* ([entities (world-entity-list world)]
          [best-hit #f]
@@ -579,8 +548,8 @@
             (cons best-entity best-hit)
             #f)))
 
-;;; world-raycast-all : World × Ray2 → (List (Entity . HitInfo))
-;;; Cast ray through world, returning all hits sorted by distance.
+(doc 'world-raycast-all 'type 'World × Ray2 → (List (Entity . HitInfo)))
+(doc "Cast ray through world, returning all hits sorted by distance.")
 (define (world-raycast-all world ray)
   (let* ([entities (world-entity-list world)]
          [hits '()])
@@ -597,12 +566,10 @@
                               (hit-info-distance (cdr b))))
                    hits)))
 
-;;; ====
-;;; Entity Manipulation
-;;; ====
+(doc 'section 'entity)
 
-;;; apply-force! : World × Any × Vec2 → Void
-;;; Apply a force to an entity.
+(doc "apply-force! : World × Any × Vec2 → Void")
+(doc "Apply a force to an entity.")
 (define (apply-force! world id force)
   (world-update-entity!
    world id
@@ -617,8 +584,8 @@
                       [new-body (body-with-vel body new-vel)])
                      (entity-with-body e new-body))))))
 
-;;; apply-impulse! : World × Any × Vec2 → Void
-;;; Apply an impulse to an entity (instant velocity change).
+(doc "apply-impulse! : World × Any × Vec2 → Void")
+(doc "Apply an impulse to an entity (instant velocity change).")
 (define (apply-impulse! world id impulse)
   (world-update-entity!
    world id
@@ -632,8 +599,8 @@
                       [new-body (body-with-vel body new-vel)])
                      (entity-with-body e new-body))))))
 
-;;; set-velocity! : World × Any × Vec2 → Void
-;;; Set an entity's velocity directly.
+(doc "set-velocity! : World × Any × Vec2 → Void")
+(doc "Set an entity's velocity directly.")
 (define (set-velocity! world id velocity)
   (world-update-entity!
    world id
@@ -642,8 +609,8 @@
                   [new-body (body-with-vel body velocity)])
                  (entity-with-body e new-body)))))
 
-;;; set-position! : World × Any × Vec2 → Void
-;;; Set an entity's position directly.
+(doc "set-position! : World × Any × Vec2 → Void")
+(doc "Set an entity's position directly.")
 (define (set-position! world id position)
   (world-update-entity!
    world id
@@ -658,18 +625,16 @@
                  (make-entity (entity-id e) new-body new-shape
                               (entity-material e) (entity-user-data e))))))
 
-;;; ====
-;;; Convenience Wrappers
-;;; ====
+(doc 'section 'convenience)
 
-;;; world-resolve-collisions! : World × (List Collision) → Void
-;;; Resolve collisions with both velocity impulses and position correction.
+(doc "world-resolve-collisions! : World × (List Collision) → Void")
+(doc "Resolve collisions with both velocity impulses and position correction.")
 (define (world-resolve-collisions! world collisions)
   (world-resolve-collision-velocities! world collisions)
   (world-correct-collision-positions! world collisions))
 
-;;; world-raycast : World × Vec2 × Vec2 × Number → (List Entity)
-;;; Cast a ray and return list of entities hit, sorted by distance.
+(doc 'world-raycast 'type 'World × Vec2 × Vec2 × Number → (List Entity))
+(doc "Cast a ray and return list of entities hit, sorted by distance.")
 (define (world-raycast world origin direction max-dist)
   (let ([ray (make-ray2 origin direction max-dist)])
        (map car (world-raycast-all world ray))))

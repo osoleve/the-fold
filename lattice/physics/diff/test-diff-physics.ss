@@ -1,14 +1,15 @@
-;;; core/diff-physics/test-diff-physics.ss --- Tests for Differentiable Physics
-;;;
-;;; Comprehensive test suite for the differentiable physics system.
-;;; Tests gradient correctness using finite difference verification.
-;;;
-;;; Run with: scheme --script core/diff-physics/test-diff-physics.ss
-
 (load "core/test-framework.ss")
 (load "lattice/physics/diff/traced-vec2.ss")
 (load "lattice/physics/diff/traced-body.ss")
 (load "lattice/physics/diff/traced-integrators.ss")
+
+(doc 'module 'test-diff-physics)
+(doc 'description "Tests for Differentiable Physics
+
+Comprehensive test suite for the differentiable physics system.
+Tests gradient correctness using finite difference verification.")
+(doc 'layer 'lattice)
+(doc 'note "Run with: scheme --script lattice/physics/diff/test-diff-physics.ss")
 (load "lattice/physics/diff/smooth-collision.ss")
 (load "lattice/physics/diff/diff-collision.ss")
 (load "lattice/physics/diff/diff-constraints.ss")
