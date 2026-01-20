@@ -1,39 +1,35 @@
-;;; lattice/dsl/markdown/ast.ss — Markdown Abstract Syntax Tree
-;;;
-;;; Defines the AST types for parsed markdown documents.
-;;; All nodes are tagged S-expressions for easy pattern matching.
-;;;
-;;; This is Lattice code: pure, total, no IO.
-;;;
-;;; Block-level nodes:
-;;;   (document block...)           - Root document
-;;;   (h1 inline...)                - Heading level 1
-;;;   (h2 inline...)                - Heading level 2
-;;;   (h3 inline...)                - Heading level 3
-;;;   (h4 inline...)                - Heading level 4
-;;;   (h5 inline...)                - Heading level 5
-;;;   (h6 inline...)                - Heading level 6
-;;;   (p inline...)                 - Paragraph
-;;;   (code-block lang code)        - Fenced code block
-;;;   (blockquote block...)         - Block quote
-;;;   (ul li...)                    - Unordered list
-;;;   (ol li...)                    - Ordered list
-;;;   (li inline...)                - List item
-;;;   (hr)                          - Horizontal rule
-;;;
-;;; Inline-level nodes:
-;;;   (text "string")               - Plain text
-;;;   (strong inline...)            - Bold text
-;;;   (em inline...)                - Italic text
-;;;   (code "string")               - Inline code
-;;;   (link url title inline...)    - Hyperlink
-;;;   (br)                          - Line break
-
 (load "core/base/prelude.ss")
 
-;;; ============================================================
-;;; Block Node Constructors
-;;; ============================================================
+(doc 'module 'markdown-ast)
+(doc 'description "Markdown Abstract Syntax Tree - Defines the AST types for parsed markdown documents. All nodes are tagged S-expressions for easy pattern matching")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
+
+(doc 'note "Block-level nodes:
+  (document block...)           - Root document
+  (h1 inline...)                - Heading level 1
+  (h2 inline...)                - Heading level 2
+  (h3 inline...)                - Heading level 3
+  (h4 inline...)                - Heading level 4
+  (h5 inline...)                - Heading level 5
+  (h6 inline...)                - Heading level 6
+  (p inline...)                 - Paragraph
+  (code-block lang code)        - Fenced code block
+  (blockquote block...)         - Block quote
+  (ul li...)                    - Unordered list
+  (ol li...)                    - Ordered list
+  (li inline...)                - List item
+  (hr)                          - Horizontal rule")
+
+(doc 'note "Inline-level nodes:
+  (text \"string\")               - Plain text
+  (strong inline...)            - Bold text
+  (em inline...)                - Italic text
+  (code \"string\")               - Inline code
+  (link url title inline...)    - Hyperlink
+  (br)                          - Line break")
+
+(doc 'section 'block-node-constructors)
 
 ;;; md-document : (List Block) -> AST
 ;;; Create a document node containing block elements.
@@ -114,9 +110,7 @@
 (define (md-table-header-cell inlines)
   (cons 'th inlines))
 
-;;; ============================================================
-;;; Inline Node Constructors
-;;; ============================================================
+(doc 'section 'inline-node-constructors)
 
 ;;; md-text : String -> AST
 ;;; Create a plain text node.
@@ -148,9 +142,7 @@
 (define (md-br)
   '(br))
 
-;;; ============================================================
-;;; Predicates
-;;; ============================================================
+(doc 'section 'predicates)
 
 ;;; md-node? : Any -> Boolean
 ;;; Check if x is any markdown node.
@@ -188,9 +180,7 @@
   (and (pair? x)
        (memq (car x) '(ul ol))))
 
-;;; ============================================================
-;;; Accessors
-;;; ============================================================
+(doc 'section 'accessors)
 
 ;;; md-tag : AST -> Symbol
 ;;; Get the tag of a markdown node.
@@ -256,9 +246,7 @@
       (cadddr node)
       '()))
 
-;;; ============================================================
-;;; Utilities
-;;; ============================================================
+(doc 'section 'utilities)
 
 ;;; md-flatten-text : AST -> String
 ;;; Extract all text content from a node, discarding formatting.

@@ -1,21 +1,14 @@
-;;; lattice/dsl/markdown/html.ss — HTML Renderer for Markdown AST
-;;;
-;;; Converts markdown AST nodes to HTML strings.
-;;;
-;;; This is Lattice code: pure, total, no IO.
-;;;
-;;; Main entry point:
-;;;   (render-html ast) -> String
-;;;
-;;; Dependencies:
-;;;   - ast.ss (markdown AST types)
-
 (load "core/base/prelude.ss")
 (load "lattice/dsl/markdown/ast.ss")
 
-;;; ============================================================
-;;; HTML Escaping
-;;; ============================================================
+(doc 'module 'markdown-html)
+(doc 'description "HTML Renderer for Markdown AST - Converts markdown AST nodes to HTML strings")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
+
+(doc 'note "Main entry point: (render-html ast) -> String")
+
+(doc 'section 'html-escaping)
 
 ;;; html-escape : String -> String
 ;;; Escape HTML special characters: < > & " '
@@ -39,9 +32,7 @@
 ;;; Escape for use in HTML attributes (same as html-escape).
 (define html-escape-attr html-escape)
 
-;;; ============================================================
-;;; Tag Rendering Helpers
-;;; ============================================================
+(doc 'section 'tag-rendering-helpers)
 
 ;;; html-tag : Symbol × String -> String
 ;;; Wrap content in an HTML tag.

@@ -1,37 +1,33 @@
-;;; playpen/chronicle/chronicle-parser.ss — Parser Combinator Parser for Chronicle
-;;;
-;;; This module demonstrates dogfooding by using the parser combinator library
-;;; (fp/parser.ss) to parse a textual Chronicle DSL syntax.
-;;;
-;;; Textual Syntax Example:
-;;;
-;;;   chronicle "The Quest" {
-;;;     start: intro
-;;;
-;;;     scene intro {
-;;;       "You stand before the ancient temple."
-;;;
-;;;       -> "Enter the temple" => main_hall
-;;;       -> "Examine surroundings" => intro [do: flag!(examined)]
-;;;     }
-;;;
-;;;     scene main_hall {
-;;;       "The hall echoes with your footsteps."
-;;;
-;;;       -> "Search for treasure" => treasure_room [when: flag?(examined)]
-;;;       -> "Leave" => ending
-;;;     }
-;;;   }
-;;;
-;;; This parser produces S-expression AST that can be compiled using
-;;; parse-chronicle-def from chronicle.ss.
-
 (load "lattice/fp/parsing/parser.ss")
 (load "lattice/dsl/chronicle/chronicle.ss")
 
-;;; ====
-;;; Lexical Primitives
-;;; ====
+(doc 'module 'chronicle-parser)
+(doc 'description "Parser Combinator Parser for Chronicle - Demonstrates dogfooding by using the parser combinator library to parse a textual Chronicle DSL syntax")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
+
+(doc 'note "Textual Syntax Example:
+  chronicle \"The Quest\" {
+    start: intro
+
+    scene intro {
+      \"You stand before the ancient temple.\"
+
+      -> \"Enter the temple\" => main_hall
+      -> \"Examine surroundings\" => intro [do: flag!(examined)]
+    }
+
+    scene main_hall {
+      \"The hall echoes with your footsteps.\"
+
+      -> \"Search for treasure\" => treasure_room [when: flag?(examined)]
+      -> \"Leave\" => ending
+    }
+  }")
+
+(doc 'note "This parser produces S-expression AST that can be compiled using parse-chronicle-def from chronicle.ss")
+
+(doc 'section 'lexical-primitives)
 
 ;;; Skip whitespace and comments
 (define whitespace
@@ -53,9 +49,7 @@
 (define (symbol str)
   (lexeme (string-parser str)))
 
-;;; ====
-;;; Identifiers and Strings
-;;; ====
+(doc 'section 'identifiers-and-strings)
 
 ;;; identifier-start : Parser Char
 (define identifier-start
@@ -100,9 +94,7 @@
                                                          (not (char=? c #\\))))
                                         "string character")))))))
 
-;;; ====
-;;; Guard Expressions
-;;; ====
+(doc 'section 'guard-expressions)
 
 ;;; Parse guard expressions like:
 ;;;   flag?(name)
@@ -213,9 +205,7 @@
     ;; false
     (parser-then (symbol "false") (parser-pure #f)))))
 
-;;; ====
-;;; Effect Expressions
-;;; ====
+(doc 'section 'effect-expressions)
 
 ;;; Parse effects like:
 ;;;   set!(name, value)
@@ -280,9 +270,7 @@
                                       (lambda (name)
                                               (parser-pure (list 'remove-item! name)))))))))
 
-;;; ====
-;;; Values
-;;; ====
+(doc 'section 'values)
 
 ;;; parse-number : Parser Number
 (define parse-number
@@ -304,9 +292,7 @@
     (parser-then (symbol "false") (parser-pure #f))
     identifier)))
 
-;;; ====
-;;; Choice Definition
-;;; ====
+(doc 'section 'choice-definition)
 
 ;;; Parse choice like:
 ;;;   -> "label" => target
@@ -354,9 +340,7 @@
                                                                                                                   (if guard-mod (list ':when (cdr guard-mod)) '())
                                                                                                                   (if do-mod (list ':do (cdr do-mod)) '())))))))))))))))
 
-;;; ====
-;;; Scene Definition
-;;; ====
+(doc 'section 'scene-definition)
 
 ;;; Parse scene like:
 ;;;   scene name {
@@ -399,9 +383,7 @@
                                                                          ,@(if (null? on-enter) '() (list `(on-enter ,@on-enter)))
                                                                          ,@choices))))))))))
 
-;;; ====
-;;; Chronicle Definition
-;;; ====
+(doc 'section 'chronicle-definition)
 
 ;;; Parse chronicle like:
 ;;;   chronicle "title" {
@@ -439,9 +421,7 @@
                                                                          ,@(if start (list start) '())
                                                                          ,@scenes))))))))))
 
-;;; ====
-;;; Main Entry Point
-;;; ====
+(doc 'section 'main-entry-point)
 
 ;;; parse-chronicle-text : String -> Either Error Chronicle
 ;;; Parse textual chronicle DSL and compile to Chronicle structure.
@@ -459,9 +439,7 @@
    (map (lambda (c) (if (char=? c (string-ref old 0)) (string-ref new 0) c))
         (string->list str))))
 
-;;; ====
-;;; Convenience: Parse and Run
-;;; ====
+(doc 'section 'convenience-parse-and-run)
 
 ;;; chronicle-from-text : String -> Chronicle
 ;;; Parse text and return chronicle (or error).
@@ -472,9 +450,7 @@
            (error 'chronicle-from-text
                   (format-error (from-left result))))))
 
-;;; ====
-;;; Exports Summary
-;;; ====
+(doc 'section 'exports-summary)
 ;;;
 ;;; Main Entry Points:
 ;;;   parse-chronicle-text : String -> Either Error Chronicle

@@ -1,34 +1,25 @@
-;;; lattice/dsl/markdown/block-parser.ss — Markdown Block Parser
-;;;
-;;; Parses block-level markdown elements: headings, paragraphs,
-;;; code blocks, lists, blockquotes, horizontal rules.
-;;;
-;;; This is Lattice code: pure, total, no IO.
-;;;
-;;; Block elements:
-;;;   # Heading 1 ... ###### Heading 6
-;;;   Paragraph text...
-;;;   ```lang
-;;;   code
-;;;   ```
-;;;   > blockquote
-;;;   - unordered list item
-;;;   1. ordered list item
-;;;   --- or *** or ___ (horizontal rule)
-;;;
-;;; Dependencies:
-;;;   - fp/parsing/parser.ss
-;;;   - ast.ss
-;;;   - inline-parser.ss
-
 (load "core/base/prelude.ss")
 (load "lattice/fp/parsing/parser.ss")
 (load "lattice/dsl/markdown/ast.ss")
 (load "lattice/dsl/markdown/inline-parser.ss")
 
-;;; ============================================================
-;;; Character Helpers
-;;; ============================================================
+(doc 'module 'markdown-block-parser)
+(doc 'description "Markdown Block Parser - Parses block-level markdown elements: headings, paragraphs, code blocks, lists, blockquotes, horizontal rules")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
+
+(doc 'note "Block elements:
+  # Heading 1 ... ###### Heading 6
+  Paragraph text...
+  ```lang
+  code
+  ```
+  > blockquote
+  - unordered list item
+  1. ordered list item
+  --- or *** or ___ (horizontal rule)")
+
+(doc 'section 'character-helpers)
 
 (define %newline-char (integer->char 10))
 

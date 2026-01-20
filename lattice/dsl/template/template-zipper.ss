@@ -1,25 +1,19 @@
-;;; lattice/dsl/template/template-zipper.ss — Hole-Focused Navigation for Templates
-;;;
-;;; Provides zipper-based navigation between holes in template expressions.
-;;; Key features:
-;;;   - Focus on "current hole" being filled
-;;;   - Navigate between holes in document order (preorder)
-;;;   - Track position ("hole 2 of 5")
-;;;   - Fill current hole and automatically move to next
-;;;   - Undo support via hole history
-;;;
-;;; This is Lattice code: pure, total, no IO.
-;;;
-;;; Dependencies:
-;;;   - lattice/dsl/template/template.ss
-;;;   - lattice/fp/rewrite/sexp-zipper.ss
-
 (load "lattice/dsl/template/template.ss")
 (load "lattice/fp/rewrite/sexp-zipper.ss")
 
-;;; ====
-;;; Template Hole Zipper Type
-;;; ====
+(doc 'module 'template-zipper)
+(doc 'description "Hole-Focused Navigation for Templates - Provides zipper-based navigation between holes in template expressions")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
+
+(doc 'note "Key features:
+  - Focus on \"current hole\" being filled
+  - Navigate between holes in document order (preorder)
+  - Track position (\"hole 2 of 5\")
+  - Fill current hole and automatically move to next
+  - Undo support via hole history")
+
+(doc 'section 'template-hole-zipper-type)
 ;;;
 ;;; A hole-zipper tracks:
 ;;;   - The underlying sexp-zipper for navigation
@@ -55,9 +49,7 @@
 (define (hole-zipper-history hz)
   (list-ref hz 4))
 
-;;; ====
-;;; Hole Detection
-;;; ====
+(doc 'section 'hole-detection)
 
 ;;; find-hole-positions : Sexp -> (List Position)
 ;;; Find all positions containing holes, in preorder (document order).
@@ -83,9 +75,7 @@
               (loop (cdr lst) (cons result acc))
               (loop (cdr lst) acc))))))
 
-;;; ====
-;;; Constructors
-;;; ====
+(doc 'section 'constructors)
 
 ;;; template->hole-zipper : Template -> HoleZipper | #f
 ;;; Create a hole-zipper from a template.
@@ -113,9 +103,7 @@
 (define (hole-zipper->expr hz)
   (zipper->sexp (sexp-zipper-root (hole-zipper-sexp-z hz))))
 
-;;; ====
-;;; Focus Operations
-;;; ====
+(doc 'section 'focus-operations)
 
 ;;; hole-zipper-current : HoleZipper -> Symbol | #f
 ;;; Get the current hole symbol, or #f if no holes.
@@ -140,9 +128,7 @@
         #f
         (list-ref positions idx))))
 
-;;; ====
-;;; Position Information
-;;; ====
+(doc 'section 'position-information)
 
 ;;; hole-zipper-count : HoleZipper -> Nat
 ;;; Total number of holes.
@@ -176,9 +162,7 @@
 (define (hole-zipper-at-first? hz)
   (= (hole-zipper-index hz) 0))
 
-;;; ====
-;;; Navigation
-;;; ====
+(doc 'section 'navigation)
 
 ;;; hole-zipper-next : HoleZipper -> HoleZipper | #f
 ;;; Move to the next hole. Returns #f if at last hole.
@@ -235,9 +219,7 @@
      (max 0 (- count 1))
      (hole-zipper-history hz))))
 
-;;; ====
-;;; Filling Holes
-;;; ====
+(doc 'section 'filling-holes)
 
 ;;; hole-zipper-fill : HoleZipper x Expr -> HoleZipper
 ;;; Fill the current hole with a value.
@@ -285,9 +267,7 @@
          [new-history (cons hz (hole-zipper-history hz))])
     (make-hole-zipper new-sexp-z new-positions new-idx new-history)))
 
-;;; ====
-;;; Undo
-;;; ====
+(doc 'section 'undo)
 
 ;;; hole-zipper-undo : HoleZipper -> HoleZipper | #f
 ;;; Undo the last fill operation. Returns #f if nothing to undo.
@@ -306,9 +286,7 @@
 (define (hole-zipper-undo-count hz)
   (length (hole-zipper-history hz)))
 
-;;; ====
-;;; Context Information
-;;; ====
+(doc 'section 'context-information)
 
 ;;; hole-zipper-context : HoleZipper -> (List Sexp)
 ;;; Get the path of parent expressions leading to current hole.
@@ -335,9 +313,7 @@
         #f
         (car ctx))))
 
-;;; ====
-;;; All Holes
-;;; ====
+(doc 'section 'all-holes)
 
 ;;; hole-zipper-all-holes : HoleZipper -> (List Symbol)
 ;;; Get all remaining holes in document order.
@@ -368,9 +344,7 @@
     [(= n 0) lst]
     [else (list-tail-safe (cdr lst) (- n 1))]))
 
-;;; ====
-;;; Status and Display
-;;; ====
+(doc 'section 'status-and-display)
 
 ;;; hole-zipper-status : HoleZipper -> String
 ;;; Get a status string describing current state.

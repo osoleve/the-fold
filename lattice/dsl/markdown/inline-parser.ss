@@ -1,28 +1,21 @@
-;;; lattice/dsl/markdown/inline-parser.ss — Markdown Inline Parser
-;;;
-;;; Parses inline markdown elements: emphasis, code, links, plain text.
-;;;
-;;; This is Lattice code: pure, total, no IO.
-;;;
-;;; Inline elements:
-;;;   **bold** or __bold__     -> (strong ...)
-;;;   *italic* or _italic_     -> (em ...)
-;;;   `code`                   -> (code "...")
-;;;   [text](url)              -> (link url "" (text ...))
-;;;   [text](url "title")      -> (link url "title" (text ...))
-;;;   plain text               -> (text "...")
-;;;
-;;; Dependencies:
-;;;   - fp/parsing/parser.ss
-;;;   - ast.ss
-
 (load "core/base/prelude.ss")
 (load "lattice/fp/parsing/parser.ss")
 (load "lattice/dsl/markdown/ast.ss")
 
-;;; ============================================================
-;;; Character Classes
-;;; ============================================================
+(doc 'module 'markdown-inline-parser)
+(doc 'description "Markdown Inline Parser - Parses inline markdown elements: emphasis, code, links, plain text")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
+
+(doc 'note "Inline elements:
+  **bold** or __bold__     -> (strong ...)
+  *italic* or _italic_     -> (em ...)
+  `code`                   -> (code \"...\")
+  [text](url)              -> (link url \"\" (text ...))
+  [text](url \"title\")      -> (link url \"title\" (text ...))
+  plain text               -> (text \"...\")")
+
+(doc 'section 'character-classes)
 
 ;;; Special characters that need escaping or have meaning
 (define *md-special-chars* '(#\* #\_ #\` #\[ #\] #\( #\) #\\))
@@ -31,9 +24,7 @@
 (define (md-special-char? c)
   (memv c *md-special-chars*))
 
-;;; ============================================================
-;;; Inline Parsers
-;;; ============================================================
+(doc 'section 'inline-parsers)
 
 ;;; Forward declarations for recursive parsers
 (define md-inline #f)
