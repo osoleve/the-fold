@@ -1,42 +1,37 @@
-;;; core/fp/numeric/special-functions.ss — Special Mathematical Functions
-;;;
-;;; Standard special functions for scientific computing.
-;;; Provides error functions, gamma functions, beta functions, and more.
-;;;
-;;; This is Core code: pure, total, assumes reasonable input.
-;;;
-;;; Usage:
-;;;   (erf 1.0)          => 0.8427... (error function)
-;;;   (erfc 1.0)         => 0.1573... (complementary error function)
-;;;   (gamma 5)          => 24 (gamma(5) = 4!)
-;;;   (lgamma 100)       => 359.13... (log-gamma for large values)
-;;;   (beta 2 3)         => 0.0833... (beta function)
-;;;   (digamma 1)        => -0.5772... (Euler-Mascheroni constant)
-;;;
-;;; Dependencies:
-;;;   - transcendental.ss (for exp, log, sqrt, pi-value)
+(load "core/base/prelude.ss")
 
-;;; ====
-;;; Constants
-;;; ====
+(doc 'module 'special-functions)
+(doc 'description "Standard special functions for scientific computing")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
 
-;;; Euler-Mascheroni constant γ ≈ 0.5772156649...
+(doc 'note "Usage examples:
+  (erf 1.0)          => 0.8427... (error function)
+  (erfc 1.0)         => 0.1573... (complementary error function)
+  (gamma 5)          => 24 (gamma(5) = 4!)
+  (lgamma 100)       => 359.13... (log-gamma for large values)
+  (beta 2 3)         => 0.0833... (beta function)
+  (digamma 1)        => -0.5772... (Euler-Mascheroni constant)")
+
+(doc 'dependencies "transcendental.ss (for exp, log, sqrt, pi-value)")
+
+(doc 'section 'constants)
+
 (define *euler-gamma* 0.5772156649015329)
+(doc *euler-gamma* 'description "Euler-Mascheroni constant γ ≈ 0.5772156649...")
 
-;;; sqrt(2π) for Stirling approximation
 (define *sqrt-2pi* 2.5066282746310002)
+(doc *sqrt-2pi* 'description "sqrt(2π) for Stirling approximation")
 
-;;; sqrt(π)
 (define *sqrt-pi* 1.7724538509055159)
+(doc *sqrt-pi* 'description "sqrt(π)")
 
-;;; ====
-;;; Error Functions
-;;; ====
+(doc 'section 'error-functions)
 
-;;; erf : Number → Number
-;;; Error function: erf(x) = (2/√π) ∫₀ˣ e^(-t²) dt
-;;; Uses Horner's method with Abramowitz & Stegun 7.1.26 approximation.
 (define (erf x)
+  (doc 'type '(-> Number Number))
+  (doc 'description "Error function: erf(x) = (2/√π) ∫₀ˣ e^(-t²) dt")
+  (doc 'note "Uses Horner's method with Abramowitz & Stegun 7.1.26 approximation")
   (let* ((sign (if (< x 0) -1 1))
          (x (abs x))
          (p 0.3275911)
@@ -50,10 +45,10 @@
          (result (- 1.0 (* y (exp (- (* x x)))))))
         (* sign result)))
 
-;;; erfc : Number → Number
-;;; Complementary error function: erfc(x) = 1 - erf(x)
-;;; More accurate than computing 1 - erf(x) for large x.
 (define (erfc x)
+  (doc 'type '(-> Number Number))
+  (doc 'description "Complementary error function: erfc(x) = 1 - erf(x)")
+  (doc 'note "More accurate than computing 1 - erf(x) for large x")
   (if (< x 0)
       (- 2 (erfc (- x)))
       (let* ((p 0.3275911)
@@ -66,11 +61,11 @@
              (y (* t (+ a1 (* t (+ a2 (* t (+ a3 (* t (+ a4 (* t a5)))))))))))
             (* y (exp (- (* x x)))))))
 
-;;; erfinv : Number → Number
-;;; Inverse error function: erfinv(erf(x)) = x
-;;; Uses rational approximation (Winitzki 2008).
-;;; Domain: (-1, 1)
 (define (erfinv x)
+  (doc 'type '(-> Number Number))
+  (doc 'description "Inverse error function: erfinv(erf(x)) = x")
+  (doc 'note "Uses rational approximation (Winitzki 2008)")
+  (doc 'domain "(-1, 1)")
   (cond
    ((<= x -1) (error 'erfinv "domain error: x must be in (-1, 1)" x))
    ((>= x 1) (error 'erfinv "domain error: x must be in (-1, 1)" x))
@@ -87,22 +82,19 @@
                                    (/ ln-term a))))))
           (* sign (sqrt (- sqrt-inner)))))))
 
-;;; erfcinv : Number → Number
-;;; Inverse complementary error function: erfcinv(erfc(x)) = x
-;;; Domain: (0, 2)
 (define (erfcinv x)
+  (doc 'type '(-> Number Number))
+  (doc 'description "Inverse complementary error function: erfcinv(erfc(x)) = x")
+  (doc 'domain "(0, 2)")
   (cond
    ((<= x 0) (error 'erfcinv "domain error: x must be in (0, 2)" x))
    ((>= x 2) (error 'erfcinv "domain error: x must be in (0, 2)" x))
    (else (erfinv (- 1 x)))))
 
-;;; ====
-;;; Gamma Functions
-;;; ====
+(doc 'section 'gamma-functions)
 
-;;; *lanczos-g* and *lanczos-coeffs*
-;;; Lanczos approximation coefficients for g=7
 (define *lanczos-g* 7)
+(doc *lanczos-g* 'description "Lanczos approximation parameter for g=7")
 (define *lanczos-coeffs*
   '#(0.99999999999980993
      676.5203681218851
@@ -113,10 +105,11 @@
      -0.13857109526572012
      9.9843695780195716e-6
      1.5056327351493116e-7))
+(doc *lanczos-coeffs* 'description "Lanczos approximation coefficients for g=7")
 
-;;; lanczos-sum : Number → Number
-;;; Compute Lanczos series sum.
 (define (lanczos-sum x)
+  (doc 'type '(-> Number Number))
+  (doc 'description "Compute Lanczos series sum")
   (let loop ((i 1) (ag (vector-ref *lanczos-coeffs* 0)))
        (if (>= i (vector-length *lanczos-coeffs*))
            ag
@@ -124,10 +117,10 @@
                  (+ ag (/ (vector-ref *lanczos-coeffs* i)
                           (+ x i)))))))
 
-;;; gamma : Number → Number
-;;; Gamma function: Γ(n) = (n-1)! for positive integers.
-;;; Uses Lanczos approximation for general values.
 (define (gamma x)
+  (doc 'type '(-> Number Number))
+  (doc 'description "Gamma function: Γ(n) = (n-1)! for positive integers")
+  (doc 'note "Uses Lanczos approximation for general values")
   (cond
    ;; Handle poles at non-positive integers
    ((and (<= x 0) (= x (truncate x)))
@@ -146,10 +139,10 @@
              (exp (- t))
              ag)))))
 
-;;; lgamma : Number → Number
-;;; Log-gamma function: lgamma(x) = log(|Γ(x)|)
-;;; More numerically stable than log(gamma(x)) for large x.
 (define (lgamma x)
+  (doc 'type '(-> Number Number))
+  (doc 'description "Log-gamma function: lgamma(x) = log(|Γ(x)|)")
+  (doc 'note "More numerically stable than log(gamma(x)) for large x")
   (cond
    ((and (<= x 0) (= x (truncate x)))
     (error 'lgamma "pole at non-positive integer" x))
@@ -166,23 +159,21 @@
              (- t)
              (log ag))))))
 
-;;; factorial : Nat → Nat
-;;; Compute n! = n × (n-1) × ... × 1
 (define (factorial n)
+  (doc 'type '(-> Nat Nat))
+  (doc 'description "Compute n! = n × (n-1) × ... × 1")
   (cond
    ((< n 0) (error 'factorial "undefined for negative integers" n))
    ((= n (truncate n))
     (inexact->exact (round (gamma (+ n 1)))))
    (else (gamma (+ n 1)))))
 
-;;; ====
-;;; Digamma and Polygamma Functions
-;;; ====
+(doc 'section 'digamma-polygamma-functions)
 
-;;; digamma : Number → Number
-;;; Digamma function: ψ(x) = d/dx log(Γ(x)) = Γ'(x)/Γ(x)
-;;; Uses asymptotic expansion with more terms for precision.
 (define (digamma x)
+  (doc 'type '(-> Number Number))
+  (doc 'description "Digamma function: ψ(x) = d/dx log(Γ(x)) = Γ'(x)/Γ(x)")
+  (doc 'note "Uses asymptotic expansion with more terms for precision")
   (cond
    ((and (<= x 0) (= x (truncate x)))
     (error 'digamma "pole at non-positive integer" x))
@@ -214,9 +205,9 @@
              (/ b8 x8)
              (/ b10 x10))))))
 
-;;; trigamma : Number → Number
-;;; Trigamma function: ψ₁(x) = d²/dx² log(Γ(x))
 (define (trigamma x)
+  (doc 'type '(-> Number Number))
+  (doc 'description "Trigamma function: ψ₁(x) = d²/dx² log(Γ(x))")
   (cond
    ((and (<= x 0) (= x (truncate x)))
     (error 'trigamma "pole at non-positive integer" x))
@@ -237,64 +228,59 @@
              (/ -1 (* 30 x5))
              (/ 1 (* 42 x7)))))))
 
-;;; ====
-;;; Beta Function
-;;; ====
+(doc 'section 'beta-function)
 
-;;; beta : Number × Number → Number
-;;; Beta function: B(a,b) = Γ(a)Γ(b)/Γ(a+b)
 (define (beta a b)
+  (doc 'type '(-> Number Number Number))
+  (doc 'description "Beta function: B(a,b) = Γ(a)Γ(b)/Γ(a+b)")
   (if (or (<= a 0) (<= b 0))
       (error 'beta "requires positive arguments" (list a b))
       (exp (- (+ (lgamma a) (lgamma b))
               (lgamma (+ a b))))))
 
-;;; lbeta : Number × Number → Number
-;;; Log-beta function: log(B(a,b))
 (define (lbeta a b)
+  (doc 'type '(-> Number Number Number))
+  (doc 'description "Log-beta function: log(B(a,b))")
   (if (or (<= a 0) (<= b 0))
       (error 'lbeta "requires positive arguments" (list a b))
       (- (+ (lgamma a) (lgamma b))
          (lgamma (+ a b)))))
 
-;;; ====
-;;; Incomplete Gamma Functions
-;;; ====
+(doc 'section 'incomplete-gamma-functions)
 
-;;; gammainc-lower : Number × Number → Number
-;;; Lower incomplete gamma: γ(a,x) = ∫₀ˣ t^(a-1) e^(-t) dt
 (define (gammainc-lower a x)
+  (doc 'type '(-> Number Number Number))
+  (doc 'description "Lower incomplete gamma: γ(a,x) = ∫₀ˣ t^(a-1) e^(-t) dt")
   (cond
    ((<= a 0) (error 'gammainc-lower "requires a > 0" a))
    ((< x 0) (error 'gammainc-lower "requires x >= 0" x))
    ((= x 0) 0)
    (else (gammainc-lower-series a x 200 1e-15))))
 
-;;; gammainc-lower-series : series expansion helper
 (define (gammainc-lower-series a x max-iter eps)
+  (doc 'type '(-> Number Number Nat Number Number))
+  (doc 'description "Series expansion helper for lower incomplete gamma")
   (let loop ((n 0) (term 1.0) (sum 1.0))
        (if (or (>= n max-iter) (< (abs term) (* eps (abs sum))))
            (* (exp (- (* a (log x)) x)) (/ sum a))
            (let ((new-term (* term (/ x (+ a n 1)))))
                 (loop (+ n 1) new-term (+ sum new-term))))))
 
-;;; gammainc-upper : Number × Number → Number
-;;; Upper incomplete gamma: Γ(a,x) = ∫ₓ^∞ t^(a-1) e^(-t) dt
 (define (gammainc-upper a x)
+  (doc 'type '(-> Number Number Number))
+  (doc 'description "Upper incomplete gamma: Γ(a,x) = ∫ₓ^∞ t^(a-1) e^(-t) dt")
   (- (gamma a) (gammainc-lower a x)))
 
-;;; gammainc-reg : Number × Number → Number
-;;; Regularized incomplete gamma: P(a,x) = γ(a,x) / Γ(a)
 (define (gammainc-reg a x)
+  (doc 'type '(-> Number Number Number))
+  (doc 'description "Regularized incomplete gamma: P(a,x) = γ(a,x) / Γ(a)")
   (/ (gammainc-lower a x) (gamma a)))
 
-;;; ====
-;;; Incomplete Beta Function
-;;; ====
+(doc 'section 'incomplete-beta-function)
 
-;;; betainc : Number × Number × Number → Number
-;;; Regularized incomplete beta: I_x(a,b) = B(x;a,b) / B(a,b)
 (define (betainc a b x)
+  (doc 'type '(-> Number Number Number Number))
+  (doc 'description "Regularized incomplete beta: I_x(a,b) = B(x;a,b) / B(a,b)")
   (cond
    ((or (<= a 0) (<= b 0))
     (error 'betainc "requires a > 0 and b > 0" (list a b)))
@@ -307,8 +293,9 @@
    (else
     (betainc-cf a b x))))
 
-;;; betainc-cf : continued fraction for betainc
 (define (betainc-cf a b x)
+  (doc 'type '(-> Number Number Number Number))
+  (doc 'description "Continued fraction for betainc")
   (let* ((qab (+ a b))
          (qap (+ a 1))
          (qam (- a 1))
@@ -317,8 +304,8 @@
              (let ((d0 (/ 1 d0)))
                   (betainc-cf-loop a b x qab qap qam 1 d0 1.0 d0)))))
 
-;;; betainc-cf-loop : iteration for continued fraction
 (define (betainc-cf-loop a b x qab qap qam m h c d)
+  (doc 'description "Iteration for continued fraction")
   (if (>= m 200)
       (betainc-cf-result a b x h)
       (let* ((m2 (* 2 m))
@@ -343,21 +330,19 @@
                 (betainc-cf-result a b x h2)
                 (betainc-cf-loop a b x qab qap qam (+ m 1) h2 c2 d2)))))
 
-;;; betainc-cf-result : compute final result
-;;; The regularized incomplete beta is I_x(a,b) = x^a*(1-x)^b / (a*B(a,b)) * CF
-;;; Note the division by 'a' - a common pitfall in implementations.
 (define (betainc-cf-result a b x h)
+  (doc 'type '(-> Number Number Number Number Number))
+  (doc 'description "Compute final result: I_x(a,b) = x^a*(1-x)^b / (a*B(a,b)) * CF")
+  (doc 'note "Note the division by 'a' - a common pitfall in implementations")
   (* (/ h a) (exp (+ (* a (log x))
                      (* b (log (- 1 x)))
                      (- (lbeta a b))))))
 
-;;; ====
-;;; Binomial Coefficient
-;;; ====
+(doc 'section 'binomial-coefficient)
 
-;;; binomial : Nat × Nat → Nat
-;;; Binomial coefficient: C(n,k) = n! / (k! (n-k)!)
 (define (binomial n k)
+  (doc 'type '(-> Nat Nat Nat))
+  (doc 'description "Binomial coefficient: C(n,k) = n! / (k! (n-k)!)")
   (cond
    ((< k 0) 0)
    ((> k n) 0)
@@ -368,24 +353,20 @@
                     (lgamma (+ k 1))
                     (lgamma (+ (- n k) 1)))))))))
 
-;;; ====
-;;; Pochhammer Symbol (Rising Factorial)
-;;; ====
+(doc 'section 'pochhammer-symbol)
 
-;;; pochhammer : Number × Nat → Number
-;;; Pochhammer symbol (rising factorial): (x)_n = x(x+1)...(x+n-1)
 (define (pochhammer x n)
+  (doc 'type '(-> Number Nat Number))
+  (doc 'description "Pochhammer symbol (rising factorial): (x)_n = x(x+1)...(x+n-1)")
   (if (= n 0)
       1
       (exp (- (lgamma (+ x n)) (lgamma x)))))
 
-;;; ====
-;;; Double Factorial
-;;; ====
+(doc 'section 'double-factorial)
 
-;;; double-factorial : Nat → Nat
-;;; Double factorial: n!! = n(n-2)(n-4)...
 (define (double-factorial n)
+  (doc 'type '(-> Nat Nat))
+  (doc 'description "Double factorial: n!! = n(n-2)(n-4)...")
   (cond
    ((< n 0) (error 'double-factorial "undefined for negative integers" n))
    ((<= n 1) 1)

@@ -201,7 +201,7 @@
    identity))
 
 (define (field-with-default-iso default)
-  (doc 'type '(-> Any (PIso (a | #f) a)))
+  (doc 'type '(-> Any (PIso (Maybe a) a)))
   (doc 'description "Provide default for a field value. Used with field-transform-iso when field might be missing")
   (make-p-iso
    (lambda (v) (if v v default))

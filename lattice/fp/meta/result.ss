@@ -1,217 +1,164 @@
-;;; lattice/fp/meta/result.ss — Result Type Operations
-;;;
-;;; Consolidates the Result type pattern used throughout The Fold.
-;;; Re-exports core operations from prelude.ss and adds utilities.
-;;;
-;;; Result α ε = (ok α) | (error ε)
-;;;
-;;; This is lattice code: pure, assumes reasonable input.
-;;; Core Result operations are in core/base/prelude.ss.
-;;;
-;;; Features:
-;;;   - Constructors: ok, error (from prelude)
-;;;   - Predicates: ok?, error? (from prelude)
-;;;   - Accessors: unwrap-ok, unwrap-error (from prelude)
-;;;   - Monadic: result-bind, result-map, result-sequence (from prelude)
-;;;   - New: result-catch, result-fold, result-default, result-or
-;;;   - New: result-map-error, result-bimap
-;;;   - New: assert-ok!, result->maybe, maybe->result
-;;;
-;;; Dependencies:
-;;;   - core/base/prelude.ss (provides core Result ops)
-;;;   - lattice/fp/meta/combinators.ss (provides Maybe, Either)
-
 (load "core/base/prelude.ss")
 (load "lattice/fp/meta/combinators.ss")
 
-;;; ====
-;;; Re-exports from prelude (documented here for discoverability)
-;;; ====
-;;;
-;;; Constructors:
-;;;   (list 'ok value)     — success result
-;;;   (list 'error . rest) — failure result
-;;;
-;;; Predicates:
-;;;   ok?           : Any → Bool
-;;;   error?        : Any → Bool
-;;;
-;;; Accessors:
-;;;   unwrap-ok     : (Result α ε) → α        (assumes ok)
-;;;   unwrap-error  : (Result α ε) → ε        (assumes error)
-;;;
-;;; Monadic operations:
-;;;   result-map      : (α → β) × (Result α ε) → (Result β ε)
-;;;   result-bind     : (Result α ε) × (α → Result β ε) → (Result β ε)
-;;;   result-sequence : (List (Result α ε)) → (Result (List α) ε)
+(doc 'module 'result)
+(doc 'description "Result Type Operations — Consolidates the Result type pattern used throughout The Fold. Re-exports core operations from prelude.ss and adds utilities. Result α ε = (ok α) | (error ε). Core Result operations are in core/base/prelude.ss.")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
 
-;;; ====
-;;; Result Constructors (explicit)
-;;; ====
+(doc 'section 're-exports)
+(doc 'note "Constructors: (list 'ok value) — success result, (list 'error . rest) — failure result. Predicates: ok?, error?. Accessors: unwrap-ok, unwrap-error. Monadic: result-map, result-bind, result-sequence (all from prelude)")
 
-;;; ok : α → (Result α ε)
-;;; Wrap a value as success.
+(doc 'section 'result-constructors)
+
 (define (ok value)
+  (doc 'type '(-> α Result-α-ε))
+  (doc 'description "Wrap a value as success")
   (list 'ok value))
 
-;;; err : ε → (Result α ε)
-;;; Wrap an error value. Alternative to bare (error ...) for clarity.
 (define (err e)
+  (doc 'type '(-> ε Result-α-ε))
+  (doc 'description "Wrap an error value - alternative to bare (error ...) for clarity")
   (list 'error e))
 
-;;; ====
-;;; Additional Result Operations
-;;; ====
+(doc 'section 'result-operations)
 
-;;; result-fold : (α → β) → (ε → β) → (Result α ε) → β
-;;; Pattern match on Result, applying appropriate function.
-;;; Note: on-error receives (cdr result) - the full error payload after 'error tag.
-;;; For (error 'tag "msg"), on-error receives ('tag "msg").
 (define (result-fold on-ok on-error result)
+  (doc 'type '(-> (-> α β) (-> ε β) Result-α-ε β))
+  (doc 'description "Pattern match on Result, applying appropriate function")
+  (doc 'note "on-error receives (cdr result) - the full error payload after 'error tag. For (error 'tag \"msg\"), on-error receives ('tag \"msg\")")
   (if (ok? result)
       (on-ok (unwrap-ok result))
       (on-error (cdr result))))
 
-;;; result-default : α → (Result α ε) → α
-;;; Extract value or return default on error.
 (define (result-default default result)
+  (doc 'type '(-> α Result-α-ε α))
+  (doc 'description "Extract value or return default on error")
   (if (ok? result)
       (unwrap-ok result)
       default))
 
-;;; result-or : (Result α ε) → (Result α ε) → (Result α ε)
-;;; Return first ok result, or last error if both fail.
 (define (result-or r1 r2)
+  (doc 'type '(-> Result-α-ε Result-α-ε Result-α-ε))
+  (doc 'description "Return first ok result, or last error if both fail")
   (if (ok? r1) r1 r2))
 
-;;; result-and : (Result α ε) → (Result β ε) → (Result β ε)
-;;; Return second if first is ok, otherwise first error.
 (define (result-and r1 r2)
+  (doc 'type '(-> Result-α-ε Result-β-ε Result-β-ε))
+  (doc 'description "Return second if first is ok, otherwise first error")
   (if (ok? r1) r2 r1))
 
-;;; result-map-error : (ε₁ → ε₂) → (Result α ε₁) → (Result α ε₂)
-;;; Transform the error value, leaving ok unchanged.
-;;; Note: f receives and should return (cdr result) - the full error payload.
-;;; Uses cons to preserve flat error structure: (error tag details...).
 (define (result-map-error f result)
+  (doc 'type '(-> (-> ε₁ ε₂) Result-α-ε₁ Result-α-ε₂))
+  (doc 'description "Transform the error value, leaving ok unchanged")
+  (doc 'note "f receives and should return (cdr result) - the full error payload. Uses cons to preserve flat error structure: (error tag details...)")
   (if (ok? result)
       result
       (cons 'error (f (cdr result)))))
 
-;;; result-bimap : (α → β) → (ε₁ → ε₂) → (Result α ε₁) → (Result β ε₂)
-;;; Transform both success and error cases.
-;;; Note: f-err receives and should return (cdr result) - the full error payload.
-;;; Uses cons to preserve flat error structure: (error tag details...).
 (define (result-bimap f-ok f-err result)
+  (doc 'type '(-> (-> α β) (-> ε₁ ε₂) Result-α-ε₁ Result-β-ε₂))
+  (doc 'description "Transform both success and error cases")
+  (doc 'note "f-err receives and should return (cdr result) - the full error payload. Uses cons to preserve flat error structure: (error tag details...)")
   (if (ok? result)
       (ok (f-ok (unwrap-ok result)))
       (cons 'error (f-err (cdr result)))))
 
-;;; ====
-;;; Exception Integration
-;;; ====
+(doc 'section 'exception-integration)
 
-;;; result-catch : (→ α) → (Result α Condition)
-;;; Execute thunk, catching exceptions as error results.
-;;; Returns (ok value) on success, (error condition) on exception.
 (define (result-catch thunk)
+  (doc 'type '(-> (-> α) Result-α-Condition))
+  (doc 'description "Execute thunk, catching exceptions as error results")
+  (doc 'returns "(ok value) on success, (error condition) on exception")
   (guard (e [else (list 'error e)])
          (ok (thunk))))
 
-;;; result-catch/handler : (→ α) → (Condition → ε) → (Result α ε)
-;;; Execute thunk with custom error transformation.
 (define (result-catch/handler thunk handler)
+  (doc 'type '(-> (-> α) (-> Condition ε) Result-α-ε))
+  (doc 'description "Execute thunk with custom error transformation")
   (guard (e [else (list 'error (handler e))])
          (ok (thunk))))
 
-;;; result-try : (→ α) → α → α
-;;; Execute thunk, returning default on any exception.
-;;; Simpler than result-catch when you just want a fallback.
 (define (result-try thunk default)
+  (doc 'type '(-> (-> α) α α))
+  (doc 'description "Execute thunk, returning default on any exception")
+  (doc 'note "Simpler than result-catch when you just want a fallback")
   (guard (e [else default])
          (thunk)))
 
-;;; ====
-;;; Assertions
-;;; ====
+(doc 'section 'assertions)
 
-;;; assert-ok! : (Result α ε) → α
-;;; Unwrap ok value or raise error with message.
-;;; Use sparingly - prefer result-bind for chaining.
 (define (assert-ok! result)
+  (doc 'type '(-> Result-α-ε α))
+  (doc 'description "Unwrap ok value or raise error with message")
+  (doc 'note "Use sparingly - prefer result-bind for chaining")
   (if (ok? result)
       (unwrap-ok result)
       (error 'assert-ok! "Expected ok result" (cdr result))))
 
-;;; assert-ok/msg! : (Result α ε) → String → α
-;;; Unwrap with custom error message.
 (define (assert-ok/msg! result msg)
+  (doc 'type '(-> Result-α-ε String α))
+  (doc 'description "Unwrap with custom error message")
   (if (ok? result)
       (unwrap-ok result)
       (error 'assert-ok! msg (cdr result))))
 
-;;; ====
-;;; Conversions
-;;; ====
+(doc 'section 'conversions)
 
-;;; result->maybe : (Result α ε) → (Maybe α)
-;;; Convert Result to Maybe, discarding error info.
 (define (result->maybe result)
+  (doc 'type '(-> Result-α-ε Maybe-α))
+  (doc 'description "Convert Result to Maybe, discarding error info")
   (if (ok? result)
       (just (unwrap-ok result))
       nothing))
 
-;;; maybe->result : (Maybe α) → ε → (Result α ε)
-;;; Convert Maybe to Result, using provided error for Nothing.
 (define (maybe->result m err-val)
+  (doc 'type '(-> Maybe-α ε Result-α-ε))
+  (doc 'description "Convert Maybe to Result, using provided error for Nothing")
   (if (just? m)
       (ok (from-just m))
       (list 'error err-val)))
 
-;;; result->either : (Result α ε) → (Either ε α)
-;;; Convert Result to Either (error on left, value on right).
 (define (result->either result)
+  (doc 'type '(-> Result-α-ε Either-ε-α))
+  (doc 'description "Convert Result to Either (error on left, value on right)")
   (if (ok? result)
       (right (unwrap-ok result))
       (left (cdr result))))
 
-;;; either->result : (Either ε α) → (Result α ε)
-;;; Convert Either to Result.
 (define (either->result e)
+  (doc 'type '(-> Either-ε-α Result-α-ε))
+  (doc 'description "Convert Either to Result")
   (if (right? e)
       (ok (from-right e))
       (list 'error (from-left e))))
 
-;;; ====
-;;; Applicative Operations
-;;; ====
+(doc 'section 'applicative-operations)
 
-;;; result-ap : (Result (α → β) ε) → (Result α ε) → (Result β ε)
-;;; Applicative apply for Result.
 (define (result-ap rf ra)
+  (doc 'type '(-> Result-(-> α β)-ε Result-α-ε Result-β-ε))
+  (doc 'description "Applicative apply for Result")
   (result-bind rf
                (lambda (f)
                  (result-map f ra))))
 
-;;; result-lift2 : (α → β → γ) → (Result α ε) → (Result β ε) → (Result γ ε)
-;;; Lift a binary function to work on Results.
 (define (result-lift2 f ra rb)
+  (doc 'type '(-> (-> α β γ) Result-α-ε Result-β-ε Result-γ-ε))
+  (doc 'description "Lift a binary function to work on Results")
   (result-bind ra
                (lambda (a)
                  (result-map (lambda (b) (f a b)) rb))))
 
-;;; ====
-;;; Traversal
-;;; ====
+(doc 'section 'traversal)
 
-;;; result-traverse : (α → Result β ε) → (List α) → (Result (List β) ε)
-;;; Map a result-producing function over a list, collecting results.
 (define (result-traverse f xs)
+  (doc 'type '(-> (-> α Result-β-ε) (List α) Result-(List β)-ε))
+  (doc 'description "Map a result-producing function over a list, collecting results")
   (result-sequence (map f xs)))
 
-;;; result-filter : (α → Result Bool ε) → (List α) → (Result (List α) ε)
-;;; Filter list using result-producing predicate.
 (define (result-filter pred xs)
+  (doc 'type '(-> (-> α Result-Bool-ε) (List α) Result-(List α)-ε))
+  (doc 'description "Filter list using result-producing predicate")
   (if (null? xs)
       (ok '())
       (result-bind (pred (car xs))
@@ -222,42 +169,43 @@
                                             (cons (car xs) rest)
                                             rest))))))))
 
-;;; ====
-;;; Validation (Applicative Error Accumulation)
-;;; ====
-;;;
-;;; Unlike result-bind which short-circuits on first error,
-;;; validation accumulates ALL errors.
+(doc 'section 'validation)
+(doc 'note "Unlike result-bind which short-circuits on first error, validation accumulates ALL errors")
 
-;;; validation-ok : α → (Validation (List ε) α)
-;;; Success case for validation.
-(define (validation-ok x) (list 'validation-ok x))
+(define (validation-ok x)
+  (doc 'type '(-> α Validation-(List ε)-α))
+  (doc 'description "Success case for validation")
+  (list 'validation-ok x))
 
-;;; validation-err : ε → (Validation (List ε) α)
-;;; Single error case for validation.
-(define (validation-err e) (list 'validation-err (list e)))
+(define (validation-err e)
+  (doc 'type '(-> ε Validation-(List ε)-α))
+  (doc 'description "Single error case for validation")
+  (list 'validation-err (list e)))
 
-;;; validation-errs : (List ε) → (Validation (List ε) α)
-;;; Multiple errors case for validation.
-(define (validation-errs es) (list 'validation-err es))
+(define (validation-errs es)
+  (doc 'type '(-> (List ε) Validation-(List ε)-α))
+  (doc 'description "Multiple errors case for validation")
+  (list 'validation-err es))
 
-;;; validation-ok? : (Validation ε α) → Bool
 (define (validation-ok? v)
+  (doc 'type '(-> Validation-ε-α Bool))
   (and (pair? v) (eq? (car v) 'validation-ok)))
 
-;;; validation-err? : (Validation ε α) → Bool
 (define (validation-err? v)
+  (doc 'type '(-> Validation-ε-α Bool))
   (and (pair? v) (eq? (car v) 'validation-err)))
 
-;;; validation-value : (Validation ε α) → α
-(define (validation-value v) (cadr v))
+(define (validation-value v)
+  (doc 'type '(-> Validation-ε-α α))
+  (cadr v))
 
-;;; validation-errors : (Validation ε α) → (List ε)
-(define (validation-errors v) (cadr v))
+(define (validation-errors v)
+  (doc 'type '(-> Validation-ε-α (List ε)))
+  (cadr v))
 
-;;; validation-ap : (Validation ε (α → β)) → (Validation ε α) → (Validation ε β)
-;;; Applicative that accumulates errors from both sides.
 (define (validation-ap vf va)
+  (doc 'type '(-> Validation-ε-(-> α β) Validation-ε-α Validation-ε-β))
+  (doc 'description "Applicative that accumulates errors from both sides")
   (cond
     [(and (validation-ok? vf) (validation-ok? va))
      (validation-ok ((validation-value vf) (validation-value va)))]
@@ -266,22 +214,22 @@
     [(validation-err? vf) vf]
     [else va]))
 
-;;; validation-map : (α → β) → (Validation ε α) → (Validation ε β)
 (define (validation-map f v)
+  (doc 'type '(-> (-> α β) Validation-ε-α Validation-ε-β))
   (if (validation-ok? v)
       (validation-ok (f (validation-value v)))
       v))
 
-;;; validation->result : (Validation ε α) → (Result α (List ε))
-;;; Convert validation to result.
 (define (validation->result v)
+  (doc 'type '(-> Validation-ε-α Result-α-(List ε)))
+  (doc 'description "Convert validation to result")
   (if (validation-ok? v)
       (ok (validation-value v))
       (list 'error (validation-errors v))))
 
-;;; result->validation : (Result α ε) → (Validation (List ε) α)
-;;; Convert result to validation.
 (define (result->validation r)
+  (doc 'type '(-> Result-α-ε Validation-(List ε)-α))
+  (doc 'description "Convert result to validation")
   (if (ok? r)
       (validation-ok (unwrap-ok r))
       (validation-err (cdr r))))

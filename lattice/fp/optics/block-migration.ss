@@ -1,85 +1,73 @@
-;;; lattice/fp/optics/block-migration.ss — CAS Block-Specific Migrations
-;;;
-;;; Migrations specialized for The Fold's content-addressed block system:
-;;;
-;;;   - Block tag transformations
-;;;   - Payload transformations (with S-expression parsing)
-;;;   - Block tree traversal (bottom-up for Merkle correctness)
-;;;   - Version detection via tag
-;;;
-;;; Key design decisions:
-;;;
-;;; 1. **Bottom-up traversal**: In a Merkle DAG, if a child changes,
-;;;    its hash changes, so parents must update their refs. We traverse
-;;;    post-order: migrate children first, then parent with new refs.
-;;;
-;;; 2. **Memoization**: Shared subtrees (DAG, not just tree) must only
-;;;    be migrated once. We track visited hashes.
-;;;
-;;; 3. **Tag-based versioning**: Block version encoded in tag (e.g., 'bbs-issue-v2).
-;;;    Migrations check tag match before applying.
-;;;
-;;; 4. **Payload type safety**: Only attempt sexpr parsing on known sexpr tags.
-;;;
-;;; This is Pure lattice code: block transformations without CAS mutation.
-;;; The boundary layer (boundary/migrations/runner.ss) handles actual CAS I/O.
-;;;
-;;; Dependencies:
-;;;   - core/blocks/block.ss (for block record type)
-;;;   - bidirectional.ss (for migration infrastructure)
-;;;   - format-iso.ss (for bytevector<->sexpr)
-
 (load "core/blocks/block.ss")
 (load "lattice/fp/optics/bidirectional.ss")
 (load "lattice/fp/optics/format-iso.ss")
 
-;;; ============================================================
-;;; Part 1: Block Migration Type
-;;; ============================================================
-;;;
-;;; A block migration transforms blocks from one tag to another,
-;;; with a payload transformation encoded as an iso.
+(doc 'module 'block-migration)
+(doc 'description "CAS Block-Specific Migrations
 
-;;; make-block-migration : Symbol -> Symbol -> PIso -> BlockMigration
-;;; Create a block migration.
-;;; - from-tag: Expected tag of source blocks
-;;; - to-tag: Tag of migrated blocks
-;;; - payload-iso: Transforms payload content (sexpr -> sexpr)
+Migrations specialized for The Fold's content-addressed block system:
+
+  - Block tag transformations
+  - Payload transformations (with S-expression parsing)
+  - Block tree traversal (bottom-up for Merkle correctness)
+  - Version detection via tag
+
+Key design decisions:
+
+1. **Bottom-up traversal**: In a Merkle DAG, if a child changes,
+   its hash changes, so parents must update their refs. We traverse
+   post-order: migrate children first, then parent with new refs.
+
+2. **Memoization**: Shared subtrees (DAG, not just tree) must only
+   be migrated once. We track visited hashes.
+
+3. **Tag-based versioning**: Block version encoded in tag (e.g., 'bbs-issue-v2).
+   Migrations check tag match before applying.
+
+4. **Payload type safety**: Only attempt sexpr parsing on known sexpr tags.
+
+This is Pure lattice code: block transformations without CAS mutation.
+The boundary layer (boundary/migrations/runner.ss) handles actual CAS I/O.")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
+
+(doc 'section 'block-migration-type)
+
 (define (make-block-migration from-tag to-tag payload-iso)
+  (doc 'type '(-> Symbol Symbol PIso BlockMigration))
+  (doc 'description "Create a block migration.
+- from-tag: Expected tag of source blocks
+- to-tag: Tag of migrated blocks
+- payload-iso: Transforms payload content (sexpr -> sexpr)")
   (list 'block-migration from-tag to-tag payload-iso))
 
-;;; block-migration? : Any -> Boolean
 (define (block-migration? x)
+  (doc 'type '(-> Any Boolean))
   (and (pair? x) (eq? (car x) 'block-migration)))
 
-;;; block-migration-from-tag : BlockMigration -> Symbol
 (define (block-migration-from-tag bm)
+  (doc 'type '(-> BlockMigration Symbol))
   (cadr bm))
 
-;;; block-migration-to-tag : BlockMigration -> Symbol
 (define (block-migration-to-tag bm)
+  (doc 'type '(-> BlockMigration Symbol))
   (caddr bm))
 
-;;; block-migration-payload-iso : BlockMigration -> PIso
 (define (block-migration-payload-iso bm)
+  (doc 'type '(-> BlockMigration PIso))
   (cadddr bm))
 
-;;; ============================================================
-;;; Part 2: Block Transformation (Pure)
-;;; ============================================================
-;;;
-;;; Pure block transformation functions. These don't touch the CAS;
-;;; they take a block and return a new block.
+(doc 'section 'transformation)
 
-;;; block-migration-applies? : BlockMigration -> Block -> Boolean
-;;; Check if this migration applies to the given block.
 (define (block-migration-applies? bm blk)
+  (doc 'type '(-> BlockMigration Block Boolean))
+  (doc 'description "Check if this migration applies to the given block.")
   (eq? (block-tag blk) (block-migration-from-tag bm)))
 
-;;; block-migrate-payload : BlockMigration -> Block -> Block
-;;; Apply migration's payload iso to a block.
-;;; Assumes block has sexpr-parseable payload.
 (define (block-migrate-payload bm blk)
+  (doc 'type '(-> BlockMigration Block Block))
+  (doc 'description "Apply migration's payload iso to a block.
+Assumes block has sexpr-parseable payload.")
   (let* ([from-tag (block-migration-from-tag bm)]
          [to-tag (block-migration-to-tag bm)]
          [payload-iso (block-migration-payload-iso bm)])
@@ -93,9 +81,9 @@
                [new-payload (sexpr->bytevector new-sexpr)])
           (make-block to-tag new-payload (block-refs blk))))))
 
-;;; block-rollback-payload : BlockMigration -> Block -> Block
-;;; Apply migration's payload iso backward.
 (define (block-rollback-payload bm blk)
+  (doc 'type '(-> BlockMigration Block Block))
+  (doc 'description "Apply migration's payload iso backward.")
   (let* ([from-tag (block-migration-from-tag bm)]
          [to-tag (block-migration-to-tag bm)]
          [payload-iso (block-migration-payload-iso bm)])
@@ -108,22 +96,18 @@
                [new-payload (sexpr->bytevector new-sexpr)])
           (make-block from-tag new-payload (block-refs blk))))))
 
-;;; ============================================================
-;;; Part 3: Block with Updated Refs
-;;; ============================================================
-;;;
-;;; When migrating a tree, we need to update refs after children are migrated.
+(doc 'section 'refs)
 
-;;; block-with-refs : Block -> (Vector Bytevector) -> Block
-;;; Create new block with updated refs.
 (define (block-with-refs blk new-refs)
+  (doc 'type '(-> Block (Vector Bytevector) Block))
+  (doc 'description "Create new block with updated refs.")
   (make-block (block-tag blk)
               (block-payload blk)
               new-refs))
 
-;;; block-migrate-with-refs : BlockMigration -> Block -> (Vector Bytevector) -> Block
-;;; Apply migration with updated refs (for tree traversal).
 (define (block-migrate-with-refs bm blk new-refs)
+  (doc 'type '(-> BlockMigration Block (Vector Bytevector) Block))
+  (doc 'description "Apply migration with updated refs (for tree traversal).")
   (let* ([from-tag (block-migration-from-tag bm)]
          [to-tag (block-migration-to-tag bm)]
          [payload-iso (block-migration-payload-iso bm)])
@@ -137,13 +121,11 @@
                [new-payload (sexpr->bytevector new-sexpr)])
           (make-block to-tag new-payload new-refs)))))
 
-;;; ============================================================
-;;; Part 4: Tag-Based Version Detection
-;;; ============================================================
+(doc 'section 'version-detection)
 
-;;; parse-versioned-tag : Symbol -> (Symbol . (Number | #f))
-;;; Parse a versioned tag like 'bbs-issue-v2 into base and version.
 (define (parse-versioned-tag tag)
+  (doc 'type '(-> Symbol (Pair Symbol (Maybe Number))))
+  (doc 'description "Parse a versioned tag like 'bbs-issue-v2 into base and version.")
   (let* ([s (symbol->string tag)]
          [len (string-length s)])
     ;; Look for -v<number> suffix
@@ -160,29 +142,27 @@
                  (cons tag #f))))]
         [else (loop (- i 1))]))))
 
-;;; make-versioned-tag : Symbol -> Number -> Symbol
-;;; Create a versioned tag like 'bbs-issue-v2.
 (define (make-versioned-tag base version)
+  (doc 'type '(-> Symbol Number Symbol))
+  (doc 'description "Create a versioned tag like 'bbs-issue-v2.")
   (string->symbol (format "~a-v~a" base version)))
 
-;;; block-tag-version : Block -> Number | #f
-;;; Extract version number from block's tag.
 (define (block-tag-version blk)
+  (doc 'type '(-> Block (Maybe Number)))
+  (doc 'description "Extract version number from block's tag.")
   (cdr (parse-versioned-tag (block-tag blk))))
 
-;;; block-tag-base : Block -> Symbol
-;;; Extract base tag (without version) from block.
 (define (block-tag-base blk)
+  (doc 'type '(-> Block Symbol))
+  (doc 'description "Extract base tag (without version) from block.")
   (car (parse-versioned-tag (block-tag blk))))
 
-;;; ============================================================
-;;; Part 5: Block Migration Composition
-;;; ============================================================
+(doc 'section 'composition)
 
-;;; block-migration-compose : BlockMigration -> BlockMigration -> BlockMigration
-;;; Compose two block migrations.
-;;; Requires: bm1.to-tag = bm2.from-tag
 (define (block-migration-compose bm1 bm2)
+  (doc 'type '(-> BlockMigration BlockMigration BlockMigration))
+  (doc 'description "Compose two block migrations.
+Requires: bm1.to-tag = bm2.from-tag")
   (unless (eq? (block-migration-to-tag bm1) (block-migration-from-tag bm2))
     (error 'block-migration-compose
            "Tag mismatch: ~a.to-tag (~a) != ~a.from-tag (~a)"
@@ -194,9 +174,9 @@
    (p-iso-compose (block-migration-payload-iso bm1)
                   (block-migration-payload-iso bm2))))
 
-;;; block-migration-flip : BlockMigration -> BlockMigration
-;;; Reverse a block migration (swap forward/backward and from/to tags).
 (define (block-migration-flip bm)
+  (doc 'type '(-> BlockMigration BlockMigration))
+  (doc 'description "Reverse a block migration (swap forward/backward and from/to tags).")
   (let ([payload-iso (block-migration-payload-iso bm)])
     (make-block-migration
      (block-migration-to-tag bm)
@@ -205,30 +185,24 @@
       (p-iso-backward payload-iso)
       (p-iso-forward payload-iso)))))
 
-;;; ============================================================
-;;; Part 6: Migration Builders for Common Patterns
-;;; ============================================================
+(doc 'section 'builders)
 
-;;; make-tag-only-migration : Symbol -> Symbol -> BlockMigration
-;;; Create a migration that only changes the tag (no payload change).
 (define (make-tag-only-migration from-tag to-tag)
+  (doc 'type '(-> Symbol Symbol BlockMigration))
+  (doc 'description "Create a migration that only changes the tag (no payload change).")
   (make-block-migration from-tag to-tag p-iso-id))
 
-;;; make-schema-migration : Symbol -> Symbol -> (List PIso) -> BlockMigration
-;;; Create a migration with schema field operations.
 (define (make-schema-migration from-tag to-tag schema-isos)
+  (doc 'type '(-> Symbol Symbol (List PIso) BlockMigration))
+  (doc 'description "Create a migration with schema field operations.")
   (let ([combined-iso (fold-left p-iso-compose p-iso-id schema-isos)])
     (make-block-migration from-tag to-tag combined-iso)))
 
-;;; ============================================================
-;;; Part 7: Block Type Guards
-;;; ============================================================
-;;;
-;;; Safety checks for payload parsing.
+(doc 'section 'guards)
 
-;;; block-has-sexpr-payload? : Block -> Boolean
-;;; Check if block's payload is valid S-expression.
 (define (block-has-sexpr-payload? blk)
+  (doc 'type '(-> Block Boolean))
+  (doc 'description "Check if block's payload is valid S-expression.")
   (guard (ex [else #f])
     (let* ([str (utf8->string (block-payload blk))]
            [port (open-input-string str)]
@@ -236,27 +210,23 @@
       (and (not (eof-object? result))
            (eof-object? (read port))))))  ; No trailing data
 
-;;; known-sexpr-tags : (List Symbol)
-;;; Tags known to have sexpr payloads.
+(doc known-sexpr-tags 'type '(List Symbol))
+(doc known-sexpr-tags 'description "Tags known to have sexpr payloads.")
 (define known-sexpr-tags
   '(expr bbs-issue bbs-issue-v1 bbs-issue-v2 bbs-post bbs-post-v1
     lambda app ref lit define let letrec if begin quote))
 
-;;; block-is-sexpr-type? : Block -> Boolean
-;;; Check if block is a known sexpr-payload type.
 (define (block-is-sexpr-type? blk)
+  (doc 'type '(-> Block Boolean))
+  (doc 'description "Check if block is a known sexpr-payload type.")
   (memq (block-tag blk) known-sexpr-tags))
 
-;;; ============================================================
-;;; Part 8: Convert Block Migration to Regular Migration
-;;; ============================================================
-;;;
-;;; Bridge between block migrations and the general migration system.
+(doc 'section 'bridge)
 
-;;; block-migration->migration : BlockMigration -> Migration
-;;; Convert a block migration to a general migration.
-;;; The resulting migration works on blocks directly.
 (define (block-migration->migration bm)
+  (doc 'type '(-> BlockMigration Migration))
+  (doc 'description "Convert a block migration to a general migration.
+The resulting migration works on blocks directly.")
   (make-migration
    (string->symbol (format "block-~a->~a"
                            (block-migration-from-tag bm)
@@ -266,34 +236,5 @@
    (make-p-iso
     (lambda (blk) (block-migrate-payload bm blk))
     (lambda (blk) (block-rollback-payload bm blk)))))
-
-;;; ============================================================
-;;; Exports
-;;; ============================================================
-;;;
-;;; Block Migration Type:
-;;;   make-block-migration, block-migration?
-;;;   block-migration-from-tag, block-migration-to-tag
-;;;   block-migration-payload-iso
-;;;
-;;; Block Transformation:
-;;;   block-migration-applies?, block-migrate-payload, block-rollback-payload
-;;;   block-with-refs, block-migrate-with-refs
-;;;
-;;; Version Detection:
-;;;   parse-versioned-tag, make-versioned-tag
-;;;   block-tag-version, block-tag-base
-;;;
-;;; Composition:
-;;;   block-migration-compose, block-migration-flip
-;;;
-;;; Builders:
-;;;   make-tag-only-migration, make-schema-migration
-;;;
-;;; Type Guards:
-;;;   block-has-sexpr-payload?, known-sexpr-tags, block-is-sexpr-type?
-;;;
-;;; Bridge:
-;;;   block-migration->migration
 
 (display "Loaded: lattice/fp/optics/block-migration.ss\n")
