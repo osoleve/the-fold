@@ -1,23 +1,3 @@
-;;; boundary/blocks/block-index.ss — Block Indexing for Analytics and Navigation
-;;;
-;;; Mutable indexing structures for efficient block queries.
-;;; Supports analytics and navigation tools in boundary/.
-;;;
-;;; This is Shell code: impure (uses mutation for indexing).
-;;; The index structures use hashtables which are mutated in place.
-;;;
-;;; Indices:
-;;;   - Tag Index: tag → set of hashes
-;;;   - Reference Index: hash → set of referencing hashes (reverse index)
-;;;   - Content Index: content substring → set of hashes
-;;;
-;;; Dependencies:
-;;;   - core/prelude.ss
-;;;   - core/block.ss
-;;;   - core/cas.ss
-;;;
-;;; NOTE: Run from ccverse root directory.
-
 ;;; Set up source-directories to find core modules
 (source-directories (cons "core" (source-directories)))
 
@@ -25,63 +5,76 @@
 (load "blocks/block.ss")
 (load "blocks/cas.ss")
 
-;;; ====
-;;; Index Structure
-;;; ====
+(doc 'module 'block-index)
+(doc 'description "Block Indexing for Analytics and Navigation")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+(doc 'dependencies '(core/prelude core/block core/cas))
 
-;;; An Index is a record containing:
-;;;   - tag-index: hashtable mapping tags to lists of hashes
-;;;   - ref-index: hashtable mapping hashes to lists of referencing hashes
-;;;   - content-index: hashtable mapping content fragments to lists of hashes
-;;;
-;;; WARNING: Index structures use mutation (hashtable-set!)
+(doc 'section 'structure)
 
-;;; make-index : -> Index
-;;; Create an empty index.
+(doc 'note "This is Shell code: impure (uses mutation for indexing)")
+(doc 'note "The index structures use hashtables which are mutated in place")
+
+(doc 'note "Indices: Tag Index (tag → set of hashes), Reference Index (hash → set of referencing hashes), Content Index (content substring → set of hashes)")
+
+(doc 'note "Run from ccverse root directory")
+
 (define (make-index)
+  (doc 'type (-> Index))
+  (doc 'description "Create an empty index")
+  (doc 'export #t)
+  (doc 'note "An Index is a record containing: tag-index (hashtable mapping tags to lists of hashes), ref-index (hashtable mapping hashes to lists of referencing hashes), content-index (hashtable mapping content fragments to lists of hashes)")
+  (doc 'note "WARNING: Index structures use mutation (hashtable-set!)")
   (list 'index
         (make-hashtable equal-hash equal?)
         (make-hashtable equal-hash equal?)
         (make-hashtable equal-hash equal?)))
 
-;;; index-tag-table : Index -> Hashtable
 (define (index-tag-table idx)
+  (doc 'type (-> Index Hashtable))
+  (doc 'description "Extract tag index table from index")
+  (doc 'export #t)
   (list-ref idx 1))
 
-;;; index-ref-table : Index -> Hashtable
 (define (index-ref-table idx)
+  (doc 'type (-> Index Hashtable))
+  (doc 'description "Extract reference index table from index")
+  (doc 'export #t)
   (list-ref idx 2))
 
-;;; index-content-table : Index -> Hashtable
 (define (index-content-table idx)
+  (doc 'type (-> Index Hashtable))
+  (doc 'description "Extract content index table from index")
+  (doc 'export #t)
   (list-ref idx 3))
 
-;;; ====
-;;; Indexing Operations (MUTATING)
-;;; ====
+(doc 'section 'indexing-operations)
+(doc 'note "MUTATING operations")
 
-;;; index-block! : Index x Hash x Block -> void
-;;; Add a block to the index (MUTATES the index tables).
-;;; This is a Shell operation - it uses hashtable-set!
 (define (index-block! idx hash blk)
+  (doc 'type (-> Index Hash Block Void))
+  (doc 'description "Add a block to the index (MUTATES the index tables)")
+  (doc 'export #t)
+  (doc 'note "This is a Shell operation - it uses hashtable-set!")
   (let ([tag-table (index-tag-table idx)]
         [ref-table (index-ref-table idx)]
         [content-table (index-content-table idx)]
         [tag (block-tag blk)]
         [payload (block-payload blk)]
         [refs (block-refs blk)])
-       
+
        ;; Index by tag
        (let ([existing (hashtable-ref tag-table tag '())])
             (hashtable-set! tag-table tag (cons hash existing)))
-       
+
        ;; Index references (reverse index)
        (vector-for-each
         (lambda (ref-hash)
                 (let ([existing (hashtable-ref ref-table ref-hash '())])
                      (hashtable-set! ref-table ref-hash (cons hash existing))))
         refs)
-       
+
        ;; Index content (for text payloads)
        ;; Convert payload to string if it's text-like
        (when (bytevector? payload)
@@ -96,24 +89,26 @@
                                 (let ([existing (hashtable-ref content-table fragment '())])
                                      (hashtable-set! content-table fragment (cons hash existing))))))))))
 
-;;; ====
-;;; Query Operations (Pure)
-;;; ====
+(doc 'section 'query-operations)
+(doc 'note "Pure operations")
 
-;;; find-blocks-by-tag : Index x Symbol -> List[Hash]
-;;; Find all blocks with the given tag.
 (define (find-blocks-by-tag idx tag)
+  (doc 'type (-> Index Symbol (List Hash)))
+  (doc 'description "Find all blocks with the given tag")
+  (doc 'export #t)
   (hashtable-ref (index-tag-table idx) tag '()))
 
-;;; find-referencing-blocks : Index x Hash -> List[Hash]
-;;; Find all blocks that reference the given hash.
 (define (find-referencing-blocks idx hash)
+  (doc 'type (-> Index Hash (List Hash)))
+  (doc 'description "Find all blocks that reference the given hash")
+  (doc 'export #t)
   (hashtable-ref (index-ref-table idx) hash '()))
 
-;;; find-blocks-by-content : Index x String -> List[Hash]
-;;; Find blocks containing the given content substring.
-;;; Returns the union of all matching fragments.
 (define (find-blocks-by-content idx query)
+  (doc 'type (-> Index String (List Hash)))
+  (doc 'description "Find blocks containing the given content substring")
+  (doc 'returns "The union of all matching fragments")
+  (doc 'export #t)
   (let ([content-table (index-content-table idx)]
         [results '()])
        ;; Search for 3-char fragments
@@ -126,13 +121,13 @@
                       (hashtable-ref content-table fragment '())))))
        ))
 
-;;; ====
-;;; Index Statistics (Pure queries)
-;;; ====
+(doc 'section 'statistics)
+(doc 'note "Pure queries")
 
-;;; index-stats : Index -> Alist
-;;; Return statistics about the index.
 (define (index-stats idx)
+  (doc 'type (-> Index Alist))
+  (doc 'description "Return statistics about the index")
+  (doc 'export #t)
   (let ([tag-table (index-tag-table idx)]
         [ref-table (index-ref-table idx)]
         [content-table (index-content-table idx)])
@@ -141,32 +136,34 @@
         (cons 'ref-count (hashtable-size ref-table))
         (cons 'content-fragments (hashtable-size content-table)))))
 
-;;; get-all-tags : Index -> List[Symbol]
-;;; Return all tags in the index.
 (define (get-all-tags idx)
+  (doc 'type (-> Index (List Symbol)))
+  (doc 'description "Return all tags in the index")
+  (doc 'export #t)
   (let ((tag-table (index-tag-table idx)))
        (vector->list (hashtable-keys tag-table))))
 
-;;; get-tag-distribution : Index -> Alist
-;;; Return tag -> count distribution.
 (define (get-tag-distribution idx)
+  (doc 'type (-> Index Alist))
+  (doc 'description "Return tag → count distribution")
+  (doc 'export #t)
   (let ((tag-table (index-tag-table idx)))
        (map (lambda (tag)
                     (cons tag (length (hashtable-ref tag-table tag '()))))
             (vector->list (hashtable-keys tag-table)))))
 
-;;; ====
-;;; Graph Traversal Primitives (Use mutation for visited set)
-;;; ====
+(doc 'section 'graph-traversal)
+(doc 'note "Use mutation for visited set")
 
-;;; traverse-refs : (Hash -> Block) x Hash x (Block -> Bool) x Int -> List[Hash]
-;;; Traverse block references depth-first, collecting matching hashes.
-;;; - fetch: function to retrieve blocks by hash
-;;; - start: starting hash
-;;; - pred: predicate to test blocks
-;;; - depth: maximum depth (fuel)
-;;; NOTE: Uses mutation for visited set and results accumulation.
 (define (traverse-refs fetch start pred depth)
+  (doc 'type (-> (-> Hash Block) Hash (-> Block Bool) Int (List Hash)))
+  (doc 'description "Traverse block references depth-first, collecting matching hashes")
+  (doc 'param 'fetch "function to retrieve blocks by hash")
+  (doc 'param 'start "starting hash")
+  (doc 'param 'pred "predicate to test blocks")
+  (doc 'param 'depth "maximum depth (fuel)")
+  (doc 'note "Uses mutation for visited set and results accumulation")
+  (doc 'export #t)
   (let ([visited (make-hashtable equal-hash equal?)]
         [results '()])
        (define (visit hash d)
@@ -182,11 +179,12 @@
        (visit start depth)
        results))
 
-;;; find-path : (Hash -> Block) x Hash x Hash x Int -> List[Hash] | #f
-;;; Find a path from start to target, up to max-depth.
-;;; Returns the path as a list of hashes, or #f if no path found.
-;;; NOTE: Uses mutation for visited set.
 (define (find-path fetch start target max-depth)
+  (doc 'type (-> (-> Hash Block) Hash Hash Int (Maybe (List Hash))))
+  (doc 'description "Find a path from start to target, up to max-depth")
+  (doc 'returns "The path as a list of hashes, or #f if no path found")
+  (doc 'note "Uses mutation for visited set")
+  (doc 'export #t)
   (let ((visited (make-hashtable equal-hash equal?)))
        (define (search hash depth path)
          (cond
@@ -210,11 +208,12 @@
                          (loop (+ i 1))))))))
        (search start max-depth '())))
 
-;;; compute-reference-counts : List[Hash] x (Hash -> Block) -> Hashtable
-;;; Count how many times each hash is referenced.
-;;; Returns a hashtable: hash -> count
-;;; NOTE: Uses mutation for counting.
 (define (compute-reference-counts hashes fetch)
+  (doc 'type (-> (List Hash) (-> Hash Block) Hashtable))
+  (doc 'description "Count how many times each hash is referenced")
+  (doc 'returns "A hashtable: hash → count")
+  (doc 'note "Uses mutation for counting")
+  (doc 'export #t)
   (let ([counts (make-hashtable equal-hash equal?)])
        ;; Initialize all hashes with count 0
        (for-each
@@ -233,4 +232,4 @@
         hashes)
        counts))
 
-;;; Note: utf8->string and string->utf8 are Chez Scheme built-ins.
+(doc 'note "utf8->string and string->utf8 are Chez Scheme built-ins")

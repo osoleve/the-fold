@@ -1,102 +1,103 @@
-;;; boundary/debug/session-debugger.ss — Per-Session Debugger State Management
-;;;
-;;; Manages debugger instances per REPL session:
-;;;   - Each session has independent debugger state
-;;;   - Debugger persists across commands within session
-;;;   - Cleanup on session end
-;;;
-;;; This is Shell code: manages mutable state for debugger sessions.
-;;;
-;;; Dependencies:
-;;;   - core/util/debug.ss
-
 (load "core/util/debug.ss")
 
-;;; ====
-;;; Session Debugger Registry
-;;; ====
+(doc 'module 'session-debugger)
+(doc 'description "Per-Session Debugger State Management")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+(doc 'dependencies '(core/util/debug))
 
-;;; Global registry: session-id → debugger
+(doc 'note "Manages debugger instances per REPL session - each session has independent debugger state")
+
+(doc 'section 'registry)
+
 (define *session-debuggers* (make-hashtable string-hash string=?))
+(doc *session-debuggers* 'type '(Hashtable String Debugger))
+(doc *session-debuggers* 'description "Global registry: session-id → debugger")
 
-;;; Current session ID (set by REPL daemon)
 (define *current-session-id* "default")
+(doc *current-session-id* 'type 'String)
+(doc *current-session-id* 'description "Current session ID (set by REPL daemon)")
 
-;;; ====
-;;; Session ID Management
-;;; ====
+(doc 'section 'session-id-management)
 
-;;; get-current-session-id : → String
+(doc get-current-session-id 'export #t)
 (define (get-current-session-id)
+  (doc 'type '(-> String))
+  (doc 'description "Get current session ID")
   *current-session-id*)
 
-;;; set-current-session-id! : String → void
+(doc set-current-session-id! 'export #t)
 (define (set-current-session-id! id)
+  (doc 'type '(-> String void))
+  (doc 'description "Set current session ID")
   (set! *current-session-id* id))
 
-;;; ====
-;;; Debugger State Management
-;;; ====
+(doc 'section 'debugger-state)
 
-;;; get-session-debugger : → Debugger | #f
-;;; Get the debugger for the current session.
+(doc get-session-debugger 'export #t)
 (define (get-session-debugger)
+  (doc 'type '(-> (Maybe Debugger)))
+  (doc 'description "Get the debugger for the current session")
   (hashtable-ref *session-debuggers* (get-current-session-id) #f))
 
-;;; set-session-debugger! : Debugger → void
-;;; Set the debugger for the current session.
+(doc set-session-debugger! 'export #t)
 (define (set-session-debugger! dbg)
+  (doc 'type '(-> Debugger void))
+  (doc 'description "Set the debugger for the current session")
   (hashtable-set! *session-debuggers* (get-current-session-id) dbg))
 
-;;; clear-session-debugger! : → void
-;;; Remove the debugger for the current session.
+(doc clear-session-debugger! 'export #t)
 (define (clear-session-debugger!)
+  (doc 'type '(-> void))
+  (doc 'description "Remove the debugger for the current session")
   (hashtable-delete! *session-debuggers* (get-current-session-id)))
 
-;;; has-active-debugger? : → Boolean
-;;; Check if the current session has an active debugger.
+(doc has-active-debugger? 'export #t)
 (define (has-active-debugger?)
+  (doc 'type '(-> Bool))
+  (doc 'description "Check if the current session has an active debugger")
   (let ([dbg (get-session-debugger)])
        (and dbg
             (not (eq? (debugger-status dbg) 'complete))
             (not (eq? (debugger-status dbg) 'error)))))
 
-;;; ====
-;;; Debugger Lifecycle
-;;; ====
+(doc 'section 'lifecycle)
 
-;;; start-debug-session! : Expr × Env × Fuel → Debugger
-;;; Start a new debug session for the current REPL session.
+(doc start-debug-session! 'export #t)
 (define (start-debug-session! expr env fuel)
+  (doc 'type '(-> Expr Env Fuel Debugger))
+  (doc 'description "Start a new debug session for the current REPL session")
   (let ([dbg (make-fuel-debugger expr env fuel)])
        (set-session-debugger! dbg)
        dbg))
 
-;;; end-debug-session! : → void
-;;; End the current debug session.
+(doc end-debug-session! 'export #t)
 (define (end-debug-session!)
+  (doc 'type '(-> void))
+  (doc 'description "End the current debug session")
   (clear-session-debugger!))
 
-;;; require-debugger! : → Debugger
-;;; Get debugger or error if none active.
+(doc require-debugger! 'export #t)
 (define (require-debugger!)
+  (doc 'type '(-> Debugger))
+  (doc 'description "Get debugger or error if none active")
   (let ([dbg (get-session-debugger)])
        (unless dbg
                (error 'debugger "No active debugging session. Use (debug expr) to start."))
        dbg))
 
-;;; ====
-;;; Session Cleanup
-;;; ====
+(doc 'section 'cleanup)
 
-;;; cleanup-session-debugger! : String → void
-;;; Clean up debugger for a specific session (called on session end).
+(doc cleanup-session-debugger! 'export #t)
 (define (cleanup-session-debugger! session-id)
+  (doc 'type '(-> String void))
+  (doc 'description "Clean up debugger for a specific session (called on session end)")
   (hashtable-delete! *session-debuggers* session-id))
 
-;;; list-debug-sessions : → List
-;;; List all active debug sessions (for admin).
+(doc list-debug-sessions 'export #t)
 (define (list-debug-sessions)
+  (doc 'type '(-> (List (List String Symbol Nat))))
+  (doc 'description "List all active debug sessions (for admin)")
   (let ([keys (vector->list (hashtable-keys *session-debuggers*))])
        (map (lambda (id)
                     (let ([dbg (hashtable-ref *session-debuggers* id #f)])

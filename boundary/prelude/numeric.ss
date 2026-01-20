@@ -1,74 +1,50 @@
-;;; boundary/prelude/numeric.ss — Global Numeric Dispatch for Shell/User
-;;;
-;;; This module provides user-friendly arithmetic that "just works" across
-;;; the entire numeric tower including lattice custom complex numbers.
-;;;
-;;; Load this in boundary/user sessions to get:
-;;;   - + * / that handle mixed types seamlessly
-;;;   - sqrt, sin, cos that work on complex numbers
-;;;   - Integration between native Chez complex and lattice (complex r i)
-;;;
-;;; This is Shell code: convenience layer over Core.
-;;;
-;;; Usage:
-;;;   (load "boundary/prelude/numeric.ss")
-;;;   (+ 1 1/2)           ; → 3/2 (exact)
-;;;   (+ 1 0.5)           ; → 1.5 (inexact)
-;;;   (sqrt -1)           ; → 0+1i (native complex)
-;;;   (sin (complex 1 2)) ; → Works with lattice complex
-;;;
-;;; Dependencies:
-;;;   - core/types/numeric-tower.ss
-;;;   - core/types/numeric-ops.ss
-;;;   - lattice/numeric/complex.ss (for custom complex support)
-
 (load "core/types/numeric-tower.ss")
 (load "core/types/numeric-ops.ss")
 
-;;; ============================================================================
-;;; Custom Complex Integration
-;;; ============================================================================
+(doc 'module 'numeric)
+(doc 'description "Global Numeric Dispatch for Shell/User - provides user-friendly arithmetic that works across the entire numeric tower including lattice custom complex numbers")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+(doc 'dependencies '(numeric-tower numeric-ops complex))
 
-;;; Try to load lattice complex if available (may fail in minimal sessions)
+(doc 'section 'custom-complex-integration)
+
+(doc *custom-complex-available* 'type Boolean)
+(doc *custom-complex-available* 'description "Flag indicating whether lattice/numeric/complex.ss loaded successfully")
 (define *custom-complex-available* #f)
 
 (guard (ex [else #f])
   (load "lattice/numeric/complex.ss")
   (set! *custom-complex-available* #t))
 
-;;; unwrap-complex : Value → Value
-;;; Convert lattice (complex r i) to native if needed for Chez ops.
 (define (unwrap-complex x)
+  (doc 'type (-> Value Value))
+  (doc 'description "Convert lattice (complex r i) to native if needed for Chez ops")
+  (doc 'export #t)
   (if (and *custom-complex-available*
            (pair? x)
            (eq? (car x) 'complex))
       (make-rectangular (cadr x) (caddr x))
       x))
 
-;;; maybe-wrap-complex : Value × Boolean → Value
-;;; If input was custom complex and result is native complex, wrap it back.
 (define (maybe-wrap-complex result was-custom)
+  (doc 'type (-> Value Boolean Value))
+  (doc 'description "If input was custom complex and result is native complex, wrap it back")
+  (doc 'export #t)
   (if (and was-custom
            *custom-complex-available*
            (number? result)
            (not (real? result)))
-      ;; Wrap native complex back to lattice form
       (list 'complex (real-part result) (imag-part result))
       result))
 
-;;; ============================================================================
-;;; Global Arithmetic Operators
-;;; ============================================================================
+(doc 'section 'global-arithmetic-operators)
+(doc 'note "These shadow Scheme's built-in operators to provide seamless handling of the full numeric tower including lattice custom complex")
 
-;;; These shadow Scheme's built-in operators to provide seamless
-;;; handling of the full numeric tower including lattice custom complex.
-
-;;; Note: We use define rather than set! to create module-local bindings
-;;; that shadow the imported Scheme primitives.
-
-;;; generic-binary : (Native × Native → Native) × Value × Value → Value
-;;; Apply a native binary op, handling custom complex transparently.
 (define (generic-binary native-op a b)
+  (doc 'type (-> (-> Native Native Native) Value Value Value))
+  (doc 'description "Apply a native binary op, handling custom complex transparently")
+  (doc 'export #t)
   (let* ([a-custom (custom-complex? a)]
          [b-custom (custom-complex? b)]
          [a* (unwrap-complex a)]
@@ -76,108 +52,123 @@
          [result (native-op a* b*)])
     (maybe-wrap-complex result (or a-custom b-custom))))
 
-;;; generic-unary : (Native → Native) × Value → Value
-;;; Apply a native unary op, handling custom complex transparently.
 (define (generic-unary native-op a)
+  (doc 'type (-> (-> Native Native) Value Value))
+  (doc 'description "Apply a native unary op, handling custom complex transparently")
+  (doc 'export #t)
   (let* ([a-custom (custom-complex? a)]
          [a* (unwrap-complex a)]
          [result (native-op a*)])
     (maybe-wrap-complex result a-custom)))
 
-;;; ============================================================================
-;;; Shadowed Operators
-;;; ============================================================================
+(doc 'section 'shadowed-operators)
+(doc 'note "Define with new names, then provide them via convenience macro or direct use")
 
-;;; We define these with new names, then provide them via a convenience macro
-;;; or direct use. Shell users who want the global dispatch can:
-;;;   (define + numeric-add) etc.
-
-;;; numeric-add : Value × Value → Value
-;;; Tower-aware addition with custom complex support.
 (define (numeric-add a b)
+  (doc 'type (-> Value Value Value))
+  (doc 'description "Tower-aware addition with custom complex support")
+  (doc 'export #t)
   (generic-binary + a b))
 
-;;; numeric-sub : Value × Value → Value
 (define (numeric-sub a b)
+  (doc 'type (-> Value Value Value))
+  (doc 'description "Tower-aware subtraction with custom complex support")
+  (doc 'export #t)
   (generic-binary - a b))
 
-;;; numeric-mul : Value × Value → Value
 (define (numeric-mul a b)
+  (doc 'type (-> Value Value Value))
+  (doc 'description "Tower-aware multiplication with custom complex support")
+  (doc 'export #t)
   (generic-binary * a b))
 
-;;; numeric-div : Value × Value → Value
 (define (numeric-div a b)
+  (doc 'type (-> Value Value Value))
+  (doc 'description "Tower-aware division with custom complex support")
+  (doc 'export #t)
   (generic-binary / a b))
 
-;;; numeric-neg : Value → Value
 (define (numeric-neg a)
+  (doc 'type (-> Value Value))
+  (doc 'description "Tower-aware negation with custom complex support")
+  (doc 'export #t)
   (generic-unary - a))
 
-;;; ============================================================================
-;;; Shadowed Transcendentals
-;;; ============================================================================
+(doc 'section 'shadowed-transcendentals)
 
-;;; numeric-sqrt : Value → Value
 (define (numeric-sqrt a)
+  (doc 'type (-> Value Value))
+  (doc 'description "Tower-aware square root with custom complex support")
+  (doc 'export #t)
   (generic-unary sqrt a))
 
-;;; numeric-exp : Value → Value
 (define (numeric-exp a)
+  (doc 'type (-> Value Value))
+  (doc 'description "Tower-aware exponential with custom complex support")
+  (doc 'export #t)
   (generic-unary exp a))
 
-;;; numeric-log : Value → Value
 (define (numeric-log a)
+  (doc 'type (-> Value Value))
+  (doc 'description "Tower-aware logarithm with custom complex support")
+  (doc 'export #t)
   (generic-unary log a))
 
-;;; numeric-sin : Value → Value
 (define (numeric-sin a)
+  (doc 'type (-> Value Value))
+  (doc 'description "Tower-aware sine with custom complex support")
+  (doc 'export #t)
   (generic-unary sin a))
 
-;;; numeric-cos : Value → Value
 (define (numeric-cos a)
+  (doc 'type (-> Value Value))
+  (doc 'description "Tower-aware cosine with custom complex support")
+  (doc 'export #t)
   (generic-unary cos a))
 
-;;; numeric-tan : Value → Value
 (define (numeric-tan a)
+  (doc 'type (-> Value Value))
+  (doc 'description "Tower-aware tangent with custom complex support")
+  (doc 'export #t)
   (generic-unary tan a))
 
-;;; numeric-expt : Value × Value → Value
 (define (numeric-expt base exp)
+  (doc 'type (-> Value Value Value))
+  (doc 'description "Tower-aware exponentiation with custom complex support")
+  (doc 'export #t)
   (generic-binary expt base exp))
 
-;;; ============================================================================
-;;; Enable Global Mode (Opt-In)
-;;; ============================================================================
+(doc 'section 'enable-global-mode)
 
-;;; enable-numeric-tower! : → Void
-;;; Shadows Scheme primitives with tower-aware versions.
-;;; Call this to make + * / etc work seamlessly with custom complex.
-;;;
-;;; WARNING: This mutates the top-level environment. Only use in boundary/user.
 (define (enable-numeric-tower!)
-  ;; We can't actually shadow primitives in standard Scheme,
-  ;; but we provide the tower-aware versions for explicit use.
+  (doc 'type (-> Void))
+  (doc 'description "Shadows Scheme primitives with tower-aware versions (opt-in)")
+  (doc 'export #t)
+  (doc 'note "WARNING: This mutates the top-level environment. Only use in boundary/user")
   (display "Numeric tower enabled.\n")
   (display "Use numeric-add, numeric-mul, numeric-sqrt, etc.\n")
   (display "Or alias: (define + numeric-add)\n"))
 
-;;; ============================================================================
-;;; Convenience: Variadic Wrappers
-;;; ============================================================================
+(doc 'section 'convenience-variadic-wrappers)
 
-;;; sum : (List Value) → Value
 (define (sum xs)
+  (doc 'type (-> (List Value) Value))
+  (doc 'description "Sum a list of values using tower-aware addition")
+  (doc 'export #t)
   (fold-left numeric-add 0 xs))
 
-;;; product : (List Value) → Value
 (define (product xs)
+  (doc 'type (-> (List Value) Value))
+  (doc 'description "Product of a list of values using tower-aware multiplication")
+  (doc 'export #t)
   (fold-left numeric-mul 1 xs))
 
-;;; ============================================================================
-;;; Info
-;;; ============================================================================
+(doc 'section 'info)
 
 (define (numeric-prelude-info)
+  (doc 'type (-> Void))
+  (doc 'description "Display information about loaded numeric prelude")
+  (doc 'export #t)
   (display "boundary/prelude/numeric.ss loaded.\n")
   (display "Provides tower-aware arithmetic:\n")
   (display "  numeric-add, numeric-sub, numeric-mul, numeric-div\n")
@@ -188,5 +179,4 @@
       (display "Custom complex (complex r i) support: ENABLED\n")
       (display "Custom complex (complex r i) support: DISABLED (lattice not loaded)\n")))
 
-;;; Print info on load
 (numeric-prelude-info)

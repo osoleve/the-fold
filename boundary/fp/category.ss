@@ -1,91 +1,82 @@
-;;; boundary/fp/category.ss — Validated Category Theory Entry Points
-;;;
-;;; Shell-layer wrappers that validate inputs before calling pure
-;;; lattice functions. Use these when accepting external/user input.
-;;;
-;;; Lattice code (lattice/fp/category/) is pure and assumes valid input.
-;;; This module provides the defensive boundary.
+(define-syntax doc
+  (syntax-rules ()
+    [(_ args ...) (void)]))
+
+(doc 'module 'boundary/fp/category)
+(doc 'description "Validated Category Theory Entry Points — Shell-layer wrappers that validate inputs before calling pure lattice functions. Use these when accepting external/user input.")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+(doc 'note "Lattice code (lattice/fp/category/) is pure and assumes valid input. This module provides the defensive boundary.")
+(doc 'dependencies '(lattice/fp/category/natural-transform lattice/fp/category/adjunction))
 
 (load "lattice/fp/category/natural-transform.ss")
 (load "lattice/fp/category/adjunction.ss")
 
-;;; ====
-;;; Validated Natural Transformation Operations
-;;; ====
+(doc 'section 'validated-natural-transform-operations)
 
-;;; validated-nat-compose : NatTransform × NatTransform → NatTransform
-;;; Validates inputs before composing natural transformations.
-;;; Use this at shell boundaries; lattice code can use nat-compose directly.
 (define (validated-nat-compose ε η)
+  (doc 'type (-> NatTransform NatTransform NatTransform))
+  (doc 'description "Validates inputs before composing natural transformations. Use this at shell boundaries; lattice code can use nat-compose directly.")
+  (doc 'export #t)
   (unless (nat-transform? η)
     (error 'nat-compose "expected nat-transform for second argument" η))
   (unless (nat-transform? ε)
     (error 'nat-compose "expected nat-transform for first argument" ε))
   (nat-compose ε η))
 
-;;; validated-nat-apply : NatTransform × F(A) → G(A)
-;;; Validates the natural transformation before applying.
 (define (validated-nat-apply η x)
+  (doc 'type (-> NatTransform F(A) G(A)))
+  (doc 'description "Validates the natural transformation before applying.")
+  (doc 'export #t)
   (unless (nat-transform? η)
     (error 'nat-apply "expected nat-transform" η))
   (nat-apply η x))
 
-;;; validated-nat-horizontal : NatTransform × NatTransform → NatTransform
-;;; Validates inputs before horizontal composition.
 (define (validated-nat-horizontal η ε)
+  (doc 'type (-> NatTransform NatTransform NatTransform))
+  (doc 'description "Validates inputs before horizontal composition.")
+  (doc 'export #t)
   (unless (nat-transform? η)
     (error 'nat-horizontal "expected nat-transform for first argument" η))
   (unless (nat-transform? ε)
     (error 'nat-horizontal "expected nat-transform for second argument" ε))
   (nat-horizontal η ε))
 
-;;; ====
-;;; Validated Adjunction Operations
-;;; ====
+(doc 'section 'validated-adjunction-operations)
 
-;;; validated-adjunction-compose : Adjunction × Adjunction → Adjunction
-;;; Validates inputs before composing adjunctions.
 (define (validated-adjunction-compose adj2 adj1)
+  (doc 'type (-> Adjunction Adjunction Adjunction))
+  (doc 'description "Validates inputs before composing adjunctions.")
+  (doc 'export #t)
   (unless (adjunction? adj1)
     (error 'adjunction-compose "expected adjunction for first argument" adj1))
   (unless (adjunction? adj2)
     (error 'adjunction-compose "expected adjunction for second argument" adj2))
   (adjunction-compose adj2 adj1))
 
-;;; validated-adjunction-transpose-left : Adjunction × (F(A) → B) → (A → G(B))
-;;; Validates the adjunction before transposing.
 (define (validated-adjunction-transpose-left adj f)
+  (doc 'type (-> Adjunction (-> F(A) B) (-> A G(B))))
+  (doc 'description "Validates the adjunction before transposing.")
+  (doc 'export #t)
   (unless (adjunction? adj)
     (error 'adjunction-transpose-left "expected adjunction" adj))
   (unless (procedure? f)
     (error 'adjunction-transpose-left "expected procedure" f))
   (adjunction-transpose-left adj f))
 
-;;; validated-adjunction-transpose-right : Adjunction × (A → G(B)) → (F(A) → B)
-;;; Validates the adjunction before transposing.
 (define (validated-adjunction-transpose-right adj g)
+  (doc 'type (-> Adjunction (-> A G(B)) (-> F(A) B)))
+  (doc 'description "Validates the adjunction before transposing.")
+  (doc 'export #t)
   (unless (adjunction? adj)
     (error 'adjunction-transpose-right "expected adjunction" adj))
   (unless (procedure? g)
     (error 'adjunction-transpose-right "expected procedure" g))
   (adjunction-transpose-right adj g))
 
-;;; ====
-;;; Re-exports (for convenience)
-;;; ====
-
-;;; Pure lattice functions that don't need validation are re-exported as-is.
-;;; Users can import this module and get both validated and pure operations.
-;;;
-;;; Predicates (always safe):
-;;;   nat-transform?, adjunction?, galois?, functor?
-;;;
-;;; Constructors (assume valid components):
-;;;   make-nat-transform, make-adjunction, make-galois
-;;;
-;;; Accessors (safe on valid structures):
-;;;   nat-transform-name, nat-transform-source, nat-transform-target
-;;;   adjunction-name, adjunction-left, adjunction-right, etc.
-;;;
-;;; Identity constructors (always safe):
-;;;   nat-id
+(doc 'section 're-exports)
+(doc 're-exports 'note "Pure lattice functions that don't need validation are re-exported as-is. Users can import this module and get both validated and pure operations.")
+(doc 're-exports 'predicates '(nat-transform? adjunction? galois? functor?))
+(doc 're-exports 'constructors '(make-nat-transform make-adjunction make-galois))
+(doc 're-exports 'accessors '(nat-transform-name nat-transform-source nat-transform-target adjunction-name adjunction-left adjunction-right))
+(doc 're-exports 'identity-constructors '(nat-id))

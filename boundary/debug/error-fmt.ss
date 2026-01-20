@@ -1,44 +1,31 @@
-;;; boundary/debug/error-fmt.ss — Enhanced Error Formatter
-;;;
-;;; Improved error messages with context, colors, and helpful suggestions.
-;;; Addresses the ~s placeholder bugs reported in the forum.
-;;;
-;;; This is Shell code: formats output, provides user-facing messages.
-;;;
-;;; Dependencies:
-;;;   core/prelude.ss
-;;;
-;;; NOTE: string utilities provided by core/prelude.ss:
-;;;       string-contains?, string-join, string-replace
-;;;       Unique to this module: string-replace-once, string-find
-;;;
-;;; Operations:
-;;;   (format-error condition) — Format error with context
-;;;   (format-error-simple msg) — Simple error message
-;;;   (format-error-with-location msg file line col) — Error with location
-;;;   (suggest-fix error-type) — Suggest possible fixes
-;;;   (error-to-string condition) — Convert condition to string
-;;;
-;;; Features:
-;;;   - Color-coded severity levels
-;;;   - Source location highlighting
-;;;   - Contextual suggestions
-;;;   - Fixes ~s and ~:s placeholder issues
-;;;   - Multi-line error formatting
-;;;   - Stack trace formatting
-;;;   - Related error grouping
-
-;;; ====
-;;; Configuration
-;;; ====
-
 (load "core/base/prelude.ss")
 
-(define *use-colors* #t)
-(define *show-suggestions* #t)
-(define *max-context-lines* 3)
+(doc 'module 'error-fmt)
+(doc 'description "Enhanced Error Formatter - Improved error messages with context, colors, and suggestions")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+(doc 'dependencies '(core/base/prelude))
 
-;;; ANSI color codes
+(doc 'note "Fixes ~s placeholder bugs in exploration scripts by providing proper error message formatting")
+(doc 'note "String utilities provided by core/prelude.ss: string-contains?, string-join, string-replace")
+(doc 'note "Unique to this module: string-replace-once, string-find")
+
+(doc 'section 'configuration)
+
+(define *use-colors* #t)
+(doc *use-colors* 'type 'Bool)
+(doc *use-colors* 'description "Enable/disable ANSI color codes in output")
+
+(define *show-suggestions* #t)
+(doc *show-suggestions* 'type 'Bool)
+(doc *show-suggestions* 'description "Enable/disable contextual suggestions")
+
+(define *max-context-lines* 3)
+(doc *max-context-lines* 'type 'Nat)
+(doc *max-context-lines* 'description "Number of context lines to show around errors")
+
+(doc 'section 'ansi-colors)
+
 (define *color-reset* "\x1b;[0m")
 (define *color-red* "\x1b;[31m")
 (define *color-yellow* "\x1b;[33m")
@@ -46,12 +33,16 @@
 (define *color-gray* "\x1b;[90m")
 (define *color-bold* "\x1b;[1m")
 
-;;; Error severity levels
+(doc 'section 'error-levels)
+
 (define-record-type error-level
   (fields
-   name        ; 'error, 'warning, 'info
-   color       ; ANSI color
-   symbol))    ; Display symbol
+   name
+   color
+   symbol))
+
+(doc error-level 'description "Error severity level with display attributes")
+(doc error-level 'fields '((name . Symbol) (color . String) (symbol . String)))
 
 (define *level-error*
   (make-error-level 'error *color-red* "ERROR"))
@@ -62,20 +53,12 @@
 (define *level-info*
   (make-error-level 'info *color-blue* "INFO"))
 
-;;; ====
-;;; Error with Format Helper
-;;; ====
-;;;
-;;; NOTE: errorf is now provided by core/base/prelude.ss
-;;; It's available everywhere prelude is loaded.
+(doc 'section 'main-api)
 
-;;; ====
-;;; Main Formatting API
-;;; ====
-
-;;; format-error : Condition → String
-;;; Format a condition object as a readable error message.
+(doc format-error 'export #t)
 (define (format-error condition)
+  (doc 'type '(-> Condition String))
+  (doc 'description "Format a condition object as a readable error message")
   (guard (e [else
              (format-error-simple
               (format "Error formatting error: ~a" e))])
@@ -91,48 +74,41 @@
                 msg
                 who
                 irritants
-                #f #f #f))))  ; file, line, col
+                #f #f #f))))
 
-;;; format-error-simple : String → String
-;;; Format a simple error message.
+(doc format-error-simple 'export #t)
 (define (format-error-simple msg)
+  (doc 'type '(-> String String))
+  (doc 'description "Format a simple error message")
   (format-error-full *level-error* msg #f '() #f #f #f))
 
-;;; format-error-with-location : String × Path × Nat × Nat → String
-;;; Format error with source location.
+(doc format-error-with-location 'export #t)
 (define (format-error-with-location msg file line col)
+  (doc 'type '(-> String Path Nat Nat String))
+  (doc 'description "Format error with source location")
   (format-error-full *level-error* msg #f '() file line col))
 
-;;; format-error-full : ErrorLevel × String × Symbol × (List Any) × Path × Nat × Nat → String
-;;; Full error formatting with all options.
 (define (format-error-full level msg who irritants file line col)
+  (doc 'type '(-> ErrorLevel String (Maybe Symbol) (List Any) (Maybe Path) (Maybe Nat) (Maybe Nat) String))
+  (doc 'description "Full error formatting with all options")
   (string-append
-   ;; Header line
    (format-error-header level who file line col)
-   "
-"
-   ;; Message (with fixed formatting)
+   "\n"
    (format-message msg irritants)
-   "
-"
-   ;; Source context (if available)
+   "\n"
    (if (and file line)
        (format-source-context file line col)
        "")
-   ;; Suggestions (if enabled)
    (if *show-suggestions*
        (format-suggestions msg)
        "")
-   ;; Footer
-   "
-"))
+   "\n"))
 
-;;; ====
-;;; Header Formatting
-;;; ====
+(doc 'section 'header-formatting)
 
-;;; format-error-header : ErrorLevel × Symbol × Path × Nat × Nat → String
 (define (format-error-header level who file line col)
+  (doc 'type '(-> ErrorLevel (Maybe Symbol) (Maybe Path) (Maybe Nat) (Maybe Nat) String))
+  (doc 'description "Format error header line")
   (let ([level-str (colorize (error-level-symbol level)
                              (error-level-color level)
                              *color-bold*)]
@@ -144,44 +120,34 @@
                      "")])
        (string-append level-str who-str loc-str)))
 
-;;; ====
-;;; Message Formatting (Fixes ~s bugs)
-;;; ====
+(doc 'section 'message-formatting)
 
-;;; format-message : String × (List Any) → String
-;;; Format message string, filling in placeholders.
-;;; This FIXES the ~s and ~:s placeholder bugs!
 (define (format-message template irritants)
-  (guard (e [else
-             ;; If formatting fails, return template as-is
-             template])
+  (doc 'type '(-> String (List Any) String))
+  (doc 'description "Format message string, filling in placeholders - FIXES the ~s and ~:s placeholder bugs")
+  (guard (e [else template])
          (if (null? irritants)
-             ;; No irritants: check for unfilled placeholders
              (fix-unfilled-placeholders template)
-             ;; Has irritants: fill them in
              (fill-placeholders template irritants))))
 
-;;; fix-unfilled-placeholders : String → String
-;;; Replace unfilled format directives with safe defaults.
 (define (fix-unfilled-placeholders str)
+  (doc 'type '(-> String String))
+  (doc 'description "Replace unfilled format directives with safe defaults")
   (let* ([fixed (string-replace str "~s" "<value>")]
          [fixed2 (string-replace fixed "~:s" "<value>")]
          [fixed3 (string-replace fixed2 "~a" "<value>")]
          [fixed4 (string-replace fixed3 "~d" "<number>")])
         fixed4))
 
-;;; fill-placeholders : String × (List Any) → String
-;;; Fill format directives with actual values.
 (define (fill-placeholders template irritants)
-  (guard (e [else
-             ;; If format fails, manually substitute
-             (manual-substitute template irritants)])
-         ;; Try using format
+  (doc 'type '(-> String (List Any) String))
+  (doc 'description "Fill format directives with actual values")
+  (guard (e [else (manual-substitute template irritants)])
          (apply format template irritants)))
 
-;;; manual-substitute : String × (List Any) → String
-;;; Manually substitute placeholders (fallback).
 (define (manual-substitute template irritants)
+  (doc 'type '(-> String (List Any) String))
+  (doc 'description "Manually substitute placeholders (fallback)")
   (let loop ([str template]
              [vals irritants])
        (if (null? vals)
@@ -196,11 +162,9 @@
                            (cdr vals))
                      str)))))
 
-;;; NOTE: string-replace provided by core/prelude.ss
-
-;;; string-replace-once : String × String × String → String
-;;; Replace first occurrence of pattern.
 (define (string-replace-once str pattern replacement)
+  (doc 'type '(-> String String String String))
+  (doc 'description "Replace first occurrence of pattern")
   (let ([idx (string-find str pattern)])
        (if idx
            (string-append
@@ -210,8 +174,9 @@
                        (string-length str)))
            str)))
 
-;;; string-find : String × String → Nat | #f
 (define (string-find haystack needle)
+  (doc 'type '(-> String String (Maybe Nat)))
+  (doc 'description "Find first occurrence of needle in haystack")
   (let ([nlen (string-length needle)]
         [hlen (string-length haystack)])
        (let loop ([i 0])
@@ -220,28 +185,25 @@
              [(string=? needle (substring haystack i (+ i nlen))) i]
              [else (loop (+ i 1))]))))
 
-;;; ====
-;;; Source Context
-;;; ====
+(doc 'section 'source-context)
 
-;;; format-source-context : Path × Nat × Nat → String
-;;; Show source code around error location.
 (define (format-source-context file line col)
+  (doc 'type '(-> Path Nat Nat String))
+  (doc 'description "Show source code around error location")
   (guard (e [else ""])
          (let* ([lines (read-file-lines file)]
                 [start (max 1 (- line *max-context-lines*))]
                 [end (min (length lines) (+ line *max-context-lines*))]
                 [context-lines (list-slice lines (- start 1) end)])
                (string-append
-                "
-"
+                "\n"
                 (colorize "Source:" *color-gray* "")
-                "
-"
+                "\n"
                 (format-lines-with-numbers context-lines start line col)))))
 
-;;; format-lines-with-numbers : (List String) × Nat × Nat × Nat → String
 (define (format-lines-with-numbers lines start-num error-line error-col)
+  (doc 'type '(-> (List String) Nat Nat Nat String))
+  (doc 'description "Format source lines with line numbers and error pointer")
   (let loop ([ls lines]
              [num start-num]
              [result ""])
@@ -254,44 +216,36 @@
                                       (colorize line *color-red* "")
                                       (colorize line *color-gray* ""))]
                   [pointer (if is-error-line?
-                               (format "     | ~a~a
-"
+                               (format "     | ~a~a\n"
                                        (make-string (max 0 (- error-col 1)) #\space)
                                        (colorize "^" *color-red* *color-bold*))
                                "")])
                  (loop (cdr ls)
                        (+ num 1)
-                       (string-append result prefix formatted-line "
-" pointer))))))
+                       (string-append result prefix formatted-line "\n" pointer))))))
 
-;;; ====
-;;; Suggestions
-;;; ====
+(doc 'section 'suggestions)
 
-;;; format-suggestions : String → String
-;;; Provide helpful suggestions based on error message.
 (define (format-suggestions msg)
+  (doc 'type '(-> String String))
+  (doc 'description "Provide helpful suggestions based on error message")
   (let ([suggestions (suggest-fixes msg)])
        (if (null? suggestions)
            ""
            (string-append
-            "
-"
+            "\n"
             (colorize "Suggestions:" *color-blue* *color-bold*)
-            "
-"
+            "\n"
             (string-join
              (map (lambda (s)
                           (format "  • ~a" s))
                   suggestions)
-             "
-")
-            "
-"))))
+             "\n")
+            "\n"))))
 
-;;; suggest-fixes : String → (List String)
-;;; Analyze error and suggest fixes.
 (define (suggest-fixes msg)
+  (doc 'type '(-> String (List String)))
+  (doc 'description "Analyze error and suggest fixes")
   (cond
    [(string-contains? msg "not bound")
     '("Check for typos in variable name"
@@ -308,34 +262,32 @@
       "Verify file exists and is readable")]
    [else '()]))
 
-;;; ====
-;;; Colorization
-;;; ====
+(doc 'section 'colorization)
 
-;;; colorize : String × String × String → String
 (define (colorize text color modifier)
+  (doc 'type '(-> String String String String))
+  (doc 'description "Apply ANSI color codes to text")
   (if *use-colors*
       (string-append modifier color text *color-reset*)
       text))
 
-;;; ====
-;;; Utility Functions
-;;; ====
+(doc 'section 'utilities)
 
-;;; NOTE: string-contains? provided by core/prelude.ss
-
-;;; make-string : Nat × Char → String
 (define (make-string n ch)
+  (doc 'type '(-> Nat Char String))
+  (doc 'description "Create string of n copies of ch")
   (list->string (make-list-of n ch)))
 
-;;; make-list-of : Nat × α → (List α)
 (define (make-list-of n x)
+  (doc 'type '(-> Nat α (List α)))
+  (doc 'description "Create list of n copies of x")
   (if (<= n 0)
       '()
       (cons x (make-list-of (- n 1) x))))
 
-;;; list-slice : (List α) × Nat × Nat → (List α)
 (define (list-slice lst start end)
+  (doc 'type '(-> (List α) Nat Nat (List α)))
+  (doc 'description "Extract sublist from start to end (exclusive)")
   (let loop ([ls lst]
              [i 0]
              [result '()])
@@ -345,8 +297,9 @@
         [(>= i end) (reverse result)]
         [else (loop (cdr ls) (+ i 1) (cons (car ls) result))])))
 
-;;; read-file-lines : Path → (List String)
 (define (read-file-lines path)
+  (doc 'type '(-> Path (List String)))
+  (doc 'description "Read all lines from file")
   (guard (e [else '()])
          (call-with-input-file path
                                (lambda (port)
@@ -356,52 +309,30 @@
                                                      (reverse lines)
                                                      (loop (cons line lines)))))))))
 
-;;; NOTE: string-join provided by core/prelude.ss
+(doc 'section 'public-api)
 
-;;; ====
-;;; Condition Inspection
-;;; ====
-
-;;; error-to-string : Condition → String
-;;; Convert condition to string (public API).
+(doc error-to-string 'export #t)
 (define (error-to-string condition)
+  (doc 'type '(-> Condition String))
+  (doc 'description "Convert condition to string (public API)")
   (format-error condition))
 
-(display "
-")
-(display "Enhanced error formatter loaded.
-")
-(display "
-")
-(display "Features:
-")
-(display "  • Fixes ~s and ~:s placeholder bugs
-")
-(display "  • Color-coded severity levels
-")
-(display "  • Source location highlighting
-")
-(display "  • Contextual suggestions
-")
-(display "
-")
-(display "Usage:
-")
-(display "  (format-error condition)                 - Format condition
-")
-(display "  (format-error-simple \"message\")          - Simple error
-")
-(display "  (format-error-with-location msg f l c)   - With location
-")
-(display "  (error-to-string condition)              - Convert to string
-")
-(display "
-")
-(display "Configuration:
-")
-(display "  (set! *use-colors* #f)                   - Disable colors
-")
-(display "  (set! *show-suggestions* #f)             - Disable suggestions
-")
-(display "
-")
+(display "\n")
+(display "Enhanced error formatter loaded.\n")
+(display "\n")
+(display "Features:\n")
+(display "  • Fixes ~s and ~:s placeholder bugs\n")
+(display "  • Color-coded severity levels\n")
+(display "  • Source location highlighting\n")
+(display "  • Contextual suggestions\n")
+(display "\n")
+(display "Usage:\n")
+(display "  (format-error condition)                 - Format condition\n")
+(display "  (format-error-simple \"message\")          - Simple error\n")
+(display "  (format-error-with-location msg f l c)   - With location\n")
+(display "  (error-to-string condition)              - Convert to string\n")
+(display "\n")
+(display "Configuration:\n")
+(display "  (set! *use-colors* #f)                   - Disable colors\n")
+(display "  (set! *show-suggestions* #f)             - Disable suggestions\n")
+(display "\n")

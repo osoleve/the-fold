@@ -1,102 +1,80 @@
-;;; boundary/history/replay.ss — Command Replay Engine
-;;;
-;;; Replays command history to restore environment state.
-;;;
-;;; Replay Modes:
-;;;   safe - Skip effect commands (I/O), only replay definitions
-;;;   full - Replay all commands (may have side effects)
-;;;
-;;; Environment Reset Strategy:
-;;;   Chez Scheme doesn't support true unbinding, so we track defined
-;;;   symbols and overwrite them with a tombstone on reset. Replay
-;;;   then rebuilds the environment from recorded definitions.
-;;;
-;;; Divergence Handling:
-;;;   If a command that succeeded originally fails on replay, we
-;;;   pause and report the divergence. The user can continue or abort.
-;;;
-;;; This is Shell code: impure (evaluation, environment mutation).
-
 (load "boundary/history/store.ss")
 
-;;; ====
-;;; Replay State
-;;; ====
+(doc 'module 'boundary/history/replay)
+(doc 'description "Command replay engine for restoring environment state")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+(doc 'dependencies '(boundary/history/store))
+(doc 'note "Chez Scheme doesn't support true unbinding, so we use tombstone pattern")
 
-;;; *history-tracked-definitions* : Hashtable Session-ID -> (List Symbol)
-;;; Tracks which symbols have been defined in each session.
+(doc 'section 'replay-state)
+
+(doc *history-tracked-definitions* 'type 'hashtable)
+(doc *history-tracked-definitions* 'description "Tracks which symbols have been defined in each session")
 (define *history-tracked-definitions*
   (make-hashtable string-hash string=?))
 
-;;; history-track-definition! : String Symbol -> Void
-;;; Record that a symbol was defined in a session.
 (define (history-track-definition! session-id symbol)
+  (doc 'type (-> String Symbol Void))
+  (doc 'description "Record that a symbol was defined in a session")
+  (doc 'export #t)
   (let ([current (hashtable-ref *history-tracked-definitions* session-id '())])
     (unless (memq symbol current)
       (hashtable-set! *history-tracked-definitions* session-id
                       (cons symbol current)))))
 
-;;; history-tracked-definitions : String -> (List Symbol)
-;;; Get all tracked definitions for a session.
 (define (history-tracked-definitions session-id)
+  (doc 'type (-> String (List Symbol)))
+  (doc 'description "Get all tracked definitions for a session")
+  (doc 'export #t)
   (hashtable-ref *history-tracked-definitions* session-id '()))
 
-;;; ====
-;;; Environment Reset
-;;; ====
+(doc 'section 'environment-reset)
 
-;;; *history-tombstone* : Any
-;;; Marker value for "undefined" bindings.
+(doc *history-tombstone* 'type 'any)
+(doc *history-tombstone* 'description "Marker value for undefined bindings")
 (define *history-tombstone* (list 'history-undefined-tombstone))
 
-;;; history-tombstone? : Any -> Boolean
-;;; Check if a value is our tombstone marker.
 (define (history-tombstone? v)
+  (doc 'type (-> Any Boolean))
+  (doc 'description "Check if a value is our tombstone marker")
   (and (pair? v)
        (eq? (car v) 'history-undefined-tombstone)))
 
-;;; history-reset-environment! : String -> Void
-;;; Reset the environment by tombstoning all tracked definitions.
-;;;
-;;; Note: This doesn't truly unbind - it sets to a tombstone value.
-;;; Code that checks (top-level-bound? x) will still see #t, but
-;;; the value will be our tombstone marker.
 (define (history-reset-environment! session-id)
+  (doc 'type (-> String Void))
+  (doc 'description "Reset environment by tombstoning all tracked definitions")
+  (doc 'export #t)
+  (doc 'note "Doesn't truly unbind - sets to tombstone value")
   (let ([symbols (history-tracked-definitions session-id)])
     (for-each
       (lambda (sym)
-        (guard (e [else #f])  ; Ignore errors for special forms etc.
+        (guard (e [else #f])
           (when (top-level-bound? sym)
             (set-top-level-value! sym *history-tombstone*))))
       symbols)
-    ;; Clear the tracking list
     (hashtable-set! *history-tracked-definitions* session-id '())))
 
-;;; ====
-;;; Command Replay
-;;; ====
+(doc 'section 'command-replay)
 
-;;; replay-mode : Symbol
-;;; 'safe = skip effects, 'full = replay everything
+(doc *default-replay-mode* 'type 'symbol)
+(doc *default-replay-mode* 'description "Default replay mode ('safe or 'full)")
 (define *default-replay-mode* 'safe)
 
-;;; should-replay? : Symbol Symbol -> Boolean
-;;; Determine if a command type should be replayed in given mode.
 (define (should-replay? cmd-type mode)
+  (doc 'type (-> Symbol Symbol Boolean))
+  (doc 'description "Determine if a command type should be replayed in given mode")
+  (doc 'note "'safe mode only replays definitions, 'full replays everything")
   (case mode
-    [(safe)
-     ;; Only replay definitions in safe mode
-     (eq? cmd-type 'definition)]
-    [(full)
-     ;; Replay everything in full mode
-     #t]
-    [else
-     (eq? cmd-type 'definition)]))
+    [(safe) (eq? cmd-type 'definition)]
+    [(full) #t]
+    [else (eq? cmd-type 'definition)]))
 
-;;; replay-command : String Symbol -> (success | (error String))
-;;; Replay a single command string.
-;;; Returns 'success or '(error "message").
 (define (replay-command cmd-str session-id)
+  (doc 'type (-> String Symbol (U Symbol (List Symbol String))))
+  (doc 'description "Replay a single command string")
+  (doc 'export #t)
+  (doc 'returns "'success or '(error \"message\")")
   (guard (e [else
              (list 'error (if (message-condition? e)
                               (condition-message e)
@@ -104,25 +82,18 @@
     (eval (read (open-input-string cmd-str)))
     'success))
 
-;;; ====
-;;; Replay to Index
-;;; ====
+(doc 'section 'replay-to-index)
 
-;;; history-replay-to-index : String Int Symbol -> (ok Int) | (error String Int)
-;;; Replay commands from index 0 to target-index.
-;;;
-;;; Returns:
-;;;   (ok <replayed-count>) on success
-;;;   (error <message> <failed-at-index>) on divergence
-;;;
-;;; Arguments:
-;;;   session-id   - Session to replay
-;;;   target-index - Replay up to and including this index
-;;;   mode         - 'safe or 'full
 (define (history-replay-to-index session-id target-index mode)
+  (doc 'type (-> String Int Symbol (List Symbol (U Int String))))
+  (doc 'description "Replay commands from index 0 to target-index")
+  (doc 'export #t)
+  (doc 'param 'session-id "Session to replay")
+  (doc 'param 'target-index "Replay up to and including this index")
+  (doc 'param 'mode "'safe or 'full")
+  (doc 'returns "(ok <count>) on success, (error <message> <index>) on divergence")
   (let* ([branch (history-read-current-branch session-id)]
          [entries (history-walk session-id branch)])
-    ;; Sort entries by index (oldest first for replay)
     (let* ([sorted-entries
             (list-sort
               (lambda (a b)
@@ -135,7 +106,6 @@
                 (let ([idx (cdr (assq 'index (history-entry-data entry)))])
                   (<= idx target-index)))
               sorted-entries)])
-      ;; Replay each entry
       (let loop ([remaining to-replay] [replayed 0])
         (if (null? remaining)
             (list 'ok replayed)
@@ -149,83 +119,65 @@
               (if (should-replay? cmd-type mode)
                   (let ([result (replay-command cmd session-id)])
                     (cond
-                      ;; Success - track definition if applicable
                       [(eq? result 'success)
                        (when defined-name
                          (history-track-definition! session-id defined-name))
                        (loop (cdr remaining) (+ replayed 1))]
-                      ;; Divergence - command failed that succeeded before
                       [(and (pair? result) (eq? (car result) 'error)
                             (eq? original-result 'success))
                        (list 'error
                              (format "Divergence at index ~a: ~a" index (cadr result))
                              index)]
-                      ;; Error that also errored originally - continue
                       [(and (pair? result) (eq? (car result) 'error)
                             (eq? original-result 'error))
                        (loop (cdr remaining) (+ replayed 1))]
-                      ;; Unknown state - treat as success
                       [else
                        (loop (cdr remaining) (+ replayed 1))]))
-                  ;; Skip this command (effect in safe mode)
                   (loop (cdr remaining) replayed))))))))
 
-;;; ====
-;;; Full Session Replay
-;;; ====
+(doc 'section 'full-session-replay)
 
-;;; history-replay-session! : String Symbol -> (ok Int) | (error String Int)
-;;; Reset environment and replay all history.
 (define (history-replay-session! session-id mode)
+  (doc 'type (-> String Symbol (List Symbol (U Int String))))
+  (doc 'description "Reset environment and replay all history")
+  (doc 'export #t)
   (history-reset-environment! session-id)
   (let ([current-idx (history-current-index session-id)])
     (if (< current-idx 0)
-        (list 'ok 0)  ; No history to replay
+        (list 'ok 0)
         (history-replay-to-index session-id current-idx mode))))
 
-;;; ====
-;;; Checkpoint-Based Replay
-;;; ====
+(doc 'section 'checkpoint-based-replay)
 
-;;; Future optimization: store periodic checkpoints (every N commands)
-;;; so we don't need to replay from index 0 every time.
-;;;
-;;; For now, we always replay from the beginning. This is acceptable
-;;; for typical REPL sessions (< 100 commands), but could be slow
-;;; for very long sessions.
+(doc 'todo "Implement checkpoint-based replay for long sessions")
+(doc 'note "Current implementation always replays from index 0, acceptable for < 100 commands")
 
-;;; history-replay-from-checkpoint : String Int Symbol -> (ok Int) | (error String Int)
-;;; Placeholder for checkpoint-based replay.
-;;; Currently just replays from index 0.
 (define (history-replay-from-checkpoint session-id target-index mode)
-  ;; TODO: Implement checkpoint finding and replay
+  (doc 'type (-> String Int Symbol (List Symbol (U Int String))))
+  (doc 'description "Placeholder for checkpoint-based replay")
+  (doc 'todo "Implement checkpoint finding and replay")
   (history-replay-to-index session-id target-index mode))
 
-;;; ====
-;;; Divergence Recovery
-;;; ====
+(doc 'section 'divergence-recovery)
 
-;;; *history-divergence-handler* : (String Int -> Symbol)
-;;; Handler for replay divergence. Returns 'continue or 'abort.
-;;; Default: abort on any divergence.
+(doc *history-divergence-handler* 'type 'procedure)
+(doc *history-divergence-handler* 'description "Handler for replay divergence (returns 'continue or 'abort)")
 (define *history-divergence-handler*
   (lambda (message index)
     (display (format "Replay divergence: ~a\n" message))
     'abort))
 
-;;; history-set-divergence-handler! : (String Int -> Symbol) -> Void
-;;; Set custom divergence handler.
 (define (history-set-divergence-handler! handler)
+  (doc 'type (-> (-> String Int Symbol) Void))
+  (doc 'description "Set custom divergence handler")
+  (doc 'export #t)
   (set! *history-divergence-handler* handler))
 
-;;; ====
-;;; Utilities
-;;; ====
+(doc 'section 'utilities)
 
-;;; list-sort : (a a -> Boolean) (List a) -> (List a)
-;;; Sort a list using the given comparator.
 (define (list-sort less? lst)
-  ;; Simple insertion sort for small lists
+  (doc 'type (-> (-> a a Boolean) (List a) (List a)))
+  (doc 'description "Sort a list using insertion sort")
   (let loop ([remaining lst] [sorted '()])
     (if (null? remaining)
         sorted
@@ -233,6 +185,8 @@
               (insert-sorted less? (car remaining) sorted)))))
 
 (define (insert-sorted less? x sorted)
+  (doc 'type (-> (-> a a Boolean) a (List a) (List a)))
+  (doc 'description "Insert element into sorted list")
   (cond
     [(null? sorted) (list x)]
     [(less? x (car sorted)) (cons x sorted)]

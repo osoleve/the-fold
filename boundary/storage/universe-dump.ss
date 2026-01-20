@@ -1,39 +1,43 @@
 #!/usr/bin/env scheme-script
-;;; boundary/storage/universe-dump.ss — CLI tool for dumping the universe
-;;;
-;;; Serializes all .sexp files in the-fold project to a single file.
-;;;
-;;; Usage:
-;;;   scheme-script boundary/storage/universe-dump.ss [options]
-;;;
-;;; Options:
-;;;   --root DIR          Root directory to scan (default: current directory)
-;;;   --output FILE       Output file path (default: universe-dump.sexp)
-;;;   --pretty            Enable pretty printing (default: compact)
-;;;   --filter DIR1,DIR2  Only include files from specified directories
-;;;   --help              Show this help message
-;;;
-;;; Examples:
-;;;   # Dump entire universe with pretty printing
-;;;   scheme-script boundary/storage/universe-dump.ss --pretty
-;;;
-;;;   # Dump only forum and scripture
-;;;   scheme-script boundary/storage/universe-dump.ss --filter forum,scripture --pretty
-;;;
-;;;   # Specify custom root and output
-;;;   scheme-script boundary/storage/universe-dump.ss --root /path/to/fold --output my-dump.sexp
 
 (import (chezscheme)
         (shell universe-serialize))
 
-;;; NOTE: string utilities provided by core/prelude.ss
 (load "core/base/prelude.ss")
 
-;;; ====
-;;; Command-line Argument Parsing
-;;; ====
+(doc 'module 'universe-dump)
+(doc 'description "CLI tool for dumping the universe")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+(doc 'dependencies '(chezscheme shell/universe-serialize core/base/prelude))
+
+(doc 'note "Serializes all .sexp files in the-fold project to a single file")
+
+(doc 'usage "
+  scheme-script boundary/storage/universe-dump.ss [options]
+
+Options:
+  --root DIR          Root directory to scan (default: current directory)
+  --output FILE       Output file path (default: universe-dump.sexp)
+  --pretty            Enable pretty printing (default: compact)
+  --filter DIR1,DIR2  Only include files from specified directories
+  --help              Show this help message
+
+Examples:
+  # Dump entire universe with pretty printing
+  scheme-script boundary/storage/universe-dump.ss --pretty
+
+  # Dump only forum and scripture
+  scheme-script boundary/storage/universe-dump.ss --filter forum,scripture --pretty
+
+  # Specify custom root and output
+  scheme-script boundary/storage/universe-dump.ss --root /path/to/fold --output my-dump.sexp")
+
+(doc 'section 'command-line-parsing)
 
 (define (print-help)
+  (doc 'type (-> Void))
+  (doc 'description "Print help message")
   (display "Universe Dump Tool\n")
   (display "====\n\n")
   (display "Serializes all .sexp files in the-fold project to a single file.\n\n")
@@ -53,8 +57,9 @@
   (display "  # Specify custom root and output\n")
   (display "  scheme-script boundary/storage/universe-dump.ss --root /path/to/fold --output my-dump.sexp\n"))
 
-;;; Parse command-line arguments into options alist
 (define (parse-args args)
+  (doc 'type (-> (List String) Alist))
+  (doc 'description "Parse command-line arguments into options alist")
   (let loop ([remaining args]
              [root-dir "."]
              [output-file "universe-dump.sexp"]
@@ -99,19 +104,17 @@
                   (display "Use --help for usage information.\n")
                   (exit 1)])))))
 
-
-;;; ====
-;;; Main Program
-;;; ====
+(doc 'section 'main-program)
 
 (define (main args)
+  (doc 'type (-> (List String) Void))
+  (doc 'description "Main entry point")
   (let* ([options (parse-args args)]
          [root-dir (cdr (assoc 'root options))]
          [output-file (cdr (assoc 'output options))]
          [pretty? (cdr (assoc 'pretty options))]
          [filter-dirs (cdr (assoc 'filter options))])
-        
-        ;; Print configuration
+
         (display "Universe Dump Configuration\n")
         (display "====\n")
         (display "Root directory: ")
@@ -135,21 +138,19 @@
              (display ")")))
         (newline)
         (newline)
-        
-        ;; Verify root directory exists
+
         (unless (file-exists? root-dir)
                 (display "Error: Root directory does not exist: ")
                 (display root-dir)
                 (newline)
                 (exit 1))
-        
+
         (unless (file-directory? root-dir)
                 (display "Error: Root path is not a directory: ")
                 (display root-dir)
                 (newline)
                 (exit 1))
-        
-        ;; Scan for files
+
         (display "Scanning for .sexp files...\n")
         (let* ([sexp-files (if (null? filter-dirs)
                                (scan-sexp-files root-dir)
@@ -162,12 +163,11 @@
                     (display "s"))
               (newline)
               (newline)
-              
+
               (when (= file-count 0)
                     (display "No .sexp files found. Nothing to dump.\n")
                     (exit 0))
-              
-              ;; Show discovered files
+
               (display "Files to serialize:\n")
               (for-each (lambda (f)
                                 (display "  ")
@@ -175,25 +175,21 @@
                                 (newline))
                         sexp-files)
               (newline)
-              
-              ;; Serialize
+
               (display "Serializing universe...\n")
               (let ([universe (if (null? filter-dirs)
                                   (serialize-universe root-dir)
                                   (serialize-universe-filtered root-dir filter-dirs))])
-                   
-                   ;; Write to file
+
                    (display "Writing to ")
                    (display output-file)
                    (display "...\n")
                    (write-universe universe output-file pretty?)
-                   
-                   ;; Report success
+
                    (display "Success! Universe serialized to ")
                    (display output-file)
                    (newline)
-                   
-                   ;; Show file size
+
                    (let ([size (file-length output-file)])
                         (display "Output size: ")
                         (display size)
@@ -209,5 +205,5 @@
                                    (display " MB)"))))
                         (newline))))))
 
-;;; Entry point
+(doc 'note "Entry point")
 (main (cdr (command-line)))

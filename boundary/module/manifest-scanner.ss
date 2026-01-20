@@ -1,27 +1,20 @@
-;;; boundary/module/manifest-scanner.ss — Manifest Discovery (I/O)
-;;;
-;;; Impure scanning for manifest.sexp files.
-;;; Uses only core primitives (no lattice deps) to avoid bootstrap issues.
-;;;
-;;; This is Shell code: does I/O, discovers files.
-;;;
-;;; Usage:
-;;;   (find-manifests dir)              ; Recursive directory scan
-;;;   (read-manifest-file path)         ; File → S-expression | #f
-;;;   (scan-all-manifests)              ; → list of (path . sexp) pairs
-;;;   (scan-lattice-manifests)          ; Scan lattice/ directory
-;;;
-;;; Dependencies:
-;;;   core/base/prelude.ss (implicitly loaded)
+(define-syntax doc
+  (syntax-rules ()
+    [(_ args ...) (void)]))
 
-;;; ====
-;;; File Reading
-;;; ====
+(doc 'module 'module/manifest-scanner)
+(doc 'description "Impure scanning for manifest.sexp files")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+(doc 'dependencies '(core/base/prelude))
+(doc 'note "Uses only core primitives (no lattice deps) to avoid bootstrap issues")
 
-;;; read-manifest-file : String -> SExp | #f
-;;; Read and parse a manifest.sexp file.
-;;; Returns the first S-expression in the file, or #f on error.
+(doc 'section 'file-reading)
+
 (define (read-manifest-file filepath)
+  (doc 'type (-> String (Maybe SExp)))
+  (doc 'description "Read and parse a manifest.sexp file, returns the first S-expression in the file, or #f on error")
+  (doc 'export #t)
   (guard (e [else #f])
          (call-with-input-file filepath
                                (lambda (port)
@@ -38,21 +31,19 @@
                                                    (loop)]
                                                   [else (read port)])))))))
 
-;;; ====
-;;; Directory Scanning
-;;; ====
+(doc 'section 'directory-scanning)
 
-;;; string-starts-with? : String String -> Bool
-;;; Check if string starts with prefix.
 (define (manifest-string-starts-with? str prefix)
+  (doc 'type (-> String String Bool))
+  (doc 'description "Check if string starts with prefix")
   (let ([str-len (string-length str)]
         [pre-len (string-length prefix)])
        (and (>= str-len pre-len)
             (string=? (substring str 0 pre-len) prefix))))
 
-;;; find-manifests : String -> (List String)
-;;; Find all manifest.sexp files under a directory (recursive).
-;;; Returns a list of file paths in sorted order for deterministic discovery.
+(doc find-manifests 'type (-> String (List String)))
+(doc find-manifests 'description "Find all manifest.sexp files under a directory (recursive), returns a list of file paths in sorted order for deterministic discovery")
+(doc find-manifests 'export #t)
 (define (find-manifests base-dir)
   ;; Use accumulator-based recursion to avoid O(N²) append
   (define (find-acc dir acc)
@@ -75,15 +66,12 @@
                        entries)))))
   (reverse (find-acc base-dir '())))
 
-;;; ====
-;;; Main Scanning API
-;;; ====
+(doc 'section 'main-scanning-api)
 
-;;; scan-manifests : String -> (List (String . SExp))
-;;; Find all manifests under a directory and read their contents.
-;;; Returns a list of (path . sexp) pairs where sexp is the parsed manifest.
-;;; Skips files that fail to parse.
 (define (scan-manifests base-dir)
+  (doc 'type (-> String (List (Pair String SExp))))
+  (doc 'description "Find all manifests under a directory and read their contents, returns a list of (path . sexp) pairs where sexp is the parsed manifest, skips files that fail to parse")
+  (doc 'export #t)
   (let* ([manifest-paths (find-manifests base-dir)]
          [results '()])
         (for-each
@@ -94,28 +82,28 @@
          manifest-paths)
         results))
 
-;;; scan-lattice-manifests : -> (List (String . SExp))
-;;; Scan the lattice/ directory for all manifests.
-;;; Convenience function for the common case.
 (define (scan-lattice-manifests)
+  (doc 'type (-> (List (Pair String SExp))))
+  (doc 'description "Scan the lattice/ directory for all manifests, convenience function for the common case")
+  (doc 'export #t)
   (scan-manifests "lattice"))
 
-;;; scan-all-manifests : -> (List (String . SExp))
-;;; Scan all known directories for manifests.
-;;; Currently just scans lattice/ since core modules are registered explicitly.
 (define (scan-all-manifests)
+  (doc 'type (-> (List (Pair String SExp))))
+  (doc 'description "Scan all known directories for manifests, currently just scans lattice/ since core modules are registered explicitly")
+  (doc 'export #t)
   (scan-lattice-manifests))
 
-;;; ====
-;;; Debugging
-;;; ====
+(doc 'section 'debugging)
 
-;;; list-manifest-files : String -> (List String)
-;;; List all manifest.sexp file paths under a directory (for debugging).
 (define (list-manifest-files base-dir)
+  (doc 'type (-> String (List String)))
+  (doc 'description "List all manifest.sexp file paths under a directory (for debugging)")
+  (doc 'export #t)
   (find-manifests base-dir))
 
-;;; count-manifests : String -> Nat
-;;; Count manifest files under a directory.
 (define (count-manifests base-dir)
+  (doc 'type (-> String Nat))
+  (doc 'description "Count manifest files under a directory")
+  (doc 'export #t)
   (length (find-manifests base-dir)))

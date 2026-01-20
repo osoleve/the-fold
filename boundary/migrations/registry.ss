@@ -1,44 +1,31 @@
-;;; boundary/migrations/registry.ss — Migration Registry and Version Graph
-;;;
-;;; A registry for managing migrations and computing migration paths:
-;;;
-;;;   - Register migrations by name
-;;;   - Build version graph from registered migrations
-;;;   - Find shortest migration path between versions
-;;;   - Chain migrations automatically
-;;;
-;;; The registry maintains a directed graph where:
-;;;   - Nodes are versions (symbols like 'v1, 'v2)
-;;;   - Edges are migrations (from-version -> to-version)
-;;;
-;;; This is Shell code: maintains mutable state.
-;;;
-;;; Dependencies:
-;;;   - lattice/fp/optics/bidirectional.ss (for migration infrastructure)
-;;;   - lattice/fp/optics/block-migration.ss (for block migrations)
-
 (load "lattice/fp/optics/bidirectional.ss")
 (load "lattice/fp/optics/block-migration.ss")
 
-;;; ============================================================
-;;; Part 1: Registry State
-;;; ============================================================
+(doc 'module 'migrations/registry)
+(doc 'description "Migration registry and version graph for managing schema evolution")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+(doc 'dependencies '(lattice/fp/optics/bidirectional lattice/fp/optics/block-migration))
 
-;;; *migrations* : Hashtable Symbol -> Migration
-;;; All registered migrations by name.
+(doc 'note "A registry for managing migrations and computing migration paths: register migrations by name, build version graph, find shortest migration path, chain migrations automatically")
+(doc 'note "The registry maintains a directed graph where nodes are versions (symbols like v1, v2) and edges are migrations (from-version -> to-version)")
+
+(doc 'section 'registry-state)
+
+(doc *migrations* 'type (Hashtable Symbol Migration))
+(doc *migrations* 'description "All registered migrations by name")
 (define *migrations* (make-eq-hashtable))
 
-;;; *version-graph* : Hashtable Version -> (List (Pair Version Migration))
-;;; Adjacency list: version -> list of (target-version . migration)
+(doc *version-graph* 'type (Hashtable Version (List (Pair Version Migration))))
+(doc *version-graph* 'description "Adjacency list: version -> list of (target-version . migration)")
 (define *version-graph* (make-eq-hashtable))
 
-;;; ============================================================
-;;; Part 2: Registration
-;;; ============================================================
+(doc 'section 'registration)
 
-;;; register-migration! : Migration -> Void
-;;; Register a migration and update the version graph.
 (define (register-migration! m)
+  (doc 'type (-> Migration Void))
+  (doc 'description "Register a migration and update the version graph")
+  (doc 'export #t)
   (let ([name (migration-name m)]
         [from (migration-from m)]
         [to (migration-to m)])
@@ -54,35 +41,36 @@
       (hashtable-set! *version-graph* to
                       (cons (cons from flipped) reverse-edges)))))
 
-;;; register-block-migration! : BlockMigration -> Void
-;;; Register a block migration (converts to regular migration first).
 (define (register-block-migration! bm)
+  (doc 'type (-> BlockMigration Void))
+  (doc 'description "Register a block migration (converts to regular migration first)")
+  (doc 'export #t)
   (register-migration! (block-migration->migration bm)))
 
-;;; unregister-migration! : Symbol -> Boolean
-;;; Remove a migration from the registry. Returns #t if found.
 (define (unregister-migration! name)
+  (doc 'type (-> Symbol Boolean))
+  (doc 'description "Remove a migration from the registry, returns #t if found")
+  (doc 'export #t)
+  (doc 'note "Does not update the graph (expensive and registries are typically append-only)")
   (let ([m (hashtable-ref *migrations* name #f)])
     (if (not m)
         #f
         (begin
           (hashtable-delete! *migrations* name)
-          ;; Note: We don't update the graph - it would be expensive
-          ;; and registries are typically append-only
           #t))))
 
-;;; ============================================================
-;;; Part 3: Lookup
-;;; ============================================================
+(doc 'section 'lookup)
 
-;;; get-migration : Symbol -> Migration | #f
-;;; Look up a migration by name.
 (define (get-migration name)
+  (doc 'type (-> Symbol (Maybe Migration)))
+  (doc 'description "Look up a migration by name")
+  (doc 'export #t)
   (hashtable-ref *migrations* name #f))
 
-;;; list-migrations : -> (List Migration)
-;;; List all registered migrations.
 (define (list-migrations)
+  (doc 'type (-> (List Migration)))
+  (doc 'description "List all registered migrations")
+  (doc 'export #t)
   (let ([result '()])
     (vector-for-each
      (lambda (name)
@@ -90,9 +78,10 @@
      (hashtable-keys *migrations*))
     result))
 
-;;; list-versions : -> (List Version)
-;;; List all known versions.
 (define (list-versions)
+  (doc 'type (-> (List Version)))
+  (doc 'description "List all known versions")
+  (doc 'export #t)
   (let ([versions (make-eq-hashtable)])
     (vector-for-each
      (lambda (name)
@@ -103,16 +92,13 @@
      (hashtable-keys *migrations*))
     (vector->list (hashtable-keys versions))))
 
-;;; ============================================================
-;;; Part 4: Path Finding (BFS)
-;;; ============================================================
-;;;
-;;; Find shortest migration path between two versions.
+(doc 'section 'path-finding)
+(doc 'note "Find shortest migration path between two versions using BFS")
 
-;;; find-migration-path : Version -> Version -> (List Migration) | #f
-;;; Find a path of migrations from source to target version.
-;;; Returns #f if no path exists.
 (define (find-migration-path source target)
+  (doc 'type (-> Version Version (Maybe (List Migration))))
+  (doc 'description "Find a path of migrations from source to target version, returns #f if no path exists")
+  (doc 'export #t)
   (if (equal? source target)
       '()  ; Already at target
       (let ([visited (make-eq-hashtable)]
@@ -146,14 +132,12 @@
                                                            (cons migration path))))))
                                 (check-edges (cdr edges))))))))))))))
 
-;;; ============================================================
-;;; Part 5: Automatic Migration Chain
-;;; ============================================================
+(doc 'section 'automatic-migration-chain)
 
-;;; get-migration-chain : Version -> Version -> Migration | #f
-;;; Get a composed migration from source to target.
-;;; Automatically finds and chains required migrations.
 (define (get-migration-chain source target)
+  (doc 'type (-> Version Version (Maybe Migration)))
+  (doc 'description "Get a composed migration from source to target, automatically finds and chains required migrations")
+  (doc 'export #t)
   (let ([path (find-migration-path source target)])
     (if (not path)
         #f
@@ -161,19 +145,18 @@
             (make-identity-migration 'identity source)
             (migration-chain path)))))
 
-;;; ============================================================
-;;; Part 6: Version Compatibility
-;;; ============================================================
+(doc 'section 'version-compatibility)
 
-;;; versions-connected? : Version -> Version -> Boolean
-;;; Check if there's any path between two versions.
 (define (versions-connected? v1 v2)
+  (doc 'type (-> Version Version Boolean))
+  (doc 'description "Check if there's any path between two versions")
+  (doc 'export #t)
   (not (not (find-migration-path v1 v2))))
 
-;;; latest-version : Symbol -> Version | #f
-;;; Find the latest version for a type (highest version number).
-;;; Assumes versioned tags like 'type-v1, 'type-v2.
 (define (latest-version type-prefix)
+  (doc 'type (-> Symbol (Maybe Version)))
+  (doc 'description "Find the latest version for a type (highest version number), assumes versioned tags like type-v1, type-v2")
+  (doc 'export #t)
   (let ([versions (filter (lambda (v)
                             (let ([parsed (parse-versioned-tag v)])
                               (and (eq? (car parsed) type-prefix)
@@ -187,13 +170,12 @@
                             versions)])
           (car sorted)))))
 
-;;; ============================================================
-;;; Part 7: Registry Persistence
-;;; ============================================================
+(doc 'section 'registry-persistence)
 
-;;; save-registry! : String -> Void
-;;; Save registry to a file as S-expression.
 (define (save-registry! path)
+  (doc 'type (-> String Void))
+  (doc 'description "Save registry to a file as S-expression")
+  (doc 'export #t)
   (call-with-output-file path
     (lambda (port)
       (display ";; Migration Registry\n" port)
@@ -206,15 +188,13 @@
            (display (format "(migration ~a ~a ~a)\n" name from to) port)))
        (list-migrations)))))
 
-;;; ============================================================
-;;; Part 8: Predefined Migrations
-;;; ============================================================
-;;;
-;;; Common migrations for The Fold's types.
+(doc 'section 'predefined-migrations)
+(doc 'note "Common migrations for The Fold's types")
 
-;;; define-bbs-migrations! : -> Void
-;;; Register standard BBS issue migrations.
 (define (define-bbs-migrations!)
+  (doc 'type (-> Void))
+  (doc 'description "Register standard BBS issue migrations")
+  (doc 'export #t)
   ;; v1 -> v2: Add created-at timestamp
   (register-block-migration!
    (make-block-migration
@@ -227,13 +207,12 @@
     'bbs-issue-v2 'bbs-issue-v3
     (field-rename-iso 'desc 'description))))
 
-;;; ============================================================
-;;; Part 9: Registry Inspection
-;;; ============================================================
+(doc 'section 'registry-inspection)
 
-;;; describe-registry : -> String
-;;; Generate a human-readable summary of the registry.
 (define (describe-registry)
+  (doc 'type (-> String))
+  (doc 'description "Generate a human-readable summary of the registry")
+  (doc 'export #t)
   (let ([migrations (list-migrations)]
         [versions (list-versions)])
     (format "Migration Registry:
@@ -247,9 +226,10 @@
                               (length (hashtable-ref *version-graph* v '())))
                             versions)))))
 
-;;; version-graph->dot : -> String
-;;; Generate GraphViz DOT representation of version graph.
 (define (version-graph->dot)
+  (doc 'type (-> String))
+  (doc 'description "Generate GraphViz DOT representation of version graph")
+  (doc 'export #t)
   (let ([lines '("digraph migrations {")]
         [versions (list-versions)])
     (for-each
@@ -275,49 +255,31 @@
            (map (lambda (l) (string-append l "\n"))
                 (reverse lines)))))
 
-;;; string-suffix? : String -> String -> Boolean
 (define (string-suffix? suffix str)
+  (doc 'type (-> String String Boolean))
+  (doc 'description "Check if string ends with suffix")
   (let ([slen (string-length suffix)]
         [len (string-length str)])
     (and (>= len slen)
          (string=? suffix (substring str (- len slen) len)))))
 
-;;; ============================================================
-;;; Part 10: Clear Registry
-;;; ============================================================
+(doc 'section 'clear-registry)
 
-;;; clear-registry! : -> Void
-;;; Remove all registered migrations.
 (define (clear-registry!)
+  (doc 'type (-> Void))
+  (doc 'description "Remove all registered migrations")
+  (doc 'export #t)
   (set! *migrations* (make-eq-hashtable))
   (set! *version-graph* (make-eq-hashtable)))
 
-;;; ============================================================
-;;; Exports
-;;; ============================================================
-;;;
-;;; Registration:
-;;;   register-migration!, register-block-migration!, unregister-migration!
-;;;
-;;; Lookup:
-;;;   get-migration, list-migrations, list-versions
-;;;
-;;; Path Finding:
-;;;   find-migration-path, get-migration-chain
-;;;
-;;; Compatibility:
-;;;   versions-connected?, latest-version
-;;;
-;;; Persistence:
-;;;   save-registry!
-;;;
-;;; Predefined:
-;;;   define-bbs-migrations!
-;;;
-;;; Inspection:
-;;;   describe-registry, version-graph->dot
-;;;
-;;; Utilities:
-;;;   clear-registry!
+(doc 'section 'exports)
+(doc 'note "Registration: register-migration!, register-block-migration!, unregister-migration!")
+(doc 'note "Lookup: get-migration, list-migrations, list-versions")
+(doc 'note "Path Finding: find-migration-path, get-migration-chain")
+(doc 'note "Compatibility: versions-connected?, latest-version")
+(doc 'note "Persistence: save-registry!")
+(doc 'note "Predefined: define-bbs-migrations!")
+(doc 'note "Inspection: describe-registry, version-graph->dot")
+(doc 'note "Utilities: clear-registry!")
 
 (display "Loaded: boundary/migrations/registry.ss\n")

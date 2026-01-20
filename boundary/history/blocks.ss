@@ -1,40 +1,31 @@
-;;; boundary/history/blocks.ss — History Entry Block Creation
-;;;
-;;; Creates CAS blocks for REPL history entries.
-;;; Each entry records a command, its type, result, and links to previous.
-;;;
-;;; Block Tag: history/entry
-;;;
-;;; Command Types:
-;;;   definition  - Modifies environment (define, define-syntax). Replayable.
-;;;   effect      - I/O side effects (load, write, display). Skip on safe replay.
-;;;   expression  - Pure evaluation. Replay if needed for result.
-;;;
-;;; This is Shell code: uses Core block primitives.
-
 (load "core/base/prelude.ss")
 (load "core/blocks/block.ss")
 (load "core/blocks/cas.ss")
 
-;;; ====
-;;; Block Tag
-;;; ====
+(doc 'module 'boundary/history/blocks)
+(doc 'description "History entry block creation for REPL commands")
+(doc 'layer 'boundary)
+(doc 'purity 'total)
+(doc 'dependencies '(core/base/prelude core/blocks/block core/blocks/cas))
+(doc 'note "Creates CAS blocks for history entries with command classification")
 
+(doc 'section 'block-tag)
+
+(doc HISTORY-ENTRY 'type 'symbol)
+(doc HISTORY-ENTRY 'description "Block tag for history entries")
 (define HISTORY-ENTRY 'history/entry)
 
-;;; ====
-;;; Command Classification
-;;; ====
+(doc 'section 'command-classification)
 
-;;; *definition-forms* : (List Symbol)
-;;; Forms that define bindings (modify environment state).
+(doc *definition-forms* 'type '(List Symbol))
+(doc *definition-forms* 'description "Forms that define bindings (modify environment)")
 (define *definition-forms*
   '(define define-syntax define-record-type
     define-property define-ftype library
     module))
 
-;;; *effect-forms* : (List Symbol)
-;;; Forms that perform side effects (should skip on safe replay).
+(doc *effect-forms* 'type '(List Symbol))
+(doc *effect-forms* 'description "Forms with side effects (skip on safe replay)")
 (define *effect-forms*
   '(load require import
     display write newline printf format
@@ -48,61 +39,53 @@
     hashtable-set! hashtable-delete!
     read get-line get-string-all))
 
-;;; classify-command : String -> Symbol
-;;; Classify a command string as 'definition, 'effect, or 'expression.
-;;;
-;;; Strategy:
-;;;   1. Parse the command string to extract the head form
-;;;   2. Check if head matches definition or effect forms
-;;;   3. Default to 'expression for pure computation
 (define (classify-command cmd-str)
-  (guard (e [else 'expression])  ; Parse errors → treat as expression
+  (doc 'type (-> String Symbol))
+  (doc 'description "Classify command as 'definition, 'effect, or 'expression")
+  (doc 'export #t)
+  (doc 'note "Parses command string and checks head form against known lists")
+  (guard (e [else 'expression])
     (let* ([port (open-input-string cmd-str)]
            [expr (read port)])
       (classify-expr expr))))
 
-;;; classify-expr : Sexpr -> Symbol
-;;; Classify a parsed expression.
 (define (classify-expr expr)
+  (doc 'type (-> Sexpr Symbol))
+  (doc 'description "Classify a parsed expression")
   (cond
     [(not (pair? expr)) 'expression]
     [(memq (car expr) *definition-forms*) 'definition]
     [(memq (car expr) *effect-forms*) 'effect]
-    ;; Check for begin with definitions
     [(eq? (car expr) 'begin)
      (let ([types (map classify-expr (cdr expr))])
        (cond
          [(memq 'definition types) 'definition]
          [(memq 'effect types) 'effect]
          [else 'expression]))]
-    ;; Check for let/letrec that might contain definitions
     [(memq (car expr) '(let let* letrec letrec*))
      (if (and (pair? (cdr expr))
               (list? (cadr expr)))
-         'expression  ; Pure binding forms
+         'expression
          'expression)]
     [else 'expression]))
 
-;;; ====
-;;; History Entry Block
-;;; ====
+(doc 'section 'history-entry-block)
 
-;;; make-history-entry-block : String Int String Symbol Symbol String Symbol String Int (Option Bytevector) -> Block
-;;; Create a history entry block.
-;;;
-;;; Arguments:
-;;;   session-id    - Session identifier (e.g., "cli-123")
-;;;   index         - Command index in session (0-based)
-;;;   command       - The command string
-;;;   cmd-type      - 'definition | 'effect | 'expression
-;;;   result-type   - 'success | 'error
-;;;   result-hash   - Hash of the result value (hex string)
-;;;   defined-name  - Symbol defined (or #f if not a definition)
-;;;   timestamp     - ISO 8601 timestamp
-;;;   version       - Schema version (currently 1)
-;;;   prev-hash     - Hash of previous entry (or #f for first)
 (define (make-history-entry-block session-id index command cmd-type result-type
                                    result-hash defined-name timestamp version prev-hash)
+  (doc 'type (-> String Int String Symbol Symbol String Symbol String Int (Option Bytevector) Block))
+  (doc 'description "Create a history entry block")
+  (doc 'export #t)
+  (doc 'param 'session-id "Session identifier")
+  (doc 'param 'index "Command index (0-based)")
+  (doc 'param 'command "Command string")
+  (doc 'param 'cmd-type "'definition | 'effect | 'expression")
+  (doc 'param 'result-type "'success | 'error")
+  (doc 'param 'result-hash "Hash of result value (hex)")
+  (doc 'param 'defined-name "Symbol defined (or #f)")
+  (doc 'param 'timestamp "ISO 8601 timestamp")
+  (doc 'param 'version "Schema version (currently 1)")
+  (doc 'param 'prev-hash "Hash of previous entry (or #f)")
   (let* ([payload-data `((session-id . ,session-id)
                          (index . ,index)
                          (command . ,command)
@@ -118,68 +101,89 @@
                    (vector))])
     (make-block HISTORY-ENTRY payload refs)))
 
-;;; ====
-;;; Block Data Extraction
-;;; ====
+(doc 'section 'block-data-extraction)
 
-;;; history-entry-data : Block -> Alist | #f
-;;; Extract history entry data from a block.
 (define (history-entry-data blk)
+  (doc 'type (-> Block (Option Alist)))
+  (doc 'description "Extract history entry data from a block")
+  (doc 'export #t)
   (if (and (block? blk) (eq? (block-tag blk) HISTORY-ENTRY))
       (guard (e [else #f])
         (read (open-input-string (utf8->string (block-payload blk)))))
       #f))
 
-;;; history-entry-prev : Block -> Bytevector | #f
-;;; Get the previous entry hash from a history entry block.
 (define (history-entry-prev blk)
+  (doc 'type (-> Block (Option Bytevector)))
+  (doc 'description "Get the previous entry hash from a history entry block")
+  (doc 'export #t)
   (let ([refs (block-refs blk)])
     (if (> (vector-length refs) 0)
         (vector-ref refs 0)
         #f)))
 
-;;; ====
-;;; Convenience Accessors
-;;; ====
+(doc 'section 'convenience-accessors)
 
-;;; history-entry-field : Block Symbol -> Any | #f
-;;; Get a specific field from a history entry block.
 (define (history-entry-field blk field)
+  (doc 'type (-> Block Symbol Any))
+  (doc 'description "Get a specific field from a history entry block")
+  (doc 'export #t)
   (let ([data (history-entry-data blk)])
     (and data (cdr (assq field data)))))
 
+(doc history-entry-session-id 'type (-> Block (Option String)))
+(doc history-entry-session-id 'export #t)
 (define (history-entry-session-id blk) (history-entry-field blk 'session-id))
+
+(doc history-entry-index 'type (-> Block (Option Int)))
+(doc history-entry-index 'export #t)
 (define (history-entry-index blk) (history-entry-field blk 'index))
+
+(doc history-entry-command 'type (-> Block (Option String)))
+(doc history-entry-command 'export #t)
 (define (history-entry-command blk) (history-entry-field blk 'command))
+
+(doc history-entry-cmd-type 'type (-> Block (Option Symbol)))
+(doc history-entry-cmd-type 'export #t)
 (define (history-entry-cmd-type blk) (history-entry-field blk 'cmd-type))
+
+(doc history-entry-result-type 'type (-> Block (Option Symbol)))
+(doc history-entry-result-type 'export #t)
 (define (history-entry-result-type blk) (history-entry-field blk 'result-type))
+
+(doc history-entry-result-hash 'type (-> Block (Option String)))
+(doc history-entry-result-hash 'export #t)
 (define (history-entry-result-hash blk) (history-entry-field blk 'result-hash))
+
+(doc history-entry-defined-name 'type (-> Block (Option Symbol)))
+(doc history-entry-defined-name 'export #t)
 (define (history-entry-defined-name blk) (history-entry-field blk 'defined-name))
+
+(doc history-entry-timestamp 'type (-> Block (Option String)))
+(doc history-entry-timestamp 'export #t)
 (define (history-entry-timestamp blk) (history-entry-field blk 'timestamp))
 
-;;; ====
-;;; Defined Name Extraction
-;;; ====
+(doc 'section 'defined-name-extraction)
 
-;;; extract-defined-name : String -> Symbol | #f
-;;; Extract the name being defined from a definition command.
 (define (extract-defined-name cmd-str)
+  (doc 'type (-> String (Option Symbol)))
+  (doc 'description "Extract the name being defined from a definition command")
+  (doc 'export #t)
   (guard (e [else #f])
     (let* ([port (open-input-string cmd-str)]
            [expr (read port)])
       (extract-defined-name-from-expr expr))))
 
-;;; extract-defined-name-from-expr : Sexpr -> Symbol | #f
 (define (extract-defined-name-from-expr expr)
+  (doc 'type (-> Sexpr (Option Symbol)))
+  (doc 'description "Extract defined name from parsed expression")
   (cond
     [(not (pair? expr)) #f]
     [(memq (car expr) '(define define-syntax))
      (let ([form (cadr expr)])
        (if (pair? form)
-           (car form)   ; (define (foo x) ...) -> foo
-           form))]      ; (define foo ...) -> foo
+           (car form)
+           form))]
     [(eq? (car expr) 'begin)
-     ;; Return first defined name in begin
      (let loop ([forms (cdr expr)])
        (if (null? forms)
            #f

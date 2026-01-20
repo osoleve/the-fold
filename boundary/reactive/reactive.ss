@@ -1,95 +1,51 @@
-;;; boundary/reactive/reactive.ss — Reactive Derivations from Optic Dependencies
-;;;
-;;; Track which optics were used to compute a value for automatic reactivity.
-;;; When an optic's target changes (via traced-set), derived values that
-;;; depend on that optic are marked stale and recomputed on next access.
-;;;
-;;; This is the pattern behind lens-based state management (MobX, Recoil, Jotai).
-;;; The optic graph becomes a dependency graph.
-;;;
-;;; Usage:
-;;;   ;; Define a reactive derivation
-;;;   (define-reactive 'player-health
-;;;     world-state
-;;;     (lambda (world)
-;;;       (traced-view world (>>> (body-lens 'player) health-lens))))
-;;;
-;;;   ;; Get value (computed lazily, cached until stale)
-;;;   (reactive-value 'player-health)  ; => 100
-;;;
-;;;   ;; Modify through optic - derivation auto-invalidates
-;;;   (reactive-set! (>>> (body-lens 'player) health-lens) 80 world-state)
-;;;
-;;;   ;; Next access recomputes
-;;;   (reactive-value 'player-health)  ; => 80 (recomputed)
-;;;
-;;; This is Shell code: uses mutable state for derivation tracking.
-;;;
-;;; Dependencies:
-;;;   - boundary/provenance/traced-optics.ss (for optic registry and tracing)
-
 (load "boundary/provenance/traced-optics.ss")
 
-;;; ============================================================
-;;; Access Tracking
-;;; ============================================================
-;;;
-;;; During computation of a derivation, we track which optics are accessed.
-;;; This builds the dependency graph automatically.
+(doc 'module 'reactive/reactive)
+(doc 'description "Reactive Derivations from Optic Dependencies - Track which optics were used to compute a value for automatic reactivity. When an optic's target changes (via traced-set), derived values that depend on that optic are marked stale and recomputed on next access.")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+(doc 'dependencies '(boundary/provenance/traced-optics))
 
-;;; *tracking-accesses?* : Boolean
-;;; Are we currently tracking optic accesses?
+(doc 'section 'access-tracking)
+
+(doc *tracking-accesses?* 'type 'Boolean)
+(doc *tracking-accesses?* 'description "Are we currently tracking optic accesses?")
 (define *tracking-accesses?* #f)
 
-;;; *access-log* : (List Symbol)
-;;; List of optic names accessed during current tracking session.
+(doc *access-log* 'type '(List Symbol))
+(doc *access-log* 'description "List of optic names accessed during current tracking session.")
 (define *access-log* '())
 
-;;; ============================================================
-;;; Unregistered Optic Handling (fold-zxpe fix)
-;;; ============================================================
-;;;
-;;; When using anonymous/ad-hoc optics (not registered via register-optic!),
-;;; dependency tracking silently fails. These settings control the behavior.
+(doc 'section 'unregistered-optic-handling)
 
-;;; *warn-unregistered-optics?* : Boolean
-;;; When #t, emit a warning when an unregistered optic is used in reactive
-;;; operations. Helps catch missing registrations during development.
-;;; Default: #t
+(doc *warn-unregistered-optics?* 'type 'Boolean)
+(doc *warn-unregistered-optics?* 'description "When #t, emit a warning when an unregistered optic is used in reactive operations. Helps catch missing registrations during development.")
 (define *warn-unregistered-optics?* #t)
 
-;;; *strict-optic-registration?* : Boolean
-;;; When #t, raise an error if an unregistered optic is used in reactive
-;;; operations. Use this for strict enforcement in production code.
-;;; Default: #f
+(doc *strict-optic-registration?* 'type 'Boolean)
+(doc *strict-optic-registration?* 'description "When #t, raise an error if an unregistered optic is used in reactive operations. Use this for strict enforcement in production code.")
 (define *strict-optic-registration?* #f)
 
-;;; *warned-optics-limit* : Nat
-;;; Maximum number of optics to track before auto-clearing the cache.
-;;; This prevents unbounded memory growth with ephemeral anonymous optics.
-;;; Default: 1000 (reasonable for typical shell sessions)
+(doc *warned-optics-limit* 'type 'Nat)
+(doc *warned-optics-limit* 'description "Maximum number of optics to track before auto-clearing the cache. This prevents unbounded memory growth with ephemeral anonymous optics.")
 (define *warned-optics-limit* 1000)
 
-;;; *warned-optics* : Hashtable (Optic -> Boolean)
-;;; Cache to avoid repeated warnings for the same optic.
-;;; Auto-clears when size exceeds *warned-optics-limit* to prevent unbounded growth.
+(doc *warned-optics* 'type '(Hashtable Optic Boolean))
+(doc *warned-optics* 'description "Cache to avoid repeated warnings for the same optic. Auto-clears when size exceeds *warned-optics-limit* to prevent unbounded growth.")
 (define *warned-optics* (make-eq-hashtable))
 
-;;; reset-optic-warnings! : -> Void
-;;; Clear the warning cache (useful for testing or session reset).
 (define (reset-optic-warnings!)
+  (doc 'type (-> Void))
+  (doc 'description "Clear the warning cache (useful for testing or session reset).")
+  (doc 'export #t)
   (set! *warned-optics* (make-eq-hashtable)))
 
-;;; handle-unregistered-optic! : Optic Symbol -> Void
-;;; Handle an unregistered optic according to current configuration.
-;;; - If strict mode: raises an error
-;;; - If warn mode: emits a warning (once per optic)
-;;; - Otherwise: silent (backward compatible)
-;;;
-;;; Arguments:
-;;;   optic     - The unregistered optic
-;;;   operation - The reactive operation being performed (for error messages)
 (define (handle-unregistered-optic! optic operation)
+  (doc 'type (-> Optic Symbol Void))
+  (doc 'description "Handle an unregistered optic according to current configuration. If strict mode: raises an error. If warn mode: emits a warning (once per optic). Otherwise: silent (backward compatible).")
+  (doc 'param 'optic "The unregistered optic")
+  (doc 'param 'operation "The reactive operation being performed (for error messages)")
+  (doc 'export #t)
   (cond
     [*strict-optic-registration?*
      (error operation
@@ -97,7 +53,6 @@
             optic)]
     [*warn-unregistered-optics?*
      (unless (hashtable-ref *warned-optics* optic #f)
-       ;; Auto-clear cache if at limit (prevents unbounded growth)
        (when (>= (hashtable-size *warned-optics*) *warned-optics-limit*)
          (set! *warned-optics* (make-eq-hashtable)))
        (hashtable-set! *warned-optics* optic #t)
@@ -106,10 +61,10 @@
        (display " used with unregistered optic - reactivity skipped\n")
        (display "  Hint: Use (register-optic! 'name optic) for dependency tracking\n"))]))
 
-;;; with-access-tracking : (-> a) -> (Values a (List Symbol))
-;;; Execute thunk while tracking optic accesses.
-;;; Returns the result and the list of optic names accessed.
 (define (with-access-tracking thunk)
+  (doc 'type (-> (-> Any) (Values Any (List Symbol))))
+  (doc 'description "Execute thunk while tracking optic accesses. Returns the result and the list of optic names accessed.")
+  (doc 'export #t)
   (let ([old-tracking *tracking-accesses?*]
         [old-log *access-log*])
     (dynamic-wind
@@ -123,26 +78,20 @@
         (set! *tracking-accesses?* old-tracking)
         (set! *access-log* old-log)))))
 
-;;; log-optic-access! : Symbol -> Void
-;;; Record that an optic was accessed (for dependency tracking).
 (define (log-optic-access! optic-name)
+  (doc 'type (-> Symbol Void))
+  (doc 'description "Record that an optic was accessed (for dependency tracking).")
+  (doc 'export #t)
   (when (and *tracking-accesses?* optic-name)
     (unless (memq optic-name *access-log*)
       (set! *access-log* (cons optic-name *access-log*)))))
 
-;;; ============================================================
-;;; Derivation Store
-;;; ============================================================
+(doc 'section 'derivation-store)
 
-;;; derivation record: vector #(tag source dependencies compute-fn cached-value stale?)
-;;; - source: the root data structure being observed
-;;; - dependencies: (List Symbol) optic names this derivation depends on
-;;; - compute-fn: (source -> value) function to compute the value
-;;; - cached-value: last computed value
-;;; - stale?: Boolean, whether cached value needs recomputation
-
+(doc derivation-tag 'description "Tag for derivation record vectors")
 (define derivation-tag 'reactive/derivation)
 
+(doc make-derivation-record 'description "Derivation record: vector #(tag source dependencies compute-fn cached-value stale?)")
 (define (make-derivation-record source dependencies compute-fn cached-value stale?)
   (vector derivation-tag source dependencies compute-fn cached-value stale?))
 
@@ -162,31 +111,26 @@
 (define (derivation-set-cached-value! d v) (vector-set! d 4 v))
 (define (derivation-set-stale! d v) (vector-set! d 5 v))
 
-;;; *derivations* : Hashtable (Symbol -> Derivation)
+(doc *derivations* 'type '(Hashtable Symbol Derivation))
 (define *derivations* (make-hashtable symbol-hash eq?))
 
-;;; *optic-to-derivations* : Hashtable (Symbol -> (List Symbol))
-;;; Maps optic names to the derivation names that depend on them.
+(doc *optic-to-derivations* 'type '(Hashtable Symbol (List Symbol)))
+(doc *optic-to-derivations* 'description "Maps optic names to the derivation names that depend on them.")
 (define *optic-to-derivations* (make-hashtable symbol-hash eq?))
 
-;;; ============================================================
-;;; Derivation Management
-;;; ============================================================
+(doc 'section 'derivation-management)
 
-;;; define-reactive : Symbol Any (Any -> Any) -> Void
-;;; Define a reactive derivation.
-;;; The compute-fn should use traced optic operations to auto-discover dependencies.
 (define (define-reactive name source compute-fn)
-  ;; Compute initial value while tracking accesses
+  (doc 'type (-> Symbol Any (-> Any Any) Void))
+  (doc 'description "Define a reactive derivation. The compute-fn should use traced optic operations to auto-discover dependencies.")
+  (doc 'export #t)
   (call-with-values
     (lambda ()
       (with-access-tracking
        (lambda () (compute-fn source))))
     (lambda (value deps)
-      ;; Create derivation record
       (let ([record (make-derivation-record source deps compute-fn value #f)])
         (hashtable-set! *derivations* name record)
-        ;; Register in reverse index
         (for-each
          (lambda (optic-name)
            (let ([existing (hashtable-ref *optic-to-derivations* optic-name '())])
@@ -194,10 +138,10 @@
                (hashtable-set! *optic-to-derivations* optic-name (cons name existing)))))
          deps)))))
 
-;;; reactive-value : Symbol -> Any
-;;; Get the current value of a derivation.
-;;; Recomputes if stale.
 (define (reactive-value name)
+  (doc 'type (-> Symbol Any))
+  (doc 'description "Get the current value of a derivation. Recomputes if stale.")
+  (doc 'export #t)
   (let ([record (hashtable-ref *derivations* name #f)])
     (unless record
       (error 'reactive-value "unknown derivation" name))
@@ -205,12 +149,10 @@
         (reactive-recompute! name record)
         (derivation-cached-value record))))
 
-;;; reactive-recompute! : Symbol Derivation -> Any
-;;; Recompute a derivation and update its dependencies.
-;;; If computation fails, dependency graph is restored to consistent state.
 (define (reactive-recompute! name record)
+  (doc 'type (-> Symbol Derivation Any))
+  (doc 'description "Recompute a derivation and update its dependencies. If computation fails, dependency graph is restored to consistent state.")
   (let ([old-deps (derivation-dependencies record)])
-    ;; Remove from old dependency mappings (and clean up empty entries)
     (for-each
      (lambda (optic-name)
        (let* ([existing (hashtable-ref *optic-to-derivations* optic-name '())]
@@ -219,9 +161,7 @@
              (hashtable-delete! *optic-to-derivations* optic-name)
              (hashtable-set! *optic-to-derivations* optic-name remaining))))
      old-deps)
-    ;; Compute with tracking, restoring deps on error
     (guard (ex [else
-                ;; Restore old dependency mappings on error
                 (for-each
                  (lambda (optic-name)
                    (let ([existing (hashtable-ref *optic-to-derivations* optic-name '())])
@@ -234,11 +174,9 @@
           (with-access-tracking
            (lambda () ((derivation-compute-fn record) (derivation-source record)))))
         (lambda (value new-deps)
-          ;; Update record
           (derivation-set-dependencies! record new-deps)
           (derivation-set-cached-value! record value)
           (derivation-set-stale! record #f)
-          ;; Register new dependencies
           (for-each
            (lambda (optic-name)
              (let ([existing (hashtable-ref *optic-to-derivations* optic-name '())])
@@ -247,34 +185,37 @@
            new-deps)
           value)))))
 
-;;; reactive-refresh! : Symbol -> Any
-;;; Force recomputation of a derivation.
 (define (reactive-refresh! name)
+  (doc 'type (-> Symbol Any))
+  (doc 'description "Force recomputation of a derivation.")
+  (doc 'export #t)
   (let ([record (hashtable-ref *derivations* name #f)])
     (unless record
       (error 'reactive-refresh! "unknown derivation" name))
     (reactive-recompute! name record)))
 
-;;; reactive-stale? : Symbol -> Boolean
-;;; Check if a derivation needs recomputation.
 (define (reactive-stale? name)
+  (doc 'type (-> Symbol Boolean))
+  (doc 'description "Check if a derivation needs recomputation.")
+  (doc 'export #t)
   (let ([record (hashtable-ref *derivations* name #f)])
     (and record (derivation-stale? record))))
 
-;;; reactive-dependencies : Symbol -> (List Symbol)
-;;; Get the optic dependencies of a derivation.
 (define (reactive-dependencies name)
+  (doc 'type (-> Symbol (List Symbol)))
+  (doc 'description "Get the optic dependencies of a derivation.")
+  (doc 'export #t)
   (let ([record (hashtable-ref *derivations* name #f)])
     (if record
         (derivation-dependencies record)
         '())))
 
-;;; undefine-reactive : Symbol -> Void
-;;; Remove a derivation.
 (define (undefine-reactive name)
+  (doc 'type (-> Symbol Void))
+  (doc 'description "Remove a derivation.")
+  (doc 'export #t)
   (let ([record (hashtable-ref *derivations* name #f)])
     (when record
-      ;; Remove from dependency mappings (and clean up empty entries)
       (for-each
        (lambda (optic-name)
          (let* ([existing (hashtable-ref *optic-to-derivations* optic-name '())]
@@ -285,14 +226,11 @@
        (derivation-dependencies record))
       (hashtable-delete! *derivations* name))))
 
-;;; ============================================================
-;;; Invalidation
-;;; ============================================================
+(doc 'section 'invalidation)
 
-;;; do-invalidate-optic! : Symbol -> Void
-;;; Immediately mark all derivations depending on this optic as stale.
-;;; Internal use - prefer invalidate-optic! which respects batching.
 (define (do-invalidate-optic! optic-name)
+  (doc 'type (-> Symbol Void))
+  (doc 'description "Immediately mark all derivations depending on this optic as stale. Internal use - prefer invalidate-optic! which respects batching.")
   (let ([affected (hashtable-ref *optic-to-derivations* optic-name '())])
     (for-each
      (lambda (derivation-name)
@@ -301,32 +239,27 @@
            (derivation-set-stale! record #t))))
      affected)))
 
-;;; invalidate-optic! : Symbol -> Void
-;;; Mark all derivations depending on this optic as stale.
-;;; If batching, defers invalidation until batch completes.
 (define (invalidate-optic! optic-name)
+  (doc 'type (-> Symbol Void))
+  (doc 'description "Mark all derivations depending on this optic as stale. If batching, defers invalidation until batch completes.")
+  (doc 'export #t)
   (if *batching?*
       (unless (memq optic-name *batch-invalidations*)
         (set! *batch-invalidations* (cons optic-name *batch-invalidations*)))
       (do-invalidate-optic! optic-name)))
 
-;;; invalidate-optics! : (List Symbol) -> Void
-;;; Mark all derivations depending on any of these optics as stale.
 (define (invalidate-optics! optic-names)
+  (doc 'type (-> (List Symbol) Void))
+  (doc 'description "Mark all derivations depending on any of these optics as stale.")
+  (doc 'export #t)
   (for-each invalidate-optic! optic-names))
 
-;;; ============================================================
-;;; Reactive Optic Operations
-;;; ============================================================
-;;;
-;;; These wrap the traced operations to:
-;;; 1. Log accesses when tracking
-;;; 2. Invalidate derivations on writes
+(doc 'section 'reactive-optic-operations)
 
-;;; reactive-view : Any Optic -> Any
-;;; View through an optic with access tracking and provenance.
-;;; Warns or errors on unregistered optics (configurable).
 (define (reactive-view s optic)
+  (doc 'type (-> Any Optic Any))
+  (doc 'description "View through an optic with access tracking and provenance. Warns or errors on unregistered optics (configurable).")
+  (doc 'export #t)
   (let ([name (lookup-optic-name optic)])
     (if name
         (log-optic-access! name)
@@ -334,10 +267,10 @@
           (handle-unregistered-optic! optic 'reactive-view))))
   (traced-view s optic))
 
-;;; reactive-preview : Any Optic -> Maybe Any
-;;; Preview through an optic with access tracking and provenance.
-;;; Warns or errors on unregistered optics (configurable).
 (define (reactive-preview s optic)
+  (doc 'type (-> Any Optic (Maybe Any)))
+  (doc 'description "Preview through an optic with access tracking and provenance. Warns or errors on unregistered optics (configurable).")
+  (doc 'export #t)
   (let ([name (lookup-optic-name optic)])
     (if name
         (log-optic-access! name)
@@ -345,10 +278,10 @@
           (handle-unregistered-optic! optic 'reactive-preview))))
   (traced-preview s optic))
 
-;;; reactive-to-list : Any Optic -> (List Any)
-;;; To-list through an optic with access tracking and provenance.
-;;; Warns or errors on unregistered optics (configurable).
 (define (reactive-to-list s optic)
+  (doc 'type (-> Any Optic (List Any)))
+  (doc 'description "To-list through an optic with access tracking and provenance. Warns or errors on unregistered optics (configurable).")
+  (doc 'export #t)
   (let ([name (lookup-optic-name optic)])
     (if name
         (log-optic-access! name)
@@ -356,54 +289,51 @@
           (handle-unregistered-optic! optic 'reactive-to-list))))
   (traced-to-list s optic))
 
-;;; reactive-set! : Optic Any Any -> Any
-;;; Set through an optic with invalidation and provenance.
-;;; Warns or errors on unregistered optics (configurable).
-;;; Returns the new structure.
 (define (reactive-set! optic val s)
+  (doc 'type (-> Optic Any Any Any))
+  (doc 'description "Set through an optic with invalidation and provenance. Warns or errors on unregistered optics (configurable). Returns the new structure.")
+  (doc 'export #t)
   (let ([name (lookup-optic-name optic)])
     (if name
         (invalidate-optic! name)
         (handle-unregistered-optic! optic 'reactive-set!)))
   (traced-set optic val s))
 
-;;; reactive-over! : Optic (Any -> Any) Any -> Any
-;;; Modify through an optic with invalidation and provenance.
-;;; Warns or errors on unregistered optics (configurable).
-;;; Returns the new structure.
 (define (reactive-over! optic f s)
+  (doc 'type (-> Optic (-> Any Any) Any Any))
+  (doc 'description "Modify through an optic with invalidation and provenance. Warns or errors on unregistered optics (configurable). Returns the new structure.")
+  (doc 'export #t)
   (let ([name (lookup-optic-name optic)])
     (if name
         (invalidate-optic! name)
         (handle-unregistered-optic! optic 'reactive-over!)))
   (traced-over optic f s))
 
-;;; ============================================================
-;;; Source Updates
-;;; ============================================================
+(doc 'section 'source-updates)
 
-;;; reactive-update-source! : Symbol Any -> Void
-;;; Update the source structure for a derivation.
-;;; Does NOT automatically invalidate - use with reactive-set! for that.
 (define (reactive-update-source! name new-source)
+  (doc 'type (-> Symbol Any Void))
+  (doc 'description "Update the source structure for a derivation. Does NOT automatically invalidate - use with reactive-set! for that.")
+  (doc 'export #t)
   (let ([record (hashtable-ref *derivations* name #f)])
     (when record
       (derivation-set-source! record new-source)
       (derivation-set-stale! record #t))))
 
-;;; ============================================================
-;;; Batch Operations
-;;; ============================================================
+(doc 'section 'batch-operations)
 
-;;; with-batch : (-> a) -> a
-;;; Execute thunk, deferring all invalidation until the end.
-;;; Useful for making multiple changes without intermediate recomputation.
+(doc *batching?* 'description "Internal flag for batch mode")
 (define *batching?* #f)
+
+(doc *batch-invalidations* 'description "Accumulated invalidations during batch")
 (define *batch-invalidations* '())
 
 (define (with-batch thunk)
+  (doc 'type (-> (-> Any) Any))
+  (doc 'description "Execute thunk, deferring all invalidation until the end. Useful for making multiple changes without intermediate recomputation.")
+  (doc 'export #t)
   (if *batching?*
-      (thunk)  ; Already batching, just run
+      (thunk)
       (let ([old-invalidations *batch-invalidations*])
         (dynamic-wind
           (lambda ()
@@ -411,34 +341,33 @@
             (set! *batch-invalidations* '()))
           (lambda ()
             (let ([result (thunk)])
-              ;; Apply all collected invalidations using direct invalidation
-              ;; (bypasses batching check since we're still in batch mode)
               (for-each do-invalidate-optic! (delete-duplicates *batch-invalidations*))
               result))
           (lambda ()
             (set! *batching?* #f)
             (set! *batch-invalidations* old-invalidations))))))
 
-;;; delete-duplicates : (List a) -> (List a)
 (define (delete-duplicates lst)
+  (doc 'type (-> (List Any) (List Any)))
+  (doc 'description "Remove duplicate elements from list")
   (let loop ([lst lst] [seen '()])
     (cond
       [(null? lst) (reverse seen)]
       [(memq (car lst) seen) (loop (cdr lst) seen)]
       [else (loop (cdr lst) (cons (car lst) seen))])))
 
-;;; ============================================================
-;;; Introspection
-;;; ============================================================
+(doc 'section 'introspection)
 
-;;; list-derivations : -> (List Symbol)
-;;; List all defined derivations.
 (define (list-derivations)
+  (doc 'type (-> (List Symbol)))
+  (doc 'description "List all defined derivations.")
+  (doc 'export #t)
   (vector->list (hashtable-keys *derivations*)))
 
-;;; derivation-info : Symbol -> Alist | #f
-;;; Get information about a derivation.
 (define (derivation-info name)
+  (doc 'type (-> Symbol (U Alist Boolean)))
+  (doc 'description "Get information about a derivation.")
+  (doc 'export #t)
   (let ([record (hashtable-ref *derivations* name #f)])
     (and record
          `((name . ,name)
@@ -446,54 +375,19 @@
            (stale? . ,(derivation-stale? record))
            (cached-value . ,(derivation-cached-value record))))))
 
-;;; dependency-graph : -> Alist
-;;; Get the full optic -> derivation dependency graph.
 (define (dependency-graph)
+  (doc 'type (-> Alist))
+  (doc 'description "Get the full optic -> derivation dependency graph.")
+  (doc 'export #t)
   (let ([keys (vector->list (hashtable-keys *optic-to-derivations*))])
     (map (lambda (k)
            (cons k (hashtable-ref *optic-to-derivations* k '())))
          keys)))
 
-;;; ============================================================
-;;; Filter helper (if not already available)
-;;; ============================================================
+(doc 'section 'filter-helper)
 
 (define (filter pred lst)
   (cond
     [(null? lst) '()]
     [(pred (car lst)) (cons (car lst) (filter pred (cdr lst)))]
     [else (filter pred (cdr lst))]))
-
-;;; ============================================================
-;;; Exports
-;;; ============================================================
-;;;
-;;; Derivation Management:
-;;;   define-reactive, reactive-value, reactive-refresh!
-;;;   reactive-stale?, reactive-dependencies, undefine-reactive
-;;;
-;;; Access Tracking:
-;;;   with-access-tracking, log-optic-access!
-;;;   *tracking-accesses?*, *access-log*
-;;;
-;;; Unregistered Optic Configuration (fold-zxpe):
-;;;   *warn-unregistered-optics?*   - Emit warnings (default #t)
-;;;   *strict-optic-registration?*  - Raise errors (default #f)
-;;;   reset-optic-warnings!         - Clear warning cache
-;;;   handle-unregistered-optic!    - Called when optic not registered
-;;;
-;;; Invalidation:
-;;;   invalidate-optic!, invalidate-optics!
-;;;
-;;; Reactive Operations:
-;;;   reactive-view, reactive-preview, reactive-to-list
-;;;   reactive-set!, reactive-over!
-;;;
-;;; Source Updates:
-;;;   reactive-update-source!
-;;;
-;;; Batch Operations:
-;;;   with-batch
-;;;
-;;; Introspection:
-;;;   list-derivations, derivation-info, dependency-graph

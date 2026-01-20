@@ -1,43 +1,42 @@
-;;; boundary/debug/debug-repl.ss — REPL Debugger Commands
-;;;
-;;; Interactive debugging commands:
-;;;   (debug expr)     - Start debugging
-;;;   (step)           - Single step
-;;;   (next)           - Step over
-;;;   (continue)       - Run to breakpoint/completion
-;;;   (break 'fn)      - Set breakpoint
-;;;   (inspect)        - Show environment
-;;;   (fuel)           - Show fuel status
-;;;   (trace)          - Show call stack
-;;;
-;;; This is Shell code: REPL interface for debugger.
-;;;
-;;; Dependencies:
-;;;   - boundary/debug/session-debugger.ss
-;;;   - boundary/fuel-viz.ss (optional, for rich display)
-
 (load "boundary/debug/session-debugger.ss")
 
-;;; ====
-;;; Configuration
-;;; ====
+(doc 'module 'debug-repl)
+(doc 'description "REPL Debugger Commands - Interactive debugging interface")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+(doc 'dependencies '(boundary/debug/session-debugger))
+
+(doc 'section 'overview)
+(doc 'note "Interactive debugging commands:
+  (debug expr)     - Start debugging
+  (step)           - Single step
+  (next)           - Step over
+  (continue)       - Run to breakpoint/completion
+  (break 'fn)      - Set breakpoint
+  (inspect)        - Show environment
+  (fuel)           - Show fuel status
+  (trace)          - Show call stack")
+
+(doc 'section 'configuration)
 
 (define *default-debug-fuel* 10000)
+(doc *default-debug-fuel* 'type 'Nat)
+(doc *default-debug-fuel* 'description "Default fuel budget for debug sessions")
 
-;;; ====
-;;; Display Helpers
-;;; ====
+(doc 'section 'display-helpers)
 
-;;; truncate-expr : Expr × Nat → String
 (define (truncate-expr-str expr max-len)
+  (doc 'type '(-> Expr Nat String))
+  (doc 'description "Truncate expression string to max-len with ellipsis")
   (let* ([str (format "~a" expr)]
          [len (string-length str)])
         (if (> len max-len)
             (string-append (substring str 0 (- max-len 3)) "...")
             str)))
 
-;;; status-symbol : Symbol → String
 (define (status-symbol status)
+  (doc 'type '(-> Symbol String))
+  (doc 'description "Convert debugger status to display symbol")
   (case status
         [(ready) ">>"]
         [(complete) "OK"]
@@ -46,9 +45,9 @@
         [(breakpoint) "**"]
         [else "??"]))
 
-;;; fuel-bar : Nat × Nat × Nat → String
-;;; Create ASCII fuel bar with clamping for safety.
 (define (fuel-bar used total width)
+  (doc 'type '(-> Nat Nat Nat String))
+  (doc 'description "Create ASCII fuel bar with clamping for safety")
   (let* ([pct (if (zero? total) 0 (min 1.0 (/ used total)))]
          [filled (exact (min width (max 0 (round (* width pct)))))]
          [empty (exact (max 0 (- width filled)))])
@@ -58,12 +57,11 @@
          (make-string empty #\-)
          "]")))
 
-;;; ====
-;;; Debug Command
-;;; ====
+(doc 'section 'debug-command)
 
-;;; cmd-debug : Expr [× Fuel] → void
-;;; Start a new debug session.
+(doc cmd-debug 'export #t)
+(doc cmd-debug 'type '(case-lambda (-> Expr void) (-> Expr Fuel void)))
+(doc cmd-debug 'description "Start a new debug session")
 (define cmd-debug
   (case-lambda
    [(expr) (cmd-debug expr *default-debug-fuel*)]
@@ -79,28 +77,26 @@
          (display "  [Ready] Use (step) to begin, (help 'debug) for commands.\n\n")
          (void))]))
 
-;;; ====
-;;; Step Command
-;;; ====
+(doc 'section 'step-command)
 
-;;; cmd-step : → void
-;;; Execute one step.
+(doc cmd-step 'export #t)
 (define (cmd-step)
+  (doc 'type '(-> void))
+  (doc 'description "Execute one step in debugger")
   (let* ([dbg (require-debugger!)]
          [dbg* (step-with-fuel dbg)]
          [status (debugger-status dbg*)]
          [expr (debugger-expr dbg*)]
          [steps (length (debugger-trace dbg*))]
          [fuel-trace (debugger-fuel-trace dbg*)])
-        
+
         (set-session-debugger! dbg*)
-        
+
         (display "\n")
         (display (format "  Step #~a ~a\n" steps (status-symbol status)))
         (display "  ────────────────────────────────────────────\n")
         (display (format "  Expression: ~a\n" (truncate-expr-str expr 50)))
-        
-        ;; Show fuel consumed this step
+
         (when (pair? fuel-trace)
               (let ([last-entry (car fuel-trace)])
                    (display (format "  Fuel: ~a consumed, ~a remaining ~a ~a%\n"
@@ -110,8 +106,7 @@
                                               (debugger-fuel-budget dbg*)
                                               20)
                                     (round (debugger-fuel-pct dbg*))))))
-        
-        ;; Show environment if not empty
+
         (let ([env (debugger-env dbg*)])
              (unless (null? env)
                      (display "\n  Environment:\n")
@@ -121,8 +116,7 @@
                                                (car binding)
                                                (truncate-expr-str (cdr binding) 40))))
                       (take-up-to-repl 5 env))))
-        
-        ;; Status message
+
         (case status
               [(complete)
                (display "\n  [Complete] Evaluation finished.\n")]
@@ -133,32 +127,32 @@
                (display "\n  [Out of Fuel] Increase budget with (debug expr fuel).\n")]
               [(breakpoint)
                (display "\n  [Breakpoint] Hit a breakpoint.\n")])
-        
+
         (display "\n")
         (void)))
 
-;;; take-up-to-repl : Nat × List → List
 (define (take-up-to-repl n lst)
+  (doc 'type '(-> Nat List List))
+  (doc 'description "Take up to n elements from list")
   (if (or (zero? n) (null? lst))
       '()
       (cons (car lst) (take-up-to-repl (- n 1) (cdr lst)))))
 
-;;; ====
-;;; Next Command (Step Over)
-;;; ====
+(doc 'section 'next-command)
 
-;;; cmd-next : → void
-;;; Step over the current expression.
+(doc cmd-next 'export #t)
 (define (cmd-next)
+  (doc 'type '(-> void))
+  (doc 'description "Step over the current expression")
   (let* ([dbg (require-debugger!)]
          [dbg* (next dbg)])
-        
+
         (set-session-debugger! dbg*)
-        
+
         (let ([status (debugger-status dbg*)]
               [expr (debugger-expr dbg*)]
               [steps (length (debugger-trace dbg*))])
-             
+
              (display "\n")
              (display (format "  Step #~a ~a (stepped over)\n" steps (status-symbol status)))
              (display "  ────────────────────────────────────────────\n")
@@ -172,21 +166,20 @@
              (display "\n")
              (void))))
 
-;;; ====
-;;; Continue Command
-;;; ====
+(doc 'section 'continue-command)
 
-;;; cmd-continue : → void
-;;; Run to completion or breakpoint.
+(doc cmd-continue 'export #t)
 (define (cmd-continue)
+  (doc 'type '(-> void))
+  (doc 'description "Run to completion or breakpoint")
   (let* ([dbg (require-debugger!)]
          [dbg* (continue-with-fuel dbg)]
          [status (debugger-status dbg*)]
          [expr (debugger-expr dbg*)]
          [steps (length (debugger-trace dbg*))])
-        
+
         (set-session-debugger! dbg*)
-        
+
         (display "\n")
         (case status
               [(complete)
@@ -220,46 +213,45 @@
                (display "  ====\n\n")
                (display (format "  Expression: ~a\n" (truncate-expr-str expr 50)))
                (display "  Increase fuel budget with (debug expr fuel)\n")])
-        
+
         (display "\n")
         (void)))
 
-;;; ====
-;;; Breakpoint Commands
-;;; ====
+(doc 'section 'breakpoint-commands)
 
-;;; cmd-break : Symbol → void
-;;; Set a breakpoint on a function name.
+(doc cmd-break 'export #t)
 (define (cmd-break fn-name)
+  (doc 'type '(-> Symbol void))
+  (doc 'description "Set a breakpoint on a function name")
   (let* ([dbg (require-debugger!)]
          [dbg* (add-breakpoint dbg (break-on-call fn-name))])
         (set-session-debugger! dbg*)
         (display (format "  Breakpoint added: break on '~a'\n" fn-name))
         (void)))
 
-;;; cmd-clear-breaks : → void
-;;; Clear all breakpoints.
+(doc cmd-clear-breaks 'export #t)
 (define (cmd-clear-breaks)
+  (doc 'type '(-> void))
+  (doc 'description "Clear all breakpoints")
   (let* ([dbg (require-debugger!)]
          [dbg* (clear-breakpoints dbg)])
         (set-session-debugger! dbg*)
         (display "  All breakpoints cleared.\n")
         (void)))
 
-;;; ====
-;;; Inspect Command
-;;; ====
+(doc 'section 'inspect-command)
 
-;;; cmd-inspect : → void
-;;; Show current environment bindings.
+(doc cmd-inspect 'export #t)
 (define (cmd-inspect)
+  (doc 'type '(-> void))
+  (doc 'description "Show current environment bindings")
   (let* ([dbg (require-debugger!)]
          [env (debugger-env dbg)])
-        
+
         (display "\n")
         (display "  ENVIRONMENT BINDINGS\n")
         (display "  ────────────────────────────────────────────\n")
-        
+
         (if (null? env)
             (display "  (empty environment)\n")
             (for-each
@@ -268,37 +260,35 @@
                                       (car binding)
                                       (truncate-expr-str (cdr binding) 50))))
              env))
-        
+
         (display "\n")
         (void)))
 
-;;; ====
-;;; Fuel Command
-;;; ====
+(doc 'section 'fuel-command)
 
-;;; cmd-fuel : → void
-;;; Show detailed fuel consumption.
+(doc cmd-fuel 'export #t)
 (define (cmd-fuel)
+  (doc 'type '(-> void))
+  (doc 'description "Show detailed fuel consumption")
   (let* ([dbg (require-debugger!)]
          [summary (fuel-summary dbg)])
-        
+
         (display "\n")
         (display "  ====\n")
         (display "              FUEL CONSUMPTION\n")
         (display "  ====\n\n")
-        
+
         (display (format "  Budget:    ~a\n" (cdr (assq 'budget summary))))
         (display (format "  Used:      ~a\n" (cdr (assq 'used summary))))
         (display (format "  Remaining: ~a\n" (cdr (assq 'remaining summary))))
         (display (format "  Steps:     ~a\n\n" (cdr (assq 'steps summary))))
-        
+
         (display (format "  ~a ~a%\n\n"
                          (fuel-bar (cdr (assq 'used summary))
                                    (cdr (assq 'budget summary))
                                    40)
                          (round (cdr (assq 'percentage summary)))))
-        
-        ;; By expression type
+
         (let ([by-type (cdr (assq 'by-type summary))])
              (unless (null? by-type)
                      (display "  By Expression Type:\n")
@@ -308,25 +298,24 @@
                                                (car entry)
                                                (cdr entry))))
                       by-type)))
-        
+
         (display "\n")
         (void)))
 
-;;; ====
-;;; Trace Command
-;;; ====
+(doc 'section 'trace-command)
 
-;;; cmd-trace : → void
-;;; Show execution trace (call stack).
+(doc cmd-trace 'export #t)
 (define (cmd-trace)
+  (doc 'type '(-> void))
+  (doc 'description "Show execution trace (call stack)")
   (let* ([dbg (require-debugger!)]
          [trace (debugger-trace dbg)]
          [recent (take-up-to-repl 15 trace)])
-        
+
         (display "\n")
         (display "  EXECUTION TRACE (most recent first)\n")
         (display "  ────────────────────────────────────────────\n")
-        
+
         (if (null? trace)
             (display "  (no steps taken yet)\n")
             (let ([n (length trace)])
@@ -340,17 +329,16 @@
                  (when (> (length trace) 15)
                        (display (format "  ... (~a more entries)\n"
                                         (- (length trace) 15))))))
-        
+
         (display "\n")
         (void)))
 
-;;; ====
-;;; Undo Commands
-;;; ====
+(doc 'section 'undo-commands)
 
-;;; cmd-undo : → void
-;;; Undo the last step.
+(doc cmd-undo 'export #t)
 (define (cmd-undo)
+  (doc 'type '(-> void))
+  (doc 'description "Undo the last step")
   (let* ([dbg (require-debugger!)]
          [dbg* (undo dbg)])
         (set-session-debugger! dbg*)
@@ -359,8 +347,9 @@
         (display (format "  Can redo: ~a\n" (if (can-redo? dbg*) "yes" "no")))
         (void)))
 
-;;; cmd-redo : [Nat] → void
-;;; Redo steps (go forward in timeline).
+(doc cmd-redo 'export #t)
+(doc cmd-redo 'type '(case-lambda (-> void) (-> Nat void)))
+(doc cmd-redo 'description "Redo steps (go forward in timeline)")
 (define cmd-redo
   (case-lambda
    [()
@@ -382,45 +371,46 @@
                            (truncate-expr-str (debugger-expr dbg*) 50)))
           (void))]))
 
-;;; cmd-reset : → void
-;;; Reset to initial state.
+(doc cmd-reset 'export #t)
 (define (cmd-reset)
+  (doc 'type '(-> void))
+  (doc 'description "Reset to initial state")
   (let* ([dbg (require-debugger!)]
          [dbg* (reset dbg)])
         (set-session-debugger! dbg*)
         (display "  Reset to initial state.\n")
         (void)))
 
-;;; ====
-;;; Watch Commands
-;;; ====
+(doc 'section 'watch-commands)
 
-;;; cmd-watch : Symbol → void
-;;; Add a variable to the watch list.
+(doc cmd-watch 'export #t)
 (define (cmd-watch var)
+  (doc 'type '(-> Symbol void))
+  (doc 'description "Add a variable to the watch list")
   (let* ([dbg (require-debugger!)]
          [dbg* (add-watch dbg var)])
         (set-session-debugger! dbg*)
         (display (format "  Watching: ~a\n" var))
-        ;; Show current value if bound
         (let ([val (env-lookup-safe (debugger-env dbg*) var)])
              (if (eq? val 'unbound)
                  (display "  (currently unbound)\n")
                  (display (format "  Current value: ~a\n" (truncate-expr-str val 50)))))
         (void)))
 
-;;; cmd-unwatch : Symbol → void
-;;; Remove a variable from the watch list.
+(doc cmd-unwatch 'export #t)
 (define (cmd-unwatch var)
+  (doc 'type '(-> Symbol void))
+  (doc 'description "Remove a variable from the watch list")
   (let* ([dbg (require-debugger!)]
          [dbg* (remove-watch dbg var)])
         (set-session-debugger! dbg*)
         (display (format "  Stopped watching: ~a\n" var))
         (void)))
 
-;;; cmd-watches : → void
-;;; List all watched variables.
+(doc cmd-watches 'export #t)
 (define (cmd-watches)
+  (doc 'type '(-> void))
+  (doc 'description "List all watched variables")
   (let* ([dbg (require-debugger!)]
          [watches (debugger-watches dbg)]
          [env (debugger-env dbg)])
@@ -438,7 +428,6 @@
                                                "<unbound>"
                                                (truncate-expr-str val 40))))))
              watches))
-        ;; Show recent watch events
         (let ([events (get-recent-watch-events dbg 5)])
              (unless (null? events)
                      (display "\n  Recent watch events:\n")
@@ -456,12 +445,11 @@
         (display "\n")
         (void)))
 
-;;; ====
-;;; Explain Commands
-;;; ====
+(doc 'section 'explain-commands)
 
-;;; cmd-explain : [Symbol] → void
-;;; Explain the current result or a specific binding.
+(doc cmd-explain 'export #t)
+(doc cmd-explain 'type '(case-lambda (-> void) (-> Symbol void)))
+(doc cmd-explain 'description "Explain the current result or a specific binding")
 (define cmd-explain
   (case-lambda
    [()
@@ -486,9 +474,9 @@
           (display "\n")
           (void))]))
 
-;;; display-explanation : Explanation × Nat → void
-;;; Pretty-print an explanation tree.
 (define (display-explanation exp depth)
+  (doc 'type '(-> Explanation Nat void))
+  (doc 'description "Pretty-print an explanation tree")
   (let* ([expr (cdr (assq 'expression (cdr exp)))]
          [result (cdr (assq 'result (cdr exp)))]
          [reason (cdr (assq 'reason (cdr exp)))]
@@ -501,8 +489,9 @@
         (for-each (lambda (child) (display-explanation child (+ depth 1)))
                   children)))
 
-;;; reason-description : Symbol → String
 (define (reason-description reason)
+  (doc 'type '(-> Symbol String))
+  (doc 'description "Convert reason symbol to human-readable description")
   (case reason
         [(literal) "Literal value"]
         [(lookup) "Variable lookup"]
@@ -514,17 +503,17 @@
         [(evaluation-sequence) "Evaluation sequence"]
         [else (symbol->string reason)]))
 
-;;; cmd-why : → void
-;;; Shorthand for (explain).
+(doc cmd-why 'export #t)
 (define (cmd-why)
+  (doc 'type '(-> void))
+  (doc 'description "Shorthand for (explain)")
   (cmd-explain))
 
-;;; ====
-;;; Export Commands
-;;; ====
+(doc 'section 'export-commands)
 
-;;; cmd-export-trace : [String] → void
-;;; Export structured trace data.
+(doc cmd-export-trace 'export #t)
+(doc cmd-export-trace 'type '(case-lambda (-> void) (-> String void)))
+(doc cmd-export-trace 'description "Export structured trace data")
 (define cmd-export-trace
   (case-lambda
    [()
@@ -546,9 +535,9 @@
           (display (format "  Trace exported to: ~a\n" filename))
           (void))]))
 
-;;; pretty-print-sexp : Sexp × Nat → void
-;;; Simple pretty printer for S-expressions.
 (define (pretty-print-sexp sexp indent)
+  (doc 'type '(-> Sexp Nat void))
+  (doc 'description "Simple pretty printer for S-expressions")
   (let ([ind (make-string indent #\space)])
        (cond
         [(and (pair? sexp)
@@ -556,7 +545,6 @@
               (pair? (cdr sexp))
               (pair? (cadr sexp))
               (eq? (caadr sexp) (car sexp)))
-         ;; It's a tagged record, print nicely
          (display (format "~a(~a\n" ind (car sexp)))
          (for-each (lambda (field)
                            (display (format "~a  (~a . ~a)\n"
@@ -570,20 +558,17 @@
         [else
          (display (format "~a~a\n" ind sexp))])))
 
-;;; ====
-;;; Session Management
-;;; ====
+(doc 'section 'session-management)
 
-;;; cmd-quit-debug : → void
-;;; Quit the current debug session.
+(doc cmd-quit-debug 'export #t)
 (define (cmd-quit-debug)
+  (doc 'type '(-> void))
+  (doc 'description "Quit the current debug session")
   (end-debug-session!)
   (display "  Debug session ended.\n")
   (void))
 
-;;; ====
-;;; Aliases for REPL convenience
-;;; ====
+(doc 'section 'aliases)
 
 (define debug cmd-debug)
 (define dbg-step cmd-step)
@@ -597,12 +582,9 @@
 (define dbg-redo cmd-redo)
 (define dbg-reset cmd-reset)
 (define dbg-quit cmd-quit-debug)
-;; Watch commands
 (define watch cmd-watch)
 (define unwatch cmd-unwatch)
 (define watches cmd-watches)
-;; Explain commands
 (define explain cmd-explain)
 (define why cmd-why)
-;; Export commands (export-trace shadows core function - use dbg-export-trace)
 (define dbg-export-trace cmd-export-trace)

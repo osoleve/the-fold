@@ -1,28 +1,25 @@
-;;; boundary/history/test-history.ss — Test Suite for REPL History Module
-;;;
-;;; Tests command classification, block creation, history operations,
-;;; and branching functionality.
-;;;
-;;; Run with: scheme --script boundary/history/test-history.ss
-
 (load "core/testing/test-framework.ss")
 
-;;; ====
-;;; Test Setup
-;;; ====
+(doc 'module 'boundary/history/test-history)
+(doc 'description "Test suite for REPL history module")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+(doc 'dependencies '(core/testing/test-framework boundary/history/history))
 
-;;; Load the history module
+(doc 'section 'test-setup)
+
 (load "boundary/history/history.ss")
 
-;;; Use a unique test session to avoid conflicts
+(doc *test-session* 'type 'string)
+(doc *test-session* 'description "Unique test session ID to avoid conflicts")
 (define *test-session* (format "test-history-~a" (time-nanosecond (current-time))))
 
-;;; Clean up test artifacts
 (define (cleanup-test-session!)
+  (doc 'type (-> Void))
+  (doc 'description "Clean up test artifacts")
   (let ([dir (history-session-dir *test-session*)])
     (when (file-exists? dir)
       (guard (e [else #f])
-        ;; Clean up head files
         (for-each
           (lambda (f)
             (let ([path (string-append dir "/" f)])
@@ -31,9 +28,7 @@
           (directory-list dir))
         (delete-directory dir)))))
 
-;;; ====
-;;; Command Classification Tests
-;;; ====
+(doc 'section 'command-classification-tests)
 
 (test-group "command-classification"
   (define-test "classifies define as definition"
@@ -72,9 +67,7 @@
   (define-test "handles parse errors gracefully"
     (assert-equal 'expression (classify-command "(incomplete"))))
 
-;;; ====
-;;; Defined Name Extraction Tests
-;;; ====
+(doc 'section 'defined-name-extraction-tests)
 
 (test-group "defined-name-extraction"
   (define-test "extracts name from simple define"
@@ -89,9 +82,7 @@
   (define-test "extracts first name from begin"
     (assert-equal 'a (extract-defined-name "(begin (define a 1) (define b 2))"))))
 
-;;; ====
-;;; Block Creation Tests
-;;; ====
+(doc 'section 'block-creation-tests)
 
 (test-group "block-creation"
   (define-test "creates history entry block"
@@ -142,9 +133,7 @@
                   prev-hash)])
       (assert-equal prev-hash (history-entry-prev blk)))))
 
-;;; ====
-;;; Head Management Tests
-;;; ====
+(doc 'section 'head-management-tests)
 
 (test-group "head-management"
   (define-test "session directory creation"
@@ -163,7 +152,6 @@
   (define-test "current branch write and read"
     (history-write-current-branch! *test-session* "experiment")
     (assert-equal "experiment" (history-read-current-branch *test-session*))
-    ;; Reset for other tests
     (history-write-current-branch! *test-session* "main"))
 
   (define-test "redo stack operations"
@@ -185,9 +173,7 @@
       (assert-true (pair? (member "branch1" branches)))
       (assert-true (pair? (member "branch2" branches))))))
 
-;;; ====
-;;; Storage Tests
-;;; ====
+(doc 'section 'storage-tests)
 
 (test-group "storage"
   (define-test "block store and fetch"
@@ -208,7 +194,6 @@
       (assert-equal 'history/entry (block-tag fetched))))
 
   (define-test "history count"
-    ;; Initialize fresh branch for counting
     (history-write-current-branch! *test-session* "count-test")
     (let* ([blk1 (make-history-entry-block *test-session* 0 "(+ 1)" 'expression 'success "" #f "t1" 1 #f)]
            [h1 (history-store! blk1)]
@@ -217,13 +202,10 @@
       (history-write-branch! *test-session* "count-test" h2)
       (assert-equal 2 (history-count *test-session* "count-test")))))
 
-;;; ====
-;;; Recording Tests
-;;; ====
+(doc 'section 'recording-tests)
 
 (test-group "recording"
   (define-test "record success"
-    ;; Use a fresh branch
     (history-write-current-branch! *test-session* "record-test")
     (let ([hash (history-record-success! *test-session* "(define rec-test 1)" 'void 'rec-test)])
       (assert-true (bytevector? hash))
@@ -245,23 +227,18 @@
     (history-record-success! *test-session* "(+ 1 1)" 2 #f)
     (assert-equal '() (history-read-redo-stack *test-session*))))
 
-;;; ====
-;;; History List Tests
-;;; ====
+(doc 'section 'history-list-tests)
 
 (test-group "history-list"
   (define-test "history list returns entries"
     (history-write-current-branch! *test-session* "list-test")
-    ;; Record a few commands
     (history-record-success! *test-session* "(define a 1)" 'void 'a)
     (history-record-success! *test-session* "(define b 2)" 'void 'b)
     (history-record-success! *test-session* "(+ a b)" 3 #f)
     (let ([entries (history-list *test-session* 10)])
       (assert-true (>= (length entries) 3)))))
 
-;;; ====
-;;; Branch Operations Tests
-;;; ====
+(doc 'section 'branching-tests)
 
 (test-group "branching"
   (define-test "create branch"
@@ -285,7 +262,6 @@
       (assert-true (and (pair? result) (eq? (car result) 'error)))))
 
   (define-test "delete branch"
-    ;; Make sure we're on main first
     (history-checkout! *test-session* 'main)
     (let ([result (history-delete-branch-op! *test-session* 'feature)])
       (assert-equal '(ok) result)
@@ -295,40 +271,26 @@
     (let ([result (history-delete-branch-op! *test-session* 'main)])
       (assert-true (and (pair? result) (eq? (car result) 'error))))))
 
-;;; ====
-;;; Undo/Redo Tests
-;;; ====
+(doc 'section 'undo-redo-tests)
 
 (test-group "undo-redo"
   (define-test "undo to empty then redo works"
-    ;; Use a fresh branch for this test
     (history-write-current-branch! *test-session* "undo-test")
-    ;; Record a single command
     (let ([h1 (history-record-success! *test-session* "(define undo-z 99)" 'void 'undo-z)])
-      ;; Verify we have one entry
       (assert-true (bytevector? (history-read-branch *test-session* "undo-test")))
-      ;; Undo to empty state
       (let ([undo-result (history-undo! *test-session*)])
         (assert-equal 'ok (car undo-result))
-        ;; Branch should still exist (not deleted)
         (assert-true (history-branch-exists? *test-session* "undo-test"))
-        ;; But branch head should return #f (empty)
         (assert-false (history-read-branch *test-session* "undo-test"))
-        ;; Redo should work
         (let ([redo-result (history-redo! *test-session*)])
           (assert-equal 'ok (car redo-result))
-          ;; Branch head should be restored
           (assert-true (bytevector? (history-read-branch *test-session* "undo-test"))))))))
 
-;;; ====
-;;; Cleanup
-;;; ====
+(doc 'section 'cleanup)
 
 (cleanup-test-session!)
 
-;;; ====
-;;; Run Tests
-;;; ====
+(doc 'section 'run-tests)
 
 (display "\n")
 (display "═══════════════════════════════════════════════════════════\n")

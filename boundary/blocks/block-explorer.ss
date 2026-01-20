@@ -1,68 +1,70 @@
-;;; boundary/blocks/block-explorer.ss — Interactive Session-Based Block Explorer
-;;;
-;;; Created by builder (sonnet)
-;;;
-;;; An interactive block exploration interface that maintains session state,
-;;; allowing easy navigation through the block store without typing hash prefixes.
-;;;
-;;; Features:
-;;;   - Session-based navigation with breadcrumb trail
-;;;   - Numbered list navigation (type a number to explore)
-;;;   - Quick commands: back, home, search, popular, orphans
-;;;   - Maintains current position for easy browsing
-;;;   - Integrates with existing block-navigator.ss
-;;;
-;;; Usage:
-;;;   (block-explorer (fs))       ; Start exploring from home
-;;;   (bx-view n)                  ; View block #n from current list
-;;;   (bx-back)                    ; Go back to previous block
-;;;   (bx-home)                    ; Return to home view
-;;;   (bx-search "query")          ; Search and show numbered results
-;;;   (bx-popular)                 ; Show popular blocks as numbered list
-;;;   (bx-orphans)                 ; Show orphans as numbered list
-;;;   (bx-help)                    ; Show command reference
+(define-syntax doc
+  (syntax-rules ()
+    [(_ args ...) (void)]))
 
-;;; ====
-;;; Session State
-;;; ====
+(doc 'module 'block-explorer)
+(doc 'description "Interactive Session-Based Block Explorer")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+(doc 'created-by "builder (sonnet)")
+(doc 'note "An interactive block exploration interface that maintains session state, allowing easy navigation through the block store without typing hash prefixes")
 
-;;; Navigation state stored in parameters for session persistence
-(define current-block-list (make-parameter '()))     ; List of (hash . block) pairs
-(define current-block-hash (make-parameter #f))       ; Currently viewed block hash
-(define navigation-history (make-parameter '()))      ; Stack of previous positions
-(define current-mode (make-parameter 'home))          ; home, viewing, search, popular, orphans
+(doc 'section 'features)
+(doc 'note "Session-based navigation with breadcrumb trail")
+(doc 'note "Numbered list navigation (type a number to explore)")
+(doc 'note "Quick commands: back, home, search, popular, orphans")
+(doc 'note "Maintains current position for easy browsing")
+(doc 'note "Integrates with existing block-navigator.ss")
 
-;;; ====
-;;; Main Entry Point
-;;; ====
+(doc 'section 'session-state)
+(doc 'note "Navigation state stored in parameters for session persistence")
 
-;;; block-explorer : FS → void
-;;; Start the interactive block explorer, showing home screen.
+(doc current-block-list 'type Parameter)
+(doc current-block-list 'description "List of (hash . block) pairs")
+(define current-block-list (make-parameter '()))
+
+(doc current-block-hash 'type Parameter)
+(doc current-block-hash 'description "Currently viewed block hash")
+(define current-block-hash (make-parameter #f))
+
+(doc navigation-history 'type Parameter)
+(doc navigation-history 'description "Stack of previous positions")
+(define navigation-history (make-parameter '()))
+
+(doc current-mode 'type Parameter)
+(doc current-mode 'description "Current mode: home, viewing, search, popular, orphans")
+(define current-mode (make-parameter 'home))
+
+(doc 'section 'main-entry)
+
 (define (block-explorer fs)
+  (doc 'type (-> FS Void))
+  (doc 'description "Start the interactive block explorer, showing home screen")
+  (doc 'export #t)
   ;; Reset state
   (current-block-list '())
   (current-block-hash #f)
   (navigation-history '())
   (current-mode 'home)
-  
+
   (show-home fs))
 
-;;; show-home : FS → void
-;;; Display the home screen with navigation options.
 (define (show-home fs)
+  (doc 'type (-> FS Void))
+  (doc 'description "Display the home screen with navigation options")
   (current-mode 'home)
   (current-block-hash #f)
-  
+
   (display "╔══════════════════════════════════════════════════════════════╗\n")
   (display "║              INTERACTIVE BLOCK EXPLORER                     ║\n")
   (display "╚══════════════════════════════════════════════════════════════╝\n")
   (newline)
-  
+
   ;; Show quick stats
   (let* ([all-hashes (fs-all-hashes fs)]
          [total (length all-hashes)])
         (display (format "Total blocks in store: ~a\n\n" total))
-        
+
         (display "Navigation Options:\n")
         (display "  (bx-popular)         - View most referenced blocks\n")
         (display "  (bx-orphans)         - View orphan blocks\n")
@@ -73,13 +75,12 @@
         (display "  (bx-help)            - Show all commands\n")
         (newline)))
 
-;;; ====
-;;; Navigation Commands
-;;; ====
+(doc 'section 'navigation-commands)
 
-;;; bx-view : Nat → void
-;;; View the nth block from the current list.
 (define (bx-view n)
+  (doc 'type (-> Nat Void))
+  (doc 'description "View the nth block from the current list")
+  (doc 'export #t)
   (let ([blocks (current-block-list)])
        (if (or (null? blocks) (>= n (length blocks)) (< n 0))
            (begin
@@ -107,34 +108,34 @@
                       ;; Save current position to history
                       (when (current-block-hash)
                             (navigation-history (cons (current-block-hash) (navigation-history))))
-                      
+
                       ;; Update current position
                       (current-block-hash hash)
                       (current-mode 'viewing)
-                      
+
                       ;; Display the block
                       (show-block-detail (fs) hash blk)))))))
 
-;;; show-block-detail : FS × Bytevector × Block → void
-;;; Display a single block with navigation options.
 (define (show-block-detail fs hash blk)
+  (doc 'type (-> FS Bytevector Block Void))
+  (doc 'description "Display a single block with navigation options")
   (display "╔══════════════════════════════════════════════════════════════╗\n")
   (display "║                     BLOCK DETAILS                            ║\n")
   (display "╚══════════════════════════════════════════════════════════════╝\n")
   (newline)
-  
+
   ;; Show breadcrumb
   (let ([depth (length (navigation-history))])
        (when (> depth 0)
              (display (format "📍 Depth: ~a | " (+ depth 1)))
              (display "(bx-back) to return\n\n")))
-  
+
   (display (format "Hash:    ~a\n" (hash->hex hash)))
   (display (format "Tag:     ~a\n" (block-tag blk)))
   (display (format "Payload: ~a bytes\n" (bytevector-length (block-payload blk))))
   (display (format "Refs:    ~a\n" (vector-length (block-refs blk))))
   (newline)
-  
+
   ;; Show payload preview
   (let ([payload-text (guard (e [else "[binary data]"])
                              (utf8->string (block-payload blk)))])
@@ -144,7 +145,7 @@
        (newline)
        (display "────────────────────────────────────────────────────────────────\n"))
   (newline)
-  
+
   ;; Show refs as numbered list
   (let ([refs (block-refs blk)])
        (when (> (vector-length refs) 0)
@@ -162,13 +163,13 @@
                                                size)))
                         (loop (+ i 1)))))
        (newline)
-       
+
        ;; Store refs in current-block-list for navigation
        (current-block-list
         (map (lambda (ref-hash)
                      (cons ref-hash (fs-fetch fs ref-hash)))
              (vector->list refs)))
-       
+
        (when (> (vector-length refs) 0)
              (display "Navigation:\n")
              (display "  (bx-view N)  - Explore reference N\n"))
@@ -176,9 +177,10 @@
        (display "  (bx-home)    - Return to home\n")
        (newline)))
 
-;;; bx-back : () → void
-;;; Go back to the previous block.
 (define (bx-back)
+  (doc 'type (-> Void))
+  (doc 'description "Go back to the previous block")
+  (doc 'export #t)
   (let ([hist (navigation-history)])
        (if (null? hist)
            (begin
@@ -193,27 +195,27 @@
                          (show-block-detail (fs) prev-hash blk)
                          (display "Error: Previous block no longer exists\n")))))))
 
-;;; bx-home : () → void
-;;; Return to home screen.
 (define (bx-home)
+  (doc 'type (-> Void))
+  (doc 'description "Return to home screen")
+  (doc 'export #t)
   (navigation-history '())
   (show-home (fs)))
 
-;;; ====
-;;; Discovery Commands
-;;; ====
+(doc 'section 'discovery-commands)
 
-;;; bx-popular : () → void
-;;; Show most popular blocks as numbered list.
 (define (bx-popular)
+  (doc 'type (-> Void))
+  (doc 'description "Show most popular blocks as numbered list")
+  (doc 'export #t)
   (current-mode 'popular)
   (navigation-history '())
   (current-block-hash #f)
-  
+
   (let* ([fs (fs)]
          [all-hashes (fs-all-hashes fs)]
          [ref-counts (make-hashtable equal-hash equal?)])
-        
+
         ;; Count inbound references
         (for-each
          (lambda (hash)
@@ -227,7 +229,7 @@
                                                   (hashtable-set! ref-counts ref-hash (+ current 1))
                                                   (loop (+ i 1)))))))))
          all-hashes)
-        
+
         ;; Sort and display
         (let-values ([(hash-vec count-vec) (hashtable-entries ref-counts)])
                     (let* ([hashes (vector->list hash-vec)]
@@ -235,13 +237,13 @@
                            [pairs (map cons hashes counts)]
                            [sorted (list-sort (lambda (a b) (> (cdr a) (cdr b))) pairs)]
                            [top-20 (take (min 20 (length sorted)) sorted)])
-                          
+
                           (display "╔══════════════════════════════════════════════════════════════╗\n")
                           (display "║                  MOST POPULAR BLOCKS                         ║\n")
                           (display "╚══════════════════════════════════════════════════════════════╝\n")
                           (newline)
                           (display "Blocks ranked by inbound references (top 20):\n\n")
-                          
+
                           (let loop ([i 0] [entries top-20])
                                (when (not (null? entries))
                                      (let* ([pair (car entries)]
@@ -254,31 +256,32 @@
                                                             (short-hash (hash->hex hash))
                                                             (if blk (block-tag blk) "[missing]")))
                                            (loop (+ i 1) (cdr entries)))))
-                          
+
                           ;; Store in current list
                           (current-block-list
                            (map (lambda (pair)
                                         (let ([hash (car pair)])
                                              (cons hash (fs-fetch fs hash))))
                                 top-20))
-                          
+
                           (newline)
                           (display "Commands:\n")
                           (display "  (bx-view N)  - Explore block N\n")
                           (display "  (bx-home)    - Return to home\n")
                           (newline)))))
 
-;;; bx-orphans : () → void
-;;; Show orphan blocks as numbered list.
 (define (bx-orphans)
+  (doc 'type (-> Void))
+  (doc 'description "Show orphan blocks as numbered list")
+  (doc 'export #t)
   (current-mode 'orphans)
   (navigation-history '())
   (current-block-hash #f)
-  
+
   (let* ([fs (fs)]
          [all-hashes (fs-all-hashes fs)]
          [referenced (make-hashtable equal-hash equal?)])
-        
+
         ;; Mark referenced blocks
         (for-each
          (lambda (hash)
@@ -290,18 +293,18 @@
                                             (hashtable-set! referenced (vector-ref refs i) #t)
                                             (loop (+ i 1))))))))
          all-hashes)
-        
+
         ;; Find orphans
         (let ([orphans (filter (lambda (hash)
                                        (not (hashtable-ref referenced hash #f)))
                                all-hashes)])
-             
+
              (display "╔══════════════════════════════════════════════════════════════╗\n")
              (display "║                     ORPHAN BLOCKS                            ║\n")
              (display "╚══════════════════════════════════════════════════════════════╝\n")
              (newline)
              (display (format "Found ~a blocks with no inbound references:\n\n" (length orphans)))
-             
+
              (let loop ([i 0] [orphan-list orphans])
                   (when (not (null? orphan-list))
                         (let* ([hash (car orphan-list)]
@@ -312,30 +315,31 @@
                                                (if blk (block-tag blk) "[missing]")
                                                (if blk (bytevector-length (block-payload blk)) 0)))
                               (loop (+ i 1) (cdr orphan-list)))))
-             
+
              ;; Store in current list
              (current-block-list
               (map (lambda (hash)
                            (cons hash (fs-fetch fs hash)))
                    orphans))
-             
+
              (newline)
              (display "Commands:\n")
              (display "  (bx-view N)  - Explore block N\n")
              (display "  (bx-home)    - Return to home\n")
              (newline))))
 
-;;; bx-search : String → void
-;;; Search for blocks and display as numbered list.
 (define (bx-search query)
+  (doc 'type (-> String Void))
+  (doc 'description "Search for blocks and display as numbered list")
+  (doc 'export #t)
   (current-mode 'search)
   (navigation-history '())
   (current-block-hash #f)
-  
+
   (let* ([fs (fs)]
          [all-hashes (fs-all-hashes fs)]
          [results '()])
-        
+
         ;; Search blocks
         (for-each
          (lambda (hash)
@@ -349,14 +353,14 @@
                                   (when (or tag-match? payload-match?)
                                         (set! results (cons (cons hash blk) results)))))))
          all-hashes)
-        
+
         (display "╔══════════════════════════════════════════════════════════════╗\n")
         (display "║                     SEARCH RESULTS                           ║\n")
         (display "╚══════════════════════════════════════════════════════════════╝\n")
         (newline)
         (display (format "Query: \"~a\"\n" query))
         (display (format "Found: ~a blocks\n\n" (length results)))
-        
+
         (let loop ([i 0] [result-list (reverse results)])
              (when (not (null? result-list))
                    (let* ([entry (car result-list)]
@@ -370,23 +374,22 @@
                                           (block-tag blk)))
                          (display (format "       ~a\n" preview))
                          (loop (+ i 1) (cdr result-list)))))
-        
+
         ;; Store in current list
         (current-block-list (reverse results))
-        
+
         (newline)
         (display "Commands:\n")
         (display "  (bx-view N)  - Explore block N\n")
         (display "  (bx-home)    - Return to home\n")
         (newline)))
 
-;;; ====
-;;; Additional Discovery Commands
-;;; ====
+(doc 'section 'additional-discovery)
 
-;;; bx-recent : Nat → void
-;;; Show N most recent blocks (by hash lexicographic order - approximation).
 (define (bx-recent n)
+  (doc 'type (-> Nat Void))
+  (doc 'description "Show N most recent blocks (by hash lexicographic order - approximation)")
+  (doc 'export #t)
   (let* ([fs (fs)]
          [all-hashes (fs-all-hashes fs)]
          [sorted (list-sort
@@ -394,13 +397,13 @@
                           (bytevector<? b a))  ; Reverse sort
                   all-hashes)]
          [recent (take (min n (length sorted)) sorted)])
-        
+
         (display "╔══════════════════════════════════════════════════════════════╗\n")
         (display "║                    RECENT BLOCKS                             ║\n")
         (display "╚══════════════════════════════════════════════════════════════╝\n")
         (newline)
         (display (format "Showing ~a most recent blocks:\n\n" (length recent)))
-        
+
         (let loop ([i 0] [hash-list recent])
              (when (not (null? hash-list))
                    (let* ([hash (car hash-list)]
@@ -411,21 +414,22 @@
                                           (if blk (block-tag blk) "[missing]")
                                           (if blk (bytevector-length (block-payload blk)) 0)))
                          (loop (+ i 1) (cdr hash-list)))))
-        
+
         (current-block-list
          (map (lambda (hash)
                       (cons hash (fs-fetch fs hash)))
               recent))
-        
+
         (newline)
         (display "Commands:\n")
         (display "  (bx-view N)  - Explore block N\n")
         (display "  (bx-home)    - Return to home\n")
         (newline)))
 
-;;; bx-by-tag : Symbol → void
-;;; Show all blocks with a specific tag.
 (define (bx-by-tag tag)
+  (doc 'type (-> Symbol Void))
+  (doc 'description "Show all blocks with a specific tag")
+  (doc 'export #t)
   (let* ([fs (fs)]
          [all-hashes (fs-all-hashes fs)]
          [matches (filter
@@ -433,7 +437,7 @@
                            (let ([blk (fs-fetch fs hash)])
                                 (and blk (eq? (block-tag blk) tag))))
                    all-hashes)])
-        
+
         (display "╔══════════════════════════════════════════════════════════════╗\n")
         (display (format "║                    BLOCKS: ~a~a║\n"
                          tag
@@ -441,7 +445,7 @@
         (display "╚══════════════════════════════════════════════════════════════╝\n")
         (newline)
         (display (format "Found ~a blocks with tag '~a:\n\n" (length matches) tag))
-        
+
         (let loop ([i 0] [hash-list matches])
              (when (not (null? hash-list))
                    (let* ([hash (car hash-list)]
@@ -451,30 +455,30 @@
                                           (short-hash (hash->hex hash))
                                           (if blk (bytevector-length (block-payload blk)) 0)))
                          (loop (+ i 1) (cdr hash-list)))))
-        
+
         (current-block-list
          (map (lambda (hash)
                       (cons hash (fs-fetch fs hash)))
               matches))
-        
+
         (newline)
         (display "Commands:\n")
         (display "  (bx-view N)  - Explore block N\n")
         (display "  (bx-home)    - Return to home\n")
         (newline)))
 
-;;; bx-stats : () → void
-;;; Show detailed statistics.
 (define (bx-stats)
+  (doc 'type (-> Void))
+  (doc 'description "Show detailed statistics")
+  (doc 'export #t)
   (block-stats (fs)))
 
-;;; ====
-;;; Help
-;;; ====
+(doc 'section 'help)
 
-;;; bx-help : () → void
-;;; Show all commands.
 (define (bx-help)
+  (doc 'type (-> Void))
+  (doc 'description "Show all commands")
+  (doc 'export #t)
   (display "╔══════════════════════════════════════════════════════════════╗\n")
   (display "║            BLOCK EXPLORER COMMAND REFERENCE                  ║\n")
   (display "╚══════════════════════════════════════════════════════════════╝\n")
@@ -502,25 +506,31 @@
   (display "  - Each list shows numbered blocks you can explore\n")
   (newline))
 
-;;; ====
-;;; Helper Functions
-;;; ====
+(doc 'section 'helpers)
+(doc 'note "Reuse from block-navigator.ss")
 
-;;; Reuse from block-navigator.ss
 (define (short-hash hash-hex)
+  (doc 'type (-> String String))
+  (doc 'description "Show just the first 8 characters of a hash")
   (substring hash-hex 0 (min 8 (string-length hash-hex))))
 
 (define (truncate-string str max-len)
+  (doc 'type (-> String Nat String))
+  (doc 'description "Truncate string to max length with ellipsis")
   (if (> (string-length str) max-len)
       (string-append (substring str 0 max-len) "...")
       str))
 
 (define (bn-string-contains-ci? haystack needle)
+  (doc 'type (-> String String Boolean))
+  (doc 'description "Case-insensitive substring search")
   (let ([hay-lower (string-downcase haystack)]
         [need-lower (string-downcase needle)])
        (bn-string-contains? hay-lower need-lower)))
 
 (define (bn-string-contains? haystack needle)
+  (doc 'type (-> String String Boolean))
+  (doc 'description "Substring search")
   (let ([need-len (string-length needle)])
        (let loop ([i 0])
             (cond
@@ -529,6 +539,8 @@
              [else (loop (+ i 1))]))))
 
 (define (bytevector<? a b)
+  (doc 'type (-> Bytevector Bytevector Boolean))
+  (doc 'description "Lexicographic comparison of bytevectors")
   (let ([len-a (bytevector-length a)]
         [len-b (bytevector-length b)])
        (let loop ([i 0])
@@ -540,14 +552,15 @@
              [else (loop (+ i 1))]))))
 
 (define (take n lst)
+  (doc 'type (-> Nat (List a) (List a)))
+  (doc 'description "Take first n elements from list")
   (if (or (= n 0) (null? lst))
       '()
       (cons (car lst) (take (- n 1) (cdr lst)))))
 
-;;; fs : () → FS
-;;; Get the current filesystem capability.
-;;; This function is provided by boundary/repl/repl.ss when loaded in the REPL.
-;;; When using this file standalone, you must define (fs) yourself.
-;;; Default implementation for REPL:
+(doc fs 'type (-> FS))
+(doc fs 'description "Get the current filesystem capability")
+(doc fs 'note "This function is provided by boundary/repl/repl.ss when loaded in the REPL")
+(doc fs 'note "When using this file standalone, you must define (fs) yourself")
 (define (fs)
   (mint-fs-capability ".store"))

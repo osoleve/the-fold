@@ -1,18 +1,8 @@
-;;; boundary/blocks/block-query.ss — Query language for content-addressed blocks
-;;; Created by sonnet-secretive
-;;;
-;;; A simple DSL for searching blocks by patterns:
-;;;   (query (tag 'expr) (payload-contains "lambda"))
-;;;   (query (refs-count > 2))
-;;;   (query (tag-matches "^test-"))
-
-;;; NOTE: string-contains? is provided by core/prelude.ss
-
 (library (shell block-query)
          (export
           ;; Query execution
           query-blocks
-          
+
           ;; Pattern constructors
           tag-is
           tag-matches
@@ -20,63 +10,69 @@
           payload-matches
           refs-count
           has-ref
-          
+
           ;; Combinators
           query-and
           query-or
           query-not)
-         
+
          (import (chezscheme))
-         
-         ;; Load core dependencies (assume they're available)
-         ;; In actual use, this would import from (core block) and (core cas)
-         
-         ;;; ====
-         ;;; Query Pattern Types
-         ;;; ====
-         
-         ;; A query pattern is a predicate: Block → Boolean
-         ;; We represent queries as procedures for maximum flexibility
-         
-         ;;; tag-is : Symbol → QueryPattern
-         ;;; Match blocks with exact tag
+
+         (doc 'module 'block-query)
+         (doc 'description "Query language for content-addressed blocks")
+         (doc 'layer 'boundary)
+         (doc 'purity 'partial)
+         (doc 'note "string-contains? is provided by core/prelude.ss")
+
+         (doc 'section 'patterns)
+         (doc 'note "A query pattern is a predicate: Block → Boolean")
+         (doc 'note "We represent queries as procedures for maximum flexibility")
+
          (define (tag-is expected-tag)
+           (doc 'type (-> Symbol QueryPattern))
+           (doc 'description "Match blocks with exact tag")
+           (doc 'export #t)
            (lambda (blk)
                    (eq? (block-tag blk) expected-tag)))
-         
-         ;;; tag-matches : String → QueryPattern
-         ;;; Match blocks whose tag matches regex pattern
+
          (define (tag-matches pattern)
+           (doc 'type (-> String QueryPattern))
+           (doc 'description "Match blocks whose tag matches regex pattern")
+           (doc 'export #t)
            (let ([rx (pregexp pattern)])
                 (lambda (blk)
                         (pregexp-match rx (symbol->string (block-tag blk))))))
-         
-         ;;; payload-contains : String → QueryPattern
-         ;;; Match blocks whose payload (as UTF-8) contains substring
+
          (define (payload-contains substring)
+           (doc 'type (-> String QueryPattern))
+           (doc 'description "Match blocks whose payload (as UTF-8) contains substring")
+           (doc 'export #t)
            (lambda (blk)
                    (let ([payload-str (utf8->string (block-payload blk))])
                         (string-contains? payload-str substring))))
-         
-         ;;; payload-matches : String → QueryPattern
-         ;;; Match blocks whose payload matches regex
+
          (define (payload-matches pattern)
+           (doc 'type (-> String QueryPattern))
+           (doc 'description "Match blocks whose payload matches regex")
+           (doc 'export #t)
            (let ([rx (pregexp pattern)])
                 (lambda (blk)
                         (let ([payload-str (utf8->string (block-payload blk))])
                              (pregexp-match rx payload-str)))))
-         
-         ;;; refs-count : (Nat → Boolean) → QueryPattern
-         ;;; Match blocks based on reference count
-         ;;; Examples: (refs-count (lambda (n) (> n 2)))
-         ;;;           (refs-count zero?)
+
          (define (refs-count predicate)
+           (doc 'type (-> (-> Nat Boolean) QueryPattern))
+           (doc 'description "Match blocks based on reference count")
+           (doc 'example "(refs-count (lambda (n) (> n 2)))")
+           (doc 'example "(refs-count zero?)")
+           (doc 'export #t)
            (lambda (blk)
                    (predicate (vector-length (block-refs blk)))))
-         
-         ;;; has-ref : Bytevector → QueryPattern
-         ;;; Match blocks that reference the given hash
+
          (define (has-ref target-hash)
+           (doc 'type (-> Bytevector QueryPattern))
+           (doc 'description "Match blocks that reference the given hash")
+           (doc 'export #t)
            (lambda (blk)
                    (let ([refs (block-refs blk)])
                         (let loop ([i 0])
@@ -84,49 +80,48 @@
                               [(= i (vector-length refs)) #f]
                               [(bytevector=? (vector-ref refs i) target-hash) #t]
                               [else (loop (+ i 1))])))))
-         
-         ;;; ====
-         ;;; Query Combinators
-         ;;; ====
-         
-         ;;; query-and : QueryPattern ... → QueryPattern
-         ;;; Match blocks that satisfy ALL patterns
+
+         (doc 'section 'combinators)
+
          (define (query-and . patterns)
+           (doc 'type (-> QueryPattern ... QueryPattern))
+           (doc 'description "Match blocks that satisfy ALL patterns")
+           (doc 'export #t)
            (lambda (blk)
                    (let loop ([ps patterns])
                         (cond
                          [(null? ps) #t]
                          [((car ps) blk) (loop (cdr ps))]
                          [else #f]))))
-         
-         ;;; query-or : QueryPattern ... → QueryPattern
-         ;;; Match blocks that satisfy ANY pattern
+
          (define (query-or . patterns)
+           (doc 'type (-> QueryPattern ... QueryPattern))
+           (doc 'description "Match blocks that satisfy ANY pattern")
+           (doc 'export #t)
            (lambda (blk)
                    (let loop ([ps patterns])
                         (cond
                          [(null? ps) #f]
                          [((car ps) blk) #t]
                          [else (loop (cdr ps))]))))
-         
-         ;;; query-not : QueryPattern → QueryPattern
-         ;;; Match blocks that do NOT satisfy pattern
+
          (define (query-not pattern)
+           (doc 'type (-> QueryPattern QueryPattern))
+           (doc 'description "Match blocks that do NOT satisfy pattern")
+           (doc 'export #t)
            (lambda (blk)
                    (not (pattern blk))))
-         
-         ;;; ====
-         ;;; Query Execution
-         ;;; ====
-         
-         ;;; query-blocks : QueryPattern → (List (Pair Bytevector Block))
-         ;;; Execute query against all blocks in the store
-         ;;; Returns list of (hash . block) pairs
-         ;;;
-         ;;; Note: This requires access to the store, which is in core/cas.ss
-         ;;; In practice, this would need to be called with store access
-         ;;; FIX: Filters out #f results from fetch to prevent crashes
+
+         (doc 'section 'execution)
+
          (define (query-blocks pattern)
+           (doc 'type (-> QueryPattern (List (Pair Bytevector Block))))
+           (doc 'description "Execute query against all blocks in the store")
+           (doc 'returns "List of (hash . block) pairs")
+           (doc 'note "This requires access to the store, which is in core/cas.ss")
+           (doc 'note "In practice, this would need to be called with store access")
+           (doc 'note "FIX: Filters out #f results from fetch to prevent crashes")
+           (doc 'export #t)
            ;; Assuming we have access to (store-hashes) and (fetch)
            (let ([all-hashes (store-hashes)])
                 (filter
@@ -137,7 +132,7 @@
                  (map (lambda (hash)
                               (cons hash (fetch hash)))
                       all-hashes))))
-         
-         ;;; NOTE: string-contains? provided by core/prelude.ss
-         ;;; If this module is used standalone, ensure core/prelude.ss is loaded.
+
+         (doc 'note "string-contains? provided by core/prelude.ss")
+         (doc 'note "If this module is used standalone, ensure core/prelude.ss is loaded")
          )

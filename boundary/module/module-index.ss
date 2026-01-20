@@ -1,46 +1,34 @@
-;;; boundary/module/module-index.ss — Module Index Management
-;;;
-;;; Builds and manages the module lookup hashtable from manifests.
-;;; This is the glue between manifest discovery and the core module system.
-;;;
-;;; This is Shell code: coordinates I/O and state.
-;;;
-;;; Usage:
-;;;   (module-index-init!)            ; Scan manifests, build index
-;;;   (module-index-lookup name)      ; O(1) lookup → path | #f
-;;;   (module-index-inject!)          ; Inject into core/lang/module.ss
-;;;   (module-index-stats)            ; Show statistics
-;;;
-;;; Dependencies:
-;;;   boundary/module/manifest-scanner.ss (I/O)
-;;;   lattice/meta/manifest.ss (pure parsing)
+(define-syntax doc
+  (syntax-rules ()
+    [(_ args ...) (void)]))
 
-;;; ====
-;;; State
-;;; ====
+(doc 'module 'module/module-index)
+(doc 'description "Module index management: builds and manages the module lookup hashtable from manifests")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+(doc 'dependencies '(boundary/module/manifest-scanner lattice/meta/manifest))
+(doc 'note "This is the glue between manifest discovery and the core module system")
 
-;;; *manifest-simple-index* : Hashtable Symbol → String
-;;; Maps module names to file paths.
-;;; Populated by module-index-init!
+(doc 'section 'state)
+
+(doc *manifest-simple-index* 'type (Hashtable Symbol String))
+(doc *manifest-simple-index* 'description "Maps module names to file paths, populated by module-index-init!")
 (define *manifest-simple-index* (make-eq-hashtable))
 
-;;; *manifest-namespaced-idx* : Hashtable Symbol → String
-;;; Maps namespaced module names (skill/module) to file paths.
-;;; Always unambiguous.
+(doc *manifest-namespaced-idx* 'type (Hashtable Symbol String))
+(doc *manifest-namespaced-idx* 'description "Maps namespaced module names (skill/module) to file paths, always unambiguous")
 (define *manifest-namespaced-idx* (make-eq-hashtable))
 
-;;; *manifest-index-initialized* : Boolean
-;;; Track whether the index has been built.
+(doc *manifest-index-initialized* 'type Boolean)
+(doc *manifest-index-initialized* 'description "Track whether the index has been built")
 (define *manifest-index-initialized* #f)
 
-;;; ====
-;;; Index Building
-;;; ====
+(doc 'section 'index-building)
 
-;;; module-index-build! : -> Void
-;;; Scan all manifests and build the module index.
-;;; Must be called after manifest-scanner.ss and manifest.ss are loaded.
 (define (module-index-build!)
+  (doc 'type (-> Stats))
+  (doc 'description "Scan all manifests and build the module index, must be called after manifest-scanner.ss and manifest.ss are loaded")
+  (doc 'export #t)
   ;; Clear existing index
   (hashtable-clear! *manifest-simple-index*)
   (hashtable-clear! *manifest-namespaced-idx*)
@@ -89,14 +77,12 @@
           (namespaced-modules . ,namespaced-count)
           (collisions-skipped . ,collision-count))))
 
-;;; ====
-;;; Lookup
-;;; ====
+(doc 'section 'lookup)
 
-;;; module-index-lookup : Symbol -> String | #f
-;;; Look up a module in the index.
-;;; Supports both simple names (vec) and namespaced names (linalg/vec).
 (define (module-index-lookup name)
+  (doc 'type (-> Symbol (Maybe String)))
+  (doc 'description "Look up a module in the index, supports both simple names (vec) and namespaced names (linalg/vec)")
+  (doc 'export #t)
   (let ([name-str (symbol->string name)])
        (if (module-index-string-contains? name-str "/")
            ;; Namespaced: check namespaced index only
@@ -105,8 +91,9 @@
            (or (hashtable-ref *manifest-simple-index* name #f)
                (hashtable-ref *manifest-namespaced-idx* name #f)))))
 
-;;; module-index-string-contains? : String String -> Bool
 (define (module-index-string-contains? haystack needle)
+  (doc 'type (-> String String Bool))
+  (doc 'description "Check if string contains substring")
   (let ([h-len (string-length haystack)]
         [n-len (string-length needle)])
        (let loop ([i 0])
@@ -115,40 +102,38 @@
              [(string=? (substring haystack i (+ i n-len)) needle) #t]
              [else (loop (+ i 1))]))))
 
-;;; ====
-;;; Core Module System Integration
-;;; ====
+(doc 'section 'core-module-system-integration)
 
-;;; module-index-inject! : -> Void
-;;; Inject the module index into core/lang/module.ss.
-;;; This registers the index with the core module system.
 (define (module-index-inject!)
+  (doc 'type (-> Void))
+  (doc 'description "Inject the module index into core/lang/module.ss, registers the index with the core module system")
+  (doc 'export #t)
   (when (and *manifest-index-initialized*
              (top-level-bound? 'register-manifest-index!))
         (register-manifest-index! *manifest-simple-index* *manifest-namespaced-idx*)))
 
-;;; ====
-;;; Initialization
-;;; ====
+(doc 'section 'initialization)
 
-;;; module-index-init! : -> Stats
-;;; Full initialization: build index and inject into core.
 (define (module-index-init!)
+  (doc 'type (-> Stats))
+  (doc 'description "Full initialization: build index and inject into core")
+  (doc 'export #t)
   (let ([stats (module-index-build!)])
        (module-index-inject!)
        stats))
 
-;;; module-index-initialized? : -> Boolean
 (define (module-index-initialized?)
+  (doc 'type (-> Boolean))
+  (doc 'description "Check if index has been initialized")
+  (doc 'export #t)
   *manifest-index-initialized*)
 
-;;; ====
-;;; Diagnostics
-;;; ====
+(doc 'section 'diagnostics)
 
-;;; module-index-stats : -> Void
-;;; Display module index statistics.
 (define (module-index-stats)
+  (doc 'type (-> Void))
+  (doc 'description "Display module index statistics")
+  (doc 'export #t)
   (display "\n")
   (display "  Module Index Statistics\n")
   (display "  ────────────────────────────────────────────────────────\n")
@@ -157,22 +142,24 @@
   (display (format "  Namespaced modules: ~a\n" (hashtable-size *manifest-namespaced-idx*)))
   (display "\n"))
 
-;;; module-index-list : -> (List Symbol)
-;;; List all modules in the simple index (sorted).
 (define (module-index-list)
+  (doc 'type (-> (List Symbol)))
+  (doc 'description "List all modules in the simple index (sorted)")
+  (doc 'export #t)
   (sort (lambda (a b) (string<? (symbol->string a) (symbol->string b)))
         (vector->list (hashtable-keys *manifest-simple-index*))))
 
-;;; module-index-list-namespaced : -> (List Symbol)
-;;; List all modules in the namespaced index (sorted).
 (define (module-index-list-namespaced)
+  (doc 'type (-> (List Symbol)))
+  (doc 'description "List all modules in the namespaced index (sorted)")
+  (doc 'export #t)
   (sort (lambda (a b) (string<? (symbol->string a) (symbol->string b)))
         (vector->list (hashtable-keys *manifest-namespaced-idx*))))
 
-;;; module-index-find-collisions : -> (List Symbol)
-;;; Find module names that exist in multiple skills.
-;;; Returns names that would collide if we didn't use first-match.
 (define (module-index-find-collisions)
+  (doc 'type (-> (List Symbol)))
+  (doc 'description "Find module names that exist in multiple skills, returns names that would collide if we didn't use first-match")
+  (doc 'export #t)
   ;; Re-scan to find all paths for each name
   (let ([all-names (make-eq-hashtable)]
         [manifests (scan-all-manifests)])

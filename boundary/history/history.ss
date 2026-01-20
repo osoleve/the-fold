@@ -1,60 +1,46 @@
-;;; boundary/history/history.ss — User-Facing History API
-;;;
-;;; Provides REPL commands for undo/redo and branching history.
-;;;
-;;; Commands:
-;;;   (undo)              - Undo last command
-;;;   (redo)              - Redo undone command
-;;;   (history)           - Show history
-;;;   (history n)         - Show last n entries
-;;;   (jump n)            - Jump to history point n
-;;;   (branch 'name)      - Create branch from current position
-;;;   (branches)          - List all branches
-;;;   (checkout 'name)    - Switch to branch
-;;;   (delete-branch 'n)  - Delete merged branch
-;;;   (history-save!)     - Force checkpoint
-;;;   (history-export)    - Export as script
-;;;
-;;; This is Shell code: uses ops.ss for implementation.
-
 (load "boundary/history/ops.ss")
 
-;;; ====
-;;; Session Context
-;;; ====
+(doc 'module 'boundary/history/history)
+(doc 'description "User-facing REPL history API with undo/redo and branching")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+(doc 'dependencies '(boundary/history/ops))
 
-;;; *current-session-id* : Parameter String
-;;; Current session ID. Set by the REPL worker.
+(doc 'section 'session-context)
+
+(doc *current-session-id* 'type 'parameter)
+(doc *current-session-id* 'description "Current session ID parameter (set by REPL worker)")
 (define *current-session-id*
   (if (top-level-bound? '*current-session-id*)
       *current-session-id*
       (make-parameter "default")))
 
-;;; ====
-;;; Recording Hook
-;;; ====
+(doc 'section 'recording-hooks)
 
-;;; *history-enabled* : Boolean
-;;; Whether history recording is enabled.
+(doc *history-enabled* 'type 'boolean)
+(doc *history-enabled* 'description "Whether history recording is enabled")
 (define *history-enabled* #t)
 
-;;; history-enable! : -> Void
 (define (history-enable!)
+  (doc 'type (-> Void))
+  (doc 'description "Enable history recording")
+  (doc 'export #t)
   (set! *history-enabled* #t)
   (display "History recording enabled.\n"))
 
-;;; history-disable! : -> Void
 (define (history-disable!)
+  (doc 'type (-> Void))
+  (doc 'description "Disable history recording")
+  (doc 'export #t)
   (set! *history-enabled* #f)
   (display "History recording disabled.\n"))
 
-;;; ====
-;;; User Commands
-;;; ====
+(doc 'section 'user-commands)
 
-;;; undo : -> Void
-;;; Undo the last command.
 (define (undo)
+  (doc 'type (-> Void))
+  (doc 'description "Undo the last command")
+  (doc 'export #t)
   (let ([result (history-undo! (*current-session-id*))])
     (cond
       [(and (pair? result) (eq? (car result) 'ok))
@@ -64,9 +50,10 @@
       [else
        (display "Undo failed.\n")])))
 
-;;; redo : -> Void
-;;; Redo the last undone command.
 (define (redo)
+  (doc 'type (-> Void))
+  (doc 'description "Redo the last undone command")
+  (doc 'export #t)
   (let ([result (history-redo! (*current-session-id*))])
     (cond
       [(and (pair? result) (eq? (car result) 'ok))
@@ -76,17 +63,17 @@
       [else
        (display "Redo failed.\n")])))
 
-;;; history : [Int] -> Void
-;;; Display command history.
-;;; Optional argument limits the number of entries shown (default 20).
+(doc history 'type (-> (Option Int) Void))
+(doc history 'description "Display command history (optional limit, default 20)")
+(doc history 'export #t)
 (define history
   (case-lambda
     [() (history-display 20)]
     [(n) (history-display n)]))
 
-;;; history-display : Int -> Void
-;;; Display history with formatting.
 (define (history-display limit)
+  (doc 'type (-> Int Void))
+  (doc 'description "Display history with formatting")
   (let* ([session-id (*current-session-id*)]
          [entries (history-list session-id limit)]
          [current-branch (history-read-current-branch session-id)]
@@ -111,7 +98,6 @@
                                   [(expression) " "]
                                   [else "?"])]
                      [status-char (if (eq? result-type 'success) " " "✗")]
-                     ;; Truncate long commands
                      [cmd-display (if (> (string-length cmd) 50)
                                       (string-append (substring cmd 0 47) "...")
                                       cmd)])
@@ -126,9 +112,10 @@
           (display "─────────────────────────────────────────────────\n")
           (display "[D]=definition [E]=effect [✗]=error\n")))))
 
-;;; jump : Int -> Void
-;;; Jump to a specific history index.
 (define (jump target-index)
+  (doc 'type (-> Int Void))
+  (doc 'description "Jump to a specific history index")
+  (doc 'export #t)
   (let ([result (history-jump! (*current-session-id*) target-index)])
     (cond
       [(and (pair? result) (eq? (car result) 'ok))
@@ -138,13 +125,12 @@
       [else
        (display "Jump failed.\n")])))
 
-;;; ====
-;;; Branch Commands
-;;; ====
+(doc 'section 'branch-commands)
 
-;;; branch : Symbol -> Void
-;;; Create a new branch from the current position.
 (define (branch name)
+  (doc 'type (-> Symbol Void))
+  (doc 'description "Create a new branch from the current position")
+  (doc 'export #t)
   (let ([result (history-create-branch! (*current-session-id*) name)])
     (cond
       [(and (pair? result) (eq? (car result) 'ok))
@@ -154,9 +140,10 @@
       [else
        (display "Branch creation failed.\n")])))
 
-;;; branches : -> Void
-;;; List all branches.
 (define (branches)
+  (doc 'type (-> Void))
+  (doc 'description "List all branches")
+  (doc 'export #t)
   (let* ([session-id (*current-session-id*)]
          [branch-list (history-list-branches session-id)]
          [current (history-read-current-branch session-id)])
@@ -171,9 +158,10 @@
                 (display (format "~a~a (~a commands)\n" marker name count))))
             branch-list)))))
 
-;;; checkout : Symbol -> Void
-;;; Switch to a different branch.
 (define (checkout name)
+  (doc 'type (-> Symbol Void))
+  (doc 'description "Switch to a different branch")
+  (doc 'export #t)
   (let ([result (history-checkout! (*current-session-id*) name)])
     (cond
       [(and (pair? result) (eq? (car result) 'ok))
@@ -183,9 +171,10 @@
       [else
        (display "Checkout failed.\n")])))
 
-;;; delete-branch : Symbol -> Void
-;;; Delete a branch.
 (define (delete-branch name)
+  (doc 'type (-> Symbol Void))
+  (doc 'description "Delete a branch")
+  (doc 'export #t)
   (let ([result (history-delete-branch-op! (*current-session-id*) name)])
     (cond
       [(and (pair? result) (eq? (car result) 'ok))
@@ -195,19 +184,18 @@
       [else
        (display "Delete failed.\n")])))
 
-;;; ====
-;;; Persistence Commands
-;;; ====
+(doc 'section 'persistence-commands)
 
-;;; history-save! : -> Void
-;;; Force a checkpoint save.
-;;; (Currently a no-op since every command is persisted immediately.)
 (define (history-save!)
+  (doc 'type (-> Void))
+  (doc 'description "Force checkpoint save (no-op since auto-persisted)")
+  (doc 'export #t)
   (display "History is automatically persisted after each command.\n"))
 
-;;; export-history : -> Void
-;;; Export history as a replayable script.
 (define (export-history)
+  (doc 'type (-> Void))
+  (doc 'description "Export history as a replayable script")
+  (doc 'export #t)
   (let ([script (history-export (*current-session-id*))])
     (if (string=? script "")
         (display "No definitions to export.\n")
@@ -215,13 +203,12 @@
           (display ";;; Exported definitions:\n")
           (display script)))))
 
-;;; ====
-;;; Help
-;;; ====
+(doc 'section 'help)
 
-;;; history-help : -> Void
-;;; Display history command help.
 (define (history-help)
+  (doc 'type (-> Void))
+  (doc 'description "Display history command help")
+  (doc 'export #t)
   (display "\n")
   (display "  REPL History Commands\n")
   (display "  ─────────────────────────────────────────────────\n")
@@ -248,9 +235,7 @@
   (display "    (history-help)      Show this help\n")
   (display "\n"))
 
-;;; ====
-;;; Initialization Message
-;;; ====
+(doc 'section 'initialization)
 
 (unless (top-level-bound? '*quiet*)
   (display "History module loaded. Use (history-help) for commands.\n"))

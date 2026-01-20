@@ -1,30 +1,19 @@
-;;; boundary/reactive/test-reactive.ss — Tests for Reactive Derivations
-;;;
-;;; Tests for:
-;;;   - Access tracking during computation
-;;;   - Derivation definition and value retrieval
-;;;   - Automatic invalidation on optic writes
-;;;   - Dependency graph management
-;;;   - Batch operations
-;;;
-;;; Run: scheme --script boundary/reactive/test-reactive.ss
-
 (load "core/testing/test-framework.ss")
 (load "boundary/reactive/reactive.ss")
 
-;;; ============================================================
-;;; Test Setup
-;;; ============================================================
+(doc 'module 'test-reactive)
+(doc 'description "Tests for Reactive Derivations - access tracking, derivation definition, automatic invalidation, dependency graph management, and batch operations")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+(doc 'dependencies '(core/testing/test-framework boundary/reactive/reactive))
 
-;; Ensure provenance tracking is enabled
+(doc 'section 'test-setup)
+
 (provenance-enable!)
 
-;; Clear any existing derivations
 (for-each undefine-reactive (list-derivations))
 
-;;; ============================================================
-;;; Part 1: Access Tracking Tests
-;;; ============================================================
+(doc 'section 'access-tracking-tests)
 
 (test-group "access-tracking"
   (define-test "with-access-tracking captures optic names"
@@ -46,20 +35,17 @@
         (with-access-tracking
          (lambda ()
            (reactive-view '(1 . 2) lens-fst)
-           (reactive-view '(3 . 4) lens-fst)  ; Same optic
-           (reactive-view '(5 . 6) lens-fst)  ; Same optic again
+           (reactive-view '(3 . 4) lens-fst)
+           (reactive-view '(5 . 6) lens-fst)
            'done)))
       (lambda (result deps)
         (assert-equal 1 (length (filter (lambda (x) (eq? x 'lens-fst)) deps))))))
 
   (define-test "tracking is scoped"
-    ;; Outside of tracking, log should be empty
     (reactive-view '(1 . 2) lens-fst)
     (assert-equal '() *access-log*)))
 
-;;; ============================================================
-;;; Part 2: Derivation Definition Tests
-;;; ============================================================
+(doc 'section 'derivation-definition-tests)
 
 (test-group "derivation-definition"
   (define-test "define-reactive creates derivation"
@@ -85,8 +71,7 @@
         (reactive-view pair lens-fst)))
     (let ([deps (reactive-dependencies 'fst-only)])
       (assert-true (pair? (memq 'lens-fst deps)))
-      ;; Should NOT depend on lens-snd since we only viewed fst
-      (assert-false (pair? (memq 'lens-snd deps))))))
+      (assert-false (pair? (memq 'lens-snd deps)))))
 
   (define-test "undefine-reactive removes derivation"
     (define-reactive 'temp-derivation
@@ -94,11 +79,9 @@
       (lambda (p) (reactive-view p lens-fst)))
     (assert-true (pair? (memq 'temp-derivation (list-derivations))))
     (undefine-reactive 'temp-derivation)
-    (assert-false (pair? (memq 'temp-derivation (list-derivations)))))
+    (assert-false (pair? (memq 'temp-derivation (list-derivations))))))
 
-;;; ============================================================
-;;; Part 3: Caching Tests
-;;; ============================================================
+(doc 'section 'caching-tests)
 
 (test-group "caching"
   (define-test "value is cached (not recomputed)"
@@ -109,10 +92,8 @@
           (set! call-count (+ call-count 1))
           (+ (reactive-view pair lens-fst)
              (reactive-view pair lens-snd))))
-      ;; First access computes
       (reactive-value 'cached-test)
       (let ([count-after-first call-count])
-        ;; Second access should use cache
         (reactive-value 'cached-test)
         (assert-equal count-after-first call-count))))
 
@@ -134,9 +115,7 @@
         (reactive-refresh! 'refreshable)
         (assert-equal (+ count-before 1) call-count)))))
 
-;;; ============================================================
-;;; Part 4: Invalidation Tests
-;;; ============================================================
+(doc 'section 'invalidation-tests)
 
 (test-group "invalidation"
   (define-test "invalidate-optic! marks derivation stale"
@@ -153,10 +132,8 @@
       (lambda (p) (reactive-view p lens-fst)))
     (assert-equal 100 (reactive-value 'stale-recompute))
     (assert-false (reactive-stale? 'stale-recompute))
-    ;; Mark stale
     (invalidate-optic! 'lens-fst)
     (assert-true (reactive-stale? 'stale-recompute))
-    ;; Access should recompute and clear stale flag
     (reactive-value 'stale-recompute)
     (assert-false (reactive-stale? 'stale-recompute)))
 
@@ -165,13 +142,10 @@
       '(1 . 2)
       (lambda (p) (reactive-view p lens-fst)))
     (assert-false (reactive-stale? 'fst-dep))
-    ;; Invalidate lens-snd should not affect lens-fst derivation
     (invalidate-optic! 'lens-snd)
     (assert-false (reactive-stale? 'fst-dep))))
 
-;;; ============================================================
-;;; Part 5: Reactive Write Tests
-;;; ============================================================
+(doc 'section 'reactive-write-tests)
 
 (test-group "reactive-writes"
   (define-test "reactive-set! invalidates dependent derivations"
@@ -179,7 +153,6 @@
       '(50 . 60)
       (lambda (p) (reactive-view p lens-fst)))
     (assert-false (reactive-stale? 'write-test))
-    ;; This should invalidate because write-test depends on lens-fst
     (reactive-set! lens-fst 999 '(1 . 2))
     (assert-true (reactive-stale? 'write-test)))
 
@@ -191,9 +164,7 @@
     (reactive-over! lens-snd add1 '(1 . 2))
     (assert-true (reactive-stale? 'over-test))))
 
-;;; ============================================================
-;;; Part 6: Multiple Derivation Tests
-;;; ============================================================
+(doc 'section 'multiple-derivation-tests)
 
 (test-group "multiple-derivations"
   (define-test "multiple derivations can share dependencies"
@@ -203,7 +174,6 @@
     (define-reactive 'multi-b
       '(3 . 4)
       (lambda (p) (* 3 (reactive-view p lens-fst))))
-    ;; Both depend on lens-fst
     (invalidate-optic! 'lens-fst)
     (assert-true (reactive-stale? 'multi-a))
     (assert-true (reactive-stale? 'multi-b)))
@@ -215,14 +185,11 @@
     (define-reactive 'dep-snd
       '(10 . 20)
       (lambda (p) (reactive-view p lens-snd)))
-    ;; Invalidate only lens-fst
     (invalidate-optic! 'lens-fst)
     (assert-true (reactive-stale? 'dep-fst))
     (assert-false (reactive-stale? 'dep-snd))))
 
-;;; ============================================================
-;;; Part 7: Source Update Tests
-;;; ============================================================
+(doc 'section 'source-update-tests)
 
 (test-group "source-updates"
   (define-test "reactive-update-source! changes source and marks stale"
@@ -230,15 +197,11 @@
       '(1 . 2)
       (lambda (p) (reactive-view p lens-fst)))
     (assert-equal 1 (reactive-value 'source-test))
-    ;; Update source
     (reactive-update-source! 'source-test '(999 . 888))
     (assert-true (reactive-stale? 'source-test))
-    ;; Should now compute with new source
     (assert-equal 999 (reactive-value 'source-test))))
 
-;;; ============================================================
-;;; Part 8: Batch Operation Tests
-;;; ============================================================
+(doc 'section 'batch-operation-tests)
 
 (test-group "batch-operations"
   (define-test "with-batch defers invalidation"
@@ -251,13 +214,10 @@
     (let ([stale-during-batch #f])
       (with-batch
        (lambda ()
-         ;; These should not immediately invalidate
          (reactive-set! lens-fst 10 '(0 . 0))
          (set! stale-during-batch (reactive-stale? 'batch-test))
          (reactive-set! lens-snd 20 '(0 . 0))))
-      ;; During batch, should NOT be stale (deferral working)
       (assert-false stale-during-batch)
-      ;; After batch completes, should be stale
       (assert-true (reactive-stale? 'batch-test))))
 
   (define-test "with-batch collects multiple invalidations"
@@ -267,22 +227,16 @@
     (define-reactive 'multi-batch-b
       '(3 . 4)
       (lambda (p) (reactive-view p lens-snd)))
-    ;; Get initial values
     (reactive-value 'multi-batch-a)
     (reactive-value 'multi-batch-b)
-    ;; Both depend on different optics
     (with-batch
      (lambda ()
-       ;; Invalidate both optics in one batch
        (reactive-set! lens-fst 100 '(0 . 0))
        (reactive-set! lens-snd 200 '(0 . 0))))
-    ;; Both should be stale after batch
     (assert-true (reactive-stale? 'multi-batch-a))
     (assert-true (reactive-stale? 'multi-batch-b))))
 
-;;; ============================================================
-;;; Part 9: Introspection Tests
-;;; ============================================================
+(doc 'section 'introspection-tests)
 
 (test-group "introspection"
   (define-test "list-derivations returns all names"
@@ -308,18 +262,14 @@
       (lambda (p) (reactive-view p lens-fst)))
     (let ([graph (dependency-graph)])
       (assert-true (list? graph))
-      ;; Should have lens-fst in the graph
       (let ([fst-entry (assq 'lens-fst graph)])
         (assert-true (pair? fst-entry))
         (assert-true (pair? (memq 'graph-test (cdr fst-entry))))))))
 
-;;; ============================================================
-;;; Part 10: Dynamic Dependency Tests
-;;; ============================================================
+(doc 'section 'dynamic-dependency-tests)
 
 (test-group "dynamic-dependencies"
   (define-test "dependencies update on recomputation"
-    ;; A derivation that conditionally accesses different optics
     (let ([use-fst? #t])
       (define-reactive 'dynamic-dep
         '(10 . 20)
@@ -327,105 +277,79 @@
           (if use-fst?
               (reactive-view p lens-fst)
               (reactive-view p lens-snd))))
-      ;; Initially depends on lens-fst
       (assert-true (pair? (memq 'lens-fst (reactive-dependencies 'dynamic-dep))))
-      ;; Change the branch and force recompute
       (set! use-fst? #f)
       (reactive-refresh! 'dynamic-dep)
-      ;; Now should depend on lens-snd instead
       (assert-true (pair? (memq 'lens-snd (reactive-dependencies 'dynamic-dep)))))))
 
-;;; ============================================================
-;;; Part 11: Unregistered Optic Handling Tests (fold-zxpe fix)
-;;; ============================================================
+(doc 'section 'unregistered-optic-handling-tests)
 
 (test-group "unregistered-optic-handling"
-  ;; Create an anonymous optic that is NOT registered
-  ;; Use make-lens from the optics tower for proper structure
   (define anon-fst (make-lens car (lambda (b s) (cons b (cdr s)))))
 
   (define-test "anonymous optic is not registered"
-    ;; Verify our test optic is truly unregistered
     (assert-false (lookup-optic-name anon-fst)))
 
   (define-test "warning emitted for unregistered optic (default mode)"
-    ;; Reset warnings and configuration
     (reset-optic-warnings!)
     (set! *warn-unregistered-optics?* #t)
     (set! *strict-optic-registration?* #f)
-    ;; Use in a tracked context - should warn but not error
     (call-with-values
       (lambda ()
         (with-access-tracking
          (lambda ()
-           ;; This should emit a warning (to stderr)
-           ;; but still work and return the value
            (reactive-view '(1 . 2) anon-fst))))
       (lambda (result deps)
-        ;; Result should still work
         (assert-equal 1 result)
-        ;; But deps should be empty (no registration)
         (assert-equal '() deps))))
 
   (define-test "warning only emitted once per optic"
     (reset-optic-warnings!)
     (set! *warn-unregistered-optics?* #t)
     (set! *strict-optic-registration?* #f)
-    ;; First use - should set warning flag
     (with-access-tracking
      (lambda () (reactive-view '(1 . 2) anon-fst)))
-    ;; Check that optic is now in warned cache
     (assert-true (hashtable-ref *warned-optics* anon-fst #f)))
 
   (define-test "reset-optic-warnings! clears cache"
     (reset-optic-warnings!)
-    ;; After reset, optic should not be in cache
     (assert-false (hashtable-ref *warned-optics* anon-fst #f)))
 
   (define-test "strict mode raises error for unregistered optic"
     (reset-optic-warnings!)
     (set! *warn-unregistered-optics?* #t)
     (set! *strict-optic-registration?* #t)
-    ;; Should raise an error - assert-error takes a thunk
     (assert-error
      (lambda ()
        (with-access-tracking
         (lambda ()
           (reactive-view '(1 . 2) anon-fst)))))
-    ;; Reset to safe defaults
     (set! *strict-optic-registration?* #f))
 
   (define-test "no warning when not tracking accesses"
     (reset-optic-warnings!)
     (set! *warn-unregistered-optics?* #t)
     (set! *strict-optic-registration?* #f)
-    ;; Outside of tracking context, no warning should be logged
     (reactive-view '(1 . 2) anon-fst)
-    ;; The optic should NOT be in the warned cache
-    ;; (warning is only for tracked context where deps matter)
     (assert-false (hashtable-ref *warned-optics* anon-fst #f)))
 
   (define-test "silent mode when warnings disabled"
     (reset-optic-warnings!)
     (set! *warn-unregistered-optics?* #f)
     (set! *strict-optic-registration?* #f)
-    ;; Should work silently without warning
     (call-with-values
       (lambda ()
         (with-access-tracking
          (lambda () (reactive-view '(42 . 0) anon-fst))))
       (lambda (result deps)
         (assert-equal 42 result)
-        ;; Still no deps tracked
         (assert-equal '() deps)
-        ;; And no warning recorded
         (assert-false (hashtable-ref *warned-optics* anon-fst #f)))))
 
   (define-test "reactive-preview warns for unregistered optic"
     (reset-optic-warnings!)
     (set! *warn-unregistered-optics?* #t)
     (set! *strict-optic-registration?* #f)
-    ;; Define an anonymous prism for testing preview
     (let ([anon-prism (make-prism
                         (lambda (x) (if (pair? x) (just (car x)) nothing))
                         (lambda (a) (list a)))])
@@ -437,7 +361,6 @@
     (reset-optic-warnings!)
     (set! *warn-unregistered-optics?* #t)
     (set! *strict-optic-registration?* #f)
-    ;; Use traversal-each which is registered, but compose with anonymous lens
     (let ([anon-traversal (make-traversal
                             (lambda (f xs) (map f xs))
                             (lambda (xs) xs))])
@@ -449,16 +372,13 @@
     (reset-optic-warnings!)
     (set! *warn-unregistered-optics?* #t)
     (set! *strict-optic-registration?* #f)
-    ;; reactive-set! should also warn (always, not just during tracking)
     (reactive-set! anon-fst 99 '(1 . 2))
-    ;; Should be in warned cache now
     (assert-true (hashtable-ref *warned-optics* anon-fst #f)))
 
   (define-test "reactive-over! warns for unregistered optic"
     (reset-optic-warnings!)
     (set! *warn-unregistered-optics?* #t)
     (set! *strict-optic-registration?* #f)
-    ;; Clear from previous test
     (reset-optic-warnings!)
     (reactive-over! anon-fst add1 '(1 . 2))
     (assert-true (hashtable-ref *warned-optics* anon-fst #f)))
@@ -467,21 +387,16 @@
     (reset-optic-warnings!)
     (set! *warn-unregistered-optics?* #t)
     (set! *strict-optic-registration?* #f)
-    ;; Create two distinct anonymous lenses
     (let ([opt1 (make-lens car (lambda (b s) (cons b (cdr s))))]
           [opt2 (make-lens car (lambda (b s) (cons b (cdr s))))])
       (with-access-tracking (lambda () (reactive-view '(1 . 2) opt1)))
       (with-access-tracking (lambda () (reactive-view '(1 . 2) opt2)))
-      ;; Should have 2 separate entries (eq? identity is different)
       (assert-equal 2 (hashtable-size *warned-optics*))))
 
-  ;; Restore safe defaults after test group
   (set! *warn-unregistered-optics?* #t)
   (set! *strict-optic-registration?* #f)
   (reset-optic-warnings!))
 
-;;; ============================================================
-;;; Run Tests
-;;; ============================================================
+(doc 'section 'run-tests)
 
 (run-all-tests)

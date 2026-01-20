@@ -1,36 +1,26 @@
-;;; boundary/watch/watch-INDEX.ss — Index of Watch System Files
-;;;
-;;; This file lists all components of the file watching and auto-reload system.
-;;; Use this as a reference for what exists and where to find it.
+(define-syntax doc
+  (syntax-rules ()
+    [(_ args ...) (void)]))
 
-;;; ====
-;;; CORE IMPLEMENTATION
-;;; ====
+(doc 'module 'watch-INDEX)
+(doc 'description "Index of Watch System Files - Lists all components of the file watching and auto-reload system. Use this as a reference for what exists and where to find it.")
+(doc 'layer 'boundary)
+(doc 'purity 'total)
+(doc 'dependencies '())
 
-;;; boundary/watch/watch.ss
-;;;   Main implementation of the watch system
-;;;   Lines: ~650
-;;;   Exports:
-;;;     - watch-file
-;;;     - watch-dir
-;;;     - auto-reload
-;;;     - auto-test
-;;;     - stop-watcher!
-;;;     - stop-watching
-;;;     - list-watchers
-;;;     - watch-help
-;;;     - glob-match?
-;;;     - file-mtime
-;;;     - *watch-poll-interval*
-;;;     - *watch-debounce-delay*
-;;;   Dependencies:
-;;;     - None (uses only standard R6RS Scheme)
-;;;   Load with:
-;;;     (load "boundary/watch/watch.ss")
+(doc 'section 'core-implementation)
 
-;;; ====
-;;; DAEMON INTEGRATION
-;;; ====
+(doc 'note "boundary/watch/watch.ss - Main implementation of the watch system")
+(doc 'note "Lines: ~650")
+(doc 'note "Exports:")
+(doc 'note "  - watch-file, watch-dir, auto-reload, auto-test")
+(doc 'note "  - stop-watcher!, stop-watching, list-watchers, watch-help")
+(doc 'note "  - glob-match?, file-mtime")
+(doc 'note "  - *watch-poll-interval*, *watch-debounce-delay*")
+(doc 'note "Dependencies: None (uses only standard R6RS Scheme)")
+(doc 'note "Load with: (load \"boundary/watch/watch.ss\")")
+
+(doc 'section 'daemon-integration)
 
 ;;; boundary/watch-daemon-integration.ss
 ;;;   Integration with REPL daemon for development workflows
@@ -56,9 +46,7 @@
 ;;;     - Smart reload (module + dependents)
 ;;;     - Module dependency graph
 
-;;; ====
-;;; TESTING
-;;; ====
+(doc 'section 'testing)
 
 ;;; boundary/test-watch.ss
 ;;;   Comprehensive test suite for watch system
@@ -108,9 +96,7 @@
 ;;;     - Verifies all components work together
 ;;;     - Quick smoke test
 
-;;; ====
-;;; EXAMPLES
-;;; ====
+(doc 'section 'examples)
 
 ;;; boundary/watch-example.ss
 ;;;   Comprehensive examples of watch system usage
@@ -140,9 +126,7 @@
 ;;;     (watch-examples-help)  ; Show all examples
 ;;;     (example-1-auto-reload) ; Run example 1
 
-;;; ====
-;;; DOCUMENTATION
-;;; ====
+(doc 'section 'documentation)
 
 ;;; boundary/watch-README.ss
 ;;;   Complete documentation and API reference
@@ -227,189 +211,105 @@
 ;;;     - Complete file listing
 ;;;     - Quick reference
 
-;;; ====
-;;; QUICK REFERENCE
-;;; ====
+(doc 'section 'quick-reference)
 
-;;; Getting Started:
-;;;   1. (load "boundary/watch/watch.ss")
-;;;   2. (auto-reload "your-module.ss")
-;;;   3. Or: (load "boundary/watch-daemon-integration.ss")
-;;;          (dev-mode-on)
+(doc 'note "Getting Started:")
+(doc 'note "  1. (load \"boundary/watch/watch.ss\")")
+(doc 'note "  2. (auto-reload \"your-module.ss\")")
+(doc 'note "  3. Or: (load \"boundary/watch-daemon-integration.ss\")")
+(doc 'note "         (dev-mode-on)")
 
-;;; Basic Commands:
-;;;   (watch-file path action)           ; Watch single file
-;;;   (watch-dir path pattern action)    ; Watch directory
-;;;   (auto-reload module-path)          ; Auto-reload module
-;;;   (auto-test test-path)              ; Auto-run tests
-;;;   (stop-watching)                    ; Stop all watchers
-;;;   (list-watchers)                    ; Show active watchers
+(doc 'note "Basic Commands:")
+(doc 'note "  (watch-file path action)           - Watch single file")
+(doc 'note "  (watch-dir path pattern action)    - Watch directory")
+(doc 'note "  (auto-reload module-path)          - Auto-reload module")
+(doc 'note "  (auto-test test-path)              - Auto-run tests")
+(doc 'note "  (stop-watching)                    - Stop all watchers")
+(doc 'note "  (list-watchers)                    - Show active watchers")
 
-;;; Development Mode:
-;;;   (dev-mode-on)                      ; Enable dev mode
-;;;   (dev-mode-off)                     ; Disable dev mode
-;;;   (dev-status)                       ; Show status
-;;;   (watch-tests)                      ; Watch all tests
-;;;   (stop-test-watchers)               ; Stop test watchers
+(doc 'note "Development Mode:")
+(doc 'note "  (dev-mode-on)                      - Enable dev mode")
+(doc 'note "  (dev-mode-off)                     - Disable dev mode")
+(doc 'note "  (dev-status)                       - Show status")
+(doc 'note "  (watch-tests)                      - Watch all tests")
+(doc 'note "  (stop-test-watchers)               - Stop test watchers")
 
-;;; Configuration:
-;;;   *watch-poll-interval*              ; Polling frequency (ms)
-;;;   *watch-debounce-delay*             ; Debounce delay (ms)
+(doc 'note "Configuration:")
+(doc 'note "  *watch-poll-interval*              - Polling frequency (ms)")
+(doc 'note "  *watch-debounce-delay*             - Debounce delay (ms)")
 
-;;; Help:
-;;;   (watch-help)                       ; Watch system help
-;;;   (dev-help)                         ; Dev mode help
-;;;   (watch-examples-help)              ; Examples help
-;;;   (load "boundary/watch-quickstart.ss") ; Quick start guide
+(doc 'note "Help:")
+(doc 'note "  (watch-help)                       - Watch system help")
+(doc 'note "  (dev-help)                         - Dev mode help")
+(doc 'note "  (watch-examples-help)              - Examples help")
+(doc 'note "  (load \"boundary/watch-quickstart.ss\") - Quick start guide")
 
-;;; ====
-;;; FILE ORGANIZATION
-;;; ====
+(doc 'section 'file-organization)
 
-;;; All files are in boundary/ directory:
-;;;
-;;;   boundary/
-;;;     watch.ss                         ; Core implementation ⭐
-;;;     watch-daemon-integration.ss      ; Daemon integration
-;;;     watch-example.ss                 ; Examples
-;;;     watch-quickstart.ss              ; Quick start guide
-;;;     watch-README.ss                  ; Full documentation
-;;;     watch-SUMMARY.ss                 ; Implementation summary
-;;;     watch-INDEX.ss                   ; This file
-;;;     test-watch.ss                    ; Test suite
-;;;     test-watch-integration.ss        ; Integration tests
+(doc 'note "All files are in boundary/ directory:")
+(doc 'note "  boundary/watch.ss                    - Core implementation")
+(doc 'note "  boundary/watch-daemon-integration.ss - Daemon integration")
+(doc 'note "  boundary/watch-example.ss            - Examples")
+(doc 'note "  boundary/watch-quickstart.ss         - Quick start guide")
+(doc 'note "  boundary/watch-README.ss             - Full documentation")
+(doc 'note "  boundary/watch-SUMMARY.ss            - Implementation summary")
+(doc 'note "  boundary/watch-INDEX.ss              - This file")
+(doc 'note "  boundary/test-watch.ss               - Test suite")
+(doc 'note "  boundary/test-watch-integration.ss   - Integration tests")
 
-;;; Total: 9 files
-;;; Total lines: ~3000+
-;;; Core: 1 file (watch.ss)
-;;; Extensions: 2 files (daemon, examples)
-;;; Tests: 2 files (unit, integration)
-;;; Documentation: 4 files (README, quickstart, summary, index)
+(doc 'note "Total: 9 files, ~3000+ lines")
+(doc 'note "Core: 1 file (watch.ss)")
+(doc 'note "Extensions: 2 files (daemon, examples)")
+(doc 'note "Tests: 2 files (unit, integration)")
+(doc 'note "Documentation: 4 files (README, quickstart, summary, index)")
 
-;;; ====
-;;; DEPENDENCY GRAPH
-;;; ====
+(doc 'section 'dependency-graph)
 
-;;; watch.ss
-;;;   └─ No dependencies (standalone)
-;;;
-;;; watch-daemon-integration.ss
-;;;   └─ watch.ss
-;;;
-;;; watch-example.ss
-;;;   └─ watch.ss
-;;;
-;;; test-watch.ss
-;;;   └─ watch.ss
-;;;
-;;; test-watch-integration.ss
-;;;   ├─ watch.ss
-;;;   ├─ watch-daemon-integration.ss
-;;;   └─ watch-example.ss
-;;;
-;;; watch-README.ss
-;;;   └─ Documentation only (no runtime dependencies)
-;;;
-;;; watch-quickstart.ss
-;;;   └─ Documentation only (no runtime dependencies)
-;;;
-;;; watch-SUMMARY.ss
-;;;   └─ Documentation only (no runtime dependencies)
-;;;
-;;; watch-INDEX.ss
-;;;   └─ Documentation only (no runtime dependencies)
+(doc 'note "watch.ss - No dependencies (standalone)")
+(doc 'note "watch-daemon-integration.ss - Depends on watch.ss")
+(doc 'note "watch-example.ss - Depends on watch.ss")
+(doc 'note "test-watch.ss - Depends on watch.ss")
+(doc 'note "test-watch-integration.ss - Depends on watch.ss, watch-daemon-integration.ss, watch-example.ss")
+(doc 'note "watch-README.ss - Documentation only")
+(doc 'note "watch-quickstart.ss - Documentation only")
+(doc 'note "watch-SUMMARY.ss - Documentation only")
+(doc 'note "watch-INDEX.ss - Documentation only (this file)")
 
-;;; ====
-;;; INTEGRATION WITH THE FOLD
-;;; ====
+(doc 'section 'integration-with-the-fold)
 
-;;; The watch system integrates with:
-;;;
-;;;   REPL Daemon (boundary/repl/repl-daemon.ss)
-;;;     - Runs in daemon process
-;;;     - Background threads
-;;;     - Persistent state
-;;;
-;;;   Filesystem (boundary/io/fs.ss)
-;;;     - Uses file-exists?, mkdir, delete-file
-;;;     - Compatible with FS capability system
-;;;
-;;;   Testing Framework
-;;;     - Auto-run test files
-;;;     - scheme --script integration
-;;;
-;;;   Module System
-;;;     - Auto-reload with (load ...)
-;;;     - Dependency-aware reload (smart-reload)
-;;;
-;;;   Development Workflow
-;;;     - TDD support (auto-test)
-;;;     - Live coding (auto-reload)
-;;;     - Fast feedback loop
+(doc 'note "The watch system integrates with:")
+(doc 'note "  REPL Daemon - Runs in daemon process, background threads, persistent state")
+(doc 'note "  Filesystem - Uses file-exists?, mkdir, delete-file")
+(doc 'note "  Testing Framework - Auto-run test files")
+(doc 'note "  Module System - Auto-reload with (load ...)")
+(doc 'note "  Development Workflow - TDD support, live coding, fast feedback loop")
 
-;;; Future integration possibilities:
-;;;   - Forum system (watch for new posts)
-;;;   - Build system (watch sources, rebuild)
-;;;   - CAS (watch blocks, auto-index)
-;;;   - Git hooks (watch commits, auto-test)
+(doc 'note "Future integration possibilities:")
+(doc 'note "  - Forum system, Build system, CAS, Git hooks")
 
-;;; ====
-;;; USAGE STATISTICS
-;;; ====
+(doc 'section 'usage-statistics)
 
-;;; Lines of code:
-;;;   Implementation:        ~650 lines
-;;;   Daemon integration:    ~400 lines
-;;;   Examples:              ~500 lines
-;;;   Tests:                 ~550 lines
-;;;   Documentation:        ~1400 lines
-;;;   ────────────────────────────────
-;;;   Total:                ~3500 lines
+(doc 'note "Lines of code: ~3500 total (650 implementation, 400 daemon, 500 examples, 550 tests, 1400 docs)")
+(doc 'note "Test coverage: 42 total scenarios (25 unit, 10 integration, 7 examples)")
+(doc 'note "Public API: 17 exports (7 core functions, 8 daemon integration, 2 config vars)")
+(doc 'note "Documentation: 4 files (README, quickstart, summary, index)")
 
-;;; Test coverage:
-;;;   Unit tests:            25 cases
-;;;   Integration tests:     10 cases
-;;;   Example scenarios:      7 examples
-;;;   ────────────────────────────────
-;;;   Total:                 42 test scenarios
+(doc 'section 'conclusion)
 
-;;; Public API functions:
-;;;   Core:                  7 functions
-;;;   Daemon integration:    8 functions
-;;;   Configuration:         2 variables
-;;;   ────────────────────────────────
-;;;   Total:                17 exports
+(doc 'note "The watch system is complete and ready to use.")
+(doc 'note "To get started:")
+(doc 'note "  1. Load boundary/watch/watch.ss")
+(doc 'note "  2. Try (auto-reload \"your-module.ss\")")
+(doc 'note "  3. Or use (dev-mode-on) for full workflow")
+(doc 'note "For help:")
+(doc 'note "  - (watch-help) for command reference")
+(doc 'note "  - (load \"boundary/watch-quickstart.ss\") for quick start")
+(doc 'note "  - (load \"boundary/watch-README.ss\") for full documentation")
+(doc 'note "For examples:")
+(doc 'note "  - (load \"boundary/watch-example.ss\")")
+(doc 'note "  - (watch-examples-help)")
+(doc 'note "To test:")
+(doc 'note "  - scheme --script boundary/test-watch.ss")
+(doc 'note "  - scheme --script boundary/test-watch-integration.ss")
 
-;;; Documentation files:
-;;;   README:                1 file (~600 lines)
-;;;   Quick start:           1 file (~300 lines)
-;;;   Summary:               1 file (~500 lines)
-;;;   Index:                 1 file (this file)
-;;;   ────────────────────────────────
-;;;   Total:                 4 documentation files
-
-;;; ====
-;;; CONCLUSION
-;;; ====
-
-;;; The watch system is complete and ready to use.
-;;;
-;;; To get started:
-;;;   1. Load boundary/watch/watch.ss
-;;;   2. Try (auto-reload "your-module.ss")
-;;;   3. Or use (dev-mode-on) for full workflow
-;;;
-;;; For help:
-;;;   - (watch-help) for command reference
-;;;   - (load "boundary/watch-quickstart.ss") for quick start
-;;;   - (load "boundary/watch-README.ss") for full documentation
-;;;
-;;; For examples:
-;;;   - (load "boundary/watch-example.ss")
-;;;   - (watch-examples-help)
-;;;
-;;; To test:
-;;;   - scheme --script boundary/test-watch.ss
-;;;   - scheme --script boundary/test-watch-integration.ss
-
-;;; End of index.
+(doc 'note "End of index.")

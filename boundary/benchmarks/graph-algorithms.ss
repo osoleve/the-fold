@@ -1,22 +1,3 @@
-;;; bench-graph-algorithms.ss — Comprehensive Benchmarking Suite for Graph Algorithms
-;;;
-;;; This suite provides performance benchmarks for all graph algorithms
-;;; with varying graph sizes and structures. It measures execution time,
-;;; memory usage, and scalability characteristics.
-;;;
-;;; FEATURES:
-;;;   - Multiple graph structures (chain, star, tree, cyclic, dense, sparse)
-;;;   - Scalability testing across different sizes (10, 50, 100, 500, 1000 nodes)
-;;;   - Memory allocation tracking
-;;;   - Statistical analysis (mean, median, stddev, percentiles)
-;;;   - Comparison reports
-;;;
-;;; USAGE:
-;;;   (load "core/bench-graph-algorithms.ss")
-;;;   (run-all-benchmarks)          ; Run complete suite
-;;;   (run-traversal-benchmarks)    ; Run specific category
-;;;   (run-scalability-tests)       ; Test algorithm scaling
-
 (load "core/blocks/block.ss")
 (load "core/base/sha256.ss")
 (load "boundary/io/fs.ss")
@@ -24,21 +5,22 @@
 (load "lattice/data/graph-algorithms.ss")
 (load "boundary/tools/benchmark.ss")
 
-;;; ====
-;;; Test Graph Generators
-;;; ====
+(doc 'module 'graph-algorithms-benchmarks)
+(doc 'description "Comprehensive benchmarking suite for graph algorithms with varying graph sizes and structures, measuring execution time, memory usage, and scalability")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+(doc 'dependencies '(block sha256 fs store-api graph-algorithms benchmark))
 
-;;; make-chain-graph : FSCap Nat → Hash
-;;; Create a chain graph: A -> B -> C -> ... -> Z
-;;; Returns hash of first node.
+(doc 'section 'test-graph-generators)
+
 (define (make-chain-graph fs n)
+  (doc 'type (-> FSCap Nat Hash))
+  (doc 'description "Create a chain graph: A -> B -> C -> ... -> Z. Returns hash of first node.")
+  (doc 'export #t)
   (let loop ([i 0] [prev-hash #f])
        (if (>= i n)
-           ;; Return first node's hash (stored in loop)
            (if (= n 0)
                #f
-               ;; Need to get first node - traverse back or store separately
-               ;; For now, we'll store first-hash in a variable
                prev-hash)
            (let* ([tag (string->symbol (format "chain-~a" i))]
                   [refs (if prev-hash (vector prev-hash) (vector))]
@@ -48,10 +30,10 @@
                      (loop (+ i 1) (hash-block block))
                      (loop (+ i 1) prev-hash))))))
 
-;;; make-star-graph : FSCap Nat → Hash
-;;; Create a star graph: Center -> Leaf1, Center -> Leaf2, ...
-;;; Returns hash of center node.
 (define (make-star-graph fs n)
+  (doc 'type (-> FSCap Nat Hash))
+  (doc 'description "Create a star graph: Center -> Leaf1, Center -> Leaf2, ... Returns hash of center node.")
+  (doc 'export #t)
   (if (= n 0)
       #f
       (let* ([leaves
@@ -68,20 +50,18 @@
             (store-put! fs center)
             (hash-block center))))
 
-;;; make-tree-graph : FSCap Nat Nat → Hash
-;;; Create a binary tree of given depth.
-;;; Returns hash of root node.
 (define (make-tree-graph fs depth branching-factor)
+  (doc 'type (-> FSCap Nat Nat Hash))
+  (doc 'description "Create a tree of given depth and branching factor. Returns hash of root node.")
+  (doc 'export #t)
   (let build-level ([d 0] [parent-hashes '()])
        (if (>= d depth)
            (if (null? parent-hashes) #f (car parent-hashes))
            (let ([new-hashes
                   (if (= d 0)
-                      ;; Root level
                       (let ([root (make-block 'root (string->utf8 "data") (vector))])
                            (store-put! fs root)
                            (list (hash-block root)))
-                      ;; Other levels
                       (let loop ([parents parent-hashes] [all-children '()])
                            (if (null? parents)
                                all-children
@@ -100,14 +80,13 @@
                                           (append all-children children))))))])
                 (build-level (+ d 1) new-hashes)))))
 
-;;; make-cyclic-graph : FSCap Nat → Hash
-;;; Create a cycle: A -> B -> C -> ... -> Z -> A
-;;; Returns hash of first node.
 (define (make-cyclic-graph fs n)
+  (doc 'type (-> FSCap Nat Hash))
+  (doc 'description "Create a cycle: A -> B -> C -> ... -> Z -> A. Returns hash of first node.")
+  (doc 'export #t)
   (if (<= n 1)
       #f
       (let* ([nodes
-              ;; First pass: create nodes with temp refs
               (let loop ([i 0] [acc '()])
                    (if (>= i n)
                        (reverse acc)
@@ -117,7 +96,6 @@
                                      (vector))])
                             (loop (+ i 1) (cons block acc)))))]
              [hashes (map hash-block nodes)])
-            ;; Second pass: update refs to create cycle
             (let update-loop ([i 0] [nds nodes] [hs hashes])
                  (unless (null? nds)
                          (let* ([next-idx (if (= i (- n 1)) 0 (+ i 1))]
@@ -128,17 +106,15 @@
                                           (vector next-hash))])
                                (store-put! fs updated)
                                (update-loop (+ i 1) (cdr nds) (cdr hs)))))
-            ;; Return first node's hash
             (car hashes))))
 
-;;; make-dense-graph : FSCap Nat → Hash
-;;; Create a densely connected graph where each node connects to most others.
-;;; Returns hash of first node.
 (define (make-dense-graph fs n)
+  (doc 'type (-> FSCap Nat Hash))
+  (doc 'description "Create a densely connected graph where each node connects to 60% of others. Returns hash of first node.")
+  (doc 'export #t)
   (if (= n 0)
       #f
       (let* ([nodes
-              ;; Create all nodes first
               (let loop ([i 0] [acc '()])
                    (if (>= i n)
                        (reverse acc)
@@ -148,7 +124,6 @@
                                      (vector))])
                             (loop (+ i 1) (cons block acc)))))]
              [hashes (map hash-block nodes)])
-            ;; Update each node to reference 60% of other nodes
             (let update-loop ([i 0] [nds nodes])
                  (unless (null? nds)
                          (let* ([num-refs (max 1 (quotient (* n 6) 10))]
@@ -164,9 +139,9 @@
                                (update-loop (+ i 1) (cdr nds)))))
             (car hashes))))
 
-;;; take-n-skip : Nat Nat Nat → (List Nat)
-;;; Take n indices starting from (skip+1) mod total, wrapping around.
 (define (take-n-skip skip n total)
+  (doc 'type (-> Nat Nat Nat (List Nat)))
+  (doc 'description "Take n indices starting from (skip+1) mod total, wrapping around")
   (let loop ([count 0] [current (modulo (+ skip 1) total)] [acc '()])
        (if (>= count n)
            (reverse acc)
@@ -174,10 +149,10 @@
                  (modulo (+ current 1) total)
                  (cons current acc)))))
 
-;;; make-sparse-graph : FSCap Nat → Hash
-;;; Create a sparsely connected graph (each node has 1-2 refs).
-;;; Returns hash of first node.
 (define (make-sparse-graph fs n)
+  (doc 'type (-> FSCap Nat Hash))
+  (doc 'description "Create a sparsely connected graph where each node has 1-2 refs. Returns hash of first node.")
+  (doc 'export #t)
   (if (= n 0)
       #f
       (let* ([nodes
@@ -190,7 +165,6 @@
                                      (vector))])
                             (loop (+ i 1) (cons block acc)))))]
              [hashes (map hash-block nodes)])
-            ;; Each node connects to 1-2 random others
             (let update-loop ([i 0] [nds nodes])
                  (unless (null? nds)
                          (let* ([num-refs (if (even? i) 1 2)]
@@ -206,24 +180,24 @@
                                (update-loop (+ i 1) (cdr nds)))))
             (car hashes))))
 
-;;; ====
-;;; Benchmark Definitions
-;;; ====
+(doc 'section 'benchmark-definitions)
 
-;;; benchmark-traversal : FSCap String Hash → (List BenchmarkResult)
-;;; Benchmark BFS and DFS traversal on given graph.
 (define (benchmark-traversal fs name start-hash)
-  (let ([visit-fn (lambda (h b) (void))])  ; No-op visitor
+  (doc 'type (-> FSCap String Hash (List BenchmarkResult)))
+  (doc 'description "Benchmark BFS and DFS traversal on given graph")
+  (doc 'export #t)
+  (let ([visit-fn (lambda (h b) (void))])
        (benchmark-compare
         `((,(string-append name " - BFS") .
            ,(lambda () (bfs-traverse fs start-hash visit-fn)))
           (,(string-append name " - DFS") .
            ,(lambda () (dfs-traverse fs start-hash visit-fn))))
-        100)))  ; 100 iterations
+        100)))
 
-;;; benchmark-pathfinding : FSCap String Hash Hash → (List BenchmarkResult)
-;;; Benchmark pathfinding algorithms.
 (define (benchmark-pathfinding fs name from-hash to-hash)
+  (doc 'type (-> FSCap String Hash Hash (List BenchmarkResult)))
+  (doc 'description "Benchmark pathfinding algorithms")
+  (doc 'export #t)
   (benchmark-compare
    `((,(string-append name " - path-exists?") .
       ,(lambda () (path-exists? fs from-hash to-hash)))
@@ -231,9 +205,10 @@
       ,(lambda () (shortest-path fs from-hash to-hash))))
    100))
 
-;;; benchmark-analysis : FSCap String → (List BenchmarkResult)
-;;; Benchmark graph analysis algorithms.
 (define (benchmark-analysis fs name)
+  (doc 'type (-> FSCap String (List BenchmarkResult)))
+  (doc 'description "Benchmark graph analysis algorithms")
+  (doc 'export #t)
   (benchmark-compare
    `((,(string-append name " - connected-components") .
       ,(lambda () (connected-components fs)))
@@ -243,11 +218,12 @@
       ,(lambda () (find-cycles fs)))
      (,(string-append name " - graph-stats") .
       ,(lambda () (graph-stats fs))))
-   50))  ; Fewer iterations for expensive operations
+   50))
 
-;;; benchmark-centrality : FSCap String Hash → (List BenchmarkResult)
-;;; Benchmark centrality metrics.
 (define (benchmark-centrality fs name hash)
+  (doc 'type (-> FSCap String Hash (List BenchmarkResult)))
+  (doc 'description "Benchmark centrality metrics")
+  (doc 'export #t)
   (benchmark-compare
    `((,(string-append name " - in-degree") .
       ,(lambda () (in-degree fs hash)))
@@ -259,13 +235,12 @@
       ,(lambda () (find-hubs fs 10))))
    100))
 
-;;; ====
-;;; Test Suites
-;;; ====
+(doc 'section 'test-suites)
 
-;;; run-traversal-benchmarks : → void
-;;; Run traversal benchmarks on different graph structures.
 (define (run-traversal-benchmarks)
+  (doc 'type (-> Void))
+  (doc 'description "Run traversal benchmarks on different graph structures")
+  (doc 'export #t)
   (display "
 ╔═══════════════════════════════════════════════════════════════╗
 ")
@@ -273,37 +248,34 @@
 ")
   (display "╚═══════════════════════════════════════════════════════════════╝
 ")
-  
+
   (let ([fs (make-fs-capability ".store-bench")])
-       ;; Clean store
        (unless (file-exists? ".store-bench")
                (mkdir ".store-bench")
                (mkdir ".store-bench/objects"))
-       
-       ;; Chain graph (100 nodes)
+
        (display "
 --- Chain Graph (100 nodes) ---
 ")
        (let ([start (make-chain-graph fs 100)])
             (benchmark-report (benchmark-traversal fs "Chain-100" start)))
-       
-       ;; Star graph (100 nodes)
+
        (display "
 --- Star Graph (100 nodes) ---
 ")
        (let ([center (make-star-graph fs 100)])
             (benchmark-report (benchmark-traversal fs "Star-100" center)))
-       
-       ;; Binary tree (depth 7 ≈ 127 nodes)
+
        (display "
 --- Binary Tree (depth 7) ---
 ")
        (let ([root (make-tree-graph fs 7 2)])
             (benchmark-report (benchmark-traversal fs "Tree-7" root)))))
 
-;;; run-pathfinding-benchmarks : → void
-;;; Run pathfinding benchmarks.
 (define (run-pathfinding-benchmarks)
+  (doc 'type (-> Void))
+  (doc 'description "Run pathfinding benchmarks")
+  (doc 'export #t)
   (display "
 ╔═══════════════════════════════════════════════════════════════╗
 ")
@@ -311,19 +283,16 @@
 ")
   (display "╚═══════════════════════════════════════════════════════════════╝
 ")
-  
+
   (let ([fs (make-fs-capability ".store-bench")])
-       ;; Clean store
        (unless (file-exists? ".store-bench")
                (mkdir ".store-bench")
                (mkdir ".store-bench/objects"))
-       
-       ;; Chain: pathfind from start to end
+
        (display "
 --- Chain Graph Pathfinding ---
 ")
        (let ([start (make-chain-graph fs 50)])
-            ;; Get last node by traversing
             (let ([end-hash #f])
                  (bfs-traverse fs start
                                (lambda (h b)
@@ -333,9 +302,10 @@
                        (benchmark-report
                         (benchmark-pathfinding fs "Chain-50" start end-hash)))))))
 
-;;; run-analysis-benchmarks : → void
-;;; Run graph analysis benchmarks.
 (define (run-analysis-benchmarks)
+  (doc 'type (-> Void))
+  (doc 'description "Run graph analysis benchmarks")
+  (doc 'export #t)
   (display "
 ╔═══════════════════════════════════════════════════════════════╗
 ")
@@ -343,30 +313,28 @@
 ")
   (display "╚═══════════════════════════════════════════════════════════════╝
 ")
-  
+
   (let ([fs (make-fs-capability ".store-bench")])
-       ;; Clean store
        (unless (file-exists? ".store-bench")
                (mkdir ".store-bench")
                (mkdir ".store-bench/objects"))
-       
-       ;; Dense graph
+
        (display "
 --- Dense Graph (50 nodes) ---
 ")
        (make-dense-graph fs 50)
        (benchmark-report (benchmark-analysis fs "Dense-50"))
-       
-       ;; Sparse graph
+
        (display "
 --- Sparse Graph (100 nodes) ---
 ")
        (make-sparse-graph fs 100)
        (benchmark-report (benchmark-analysis fs "Sparse-100"))))
 
-;;; run-scalability-tests : → void
-;;; Test how algorithms scale with graph size.
 (define (run-scalability-tests)
+  (doc 'type (-> Void))
+  (doc 'description "Test how algorithms scale with graph size")
+  (doc 'export #t)
   (display "
 ╔═══════════════════════════════════════════════════════════════╗
 ")
@@ -374,25 +342,24 @@
 ")
   (display "╚═══════════════════════════════════════════════════════════════╝
 ")
-  
+
   (display "
 Testing BFS traversal scaling on chain graphs:
 ")
   (display "───────────────────────────────────────────────────────────────
 ")
-  
+
   (let ([sizes '(10 50 100 500)])
        (for-each
         (lambda (size)
                 (let ([fs (make-fs-capability ".store-bench")])
-                     ;; Clean store for each test
                      (unless (file-exists? ".store-bench")
                              (mkdir ".store-bench"))
                      (when (file-exists? ".store-bench/objects")
                            (system "rm -rf .store-bench/objects/*"))
                      (unless (file-exists? ".store-bench/objects")
                              (mkdir ".store-bench/objects"))
-                     
+
                      (let* ([start (make-chain-graph fs size)]
                             [visit-fn (lambda (h b) (void))]
                             [result (benchmark (format "Chain-~a" size)
@@ -405,9 +372,10 @@ Testing BFS traversal scaling on chain graphs:
                                              (benchmark-result-mean-ns result)))))))
         sizes)))
 
-;;; run-all-benchmarks : → void
-;;; Run complete benchmark suite.
 (define (run-all-benchmarks)
+  (doc 'type (-> Void))
+  (doc 'description "Run complete benchmark suite")
+  (doc 'export #t)
   (display "
 ")
   (display "╔═══════════════════════════════════════════════════════════════╗
@@ -420,12 +388,12 @@ Testing BFS traversal scaling on chain graphs:
 ")
   (display "Running complete suite...
 ")
-  
+
   (run-traversal-benchmarks)
   (run-pathfinding-benchmarks)
   (run-analysis-benchmarks)
   (run-scalability-tests)
-  
+
   (display "
 ")
   (display "╔═══════════════════════════════════════════════════════════════╗
@@ -437,13 +405,12 @@ Testing BFS traversal scaling on chain graphs:
   (display "
 "))
 
-;;; ====
-;;; Quick Test Functions
-;;; ====
+(doc 'section 'quick-test-functions)
 
-;;; quick-benchmark : → void
-;;; Quick test of basic functionality.
 (define (quick-benchmark)
+  (doc 'type (-> Void))
+  (doc 'description "Quick test of basic functionality")
+  (doc 'export #t)
   (display "
 Quick benchmark test...
 ")
@@ -451,7 +418,7 @@ Quick benchmark test...
        (unless (file-exists? ".store-bench-quick")
                (mkdir ".store-bench-quick")
                (mkdir ".store-bench-quick/objects"))
-       
+
        (let ([start (make-chain-graph fs 20)])
             (let ([result (benchmark "Quick BFS test"
                                      (lambda ()
@@ -460,9 +427,7 @@ Quick benchmark test...
                                      50)])
                  (benchmark-report (list result))))))
 
-;;; ====
-;;; Load Message
-;;; ====
+(doc 'section 'load-message)
 
 (display "
 ")

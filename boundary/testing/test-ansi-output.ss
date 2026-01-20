@@ -1,11 +1,14 @@
-;;; boundary/testing/test-ansi-output.ss — Test the ANSI test output
-;;;
-;;; Run with: scheme --script boundary/testing/test-ansi-output.ss
-
 (load "core/testing/test-framework.ss")
 (load "boundary/testing/ansi-test-output.ss")
 
-;;; Quick demo tests
+(doc 'module 'test-ansi-output)
+(doc 'description "Test the ANSI test output - Quick demo tests")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+(doc 'dependencies '(core/testing/test-framework boundary/testing/ansi-test-output))
+
+(doc 'section 'demo-tests)
+
 (define-test "passing test"
   (assert-equal 4 (+ 2 2)))
 
@@ -15,8 +18,9 @@
 (define-test "string test"
   (assert-equal "hello" "hello"))
 
-;; Uncomment to see failure output:
-;; (define-test "intentional failure"
-;;   (assert-equal 5 (+ 2 2)))
+(doc 'note "Uncomment to see failure output:")
+(doc 'fixme "intentional failure for demo - kept commented")
+
+(doc 'section 'run-tests)
 
 (run-all-tests)

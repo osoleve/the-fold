@@ -1,98 +1,117 @@
-;;; boundary/storage/store-api.ss — Persistent Block Storage API for The Fold
-;;;
-;;; A clean, functional API for storing and retrieving blocks from
-;;; the content-addressed .store filesystem.
-;;;
-;;; DESIGN PRINCIPLES:
-;;;   • Pure functional interface (except fs-capability mutation)
-;;;   • Content-addressed (blocks identified by hash)
-;;;   • Composable (works with existing block primitives)
-;;;   • Efficient (leverage existing fs.ss operations)
-;;;
-;;; TIER ASSIGNMENT:
-;;;   Tier 3-4: Most operations (disk I/O, minimal computation)
-;;;   Tier 5-6: Filtering and searching operations
-
 (source-directories (cons "core" (source-directories)))
 
-;;; NOTE: string utilities provided by core/prelude.ss
 (load "core/base/prelude.ss")
 (load "core/blocks/block.ss")
 (load "core/base/sha256.ss")
 (load "boundary/io/fs.ss")
 
-;;; ====
-;;; Core Storage Operations (Tier 3-4)
-;;; ====
+(doc 'module 'store-api)
+(doc 'description "Persistent Block Storage API for The Fold")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+(doc 'dependencies '(core/base/prelude core/blocks/block core/base/sha256 boundary/io/fs))
 
-;;; store-put! : FSCap Block → Hash
-;;; Store a block and return its hash.
-;;; Pure operation: identical blocks always produce same hash.
+(doc 'note "A clean, functional API for storing and retrieving blocks from the content-addressed .store filesystem")
+
+(doc 'design-principles "
+  • Pure functional interface (except fs-capability mutation)
+  • Content-addressed (blocks identified by hash)
+  • Composable (works with existing block primitives)
+  • Efficient (leverage existing fs.ss operations)")
+
+(doc 'tier-assignment "
+  Tier 3-4: Most operations (disk I/O, minimal computation)
+  Tier 5-6: Filtering and searching operations")
+
+(doc 'section 'core-storage-operations)
+
 (define (store-put! fs block)
+  (doc 'type (-> FSCap Block Hash))
+  (doc 'description "Store a block and return its hash")
+  (doc 'note "Pure operation: identical blocks always produce same hash")
+  (doc 'tier '(3 4))
+  (doc 'export #t)
   (let ([h (hash-block block)])
        (fs-store! fs block)
        h))
 
-;;; store-get : FSCap Hash → (Maybe Block)
-;;; Retrieve a block by hash, or #f if not found.
 (define (store-get fs hash)
+  (doc 'type (-> FSCap Hash (Maybe Block)))
+  (doc 'description "Retrieve a block by hash, or #f if not found")
+  (doc 'tier '(3 4))
+  (doc 'export #t)
   (fs-fetch fs hash))
 
-;;; store-exists? : FSCap Hash → Boolean
-;;; Check if a block exists in the store.
 (define (store-exists? fs hash)
+  (doc 'type (-> FSCap Hash Boolean))
+  (doc 'description "Check if a block exists in the store")
+  (doc 'tier '(3 4))
+  (doc 'export #t)
   (not (eq? (fs-fetch fs hash) #f)))
 
-;;; store-all-hashes : FSCap → (List Hash)
-;;; Get all hashes in the store.
 (define (store-all-hashes fs)
+  (doc 'type (-> FSCap (List Hash)))
+  (doc 'description "Get all hashes in the store")
+  (doc 'tier '(3 4))
+  (doc 'export #t)
   (fs-all-hashes fs))
 
-;;; store-count : FSCap → Integer
-;;; Count total blocks in store.
 (define (store-count fs)
+  (doc 'type (-> FSCap Integer))
+  (doc 'description "Count total blocks in store")
+  (doc 'tier '(3 4))
+  (doc 'export #t)
   (length (fs-all-hashes fs)))
 
-;;; ====
-;;; Filtering and Querying Operations (Tier 5-6)
-;;; ====
+(doc 'section 'filtering-and-querying)
 
-;;; store-all-blocks : FSCap → (List Block)
-;;; Load all blocks from store.
-;;; WARNING: Loads everything into memory. Use with care on large stores.
 (define (store-all-blocks fs)
+  (doc 'type (-> FSCap (List Block)))
+  (doc 'description "Load all blocks from store")
+  (doc 'warning "Loads everything into memory. Use with care on large stores")
+  (doc 'tier '(5 6))
+  (doc 'export #t)
   (map (lambda (h) (fs-fetch fs h))
        (fs-all-hashes fs)))
 
-;;; store-filter : FSCap (Block → Boolean) → (List Block)
-;;; Find all blocks matching predicate.
-;;; Loads blocks lazily during iteration.
 (define (store-filter fs predicate)
+  (doc 'type (-> FSCap (-> Block Boolean) (List Block)))
+  (doc 'description "Find all blocks matching predicate")
+  (doc 'note "Loads blocks lazily during iteration")
+  (doc 'tier '(5 6))
+  (doc 'export #t)
   (filter predicate (store-all-blocks fs)))
 
-;;; store-find-by-tag : FSCap Symbol → (List Block)
-;;; Find all blocks with given tag.
 (define (store-find-by-tag fs tag)
+  (doc 'type (-> FSCap Symbol (List Block)))
+  (doc 'description "Find all blocks with given tag")
+  (doc 'tier '(5 6))
+  (doc 'export #t)
   (store-filter fs (lambda (b) (eq? (block-tag b) tag))))
 
-;;; store-find-by-payload : FSCap (Bytevector → Boolean) → (List Block)
-;;; Find all blocks where payload matches predicate.
 (define (store-find-by-payload fs predicate)
+  (doc 'type (-> FSCap (-> Bytevector Boolean) (List Block)))
+  (doc 'description "Find all blocks where payload matches predicate")
+  (doc 'tier '(5 6))
+  (doc 'export #t)
   (store-filter fs (lambda (b) (predicate (block-payload b)))))
 
-;;; store-find-by-payload-contains : FSCap String → (List Block)
-;;; Find all blocks whose payload (as UTF-8 string) contains substring.
-;;; BUGFIX: Guard against invalid UTF-8 in binary payloads
 (define (store-find-by-payload-contains fs substring)
+  (doc 'type (-> FSCap String (List Block)))
+  (doc 'description "Find all blocks whose payload (as UTF-8 string) contains substring")
+  (doc 'note "Guards against invalid UTF-8 in binary payloads")
+  (doc 'tier '(5 6))
+  (doc 'export #t)
   (store-filter fs (lambda (b)
-                           (guard (e [else #f])  ; Return #f if payload isn't valid UTF-8
+                           (guard (e [else #f])
                                   (let ([payload-str (utf8->string (block-payload b))])
                                        (string-contains? payload-str substring))))))
 
-
-;;; store-find-by-ref : FSCap Hash → (List Block)
-;;; Find all blocks that reference given hash.
 (define (store-find-by-ref fs target-hash)
+  (doc 'type (-> FSCap Hash (List Block)))
+  (doc 'description "Find all blocks that reference given hash")
+  (doc 'tier '(5 6))
+  (doc 'export #t)
   (store-filter fs (lambda (b)
                            (let ([refs (block-refs b)])
                                 (let check-refs ([i 0])
@@ -101,28 +120,30 @@
                                       [(equal? (vector-ref refs i) target-hash) #t]
                                       [else (check-refs (+ i 1))]))))))
 
-;;; ====
-;;; Batch Operations (Tier 4-5)
-;;; ====
+(doc 'section 'batch-operations)
 
-;;; store-put-many! : FSCap (List Block) → (List Hash)
-;;; Store multiple blocks and return their hashes.
 (define (store-put-many! fs blocks)
+  (doc 'type (-> FSCap (List Block) (List Hash)))
+  (doc 'description "Store multiple blocks and return their hashes")
+  (doc 'tier '(4 5))
+  (doc 'export #t)
   (map (lambda (b) (store-put! fs b)) blocks))
 
-;;; store-get-many : FSCap (List Hash) → (List (Maybe Block))
-;;; Retrieve multiple blocks by hash.
 (define (store-get-many fs hashes)
+  (doc 'type (-> FSCap (List Hash) (List (Maybe Block))))
+  (doc 'description "Retrieve multiple blocks by hash")
+  (doc 'tier '(4 5))
+  (doc 'export #t)
   (map (lambda (h) (store-get fs h)) hashes))
 
-;;; ====
-;;; Statistics and Inspection (Tier 5-6)
-;;; ====
+(doc 'section 'statistics-and-inspection)
 
-;;; store-stats : FSCap → Alist
-;;; Compute statistics about the store.
-;;; Returns: ((total . N) (by-tag . ((tag . count) ...)) (total-bytes . N))
 (define (store-stats fs)
+  (doc 'type (-> FSCap Alist))
+  (doc 'description "Compute statistics about the store")
+  (doc 'returns "((total . N) (by-tag . ((tag . count) ...)) (total-bytes . N))")
+  (doc 'tier '(5 6))
+  (doc 'export #t)
   (let* ([all-blocks (store-all-blocks fs)]
          [total (length all-blocks)]
          [total-bytes (fold-left (lambda (acc b)
@@ -134,8 +155,9 @@
           (by-tag . ,by-tag)
           (total-bytes . ,total-bytes))))
 
-;;; Helper: count-by-tag
 (define (count-by-tag blocks)
+  (doc 'type (-> (List Block) Alist))
+  (doc 'description "Count blocks by tag")
   (let count-loop ([blocks blocks]
                    [counts '()])
        (if (null? blocks)
@@ -151,9 +173,11 @@
                                       counts)
                                  (cons (cons tag 1) counts)))))))
 
-;;; store-print-stats : FSCap → Void
-;;; Print human-readable store statistics.
 (define (store-print-stats fs)
+  (doc 'type (-> FSCap Void))
+  (doc 'description "Print human-readable store statistics")
+  (doc 'tier '(5 6))
+  (doc 'export #t)
   (let ([stats (store-stats fs)])
        (printf "Store Statistics:\n")
        (printf "  Total blocks: ~a\n" (cdr (assq 'total stats)))
@@ -163,13 +187,13 @@
                          (printf "    ~a: ~a\n" (car pair) (cdr pair)))
                  (cdr (assq 'by-tag stats)))))
 
-;;; ====
-;;; Graph Navigation Helpers (Tier 5-6)
-;;; ====
+(doc 'section 'graph-navigation)
 
-;;; store-get-refs : FSCap Block → (List Block)
-;;; Get all blocks referenced by given block.
 (define (store-get-refs fs block)
+  (doc 'type (-> FSCap Block (List Block)))
+  (doc 'description "Get all blocks referenced by given block")
+  (doc 'tier '(5 6))
+  (doc 'export #t)
   (let ([refs (block-refs block)])
        (let collect-refs ([i 0]
                           [result '()])
@@ -182,29 +206,35 @@
                                             (cons ref-block result)
                                             result))))))))
 
-;;; store-get-referrers : FSCap Hash → (List Block)
-;;; Get all blocks that reference given hash.
-;;; Alias for store-find-by-ref for clarity.
 (define (store-get-referrers fs hash)
+  (doc 'type (-> FSCap Hash (List Block)))
+  (doc 'description "Get all blocks that reference given hash")
+  (doc 'note "Alias for store-find-by-ref for clarity")
+  (doc 'tier '(5 6))
+  (doc 'export #t)
   (store-find-by-ref fs hash))
 
-;;; ====
-;;; Knowledge Graph Helpers (Tier 6)
-;;; ====
+(doc 'section 'knowledge-graph-helpers)
 
-;;; store-get-entities : FSCap → (List Block)
-;;; Get all entity blocks.
 (define (store-get-entities fs)
+  (doc 'type (-> FSCap (List Block)))
+  (doc 'description "Get all entity blocks")
+  (doc 'tier 6)
+  (doc 'export #t)
   (store-find-by-tag fs 'entity))
 
-;;; store-get-relations : FSCap → (List Block)
-;;; Get all relation blocks.
 (define (store-get-relations fs)
+  (doc 'type (-> FSCap (List Block)))
+  (doc 'description "Get all relation blocks")
+  (doc 'tier 6)
+  (doc 'export #t)
   (store-find-by-tag fs 'relation))
 
-;;; store-get-collections : FSCap → (List Block)
-;;; Get all collection blocks.
 (define (store-get-collections fs)
+  (doc 'type (-> FSCap (List Block)))
+  (doc 'description "Get all collection blocks")
+  (doc 'tier 6)
+  (doc 'export #t)
   (store-find-by-tag fs 'collection))
 
 (printf "✓ Store API loaded\n")

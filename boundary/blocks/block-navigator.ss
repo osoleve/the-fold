@@ -1,45 +1,25 @@
-;;; boundary/blocks/block-navigator.ss — Interactive Block Store Navigator & Analytics
-;;;
-;;; Created by Secret-Builder (sonnet)
-;;;
-;;; A comprehensive tool for exploring and analyzing the content-addressed
-;;; block store. Provides navigation, visualization, analytics, and search
-;;; capabilities to understand the structure and relationships within The Fold.
-;;;
-;;; This is Shell code: uses filesystem capabilities, pretty-printing, stats.
-;;;
-;;; Features:
-;;;   - Interactive block exploration (drill down by hash)
-;;;   - Relationship visualization (tree and graph views)
-;;;   - Analytics (block type distribution, size stats, reference counts)
-;;;   - Enhanced search with relevance ranking
-;;;   - Orphan detection (blocks with no inbound refs)
-;;;   - Most referenced blocks (popularity analysis)
-;;;   - Block lineage tracking (full ref chain)
-;;;
-;;; Usage:
-;;;   (load "boundary/blocks/block-navigator.ss")
-;;;   (explore (fs) hash-prefix)      ; Explore a block and its refs
-;;;   (block-stats (fs))               ; Show store statistics
-;;;   (find-popular (fs) n)            ; Find n most-referenced blocks
-;;;   (find-orphans (fs))              ; Find blocks with no inbound refs
-;;;   (visualize-tree (fs) hash depth); Show block tree
-;;;   (search-ranked (fs) query)       ; Search with ranking
+(define-syntax doc
+  (syntax-rules ()
+    [(_ args ...) (void)]))
 
-;;; ====
-;;; Dependencies (must be loaded first)
-;;; ====
-;;;   core/block.ss
-;;;   core/sha256.ss
-;;;   boundary/io/fs.ss
+(doc 'module 'block-navigator)
+(doc 'description "Interactive Block Store Navigator & Analytics")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+(doc 'created-by "Secret-Builder (sonnet)")
+(doc 'note "A comprehensive tool for exploring and analyzing the content-addressed block store")
+(doc 'note "Provides navigation, visualization, analytics, and search capabilities")
+(doc 'note "This is Shell code: uses filesystem capabilities, pretty-printing, stats")
 
-;;; ====
-;;; Block Information Display
-;;; ====
+(doc 'section 'dependencies)
+(doc 'note "core/block.ss, core/sha256.ss, boundary/io/fs.ss must be loaded first")
 
-;;; describe-block : FS × Bytevector → void
-;;; Display detailed information about a single block.
+(doc 'section 'display)
+
 (define (describe-block fs hash)
+  (doc 'type (-> FS Bytevector Void))
+  (doc 'description "Display detailed information about a single block")
+  (doc 'export #t)
   (let ([blk (fs-fetch fs hash)])
        (if (not blk)
            (display (format "Block not found: ~a\n" (hash->hex hash)))
@@ -52,7 +32,7 @@
             (display (format "Payload: ~a bytes\n" (bytevector-length (block-payload blk))))
             (display (format "Refs:    ~a\n" (vector-length (block-refs blk))))
             (newline)
-            
+
             ;; Show payload preview (first 200 chars)
             (let ([payload-text (guard (e [else "[binary data]"])
                                        (utf8->string (block-payload blk)))])
@@ -60,7 +40,7 @@
                  (display (truncate-string payload-text 200))
                  (newline))
             (newline)
-            
+
             ;; Show refs
             (let ([refs (block-refs blk)])
                  (when (> (vector-length refs) 0)
@@ -71,34 +51,35 @@
                                   (loop (+ i 1))))))
             (newline)))))
 
-;;; truncate-string : String × Nat → String
 (define (truncate-string str max-len)
+  (doc 'type (-> String Nat String))
+  (doc 'description "Truncate string to max length with ellipsis")
   (if (> (string-length str) max-len)
       (string-append (substring str 0 max-len) "...")
       str))
 
-;;; ====
-;;; Interactive Exploration
-;;; ====
+(doc 'section 'exploration)
 
-;;; explore : FS × String → void
-;;; Explore a block by hash prefix, showing it and its immediate refs.
 (define (explore fs hash-prefix)
+  (doc 'type (-> FS String Void))
+  (doc 'description "Explore a block by hash prefix, showing it and its immediate refs")
+  (doc 'export #t)
   (let ([hash (find-block-by-prefix fs hash-prefix)])
        (if (not hash)
            (display (format "No block found with prefix: ~a\n" hash-prefix))
            (begin
             (describe-block fs hash)
-            
+
             ;; Offer to explore refs
             (let ([blk (fs-fetch fs hash)])
                  (let ([refs (block-refs blk)])
                       (when (> (vector-length refs) 0)
                             (display "Use (explore-ref fs \"hash-prefix\" n) to explore reference n\n"))))))))
 
-;;; explore-ref : FS × String × Nat → void
-;;; Explore the nth reference of a block.
 (define (explore-ref fs hash-prefix n)
+  (doc 'type (-> FS String Nat Void))
+  (doc 'description "Explore the nth reference of a block")
+  (doc 'export #t)
   (let ([hash (find-block-by-prefix fs hash-prefix)])
        (if (not hash)
            (display (format "No block found with prefix: ~a\n" hash-prefix))
@@ -109,9 +90,9 @@
                                           n (- (vector-length refs) 1)))
                          (explore fs (hash->hex (vector-ref refs n)))))))))
 
-;;; find-block-by-prefix : FS × String → Bytevector | #f
-;;; Find a block hash that starts with the given prefix.
 (define (find-block-by-prefix fs prefix)
+  (doc 'type (-> FS String (Maybe Bytevector)))
+  (doc 'description "Find a block hash that starts with the given prefix")
   (let ([all-hashes (fs-all-hashes fs)])
        (let loop ([hashes all-hashes])
             (if (null? hashes)
@@ -121,15 +102,14 @@
                          hash
                          (loop (cdr hashes))))))))
 
-;;; string-prefix? is now provided by boundary/io/fs.ss
+(doc 'note "string-prefix? is now provided by boundary/io/fs.ss")
 
-;;; ====
-;;; Tree Visualization
-;;; ====
+(doc 'section 'visualization)
 
-;;; visualize-tree : FS × String × Nat → void
-;;; Display a block and its references as a tree, up to given depth.
 (define (visualize-tree fs hash-prefix max-depth)
+  (doc 'type (-> FS String Nat Void))
+  (doc 'description "Display a block and its references as a tree, up to given depth")
+  (doc 'export #t)
   (let ([hash (find-block-by-prefix fs hash-prefix)])
        (if (not hash)
            (display (format "No block found with prefix: ~a\n" hash-prefix))
@@ -141,16 +121,16 @@
             (display-tree fs hash "" max-depth 0 (make-eq-hashtable))
             (newline)))))
 
-;;; display-tree : FS × Bytevector × String × Nat × Nat × Hashtable → void
-;;; Recursively display a block tree with indentation.
 (define (display-tree fs hash indent max-depth current-depth visited)
+  (doc 'type (-> FS Bytevector String Nat Nat Hashtable Void))
+  (doc 'description "Recursively display a block tree with indentation")
   (let ([hash-hex (hash->hex hash)])
        ;; Check if we've already visited this block (cycle detection)
        (if (hashtable-ref visited hash #f)
            (display (format "~a~a [already shown]\n" indent (short-hash hash-hex)))
            (begin
             (hashtable-set! visited hash #t)
-            
+
             (let ([blk (fs-fetch fs hash)])
                  (if (not blk)
                      (display (format "~a~a [missing]\n" indent (short-hash hash-hex)))
@@ -161,7 +141,7 @@
                                        (block-tag blk)
                                        (bytevector-length (block-payload blk))
                                        (vector-length (block-refs blk))))
-                      
+
                       ;; Recurse into refs if not at max depth
                       (when (< current-depth max-depth)
                             (let ([refs (block-refs blk)])
@@ -178,25 +158,24 @@
                                                                 visited)
                                                   (loop (+ i 1))))))))))))))
 
-;;; short-hash : String → String
-;;; Show just the first 8 characters of a hash.
 (define (short-hash hash-hex)
+  (doc 'type (-> String String))
+  (doc 'description "Show just the first 8 characters of a hash")
   (substring hash-hex 0 (min 8 (string-length hash-hex))))
 
-;;; ====
-;;; Analytics & Statistics
-;;; ====
+(doc 'section 'analytics)
 
-;;; block-stats : FS → void
-;;; Display comprehensive statistics about the block store.
 (define (block-stats fs)
+  (doc 'type (-> FS Void))
+  (doc 'description "Display comprehensive statistics about the block store")
+  (doc 'export #t)
   (let* ([all-hashes (fs-all-hashes fs)]
          [total-blocks (length all-hashes)]
          [tag-counts (make-eq-hashtable)]
          [total-payload-bytes 0]
          [total-refs 0]
          [ref-counts (make-hashtable equal-hash equal?)])
-        
+
         ;; Gather statistics
         (for-each
          (lambda (hash)
@@ -208,11 +187,11 @@
                                    (let* ([tag (block-tag blk)]
                                           [current (hashtable-ref tag-counts tag 0)])
                                          (hashtable-set! tag-counts tag (+ current 1)))
-                                   
+
                                    ;; Accumulate payload size
                                    (set! total-payload-bytes
                                          (+ total-payload-bytes (bytevector-length (block-payload blk))))
-                                   
+
                                    ;; Count refs and track inbound references
                                    (let ([refs (block-refs blk)])
                                         (set! total-refs (+ total-refs (vector-length refs)))
@@ -223,7 +202,7 @@
                                                          (hashtable-set! ref-counts ref-hash (+ current 1))
                                                          (loop (+ i 1))))))))))
          all-hashes)
-        
+
         ;; Display statistics
         (display "╔══════════════════════════════════════════════════════════════╗\n")
         (display "║                  BLOCK STORE STATISTICS                      ║\n")
@@ -239,7 +218,7 @@
                              (inexact (/ total-refs total-blocks))
                              0)))
         (newline)
-        
+
         ;; Tag distribution
         (display "Block types:\n")
         (let-values ([(tag-vec count-vec) (hashtable-entries tag-counts)])
@@ -254,7 +233,7 @@
                           tags
                           counts)))
         (newline)
-        
+
         ;; Reference analysis
         (let-values ([(ref-hash-vec ref-count-vec) (hashtable-entries ref-counts)])
                     (let* ([ref-count-vals (vector->list ref-count-vec)]
@@ -264,12 +243,13 @@
                           (display (format "Orphan blocks:   ~a (no inbound refs)\n" orphan-count))))
         (newline)))
 
-;;; find-popular : FS × Nat → void
-;;; Find the n most-referenced blocks.
 (define (find-popular fs n)
+  (doc 'type (-> FS Nat Void))
+  (doc 'description "Find the n most-referenced blocks")
+  (doc 'export #t)
   (let* ([all-hashes (fs-all-hashes fs)]
          [ref-counts (make-hashtable equal-hash equal?)])
-        
+
         ;; Count inbound references
         (for-each
          (lambda (hash)
@@ -283,7 +263,7 @@
                                                   (hashtable-set! ref-counts ref-hash (+ current 1))
                                                   (loop (+ i 1)))))))))
          all-hashes)
-        
+
         ;; Convert to list and sort
         (let-values ([(hash-vec count-vec) (hashtable-entries ref-counts)])
                     (let* ([hashes (vector->list hash-vec)]
@@ -291,7 +271,7 @@
                            [pairs (map cons hashes counts)]
                            [sorted (list-sort (lambda (a b) (> (cdr a) (cdr b))) pairs)]
                            [top-n (take (min n (length sorted)) sorted)])
-                          
+
                           (display "╔══════════════════════════════════════════════════════════════╗\n")
                           (display "║                   MOST POPULAR BLOCKS                        ║\n")
                           (display "╚══════════════════════════════════════════════════════════════╝\n")
@@ -308,12 +288,13 @@
                            top-n)
                           (newline)))))
 
-;;; find-orphans : FS → void
-;;; Find blocks with no inbound references.
 (define (find-orphans fs)
+  (doc 'type (-> FS Void))
+  (doc 'description "Find blocks with no inbound references")
+  (doc 'export #t)
   (let* ([all-hashes (fs-all-hashes fs)]
          [referenced (make-hashtable equal-hash equal?)])
-        
+
         ;; Mark all referenced blocks
         (for-each
          (lambda (hash)
@@ -325,7 +306,7 @@
                                             (hashtable-set! referenced (vector-ref refs i) #t)
                                             (loop (+ i 1))))))))
          all-hashes)
-        
+
         ;; Find orphans (blocks not in referenced set)
         (let ([orphans (filter (lambda (hash) (not (hashtable-ref referenced hash #f)))
                                all-hashes)])
@@ -344,16 +325,15 @@
               orphans)
              (newline))))
 
-;;; ====
-;;; Enhanced Search
-;;; ====
+(doc 'section 'search)
 
-;;; search-ranked : FS × String → void
-;;; Search for blocks containing query string, ranked by relevance.
 (define (search-ranked fs query)
+  (doc 'type (-> FS String Void))
+  (doc 'description "Search for blocks containing query string, ranked by relevance")
+  (doc 'export #t)
   (let* ([all-hashes (fs-all-hashes fs)]
          [results '()])
-        
+
         ;; Search all blocks
         (for-each
          (lambda (hash)
@@ -368,7 +348,7 @@
                                   (when (> total-score 0)
                                         (set! results (cons (list hash blk total-score) results)))))))
          all-hashes)
-        
+
         ;; Sort by score descending
         (let ([sorted (list-sort (lambda (a b) (> (caddr a) (caddr b))) results)])
              (display "╔══════════════════════════════════════════════════════════════╗\n")
@@ -377,7 +357,7 @@
              (newline)
              (display (format "Query: \"~a\"\n" query))
              (display (format "Found: ~a blocks\n\n" (length sorted)))
-             
+
              (for-each
               (lambda (result)
                       (let* ([hash (car result)]
@@ -393,15 +373,16 @@
                             (newline)))
               sorted))))
 
-;;; bn-string-contains-ci? : String × String → Boolean
-;;; Case-insensitive substring search.
 (define (bn-string-contains-ci? haystack needle)
+  (doc 'type (-> String String Boolean))
+  (doc 'description "Case-insensitive substring search")
   (let ([hay-lower (string-downcase haystack)]
         [need-lower (string-downcase needle)])
        (bn-string-contains? hay-lower need-lower)))
 
-;;; bn-string-contains? : String × String → Boolean
 (define (bn-string-contains? haystack needle)
+  (doc 'type (-> String String Boolean))
+  (doc 'description "Substring search")
   (let ([need-len (string-length needle)])
        (let loop ([i 0])
             (cond
@@ -409,9 +390,9 @@
              [(string=? (substring haystack i (+ i need-len)) needle) #t]
              [else (loop (+ i 1))]))))
 
-;;; bn-count-occurrences : String × String → Nat
-;;; Count how many times needle appears in haystack (case-insensitive).
 (define (bn-count-occurrences haystack needle)
+  (doc 'type (-> String String Nat))
+  (doc 'description "Count how many times needle appears in haystack (case-insensitive)")
   (let ([hay-lower (string-downcase haystack)]
         [need-lower (string-downcase needle)]
         [need-len (string-length needle)])
@@ -422,13 +403,12 @@
               (loop (+ i need-len) (+ count 1))]
              [else (loop (+ i 1) count)]))))
 
-;;; ====
-;;; Lineage Tracking
-;;; ====
+(doc 'section 'lineage)
 
-;;; show-lineage : FS × String → void
-;;; Show the full reference chain starting from a block.
 (define (show-lineage fs hash-prefix)
+  (doc 'type (-> FS String Void))
+  (doc 'description "Show the full reference chain starting from a block")
+  (doc 'export #t)
   (let ([hash (find-block-by-prefix fs hash-prefix)])
        (if (not hash)
            (display (format "No block found with prefix: ~a\n" hash-prefix))
@@ -440,8 +420,9 @@
             (display-lineage fs hash 0 (make-eq-hashtable))
             (newline)))))
 
-;;; display-lineage : FS × Bytevector × Nat × Hashtable → void
 (define (display-lineage fs hash depth visited)
+  (doc 'type (-> FS Bytevector Nat Hashtable Void))
+  (doc 'description "Display lineage recursively")
   (if (hashtable-ref visited hash #f)
       (display (format "~a[cycle detected]\n" (make-string (* depth 2) #\space)))
       (begin
@@ -458,21 +439,10 @@
                       (when (> (vector-length refs) 0)
                             (display-lineage fs (vector-ref refs 0) (+ depth 1) visited)))))))))
 
-;;; ====
-;;; take is provided by core/prelude.ss as (take n lst)
-;;; take is provided by core/prelude.ss as (take n lst)
-;;; take is provided by core/prelude.ss as (take n lst)
-;;; take is provided by core/prelude.ss as (take n lst)
-;;; take is provided by core/prelude.ss as (take n lst)
-;;; take is provided by core/prelude.ss as (take n lst)
-;;; take is provided by core/prelude.ss as (take n lst)
+(doc 'note "take is provided by core/prelude.ss as (take n lst)")
 
-;;; ====
-;;; Export Note
-;;; ====
-
-;;; This file provides the following public functions:
-;;;   explore, describe-block, visualize-tree, block-stats
-;;;   find-popular, find-orphans, search-ranked, show-lineage
-;;;
-;;; Load this after boundary/io/fs.ss and core/block.ss are available.
+(doc 'section 'exports)
+(doc 'note "This file provides the following public functions:")
+(doc 'note "explore, describe-block, visualize-tree, block-stats")
+(doc 'note "find-popular, find-orphans, search-ranked, show-lineage")
+(doc 'note "Load this after boundary/io/fs.ss and core/block.ss are available")

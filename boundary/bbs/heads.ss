@@ -1,42 +1,33 @@
-;;; boundary/bbs/heads.ss — BBS Head File Management
-;;;
-;;; Manages named heads for issues in .store/heads/bbs/
-;;; Each issue has a head file containing its current block hash.
-;;;
-;;; Head files contain 66-character hex strings:
-;;;   - 2 chars: version byte (00)
-;;;   - 64 chars: SHA-256 hash
-;;;
-;;; Lock-aware design:
-;;;   - Public functions (bbs-write-head!, bbs-delete-head!) acquire locks
-;;;   - Internal functions (%bbs-write-head!, %bbs-delete-head!) for use
-;;;     when lock already held
-;;;
-;;; This is Shell code: impure (filesystem IO).
-
 (load "core/base/prelude.ss")
 (load "core/blocks/cas.ss")
 (load "boundary/io/atomic.ss")
 (load "boundary/io/file-lock.ss")
 
-;;; ====
-;;; Configuration
-;;; ====
+(doc 'module 'boundary/bbs/heads)
+(doc 'description "BBS Head File Management - Manages named heads for issues in .store/heads/bbs/. Each issue has a head file containing its current block hash. Head files contain 66-character hex strings: 2 chars version byte (00), 64 chars SHA-256 hash")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+(doc 'dependencies '(core/base/prelude core/blocks/cas boundary/io/atomic boundary/io/file-lock))
+(doc 'note "Lock-aware design: Public functions (bbs-write-head!, bbs-delete-head!) acquire locks. Internal functions (%bbs-write-head!, %bbs-delete-head!) for use when lock already held")
 
+(doc 'section 'configuration)
+
+(doc *bbs-heads-dir* 'type 'String)
+(doc *bbs-heads-dir* 'description "Directory for BBS head files")
 (define *bbs-heads-dir* ".store/heads/bbs")
 
-;;; ====
-;;; Path Utilities
-;;; ====
+(doc 'section 'path-utilities)
 
-;;; bbs-head-path : String -> String
-;;; Get the filesystem path for an issue's head file.
 (define (bbs-head-path id)
+  (doc 'type '(-> String String))
+  (doc 'description "Get the filesystem path for an issue's head file")
+  (doc 'export #t)
   (string-append *bbs-heads-dir* "/" id ".head"))
 
-;;; bbs-ensure-heads-dir! : -> Void
-;;; Ensure the heads directory exists.
 (define (bbs-ensure-heads-dir!)
+  (doc 'type '(-> Void))
+  (doc 'description "Ensure the heads directory exists")
+  (doc 'export #t)
   (unless (file-exists? ".store")
     (mkdir ".store"))
   (unless (file-exists? ".store/heads")
@@ -44,36 +35,31 @@
   (unless (file-exists? *bbs-heads-dir*)
     (mkdir *bbs-heads-dir*)))
 
-;;; ====
-;;; Read/Write Operations
-;;; ====
+(doc 'section 'read-write-operations)
 
-;;; bbs-read-head : String -> Bytevector | #f
-;;; Read the current hash for an issue ID.
-;;; Returns #f if the head file doesn't exist.
 (define (bbs-read-head id)
+  (doc 'type '(-> String (Option Bytevector)))
+  (doc 'description "Read the current hash for an issue ID. Returns #f if the head file doesn't exist")
+  (doc 'export #t)
   (let ([path (bbs-head-path id)])
     (guard (e [else #f])
       (if (file-exists? path)
           (let* ([content (call-with-input-file path
                            (lambda (port) (get-line port)))]
                  [trimmed (string-trim content)]
-                 ;; Strip 0x prefix if present
                  [hex (if (and (> (string-length trimmed) 2)
                                (string=? (substring trimmed 0 2) "0x"))
                           (substring trimmed 2 (string-length trimmed))
                           trimmed)])
-            ;; Accept 64-char (32-byte hash) or 66-char (33-byte CAS address)
             (let ([len (string-length hex)])
               (if (or (= len 64) (= len 66))
                   (hex->hash hex)
                   #f)))
           #f))))
 
-;;; %bbs-write-head! : String Bytevector -> Void
-;;; INTERNAL: Write the current hash for an issue ID (caller must hold lock).
-;;; Uses atomic write-then-rename to prevent corruption.
 (define (%bbs-write-head! id hash)
+  (doc 'type '(-> String Bytevector Void))
+  (doc 'description "INTERNAL: Write the current hash for an issue ID (caller must hold lock). Uses atomic write-then-rename to prevent corruption")
   (bbs-ensure-heads-dir!)
   (let ([path (bbs-head-path id)]
         [hex (hash->hex hash)])
@@ -83,62 +69,60 @@
         (newline port))
       '(replace))))
 
-;;; bbs-write-head! : String Bytevector -> Void
-;;; PUBLIC: Write the current hash for an issue ID with locking.
-;;; Uses atomic write-then-rename to prevent corruption.
 (define (bbs-write-head! id hash)
+  (doc 'type '(-> String Bytevector Void))
+  (doc 'description "PUBLIC: Write the current hash for an issue ID with locking. Uses atomic write-then-rename to prevent corruption")
+  (doc 'export #t)
   (let ([path (bbs-head-path id)])
     (with-file-lock path
       (lambda ()
         (%bbs-write-head! id hash)))))
 
-;;; %bbs-delete-head! : String -> Void
-;;; INTERNAL: Delete the head file for an issue (caller must hold lock).
 (define (%bbs-delete-head! id)
+  (doc 'type '(-> String Void))
+  (doc 'description "INTERNAL: Delete the head file for an issue (caller must hold lock)")
   (let ([path (bbs-head-path id)])
     (when (file-exists? path)
       (delete-file path))))
 
-;;; bbs-delete-head! : String -> Void
-;;; PUBLIC: Delete the head file for an issue (for closing/deleting).
 (define (bbs-delete-head! id)
+  (doc 'type '(-> String Void))
+  (doc 'description "PUBLIC: Delete the head file for an issue (for closing/deleting)")
+  (doc 'export #t)
   (let ([path (bbs-head-path id)])
     (with-file-lock path
       (lambda ()
         (%bbs-delete-head! id)))))
 
-;;; bbs-head-exists? : String -> Boolean
-;;; Check if a head file exists for an issue ID.
 (define (bbs-head-exists? id)
+  (doc 'type '(-> String Boolean))
+  (doc 'description "Check if a head file exists for an issue ID")
+  (doc 'export #t)
   (file-exists? (bbs-head-path id)))
 
-;;; ====
-;;; Compare-and-Swap (OCC)
-;;; ====
+(doc 'section 'compare-and-swap)
 
-;;; bbs-cas-head! : String Bytevector Bytevector -> Boolean
-;;; Atomically update head if current value matches expected.
-;;; Returns #t if successful, #f if current value differs.
-;;; Uses file locking to make the check-then-write truly atomic.
 (define (bbs-cas-head! id expected-hash new-hash)
+  (doc 'type '(-> String Bytevector Bytevector Boolean))
+  (doc 'description "Atomically update head if current value matches expected. Returns #t if successful, #f if current value differs. Uses file locking to make the check-then-write truly atomic")
+  (doc 'export #t)
   (let ([path (bbs-head-path id)])
     (with-file-lock path
       (lambda ()
         (let ([current (bbs-read-head id)])
           (if (or (not current)
                   (not (bytevector=? current expected-hash)))
-              #f  ; CAS failed - current doesn't match expected
+              #f
               (begin
-                (%bbs-write-head! id new-hash)  ; Use internal version
+                (%bbs-write-head! id new-hash)
                 #t)))))))
 
-;;; ====
-;;; Listing Operations
-;;; ====
+(doc 'section 'listing-operations)
 
-;;; bbs-list-heads : -> (List String)
-;;; List all issue IDs that have head files.
 (define (bbs-list-heads)
+  (doc 'type '(-> (List String)))
+  (doc 'description "List all issue IDs that have head files")
+  (doc 'export #t)
   (guard (e [else '()])
     (if (file-exists? *bbs-heads-dir*)
         (let ([entries (directory-list *bbs-heads-dir*)])
@@ -152,18 +136,18 @@
            entries))
         '())))
 
-;;; bbs-list-issue-heads : -> (List String)
-;;; List only issue IDs (fold-* prefix), excluding posts.
-;;; Use this for issue index operations to avoid counting posts.
 (define (bbs-list-issue-heads)
+  (doc 'type '(-> (List String)))
+  (doc 'description "List only issue IDs (fold-* prefix), excluding posts. Use this for issue index operations to avoid counting posts")
+  (doc 'export #t)
   (filter (lambda (id)
             (and (>= (string-length id) 5)
                  (string=? (substring id 0 5) "fold-")))
           (bbs-list-heads)))
 
-;;; filter-map : (a -> b | #f) (List a) -> (List b)
-;;; Map and filter in one pass.
 (define (filter-map f lst)
+  (doc 'type '(-> (-> a (Option b)) (List a) (List b)))
+  (doc 'description "Map and filter in one pass")
   (let loop ([lst lst] [acc '()])
     (if (null? lst)
         (reverse acc)
@@ -171,13 +155,11 @@
           (loop (cdr lst)
                 (if result (cons result acc) acc))))))
 
-;;; ====
-;;; String Utilities
-;;; ====
+(doc 'section 'string-utilities)
 
-;;; string-trim : String -> String
-;;; Remove leading and trailing whitespace.
 (define (string-trim str)
+  (doc 'type '(-> String String))
+  (doc 'description "Remove leading and trailing whitespace")
   (let* ([len (string-length str)]
          [start (let loop ([i 0])
                   (if (>= i len)

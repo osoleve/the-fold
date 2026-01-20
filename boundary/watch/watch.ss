@@ -1,32 +1,28 @@
-;;; boundary/watch/watch.ss — File Watching and Auto-Reload System
-;;;
-;;; Watch files and directories for changes, trigger actions on modification.
-;;; Supports auto-reload, auto-test, debouncing, and custom actions.
-;;;
-;;; This is Shell code: uses IO, manages background threads, handles failure.
-;;;
-;;; Key Functions:
-;;;   (watch-file path action) → Watcher
-;;;   (watch-dir path pattern action) → Watcher
-;;;   (auto-test path) → Watcher
-;;;   (auto-reload module-path) → Watcher
-;;;   (stop-watching) → void
-;;;   (stop-watcher! watcher) → void
-;;;   (list-watchers) → void
-;;;
-;;; Implementation uses polling (check file modification times periodically).
-;;; Thread-safe using a global registry with mutex protection.
+(define-syntax doc
+  (syntax-rules ()
+    [(_ args ...) (void)]))
 
-;;; ====
-;;; Configuration
-;;; ====
+(doc 'module 'watch)
+(doc 'description "File Watching and Auto-Reload System - Watch files and directories for changes, trigger actions on modification. Supports auto-reload, auto-test, debouncing, and custom actions.")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+(doc 'dependencies '())
+(doc 'note "This is Shell code: uses IO, manages background threads, handles failure.")
+(doc 'note "Implementation uses polling (check file modification times periodically). Thread-safe using a global registry with mutex protection.")
 
-(define *watch-poll-interval* 500)  ; milliseconds
-(define *watch-debounce-delay* 200) ; milliseconds (wait after last change)
+(doc 'section 'configuration)
 
-;;; ====
-;;; Watcher Record Type
-;;; ====
+(doc *watch-poll-interval* 'type 'Nat)
+(doc *watch-poll-interval* 'description "Polling frequency in milliseconds")
+(doc *watch-poll-interval* 'export #t)
+(define *watch-poll-interval* 500)
+
+(doc *watch-debounce-delay* 'type 'Nat)
+(doc *watch-debounce-delay* 'description "Debounce delay in milliseconds (wait after last change)")
+(doc *watch-debounce-delay* 'export #t)
+(define *watch-debounce-delay* 200)
+
+(doc 'section 'watcher-record-type)
 
 (define-record-type watcher
   (fields
@@ -49,53 +45,49 @@
   ;; so we use a workaround with a box in the running? field
   (set-box! (watcher-running? w) val))
 
-;;; ====
-;;; Global Watcher Registry
-;;; ====
+(doc 'section 'global-watcher-registry)
 
 (define *watcher-registry* '())
 (define *watcher-counter* 0)
 (define *registry-mutex* (make-mutex))
 
-;;; add-watcher! : Watcher → void
 (define (add-watcher! w)
+  (doc 'type (-> Watcher Void))
   (mutex-acquire *registry-mutex*)
   (set! *watcher-registry* (cons w *watcher-registry*))
   (mutex-release *registry-mutex*))
 
-;;; remove-watcher! : Watcher → void
 (define (remove-watcher! w)
+  (doc 'type (-> Watcher Void))
   (mutex-acquire *registry-mutex*)
   (set! *watcher-registry*
         (filter (lambda (x) (not (= (watcher-id x) (watcher-id w))))
                 *watcher-registry*))
   (mutex-release *registry-mutex*))
 
-;;; next-watcher-id : → Nat
 (define (next-watcher-id)
+  (doc 'type (-> Nat))
   (mutex-acquire *registry-mutex*)
   (set! *watcher-counter* (+ *watcher-counter* 1))
   (let ([id *watcher-counter*])
        (mutex-release *registry-mutex*)
        id))
 
-;;; ====
-;;; File Modification Time
-;;; ====
+(doc 'section 'file-modification-time)
 
-;;; file-mtime : String → Number | #f
-;;; Get file modification time in seconds since epoch.
-;;; Returns #f if file doesn't exist.
 (define (file-mtime path)
+  (doc 'type (-> String (U Number Boolean)))
+  (doc 'description "Get file modification time in seconds since epoch. Returns #f if file doesn't exist.")
+  (doc 'export #t)
   (guard (e [else #f])
          (let ([stat (file-stat path)])
               (if stat
                   (cdr (assq 'mtime stat))
                   #f))))
 
-;;; file-stat : String → Alist | #f
-;;; Get file statistics (portable across platforms).
 (define (file-stat path)
+  (doc 'type (-> String (U Alist Boolean)))
+  (doc 'description "Get file statistics (portable across platforms)")
   (guard (e [else #f])
          (if (file-exists? path)
              (let ([port (open-file-input-port path)])
@@ -107,15 +99,11 @@
                                `((mtime . ,mtime)))))
              #f)))
 
-;;; ====
-;;; Path Scanning
-;;; ====
+(doc 'section 'path-scanning)
 
-;;; scan-paths : String × (String | #f) → (Listof String)
-;;; Return list of paths to watch.
-;;; If pattern is #f, watch single file.
-;;; If pattern is provided, find all matching files in directory.
 (define (scan-paths path pattern)
+  (doc 'type (-> String (U String Boolean) (List String)))
+  (doc 'description "Return list of paths to watch. If pattern is #f, watch single file. If pattern is provided, find all matching files in directory.")
   (cond
    ;; Single file
    [(not pattern)
@@ -128,9 +116,9 @@
    ;; Invalid
    [else '()]))
 
-;;; find-matching-files : String × String → (Listof String)
-;;; Find all files in directory matching glob pattern.
 (define (find-matching-files dir pattern)
+  (doc 'type (-> String String (List String)))
+  (doc 'description "Find all files in directory matching glob pattern")
   (guard (e [else '()])
          (let ([files (directory-list dir)])
               (filter (lambda (f)
@@ -139,9 +127,10 @@
                                         (glob-match? pattern f))))
                       files))))
 
-;;; glob-match? : String × String → Boolean
-;;; Simple glob pattern matching (* and ? wildcards).
 (define (glob-match? pattern str)
+  (doc 'type (-> String String Boolean))
+  (doc 'description "Simple glob pattern matching (* and ? wildcards)")
+  (doc 'export #t)
   (let ([plen (string-length pattern)]
         [slen (string-length str)])
        (let loop ([pi 0] [si 0])
@@ -166,13 +155,13 @@
              ;; Mismatch
              [else #f]))))
 
-;;; file-regular? : String → Boolean
 (define (file-regular? path)
+  (doc 'type (-> String Boolean))
   (and (file-exists? path)
        (not (file-directory? path))))
 
-;;; file-directory? : String → Boolean
 (define (file-directory? path)
+  (doc 'type (-> String Boolean))
   (guard (e [else #f])
          (and (file-exists? path)
               (let ([port (open-file-input-port path)])
@@ -183,8 +172,8 @@
                                  (let ([dir-list (directory-list path)])
                                       #t)))))))
 
-;;; directory-list : String → (Listof String)
 (define (directory-list path)
+  (doc 'type (-> String (List String)))
   (guard (e [else '()])
          (let ([dir (opendir path)])
               (let loop ([entries '()])
@@ -197,13 +186,11 @@
                                 (loop entries)
                                 (loop (cons entry entries)))))))))
 
-;;; ====
-;;; Change Detection
-;;; ====
+(doc 'section 'change-detection)
 
-;;; check-changes : Watcher → (Listof String)
-;;; Check for modified files, return list of changed paths.
 (define (check-changes w)
+  (doc 'type (-> Watcher (List String)))
+  (doc 'description "Check for modified files, return list of changed paths")
   (let* ([paths (scan-paths (watcher-path w) (watcher-pattern w))]
          [mtimes (watcher-last-modified w)]
          [changed '()])
@@ -220,39 +207,35 @@
          paths)
         (reverse changed)))
 
-;;; ====
-;;; Debouncing
-;;; ====
+(doc 'section 'debouncing)
 
-;;; should-trigger? : Watcher → Boolean
-;;; Check if enough time has passed since last trigger (debouncing).
 (define (should-trigger? w)
+  (doc 'type (-> Watcher Boolean))
+  (doc 'description "Check if enough time has passed since last trigger (debouncing)")
   (let ([now (current-time-ms)]
         [last (watcher-last-triggered w)])
        (or (not last)
            (>= (- now last) *watch-debounce-delay*))))
 
-;;; update-trigger-time! : Watcher → void
 (define (update-trigger-time! w)
+  (doc 'type (-> Watcher Void))
   (set-watcher-last-triggered! w (current-time-ms)))
 
 (define (set-watcher-last-triggered! w val)
   (hashtable-set! (watcher-last-modified w) 'LAST-TRIGGER val))
 
-;;; current-time-ms : → Number
-;;; Get current time in milliseconds.
 (define (current-time-ms)
+  (doc 'type (-> Number))
+  (doc 'description "Get current time in milliseconds")
   (let ([t (current-time)])
        (+ (* (time-second t) 1000)
           (quotient (time-nanosecond t) 1000000))))
 
-;;; ====
-;;; Watch Loop
-;;; ====
+(doc 'section 'watch-loop)
 
-;;; watch-loop : Watcher → void
-;;; Main polling loop for a watcher (runs in background thread).
 (define (watch-loop w)
+  (doc 'type (-> Watcher Void))
+  (doc 'description "Main polling loop for a watcher (runs in background thread)")
   (let ([running-box (watcher-running? w)])
        (let loop ()
             (when (unbox running-box)
@@ -272,9 +255,7 @@
                                     0))
                   (loop)))))
 
-;;; ====
-;;; Visual Feedback
-;;; ====
+(doc 'section 'visual-feedback)
 
 (define *ansi-reset* "\x1b;[0m")
 (define *ansi-blue* "\x1b;[34m")
@@ -282,8 +263,8 @@
 (define *ansi-red* "\x1b;[31m")
 (define *ansi-yellow* "\x1b;[33m")
 
-;;; display-watch-trigger : Watcher × (Listof String) → void
 (define (display-watch-trigger w changed)
+  (doc 'type (-> Watcher (List String) Void))
   (display *ansi-blue*)
   (display "⚡ ")
   (display *ansi-reset*)
@@ -299,8 +280,8 @@
            (newline))
    changed))
 
-;;; display-watch-error : Watcher × (Listof String) × Condition → void
 (define (display-watch-error w changed e)
+  (doc 'type (-> Watcher (List String) Condition Void))
   (display *ansi-red*)
   (display "✗ Watch action failed: ")
   (display *ansi-reset*)
@@ -309,8 +290,8 @@
       (display e))
   (newline))
 
-;;; display-watch-started : Watcher → void
 (define (display-watch-started w)
+  (doc 'type (-> Watcher Void))
   (display *ansi-green*)
   (display "👁  ")
   (display *ansi-reset*)
@@ -327,8 +308,8 @@
   (display "]")
   (newline))
 
-;;; display-watch-stopped : Watcher → void
 (define (display-watch-stopped w)
+  (doc 'type (-> Watcher Void))
   (display *ansi-red*)
   (display "■ ")
   (display *ansi-reset*)
@@ -339,13 +320,12 @@
   (display "]")
   (newline))
 
-;;; ====
-;;; Public API
-;;; ====
+(doc 'section 'public-api)
 
-;;; watch-file : String × (Listof String → void) → Watcher
-;;; Watch a single file for changes.
 (define (watch-file path action)
+  (doc 'type (-> String (-> (List String) Void) Watcher))
+  (doc 'description "Watch a single file for changes")
+  (doc 'export #t)
   (let* ([id (next-watcher-id)]
          [mtimes (make-eq-hashtable)]
          [running-box (box #t)]
@@ -367,9 +347,10 @@
   ;; We'll store it in a separate table if needed
   (void))
 
-;;; watch-dir : String × String × (Listof String → void) → Watcher
-;;; Watch a directory for files matching pattern.
 (define (watch-dir path pattern action)
+  (doc 'type (-> String String (-> (List String) Void) Watcher))
+  (doc 'description "Watch a directory for files matching pattern")
+  (doc 'export #t)
   (unless (file-directory? path)
           (error 'watch-dir "not a directory" path))
   (let* ([id (next-watcher-id)]
@@ -389,9 +370,10 @@
         (display-watch-started w)
         w))
 
-;;; auto-reload : String → Watcher
-;;; Watch a module file and reload it when it changes.
 (define (auto-reload module-path)
+  (doc 'type (-> String Watcher))
+  (doc 'description "Watch a module file and reload it when it changes")
+  (doc 'export #t)
   (watch-file module-path
               (lambda (changed)
                       (display *ansi-green*)
@@ -413,9 +395,10 @@
                              (display *ansi-reset*)
                              (newline)))))
 
-;;; auto-test : String → Watcher
-;;; Watch a test file and run it when it changes.
 (define (auto-test test-path)
+  (doc 'type (-> String Watcher))
+  (doc 'description "Watch a test file and run it when it changes")
+  (doc 'export #t)
   (watch-file test-path
               (lambda (changed)
                       (display *ansi-blue*)
@@ -435,16 +418,18 @@
                              (system (string-append "scheme --script " test-path))
                              (display "─────────────────────────────────────────\n")))))
 
-;;; stop-watcher! : Watcher → void
-;;; Stop a specific watcher.
 (define (stop-watcher! w)
+  (doc 'type (-> Watcher Void))
+  (doc 'description "Stop a specific watcher")
+  (doc 'export #t)
   (watcher-stop! w)
   (remove-watcher! w)
   (display-watch-stopped w))
 
-;;; stop-watching : → void
-;;; Stop all watchers.
 (define (stop-watching)
+  (doc 'type (-> Void))
+  (doc 'description "Stop all watchers")
+  (doc 'export #t)
   (mutex-acquire *registry-mutex*)
   (let ([watchers *watcher-registry*])
        (mutex-release *registry-mutex*)
@@ -458,9 +443,10 @@
   (mutex-release *registry-mutex*)
   (display "All watchers stopped.\n"))
 
-;;; list-watchers : → void
-;;; Display all active watchers.
 (define (list-watchers)
+  (doc 'type (-> Void))
+  (doc 'description "Display all active watchers")
+  (doc 'export #t)
   (mutex-acquire *registry-mutex*)
   (let ([watchers *watcher-registry*])
        (mutex-release *registry-mutex*)
@@ -481,30 +467,27 @@
                      (newline))
              watchers)))))
 
-;;; ====
-;;; Helper: Fork Thread
-;;; ====
+(doc 'section 'helper-fork-thread)
 
-;;; fork-thread : (→ void) → Thread
-;;; Fork a background thread (Chez Scheme threads).
 (define (fork-thread thunk)
+  (doc 'type (-> (-> Void) Thread))
+  (doc 'description "Fork a background thread (Chez Scheme threads)")
   (fork-thread-impl thunk))
 
-;;; Chez Scheme uses fork-thread
 (define (fork-thread-impl thunk)
+  (doc 'note "Chez Scheme uses fork-thread")
   (guard (e [else
              (display "Warning: Threading not available, running synchronously\n")
              (thunk)
              #f])
          (fork-thread thunk)))
 
-;;; ====
-;;; REPL Integration
-;;; ====
+(doc 'section 'repl-integration)
 
-;;; watch-help : → void
-;;; Display help for watch commands.
 (define (watch-help)
+  (doc 'type (-> Void))
+  (doc 'description "Display help for watch commands")
+  (doc 'export #t)
   (display "\n")
   (display "File Watching and Auto-Reload System\n")
   (display "====\n\n")

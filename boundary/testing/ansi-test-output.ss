@@ -1,51 +1,39 @@
-;;; boundary/testing/ansi-test-output.ss — Colored Test Output
-;;;
-;;; Enhances the test framework with ANSI colored output.
-;;; Load this file AFTER test-framework.ss to enable colors.
-;;;
-;;; Usage:
-;;;   (load "core/testing/test-framework.ss")
-;;;   (load "boundary/testing/ansi-test-output.ss")
-;;;   ;; Now all test output will be colored
-;;;
-;;; This is Shell code: handles display formatting.
-
 (load "boundary/ui/ansi.ss")
 
-;;; ====
-;;; ANSI Output Helpers
-;;; ====
+(doc 'module 'ansi-test-output)
+(doc 'description "Colored Test Output - Enhances the test framework with ANSI colored output. Load this file AFTER test-framework.ss to enable colors.")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+(doc 'dependencies '(boundary/ui/ansi core/testing/test-framework))
 
-;;; pass-indicator : String
-;;; Green checkmark for passing tests.
+(doc 'section 'ansi-output-helpers)
+
+(doc pass-indicator 'type 'String)
+(doc pass-indicator 'description "Green checkmark for passing tests")
 (define pass-indicator
   (string-append (style->ansi (style-fg color-green)) "✓" ansi-reset))
 
-;;; fail-indicator : String
-;;; Red X for failing tests.
+(doc fail-indicator 'type 'String)
+(doc fail-indicator 'description "Red X for failing tests")
 (define fail-indicator
   (string-append (style->ansi (style-fg color-red)) "✗" ansi-reset))
 
-;;; colored-text : Style × String → String
 (define (colored-text style str)
+  (doc 'type (-> Style String String))
+  (doc 'description "Apply ANSI color style to text")
   (string-append (style->ansi style) str ansi-reset))
 
-;;; ====
-;;; Override Test Framework Output
-;;; ====
+(doc 'section 'override-test-framework-output)
 
-;;; We redefine key functions from test-framework.ss with colors.
-;;; This works because Scheme allows redefinition at the top level.
-
-;;; name->string : Any → String
-;;; Convert a test name to string (handles both symbols and strings).
 (define (name->string name)
+  (doc 'type (-> Any String))
+  (doc 'description "Convert a test name to string (handles both symbols and strings)")
   (if (symbol? name)
       (symbol->string name)
       (format "~a" name)))
 
-;;; run-test : Symbol × (Unit → Unit) → Unit
-;;; Run a single test with colored output.
+(doc 'note "We redefine key functions from test-framework.ss with colors. This works because Scheme allows redefinition at the top level.")
+
 (set! run-test
   (lambda (name test-thunk)
     (set-name! name)
@@ -63,7 +51,6 @@
                                  (format "~a" exn))))
                    (newline)])
              (test-thunk))
-      ;; If no new failures, the test passed
       (when (= initial-fail-count (ctx-failed))
             (inc-passed!)
             (display "    ")
@@ -72,8 +59,6 @@
             (display (name->string name))
             (newline)))))
 
-;;; run-group : Symbol → Unit
-;;; Run all tests in a group with colored header.
 (set! run-group
   (lambda (group-name)
     (let ([group-entry (assq group-name *test-registry*)])
@@ -93,8 +78,6 @@
             (display group-name)
             (newline))))))
 
-;;; print-summary : Unit → Unit
-;;; Print test summary with colors.
 (set! print-summary
   (lambda ()
     (newline)
@@ -126,11 +109,8 @@
                    "✗ Some tests failed!")))
     (newline)))
 
-;;; ====
-;;; Override Assertion Output
-;;; ====
+(doc 'section 'override-assertion-output)
 
-;;; assert-equal with colored output
 (set! assert-equal
   (lambda (expected actual)
     (unless (equal? expected actual)
@@ -147,7 +127,6 @@
       (display (colored-text (style-fg color-yellow) (format "~s" actual)))
       (newline))))
 
-;;; assert-true with colored output
 (set! assert-true
   (lambda (expr)
     (unless (eq? #t expr)
@@ -164,7 +143,6 @@
       (display (colored-text (style-fg color-yellow) (format "~s" expr)))
       (newline))))
 
-;;; assert-false with colored output
 (set! assert-false
   (lambda (expr)
     (unless (eq? #f expr)
@@ -181,7 +159,6 @@
       (display (colored-text (style-fg color-yellow) (format "~s" expr)))
       (newline))))
 
-;;; assert-error with colored output
 (set! assert-error
   (lambda (thunk)
     (guard (exn [else #t])
@@ -196,7 +173,6 @@
                  "      Expected error, but none was raised"))
       (newline))))
 
-;;; assert-ok with colored output
 (set! assert-ok
   (lambda (result)
     (unless (ok? result)
@@ -210,7 +186,6 @@
       (display (colored-text (style-fg color-yellow) (format "~s" result)))
       (newline))))
 
-;;; Legacy test function with colors
 (set! test
   (lambda (name expected actual)
     (set-name! name)
@@ -235,9 +210,7 @@
           (display (colored-text (style-fg color-yellow) (format "~s" actual)))
           (newline)))))
 
-;;; ====
-;;; Module Loaded Message
-;;; ====
+(doc 'section 'module-loaded-message)
 
 (display (colored-text (style-fg color-cyan) "ANSI test output enabled."))
 (newline)

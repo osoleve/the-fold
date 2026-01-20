@@ -1,53 +1,46 @@
-;;; boundary/storage/store-analyze.ss — Content-Addressed Store Analyzer
-;;;
-;;; Analyze the block store for usage patterns, statistics, and health.
-;;; Helps understand storage growth and optimize the store.
-;;;
-;;; Features:
-;;;   - Compute store statistics (size, block count, etc.)
-;;;   - Analyze block size distribution
-;;;   - Find duplicate blocks (hash collisions would be here)
-;;;   - Identify orphaned blocks
-;;;   - Compute storage efficiency metrics
-;;;   - Track reference patterns
-;;;   - Generate growth projections
-;;;
-;;; This is Shell code: uses filesystem, aggregates data.
-;;;
-;;; Usage:
-;;;   (store-stats fs)
-;;;   (store-distribution fs)
-;;;   (store-health-check fs)
-;;;   (store-report fs "report.txt")
-;;;   (store-growth-analysis fs)
-;;;
-;;; Dependencies:
-;;;   core/block.ss
-;;;   core/cas.ss
-;;;   boundary/io/fs.ss
-;;;   boundary/storage/cas-persist.ss
-
-;;; Set up source-directories to find modules
 (source-directories (cons "core" (source-directories)))
 (source-directories (cons "shell" (source-directories)))
 
 (load "base/prelude.ss")
 (load "blocks/block.ss")
 (load "blocks/cas.ss")
-(load "cas-persist.ss")
+(load "boundary/storage/cas-persist.ss")
 
-;;; ====
-;;; Store Statistics
-;;; ====
+(doc 'module 'store-analyze)
+(doc 'description "Content-Addressed Store Analyzer")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+(doc 'dependencies '(core/base/prelude core/blocks/block core/blocks/cas boundary/storage/cas-persist))
 
-;;; compute-store-stats : FS → Stats
-;;; Compute comprehensive statistics about the store.
-;;; Returns: ((total-blocks . N) (total-bytes . N) (avg-block-size . N) ...)
+(doc 'note "Analyze the block store for usage patterns, statistics, and health. Helps understand storage growth and optimize the store")
+
+(doc 'features "
+  - Compute store statistics (size, block count, etc.)
+  - Analyze block size distribution
+  - Find duplicate blocks (hash collisions would be here)
+  - Identify orphaned blocks
+  - Compute storage efficiency metrics
+  - Track reference patterns
+  - Generate growth projections")
+
+(doc 'usage "
+  (store-stats fs)
+  (store-distribution fs)
+  (store-health-check fs)
+  (store-report fs \"report.txt\")
+  (store-growth-analysis fs)")
+
+(doc 'section 'store-statistics)
+
 (define (compute-store-stats fs)
+  (doc 'type (-> FS Stats))
+  (doc 'description "Compute comprehensive statistics about the store")
+  (doc 'returns "((total-blocks . N) (total-bytes . N) (avg-block-size . N) ...)")
+  (doc 'export #t)
   (let* ([store (fs-make-cas fs)]
          [all-hashes (cas-all-hashes store)]
          [total-blocks (length all-hashes)])
-        
+
         (if (= total-blocks 0)
             `((total-blocks . 0)
               (total-bytes . 0)
@@ -60,9 +53,8 @@
                        [max-size 0]
                        [tag-counts (make-eq-hashtable)]
                        [ref-counts '()])
-                 
+
                  (if (null? hashes)
-                     ;; Compute final stats
                      (let ([avg-size (quotient total-bytes total-blocks)])
                           `((total-blocks . ,total-blocks)
                             (total-bytes . ,total-bytes)
@@ -71,8 +63,7 @@
                             (max-block-size . ,max-size)
                             (tag-distribution . ,tag-counts)
                             (ref-distribution . ,ref-counts)))
-                     
-                     ;; Process next block
+
                      (let* ([hash (car hashes)]
                             [result (fetch store hash)])
                            (if (error? result)
@@ -82,17 +73,15 @@
                                       [block-size (+ payload-size (* (vector-length (block-refs block)) address-size))]
                                       [tag (block-tag block)]
                                       [num-refs (vector-length (block-refs block))])
-                                     
-                                     ;; Update tag counts
+
                                      (let ([current-count (hashtable-ref tag-counts tag 0)])
                                           (hashtable-set! tag-counts tag (+ current-count 1)))
-                                     
-                                     ;; Update ref distribution
+
                                      (let ([ref-entry (assv num-refs ref-counts)])
                                           (if ref-entry
                                               (set-cdr! ref-entry (+ (cdr ref-entry) 1))
                                               (set! ref-counts (cons (cons num-refs 1) ref-counts))))
-                                     
+
                                      (loop (cdr hashes)
                                            (+ total-bytes block-size)
                                            (if min-size (min min-size block-size) block-size)
@@ -100,24 +89,23 @@
                                            tag-counts
                                            ref-counts)))))))))
 
-;;; ====
-;;; Display Statistics
-;;; ====
+(doc 'section 'display-statistics)
 
-;;; store-stats : FS → void
-;;; Display store statistics.
 (define (store-stats fs)
+  (doc 'type (-> FS Void))
+  (doc 'description "Display store statistics")
+  (doc 'export #t)
   (display "\n╔══════════════════════════════════════════════════════════════╗\n")
   (display "║                  STORE STATISTICS                            ║\n")
   (display "╚══════════════════════════════════════════════════════════════╝\n\n")
-  
+
   (let ([stats (compute-store-stats fs)])
        (let ([total-blocks (cdr (assq 'total-blocks stats))]
              [total-bytes (cdr (assq 'total-bytes stats))]
              [avg-size (cdr (assq 'avg-block-size stats))]
              [min-size (cdr (assq 'min-block-size stats))]
              [max-size (cdr (assq 'max-block-size stats))])
-            
+
             (display (format "Total Blocks: ~a\n" total-blocks))
             (display (format "Total Storage: ~a bytes (~a KB)\n"
                              total-bytes
@@ -128,8 +116,7 @@
             (display (format "  Minimum: ~a bytes\n" min-size))
             (display (format "  Maximum: ~a bytes\n" max-size))
             (display "\n")
-            
-            ;; Tag distribution
+
             (let ([tag-dist (cdr (assq 'tag-distribution stats))])
                  (display "Tag Distribution:\n")
                  (let ([tags (list-sort
@@ -143,8 +130,7 @@
                                     (display (format "  ~a: ~a (~a%)\n" tag count percent))))
                        tags)))
             (display "\n")
-            
-            ;; Reference distribution
+
             (let ([ref-dist (cdr (assq 'ref-distribution stats))])
                  (display "Reference Count Distribution:\n")
                  (let ([sorted (list-sort
@@ -157,17 +143,17 @@
                                     (display (format "  ~a refs: ~a blocks\n" num-refs count))))
                        sorted))))))
 
-;;; hashtable-map : Hashtable × (Key × Value → α) → (List α)
-;;; Map a function over hashtable entries.
 (define (hashtable-map ht fn)
+  (doc 'type (-> Hashtable (-> Key Value α) (List α)))
+  (doc 'description "Map a function over hashtable entries")
   (let ([keys (vector->list (hashtable-keys ht))])
        (map (lambda (k)
                     (fn k (hashtable-ref ht k #f)))
             keys)))
 
-;;; list-sort : (α × α → Boolean) × (List α) → (List α)
-;;; Sort a list using the given comparison function.
 (define (list-sort less? lst)
+  (doc 'type (-> (-> α α Boolean) (List α) (List α)))
+  (doc 'description "Sort a list using the given comparison function")
   (if (or (null? lst) (null? (cdr lst)))
       lst
       (let* ([pivot (car lst)]
@@ -178,17 +164,16 @@
                     (list pivot)
                     (list-sort less? greater)))))
 
-;;; ====
-;;; Size Distribution Analysis
-;;; ====
+(doc 'section 'size-distribution-analysis)
 
-;;; store-distribution : FS → void
-;;; Show block size distribution with histogram.
 (define (store-distribution fs)
+  (doc 'type (-> FS Void))
+  (doc 'description "Show block size distribution with histogram")
+  (doc 'export #t)
   (display "\n╔══════════════════════════════════════════════════════════════╗\n")
   (display "║              BLOCK SIZE DISTRIBUTION                         ║\n")
   (display "╚══════════════════════════════════════════════════════════════╝\n\n")
-  
+
   (let* ([store (fs-make-cas fs)]
          [all-hashes (cas-all-hashes store)]
          [sizes (map (lambda (hash)
@@ -199,7 +184,7 @@
                                            (bytevector-length (block-payload block))))))
                      all-hashes)]
          [buckets (make-buckets sizes)])
-        
+
         (display "Payload Size Distribution:\n\n")
         (for-each
          (lambda (bucket)
@@ -210,9 +195,9 @@
                       (display "\n")))
          buckets)))
 
-;;; make-buckets : (List Nat) → (List (Pair String Nat))
-;;; Create histogram buckets from sizes.
 (define (make-buckets sizes)
+  (doc 'type (-> (List Nat) (List (Pair String Nat))))
+  (doc 'description "Create histogram buckets from sizes")
   (let ([ranges '((0 . "0-100")
                   (101 . "101-500")
                   (501 . "501-1K")
@@ -220,8 +205,7 @@
                   (5001 . "5K-10K")
                   (10001 . "10K+"))]
         [counts (make-vector 6 0)])
-       
-       ;; Count sizes into buckets
+
        (for-each
         (lambda (size)
                 (cond
@@ -232,51 +216,51 @@
                  [(<= size 10000) (vector-set! counts 4 (+ (vector-ref counts 4) 1))]
                  [else (vector-set! counts 5 (+ (vector-ref counts 5) 1))]))
         sizes)
-       
-       ;; Build result
+
        (map (lambda (i)
                     (cons (cdr (list-ref ranges i))
                           (vector-ref counts i)))
             '(0 1 2 3 4 5))))
 
-;;; make-bar : Nat × Nat × Nat → String
-;;; Create a bar for histogram display.
-;;; count is the value, width is max characters, max-count is for scaling.
 (define (make-bar count width max-count)
+  (doc 'type (-> Nat Nat Nat String))
+  (doc 'description "Create a bar for histogram display")
+  (doc 'param 'count "The value")
+  (doc 'param 'width "Max characters")
+  (doc 'param 'max-count "For scaling")
   (if (= max-count 0)
       ""
       (let ([bar-length (quotient (* count width) max-count)])
            (make-string bar-length #\█))))
 
-;;; make-string : Nat × Char → String
-;;; Create string of n copies of character.
 (define (make-string n c)
+  (doc 'type (-> Nat Char String))
+  (doc 'description "Create string of n copies of character")
   (list->string (make-list-of n c)))
 
-;;; make-list-of : Nat × α → (List α)
 (define (make-list-of n x)
+  (doc 'type (-> Nat α (List α)))
+  (doc 'description "Create list of n copies of x")
   (if (= n 0)
       '()
       (cons x (make-list-of (- n 1) x))))
 
-;;; ====
-;;; Store Health Check
-;;; ====
+(doc 'section 'store-health-check)
 
-;;; store-health-check : FS → void
-;;; Check store health and integrity.
 (define (store-health-check fs)
+  (doc 'type (-> FS Void))
+  (doc 'description "Check store health and integrity")
+  (doc 'export #t)
   (display "\n╔══════════════════════════════════════════════════════════════╗\n")
   (display "║                 STORE HEALTH CHECK                           ║\n")
   (display "╚══════════════════════════════════════════════════════════════╝\n\n")
-  
+
   (let* ([store (fs-make-cas fs)]
          [all-hashes (cas-all-hashes store)]
          [total (length all-hashes)])
-        
+
         (display (format "Checking ~a blocks...\n\n" total))
-        
-        ;; Check 1: Verify all blocks are fetchable
+
         (display "1. Verifying block integrity...\n")
         (let ([unfetchable (filter (lambda (hash)
                                            (error? (fetch store hash)))
@@ -289,10 +273,9 @@
                    (lambda (hash)
                            (display (format "     - ~a\n" (hash->hex hash))))
                    unfetchable))))
-        
+
         (display "\n")
-        
-        ;; Check 2: Verify referenced blocks exist
+
         (display "2. Checking reference integrity...\n")
         (let ([broken-refs (find-broken-refs store all-hashes)])
              (if (null? broken-refs)
@@ -305,24 +288,23 @@
                                             (hash->hex (car broken))
                                             (hash->hex (cdr broken)))))
                    broken-refs))))
-        
+
         (display "\n")
-        
-        ;; Check 3: Find orphaned blocks
+
         (display "3. Finding orphaned blocks...\n")
         (let ([orphans (find-orphaned-blocks store all-hashes)])
              (display (format "   Found ~a orphaned blocks (~a%)\n"
                               (length orphans)
                               (if (= total 0) 0
                                   (exact (round (* 100 (/ (length orphans) total))))))))
-        
+
         (display "\n")
         (display "Health check complete.\n")))
 
-;;; find-broken-refs : CAS × (List Hash) → (List (Pair Hash Hash))
-;;; Find references to non-existent blocks.
-;;; Returns list of (block-hash . missing-ref-hash) pairs.
 (define (find-broken-refs store all-hashes)
+  (doc 'type (-> CAS (List Hash) (List (Pair Hash Hash))))
+  (doc 'description "Find references to non-existent blocks")
+  (doc 'returns "List of (block-hash . missing-ref-hash) pairs")
   (let ([hash-set (make-hash-set all-hashes)])
        (let loop ([hashes all-hashes]
                   [broken '()])
@@ -341,11 +323,10 @@
                                       (append (map (lambda (ref) (cons hash ref)) missing)
                                               broken)))))))))
 
-;;; find-orphaned-blocks : CAS × (List Hash) → (List Hash)
-;;; Find blocks that are not referenced by any other block.
 (define (find-orphaned-blocks store all-hashes)
+  (doc 'type (-> CAS (List Hash) (List Hash)))
+  (doc 'description "Find blocks that are not referenced by any other block")
   (let ([referenced (make-hash-set '())])
-       ;; Collect all referenced hashes
        (for-each
         (lambda (hash)
                 (let ([result (fetch store hash)])
@@ -357,19 +338,16 @@
                                             (hash-set-add! referenced ref))
                                     refs)))))
         all-hashes)
-       
-       ;; Find unreferenced blocks
+
        (filter (lambda (hash)
                        (not (hash-set-contains? referenced hash)))
                all-hashes)))
 
-;;; ====
-;;; Hash Set (for efficient membership testing)
-;;; ====
+(doc 'section 'hash-set)
 
-;;; make-hash-set : (List Hash) → HashSet
-;;; Create a hash set from a list of hashes.
 (define (make-hash-set hashes)
+  (doc 'type (-> (List Hash) HashSet))
+  (doc 'description "Create a hash set from a list of hashes")
   (let ([ht (make-hashtable bytevector-hash bytevector=?)])
        (for-each
         (lambda (hash)
@@ -377,19 +355,19 @@
         hashes)
        ht))
 
-;;; hash-set-contains? : HashSet × Hash → Boolean
-;;; Check if hash is in the set.
 (define (hash-set-contains? hs hash)
+  (doc 'type (-> HashSet Hash Boolean))
+  (doc 'description "Check if hash is in the set")
   (hashtable-contains? hs hash))
 
-;;; hash-set-add! : HashSet × Hash → void
-;;; Add hash to the set.
 (define (hash-set-add! hs hash)
+  (doc 'type (-> HashSet Hash Void))
+  (doc 'description "Add hash to the set")
   (hashtable-set! hs hash #t))
 
-;;; bytevector-hash : Bytevector → Nat
-;;; Hash function for bytevectors.
 (define (bytevector-hash bv)
+  (doc 'type (-> Bytevector Nat))
+  (doc 'description "Hash function for bytevectors")
   (let ([len (bytevector-length bv)])
        (let loop ([i 0] [hash 0])
             (if (= i len)
@@ -397,31 +375,28 @@
                 (loop (+ i 1)
                       (+ (* hash 31) (bytevector-u8-ref bv i)))))))
 
-;;; ====
-;;; Store Report Generation
-;;; ====
+(doc 'section 'store-report-generation)
 
-;;; store-report : FS × String → void
-;;; Generate comprehensive store report.
 (define (store-report fs output-file)
+  (doc 'type (-> FS String Void))
+  (doc 'description "Generate comprehensive store report")
+  (doc 'export #t)
   (let ([stats (compute-store-stats fs)]
         [store (fs-make-cas fs)]
         [all-hashes (cas-all-hashes (fs-make-cas fs))])
-       
+
        (call-with-output-file output-file
                               (lambda (port)
                                       (display "CONTENT-ADDRESSED STORE ANALYSIS REPORT\n" port)
                                       (display "====\n\n" port)
-                                      
-                                      ;; Basic stats
+
                                       (display "STORAGE STATISTICS\n" port)
                                       (display "----\n" port)
                                       (display (format "Total Blocks: ~a\n" (cdr (assq 'total-blocks stats))) port)
                                       (display (format "Total Storage: ~a bytes\n" (cdr (assq 'total-bytes stats))) port)
                                       (display (format "Average Block Size: ~a bytes\n" (cdr (assq 'avg-block-size stats))) port)
                                       (display "\n" port)
-                                      
-                                      ;; Tag distribution
+
                                       (display "TAG DISTRIBUTION\n" port)
                                       (display "----\n" port)
                                       (let ([tag-dist (cdr (assq 'tag-distribution stats))])
@@ -429,8 +404,7 @@
                                                                (lambda (tag count)
                                                                        (display (format "~a: ~a\n" tag count) port))))
                                       (display "\n" port)
-                                      
-                                      ;; Reference distribution
+
                                       (display "REFERENCE DISTRIBUTION\n" port)
                                       (display "----\n" port)
                                       (for-each
@@ -438,43 +412,42 @@
                                                (display (format "~a refs: ~a blocks\n" (car entry) (cdr entry)) port))
                                        (cdr (assq 'ref-distribution stats)))
                                       (display "\n" port)))
-       
+
        (display (format "Report written to ~a\n" output-file))))
 
-;;; hashtable-for-each : Hashtable × (Key × Value → void) → void
-;;; Iterate over hashtable entries.
 (define (hashtable-for-each ht proc)
+  (doc 'type (-> Hashtable (-> Key Value Void) Void))
+  (doc 'description "Iterate over hashtable entries")
   (let ([keys (vector->list (hashtable-keys ht))])
        (for-each
         (lambda (key)
                 (proc key (hashtable-ref ht key #f)))
         keys)))
 
-;;; ====
-;;; Growth Analysis
-;;; ====
+(doc 'section 'growth-analysis)
 
-;;; store-growth-analysis : FS → void
-;;; Analyze store growth patterns (requires historical data).
 (define (store-growth-analysis fs)
+  (doc 'type (-> FS Void))
+  (doc 'description "Analyze store growth patterns")
+  (doc 'note "Requires historical data")
+  (doc 'export #t)
   (display "\n╔══════════════════════════════════════════════════════════════╗\n")
   (display "║              STORE GROWTH ANALYSIS                           ║\n")
   (display "╚══════════════════════════════════════════════════════════════╝\n\n")
-  
+
   (let ([stats (compute-store-stats fs)])
        (let ([total-blocks (cdr (assq 'total-blocks stats))]
              [total-bytes (cdr (assq 'total-bytes stats))]
              [avg-size (cdr (assq 'avg-block-size stats))])
-            
+
             (display "Current State:\n")
             (display (format "  Blocks: ~a\n" total-blocks))
             (display (format "  Storage: ~a KB\n" (quotient total-bytes 1024)))
             (display "\n")
-            
+
             (display "Growth Projections:\n")
             (display "  (Assumes linear growth at current rate)\n\n")
-            
-            ;; Project growth
+
             (let ([growth-rates '(10 100 1000 10000)])
                  (for-each
                   (lambda (new-blocks)
@@ -488,13 +461,11 @@
                                (display "\n")))
                   growth-rates)))))
 
-;;; ====
-;;; Helper Functions
-;;; ====
+(doc 'section 'helper-functions)
 
-;;; hash->hex : Hash → String
-;;; Convert hash to hex string (simplified version).
 (define (hash->hex hash)
+  (doc 'type (-> Hash String))
+  (doc 'description "Convert hash to hex string")
   (let* ([len (bytevector-length hash)]
          [hex-chars (make-string (* len 2) #\0)])
         (let loop ([i 0])
@@ -505,8 +476,9 @@
                         (loop (+ i 1)))))
         hex-chars))
 
-;;; int->hex-digit : Nat → Char
 (define (int->hex-digit n)
+  (doc 'type (-> Nat Char))
+  (doc 'description "Convert integer to hex digit character")
   (if (< n 10)
       (integer->char (+ (char->integer #\0) n))
       (integer->char (+ (char->integer #\a) (- n 10)))))
