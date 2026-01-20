@@ -1,72 +1,65 @@
-;;; boundary/turtle-path.ss — Path Command Representation for Turtle Graphics
-;;;
-;;; Defines the path command types used to record turtle movements.
-;;; Path commands are stored as tagged lists (S-expressions) for easy
-;;; serialization to CAS blocks and conversion to SVG.
-;;;
-;;; Command Types:
-;;;   (move-to x y)                           - Pen-up move
-;;;   (line-to x y color width)               - Line segment
-;;;   (arc cx cy r start end color width)     - Arc
-;;;   (circle cx cy r color width fill?)      - Circle
-;;;   (polygon points color width fill?)      - Polygon
-;;;
-;;; This is Shell code: pure functions for path construction.
-;;;
-;;; Dependencies: None (color values passed through opaquely)
+(define-syntax doc
+  (syntax-rules ()
+    [(_ args ...) (void)]))
 
-;;; ====
-;;; Move-To Command
-;;; ====
+(doc 'module 'turtle-path)
+(doc 'description "Path Command Representation for Turtle Graphics - Defines the path command types used to record turtle movements. Path commands are stored as tagged lists (S-expressions) for easy serialization to CAS blocks and conversion to SVG.")
+(doc 'layer 'boundary)
+(doc 'purity 'total)
 
-;;; make-move-to : Real x Real -> PathCmd
-;;; Create a pen-up move command.
+(doc 'note "Command Types:")
+(doc 'note "  (move-to x y)                           - Pen-up move")
+(doc 'note "  (line-to x y color width)               - Line segment")
+(doc 'note "  (arc cx cy r start end color width)     - Arc")
+(doc 'note "  (circle cx cy r color width fill?)      - Circle")
+(doc 'note "  (polygon points color width fill?)      - Polygon")
+
+(doc 'note "Dependencies: None (color values passed through opaquely)")
+
+(doc 'section 'move-to-command)
+
 (define (make-move-to x y)
+  (doc 'type (-> Real Real PathCmd))
+  (doc 'description "Create a pen-up move command.")
   (list 'move-to x y))
 
-;;; move-to? : Any -> Bool
 (define (move-to? cmd)
+  (doc 'type (-> Any Bool))
   (and (pair? cmd) (eq? (car cmd) 'move-to)))
 
-;;; Accessors
+(doc 'note "Accessors")
 (define (move-to-x cmd) (list-ref cmd 1))
 (define (move-to-y cmd) (list-ref cmd 2))
 
-;;; ====
-;;; Line-To Command
-;;; ====
+(doc 'section 'line-to-command)
 
-;;; make-line-to : Real x Real x Color12 x Nat -> PathCmd
-;;; Create a line drawing command.
 (define (make-line-to x y color width)
+  (doc 'type (-> Real Real Color12 Nat PathCmd))
+  (doc 'description "Create a line drawing command.")
   (list 'line-to x y color width))
 
-;;; line-to? : Any -> Bool
 (define (line-to? cmd)
+  (doc 'type (-> Any Bool))
   (and (pair? cmd) (eq? (car cmd) 'line-to)))
 
-;;; Accessors
+(doc 'note "Accessors")
 (define (line-to-x cmd) (list-ref cmd 1))
 (define (line-to-y cmd) (list-ref cmd 2))
 (define (line-to-color cmd) (list-ref cmd 3))
 (define (line-to-width cmd) (list-ref cmd 4))
 
-;;; ====
-;;; Arc Command
-;;; ====
+(doc 'section 'arc-command)
 
-;;; make-arc : Real x Real x Real x Real x Real x Color12 x Nat -> PathCmd
-;;; Create an arc drawing command.
-;;; Parameters: center-x, center-y, radius, start-angle, end-angle, color, width
-;;; Angles are in degrees.
 (define (make-arc cx cy radius start-angle end-angle color width)
+  (doc 'type (-> Real Real Real Real Real Color12 Nat PathCmd))
+  (doc 'description "Create an arc drawing command. Parameters: center-x, center-y, radius, start-angle, end-angle, color, width. Angles are in degrees.")
   (list 'arc cx cy radius start-angle end-angle color width))
 
-;;; arc? : Any -> Bool
 (define (arc? cmd)
+  (doc 'type (-> Any Bool))
   (and (pair? cmd) (eq? (car cmd) 'arc)))
 
-;;; Accessors
+(doc 'note "Accessors")
 (define (arc-cx cmd) (list-ref cmd 1))
 (define (arc-cy cmd) (list-ref cmd 2))
 (define (arc-radius cmd) (list-ref cmd 3))
@@ -75,21 +68,18 @@
 (define (arc-color cmd) (list-ref cmd 6))
 (define (arc-width cmd) (list-ref cmd 7))
 
-;;; ====
-;;; Circle Command
-;;; ====
+(doc 'section 'circle-command)
 
-;;; make-circle : Real x Real x Real x Color12 x Nat x Bool -> PathCmd
-;;; Create a circle drawing command.
-;;; Parameters: center-x, center-y, radius, color, stroke-width, filled?
 (define (make-circle cx cy radius color width fill?)
+  (doc 'type (-> Real Real Real Color12 Nat Bool PathCmd))
+  (doc 'description "Create a circle drawing command. Parameters: center-x, center-y, radius, color, stroke-width, filled?")
   (list 'circle cx cy radius color width fill?))
 
-;;; circle? : Any -> Bool
 (define (circle? cmd)
+  (doc 'type (-> Any Bool))
   (and (pair? cmd) (eq? (car cmd) 'circle)))
 
-;;; Accessors
+(doc 'note "Accessors")
 (define (circle-cx cmd) (list-ref cmd 1))
 (define (circle-cy cmd) (list-ref cmd 2))
 (define (circle-radius cmd) (list-ref cmd 3))
@@ -97,61 +87,52 @@
 (define (circle-width cmd) (list-ref cmd 5))
 (define (circle-fill? cmd) (list-ref cmd 6))
 
-;;; ====
-;;; Polygon Command
-;;; ====
+(doc 'section 'polygon-command)
 
-;;; make-polygon : (List (Pair Real Real)) x Color12 x Nat x Bool -> PathCmd
-;;; Create a polygon drawing command.
-;;; Points is a list of (x . y) pairs.
 (define (make-polygon points color width fill?)
+  (doc 'type (-> (List (Pair Real Real)) Color12 Nat Bool PathCmd))
+  (doc 'description "Create a polygon drawing command. Points is a list of (x . y) pairs.")
   (list 'polygon points color width fill?))
 
-;;; polygon? : Any -> Bool
 (define (polygon? cmd)
+  (doc 'type (-> Any Bool))
   (and (pair? cmd) (eq? (car cmd) 'polygon)))
 
-;;; Accessors
+(doc 'note "Accessors")
 (define (polygon-points cmd) (list-ref cmd 1))
 (define (polygon-color cmd) (list-ref cmd 2))
 (define (polygon-width cmd) (list-ref cmd 3))
 (define (polygon-fill? cmd) (list-ref cmd 4))
 
-;;; ====
-;;; Path Command Utilities
-;;; ====
+(doc 'section 'path-command-utilities)
 
-;;; path-cmd? : Any -> Bool
-;;; Test if value is any path command.
 (define (path-cmd? x)
+  (doc 'type (-> Any Bool))
+  (doc 'description "Test if value is any path command.")
   (or (move-to? x)
       (line-to? x)
       (arc? x)
       (circle? x)
       (polygon? x)))
 
-;;; path-cmd-type : PathCmd -> Symbol
-;;; Get the type tag of a path command.
 (define (path-cmd-type cmd)
+  (doc 'type (-> PathCmd Symbol))
+  (doc 'description "Get the type tag of a path command.")
   (if (pair? cmd) (car cmd) #f))
 
-;;; path-cmd-endpoint : PathCmd -> (Pair Real Real) | #f
-;;; Get the endpoint of a command if applicable.
-;;; Returns #f for shapes without clear endpoints.
 (define (path-cmd-endpoint cmd)
+  (doc 'type (-> PathCmd (U (Pair Real Real) Bool)))
+  (doc 'description "Get the endpoint of a command if applicable. Returns #f for shapes without clear endpoints.")
   (cond
    [(move-to? cmd) (cons (move-to-x cmd) (move-to-y cmd))]
    [(line-to? cmd) (cons (line-to-x cmd) (line-to-y cmd))]
    [else #f]))
 
-;;; ====
-;;; Path Serialization (for CAS blocks)
-;;; ====
+(doc 'section 'path-serialization)
 
-;;; path-cmd->sexpr : PathCmd -> S-expr
-;;; Convert path command to a pure S-expression for storage.
-;;; Colors are converted to lists for serialization.
 (define (path-cmd->sexpr cmd)
+  (doc 'type (-> PathCmd S-expr))
+  (doc 'description "Convert path command to a pure S-expression for storage. Colors are converted to lists for serialization.")
   (case (path-cmd-type cmd)
         [(move-to)
          `(move-to ,(move-to-x cmd) ,(move-to-y cmd))]
@@ -178,13 +159,12 @@
            ,(color12->list (polygon-color cmd))
            ,(polygon-width cmd)
            ,(polygon-fill? cmd))]
-        
+
         [else cmd]))
 
-;;; sexpr->path-cmd : S-expr -> PathCmd
-;;; Reconstruct path command from S-expression.
-;;; Requires color12 functions from turtle-color.ss.
 (define (sexpr->path-cmd sexpr)
+  (doc 'type (-> S-expr PathCmd))
+  (doc 'description "Reconstruct path command from S-expression. Requires color12 functions from turtle-color.ss.")
   (case (car sexpr)
         [(move-to)
          (make-move-to (list-ref sexpr 1) (list-ref sexpr 2))]
@@ -212,8 +192,8 @@
                        (list->color12 (list-ref sexpr 2))
                        (list-ref sexpr 3)
                        (list-ref sexpr 4))]
-        
+
         [else sexpr]))
 
-;;; Note: color12->list and list->color12 are defined in turtle-color.ss
-;;; This file forward-references them; they must be loaded first.
+(doc 'note "color12->list and list->color12 are defined in turtle-color.ss")
+(doc 'note "This file forward-references them; they must be loaded first.")

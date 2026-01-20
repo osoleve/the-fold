@@ -51,8 +51,8 @@
                       "code" (symbol->string code)
                       "message" message))))
 
-;;; context->range : Document × Context → Range
-;;; Convert an error context (usually a span) to an LSP range.
+(doc context->range 'type '(-> Document Context Range))
+(doc context->range 'description "Convert an error context (usually a span) to an LSP range")
 (define (context->range doc ctx)
   (cond
    [(and (pair? ctx) (eq? (car ctx) 'span))
@@ -66,8 +66,8 @@
     ;; Unknown context, use start of document
     (make-range (make-position 0 0) (make-position 0 1))]))
 
-;;; format-diagnostic-message : Symbol × Symbol × (List Any) → String
-;;; Format the diagnostic message from error components.
+(doc format-diagnostic-message 'type '(-> Symbol Symbol (List Any) String))
+(doc format-diagnostic-message 'description "Format the diagnostic message from error components")
 (define (format-diagnostic-message phase code details)
   (let ([base-msg (lookup-error-message* phase code)])
        (if (null? details)
@@ -92,8 +92,8 @@
                       (format "~a: ~a" base-msg (car details))
                       base-msg)]))))
 
-;;; lookup-error-message* : Symbol × Symbol → String
-;;; Look up the base error message from error.ss tables.
+(doc lookup-error-message* 'type '(-> Symbol Symbol String))
+(doc lookup-error-message* 'description "Look up the base error message from error.ss tables")
 (define (lookup-error-message* phase code)
   (let* ([table (case phase
                       [(parse) *parse-errors*]   ; From error.ss
@@ -117,8 +117,8 @@
          [errors (collect-document-errors content path)])
         (map (lambda (err) (fold-error->diagnostic doc err)) errors)))
 
-;;; collect-document-errors : String × String → (List Error)
-;;; Collect all errors from parsing and type checking.
+(doc collect-document-errors 'type '(-> String String (List Error)))
+(doc collect-document-errors 'description "Collect all errors from parsing and type checking")
 (define (collect-document-errors content path)
   ;; Try to parse and type check
   (let ([parse-errors (try-parse content path)])
@@ -128,15 +128,15 @@
            (let ([type-errors (try-typecheck content path)])
                 type-errors))))
 
-;;; try-parse : String × String → (List Error)
-;;; Try to parse content, return list of errors.
+(doc try-parse 'type '(-> String String (List Error)))
+(doc try-parse 'description "Try to parse content, return list of errors")
 (define (try-parse content path)
   ;; Placeholder: actual parsing integration goes here
   ;; For now, do basic bracket matching
   (check-balanced-parens content path))
 
-;;; try-typecheck : String × String → (List Error)
-;;; Try to type check content, return list of errors.
+(doc try-typecheck 'type '(-> String String (List Error)))
+(doc try-typecheck 'description "Try to type check content, return list of errors")
 (define (try-typecheck content path)
   ;; Placeholder: actual type checking integration goes here
   '())
@@ -238,8 +238,8 @@
                        [else
                         (loop (+ i 1) depth in-string #f nxt-line nxt-col paren-stack errors)]))))))
 
-;;; skip-to-newline : String × Int → Int
-;;; Returns position after the next newline, or len if no newline found.
+(doc skip-to-newline 'type '(-> String Int Int))
+(doc skip-to-newline 'description "Returns position after the next newline, or len if no newline found")
 (define (skip-to-newline content i)
   (let ([len (string-length content)])
        (let loop ([j i])
@@ -248,10 +248,10 @@
              [(char=? (string-ref content j) #\newline) (+ j 1)]
              [else (loop (+ j 1))]))))
 
-;;; skip-block-comment : String × Int × Int × Int → (values Int Int Int)
-;;; Skip a #| |# block comment, handling nesting.
-;;; Returns (new-position new-line new-col).
-;;; Starts at position i which is right after the opening #|.
+(doc skip-block-comment 'type '(-> String Int Int Int (Values Int Int Int)))
+(doc skip-block-comment 'description "Skip a #| |# block comment, handling nesting")
+(doc skip-block-comment 'returns "Returns (new-position new-line new-col)")
+(doc skip-block-comment 'note "Starts at position i which is right after the opening #|")
 (define (skip-block-comment content i line col)
   (let ([len (string-length content)])
        (let loop ([j i] [depth 1] [ln line] [cl col])
@@ -284,10 +284,10 @@
                     [else
                      (loop (+ j 1) depth ln (+ cl 1))]))]))))
 
-;;; skip-datum : String × Int × Int × Int → (values Int Int Int)
-;;; Skip a single datum for #; comments.
-;;; Returns (new-position new-line new-col).
-;;; Strategy: Track paren depth, handle strings, skip to end of atom.
+(doc skip-datum 'type '(-> String Int Int Int (Values Int Int Int)))
+(doc skip-datum 'description "Skip a single datum for #; comments")
+(doc skip-datum 'returns "Returns (new-position new-line new-col)")
+(doc skip-datum 'note "Strategy: Track paren depth, handle strings, skip to end of atom")
 (define (skip-datum content i line col)
   (let ([len (string-length content)])
        ;; First skip whitespace
@@ -339,8 +339,8 @@
                     [else
                      (skip-atom content j ln cl)]))]))))
 
-;;; skip-string : String × Int × Int × Int → (values Int Int Int)
-;;; Skip a string literal starting right after the opening quote.
+(doc skip-string 'type '(-> String Int Int Int (Values Int Int Int)))
+(doc skip-string 'description "Skip a string literal starting right after the opening quote")
 (define (skip-string content i line col)
   (let ([len (string-length content)])
        (let loop ([j i] [ln line] [cl col] [escape #f])
@@ -354,8 +354,8 @@
                     [(char=? c #\newline) (loop (+ j 1) (+ ln 1) 1 #f)]
                     [else (loop (+ j 1) ln (+ cl 1) #f)]))]))))
 
-;;; skip-list : String × Int × Int × Int × Int → (values Int Int Int)
-;;; Skip a list/vector starting right after the opening paren.
+(doc skip-list 'type '(-> String Int Int Int Int (Values Int Int Int)))
+(doc skip-list 'description "Skip a list/vector starting right after the opening paren")
 (define (skip-list content i line col depth)
   (let ([len (string-length content)])
        (let loop ([j i] [ln line] [cl col] [d depth] [in-str #f] [esc #f])
@@ -395,8 +395,8 @@
                     ;; Other
                     [else (loop (+ j 1) ln (+ cl 1) d in-str #f)]))]))))
 
-;;; skip-atom : String × Int × Int × Int → (values Int Int Int)
-;;; Skip an atom (symbol, number, etc.).
+(doc skip-atom 'type '(-> String Int Int Int (Values Int Int Int)))
+(doc skip-atom 'description "Skip an atom (symbol, number, etc.)")
 (define (skip-atom content i line col)
   (let ([len (string-length content)])
        (let loop ([j i] [ln line] [cl col])
@@ -413,7 +413,7 @@
                            (loop (+ j 1) (+ ln 1) 1)
                            (loop (+ j 1) ln (+ cl 1)))))]))))
 
-;;; compute-line-col : String × Int → (line . col)
+(doc compute-line-col 'type '(-> String Int (Pair Int Int)))
 (define (compute-line-col content offset)
   (let loop ([i 0] [line 1] [col 1])
        (cond
@@ -423,8 +423,8 @@
         [else
          (loop (+ i 1) line (+ col 1))])))
 
-;;; make-unclosed-error : String × (List (type line col)) → Error
-;;; Stack entries are now (type line col) triples.
+(doc make-unclosed-error 'type '(-> String (List (List Symbol Int Int)) Error))
+(doc make-unclosed-error 'note "Stack entries are (type line col) triples")
 (define (make-unclosed-error path paren-stack)
   (let* ([entry (if (pair? paren-stack) (car paren-stack) #f)]
          [ln (if entry (cadr entry) 1)]
@@ -432,10 +432,10 @@
         (make-error 'parse 'unclosed-list
                     (make-span path ln cl ln (+ cl 1)))))
 
-;;; make-mismatch-error : String × Int × Int × Symbol × (type line col) → Error
-;;; Create an error for mismatched bracket types.
-;;; closer-type is 'paren or 'bracket (what was used to close).
-;;; opener is the stack entry (type line col) of the opener.
+(doc make-mismatch-error 'type '(-> String Int Int Symbol (List Symbol Int Int) Error))
+(doc make-mismatch-error 'description "Create an error for mismatched bracket types")
+(doc make-mismatch-error 'param 'closer-type "'paren or 'bracket (what was used to close)")
+(doc make-mismatch-error 'param 'opener "stack entry (type line col) of the opener")
 (define (make-mismatch-error path close-line close-col closer-type opener)
   (let* ([opener-type (car opener)]
          [opener-line (cadr opener)]
@@ -447,16 +447,16 @@
                     (make-span path close-line close-col close-line (+ close-col 1))
                     msg)))
 
-;;; make-extra-close-error : String × Int × String → Error
-;;; Legacy version - computes line/col from offset (O(N) per call).
+(doc make-extra-close-error 'type '(-> String Int String Error))
+(doc make-extra-close-error 'description "Legacy version - computes line/col from offset (O(N) per call)")
 (define (make-extra-close-error path offset content)
   (let ([loc (compute-line-col content offset)])
        (make-error 'parse 'unexpected-char
                    (make-span path (car loc) (cdr loc) (car loc) (+ (cdr loc) 1))
                    ")")))
 
-;;; make-extra-close-error-fast : String × Int × Int → Error
-;;; O(1) version - takes line/col directly for incremental scanning.
+(doc make-extra-close-error-fast 'type '(-> String Int Int Error))
+(doc make-extra-close-error-fast 'description "O(1) version - takes line/col directly for incremental scanning")
 (define (make-extra-close-error-fast path line col)
   (make-error 'parse 'unexpected-char
               (make-span path line col line (+ col 1))

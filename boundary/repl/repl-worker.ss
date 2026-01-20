@@ -1,23 +1,21 @@
-;;; boundary/repl/repl-worker.ss — Per-session REPL worker process
-;;;
-;;; Each worker handles a single session-id and processes requests from:
-;;;   .fold-repl/requests/<session-id>.ss
-;;; It writes responses to:
-;;;   .fold-repl/responses/<session-id>.txt
-;;;   .fold-repl/responses/<session-id>.error.txt
-;;;
-;;; The broker daemon spawns one worker per session-id.
-;;;
-;;; When a definition is evaluated, returns the content-address (SHA-256)
-;;; of the defined value instead of void.
-
-;;; Load hashing dependencies early for content-addressing
 (load "core/base/sha256.ss")
 (load "core/blocks/cas.ss")
-
-;;; Load normalization for α-equivalence (same variable names = same hash)
-;;; This ensures (define (foo x) x) and (define (foo y) y) have the same address
 (load "core/blocks/normalize.ss")
+
+(doc 'module 'repl-worker)
+(doc 'description "Per-session REPL worker process — Each worker handles a single session-id and processes requests")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+
+(doc 'protocol "
+Requests from:  .fold-repl/requests/<session-id>.ss
+Responses to:   .fold-repl/responses/<session-id>.txt
+Errors to:      .fold-repl/responses/<session-id>.error.txt
+")
+
+(doc 'note "The broker daemon spawns one worker per session-id")
+(doc 'note "When a definition is evaluated, returns the content-address (SHA-256) of the defined value instead of void")
+(doc 'note "Normalization ensures α-equivalence: (define (foo x) x) and (define (foo y) y) have the same address")
 
 (define *poll-interval-ns* 100000000)  ; 100ms
 (define *heartbeat-interval* 5)        ; seconds

@@ -1,16 +1,15 @@
-;;; boundary/ffi/raymarch-ffi.ss — FFI Bindings for Rust Raymarcher Acceleration
-;;;
-;;; Provides Scheme wrappers for Rust-accelerated mesh raymarching.
-;;; Uses define-ftype for C-compatible structs with out-pointers.
-;;;
-;;; This is Shell code: handles FFI binding and memory management.
-
 (load "boundary/ffi/ffi-core.ss")
 (load "boundary/ffi/bvh-ffi.ss")
 
-;;; ====
-;;; Result Structs (matching Rust #[repr(C)])
-;;; ====
+(doc 'module 'raymarch-ffi)
+(doc 'description "FFI Bindings for Rust Raymarcher Acceleration — Provides Scheme wrappers for Rust-accelerated mesh raymarching")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+
+(doc 'note "Uses define-ftype for C-compatible structs with out-pointers")
+
+(doc 'section 'result-structs)
+(doc 'note "Result structs matching Rust #[repr(C)]")
 
 ;;; Raymarching result struct
 ;;; Fields ordered for natural alignment (f64 first, then u64, u32, u8)

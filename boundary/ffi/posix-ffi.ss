@@ -1,34 +1,28 @@
-;;; boundary/ffi/posix-ffi.ss — POSIX FFI Bindings
-;;;
-;;; Provides access to POSIX system calls via Rust FFI:
-;;; - getpid: true OS process ID
-;;; - flock: advisory file locking (with automatic cleanup on process death)
-;;; - open/close: low-level file descriptor operations with O_EXCL
-;;; - fsync/fdatasync: force data to disk for durability
-;;; - stat/fstat: file metadata (size, mtime, mode, type)
-;;;
-;;; IMPORTANT: Always use LOCK_NB (non-blocking) with flock!
-;;; Blocking flock would hang the Chez runtime (cooperative threading).
-;;;
-;;; Usage:
-;;;   (posix-load!)                      ; Load FFI library
-;;;   (posix-getpid)                     ; Get real OS PID
-;;;   (posix-open path flags mode)       ; Open file, return fd
-;;;   (posix-close fd)                   ; Close file descriptor
-;;;   (posix-flock fd op)                ; Advisory locking
-;;;   (posix-fsync fd)                   ; Force data+metadata to disk
-;;;   (posix-fdatasync fd)               ; Force data to disk (faster)
-;;;   (posix-stat path)                  ; Get file metadata
-;;;   (posix-fstat fd)                   ; Get metadata via fd
-;;;   (with-flock-lock path thunk)       ; High-level: lock file during thunk
-;;;
-;;; This is Shell code: impure (system calls, FFI).
-
 (load "boundary/ffi/ffi-core.ss")
 
-;;; ====
-;;; FFI Type Definitions
-;;; ====
+(doc 'module 'posix-ffi)
+(doc 'description "POSIX FFI Bindings — Provides access to POSIX system calls via Rust FFI")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+
+(doc 'capabilities '(getpid flock open close fsync fdatasync stat fstat))
+
+(doc 'note "IMPORTANT: Always use LOCK_NB (non-blocking) with flock! Blocking flock would hang the Chez runtime (cooperative threading).")
+
+(doc 'usage "
+  (posix-load!)                      ; Load FFI library
+  (posix-getpid)                     ; Get real OS PID
+  (posix-open path flags mode)       ; Open file, return fd
+  (posix-close fd)                   ; Close file descriptor
+  (posix-flock fd op)                ; Advisory locking
+  (posix-fsync fd)                   ; Force data+metadata to disk
+  (posix-fdatasync fd)               ; Force data to disk (faster)
+  (posix-stat path)                  ; Get file metadata
+  (posix-fstat fd)                   ; Get metadata via fd
+  (with-flock-lock path thunk)       ; High-level: lock file during thunk
+")
+
+(doc 'section 'ffi-type-definitions)
 
 ;;; Result struct for int-returning POSIX calls
 ;;; Matches Rust's IntResult

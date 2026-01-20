@@ -1,16 +1,14 @@
-;;; boundary/ffi/bvh-ffi.ss — FFI Bindings for Rust BVH Acceleration
-;;;
-;;; Provides Scheme wrappers for Rust-accelerated BVH operations.
-;;; Uses define-ftype for C-compatible structs with out-pointers.
-;;;
-;;; This is Shell code: handles FFI binding and memory management.
-
 (load "boundary/ffi/ffi-core.ss")
 (load "boundary/ffi/serialize.ss")
 
-;;; ====
-;;; Result Structs (matching Rust #[repr(C)])
-;;; ====
+(doc 'module 'bvh-ffi)
+(doc 'description "FFI Bindings for Rust BVH Acceleration — Provides Scheme wrappers for Rust-accelerated BVH operations")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+(doc 'note "Uses define-ftype for C-compatible structs with out-pointers")
+
+(doc 'section 'result-structs)
+(doc 'note "Result structs matching Rust #[repr(C)]")
 
 ;;; Closest point query result
 (define-ftype closest-point-result-t
@@ -32,17 +30,16 @@
    [nz     double]           ; normal z
    [fuel   unsigned-64]))    ; remaining fuel
 
-;;; ====
-;;; Foreign Procedures (bound lazily)
-;;; ====
+(doc 'section 'foreign-procedures)
+(doc 'note "Foreign procedures bound lazily")
 
 (define rust-bvh-build #f)
 (define rust-bvh-drop #f)
 (define rust-bvh-closest-point #f)
 (define rust-bvh-intersect-ray #f)
 
-;;; bind-bvh-procedures! : → void
-;;; Bind BVH foreign procedures (call after library load)
+(doc bind-bvh-procedures! 'type '(-> Void))
+(doc bind-bvh-procedures! 'description "Bind BVH foreign procedures (call after library load)")
 (define (bind-bvh-procedures!)
   ;; Build BVH from bytevector, returns handle pointer
   (set! rust-bvh-build

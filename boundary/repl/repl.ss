@@ -1,28 +1,23 @@
-;;; boundary/repl/repl.ss — The Fold System REPL
-;;;
-;;; THIS FILE MUST BE LOADED FIRST BY ALL CLAUDES.
-;;;
-;;; The System REPL is the mandatory entry point to The Fold.
-;;; It loads all necessary dependencies and displays the welcome screen.
-;;;
-;;; Usage:
-;;;   (load "boundary/repl/repl.ss")  ; First and ONLY thing you do
-;;;
-;;; This is Shell code: uses IO, manages system state.
-;;;
-;;; After loading, the REPL will:
-;;;   1. Load all dependencies
-;;;   2. Display the welcome screen
-;;;   3. Make all CAS and exploration functions available
-
-;;; ====
-;;; Dependency Loading
-;;; ====
-
-;;; Load order matters — dependencies first
-
-;; Set up source-directories so core modules can find prelude.ss
 (source-directories (cons "core" (source-directories)))
+
+(doc 'module 'repl)
+(doc 'description "The Fold System REPL — The mandatory entry point to The Fold")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+
+(doc 'critical "THIS FILE MUST BE LOADED FIRST BY ALL CLAUDES")
+
+(doc 'usage "(load \"boundary/repl/repl.ss\")  ; First and ONLY thing you do")
+
+(doc 'initialization "
+After loading, the REPL will:
+  1. Load all dependencies
+  2. Display the welcome screen
+  3. Make all CAS and exploration functions available
+")
+
+(doc 'section 'dependency-loading)
+(doc 'note "Load order matters — dependencies first")
 
 ;; Core dependencies
 (load "core/blocks/block.ss")
@@ -97,33 +92,29 @@
 ;; Commands: (undo) (redo) (history) (branch 'name) (branches) (checkout 'name)
 
 
-;;; ====
-;;; Quiet Mode
-;;; ====
+(doc 'section 'quiet-mode)
 
-;;; Set *quiet* to #t before loading to suppress startup output.
-;;; Usage: (define *quiet* #t) (load "boundary/repl/repl.ss")
+(doc '*quiet* 'description "Set to #t before loading to suppress startup output")
+(doc '*quiet* 'usage "(define *quiet* #t) (load \"boundary/repl/repl.ss\")")
 (define *quiet* (if (top-level-bound? '*quiet*) *quiet* #f))
 
-;;; ====
-;;; Startup Display
-;;; ====
+(doc 'section 'startup-display)
 
 (define *fold-version* "GENESIS")
 
-;;; display-startup : → void
-;;; Minimal startup: version and commands
+(doc display-startup 'type '(-> Void))
+(doc display-startup 'description "Minimal startup: version and commands")
 (define (display-startup)
   (display (format "The Fold ~a — Content-Addressed Storage System\n" *fold-version*))
   (display "Commands: (blocks) (explore-block hash) (help)\n")
   (display "New to The Fold? Try (start-tutorial) for an interactive guide!\n")
   (display "Type (commands) to see all registered commands.\n"))
 
-;;; ====
-;;; Help and Command Reference
-;;; ====
+(doc 'section 'help-and-command-reference)
 
 (define (display-help)
+  (doc 'type '(-> Void))
+  (doc 'description "Display comprehensive help text with all commands")
   (display "\n")
   (display "  ┌────────────────────────────────────────────────────────────────────┐\n")
   (display "  │                       AVAILABLE COMMANDS                           │\n")
@@ -253,101 +244,87 @@
   (display "    See toolkit.ss for more: block-diff, type-inspect, fuel-profile\n")
   (display "\n"))
 
-;; New command-based help (integrates with command registry)
+(doc help 'description "Command-based help integrating with command registry")
 (define (help . args)
   (if (null? args)
-      ;; Show traditional comprehensive help for now
       (display-help)
-      ;; Show command-specific help using command registry
       (apply cmd-help args)))
 
-;;; ====
-;;; Convenience Functions
-;;; ====
+(doc 'section 'convenience-functions)
 
-;;; fs : → FS
-;;; Convenience function to get a filesystem capability.
+(doc fs 'type '(-> FS))
+(doc fs 'description "Convenience function to get a filesystem capability")
 (define (fs)
   (mint-fs-capability ".store"))
 
-;;; Block Explorer Convenience Functions
+(doc 'section 'block-explorer-convenience)
 
-;;; blocks : → void
-;;; Show all blocks in the content-addressed store.
+(doc blocks 'type '(-> Void))
+(doc blocks 'description "Show all blocks in the content-addressed store")
 (define (blocks)
   (block-stats (fs)))
 
-;;; explore : String → void
-;;; Explore a block by hash prefix (interactive drilldown).
+(doc explore-block 'type '(-> String Void))
+(doc explore-block 'description "Explore a block by hash prefix (interactive drilldown)")
 (define (explore-block hash-prefix)
   (explore (fs) hash-prefix))
 
-;;; popular : [Nat] → void
-;;; Show the N most-referenced blocks (default 10).
+(doc popular 'type '(-> (Option Nat) Void))
+(doc popular 'description "Show the N most-referenced blocks (default 10)")
 (define (popular . args)
   (let ([n (if (null? args) 10 (car args))])
        (find-popular (fs) n)))
 
-;;; orphans : → void
-;;; Find blocks with no inbound references.
+(doc orphans 'type '(-> Void))
+(doc orphans 'description "Find blocks with no inbound references")
 (define (orphans)
   (find-orphans (fs)))
 
-;;; tree : String [Nat] → void
-;;; Visualize block reference tree (default depth 3).
+(doc tree 'type '(-> String (Option Nat) Void))
+(doc tree 'description "Visualize block reference tree (default depth 3)")
 (define (tree hash-prefix . args)
   (let ([depth (if (null? args) 3 (car args))])
        (visualize-tree (fs) hash-prefix depth)))
 
-;;; search : String → void
-;;; Search blocks with relevance ranking.
+(doc search 'type '(-> String Void))
+(doc search 'description "Search blocks with relevance ranking")
 (define (search query)
   (search-ranked (fs) query))
 
-;;; ====
-;;; Interactive Block Explorer (session-based)
-;;; ====
-;;; Functions loaded from boundary/blocks/block-explorer.ss
-;;; Available: bx, bx-view, bx-back, bx-home, bx-popular,
-;;;            bx-orphans, bx-search, bx-recent, bx-by-tag,
-;;;            bx-stats, bx-help
+(doc 'section 'interactive-block-explorer)
+(doc 'note "Functions loaded from boundary/blocks/block-explorer.ss")
+(doc 'functions '(bx bx-view bx-back bx-home bx-popular bx-orphans bx-search bx-recent bx-by-tag bx-stats bx-help))
 
-;;; bx : → void
-;;; Convenience wrapper to start the interactive block explorer.
+(doc bx 'type '(-> Void))
+(doc bx 'description "Convenience wrapper to start the interactive block explorer")
 (define (bx)
   (block-explorer (fs)))
 
-;;; ====
+(doc 'section 'session-management)
 
-;;; resume-session : → void
-;;; Resume an existing session without re-logging in.
+(doc resume-session 'type '(-> Void))
+(doc resume-session 'description "Resume an existing session without re-logging in")
 (define (resume-session)
   (if (session-exists?)
       (who)
       (display "No session. Use fold_login to authenticate.\n")))
 
-;;; clear : → void
-;;; Clear the REPL screen.
+(doc clear 'type '(-> Void))
+(doc clear 'description "Clear the REPL screen")
 (define (clear)
   (display "\x1b;[2J\x1b;[H"))
 
-;;; version : → void
-;;; Display system version information.
+(doc version 'type '(-> Void))
+(doc version 'description "Display system version information")
 (define (version)
   (display (format "The Fold ~a\n" *fold-version*))
   (display "Content-Addressed Storage System\n"))
 
-;;; ====
-;;; Core Development Utilities
-;;; ====
+(doc 'section 'core-development-utilities)
 
-;;; load-core : → void
-;;; Load Core modules for development experimentation.
-;;; Provides: normalize, expand, eval-expr, run, infer, etc.
-;;;
-;;; Note: block.ss and sha256.ss are loaded by repl.ss.
-;;; Other core modules may have internal load statements that assume
-;;; they're loaded from the core directory. We load the standalone modules.
+(doc load-core 'type '(-> Void))
+(doc load-core 'description "Load Core modules for development experimentation. Provides: normalize, expand, eval-expr, run, infer, etc.")
+(doc load-core 'note "block.ss and sha256.ss are loaded by repl.ss. Other core modules may have internal load statements that assume they're loaded from the core directory. We load the standalone modules.")
 (define *core-loaded* #f)
 
 (define (load-core)
@@ -385,20 +362,17 @@
        (display "  (try-hash '(lambda (x) x))       → Show expression hash\n")
        (display "  (playground-demo)                → See all features\n"))))
 
-;;; ====
-;;; Typed Evaluation Convenience Functions
-;;; ====
+(doc 'section 'typed-evaluation-convenience)
+(doc 'note "These functions are available after (load-core)")
 
-;;; These functions are available after (load-core)
-
-;;; print-typed : TypedValue → void
-;;; Display a typed value with its type annotation.
+(doc print-typed 'type '(-> TypedValue Void))
+(doc print-typed 'description "Display a typed value with its type annotation")
 (define (print-typed tv)
   (display (show-typed tv))
   (newline))
 
-;;; typed-repl-eval : Expr → void
-;;; Evaluate and display with types (for REPL use).
+(doc typed-repl-eval 'type '(-> Expr Void))
+(doc typed-repl-eval 'description "Evaluate and display with types (for REPL use)")
 (define (typed-repl-eval expr)
   (let ([result (typed-run expr 1000)])
        (cond
@@ -413,15 +387,15 @@
          (display result)
          (newline)])))
 
-;;; t : Expr → void
-;;; Typed evaluation: type-check and evaluate, display result with type.
+(doc t 'type '(-> Expr Void))
+(doc t 'description "Typed evaluation: type-check and evaluate, display result with type")
 (define (t expr)
   (unless *core-loaded*
           (error 't "Core not loaded. Run (load-core) first."))
   (typed-repl-eval expr))
 
-;;; :type : Expr → void
-;;; Show the type of an expression without evaluating.
+(doc :type 'type '(-> Expr Void))
+(doc :type 'description "Show the type of an expression without evaluating")
 (define (:type expr)
   (unless *core-loaded*
           (error ':type "Core not loaded. Run (load-core) first."))
@@ -436,25 +410,23 @@
             (display (type->string result))
             (newline)))))
 
-;;; :ann : Expr → void
-;;; Show an expression with type annotations at every node.
+(doc :ann 'type '(-> Expr Void))
+(doc :ann 'description "Show an expression with type annotations at every node")
 (define (:ann expr)
   (unless *core-loaded*
           (error ':ann "Core not loaded. Run (load-core) first."))
   (show-annotated expr))
 
-;;; ====
-;;; REPL Initialization
-;;; ====
+(doc 'section 'repl-initialization)
 
 (define (fold-repl-init)
+  (doc 'type '(-> Void))
+  (doc 'description "Initialize the REPL (display startup or quiet confirmation)")
   (unless *quiet*
           (display-startup))
   (when *quiet*
         (display "The Fold loaded.\n")))
 
-;;; ====
-;;; Auto-initialize on load
-;;; ====
+(doc 'section 'auto-initialize)
 
 (fold-repl-init)

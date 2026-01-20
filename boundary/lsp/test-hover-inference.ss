@@ -35,7 +35,7 @@
   (display name)
   (newline))
 
-;;; string-contains? : String × String → Boolean
+(doc string-contains? 'type '(-> String String Boolean))
 (define (string-contains? str substr)
   (let ([str-len (string-length str)]
         [sub-len (string-length substr)])

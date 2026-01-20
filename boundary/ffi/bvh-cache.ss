@@ -1,16 +1,14 @@
-;;; boundary/ffi/bvh-cache.ss — Content-Hash Based BVH Cache
-;;;
-;;; Caches Rust BVH handles by content hash to avoid rebuilding.
-;;; Uses Guardians for automatic cleanup when Scheme wrappers are GC'd.
-;;;
-;;; This is Shell code: mutable cache, memory management.
-
 (load "boundary/ffi/bvh-ffi.ss")
 (load "core/base/sha256.ss")
 
-;;; ====
-;;; Cache Data Structures
-;;; ====
+(doc 'module 'bvh-cache)
+(doc 'description "Content-Hash Based BVH Cache — Caches Rust BVH handles by content hash to avoid rebuilding")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+
+(doc 'note "Uses Guardians for automatic cleanup when Scheme wrappers are GC'd")
+
+(doc 'section 'cache-data-structures)
 
 ;;; Maximum cache size to prevent unbounded memory growth.
 ;;; BUGFIX: Strong hashtable was preventing GC, causing memory leak.

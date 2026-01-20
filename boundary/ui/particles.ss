@@ -1,37 +1,25 @@
-;;; boundary/particles.ss — Particle Effects System
-;;;
-;;; Provides particle emitters and effects for visual feedback:
-;;;   - Hearts floating up when petted
-;;;   - Sparkles when happy
-;;;   - Ripples in water
-;;;   - Dust/motion trails
-;;;
-;;; This is Shell code: handles particle physics and rendering.
-;;; Particles are transient visual elements that add life to the scene.
-
-;;; ====
-;;; Dependencies
-;;; ====
-
 (load "boundary/ui/color.ss")
 (load "boundary/ui/layout-color.ss")
 (load "boundary/ui/animation.ss")
 
-;;; ====
-;;; Particle Type
-;;; ====
+(doc 'module 'particles)
+(doc 'description "Particle Effects System - Provides particle emitters and effects for visual feedback: Hearts floating up when petted, Sparkles when happy, Ripples in water, Dust/motion trails. Particles are transient visual elements that add life to the scene.")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
 
-;;; Particle : (× Point Point Char Color Nat Nat)
-;;;
-;;; A single particle with:
-;;;   - position   : Current (x, y) position
-;;;   - velocity   : (dx, dy) velocity per frame
-;;;   - char       : Character to display
-;;;   - color      : Particle color
-;;;   - lifetime   : Frames remaining before particle dies
-;;;   - max-life   : Total frames particle can live
+(doc 'section 'particle-type)
+
+(doc 'note "Particle : (× Point Point Char Color Nat Nat)")
+(doc 'note "A single particle with:")
+(doc 'note "  - position   : Current (x, y) position")
+(doc 'note "  - velocity   : (dx, dy) velocity per frame")
+(doc 'note "  - char       : Character to display")
+(doc 'note "  - color      : Particle color")
+(doc 'note "  - lifetime   : Frames remaining before particle dies")
+(doc 'note "  - max-life   : Total frames particle can live")
 
 (define (make-particle pos vel char color lifetime)
+  (doc 'type (-> Point Point Char Color Nat Particle))
   (list pos vel char color lifetime lifetime))
 
 (define (particle-position p)    (list-ref p 0))
@@ -41,30 +29,23 @@
 (define (particle-lifetime p)    (list-ref p 4))
 (define (particle-max-life p)    (list-ref p 5))
 
-;;; particle-alive? : Particle → Bool
-;;;
-;;; Check if particle is still alive.
 (define (particle-alive? p)
+  (doc 'type (-> Particle Bool))
+  (doc 'description "Check if particle is still alive.")
   (> (particle-lifetime p) 0))
 
-;;; particle-age : Particle → Real[0,1]
-;;;
-;;; Get normalized age (0=just born, 1=about to die).
 (define (particle-age p)
+  (doc 'type (-> Particle Real))
+  (doc 'description "Get normalized age (0=just born, 1=about to die).")
   (let ([lifetime (particle-lifetime p)]
         [max-life (particle-max-life p)])
        (- 1.0 (/ (exact->inexact lifetime) (exact->inexact max-life)))))
 
-;;; ====
-;;; Particle Update
-;;; ====
+(doc 'section 'particle-update)
 
-;;; update-particle : Particle → Particle
-;;;
-;;; Update particle for one frame:
-;;;   - Move by velocity
-;;;   - Decrease lifetime
 (define (update-particle p)
+  (doc 'type (-> Particle Particle))
+  (doc 'description "Update particle for one frame: Move by velocity, Decrease lifetime")
   (let* ([pos (particle-position p)]
          [vel (particle-velocity p)]
          [new-x (+ (point-x pos) (point-x vel))]
@@ -78,22 +59,17 @@
               new-lifetime
               (particle-max-life p))))
 
-;;; update-particles : (List Particle) → (List Particle)
-;;;
-;;; Update all particles and remove dead ones.
 (define (update-particles particles)
+  (doc 'type (-> (List Particle) (List Particle)))
+  (doc 'description "Update all particles and remove dead ones.")
   (filter particle-alive?
           (map update-particle particles)))
 
-;;; ====
-;;; Particle Rendering
-;;; ====
+(doc 'section 'particle-rendering)
 
-;;; render-particle : Canvas × Particle → Canvas
-;;;
-;;; Render a single particle to the canvas.
-;;; Particles fade out as they age.
 (define (render-particle canvas p)
+  (doc 'type (-> Canvas Particle Canvas))
+  (doc 'description "Render a single particle to the canvas. Particles fade out as they age.")
   (let* ([pos (particle-position p)]
          [x (inexact->exact (round (point-x pos)))]
          [y (inexact->exact (round (point-y pos)))]
@@ -111,24 +87,19 @@
             (draw-char-colored canvas pos char faded-color color-default)
             canvas)))
 
-;;; render-particles : Canvas × (List Particle) → Canvas
-;;;
-;;; Render all particles to the canvas.
 (define (render-particles canvas particles)
+  (doc 'type (-> Canvas (List Particle) Canvas))
+  (doc 'description "Render all particles to the canvas.")
   (if (null? particles)
       canvas
       (render-particles (render-particle canvas (car particles))
                         (cdr particles))))
 
-;;; ====
-;;; Particle Emitters — Hearts
-;;; ====
+(doc 'section 'particle-emitters-hearts)
 
-;;; emit-hearts : Point → (List Particle)
-;;;
-;;; Emit heart particles that float upward.
-;;; Used for affection/petting interactions.
 (define (emit-hearts origin)
+  (doc 'type (-> Point (List Particle)))
+  (doc 'description "Emit heart particles that float upward. Used for affection/petting interactions.")
   (let ([x (point-x origin)]
         [y (point-y origin)])
        (list
@@ -136,15 +107,11 @@
         (make-particle (point (+ x 2) y) (point 0.2 -0.6) #\♡ color-red 25)
         (make-particle (point (+ x -1) y) (point -0.1 -0.4) #\♥ color-pink 28))))
 
-;;; ====
-;;; Particle Emitters — Sparkles
-;;; ====
+(doc 'section 'particle-emitters-sparkles)
 
-;;; emit-sparkles : Point → (List Particle)
-;;;
-;;; Emit sparkle particles that radiate outward.
-;;; Used for happiness/excitement.
 (define (emit-sparkles origin)
+  (doc 'type (-> Point (List Particle)))
+  (doc 'description "Emit sparkle particles that radiate outward. Used for happiness/excitement.")
   (let ([x (point-x origin)]
         [y (point-y origin)])
        (list
@@ -154,15 +121,11 @@
         (make-particle (point x y) (point -0.3 0.3) #\✦ color-gold 15)
         (make-particle (point x y) (point 0.0 -0.6) #\✨ color-white 25))))
 
-;;; ====
-;;; Particle Emitters — Bubbles
-;;; ====
+(doc 'section 'particle-emitters-bubbles)
 
-;;; emit-bubbles : Point → (List Particle)
-;;;
-;;; Emit bubble particles that float upward.
-;;; Used for water/pond interactions.
 (define (emit-bubbles origin)
+  (doc 'type (-> Point (List Particle)))
+  (doc 'description "Emit bubble particles that float upward. Used for water/pond interactions.")
   (let ([x (point-x origin)]
         [y (point-y origin)])
        (list
@@ -170,15 +133,11 @@
         (make-particle (point (+ x 2) y) (point -0.1 -0.5) #\◦ color-blue 30)
         (make-particle (point (+ x 1) (+ y 2)) (point 0.0 -0.3) #\○ color-cyan 40))))
 
-;;; ====
-;;; Particle Emitters — Ripples
-;;; ====
+(doc 'section 'particle-emitters-ripples)
 
-;;; emit-ripple : Point → (List Particle)
-;;;
-;;; Emit ripple particles that expand outward.
-;;; Used for splashes and impacts.
 (define (emit-ripple origin)
+  (doc 'type (-> Point (List Particle)))
+  (doc 'description "Emit ripple particles that expand outward. Used for splashes and impacts.")
   (let ([x (point-x origin)]
         [y (point-y origin)])
        (list
@@ -188,15 +147,11 @@
         (make-particle (point x y) (point 0.0 0.5) #\~ color-blue 11)
         (make-particle (point x y) (point 0.0 -0.5) #\~ color-blue 11))))
 
-;;; ====
-;;; Particle Emitters — Stars
-;;; ====
+(doc 'section 'particle-emitters-stars)
 
-;;; emit-stars : Point → (List Particle)
-;;;
-;;; Emit twinkling star particles.
-;;; Used for curious/wonder moments.
 (define (emit-stars origin)
+  (doc 'type (-> Point (List Particle)))
+  (doc 'description "Emit twinkling star particles. Used for curious/wonder moments.")
   (let ([x (point-x origin)]
         [y (point-y origin)])
        (list
@@ -204,30 +159,22 @@
         (make-particle (point (+ x -2) (- y 1)) (point 0.0 0.0) #\☆ color-gold 20)
         (make-particle (point (+ x 3) (- y 3)) (point 0.0 0.0) #\✦ color-white 22))))
 
-;;; ====
-;;; Particle Emitters — Sleepy Z's
-;;; ====
+(doc 'section 'particle-emitters-zzz)
 
-;;; emit-zzz : Point → (List Particle)
-;;;
-;;; Emit "Z" particles that drift upward.
-;;; Used for sleep/drowsiness.
 (define (emit-zzz origin)
+  (doc 'type (-> Point (List Particle)))
+  (doc 'description "Emit \"Z\" particles that drift upward. Used for sleep/drowsiness.")
   (let ([x (point-x origin)]
         [y (point-y origin)])
        (list
         (make-particle (point (+ x 2) (- y 1)) (point 0.2 -0.3) #\Z color-purple 30)
         (make-particle (point (+ x 3) (- y 2)) (point 0.1 -0.2) #\z color-purple 25))))
 
-;;; ====
-;;; Particle Emitters — Music Notes
-;;; ====
+(doc 'section 'particle-emitters-notes)
 
-;;; emit-notes : Point → (List Particle)
-;;;
-;;; Emit musical note particles.
-;;; Used for playful/energetic moments.
 (define (emit-notes origin)
+  (doc 'type (-> Point (List Particle)))
+  (doc 'description "Emit musical note particles. Used for playful/energetic moments.")
   (let ([x (point-x origin)]
         [y (point-y origin)])
        (list
@@ -235,58 +182,46 @@
         (make-particle (point (+ x 3) (- y 1)) (point -0.2 -0.5) #\♫ color-magenta 25)
         (make-particle (point (+ x 2) (+ y 1)) (point 0.1 -0.3) #\♬ color-pink 30))))
 
-;;; ====
-;;; Particle Emitters — Exclamation
-;;; ====
+(doc 'section 'particle-emitters-exclamation)
 
-;;; emit-exclamation : Point → (List Particle)
-;;;
-;;; Emit exclamation/surprise particles.
-;;; Used for startled/surprised reactions.
 (define (emit-exclamation origin)
+  (doc 'type (-> Point (List Particle)))
+  (doc 'description "Emit exclamation/surprise particles. Used for startled/surprised reactions.")
   (let ([x (point-x origin)]
         [y (point-y origin)])
        (list
         (make-particle (point (+ x 1) (- y 2)) (point 0.0 -0.2) #\! color-red 20)
         (make-particle (point (+ x 2) (- y 2)) (point 0.0 -0.2) #\! color-yellow 20))))
 
-;;; ====
-;;; Particle System State
-;;; ====
+(doc 'section 'particle-system-state)
 
-;;; ParticleSystem : (List Particle)
-;;;
-;;; Collection of active particles.
+(doc 'note "ParticleSystem : (List Particle)")
+(doc 'note "Collection of active particles.")
 
 (define (make-particle-system)
+  (doc 'type (-> ParticleSystem))
   '())
 
-;;; add-particles : ParticleSystem × (List Particle) → ParticleSystem
-;;;
-;;; Add new particles to the system.
 (define (add-particles system new-particles)
+  (doc 'type (-> ParticleSystem (List Particle) ParticleSystem))
+  (doc 'description "Add new particles to the system.")
   (append system new-particles))
 
-;;; update-particle-system : ParticleSystem → ParticleSystem
-;;;
-;;; Update all particles in the system (movement + lifetime).
 (define (update-particle-system system)
+  (doc 'type (-> ParticleSystem ParticleSystem))
+  (doc 'description "Update all particles in the system (movement + lifetime).")
   (update-particles system))
 
-;;; render-particle-system : Canvas × ParticleSystem → Canvas
-;;;
-;;; Render all particles in the system to a canvas.
 (define (render-particle-system canvas system)
+  (doc 'type (-> Canvas ParticleSystem Canvas))
+  (doc 'description "Render all particles in the system to a canvas.")
   (render-particles canvas system))
 
-;;; ====
-;;; Convenience Functions
-;;; ====
+(doc 'section 'convenience-functions)
 
-;;; emit-by-mood : Point × Mood → (List Particle)
-;;;
-;;; Emit particles appropriate for a given mood.
 (define (emit-by-mood origin mood)
+  (doc 'type (-> Point Mood (List Particle)))
+  (doc 'description "Emit particles appropriate for a given mood.")
   (case mood
         [(happy)    (emit-sparkles origin)]
         [(curious)  (emit-stars origin)]
@@ -296,10 +231,9 @@
         [(playful)  (emit-notes origin)]
         [else       '()]))
 
-;;; emit-by-interaction : Point × Symbol → (List Particle)
-;;;
-;;; Emit particles for specific interactions.
 (define (emit-by-interaction origin interaction)
+  (doc 'type (-> Point Symbol (List Particle)))
+  (doc 'description "Emit particles for specific interactions.")
   (case interaction
         [(pet)    (emit-hearts origin)]
         [(feed)   (emit-sparkles origin)]

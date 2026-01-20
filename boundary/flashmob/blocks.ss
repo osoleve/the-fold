@@ -1,23 +1,14 @@
-;;; boundary/flashmob/blocks.ss — Flashmob Block Creation Helpers
-;;;
-;;; Creates CAS blocks for the QA triage system.
-;;;
-;;; Block Tags:
-;;;   flashmob/finding  - Individual finding from an agent
-;;;   flashmob/session  - QA session with refs to agents, findings, triage
-;;;   flashmob/agent    - Agent profile with expertise weights
-;;;   flashmob/triage   - Triage game results (ranking, consensus, credits)
-;;;   flashmob/report   - Aggregated final report
-;;;
-;;; This is Shell code: uses Core block primitives.
-
 (load "core/base/prelude.ss")
 (load "core/blocks/block.ss")
 (load "core/blocks/cas.ss")
 
-;;; ====
-;;; Block Tags
-;;; ====
+(doc 'module 'flashmob/blocks)
+(doc 'description "Flashmob Block Creation Helpers - Creates CAS blocks for the QA triage system")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+(doc 'note "Block Tags: flashmob/finding (Individual finding from an agent), flashmob/session (QA session with refs to agents, findings, triage), flashmob/agent (Agent profile with expertise weights), flashmob/triage (Triage game results - ranking, consensus, credits), flashmob/report (Aggregated final report)")
+
+(doc 'section 'block-tags)
 
 (define FLASHMOB-FINDING 'flashmob/finding)
 (define FLASHMOB-SESSION 'flashmob/session)
@@ -25,23 +16,19 @@
 (define FLASHMOB-TRIAGE 'flashmob/triage)
 (define FLASHMOB-REPORT 'flashmob/report)
 
-;;; ====
-;;; Finding Block
-;;; ====
+(doc 'section 'finding-block)
 
-;;; make-finding-block : String Int Symbol Symbol Real Symbol String String (Option Bytevector) -> Block
-;;; Create a finding block.
-;;;
-;;; Arguments:
-;;;   file        - File path where finding was identified
-;;;   line        - Line number
-;;;   severity    - 'critical | 'high | 'medium | 'low | 'info
-;;;   category    - 'security | 'performance | 'correctness | 'style | 'documentation
-;;;   confidence  - Confidence score (0.0 - 1.0)
-;;;   agent-id    - ID of the agent that found this
-;;;   title       - Short description of the finding
-;;;   description - Detailed description
-;;;   session-ref - Hash of the session this finding belongs to (or #f)
+(doc make-finding-block 'type (-> String Int Symbol Symbol Real Symbol String String (Option Bytevector) Block))
+(doc make-finding-block 'description "Create a finding block")
+(doc make-finding-block 'param 'file "File path where finding was identified")
+(doc make-finding-block 'param 'line "Line number")
+(doc make-finding-block 'param 'severity "'critical | 'high | 'medium | 'low | 'info")
+(doc make-finding-block 'param 'category "'security | 'performance | 'correctness | 'style | 'documentation")
+(doc make-finding-block 'param 'confidence "Confidence score (0.0 - 1.0)")
+(doc make-finding-block 'param 'agent-id "ID of the agent that found this")
+(doc make-finding-block 'param 'title "Short description of the finding")
+(doc make-finding-block 'param 'description "Detailed description")
+(doc make-finding-block 'param 'session-ref "Hash of the session this finding belongs to (or #f)")
 (define (make-finding-block file line severity category confidence agent-id
                             title description session-ref)
   (let* ([payload-data `((file . ,file)

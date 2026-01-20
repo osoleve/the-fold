@@ -38,15 +38,15 @@
 
 (doc 'section 'message-accessors)
 
-;;; lsp-message-id : JsonObject → Any
+(doc lsp-message-id 'type '(-> JsonObject Any))
 (define (lsp-message-id msg)
   (json-get msg "id"))
 
-;;; lsp-message-method : JsonObject → String
+(doc lsp-message-method 'type '(-> JsonObject String))
 (define (lsp-message-method msg)
   (json-get msg "method"))
 
-;;; lsp-message-params : JsonObject → JsonValue
+(doc lsp-message-params 'type '(-> JsonObject JsonValue))
 (define (lsp-message-params msg)
   (or (json-get msg "params") (json-obj)))
 
@@ -244,8 +244,8 @@
 
 (doc 'section 'diagnostic-construction)
 
-;;; make-diagnostic : Range × String × Int [× String] → JsonObject
-;;; Create an LSP Diagnostic.
+(doc make-diagnostic 'type '(-> Range String Int (* String) JsonObject))
+(doc make-diagnostic 'description "Create an LSP Diagnostic")
 (define (make-diagnostic range message severity . opts)
   (let* ([base (json-obj "range" range
                          "severity" severity
@@ -279,20 +279,20 @@
             "activeSignature" active-sig
             "activeParameter" active-param))
 
-;;; make-signature-info : String × String × (List ParameterInfo) → JsonObject
-;;; Create a SignatureInformation object.
-;;; label: full signature text (e.g., "(map f lst)")
-;;; doc: markdown documentation
-;;; params: list of parameter infos
+(doc make-signature-info 'type '(-> String String (List ParameterInfo) JsonObject))
+(doc make-signature-info 'description "Create a SignatureInformation object")
+(doc make-signature-info 'param 'label "full signature text (e.g., \"(map f lst)\")")
+(doc make-signature-info 'param 'doc "markdown documentation")
+(doc make-signature-info 'param 'params "list of parameter infos")
 (define (make-signature-info label doc params)
   (json-obj "label" label
             "documentation" (json-obj "kind" "markdown" "value" doc)
             "parameters" (apply json-arr params)))
 
-;;; make-parameter-info : String × String → JsonObject
-;;; Create a ParameterInformation object.
-;;; label: parameter label (substring of signature or [start, end] offsets)
-;;; doc: parameter documentation
+(doc make-parameter-info 'type '(-> String String JsonObject))
+(doc make-parameter-info 'description "Create a ParameterInformation object")
+(doc make-parameter-info 'param 'label "parameter label (substring of signature or [start, end] offsets)")
+(doc make-parameter-info 'param 'doc "parameter documentation")
 (define (make-parameter-info label doc)
   (json-obj "label" label
             "documentation" doc))

@@ -241,37 +241,37 @@
             [(or (char=? c #\-) (char-numeric? c)) (parse-number s)]
             [else (string-append "Unexpected character: " (string c))]))))
 
-;;; parse-null : State → (null . State) | ErrorString
+(doc parse-null 'type '(-> State (U (Pair Null State) ErrorString)))
 (define (parse-null s)
   (let ([next (match-string s "null")])
        (if next
            (cons 'null next)
            "Expected 'null'")))
 
-;;; parse-true : State → (#t . State) | ErrorString
+(doc parse-true 'type '(-> State (U (Pair Boolean State) ErrorString)))
 (define (parse-true s)
   (let ([next (match-string s "true")])
        (if next
            (cons #t next)
            "Expected 'true'")))
 
-;;; parse-false : State → (#f . State) | ErrorString
+(doc parse-false 'type '(-> State (U (Pair Boolean State) ErrorString)))
 (define (parse-false s)
   (let ([next (match-string s "false")])
        (if next
            (cons #f next)
            "Expected 'false'")))
 
-;;; parse-string : State → (String . State) | ErrorString
-;;; Optimized to use output port instead of list cons + reverse.
+(doc parse-string 'type '(-> State (U (Pair String State) ErrorString)))
+(doc parse-string 'note "Optimized to use output port instead of list cons + reverse")
 (define (parse-string s)
   (if (not (char=? (pstate-peek s) #\"))
       "Expected '\"'"
       (let ([s (pstate-advance s)])  ; skip opening quote
            (parse-string-body s))))
 
-;;; parse-string-body : State → (String . State) | ErrorString
-;;; Parse the body of a string using output port for efficiency.
+(doc parse-string-body 'type '(-> State (U (Pair String State) ErrorString)))
+(doc parse-string-body 'description "Parse the body of a string using output port for efficiency")
 (define (parse-string-body start-state)
   (let* ([result-str #f]
          [end-state #f]
@@ -304,7 +304,7 @@
          [end-state (cons result-str end-state)]
          [else "Unterminated string"])))
 
-;;; parse-escape : State → (Char . State) | ErrorString
+(doc parse-escape 'type '(-> State (U (Pair Char State) ErrorString)))
 (define (parse-escape s)
   (if (pstate-empty? s)
       "Unterminated escape sequence"
@@ -373,7 +373,7 @@
            ;; No following escape - use replacement char
            (cons *replacement-char* s))))
 
-;;; parse-number : State → (Number . State) | ErrorString
+(doc parse-number 'type '(-> State (U (Pair Number State) ErrorString)))
 (define (parse-number s)
   (let* ([str (pstate-str s)]
          [start (pstate-index s)]
@@ -395,7 +395,7 @@
                         (loop (+ i 1) has-dot has-exp)]
                        [else (parse-number-finish s start i)]))))))
 
-;;; parse-number-finish : State × Start × End → (Number . State) | ErrorString
+(doc parse-number-finish 'type '(-> State Int Int (U (Pair Number State) ErrorString)))
 (define (parse-number-finish s start end)
   (if (= start end)
       "Expected number"

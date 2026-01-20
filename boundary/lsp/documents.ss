@@ -64,21 +64,21 @@
                      [else
                       (loop (+ i 1) acc)]))))))
 
-;;; line-count : Document → Int
+(doc line-count 'type '(-> Document Int))
 (define (line-count doc)
   (vector-length (document-line-starts doc)))
 
-;;; get-line-start : Document × Int → Int
-;;; Get the character offset where a line begins.
+(doc get-line-start 'type '(-> Document Int Int))
+(doc get-line-start 'description "Get the character offset where a line begins")
 (define (get-line-start doc line)
   (let ([starts (document-line-starts doc)])
        (if (< line (vector-length starts))
            (vector-ref starts line)
            (string-length (document-content doc)))))
 
-;;; get-line-end : Document × Int → Int
-;;; Get the character offset where a line ends (before any line ending chars).
-;;; Handles \r\n, \n, and \r line endings.
+(doc get-line-end 'type '(-> Document Int Int))
+(doc get-line-end 'description "Get the character offset where a line ends (before any line ending chars)")
+(doc get-line-end 'note "Handles \\r\\n, \\n, and \\r line endings")
 (define (get-line-end doc line)
   (let* ([starts (document-line-starts doc)]
          [content (document-content doc)]
@@ -98,8 +98,8 @@
             ;; Last line - goes to end of content
             len)))
 
-;;; get-line-content : Document × Int → String
-;;; Get the content of a specific line (without newline).
+(doc get-line-content 'type '(-> Document Int String))
+(doc get-line-content 'description "Get the content of a specific line (without newline)")
 (define (get-line-content doc line)
   (let* ([start (get-line-start doc line)]
          [end (get-line-end doc line)]
@@ -118,8 +118,8 @@
   (let ([cp (char->integer c)])
        (if (> cp #xFFFF) 2 1)))
 
-;;; utf16-offset->char-offset : String × Int → Int
-;;; Convert a UTF-16 code unit offset to a character offset.
+(doc utf16-offset->char-offset 'type '(-> String Int Int))
+(doc utf16-offset->char-offset 'description "Convert a UTF-16 code unit offset to a character offset")
 (define (utf16-offset->char-offset str utf16-offset)
   (let ([len (string-length str)])
        (let loop ([char-idx 0] [utf16-idx 0])
@@ -131,8 +131,8 @@
                    (loop (+ char-idx 1)
                          (+ utf16-idx (char-utf16-length c))))]))))
 
-;;; char-offset->utf16-offset : String × Int → Int
-;;; Convert a character offset to a UTF-16 code unit offset.
+(doc char-offset->utf16-offset 'type '(-> String Int Int))
+(doc char-offset->utf16-offset 'description "Convert a character offset to a UTF-16 code unit offset")
 (define (char-offset->utf16-offset str char-offset)
   (let ([len (min char-offset (string-length str))])
        (let loop ([i 0] [utf16-count 0])
@@ -153,8 +153,8 @@
          [char-col (utf16-offset->char-offset line-content character)])
         (+ line-start char-col)))
 
-;;; offset->lsp-position : Document × Int → JsonObject
-;;; Convert a document offset to an LSP position.
+(doc offset->lsp-position 'type '(-> Document Int JsonObject))
+(doc offset->lsp-position 'description "Convert a document offset to an LSP position")
 (define (offset->lsp-position doc offset)
   (let* ([starts (document-line-starts doc)]
          [num-lines (vector-length starts)]
@@ -166,8 +166,8 @@
          [utf16-col (char-offset->utf16-offset line-content char-col)])
         (make-position line utf16-col)))
 
-;;; find-line-for-offset : Vector × Int × Int → Int
-;;; Find which line contains the given offset.
+(doc find-line-for-offset 'type '(-> Vector Int Int Int))
+(doc find-line-for-offset 'description "Find which line contains the given offset")
 (define (find-line-for-offset starts offset num-lines)
   (let loop ([lo 0] [hi (- num-lines 1)])
        (if (>= lo hi)
@@ -201,8 +201,8 @@
         (make-range (make-position start-line start-utf16)
                     (make-position end-line end-utf16))))
 
-;;; lsp-range->span : Document × JsonObject → Span
-;;; Convert an LSP range to a source span.
+(doc lsp-range->span 'type '(-> Document JsonObject String Span))
+(doc lsp-range->span 'description "Convert an LSP range to a source span")
 (define (lsp-range->span doc range file)
   (let* ([start (json-get range "start")]
          [end (json-get range "end")]
@@ -229,8 +229,8 @@
        (hashtable-set! *documents* uri doc)
        doc))
 
-;;; doc-update! : String × Int × String → Document
-;;; Update a document's content (full replacement).
+(doc doc-update! 'type '(-> String Int String Document))
+(doc doc-update! 'description "Update a document's content (full replacement)")
 (define (doc-update! uri version content)
   (doc-open! uri version content))
 
@@ -256,18 +256,18 @@
                   (let ([new-content (apply-changes (document-content doc) changes)])
                        (doc-open! uri version new-content))])))))
 
-;;; apply-changes : String × (List Change) → String
-;;; Apply a list of changes to content.
-;;; Changes are applied in order from the list.
+(doc apply-changes 'type '(-> String (List Change) String))
+(doc apply-changes 'description "Apply a list of changes to content")
+(doc apply-changes 'note "Changes are applied in order from the list")
 (define (apply-changes content changes)
   (if (null? changes)
       content
       (apply-changes (apply-single-change content (car changes))
                      (cdr changes))))
 
-;;; apply-single-change : String × Change → String
-;;; Apply a single change to content.
-;;; Change is a JSON object with optional "range" and "text" fields.
+(doc apply-single-change 'type '(-> String Change String))
+(doc apply-single-change 'description "Apply a single change to content")
+(doc apply-single-change 'note "Change is a JSON object with optional 'range' and 'text' fields")
 (define (apply-single-change content change)
   (let ([range (json-get change "range")]
         [text (json-get change "text")])
@@ -285,9 +285,9 @@
                                     (substring content end-offset (string-length content)))
                      content)))))
 
-;;; lsp-position->offset-in-string : String × Position → Int | #f
-;;; Convert an LSP position to an offset in a string.
-;;; This is like lsp-position->offset but works on raw content string.
+(doc lsp-position->offset-in-string 'type '(-> String Position (U Int #f)))
+(doc lsp-position->offset-in-string 'description "Convert an LSP position to an offset in a string")
+(doc lsp-position->offset-in-string 'note "Like lsp-position->offset but works on raw content string")
 (define (lsp-position->offset-in-string content pos)
   (let* ([line (json-get pos "line")]
          [char (json-get pos "character")]
@@ -299,8 +299,8 @@
                   (+ line-offset char-offset))
             (string-length content))))
 
-;;; string-split-newlines : String → (List String)
-;;; Split a string into lines.
+(doc string-split-newlines 'type '(-> String (List String)))
+(doc string-split-newlines 'description "Split a string into lines")
 (define (string-split-newlines str)
   (let ([len (string-length str)])
        (let loop ([i 0] [start 0] [acc '()])
@@ -312,26 +312,26 @@
              [else
               (loop (+ i 1) start acc)]))))
 
-;;; lines-offset : (List String) × Int → Int
-;;; Get the offset of the start of line N.
+(doc lines-offset 'type '(-> (List String) Int Int))
+(doc lines-offset 'description "Get the offset of the start of line N")
 (define (lines-offset lines n)
   (let loop ([ls lines] [i 0] [offset 0])
        (if (or (null? ls) (= i n))
            offset
            (loop (cdr ls) (+ i 1) (+ offset (string-length (car ls)) 1)))))
 
-;;; doc-close! : String → Void
-;;; Close a document (remove from store).
+(doc doc-close! 'type '(-> String Void))
+(doc doc-close! 'description "Close a document (remove from store)")
 (define (doc-close! uri)
   (hashtable-delete! *documents* uri))
 
-;;; doc-get : String → Document | #f
-;;; Get a document by URI.
+(doc doc-get 'type '(-> String (U Document #f)))
+(doc doc-get 'description "Get a document by URI")
 (define (doc-get uri)
   (hashtable-ref *documents* uri #f))
 
-;;; doc-list : → (List String)
-;;; List all open document URIs.
+(doc doc-list 'type '(-> (List String)))
+(doc doc-list 'description "List all open document URIs")
 (define (doc-list)
   (vector->list (hashtable-keys *documents*)))
 
@@ -364,13 +364,13 @@
          ;; No symbol at or before this position
          [else #f])))
 
-;;; symbol-at-position : Document × JsonObject → String | #f
-;;; Extract the symbol at an LSP position.
+(doc symbol-at-position 'type '(-> Document JsonObject (U String #f)))
+(doc symbol-at-position 'description "Extract the symbol at an LSP position")
 (define (symbol-at-position doc pos)
   (symbol-at-offset doc (lsp-position->offset doc pos)))
 
-;;; find-symbol-start : String × Int → Int
-;;; Find the start of the symbol containing offset.
+(doc find-symbol-start 'type '(-> String Int Int))
+(doc find-symbol-start 'description "Find the start of the symbol containing offset")
 (define (find-symbol-start content offset)
   (let loop ([i offset])
        (if (or (< i 0)
@@ -378,8 +378,8 @@
            (+ i 1)
            (loop (- i 1)))))
 
-;;; find-symbol-end : String × Int → Int
-;;; Find the end of the symbol containing offset.
+(doc find-symbol-end 'type '(-> String Int Int))
+(doc find-symbol-end 'description "Find the end of the symbol containing offset")
 (define (find-symbol-end content offset)
   (let ([len (string-length content)])
        (let loop ([i offset])
@@ -388,8 +388,8 @@
                 i
                 (loop (+ i 1))))))
 
-;;; symbol-char? : Char → Boolean
-;;; Check if a character can be part of a Scheme symbol.
+(doc symbol-char? 'type '(-> Char Boolean))
+(doc symbol-char? 'description "Check if a character can be part of a Scheme symbol")
 (define (symbol-char? c)
   (or (char-alphabetic? c)
       (char-numeric? c)

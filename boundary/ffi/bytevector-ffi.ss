@@ -1,34 +1,32 @@
-;;; boundary/ffi/bytevector-ffi.ss — Zero-Copy Bytevector FFI
-;;;
-;;; Enables passing Scheme bytevectors directly to Rust without copying.
-;;; Chez Scheme allows bytevectors to be passed as u8* pointers to foreign
-;;; procedures, eliminating element-by-element copying overhead.
-;;;
-;;; CRITICAL: Bytevectors passed to foreign code must not be relocated by GC
-;;; during the call. Use lock-object/unlock-object for safety with callbacks
-;;; or long-running operations.
-;;;
-;;; Usage:
-;;;   ;; Create f64 bytevector for 16 doubles
-;;;   (define mat (make-f64-bytevector 16))
-;;;
-;;;   ;; Set values
-;;;   (f64-bv-set! mat 0 1.0)
-;;;   (f64-bv-set! mat 1 2.0)
-;;;
-;;;   ;; Pass directly to Rust (no copy!)
-;;;   (rust-mat4-mul-bv mat-a mat-b result 10000)
-;;;
-;;; This module provides:
-;;;   - Type-safe bytevector constructors (f64, f32, i64, etc.)
-;;;   - Indexed accessors that work in terms of elements, not bytes
-;;;   - Direct FFI passing without copying
-
 (load "core/base/prelude.ss")
 
-;;; ====
-;;; F64 Bytevector Operations
-;;; ====
+(doc 'module 'bytevector-ffi)
+(doc 'description "Zero-Copy Bytevector FFI — Enables passing Scheme bytevectors directly to Rust without copying")
+(doc 'layer 'boundary)
+(doc 'purity 'total)
+
+(doc 'note "Chez Scheme allows bytevectors to be passed as u8* pointers to foreign procedures, eliminating element-by-element copying overhead")
+
+(doc 'critical "Bytevectors passed to foreign code must not be relocated by GC during the call. Use lock-object/unlock-object for safety with callbacks or long-running operations.")
+
+(doc 'provides '(
+  "Type-safe bytevector constructors (f64, f32, i64, etc.)"
+  "Indexed accessors that work in terms of elements, not bytes"
+  "Direct FFI passing without copying"))
+
+(doc 'usage "
+  ;; Create f64 bytevector for 16 doubles
+  (define mat (make-f64-bytevector 16))
+
+  ;; Set values
+  (f64-bv-set! mat 0 1.0)
+  (f64-bv-set! mat 1 2.0)
+
+  ;; Pass directly to Rust (no copy!)
+  (rust-mat4-mul-bv mat-a mat-b result 10000)
+")
+
+(doc 'section 'f64-bytevector-operations)
 
 ;;; make-f64-bytevector : Nat → Bytevector
 ;;; Create a bytevector sized for N f64 values (N * 8 bytes)

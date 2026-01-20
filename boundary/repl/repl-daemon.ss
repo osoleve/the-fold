@@ -1,24 +1,24 @@
-;;; boundary/repl/repl-daemon.ss — Persistent REPL Daemon
-;;;
-;;; A file-based IPC system for Claude Code integration.
-;;; Polls for request files, evaluates them, writes responses.
-;;;
-;;; Protocol:
-;;;   .fold-repl/
-;;;     request.ss    — Claude writes expressions here
-;;;     response.txt  — Daemon writes results here
-;;;     ready         — Sentinel file (exists = daemon running)
-;;;     error.txt     — Error output if evaluation fails
-;;;
-;;; Usage:
-;;;   Start:  scheme --script boundary/start-daemon.ss
-;;;   Stop:   Delete .fold-repl/ready or send (daemon-stop!)
-;;;
-;;; This is Shell code: uses IO, manages daemon state.
+(doc 'module 'repl-daemon)
+(doc 'description "Persistent REPL Daemon — A file-based IPC system for Claude Code integration")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
 
-;;; ====
-;;; Configuration
-;;; ====
+(doc 'note "Polls for request files, evaluates them, writes responses")
+
+(doc 'protocol "
+.fold-repl/
+  request.ss    — Claude writes expressions here
+  response.txt  — Daemon writes results here
+  ready         — Sentinel file (exists = daemon running)
+  error.txt     — Error output if evaluation fails
+")
+
+(doc 'usage "
+Start:  scheme --script boundary/start-daemon.ss
+Stop:   Delete .fold-repl/ready or send (daemon-stop!)
+")
+
+(doc 'section 'configuration)
 
 (define *repl-dir* ".fold-repl")
 (define *request-file* ".fold-repl/request.ss")

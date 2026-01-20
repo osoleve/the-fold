@@ -32,8 +32,8 @@
                   (index-lookup sym)))
       #f))
 
-;;; find-symbols-matching : String → (List (Alist Symbol Any))
-;;; Find symbols whose names start with prefix.
+(doc find-symbols-matching 'type '(-> String (List (Alist Symbol Any))))
+(doc find-symbols-matching 'description "Find symbols whose names start with prefix")
 (define (find-symbols-matching prefix)
   (if (and *index-available* (top-level-bound? 'index-find))
       (guard (e [else '()])
@@ -51,15 +51,15 @@
 
 (doc 'section 'type-inference-for-hover)
 
-;;; try-parse-expr : String → Expr | #f
-;;; Try to parse a string as a Scheme expression.
+(doc try-parse-expr 'type '(-> String (U Expr #f)))
+(doc try-parse-expr 'description "Try to parse a string as a Scheme expression")
 (define (try-parse-expr str)
   (guard (e [else #f])
          (read (open-input-string str))))
 
-;;; parse-definitions : String → (List (Pair Symbol Expr))
-;;; Parse top-level definitions from document content.
-;;; Returns list of (name . init-expr) pairs for type inference.
+(doc parse-definitions 'type '(-> String (List (Pair Symbol Expr))))
+(doc parse-definitions 'description "Parse top-level definitions from document content")
+(doc parse-definitions 'returns "list of (name . init-expr) pairs for type inference")
 (define (parse-definitions content)
   (guard (e [else '()])
          (let ([port (open-input-string content)])
@@ -69,8 +69,8 @@
                             (reverse acc)
                             (loop (append (extract-def expr) acc))))))))
 
-;;; extract-def : Expr → (List (Pair Symbol Expr))
-;;; Extract definition bindings from a single form.
+(doc extract-def 'type '(-> Expr (List (Pair Symbol Expr))))
+(doc extract-def 'description "Extract definition bindings from a single form")
 (define (extract-def expr)
   (cond
    ;; (define name value)
@@ -88,9 +88,9 @@
          (list (cons name `(fn ,args ,body))))]
    [else '()]))
 
-;;; build-tenv-from-defs : (List (Pair Symbol Expr)) → TEnv
-;;; Build a type environment by inferring types for definitions.
-;;; Falls back to fresh type variables for failed inferences.
+(doc build-tenv-from-defs 'type '(-> (List (Pair Symbol Expr)) TEnv))
+(doc build-tenv-from-defs 'description "Build a type environment by inferring types for definitions")
+(doc build-tenv-from-defs 'note "Falls back to fresh type variables for failed inferences")
 (define (build-tenv-from-defs defs)
   (if (not *infer-available*)
       empty-tenv
@@ -110,9 +110,9 @@
                                            (loop (cdr defs) (tenv-extend env name gen-type)))
                                      (loop (cdr defs) env)))))))))
 
-;;; try-infer-type : String × String → String | #f
-;;; Try to infer the type of a symbol in the context of a document.
-;;; Returns the type as a string, or #f if inference fails.
+(doc try-infer-type 'type '(-> String String (U String #f)))
+(doc try-infer-type 'description "Try to infer the type of a symbol in the context of a document")
+(doc try-infer-type 'returns "the type as a string, or #f if inference fails")
 (define (try-infer-type name content)
   (if (not *infer-available*)
       #f
@@ -158,9 +158,9 @@
                                         after-pos
                                         end-line))))))))
 
-;;; count-newlines-between : String × Int × Int → Int
-;;; Count newlines in content between start and end positions.
-;;; O(end - start) instead of O(end) for incremental counting.
+(doc count-newlines-between 'type '(-> String Int Int Int))
+(doc count-newlines-between 'description "Count newlines in content between start and end positions")
+(doc count-newlines-between 'note "O(end - start) instead of O(end) for incremental counting")
 (define (count-newlines-between content start end)
   (let ([len (string-length content)]
         [safe-end (min end (string-length content))])
@@ -172,8 +172,8 @@
                           (+ count 1)
                           count))))))
 
-;;; find-definition-containing-line : (List (form start end)) × Int → (form start end) | #f
-;;; Find the top-level definition that contains a given line.
+(doc find-definition-containing-line 'type '(-> (List (List Form Int Int)) Int (U (List Form Int Int) #f)))
+(doc find-definition-containing-line 'description "Find the top-level definition that contains a given line")
 (define (find-definition-containing-line forms line)
   (find (lambda (entry)
                (let ([start (cadr entry)]
@@ -181,12 +181,12 @@
                     (and (>= line start) (<= line end))))
         forms))
 
-;;; search-let-initializers : Symbol × Bindings × Symbol × Bindings × Bindings → Bindings | #f
-;;; Search through let binding initializers for the target symbol.
-;;; Handles different scoping rules for let, let*, and letrec:
-;;;   - let: initializers see only outer bindings (parallel binding)
-;;;   - let*: each initializer sees outer + previous bindings (sequential)
-;;;   - letrec: initializers see outer + all let bindings (mutual recursion)
+(doc search-let-initializers 'type '(-> Symbol Bindings Symbol Bindings Bindings (U Bindings #f)))
+(doc search-let-initializers 'description "Search through let binding initializers for the target symbol")
+(doc search-let-initializers 'note "Handles different scoping rules for let, let*, and letrec:")
+(doc search-let-initializers 'note "  - let: initializers see only outer bindings (parallel binding)")
+(doc search-let-initializers 'note "  - let*: each initializer sees outer + previous bindings (sequential)")
+(doc search-let-initializers 'note "  - letrec: initializers see outer + all let bindings (mutual recursion)")
 (define (search-let-initializers let-type let-bindings target outer-bindings all-let-bindings)
   (if (not (list? let-bindings))
       #f

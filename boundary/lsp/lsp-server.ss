@@ -33,12 +33,12 @@
   (json-obj "capabilities" (fold-server-capabilities)
             "serverInfo" (fold-server-info)))
 
-;;; handle-initialized : JsonObject → Void
+(doc handle-initialized 'type '(-> JsonObject Void))
 (define (handle-initialized params)
   (set! *server-initialized* #t)
   (lsp-log "Server initialized"))
 
-;;; handle-shutdown : → JsonObject
+(doc handle-shutdown 'type '(-> JsonObject))
 (define (handle-shutdown)
   (set! *server-shutdown-requested* #t)
   (lsp-log "Shutdown requested")
@@ -58,7 +58,7 @@
         ;; Trigger diagnostics
         (publish-diagnostics uri)))
 
-;;; handle-did-change : JsonObject → Void
+(doc handle-did-change 'type '(-> JsonObject Void))
 (define (handle-did-change params)
   (let* ([text-doc (json-get params "textDocument")]
          [uri (json-get text-doc "uri")]
@@ -73,7 +73,7 @@
                    ;; Trigger diagnostics
                    (publish-diagnostics uri)))))
 
-;;; handle-did-close : JsonObject → Void
+(doc handle-did-close 'type '(-> JsonObject Void))
 (define (handle-did-close params)
   (let* ([text-doc (json-get params "textDocument")]
          [uri (json-get text-doc "uri")])
@@ -84,7 +84,7 @@
                                 (json-obj "uri" uri
                                           "diagnostics" (json-arr)))))
 
-;;; handle-did-save : JsonObject → Void
+(doc handle-did-save 'type '(-> JsonObject Void))
 (define (handle-did-save params)
   (let* ([text-doc (json-get params "textDocument")]
          [uri (json-get text-doc "uri")]
@@ -117,7 +117,7 @@
             (compute-hover doc position)
             'null)))
 
-;;; handle-definition : JsonObject → JsonObject | null
+(doc handle-definition 'type '(-> JsonObject (U JsonObject null)))
 (define (handle-definition params)
   (let* ([text-doc (json-get params "textDocument")]
          [uri (json-get text-doc "uri")]
@@ -127,7 +127,7 @@
             (compute-definition doc position)
             'null)))
 
-;;; handle-completion : JsonObject → JsonObject
+(doc handle-completion 'type '(-> JsonObject JsonObject))
 (define (handle-completion params)
   (let* ([text-doc (json-get params "textDocument")]
          [uri (json-get text-doc "uri")]
@@ -138,7 +138,7 @@
             (json-obj "isIncomplete" #f
                       "items" (json-arr)))))
 
-;;; handle-signature-help : JsonObject → JsonObject | null
+(doc handle-signature-help 'type '(-> JsonObject (U JsonObject null)))
 (define (handle-signature-help params)
   (let* ([text-doc (json-get params "textDocument")]
          [uri (json-get text-doc "uri")]
@@ -148,7 +148,7 @@
             (compute-signature-help doc position)
             'null)))
 
-;;; handle-document-symbol : JsonObject → JsonArray
+(doc handle-document-symbol 'type '(-> JsonObject JsonArray))
 (define (handle-document-symbol params)
   (let* ([text-doc (json-get params "textDocument")]
          [uri (json-get text-doc "uri")]
@@ -157,8 +157,8 @@
             (compute-document-symbols doc)
             (json-arr))))
 
-;;; handle-references : JsonObject → JsonArray
-;;; Find all references to a symbol.
+(doc handle-references 'type '(-> JsonObject JsonArray))
+(doc handle-references 'description "Find all references to a symbol")
 (define (handle-references params)
   (let* ([text-doc (json-get params "textDocument")]
          [uri (json-get text-doc "uri")]
@@ -172,14 +172,14 @@
             (compute-references doc position include-decl)
             (json-arr))))
 
-;;; handle-workspace-symbol : JsonObject → JsonArray
-;;; Search for symbols across the workspace.
+(doc handle-workspace-symbol 'type '(-> JsonObject JsonArray))
+(doc handle-workspace-symbol 'description "Search for symbols across the workspace")
 (define (handle-workspace-symbol params)
   (let ([query (or (json-get params "query") "")])
        (compute-workspace-symbols query)))
 
-;;; handle-formatting : JsonObject → JsonArray
-;;; Format a document.
+(doc handle-formatting 'type '(-> JsonObject JsonArray))
+(doc handle-formatting 'description "Format a document")
 (define (handle-formatting params)
   (let* ([text-doc (json-get params "textDocument")]
          [uri (json-get text-doc "uri")]
@@ -189,8 +189,8 @@
             (compute-formatting doc options)
             (json-arr))))
 
-;;; handle-rename : JsonObject → JsonObject | null
-;;; Rename a symbol across all open documents.
+(doc handle-rename 'type '(-> JsonObject (U JsonObject null)))
+(doc handle-rename 'description "Rename a symbol across all open documents")
 (define (handle-rename params)
   (let* ([text-doc (json-get params "textDocument")]
          [uri (json-get text-doc "uri")]
@@ -201,8 +201,8 @@
             (compute-rename doc position new-name)
             'null)))
 
-;;; handle-code-action : JsonObject → JsonArray
-;;; Get code actions for a range in a document.
+(doc handle-code-action 'type '(-> JsonObject JsonArray))
+(doc handle-code-action 'description "Get code actions for a range in a document")
 (define (handle-code-action params)
   (let* ([text-doc (json-get params "textDocument")]
          [uri (json-get text-doc "uri")]
@@ -213,8 +213,8 @@
             (compute-code-actions doc uri range context)
             (json-arr))))
 
-;;; handle-semantic-tokens : JsonObject → JsonObject
-;;; Get semantic tokens for a document.
+(doc handle-semantic-tokens 'type '(-> JsonObject JsonObject))
+(doc handle-semantic-tokens 'description "Get semantic tokens for a document")
 (define (handle-semantic-tokens params)
   (let* ([text-doc (json-get params "textDocument")]
          [uri (json-get text-doc "uri")]
@@ -223,12 +223,10 @@
             (compute-semantic-tokens doc)
             (json-obj "data" (json-arr)))))
 
-;;; ====
-;;; Diagnostics
-;;; ====
+(doc 'section 'diagnostics)
 
-;;; publish-diagnostics : String → Void
-;;; Analyze document and publish diagnostics.
+(doc publish-diagnostics 'type '(-> String Void))
+(doc publish-diagnostics 'description "Analyze document and publish diagnostics")
 (define (publish-diagnostics uri)
   (let ([doc (doc-get uri)])
        (when doc
@@ -238,12 +236,10 @@
                                                     "diagnostics" (apply json-arr diagnostics)))))))
 
 
-;;; ====
-;;; Message Dispatch
-;;; ====
+(doc 'section 'message-dispatch)
 
-;;; dispatch-request : String × JsonObject × Id → Void
-;;; Dispatch a request to the appropriate handler.
+(doc dispatch-request 'type '(-> String JsonObject Id Void))
+(doc dispatch-request 'description "Dispatch a request to the appropriate handler")
 (define (dispatch-request method params id)
   (let ([result
          (cond
@@ -283,8 +279,8 @@
            (write-lsp-message *lsp-stdout* result)
            (write-lsp-response id result))))
 
-;;; dispatch-notification : String × JsonObject → Void
-;;; Dispatch a notification to the appropriate handler.
+(doc dispatch-notification 'type '(-> String JsonObject Void))
+(doc dispatch-notification 'description "Dispatch a notification to the appropriate handler")
 (define (dispatch-notification method params)
   (cond
    [(string=? method *method-initialized*)
@@ -304,8 +300,8 @@
    [else
     (lsp-log "Ignoring notification: ~a" method)]))
 
-;;; handle-message : JsonObject → Void
-;;; Handle an incoming LSP message.
+(doc handle-message 'type '(-> JsonObject Void))
+(doc handle-message 'description "Handle an incoming LSP message")
 (define (handle-message msg)
   (cond
    [(lsp-request? msg)
@@ -332,19 +328,17 @@
    [else
     (lsp-log "Unknown message type")]))
 
-;;; format-condition : Condition → String
+(doc format-condition 'type '(-> Condition String))
 (define (format-condition e)
   (if (condition? e)
       (call-with-string-output-port
        (lambda (p) (display-condition e p)))
       (format "~a" e)))
 
-;;; ====
-;;; Main Loop
-;;; ====
+(doc 'section 'main-loop)
 
-;;; run-server! : → Void
-;;; Main server loop.
+(doc run-server! 'type '(-> Void))
+(doc run-server! 'description "Main server loop")
 (define (run-server!)
   (init-transport!)
   (lsp-log "fold-lsp server starting")
@@ -356,9 +350,7 @@
   
   (lsp-log "fold-lsp server stopped"))
 
-;;; ====
-;;; Entry Point
-;;; ====
+(doc 'section 'entry-point)
 
-;;; Note: Server is started explicitly from start-lsp.ss
-;;; Do not auto-start here to avoid double-initialization.
+(doc 'note "Server is started explicitly from start-lsp.ss")
+(doc 'note "Do not auto-start here to avoid double-initialization")

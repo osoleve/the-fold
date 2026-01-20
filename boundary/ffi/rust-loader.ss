@@ -1,27 +1,24 @@
-;;; boundary/ffi/rust-loader.ss — Dynamic Loader for Generated Rust Functions
-;;; @module rust-loader
-;;; @requires ffi-core
-;;;
-;;; Provides dynamic loading, caching, and dispatch for generated Rust functions.
-;;; This module bridges the codegen output with runtime invocation.
-;;;
-;;; Design:
-;;; - Function registry tracks compiled functions by name
-;;; - Type-safe dispatch based on declared return type
-;;; - Lazy binding: foreign-procedure created on first call
-;;; - Automatic library reloading when functions added
-;;;
-;;; Usage:
-;;; (rust-load-fn! "fold_add_test" '(i64 i64) 'i64)
-;;; (rust-call "fold_add_test" 2 3 1000)  ; → (ok 5 999)
-
 (load "boundary/ffi/ffi-core.ss")
 
-;;; ====
-;;; Type-Safe Result Structs
-;;; ====
+(doc 'module 'rust-loader)
+(doc 'description "Dynamic Loader for Generated Rust Functions — Provides dynamic loading, caching, and dispatch for generated Rust functions")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+(doc 'requires '(ffi-core))
 
-;;; Match Rust's #[repr(C)] result structs from lib.rs
+(doc 'design '(
+  "Function registry tracks compiled functions by name"
+  "Type-safe dispatch based on declared return type"
+  "Lazy binding: foreign-procedure created on first call"
+  "Automatic library reloading when functions added"))
+
+(doc 'usage "
+(rust-load-fn! \"fold_add_test\" '(i64 i64) 'i64)
+(rust-call \"fold_add_test\" 2 3 1000)  ; → (ok 5 999)
+")
+
+(doc 'section 'type-safe-result-structs)
+(doc 'note "Match Rust's #[repr(C)] result structs from lib.rs")
 
 (define-ftype i64-result-t
   (struct

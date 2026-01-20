@@ -1,44 +1,26 @@
-;;; boundary/repl/history.ss — REPL History Persistence
-;;;
-;;; Persistent command history across REPL sessions.
-;;; This is Shell code: manages state, persists to disk.
-;;;
-;;; Dependencies:
-;;;   boundary/io/fs.ss
 (load "core/base/prelude.ss")
 
-;;; NOTE: string-contains?, string-split provided by core/prelude.ss
-;;;
-;;; Operations:
-;;;   (history-init! path) — Initialize history from file
-;;;   (history-add! entry) — Add entry to history
-;;;   (history-save!) — Save history to disk
-;;;   (history-list [n]) — Show last n entries (default: 10)
-;;;   (history-search pattern) — Search history for pattern
-;;;   (history-clear!) — Clear history
-;;;   (history-replay n) — Re-execute history entry n
-;;;
-;;; Features:
-;;;   - Persistent storage across sessions
-;;;   - Duplicate suppression
-;;;   - Search and replay
-;;;   - Size limits
-;;;   - Metadata tracking (timestamp, session)
+(doc 'module 'history)
+(doc 'description "REPL History Persistence — Persistent command history across REPL sessions")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+(doc 'requires '(boundary/io/fs))
 
-;;; ====
-;;; Configuration
-;;; ====
+(doc 'note "string-contains?, string-split provided by core/prelude.ss")
+
+(doc 'operations '(history-init! history-add! history-save! history-list history-search history-clear! history-replay))
+
+(doc 'features "Persistent storage across sessions, duplicate suppression, search and replay, size limits, metadata tracking (timestamp, session)")
+
+(doc 'section 'configuration)
 
 (define *history-max-size* 1000)
 (define *history-file* ".fold-history")
 (define *suppress-duplicates* #t)
 
-;;; ====
-;;; History State
-;;; ====
+(doc 'section 'history-state)
 
-;;; History entry structure:
-;;; (entry timestamp session-id command result-summary)
+(doc 'note "History entry structure: (entry timestamp session-id command result-summary)")
 
 (define-record-type history-entry
   (fields
@@ -55,12 +37,11 @@
 (define *history-path* #f)
 (define *history-dirty* #f)
 
-;;; ====
-;;; Initialization
-;;; ====
+(doc 'section 'initialization)
 
 (define (history-init! path)
-  "Initialize history system, loading from file if it exists"
+  (doc 'type '(-> String Void))
+  (doc 'description "Initialize history system, loading from file if it exists")
   (set! *history-path* path)
   (set! *history* '())
   (set! *history-next-id* 1)

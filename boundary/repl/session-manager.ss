@@ -1,67 +1,44 @@
-;;; boundary/repl/session-manager.ss — Multi-Session Management
-;;;
-;;; Manages multiple concurrent sessions for The Fold REPL.
-;;; Each session has its own tier and name, stored in session data.
-;;;
-;;; Session Structure:
-;;;   {id: String
-;;;    tier: Symbol (shepherd | builder | player)
-;;;    model: Symbol (opus | sonnet | haiku) | #f
-;;;    name: Symbol
-;;;    created: Timestamp
-;;;    last-active: Timestamp
-;;;    logged-in: Boolean}
-;;;
-;;; ARCHITECTURE NOTE:
-;;; Each worker process handles one session. Session DATA isolation (tier, name)
-;;; is still achieved via the *current-session-id* parameter, which is set
-;;; before each evaluation. Functions like hi/who/bye look up their session
-;;; data using (current-session-id).
-;;;
-;;; This is Shell code: manages mutable session state.
+(doc 'module 'session-manager)
+(doc 'description "Multi-Session Management — Manages multiple concurrent sessions for The Fold REPL")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
 
-;;; ====
-;;; Session Storage
-;;; ====
+(doc 'section 'architecture)
+(doc 'note "Session Structure: {id, tier, model, name, created, last-active, logged-in}")
+(doc 'note "Each worker process handles one session. Session DATA isolation (tier, name) is achieved via the *current-session-id* parameter, which is set before each evaluation. Functions like hi/who/bye look up their session data using (current-session-id).")
+
+(doc 'section 'session-storage)
 
 (define *sessions* (make-hashtable string-hash string=?))
 (define *session-timeout* 3600) ; 1 hour in seconds
 
-;;; *current-session-id* : Parameter holding the current session ID
-;;; Set by the daemon before evaluating each request.
-;;; Used by hi/bye/who to know which session they're operating on.
+(doc *current-session-id* 'type 'Parameter)
+(doc *current-session-id* 'description "Parameter holding the current session ID. Set by the daemon before evaluating each request. Used by hi/bye/who to know which session they're operating on.")
 (define *current-session-id* (make-parameter #f))
 
-;;; with-session : String Thunk → Any
-;;; Execute thunk with *current-session-id* bound to the given session.
+(doc with-session 'type '(-> String Thunk Any))
+(doc with-session 'description "Execute thunk with *current-session-id* bound to the given session")
 (define (with-session session-id thunk)
   (parameterize ([*current-session-id* session-id])
                 (thunk)))
 
-;;; current-session-id : → String | #f
-;;; Get the current session ID (if any).
+(doc current-session-id 'type '(-> (Option String)))
+(doc current-session-id 'description "Get the current session ID (if any)")
 (define (current-session-id)
   (*current-session-id*))
 
-;;; ====
-;;; Session Operations
-;;; ====
+(doc 'section 'session-operations)
 
-;;; create-session! : String → Session
-;;; Create a new session with the given ID.
+(doc create-session! 'type '(-> String Session))
+(doc create-session! 'description "Create a new session with the given ID")
 (define (create-session! session-id)
   (let ([session (make-session session-id)])
        (hashtable-set! *sessions* session-id session)
        session))
 
-;;; make-session : String → Session
-;;; Construct a new session record.
-;;; Isolation is handled by process boundaries; *current-session-id* tags data.
-;;; Timestamps are stored as seconds (numbers) for easy arithmetic.
-;;;
-;;; IMPORTANT: We use explicit cons/list to ensure each session gets FRESH cons cells.
-;;; Using quasiquote with literal parts like `(name . #f) would share structure,
-;;; causing set-cdr! on one session to affect all sessions.
+(doc make-session 'type '(-> String Session))
+(doc make-session 'description "Construct a new session record. Isolation is handled by process boundaries; *current-session-id* tags data. Timestamps are stored as seconds (numbers) for easy arithmetic.")
+(doc make-session 'note "We use explicit cons/list to ensure each session gets FRESH cons cells. Using quasiquote with literal parts would share structure, causing set-cdr! on one session to affect all sessions.")
 (define (make-session id)
   (let ([now (time-second (current-time))])
        (list (cons 'id id)
@@ -74,8 +51,8 @@
              (cons 'rehydrated-at #f)
              (cons 'rehydrated-warned-at #f))))
 
-;;; load-session-file : String → Session | #f
-;;; Load session metadata from disk and register it.
+(doc load-session-file 'type '(-> String (Option Session)))
+(doc load-session-file 'description "Load session metadata from disk and register it")
 (define (load-session-file session-id)
   (let ([path (session-file-path session-id)])
        (guard (e [else #f])
@@ -99,8 +76,8 @@
                                    (hashtable-set! *sessions* session-id session)
                                    session)))))))
 
-;;; session-maybe-warn-rehydrated! : Session → void
-;;; Warn once per 5 minutes if this session was restored from disk.
+(doc session-maybe-warn-rehydrated! 'type '(-> Session Void))
+(doc session-maybe-warn-rehydrated! 'description "Warn once per 5 minutes if this session was restored from disk")
 (define (session-maybe-warn-rehydrated! session)
   (let* ([rehydrated-pair (assq 'rehydrated-at session)]
          [warned-pair (assq 'rehydrated-warned-at session)]
@@ -113,8 +90,8 @@
                          (when warned-pair
                                (set-cdr! warned-pair now)))))))
 
-;;; get-session : String → Session | #f
-;;; Get a session by ID, updating last-active.
+(doc get-session 'type '(-> String (Option Session)))
+(doc get-session 'description "Get a session by ID, updating last-active")
 (define (get-session session-id)
   (let ([session (hashtable-ref *sessions* session-id #f)])
        (when session
@@ -125,23 +102,21 @@
                       (set-cdr! (assq 'last-active loaded) (time-second (current-time))))
                 loaded))))
 
-;;; get-or-create-session! : String → Session
-;;; Get existing session or create new one.
+(doc get-or-create-session! 'type '(-> String Session))
+(doc get-or-create-session! 'description "Get existing session or create new one")
 (define (get-or-create-session! session-id)
   (or (get-session session-id)
       (create-session! session-id)))
 
-;;; delete-session! : String → void
-;;; Delete a session by ID.
+(doc delete-session! 'type '(-> String Void))
+(doc delete-session! 'description "Delete a session by ID")
 (define (delete-session! session-id)
   (hashtable-delete! *sessions* session-id))
 
-;;; ====
-;;; Session Login/Logout
-;;; ====
+(doc 'section 'session-login-logout)
 
-;;; session-login! : String Symbol Symbol [Symbol] → void
-;;; Login a session with tier, name, and optional model.
+(doc session-login! 'type '(-> String Symbol Symbol (Option Symbol) Void))
+(doc session-login! 'description "Login a session with tier, name, and optional model")
 (define (session-login! session-id tier name . rest)
   (let* ([model (if (and (pair? rest) (symbol? (car rest)))
                     (car rest)
@@ -158,8 +133,8 @@
         ;; Store session file for this session
         (save-session-file! session-id tier name model)))
 
-;;; session-logout! : String → void
-;;; Logout a session.
+(doc session-logout! 'type '(-> String Void))
+(doc session-logout! 'description "Logout a session")
 (define (session-logout! session-id)
   (let ([session (get-session session-id)])
        (when session
@@ -168,23 +143,24 @@
              (set-cdr! (assq 'logged-in session) #f)
              (delete-session-file! session-id))))
 
-;;; ====
-;;; Session File Storage (for compatibility with existing REPL)
-;;; ====
+(doc 'section 'session-file-storage)
+(doc 'note "Session file storage for compatibility with existing REPL")
 
 (define *session-dir* ".fold-sessions")
 
-;;; ensure-session-dir! : → void
+(doc ensure-session-dir! 'type '(-> Void))
+(doc ensure-session-dir! 'description "Ensure session directory exists")
 (define (ensure-session-dir!)
   (unless (file-exists? *session-dir*)
           (mkdir *session-dir*)))
 
-;;; session-file-path : String → String
+(doc session-file-path 'type '(-> String String))
+(doc session-file-path 'description "Get path to session file")
 (define (session-file-path session-id)
   (string-append *session-dir* "/" session-id ".session"))
 
-;;; save-session-file! : String Symbol Symbol Symbol → void
-;;; Save session to file (for compatibility with existing tools).
+(doc save-session-file! 'type '(-> String Symbol Symbol Symbol Void))
+(doc save-session-file! 'description "Save session to file (for compatibility with existing tools)")
 (define (save-session-file! session-id tier name model)
   (ensure-session-dir!)
   (call-with-output-file (session-file-path session-id)
@@ -195,19 +171,17 @@
                                           (session-id . ,session-id)) p))
                          'replace))
 
-;;; delete-session-file! : String → void
+(doc delete-session-file! 'type '(-> String Void))
+(doc delete-session-file! 'description "Delete session file from disk")
 (define (delete-session-file! session-id)
   (let ([path (session-file-path session-id)])
        (when (file-exists? path)
              (delete-file path))))
 
-;;; ====
-;;; Session Cleanup
-;;; ====
+(doc 'section 'session-cleanup)
 
-;;; cleanup-expired-sessions! : → Nat
-;;; Remove sessions that haven't been active recently.
-;;; Returns the number of sessions cleaned up.
+(doc cleanup-expired-sessions! 'type '(-> Nat))
+(doc cleanup-expired-sessions! 'description "Remove sessions that haven't been active recently. Returns the number of sessions cleaned up.")
 (define (cleanup-expired-sessions!)
   (let ([now (time-second (current-time))]
         [cleaned 0])
@@ -224,12 +198,10 @@
              session-ids))
        cleaned))
 
-;;; ====
-;;; Session Information
-;;; ====
+(doc 'section 'session-information)
 
-;;; list-sessions : → List
-;;; List all active sessions.
+(doc list-sessions 'type '(-> (List Session)))
+(doc list-sessions 'description "List all active sessions")
 (define (list-sessions)
   (let ([sessions '()])
        (vector-for-each
@@ -240,12 +212,13 @@
         (hashtable-keys *sessions*))
        sessions))
 
-;;; session-count : → Nat
+(doc session-count 'type '(-> Nat))
+(doc session-count 'description "Get count of active sessions")
 (define (session-count)
   (hashtable-size *sessions*))
 
-;;; session-info : String → Alist | #f
-;;; Get basic info about a session.
+(doc session-info 'type '(-> String (Option Alist)))
+(doc session-info 'description "Get basic info about a session")
 (define (session-info session-id)
   (let ([session (get-session session-id)])
        (and session
@@ -254,18 +227,16 @@
               (name . ,(cdr (assq 'name session)))
               (logged-in . ,(cdr (assq 'logged-in session)))))))
 
-;;; ====
-;;; User-Facing Session Commands
-;;; ====
+(doc 'section 'user-facing-commands)
 
-;;; session-field : Session Symbol Any → Any
-;;; Safe alist lookup with default value.
+(doc session-field 'type '(-> Session Symbol Any Any))
+(doc session-field 'description "Safe alist lookup with default value")
 (define (session-field session key default)
   (let ([pair (assq key session)])
     (if pair (cdr pair) default)))
 
-;;; who : → void
-;;; Display current session info.
+(doc who 'type '(-> Void))
+(doc who 'description "Display current session info")
 (define (who)
   (let ([session-id (current-session-id)])
     (cond
@@ -283,11 +254,8 @@
          [else
           (display (format "Anonymous session: ~a\n" session-id))]))])))
 
-;;; bye : → void
-;;; Cleanup and logout current session.
-;;; - Logs out from session (clears tier/name)
-;;; - Deletes .fold-session file if present
-;;; - Deletes session file from .fold-sessions/
+(doc bye 'type '(-> Void))
+(doc bye 'description "Cleanup and logout current session. Logs out from session (clears tier/name), deletes .fold-session file if present, deletes session file from .fold-sessions/")
 (define (bye)
   (let ([session-id (current-session-id)])
     (when session-id

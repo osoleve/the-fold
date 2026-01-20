@@ -1,54 +1,55 @@
-;;; boundary/color.ss — ANSI Color Support
-;;;
-;;; Color primitives for terminal rendering with ANSI escape sequences.
-;;; Supports both 256-color and 24-bit truecolor modes.
-;;;
-;;; This is Shell code: handles display formatting (impure side).
+(define-syntax doc
+  (syntax-rules ()
+    [(_ args ...) (void)]))
 
-;;; ====
-;;; Color Data Structure
-;;; ====
+(doc 'module 'color)
+(doc 'description "ANSI Color Support - Color primitives for terminal rendering with ANSI escape sequences. Supports both 256-color and 24-bit truecolor modes.")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
 
-;;; Color : (+ 'default (rgb Nat Nat Nat) (palette Nat))
-;;;
-;;; Representation:
-;;;   'default         — Terminal's default color
-;;;   (rgb r g b)      — 24-bit truecolor (r,g,b each 0-255)
-;;;   (palette n)      — 256-color palette index (n is 0-255)
+(doc 'section 'color-data-structure)
 
-;;; make-color-rgb : Nat × Nat × Nat → Color
-;;; Create a truecolor RGB color.
+(doc 'note "Color : (+ 'default (rgb Nat Nat Nat) (palette Nat))")
+(doc 'note "Representation:")
+(doc 'note "  'default         — Terminal's default color")
+(doc 'note "  (rgb r g b)      — 24-bit truecolor (r,g,b each 0-255)")
+(doc 'note "  (palette n)      — 256-color palette index (n is 0-255)")
+
 (define (make-color-rgb r g b)
+  (doc 'type (-> Nat Nat Nat Color))
+  (doc 'description "Create a truecolor RGB color.")
   (list 'rgb r g b))
 
-;;; make-color-palette : Nat → Color
-;;; Create a palette color (256-color mode).
 (define (make-color-palette n)
+  (doc 'type (-> Nat Color))
+  (doc 'description "Create a palette color (256-color mode).")
   (list 'palette n))
 
-;;; color-default : Color
-;;; The terminal's default color.
+(doc color-default 'type Color)
+(doc color-default 'description "The terminal's default color.")
 (define color-default 'default)
 
-;;; color-type : Color → Symbol
 (define (color-type c)
+  (doc 'type (-> Color Symbol))
   (if (list? c) (car c) c))
 
-;;; Color predicates
+(doc 'section 'color-predicates)
+
 (define (color-rgb? c)
+  (doc 'type (-> Color Bool))
   (and (list? c) (eq? (car c) 'rgb)))
 
 (define (color-palette? c)
+  (doc 'type (-> Color Bool))
   (and (list? c) (eq? (car c) 'palette)))
 
 (define (color-default? c)
+  (doc 'type (-> Color Bool))
   (eq? c 'default))
 
-;;; ====
-;;; Color Constants (256-color palette)
-;;; ====
+(doc 'section 'color-constants)
 
-;;; Basic 16 ANSI colors (0-15)
+(doc 'note "Basic 16 ANSI colors (0-15)")
 (define color-black         (make-color-palette 0))
 (define color-red           (make-color-palette 1))
 (define color-green         (make-color-palette 2))
@@ -66,7 +67,7 @@
 (define color-bright-cyan   (make-color-palette 14))
 (define color-bright-white  (make-color-palette 15))
 
-;;; Extended colors (useful palette indices)
+(doc 'note "Extended colors (useful palette indices)")
 (define color-orange        (make-color-palette 208))
 (define color-pink          (make-color-palette 213))
 (define color-purple        (make-color-palette 141))
@@ -75,17 +76,16 @@
 (define color-light-gray    (make-color-palette 250))
 (define color-dark-gray     (make-color-palette 236))
 
-;;; RGB convenience constructors
+(doc 'note "RGB convenience constructors")
 (define (rgb r g b)
+  (doc 'type (-> Nat Nat Nat Color))
   (make-color-rgb r g b))
 
-;;; ====
-;;; ANSI Escape Code Generation
-;;; ====
+(doc 'section 'ansi-escape-codes)
 
-;;; ansi-fg : Color → String
-;;; Generate ANSI foreground color escape sequence.
 (define (ansi-fg color)
+  (doc 'type (-> Color String))
+  (doc 'description "Generate ANSI foreground color escape sequence.")
   (cond
    [(color-default? color)
     "\x1B;[39m"]  ; Default foreground
@@ -103,12 +103,12 @@
     (let ([n (list-ref color 1)])
          (string-append "\x1B;[38;5;"
                         (number->string n) "m"))]
-   
+
    [else "\x1B;[39m"]))  ; Fallback to default
 
-;;; ansi-bg : Color → String
-;;; Generate ANSI background color escape sequence.
 (define (ansi-bg color)
+  (doc 'type (-> Color String))
+  (doc 'description "Generate ANSI background color escape sequence.")
   (cond
    [(color-default? color)
     "\x1B;[49m"]  ; Default background
@@ -126,58 +126,52 @@
     (let ([n (list-ref color 1)])
          (string-append "\x1B;[48;5;"
                         (number->string n) "m"))]
-   
+
    [else "\x1B;[49m"]))  ; Fallback to default
 
-;;; ansi-reset : String
-;;; Reset all text attributes to default.
+(doc ansi-reset 'type String)
+(doc ansi-reset 'description "Reset all text attributes to default.")
 (define ansi-reset "\x1B;[0m")
 
-;;; ansi-color : Color × Color → String
-;;; Generate ANSI codes for both foreground and background.
 (define (ansi-color fg bg)
+  (doc 'type (-> Color Color String))
+  (doc 'description "Generate ANSI codes for both foreground and background.")
   (string-append (ansi-fg fg) (ansi-bg bg)))
 
-;;; ====
-;;; Cell Type — Character + Color
-;;; ====
+(doc 'section 'cell-type)
 
-;;; Cell : (× Char Color Color)
-;;;
-;;; A canvas cell containing:
-;;;   - char : The character to display
-;;;   - fg   : Foreground color
-;;;   - bg   : Background color
+(doc 'note "Cell : (× Char Color Color)")
+(doc 'note "A canvas cell containing:")
+(doc 'note "  - char : The character to display")
+(doc 'note "  - fg   : Foreground color")
+(doc 'note "  - bg   : Background color")
 
 (define-record-type cell%
   (fields char fg bg))
 
-;;; make-cell : Char × Color × Color → Cell
+(doc make-cell 'type (-> Char Color Color Cell))
 (define make-cell make-cell%)
 
-;;; cell-char : Cell → Char
-;;; cell-fg : Cell → Color
-;;; cell-bg : Cell → Color
-;;; Auto-generated accessors
+(doc 'note "cell-char : Cell → Char")
+(doc 'note "cell-fg : Cell → Color")
+(doc 'note "cell-bg : Cell → Color")
+(doc 'note "Auto-generated accessors")
 
-;;; default-cell : Cell
-;;; A blank cell with default colors.
+(doc default-cell 'type Cell)
+(doc default-cell 'description "A blank cell with default colors.")
 (define default-cell
   (make-cell #\space color-default color-default))
 
-;;; make-cell-simple : Char → Cell
-;;; Create a cell with default colors.
 (define (make-cell-simple ch)
+  (doc 'type (-> Char Cell))
+  (doc 'description "Create a cell with default colors.")
   (make-cell ch color-default color-default))
 
-;;; ====
-;;; Color Helpers
-;;; ====
+(doc 'section 'color-helpers)
 
-;;; lerp-color : Color × Color × Float → Color
-;;; Linear interpolation between two RGB colors.
-;;; t ranges from 0.0 (color1) to 1.0 (color2).
 (define (lerp-color c1 c2 t)
+  (doc 'type (-> Color Color Float Color))
+  (doc 'description "Linear interpolation between two RGB colors. t ranges from 0.0 (color1) to 1.0 (color2).")
   (cond
    [(or (not (color-rgb? c1)) (not (color-rgb? c2)))
     c1]  ; Can't lerp non-RGB colors
@@ -197,9 +191,10 @@
            (lerp g1 g2 t)
            (lerp b1 b2 t)))]))
 
-;;; darken : Color × Float → Color
-;;; Darken an RGB color by factor (0.0 = black, 1.0 = unchanged).
+
 (define (darken color factor)
+  (doc 'type (-> Color Float Color))
+  (doc 'description "Darken an RGB color by factor (0.0 = black, 1.0 = unchanged).")
   (if (color-rgb? color)
       (let ([r (list-ref color 1)]
             [g (list-ref color 2)]
@@ -210,9 +205,9 @@
             (inexact->exact (round (* b factor)))))
       color))
 
-;;; lighten : Color × Float → Color
-;;; Lighten an RGB color by factor (0.0 = unchanged, 1.0 = white).
 (define (lighten color factor)
+  (doc 'type (-> Color Float Color))
+  (doc 'description "Lighten an RGB color by factor (0.0 = unchanged, 1.0 = white).")
   (if (color-rgb? color)
       (let ([r (list-ref color 1)]
             [g (list-ref color 2)]
@@ -223,13 +218,10 @@
             (inexact->exact (round (+ b (* (- 255 b) factor))))))
       color))
 
-;;; ====
-;;; Mood Color Schemes
-;;; ====
+(doc 'section 'mood-color-schemes)
 
-;;; DUCKIE mood → color mapping
-;;;
-;;; Each mood has a signature color that expresses its emotional tone.
+(doc 'note "DUCKIE mood → color mapping")
+(doc 'note "Each mood has a signature color that expresses its emotional tone.")
 
 (define mood-colors
   `((happy    . ,(rgb 255 215 0))     ; Gold/yellow — bright and cheerful
@@ -239,46 +231,28 @@
     (lonely   . ,(rgb 150 150 200))   ; Muted blue-gray — melancholy
     (playful  . ,(rgb 255 150 200)))) ; Pink — energetic and fun
 
-;;; mood->color : Symbol → Color
-;;; Get the signature color for a mood.
 (define (mood->color mood)
+  (doc 'type (-> Symbol Color))
+  (doc 'description "Get the signature color for a mood.")
   (let ([entry (assq mood mood-colors)])
        (if entry
            (cdr entry)
            color-default)))
 
-;;; energy->color : Nat → Color
-;;; Map energy level (0-100) to a color gradient.
-;;; Low energy → dark blue, high energy → bright yellow.
 (define (energy->color energy)
+  (doc 'type (-> Nat Color))
+  (doc 'description "Map energy level (0-100) to a color gradient. Low energy → dark blue, high energy → bright yellow.")
   (let* ([e (max 0 (min 100 energy))]  ; Clamp to 0-100
          [t (/ e 100.0)]                 ; Normalize to 0.0-1.0
          [low (rgb 80 80 150)]           ; Dark blue (low energy)
          [high (rgb 255 220 100)])       ; Bright yellow (high energy)
         (lerp-color low high t)))
 
-;;; ====
-;;; Export Summary
-;;; ====
+(doc 'section 'exports)
 
-;;; Exports (implicitly available when loaded):
-;;;
-;;; Types:
-;;;   - Cell (record type)
-;;;
-;;; Constructors:
-;;;   - make-color-rgb, make-color-palette, rgb
-;;;   - make-cell, make-cell-simple
-;;;   - default-cell
-;;;
-;;; Constants:
-;;;   - color-default
-;;;   - color-black, color-red, color-green, color-yellow, ...
-;;;   - color-orange, color-pink, color-purple, ...
-;;;
-;;; ANSI Codes:
-;;;   - ansi-fg, ansi-bg, ansi-color, ansi-reset
-;;;
-;;; Helpers:
-;;;   - lerp-color, darken, lighten
-;;;   - mood->color, energy->color
+(doc 'note "Exports (implicitly available when loaded):")
+(doc 'note "Types: Cell (record type)")
+(doc 'note "Constructors: make-color-rgb, make-color-palette, rgb, make-cell, make-cell-simple, default-cell")
+(doc 'note "Constants: color-default, color-black, color-red, color-green, color-yellow, ...")
+(doc 'note "ANSI Codes: ansi-fg, ansi-bg, ansi-color, ansi-reset")
+(doc 'note "Helpers: lerp-color, darken, lighten, mood->color, energy->color")

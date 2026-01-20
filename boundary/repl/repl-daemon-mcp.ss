@@ -1,26 +1,23 @@
-;;; boundary/repl/repl-daemon-mcp.ss — Session Broker Daemon
-;;;
-;;; Broker daemon that spawns one REPL worker process per session-id.
-;;; The broker does not eval user code; it only watches request files
-;;; and ensures a worker is running for each active session.
-;;;
-;;; Protocol:
-;;;   .fold-repl/
-;;;     ready                        — Sentinel (daemon running)
-;;;     requests/<session-id>.ss     — Session requests (raw expressions)
-;;;     responses/<session-id>.txt   — Session responses
-;;;     responses/<session-id>.error.txt — Session errors
-;;;     workers/<session-id>.*       — Worker metadata
-;;;
-;;; This is Shell code: uses IO and process spawning.
-;;;
-;;; NOTE: string-contains? provided by core/prelude.ss
-
 (load "core/base/prelude.ss")
 
-;;; ====
-;;; Configuration
-;;; ====
+(doc 'module 'repl-daemon-mcp)
+(doc 'description "Session Broker Daemon — Broker daemon that spawns one REPL worker process per session-id")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+
+(doc 'note "The broker does not eval user code; it only watches request files and ensures a worker is running for each active session")
+(doc 'note "string-contains? provided by core/prelude.ss")
+
+(doc 'protocol "
+.fold-repl/
+  ready                        — Sentinel (daemon running)
+  requests/<session-id>.ss     — Session requests (raw expressions)
+  responses/<session-id>.txt   — Session responses
+  responses/<session-id>.error.txt — Session errors
+  workers/<session-id>.*       — Worker metadata
+")
+
+(doc 'section 'configuration)
 
 (define *repl-dir* ".fold-repl")
 (define *requests-dir* ".fold-repl/requests")

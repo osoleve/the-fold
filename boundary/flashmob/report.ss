@@ -1,16 +1,10 @@
-;;; boundary/flashmob/report.ss — Flashmob JSON Report Export
-;;;
-;;; Exports triage results to JSON format for compatibility with
-;;; external tools and the original flashmob orchestrator.
-;;;
-;;; Usage:
-;;;   (flashmob-report)                ; Print JSON to stdout
-;;;   (flashmob-report-to-file "report.json")
-;;;   (flashmob-report-data)           ; Get as Scheme data
-;;;
-;;; This is Shell code: impure (file IO).
-
 (load "boundary/flashmob/flashmob.ss")
+
+(doc 'module 'flashmob/report)
+(doc 'description "Flashmob JSON Report Export - Exports triage results to JSON format for compatibility with external tools")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+(doc 'note "Usage: (flashmob-report) prints JSON to stdout, (flashmob-report-to-file filename) writes to file, (flashmob-report-data) returns Scheme data")
 
 ;;; ====
 ;;; Report Data Generation

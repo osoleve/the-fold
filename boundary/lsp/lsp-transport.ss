@@ -36,9 +36,9 @@
                              (loop (cons (cons key val) headers)))
                        (loop headers)))]))))
 
-;;; read-line-crlf : InputPort → String | eof
-;;; Read a line terminated by \r\n (or just \n for compatibility).
-;;; Works with binary ports - headers are ASCII.
+(doc read-line-crlf 'type '(-> InputPort (U String eof)))
+(doc read-line-crlf 'description "Read a line terminated by \\r\\n (or just \\n for compatibility)")
+(doc read-line-crlf 'note "Works with binary ports - headers are ASCII")
 (define (read-line-crlf port)
   (let loop ([bytes '()])
        (let ([b (get-u8 port)])
@@ -58,8 +58,8 @@
              [else
               (loop (cons b bytes))]))))
 
-;;; NOTE: string-index provided by boundary/tools/string-utils.ss
-;;; NOTE: string-trim provided by core/base/prelude.ss
+(doc 'note "string-index provided by boundary/tools/string-utils.ss")
+(doc 'note "string-trim provided by core/base/prelude.ss")
 
 (doc 'section 'message-reading)
 
@@ -90,9 +90,9 @@
                                     '(error "Incomplete message body")
                                     (json-read body)))])))))))
 
-;;; read-n-bytes-as-string : InputPort × Nat → String | #f
-;;; Read exactly n BYTES from port and decode as UTF-8.
-;;; Returns #f if fewer bytes available.
+(doc read-n-bytes-as-string 'type '(-> InputPort Nat (U String #f)))
+(doc read-n-bytes-as-string 'description "Read exactly n BYTES from port and decode as UTF-8")
+(doc read-n-bytes-as-string 'returns "Returns #f if fewer bytes available")
 (define (read-n-bytes-as-string port n)
   (let ([bv (make-bytevector n)])
        (let loop ([i 0])
@@ -123,16 +123,16 @@
         (put-bytevector port body-bytes)
         (flush-output-port port)))
 
-;;; write-lsp-response : Id × JsonValue → Void
-;;; Write a JSON-RPC response.
+(doc write-lsp-response 'type '(-> Id JsonValue Void))
+(doc write-lsp-response 'description "Write a JSON-RPC response")
 (define (write-lsp-response id result)
   (write-lsp-message *lsp-stdout*
                      (json-obj "jsonrpc" "2.0"
                                "id" id
                                "result" result)))
 
-;;; write-lsp-error : Id × Int × String → Void
-;;; Write a JSON-RPC error response.
+(doc write-lsp-error 'type '(-> Id Int String Void))
+(doc write-lsp-error 'description "Write a JSON-RPC error response")
 (define (write-lsp-error id code message)
   (write-lsp-message *lsp-stdout*
                      (json-obj "jsonrpc" "2.0"
@@ -140,8 +140,8 @@
                                "error" (json-obj "code" code
                                                  "message" message))))
 
-;;; write-lsp-notification : String × JsonValue → Void
-;;; Write a JSON-RPC notification (no id).
+(doc write-lsp-notification 'type '(-> String JsonValue Void))
+(doc write-lsp-notification 'description "Write a JSON-RPC notification (no id)")
 (define (write-lsp-notification method params)
   (write-lsp-message *lsp-stdout*
                      (json-obj "jsonrpc" "2.0"
@@ -165,34 +165,32 @@
   (set! *lsp-running* #t)
   (lsp-log "Transport initialized (binary mode)"))
 
-;;; shutdown-transport! : → Void
-;;; Clean up the transport layer.
+(doc shutdown-transport! 'type '(-> Void))
+(doc shutdown-transport! 'description "Clean up the transport layer")
 (define (shutdown-transport!)
   (set! *lsp-running* #f)
   (lsp-log "Transport shutdown"))
 
-;;; transport-running? : → Boolean
+(doc transport-running? 'type '(-> Boolean))
 (define (transport-running?)
   *lsp-running*)
 
-;;; ====
-;;; Progress Reporting
-;;; ====
+(doc 'section 'progress-reporting)
 
-;;; Progress tokens are simple incrementing integers
+(doc 'note "Progress tokens are simple incrementing integers")
 (define *progress-token-counter* 0)
 
-;;; next-progress-token : → Int
-;;; Generate a unique progress token.
+(doc next-progress-token 'type '(-> Int))
+(doc next-progress-token 'description "Generate a unique progress token")
 (define (next-progress-token)
   (set! *progress-token-counter* (+ *progress-token-counter* 1))
   *progress-token-counter*)
 
-;;; progress-begin : String × String [× Int] → Int
-;;; Start a progress operation. Returns the token for later updates.
-;;; title: The title of the operation
-;;; message: Optional initial message
-;;; percentage: Optional initial percentage (0-100)
+(doc progress-begin 'type '(-> String (* String) Int))
+(doc progress-begin 'description "Start a progress operation. Returns the token for later updates")
+(doc progress-begin 'param 'title "The title of the operation")
+(doc progress-begin 'param 'message "Optional initial message")
+(doc progress-begin 'param 'percentage "Optional initial percentage (0-100)")
 (define (progress-begin title . opts)
   (let* ([token (next-progress-token)]
          [message (if (pair? opts) (car opts) #f)]
@@ -211,11 +209,11 @@
                                           "value" params))
         token))
 
-;;; progress-report : Int × String [× Int] → Void
-;;; Report progress on an operation.
-;;; token: The token from progress-begin
-;;; message: Status message
-;;; percentage: Optional percentage (0-100)
+(doc progress-report 'type '(-> Int String (* Int) Void))
+(doc progress-report 'description "Report progress on an operation")
+(doc progress-report 'param 'token "The token from progress-begin")
+(doc progress-report 'param 'message "Status message")
+(doc progress-report 'param 'percentage "Optional percentage (0-100)")
 (define (progress-report token message . opts)
   (let* ([percentage (if (pair? opts) (car opts) #f)]
          [params (json-obj "kind" "report"
@@ -226,10 +224,10 @@
                                 (json-obj "token" token
                                           "value" params))))
 
-;;; progress-end : Int [× String] → Void
-;;; End a progress operation.
-;;; token: The token from progress-begin
-;;; message: Optional final message
+(doc progress-end 'type '(-> Int (* String) Void))
+(doc progress-end 'description "End a progress operation")
+(doc progress-end 'param 'token "The token from progress-begin")
+(doc progress-end 'param 'message "Optional final message")
 (define (progress-end token . opts)
   (let* ([message (if (pair? opts) (car opts) #f)]
          [params (json-obj "kind" "end")])
@@ -239,17 +237,17 @@
                                 (json-obj "token" token
                                           "value" params))))
 
-;;; json-obj-set : JsonObject × String × Any → JsonObject
-;;; Add or update a key in a JSON object.
+(doc json-obj-set 'type '(-> JsonObject String Any JsonObject))
+(doc json-obj-set 'description "Add or update a key in a JSON object")
 (define (json-obj-set obj key value)
   (let ([pairs (cdr obj)])
        (cons 'json-object
              (cons (cons key value)
                    (filter (lambda (p) (not (string=? (car p) key))) pairs)))))
 
-;;; with-progress : String × (→ α) → α
-;;; Execute a thunk with progress reporting.
-;;; Shows "Working..." while running, then completes.
+(doc with-progress 'type '(-> String (-> α) α))
+(doc with-progress 'description "Execute a thunk with progress reporting")
+(doc with-progress 'note "Shows 'Working...' while running, then completes")
 (define (with-progress title thunk)
   (let ([token (progress-begin title "Working...")])
        (guard (e [else
@@ -259,13 +257,11 @@
                    (progress-end token "Done")
                    result))))
 
-;;; ====
-;;; Main Read Loop Helper
-;;; ====
+(doc 'section 'main-read-loop-helper)
 
-;;; with-lsp-message : (JsonValue → Void) → Boolean
-;;; Read one message and call handler. Returns #f only on EOF (shutdown).
-;;; Parse errors send a JSON-RPC ParseError (-32700) and continue.
+(doc with-lsp-message 'type '(-> (-> JsonValue Void) Boolean))
+(doc with-lsp-message 'description "Read one message and call handler. Returns #f only on EOF (shutdown)")
+(doc with-lsp-message 'note "Parse errors send a JSON-RPC ParseError (-32700) and continue")
 (define (with-lsp-message handler)
   (let ([msg (read-lsp-message *lsp-stdin*)])
        (cond

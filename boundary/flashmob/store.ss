@@ -1,34 +1,28 @@
-;;; boundary/flashmob/store.ss — Flashmob Storage/Retrieval
-;;;
-;;; High-level storage operations for flashmob blocks.
-;;; Combines CAS storage with head management.
-;;;
-;;; This is Shell code: impure (filesystem IO).
-
 (load "boundary/flashmob/blocks.ss")
 (load "boundary/flashmob/heads.ss")
 
-;;; ====
-;;; Storage Root (uses same .store as rest of Fold)
-;;; ====
+(doc 'module 'flashmob/store)
+(doc 'description "Flashmob Storage/Retrieval - High-level storage operations for flashmob blocks, combines CAS storage with head management")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+
+(doc 'section 'storage-root)
+(doc 'note "Uses same .store as rest of Fold")
 
 (define *flashmob-cas-root* ".store/objects")
 
-;;; ====
-;;; Block Persistence
-;;; ====
+(doc 'section 'block-persistence)
 
-;;; flashmob-cas-path : Bytevector -> String
-;;; Compute filesystem path for a block hash.
-;;; Uses first byte for sharding.
+(doc flashmob-cas-path 'type (-> Bytevector String))
+(doc flashmob-cas-path 'description "Compute filesystem path for a block hash using first byte for sharding")
 (define (flashmob-cas-path hash)
   (let* ([hex (hash->hex hash)]
          [prefix (substring hex 0 2)]
          [suffix (substring hex 2 (string-length hex))])
     (string-append *flashmob-cas-root* "/" prefix "/" suffix)))
 
-;;; flashmob-ensure-shard-dir! : String -> Void
-;;; Ensure the shard directory exists.
+(doc flashmob-ensure-shard-dir! 'type (-> String Void))
+(doc flashmob-ensure-shard-dir! 'description "Ensure the shard directory exists")
 (define (flashmob-ensure-shard-dir! prefix)
   (let ([shard-dir (string-append *flashmob-cas-root* "/" prefix)])
     (unless (file-exists? ".store")
@@ -38,8 +32,8 @@
     (unless (file-exists? shard-dir)
       (mkdir shard-dir))))
 
-;;; flashmob-persist-block! : Bytevector Block -> Void
-;;; Write a block to disk.
+(doc flashmob-persist-block! 'type (-> Bytevector Block Void))
+(doc flashmob-persist-block! 'description "Write a block to disk")
 (define (flashmob-persist-block! hash blk)
   (let* ([hex (hash->hex hash)]
          [prefix (substring hex 0 2)]
@@ -51,8 +45,8 @@
        (lambda (port)
          (put-bytevector port bytes))))))
 
-;;; flashmob-load-block : Bytevector -> Block | #f
-;;; Load a block from disk.
+(doc flashmob-load-block 'type (-> Bytevector (U Block #f)))
+(doc flashmob-load-block 'description "Load a block from disk")
 (define (flashmob-load-block hash)
   (let ([path (flashmob-cas-path hash)])
     (guard (e [else #f])
@@ -64,13 +58,10 @@
             (bytes->block bytes))
           #f))))
 
-;;; ====
-;;; High-Level Operations
-;;; ====
+(doc 'section 'high-level-operations)
 
-;;; flashmob-store! : Block -> Bytevector
-;;; Store a block and return its hash.
-;;; Stores in both memory CAS and on disk.
+(doc flashmob-store! 'type (-> Block Bytevector))
+(doc flashmob-store! 'description "Store a block and return its hash - stores in both memory CAS and on disk")
 (define (flashmob-store! blk)
   (let ([hash (hash-block blk)])
     ;; Store in memory CAS
@@ -79,9 +70,8 @@
     (flashmob-persist-block! hash blk)
     hash))
 
-;;; flashmob-fetch : Bytevector -> Block | #f
-;;; Fetch a block by hash.
-;;; Tries memory first, then disk.
+(doc flashmob-fetch 'type (-> Bytevector (U Block #f)))
+(doc flashmob-fetch 'description "Fetch a block by hash - tries memory first, then disk")
 (define (flashmob-fetch hash)
   (or (fetch hash)
       (let ([blk (flashmob-load-block hash)])
@@ -90,92 +80,82 @@
           (store! blk))
         blk)))
 
-;;; ====
-;;; Session Operations
-;;; ====
+(doc 'section 'session-operations)
 
-;;; flashmob-fetch-session : String -> Block | #f
-;;; Fetch the current version of a session by ID.
+(doc flashmob-fetch-session 'type (-> String (U Block #f)))
+(doc flashmob-fetch-session 'description "Fetch the current version of a session by ID")
 (define (flashmob-fetch-session id)
   (let ([hash (flashmob-read-head id)])
     (if hash
         (flashmob-fetch hash)
         #f)))
 
-;;; flashmob-fetch-session-data : String -> Alist | #f
-;;; Fetch and parse session data by ID.
+(doc flashmob-fetch-session-data 'type (-> String (U Alist #f)))
+(doc flashmob-fetch-session-data 'description "Fetch and parse session data by ID")
 (define (flashmob-fetch-session-data id)
   (let ([blk (flashmob-fetch-session id)])
     (if blk
         (session-block-data blk)
         #f)))
 
-;;; ====
-;;; Finding Operations
-;;; ====
+(doc 'section 'finding-operations)
 
-;;; flashmob-fetch-finding : Bytevector -> Block | #f
-;;; Fetch a finding block by hash.
+(doc flashmob-fetch-finding 'type (-> Bytevector (U Block #f)))
+(doc flashmob-fetch-finding 'description "Fetch a finding block by hash")
 (define (flashmob-fetch-finding hash)
   (let ([blk (flashmob-fetch hash)])
     (if (and blk (eq? (block-tag blk) FLASHMOB-FINDING))
         blk
         #f)))
 
-;;; flashmob-fetch-finding-data : Bytevector -> Alist | #f
-;;; Fetch and parse finding data by hash.
+(doc flashmob-fetch-finding-data 'type (-> Bytevector (U Alist #f)))
+(doc flashmob-fetch-finding-data 'description "Fetch and parse finding data by hash")
 (define (flashmob-fetch-finding-data hash)
   (let ([blk (flashmob-fetch-finding hash)])
     (if blk
         (finding-block-data blk)
         #f)))
 
-;;; ====
-;;; Agent Operations
-;;; ====
+(doc 'section 'agent-operations)
 
-;;; flashmob-fetch-agent : Bytevector -> Block | #f
-;;; Fetch an agent block by hash.
+(doc flashmob-fetch-agent 'type (-> Bytevector (U Block #f)))
+(doc flashmob-fetch-agent 'description "Fetch an agent block by hash")
 (define (flashmob-fetch-agent hash)
   (let ([blk (flashmob-fetch hash)])
     (if (and blk (eq? (block-tag blk) FLASHMOB-AGENT))
         blk
         #f)))
 
-;;; flashmob-fetch-agent-data : Bytevector -> Alist | #f
-;;; Fetch and parse agent data by hash.
+(doc flashmob-fetch-agent-data 'type (-> Bytevector (U Alist #f)))
+(doc flashmob-fetch-agent-data 'description "Fetch and parse agent data by hash")
 (define (flashmob-fetch-agent-data hash)
   (let ([blk (flashmob-fetch-agent hash)])
     (if blk
         (agent-block-data blk)
         #f)))
 
-;;; ====
-;;; Triage Operations
-;;; ====
+(doc 'section 'triage-operations)
 
-;;; flashmob-fetch-triage : Bytevector -> Block | #f
-;;; Fetch a triage block by hash.
+(doc flashmob-fetch-triage 'type (-> Bytevector (U Block #f)))
+(doc flashmob-fetch-triage 'description "Fetch a triage block by hash")
 (define (flashmob-fetch-triage hash)
   (let ([blk (flashmob-fetch hash)])
     (if (and blk (eq? (block-tag blk) FLASHMOB-TRIAGE))
         blk
         #f)))
 
-;;; flashmob-fetch-triage-data : Bytevector -> Alist | #f
-;;; Fetch and parse triage data by hash.
+(doc flashmob-fetch-triage-data 'type (-> Bytevector (U Alist #f)))
+(doc flashmob-fetch-triage-data 'description "Fetch and parse triage data by hash")
 (define (flashmob-fetch-triage-data hash)
   (let ([blk (flashmob-fetch-triage hash)])
     (if blk
         (triage-block-data blk)
         #f)))
 
-;;; ====
-;;; Session History
-;;; ====
+(doc 'section 'session-history)
 
-;;; flashmob-session-history : String -> (List Block)
-;;; Get all versions of a session, newest first.
+(doc flashmob-session-history 'type (-> String (List Block)))
+(doc flashmob-session-history 'description "Get all versions of a session, newest first")
 (define (flashmob-session-history id)
   (let ([hash (flashmob-read-head id)])
     (if (not hash)
@@ -189,29 +169,25 @@
                       (loop prev (cons blk acc))
                       (reverse (cons blk acc))))))))))
 
-;;; flashmob-session-history-data : String -> (List Alist)
-;;; Get all versions as parsed data.
+(doc flashmob-session-history-data 'type (-> String (List Alist)))
+(doc flashmob-session-history-data 'description "Get all versions as parsed data")
 (define (flashmob-session-history-data id)
   (map session-block-data (flashmob-session-history id)))
 
-;;; ====
-;;; Dangling Head Detection
-;;; ====
+(doc 'section 'dangling-head-detection)
 
-;;; flashmob-head-valid? : String -> Boolean
-;;; Check if a head points to a valid block.
+(doc flashmob-head-valid? 'type (-> String Boolean))
+(doc flashmob-head-valid? 'description "Check if a head points to a valid block")
 (define (flashmob-head-valid? id)
   (let ([hash (flashmob-read-head id)])
     (and hash
          (flashmob-fetch hash)
          #t)))
 
-;;; ====
-;;; Bulk Operations
-;;; ====
+(doc 'section 'bulk-operations)
 
-;;; flashmob-fetch-all-findings : (Vector Bytevector) -> (List Alist)
-;;; Fetch and parse all findings from a vector of hashes.
+(doc flashmob-fetch-all-findings 'type (-> (Vector Bytevector) (List Alist)))
+(doc flashmob-fetch-all-findings 'description "Fetch and parse all findings from a vector of hashes")
 (define (flashmob-fetch-all-findings finding-refs)
   (let ([result '()])
     (do ([i 0 (+ i 1)])
@@ -220,8 +196,8 @@
         (when data
           (set! result (cons data result)))))))
 
-;;; flashmob-fetch-all-agents : (Vector Bytevector) -> (List Alist)
-;;; Fetch and parse all agents from a vector of hashes.
+(doc flashmob-fetch-all-agents 'type (-> (Vector Bytevector) (List Alist)))
+(doc flashmob-fetch-all-agents 'description "Fetch and parse all agents from a vector of hashes")
 (define (flashmob-fetch-all-agents agent-refs)
   (let ([result '()])
     (do ([i 0 (+ i 1)])
