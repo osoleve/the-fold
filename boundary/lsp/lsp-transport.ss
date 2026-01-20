@@ -1,42 +1,26 @@
-;;; boundary/lsp/lsp-transport.ss — LSP Transport Layer
-;;; @module lsp-transport
-;;; @requires prelude json
-;;;
-;;; Handles LSP message framing over stdio:
-;;;   - Content-Length header parsing
-;;;   - Buffered reading from stdin
-;;;   - Writing with proper framing to stdout
-;;;
-;;; LSP uses HTTP-like headers:
-;;;   Content-Length: <length>\r\n
-;;;   \r\n
-;;;   <json-body>
-;;;
-;;; This is Shell code: performs I/O.
-
 (load "core/base/prelude.ss")
 (load "boundary/tools/string-utils.ss")
 (load "boundary/lsp/json.ss")
 
-;;; ====
-;;; Transport State
-;;; ====
+(doc 'module 'lsp/lsp-transport)
+(doc 'description "Handles LSP message framing over stdio: Content-Length header parsing, buffered reading from stdin, and writing with proper framing to stdout")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+(doc 'requires '(prelude string-utils json))
+(doc 'note "LSP uses HTTP-like headers: Content-Length: <length>\\r\\n\\r\\n<json-body>")
 
-;;; The LSP server state
-;;; CRITICAL: Capture binary ports at load time!
-;;; standard-input-port and standard-output-port can only be called once
-;;; reliably - subsequent calls may return EOF ports.
+(doc 'section 'transport-state)
+
+(doc 'note "CRITICAL: Capture binary ports at load time! standard-input-port and standard-output-port can only be called once reliably - subsequent calls may return EOF ports.")
 (define *lsp-stdin* (standard-input-port))
 (define *lsp-stdout* (standard-output-port))
 (define *lsp-stderr* (current-error-port))
 (define *lsp-running* #f)
 
-;;; ====
-;;; Header Parsing
-;;; ====
+(doc 'section 'header-parsing)
 
-;;; read-headers : InputPort → (Alist String String)
-;;; Read HTTP-like headers until empty line.
+(doc read-headers 'type '(-> InputPort (Alist String String)))
+(doc read-headers 'description "Read HTTP-like headers until empty line")
 (define (read-headers port)
   (let loop ([headers '()])
        (let ([line (read-line-crlf port)])
@@ -77,17 +61,14 @@
 ;;; NOTE: string-index provided by boundary/tools/string-utils.ss
 ;;; NOTE: string-trim provided by core/base/prelude.ss
 
-;;; ====
-;;; Message Reading
-;;; ====
+(doc 'section 'message-reading)
 
-;;; Maximum message size (10 MB) to prevent DoS attacks
+(doc 'note "Maximum message size (10 MB) to prevent DoS attacks")
 (define *max-message-size* (* 10 1024 1024))
 
-;;; read-lsp-message : InputPort → JsonValue | eof | (error String)
-;;; Read a complete LSP message with Content-Length framing.
-;;; CRITICAL: Content-Length is in BYTES, not characters.
-;;; We must read bytes and decode as UTF-8.
+(doc read-lsp-message 'type '(-> InputPort (U JsonValue eof (error String))))
+(doc read-lsp-message 'description "Read a complete LSP message with Content-Length framing")
+(doc read-lsp-message 'note "CRITICAL: Content-Length is in BYTES, not characters. We must read bytes and decode as UTF-8.")
 (define (read-lsp-message port)
   (let ([headers (read-headers port)])
        (if (or (eof-object? headers) (null? headers))
@@ -124,14 +105,11 @@
                           (bytevector-u8-set! bv i b)
                           (loop (+ i 1)))))))))
 
-;;; ====
-;;; Message Writing
-;;; ====
+(doc 'section 'message-writing)
 
-;;; write-lsp-message : OutputPort × JsonValue → Void
-;;; Write a complete LSP message with Content-Length framing.
-;;; CRITICAL: Content-Length must be in BYTES (UTF-8 encoded length).
-;;; Uses binary output for proper byte handling.
+(doc write-lsp-message 'type '(-> OutputPort JsonValue Void))
+(doc write-lsp-message 'description "Write a complete LSP message with Content-Length framing")
+(doc write-lsp-message 'note "CRITICAL: Content-Length must be in BYTES (UTF-8 encoded length). Uses binary output for proper byte handling.")
 (define (write-lsp-message port msg)
   (let* ([body (json-write msg)]
          [body-bytes (string->utf8 body)]
@@ -170,23 +148,18 @@
                                "method" method
                                "params" params)))
 
-;;; ====
-;;; Logging
-;;; ====
+(doc 'section 'logging)
 
-;;; lsp-log : String × ... → Void
-;;; Write to stderr for debugging (won't interfere with LSP protocol).
+(doc lsp-log 'type '(-> String (* Any) Void))
+(doc lsp-log 'description "Write to stderr for debugging (won't interfere with LSP protocol)")
 (define (lsp-log fmt . args)
   (apply fprintf *lsp-stderr* (string-append "[fold-lsp] " fmt "\n") args)
   (flush-output-port *lsp-stderr*))
 
-;;; ====
-;;; Transport Utilities
-;;; ====
+(doc 'section 'transport-utilities)
 
-;;; init-transport! : → Void
-;;; Initialize the transport layer.
-;;; Binary ports are already captured at load time.
+(doc init-transport! 'type '(-> Void))
+(doc init-transport! 'description "Initialize the transport layer. Binary ports are already captured at load time.")
 (define (init-transport!)
   ;; Ports already set at load time - just set running flag
   (set! *lsp-running* #t)

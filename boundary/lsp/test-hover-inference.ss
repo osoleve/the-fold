@@ -1,8 +1,9 @@
-;;; Test real type inference for LSP hover
-;;;
-;;; Tests the integration of core/types/infer.ss with LSP hover.
-
 (load "boundary/lsp/capabilities.ss")
+
+(doc 'module 'lsp/test-hover-inference)
+(doc 'description "Test real type inference for LSP hover. Tests the integration of core/types/infer.ss with LSP hover.")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
 
 ;;; ====
 ;;; Test Helpers

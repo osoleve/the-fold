@@ -1,59 +1,39 @@
-;;; core/lsp/json.ss — JSON Parser & Serializer
-;;; @module json
-;;; @requires prelude
-;;;
-;;; Pure Scheme JSON implementation for LSP protocol.
-;;;
-;;; JSON Representation:
-;;;   null   → 'null
-;;;   true   → #t
-;;;   false  → #f
-;;;   number → number
-;;;   string → string
-;;;   array  → (json-array elem ...)
-;;;   object → (json-object (key . value) ...)
-;;;
-;;; Provides:
-;;;   (json-read str)       → (ok Value) | (error msg)
-;;;   (json-write val)      → String
-;;;   (json-get obj key)    → Value | #f
-;;;   (json-object? x)      → Boolean
-;;;   (json-array? x)       → Boolean
-;;;
-;;; This is Core code: pure, total.
-
 (load "core/base/prelude.ss")
 
-;;; ====
-;;; Type Predicates
-;;; ====
+(doc 'module 'lsp/json)
+(doc 'description "Pure Scheme JSON implementation for LSP protocol. Provides JSON parsing/serialization with proper UTF-16 handling and security limits.")
+(doc 'layer 'boundary)
+(doc 'purity 'total)
+(doc 'requires '(prelude))
 
-;;; json-object? : Any → Boolean
+(doc 'note "JSON Representation: null→'null, true→#t, false→#f, number→number, string→string, array→(json-array elem...), object→(json-object (key.value)...)")
+
+(doc 'section 'type-predicates)
+
+(doc json-object? 'type '(-> Any Boolean))
 (define (json-object? x)
   (and (pair? x) (eq? (car x) 'json-object)))
 
-;;; json-array? : Any → Boolean
+(doc json-array? 'type '(-> Any Boolean))
 (define (json-array? x)
   (and (pair? x) (eq? (car x) 'json-array)))
 
-;;; json-null? : Any → Boolean
+(doc json-null? 'type '(-> Any Boolean))
 (define (json-null? x)
   (eq? x 'null))
 
-;;; ====
-;;; Object Access
-;;; ====
+(doc 'section 'object-access)
 
-;;; json-get : JsonObject × String → Value | #f
-;;; Get a value from a JSON object by key.
+(doc json-get 'type '(-> JsonObject String (U Value #f)))
+(doc json-get 'description "Get a value from a JSON object by key")
 (define (json-get obj key)
   (if (json-object? obj)
       (let ([entry (assoc key (cdr obj))])
            (and entry (cdr entry)))
       #f))
 
-;;; json-get-path : JsonValue × (List String) → Value | #f
-;;; Navigate nested objects by path.
+(doc json-get-path 'type '(-> JsonValue (List String) (U Value #f)))
+(doc json-get-path 'description "Navigate nested objects by path")
 (define (json-get-path val path)
   (if (null? path)
       val
@@ -62,12 +42,10 @@
                (json-get-path next (cdr path))
                #f))))
 
-;;; ====
-;;; Constructors
-;;; ====
+(doc 'section 'constructors)
 
-;;; json-obj : (key val ...) → JsonObject
-;;; Construct a JSON object from key-value pairs.
+(doc json-obj 'type '(-> (* (Pair String Value)) JsonObject))
+(doc json-obj 'description "Construct a JSON object from key-value pairs")
 (define (json-obj . pairs)
   (cons 'json-object
         (let loop ([ps pairs] [acc '()])
@@ -75,16 +53,15 @@
                  (reverse acc)
                  (loop (cddr ps) (cons (cons (car ps) (cadr ps)) acc))))))
 
-;;; json-arr : (elem ...) → JsonArray
-;;; Construct a JSON array from elements.
+(doc json-arr 'type '(-> (* Value) JsonArray))
+(doc json-arr 'description "Construct a JSON array from elements")
 (define (json-arr . elems)
   (cons 'json-array elems))
 
-;;; ====
-;;; Serializer
-;;; ====
+(doc 'section 'serializer)
 
-;;; json-write : JsonValue → String
+(doc json-write 'type '(-> JsonValue String))
+(doc json-write 'description "Serialize a JSON value to a string")
 (define (json-write val)
   (cond
    [(eq? val 'null) "null"]
@@ -108,7 +85,8 @@
                    "}")]
    [else (error 'json-write "Invalid JSON value" val)]))
 
-;;; json-write-number : Number → String
+(doc json-write-number 'type '(-> Number String))
+(doc json-write-number 'description "Serialize a number ensuring valid JSON representation")
 (define (json-write-number n)
   (if (integer? n)
       (number->string n)
@@ -122,9 +100,9 @@
                s
                (string-append s ".0")))))
 
-;;; json-escape-string : String → String
-;;; Escape a string for JSON output (includes quotes).
-;;; Optimized to use output port instead of list cons + reverse.
+(doc json-escape-string 'type '(-> String String))
+(doc json-escape-string 'description "Escape a string for JSON output (includes quotes)")
+(doc json-escape-string 'note "Optimized to use output port instead of list cons + reverse")
 (define (json-escape-string str)
   (call-with-string-output-port
    (lambda (out)
@@ -149,15 +127,15 @@
                                 (loop (+ i 1))))))
            (put-char out #\"))))
 
-;;; json-encode-unicode : Char → String
-;;; Encode a character as \uXXXX.
+(doc json-encode-unicode 'type '(-> Char String))
+(doc json-encode-unicode 'description "Encode a character as \\uXXXX")
 (define (json-encode-unicode c)
   (let* ([n (char->integer c)]
          [hex (number->string n 16)]
          [padded (string-append (make-string (- 4 (string-length hex)) #\0) hex)])
         (string-append "\\u" padded)))
 
-;;; json-join : (List String) × String → String
+(doc json-join 'type '(-> (List String) String String))
 (define (json-join strs sep)
   (if (null? strs)
       ""
@@ -166,12 +144,9 @@
                acc
                (loop (cdr ss) (string-append acc sep (car ss)))))))
 
-;;; ====
-;;; Parser State
-;;; ====
+(doc 'section 'parser-state)
 
-;;; Parser operates on a string with an index.
-;;; State = (index . string)
+(doc 'note "Parser operates on a string with an index. State = (index . string)")
 
 (define (make-pstate str)
   (cons 0 str))
@@ -197,11 +172,9 @@
 (define (pstate-advance-n s n)
   (cons (+ n (pstate-index s)) (pstate-str s)))
 
-;;; ====
-;;; Parser Primitives
-;;; ====
+(doc 'section 'parser-primitives)
 
-;;; skip-whitespace : State → State
+(doc skip-whitespace 'type '(-> State State))
 (define (skip-whitespace s)
   (if (pstate-empty? s)
       s
@@ -213,7 +186,7 @@
                (skip-whitespace (pstate-advance s))
                s))))
 
-;;; match-string : State × String → State | #f
+(doc match-string 'type '(-> State String (U State #f)))
 (define (match-string s target)
   (let ([len (string-length target)]
         [str (pstate-str s)]
@@ -228,16 +201,14 @@
                         (loop (+ i 1))
                         #f))))))
 
-;;; ====
-;;; JSON Parser
-;;; ====
+(doc 'section 'json-parser)
 
-;;; Maximum nesting depth to prevent stack overflow DoS attacks.
-;;; RFC 8259 doesn't specify a limit, but 100 levels is reasonable.
+(doc 'note "Maximum nesting depth to prevent stack overflow DoS attacks. RFC 8259 doesn't specify a limit, but 100 levels is reasonable.")
 (define *json-max-depth* 100)
 
-;;; json-read : String → (ok Value) | (error String)
-;;; SECURITY: Uses depth-limited parsing to prevent stack overflow.
+(doc json-read 'type '(-> String (U (ok Value) (error String))))
+(doc json-read 'description "Parse a JSON string")
+(doc json-read 'security "Uses depth-limited parsing to prevent stack overflow")
 (define (json-read str)
   (let ([result (parse-value-with-depth (skip-whitespace (make-pstate str)) 0)])
        (if (pair? result)
@@ -249,13 +220,13 @@
                                             (number->string (pstate-index rest))))))
            `(error ,result))))
 
-;;; parse-value : State → (Value . State) | ErrorString
-;;; NOTE: This is the legacy interface. Use parse-value-with-depth for security.
+(doc parse-value 'type '(-> State (U (Pair Value State) ErrorString)))
+(doc parse-value 'note "Legacy interface. Use parse-value-with-depth for security.")
 (define (parse-value s)
   (parse-value-with-depth s 0))
 
-;;; parse-value-with-depth : State × Int → (Value . State) | ErrorString
-;;; SECURITY: Tracks nesting depth to prevent stack overflow DoS.
+(doc parse-value-with-depth 'type '(-> State Int (U (Pair Value State) ErrorString)))
+(doc parse-value-with-depth 'security "Tracks nesting depth to prevent stack overflow DoS")
 (define (parse-value-with-depth s depth)
   (if (pstate-empty? s)
       "Unexpected end of input"
@@ -350,13 +321,12 @@
                  [(#\u) (parse-unicode-escape (pstate-advance s))]
                  [else (string-append "Invalid escape character: " (string c))]))))
 
-;;; Unicode replacement character for invalid surrogates
+(doc 'note "Unicode replacement character for invalid surrogates")
 (define *replacement-char* (integer->char #xFFFD))
 
-;;; parse-unicode-escape : State → (Char . State) | ErrorString
-;;; Parse \uXXXX escape sequence, with surrogate pair support.
-;;; JSON encodes non-BMP characters (U+10000+) as surrogate pairs:
-;;;   \uD800-\uDBFF (high surrogate) followed by \uDC00-\uDFFF (low surrogate)
+(doc parse-unicode-escape 'type '(-> State (U (Pair Char State) ErrorString)))
+(doc parse-unicode-escape 'description "Parse \\uXXXX escape sequence, with surrogate pair support")
+(doc parse-unicode-escape 'note "JSON encodes non-BMP characters (U+10000+) as surrogate pairs: \\uD800-\\uDBFF (high surrogate) followed by \\uDC00-\\uDFFF (low surrogate)")
 (define (parse-unicode-escape s)
   (if (< (pstate-remaining s) 4)
       "Incomplete unicode escape"
@@ -378,11 +348,8 @@
                       [else
                        (cons (integer->char n) s2)]))))))
 
-;;; parse-surrogate-pair : Int × State → (Char . State) | ErrorString
-;;; Given a high surrogate, try to parse the following low surrogate.
-;;; If found, combine them into a single non-BMP character.
-;;; If not found, use the Unicode replacement character (U+FFFD) since
-;;; lone surrogates are not valid Unicode scalar values.
+(doc parse-surrogate-pair 'type '(-> Int State (U (Pair Char State) ErrorString)))
+(doc parse-surrogate-pair 'description "Given a high surrogate, try to parse the following low surrogate. If found, combine them into a single non-BMP character. If not found, use the Unicode replacement character (U+FFFD) since lone surrogates are not valid Unicode scalar values.")
 (define (parse-surrogate-pair high s)
   (let ([str (pstate-str s)]
         [idx (pstate-index s)])
@@ -439,12 +406,12 @@
                 (cons n (pstate-advance-n s (- end start)))
                 (string-append "Invalid number: " num-str)))))
 
-;;; parse-array : State → (JsonArray . State) | ErrorString
+(doc parse-array 'type '(-> State (U (Pair JsonArray State) ErrorString)))
 (define (parse-array s)
   (parse-array-with-depth s 0))
 
-;;; parse-array-with-depth : State Int → (JsonArray . State) | ErrorString
-;;; SECURITY: Checks nesting depth to prevent stack overflow DoS.
+(doc parse-array-with-depth 'type '(-> State Int (U (Pair JsonArray State) ErrorString)))
+(doc parse-array-with-depth 'security "Checks nesting depth to prevent stack overflow DoS")
 (define (parse-array-with-depth s depth)
   (if (>= depth *json-max-depth*)
       (string-append "JSON nesting too deep (max " (number->string *json-max-depth*) " levels)")
@@ -472,12 +439,12 @@
                                                         (cons val elems))]
                                                  [else "Expected ',' or ']' in array"]))))))))))))
 
-;;; parse-object : State → (JsonObject . State) | ErrorString
+(doc parse-object 'type '(-> State (U (Pair JsonObject State) ErrorString)))
 (define (parse-object s)
   (parse-object-with-depth s 0))
 
-;;; parse-object-with-depth : State Int → (JsonObject . State) | ErrorString
-;;; SECURITY: Checks nesting depth to prevent stack overflow DoS.
+(doc parse-object-with-depth 'type '(-> State Int (U (Pair JsonObject State) ErrorString)))
+(doc parse-object-with-depth 'security "Checks nesting depth to prevent stack overflow DoS")
 (define (parse-object-with-depth s depth)
   (if (>= depth *json-max-depth*)
       (string-append "JSON nesting too deep (max " (number->string *json-max-depth*) " levels)")
@@ -517,10 +484,7 @@
                                                                            (cons entry entries))]
                                                                     [else "Expected ',' or '}' in object"]))))))))))))))))
 
-;;; ====
-;;; Tests (run with test-framework)
-;;; ====
+(doc 'section 'tests)
 
-;; Self-test when loaded directly
 (when (top-level-bound? '*running-tests*)
       (display "json.ss loaded for testing\n"))

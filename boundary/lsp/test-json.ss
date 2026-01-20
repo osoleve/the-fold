@@ -1,6 +1,9 @@
-;;; core/lsp/test-json.ss — Tests for JSON Parser
-
 (load "boundary/lsp/json.ss")
+
+(doc 'module 'lsp/test-json)
+(doc 'description "Tests for JSON Parser")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
 
 (define tests-passed 0)
 (define tests-failed 0)

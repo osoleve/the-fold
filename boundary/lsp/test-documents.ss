@@ -1,6 +1,9 @@
-;;; core/lsp/test-documents.ss — Tests for Document Management
-
 (load "boundary/lsp/documents.ss")
+
+(doc 'module 'lsp/test-documents)
+(doc 'description "Tests for Document Management")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
 
 (define tests-passed 0)
 (define tests-failed 0)

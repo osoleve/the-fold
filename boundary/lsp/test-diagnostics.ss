@@ -1,15 +1,10 @@
-;;; core/lsp/test-diagnostics.ss -- Tests for LSP Diagnostics Module
-;;;
-;;; Tests error-to-diagnostic conversion functions:
-;;;   - phase->severity
-;;;   - fold-error->diagnostic
-;;;   - context->range
-;;;   - format-diagnostic-message
-;;;
-;;; Uses the unified test framework.
-
-(load "core/test-framework.ss")
+(load "core/testing/test-framework.ss")
 (load "boundary/lsp/diagnostics.ss")
+
+(doc 'module 'lsp/test-diagnostics)
+(doc 'description "Tests for LSP Diagnostics Module. Tests error-to-diagnostic conversion functions: phase->severity, fold-error->diagnostic, context->range, format-diagnostic-message")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
 
 (display "Testing diagnostics.ss\n")
 (display "====\n\n")

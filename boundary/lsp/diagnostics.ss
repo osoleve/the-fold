@@ -1,29 +1,21 @@
-;;; core/lsp/diagnostics.ss — Error to Diagnostic Conversion
-;;; @module diagnostics
-;;; @requires prelude json protocol documents error
-;;;
-;;; Converts The Fold's error system to LSP diagnostics:
-;;;   - Parse errors
-;;;   - Type inference errors
-;;;   - Evaluation errors
-;;;
-;;; This is Core code: pure functions for error conversion.
-
 (load "core/base/prelude.ss")
 (load "boundary/lsp/json.ss")
 (load "boundary/lsp/protocol.ss")
 (load "boundary/lsp/documents.ss")
 
-;;; Load the error system (always load - Chez has a built-in make-error
-;;; with different arity that we need to override)
+(doc 'note "Load the error system (always load - Chez has a built-in make-error with different arity that we need to override)")
 (load "core/base/error.ss")
 
-;;; ====
-;;; Error Phase to Severity Mapping
-;;; ====
+(doc 'module 'lsp/diagnostics)
+(doc 'description "Converts The Fold's error system to LSP diagnostics: parse errors, type inference errors, and evaluation errors")
+(doc 'layer 'boundary)
+(doc 'purity 'total)
+(doc 'requires '(prelude json protocol documents error))
 
-;;; phase->severity : Symbol → Int
-;;; Convert an error phase to LSP diagnostic severity.
+(doc 'section 'error-phase-to-severity-mapping)
+
+(doc phase->severity 'type '(-> Symbol Int))
+(doc phase->severity 'description "Convert an error phase to LSP diagnostic severity")
 (define (phase->severity phase)
   (case phase
         [(parse) *severity-error*]
@@ -34,12 +26,10 @@
         [(hint) *severity-hint*]
         [else *severity-information*]))
 
-;;; ====
-;;; Fold Error to LSP Diagnostic
-;;; ====
+(doc 'section 'fold-error-to-lsp-diagnostic)
 
-;;; fold-error->diagnostic : Document × FoldError → JsonObject
-;;; Convert a Fold error to an LSP diagnostic.
+(doc fold-error->diagnostic 'type '(-> Document FoldError JsonObject))
+(doc fold-error->diagnostic 'description "Convert a Fold error to an LSP diagnostic")
 (define (fold-error->diagnostic doc err)
   (if (not (error? err))
       ;; Not a structured error, create a generic one
@@ -116,12 +106,10 @@
             (cdr entry)
             (symbol->string code))))
 
-;;; ====
-;;; Document Analysis
-;;; ====
+(doc 'section 'document-analysis)
 
-;;; analyze-document-for-diagnostics : Document → (List Diagnostic)
-;;; Analyze a document and return LSP diagnostics.
+(doc analyze-document-for-diagnostics 'type '(-> Document (List Diagnostic)))
+(doc analyze-document-for-diagnostics 'description "Analyze a document and return LSP diagnostics")
 (define (analyze-document-for-diagnostics doc)
   (let* ([content (document-content doc)]
          [uri (document-uri doc)]
@@ -153,13 +141,11 @@
   ;; Placeholder: actual type checking integration goes here
   '())
 
-;;; ====
-;;; Basic Syntax Checking
-;;; ====
+(doc 'section 'basic-syntax-checking)
 
-;;; check-balanced-parens : String × String → (List Error)
-;;; Check for unbalanced parentheses.
-;;; O(N) complexity - tracks line/col incrementally instead of rescanning.
+(doc check-balanced-parens 'type '(-> String String (List Error)))
+(doc check-balanced-parens 'description "Check for unbalanced parentheses")
+(doc check-balanced-parens 'note "O(N) complexity - tracks line/col incrementally instead of rescanning")
 (define (check-balanced-parens content path)
   (let ([len (string-length content)])
        (let loop ([i 0] [depth 0] [in-string #f] [escape #f]

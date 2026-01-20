@@ -1,31 +1,23 @@
-;;; core/lsp/documents.ss — Document Store with UTF-16 Position Conversion
-;;; @module documents
-;;; @requires prelude json protocol
-;;;
-;;; Manages open documents and provides position conversion:
-;;;   - In-memory document store
-;;;   - Line offset computation
-;;;   - UTF-16 ↔ character position conversion
-;;;
-;;; LSP uses UTF-16 code units for column positions. This module
-;;; handles the conversion to/from Scheme's character positions.
-;;;
-;;; This is Core code: pure, except for the global store.
-
 (load "core/base/prelude.ss")
 (load "boundary/lsp/json.ss")
 (load "boundary/lsp/protocol.ss")
 
-;;; Debug flag for document operations
+(doc 'module 'lsp/documents)
+(doc 'description "Manages open documents and provides position conversion: in-memory document store, line offset computation, and UTF-16 ↔ character position conversion")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+(doc 'requires '(prelude json protocol))
+(doc 'note "LSP uses UTF-16 code units for column positions. This module handles the conversion to/from Scheme's character positions.")
+
+(doc 'note "Debug flag for document operations")
 (define *doc-debug* #f)
 
-;;; ====
-;;; Document Structure
-;;; ====
+(doc 'section 'document-structure)
 
-;;; Document = (document uri version content line-starts)
-;;; line-starts is a vector of byte offsets for each line start
+(doc 'note "Document = (document uri version content line-starts) where line-starts is a vector of byte offsets for each line start")
 
+(doc make-document 'type '(-> String Int String Document))
+(doc make-document 'description "Create a new document with computed line starts")
 (define (make-document uri version content)
   (let ([line-starts (compute-line-starts content)])
        (list 'document uri version content line-starts)))
@@ -45,14 +37,10 @@
 (define (document-line-starts doc)
   (list-ref doc 4))
 
-;;; ====
-;;; Line Start Computation
-;;; ====
+(doc 'section 'line-start-computation)
 
-;;; compute-line-starts : String → Vector<Int>
-;;; Compute byte offsets of each line start.
-;;; Line 0 starts at offset 0.
-;;; Handles all LSP-spec line endings: \r\n (Windows), \n (Unix), \r (old Mac)
+(doc compute-line-starts 'type '(-> String (Vector Int)))
+(doc compute-line-starts 'description "Compute byte offsets of each line start. Line 0 starts at offset 0. Handles all LSP-spec line endings: \\r\\n (Windows), \\n (Unix), \\r (old Mac)")
 (define (compute-line-starts content)
   (let* ([len (string-length content)]
          [starts (list 0)])  ; Line 0 starts at 0
@@ -120,18 +108,12 @@
             ""
             (substring content start (min end (string-length content))))))
 
-;;; ====
-;;; UTF-16 Position Conversion
-;;; ====
+(doc 'section 'utf16-position-conversion)
 
-;;; In UTF-16:
-;;; - BMP characters (U+0000 to U+FFFF): 1 code unit
-;;; - Non-BMP characters (U+10000+): 2 code units (surrogate pair)
-;;;
-;;; Scheme strings use code points, so we need to convert.
+(doc 'note "In UTF-16: BMP characters (U+0000 to U+FFFF) use 1 code unit; Non-BMP characters (U+10000+) use 2 code units (surrogate pair). Scheme strings use code points, so we need to convert.")
 
-;;; char-utf16-length : Char → Int
-;;; Return number of UTF-16 code units for a character.
+(doc char-utf16-length 'type '(-> Char Int))
+(doc char-utf16-length 'description "Return number of UTF-16 code units for a character")
 (define (char-utf16-length c)
   (let ([cp (char->integer c)])
        (if (> cp #xFFFF) 2 1)))
@@ -159,12 +141,10 @@
                 (loop (+ i 1)
                       (+ utf16-count (char-utf16-length (string-ref str i))))))))
 
-;;; ====
-;;; LSP Position ↔ Document Offset
-;;; ====
+(doc 'section 'lsp-position-conversion)
 
-;;; lsp-position->offset : Document × JsonObject → Int
-;;; Convert an LSP position {line, character} to a document offset.
+(doc lsp-position->offset 'type '(-> Document JsonObject Int))
+(doc lsp-position->offset 'description "Convert an LSP position {line, character} to a document offset")
 (define (lsp-position->offset doc pos)
   (let* ([line (json-get pos "line")]
          [character (json-get pos "character")]
@@ -197,14 +177,10 @@
                     (loop lo (- mid 1))
                     (loop mid hi))))))
 
-;;; ====
-;;; Span ↔ LSP Range
-;;; ====
+(doc 'section 'span-conversion)
 
-;;; span->lsp-range : Document × Span → JsonObject
-;;; Convert a source span to an LSP range.
-;;; Span is 1-indexed; LSP is 0-indexed.
-;;; Validates boundaries to handle stale spans gracefully.
+(doc span->lsp-range 'type '(-> Document Span JsonObject))
+(doc span->lsp-range 'description "Convert a source span to an LSP range. Span is 1-indexed; LSP is 0-indexed. Validates boundaries to handle stale spans gracefully.")
 (define (span->lsp-range doc span)
   (let* ([num-lines (line-count doc)]
          [max-line (max 0 (- num-lines 1))]
@@ -241,15 +217,13 @@
                                                   (json-get end "character")))])
         (make-span file start-line start-col end-line end-col)))
 
-;;; ====
-;;; Document Store
-;;; ====
+(doc 'section 'document-store)
 
-;;; Global document store: uri → document
+(doc 'note "Global document store: uri → document")
 (define *documents* (make-hashtable string-hash string=?))
 
-;;; doc-open! : String × Int × String → Document
-;;; Open a document (add to store).
+(doc doc-open! 'type '(-> String Int String Document))
+(doc doc-open! 'description "Open a document (add to store)")
 (define (doc-open! uri version content)
   (let ([doc (make-document uri version content)])
        (hashtable-set! *documents* uri doc)
@@ -260,10 +234,8 @@
 (define (doc-update! uri version content)
   (doc-open! uri version content))
 
-;;; doc-apply-changes! : String × Int × (List Change) → Document | #f
-;;; Apply incremental changes to a document.
-;;; Each change has optional range (if missing, it's a full replacement).
-;;; Validates that version is increasing to prevent sync issues.
+(doc doc-apply-changes! 'type '(-> String Int (List Change) (U Document #f)))
+(doc doc-apply-changes! 'description "Apply incremental changes to a document. Each change has optional range (if missing, it's a full replacement). Validates that version is increasing to prevent sync issues.")
 (define (doc-apply-changes! uri version changes)
   (let ([doc (doc-get uri)])
        (if (not doc)
@@ -363,14 +335,10 @@
 (define (doc-list)
   (vector->list (hashtable-keys *documents*)))
 
-;;; ====
-;;; Symbol Extraction
-;;; ====
+(doc 'section 'symbol-extraction)
 
-;;; symbol-at-offset : Document × Int → String | #f
-;;; Extract the symbol (identifier) at a given offset.
-;;; If offset is at the end of a symbol (cursor after last char),
-;;; looks back one position to find the symbol.
+(doc symbol-at-offset 'type '(-> Document Int (U String #f)))
+(doc symbol-at-offset 'description "Extract the symbol (identifier) at a given offset. If offset is at the end of a symbol (cursor after last char), looks back one position to find the symbol.")
 (define (symbol-at-offset doc offset)
   (let* ([content (document-content doc)]
          [len (string-length content)])
@@ -427,15 +395,13 @@
       (char-numeric? c)
       (and (memv c '(#\- #\_ #\? #\! #\* #\+ #\/ #\< #\> #\= #\: #\@)) #t)))
 
-;;; ====
-;;; Span Re-export (for convenience)
-;;; ====
+(doc 'section 'span-re-export)
 
-;;; Import span functions from span.ss if not already loaded
+(doc 'note "Import span functions from span.ss if not already loaded")
 (unless (top-level-bound? 'make-span)
         (load "core/lang/span.ss"))
 
-;;; Provide span accessors
+(doc 'note "Span accessors for convenience")
 (define (span-line s) (list-ref s 2))
 (define (span-column s) (list-ref s 3))
 (define (span-end-line s) (list-ref s 4))

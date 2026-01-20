@@ -1,6 +1,9 @@
-;;; core/lsp/test-capabilities.ss — Tests for LSP Capabilities
-
 (load "boundary/lsp/capabilities.ss")
+
+(doc 'module 'lsp/test-capabilities)
+(doc 'description "Tests for LSP Capabilities")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
 
 (define tests-passed 0)
 (define tests-failed 0)

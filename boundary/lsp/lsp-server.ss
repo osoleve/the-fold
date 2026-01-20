@@ -1,12 +1,3 @@
-;;; boundary/lsp/lsp-server.ss — LSP Server Main Loop
-;;; @module lsp-server
-;;; @requires transport protocol documents handlers
-;;;
-;;; The main Language Server Protocol server for The Fold.
-;;; Handles the message loop and coordinates all components.
-;;;
-;;; This is Shell code: performs I/O, manages lifecycle.
-
 (load "core/base/prelude.ss")
 (load "boundary/lsp/json.ss")
 (load "boundary/lsp/protocol.ss")
@@ -15,20 +6,24 @@
 (load "boundary/lsp/capabilities.ss")
 (load "boundary/lsp/lsp-transport.ss")
 
-;;; ====
-;;; Server State
-;;; ====
+(doc 'module 'lsp/lsp-server)
+(doc 'description "The main Language Server Protocol server for The Fold. Handles the message loop and coordinates all components.")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+(doc 'requires '(prelude json protocol documents diagnostics capabilities lsp-transport))
 
+(doc 'section 'server-state)
+
+(doc 'note "Server initialization state")
 (define *server-initialized* #f)
 (define *server-shutdown-requested* #f)
 (define *client-capabilities* #f)
 (define *root-uri* #f)
 
-;;; ====
-;;; Request Handlers
-;;; ====
+(doc 'section 'request-handlers)
 
-;;; handle-initialize : JsonObject → JsonObject
+(doc handle-initialize 'type '(-> JsonObject JsonObject))
+(doc handle-initialize 'description "Handle LSP initialize request")
 (define (handle-initialize params)
   (set! *client-capabilities* (json-get params "capabilities"))
   (set! *root-uri* (json-get params "rootUri"))
@@ -49,11 +44,10 @@
   (lsp-log "Shutdown requested")
   'null)
 
-;;; ====
-;;; Document Sync Handlers
-;;; ====
+(doc 'section 'document-sync-handlers)
 
-;;; handle-did-open : JsonObject → Void
+(doc handle-did-open 'type '(-> JsonObject Void))
+(doc handle-did-open 'description "Handle textDocument/didOpen notification")
 (define (handle-did-open params)
   (let* ([text-doc (json-get params "textDocument")]
          [uri (json-get text-doc "uri")]
@@ -110,11 +104,10 @@
                          (doc-update! uri (+ 1 (document-version doc)) text)
                          (publish-diagnostics uri))))))
 
-;;; ====
-;;; Language Feature Handlers (Stubs)
-;;; ====
+(doc 'section 'language-feature-handlers)
 
-;;; handle-hover : JsonObject → JsonObject | null
+(doc handle-hover 'type '(-> JsonObject (U JsonObject null)))
+(doc handle-hover 'description "Handle textDocument/hover request")
 (define (handle-hover params)
   (let* ([text-doc (json-get params "textDocument")]
          [uri (json-get text-doc "uri")]

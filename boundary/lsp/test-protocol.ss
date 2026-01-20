@@ -1,6 +1,9 @@
-;;; core/lsp/test-protocol.ss — Tests for LSP Protocol
-
 (load "boundary/lsp/protocol.ss")
+
+(doc 'module 'lsp/test-protocol)
+(doc 'description "Tests for LSP Protocol")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
 
 (define tests-passed 0)
 (define tests-failed 0)

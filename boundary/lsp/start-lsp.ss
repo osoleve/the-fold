@@ -1,14 +1,12 @@
 #!/usr/bin/env scheme-script
-;;; boundary/lsp/start-lsp.ss — LSP Server Launcher
-;;;
-;;; Starts the fold-lsp server.
-;;; Usage: scheme --script boundary/lsp/start-lsp.ss
-;;;
-;;; The server communicates over stdio using the LSP protocol.
 
-;;; CRITICAL: Capture binary ports FIRST, before any loads.
-;;; Chez Scheme's standard-input-port/standard-output-port can only be
-;;; called reliably once - subsequent calls may return EOF ports.
+(doc 'module 'lsp/start-lsp)
+(doc 'description "Starts the fold-lsp server. Usage: scheme --script boundary/lsp/start-lsp.ss")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+(doc 'note "The server communicates over stdio using the LSP protocol")
+
+(doc 'note "CRITICAL: Capture binary ports FIRST, before any loads. Chez Scheme's standard-input-port/standard-output-port can only be called reliably once - subsequent calls may return EOF ports.")
 (define *captured-stdin* (standard-input-port))
 (define *captured-stdout* (standard-output-port))
 

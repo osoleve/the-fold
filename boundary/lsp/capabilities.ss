@@ -1,43 +1,30 @@
-;;; core/lsp/capabilities.ss — LSP Language Features
-;;; @module capabilities
-;;; @requires prelude json protocol documents
-;;;
-;;; Implements LSP language features:
-;;;   - Hover (type information)
-;;;   - Go-to-definition
-;;;   - Completion
-;;;   - Document symbols
-;;;
-;;; Integrates with:
-;;;   - boundary/tools/index.ss (symbol index)
-;;;   - core/types/infer.ss (type inference)
-;;;   - boundary/lens/ (navigation)
-;;;
-;;; This is Core code: pure where possible.
-
 (load "core/base/prelude.ss")
 (load "boundary/lsp/json.ss")
 (load "boundary/lsp/protocol.ss")
 (load "boundary/lsp/documents.ss")
 
-;;; Try to load pretty printer for formatting support
+(doc 'module 'lsp/capabilities)
+(doc 'description "Implements LSP language features: Hover (type information), Go-to-definition, Completion, and Document symbols. Integrates with boundary/tools/index.ss (symbol index), core/types/infer.ss (type inference), and boundary/lens/ (navigation).")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+(doc 'requires '(prelude json protocol documents))
+
+(doc 'note "Try to load pretty printer for formatting support")
 (define *pretty-available* #f)
 (guard (e [else (set! *pretty-available* #f)])
        (load "core/util/pretty.ss")
        (set! *pretty-available* #t))
 
-;;; ====
-;;; Symbol Index Integration
-;;; ====
+(doc 'section 'symbol-index-integration)
 
-;;; Try to load the symbol index
+(doc 'note "Try to load the symbol index")
 (define *index-available* #f)
 (guard (e [else (set! *index-available* #f)])
        (load "boundary/tools/index.ss")
        (set! *index-available* #t))
 
-;;; lookup-symbol-info : String → (Alist Symbol Any) | #f
-;;; Look up symbol information from the index.
+(doc lookup-symbol-info 'type '(-> String (U (Alist Symbol Any) #f)))
+(doc lookup-symbol-info 'description "Look up symbol information from the index")
 (define (lookup-symbol-info name)
   (if (and *index-available* (top-level-bound? 'index-lookup))
       (let ([sym (string->symbol name)])
@@ -53,20 +40,16 @@
              (index-find prefix))
       '()))
 
-;;; ====
-;;; Type Inference Integration
-;;; ====
+(doc 'section 'type-inference-integration)
 
-;;; Try to load type inference
+(doc 'note "Try to load type inference")
 (define *infer-available* #f)
 (guard (e [else (set! *infer-available* #f)])
        (load "core/types/infer.ss")
        (load "core/types/types.ss")
        (set! *infer-available* #t))
 
-;;; ====
-;;; Real Type Inference for Hover
-;;; ====
+(doc 'section 'type-inference-for-hover)
 
 ;;; try-parse-expr : String → Expr | #f
 ;;; Try to parse a string as a Scheme expression.
@@ -155,13 +138,11 @@
                                           #f)))
                                 #f)))))))
 
-;;; ====
-;;; Local Binding Inference
-;;; ====
+(doc 'section 'local-binding-inference)
 
-;;; parse-forms-with-lines : String → (List (form . start-line))
-;;; Parse all top-level forms with their starting line numbers.
-;;; Uses incremental newline counting for O(N) performance.
+(doc parse-forms-with-lines 'type '(-> String (List (Pair Form Int))))
+(doc parse-forms-with-lines 'description "Parse all top-level forms with their starting line numbers")
+(doc parse-forms-with-lines 'note "Uses incremental newline counting for O(N) performance")
 (define (parse-forms-with-lines content)
   (guard (e [else '()])
          (let ([port (open-input-string content)])
