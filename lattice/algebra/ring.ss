@@ -1,43 +1,36 @@
-;;; core/algebra/ring.ss — Ring Theory Library
-;;;
-;;; Pure, functional implementation of ring structures:
-;;; - Ring representation and operations
-;;; - Commutative rings
-;;; - Integral domains
-;;; - Unique factorization domains (UFD)
-;;; - Ring homomorphisms
-;;; - Ideals and quotient rings
-;;;
-;;; This is Core code: pure, total, assumes reasonable input.
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;   - algebra/group.ss (for additive group structure)
-
 (load "core/base/prelude.ss")
 (load "lattice/algebra/group.ss")
 
-;;; ====
-;;; Ring Representation
-;;; ====
+(doc 'module 'ring)
+(doc 'description "Ring theory library")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
 
-;;; A Ring is represented as:
-;;; (ring elements add-op mul-op zero one neg-fn equal-fn)
-;;; - elements: list of ring elements
-;;; - add-op: addition (a, b) → a + b
-;;; - mul-op: multiplication (a, b) → a × b
-;;; - zero: additive identity (0)
-;;; - one: multiplicative identity (1)
-;;; - neg-fn: additive inverse a → -a
-;;; - equal-fn: equality predicate for elements
-;;;
-;;; Ring axioms:
-;;; 1. (R, +) is an abelian group
-;;; 2. Multiplication is associative: (a × b) × c = a × (b × c)
-;;; 3. Distributive: a × (b + c) = (a × b) + (a × c)
-;;;                 (a + b) × c = (a × c) + (b × c)
+(doc 'note "Pure, functional implementation of ring structures:")
+(doc 'note "- Ring representation and operations")
+(doc 'note "- Commutative rings")
+(doc 'note "- Integral domains")
+(doc 'note "- Unique factorization domains (UFD)")
+(doc 'note "- Ring homomorphisms")
+(doc 'note "- Ideals and quotient rings")
 
-;;; make-ring : (List α) × (α × α → α) × (α × α → α) × α × α × (α → α) × (α × α → Boolean) → Ring
+(doc 'section 'ring-representation)
+
+(doc 'note "A Ring is represented as:")
+(doc 'note "(ring elements add-op mul-op zero one neg-fn equal-fn)")
+(doc 'note "- elements: list of ring elements")
+(doc 'note "- add-op: addition (a, b) → a + b")
+(doc 'note "- mul-op: multiplication (a, b) → a × b")
+(doc 'note "- zero: additive identity (0)")
+(doc 'note "- one: multiplicative identity (1)")
+(doc 'note "- neg-fn: additive inverse a → -a")
+(doc 'note "- equal-fn: equality predicate for elements")
+(doc 'note "")
+(doc 'note "Ring axioms:")
+(doc 'note "1. (R, +) is an abelian group")
+(doc 'note "2. Multiplication is associative: (a × b) × c = a × (b × c)")
+(doc 'note "3. Distributive: a × (b + c) = (a × b) + (a × c)")
+(doc 'note "                (a + b) × c = (a × c) + (b × c)")
 (define (make-ring elements add-op mul-op zero one neg-fn equal-fn)
   (list 'ring elements add-op mul-op zero one neg-fn equal-fn))
 

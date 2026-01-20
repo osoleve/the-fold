@@ -1,36 +1,28 @@
-;;; lattice/algebra/groebner.ss — Gröbner Bases
-;;;
-;;; Pure, functional implementation of Gröbner basis computation:
-;;; - Buchberger's algorithm
-;;; - S-polynomial computation
-;;; - Polynomial reduction
-;;; - Reduced Gröbner bases
-;;; - Ideal membership testing
-;;;
-;;; NOTE: Requires polynomial coefficients from a Field (not just Ring)
-;;; because multivariate polynomial division requires coefficient division.
-;;;
-;;; This is Core code: pure, total, assumes reasonable input.
-;;;
-;;; Dependencies:
-;;;   - core/base/prelude.ss
-;;;   - lattice/algebra/multivariate.ss (which loads field.ss)
-
 (load "core/base/prelude.ss")
 (load "lattice/algebra/multivariate.ss")
 
-;;; ====
-;;; S-Polynomial
-;;; ====
+(doc 'module 'groebner)
+(doc 'description "Gröbner bases")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
 
-;;; The S-polynomial of f and g "cancels" their leading terms:
-;;;
-;;; S(f,g) = (lcm(LM(f), LM(g)) / LT(f)) * f - (lcm(LM(f), LM(g)) / LT(g)) * g
-;;;
-;;; where LT = leading term (coeff * monomial), LM = leading monomial.
+(doc 'note "Pure, functional implementation of Gröbner basis computation:")
+(doc 'note "- Buchberger's algorithm")
+(doc 'note "- S-polynomial computation")
+(doc 'note "- Polynomial reduction")
+(doc 'note "- Reduced Gröbner bases")
+(doc 'note "- Ideal membership testing")
 
-;;; s-polynomial : MPoly × MPoly → MPoly
-;;; Compute the S-polynomial of f and g.
+(doc 'note "NOTE: Requires polynomial coefficients from a Field (not just Ring)")
+(doc 'note "because multivariate polynomial division requires coefficient division.")
+
+(doc 'section 's-polynomial)
+
+(doc 'note "The S-polynomial of f and g \"cancels\" their leading terms:")
+(doc 'note "")
+(doc 'note "S(f,g) = (lcm(LM(f), LM(g)) / LT(f)) * f - (lcm(LM(f), LM(g)) / LT(g)) * g")
+(doc 'note "")
+(doc 'note "where LT = leading term (coeff * monomial), LM = leading monomial.")
 (define (s-polynomial f g)
   (let* ([F (mpoly-field f)]
          [vars (mpoly-vars f)]

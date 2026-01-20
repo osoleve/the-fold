@@ -1,29 +1,3 @@
-;;; lattice/diffgeo/curvature.ss — Curvature Computations
-;;; @module curvature
-;;; @requires prelude matrix vec charts tangent
-;;;
-;;; Curvature measures for Riemannian manifolds and surfaces.
-;;;
-;;; This module provides:
-;;;   - Metric tensors (Riemannian metrics)
-;;;   - Christoffel symbols (connection coefficients)
-;;;   - Riemann curvature tensor
-;;;   - Ricci tensor and scalar curvature
-;;;   - Surface curvatures (Gaussian, mean, principal)
-;;;
-;;; Mathematical Background:
-;;;   A Riemannian metric g assigns an inner product to each tangent space.
-;;;   In coordinates: g = Σ_ij g_ij dx^i ⊗ dx^j
-;;;
-;;;   The Levi-Civita connection is the unique torsion-free metric-compatible
-;;;   connection, given by Christoffel symbols:
-;;;     Γ^k_ij = ½ g^{kl} (∂_i g_{jl} + ∂_j g_{il} - ∂_l g_{ij})
-;;;
-;;;   The Riemann curvature tensor measures intrinsic curvature:
-;;;     R^l_{ijk} = ∂_j Γ^l_{ik} - ∂_k Γ^l_{ij} + Γ^l_{jm} Γ^m_{ik} - Γ^l_{km} Γ^m_{ij}
-;;;
-;;; This is Lattice code: pure, uses Core primitives.
-
 (load "core/base/prelude.ss")
 (load "lattice/linalg/matrix.ss")
 (load "lattice/linalg/vec.ss")
@@ -32,11 +6,19 @@
 (load "lattice/diffgeo/charts.ss")
 (load "lattice/diffgeo/tangent.ss")
 
-;;; ============================================================================
-;;; Configuration
-;;; ============================================================================
+(doc 'module 'curvature)
+(doc 'description "Curvature Computations - Curvature measures for Riemannian manifolds and surfaces")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
+(doc 'note "Provides: Metric tensors, Christoffel symbols, Riemann curvature tensor, Ricci tensor, scalar curvature, surface curvatures")
+(doc 'note "A Riemannian metric g assigns an inner product to each tangent space: g = Σ_ij g_ij dx^i ⊗ dx^j")
+(doc 'note "The Levi-Civita connection: Γ^k_ij = ½ g^{kl} (∂_i g_{jl} + ∂_j g_{il} - ∂_l g_{ij})")
+(doc 'note "Riemann curvature tensor: R^l_{ijk} = ∂_j Γ^l_{ik} - ∂_k Γ^l_{ij} + Γ^l_{jm} Γ^m_{ik} - Γ^l_{km} Γ^m_{ij}")
 
-(define *curvature-epsilon* 1e-7)  ; Step size for numerical derivatives
+(doc 'section 'configuration)
+
+(doc *curvature-epsilon* 'description "Step size for numerical derivatives")
+(define *curvature-epsilon* 1e-7)
 
 ;;; ============================================================================
 ;;; Helper: Identity Matrix
@@ -53,18 +35,13 @@
         ((= i n) (list 'matrix n n data))
         (vector-set! data (+ (* i n) i) 1))))
 
-;;; ============================================================================
-;;; Metric Tensor Representation
-;;; ============================================================================
+(doc 'section 'metric-tensor-representation)
+(doc 'note "A metric tensor is: (metric chart metric-fn)")
+(doc 'note "chart: The coordinate chart")
+(doc 'note "metric-fn: Function (coords → Matrix) returning g_ij at coordinates")
+(doc 'note "The metric function returns an n×n symmetric positive-definite matrix")
 
-;;; A metric tensor is: (metric chart metric-fn)
-;;; - chart: The coordinate chart
-;;; - metric-fn: Function (coords → Matrix) returning g_ij at coordinates
-;;;
-;;; The metric function returns an n×n symmetric positive-definite matrix
-;;; where n is the chart dimension.
-
-;;; metric? : Any → Boolean
+(doc metric? 'type '(-> Any Boolean))
 (define (metric? x)
   (and (pair? x)
        (eq? (car x) 'metric)

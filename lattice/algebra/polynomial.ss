@@ -1,45 +1,37 @@
-;;; lattice/algebra/polynomial.ss — Polynomial Rings over Fields
-;;;
-;;; Pure, functional implementation of polynomial algebra:
-;;; - Polynomial ring F[x] over any coefficient field F
-;;; - Division with remainder
-;;; - GCD via Extended Euclidean algorithm
-;;; - Factorization (square-free decomposition)
-;;; - Interpolation (Lagrange, Newton)
-;;;
-;;; Polynomials are parametric over a Field structure, which provides
-;;; all ring operations plus division. This enables the library to work
-;;; with any field: Q (rationals), R (reals), finite fields Z_p, etc.
-;;;
-;;; This is Core code: pure, total, assumes reasonable input.
-;;;
-;;; Dependencies:
-;;;   - core/base/prelude.ss
-;;;   - lattice/algebra/field.ss
-
 (load "core/base/prelude.ss")
 (load "lattice/algebra/field.ss")
 
-;;; ====
-;;; Polynomial Representation
-;;; ====
+(doc 'module 'polynomial)
+(doc 'description "Polynomial rings over fields")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
 
-;;; Polynomials over a coefficient field F are represented as:
-;;;   (polynomial F coeffs)
-;;; where coeffs is a list of coefficients in ASCENDING power order:
-;;;   [a_0, a_1, ..., a_n] represents a_0 + a_1*x + ... + a_n*x^n
-;;;
-;;; This differs from lattice/numeric/polynomial.ss which uses
-;;; descending order (for numeric/control theory applications).
-;;; Ascending order is more natural for algebraic operations.
+(doc 'note "Pure, functional implementation of polynomial algebra:")
+(doc 'note "- Polynomial ring F[x] over any coefficient field F")
+(doc 'note "- Division with remainder")
+(doc 'note "- GCD via Extended Euclidean algorithm")
+(doc 'note "- Factorization (square-free decomposition)")
+(doc 'note "- Interpolation (Lagrange, Newton)")
 
-;;; make-polynomial : Field × (List Coeff) → Polynomial
-;;; Create a polynomial over field F with given coefficients.
-;;; Automatically normalizes (strips trailing zeros).
+(doc 'note "Polynomials are parametric over a Field structure, which provides")
+(doc 'note "all ring operations plus division. This enables the library to work")
+(doc 'note "with any field: Q (rationals), R (reals), finite fields Z_p, etc.")
+
+(doc 'section 'polynomial-representation)
+
+(doc 'note "Polynomials over a coefficient field F are represented as:")
+(doc 'note "  (polynomial F coeffs)")
+(doc 'note "where coeffs is a list of coefficients in ASCENDING power order:")
+(doc 'note "  [a_0, a_1, ..., a_n] represents a_0 + a_1*x + ... + a_n*x^n")
+(doc 'note "")
+(doc 'note "This differs from lattice/numeric/polynomial.ss which uses")
+(doc 'note "descending order (for numeric/control theory applications).")
+(doc 'note "Ascending order is more natural for algebraic operations.")
 (define (make-polynomial field coeffs)
+  (doc 'type '(-> Field (List Coeff) Polynomial))
+  (doc 'description "Create a polynomial over field F with given coefficients")
+  (doc 'description "Automatically normalizes (strips trailing zeros)")
   (list 'polynomial field (poly-normalize-coeffs field coeffs)))
-
-;;; polynomial? : Any → Boolean
 (define (polynomial? p)
   (and (pair? p)
        (eq? (car p) 'polynomial)))

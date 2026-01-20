@@ -1,13 +1,11 @@
-;;; lattice/topology/test-simplicial-complex.ss — Tests for Simplicial Complex
-;;;
-;;; Comprehensive tests for simplicial complex data structures and operations.
-
 (load "core/testing/test-framework.ss")
 (load "lattice/topology/simplicial-complex.ss")
 
-;;; ============================================================
-;;; SIMPLEX TESTS
-;;; ============================================================
+(doc 'module 'test-simplicial-complex)
+(doc 'description "Comprehensive tests for simplicial complex data structures and operations")
+(doc 'layer 'lattice)
+
+(doc 'section 'simplex-tests)
 
 (test-group 'simplex
 
@@ -96,9 +94,7 @@
       ; Order: number < symbol < string < bytevector < list
       (assert-equal (list num sym str bv lst) (simplex-vertices s)))))
 
-;;; ============================================================
-;;; FACE ENUMERATION TESTS
-;;; ============================================================
+(doc 'section 'face-enumeration-tests)
 
 (test-group 'face-enumeration
 
@@ -146,9 +142,7 @@
       (assert-equal 6 (length proper))
       (assert-false (simplex-in-list? t proper)))))
 
-;;; ============================================================
-;;; SIMPLICIAL COMPLEX TESTS
-;;; ============================================================
+(doc 'section 'simplicial-complex-tests)
 
 (test-group 'simplicial-complex
 
@@ -194,9 +188,7 @@
            [sc2 (sc-add-simplex sc1 (triangle 'a 'b 'c))])
       (assert-equal (sc-count sc1) (sc-count sc2)))))
 
-;;; ============================================================
-;;; SKELETON AND STAR/LINK TESTS
-;;; ============================================================
+(doc 'section 'skeleton-star-link-tests)
 
 (test-group 'skeleton-star-link
 
@@ -224,9 +216,7 @@
       (assert-true (sc-contains? link (edge 'b 'c)))
       (assert-false (sc-contains? link (vertex 'a))))))
 
-;;; ============================================================
-;;; BOUNDARY OPERATOR TESTS
-;;; ============================================================
+(doc 'section 'boundary-tests)
 
 (test-group 'boundary
 
@@ -258,9 +248,7 @@
            [bd2 (chain-boundary bd1)])
       (assert-equal chain-empty bd2))))
 
-;;; ============================================================
-;;; TOPOLOGICAL INVARIANTS TESTS
-;;; ============================================================
+(doc 'section 'invariants-tests)
 
 (test-group 'invariants
 
@@ -288,9 +276,7 @@
     (let ([sc (sc-from-simplices (list (tetrahedron 'a 'b 'c 'd)))])
       (assert-equal '(4 6 4 1) (sc-f-vector sc)))))
 
-;;; ============================================================
-;;; STANDARD COMPLEXES TESTS
-;;; ============================================================
+(doc 'section 'standard-complexes-tests)
 
 (test-group 'standard-complexes
 
@@ -318,9 +304,7 @@
       (assert-equal 5 (sc-count sc))
       (assert-equal 0 (sc-max-dim sc)))))
 
-;;; ============================================================
-;;; COMBINATIONS HELPER TEST
-;;; ============================================================
+(doc 'section 'helpers-tests)
 
 (test-group 'helpers
 
@@ -339,9 +323,7 @@
     (assert-equal '(0) (iota 1))
     (assert-equal '(0 1 2 3 4) (iota 5))))
 
-;;; ============================================================
-;;; FILTRATION TESTS
-;;; ============================================================
+(doc 'section 'filtration-tests)
 
 (test-group 'filtration
 
@@ -356,16 +338,14 @@
     (assert-false (filtered-simplex? (triangle 'a 'b 'c)))
     (assert-false (filtered-simplex? '(1 2 3)))))
 
-;;; Helper for test output
 (define (every pred lst)
+  (doc 'description "Helper for test output")
   (cond
     [(null? lst) #t]
     [(pred (car lst)) (every pred (cdr lst))]
     [else #f]))
 
-;;; ============================================================
-;;; RUN TESTS
-;;; ============================================================
+(doc 'section 'run-tests)
 
 (display "\n=== Simplicial Complex Tests ===\n\n")
 (run-all-tests)

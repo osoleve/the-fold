@@ -1,42 +1,25 @@
-;;; lattice/diffgeo/tangent.ss — Tangent and Cotangent Spaces
-;;; @module tangent
-;;; @requires prelude matrix vec charts
-;;;
-;;; Differential geometry structures for tangent vectors and differential forms.
-;;;
-;;; A tangent vector at a point p represents a "direction" on the manifold.
-;;; In coordinates, it's represented by components (v¹, ..., vⁿ) that transform
-;;; covariantly: v'ⁱ = Σⱼ (∂x'ⁱ/∂xʲ) vʲ = Jⁱⱼ vʲ
-;;;
-;;; A cotangent vector (1-form) at p is a linear functional on tangent vectors.
-;;; Components (ω₁, ..., ωₙ) transform contravariantly: ω'ᵢ = Σⱼ (∂xʲ/∂x'ⁱ) ωⱼ
-;;;
-;;; This is Lattice code: pure, uses Core primitives.
-;;;
-;;; Dependencies:
-;;;   core/base/prelude.ss
-;;;   lattice/linalg/matrix.ss
-;;;   lattice/linalg/vec.ss
-;;;   lattice/diffgeo/charts.ss
-
 (load "core/base/prelude.ss")
 (load "lattice/linalg/matrix.ss")
 (load "lattice/linalg/vec.ss")
 (load "lattice/diffgeo/charts.ss")
 
-;;; ============================================================================
-;;; Tangent Vector Representation
-;;; ============================================================================
+(doc 'module 'tangent)
+(doc 'description "Tangent and Cotangent Spaces - Differential geometry structures for tangent vectors and differential forms")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
+(doc 'note "A tangent vector at a point p represents a direction on the manifold")
+(doc 'note "Tangent components (v¹, ..., vⁿ) transform covariantly: v'ⁱ = Σⱼ (∂x'ⁱ/∂xʲ) vʲ = Jⁱⱼ vʲ")
+(doc 'note "A cotangent vector (1-form) at p is a linear functional on tangent vectors")
+(doc 'note "Cotangent components (ω₁, ..., ωₙ) transform contravariantly: ω'ᵢ = Σⱼ (∂xʲ/∂x'ⁱ) ωⱼ")
 
-;;; A tangent vector is: (tangent-vector point chart components)
-;;; - point: The base point on the manifold
-;;; - chart: The chart in which components are expressed
-;;; - components: Vector of components (v¹, ..., vⁿ)
-;;;
-;;; The tangent vector represents ∂/∂xⁱ basis vectors:
-;;;   v = Σᵢ vⁱ (∂/∂xⁱ)
+(doc 'section 'tangent-vector-representation)
+(doc 'note "A tangent vector is: (tangent-vector point chart components)")
+(doc 'note "point: The base point on the manifold")
+(doc 'note "chart: The chart in which components are expressed")
+(doc 'note "components: Vector of components (v¹, ..., vⁿ)")
+(doc 'note "The tangent vector represents ∂/∂xⁱ basis vectors: v = Σᵢ vⁱ (∂/∂xⁱ)")
 
-;;; tangent-vector? : Any → Boolean
+(doc tangent-vector? 'type '(-> Any Boolean))
 (define (tangent-vector? x)
   (and (pair? x)
        (eq? (car x) 'tangent-vector)

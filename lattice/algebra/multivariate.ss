@@ -1,36 +1,27 @@
-;;; lattice/algebra/multivariate.ss — Multivariate Polynomial Algebra
-;;;
-;;; Pure, functional implementation of multivariate polynomials:
-;;; - Sparse representation with monomial orderings
-;;; - Lexicographic, graded lex, graded reverse lex orderings
-;;; - Polynomial arithmetic over arbitrary coefficient fields
-;;; - Multivariate division algorithm
-;;;
-;;; NOTE: Division operations require a Field (not just a Ring) because
-;;; multivariate polynomial division requires coefficient division.
-;;;
-;;; This is Core code: pure, total, assumes reasonable input.
-;;;
-;;; Dependencies:
-;;;   - core/base/prelude.ss
-;;;   - lattice/algebra/field.ss
-
 (load "core/base/prelude.ss")
 (load "lattice/algebra/field.ss")
 
-;;; ====
-;;; Monomial Representation
-;;; ====
+(doc 'module 'multivariate)
+(doc 'description "Multivariate polynomial algebra")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
 
-;;; A monomial is represented as an association list of (variable . exponent)
-;;; pairs, sorted by variable name. Only non-zero exponents are stored.
-;;;
-;;; Example: x^2 * y * z^3 is ((x . 2) (y . 1) (z . 3))
-;;; The constant monomial 1 is ()
+(doc 'note "Pure, functional implementation of multivariate polynomials:")
+(doc 'note "- Sparse representation with monomial orderings")
+(doc 'note "- Lexicographic, graded lex, graded reverse lex orderings")
+(doc 'note "- Polynomial arithmetic over arbitrary coefficient fields")
+(doc 'note "- Multivariate division algorithm")
 
-;;; make-monomial : (List (Symbol × Nat)) → Monomial
-;;; Create a monomial from variable-exponent pairs.
-;;; Normalizes by removing zero exponents and sorting by variable.
+(doc 'note "NOTE: Division operations require a Field (not just a Ring) because")
+(doc 'note "multivariate polynomial division requires coefficient division.")
+
+(doc 'section 'monomial-representation)
+
+(doc 'note "A monomial is represented as an association list of (variable . exponent)")
+(doc 'note "pairs, sorted by variable name. Only non-zero exponents are stored.")
+(doc 'note "")
+(doc 'note "Example: x^2 * y * z^3 is ((x . 2) (y . 1) (z . 3))")
+(doc 'note "The constant monomial 1 is ()")
 (define (make-monomial pairs)
   (let ([filtered (filter (lambda (p) (> (cdr p) 0)) pairs)])
     (sort-by-var filtered)))

@@ -1,34 +1,31 @@
-;;; lattice/algebra/poly-bridge.ss — Bridge Between Polynomial Representations
-;;;
-;;; Unifies the two polynomial implementations in the lattice:
-;;;   - lattice/numeric/polynomial.ss: Descending order, vector-based, numeric
-;;;   - lattice/algebra/polynomial.ss: Ascending order, list-based, Field-parametric
-;;;
-;;; This module provides:
-;;;   1. Conversion functions between representations
-;;;   2. Prefixed algebra operations (alg-*) for use without name collision
-;;;   3. Documentation of conventions and when to use each
-;;;
-;;; Conventions:
-;;;   - NUMERIC (descending): Control systems, signal processing, transfer functions
-;;;     p(x) = a_n*x^n + ... + a_0 stored as (poly #(a_n ... a_0))
-;;;   - ALGEBRA (ascending): Abstract algebra, GCD, factorization, symbolic math
-;;;     p(x) = a_0 + a_1*x + ... + a_n*x^n stored as (polynomial F (a_0 a_1 ... a_n))
-;;;
-;;; IMPORTANT: This module only loads algebra/polynomial.ss. If you also need
-;;; numeric/polynomial.ss, load it BEFORE this module to avoid name collisions.
-;;; The alg-* prefixed functions are safe to use alongside numeric polynomials.
-;;;
-;;; This is Lattice code: pure, functional, assumes reasonable input.
-;;;
-;;; Dependencies:
-;;;   - lattice/algebra/field.ss
-;;;   - lattice/algebra/polynomial.ss
-
 (load "lattice/algebra/field.ss")
 (load "lattice/algebra/polynomial.ss")
 
-;;; Save references to algebra polynomial functions before any potential collision
+(doc 'module 'poly-bridge)
+(doc 'description "Bridge between polynomial representations")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
+
+(doc 'note "Unifies two polynomial implementations:")
+(doc 'note "  - lattice/numeric/polynomial.ss: Descending order, vector-based, numeric")
+(doc 'note "  - lattice/algebra/polynomial.ss: Ascending order, list-based, Field-parametric")
+
+(doc 'note "Module provides:")
+(doc 'note "  1. Conversion functions between representations")
+(doc 'note "  2. Prefixed algebra operations (alg-*) for use without name collision")
+(doc 'note "  3. Documentation of conventions and when to use each")
+
+(doc 'note "Conventions:")
+(doc 'note "  - NUMERIC (descending): Control systems, signal processing, transfer functions")
+(doc 'note "    p(x) = a_n*x^n + ... + a_0 stored as (poly #(a_n ... a_0))")
+(doc 'note "  - ALGEBRA (ascending): Abstract algebra, GCD, factorization, symbolic math")
+(doc 'note "    p(x) = a_0 + a_1*x + ... + a_n*x^n stored as (polynomial F (a_0 a_1 ... a_n))")
+
+(doc 'note "IMPORTANT: This module only loads algebra/polynomial.ss. If you also need")
+(doc 'note "numeric/polynomial.ss, load it BEFORE this module to avoid name collisions.")
+(doc 'note "The alg-* prefixed functions are safe to use alongside numeric polynomials.")
+
+(doc 'note "Save references to algebra polynomial functions before any potential collision")
 (define alg-poly-coeffs poly-coeffs)
 (define alg-poly-degree poly-degree)
 (define alg-poly-field poly-field)
@@ -49,17 +46,14 @@
 (define alg-poly->string poly->string)
 (define alg-make-polynomial make-polynomial)
 
-;;; Note: poly-from-roots is only in numeric/polynomial.ss
-;;; We'll implement a simple version for algebra polynomials.
+(doc 'note "poly-from-roots is only in numeric/polynomial.ss")
+(doc 'note "We implement a simple version for algebra polynomials")
 
-;;; ====
-;;; Standard Rational Field
-;;; ====
-
-;;; Q-field : Field
-;;; The standard field of rational numbers for exact arithmetic.
-;;; Use this as the default field for most polynomial operations.
+(doc 'section 'standard-rational-field)
 (define Q-field
+  (doc 'type 'Field)
+  (doc 'description "The standard field of rational numbers for exact arithmetic")
+  (doc 'description "Use this as the default field for most polynomial operations")
   (make-field
    '()                                    ; Infinite field
    +                                      ; Addition
@@ -70,20 +64,16 @@
    (lambda (a b) (/ a b))                 ; Division
    =))                                    ; Equality
 
-;;; ====
-;;; Conversion Functions
-;;; ====
-
-;;; numeric->algebra : NumericPoly → AlgebraPoly
-;;; Convert numeric polynomial (descending vector) to algebra polynomial (ascending list).
-;;; Uses Q-field as the coefficient field.
-;;; Accepts either tagged (poly #(...)) or raw #(...) vector.
+(doc 'section 'conversion-functions)
 (define (numeric->algebra p)
+  (doc 'type '(-> NumericPoly AlgebraPoly))
+  (doc 'description "Convert numeric polynomial (descending vector) to algebra polynomial (ascending list)")
+  (doc 'description "Uses Q-field as the coefficient field")
+  (doc 'description "Accepts either tagged (poly #(...)) or raw #(...) vector")
   (numeric->algebra-with-field p Q-field))
-
-;;; numeric->algebra-with-field : NumericPoly × Field → AlgebraPoly
-;;; Convert with explicit field specification.
 (define (numeric->algebra-with-field p field)
+  (doc 'type '(-> NumericPoly Field AlgebraPoly))
+  (doc 'description "Convert with explicit field specification")
   (let* ([coeffs-vec (cond
                        [(vector? p) p]                    ; Raw vector
                        [(and (pair? p) (eq? (car p) 'poly) (vector? (cadr p)))
@@ -94,102 +84,93 @@
          [coeffs-list (vector->list coeffs-vec)]
          [ascending (reverse coeffs-list)])
     (alg-make-polynomial field ascending)))
-
-;;; algebra->numeric : AlgebraPoly → NumericPoly
-;;; Convert algebra polynomial (ascending list) to numeric polynomial (descending vector).
 (define (algebra->numeric p)
+  (doc 'type '(-> AlgebraPoly NumericPoly))
+  (doc 'description "Convert algebra polynomial (ascending list) to numeric polynomial (descending vector)")
   (let* ([coeffs-list (alg-poly-coeffs p)]
          [descending (reverse coeffs-list)]
          [coeffs-vec (list->vector descending)])
     (list 'poly coeffs-vec)))
 
-;;; ====
-;;; Prefixed Algebra Operations (Avoid Name Collision)
-;;; ====
+(doc 'section 'prefixed-algebra-operations)
 
-;;; These functions wrap algebra/polynomial.ss operations with alg- prefix,
-;;; allowing them to be used alongside numeric/polynomial.ss without collision.
-;;; They use the saved references from module load time.
-
-;;; alg-make : Field × (List Coeff) → AlgebraPoly
+(doc 'note "These functions wrap algebra/polynomial.ss operations with alg- prefix")
+(doc 'note "allowing them to be used alongside numeric/polynomial.ss without collision")
+(doc 'note "They use the saved references from module load time")
 (define alg-make alg-make-polynomial)
+(doc alg-make 'type '(-> Field (List Coeff) AlgebraPoly))
 
-;;; alg-coeffs : AlgebraPoly → (List Coeff)
 (define alg-coeffs alg-poly-coeffs)
+(doc alg-coeffs 'type '(-> AlgebraPoly (List Coeff)))
 
-;;; alg-degree : AlgebraPoly → Nat
 (define alg-degree alg-poly-degree)
+(doc alg-degree 'type '(-> AlgebraPoly Nat))
 
-;;; alg-field : AlgebraPoly → Field
 (define alg-field alg-poly-field)
+(doc alg-field 'type '(-> AlgebraPoly Field))
 
-;;; alg-zero? : AlgebraPoly → Boolean
 (define alg-zero? alg-poly-zero?)
+(doc alg-zero? 'type '(-> AlgebraPoly Boolean))
 
-;;; alg-leading : AlgebraPoly → Coeff
 (define alg-leading alg-poly-leading-coeff)
+(doc alg-leading 'type '(-> AlgebraPoly Coeff))
 
-;;; alg-add : AlgebraPoly × AlgebraPoly → AlgebraPoly
 (define alg-add alg-poly-add)
+(doc alg-add 'type '(-> AlgebraPoly AlgebraPoly AlgebraPoly))
 
-;;; alg-sub : AlgebraPoly × AlgebraPoly → AlgebraPoly
 (define alg-sub alg-poly-sub)
+(doc alg-sub 'type '(-> AlgebraPoly AlgebraPoly AlgebraPoly))
 
-;;; alg-mul : AlgebraPoly × AlgebraPoly → AlgebraPoly
 (define alg-mul alg-poly-mul)
+(doc alg-mul 'type '(-> AlgebraPoly AlgebraPoly AlgebraPoly))
 
-;;; alg-scale : AlgebraPoly × Coeff → AlgebraPoly
 (define alg-scale alg-poly-scale)
+(doc alg-scale 'type '(-> AlgebraPoly Coeff AlgebraPoly))
 
-;;; alg-divmod : AlgebraPoly × AlgebraPoly → (AlgebraPoly . AlgebraPoly)
 (define alg-divmod alg-poly-divmod)
+(doc alg-divmod 'type '(-> AlgebraPoly AlgebraPoly (Pair AlgebraPoly AlgebraPoly)))
 
-;;; alg-div : AlgebraPoly × AlgebraPoly → AlgebraPoly
 (define alg-div alg-poly-div)
+(doc alg-div 'type '(-> AlgebraPoly AlgebraPoly AlgebraPoly))
 
-;;; alg-mod : AlgebraPoly × AlgebraPoly → AlgebraPoly
 (define alg-mod alg-poly-mod)
+(doc alg-mod 'type '(-> AlgebraPoly AlgebraPoly AlgebraPoly))
 
-;;; alg-gcd : AlgebraPoly × AlgebraPoly → AlgebraPoly
 (define alg-gcd alg-poly-gcd)
+(doc alg-gcd 'type '(-> AlgebraPoly AlgebraPoly AlgebraPoly))
 
-;;; alg-extended-gcd : AlgebraPoly × AlgebraPoly → (AlgebraPoly × AlgebraPoly × AlgebraPoly)
 (define alg-extended-gcd alg-poly-extended-gcd)
+(doc alg-extended-gcd 'type '(-> AlgebraPoly AlgebraPoly (Triple AlgebraPoly AlgebraPoly AlgebraPoly)))
 
-;;; alg-derivative : AlgebraPoly → AlgebraPoly
 (define alg-derivative alg-poly-derivative)
+(doc alg-derivative 'type '(-> AlgebraPoly AlgebraPoly))
 
-;;; alg-eval : AlgebraPoly × Coeff → Coeff
 (define alg-eval alg-poly-eval)
+(doc alg-eval 'type '(-> AlgebraPoly Coeff Coeff))
 
-;;; alg-monic : AlgebraPoly → AlgebraPoly
 (define alg-monic alg-poly-monic)
+(doc alg-monic 'type '(-> AlgebraPoly AlgebraPoly))
 
-;;; ====
-;;; Bridge Operations (Work on Either Representation)
-;;; ====
-
-;;; bridge-gcd : NumericPoly × NumericPoly → NumericPoly
-;;; Compute GCD of two numeric polynomials using algebra operations.
+(doc 'section 'bridge-operations)
 (define (bridge-gcd p1 p2)
+  (doc 'type '(-> NumericPoly NumericPoly NumericPoly))
+  (doc 'description "Compute GCD of two numeric polynomials using algebra operations")
   (let* ([a1 (numeric->algebra p1)]
          [a2 (numeric->algebra p2)]
          [gcd-alg (alg-gcd a1 a2)])
     (algebra->numeric gcd-alg)))
-
-;;; bridge-divmod : NumericPoly × NumericPoly → (NumericPoly . NumericPoly)
-;;; Polynomial division with remainder for numeric polynomials.
 (define (bridge-divmod p1 p2)
+  (doc 'type '(-> NumericPoly NumericPoly (Pair NumericPoly NumericPoly)))
+  (doc 'description "Polynomial division with remainder for numeric polynomials")
   (let* ([a1 (numeric->algebra p1)]
          [a2 (numeric->algebra p2)]
          [qr (alg-divmod a1 a2)])
     (cons (algebra->numeric (car qr))
           (algebra->numeric (cdr qr)))))
-
-;;; bridge-simplify : NumericPoly × NumericPoly → (NumericPoly . NumericPoly)
-;;; Simplify a rational function by canceling common factors.
-;;; Returns (simplified-numerator . simplified-denominator).
 (define (bridge-simplify num den)
+  (doc 'type '(-> NumericPoly NumericPoly (Pair NumericPoly NumericPoly)))
+  (doc 'description "Simplify a rational function by canceling common factors")
+  (doc 'returns "(simplified-numerator . simplified-denominator)")
   (let* ([num-alg (numeric->algebra num)]
          [den-alg (numeric->algebra den)]
          [gcd-alg (alg-gcd num-alg den-alg)])
@@ -197,37 +178,29 @@
         (cons num den)  ; Already coprime
         (cons (algebra->numeric (alg-div num-alg gcd-alg))
               (algebra->numeric (alg-div den-alg gcd-alg))))))
-
-;;; bridge-coprime? : NumericPoly × NumericPoly → Boolean
-;;; Check if two numeric polynomials are coprime (GCD has degree 0).
 (define (bridge-coprime? p1 p2)
+  (doc 'type '(-> NumericPoly NumericPoly Boolean))
+  (doc 'description "Check if two numeric polynomials are coprime (GCD has degree 0)")
   (let* ([a1 (numeric->algebra p1)]
          [a2 (numeric->algebra p2)]
          [gcd-alg (alg-gcd a1 a2)])
     (<= (alg-degree gcd-alg) 0)))
 
-;;; ====
-;;; Polynomial String Conversion
-;;; ====
-
-;;; alg->string : AlgebraPoly × Symbol → String
-;;; Convert algebra polynomial to string.
+(doc 'section 'polynomial-string-conversion)
 (define (alg->string p var)
+  (doc 'type '(-> AlgebraPoly Symbol String))
+  (doc 'description "Convert algebra polynomial to string")
   (alg-poly->string p var))
-
-;;; numeric->string : NumericPoly × Symbol → String
-;;; Convert numeric polynomial to string.
 (define (numeric->string p var)
+  (doc 'type '(-> NumericPoly Symbol String))
+  (doc 'description "Convert numeric polynomial to string")
   (alg->string (numeric->algebra p) var))
 
-;;; ====
-;;; Polynomial From Roots
-;;; ====
-
-;;; alg-poly-from-roots : Field × (List Coeff) → AlgebraPoly
-;;; Create polynomial from roots: (x - r_1)(x - r_2)...(x - r_n)
-;;; For real roots only (complex roots need numeric/polynomial.ss)
+(doc 'section 'polynomial-from-roots)
 (define (alg-poly-from-roots field roots)
+  (doc 'type '(-> Field (List Coeff) AlgebraPoly))
+  (doc 'description "Create polynomial from roots: (x - r_1)(x - r_2)...(x - r_n)")
+  (doc 'note "For real roots only (complex roots need numeric/polynomial.ss)")
   (if (null? roots)
       (alg-make-polynomial field '(1))  ; Constant 1
       (let loop ([rs roots]
@@ -239,38 +212,30 @@
                    [linear (alg-make-polynomial field (list (- r) 1))])
               (loop (cdr rs) (alg-poly-mul acc linear)))))))
 
-;;; ====
-;;; Factory Functions (Create in Either Representation)
-;;; ====
-
-;;; make-numeric-from-roots : (List Number) → NumericPoly
-;;; Create numeric polynomial from its roots.
-;;; p(x) = (x - r_1)(x - r_2)...(x - r_n)
-;;; NOTE: Does not handle complex conjugate pairs. For complex roots that produce
-;;; real coefficients, use numeric/polynomial.ss:poly-from-roots instead.
+(doc 'section 'factory-functions)
 (define (make-numeric-from-roots roots)
+  (doc 'type '(-> (List Number) NumericPoly))
+  (doc 'description "Create numeric polynomial from its roots")
+  (doc 'description "p(x) = (x - r_1)(x - r_2)...(x - r_n)")
+  (doc 'note "Does not handle complex conjugate pairs. For complex roots that produce")
+  (doc 'note "real coefficients, use numeric/polynomial.ss:poly-from-roots instead")
   (algebra->numeric (alg-poly-from-roots Q-field roots)))
-
-;;; make-numeric-from-ascending : (List Number) → NumericPoly
-;;; Create numeric polynomial from ascending-order coefficients.
-;;; Convenience for when you have data in ascending order.
 (define (make-numeric-from-ascending coeffs)
+  (doc 'type '(-> (List Number) NumericPoly))
+  (doc 'description "Create numeric polynomial from ascending-order coefficients")
+  (doc 'description "Convenience for when you have data in ascending order")
   (algebra->numeric (alg-make-polynomial Q-field coeffs)))
-
-;;; make-algebra-from-descending : Field × (List Number) → AlgebraPoly
-;;; Create algebra polynomial from descending-order coefficients.
-;;; Convenience for when you have data in descending order.
 (define (make-algebra-from-descending field coeffs)
+  (doc 'type '(-> Field (List Number) AlgebraPoly))
+  (doc 'description "Create algebra polynomial from descending-order coefficients")
+  (doc 'description "Convenience for when you have data in descending order")
   (alg-make-polynomial field (reverse coeffs)))
 
-;;; ====
-;;; Compatibility Aliases
-;;; ====
+(doc 'section 'compatibility-aliases)
 
-;;; For modules that were using inline implementations, provide
-;;; equivalent functions they can switch to.
-
-;;; These match the sig-* functions in signal-poly.ss:
+(doc 'note "For modules that were using inline implementations, provide")
+(doc 'note "equivalent functions they can switch to")
+(doc 'note "These match the sig-* functions in signal-poly.ss")
 (define sig-make-polynomial alg-make)
 (define sig-poly-field alg-field)
 (define sig-poly-coeffs alg-coeffs)

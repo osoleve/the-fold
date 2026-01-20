@@ -1,16 +1,15 @@
-;;; lattice/topology/test-homology.ss — Tests for Homology Computation
-;;;
-;;; Tests verify:
-;;; 1. Z2 matrix operations work correctly
-;;; 2. Boundary matrices are built properly
-;;; 3. Betti numbers match known topological invariants
-
 (load "core/testing/test-framework.ss")
 (load "lattice/topology/homology.ss")
 
-;;; ============================================================
-;;; Z2 MATRIX TESTS
-;;; ============================================================
+(doc 'module 'test-homology)
+(doc 'description "Tests for Homology Computation")
+(doc 'layer 'lattice)
+(doc 'note "Tests verify:
+1. Z2 matrix operations work correctly
+2. Boundary matrices are built properly
+3. Betti numbers match known topological invariants")
+
+(doc 'section 'z2-matrix-tests)
 
 (test-group "Z2 Matrix Operations"
 
@@ -46,9 +45,7 @@
       (assert-equal 1 (z2-matrix-ref m 0 1))
       (assert-equal 1 (z2-matrix-ref m 0 2)))))
 
-;;; ============================================================
-;;; RANK COMPUTATION TESTS
-;;; ============================================================
+(doc 'section 'rank-computation-tests)
 
 (test-group "Z2 Rank Computation"
 
@@ -83,9 +80,7 @@
             [n (z2-nullity m)])
         (assert-equal 4 (+ r n))))))
 
-;;; ============================================================
-;;; Z2 NULL SPACE TESTS
-;;; ============================================================
+(doc 'section 'null-space-tests)
 
 (test-group "Z2 Null Space"
 
@@ -138,9 +133,7 @@
         (assert-equal 1 (z2-matrix-ref rref 0 0))
         (assert-equal 1 (z2-matrix-ref rref 1 1))))))
 
-;;; ============================================================
-;;; BOUNDARY MATRIX TESTS
-;;; ============================================================
+(doc 'section 'boundary-matrix-tests)
 
 (test-group "Boundary Matrices"
 
@@ -177,9 +170,7 @@
       ; If dd ≠ 0, Betti numbers would be wrong
       (assert-true #t))))
 
-;;; ============================================================
-;;; BETTI NUMBER TESTS - STANDARD SPACES
-;;; ============================================================
+(doc 'section 'betti-tests-standard)
 
 (test-group "Betti Numbers - Points and Simplices"
 
@@ -210,9 +201,7 @@
            [betti (sc-betti-numbers sc)])
       (assert-equal '(1 0 0 0) betti))))
 
-;;; ============================================================
-;;; BETTI NUMBER TESTS - SPHERES
-;;; ============================================================
+(doc 'section 'betti-tests-spheres)
 
 (test-group "Betti Numbers - Spheres"
 
@@ -234,9 +223,7 @@
     (let ([betti (sc-betti-numbers (make-sphere 3))])
       (assert-equal '(1 0 0 1) betti))))
 
-;;; ============================================================
-;;; BETTI NUMBER TESTS - SURFACES
-;;; ============================================================
+(doc 'section 'betti-tests-surfaces)
 
 (test-group "Betti Numbers - Surfaces"
 
@@ -276,9 +263,7 @@
            [betti (sc-betti-numbers sc)])
       (assert-equal '(1 1 1) betti))))
 
-;;; ============================================================
-;;; EULER CHARACTERISTIC TESTS
-;;; ============================================================
+(doc 'section 'euler-tests)
 
 (test-group "Euler Characteristic"
 
@@ -306,9 +291,7 @@
     (assert-equal 2 (sc-euler (make-sphere 2)))
     (assert-equal 0 (sc-euler (make-sphere 3)))))
 
-;;; ============================================================
-;;; CONNECTED COMPONENTS TESTS
-;;; ============================================================
+(doc 'section 'connected-components-tests)
 
 (test-group "Connected Components"
 
@@ -336,8 +319,6 @@
       (assert-equal (sc-connected-components sc)
                     (sc-betti sc 0)))))
 
-;;; ============================================================
-;;; RUN ALL TESTS
-;;; ============================================================
+(doc 'section 'run-tests)
 
 (run-all-tests)

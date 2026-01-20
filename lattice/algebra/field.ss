@@ -1,43 +1,36 @@
-;;; lattice/algebra/field.ss — Field Theory Library
-;;;
-;;; Pure, functional implementation of field structures:
-;;; - Field representation and operations
-;;; - Field extends Ring with multiplicative inverses/division
-;;; - Standard fields: Q (rationals), R (reals via Scheme numbers)
-;;;
-;;; A Field is a commutative ring where every non-zero element has a
-;;; multiplicative inverse. This enables exact division.
-;;;
-;;; This is Core code: pure, total, assumes reasonable input.
-;;;
-;;; Dependencies:
-;;;   - core/base/prelude.ss
-;;;   - lattice/algebra/ring.ss
-
 (load "core/base/prelude.ss")
 (load "lattice/algebra/ring.ss")
 
-;;; ====
-;;; Field Representation
-;;; ====
+(doc 'module 'field)
+(doc 'description "Field theory library")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
 
-;;; A Field is represented as:
-;;; (field elements add-op mul-op zero one neg-fn div-fn equal-fn)
-;;; - elements: list of field elements (may be empty for infinite fields)
-;;; - add-op: addition (a, b) → a + b
-;;; - mul-op: multiplication (a, b) → a × b
-;;; - zero: additive identity (0)
-;;; - one: multiplicative identity (1)
-;;; - neg-fn: additive inverse a → -a
-;;; - div-fn: division (a, b) → a / b (b ≠ 0)
-;;; - equal-fn: equality predicate for elements
-;;;
-;;; Field axioms (in addition to ring axioms):
-;;; 1. Commutativity of multiplication: a × b = b × a
-;;; 2. Multiplicative inverses: for a ≠ 0, ∃ a⁻¹ such that a × a⁻¹ = 1
-;;; 3. Division: a / b = a × b⁻¹
+(doc 'note "Pure, functional implementation of field structures:")
+(doc 'note "- Field representation and operations")
+(doc 'note "- Field extends Ring with multiplicative inverses/division")
+(doc 'note "- Standard fields: Q (rationals), R (reals via Scheme numbers)")
 
-;;; make-field : (List α) × (α×α→α) × (α×α→α) × α × α × (α→α) × (α×α→α) × (α×α→Bool) → Field
+(doc 'note "A Field is a commutative ring where every non-zero element has a")
+(doc 'note "multiplicative inverse. This enables exact division.")
+
+(doc 'section 'field-representation)
+
+(doc 'note "A Field is represented as:")
+(doc 'note "(field elements add-op mul-op zero one neg-fn div-fn equal-fn)")
+(doc 'note "- elements: list of field elements (may be empty for infinite fields)")
+(doc 'note "- add-op: addition (a, b) → a + b")
+(doc 'note "- mul-op: multiplication (a, b) → a × b")
+(doc 'note "- zero: additive identity (0)")
+(doc 'note "- one: multiplicative identity (1)")
+(doc 'note "- neg-fn: additive inverse a → -a")
+(doc 'note "- div-fn: division (a, b) → a / b (b ≠ 0)")
+(doc 'note "- equal-fn: equality predicate for elements")
+(doc 'note "")
+(doc 'note "Field axioms (in addition to ring axioms):")
+(doc 'note "1. Commutativity of multiplication: a × b = b × a")
+(doc 'note "2. Multiplicative inverses: for a ≠ 0, ∃ a⁻¹ such that a × a⁻¹ = 1")
+(doc 'note "3. Division: a / b = a × b⁻¹")
 (define (make-field elements add-op mul-op zero one neg-fn div-fn equal-fn)
   (list 'field elements add-op mul-op zero one neg-fn div-fn equal-fn))
 

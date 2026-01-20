@@ -1,42 +1,25 @@
-;;; lattice/diffgeo/charts.ss — Coordinate Charts and Atlases
-;;; @module charts
-;;; @requires prelude matrix vec matrix-decomp
-;;;
-;;; Foundation for smooth manifold representation.
-;;;
-;;; A chart (U, φ) consists of:
-;;;   - A domain (open set in the manifold)
-;;;   - A coordinate map φ: U → R^n
-;;;   - An inverse map φ⁻¹: R^n → U
-;;;
-;;; An atlas is a collection of compatible charts covering a manifold.
-;;; Charts are compatible if their transition functions are smooth.
-;;;
-;;; This is Lattice code: pure, uses Core primitives.
-;;;
-;;; Dependencies:
-;;;   core/base/prelude.ss
-;;;   lattice/linalg/matrix.ss
-;;;   lattice/linalg/vec.ss
-;;;   lattice/linalg/matrix-decomp.ss (for LU-based determinant)
-
 (load "core/base/prelude.ss")
 (load "lattice/linalg/matrix.ss")
 (load "lattice/linalg/vec.ss")
 (load "lattice/linalg/matrix-decomp.ss")
 
-;;; ====
-;;; Chart Representation
-;;; ====
+(doc 'module 'charts)
+(doc 'description "Coordinate Charts and Atlases - Foundation for smooth manifold representation")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
+(doc 'note "A chart (U, φ) consists of: domain (open set), coordinate map φ: U → R^n, inverse map φ⁻¹: R^n → U")
+(doc 'note "An atlas is a collection of compatible charts covering a manifold")
+(doc 'note "Charts are compatible if their transition functions are smooth")
 
-;;; A chart is: (chart name dim domain-pred coord-map inverse-map)
-;;; - name: Symbol identifying the chart
-;;; - dim: Dimension of the coordinate space (n for R^n)
-;;; - domain-pred: Predicate (point → bool) defining domain membership
-;;; - coord-map: Function (point → R^n coords) - the chart map φ
-;;; - inverse-map: Function (R^n coords → point) - the inverse φ⁻¹
+(doc 'section 'chart-representation)
+(doc 'note "A chart is: (chart name dim domain-pred coord-map inverse-map)")
+(doc 'note "name: Symbol identifying the chart")
+(doc 'note "dim: Dimension of the coordinate space (n for R^n)")
+(doc 'note "domain-pred: Predicate (point → bool) defining domain membership")
+(doc 'note "coord-map: Function (point → R^n coords) - the chart map φ")
+(doc 'note "inverse-map: Function (R^n coords → point) - the inverse φ⁻¹")
 
-;;; chart? : Any → Boolean
+(doc chart? 'type '(-> Any Boolean))
 (define (chart? x)
   (and (pair? x)
        (eq? (car x) 'chart)
@@ -47,68 +30,60 @@
        (procedure? (chart-coord-map x))
        (procedure? (chart-inverse-map x))))
 
-;;; chart-name : Chart → Symbol
+(doc chart-name 'type '(-> Chart Symbol))
 (define (chart-name c)
   (list-ref c 1))
 
-;;; chart-dim : Chart → Nat
+(doc chart-dim 'type '(-> Chart Nat))
 (define (chart-dim c)
   (list-ref c 2))
 
-;;; chart-domain-pred : Chart → (Point → Bool)
+(doc chart-domain-pred 'type '(-> Chart (-> Point Bool)))
 (define (chart-domain-pred c)
   (list-ref c 3))
 
-;;; chart-coord-map : Chart → (Point → Vec)
+(doc chart-coord-map 'type '(-> Chart (-> Point Vec)))
 (define (chart-coord-map c)
   (list-ref c 4))
 
-;;; chart-inverse-map : Chart → (Vec → Point)
+(doc chart-inverse-map 'type '(-> Chart (-> Vec Point)))
 (define (chart-inverse-map c)
   (list-ref c 5))
 
-;;; ====
-;;; Chart Construction
-;;; ====
+(doc 'section 'chart-construction)
 
-;;; make-chart : Symbol × Nat × (P → Bool) × (P → Vec) × (Vec → P) → Chart
-;;; Create a coordinate chart.
+(doc make-chart 'type '(-> Symbol Nat (-> Point Bool) (-> Point Vec) (-> Vec Point) Chart))
+(doc make-chart 'description "Create a coordinate chart")
 (define (make-chart name dim domain-pred coord-map inverse-map)
   (list 'chart name dim domain-pred coord-map inverse-map))
 
-;;; ====
-;;; Chart Operations
-;;; ====
+(doc 'section 'chart-operations)
 
-;;; chart-contains? : Chart × Point → Bool
-;;; Check if a point is in the chart's domain.
+(doc chart-contains? 'type '(-> Chart Point Bool))
+(doc chart-contains? 'description "Check if a point is in the chart's domain")
 (define (chart-contains? chart point)
   ((chart-domain-pred chart) point))
 
-;;; chart-apply : Chart × Point → Vec | Error
-;;; Apply the coordinate map to get coordinates.
+(doc chart-apply 'type '(-> Chart Point (Or Vec Error)))
+(doc chart-apply 'description "Apply the coordinate map to get coordinates")
 (define (chart-apply chart point)
   (if (chart-contains? chart point)
       ((chart-coord-map chart) point)
       `(error point-not-in-domain ,(chart-name chart))))
 
-;;; chart-apply-inverse : Chart × Vec → Point
-;;; Apply the inverse map to get a point from coordinates.
+(doc chart-apply-inverse 'type '(-> Chart Vec Point))
+(doc chart-apply-inverse 'description "Apply the inverse map to get a point from coordinates")
 (define (chart-apply-inverse chart coords)
   ((chart-inverse-map chart) coords))
 
-;;; ====
-;;; Transition Functions
-;;; ====
+(doc 'section 'transition-functions)
+(doc 'note "A transition function τ_αβ = φ_β ∘ φ_α⁻¹ converts coordinates from chart α to chart β")
 
-;;; A transition function τ_αβ = φ_β ∘ φ_α⁻¹ converts coordinates
-;;; from chart α to chart β.
-
-;;; make-transition : Chart × Chart → (Vec → Vec) | #f
-;;; Create a transition function from chart-from to chart-to.
-;;; Returns #f if the charts have different dimensions.
-;;; Note: The returned function does NOT verify domain membership (for performance).
-;;; Use transition-apply for safe transitions with domain checking.
+(doc make-transition 'type '(-> Chart Chart (Or (-> Vec Vec) Bool)))
+(doc make-transition 'description "Create a transition function from chart-from to chart-to")
+(doc make-transition 'returns "Function or #f if charts have different dimensions")
+(doc make-transition 'note "Returned function does NOT verify domain membership (for performance)")
+(doc make-transition 'see 'transition-apply)
 (define (make-transition chart-from chart-to)
   (if (not (= (chart-dim chart-from) (chart-dim chart-to)))
       #f
@@ -116,9 +91,9 @@
         (let ([point ((chart-inverse-map chart-from) coords)])
           ((chart-coord-map chart-to) point)))))
 
-;;; transition-apply : Chart × Chart × Vec → Vec | Error
-;;; Apply the transition function from chart-from to chart-to.
-;;; Verifies that the intermediate point lies in the target chart's domain.
+(doc transition-apply 'type '(-> Chart Chart Vec (Or Vec Error)))
+(doc transition-apply 'description "Apply the transition function from chart-from to chart-to")
+(doc transition-apply 'note "Verifies that the intermediate point lies in the target chart's domain")
 (define (transition-apply chart-from chart-to coords)
   (if (not (= (chart-dim chart-from) (chart-dim chart-to)))
       `(error dimension-mismatch ,(chart-dim chart-from) ,(chart-dim chart-to))
@@ -128,21 +103,18 @@
             `(error point-not-in-target-domain ,(chart-name chart-to) ,point)
             ((chart-coord-map chart-to) point)))))
 
-;;; ====
-;;; Jacobian Computation
-;;; ====
+(doc 'section 'jacobian-computation)
+(doc 'note "The Jacobian of a transition function is the matrix of partial derivatives J_ij = ∂(τ_i)/∂(x_j)")
+(doc 'note "We compute it numerically using central differences")
 
-;;; The Jacobian of a transition function is the matrix of partial derivatives.
-;;; J_ij = ∂(τ_i)/∂(x_j)
-;;;
-;;; We compute it numerically using central differences.
-
-;;; Default step size for numerical differentiation
+(doc *jacobian-epsilon* 'description "Default step size for numerical differentiation")
 (define *jacobian-epsilon* 1e-7)
 
-;;; jacobian-numerical : (Vec → Vec) × Vec × [Num] → Matrix
-;;; Compute the Jacobian matrix numerically at a point.
-;;; f: R^n → R^m, coords: R^n, returns m×n matrix.
+(doc jacobian-numerical 'type '(-> (-> Vec Vec) Vec (Optional Num) Matrix))
+(doc jacobian-numerical 'description "Compute the Jacobian matrix numerically at a point")
+(doc jacobian-numerical 'param "f: R^n → R^m")
+(doc jacobian-numerical 'param "coords: R^n")
+(doc jacobian-numerical 'returns "m×n matrix")
 (define (jacobian-numerical f coords . epsilon-arg)
   (let* ([eps (if (null? epsilon-arg) *jacobian-epsilon* (car epsilon-arg))]
          [n (vector-length coords)]
@@ -169,8 +141,8 @@
                                (+ (* i n) j)
                                deriv))))))))
 
-;;; transition-jacobian : Chart × Chart × Vec × [Num] → Matrix
-;;; Compute the Jacobian of the transition function at given coordinates.
+(doc transition-jacobian 'type '(-> Chart Chart Vec (Optional Num) Matrix))
+(doc transition-jacobian 'description "Compute the Jacobian of the transition function at given coordinates")
 (define (transition-jacobian chart-from chart-to coords . epsilon-arg)
   (let ([transition (make-transition chart-from chart-to)]
         [eps (if (null? epsilon-arg) *jacobian-epsilon* (car epsilon-arg))])
@@ -178,15 +150,12 @@
         (jacobian-numerical transition coords eps)
         `(error dimension-mismatch ,(chart-dim chart-from) ,(chart-dim chart-to)))))
 
-;;; ====
-;;; Atlas Representation
-;;; ====
+(doc 'section 'atlas-representation)
+(doc 'note "An atlas is: (atlas name charts)")
+(doc 'note "name: Symbol identifying the atlas")
+(doc 'note "charts: List of charts")
 
-;;; An atlas is: (atlas name charts)
-;;; - name: Symbol identifying the atlas
-;;; - charts: List of charts
-
-;;; atlas? : Any → Boolean
+(doc atlas? 'type '(-> Any Boolean))
 (define (atlas? x)
   (and (pair? x)
        (eq? (car x) 'atlas)

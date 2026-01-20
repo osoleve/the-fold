@@ -1,47 +1,32 @@
-;;; lattice/diffgeo/geodesics.ss — Geodesic Computation
-;;; @module geodesics
-;;; @requires prelude vec matrix curvature
-;;;
-;;; Geodesic curves on Riemannian manifolds.
-;;;
-;;; This module provides:
-;;;   - Geodesic tracing (numerical integration of geodesic ODE)
-;;;   - Exponential map (shoot geodesic from point with initial velocity)
-;;;   - Logarithm map (inverse of exponential - find initial velocity)
-;;;   - Parallel transport along geodesics
-;;;   - Geodesic distance computation
-;;;
-;;; Mathematical Background:
-;;;   A geodesic is a curve γ(t) that parallel transports its own tangent vector.
-;;;   In coordinates, the geodesic equation is:
-;;;     d²x^k/dt² + Γ^k_{ij} (dx^i/dt)(dx^j/dt) = 0
-;;;
-;;;   The exponential map exp_p : T_p M → M sends a tangent vector v to the
-;;;   point reached by following the geodesic with initial velocity v for time 1.
-;;;
-;;;   The logarithm map log_p : M → T_p M is the (local) inverse of exp_p.
-;;;
-;;; This is Lattice code: pure, uses Core primitives.
-
 (load "core/base/prelude.ss")
 (load "lattice/linalg/vec.ss")
 (load "lattice/linalg/matrix.ss")
 (load "lattice/diffgeo/curvature.ss")
 
-;;; ============================================================================
-;;; Configuration
-;;; ============================================================================
+(doc 'module 'geodesics)
+(doc 'description "Geodesic Computation - Geodesic curves on Riemannian manifolds")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
+(doc 'note "Provides: Geodesic tracing, exponential map, logarithm map, parallel transport, distance computation")
+(doc 'note "A geodesic is a curve γ(t) that parallel transports its own tangent vector")
+(doc 'note "Geodesic equation: d²x^k/dt² + Γ^k_{ij} (dx^i/dt)(dx^j/dt) = 0")
+(doc 'note "Exponential map exp_p : T_p M → M shoots geodesic from point with initial velocity")
+(doc 'note "Logarithm map log_p : M → T_p M is the (local) inverse of exp_p")
 
-(define *geodesic-epsilon* 1e-7)      ; For Christoffel symbol computation
-(define *geodesic-tolerance* 1e-9)    ; Convergence tolerance for log map
-(define *geodesic-max-iterations* 50) ; Max iterations for log map shooting
+(doc 'section 'configuration)
 
-;;; ============================================================================
-;;; Geodesic State
-;;; ============================================================================
+(doc *geodesic-epsilon* 'description "For Christoffel symbol computation")
+(define *geodesic-epsilon* 1e-7)
 
-;;; A geodesic state bundles position and velocity: (geodesic-state coords velocity)
-;;; This represents a point in the tangent bundle TM.
+(doc *geodesic-tolerance* 'description "Convergence tolerance for log map")
+(define *geodesic-tolerance* 1e-9)
+
+(doc *geodesic-max-iterations* 'description "Max iterations for log map shooting")
+(define *geodesic-max-iterations* 50)
+
+(doc 'section 'geodesic-state)
+(doc 'note "A geodesic state bundles position and velocity: (geodesic-state coords velocity)")
+(doc 'note "This represents a point in the tangent bundle TM")
 
 (define (make-geodesic-state coords velocity)
   (list 'geodesic-state coords velocity))
@@ -145,9 +130,9 @@
 ;;; Geodesic Tracing
 ;;; ============================================================================
 
-;;; trace-geodesic : Metric × Vec × Vec × Num × Nat → (List GeodesicState)
-;;; Trace a geodesic from initial position with initial velocity for time T.
-;;; Returns a list of states sampled at n-steps+1 points (including start/end).
+(doc trace-geodesic 'type '(-> Metric Vec Vec Num Nat (List GeodesicState)))
+(doc trace-geodesic 'description "Trace a geodesic from initial position with initial velocity for time T")
+(doc trace-geodesic 'returns "List of states sampled at n-steps+1 points (including start/end)")
 (define (trace-geodesic metric initial-coords initial-velocity T n-steps)
   (let* ([dt (/ T n-steps)]
          [state0 (make-geodesic-state initial-coords initial-velocity)])
@@ -171,9 +156,9 @@
 ;;; Exponential Map
 ;;; ============================================================================
 
-;;; exp-map : Metric × Vec × Vec × [Nat] → Vec
-;;; Compute the exponential map: exp_p(v) = geodesic from p with velocity v at t=1.
-;;; The optional n-steps parameter controls integration accuracy (default 100).
+(doc exp-map 'type '(-> Metric Vec Vec (Optional Nat) Vec))
+(doc exp-map 'description "Compute the exponential map: exp_p(v) = geodesic from p with velocity v at t=1")
+(doc exp-map 'param "n-steps: optional integration steps (default 100)")
 (define (exp-map metric base-coords tangent-vec . opts)
   (let ([n-steps (if (null? opts) 100 (car opts))])
     (geodesic-state-coords
@@ -199,14 +184,12 @@
 ;;;   3. Estimate Jacobian J = d(exp_p)/dv numerically
 ;;;   4. Update v ← v - J^{-1} e
 
-;;; log-map : Metric × Vec × Vec × [Nat × Num × Nat] → (Ok Vec) | (Err String)
-;;; Compute the logarithm map: find v such that exp_p(v) = q.
-;;; Returns (ok v) on success or (err message) if it fails to converge.
-;;;
-;;; Optional parameters:
-;;;   n-steps: integration steps for exp (default 100)
-;;;   tol: convergence tolerance (default *geodesic-tolerance*)
-;;;   max-iter: maximum iterations (default *geodesic-max-iterations*)
+(doc log-map 'type '(-> Metric Vec Vec (Optional Nat) (Optional Num) (Optional Nat) (Or (Ok Vec) (Err String))))
+(doc log-map 'description "Compute the logarithm map: find v such that exp_p(v) = q")
+(doc log-map 'returns "(ok v) on success or (err message) if it fails to converge")
+(doc log-map 'param "n-steps: integration steps for exp (default 100)")
+(doc log-map 'param "tol: convergence tolerance (default *geodesic-tolerance*)")
+(doc log-map 'param "max-iter: maximum iterations (default *geodesic-max-iterations*)")
 (define (log-map metric p q . opts)
   (let* ([n-steps (if (null? opts) 100 (car opts))]
          [tol (if (or (null? opts) (null? (cdr opts)))
