@@ -12,36 +12,44 @@
 (doc 'note "Octree node types: Leaf (octree-leaf center size primitives), Internal (octree-node center size children where children is vector of 8 octrees)")
 
 (define (octree-leaf center size primitives)
+  (doc 'export #t)
   (doc 'type '(-> Vec3 Real (List Triangle3) Octree))
   (list 'octree-leaf center size primitives))
 
 (define (octree-node center size children)
+  (doc 'export #t)
   (doc 'type '(-> Vec3 Real (Vector Octree) Octree))
   (list 'octree-node center size children))
 
 (define (octree-leaf? node)
+  (doc 'export #t)
   (doc 'type '(-> α Bool))
   (and (pair? node) (eq? (car node) 'octree-leaf)))
 
 (define (octree-node? node)
+  (doc 'export #t)
   (doc 'type '(-> α Bool))
   (and (pair? node) (eq? (car node) 'octree-node)))
 
 (define (octree-center node)
+  (doc 'export #t)
   (doc 'type '(-> Octree Vec3))
   (cadr node))
 
 (define (octree-size node)
+  (doc 'export #t)
   (doc 'type '(-> Octree Real))
   (caddr node))
 
 (define (octree-primitives node)
+  (doc 'export #t)
   (doc 'type '(-> Octree (List Triangle3)))
   (if (octree-leaf? node)
       (cadddr node)
       '()))
 
 (define (octree-children node)
+  (doc 'export #t)
   (doc 'type '(-> Octree (Maybe (Vector Octree))))
   (if (octree-node? node)
       (cadddr node)
@@ -50,6 +58,7 @@
 (doc 'section 'octree-construction)
 
 (define (octree-build triangles center size max-depth max-leaf-size)
+  (doc 'export #t)
   (doc 'type '(-> (List Triangle3) Point3 Number Number Number Octree))
   (doc 'description "Build an octree from triangles")
   (doc 'param 'center "Center of root node")
@@ -79,7 +88,7 @@
                  (if (>= total (* 8 (length tris)))
                      (octree-leaf ctr sz tris)
                      ;; Keep internal node - partitioning reduced search space
-                     (octree-node ctr sz (list->vector children)))))]])
+                     (octree-node ctr sz (list->vector children)))))]))
 
   (build-recursive triangles center size 0))
 
@@ -89,6 +98,7 @@
        (andmap octree-leaf? children)))
 
 (define (subdivide-octants center size)
+  (doc 'export #t)
   (doc 'type '(-> Vec3 Real (List (Pair Vec3 Real))))
   (doc 'description "Return 8 octant centers and sizes")
   (let* ([cx (vec3-x center)]
@@ -107,6 +117,7 @@
          (list (vec3 (+ cx hs) (+ cy hs) (+ cz hs)) hs)))) ; 7: +++
 
 (define (triangle-intersects-octant? tri center size)
+  (doc 'export #t)
   (doc 'type '(-> Triangle3 Vec3 Real Bool))
   (doc 'description "Check if triangle intersects octant (cube centered at point with half-size)")
   (let* ([octant-aabb (aabb (vec3 (- (vec3-x center) size)
@@ -124,6 +135,7 @@
                  (aabb-overlaps? tri-bbox octant-aabb)))))
 
 (define (aabb-overlaps? a b)
+  (doc 'export #t)
   (doc 'type '(-> AABB AABB Bool))
   (let ([amin (aabb-min a)]
         [amax (aabb-max a)]
@@ -137,6 +149,7 @@
             (<= (vec3-z amin) (vec3-z bmax)))))
 
 (define (partition-triangles-octants triangles octants)
+  (doc 'export #t)
   (doc 'type '(-> (List Triangle3) (List (Pair Vec3 Real)) (List (List Triangle3))))
   (doc 'description "Partition triangles into 8 lists (one per octant)")
   (map (lambda (octant)
@@ -156,6 +169,7 @@
 (doc 'section 'octree-queries)
 
 (define (octree-intersect-ray octree ray)
+  (doc 'export #t)
   (doc 'type '(-> Octree Ray3 (Maybe (Pair Triangle3 Number))))
   (doc 'description "Find closest triangle intersection along ray using octree")
   (define (traverse node closest-t closest-tri)
@@ -195,6 +209,7 @@
   (traverse octree #f #f))
 
 (define (ray-intersects-octant? ray center size)
+  (doc 'export #t)
   (doc 'type '(-> Ray3 Vec3 Real Bool))
   (let ([octant-aabb (aabb (vec3 (- (vec3-x center) size)
                                  (- (vec3-y center) size)
@@ -207,6 +222,7 @@
 (doc 'section 'octree-statistics)
 
 (define (octree-depth octree)
+  (doc 'export #t)
   (doc 'type '(-> Octree Number))
   (cond
    [(not octree) 0]
@@ -217,6 +233,7 @@
    [else 0]))
 
 (define (octree-count-nodes octree)
+  (doc 'export #t)
   (doc 'type '(-> Octree Number))
   (cond
    [(not octree) 0]
@@ -227,6 +244,7 @@
    [else 0]))
 
 (define (octree-count-leaves octree)
+  (doc 'export #t)
   (doc 'type '(-> Octree Number))
   (cond
    [(not octree) 0]
@@ -237,6 +255,7 @@
    [else 0]))
 
 (define (octree-count-triangles octree)
+  (doc 'export #t)
   (doc 'type '(-> Octree Number))
   (cond
    [(not octree) 0]

@@ -14,28 +14,34 @@
 (doc 'note "raymarch-params: Configuration for raymarching (max-steps max-distance hit-threshold)")
 
 (define (raymarch-params max-steps max-distance hit-threshold)
+  (doc 'export #t)
   (doc 'type '(-> Nat Real Real RaymarchParams))
   (list 'raymarch-params max-steps max-distance hit-threshold))
 
 (define (raymarch-params-max-steps p)
+  (doc 'export #t)
   (doc 'type '(-> RaymarchParams Nat))
   (cadr p))
 (define (raymarch-params-max-distance p)
+  (doc 'export #t)
   (doc 'type '(-> RaymarchParams Real))
   (caddr p))
 (define (raymarch-params-hit-threshold p)
+  (doc 'export #t)
   (doc 'type '(-> RaymarchParams Real))
   (cadddr p))
 
 (doc default-raymarch-params 'type 'RaymarchParams)
 (doc default-raymarch-params 'description "Default parameters")
+(doc default-raymarch-params 'export #t)
 (define default-raymarch-params
   (raymarch-params 100 1000.0 0.001))
 
 (doc 'section 'raymarch-algorithm)
 
 (define (raymarch sdf-fn ray params)
-  (doc 'type '(-> (-> Vec3 Real) Ray3 RaymarchParams (| (List Vec3 Real Nat) #f)))
+  (doc 'export #t)
+  (doc 'type '(-> (-> Vec3 Real) Ray3 RaymarchParams (Or (List Vec3 Real Nat) #f)))
   (doc 'description "Sphere trace along a ray until surface hit or max distance")
   (doc 'param 'sdf-fn "SDF function (Point3 → Number)")
   (doc 'returns "(hit-point distance num-steps) or #f if no hit")
@@ -67,7 +73,8 @@
        (march 0.0 0)))
 
 (define (raymarch-mesh mesh ray params)
-  (doc 'type '(-> Mesh Ray3 RaymarchParams (| (List Vec3 Real Nat) #f)))
+  (doc 'export #t)
+  (doc 'type '(-> Mesh Ray3 RaymarchParams (Or (List Vec3 Real Nat) #f)))
   (doc 'description "Specialized raymarcher for mesh SDFs (uses BVH acceleration)")
   (let ([sdf-fn (lambda (p) (mesh-sdf mesh p))])
        (raymarch sdf-fn ray params)))
@@ -75,6 +82,7 @@
 (doc 'section 'normal-computation)
 
 (define (sdf-normal sdf-fn point)
+  (doc 'export #t)
   (doc 'type '(-> (-> Vec3 Real) Vec3 Vec3))
   (doc 'description "Compute surface normal using gradient of SDF")
   (doc 'note "Uses central differences for better accuracy")
@@ -88,6 +96,7 @@
         (vec3-normalize (vec3 dx dy dz))))
 
 (define (mesh-sdf-normal mesh point)
+  (doc 'export #t)
   (doc 'type '(-> Mesh Vec3 Vec3))
   (doc 'description "Compute surface normal for mesh SDF")
   (mesh-sdf-gradient mesh point))
@@ -95,6 +104,7 @@
 (doc 'section 'soft-shadows)
 
 (define (raymarch-shadow sdf-fn ray light-distance softness params)
+  (doc 'export #t)
   (doc 'type '(-> (-> Vec3 Real) Ray3 Real Real RaymarchParams Real))
   (doc 'description "Compute soft shadow factor (0 = full shadow, 1 = no shadow)")
   (doc 'param 'light-distance "distance to light source")
@@ -125,6 +135,7 @@
 (doc 'section 'ambient-occlusion)
 
 (define (raymarch-ao sdf-fn point normal num-samples)
+  (doc 'export #t)
   (doc 'type '(-> (-> Vec3 Real) Vec3 Vec3 Nat Real))
   (doc 'description "Compute ambient occlusion factor (0 = fully occluded, 1 = no occlusion)")
   (doc 'note "Uses multiple samples along normal direction")
@@ -145,6 +156,7 @@
 (doc 'section 'scene-rendering)
 
 (define (simple-shading normal light-dir view-dir)
+  (doc 'export #t)
   (doc 'type '(-> Vec3 Vec3 Vec3 Real))
   (doc 'description "Simple diffuse shading")
   (doc 'param 'normal "surface normal")
@@ -155,6 +167,7 @@
        (+ ambient (* 0.8 diffuse))))
 
 (define (render-pixel sdf-fn ray light-pos params)
+  (doc 'export #t)
   (doc 'type '(-> (-> Vec3 Real) Ray3 Vec3 RaymarchParams Real))
   (doc 'description "Render a single pixel (returns grayscale value 0-1)")
   (doc 'param 'light-pos "position of light source")
@@ -172,6 +185,7 @@
 (doc 'section 'performance-optimization)
 
 (define (adaptive-step sdf-fn point)
+  (doc 'export #t)
   (doc 'type '(-> (-> Vec3 Real) Vec3 Real))
   (doc 'description "Compute adaptive step size based on local SDF variation")
   (doc 'note "Can skip larger steps in areas of low curvature")
@@ -187,7 +201,8 @@
             dist)))
 
 (define (bvh-accelerated-raymarch mesh ray params)
-  (doc 'type '(-> Mesh Ray3 RaymarchParams (| (List Vec3 Real Nat) #f)))
+  (doc 'export #t)
+  (doc 'type '(-> Mesh Ray3 RaymarchParams (Or (List Vec3 Real Nat) #f)))
   (doc 'description "Hybrid approach: use BVH for initial ray-mesh intersection, then raymarch in vicinity of hit for accurate SDF")
   (let ([ray-result (mesh-intersect-ray mesh ray)])
        (if ray-result

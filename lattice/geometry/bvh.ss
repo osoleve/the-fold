@@ -46,13 +46,14 @@
 
 (define (bvh-left node)
   (doc 'export #t)
-  (doc 'type '(-> BVH (| BVH #f)))
+  (doc 'type '(-> BVH (Or BVH #f)))
   (if (bvh-node? node)
       (caddr node)
       #f))
 
 (define (bvh-right node)
-  (doc 'type '(-> BVH (| BVH #f)))
+  (doc 'export #t)
+  (doc 'type '(-> BVH (Or BVH #f)))
   (if (bvh-node? node)
       (cadddr node)
       #f))
@@ -141,7 +142,7 @@
 
 (define (bvh-intersect-ray bvh ray)
   (doc 'export #t)
-  (doc 'type '(-> BVH Ray3 (| (List Triangle3 Number) #f)))
+  (doc 'type '(-> BVH Ray3 (Or (List Triangle3 Number) #f)))
   (doc 'description "Find closest triangle intersection along ray")
   (doc 'returns "(triangle t-value) or #f if no intersection")
   (define (traverse node closest-t closest-tri)
@@ -179,6 +180,7 @@
   (traverse bvh #f #f))
 
 (define (closest-point-on-segment p a b)
+  (doc 'export #t)
   (doc 'type '(-> Point3 Point3 Point3 Point3))
   (doc 'description "Find closest point on line segment AB to point P")
   (let* ([ab (vec3-sub b a)]
@@ -194,6 +196,7 @@
                   [else (vec3-add a (vec3-scale ab t))])))))
 
 (define (closest-point-on-triangle point tri)
+  (doc 'export #t)
   (doc 'type '(-> Point3 Triangle3 Point3))
   (doc 'description "Find the closest point on a triangle to the given point")
   (let* ([a (triangle3-p1 tri)]
@@ -225,7 +228,8 @@
                    [else p-ca])))))
 
 (define (bvh-closest-point bvh point)
-  (doc 'type '(-> BVH Point3 (| (List Point3 Number Triangle3) #f)))
+  (doc 'export #t)
+  (doc 'type '(-> BVH Point3 (Or (List Point3 Number Triangle3) #f)))
   (doc 'description "Find closest point on any triangle in the BVH to the given point")
   (doc 'returns "(closest-point distance triangle) or #f")
   (define (traverse node best-dist best-point best-tri)

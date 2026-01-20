@@ -98,7 +98,7 @@
 
 (define (plane3-from-points p1 p2 p3)
   (doc 'export #t)
-  (doc 'type '(-> Point3 Point3 Point3 (| Plane3 Error)))
+  (doc 'type '(-> Point3 Point3 Point3 (Or Plane3 Error)))
   (doc 'description "Create plane from three points")
   (doc 'note "Returns error if points are collinear")
   (let* ([v1 (vec3-sub p2 p1)]
@@ -111,79 +111,99 @@
                  (plane3-from-point-normal p1 normal)))))
 
 (define (triangle3 p1 p2 p3)
+  (doc 'export #t)
   (doc 'type '(-> Vec3 Vec3 Vec3 Triangle3))
   (list 'triangle3 p1 p2 p3))
 
 (define (triangle3? t)
+  (doc 'export #t)
   (doc 'type '(-> α Bool))
   (and (pair? t) (eq? (car t) 'triangle3)))
 
 (define (triangle3-p1 t)
+  (doc 'export #t)
   (doc 'type '(-> Triangle3 Vec3))
   (cadr t))
 (define (triangle3-p2 t)
+  (doc 'export #t)
   (doc 'type '(-> Triangle3 Vec3))
   (caddr t))
 (define (triangle3-p3 t)
+  (doc 'export #t)
   (doc 'type '(-> Triangle3 Vec3))
   (cadddr t))
 
 (define (circle center radius)
+  (doc 'export #t)
   (doc 'type '(-> Vec2 Number Circle))
   (list 'circle center radius))
 
 (define (circle? c)
+  (doc 'export #t)
   (doc 'type '(-> α Bool))
   (and (pair? c) (eq? (car c) 'circle)))
 
 (define (circle-center c)
+  (doc 'export #t)
   (doc 'type '(-> Circle Vec2))
   (cadr c))
 (define (circle-radius c)
+  (doc 'export #t)
   (doc 'type '(-> Circle Number))
   (caddr c))
 
 (define (sphere center radius)
+  (doc 'export #t)
   (doc 'type '(-> Vec3 Number Sphere))
   (list 'sphere center radius))
 
 (define (sphere? s)
+  (doc 'export #t)
   (doc 'type '(-> α Bool))
   (and (pair? s) (eq? (car s) 'sphere)))
 
 (define (sphere-center s)
+  (doc 'export #t)
   (doc 'type '(-> Sphere Vec3))
   (cadr s))
 (define (sphere-radius s)
+  (doc 'export #t)
   (doc 'type '(-> Sphere Number))
   (caddr s))
 
 (define (aabb min-point max-point)
+  (doc 'export #t)
   (doc 'type '(-> Vec3 Vec3 AABB))
   (doc 'description "Axis-Aligned Bounding Box from min/max corners")
   (list 'aabb min-point max-point))
 
 (define (aabb? b)
+  (doc 'export #t)
   (doc 'type '(-> α Bool))
   (and (pair? b) (eq? (car b) 'aabb)))
 
 (define (aabb-min b)
+  (doc 'export #t)
   (doc 'type '(-> AABB Vec3))
   (cadr b))
 (define (aabb-max b)
+  (doc 'export #t)
   (doc 'type '(-> AABB Vec3))
   (caddr b))
 
 (define (aabb-center box)
+  (doc 'export #t)
   (doc 'type '(-> AABB Point3))
   (vec3-scale (vec3-add (aabb-min box) (aabb-max box)) 0.5))
 
 (define (aabb-extents box)
+  (doc 'export #t)
   (doc 'type '(-> AABB Vec3))
   (doc 'description "Half-size in each dimension")
   (vec3-scale (vec3-sub (aabb-max box) (aabb-min box)) 0.5))
 
 (define (obb center axes extents)
+  (doc 'export #t)
   (doc 'type '(-> Vec3 (List Vec3) Vec3 OBB))
   (doc 'description "Oriented Bounding Box from center, axes, and extents")
   (doc 'param 'axes "list of 3 orthonormal vectors")
@@ -191,16 +211,20 @@
   (list 'obb center axes extents))
 
 (define (obb? b)
+  (doc 'export #t)
   (doc 'type '(-> α Bool))
   (and (pair? b) (eq? (car b) 'obb)))
 
 (define (obb-center b)
+  (doc 'export #t)
   (doc 'type '(-> OBB Vec3))
   (cadr b))
 (define (obb-axes b)
+  (doc 'export #t)
   (doc 'type '(-> OBB (List Vec3)))
   (caddr b))
 (define (obb-extents b)
+  (doc 'export #t)
   (doc 'type '(-> OBB Vec3))
   (cadddr b))
 
@@ -210,6 +234,7 @@
 (doc 'note "We use the matrix module's representation")
 
 (define (transform-identity)
+  (doc 'export #t)
   (doc 'type '(-> Matrix))
   (matrix-from-lists '((1 0 0 0)
                        (0 1 0 0)
@@ -217,6 +242,7 @@
                        (0 0 0 1))))
 
 (define (transform-translation v)
+  (doc 'export #t)
   (doc 'type '(-> Vec3 Matrix))
   (matrix-from-lists `((1 0 0 ,(vec3-x v))
                        (0 1 0 ,(vec3-y v))
@@ -224,7 +250,8 @@
                        (0 0 0 1))))
 
 (define (transform-scale s)
-  (doc 'type '(-> (| Number Vec3) Matrix))
+  (doc 'export #t)
+  (doc 'type '(-> (Or Number Vec3) Matrix))
   (doc 'description "Uniform scale if number, non-uniform if vec3")
   (if (number? s)
       (matrix-from-lists `((,s 0 0 0)
@@ -398,7 +425,7 @@
 
 (define (intersect-ray-plane ray plane)
   (doc 'export #t)
-  (doc 'type '(-> Ray3 Plane3 (| Number #f)))
+  (doc 'type '(-> Ray3 Plane3 (Or Number #f)))
   (doc 'returns "t parameter if intersects, #f otherwise")
   (let* ([origin (ray3-origin ray)]
          [dir (ray3-direction ray)]
@@ -411,7 +438,8 @@
                  (if (>= t 0) t #f)))))
 
 (define (intersect-ray-sphere ray sphere)
-  (doc 'type '(-> Ray3 Sphere (| (List Number Number) #f)))
+  (doc 'export #t)
+  (doc 'type '(-> Ray3 Sphere (Or (List Number Number) #f)))
   (doc 'returns "(t1 t2) if intersects, #f otherwise")
   (let* ([origin (ray3-origin ray)]
          [dir (ray3-direction ray)]
@@ -433,7 +461,7 @@
 
 (define (intersect-ray-aabb ray box)
   (doc 'export #t)
-  (doc 'type '(-> Ray3 AABB (| (List Number Number) #f)))
+  (doc 'type '(-> Ray3 AABB (Or (List Number Number) #f)))
   (doc 'returns "(tmin tmax) if intersects, #f otherwise")
   (let* ([origin (ray3-origin ray)]
          [dir (ray3-direction ray)]
@@ -464,7 +492,8 @@
                   #f))))
 
 (define (intersect-ray-triangle ray tri)
-  (doc 'type '(-> Ray3 Triangle3 (| Number #f)))
+  (doc 'export #t)
+  (doc 'type '(-> Ray3 Triangle3 (Or Number #f)))
   (doc 'description "Möller-Trumbore algorithm")
   (let* ([origin (ray3-origin ray)]
          [dir (ray3-direction ray)]
