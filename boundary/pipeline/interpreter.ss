@@ -1,29 +1,7 @@
-;;; boundary/pipeline/interpreter.ss — Pipeline Effect Interpreter
-;;;
-;;; This is the impure shell that executes pipeline effects.
-;;; Effects from core/pipeline/effects.ss are interpreted here.
-;;;
-;;; This is Shell code: handles IO, may fail, contains defensive logic.
-;;;
-;;; Features:
-;;;   - Effect interpretation (LLM, shell, Fold, HTTP, etc.)
-;;;   - State management during execution
-;;;   - Logging and metrics collection
-;;;   - Checkpoint persistence
-;;;   - Error recovery
-;;;
-;;; Dependencies:
-;;;   - core/pipeline/stage.ss
-;;;   - core/pipeline/effects.ss
-;;;   - core/pipeline/context.ss
-;;;   - boundary/pipeline/effects/*.ss (effect handlers)
-;;;   - boundary/pipeline/checkpoint.ss
-
 (load "lattice/pipeline/stage.ss")
 (load "lattice/pipeline/effects.ss")
 (load "lattice/pipeline/context.ss")
 
-;;; Load effect handlers
 (load "boundary/pipeline/effects/llm.ss")
 (load "boundary/pipeline/effects/shell.ss")
 (load "boundary/pipeline/effects/http.ss")
@@ -32,35 +10,61 @@
 (load "boundary/pipeline/effects/misc.ss")
 (load "boundary/pipeline/checkpoint.ss")
 
-;;; ====
-;;; Main Interpreter Entry Point
-;;; ====
+(define-syntax doc
+  (syntax-rules ()
+    [(_ . rest) (void)]))
 
-;;; run-pipeline : PipelineDef -> Any -> (StageResult . PipelineState)
-;;; Execute a pipeline with input, return result and final state.
+(doc 'module 'interpreter)
+(doc 'description "Pipeline effect interpreter - the impure shell that executes pipeline effects")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+(doc 'note "This is Shell code: handles IO, may fail, contains defensive logic")
+(doc 'features '("Effect interpretation (LLM, shell, Fold, HTTP, etc.)"
+                 "State management during execution"
+                 "Logging and metrics collection"
+                 "Checkpoint persistence"
+                 "Error recovery"))
+
+(doc 'section 'main-interpreter-entry-point)
+
 (define (run-pipeline pipeline-def input)
+  (doc 'description "Execute a pipeline with input, return result and final state")
+  (doc 'type '(-> PipelineDef Any (Pair StageResult PipelineState)))
+  (doc 'param 'pipeline-def "Pipeline definition")
+  (doc 'param 'input "Initial input value")
   (let* ([stage (pipeline-def-stage pipeline-def)]
          [config (pipeline-def-config pipeline-def)]
          [ctx (build-context-from-config config)]
          [state empty-state])
         (interpret-pipeline stage ctx state input)))
 
-;;; run-pipeline-with-context : Stage -> PipelineContext -> Any -> (StageResult . PipelineState)
-;;; Execute pipeline with provided context.
 (define (run-pipeline-with-context stage ctx input)
+  (doc 'description "Execute pipeline with provided context")
+  (doc 'type '(-> Stage PipelineContext Any (Pair StageResult PipelineState)))
+  (doc 'param 'stage "Pipeline stage")
+  (doc 'param 'ctx "Pipeline context")
+  (doc 'param 'input "Initial input")
   (interpret-pipeline stage ctx empty-state input))
 
-;;; ====
-;;; Pipeline Interpretation Loop
-;;; ====
+(doc 'section 'pipeline-interpretation-loop)
 
-;;; interpret-pipeline : Stage -> Context -> State -> Input -> (Result . State)
 (define (interpret-pipeline stage ctx state input)
+  (doc 'description "Main pipeline interpretation loop")
+  (doc 'type '(-> Stage Context State Input (Pair Result State)))
+  (doc 'param 'stage "Stage to interpret")
+  (doc 'param 'ctx "Pipeline context")
+  (doc 'param 'state "Current state")
+  (doc 'param 'input "Current input")
   (let ([result (run-stage stage ctx input)])
        (interpret-result result ctx state input)))
 
-;;; interpret-result : StageResult|Effect -> Context -> State -> Input -> (Result . State)
 (define (interpret-result result ctx state input)
+  (doc 'description "Interpret stage result or effect")
+  (doc 'type '(-> (Or StageResult Effect) Context State Input (Pair Result State)))
+  (doc 'param 'result "Result or effect to interpret")
+  (doc 'param 'ctx "Pipeline context")
+  (doc 'param 'state "Current state")
+  (doc 'param 'input "Current input")
   (cond
    ;; Pure StageResult - return as-is
    [(stage-result? result)
@@ -85,12 +89,14 @@
                      result)
           state)]))
 
-;;; ====
-;;; Effect Interpretation Dispatcher
-;;; ====
+(doc 'section 'effect-interpretation-dispatcher)
 
-;;; interpret-effect : Effect -> Context -> State -> (Result . State)
 (define (interpret-effect effect ctx state)
+  (doc 'description "Dispatch effect interpretation to appropriate handler")
+  (doc 'type '(-> Effect Context State (Pair Result State)))
+  (doc 'param 'effect "Effect to interpret")
+  (doc 'param 'ctx "Pipeline context")
+  (doc 'param 'state "Current state")
   (let ([type (stage-effect-type effect)]
         [payload (stage-effect-payload effect)]
         [input (stage-effect-input effect)])
@@ -113,12 +119,15 @@
                                effect)
                     state)])))
 
-;;; ====
-;;; Pipeline Effect Interpretation (Nesting)
-;;; ====
+(doc 'section 'pipeline-effect-interpretation)
 
-;;; interpret-pipeline-effect : Payload -> Context -> State -> Input -> (Result . State)
 (define (interpret-pipeline-effect payload ctx state input)
+  (doc 'description "Interpret pipeline nesting effect - allows pipelines to invoke other pipelines")
+  (doc 'type '(-> Payload Context State Input (Pair Result State)))
+  (doc 'param 'payload "Effect payload")
+  (doc 'param 'ctx "Pipeline context")
+  (doc 'param 'state "Current state")
+  (doc 'param 'input "Current input")
   (let ([op (car payload)])
        (case op
              [(invoke)
@@ -161,12 +170,14 @@
                                payload)
                     state)])))
 
-;;; ====
-;;; Council Effect Interpretation
-;;; ====
+(doc 'section 'council-effect-interpretation)
 
-;;; interpret-council-effect : CouncilEffect -> Context -> State -> (Result . State)
 (define (interpret-council-effect effect ctx state)
+  (doc 'description "Interpret council effect - multi-agent deliberation")
+  (doc 'type '(-> CouncilEffect Context State (Pair Result State)))
+  (doc 'param 'effect "Council effect")
+  (doc 'param 'ctx "Pipeline context")
+  (doc 'param 'state "Current state")
   (let ([mode (council-effect-mode effect)]
         [config (council-effect-config effect)]
         [topic (council-effect-topic effect)])
@@ -182,8 +193,13 @@
                                effect)
                     state)])))
 
-;;; run-sequential-council : Config -> Topic -> Context -> State -> (Result . State)
 (define (run-sequential-council config topic ctx state)
+  (doc 'description "Run sequential council - models take turns in rounds")
+  (doc 'type '(-> Config Topic Context State (Pair Result State)))
+  (doc 'param 'config "Council configuration")
+  (doc 'param 'topic "Discussion topic")
+  (doc 'param 'ctx "Pipeline context")
+  (doc 'param 'state "Current state")
   (let ([models (council-models config)]
         [rounds (council-rounds config)]
         [moderator (council-moderator config)]
@@ -243,8 +259,13 @@
                                                           round-responses)
                                                     s))))))))))
 
-;;; run-parallel-council : Config -> Topic -> Context -> State -> (Result . State)
 (define (run-parallel-council config topic ctx state)
+  (doc 'description "Run parallel council - all models respond simultaneously")
+  (doc 'type '(-> Config Topic Context State (Pair Result State)))
+  (doc 'param 'config "Council configuration")
+  (doc 'param 'topic "Discussion topic")
+  (doc 'param 'ctx "Pipeline context")
+  (doc 'param 'state "Current state")
   (let ([models (council-models config)]
         [synthesizer (council-moderator config)]
         [prompt (car (council-round-prompts config))]
@@ -294,12 +315,14 @@
 (define (run-consensus-council config topic ctx state)
   (run-sequential-council config topic ctx state))
 
-;;; ====
-;;; Race Effect Interpretation
-;;; ====
+(doc 'section 'race-effect-interpretation)
 
-;;; interpret-race-effect : RaceEffect -> Context -> State -> (Result . State)
 (define (interpret-race-effect effect ctx state)
+  (doc 'description "Interpret race effect - parallel execution with first-to-finish semantics")
+  (doc 'type '(-> RaceEffect Context State (Pair Result State)))
+  (doc 'param 'effect "Race effect")
+  (doc 'param 'ctx "Pipeline context")
+  (doc 'param 'state "Current state")
   (let ([stages (list-ref effect 1)]
         [input (list-ref effect 2)])
        ;; For now, just run first stage
@@ -307,25 +330,31 @@
            (cons (stage-err 'race-empty "No stages to race" '()) state)
            (interpret-pipeline (car stages) ctx state input))))
 
-;;; ====
-;;; Helper Functions
-;;; ====
+(doc 'section 'helper-functions)
 
-;;; build-context-from-config : Alist -> PipelineContext
 (define (build-context-from-config config)
+  (doc 'description "Build pipeline context from configuration alist")
+  (doc 'type '(-> Alist PipelineContext))
+  (doc 'param 'config "Configuration alist")
   (let ([fuel (or (assq-ref config 'fuel) 10000)]
         [model (or (assq-ref config 'model) 'sonnet)])
        (ctx-extend-env
         (ctx-with-fuel empty-context fuel)
         (list (cons 'default-model model)))))
 
-;;; assq-ref : Alist -> Symbol -> Any
 (define (assq-ref alist key)
+  (doc 'description "Lookup key in alist, return value or #f")
+  (doc 'type '(-> Alist Symbol (Maybe Any)))
+  (doc 'param 'alist "Association list")
+  (doc 'param 'key "Key to lookup")
   (let ([entry (assq key alist)])
        (if entry (cdr entry) #f)))
 
-;;; merge-states : State -> State -> State
 (define (merge-states parent child)
+  (doc 'description "Merge child state into parent state")
+  (doc 'type '(-> State State State))
+  (doc 'param 'parent "Parent state")
+  (doc 'param 'child "Child state to merge")
   (make-pipeline-state
    (append (state-log child) (state-log parent))
    (append (state-artifacts child) (state-artifacts parent))

@@ -1,65 +1,57 @@
-;;; boundary/assistants/duckie-interact.ss — DUCKIE REPL Interaction
-;;;
-;;; Simple REPL commands for talking to DUCKIE.
-;;; Loads DUCKIE's dialogue system and provides convenient commands.
-;;;
-;;; This is Shell code: provides IO functions for player interaction.
-
-;;; ====
-;;; Dependencies
-;;; ====
-
 ;;; Load DUCKIE dialogue
+(load "core/base/prelude.ss")
 (load "user/creations/duckie-dialogue.ss")
 
-;;; ====
-;;; State
-;;; ====
+(doc 'module 'boundary/assistants/duckie-interact)
+(doc 'description "DUCKIE REPL Interaction - simple commands for talking to DUCKIE")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+(doc 'note "Shell code providing IO functions for player interaction")
+
+(doc 'section 'state)
 
 ;;; DUCKIE's current mood (persists across REPL calls in daemon)
 (define *duckie-mood* 'curious)
 
-;;; Available moods (from playpen/duckie.ss)
+(doc 'section 'available-moods)
+
 (define *duckie-valid-moods*
   '(happy curious sleepy content lonely playful))
 
-;;; ====
-;;; Commands
-;;; ====
-
-;;; to-duckie : String → String
-;;; Send a message to DUCKIE and get a response based on current mood.
-;;; The message is ignored for now (simple version), response is mood-based.
+(doc 'section 'commands)
 (define (to-duckie msg)
+  (doc 'type (-> String String))
+  (doc 'description "Send a message to DUCKIE and get a mood-based response")
+  (doc 'note "Message is currently ignored - response is mood-based")
   (let ([response (get-talk-response *duckie-mood*)])
        (display (format "~n  DUCKIE (~a): ~a~n~n" *duckie-mood* response))
        response))
 
-;;; duckie-mood : → Symbol
-;;; Show DUCKIE's current mood
 (define (duckie-mood)
+  (doc 'type (-> Symbol))
+  (doc 'description "Show DUCKIE's current mood")
   (display (format "~nDUCKIE is feeling ~a~n~n" *duckie-mood*))
   *duckie-mood*)
 
-;;; set-duckie-mood! : Symbol → void
-;;; Change DUCKIE's mood
 (define (set-duckie-mood! mood)
+  (doc 'type (-> Symbol Void))
+  (doc 'description "Change DUCKIE's mood to a valid mood symbol")
   (if (memq mood *duckie-valid-moods*)
       (begin
        (set! *duckie-mood* mood)
        (display (format "~nDUCKIE's mood changed to ~a~n~n" mood)))
       (display (format "~nInvalid mood. Valid moods: ~a~n~n" *duckie-valid-moods*))))
 
-;;; duckie-greet : → String
-;;; Get a greeting from DUCKIE based on current mood
 (define (duckie-greet)
+  (doc 'type (-> String))
+  (doc 'description "Get a greeting from DUCKIE based on current mood")
   (let ([greeting (get-greeting *duckie-mood*)])
        (display (format "~n  DUCKIE (~a): ~a~n~n" *duckie-mood* greeting))
        greeting))
 
-;;; duckie-farewell : → String
-;;; Get a farewell from DUCKIE based on current mood
 (define (duckie-farewell)
+  (doc 'type (-> String))
+  (doc 'description "Get a farewell from DUCKIE based on current mood")
   (let ([farewell (get-farewell *duckie-mood*)])
        (display (format "~n  DUCKIE (~a): ~a~n~n" *duckie-mood* farewell))
        farewell))

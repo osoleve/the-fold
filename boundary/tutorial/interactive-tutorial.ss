@@ -1,8 +1,11 @@
-;;; boundary/tutorial/interactive-tutorial.ss — Interactive Step-by-Step Tutorial
-;;;
-;;; A comprehensive tutorial system with interactive guidance and progress tracking
+(load "core/base/prelude.ss")
 
-;;; Tutorial curriculum structure
+(doc 'module 'boundary/tutorial/interactive-tutorial)
+(doc 'description "Interactive Step-by-Step Tutorial with guidance and progress tracking")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+
+(doc 'section 'tutorial-curriculum-structure)
 (define *tutorial-curriculum*
   `((basics
      ((session-check
@@ -62,16 +65,17 @@
        ,(lambda () (browse 'engineering 3))
        pending)))))
 
-;;; Tutorial state management
+(doc 'section 'tutorial-state-management)
+
 (define *current-tutorial* (make-parameter #f))
 (define *current-step* (make-parameter 0))
 (define *tutorial-progress* (make-hash-table))
 
-;;; ====
-;;; Core Tutorial Functions
-;;; ====
+(doc 'section 'core-tutorial-functions)
 
 (define (start-interactive-tutorial . tutorial-name)
+  (doc 'type (-> (Maybe Symbol) Void))
+  (doc 'description "Start an interactive tutorial session (defaults to basics)")
   (let ((tutorial (or (and (not (null? tutorial-name)) (car tutorial-name))
                       'basics)))
        
@@ -110,6 +114,8 @@
        (tutorial-next-step)))
 
 (define (tutorial-next-step)
+  (doc 'type (-> Void))
+  (doc 'description "Advance to next step in interactive tutorial")
   (unless (*current-tutorial*)
           (error 'tutorial-next-step "No active tutorial. Use (start-interactive-tutorial) first."))
   
@@ -201,6 +207,8 @@
   (display "🏆 Tutorial badge earned! You can review your progress anytime.\n\n"))
 
 (define (tutorial-hint)
+  (doc 'type (-> Void))
+  (doc 'description "Display hint for current tutorial step")
   (unless (*current-tutorial*)
           (display "No active tutorial. Use (start-interactive-tutorial) to begin.\n")
           (return))
@@ -223,6 +231,8 @@
             (display "Tutorial completed or no current step.\n"))))
 
 (define (exit-tutorial)
+  (doc 'type (-> Void))
+  (doc 'description "Exit current tutorial session and save progress")
   (if (*current-tutorial*)
       (begin
        (display "\n👋 Exiting tutorial...\n")
@@ -233,6 +243,8 @@
       (display "No active tutorial to exit.\n")))
 
 (define (show-tutorial-progress)
+  (doc 'type (-> Void))
+  (doc 'description "Display tutorial progress report")
   (display "\n📊 Tutorial Progress Report:\n")
   (display "====\n\n")
   
@@ -252,7 +264,8 @@
   
   (display "\n"))
 
-;;; Convenience aliases
+(doc 'section 'convenience-aliases)
+
 (define tutorial-next tutorial-next-step)
 (define tutorial-start start-interactive-tutorial)
 

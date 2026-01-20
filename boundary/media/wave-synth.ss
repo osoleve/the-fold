@@ -1,7 +1,3 @@
-;;; boundary/media/wave-synth.ss — Audio Waveform Synthesis and Visualization
-;;; Generates and visualizes audio waveforms with various synthesis techniques
-;;; Builder tier - creative exploration of sound synthesis
-
 (library (shell wave-synth)
          (export
           ;; Oscillators
@@ -10,55 +6,66 @@
           triangle-wave
           sawtooth-wave
           noise-wave
-          
+
           ;; Wave operations
           mix-waves
           modulate-amplitude
           modulate-frequency
           apply-envelope
-          
+
           ;; Effects
           add-harmonics
           apply-distortion
-          
+
           ;; Rendering
           render-waveform-ascii
           render-spectrum
           wave->samples
-          
+
           ;; Interactive demos
           synth-demo
           create-tone
           chord-generator)
-         
+
          (import (chezscheme))
-         
-         ;;; ====
-         ;;; CONSTANTS
-         ;;; ====
-         
+
+         (define-syntax doc
+           (syntax-rules ()
+             [(_ . rest) (void)]))
+
+         (doc 'module 'wave-synth)
+         (doc 'description "Audio waveform synthesis and visualization - generates and visualizes audio waveforms with various synthesis techniques")
+         (doc 'layer 'boundary)
+         (doc 'purity 'partial)
+         (doc 'tier 'builder)
+
+         (doc 'section 'constants)
+
          (define PI 3.141592653589793)
          (define TAU (* 2 PI))
-         
-         ;;; ====
-         ;;; BASIC OSCILLATORS
-         ;;; Returns a function that generates sample value at time t
-         ;;; ====
-         
+
+         (doc 'section 'basic-oscillators)
+
          (define (sine-wave frequency phase)
-           "Pure sine wave oscillator"
+           (doc 'description "Pure sine wave oscillator - returns a function that generates sample value at time t")
+           (doc 'param 'frequency "Frequency in Hz")
+           (doc 'param 'phase "Phase offset")
            (lambda (t)
                    (sin (+ (* TAU frequency t) phase))))
          
          (define (square-wave frequency phase)
-           "Square wave (hard edges, odd harmonics)"
+           (doc 'description "Square wave oscillator (hard edges, odd harmonics)")
+           (doc 'param 'frequency "Frequency in Hz")
+           (doc 'param 'phase "Phase offset")
            (lambda (t)
                    (if (< (mod (+ (* frequency t) (/ phase TAU)) 1.0) 0.5)
                        1.0
                        -1.0)))
          
          (define (triangle-wave frequency phase)
-           "Triangle wave (linear slopes)"
+           (doc 'description "Triangle wave oscillator (linear slopes)")
+           (doc 'param 'frequency "Frequency in Hz")
+           (doc 'param 'phase "Phase offset")
            (lambda (t)
                    (let ((phase-t (mod (+ (* frequency t) (/ phase TAU)) 1.0)))
                         (if (< phase-t 0.5)
@@ -66,42 +73,56 @@
                             (- 3.0 (* 4.0 phase-t))))))
          
          (define (sawtooth-wave frequency phase)
-           "Sawtooth wave (linear rise, sharp fall)"
+           (doc 'description "Sawtooth wave oscillator (linear rise, sharp fall)")
+           (doc 'param 'frequency "Frequency in Hz")
+           (doc 'param 'phase "Phase offset")
            (lambda (t)
                    (let ((phase-t (mod (+ (* frequency t) (/ phase TAU)) 1.0)))
                         (- (* 2.0 phase-t) 1.0))))
          
          (define (noise-wave seed)
-           "Pseudo-random noise generator"
+           (doc 'description "Pseudo-random noise generator")
+           (doc 'param 'seed "Random seed")
            (let ((state seed))
                 (lambda (t)
                         (set! state (modulo (+ (* state 1103515245) 12345) 2147483648))
                         (- (/ (modulo state 1000) 500.0) 1.0))))
          
-         ;;; ====
-         ;;; WAVE OPERATIONS
-         ;;; ====
-         
+         (doc 'section 'wave-operations)
+
          (define (mix-waves . waves)
-           "Mix multiple waveforms together"
+           (doc 'description "Mix multiple waveforms together")
+           (doc 'param 'waves "Variable number of wave functions")
            (let ((count (length waves)))
                 (lambda (t)
                         (/ (apply + (map (lambda (w) (w t)) waves))
                            count))))
          
          (define (modulate-amplitude carrier modulator depth)
-           "Amplitude modulation (tremolo effect)"
+           (doc 'description "Amplitude modulation (tremolo effect)")
+           (doc 'param 'carrier "Carrier wave function")
+           (doc 'param 'modulator "Modulator wave function")
+           (doc 'param 'depth "Modulation depth")
            (lambda (t)
                    (* (carrier t)
                       (+ 1.0 (* depth (modulator t))))))
          
          (define (modulate-frequency carrier modulator depth)
-           "Frequency modulation (vibrato effect)"
+           (doc 'description "Frequency modulation (vibrato effect)")
+           (doc 'param 'carrier "Carrier wave function")
+           (doc 'param 'modulator "Modulator wave function")
+           (doc 'param 'depth "Modulation depth")
            (lambda (t)
                    (carrier (+ t (* depth (modulator t))))))
          
          (define (apply-envelope wave attack decay sustain release duration)
-           "Apply ADSR envelope to waveform"
+           (doc 'description "Apply ADSR envelope to waveform")
+           (doc 'param 'wave "Wave function")
+           (doc 'param 'attack "Attack time")
+           (doc 'param 'decay "Decay time")
+           (doc 'param 'sustain "Sustain level")
+           (doc 'param 'release "Release time")
+           (doc 'param 'duration "Total duration")
            (lambda (t)
                    (let ((amp (cond
                                ((< t attack)
@@ -116,12 +137,12 @@
                                (else 0.0))))
                         (* (wave t) amp))))
          
-         ;;; ====
-         ;;; EFFECTS
-         ;;; ====
-         
+         (doc 'section 'effects)
+
          (define (add-harmonics fundamental . harmonics)
-           "Add harmonic overtones (frequency, amplitude) pairs"
+           (doc 'description "Add harmonic overtones (frequency, amplitude) pairs")
+           (doc 'param 'fundamental "Fundamental wave function")
+           (doc 'param 'harmonics "Variable number of (frequency amplitude) pairs")
            (lambda (t)
                    (+ (fundamental t)
                       (apply + (map (lambda (h)
@@ -131,17 +152,20 @@
                                     harmonics)))))
          
          (define (apply-distortion wave amount)
-           "Apply soft clipping distortion"
+           (doc 'description "Apply soft clipping distortion")
+           (doc 'param 'wave "Wave function")
+           (doc 'param 'amount "Distortion amount")
            (lambda (t)
                    (let ((x (* (wave t) amount)))
                         (/ (* 2.0 x) (+ 1.0 (abs x))))))
          
-         ;;; ====
-         ;;; SAMPLING AND RENDERING
-         ;;; ====
-         
+         (doc 'section 'sampling-and-rendering)
+
          (define (wave->samples wave duration sample-rate)
-           "Convert wave function to discrete samples"
+           (doc 'description "Convert wave function to discrete samples")
+           (doc 'param 'wave "Wave function")
+           (doc 'param 'duration "Duration in seconds")
+           (doc 'param 'sample-rate "Sample rate in Hz")
            (let* ((num-samples (exact (floor (* duration sample-rate))))
                   (dt (/ 1.0 sample-rate)))
                  (let loop ((i 0) (samples '()))
@@ -151,7 +175,11 @@
                                 (cons (wave (* i dt)) samples))))))
          
          (define (render-waveform-ascii wave duration width height)
-           "Render waveform as ASCII art"
+           (doc 'description "Render waveform as ASCII art")
+           (doc 'param 'wave "Wave function")
+           (doc 'param 'duration "Duration in seconds")
+           (doc 'param 'width "Width in characters")
+           (doc 'param 'height "Height in characters")
            (let* ((samples (wave->samples wave duration width))
                   (grid (make-vector (* width height) #\space))
                   (mid-y (quotient height 2)))
@@ -191,7 +219,9 @@
                                      lines))))))
          
          (define (render-spectrum samples bins)
-           "Simple frequency spectrum visualization (magnitude only)"
+           (doc 'description "Simple frequency spectrum visualization (magnitude only)")
+           (doc 'param 'samples "Sample list")
+           (doc 'param 'bins "Number of frequency bins")
            (let* ((n (length samples))
                   (bin-size (quotient n bins))
                   (spectrum (make-vector bins 0.0)))
@@ -219,16 +249,17 @@
                                                      "\n")))
                                       (iota bins)))))))
          
-         ;;; ====
-         ;;; MUSICAL UTILITIES
-         ;;; ====
-         
+         (doc 'section 'musical-utilities)
+
          (define (note->frequency note)
-           "Convert MIDI note number to frequency (A4 = 440Hz = note 69)"
+           (doc 'description "Convert MIDI note number to frequency (A4 = 440Hz = note 69)")
+           (doc 'param 'note "MIDI note number")
            (* 440.0 (expt 2.0 (/ (- note 69) 12.0))))
          
          (define (create-tone note-name duration)
-           "Create a tone from note name (e.g., 'A4', 'Cs5')"
+           (doc 'description "Create a tone from note name (e.g., 'A4', 'Cs5')")
+           (doc 'param 'note-name "Note name as symbol")
+           (doc 'param 'duration "Duration in seconds")
            (let ((notes '((C . 0) (Cs . 1) (D . 2) (Ds . 3)
                           (E . 4) (F . 5) (Fs . 6) (G . 7)
                           (Gs . 8) (A . 9) (As . 10) (B . 11))))
@@ -239,15 +270,16 @@
                       (render-waveform-ascii wave duration 60 15))))
          
          (define (chord-generator frequencies duration)
-           "Generate a chord from multiple frequencies"
+           (doc 'description "Generate a chord from multiple frequencies")
+           (doc 'param 'frequencies "List of frequencies")
+           (doc 'param 'duration "Duration in seconds")
            (let ((waves (map (lambda (f) (sine-wave f 0)) frequencies)))
                 (apply mix-waves waves)))
          
-         ;;; ====
-         ;;; DEMONSTRATION
-         ;;; ====
-         
+         (doc 'section 'demonstration)
+
          (define (synth-demo)
+           (doc 'description "Demonstrate wave synthesis capabilities")
            (display "\n=== WAVE SYNTHESIZER ===\n\n")
            
            (display "1. BASIC WAVEFORMS\n\n")

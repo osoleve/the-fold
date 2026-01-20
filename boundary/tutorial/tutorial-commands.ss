@@ -1,18 +1,17 @@
-;;; boundary/tutorial/tutorial-commands.ss — Tutorial System Command Registration
-;;;
-;;; This file registers tutorial system commands with the main command registry.
-;;; Must be loaded after both commands.ss and tutorial.ss
-
 ;;; Load dependencies
 (load "commands.ss")
 (load "tutorial.ss")
 
-;;; ====
-;;; Tutorial Command Handlers
-;;; ====
+(doc 'module 'boundary/tutorial/tutorial-commands)
+(doc 'description "Tutorial System Command Registration - registers tutorial commands with main command registry")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+(doc 'note "Must be loaded after both commands.ss and tutorial.ss")
 
-;;; start-tutorial-handler : [Symbol] → void
+(doc 'section 'tutorial-command-handlers)
 (define start-tutorial-handler
+  (doc 'type (-> (Maybe Symbol) Void))
+  (doc 'description "Command handler for starting tutorials")
   (case-lambda
    [()
     (start-tutorial)
@@ -21,33 +20,39 @@
     (start-tutorial tutorial-id)
     (void)]))
 
-;;; tutorial-next-handler : → void
 (define (tutorial-next-handler)
+  (doc 'type (-> Void))
+  (doc 'description "Command handler for advancing to next tutorial step")
   (tutorial-next)
   (void))
 
-;;; tutorial-do-handler : → void
 (define (tutorial-do-handler)
+  (doc 'type (-> Void))
+  (doc 'description "Command handler for executing tutorial exercise")
   (tutorial-do)
   (void))
 
-;;; tutorial-skip-handler : → void
 (define (tutorial-skip-handler)
+  (doc 'type (-> Void))
+  (doc 'description "Command handler for skipping tutorial step")
   (tutorial-skip)
   (void))
 
-;;; tutorial-help-handler : → void
 (define (tutorial-help-handler)
+  (doc 'type (-> Void))
+  (doc 'description "Command handler for displaying tutorial help")
   (tutorial-help)
   (void))
 
-;;; tutorial-status-handler : → void
 (define (tutorial-status-handler)
+  (doc 'type (-> Void))
+  (doc 'description "Command handler for showing tutorial status")
   (tutorial-status)
   (void))
 
-;;; list-tutorials-handler : [Symbol] → void
 (define list-tutorials-handler
+  (doc 'type (-> (Maybe Symbol) Void))
+  (doc 'description "Command handler for listing tutorials")
   (case-lambda
    [()
     (list-tutorials)
@@ -56,16 +61,17 @@
     (list-tutorials tier)
     (void)]))
 
-;;; export-tutorial-progress-handler : → void
 (define (export-tutorial-progress-handler)
+  (doc 'type (-> Void))
+  (doc 'description "Command handler for exporting tutorial progress")
   (export-tutorial-progress)
   (void))
 
-;;; ====
-;;; Register Tutorial Commands
-;;; ====
+(doc 'section 'register-tutorial-commands)
 
 (define (register-tutorial-commands!)
+  (doc 'type (-> Void))
+  (doc 'description "Register all tutorial commands with the command registry")
   ;; Main tutorial commands
   (register-command!
    'start-tutorial

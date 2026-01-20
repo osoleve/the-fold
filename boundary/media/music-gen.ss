@@ -1,7 +1,3 @@
-;;; boundary/media/music-gen.ss — Procedural Music Pattern Generator
-;;; A creative tool for generating musical sequences using algorithms
-;;; Builder tier - builds on shell infrastructure
-
 (library (shell music-gen)
          (export
           ;; Pattern generators
@@ -9,28 +5,36 @@
           fibonacci-melody
           cellular-rhythm
           golden-ratio-sequence
-          
+
           ;; Rendering
           render-ascii-notation
           render-drum-pattern
           render-melody-staff
-          
+
           ;; Interactive commands
           music-gen-demo
           random-rhythm
           random-melody
           export-pattern)
-         
+
          (import (chezscheme))
-         
-         ;;; ====
-         ;;; EUCLIDEAN RHYTHM GENERATOR
-         ;;; Distributes k beats across n steps as evenly as possible
-         ;;; (the mathematical basis of many world music rhythms)
-         ;;; ====
-         
+
+         (define-syntax doc
+           (syntax-rules ()
+             [(_ . rest) (void)]))
+
+         (doc 'module 'music-gen)
+         (doc 'description "Procedural music pattern generator - a creative tool for generating musical sequences using algorithms")
+         (doc 'layer 'boundary)
+         (doc 'purity 'partial)
+         (doc 'tier 'builder)
+
+         (doc 'section 'euclidean-rhythm-generator)
+
          (define (euclidean-rhythm k n)
-           "Generate Euclidean rhythm: k beats in n steps"
+           (doc 'description "Generate Euclidean rhythm: k beats in n steps. Distributes k beats across n steps as evenly as possible (the mathematical basis of many world music rhythms)")
+           (doc 'param 'k "Number of beats")
+           (doc 'param 'n "Number of steps")
            (let loop ((a (make-list k '(1)))
                       (b (make-list (- n k) '(0))))
                 (cond
@@ -53,30 +57,29 @@
                lst
                (drop (cdr lst) (- n 1))))
          
-         ;;; ====
-         ;;; FIBONACCI MELODY GENERATOR
-         ;;; Creates melodic patterns based on Fibonacci numbers
-         ;;; ====
-         
+         (doc 'section 'fibonacci-melody-generator)
+
          (define (fibonacci-sequence n)
-           "Generate first n Fibonacci numbers"
+           (doc 'description "Generate first n Fibonacci numbers")
+           (doc 'param 'n "Number of Fibonacci numbers to generate")
            (let loop ((i 0) (a 0) (b 1) (acc '()))
                 (if (>= i n)
                     (reverse acc)
                     (loop (+ i 1) b (+ a b) (cons a acc)))))
          
          (define (fibonacci-melody length scale-size)
-           "Generate melody using Fibonacci sequence modulo scale-size"
+           (doc 'description "Generate melody using Fibonacci sequence modulo scale-size")
+           (doc 'param 'length "Length of melody")
+           (doc 'param 'scale-size "Size of musical scale")
            (map (lambda (n) (modulo n scale-size))
                 (fibonacci-sequence length)))
          
-         ;;; ====
-         ;;; CELLULAR AUTOMATON RHYTHM
-         ;;; Uses Rule 30 or similar CA to generate rhythmic patterns
-         ;;; ====
-         
+         (doc 'section 'cellular-automaton-rhythm)
+
          (define (ca-step rule cells)
-           "Apply cellular automaton rule to cells"
+           (doc 'description "Apply cellular automaton rule to cells")
+           (doc 'param 'rule "CA rule number")
+           (doc 'param 'cells "Current cell state")
            (let ((n (length cells)))
                 (map (lambda (i)
                              (let* ((left (list-ref cells (modulo (- i 1) n)))
@@ -87,7 +90,10 @@
                      (iota n))))
          
          (define (cellular-rhythm rule length steps)
-           "Generate rhythm using cellular automaton"
+           (doc 'description "Generate rhythm using cellular automaton (Rule 30 or similar CA to generate rhythmic patterns)")
+           (doc 'param 'rule "CA rule number")
+           (doc 'param 'length "Width of CA")
+           (doc 'param 'steps "Number of generations")
            (let ((initial (map (lambda (i) (if (= i (quotient length 2)) 1 0))
                                (iota length))))
                 (let loop ((gen 0) (cells initial) (acc '()))
@@ -97,25 +103,23 @@
                                (ca-step rule cells)
                                (cons cells acc))))))
          
-         ;;; ====
-         ;;; GOLDEN RATIO SEQUENCE
-         ;;; Generates note positions using golden ratio
-         ;;; ====
-         
+         (doc 'section 'golden-ratio-sequence)
+
          (define phi 1.618033988749895)
-         
+
          (define (golden-ratio-sequence n max-val)
-           "Generate sequence using golden ratio"
+           (doc 'description "Generate sequence using golden ratio")
+           (doc 'param 'n "Number of values")
+           (doc 'param 'max-val "Maximum value (modulo)")
            (map (lambda (i)
                         (modulo (inexact->exact (floor (* i phi))) max-val))
                 (iota n)))
          
-         ;;; ====
-         ;;; ASCII NOTATION RENDERING
-         ;;; ====
-         
+         (doc 'section 'ascii-notation-rendering)
+
          (define (render-ascii-notation pattern)
-           "Render rhythm pattern as ASCII"
+           (doc 'description "Render rhythm pattern as ASCII")
+           (doc 'param 'pattern "Rhythm pattern to render")
            (string-append
             (apply string-append
                    (map (lambda (beat)
@@ -127,14 +131,18 @@
             "\n"))
          
          (define (render-drum-pattern kick snare hihat)
-           "Render multi-track drum pattern"
+           (doc 'description "Render multi-track drum pattern")
+           (doc 'param 'kick "Kick drum pattern")
+           (doc 'param 'snare "Snare drum pattern")
+           (doc 'param 'hihat "Hi-hat pattern")
            (string-append
             "K: " (render-ascii-notation kick)
             "S: " (render-ascii-notation snare)
             "H: " (render-ascii-notation hihat)))
          
          (define (render-melody-staff melody)
-           "Render melody on ASCII staff (0-9 scale degrees)"
+           (doc 'description "Render melody on ASCII staff (0-9 scale degrees)")
+           (doc 'param 'melody "Melody as list of scale degrees")
            (let* ((max-note (apply max melody))
                   (min-note (apply min melody))
                   (range (+ (- max-note min-note) 1)))
@@ -150,12 +158,10 @@
                                       "\n"))
                              (iota range)))))
          
-         ;;; ====
-         ;;; DEMONSTRATION FUNCTIONS
-         ;;; ====
-         
+         (doc 'section 'demonstration-functions)
+
          (define (music-gen-demo)
-           "Show various algorithmic music patterns"
+           (doc 'description "Show various algorithmic music patterns")
            (display "\n=== PROCEDURAL MUSIC GENERATOR ===\n\n")
            
            (display "1. EUCLIDEAN RHYTHMS (Mathematical Perfection)\n")
@@ -196,14 +202,14 @@
            (display "\nTry: (euclidean-rhythm k n) to explore different rhythms!\n"))
          
          (define (random-rhythm)
-           "Generate random Euclidean rhythm"
+           (doc 'description "Generate random Euclidean rhythm")
            (let* ((n (+ 8 (random 9)))  ; 8-16 steps
                   (k (+ 2 (random (- n 2)))))  ; 2 to n-1 beats
                  (display (format "~a beats in ~a steps: " k n))
                  (display (render-ascii-notation (euclidean-rhythm k n)))))
          
          (define (random-melody)
-           "Generate random melody using golden ratio or fibonacci"
+           (doc 'description "Generate random melody using golden ratio or fibonacci")
            (let* ((length (+ 8 (random 17)))  ; 8-24 notes
                   (scale (+ 5 (random 8)))     ; 5-12 note scale
                   (use-fib (zero? (random 2))))
@@ -218,7 +224,9 @@
                       (display (render-melody-staff melody)))))
          
          (define (export-pattern name pattern)
-           "Export pattern to user/creations"
+           (doc 'description "Export pattern to user/creations")
+           (doc 'param 'name "Pattern name")
+           (doc 'param 'pattern "Pattern data")
            (let ((filename (string-append "user/creations/" name ".rhythm")))
                 (with-output-to-file filename
                                      (lambda ()

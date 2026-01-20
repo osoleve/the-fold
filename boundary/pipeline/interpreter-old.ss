@@ -1,44 +1,33 @@
-;;; boundary/pipeline/interpreter.ss — Pipeline Effect Interpreter
-;;;
-;;; This is the impure shell that executes pipeline effects.
-;;; Effects from core/pipeline/effects.ss are interpreted here.
-;;;
-;;; This is Shell code: handles IO, may fail, contains defensive logic.
-;;;
-;;; Features:
-;;;   - Effect interpretation (LLM, shell, Fold, HTTP, etc.)
-;;;   - State management during execution
-;;;   - Logging and metrics collection
-;;;   - Checkpoint persistence
-;;;   - Error recovery
-;;;
-;;; Dependencies:
-;;;   - core/pipeline/stage.ss
-;;;   - core/pipeline/effects.ss
-;;;   - core/pipeline/context.ss
-;;;   - boundary/io/fs.ss (for file operations)
-;;;
-;;; NOTE: Standard string utilities provided by core/prelude.ss.
-;;;       string-rindex is unique to this module.
-
 (load "lattice/pipeline/stage.ss")
 (load "lattice/pipeline/effects.ss")
 (load "lattice/pipeline/context.ss")
 
-;;; ====
-;;; Interpreter State
-;;; ====
+(define-syntax doc
+  (syntax-rules ()
+    [(_ . rest) (void)]))
 
-;;; Current session for Fold IPC
+(doc 'module 'interpreter-old)
+(doc 'description "Pipeline effect interpreter (old version) - the impure shell that executes pipeline effects")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+(doc 'note "This is Shell code: handles IO, may fail, contains defensive logic. Standard string utilities provided by core/prelude.ss. string-rindex is unique to this module.")
+(doc 'deprecated "Use boundary/pipeline/interpreter.ss instead")
+(doc 'features '("Effect interpretation (LLM, shell, Fold, HTTP, etc.)"
+                 "State management during execution"
+                 "Logging and metrics collection"
+                 "Checkpoint persistence"
+                 "Error recovery"))
+
+(doc 'section 'interpreter-state)
+
 (define *pipeline-session* (make-parameter "pipeline"))
+(doc *pipeline-session* 'description "Current session for Fold IPC")
 
-;;; ====
-;;; Main Interpreter Entry Point
-;;; ====
+(doc 'section 'main-interpreter-entry-point)
 
-;;; run-pipeline : PipelineDef -> Any -> (StageResult . PipelineState)
-;;; Execute a pipeline with input, return result and final state.
 (define (run-pipeline pipeline-def input)
+  (doc 'description "Execute a pipeline with input, return result and final state")
+  (doc 'type '(-> PipelineDef Any (Pair StageResult PipelineState)))
   (let* ([stage (pipeline-def-stage pipeline-def)]
          [config (pipeline-def-config pipeline-def)]
          [ctx (build-context-from-config config)]
@@ -50,12 +39,10 @@
 (define (run-pipeline-with-context stage ctx input)
   (interpret-pipeline stage ctx empty-state input))
 
-;;; ====
-;;; Pipeline Interpretation Loop
-;;; ====
+(doc 'section 'pipeline-interpretation-loop)
 
-;;; interpret-pipeline : Stage -> Context -> State -> Input -> (Result . State)
 (define (interpret-pipeline stage ctx state input)
+  (doc 'description "Main pipeline interpretation loop")
   (let ([result (run-stage stage ctx input)])
        (interpret-result result ctx state input)))
 
@@ -85,12 +72,10 @@
                      result)
           state)]))
 
-;;; ====
-;;; Effect Interpretation
-;;; ====
+(doc 'section 'effect-interpretation)
 
-;;; interpret-effect : Effect -> Context -> State -> (Result . State)
 (define (interpret-effect effect ctx state)
+  (doc 'description "Dispatch effect interpretation to appropriate handler")
   (let ([type (stage-effect-type effect)]
         [payload (stage-effect-payload effect)]
         [input (stage-effect-input effect)])

@@ -1,18 +1,3 @@
-;;; boundary/assistants/duckie-persist.ss — DUCKIE State Persistence to CAS
-;;;
-;;; Manages DUCKIE's soul in the content-addressed store:
-;;;   - Create new DUCKIE and persist initial state
-;;;   - Save state changes as new blocks
-;;;   - Load DUCKIE from hash
-;;;   - Pin active DUCKIE to prevent GC
-;;;   - Session management (current active DUCKIE)
-;;;
-;;; This is Shell code: handles IO and persistence.
-;;;
-;;; Dependencies:
-;;;   - core/cas.ss
-;;;   - playpen/duckie.ss
-
 ;;; Load dependencies
 (source-directories (cons "core" (cons "user" (source-directories))))
 
@@ -21,25 +6,25 @@
 (load "core/blocks/cas.ss")
 (load "user/duckie.ss")
 
-;;; ====
-;;; Session State
-;;; ====
+(doc 'module 'boundary/assistants/duckie-persist)
+(doc 'description "DUCKIE State Persistence to CAS - manages DUCKIE's soul in content-addressed store")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+(doc 'note "Shell code handling IO and persistence - creates, saves, loads, pins DUCKIE state, manages sessions")
+
+(doc 'section 'session-state)
 
 ;;; Current active DUCKIE (the one we're interacting with)
 (define *current-duckie* #f)       ; Duckie struct or #f
 (define *current-duckie-hash* #f)  ; Hash of current saved state
 
-;;; Session file location for persistence across daemon restarts
 (define *session-file* ".fold-repl/duckie-session.ss")
 
-;;; ====
-;;; Persistence Operations
-;;; ====
+(doc 'section 'persistence-operations)
 
-;;; save-duckie! : Duckie → Bytevector
-;;; Store DUCKIE to CAS, pin it, return hash.
-;;; Creates a new block each time (immutable history).
 (define (save-duckie! d)
+  (doc 'type (-> Duckie Bytevector))
+  (doc 'description "Store DUCKIE to CAS, pin it, return hash - creates new block each time for immutable history")
   (let* ([blk (duckie->block d)]
          [hash (store! blk)])
         (pin! hash)
@@ -47,26 +32,24 @@
         (for-each pin! (duckie-memories d))
         hash))
 
-;;; load-duckie : Bytevector → Duckie | #f
-;;; Fetch DUCKIE from CAS by hash.
 (define (load-duckie hash)
+  (doc 'type (-> Bytevector (Maybe Duckie)))
+  (doc 'description "Fetch DUCKIE from CAS by hash")
   (let ([blk (fetch hash)])
        (and blk (block->duckie blk))))
 
-;;; duckie-exists? : Bytevector → Boolean
-;;; Check if a DUCKIE exists in CAS.
 (define (duckie-exists? hash)
+  (doc 'type (-> Bytevector Boolean))
+  (doc 'description "Check if a DUCKIE exists in CAS")
   (and (stored? hash)
        (let ([blk (fetch hash)])
             (and blk (eq? (block-tag blk) 'duckie)))))
 
-;;; ====
-;;; Session Management
-;;; ====
+(doc 'section 'session-management)
 
-;;; new-duckie! : String → Duckie
-;;; Create a new DUCKIE, save to CAS, set as current.
 (define (new-duckie! name)
+  (doc 'type (-> String Duckie))
+  (doc 'description "Create a new DUCKIE, save to CAS, set as current")
   (let* ([d (make-duckie name)]
          [hash (save-duckie! d)])
         (set! *current-duckie* d)
@@ -74,9 +57,9 @@
         (save-session!)
         d))
 
-;;; adopt-duckie! : Bytevector → Duckie | #f
-;;; Load an existing DUCKIE from CAS, set as current.
 (define (adopt-duckie! hash)
+  (doc 'type (-> Bytevector (Maybe Duckie)))
+  (doc 'description "Load existing DUCKIE from CAS and set as current")
   (let ([d (load-duckie hash)])
        (if d
            (begin
@@ -96,14 +79,11 @@
 (define (current-duckie-hash)
   *current-duckie-hash*)
 
-;;; ====
-;;; State Update with Auto-Save
-;;; ====
+(doc 'section 'state-update-with-auto-save)
 
-;;; update-duckie! : (Duckie → Duckie) → Duckie
-;;; Apply an update function to current DUCKIE and persist.
-;;; Returns the updated DUCKIE.
 (define (update-duckie! update-fn)
+  (doc 'type (-> (-> Duckie Duckie) Duckie))
+  (doc 'description "Apply update function to current DUCKIE and persist - returns updated DUCKIE")
   (if *current-duckie*
       (let* ([d (update-fn *current-duckie*)]
              [hash (save-duckie! d)])
@@ -116,11 +96,11 @@
             d)
       (error "update-duckie!" "No active DUCKIE. Use new-duckie! first.")))
 
-;;; Convenience update functions
+(doc 'section 'convenience-update-functions)
 
-;;; pet! : → Duckie
-;;; Pet DUCKIE - changes mood, ages, uses a little energy.
 (define (pet!)
+  (doc 'type (-> Duckie))
+  (doc 'description "Pet DUCKIE - changes mood, ages, uses a little energy")
   (update-duckie!
    (lambda (d)
            (let* ([new-mood (mood-after-interaction (duckie-mood d) 'pet)]
@@ -129,9 +109,9 @@
                   [d4 (duckie-drain-energy d3 5)])
                  d4))))
 
-;;; play! : → Duckie
-;;; Play with DUCKIE - always results in playful mood.
 (define (play!)
+  (doc 'type (-> Duckie))
+  (doc 'description "Play with DUCKIE - always results in playful mood")
   (update-duckie!
    (lambda (d)
            (let* ([d2 (duckie-set-mood d 'playful)]
@@ -139,18 +119,18 @@
                   [d4 (duckie-drain-energy d3 15)])
                  d4))))
 
-;;; rest! : → Duckie
-;;; Let DUCKIE rest - restores energy.
 (define (rest!)
+  (doc 'type (-> Duckie))
+  (doc 'description "Let DUCKIE rest - restores energy")
   (update-duckie!
    (lambda (d)
            (let* ([d2 (duckie-set-mood d 'sleepy)]
                   [d3 (duckie-restore-energy d2 30)])
                  d3))))
 
-;;; feed! : → Duckie
-;;; Feed DUCKIE - restores energy, makes happy.
 (define (feed!)
+  (doc 'type (-> Duckie))
+  (doc 'description "Feed DUCKIE - restores energy, makes happy")
   (update-duckie!
    (lambda (d)
            (let* ([d2 (duckie-set-mood d 'happy)]
@@ -158,9 +138,9 @@
                   [d4 (duckie-age-once d3)])
                  d4))))
 
-;;; idle! : → Duckie
-;;; Time passes - mood shifts toward lonely, energy drains.
 (define (idle!)
+  (doc 'type (-> Duckie))
+  (doc 'description "Time passes - mood shifts toward lonely, energy drains")
   (update-duckie!
    (lambda (d)
            (let* ([new-mood (mood-after-interaction (duckie-mood d) 'idle)]
@@ -168,13 +148,11 @@
                   [d3 (duckie-drain-energy d2 2)])
                  d3))))
 
-;;; ====
-;;; Memory Operations
-;;; ====
+(doc 'section 'memory-operations)
 
-;;; remember! : Symbol × Any → Duckie
-;;; Add a new memory to DUCKIE.
 (define (remember! kind details)
+  (doc 'type (-> Symbol Any Duckie))
+  (doc 'description "Add a new memory to DUCKIE")
   (update-duckie!
    (lambda (d)
            (let* ([timestamp (current-time)]
@@ -183,22 +161,20 @@
                  (pin! mem-hash)
                  (duckie-add-memory d mem-hash)))))
 
-;;; recall : Nat → (List Memory)
-;;; Get DUCKIE's last N memories.
 (define (recall n)
+  (doc 'type (-> Nat (List Memory)))
+  (doc 'description "Get DUCKIE's last N memories")
   (if *current-duckie*
       (let* ([mem-hashes (take n (duckie-memories *current-duckie*))]
              [memories (filter (lambda (x) x) (map fetch mem-hashes))])
             memories)
       '()))
 
-;;; ====
-;;; Session Persistence (across daemon restarts)
-;;; ====
+(doc 'section 'session-persistence)
 
-;;; save-session! : → void
-;;; Save current session info to file.
 (define (save-session!)
+  (doc 'type (-> Void))
+  (doc 'description "Save current session info to file for daemon restart persistence")
   (when *current-duckie-hash*
         (call-with-output-file *session-file*
                                (lambda (port)
@@ -206,9 +182,9 @@
                                        (newline port))
                                'replace)))
 
-;;; load-session! : → Duckie | #f
-;;; Load session from file, restore DUCKIE.
 (define (load-session!)
+  (doc 'type (-> (Maybe Duckie)))
+  (doc 'description "Load session from file and restore DUCKIE")
   (guard (exn [else #f])
          (if (file-exists? *session-file*)
              (call-with-input-file *session-file*
@@ -219,13 +195,11 @@
                                                  (adopt-duckie! hash))))
              #f)))
 
-;;; ====
-;;; Status Display
-;;; ====
+(doc 'section 'status-display)
 
-;;; duckie-status : → void
-;;; Display current DUCKIE status.
 (define (duckie-status)
+  (doc 'type (-> Void))
+  (doc 'description "Display current DUCKIE status")
   (if *current-duckie*
       (let ([d *current-duckie*])
            (display "\n")
@@ -256,32 +230,28 @@
            (newline))
       (display "\n  No active DUCKIE. Use (new-duckie! \"name\") to create one.\n\n")))
 
-;;; ====
-;;; History Navigation
-;;; ====
+(doc 'section 'history-navigation)
 
-;;; duckie-history : → (List (cons Bytevector Duckie))
-;;; Get list of all saved states for current DUCKIE.
-;;; Walks backward through memory refs to find all states.
 (define (duckie-history)
+  (doc 'type (-> (List (Pair Bytevector Duckie))))
+  (doc 'description "Get list of all saved states for current DUCKIE")
+  (doc 'todo "Full history tracking requires additional indexing")
   (if (not *current-duckie-hash*)
       '()
       ;; For now, we just have the current state
       ;; Full history tracking would require additional indexing
       (list (cons *current-duckie-hash* *current-duckie*))))
 
-;;; restore-to! : Bytevector → Duckie | #f
-;;; Restore DUCKIE to a previous saved state.
 (define (restore-to! hash)
+  (doc 'type (-> Bytevector (Maybe Duckie)))
+  (doc 'description "Restore DUCKIE to a previous saved state")
   (adopt-duckie! hash))
 
-;;; ====
-;;; DUCKIE CAS Statistics
-;;; ====
+(doc 'section 'duckie-cas-statistics)
 
-;;; duckie-store-stats : → Alist
-;;; Get storage statistics for DUCKIE data.
 (define (duckie-store-stats)
+  (doc 'type (-> Alist))
+  (doc 'description "Get storage statistics for DUCKIE data")
   (let ([total (store-count)]
         [gc (gc-stats)])
        `((total-blocks . ,total)
@@ -292,11 +262,11 @@
                                  (length (duckie-memories *current-duckie*))
                                  0)))))
 
-;;; ====
-;;; Help
-;;; ====
+(doc 'section 'help)
 
 (define (duckie-help)
+  (doc 'type (-> Void))
+  (doc 'description "Display DUCKIE command help")
   (display "\n")
   (display "  ╭────────────────────────────────────────────────────────────╮\n")
   (display "  │                    DUCKIE COMMANDS                         │\n")

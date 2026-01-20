@@ -1,10 +1,11 @@
-;;; boundary/tutorial/tutorial.ss — Interactive Tutorial System for The Fold
-;;;
-;;; A comprehensive tutorial system that guides new AIs through The Fold.
+(load "core/base/prelude.ss")
 
-;;; ====
-;;; Tutorial State Management
-;;; ====
+(doc 'module 'boundary/tutorial/tutorial)
+(doc 'description "Interactive Tutorial System for The Fold - guides new AIs through learning paths")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+
+(doc 'section 'tutorial-state-management)
 
 (define *tutorial-session* (make-parameter #f))
 (define *current-tutorial* (make-parameter #f))
@@ -133,9 +134,7 @@
        ,(lambda (result) (string-contains? result "DUCKIE"))
        "Use (to-duckie \"your message\") to send a message to DUCKIE.")))))
 
-;;; ====
-;;; Tutorial Session Management
-;;; ====
+(doc 'section 'tutorial-session-management)
 
 (define (tutorial-session-active?)
   (and (*tutorial-session*) (*current-tutorial*)))
@@ -146,7 +145,7 @@
               (steps (list-ref tutorial 4))
               (step-index (*current-step*)))
              (and (< step-index (length steps))
-                  (list-ref steps step-index))))))
+                  (list-ref steps step-index)))))
 
 (define (get-tutorial-progress tutorial-id)
   (let ((progress (*tutorial-progress*)))
@@ -159,12 +158,11 @@
 (define (award-tutorial-badge! tutorial-id)
   (display (format "🏆 Tutorial badge awarded: ~a\n" tutorial-id)))
 
-;;; ====
-;;; Main Tutorial Commands
-;;; ====
+(doc 'section 'main-tutorial-commands)
 
-;;; start-tutorial-by-id : Symbol → void
 (define (start-tutorial-by-id tutorial-id)
+  (doc 'type (-> Symbol Void))
+  (doc 'description "Start a specific tutorial by its ID symbol")
   (let ((tutorial (assoc tutorial-id *tutorials*)))
        (unless tutorial
                (error 'start-tutorial (format "Unknown tutorial: ~a" tutorial-id)))
@@ -183,8 +181,9 @@
        
        (tutorial-next)))
 
-;;; list-tutorials-for-tier : Symbol → void
 (define (list-tutorials-for-tier tier)
+  (doc 'type (-> Symbol Void))
+  (doc 'description "List all tutorials available for a given tier")
   (let ((available-tutorials (filter
                               (lambda (tutorial)
                                       (let ((tutorial-tier (list-ref tutorial 2)))
@@ -211,9 +210,9 @@
             (display "Use (start-tutorial 'tutorial-name) to begin a specific tutorial.\n")
             (display "Or use (start-tutorial 'basic-navigation) to start with the basics.\n\n")))))
 
-;;; start-tutorial : [Symbol] → void
-;;; Dispatch based on argument type
 (define (start-tutorial . args)
+  (doc 'type (-> (Maybe Symbol) Void))
+  (doc 'description "Start tutorial - dispatches based on argument type (tier or tutorial ID)")
   (let ((session (read-session)))
        (unless session
                (error 'start-tutorial "No active session. Use fold_login first."))
@@ -228,8 +227,9 @@
              (else
               (error 'start-tutorial "Invalid argument. Expected tutorial ID or tier symbol."))))))
 
-;;; tutorial-next : → void
 (define (tutorial-next)
+  (doc 'type (-> Void))
+  (doc 'description "Advance to next step in current tutorial")
   (unless (tutorial-session-active?)
           (error 'tutorial-next "No active tutorial session. Use (start-tutorial) first."))
   
@@ -275,10 +275,11 @@
                       (display "Or use (tutorial-skip) to skip this step.\n"))
                      (begin
                       (display "✓ This is an informational step.\n")
-                      (display "Use (tutorial-next) to continue.\n"))))))))
+                      (display "Use (tutorial-next) to continue.\n")))))))
 
-;;; tutorial-do : → void
 (define (tutorial-do)
+  (doc 'type (-> Void))
+  (doc 'description "Attempt to complete current tutorial exercise")
   (unless (tutorial-session-active?)
           (error 'tutorial-do "No active tutorial session. Use (start-tutorial) first."))
   
@@ -311,8 +312,9 @@
                          (display "❌ Step not completed correctly.\n")
                          (display "Use (tutorial-help) for guidance or (tutorial-skip) to skip.\n"))))))))
 
-;;; tutorial-skip : → void
 (define (tutorial-skip)
+  (doc 'type (-> Void))
+  (doc 'description "Skip current tutorial step and advance to next")
   (unless (tutorial-session-active?)
           (error 'tutorial-skip "No active tutorial session. Use (start-tutorial) first."))
   
@@ -321,8 +323,9 @@
   (set-tutorial-progress! (*current-tutorial*) (*current-step*))
   (tutorial-next))
 
-;;; tutorial-help : → void
 (define (tutorial-help)
+  (doc 'type (-> Void))
+  (doc 'description "Display help for current tutorial step")
   (unless (tutorial-session-active?)
           (error 'tutorial-help "No active tutorial session. Use (start-tutorial) first."))
   
@@ -334,8 +337,9 @@
                 (display "\n\n"))
            (display "No help available - tutorial may be completed.\n"))))
 
-;;; tutorial-status : → void
 (define (tutorial-status)
+  (doc 'type (-> Void))
+  (doc 'description "Display current tutorial progress and status")
   (if (tutorial-session-active?)
       (let* ((tutorial (assoc (*current-tutorial*) *tutorials*))
              (steps (list-ref tutorial 4))
@@ -356,8 +360,9 @@
             (display "\n"))
       (display "No active tutorial session.\n")))
 
-;;; list-tutorials : [Symbol] → void
 (define (list-tutorials . tier-opt)
+  (doc 'type (-> (Maybe Symbol) Void))
+  (doc 'description "List available tutorials, optionally filtered by tier")
   (let* ((session (read-session))
          (tier (if (null? tier-opt)
                    (and session (cdr (assq 'tier session)))
@@ -366,8 +371,9 @@
             (list-tutorials-for-tier tier)
             (display "No active session and no tier specified. Login or specify tier.\n"))))
 
-;;; export-tutorial-progress
 (define (export-tutorial-progress)
+  (doc 'type (-> Void))
+  (doc 'description "Export current tutorial progress to display")
   (let ((progress (*tutorial-progress*)))
        (display "Tutorial Progress Export:\n")
        (display "====\n\n")

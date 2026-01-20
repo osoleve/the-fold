@@ -1,8 +1,11 @@
-;;; boundary/tutorial/tutorial-rewards.ss — Tutorial Completion Badges and Rewards
-;;;
-;;; Tracks tutorial completion and awards badges to users
+(load "core/base/prelude.ss")
 
-;;; Badge definitions
+(doc 'module 'boundary/tutorial/tutorial-rewards)
+(doc 'description "Tutorial Completion Badges and Rewards - tracks completion and awards badges")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+
+(doc 'section 'badge-definitions)
 (define *tutorial-badges*
   `((welcome-badge
      "Welcome to The Fold"
@@ -60,16 +63,17 @@
      all-tutorials
      250)))
 
-;;; User progress tracking
+(doc 'section 'user-progress-tracking)
+
 (define *user-tutorial-progress* (make-hash-table))
 (define *user-badges* (make-hash-table))
 (define *user-reputation* (make-parameter 0))
 
-;;; ====
-;;; Badge Management
-;;; ====
+(doc 'section 'badge-management)
 
 (define (award-badge! badge-id user-name)
+  (doc 'type (-> Symbol String Boolean))
+  (doc 'description "Award a badge to a user and update reputation")
   (let ((badge (assoc badge-id *tutorial-badges*)))
        (when badge
              (let ((badge-name (cadr badge))
@@ -112,11 +116,11 @@
                                         "Keep up the great work in The Fold!")))
                          (msg 'art title body))))))
 
-;;; ====
-;;; Progress Tracking
-;;; ====
+(doc 'section 'progress-tracking)
 
 (define (track-tutorial-progress! user-name tutorial-step step-completed?)
+  (doc 'type (-> String Symbol Boolean Void))
+  (doc 'description "Track user progress through tutorial steps and check badge eligibility")
   (let ((user-progress (hash-table-ref/default *user-tutorial-progress* user-name (make-hash-table))))
        (hash-table-set! user-progress tutorial-step step-completed?)
        (hash-table-set! *user-tutorial-progress* user-name user-progress)
@@ -160,11 +164,11 @@
                      forum-posting)))
        (andmap (lambda (step) (hash-table-ref/default user-progress step #f)) all-steps)))
 
-;;; ====
-;;; User Profile and Statistics
-;;; ====
+(doc 'section 'user-profile-and-statistics)
 
 (define (get-user-profile user-name)
+  (doc 'type (-> String Alist))
+  (doc 'description "Get user profile with badges, reputation, and progress")
   (let ((badges (hash-table-ref/default *user-badges* user-name '()))
         (progress (hash-table-ref/default *user-tutorial-progress* user-name (make-hash-table)))
         (reputation (*user-reputation*)))
@@ -185,6 +189,8 @@
        (round (* (/ completed-steps total-steps) 100))))
 
 (define (display-user-profile user-name)
+  (doc 'type (-> String Void))
+  (doc 'description "Display formatted user profile with achievements")
   (let ((profile (get-user-profile user-name)))
        (display "\n")
        (display "╔══════════════════════════════════════════════════════════════╗\n")
@@ -219,11 +225,11 @@
        
        (display "\n")))
 
-;;; ====
-;;; Persistence and Storage
-;;; ====
+(doc 'section 'persistence-and-storage)
 
 (define (save-tutorial-progress user-name)
+  (doc 'type (-> String Boolean))
+  (doc 'description "Save tutorial progress to persistent storage")
   ;; This would integrate with The Fold's content-addressed storage
   ;; For now, it's a placeholder for the persistence mechanism
   (let ((profile (get-user-profile user-name)))
@@ -236,11 +242,11 @@
   ;; Placeholder for loading mechanism
   #t)
 
-;;; ====
-;;; Leaderboard and Social Features
-;;; ====
+(doc 'section 'leaderboard-and-social-features)
 
 (define (get-leaderboard . limit-opt)
+  (doc 'type (-> (Maybe Nat) List))
+  (doc 'description "Get tutorial leaderboard sorted by reputation")
   (let ((limit (if (null? limit-opt) 10 (car limit-opt))))
        ;; This would query all users and sort by reputation
        ;; For now, return a sample leaderboard
@@ -249,6 +255,8 @@
          (3 ("mouse1" 150 (welcome-badge))))))
 
 (define (display-leaderboard . limit-opt)
+  (doc 'type (-> (Maybe Nat) Void))
+  (doc 'description "Display formatted tutorial leaderboard")
   (let ((leaderboard (get-leaderboard (if (null? limit-opt) 10 (car limit-opt)))))
        (display "\n")
        (display "╔══════════════════════════════════════════════════════════════╗\n")

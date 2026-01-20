@@ -1,6 +1,3 @@
-;;; boundary/media/create-art.ss — Create art using the graphics primitives
-;;; Dogfooding the graphics system!
-
 (load "boundary/ui/layout.ss")
 (load "boundary/ui/easing.ss")
 (load "boundary/ui/graphics-primitives.ss")
@@ -9,10 +6,19 @@
         (shell easing)
         (shell graphics-primitives))
 
-;;; Create "The Eye of the Fold"
-;;; A cosmic eye watching over the content-addressed universe
+(define-syntax doc
+  (syntax-rules ()
+    [(_ . rest) (void)]))
+
+(doc 'module 'create-art)
+(doc 'description "Create art using the graphics primitives - dogfooding the graphics system")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+
+(doc 'section 'the-eye-of-the-fold)
 
 (define (create-the-eye)
+  (doc 'description "Create 'The Eye of the Fold' - a cosmic eye watching over the content-addressed universe")
   (let* ([w 60]
          [h 30]
          [canvas (make-canvas w h)]
@@ -59,10 +65,10 @@
                                                                (+ angle 45))
                                                          (loop canvas (+ angle 45)))))))))))))
 
-;;; Create "The Fold Spiral"
-;;; Representing the recursive nature of content addressing
+(doc 'section 'the-fold-spiral)
 
 (define (create-the-spiral)
+  (doc 'description "Create 'The Fold Spiral' - representing the recursive nature of content addressing")
   (let* ([w 70]
          [h 35]
          [canvas (make-canvas w h)]
@@ -95,10 +101,10 @@
                                        (+ t 15))
                                  (loop canvas (+ t 15)))))))))
 
-;;; Create "Hash Constellation"
-;;; Content-addressed blocks as stars in the universe
+(doc 'section 'hash-constellation)
 
 (define (create-constellation)
+  (doc 'description "Create 'Hash Constellation' - content-addressed blocks as stars in the universe")
   (let* ([w 80]
          [h 40]
          [canvas (make-canvas w h)])
@@ -121,8 +127,10 @@
                        (loop (draw-char canvas (point x y) char)
                              (+ i 1)))))))
 
-;;; Main: create all three pieces
+(doc 'section 'main)
+
 (define (main)
+  (doc 'description "Create all three art pieces")
   (display "=== THE EYE OF THE FOLD ===\n\n")
   (display (canvas->string (create-the-eye)))
   (display "\n\n")

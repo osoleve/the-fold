@@ -1,27 +1,31 @@
-;;; boundary/pipeline/checkpoint.ss — Checkpoint Effect Handler
-;;;
-;;; Handles pipeline checkpoint persistence and restoration.
-;;;
-;;; This is Shell code: handles IO, may fail, contains defensive logic.
-
 (load "lattice/pipeline/stage.ss")
 (load "lattice/pipeline/effects.ss")
 (load "lattice/pipeline/context.ss")
 
-;;; ====
-;;; Checkpoint Configuration
-;;; ====
+(define-syntax doc
+  (syntax-rules ()
+    [(_ . rest) (void)]))
 
-;;; *checkpoint-dir* : String
-;;; Directory for pipeline checkpoints.
+(doc 'module 'checkpoint)
+(doc 'description "Checkpoint effect handler - handles pipeline checkpoint persistence and restoration")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+(doc 'note "This is Shell code: handles IO, may fail, contains defensive logic")
+
+(doc 'section 'checkpoint-configuration)
+
 (define *checkpoint-dir* ".fold-checkpoints")
+(doc *checkpoint-dir* 'description "Directory for pipeline checkpoints")
 
-;;; ====
-;;; Checkpoint Effect Interpretation
-;;; ====
+(doc 'section 'checkpoint-effect-interpretation)
 
-;;; interpret-checkpoint-effect : Payload -> Context -> State -> Input -> (Result . State)
 (define (interpret-checkpoint-effect payload ctx state input)
+  (doc 'description "Interpret checkpoint effect")
+  (doc 'type '(-> Payload Context State Input (Pair Result State)))
+  (doc 'param 'payload "Effect payload")
+  (doc 'param 'ctx "Pipeline context")
+  (doc 'param 'state "Current state")
+  (doc 'param 'input "Current input")
   (let ([op (car payload)])
        (case op
              [(save)
@@ -70,14 +74,14 @@
                                payload)
                     state)])))
 
-;;; ====
-;;; Checkpoint Persistence
-;;; ====
+(doc 'section 'checkpoint-persistence)
 
-;;; persist-checkpoint : RunId -> Name -> Value -> ()
-;;; Persist a checkpoint value to disk.
-;;; Checkpoints are stored as: .fold-checkpoints/<run-id>/<name>.sexp
 (define (persist-checkpoint run-id name value)
+  (doc 'description "Persist a checkpoint value to disk. Checkpoints are stored as: .fold-checkpoints/<run-id>/<name>.sexp")
+  (doc 'type '(-> RunId Name Value Void))
+  (doc 'param 'run-id "Pipeline run ID")
+  (doc 'param 'name "Checkpoint name")
+  (doc 'param 'value "Value to persist")
   (guard (ex [else (void)])  ; Silently fail if persistence fails
          (let ([run-dir (string-append *checkpoint-dir* "/" run-id)])
               (ensure-directory! run-dir)
@@ -86,40 +90,43 @@
                                           (lambda (p)
                                                   (pretty-print value p)))))))
 
-;;; load-checkpoint : RunId -> Name -> Any
-;;; Load a checkpoint value from disk.
-;;; Returns #f if checkpoint doesn't exist.
 (define (load-checkpoint run-id name)
+  (doc 'description "Load a checkpoint value from disk. Returns #f if checkpoint doesn't exist")
+  (doc 'type '(-> RunId Name (Maybe Any)))
+  (doc 'param 'run-id "Pipeline run ID")
+  (doc 'param 'name "Checkpoint name")
   (guard (ex [else #f])
          (let ([checkpoint-file (string-append *checkpoint-dir* "/" run-id "/" (symbol->string name) ".sexp")])
               (if (file-exists? checkpoint-file)
                   (call-with-input-file checkpoint-file read)
                   #f))))
 
-;;; ====
-;;; Directory Utilities
-;;; ====
+(doc 'section 'directory-utilities)
 
-;;; path-directory : String -> String
-;;; Get directory portion of path.
 (define (path-directory path)
+  (doc 'description "Get directory portion of path")
+  (doc 'type '(-> String String))
+  (doc 'param 'path "File path")
   (let ([idx (string-rindex path #\/)])
        (if idx
            (substring path 0 idx)
            ".")))
 
-;;; string-rindex : String -> Char -> Maybe Integer
-;;; Find last occurrence of char in string.
 (define (string-rindex str ch)
+  (doc 'description "Find last occurrence of char in string")
+  (doc 'type '(-> String Char (Maybe Integer)))
+  (doc 'param 'str "String to search")
+  (doc 'param 'ch "Character to find")
   (let loop ([i (- (string-length str) 1)])
        (cond
         [(< i 0) #f]
         [(char=? (string-ref str i) ch) i]
         [else (loop (- i 1))])))
 
-;;; ensure-directory! : String -> ()
-;;; Create directory and all parent directories if they don't exist.
 (define (ensure-directory! path)
+  (doc 'description "Create directory and all parent directories if they don't exist")
+  (doc 'type '(-> String Void))
+  (doc 'param 'path "Directory path to create")
   (unless (file-exists? path)
           (let ([parent (path-directory path)])
                (when (and (not (string=? parent "."))

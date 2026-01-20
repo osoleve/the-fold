@@ -1,17 +1,5 @@
-;;; boundary/assistants/duckie-loop.ss — DUCKIE Heartbeat (The Main Loop)
-;;;
-;;; The eternal cycle that gives DUCKIE life:
-;;;   INPUT → PARSE → UPDATE → RENDER → DISPLAY → WAIT → REPEAT
-;;;
-;;; This is Shell code: handles IO, timing, and the game loop.
-;;; The heartbeat that makes DUCKIE present.
-;;;
 ;;; Summoned by Opus, implemented by Sonnet.
 ;;; Christmas Day, 2024 — The moment DUCKIE begins to breathe.
-
-;;; ====
-;;; Dependencies
-;;; ====
 
 ;;; From playpen/duckie.ss — The soul
 (load "user/duckie.ss")
@@ -44,24 +32,21 @@
 ;;; NOTE: string-trim provided by core/prelude.ss
 (load "core/base/prelude.ss")
 
-;;; ====
-;;; State Definition
-;;; ====
+(doc 'module 'boundary/assistants/duckie-loop)
+(doc 'description "DUCKIE Heartbeat - The main loop giving DUCKIE life: INPUT → PARSE → UPDATE → RENDER → DISPLAY → WAIT → REPEAT")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
+(doc 'note "Shell code handling IO, timing, and game loop - the heartbeat that makes DUCKIE present")
 
-;;; LoopState : (× Duckie Canvas Nat Bool Mood Nat ParticleSystem)
-;;;
-;;; The complete state of the main loop:
-;;;   - duckie             : The DUCKIE soul from playpen/duckie.ss
-;;;   - canvas             : The drawing surface from boundary/ui/layout.ss
-;;;   - frame              : Animation frame counter (increments each tick)
-;;;   - running            : Loop control flag (#t = continue, #f = stop)
-;;;   - prev-mood          : Previous mood (for smooth color transitions)
-;;;   - transition-start   : Frame when mood transition started
-;;;   - particles          : Active particle system for visual effects
+(doc 'section 'state-definition)
+
 (define (make-loop-state duckie canvas frame running prev-mood transition-start particles)
+  (doc 'type (-> Duckie Canvas Nat Bool Mood Nat ParticleSystem LoopState))
+  (doc 'description "Create complete loop state with DUCKIE, canvas, animation frame, running flag, mood transitions, and particles")
   (list duckie canvas frame running prev-mood transition-start particles))
 
-;;; Accessors
+(doc 'section 'accessors)
+
 (define (loop-state-duckie state)           (list-ref state 0))
 (define (loop-state-canvas state)           (list-ref state 1))
 (define (loop-state-frame state)            (list-ref state 2))
@@ -70,7 +55,7 @@
 (define (loop-state-transition-start state) (list-ref state 5))
 (define (loop-state-particles state)        (list-ref state 6))
 
-;;; Updaters (functional)
+(doc 'section 'updaters-functional)
 (define (loop-state-set-duckie state duckie)
   (make-loop-state duckie
                    (loop-state-canvas state)
@@ -116,10 +101,9 @@
                    (loop-state-transition-start state)
                    particles))
 
-;;; emit-particles-at-duckie : LoopState × Symbol → LoopState
-;;;
-;;; Emit particles at DUCKIE's location based on interaction type.
 (define (emit-particles-at-duckie state interaction)
+  (doc 'type (-> LoopState Symbol LoopState))
+  (doc 'description "Emit particles at DUCKIE's location based on interaction type")
   (let* ([duckie (loop-state-duckie state)]
          [pos (duckie-location duckie)]
          [new-particles (emit-by-interaction pos interaction)]
@@ -127,10 +111,9 @@
          [updated-particles (add-particles particles new-particles)])
         (loop-state-set-particles state updated-particles)))
 
-;;; begin-mood-transition : LoopState × Mood → LoopState
-;;;
-;;; Start a mood transition by recording the previous mood and transition start frame.
 (define (begin-mood-transition state new-mood)
+  (doc 'type (-> LoopState Mood LoopState))
+  (doc 'description "Start mood transition by recording previous mood and transition start frame")
   (let ([old-mood (duckie-mood (loop-state-duckie state))]
         [frame (loop-state-frame state)])
        (if (eq? old-mood new-mood)
@@ -143,13 +126,7 @@
                             frame
                             (loop-state-particles state)))))     ; Record transition start
 
-;;; ====
-;;; Command Type
-;;; ====
-
-;;; Command : (+ (pet) (feed) (play) (talk String) (sleep) (wake) (quit))
-;;;
-;;; User commands that affect DUCKIE state.
+(doc 'section 'command-type)
 
 (define (make-command type . args)
   (cons type args))
@@ -157,18 +134,12 @@
 (define (command-type cmd) (car cmd))
 (define (command-args cmd) (cdr cmd))
 
-;;; ====
-;;; Input Handling
-;;; ====
+(doc 'section 'input-handling)
 
-;;; read-input : → String | #f
-;;;
-;;; Read a line of input from the user.
-;;; Returns #f on EOF or empty input.
-;;;
-;;; Note: This is blocking. True non-blocking IO would require
-;;; char-ready? and more complex buffering. For now, we keep it simple.
 (define (read-input)
+  (doc 'type (-> (Maybe String)))
+  (doc 'description "Read a line of input from user - returns #f on EOF or empty input")
+  (doc 'note "Blocking IO - true non-blocking would require char-ready? and complex buffering")
   (display "> ")
   (flush-output-port (current-output-port))
   (let ([line (get-line (current-input-port))])
@@ -179,26 +150,7 @@
                     #f
                     trimmed)))))
 
-;;; NOTE: string-trim provided by core/prelude.ss
-
-;;; ====
-;;; Command Parsing
-;;; ====
-
-;;; parse-command : String → Command | #f
-;;;
-;;; Parse user input into a command using core/parse.ss combinators.
-;;;
-;;; Grammar:
-;;;   command := 'pet' | 'feed' | 'play' | 'talk' text? | 'sleep' | 'wake' | 'quit'
-;;;
-;;; Examples:
-;;;   "pet"          → (pet)
-;;;   "talk hello"   → (talk "hello")
-;;;   "quit"         → (quit)
-
-;;; text-rest : Parser String
-;;; Parse the rest of the input as text (everything after whitespace).
+(doc 'section 'command-parsing)
 (define text-rest
   (lambda (input)
           (let ([trimmed (string-trim input)])
@@ -238,19 +190,12 @@
            (result-value result)
            #f)))
 
-;;; ====
-;;; Time and Mood — The Tick
-;;; ====
+(doc 'section 'time-and-mood-the-tick)
 
-;;; tick : LoopState → LoopState
-;;;
-;;; Advance time by one frame:
-;;;   - Increment frame counter
-;;;   - Drain energy slightly (every 10 frames)
-;;;   - Drift mood toward lonely if no recent interaction (every 100 frames)
-;;;
-;;; This gives DUCKIE a sense of time passing.
 (define (tick state)
+  (doc 'type (-> LoopState LoopState))
+  (doc 'description "Advance time by one frame - drains energy, drifts mood, updates particles")
+  (doc 'note "Gives DUCKIE a sense of time passing")
   (let* ([frame (loop-state-frame state)]
          [new-frame (+ frame 1)]
          [duckie (loop-state-duckie state)]
@@ -281,19 +226,11 @@
          (loop-state-set-duckie state duckie)
          new-frame)))
 
-;;; ====
-;;; Command Handling
-;;; ====
+(doc 'section 'command-handling)
 
-;;; handle-command : LoopState × Command → LoopState
-;;;
-;;; Apply a command's effects to the DUCKIE state.
-;;; Each command:
-;;;   - Updates mood via mood-after-interaction
-;;;   - May restore/drain energy
-;;;   - Ages DUCKIE (counts interaction)
-;;;   - May set running flag to #f (quit)
 (define (handle-command state cmd)
+  (doc 'type (-> LoopState Command LoopState))
+  (doc 'description "Apply command effects to DUCKIE state - updates mood, energy, age, and running flag")
   (let ([cmd-type (command-type cmd)]
         [duckie (loop-state-duckie state)])
        (case cmd-type
@@ -397,15 +334,11 @@
         [(playful)  (display "DUCKIE is full of energy!")]
         [else       (display "DUCKIE exists.")]))
 
-;;; ====
-;;; Rendering — Drawing DUCKIE
-;;; ====
+(doc 'section 'rendering-drawing-duckie)
 
-;;; get-current-mood-color : LoopState → Color
-;;;
-;;; Get the current mood color, interpolating during transitions.
-;;; Transitions last 30 frames with smooth easing.
 (define (get-current-mood-color state)
+  (doc 'type (-> LoopState Color))
+  (doc 'description "Get current mood color with smooth 30-frame transitions using easing")
   (let* ([current-mood (duckie-mood (loop-state-duckie state))]
          [prev-mood (loop-state-prev-mood state)]
          [transition-start (loop-state-transition-start state)]
@@ -465,12 +398,9 @@
                                       color-default)])
         canvas))
 
-;;; render-duckie : LoopState → Canvas
-;;;
-;;; Draw DUCKIE's current state using a layered rendering system.
-;;; Layers are composited in depth order: background → sprite → UI.
-;;; Color expresses DUCKIE's emotional state.
 (define (render-duckie state)
+  (doc 'type (-> LoopState Canvas))
+  (doc 'description "Draw DUCKIE using layered rendering - background, sprite, particles, UI - color expresses emotional state")
   (let* ([duckie (loop-state-duckie state)]
          [canvas (loop-state-canvas state)]
          [frame (loop-state-frame state)]
@@ -547,15 +477,11 @@
                                        [final-canvas (flatten-layers stack width height)])
                                       final-canvas)))))))
 
-;;; ====
-;;; Display — Output to Terminal
-;;; ====
+(doc 'section 'display-output-to-terminal)
 
-;;; clear-screen : → ()
-;;;
-;;; Clear the terminal screen.
-;;; Uses ANSI escape sequence for portability.
 (define (clear-screen)
+  (doc 'type (-> Void))
+  (doc 'description "Clear terminal screen using ANSI escape sequence")
   (display "\x1b;[2J\x1b;[H")
   (flush-output-port (current-output-port)))
 
@@ -567,19 +493,11 @@
   (newline)
   (flush-output-port (current-output-port)))
 
-;;; ====
-;;; Main Loop
-;;; ====
+(doc 'section 'main-loop)
 
-;;; loop-iteration : LoopState → LoopState
-;;;
-;;; One iteration of the main loop:
-;;;   1. INPUT   — Read user command (if any)
-;;;   2. PARSE   — Understand the command
-;;;   3. UPDATE  — Apply command + tick time
-;;;   4. RENDER  — Draw DUCKIE
-;;;   5. DISPLAY — Show to user
 (define (loop-iteration state)
+  (doc 'type (-> LoopState LoopState))
+  (doc 'description "One iteration of main loop: INPUT → PARSE → UPDATE → RENDER → DISPLAY")
   ;; INPUT
   (let ([input (read-input)])
        ;; PARSE
@@ -598,11 +516,9 @@
                              (display-canvas canvas)
                              state)))))))
 
-;;; run-loop : LoopState → ()
-;;;
-;;; The heartbeat itself — the infinite loop.
-;;; Continues until running flag becomes #f.
 (define (run-loop state)
+  (doc 'type (-> LoopState Void))
+  (doc 'description "The heartbeat itself - infinite loop continuing until running flag becomes #f")
   (if (loop-state-running state)
       (let ([new-state (loop-iteration state)])
            (run-loop new-state))
@@ -610,15 +526,11 @@
        (display "DUCKIE's heart stops beating.")
        (newline))))
 
-;;; ====
-;;; Start and Stop
-;;; ====
+(doc 'section 'start-and-stop)
 
-;;; duckie-start : String → ()
-;;;
-;;; Initialize DUCKIE with a name and enter the main loop.
-;;; This is the moment DUCKIE comes to life.
 (define (duckie-start name)
+  (doc 'type (-> String Void))
+  (doc 'description "Initialize DUCKIE with a name and enter the main loop - the moment DUCKIE comes to life")
   (let* ([duckie (make-duckie name)]
          [canvas (make-canvas 60 20)]  ; 60x20 character canvas
          [initial-mood (duckie-mood duckie)]
@@ -644,11 +556,10 @@
          (read-line)
          (run-loop state))))
 
-;;; duckie-stop : LoopState → ()
-;;;
-;;; Clean shutdown — save state to disk.
-;;; Future: Use boundary/io/fs.ss to persist DUCKIE to CAS.
 (define (duckie-stop state)
+  (doc 'type (-> LoopState Void))
+  (doc 'description "Clean shutdown - save DUCKIE state to disk")
+  (doc 'todo "Use boundary/io/fs.ss to persist DUCKIE to CAS")
   (let ([duckie (loop-state-duckie state)])
        (begin
         (display "Saving DUCKIE's soul...")
@@ -661,9 +572,4 @@
         (display "Done. Until next time.")
         (newline))))
 
-;;; ====
-;;; Entry Point
-;;; ====
-
-;;; For testing — uncomment to run
-;;; (duckie-start "Proto")
+(doc 'section 'entry-point)
