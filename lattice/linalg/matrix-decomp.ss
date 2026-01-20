@@ -1,35 +1,20 @@
-;;; fabric/stitches/matrix-decomp.ss — Matrix Decompositions
-;;;
-;;; Fundamental matrix decomposition algorithms:
-;;;   - LU decomposition with partial pivoting
-;;;   - QR decomposition (modified Gram-Schmidt)
-;;;   - Cholesky decomposition
-;;;
-;;; This is Core code: pure (except where noted), total, assumes reasonable input.
-;;;
-;;; Dependencies (must be loaded by client in correct order):
-;;;   - prelude.ss
-;;;   - matrix.ss (which loads prelude.ss and vec.ss)
-;;;   - matrix-decomp.ss (this file)
-;;;
-;;; Do NOT load dependencies here to avoid redefinition issues.
+(doc 'module 'matrix-decomp)
+(doc 'description "Matrix Decompositions — Fundamental matrix decomposition algorithms: LU decomposition with partial pivoting, QR decomposition (modified Gram-Schmidt), Cholesky decomposition.")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
 
-;;; ====
-;;; Numerical Tolerance
-;;; ====
+(doc 'note "This is Core code: pure (except where noted), total, assumes reasonable input. Dependencies (must be loaded by client in correct order): prelude.ss, matrix.ss (which loads prelude.ss and vec.ss), matrix-decomp.ss (this file). Do NOT load dependencies here to avoid redefinition issues.")
 
-;;; Threshold for numerical stability checks (singularity, linear dependence)
+(doc 'section 'numerical-tolerance)
+
 (define *matrix-tolerance* 1e-10)
 
-;;; ====
-;;; Helper Functions
-;;; ====
+(doc 'section 'helper-functions)
 
-;;; Note: vec-norm and vec-dot are defined in vec.ss
-;;; This file assumes vec.ss is loaded (via matrix.ss dependency)
+(doc 'note "vec-norm and vec-dot are defined in vec.ss. This file assumes vec.ss is loaded (via matrix.ss dependency)")
 
-;;; matrix-copy : (Matrix Real) → (Matrix Real)
 (define (matrix-copy m)
+  (doc 'description "Copy a matrix to a new data structure.")
   (let* ([rows (matrix-rows m)]
          [cols (matrix-cols m)]
          [data (matrix-data m)]
@@ -38,27 +23,24 @@
             [(= i (* rows cols)) (list 'matrix rows cols new-data)]
             (vector-set! new-data i (vector-ref data i)))))
 
-;;; matrix-set! : (Matrix Real) × Nat × Nat × Real → Void
 (define (matrix-set! m i j val)
+  (doc 'description "Set matrix element at (i, j) to val (mutation).")
   (let ([cols (matrix-cols m)]
         [data (matrix-data m)])
        (vector-set! data (+ (* i cols) j) val)))
 
-;;; matrix-column : (Matrix Real) × Nat → (Vec Real)
 (define (matrix-column m j)
+  (doc 'description "Extract column j as a vector.")
   (let* ([rows (matrix-rows m)]
          [result (make-vector rows 0)])
         (do ([i 0 (+ i 1)])
             [(= i rows) result]
             (vector-set! result i (matrix-ref m i j)))))
 
+(doc 'section 'lu-decomposition)
 
-;;; ====
-;;; LU Decomposition
-;;; ====
-
-;;; matrix-lu : (Matrix Real) → ((Matrix Real) × (Matrix Real) × (Vec Nat)) | Error
 (define (matrix-lu a)
+  (doc 'description "LU decomposition with partial pivoting. Returns (L U P) where A = PLU, or error if matrix is singular.")
   (let* ([m (matrix-rows a)]
          [n (matrix-cols a)])
         (if (not (= m n))
@@ -124,10 +106,8 @@
                                              (find-pivot (+ i 1) i val)
                                              (find-pivot (+ i 1) max-row max-val)))))))))))
 
-;;; matrix-lu-solve : ((Matrix Real) × (Matrix Real) × (Vec Nat)) × (Vec Real) → (Vec Real)
-;;; Solve Ax = b given LU decomposition with permutation.
-;;; Algorithm: 1) Apply P to b, 2) Forward substitute Ly = Pb, 3) Back substitute Ux = y
 (define (matrix-lu-solve lu-result b)
+  (doc 'description "Solve Ax = b given LU decomposition with permutation. Algorithm: 1) Apply P to b, 2) Forward substitute Ly = Pb, 3) Back substitute Ux = y")
   (let* ([l (car lu-result)]
          [u (cadr lu-result)]
          [p (caddr lu-result)]
@@ -161,14 +141,10 @@
                  (vector-set! x i (/ (- (vector-ref y i) sum)
                                      (matrix-ref u i i)))))))
 
-;;; ====
-;;; QR Decomposition
-;;; ====
+(doc 'section 'qr-decomposition)
 
-;;; qr-find-orthogonal-basis : (Matrix Real) × Nat × Nat → (Vec Real) | #f
-;;; Find a unit vector orthogonal to columns 0..j-1 of Q.
-;;; Tries standard basis vectors e_0, e_1, ... until one works.
 (define (qr-find-orthogonal-basis q j m)
+  (doc 'description "Find a unit vector orthogonal to columns 0..j-1 of Q. Tries standard basis vectors e_0, e_1, ... until one works.")
   (let find-loop ([k 0])
        (if (= k m)
            #f  ; Failed to find orthogonal vector
@@ -186,9 +162,8 @@
                      (vec-scale (/ 1.0 v-norm) v)
                      (find-loop (+ k 1)))))))
 
-;;; qr-orthogonalize-remaining! : (Matrix Real) × (Matrix Real) × Nat × Nat × Nat → Void
-;;; Orthogonalize columns j+1..n-1 against column j.
 (define (qr-orthogonalize-remaining! q r j m n)
+  (doc 'description "Orthogonalize columns j+1..n-1 against column j.")
   (do ([i (+ j 1) (+ i 1)])
       [(= i n)]
       (let* ([col-i (matrix-column q i)]
@@ -201,14 +176,8 @@
                              (- (matrix-ref q row i)
                                 (* proj (matrix-ref q row j))))))))
 
-;;; matrix-qr : (Matrix Real) → ((Matrix Real) × (Matrix Real)) | Error
-;;;
-;;; QR decomposition using Modified Gram-Schmidt algorithm.
-;;; Handles singular/rank-deficient matrices gracefully by finding
-;;; orthogonal basis vectors when linear dependence is detected.
-;;; This allows eigenvalue algorithms to converge to 0 eigenvalues
-;;; for singular matrices like graph Laplacians.
 (define (matrix-qr a)
+  (doc 'description "QR decomposition using Modified Gram-Schmidt algorithm. Handles singular/rank-deficient matrices gracefully by finding orthogonal basis vectors when linear dependence is detected. This allows eigenvalue algorithms to converge to 0 eigenvalues for singular matrices like graph Laplacians.")
   (let* ([m (matrix-rows a)]
          [n (matrix-cols a)])
         (if (< m n)
@@ -245,13 +214,10 @@
                                      (qr-orthogonalize-remaining! q r j m n)
                                      (col-loop (+ j 1)))))))))))
 
-;;; ====
-;;; Cholesky Decomposition
-;;; ====
+(doc 'section 'cholesky-decomposition)
 
-;;; matrix-cholesky : (Matrix Real) → (List (Matrix Real)) | Error
-;;; Returns (list L) where A = L x L^T for positive-definite A.
 (define (matrix-cholesky a)
+  (doc 'description "Cholesky decomposition. Returns (list L) where A = L x L^T for positive-definite A.")
   (let ([n (matrix-rows a)])
        (if (not (= n (matrix-cols a)))
            `(error not-square ,(matrix-rows a) ,(matrix-cols a))
@@ -281,14 +247,10 @@
                                                                (matrix-ref l j j)))
                                          (col-loop (+ j 1))]))))))))))
 
-;;; ====
-;;; Determinant via LU Decomposition
-;;; ====
+(doc 'section 'determinant)
 
-;;; permutation-sign : (Vec Nat) → Int
-;;; Compute the sign of a permutation: (-1)^(number of inversions).
-;;; An inversion is a pair (i, j) where i < j but P[i] > P[j].
 (define (permutation-sign p)
+  (doc 'description "Compute the sign of a permutation: (-1)^(number of inversions). An inversion is a pair (i, j) where i < j but P[i] > P[j].")
   (let ([n (vector-length p)])
        (let outer ([i 0] [swaps 0])
             (if (= i n)
@@ -301,13 +263,8 @@
                                     (+ s 1)
                                     s))))))))
 
-;;; matrix-det : (Matrix Real) → Real | Error
-;;; Compute the determinant of a square matrix using LU decomposition.
-;;; det(A) = det(L) × det(U) × sign(P)
-;;;        = 1 × (product of U diagonal) × sign(P)
-;;;
-;;; Complexity: O(n³) via LU decomposition.
 (define (matrix-det a)
+  (doc 'description "Compute the determinant of a square matrix using LU decomposition. det(A) = det(L) × det(U) × sign(P) = 1 × (product of U diagonal) × sign(P). Complexity: O(n³) via LU decomposition.")
   (let ([result (matrix-lu a)])
        (if (and (pair? result) (eq? (car result) 'error))
            ;; Singular matrix has determinant 0
@@ -324,4 +281,3 @@
                               (* prod (permutation-sign p))
                               (loop (+ i 1)
                                     (* prod (matrix-ref u i i))))))))))
-

@@ -1,3 +1,5 @@
+(load "core/base/prelude.ss")
+
 (doc 'module 'avl-tree)
 (doc 'description "AVL Tree (Self-Balancing Binary Search Tree) — Purely functional AVL tree with O(log n) insert, delete, and lookup. Maintains balance invariant: |height(left) - height(right)| <= 1. AVL α = Empty | (Node height key value left right). Keys must be comparable with < (uses default ordering). For custom ordering, use avl-*-by functions with a comparator.")
 (doc 'layer 'lattice)
@@ -6,10 +8,9 @@
 
 (doc 'section 'core-representation)
 
-(define avl-empty
-  (doc 'type 'AVL)
-  (doc 'description "The empty AVL tree")
-  'avl-empty)
+(define avl-empty 'avl-empty)
+(doc avl-empty 'type 'AVL)
+(doc avl-empty 'description "The empty AVL tree")
 
 (define (avl-empty? tree)
   (doc 'type '(-> AVL Boolean))
