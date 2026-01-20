@@ -1,562 +1,617 @@
-;;; core/fp/measure/units.ss — Units of Measure Library
-;;;
-;;; Type-safe physical units using dimension types.
-;;; Based on the SI system of units.
-;;;
-;;; This is Core code: pure, total, assumes reasonable input.
-;;;
-;;; The 7 SI base dimensions:
-;;;   - Length (L)      — meter (m)
-;;;   - Time (T)        — second (s)
-;;;   - Mass (M)        — kilogram (kg)
-;;;   - Current (I)     — ampere (A)
-;;;   - Temperature (Θ) — kelvin (K)
-;;;   - Amount (N)      — mole (mol)
-;;;   - Luminosity (J)  — candela (cd)
-;;;
-;;; Dimensions are represented as 7-tuples of integer exponents:
-;;;   (L T M I Θ N J)
-;;;
-;;; Examples:
-;;;   Velocity = L¹ T⁻¹ → (1 -1 0 0 0 0 0)
-;;;   Force = M¹ L¹ T⁻² → (1 -2 1 0 0 0 0)
-;;;   Energy = M¹ L² T⁻² → (2 -2 1 0 0 0 0)
-;;;
-;;; Dependencies:
-;;;   - core/prelude.ss
-
 (load "core/base/prelude.ss")
 
-;;; ====
-;;; Dimension Type
-;;; ====
+(doc 'module 'units)
+(doc 'description "Type-safe physical units using dimension types. Based on the SI system of units.")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
 
-;;; A dimension is a 7-tuple of integer exponents:
-;;; (length time mass current temperature amount luminosity)
+(doc 'note "This is Core code: pure, total, assumes reasonable input.")
+(doc 'note "The 7 SI base dimensions:
+  - Length (L)      — meter (m)
+  - Time (T)        — second (s)
+  - Mass (M)        — kilogram (kg)
+  - Current (I)     — ampere (A)
+  - Temperature (Θ) — kelvin (K)
+  - Amount (N)      — mole (mol)
+  - Luminosity (J)  — candela (cd)
 
-;;; make-dim : Int × Int × Int × Int × Int × Int × Int → Dimension
+Dimensions are represented as 7-tuples of integer exponents:
+  (L T M I Θ N J)
+
+Examples:
+  Velocity = L¹ T⁻¹ → (1 -1 0 0 0 0 0)
+  Force = M¹ L¹ T⁻² → (1 -2 1 0 0 0 0)
+  Energy = M¹ L² T⁻² → (2 -2 1 0 0 0 0)")
+
+(doc 'section 'dimension-type)
+
+(doc 'note "A dimension is a 7-tuple of integer exponents:
+(length time mass current temperature amount luminosity)")
+
 (define (make-dim l t m i θ n j)
+  (doc 'type '(-> Int Int Int Int Int Int Int Dimension))
+  (doc 'description "Construct a dimension from seven integer exponents.")
   (list l t m i θ n j))
 
-;;; dim-length : Dimension → Int
-;;; Extract the length exponent from a dimension.
-(define (dim-length d)      (list-ref d 0))
+(define (dim-length d)
+  (doc 'type '(-> Dimension Int))
+  (doc 'description "Extract the length exponent from a dimension.")
+  (list-ref d 0))
 
-;;; dim-time : Dimension → Int
-;;; Extract the time exponent from a dimension.
-(define (dim-time d)        (list-ref d 1))
+(define (dim-time d)
+  (doc 'type '(-> Dimension Int))
+  (doc 'description "Extract the time exponent from a dimension.")
+  (list-ref d 1))
 
-;;; dim-mass : Dimension → Int
-;;; Extract the mass exponent from a dimension.
-(define (dim-mass d)        (list-ref d 2))
+(define (dim-mass d)
+  (doc 'type '(-> Dimension Int))
+  (doc 'description "Extract the mass exponent from a dimension.")
+  (list-ref d 2))
 
-;;; dim-current : Dimension → Int
-;;; Extract the current exponent from a dimension.
-(define (dim-current d)     (list-ref d 3))
+(define (dim-current d)
+  (doc 'type '(-> Dimension Int))
+  (doc 'description "Extract the current exponent from a dimension.")
+  (list-ref d 3))
 
-;;; dim-temperature : Dimension → Int
-;;; Extract the temperature exponent from a dimension.
-(define (dim-temperature d) (list-ref d 4))
+(define (dim-temperature d)
+  (doc 'type '(-> Dimension Int))
+  (doc 'description "Extract the temperature exponent from a dimension.")
+  (list-ref d 4))
 
-;;; dim-amount : Dimension → Int
-;;; Extract the amount exponent from a dimension.
-(define (dim-amount d)      (list-ref d 5))
+(define (dim-amount d)
+  (doc 'type '(-> Dimension Int))
+  (doc 'description "Extract the amount exponent from a dimension.")
+  (list-ref d 5))
 
-;;; dim-luminosity : Dimension → Int
-;;; Extract the luminosity exponent from a dimension.
-(define (dim-luminosity d)  (list-ref d 6))
+(define (dim-luminosity d)
+  (doc 'type '(-> Dimension Int))
+  (doc 'description "Extract the luminosity exponent from a dimension.")
+  (list-ref d 6))
 
-;;; dim? : Any → Boolean
-;;; Check if value is a valid dimension.
 (define (dim? d)
+  (doc 'type '(-> Any Boolean))
+  (doc 'description "Check if value is a valid dimension.")
   (and (list? d)
        (= (length d) 7)
        (andmap integer? d)))
 
-;;; dim=? : Dimension × Dimension → Boolean
-;;; Check if two dimensions are equal.
 (define (dim=? d1 d2)
+  (doc 'type '(-> Dimension Dimension Boolean))
+  (doc 'description "Check if two dimensions are equal.")
   (equal? d1 d2))
 
-;;; ====
-;;; SI Base Dimensions
-;;; ====
+(doc 'section 'si-base-dimensions)
 
-;;; dim-one : Dimension
-;;; Dimensionless (scalar)
+(doc dim-one 'type 'Dimension)
+(doc dim-one 'description "Dimensionless (scalar)")
 (define dim-one (make-dim 0 0 0 0 0 0 0))
 
-;;; dim-length-base : Dimension
-;;; Length — meter
+(doc dim-length-base 'type 'Dimension)
+(doc dim-length-base 'description "Length — meter")
 (define dim-length-base (make-dim 1 0 0 0 0 0 0))
 
-;;; dim-time-base : Dimension
-;;; Time — second
+(doc dim-time-base 'type 'Dimension)
+(doc dim-time-base 'description "Time — second")
 (define dim-time-base (make-dim 0 1 0 0 0 0 0))
 
-;;; dim-mass-base : Dimension
-;;; Mass — kilogram
+(doc dim-mass-base 'type 'Dimension)
+(doc dim-mass-base 'description "Mass — kilogram")
 (define dim-mass-base (make-dim 0 0 1 0 0 0 0))
 
-;;; dim-current-base : Dimension
-;;; Electric current — ampere
+(doc dim-current-base 'type 'Dimension)
+(doc dim-current-base 'description "Electric current — ampere")
 (define dim-current-base (make-dim 0 0 0 1 0 0 0))
 
-;;; dim-temperature-base : Dimension
-;;; Temperature — kelvin
+(doc dim-temperature-base 'type 'Dimension)
+(doc dim-temperature-base 'description "Temperature — kelvin")
 (define dim-temperature-base (make-dim 0 0 0 0 1 0 0))
 
-;;; dim-amount-base : Dimension
-;;; Amount of substance — mole
+(doc dim-amount-base 'type 'Dimension)
+(doc dim-amount-base 'description "Amount of substance — mole")
 (define dim-amount-base (make-dim 0 0 0 0 0 1 0))
 
-;;; dim-luminosity-base : Dimension
-;;; Luminous intensity — candela
+(doc dim-luminosity-base 'type 'Dimension)
+(doc dim-luminosity-base 'description "Luminous intensity — candela")
 (define dim-luminosity-base (make-dim 0 0 0 0 0 0 1))
 
-;;; ====
-;;; Dimension Arithmetic
-;;; ====
+(doc 'section 'dimension-arithmetic)
 
-;;; dim* : Dimension × Dimension → Dimension
-;;; Multiply dimensions (add exponents).
 (define (dim* d1 d2)
+  (doc 'type '(-> Dimension Dimension Dimension))
+  (doc 'description "Multiply dimensions (add exponents).")
   (map + d1 d2))
 
-;;; dim/ : Dimension × Dimension → Dimension
-;;; Divide dimensions (subtract exponents).
 (define (dim/ d1 d2)
+  (doc 'type '(-> Dimension Dimension Dimension))
+  (doc 'description "Divide dimensions (subtract exponents).")
   (map - d1 d2))
 
-;;; dim-pow : Dimension × Int → Dimension
-;;; Raise dimension to integer power.
 (define (dim-pow d n)
+  (doc 'type '(-> Dimension Int Dimension))
+  (doc 'description "Raise dimension to integer power.")
   (map (lambda (e) (* e n)) d))
 
-;;; dim-sqrt : Dimension → Dimension | #f
-;;; Square root of dimension (all exponents must be even).
 (define (dim-sqrt d)
+  (doc 'type '(-> Dimension (Maybe Dimension)))
+  (doc 'description "Square root of dimension (all exponents must be even).")
   (if (andmap even? d)
       (map (lambda (e) (quotient e 2)) d)
       #f))
 
-;;; dim-inv : Dimension → Dimension
-;;; Inverse of dimension (negate all exponents).
 (define (dim-inv d)
+  (doc 'type '(-> Dimension Dimension))
+  (doc 'description "Inverse of dimension (negate all exponents).")
   (map - d))
 
-;;; ====
-;;; Quantity Type
-;;; ====
+(doc 'section 'quantity-type)
 
-;;; A quantity is a value with a dimension.
-;;; Represented as (value . dimension).
+(doc 'note "A quantity is a value with a dimension.
+Represented as (value . dimension).")
 
-;;; make-qty : Number × Dimension → Quantity
 (define (make-qty value dim)
+  (doc 'type '(-> Number Dimension Quantity))
+  (doc 'description "Construct a quantity from a numeric value and dimension.")
   (cons value dim))
 
-;;; qty-value : Quantity → Number
-(define (qty-value q) (car q))
+(define (qty-value q)
+  (doc 'type '(-> Quantity Number))
+  (doc 'description "Extract the numeric value from a quantity.")
+  (car q))
 
-;;; qty-dim : Quantity → Dimension
-(define (qty-dim q) (cdr q))
+(define (qty-dim q)
+  (doc 'type '(-> Quantity Dimension))
+  (doc 'description "Extract the dimension from a quantity.")
+  (cdr q))
 
-;;; qty? : Any → Boolean
 (define (qty? q)
+  (doc 'type '(-> Any Boolean))
+  (doc 'description "Check if value is a valid quantity.")
   (and (pair? q)
        (number? (car q))
        (dim? (cdr q))))
 
-;;; ====
-;;; Quantity Arithmetic
-;;; ====
+(doc 'section 'quantity-arithmetic)
 
-;;; qty+ : Quantity × Quantity → Quantity | error
-;;; Add quantities (dimensions must match).
 (define (qty+ q1 q2)
+  (doc 'type '(-> Quantity Quantity (Result Quantity Error)))
+  (doc 'description "Add quantities (dimensions must match).")
   (if (dim=? (qty-dim q1) (qty-dim q2))
       (make-qty (+ (qty-value q1) (qty-value q2))
                 (qty-dim q1))
       (error 'qty+ "dimension mismatch")))
 
-;;; qty- : Quantity × Quantity → Quantity | error
-;;; Subtract quantities (dimensions must match).
 (define (qty- q1 q2)
+  (doc 'type '(-> Quantity Quantity (Result Quantity Error)))
+  (doc 'description "Subtract quantities (dimensions must match).")
   (if (dim=? (qty-dim q1) (qty-dim q2))
       (make-qty (- (qty-value q1) (qty-value q2))
                 (qty-dim q1))
       (error 'qty- "dimension mismatch")))
 
-;;; qty* : Quantity × Quantity → Quantity
-;;; Multiply quantities.
 (define (qty* q1 q2)
+  (doc 'type '(-> Quantity Quantity Quantity))
+  (doc 'description "Multiply quantities.")
   (make-qty (* (qty-value q1) (qty-value q2))
             (dim* (qty-dim q1) (qty-dim q2))))
 
-;;; qty/ : Quantity × Quantity → Quantity
-;;; Divide quantities.
 (define (qty/ q1 q2)
+  (doc 'type '(-> Quantity Quantity Quantity))
+  (doc 'description "Divide quantities.")
   (make-qty (/ (qty-value q1) (qty-value q2))
             (dim/ (qty-dim q1) (qty-dim q2))))
 
-;;; qty-scale : Quantity × Number → Quantity
-;;; Scale quantity by dimensionless factor.
 (define (qty-scale q n)
+  (doc 'type '(-> Quantity Number Quantity))
+  (doc 'description "Scale quantity by dimensionless factor.")
   (make-qty (* (qty-value q) n) (qty-dim q)))
 
-;;; qty-pow : Quantity × Int → Quantity
-;;; Raise quantity to integer power.
 (define (qty-pow q n)
+  (doc 'type '(-> Quantity Int Quantity))
+  (doc 'description "Raise quantity to integer power.")
   (let ([v (qty-value q)])
        (if (and (= v 0) (< n 0))
            (error 'qty-pow "division by zero: 0^(negative exponent)")
            (make-qty (expt v n)
                      (dim-pow (qty-dim q) n)))))
 
-;;; qty-sqrt : Quantity → Quantity | #f
-;;; Square root (dimension exponents must be even).
 (define (qty-sqrt q)
+  (doc 'type '(-> Quantity (Maybe Quantity)))
+  (doc 'description "Square root (dimension exponents must be even).")
   (let ([new-dim (dim-sqrt (qty-dim q))])
        (if new-dim
            (make-qty (sqrt (qty-value q)) new-dim)
            #f)))
 
-;;; qty-neg : Quantity → Quantity
-;;; Negate quantity value.
 (define (qty-neg q)
+  (doc 'type '(-> Quantity Quantity))
+  (doc 'description "Negate quantity value.")
   (make-qty (- (qty-value q)) (qty-dim q)))
 
-;;; qty-abs : Quantity → Quantity
-;;; Absolute value.
 (define (qty-abs q)
+  (doc 'type '(-> Quantity Quantity))
+  (doc 'description "Absolute value.")
   (make-qty (abs (qty-value q)) (qty-dim q)))
 
-;;; ====
-;;; Quantity Comparison
-;;; ====
+(doc 'section 'quantity-comparison)
 
-;;; qty=? : Quantity × Quantity → Boolean | error
-;;; Equal quantities (dimensions must match).
 (define (qty=? q1 q2)
+  (doc 'type '(-> Quantity Quantity (Result Boolean Error)))
+  (doc 'description "Equal quantities (dimensions must match).")
   (if (dim=? (qty-dim q1) (qty-dim q2))
       (= (qty-value q1) (qty-value q2))
       (error 'qty=? "dimension mismatch")))
 
-;;; qty<? : Quantity × Quantity → Boolean | error
 (define (qty<? q1 q2)
+  (doc 'type '(-> Quantity Quantity (Result Boolean Error)))
+  (doc 'description "Less than comparison (dimensions must match).")
   (if (dim=? (qty-dim q1) (qty-dim q2))
       (< (qty-value q1) (qty-value q2))
       (error 'qty<? "dimension mismatch")))
 
-;;; qty>? : Quantity × Quantity → Boolean | error
 (define (qty>? q1 q2)
+  (doc 'type '(-> Quantity Quantity (Result Boolean Error)))
+  (doc 'description "Greater than comparison (dimensions must match).")
   (if (dim=? (qty-dim q1) (qty-dim q2))
       (> (qty-value q1) (qty-value q2))
       (error 'qty>? "dimension mismatch")))
 
-;;; qty<=? : Quantity × Quantity → Boolean | error
 (define (qty<=? q1 q2)
+  (doc 'type '(-> Quantity Quantity (Result Boolean Error)))
+  (doc 'description "Less than or equal comparison (dimensions must match).")
   (if (dim=? (qty-dim q1) (qty-dim q2))
       (<= (qty-value q1) (qty-value q2))
       (error 'qty<=? "dimension mismatch")))
 
-;;; qty>=? : Quantity × Quantity → Boolean | error
 (define (qty>=? q1 q2)
+  (doc 'type '(-> Quantity Quantity (Result Boolean Error)))
+  (doc 'description "Greater than or equal comparison (dimensions must match).")
   (if (dim=? (qty-dim q1) (qty-dim q2))
       (>= (qty-value q1) (qty-value q2))
       (error 'qty>=? "dimension mismatch")))
 
-;;; ====
-;;; SI Base Units
-;;; ====
+(doc 'section 'si-base-units)
 
-;;; meter : Number → Quantity
-;;; Create a length quantity in meters.
 (define (meter x)
+  (doc 'type '(-> Number Quantity))
+  (doc 'description "Create a length quantity in meters.")
   (make-qty x dim-length-base))
 
-;;; second : Number → Quantity
-;;; Create a time quantity in seconds.
 (define (second x)
+  (doc 'type '(-> Number Quantity))
+  (doc 'description "Create a time quantity in seconds.")
   (make-qty x dim-time-base))
 
-;;; kilogram : Number → Quantity
-;;; Create a mass quantity in kilograms.
 (define (kilogram x)
+  (doc 'type '(-> Number Quantity))
+  (doc 'description "Create a mass quantity in kilograms.")
   (make-qty x dim-mass-base))
 
-;;; ampere : Number → Quantity
-;;; Create a current quantity in amperes.
 (define (ampere x)
+  (doc 'type '(-> Number Quantity))
+  (doc 'description "Create a current quantity in amperes.")
   (make-qty x dim-current-base))
 
-;;; kelvin : Number → Quantity
-;;; Create a temperature quantity in kelvin.
 (define (kelvin x)
+  (doc 'type '(-> Number Quantity))
+  (doc 'description "Create a temperature quantity in kelvin.")
   (make-qty x dim-temperature-base))
 
-;;; mole : Number → Quantity
-;;; Create an amount quantity in moles.
 (define (mole x)
+  (doc 'type '(-> Number Quantity))
+  (doc 'description "Create an amount quantity in moles.")
   (make-qty x dim-amount-base))
 
-;;; candela : Number → Quantity
-;;; Create a luminosity quantity in candelas.
 (define (candela x)
+  (doc 'type '(-> Number Quantity))
+  (doc 'description "Create a luminosity quantity in candelas.")
   (make-qty x dim-luminosity-base))
 
-;;; ====
-;;; Common Derived Dimensions
-;;; ====
+(doc 'section 'common-derived-dimensions)
 
-;;; dim-velocity : Dimension
-;;; Velocity: L/T
+(doc dim-velocity 'type 'Dimension)
+(doc dim-velocity 'description "Velocity: L/T")
 (define dim-velocity (dim/ dim-length-base dim-time-base))
 
-;;; dim-acceleration : Dimension
-;;; Acceleration: L/T²
+(doc dim-acceleration 'type 'Dimension)
+(doc dim-acceleration 'description "Acceleration: L/T²")
 (define dim-acceleration (dim/ dim-length-base (dim-pow dim-time-base 2)))
 
-;;; dim-force : Dimension
-;;; Force: M·L/T² (Newton)
+(doc dim-force 'type 'Dimension)
+(doc dim-force 'description "Force: M·L/T² (Newton)")
 (define dim-force (dim* dim-mass-base dim-acceleration))
 
-;;; dim-energy : Dimension
-;;; Energy: M·L²/T² (Joule)
+(doc dim-energy 'type 'Dimension)
+(doc dim-energy 'description "Energy: M·L²/T² (Joule)")
 (define dim-energy (dim* dim-mass-base
                          (dim/ (dim-pow dim-length-base 2)
                                (dim-pow dim-time-base 2))))
 
-;;; dim-power : Dimension
-;;; Power: M·L²/T³ (Watt)
+(doc dim-power 'type 'Dimension)
+(doc dim-power 'description "Power: M·L²/T³ (Watt)")
 (define dim-power (dim/ dim-energy dim-time-base))
 
-;;; dim-pressure : Dimension
-;;; Pressure: M/(L·T²) (Pascal)
+(doc dim-pressure 'type 'Dimension)
+(doc dim-pressure 'description "Pressure: M/(L·T²) (Pascal)")
 (define dim-pressure (dim/ dim-mass-base
                            (dim* dim-length-base (dim-pow dim-time-base 2))))
 
-;;; dim-frequency : Dimension
-;;; Frequency: 1/T (Hertz)
+(doc dim-frequency 'type 'Dimension)
+(doc dim-frequency 'description "Frequency: 1/T (Hertz)")
 (define dim-frequency (dim-inv dim-time-base))
 
-;;; dim-charge : Dimension
-;;; Electric charge: I·T (Coulomb)
+(doc dim-charge 'type 'Dimension)
+(doc dim-charge 'description "Electric charge: I·T (Coulomb)")
 (define dim-charge (dim* dim-current-base dim-time-base))
 
-;;; dim-voltage : Dimension
-;;; Voltage: M·L²/(T³·I) (Volt)
+(doc dim-voltage 'type 'Dimension)
+(doc dim-voltage 'description "Voltage: M·L²/(T³·I) (Volt)")
 (define dim-voltage (dim/ dim-power dim-current-base))
 
-;;; dim-resistance : Dimension
-;;; Resistance: M·L²/(T³·I²) (Ohm)
+(doc dim-resistance 'type 'Dimension)
+(doc dim-resistance 'description "Resistance: M·L²/(T³·I²) (Ohm)")
 (define dim-resistance (dim/ dim-voltage dim-current-base))
 
-;;; dim-area : Dimension
-;;; Area: L squared
+(doc dim-area 'type 'Dimension)
+(doc dim-area 'description "Area: L squared")
 (define dim-area (dim-pow dim-length-base 2))
 
-;;; dim-volume : Dimension
-;;; Volume: L cubed
+(doc dim-volume 'type 'Dimension)
+(doc dim-volume 'description "Volume: L cubed")
 (define dim-volume (dim-pow dim-length-base 3))
 
-;;; ====
-;;; Common Derived Units
-;;; ====
+(doc 'section 'common-derived-units)
 
-;;; newton : Number → Quantity
-;;; Force in newtons.
 (define (newton x)
+  (doc 'type '(-> Number Quantity))
+  (doc 'description "Force in newtons.")
   (make-qty x dim-force))
 
-;;; joule : Number → Quantity
-;;; Energy in joules.
 (define (joule x)
+  (doc 'type '(-> Number Quantity))
+  (doc 'description "Energy in joules.")
   (make-qty x dim-energy))
 
-;;; watt : Number → Quantity
-;;; Power in watts.
 (define (watt x)
+  (doc 'type '(-> Number Quantity))
+  (doc 'description "Power in watts.")
   (make-qty x dim-power))
 
-;;; pascal : Number → Quantity
-;;; Pressure in pascals.
 (define (pascal x)
+  (doc 'type '(-> Number Quantity))
+  (doc 'description "Pressure in pascals.")
   (make-qty x dim-pressure))
 
-;;; hertz : Number → Quantity
-;;; Frequency in hertz.
 (define (hertz x)
+  (doc 'type '(-> Number Quantity))
+  (doc 'description "Frequency in hertz.")
   (make-qty x dim-frequency))
 
-;;; coulomb : Number → Quantity
-;;; Electric charge in coulombs.
 (define (coulomb x)
+  (doc 'type '(-> Number Quantity))
+  (doc 'description "Electric charge in coulombs.")
   (make-qty x dim-charge))
 
-;;; volt : Number → Quantity
-;;; Voltage in volts.
 (define (volt x)
+  (doc 'type '(-> Number Quantity))
+  (doc 'description "Voltage in volts.")
   (make-qty x dim-voltage))
 
-;;; ohm : Number → Quantity
-;;; Resistance in ohms.
 (define (ohm x)
+  (doc 'type '(-> Number Quantity))
+  (doc 'description "Resistance in ohms.")
   (make-qty x dim-resistance))
 
-;;; ====
-;;; SI Prefixes
-;;; ====
+(doc 'section 'si-prefixes)
 
-;;; SI prefix multipliers
+(doc 'note "SI prefix multipliers")
 
-;;; yotta : Number
+(doc yotta 'type 'Number)
+(doc yotta 'description "10^24 multiplier")
 (define yotta 1e24)
-;;; zetta : Number
+
+(doc zetta 'type 'Number)
+(doc zetta 'description "10^21 multiplier")
 (define zetta 1e21)
-;;; exa : Number
+
+(doc exa 'type 'Number)
+(doc exa 'description "10^18 multiplier")
 (define exa   1e18)
-;;; peta : Number
+
+(doc peta 'type 'Number)
+(doc peta 'description "10^15 multiplier")
 (define peta  1e15)
-;;; tera : Number
+
+(doc tera 'type 'Number)
+(doc tera 'description "10^12 multiplier")
 (define tera  1e12)
-;;; giga : Number
+
+(doc giga 'type 'Number)
+(doc giga 'description "10^9 multiplier")
 (define giga  1e9)
-;;; mega : Number
+
+(doc mega 'type 'Number)
+(doc mega 'description "10^6 multiplier")
 (define mega  1e6)
-;;; kilo : Number
+
+(doc kilo 'type 'Number)
+(doc kilo 'description "10^3 multiplier")
 (define kilo  1e3)
-;;; hecto : Number
+
+(doc hecto 'type 'Number)
+(doc hecto 'description "10^2 multiplier")
 (define hecto 1e2)
-;;; deca : Number
+
+(doc deca 'type 'Number)
+(doc deca 'description "10^1 multiplier")
 (define deca  1e1)
-;;; deci : Number
+
+(doc deci 'type 'Number)
+(doc deci 'description "10^-1 multiplier")
 (define deci  1e-1)
-;;; centi : Number
+
+(doc centi 'type 'Number)
+(doc centi 'description "10^-2 multiplier")
 (define centi 1e-2)
-;;; milli : Number
+
+(doc milli 'type 'Number)
+(doc milli 'description "10^-3 multiplier")
 (define milli 1e-3)
-;;; micro : Number
+
+(doc micro 'type 'Number)
+(doc micro 'description "10^-6 multiplier")
 (define micro 1e-6)
-;;; nano : Number
+
+(doc nano 'type 'Number)
+(doc nano 'description "10^-9 multiplier")
 (define nano  1e-9)
-;;; pico : Number
+
+(doc pico 'type 'Number)
+(doc pico 'description "10^-12 multiplier")
 (define pico  1e-12)
-;;; femto : Number
+
+(doc femto 'type 'Number)
+(doc femto 'description "10^-15 multiplier")
 (define femto 1e-15)
-;;; atto : Number
+
+(doc atto 'type 'Number)
+(doc atto 'description "10^-18 multiplier")
 (define atto  1e-18)
-;;; zepto : Number
+
+(doc zepto 'type 'Number)
+(doc zepto 'description "10^-21 multiplier")
 (define zepto 1e-21)
-;;; yocto : Number
+
+(doc yocto 'type 'Number)
+(doc yocto 'description "10^-24 multiplier")
 (define yocto 1e-24)
 
-;;; Convenient prefixed units
+(doc 'note "Convenient prefixed units")
 
-;;; kilometer : Number → Quantity
-;;; Create a length quantity in kilometers.
-(define (kilometer x) (meter (* x kilo)))
+(define (kilometer x)
+  (doc 'type '(-> Number Quantity))
+  (doc 'description "Create a length quantity in kilometers.")
+  (meter (* x kilo)))
 
-;;; centimeter : Number → Quantity
-;;; Create a length quantity in centimeters.
-(define (centimeter x) (meter (* x centi)))
+(define (centimeter x)
+  (doc 'type '(-> Number Quantity))
+  (doc 'description "Create a length quantity in centimeters.")
+  (meter (* x centi)))
 
-;;; millimeter : Number → Quantity
-;;; Create a length quantity in millimeters.
-(define (millimeter x) (meter (* x milli)))
+(define (millimeter x)
+  (doc 'type '(-> Number Quantity))
+  (doc 'description "Create a length quantity in millimeters.")
+  (meter (* x milli)))
 
-;;; micrometer : Number → Quantity
-;;; Create a length quantity in micrometers.
-(define (micrometer x) (meter (* x micro)))
+(define (micrometer x)
+  (doc 'type '(-> Number Quantity))
+  (doc 'description "Create a length quantity in micrometers.")
+  (meter (* x micro)))
 
-;;; nanometer : Number → Quantity
-;;; Create a length quantity in nanometers.
-(define (nanometer x) (meter (* x nano)))
+(define (nanometer x)
+  (doc 'type '(-> Number Quantity))
+  (doc 'description "Create a length quantity in nanometers.")
+  (meter (* x nano)))
 
-;;; millisecond : Number → Quantity
-;;; Create a time quantity in milliseconds.
-(define (millisecond x) (second (* x milli)))
+(define (millisecond x)
+  (doc 'type '(-> Number Quantity))
+  (doc 'description "Create a time quantity in milliseconds.")
+  (second (* x milli)))
 
-;;; microsecond : Number → Quantity
-;;; Create a time quantity in microseconds.
-(define (microsecond x) (second (* x micro)))
+(define (microsecond x)
+  (doc 'type '(-> Number Quantity))
+  (doc 'description "Create a time quantity in microseconds.")
+  (second (* x micro)))
 
-;;; nanosecond : Number → Quantity
-;;; Create a time quantity in nanoseconds.
-(define (nanosecond x) (second (* x nano)))
+(define (nanosecond x)
+  (doc 'type '(-> Number Quantity))
+  (doc 'description "Create a time quantity in nanoseconds.")
+  (second (* x nano)))
 
-;;; gram : Number → Quantity
-;;; Create a mass quantity in grams.
-(define (gram x) (kilogram (* x milli)))
+(define (gram x)
+  (doc 'type '(-> Number Quantity))
+  (doc 'description "Create a mass quantity in grams.")
+  (kilogram (* x milli)))
 
-;;; milligram : Number → Quantity
-;;; Create a mass quantity in milligrams.
-(define (milligram x) (kilogram (* x micro)))
+(define (milligram x)
+  (doc 'type '(-> Number Quantity))
+  (doc 'description "Create a mass quantity in milligrams.")
+  (kilogram (* x micro)))
 
-;;; kilowatt : Number → Quantity
-;;; Create a power quantity in kilowatts.
-(define (kilowatt x) (watt (* x kilo)))
+(define (kilowatt x)
+  (doc 'type '(-> Number Quantity))
+  (doc 'description "Create a power quantity in kilowatts.")
+  (watt (* x kilo)))
 
-;;; megawatt : Number → Quantity
-;;; Create a power quantity in megawatts.
-(define (megawatt x) (watt (* x mega)))
+(define (megawatt x)
+  (doc 'type '(-> Number Quantity))
+  (doc 'description "Create a power quantity in megawatts.")
+  (watt (* x mega)))
 
-;;; gigawatt : Number → Quantity
-;;; Create a power quantity in gigawatts.
-(define (gigawatt x) (watt (* x giga)))
+(define (gigawatt x)
+  (doc 'type '(-> Number Quantity))
+  (doc 'description "Create a power quantity in gigawatts.")
+  (watt (* x giga)))
 
-;;; kilojoule : Number → Quantity
-;;; Create an energy quantity in kilojoules.
-(define (kilojoule x) (joule (* x kilo)))
+(define (kilojoule x)
+  (doc 'type '(-> Number Quantity))
+  (doc 'description "Create an energy quantity in kilojoules.")
+  (joule (* x kilo)))
 
-;;; megajoule : Number → Quantity
-;;; Create an energy quantity in megajoules.
-(define (megajoule x) (joule (* x mega)))
+(define (megajoule x)
+  (doc 'type '(-> Number Quantity))
+  (doc 'description "Create an energy quantity in megajoules.")
+  (joule (* x mega)))
 
-;;; milliampere : Number → Quantity
-;;; Create a current quantity in milliamperes.
-(define (milliampere x) (ampere (* x milli)))
+(define (milliampere x)
+  (doc 'type '(-> Number Quantity))
+  (doc 'description "Create a current quantity in milliamperes.")
+  (ampere (* x milli)))
 
-;;; microampere : Number → Quantity
-;;; Create a current quantity in microamperes.
-(define (microampere x) (ampere (* x micro)))
+(define (microampere x)
+  (doc 'type '(-> Number Quantity))
+  (doc 'description "Create a current quantity in microamperes.")
+  (ampere (* x micro)))
 
-;;; kilohertz : Number → Quantity
-;;; Create a frequency quantity in kilohertz.
-(define (kilohertz x) (hertz (* x kilo)))
+(define (kilohertz x)
+  (doc 'type '(-> Number Quantity))
+  (doc 'description "Create a frequency quantity in kilohertz.")
+  (hertz (* x kilo)))
 
-;;; megahertz : Number → Quantity
-;;; Create a frequency quantity in megahertz.
-(define (megahertz x) (hertz (* x mega)))
+(define (megahertz x)
+  (doc 'type '(-> Number Quantity))
+  (doc 'description "Create a frequency quantity in megahertz.")
+  (hertz (* x mega)))
 
-;;; gigahertz : Number → Quantity
-;;; Create a frequency quantity in gigahertz.
-(define (gigahertz x) (hertz (* x giga)))
+(define (gigahertz x)
+  (doc 'type '(-> Number Quantity))
+  (doc 'description "Create a frequency quantity in gigahertz.")
+  (hertz (* x giga)))
 
-;;; kilovolt : Number → Quantity
-;;; Create a voltage quantity in kilovolts.
-(define (kilovolt x) (volt (* x kilo)))
+(define (kilovolt x)
+  (doc 'type '(-> Number Quantity))
+  (doc 'description "Create a voltage quantity in kilovolts.")
+  (volt (* x kilo)))
 
-;;; millivolt : Number → Quantity
-;;; Create a voltage quantity in millivolts.
-(define (millivolt x) (volt (* x milli)))
+(define (millivolt x)
+  (doc 'type '(-> Number Quantity))
+  (doc 'description "Create a voltage quantity in millivolts.")
+  (volt (* x milli)))
 
-;;; kiloohm : Number → Quantity
-;;; Create a resistance quantity in kiloohms.
-(define (kiloohm x) (ohm (* x kilo)))
+(define (kiloohm x)
+  (doc 'type '(-> Number Quantity))
+  (doc 'description "Create a resistance quantity in kiloohms.")
+  (ohm (* x kilo)))
 
-;;; megaohm : Number → Quantity
-;;; Create a resistance quantity in megaohms.
-(define (megaohm x) (ohm (* x mega)))
+(define (megaohm x)
+  (doc 'type '(-> Number Quantity))
+  (doc 'description "Create a resistance quantity in megaohms.")
+  (ohm (* x mega)))
 
-;;; ====
-;;; Dimension Display
-;;; ====
+(doc 'section 'dimension-display)
 
-;;; dim->string : Dimension → String
-;;; Display dimension in standard notation.
 (define (dim->string d)
+  (doc 'type '(-> Dimension String))
+  (doc 'description "Display dimension in standard notation.")
   (let ([names '("m" "s" "kg" "A" "K" "mol" "cd")]
         [exps d])
        (let loop ([i 0] [parts '()])
@@ -573,51 +628,46 @@
                             [else (cons (string-append name "^" (number->string exp))
                                         parts)])))))))
 
-;;; qty->string : Quantity → String
-;;; Display quantity with units.
 (define (qty->string q)
+  (doc 'type '(-> Quantity String))
+  (doc 'description "Display quantity with units.")
   (string-append (number->string (qty-value q))
                  " "
                  (dim->string (qty-dim q))))
 
-;;; ====
-;;; Dimensionless Quantities
-;;; ====
+(doc 'section 'dimensionless-quantities)
 
-;;; scalar : Number → Quantity
-;;; Create a dimensionless quantity.
 (define (scalar x)
+  (doc 'type '(-> Number Quantity))
+  (doc 'description "Create a dimensionless quantity.")
   (make-qty x dim-one))
 
-;;; qty-dimensionless? : Quantity → Boolean
-;;; Check if quantity is dimensionless.
 (define (qty-dimensionless? q)
+  (doc 'type '(-> Quantity Boolean))
+  (doc 'description "Check if quantity is dimensionless.")
   (dim=? (qty-dim q) dim-one))
 
-;;; qty->number : Quantity → Number | error
-;;; Extract number from dimensionless quantity.
 (define (qty->number q)
+  (doc 'type '(-> Quantity (Result Number Error)))
+  (doc 'description "Extract number from dimensionless quantity.")
   (if (qty-dimensionless? q)
       (qty-value q)
       (error 'qty->number "quantity has dimension")))
 
-;;; ====
-;;; Unit Conversions
-;;; ====
+(doc 'section 'unit-conversions)
 
-;;; convert : Quantity × Quantity → Number
-;;; Convert quantity to different unit (same dimension).
-;;; Returns the numeric factor.
-;;; Example: (convert (kilometer 1) (meter 1)) → 1000
 (define (convert q unit)
+  (doc 'type '(-> Quantity Quantity Number))
+  (doc 'description "Convert quantity to different unit (same dimension). Returns the numeric factor.")
+  (doc 'note "Example: (convert (kilometer 1) (meter 1)) → 1000")
   (if (dim=? (qty-dim q) (qty-dim unit))
       (/ (qty-value q) (qty-value unit))
       (error 'convert "dimension mismatch")))
 
-;;; in-units : Quantity × (Number → Quantity) → Number
-;;; Express quantity in given units.
-;;; Example: (in-units (kilometer 5) meter) → 5000
 (define (in-units q unit-fn)
+  (doc 'type '(-> Quantity (-> Number Quantity) Number))
+  (doc 'description "Express quantity in given units.")
+  (doc 'note "Example: (in-units (kilometer 5) meter) → 5000")
   (let ([unit (unit-fn 1)])
        (if (dim=? (qty-dim q) (qty-dim unit))
            (/ (qty-value q) (qty-value unit))

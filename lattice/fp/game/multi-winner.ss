@@ -1,33 +1,16 @@
-;;; lattice/fp/game/multi-winner.ss — Multi-Winner Voting Methods
-;;;
-;;; Extends voting.ss with proportional representation methods for selecting
-;;; committees or diverse option sets. Implements:
-;;;
-;;;   - Single Transferable Vote (STV) with Droop/Hare quotas
-;;;   - Approval voting (voters approve multiple candidates)
-;;;   - Proportional Approval Voting (PAV) for better proportionality
-;;;   - Monroe method for proportional committee selection
-;;;   - Chamberlin-Courant method for representative diversity
-;;;
-;;; Key concepts:
-;;;   - Quota: Minimum votes needed for election (Droop, Hare)
-;;;   - Transfer value: Fractional weight when surplus votes transfer
-;;;   - Approval profile: Each voter's set of approved candidates
-;;;   - Representation: Which elected candidate "represents" each voter
-;;;
-;;; This is Lattice code: pure functions, no side effects.
-
 (load "lattice/fp/game/voting.ss")
 
-;;; ============================================================================
-;;; Quotas for Multi-Winner Elections
-;;; ============================================================================
+(doc 'module 'multi-winner)
+(doc 'description "Proportional representation methods for selecting committees or diverse option sets. Implements Single Transferable Vote (STV) with Droop/Hare quotas, approval voting, Proportional Approval Voting (PAV), Monroe method, and Chamberlin-Courant method")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
+(doc 'note "Key concepts: quota (minimum votes needed for election - Droop, Hare), transfer value (fractional weight when surplus votes transfer), approval profile (each voter's set of approved candidates), representation (which elected candidate represents each voter)")
 
-;;; droop-quota : Nat × Nat → Nat
-;;; Droop quota: floor(votes / (seats + 1)) + 1
-;;; Most common quota - ensures at most k candidates can meet quota.
-;;; Example: 100 voters, 5 seats → floor(100/6) + 1 = 17
+(doc 'section 'quotas)
+
 (define (droop-quota num-voters num-seats)
+  (doc 'type '(-> Nat Nat Nat))
+  (doc 'description "Droop quota: floor(votes / (seats + 1)) + 1. Most common quota - ensures at most k candidates can meet quota. Example: 100 voters, 5 seats → floor(100/6) + 1 = 17")
   (+ (floor (/ num-voters (+ num-seats 1))) 1))
 
 ;;; hare-quota : Nat × Nat → Nat
@@ -37,11 +20,8 @@
 (define (hare-quota num-voters num-seats)
   (floor (/ num-voters num-seats)))
 
-;;; ============================================================================
-;;; Single Transferable Vote (STV)
-;;; ============================================================================
-
-;;; STV uses ranked preferences to elect k candidates proportionally.
+(doc 'section 'stv)
+(doc 'note "STV uses ranked preferences to elect k candidates proportionally.")
 ;;; Algorithm:
 ;;;   1. Count first preferences for each remaining candidate
 ;;;   2. If a candidate meets quota, elect them
@@ -160,11 +140,8 @@
 (define (stv-hare profile num-seats)
   (stv profile num-seats hare-quota))
 
-;;; ============================================================================
-;;; Approval Voting
-;;; ============================================================================
-
-;;; In approval voting, each voter submits a set of approved candidates.
+(doc 'section 'approval-voting)
+(doc 'note "In approval voting, each voter submits a set of approved candidates.")
 ;;; For multi-winner: select k candidates with most approvals.
 ;;;
 ;;; Approval profile: list of (Set Candidate) where each set is one voter's approvals.
@@ -210,11 +187,8 @@
       '()
       (cons (car lst) (take-up-to (- n 1) (cdr lst)))))
 
-;;; ============================================================================
-;;; Proportional Approval Voting (PAV)
-;;; ============================================================================
-
-;;; PAV uses a diminishing returns scoring function to achieve proportionality.
+(doc 'section 'pav)
+(doc 'note "PAV uses a diminishing returns scoring function to achieve proportionality.")
 ;;; Each voter's contribution to a candidate's score decreases based on how
 ;;; many candidates they've already helped elect.
 ;;;
@@ -277,11 +251,8 @@
          [sorted (sort (lambda (a b) (> (cdr a) (cdr b))) scores)])
     (take-up-to num-seats (map car sorted))))
 
-;;; ============================================================================
-;;; Monroe Method
-;;; ============================================================================
-
-;;; Monroe method assigns each voter to exactly one representative.
+(doc 'section 'monroe)
+(doc 'note "Monroe method assigns each voter to exactly one representative.")
 ;;; Goal: maximize total satisfaction where each committee member
 ;;; represents approximately n/k voters.
 ;;;
@@ -343,11 +314,8 @@
       0
       (apply max (map (lambda (e) (voter-satisfaction ranking e num-candidates)) elected))))
 
-;;; ============================================================================
-;;; Chamberlin-Courant Method
-;;; ============================================================================
-
-;;; Chamberlin-Courant is like Monroe but doesn't require equal representation.
+(doc 'section 'chamberlin-courant)
+(doc 'note "Chamberlin-Courant is like Monroe but doesn't require equal representation.")
 ;;; Each voter is represented by their most-preferred elected candidate.
 ;;; Goal: maximize sum of satisfactions.
 ;;;

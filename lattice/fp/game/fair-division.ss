@@ -1,44 +1,22 @@
-;;; lattice/fp/game/fair-division.ss — Fair Division Algorithms
-;;;
-;;; Implements algorithms for fairly dividing divisible and indivisible goods.
-;;; Covers cake cutting protocols, envy-free allocation, proportional division,
-;;; and the adjusted winner procedure.
-;;;
-;;; This is Lattice code: pure, total, assumes reasonable input.
-;;;
-;;; Key concepts:
-;;;   - Cake: Continuous resource [0, 1] with valuation functions
-;;;   - Piece: Interval(s) assigned to a player
-;;;   - Envy-free: No player prefers another's piece
-;;;   - Proportional: Each of n players gets >= 1/n of their value
-;;;   - Equitable: All players receive same utility (after normalization)
-;;;
-;;; Dependencies:
-;;;   - core/base/prelude.ss
-
 (load "core/base/prelude.ss")
 (load "lattice/linalg/vec.ss")
 
-;;; ============================================================================
-;;; Cake Representation
-;;; ============================================================================
-;;;
-;;; A cake is a continuous resource represented as the interval [0, 1].
-;;; Each player has a valuation function v: [0,1] × [0,1] → Real
-;;; where v(a, b) is the value they assign to interval [a, b].
-;;;
-;;; For simplicity, we represent valuations via value density functions
-;;; f: [0,1] → Real where v(a,b) = ∫_a^b f(x) dx.
-;;; We approximate integrals using trapezoidal rule.
+(doc 'module 'fair-division)
+(doc 'description "Algorithms for fairly dividing divisible and indivisible goods. Covers cake cutting protocols, envy-free allocation, proportional division, and the adjusted winner procedure")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
+(doc 'note "Key concepts: cake (continuous resource [0, 1] with valuation functions), piece (interval(s) assigned to a player), envy-free (no player prefers another's piece), proportional (each of n players gets >= 1/n of their value), equitable (all players receive same utility after normalization)")
 
-;;; make-cake : Nat → Cake
-;;; Create a cake to be divided among n players.
-;;; Initially no valuations assigned.
+(doc 'section 'cake-representation)
+(doc 'note "A cake is a continuous resource represented as the interval [0, 1]. Each player has a valuation function v: [0,1] × [0,1] → Real where v(a, b) is the value they assign to interval [a, b]. For simplicity, we represent valuations via value density functions f: [0,1] → Real where v(a,b) = ∫_a^b f(x) dx. We approximate integrals using trapezoidal rule")
+
 (define-record-type cake%
   (fields n            ; number of players
           valuations)) ; vector of valuation functions (density)
 
 (define (make-cake n)
+  (doc 'type '(-> Nat Cake))
+  (doc 'description "Create a cake to be divided among n players. Initially no valuations assigned")
   (make-cake% n (make-vector n #f)))
 
 ;;; cake? : Any → Boolean
@@ -214,18 +192,11 @@
          [total-length (fold-left + 0 (map (lambda (i) (- (cdr i) (car i))) intervals))])
     (>= total-length (- 1 1e-10))))
 
-;;; ============================================================================
-;;; Cut-and-Choose (2 Players)
-;;; ============================================================================
-;;;
-;;; The classic protocol for 2-player fair division:
-;;; 1. Player 0 (cutter) divides cake into two equal-value pieces
-;;; 2. Player 1 (chooser) picks their preferred piece
-;;; 3. Player 0 gets the remaining piece
-;;;
-;;; Properties: Proportional, envy-free (for chooser), simple.
+(doc 'section 'cut-and-choose)
+(doc 'note "The classic protocol for 2-player fair division: (1) Player 0 (cutter) divides cake into two equal-value pieces, (2) Player 1 (chooser) picks their preferred piece, (3) Player 0 gets the remaining piece. Properties: Proportional, envy-free (for chooser), simple")
 
-;;; find-cut-point : Cake × Nat × Real → Real
+(define (find-cut-point c i target fuel)
+  (doc 'type '(-> Cake Nat Real Real))
 ;;; Find point x where player i values [0,x] at target value.
 ;;; Uses binary search.
 (define (find-cut-point c i target fuel)
@@ -276,18 +247,11 @@
               (division-assign! div cutter piece-left)
               div)))))
 
-;;; ============================================================================
-;;; Dubins-Spanier (Moving Knife) Protocol
-;;; ============================================================================
-;;;
-;;; For n players, achieves proportional division:
-;;; 1. A knife moves continuously from left to right
-;;; 2. First player to say "stop" gets the piece [0, x]
-;;; 3. Recurse with n-1 players on remaining cake [x, 1]
-;;;
-;;; Properties: Proportional (but NOT envy-free for n > 2).
+(doc 'section 'dubins-spanier)
+(doc 'note "For n players, achieves proportional division: (1) A knife moves continuously from left to right, (2) First player to say stop gets the piece [0, x], (3) Recurse with n-1 players on remaining cake [x, 1]. Properties: Proportional (but NOT envy-free for n > 2)")
 
-;;; dubins-spanier : Cake × Nat → Division
+(define (dubins-spanier c fuel)
+  (doc 'type '(-> Cake Nat Division))
 ;;; Perform Dubins-Spanier moving knife protocol.
 ;;; fuel bounds search iterations.
 (define (dubins-spanier c fuel)
@@ -361,25 +325,12 @@
 (define (remove x lst)
   (filter (lambda (y) (not (equal? x y))) lst))
 
-;;; ============================================================================
-;;; Selfridge-Conway Protocol (3 Players, Envy-Free)
-;;; ============================================================================
-;;;
-;;; For exactly 3 players, achieves envy-free division:
-;;; 1. Player A divides cake into 3 equal pieces (by their valuation)
-;;; 2. Player B trims largest piece to tie for largest (trimmings set aside)
-;;; 3. Player C picks first, then B (must take trimmed if didn't pick it), then A
-;;; 4. Trimmings divided by similar process
-;;;
-;;; This is the first bounded envy-free protocol for 3 players (1960s).
-;;;
-;;; IMPLEMENTATION NOTE: This is a SIMPLIFIED implementation. The full protocol
-;;; requires a complex sub-routine for dividing trimmings that recursively
-;;; ensures envy-freeness. Our simplified version assigns trimmings heuristically,
-;;; which guarantees proportionality but may not achieve strict envy-freeness
-;;; in adversarial cases with extreme opposing valuations.
+(doc 'section 'selfridge-conway)
+(doc 'note "For exactly 3 players, achieves envy-free division: (1) Player A divides cake into 3 equal pieces (by their valuation), (2) Player B trims largest piece to tie for largest (trimmings set aside), (3) Player C picks first, then B (must take trimmed if didn't pick it), then A, (4) Trimmings divided by similar process. This is the first bounded envy-free protocol for 3 players (1960s)")
+(doc 'fixme "SIMPLIFIED implementation. The full protocol requires a complex sub-routine for dividing trimmings that recursively ensures envy-freeness. Our simplified version assigns trimmings heuristically, which guarantees proportionality but may not achieve strict envy-freeness in adversarial cases with extreme opposing valuations")
 
-;;; selfridge-conway : Cake × Nat → Division
+(define (selfridge-conway c fuel)
+  (doc 'type '(-> Cake Nat Division))
 ;;; 3-player division using simplified Selfridge-Conway protocol.
 ;;; Guarantees proportionality; envy-freeness is approximate.
 (define (selfridge-conway c fuel)
@@ -500,19 +451,8 @@
       [(> (car lst) max-val) (loop (cdr lst) (+ i 1) (car lst) i)]
       [else (loop (cdr lst) (+ i 1) max-val max-idx)])))
 
-;;; ============================================================================
-;;; Adjusted Winner Procedure (2 Players, Multiple Goods)
-;;; ============================================================================
-;;;
-;;; For 2 players dividing multiple goods:
-;;; 1. Each player assigns points to goods (must sum to 100)
-;;; 2. Give each good to whoever values it more
-;;; 3. Transfer goods to balance total points received
-;;; 4. May need to split one good at a specific ratio
-;;;
-;;; Properties: Envy-free, equitable, Pareto optimal.
-
-;;; adjusted-winner-problem : Record
+(doc 'section 'adjusted-winner)
+(doc 'note "For 2 players dividing multiple goods: (1) Each player assigns points to goods (must sum to 100), (2) Give each good to whoever values it more, (3) Transfer goods to balance total points received, (4) May need to split one good at a specific ratio. Properties: Envy-free, equitable, Pareto optimal")
 ;;; goods: vector of good names
 ;;; points: 2×n matrix of point allocations
 (define-record-type adjusted-winner-problem%
@@ -659,16 +599,8 @@
                  (cons (vector-ref goods (car x)) (cdr x)))
                alloc)))
 
-;;; ============================================================================
-;;; Discrete Fair Division (Indivisible Goods)
-;;; ============================================================================
-;;;
-;;; When goods are indivisible, envy-freeness may be impossible.
-;;; We use relaxations like:
-;;;   - Envy-free up to one good (EF1): after removing one good, no envy
-;;;   - Maximin share guarantee: each gets >= their maximin share
-
-;;; make-discrete-problem : (List Symbol) × (Matrix Real) → DiscreteProblem
+(doc 'section 'discrete-fair-division)
+(doc 'note "When goods are indivisible, envy-freeness may be impossible. We use relaxations like: envy-free up to one good (EF1) - after removing one good, no envy; maximin share guarantee - each gets >= their maximin share")
 ;;; Matrix: row i = player i's valuation of each good
 (define-record-type discrete-problem%
   (fields goods valuations))

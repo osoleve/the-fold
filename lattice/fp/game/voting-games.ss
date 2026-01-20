@@ -1,37 +1,18 @@
-;;; lattice/fp/game/voting-games.ss — Bridge between Voting Theory and Cooperative Games
-;;;
-;;; This module connects social choice (voting.ss) with cooperative game theory
-;;; (coop-games.ss). The key insight: voting rules induce simple games where
-;;; coalitions are "winning" if they can determine the election outcome.
-;;;
-;;; Key concepts:
-;;;   - Simple game: v(S) ∈ {0, 1}, monotonic (S ⊆ T ⟹ v(S) ≤ v(T))
-;;;   - Winning coalition: v(S) = 1 (can guarantee preferred candidate wins)
-;;;   - Power index: Measures a voter's ability to influence outcomes
-;;;   - Shapley-Shubik: Based on random orderings of voters
-;;;   - Banzhaf: Based on counting swing votes
-;;;
-;;; The connection:
-;;;   Given a voting rule R and preference profile P:
-;;;   - Coalition S is "winning" if members of S voting together can
-;;;     guarantee any candidate they choose wins (regardless of non-members)
-;;;   - For plurality with n voters: S is winning iff |S| > n/2
-;;;   - For other rules: winning conditions depend on the rule's structure
-;;;
-;;; This is Lattice code: pure, total, assumes reasonable input.
-
 (load "lattice/fp/game/voting.ss")
 (load "lattice/fp/game/coop-games.ss")
 
-;;; ============================================================================
-;;; Profile to Simple Game Conversion
-;;; ============================================================================
+(doc 'module 'voting-games)
+(doc 'description "Bridge between voting theory and cooperative game theory. The key insight: voting rules induce simple games where coalitions are 'winning' if they can determine the election outcome")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
+(doc 'note "Key concepts: simple game (v(S) ∈ {0, 1}, monotonic S ⊆ T ⟹ v(S) ≤ v(T)), winning coalition (v(S) = 1, can guarantee preferred candidate wins), power index (measures a voter's ability to influence outcomes), Shapley-Shubik (based on random orderings of voters), Banzhaf (based on counting swing votes)")
+(doc 'note "The connection: Given a voting rule R and preference profile P, coalition S is winning if members of S voting together can guarantee any candidate they choose wins (regardless of non-members). For plurality with n voters: S is winning iff |S| > n/2. For other rules: winning conditions depend on the rule's structure")
 
-;;; profile->majority-game : PreferenceProfile → CoopGame
-;;; Convert a preference profile to a simple majority game.
-;;; Coalition S is winning iff |S| > n/2 (can control plurality outcome).
-;;; This is the classical model: each voter has equal weight.
+(doc 'section 'profile-conversion)
+
 (define (profile->majority-game profile)
+  (doc 'type '(-> PreferenceProfile CoopGame))
+  (doc 'description "Convert a preference profile to a simple majority game. Coalition S is winning iff |S| > n/2 (can control plurality outcome). This is the classical model: each voter has equal weight")
   (let* ([n (profile-voters profile)]
          [quota (+ (quotient n 2) 1)])  ; strict majority
     (make-coop-game
@@ -114,15 +95,11 @@
     ;; Check if target wins under this configuration
     (eq? target-candidate (voting-rule modified-profile))))
 
-;;; ============================================================================
-;;; Voter Power Indices
-;;; ============================================================================
+(doc 'section 'power-indices)
 
-;;; shapley-shubik-index : PreferenceProfile → (Vector Real)
-;;; Shapley-Shubik power index for voters based on induced majority game.
-;;; This measures the probability that a voter is "pivotal" (turns a losing
-;;; coalition into a winning one) under random orderings.
 (define (shapley-shubik-index profile)
+  (doc 'type '(-> PreferenceProfile (Vector Real)))
+  (doc 'description "Shapley-Shubik power index for voters based on induced majority game. This measures the probability that a voter is pivotal (turns a losing coalition into a winning one) under random orderings")
   (let* ([game (profile->majority-game profile)]
          [n (profile-voters profile)]
          [fuel (expt 2 n)])  ; Enough fuel for all coalitions
@@ -154,13 +131,11 @@
          [fuel (* n (expt 2 n))])
     (banzhaf-index game fuel)))
 
-;;; ============================================================================
-;;; Power Analysis
-;;; ============================================================================
+(doc 'section 'power-analysis)
 
-;;; voter-is-dictator? : PreferenceProfile × Nat → Boolean
-;;; Is voter i a dictator? (singleton coalition is winning)
 (define (voter-is-dictator? profile voter-idx)
+  (doc 'type '(-> PreferenceProfile Nat Boolean))
+  (doc 'description "Is voter i a dictator? (singleton coalition is winning)")
   (let ([game (profile->majority-game profile)])
     (is-winning? game (coalition-singleton voter-idx))))
 
@@ -248,13 +223,11 @@
                     (+ i 1)
                     (+ numerator (* (- (* 2 i) n 1) (car items)))))))))
 
-;;; ============================================================================
-;;; Strategic Implications
-;;; ============================================================================
+(doc 'section 'strategic-implications)
 
-;;; decisive-for-candidate : PreferenceProfile × (Profile → Candidate) × Candidate → (List Coalition)
-;;; Find coalitions that can guarantee candidate c wins by voting strategically.
 (define (decisive-for-candidate profile voting-rule candidate)
+  (doc 'type '(-> PreferenceProfile (Profile -> Candidate) Candidate (List Coalition)))
+  (doc 'description "Find coalitions that can guarantee candidate c wins by voting strategically")
   (let* ([n (profile-voters profile)]
          [candidates (profile-candidates profile)]
          [others (remove candidate candidates)]
@@ -310,11 +283,8 @@
              (not (eq? winner candidate)))))
      (map (lambda (i) i) (iota (+ grand 1))))))
 
-;;; ============================================================================
-;;; Electoral College Modeling
-;;; ============================================================================
-
-;;; Model multi-level voting systems like the US Electoral College.
+(doc 'section 'electoral-college)
+(doc 'note "Model multi-level voting systems like the US Electoral College.")
 ;;; Each state is a "block" of voters with a weight (electoral votes).
 
 ;;; make-electoral-college-game : (List (Pair Symbol Nat)) → CoopGame

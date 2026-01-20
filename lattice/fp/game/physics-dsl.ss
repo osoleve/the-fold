@@ -1,52 +1,24 @@
-;;; core/fp/game/physics-dsl.ss — Physics Simulation DSL via Free Monad
-;;;
-;;; A domain-specific language for physics simulations built on the Free monad.
-;;; Separates simulation description from execution, enabling multiple interpreters:
-;;;   - Deterministic: Direct execution using the physics engine
-;;;   - Stochastic: Adds random noise for uncertainty modeling
-;;;   - Logging: Records all commands for replay/debugging
-;;;   - Pure: Functional state threading for testing/autodiff
-;;;
-;;; This is Core code: pure, total, assumes reasonable input.
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;   - fp/control/free.ss
-;;;   - linalg/vec2.ss
-;;;   - physics/world.ss (for interpreters)
-
 (load "core/base/prelude.ss")
 (load "lattice/fp/control/free.ss")
 (load "lattice/linalg/vec2.ss")
 
-;;; Load physics engine components for entity/body structures
+(doc 'module 'physics-dsl)
+(doc 'description "Domain-specific language for physics simulations built on the Free monad. Separates simulation description from execution, enabling multiple interpreters: deterministic, stochastic, logging, and pure")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
+(doc 'note "Interpreters: Deterministic (direct execution using the physics engine), Stochastic (adds random noise for uncertainty modeling), Logging (records all commands for replay/debugging), Pure (functional state threading for testing/autodiff)")
+
 (load "lattice/physics/classical/integrators.ss")
 (load "lattice/physics/classical/collision-detection.ss")
 (load "lattice/physics/classical/collision-response.ss")
 (load "lattice/physics/classical/world.ss")
 
-;;; ====
-;;; PhysicsF Functor - Command Algebra
-;;; ====
-;;;
-;;; PhysicsF represents the primitive operations of a physics simulation.
-;;; Each command is a tagged list containing operation data and a continuation.
-;;;
-;;; Commands:
-;;;   ('apply-force id force next)        — Apply force to entity
-;;;   ('apply-impulse id impulse next)    — Apply instant velocity change
-;;;   ('set-position id pos next)         — Set entity position
-;;;   ('set-velocity id vel next)         — Set entity velocity
-;;;   ('step dt next)                     — Advance simulation by dt
-;;;   ('spawn entity k)                   — Add entity, pass id to k
-;;;   ('destroy id next)                  — Remove entity
-;;;   ('get-world k)                      — Get world state, pass to k
-;;;   ('get-entity id k)                  — Get entity by id, pass to k
-;;;   ('detect-collisions k)              — Run collision detection, pass manifolds to k
+(doc 'section 'physicsf-functor)
+(doc 'note "PhysicsF represents the primitive operations of a physics simulation. Each command is a tagged list containing operation data and a continuation. Commands: (apply-force id force next), (apply-impulse id impulse next), (set-position id pos next), (set-velocity id vel next), (step dt next), (spawn entity k), (destroy id next), (get-world k), (get-entity id k), (detect-collisions k)")
 
-;;; physics-fmap : (a -> b) -> PhysicsF a -> PhysicsF b
-;;; Functor instance for physics commands.
 (define (physics-fmap f cmd)
+  (doc 'type '(-> (a -> b) PhysicsF a PhysicsF b))
+  (doc 'description "Functor instance for physics commands")
   (let ([tag (car cmd)])
        (case tag
              [(apply-force)
@@ -93,14 +65,8 @@
                    (list 'detect-collisions (lambda (cs) (f (k cs)))))]
              [else (error 'physics-fmap "Unknown physics command" tag)])))
 
-;;; ====
-;;; Lifting Functions (Smart Constructors)
-;;; ====
-;;;
-;;; These create Free monad values from primitive commands.
-;;; They provide the monadic interface for building simulations.
-
-;;; phys-apply-force : id -> Vec2 -> Free PhysicsF ()
+(doc 'section 'lifting-functions)
+(doc 'note "These create Free monad values from primitive commands. They provide the monadic interface for building simulations")
 ;;; Apply a force to an entity.
 (define (phys-apply-force id force)
   (free (list 'apply-force id force (pure-free '()))))
@@ -187,17 +153,12 @@
       (phys-then (phys-step dt)
                  (phys-steps (- n 1) dt))))
 
-;;; ====
-;;; Deterministic Interpreter
-;;; ====
-;;;
-;;; Executes physics commands directly using the physics engine.
-;;; State is a World from user/physics/world.ss.
+(doc 'section 'deterministic-interpreter)
+(doc 'note "Executes physics commands directly using the physics engine. State is a World from user/physics/world.ss")
 
-;;; run-physics-deterministic : Free PhysicsF a -> World -> (a . World)
-;;; Run a physics program deterministically.
-;;; Requires world.ss to be loaded for world operations.
 (define (run-physics-deterministic program)
+  (doc 'type '(-> Free PhysicsF a World (a . World)))
+  (doc 'description "Run a physics program deterministically. Requires world.ss to be loaded for world operations")
   (lambda (world)
           (let loop ([prog program] [w world])
                (if (pure-free? prog)
@@ -259,14 +220,8 @@
                                           (loop (k collisions) w)))]
                                [else (error 'run-physics-deterministic "Unknown command" tag)]))))))
 
-;;; ====
-;;; Logging Interpreter
-;;; ====
-;;;
-;;; Records all commands while executing them.
-;;; Useful for debugging, replay, and visualization.
-
-;;; make-log-entry : Symbol -> List -> LogEntry
+(doc 'section 'logging-interpreter)
+(doc 'note "Records all commands while executing them. Useful for debugging, replay, and visualization")
 (define (make-log-entry tag args)
   (list 'log-entry tag args))
 
@@ -350,15 +305,8 @@
                                           (loop (k collisions) w (cons entry log))))]
                                [else (error 'run-physics-logging "Unknown command" tag)]))))))
 
-;;; ====
-;;; Pure Interpreter (Functional State)
-;;; ====
-;;;
-;;; A pure interpreter that doesn't mutate world state.
-;;; Instead, it threads an immutable state representation.
-;;; Suitable for testing, property-based testing, and autodiff.
-
-;;; Pure world state representation:
+(doc 'section 'pure-interpreter)
+(doc 'note "A pure interpreter that doesn't mutate world state. Instead, it threads an immutable state representation. Suitable for testing, property-based testing, and autodiff")
 ;;;   (entities gravity forces)
 ;;; Where:
 ;;;   - entities is an alist of (id . entity)

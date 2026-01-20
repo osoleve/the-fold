@@ -1,153 +1,134 @@
-;;; fabric/stitches/fp/parser.ss — Monadic Parser Combinators
-;;;
-;;; A practical parser combinator library for building DSLs and parsers.
-;;; Uses the Maybe and Either types from combinators.ss for results.
-;;;
-;;; This is Core code: pure, total, assumes reasonable input.
-;;;
-;;; Features:
-;;;   - Core parser type with position tracking
-;;;   - Primitive parsers (char, string, satisfy, eof)
-;;;   - Sequencing (>>=, >>, <*, *>)
-;;;   - Alternation (<|>, choice, try)
-;;;   - Repetition (many, some, sepBy, count)
-;;;   - Lookahead (lookAhead, notFollowedBy)
-;;;   - Error handling (label, withError)
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;   - fp/combinators.ss
-
 (load "core/base/prelude.ss")
 (load "lattice/fp/meta/combinators.ss")
 
-;;; ====
-;;; Character Constants (to avoid formatter issues)
-;;; ====
+(doc 'module 'parser)
+(doc 'description "Monadic Parser Combinators — A practical parser combinator library for building DSLs and parsers. Uses the Maybe and Either types from combinators.ss for results.")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
+(doc 'features '(position-tracking primitive-parsers sequencing alternation repetition lookahead error-handling packrat indentation-sensitive))
 
-;;; %newline : Char
+(doc 'section 'character-constants)
+
 (define %newline (integer->char 10))
+(doc %newline 'type 'Char)
 
-;;; %tab : Char
 (define %tab (integer->char 9))
+(doc %tab 'type 'Char)
 
-;;; %return : Char
 (define %return (integer->char 13))
+(doc %return 'type 'Char)
 
-;;; %backspace : Char
 (define %backspace (integer->char 8))
+(doc %backspace 'type 'Char)
 
-;;; %page : Char
 (define %page (integer->char 12))
+(doc %page 'type 'Char)
 
-;;; ====
-;;; Parser State
-;;; ====
+(doc 'section 'parser-state)
 
-;;; Parser state contains:
-;;;   - input: the FULL input string (never copied/sliced)
-;;;   - index: current parse position in the string
-;;;   - pos: current position (line, column, offset) for error reporting
-;;;
-;;; OPTIMIZATION: Instead of using (substring s 1) to consume characters,
-;;; which copies the remainder of the string (O(N) per character = O(N²) total),
-;;; we track position with an index and use (string-ref s index) for O(1) access.
-
-;;; make-pos : Nat × Nat × Nat → Pos
 (define (make-pos line col offset)
+  (doc 'type '(-> Nat Nat Nat Pos))
+  (doc 'description "Create parser position with line, column, offset")
   (list 'pos line col offset))
 
-;;; pos? : Any → Boolean
 (define (pos? p)
+  (doc 'type '(-> Any Boolean))
   (and (pair? p) (eq? (car p) 'pos)))
 
-;;; pos-line : Pos → Nat
-(define (pos-line p) (list-ref p 1))
+(define (pos-line p)
+  (doc 'type '(-> Pos Nat))
+  (list-ref p 1))
 
-;;; pos-col : Pos → Nat
-(define (pos-col p) (list-ref p 2))
+(define (pos-col p)
+  (doc 'type '(-> Pos Nat))
+  (list-ref p 2))
 
-;;; pos-offset : Pos → Nat
-(define (pos-offset p) (list-ref p 3))
+(define (pos-offset p)
+  (doc 'type '(-> Pos Nat))
+  (list-ref p 3))
 
-;;; initial-pos : Pos
-;;; Initial parsing position (line 1, column 1, offset 0).
 (define initial-pos (make-pos 1 1 0))
+(doc initial-pos 'type 'Pos)
+(doc initial-pos 'description "Initial parsing position (line 1, column 1, offset 0)")
 
-;;; advance-pos : Pos × Char → Pos
-;;; Advance position by one character.
 (define (advance-pos pos ch)
+  (doc 'type '(-> Pos Char Pos))
+  (doc 'description "Advance position by one character, handling newlines")
   (if (char=? ch %newline)
       (make-pos (+ (pos-line pos) 1) 1 (+ (pos-offset pos) 1))
       (make-pos (pos-line pos) (+ (pos-col pos) 1) (+ (pos-offset pos) 1))))
 
-;;; make-state : String × Nat × Pos → State
-;;; Create parser state with full input string, current index, and position.
 (define (make-state input index pos)
+  (doc 'type '(-> String Nat Pos State))
+  (doc 'description "Create parser state with full input string, current index, and position. Uses index-based access for O(1) character access instead of O(N) substring copying.")
   (list 'state input index pos))
 
-;;; state? : Any → Boolean
 (define (state? s)
+  (doc 'type '(-> Any Boolean))
   (and (pair? s) (eq? (car s) 'state)))
 
-;;; state-input : State → String
-;;; Returns the full input string (for internal use).
-(define (state-input s) (list-ref s 1))
+(define (state-input s)
+  (doc 'type '(-> State String))
+  (doc 'description "Returns the full input string (for internal use)")
+  (list-ref s 1))
 
-;;; state-index : State → Nat
-;;; Returns the current parse position index.
-(define (state-index s) (list-ref s 2))
+(define (state-index s)
+  (doc 'type '(-> State Nat))
+  (doc 'description "Returns the current parse position index")
+  (list-ref s 2))
 
-;;; state-pos : State → Pos
-(define (state-pos s) (list-ref s 3))
+(define (state-pos s)
+  (doc 'type '(-> State Pos))
+  (list-ref s 3))
 
-;;; state-remaining : State → String
-;;; Returns the remaining unparsed input (for compatibility/debugging).
-;;; Note: This creates a substring copy - use sparingly!
 (define (state-remaining s)
+  (doc 'type '(-> State String))
+  (doc 'description "Returns the remaining unparsed input (for compatibility/debugging)")
+  (doc 'note "This creates a substring copy - use sparingly!")
   (let ([input (state-input s)]
         [index (state-index s)])
        (substring input index (string-length input))))
 
-;;; state-at-end? : State → Boolean
-;;; Check if we've reached the end of input.
 (define (state-at-end? s)
+  (doc 'type '(-> State Boolean))
+  (doc 'description "Check if we've reached the end of input")
   (>= (state-index s) (string-length (state-input s))))
 
-;;; state-current-char : State → Char
-;;; Get the current character (assumes not at end).
 (define (state-current-char s)
+  (doc 'type '(-> State Char))
+  (doc 'description "Get the current character (assumes not at end)")
   (string-ref (state-input s) (state-index s)))
 
-;;; initial-state : String → State
 (define (initial-state input)
+  (doc 'type '(-> String State))
   (make-state input 0 initial-pos))
 
-;;; ====
-;;; Parse Error
-;;; ====
+(doc 'section 'parse-error)
 
-;;; make-error : Pos × String × (List String) → Error
-;;; Create a parse error with position, message, and expected items.
 (define (make-parse-error pos message expected)
+  (doc 'type '(-> Pos String (List String) Error))
+  (doc 'description "Create a parse error with position, message, and expected items")
   (list 'parse-error pos message expected))
 
-;;; parse-error? : Any → Boolean
 (define (parse-error? e)
+  (doc 'type '(-> Any Boolean))
   (and (pair? e) (eq? (car e) 'parse-error)))
 
-;;; error-pos : Error → Pos
-(define (error-pos e) (list-ref e 1))
+(define (error-pos e)
+  (doc 'type '(-> Error Pos))
+  (list-ref e 1))
 
-;;; error-message : Error → String
-(define (error-message e) (list-ref e 2))
+(define (error-message e)
+  (doc 'type '(-> Error String))
+  (list-ref e 2))
 
-;;; error-expected : Error → (List String)
-(define (error-expected e) (list-ref e 3))
+(define (error-expected e)
+  (doc 'type '(-> Error (List String)))
+  (list-ref e 3))
 
-;;; merge-errors : Error × Error → Error
-;;; Merge two errors, keeping the one at furthest position.
 (define (merge-errors e1 e2)
+  (doc 'type '(-> Error Error Error))
+  (doc 'description "Merge two errors, keeping the one at furthest position")
   (let ([p1 (pos-offset (error-pos e1))]
         [p2 (pos-offset (error-pos e2))])
        (cond
@@ -158,8 +139,9 @@
                (error-message e1)
                (append (error-expected e1) (error-expected e2)))])))
 
-;;; format-error : Error → String
 (define (format-error err)
+  (doc 'type '(-> Error String))
+  (doc 'description "Format parse error as human-readable string")
   (let ([pos (error-pos err)]
         [msg (error-message err)]
         [expected (error-expected err)])
@@ -171,68 +153,60 @@
             ""
             (string-append ", expected: " (format-expected expected))))))
 
-;;; format-expected : (List String) → String
 (define (format-expected exps)
+  (doc 'type '(-> (List String) String))
+  (doc 'description "Format expected items list with 'or' separators")
   (cond
    [(null? exps) ""]
    [(null? (cdr exps)) (car exps)]
    [else (string-append (car exps) " or " (format-expected (cdr exps)))]))
 
-;;; ====
-;;; Parser Type
-;;; ====
+(doc 'section 'parser-type)
 
-;;; A Parser is: State → Either Error (Value × State)
-;;;
-;;; - On success: (right (value . new-state))
-;;; - On failure: (left error)
-
-;;; make-parser : (State → (Either Error (α × State))) → (Parser α)
 (define (make-parser run-fn)
+  (doc 'type '(-> (-> State (Either Error (Pair α State))) (Parser α)))
+  (doc 'description "Create a parser from a state transformer function. Parser type: State → Either Error (Value × State)")
   (list 'parser run-fn))
 
-;;; parser? : α → Boolean
 (define (parser? p)
+  (doc 'type '(-> α Boolean))
   (and (pair? p) (eq? (car p) 'parser)))
 
-;;; run-parser : (Parser α) × State → (Either Error (α × State))
 (define (run-parser parser state)
+  (doc 'type '(-> (Parser α) State (Either Error (Pair α State))))
+  (doc 'description "Run parser on state, returning Either Error (value, new-state)")
   ((cadr parser) state))
 
-;;; parse : (Parser α) × String → (Either Error α)
-;;; Run parser on input string.
 (define (parse parser input)
+  (doc 'type '(-> (Parser α) String (Either Error α)))
+  (doc 'description "Run parser on input string, extracting final value")
   (let ([result (run-parser parser (initial-state input))])
        (if (right? result)
            (right (car (from-right result)))  ; Extract value
            result)))  ; Return error
 
-;;; parse-all : (Parser α) × String → (Either Error α)
-;;; Run parser and require complete input consumption.
 (define (parse-all parser input)
+  (doc 'type '(-> (Parser α) String (Either Error α)))
+  (doc 'description "Run parser and require complete input consumption")
   (let ([full-parser (parser-left parser eof)])
        (parse full-parser input)))
 
-;;; ====
-;;; Primitive Parsers
-;;; ====
+(doc 'section 'primitive-parsers)
 
-;;; parser-pure : α → (Parser α)
-;;; Parser that succeeds with value without consuming input.
 (define (parser-pure x)
+  (doc 'type '(-> α (Parser α)))
+  (doc 'description "Parser that succeeds with value without consuming input")
   (make-parser
    (lambda (state)
            (right (cons x state)))))
 
-;;; parser-fail : String → (Parser α)
-;;; Parser that always fails with message.
 (define (parser-fail message)
+  (doc 'type '(-> String (Parser α)))
+  (doc 'description "Parser that always fails with message")
   (make-parser
    (lambda (state)
            (left (make-parse-error (state-pos state) message '())))))
 
-;;; eof : (Parser Unit)
-;;; Parser that succeeds only at end of input.
 (define eof
   (make-parser
    (lambda (state)
@@ -242,10 +216,9 @@
                       (state-pos state)
                       "expected end of input"
                       '("end of input")))))))
+(doc eof 'type '(Parser Unit))
+(doc eof 'description "Parser that succeeds only at end of input")
 
-;;; any-char : (Parser Char)
-;;; Parser that consumes any single character.
-;;; O(1) per character - uses index-based access instead of substring copying.
 (define any-char
   (make-parser
    (lambda (state)
@@ -260,11 +233,12 @@
                                              (+ (state-index state) 1)
                                              new-pos)])
                      (right (cons ch new-state)))))))
+(doc any-char 'type '(Parser Char))
+(doc any-char 'description "Parser that consumes any single character. O(1) per character - uses index-based access instead of substring copying.")
 
-;;; satisfy : (Char → Bool) × String → (Parser Char)
-;;; Parser that consumes char satisfying predicate.
-;;; O(1) per character - uses index-based access instead of substring copying.
 (define (satisfy pred description)
+  (doc 'type '(-> (-> Char Bool) String (Parser Char)))
+  (doc 'description "Parser that consumes char satisfying predicate. O(1) per character - uses index-based access instead of substring copying.")
   (make-parser
    (lambda (state)
            (if (state-at-end? state)
@@ -284,21 +258,21 @@
                                (string-append "unexpected '" (string ch) "'")
                                (list description)))))))))
 
-;;; char : Char → (Parser Char)
-;;; Parser that matches specific character.
 (define (char c)
+  (doc 'type '(-> Char (Parser Char)))
+  (doc 'description "Parser that matches specific character")
   (satisfy (lambda (ch) (char=? ch c))
            (string-append "'" (string c) "'")))
 
-;;; char-ci : Char → (Parser Char)
-;;; Case-insensitive character match.
 (define (char-ci c)
+  (doc 'type '(-> Char (Parser Char)))
+  (doc 'description "Case-insensitive character match")
   (satisfy (lambda (ch) (char-ci=? ch c))
            (string-append "'" (string c) "' (case-insensitive)")))
 
-;;; one-of : String → (Parser Char)
-;;; Match any character in string.
 (define (one-of chars)
+  (doc 'type '(-> String (Parser Char)))
+  (doc 'description "Match any character in string")
   (satisfy (lambda (ch)
                    (let loop ([i 0])
                         (if (>= i (string-length chars))
@@ -307,9 +281,9 @@
                                 (loop (+ i 1))))))
            (string-append "one of '" chars "'")))
 
-;;; none-of : String → (Parser Char)
-;;; Match any character NOT in string.
 (define (none-of chars)
+  (doc 'type '(-> String (Parser Char)))
+  (doc 'description "Match any character NOT in string")
   (satisfy (lambda (ch)
                    (let loop ([i 0])
                         (if (>= i (string-length chars))
@@ -318,45 +292,47 @@
                                  (loop (+ i 1))))))
            (string-append "none of '" chars "'")))
 
-;;; ====
-;;; Character Class Parsers
-;;; ====
+(doc 'section 'character-class-parsers)
 
-;;; digit : (Parser Char)
 (define digit (satisfy char-numeric? "digit"))
+(doc digit 'type '(Parser Char))
+(doc digit 'description "Parser that matches a digit character")
 
-;;; letter : (Parser Char)
 (define letter (satisfy char-alphabetic? "letter"))
+(doc letter 'type '(Parser Char))
+(doc letter 'description "Parser that matches an alphabetic character")
 
-;;; alpha-num : (Parser Char)
 (define alpha-num
   (satisfy (lambda (c) (or (char-alphabetic? c) (char-numeric? c)))
            "alphanumeric"))
+(doc alpha-num 'type '(Parser Char))
+(doc alpha-num 'description "Parser that matches an alphanumeric character")
 
-;;; space : (Parser Char)
 (define space (satisfy char-whitespace? "whitespace"))
+(doc space 'type '(Parser Char))
+(doc space 'description "Parser that matches a whitespace character")
 
-;;; lower : (Parser Char)
 (define lower (satisfy char-lower-case? "lowercase letter"))
+(doc lower 'type '(Parser Char))
+(doc lower 'description "Parser that matches a lowercase letter")
 
-;;; upper : (Parser Char)
 (define upper (satisfy char-upper-case? "uppercase letter"))
+(doc upper 'type '(Parser Char))
+(doc upper 'description "Parser that matches an uppercase letter")
 
-;;; newline-char : (Parser Char)
 (define newline-char (char %newline))
+(doc newline-char 'type '(Parser Char))
+(doc newline-char 'description "Parser that matches a newline character")
 
-;;; tab-char : (Parser Char)
 (define tab-char (char %tab))
+(doc tab-char 'type '(Parser Char))
+(doc tab-char 'description "Parser that matches a tab character")
 
-;;; ====
-;;; String Parsers
-;;; ====
+(doc 'section 'string-parsers)
 
-
-;;; string-parser : String → (Parser String)
-;;; Match exact string.
-;;; O(len) where len is the target string length - no copying of input.
 (define (string-parser str)
+  (doc 'type '(-> String (Parser String)))
+  (doc 'description "Match exact string. O(len) where len is the target string length - no copying of input.")
   (if (string=? str "")
       (parser-pure "")
       (make-parser
@@ -390,13 +366,11 @@
                                              (state-pos state)
                                              (string-append "expected \"" str "\"")
                                              (list (string-append "\"" str "\"")))))))))))))
-;;; ====
-;;; Monad Operations
-;;; ====
+(doc 'section 'monad-operations)
 
-;;; parser-bind : (Parser α) × (α → (Parser β)) → (Parser β)
-;;; Monadic bind (>>=).
 (define (parser-bind p f)
+  (doc 'type '(-> (Parser α) (-> α (Parser β)) (Parser β)))
+  (doc 'description "Monadic bind (>>=) for parsers")
   (make-parser
    (lambda (state)
            (let ([result (run-parser p state)])
@@ -407,41 +381,39 @@
                            [new-state (cdr val-state)])
                           (run-parser (f val) new-state)))))))
 
-;;; parser-then : (Parser α) × (Parser β) → (Parser β)
-;;; Sequence, discarding first result (>>).
 (define (parser-then p1 p2)
+  (doc 'type '(-> (Parser α) (Parser β) (Parser β)))
+  (doc 'description "Sequence, discarding first result (>>)")
   (parser-bind p1 (lambda (_) p2)))
 
-;;; parser-left : (Parser α) × (Parser β) → (Parser α)
-;;; Sequence, discarding second result (<*).
 (define (parser-left p1 p2)
+  (doc 'type '(-> (Parser α) (Parser β) (Parser α)))
+  (doc 'description "Sequence, discarding second result (<*)")
   (parser-bind p1 (lambda (x)
                           (parser-bind p2 (lambda (_)
                                                   (parser-pure x))))))
 
-;;; parser-right : (Parser α) × (Parser β) → (Parser β)
-;;; Sequence, discarding first result (*>). Same as parser-then.
 (define parser-right parser-then)
+(doc parser-right 'type '(-> (Parser α) (Parser β) (Parser β)))
+(doc parser-right 'description "Sequence, discarding first result (*>). Same as parser-then")
 
-;;; parser-map : (α → β) × (Parser α) → (Parser β)
-;;; Functor map.
 (define (parser-map f p)
+  (doc 'type '(-> (-> α β) (Parser α) (Parser β)))
+  (doc 'description "Functor map for parsers")
   (parser-bind p (lambda (x) (parser-pure (f x)))))
 
-;;; parser-ap : (Parser (α → β)) × (Parser α) → (Parser β)
-;;; Applicative apply.
 (define (parser-ap pf pa)
+  (doc 'type '(-> (Parser (-> α β)) (Parser α) (Parser β)))
+  (doc 'description "Applicative apply for parsers")
   (parser-bind pf (lambda (f)
                           (parser-bind pa (lambda (a)
                                                   (parser-pure (f a)))))))
 
-;;; ====
-;;; Alternation
-;;; ====
+(doc 'section 'alternation)
 
-;;; parser-or : (Parser α) × (Parser α) → (Parser α)
-;;; Try first parser, if it fails without consuming input, try second (<|>).
 (define (parser-or p1 p2)
+  (doc 'type '(-> (Parser α) (Parser α) (Parser α)))
+  (doc 'description "Try first parser, if it fails without consuming input, try second (<|>)")
   (make-parser
    (lambda (state)
            (let ([result1 (run-parser p1 state)])
@@ -460,16 +432,16 @@
                                       result2
                                       (left (merge-errors err1 (from-left result2))))))))))))
 
-;;; choice : (List (Parser α)) → (Parser α)
-;;; Try parsers in order (left to right).
 (define (choice parsers)
+  (doc 'type '(-> (List (Parser α)) (Parser α)))
+  (doc 'description "Try parsers in order (left to right)")
   (if (null? parsers)
       (parser-fail "no alternatives")
       (fold-left parser-or (car parsers) (cdr parsers))))
 
-;;; try : (Parser α) → (Parser α)
-;;; Try parser, on failure pretend no input was consumed.
 (define (try p)
+  (doc 'type '(-> (Parser α) (Parser α)))
+  (doc 'description "Try parser, on failure pretend no input was consumed")
   (make-parser
    (lambda (state)
            (let ([result (run-parser p state)])
@@ -481,25 +453,22 @@
                            (error-message (from-left result))
                            (error-expected (from-left result)))))))))
 
-;;; optional : (Parser α) × α → (Parser α)
-;;; Try parser, return default on failure.
 (define (optional p default)
+  (doc 'type '(-> (Parser α) α (Parser α)))
+  (doc 'description "Try parser, return default on failure")
   (parser-or p (parser-pure default)))
 
-;;; option-maybe : (Parser α) → (Parser (Maybe α))
-;;; Try parser, return Just on success, Nothing on failure.
 (define (option-maybe p)
+  (doc 'type '(-> (Parser α) (Parser (Maybe α))))
+  (doc 'description "Try parser, return Just on success, Nothing on failure")
   (parser-or (parser-map just p)
              (parser-pure nothing)))
 
-;;; ====
-;;; Repetition
-;;; ====
+(doc 'section 'repetition)
 
-;;; many : (Parser α) → (Parser (List α))
-;;; Zero or more occurrences.
-;;; Detects and breaks infinite loops when parser succeeds without consuming input.
 (define (many p)
+  (doc 'type '(-> (Parser α) (Parser (List α))))
+  (doc 'description "Zero or more occurrences. Detects and breaks infinite loops when parser succeeds without consuming input.")
   (make-parser
    (lambda (state)
            (let loop ([acc '()]
@@ -520,10 +489,9 @@
                          ;; Parser failed - return accumulated results
                          (right (cons (reverse acc) current-state))))))))
 
-;;; some : (Parser α) → (Parser (List α))
-;;; One or more occurrences.
-;;; Detects and breaks infinite loops when parser succeeds without consuming input.
 (define (some p)
+  (doc 'type '(-> (Parser α) (Parser (List α))))
+  (doc 'description "One or more occurrences. Detects and breaks infinite loops when parser succeeds without consuming input.")
   (make-parser
    (lambda (state)
            (let ([first-result (run-parser p state)])
@@ -542,9 +510,9 @@
                                          (right (cons (cons val rest-vals) final-state)))
                                    rest-result))))))))
 
-;;; count : Nat × (Parser α) → (Parser (List α))
-;;; Exactly n occurrences.
 (define (count n p)
+  (doc 'type '(-> Nat (Parser α) (Parser (List α))))
+  (doc 'description "Exactly n occurrences")
   (if (= n 0)
       (parser-pure '())
       (parser-bind p (lambda (x)
@@ -552,38 +520,37 @@
                                           (lambda (xs)
                                                   (parser-pure (cons x xs))))))))
 
-;;; between : (Parser α) × (Parser β) × (Parser γ) → (Parser γ)
-;;; Parse between delimiters.
 (define (between open close p)
+  (doc 'type '(-> (Parser α) (Parser β) (Parser γ) (Parser γ)))
+  (doc 'description "Parse between delimiters")
   (parser-then open (parser-left p close)))
 
-;;; sep-by : (Parser α) × (Parser β) → (Parser (List α))
-;;; Zero or more, separated by separator.
 (define (sep-by p sep)
+  (doc 'type '(-> (Parser α) (Parser β) (Parser (List α))))
+  (doc 'description "Zero or more, separated by separator")
   (parser-or (sep-by1 p sep) (parser-pure '())))
 
-;;; sep-by1 : (Parser α) × (Parser β) → (Parser (List α))
-;;; One or more, separated by separator.
 (define (sep-by1 p sep)
+  (doc 'type '(-> (Parser α) (Parser β) (Parser (List α))))
+  (doc 'description "One or more, separated by separator")
   (parser-bind p (lambda (x)
                          (parser-bind (many (parser-then sep p))
                                       (lambda (xs)
                                               (parser-pure (cons x xs)))))))
 
-;;; end-by : (Parser α) × (Parser β) → (Parser (List α))
-;;; Zero or more, each followed by separator.
 (define (end-by p sep)
+  (doc 'type '(-> (Parser α) (Parser β) (Parser (List α))))
+  (doc 'description "Zero or more, each followed by separator")
   (many (parser-left p sep)))
 
-;;; end-by1 : (Parser α) × (Parser β) → (Parser (List α))
-;;; One or more, each followed by separator.
 (define (end-by1 p sep)
+  (doc 'type '(-> (Parser α) (Parser β) (Parser (List α))))
+  (doc 'description "One or more, each followed by separator")
   (some (parser-left p sep)))
 
-;;; many-till : (Parser α) × (Parser β) → (Parser (List α))
-;;; Parse until end parser succeeds.
-;;; Detects and breaks infinite loops when body parser succeeds without consuming input.
 (define (many-till p end)
+  (doc 'type '(-> (Parser α) (Parser β) (Parser (List α))))
+  (doc 'description "Parse until end parser succeeds. Detects and breaks infinite loops when body parser succeeds without consuming input.")
   (make-parser
    (lambda (state)
            (let loop ([acc '()]
@@ -613,13 +580,11 @@
                                   ;; Body parser failed - propagate error
                                   body-result))))))))
 
-;;; ====
-;;; Lookahead
-;;; ====
+(doc 'section 'lookahead)
 
-;;; look-ahead : (Parser α) → (Parser α)
-;;; Try parser without consuming input on success.
 (define (look-ahead p)
+  (doc 'type '(-> (Parser α) (Parser α)))
+  (doc 'description "Try parser without consuming input on success")
   (make-parser
    (lambda (state)
            (let ([result (run-parser p state)])
@@ -628,9 +593,9 @@
                     (right (cons (car (from-right result)) state))
                     result)))))
 
-;;; not-followed-by : (Parser α) → (Parser Unit)
-;;; Succeed only if parser fails.
 (define (not-followed-by p)
+  (doc 'type '(-> (Parser α) (Parser Unit)))
+  (doc 'description "Succeed only if parser fails")
   (make-parser
    (lambda (state)
            (let ([result (run-parser p state)])
@@ -641,13 +606,11 @@
                            '()))
                     (right (cons '() state)))))))
 
-;;; ====
-;;; Error Handling
-;;; ====
+(doc 'section 'error-handling)
 
-;;; label : (Parser α) × String → (Parser α)
-;;; Replace expected in error messages.
 (define (label p description)
+  (doc 'type '(-> (Parser α) String (Parser α)))
+  (doc 'description "Replace expected in error messages")
   (make-parser
    (lambda (state)
            (let ([result (run-parser p state)])
@@ -659,77 +622,69 @@
                                 (error-message err)
                                 (list description)))))))))
 
-;;; parser-label : (Parser α) × String → (Parser α)
-;;; Infix alias for label.
 (define parser-label label)
+(doc parser-label 'type '(-> (Parser α) String (Parser α)))
+(doc parser-label 'description "Infix alias for label")
 
-;;; ====
-;;; Convenience Combinators
-;;; ====
+(doc 'section 'convenience-combinators)
 
-;;; spaces : (Parser String)
-;;; Zero or more whitespace characters.
-(define spaces
-  (parser-map list->string (many space)))
+(define spaces (parser-map list->string (many space)))
+(doc spaces 'type '(Parser String))
+(doc spaces 'description "Zero or more whitespace characters")
 
-;;; spaces1 : (Parser String)
-;;; One or more whitespace characters.
-(define spaces1
-  (parser-map list->string (some space)))
+(define spaces1 (parser-map list->string (some space)))
+(doc spaces1 'type '(Parser String))
+(doc spaces1 'description "One or more whitespace characters")
 
-;;; lexeme : (Parser α) → (Parser α)
-;;; Parse and consume trailing whitespace.
 (define (lexeme p)
+  (doc 'type '(-> (Parser α) (Parser α)))
+  (doc 'description "Parse and consume trailing whitespace")
   (parser-left p spaces))
 
-;;; symbol : String → (Parser String)
-;;; Parse string as lexeme.
 (define (symbol str)
+  (doc 'type '(-> String (Parser String)))
+  (doc 'description "Parse string as lexeme")
   (lexeme (string-parser str)))
 
-;;; parens : (Parser α) → (Parser α)
-;;; Parse between parentheses.
 (define (parens p)
+  (doc 'type '(-> (Parser α) (Parser α)))
+  (doc 'description "Parse between parentheses")
   (between (symbol "(") (symbol ")") p))
 
-;;; braces : (Parser α) → (Parser α)
-;;; Parse between braces.
 (define (braces p)
+  (doc 'type '(-> (Parser α) (Parser α)))
+  (doc 'description "Parse between braces")
   (between (symbol "{") (symbol "}") p))
 
-;;; brackets : (Parser α) → (Parser α)
-;;; Parse between brackets.
 (define (brackets p)
+  (doc 'type '(-> (Parser α) (Parser α)))
+  (doc 'description "Parse between brackets")
   (between (symbol "[") (symbol "]") p))
 
-;;; angles : (Parser α) → (Parser α)
-;;; Parse between angle brackets.
 (define (angles p)
+  (doc 'type '(-> (Parser α) (Parser α)))
+  (doc 'description "Parse between angle brackets")
   (between (symbol "<") (symbol ">") p))
 
-;;; comma-sep : (Parser α) → (Parser (List α))
-;;; Comma-separated values.
 (define (comma-sep p)
+  (doc 'type '(-> (Parser α) (Parser (List α))))
+  (doc 'description "Comma-separated values")
   (sep-by p (symbol ",")))
 
-;;; semi-sep : (Parser α) → (Parser (List α))
-;;; Semicolon-separated values.
 (define (semi-sep p)
+  (doc 'type '(-> (Parser α) (Parser (List α))))
+  (doc 'description "Semicolon-separated values")
   (sep-by p (symbol ";")))
 
-;;; ====
-;;; Number Parsers
-;;; ====
+(doc 'section 'number-parsers)
 
-;;; natural : (Parser Nat)
-;;; Parse natural number.
 (define natural
   (parser-bind (some digit)
                (lambda (digits)
                        (parser-pure (string->number (list->string digits))))))
+(doc natural 'type '(Parser Nat))
+(doc natural 'description "Parse natural number")
 
-;;; integer : (Parser Int)
-;;; Parse integer (with optional sign).
 (define integer
   (parser-bind (optional (one-of "+-") #\+)
                (lambda (sign)
@@ -738,9 +693,9 @@
                                             (parser-pure (if (char=? sign #\-)
                                                              (- n)
                                                              n)))))))
+(doc integer 'type '(Parser Int))
+(doc integer 'description "Parse integer (with optional sign)")
 
-;;; decimal : (Parser Number)
-;;; Parse decimal number.
 (define decimal
   (parser-bind (optional (one-of "+-") #\+)
                (lambda (sign)
@@ -759,37 +714,31 @@
                                                                        (parser-pure (if (char=? sign #\-)
                                                                                         (- num)
                                                                                         num))))))))))
+(doc decimal 'type '(Parser Number))
+(doc decimal 'description "Parse decimal number")
 
-;;; ====
-;;; Identifier Parser
-;;; ====
+(doc 'section 'identifier-parser)
 
-;;; identifier : (Parser String)
-;;; Parse identifier (letter followed by alphanumerics).
 (define identifier
   (parser-bind (parser-or letter (char #\_))
                (lambda (first)
                        (parser-bind (many (parser-or alpha-num (char #\_)))
                                     (lambda (rest)
                                             (parser-pure (list->string (cons first rest))))))))
+(doc identifier 'type '(Parser String))
+(doc identifier 'description "Parse identifier (letter followed by alphanumerics)")
 
-;;; keyword : String → (Parser String)
-;;; Parse keyword (identifier matching specific string).
 (define (keyword kw)
+  (doc 'type '(-> String (Parser String)))
+  (doc 'description "Parse keyword (identifier matching specific string)")
   (try (parser-bind identifier
                     (lambda (id)
                             (if (string=? id kw)
                                 (parser-pure kw)
                                 (parser-fail (string-append "expected keyword '" kw "'")))))))
 
-;;; ====
-;;; Higher-Order Combinators
-;;; ====
+(doc 'section 'higher-order-combinators)
 
-;;; chainl1 : (Parser α) × (Parser (α × α → α)) → (Parser α)
-;;; Parse left-associative binary operations.
-;;; Parses: p (op p)*
-;;; Associates: ((a op b) op c)
 (define (chainl1 p op)
   (define (rest acc)
     (parser-or
@@ -800,16 +749,14 @@
                                                (rest (f acc y))))))
      (parser-pure acc)))
   (parser-bind p rest))
+(doc chainl1 'type '(-> (Parser α) (Parser (-> α α α)) (Parser α)))
+(doc chainl1 'description "Parse left-associative binary operations. Parses: p (op p)*, Associates: ((a op b) op c)")
 
-;;; chainl : (Parser α) × (Parser (α × α → α)) × α → (Parser α)
-;;; Like chainl1, but returns default if no matches.
 (define (chainl p op default)
   (parser-or (chainl1 p op) (parser-pure default)))
+(doc chainl 'type '(-> (Parser α) (Parser (-> α α α)) α (Parser α)))
+(doc chainl 'description "Like chainl1, but returns default if no matches")
 
-;;; chainr1 : (Parser α) × (Parser (α × α → α)) → (Parser α)
-;;; Parse right-associative binary operations.
-;;; Parses: p (op p)*
-;;; Associates: (a op (b op c))
 (define (chainr1 p op)
   (parser-bind p
                (lambda (x)
@@ -820,22 +767,24 @@
                                                           (lambda (y)
                                                                   (parser-pure (f x y))))))
                         (parser-pure x)))))
+(doc chainr1 'type '(-> (Parser α) (Parser (-> α α α)) (Parser α)))
+(doc chainr1 'description "Parse right-associative binary operations. Parses: p (op p)*, Associates: (a op (b op c))")
 
-;;; chainr : (Parser α) × (Parser (α × α → α)) × α → (Parser α)
-;;; Like chainr1, but returns default if no matches.
 (define (chainr p op default)
   (parser-or (chainr1 p op) (parser-pure default)))
+(doc chainr 'type '(-> (Parser α) (Parser (-> α α α)) α (Parser α)))
+(doc chainr 'description "Like chainr1, but returns default if no matches")
 
-;;; skip-many : (Parser α) → (Parser Unit)
-;;; Apply parser zero or more times, discarding results.
 (define (skip-many p)
   (parser-or (parser-bind p (lambda (_) (skip-many p)))
              (parser-pure '())))
+(doc skip-many 'type '(-> (Parser α) (Parser Unit)))
+(doc skip-many 'description "Apply parser zero or more times, discarding results")
 
-;;; skip-some : (Parser α) → (Parser Unit)
-;;; Apply parser one or more times, discarding results.
 (define (skip-some p)
   (parser-bind p (lambda (_) (skip-many p))))
+(doc skip-some 'type '(-> (Parser α) (Parser Unit)))
+(doc skip-some 'description "Apply parser one or more times, discarding results")
 
 ;;; sep-end-by : (Parser α) × (Parser β) → (Parser (List α))
 ;;; Zero or more, separated and optionally ended by separator.
@@ -918,37 +867,35 @@
                                     (lambda (ys)
                                             (parser-pure (append xs ys)))))))
 
-;;; ====
-;;; Position Utilities
-;;; ====
+(doc 'section 'position-utilities)
 
-;;; get-pos : (Parser Pos)
-;;; Get current position.
 (define get-pos
   (make-parser
    (lambda (state)
            (right (cons (state-pos state) state)))))
+(doc get-pos 'type '(Parser Pos))
+(doc get-pos 'description "Get current position")
 
-;;; get-input : (Parser String)
-;;; Get remaining input (from current position to end).
-;;; Note: This creates a substring copy - use sparingly in performance-critical code.
 (define get-input
   (make-parser
    (lambda (state)
            (right (cons (state-remaining state) state)))))
+(doc get-input 'type '(Parser String))
+(doc get-input 'description "Get remaining input (from current position to end)")
+(doc get-input 'note "This creates a substring copy - use sparingly in performance-critical code")
 
-;;; with-pos : (Parser α) → (Parser (Pair α Pos))
-;;; Attach starting position to result.
 (define (with-pos p)
+  (doc 'type '(-> (Parser α) (Parser (Pair α Pos))))
+  (doc 'description "Attach starting position to result")
   (parser-bind get-pos
                (lambda (pos)
                        (parser-bind p
                                     (lambda (val)
                                             (parser-pure (cons val pos)))))))
 
-;;; with-span : (Parser α) → (Parser (List α))
-;;; Attach start and end positions to result (as list: value, start-pos, end-pos).
 (define (with-span p)
+  (doc 'type '(-> (Parser α) (Parser (List α))))
+  (doc 'description "Attach start and end positions to result (as list: value, start-pos, end-pos)")
   (parser-bind get-pos
                (lambda (start)
                        (parser-bind p
@@ -957,13 +904,11 @@
                                                          (lambda (end)
                                                                  (parser-pure (list val start end)))))))))
 
-;;; ====
-;;; Debugging Utilities
-;;; ====
+(doc 'section 'debugging-utilities)
 
-;;; trace-parser : String × (Parser α) → (Parser α)
-;;; Print debug info when parser is invoked.
 (define (trace-parser label p)
+  (doc 'type '(-> String (Parser α) (Parser α)))
+  (doc 'description "Print debug info when parser is invoked")
   (make-parser
    (lambda (state)
            (let ([remaining (state-remaining state)])
@@ -989,30 +934,25 @@
                      (newline)
                      result)))))
 
-;;; ====
-;;; Indentation-Sensitive Parsing
-;;; ====
-;;;
-;;; Combinators for Python/Haskell-style indentation-sensitive parsing.
-;;; These work with the existing State structure using pos-col.
+(doc 'section 'indentation-sensitive-parsing)
 
-;;; get-column : Parser Nat
-;;; Get the current column number (1-based).
 (define get-column
   (make-parser
    (lambda (state)
            (right (cons (pos-col (state-pos state)) state)))))
+(doc get-column 'type '(Parser Nat))
+(doc get-column 'description "Get the current column number (1-based)")
 
-;;; get-line : Parser Nat
-;;; Get the current line number (1-based).
 (define get-line
   (make-parser
    (lambda (state)
            (right (cons (pos-line (state-pos state)) state)))))
+(doc get-line 'type '(Parser Nat))
+(doc get-line 'description "Get the current line number (1-based)")
 
-;;; at-column : Nat × (Parser α) → (Parser α)
-;;; Run parser only if at exactly column n.
 (define (at-column n p)
+  (doc 'type '(-> Nat (Parser α) (Parser α)))
+  (doc 'description "Run parser only if at exactly column n")
   (parser-bind get-column
                (lambda (col)
                        (if (= col n)
@@ -1167,28 +1107,11 @@
 (define (offside ref p)
   (column-gt ref p))
 
-;;; ====
-;;; Packrat Parsing (Memoization)
-;;; ====
-;;;
-;;; Packrat parsing memoizes parser results by (rule-key, position).
-;;; This ensures O(n) parsing time for grammars that would otherwise
-;;; have exponential backtracking.
-;;;
-;;; Usage:
-;;;   1. Create a memo table: (make-memo-table) or (make-bounded-memo-table limit)
-;;;   2. Wrap rules with memo: (memo 'rule-name parser)
-;;;   3. Parse with the memo table: (parse-with-memo parser input table)
-;;;
-;;; Note: Memoization uses mutation internally but the interface
-;;; remains pure from the caller's perspective.
-;;;
-;;; SECURITY: By default, memo tables are bounded to prevent memory exhaustion
-;;; attacks via crafted inputs that create many unique parse states.
+(doc 'section 'packrat-parsing)
 
-;;; *default-memo-table-limit* : Nat
-;;; Default maximum entries in memo table (prevents DoS via memory exhaustion).
 (define *default-memo-table-limit* 50000)
+(doc *default-memo-table-limit* 'type 'Nat)
+(doc *default-memo-table-limit* 'description "Default maximum entries in memo table (prevents DoS via memory exhaustion)")
 
 ;;; make-memo-entry : α × Nat → (Pair α Nat)
 ;;; Create a memo table entry with result and access timestamp.

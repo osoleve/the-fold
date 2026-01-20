@@ -1,36 +1,18 @@
-;;; lattice/fp/game/voting.ss — Social Choice and Voting Theory
-;;;
-;;; Implements social choice functions and voting rules for aggregating
-;;; preferences. Covers positional rules (Borda, plurality), Condorcet
-;;; methods (Copeland, Schulze), and related concepts.
-;;;
-;;; Key concepts:
-;;;   - Preference profile: Collection of voter rankings over candidates
-;;;   - Positional rules: Score based on position in rankings
-;;;   - Condorcet winner: Beats all others in pairwise comparison
-;;;   - Schulze method: Resolves cycles via strongest path
-;;;
-;;; Connects to cooperative games: voting games are simple games.
-;;; Power indices (Shapley-Shubik, Banzhaf) measure voting power.
-;;;
-;;; This is Lattice code: pure functions, no side effects.
-
 (load "core/base/prelude.ss")
 
-;;; ============================================================================
-;;; Preference Profiles
-;;; ============================================================================
+(doc 'module 'voting)
+(doc 'description "Social choice functions and voting rules for aggregating preferences. Covers positional rules (Borda, plurality), Condorcet methods (Copeland, Schulze), and related concepts")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
+(doc 'note "Key concepts: preference profile (collection of voter rankings), positional rules (score based on position), Condorcet winner (beats all others pairwise), Schulze method (resolves cycles via strongest path). Connects to cooperative games: voting games are simple games, power indices measure voting power")
 
-;;; A preference profile is a list of rankings.
-;;; Each ranking is a list of candidates in order of preference (best first).
-;;; Example: '((a b c) (b a c) (c b a)) = 3 voters ranking candidates a,b,c
+(doc 'section 'preference-profiles)
+(doc 'note "A preference profile is a list of rankings.")
 
-;;; make-preference-profile : (List (List Candidate)) -> PreferenceProfile
-;;; Create a preference profile from a list of rankings.
-;;; Validates that:
-;;;   1. All rankings contain the same candidates
-;;;   2. No ranking contains duplicate candidates
 (define (make-preference-profile rankings)
+  (doc 'type '(-> (List (List Candidate)) PreferenceProfile))
+  (doc 'description "Create a preference profile from a list of rankings. Each ranking is a list of candidates in order of preference (best first). Example: ((a b c) (b a c) (c b a)) = 3 voters ranking candidates a,b,c")
+  (doc 'note "Validates that: (1) All rankings contain the same candidates, (2) No ranking contains duplicate candidates")
   (if (null? rankings)
       '()
       (let ([first-ranking (car rankings)])
@@ -73,13 +55,11 @@
   (or (null? profile)
       (null? (car profile))))
 
-;;; ============================================================================
-;;; Utility Functions
-;;; ============================================================================
+(doc 'section 'utility-functions)
 
-;;; list->set : (List a) -> (List a)
-;;; Remove duplicates (preserving first occurrence order).
 (define (list->set lst)
+  (doc 'type '(-> (List a) (List a)))
+  (doc 'description "Remove duplicates (preserving first occurrence order)")
   (let loop ([lst lst] [seen '()] [acc '()])
     (if (null? lst)
         (reverse acc)
@@ -135,17 +115,12 @@
       (let ([max-val (apply max (map f lst))])
         (filter (lambda (x) (= (f x) max-val)) lst))))
 
-;;; ============================================================================
-;;; Positional Voting Rules
-;;; ============================================================================
+(doc 'section 'positional-rules)
+(doc 'note "Positional rules assign scores based on position in each ranking.")
 
-;;; Positional rules assign scores based on position in each ranking.
-;;; Score vector: (s_1, s_2, ..., s_m) where s_i is score for position i.
-
-;;; plurality-scores : Int -> (List Int)
-;;; Plurality: only first place gets 1 point.
-;;; Returns empty list for m=0.
 (define (plurality-scores m)
+  (doc 'type '(-> Int (List Int)))
+  (doc 'description "Plurality: only first place gets 1 point. Score vector: (s_1, s_2, ..., s_m) where s_i is score for position i. Returns empty list for m=0")
   (if (<= m 0)
       '()
       (cons 1 (make-list (- m 1) 0))))
@@ -231,14 +206,11 @@
     (map (lambda (c) (cons c (positional-score c profile scores)))
          candidates)))
 
-;;; ============================================================================
-;;; Pairwise Comparisons (Condorcet Methods)
-;;; ============================================================================
+(doc 'section 'condorcet-methods)
 
-;;; pairwise-margin : Candidate Candidate PreferenceProfile -> Int
-;;; Number of voters preferring a over b, minus those preferring b over a.
-;;; Positive = a beats b, negative = b beats a, zero = tie.
 (define (pairwise-margin a b profile)
+  (doc 'type '(-> Candidate Candidate PreferenceProfile Int))
+  (doc 'description "Number of voters preferring a over b, minus those preferring b over a. Positive = a beats b, negative = b beats a, zero = tie")
   (let ([a-over-b (count-if (lambda (ranking)
                               (let ([pa (position-of a ranking)]
                                     [pb (position-of b ranking)])
@@ -280,16 +252,12 @@
     (for-all? (lambda (other) (pairwise-beats? other candidate profile))
               others)))
 
-;;; ============================================================================
-;;; Copeland Method
-;;; ============================================================================
+(doc 'section 'copeland-method)
+(doc 'note "Copeland score = (wins) - (losses) in pairwise comparisons.")
 
-;;; Copeland score = (wins) - (losses) in pairwise comparisons.
-;;; Ties count as 0.5 for each (but we use integer: win=1, loss=-1, tie=0).
-
-;;; copeland-score : Candidate PreferenceProfile -> Int
-;;; Compute Copeland score (wins - losses).
 (define (copeland-score candidate profile)
+  (doc 'type '(-> Candidate PreferenceProfile Int))
+  (doc 'description "Compute Copeland score (wins - losses). Ties count as 0.5 for each (but we use integer: win=1, loss=-1, tie=0)")
   (let ([others (remove candidate (profile-candidates profile))])
     (apply + (map (lambda (other)
                     (let ([margin (pairwise-margin candidate other profile)])
@@ -313,27 +281,13 @@
   (sort (lambda (a b) (> (copeland-score a profile) (copeland-score b profile)))
         (profile-candidates profile)))
 
-;;; ============================================================================
-;;; Schulze Method (Beatpath)
-;;; ============================================================================
+(doc 'section 'schulze-method)
+(doc 'note "The Schulze method resolves Condorcet cycles by finding the strongest beatpath from each candidate to each other. Strength of path is the minimum margin along the path. This implementation uses the MARGIN variant (defeats require strictly positive margins). Other variants include: Winning Votes (uses raw vote counts instead of margins), Ratio (uses ratio of votes for/against). The Margin variant is the most common and is clone-independent")
 
-;;; The Schulze method resolves Condorcet cycles by finding the strongest
-;;; "beatpath" from each candidate to each other.
-;;; Strength of path is the minimum margin along the path.
-;;;
-;;; This implementation uses the MARGIN variant (defeats require strictly
-;;; positive margins). Other variants include:
-;;;   - Winning Votes: Uses raw vote counts instead of margins
-;;;   - Ratio: Uses ratio of votes for/against
-;;; The Margin variant is the most common and is clone-independent.
-
-;;; build-margin-matrix : PreferenceProfile -> (Vector (Vector Int))
-;;; Build matrix M where M[i][j] = margin of i over j.
-;;; Complexity: O(V * N²) where V = voters, N = candidates.
-;;;
-;;; Optimized: Instead of calling pairwise-margin for each pair O(V*N²*V),
-;;; we iterate through the profile once and update all pairs per ranking.
 (define (build-margin-matrix profile)
+  (doc 'type '(-> PreferenceProfile (Vector (Vector Int))))
+  (doc 'description "Build matrix M where M[i][j] = margin of i over j. Complexity: O(V * N²) where V = voters, N = candidates")
+  (doc 'note "Optimized: Instead of calling pairwise-margin for each pair O(V*N²*V), we iterate through the profile once and update all pairs per ranking")
   (let* ([candidates (profile-candidates profile)]
          [n (length candidates)]
          [matrix (make-vector n)])
@@ -441,11 +395,8 @@
                      (vector-ref (vector-ref strength ib) ia))))
               candidates))))
 
-;;; ============================================================================
-;;; Manipulation Detection
-;;; ============================================================================
-
-;;; A voting rule is manipulable if a voter can benefit by misreporting.
+(doc 'section 'manipulation-detection)
+(doc 'note "A voting rule is manipulable if a voter can benefit by misreporting.")
 ;;; Gibbard-Satterthwaite: any non-dictatorial rule with 3+ candidates
 ;;; is manipulable.
 

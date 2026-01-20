@@ -1,37 +1,16 @@
-;;; lattice/fp/game/matching.ss — Matching Theory
-;;;
-;;; Implements stable matching, assignment games, and optimal matching.
-;;; Includes the Gale-Shapley deferred acceptance algorithm, bipartite
-;;; assignment games with connections to cooperative game theory, and
-;;; optimal assignment via linear programming.
-;;;
-;;; This is Lattice code: pure, total, assumes reasonable input.
-;;;
-;;; Key concepts:
-;;;   - Two-sided matching: disjoint sets of agents with preferences
-;;;   - Stability: no blocking pair (both prefer each other to current match)
-;;;   - Assignment game: cooperative game from bipartite valuations
-;;;   - Optimal assignment: maximum weight bipartite matching via LP
-;;;
-;;; Dependencies:
-;;;   - core/base/prelude.ss
-;;;   - lattice/optimization/lp.ss
-;;;   - lattice/fp/game/coop-games.ss (for assignment-game)
-
 (load "core/base/prelude.ss")
 (load "lattice/optimization/lp.ss")
 (load "lattice/optimization/ilp.ss")
 (load "lattice/fp/game/coop-games.ss")
 
-;;; ============================================================================
-;;; Matching Market Data Structures
-;;; ============================================================================
-;;;
-;;; A matching market consists of two disjoint sets of agents (proposers and
-;;; receivers) where each agent has strict preferences over the other side.
-;;;
-;;; Preferences are represented as lists (most preferred first).
-;;; Example: '(a b c) means a > b > c in preference ordering.
+(doc 'module 'matching)
+(doc 'description "Stable matching, assignment games, and optimal matching. Includes the Gale-Shapley deferred acceptance algorithm, bipartite assignment games with connections to cooperative game theory, and optimal assignment via linear programming")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
+(doc 'note "Key concepts: two-sided matching (disjoint sets of agents with preferences), stability (no blocking pair - both prefer each other to current match), assignment game (cooperative game from bipartite valuations), optimal assignment (maximum weight bipartite matching via LP)")
+
+(doc 'section 'matching-market-data-structures)
+(doc 'note "A matching market consists of two disjoint sets of agents (proposers and receivers) where each agent has strict preferences over the other side. Preferences are represented as lists (most preferred first). Example: (a b c) means a > b > c in preference ordering")
 
 (define-record-type matching-market%
   (fields
@@ -40,16 +19,10 @@
    p-prefs      ; Hashtable: proposer-id -> preference list over receivers
    r-prefs))    ; Hashtable: receiver-id -> preference list over proposers
 
-;;; make-matching-market : (List Id) × (List Id) × (List (Id . List)) × (List (Id . List)) → Market
-;;; Create a matching market from proposers, receivers, and their preferences.
-;;;
-;;; Example:
-;;;   (make-matching-market
-;;;     '(m1 m2 m3)
-;;;     '(w1 w2 w3)
-;;;     '((m1 w1 w2 w3) (m2 w2 w1 w3) (m3 w1 w3 w2))
-;;;     '((w1 m2 m1 m3) (w2 m1 m2 m3) (w3 m1 m3 m2)))
 (define (make-matching-market proposers receivers p-pref-list r-pref-list)
+  (doc 'type '(-> (List Id) (List Id) (List (Id . List)) (List (Id . List)) Market))
+  (doc 'description "Create a matching market from proposers, receivers, and their preferences")
+  (doc 'note "Example: (make-matching-market (m1 m2 m3) (w1 w2 w3) ((m1 w1 w2 w3) (m2 w2 w1 w3) (m3 w1 w3 w2)) ((w1 m2 m1 m3) (w2 m1 m2 m3) (w3 m1 m3 m2)))")
   (let ((p-prefs (make-pref-table p-pref-list))
         (r-prefs (make-pref-table r-pref-list)))
     (make-matching-market%
@@ -105,32 +78,14 @@
 (define (market-num-receivers m)
   (vector-length (market-receivers m)))
 
-;;; ============================================================================
-;;; Gale-Shapley Deferred Acceptance Algorithm
-;;; ============================================================================
-;;;
-;;; The Gale-Shapley algorithm produces a stable matching that is optimal
-;;; for the proposing side and pessimal for the receiving side.
-;;;
-;;; Algorithm:
-;;;   1. Each unmatched proposer proposes to their most-preferred receiver
-;;;      they haven't yet proposed to
-;;;   2. Each receiver tentatively accepts their most-preferred proposal,
-;;;      rejecting others
-;;;   3. Repeat until all proposers are matched or exhausted preferences
-;;;
-;;; Properties:
-;;;   - Always produces a stable matching
-;;;   - Proposer-optimal: no proposer can do better in any stable matching
-;;;   - Individual rationality: no agent matched to unacceptable partner
-;;;   - Complexity: O(n²) proposals, O(n³) with current linear ID lookups
-;;;     (future: O(n²) with pre-computed ID→index hashtables)
+(doc 'section 'gale-shapley)
+(doc 'note "The Gale-Shapley algorithm produces a stable matching that is optimal for the proposing side and pessimal for the receiving side")
+(doc 'note "Algorithm: (1) Each unmatched proposer proposes to their most-preferred receiver they haven't yet proposed to, (2) Each receiver tentatively accepts their most-preferred proposal, rejecting others, (3) Repeat until all proposers are matched or exhausted preferences")
+(doc 'note "Properties: always produces a stable matching, proposer-optimal (no proposer can do better in any stable matching), individual rationality (no agent matched to unacceptable partner), complexity O(n²) proposals, O(n³) with current linear ID lookups (future: O(n²) with pre-computed ID->index hashtables)")
 
-;;; stable-match : Market × Nat → (List (Id . Id))
-;;; Compute proposer-optimal stable matching via deferred acceptance.
-;;; Returns list of (proposer . receiver) pairs.
-;;; fuel bounds iterations (set to n² for guaranteed completion).
 (define (stable-match market fuel)
+  (doc 'type '(-> Market Nat (List (Id . Id))))
+  (doc 'description "Compute proposer-optimal stable matching via deferred acceptance. Returns list of (proposer . receiver) pairs. fuel bounds iterations (set to n² for guaranteed completion)")
   (let* ((proposers (market-proposers market))
          (receivers (market-receivers market))
          (n-prop (vector-length proposers))
@@ -270,16 +225,11 @@
                       (cons (cons p-id r-id) result)
                       result)))))))
 
-;;; ============================================================================
-;;; Stability Verification
-;;; ============================================================================
+(doc 'section 'stability-verification)
 
-;;; matching-stable? : Market × (List (Id . Id)) → Boolean
-;;; Verify that a matching is stable (no blocking pairs).
-;;; A blocking pair (p, r) exists if:
-;;;   - p prefers r to current match (or p is unmatched)
-;;;   - r prefers p to current match (or r is unmatched)
 (define (matching-stable? market matching)
+  (doc 'type '(-> Market (List (Id . Id)) Boolean))
+  (doc 'description "Verify that a matching is stable (no blocking pairs). A blocking pair (p, r) exists if: p prefers r to current match (or p is unmatched), r prefers p to current match (or r is unmatched)")
   (let* ((proposers (market-proposers market))
          (receivers (market-receivers market))
          (prop-to-recv (build-match-table-p matching))
@@ -337,28 +287,12 @@
           ((equal? (car prefs) id2) #f)    ; found id2 first
           (else (loop (cdr prefs)))))))
 
-;;; ============================================================================
-;;; Assignment Games
-;;; ============================================================================
-;;;
-;;; An assignment game is a cooperative game derived from a bipartite matching
-;;; market with transferable utility. Each (proposer, receiver) pair has a
-;;; value v(p, r) representing the worth of matching them.
-;;;
-;;; The characteristic function is:
-;;;   v(S) = max weight matching in the induced bipartite graph on S
-;;;
-;;; Key results:
-;;;   - The core is always non-empty
-;;;   - Core = set of competitive equilibria
-;;;   - Shapley value gives a fair division
+(doc 'section 'assignment-games)
+(doc 'note "An assignment game is a cooperative game derived from a bipartite matching market with transferable utility. Each (proposer, receiver) pair has a value v(p, r) representing the worth of matching them. The characteristic function is: v(S) = max weight matching in the induced bipartite graph on S. Key results: the core is always non-empty, Core = set of competitive equilibria, Shapley value gives a fair division")
 
-;;; make-assignment-game : Nat × Nat × (Nat × Nat → Real) → CoopGame
-;;; Create assignment game from bipartite valuations.
-;;; n = number of proposers (players 0 to n-1)
-;;; m = number of receivers (players n to n+m-1)
-;;; valuation(i, j) = value of matching proposer i with receiver j-n
 (define (make-assignment-game n m valuation)
+  (doc 'type '(-> Nat Nat (Nat Nat -> Real) CoopGame))
+  (doc 'description "Create assignment game from bipartite valuations. n = number of proposers (players 0 to n-1), m = number of receivers (players n to n+m-1), valuation(i, j) = value of matching proposer i with receiver j-n")
   (let ((total-players (+ n m)))
     (make-coop-game
      total-players
@@ -425,18 +359,12 @@
             (- (lp-result-z result))  ; negate back to maximize
             0)))))  ; fallback for infeasible (shouldn't happen)
 
-;;; ============================================================================
-;;; Optimal Assignment (Maximum Weight Bipartite Matching)
-;;; ============================================================================
-;;;
-;;; Finds the assignment that maximizes total value.
-;;; Uses LP formulation which guarantees integral solution for
-;;; bipartite matching (totally unimodular constraint matrix).
+(doc 'section 'optimal-assignment)
+(doc 'note "Finds the assignment that maximizes total value. Uses LP formulation which guarantees integral solution for bipartite matching (totally unimodular constraint matrix)")
 
-;;; optimal-assignment : Nat × Nat × (Nat × Nat → Real) → (List (Nat . Nat)) × Real
-;;; Compute optimal assignment and its total value.
-;;; Returns ((matches ...) . total-value) where matches are (prop . recv) pairs.
 (define (optimal-assignment n m valuation)
+  (doc 'type '(-> Nat Nat (Nat Nat -> Real) (List (Nat . Nat) . Real)))
+  (doc 'description "Compute optimal assignment and its total value. Returns ((matches ...) . total-value) where matches are (prop . recv) pairs")
   (let* ((num-vars (* n m))
          (num-constraints (+ n m))
          (num-slacks num-constraints)
@@ -572,27 +500,14 @@
 (define (symbol<? a b)
   (string<? (symbol->string a) (symbol->string b)))
 
-;;; ============================================================================
-;;; ILP-Based Matching Algorithms
-;;; ============================================================================
-;;;
-;;; These algorithms use Integer Linear Programming for matching problems
-;;; that require integral solutions (exact matchings).
+(doc 'section 'ilp-matching)
+(doc 'note "These algorithms use Integer Linear Programming for matching problems that require integral solutions (exact matchings)")
 
-;;; ----------------------------------------------------------------------------
-;;; Maximum Weighted Bipartite Matching via ILP
-;;; ----------------------------------------------------------------------------
-;;;
-;;; Given a bipartite graph with weights W[i,j] for each edge (i,j),
-;;; find a matching that maximizes the total weight.
-;;;
-;;; ILP formulation:
-;;;   maximize   Σ W[i,j] · x[i,j]
-;;;   subject to Σ_j x[i,j] <= 1  for all i (each row matched at most once)
-;;;              Σ_i x[i,j] <= 1  for all j (each col matched at most once)
-;;;              x[i,j] ∈ {0,1}
+(doc 'section 'weighted-matching-ilp)
+(doc 'note "Given a bipartite graph with weights W[i,j] for each edge (i,j), find a matching that maximizes the total weight. ILP formulation: maximize Σ W[i,j] · x[i,j] subject to Σ_j x[i,j] <= 1 for all i (each row matched at most once), Σ_i x[i,j] <= 1 for all j (each col matched at most once), x[i,j] ∈ {0,1}")
 
-;;; weighted-matching-ilp : Nat × Nat × (Nat × Nat → Real) → (List (Nat . Nat)) × Real
+(define (weighted-matching-ilp n m weight)
+  (doc 'type '(-> Nat Nat (Nat Nat -> Real) (List (Nat . Nat) . Real)))
 ;;; Compute maximum weighted bipartite matching using ILP.
 ;;; n = number of nodes on left side (rows)
 ;;; m = number of nodes on right side (cols)

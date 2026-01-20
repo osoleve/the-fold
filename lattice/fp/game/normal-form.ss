@@ -1,78 +1,51 @@
-;;; core/fp/game/normal-form.ss — Normal Form (Strategic) Games
-;;;
-;;; Implements strategic form games with payoff matrices.
-;;; Supports Nash equilibrium, dominated strategy elimination,
-;;; mixed strategies, and best response dynamics.
-;;;
-;;; This is Core code: pure, total, assumes reasonable input.
-;;;
-;;; A normal form game consists of:
-;;;   - Players (indexed 0, 1, ... n-1)
-;;;   - Strategy sets for each player
-;;;   - Payoff function: strategy profile → payoff vector
-;;;
-;;; For 2-player games, we represent payoffs as a matrix where:
-;;;   - Rows are Player 1's strategies
-;;;   - Columns are Player 2's strategies
-;;;   - Each cell contains (payoff1 . payoff2)
-;;;
-;;; Dependencies:
-;;;   - core/prelude.ss
-
 (load "core/base/prelude.ss")
 
-;;; ====
-;;; Game Representation
-;;; ====
+(doc 'module 'normal-form)
+(doc 'description "Normal form (strategic) games with payoff matrices. Supports Nash equilibrium, dominated strategy elimination, mixed strategies, and best response dynamics.")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
+(doc 'note "A normal form game consists of: players (indexed 0, 1, ... n-1), strategy sets for each player, payoff function: strategy profile -> payoff vector. For 2-player games, we represent payoffs as a matrix where rows are Player 1's strategies, columns are Player 2's strategies, each cell contains (payoff1 . payoff2).")
 
-;;; A 2-player normal form game is represented as:
-;;;   (game strategies1 strategies2 payoff-matrix)
-;;; where:
-;;;   - strategies1 : (Vector Symbol) — Player 1's strategy names
-;;;   - strategies2 : (Vector Symbol) — Player 2's strategy names
-;;;   - payoff-matrix : (Vector (Vector (Pair Number Number)))
-;;;     Matrix[i][j] = (p1-payoff . p2-payoff) when P1 plays i, P2 plays j
+(doc 'section 'game-representation)
+(doc 'note "A 2-player normal form game is represented as (game strategies1 strategies2 payoff-matrix) where: strategies1 : (Vector Symbol) - Player 1's strategy names, strategies2 : (Vector Symbol) - Player 2's strategy names, payoff-matrix : (Vector (Vector (Pair Number Number))) - Matrix[i][j] = (p1-payoff . p2-payoff) when P1 plays i, P2 plays j")
 
 (define-record-type game%
   (fields strategies1 strategies2 payoffs))
 
-;;; make-game : (List Symbol) × (List Symbol) × (List (List (Pair Number Number))) → Game
-;;; Create a normal form game from lists.
 (define (make-game strats1 strats2 payoff-lists)
+  (doc 'type '(-> (List Symbol) (List Symbol) (List (List (Pair Number Number))) Game))
+  (doc 'description "Create a normal form game from lists")
   (let ([s1 (list->vector strats1)]
         [s2 (list->vector strats2)]
         [matrix (list->vector
                  (map list->vector payoff-lists))])
        (make-game% s1 s2 matrix)))
 
-;;; game-num-strategies : Game × Nat → Nat
-;;; Get number of strategies for player (0 or 1).
 (define (game-num-strategies game player)
+  (doc 'type '(-> Game Nat Nat))
+  (doc 'description "Get number of strategies for player (0 or 1)")
   (if (= player 0)
       (vector-length (game%-strategies1 game))
       (vector-length (game%-strategies2 game))))
 
-;;; game-payoff : Game × Nat × Nat → (Pair Number Number)
-;;; Get payoff pair for strategy profile (i, j).
 (define (game-payoff game i j)
+  (doc 'type '(-> Game Nat Nat (Pair Number Number)))
+  (doc 'description "Get payoff pair for strategy profile (i, j)")
   (vector-ref (vector-ref (game%-payoffs game) i) j))
 
-;;; game-payoff-p1 : Game × Nat × Nat → Number
-;;; Get Player 1's payoff for strategy profile (i, j).
 (define (game-payoff-p1 game i j)
+  (doc 'type '(-> Game Nat Nat Number))
+  (doc 'description "Get Player 1's payoff for strategy profile (i, j)")
   (car (game-payoff game i j)))
 
-;;; game-payoff-p2 : Game × Nat × Nat → Number
-;;; Get Player 2's payoff for strategy profile (i, j).
 (define (game-payoff-p2 game i j)
+  (doc 'type '(-> Game Nat Nat Number))
+  (doc 'description "Get Player 2's payoff for strategy profile (i, j)")
   (cdr (game-payoff game i j)))
 
-;;; ====
-;;; Classic Games
-;;; ====
+(doc 'section 'classic-games)
 
-;;; Prisoner's Dilemma
-;;; (C,C)=(3,3), (C,D)=(0,5), (D,C)=(5,0), (D,D)=(1,1)
+(doc prisoners-dilemma 'description "Prisoner's Dilemma: (C,C)=(3,3), (C,D)=(0,5), (D,C)=(5,0), (D,D)=(1,1)")
 (define prisoners-dilemma
   (make-game
    '(cooperate defect)
@@ -80,8 +53,7 @@
    '(((3 . 3) (0 . 5))
      ((5 . 0) (1 . 1)))))
 
-;;; Matching Pennies (zero-sum)
-;;; (H,H)=(1,-1), (H,T)=(-1,1), (T,H)=(-1,1), (T,T)=(1,-1)
+(doc matching-pennies 'description "Matching Pennies (zero-sum): (H,H)=(1,-1), (H,T)=(-1,1), (T,H)=(-1,1), (T,T)=(1,-1)")
 (define matching-pennies
   (make-game
    '(heads tails)
@@ -89,8 +61,7 @@
    '(((1 . -1) (-1 . 1))
      ((-1 . 1) (1 . -1)))))
 
-;;; Battle of the Sexes
-;;; (O,O)=(3,2), (O,F)=(0,0), (F,O)=(0,0), (F,F)=(2,3)
+(doc battle-of-sexes 'description "Battle of the Sexes: (O,O)=(3,2), (O,F)=(0,0), (F,O)=(0,0), (F,F)=(2,3)")
 (define battle-of-sexes
   (make-game
    '(opera football)
@@ -98,8 +69,7 @@
    '(((3 . 2) (0 . 0))
      ((0 . 0) (2 . 3)))))
 
-;;; Stag Hunt
-;;; (S,S)=(4,4), (S,H)=(0,3), (H,S)=(3,0), (H,H)=(3,3)
+(doc stag-hunt 'description "Stag Hunt: (S,S)=(4,4), (S,H)=(0,3), (H,S)=(3,0), (H,H)=(3,3)")
 (define stag-hunt
   (make-game
    '(stag hare)
@@ -107,8 +77,7 @@
    '(((4 . 4) (0 . 3))
      ((3 . 0) (3 . 3)))))
 
-;;; Chicken (Hawk-Dove)
-;;; (D,D)=(0,0), (D,S)=(7,2), (S,D)=(2,7), (S,S)=(6,6)
+(doc chicken 'description "Chicken (Hawk-Dove): (D,D)=(0,0), (D,S)=(7,2), (S,D)=(2,7), (S,S)=(6,6)")
 (define chicken
   (make-game
    '(dare swerve)
@@ -116,14 +85,11 @@
    '(((0 . 0) (7 . 2))
      ((2 . 7) (6 . 6)))))
 
-;;; ====
-;;; Best Response
-;;; ====
+(doc 'section 'best-response)
 
-;;; best-response-p1 : Game × Nat → (List Nat)
-;;; Find Player 1's best responses to Player 2 playing strategy j.
-;;; Returns list of strategy indices that maximize P1's payoff.
 (define (best-response-p1 game j)
+  (doc 'type '(-> Game Nat (List Nat)))
+  (doc 'description "Find Player 1's best responses to Player 2 playing strategy j. Returns list of strategy indices that maximize P1's payoff")
   (let ([n (game-num-strategies game 0)])
        (if (= n 0)
            '()  ; No strategies available
@@ -133,9 +99,9 @@
                  (filter (lambda (i) (= (list-ref payoffs i) max-payoff))
                          (iota n))))))
 
-;;; best-response-p2 : Game × Nat → (List Nat)
-;;; Find Player 2's best responses to Player 1 playing strategy i.
 (define (best-response-p2 game i)
+  (doc 'type '(-> Game Nat (List Nat)))
+  (doc 'description "Find Player 2's best responses to Player 1 playing strategy i")
   (let ([n (game-num-strategies game 1)])
        (if (= n 0)
            '()  ; No strategies available
@@ -145,14 +111,11 @@
                  (filter (lambda (j) (= (list-ref payoffs j) max-payoff))
                          (iota n))))))
 
-;;; ====
-;;; Dominated Strategies
-;;; ====
+(doc 'section 'dominated-strategies)
 
-;;; strictly-dominates-p1? : Game × Nat × Nat → Boolean
-;;; Does strategy i strictly dominate strategy i' for Player 1?
-;;; (i.e., u1(i,j) > u1(i',j) for all j)
 (define (strictly-dominates-p1? game i i-prime)
+  (doc 'type '(-> Game Nat Nat Boolean))
+  (doc 'description "Does strategy i strictly dominate strategy i' for Player 1? (i.e., u1(i,j) > u1(i',j) for all j)")
   (let ([n2 (game-num-strategies game 1)])
        (andmap (lambda (j)
                        (> (game-payoff-p1 game i j)
@@ -195,13 +158,11 @@
        (cons (filter (lambda (i) (is-strictly-dominated-p1? game i)) (iota n1))
              (filter (lambda (j) (is-strictly-dominated-p2? game j)) (iota n2)))))
 
-;;; ====
-;;; Iterated Elimination of Dominated Strategies (IESDS)
-;;; ====
+(doc 'section 'iesds)
 
-;;; eliminate-strategy-p1 : Game × Nat → Game
-;;; Create new game with P1's strategy i removed.
 (define (eliminate-strategy-p1 game i)
+  (doc 'type '(-> Game Nat Game))
+  (doc 'description "Create new game with P1's strategy i removed")
   (let* ([s1 (game%-strategies1 game)]
          [s2 (game%-strategies2 game)]
          [payoffs (game%-payoffs game)]
@@ -264,14 +225,11 @@
             ;; No dominated strategies remain
             [else game]))))
 
-;;; ====
-;;; Pure Strategy Nash Equilibrium
-;;; ====
+(doc 'section 'pure-nash)
 
-;;; is-pure-nash? : Game × Nat × Nat → Boolean
-;;; Is (i, j) a pure strategy Nash equilibrium?
-;;; True iff i is a best response to j AND j is a best response to i.
 (define (is-pure-nash? game i j)
+  (doc 'type '(-> Game Nat Nat Boolean))
+  (doc 'description "Is (i, j) a pure strategy Nash equilibrium? True iff i is a best response to j AND j is a best response to i")
   (and (member i (best-response-p1 game j))
        (member j (best-response-p2 game i))
        #t))
@@ -289,15 +247,11 @@
                                         (iota n2)))
                            (iota n1))))))
 
-;;; ====
-;;; Mixed Strategies
-;;; ====
+(doc 'section 'mixed-strategies)
+(doc 'note "A mixed strategy is a probability distribution over pure strategies.")
 
-;;; A mixed strategy is a probability distribution over pure strategies.
-;;; Represented as a vector of probabilities that sum to 1.
-
-;;; make-mixed-strategy : (List Number) → (Vector Number)
-;;; Create a mixed strategy from probability list.
+(doc make-mixed-strategy 'type '(-> (List Number) (Vector Number)))
+(doc make-mixed-strategy 'description "Create a mixed strategy from probability list")
 (define (make-mixed-strategy probs)
   (list->vector probs))
 
@@ -359,17 +313,12 @@
                                     (game-payoff-p2 game i strategy)))
                          (iota n1))))))
 
-;;; ====
-;;; 2x2 Mixed Strategy Nash Equilibrium
-;;; ====
+(doc 'section '2x2-mixed-nash)
+(doc 'note "For 2x2 games, we can compute the mixed strategy Nash equilibrium")
 
-;;; For 2x2 games, we can compute the mixed strategy Nash equilibrium
-;;; analytically using the indifference principle.
-
-;;; solve-2x2-nash : Game → (List (Pair (Vector Number) (Vector Number)))
-;;; Find all Nash equilibria (pure and mixed) for a 2x2 game.
-;;; Returns list of (sigma1 . sigma2) pairs.
 (define (solve-2x2-nash game)
+  (doc 'type '(-> Game (List (Pair (Vector Number) (Vector Number)))))
+  (doc 'description "Find all Nash equilibria (pure and mixed) for a 2x2 game using the indifference principle. Returns list of (sigma1 . sigma2) pairs")
   (if (or (not (= 2 (game-num-strategies game 0)))
           (not (= 2 (game-num-strategies game 1))))
       '()  ; Not a 2x2 game
@@ -416,13 +365,11 @@
                   '())])
             (append pure-results mixed-result))))
 
-;;; ====
-;;; Game Display
-;;; ====
+(doc 'section 'game-display)
 
-;;; game->string : Game → String
-;;; Display a game as a payoff matrix.
 (define (game->string game)
+  (doc 'type '(-> Game String))
+  (doc 'description "Display a game as a payoff matrix")
   (let* ([s1 (game%-strategies1 game)]
          [s2 (game%-strategies2 game)]
          [n1 (vector-length s1)]

@@ -1,98 +1,81 @@
-;;; fabric/stitches/fp/fsm.ss — Finite State Machine Library
-;;;
-;;; A pure functional implementation of finite state machines supporting
-;;; deterministic (DFA), non-deterministic (NFA), and epsilon-NFA automata.
-;;;
-;;; Features:
-;;; - DFA/NFA/ε-NFA construction
-;;; - State machine execution
-;;; - NFA to DFA conversion (subset construction)
-;;; - ε-NFA to NFA conversion
-;;; - State machine composition (union, concat, kleene)
-;;; - Minimization (Hopcroft's algorithm)
-;;; - Language operations
-;;;
-;;; This module builds on combinators.ss for Maybe type and basic combinators.
-
 (load "core/base/prelude.ss")
 (load "lattice/fp/meta/combinators.ss")
 
-;;; ====
-;;; Finite State Machine Types
-;;; ====
+(doc 'module 'fsm)
+(doc 'description "Finite State Machine Library — A pure functional implementation of finite state machines supporting deterministic (DFA), non-deterministic (NFA), and epsilon-NFA automata.")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
+(doc 'features '(dfa nfa epsilon-nfa construction execution nfa-to-dfa minimization composition language-operations moore-mealy visualization))
 
-;;; FSM = (fsm states alphabet transitions start accepting epsilon-transitions)
-;;; - states: List of state symbols
-;;; - alphabet: List of input symbols
-;;; - transitions: Alist ((state . input) -> List state)
-;;; - start: Initial state
-;;; - accepting: List of accepting states
-;;; - epsilon-transitions: Alist (state -> List state) for ε-moves
+(doc 'section 'finite-state-machine-types)
 
-;;; make-fsm : (List State) × (List Symbol) × (List Transition) × State × (List State) × (List EpsilonTransition) → FSM
 (define (make-fsm states alphabet transitions start accepting . epsilon)
+  (doc 'type '(-> (List State) (List Symbol) (List Transition) State (List State) (List EpsilonTransition) FSM))
+  (doc 'description "Create FSM with states, alphabet, transitions, start state, accepting states, and optional epsilon-transitions")
   (list 'fsm states alphabet transitions start accepting
         (if (null? epsilon) '() (car epsilon))))
 
-;;; fsm? : α → Boolean
 (define (fsm? x)
+  (doc 'type '(-> α Boolean))
   (and (list? x) (= (length x) 7) (eq? (car x) 'fsm)))
 
-;;; fsm-states : FSM → (List State)
-(define (fsm-states fsm) (list-ref fsm 1))
+(define (fsm-states fsm)
+  (doc 'type '(-> FSM (List State)))
+  (list-ref fsm 1))
 
-;;; fsm-alphabet : FSM → (List Symbol)
-(define (fsm-alphabet fsm) (list-ref fsm 2))
+(define (fsm-alphabet fsm)
+  (doc 'type '(-> FSM (List Symbol)))
+  (list-ref fsm 2))
 
-;;; fsm-transitions : FSM → (List Transition)
-(define (fsm-transitions fsm) (list-ref fsm 3))
+(define (fsm-transitions fsm)
+  (doc 'type '(-> FSM (List Transition)))
+  (list-ref fsm 3))
 
-;;; fsm-start : FSM → State
-(define (fsm-start fsm) (list-ref fsm 4))
+(define (fsm-start fsm)
+  (doc 'type '(-> FSM State))
+  (list-ref fsm 4))
 
-;;; fsm-accepting : FSM → (List State)
-(define (fsm-accepting fsm) (list-ref fsm 5))
+(define (fsm-accepting fsm)
+  (doc 'type '(-> FSM (List State)))
+  (list-ref fsm 5))
 
-;;; fsm-epsilon : FSM → (List EpsilonTransition)
-(define (fsm-epsilon fsm) (list-ref fsm 6))
+(define (fsm-epsilon fsm)
+  (doc 'type '(-> FSM (List EpsilonTransition)))
+  (list-ref fsm 6))
 
-;;; fsm-deterministic? : FSM → Boolean
-;;; Check if FSM is deterministic (no epsilon, single transitions)
 (define (fsm-deterministic? fsm)
+  (doc 'type '(-> FSM Boolean))
+  (doc 'description "Check if FSM is deterministic (no epsilon, single transitions)")
   (and (null? (fsm-epsilon fsm))
        (let ([trans (fsm-transitions fsm)])
             (for-all (lambda (t) (<= (length (cdr t)) 1)) trans))))
 
-;;; ====
-;;; FSM Construction Helpers
-;;; ====
+(doc 'section 'fsm-construction-helpers)
 
-;;; dfa : (List State) × (List Symbol) × (List (State × Symbol × State)) × State × (List State) → FSM
-;;; Create a simple DFA from explicit parts
 (define (dfa states alphabet transitions start accepting)
+  (doc 'type '(-> (List State) (List Symbol) (List (Tuple State Symbol State)) State (List State) FSM))
+  (doc 'description "Create a simple DFA from explicit parts")
   (make-fsm states alphabet
             (map (lambda (t)
                          (cons (cons (car t) (cadr t)) (list (caddr t))))
                  transitions)
             start accepting))
 
-;;; nfa : (List State) × (List Symbol) × (List Transition) × State × (List State) → FSM
-;;; Create an NFA with possible multiple transitions
 (define (nfa states alphabet transitions start accepting)
+  (doc 'type '(-> (List State) (List Symbol) (List Transition) State (List State) FSM))
+  (doc 'description "Create an NFA with possible multiple transitions")
   (make-fsm states alphabet transitions start accepting))
 
-;;; epsilon-nfa : (List State) × (List Symbol) × (List Transition) × State × (List State) × (List EpsilonTransition) → FSM
-;;; Create an ε-NFA
 (define (epsilon-nfa states alphabet transitions start accepting epsilon-trans)
+  (doc 'type '(-> (List State) (List Symbol) (List Transition) State (List State) (List EpsilonTransition) FSM))
+  (doc 'description "Create an ε-NFA")
   (make-fsm states alphabet transitions start accepting epsilon-trans))
 
-;;; ====
-;;; FSM Execution
-;;; ====
+(doc 'section 'fsm-execution)
 
-;;; fsm-delta : FSM × State × Symbol → (List State)
-;;; Get transition targets from state on input
 (define (fsm-delta fsm state input)
+  (doc 'type '(-> FSM State Symbol (List State)))
+  (doc 'description "Get transition targets from state on input")
   (let ([key (cons state input)])
        (let ([found (assoc key (fsm-transitions fsm))])
             (if found (cdr found) '()))))
@@ -107,9 +90,9 @@
              '()
              (fsm-epsilon fsm)))
 
-;;; epsilon-closure : FSM × State → (List State)
-;;; Get epsilon-closure of a state
 (define (epsilon-closure fsm state)
+  (doc 'type '(-> FSM State (List State)))
+  (doc 'description "Get epsilon-closure of a state")
   (let loop ([frontier (list state)] [visited '()])
        (if (null? frontier)
            visited
@@ -145,10 +128,9 @@
                      states)])
         (epsilon-closure-set fsm direct-targets)))
 
-;;; fsm-run : FSM × (Union String (List Symbol)) → (Option (List State))
-;;; Run FSM on input sequence
-;;; Returns: Just final-states if any accepting, Nothing otherwise
 (define (fsm-run fsm input)
+  (doc 'type '(-> FSM (Union String (List Symbol)) (Option (List State))))
+  (doc 'description "Run FSM on input sequence. Returns: Just final-states if any accepting, Nothing otherwise")
   (let* ([input-list (if (string? input)
                          (string->list input)
                          input)]
@@ -162,18 +144,16 @@
             (just final-states)
             nothing)))
 
-;;; fsm-accepts? : FSM × (Union String (List Symbol)) → Boolean
-;;; Check if FSM accepts input
 (define (fsm-accepts? fsm input)
+  (doc 'type '(-> FSM (Union String (List Symbol)) Boolean))
+  (doc 'description "Check if FSM accepts input")
   (just? (fsm-run fsm input)))
 
-;;; ====
-;;; FSM Language Operations
-;;; ====
+(doc 'section 'fsm-language-operations)
 
-;;; fsm-reachable : FSM → (List State)
-;;; Get reachable states from start
 (define (fsm-reachable fsm)
+  (doc 'type '(-> FSM (List State)))
+  (doc 'description "Get reachable states from start")
   (let loop ([frontier (list (fsm-start fsm))] [visited '()])
        (if (null? frontier)
            visited
@@ -190,19 +170,17 @@
                           (loop (append all-targets (cdr frontier))
                                 (cons s visited))))))))
 
-;;; fsm-empty? : FSM → Boolean
-;;; Check if FSM language is empty
 (define (fsm-empty? fsm)
+  (doc 'type '(-> FSM Boolean))
+  (doc 'description "Check if FSM language is empty")
   (let ([reachable (fsm-reachable fsm)])
        (not (exists (lambda (s) (member s (fsm-accepting fsm))) reachable))))
 
-;;; ====
-;;; NFA to DFA Conversion (Subset Construction)
-;;; ====
+(doc 'section 'nfa-to-dfa-conversion)
 
-;;; state-set->name : (List State) → Symbol
-;;; Generate fresh state name from state set
 (define (state-set->name states)
+  (doc 'type '(-> (List State) Symbol))
+  (doc 'description "Generate fresh state name from state set")
   (string->symbol
    (string-append "{"
                   (fold-left (lambda (acc s)
@@ -217,9 +195,9 @@
 (define (symbol<? a b)
   (string<? (symbol->string a) (symbol->string b)))
 
-;;; nfa->dfa : FSM → FSM
-;;; Convert NFA to DFA using subset construction
 (define (nfa->dfa nfa)
+  (doc 'type '(-> FSM FSM))
+  (doc 'description "Convert NFA to DFA using subset construction")
   (let* ([alphabet (fsm-alphabet nfa)]
          [start-set (epsilon-closure nfa (fsm-start nfa))]
          [start-name (state-set->name start-set)])
@@ -266,22 +244,21 @@
                                           (cons current-name dfa-accepting)
                                           dfa-accepting)))))))))
 
-;;; ====
-;;; FSM Composition
-;;; ====
+(doc 'section 'fsm-composition)
 
-;;; *fsm-counter* : Nat
-;;; Generate fresh state names
 (define *fsm-counter* 0)
+(doc *fsm-counter* 'type 'Nat)
+(doc *fsm-counter* 'description "Counter for generating fresh state names")
 
-;;; fsm-fresh-state : String → Symbol
 (define (fsm-fresh-state prefix)
+  (doc 'type '(-> String Symbol))
+  (doc 'description "Generate fresh state name with prefix")
   (set! *fsm-counter* (+ *fsm-counter* 1))
   (string->symbol (string-append prefix (number->string *fsm-counter*))))
 
-;;; fsm-rename : FSM × String → FSM
-;;; Rename states in FSM to avoid collisions
 (define (fsm-rename fsm prefix)
+  (doc 'type '(-> FSM String FSM))
+  (doc 'description "Rename states in FSM to avoid collisions")
   (let* ([rename (lambda (s)
                          (string->symbol
                           (string-append prefix (symbol->string s))))]
@@ -298,9 +275,9 @@
                        (fsm-epsilon fsm))])
         (make-fsm new-states (fsm-alphabet fsm) new-trans new-start new-accepting new-eps)))
 
-;;; fsm-union : FSM × FSM → FSM
-;;; Union of two FSMs (accepts if either accepts)
 (define (fsm-union fsm1 fsm2)
+  (doc 'type '(-> FSM FSM FSM))
+  (doc 'description "Union of two FSMs (accepts if either accepts)")
   (let* ([m1 (fsm-rename fsm1 "a")]
          [m2 (fsm-rename fsm2 "b")]
          [new-start (fsm-fresh-state "u")]
@@ -313,9 +290,9 @@
                         (append (fsm-epsilon m1) (fsm-epsilon m2)))])
         (make-fsm all-states all-alphabet all-trans new-start all-accepting new-eps)))
 
-;;; fsm-concat : FSM × FSM → FSM
-;;; Concatenation of two FSMs (accepts m1 then m2)
 (define (fsm-concat fsm1 fsm2)
+  (doc 'type '(-> FSM FSM FSM))
+  (doc 'description "Concatenation of two FSMs (accepts m1 then m2)")
   (let* ([m1 (fsm-rename fsm1 "c")]
          [m2 (fsm-rename fsm2 "d")]
          [all-states (append (fsm-states m1) (fsm-states m2))]
@@ -330,9 +307,9 @@
         (make-fsm all-states all-alphabet all-trans
                   (fsm-start m1) (fsm-accepting m2) all-eps)))
 
-;;; fsm-star : FSM → FSM
-;;; Kleene star of FSM (zero or more repetitions)
 (define (fsm-star fsm)
+  (doc 'type '(-> FSM FSM))
+  (doc 'description "Kleene star of FSM (zero or more repetitions)")
   (let* ([m (fsm-rename fsm "s")]
          [new-start (fsm-fresh-state "k")]
          [all-states (cons new-start (fsm-states m))]
@@ -347,14 +324,14 @@
         (make-fsm all-states (fsm-alphabet m) (fsm-transitions m)
                   new-start all-accepting all-eps)))
 
-;;; fsm-plus : FSM → FSM
-;;; Kleene plus (one or more repetitions)
 (define (fsm-plus fsm)
+  (doc 'type '(-> FSM FSM))
+  (doc 'description "Kleene plus (one or more repetitions)")
   (fsm-concat fsm (fsm-star fsm)))
 
-;;; fsm-optional : FSM → FSM
-;;; Optional (zero or one)
 (define (fsm-optional fsm)
+  (doc 'type '(-> FSM FSM))
+  (doc 'description "Optional (zero or one)")
   (let* ([m (fsm-rename fsm "o")]
          [new-start (fsm-fresh-state "opt")]
          [all-states (cons new-start (fsm-states m))]
@@ -365,13 +342,11 @@
         (make-fsm all-states (fsm-alphabet m) (fsm-transitions m)
                   new-start all-accepting all-eps)))
 
-;;; ====
-;;; FSM Builders
-;;; ====
+(doc 'section 'fsm-builders)
 
-;;; fsm-char : Char → FSM
-;;; FSM that accepts exactly one character
 (define (fsm-char c)
+  (doc 'type '(-> Char FSM))
+  (doc 'description "FSM that accepts exactly one character")
   (let ([s0 (fsm-fresh-state "q")]
         [s1 (fsm-fresh-state "q")])
        (make-fsm (list s0 s1)
@@ -380,24 +355,24 @@
                  s0
                  (list s1))))
 
-;;; fsm-epsilon-lang : Unit → FSM
-;;; FSM that accepts empty string only
 (define (fsm-epsilon-lang)
+  (doc 'type '(-> Unit FSM))
+  (doc 'description "FSM that accepts empty string only")
   (let ([s0 (fsm-fresh-state "e")])
        (make-fsm (list s0) '() '() s0 (list s0))))
 
-;;; fsm-any-of : (List Char) → FSM
-;;; FSM that accepts any single character from list
 (define (fsm-any-of chars)
+  (doc 'type '(-> (List Char) FSM))
+  (doc 'description "FSM that accepts any single character from list")
   (if (null? chars)
       (make-fsm (list 'empty) '() '() 'empty '())  ; Empty language
       (fold-left fsm-union
                  (fsm-char (car chars))
                  (map fsm-char (cdr chars)))))
 
-;;; fsm-literal : String → FSM
-;;; FSM that accepts a literal string
 (define (fsm-literal str)
+  (doc 'type '(-> String FSM))
+  (doc 'description "FSM that accepts a literal string")
   (let ([chars (string->list str)])
        (if (null? chars)
            (fsm-epsilon-lang)
@@ -405,13 +380,11 @@
                       (fsm-char (car chars))
                       (map fsm-char (cdr chars))))))
 
-;;; ====
-;;; FSM Minimization (Hopcroft's Algorithm)
-;;; ====
+(doc 'section 'fsm-minimization)
 
-;;; fsm-minimize : FSM → FSM
-;;; Minimize a DFA using partition refinement
 (define (fsm-minimize dfa)
+  (doc 'type '(-> FSM FSM))
+  (doc 'description "Minimize a DFA using partition refinement (Hopcroft's algorithm)")
   (if (not (fsm-deterministic? dfa))
       (fsm-minimize (nfa->dfa dfa))
       (let* ([states (fsm-states dfa)]
@@ -523,14 +496,11 @@
               '()
               lst))
 
-;;; ====
-;;; FSM Visualization
-;;; ====
+(doc 'section 'fsm-visualization)
 
-;;; dot-escape-string : String → String
-;;; Escape special characters for DOT format strings
-;;; Handles: backslash, double quote, newline, carriage return, tab
 (define (dot-escape-string str)
+  (doc 'type '(-> String String))
+  (doc 'description "Escape special characters for DOT format strings. Handles: backslash, double quote, newline, carriage return, tab")
   (let loop ([chars (string->list str)] [acc '()])
        (if (null? chars)
            (list->string (reverse acc))
@@ -554,10 +524,9 @@
 (define (dot-escape-symbol sym)
   (dot-escape-string (symbol->string sym)))
 
-;;; fsm->dot : FSM × (Option String) → String
-;;; Convert FSM to DOT format for Graphviz
-;;; All state names and labels are escaped to prevent DOT injection
 (define (fsm->dot fsm . name)
+  (doc 'type '(-> FSM (Option String) String))
+  (doc 'description "Convert FSM to DOT format for Graphviz. All state names and labels are escaped to prevent DOT injection")
   (let ([graph-name (if (null? name) "FSM" (dot-escape-string (car name)))])
        (string-append
         "digraph \"" graph-name "\" {
@@ -614,12 +583,11 @@
         "}
 ")))
 
-;;; ====
-;;; FSM to String
-;;; ====
+(doc 'section 'fsm-to-string)
 
-;;; fsm->string : FSM → String
 (define (fsm->string fsm)
+  (doc 'type '(-> FSM String))
+  (doc 'description "Convert FSM to human-readable string representation")
   (string-append
    "FSM:
 "
@@ -657,13 +625,11 @@
                    ""
                    (fsm-epsilon fsm))))))
 
-;;; ====
-;;; Product Construction (Intersection)
-;;; ====
+(doc 'section 'product-construction)
 
-;;; fsm-intersect : FSM × FSM → FSM
-;;; Intersection of two DFAs
 (define (fsm-intersect dfa1 dfa2)
+  (doc 'type '(-> FSM FSM FSM))
+  (doc 'description "Intersection of two DFAs")
   (let* ([m1 (if (fsm-deterministic? dfa1) dfa1 (nfa->dfa dfa1))]
          [m2 (if (fsm-deterministic? dfa2) dfa2 (nfa->dfa dfa2))]
          [alphabet (filter (lambda (a) (member a (fsm-alphabet m2)))
@@ -711,9 +677,6 @@
                                       (append new-trans trans)
                                       (if is-accepting (cons cur-name accepting) accepting)))))))))
 
-;;; fsm-complete : FSM → FSM
-;;; Make a DFA complete by adding explicit dead state with self-loops
-;;; for all missing transitions
 (define (fsm-complete dfa)
   ;; Helper: check if a transition exists and has non-empty targets
   (define (has-valid-transition? key transitions)
@@ -755,11 +718,9 @@
                       (append missing-trans dead-loops clean-transitions)
                       (fsm-start dfa)
                       (fsm-accepting dfa)))))
+(doc fsm-complete 'type '(-> FSM FSM))
+(doc fsm-complete 'description "Make a DFA complete by adding explicit dead state with self-loops for all missing transitions")
 
-;;; fsm-complement : FSM → FSM
-;;; Complement of a DFA
-;;; First completes the DFA (adds explicit dead state for missing transitions),
-;;; then flips accepting and non-accepting states.
 (define (fsm-complement dfa)
   (let* ([m0 (if (fsm-deterministic? dfa) dfa (nfa->dfa dfa))]
          [m (fsm-complete m0)]
@@ -767,30 +728,31 @@
                                 (fsm-states m))])
         (make-fsm (fsm-states m) (fsm-alphabet m) (fsm-transitions m)
                   (fsm-start m) non-accepting)))
+(doc fsm-complement 'type '(-> FSM FSM))
+(doc fsm-complement 'description "Complement of a DFA. First completes the DFA (adds explicit dead state for missing transitions), then flips accepting and non-accepting states")
 
-;;; ====
-;;; State Machine Simulation with Actions
-;;; ====
+(doc 'section 'state-machine-simulation)
 
-;;; make-moore : FSM × (Alist State α) → Moore
-;;; Moore machine: output depends on current state
-;;; (moore-machine fsm outputs) where outputs: alist (state -> output)
 (define (make-moore fsm outputs)
+  (doc 'type '(-> FSM (Alist State α) Moore))
+  (doc 'description "Moore machine: output depends on current state")
   (list 'moore fsm outputs))
 
-;;; moore? : β → Boolean
 (define (moore? x)
+  (doc 'type '(-> β Boolean))
   (and (list? x) (>= (length x) 3) (eq? (car x) 'moore)))
 
-;;; moore-fsm : Moore → FSM
-(define (moore-fsm m) (cadr m))
+(define (moore-fsm m)
+  (doc 'type '(-> Moore FSM))
+  (cadr m))
 
-;;; moore-outputs : Moore → (Alist State α)
-(define (moore-outputs m) (caddr m))
+(define (moore-outputs m)
+  (doc 'type '(-> Moore (Alist State α)))
+  (caddr m))
 
-;;; moore-run : Moore × (Union String (List Symbol)) → (List α)
-;;; Run Moore machine, returning sequence of outputs
 (define (moore-run machine input)
+  (doc 'type '(-> Moore (Union String (List Symbol)) (List α)))
+  (doc 'description "Run Moore machine, returning sequence of outputs")
   (let* ([fsm (moore-fsm machine)]
          [outputs (moore-outputs machine)]
          [input-list (if (string? input) (string->list input) input)]
@@ -808,25 +770,26 @@
                                           (get-output (car new-states)))])
                        (loop new-states (cdr inputs) (cons state-output result)))))))
 
-;;; make-mealy : FSM × (Alist (State × Symbol) α) → Mealy
-;;; Mealy machine: output depends on transition
-;;; (mealy-machine fsm transition-outputs) where transition-outputs: alist ((state . input) -> output)
 (define (make-mealy fsm trans-outputs)
+  (doc 'type '(-> FSM (Alist (Pair State Symbol) α) Mealy))
+  (doc 'description "Mealy machine: output depends on transition")
   (list 'mealy fsm trans-outputs))
 
-;;; mealy? : β → Boolean
 (define (mealy? x)
+  (doc 'type '(-> β Boolean))
   (and (list? x) (>= (length x) 3) (eq? (car x) 'mealy)))
 
-;;; mealy-fsm : Mealy → FSM
-(define (mealy-fsm m) (cadr m))
+(define (mealy-fsm m)
+  (doc 'type '(-> Mealy FSM))
+  (cadr m))
 
-;;; mealy-outputs : Mealy → (Alist (State × Symbol) α)
-(define (mealy-outputs m) (caddr m))
+(define (mealy-outputs m)
+  (doc 'type '(-> Mealy (Alist (Pair State Symbol) α)))
+  (caddr m))
 
-;;; mealy-run : Mealy × (Union String (List Symbol)) → (List α)
-;;; Run Mealy machine, returning sequence of outputs
 (define (mealy-run machine input)
+  (doc 'type '(-> Mealy (Union String (List Symbol)) (List α)))
+  (doc 'description "Run Mealy machine, returning sequence of outputs")
   (let* ([fsm (mealy-fsm machine)]
          [outputs (mealy-outputs machine)]
          [input-list (if (string? input) (string->list input) input)]
