@@ -1,31 +1,22 @@
-;;; lattice/statistics/timeseries/exponential.ss — Exponential Smoothing
-;;;
-;;; Simple, double, and triple (Holt-Winters) exponential smoothing.
-;;;
-;;; This is Lattice code: pure, total, assumes reasonable input.
-;;;
-;;; Provides:
-;;;   - simple-exponential-smooth: SES (alpha parameter)
-;;;   - holt-smooth: Double exponential (trend)
-;;;   - holt-winters: Triple exponential (trend + seasonality)
-;;;   - optimize-ses-alpha: Find optimal alpha via grid search
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-
 (load "core/base/prelude.ss")
 
-;;; ====
-;;; Simple Exponential Smoothing (SES)
-;;; ====
+(doc 'module 'exponential)
+(doc 'description "Exponential Smoothing — Simple, double, and triple (Holt-Winters) exponential smoothing")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
 
-;;; simple-exponential-smooth : Vec × Num → SESResult
-;;; Single exponential smoothing: s_t = alpha * x_t + (1-alpha) * s_{t-1}
-;;; Alpha in (0, 1): higher alpha = more weight on recent observations.
+(doc 'description "simple-exponential-smooth: SES (alpha parameter)")
+(doc 'description "holt-smooth: Double exponential (trend)")
+(doc 'description "holt-winters: Triple exponential (trend + seasonality)")
+(doc 'description "optimize-ses-alpha: Find optimal alpha via grid search")
+
+(doc 'section 'simple-exponential-smoothing-ses)
 (define (simple-exponential-smooth xs alpha)
+  (doc 'type '(-> Vec Num SESResult))
+  (doc 'description "Single exponential smoothing: s_t = alpha * x_t + (1-alpha) * s_{t-1}")
+  (doc 'note "Alpha in (0, 1): higher alpha = more weight on recent observations")
   (let* ([n (vector-length xs)]
          [smoothed (make-vector n)]
-         ;; Initialize with first observation
          [s0 (vector-ref xs 0)])
         (vector-set! smoothed 0 s0)
         (do ([t 1 (+ t 1)])

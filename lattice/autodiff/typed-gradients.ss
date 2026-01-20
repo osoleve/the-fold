@@ -1,63 +1,33 @@
-;;; core/autodiff/typed-gradients.ss --- Type-Safe Gradient Dimensions
-;;;
-;;; Provides dimension-checked gradient operations for automatic differentiation.
-;;; This module bridges the type system with autodiff to catch dimension mismatches
-;;; at definition time rather than runtime.
-;;;
-;;; The approach is pragmatic: rather than full dependent type integration (which
-;;; would require significant type checker work), we provide:
-;;;   - Explicit dimension annotations on gradient types
-;;;   - Runtime-checked wrappers that validate dimensions
-;;;   - Clear error messages when dimensions mismatch
-;;;   - Integration with the existing Differentiable type class
-;;;
-;;; Key types:
-;;;   - (Gradient n)         : A gradient vector of exactly n components
-;;;   - (GradientFn n)       : A function returning gradients of dimension n
-;;;   - (HessianFn n)        : A function returning n x n Hessian matrices
-;;;   - (JacobianFn m n)     : A function returning m x n Jacobian matrices
-;;;
-;;; This is Core code: pure, total, assumes reasonable input.
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;   - types/dep-types.ss (for dependent type primitives)
-;;;   - autodiff/reverse-diff.ss (for gradient computation)
-;;;   - autodiff/higher-order-diff.ss (for Jacobian/Hessian)
-;;;   - linalg/vec.ss (for vector operations)
-
 (load "core/base/prelude.ss")
 (load "core/types/dep-types.ss")
 (load "lattice/autodiff/higher-order-diff.ss")
 
-;;; ====
-;;; Dimension Type Annotations
-;;; ====
+(doc 'module 'typed-gradients)
+(doc 'description "Type-Safe Gradient Dimensions - dimension-checked gradient operations for automatic differentiation")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
+(doc 'note "Key types:
+  - (Gradient n)         : A gradient vector of exactly n components
+  - (GradientFn n)       : A function returning gradients of dimension n
+  - (HessianFn n)        : A function returning n x n Hessian matrices
+  - (JacobianFn m n)     : A function returning m x n Jacobian matrices
 
-;;; These type constructors document gradient dimensions.
-;;; They are validated at runtime by the wrapper functions below.
-;;;
-;;; Type: (Gradient n) = (Vec n Number)
-;;;       Represents a gradient vector with exactly n components.
-;;;
-;;; Type: (GradientFn n) = (Vec n Number) -> (Gradient n)
-;;;       A scalar function from R^n -> R, returning gradients in R^n.
-;;;
-;;; Type: (JacobianFn m n) = (Vec n Number) -> (Matrix m n Number)
-;;;       A vector function from R^n -> R^m, returning m x n Jacobian.
-;;;
-;;; Type: (HessianFn n) = (Vec n Number) -> (Matrix n n Number)
-;;;       A scalar function from R^n -> R, returning n x n Hessian.
+The approach is pragmatic: rather than full dependent type integration,
+we provide explicit dimension annotations, runtime-checked wrappers,
+clear error messages, and integration with the Differentiable type class.")
 
-;;; ====
-;;; Dimension-Checked Gradient Wrapper
-;;; ====
+(doc 'section 'dimension-types)
+(doc 'note "Type constructors document gradient dimensions, validated at runtime:
+  - (Gradient n) = (Vec n Number) - gradient vector with n components
+  - (GradientFn n) = (Vec n Number) -> (Gradient n) - scalar function R^n -> R
+  - (JacobianFn m n) = (Vec n Number) -> (Matrix m n Number) - vector function R^n -> R^m
+  - (HessianFn n) = (Vec n Number) -> (Matrix n n Number) - scalar function R^n -> R")
 
-;;; A DimGradient packages a gradient with its expected dimension.
-;;; Structure: (dim-gradient dimension values)
+(doc 'section 'dimension-checked-gradient)
 
-;;; dim-gradient : Nat × (List Number) → DimGradient
 (define (dim-gradient expected-dim values)
+  (doc 'type '(-> Nat (List Number) DimGradient))
+  (doc 'description "Package a gradient with its expected dimension")
   (let ([actual-dim (length values)])
        (if (= expected-dim actual-dim)
            (list 'dim-gradient expected-dim values)

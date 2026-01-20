@@ -1,23 +1,3 @@
-;;; lattice/statistics/timeseries/ar.ss — Autoregressive Models
-;;;
-;;; AR(p) model fitting and forecasting.
-;;;
-;;; This is Lattice code: pure, total, assumes reasonable input.
-;;;
-;;; Provides:
-;;;   - ar-fit: Fit AR(p) model using Yule-Walker equations
-;;;   - ar-predict: One-step ahead prediction
-;;;   - ar-forecast: Multi-step forecasting
-;;;   - ar-aic: Model selection via AIC
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;   - linalg/matrix.ss
-;;;   - linalg/matrix-solvers.ss
-;;;   - statistics/core/result-types.ss
-;;;   - statistics/core/summary-stats.ss
-;;;   - statistics/timeseries/acf-pacf.ss
-
 (load "core/base/prelude.ss")
 (load "lattice/linalg/matrix.ss")
 (load "lattice/linalg/matrix-decomp.ss")
@@ -26,21 +6,26 @@
 (load "lattice/statistics/core/summary-stats.ss")
 (load "lattice/statistics/timeseries/acf-pacf.ss")
 
-;;; ====
-;;; AR Model Fitting
-;;; ====
+(doc 'module 'ar)
+(doc 'description "Autoregressive Models — AR(p) model fitting and forecasting")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
 
-;;; AR(p) model: X_t = c + phi_1*X_{t-1} + ... + phi_p*X_{t-p} + epsilon_t
-;;; For centered series (mean 0): X_t = phi_1*X_{t-1} + ... + phi_p*X_{t-p} + epsilon_t
+(doc 'description "ar-fit: Fit AR(p) model using Yule-Walker equations")
+(doc 'description "ar-predict: One-step ahead prediction")
+(doc 'description "ar-forecast: Multi-step forecasting")
+(doc 'description "ar-aic: Model selection via AIC")
 
-;;; ar-fit : Vec × Nat → ARResult | Error
-;;; Fit AR(p) model using Yule-Walker equations.
-;;; The Yule-Walker equations relate autocorrelations to AR coefficients:
-;;; R * phi = r
-;;; where R is the Toeplitz matrix of autocorrelations and r = [rho_1, ..., rho_p]'.
-;;;
-;;; Uses Levinson-Durbin algorithm for O(p²) performance instead of O(p³).
+(doc 'section 'ar-model-fitting)
+
+(doc 'note "AR(p) model: X_t = c + phi_1*X_{t-1} + ... + phi_p*X_{t-p} + epsilon_t")
+(doc 'note "For centered series (mean 0): X_t = phi_1*X_{t-1} + ... + phi_p*X_{t-p} + epsilon_t")
+(doc 'note "The Yule-Walker equations relate autocorrelations to AR coefficients: R * phi = r")
+(doc 'note "where R is the Toeplitz matrix of autocorrelations and r = [rho_1, ..., rho_p]'")
+(doc 'note "Uses Levinson-Durbin algorithm for O(p²) performance instead of O(p³)")
 (define (ar-fit xs p)
+  (doc 'type '(-> Vec Nat (or ARResult Error)))
+  (doc 'description "Fit AR(p) model using Yule-Walker equations")
   (let* ([n (vector-length xs)]
          [mean (vec-mean xs)])
         (if (< n (+ p 2))

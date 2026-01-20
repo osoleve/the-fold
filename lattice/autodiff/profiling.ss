@@ -1,28 +1,17 @@
-;;; core/autodiff/profiling.ss --- Performance Profiling for Autodiff
-;;;
-;;; Provides utilities for profiling and debugging autodiff performance:
-;;;   - tape-stats: Operation counts and tape size
-;;;   - graph-stats: Node/edge counts, depth
-;;;   - time-gradient: Measure forward/backward pass time
-;;;   - memory-estimate: Estimate memory usage
-;;;
-;;; This is Core code: pure (except for timing), assumes reasonable input.
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;   - autodiff/comp-graph.ss
-;;;   - autodiff/reverse-diff.ss
-
 (load "core/base/prelude.ss")
 (load "core/autodiff/comp-graph.ss")
 (load "core/autodiff/reverse-diff.ss")
 
-;;; ====
-;;; Tape Statistics
-;;; ====
+(doc 'module 'profiling)
+(doc 'description "Performance Profiling for Autodiff - utilities for profiling and debugging autodiff performance")
+(doc 'layer 'core)
+(doc 'purity 'partial)
+(doc 'note "Provides tape-stats (operation counts and tape size), graph-stats (node/edge counts, depth), time-gradient (measure forward/backward pass time), memory-estimate (estimate memory usage)")
 
-;;; tape-stats : MutableTape → Stats
+(doc 'section 'tape-statistics)
+
 (define (tape-stats tape)
+  (doc 'type '(-> MutableTape Stats))
   (let* ([entries (reverse-tape-entries tape)]
          [size (length entries)]
          [op-counts (make-hashtable symbol-hash eq?)])

@@ -1,19 +1,11 @@
-;;; lattice/autodiff/symbolic-diff.ss — Symbolic-Autodiff Integration
-;;;
-;;; Bridges symbolic differentiation with automatic differentiation:
-;;;   - eval-expr: Evaluate symbolic expressions numerically
-;;;   - simplify: Algebraic simplification of expressions
-;;;   - expr-to-traced: Compile expressions to traced functions
-;;;
-;;; This is Core code: pure, total, assumes reasonable input.
-;;;
-;;; Dependencies:
-;;;   - lattice/fp/symbolic/diff.ss (includes expr.ss)
-;;;   - lattice/autodiff/reverse-diff.ss
-
 (load "lattice/fp/symbolic/diff.ss")
 
-;;; Save symbolic functions before autodiff overwrites them
+(doc 'module 'symbolic-diff)
+(doc 'description "Symbolic-Autodiff Integration - bridges symbolic differentiation with automatic differentiation")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
+(doc 'note "Key functions: eval-expr (evaluate symbolic expressions numerically), simplify (algebraic simplification), expr-to-traced (compile expressions to traced functions)")
+
 (define sym-gradient gradient)
 (define sym-jacobian jacobian)
 (define sym-hessian hessian)
@@ -23,11 +15,10 @@
 ;;; Restore autodiff functions with clear names
 (define autodiff-gradient gradient)
 
-;;; ====
-;;; Expression Evaluation
-;;; ====
+(doc 'section 'expression-evaluation)
 
-;;; eval-expr : Expr × Env → Number
+(define (eval-expr expr env)
+  (doc 'type '(-> Expr Env Number))
 ;;; Evaluate a symbolic expression given variable bindings.
 ;;; env is an alist: ((x . 3.0) (y . 2.0) ...)
 ;;;

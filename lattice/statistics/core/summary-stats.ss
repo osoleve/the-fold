@@ -1,27 +1,20 @@
-;;; lattice/statistics/core/summary-stats.ss — Descriptive Statistics
-;;;
-;;; Basic statistical summary functions.
-;;;
-;;; This is Lattice code: pure, total, assumes reasonable input.
-;;;
-;;; Provides:
-;;;   - Mean, variance, standard deviation
-;;;   - Median, quantiles
-;;;   - Covariance, correlation
-;;;   - Vector-optimized versions
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-
 (load "core/base/prelude.ss")
 
-;;; ====
-;;; Basic Statistics (List versions)
-;;; ====
+(doc 'module 'summary-stats)
+(doc 'description "Descriptive Statistics — Basic statistical summary functions")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
 
-;;; mean : (List Num) → Num
-;;; Compute arithmetic mean.
+(doc 'description "Mean, variance, standard deviation")
+(doc 'description "Median, quantiles")
+(doc 'description "Covariance, correlation")
+(doc 'description "Vector-optimized versions")
+
+(doc 'section 'basic-statistics-list-versions)
+
 (define (mean xs)
+  (doc 'type '(-> (List Num) Num))
+  (doc 'description "Compute arithmetic mean")
   (if (null? xs)
       (error 'mean "empty list")
       (/ (fold-left + 0 xs) (length xs))))

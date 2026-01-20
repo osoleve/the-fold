@@ -1,58 +1,43 @@
-;;; lattice/statistics/regression/glm.ss — Generalized Linear Models
-;;;
-;;; GLM fitting via Iteratively Reweighted Least Squares (IRLS).
-;;;
-;;; This is Lattice code: pure, total, assumes reasonable input.
-;;;
-;;; Provides:
-;;;   - glm-fit: Fit GLM with specified family and link
-;;;   - logistic-fit: Binary logistic regression (wrapper)
-;;;   - poisson-fit: Poisson regression (wrapper)
-;;;   - glm-predict: Predictions from fitted model
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;   - linalg/matrix.ss
-;;;   - linalg/matrix-solvers.ss
-;;;   - statistics/core/result-types.ss
-;;;   - statistics/regression/families.ss
-;;;   - statistics/regression/link-functions.ss
-;;;   - statistics/hypothesis/distributions.ss
-
 (load "core/base/prelude.ss")
 (load "lattice/linalg/matrix.ss")
-(load "lattice/linalg/matrix-decomp.ss")  ; Provides matrix-lu/qr, needed by solvers
+(load "lattice/linalg/matrix-decomp.ss")
 (load "lattice/linalg/matrix-solvers.ss")
 (load "lattice/statistics/core/result-types.ss")
 (load "lattice/statistics/regression/families.ss")
 (load "lattice/statistics/regression/link-functions.ss")
 (load "lattice/statistics/hypothesis/distributions.ss")
 
-;;; ====
-;;; IRLS Algorithm
-;;; ====
+(doc 'module 'glm)
+(doc 'description "Generalized Linear Models — GLM fitting via Iteratively Reweighted Least Squares (IRLS)")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
 
-;;; The IRLS algorithm iteratively solves weighted least squares:
-;;;
-;;; 1. Initialize: eta = g(mu_0) where mu_0 = initialize(y)
-;;; 2. Iterate until convergence:
-;;;    a. mu = g^(-1)(eta)
-;;;    b. V = variance(mu) from family
-;;;    c. W = 1 / (V * g'(mu)²) (working weights)
-;;;    d. z = eta + (y - mu) * g'(mu) (working response)
-;;;    e. Solve WLS: beta = (X'WX)^(-1) X'Wz
-;;;    f. eta = X * beta
-;;; 3. Compute standard errors from (X'WX)^(-1)
+(doc 'description "glm-fit: Fit GLM with specified family and link")
+(doc 'description "logistic-fit: Binary logistic regression (wrapper)")
+(doc 'description "poisson-fit: Poisson regression (wrapper)")
+(doc 'description "glm-predict: Predictions from fitted model")
 
-;;; glm-fit : GLMFamily × LinkFunction × Matrix × Vec × Nat × Num → GLMResult | Error
-;;; Fit a GLM using IRLS.
-;;;   family: GLM family (gaussian, binomial, poisson, gamma)
-;;;   link: link function
-;;;   X: design matrix (should include intercept if desired)
-;;;   y: response vector
-;;;   max-iter: maximum IRLS iterations (default 25)
-;;;   tol: convergence tolerance (default 1e-8)
+(doc 'section 'irls-algorithm)
+
+(doc 'note "The IRLS algorithm iteratively solves weighted least squares:")
+(doc 'note "1. Initialize: eta = g(mu_0) where mu_0 = initialize(y)")
+(doc 'note "2. Iterate until convergence:")
+(doc 'note "   a. mu = g^(-1)(eta)")
+(doc 'note "   b. V = variance(mu) from family")
+(doc 'note "   c. W = 1 / (V * g'(mu)²) (working weights)")
+(doc 'note "   d. z = eta + (y - mu) * g'(mu) (working response)")
+(doc 'note "   e. Solve WLS: beta = (X'WX)^(-1) X'Wz")
+(doc 'note "   f. eta = X * beta")
+(doc 'note "3. Compute standard errors from (X'WX)^(-1)")
 (define (glm-fit family link X y . opts)
+  (doc 'type '(-> GLMFamily LinkFunction Matrix Vec (or GLMResult Error)))
+  (doc 'description "Fit a GLM using IRLS")
+  (doc 'param 'family "GLM family (gaussian, binomial, poisson, gamma)")
+  (doc 'param 'link "link function")
+  (doc 'param 'X "design matrix (should include intercept if desired)")
+  (doc 'param 'y "response vector")
+  (doc 'param 'max-iter "maximum IRLS iterations (default 25)")
+  (doc 'param 'tol "convergence tolerance (default 1e-8)")
   (let* ([max-iter (if (>= (length opts) 1) (car opts) 25)]
          [tol (if (>= (length opts) 2) (cadr opts) 1e-8)]
          [n (matrix-rows X)]

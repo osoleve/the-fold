@@ -1,26 +1,3 @@
-;;; core/autodiff/sparse-autodiff.ss --- Sparse Automatic Differentiation
-;;;
-;;; Efficient automatic differentiation for large, sparse systems using
-;;; sparse matrix representations (COO, CSR, CSC).
-;;;
-;;; Key features:
-;;;   - Sparse Jacobian computation with automatic sparsity detection
-;;;   - Memory-efficient sparse gradient storage
-;;;   - Sparse Hessian-vector products
-;;;   - Integration with existing traced/dual number systems
-;;;   - Pattern-based sparse Jacobian computation
-;;;
-;;; This is Core code: pure, total, assumes reasonable input.
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;   - linalg/vec.ss
-;;;   - linalg/matrix.ss
-;;;   - linalg/sparse.ss
-;;;   - autodiff/comp-graph.ss
-;;;   - autodiff/reverse-diff.ss
-;;;   - autodiff/higher-order-diff.ss
-
 (load "core/base/prelude.ss")
 (load "lattice/linalg/vec.ss")
 (load "lattice/linalg/matrix.ss")
@@ -29,9 +6,13 @@
 (load "core/autodiff/reverse-diff.ss")
 (load "lattice/autodiff/higher-order-diff.ss")
 
-;;; ====
-;;; Sparse Gradient Representation
-;;; ====
+(doc 'module 'sparse-autodiff)
+(doc 'description "Sparse Automatic Differentiation - efficient autodiff for large, sparse systems using sparse matrix representations (COO, CSR, CSC)")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
+(doc 'note "Key features: sparse Jacobian computation with automatic sparsity detection, memory-efficient sparse gradient storage, sparse Hessian-vector products, integration with traced/dual number systems, pattern-based sparse Jacobian computation")
+
+(doc 'section 'sparse-gradient-representation)
 
 ;;; A sparse gradient stores only non-zero partial derivatives.
 ;;; Represented as: (sparse-grad nnz indices values)

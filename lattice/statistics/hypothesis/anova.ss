@@ -1,33 +1,22 @@
-;;; lattice/statistics/hypothesis/anova.ss — Analysis of Variance
-;;;
-;;; One-way and two-way ANOVA.
-;;;
-;;; This is Lattice code: pure, total, assumes reasonable input.
-;;;
-;;; Provides:
-;;;   - anova-one-way: Compare means across multiple groups
-;;;   - anova-two-way: Two-factor ANOVA
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;   - statistics/core/result-types.ss
-;;;   - statistics/core/summary-stats.ss
-;;;   - statistics/hypothesis/distributions.ss
-
 (load "core/base/prelude.ss")
 (load "lattice/statistics/core/result-types.ss")
 (load "lattice/statistics/core/summary-stats.ss")
 (load "lattice/statistics/hypothesis/distributions.ss")
 
-;;; ====
-;;; One-Way ANOVA
-;;; ====
+(doc 'module 'anova)
+(doc 'description "Analysis of Variance — One-way and two-way ANOVA")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
 
-;;; anova-one-way : (List Vec) → ANOVAResult
-;;; Test H0: all group means are equal.
-;;; F = (SS_between / df_between) / (SS_within / df_within)
+(doc 'description "anova-one-way: Compare means across multiple groups")
+(doc 'description "anova-two-way: Two-factor ANOVA")
+
+(doc 'section 'one-way-anova)
 (define (anova-one-way groups)
-  (let* ([k (length groups)]                    ; Number of groups
+  (doc 'type '(-> (List Vec) ANOVAResult))
+  (doc 'description "Test H0: all group means are equal")
+  (doc 'note "F = (SS_between / df_between) / (SS_within / df_within)")
+  (let* ([k (length groups)]
          [ns (map vector-length groups)]        ; Group sizes
          [n (apply + ns)]                       ; Total sample size
          ;; Group means

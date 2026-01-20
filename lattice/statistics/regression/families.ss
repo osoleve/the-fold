@@ -1,40 +1,28 @@
-;;; lattice/statistics/regression/families.ss — GLM Families
-;;;
-;;; Variance functions and deviance for GLM families.
-;;;
-;;; This is Lattice code: pure, total, assumes reasonable input.
-;;;
-;;; Provides:
-;;;   - gaussian-family
-;;;   - binomial-family
-;;;   - poisson-family
-;;;   - gamma-family
-;;;
-;;; A family specifies:
-;;;   - variance(mu): variance as a function of mean
-;;;   - deviance(y, mu): contribution to deviance
-;;;   - valid-mu?(mu): whether mu is in valid range
-;;;   - initialize(y): initial mu estimate
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;   - fp/numeric/transcendental.ss
-
 (load "core/base/prelude.ss")
 (load "lattice/fp/numeric/transcendental.ss")
 
-;;; ====
-;;; Family Structure
-;;; ====
+(doc 'module 'families)
+(doc 'description "GLM Families — Variance functions and deviance for GLM families")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
 
-;;; make-glm-family : Symbol × (Num → Num) × (Num × Num → Num) × (Num → Bool) × (Num → Num) → GLMFamily
-;;; Create a GLM family.
-;;;   name: family name (gaussian, binomial, poisson, gamma)
-;;;   variance: variance function V(mu)
-;;;   deviance-contrib: deviance contribution for single observation
-;;;   valid-mu?: predicate for valid mu values
-;;;   initialize: initial mu from y
+(doc 'description "gaussian-family, binomial-family, poisson-family, gamma-family")
+
+(doc 'note "A family specifies:")
+(doc 'note "  - variance(mu): variance as a function of mean")
+(doc 'note "  - deviance(y, mu): contribution to deviance")
+(doc 'note "  - valid-mu?(mu): whether mu is in valid range")
+(doc 'note "  - initialize(y): initial mu estimate")
+
+(doc 'section 'family-structure)
 (define (make-glm-family name variance deviance-contrib valid-mu? initialize)
+  (doc 'type '(-> Symbol (-> Num Num) (-> Num Num Num) (-> Num Bool) (-> Num Num) GLMFamily))
+  (doc 'description "Create a GLM family")
+  (doc 'param 'name "family name (gaussian, binomial, poisson, gamma)")
+  (doc 'param 'variance "variance function V(mu)")
+  (doc 'param 'deviance-contrib "deviance contribution for single observation")
+  (doc 'param 'valid-mu? "predicate for valid mu values")
+  (doc 'param 'initialize "initial mu from y")
   (list 'glm-family name variance deviance-contrib valid-mu? initialize))
 
 ;;; glm-family? : Any → Bool

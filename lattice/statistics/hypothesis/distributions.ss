@@ -1,35 +1,25 @@
-;;; lattice/statistics/hypothesis/distributions.ss — Test Statistic Distributions
-;;;
-;;; CDF and quantile functions for t, chi-squared, and F distributions.
-;;; Uses special-functions.ss for the underlying incomplete beta/gamma.
-;;;
-;;; This is Lattice code: pure, total, assumes reasonable input.
-;;;
-;;; Provides:
-;;;   - t-cdf, t-quantile, t-pdf
-;;;   - chi-squared-cdf, chi-squared-quantile, chi-squared-pdf
-;;;   - f-cdf, f-quantile, f-pdf
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;   - fp/numeric/special-functions.ss
-;;;   - fp/numeric/transcendental.ss
-
 (load "core/base/prelude.ss")
 (load "lattice/fp/numeric/transcendental.ss")
 (load "lattice/fp/numeric/special-functions.ss")
 
-;;; ====
-;;; Student's t-Distribution
-;;; ====
+(doc 'module 'distributions)
+(doc 'description "Test Statistic Distributions — CDF and quantile functions for t, chi-squared, and F distributions")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
 
-;;; The t-distribution CDF is related to the regularized incomplete beta:
-;;; F_t(x|df) = 1 - 0.5 * I_{df/(df+x^2)}(df/2, 0.5)  for x >= 0
-;;;           = 0.5 * I_{df/(df+x^2)}(df/2, 0.5)      for x < 0
+(doc 'description "Uses special-functions.ss for the underlying incomplete beta/gamma")
+(doc 'description "t-cdf, t-quantile, t-pdf")
+(doc 'description "chi-squared-cdf, chi-squared-quantile, chi-squared-pdf")
+(doc 'description "f-cdf, f-quantile, f-pdf")
 
-;;; t-cdf : Num × Num → Num
-;;; CDF of Student's t-distribution with df degrees of freedom.
+(doc 'section 'student-t-distribution)
+
+(doc 'note "The t-distribution CDF is related to the regularized incomplete beta:")
+(doc 'note "F_t(x|df) = 1 - 0.5 * I_{df/(df+x^2)}(df/2, 0.5)  for x >= 0")
+(doc 'note "          = 0.5 * I_{df/(df+x^2)}(df/2, 0.5)      for x < 0")
 (define (t-cdf x df)
+  (doc 'type '(-> Num Num Num))
+  (doc 'description "CDF of Student's t-distribution with df degrees of freedom")
   (if (<= df 0)
       (error 't-cdf "df must be positive" df)
       (let* ([x2 (* x x)]

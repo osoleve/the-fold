@@ -1,29 +1,18 @@
-;;; lattice/meta/docstrings.ss — Docstring Extraction
-;;;
-;;; Extract ;;; docstrings from source files and associate them with
-;;; function definitions for improved search indexing.
-;;;
-;;; Docstring format:
-;;;   ;;; function-name : type-signature
-;;;   ;;; Description line 1
-;;;   ;;; Description line 2
-;;;   (define (function-name args...) ...)
-;;;
-;;; This is Lattice code: impure (reads files), used during indexing.
+(doc 'module 'docstrings)
+(doc 'description "Extract ;;; docstrings from source files and associate them with function definitions for improved search indexing.")
+(doc 'layer 'lattice)
+(doc 'purity 'partial)
+(doc 'note "Docstring format: ;;; function-name : type-signature followed by description lines, then (define (function-name args...) ...)")
 
-;;; ====
-;;; State
-;;; ====
+(doc 'section 'state)
 
-;;; Global docstring cache: symbol -> string
+(doc *docstrings* 'description "Global docstring cache: symbol -> string")
 (define *docstrings* (make-hashtable symbol-hash eq?))
 
-;;; ====
-;;; File Parsing
-;;; ====
+(doc 'section 'file-parsing)
 
-;;; read-file-lines : String -> (List String) | #f
-;;; Read all lines from a file
+(doc read-file-lines 'type (-> String (Maybe (List String))))
+(doc read-file-lines 'description "Read all lines from a file")
 (define (read-file-lines path)
   (guard (e [else #f])
          (call-with-input-file path
@@ -34,16 +23,16 @@
                                                      (reverse lines)
                                                      (loop (cons line lines)))))))))
 
-;;; extract-docstrings-from-file : String -> (List (Symbol . String))
-;;; Parse a file and extract docstrings for defined functions
+(doc extract-docstrings-from-file 'type (-> String (List (Pair Symbol String))))
+(doc extract-docstrings-from-file 'description "Parse a file and extract docstrings for defined functions")
 (define (extract-docstrings-from-file path)
   (let ([lines (read-file-lines path)])
        (if (not lines)
            '()
            (parse-docstrings lines))))
 
-;;; parse-docstrings : (List String) -> (List (Symbol . String))
-;;; Parse lines looking for docstring + define patterns
+(doc parse-docstrings 'type (-> (List String) (List (Pair Symbol String))))
+(doc parse-docstrings 'description "Parse lines looking for docstring + define patterns")
 (define (parse-docstrings lines)
   (let loop ([lines lines]
              [pending-doc '()]
@@ -152,12 +141,10 @@
                     (loop (+ i 1))
                     (substring str i len))))))
 
-;;; ====
-;;; Directory Scanning
-;;; ====
+(doc 'section 'directory-scanning)
 
-;;; find-scheme-files : String -> (List String)
-;;; Recursively find all .ss files in a directory
+(doc find-scheme-files 'type (-> String (List String)))
+(doc find-scheme-files 'description "Recursively find all .ss files in a directory")
 (define (find-scheme-files dir)
   (guard (e [else '()])
          (let ([entries (directory-list dir)])
@@ -190,12 +177,10 @@
        (and (>= len 3)
             (string=? (substring str (- len 3) len) ".ss"))))
 
-;;; ====
-;;; Public API
-;;; ====
+(doc 'section 'public-api)
 
-;;; build-docstring-cache! : -> Void
-;;; Build the global docstring cache from all lattice source files
+(doc build-docstring-cache! 'type (-> Void))
+(doc build-docstring-cache! 'description "Build the global docstring cache from all lattice source files")
 (define (build-docstring-cache!)
   (printf "Building docstring cache...\n")
   (set! *docstrings* (make-hashtable symbol-hash eq?))
@@ -213,23 +198,21 @@
         (printf "  Scanned ~a files, extracted ~a docstrings\n"
                 (length files) count)))
 
-;;; get-docstring : Symbol -> String | #f
-;;; Get the docstring for a function
+(doc get-docstring 'type (-> Symbol (Maybe String)))
+(doc get-docstring 'description "Get the docstring for a function")
 (define (get-docstring sym)
   (guard (e [else #f])
          (hashtable-ref *docstrings* sym #f)))
 
-;;; docstring-terms : Symbol -> (List Symbol)
-;;; Get search terms from a function's docstring
+(doc docstring-terms 'type (-> Symbol (List Symbol)))
+(doc docstring-terms 'description "Get search terms from a function's docstring")
 (define (docstring-terms sym)
   (let ([doc (get-docstring sym)])
        (if (and doc (string? doc) (> (string-length doc) 0))
            (tokenize doc)
            '())))
 
-;;; ====
-;;; REPL Interface
-;;; ====
+(doc 'section 'repl-interface)
 
 (meta-printf "docstrings.ss loaded.\n")
 (meta-printf "  (build-docstring-cache!)       - Build cache from sources\n")

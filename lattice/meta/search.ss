@@ -1,42 +1,33 @@
-;;; lattice/meta/search.ss — Lattice Search API
-;;;
-;;; Unified search interface for the skill lattice.
-;;; Integrates BM25 with the knowledge graph for ranked results.
-;;;
-;;; This is Lattice code: pure (mostly), uses Core primitives.
-;;;
-;;; Usage:
-;;;   (lattice-index!)                   ; Build search index from KG
-;;;   (lattice-find "query")             ; Full-text search
-;;;   (lattice-find-exact 'symbol)       ; Exact symbol match
-;;;   (lattice-complete "prefix")        ; Autocomplete
-;;;
-;;; Dependencies:
-;;;   lattice/meta/kg.ss
-;;;   lattice/meta/bm25.ss
-
 (load "lattice/meta/kg.ss")
 (load "lattice/meta/bm25.ss")
 (load "lattice/meta/docstrings.ss")
 
-;;; ====
-;;; Search Index State
-;;; ====
+(doc 'module 'search)
+(doc 'description "Unified search interface for the skill lattice. Integrates BM25 with the knowledge graph for ranked results.")
+(doc 'layer 'lattice)
+(doc 'purity 'partial)
 
-;;; Mutable search indices (built from KG)
+(doc 'section 'state)
+
+(doc *skill-index* 'description "Mutable BM25 index for skills")
 (define *skill-index* (bm25-create))
+
+(doc *module-index* 'description "Mutable BM25 index for modules")
 (define *module-index* (bm25-create))
+
+(doc *export-index* 'description "Mutable BM25 index for exports")
 (define *export-index* (bm25-create))
-(define *module-cache* '())  ; Pre-computed list of all modules for O(1) lookup
+
+(doc *module-cache* 'description "Pre-computed list of all modules for O(1) lookup")
+(define *module-cache* '())
+
+(doc *search-ready* 'description "Flag indicating search indices are built")
 (define *search-ready* #f)
 
-;;; ====
-;;; Index Building
-;;; ====
+(doc 'section 'index-building)
 
-;;; lattice-index! : -> void
-;;; Build search indices from the knowledge graph
-;;; Requires kg-build! to have been called first
+(doc lattice-index! 'type (-> Void))
+(doc lattice-index! 'description "Build search indices from the knowledge graph. Requires kg-build! to have been called first")
 (define (lattice-index!)
   ;; Reset indices
   (set! *skill-index* (bm25-create))
@@ -98,21 +89,18 @@
   (printf "  Exports: ~a\n" (cdr (assq 'documents (bm25-stats *export-index*))))
   'ok)
 
-;;; ensure-indexed! : -> void
-;;; Ensure search indices are ready, build if needed
+(doc ensure-indexed! 'type (-> Void))
+(doc ensure-indexed! 'description "Ensure search indices are ready, build if needed")
 (define (ensure-indexed!)
   (unless *search-ready*
           (when (null? (kg-skills))
                 (kg-build!))
           (lattice-index!)))
 
-;;; ====
-;;; Search API
-;;; ====
+(doc 'section 'search-api)
 
-;;; lattice-find : String [Int] [Symbol] -> (List SearchResult)
-;;; Full-text search across all indexed entities
-;;; Optional: k = max results (default 10), type = 'skill|'module|'export|'all
+(doc lattice-find 'type (-> String Int Symbol (List SearchResult)))
+(doc lattice-find 'description "Full-text search across all indexed entities. Optional: k = max results (default 10), type = 'skill|'module|'export|'all")
 (define (lattice-find query . options)
   (ensure-indexed!)
   (let* ([k (if (and (pair? options) (number? (car options)))
@@ -334,16 +322,13 @@
                                 (and p (eq? (cdr p) purity))))))
          results)))
 
-;;; ====
-;;; Pretty Printing
-;;; ====
+(doc 'section 'pretty-printing)
 
-;;; *show-scores* : Bool
-;;; Whether to show BM25 scores in output (default: #f)
+(doc *show-scores* 'description "Whether to show BM25 scores in output (default: #f)")
 (define *show-scores* #f)
 
-;;; print-results : (List SearchResult) -> void
-;;; Pretty print search results with clean formatting
+(doc print-results 'type (-> (List SearchResult) Void))
+(doc print-results 'description "Pretty print search results with clean formatting")
 (define (print-results results)
   (if (null? results)
       (printf "No results found.\n")
@@ -395,18 +380,15 @@
       str
       (string-append (substring str 0 (- max-len 3)) "...")))
 
-;;; ====
-;;; Convenience Functions
-;;; ====
+(doc 'section 'convenience-functions)
 
-;;; lf : String -> void
-;;; Quick search with pretty output (for REPL)
+(doc lf 'type (-> String Void))
+(doc lf 'description "Quick search with pretty output (for REPL)")
 (define (lf query)
   (print-results (lattice-find query 10)))
 
-;;; lfe : Symbol -> void
-;;; Quick exact search with pretty output
-;;; Falls back to substring search if no exact match found
+(doc lfe 'type (-> Symbol Void))
+(doc lfe 'description "Quick exact search with pretty output. Falls back to substring search if no exact match found")
 (define (lfe sym)
   (let ([result (lattice-find-exact sym)])
        (if result
@@ -441,9 +423,7 @@
   (set! *show-scores* show?)
   (printf "Score display: ~a\n" (if show? "on" "off")))
 
-;;; ====
-;;; REPL Interface
-;;; ====
+(doc 'section 'repl-interface)
 
 (meta-printf "search.ss loaded.\n")
 (meta-printf "  (lattice-index!)               - Build search indices\n")

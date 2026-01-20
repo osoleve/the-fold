@@ -1,35 +1,24 @@
-;;; lattice/statistics/hypothesis/t-test.ss — T-Tests
-;;;
-;;; One-sample, two-sample, and paired t-tests.
-;;;
-;;; This is Lattice code: pure, total, assumes reasonable input.
-;;;
-;;; Provides:
-;;;   - t-test-one-sample: Test mean = mu0
-;;;   - t-test-two-sample: Compare two group means
-;;;   - t-test-paired: Paired samples test
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;   - statistics/core/result-types.ss
-;;;   - statistics/core/summary-stats.ss
-;;;   - statistics/hypothesis/distributions.ss
-
 (load "core/base/prelude.ss")
 (load "lattice/statistics/core/result-types.ss")
 (load "lattice/statistics/core/summary-stats.ss")
 (load "lattice/statistics/hypothesis/distributions.ss")
 
-;;; ====
-;;; One-Sample T-Test
-;;; ====
+(doc 'module 't-test)
+(doc 'description "T-Tests — One-sample, two-sample, and paired t-tests")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
 
-;;; t-test-one-sample : Vec × Num × Num → TestResult
-;;; Test H0: mean = mu0 vs H1: mean != mu0 (two-tailed).
-;;;   xs: sample data
-;;;   mu0: hypothesized mean (default 0)
-;;;   confidence: confidence level for CI (default 0.95)
+(doc 'description "t-test-one-sample: Test mean = mu0")
+(doc 'description "t-test-two-sample: Compare two group means")
+(doc 'description "t-test-paired: Paired samples test")
+
+(doc 'section 'one-sample-t-test)
 (define (t-test-one-sample xs . opts)
+  (doc 'type '(-> Vec TestResult))
+  (doc 'description "Test H0: mean = mu0 vs H1: mean != mu0 (two-tailed)")
+  (doc 'param 'xs "sample data")
+  (doc 'param 'mu0 "hypothesized mean (default 0)")
+  (doc 'param 'confidence "confidence level for CI (default 0.95)")
   (let* ([mu0 (if (>= (length opts) 1) (car opts) 0)]
          [confidence (if (>= (length opts) 2) (cadr opts) 0.95)]
          [n (vector-length xs)]

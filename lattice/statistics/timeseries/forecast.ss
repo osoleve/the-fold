@@ -1,30 +1,20 @@
-;;; lattice/statistics/timeseries/forecast.ss — Forecasting Utilities
-;;;
-;;; Forecast accuracy metrics and utilities.
-;;;
-;;; This is Lattice code: pure, total, assumes reasonable input.
-;;;
-;;; Provides:
-;;;   - mape: Mean Absolute Percentage Error
-;;;   - rmse: Root Mean Squared Error
-;;;   - mae: Mean Absolute Error
-;;;   - mse: Mean Squared Error
-;;;   - forecast-accuracy: Comprehensive accuracy report
-;;;   - naive-forecast: Baseline naive forecaster
-;;;   - seasonal-naive-forecast: Seasonal naive forecaster
-;;;   - forecast-intervals: Compute prediction intervals
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-
 (load "core/base/prelude.ss")
 
-;;; ====
-;;; Forecast Accuracy Metrics
-;;; ====
+(doc 'module 'forecast)
+(doc 'description "Forecasting Utilities — Forecast accuracy metrics and utilities")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
 
-;;; mae : Vec × Vec → Num
-;;; Mean Absolute Error: (1/n) * sum(|actual - forecast|)
+(doc 'description "mape: Mean Absolute Percentage Error")
+(doc 'description "rmse: Root Mean Squared Error")
+(doc 'description "mae: Mean Absolute Error")
+(doc 'description "mse: Mean Squared Error")
+(doc 'description "forecast-accuracy: Comprehensive accuracy report")
+(doc 'description "naive-forecast: Baseline naive forecaster")
+(doc 'description "seasonal-naive-forecast: Seasonal naive forecaster")
+(doc 'description "forecast-intervals: Compute prediction intervals")
+
+(doc 'section 'forecast-accuracy-metrics)
 (define (mae actual forecast)
   (let* ([n (min (vector-length actual) (vector-length forecast))]
          [sum (let loop ([i 0] [s 0])

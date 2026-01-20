@@ -1,29 +1,17 @@
-;;; core/autodiff/differentiable.ss --- Differentiable Type Class
-;;;
-;;; A type class hierarchy for automatic differentiation:
-;;;   - Differentiable: types that support differentiation
-;;;   - Dual/Traced/Hyperdual instances
-;;;   - Type-safe AD operations
-;;;
-;;; This is Core code: pure, total, assumes reasonable input.
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;   - kinds.ss
-;;;   - resolve.ss
-;;;   - autodiff/comp-graph.ss (for dual numbers)
-;;;   - autodiff/reverse-diff.ss (for traced values)
-
 (load "core/base/prelude.ss")
 (load "core/types/kinds.ss")
-(load "core/types/infer.ss")     ; For unify, needed by resolve
+(load "core/types/infer.ss")
 (load "core/types/resolve.ss")
 (load "core/autodiff/comp-graph.ss")
 (load "core/autodiff/reverse-diff.ss")
 
-;;; ====
-;;; Differentiable Type Class
-;;; ====
+(doc 'module 'differentiable)
+(doc 'description "Differentiable Type Class - type class hierarchy for automatic differentiation")
+(doc 'layer 'core)
+(doc 'purity 'total)
+(doc 'note "Provides Differentiable type class with Dual/Traced/Hyperdual instances and type-safe AD operations")
+
+(doc 'section 'differentiable-typeclass)
 
 ;;; class Differentiable d where
 ;;;   lift     : Real -> d          -- Lift a constant

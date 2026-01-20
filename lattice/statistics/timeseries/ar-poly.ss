@@ -1,31 +1,17 @@
-;;; lattice/statistics/timeseries/ar-poly.ss — Polynomial Algebra for Time Series
-;;;
-;;; Integrates lattice/algebra/polynomial.ss with time series modules
-;;; for AR/MA polynomial operations and stability analysis.
-;;;
-;;; Benefits:
-;;;   - AR characteristic polynomial factorization
-;;;   - Stability analysis via polynomial operations
-;;;   - Exact polynomial operations for model identification
-;;;   - MA polynomial invertibility analysis
-;;;
-;;; This is Lattice code: pure, functional, assumes reasonable input.
-;;;
-;;; Dependencies:
-;;;   - lattice/algebra/polynomial.ss
-;;;   - lattice/algebra/field.ss
-;;;   - lattice/statistics/timeseries/ar.ss
-;;;   - lattice/statistics/timeseries/ma.ss
-
 (load "lattice/algebra/field.ss")
 (load "lattice/algebra/polynomial.ss")
 
-;;; ====
-;;; Rational Field for Exact Coefficient Arithmetic
-;;; ====
+(doc 'module 'ar-poly)
+(doc 'description "Polynomial Algebra for Time Series — Integrates polynomial.ss with time series modules")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
 
-;;; Q-field-ts : Field
-;;; The field of rational numbers for exact arithmetic.
+(doc 'description "AR characteristic polynomial factorization")
+(doc 'description "Stability analysis via polynomial operations")
+(doc 'description "Exact polynomial operations for model identification")
+(doc 'description "MA polynomial invertibility analysis")
+
+(doc 'section 'rational-field-for-exact-coefficient-arithmetic)
 (define Q-field-ts
   (make-field
    '()                                    ; Infinite field

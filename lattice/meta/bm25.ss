@@ -1,54 +1,25 @@
-;;; lattice/meta/bm25.ss — BM25 Search Engine
-;;;
-;;; Pure functional BM25 implementation for lattice search.
-;;; Provides term-frequency/inverse-document-frequency ranking
-;;; with document length normalization.
-;;;
-;;; This is Lattice code: pure, uses Core primitives.
-;;;
-;;; Usage:
-;;;   (bm25-create)                      ; Create empty index
-;;;   (bm25-add-doc idx doc-id terms)    ; Add document
-;;;   (bm25-search idx query-terms k)    ; Top-k results
-;;;   (bm25-score idx doc-id query)      ; Score single doc
-;;;
-;;; BM25 Formula:
-;;;   score(D, Q) = Σ IDF(qi) × (f(qi, D) × (k1 + 1)) / (f(qi, D) + k1 × (1 - b + b × |D|/avgdl))
-;;;
-;;; Where:
-;;;   f(qi, D) = term frequency of qi in document D
-;;;   |D| = document length
-;;;   avgdl = average document length
-;;;   k1 = 1.2 (saturation parameter)
-;;;   b = 0.75 (length normalization)
-;;;   IDF(qi) = log((N - n(qi) + 0.5) / (n(qi) + 0.5) + 1)
-;;;
-;;; Dependencies:
-;;;   core/base/prelude.ss
-
 (load "core/base/prelude.ss")
 
-;;; ====
-;;; BM25 Parameters
-;;; ====
+(doc 'module 'bm25)
+(doc 'description "Pure functional BM25 implementation for lattice search. Provides term-frequency/inverse-document-frequency ranking with document length normalization.")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
+(doc 'note "BM25 Formula: score(D, Q) = Σ IDF(qi) × (f(qi, D) × (k1 + 1)) / (f(qi, D) + k1 × (1 - b + b × |D|/avgdl))")
 
-(define BM25-K1 1.2)   ; Term frequency saturation
-(define BM25-B 0.75)   ; Length normalization factor
+(doc 'section 'parameters)
 
-;;; ====
-;;; Index Data Structure
-;;; ====
+(define BM25-K1 1.2)
+(doc BM25-K1 'description "Term frequency saturation parameter")
 
-;;; BM25 index is an alist with:
-;;;   doc-count      : Number of documents
-;;;   total-length   : Sum of all document lengths
-;;;   term-doc-freq  : ((term . count) ...) - docs containing each term
-;;;   doc-term-freq  : ((doc-id . ((term . freq) ...)) ...) - term freqs per doc
-;;;   doc-lengths    : ((doc-id . length) ...) - document lengths
-;;;   doc-data       : ((doc-id . data) ...) - associated data per doc
+(define BM25-B 0.75)
+(doc BM25-B 'description "Length normalization factor")
 
-;;; bm25-create : -> Index
-;;; Create an empty BM25 index
+(doc 'section 'index-structure)
+
+(doc 'note "BM25 index is an alist with: doc-count, total-length, term-doc-freq, doc-term-freq, doc-lengths, doc-data")
+
+(doc bm25-create 'type (-> Index))
+(doc bm25-create 'description "Create an empty BM25 index")
 (define (bm25-create)
   '((doc-count . 0)
     (total-length . 0)
@@ -57,11 +28,10 @@
     (doc-lengths . ())
     (doc-data . ())))
 
-;;; ====
-;;; Index Accessors
-;;; ====
+(doc 'section 'accessors)
 
 (define (bm25-doc-count idx)
+  (doc 'type (-> Index Nat))
   (cdr (assq 'doc-count idx)))
 
 (define (bm25-total-length idx)
@@ -86,13 +56,10 @@
            0
            (/ total count))))
 
-;;; ====
-;;; Term Operations
-;;; ====
+(doc 'section 'term-operations)
 
-;;; tokenize : String -> (List Symbol)
-;;; Tokenize a string into lowercase word symbols
-;;; Hyphenated symbols are split into parts: c2d-zoh -> [c2d-zoh, c2d, zoh]
+(doc tokenize 'type (-> String (List Symbol)))
+(doc tokenize 'description "Tokenize a string into lowercase word symbols. Hyphenated symbols are split into parts: c2d-zoh -> [c2d-zoh, c2d, zoh]")
 (define (tokenize str)
   (if (not (string? str))
       '()
@@ -210,13 +177,10 @@
                     (loop (cdr lst) (cons result acc))
                     (loop (cdr lst) acc))))))
 
-;;; ====
-;;; Index Building
-;;; ====
+(doc 'section 'index-building)
 
-;;; bm25-add-doc : Index DocId (List Symbol) Any -> Index
-;;; Add a document to the index
-;;; Returns new index (functional update)
+(doc bm25-add-doc 'type (-> Index DocId (List Symbol) Any Index))
+(doc bm25-add-doc 'description "Add a document to the index. Returns new index (functional update)")
 (define (bm25-add-doc idx doc-id terms data)
   (let* ([term-counts (count-terms terms)]
          [doc-length (length terms)]
@@ -248,16 +212,14 @@
           (doc-lengths . ,new-dl)
           (doc-data . ,new-dd))))
 
-;;; bm25-add-doc! : Index DocId (List Symbol) Any -> Index
-;;; Alias for bm25-add-doc (pure, returns new index)
+(doc bm25-add-doc! 'type (-> Index DocId (List Symbol) Any Index))
+(doc bm25-add-doc! 'description "Alias for bm25-add-doc (pure, returns new index)")
 (define bm25-add-doc! bm25-add-doc)
 
-;;; ====
-;;; Scoring
-;;; ====
+(doc 'section 'scoring)
 
-;;; bm25-idf : Index Symbol -> Number
-;;; Compute inverse document frequency for a term
+(doc bm25-idf 'type (-> Index Symbol Number))
+(doc bm25-idf 'description "Compute inverse document frequency for a term")
 (define (bm25-idf idx term)
   (let* ([N (bm25-doc-count idx)]
          [tdf (bm25-term-doc-freq idx)]
@@ -266,8 +228,8 @@
         (log (+ 1 (/ (+ (- N n) 0.5)
                      (+ n 0.5))))))
 
-;;; bm25-term-score : Index DocId Symbol Number Number -> Number
-;;; Score a single term for a document
+(doc bm25-term-score 'type (-> Index DocId Symbol Number Number Number))
+(doc bm25-term-score 'description "Score a single term for a document")
 (define (bm25-term-score idx doc-id term doc-length avgdl)
   (let* ([dtf (bm25-doc-term-freq idx)]
          [doc-entry (assq doc-id dtf)]
@@ -283,8 +245,8 @@
             0
             (* idf (/ numerator denominator)))))
 
-;;; bm25-score : Index DocId (List Symbol) -> Number
-;;; Compute BM25 score for a document given query terms
+(doc bm25-score 'type (-> Index DocId (List Symbol) Number))
+(doc bm25-score 'description "Compute BM25 score for a document given query terms")
 (define (bm25-score idx doc-id query-terms)
   (let* ([dl (bm25-doc-lengths idx)]
          [dl-entry (assq doc-id dl)]
@@ -298,12 +260,10 @@
              0
              query-terms))))
 
-;;; ====
-;;; Search
-;;; ====
+(doc 'section 'search)
 
-;;; bm25-search : Index (List Symbol) Int -> (List (DocId . Score))
-;;; Search for documents matching query terms, return top-k results
+(doc bm25-search 'type (-> Index (List Symbol) Int (List (Pair DocId Score))))
+(doc bm25-search 'description "Search for documents matching query terms, return top-k results")
 (define (bm25-search idx query-terms k)
   (let* ([all-docs (map car (bm25-doc-lengths idx))]
          [scored (map (lambda (doc-id)
@@ -313,8 +273,8 @@
          [sorted (sort (lambda (a b) (> (cdr a) (cdr b))) filtered)])
         (take-at-most k sorted)))
 
-;;; bm25-search-string : Index String Int -> (List (DocId . Score))
-;;; Search with a string query (tokenizes automatically)
+(doc bm25-search-string 'type (-> Index String Int (List (Pair DocId Score))))
+(doc bm25-search-string 'description "Search with a string query (tokenizes automatically)")
 (define (bm25-search-string idx query k)
   (bm25-search idx (tokenize query) k))
 
@@ -324,18 +284,16 @@
       '()
       (cons (car lst) (take-at-most (- n 1) (cdr lst)))))
 
-;;; ====
-;;; Result Helpers
-;;; ====
+(doc 'section 'result-helpers)
 
-;;; bm25-get-data : Index DocId -> Any | #f
-;;; Get associated data for a document
+(doc bm25-get-data 'type (-> Index DocId (Maybe Any)))
+(doc bm25-get-data 'description "Get associated data for a document")
 (define (bm25-get-data idx doc-id)
   (let ([entry (assq doc-id (bm25-doc-data idx))])
        (if entry (cdr entry) #f)))
 
-;;; bm25-results-with-data : Index (List (DocId . Score)) -> (List (DocId Score . Data))
-;;; Augment search results with associated data
+(doc bm25-results-with-data 'type (-> Index (List (Pair DocId Score)) (List (List DocId Score Data))))
+(doc bm25-results-with-data 'description "Augment search results with associated data")
 (define (bm25-results-with-data idx results)
   (map (lambda (result)
                (let ([doc-id (car result)]
@@ -343,24 +301,20 @@
                     (list doc-id score (bm25-get-data idx doc-id))))
        results))
 
-;;; ====
-;;; Statistics
-;;; ====
+(doc 'section 'statistics)
 
-;;; bm25-stats : Index -> Alist
-;;; Get index statistics
+(doc bm25-stats 'type (-> Index Alist))
+(doc bm25-stats 'description "Get index statistics")
 (define (bm25-stats idx)
   `((documents . ,(bm25-doc-count idx))
     (total-terms . ,(bm25-total-length idx))
     (unique-terms . ,(length (bm25-term-doc-freq idx)))
     (avg-doc-length . ,(bm25-avg-doc-length idx))))
 
-;;; ====
-;;; Lattice Integration
-;;; ====
+(doc 'section 'lattice-integration)
 
-;;; skill->terms : ManifestData -> (List Symbol)
-;;; Extract searchable terms from skill manifest data
+(doc skill->terms 'type (-> ManifestData (List Symbol)))
+(doc skill->terms 'description "Extract searchable terms from skill manifest data")
 (define (skill->terms manifest-data)
   (if (not manifest-data)
       '()
@@ -379,8 +333,8 @@
             ;; Aliases (already symbols)
             (if (list? aliases) aliases '())))))
 
-;;; module->terms : ModuleData -> (List Symbol)
-;;; Extract searchable terms from module data
+(doc module->terms 'type (-> ModuleData (List Symbol)))
+(doc module->terms 'description "Extract searchable terms from module data")
 (define (module->terms mod-data)
   (if (not mod-data)
       '()
@@ -390,16 +344,14 @@
             (tokenize (symbol->string name))
             (tokenize description)))))
 
-;;; export->terms : Symbol -> (List Symbol)
-;;; Extract searchable terms from export symbol
+(doc export->terms 'type (-> Symbol (List Symbol)))
+(doc export->terms 'description "Extract searchable terms from export symbol")
 (define (export->terms sym)
   (if (symbol? sym)
       (tokenize (symbol->string sym))
       '()))
 
-;;; ====
-;;; REPL Interface
-;;; ====
+(doc 'section 'repl-interface)
 
 (meta-printf "bm25.ss loaded.\n")
 (meta-printf "  (bm25-create)                  - Create empty index\n")

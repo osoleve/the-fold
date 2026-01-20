@@ -1,57 +1,44 @@
-;;; core/geometry/raymarch.ss — SDF Raymarching with BVH Acceleration
-;;;
-;;; Provides sphere tracing / raymarching algorithms for rendering
-;;; signed distance fields (SDFs), including mesh SDFs with BVH acceleration.
-;;;
-;;; Raymarching is a rendering technique that:
-;;; 1. Steps along a ray from the camera
-;;; 2. At each step, queries the SDF to get distance to nearest surface
-;;; 3. Advances by that distance (guaranteed not to intersect)
-;;; 4. Repeats until surface hit or max distance reached
-;;;
-;;; This is Core code: pure, total, assumes reasonable input.
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;   - geometry.ss
-;;;   - mesh-sdf.ss
-
 (load "core/base/prelude.ss")
 (load "lattice/geometry/geometry.ss")
 (load "lattice/geometry/mesh-sdf.ss")
 
-;;; ====
-;;; Raymarching Parameters
-;;; ====
+(doc 'module 'raymarch)
+(doc 'description "SDF raymarching with BVH acceleration")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
+(doc 'provides "Sphere tracing / raymarching algorithms for rendering signed distance fields (SDFs), including mesh SDFs with BVH acceleration")
+(doc 'note "Raymarching technique: 1. Steps along ray from camera, 2. Queries SDF for distance to nearest surface, 3. Advances by that distance (guaranteed not to intersect), 4. Repeats until surface hit or max distance reached")
 
-;;; raymarch-params : Configuration for raymarching
-;;; (raymarch-params max-steps max-distance hit-threshold)
+(doc 'section 'raymarch-parameters)
 
-;;; raymarch-params : Nat × Real × Real → RaymarchParams
+(doc 'note "raymarch-params: Configuration for raymarching (max-steps max-distance hit-threshold)")
+
 (define (raymarch-params max-steps max-distance hit-threshold)
+  (doc 'type '(-> Nat Real Real RaymarchParams))
   (list 'raymarch-params max-steps max-distance hit-threshold))
 
-;;; raymarch-params-max-steps : RaymarchParams → Nat
-(define (raymarch-params-max-steps p) (cadr p))
-;;; raymarch-params-max-distance : RaymarchParams → Real
-(define (raymarch-params-max-distance p) (caddr p))
-;;; raymarch-params-hit-threshold : RaymarchParams → Real
-(define (raymarch-params-hit-threshold p) (cadddr p))
+(define (raymarch-params-max-steps p)
+  (doc 'type '(-> RaymarchParams Nat))
+  (cadr p))
+(define (raymarch-params-max-distance p)
+  (doc 'type '(-> RaymarchParams Real))
+  (caddr p))
+(define (raymarch-params-hit-threshold p)
+  (doc 'type '(-> RaymarchParams Real))
+  (cadddr p))
 
-;;; Default parameters
-;;; default-raymarch-params : RaymarchParams
+(doc default-raymarch-params 'type 'RaymarchParams)
+(doc default-raymarch-params 'description "Default parameters")
 (define default-raymarch-params
   (raymarch-params 100 1000.0 0.001))
 
-;;; ====
-;;; Raymarching Algorithm
-;;; ====
+(doc 'section 'raymarch-algorithm)
 
-;;; raymarch : (Vec3 → Real) × Ray3 × RaymarchParams → (Vec3 × Real × Nat) | #f
-;;; Sphere trace along a ray until surface hit or max distance
-;;; SDF-Function is (Point3 → Number)
-;;; Returns (hit-point distance num-steps) or #f if no hit
 (define (raymarch sdf-fn ray params)
+  (doc 'type '(-> (-> Vec3 Real) Ray3 RaymarchParams (| (List Vec3 Real Nat) #f)))
+  (doc 'description "Sphere trace along a ray until surface hit or max distance")
+  (doc 'param 'sdf-fn "SDF function (Point3 → Number)")
+  (doc 'returns "(hit-point distance num-steps) or #f if no hit")
   (let ([max-steps (raymarch-params-max-steps params)]
         [max-dist (raymarch-params-max-distance params)]
         [threshold (raymarch-params-hit-threshold params)]
@@ -79,20 +66,18 @@
                    (march (+ t (abs dist)) (+ steps 1))]))]))
        (march 0.0 0)))
 
-;;; raymarch-mesh : Mesh × Ray3 × RaymarchParams → (Vec3 × Real × Nat) | #f
-;;; Specialized raymarcher for mesh SDFs (uses BVH acceleration)
 (define (raymarch-mesh mesh ray params)
+  (doc 'type '(-> Mesh Ray3 RaymarchParams (| (List Vec3 Real Nat) #f)))
+  (doc 'description "Specialized raymarcher for mesh SDFs (uses BVH acceleration)")
   (let ([sdf-fn (lambda (p) (mesh-sdf mesh p))])
        (raymarch sdf-fn ray params)))
 
-;;; ====
-;;; Normal Computation
-;;; ====
+(doc 'section 'normal-computation)
 
-;;; sdf-normal : (Vec3 → Real) × Vec3 → Vec3
-;;; Compute surface normal using gradient of SDF
-;;; Uses central differences for better accuracy
 (define (sdf-normal sdf-fn point)
+  (doc 'type '(-> (-> Vec3 Real) Vec3 Vec3))
+  (doc 'description "Compute surface normal using gradient of SDF")
+  (doc 'note "Uses central differences for better accuracy")
   (let* ([eps 0.001]
          [dx (- (sdf-fn (vec3-add point (vec3 eps 0 0)))
                 (sdf-fn (vec3-sub point (vec3 eps 0 0))))]
@@ -102,20 +87,18 @@
                 (sdf-fn (vec3-sub point (vec3 0 0 eps))))])
         (vec3-normalize (vec3 dx dy dz))))
 
-;;; mesh-sdf-normal : Mesh × Vec3 → Vec3
-;;; Compute surface normal for mesh SDF
 (define (mesh-sdf-normal mesh point)
+  (doc 'type '(-> Mesh Vec3 Vec3))
+  (doc 'description "Compute surface normal for mesh SDF")
   (mesh-sdf-gradient mesh point))
 
-;;; ====
-;;; Soft Shadows
-;;; ====
+(doc 'section 'soft-shadows)
 
-;;; raymarch-shadow : (Vec3 → Real) × Ray3 × Real × Real × RaymarchParams → Real
-;;; Compute soft shadow factor (0 = full shadow, 1 = no shadow)
-;;; light-distance: distance to light source
-;;; softness: higher = softer shadows (typically 4-32)
 (define (raymarch-shadow sdf-fn ray light-distance softness params)
+  (doc 'type '(-> (-> Vec3 Real) Ray3 Real Real RaymarchParams Real))
+  (doc 'description "Compute soft shadow factor (0 = full shadow, 1 = no shadow)")
+  (doc 'param 'light-distance "distance to light source")
+  (doc 'param 'softness "higher = softer shadows (typically 4-32)")
   (let ([max-steps (raymarch-params-max-steps params)]
         [threshold (raymarch-params-hit-threshold params)]
         [direction (ray3-direction ray)])
@@ -139,15 +122,13 @@
                         (march (+ t dist) (+ steps 1) new-factor))]))]))
        (march (raymarch-params-hit-threshold params) 0 1.0)))
 
-;;; ====
-;;; Ambient Occlusion
-;;; ====
+(doc 'section 'ambient-occlusion)
 
-;;; raymarch-ao : (Vec3 → Real) × Vec3 × Vec3 × Nat → Real
-;;; Compute ambient occlusion factor (0 = fully occluded, 1 = no occlusion)
-;;; Uses multiple samples along normal direction
-;;; num-samples: typically 5
 (define (raymarch-ao sdf-fn point normal num-samples)
+  (doc 'type '(-> (-> Vec3 Real) Vec3 Vec3 Nat Real))
+  (doc 'description "Compute ambient occlusion factor (0 = fully occluded, 1 = no occlusion)")
+  (doc 'note "Uses multiple samples along normal direction")
+  (doc 'param 'num-samples "typically 5")
   (define (sample-ao i total sum)
     (if (>= i num-samples)
         (/ sum num-samples)
@@ -161,24 +142,22 @@
                          (+ sum (* weight (max 0.0 occlusion)))))))
   (max 0.0 (- 1.0 (sample-ao 0 0 0.0))))
 
-;;; ====
-;;; Scene Rendering Helpers
-;;; ====
+(doc 'section 'scene-rendering)
 
-;;; simple-shading : Vec3 × Vec3 × Vec3 → Real
-;;; Simple diffuse shading
-;;; normal: surface normal
-;;; light-dir: direction to light (normalized)
-;;; view-dir: direction to camera (normalized)
 (define (simple-shading normal light-dir view-dir)
+  (doc 'type '(-> Vec3 Vec3 Vec3 Real))
+  (doc 'description "Simple diffuse shading")
+  (doc 'param 'normal "surface normal")
+  (doc 'param 'light-dir "direction to light (normalized)")
+  (doc 'param 'view-dir "direction to camera (normalized)")
   (let ([diffuse (max 0.0 (vec3-dot normal light-dir))]
         [ambient 0.2])
        (+ ambient (* 0.8 diffuse))))
 
-;;; render-pixel : (Vec3 → Real) × Ray3 × Vec3 × RaymarchParams → Real
-;;; Render a single pixel (returns grayscale value 0-1)
-;;; light-pos: position of light source
 (define (render-pixel sdf-fn ray light-pos params)
+  (doc 'type '(-> (-> Vec3 Real) Ray3 Vec3 RaymarchParams Real))
+  (doc 'description "Render a single pixel (returns grayscale value 0-1)")
+  (doc 'param 'light-pos "position of light source")
   (let ([result (raymarch sdf-fn ray params)])
        (if result
            (let* ([hit-point (car result)]
@@ -190,14 +169,12 @@
            ;; No hit - background
            0.0)))
 
-;;; ====
-;;; Performance Optimization Helpers
-;;; ====
+(doc 'section 'performance-optimization)
 
-;;; adaptive-step : (Vec3 → Real) × Vec3 → Real
-;;; Compute adaptive step size based on local SDF variation
-;;; Can skip larger steps in areas of low curvature
 (define (adaptive-step sdf-fn point)
+  (doc 'type '(-> (-> Vec3 Real) Vec3 Real))
+  (doc 'description "Compute adaptive step size based on local SDF variation")
+  (doc 'note "Can skip larger steps in areas of low curvature")
   (let* ([dist (sdf-fn point)]
          [curvature-eps 0.1]
          ;; Sample nearby points to estimate curvature
@@ -209,10 +186,9 @@
             (* dist 1.5)  ; 50% larger steps
             dist)))
 
-;;; bvh-accelerated-raymarch : Mesh × Ray3 × RaymarchParams → (Vec3 × Real × Nat) | #f
-;;; Hybrid approach: use BVH for initial ray-mesh intersection,
-;;; then raymarch in vicinity of hit for accurate SDF
 (define (bvh-accelerated-raymarch mesh ray params)
+  (doc 'type '(-> Mesh Ray3 RaymarchParams (| (List Vec3 Real Nat) #f)))
+  (doc 'description "Hybrid approach: use BVH for initial ray-mesh intersection, then raymarch in vicinity of hit for accurate SDF")
   (let ([ray-result (mesh-intersect-ray mesh ray)])
        (if ray-result
            (let* ([coarse-hit (car ray-result)]

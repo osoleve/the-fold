@@ -1,26 +1,15 @@
-;;; lattice/statistics/timeseries/differencing.ss — Time Series Differencing
-;;;
-;;; Differencing and integration for time series.
-;;;
-;;; This is Lattice code: pure, total, assumes reasonable input.
-;;;
-;;; Provides:
-;;;   - difference: d-th order differencing
-;;;   - integrate: reverse differencing
-;;;   - seasonal-difference: seasonal differencing
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-
 (load "core/base/prelude.ss")
 
-;;; ====
-;;; Simple Differencing
-;;; ====
+(doc 'module 'differencing)
+(doc 'description "Time Series Differencing — Differencing and integration for time series")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
 
-;;; vec-diff : Vec → Vec
-;;; First difference: x'[i] = x[i+1] - x[i]
-;;; Result has length n-1.
+(doc 'description "difference: d-th order differencing")
+(doc 'description "integrate: reverse differencing")
+(doc 'description "seasonal-difference: seasonal differencing")
+
+(doc 'section 'simple-differencing)
 (define (vec-diff xs)
   (let* ([n (vector-length xs)]
          [m (- n 1)]

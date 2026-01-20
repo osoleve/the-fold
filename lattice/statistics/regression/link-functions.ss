@@ -1,42 +1,27 @@
-;;; lattice/statistics/regression/link-functions.ss — GLM Link Functions
-;;;
-;;; Link functions and their inverses for GLM.
-;;;
-;;; This is Lattice code: pure, total, assumes reasonable input.
-;;;
-;;; Provides:
-;;;   - identity-link
-;;;   - logit-link
-;;;   - log-link
-;;;   - probit-link
-;;;   - inverse-link
-;;;   - sqrt-link
-;;;
-;;; A link function specifies:
-;;;   - g(mu): link function, maps mean to linear predictor
-;;;   - g-inverse(eta): inverse link, maps linear predictor to mean
-;;;   - g-derivative(mu): derivative dg/dmu
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;   - fp/numeric/transcendental.ss
-;;;   - fp/numeric/special-functions.ss
-
 (load "core/base/prelude.ss")
 (load "lattice/fp/numeric/transcendental.ss")
 (load "lattice/fp/numeric/special-functions.ss")
 
-;;; ====
-;;; Link Function Structure
-;;; ====
+(doc 'module 'link-functions)
+(doc 'description "GLM Link Functions — Link functions and their inverses for GLM")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
 
-;;; make-link-function : Symbol × (Num → Num) × (Num → Num) × (Num → Num) → LinkFunction
-;;; Create a link function.
-;;;   name: link name
-;;;   g: link function mu → eta
-;;;   g-inverse: inverse link eta → mu
-;;;   g-derivative: derivative d(eta)/d(mu)
+(doc 'description "identity-link, logit-link, log-link, probit-link, inverse-link, sqrt-link")
+
+(doc 'note "A link function specifies:")
+(doc 'note "  - g(mu): link function, maps mean to linear predictor")
+(doc 'note "  - g-inverse(eta): inverse link, maps linear predictor to mean")
+(doc 'note "  - g-derivative(mu): derivative dg/dmu")
+
+(doc 'section 'link-function-structure)
 (define (make-link-function name g g-inverse g-derivative)
+  (doc 'type '(-> Symbol (-> Num Num) (-> Num Num) (-> Num Num) LinkFunction))
+  (doc 'description "Create a link function")
+  (doc 'param 'name "link name")
+  (doc 'param 'g "link function mu → eta")
+  (doc 'param 'g-inverse "inverse link eta → mu")
+  (doc 'param 'g-derivative "derivative d(eta)/d(mu)")
   (list 'link-function name g g-inverse g-derivative))
 
 ;;; link-function? : Any → Bool

@@ -1,32 +1,21 @@
-;;; lattice/statistics/hypothesis/f-test.ss — F-Tests
-;;;
-;;; F-tests for variance comparison and regression.
-;;;
-;;; This is Lattice code: pure, total, assumes reasonable input.
-;;;
-;;; Provides:
-;;;   - f-test-variance: Compare variances of two samples
-;;;   - f-test-regression: Overall significance of regression
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;   - statistics/core/result-types.ss
-;;;   - statistics/core/summary-stats.ss
-;;;   - statistics/hypothesis/distributions.ss
-
 (load "core/base/prelude.ss")
 (load "lattice/statistics/core/result-types.ss")
 (load "lattice/statistics/core/summary-stats.ss")
 (load "lattice/statistics/hypothesis/distributions.ss")
 
-;;; ====
-;;; Variance Ratio Test
-;;; ====
+(doc 'module 'f-test)
+(doc 'description "F-Tests — F-tests for variance comparison and regression")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
 
-;;; f-test-variance : Vec × Vec → TestResult
-;;; Test H0: var(x) = var(y) vs H1: var(x) != var(y).
-;;; F = var(x) / var(y) follows F(n1-1, n2-1) under H0.
+(doc 'description "f-test-variance: Compare variances of two samples")
+(doc 'description "f-test-regression: Overall significance of regression")
+
+(doc 'section 'variance-ratio-test)
 (define (f-test-variance xs ys)
+  (doc 'type '(-> Vec Vec TestResult))
+  (doc 'description "Test H0: var(x) = var(y) vs H1: var(x) != var(y)")
+  (doc 'note "F = var(x) / var(y) follows F(n1-1, n2-1) under H0")
   (let* ([n1 (vector-length xs)]
          [n2 (vector-length ys)]
          [var1 (vec-variance xs)]

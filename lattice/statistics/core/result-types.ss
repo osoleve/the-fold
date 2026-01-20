@@ -1,49 +1,37 @@
-;;; lattice/statistics/core/result-types.ss — Statistical Model Result Types
-;;;
-;;; Extensible result structures for statistical models and tests.
-;;;
-;;; This is Lattice code: pure, total, assumes reasonable input.
-;;;
-;;; Provides:
-;;;   - Linear model results (coefficients, SE, t-values, p-values, R²)
-;;;   - GLM results (deviance, AIC, family info)
-;;;   - Test results (statistic, df, p-value, CI)
-;;;   - Time series results (AR coefficients, forecasts)
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-
 (load "core/base/prelude.ss")
 
-;;; ====
-;;; Linear Model Results
-;;; ====
+(doc 'module 'result-types)
+(doc 'description "Statistical Model Result Types — Extensible result structures for statistical models and tests")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
 
-;;; make-linear-model-result : Vec × Vec × Vec × Vec × Num × Num × Vec × Vec × Num × Num × Nat × Nat → LinearModelResult
-;;; Create a linear model result with full diagnostics.
-;;;
-;;; Fields:
-;;;   coefficients - fitted coefficients (including intercept if present)
-;;;   se           - standard errors of coefficients
-;;;   t-values     - t-statistics (coefficients / se)
-;;;   p-values     - two-tailed p-values from t-distribution
-;;;   r-squared    - coefficient of determination
-;;;   adj-r-squared - adjusted R²
-;;;   residuals    - raw residuals (y - fitted)
-;;;   fitted       - fitted values (X * beta)
-;;;   sse          - sum of squared errors
-;;;   mse          - mean squared error (sse / df-residual)
-;;;   n            - number of observations
-;;;   p            - number of parameters (including intercept)
+(doc 'section 'linear-model-results)
+
+(doc 'description "Linear model results (coefficients, SE, t-values, p-values, R²)")
+(doc 'description "GLM results (deviance, AIC, family info)")
+(doc 'description "Test results (statistic, df, p-value, CI)")
+(doc 'description "Time series results (AR coefficients, forecasts)")
 (define (make-linear-model-result coefficients se t-values p-values
                                   r-squared adj-r-squared
                                   residuals fitted sse mse n p)
+  (doc 'type '(-> Vec Vec Vec Vec Num Num Vec Vec Num Num Nat Nat LinearModelResult))
+  (doc 'description "Create a linear model result with full diagnostics")
+  (doc 'param 'coefficients "fitted coefficients (including intercept if present)")
+  (doc 'param 'se "standard errors of coefficients")
+  (doc 'param 't-values "t-statistics (coefficients / se)")
+  (doc 'param 'p-values "two-tailed p-values from t-distribution")
+  (doc 'param 'r-squared "coefficient of determination")
+  (doc 'param 'adj-r-squared "adjusted R²")
+  (doc 'param 'residuals "raw residuals (y - fitted)")
+  (doc 'param 'fitted "fitted values (X * beta)")
+  (doc 'param 'sse "sum of squared errors")
+  (doc 'param 'mse "mean squared error (sse / df-residual)")
+  (doc 'param 'n "number of observations")
+  (doc 'param 'p "number of parameters (including intercept)")
   (list 'linear-model
         coefficients se t-values p-values
         r-squared adj-r-squared
         residuals fitted sse mse n p))
-
-;;; linear-model? : Any → Bool
 (define (linear-model? x)
   (and (pair? x) (eq? (car x) 'linear-model)))
 
@@ -61,41 +49,36 @@
 (define (linear-model-n m) (list-ref m 11))
 (define (linear-model-p m) (list-ref m 12))
 
-;;; linear-model-df-residual : LinearModelResult → Nat
-;;; Degrees of freedom for residuals = n - p
 (define (linear-model-df-residual m)
+  (doc 'type '(-> LinearModelResult Nat))
+  (doc 'description "Degrees of freedom for residuals = n - p")
   (- (linear-model-n m) (linear-model-p m)))
 
-;;; linear-model-sigma : LinearModelResult → Num
-;;; Residual standard error = sqrt(mse)
 (define (linear-model-sigma m)
+  (doc 'type '(-> LinearModelResult Num))
+  (doc 'description "Residual standard error = sqrt(mse)")
   (sqrt (linear-model-mse m)))
 
-;;; ====
-;;; GLM Results
-;;; ====
-
-;;; make-glm-result : Symbol × Symbol × Vec × Vec × Vec × Vec × Num × Num × Num × Vec × Vec × Nat × Nat × Bool → GLMResult
-;;; Create a GLM result.
-;;;
-;;; Fields:
-;;;   family       - family name (gaussian, binomial, poisson, gamma)
-;;;   link         - link function name (identity, logit, log, probit)
-;;;   coefficients - fitted coefficients
-;;;   se           - standard errors
-;;;   z-values     - z-statistics (coefficients / se)
-;;;   p-values     - two-tailed p-values from normal distribution
-;;;   deviance     - residual deviance
-;;;   null-deviance - null model deviance
-;;;   aic          - Akaike Information Criterion
-;;;   residuals    - deviance residuals
-;;;   fitted       - fitted values on response scale
-;;;   n            - number of observations
-;;;   iterations   - IRLS iterations used
-;;;   converged?   - whether IRLS converged
+(doc 'section 'glm-results)
 (define (make-glm-result family link coefficients se z-values p-values
                          deviance null-deviance aic
                          residuals fitted n iterations converged?)
+  (doc 'type '(-> Symbol Symbol Vec Vec Vec Vec Num Num Num Vec Vec Nat Nat Bool GLMResult))
+  (doc 'description "Create a GLM result")
+  (doc 'param 'family "family name (gaussian, binomial, poisson, gamma)")
+  (doc 'param 'link "link function name (identity, logit, log, probit)")
+  (doc 'param 'coefficients "fitted coefficients")
+  (doc 'param 'se "standard errors")
+  (doc 'param 'z-values "z-statistics (coefficients / se)")
+  (doc 'param 'p-values "two-tailed p-values from normal distribution")
+  (doc 'param 'deviance "residual deviance")
+  (doc 'param 'null-deviance "null model deviance")
+  (doc 'param 'aic "Akaike Information Criterion")
+  (doc 'param 'residuals "deviance residuals")
+  (doc 'param 'fitted "fitted values on response scale")
+  (doc 'param 'n "number of observations")
+  (doc 'param 'iterations "IRLS iterations used")
+  (doc 'param 'converged? "whether IRLS converged")
   (list 'glm-model
         family link coefficients se z-values p-values
         deviance null-deviance aic
@@ -121,28 +104,21 @@
 (define (glm-iterations m) (list-ref m 13))
 (define (glm-converged? m) (list-ref m 14))
 
-;;; glm-df-residual : GLMResult → Nat
 (define (glm-df-residual m)
+  (doc 'type '(-> GLMResult Nat))
   (- (glm-n m) (vector-length (glm-coefficients m))))
 
-;;; ====
-;;; Hypothesis Test Results
-;;; ====
-
-;;; make-test-result : Symbol × Num × Any × Num × (Num × Num) | #f × Num | #f → TestResult
-;;; Create a hypothesis test result.
-;;;
-;;; Fields:
-;;;   test-name  - name of the test (t-test-one-sample, chi-squared, etc.)
-;;;   statistic  - test statistic value
-;;;   df         - degrees of freedom (number or pair for F-test)
-;;;   p-value    - p-value
-;;;   ci         - confidence interval (pair) or #f if not applicable
-;;;   effect-size - effect size or #f if not computed
+(doc 'section 'hypothesis-test-results)
 (define (make-test-result test-name statistic df p-value ci effect-size)
+  (doc 'type '(-> Symbol Num Any Num (or (Pair Num Num) False) (or Num False) TestResult))
+  (doc 'description "Create a hypothesis test result")
+  (doc 'param 'test-name "name of the test (t-test-one-sample, chi-squared, etc.)")
+  (doc 'param 'statistic "test statistic value")
+  (doc 'param 'df "degrees of freedom (number or pair for F-test)")
+  (doc 'param 'p-value "p-value")
+  (doc 'param 'ci "confidence interval (pair) or #f if not applicable")
+  (doc 'param 'effect-size "effect size or #f if not computed")
   (list 'test-result test-name statistic df p-value ci effect-size))
-
-;;; test-result? : Any → Bool
 (define (test-result? x)
   (and (pair? x) (eq? (car x) 'test-result)))
 
@@ -154,29 +130,24 @@
 (define (test-ci r) (list-ref r 5))
 (define (test-effect-size r) (list-ref r 6))
 
-;;; test-significant? : TestResult × Num → Bool
-;;; Check if test is significant at given alpha level.
 (define (test-significant? r alpha)
+  (doc 'type '(-> TestResult Num Bool))
+  (doc 'description "Check if test is significant at given alpha level")
   (< (test-p-value r) alpha))
 
-;;; ====
-;;; ANOVA Results
-;;; ====
-
-;;; make-anova-result : Num × Nat × Nat × Num × Num × Num × Num × Num → ANOVAResult
-;;; Create an ANOVA result.
-;;;
-;;; Fields:
-;;;   f-statistic   - F statistic
-;;;   df-between    - degrees of freedom between groups
-;;;   df-within     - degrees of freedom within groups
-;;;   p-value       - p-value
-;;;   ss-between    - sum of squares between groups
-;;;   ss-within     - sum of squares within groups
-;;;   ms-between    - mean square between
-;;;   ms-within     - mean square within
+(doc 'section 'anova-results)
 (define (make-anova-result f-statistic df-between df-within p-value
                            ss-between ss-within ms-between ms-within)
+  (doc 'type '(-> Num Nat Nat Num Num Num Num Num ANOVAResult))
+  (doc 'description "Create an ANOVA result")
+  (doc 'param 'f-statistic "F statistic")
+  (doc 'param 'df-between "degrees of freedom between groups")
+  (doc 'param 'df-within "degrees of freedom within groups")
+  (doc 'param 'p-value "p-value")
+  (doc 'param 'ss-between "sum of squares between groups")
+  (doc 'param 'ss-within "sum of squares within groups")
+  (doc 'param 'ms-between "mean square between")
+  (doc 'param 'ms-within "mean square within")
   (list 'anova-result f-statistic df-between df-within p-value
         ss-between ss-within ms-between ms-within))
 
@@ -194,22 +165,17 @@
 (define (anova-ms-between r) (list-ref r 7))
 (define (anova-ms-within r) (list-ref r 8))
 
-;;; ====
-;;; AR Model Results
-;;; ====
-
-;;; make-ar-result : Vec × Num × Vec × Vec × Num × Num × Nat → ARResult
-;;; Create an autoregressive model result.
-;;;
-;;; Fields:
-;;;   coefficients - AR coefficients (phi_1, ..., phi_p)
-;;;   intercept    - intercept term (mean for centered series)
-;;;   residuals    - model residuals
-;;;   fitted       - fitted values
-;;;   sigma        - residual standard deviation
-;;;   aic          - Akaike Information Criterion
-;;;   order        - AR order (p)
+(doc 'section 'ar-model-results)
 (define (make-ar-result coefficients intercept residuals fitted sigma aic order)
+  (doc 'type '(-> Vec Num Vec Vec Num Num Nat ARResult))
+  (doc 'description "Create an autoregressive model result")
+  (doc 'param 'coefficients "AR coefficients (phi_1, ..., phi_p)")
+  (doc 'param 'intercept "intercept term (mean for centered series)")
+  (doc 'param 'residuals "model residuals")
+  (doc 'param 'fitted "fitted values")
+  (doc 'param 'sigma "residual standard deviation")
+  (doc 'param 'aic "Akaike Information Criterion")
+  (doc 'param 'order "AR order (p)")
   (list 'ar-result coefficients intercept residuals fitted sigma aic order))
 
 ;;; ar-result? : Any → Bool
@@ -225,19 +191,14 @@
 (define (ar-aic r) (list-ref r 6))
 (define (ar-order r) (list-ref r 7))
 
-;;; ====
-;;; Forecast Results
-;;; ====
-
-;;; make-forecast-result : Vec × Vec × Vec × Num → ForecastResult
-;;; Create a forecast result.
-;;;
-;;; Fields:
-;;;   point      - point forecasts
-;;;   lower      - lower confidence bounds
-;;;   upper      - upper confidence bounds
-;;;   level      - confidence level (e.g., 0.95)
+(doc 'section 'forecast-results)
 (define (make-forecast-result point lower upper level)
+  (doc 'type '(-> Vec Vec Vec Num ForecastResult))
+  (doc 'description "Create a forecast result")
+  (doc 'param 'point "point forecasts")
+  (doc 'param 'lower "lower confidence bounds")
+  (doc 'param 'upper "upper confidence bounds")
+  (doc 'param 'level "confidence level (e.g., 0.95)")
   (list 'forecast-result point lower upper level))
 
 ;;; forecast-result? : Any → Bool

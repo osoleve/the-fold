@@ -1,47 +1,15 @@
-;;; lattice/autodiff/interval-autodiff.ss --- Interval Automatic Differentiation
-;;;
-;;; Extends autodiff to produce interval-valued gradients for verified optimization.
-;;; When evaluating a function over a box (product of intervals), this module
-;;; computes interval bounds on the gradient components.
-;;;
-;;; Key insight: The gradient of f at any point x in box B lies within the
-;;; interval gradient computed here. This enables:
-;;;   - Monotonicity pruning: if gradient interval doesn't contain 0, function
-;;;     is monotonic in that direction over the box
-;;;   - Verified optimization: rigorous bounds on gradient enable certified
-;;;     convergence criteria
-;;;
-;;; TIER: 1 (depends on numeric/interval, autodiff)
-;;;
-;;; Author: Claude Opus 4.5
-;;; Created: 2026-01-16
-;;;
-;;; Usage:
-;;;   (load "lattice/autodiff/interval-autodiff.ss")
-;;;
-;;;   ;; Define an interval function
-;;;   (define (f-interval box)
-;;;     (let ([x (car box)] [y (cadr box)])
-;;;       (interval-add (interval-sqr x)
-;;;                     (interval-mul (interval-singleton 2) y))))
-;;;
-;;;   ;; Compute interval gradient over a box
-;;;   (interval-gradient f-interval (list (interval 0 1) (interval 0 1)))
-;;;   ;; => ((interval 0 2) (interval 2 2))  ; df/dx in [0,2], df/dy = 2
-
 (load "core/base/prelude.ss")
 (load "lattice/numeric/interval.ss")
 
-;;; ============================================================================
-;;; Interval-Traced Values
-;;; ============================================================================
-;;;
-;;; An interval-traced value carries:
-;;;   - iv: the interval value
-;;;   - id: unique identifier for gradient tracking
-;;;   - tape: computation tape for backward pass
+(doc 'module 'interval-autodiff)
+(doc 'description "Interval Automatic Differentiation - extends autodiff to produce interval-valued gradients for verified optimization")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
+(doc 'tier 1)
+(doc 'note "Key insight: The gradient of f at any point x in box B lies within the interval gradient computed here. Enables monotonicity pruning and verified optimization with rigorous gradient bounds.")
 
-;;; Interval-traced value counter
+(doc 'section 'interval-traced-values)
+
 (define *interval-traced-id* 0)
 
 ;;; interval-fresh-id : Unit -> Nat

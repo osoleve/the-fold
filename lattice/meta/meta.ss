@@ -1,18 +1,3 @@
-;;; lattice/meta/meta.ss — Unified Entry Point
-;;;
-;;; Loads all lattice meta-tooling modules.
-;;; Use this as a single import for full lattice navigation.
-;;;
-;;; Usage:
-;;;   (load "lattice/meta/meta.ss")
-;;;   (lattice-init!)                    ; Build KG and search indices
-;;;   (lf "query")                       ; Search
-;;;   (li 'skill)                        ; Inspect
-;;;   (ls)                               ; Stats
-;;;
-;;; Dependencies:
-;;;   All lattice/meta modules
-
 (load "lattice/meta/search.ss")
 (load "lattice/meta/analytics.ss")
 (load "lattice/meta/inspect.ss")
@@ -20,13 +5,15 @@
 (load "lattice/meta/source-loc.ss")
 (load "boundary/introspect/exports.ss")
 
-;;; ====
-;;; Initialization
-;;; ====
+(doc 'module 'meta)
+(doc 'description "Unified entry point for lattice meta-tooling modules. Loads all lattice navigation capabilities.")
+(doc 'layer 'lattice)
+(doc 'purity 'partial)
 
-;;; lattice-init! : -> void
-;;; Initialize the lattice tooling (build KG and search indices)
-;;; Uses cache if valid, otherwise rebuilds and caches
+(doc 'section 'initialization)
+
+(doc lattice-init! 'type (-> Void))
+(doc lattice-init! 'description "Initialize the lattice tooling (build KG and search indices). Uses cache if valid, otherwise rebuilds and caches")
 (define (lattice-init!)
   (if (lattice-load-cache!)
       ;; Cache loaded - docstrings and source-locs already restored
@@ -48,9 +35,8 @@
   (printf "  Use (ls) for statistics\n")
   (printf "  Use (lh) for health check\n"))
 
-;;; lattice-init-quiet! : -> void
-;;; Initialize silently (for REPL startup)
-;;; Uses cache if valid - very fast startup
+(doc lattice-init-quiet! 'type (-> Void))
+(doc lattice-init-quiet! 'description "Initialize silently (for REPL startup). Uses cache if valid - very fast startup")
 (define (lattice-init-quiet!)
   (if (lattice-load-cache!)
       ;; Cache loaded - docstrings and source-locs already restored
@@ -63,14 +49,14 @@
         (build-source-location-cache!)
         (lattice-save-cache!))))
 
-;;; lattice-ensure! : -> void
-;;; Initialize only if not already ready. Use this in tests.
+(doc lattice-ensure! 'type (-> Void))
+(doc lattice-ensure! 'description "Initialize only if not already ready. Use this in tests.")
 (define (lattice-ensure!)
   (unless *search-ready*
           (lattice-init!)))
 
-;;; lattice-init-fresh! : -> void
-;;; Force full rebuild, ignoring cache
+(doc lattice-init-fresh! 'type (-> Void))
+(doc lattice-init-fresh! 'description "Force full rebuild, ignoring cache")
 (define (lattice-init-fresh!)
   (kg-build!)
   (lattice-index!)
@@ -85,23 +71,21 @@
   (printf "  Use (ls) for statistics\n")
   (printf "  Use (lh) for health check\n"))
 
-;;; ====
-;;; Source Location Convenience
-;;; ====
+(doc 'section 'source-location)
 
-;;; lsrc : Symbol -> String | void
-;;; Quick source location lookup - prints "file:line" format
+(doc lsrc 'type (-> Symbol (Maybe String)))
+(doc lsrc 'description "Quick source location lookup - prints \"file:line\" format")
 (define (lsrc sym)
   (let ([loc (format-source-location sym)])
        (if loc
            loc
            (printf "Symbol not found: ~a\n" sym))))
 
-;;; ====
-;;; Quick Reference
-;;; ====
+(doc 'section 'quick-reference)
 
 (define (lattice-help)
+  (doc 'type (-> Void))
+  (doc 'description "Print quick reference for lattice meta-tooling commands")
   (printf "\nLattice Meta-Tooling Quick Reference\n")
   (printf "====\n\n")
   (printf "INITIALIZATION:\n")
@@ -146,9 +130,7 @@
   (printf "  (lattice-leaves)          - Skills with no dependents\n")
   (printf "  (lattice-tiers)           - Skills grouped by tier\n"))
 
-;;; ====
-;;; REPL Interface
-;;; ====
+(doc 'section 'repl-interface)
 
 (meta-printf "\nmeta.ss loaded — Unified lattice tooling\n")
 (meta-printf "  (lattice-init!)  - Initialize (build KG + indices)\n")

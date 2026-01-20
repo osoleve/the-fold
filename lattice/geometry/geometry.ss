@@ -1,101 +1,90 @@
-;;; core/geometry/geometry.ss — Geometric Primitives and Transformations
-;;;
-;;; Core geometry library for graphics and physics.
-;;;
-;;; This module provides:
-;;; 1. Geometric primitives (points, lines, rays, planes, circles, spheres, boxes)
-;;; 2. Transformation matrices (translation, rotation, scaling)
-;;; 3. Geometric operations (distance, intersection, containment)
-;;; 4. Utilities (coordinate conversions, normals, barycentric)
-;;;
-;;; This is Core code: pure, total, assumes reasonable input.
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;   - linalg/vec3.ss
-;;;   - linalg/matrix.ss
-;;;   - linalg/quaternion.ss
-
 (load "core/base/prelude.ss")
 (load "lattice/linalg/vec3.ss")
 (load "lattice/linalg/matrix.ss")
 (load "lattice/linalg/quaternion.ss")
 
-;;; ====
-;;; Geometric Primitives
-;;; ====
+(doc 'module 'geometry)
+(doc 'description "Geometric primitives and transformations for graphics and physics")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
+(doc 'provides "1. Geometric primitives (points, lines, rays, planes, circles, spheres, boxes)
+2. Transformation matrices (translation, rotation, scaling)
+3. Geometric operations (distance, intersection, containment)
+4. Utilities (coordinate conversions, normals, barycentric)")
 
-;;; Point3 is just a Vec3
-;;; point3 : Number × Number × Number → Point3
+(doc 'section 'primitives)
+
+(doc point3 'type '(-> Number Number Number Point3))
+(doc point3 'description "Point3 is just a Vec3")
 (define point3 vec3)
 
-;;; line3 : Vec3 × Vec3 → Line3
-;;; Infinite line through origin in direction
 (define (line3 origin direction)
+  (doc 'type '(-> Vec3 Vec3 Line3))
+  (doc 'description "Infinite line through origin in direction")
   (list 'line3 origin direction))
 
-;;; line3? : α → Bool
 (define (line3? l)
+  (doc 'type '(-> α Bool))
   (and (pair? l) (eq? (car l) 'line3)))
 
-;;; line3-origin : Line3 → Vec3
 (define (line3-origin l)
+  (doc 'type '(-> Line3 Vec3))
   (cadr l))
 
-;;; line3-direction : Line3 → Vec3
 (define (line3-direction l)
+  (doc 'type '(-> Line3 Vec3))
   (caddr l))
 
-;;; ray3 : Vec3 × Vec3 → Ray3
-;;; Half-infinite ray starting at origin going in direction
 (define (ray3 origin direction)
+  (doc 'type '(-> Vec3 Vec3 Ray3))
+  (doc 'description "Half-infinite ray starting at origin going in direction")
   (list 'ray3 origin direction))
 
-;;; ray3? : α → Bool
 (define (ray3? r)
+  (doc 'type '(-> α Bool))
   (and (pair? r) (eq? (car r) 'ray3)))
 
-;;; ray3-origin : Ray3 → Vec3
 (define (ray3-origin r)
+  (doc 'type '(-> Ray3 Vec3))
   (cadr r))
 
-;;; ray3-direction : Ray3 → Vec3
 (define (ray3-direction r)
+  (doc 'type '(-> Ray3 Vec3))
   (caddr r))
 
-;;; ray3-point-at : Ray3 × Number → Point3
-;;; Get point at parameter t along ray (t >= 0)
 (define (ray3-point-at ray t)
+  (doc 'type '(-> Ray3 Number Point3))
+  (doc 'description "Get point at parameter t along ray (t >= 0)")
   (vec3-add (ray3-origin ray)
             (vec3-scale (ray3-direction ray) t)))
 
-;;; plane3 : Vec3 × Number → Plane3
-;;; Plane defined by normal·p + d = 0
 (define (plane3 normal d)
+  (doc 'type '(-> Vec3 Number Plane3))
+  (doc 'description "Plane defined by normal·p + d = 0")
   (list 'plane3 normal d))
 
-;;; plane3? : α → Bool
 (define (plane3? p)
+  (doc 'type '(-> α Bool))
   (and (pair? p) (eq? (car p) 'plane3)))
 
-;;; plane3-normal : Plane3 → Vec3
 (define (plane3-normal p)
+  (doc 'type '(-> Plane3 Vec3))
   (cadr p))
 
-;;; plane3-d : Plane3 → Number
 (define (plane3-d p)
+  (doc 'type '(-> Plane3 Number))
   (caddr p))
 
-;;; plane3-from-point-normal : Point3 × Vec3 → Plane3
-;;; Create plane from point and normal
 (define (plane3-from-point-normal point normal)
+  (doc 'type '(-> Point3 Vec3 Plane3))
+  (doc 'description "Create plane from point and normal")
   (let ([d (- (vec3-dot normal point))])
        (plane3 normal d)))
 
-;;; plane3-from-points : Point3 × Point3 × Point3 → Plane3 | Error
-;;; Create plane from three points
-;;; Returns error if points are collinear
 (define (plane3-from-points p1 p2 p3)
+  (doc 'type '(-> Point3 Point3 Point3 (| Plane3 Error)))
+  (doc 'description "Create plane from three points")
+  (doc 'note "Returns error if points are collinear")
   (let* ([v1 (vec3-sub p2 p1)]
          [v2 (vec3-sub p3 p1)]
          [cp (vec3-cross v1 v2)]
@@ -105,112 +94,122 @@
             (let ([normal (vec3-scale-inv cp mag)])
                  (plane3-from-point-normal p1 normal)))))
 
-;;; triangle3 : Vec3 × Vec3 × Vec3 → Triangle3
 (define (triangle3 p1 p2 p3)
+  (doc 'type '(-> Vec3 Vec3 Vec3 Triangle3))
   (list 'triangle3 p1 p2 p3))
 
-;;; triangle3? : α → Bool
 (define (triangle3? t)
+  (doc 'type '(-> α Bool))
   (and (pair? t) (eq? (car t) 'triangle3)))
 
-;;; triangle3-p1 : Triangle3 → Vec3
-(define (triangle3-p1 t) (cadr t))
-;;; triangle3-p2 : Triangle3 → Vec3
-(define (triangle3-p2 t) (caddr t))
-;;; triangle3-p3 : Triangle3 → Vec3
-(define (triangle3-p3 t) (cadddr t))
+(define (triangle3-p1 t)
+  (doc 'type '(-> Triangle3 Vec3))
+  (cadr t))
+(define (triangle3-p2 t)
+  (doc 'type '(-> Triangle3 Vec3))
+  (caddr t))
+(define (triangle3-p3 t)
+  (doc 'type '(-> Triangle3 Vec3))
+  (cadddr t))
 
-;;; circle : Vec2 × Number → Circle
 (define (circle center radius)
+  (doc 'type '(-> Vec2 Number Circle))
   (list 'circle center radius))
 
-;;; circle? : α → Bool
 (define (circle? c)
+  (doc 'type '(-> α Bool))
   (and (pair? c) (eq? (car c) 'circle)))
 
-;;; circle-center : Circle → Vec2
-(define (circle-center c) (cadr c))
-;;; circle-radius : Circle → Number
-(define (circle-radius c) (caddr c))
+(define (circle-center c)
+  (doc 'type '(-> Circle Vec2))
+  (cadr c))
+(define (circle-radius c)
+  (doc 'type '(-> Circle Number))
+  (caddr c))
 
-;;; sphere : Vec3 × Number → Sphere
 (define (sphere center radius)
+  (doc 'type '(-> Vec3 Number Sphere))
   (list 'sphere center radius))
 
-;;; sphere? : α → Bool
 (define (sphere? s)
+  (doc 'type '(-> α Bool))
   (and (pair? s) (eq? (car s) 'sphere)))
 
-;;; sphere-center : Sphere → Vec3
-(define (sphere-center s) (cadr s))
-;;; sphere-radius : Sphere → Number
-(define (sphere-radius s) (caddr s))
+(define (sphere-center s)
+  (doc 'type '(-> Sphere Vec3))
+  (cadr s))
+(define (sphere-radius s)
+  (doc 'type '(-> Sphere Number))
+  (caddr s))
 
-;;; aabb : Vec3 × Vec3 → AABB
-;;; Axis-Aligned Bounding Box from min/max corners
 (define (aabb min-point max-point)
+  (doc 'type '(-> Vec3 Vec3 AABB))
+  (doc 'description "Axis-Aligned Bounding Box from min/max corners")
   (list 'aabb min-point max-point))
 
-;;; aabb? : α → Bool
 (define (aabb? b)
+  (doc 'type '(-> α Bool))
   (and (pair? b) (eq? (car b) 'aabb)))
 
-;;; aabb-min : AABB → Vec3
-(define (aabb-min b) (cadr b))
-;;; aabb-max : AABB → Vec3
-(define (aabb-max b) (caddr b))
+(define (aabb-min b)
+  (doc 'type '(-> AABB Vec3))
+  (cadr b))
+(define (aabb-max b)
+  (doc 'type '(-> AABB Vec3))
+  (caddr b))
 
-;;; aabb-center : AABB → Point3
 (define (aabb-center box)
+  (doc 'type '(-> AABB Point3))
   (vec3-scale (vec3-add (aabb-min box) (aabb-max box)) 0.5))
 
-;;; aabb-extents : AABB → Vec3
-;;; Half-size in each dimension
 (define (aabb-extents box)
+  (doc 'type '(-> AABB Vec3))
+  (doc 'description "Half-size in each dimension")
   (vec3-scale (vec3-sub (aabb-max box) (aabb-min box)) 0.5))
 
-;;; obb : Vec3 × (List Vec3) × Vec3 → OBB
-;;; Oriented Bounding Box from center, axes, and extents
-;;; axes is list of 3 orthonormal vectors
-;;; extents is vec3 of half-sizes along each axis
 (define (obb center axes extents)
+  (doc 'type '(-> Vec3 (List Vec3) Vec3 OBB))
+  (doc 'description "Oriented Bounding Box from center, axes, and extents")
+  (doc 'param 'axes "list of 3 orthonormal vectors")
+  (doc 'param 'extents "vec3 of half-sizes along each axis")
   (list 'obb center axes extents))
 
-;;; obb? : α → Bool
 (define (obb? b)
+  (doc 'type '(-> α Bool))
   (and (pair? b) (eq? (car b) 'obb)))
 
-;;; obb-center : OBB → Vec3
-(define (obb-center b) (cadr b))
-;;; obb-axes : OBB → (List Vec3)
-(define (obb-axes b) (caddr b))
-;;; obb-extents : OBB → Vec3
-(define (obb-extents b) (cadddr b))
+(define (obb-center b)
+  (doc 'type '(-> OBB Vec3))
+  (cadr b))
+(define (obb-axes b)
+  (doc 'type '(-> OBB (List Vec3)))
+  (caddr b))
+(define (obb-extents b)
+  (doc 'type '(-> OBB Vec3))
+  (cadddr b))
 
-;;; ====
-;;; Transformations
-;;; ====
+(doc 'section 'transformations)
 
-;;; transform4x4 : Matrix 4×4 representing homogeneous transformation
-;;; We use the matrix module's representation
+(doc 'note "transform4x4: Matrix 4×4 representing homogeneous transformation")
+(doc 'note "We use the matrix module's representation")
 
-;;; transform-identity : → Matrix
 (define (transform-identity)
+  (doc 'type '(-> Matrix))
   (matrix-from-lists '((1 0 0 0)
                        (0 1 0 0)
                        (0 0 1 0)
                        (0 0 0 1))))
 
-;;; transform-translation : Vec3 → Matrix
 (define (transform-translation v)
+  (doc 'type '(-> Vec3 Matrix))
   (matrix-from-lists `((1 0 0 ,(vec3-x v))
                        (0 1 0 ,(vec3-y v))
                        (0 0 1 ,(vec3-z v))
                        (0 0 0 1))))
 
-;;; transform-scale : Number | Vec3 → Matrix
-;;; Uniform scale if number, non-uniform if vec3
 (define (transform-scale s)
+  (doc 'type '(-> (| Number Vec3) Matrix))
+  (doc 'description "Uniform scale if number, non-uniform if vec3")
   (if (number? s)
       (matrix-from-lists `((,s 0 0 0)
                            (0 ,s 0 0)
@@ -221,9 +220,9 @@
                            (0 0 ,(vec3-z s) 0)
                            (0 0 0 1)))))
 
-;;; transform-rotation-x : Number → Matrix
-;;; Rotation around x-axis by angle (radians)
 (define (transform-rotation-x angle)
+  (doc 'type '(-> Number Matrix))
+  (doc 'description "Rotation around x-axis by angle (radians)")
   (let ([c (cos angle)]
         [s (sin angle)])
        (matrix-from-lists `((1 0 0 0)
@@ -231,8 +230,8 @@
                             (0 ,s ,c 0)
                             (0 0 0 1)))))
 
-;;; transform-rotation-y : Number → Matrix
 (define (transform-rotation-y angle)
+  (doc 'type '(-> Number Matrix))
   (let ([c (cos angle)]
         [s (sin angle)])
        (matrix-from-lists `((,c 0 ,s 0)
@@ -240,8 +239,8 @@
                             (,(- s) 0 ,c 0)
                             (0 0 0 1)))))
 
-;;; transform-rotation-z : Number → Matrix
 (define (transform-rotation-z angle)
+  (doc 'type '(-> Number Matrix))
   (let ([c (cos angle)]
         [s (sin angle)])
        (matrix-from-lists `((,c ,(- s) 0 0)
@@ -249,10 +248,10 @@
                             (0 0 1 0)
                             (0 0 0 1)))))
 
-;;; transform-rotation-axis : Vec3 × Number → Matrix
-;;; Rotation around arbitrary axis by angle (Rodriguez formula)
-;;; Returns identity matrix if axis is zero vector
 (define (transform-rotation-axis axis angle)
+  (doc 'type '(-> Vec3 Number Matrix))
+  (doc 'description "Rotation around arbitrary axis by angle (Rodriguez formula)")
+  (doc 'note "Returns identity matrix if axis is zero vector")
   (let ([mag (vec3-magnitude axis)])
        (if (< mag 1e-10)
            ; Zero axis: return identity transformation
@@ -270,9 +269,9 @@
                     (,(- (* t x z) (* s y)) ,(+ (* t y z) (* s x)) ,(+ (* t z z) c)      0)
                     (0                     0                     0                     1)))))))
 
-;;; transform-from-quaternion : Quaternion → Matrix
-;;; Convert quaternion to 4x4 transformation matrix
 (define (transform-from-quaternion q)
+  (doc 'type '(-> Quaternion Matrix))
+  (doc 'description "Convert quaternion to 4x4 transformation matrix")
   (let* ([w (quat-w q)]
          [x (quat-x q)]
          [y (quat-y q)]
@@ -292,9 +291,9 @@
            (,(* 2 (- xz wy))       ,(* 2 (+ yz wx))       ,(- 1 (* 2 (+ x2 y2))) 0)
            (0                     0                     0                     1)))))
 
-;;; transform-point : Matrix × Point3 → Point3
-;;; Apply transformation to point (with translation)
 (define (transform-point mat p)
+  (doc 'type '(-> Matrix Point3 Point3))
+  (doc 'description "Apply transformation to point (with translation)")
   (let ([x (vec3-x p)]
         [y (vec3-y p)]
         [z (vec3-z p)])
@@ -322,9 +321,9 @@
              [else
               (vec3 (/ nx nw) (/ ny nw) (/ nz nw))]))))
 
-;;; transform-vector : Matrix × Vec3 → Vec3
-;;; Apply transformation to vector (no translation)
 (define (transform-vector mat v)
+  (doc 'type '(-> Matrix Vec3 Vec3))
+  (doc 'description "Apply transformation to vector (no translation)")
   (let ([x (vec3-x v)]
         [y (vec3-y v)]
         [z (vec3-z v)])
@@ -338,25 +337,23 @@
                 (* (matrix-ref mat 2 1) y)
                 (* (matrix-ref mat 2 2) z)))))
 
-;;; ====
-;;; Distance Calculations
-;;; ====
+(doc 'section 'distance-calculations)
 
-;;; distance-point-point : Point3 × Point3 → Number
 (define (distance-point-point p1 p2)
+  (doc 'type '(-> Point3 Point3 Number))
   (vec3-length (vec3-sub p2 p1)))
 
-;;; distance-point-plane : Point3 × Plane3 → Number
-;;; Signed distance (positive = in front of plane)
-;;; Handles non-unit normals correctly by dividing by magnitude
 (define (distance-point-plane point plane)
+  (doc 'type '(-> Point3 Plane3 Number))
+  (doc 'description "Signed distance (positive = in front of plane)")
+  (doc 'note "Handles non-unit normals correctly by dividing by magnitude")
   (let ([n (plane3-normal plane)]
         [d (plane3-d plane)])
        (/ (+ (vec3-dot n point) d)
           (vec3-magnitude n))))
 
-;;; distance-point-line : Point3 × Line3 → Number
 (define (distance-point-line point line)
+  (doc 'type '(-> Point3 Line3 Number))
   (let* ([origin (line3-origin line)]
          [dir (vec3-normalize (line3-direction line))]
          [v (vec3-sub point origin)]
@@ -364,19 +361,17 @@
          [perp (vec3-sub v proj)])
         (vec3-length perp)))
 
-;;; distance-point-sphere : Point3 × Sphere → Number
-;;; Negative if inside
 (define (distance-point-sphere point sphere)
+  (doc 'type '(-> Point3 Sphere Number))
+  (doc 'description "Negative if inside")
   (- (distance-point-point point (sphere-center sphere))
      (sphere-radius sphere)))
 
-;;; ====
-;;; Intersection Tests
-;;; ====
+(doc 'section 'intersection-tests)
 
-;;; intersect-ray-plane : Ray3 × Plane3 → Number | #f
-;;; Returns t parameter if intersects, #f otherwise
 (define (intersect-ray-plane ray plane)
+  (doc 'type '(-> Ray3 Plane3 (| Number #f)))
+  (doc 'returns "t parameter if intersects, #f otherwise")
   (let* ([origin (ray3-origin ray)]
          [dir (ray3-direction ray)]
          [normal (plane3-normal plane)]
@@ -387,9 +382,9 @@
                         denom)])
                  (if (>= t 0) t #f)))))
 
-;;; intersect-ray-sphere : Ray3 × Sphere → (Number Number) | #f
-;;; Returns (t1 t2) if intersects, #f otherwise
 (define (intersect-ray-sphere ray sphere)
+  (doc 'type '(-> Ray3 Sphere (| (List Number Number) #f)))
+  (doc 'returns "(t1 t2) if intersects, #f otherwise")
   (let* ([origin (ray3-origin ray)]
          [dir (ray3-direction ray)]
          [center (sphere-center sphere)]
@@ -408,9 +403,9 @@
                       (list t1 t2)
                       #f)))))
 
-;;; intersect-ray-aabb : Ray3 × AABB → (Number Number) | #f
-;;; Returns (tmin tmax) if intersects, #f otherwise
 (define (intersect-ray-aabb ray box)
+  (doc 'type '(-> Ray3 AABB (| (List Number Number) #f)))
+  (doc 'returns "(tmin tmax) if intersects, #f otherwise")
   (let* ([origin (ray3-origin ray)]
          [dir (ray3-direction ray)]
          [bmin (aabb-min box)]
@@ -439,9 +434,9 @@
                   (list tmin tmax)
                   #f))))
 
-;;; intersect-ray-triangle : Ray3 × Triangle3 → Number | #f
-;;; Möller-Trumbore algorithm
 (define (intersect-ray-triangle ray tri)
+  (doc 'type '(-> Ray3 Triangle3 (| Number #f)))
+  (doc 'description "Möller-Trumbore algorithm")
   (let* ([origin (ray3-origin ray)]
          [dir (ray3-direction ray)]
          [v0 (triangle3-p1 tri)]
@@ -465,16 +460,14 @@
                                 (let ([t (* f (vec3-dot edge2 q))])
                                      (if (> t 1e-10) t #f)))))))))
 
-;;; ====
-;;; Containment Tests
-;;; ====
+(doc 'section 'containment-tests)
 
-;;; point-in-sphere? : Point3 × Sphere → Bool
 (define (point-in-sphere? point sphere)
+  (doc 'type '(-> Point3 Sphere Bool))
   (<= (distance-point-sphere point sphere) 0))
 
-;;; point-in-aabb? : Point3 × AABB → Bool
 (define (point-in-aabb? point box)
+  (doc 'type '(-> Point3 AABB Bool))
   (let ([p point]
         [bmin (aabb-min box)]
         [bmax (aabb-max box)])
@@ -485,9 +478,9 @@
             (>= (vec3-z p) (vec3-z bmin))
             (<= (vec3-z p) (vec3-z bmax)))))
 
-;;; point-in-triangle? : Point3 × Triangle3 → Bool
-;;; Point must be coplanar with triangle
 (define (point-in-triangle? point tri)
+  (doc 'type '(-> Point3 Triangle3 Bool))
+  (doc 'note "Point must be coplanar with triangle")
   (let* ([v0 (triangle3-p1 tri)]
          [v1 (triangle3-p2 tri)]
          [v2 (triangle3-p3 tri)]
@@ -498,38 +491,34 @@
         (and (>= u 0) (>= v 0) (>= w 0)
              (<= (+ u v w) 1.0001))))  ; Small epsilon for floating point
 
-;;; ====
-;;; Closest Point Queries
-;;; ====
+(doc 'section 'closest-point-queries)
 
-;;; closest-point-on-line : Point3 × Line3 → Point3
 (define (closest-point-on-line point line)
+  (doc 'type '(-> Point3 Line3 Point3))
   (let* ([origin (line3-origin line)]
          [dir (vec3-normalize (line3-direction line))]
          [v (vec3-sub point origin)]
          [t (vec3-dot v dir)])
         (vec3-add origin (vec3-scale dir t))))
 
-;;; closest-point-on-plane : Point3 × Plane3 → Point3
 (define (closest-point-on-plane point plane)
+  (doc 'type '(-> Point3 Plane3 Point3))
   (let ([dist (distance-point-plane point plane)]
         [normal (plane3-normal plane)])
        (vec3-sub point (vec3-scale normal dist))))
 
-;;; closest-point-on-aabb : Point3 × AABB → Point3
 (define (closest-point-on-aabb point box)
+  (doc 'type '(-> Point3 AABB Point3))
   (let ([bmin (aabb-min box)]
         [bmax (aabb-max box)])
        (vec3 (max (vec3-x bmin) (min (vec3-x point) (vec3-x bmax)))
              (max (vec3-y bmin) (min (vec3-y point) (vec3-y bmax)))
              (max (vec3-z bmin) (min (vec3-z point) (vec3-z bmax))))))
 
-;;; ====
-;;; Area and Volume Calculations
-;;; ====
+(doc 'section 'area-and-volume)
 
-;;; triangle-area : Triangle3 → Number
 (define (triangle-area tri)
+  (doc 'type '(-> Triangle3 Number))
   (let* ([v0 (triangle3-p1 tri)]
          [v1 (triangle3-p2 tri)]
          [v2 (triangle3-p3 tri)]
@@ -538,32 +527,30 @@
          [cross (vec3-cross edge1 edge2)])
         (* 0.5 (vec3-length cross))))
 
-;;; sphere-volume : Sphere → Number
 (define (sphere-volume sphere)
+  (doc 'type '(-> Sphere Number))
   (let ([r (sphere-radius sphere)])
        (* (/ 4.0 3.0) 3.141592653589793 r r r)))
 
-;;; sphere-surface-area : Sphere → Number
 (define (sphere-surface-area sphere)
+  (doc 'type '(-> Sphere Number))
   (let ([r (sphere-radius sphere)])
        (* 4.0 3.141592653589793 r r)))
 
-;;; aabb-volume : AABB → Number
 (define (aabb-volume box)
+  (doc 'type '(-> AABB Number))
   (let* ([extents (aabb-extents box)]
          [x (vec3-x extents)]
          [y (vec3-y extents)]
          [z (vec3-z extents)])
         (* 8 x y z)))  ; extents are half-sizes
 
-;;; ====
-;;; Utilities
-;;; ====
+(doc 'section 'utilities)
 
-;;; barycentric-coords : Point3 × Point3 × Point3 × Point3 → (Number Number Number)
-;;; Compute barycentric coordinates (u, v, w) of point p with respect to triangle (a, b, c)
-;;; p = u*a + v*b + w*c where u + v + w = 1
 (define (barycentric-coords p a b c)
+  (doc 'type '(-> Point3 Point3 Point3 Point3 (List Number Number Number)))
+  (doc 'description "Compute barycentric coordinates (u, v, w) of point p with respect to triangle (a, b, c)")
+  (doc 'note "p = u*a + v*b + w*c where u + v + w = 1")
   (let* ([v0 (vec3-sub b a)]
          [v1 (vec3-sub c a)]
          [v2 (vec3-sub p a)]
@@ -580,9 +567,9 @@
                    [u (- 1.0 v w)])
                   (list u v w)))))
 
-;;; triangle-normal : Triangle3 → Vec3
-;;; Compute face normal (counter-clockwise winding)
 (define (triangle-normal tri)
+  (doc 'type '(-> Triangle3 Vec3))
+  (doc 'description "Compute face normal (counter-clockwise winding)")
   (let* ([v0 (triangle3-p1 tri)]
          [v1 (triangle3-p2 tri)]
          [v2 (triangle3-p3 tri)]
@@ -590,9 +577,9 @@
          [edge2 (vec3-sub v2 v0)])
         (vec3-normalize (vec3-cross edge1 edge2))))
 
-;;; aabb-merge : AABB × AABB → AABB
-;;; Compute minimal AABB containing both boxes
 (define (aabb-merge b1 b2)
+  (doc 'type '(-> AABB AABB AABB))
+  (doc 'description "Compute minimal AABB containing both boxes")
   (let ([min1 (aabb-min b1)]
         [max1 (aabb-max b1)]
         [min2 (aabb-min b2)]
@@ -604,9 +591,9 @@
                    (max (vec3-y max1) (vec3-y max2))
                    (max (vec3-z max1) (vec3-z max2))))))
 
-;;; aabb-from-points : (List Point3) → AABB
-;;; Compute minimal AABB containing all points
 (define (aabb-from-points points)
+  (doc 'type '(-> (List Point3) AABB))
+  (doc 'description "Compute minimal AABB containing all points")
   (if (null? points)
       (aabb (vec3-zero) (vec3-zero))
       (let loop ([pts (cdr points)]
@@ -623,13 +610,11 @@
                                 (max (vec3-y max-p) (vec3-y p))
                                 (max (vec3-z max-p) (vec3-z p)))))))))
 
-;;; ====
-;;; Coordinate System Conversions
-;;; ====
+(doc 'section 'coordinate-conversions)
 
-;;; vec3-to-spherical : Vec3 → (Number Number Number)
-;;; Convert Cartesian to spherical (r, θ, φ)
 (define (vec3-to-spherical v)
+  (doc 'type '(-> Vec3 (List Number Number Number)))
+  (doc 'description "Convert Cartesian to spherical (r, θ, φ)")
   (let* ([x (vec3-x v)]
          [y (vec3-y v)]
          [z (vec3-z v)]
@@ -638,9 +623,9 @@
          [phi (atan y x)])
         (list r theta phi)))
 
-;;; vec3-to-cylindrical : Vec3 → (Number Number Number)
-;;; Convert Cartesian to cylindrical (r, θ, z)
 (define (vec3-to-cylindrical v)
+  (doc 'type '(-> Vec3 (List Number Number Number)))
+  (doc 'description "Convert Cartesian to cylindrical (r, θ, z)")
   (let* ([x (vec3-x v)]
          [y (vec3-y v)]
          [z (vec3-z v)]

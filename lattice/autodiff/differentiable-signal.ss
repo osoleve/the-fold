@@ -1,83 +1,70 @@
-;;; core/autodiff/differentiable-signal.ss --- Differentiable Signal Processing
-;;;
-;;; VJP (Vector-Jacobian Product) wrappers for signal processing operations,
-;;; enabling gradients to flow through DFT, IDFT, and convolution.
-;;;
-;;; This is Core code: pure, total, assumes reasonable input.
-;;;
-;;; Mathematical Background:
-;;;
-;;; DFT/IDFT Adjoints:
-;;;   The DFT is a linear operation represented by the DFT matrix F:
-;;;     X = F * x   (DFT)
-;;;     x = F^H * X / N   (IDFT, where F^H is conjugate transpose)
-;;;
-;;;   For gradient computation (VJP):
-;;;     If loss L = g(X) where X = DFT(x), then:
-;;;       dL/dx = conj(DFT(conj(dL/dX)))   (adjoint relation)
-;;;             = IDFT(dL/dX) * N          (for real signals)
-;;;
-;;;     Similarly for IDFT:
-;;;       dL/dX = DFT(dL/dx) / N
-;;;
-;;;   For real signals, the imaginary parts of gradients are zero,
-;;;   so we can work with real vectors throughout.
-;;;
-;;; Convolution Gradient:
-;;;   y = conv(x, k) in the 'full' mode has length len(x) + len(k) - 1
-;;;
-;;;   For gradient w.r.t. signal x:
-;;;     dL/dx = correlate(dL/dy, k, 'full') trimmed to length of x
-;;;
-;;;   For gradient w.r.t. kernel k:
-;;;     dL/dk = correlate(x, dL/dy, 'valid')
-;;;
-;;;   These follow from viewing convolution as matrix multiplication
-;;;   where the Toeplitz structure determines the adjoint.
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;   - complex.ss
-;;;   - dft.ss
-;;;   - convolution.ss
-;;;   - autodiff/reverse-diff.ss
-
 (load "core/base/prelude.ss")
 (load "lattice/numeric/complex.ss")
 (load "lattice/numeric/dft.ss")
 (load "lattice/numeric/convolution.ss")
 (load "core/autodiff/reverse-diff.ss")
 
-;;; ====
-;;; Vector Utilities for Traced Values
-;;; ====
+(doc 'module 'differentiable-signal)
+(doc 'description "Differentiable Signal Processing - VJP (Vector-Jacobian Product) wrappers for signal processing operations, enabling gradients to flow through DFT, IDFT, and convolution")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
+(doc 'note "Mathematical Background:
 
-;;; traced-vec? : (Vector α) → Boolean
+DFT/IDFT Adjoints:
+  The DFT is a linear operation represented by the DFT matrix F:
+    X = F * x   (DFT)
+    x = F^H * X / N   (IDFT, where F^H is conjugate transpose)
+
+  For gradient computation (VJP):
+    If loss L = g(X) where X = DFT(x), then:
+      dL/dx = conj(DFT(conj(dL/dX)))   (adjoint relation)
+            = IDFT(dL/dX) * N          (for real signals)
+
+    Similarly for IDFT:
+      dL/dX = DFT(dL/dx) / N
+
+  For real signals, the imaginary parts of gradients are zero,
+  so we can work with real vectors throughout.
+
+Convolution Gradient:
+  y = conv(x, k) in the 'full' mode has length len(x) + len(k) - 1
+
+  For gradient w.r.t. signal x:
+    dL/dx = correlate(dL/dy, k, 'full') trimmed to length of x
+
+  For gradient w.r.t. kernel k:
+    dL/dk = correlate(x, dL/dy, 'valid')
+
+  These follow from viewing convolution as matrix multiplication
+  where the Toeplitz structure determines the adjoint.")
+
+(doc 'section 'vector-utilities)
+
 (define (traced-vec? v)
+  (doc 'type '(-> (Vector alpha) Boolean))
   (and (vector? v)
        (> (vector-length v) 0)
        (traced? (vector-ref v 0))))
 
-;;; vec-extract-values : (Vector (Either Traced Number)) → (Vector Number)
 (define (vec-extract-values v)
+  (doc 'type '(-> (Vector (Either Traced Number)) (Vector Number)))
   (let* ([n (vector-length v)]
          [result (make-vector n)])
         (do ([i 0 (+ i 1)])
             ((= i n) result)
             (vector-set! result i (traced-value (vector-ref v i))))))
 
-;;; vec-extract-tape : (Vector Traced) → (Option Tape)
 (define (vec-extract-tape v)
+  (doc 'type '(-> (Vector Traced) (Option Tape)))
   (if (and (vector? v) (> (vector-length v) 0) (traced? (vector-ref v 0)))
       (traced-tape (vector-ref v 0))
       #f))
 
-;;; ====
-;;; DFT VJP (Vector-Jacobian Product)
-;;; ====
+(doc 'section 'dft-vjp)
 
-;;; dft-vjp : (Vector Complex) → (Vector Complex)
 (define (dft-vjp output-grad)
+  (doc 'type '(-> (Vector Complex) (Vector Complex)))
+  (doc 'description "DFT VJP (Vector-Jacobian Product)")
   (let* ([n (vector-length output-grad)]
          [idft-result (idft output-grad)]
          [result (make-vector n)])
@@ -86,8 +73,8 @@
             ((= i n) result)
             (vector-set! result i (complex-scale n (vector-ref idft-result i))))))
 
-;;; dft-vjp-real : (Vector Number) → (Vector Number)
 (define (dft-vjp-real output-grad)
+  (doc 'type '(-> (Vector Number) (Vector Number)))
   (let* ([grad (dft-vjp output-grad)]
          [n (vector-length grad)]
          [result (make-vector n)])
@@ -95,12 +82,11 @@
             ((= i n) result)
             (vector-set! result i (complex-real (vector-ref grad i))))))
 
-;;; ====
-;;; IDFT VJP
-;;; ====
+(doc 'section 'idft-vjp)
 
-;;; idft-vjp : (Vector Complex) → (Vector Complex)
 (define (idft-vjp output-grad)
+  (doc 'type '(-> (Vector Complex) (Vector Complex)))
+  (doc 'description "IDFT VJP - computes dL/dX = DFT(dL/dx) / N")
   (let* ([n (vector-length output-grad)]
          ;; VJP: dL/dX = DFT(dL/dx) / N
          [input-complex (if (and (> n 0) (complex? (vector-ref output-grad 0)))
@@ -114,16 +100,15 @@
             (let ([g (vector-ref grad-complex i)])
                  (vector-set! result i (complex-scale (/ 1.0 n) g))))))
 
-;;; idft-vjp-real : (Vector Number) → (Vector Complex)
 (define (idft-vjp-real output-grad)
+  (doc 'type '(-> (Vector Number) (Vector Complex)))
   (idft-vjp (real->complex-vec output-grad)))
 
-;;; ====
-;;; Convolution VJP
-;;; ====
+(doc 'section 'convolution-vjp)
 
-;;; convolve-vjp-signal : (Vector Number) × (Vector Number) × Symbol → (Vector Number)
 (define (convolve-vjp-signal output-grad kernel mode)
+  (doc 'type '(-> (Vector Number) (Vector Number) Symbol (Vector Number)))
+  (doc 'description "VJP for convolution with respect to signal")
   (let* ([m (vector-length kernel)]
          [grad-len (vector-length output-grad)]
          ;; The adjoint of convolution w.r.t. signal is correlation with the kernel
@@ -219,12 +204,11 @@
                              (vector-set! result j sum))))]
               [else (error 'convolve-vjp-kernel "invalid mode" mode)])))
 
-;;; ====
-;;; Traced DFT Operations
-;;; ====
+(doc 'section 'traced-dft)
 
-;;; traced-dft-real : (Vector (Either Traced Number)) → (Vector Traced)
 (define (traced-dft-real x)
+  (doc 'type '(-> (Vector (Either Traced Number)) (Vector Traced)))
+  (doc 'description "Traced DFT operation for real-valued signals")
   (let* ([tape (vec-extract-tape x)]
          [n (vector-length x)]
          [x-vals (vec-extract-values x)]
@@ -261,28 +245,27 @@
                            (vector-set! result (* 2 k) (traced re re-id tape))
                            (vector-set! result (+ (* 2 k) 1) (traced im im-id tape))))))))
 
-;;; make-dft-re-local-grads : Int × Int → (List Number)
 (define (make-dft-re-local-grads n k)
+  (doc 'type '(-> Int Int (List Number)))
   (let ([result (make-vector n)]
         [two-pi (* 2 (pi-value))])
        (do ([m 0 (+ m 1)])
            ((= m n) (vector->list result))
            (vector-set! result m (cos (/ (* -1 two-pi k m) n))))))
 
-;;; make-dft-im-local-grads : Int × Int → (List Number)
 (define (make-dft-im-local-grads n k)
+  (doc 'type '(-> Int Int (List Number)))
   (let ([result (make-vector n)]
         [two-pi (* 2 (pi-value))])
        (do ([m 0 (+ m 1)])
            ((= m n) (vector->list result))
            (vector-set! result m (sin (/ (* -1 two-pi k m) n))))))
 
-;;; ====
-;;; High-Level Differentiable Signal Operations
-;;; ====
+(doc 'section 'high-level-operations)
 
-;;; diff-dft : (Vector Number) × ((Vector Complex) → Number) → (Vector Number)
 (define (diff-dft signal loss-fn)
+  (doc 'type '(-> (Vector Number) (-> (Vector Complex) Number) (Vector Number)))
+  (doc 'description "Compute gradient of loss function w.r.t. signal through DFT")
   (let* ([n (vector-length signal)]
          ;; Compute DFT forward
          [X (dft (real->complex-vec signal))]
@@ -311,8 +294,9 @@
         ;; Now backprop through DFT using VJP
         (dft-vjp-real grad-X)))
 
-;;; diff-convolution : (Vector Number) × (Vector Number) × Symbol × ((Vector Number) → Number) → (Values (Vector Number) (Vector Number))
 (define (diff-convolution signal kernel mode loss-fn)
+  (doc 'type '(-> (Vector Number) (Vector Number) Symbol (-> (Vector Number) Number) (Values (Vector Number) (Vector Number))))
+  (doc 'description "Compute gradients w.r.t. both signal and kernel through convolution")
   (let* ([output (convolve signal kernel mode)]
          [m (vector-length output)]
          [kernel-len (vector-length kernel)]
@@ -331,12 +315,11 @@
         (values (convolve-vjp-signal grad-output kernel mode)
                 (convolve-vjp-kernel grad-output signal mode kernel-len))))
 
-;;; ====
-;;; Traced Convolution (Integrated with Autodiff)
-;;; ====
+(doc 'section 'traced-convolution)
 
-;;; traced-convolve-1d : (Vector Traced) × (Vector Number) × Symbol → (Vector Traced)
 (define (traced-convolve-1d signal kernel mode)
+  (doc 'type '(-> (Vector Traced) (Vector Number) Symbol (Vector Traced)))
+  (doc 'description "Traced convolution integrated with autodiff")
   (let* ([tape (vec-extract-tape signal)]
          [n (vector-length signal)]
          [m (vector-length kernel)]
@@ -364,8 +347,8 @@
                                                      local-grads))
                            (vector-set! result i (traced out-val out-id tape))))))))
 
-;;; make-conv-local-grads : Int × Int × Int × (Vector Number) × Symbol → (List Number)
 (define (make-conv-local-grads i n m kernel mode)
+  (doc 'type '(-> Int Int Int (Vector Number) Symbol (List Number)))
   (let ([grads (make-vector n 0)])
        (case mode
              [(full)
@@ -392,12 +375,11 @@
                              (vector-set! grads j (vector-ref kernel k-idx)))))]
              [else (vector->list grads)])))
 
-;;; ====
-;;; Power Spectrum Gradient
-;;; ====
+(doc 'section 'power-spectrum)
 
-;;; power-spectrum-grad : (Vector Complex) × (Vector Number) → (Vector Complex)
 (define (power-spectrum-grad X output-grad)
+  (doc 'type '(-> (Vector Complex) (Vector Number) (Vector Complex)))
+  (doc 'description "Gradient of power spectrum: d(|X[k]|^2)/dX[k] = 2*conj(X[k])")
   (let* ([n (vector-length X)]
          [result (make-vector n)])
         (do ([k 0 (+ k 1)])
@@ -410,8 +392,8 @@
                    [grad (complex-scale (* 2 g-k) (complex-conjugate x-k))])
                   (vector-set! result k grad)))))
 
-;;; power-spectrum-grad-real : (Vector Complex) × (Vector Number) → (Vector Complex)
 (define (power-spectrum-grad-real X output-grad)
+  (doc 'type '(-> (Vector Complex) (Vector Number) (Vector Complex)))
   (let* ([n (vector-length X)]
          [result (make-vector n)])
         (do ([k 0 (+ k 1)])
@@ -424,12 +406,11 @@
                    [grad (complex-scale (* 2 g-k) x-k)])
                   (vector-set! result k grad)))))
 
-;;; ====
-;;; Magnitude Spectrum Gradient
-;;; ====
+(doc 'section 'magnitude-spectrum)
 
-;;; magnitude-spectrum-grad : (Vector Complex) × (Vector Number) → (Vector Complex)
 (define (magnitude-spectrum-grad X output-grad)
+  (doc 'type '(-> (Vector Complex) (Vector Number) (Vector Complex)))
+  (doc 'description "Gradient of magnitude spectrum")
   (let* ([n (vector-length X)]
          [result (make-vector n)])
         (do ([k 0 (+ k 1)])
@@ -445,12 +426,11 @@
                                    (complex-scale (/ g-k mag)
                                                   (complex-conjugate x-k))))))))
 
-;;; ====
-;;; Spectral Loss Gradients
-;;; ====
+(doc 'section 'spectral-loss)
 
-;;; spectral-mse-grad : (Vector Complex) × (Vector Complex) → (Values Number (Vector Complex))
 (define (spectral-mse-grad X1 X2)
+  (doc 'type '(-> (Vector Complex) (Vector Complex) (Values Number (Vector Complex))))
+  (doc 'description "Mean squared error gradient in spectral domain")
   (let* ([n (vector-length X1)]
          [total 0]
          [grad (make-vector n)])
@@ -462,8 +442,8 @@
                   (set! total (+ total d-mag-sq))
                   (vector-set! grad k (complex-scale (/ 2.0 n) d))))))
 
-;;; spectral-mse-signal-grad : (Vector Number) × (Vector Complex) → (Vector Number)
 (define (spectral-mse-signal-grad signal target-spectrum)
+  (doc 'type '(-> (Vector Number) (Vector Complex) (Vector Number)))
   (let* ([X (dft (real->complex-vec signal))]
          [_ (spectral-mse-grad X target-spectrum)]
          [grad-X (call-with-values (lambda () (spectral-mse-grad X target-spectrum))

@@ -1,34 +1,23 @@
-;;; lattice/statistics/hypothesis/chi-squared.ss — Chi-Squared Tests
-;;;
-;;; Goodness-of-fit and independence tests.
-;;;
-;;; This is Lattice code: pure, total, assumes reasonable input.
-;;;
-;;; Provides:
-;;;   - chi-squared-test-goodness: Compare observed vs expected frequencies
-;;;   - chi-squared-test-independence: Test independence in contingency table
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;   - linalg/matrix.ss
-;;;   - statistics/core/result-types.ss
-;;;   - statistics/hypothesis/distributions.ss
-
 (load "core/base/prelude.ss")
 (load "lattice/linalg/matrix.ss")
 (load "lattice/statistics/core/result-types.ss")
 (load "lattice/statistics/hypothesis/distributions.ss")
 
-;;; ====
-;;; Goodness-of-Fit Test
-;;; ====
+(doc 'module 'chi-squared)
+(doc 'description "Chi-Squared Tests — Goodness-of-fit and independence tests")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
 
-;;; chi-squared-test-goodness : Vec × Vec → TestResult
-;;; Test H0: observed frequencies match expected frequencies.
-;;; chi-sq = sum((O - E)² / E)
-;;;   observed: observed frequency counts
-;;;   expected: expected frequency counts (must sum to same as observed)
+(doc 'description "chi-squared-test-goodness: Compare observed vs expected frequencies")
+(doc 'description "chi-squared-test-independence: Test independence in contingency table")
+
+(doc 'section 'goodness-of-fit-test)
 (define (chi-squared-test-goodness observed expected)
+  (doc 'type '(-> Vec Vec TestResult))
+  (doc 'description "Test H0: observed frequencies match expected frequencies")
+  (doc 'note "chi-sq = sum((O - E)² / E)")
+  (doc 'param 'observed "observed frequency counts")
+  (doc 'param 'expected "expected frequency counts (must sum to same as observed)")
   (let* ([n (vector-length observed)])
         (if (not (= n (vector-length expected)))
             (error 'chi-squared-test-goodness "vectors must have equal length")

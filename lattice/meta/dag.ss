@@ -1,44 +1,26 @@
-;;; lattice/meta/dag.ss — DAG Navigation
-;;;
-;;; Tools for navigating the skill dependency DAG.
-;;; Find dependencies, dependents, paths, and structural queries.
-;;;
-;;; This is Lattice code: pure, uses Core primitives.
-;;;
-;;; Usage:
-;;;   (lattice-deps 'skill)            ; Direct dependencies
-;;;   (lattice-deps-transitive 'skill) ; Full dependency closure
-;;;   (lattice-uses 'skill)            ; Direct dependents
-;;;   (lattice-uses-transitive 'skill) ; Full dependent closure
-;;;   (lattice-path 'from 'to)         ; Path between skills
-;;;   (lattice-roots)                  ; Tier 0 skills
-;;;   (lattice-leaves)                 ; Skills with no dependents
-;;;
-;;; Dependencies:
-;;;   lattice/meta/kg.ss
-
 (load "lattice/meta/kg.ss")
 
-;;; ====
-;;; Direct Dependencies
-;;; ====
+(doc 'module 'dag)
+(doc 'description "Tools for navigating the skill dependency DAG. Find dependencies, dependents, paths, and structural queries.")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
 
-;;; lattice-deps : Symbol -> (List Symbol)
-;;; Get direct dependencies of a skill
+(doc 'section 'direct-dependencies)
+
+(doc lattice-deps 'type (-> Symbol (List Symbol)))
+(doc lattice-deps 'description "Get direct dependencies of a skill")
 (define (lattice-deps skill-name)
   (kg-deps skill-name))
 
-;;; lattice-uses : Symbol -> (List Symbol)
-;;; Get skills that directly depend on this skill
+(doc lattice-uses 'type (-> Symbol (List Symbol)))
+(doc lattice-uses 'description "Get skills that directly depend on this skill")
 (define (lattice-uses skill-name)
   (kg-uses skill-name))
 
-;;; ====
-;;; Transitive Closure
-;;; ====
+(doc 'section 'transitive-closure)
 
-;;; lattice-deps-transitive : Symbol -> (List Symbol)
-;;; Get all dependencies (transitive closure)
+(doc lattice-deps-transitive 'type (-> Symbol (List Symbol)))
+(doc lattice-deps-transitive 'description "Get all dependencies (transitive closure)")
 (define (lattice-deps-transitive skill-name)
   (let loop ([to-visit (kg-deps skill-name)]
              [visited '()])
@@ -51,8 +33,8 @@
                     (loop (append (kg-deps current) rest)
                           (cons current visited)))))))
 
-;;; lattice-uses-transitive : Symbol -> (List Symbol)
-;;; Get all dependents (reverse transitive closure)
+(doc lattice-uses-transitive 'type (-> Symbol (List Symbol)))
+(doc lattice-uses-transitive 'description "Get all dependents (reverse transitive closure)")
 (define (lattice-uses-transitive skill-name)
   (let loop ([to-visit (kg-uses skill-name)]
              [visited '()])
@@ -65,13 +47,10 @@
                     (loop (append (kg-uses current) rest)
                           (cons current visited)))))))
 
-;;; ====
-;;; Path Finding
-;;; ====
+(doc 'section 'path-finding)
 
-;;; lattice-path : Symbol Symbol -> (List Symbol) | #f
-;;; Find a dependency path from one skill to another
-;;; Returns path including both endpoints, or #f if no path exists
+(doc lattice-path 'type (-> Symbol Symbol (Maybe (List Symbol))))
+(doc lattice-path 'description "Find a dependency path from one skill to another. Returns path including both endpoints, or #f if no path exists")
 (define (lattice-path from to)
   (if (eq? from to)
       (list from)
@@ -93,28 +72,26 @@
                                                              deps)))
                                         (cons current visited))))))))))
 
-;;; lattice-distance : Symbol Symbol -> Int | #f
-;;; Get the shortest dependency distance between two skills
+(doc lattice-distance 'type (-> Symbol Symbol (Maybe Int)))
+(doc lattice-distance 'description "Get the shortest dependency distance between two skills")
 (define (lattice-distance from to)
   (let ([path (lattice-path from to)])
        (if path
            (- (length path) 1)
            #f)))
 
-;;; ====
-;;; Structural Queries
-;;; ====
+(doc 'section 'structural-queries)
 
-;;; lattice-roots : -> (List Symbol)
-;;; Get tier 0 skills (no dependencies)
+(doc lattice-roots 'type (-> (List Symbol)))
+(doc lattice-roots 'description "Get tier 0 skills (no dependencies)")
 (define (lattice-roots)
   (filter
    (lambda (skill-name)
            (null? (kg-deps skill-name)))
    (kg-skills)))
 
-;;; lattice-leaves : -> (List Symbol)
-;;; Get skills with no dependents
+(doc lattice-leaves 'type (-> (List Symbol)))
+(doc lattice-leaves 'description "Get skills with no dependents")
 (define (lattice-leaves)
   (filter
    (lambda (skill-name)
@@ -139,23 +116,16 @@
         (kg-skills))
        cycles))
 
-;;; ====
-;;; Proactive Cycle Detection
-;;; ====
+(doc 'section 'cycle-detection)
 
-;;; lattice-would-cycle? : Symbol Symbol -> Bool
-;;; Check if adding a dependency from->to would create a cycle.
-;;; Returns #t if the edge would create a cycle, #f if safe.
-;;;
-;;; Algorithm: A cycle would form if 'to' can already reach 'from'.
-;;; If we add from->to and to can reach from, we complete a cycle.
+(doc lattice-would-cycle? 'type (-> Symbol Symbol Boolean))
+(doc lattice-would-cycle? 'description "Check if adding a dependency from->to would create a cycle. Returns #t if the edge would create a cycle, #f if safe. Algorithm: A cycle would form if 'to' can already reach 'from'.")
 (define (lattice-would-cycle? from to)
   (or (eq? from to)  ; Self-loop is a cycle
       (and (memq from (lattice-deps-transitive to)) #t)))
 
-;;; lattice-find-cycle-path : Symbol Symbol -> (List Symbol) | #f
-;;; If adding from->to would create a cycle, return the cycle path.
-;;; Returns #f if no cycle would be created.
+(doc lattice-find-cycle-path 'type (-> Symbol Symbol (Maybe (List Symbol))))
+(doc lattice-find-cycle-path 'description "If adding from->to would create a cycle, return the cycle path. Returns #f if no cycle would be created.")
 (define (lattice-find-cycle-path from to)
   (if (eq? from to)
       (list from from)  ; Self-loop
@@ -164,9 +134,8 @@
                (append path (list to))  ; Complete the cycle
                #f))))
 
-;;; lattice-check-deps : Symbol -> (ok #t) | (err (cycle-path ...))
-;;; Validate that a skill's dependencies don't create cycles.
-;;; Returns (ok #t) if valid, (err (cycle-from to path)) if cycle found.
+(doc lattice-check-deps 'type (-> Symbol Result))
+(doc lattice-check-deps 'description "Validate that a skill's dependencies don't create cycles. Returns (ok #t) if valid, (err (cycle-from to path)) if cycle found.")
 (define (lattice-check-deps skill-name)
   (let ([deps (kg-deps skill-name)])
        (let loop ([deps deps])
@@ -178,8 +147,8 @@
                           `(err (cycle ,skill-name ,dep ,cycle-path))
                           (loop (cdr deps))))))))
 
-;;; lattice-validate-all : -> (List (err ...))
-;;; Validate all skills, returning list of cycle errors.
+(doc lattice-validate-all 'type (-> (List Result)))
+(doc lattice-validate-all 'description "Validate all skills, returning list of cycle errors.")
 (define (lattice-validate-all)
   (filter-map
    (lambda (skill-name)
@@ -189,8 +158,8 @@
                     #f)))
    (kg-skills)))
 
-;;; lc : Symbol -> void
-;;; Quick cycle check for a skill (REPL convenience)
+(doc lc 'type (-> Symbol Void))
+(doc lc 'description "Quick cycle check for a skill (REPL convenience)")
 (define (lc skill-name)
   (let ([result (lattice-check-deps skill-name)])
        (if (and (pair? result) (eq? (car result) 'ok))
@@ -216,12 +185,10 @@
                (loop (cdr rest)
                      (string-append acc " → " (symbol->string (car rest))))))))
 
-;;; ====
-;;; Tier Analysis
-;;; ====
+(doc 'section 'tier-analysis)
 
-;;; lattice-tiers : -> ((tier . (skills ...)) ...)
-;;; Group skills by their tier
+(doc lattice-tiers 'type (-> (List (Pair Int (List Symbol)))))
+(doc lattice-tiers 'description "Group skills by their tier")
 (define (lattice-tiers)
   (let ([tier-map '()])
        (for-each
@@ -238,8 +205,8 @@
         (kg-skills))
        (sort (lambda (a b) (< (car a) (car b))) tier-map)))
 
-;;; lattice-depth : Symbol -> Int
-;;; Get the maximum dependency depth of a skill
+(doc lattice-depth 'type (-> Symbol Int))
+(doc lattice-depth 'description "Get the maximum dependency depth of a skill")
 (define (lattice-depth skill-name)
   (let ([deps (kg-deps skill-name)])
        (if (null? deps)
@@ -253,12 +220,10 @@
       0
       (apply max (map lattice-depth (kg-skills)))))
 
-;;; ====
-;;; Impact Analysis
-;;; ====
+(doc 'section 'impact-analysis)
 
-;;; lattice-impact : Symbol -> Int
-;;; Score based on how many skills depend on this (transitive)
+(doc lattice-impact 'type (-> Symbol Int))
+(doc lattice-impact 'description "Score based on how many skills depend on this (transitive)")
 (define (lattice-impact skill-name)
   (length (lattice-uses-transitive skill-name)))
 
@@ -277,12 +242,10 @@
   ;; For now, assume any exported symbol might be used
   (> (lattice-impact skill-name) 0))
 
-;;; ====
-;;; Visualization Helpers
-;;; ====
+(doc 'section 'visualization)
 
-;;; lattice-tree : Symbol -> void
-;;; Print dependency tree
+(doc lattice-tree 'type (-> Symbol Void))
+(doc lattice-tree 'description "Print dependency tree")
 (define (lattice-tree skill-name)
   (define (print-tree name indent)
     (printf "~a~a\n" (make-string (* indent 2) #\space) name)
@@ -326,29 +289,25 @@
       '()
       (cons (car lst) (take-at-most (- n 1) (cdr lst)))))
 
-;;; ====
-;;; Convenience Functions (for REPL)
-;;; ====
+(doc 'section 'convenience-functions)
 
-;;; ld : Symbol -> void
-;;; Quick show dependencies
+(doc ld 'type (-> Symbol Void))
+(doc ld 'description "Quick show dependencies")
 (define (ld skill-name)
   (let ([deps (kg-deps skill-name)])
        (if (null? deps)
            (printf "~a has no dependencies (tier 0)\n" skill-name)
            (printf "~a depends on: ~a\n" skill-name deps))))
 
-;;; lu : Symbol -> void
-;;; Quick show dependents
+(doc lu 'type (-> Symbol Void))
+(doc lu 'description "Quick show dependents")
 (define (lu skill-name)
   (let ([uses (kg-uses skill-name)])
        (if (null? uses)
            (printf "Nothing depends on ~a (leaf)\n" skill-name)
            (printf "~a is used by: ~a\n" skill-name uses))))
 
-;;; ====
-;;; REPL Interface
-;;; ====
+(doc 'section 'repl-interface)
 
 (meta-printf "dag.ss loaded.\n")
 (meta-printf "  (lattice-deps 'skill)            - Direct dependencies\n")

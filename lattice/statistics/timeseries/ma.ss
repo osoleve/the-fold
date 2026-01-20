@@ -1,34 +1,23 @@
-;;; lattice/statistics/timeseries/ma.ss — Moving Average Models
-;;;
-;;; MA(q) model fitting and forecasting.
-;;;
-;;; This is Lattice code: pure, total, assumes reasonable input.
-;;;
-;;; Provides:
-;;;   - ma-fit: Fit MA(q) model via innovations algorithm
-;;;   - ma-predict: One-step ahead prediction
-;;;   - ma-forecast: Multi-step forecasting
-;;;   - moving-average: Simple moving average smoother
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;   - statistics/core/result-types.ss
-;;;   - statistics/core/summary-stats.ss
-;;;   - statistics/timeseries/acf-pacf.ss
-
 (load "core/base/prelude.ss")
 (load "lattice/statistics/core/result-types.ss")
 (load "lattice/statistics/core/summary-stats.ss")
 (load "lattice/statistics/timeseries/acf-pacf.ss")
 
-;;; ====
-;;; Simple Moving Average (Smoother)
-;;; ====
+(doc 'module 'ma)
+(doc 'description "Moving Average Models — MA(q) model fitting and forecasting")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
 
-;;; moving-average : Vec × Nat → Vec
-;;; Simple moving average smoother.
-;;; Returns smoothed series of length n - window + 1.
+(doc 'description "ma-fit: Fit MA(q) model via innovations algorithm")
+(doc 'description "ma-predict: One-step ahead prediction")
+(doc 'description "ma-forecast: Multi-step forecasting")
+(doc 'description "moving-average: Simple moving average smoother")
+
+(doc 'section 'simple-moving-average-smoother)
 (define (moving-average xs window)
+  (doc 'type '(-> Vec Nat Vec))
+  (doc 'description "Simple moving average smoother")
+  (doc 'note "Returns smoothed series of length n - window + 1")
   (let* ([n (vector-length xs)]
          [m (- n window -1)]
          [result (make-vector m)])

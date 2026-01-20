@@ -1,35 +1,24 @@
-;;; lattice/statistics/core/design-matrix.ss — Design Matrix Construction
-;;;
-;;; Utilities for constructing design matrices for regression.
-;;;
-;;; This is Lattice code: pure, total, assumes reasonable input.
-;;;
-;;; Provides:
-;;;   - Intercept addition
-;;;   - Column standardization (z-score)
-;;;   - Dummy encoding for categorical variables
-;;;   - Polynomial feature expansion
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;   - linalg/matrix.ss
-;;;   - summary-stats.ss
-
 (load "core/base/prelude.ss")
 (load "lattice/linalg/matrix.ss")
 (load "lattice/statistics/core/summary-stats.ss")
 
-;;; ====
-;;; Intercept Handling
-;;; ====
+(doc 'module 'design-matrix)
+(doc 'description "Design Matrix Construction — Utilities for constructing design matrices for regression")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
 
-;;; add-intercept : Matrix → Matrix
-;;; Prepend a column of 1s to the matrix.
+(doc 'description "Intercept addition")
+(doc 'description "Column standardization (z-score)")
+(doc 'description "Dummy encoding for categorical variables")
+(doc 'description "Polynomial feature expansion")
+
+(doc 'section 'intercept-handling)
 (define (add-intercept X)
+  (doc 'type '(-> Matrix Matrix))
+  (doc 'description "Prepend a column of 1s to the matrix")
   (let* ([m (matrix-rows X)]
          [n (matrix-cols X)]
          [new-data (make-vector (* m (+ n 1)))])
-        ;; Fill new matrix: first column is 1s, rest is X
         (do ([i 0 (+ i 1)])
             [(= i m)]
             ;; Set intercept column
@@ -41,9 +30,9 @@
                              (matrix-ref X i j))))
         (list 'matrix m (+ n 1) new-data)))
 
-;;; has-intercept? : Matrix → Bool
-;;; Check if first column is all 1s (likely an intercept).
 (define (has-intercept? X)
+  (doc 'type '(-> Matrix Bool))
+  (doc 'description "Check if first column is all 1s (likely an intercept)")
   (let ([m (matrix-rows X)])
        (let loop ([i 0])
             (if (= i m)
@@ -52,13 +41,11 @@
                     (loop (+ i 1))
                     #f)))))
 
-;;; ====
-;;; Standardization
-;;; ====
+(doc 'section 'standardization)
 
-;;; column-mean : Matrix × Nat → Num
-;;; Compute mean of a column.
 (define (column-mean X j)
+  (doc 'type '(-> Matrix Nat Num))
+  (doc 'description "Compute mean of a column")
   (let* ([m (matrix-rows X)]
          [sum (let loop ([i 0] [s 0])
                    (if (= i m)

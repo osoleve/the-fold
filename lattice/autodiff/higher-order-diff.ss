@@ -1,34 +1,16 @@
-;;; core/autodiff/higher-order-diff.ss --- Higher-Order Differentiation
-;;;
-;;; Implements Jacobian, Hessian, and vector-product utilities for
-;;; efficient higher-order derivative computation.
-;;;
-;;; This is Core code: pure, total, assumes reasonable input.
-;;;
-;;; Key operations:
-;;;   - jacobian: Compute full Jacobian matrix
-;;;   - hessian: Compute Hessian matrix (uses finite differences for outer derivative)
-;;;   - hessian-exact: Compute exact Hessian using hyperdual numbers
-;;;   - jvp: Jacobian-vector product (forward mode)
-;;;   - vjp: Vector-Jacobian product (reverse mode)
-;;;   - second-derivative-exact: Exact d^2f/dx^2 via hyperdual numbers
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;   - matrix.ss
-;;;   - autodiff/comp-graph.ss (for forward mode)
-;;;   - autodiff/reverse-diff.ss (for reverse mode)
-
-;;; NOTE: Run from project root directory
 (load "core/base/prelude.ss")
 (load "lattice/linalg/vec.ss")
 (load "lattice/linalg/matrix.ss")
 (load "core/autodiff/comp-graph.ss")
 (load "core/autodiff/reverse-diff.ss")
 
-;;; ====
-;;; Jacobian Computation
-;;; ====
+(doc 'module 'higher-order-diff)
+(doc 'description "Higher-Order Differentiation - Jacobian, Hessian, and vector-product utilities for efficient higher-order derivative computation")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
+(doc 'note "Key operations: jacobian (full Jacobian matrix), hessian (Hessian matrix using finite differences), hessian-exact (exact Hessian via hyperdual numbers), jvp (Jacobian-vector product, forward mode), vjp (Vector-Jacobian product, reverse mode), second-derivative-exact (exact d^2f/dx^2 via hyperdual numbers)")
+
+(doc 'section 'jacobian-computation)
 
 ;;; The Jacobian matrix J of a function f: R^n -> R^m is an m x n matrix
 ;;; where J[i,j] = df_i/dx_j.

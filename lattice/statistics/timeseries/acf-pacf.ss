@@ -1,30 +1,18 @@
-;;; lattice/statistics/timeseries/acf-pacf.ss — Autocorrelation Functions
-;;;
-;;; ACF and PACF computation for time series.
-;;;
-;;; This is Lattice code: pure, total, assumes reasonable input.
-;;;
-;;; Provides:
-;;;   - acf: Autocorrelation function
-;;;   - pacf: Partial autocorrelation function
-;;;   - acf-plot-data: Data for ACF visualization
-;;;   - ljung-box-test: Portmanteau test for residual autocorrelation
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;   - statistics/core/summary-stats.ss
-;;;   - statistics/hypothesis/distributions.ss
-
 (load "core/base/prelude.ss")
 (load "lattice/statistics/core/summary-stats.ss")
 (load "lattice/statistics/hypothesis/distributions.ss")
 
-;;; ====
-;;; Autocovariance and Autocorrelation
-;;; ====
+(doc 'module 'acf-pacf)
+(doc 'description "Autocorrelation Functions — ACF and PACF computation for time series")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
 
-;;; autocovariance : Vec × Nat → Num
-;;; Compute autocovariance at lag k: Cov(X_t, X_{t+k})
+(doc 'description "acf: Autocorrelation function")
+(doc 'description "pacf: Partial autocorrelation function")
+(doc 'description "acf-plot-data: Data for ACF visualization")
+(doc 'description "ljung-box-test: Portmanteau test for residual autocorrelation")
+
+(doc 'section 'autocovariance-and-autocorrelation)
 (define (autocovariance xs k)
   (let* ([n (vector-length xs)]
          [mean (vec-mean xs)]

@@ -1,44 +1,32 @@
-;;; lattice/statistics/regression/regularized.ss — Regularized Regression
-;;;
-;;; Ridge, Lasso, and Elastic Net regression.
-;;;
-;;; This is Lattice code: pure, total, assumes reasonable input.
-;;;
-;;; Provides:
-;;;   - ridge-fit: L2 regularized regression
-;;;   - lasso-fit: L1 regularized regression (coordinate descent)
-;;;   - elastic-net-fit: Combined L1 + L2 regularization
-;;;   - cross-validate-lambda: K-fold CV for hyperparameter selection
-;;;
-;;; Note: Regularized methods require standardized predictors!
-;;; Use design-matrix.ss standardize-columns before fitting.
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;   - linalg/matrix.ss
-;;;   - linalg/matrix-solvers.ss
-;;;   - statistics/core/result-types.ss
-;;;   - statistics/core/summary-stats.ss
-
 (load "core/base/prelude.ss")
 (load "lattice/linalg/matrix.ss")
-(load "lattice/linalg/matrix-decomp.ss")  ; Provides matrix-qr, needed by solvers
+(load "lattice/linalg/matrix-decomp.ss")
 (load "lattice/linalg/matrix-solvers.ss")
 (load "lattice/statistics/core/result-types.ss")
 (load "lattice/statistics/core/summary-stats.ss")
 
-;;; ====
-;;; Ridge Regression
-;;; ====
+(doc 'module 'regularized)
+(doc 'description "Regularized Regression — Ridge, Lasso, and Elastic Net regression")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
 
-;;; Ridge regression minimizes: ||y - X*beta||² + lambda * ||beta||²
-;;; Closed-form solution: beta = (X'X + lambda*I)^(-1) X'y
+(doc 'description "ridge-fit: L2 regularized regression")
+(doc 'description "lasso-fit: L1 regularized regression (coordinate descent)")
+(doc 'description "elastic-net-fit: Combined L1 + L2 regularization")
+(doc 'description "cross-validate-lambda: K-fold CV for hyperparameter selection")
 
-;;; ridge-fit : Matrix × Vec × Num → LinearModelResult | Error
-;;; Fit ridge regression with given lambda.
-;;; X should be standardized (except intercept column if present).
-;;; lambda: regularization parameter (> 0)
+(doc 'note "Regularized methods require standardized predictors!")
+(doc 'note "Use design-matrix.ss standardize-columns before fitting")
+
+(doc 'section 'ridge-regression)
+
+(doc 'note "Ridge regression minimizes: ||y - X*beta||² + lambda * ||beta||²")
+(doc 'note "Closed-form solution: beta = (X'X + lambda*I)^(-1) X'y")
 (define (ridge-fit X y lambda)
+  (doc 'type '(-> Matrix Vec Num (or LinearModelResult Error)))
+  (doc 'description "Fit ridge regression with given lambda")
+  (doc 'note "X should be standardized (except intercept column if present)")
+  (doc 'param 'lambda "regularization parameter (> 0)")
   (let* ([n (matrix-rows X)]
          [p (matrix-cols X)])
         (if (not (= n (vector-length y)))

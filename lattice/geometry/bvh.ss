@@ -1,82 +1,67 @@
-;;; core/geometry/bvh.ss — Bounding Volume Hierarchy for Spatial Acceleration
-;;;
-;;; Provides a BVH (Bounding Volume Hierarchy) implementation for accelerating
-;;; geometric queries (ray-triangle intersection, nearest point, etc.).
-;;;
-;;; A BVH is a tree structure where:
-;;; - Each node contains an AABB (axis-aligned bounding box)
-;;; - Internal nodes have two children (left and right subtrees)
-;;; - Leaf nodes contain a list of primitives (triangles)
-;;;
-;;; This is Core code: pure, total, assumes reasonable input.
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;   - geometry.ss
-
 (load "core/base/prelude.ss")
 (load "lattice/geometry/geometry.ss")
 
-;;; ====
-;;; BVH Node Structure
-;;; ====
+(doc 'module 'bvh)
+(doc 'description "Bounding Volume Hierarchy for spatial acceleration")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
+(doc 'provides "BVH implementation for accelerating geometric queries (ray-triangle intersection, nearest point, etc.)")
+(doc 'note "BVH tree structure: Each node contains AABB, internal nodes have left/right children, leaf nodes contain primitives")
 
-;;; BVH node types:
-;;; - Leaf: (bvh-leaf bbox primitives)
-;;; - Internal: (bvh-node bbox left right)
+(doc 'section 'bvh-structure)
 
-;;; bvh-leaf : AABB × (List Triangle3) → BVH
+(doc 'note "BVH node types: Leaf (bvh-leaf bbox primitives), Internal (bvh-node bbox left right)")
+
 (define (bvh-leaf bbox primitives)
+  (doc 'type '(-> AABB (List Triangle3) BVH))
   (list 'bvh-leaf bbox primitives))
 
-;;; bvh-node : AABB × BVH × BVH → BVH
 (define (bvh-node bbox left right)
+  (doc 'type '(-> AABB BVH BVH BVH))
   (list 'bvh-node bbox left right))
 
-;;; bvh-leaf? : α → Bool
 (define (bvh-leaf? node)
+  (doc 'type '(-> α Bool))
   (and (pair? node) (eq? (car node) 'bvh-leaf)))
 
-;;; bvh-node? : α → Bool
 (define (bvh-node? node)
+  (doc 'type '(-> α Bool))
   (and (pair? node) (eq? (car node) 'bvh-node)))
 
-;;; bvh-bbox : BVH → AABB
 (define (bvh-bbox node)
+  (doc 'type '(-> BVH AABB))
   (cadr node))
 
-;;; bvh-primitives : BVH → (List Triangle3)
 (define (bvh-primitives node)
+  (doc 'type '(-> BVH (List Triangle3)))
   (if (bvh-leaf? node)
       (caddr node)
       '()))
 
-;;; bvh-left : BVH → BVH | #f
 (define (bvh-left node)
+  (doc 'type '(-> BVH (| BVH #f)))
   (if (bvh-node? node)
       (caddr node)
       #f))
 
-;;; bvh-right : BVH → BVH | #f
 (define (bvh-right node)
+  (doc 'type '(-> BVH (| BVH #f)))
   (if (bvh-node? node)
       (cadddr node)
       #f))
 
-;;; ====
-;;; Helper Functions
-;;; ====
+(doc 'section 'helpers)
 
-;;; triangle-centroid : Triangle3 → Point3
 (define (triangle-centroid tri)
+  (doc 'type '(-> Triangle3 Point3))
   (let ([p1 (triangle3-p1 tri)]
         [p2 (triangle3-p2 tri)]
         [p3 (triangle3-p3 tri)])
        (vec3-scale (vec3-add (vec3-add p1 p2) p3) (/ 1.0 3.0))))
 
-;;; compute-triangles-bbox : (List Triangle3) → AABB
-;;; Compute bounding box containing all triangle vertices
 (define (compute-triangles-bbox triangles)
+  (doc 'type '(-> (List Triangle3) AABB))
+  (doc 'description "Compute bounding box containing all triangle vertices")
   (if (null? triangles)
       (aabb (vec3-zero) (vec3-zero))
       (let ([points (apply append
@@ -87,9 +72,9 @@
                                 triangles))])
            (aabb-from-points points))))
 
-;;; longest-axis : AABB → Nat
-;;; Returns 0 for X, 1 for Y, 2 for Z
 (define (longest-axis bbox)
+  (doc 'type '(-> AABB Nat))
+  (doc 'returns "0 for X, 1 for Y, 2 for Z")
   (let* ([extents (aabb-extents bbox)]
          [x (vec3-x extents)]
          [y (vec3-y extents)]
@@ -99,22 +84,20 @@
          [(and (>= y x) (>= y z)) 1]
          [else 2])))
 
-;;; get-axis-coord : Vec3 × Nat → Real
 (define (get-axis-coord point axis)
+  (doc 'type '(-> Vec3 Nat Real))
   (case axis
         [(0) (vec3-x point)]
         [(1) (vec3-y point)]
         [(2) (vec3-z point)]
         [else (vec3-x point)]))
 
-;;; ====
-;;; BVH Construction
-;;; ====
+(doc 'section 'bvh-construction)
 
-;;; bvh-build : (List Triangle3) × Number → BVH
-;;; Build a BVH from a list of triangles
-;;; max-leaf-size: maximum number of triangles in a leaf node
 (define (bvh-build triangles max-leaf-size)
+  (doc 'type '(-> (List Triangle3) Number BVH))
+  (doc 'description "Build a BVH from a list of triangles")
+  (doc 'param 'max-leaf-size "maximum number of triangles in a leaf node")
   (if (<= (length triangles) max-leaf-size)
       ;; Base case: create leaf node
       (let ([bbox (compute-triangles-bbox triangles)])
@@ -142,14 +125,12 @@
                       [right-child (bvh-build right-tris max-leaf-size)])
                      (bvh-node bbox left-child right-child))))))
 
-;;; ====
-;;; BVH Traversal
-;;; ====
+(doc 'section 'bvh-traversal)
 
-;;; bvh-intersect-ray : BVH × Ray3 → (Triangle3 Number) | #f
-;;; Find closest triangle intersection along ray
-;;; Returns (triangle t-value) or #f if no intersection
 (define (bvh-intersect-ray bvh ray)
+  (doc 'type '(-> BVH Ray3 (| (List Triangle3 Number) #f)))
+  (doc 'description "Find closest triangle intersection along ray")
+  (doc 'returns "(triangle t-value) or #f if no intersection")
   (define (traverse node closest-t closest-tri)
     (cond
      [(not node)
@@ -184,9 +165,9 @@
   
   (traverse bvh #f #f))
 
-;;; closest-point-on-segment : Point3 × Point3 × Point3 → Point3
-;;; Find closest point on line segment AB to point P
 (define (closest-point-on-segment p a b)
+  (doc 'type '(-> Point3 Point3 Point3 Point3))
+  (doc 'description "Find closest point on line segment AB to point P")
   (let* ([ab (vec3-sub b a)]
          [ap (vec3-sub p a)]
          [ab-dot (vec3-dot ab ab)])
@@ -199,9 +180,9 @@
                   [(>= t 1) b]
                   [else (vec3-add a (vec3-scale ab t))])))))
 
-;;; closest-point-on-triangle : Point3 × Triangle3 → Point3
-;;; Find the closest point on a triangle to the given point
 (define (closest-point-on-triangle point tri)
+  (doc 'type '(-> Point3 Triangle3 Point3))
+  (doc 'description "Find the closest point on a triangle to the given point")
   (let* ([a (triangle3-p1 tri)]
          [b (triangle3-p2 tri)]
          [c (triangle3-p3 tri)]
@@ -230,10 +211,10 @@
                    [(and (<= d-bc d-ab) (<= d-bc d-ca)) p-bc]
                    [else p-ca])))))
 
-;;; bvh-closest-point : BVH × Point3 → (Point3 Number Triangle3) | #f
-;;; Find closest point on any triangle in the BVH to the given point
-;;; Returns (closest-point distance triangle) or #f
 (define (bvh-closest-point bvh point)
+  (doc 'type '(-> BVH Point3 (| (List Point3 Number Triangle3) #f)))
+  (doc 'description "Find closest point on any triangle in the BVH to the given point")
+  (doc 'returns "(closest-point distance triangle) or #f")
   (define (traverse node best-dist best-point best-tri)
     (cond
      [(not node)
@@ -275,13 +256,11 @@
   
   (traverse bvh #f #f #f))
 
-;;; ====
-;;; BVH Statistics and Utilities
-;;; ====
+(doc 'section 'bvh-statistics)
 
-;;; bvh-depth : BVH → Number
-;;; Compute the maximum depth of the BVH tree
 (define (bvh-depth bvh)
+  (doc 'type '(-> BVH Number))
+  (doc 'description "Compute the maximum depth of the BVH tree")
   (cond
    [(not bvh) 0]
    [(bvh-leaf? bvh) 1]
@@ -290,9 +269,9 @@
               (bvh-depth (bvh-right bvh))))]
    [else 0]))
 
-;;; bvh-count-nodes : BVH → Number
-;;; Count total number of nodes in the BVH
 (define (bvh-count-nodes bvh)
+  (doc 'type '(-> BVH Number))
+  (doc 'description "Count total number of nodes in the BVH")
   (cond
    [(not bvh) 0]
    [(bvh-leaf? bvh) 1]
@@ -302,9 +281,9 @@
        (bvh-count-nodes (bvh-right bvh)))]
    [else 0]))
 
-;;; bvh-count-leaves : BVH → Number
-;;; Count number of leaf nodes
 (define (bvh-count-leaves bvh)
+  (doc 'type '(-> BVH Number))
+  (doc 'description "Count number of leaf nodes")
   (cond
    [(not bvh) 0]
    [(bvh-leaf? bvh) 1]
@@ -313,9 +292,9 @@
        (bvh-count-leaves (bvh-right bvh)))]
    [else 0]))
 
-;;; bvh-count-triangles : BVH → Number
-;;; Count total number of triangles in the BVH
 (define (bvh-count-triangles bvh)
+  (doc 'type '(-> BVH Number))
+  (doc 'description "Count total number of triangles in the BVH")
   (cond
    [(not bvh) 0]
    [(bvh-leaf? bvh) (length (bvh-primitives bvh))]

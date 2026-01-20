@@ -1,44 +1,29 @@
-;;; lattice/statistics/regression/linear.ss — Linear Regression
-;;;
-;;; Ordinary Least Squares (OLS) and Weighted Least Squares (WLS).
-;;;
-;;; This is Lattice code: pure, total, assumes reasonable input.
-;;;
-;;; Provides:
-;;;   - linear-model-fit: OLS regression with full diagnostics
-;;;   - weighted-linear-fit: WLS regression
-;;;   - linear-model-predict: Prediction from fitted model
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;   - linalg/matrix.ss
-;;;   - linalg/matrix-solvers.ss
-;;;   - statistics/core/result-types.ss
-;;;   - statistics/core/summary-stats.ss
-;;;   - statistics/core/diagnostics.ss
-;;;   - statistics/hypothesis/distributions.ss
-
 (load "core/base/prelude.ss")
 (load "lattice/linalg/matrix.ss")
-(load "lattice/linalg/matrix-decomp.ss")  ; Provides matrix-qr, needed by solvers
+(load "lattice/linalg/matrix-decomp.ss")
 (load "lattice/linalg/matrix-solvers.ss")
 (load "lattice/statistics/core/result-types.ss")
 (load "lattice/statistics/core/summary-stats.ss")
 (load "lattice/statistics/core/diagnostics.ss")
 (load "lattice/statistics/hypothesis/distributions.ss")
 
-;;; ====
-;;; Ordinary Least Squares
-;;; ====
+(doc 'module 'linear)
+(doc 'description "Linear Regression — Ordinary Least Squares (OLS) and Weighted Least Squares (WLS)")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
 
-;;; linear-model-fit : Matrix × Vec → LinearModelResult | Error
-;;; Fit linear model y = X*beta + epsilon using OLS.
-;;; X should include intercept column if desired.
-;;; Returns full diagnostic information.
+(doc 'description "linear-model-fit: OLS regression with full diagnostics")
+(doc 'description "weighted-linear-fit: WLS regression")
+(doc 'description "linear-model-predict: Prediction from fitted model")
+
+(doc 'section 'ordinary-least-squares)
 (define (linear-model-fit X y)
+  (doc 'type '(-> Matrix Vec (or LinearModelResult Error)))
+  (doc 'description "Fit linear model y = X*beta + epsilon using OLS")
+  (doc 'note "X should include intercept column if desired")
+  (doc 'note "Returns full diagnostic information")
   (let* ([n (matrix-rows X)]
          [p (matrix-cols X)])
-        ;; Check dimensions
         (if (not (= n (vector-length y)))
             (list 'error 'dimension-mismatch n (vector-length y))
             ;; Fit using QR-based least squares

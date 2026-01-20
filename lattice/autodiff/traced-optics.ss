@@ -1,46 +1,19 @@
-;;; lattice/autodiff/traced-optics.ss --- Optics + Autodiff Integration
-;;;
-;;; Enables computing gradients through optic-focused paths.
-;;; The core insight: use optics to specify WHICH parameter to differentiate,
-;;; and autodiff to compute the gradient THROUGH that path.
-;;;
-;;; Architecture:
-;;;   User API: optic-gradient, grad-at, optimize-at
-;;;              │
-;;;   Traced Optics Layer (this module)
-;;;      ├── lift-at-optic: Lift data to traced form following optic structure
-;;;      ├── trace-value: Generic value tracing (numbers, Vec2, lists)
-;;;      └── optic-gradient: Compute gradient w.r.t. optic focus
-;;;              │
-;;;     ┌───────┴────────┐
-;;;     │                │
-;;; Optics Tower     Autodiff Core
-;;; (optics.ss)      (reverse-diff.ss)
-;;;
-;;; Dependencies:
-;;;   - core/autodiff/reverse-diff.ss (TracedValue, gradient, tape)
-;;;   - lattice/fp/optics/optics.ss (optics tower)
-;;;   - lattice/physics/diff/traced-vec2.ss (TracedVec2 pattern)
-
 (load "core/base/prelude.ss")
 (load "core/autodiff/reverse-diff.ss")
 (load "lattice/fp/optics/optics.ss")
 (load "lattice/physics/diff/traced-vec2.ss")
 
-;;; ============================================================
-;;; Part 1: Value Tracing
-;;; ============================================================
-;;;
-;;; trace-value traces values based on their structure.
-;;; Follows the "pair of traced" pattern (not "traced pair").
+(doc 'module 'traced-optics)
+(doc 'description "Optics + Autodiff Integration - enables computing gradients through optic-focused paths")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
+(doc 'note "Core insight: use optics to specify WHICH parameter to differentiate, and autodiff to compute the gradient THROUGH that path. User API: optic-gradient, grad-at, optimize-at")
 
-;;; trace-value : alpha x Tape -> alpha-traced
-;;; Recursively trace value based on structure.
-;;; - Numbers become traced scalars
-;;; - Vec2 becomes TracedVec2 (pair of traced scalars)
-;;; - Lists become lists of traced values
-;;; - Other values pass through unchanged (treated as constants)
+(doc 'section 'value-tracing)
+
 (define (trace-value v tape)
+  (doc 'type '(-> alpha Tape alpha-traced))
+  (doc 'description "Recursively trace value based on structure - follows 'pair of traced' pattern")
   (cond
     [(traced? v) v]  ; Already traced, return as-is
     [(number? v) (make-traced-var v tape)]
