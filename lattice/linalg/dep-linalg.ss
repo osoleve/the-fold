@@ -1,3 +1,7 @@
+;;; lattice/linalg/dep-linalg.ss — Dependent Linear Algebra
+;;; @module dep-linalg
+;;; @requires prelude vec matrix
+
 (load "core/base/prelude.ss")
 (load "lattice/linalg/vec.ss")
 (load "lattice/linalg/matrix.ss")

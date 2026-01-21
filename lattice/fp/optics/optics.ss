@@ -1,3 +1,7 @@
+;;; lattice/fp/optics/optics.ss — Optics Tower
+;;; @module optics
+;;; @requires prelude combinators templates
+
 (load "core/base/prelude.ss")
 (load "lattice/fp/meta/combinators.ss")
 (load "lattice/fp/templates.ss")

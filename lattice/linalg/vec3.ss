@@ -1,3 +1,7 @@
+;;; lattice/linalg/vec3.ss — 3D Vector Operations
+;;; @module vec3
+;;; @requires prelude vec-common
+
 (load "core/base/prelude.ss")
 (load "lattice/linalg/vec-common.ss")
 

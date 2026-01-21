@@ -1,3 +1,7 @@
+;;; lattice/fp/optics/schema.ss — Schema Operations DSL
+;;; @module schema
+;;; @requires profunctor-optics
+
 (load "lattice/fp/optics/profunctor-optics.ss")
 
 (doc 'module 'schema)

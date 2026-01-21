@@ -1,3 +1,7 @@
+;;; lattice/data/heap.ss — Leftist Heap
+;;; @module heap
+;;; @requires prelude
+
 (load "core/base/prelude.ss")
 
 (doc 'module 'heap)

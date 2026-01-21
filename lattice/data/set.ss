@@ -1,3 +1,7 @@
+;;; lattice/data/set.ss — Unordered Set
+;;; @module set
+;;; @requires prelude
+
 (load "core/base/prelude.ss")
 
 (doc 'module 'set)

@@ -1,4 +1,6 @@
-;;; core/linalg/svd.ss --- Singular Value Decomposition
+;;; lattice/linalg/svd.ss --- Singular Value Decomposition
+;;; @module svd
+;;; @requires prelude vec matrix matrix-decomp matrix-eigen
 ;;;
 ;;; Implements SVD and related operations:
 ;;;   - svd : full singular value decomposition A = UΣV^T

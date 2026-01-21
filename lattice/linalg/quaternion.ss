@@ -1,3 +1,7 @@
+;;; lattice/linalg/quaternion.ss — Quaternion Math
+;;; @module quaternion
+;;; @requires prelude vec3
+
 (load "core/base/prelude.ss")
 (load "lattice/linalg/vec3.ss")
 

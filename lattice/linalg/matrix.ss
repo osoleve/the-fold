@@ -1,4 +1,6 @@
-;;; fabric/stitches/matrix.ss — Matrix Operations
+;;; lattice/linalg/matrix.ss — Matrix Operations
+;;; @module matrix
+;;; @requires prelude vec
 ;;;
 ;;; Core matrix operations for linear algebra.
 ;;;

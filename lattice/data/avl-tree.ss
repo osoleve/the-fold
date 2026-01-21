@@ -1,3 +1,7 @@
+;;; lattice/data/avl-tree.ss — AVL Tree
+;;; @module avl-tree
+;;; @requires prelude
+
 (load "core/base/prelude.ss")
 
 (doc 'module 'avl-tree)

@@ -1,3 +1,7 @@
+;;; lattice/fp/meta/combinators.ss — FP Combinators
+;;; @module combinators
+;;; @requires prelude
+
 (load "core/base/prelude.ss")
 
 (doc 'module 'combinators)

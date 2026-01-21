@@ -1,3 +1,7 @@
+;;; lattice/fp/game/voting-games.ss — Voting Power Indices
+;;; @module voting-games
+;;; @requires voting coop-games
+
 (load "lattice/fp/game/voting.ss")
 (load "lattice/fp/game/coop-games.ss")
 

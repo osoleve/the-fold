@@ -1,3 +1,7 @@
+;;; lattice/data/stack.ss — LIFO Stack
+;;; @module stack
+;;; @requires prelude
+
 (load "core/base/prelude.ss")
 
 (doc 'module 'stack)

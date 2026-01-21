@@ -1,3 +1,7 @@
+;;; lattice/linalg/matrix-decomp.ss — Matrix Decompositions
+;;; @module matrix-decomp
+;;; @requires prelude vec matrix
+
 (doc 'module 'matrix-decomp)
 (doc 'description "Matrix Decompositions — Fundamental matrix decomposition algorithms: LU decomposition with partial pivoting, QR decomposition (modified Gram-Schmidt), Cholesky decomposition.")
 (doc 'layer 'lattice)

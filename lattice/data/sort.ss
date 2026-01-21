@@ -1,3 +1,7 @@
+;;; lattice/data/sort.ss — Sorting Algorithms
+;;; @module sort
+;;; @requires prelude
+
 (load "core/base/prelude.ss")
 
 (doc 'module 'sort)

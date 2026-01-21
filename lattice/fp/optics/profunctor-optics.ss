@@ -1,3 +1,7 @@
+;;; lattice/fp/optics/profunctor-optics.ss — Profunctor Optics
+;;; @module profunctor-optics
+;;; @requires prelude combinators templates optics
+
 (load "core/base/prelude.ss")
 (load "lattice/fp/meta/combinators.ss")
 (load "lattice/fp/templates.ss")

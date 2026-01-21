@@ -1,3 +1,7 @@
+;;; lattice/fp/optics/block-optics.ss — Block Optics
+;;; @module block-optics
+;;; @requires block optics
+
 (load "core/blocks/block.ss")
 (load "lattice/fp/optics/optics.ss")
 

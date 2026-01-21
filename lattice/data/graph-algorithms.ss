@@ -1,3 +1,7 @@
+;;; lattice/data/graph-algorithms.ss — Graph Algorithms
+;;; @module graph-algorithms
+;;; @requires prelude
+
 (load "core/base/prelude.ss")
 
 (doc 'module 'graph-algorithms)

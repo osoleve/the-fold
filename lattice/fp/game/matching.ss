@@ -1,3 +1,7 @@
+;;; lattice/fp/game/matching.ss — Stable Matching
+;;; @module matching
+;;; @requires prelude lp ilp coop-games
+
 (load "core/base/prelude.ss")
 (load "lattice/optimization/lp.ss")
 (load "lattice/optimization/ilp.ss")

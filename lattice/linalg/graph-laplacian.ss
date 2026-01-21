@@ -1,3 +1,7 @@
+;;; lattice/linalg/graph-laplacian.ss — Laplacian Matrices
+;;; @module graph-laplacian
+;;; @requires prelude matrix matrix-eigen graph-matrix
+
 (doc 'module 'graph-laplacian)
 (doc 'description "Laplacian matrices for spectral graph theory and analysis")
 (doc 'requires '(prelude matrix matrix-eigen graph-matrix))

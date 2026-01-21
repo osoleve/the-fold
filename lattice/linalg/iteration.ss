@@ -1,3 +1,7 @@
+;;; lattice/linalg/iteration.ss — Iteration Macros
+;;; @module iteration
+;;; @requires prelude
+
 (load "core/base/prelude.ss")
 
 (doc 'module 'iteration)

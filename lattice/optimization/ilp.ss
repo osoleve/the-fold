@@ -1,3 +1,7 @@
+;;; lattice/optimization/ilp.ss — Integer Linear Programming
+;;; @module ilp
+;;; @requires lp
+
 (load "lattice/optimization/lp.ss")
 
 (doc 'module 'ilp)

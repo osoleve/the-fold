@@ -1,3 +1,7 @@
+;;; lattice/linalg/vec-common.ss — Shared Vector Macros
+;;; @module vec-common
+;;; @requires prelude
+
 (load "core/base/prelude.ss")
 
 (doc 'module 'vec-common)

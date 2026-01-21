@@ -1,3 +1,7 @@
+;;; lattice/data/graph-matrix.ss — Graph Matrix Representation
+;;; @module graph-matrix
+;;; @requires prelude vec matrix sparse heap
+
 (load "core/base/prelude.ss")
 
 (doc 'module 'graph-matrix)

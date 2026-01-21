@@ -1,3 +1,7 @@
+;;; lattice/fp/control/free.ss — Free Monad
+;;; @module free
+;;; @requires prelude combinators
+
 (load "core/base/prelude.ss")
 (load "lattice/fp/meta/combinators.ss")
 

@@ -1,3 +1,7 @@
+;;; lattice/optimization/lp.ss — Linear Programming
+;;; @module lp
+;;; @requires prelude vec matrix matrix-decomp matrix-solvers
+
 (load "core/base/prelude.ss")
 (load "lattice/linalg/vec.ss")
 (load "lattice/linalg/matrix.ss")

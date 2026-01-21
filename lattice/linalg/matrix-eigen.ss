@@ -1,3 +1,7 @@
+;;; lattice/linalg/matrix-eigen.ss — Eigenvalue and Eigenvector Computation
+;;; @module matrix-eigen
+;;; @requires prelude vec matrix matrix-decomp
+
 (doc 'module 'matrix-eigen
      'description "Eigenvalue and Eigenvector Computation
 

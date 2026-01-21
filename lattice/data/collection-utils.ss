@@ -1,3 +1,7 @@
+;;; lattice/data/collection-utils.ss — Collection Utilities
+;;; @module collection-utils
+;;; @requires prelude block sha256
+
 (source-directories (cons "core" (source-directories)))
 (load "core/blocks/block.ss")
 (load "core/base/sha256.ss")

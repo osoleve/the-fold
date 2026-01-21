@@ -1,3 +1,7 @@
+;;; lattice/fp/control/effects.ss — Algebraic Effects
+;;; @module effects
+;;; @requires prelude combinators continuation
+
 (load "core/base/prelude.ss")
 (load "lattice/fp/meta/combinators.ss")
 (load "lattice/fp/control/continuation.ss")

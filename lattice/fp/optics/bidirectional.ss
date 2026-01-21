@@ -1,3 +1,7 @@
+;;; lattice/fp/optics/bidirectional.ss — Bidirectional Transformations
+;;; @module bidirectional
+;;; @requires profunctor-optics
+
 (load "lattice/fp/optics/profunctor-optics.ss")
 
 (doc 'module 'bidirectional)

@@ -1,3 +1,7 @@
+;;; lattice/fp/optics/block-migration.ss — Block Migrations
+;;; @module block-migration
+;;; @requires block bidirectional format-iso
+
 (load "core/blocks/block.ss")
 (load "lattice/fp/optics/bidirectional.ss")
 (load "lattice/fp/optics/format-iso.ss")

@@ -1,3 +1,7 @@
+;;; lattice/data/pagerank.ss — PageRank Algorithm
+;;; @module pagerank
+;;; @requires prelude
+
 (load "core/base/prelude.ss")
 
 (doc 'module 'pagerank)

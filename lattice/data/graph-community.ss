@@ -1,3 +1,7 @@
+;;; lattice/data/graph-community.ss — Community Detection
+;;; @module graph-community
+;;; @requires prelude
+
 (load "core/base/prelude.ss")
 
 (doc 'module 'graph-community)

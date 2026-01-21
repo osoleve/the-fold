@@ -1,3 +1,7 @@
+;;; lattice/fp/control/continuation.ss — Continuation Monad
+;;; @module continuation
+;;; @requires prelude combinators
+
 (load "core/base/prelude.ss")
 (load "lattice/fp/meta/combinators.ss")
 

@@ -1,3 +1,7 @@
+;;; lattice/fp/optics/format-iso.ss — Format Isomorphisms
+;;; @module format-iso
+;;; @requires profunctor-optics
+
 (load "lattice/fp/optics/profunctor-optics.ss")
 
 (doc 'module 'format-iso)

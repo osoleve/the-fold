@@ -1,3 +1,7 @@
+;;; lattice/data/centrality.ss — Graph Centrality Measures
+;;; @module centrality
+;;; @requires prelude
+
 (load "core/base/prelude.ss")
 
 (doc 'module 'centrality)

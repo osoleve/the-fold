@@ -1,3 +1,7 @@
+;;; lattice/linalg/sparse.ss — Sparse Matrix Operations
+;;; @module sparse
+;;; @requires prelude vec matrix
+
 (doc 'module 'sparse
      'description "Sparse Matrix Operations
 

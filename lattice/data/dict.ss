@@ -1,3 +1,7 @@
+;;; lattice/data/dict.ss — Key-Value Dictionary
+;;; @module dict
+;;; @requires prelude
+
 (load "core/base/prelude.ss")
 
 (doc 'module 'dict)

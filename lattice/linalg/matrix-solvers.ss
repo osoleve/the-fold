@@ -1,3 +1,7 @@
+;;; lattice/linalg/matrix-solvers.ss — Linear Equation Solvers
+;;; @module matrix-solvers
+;;; @requires prelude vec matrix matrix-decomp
+
 (doc 'module 'matrix-solvers
      'description "Linear Equation Solvers
 

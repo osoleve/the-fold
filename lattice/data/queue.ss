@@ -1,3 +1,7 @@
+;;; lattice/data/queue.ss — FIFO Queue
+;;; @module queue
+;;; @requires prelude
+
 (load "core/base/prelude.ss")
 
 (doc 'module 'queue)

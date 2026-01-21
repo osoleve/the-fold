@@ -1,3 +1,7 @@
+;;; lattice/fp/game/coop-games.ss — Cooperative Game Theory
+;;; @module coop-games
+;;; @requires prelude vec matrix matrix-solvers lp
+
 (load "core/base/prelude.ss")
 (load "lattice/linalg/vec.ss")
 (load "lattice/linalg/matrix.ss")

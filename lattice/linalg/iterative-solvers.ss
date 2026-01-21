@@ -1,3 +1,7 @@
+;;; lattice/linalg/iterative-solvers.ss — Iterative Linear System Solvers
+;;; @module iterative-solvers
+;;; @requires prelude vec matrix
+
 (doc 'module 'iterative-solvers
      'description "Iterative Linear System Solvers
 

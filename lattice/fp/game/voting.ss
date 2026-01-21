@@ -1,3 +1,7 @@
+;;; lattice/fp/game/voting.ss — Social Choice and Voting Rules
+;;; @module voting
+;;; @requires prelude
+
 (load "core/base/prelude.ss")
 
 (doc 'module 'voting)
