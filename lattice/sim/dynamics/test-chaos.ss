@@ -81,29 +81,41 @@
   ;; Lyapunov exponent tests
   (define-test "largest-lyapunov-exponent positive for Lorenz"
     ;; Lorenz system is chaotic, should have positive largest Lyapunov exponent
+    ;; Literature value: λ₁ ≈ 0.9056 for standard parameters
     (let ([lyap (largest-lyapunov-exponent lorenz-classic
                                            (vector 1.0 1.0 1.0)
-                                           0.01 1000 200)])
-         ;; Expected ~0.9, but numerical errors mean we just check it's clearly positive
-         (assert-true (> lyap 0.1))))
+                                           0.01 2000 500)])
+         ;; With RK4 variational integration, expect closer to 0.9
+         (assert-true (> lyap 0.5))
+         (assert-true (< lyap 1.5))))
 
   (define-test "largest-lyapunov-exponent near zero for harmonic oscillator"
     ;; Harmonic oscillator is periodic (not chaotic), Lyapunov exponent should be ~0
     (let ([lyap (largest-lyapunov-exponent (harmonic-oscillator 1.0)
                                            (vector 1.0 0.0)
-                                           0.01 1000 200)])
-         ;; Should be very small (periodic systems have zero Lyapunov exponent)
-         (assert-true (< (abs lyap) 0.1))))
+                                           0.01 2000 500)])
+         ;; With RK4, should be much closer to zero
+         (assert-true (< (abs lyap) 0.05))))
+
+  (define-test "lyapunov-exponents Lorenz spectrum ordering"
+    ;; For Lorenz: λ₁ > 0, λ₂ ≈ 0, λ₃ < 0 (and λ₁ + λ₂ + λ₃ ≈ -(σ + 1 + β) ≈ -13.67)
+    (let ([lyaps (lyapunov-exponents lorenz-classic
+                                      (vector 1.0 1.0 1.0)
+                                      0.01 2000 500 10)])
+         ;; First exponent should be positive (chaos)
+         (assert-true (> (car lyaps) 0.3))
+         ;; Sum should be negative (dissipative system)
+         (assert-true (< (apply + lyaps) -5))))
 
   (define-test "is-chaotic? detects Lorenz as chaotic"
     (assert-true (is-chaotic? lorenz-classic
                               (vector 1.0 1.0 1.0)
-                              0.01 1000 200 0.05)))
+                              0.01 2000 500 0.1)))
 
   (define-test "is-chaotic? detects harmonic oscillator as non-chaotic"
     (assert-false (is-chaotic? (harmonic-oscillator 1.0)
                                (vector 1.0 0.0)
-                               0.01 1000 200 0.05)))
+                               0.01 2000 500 0.03)))
 
   ;; Chua circuit sanity check (verify fix)
   (define-test "chua-circuit produces bounded trajectory"

@@ -159,6 +159,123 @@
        (vector-set! v index 1.0)
        v))
 
+;;; Jacobian computation helper (finite differences)
+(define (compute-jacobian-at sys t state h)
+  (doc 'type '(-> ODE Number Vec Number Matrix))
+  (doc 'description "Compute Jacobian of vector field at (t, state) using finite differences")
+  (let* ([n (vector-length state)]
+         [f0 (eval-vector-field sys t state)]
+         [jac-data (make-vector (* n n) 0.0)])
+        (do ([j 0 (+ j 1)])
+            ((= j n))
+            (let* ([state-plus-h (vec-copy state)]
+                   [_ (vector-set! state-plus-h j
+                                   (+ (vector-ref state j) h))]
+                   [f-plus-h (eval-vector-field sys t state-plus-h)])
+                  (do ([i 0 (+ i 1)])
+                      ((= i n))
+                      (vector-set! jac-data (+ (* i n) j)
+                                   (/ (- (vector-ref f-plus-h i)
+                                         (vector-ref f0 i))
+                                      h)))))
+        (list 'matrix n n jac-data)))
+
+;;; RK4 step for coupled state + tangent evolution (variational equations)
+(define (rk4-variational-step sys t state tangent dt)
+  (doc 'type '(-> ODE Number Vec Vec Number (Pair Vec Vec)))
+  (doc 'description "Single RK4 step for state and one tangent vector as coupled system")
+  (doc 'note "Integrates dx/dt = f(x) and dξ/dt = J(x)·ξ together using RK4")
+  (let* ([h 1e-6]  ; finite difference step for Jacobian
+         ;; k1 at (t, state)
+         [k1-state (eval-vector-field sys t state)]
+         [j1 (compute-jacobian-at sys t state h)]
+         [k1-tangent (matrix-vec-mul j1 tangent)]
+         ;; k2 at (t + dt/2, state + dt/2 * k1)
+         [t-mid (+ t (/ dt 2))]
+         [state-mid1 (vec-add state (vec-scale (/ dt 2) k1-state))]
+         [tangent-mid1 (vec-add tangent (vec-scale (/ dt 2) k1-tangent))]
+         [k2-state (eval-vector-field sys t-mid state-mid1)]
+         [j2 (compute-jacobian-at sys t-mid state-mid1 h)]
+         [k2-tangent (matrix-vec-mul j2 tangent-mid1)]
+         ;; k3 at (t + dt/2, state + dt/2 * k2)
+         [state-mid2 (vec-add state (vec-scale (/ dt 2) k2-state))]
+         [tangent-mid2 (vec-add tangent (vec-scale (/ dt 2) k2-tangent))]
+         [k3-state (eval-vector-field sys t-mid state-mid2)]
+         [j3 (compute-jacobian-at sys t-mid state-mid2 h)]
+         [k3-tangent (matrix-vec-mul j3 tangent-mid2)]
+         ;; k4 at (t + dt, state + dt * k3)
+         [t-end (+ t dt)]
+         [state-end (vec-add state (vec-scale dt k3-state))]
+         [tangent-end (vec-add tangent (vec-scale dt k3-tangent))]
+         [k4-state (eval-vector-field sys t-end state-end)]
+         [j4 (compute-jacobian-at sys t-end state-end h)]
+         [k4-tangent (matrix-vec-mul j4 tangent-end)]
+         ;; Combine: new = old + dt/6 * (k1 + 2*k2 + 2*k3 + k4)
+         [new-state (vec-add state
+                             (vec-scale (/ dt 6)
+                                        (vec-add k1-state
+                                                 (vec-add (vec-scale 2 k2-state)
+                                                          (vec-add (vec-scale 2 k3-state)
+                                                                   k4-state)))))]
+         [new-tangent (vec-add tangent
+                               (vec-scale (/ dt 6)
+                                          (vec-add k1-tangent
+                                                   (vec-add (vec-scale 2 k2-tangent)
+                                                            (vec-add (vec-scale 2 k3-tangent)
+                                                                     k4-tangent)))))])
+        (cons new-state new-tangent)))
+
+;;; RK4 step for state + multiple tangent vectors
+(define (rk4-variational-step-multi sys t state tangents dt)
+  (doc 'type '(-> ODE Number Vec (List Vec) Number (Pair Vec (List Vec))))
+  (doc 'description "Single RK4 step for state and multiple tangent vectors")
+  (doc 'note "More efficient than calling rk4-variational-step multiple times - shares Jacobian computations")
+  (let* ([h 1e-6]
+         ;; k1 at (t, state)
+         [k1-state (eval-vector-field sys t state)]
+         [j1 (compute-jacobian-at sys t state h)]
+         [k1-tangents (map (lambda (tv) (matrix-vec-mul j1 tv)) tangents)]
+         ;; k2 at (t + dt/2, state + dt/2 * k1)
+         [t-mid (+ t (/ dt 2))]
+         [state-mid1 (vec-add state (vec-scale (/ dt 2) k1-state))]
+         [tangents-mid1 (map (lambda (tv k1t) (vec-add tv (vec-scale (/ dt 2) k1t)))
+                             tangents k1-tangents)]
+         [k2-state (eval-vector-field sys t-mid state-mid1)]
+         [j2 (compute-jacobian-at sys t-mid state-mid1 h)]
+         [k2-tangents (map (lambda (tv) (matrix-vec-mul j2 tv)) tangents-mid1)]
+         ;; k3 at (t + dt/2, state + dt/2 * k2)
+         [state-mid2 (vec-add state (vec-scale (/ dt 2) k2-state))]
+         [tangents-mid2 (map (lambda (tv k2t) (vec-add tv (vec-scale (/ dt 2) k2t)))
+                             tangents k2-tangents)]
+         [k3-state (eval-vector-field sys t-mid state-mid2)]
+         [j3 (compute-jacobian-at sys t-mid state-mid2 h)]
+         [k3-tangents (map (lambda (tv) (matrix-vec-mul j3 tv)) tangents-mid2)]
+         ;; k4 at (t + dt, state + dt * k3)
+         [t-end (+ t dt)]
+         [state-end (vec-add state (vec-scale dt k3-state))]
+         [tangents-end (map (lambda (tv k3t) (vec-add tv (vec-scale dt k3t)))
+                            tangents k3-tangents)]
+         [k4-state (eval-vector-field sys t-end state-end)]
+         [j4 (compute-jacobian-at sys t-end state-end h)]
+         [k4-tangents (map (lambda (tv) (matrix-vec-mul j4 tv)) tangents-end)]
+         ;; Combine state
+         [new-state (vec-add state
+                             (vec-scale (/ dt 6)
+                                        (vec-add k1-state
+                                                 (vec-add (vec-scale 2 k2-state)
+                                                          (vec-add (vec-scale 2 k3-state)
+                                                                   k4-state)))))]
+         ;; Combine tangents
+         [new-tangents (map (lambda (tv k1t k2t k3t k4t)
+                                    (vec-add tv
+                                             (vec-scale (/ dt 6)
+                                                        (vec-add k1t
+                                                                 (vec-add (vec-scale 2 k2t)
+                                                                          (vec-add (vec-scale 2 k3t)
+                                                                                   k4t))))))
+                            tangents k1-tangents k2-tangents k3-tangents k4-tangents)])
+        (cons new-state new-tangents)))
+
 (define (gram-schmidt-orthonormalize vectors)
   (doc 'type '(-> (List Vec) (Pair (List Vec) (List Number))))
   (doc 'description "Gram-Schmidt orthonormalization, returns (orthonormal-vecs . norms)")
@@ -184,8 +301,9 @@
 (define (lyapunov-exponents sys state0 dt n-steps n-transient reorth-interval)
   (doc 'export #t)
   (doc 'type '(-> ODE Vec Number Nat Nat Nat (List Number)))
-  (doc 'description "Compute all Lyapunov exponents using tangent space evolution")
+  (doc 'description "Compute all Lyapunov exponents using RK4-integrated tangent space evolution")
   (doc 'param 'reorth-interval "steps between Gram-Schmidt reorthonormalizations")
+  (doc 'note "Uses RK4 for both state and tangent vectors (variational equations) for O(dt^4) accuracy")
   (let* ([dim (ode-dimension sys)]
          ;; Skip transient
          [state-after-transient
@@ -195,32 +313,8 @@
                    (loop (+ t dt) (rk4-step sys t state dt) (+ i 1))))]
          ;; Initialize tangent vectors (identity matrix columns)
          [tangent-vecs (map (lambda (i) (make-tangent-vector dim i))
-                            (iota dim))]
-         ;; Compute Jacobian at a point using finite differences
-         [compute-jacobian
-          (lambda (t state h)
-                  (let* ([n dim]
-                         [f0 (eval-vector-field sys t state)]
-                         [jac-data (make-vector (* n n) 0.0)])
-                        (do ([j 0 (+ j 1)])
-                            ((= j n))
-                            (let* ([state-plus-h (vec-copy state)]
-                                   [_ (vector-set! state-plus-h j
-                                                   (+ (vector-ref state j) h))]
-                                   [f-plus-h (eval-vector-field sys t state-plus-h)])
-                                  (do ([i 0 (+ i 1)])
-                                      ((= i n))
-                                      (vector-set! jac-data (+ (* i n) j)
-                                                   (/ (- (vector-ref f-plus-h i)
-                                                         (vector-ref f0 i))
-                                                      h)))))
-                        (list 'matrix n n jac-data)))]
-         ;; Evolve tangent vector using linearized dynamics
-         [evolve-tangent
-          (lambda (jac tangent-vec dt)
-                  (vec-add tangent-vec
-                           (vec-scale dt (matrix-vec-mul jac tangent-vec))))])
-        ;; Main loop: evolve trajectory and tangent vectors
+                            (iota dim))])
+        ;; Main loop: evolve trajectory and tangent vectors using RK4 variational integration
         (let loop ([t 0]
                    [state state-after-transient]
                    [tangents tangent-vecs]
@@ -230,14 +324,10 @@
              (if (>= step n-steps)
                  ;; Compute final Lyapunov exponents
                  (map (lambda (sum) (/ sum (* n-steps dt))) lyap-sums)
-                 ;; Evolve
-                 (let* ([jac (compute-jacobian t state 1e-6)]
-                        ;; Evolve state
-                        [new-state (rk4-step sys t state dt)]
-                        ;; Evolve tangent vectors
-                        [new-tangents (map (lambda (tv)
-                                                   (evolve-tangent jac tv dt))
-                                           tangents)])
+                 ;; Evolve state and tangents together using RK4
+                 (let* ([result (rk4-variational-step-multi sys t state tangents dt)]
+                        [new-state (car result)]
+                        [new-tangents (cdr result)])
                        ;; Check if we need to reorthonormalize
                        (if (>= reorth-count reorth-interval)
                            (let* ([gs-result (gram-schmidt-orthonormalize new-tangents)]
@@ -256,34 +346,16 @@
 (define (largest-lyapunov-exponent sys state0 dt n-steps n-transient)
   (doc 'export #t)
   (doc 'type '(-> ODE Vec Number Nat Nat Number))
-  (doc 'description "Compute largest Lyapunov exponent (faster than full spectrum)")
+  (doc 'description "Compute largest Lyapunov exponent using RK4 variational integration")
+  (doc 'note "Uses RK4 for both state and tangent vector for O(dt^4) accuracy")
   (let* ([dim (ode-dimension sys)]
          ;; Skip transient
          [state-after-transient
           (let loop ([t 0] [state state0] [i 0])
                (if (>= i n-transient)
                    state
-                   (loop (+ t dt) (rk4-step sys t state dt) (+ i 1))))]
-         ;; Compute Jacobian at a point
-         [compute-jacobian
-          (lambda (t state h)
-                  (let* ([n dim]
-                         [f0 (eval-vector-field sys t state)]
-                         [jac-data (make-vector (* n n) 0.0)])
-                        (do ([j 0 (+ j 1)])
-                            ((= j n))
-                            (let* ([state-plus-h (vec-copy state)]
-                                   [_ (vector-set! state-plus-h j
-                                                   (+ (vector-ref state j) h))]
-                                   [f-plus-h (eval-vector-field sys t state-plus-h)])
-                                  (do ([i 0 (+ i 1)])
-                                      ((= i n))
-                                      (vector-set! jac-data (+ (* i n) j)
-                                                   (/ (- (vector-ref f-plus-h i)
-                                                         (vector-ref f0 i))
-                                                      h)))))
-                        (list 'matrix n n jac-data)))])
-        ;; Main loop
+                   (loop (+ t dt) (rk4-step sys t state dt) (+ i 1))))])
+        ;; Main loop using RK4 variational integration
         (let loop ([t 0]
                    [state state-after-transient]
                    [tangent (make-tangent-vector dim 0)]
@@ -291,12 +363,10 @@
                    [step 0])
              (if (>= step n-steps)
                  (/ lyap-sum (* n-steps dt))
-                 (let* ([jac (compute-jacobian t state 1e-6)]
-                        [new-state (rk4-step sys t state dt)]
-                        ;; Evolve tangent
-                        [new-tangent-raw (vec-add tangent
-                                                  (vec-scale dt (matrix-vec-mul jac tangent)))]
-                        ;; Renormalize
+                 (let* ([result (rk4-variational-step sys t state tangent dt)]
+                        [new-state (car result)]
+                        [new-tangent-raw (cdr result)]
+                        ;; Renormalize tangent vector (avoid exponential growth)
                         [norm (vec-norm new-tangent-raw)]
                         [new-tangent (vec-scale (/ 1 (max norm 1e-10)) new-tangent-raw)])
                        (loop (+ t dt) new-state new-tangent
