@@ -99,16 +99,22 @@
   (= S (coalition-intersection S T)))
 
 (doc 'section 'cooperative-game-record-type)
-(doc 'note "A cooperative game (TU game) is defined by n (number of players) and v (characteristic function Coalition → Real where v({}) = 0)")
+(doc 'note "A cooperative game (TU game) is defined by n (number of players), v (characteristic function Coalition → Real where v({}) = 0), and game-type (:value or :cost)")
+(doc 'note "Value games: v(S) = worth S can achieve. Core requires x(S) >= v(S)")
+(doc 'note "Cost games: c(S) = cost S must pay. Core requires x(S) <= c(S)")
 
 (define-record-type coop-game%
-  (fields n v))
+  (fields n v game-type))
 
-(define (make-coop-game n v)
+(define (make-coop-game n v . args)
   (doc 'export #t)
-  (doc 'type '(-> Nat (-> Coalition Real) CoopGame))
+  (doc 'type '(-> Nat (-> Coalition Real) [Symbol] CoopGame))
   (doc 'description "Create a cooperative game with n players and characteristic function v")
-  (make-coop-game% n v))
+  (doc 'param 'args "Optional game-type: :value (default) or :cost")
+  (let ([game-type (if (null? args) ':value (car args))])
+    (unless (memq game-type '(:value :cost))
+      (error 'make-coop-game "game-type must be :value or :cost" game-type))
+    (make-coop-game% n v game-type)))
 
 (define (coop-game? x)
   (doc 'export #t)
@@ -133,6 +139,24 @@
   (doc 'type '(-> CoopGame Coalition))
   (doc 'description "The grand coalition N = {0, 1, ..., n-1}")
   (- (bitwise-arithmetic-shift-left 1 (coop-game-players g)) 1))
+
+(define (coop-game-type g)
+  (doc 'export #t)
+  (doc 'type '(-> CoopGame Symbol))
+  (doc 'description "Game type: :value or :cost")
+  (coop-game%-game-type g))
+
+(define (coop-game-cost? g)
+  (doc 'export #t)
+  (doc 'type '(-> CoopGame Boolean))
+  (doc 'description "Is this a cost game?")
+  (eq? ':cost (coop-game-type g)))
+
+(define (coop-game-value? g)
+  (doc 'export #t)
+  (doc 'type '(-> CoopGame Boolean))
+  (doc 'description "Is this a value game?")
+  (eq? ':value (coop-game-type g)))
 
 (doc 'section 'allocations)
 (doc 'note "An allocation x is a vector of payoffs, one per player where x[i] = payoff to player i")
@@ -166,18 +190,25 @@
   (doc 'export #t)
   (doc 'type '(-> CoopGame (Vector Real) Boolean))
   (doc 'description "Is x an imputation for game g?")
+  (doc 'note "Value games: x_i >= v({i}). Cost games: x_i <= c({i}).")
   (let ([n (coop-game-players g)]
-        [grand (coop-game-grand-coalition g)])
+        [grand (coop-game-grand-coalition g)]
+        [is-cost (coop-game-cost? g)])
     (and
-     ;; Efficiency: total allocation = v(N)
+     ;; Efficiency: total allocation = v(N) or c(N)
      (= (allocation-total x) (coop-game-value g grand))
-     ;; Individual rationality: each player gets at least v({i})
+     ;; Individual rationality (direction depends on game type)
      (let loop ([i 0])
        (if (>= i n)
            #t
-           (and (>= (vector-ref x i)
-                    (coop-game-value g (coalition-singleton i)))
-                (loop (+ i 1))))))))
+           (let ([x-i (vector-ref x i)]
+                 [v-i (coop-game-value g (coalition-singleton i))])
+             (and (if is-cost
+                      ;; Cost game: player pays at most standalone cost
+                      (<= x-i v-i)
+                      ;; Value game: player gets at least standalone value
+                      (>= x-i v-i))
+                  (loop (+ i 1)))))))))
 
 (doc 'section 'shapley-value)
 (doc 'note "The Shapley value is the unique allocation satisfying: Efficiency (sum(phi_i) = v(N)), Symmetry (symmetric players get equal payoffs), Null player (player with zero marginal contribution gets zero), Additivity (phi(v + w) = phi(v) + phi(w))")
@@ -248,11 +279,20 @@
 
 ;;; core-excess : CoopGame × (Vector Real) × Coalition → Real
 ;;; Excess of coalition S at allocation x.
-;;; e(S, x) = v(S) - sum_{i in S}(x_i)
-;;; Positive excess = coalition S can do better by deviating.
+;;; For value games: e(S, x) = v(S) - x(S). Positive = underpaid, would deviate.
+;;; For cost games: e(S, x) = x(S) - c(S). Positive = overcharged, would leave.
+;;; In both cases: excess <= 0 means coalition is satisfied (core condition).
 (define (core-excess g x S)
   (doc 'export #t)
-  (- (coop-game-value g S) (allocation-coalition-total x S)))
+  (doc 'type '(-> CoopGame (Vector Real) Coalition Real))
+  (doc 'description "Excess of coalition S at allocation x. Positive means S would deviate.")
+  (let ([coalition-total (allocation-coalition-total x S)]
+        [v-S (coop-game-value g S)])
+    (if (coop-game-cost? g)
+        ;; Cost game: overcharged if paying more than standalone cost
+        (- coalition-total v-S)
+        ;; Value game: underpaid if getting less than standalone value
+        (- v-S coalition-total))))
 
 ;;; allocation-in-core? : CoopGame × (Vector Real) → Boolean
 ;;; Is allocation x in the core of game g?
@@ -598,10 +638,13 @@
 
 ;;; make-airport-game : (List Real) → CoopGame
 ;;; Airport game: players have runway cost requirements c_i.
-;;; v(S) = max_{i in S}(c_i) (cost that coalition S must pay).
-;;; Note: This is a cost game; Shapley gives fair cost allocation.
+;;; c(S) = max_{i in S}(c_i) (cost that coalition S must pay).
+;;; This is a COST game: core requires x(S) <= c(S).
+;;; Shapley gives fair cost allocation proportional to marginal contribution.
 (define (make-airport-game costs)
   (doc 'export #t)
+  (doc 'type '(-> (List Real) CoopGame))
+  (doc 'description "Airport cost game: players share runway cost based on max need")
   (let* ([n (length costs)]
          [c-vec (list->vector costs)])
     (make-coop-game
@@ -610,7 +653,8 @@
        (if (= S 0)
            0
            (let ([members (coalition->list S)])
-             (apply max (map (lambda (i) (vector-ref c-vec i)) members))))))))
+             (apply max (map (lambda (i) (vector-ref c-vec i)) members)))))
+     ':cost)))
 
 ;;; make-bankruptcy-game : Real × (List Real) → CoopGame
 ;;; Bankruptcy game: estate E divided among creditors with claims c_i.

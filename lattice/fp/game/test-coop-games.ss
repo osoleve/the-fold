@@ -511,6 +511,84 @@
 )
 
 ;;; ============================================================================
+;;; Cost Game Tests
+;;; ============================================================================
+
+(test-group cost-games
+
+  (define-test airport-game-is-cost-type
+    ;; Airport games should be marked as cost games
+    (let ([g (make-airport-game '(100 200 300))])
+      (assert-true (coop-game-cost? g))
+      (assert-false (coop-game-value? g))
+      (assert-equal ':cost (coop-game-type g))))
+
+  (define-test value-game-default-type
+    ;; Regular games should default to value type
+    (let ([g (make-additive-game '(10 20 30))])
+      (assert-true (coop-game-value? g))
+      (assert-false (coop-game-cost? g))
+      (assert-equal ':value (coop-game-type g))))
+
+  (define-test cost-game-core-excess
+    ;; For cost games, excess = x(S) - c(S)
+    ;; Positive means coalition is overcharged
+    (let* ([g (make-airport-game '(100 200 300))]
+           [c-grand (coop-game-value g 7)])  ; 300
+      ;; Efficient allocation: everyone pays equal share (100 each)
+      ;; But for {0}: c({0}) = 100, pays 100, excess = 100 - 100 = 0
+      ;; For {0,1}: c({0,1}) = 200, pays 200, excess = 200 - 200 = 0
+      (assert-equal 0 (core-excess g '#(100 100 100) 1))   ; {0}
+      (assert-equal 0 (core-excess g '#(100 100 100) 3))   ; {0,1}
+      ;; If player 0 pays 150, excess for {0} = 150 - 100 = 50 (overcharged)
+      (assert-equal 50 (core-excess g '#(150 100 50) 1))))
+
+  (define-test cost-game-in-core
+    ;; Airport cost allocation is in core when no coalition overpays
+    (let ([g (make-airport-game '(100 200 300))])
+      ;; Shapley-like allocation: roughly (100/3, 100/3+100/2, 100/3+100/2+100)
+      ;; Simplified: player 0 contributes 100 to all, player 1 adds 100 for {1,2},
+      ;; player 2 adds 100 for just {2}
+      ;; Fair allocation: (100/3 ≈ 33, 100/3+50 ≈ 83, 100/3+50+100 ≈ 183)
+      ;; But total should equal 300, so let's use the Shapley value
+      (let ([phi (shapley-value g 1000)])
+        ;; Shapley allocation should be in core for cost games
+        (assert-true (allocation-in-core? g phi)
+                     "Shapley value should be in core for airport game"))))
+
+  (define-test cost-game-imputation
+    ;; For cost games, individual rationality means x_i <= c({i})
+    (let ([g (make-airport-game '(100 200 300))])
+      ;; Player 0 alone pays 100, so should pay at most 100
+      ;; Player 1 alone pays 200, so should pay at most 200
+      ;; Player 2 alone pays 300, so should pay at most 300
+      ;; Efficient allocation sums to 300
+      (assert-true (imputation? g '#(100 100 100)))
+      (assert-true (imputation? g '#(50 100 150)))
+      ;; Not individually rational: player 0 paying 150 > c({0})=100
+      (assert-false (imputation? g '#(150 100 50)))))
+
+  (define-test explicit-cost-game-creation
+    ;; Can create cost games directly
+    (let ([g (make-coop-game 2 (lambda (S) (case S [(0) 0] [(1) 10] [(2) 20] [(3) 25])) ':cost)])
+      (assert-true (coop-game-cost? g))
+      ;; Core condition for cost game: each coalition pays <= standalone cost
+      ;; x(S) <= c(S) means excess <= 0
+      (assert-equal 5 (core-excess g '#(15 15) 1))     ; {0} pays 15 vs cost 10: overcharged by 5
+      (assert-equal -5 (core-excess g '#(5 10) 1))))   ; {0} pays 5 vs cost 10: satisfied
+
+  (define-test value-game-excess-unchanged
+    ;; Verify value game excess still works correctly
+    (let ([g (make-additive-game '(10 20 30))])
+      ;; For value games: excess = v(S) - x(S)
+      ;; At efficient allocation, excess should be 0 for grand coalition
+      (assert-equal 0 (core-excess g '#(10 20 30) 7))
+      ;; If player 0 gets less than v({0}), excess is positive
+      (assert-equal 5 (core-excess g '#(5 25 30) 1))))  ; v({0})=10, x({0})=5, excess=5
+
+)
+
+;;; ============================================================================
 ;;; Run All Tests
 ;;; ============================================================================
 
