@@ -310,7 +310,7 @@
 
 (define (print-summary)
   (doc 'type (-> Unit))
-  (doc 'description "Print test run summary.")
+  (doc 'description "Print test run summary with machine-parseable result line.")
   (doc 'export #t)
   (newline)
   (display "╔══════════════════════════════════════════════════════════╗
@@ -334,7 +334,10 @@
       (display "✓ All tests passed!
 ")
       (display "✗ Some tests failed!
-")))
+"))
+  ;; Machine-parseable result line for structured test detection
+  (printf "[TEST-RESULT total=~a passed=~a failed=~a]~n"
+          (ctx-run) (ctx-passed) (ctx-failed)))
 
 (define (exit-with-summary)
   (doc 'type (-> Unit))

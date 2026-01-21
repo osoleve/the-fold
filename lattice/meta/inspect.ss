@@ -347,21 +347,79 @@
                                 (if success? failed (+ failed 1))
                                 (cons (cons test-file result) results))))))))
 
+;;; parse-test-result-line : String -> Alist | #f
+;;; Parse the structured result line: [TEST-RESULT total=N passed=N failed=N]
+;;; Returns alist with 'total, 'passed, 'failed or #f if not found
+(define (parse-test-result-line output)
+  (let ([start (string-index-of output "[TEST-RESULT ")])
+       (if (not start)
+           #f
+           (let* ([end (string-index-of-after output "]" start)]
+                  [line (if end
+                            (substring output start (+ end 1))
+                            #f)])
+                 (and line
+                      (let ([total (parse-kv line "total=")]
+                            [passed (parse-kv line "passed=")]
+                            [failed (parse-kv line "failed=")])
+                           (and total passed failed
+                                `((total . ,total)
+                                  (passed . ,passed)
+                                  (failed . ,failed)))))))))
+
+;;; parse-kv : String String -> Integer | #f
+;;; Extract integer value after key= from string
+(define (parse-kv str key)
+  (let ([pos (string-index-of str key)])
+       (if (not pos)
+           #f
+           (let* ([start (+ pos (string-length key))]
+                  [rest (substring str start (string-length str))]
+                  [digits (extract-leading-digits rest)])
+                 (and (not (string=? digits ""))
+                      (string->number digits))))))
+
+;;; extract-leading-digits : String -> String
+;;; Extract leading digit characters from string
+(define (extract-leading-digits str)
+  (let loop ([i 0] [acc '()])
+       (if (>= i (string-length str))
+           (list->string (reverse acc))
+           (let ([c (string-ref str i)])
+                (if (char-numeric? c)
+                    (loop (+ i 1) (cons c acc))
+                    (list->string (reverse acc)))))))
+
+;;; string-index-of-after : String String Integer -> Integer | #f
+;;; Find substring in string starting search at given position
+(define (string-index-of-after haystack needle start)
+  (let* ([rest (substring haystack start (string-length haystack))]
+         [idx (string-index-of rest needle)])
+        (and idx (+ start idx))))
+
 ;;; run-test-file : String -> 'ok | (error . String)
 ;;; Run a single test file and return result
-;;; Uses boundary/io/process.ss for proper exit code handling
+;;; Primary: parse structured [TEST-RESULT ...] line
+;;; Fallback: check exit code
 (define (run-test-file path)
   (guard (e [else `(error . ,(format "~a" e))])
          (let* ([cmd (format "scheme --script '~a' 2>&1" (shell-escape path))]
                 [result (shell-capture-result cmd)]
                 [ok? (process-ok? result)]
-                [output (process-stdout result)])
-               ;; Primary: check exit code; fallback: check success markers
-               (if (or ok?
-                       (string-contains? output "All tests passed")
-                       (string-contains? output "Tests passed:"))
-                   'ok
-                   `(error . ,output)))))
+                [output (process-stdout result)]
+                [parsed (parse-test-result-line output)])
+               (cond
+                ;; Primary: structured result line (most reliable)
+                [parsed
+                 (if (= 0 (cdr (assq 'failed parsed)))
+                     'ok
+                     `(error . ,(format "~a/~a tests failed"
+                                        (cdr (assq 'failed parsed))
+                                        (cdr (assq 'total parsed)))))]
+                ;; Fallback: exit code
+                [ok? 'ok]
+                ;; Error case
+                [else `(error . ,output)]))))
 
 ;;; lattice-tests-run-pretty : Symbol -> void
 ;;; Run tests and display results
