@@ -107,9 +107,12 @@
                   ;; Chua's diode nonlinearity
                   [h (+ (* m1 x)
                         (* 0.5 (- m0 m1) (- (abs (+ x 1)) (abs (- x 1)))))])
-                 (vector (* alpha (- y x (- h)))
-                         (- x y z)
-                         (* (- beta) y))))
+                 ;; Standard Chua equations: dx/dt = α(y - x - h(x))
+                ;;                         dy/dt = x - y + z
+                ;;                         dz/dt = -βy
+                (vector (* alpha (- y x h))
+                        (+ (- x y) z)
+                        (* (- beta) y))))
    3))
 
 (define (thomas-attractor b)

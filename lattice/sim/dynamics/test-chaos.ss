@@ -78,6 +78,45 @@
           (assert-equal 1.0 (caar proj))
           (assert-equal 3.0 (cdar proj))))
 
+  ;; Lyapunov exponent tests
+  (define-test "largest-lyapunov-exponent positive for Lorenz"
+    ;; Lorenz system is chaotic, should have positive largest Lyapunov exponent
+    (let ([lyap (largest-lyapunov-exponent lorenz-classic
+                                           (vector 1.0 1.0 1.0)
+                                           0.01 1000 200)])
+         ;; Expected ~0.9, but numerical errors mean we just check it's clearly positive
+         (assert-true (> lyap 0.1))))
+
+  (define-test "largest-lyapunov-exponent near zero for harmonic oscillator"
+    ;; Harmonic oscillator is periodic (not chaotic), Lyapunov exponent should be ~0
+    (let ([lyap (largest-lyapunov-exponent (harmonic-oscillator 1.0)
+                                           (vector 1.0 0.0)
+                                           0.01 1000 200)])
+         ;; Should be very small (periodic systems have zero Lyapunov exponent)
+         (assert-true (< (abs lyap) 0.1))))
+
+  (define-test "is-chaotic? detects Lorenz as chaotic"
+    (assert-true (is-chaotic? lorenz-classic
+                              (vector 1.0 1.0 1.0)
+                              0.01 1000 200 0.05)))
+
+  (define-test "is-chaotic? detects harmonic oscillator as non-chaotic"
+    (assert-false (is-chaotic? (harmonic-oscillator 1.0)
+                               (vector 1.0 0.0)
+                               0.01 1000 200 0.05)))
+
+  ;; Chua circuit sanity check (verify fix)
+  (define-test "chua-circuit produces bounded trajectory"
+    ;; With correct equations, Chua should produce a bounded attractor
+    (let* ([chua (chua-circuit 15.6 28.0 -1.143 -0.714)]
+           [traj (integrate-rk4 chua 0 (vector 0.1 0.0 0.0) 0.01 500)]
+           [bounds (attractor-bounds traj)]
+           [x-range (- (cdar bounds) (caar bounds))])
+          ;; Trajectory should be bounded (not exploding)
+          (assert-true (< x-range 100.0))
+          ;; But should have some dynamics (not collapsing to a point)
+          (assert-true (> x-range 0.1))))
+
 )
 
 (run-all-tests)
