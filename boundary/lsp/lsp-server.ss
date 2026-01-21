@@ -295,12 +295,17 @@
 (doc dispatch-notification 'description "Dispatch a notification to the appropriate handler")
 (define (dispatch-notification method params)
   (cond
+   ;; Always handle: initialized (sets the flag) and exit (cleanup)
    [(string=? method *method-initialized*)
     (handle-initialized params)]
    [(string=? method *method-exit*)
     (lsp-log "Exit notification received")
     (shutdown-transport!)
     (exit (if *server-shutdown-requested* 0 1))]
+   ;; Reject other notifications before initialized
+   [(not *server-initialized*)
+    (lsp-log "Ignoring notification before initialized: ~a" method)]
+   ;; Normal dispatch after initialization
    [(string=? method *method-did-open*)
     (handle-did-open params)]
    [(string=? method *method-did-change*)
