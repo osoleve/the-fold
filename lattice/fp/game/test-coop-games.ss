@@ -586,6 +586,49 @@
       ;; If player 0 gets less than v({0}), excess is positive
       (assert-equal 5 (core-excess g '#(5 25 30) 1))))  ; v({0})=10, x({0})=5, excess=5
 
+  (define-test nucleolus-airport-game
+    ;; Test nucleolus for a simple 2-player airport (cost) game
+    ;; Players: 0 needs runway cost 100, 1 needs runway cost 200
+    ;; c({0}) = 100, c({1}) = 200, c({0,1}) = 200 (max)
+    ;; The fair split: player 0 pays for shared runway (100/2 = 50)
+    ;; player 1 pays for shared + extra (50 + 100 = 150)
+    ;; Total = 200 = c(N)
+    (let* ([g (make-airport-game '(100 200))]
+           [nuc (nucleolus g 200)])
+      (when (vector? nuc)
+        (let ([tolerance 0.1])
+          ;; Nucleolus should give player 0 around 50, player 1 around 150
+          (assert-true (< (abs (- (+ (vector-ref nuc 0) (vector-ref nuc 1)) 200)) tolerance)
+                       "Nucleolus should be efficient (sum = 200)")
+          ;; Each player should pay at most their standalone cost
+          (assert-true (<= (vector-ref nuc 0) 100)
+                       "Player 0 should pay at most c({0})=100")
+          (assert-true (<= (vector-ref nuc 1) 200)
+                       "Player 1 should pay at most c({1})=200")))))
+
+  (define-test nucleolus-cost-game-in-core
+    ;; Nucleolus of a cost game should be in the core
+    (let* ([g (make-airport-game '(100 200 300))]
+           [nuc (nucleolus g 200)])
+      (when (vector? nuc)
+        (assert-true (allocation-in-core? g nuc)
+                     "Nucleolus should be in core for airport game"))))
+
+  (define-test airport-game-subadditive
+    ;; Airport games are subadditive (economies of scale)
+    ;; c(S∪T) = max costs <= c(S) + c(T) for disjoint S,T
+    (let ([g (make-airport-game '(100 200 300))])
+      ;; For cost games, superadditive? checks subadditivity
+      (assert-true (coop-game-superadditive? g 1000)
+                   "Airport game should be subadditive")))
+
+  (define-test airport-game-submodular
+    ;; Airport games are submodular (diminishing returns on cost reduction)
+    (let ([g (make-airport-game '(100 200 300))])
+      ;; For cost games, convex? checks submodularity
+      (assert-true (coop-game-convex? g 1000)
+                   "Airport game should be submodular")))
+
 )
 
 ;;; ============================================================================

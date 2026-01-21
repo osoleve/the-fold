@@ -402,37 +402,18 @@
 ;;; build-nucleolus-lp : CoopGame × Nat × Real × Vec × List → (LP . Vec) | #f
 ;;; Build LP for one nucleolus iteration.
 ;;; Returns (lp . unfixed-coalitions) or #f if no unfixed coalitions.
+;;; Handles both value games and cost games with appropriate constraint signs.
 (define (build-nucleolus-lp g n v-grand coalition-vec fixed-constraints)
-  (let ([num-unfixed (vector-length coalition-vec)])
+  (let ([num-unfixed (vector-length coalition-vec)]
+        [is-cost (coop-game-cost? g)])
     (if (= num-unfixed 0)
         #f  ; No unfixed coalitions
         (let* ([num-fixed (length fixed-constraints)]
                ;; Variables: x_0, ..., x_{n-1}, ε
-               ;; Number of variables: n + 1
                [num-vars (+ n 1)]
-               ;; Constraints:
-               ;;   1 efficiency constraint (equality)
-               ;;   n individual rationality (inequality, convert to equality with slack)
-               ;;   num-unfixed excess <= ε (inequality)
-               ;;   num-fixed excess = ε_k (equality)
-               ;;
-               ;; Convert to standard form Ax = b with slacks:
-               ;;   - IR: x_i + slack_i = v({i}) for x_i >= v({i}) means x_i - slack = v({i}), slack >= 0
-               ;;     Actually x_i >= v({i}) means we need -x_i <= -v({i})
-               ;;   - Excess: v(S) - sum(x_i) <= ε means -sum(x_i) - ε <= -v(S), add slack
-               ;;
-               ;; Better: use variables x_0..x_{n-1}, ε, and slack variables
                ;; Total variables: n + 1 + n (IR slack) + num-unfixed (excess slack)
                [num-slacks (+ n num-unfixed)]
                [total-vars (+ num-vars num-slacks)]
-               ;; Constraints:
-               ;;   1 efficiency: sum(x) = v(N)
-               ;;   n IR: x_i - slack_i = v({i}) where slack >= 0, so x_i >= v({i})... wait this is wrong
-               ;;   Actually for x_i >= v({i}), we want x_i = v({i}) + surplus where surplus >= 0
-               ;;   So x_i - surplus_i = v({i})
-               ;;   And for v(S) - sum(x) <= ε:
-               ;;     -sum_{i∈S}(x_i) - ε + slack_S = -v(S)
-               ;;     i.e., v(S) - sum(x) + slack = ε
                [num-constraints (+ 1 n num-unfixed num-fixed)]
                ;; Build cost vector: minimize ε (index n), others 0
                [c (make-vector total-vars 0)])
@@ -441,49 +422,54 @@
           (let ([A (make-matrix num-constraints total-vars 0)]
                 [b (make-vector num-constraints 0)]
                 [row 0])
-            ;; Constraint 1: Efficiency sum(x) = v(N)
+            ;; Constraint 1: Efficiency sum(x) = v(N) or c(N)
             (do ([i 0 (+ i 1)])
                 [(= i n)]
               (matrix-set! A row i 1))
             (vector-set! b row v-grand)
             (set! row (+ row 1))
-            ;; Constraints 2 to n+1: Individual rationality x_i - surplus_i = v({i})
-            ;; Surplus variable at index (n + 1 + i)
+            ;; Constraints 2 to n+1: Individual rationality
+            ;; Value game: x_i >= v({i}) → x_i - surplus_i = v({i}), surplus >= 0
+            ;; Cost game: x_i <= c({i}) → x_i + slack_i = c({i}), slack >= 0
             (do ([i 0 (+ i 1)])
                 [(= i n)]
               (matrix-set! A row i 1)  ; x_i coefficient
-              (matrix-set! A row (+ n 1 i) -1)  ; surplus_i coefficient
+              (matrix-set! A row (+ n 1 i) (if is-cost 1 -1))  ; slack/surplus coefficient
               (vector-set! b row (coop-game-value g (coalition-singleton i)))
               (set! row (+ row 1)))
-            ;; Constraints for unfixed coalitions: v(S) - sum(x) - ε + slack = 0
-            ;; i.e., -sum_{i∈S}(x_i) - ε + slack_S = -v(S)
+            ;; Constraints for unfixed coalitions: excess <= ε
+            ;; Value game: v(S) - x(S) <= ε → -x(S) - ε + slack = -v(S)
+            ;; Cost game: x(S) - c(S) <= ε → +x(S) - ε + slack = +c(S)
             (do ([k 0 (+ k 1)])
                 [(= k num-unfixed)]
-              (let ([S (vector-ref coalition-vec k)]
-                    [slack-idx (+ n 1 n k)])  ; slack index
-                ;; -sum_{i∈S}(x_i)
+              (let* ([S (vector-ref coalition-vec k)]
+                     [slack-idx (+ n 1 n k)]
+                     [v-S (coop-game-value g S)])
+                ;; ±sum_{i∈S}(x_i)
                 (do ([i 0 (+ i 1)])
                     [(= i n)]
                   (when (coalition-member? i S)
-                    (matrix-set! A row i -1)))
+                    (matrix-set! A row i (if is-cost 1 -1))))
                 ;; -ε
                 (matrix-set! A row n -1)
                 ;; +slack
                 (matrix-set! A row slack-idx 1)
-                ;; = -v(S)
-                (vector-set! b row (- (coop-game-value g S)))
+                ;; = ±v(S)
+                (vector-set! b row (if is-cost v-S (- v-S)))
                 (set! row (+ row 1))))
-            ;; Constraints for fixed coalitions: v(S) - sum(x) = ε_k
-            ;; i.e., -sum_{i∈S}(x_i) = ε_k - v(S)
+            ;; Constraints for fixed coalitions: excess = ε_k
+            ;; Value game: v(S) - x(S) = ε_k → -x(S) = ε_k - v(S)
+            ;; Cost game: x(S) - c(S) = ε_k → +x(S) = ε_k + c(S)
             (for-each
              (lambda (fc)
-               (let ([S (car fc)]
-                     [eps-k (cdr fc)])
+               (let* ([S (car fc)]
+                      [eps-k (cdr fc)]
+                      [v-S (coop-game-value g S)])
                  (do ([i 0 (+ i 1)])
                      [(= i n)]
                    (when (coalition-member? i S)
-                     (matrix-set! A row i -1)))
-                 (vector-set! b row (- eps-k (coop-game-value g S)))
+                     (matrix-set! A row i (if is-cost 1 -1))))
+                 (vector-set! b row (if is-cost (+ eps-k v-S) (- eps-k v-S)))
                  (set! row (+ row 1))))
              fixed-constraints)
             ;; Return LP and unfixed coalitions
@@ -501,14 +487,18 @@
 ;;; extract-nucleolus-allocation : CoopGame × Nat × Real × List → Vec
 ;;; When all coalitions are fixed, solve for the allocation.
 ;;; Uses least-squares on the system: efficiency + fixed coalition constraints.
+;;; Handles both value games and cost games.
 (define (extract-nucleolus-allocation g n v-grand fixed-constraints)
   ;; Build system of equations from fixed constraints plus efficiency:
-  ;;   - Efficiency: sum(x) = v(N)
-  ;;   - For each (S, eps) in fixed-constraints: sum_{i in S}(x_i) = v(S) - eps
+  ;;   - Efficiency: sum(x) = v(N) or c(N)
+  ;;   - For each (S, eps) in fixed-constraints:
+  ;;     Value game: sum_{i in S}(x_i) = v(S) - eps (since excess = v(S) - x(S))
+  ;;     Cost game: sum_{i in S}(x_i) = c(S) + eps (since excess = x(S) - c(S))
   ;;
   ;; This is typically overdetermined (more equations than n variables).
   ;; Use least-squares to find best-fit solution.
-  (let* ([num-constraints (+ 1 (length fixed-constraints))]
+  (let* ([is-cost (coop-game-cost? g)]
+         [num-constraints (+ 1 (length fixed-constraints))]
          [A (make-matrix num-constraints n 0)]
          [b (make-vector num-constraints 0)])
     ;; Row 0: Efficiency constraint
@@ -530,12 +520,12 @@
                  [S (car constraint)]
                  [eps (cdr constraint)]
                  [v-S (coop-game-value g S)])
-            ;; sum_{i in S}(x_i) = v(S) - eps
+            ;; sum_{i in S}(x_i) = v(S) ∓ eps
             (do ([i 0 (+ i 1)])
                 [(= i n)]
-              (when (coalition-member? S i)
+              (when (coalition-member? i S)
                 (matrix-set! A row i 1)))
-            (vector-set! b row (- v-S eps))
+            (vector-set! b row (if is-cost (+ v-S eps) (- v-S eps)))
             (loop (cdr constraints) (+ row 1)))))))
 
 ;;; ============================================================================
@@ -700,11 +690,14 @@
 ;;; ============================================================================
 
 ;;; coop-game-superadditive? : CoopGame × Nat → Boolean
-;;; Check if v(S ∪ T) >= v(S) + v(T) for disjoint S, T.
+;;; For value games: Check if v(S ∪ T) >= v(S) + v(T) for disjoint S, T.
+;;; For cost games: Check subadditivity c(S ∪ T) <= c(S) + c(T) (economies of scale).
 (define (coop-game-superadditive? g fuel)
   (doc 'export #t)
+  (doc 'note "For cost games, checks subadditivity instead (the natural analog)")
   (let* ([n (coop-game-players g)]
-         [grand (coop-game-grand-coalition g)])
+         [grand (coop-game-grand-coalition g)]
+         [is-cost (coop-game-cost? g)])
     (let outer ([S 0] [fuel fuel])
       (if (or (> S grand) (<= fuel 0))
           #t
@@ -715,18 +708,23 @@
                     ;; S and T are disjoint
                     (let ([union-val (coop-game-value g (coalition-union S T))]
                           [sum-val (+ (coop-game-value g S) (coop-game-value g T))])
-                      (if (>= union-val sum-val)
+                      ;; Value: union >= sum (cooperation helps)
+                      ;; Cost: union <= sum (sharing saves money)
+                      (if (if is-cost (<= union-val sum-val) (>= union-val sum-val))
                           (inner (+ T 1) (- fuel 1))
                           #f))
                     (inner (+ T 1) fuel))))))))
 
 ;;; coop-game-convex? : CoopGame × Nat → Boolean
-;;; Check if v(S ∪ T) + v(S ∩ T) >= v(S) + v(T) for all S, T.
-;;; Convex games always have non-empty core.
+;;; For value games: Check if v(S ∪ T) + v(S ∩ T) >= v(S) + v(T) for all S, T.
+;;; For cost games: Check submodularity c(S ∪ T) + c(S ∩ T) <= c(S) + c(T).
+;;; Convex/submodular games always have non-empty core.
 (define (coop-game-convex? g fuel)
   (doc 'export #t)
+  (doc 'note "For cost games, checks submodularity instead (the natural analog)")
   (let* ([n (coop-game-players g)]
-         [grand (coop-game-grand-coalition g)])
+         [grand (coop-game-grand-coalition g)]
+         [is-cost (coop-game-cost? g)])
     (let outer ([S 0] [fuel fuel])
       (if (or (> S grand) (<= fuel 0))
           #t
@@ -736,7 +734,9 @@
                 (let ([lhs (+ (coop-game-value g (coalition-union S T))
                               (coop-game-value g (coalition-intersection S T)))]
                       [rhs (+ (coop-game-value g S) (coop-game-value g T))])
-                  (if (>= lhs rhs)
+                  ;; Value: lhs >= rhs (supermodularity)
+                  ;; Cost: lhs <= rhs (submodularity)
+                  (if (if is-cost (<= lhs rhs) (>= lhs rhs))
                       (inner (+ T 1) (- fuel 1))
                       #f))))))))
 
