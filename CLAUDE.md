@@ -745,7 +745,7 @@ rm -rf .fold-repl/   # Nuclear option
 
 ## Agent Notes
 
-**LSP+MCP Tooling (2026-01-19):** The fold-repl MCP tools (`fold_lsp_*`) work well for code exploration. `fold_lsp_symbols` finds definitions across the codebase, `fold_lsp_lookup` combines hover/definition/references in one call. Use these instead of grep for finding Scheme symbols.
+**MCP Tooling (2026-01-21):** Prefer `fold_eval` via MCP over shelling out to `./fold` for REPL interactions. Requires `fold_login` first (use tier `opus`/`sonnet`/`haiku` based on your model). The LSP tools (`fold_lsp_*`) work well for code exploration—`fold_lsp_symbols` finds definitions, `fold_lsp_lookup` combines hover/definition/references. Use these instead of grep for finding Scheme symbols.
 
 **BBS Cache Staleness:** After reloading modules with `(load ...)`, the BBS in-memory state may be stale. Run `(bbs-init!)` to refresh from disk if issues show incorrect status.
 
