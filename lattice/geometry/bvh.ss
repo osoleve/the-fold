@@ -140,44 +140,44 @@
 
 (doc 'section 'bvh-traversal)
 
+(doc bvh-intersect-ray 'export #t)
+(doc bvh-intersect-ray 'type '(-> BVH Ray3 (Or (List Triangle3 Number) #f)))
+(doc bvh-intersect-ray 'description "Find closest triangle intersection along ray")
+(doc bvh-intersect-ray 'returns "(triangle t-value) or #f if no intersection")
 (define (bvh-intersect-ray bvh ray)
-  (doc 'export #t)
-  (doc 'type '(-> BVH Ray3 (Or (List Triangle3 Number) #f)))
-  (doc 'description "Find closest triangle intersection along ray")
-  (doc 'returns "(triangle t-value) or #f if no intersection")
-  (define (traverse node closest-t closest-tri)
-    (cond
-     [(not node)
-      (if closest-tri (list closest-tri closest-t) #f)]
-     
-     ;; Check if ray intersects node's bbox
-     [(not (intersect-ray-aabb ray (bvh-bbox node)))
-      (if closest-tri (list closest-tri closest-t) #f)]
-     
-     ;; Leaf node: test all triangles
-     [(bvh-leaf? node)
-      (let loop ([tris (bvh-primitives node)]
-                 [best-t closest-t]
-                 [best-tri closest-tri])
-           (if (null? tris)
-               (if best-tri (list best-tri best-t) #f)
-               (let* ([tri (car tris)]
-                      [t (intersect-ray-triangle ray tri)])
-                     (if (and t (or (not best-t) (< t best-t)))
-                         (loop (cdr tris) t tri)
-                         (loop (cdr tris) best-t best-tri)))))]
-     
-     ;; Internal node: traverse both children
-     [(bvh-node? node)
-      (let* ([left-result (traverse (bvh-left node) closest-t closest-tri)]
-             [new-closest-t (if left-result (cadr left-result) closest-t)]
-             [new-closest-tri (if left-result (car left-result) closest-tri)]
-             [right-result (traverse (bvh-right node) new-closest-t new-closest-tri)])
-            (or right-result left-result))]
-     
-     [else (if closest-tri (list closest-tri closest-t) #f)]))
-  
-  (traverse bvh #f #f))
+  (letrec ([traverse
+            (lambda (node closest-t closest-tri)
+              (cond
+               [(not node)
+                (if closest-tri (list closest-tri closest-t) #f)]
+
+               ;; Check if ray intersects node's bbox
+               [(not (intersect-ray-aabb ray (bvh-bbox node)))
+                (if closest-tri (list closest-tri closest-t) #f)]
+
+               ;; Leaf node: test all triangles
+               [(bvh-leaf? node)
+                (let loop ([tris (bvh-primitives node)]
+                           [best-t closest-t]
+                           [best-tri closest-tri])
+                  (if (null? tris)
+                      (if best-tri (list best-tri best-t) #f)
+                      (let* ([tri (car tris)]
+                             [t (intersect-ray-triangle ray tri)])
+                        (if (and t (or (not best-t) (< t best-t)))
+                            (loop (cdr tris) t tri)
+                            (loop (cdr tris) best-t best-tri)))))]
+
+               ;; Internal node: traverse both children
+               [(bvh-node? node)
+                (let* ([left-result (traverse (bvh-left node) closest-t closest-tri)]
+                       [new-closest-t (if left-result (cadr left-result) closest-t)]
+                       [new-closest-tri (if left-result (car left-result) closest-tri)]
+                       [right-result (traverse (bvh-right node) new-closest-t new-closest-tri)])
+                  (or right-result left-result))]
+
+               [else (if closest-tri (list closest-tri closest-t) #f)]))])
+    (traverse bvh #f #f)))
 
 (define (closest-point-on-segment p a b)
   (doc 'export #t)
@@ -227,51 +227,51 @@
                    [(and (<= d-bc d-ab) (<= d-bc d-ca)) p-bc]
                    [else p-ca])))))
 
+(doc bvh-closest-point 'export #t)
+(doc bvh-closest-point 'type '(-> BVH Point3 (Or (List Point3 Number Triangle3) #f)))
+(doc bvh-closest-point 'description "Find closest point on any triangle in the BVH to the given point")
+(doc bvh-closest-point 'returns "(closest-point distance triangle) or #f")
 (define (bvh-closest-point bvh point)
-  (doc 'export #t)
-  (doc 'type '(-> BVH Point3 (Or (List Point3 Number Triangle3) #f)))
-  (doc 'description "Find closest point on any triangle in the BVH to the given point")
-  (doc 'returns "(closest-point distance triangle) or #f")
-  (define (traverse node best-dist best-point best-tri)
-    (cond
-     [(not node)
-      (if best-tri (list best-point best-dist best-tri) #f)]
-     
-     ;; Check if point could be closer to anything in this node
-     [(let* ([bbox (bvh-bbox node)]
-             [closest-on-box (closest-point-on-aabb point bbox)]
-             [dist-to-box (distance-point-point point closest-on-box)])
-            (and best-dist (>= dist-to-box best-dist)))
-      ;; This node can't contain anything closer
-      (if best-tri (list best-point best-dist best-tri) #f)]
-     
-     ;; Leaf node: check all triangles
-     [(bvh-leaf? node)
-      (let loop ([tris (bvh-primitives node)]
-                 [b-dist best-dist]
-                 [b-point best-point]
-                 [b-tri best-tri])
-           (if (null? tris)
-               (if b-tri (list b-point b-dist b-tri) #f)
-               (let* ([tri (car tris)]
-                      [closest (closest-point-on-triangle point tri)]
-                      [dist (distance-point-point point closest)])
-                     (if (or (not b-dist) (< dist b-dist))
-                         (loop (cdr tris) dist closest tri)
-                         (loop (cdr tris) b-dist b-point b-tri)))))]
-     
-     ;; Internal node: traverse both children
-     [(bvh-node? node)
-      (let* ([left-result (traverse (bvh-left node) best-dist best-point best-tri)]
-             [new-best-dist (if left-result (cadr left-result) best-dist)]
-             [new-best-point (if left-result (car left-result) best-point)]
-             [new-best-tri (if left-result (caddr left-result) best-tri)]
-             [right-result (traverse (bvh-right node) new-best-dist new-best-point new-best-tri)])
-            (or right-result left-result))]
-     
-     [else (if best-tri (list best-point best-dist best-tri) #f)]))
-  
-  (traverse bvh #f #f #f))
+  (letrec ([traverse
+            (lambda (node best-dist best-point best-tri)
+              (cond
+               [(not node)
+                (if best-tri (list best-point best-dist best-tri) #f)]
+
+               ;; Check if point could be closer to anything in this node
+               [(let* ([bbox (bvh-bbox node)]
+                       [closest-on-box (closest-point-on-aabb point bbox)]
+                       [dist-to-box (distance-point-point point closest-on-box)])
+                  (and best-dist (>= dist-to-box best-dist)))
+                ;; This node can't contain anything closer
+                (if best-tri (list best-point best-dist best-tri) #f)]
+
+               ;; Leaf node: check all triangles
+               [(bvh-leaf? node)
+                (let loop ([tris (bvh-primitives node)]
+                           [b-dist best-dist]
+                           [b-point best-point]
+                           [b-tri best-tri])
+                  (if (null? tris)
+                      (if b-tri (list b-point b-dist b-tri) #f)
+                      (let* ([tri (car tris)]
+                             [closest (closest-point-on-triangle point tri)]
+                             [dist (distance-point-point point closest)])
+                        (if (or (not b-dist) (< dist b-dist))
+                            (loop (cdr tris) dist closest tri)
+                            (loop (cdr tris) b-dist b-point b-tri)))))]
+
+               ;; Internal node: traverse both children
+               [(bvh-node? node)
+                (let* ([left-result (traverse (bvh-left node) best-dist best-point best-tri)]
+                       [new-best-dist (if left-result (cadr left-result) best-dist)]
+                       [new-best-point (if left-result (car left-result) best-point)]
+                       [new-best-tri (if left-result (caddr left-result) best-tri)]
+                       [right-result (traverse (bvh-right node) new-best-dist new-best-point new-best-tri)])
+                  (or right-result left-result))]
+
+               [else (if best-tri (list best-point best-dist best-tri) #f)]))])
+    (traverse bvh #f #f #f)))
 
 (doc 'section 'bvh-statistics)
 
