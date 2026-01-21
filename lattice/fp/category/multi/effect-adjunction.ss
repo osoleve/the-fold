@@ -1,3 +1,7 @@
+;;; lattice/fp/category/multi/effect-adjunction.ss — Effect Adjunctions
+;;; @module effect-adjunction
+;;; @requires adjunction-inter free-algebra
+
 (load "lattice/fp/category/multi/adjunction-inter.ss")
 (load "lattice/fp/category/free-algebra.ss")
 
@@ -215,18 +219,20 @@ RIGHT TRIANGLE: U(ε_A) ∘ η_{U(A)} = id_{U(A)}
                          (build-free-algebra-ops sig))])
     (verify-triangle-left-inter adj 'test-carrier term)))
 
-;;; verify-effect-triangle-right : Signature × Algebra × Value → Boolean
+;;; verify-effect-triangle-right : Signature × Algebra × Value [× (a → a → Bool)] → Boolean
 ;;; Verify right triangle for Free ⊣ Forgetful.
-(define (verify-effect-triangle-right sig alg val)
-  (doc 'type '(-> Signature Algebra Value Boolean))
-  (doc 'description "Verify U(ε_A) ∘ η_{U(A)} = id at value in |A|.")
-  (let ([adj (make-free-forgetful-adjunction-gen sig)])
+(define (verify-effect-triangle-right sig alg val . opts)
+  (doc 'type '(-> Signature Algebra Value [(-> a a Boolean)] Boolean))
+  (doc 'description "Verify U(ε_A) ∘ η_{U(A)} = id at value in |A|.
+Optional equality predicate for algebras with opaque carriers (e.g., functions).")
+  (let ([adj (make-free-forgetful-adjunction-gen sig)]
+        [eq? (if (null? opts) equal? (car opts))])
     ;; Starting with val : |A|
     ;; η_{|A|}(val) = (gen val)
     ;; ε_A((gen val)) = val
     (let* ([embedded (make-gen val)]
            [evaluated (apply-counit adj alg embedded)])
-      (equal? evaluated val))))
+      (eq? evaluated val))))
 
 ;;; ====
 ;;; Composed Effect Handlers

@@ -1,3 +1,7 @@
+;;; lattice/fp/category/multi/adjunction-inter.ss — Inter-Category Adjunctions
+;;; @module adjunction-inter
+;;; @requires nat-transform-indexed
+
 (load "lattice/fp/category/multi/nat-transform-indexed.ss")
 
 (doc 'module 'adjunction-inter)
@@ -143,15 +147,17 @@ In components at B:
   η_{R(B)}(y) : R(L(R(B)))
   R(ε_B)(η_{R(B)}(y)) = y")
 
-;;; verify-triangle-left-inter : AdjunctionInter × Obj_C × Value → Boolean
+;;; verify-triangle-left-inter : AdjunctionInter × Obj_C × Value [× (a → a → Bool)] → Boolean
 ;;; Verify left triangle: ε_{L(A)} ∘ L(η_A) = id_{L(A)}
-(define (verify-triangle-left-inter adj A test-value)
-  (doc 'type '(-> AdjunctionInter Obj Value Boolean))
+(define (verify-triangle-left-inter adj A test-value . opts)
+  (doc 'type '(-> AdjunctionInter Obj Value [(-> a a Boolean)] Boolean))
   (doc 'description "Verify left triangle identity at object A.
-Tests that ε_{L(A)}(L(η_A)(x)) = x for test value x : L(A).")
+Tests that ε_{L(A)}(L(η_A)(x)) = x for test value x : L(A).
+Optional equality predicate for opaque carriers.")
   (let* ([L (adjunction-inter-left adj)]
          [η (adjunction-inter-unit adj)]
          [ε (adjunction-inter-counit adj)]
+         [eq? (if (null? opts) equal? (car opts))]
          ;; L(A) - apply L to object A
          [L-A (functor-apply-obj L A)]
          ;; η_A : A → R(L(A))
@@ -161,18 +167,20 @@ Tests that ε_{L(A)}(L(η_A)(x)) = x for test value x : L(A).")
          ;; ε_{L(A)} : L(R(L(A))) → L(A)
          [ε-LA (nat-indexed-at ε L-A)])
     ;; Verify: ε_{L(A)}(L(η_A)(x)) = x
-    (equal? (ε-LA (L-η-A test-value))
-            test-value)))
+    (eq? (ε-LA (L-η-A test-value))
+         test-value)))
 
-;;; verify-triangle-right-inter : AdjunctionInter × Obj_D × Value → Boolean
+;;; verify-triangle-right-inter : AdjunctionInter × Obj_D × Value [× (a → a → Bool)] → Boolean
 ;;; Verify right triangle: R(ε_B) ∘ η_{R(B)} = id_{R(B)}
-(define (verify-triangle-right-inter adj B test-value)
-  (doc 'type '(-> AdjunctionInter Obj Value Boolean))
+(define (verify-triangle-right-inter adj B test-value . opts)
+  (doc 'type '(-> AdjunctionInter Obj Value [(-> a a Boolean)] Boolean))
   (doc 'description "Verify right triangle identity at object B.
-Tests that R(ε_B)(η_{R(B)}(y)) = y for test value y : R(B).")
+Tests that R(ε_B)(η_{R(B)}(y)) = y for test value y : R(B).
+Optional equality predicate for opaque carriers.")
   (let* ([R (adjunction-inter-right adj)]
          [η (adjunction-inter-unit adj)]
          [ε (adjunction-inter-counit adj)]
+         [eq? (if (null? opts) equal? (car opts))]
          ;; R(B) - apply R to object B
          [R-B (functor-apply-obj R B)]
          ;; ε_B : L(R(B)) → B
@@ -182,15 +190,18 @@ Tests that R(ε_B)(η_{R(B)}(y)) = y for test value y : R(B).")
          ;; η_{R(B)} : R(B) → R(L(R(B)))
          [η-RB (nat-indexed-at η R-B)])
     ;; Verify: R(ε_B)(η_{R(B)}(y)) = y
-    (equal? (R-ε-B (η-RB test-value))
-            test-value)))
+    (eq? (R-ε-B (η-RB test-value))
+         test-value)))
 
-;;; verify-adjunction-inter : AdjunctionInter × Obj_C × Obj_D × Value × Value → Boolean
+;;; verify-adjunction-inter : AdjunctionInter × Obj_C × Obj_D × Value × Value [× (a → a → Bool)] → Boolean
 ;;; Verify both triangle identities.
-(define (verify-adjunction-inter adj A B val-left val-right)
-  (doc 'type '(-> AdjunctionInter Obj Obj Value Value Boolean))
-  (and (verify-triangle-left-inter adj A val-left)
-       (verify-triangle-right-inter adj B val-right)))
+(define (verify-adjunction-inter adj A B val-left val-right . opts)
+  (doc 'type '(-> AdjunctionInter Obj Obj Value Value [(-> a a Boolean)] Boolean))
+  (doc 'description "Verify both triangle identities.
+Optional equality predicate for opaque carriers.")
+  (let ([eq? (if (null? opts) equal? (car opts))])
+    (and (verify-triangle-left-inter adj A val-left eq?)
+         (verify-triangle-right-inter adj B val-right eq?))))
 
 ;;; ====
 ;;; Hom-Set Bijection
