@@ -152,6 +152,24 @@
 (doc 'section 'lyapunov-exponents)
 (doc 'note "Lyapunov exponents measure the rate of separation of infinitesimally close trajectories. Positive exponents indicate chaos.")
 
+;;; Numerical constants for stability
+(define *min-norm* 1e-10)
+(doc *min-norm* 'description "Minimum norm threshold to prevent division by zero")
+
+(define *fd-relative-step* 1e-6)
+(doc *fd-relative-step* 'description "Relative step size for finite difference Jacobian")
+
+(define *fd-absolute-step* 1e-8)
+(doc *fd-absolute-step* 'description "Absolute minimum step size for finite difference")
+
+(define (finite-diff-step state)
+  (doc 'type '(-> Vec Number))
+  (doc 'description "Compute adaptive finite difference step based on state magnitude")
+  (doc 'note "Scales with state norm to handle both large and small state values")
+  (let ([state-scale (vec-norm state)])
+       (max *fd-absolute-step*
+            (* *fd-relative-step* (max 1.0 state-scale)))))
+
 (define (make-tangent-vector n index)
   (doc 'type '(-> Nat Nat Vec))
   (doc 'description "Create a unit vector along axis 'index' in n-dimensional space")
@@ -185,7 +203,7 @@
   (doc 'type '(-> ODE Number Vec Vec Number (Pair Vec Vec)))
   (doc 'description "Single RK4 step for state and one tangent vector as coupled system")
   (doc 'note "Integrates dx/dt = f(x) and dξ/dt = J(x)·ξ together using RK4")
-  (let* ([h 1e-6]  ; finite difference step for Jacobian
+  (let* ([h (finite-diff-step state)]  ; adaptive finite difference step
          ;; k1 at (t, state)
          [k1-state (eval-vector-field sys t state)]
          [j1 (compute-jacobian-at sys t state h)]
@@ -230,7 +248,7 @@
   (doc 'type '(-> ODE Number Vec (List Vec) Number (Pair Vec (List Vec))))
   (doc 'description "Single RK4 step for state and multiple tangent vectors")
   (doc 'note "More efficient than calling rk4-variational-step multiple times - shares Jacobian computations")
-  (let* ([h 1e-6]
+  (let* ([h (finite-diff-step state)]  ; adaptive finite difference step
          ;; k1 at (t, state)
          [k1-state (eval-vector-field sys t state)]
          [j1 (compute-jacobian-at sys t state h)]
@@ -291,12 +309,12 @@
                             v
                             ortho)]
                   [norm (vec-norm v-ortho)]
-                  [v-normed (if (> norm 1e-10)
+                  [v-normed (if (> norm *min-norm*)
                                 (vec-scale (/ 1 norm) v-ortho)
                                 v-ortho)])
                  (loop (cdr vecs)
                        (cons v-normed ortho)
-                       (cons (max norm 1e-10) norms))))))
+                       (cons (max norm *min-norm*) norms))))))
 
 (define (lyapunov-exponents sys state0 dt n-steps n-transient reorth-interval)
   (doc 'export #t)
@@ -368,9 +386,9 @@
                         [new-tangent-raw (cdr result)]
                         ;; Renormalize tangent vector (avoid exponential growth)
                         [norm (vec-norm new-tangent-raw)]
-                        [new-tangent (vec-scale (/ 1 (max norm 1e-10)) new-tangent-raw)])
+                        [new-tangent (vec-scale (/ 1 (max norm *min-norm*)) new-tangent-raw)])
                        (loop (+ t dt) new-state new-tangent
-                             (+ lyap-sum (log (max norm 1e-10)))
+                             (+ lyap-sum (log (max norm *min-norm*)))
                              (+ step 1)))))))
 
 ;;; ============================================================
@@ -401,7 +419,7 @@
                           ;; Found j where sum goes negative
                           (let ([prev-sum (- new-sum (list-ref sorted j))]
                                 [lambda-j (abs (list-ref sorted j))])
-                               (if (> lambda-j 1e-10)
+                               (if (> lambda-j *min-norm*)
                                    (+ j (/ prev-sum lambda-j))
                                    (inexact j)))
                           (loop (+ j 1) new-sum)))))))
@@ -516,7 +534,7 @@
       (let* ([dim (length bounds)]
              [scales (map (lambda (bound)
                                   (let ([range (- (cdr bound) (car bound))])
-                                       (if (> range 1e-10)
+                                       (if (> range *min-norm*)
                                            (/ (* 2 target-range) range)
                                            1.0)))
                          bounds)]

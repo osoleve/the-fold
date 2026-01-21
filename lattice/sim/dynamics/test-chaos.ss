@@ -129,6 +129,36 @@
           ;; But should have some dynamics (not collapsing to a point)
           (assert-true (> x-range 0.1))))
 
+  ;; Poincaré section test with known periodic orbit
+  (define-test "poincare-section captures crossings for periodic orbit"
+    ;; Harmonic oscillator traces circle in phase space: x(t)=cos(t), v(t)=-sin(t)
+    ;; Section at x=0 with positive direction captures crossing at (0, 1)
+    (let* ([ho (harmonic-oscillator 1.0)]
+           [state0 (vector 1.0 0.0)]  ; Start at (1, 0)
+           ;; Run for ~4 periods (8π ≈ 25), dt=0.01 gives 2500 steps
+           [crossings (poincare-section ho state0 0.01 3000 100 0 0.0 'positive)])
+          ;; Should capture multiple crossings (one per period)
+          (assert-true (>= (length crossings) 3))
+          ;; Each crossing should be near x=0, v≈1
+          (let ([first-crossing (car crossings)])
+               ;; x should be close to 0
+               (assert-true (< (abs (vector-ref first-crossing 0)) 0.02))
+               ;; v should be close to 1 (for ω=1, amplitude=1)
+               (assert-true (< (abs (- (vector-ref first-crossing 1) 1.0)) 0.02)))))
+
+  (define-test "poincare-section respects direction filter"
+    ;; Test that 'positive and 'negative capture different crossings
+    (let* ([ho (harmonic-oscillator 1.0)]
+           [state0 (vector 1.0 0.0)]
+           [pos-crossings (poincare-section ho state0 0.01 2000 100 0 0.0 'positive)]
+           [neg-crossings (poincare-section ho state0 0.01 2000 100 0 0.0 'negative)])
+          ;; Both should have crossings
+          (assert-true (> (length pos-crossings) 0))
+          (assert-true (> (length neg-crossings) 0))
+          ;; Positive crossings should have v > 0, negative should have v < 0
+          (assert-true (> (vector-ref (car pos-crossings) 1) 0))
+          (assert-true (< (vector-ref (car neg-crossings) 1) 0))))
+
 )
 
 (run-all-tests)
