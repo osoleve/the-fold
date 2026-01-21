@@ -1,8 +1,7 @@
-;;; user/demos/lattice-emerge.ss --- Animated lattice emergence
+;;; user/demos/lattice-emerge.ss --- Animated lattice visualization
 ;;;
-;;; Watch The Fold's skill lattice emerge from chaos into order.
-;;; Nodes start randomly positioned, then force-directed layout
-;;; pulls connected skills together while pushing unrelated ones apart.
+;;; Watch The Fold's skill lattice - a hierarchical view showing how
+;;; skills depend on each other, organized by tier (foundational → advanced).
 ;;;
 ;;; This is the demo file for the demoscene agent to convert to GIF.
 
@@ -10,7 +9,7 @@
 (load "lattice/meta/meta.ss")
 
 (display "=======================================================\n")
-(display "  LATTICE EMERGENCE - The Fold Visualizing Itself\n")
+(display "  LATTICE STRUCTURE - The Fold Visualizing Itself\n")
 (display "=======================================================\n\n")
 
 ;;; Initialize
@@ -21,10 +20,9 @@
 ;;; Configuration
 ;;; ============================================================
 
-(define width 100)
-(define height 35)
-(define n-frames 60)   ; 60 frames for smooth animation
-(define frame-delay 0.08)  ; 80ms between frames (12.5 fps)
+(define width 140)
+(define height 50)
+(define frame-delay 0.1)  ; 100ms between frames
 
 ;;; ============================================================
 ;;; Build graph from lattice
@@ -33,8 +31,8 @@
 (define (skill-label skill)
   (let* ([name (symbol->string skill)]
          [len (string-length name)])
-    (if (> len 7)
-        (substring name 0 7)
+    (if (> len 8)
+        (substring name 0 8)
         name)))
 
 (define (skill-tier skill)
@@ -55,43 +53,23 @@
                  (length skills) (length edges)))
 
 ;;; ============================================================
-;;; Generate animation frames
+;;; Generate hierarchical layout (clean tier-based view)
 ;;; ============================================================
 
-(display "Generating emergence animation...\n")
-(display (format "  ~a frames at ~ax~a\n" n-frames width height))
+(display "Generating hierarchical layout...\n")
 (flush-output-port (current-output-port))
 
-;; Create initial random layout
-(define initial-graph (make-layout-graph skills edges))
-
-;; Generate frames by iterating layout
-(define (generate-frames graph n-frames)
-  (let loop ([g graph] [i 0] [frames '()])
-    (if (>= i n-frames)
-        (reverse frames)
-        (begin
-          (when (= (mod i 10) 0)
-            (display ".")
-            (flush-output-port (current-output-port)))
-          (let* ([normalized (normalize-layout g width height 4)]
-                 [frame (render-graph-colored normalized width height
-                                              skill-label skill-tier)]
-                 ;; Multiple iterations per frame for faster convergence
-                 [next-g (run-layout g 3)])
-            (loop next-g (+ i 1) (cons frame frames)))))))
-
-(define frames (generate-frames initial-graph n-frames))
-(display " done!\n\n")
+(define hier-graph (hierarchical-layout skills edges skill-tier))
+(define main-frame (render-graph-colored hier-graph width height skill-label skill-tier))
 
 ;;; ============================================================
-;;; Add title frame
+;;; Title frame
 ;;; ============================================================
 
 (define title-frame
   (string-append
    "\x1b;[2J\x1b;[H"
-   "\n\n"
+   "\n\n\n"
    "                        \x1b;[38;5;51m████████╗██╗  ██╗███████╗    ███████╗ ██████╗ ██╗     ██████╗\x1b;[0m\n"
    "                        \x1b;[38;5;51m╚══██╔══╝██║  ██║██╔════╝    ██╔════╝██╔═══██╗██║     ██╔══██╗\x1b;[0m\n"
    "                        \x1b;[38;5;46m   ██║   ███████║█████╗      █████╗  ██║   ██║██║     ██║  ██║\x1b;[0m\n"
@@ -99,14 +77,16 @@
    "                        \x1b;[38;5;226m   ██║   ██║  ██║███████╗    ██║     ╚██████╔╝███████╗██████╔╝\x1b;[0m\n"
    "                        \x1b;[38;5;226m   ╚═╝   ╚═╝  ╚═╝╚══════╝    ╚═╝      ╚═════╝ ╚══════╝╚═════╝\x1b;[0m\n"
    "\n"
-   "                                    \x1b;[38;5;240mSkill Lattice Emergence\x1b;[0m\n"
+   "                                    \x1b;[38;5;240mSkill Lattice Structure\x1b;[0m\n"
+   "\n"
+   "                      \x1b;[38;5;51mTier 0\x1b;[0m ──────────► \x1b;[38;5;46mTier 1\x1b;[0m ──────────► \x1b;[38;5;226mTier 2\x1b;[0m\n"
+   "                    \x1b;[38;5;51mFoundational\x1b;[0m         \x1b;[38;5;46mIntermediate\x1b;[0m         \x1b;[38;5;226mAdvanced\x1b;[0m\n"
    "\n\n"))
 
-;;; Add title at start, hold final frame
+;;; Build frame sequence
 (define full-frames
-  (append (list title-frame title-frame title-frame)  ; Title for ~0.3s
-          frames
-          (make-list 20 (car (reverse frames)))))     ; Hold final ~2s
+  (append (make-list 25 title-frame)  ; Title for ~2.5s
+          (make-list 60 main-frame))) ; Hold main ~6s
 
 ;;; ============================================================
 ;;; Play animation
@@ -127,5 +107,7 @@
           full-frames)
 
 (display "\x1b;[2J\x1b;[H")
-(display "\nAnimation complete!\n")
-(display "The lattice has emerged.\n")
+(display "\nThe Fold has visualized itself.\n")
+(display "\x1b;[38;5;51mTier 0\x1b;[0m: data, linalg, algebra, numeric, number-theory\n")
+(display "\x1b;[38;5;46mTier 1\x1b;[0m: fp, autodiff, geometry, statistics, meta, ...\n")
+(display "\x1b;[38;5;226mTier 2\x1b;[0m: physics/diff, physics/classical, sim, pipeline\n")
