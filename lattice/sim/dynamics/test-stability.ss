@@ -12,6 +12,7 @@
 (load "core/base/prelude.ss")
 (load "lattice/linalg/vec.ss")
 (load "lattice/linalg/matrix.ss")
+(load "lattice/linalg/matrix-decomp.ss")  ;; Required for QR algorithm
 (load "lattice/linalg/matrix-eigen.ss")
 (load "lattice/numeric/complex.ss")
 (load "lattice/sim/dynamics/ode-system.ss")
@@ -346,6 +347,62 @@
 (test "3D system with mixed signs is saddle-type"
       'saddle-type
       (classify-stability-nd saddle-evals-3d))
+
+;;; ====
+;;; Critical Regression Test: Magnitude vs Real Part (fold-zxrn)
+;;; ====
+(test-section "Regression: Eigenvalue Real Part vs Magnitude")
+
+;;; This tests the fix for fold-zxrn:
+;;; Power iteration finds eigenvalue with largest MAGNITUDE, but stability
+;;; depends on eigenvalue with largest REAL PART.
+;;;
+;;; Example: eigenvalues {-10, 0.1, -0.5}
+;;;   - Power iteration finds -10 (|λ|=10) → would classify as stable
+;;;   - But max real part is 0.1 > 0 → system is UNSTABLE
+;;;
+;;; The fix uses QR algorithm to find ALL eigenvalues, then checks max real part.
+
+;; Create a 3x3 matrix with known eigenvalues via diagonal form
+;; A = diag(-10, 0.1, -0.5) → eigenvalues are exactly -10, 0.1, -0.5
+(define misleading-eigs-A (list 'matrix 3 3 (vector -10.0 0 0
+                                                     0 0.1 0
+                                                     0 0 -0.5)))
+(define misleading-sys (linear-ode misleading-eigs-A))
+
+(define misleading-result
+  (analyze-stability-nd misleading-sys (vector 0.0 0.0 0.0) 1e-6))
+
+(test "3D system with eigenvalues {-10, 0.1, -0.5} is UNSTABLE (real part 0.1 > 0)"
+      'saddle-type
+      (car misleading-result))
+
+;; Verify that a truly stable system is classified correctly
+(define truly-stable-A (list 'matrix 3 3 (vector -10.0 0 0
+                                                  0 -0.1 0
+                                                  0 0 -0.5)))
+(define truly-stable-sys (linear-ode truly-stable-A))
+
+(define truly-stable-result
+  (analyze-stability-nd truly-stable-sys (vector 0.0 0.0 0.0) 1e-6))
+
+(test "3D system with eigenvalues {-10, -0.1, -0.5} is STABLE (all real parts < 0)"
+      'stable
+      (car truly-stable-result))
+
+;; Test with a non-diagonal matrix that has complex eigenvalues
+;; Using a rotation-like matrix with slight damping
+(define complex-3d-A (list 'matrix 3 3 (vector -0.1  1.0  0.0
+                                                -1.0 -0.1  0.0
+                                                 0.0  0.0 -0.5)))
+(define complex-3d-sys (linear-ode complex-3d-A))
+
+(define complex-3d-result
+  (analyze-stability-nd complex-3d-sys (vector 0.0 0.0 0.0) 1e-6))
+
+(test "3D system with complex eigenvalues (damped rotation + decay) is stable"
+      'stable
+      (car complex-3d-result))
 
 ;;; ====
 ;;; Edge Cases

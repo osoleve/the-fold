@@ -1,6 +1,7 @@
 (load "core/base/prelude.ss")
 (load "lattice/linalg/vec.ss")
 (load "lattice/linalg/matrix.ss")
+(load "lattice/linalg/matrix-decomp.ss")  ;; Required for QR algorithm in matrix-eigen
 (load "lattice/linalg/matrix-eigen.ss")
 (load "lattice/numeric/complex.ss")
 (load "lattice/sim/dynamics/ode-system.ss")
@@ -265,17 +266,63 @@
 
 (define (analyze-stability-nd sys equilibrium step-size)
   (doc 'type '(-> Any Any Number (Pair Symbol (List Complex))))
-  (doc 'description "Analyze stability for n-dimensional system")
+  (doc 'description "Analyze stability for n-dimensional system using QR eigenvalues")
   (let* ([jac (linearize-at-equilibrium sys equilibrium step-size)]
          [n (matrix-rows jac)])
         (if (<= n 2)
             (analyze-stability sys equilibrium step-size)
-            ;; For n > 2, use power iteration for dominant eigenvalue
-            (let* ([dom-eval (matrix-dominant-eigenvalue jac)]
-                   [stability (if (< (complex-real dom-eval) 0)
-                                  'stable
-                                  'unstable)])
-                  (cons stability (list dom-eval))))))
+            ;; For n > 2, use QR algorithm to find ALL eigenvalues
+            ;; Stability depends on eigenvalue with largest REAL PART, not magnitude
+            (let ([eigs (eigenvalues jac)])
+                 (eigenvalue-result->stability eigs)))))
+
+(define (eigenvalue-result->stability eig-result)
+  (doc 'type '(-> Any (Pair Symbol (List Complex))))
+  (doc 'description "Convert eigenvalue result to stability classification")
+  (cond
+   ;; Handle error case
+   [(and (pair? eig-result) (eq? (car eig-result) 'error))
+    (cons 'unknown (list (make-complex 0 0)))]
+   ;; Handle complex-eigenvalues case: (complex-eigenvalues vec info)
+   ;; info is list of (index real-part imag-part)
+   [(and (pair? eig-result) (eq? (car eig-result) 'complex-eigenvalues))
+    (let* ([real-vec (cadr eig-result)]
+           [complex-info (caddr eig-result)]
+           [eigenvalue-list (eigenvalues-from-qr-result real-vec complex-info)])
+          (cons (classify-stability-nd eigenvalue-list) eigenvalue-list))]
+   ;; Plain vector of real eigenvalues
+   [(vector? eig-result)
+    (let ([eigenvalue-list (map (lambda (r) (make-complex r 0))
+                                (vector->list eig-result))])
+         (cons (classify-stability-nd eigenvalue-list) eigenvalue-list))]
+   [else (cons 'unknown (list (make-complex 0 0)))]))
+
+(define (eigenvalues-from-qr-result real-vec complex-info)
+  (doc 'type '(-> Vec (List Any) (List Complex)))
+  (doc 'description "Reconstruct complex eigenvalues from QR result")
+  ;; Build a list of complex eigenvalues
+  ;; complex-info has entries like (index real-part imag-part)
+  (let* ([n (vector-length real-vec)]
+         [result (make-vector n #f)]
+         [info-table (make-eq-hashtable)])
+        ;; First, mark indices that are complex pairs
+        (for-each (lambda (entry)
+                    (let ([idx (car entry)]
+                          [real-part (cadr entry)]
+                          [imag-part (caddr entry)])
+                         (hashtable-set! info-table idx (cons real-part imag-part))
+                         (hashtable-set! info-table (+ idx 1) (cons real-part (- imag-part)))))
+                  complex-info)
+        ;; Build eigenvalue list
+        (let loop ([i 0] [acc '()])
+             (if (>= i n)
+                 (reverse acc)
+                 (let ([complex-entry (hashtable-ref info-table i #f)])
+                      (if complex-entry
+                          (loop (+ i 1)
+                                (cons (make-complex (car complex-entry) (cdr complex-entry)) acc))
+                          (loop (+ i 1)
+                                (cons (make-complex (vector-ref real-vec i) 0) acc))))))))
 
 (doc 'section 'standard-system-analysis)
 
