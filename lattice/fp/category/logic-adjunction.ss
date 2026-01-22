@@ -60,7 +60,7 @@ Morphisms are pairs of morphisms (f, g) : (A, B) → (A', B').")
   (cdr p))
 
 (define (make-pair-mor f g)
-  (doc 'type '(-> (-> A A') (-> B B') (-> (Pair A B) (Pair A' B'))))
+  (doc 'type '(-> (-> A A*) (-> B B*) (-> (Pair A B) (Pair A* B*))))
   (doc 'description "Lift morphisms to pair morphism")
   (lambda (p)
     (make-pair-obj (f (pair-fst p)) (g (pair-snd p)))))
@@ -97,7 +97,7 @@ For concrete values, this is identity (pairs are products)")
   pair-of-sets)
 
 (define (product-mor pair-of-fns)
-  (doc 'type '(-> (Pair (-> A A') (-> B B')) (-> (* A B) (* A' B'))))
+  (doc 'type '(-> (Pair (-> A A*) (-> B B*)) (-> (* A B) (* A* B*))))
   (doc 'description "Product on morphisms: (f, g) ↦ f×g")
   (let ([f (pair-fst pair-of-fns)]
         [g (pair-snd pair-of-fns)])
@@ -146,7 +146,7 @@ We represent sums as tagged values: ('left . a) or ('right . b).")
   (if (right? x) (cdr x) (error 'from-right "Not a right value")))
 
 (define (coproduct-mor pair-of-fns)
-  (doc 'type '(-> (Pair (-> A A') (-> B B')) (-> (+ A B) (+ A' B'))))
+  (doc 'type '(-> (Pair (-> A A*) (-> B B*)) (-> (+ A B) (+ A* B*))))
   (doc 'description "Coproduct on morphisms: (f, g) ↦ f+g")
   (let ([f (pair-fst pair-of-fns)]
         [g (pair-snd pair-of-fns)])
