@@ -1,10 +1,10 @@
 (skill diffgeo
-  (version "0.5.0")
+  (version "0.6.0")
   (tier 1)
   (path "lattice/diffgeo")
   (purity total)
   (stability experimental)
-  (fuel-bound "O(n⁴) for Riemann tensor, O(n²) for Christoffel symbols, O(k·n²) for geodesic tracing")
+  (fuel-bound "O(n⁴) for Riemann tensor, O(n²) for Christoffel symbols, O(k·n²) for geodesic tracing, O(C(n,k)²) for wedge product")
   (deps (linalg))
 
   (description
@@ -18,7 +18,9 @@
     tensor, Ricci tensor, scalar curvature, and surface curvatures (Gaussian, mean,
     principal) for 2D surfaces embedded in R³. Geodesic computation includes
     numerical geodesic tracing, exponential/logarithm maps, parallel transport,
-    and geodesic distance.")
+    and geodesic distance. Differential forms support includes k-forms, exterior
+    algebra with wedge product, interior product, exterior derivative, Hodge star
+    operator (Euclidean), and integration over parameterized curves and surfaces.")
 
   (keywords (differential-geometry manifold chart atlas coordinates
              transition-function jacobian polar spherical cylindrical
@@ -28,8 +30,11 @@
              exponential-map logarithm-map rodrigues adjoint bch interpolation slerp
              curvature metric riemannian christoffel riemann-tensor ricci-tensor
              scalar-curvature gaussian-curvature mean-curvature principal-curvature
-             surface fundamental-form geodesic parallel-transport geodesic-distance))
-  (aliases (diffgeom manifolds smooth-manifolds lie-groups riemannian-geometry geodesics))
+             surface fundamental-form geodesic parallel-transport geodesic-distance
+             differential-forms k-form exterior-algebra wedge-product interior-product
+             exterior-derivative hodge-star volume-form integration de-rham))
+  (aliases (diffgeom manifolds smooth-manifolds lie-groups riemannian-geometry geodesics
+            exterior-calculus cartan-calculus))
 
   (exports
    (charts
@@ -144,7 +149,35 @@
     geodesic-spray
     ;; Caching
     clear-christoffel-cache! reset-christoffel-cache-stats! christoffel-cache-stats
-    cached-christoffel-symbols))
+    cached-christoffel-symbols)
+
+   (forms
+    ;; Multi-index utilities
+    multi-index? multi-index-degree generate-multi-indices
+    multi-index->offset offset->multi-index binomial
+    ;; Permutation sign
+    permutation-sign shuffle-sign
+    ;; k-form representation
+    k-form? k-form-point k-form-chart k-form-degree k-form-components k-form-dim
+    make-k-form k-form-zero k-form-basis
+    ;; Conversions
+    cotangent->1-form 1-form->cotangent
+    ;; Arithmetic
+    k-form-add k-form-sub k-form-scale k-form-negate
+    ;; Wedge product
+    wedge wedge*
+    ;; Interior product
+    interior-product
+    ;; Exterior derivative
+    exterior-derivative d-scalar
+    ;; Evaluation
+    k-form-apply
+    ;; Hodge star
+    hodge-star-euclidean volume-form
+    ;; Pullback
+    pullback-k-form
+    ;; Integration
+    integrate-1-form-line integrate-2-form-surface))
 
   (modules
    (charts "charts.ss"
@@ -167,4 +200,11 @@
      via RK4, exponential map (shoot geodesic with initial velocity), logarithm
      map (inverse via shooting method), parallel transport along geodesics,
      geodesic distance, and geodesic interpolation. Includes Christoffel symbol
-     caching for improved performance during repeated evaluations.")))
+     caching for improved performance during repeated evaluations.")
+   (forms "forms.ss"
+    "Differential forms and exterior calculus. k-forms as alternating multilinear
+     maps, exterior algebra with wedge product (antisymmetric tensor product),
+     interior product (contraction with vectors), exterior derivative (generalized
+     gradient), Hodge star operator (for Euclidean metrics), and numerical
+     integration of forms over parameterized curves and surfaces. Supports the
+     fundamental identity d(dω) = 0 and Stokes' theorem applications.")))
