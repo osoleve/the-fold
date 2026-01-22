@@ -1,0 +1,23 @@
+(skill physics-problems
+  (version "0.1.0")
+  (tier 2)
+  (path "lattice/physics/problems")
+  (purity partial)
+  (stability experimental)
+  (fuel-bound "O(n*frames)")
+  (deps (classical dataset))
+  (description "Physics word problem generation using the Dataset SDK and classical physics engine. Provides declarative templates for spatial, kinematic, and dynamic problems.")
+  (keywords (physics problems dataset ml benchmark visual-reasoning))
+  (exports
+    (physics-problem define-physics-problem problem-generate problem-render)
+    (simulation setup-world simulate-frames capture-state)
+    (spatial spatial-size-problem spatial-distance-problem spatial-count-problem)
+    (kinematic velocity-problem collision-timing-problem trajectory-problem)
+    (dynamic mass-inference-problem momentum-problem restitution-problem))
+  (modules
+    (physics-problem "physics-problem.ss" "Core physics problem DSL")
+    (simulation "simulation.ss" "World setup and frame capture")
+    (spatial "templates/spatial.ss" "Spatial reasoning problems")
+    (kinematic "templates/kinematic.ss" "Kinematic problems")
+    (dynamic "templates/dynamic.ss" "Dynamic inference problems")
+    (counterfactual "templates/counterfactual.ss" "Counterfactual pair generation")))
