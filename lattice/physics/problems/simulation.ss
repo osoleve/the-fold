@@ -191,6 +191,16 @@
          [worlds (simulate-frames world config n-frames)])
     (render-frames worlds renderer)))
 
+;;; capture-frames-with-final : World × ProblemConfig × Nat → ((List String) . World)
+;;; Simulate, render frames, and return final world state (avoids double simulation)
+(define (capture-frames-with-final world config n-frames)
+  (doc 'export #t)
+  (let* ([renderer (make-problem-renderer config)]
+         [worlds (simulate-frames world config n-frames)]
+         [frames (render-frames worlds renderer)]
+         [final-world (if (null? worlds) world (car (reverse worlds)))])
+    (cons frames final-world)))
+
 ;;; ============================================================
 ;;; Part 6: State Extraction (for Answer Computation)
 ;;; ============================================================
@@ -258,6 +268,7 @@
 ;;; time-to-collision : World × Symbol × Symbol → Number | #f
 ;;; Estimate time until two entities collide (linear approximation)
 ;;; Returns #f if they won't collide (moving apart or parallel)
+;;; Returns 0 if already colliding (same position)
 (define (time-to-collision world id1 id2)
   (doc 'export #t)
   (let* ([pos1 (get-entity-position world id1)]
@@ -268,11 +279,14 @@
          [r2 (get-entity-radius world id2)]
          [rel-pos (vec2-sub pos2 pos1)]
          [rel-vel (vec2-sub vel2 vel1)]
-         [dist (vec2-magnitude rel-pos)]
-         [closing-speed (- (vec2-dot rel-vel (vec2-normalize rel-pos)))])
-    (if (<= closing-speed 0)
-        #f  ; Moving apart
-        (/ (- dist r1 r2) closing-speed))))
+         [dist (vec2-magnitude rel-pos)])
+    ;; Guard against zero distance (entities at same position)
+    (if (< dist 0.0001)
+        0  ; Already colliding
+        (let ([closing-speed (- (vec2-dot rel-vel (vec2-normalize rel-pos)))])
+          (if (<= closing-speed 0)
+              #f  ; Moving apart
+              (/ (- dist r1 r2) closing-speed))))))
 
 ;;; will-collide? : World × Symbol × Symbol × Number → Boolean
 ;;; Check if two entities will collide within time limit

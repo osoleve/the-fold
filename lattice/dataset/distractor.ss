@@ -44,6 +44,7 @@
 
 ;;; distractor-nearby : Number × Number → DistractorStrategy
 ;;; Perturb by relative epsilon (e.g., 0.1 = ±10%)
+;;; For zero values, uses absolute perturbation to avoid returning zero
 (define (distractor-nearby epsilon)
   (doc 'export #t)
   (make-distractor-strategy
@@ -51,7 +52,9 @@
    (lambda (correct rng)
      (if (number? correct)
          (let* ([sign (if (< (prng-next-float rng) 0.5) 1 -1)]
-                [delta (* correct epsilon (+ 0.5 (prng-next-float rng)))])
+                ;; Use max of relative and absolute delta to handle zero
+                [base (if (zero? correct) 1.0 (abs correct))]
+                [delta (* base epsilon (+ 0.5 (prng-next-float rng)))])
            (+ correct (* sign delta)))
          correct))))
 
@@ -328,8 +331,18 @@
     (cons options correct-label)))
 
 ;;; shuffle-list : (List a) × RNG → (List a)
+;;; Proper Fisher-Yates shuffle
 (define (shuffle-list lst rng)
-  (list-sort (lambda (a b) (< (prng-next-int rng 1000) 500)) lst))
+  (let* ([v (list->vector lst)]
+         [n (vector-length v)])
+    (let loop ([i (- n 1)])
+      (when (> i 0)
+        (let* ([j (prng-next-int rng (+ i 1))]
+               [tmp (vector-ref v i)])
+          (vector-set! v i (vector-ref v j))
+          (vector-set! v j tmp)
+          (loop (- i 1)))))
+    (vector->list v)))
 
 ;;; take-up-to : Nat × (List a) → (List a)
 (define (take-up-to n xs)

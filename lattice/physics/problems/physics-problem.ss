@@ -66,8 +66,9 @@
   (let* ([params (param-set-sample (problem-params problem) rng 100)]
          [initial-world ((problem-world-setup problem) params)]
          [n-frames 8]  ; default number of frames
-         [frames (capture-frames initial-world config n-frames)]
-         [final-world (car (reverse (simulate-frames initial-world config n-frames)))]
+         [sim-result (capture-frames-with-final initial-world config n-frames)]
+         [frames (car sim-result)]
+         [final-world (cdr sim-result)]
          [question-text ((problem-question-gen problem) params)]
          [correct-answer ((problem-answer-compute problem) initial-world final-world params)]
          [options (generate-problem-options correct-answer (problem-category problem) rng)]

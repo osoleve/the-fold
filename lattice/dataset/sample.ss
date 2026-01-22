@@ -265,6 +265,20 @@
   (let ([pair (assq label opts)])
     (and pair (cdr pair))))
 
+;;; fisher-yates-shuffle : (List a) → (List a)
+;;; Proper Fisher-Yates shuffle using mutation on a vector
+(define (fisher-yates-shuffle lst)
+  (let* ([v (list->vector lst)]
+         [n (vector-length v)])
+    (let loop ([i (- n 1)])
+      (when (> i 0)
+        (let* ([j (random (+ i 1))]
+               [tmp (vector-ref v i)])
+          (vector-set! v i (vector-ref v j))
+          (vector-set! v j tmp)
+          (loop (- i 1)))))
+    (vector->list v)))
+
 ;;; shuffle-options : (List Option) × Symbol → (List Option) × Symbol
 ;;; Shuffle options while tracking which one is correct.
 ;;; Returns (shuffled-options . new-correct-label)
@@ -272,7 +286,7 @@
   (doc 'export #t)
   (let* ([correct-text (option-by-label opts correct-label)]
          [texts (map cdr opts)]
-         [shuffled (list-sort (lambda (a b) (< (random 1000) 500)) texts)]
+         [shuffled (fisher-yates-shuffle texts)]
          [labels '(A B C D)]
          [new-opts (map cons labels shuffled)]
          [new-label (car (filter (lambda (o) (string=? (cdr o) correct-text)) new-opts))])

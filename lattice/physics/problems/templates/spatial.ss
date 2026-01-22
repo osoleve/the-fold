@@ -213,16 +213,16 @@
 ;;; position-params : ParamSet
 (define position-params
   (make-param-set
-   (list (range 'x1 -15.0 5.0)
-         (range 'x2 -5.0 15.0)
+   (list (range 'x1 -15.0 -2.0)   ; Ball A always on left
+         (range 'x2 2.0 15.0)     ; Ball B always on right
          (range 'y1 2.0 18.0)
          (range 'y2 2.0 18.0)
          (range 'r 1.5 2.5))
-   ;; Constraint: positions should be distinct
+   ;; Constraint: positions should be sufficiently distinct
    (lambda (params)
      (let ([x1 (cdr (assq 'x1 params))]
            [x2 (cdr (assq 'x2 params))])
-       (> (abs (- x2 x1)) 5.0)))))
+       (> (- x2 x1) 5.0)))))
 
 ;;; position-setup : Alist → World
 (define (position-setup params)
