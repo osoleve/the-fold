@@ -27,48 +27,49 @@
 (doc make-fem-mesh 'description "Convert Delaunay triangulation to indexed FEM mesh")
 (define (make-fem-mesh triangles)
   ;; Extract unique nodes with tolerance-based deduplication
-  (define tolerance 1e-10)
+  ;; Uses hashtable for O(1) amortized lookup instead of O(N) assoc
+  (let* ([tolerance 1e-10]
+         [point-key (lambda (p)
+                      ;; Round to tolerance for hashing
+                      (cons (round (/ (point2-x p) tolerance))
+                            (round (/ (point2-y p) tolerance))))]
+         ;; Collect all unique points
+         [all-points (apply append (map tri2-points triangles))]
+         ;; Build node list and index map using hashtable (O(1) lookup)
+         [node-map (make-hashtable equal-hash equal?)]
+         [nodes-vec (make-vector (length all-points) #f)]  ; Upper bound
+         [node-count-box (cons 0 #f)])  ; Use box for mutation
 
-  (define (point-key p)
-    ;; Round to tolerance for hashing
-    (cons (round (/ (point2-x p) tolerance))
-          (round (/ (point2-y p) tolerance))))
+    ;; Populate node map and vector
+    (for-each
+     (lambda (p)
+       (let ([key (point-key p)])
+         (unless (hashtable-contains? node-map key)
+           (let ([idx (car node-count-box)])
+             (hashtable-set! node-map key idx)
+             (vector-set! nodes-vec idx p)
+             (set-car! node-count-box (+ idx 1))))))
+     all-points)
 
-  ;; Collect all unique points
-  (define all-points
-    (apply append (map tri2-points triangles)))
+    (let* ([node-count (car node-count-box)]
+           ;; Trim nodes vector to actual size
+           [nodes (let ([result (make-vector node-count)])
+                    (do ([i 0 (+ i 1)])
+                        ((= i node-count) result)
+                      (vector-set! result i (vector-ref nodes-vec i))))]
+           ;; Convert triangles to element index triples
+           [point->index (lambda (p) (hashtable-ref node-map (point-key p) #f))]
+           [elements (map (lambda (tri)
+                            (vector (point->index (tri2-p1 tri))
+                                    (point->index (tri2-p2 tri))
+                                    (point->index (tri2-p3 tri))))
+                          triangles)])
 
-  ;; Build node list (unique points) and index map
-  (define-values (nodes node-map)
-    (let loop ([pts all-points] [nodes '()] [idx 0] [seen '()])
-      (if (null? pts)
-          (values (reverse nodes) seen)
-          (let* ([p (car pts)]
-                 [key (point-key p)]
-                 [existing (assoc key seen)])
-            (if existing
-                (loop (cdr pts) nodes idx seen)
-                (loop (cdr pts)
-                      (cons p nodes)
-                      (+ idx 1)
-                      (cons (cons key idx) seen)))))))
-
-  ;; Convert triangles to element index triples
-  (define (point->index p)
-    (cdr (assoc (point-key p) node-map)))
-
-  (define elements
-    (map (lambda (tri)
-           (vector (point->index (tri2-p1 tri))
-                   (point->index (tri2-p2 tri))
-                   (point->index (tri2-p3 tri))))
-         triangles))
-
-  (list 'fem-mesh
-        (list->vector nodes)    ; node coordinates
-        (list->vector elements) ; element connectivity
-        (length nodes)          ; num-nodes
-        (length elements)))     ; num-elements
+      (list 'fem-mesh
+            nodes                   ; node coordinates (vector)
+            (list->vector elements) ; element connectivity
+            node-count              ; num-nodes
+            (length elements)))))   ; num-elements
 
 (define (fem-mesh? m) (and (pair? m) (eq? (car m) 'fem-mesh)))
 (define (fem-mesh-nodes m) (list-ref m 1))
@@ -304,20 +305,22 @@
        (hashtable-keys edge-counts))
       (sort < (vector->list (hashtable-keys boundary-set))))))
 
-(doc apply-dirichlet-bc! 'type '(-> SparseCOO Vector (List Nat) (-> Number Number Number) Void))
-(doc apply-dirichlet-bc! 'description "Apply Dirichlet BC by modifying matrix and RHS in place")
+(doc apply-dirichlet-bc! 'type '(-> SparseCOO Vector (List Nat) (-> Number Number Number) FEMMesh Void))
+(doc apply-dirichlet-bc! 'description "Apply Dirichlet BC by elimination method (zeros row/col, sets diagonal to 1)")
 (define (apply-dirichlet-bc! K F boundary-nodes g mesh)
   ;; For each boundary node i with u_i = g(x_i, y_i):
-  ;; 1. Set row i of K to zero except K_ii = 1
-  ;; 2. Set F_i = g(x_i, y_i)
-  ;; 3. Modify other rows: F_j -= K_ji * g_i, K_ji = 0
-  ;;
-  ;; For efficiency with COO, we'll build a new triplet list.
-  ;; This is the "big number" method alternative: set K_ii = BIG, F_i = BIG * g
+  ;; 1. Zero row i of K (all entries)
+  ;; 2. Zero column i of K, adjusting RHS: F_j -= K_ji * g_i
+  ;; 3. Set K_ii = 1 (CRITICAL - without this, matrix is singular!)
+  ;; 4. Set F_i = g(x_i, y_i)
 
   (let* ([n (sparse-coo-rows K)]
          [bc-set (make-hashtable equal-hash equal?)]
-         [bc-values (make-vector n 0.0)])
+         [bc-values (make-vector n 0.0)]
+         [rows (sparse-coo-row-indices K)]
+         [cols (sparse-coo-col-indices K)]
+         [vals (sparse-coo-values K)]
+         [nnz (vector-length rows)])
 
     ;; Mark boundary nodes and compute their values
     (for-each
@@ -327,39 +330,39 @@
          (vector-set! bc-values i (g (point2-x p) (point2-y p)))))
      boundary-nodes)
 
-    ;; Use penalty method: K_ii = 1e30, F_i = 1e30 * g_i
-    ;; This preserves sparsity pattern and is simple.
-    (let ([big 1e30])
-      (for-each
-       (lambda (i)
-         ;; We need to add a large diagonal entry
-         ;; Sparse COO allows duplicates that get summed
-         (let ([rows (sparse-coo-row-indices K)]
-               [cols (sparse-coo-col-indices K)]
-               [vals (sparse-coo-values K)])
-           ;; Zero out row i contributions (set to near-zero)
-           (do ([k 0 (+ k 1)])
-               ((= k (vector-length rows)))
-             (when (= (vector-ref rows k) i)
-               (vector-set! vals k 0.0)))
-           ;; Zero out column i contributions and adjust RHS
-           (do ([k 0 (+ k 1)])
-               ((= k (vector-length rows)))
-             (let ([row (vector-ref rows k)]
-                   [col (vector-ref cols k)]
-                   [val (vector-ref vals k)])
-               (when (and (= col i) (not (hashtable-ref bc-set row #f)))
-                 ;; Subtract contribution from RHS
-                 (vector-set! F row (- (vector-ref F row)
-                                       (* val (vector-ref bc-values i))))
-                 (vector-set! vals k 0.0))))))
-       boundary-nodes)
+    ;; Process each boundary node
+    (for-each
+     (lambda (i)
+       (let ([g-val (vector-ref bc-values i)]
+             [diag-found #f])
+         ;; Pass 1: Zero row i and find diagonal
+         (do ([k 0 (+ k 1)])
+             ((= k nnz))
+           (when (= (vector-ref rows k) i)
+             (if (= (vector-ref cols k) i)
+                 ;; Diagonal entry: set to 1.0
+                 (begin
+                   (vector-set! vals k 1.0)
+                   (set! diag-found #t))
+                 ;; Off-diagonal in row: zero it
+                 (vector-set! vals k 0.0))))
 
-      ;; Set boundary values in RHS
-      (for-each
-       (lambda (i)
-         (vector-set! F i (vector-ref bc-values i)))
-       boundary-nodes))))
+         ;; Pass 2: Zero column i (non-boundary rows) and adjust RHS
+         (do ([k 0 (+ k 1)])
+             ((= k nnz))
+           (let ([row (vector-ref rows k)]
+                 [col (vector-ref cols k)]
+                 [val (vector-ref vals k)])
+             (when (and (= col i)
+                        (not (= row i))
+                        (not (hashtable-ref bc-set row #f)))
+               ;; Subtract contribution from RHS before zeroing
+               (vector-set! F row (- (vector-ref F row) (* val g-val)))
+               (vector-set! vals k 0.0))))
+
+         ;; Set RHS for this boundary node
+         (vector-set! F i g-val)))
+     boundary-nodes)))
 
 (doc apply-dirichlet-penalty! 'type '(-> SparseCOO Vector (List Nat) (-> Number Number Number) FEMMesh Void))
 (doc apply-dirichlet-penalty! 'description "Apply Dirichlet BC using penalty method (simpler, preserves symmetry)")
@@ -443,6 +446,83 @@
                (sparse-cg-loop A b x-new r-new p-new rr-new
                                (+ iter 1) max-iter tol n))))])))
 
+;;; Preconditioned Conjugate Gradient (Jacobi)
+;;;
+;;; Jacobi preconditioning uses M = diag(A). This is simple but effective
+;;; for FEM stiffness matrices, reducing condition number significantly.
+
+(doc sparse-csr-diagonal 'type '(-> SparseCSR Vector))
+(doc sparse-csr-diagonal 'description "Extract diagonal of sparse CSR matrix")
+(define (sparse-csr-diagonal A)
+  (let* ([n (sparse-csr-rows A)]
+         [row-ptrs (sparse-csr-row-ptrs A)]
+         [col-indices (sparse-csr-col-indices A)]
+         [vals (sparse-csr-values A)]
+         [diag (make-vector n 0.0)])
+    (do ([i 0 (+ i 1)])
+        ((= i n) diag)
+      (let ([start (vector-ref row-ptrs i)]
+            [end (vector-ref row-ptrs (+ i 1))])
+        (do ([k start (+ k 1)])
+            ((= k end))
+          (when (= (vector-ref col-indices k) i)
+            (vector-set! diag i (vector-ref vals k))))))))
+
+(doc vec-div-pointwise 'type '(-> Vector Vector Vector))
+(doc vec-div-pointwise 'description "Element-wise division z_i = x_i / y_i")
+(define (vec-div-pointwise x y)
+  (let* ([n (vector-length x)]
+         [result (make-vector n 0.0)])
+    (do ([i 0 (+ i 1)])
+        ((= i n) result)
+      (let ([yi (vector-ref y i)])
+        (vector-set! result i (if (< (abs yi) 1e-30)
+                                  0.0
+                                  (/ (vector-ref x i) yi)))))))
+
+(doc sparse-pcg 'type '(-> SparseCSR Vector Vector (List Vector Number Nat)))
+(doc sparse-pcg 'description "Preconditioned conjugate gradient with Jacobi preconditioning")
+(define (sparse-pcg A b x0)
+  ;; PCG for Ax = b where A is sparse CSR, M = diag(A)
+  (let* ([n (sparse-csr-rows A)]
+         [tol *fem-tolerance*]
+         [max-iter (min *fem-max-iterations* (* 2 n))]
+         ;; Jacobi preconditioner: M = diag(A)
+         [M (sparse-csr-diagonal A)]
+         ;; r = b - Ax
+         [Ax0 (sparse-csr-vec-mul A x0)]
+         [r (vec-sub b Ax0)]
+         ;; z = M^{-1} r
+         [z (vec-div-pointwise r M)]
+         [p (vector-copy z)]
+         [rz (vec-dot r z)])
+    (if (< (sqrt (vec-dot r r)) tol)
+        (list x0 (sqrt (vec-dot r r)) 0)
+        (sparse-pcg-loop A b (vector-copy x0) r z p rz M 0 max-iter tol n))))
+
+(define (sparse-pcg-loop A b x r z p rz M iter max-iter tol n)
+  (let ([r-norm (sqrt (vec-dot r r))])
+    (cond
+      [(< r-norm tol)
+       (list x r-norm iter)]
+      [(>= iter max-iter)
+       (list x r-norm iter)]
+      [else
+       (let* ([Ap (sparse-csr-vec-mul A p)]
+              [pAp (vec-dot p Ap)])
+         (if (< (abs pAp) 1e-30)
+             (list x r-norm iter)
+             (let* ([alpha (/ rz pAp)]
+                    [x-new (vec-add x (vec-scale alpha p))]
+                    [r-new (vec-sub r (vec-scale alpha Ap))]
+                    ;; z = M^{-1} r
+                    [z-new (vec-div-pointwise r-new M)]
+                    [rz-new (vec-dot r-new z-new)]
+                    [beta (/ rz-new rz)]
+                    [p-new (vec-add z-new (vec-scale beta p))])
+               (sparse-pcg-loop A b x-new r-new z-new p-new rz-new M
+                                (+ iter 1) max-iter tol n))))])))
+
 ;;; Vector operations for CG (if not already available)
 (define (vec-dot v1 v2)
   (let ([n (vector-length v1)])
@@ -491,8 +571,8 @@
     (let* ([K-csr (coo->csr K)]
            [n (fem-mesh-num-nodes mesh)]
            [u0 (make-vector n 0.0)]
-           ;; Solve with sparse conjugate gradient
-           [result (sparse-cg K-csr F u0)])
+           ;; Solve with preconditioned conjugate gradient (Jacobi)
+           [result (sparse-pcg K-csr F u0)])
       (car result))))  ; Return solution vector
 
 (doc fem-solve-poisson-full 'type '(-> FEMMesh (-> Number Number Number) (-> Number Number Number) (Values Vector Number Nat)))
@@ -505,10 +585,138 @@
     (let* ([K-csr (coo->csr K)]
            [n (fem-mesh-num-nodes mesh)]
            [u0 (make-vector n 0.0)]
-           [result (sparse-cg K-csr F u0)])
+           ;; Use preconditioned CG for better convergence
+           [result (sparse-pcg K-csr F u0)])
       (values (car result)      ; solution
               (cadr result)     ; residual
               (caddr result)))));iterations
+
+;;; ============================================================
+;;; Section: Spatial Index for Point Location
+;;; ============================================================
+;;;
+;;; Grid-based spatial hash for O(1) average point location.
+;;; Essential for efficient rendering and solution interpolation.
+
+(doc 'section 'spatial-index)
+
+(doc make-fem-spatial-index 'type '(-> FEMMesh Nat FEMSpatialIndex))
+(doc make-fem-spatial-index 'description "Build grid-based spatial index for fast point location")
+(define (make-fem-spatial-index mesh grid-size)
+  ;; Compute mesh bounding box
+  (let* ([nodes (fem-mesh-nodes mesh)]
+         [n (fem-mesh-num-nodes mesh)]
+         [ne (fem-mesh-num-elements mesh)])
+    ;; Find bounds
+    (define x-min +inf.0) (define x-max -inf.0)
+    (define y-min +inf.0) (define y-max -inf.0)
+    (do ([i 0 (+ i 1)])
+        ((= i n))
+      (let ([p (vector-ref nodes i)])
+        (set! x-min (min x-min (point2-x p)))
+        (set! x-max (max x-max (point2-x p)))
+        (set! y-min (min y-min (point2-y p)))
+        (set! y-max (max y-max (point2-y p)))))
+    ;; Add small padding to handle boundary points
+    (let* ([pad 1e-10]
+           [x-min (- x-min pad)] [x-max (+ x-max pad)]
+           [y-min (- y-min pad)] [y-max (+ y-max pad)]
+           [dx (/ (- x-max x-min) grid-size)]
+           [dy (/ (- y-max y-min) grid-size)]
+           ;; Grid cells: vector of lists of element indices
+           [grid (make-vector (* grid-size grid-size) '())])
+      ;; Insert each element into cells that its bounding box overlaps
+      (do ([e 0 (+ e 1)])
+          ((= e ne))
+        (let* ([pts (fem-mesh-element-nodes mesh e)]
+               [p1 (car pts)] [p2 (cadr pts)] [p3 (caddr pts)]
+               [ex-min (min (point2-x p1) (point2-x p2) (point2-x p3))]
+               [ex-max (max (point2-x p1) (point2-x p2) (point2-x p3))]
+               [ey-min (min (point2-y p1) (point2-y p2) (point2-y p3))]
+               [ey-max (max (point2-y p1) (point2-y p2) (point2-y p3))]
+               ;; Grid cell range
+               [ci-min (max 0 (inexact->exact (floor (/ (- ex-min x-min) dx))))]
+               [ci-max (min (- grid-size 1) (inexact->exact (floor (/ (- ex-max x-min) dx))))]
+               [cj-min (max 0 (inexact->exact (floor (/ (- ey-min y-min) dy))))]
+               [cj-max (min (- grid-size 1) (inexact->exact (floor (/ (- ey-max y-min) dy))))])
+          (do ([ci ci-min (+ ci 1)])
+              ((> ci ci-max))
+            (do ([cj cj-min (+ cj 1)])
+                ((> cj cj-max))
+              (let ([idx (+ (* cj grid-size) ci)])
+                (vector-set! grid idx (cons e (vector-ref grid idx))))))))
+      ;; Return index structure
+      (list 'fem-spatial-index mesh grid grid-size
+            x-min x-max y-min y-max dx dy))))
+
+(define (fem-spatial-index? idx) (and (pair? idx) (eq? (car idx) 'fem-spatial-index)))
+(define (fem-spatial-index-mesh idx) (list-ref idx 1))
+(define (fem-spatial-index-grid idx) (list-ref idx 2))
+(define (fem-spatial-index-grid-size idx) (list-ref idx 3))
+(define (fem-spatial-index-x-min idx) (list-ref idx 4))
+(define (fem-spatial-index-x-max idx) (list-ref idx 5))
+(define (fem-spatial-index-y-min idx) (list-ref idx 6))
+(define (fem-spatial-index-y-max idx) (list-ref idx 7))
+(define (fem-spatial-index-dx idx) (list-ref idx 8))
+(define (fem-spatial-index-dy idx) (list-ref idx 9))
+
+(doc fem-point-in-element? 'type '(-> FEMMesh Nat Number Number (Or #f (List Number Number Number))))
+(doc fem-point-in-element? 'description "Test if point is in element, return barycentric coords or #f")
+(define (fem-point-in-element? mesh e x y)
+  (let* ([pts (fem-mesh-element-nodes mesh e)]
+         [p1 (car pts)] [p2 (cadr pts)] [p3 (caddr pts)]
+         [area (element-area p1 p2 p3)]
+         [area1 (element-area (make-point2 x y) p2 p3)]
+         [area2 (element-area p1 (make-point2 x y) p3)]
+         [area3 (element-area p1 p2 (make-point2 x y))]
+         [l1 (/ area1 area)]
+         [l2 (/ area2 area)]
+         [l3 (/ area3 area)])
+    (if (and (>= l1 -1e-10) (>= l2 -1e-10) (>= l3 -1e-10))
+        (list l1 l2 l3)
+        #f)))
+
+(doc fem-locate-point 'type '(-> FEMSpatialIndex Number Number (Or #f (List Nat Number Number Number))))
+(doc fem-locate-point 'description "Find element containing point using spatial index, return (element l1 l2 l3) or #f")
+(define (fem-locate-point index x y)
+  (let* ([mesh (fem-spatial-index-mesh index)]
+         [grid (fem-spatial-index-grid index)]
+         [gs (fem-spatial-index-grid-size index)]
+         [x-min (fem-spatial-index-x-min index)]
+         [y-min (fem-spatial-index-y-min index)]
+         [dx (fem-spatial-index-dx index)]
+         [dy (fem-spatial-index-dy index)]
+         ;; Find grid cell
+         [ci (inexact->exact (floor (/ (- x x-min) dx)))]
+         [cj (inexact->exact (floor (/ (- y y-min) dy)))])
+    (if (or (< ci 0) (>= ci gs) (< cj 0) (>= cj gs))
+        #f  ; Outside grid
+        (let ([candidates (vector-ref grid (+ (* cj gs) ci))])
+          ;; Check each candidate element
+          (let loop ([elems candidates])
+            (if (null? elems)
+                #f
+                (let ([bary (fem-point-in-element? mesh (car elems) x y)])
+                  (if bary
+                      (cons (car elems) bary)
+                      (loop (cdr elems))))))))))
+
+(doc fem-solution-at-indexed 'type '(-> FEMSpatialIndex Vector Number Number Number))
+(doc fem-solution-at-indexed 'description "Interpolate FEM solution using spatial index (O(1) average)")
+(define (fem-solution-at-indexed index solution x y)
+  (let ([loc (fem-locate-point index x y)])
+    (if (not loc)
+        0.0  ; Point not in mesh
+        (let* ([e (car loc)]
+               [l1 (cadr loc)]
+               [l2 (caddr loc)]
+               [l3 (cadddr loc)]
+               [mesh (fem-spatial-index-mesh index)]
+               [elem (fem-mesh-element mesh e)]
+               [u1 (vector-ref solution (vector-ref elem 0))]
+               [u2 (vector-ref solution (vector-ref elem 1))]
+               [u3 (vector-ref solution (vector-ref elem 2))])
+          (+ (* l1 u1) (* l2 u2) (* l3 u3))))))
 
 ;;; ============================================================
 ;;; Section: Solution Visualization
@@ -517,37 +725,25 @@
 (doc 'section 'visualization)
 
 (doc fem-solution-at 'type '(-> FEMMesh Vector Number Number Number))
-(doc fem-solution-at 'description "Interpolate FEM solution at point (x,y)")
+(doc fem-solution-at 'description "Interpolate FEM solution at point (x,y) - O(N) linear search")
 (define (fem-solution-at mesh solution x y)
   ;; Find containing element and interpolate using basis functions
+  ;; NOTE: For repeated queries, use fem-solution-at-indexed instead
   (let ([ne (fem-mesh-num-elements mesh)])
     (let loop ([e 0])
       (if (= e ne)
           0.0  ; Point not in mesh
-          (let* ([pts (fem-mesh-element-nodes mesh e)]
-                 [p1 (car pts)]
-                 [p2 (cadr pts)]
-                 [p3 (caddr pts)]
-                 ;; Compute barycentric coordinates
-                 [area (element-area p1 p2 p3)]
-                 [area1 (element-area (make-point2 x y) p2 p3)]
-                 [area2 (element-area p1 (make-point2 x y) p3)]
-                 [area3 (element-area p1 p2 (make-point2 x y))]
-                 [l1 (/ area1 area)]
-                 [l2 (/ area2 area)]
-                 [l3 (/ area3 area)])
-            ;; Check if point is inside (all barycentric coords non-negative)
-            (if (and (>= l1 -1e-10) (>= l2 -1e-10) (>= l3 -1e-10))
-                ;; Interpolate
+          (let ([bary (fem-point-in-element? mesh e x y)])
+            (if bary
                 (let* ([elem (fem-mesh-element mesh e)]
                        [u1 (vector-ref solution (vector-ref elem 0))]
                        [u2 (vector-ref solution (vector-ref elem 1))]
                        [u3 (vector-ref solution (vector-ref elem 2))])
-                  (+ (* l1 u1) (* l2 u2) (* l3 u3)))
+                  (+ (* (car bary) u1) (* (cadr bary) u2) (* (caddr bary) u3)))
                 (loop (+ e 1))))))))
 
 (doc fem-render-solution 'type '(-> FEMMesh Vector Nat Nat String))
-(doc fem-render-solution 'description "Render FEM solution as ASCII heatmap")
+(doc fem-render-solution 'description "Render FEM solution as ASCII heatmap (uses spatial index)")
 (define (fem-render-solution mesh solution width height)
   (let* ([nodes (fem-mesh-nodes mesh)]
          [n (fem-mesh-num-nodes mesh)]
@@ -569,7 +765,10 @@
                       (loop (+ i 1) (max m (vector-ref solution i)))))]
          [u-range (max 1e-10 (- u-max u-min))]
          [chars " ░▒▓█"]
-         [nchars (string-length chars)])
+         [nchars (string-length chars)]
+         ;; Build spatial index for O(1) point location instead of O(N)
+         [grid-size (max 10 (inexact->exact (ceiling (sqrt (fem-mesh-num-elements mesh)))))]
+         [index (make-fem-spatial-index mesh grid-size)])
     (let loop-y ([j 0] [lines '()])
       (if (= j height)
           (apply string-append (reverse lines))
@@ -578,7 +777,8 @@
               (if (= i width)
                   (loop-y (+ j 1) (cons (string-append (list->string (reverse row)) "\n") lines))
                   (let* ([x (+ x-min (* (- x-max x-min) (/ i (- width 1))))]
-                         [u (fem-solution-at mesh solution x y)]
+                         ;; Use indexed lookup: O(1) instead of O(N)
+                         [u (fem-solution-at-indexed index solution x y)]
                          [level (min (- nchars 1)
                                      (max 0 (inexact->exact
                                              (floor (* nchars (/ (- u u-min) u-range))))))])
