@@ -164,6 +164,8 @@
     cotangent->1-form 1-form->cotangent
     ;; Arithmetic
     k-form-add k-form-sub k-form-scale k-form-negate
+    ;; Chart change
+    k-form-change-chart
     ;; Wedge product
     wedge wedge*
     ;; Interior product

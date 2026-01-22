@@ -344,6 +344,65 @@
   (k-form-scale -1 kf))
 
 ;;; ============================================================================
+;;; Chart Change for k-Forms
+;;; ============================================================================
+
+(doc 'section 'k-form-chart-change)
+(doc 'note "k-form components transform via the k-th exterior power of the inverse Jacobian")
+(doc 'note "ω'_J = Σ_I ω_I det(J⁻¹_{I,J}) where J⁻¹ is the Jacobian of transition new→old")
+
+(doc k-form-change-chart 'type '(-> KForm Chart KForm))
+(doc k-form-change-chart 'description "Express a k-form in a different chart")
+(define (k-form-change-chart kf new-chart)
+  (doc 'export #t)
+  (let* ([point (k-form-point kf)]
+         [old-chart (k-form-chart kf)]
+         [k (k-form-degree kf)]
+         [old-comps (k-form-components kf)])
+    (cond
+     [(not (chart-contains? new-chart point))
+      `(error point-not-in-target-chart ,(chart-name new-chart))]
+     [(eq? (chart-name old-chart) (chart-name new-chart))
+      kf]  ; Same chart, no transformation needed
+     [(= k 0)
+      ;; 0-forms (scalars) don't transform
+      (make-k-form point new-chart 0 old-comps)]
+     [else
+      (let* ([n (chart-dim old-chart)]
+             ;; J⁻¹ = Jacobian of transition from new-chart to old-chart
+             ;; This is the "inverse" because tangent vectors transform with J,
+             ;; and covectors (like 1-forms) transform with J⁻¹ᵀ
+             [new-coords (chart-apply new-chart point)]
+             [J-inv (transition-jacobian new-chart old-chart new-coords)]
+             ;; Transform components: ω'_J = Σ_I ω_I det(J⁻¹_{I,J})
+             [indices-k (generate-multi-indices n k)]
+             [num-k (binomial n k)]
+             [new-comps (make-vector num-k 0)])
+        (for-each
+         (lambda (idx-J)
+           (let ([offset-J (multi-index->offset n idx-J)]
+                 [sum 0])
+             (for-each
+              (lambda (idx-I)
+                (let ([omega-I (vector-ref old-comps (multi-index->offset n idx-I))])
+                  (when (not (= omega-I 0))
+                    ;; Build k×k submatrix J⁻¹_{I,J}: rows from I, cols from J
+                    (let ([submat (make-matrix k k 0)])
+                      (do ([row 0 (+ row 1)])
+                          ((= row k))
+                          (let ([i (list-ref idx-I row)])
+                            (do ([col 0 (+ col 1)])
+                                ((= col k))
+                                (let ([j (list-ref idx-J col)])
+                                  (matrix-set! submat row col (matrix-ref J-inv i j))))))
+                      (let ([det (matrix-det-small submat)])
+                        (set! sum (+ sum (* omega-I det))))))))
+              indices-k)
+             (vector-set! new-comps offset-J sum)))
+         indices-k)
+        (make-k-form point new-chart k new-comps))])))
+
+;;; ============================================================================
 ;;; Wedge Product
 ;;; ============================================================================
 
@@ -511,11 +570,14 @@
               (let ([cj (vector-ref coords j)])
                 (vector-set! coords-plus j (+ cj eps))
                 (vector-set! coords-minus j (- cj eps)))
-              ;; Evaluate form at perturbed points
+              ;; Evaluate form at perturbed points and transform to target chart
               (let* ([p-plus (chart-apply-inverse chart coords-plus)]
                      [p-minus (chart-apply-inverse chart coords-minus)]
-                     [omega-plus (omega-field p-plus)]
-                     [omega-minus (omega-field p-minus)]
+                     [omega-plus-raw (omega-field p-plus)]
+                     [omega-minus-raw (omega-field p-minus)]
+                     ;; Transform to target chart if needed (fixes chart mismatch)
+                     [omega-plus (k-form-change-chart omega-plus-raw chart)]
+                     [omega-minus (k-form-change-chart omega-minus-raw chart)]
                      [comps-plus (k-form-components omega-plus)]
                      [comps-minus (k-form-components omega-minus)])
                 ;; For each basis k-form dx^I, compute ∂ω_I/∂x^j and add dx^j ∧ dx^I
@@ -678,46 +740,49 @@
 (define (pullback-k-form f kf source-point source-chart target-chart . epsilon-arg)
   (doc 'export #t)
   (let* ([eps (if (null? epsilon-arg) *jacobian-epsilon* (car epsilon-arg))]
-         [k (k-form-degree kf)]
-         [n-source (chart-dim source-chart)]
-         [n-target (chart-dim target-chart)]
-         [source-coords (chart-apply source-chart source-point)]
-         ;; Compute Jacobian of f
-         [J (jacobian-numerical f source-coords eps)]
-         ;; Pullback transforms components using exterior power of J^T
-         [kf-comps (k-form-components kf)])
-    (if (> k n-source)
-        ;; If k > source dimension, pullback is zero
-        (k-form-zero source-point source-chart k)
-        (let* ([indices-k-source (generate-multi-indices n-source k)]
-               [indices-k-target (generate-multi-indices n-target k)]
-               [num-source (binomial n-source k)]
-               [result (make-vector num-source 0)])
-          ;; (f*ω)_I = Σ_J ω_J det(J^T_{I,J}) = Σ_J ω_J det(J_{J,I})
-          ;; where J_{J,I} is the k×k submatrix with rows J and columns I
-          (for-each
-           (lambda (idx-I)
-             (let ([offset-I (multi-index->offset n-source idx-I)]
-                   [sum 0])
-               (for-each
-                (lambda (idx-J)
-                  (let ([omega-J (vector-ref kf-comps (multi-index->offset n-target idx-J))])
-                    (when (not (= omega-J 0))
-                      ;; Build k×k submatrix J_{J,I}
-                      (let ([submat (make-matrix k k 0)])
-                        (do ([row 0 (+ row 1)])
-                            ((= row k))
-                            (let ([j (list-ref idx-J row)])
-                              (do ([col 0 (+ col 1)])
-                                  ((= col k))
-                                  (let ([i (list-ref idx-I col)])
-                                    (matrix-set! submat row col (matrix-ref J j i))))))
-                        (let ([det (matrix-det-small submat)])
-                          (set! sum (+ sum (* omega-J det))))))))
-                indices-k-target)
-               (vector-set! result offset-I sum)))
-           indices-k-source)
-          (make-k-form source-point source-chart k result)))))
+         [k (k-form-degree kf)])
+    ;; Special case: 0-forms (scalars) pull back trivially
+    (if (= k 0)
+        (make-k-form source-point source-chart 0 (k-form-components kf))
+        (let* ([n-source (chart-dim source-chart)]
+               [n-target (chart-dim target-chart)]
+               [source-coords (chart-apply source-chart source-point)]
+               ;; Compute Jacobian of f
+               [J (jacobian-numerical f source-coords eps)]
+               ;; Pullback transforms components using exterior power of J^T
+               [kf-comps (k-form-components kf)])
+          (if (> k n-source)
+              ;; If k > source dimension, pullback is zero
+              (k-form-zero source-point source-chart k)
+              (let* ([indices-k-source (generate-multi-indices n-source k)]
+                     [indices-k-target (generate-multi-indices n-target k)]
+                     [num-source (binomial n-source k)]
+                     [result (make-vector num-source 0)])
+                ;; (f*ω)_I = Σ_J ω_J det(J^T_{I,J}) = Σ_J ω_J det(J_{J,I})
+                ;; where J_{J,I} is the k×k submatrix with rows J and columns I
+                (for-each
+                 (lambda (idx-I)
+                   (let ([offset-I (multi-index->offset n-source idx-I)]
+                         [sum 0])
+                     (for-each
+                      (lambda (idx-J)
+                        (let ([omega-J (vector-ref kf-comps (multi-index->offset n-target idx-J))])
+                          (when (not (= omega-J 0))
+                            ;; Build k×k submatrix J_{J,I}
+                            (let ([submat (make-matrix k k 0)])
+                              (do ([row 0 (+ row 1)])
+                                  ((= row k))
+                                  (let ([j (list-ref idx-J row)])
+                                    (do ([col 0 (+ col 1)])
+                                        ((= col k))
+                                        (let ([i (list-ref idx-I col)])
+                                          (matrix-set! submat row col (matrix-ref J j i))))))
+                              (let ([det (matrix-det-small submat)])
+                                (set! sum (+ sum (* omega-J det))))))))
+                      indices-k-target)
+                     (vector-set! result offset-I sum)))
+                 indices-k-source)
+                (make-k-form source-point source-chart k result)))))))
 
 ;;; ============================================================================
 ;;; Hodge Star (for metrics)
@@ -822,11 +887,12 @@
 (doc integrate-2-form-surface 'param "sigma: (u,v) → point (surface parameterization)")
 (doc integrate-2-form-surface 'param "u0, u1, v0, v1: parameter ranges")
 (doc integrate-2-form-surface 'param "u-steps, v-steps: integration resolution")
-(define (integrate-2-form-surface omega-field sigma u0 u1 v0 v1 u-steps v-steps)
+(doc integrate-2-form-surface 'param "epsilon: optional step size for numerical differentiation")
+(define (integrate-2-form-surface omega-field sigma u0 u1 v0 v1 u-steps v-steps . epsilon-arg)
   (doc 'export #t)
   (let* ([du (/ (- u1 u0) u-steps)]
          [dv (/ (- v1 v0) v-steps)]
-         [eps 1e-6]
+         [eps (if (null? epsilon-arg) *jacobian-epsilon* (car epsilon-arg))]
          [result 0])
     (do ([i 0 (+ i 1)])
         ((= i u-steps) result)
@@ -880,6 +946,7 @@
 (printf "    (make-k-form point chart degree components)\n")
 (printf "    (k-form-basis point chart multi-index)  - basis form dx^I\n")
 (printf "    (cotangent->1-form cv)                  - 1-form from cotangent\n")
+(printf "    (k-form-change-chart kf new-chart)      - express in different chart\n")
 (printf "  Wedge Product:\n")
 (printf "    (wedge α β)                            - α ∧ β\n")
 (printf "    (wedge* α β γ ...)                     - multiple wedge\n")

@@ -387,6 +387,129 @@
       (assert-equal 1 (vector-ref comps 0)))))
 
 ;;; ============================================================================
+;;; Pullback Tests
+;;; ============================================================================
+
+(test-group "pullback-k-form"
+  (define-test "pullback of 0-form (unchanged)"
+    ;; f*(g) = g ∘ f for a 0-form (scalar)
+    (let* ([f0 (make-k-form p2 cart2 0 (vector 5.0))]
+           ;; Identity map
+           [f (lambda (v) v)]
+           [pulled (pullback-k-form f f0 p2 cart2 cart2)])
+      (assert-equal 0 (k-form-degree pulled))
+      (assert-equal 5.0 (vector-ref (k-form-components pulled) 0))))
+
+  (define-test "pullback through scaling: f*(dx∧dy) with f(x,y)=(2x,3y)"
+    ;; If f(x,y) = (2x, 3y), then Jacobian = diag(2,3), det = 6
+    ;; f*(dx∧dy) = 6 dx∧dy (scaled by Jacobian determinant)
+    (let* ([target-point (vector 1.0 1.0)]
+           [f (lambda (v) (vector (* 2 (vector-ref v 0))
+                                   (* 3 (vector-ref v 1))))]
+           ;; Target 2-form: dx∧dy at f(1,1) = (2,3)
+           [target-p (f target-point)]
+           [dx-dy (k-form-basis target-p cart2 '(0 1))]
+           ;; Pullback to source
+           [pulled (pullback-k-form f dx-dy target-point cart2 cart2)])
+      (assert-equal 2 (k-form-degree pulled))
+      ;; Coefficient should be det(J) = 2*3 = 6
+      (assert-true (< (abs (- (vector-ref (k-form-components pulled) 0) 6)) 1e-4))))
+
+  (define-test "pullback of 1-form through linear map"
+    ;; f(x,y) = (x+y, x-y), J = [[1,1],[1,-1]]
+    ;; f*(dx) = dx + dy (first row of J)
+    (let* ([f (lambda (v) (vector (+ (vector-ref v 0) (vector-ref v 1))
+                                   (- (vector-ref v 0) (vector-ref v 1))))]
+           [source-p (vector 1.0 1.0)]
+           [target-p (f source-p)]  ; = (2, 0)
+           [dx (k-form-basis target-p cart2 '(0))]
+           [pulled (pullback-k-form f dx source-p cart2 cart2)])
+      (assert-equal 1 (k-form-degree pulled))
+      ;; f*(dx) should have components (1, 1) for dx+dy
+      (let ([comps (k-form-components pulled)])
+        (assert-true (< (abs (- (vector-ref comps 0) 1)) 1e-4))
+        (assert-true (< (abs (- (vector-ref comps 1) 1)) 1e-4))))))
+
+;;; ============================================================================
+;;; Surface Integration Tests
+;;; ============================================================================
+
+(test-group "integrate-2-form-surface"
+  (define-test "area of unit disk using surface integral"
+    ;; Integrate the area 2-form dx∧dy over unit disk
+    ;; Parameterization: σ(r,θ) = (r cos θ, r sin θ) for r ∈ [0,1], θ ∈ [0,2π]
+    ;; ∫∫ dx∧dy = π (area of unit disk)
+    (let* ([pi 3.141592653589793]
+           [omega-field (lambda (p) (k-form-basis p cart2 '(0 1)))]
+           [sigma (lambda (r theta)
+                    (vector (* r (cos theta))
+                            (* r (sin theta))))]
+           ;; Use modest resolution for speed
+           [integral (integrate-2-form-surface omega-field sigma 0 1 0 (* 2 pi) 20 40)])
+      ;; Should be approximately π ≈ 3.14
+      (assert-true (< (abs (- integral pi)) 0.1))))
+
+  (define-test "area of rectangle using surface integral"
+    ;; Integrate dx∧dy over [0,2] × [0,3] = area 6
+    ;; Parameterization: σ(u,v) = (u, v) for u ∈ [0,2], v ∈ [0,3]
+    (let* ([omega-field (lambda (p) (k-form-basis p cart2 '(0 1)))]
+           [sigma (lambda (u v) (vector u v))]
+           [integral (integrate-2-form-surface omega-field sigma 0 2 0 3 10 10)])
+      ;; Should be exactly 6 (for identity parameterization)
+      (assert-true (< (abs (- integral 6)) 0.01)))))
+
+;;; ============================================================================
+;;; k-Form Chart Change Tests
+;;; ============================================================================
+
+;; Setup polar chart for chart change tests
+(define polar
+  (let* ([is-valid? (lambda (p)
+                      (let ([r (vector-ref p 0)]
+                            [theta (vector-ref p 1)])
+                        (and (> r 0)
+                             (>= theta 0)
+                             (< theta (* 2 3.141592653589793)))))]
+         [to-cart (lambda (p)
+                    (let ([r (vector-ref p 0)]
+                          [theta (vector-ref p 1)])
+                      (vector (* r (cos theta))
+                              (* r (sin theta)))))]
+         [to-polar (lambda (p)
+                     (let ([x (vector-ref p 0)]
+                           [y (vector-ref p 1)])
+                       (vector (sqrt (+ (* x x) (* y y)))
+                               (atan y x))))])
+    (make-chart 'polar 2 is-valid? to-cart to-polar)))
+
+(test-group "k-form-change-chart"
+  (define-test "0-form doesn't change under chart change"
+    (let* ([p (vector 1.0 1.0)]  ; Cartesian point (1,1)
+           [f0-cart (make-k-form p cart2 0 (vector 42.0))]
+           [f0-polar (k-form-change-chart f0-cart polar)])
+      (assert-equal 0 (k-form-degree f0-polar))
+      (assert-equal 42.0 (vector-ref (k-form-components f0-polar) 0))))
+
+  (define-test "same chart returns same form"
+    (let* ([p (vector 1.0 2.0)]
+           [omega (make-k-form p cart2 1 (vector 3.0 4.0))]
+           [omega2 (k-form-change-chart omega cart2)])
+      ;; Should return the exact same form
+      (assert-equal (k-form-components omega) (k-form-components omega2))))
+
+  (define-test "1-form chart change (cartesian to polar)"
+    ;; At point (1, 0), dx in cartesian = dr in polar (since θ=0)
+    ;; This tests that the Jacobian transformation is applied correctly
+    (let* ([p (vector 1.0 0.0)]  ; Point on positive x-axis
+           [dx-cart (k-form-basis p cart2 '(0))]  ; dx
+           [dx-polar (k-form-change-chart dx-cart polar)]
+           [comps (k-form-components dx-polar)])
+      (assert-equal 1 (k-form-degree dx-polar))
+      ;; At (r=1, θ=0): dx = dr (first component ~1, second ~0)
+      (assert-true (< (abs (- (vector-ref comps 0) 1)) 0.01))
+      (assert-true (< (abs (vector-ref comps 1)) 0.01)))))
+
+;;; ============================================================================
 ;;; Run All Tests
 ;;; ============================================================================
 
