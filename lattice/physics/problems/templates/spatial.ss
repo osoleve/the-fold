@@ -154,7 +154,7 @@
 (define count-params
   (make-param-set
    (list (range-int 'n 2 6)          ; number of objects
-         (range 'spread 5.0 15.0))   ; how spread out
+         (range 'spread 4.0 8.0))    ; how spread out (limited to keep all visible)
    (lambda (_) #t)))                 ; no constraint
 
 ;;; count-setup : Alist → World
@@ -211,39 +211,48 @@
 (doc 'section 'position)
 
 ;;; position-params : ParamSet
+;;; Note: x-left and x-right define positions, swap determines assignment
 (define position-params
   (make-param-set
-   (list (range 'x1 -15.0 -2.0)   ; Ball A always on left
-         (range 'x2 2.0 15.0)     ; Ball B always on right
+   (list (range 'x-left -15.0 -3.0)   ; left position
+         (range 'x-right 3.0 15.0)    ; right position
          (range 'y1 2.0 18.0)
          (range 'y2 2.0 18.0)
-         (range 'r 1.5 2.5))
+         (range 'r 1.5 2.5)
+         (range-int 'swap 0 1))       ; 0: A=left, B=right; 1: A=right, B=left
    ;; Constraint: positions should be sufficiently distinct
    (lambda (params)
-     (let ([x1 (cdr (assq 'x1 params))]
-           [x2 (cdr (assq 'x2 params))])
-       (> (- x2 x1) 5.0)))))
+     (let ([xl (cdr (assq 'x-left params))]
+           [xr (cdr (assq 'x-right params))])
+       (> (- xr xl) 5.0)))))
 
 ;;; position-setup : Alist → World
 (define (position-setup params)
-  (let ([x1 (cdr (assq 'x1 params))]
-        [x2 (cdr (assq 'x2 params))]
-        [y1 (cdr (assq 'y1 params))]
-        [y2 (cdr (assq 'y2 params))]
-        [r (cdr (assq 'r params))])
+  (let* ([xl (cdr (assq 'x-left params))]
+         [xr (cdr (assq 'x-right params))]
+         [y1 (cdr (assq 'y1 params))]
+         [y2 (cdr (assq 'y2 params))]
+         [r (cdr (assq 'r params))]
+         [swap? (= 1 (cdr (assq 'swap params)))]
+         ;; Assign positions based on swap
+         [xa (if swap? xr xl)]
+         [xb (if swap? xl xr)])
     (setup-no-gravity-world
-     (list (make-ball 'ball-a (vec2 x1 y1) r 1.0 (vec2 0 0))
-           (make-ball 'ball-b (vec2 x2 y2) r 1.0 (vec2 0 0))))))
+     (list (make-ball 'ball-a (vec2 xa y1) r 1.0 (vec2 0 0))
+           (make-ball 'ball-b (vec2 xb y2) r 1.0 (vec2 0 0))))))
 
 ;;; position-question : Alist → String
 (define (position-question params)
-  "Which ball is further to the right? Ball A is on the left side of the frame, Ball B is on the right.")
+  "Two balls (A and B) are shown. Which ball is further to the right?")
 
 ;;; position-answer : World × World × Alist → Symbol
 (define (position-answer initial-world final-world params)
-  (let ([x1 (cdr (assq 'x1 params))]
-        [x2 (cdr (assq 'x2 params))])
-    (if (> x2 x1) 'B 'A)))
+  (let* ([xl (cdr (assq 'x-left params))]
+         [xr (cdr (assq 'x-right params))]
+         [swap? (= 1 (cdr (assq 'swap params)))]
+         [xa (if swap? xr xl)]
+         [xb (if swap? xl xr)])
+    (if (> xa xb) 'A 'B)))
 
 ;;; position-problem : PhysicsProblem
 (doc position-problem 'export #t)

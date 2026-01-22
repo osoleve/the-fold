@@ -4,6 +4,7 @@
 
 (load "core/base/prelude.ss")
 (load "lattice/fp/optics/optics.ss")
+(load "lattice/dataset/parameter.ss")  ; for prng-next-int
 
 (doc 'module 'sample)
 (doc 'description "Sample record type for visual reasoning datasets. Questions and answers are defined as lenses into simulation state, ensuring ground truth consistency by construction.")
@@ -265,28 +266,29 @@
   (let ([pair (assq label opts)])
     (and pair (cdr pair))))
 
-;;; fisher-yates-shuffle : (List a) → (List a)
+;;; fisher-yates-shuffle : (List a) × RNG → (List a)
 ;;; Proper Fisher-Yates shuffle using mutation on a vector
-(define (fisher-yates-shuffle lst)
+;;; RNG must be a mutable RNG (from make-prng)
+(define (fisher-yates-shuffle lst rng)
   (let* ([v (list->vector lst)]
          [n (vector-length v)])
     (let loop ([i (- n 1)])
       (when (> i 0)
-        (let* ([j (random (+ i 1))]
+        (let* ([j (prng-next-int rng (+ i 1))]
                [tmp (vector-ref v i)])
           (vector-set! v i (vector-ref v j))
           (vector-set! v j tmp)
           (loop (- i 1)))))
     (vector->list v)))
 
-;;; shuffle-options : (List Option) × Symbol → (List Option) × Symbol
+;;; shuffle-options : (List Option) × Symbol × RNG → (List Option) × Symbol
 ;;; Shuffle options while tracking which one is correct.
 ;;; Returns (shuffled-options . new-correct-label)
-(define (shuffle-options opts correct-label)
+(define (shuffle-options opts correct-label rng)
   (doc 'export #t)
   (let* ([correct-text (option-by-label opts correct-label)]
          [texts (map cdr opts)]
-         [shuffled (fisher-yates-shuffle texts)]
+         [shuffled (fisher-yates-shuffle texts rng)]
          [labels '(A B C D)]
          [new-opts (map cons labels shuffled)]
          [new-label (car (filter (lambda (o) (string=? (cdr o) correct-text)) new-opts))])

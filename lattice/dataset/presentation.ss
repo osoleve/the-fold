@@ -420,15 +420,24 @@
 ;;; Word problem with context, frames, and question
 (define (layout-word-problem context frames question width)
   (doc 'export #t)
-  (let ([frame-height (count-lines (car frames))])
-    (layout-vstack
-     (list
-      (text context width)
-      (gap 1)
+  (if (null? frames)
+      ;; Handle empty frames gracefully
       (layout-vstack
-       (map (lambda (f) (frame f width frame-height)) frames))
-      (gap 1)
-      (text question width)))))
+       (list
+        (text context width)
+        (gap 1)
+        (text "[No frames available]" width)
+        (gap 1)
+        (text question width)))
+      (let ([frame-height (count-lines (car frames))])
+        (layout-vstack
+         (list
+          (text context width)
+          (gap 1)
+          (layout-vstack
+           (map (lambda (f) (frame f width frame-height)) frames))
+          (gap 1)
+          (text question width))))))
 
 ;;; layout-visual-only : (List String) × String × Nat × Nat → Layout
 ;;; Visual-only problem (no explicit parameters)

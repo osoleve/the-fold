@@ -109,12 +109,15 @@
             [result (make-symbolic-options correct-answer all-choices rng)])
        (car result))]
 
-    ;; Default: simple A/B/C/D with correct as A
+    ;; Default: simple A/B/C/D with shuffled positions
     [else
-     (list (cons 'A (format-answer correct-answer))
-           (cons 'B "Not enough information")
-           (cons 'C "Cannot determine")
-           (cons 'D "None of the above"))]))
+     (let* ([texts (list (format-answer correct-answer)
+                         "Not enough information"
+                         "Cannot determine"
+                         "None of the above")]
+            [shuffled (shuffle-list texts rng)]
+            [labels '(A B C D)])
+       (map cons labels shuffled))]))
 
 ;;; find-correct-label : (List (Symbol . String)) × Any → Symbol
 ;;; Find which option label corresponds to correct answer

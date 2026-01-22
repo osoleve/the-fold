@@ -178,7 +178,10 @@
      (json-string-escape v)]
 
     [(number? v)
-     (number->string (exact->inexact v))]
+     ;; Preserve integer vs float distinction
+     (if (and (exact? v) (integer? v))
+         (number->string v)
+         (number->string (exact->inexact v)))]
 
     [(boolean? v)
      (if v "true" "false")]
@@ -227,12 +230,14 @@
 
 ;;; samples->jsonl : (List Sample) → String
 ;;; Convert samples to JSONL (one JSON object per line)
+;;; Uses iterative join to handle large datasets (avoids apply limit)
 (define (samples->jsonl samples)
   (doc 'export #t)
-  (apply string-append
-         (map (lambda (s)
-               (string-append (json->string (sample->json s)) "\n"))
-             samples)))
+  (join-strings
+   (map (lambda (s)
+          (string-append (json->string (sample->json s)) "\n"))
+        samples)
+   ""))
 
 ;;; sample->jsonl-line : Sample → String
 ;;; Convert single sample to JSONL line
@@ -265,10 +270,11 @@
 ;;; Convert samples to prompt JSONL format
 (define (samples->prompt-jsonl samples)
   (doc 'export #t)
-  (apply string-append
-         (map (lambda (s)
-               (string-append (json->string (sample->prompt-json s)) "\n"))
-             samples)))
+  (join-strings
+   (map (lambda (s)
+          (string-append (json->string (sample->prompt-json s)) "\n"))
+        samples)
+   ""))
 
 ;;; ============================================================
 ;;; Part 7: OpenAI-Compatible Format
@@ -296,7 +302,8 @@
 ;;; Convert samples to OpenAI fine-tuning JSONL
 (define (samples->openai-jsonl samples)
   (doc 'export #t)
-  (apply string-append
-         (map (lambda (s)
-               (string-append (json->string (sample->openai-json s)) "\n"))
-             samples)))
+  (join-strings
+   (map (lambda (s)
+          (string-append (json->string (sample->openai-json s)) "\n"))
+        samples)
+   ""))

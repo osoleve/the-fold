@@ -93,11 +93,11 @@
       (assert-equal 4 (count-answer #f #f params))))
 
   (define-test "position answer computes correctly"
-    (let ([params1 '((x1 . -10.0) (x2 . 10.0) (y1 . 5.0) (y2 . 5.0) (r . 2.0))]
-          [params2 '((x1 . 10.0) (x2 . -10.0) (y1 . 5.0) (y2 . 5.0) (r . 2.0))])
-      ;; B is further right
-      (assert-equal 'B (position-answer #f #f params1))
-      ;; A is further right
+    ;; swap=0: A=left, B=right -> B is further right
+    (let ([params1 '((x-left . -10.0) (x-right . 10.0) (y1 . 5.0) (y2 . 5.0) (r . 2.0) (swap . 0))])
+      (assert-equal 'B (position-answer #f #f params1)))
+    ;; swap=1: A=right, B=left -> A is further right
+    (let ([params2 '((x-left . -10.0) (x-right . 10.0) (y1 . 5.0) (y2 . 5.0) (r . 2.0) (swap . 1))])
       (assert-equal 'A (position-answer #f #f params2)))))
 
 ;;; ============================================================
