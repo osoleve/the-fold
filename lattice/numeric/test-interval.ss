@@ -451,6 +451,299 @@
         (assert-true (interval-contains? quot-iv (/ x y)))))))
 
 ;;; ============================================================================
+;;; Tightness Tests
+;;; ============================================================================
+;;;
+;;; These tests verify bounds quality, not just soundness. For monotonic functions
+;;; over an interval [a,b], the true range is exactly [f(a),f(b)] (or reversed
+;;; for decreasing functions). The computed interval should match exactly or
+;;; be very close. Non-monotonic functions need more careful analysis.
+
+(test-group "tightness-basic"
+  ;; Helper: compute overestimation ratio
+  ;; For computed [lo,hi] vs true range [true-lo, true-hi]:
+  ;; ratio = computed_width / true_width (1.0 = perfect)
+
+  (define-test "sqrt tightness: exact for positive intervals"
+    ;; sqrt is monotonically increasing, so bounds should be exact
+    (let* ([a 4.0] [b 9.0]
+           [iv (interval-sqrt (interval a b))]
+           [true-lo (sqrt a)]
+           [true-hi (sqrt b)])
+      (assert-true (< (abs (- (interval-lo iv) true-lo)) 1e-10)
+                   "sqrt lower bound should be exact")
+      (assert-true (< (abs (- (interval-hi iv) true-hi)) 1e-10)
+                   "sqrt upper bound should be exact")))
+
+  (define-test "exp tightness: exact for finite intervals"
+    ;; exp is monotonically increasing
+    (let* ([a 0.0] [b 2.0]
+           [iv (interval-exp (interval a b))]
+           [true-lo (exp a)]
+           [true-hi (exp b)])
+      (assert-true (< (abs (- (interval-lo iv) true-lo)) 1e-10)
+                   "exp lower bound should be exact")
+      (assert-true (< (abs (- (interval-hi iv) true-hi)) 1e-10)
+                   "exp upper bound should be exact")))
+
+  (define-test "log tightness: exact for positive intervals"
+    ;; log is monotonically increasing on (0, inf)
+    (let* ([a 1.0] [b (exp 2)]
+           [iv (interval-log (interval a b))]
+           [true-lo (log a)]
+           [true-hi (log b)])
+      (assert-true (< (abs (- (interval-lo iv) true-lo)) 1e-10)
+                   "log lower bound should be exact")
+      (assert-true (< (abs (- (interval-hi iv) true-hi)) 1e-10)
+                   "log upper bound should be exact")))
+
+  (define-test "neg tightness: exact"
+    ;; negation is exact
+    (let* ([a -3.0] [b 5.0]
+           [iv (interval-neg (interval a b))])
+      (assert-equal -5.0 (interval-lo iv))
+      (assert-equal 3.0 (interval-hi iv))))
+
+  (define-test "abs tightness: exact"
+    ;; abs is exact for intervals not crossing zero
+    (let ([iv (interval-abs (interval 2 5))])
+      (assert-equal 2 (interval-lo iv))
+      (assert-equal 5 (interval-hi iv)))
+    ;; Crossing zero: [0, max(|lo|,|hi|)]
+    (let ([iv (interval-abs (interval -3 5))])
+      (assert-equal 0 (interval-lo iv))
+      (assert-equal 5 (interval-hi iv)))))
+
+(test-group "tightness-trigonometric"
+  ;; Trig functions are non-monotonic but have known ranges
+
+  (define-test "sin tightness: small interval not containing extrema"
+    ;; For [0, 1] rad, sin is monotonically increasing
+    ;; True range is [sin(0), sin(1)] = [0, 0.8414...]
+    (let* ([a 0.0] [b 1.0]
+           [iv (interval-sin (interval a b))]
+           [true-lo (sin a)]
+           [true-hi (sin b)])
+      (assert-true (< (abs (- (interval-lo iv) true-lo)) 1e-10)
+                   "sin lower bound should be exact on [0,1]")
+      (assert-true (< (abs (- (interval-hi iv) true-hi)) 1e-10)
+                   "sin upper bound should be exact on [0,1]")))
+
+  (define-test "sin tightness: interval containing maximum"
+    ;; For [0, pi] rad, sin has maximum at pi/2
+    ;; True range is [min(0, 0), 1] = [0, 1]
+    (let* ([pi 3.141592653589793]
+           [iv (interval-sin (interval 0 pi))])
+      (assert-true (< (abs (interval-lo iv)) 1e-10)
+                   "sin lower bound should be ~0 on [0,pi]")
+      (assert-true (< (abs (- (interval-hi iv) 1.0)) 1e-10)
+                   "sin upper bound should be 1 on [0,pi]")))
+
+  (define-test "cos tightness: small interval not containing extrema"
+    ;; For [0.5, 1.5] rad, cos is monotonically decreasing
+    ;; True range is [cos(1.5), cos(0.5)]
+    (let* ([a 0.5] [b 1.5]
+           [iv (interval-cos (interval a b))]
+           [true-lo (cos b)]  ; cos is decreasing
+           [true-hi (cos a)])
+      (assert-true (< (abs (- (interval-lo iv) true-lo)) 1e-10)
+                   "cos lower bound should match cos(1.5)")
+      (assert-true (< (abs (- (interval-hi iv) true-hi)) 1e-10)
+                   "cos upper bound should match cos(0.5)")))
+
+  (define-test "cos tightness: interval containing minimum"
+    ;; For [2, 4] rad (contains pi ≈ 3.14), cos has minimum at pi
+    ;; True range is [-1, max(cos(2), cos(4))]
+    (let* ([iv (interval-cos (interval 2 4))])
+      (assert-true (< (abs (+ (interval-lo iv) 1.0)) 1e-10)
+                   "cos lower bound should be -1 on [2,4]")))
+
+  (define-test "tan tightness: within single branch"
+    ;; For [-1, 1] rad (within -pi/2 to pi/2), tan is monotonic
+    (let* ([a -1.0] [b 1.0]
+           [iv (interval-tan (interval a b))]
+           [true-lo (tan a)]
+           [true-hi (tan b)])
+      (assert-true (< (abs (- (interval-lo iv) true-lo)) 1e-10)
+                   "tan lower bound should be exact on [-1,1]")
+      (assert-true (< (abs (- (interval-hi iv) true-hi)) 1e-10)
+                   "tan upper bound should be exact on [-1,1]"))))
+
+(test-group "tightness-hyperbolic"
+  (define-test "sinh tightness: exact (monotonic)"
+    ;; sinh is monotonically increasing
+    (let* ([a -1.0] [b 2.0]
+           [iv (interval-sinh (interval a b))]
+           [true-lo (sinh a)]
+           [true-hi (sinh b)]
+           [tolerance 1e-10])
+      (assert-true (< (abs (- (interval-lo iv) true-lo)) tolerance)
+                   "sinh lower bound should be exact")
+      (assert-true (< (abs (- (interval-hi iv) true-hi)) tolerance)
+                   "sinh upper bound should be exact")))
+
+  (define-test "cosh tightness: positive interval"
+    ;; cosh is increasing for x > 0
+    (let* ([a 1.0] [b 3.0]
+           [iv (interval-cosh (interval a b))]
+           [true-lo (cosh a)]
+           [true-hi (cosh b)]
+           [tolerance 1e-10])
+      (assert-true (< (abs (- (interval-lo iv) true-lo)) tolerance)
+                   "cosh lower bound should be exact for positive interval")
+      (assert-true (< (abs (- (interval-hi iv) true-hi)) tolerance)
+                   "cosh upper bound should be exact for positive interval")))
+
+  (define-test "cosh tightness: interval crossing zero"
+    ;; cosh has minimum at 0, so [lo, hi] → [1, max(cosh(lo), cosh(hi))]
+    (let* ([a -2.0] [b 1.0]
+           [iv (interval-cosh (interval a b))]
+           [true-lo 1.0]  ; cosh(0) = 1
+           [true-hi (max (cosh a) (cosh b))]
+           [tolerance 1e-10])
+      (assert-true (< (abs (- (interval-lo iv) true-lo)) tolerance)
+                   "cosh lower bound should be 1 for interval crossing zero")
+      (assert-true (< (abs (- (interval-hi iv) true-hi)) tolerance)
+                   "cosh upper bound should be max of endpoints")))
+
+  (define-test "tanh tightness: exact (monotonic)"
+    ;; tanh is monotonically increasing
+    (let* ([a -2.0] [b 2.0]
+           [iv (interval-tanh (interval a b))]
+           [true-lo (tanh a)]
+           [true-hi (tanh b)]
+           [tolerance 1e-10])
+      (assert-true (< (abs (- (interval-lo iv) true-lo)) tolerance)
+                   "tanh lower bound should be exact")
+      (assert-true (< (abs (- (interval-hi iv) true-hi)) tolerance)
+                   "tanh upper bound should be exact"))))
+
+(test-group "tightness-inverse-trig"
+  (define-test "asin tightness: exact (monotonic)"
+    ;; asin is monotonically increasing on [-1, 1]
+    (let* ([a -0.5] [b 0.5]
+           [iv (interval-asin (interval a b))]
+           [true-lo (asin a)]
+           [true-hi (asin b)]
+           [tolerance 1e-10])
+      (assert-true (< (abs (- (interval-lo iv) true-lo)) tolerance)
+                   "asin lower bound should be exact")
+      (assert-true (< (abs (- (interval-hi iv) true-hi)) tolerance)
+                   "asin upper bound should be exact")))
+
+  (define-test "acos tightness: exact (monotonic decreasing)"
+    ;; acos is monotonically decreasing on [-1, 1]
+    (let* ([a -0.5] [b 0.5]
+           [iv (interval-acos (interval a b))]
+           [true-lo (acos b)]  ; acos is decreasing
+           [true-hi (acos a)]
+           [tolerance 1e-10])
+      (assert-true (< (abs (- (interval-lo iv) true-lo)) tolerance)
+                   "acos lower bound should be exact")
+      (assert-true (< (abs (- (interval-hi iv) true-hi)) tolerance)
+                   "acos upper bound should be exact")))
+
+  (define-test "atan tightness: exact (monotonic)"
+    ;; atan is monotonically increasing
+    (let* ([a -10.0] [b 10.0]
+           [iv (interval-atan (interval a b))]
+           [true-lo (atan a)]
+           [true-hi (atan b)]
+           [tolerance 1e-10])
+      (assert-true (< (abs (- (interval-lo iv) true-lo)) tolerance)
+                   "atan lower bound should be exact")
+      (assert-true (< (abs (- (interval-hi iv) true-hi)) tolerance)
+                   "atan upper bound should be exact"))))
+
+(test-group "tightness-arithmetic"
+  (define-test "add tightness: exact"
+    ;; Addition is exact: [a,b] + [c,d] = [a+c, b+d]
+    (let* ([iv1 (interval 1 3)]
+           [iv2 (interval 4 7)]
+           [result (interval-add iv1 iv2)])
+      (assert-equal 5 (interval-lo result))
+      (assert-equal 10 (interval-hi result))))
+
+  (define-test "sub tightness: exact"
+    ;; Subtraction is exact: [a,b] - [c,d] = [a-d, b-c]
+    (let* ([iv1 (interval 5 8)]
+           [iv2 (interval 1 2)]
+           [result (interval-sub iv1 iv2)])
+      (assert-equal 3 (interval-lo result))
+      (assert-equal 7 (interval-hi result))))
+
+  (define-test "mul tightness: positive intervals exact"
+    ;; For positive intervals, mul is exact
+    (let* ([iv1 (interval 2 3)]
+           [iv2 (interval 4 5)]
+           [result (interval-mul iv1 iv2)])
+      (assert-equal 8 (interval-lo result))
+      (assert-equal 15 (interval-hi result))))
+
+  (define-test "div tightness: positive intervals exact"
+    ;; For positive intervals, div is exact
+    (let* ([iv1 (interval 6 12)]
+           [iv2 (interval 2 3)]
+           [result (interval-div iv1 iv2)]
+           ;; [6,12] / [2,3] = [6,12] * [1/3, 1/2] = [6*1/3, 12*1/2] = [2, 6]
+           )
+      (assert-equal 2 (interval-lo result))
+      (assert-equal 6 (interval-hi result))))
+
+  (define-test "pow tightness: even powers with zero-crossing"
+    ;; x^2 for x in [-2, 3] has minimum at 0
+    ;; True range: [0, 9]
+    (let* ([iv (interval-pow (interval -2 3) 2)])
+      (assert-equal 0 (interval-lo iv))
+      (assert-equal 9 (interval-hi iv))))
+
+  (define-test "pow tightness: odd powers exact"
+    ;; x^3 for x in [-2, 3] is monotonic
+    ;; True range: [-8, 27]
+    (let* ([iv (interval-pow (interval -2 3) 3)])
+      (assert-equal -8 (interval-lo iv))
+      (assert-equal 27 (interval-hi iv))))
+
+  (define-test "sqr tightness: zero-crossing optimal"
+    ;; x^2 for x in [-1, 2] should give [0, 4], not [-2, 4]
+    (let ([iv (interval-sqr (interval -1 2))])
+      (assert-equal 0 (interval-lo iv))
+      (assert-equal 4 (interval-hi iv))))
+
+  (define-test "sqr vs mul: sqr is tighter for zero-crossing"
+    ;; This is the key advantage of dedicated sqr
+    (let* ([iv (interval -2 3)]
+           [sqr-result (interval-sqr iv)]
+           [mul-result (interval-mul iv iv)])
+      ;; sqr knows min is 0
+      (assert-equal 0 (interval-lo sqr-result))
+      ;; mul doesn't: min is -6 from -2*3
+      (assert-equal -6 (interval-lo mul-result))
+      ;; Both agree on max
+      (assert-equal 9 (interval-hi sqr-result))
+      (assert-equal 9 (interval-hi mul-result)))))
+
+(test-group "tightness-overestimation-ratios"
+  ;; For non-exact operations, verify overestimation is bounded
+
+  (define-test "mul with mixed signs: reasonable overestimation"
+    ;; [−2, 3] × [−1, 4]: products are 2, −8, −3, 12 → true range [−8, 12], width 20
+    ;; Interval computes correctly for this case
+    (let* ([iv1 (interval -2 3)]
+           [iv2 (interval -1 4)]
+           [result (interval-mul iv1 iv2)]
+           [computed-width (interval-width result)]
+           [true-width 20])
+      (assert-equal 20 computed-width "mul with mixed signs should be exact")))
+
+  (define-test "recip tightness: positive intervals"
+    ;; 1/[2, 4] = [1/4, 1/2] = [0.25, 0.5]
+    (let* ([iv (interval-recip (interval 2 4))]
+           [tolerance 1e-10])
+      (assert-true (< (abs (- (interval-lo iv) 0.25)) tolerance))
+      (assert-true (< (abs (- (interval-hi iv) 0.5)) tolerance)))))
+
+;;; ============================================================================
 ;;; Run Tests
 ;;; ============================================================================
 
