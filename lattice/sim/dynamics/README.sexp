@@ -1,14 +1,18 @@
 ((name "dynamics")
- (purpose "Dynamical systems analysis and simulation")
+ (purpose "Dynamical systems analysis, simulation, and bifurcation theory")
  (description
   "Pure implementation of continuous and discrete dynamical systems.
    Supports ODE systems, discrete maps, stability analysis via
-   linearization, and standard systems (Lorenz, Lotka-Volterra,
-   Van der Pol, etc.). Includes fixed point detection, eigenvalue
-   classification, and phase portrait utilities.")
+   linearization, chaos detection (Lyapunov exponents, Poincare sections),
+   and comprehensive bifurcation analysis (saddle-node, transcritical,
+   pitchfork, Hopf, period-doubling). Includes parameter continuation,
+   bifurcation diagrams, and normal form systems.")
  (modules
-  ((discrete.ss "Discrete dynamical systems: iterated maps, orbits, bifurcations")
+  ((discrete.ss "Discrete dynamical systems: iterated maps, orbits, cobweb diagrams")
    (ode-system.ss "ODE systems: vector fields, flow functions, phase space grids")
-   (stability.ss "Stability analysis: Jacobians, eigenvalues, classification")))
- (dependencies (base linalg numeric))
- (load-order "discrete.ss, ode-system.ss -> stability.ss"))
+   (stability.ss "Stability analysis: Jacobians, eigenvalues, classification")
+   (chaos.ss "Chaos detection: Lyapunov exponents, Poincare sections, strange attractors")
+   (bifurcation.ss "Bifurcation analysis: continuation, detection, diagrams, normal forms")
+   (attractor-render.ss "ASCII visualization of strange attractors")))
+ (dependencies (base linalg numeric complex))
+ (load-order "ode-system.ss -> stability.ss -> chaos.ss -> bifurcation.ss"))
