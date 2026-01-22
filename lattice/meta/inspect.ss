@@ -350,8 +350,10 @@
 ;;; parse-test-result-line : String -> Alist | #f
 ;;; Parse the structured result line: [TEST-RESULT total=N passed=N failed=N]
 ;;; Returns alist with 'total, 'passed, 'failed or #f if not found
+;;; Uses string-last-index-of to find the LAST result line (in case tests
+;;; print debug output containing result lines, or run nested tests)
 (define (parse-test-result-line output)
-  (let ([start (string-index-of output "[TEST-RESULT ")])
+  (let ([start (string-last-index-of output "[TEST-RESULT ")])
        (if (not start)
            #f
            (let* ([end (string-index-of-after output "]" start)]
@@ -397,6 +399,16 @@
          [idx (string-index-of rest needle)])
         (and idx (+ start idx))))
 
+;;; truncate-error-output : String -> String
+;;; Truncate error output to last N characters for readability
+(define (truncate-error-output output)
+  (let ([max-len 500])
+       (if (<= (string-length output) max-len)
+           output
+           (string-append "...\n" (substring output
+                                             (- (string-length output) max-len)
+                                             (string-length output))))))
+
 ;;; run-test-file : String -> 'ok | (error . String)
 ;;; Run a single test file and return result
 ;;; Primary: parse structured [TEST-RESULT ...] line
@@ -418,8 +430,8 @@
                                         (cdr (assq 'total parsed)))))]
                 ;; Fallback: exit code
                 [ok? 'ok]
-                ;; Error case
-                [else `(error . ,output)]))))
+                ;; Error case: truncate large output
+                [else `(error . ,(truncate-error-output output))]))))
 
 ;;; lattice-tests-run-pretty : Symbol -> void
 ;;; Run tests and display results
