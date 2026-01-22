@@ -1,28 +1,31 @@
 (skill numeric
-  (version "0.5.0")
+  (version "0.6.0")
   (tier 0)
   (path "lattice/numeric")
   (purity total)
   (stability stable)
-  (fuel-bound "O(n log n) for FFT, O(n) for FIR/spline/interval-ops, O(log n) for spline-eval, O(n²) for Lagrange, O(k) for affine-ops where k=noise-symbols")
-  (deps (linalg algebra))
+  (fuel-bound "O(n log n) for FFT, O(n) for FIR/spline/interval-ops, O(log n) for spline-eval, O(n²) for Lagrange, O(k) for affine-ops where k=noise-symbols, O(n²) for FEM assembly, O(n√n) for sparse CG")
+  (deps (linalg algebra geometry))
 
   (description
-   "Numerical computing, signal processing, interpolation, interval, and affine arithmetic.
-    Provides complex number arithmetic, discrete Fourier transform (radix-2 FFT),
-    digital filters (FIR, IIR, Butterworth, Chebyshev), convolution and correlation,
-    wavelet transforms (Haar, Daubechies), spectral analysis (STFT, spectrogram),
-    interpolation (linear, polynomial, spline, Hermite), Bezier curves, curve
-    fitting (least squares, polynomial), Chebyshev approximation, rigorous
-    interval arithmetic for verified numerical computation, and affine arithmetic
-    for tighter bounds via correlation tracking (solves the dependency problem).")
+   "Numerical computing, signal processing, interpolation, interval, affine arithmetic,
+    and finite element methods. Provides complex number arithmetic, discrete Fourier
+    transform (radix-2 FFT), digital filters (FIR, IIR, Butterworth, Chebyshev),
+    convolution and correlation, wavelet transforms (Haar, Daubechies), spectral
+    analysis (STFT, spectrogram), interpolation (linear, polynomial, spline, Hermite),
+    Bezier curves, curve fitting (least squares, polynomial), Chebyshev approximation,
+    rigorous interval arithmetic for verified numerical computation, affine arithmetic
+    for tighter bounds via correlation tracking, and finite element method (FEM) for
+    solving elliptic PDEs on triangular meshes using P1 linear elements.")
 
   (keywords (numerics signal-processing fft dft complex-numbers digital-filters
              wavelets convolution spectral-analysis iir fir butterworth
              interpolation spline bezier curve-fitting regression chebyshev
              interval-arithmetic affine-arithmetic verified-computation bounds
-             correlation-tracking dependency-problem noise-symbols))
-  (aliases (signal dsp interp interval affine))
+             correlation-tracking dependency-problem noise-symbols
+             finite-element-method fem pde poisson laplace triangular-mesh
+             p1-elements sparse-solver conjugate-gradient))
+  (aliases (signal dsp interp interval affine fem))
 
   (exports
    (complex
@@ -186,7 +189,23 @@
     ;; Short aliases
     af+ af- af* af/ af-neg af-sqr af-sqrt af-exp af-log
     ;; Higher-level operations
-    affine-sum affine-product affine-linear-combination affine-horner))
+    affine-sum affine-product affine-linear-combination affine-horner)
+
+   (fem
+    ;; Mesh construction
+    make-fem-mesh fem-mesh? fem-mesh-nodes fem-mesh-elements
+    fem-mesh-num-nodes fem-mesh-num-elements fem-mesh-node fem-mesh-element
+    fem-mesh-element-nodes make-unit-square-mesh make-disk-mesh
+    ;; Element computations
+    element-area basis-gradients element-stiffness element-mass element-load
+    ;; Assembly
+    assemble-stiffness assemble-mass assemble-load
+    ;; Boundary conditions
+    find-boundary-nodes apply-dirichlet-penalty!
+    ;; Solver
+    sparse-cg fem-solve-poisson fem-solve-poisson-full
+    ;; Post-processing
+    fem-solution-at fem-render-solution fem-l2-error))
 
   (modules
    (complex "complex.ss"
@@ -233,4 +252,10 @@
      of [0, 0]. Affine forms represent values as x₀ + Σxᵢεᵢ where εᵢ are noise
      symbols in [-1, 1]. When forms share noise symbols, operations automatically
      account for correlations. Supports all arithmetic ops plus exp, log, sqrt.
-     Use affine-from-interval to convert intervals, affine->interval to convert back.")))
+     Use affine-from-interval to convert intervals, affine->interval to convert back.")
+   (fem "fem.ss"
+    "Finite Element Method for solving elliptic PDEs on 2D triangular meshes.
+     P1 (linear) elements with sparse matrix assembly and conjugate gradient solver.
+     Solves Poisson equation -∇²u = f with Dirichlet boundary conditions u = g.
+     Includes mesh generation for unit square and disk domains, ASCII solution
+     visualization, and L² error computation for convergence studies.")))
