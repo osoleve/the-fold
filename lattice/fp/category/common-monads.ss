@@ -13,10 +13,10 @@ some monads are more naturally defined directly. This module provides:
 Each monad is provided as a MonadOps record for use with the
 Kleisli category and law verification machinery.
 
-Representation conventions:
-  - Maybe: #f for Nothing, any other value for Just x
-  - Either: (left . err) for Left, (right . val) for Right
-  - Reader: functions E → A (same as adjunction-derived)")
+Representation conventions (matching lattice/fp/meta/combinators.ss):
+  - Maybe: #f for Nothing, (list 'just x) for Just x
+  - Either: (list 'left e) for Left, (list 'right x) for Right
+  - Reader: functions E → A")
 (doc 'layer 'lattice)
 (doc 'purity 'total)
 
@@ -27,43 +27,70 @@ The Maybe monad models computations that may fail silently.
   - Just x: successful computation with value x
   - Nothing: failed computation
 
-Representation: #f for Nothing, other values for Just x
-This is simple but note that 'Just #f' is not representable.
-For a proper sum type, use Either with a sentinel error value.
+Representation: #f for Nothing, (list 'just x) for Just x
+This tagged representation correctly distinguishes (just #f) from nothing.
 
 Monad operations:
-  - return x = Just x = x
+  - return x = Just x
   - bind (Just x) f = f x
   - bind Nothing f = Nothing
   - join (Just (Just x)) = Just x
   - join Nothing = Nothing
   - join (Just Nothing) = Nothing")
 
+;;; maybe-nothing : Maybe a
+;;; The Nothing value (failure)
+(define maybe-nothing #f)
+
+;;; maybe-just : a → Maybe a
+;;; Wrap a value in Just
+(define (maybe-just x)
+  (doc 'type '(-> a (Maybe a)))
+  (list 'just x))
+
+;;; maybe-just? : Maybe a → Boolean
+;;; Is this a Just value?
+(define (maybe-just? ma)
+  (doc 'type '(-> (Maybe a) Boolean))
+  (and (pair? ma) (eq? (car ma) 'just)))
+
+;;; maybe-nothing? : Maybe a → Boolean
+;;; Is this Nothing?
+(define (maybe-nothing? ma)
+  (doc 'type '(-> (Maybe a) Boolean))
+  (not ma))
+
+;;; maybe-from-just : Maybe a → a
+;;; Extract value (undefined for Nothing)
+(define (maybe-from-just ma)
+  (doc 'type '(-> (Maybe a) a))
+  (cadr ma))
+
 ;;; maybe-return : a → Maybe a
 (define (maybe-return x)
   (doc 'type '(-> a (Maybe a)))
-  x)
+  (maybe-just x))
 
 ;;; maybe-bind : Maybe a → (a → Maybe b) → Maybe b
 (define (maybe-bind ma f)
   (doc 'type '(-> (Maybe a) (-> a (Maybe b)) (Maybe b)))
-  (if ma
-      (f ma)
-      #f))
+  (if (maybe-just? ma)
+      (f (maybe-from-just ma))
+      maybe-nothing))
 
 ;;; maybe-fmap : (a → b) → Maybe a → Maybe b
 (define (maybe-fmap f ma)
   (doc 'type '(-> (-> a b) (Maybe a) (Maybe b)))
-  (if ma
-      (f ma)
-      #f))
+  (if (maybe-just? ma)
+      (maybe-just (f (maybe-from-just ma)))
+      maybe-nothing))
 
 ;;; maybe-join : Maybe (Maybe a) → Maybe a
 (define (maybe-join mma)
   (doc 'type '(-> (Maybe (Maybe a)) (Maybe a)))
-  (if mma
-      mma  ; mma is already Maybe a if outer is Just
-      #f))
+  (if (maybe-just? mma)
+      (maybe-from-just mma)  ; unwrap outer Just, inner is already Maybe a
+      maybe-nothing))
 
 ;;; monad-maybe : MonadOps
 ;;; The Maybe monad packaged as MonadOps
@@ -74,37 +101,29 @@ Monad operations:
                   maybe-join
                   maybe-bind))
 
-;;; maybe-nothing : Maybe a
-;;; The Nothing value (failure)
-(define maybe-nothing #f)
-
-;;; maybe-just : a → Maybe a
-;;; Wrap a value in Just (alias for return)
-(define maybe-just maybe-return)
-
 ;;; maybe? : Any → Boolean
-;;; Predicate - technically everything is a valid Maybe
-(define (maybe? x) #t)
-
-;;; maybe-just? : Maybe a → Boolean
-;;; Is this a Just value?
-(define (maybe-just? ma) (if ma #t #f))
-
-;;; maybe-nothing? : Maybe a → Boolean
-;;; Is this Nothing?
-(define (maybe-nothing? ma) (not ma))
+;;; Test if value is a valid Maybe
+(define (maybe? x)
+  (doc 'type '(-> Any Boolean))
+  (or (not x) (maybe-just? x)))
 
 ;;; maybe-from-default : a → Maybe a → a
 ;;; Extract value with default fallback
 (define (maybe-from-default default ma)
   (doc 'type '(-> a (Maybe a) a))
-  (if ma ma default))
+  (if (maybe-just? ma)
+      (maybe-from-just ma)
+      default))
 
 ;;; maybe-or-else : Maybe a → (-> Maybe a) → Maybe a
 ;;; Try first, if Nothing then try alternative
 (define (maybe-or-else ma alt)
   (doc 'type '(-> (Maybe a) (-> (Maybe a)) (Maybe a)))
-  (if ma ma (alt)))
+  (if (maybe-just? ma) ma (alt)))
+
+;;; maybe-map : (a → b) → Maybe a → Maybe b
+;;; Alias for maybe-fmap (consistency with combinators.ss)
+(define maybe-map maybe-fmap)
 
 (doc 'section 'either-monad)
 (doc 'description "Either Monad (Result)
@@ -115,7 +134,7 @@ The Either monad models computations that may fail with an error value.
 
 This is the classic 'Result' type from Rust/ML traditions.
 
-Representation: (cons 'left err) or (cons 'right val)
+Representation: (list 'left e) or (list 'right x) - matching combinators.ss
 
 Monad operations (right-biased):
   - return x = Right x
@@ -126,12 +145,12 @@ Monad operations (right-biased):
 ;;; make-left : e → Either e a
 (define (make-left err)
   (doc 'type '(-> e (Either e a)))
-  (cons 'left err))
+  (list 'left err))
 
 ;;; make-right : a → Either e a
 (define (make-right val)
   (doc 'type '(-> a (Either e a)))
-  (cons 'right val))
+  (list 'right val))
 
 ;;; either? : Any → Boolean
 (define (either? x)
@@ -150,11 +169,23 @@ Monad operations (right-biased):
   (doc 'type '(-> (Either e a) Boolean))
   (and (pair? ea) (eq? (car ea) 'right)))
 
+;;; either-from-left : Either e a → e
+;;; Extract Left value (undefined for Right)
+(define (either-from-left ea)
+  (doc 'type '(-> (Either e a) e))
+  (cadr ea))
+
+;;; either-from-right : Either e a → a
+;;; Extract Right value (undefined for Left)
+(define (either-from-right ea)
+  (doc 'type '(-> (Either e a) a))
+  (cadr ea))
+
 ;;; either-value : Either e a → (Union e a)
 ;;; Extract the wrapped value (either error or success)
 (define (either-value ea)
   (doc 'type '(-> (Either e a) (Union e a)))
-  (if (either? ea) (cdr ea) ea))
+  (if (either? ea) (cadr ea) ea))
 
 ;;; either-return : a → Either e a
 (define (either-return x)
@@ -165,25 +196,25 @@ Monad operations (right-biased):
 (define (either-bind ea f)
   (doc 'type '(-> (Either e a) (-> a (Either e b)) (Either e b)))
   (cond
-    [(either-right? ea) (f (either-value ea))]
+    [(either-right? ea) (f (either-from-right ea))]
     [(either-left? ea) ea]  ; propagate error
-    [else (make-left 'invalid-either)]))
+    [else (error 'either-bind "Invalid Either value")]))
 
 ;;; either-fmap : (a → b) → Either e a → Either e b
 (define (either-fmap f ea)
   (doc 'type '(-> (-> a b) (Either e a) (Either e b)))
   (cond
-    [(either-right? ea) (make-right (f (either-value ea)))]
+    [(either-right? ea) (make-right (f (either-from-right ea)))]
     [(either-left? ea) ea]
-    [else (make-left 'invalid-either)]))
+    [else (error 'either-fmap "Invalid Either value")]))
 
 ;;; either-join : Either e (Either e a) → Either e a
 (define (either-join eea)
   (doc 'type '(-> (Either e (Either e a)) (Either e a)))
   (cond
-    [(either-right? eea) (either-value eea)]  ; unwrap outer Right
-    [(either-left? eea) eea]                   ; propagate error
-    [else (make-left 'invalid-either)]))
+    [(either-right? eea) (either-from-right eea)]  ; unwrap outer Right
+    [(either-left? eea) eea]                        ; propagate error
+    [else (error 'either-join "Invalid Either value")]))
 
 ;;; monad-either : MonadOps
 ;;; The Either monad packaged as MonadOps (right-biased)
@@ -199,7 +230,7 @@ Monad operations (right-biased):
 (define (either-from-default default ea)
   (doc 'type '(-> a (Either e a) a))
   (if (either-right? ea)
-      (either-value ea)
+      (either-from-right ea)
       default))
 
 ;;; either-map-left : (e → e') → Either e a → Either e' a
@@ -207,18 +238,18 @@ Monad operations (right-biased):
 (define (either-map-left f ea)
   (doc 'type '(-> (-> e e2) (Either e a) (Either e2 a)))
   (cond
-    [(either-left? ea) (make-left (f (either-value ea)))]
+    [(either-left? ea) (make-left (f (either-from-left ea)))]
     [(either-right? ea) ea]
-    [else (make-left 'invalid-either)]))
+    [else (error 'either-map-left "Invalid Either value")]))
 
 ;;; either-fold : (e → r) → (a → r) → Either e a → r
 ;;; Eliminate Either by providing handlers for both cases
 (define (either-fold on-left on-right ea)
   (doc 'type '(-> (-> e r) (-> a r) (Either e a) r))
   (cond
-    [(either-left? ea) (on-left (either-value ea))]
-    [(either-right? ea) (on-right (either-value ea))]
-    [else (on-left 'invalid-either)]))
+    [(either-left? ea) (on-left (either-from-left ea))]
+    [(either-right? ea) (on-right (either-from-right ea))]
+    [else (error 'either-fold "Invalid Either value")]))
 
 (doc 'section 'reader-monad)
 (doc 'description "Reader Monad
@@ -299,13 +330,14 @@ Unlike State, the environment is immutable - no 'put' operation.")
 Maybe Monad:
   maybe-return, maybe-bind, maybe-fmap, maybe-join
   monad-maybe (MonadOps)
-  maybe-nothing, maybe-just
+  maybe-nothing, maybe-just, maybe-from-just
   maybe?, maybe-just?, maybe-nothing?
-  maybe-from-default, maybe-or-else
+  maybe-from-default, maybe-or-else, maybe-map
 
 Either Monad:
   make-left, make-right
-  either?, either-left?, either-right?, either-value
+  either?, either-left?, either-right?
+  either-from-left, either-from-right, either-value
   either-return, either-bind, either-fmap, either-join
   monad-either (MonadOps)
   either-from-default, either-map-left, either-fold

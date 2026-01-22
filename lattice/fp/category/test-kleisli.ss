@@ -190,49 +190,66 @@
 (section "Maybe Monad")
 
 (test "maybe-return wraps value"
-      42
+      (maybe-just 42)
       (maybe-return 42))
 
+(test-true "maybe-just? recognizes Just"
+           (maybe-just? (maybe-just 42)))
+
+(test-true "maybe-nothing? recognizes Nothing"
+           (maybe-nothing? maybe-nothing))
+
+(test "maybe-from-just extracts value"
+      42
+      (maybe-from-just (maybe-just 42)))
+
+;; Key test: Just #f is distinct from Nothing
+(test-true "Just #f is distinct from Nothing"
+           (maybe-just? (maybe-just #f)))
+
+(test-false "Just #f is not Nothing"
+            (maybe-nothing? (maybe-just #f)))
+
 (test "maybe-bind on Just"
-      20
-      (maybe-bind 10 (lambda (x) (* x 2))))
+      (maybe-just 20)
+      (maybe-bind (maybe-just 10) (lambda (x) (maybe-just (* x 2)))))
 
 (test "maybe-bind on Nothing"
-      #f
-      (maybe-bind #f (lambda (x) (* x 2))))
+      maybe-nothing
+      (maybe-bind maybe-nothing (lambda (x) (maybe-just (* x 2)))))
 
 (test "maybe-bind propagates Nothing"
-      #f
-      (maybe-bind 10 (lambda (x) #f)))
+      maybe-nothing
+      (maybe-bind (maybe-just 10) (lambda (x) maybe-nothing)))
 
 (test "maybe-fmap on Just"
-      20
-      (maybe-fmap (lambda (x) (* x 2)) 10))
+      (maybe-just 20)
+      (maybe-fmap (lambda (x) (* x 2)) (maybe-just 10)))
 
 (test "maybe-fmap on Nothing"
-      #f
-      (maybe-fmap (lambda (x) (* x 2)) #f))
+      maybe-nothing
+      (maybe-fmap (lambda (x) (* x 2)) maybe-nothing))
 
 (test "maybe-from-default with Just"
       42
-      (maybe-from-default 0 42))
+      (maybe-from-default 0 (maybe-just 42)))
 
 (test "maybe-from-default with Nothing"
       0
-      (maybe-from-default 0 #f))
+      (maybe-from-default 0 maybe-nothing))
 
 ;; Maybe monad laws
 (test-true "Maybe left identity"
-           (verify-left-identity monad-maybe 5 (lambda (x) (* x 2))))
+           (verify-left-identity monad-maybe 5 (lambda (x) (maybe-just (* x 2)))))
 
 (test-true "Maybe right identity"
-           (verify-right-identity monad-maybe 42))
+           (verify-right-identity monad-maybe (maybe-just 42)))
 
 (test-true "Maybe associativity"
            (verify-associativity monad-maybe
-                                 10
-                                 (lambda (x) (+ x 1))
-                                 (lambda (y) (* y 2))))
+                                 (maybe-just 10)
+                                 (lambda (x) (maybe-just (+ x 1)))
+                                 (lambda (y) (maybe-just (* y 2)))))
 
 ;;; ====
 ;;; Test: Kleisli Category for Maybe
@@ -242,13 +259,13 @@
 
 (define kc-maybe (make-kleisli-category monad-maybe))
 
-;; Safe division
+;; Safe division (Kleisli arrow: Int -> Maybe Int)
 (define (safe-div x)
-  (if (= x 0) #f (/ 10 x)))
+  (if (= x 0) maybe-nothing (maybe-just (/ 10 x))))
 
-;; Safe square root
+;; Safe square root (Kleisli arrow: Num -> Maybe Num)
 (define (safe-sqrt x)
-  (if (< x 0) #f (sqrt x)))
+  (if (< x 0) maybe-nothing (maybe-just (sqrt x))))
 
 (test-true "kc-maybe is Kleisli category"
            (kleisli-category? kc-maybe))
@@ -256,16 +273,16 @@
 ;; Test composition with short-circuit
 (let* ([div-then-sqrt (kleisli->>> kc-maybe safe-div safe-sqrt)])
   (test "kc-maybe composition (success)"
-        (sqrt 2)  ; 10/5 = 2, sqrt(2)
+        (maybe-just (sqrt 2))  ; 10/5 = 2, sqrt(2)
         (div-then-sqrt 5))
 
   (test "kc-maybe composition (fail first)"
-        #f
+        maybe-nothing
         (div-then-sqrt 0))
 
   (test "kc-maybe composition (fail second)"
-        #f
-        (div-then-sqrt -1)))  ; 10/-1 = -10, sqrt(-10) = #f
+        maybe-nothing
+        (div-then-sqrt -1)))  ; 10/-1 = -10, sqrt(-10) = nothing
 
 ;; Kleisli laws for Maybe
 (test-true "Maybe Kleisli left identity"
@@ -278,7 +295,7 @@
            (verify-kleisli-associativity kc-maybe
                                          safe-div
                                          safe-sqrt
-                                         (lambda (x) (+ x 1))
+                                         (lambda (x) (maybe-just (+ x 1)))
                                          4))
 
 ;;; ====
@@ -457,10 +474,10 @@
 
 ;; Chain of failures in Maybe
 (let* ([fail-chain (kleisli->>> kc-maybe
-                                 (lambda (x) #f)
-                                 (lambda (x) (* x 2)))])
+                                 (lambda (x) maybe-nothing)
+                                 (lambda (x) (maybe-just (* x 2))))])
   (test "Maybe failure short-circuits"
-        #f
+        maybe-nothing
         (fail-chain 5)))
 
 ;; Complex Either chain

@@ -55,6 +55,23 @@ A MonadOps bundles the four core monad operations:
   (doc 'type '(-> MonadOps (-> (M a) (-> a (M b)) (M b))))
   (if (monad-ops? m) (cadr (cddddr m)) #f))
 
+;;; monad-ops-ap : MonadOps → (M (a → b) → M a → M b)
+;;; Applicative ap derived from bind and fmap.
+;;; ap mf ma = bind mf (λf. fmap f ma)
+(define (monad-ops-ap m)
+  (doc 'type '(-> MonadOps (-> (M (-> a b)) (M a) (M b))))
+  (doc 'description "Applicative <*> derived from monad operations")
+  (let ([bind-fn (monad-ops-bind m)]
+        [fmap-fn (monad-ops-fmap m)])
+    (lambda (mf ma)
+      (bind-fn mf (lambda (f) (fmap-fn f ma))))))
+
+;;; monad-ap : MonadOps × M (a → b) × M a → M b
+;;; Convenience function for applicative application.
+(define (monad-ap ops mf ma)
+  (doc 'type '(-> MonadOps (M (-> a b)) (M a) (M b)))
+  ((monad-ops-ap ops) mf ma))
+
 (doc 'section 'monad-derivation)
 (doc 'description "Monad Derivation from Adjunction
 
@@ -342,6 +359,7 @@ a custom equality predicate. Example for State monad:
 ;;;   - make-monad-ops, monad-ops?
 ;;;   - monad-ops-name, monad-ops-return, monad-ops-fmap
 ;;;   - monad-ops-join, monad-ops-bind
+;;;   - monad-ops-ap, monad-ap (Applicative <*> derived from bind)
 ;;;
 ;;; Derivation:
 ;;;   - monad-from-adjunction

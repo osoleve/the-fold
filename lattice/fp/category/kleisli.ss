@@ -69,10 +69,21 @@ of type A → M(B). The category structure provides composition.")
   (doc 'description "Get the identity morphism (return) for the Kleisli category")
   (if (kleisli-category? kc) (cadddr kc) #f))
 
-(define (kleisli-compose kc)
+;;; kleisli-fish : KleisliCategory → ((A → M B) → (B → M C) → (A → M C))
+;;; Get the fish operator (>=>) - LEFT-TO-RIGHT Kleisli composition.
+;;; Named 'fish' to avoid confusion with mathematical 'compose' (right-to-left).
+(define (kleisli-fish kc)
   (doc 'type '(-> KleisliCategory (-> (-> a (M b)) (-> b (M c)) (-> a (M c)))))
-  (doc 'description "Get the composition operator (>=>) for the Kleisli category")
+  (doc 'description "Get the fish operator (>=>) - left-to-right Kleisli composition")
   (if (kleisli-category? kc) (car (cddddr kc)) #f))
+
+;;; kleisli-compose : KleisliCategory → ((B → M C) → (A → M B) → (A → M C))
+;;; Mathematical composition (right-to-left): g ∘ f means "f then g"
+(define (kleisli-compose kc)
+  (doc 'type '(-> KleisliCategory (-> (-> b (M c)) (-> a (M b)) (-> a (M c)))))
+  (doc 'description "Right-to-left Kleisli composition: (g ∘ f) x = f x >>= g")
+  (let ([fish (kleisli-fish kc)])
+    (lambda (g f) (fish f g))))
 
 (doc 'section 'kleisli-arrow-operations)
 (doc 'description "Kleisli Arrow Operations
@@ -94,7 +105,7 @@ operations.")
 (define (kleisli->>> kc f g)
   (doc 'type '(-> KleisliCategory (-> a (M b)) (-> b (M c)) (-> a (M c))))
   (doc 'description "Left-to-right Kleisli composition: f >>> g = f >=> g")
-  ((kleisli-compose kc) f g))
+  ((kleisli-fish kc) f g))
 
 ;;; kleisli-<<< : KleisliCategory × (B → M C) × (A → M B) → (A → M C)
 ;;; Compose two Kleisli arrows (right-to-left, like <<<)
@@ -102,7 +113,7 @@ operations.")
 (define (kleisli-<<< kc g f)
   (doc 'type '(-> KleisliCategory (-> b (M c)) (-> a (M b)) (-> a (M c))))
   (doc 'description "Right-to-left Kleisli composition: g <<< f = f >=> g")
-  ((kleisli-compose kc) f g))
+  ((kleisli-fish kc) f g))
 
 ;;; fish : KleisliCategory × (A → M B) × (B → M C) → (A → M C)
 ;;; Alias for kleisli->>> using the traditional 'fish' name
@@ -152,8 +163,8 @@ variants that accept a custom equality predicate.")
 ;;; verify-kleisli-left-identity-with-eq : KleisliCategory × (A → M B) × A × Eq → Boolean
 (define (verify-kleisli-left-identity-with-eq kc f a eq?)
   (let* ([return-fn (kleisli-identity kc)]
-         [compose (kleisli-compose kc)]
-         [lhs ((compose return-fn f) a)]
+         [fish (kleisli-fish kc)]
+         [lhs ((fish return-fn f) a)]
          [rhs (f a)])
     (eq? lhs rhs)))
 
@@ -164,8 +175,8 @@ variants that accept a custom equality predicate.")
 
 (define (verify-kleisli-right-identity-with-eq kc f a eq?)
   (let* ([return-fn (kleisli-identity kc)]
-         [compose (kleisli-compose kc)]
-         [lhs ((compose f return-fn) a)]
+         [fish (kleisli-fish kc)]
+         [lhs ((fish f return-fn) a)]
          [rhs (f a)])
     (eq? lhs rhs)))
 
@@ -175,9 +186,9 @@ variants that accept a custom equality predicate.")
   (verify-kleisli-associativity-with-eq kc f g h a equal?))
 
 (define (verify-kleisli-associativity-with-eq kc f g h a eq?)
-  (let* ([compose (kleisli-compose kc)]
-         [lhs ((compose (compose f g) h) a)]
-         [rhs ((compose f (compose g h)) a)])
+  (let* ([fish (kleisli-fish kc)]
+         [lhs ((fish (fish f g) h) a)]
+         [rhs ((fish f (fish g h)) a)])
     (eq? lhs rhs)))
 
 ;;; verify-kleisli-laws : KleisliCategory × Arrows × TestValue → Boolean
@@ -220,15 +231,19 @@ expressed in terms of Kleisli composition.")
 ;;; kleisli-replicate : KleisliCategory × Nat × (A → M A) → (A → M A)
 ;;; Compose a Kleisli arrow with itself n times.
 ;;; replicate 0 f = return
-;;; replicate n f = f >=> replicate (n-1) f
+;;; replicate 1 f = f
+;;; replicate n f = f >=> f >=> ... (n times)
 (define (kleisli-replicate kc n f)
   (doc 'type '(-> KleisliCategory Nat (-> a (M a)) (-> a (M a))))
-  (if (<= n 0)
-      (kleisli-identity kc)
-      (let loop ([k n] [acc (kleisli-identity kc)])
-        (if (<= k 0)
-            acc
-            (loop (- k 1) (kleisli->>> kc f acc))))))
+  (cond
+    [(<= n 0) (kleisli-identity kc)]
+    [(= n 1) f]
+    [else
+     ;; Start with f, compose f (n-1) more times
+     (let loop ([k (- n 1)] [acc f])
+       (if (<= k 0)
+           acc
+           (loop (- k 1) (kleisli->>> kc acc f))))]))
 
 (doc 'section 'prebuilt-kleisli-categories)
 
@@ -260,7 +275,8 @@ KleisliCategory:
   kleisli-category-name, kleisli-category-monad
 
 Operations:
-  kleisli-identity, kleisli-compose
+  kleisli-identity, kleisli-fish (left-to-right >=>)
+  kleisli-compose (right-to-left, mathematical order)
   kleisli-id, kleisli->>>, kleisli-<<<, fish
   kleisli-lift, kleisli-map
 
