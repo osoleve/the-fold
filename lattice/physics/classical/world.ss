@@ -79,12 +79,12 @@
 
 (doc 'entity-world-shape 'type 'Entity → Shape)
 (doc "Get entity's shape in world coordinates.")
+(doc "Shapes are stored in local coordinates (centered at origin).")
+(doc "This function transforms them by adding the entity's position.")
 (define (entity-world-shape e)
   (let ([shape (entity-shape e)]
         [pos (entity-pos e)])
-       ;; Shapes are stored relative to origin, transform by position
-       ;; (For now, assume shapes are already in world coords from body pos)
-       shape))
+       (transform-shape shape pos)))
 
 (doc 'section 'physics)
 
@@ -407,15 +407,16 @@
 (doc 'world-detect-collisions 'type 'World → (List Collision))
 (doc "Detect all collisions in the world.")
 (doc "Returns list of (entity-a entity-b manifold).")
+(doc "Uses entity-world-shape to get shapes in world coordinates.")
 (define (world-detect-collisions world)
   (let* ([hash (world-spatial-hash world)]
          [entities (world-entity-list world)])
-        ;; Clear and rebuild spatial hash
+        ;; Clear and rebuild spatial hash with world-space AABBs
         (spatial-hash-clear! hash)
         (for-each
          (lambda (e)
                  (spatial-hash-insert! hash (entity-id e)
-                                       (shape-aabb (entity-shape e))))
+                                       (shape-aabb (entity-world-shape e))))
          entities)
         ;; Find collision pairs
         (let ([checked (make-hashtable equal-hash equal?)]
@@ -423,7 +424,7 @@
              (for-each
               (lambda (e)
                       (let* ([id-a (entity-id e)]
-                             [shape-a (entity-shape e)]
+                             [shape-a (entity-world-shape e)]
                              [candidates (spatial-hash-query hash (shape-aabb shape-a))])
                             (for-each
                              (lambda (id-b)
@@ -432,9 +433,9 @@
                                                                     (make-pair-key id-a id-b) #f)))
                                            ;; Mark as checked
                                            (hashtable-set! checked (make-pair-key id-a id-b) #t)
-                                           ;; Narrow phase
+                                           ;; Narrow phase with world-space shapes
                                            (let* ([ent-b (world-get-entity world id-b)]
-                                                  [shape-b (entity-shape ent-b)]
+                                                  [shape-b (entity-world-shape ent-b)]
                                                   [manifold (shapes-manifold shape-a shape-b)])
                                                  (when manifold
                                                        (set! collisions
@@ -456,40 +457,46 @@
 
 (doc 'make-circle-entity 'type 'Any × Vec2 × Number × Number × Material → Entity)
 (doc "Create a circular physics entity.")
+(doc "Shape is stored in local coordinates (centered at origin).")
 (define (make-circle-entity id pos radius mass material)
   (let ([body (make-body-2d pos (vec2 0 0) mass)]
-        [shape (make-circle pos radius)])
+        [shape (make-circle (vec2 0 0) radius)])  ; Local coords
        (make-entity id body shape material #f)))
 
 (doc 'make-box-entity 'type 'Any × Vec2 × Vec2 × Number × Material → Entity)
 (doc "Create a box physics entity.")
+(doc "Shape is stored in local coordinates (centered at origin).")
 (define (make-box-entity id pos half-extents mass material)
   (let ([body (make-body-2d pos (vec2 0 0) mass)]
-        [shape (make-box pos half-extents)])
+        [shape (make-box (vec2 0 0) half-extents)])  ; Local coords
        (make-entity id body shape material #f)))
 
 (doc 'make-static-circle 'type 'Any × Vec2 × Number × Material → Entity)
 (doc "Create a static circular entity.")
+(doc "Shape is stored in local coordinates (centered at origin).")
 (define (make-static-circle id pos radius material)
   (let ([body (make-static-body pos)]
-        [shape (make-circle pos radius)])
+        [shape (make-circle (vec2 0 0) radius)])  ; Local coords
        (make-entity id body shape material #f)))
 
 (doc 'make-static-box 'type 'Any × Vec2 × Vec2 × Material → Entity)
 (doc "Create a static box entity.")
+(doc "Shape is stored in local coordinates (centered at origin).")
 (define (make-static-box id pos half-extents material)
   (let ([body (make-static-body pos)]
-        [shape (make-box pos half-extents)])
+        [shape (make-box (vec2 0 0) half-extents)])  ; Local coords
        (make-entity id body shape material #f)))
 
 (doc 'make-ground 'type 'Any × Number × Number × Number → Entity)
 (doc "Create a static ground plane at given y position.")
+(doc "Shape is stored in local coordinates.")
 (define (make-ground id y width material)
   (let* ([half-width (/ width 2)]
          [pos (vec2 0 y)]
          [body (make-static-body pos)]
-         [shape (make-aabb (vec2 (- half-width) (- y 100))
-                           (vec2 half-width y))])
+         ;; Local coords: centered at origin, extends down
+         [shape (make-aabb (vec2 (- half-width) -100)
+                           (vec2 half-width 0))])
         (make-entity id body shape material #f)))
 
 (doc 'section 'world)
@@ -497,20 +504,20 @@
 (doc 'world-query-aabb 'type 'World × AABB → (List Entity))
 (doc "Find all entities overlapping an AABB.")
 (define (world-query-aabb world aabb)
-  ;; Rebuild spatial hash with current entities
+  ;; Rebuild spatial hash with current entities using world-space shapes
   (let* ([hash (world-spatial-hash world)]
          [entities (world-entity-list world)])
         (spatial-hash-clear! hash)
         (for-each
          (lambda (e)
                  (spatial-hash-insert! hash (entity-id e)
-                                       (shape-aabb (entity-shape e))))
+                                       (shape-aabb (entity-world-shape e))))
          entities)
-        ;; Query and filter
+        ;; Query and filter using world-space shapes
         (let ([candidates (spatial-hash-query hash aabb)])
              (filter
               (lambda (e)
-                      (and e (aabb-aabb? aabb (shape-aabb (entity-shape e)))))
+                      (and e (aabb-aabb? aabb (shape-aabb (entity-world-shape e)))))
               (map (lambda (id) (world-get-entity world id))
                    candidates)))))
 
@@ -520,7 +527,7 @@
   (let ([entities (world-entity-list world)])
        (filter
         (lambda (e)
-                (let ([shape (entity-shape e)])
+                (let ([shape (entity-world-shape e)])  ; Use world-space shape
                      (cond
                       [(circle? shape) (point-in-circle? point shape)]
                       [(aabb? shape) (point-in-aabb? point shape)]
@@ -537,7 +544,7 @@
          [best-dist (ray2-max-dist ray)])
         (for-each
          (lambda (e)
-                 (let* ([shape (entity-shape e)]
+                 (let* ([shape (entity-world-shape e)]  ; Use world-space shape
                         [hit (ray2-shape ray shape)])
                        (when (and hit (< (hit-info-distance hit) best-dist))
                              (set! best-hit hit)
@@ -555,7 +562,7 @@
          [hits '()])
         (for-each
          (lambda (e)
-                 (let* ([shape (entity-shape e)]
+                 (let* ([shape (entity-world-shape e)]  ; Use world-space shape
                         [hit (ray2-shape ray shape)])
                        (when hit
                              (set! hits (cons (cons e hit) hits)))))

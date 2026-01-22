@@ -182,7 +182,22 @@
     (let* ([rng (make-prng 42)]
            [distractors (generate-distractors 'A comparison-distractors 3 rng)])
       (assert-equal 3 (length distractors))
-      (assert-true (andmap (lambda (d) (not (eq? d 'A))) distractors)))))
+      (assert-true (andmap (lambda (d) (not (eq? d 'A))) distractors))))
+
+  (define-test "counting options are unique after integer formatting"
+    ;; Regression test: counting distractors were creating duplicates
+    ;; like A) 2, B) 2, C) 2, D) 3 due to rounding collisions
+    (let* ([formatter (lambda (n) (number->string (exact (round n))))]
+           [rng (make-prng 42)])
+      ;; Test several small counting values (where collisions are likely)
+      (let loop ([i 0] [correct 2])
+        (when (< i 10)
+          (let* ([result (make-numeric-options correct counting-distractors rng formatter)]
+                 [options (car result)]
+                 [strings (map cdr options)])
+            ;; All 4 options should be unique strings
+            (assert-equal 4 (length (unique-strings strings))))
+          (loop (+ i 1) (+ correct 1)))))))
 
 ;;; ============================================================
 ;;; Difficulty Tests
@@ -278,6 +293,16 @@
         [(> (+ i len2) len1) #f]
         [(string=? (substring str i (+ i len2)) substr) #t]
         [else (loop (+ i 1))]))))
+
+;;; unique-strings : (List String) → (List String)
+;;; Return only unique strings from list
+(define (unique-strings strings)
+  (let loop ([remaining strings] [seen '()])
+    (if (null? remaining)
+        (reverse seen)
+        (if (member (car remaining) seen)
+            (loop (cdr remaining) seen)
+            (loop (cdr remaining) (cons (car remaining) seen))))))
 
 ;;; ============================================================
 ;;; Run Tests

@@ -285,32 +285,82 @@
 ;;; make-numeric-options : Number × (List DistractorStrategy) × RNG × (Number → String) → (List (Symbol . String)) × Symbol
 ;;; Generate options with correct answer randomly placed
 ;;; Returns (options . correct-label)
+;;; Ensures uniqueness after formatting (handles integer rounding collisions)
 (define (make-numeric-options correct strategies rng formatter)
   (doc 'export #t)
-  (let* ([distractors (generate-distractors correct strategies 3 rng)]
-         [all-values (cons correct distractors)]
-         [sorted (list-sort (lambda (a b)
-                             (if (and (number? a) (number? b))
-                                 (< a b)
-                                 (< (prng-next-int rng 100) 50)))
-                           all-values)]
+  (let* ([correct-str (formatter correct)]
+         ;; Generate unique formatted distractors
+         [distractor-strs (generate-unique-formatted-distractors
+                           correct correct-str strategies 3 rng formatter)]
+         [all-strs (cons correct-str distractor-strs)]
+         [sorted (list-sort string<? all-strs)]
          [labels '(A B C D)]
-         [options (map (lambda (label val)
-                        (cons label (formatter val)))
-                      labels sorted)]
-         [correct-label (car (filter (lambda (l)
-                                       (approx-equal? (cdr (assq l options)) correct))
-                                    labels))])
-    ;; Actually, we need to find correct in the shuffled list
-    (let find-correct ([labels labels])
-      (if (null? labels)
-          (cons options 'A)  ; Fallback
-          (let* ([label (car labels)]
-                 [opt (assq label options)]
-                 [val-str (cdr opt)])
-            (if (string=? val-str (formatter correct))
-                (cons options label)
-                (find-correct (cdr labels))))))))
+         [options (map cons labels sorted)]
+         [correct-label (find-label-for-string options correct-str)])
+    (cons options correct-label)))
+
+;;; generate-unique-formatted-distractors : Number × String × Strategies × Nat × RNG × Formatter → (List String)
+;;; Generate n distractor strings that are unique from correct and each other
+(define (generate-unique-formatted-distractors correct correct-str strategies n rng formatter)
+  (let loop ([remaining n]
+             [used-strategies strategies]
+             [results '()]
+             [attempts 0])
+    (cond
+      [(<= remaining 0) (reverse results)]
+      [(>= attempts (* n 20))
+       ;; Exhausted attempts, fill with incremental values
+       (let ([fillers (generate-incremental-fillers correct correct-str remaining results formatter)])
+         (reverse (append (reverse fillers) results)))]
+      [(null? used-strategies)
+       ;; Cycle through strategies again
+       (loop remaining strategies results attempts)]
+      [else
+       (let* ([strategy (car used-strategies)]
+              [distractor (apply-distractor strategy correct rng)]
+              [distractor-str (formatter distractor)])
+         (if (or (string=? distractor-str correct-str)
+                 (member distractor-str results))
+             ;; Duplicate formatted string, try next
+             (loop remaining (cdr used-strategies) results (+ attempts 1))
+             ;; Unique formatted string
+             (loop (- remaining 1)
+                   (cdr used-strategies)
+                   (cons distractor-str results)
+                   0)))])))
+
+;;; generate-incremental-fillers : Number × String × Nat × (List String) × Formatter → (List String)
+;;; Generate fallback distractors by adding/subtracting fixed amounts
+(define (generate-incremental-fillers correct correct-str n existing formatter)
+  (let loop ([delta 1] [results '()] [remaining n])
+    (if (<= remaining 0)
+        results
+        (let* ([plus-val (+ correct delta)]
+               [minus-val (- correct delta)]
+               [plus-str (formatter plus-val)]
+               [minus-str (formatter minus-val)]
+               [all-existing (append existing results (list correct-str))])
+          (cond
+            ;; Try plus first
+            [(and (> remaining 0)
+                  (not (member plus-str all-existing)))
+             (loop delta (cons plus-str results) (- remaining 1))]
+            ;; Try minus
+            [(and (> remaining 0)
+                  (positive? minus-val)  ; Don't go negative for counts
+                  (not (member minus-str (append existing results (list correct-str)))))
+             (loop delta (cons minus-str results) (- remaining 1))]
+            ;; Increase delta
+            [else (loop (+ delta 1) results remaining)])))))
+
+;;; find-label-for-string : (List (Symbol . String)) × String → Symbol
+(define (find-label-for-string options target)
+  (let loop ([opts options])
+    (if (null? opts)
+        'A  ; Fallback
+        (if (string=? (cdar opts) target)
+            (caar opts)
+            (loop (cdr opts))))))
 
 ;;; make-symbolic-options : Symbol × (List Symbol) × RNG → (List (Symbol . String)) × Symbol
 ;;; Generate options for symbolic answers (A, B, same, etc.)

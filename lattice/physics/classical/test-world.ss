@@ -228,9 +228,9 @@
             (define-test ball-bounces-test
               ;; Ball hitting ground should bounce
               (let* ([w (make-world (vec2 0 0))]  ; No gravity for simplicity
-                     ;; Ball moving down
+                     ;; Ball moving down - shape in local coords (centered at origin)
                      [body (make-body-2d (vec2 0 98) (vec2 0 10) 1)]
-                     [shape (make-circle (vec2 0 98) 5)]
+                     [shape (make-circle (vec2 0 0) 5)]  ; Local coords
                      [ball (make-entity 'ball body shape rubber-material #f)]
                      ;; Ground
                      [ground (make-static-box 'ground (vec2 0 100) (vec2 100 5) wood-material)])
