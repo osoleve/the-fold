@@ -135,6 +135,68 @@
           (combinations (cdr lst) (- k 1)))
      (combinations (cdr lst) k))]))
 
+(doc 'section 'sequential-counter)
+(doc 'note "Sequential counter encoding for at-most-k - O(n*k) clauses instead of O(C(n,k+1))")
+(doc 'note "Much more scalable for large n and k near n/2")
+
+(define (sequential-at-most-k vars k base-var)
+  (doc 'export #t)
+  (doc 'type '(-> (List Literal) Nat Nat (List (List Literal))))
+  (doc 'description "At most k of vars are true - Sinz sequential counter encoding")
+  (doc 'param 'base-var "Starting variable number for auxiliary counter variables")
+  (doc 'note "Uses O(n*k) auxiliary variables and O(n*k) clauses")
+  (doc 'note "More scalable than binomial encoding for large n")
+  ;; Sinz sequential counter: r[i,j] means "at least j of x[1..i] are true"
+  ;; Indexed: i in [1,n], j in [1,k]
+  ;; Clauses enforce monotonicity and forbid k+1 trues
+  (let ([n (length vars)])
+    (cond
+     [(>= k n) '()]  ; Trivially satisfied
+     [(= k 0) (map (lambda (v) (list (lit-negate v))) vars)]  ; All must be false
+     [(= n 1) '()]   ; n=1 with k>=1 is trivially satisfied
+     [else
+      (let* ([x (list->vector vars)]  ; 0-indexed: x[0] is first var
+             ;; r-var(i,j) returns variable number for register r[i,j]
+             ;; Using i in [1,n], j in [1,k]
+             [r-var (lambda (i j) (+ base-var (* (- i 1) k) (- j 1)))]
+             [clauses '()])
+
+        ;; Helper to add clause
+        (define (add! c) (set! clauses (cons c clauses)))
+
+        ;; Process each variable x[i] (1-indexed, but x vector is 0-indexed)
+        (let loop-i ([i 1])
+          (when (<= i n)
+            (let ([xi (vector-ref x (- i 1))])  ; x[i] in 1-indexed = x[i-1] in 0-indexed
+
+              ;; Clause type 1: x[i] => r[i,1]  (if x[i] true, count >= 1)
+              (add! (list (lit-negate xi) (var (r-var i 1))))
+
+              (when (> i 1)
+                ;; Clause type 2: r[i-1,j] => r[i,j] for all j (propagate count)
+                (let loop-j ([j 1])
+                  (when (<= j k)
+                    (add! (list (lit-negate (var (r-var (- i 1) j)))
+                                (var (r-var i j))))
+                    (loop-j (+ j 1))))
+
+                ;; Clause type 3: x[i] AND r[i-1,j] => r[i,j+1] (increment count)
+                (let loop-j ([j 1])
+                  (when (< j k)
+                    (add! (list (lit-negate xi)
+                                (lit-negate (var (r-var (- i 1) j)))
+                                (var (r-var i (+ j 1)))))
+                    (loop-j (+ j 1))))
+
+                ;; Clause type 4: NOT(x[i] AND r[i-1,k]) (forbid exceeding k)
+                ;; i.e., ~x[i] OR ~r[i-1,k]
+                (add! (list (lit-negate xi)
+                            (lit-negate (var (r-var (- i 1) k)))))))
+
+            (loop-i (+ i 1))))
+
+        clauses)])))
+
 (doc 'section 'common-patterns)
 
 (define (graph-coloring edges num-nodes num-colors)

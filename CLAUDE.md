@@ -101,6 +101,8 @@ scheme --script lattice/meta/test-meta.ss
 scheme --script lattice/fp/game/test-voting-games.ss
 scheme --script lattice/fp/game/test-coop-games.ss
 scheme --script lattice/fp/clp/test-clp.ss
+scheme --script lattice/fp/sat/test-sat.ss
+scheme --script lattice/fp/sat/test-maxsat.ss
 scheme --script lattice/fp/optics/test-optics.ss
 scheme --script lattice/fp/optics/test-profunctor-optics.ss
 scheme --script lattice/fp/optics/test-bidirectional.ss
@@ -271,6 +273,20 @@ These are pure functions - import them into boundary code for applications like 
 *Statistics (`lattice/statistics/`):* Linear/GLM regression (IRLS), regularization (ridge, lasso, elastic net), time series (AR, MA, exponential smoothing), hypothesis testing (t-test, F-test, ANOVA, chi-squared). Use `(li 'statistics)` for details.
 
 *CLP(FD) (`lattice/fp/clp/`):* cKanren-style constraint logic programming with finite domains, arithmetic constraints, global constraints (all-different), and intelligent search strategies. Classic problems: N-Queens, Sudoku, cryptarithmetic.
+
+*SAT/MaxSAT (`lattice/fp/sat/`):* CDCL SAT solver with clause learning, Two-Watched Literals, VSIDS branching. MaxSAT extension for optimization (minimize unsatisfied soft clauses). Applications: graph coloring, N-Queens, minimum vertex cover, maximum independent set, diagnosis/repair.
+
+| Function | Purpose |
+|----------|---------|
+| `sat-solve` | Check satisfiability, returns `'sat`, `'unsat`, or `'unknown` |
+| `sat-model` | Get satisfying assignment |
+| `graph-coloring` | Encode k-coloring as SAT |
+| `n-queens-sat` | Encode N-Queens as SAT |
+| `make-maxsat` | Create MaxSAT with hard/soft clauses |
+| `maxsat-solve` | Find minimum-cost assignment |
+| `min-vertex-cover` | Encode as MaxSAT |
+| `max-independent-set` | Encode as MaxSAT |
+| `min-correction-set` | Diagnosis: find clauses to remove |
 
 *Optics (`lattice/fp/optics/`):* Complete optics tower for composable data access:
 | Module | Contents |

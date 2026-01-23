@@ -1,5 +1,5 @@
 (skill sat
-  (version "0.3.0")
+  (version "0.3.1")
   (tier 1)
   (path "lattice/fp/sat")
   (purity partial)
@@ -18,7 +18,7 @@
   (exports
    (sat sat-solve sat-satisfiable? sat-model sat-help)
    (sat var neg implies iff)
-   (sat at-most-one at-least-one exactly-one at-most-k at-least-k exactly-k)
+   (sat at-most-one at-least-one exactly-one at-most-k at-least-k exactly-k sequential-at-most-k)
    (sat graph-coloring n-queens-sat)
    (cnf make-cnf cnf-from-lists cnf-empty cnf-clauses cnf-vars cnf->string cnf->dimacs)
    (clause make-clause clause-from-list clause-empty? clause-unit? clause->string)

@@ -24,19 +24,8 @@
 (define (maxsat-soft m) (caddr m))
 (define (maxsat-num-soft m) (length (maxsat-soft m)))
 
-;;; Weighted MaxSAT: each soft clause has a weight
-(define (make-weighted-maxsat hard-clauses weighted-soft-clauses)
-  (doc 'export #t)
-  (doc 'type '(-> (List Clause) (List (Pair Clause Weight)) WeightedMaxSATInstance))
-  (doc 'description "Create weighted MaxSAT instance")
-  (doc 'param 'weighted-soft-clauses "List of (clause . weight) pairs")
-  (list 'weighted-maxsat hard-clauses weighted-soft-clauses))
-
-(define (weighted-maxsat? m)
-  (and (pair? m) (eq? (car m) 'weighted-maxsat)))
-
-(define (weighted-maxsat-hard m) (cadr m))
-(define (weighted-maxsat-soft m) (caddr m))
+;; Note: Weighted MaxSAT removed - was broken (solver treated weighted pairs as clauses)
+;; TODO: Implement proper weighted MaxSAT with stratified or weight-aware search
 
 (doc 'section 'maxsat-result)
 
@@ -80,6 +69,7 @@
   (doc 'description "Check if there's a model with at most k unsatisfied soft clauses")
   ;; Introduce relaxation variables: soft_i OR relax_i
   ;; Constraint: at-most-k relaxation variables are true
+  ;; Uses sequential counter encoding for scalability (O(n*k) vs exponential)
   (let* ([n (length soft)]
          [base-var (+ 1 (max-var-in-clauses (append hard soft)))]
          ;; Relaxation variables: base-var, base-var+1, ...
@@ -88,14 +78,16 @@
          [relaxed-soft (map (lambda (clause relax-var)
                               (cons relax-var clause))
                             soft relax-vars)]
-         ;; At-most-k constraint on relaxation variables
-         [atmost-k (at-most-k (map var relax-vars) k)]
+         ;; Base for sequential counter auxiliary variables
+         [counter-base (+ base-var n)]
+         ;; At-most-k constraint using sequential counter (scalable)
+         [atmost-k (sequential-at-most-k (map var relax-vars) k counter-base)]
          ;; Combined problem
          [all-clauses (append hard relaxed-soft atmost-k)]
          [result (sat-model all-clauses)])
     (if (or (not result) (eq? result 'timeout))
         #f
-        ;; Filter out relaxation variables from model
+        ;; Filter out relaxation and counter variables from model
         (filter (lambda (entry)
                   (< (car entry) base-var))
                 result))))
