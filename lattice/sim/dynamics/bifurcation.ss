@@ -159,6 +159,266 @@
                           ;; Continuation failed - return what we have
                           (reverse (cons entry results))))))))
 
+;;; ============================================================
+;;; Section: Arc-Length Continuation
+;;; ============================================================
+
+(doc 'section 'arclength-continuation)
+(doc 'note "Pseudo-arclength continuation follows branches through fold points by stepping along the solution curve tangent")
+
+(define *arclength-step* 0.1)
+(define *arclength-max-correct* 10)
+
+(define (continue-fixed-point-arclength psys param0 fp0 num-steps step-size)
+  (doc 'export #t)
+  (doc 'type '(-> ParamODE Number Vec Nat Number (List (List Number Vec Symbol (List Complex)))))
+  (doc 'description "Continue a fixed point branch using pseudo-arclength continuation")
+  (doc 'param 'psys "parameterized ODE system")
+  (doc 'param 'param0 "starting parameter value")
+  (doc 'param 'fp0 "starting fixed point (must satisfy f(x,p)=0)")
+  (doc 'param 'num-steps "number of continuation steps")
+  (doc 'param 'step-size "arc-length step size (can be negative for reverse direction)")
+  (doc 'returns "list of (param fixed-point stability eigenvalues) tuples along the branch")
+  (doc 'note "Unlike fixed-parameter continuation, this can follow branches through fold points where the parameter 'turns back'")
+  (let* ([n (vector-length fp0)]
+         [ds (abs step-size)]
+         [sign (if (>= step-size 0) 1 -1)])
+        ;; Compute initial tangent
+        (let ([tangent0 (compute-tangent psys param0 fp0)])
+             (if (not tangent0)
+                 (list (list param0 fp0 'unknown '()))  ; Can't compute tangent
+                 (let loop ([k 0]
+                            [param param0]
+                            [fp fp0]
+                            [tangent tangent0]
+                            [results '()])
+                      (if (>= k num-steps)
+                          (reverse results)
+                          ;; Record current point with stability analysis
+                          (let* ([sys (instantiate-at psys param)]
+                                 [analysis (analyze-stability-general sys fp *continuation-step-size*)]
+                                 [stability (car analysis)]
+                                 [eigenvalues (cdr analysis)]
+                                 [entry (list param fp stability eigenvalues)]
+                                 ;; Predictor step along tangent
+                                 [predicted (arclength-predict fp param tangent (* sign ds))]
+                                 [pred-fp (car predicted)]
+                                 [pred-param (cdr predicted)]
+                                 ;; Corrector: solve bordered system
+                                 [corrected (arclength-correct psys pred-fp pred-param tangent (* sign ds))])
+                                (if (not corrected)
+                                    ;; Correction failed - return what we have
+                                    (reverse (cons entry results))
+                                    (let* ([new-fp (car corrected)]
+                                           [new-param (cdr corrected)]
+                                           ;; Compute new tangent for next step
+                                           [new-tangent (compute-tangent psys new-param new-fp)])
+                                          (if (not new-tangent)
+                                              (reverse (cons entry results))
+                                              ;; Ensure tangent points in consistent direction
+                                              (let ([oriented-tangent (orient-tangent new-tangent tangent)])
+                                                   (loop (+ k 1) new-param new-fp oriented-tangent
+                                                         (cons entry results)))))))))))))
+
+(define (compute-tangent psys param fp)
+  (doc 'type '(-> ParamODE Number Vec (Option (Pair Vec Number))))
+  (doc 'description "Compute tangent vector (dx/ds, dp/ds) to the solution curve")
+  (doc 'returns "(tangent-x . tangent-p) or #f if computation fails")
+  ;; The tangent satisfies: J_x * dx/ds + J_p * dp/ds = 0
+  ;; We solve the bordered system to get the tangent direction
+  (let* ([sys (instantiate-at psys param)]
+         [n (vector-length fp)]
+         [jac-x (compute-jacobian sys fp *continuation-step-size*)]
+         [jac-p (compute-parameter-jacobian psys param fp *continuation-step-size*)])
+        ;; Solve J_x * v = -J_p to get v = dx/dp along the curve
+        ;; Then tangent is proportional to (v, 1)
+        (let ([v (solve-for-tangent-direction jac-x jac-p)])
+             (if (not v)
+                 ;; J_x is singular - we're at a fold point
+                 ;; Use null vector approach instead
+                 (compute-tangent-at-fold jac-x jac-p n)
+                 ;; Normalize the tangent
+                 (let* ([v-norm-sq (+ (vec-dot v v) 1.0)]
+                        [norm (sqrt v-norm-sq)]
+                        [tangent-x (vec-scale (/ 1.0 norm) v)]
+                        [tangent-p (/ 1.0 norm)])
+                       (cons tangent-x tangent-p))))))
+
+(define (compute-parameter-jacobian psys param fp h)
+  (doc 'type '(-> ParamODE Number Vec Number Vec))
+  (doc 'description "Compute df/dp - how the vector field changes with parameter")
+  (let* ([sys0 (instantiate-at psys param)]
+         [sys1 (instantiate-at psys (+ param h))]
+         [f0 (eval-vector-field sys0 0 fp)]
+         [f1 (eval-vector-field sys1 0 fp)])
+        (vec-scale (/ 1.0 h) (vec-sub f1 f0))))
+
+(define (solve-for-tangent-direction jac-x jac-p)
+  (doc 'type '(-> Matrix Vec (Option Vec)))
+  (doc 'description "Solve J_x * v = -J_p for tangent direction")
+  ;; Use our robust linear solver
+  (let ([neg-jac-p (vec-scale -1.0 jac-p)])
+       (solve-linear-system jac-x neg-jac-p)))
+
+(define (compute-tangent-at-fold jac-x jac-p n)
+  (doc 'type '(-> Matrix Vec Nat (Option (Pair Vec Number))))
+  (doc 'description "Compute tangent when J_x is singular (at fold point)")
+  ;; At a fold, the tangent is in the null space of [J_x | J_p]
+  ;; Use SVD to find the null vector
+  (let* ([augmented (augment-with-column jac-x jac-p)]
+         [svd-result (svd augmented)])
+        (if (and (pair? svd-result) (eq? (car svd-result) 'error))
+            #f
+            (let* ([v-matrix (caddr svd-result)]  ; V from SVD
+                   [last-col (- (matrix-cols v-matrix) 1)]
+                   ;; Last column of V is the null vector
+                   [null-vec (extract-column v-matrix last-col)]
+                   ;; Split into x and p components
+                   [tangent-x (subvector null-vec 0 n)]
+                   [tangent-p (vector-ref null-vec n)]
+                   ;; Normalize
+                   [norm (sqrt (+ (vec-dot tangent-x tangent-x) (* tangent-p tangent-p)))])
+                  (if (< norm 1e-10)
+                      #f
+                      (cons (vec-scale (/ 1.0 norm) tangent-x)
+                            (/ tangent-p norm)))))))
+
+(define (augment-with-column m v)
+  (doc 'type '(-> Matrix Vec Matrix))
+  (doc 'description "Create [M | v] by appending column v to matrix M")
+  (let* ([rows (matrix-rows m)]
+         [cols (matrix-cols m)]
+         [new-cols (+ cols 1)]
+         [data (make-vector (* rows new-cols) 0)])
+        ;; Copy M
+        (do ([i 0 (+ i 1)])
+            ((= i rows))
+            (do ([j 0 (+ j 1)])
+                ((= j cols))
+                (vector-set! data (+ (* i new-cols) j)
+                             (matrix-ref m i j)))
+            ;; Add column from v
+            (vector-set! data (+ (* i new-cols) cols)
+                         (vector-ref v i)))
+        (list 'matrix rows new-cols data)))
+
+(define (extract-column m col)
+  (doc 'type '(-> Matrix Nat Vec))
+  (doc 'description "Extract column col from matrix as vector")
+  (let* ([rows (matrix-rows m)]
+         [v (make-vector rows 0)])
+        (do ([i 0 (+ i 1)])
+            ((= i rows) v)
+            (vector-set! v i (matrix-ref m i col)))))
+
+(define (subvector v start len)
+  (doc 'type '(-> Vec Nat Nat Vec))
+  (doc 'description "Extract subvector v[start:start+len]")
+  (let ([result (make-vector len 0)])
+       (do ([i 0 (+ i 1)])
+           ((= i len) result)
+           (vector-set! result i (vector-ref v (+ start i))))))
+
+(define (arclength-predict fp param tangent ds)
+  (doc 'type '(-> Vec Number (Pair Vec Number) Number (Pair Vec Number)))
+  (doc 'description "Predictor step: move along tangent by arc-length ds")
+  (let* ([tangent-x (car tangent)]
+         [tangent-p (cdr tangent)]
+         [new-fp (vec-add fp (vec-scale ds tangent-x))]
+         [new-param (+ param (* ds tangent-p))])
+        (cons new-fp new-param)))
+
+(define (arclength-correct psys pred-fp pred-param tangent ds)
+  (doc 'type '(-> ParamODE Vec Number (Pair Vec Number) Number (Option (Pair Vec Number))))
+  (doc 'description "Corrector: solve bordered system F(x,p)=0 with arclength constraint")
+  (doc 'returns "(corrected-fp . corrected-param) or #f if correction fails")
+  (let* ([tangent-x (car tangent)]
+         [tangent-p (cdr tangent)]
+         [n (vector-length pred-fp)])
+        ;; Newton iteration on the bordered system:
+        ;; [ J_x   J_p  ] [dx]   [-f(x,p)                    ]
+        ;; [ t_x^T t_p  ] [dp] = [-((x-x0)·t_x + (p-p0)·t_p) + ds]
+        ;; where (x0, p0) is the previous point, (t_x, t_p) is the tangent
+        (let loop ([fp pred-fp]
+                   [param pred-param]
+                   [iter 0])
+             (if (>= iter *arclength-max-correct*)
+                 #f  ; Failed to converge
+                 (let* ([sys (instantiate-at psys param)]
+                        [f-val (eval-vector-field sys 0 fp)]
+                        [f-norm (vec-norm f-val)])
+                       (if (< f-norm *continuation-tolerance*)
+                           (cons fp param)  ; Converged
+                           ;; Compute correction
+                           (let* ([jac-x (compute-jacobian sys fp *continuation-step-size*)]
+                                  [jac-p (compute-parameter-jacobian psys param fp *continuation-step-size*)]
+                                  [correction (solve-bordered-system jac-x jac-p tangent-x tangent-p
+                                                                     f-val)])
+                                 (if (not correction)
+                                     #f  ; Linear solve failed
+                                     (let* ([dx (car correction)]
+                                            [dp (cdr correction)]
+                                            [new-fp (vec-sub fp dx)]
+                                            [new-param (- param dp)])
+                                           (loop new-fp new-param (+ iter 1)))))))))))
+
+(define (solve-bordered-system jac-x jac-p tangent-x tangent-p rhs-f)
+  (doc 'type '(-> Matrix Vec Vec Number Vec (Option (Pair Vec Number))))
+  (doc 'description "Solve the bordered system for Newton correction")
+  ;; Build and solve:
+  ;; [ J_x   J_p  ] [dx]   [f ]
+  ;; [ t_x^T t_p  ] [dp] = [0 ]  (arclength constraint linearized)
+  (let* ([n (vector-length rhs-f)]
+         ;; Build bordered matrix (n+1) x (n+1)
+         [bordered (make-bordered-matrix jac-x jac-p tangent-x tangent-p)]
+         ;; Build RHS: [f; 0]
+         [rhs (make-vector (+ n 1) 0)])
+        (do ([i 0 (+ i 1)])
+            ((= i n))
+            (vector-set! rhs i (vector-ref rhs-f i)))
+        (vector-set! rhs n 0.0)  ; Arclength constraint RHS
+        ;; Solve
+        (let ([solution (solve-linear-system bordered rhs)])
+             (if (not solution)
+                 #f
+                 (cons (subvector solution 0 n)
+                       (vector-ref solution n))))))
+
+(define (make-bordered-matrix jac-x jac-p tangent-x tangent-p)
+  (doc 'type '(-> Matrix Vec Vec Number Matrix))
+  (doc 'description "Build the (n+1)x(n+1) bordered matrix for arclength continuation")
+  (let* ([n (matrix-rows jac-x)]
+         [size (+ n 1)]
+         [data (make-vector (* size size) 0)])
+        ;; Copy J_x into top-left n×n block
+        (do ([i 0 (+ i 1)])
+            ((= i n))
+            (do ([j 0 (+ j 1)])
+                ((= j n))
+                (vector-set! data (+ (* i size) j)
+                             (matrix-ref jac-x i j)))
+            ;; J_p column
+            (vector-set! data (+ (* i size) n)
+                         (vector-ref jac-p i)))
+        ;; Bottom row: tangent
+        (do ([j 0 (+ j 1)])
+            ((= j n))
+            (vector-set! data (+ (* n size) j)
+                         (vector-ref tangent-x j)))
+        (vector-set! data (+ (* n size) n) tangent-p)
+        (list 'matrix size size data)))
+
+(define (orient-tangent new-tangent old-tangent)
+  (doc 'type '(-> (Pair Vec Number) (Pair Vec Number) (Pair Vec Number)))
+  (doc 'description "Orient new tangent to point in same direction as old tangent")
+  ;; Check dot product; flip if negative
+  (let* ([dot (+ (vec-dot (car new-tangent) (car old-tangent))
+                 (* (cdr new-tangent) (cdr old-tangent)))])
+        (if (< dot 0)
+            (cons (vec-scale -1.0 (car new-tangent))
+                  (- (cdr new-tangent)))
+            new-tangent)))
+
 (define (find-all-fixed-points sys search-region grid-density tolerance)
   (doc 'export #t)
   (doc 'type '(-> ODE (List (Pair Number Number)) Nat Number (List Vec)))

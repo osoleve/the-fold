@@ -144,6 +144,66 @@
           (assert-true (pair? (memq 'unstable-node stabilities)))))
 
   ;;; ============================================================
+  ;;; Arc-Length Continuation
+  ;;; ============================================================
+
+  (define-test "continue-fixed-point-arclength tracks branch"
+    (let* ([psys (pitchfork-normal-form-param)]
+           [continuation (continue-fixed-point-arclength psys -2.0 (vector 0.0) 20 0.2)])
+          ;; Should produce continuation points
+          (assert-true (> (length continuation) 5))
+          ;; Each entry should have (param fp stability eigenvalues)
+          (assert-true (= (length (car continuation)) 4))))
+
+  (define-test "continue-fixed-point-arclength detects stability change"
+    (let* ([psys (pitchfork-normal-form-param)]
+           [continuation (continue-fixed-point-arclength psys -2.0 (vector 0.0) 30 0.15)]
+           [stabilities (map caddr continuation)])
+          ;; Should see stability change
+          (assert-true (or (pair? (memq 'stable-node stabilities))
+                           (pair? (memq 'degenerate stabilities))))
+          (assert-true (or (pair? (memq 'unstable-node stabilities))
+                           (pair? (memq 'degenerate stabilities))))))
+
+  (define-test "compute-tangent returns unit tangent"
+    (let* ([psys (pitchfork-normal-form-param)]
+           [tangent (compute-tangent psys -1.0 (vector 0.0))])
+          (assert-true (pair? tangent))
+          ;; Tangent should be approximately unit length
+          (let ([norm-sq (+ (vec-dot (car tangent) (car tangent))
+                            (* (cdr tangent) (cdr tangent)))])
+               (assert-true (< (abs (- norm-sq 1.0)) 0.01)))))
+
+  (define-test "arclength-predict moves along tangent"
+    (let* ([fp (vector 1.0 2.0)]
+           [param 3.0]
+           [tangent (cons (vector 0.6 0.0) 0.8)]  ; Unit tangent
+           [predicted (arclength-predict fp param tangent 1.0)]
+           [new-fp (car predicted)]
+           [new-param (cdr predicted)])
+          ;; Should move by ds=1.0 along tangent direction
+          (assert-true (< (abs (- (vector-ref new-fp 0) 1.6)) 0.01))
+          (assert-true (< (abs (- new-param 3.8)) 0.01))))
+
+  (define-test "orient-tangent preserves direction"
+    (let* ([old-tangent (cons (vector 1.0) 0.0)]
+           [new-tangent (cons (vector 0.9) 0.1)]
+           [oriented (orient-tangent new-tangent old-tangent)])
+          ;; Dot product should be positive
+          (assert-true (> (+ (vec-dot (car oriented) (car old-tangent))
+                             (* (cdr oriented) (cdr old-tangent)))
+                          0))))
+
+  (define-test "orient-tangent flips reversed tangent"
+    (let* ([old-tangent (cons (vector 1.0) 0.0)]
+           [new-tangent (cons (vector -0.9) -0.1)]  ; Points opposite
+           [oriented (orient-tangent new-tangent old-tangent)])
+          ;; Should flip to point same direction
+          (assert-true (> (+ (vec-dot (car oriented) (car old-tangent))
+                             (* (cdr oriented) (cdr old-tangent)))
+                          0))))
+
+  ;;; ============================================================
   ;;; Bifurcation Detection
   ;;; ============================================================
 
