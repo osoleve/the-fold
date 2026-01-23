@@ -410,11 +410,46 @@ Terms in the free algebra are built from:
   (doc 'type '(-> Signature Functor))
   (doc 'description "The Free functor: Set → Alg(Σ)
 F(X) = term algebra over X (as generators)
-F(f) = map f over generators in terms")
+F(f) = map f over generators in terms
+
+Note: The functor's fmap directly transforms terms for efficiency.
+For categorical composition in Alg(Σ), use free-morphism to get
+first-class algebra-hom objects instead.")
   (make-named-functor
    (string->symbol (format "Free-~a" (signature-name sig)))
    (lambda (f term)
      (free-fmap sig f term))))
+
+(define (make-free-algebra sig generators)
+  (doc 'type '(-> Signature (List Any) Algebra))
+  (doc 'description "Create the free algebra over a set of generators.
+The carrier is 'term and operations build term ASTs.
+This is an explicit algebra object suitable for cat-Alg.")
+  (let* ([ops (signature-operations sig)]
+         [op-impls (map (lambda (op-spec)
+                          (let ([name (car op-spec)]
+                                [arity (cdr op-spec)])
+                            (cons name
+                                  (if (= arity 0)
+                                      (lambda () name)
+                                      (lambda args (cons name args))))))
+                        ops)])
+    (list 'algebra sig 'term op-impls)))
+
+(define (free-morphism sig source-gens target-gens f)
+  (doc 'type '(-> Signature (List Any) (List Any) (-> Any Any) AlgebraHom))
+  (doc 'description "Construct Free(f) as a first-class algebra homomorphism.
+Given f : A → B (a function on generator sets), returns the algebra-hom
+Free(f) : Free(A) → Free(B) for use in categorical composition.
+
+Use this when you need to compose morphisms in cat-Alg.
+For simple term transformation, use (functor-fmap (make-free-functor sig)) instead.")
+  (let ([source-alg (make-free-algebra sig source-gens)]
+        [target-alg (make-free-algebra sig target-gens)])
+    (make-algebra-hom
+     source-alg
+     target-alg
+     (lambda (term) (free-fmap sig f term)))))
 
 (define (make-forgetful-functor sig)
   (doc 'type '(-> Signature Functor))
@@ -723,6 +758,7 @@ Term Operations:
 
 Functors and Adjunction:
   make-free-functor, make-forgetful-functor
+  make-free-algebra, free-morphism
   make-free-unit, make-free-counit
   make-free-adjunction, forget-carrier
 

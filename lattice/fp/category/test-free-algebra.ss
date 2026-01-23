@@ -602,6 +602,57 @@
         result))
 
 ;;; ====
+;;; Test: Free Algebra and Morphism Objects (fold-zxre)
+;;; ====
+
+(section "Free Algebra and Morphism Objects")
+
+;; Test make-free-algebra creates proper algebra objects
+(let ([free-alg (make-free-algebra sig-monoid '(a b c))])
+  (test-true "make-free-algebra produces algebra"
+             (algebra? free-alg))
+  (test "free algebra has signature"
+        'monoid
+        (signature-name (algebra-signature free-alg)))
+  (test "free algebra carrier is 'term"
+        'term
+        (algebra-carrier free-alg)))
+
+;; Test free-morphism produces algebra-hom objects
+(let* ([f (lambda (x) (string->symbol (format "~a-prime" x)))]
+       [hom (free-morphism sig-monoid '(a b) '(a-prime b-prime) f)])
+  (test-true "free-morphism produces algebra-hom"
+             (algebra-hom? hom))
+  (test-true "source is an algebra"
+             (algebra? (algebra-hom-source hom)))
+  (test-true "target is an algebra"
+             (algebra? (algebra-hom-target hom)))
+  ;; Test that the homomorphism correctly transforms terms
+  (test "free-morphism transforms generators"
+        '(gen a-prime)
+        (algebra-hom-apply hom '(gen a)))
+  (test "free-morphism transforms compound terms"
+        '(* (gen a-prime) (gen b-prime))
+        (algebra-hom-apply hom '(* (gen a) (gen b)))))
+
+;; Test that free-morphism produces composable algebra-homs
+;; (compose-algebra-hom requires target of first = source of second by eq?,
+;; so we test the algebraic structure rather than actual composition here)
+(let* ([f (lambda (x) (list 'f x))]
+       [hom (free-morphism sig-monoid '(a b) '((f a) (f b)) f)]
+       ;; Create identity hom on same source (reusing the algebra object)
+       [source-alg (algebra-hom-source hom)]
+       [id-hom (identity-algebra-hom source-alg)]
+       ;; id ∘ hom should give same result as hom alone
+       [composed (compose-algebra-hom hom id-hom)]
+       [term '(gen a)])
+  (test-true "composed with identity forms algebra-hom"
+             (algebra-hom? composed))
+  (test "id ∘ free-morphism = free-morphism"
+        (algebra-hom-apply hom term)
+        (algebra-hom-apply composed term)))
+
+;;; ====
 ;;; Test: Monad Derivation
 ;;; ====
 
