@@ -635,6 +635,7 @@
   (doc 'description "Follow a period-doubling cascade to multiple bifurcations")
   (doc 'returns "list of (bifurcation-param period multiplier) showing the cascade")
   (doc 'note "Classic example: logistic map r=3 to r=4 shows period 1→2→4→8→... cascade")
+  (doc 'note "Uses f^k iterate to detect period-k orbit becoming unstable")
   (let ([param-steps 200])
        (let cascade-loop ([current-period 1]
                           [p-min param-start]
@@ -643,8 +644,11 @@
                           [results '()])
             (if (>= doublings max-doublings)
                 (reverse results)
-                ;; Find next period-doubling
-                (let* ([bifurcations (detect-period-doubling-map make-sys p-min param-end
+                ;; To find period-doubling of a period-k orbit, analyze f^k
+                ;; A period-k orbit is a fixed point of f^k
+                (let* ([make-iterated-sys (lambda (p)
+                                            (iterate-system (make-sys p) current-period))]
+                       [bifurcations (detect-period-doubling-map make-iterated-sys p-min param-end
                                                                   param-steps fp-guess tolerance)])
                       (if (null? bifurcations)
                           (reverse results)  ; No more doublings found
@@ -652,9 +656,9 @@
                                  [bif-param (car bif)]
                                  [bif-fp (cadr bif)]
                                  [new-period (* 2 current-period)]
-                                 ;; Get multiplier at bifurcation
-                                 [sys (make-sys bif-param)]
-                                 [mult (map-multiplier sys bif-fp 1e-7)]
+                                 ;; Get multiplier of f^k at bifurcation
+                                 [sys-iterated (make-iterated-sys bif-param)]
+                                 [mult (map-multiplier sys-iterated bif-fp 1e-7)]
                                  [entry (list bif-param new-period mult)])
                                 (cascade-loop new-period
                                               (+ bif-param (* 0.01 (- param-end param-start)))
@@ -666,7 +670,9 @@
   (doc 'type '(-> (List (List Number Nat Number)) Number))
   (doc 'description "Estimate Feigenbaum delta constant from period-doubling cascade data")
   (doc 'note "Universal constant δ ≈ 4.669... for unimodal maps")
-  (let ([params (map car cascade-data)])
+  (doc 'note "Warning: Numerically unstable for later bifurcations due to catastrophic cancellation")
+  (let ([params (map car cascade-data)]
+        [min-diff 1e-12])  ; Guard against division by zero
        (if (< (length params) 3)
            0
            (let loop ([ps params] [deltas '()])
@@ -677,8 +683,12 @@
                     (let* ([r1 (car ps)]
                            [r2 (cadr ps)]
                            [r3 (caddr ps)]
-                           [delta (/ (- r2 r1) (- r3 r2))])
-                          (loop (cdr ps) (cons delta deltas))))))))
+                           [diff (- r3 r2)])
+                          ;; Guard against division by zero from numerical noise
+                          (if (< (abs diff) min-diff)
+                              (loop (cdr ps) deltas)  ; Skip this ratio
+                              (let ([delta (/ (- r2 r1) diff)])
+                                   (loop (cdr ps) (cons delta deltas))))))))))
 
 (doc 'section 'display-and-debugging)
 
