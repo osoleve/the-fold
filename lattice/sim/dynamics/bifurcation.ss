@@ -479,54 +479,71 @@
 (doc 'section 'bifurcation-detection)
 (doc 'note "Detect bifurcations by monitoring eigenvalue crossings")
 
-(define (detect-bifurcations continuation-data)
+(define (detect-bifurcations continuation-data . opt-psys)
   (doc 'export #t)
-  (doc 'type '(-> (List (List Number Vec Symbol (List Complex))) (List (List Symbol Number Vec))))
+  (doc 'type '(-> (List (List Number Vec Symbol (List Complex))) (Option ParamODE)
+                  (List (List Symbol Number Vec))))
   (doc 'description "Detect bifurcation points from continuation data by analyzing eigenvalue transitions")
+  (doc 'param 'continuation-data "output from continue-fixed-point or continue-fixed-point-arclength")
+  (doc 'param 'opt-psys "optional: parameterized ODE for normal form analysis (improves pitchfork/transcritical distinction)")
   (doc 'returns "list of (bifurcation-type param fixed-point) for each detected bifurcation")
-  (if (or (null? continuation-data) (null? (cdr continuation-data)))
-      '()
-      (let loop ([prev (car continuation-data)]
-                 [rest (cdr continuation-data)]
-                 [bifurcations '()])
-           (if (null? rest)
-               (reverse bifurcations)
-               (let* ([curr (car rest)]
-                      [prev-param (car prev)]
-                      [curr-param (car curr)]
-                      [prev-eigs (cadddr prev)]
-                      [curr-eigs (cadddr curr)]
-                      [prev-stab (caddr prev)]
-                      [curr-stab (caddr curr)]
-                      [curr-fp (cadr curr)]
-                      ;; Check for bifurcations
-                      [bif (detect-bifurcation-type prev-eigs curr-eigs
-                                                    prev-stab curr-stab)])
-                     (loop curr (cdr rest)
-                           (if bif
-                               (cons (list bif curr-param curr-fp) bifurcations)
-                               bifurcations)))))))
+  (let ([psys (if (null? opt-psys) #f (car opt-psys))])
+       (if (or (null? continuation-data) (null? (cdr continuation-data)))
+           '()
+           (let loop ([prev (car continuation-data)]
+                      [rest (cdr continuation-data)]
+                      [bifurcations '()])
+                (if (null? rest)
+                    (reverse bifurcations)
+                    (let* ([curr (car rest)]
+                           [prev-param (car prev)]
+                           [curr-param (car curr)]
+                           [prev-eigs (cadddr prev)]
+                           [curr-eigs (cadddr curr)]
+                           [prev-stab (caddr prev)]
+                           [curr-stab (caddr curr)]
+                           [curr-fp (cadr curr)]
+                           ;; Check for bifurcations
+                           [bif (detect-bifurcation-type prev-eigs curr-eigs
+                                                         prev-stab curr-stab)])
+                          ;; Refine pitchfork/transcritical using normal form if psys provided
+                          (let ([refined-bif
+                                 (if (and psys bif
+                                          (or (eq? bif 'pitchfork) (eq? bif 'transcritical)))
+                                     (let ([sys (instantiate-at psys curr-param)])
+                                          (classify-codim1-bifurcation sys curr-fp *continuation-step-size*))
+                                     bif)])
+                               (loop curr (cdr rest)
+                                     (if refined-bif
+                                         (cons (list refined-bif curr-param curr-fp) bifurcations)
+                                         bifurcations)))))))))
 
 (define (detect-bifurcation-type prev-eigs curr-eigs prev-stab curr-stab)
   (doc 'type '(-> (List Complex) (List Complex) Symbol Symbol (Option Symbol)))
   (doc 'description "Determine bifurcation type from eigenvalue transition")
+  (doc 'note "Order matters: pitchfork/transcritical checked first (stability change with persistence),
+then Hopf (complex eigenvalues), then saddle-node (real eigenvalue crossing without stability change).")
   (let* ([prev-reals (map complex-real prev-eigs)]
          [curr-reals (map complex-real curr-eigs)]
          [prev-imags (map complex-imag prev-eigs)]
-         [curr-imags (map complex-imag curr-eigs)])
+         [curr-imags (map complex-imag curr-eigs)]
+         [stab-changed (stability-changed? prev-stab curr-stab)]
+         [real-zero-crossing (real-eigenvalue-zero-crossing? prev-reals curr-reals prev-imags)])
         (cond
-         ;; Saddle-node: real eigenvalue crosses zero
-         [(saddle-node-condition? prev-reals curr-reals prev-imags)
-          'saddle-node]
-         ;; Hopf: complex conjugate pair crosses imaginary axis
+         ;; Hopf: complex conjugate pair crosses imaginary axis (checked first, most distinctive)
          [(hopf-condition? prev-reals curr-reals prev-imags curr-imags)
           'hopf]
-         ;; Pitchfork/Transcritical: stability change with real eigenvalue
-         [(and (stability-changed? prev-stab curr-stab)
-               (real-eigenvalue-zero-crossing? prev-reals curr-reals prev-imags))
+         ;; Pitchfork/Transcritical: stability change with real eigenvalue zero crossing
+         ;; (fixed point persists but changes stability - NOT saddle-node)
+         [(and stab-changed real-zero-crossing)
           (if (symmetric-breaking? prev-reals curr-reals)
               'pitchfork
               'transcritical)]
+         ;; Saddle-node: real eigenvalue crosses zero WITHOUT stability change
+         ;; This typically indicates fixed point creation/annihilation
+         [(and real-zero-crossing (not stab-changed)
+               (saddle-node-condition? prev-reals curr-reals prev-imags))
+          'saddle-node]
          [else #f])))
 
 (define (saddle-node-condition? prev-reals curr-reals prev-imags)
@@ -576,11 +593,87 @@
 (define (symmetric-breaking? prev-reals curr-reals)
   (doc 'type '(-> (List Number) (List Number) Boolean))
   (doc 'description "Heuristic for pitchfork vs transcritical - check for symmetric eigenvalue structure")
+  (doc 'deprecated "Use normal-form-is-pitchfork? instead for proper detection")
   ;; Simplified: pitchfork often has eigenvalues that are symmetric around zero
   ;; This is a heuristic - proper detection needs normal form analysis
   (let ([prev-sum (apply + prev-reals)]
         [curr-sum (apply + curr-reals)])
        (< (abs prev-sum) 0.1)))  ; Roughly symmetric
+
+;;; ============================================================
+;;; Section: Normal Form Coefficients for Bifurcation Classification
+;;; ============================================================
+
+(doc 'section 'normal-form-classification)
+(doc 'note "Distinguish pitchfork from transcritical using normal form coefficients.
+At a real eigenvalue zero-crossing:
+  - Pitchfork: f''(x*) ≈ 0 (Z₂ symmetry), distinguished by f'''(x*)
+  - Transcritical: f''(x*) ≠ 0")
+
+(define *normal-form-tolerance* 1e-4)
+
+(define (compute-1d-derivatives sys fp h)
+  (doc 'type '(-> ODE Vec Number (List Number Number)))
+  (doc 'description "Compute 2nd and 3rd derivatives of 1D vector field at equilibrium")
+  (doc 'returns "(f'' f''') at the equilibrium point")
+  (let* ([x0 (vector-ref fp 0)]
+         [f (lambda (x)
+              (let ([result (eval-vector-field sys 0 (vector x))])
+                   (vector-ref result 0)))]
+         ;; Second derivative: f''(x) = (f(x+h) - 2f(x) + f(x-h)) / h²
+         [fpp (/ (+ (f (+ x0 h)) (f (- x0 h)) (* -2 (f x0)))
+                 (* h h))]
+         ;; Third derivative: f'''(x) = (f(x+2h) - 2f(x+h) + 2f(x-h) - f(x-2h)) / (2h³)
+         [fppp (/ (+ (f (+ x0 (* 2 h)))
+                     (* -2 (f (+ x0 h)))
+                     (* 2 (f (- x0 h)))
+                     (- (f (- x0 (* 2 h)))))
+                  (* 2 h h h))])
+        (list fpp fppp)))
+
+(define (normal-form-is-pitchfork? sys fp h)
+  (doc 'export #t)
+  (doc 'type '(-> ODE Vec Number Boolean))
+  (doc 'description "Determine if bifurcation has pitchfork normal form (Z₂ symmetry)")
+  (doc 'param 'sys "ODE system at the bifurcation parameter")
+  (doc 'param 'fp "fixed point (equilibrium) at bifurcation")
+  (doc 'param 'h "step size for numerical differentiation")
+  (doc 'returns "#t if |f''(x*)| < tolerance (pitchfork), #f otherwise (transcritical)")
+  (doc 'note "Only valid for 1D systems at real eigenvalue zero-crossing")
+  (let ([dim (ode-dimension sys)])
+       (if (not (= dim 1))
+           ;; For higher dimensions, fall back to heuristic
+           ;; (could extend to use Jacobian eigenspace analysis)
+           #f
+           (let* ([derivs (compute-1d-derivatives sys fp h)]
+                  [fpp (car derivs)])
+                 (< (abs fpp) *normal-form-tolerance*)))))
+
+(define (classify-codim1-bifurcation sys fp h)
+  (doc 'export #t)
+  (doc 'type '(-> ODE Vec Number Symbol))
+  (doc 'description "Classify a codimension-1 bifurcation using normal form analysis")
+  (doc 'param 'sys "ODE system at the bifurcation parameter")
+  (doc 'param 'fp "fixed point (equilibrium) at bifurcation")
+  (doc 'param 'h "step size for numerical differentiation")
+  (doc 'returns "'pitchfork, 'transcritical, or 'unknown")
+  (let ([dim (ode-dimension sys)])
+       (cond
+        [(not (= dim 1)) 'unknown]  ; Need more sophisticated analysis for n > 1
+        [else
+         (let* ([derivs (compute-1d-derivatives sys fp h)]
+                [fpp (car derivs)]
+                [fppp (cadr derivs)])
+               (cond
+                ;; Pitchfork: f'' ≈ 0, f''' ≠ 0
+                [(and (< (abs fpp) *normal-form-tolerance*)
+                      (> (abs fppp) *normal-form-tolerance*))
+                 'pitchfork]
+                ;; Transcritical: f'' ≠ 0
+                [(> (abs fpp) *normal-form-tolerance*)
+                 'transcritical]
+                ;; Degenerate case
+                [else 'unknown]))])))
 
 ;;; ============================================================
 ;;; Section: Bifurcation Diagrams

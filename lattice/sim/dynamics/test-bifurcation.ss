@@ -204,6 +204,56 @@
                           0))))
 
   ;;; ============================================================
+  ;;; Normal Form Classification
+  ;;; ============================================================
+
+  (define-test "compute-1d-derivatives correct for pitchfork"
+    ;; dx/dt = rx - x³ at origin: f''(0) = 0, f'''(0) = -6
+    (let* ([psys (pitchfork-normal-form-param)]
+           [sys (instantiate-at psys 0.0)]  ; At bifurcation point
+           [derivs (compute-1d-derivatives sys (vector 0.0) 1e-4)]
+           [fpp (car derivs)]
+           [fppp (cadr derivs)])
+          ;; Second derivative should be near zero
+          (assert-true (< (abs fpp) 0.01))
+          ;; Third derivative should be approximately -6
+          (assert-true (< (abs (+ fppp 6)) 0.5))))
+
+  (define-test "compute-1d-derivatives correct for transcritical"
+    ;; dx/dt = rx - x² at origin: f''(0) = -2, f'''(0) = 0
+    (let* ([psys (transcritical-normal-form-param)]
+           [sys (instantiate-at psys 0.0)]  ; At bifurcation point
+           [derivs (compute-1d-derivatives sys (vector 0.0) 1e-4)]
+           [fpp (car derivs)]
+           [fppp (cadr derivs)])
+          ;; Second derivative should be approximately -2
+          (assert-true (< (abs (+ fpp 2)) 0.1))
+          ;; Third derivative should be near zero
+          (assert-true (< (abs fppp) 0.1))))
+
+  (define-test "classify-codim1-bifurcation identifies pitchfork"
+    (let* ([psys (pitchfork-normal-form-param)]
+           [sys (instantiate-at psys 0.0)]
+           [bif-type (classify-codim1-bifurcation sys (vector 0.0) 1e-4)])
+          (assert-equal bif-type 'pitchfork)))
+
+  (define-test "classify-codim1-bifurcation identifies transcritical"
+    (let* ([psys (transcritical-normal-form-param)]
+           [sys (instantiate-at psys 0.0)]
+           [bif-type (classify-codim1-bifurcation sys (vector 0.0) 1e-4)])
+          (assert-equal bif-type 'transcritical)))
+
+  (define-test "normal-form-is-pitchfork? returns true for pitchfork"
+    (let* ([psys (pitchfork-normal-form-param)]
+           [sys (instantiate-at psys 0.0)])
+          (assert-true (normal-form-is-pitchfork? sys (vector 0.0) 1e-4))))
+
+  (define-test "normal-form-is-pitchfork? returns false for transcritical"
+    (let* ([psys (transcritical-normal-form-param)]
+           [sys (instantiate-at psys 0.0)])
+          (assert-false (normal-form-is-pitchfork? sys (vector 0.0) 1e-4))))
+
+  ;;; ============================================================
   ;;; Bifurcation Detection
   ;;; ============================================================
 
@@ -213,6 +263,22 @@
            [bifurcations (detect-bifurcations continuation)])
           ;; Should detect at least one bifurcation near r = 0
           (assert-true (>= (length bifurcations) 1))))
+
+  (define-test "detect-bifurcations with psys correctly classifies pitchfork"
+    (let* ([psys (pitchfork-normal-form-param)]
+           [continuation (continue-fixed-point psys -2.0 (vector 0.0) 2.0 0.1)]
+           [bifurcations (detect-bifurcations continuation psys)]
+           [pitchforks (filter (lambda (b) (eq? (car b) 'pitchfork)) bifurcations)])
+          ;; Should find pitchfork bifurcation when using normal form analysis
+          (assert-true (>= (length pitchforks) 1))))
+
+  (define-test "detect-bifurcations with psys correctly classifies transcritical"
+    (let* ([psys (transcritical-normal-form-param)]
+           [continuation (continue-fixed-point psys -2.0 (vector 0.0) 2.0 0.1)]
+           [bifurcations (detect-bifurcations continuation psys)]
+           [transcriticals (filter (lambda (b) (eq? (car b) 'transcritical)) bifurcations)])
+          ;; Should find transcritical bifurcation when using normal form analysis
+          (assert-true (>= (length transcriticals) 1))))
 
   (define-test "detect-bifurcations finds hopf"
     (let* ([psys (hopf-normal-form-param)]
