@@ -350,24 +350,17 @@
     (let ([new-body (set-lens body-inertia-lens 10.0 test-body)])
       (assert-equal 10.0 (rigid-body-inertia new-body))))
 
-  (define-test "body-angle-lens works on particle (returns 0)"
-    (assert-equal 0.0 (view body-angle-lens test-particle)))
-
-  (define-test "body-angular-vel-lens works on particle (returns 0)"
-    (assert-equal 0.0 (view body-angular-vel-lens test-particle)))
-
-  (define-test "body-inertia-lens works on particle (returns 0)"
-    (assert-equal 0.0 (view body-inertia-lens test-particle)))
-
-  (define-test "body-angle-lens set on particle is no-op"
-    (let ([new-p (set-lens body-angle-lens 999 test-particle)])
-      (assert-equal 0.0 (view body-angle-lens new-p))))
-
   (define-test "rotational-body-ops bundle recognized for rigid-body"
     (assert-true (implements-bundle? 'rigid-body-2d rotational-body-ops)))
 
-  (define-test "rotational-body-ops bundle recognized for particle"
-    (assert-true (implements-bundle? 'particle rotational-body-ops))))
+  (define-test "particles do NOT implement rotational-body-ops"
+    (assert-false (implements-bundle? 'particle rotational-body-ops)))
+
+  (define-test "rotates? returns true for rigid-body"
+    (assert-true (rotates? test-body)))
+
+  (define-test "rotates? returns false for particle"
+    (assert-false (rotates? test-particle))))
 
 (doc 'section 'integration-utility-tests)
 
@@ -436,6 +429,56 @@
       (assert-true (< (abs (- vy 2.0)) 0.001))
       ;; Angular velocity: was 0.1, now 0.1 + (-5) = -4.9
       (assert-true (< (abs (- omega -4.9)) 0.001)))))
+
+(doc 'section 'generic-helper-tests)
+
+(test-group "Generic Helpers"
+  (define-test "apply-torque on rigid-body"
+    (let* ([new-body (apply-torque 10.0 0.1 test-body)]
+           [expected-omega (+ 0.1 0.5)])  ; delta = 10 * 0.1 / 2 = 0.5
+      (assert-equal expected-omega (rigid-body-angular-vel new-body))))
+
+  (define-test "apply-torque on particle is no-op"
+    (let ([new-p (apply-torque 10.0 0.1 test-particle)])
+      ;; Particle unchanged (no rotation support)
+      (assert-equal (particle-pos test-particle) (particle-pos new-p))
+      (assert-equal (particle-vel test-particle) (particle-vel new-p))))
+
+  (define-test "integrate-body on rigid-body updates pos and angle"
+    (let* ([new-body (integrate-body 0.1 test-body)])
+      ;; Position: (10,20) + (1,2)*0.1 = (10.1, 20.2)
+      (assert-equal 10.1 (vec2-x (rigid-body-pos new-body)))
+      (assert-equal 20.2 (vec2-y (rigid-body-pos new-body)))
+      ;; Angle: 0.5 + 0.1*0.1 = 0.51
+      (assert-equal 0.51 (rigid-body-angle new-body))))
+
+  (define-test "integrate-body on particle updates pos only"
+    (let* ([new-p (integrate-body 0.1 test-particle)])
+      ;; Position: (5,10) + (-1,0)*0.1 = (4.9, 10)
+      (assert-true (< (abs (- 4.9 (vec2-x (particle-pos new-p)))) 0.001))
+      (assert-equal 10 (vec2-y (particle-pos new-p)))))
+
+  (define-test "apply-impulse-at-point on rigid-body (linear + angular)"
+    (let* ([impulse (vec2 10 0)]
+           [world-point (vec2 10 21)]  ; 1 unit above CoM
+           [new-body (apply-impulse-at-point impulse world-point test-body)]
+           [vx (vec2-x (rigid-body-vel new-body))]
+           [omega (rigid-body-angular-vel new-body)])
+      ;; Velocity: (1,2) + (2,0) = (3,2)
+      (assert-true (< (abs (- vx 3.0)) 0.001))
+      ;; Angular: 0.1 + (-5) = -4.9
+      (assert-true (< (abs (- omega -4.9)) 0.001))))
+
+  (define-test "apply-impulse-at-point on particle (linear only)"
+    (let* ([impulse (vec2 5 0)]
+           [world-point (vec2 5 11)]  ; offset from particle pos
+           [new-p (apply-impulse-at-point impulse world-point test-particle)]
+           [vx (vec2-x (particle-vel new-p))]
+           [vy (vec2-y (particle-vel new-p))])
+      ;; Particle has implicit mass 1.0, so delta-v = (5, 0)
+      ;; Velocity: (-1, 0) + (5, 0) = (4, 0)
+      (assert-true (< (abs (- vx 4.0)) 0.001))
+      (assert-true (< (abs vy) 0.001)))))
 
 (doc 'section 'run-tests)
 

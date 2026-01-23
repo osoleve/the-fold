@@ -32,10 +32,12 @@
    (lenses body-pos body-set-pos body-vel body-set-vel body-mass body-set-mass
            body-angle body-set-angle body-angular-vel body-set-angular-vel
            body-inertia body-set-inertia)
-   ;; Lens-based physics helpers
+   ;; Lens-based physics helpers (explicit lens arguments)
    (lenses apply-force-via-lens integrate-position-via-lens
            apply-torque-via-lens integrate-rotation-via-lens
            integrate-body-via-lens apply-impulse-at-point-via-lens)
+   ;; Generic helpers (auto-detect rotation support)
+   (lenses rotates? apply-torque integrate-body apply-impulse-at-point)
    ;; Aliases
    (lenses position-lens velocity-lens mass-lens rotation-lens
            angular-velocity-lens moment-of-inertia-lens))

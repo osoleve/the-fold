@@ -282,16 +282,17 @@
 
 (doc 'section 'protocol-implementations-particle)
 (doc 'note "Particles have implicit unit mass (1.0), so we override the mass slot")
+(doc 'note "Particles do NOT implement rotational-body-ops - they are point masses")
+(doc 'note "Use (implements-bundle? 'particle rotational-body-ops) to check")
 
 (derive-bundle! body-ops 'particle particle
   ("mass" (lambda (p) 1.0) (lambda (p m) p)))
 
-;; Particles don't natively support rotation, but we can provide
-;; a default implementation for compatibility (angle=0, no angular dynamics)
-(implement-bundle! rotational-body-ops 'particle
-  ("angle" (lambda (p) 0.0) (lambda (p a) p))
-  ("angular-vel" (lambda (p) 0.0) (lambda (p omega) p))
-  ("inertia" (lambda (p) 0.0) (lambda (p i) p)))
+;; NOTE: Particles intentionally do NOT implement rotational-body-ops.
+;; Rationale: Particles are point masses with no spatial extent. Rotation
+;; is physically meaningless for a point. Implementing a "silent no-op"
+;; would violate lens laws (put-get) and hide bugs in physics code.
+;; Code that needs rotation should check (implements-bundle? ...) explicitly.
 
 (doc 'section 'generic-body-lenses)
 (doc 'note "These lenses work with any body type that implements the protocols")
@@ -321,27 +322,26 @@
 
 (doc 'section 'generic-rotational-lenses)
 (doc 'note "Generic lenses for rotational dynamics")
-(doc 'note "Work with any body type implementing rotational-body-ops")
+(doc 'note "Only work with body types implementing rotational-body-ops")
+(doc 'note "Check (implements-bundle? type-tag rotational-body-ops) before use")
 
-(doc body-angle-lens 'type '(Lens Body Number))
+(doc body-angle-lens 'type '(Lens RotationalBody Number))
 (doc body-angle-lens 'description "Generic lens for body rotation angle (radians)")
-(doc body-angle-lens 'note "Particles return 0.0 and ignore sets")
 (define body-angle-lens
   (make-lens
    body-angle
    (lambda (new-angle b) (body-set-angle b new-angle))))
 
-(doc body-angular-vel-lens 'type '(Lens Body Number))
+(doc body-angular-vel-lens 'type '(Lens RotationalBody Number))
 (doc body-angular-vel-lens 'description "Generic lens for angular velocity (rad/s)")
-(doc body-angular-vel-lens 'note "Particles return 0.0 and ignore sets")
 (define body-angular-vel-lens
   (make-lens
    body-angular-vel
    (lambda (new-omega b) (body-set-angular-vel b new-omega))))
 
-(doc body-inertia-lens 'type '(Lens Body Number))
+(doc body-inertia-lens 'type '(Lens RotationalBody Number))
 (doc body-inertia-lens 'description "Generic lens for moment of inertia")
-(doc body-inertia-lens 'note "Particles return 0.0 and ignore sets")
+(doc body-inertia-lens 'note "inertia=0 means static/infinite inertia (no rotation)")
 (define body-inertia-lens
   (make-lens
    body-inertia
@@ -428,6 +428,7 @@
 (doc apply-impulse-at-point-via-lens 'type '(-> (Lens Body Vec2) (Lens Body Vec2) (Lens Body Number) (Lens Body Number) (Lens Body Number) Vec2 Vec2 Body Body))
 (doc apply-impulse-at-point-via-lens 'description "Apply impulse at a world point using lenses")
 (doc apply-impulse-at-point-via-lens 'note "Produces both linear and angular effects: delta-v = J/m, delta-omega = (r x J)/I")
+(doc apply-impulse-at-point-via-lens 'note "Only use on bodies implementing rotational-body-ops")
 (define (apply-impulse-at-point-via-lens pos-lens vel-lens mass-lens angular-vel-lens inertia-lens impulse world-point body)
   (let* ([pos (view pos-lens body)]
          [mass (view mass-lens body)]
@@ -444,6 +445,47 @@
          [body1 (over vel-lens (lambda (v) (vec2-add v delta-v)) body)]
          [body2 (over angular-vel-lens (lambda (omega) (+ omega delta-omega)) body1)])
     body2))
+
+(doc 'section 'generic-physics-helpers)
+(doc 'note "Convenience functions using default generic lenses")
+(doc 'note "Automatically check for rotation support via implements-bundle?")
+
+(doc rotates? 'type '(-> Body Boolean))
+(doc rotates? 'description "Check if a body supports rotational dynamics")
+(define (rotates? body)
+  (implements-bundle? (get-type-tag body) rotational-body-ops))
+
+(doc apply-torque 'type '(-> Number Number Body Body))
+(doc apply-torque 'description "Apply torque to a body (no-op if body doesn't rotate)")
+(define (apply-torque torque dt body)
+  (if (rotates? body)
+      (apply-torque-via-lens body-angular-vel-lens body-inertia-lens torque dt body)
+      body))
+
+(doc integrate-body 'type '(-> Number Body Body))
+(doc integrate-body 'description "Integrate position and rotation (if supported)")
+(define (integrate-body dt body)
+  (let ([body1 (integrate-position-via-lens body-pos-lens body-vel-lens dt body)])
+    (if (rotates? body1)
+        (integrate-rotation-via-lens body-angle-lens body-angular-vel-lens dt body1)
+        body1)))
+
+(doc apply-impulse-at-point 'type '(-> Vec2 Vec2 Body Body))
+(doc apply-impulse-at-point 'description "Apply impulse at world point (linear only if body doesn't rotate)")
+(define (apply-impulse-at-point impulse world-point body)
+  (let* ([pos (view body-pos-lens body)]
+         [mass (view body-mass-lens body)]
+         [inv-mass (if (= mass 0) 0 (/ 1 mass))]
+         [delta-v (vec2-scale impulse inv-mass)]
+         [body1 (over body-vel-lens (lambda (v) (vec2-add v delta-v)) body)])
+    (if (rotates? body1)
+        (let* ([r (vec2-sub world-point pos)]
+               [inertia (view body-inertia-lens body1)]
+               [inv-inertia (if (= inertia 0) 0 (/ 1 inertia))]
+               [torque-impulse (vec2-cross r impulse)]
+               [delta-omega (* torque-impulse inv-inertia)])
+          (over body-angular-vel-lens (lambda (omega) (+ omega delta-omega)) body1))
+        body1)))
 
 (doc 'section 'aliases)
 (doc 'note "Backward compatibility aliases")
@@ -464,10 +506,12 @@
 (display "               rigid-body-mass-lens, rigid-body-inertia-lens\n")
 (display "  Particle:    particle-pos-lens, particle-vel-lens, particle-mass-lens\n")
 (display "               particle-lifetime-lens, particle-size-lens\n")
+(display "               (NOTE: particles do NOT support rotation)\n")
 (display "  Generic:     body-pos-lens, body-vel-lens, body-mass-lens\n")
 (display "  Rotational:  body-angle-lens, body-angular-vel-lens, body-inertia-lens\n")
-(display "  Aliases:     position-lens, velocity-lens, mass-lens, rotation-lens\n")
-(display "  Dot syntax:  (body. pos x), (body. vel y), (body. angle), etc.\n")
+(display "  Helpers:     (rotates? body), (apply-torque torque dt body)\n")
+(display "               (integrate-body dt body), (apply-impulse-at-point J pt body)\n")
 (display "  Bundles:     body-ops, rotational-body-ops\n")
+(display "  Check:       (implements-bundle? 'particle rotational-body-ops) => #f\n")
 (display "  Extend:      (derive-bundle! body-ops 'my-type my-prefix)\n")
 (display "               (derive-bundle! rotational-body-ops 'my-type my-prefix)\n")
