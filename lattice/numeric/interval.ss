@@ -419,24 +419,24 @@
       [else                  ; Contains zero: minimum is 0
        (make-interval 0 (max (* a a) (* b b)))])))
 
-;;; interval-recip : Interval → Interval | 'division-by-zero
+;;; interval-recip : Interval → Interval | '(error division-by-zero)
 ;;; Reciprocal: 1/[a,b] = [1/b, 1/a] when 0 ∉ [a,b].
-;;; Returns 'division-by-zero if interval contains zero.
+;;; Returns '(error division-by-zero) if interval contains zero.
 (define (interval-recip iv)
   (doc 'export #t)
   (let ([a (interval-lo iv)]
         [b (interval-hi iv)])
     (cond
-      [(interval-contains-zero? iv) 'division-by-zero]
+      [(interval-contains-zero? iv) '(error division-by-zero)]
       [else (make-interval (/ 1 b) (/ 1 a))])))
 
-;;; interval-div : Interval × Interval → Interval | 'division-by-zero
+;;; interval-div : Interval × Interval → Interval | '(error division-by-zero)
 ;;; Division: [a,b] / [c,d] = [a,b] * (1/[c,d])
 (define (interval-div iv1 iv2)
   (doc 'export #t)
   (let ([recip (interval-recip iv2)])
-    (if (eq? recip 'division-by-zero)
-        'division-by-zero
+    (if (error? recip)
+        recip
         (interval-mul iv1 recip))))
 
 ;;; interval-scale : Interval × Real → Interval
@@ -462,14 +462,14 @@
       [(<= b 0) (interval-neg iv)]            ; Entirely non-positive
       [else (make-interval 0 (max (- a) b))]))) ; Contains zero
 
-;;; interval-sqrt : Interval → Interval | 'domain-error
+;;; interval-sqrt : Interval → Interval | '(error domain-error)
 ;;; Square root. Requires interval to be non-negative.
 (define (interval-sqrt iv)
   (doc 'export #t)
   (let ([a (interval-lo iv)]
         [b (interval-hi iv)])
     (cond
-      [(< b 0) 'domain-error]        ; Entirely negative
+      [(< b 0) '(error domain-error)]        ; Entirely negative
       [(< a 0)                       ; Partially negative: clamp to 0
        (make-interval 0 (sqrt b))]
       [else                          ; Entirely non-negative
@@ -486,8 +486,8 @@
       [(= n 1) iv]
       [(< n 0)
        (let ([recip (interval-recip iv)])
-         (if (eq? recip 'division-by-zero)
-             'division-by-zero
+         (if (error? recip)
+             recip
              (interval-pow recip (- n))))]
       [(odd? n)
        ;; Odd power: x^n is monotonically increasing, so [a^n, b^n]
@@ -539,7 +539,7 @@
       (error 'interval-hull-list "empty list")
       (fold-left interval-hull (car ivs) (cdr ivs))))
 
-;;; interval-intersection : Interval × Interval → Interval | 'empty
+;;; interval-intersection : Interval × Interval → Interval | (error empty)
 ;;; Intersection of two intervals.
 (define (interval-intersection iv1 iv2)
   (doc 'export #t)
@@ -547,7 +547,7 @@
         [hi (min (interval-hi iv1) (interval-hi iv2))])
     (if (<= lo hi)
         (make-interval lo hi)
-        'empty)))
+        '(error empty))))
 
 ;;; interval-bisect : Interval → (Pair Interval Interval)
 ;;; Split interval at midpoint.
@@ -667,12 +667,12 @@
          [else     (make-interval (min (mul-down a d) (mul-down b c))
                                   (max (mul-up a c) (mul-up b d)))])])))
 
-;;; interval-div-rigorous : Interval × Interval → Interval | 'division-by-zero
+;;; interval-div-rigorous : Interval × Interval → Interval | '(error division-by-zero)
 ;;; Division with guaranteed enclosure.
 (define (interval-div-rigorous iv1 iv2)
   (doc 'export #t)
   (if (interval-contains-zero? iv2)
-      'division-by-zero
+      '(error division-by-zero)
       (let ([a (interval-lo iv1)] [b (interval-hi iv1)]
             [c (interval-lo iv2)] [d (interval-hi iv2)])
         ;; 1/[c,d] = [1/d, 1/c] (when 0 not in [c,d])
@@ -689,14 +689,14 @@
              [(<= b 0) (make-interval (div-down b c) (div-up a d))]
              [else     (make-interval (div-down b d) (div-up a d))])]))))
 
-;;; interval-sqrt-rigorous : Interval → Interval | 'domain-error
+;;; interval-sqrt-rigorous : Interval → Interval | '(error domain-error)
 ;;; Square root with guaranteed enclosure.
 (define (interval-sqrt-rigorous iv)
   (doc 'export #t)
   (let ([a (interval-lo iv)]
         [b (interval-hi iv)])
     (cond
-      [(< b 0) 'domain-error]
+      [(< b 0) '(error domain-error)]
       [(< a 0) (make-interval 0 (sqrt-up b))]  ; Clamp negative to 0
       [else    (make-interval (sqrt-down a) (sqrt-up b))])))
 
@@ -771,14 +771,14 @@
   (make-interval (exp (interval-lo iv))
                  (exp (interval-hi iv))))
 
-;;; interval-log : Interval → Interval | 'domain-error
+;;; interval-log : Interval → Interval | '(error domain-error)
 ;;; Natural logarithm. Requires interval to be positive.
 (define (interval-log iv)
   (doc 'export #t)
   (let ([lo (interval-lo iv)]
         [hi (interval-hi iv)])
     (cond
-      [(<= hi 0) 'domain-error]    ; Entirely non-positive
+      [(<= hi 0) '(error domain-error)]    ; Entirely non-positive
       [(<= lo 0)                   ; Partially negative: clamp to epsilon
        (make-interval (log 1e-300) (log hi))]
       [else                        ; Entirely positive
@@ -849,9 +849,9 @@
          [critical (+ base (* k-lo period))])
     (<= critical hi)))
 
-;;; interval-tan : Interval → Interval | 'domain-error
+;;; interval-tan : Interval → Interval | '(error domain-error)
 ;;; Tangent function. Undefined at pi/2 + k*pi.
-;;; Returns 'domain-error if interval contains a discontinuity.
+;;; Returns '(error domain-error) if interval contains a discontinuity.
 (define (interval-tan iv)
   (doc 'export #t)
   (let* ([lo (interval-lo iv)]
@@ -860,29 +860,29 @@
          [half-pi (* 0.5 pi)])
     ;; Check if interval contains any discontinuity at pi/2 + k*pi
     (if (interval-contains-critical? lo hi half-pi pi)
-        'domain-error
+        '(error domain-error)
         (make-interval (tan lo) (tan hi)))))
 
-;;; interval-asin : Interval → Interval | 'domain-error
+;;; interval-asin : Interval → Interval | '(error domain-error)
 ;;; Arcsine. Domain is [-1, 1], monotonically increasing.
 (define (interval-asin iv)
   (doc 'export #t)
   (let ([lo (interval-lo iv)]
         [hi (interval-hi iv)])
     (cond
-      [(or (< hi -1) (> lo 1)) 'domain-error]
+      [(or (< hi -1) (> lo 1)) '(error domain-error)]
       [else
        (make-interval (asin (max -1 lo))
                       (asin (min 1 hi)))])))
 
-;;; interval-acos : Interval → Interval | 'domain-error
+;;; interval-acos : Interval → Interval | '(error domain-error)
 ;;; Arccosine. Domain is [-1, 1], monotonically decreasing.
 (define (interval-acos iv)
   (doc 'export #t)
   (let ([lo (interval-lo iv)]
         [hi (interval-hi iv)])
     (cond
-      [(or (< hi -1) (> lo 1)) 'domain-error]
+      [(or (< hi -1) (> lo 1)) '(error domain-error)]
       [else
        ;; acos is decreasing: acos(hi) <= acos(lo)
        (make-interval (acos (min 1 hi))

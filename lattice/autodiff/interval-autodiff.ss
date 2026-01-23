@@ -153,8 +153,8 @@
   (let* ([av (interval-traced-value a)]
          [bv (interval-traced-value b)]
          [result (interval-div av bv)])
-    (if (eq? result 'division-by-zero)
-        'division-by-zero
+    (if (error? result)
+        result
         (let ([tape (or (and (interval-traced? a) (interval-traced-tape a))
                         (and (interval-traced? b) (interval-traced-tape b)))])
           (if tape
@@ -162,9 +162,8 @@
                      [recip-b (interval-recip bv)]
                      [b-sq (interval-sqr bv)]
                      [neg-a-over-b2 (interval-div (interval-neg av) b-sq)])
-                (if (or (eq? recip-b 'division-by-zero)
-                        (eq? neg-a-over-b2 'division-by-zero))
-                    'division-by-zero
+                (if (or (error? recip-b) (error? neg-a-over-b2))
+                    '(error division-by-zero)
                     (interval-traced-op 'div result (list a b)
                                         (list recip-b neg-a-over-b2)
                                         tape)))
@@ -201,14 +200,14 @@
   (doc 'export #t)
   (let* ([av (interval-traced-value a)]
          [result (interval-sqrt av)])
-    (if (eq? result 'domain-error)
-        'domain-error
+    (if (error? result)
+        result
         (let ([tape (and (interval-traced? a) (interval-traced-tape a))])
           (if tape
               (let* ([two (interval-singleton 2)]
                      [two-sqrt-a (interval-mul two result)]
                      [grad (interval-recip two-sqrt-a)])
-                (if (eq? grad 'division-by-zero)
+                (if (error? grad)
                     ;; Handle sqrt at 0: gradient is +inf
                     (interval-traced-op 'sqrt result (list a)
                                         (list (interval 0 1e308))
@@ -237,13 +236,13 @@
   (doc 'export #t)
   (let* ([av (interval-traced-value a)]
          [result (interval-log av)])
-    (if (eq? result 'domain-error)
-        'domain-error
+    (if (error? result)
+        result
         (let ([tape (and (interval-traced? a) (interval-traced-tape a))])
           (if tape
               (let ([grad (interval-recip av)])
-                (if (eq? grad 'division-by-zero)
-                    'domain-error
+                (if (error? grad)
+                    '(error domain-error)
                     (interval-traced-op 'log result (list a)
                                         (list grad)
                                         tape)))
@@ -280,12 +279,12 @@
   (let* ([bv (interval-traced-value base)]
          [result (interval-pow bv n)]
          [tape (and (interval-traced? base) (interval-traced-tape base))])
-    (if (eq? result 'division-by-zero)
-        'division-by-zero
+    (if (error? result)
+        result
         (if tape
             (let* ([n-iv (interval-singleton n)]
                    [n-1-iv (interval-pow bv (- n 1))]
-                   [grad (if (eq? n-1-iv 'division-by-zero)
+                   [grad (if (error? n-1-iv)
                              (interval 0 1e308)  ; Unbounded gradient
                              (interval-mul n-iv n-1-iv))])
               (interval-traced-op 'pow result (list base)

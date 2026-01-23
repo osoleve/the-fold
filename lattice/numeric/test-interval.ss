@@ -179,7 +179,7 @@
       (assert-equal 6 (interval-hi iv))))
 
   (define-test "interval-div by zero returns error"
-    (assert-equal 'division-by-zero
+    (assert-equal '(error division-by-zero)
                   (interval-div (interval 1 2) (interval -1 1))))
 
   (define-test "interval-scale scalar multiplication"
@@ -221,7 +221,7 @@
       (assert-equal 2 (interval-hi iv))))
 
   (define-test "interval-sqrt negative returns error"
-    (assert-equal 'domain-error
+    (assert-equal '(error domain-error)
                   (interval-sqrt (interval -4 -1))))
 
   (define-test "interval-pow square"
@@ -283,7 +283,7 @@
       (assert-equal 5 (interval-hi iv))))
 
   (define-test "interval-intersection disjoint returns empty"
-    (assert-equal 'empty
+    (assert-equal '(error empty)
                   (interval-intersection (interval 1 2) (interval 4 5))))
 
   (define-test "interval-bisect splits at midpoint"
