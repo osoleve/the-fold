@@ -130,7 +130,8 @@
                   [new-trail '()])
             (cond
              [(null? trail)
-              (list 'assignment new-trail levels reasons)]
+              ;; Reverse to maintain trail order (most recent first)
+              (list 'assignment (reverse new-trail) levels reasons)]
              [else
               (let* ([entry (car trail)]
                      [var (car entry)]

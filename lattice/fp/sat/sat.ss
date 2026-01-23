@@ -11,9 +11,10 @@
 
 (define (sat-solve clauses)
   (doc 'export #t)
-  (doc 'type '(-> (List (List Literal)) (Or 'sat 'unsat)))
+  (doc 'type '(-> (List (List Literal)) (Or 'sat 'unsat 'unknown)))
   (doc 'description "Solve SAT from list of clause lists")
   (doc 'example "((1 2) (-1 3)) means (x1 OR x2) AND (NOT x1 OR x3)")
+  (doc 'note "Returns 'unknown if solver times out (increase *sat-fuel-limit* for harder problems)")
   (solve (cnf-from-lists clauses)))
 
 (define (sat-satisfiable? clauses)
@@ -24,12 +25,13 @@
 
 (define (sat-model clauses)
   (doc 'export #t)
-  (doc 'type '(-> (List (List Literal)) (Maybe (List (Pair VarId Bool)))))
-  (doc 'description "Get satisfying assignment if exists")
+  (doc 'type '(-> (List (List Literal)) (Or (List (Pair VarId Bool)) 'timeout #f)))
+  (doc 'description "Get satisfying assignment if exists, 'timeout if timed out, #f if unsat")
   (let ([result (solve-with-model (cnf-from-lists clauses))])
-       (if result
-           (assignment-to-model result)
-           #f)))
+       (cond
+        [(eq? result 'timeout) 'timeout]
+        [result (assignment-to-model result)]
+        [else #f])))
 
 (define (assignment-to-model a)
   (doc 'type '(-> Assignment (List (Pair VarId Bool))))

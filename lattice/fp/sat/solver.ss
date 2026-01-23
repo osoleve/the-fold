@@ -65,20 +65,22 @@
   (doc 'description "Boolean Constraint Propagation - propagate until fixpoint or conflict")
   (doc 'returns "Updated state and conflict clause (or #f if no conflict)")
   (let loop ([state state])
-       (let ([result (find-unit-clause state)])
-            (if (not result)
-                (values state #f)  ; No unit clause - fixpoint
-                (let ([clause (car result)]
-                      [lit (cdr result)])
-                     (let* ([var (lit-var lit)]
-                            [val (if (lit-positive? lit) 'true 'false)]
-                            [a (assignment-propagate
-                                (state-assignment state) var val level clause)]
-                            [new-state (state-set-assignment state a)]
-                            [conflict (check-conflict new-state)])
-                           (if conflict
-                               (values new-state conflict)
-                               (loop new-state))))))))
+       ;; First check for existing conflicts (crucial after backtrack)
+       (let ([conflict (check-conflict state)])
+            (if conflict
+                (values state conflict)
+                ;; No conflict - look for unit clauses to propagate
+                (let ([result (find-unit-clause state)])
+                     (if (not result)
+                         (values state #f)  ; No unit clause - fixpoint
+                         (let ([clause (car result)]
+                               [lit (cdr result)])
+                              (let* ([var (lit-var lit)]
+                                     [val (if (lit-positive? lit) 'true 'false)]
+                                     [a (assignment-propagate
+                                         (state-assignment state) var val level clause)]
+                                     [new-state (state-set-assignment state a)])
+                                    (loop new-state)))))))))
 
 (define (find-unit-clause state)
   (doc 'type '(-> SolverState (Maybe (Pair Clause Literal))))
@@ -228,29 +230,35 @@
 
 (define (solve cnf)
   (doc 'export #t)
-  (doc 'type '(-> CNF (Or 'sat 'unsat)))
-  (doc 'description "Solve SAT instance, returning 'sat or 'unsat")
+  (doc 'type '(-> CNF (Or 'sat 'unsat 'unknown)))
+  (doc 'description "Solve SAT instance, returning 'sat, 'unsat, or 'unknown (timeout)")
   (let ([result (solve-with-model cnf)])
-       (if result 'sat 'unsat)))
+       (cond
+        [(eq? result 'timeout) 'unknown]
+        [result 'sat]
+        [else 'unsat])))
+
+(define *sat-fuel-limit* 10000)
+(doc *sat-fuel-limit* 'description "Maximum iterations before timeout (can be increased)")
 
 (define (solve-with-model cnf)
   (doc 'export #t)
-  (doc 'type '(-> CNF (Maybe Assignment)))
-  (doc 'description "Solve SAT instance, returning satisfying assignment or #f")
+  (doc 'type '(-> CNF (Or Assignment 'timeout #f)))
+  (doc 'description "Solve SAT instance, returning assignment, 'timeout, or #f (unsat)")
   (cond
    [(cnf-trivially-unsat? cnf) #f]
    [(cnf-trivially-sat? cnf) (make-assignment 0)]
    [else (cdcl-solve (make-solver-state cnf))]))
 
 (define (cdcl-solve state)
-  (doc 'type '(-> SolverState (Maybe Assignment)))
+  (doc 'type '(-> SolverState (Or Assignment 'timeout #f)))
   (doc 'description "Main CDCL solving loop")
-  (cdcl-loop state 0 10000))  ; Fuel limit for safety
+  (cdcl-loop state 0 *sat-fuel-limit*))
 
 (define (cdcl-loop state level fuel)
-  (doc 'type '(-> SolverState Nat Nat (Maybe Assignment)))
+  (doc 'type '(-> SolverState Nat Nat (Or Assignment 'timeout #f)))
   (if (<= fuel 0)
-      #f  ; Out of fuel - give up
+      'timeout  ; Out of fuel - return timeout, not unsat
       (let-values ([(state conflict) (unit-propagate state level)])
                   (if conflict
                       ;; Conflict - analyze and backtrack
