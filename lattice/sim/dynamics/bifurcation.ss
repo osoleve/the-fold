@@ -588,19 +588,90 @@
                      ;; Lost fixed point - bifurcation is nearby
                      (loop lo mid (+ iter 1))
                      (let* ([jac (compute-jacobian sys fp *continuation-step-size*)]
-                            [det (matrix-determinant-2d jac)])
+                            [det (matrix-determinant jac)])
                            (if (> det 0)
                                (loop mid hi (+ iter 1))
                                (loop lo mid (+ iter 1)))))))))
 
+(define (matrix-determinant m)
+  (doc 'type '(-> Matrix Number))
+  (doc 'description "Compute determinant of n×n matrix using LU decomposition")
+  (doc 'note "Works for any dimension, not just 2×2")
+  (let ([n (matrix-rows m)])
+       (cond
+        ;; Special case: 1x1
+        [(= n 1) (matrix-ref m 0 0)]
+        ;; Special case: 2x2 (fast path)
+        [(= n 2)
+         (let ([a (matrix-ref m 0 0)]
+               [b (matrix-ref m 0 1)]
+               [c (matrix-ref m 1 0)]
+               [d (matrix-ref m 1 1)])
+              (- (* a d) (* b c)))]
+        ;; General case: LU decomposition
+        [else (matrix-determinant-lu m)])))
+
+(define (matrix-determinant-lu m)
+  (doc 'type '(-> Matrix Number))
+  (doc 'description "Compute determinant via LU decomposition with partial pivoting")
+  (let* ([n (matrix-rows m)]
+         [data (vector-copy (matrix-data m))]
+         [sign 1])  ; Track row swap parity
+        ;; Gaussian elimination with partial pivoting
+        (let elim-loop ([k 0])
+             (if (= k n)
+                 ;; Determinant is product of diagonal * sign
+                 (let diag-loop ([i 0] [det sign])
+                      (if (= i n)
+                          det
+                          (diag-loop (+ i 1)
+                                     (* det (vector-ref data (+ (* i n) i))))))
+                 ;; Find pivot
+                 (let* ([pivot-row (find-pivot-row-det data k n)]
+                        [pivot-val (vector-ref data (+ (* pivot-row n) k))])
+                       (if (< (abs pivot-val) 1e-15)
+                           0  ; Singular matrix - determinant is zero
+                           (begin
+                             ;; Swap rows if needed
+                             (unless (= pivot-row k)
+                                     (swap-rows-det! data k pivot-row n)
+                                     (set! sign (- sign)))  ; Flip sign on swap
+                             ;; Eliminate column k
+                             (do ([i (+ k 1) (+ i 1)])
+                                 ((= i n))
+                                 (let ([factor (/ (vector-ref data (+ (* i n) k)) pivot-val)])
+                                      (do ([j k (+ j 1)])
+                                          ((= j n))
+                                          (vector-set! data (+ (* i n) j)
+                                                       (- (vector-ref data (+ (* i n) j))
+                                                          (* factor (vector-ref data (+ (* k n) j))))))))
+                             (elim-loop (+ k 1)))))))))
+
+(define (find-pivot-row-det data k n)
+  (doc 'type '(-> Vector Nat Nat Nat))
+  (let loop ([i k] [best-row k] [best-val (abs (vector-ref data (+ (* k n) k)))])
+       (if (= i n)
+           best-row
+           (let ([val (abs (vector-ref data (+ (* i n) k)))])
+                (if (> val best-val)
+                    (loop (+ i 1) i val)
+                    (loop (+ i 1) best-row best-val))))))
+
+(define (swap-rows-det! data row1 row2 n)
+  (doc 'type '(-> Vector Nat Nat Nat Void))
+  (unless (= row1 row2)
+          (do ([j 0 (+ j 1)])
+              ((= j n))
+              (let ([temp (vector-ref data (+ (* row1 n) j))])
+                   (vector-set! data (+ (* row1 n) j)
+                                (vector-ref data (+ (* row2 n) j)))
+                   (vector-set! data (+ (* row2 n) j) temp)))))
+
+;; Keep 2D version for backward compatibility
 (define (matrix-determinant-2d m)
   (doc 'type '(-> Matrix Number))
-  (doc 'description "Compute determinant of 2x2 matrix")
-  (let ([a (matrix-ref m 0 0)]
-        [b (matrix-ref m 0 1)]
-        [c (matrix-ref m 1 0)]
-        [d (matrix-ref m 1 1)])
-       (- (* a d) (* b c))))
+  (doc 'description "Compute determinant of 2x2 matrix (deprecated, use matrix-determinant)")
+  (matrix-determinant m))
 
 ;;; ============================================================
 ;;; Section: Bifurcation Summary

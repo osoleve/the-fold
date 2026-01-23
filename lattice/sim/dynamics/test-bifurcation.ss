@@ -231,6 +231,21 @@
          ;; det = 1*4 - 2*3 = -2
          (assert-true (< (abs (+ (matrix-determinant-2d m) 2)) 0.001))))
 
+  (define-test "matrix-determinant works for 3x3 matrix"
+    (let ([m (list 'matrix 3 3 (vector 1 2 3  0 1 4  5 6 0))])
+         ;; det = 1*(1*0 - 4*6) - 2*(0*0 - 4*5) + 3*(0*6 - 1*5) = -24 + 40 - 15 = 1
+         (assert-true (< (abs (- (matrix-determinant m) 1)) 0.001))))
+
+  (define-test "matrix-determinant works for 4x4 identity"
+    (let ([m (list 'matrix 4 4 (vector 1 0 0 0  0 1 0 0  0 0 1 0  0 0 0 1))])
+         ;; det(I) = 1
+         (assert-true (< (abs (- (matrix-determinant m) 1)) 0.001))))
+
+  (define-test "matrix-determinant detects singular matrix"
+    (let ([m (list 'matrix 3 3 (vector 1 2 3  4 5 6  7 8 9))])
+         ;; This matrix is singular (rows are linearly dependent), det = 0
+         (assert-true (< (abs (matrix-determinant m)) 0.001))))
+
   ;;; ============================================================
   ;;; Analysis Summary
   ;;; ============================================================
