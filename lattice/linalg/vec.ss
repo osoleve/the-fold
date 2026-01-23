@@ -1,109 +1,99 @@
-;;; core/linalg/vec.ss --- Vector Operations
-;;; @module vec
-;;; @requires prelude iteration
-;;;
-;;; Core vector operations for linear algebra.
-;;;
-;;; Vectors are represented as Scheme vectors for efficient O(1) access.
-;;; All operations are pure and total (return error values rather than throwing).
-;;;
-;;; This is Core code: pure, total, assumes reasonable input.
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;   - iteration.ss (iteration macros)
-
 (load "core/base/prelude.ss")
 (load "lattice/linalg/iteration.ss")
 
-;;; ====
-;;; Vector Construction
-;;; ====
+(doc 'module 'vec)
+(doc 'description "Core vector operations for linear algebra")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
+(doc 'note "Vectors are represented as Scheme vectors for efficient O(1) access")
+(doc 'note "All operations are pure and total (return error values rather than throwing)")
 
-;;; make-vec : Nat x a -> Vec a
-;;; Create a vector of n elements, all initialized to init.
+(doc 'section 'vector-construction)
+
 (define (make-vec n init)
+  (doc 'type '(-> Nat a (Vec a)))
+  (doc 'description "Create a vector of n elements, all initialized to init")
   (make-vector n init))
 
-;;; vec-from-list : (List a) -> Vec a
-;;; Convert a list to a vector.
 (define (vec-from-list lst)
+  (doc 'type '(-> (List a) (Vec a)))
+  (doc 'description "Convert a list to a vector")
   (list->vector lst))
 
-;;; vec->list : Vec a -> (List a)
-;;; Convert a vector to a list.
 (define (vec->list v)
+  (doc 'type '(-> (Vec a) (List a)))
+  (doc 'description "Convert a vector to a list")
   (vector->list v))
 
-;;; vec : a ... -> Vec a
-;;; Variadic vector construction.
 (define (vec . elems)
   (doc 'export #t)
+  (doc 'type '(-> a ... (Vec a)))
+  (doc 'description "Variadic vector construction")
   (list->vector elems))
 
-;;; ====
-;;; Vector Accessors
-;;; ====
+(doc 'section 'vector-accessors)
 
-;;; vec-ref : Vec a x Nat -> a | Error
-;;; Get element at index (0-based).
 (define (vec-ref v i)
+  (doc 'type '(-> (Vec a) Nat (Or a Error)))
+  (doc 'description "Get element at index (0-based)")
   (if (and (>= i 0) (< i (vector-length v)))
       (vector-ref v i)
       `(error out-of-bounds ,i ,(vector-length v))))
 
-;;; vec-length : Vec a -> Nat
 (define (vec-length v)
+  (doc 'type '(-> (Vec a) Nat))
+  (doc 'description "Get the length of a vector")
   (vector-length v))
 
-;;; vec-empty? : Vec a -> Boolean
 (define (vec-empty? v)
+  (doc 'type '(-> (Vec a) Bool))
+  (doc 'description "Check if vector is empty")
   (= (vector-length v) 0))
 
-;;; vec-first : Vec a -> a | Error
 (define (vec-first v)
+  (doc 'type '(-> (Vec a) (Or a Error)))
+  (doc 'description "Get first element")
   (if (> (vector-length v) 0)
       (vector-ref v 0)
       '(error empty-vector)))
 
-;;; vec-last : Vec a -> a | Error
 (define (vec-last v)
+  (doc 'type '(-> (Vec a) (Or a Error)))
+  (doc 'description "Get last element")
   (let ([n (vector-length v)])
        (if (> n 0)
            (vector-ref v (- n 1))
            '(error empty-vector))))
 
-;;; ====
-;;; Vector Transformations
-;;; ====
+(doc 'section 'vector-transformations)
 
-;;; vec-map : (a -> b) x Vec a -> Vec b
-;;; Apply function to each element.
 (define (vec-map f v)
+  (doc 'type '(-> (-> a b) (Vec a) (Vec b)))
+  (doc 'description "Apply function to each element")
   (vec-map-idx i v (f (vector-ref v i))))
 
-;;; vec-fold : (b x a -> b) x b x Vec a -> b
-;;; Left fold over vector elements.
 (define (vec-fold f init v)
+  (doc 'type '(-> (-> b a b) b (Vec a) b))
+  (doc 'description "Left fold over vector elements")
   (vec-fold-idx acc init i v (f acc (vector-ref v i))))
 
-;;; vec-fold-right : (a x b -> b) x b x Vec a -> b
-;;; Right fold over vector elements.
 (define (vec-fold-right f init v)
+  (doc 'type '(-> (-> a b b) b (Vec a) b))
+  (doc 'description "Right fold over vector elements")
   (vec-fold-reverse acc init i v (f (vector-ref v i) acc)))
 
-;;; vec-zip-with : (a x b -> c) x Vec a x Vec b -> Vec c | Error
-;;; Zip two vectors with a combining function.
 (define (vec-zip-with f v1 v2)
+  (doc 'type '(-> (-> a b c) (Vec a) (Vec b) (Or (Vec c) Error)))
+  (doc 'description "Zip two vectors with a combining function")
   (let ([n1 (vector-length v1)]
         [n2 (vector-length v2)])
        (if (not (= n1 n2))
            `(error dimension-mismatch ,n1 ,n2)
            (vec-zip-map-idx i v1 v2 (f (vector-ref v1 i) (vector-ref v2 i))))))
 
-;;; vec-append : Vec a x Vec a -> Vec a
-;;; Concatenate two vectors.
 (define (vec-append v1 v2)
+  (doc 'type '(-> (Vec a) (Vec a) (Vec a)))
+  (doc 'description "Concatenate two vectors")
   (let* ([n1 (vector-length v1)]
          [n2 (vector-length v2)]
          [result (make-vector (+ n1 n2) 0)])
@@ -113,9 +103,9 @@
                    (vector-set! result (+ n1 i) (vector-ref v2 i)))
         result))
 
-;;; vec-take : Vec a x Nat -> Vec a | Error
-;;; Take first n elements.
 (define (vec-take v n)
+  (doc 'type '(-> (Vec a) Nat (Or (Vec a) Error)))
+  (doc 'description "Take first n elements")
   (let ([len (vector-length v)])
        (if (> n len)
            `(error out-of-bounds ,n ,len)
@@ -125,9 +115,9 @@
                             (vector-set! result i (vector-ref src i)))
                  result))))
 
-;;; vec-drop : Vec a x Nat -> Vec a | Error
-;;; Drop first n elements.
 (define (vec-drop v n)
+  (doc 'type '(-> (Vec a) Nat (Or (Vec a) Error)))
+  (doc 'description "Drop first n elements")
   (let ([len (vector-length v)])
        (if (> n len)
            `(error out-of-bounds ,n ,len)
@@ -139,9 +129,9 @@
                             (vector-set! result i (vector-ref src (+ offset i))))
                  result))))
 
-;;; vec-slice : Vec a x Nat x Nat -> Vec a | Error
-;;; Extract slice from start (inclusive) to end (exclusive).
 (define (vec-slice v start end)
+  (doc 'type '(-> (Vec a) Nat Nat (Or (Vec a) Error)))
+  (doc 'description "Extract slice from start (inclusive) to end (exclusive)")
   (let ([len (vector-length v)])
        (cond
         [(< start 0) `(error out-of-bounds ,start ,len)]
@@ -156,99 +146,93 @@
                           (vector-set! result i (vector-ref src (+ offset i))))
                result)])))
 
-;;; ====
-;;; Vector Arithmetic
-;;; ====
+(doc 'section 'vector-arithmetic)
 
-;;; vec-add : Vec Num x Vec Num -> Vec Num | Error
-;;; Element-wise addition.
 (define (vec-add v1 v2)
+  (doc 'type '(-> (Vec Num) (Vec Num) (Or (Vec Num) Error)))
+  (doc 'description "Element-wise addition")
   (vec-zip-with + v1 v2))
 
-;;; vec-sub : Vec Num x Vec Num -> Vec Num | Error
-;;; Element-wise subtraction.
 (define (vec-sub v1 v2)
+  (doc 'type '(-> (Vec Num) (Vec Num) (Or (Vec Num) Error)))
+  (doc 'description "Element-wise subtraction")
   (vec-zip-with - v1 v2))
 
-;;; vec-mul : Vec Num x Vec Num -> Vec Num | Error
-;;; Element-wise multiplication (Hadamard product).
 (define (vec-mul v1 v2)
+  (doc 'type '(-> (Vec Num) (Vec Num) (Or (Vec Num) Error)))
+  (doc 'description "Element-wise multiplication (Hadamard product)")
   (vec-zip-with * v1 v2))
 
-;;; vec-div : Vec Num x Vec Num -> Vec Num | Error
-;;; Element-wise division.
 (define (vec-div v1 v2)
+  (doc 'type '(-> (Vec Num) (Vec Num) (Or (Vec Num) Error)))
+  (doc 'description "Element-wise division")
   (vec-zip-with / v1 v2))
 
-;;; vec-scale : Num x Vec Num -> Vec Num
-;;; Scalar multiplication.
 (define (vec-scale k v)
+  (doc 'type '(-> Num (Vec Num) (Vec Num)))
+  (doc 'description "Scalar multiplication")
   (vec-map (lambda (x) (* k x)) v))
 
-;;; vec-negate : Vec Num -> Vec Num
-;;; Negate all elements.
 (define (vec-negate v)
+  (doc 'type '(-> (Vec Num) (Vec Num)))
+  (doc 'description "Negate all elements")
   (vec-map - v))
 
-;;; ====
-;;; Vector Products and Norms
-;;; ====
+(doc 'section 'vector-products-and-norms)
 
-;;; vec-dot : Vec Num x Vec Num -> Num | Error
-;;; Dot product (inner product).
 (define (vec-dot v1 v2)
+  (doc 'type '(-> (Vec Num) (Vec Num) (Or Num Error)))
+  (doc 'description "Dot product (inner product)")
   (let ([n1 (vector-length v1)]
         [n2 (vector-length v2)])
        (if (not (= n1 n2))
            `(error dimension-mismatch ,n1 ,n2)
            (dot-product-loop i n1 (vector-ref v1 i) (vector-ref v2 i)))))
 
-;;; vec-norm-squared : Vec Num -> Num
-;;; Squared L2 norm (sum of squares).
 (define (vec-norm-squared v)
+  (doc 'type '(-> (Vec Num) Num))
+  (doc 'description "Squared L2 norm (sum of squares)")
   (vec-dot v v))
 
-;;; vec-norm : Vec Num -> Num
-;;; L2 norm (Euclidean length).
 (define (vec-norm v)
+  (doc 'type '(-> (Vec Num) Num))
+  (doc 'description "L2 norm (Euclidean length)")
   (sqrt (vec-norm-squared v)))
 
-;;; vec-norm-l1 : Vec Num -> Num
-;;; L1 norm (Manhattan distance).
 (define (vec-norm-l1 v)
+  (doc 'type '(-> (Vec Num) Num))
+  (doc 'description "L1 norm (Manhattan distance)")
   (vec-fold (lambda (acc x) (+ acc (abs x))) 0 v))
 
-;;; vec-norm-linf : Vec Num -> Num | Error
-;;; L-infinity norm (maximum absolute value).
-;;; Returns error for empty vectors (consistent with vec-max).
 (define (vec-norm-linf v)
+  (doc 'type '(-> (Vec Num) (Or Num Error)))
+  (doc 'description "L-infinity norm (maximum absolute value)")
+  (doc 'note "Returns error for empty vectors")
   (if (vec-empty? v)
       '(error empty-vector)
       (vec-fold (lambda (acc x) (max acc (abs x))) 0 v)))
 
-;;; vec-normalize : Vec Num -> Vec Num | Error
-;;; Normalize to unit length.
 (define (vec-normalize v)
+  (doc 'type '(-> (Vec Num) (Or (Vec Num) Error)))
+  (doc 'description "Normalize to unit length")
   (let ([n (vec-norm v)])
        (if (= n 0)
            '(error zero-vector)
            (vec-scale (/ 1 n) v))))
 
-;;; vec-distance : Vec Num x Vec Num -> Num | Error
-;;; Euclidean distance between two vectors.
 (define (vec-distance v1 v2)
+  (doc 'type '(-> (Vec Num) (Vec Num) (Or Num Error)))
+  (doc 'description "Euclidean distance between two vectors")
   (let ([diff (vec-sub v1 v2)])
        (if (and (pair? diff) (eq? (car diff) 'error))
            diff
            (vec-norm diff))))
 
-;;; ====
-;;; Vector Comparisons
-;;; ====
+(doc 'section 'vector-comparisons)
 
-;;; vec-equal? : Vec a x Vec a -> Boolean
-;;; Exact equality (short-circuits on first mismatch).
 (define (vec-equal? v1 v2)
+  (doc 'type '(-> (Vec a) (Vec a) Bool))
+  (doc 'description "Exact equality (short-circuits on first mismatch)")
   (and (= (vector-length v1) (vector-length v2))
        (let ([n (vector-length v1)])
             (do ([i 0 (+ i 1)]
@@ -256,9 +240,10 @@
                                         (vector-ref v2 i)))])
                 ((or (= i n) (not eq)) eq)))))
 
-;;; vec-approx-equal? : Vec Num x Vec Num x [Num] -> Boolean
-;;; Approximate equality within tolerance.
 (define (vec-approx-equal? v1 v2 . epsilon-arg)
+  (doc 'type '(-> (Vec Num) (Vec Num) &opt Num Bool))
+  (doc 'description "Approximate equality within tolerance")
+  (doc 'param 'epsilon "Tolerance (default 1e-10)")
   (let ([epsilon (if (null? epsilon-arg) 1e-10 (car epsilon-arg))])
        (and (= (vector-length v1) (vector-length v2))
             (let ([n (vector-length v1)])
@@ -268,96 +253,92 @@
                                         epsilon))])
                      ((or (= i n) (not eq)) eq))))))
 
-;;; ====
-;;; Vector Utilities
-;;; ====
+(doc 'section 'vector-utilities)
 
-;;; vec-sum : Vec Num -> Num
-;;; Sum of all elements.
 (define (vec-sum v)
+  (doc 'type '(-> (Vec Num) Num))
+  (doc 'description "Sum of all elements")
   (vec-fold + 0 v))
 
-;;; vec-product : Vec Num -> Num
-;;; Product of all elements.
 (define (vec-product v)
+  (doc 'type '(-> (Vec Num) Num))
+  (doc 'description "Product of all elements")
   (vec-fold * 1 v))
 
-;;; vec-mean : Vec Num -> Num
-;;; Arithmetic mean.
 (define (vec-mean v)
+  (doc 'type '(-> (Vec Num) Num))
+  (doc 'description "Arithmetic mean")
   (let ([n (vector-length v)])
        (if (= n 0)
            0
            (/ (vec-sum v) n))))
 
-;;; vec-min : Vec Num -> Num | Error
-;;; Minimum element.
 (define (vec-min v)
+  (doc 'type '(-> (Vec Num) (Or Num Error)))
+  (doc 'description "Minimum element")
   (if (vec-empty? v)
       '(error empty-vector)
       (vec-fold min (vector-ref v 0) v)))
 
-;;; vec-max : Vec Num -> Num | Error
-;;; Maximum element.
 (define (vec-max v)
+  (doc 'type '(-> (Vec Num) (Or Num Error)))
+  (doc 'description "Maximum element")
   (if (vec-empty? v)
       '(error empty-vector)
       (vec-fold max (vector-ref v 0) v)))
 
-;;; vec-argmin : Vec Num -> Nat | Error
-;;; Index of minimum element.
 (define (vec-argmin v)
+  (doc 'type '(-> (Vec Num) (Or Nat Error)))
+  (doc 'description "Index of minimum element")
   (if (vec-empty? v)
       '(error empty-vector)
       (let ([n (vector-length v)])
            (range-fold min-i 0 i 1 n
                        (if (< (vector-ref v i) (vector-ref v min-i)) i min-i)))))
 
-;;; vec-argmax : Vec Num -> Nat | Error
-;;; Index of maximum element.
 (define (vec-argmax v)
+  (doc 'type '(-> (Vec Num) (Or Nat Error)))
+  (doc 'description "Index of maximum element")
   (if (vec-empty? v)
       '(error empty-vector)
       (let ([n (vector-length v)])
            (range-fold max-i 0 i 1 n
                        (if (> (vector-ref v i) (vector-ref v max-i)) i max-i)))))
 
-;;; vec-reverse : Vec a -> Vec a
-;;; Reverse a vector.
 (define (vec-reverse v)
+  (doc 'type '(-> (Vec a) (Vec a)))
+  (doc 'description "Reverse a vector")
   (let ([n (vector-length v)])
        (vec-map-idx i v (vector-ref v (- n 1 i)))))
 
-;;; vec-copy : Vec a -> Vec a
-;;; Create a copy of a vector.
 (define (vec-copy v)
+  (doc 'type '(-> (Vec a) (Vec a)))
+  (doc 'description "Create a copy of a vector")
   (vec-map-idx i v (vector-ref v i)))
 
-;;; ====
-;;; Special Vectors
-;;; ====
+(doc 'section 'special-vectors)
 
-;;; vec-zeros : Nat -> Vec Num
-;;; Vector of n zeros.
 (define (vec-zeros n)
+  (doc 'type '(-> Nat (Vec Num)))
+  (doc 'description "Vector of n zeros")
   (make-vector n 0))
 
-;;; vec-ones : Nat -> Vec Num
-;;; Vector of n ones.
 (define (vec-ones n)
+  (doc 'type '(-> Nat (Vec Num)))
+  (doc 'description "Vector of n ones")
   (make-vector n 1))
 
-;;; vec-range : Nat -> Vec Nat
-;;; Vector of [0, 1, 2, ..., n-1].
 (define (vec-range n)
+  (doc 'type '(-> Nat (Vec Nat)))
+  (doc 'description "Vector of [0, 1, 2, ..., n-1]")
   (let ([result (make-vector n 0)])
        (range-do! i 0 n
                   (vector-set! result i i))
        result))
 
-;;; vec-linspace : Num x Num x Nat -> Vec Num
-;;; Vector of n evenly spaced values from start to end.
 (define (vec-linspace start end n)
+  (doc 'type '(-> Num Num Nat (Vec Num)))
+  (doc 'description "Vector of n evenly spaced values from start to end")
   (if (< n 2)
       (if (= n 1)
           (vector start)
@@ -368,9 +349,9 @@
                        (vector-set! result i (+ start (* i step))))
             result)))
 
-;;; vec-unit : Nat x Nat -> Vec Num
-;;; Unit vector: 1 at position k, 0 elsewhere.
 (define (vec-unit n k)
+  (doc 'type '(-> Nat Nat (Vec Num)))
+  (doc 'description "Unit vector: 1 at position k, 0 elsewhere")
   (let ([result (make-vector n 0)])
        (when (and (>= k 0) (< k n))
              (vector-set! result k 1))
