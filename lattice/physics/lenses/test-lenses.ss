@@ -326,6 +326,49 @@
     (assert-equal (view rigid-body-angle-lens test-body)
                   (view rotation-lens test-body))))
 
+(doc 'section 'rotational-protocol-tests)
+
+(test-group "Rotational Protocols"
+  (define-test "body-angle-lens works on rigid-body"
+    (assert-equal 0.5 (view body-angle-lens test-body)))
+
+  (define-test "body-angular-vel-lens works on rigid-body"
+    (assert-equal 0.1 (view body-angular-vel-lens test-body)))
+
+  (define-test "body-inertia-lens works on rigid-body"
+    (assert-equal 2.0 (view body-inertia-lens test-body)))
+
+  (define-test "body-angle-lens set on rigid-body"
+    (let ([new-body (set-lens body-angle-lens 3.14 test-body)])
+      (assert-equal 3.14 (rigid-body-angle new-body))))
+
+  (define-test "body-angular-vel-lens set on rigid-body"
+    (let ([new-body (set-lens body-angular-vel-lens 5.0 test-body)])
+      (assert-equal 5.0 (rigid-body-angular-vel new-body))))
+
+  (define-test "body-inertia-lens set on rigid-body"
+    (let ([new-body (set-lens body-inertia-lens 10.0 test-body)])
+      (assert-equal 10.0 (rigid-body-inertia new-body))))
+
+  (define-test "body-angle-lens works on particle (returns 0)"
+    (assert-equal 0.0 (view body-angle-lens test-particle)))
+
+  (define-test "body-angular-vel-lens works on particle (returns 0)"
+    (assert-equal 0.0 (view body-angular-vel-lens test-particle)))
+
+  (define-test "body-inertia-lens works on particle (returns 0)"
+    (assert-equal 0.0 (view body-inertia-lens test-particle)))
+
+  (define-test "body-angle-lens set on particle is no-op"
+    (let ([new-p (set-lens body-angle-lens 999 test-particle)])
+      (assert-equal 0.0 (view body-angle-lens new-p))))
+
+  (define-test "rotational-body-ops bundle recognized for rigid-body"
+    (assert-true (implements-bundle? 'rigid-body-2d rotational-body-ops)))
+
+  (define-test "rotational-body-ops bundle recognized for particle"
+    (assert-true (implements-bundle? 'particle rotational-body-ops))))
+
 (doc 'section 'integration-utility-tests)
 
 (test-group "Integration Utilities"
@@ -339,7 +382,60 @@
            [expected-x (+ 10 (* 1 0.1))]   ; pos.x + vel.x * dt
            [expected-y (+ 20 (* 2 0.1))])  ; pos.y + vel.y * dt
       (assert-equal expected-x (vec2-x (rigid-body-pos new-body)))
-      (assert-equal expected-y (vec2-y (rigid-body-pos new-body))))))
+      (assert-equal expected-y (vec2-y (rigid-body-pos new-body)))))
+
+  (define-test "integrate-rotation-via-lens"
+    (let* ([dt 0.1]
+           [new-body (integrate-rotation-via-lens
+                      body-angle-lens
+                      body-angular-vel-lens
+                      dt
+                      test-body)]
+           [expected-angle (+ 0.5 (* 0.1 0.1))])  ; angle + angular-vel * dt
+      (assert-equal expected-angle (rigid-body-angle new-body))))
+
+  (define-test "integrate-body-via-lens"
+    (let* ([dt 0.1]
+           [new-body (integrate-body-via-lens
+                      body-pos-lens body-vel-lens
+                      body-angle-lens body-angular-vel-lens
+                      dt test-body)])
+      ;; Position updated
+      (assert-equal 10.1 (vec2-x (rigid-body-pos new-body)))
+      (assert-equal 20.2 (vec2-y (rigid-body-pos new-body)))
+      ;; Angle updated
+      (assert-equal 0.51 (rigid-body-angle new-body))))
+
+  (define-test "apply-torque-via-lens"
+    (let* ([torque 10.0]  ; 10 N⋅m
+           [dt 0.1]
+           ;; inertia = 2.0, so delta-omega = 10 * 0.1 / 2 = 0.5
+           [new-body (apply-torque-via-lens
+                      body-angular-vel-lens
+                      body-inertia-lens
+                      torque dt test-body)]
+           [expected-omega (+ 0.1 0.5)])
+      (assert-equal expected-omega (rigid-body-angular-vel new-body))))
+
+  (define-test "apply-impulse-at-point-via-lens"
+    (let* ([impulse (vec2 10 0)]  ; 10 N⋅s in x direction
+           [world-point (vec2 10 21)]  ; 1 unit above center of mass
+           ;; r = (0, 1), impulse = (10, 0)
+           ;; r x impulse = 0*0 - 1*10 = -10 (2D cross gives scalar)
+           ;; delta-v = impulse / mass = (10,0) / 5 = (2, 0)
+           ;; delta-omega = -10 / 2 = -5 rad/s
+           [new-body (apply-impulse-at-point-via-lens
+                      body-pos-lens body-vel-lens body-mass-lens
+                      body-angular-vel-lens body-inertia-lens
+                      impulse world-point test-body)]
+           [vx (vec2-x (rigid-body-vel new-body))]
+           [vy (vec2-y (rigid-body-vel new-body))]
+           [omega (rigid-body-angular-vel new-body)])
+      ;; Velocity: was (1, 2), now (3, 2)
+      (assert-true (< (abs (- vx 3.0)) 0.001))
+      (assert-true (< (abs (- vy 2.0)) 0.001))
+      ;; Angular velocity: was 0.1, now 0.1 + (-5) = -4.9
+      (assert-true (< (abs (- omega -4.9)) 0.001)))))
 
 (doc 'section 'run-tests)
 
