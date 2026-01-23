@@ -164,17 +164,17 @@
   (doc 'type '(-> Chart MetricSymbolic))
   (doc 'description "Euclidean metric with exact (zero) derivatives")
   (let* ([n (chart-dim chart)]
-         ;; Pre-allocate the zero derivative vector (constant, so shared)
-         [zero-matrix (diagonal (make-vector n 0))]
-         [dg (make-vector n zero-matrix)])  ; All slots point to same zero matrix
+         ;; Pre-allocate the zero matrix (shared, immutable by convention)
+         [zero-matrix (diagonal (make-vector n 0))])
     (make-metric-symbolic
      chart
      ;; metric-fn: identity matrix
      (lambda (coords)
        (make-identity-matrix n))
-     ;; deriv-fn: return pre-allocated zero vector
+     ;; deriv-fn: return fresh vector pointing to shared zero matrix
+     ;; (fresh vector protects against caller mutation of the vector itself)
      (lambda (coords)
-       dg))))
+       (make-vector n zero-matrix)))))
 
 ;;; ----------------------------------------------------------------------------
 ;;; Christoffel Symbols with Exact Derivatives
