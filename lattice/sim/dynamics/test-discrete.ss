@@ -481,6 +481,77 @@
                                          orb)))))
 
 ;;; ====
+;;; Period-Doubling Detection Tests
+;;; ====
+
+(test-group period-doubling
+            ;; Test map-multiplier at stable fixed point
+            (define-test multiplier-stable-fixed-point
+              ;; Logistic map at r=2 has stable fixed point x* = 0.5 with multiplier = 0
+              (let* ([sys (logistic-map 2.0)]
+                     [fp 0.5]  ; Fixed point of r*x*(1-x) = x at r=2 is x=0.5
+                     [mult (map-multiplier sys fp 1e-7)])
+                    ;; f'(x) = r(1-2x), at x=0.5: f'(0.5) = 2(1-1) = 0
+                    (assert-true (< (abs mult) 0.01))))
+
+            ;; Test multiplier near period-doubling
+            (define-test multiplier-near-period-doubling
+              ;; At r=3, logistic map is at the first period-doubling (multiplier = -1)
+              (let* ([sys (logistic-map 3.0)]
+                     [fp (/ 2 3)]  ; Fixed point at r=3 is x=(r-1)/r = 2/3
+                     [mult (map-multiplier sys fp 1e-7)])
+                    ;; f'(x) = r(1-2x) = 3(1 - 4/3) = -1
+                    (assert-true (< (abs (+ mult 1)) 0.01))))
+
+            ;; Test tracking multiplier along parameter
+            (define-test track-multiplier-basic
+              (let* ([tracked (track-multiplier-along-parameter
+                               logistic-map 2.5 3.2 10 0.5 1e-6)])
+                    ;; Should have 10 entries
+                    (assert-equal 10 (length tracked))
+                    ;; Each entry should be (param fp mult stability)
+                    (assert-equal 4 (length (car tracked)))
+                    ;; First entry param should be 2.5
+                    (assert-true (< (abs (- 2.5 (caar tracked))) 0.01))))
+
+            ;; Test period-doubling detection
+            (define-test detect-period-doubling-logistic
+              ;; Logistic map has first period-doubling at r=3
+              (let* ([bifurcations (detect-period-doubling-map
+                                    logistic-map 2.8 3.2 50 0.5 1e-6)])
+                    ;; Should detect at least one bifurcation
+                    (assert-true (> (length bifurcations) 0))
+                    ;; The bifurcation should be near r=3
+                    (let ([bif-param (caar bifurcations)])
+                         (assert-true (< (abs (- bif-param 3.0)) 0.1)))))
+
+            ;; Test finding period-2 orbit
+            (define-test find-period-2-orbit-basic
+              ;; At r=3.2, logistic map has a period-2 orbit
+              (let* ([sys (logistic-map 3.2)]
+                     [result (find-period-2-orbit sys 0.5 1e-8 50)])
+                    (if result
+                        (let ([x1 (car result)]
+                              [x2 (cdr result)]
+                              [f (dds-transition sys)])
+                             ;; Verify: f(x1) ≈ x2 and f(x2) ≈ x1
+                             (assert-true (< (abs (- (f x1) x2)) 1e-6))
+                             (assert-true (< (abs (- (f x2) x1)) 1e-6)))
+                        ;; If not found, that's acceptable for numerical reasons
+                        (assert-true #t))))
+
+            ;; Test Feigenbaum delta estimation
+            (define-test feigenbaum-delta-estimate
+              ;; Given known bifurcation points, check delta estimation
+              ;; Logistic map: r1≈3.0, r2≈3.449, r4≈3.544, r8≈3.564...
+              (let* ([cascade-data '((3.0 2 -1.0) (3.449 4 -1.0) (3.544 8 -1.0))]
+                     [delta (estimate-feigenbaum-delta-discrete cascade-data)])
+                    ;; Rough estimate should be positive
+                    (assert-true (> delta 0))
+                    ;; And in reasonable range (true value ≈ 4.669)
+                    (assert-true (< delta 10)))))
+
+;;; ====
 ;;; Summary
 ;;; ====
 

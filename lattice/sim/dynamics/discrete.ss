@@ -192,6 +192,29 @@
                          `(ok ,next)
                          (loop next (+ k 1))))))))
 
+(define (find-fixed-point-newton sys initial-state max-iter tolerance)
+  (doc 'type '(-> DDS Number Nat Number (Option Number)))
+  (doc 'description "Find fixed point using Newton's method on f(x) - x = 0")
+  (doc 'note "Works for unstable fixed points where iteration fails")
+  (doc 'returns "(ok fixed-point) or (error not-found)")
+  (let* ([f (dds-transition sys)]
+         [h 1e-8])
+        ;; Newton iteration: solve f(x) - x = 0
+        ;; x_{n+1} = x_n - (f(x_n) - x_n) / (f'(x_n) - 1)
+        (let loop ([x initial-state] [k 0])
+             (if (>= k max-iter)
+                 '(error not-found)
+                 (let* ([fx (f x)]
+                        [residual (- fx x)])
+                       (if (< (abs residual) tolerance)
+                           `(ok ,x)
+                           (let* ([f-deriv (/ (- (f (+ x h)) (f (- x h))) (* 2 h))]
+                                  [denom (- f-deriv 1)])
+                                 (if (< (abs denom) 1e-12)
+                                     ;; Derivative is 1 (neutral fixed point) - can't use Newton
+                                     '(error not-found)
+                                     (loop (- x (/ residual denom)) (+ k 1))))))))))
+
 (define (stability-jacobian-1d f x h)
   (doc 'type '(-> (-> Number Number) Number Number Number))
   (doc 'description "Compute numerical derivative (Jacobian in 1D) at a point")
@@ -493,6 +516,169 @@
                               (vec-append (if (= d1 0) (vector next1) next1)
                                           (if (= d2 0) (vector next2) next2))))))
         (+ (max d1 1) (max d2 1)))))
+
+(doc 'section 'period-doubling-detection)
+(doc 'note "For discrete maps, period-doubling occurs when the multiplier (derivative at fixed point) crosses -1")
+
+(define (map-multiplier sys fixed-point h)
+  (doc 'type '(-> DDS Number Number Number))
+  (doc 'description "Compute the multiplier (derivative) of a 1D map at a fixed point")
+  (doc 'note "For stability: |multiplier| < 1 = stable, |multiplier| > 1 = unstable")
+  (doc 'note "Period-doubling occurs when multiplier = -1")
+  (stability-jacobian-1d (dds-transition sys) fixed-point h))
+
+(define (track-multiplier-along-parameter make-sys param-min param-max param-steps fp-initial tolerance)
+  (doc 'type '(-> (-> Number DDS) Number Number Nat Number Number
+                  (List (List Number Number Number Symbol))))
+  (doc 'description "Track a fixed point and its multiplier as parameter varies")
+  (doc 'param 'make-sys "function from parameter to DDS")
+  (doc 'param 'fp-initial "initial guess for fixed point")
+  (doc 'returns "list of (param fixed-point multiplier stability) tuples")
+  (let* ([step (/ (- param-max param-min) (max 1 (- param-steps 1)))]
+         [h 1e-7])
+        (let loop ([i 0] [fp-guess fp-initial] [acc '()])
+             (if (>= i param-steps)
+                 (reverse acc)
+                 (let* ([param (+ param-min (* i step))]
+                        [sys (make-sys param)]
+                        ;; Find the fixed point using Newton (works for unstable fixed points)
+                        [fp-result (find-fixed-point-newton sys fp-guess 50 tolerance)]
+                        [fp (if (and (pair? fp-result) (eq? (car fp-result) 'ok))
+                                (cadr fp-result)
+                                fp-guess)]  ; Use guess if not found
+                        ;; Compute multiplier
+                        [mult (map-multiplier sys fp h)]
+                        ;; Classify stability
+                        [stab (cond
+                               [(< (abs mult) (- 1 tolerance)) 'stable]
+                               [(> (abs mult) (+ 1 tolerance)) 'unstable]
+                               [(< mult (- tolerance)) 'period-doubling-boundary]  ; mult ≈ -1
+                               [else 'neutral])]
+                        [entry (list param fp mult stab)])
+                       (loop (+ i 1) fp (cons entry acc)))))))
+
+(define (detect-period-doubling-map make-sys param-min param-max param-steps fp-initial tolerance)
+  (doc 'export #t)
+  (doc 'type '(-> (-> Number DDS) Number Number Nat Number Number
+                  (List (List Number Number))))
+  (doc 'description "Detect period-doubling bifurcations in a parameterized discrete map")
+  (doc 'note "Period-doubling occurs when the multiplier crosses -1")
+  (doc 'returns "list of (param critical-point) pairs where period-doubling occurs")
+  (let ([tracked (track-multiplier-along-parameter make-sys param-min param-max
+                                                    param-steps fp-initial tolerance)])
+       (if (< (length tracked) 2)
+           '()
+           ;; Find where multiplier crosses -1
+           (let loop ([prev (car tracked)]
+                      [rest (cdr tracked)]
+                      [bifurcations '()])
+                (if (null? rest)
+                    (reverse bifurcations)
+                    (let* ([curr (car rest)]
+                           [prev-mult (caddr prev)]
+                           [curr-mult (caddr curr)])
+                          ;; Multiplier crosses -1 when sign of (mult + 1) changes
+                          ;; and multiplier is negative
+                          (if (and (< prev-mult 0) (< curr-mult 0)
+                                   (< (* (+ prev-mult 1) (+ curr-mult 1)) 0))
+                              ;; Interpolate to find approximate crossing point
+                              (let* ([prev-param (car prev)]
+                                     [curr-param (car curr)]
+                                     [prev-fp (cadr prev)]
+                                     [curr-fp (cadr curr)]
+                                     ;; Linear interpolation
+                                     [t (/ (+ prev-mult 1) (- prev-mult curr-mult))]
+                                     [bif-param (+ prev-param (* t (- curr-param prev-param)))]
+                                     [bif-fp (+ prev-fp (* t (- curr-fp prev-fp)))])
+                                    (loop curr (cdr rest)
+                                          (cons (list bif-param bif-fp) bifurcations)))
+                              (loop curr (cdr rest) bifurcations))))))))
+
+(define (find-period-2-orbit sys initial-guess tolerance max-iter)
+  (doc 'type '(-> DDS Number Number Nat (Option (Pair Number Number))))
+  (doc 'description "Find a period-2 orbit of a 1D map after period-doubling")
+  (doc 'returns "(x1 . x2) where f(x1) = x2 and f(x2) = x1, or #f if not found")
+  ;; After period-doubling, the iterate f^2 has the period-2 points as fixed points
+  ;; Use Newton's method on f^2(x) - x = 0
+  (let* ([f (dds-transition sys)]
+         [f2 (lambda (x) (f (f x)))]  ; f composed with itself
+         [h 1e-8])
+        ;; Newton iteration on f^2(x) - x = 0
+        (let newton ([x initial-guess] [iter 0])
+             (if (>= iter max-iter)
+                 #f
+                 (let* ([f2x (f2 x)]
+                        [residual (- f2x x)])
+                       (if (< (abs residual) tolerance)
+                           ;; Found a period-2 point (or fixed point)
+                           (let ([x2 (f x)])
+                                (if (< (abs (- x2 x)) tolerance)
+                                    ;; This is actually a fixed point, not period-2
+                                    ;; Try a different initial guess
+                                    (if (> iter 0)
+                                        #f  ; Already tried
+                                        (newton (+ initial-guess 0.1) (+ iter 1)))
+                                    ;; Genuine period-2 orbit
+                                    (cons x x2)))
+                           ;; Newton step: x' = x - (f²(x) - x) / (f²'(x) - 1)
+                           (let* ([f2-deriv (/ (- (f2 (+ x h)) (f2 (- x h))) (* 2 h))]
+                                  [denom (- f2-deriv 1)])
+                                 (if (< (abs denom) 1e-12)
+                                     #f  ; Derivative too small
+                                     (newton (- x (/ residual denom)) (+ iter 1))))))))))
+
+(define (follow-period-doubling-cascade make-sys param-start param-end max-doublings
+                                         fp-initial tolerance)
+  (doc 'export #t)
+  (doc 'type '(-> (-> Number DDS) Number Number Nat Number Number
+                  (List (List Number Nat Number))))
+  (doc 'description "Follow a period-doubling cascade to multiple bifurcations")
+  (doc 'returns "list of (bifurcation-param period multiplier) showing the cascade")
+  (doc 'note "Classic example: logistic map r=3 to r=4 shows period 1→2→4→8→... cascade")
+  (let ([param-steps 200])
+       (let cascade-loop ([current-period 1]
+                          [p-min param-start]
+                          [fp-guess fp-initial]
+                          [doublings 0]
+                          [results '()])
+            (if (>= doublings max-doublings)
+                (reverse results)
+                ;; Find next period-doubling
+                (let* ([bifurcations (detect-period-doubling-map make-sys p-min param-end
+                                                                  param-steps fp-guess tolerance)])
+                      (if (null? bifurcations)
+                          (reverse results)  ; No more doublings found
+                          (let* ([bif (car bifurcations)]
+                                 [bif-param (car bif)]
+                                 [bif-fp (cadr bif)]
+                                 [new-period (* 2 current-period)]
+                                 ;; Get multiplier at bifurcation
+                                 [sys (make-sys bif-param)]
+                                 [mult (map-multiplier sys bif-fp 1e-7)]
+                                 [entry (list bif-param new-period mult)])
+                                (cascade-loop new-period
+                                              (+ bif-param (* 0.01 (- param-end param-start)))
+                                              bif-fp
+                                              (+ doublings 1)
+                                              (cons entry results)))))))))
+
+(define (estimate-feigenbaum-delta-discrete cascade-data)
+  (doc 'type '(-> (List (List Number Nat Number)) Number))
+  (doc 'description "Estimate Feigenbaum delta constant from period-doubling cascade data")
+  (doc 'note "Universal constant δ ≈ 4.669... for unimodal maps")
+  (let ([params (map car cascade-data)])
+       (if (< (length params) 3)
+           0
+           (let loop ([ps params] [deltas '()])
+                (if (< (length ps) 3)
+                    (if (null? deltas)
+                        0
+                        (/ (apply + deltas) (length deltas)))
+                    (let* ([r1 (car ps)]
+                           [r2 (cadr ps)]
+                           [r3 (caddr ps)]
+                           [delta (/ (- r2 r1) (- r3 r2))])
+                          (loop (cdr ps) (cons delta deltas))))))))
 
 (doc 'section 'display-and-debugging)
 
