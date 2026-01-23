@@ -1,5 +1,5 @@
 (skill diffgeo
-  (version "0.6.0")
+  (version "0.7.0")
   (tier 1)
   (path "lattice/diffgeo")
   (purity total)
@@ -16,8 +16,9 @@
     adjoint representations, and Baker-Campbell-Hausdorff approximations.
     Also provides Riemannian metric tensors, Christoffel symbols, Riemann curvature
     tensor, Ricci tensor, scalar curvature, and surface curvatures (Gaussian, mean,
-    principal) for 2D surfaces embedded in R³. Geodesic computation includes
-    numerical geodesic tracing, exponential/logarithm maps, parallel transport,
+    principal) for 2D surfaces embedded in R³. Symbolic metric derivatives eliminate
+    numerical differentiation error for standard coordinate systems. Geodesic computation
+    includes numerical geodesic tracing, exponential/logarithm maps, parallel transport,
     and geodesic distance. Differential forms support includes k-forms, exterior
     algebra with wedge product, interior product, exterior derivative, Hodge star
     operator (Euclidean), and integration over parameterized curves and surfaces.")
@@ -32,7 +33,8 @@
              scalar-curvature gaussian-curvature mean-curvature principal-curvature
              surface fundamental-form geodesic parallel-transport geodesic-distance
              differential-forms k-form exterior-algebra wedge-product interior-product
-             exterior-derivative hodge-star volume-form integration de-rham))
+             exterior-derivative hodge-star volume-form integration de-rham
+             symbolic-differentiation exact-derivatives))
   (aliases (diffgeom manifolds smooth-manifolds lie-groups riemannian-geometry geodesics
             exterior-calculus cartan-calculus))
 
@@ -128,6 +130,18 @@
     ;; Standard surfaces
     make-sphere-surface make-torus-surface make-paraboloid-surface make-saddle-surface)
 
+   (symbolic-metrics
+    ;; Symbolic metric construction
+    metric-symbolic? make-metric-symbolic metric-symbolic-deriv-fn
+    metric-chart* metric-fn* metric-dim* metric-at*
+    ;; Exact metric constructors
+    make-polar-metric-exact make-spherical-metric-exact
+    make-cylindrical-metric-exact make-euclidean-metric-exact
+    ;; Symbolic Christoffel computation
+    christoffel-symbols-exact christoffel-symbols*
+    ;; Pre-computed exact Christoffels
+    polar-christoffel-exact spherical-christoffel-exact)
+
    (geodesics
     ;; Geodesic state
     make-geodesic-state geodesic-state? geodesic-state-coords geodesic-state-velocity
@@ -209,4 +223,10 @@
      interior product (contraction with vectors), exterior derivative (generalized
      gradient), Hodge star operator (for Euclidean metrics), and numerical
      integration of forms over parameterized curves and surfaces. Supports the
-     fundamental identity d(dω) = 0 and Stokes' theorem applications.")))
+     fundamental identity d(dω) = 0 and Stokes' theorem applications.")
+   (symbolic-metrics "symbolic-metrics.ss"
+    "Exact symbolic metric derivatives for standard coordinate systems (polar,
+     spherical, cylindrical, Euclidean). Eliminates numerical differentiation error
+     in Christoffel symbol computation. Provides christoffel-symbols* which auto-detects
+     symbolic vs numerical metrics. Includes pre-computed exact Christoffel symbols
+     for polar and spherical coordinates.")))
