@@ -30,6 +30,7 @@
   (list 'metric-symbolic chart metric-fn deriv-fn))
 
 (define (metric-symbolic-deriv-fn m)
+  (doc 'export #t)
   (doc 'type '(-> MetricSymbolic (-> Vec (Vector Matrix))))
   (doc 'description "Get the symbolic derivative function")
   (list-ref m 3))
@@ -273,6 +274,7 @@
   (doc 'type '(-> Vec ChristoffelTensor))
   (doc 'description "Pre-computed Christoffel symbols for polar coordinates")
   (doc 'note "Non-zero: Γ^r_{θθ} = -r, Γ^θ_{rθ} = Γ^θ_{θr} = 1/r")
+  (doc 'note "Returns +inf.0 at r=0 (coordinate singularity)")
   (let* ([r (vector-ref coords 0)]
          [gamma (make-vector 2 #f)])
     ;; Γ^r (k=0)
@@ -280,9 +282,9 @@
       (vector-set! gamma-r 0 (vector 0 0))        ; Γ^r_{r*}
       (vector-set! gamma-r 1 (vector 0 (- r)))    ; Γ^r_{θθ} = -r
       (vector-set! gamma 0 gamma-r))
-    ;; Γ^θ (k=1)
+    ;; Γ^θ (k=1) - note: 1/r diverges at r=0 (coordinate singularity)
     (let ([gamma-theta (make-vector 2 #f)]
-          [inv-r (if (zero? r) 0 (/ 1.0 r))])
+          [inv-r (/ 1.0 r)])  ; Let IEEE 754 handle r=0 → +inf.0
       (vector-set! gamma-theta 0 (vector 0 inv-r))    ; Γ^θ_{rθ} = 1/r
       (vector-set! gamma-theta 1 (vector inv-r 0))    ; Γ^θ_{θr} = 1/r
       (vector-set! gamma 1 gamma-theta))
@@ -293,12 +295,13 @@
   (doc 'type '(-> Vec ChristoffelTensor))
   (doc 'description "Pre-computed Christoffel symbols for spherical coordinates")
   (doc 'note "Non-zero: Γ^r_{θθ}=-r, Γ^r_{φφ}=-r·sin²θ, Γ^θ_{rθ}=1/r, Γ^θ_{φφ}=-sinθcosθ, Γ^φ_{rφ}=1/r, Γ^φ_{θφ}=cotθ")
+  (doc 'note "Returns +inf.0 at r=0 and θ=0,π (coordinate singularities)")
   (let* ([r (vector-ref coords 0)]
          [theta (vector-ref coords 1)]
          [sin-t (sin theta)]
          [cos-t (cos theta)]
-         [inv-r (if (zero? r) 0 (/ 1.0 r))]
-         [cot-t (if (zero? sin-t) 0 (/ cos-t sin-t))]
+         [inv-r (/ 1.0 r)]            ; Let IEEE 754 handle r=0 → +inf.0
+         [cot-t (/ cos-t sin-t)]      ; Let IEEE 754 handle sin=0 → ±inf.0
          [gamma (make-vector 3 #f)])
     ;; Γ^r (k=0)
     (let ([gr (make-vector 3 #f)])
