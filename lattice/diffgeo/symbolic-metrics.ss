@@ -67,26 +67,22 @@
   (doc 'export #t)
   (doc 'type '(-> Chart MetricSymbolic))
   (doc 'description "Polar metric with exact derivatives")
-  (make-metric-symbolic
-   chart
-   ;; metric-fn: (r, θ) → g
-   (lambda (coords)
-     (let ([r (vector-ref coords 0)])
-       (matrix-from-lists (list (list 1 0)
-                                (list 0 (* r r))))))
-   ;; deriv-fn: (r, θ) → [∂g/∂r, ∂g/∂θ]
-   (lambda (coords)
-     (let* ([r (vector-ref coords 0)]
-            [dg (make-vector 2 #f)])
-       ;; ∂g/∂r
-       (vector-set! dg 0
-                    (matrix-from-lists (list (list 0 0)
-                                             (list 0 (* 2 r)))))
-       ;; ∂g/∂θ = 0
-       (vector-set! dg 1
-                    (matrix-from-lists (list (list 0 0)
-                                             (list 0 0))))
-       dg))))
+  (let ([zero-2x2 (diagonal (vector 0 0))])  ; Pre-allocate constant zero matrix
+    (make-metric-symbolic
+     chart
+     ;; metric-fn: (r, θ) → g = diag(1, r²)
+     (lambda (coords)
+       (let ([r (vector-ref coords 0)])
+         (diagonal (vector 1 (* r r)))))
+     ;; deriv-fn: (r, θ) → [∂g/∂r, ∂g/∂θ]
+     (lambda (coords)
+       (let* ([r (vector-ref coords 0)]
+              [dg (make-vector 2 #f)])
+         ;; ∂g/∂r = diag(0, 2r)
+         (vector-set! dg 0 (diagonal (vector 0 (* 2 r))))
+         ;; ∂g/∂θ = 0
+         (vector-set! dg 1 zero-2x2)
+         dg)))))
 
 ;;; ----------------------------------------------------------------------------
 ;;; Spherical Metric: g = diag(1, r², r²sin²θ)
@@ -100,46 +96,32 @@
   (doc 'export #t)
   (doc 'type '(-> Chart MetricSymbolic))
   (doc 'description "Spherical metric with exact derivatives")
-  (make-metric-symbolic
-   chart
-   ;; metric-fn: (r, θ, φ) → g
-   (lambda (coords)
-     (let* ([r (vector-ref coords 0)]
-            [theta (vector-ref coords 1)]
-            [r2 (* r r)]
-            [sin-theta (sin theta)]
-            [r2-sin2 (* r2 sin-theta sin-theta)])
-       (matrix-from-lists (list (list 1 0 0)
-                                (list 0 r2 0)
-                                (list 0 0 r2-sin2)))))
-   ;; deriv-fn: (r, θ, φ) → [∂g/∂r, ∂g/∂θ, ∂g/∂φ]
-   (lambda (coords)
-     (let* ([r (vector-ref coords 0)]
-            [theta (vector-ref coords 1)]
-            [r2 (* r r)]
-            [sin-theta (sin theta)]
-            [cos-theta (cos theta)]
-            [sin2-theta (* sin-theta sin-theta)]
-            [dg (make-vector 3 #f)])
-       ;; ∂g/∂r
-       (vector-set! dg 0
-                    (matrix-from-lists
-                     (list (list 0 0 0)
-                           (list 0 (* 2 r) 0)
-                           (list 0 0 (* 2 r sin2-theta)))))
-       ;; ∂g/∂θ = diag(0, 0, r²·2sinθcosθ)
-       (vector-set! dg 1
-                    (matrix-from-lists
-                     (list (list 0 0 0)
-                           (list 0 0 0)
-                           (list 0 0 (* r2 2 sin-theta cos-theta)))))
-       ;; ∂g/∂φ = 0
-       (vector-set! dg 2
-                    (matrix-from-lists
-                     (list (list 0 0 0)
-                           (list 0 0 0)
-                           (list 0 0 0))))
-       dg))))
+  (let ([zero-3x3 (diagonal (vector 0 0 0))])  ; Pre-allocate constant zero matrix
+    (make-metric-symbolic
+     chart
+     ;; metric-fn: (r, θ, φ) → g = diag(1, r², r²sin²θ)
+     (lambda (coords)
+       (let* ([r (vector-ref coords 0)]
+              [theta (vector-ref coords 1)]
+              [r2 (* r r)]
+              [sin-theta (sin theta)])
+         (diagonal (vector 1 r2 (* r2 sin-theta sin-theta)))))
+     ;; deriv-fn: (r, θ, φ) → [∂g/∂r, ∂g/∂θ, ∂g/∂φ]
+     (lambda (coords)
+       (let* ([r (vector-ref coords 0)]
+              [theta (vector-ref coords 1)]
+              [r2 (* r r)]
+              [sin-theta (sin theta)]
+              [cos-theta (cos theta)]
+              [sin2-theta (* sin-theta sin-theta)]
+              [dg (make-vector 3 #f)])
+         ;; ∂g/∂r = diag(0, 2r, 2r·sin²θ)
+         (vector-set! dg 0 (diagonal (vector 0 (* 2 r) (* 2 r sin2-theta))))
+         ;; ∂g/∂θ = diag(0, 0, r²·2sinθcosθ)
+         (vector-set! dg 1 (diagonal (vector 0 0 (* r2 2 sin-theta cos-theta))))
+         ;; ∂g/∂φ = 0
+         (vector-set! dg 2 zero-3x3)
+         dg)))))
 
 ;;; ----------------------------------------------------------------------------
 ;;; Cylindrical Metric: g = diag(1, ρ², 1)
@@ -153,37 +135,24 @@
   (doc 'export #t)
   (doc 'type '(-> Chart MetricSymbolic))
   (doc 'description "Cylindrical metric with exact derivatives")
-  (make-metric-symbolic
-   chart
-   ;; metric-fn: (ρ, φ, z) → g
-   (lambda (coords)
-     (let ([rho (vector-ref coords 0)])
-       (matrix-from-lists (list (list 1 0 0)
-                                (list 0 (* rho rho) 0)
-                                (list 0 0 1)))))
-   ;; deriv-fn: (ρ, φ, z) → [∂g/∂ρ, ∂g/∂φ, ∂g/∂z]
-   (lambda (coords)
-     (let* ([rho (vector-ref coords 0)]
-            [dg (make-vector 3 #f)])
-       ;; ∂g/∂ρ
-       (vector-set! dg 0
-                    (matrix-from-lists
-                     (list (list 0 0 0)
-                           (list 0 (* 2 rho) 0)
-                           (list 0 0 0))))
-       ;; ∂g/∂φ = 0
-       (vector-set! dg 1
-                    (matrix-from-lists
-                     (list (list 0 0 0)
-                           (list 0 0 0)
-                           (list 0 0 0))))
-       ;; ∂g/∂z = 0
-       (vector-set! dg 2
-                    (matrix-from-lists
-                     (list (list 0 0 0)
-                           (list 0 0 0)
-                           (list 0 0 0))))
-       dg))))
+  (let ([zero-3x3 (diagonal (vector 0 0 0))])  ; Pre-allocate constant zero matrix
+    (make-metric-symbolic
+     chart
+     ;; metric-fn: (ρ, φ, z) → g = diag(1, ρ², 1)
+     (lambda (coords)
+       (let ([rho (vector-ref coords 0)])
+         (diagonal (vector 1 (* rho rho) 1))))
+     ;; deriv-fn: (ρ, φ, z) → [∂g/∂ρ, ∂g/∂φ, ∂g/∂z]
+     (lambda (coords)
+       (let* ([rho (vector-ref coords 0)]
+              [dg (make-vector 3 #f)])
+         ;; ∂g/∂ρ = diag(0, 2ρ, 0)
+         (vector-set! dg 0 (diagonal (vector 0 (* 2 rho) 0)))
+         ;; ∂g/∂φ = 0
+         (vector-set! dg 1 zero-3x3)
+         ;; ∂g/∂z = 0
+         (vector-set! dg 2 zero-3x3)
+         dg)))))
 
 ;;; ----------------------------------------------------------------------------
 ;;; Euclidean Metric: g = I (identity)
@@ -194,21 +163,18 @@
   (doc 'export #t)
   (doc 'type '(-> Chart MetricSymbolic))
   (doc 'description "Euclidean metric with exact (zero) derivatives")
-  (let ([n (chart-dim chart)])
+  (let* ([n (chart-dim chart)]
+         ;; Pre-allocate the zero derivative vector (constant, so shared)
+         [zero-matrix (diagonal (make-vector n 0))]
+         [dg (make-vector n zero-matrix)])  ; All slots point to same zero matrix
     (make-metric-symbolic
      chart
      ;; metric-fn: identity matrix
      (lambda (coords)
        (make-identity-matrix n))
-     ;; deriv-fn: all zeros
+     ;; deriv-fn: return pre-allocated zero vector
      (lambda (coords)
-       (let* ([dg (make-vector n #f)]
-              [zero-row (make-list n 0)]
-              [zero-rows (make-list n zero-row)]
-              [zero-matrix (matrix-from-lists zero-rows)])
-         (do ([l 0 (+ l 1)])
-             ((= l n) dg)
-             (vector-set! dg l zero-matrix)))))))
+       dg))))
 
 ;;; ----------------------------------------------------------------------------
 ;;; Christoffel Symbols with Exact Derivatives
@@ -233,15 +199,15 @@
         (let ([gamma-k (make-vector n #f)])
           (do ([i 0 (+ i 1)])
               ((= i n))
-              (let ([gamma-ki (make-vector n 0)])
+              (let ([gamma-ki (make-vector n 0)]
+                    [dg-i (vector-ref dg i)])  ; Hoisted from l-loop
                 (do ([j 0 (+ j 1)])
                     ((= j n))
-                    (let ([sum 0])
+                    (let ([sum 0]
+                          [dg-j (vector-ref dg j)])  ; Hoisted from l-loop
                       (do ([l 0 (+ l 1)])
                           ((= l n))
                           (let* ([g-kl (matrix-ref g-inv k l)]
-                                 [dg-i (vector-ref dg i)]
-                                 [dg-j (vector-ref dg j)]
                                  [dg-l (vector-ref dg l)]
                                  [term1 (matrix-ref dg-i j l)]
                                  [term2 (matrix-ref dg-j i l)]
@@ -323,6 +289,35 @@
       (vector-set! gamma 2 gp))
     gamma))
 
+(define (cylindrical-christoffel-exact coords)
+  (doc 'export #t)
+  (doc 'type '(-> Vec ChristoffelTensor))
+  (doc 'description "Pre-computed Christoffel symbols for cylindrical coordinates")
+  (doc 'note "Non-zero: Γ^ρ_{φφ} = -ρ, Γ^φ_{ρφ} = Γ^φ_{φρ} = 1/ρ")
+  (doc 'note "Returns +inf.0 at ρ=0 (coordinate singularity)")
+  (let* ([rho (vector-ref coords 0)]
+         [inv-rho (/ 1.0 rho)]        ; Let IEEE 754 handle ρ=0 → +inf.0
+         [gamma (make-vector 3 #f)])
+    ;; Γ^ρ (k=0)
+    (let ([gr (make-vector 3 #f)])
+      (vector-set! gr 0 (vector 0 0 0))
+      (vector-set! gr 1 (vector 0 (- rho) 0))    ; Γ^ρ_{φφ} = -ρ
+      (vector-set! gr 2 (vector 0 0 0))
+      (vector-set! gamma 0 gr))
+    ;; Γ^φ (k=1)
+    (let ([gp (make-vector 3 #f)])
+      (vector-set! gp 0 (vector 0 inv-rho 0))    ; Γ^φ_{ρφ} = 1/ρ
+      (vector-set! gp 1 (vector inv-rho 0 0))    ; Γ^φ_{φρ} = 1/ρ
+      (vector-set! gp 2 (vector 0 0 0))
+      (vector-set! gamma 1 gp))
+    ;; Γ^z (k=2) - all zero
+    (let ([gz (make-vector 3 #f)])
+      (vector-set! gz 0 (vector 0 0 0))
+      (vector-set! gz 1 (vector 0 0 0))
+      (vector-set! gz 2 (vector 0 0 0))
+      (vector-set! gamma 2 gz))
+    gamma))
+
 ;;; ----------------------------------------------------------------------------
 ;;; Help
 ;;; ----------------------------------------------------------------------------
@@ -339,4 +334,5 @@
   (display "  (christoffel-symbols* m coords)       Auto-detect symbolic vs numerical\n")
   (display "  (christoffel-symbols-exact m coords)  Use exact derivatives (requires symbolic metric)\n")
   (display "  (polar-christoffel-exact coords)      Pre-computed polar Christoffels\n")
-  (display "  (spherical-christoffel-exact coords)  Pre-computed spherical Christoffels\n"))
+  (display "  (spherical-christoffel-exact coords)  Pre-computed spherical Christoffels\n")
+  (display "  (cylindrical-christoffel-exact coords) Pre-computed cylindrical Christoffels\n"))

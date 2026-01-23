@@ -103,7 +103,30 @@
            [coords (vector 2.0 1.0 3.0)]  ; ρ=2, φ=1, z=3
            [gamma-num (christoffel-symbols m-num coords)]
            [gamma-sym (christoffel-symbols-exact m-sym coords)])
-      (assert-true (christoffel-approx-equal? gamma-num gamma-sym 1e-5)))))
+      (assert-true (christoffel-approx-equal? gamma-num gamma-sym 1e-5))))
+
+  (define-test "cylindrical pre-computed matches symbolic"
+    (let* ([chart (make-cylindrical-chart)]
+           [m-sym (make-cylindrical-metric-exact chart)]
+           [coords (vector 3.0 0.8 1.5)]
+           [gamma-sym (christoffel-symbols-exact m-sym coords)]
+           [gamma-pre (cylindrical-christoffel-exact coords)])
+      (assert-true (christoffel-approx-equal? gamma-sym gamma-pre 1e-10))))
+
+  (define-test "cylindrical Christoffel values are correct"
+    ;; At ρ=2: Γ^ρ_{φφ} = -ρ = -2, Γ^φ_{ρφ} = Γ^φ_{φρ} = 1/ρ = 0.5
+    (let* ([coords (vector 2.0 1.0 3.0)]
+           [gamma (cylindrical-christoffel-exact coords)])
+      ;; Γ^ρ_{φφ} = -ρ
+      (assert-true (< (abs (- (christoffel-ref gamma 0 1 1) -2.0)) 1e-10))
+      ;; Γ^φ_{ρφ} = 1/ρ
+      (assert-true (< (abs (- (christoffel-ref gamma 1 0 1) 0.5)) 1e-10))
+      ;; Γ^φ_{φρ} = 1/ρ
+      (assert-true (< (abs (- (christoffel-ref gamma 1 1 0) 0.5)) 1e-10))
+      ;; All z-related components should be zero
+      (assert-true (< (abs (christoffel-ref gamma 2 0 0)) 1e-10))
+      (assert-true (< (abs (christoffel-ref gamma 2 1 1)) 1e-10))
+      (assert-true (< (abs (christoffel-ref gamma 2 2 2)) 1e-10)))))
 
 (test-group "euclidean-symbolic"
   (define-test "euclidean has zero Christoffels"
