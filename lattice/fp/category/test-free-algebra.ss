@@ -614,8 +614,8 @@
   (test "free algebra has signature"
         'monoid
         (signature-name (algebra-signature free-alg)))
-  (test "free algebra carrier is 'term"
-        'term
+  (test "free algebra carrier includes generators"
+        '(free-term (a b c))
         (algebra-carrier free-alg)))
 
 ;; Test free-morphism produces algebra-hom objects

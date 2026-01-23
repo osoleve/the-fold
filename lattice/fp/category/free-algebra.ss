@@ -286,11 +286,14 @@ The function f should preserve the algebraic structure.")
 
 ;;; compose-algebra-hom : AlgebraHom × AlgebraHom → AlgebraHom
 ;;; Compose two homomorphisms: (g ∘ h)(x) = g(h(x))
-;;; Precondition: target of h = source of g
+;;; Precondition: target of h = source of g (structurally equal)
 (define (compose-algebra-hom g h)
   (let ([h-target (algebra-hom-target h)]
         [g-source (algebra-hom-source g)])
-    (if (not (eq? h-target g-source))
+    ;; Use equal? for structural equality, not eq? for pointer equality.
+    ;; This allows composition of homomorphisms from different call sites
+    ;; that produce structurally identical algebras.
+    (if (not (equal? h-target g-source))
         (error 'compose-algebra-hom "Target of h must equal source of g")
         (make-algebra-hom
          (algebra-hom-source h)
@@ -423,8 +426,8 @@ first-class algebra-hom objects instead.")
 (define (make-free-algebra sig generators)
   (doc 'type '(-> Signature (List Any) Algebra))
   (doc 'description "Create the free algebra over a set of generators.
-The carrier is 'term and operations build term ASTs.
-This is an explicit algebra object suitable for cat-Alg.")
+The carrier includes the generators to distinguish Free(A) from Free(B).
+Operations build term ASTs. This is an explicit algebra object for cat-Alg.")
   (let* ([ops (signature-operations sig)]
          [op-impls (map (lambda (op-spec)
                           (let ([name (car op-spec)]
@@ -433,8 +436,10 @@ This is an explicit algebra object suitable for cat-Alg.")
                                   (if (= arity 0)
                                       (lambda () name)
                                       (lambda args (cons name args))))))
-                        ops)])
-    (list 'algebra sig 'term op-impls)))
+                        ops)]
+         ;; Include generators in carrier so Free(A) ≠ Free(B)
+         [carrier (list 'free-term generators)])
+    (list 'algebra sig carrier op-impls)))
 
 (define (free-morphism sig source-gens target-gens f)
   (doc 'type '(-> Signature (List Any) (List Any) (-> Any Any) AlgebraHom))
