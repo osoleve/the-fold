@@ -419,6 +419,121 @@
       (classify-stability-2d (list (make-complex 0.0 0.0)
                                    (make-complex -1.0 0.0))))
 
+;;; ====
+;;; Robust Newton Solver
+;;; ====
+(test-section "Robust Newton Solver")
+
+;; Test: find-fixed-point-robust works on regular systems
+(define simple-sys (make-autonomous-ode
+                    (lambda (x) (vec-scale -1.0 x))
+                    2))
+
+(define robust-result (find-fixed-point-robust
+                       simple-sys
+                       (vector 1.0 1.0)
+                       1e-8
+                       1e-6
+                       20))
+
+(test "robust Newton finds origin for -x system"
+      #t
+      (and robust-result
+           (< (vec-norm robust-result) 1e-6)))
+
+;; Test: find-fixed-point-robust handles near-singular Jacobian
+;; Use a 2D system where SVD works reliably
+;; Transcritical in 2D: dx/dt = rx - x^2, dy/dt = -y
+(define (near-singular-2d-sys state)
+  (let* ([x (vector-ref state 0)]
+         [y (vector-ref state 1)]
+         [r 0.01])  ; Close to bifurcation
+    (vector (- (* r x) (* x x))   ; Transcritical in x
+            (* -1.0 y))))         ; Stable in y
+
+(define transcrit-2d-sys (make-autonomous-ode near-singular-2d-sys 2))
+
+;; Fixed point at (r, 0) = (0.01, 0), Jacobian has -r on diagonal for x component
+(define transcrit-robust (find-fixed-point-robust
+                          transcrit-2d-sys
+                          (vector 0.1 0.1)  ; Start from non-equilibrium
+                          1e-6
+                          1e-6
+                          50))
+
+(test "robust Newton finds fixed point in 2D near-singular system"
+      #t
+      (and transcrit-robust
+           (< (abs (- (vector-ref transcrit-robust 0) 0.01)) 1e-4)
+           (< (abs (vector-ref transcrit-robust 1)) 1e-6)))
+
+;; Test: Levenberg-Marquardt solver
+(define lm-result (find-fixed-point-levenberg-marquardt
+                   simple-sys
+                   (vector 1.0 1.0)
+                   1e-8
+                   1e-6
+                   50))
+
+(test "Levenberg-Marquardt finds origin for -x system"
+      #t
+      (and lm-result
+           (< (vec-norm lm-result) 1e-6)))
+
+;; Test: Levenberg-Marquardt near singularity (same 2D transcritical system)
+(define lm-transcrit (find-fixed-point-levenberg-marquardt
+                      transcrit-2d-sys
+                      (vector 0.1 0.1)
+                      1e-6
+                      1e-6
+                      100))
+
+(test "Levenberg-Marquardt finds fixed point in 2D near-singular system"
+      #t
+      (and lm-transcrit
+           (< (abs (- (vector-ref lm-transcrit 0) 0.01)) 1e-3)
+           (< (abs (vector-ref lm-transcrit 1)) 1e-5)))
+
+;; Test: Matrix utilities
+(define test-matrix (list 'matrix 2 2 (vector 1.0 0.0 0.0 2.0)))
+(define damped (matrix-add-diagonal test-matrix 0.1))
+
+(test-approx "matrix-add-diagonal adds to (0,0)"
+             1.1
+             (matrix-ref damped 0 0)
+             1e-10)
+
+(test-approx "matrix-add-diagonal adds to (1,1)"
+             2.1
+             (matrix-ref damped 1 1)
+             1e-10)
+
+(test-approx "matrix-add-diagonal leaves off-diagonal unchanged"
+             0.0
+             (matrix-ref damped 0 1)
+             1e-10)
+
+;; Test: Linear system solver
+(define a-simple (list 'matrix 2 2 (vector 2.0 1.0 1.0 3.0)))
+(define b-simple (vector 5.0 7.0))
+(define x-solve (solve-linear-system a-simple b-simple))
+
+(test "solve-linear-system returns vector"
+      #t
+      (vector? x-solve))
+
+;; Verify solution: Ax = b
+(define ax-check (matrix-vec-mul a-simple x-solve))
+(test-approx "solve-linear-system: Ax = b (component 0)"
+             (vector-ref b-simple 0)
+             (vector-ref ax-check 0)
+             1e-8)
+
+(test-approx "solve-linear-system: Ax = b (component 1)"
+             (vector-ref b-simple 1)
+             (vector-ref ax-check 1)
+             1e-8)
+
 (newline)
 (display "All stability analysis tests completed!")
 (newline)

@@ -111,6 +111,16 @@
 (define *continuation-step-size* 1e-6)
 (define *continuation-max-newton* 20)
 
+;; Use robust Newton solver by default (handles singular Jacobians near bifurcations)
+(define *use-robust-newton* #t)
+
+(define (find-fixed-point-solver sys initial-guess tolerance step-size max-iter)
+  (doc 'type '(-> ODE Vec Number Number Nat (Option Vec)))
+  (doc 'description "Find fixed point using configured solver (robust or classic Newton)")
+  (if *use-robust-newton*
+      (find-fixed-point-robust sys initial-guess tolerance step-size max-iter)
+      (find-fixed-point-solver sys initial-guess tolerance step-size max-iter)))
+
 (define (continue-fixed-point psys param0 fp0 param-end param-step)
   (doc 'export #t)
   (doc 'type '(-> ParamODE Number Vec Number Number (List (List Number Vec Symbol (List Complex)))))
@@ -166,7 +176,7 @@
          ;; Refine each candidate
          [candidates (filter-map
                       (lambda (pt)
-                              (find-fixed-point-newton sys pt tolerance
+                              (find-fixed-point-solver sys pt tolerance
                                                        *continuation-step-size*
                                                        *continuation-max-newton*))
                       grid)]
@@ -423,7 +433,7 @@
            ;; Converged or max iterations
            (let* ([param (/ (+ lo hi) 2)]
                   [sys (instantiate-at psys param)]
-                  [fp (find-fixed-point-newton sys fp-guess tolerance
+                  [fp (find-fixed-point-solver sys fp-guess tolerance
                                                *continuation-step-size*
                                                *continuation-max-newton*)])
                  (if fp
@@ -435,7 +445,7 @@
            ;; Check stability at midpoint
            (let* ([mid (/ (+ lo hi) 2)]
                   [sys (instantiate-at psys mid)]
-                  [fp (find-fixed-point-newton sys fp-guess tolerance
+                  [fp (find-fixed-point-solver sys fp-guess tolerance
                                                *continuation-step-size*
                                                *continuation-max-newton*)])
                  (if (not fp)
@@ -565,13 +575,13 @@
        (if (or (> iter 50) (< (- hi lo) tolerance))
            (let* ([param (/ (+ lo hi) 2)]
                   [sys (instantiate-at psys param)]
-                  [fp (find-fixed-point-newton sys fp-guess tolerance
+                  [fp (find-fixed-point-solver sys fp-guess tolerance
                                                *continuation-step-size*
                                                *continuation-max-newton*)])
                  (if fp (list param fp) #f))
            (let* ([mid (/ (+ lo hi) 2)]
                   [sys (instantiate-at psys mid)]
-                  [fp (find-fixed-point-newton sys fp-guess tolerance
+                  [fp (find-fixed-point-solver sys fp-guess tolerance
                                                *continuation-step-size*
                                                *continuation-max-newton*)])
                  (if (not fp)
@@ -608,7 +618,7 @@
   (let* ([tolerance 1e-6]
          ;; Find initial fixed point
          [sys0 (instantiate-at psys param-min)]
-         [fp0 (or (find-fixed-point-newton sys0 fp-guess tolerance
+         [fp0 (or (find-fixed-point-solver sys0 fp-guess tolerance
                                            *continuation-step-size*
                                            *continuation-max-newton*)
                   fp-guess)]

@@ -3,6 +3,7 @@
 (load "lattice/linalg/matrix.ss")
 (load "lattice/linalg/matrix-decomp.ss")  ;; Required for QR algorithm in matrix-eigen
 (load "lattice/linalg/matrix-eigen.ss")
+(load "lattice/linalg/svd.ss")            ;; For pseudoinverse in robust Newton
 (load "lattice/numeric/complex.ss")
 (load "lattice/sim/dynamics/ode-system.ss")
 
@@ -36,6 +37,178 @@
                             [delta (matrix-vec-mul jac-inv fx)]
                             [x-new (vec-sub x delta)])
                            (loop x-new (+ iter 1))))))))
+
+(define (find-fixed-point-robust sys initial-guess tolerance step-size max-iter)
+  (doc 'type '(-> Any Any Number Number Nat Any))
+  (doc 'description "Find a fixed point using Newton's method with pseudoinverse for robustness near singularities")
+  (doc 'param 'sys "ODE system")
+  (doc 'param 'initial-guess "starting point for Newton iteration")
+  (doc 'param 'tolerance "convergence tolerance")
+  (doc 'param 'step-size "finite difference step for Jacobian")
+  (doc 'param 'max-iter "maximum iterations")
+  (doc 'returns "approximate equilibrium point or #f if not found")
+  (doc 'note "Uses Moore-Penrose pseudoinverse via SVD, which handles singular/near-singular Jacobians that occur at bifurcation points")
+  (let loop ([x initial-guess] [iter 0])
+       (if (>= iter max-iter)
+           #f  ; Failed to converge
+           (let* ([fx (eval-vector-field sys 0 x)]
+                  [norm-fx (vec-norm fx)])
+                 (if (< norm-fx tolerance)
+                     x  ; Converged!
+                     ;; Newton step using pseudoinverse: x_new = x - J^+ * f(x)
+                     (let* ([jac (compute-jacobian sys x step-size)]
+                            [jac-pinv (pseudoinverse jac)])
+                           ;; Check if pseudoinverse succeeded
+                           (if (and (pair? jac-pinv) (eq? (car jac-pinv) 'error))
+                               #f  ; SVD failed - give up
+                               (let* ([delta (matrix-vec-mul jac-pinv fx)]
+                                      [x-new (vec-sub x delta)])
+                                     (loop x-new (+ iter 1))))))))))
+
+(define (find-fixed-point-levenberg-marquardt sys initial-guess tolerance step-size max-iter)
+  (doc 'type '(-> Any Any Number Number Nat Any))
+  (doc 'description "Find a fixed point using Levenberg-Marquardt algorithm for robust convergence")
+  (doc 'param 'sys "ODE system")
+  (doc 'param 'initial-guess "starting point for iteration")
+  (doc 'param 'tolerance "convergence tolerance")
+  (doc 'param 'step-size "finite difference step for Jacobian")
+  (doc 'param 'max-iter "maximum iterations")
+  (doc 'returns "approximate equilibrium point or #f if not found")
+  (doc 'note "Levenberg-Marquardt interpolates between Newton and gradient descent. The damping parameter λ makes (J^T J + λI) invertible even when J is singular.")
+  (let ([lambda-init 1e-3]     ; Initial damping parameter
+        [lambda-up 10.0]        ; Increase factor on rejection
+        [lambda-down 0.1])      ; Decrease factor on acceptance
+       (let loop ([x initial-guess] [lambda lambda-init] [iter 0])
+            (if (>= iter max-iter)
+                #f  ; Failed to converge
+                (let* ([fx (eval-vector-field sys 0 x)]
+                       [norm-fx (vec-norm fx)])
+                      (if (< norm-fx tolerance)
+                          x  ; Converged!
+                          ;; LM step: solve (J^T J + λI) δ = J^T f(x)
+                          (let* ([jac (compute-jacobian sys x step-size)]
+                                 [jt (matrix-transpose jac)]
+                                 [jtj (matrix-mul jt jac)]
+                                 [n (matrix-rows jtj)]
+                                 ;; Add damping: J^T J + λI
+                                 [jtj-damped (matrix-add-diagonal jtj lambda)]
+                                 [jtf (matrix-vec-mul jt fx)]
+                                 ;; Solve for delta
+                                 [delta (solve-linear-system jtj-damped jtf)])
+                                (if (not delta)
+                                    #f  ; Linear solve failed
+                                    (let* ([x-new (vec-sub x delta)]
+                                           [fx-new (eval-vector-field sys 0 x-new)]
+                                           [norm-fx-new (vec-norm fx-new)])
+                                          (if (< norm-fx-new norm-fx)
+                                              ;; Accept step, decrease damping
+                                              (loop x-new (* lambda lambda-down) (+ iter 1))
+                                              ;; Reject step, increase damping
+                                              (loop x (* lambda lambda-up) (+ iter 1))))))))))))
+
+(define (matrix-add-diagonal m lambda)
+  (doc 'type '(-> Matrix Number Matrix))
+  (doc 'description "Add lambda to diagonal elements: M + λI")
+  (let* ([n (matrix-rows m)]
+         [data (vector-copy (matrix-data m))])
+        (do ([i 0 (+ i 1)])
+            ((= i n))
+            (vector-set! data (+ (* i n) i)
+                         (+ (vector-ref data (+ (* i n) i)) lambda)))
+        (list 'matrix n n data)))
+
+(define (solve-linear-system a b)
+  (doc 'type '(-> Matrix Vec (Option Vec)))
+  (doc 'description "Solve Ax = b using LU decomposition with partial pivoting")
+  (doc 'returns "solution vector x or #f if singular")
+  (let* ([n (matrix-rows a)]
+         ;; Use simple Gaussian elimination with pivoting
+         [aug (augment-matrix a b)])
+        (gaussian-eliminate-with-pivot aug n)))
+
+(define (augment-matrix a b)
+  (doc 'type '(-> Matrix Vec Matrix))
+  (doc 'description "Create augmented matrix [A|b]")
+  (let* ([n (matrix-rows a)]
+         [data (make-vector (* n (+ n 1)) 0)])
+        ;; Copy A into augmented matrix
+        (do ([i 0 (+ i 1)])
+            ((= i n))
+            (do ([j 0 (+ j 1)])
+                ((= j n))
+                (vector-set! data (+ (* i (+ n 1)) j)
+                             (matrix-ref a i j)))
+            ;; Copy b column
+            (vector-set! data (+ (* i (+ n 1)) n)
+                         (vector-ref b i)))
+        (list 'matrix n (+ n 1) data)))
+
+(define (gaussian-eliminate-with-pivot aug n)
+  (doc 'type '(-> Matrix Nat (Option Vec)))
+  (doc 'description "Gaussian elimination with partial pivoting")
+  (let ([data (vector-copy (matrix-data aug))]
+        [nc (+ n 1)])
+       ;; Forward elimination
+       (let elim-loop ([k 0])
+            (if (= k n)
+                ;; Back substitution
+                (back-substitute data n nc)
+                ;; Find pivot
+                (let* ([pivot-row (find-pivot-row data k n nc)]
+                       [pivot-val (vector-ref data (+ (* pivot-row nc) k))])
+                      (if (< (abs pivot-val) 1e-12)
+                          #f  ; Singular
+                          (begin
+                            ;; Swap rows
+                            (swap-rows! data k pivot-row nc)
+                            ;; Eliminate column
+                            (do ([i (+ k 1) (+ i 1)])
+                                ((= i n))
+                                (let ([factor (/ (vector-ref data (+ (* i nc) k)) pivot-val)])
+                                     (do ([j k (+ j 1)])
+                                         ((= j nc))
+                                         (vector-set! data (+ (* i nc) j)
+                                                      (- (vector-ref data (+ (* i nc) j))
+                                                         (* factor (vector-ref data (+ (* k nc) j))))))))
+                            (elim-loop (+ k 1)))))))))
+
+(define (find-pivot-row data k n nc)
+  (doc 'type '(-> Vector Nat Nat Nat Nat))
+  (let loop ([i k] [best-row k] [best-val (abs (vector-ref data (+ (* k nc) k)))])
+       (if (= i n)
+           best-row
+           (let ([val (abs (vector-ref data (+ (* i nc) k)))])
+                (if (> val best-val)
+                    (loop (+ i 1) i val)
+                    (loop (+ i 1) best-row best-val))))))
+
+(define (swap-rows! data row1 row2 nc)
+  (doc 'type '(-> Vector Nat Nat Nat Void))
+  (unless (= row1 row2)
+          (do ([j 0 (+ j 1)])
+              ((= j nc))
+              (let ([temp (vector-ref data (+ (* row1 nc) j))])
+                   (vector-set! data (+ (* row1 nc) j)
+                                (vector-ref data (+ (* row2 nc) j)))
+                   (vector-set! data (+ (* row2 nc) j) temp)))))
+
+(define (back-substitute data n nc)
+  (doc 'type '(-> Vector Nat Nat Vec))
+  (let ([x (make-vector n 0)])
+       (let loop ([i (- n 1)])
+            (if (< i 0)
+                x
+                (let ([sum 0])
+                     (do ([j (+ i 1) (+ j 1)])
+                         ((= j n))
+                         (set! sum (+ sum (* (vector-ref data (+ (* i nc) j))
+                                             (vector-ref x j)))))
+                     (let ([diag (vector-ref data (+ (* i nc) i))])
+                          (if (< (abs diag) 1e-12)
+                              #f  ; Singular
+                              (begin
+                                (vector-set! x i (/ (- (vector-ref data (+ (* i nc) n)) sum) diag))
+                                (loop (- i 1))))))))))
 
 (define (is-fixed-point? sys point tolerance)
   (doc 'type '(-> Any Any Number Bool))
