@@ -739,24 +739,161 @@
   (doc 'export #t)
   (doc 'type '(-> ParamODE Number Vec Number Symbol))
   (doc 'description "Determine if Hopf bifurcation is supercritical or subcritical")
-  (doc 'note "Supercritical: stable limit cycle emerges. Subcritical: unstable limit cycle")
+  (doc 'note "Supercritical (l₁ < 0): stable limit cycle emerges. Subcritical (l₁ > 0): unstable limit cycle")
   (doc 'returns "'supercritical, 'subcritical, or 'unknown")
-  ;; Compute first Lyapunov coefficient (simplified approach)
-  ;; Check amplitude growth rate just past bifurcation
-  (let* ([sys-before (instantiate-at psys (- param h))]
-         [sys-after (instantiate-at psys (+ param h))]
-         [stab-before (car (analyze-stability-general sys-before fp *continuation-step-size*))]
-         [stab-after (car (analyze-stability-general sys-after fp *continuation-step-size*))])
-        ;; If stable before, unstable after, and limit cycle forms -> supercritical
-        ;; This is a simplified heuristic
-        (cond
-         [(and (memq stab-before '(stable-node stable-spiral))
-               (memq stab-after '(unstable-node unstable-spiral)))
-          'supercritical]
-         [(and (memq stab-before '(unstable-node unstable-spiral))
-               (memq stab-after '(stable-node stable-spiral)))
-          'subcritical]
-         [else 'unknown])))
+  (let ([l1 (first-lyapunov-coefficient psys param fp h)])
+       (cond
+        [(not l1) 'unknown]
+        [(< l1 0) 'supercritical]
+        [(> l1 0) 'subcritical]
+        [else 'degenerate])))
+
+(define (first-lyapunov-coefficient psys param fp h)
+  (doc 'export #t)
+  (doc 'type '(-> ParamODE Number Vec Number (Option Number)))
+  (doc 'description "Compute the First Lyapunov Coefficient at a Hopf bifurcation")
+  (doc 'note "Uses Kuznetsov's formula with numerical derivatives. Returns #f if not at a Hopf point.")
+  (doc 'returns "l₁ value: negative = supercritical, positive = subcritical")
+  ;; Only valid for 2D systems at Hopf bifurcation
+  (if (not (= (vector-length fp) 2))
+      #f  ; Only implemented for 2D
+      (let* ([sys (instantiate-at psys param)]
+             [analysis (analyze-stability-general sys fp h)]
+             [eigs (cdr analysis)])
+            ;; Check that we're at a Hopf point (complex eigenvalues with small real part)
+            (if (not (hopf-point? eigs))
+                #f
+                (let* ([omega (abs (complex-imag (car eigs)))]
+                       ;; Compute second and third order derivatives
+                       [derivs (compute-hopf-derivatives sys fp h)]
+                       ;; Apply Kuznetsov's formula
+                       [l1 (kuznetsov-l1 derivs omega)])
+                      l1)))))
+
+(define (hopf-point? eigenvalues)
+  (doc 'type '(-> (List Complex) Boolean))
+  (doc 'description "Check if eigenvalues indicate a Hopf bifurcation point")
+  (and (>= (length eigenvalues) 2)
+       (let ([e1 (car eigenvalues)]
+             [e2 (cadr eigenvalues)])
+            ;; Complex conjugate pair with small real part
+            (and (> (abs (complex-imag e1)) 0.001)  ; Nonzero imaginary part
+                 (< (abs (complex-real e1)) 0.1)    ; Near zero real part
+                 (< (abs (+ (complex-imag e1) (complex-imag e2))) 0.001)))))  ; Conjugates
+
+(define (compute-hopf-derivatives sys fp h)
+  (doc 'type '(-> ODE Vec Number (List Number)))
+  (doc 'description "Compute 2nd and 3rd order partial derivatives for Hopf normal form")
+  (doc 'returns "list: (fxx fxy fyy gxx gxy gyy fxxx fxxy fxyy fyyy gxxx gxxy gxyy gyyy)")
+  (let* ([x0 (vector-ref fp 0)]
+         [y0 (vector-ref fp 1)]
+         ;; Helper to evaluate f and g components
+         [f (lambda (x y)
+              (let ([result (eval-vector-field sys 0 (vector x y))])
+                   (vector-ref result 0)))]
+         [g (lambda (x y)
+              (let ([result (eval-vector-field sys 0 (vector x y))])
+                   (vector-ref result 1)))]
+         ;; Second derivatives using central differences
+         [fxx (second-deriv-xx f x0 y0 h)]
+         [fxy (second-deriv-xy f x0 y0 h)]
+         [fyy (second-deriv-yy f x0 y0 h)]
+         [gxx (second-deriv-xx g x0 y0 h)]
+         [gxy (second-deriv-xy g x0 y0 h)]
+         [gyy (second-deriv-yy g x0 y0 h)]
+         ;; Third derivatives
+         [fxxx (third-deriv-xxx f x0 y0 h)]
+         [fxxy (third-deriv-xxy f x0 y0 h)]
+         [fxyy (third-deriv-xyy f x0 y0 h)]
+         [fyyy (third-deriv-yyy f x0 y0 h)]
+         [gxxx (third-deriv-xxx g x0 y0 h)]
+         [gxxy (third-deriv-xxy g x0 y0 h)]
+         [gxyy (third-deriv-xyy g x0 y0 h)]
+         [gyyy (third-deriv-yyy g x0 y0 h)])
+        (list fxx fxy fyy gxx gxy gyy fxxx fxxy fxyy fyyy gxxx gxxy gxyy gyyy)))
+
+(define (second-deriv-xx f x y h)
+  (doc 'type '(-> (-> Number Number Number) Number Number Number Number))
+  (/ (+ (f (+ x h) y) (f (- x h) y) (* -2 (f x y)))
+     (* h h)))
+
+(define (second-deriv-xy f x y h)
+  (doc 'type '(-> (-> Number Number Number) Number Number Number Number))
+  (/ (+ (f (+ x h) (+ y h))
+        (f (- x h) (- y h))
+        (- (f (+ x h) (- y h)))
+        (- (f (- x h) (+ y h))))
+     (* 4 h h)))
+
+(define (second-deriv-yy f x y h)
+  (doc 'type '(-> (-> Number Number Number) Number Number Number Number))
+  (/ (+ (f x (+ y h)) (f x (- y h)) (* -2 (f x y)))
+     (* h h)))
+
+(define (third-deriv-xxx f x y h)
+  (doc 'type '(-> (-> Number Number Number) Number Number Number Number))
+  (/ (+ (f (+ x (* 2 h)) y)
+        (* -2 (f (+ x h) y))
+        (* 2 (f (- x h) y))
+        (- (f (- x (* 2 h)) y)))
+     (* 2 h h h)))
+
+(define (third-deriv-xxy f x y h)
+  (doc 'type '(-> (-> Number Number Number) Number Number Number Number))
+  (/ (+ (f (+ x h) (+ y h))
+        (- (f (+ x h) (- y h)))
+        (* -2 (f x (+ y h)))
+        (* 2 (f x (- y h)))
+        (f (- x h) (+ y h))
+        (- (f (- x h) (- y h))))
+     (* 2 h h h)))
+
+(define (third-deriv-xyy f x y h)
+  (doc 'type '(-> (-> Number Number Number) Number Number Number Number))
+  (/ (+ (f (+ x h) (+ y h))
+        (- (f (- x h) (+ y h)))
+        (* -2 (f (+ x h) y))
+        (* 2 (f (- x h) y))
+        (f (+ x h) (- y h))
+        (- (f (- x h) (- y h))))
+     (* 2 h h h)))
+
+(define (third-deriv-yyy f x y h)
+  (doc 'type '(-> (-> Number Number Number) Number Number Number Number))
+  (/ (+ (f x (+ y (* 2 h)))
+        (* -2 (f x (+ y h)))
+        (* 2 (f x (- y h)))
+        (- (f x (- y (* 2 h)))))
+     (* 2 h h h)))
+
+(define (kuznetsov-l1 derivs omega)
+  (doc 'type '(-> (List Number) Number Number))
+  (doc 'description "Compute l₁ using Kuznetsov's formula for 2D Hopf bifurcation")
+  ;; Unpack derivatives: (fxx fxy fyy gxx gxy gyy fxxx fxxy fxyy fyyy gxxx gxxy gxyy gyyy)
+  (let* ([fxx (list-ref derivs 0)]
+         [fxy (list-ref derivs 1)]
+         [fyy (list-ref derivs 2)]
+         [gxx (list-ref derivs 3)]
+         [gxy (list-ref derivs 4)]
+         [gyy (list-ref derivs 5)]
+         [fxxx (list-ref derivs 6)]
+         [fxxy (list-ref derivs 7)]
+         [fxyy (list-ref derivs 8)]
+         [fyyy (list-ref derivs 9)]
+         [gxxx (list-ref derivs 10)]
+         [gxxy (list-ref derivs 11)]
+         [gxyy (list-ref derivs 12)]
+         [gyyy (list-ref derivs 13)]
+         ;; Kuznetsov's formula (simplified for standard 2D case)
+         ;; l₁ = (1/(16ω)) × [fxxx + fxyy + gxxy + gyyy]
+         ;;    + (1/(16ω²)) × [fxy(fxx + fyy) - gxy(gxx + gyy) - fxx·gxx + fyy·gyy]
+         [term1 (/ (+ fxxx fxyy gxxy gyyy) (* 16 omega))]
+         [term2 (/ (+ (* fxy (+ fxx fyy))
+                      (- (* gxy (+ gxx gyy)))
+                      (- (* fxx gxx))
+                      (* fyy gyy))
+                   (* 16 omega omega))])
+        (+ term1 term2)))
 
 ;;; ============================================================
 ;;; Section: Period-Doubling Analysis

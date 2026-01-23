@@ -261,6 +261,25 @@
           ;; Should be approximately 2.5
           (assert-true (< (abs (- freq 2.5)) 0.1))))
 
+  (define-test "hopf-criticality returns supercritical for normal form"
+    ;; The standard Hopf normal form is supercritical (l₁ < 0)
+    (let* ([psys (hopf-normal-form-param)]
+           [crit (hopf-criticality psys 0.0 (vector 0.0 0.0) 1e-4)])
+          ;; Should detect supercritical
+          (assert-true (eq? crit 'supercritical))))
+
+  (define-test "first-lyapunov-coefficient returns negative for supercritical"
+    (let* ([psys (hopf-normal-form-param)]
+           [l1 (first-lyapunov-coefficient psys 0.0 (vector 0.0 0.0) 1e-4)])
+          ;; l₁ < 0 for supercritical Hopf
+          (assert-true (and l1 (< l1 0)))))
+
+  (define-test "hopf-point? detects Hopf eigenvalues"
+    (let ([hopf-eigs (list (make-complex 0.01 1.5) (make-complex 0.01 -1.5))]
+          [real-eigs (list (make-complex -1.0 0.0) (make-complex -2.0 0.0))])
+         (assert-true (hopf-point? hopf-eigs))
+         (assert-false (hopf-point? real-eigs))))
+
   ;;; ============================================================
   ;;; Period Doubling
   ;;; ============================================================
