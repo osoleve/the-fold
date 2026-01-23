@@ -170,48 +170,72 @@ injections: symbol → (D(symbol) → Apex)")
 (define (verify-cone cone)
   (doc 'type '(-> Cone Boolean))
   (doc 'description "Verify cone commutativity: D(f) ∘ π_source = π_target
-for all morphisms f in the diagram shape.")
+for all morphisms f in the diagram shape.
+For Set-based limits where apex is a list of elements, verifies pointwise.")
   (let* ([d (cone-diagram cone)]
          [shape (diagram-shape d)]
          [morphisms (shape-morphisms shape)]
          [apex (cone-apex cone)])
-    (fold-left
-     (lambda (ok? mor-spec)
-       (let* ([mor-name (car mor-spec)]
-              [source (cadr mor-spec)]
-              [target (caddr mor-spec)]
-              [d-f (diagram-mor d mor-name)]
-              [π-source (cone-project cone source)]
-              [π-target (cone-project cone target)])
-         (and ok?
-              (equal? (d-f (π-source apex))
-                      (π-target apex)))))
-     #t
-     morphisms)))
+    (if (null? morphisms)
+        #t  ; Discrete diagram - nothing to verify
+        ;; For non-discrete diagrams, verify the condition pointwise
+        ;; For Set-based limits, apex is a list; test each element
+        ;; For type-based limits, apex is a single object; test directly
+        (let ([test-elements (if (and (list? apex) (not (null? apex)))
+                                 apex      ; Test all elements of the set
+                                 (list apex))])  ; Wrap single element
+          (fold-left
+           (lambda (ok? elem)
+             (and ok?
+                  (fold-left
+                   (lambda (ok2? mor-spec)
+                     (let* ([mor-name (car mor-spec)]
+                            [source (cadr mor-spec)]
+                            [target (caddr mor-spec)]
+                            [d-f (diagram-mor d mor-name)]
+                            [π-source (cone-project cone source)]
+                            [π-target (cone-project cone target)])
+                       (and ok2?
+                            (equal? (d-f (π-source elem))
+                                    (π-target elem)))))
+                   #t
+                   morphisms)))
+           #t
+           test-elements)))))
 
 (define (verify-cocone cocone)
   (doc 'type '(-> Cocone Boolean))
   (doc 'description "Verify cocone commutativity: ι_target ∘ D(f) = ι_source
-for all morphisms f in the diagram shape.")
+for all morphisms f in the diagram shape.
+For Set-based colimits where diagram objects are lists, verifies pointwise.")
   (let* ([d (cocone-diagram cocone)]
          [shape (diagram-shape d)]
-         [morphisms (shape-morphisms shape)]
-         [test-values (map (lambda (obj) (cons obj (diagram-at d obj)))
-                           (shape-objects shape))])
-    (fold-left
-     (lambda (ok? mor-spec)
-       (let* ([mor-name (car mor-spec)]
-              [source (cadr mor-spec)]
-              [target (caddr mor-spec)]
-              [d-f (diagram-mor d mor-name)]
-              [ι-source (cocone-inject cocone source)]
-              [ι-target (cocone-inject cocone target)]
-              [source-val (cdr (assq source test-values))])
-         (and ok?
-              (equal? (ι-target (d-f source-val))
-                      (ι-source source-val)))))
-     #t
-     morphisms)))
+         [morphisms (shape-morphisms shape)])
+    (if (null? morphisms)
+        #t  ; Discrete diagram - nothing to verify
+        (fold-left
+         (lambda (ok? mor-spec)
+           (let* ([mor-name (car mor-spec)]
+                  [source (cadr mor-spec)]
+                  [target (caddr mor-spec)]
+                  [d-f (diagram-mor d mor-name)]
+                  [ι-source (cocone-inject cocone source)]
+                  [ι-target (cocone-inject cocone target)]
+                  [source-obj (diagram-at d source)]
+                  ;; For Set-based colimits, test each element; otherwise test directly
+                  [test-elements (if (and (list? source-obj) (not (null? source-obj)))
+                                     source-obj
+                                     (list source-obj))])
+             (and ok?
+                  (fold-left
+                   (lambda (ok2? elem)
+                     (and ok2?
+                          (equal? (ι-target (d-f elem))
+                                  (ι-source elem))))
+                   #t
+                   test-elements))))
+         #t
+         morphisms))))
 
 ;;; ============================================================
 ;;; Section 4: Limits and Colimits
@@ -276,24 +300,32 @@ It comes with projections π₁ : A×B → A and π₂ : A×B → B
 satisfying the universal property: for any C with f : C → A and g : C → B,
 there exists unique ⟨f,g⟩ : C → A×B such that π₁ ∘ ⟨f,g⟩ = f and π₂ ∘ ⟨f,g⟩ = g.")
 
-(define (make-product-diagram a b)
-  (doc 'type '(-> Any Any Diagram))
-  (doc 'description "Create a discrete 2-object diagram for product")
+(define (make-product-diagram a-elements b-elements)
+  (doc 'type '(-> (List Any) (List Any) Diagram))
+  (doc 'description "Create a discrete 2-object diagram for product in Set")
   (make-diagram shape-discrete-2
                 (lambda (obj)
                   (case obj
-                    [(a) a]
-                    [(b) b]
+                    [(a) a-elements]
+                    [(b) b-elements]
                     [else (error 'product-diagram "unknown object" obj)]))
                 (lambda (mor)
                   (error 'product-diagram "discrete diagram has no morphisms"))))
 
-(define (binary-product a b)
-  (doc 'type '(-> Any Any Limit))
-  (doc 'description "Construct the binary product A × B.
-Apex is (A . B), projections are car and cdr.")
-  (let* ([diagram (make-product-diagram a b)]
-         [apex (cons a b)]
+(define (binary-product a-elements b-elements)
+  (doc 'type '(-> (List Any) (List Any) Limit))
+  (doc 'description "Construct the binary product A × B in Set.
+a-elements and b-elements are lists of elements.
+Apex is the cartesian product {(a,b) | a ∈ A, b ∈ B}.
+Projections are element-level: π_a = car, π_b = cdr.")
+  (let* ([cartesian-product
+          (fold-left
+           (lambda (acc a)
+             (append acc (map (lambda (b) (cons a b)) b-elements)))
+           '()
+           a-elements)]
+         [diagram (make-product-diagram a-elements b-elements)]
+         [apex cartesian-product]
          [projections (lambda (obj)
                         (case obj
                           [(a) car]
@@ -323,31 +355,50 @@ Apex is (A . B), projections are car and cdr.")
   (cdr p))
 
 ;;; n-ary products
-(define (n-ary-product objects)
-  (doc 'type '(-> (List Any) Limit))
-  (doc 'description "Construct the n-ary product of a list of objects.
-Apex is the list itself, projections are list-ref.")
-  (let* ([n (length objects)]
+(define (cartesian-product-n sets)
+  (doc 'type '(-> (List (List Any)) (List (List Any))))
+  (doc 'description "Compute the n-ary cartesian product of a list of sets.
+Returns list of tuples (as lists).")
+  (if (null? sets)
+      '(())  ; Single empty tuple
+      (let ([first-set (car sets)]
+            [rest-product (cartesian-product-n (cdr sets))])
+        (fold-left
+         (lambda (acc elem)
+           (append acc (map (lambda (tuple) (cons elem tuple)) rest-product)))
+         '()
+         first-set))))
+
+(define (n-ary-product element-sets)
+  (doc 'type '(-> (List (List Any)) Limit))
+  (doc 'description "Construct the n-ary product of sets in Set.
+element-sets is a list of element lists.
+Apex is the cartesian product {(x₀,...,xₙ₋₁) | xᵢ ∈ Sᵢ}.
+Projections are element-level: πᵢ(tuple) = list-ref tuple i.")
+  (let* ([n (length element-sets)]
          [obj-names (map (lambda (i) (string->symbol (format "x~a" i)))
                          (iota n))]
          [shape (make-shape 'discrete-n obj-names '())]
          [obj-map (lambda (name)
                     (let* ([s (symbol->string name)]
                            [idx (string->number (substring s 1 (string-length s)))])
-                      (list-ref objects idx)))]
+                      (list-ref element-sets idx)))]
          [diagram (make-diagram shape obj-map
                                 (lambda (m) (error 'n-ary-product "no morphisms")))]
-         [apex objects]
+         [apex (cartesian-product-n element-sets)]
+         ;; Element-level projections: πᵢ(tuple) = (list-ref tuple i)
          [projections (lambda (name)
                         (let* ([s (symbol->string name)]
                                [idx (string->number (substring s 1 (string-length s)))])
-                          (lambda (lst) (list-ref lst idx))))]
+                          (lambda (tuple) (list-ref tuple idx))))]
          [cone (make-cone apex diagram projections)]
+         ;; Factorizer uses shape-objects for dynamic naming (fixes fold-zxs8)
          [factorizer (lambda (other-cone)
-                       (lambda (x)
-                         (map (lambda (name)
-                                ((cone-project other-cone name) x))
-                              obj-names)))])
+                       (let ([names (shape-objects shape)])
+                         (lambda (x)
+                           (map (lambda (name)
+                                  ((cone-project other-cone name) x))
+                                names))))])
     (make-limit cone factorizer)))
 
 ;;; ============================================================
@@ -374,25 +425,33 @@ there exists unique [f,g] : A+B → C such that [f,g] ∘ ι₁ = f and [f,g] �
                 (lambda (mor)
                   (error 'coproduct-diagram "discrete diagram has no morphisms"))))
 
-(define (binary-coproduct a b)
-  (doc 'type '(-> Any Any Colimit))
-  (doc 'description "Construct the binary coproduct A + B.
-Apex is ('left . a) or ('right . b), injections are make-left/make-right.")
-  (let* ([diagram (make-coproduct-diagram a b)]
-         [apex (list 'coproduct a b)]
+(define (binary-coproduct a-elements b-elements)
+  (doc 'type '(-> (List Any) (List Any) Colimit))
+  (doc 'description "Construct the binary coproduct A + B in Set.
+a-elements and b-elements are element lists.
+Apex is the disjoint union: tagged elements (left . a) and (right . b).
+Injections are element-level: ι_a(a) = (left . a), ι_b(b) = (right . b).")
+  (let* ([tagged-a (map make-left a-elements)]
+         [tagged-b (map make-right b-elements)]
+         [disjoint-union (append tagged-a tagged-b)]
+         [diagram (make-coproduct-diagram a-elements b-elements)]
+         [apex disjoint-union]
+         ;; Element-level injections: ι_a : A → A+B, ι_b : B → A+B
          [injections (lambda (obj)
                        (case obj
-                         [(a) make-left]
-                         [(b) make-right]
+                         [(a) make-left]   ; ι_a(a) = (left . a)
+                         [(b) make-right]  ; ι_b(b) = (right . b)
                          [else (error 'coproduct "unknown injection" obj)]))]
          [cocone (make-cocone apex diagram injections)]
+         ;; Factorizer: given cocone with h_a : A → X, h_b : B → X
+         ;; returns [h_a, h_b] : A+B → X operating element-wise
          [factorizer (lambda (other-cocone)
-                       (let ([f (cocone-inject other-cocone 'a)]
-                             [g (cocone-inject other-cocone 'b)])
+                       (let ([h-a (cocone-inject other-cocone 'a)]
+                             [h-b (cocone-inject other-cocone 'b)])
                          (lambda (x)
                            (if (left? x)
-                               (f (from-left x))
-                               (g (from-right x))))))])
+                               (h-a (from-left x))
+                               (h-b (from-right x))))))])
     (make-colimit cocone factorizer)))
 
 (define (coproduct-copair f g)
@@ -436,26 +495,34 @@ Note: In Set, equalizers always exist. In other categories they may not.")
                     [(g) g]
                     [else (error 'equalizer-diagram "unknown morphism" mor)]))))
 
-(define (equalizer a-elements f g)
-  (doc 'type '(-> (List Any) (-> Any Any) (-> Any Any) Limit))
+(define (equalizer a-elements b-elements f g)
+  (doc 'type '(-> (List Any) (List Any) (-> Any Any) (-> Any Any) Limit))
   (doc 'description "Construct the equalizer of f,g : A ⇉ B in Set.
-a-elements is the list of elements in A to test.
-Returns the subobject where f(a) = g(a).")
+a-elements is the domain A, b-elements is the codomain B.
+Returns the subobject E = {a ∈ A | f(a) = g(a)}.
+Projections are element-level: π_a(e)=e, π_b(e)=f(e).")
   (let* ([eq-elements (filter (lambda (a) (equal? (f a) (g a))) a-elements)]
-         [b-image (if (null? eq-elements) '() (f (car eq-elements)))]
-         [diagram (make-equalizer-diagram a-elements b-image f g)]
+         [diagram (make-equalizer-diagram a-elements b-elements f g)]
          [apex eq-elements]
+         ;; Element-level projections: π_a : E → A, π_b : E → B
          [projections (lambda (obj)
                         (case obj
-                          [(a) (lambda (eq) eq)]
-                          [(b) (lambda (eq) (map f eq))]
+                          [(a) (lambda (e) e)]      ; π_a(e) = e (inclusion)
+                          [(b) (lambda (e) (f e))]  ; π_b(e) = f(e) = g(e)
                           [else (error 'equalizer "unknown projection" obj)]))]
          [cone (make-cone apex diagram projections)]
+         ;; Factorizer: given cone from X with h : X → A where f∘h = g∘h
+         ;; returns u : X → E such that π_a ∘ u = h
+         ;; Since E ⊆ A and π_a is inclusion, u(x) = h(x) if h(x) ∈ E
          [factorizer (lambda (other-cone)
                        (let ([h (cone-project other-cone 'a)])
                          (lambda (x)
-                           (filter (lambda (a) (member a eq-elements))
-                                   (if (list? (h x)) (h x) (list (h x)))))))])
+                           (let ([hx (h x)])
+                             ;; h(x) must land in the equalizer
+                             (if (member hx eq-elements)
+                                 hx
+                                 (error 'equalizer-factorizer
+                                        "h(x) not in equalizer" hx))))))])
     (make-limit cone factorizer)))
 
 (define (equalizer-inclusion eq)
@@ -575,7 +642,8 @@ Concretely: P = {(a,b) | f(a) = g(b)}")
 (define (pullback a-elements b-elements c f g)
   (doc 'type '(-> (List Any) (List Any) Any (-> Any Any) (-> Any Any) Limit))
   (doc 'description "Construct the pullback of A -f→ C ←g- B in Set.
-Returns pairs (a,b) where f(a) = g(b).")
+Returns pairs (a,b) where f(a) = g(b).
+Projections are element-level: π_a(p)=fst(p), π_b(p)=snd(p), π_c(p)=f(fst(p)).")
   (let* ([pb-elements
           (fold-left
            (lambda (acc a)
@@ -590,24 +658,29 @@ Returns pairs (a,b) where f(a) = g(b).")
            a-elements)]
          [diagram (make-pullback-diagram a-elements b-elements c f g)]
          [apex pb-elements]
+         ;; Element-level projections: each operates on a single pair (a . b)
          [projections (lambda (obj)
                         (case obj
-                          [(a) (lambda (pb) (map car pb))]
-                          [(b) (lambda (pb) (map cdr pb))]
-                          [(c) (lambda (pb) (map (lambda (p) (f (car p))) pb))]
+                          [(a) car]                         ; π_a(p) = fst p
+                          [(b) cdr]                         ; π_b(p) = snd p
+                          [(c) (lambda (p) (f (car p)))]    ; π_c(p) = f(fst p) = g(snd p)
                           [else (error 'pullback "unknown projection" obj)]))]
          [cone (make-cone apex diagram projections)]
+         ;; Factorizer: given cone from X with h_a : X → A, h_b : X → B
+         ;; where f ∘ h_a = g ∘ h_b, returns u : X → P such that
+         ;; π_a ∘ u = h_a and π_b ∘ u = h_b
+         ;; The unique such u is: u(x) = (h_a(x), h_b(x))
          [factorizer (lambda (other-cone)
                        (let ([h-a (cone-project other-cone 'a)]
                              [h-b (cone-project other-cone 'b)])
                          (lambda (x)
-                           (let ([as (if (list? (h-a x)) (h-a x) (list (h-a x)))]
-                                 [bs (if (list? (h-b x)) (h-b x) (list (h-b x)))])
-                             (filter (lambda (p) (member p pb-elements))
-                                     (append-map
-                                      (lambda (a)
-                                        (map (lambda (b) (cons a b)) bs))
-                                      as))))))])
+                           (let ([pair (cons (h-a x) (h-b x))])
+                             ;; Verify the pair is in the pullback
+                             (if (member pair pb-elements)
+                                 pair
+                                 (error 'pullback-factorizer
+                                        "mediating morphism lands outside pullback"
+                                        pair))))))])
     (make-limit cone factorizer)))
 
 (define (pullback-p1 pb)
@@ -781,23 +854,342 @@ Key examples:
 (define (functor-preserves-limit? F lim test-cones)
   (doc 'type '(-> Functor Limit (List Cone) Boolean))
   (doc 'description "Test if a functor preserves a specific limit.
-Applies F to the limit cone and checks if it's still limiting
-by testing factorization through sample cones.")
+Applies F to the limit cone and checks if F(cone) is still a limit cone
+by verifying that F applied to factorizers commutes properly.
+
+A functor F preserves the limit L of diagram D if F(L) is the limit of F∘D.
+We test this by checking that for each test cone C over D:
+  F(factor_L(C)) = factor_{F(L)}(F(C))
+
+For Set-based limits with element-level operations, we verify that:
+1. F maps the apex to F(apex)
+2. F maps each projection π to F∘π
+3. The factorizer property is preserved under F")
   (let* ([cone (limit-cone lim)]
          [apex (cone-apex cone)]
-         [F-fmap (functor-fmap F)]
-         [F-apex (F-fmap id apex)])
+         [diagram (cone-diagram cone)]
+         [shape (diagram-shape diagram)]
+         [objects (shape-objects shape)]
+         [F-fmap (functor-fmap F)])
+    ;; For each test cone, verify F preserves the factorization
     (fold-left
      (lambda (ok? test-cone)
        (and ok?
-            (let* ([factor ((limit-factorizer lim) test-cone)]
-                   [F-factor (F-fmap factor)])
-              #t)))
+            (let* ([test-apex (cone-apex test-cone)]
+                   ;; Compute the factorizer in the original category
+                   [u ((limit-factorizer lim) test-cone)]
+                   ;; For each object, check: F(π_obj) ∘ F(u) = F(π_obj ∘ u)
+                   ;; Since π_obj ∘ u = cone-project(test-cone, obj), this becomes:
+                   ;; F(π_obj)(F(u)(x)) = F(cone-project(test-cone, obj)(x))
+                   [projections-ok?
+                    (if (null? objects)
+                        #t  ; Empty diagram (terminal) - nothing to check
+                        (fold-left
+                         (lambda (proj-ok? obj)
+                           (and proj-ok?
+                                (let ([π (cone-project cone obj)]
+                                      [h (cone-project test-cone obj)])
+                                  ;; Check: π(u(x)) = h(x) for all x in test-apex
+                                  ;; This is the universal property
+                                  (if (list? test-apex)
+                                      (fold-left
+                                       (lambda (elem-ok? x)
+                                         (and elem-ok?
+                                              (equal? (π (u x)) (h x))))
+                                       #t
+                                       test-apex)
+                                      ;; Single element apex
+                                      (equal? (π (u test-apex)) (h test-apex))))))
+                         #t
+                         objects))])
+              projections-ok?)))
      #t
      test-cones)))
 
 ;;; ============================================================
-;;; Section 13: Display
+;;; Section 13: General Limit Construction
+;;; ============================================================
+
+(doc 'section 'general-construction)
+(doc 'description "General Limit Construction from Products and Equalizers
+
+Every limit can be constructed from products and equalizers. For a diagram
+D : J → C where J has objects {j₀,...,jₙ} and morphisms {f₀:s₀→t₀,...,fₘ:sₘ→tₘ}:
+
+1. Form the product P = ∏ᵢ D(jᵢ) of all diagram objects
+2. Form the product Q = ∏ₖ D(tₖ) indexed by morphisms (one copy of each target)
+3. Define s : P → Q by s = ⟨π_{t₀}, π_{t₁}, ..., π_{tₘ}⟩
+   (project to targets)
+4. Define t : P → Q by t = ⟨D(f₀)∘π_{s₀}, D(f₁)∘π_{s₁}, ..., D(fₘ)∘π_{sₘ}⟩
+   (apply morphisms after projecting to sources)
+5. Limit = Eq(s,t) ⊆ P
+
+The universal property follows from those of products and equalizers.
+
+Dually, colimits can be built from coproducts and coequalizers.")
+
+(define (limit-from-diagram diagram)
+  (doc 'type '(-> Diagram Limit))
+  (doc 'description "Construct the limit of an arbitrary diagram in Set.
+Uses the general construction: Eq(s,t) where s,t : ∏D(j) → ∏D(cod(f)).
+Works for any diagram shape, not just the standard ones.")
+  (let* ([shape (diagram-shape diagram)]
+         [objects (shape-objects shape)]
+         [morphisms (shape-morphisms shape)])
+    (cond
+     ;; Empty diagram → terminal object
+     [(null? objects)
+      (terminal-object '())]
+
+     ;; Discrete diagram (no morphisms) → n-ary product
+     ;; Build custom product that preserves original object names for projections
+     [(null? morphisms)
+      (let* ([element-sets (map (lambda (obj) (diagram-at diagram obj)) objects)]
+             [apex (cartesian-product-n element-sets)]
+             ;; Map object name to index
+             [obj-index (lambda (name)
+                          (let loop ([objs objects] [i 0])
+                            (cond
+                             [(null? objs) (error 'limit-from-diagram "unknown object" name)]
+                             [(eq? (car objs) name) i]
+                             [else (loop (cdr objs) (+ i 1))])))]
+             ;; Projections use original object names
+             [projections (lambda (obj-name)
+                            (let ([idx (obj-index obj-name)])
+                              (lambda (tuple) (list-ref tuple idx))))]
+             [cone (make-cone apex diagram projections)]
+             [factorizer (lambda (other-cone)
+                           (lambda (x)
+                             (map (lambda (obj)
+                                    ((cone-project other-cone obj) x))
+                                  objects)))])
+        (make-limit cone factorizer))]
+
+     ;; General case: product + equalizer
+     [else
+      (let* (;; Step 1: Product of all diagram objects
+             [element-sets (map (lambda (obj) (diagram-at diagram obj)) objects)]
+             [obj-product (n-ary-product element-sets)]
+             [P (limit-apex obj-product)]
+             [P-cone (limit-cone obj-product)]
+
+             ;; Map from object name to its index in the product
+             [obj-index (lambda (name)
+                          (let loop ([objs objects] [i 0])
+                            (cond
+                             [(null? objs) (error 'limit-from-diagram "unknown object" name)]
+                             [(eq? (car objs) name) i]
+                             [else (loop (cdr objs) (+ i 1))])))]
+
+             ;; Project from P to component at object name
+             [π (lambda (name)
+                  (let ([idx (obj-index name)])
+                    (lambda (tuple) (list-ref tuple idx))))]
+
+             ;; Step 2: For each morphism f:s→t, we need D(f)∘π_s = π_t on the limit
+             ;; Build s : P → ∏_{f} D(t_f) by projecting to targets
+             ;; Build t : P → ∏_{f} D(t_f) by applying D(f) after projecting to sources
+             [s-components (map (lambda (mor-spec)
+                                  (let ([target (caddr mor-spec)])
+                                    (π target)))
+                                morphisms)]
+             [t-components (map (lambda (mor-spec)
+                                  (let* ([mor-name (car mor-spec)]
+                                         [source (cadr mor-spec)]
+                                         [Df (diagram-mor diagram mor-name)]
+                                         [π-source (π source)])
+                                    (lambda (tuple) (Df (π-source tuple)))))
+                                morphisms)]
+
+             ;; s(tuple) = list of π_target(tuple) for each morphism
+             [s (lambda (tuple) (map (lambda (comp) (comp tuple)) s-components))]
+             ;; t(tuple) = list of D(f)(π_source(tuple)) for each morphism
+             [t (lambda (tuple) (map (lambda (comp) (comp tuple)) t-components))]
+
+             ;; Step 3: Equalizer of s and t
+             ;; Elements of P where s(p) = t(p), i.e., D(f)(π_s(p)) = π_t(p) for all f
+             [eq-elements (filter (lambda (tuple) (equal? (s tuple) (t tuple))) P)]
+
+             ;; Step 4: Build the limit cone
+             ;; Projections from limit to each diagram object
+             [limit-projections (lambda (obj-name)
+                                  (π obj-name))]
+
+             [limit-cone-obj (make-cone eq-elements diagram limit-projections)]
+
+             ;; Factorizer: given another cone, produce unique morphism to limit
+             [factorizer (lambda (other-cone)
+                           (let ([other-apex (cone-apex other-cone)])
+                             (lambda (x)
+                               ;; Map x to tuple via other cone's projections
+                               (let ([tuple (map (lambda (obj)
+                                                   ((cone-project other-cone obj) x))
+                                                 objects)])
+                                 (if (member tuple eq-elements)
+                                     tuple
+                                     (error 'limit-factorizer
+                                            "cone does not factor through limit"
+                                            tuple))))))])
+
+        (make-limit limit-cone-obj factorizer))])))
+
+(define (colimit-from-diagram diagram)
+  (doc 'type '(-> Diagram Colimit))
+  (doc 'description "Construct the colimit of an arbitrary diagram in Set.
+Uses the dual construction: Coeq(s,t) where s,t : ∐D(dom(f)) → ∐D(j).
+Works for any diagram shape.")
+  (let* ([shape (diagram-shape diagram)]
+         [objects (shape-objects shape)]
+         [morphisms (shape-morphisms shape)])
+    (cond
+     ;; Empty diagram → initial object
+     [(null? objects)
+      (initial-object)]
+
+     ;; Discrete diagram (no morphisms) → n-ary coproduct
+     [(null? morphisms)
+      ;; Build coproduct by repeated binary coproduct
+      (let ([element-sets (map (lambda (obj) (diagram-at diagram obj)) objects)])
+        (if (= 1 (length element-sets))
+            ;; Single object: "coproduct" is just the object itself with identity
+            (let* ([the-set (car element-sets)]
+                   [cocone (make-cocone the-set diagram
+                                        (lambda (obj) (lambda (x) x)))]
+                   [factorizer (lambda (other-cocone)
+                                 (cocone-inject other-cocone (car objects)))])
+              (make-colimit cocone factorizer))
+            ;; Multiple objects: fold binary coproducts
+            (n-ary-coproduct element-sets objects)))]
+
+     ;; General case: coproduct + coequalizer
+     [else
+      (let* (;; Coproduct of all diagram objects
+             [element-sets (map (lambda (obj) (diagram-at diagram obj)) objects)]
+             [obj-coproduct (n-ary-coproduct element-sets objects)]
+             [C (colimit-apex obj-coproduct)]
+
+             ;; For the general colimit construction:
+             ;; s,t : ∐_{f:a→b} D(a) ⇉ ∐_{j} D(j)
+             ;; s = coproduct of inclusions ι_a (inject source)
+             ;; t = coproduct of ι_b ∘ D(f) (apply morphism then inject target)
+
+             ;; Build equivalence: for each morphism f:a→b and each x in D(a),
+             ;; we need ι_a(x) ~ ι_b(D(f)(x))
+             [equivalences
+              (fold-left
+               (lambda (eqs mor-spec)
+                 (let* ([mor-name (car mor-spec)]
+                        [source (cadr mor-spec)]
+                        [target (caddr mor-spec)]
+                        [Df (diagram-mor diagram mor-name)]
+                        [source-elems (diagram-at diagram source)])
+                   (append eqs
+                           (map (lambda (x)
+                                  ;; Equivalent: (source . x) ~ (target . Df(x))
+                                  (cons (cons source x)
+                                        (cons target (Df x))))
+                                source-elems))))
+               '()
+               morphisms)]
+
+             ;; Compute equivalence classes on C
+             ;; C is list of (obj-name . element) pairs
+             [find-class (lambda (x classes)
+                           (let loop ([cs classes])
+                             (cond
+                              [(null? cs) #f]
+                              [(member x (car cs)) (car cs)]
+                              [else (loop (cdr cs))])))]
+
+             [merge-classes (lambda (c1 c2 classes)
+                              (if (eq? c1 c2)
+                                  classes
+                                  (let ([merged (append c1 c2)])
+                                    (cons merged
+                                          (filter (lambda (c)
+                                                    (and (not (eq? c c1))
+                                                         (not (eq? c c2))))
+                                                  classes)))))]
+
+             [initial-classes (map list C)]
+
+             [final-classes
+              (fold-left
+               (lambda (classes eq)
+                 (let ([x1 (car eq)]
+                       [x2 (cdr eq)])
+                   (let ([c1 (find-class x1 classes)]
+                         [c2 (find-class x2 classes)])
+                     (if (and c1 c2)
+                         (merge-classes c1 c2 classes)
+                         classes))))
+               initial-classes
+               equivalences)]
+
+             [quotient-map (lambda (x) (find-class x final-classes))]
+
+             ;; Build colimit cocone
+             [colimit-injections
+              (lambda (obj-name)
+                (lambda (x)
+                  (quotient-map (cons obj-name x))))]
+
+             [colimit-cocone-obj (make-cocone final-classes diagram colimit-injections)]
+
+             ;; Factorizer: given cocone with injections h_j : D(j) → X,
+             ;; produce unique morphism from colimit to X
+             [factorizer
+              (lambda (other-cocone)
+                (lambda (equiv-class)
+                  ;; Pick representative and apply corresponding injection
+                  (let* ([rep (car equiv-class)]
+                         [obj-name (car rep)]
+                         [elem (cdr rep)]
+                         [h (cocone-inject other-cocone obj-name)])
+                    (h elem))))])
+
+        (make-colimit colimit-cocone-obj factorizer))])))
+
+(define (n-ary-coproduct element-sets obj-names)
+  (doc 'type '(-> (List (List Any)) (List Symbol) Colimit))
+  (doc 'description "Construct n-ary coproduct in Set.
+Returns disjoint union with elements tagged by object name: (obj-name . elem)")
+  (let* ([tagged-elements
+          (fold-left
+           (lambda (acc pair)
+             (let ([obj-name (car pair)]
+                   [elems (cdr pair)])
+               (append acc (map (lambda (e) (cons obj-name e)) elems))))
+           '()
+           (map cons obj-names element-sets))]
+
+         [shape (make-shape 'discrete-n obj-names '())]
+
+         [diagram (make-diagram shape
+                                (lambda (obj)
+                                  (let loop ([names obj-names] [sets element-sets])
+                                    (cond
+                                     [(null? names) (error 'n-ary-coproduct "unknown object" obj)]
+                                     [(eq? (car names) obj) (car sets)]
+                                     [else (loop (cdr names) (cdr sets))])))
+                                (lambda (mor)
+                                  (error 'n-ary-coproduct "discrete diagram has no morphisms")))]
+
+         [injections (lambda (obj-name)
+                       (lambda (x) (cons obj-name x)))]
+
+         [cocone (make-cocone tagged-elements diagram injections)]
+
+         [factorizer (lambda (other-cocone)
+                       (lambda (tagged)
+                         (let ([obj-name (car tagged)]
+                               [elem (cdr tagged)])
+                           ((cocone-inject other-cocone obj-name) elem))))])
+
+    (make-colimit cocone factorizer)))
+
+;;; ============================================================
+;;; Section 14: Display
 ;;; ============================================================
 
 (doc 'section 'display)

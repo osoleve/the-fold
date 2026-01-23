@@ -16,6 +16,7 @@
    (kan-extension.ss "Left/Right Kan extensions and Codensity monad")
    (effect-category.ss "Categorical foundations for algebraic effects: Free Effect ⊣ Forgetful")
    (state-store-adjunction.ss "State-Store adjunction relating State monad and Store comonad")
+   (limits.ss "Limits and colimits: products, coproducts, equalizers, coequalizers, pullbacks, pushouts")
    ;; Multi-category submodule
    (multi/ "Inter-category framework: first-class categories, indexed natural transforms, correct Free⊣U counit")))
 
@@ -76,7 +77,22 @@
    (free-effect-adjunction "Free_Σ ⊣ Forgetful_Σ where Free builds Eff terms, Forgetful extracts carrier")
    (handler-composition-adjunction "Nesting handlers h₁(h₂(eff)) = composing adjunctions F₂∘F₁ ⊣ G₁∘G₂")
    (effect-rows-functors "Effect rows as objects in functor category [Set,Set], extension as coproduct injection")
-   (continuations-kan "Captured continuations k : Response → Eff e a are left Kan extensions Lan_η")))
+   (continuations-kan "Captured continuations k : Response → Eff e a are left Kan extensions Lan_η")
+   ;; Limits and colimits
+   (diagram-shape "Index category specifying the shape of a diagram (objects and morphisms)")
+   (diagram "Functor from shape to target category, assigning objects and morphisms")
+   (cone "Apex with projections to diagram objects satisfying commutativity with diagram morphisms")
+   (cocone "Apex with injections from diagram objects satisfying commutativity with diagram morphisms")
+   (limit "Universal cone: any other cone factors uniquely through it")
+   (colimit "Universal cocone: any other cocone factors uniquely through it")
+   (product "Limit of discrete diagram: (A×B, π₁, π₂) with universal pairing")
+   (coproduct "Colimit of discrete diagram: (A+B, ι₁, ι₂) with universal copairing")
+   (equalizer "Limit of parallel pair: E ↪ A ⇉ B where f∘e = g∘e")
+   (coequalizer "Colimit of parallel pair: A ⇉ B ↠ Q where q∘f = q∘g")
+   (pullback "Limit of cospan: P → A → C ← B forming commutative square")
+   (pushout "Colimit of span: A ← C → B to P with identified images")
+   (terminal-object "Limit of empty diagram: unique morphism from any object")
+   (initial-object "Colimit of empty diagram: unique morphism to any object")))
 
  (dependencies (fp/templates fp/meta/combinators base))
 
@@ -240,7 +256,39 @@
     codensity-maybe-return codensity-maybe-bind codensity-maybe-fail
     ;; Generic Builder
     make-codensity-monad codensity-monad-return codensity-monad-bind
-    codensity-monad-lift codensity-monad-lower)))
+    codensity-monad-lift codensity-monad-lower)
+   (limits.ss
+    ;; Shapes (index categories)
+    make-shape shape? shape-name shape-objects shape-morphisms
+    shape-empty shape-discrete-2 shape-parallel-pair shape-cospan shape-span
+    ;; Diagrams (functors from shapes)
+    make-diagram diagram? diagram-shape diagram-at diagram-mor
+    make-product-diagram make-coproduct-diagram
+    make-equalizer-diagram make-pullback-diagram make-pushout-diagram
+    ;; Cones and cocones
+    make-cone cone? cone-apex cone-diagram cone-project
+    make-cocone cocone? cocone-apex cocone-diagram cocone-inject
+    verify-cone verify-cocone
+    ;; Limits
+    make-limit limit? limit-apex limit-cone limit-factor
+    ;; Colimits
+    make-colimit colimit? colimit-apex colimit-cocone colimit-factor
+    ;; Products
+    binary-product product-pair
+    n-ary-product n-ary-projection
+    ;; Coproducts
+    binary-coproduct coproduct-inl coproduct-inr coproduct-copair
+    ;; Equalizers/Coequalizers
+    equalizer equalizer-inclusion
+    coequalizer coequalizer-quotient
+    ;; Pullbacks/Pushouts
+    pullback pullback-p1 pullback-p2
+    pushout pushout-i1 pushout-i2
+    ;; Terminal/Initial
+    terminal-object terminal-morphism
+    initial-object initial-morphism
+    ;; Display
+    shape->string diagram->string limit->string)))
 
  (theory-notes
   ((kan-extensions-universal
@@ -273,7 +321,14 @@
      This gives × ⊣ Δ ⊣ + which corresponds to ∧ ⊣ Δ ⊣ ∨ in logic.
      For dependent types, substitution f* has Σ as left adjoint (∃) and
      Π as right adjoint (∀), giving Σ ⊣ f* ⊣ Π. The Curry-Howard
-     correspondence emerges directly from these adjunctions.")))
+     correspondence emerges directly from these adjunctions.")
+   (limits-as-universal
+    "Limits are universal cones: a limit L for diagram D has a cone from L
+     such that any other cone from X factors uniquely through L. Products are
+     limits of discrete diagrams, equalizers are limits of parallel pairs,
+     pullbacks are limits of cospans. Every limit can be built from products
+     and equalizers. Colimits are the dual: universal cocones with coproducts,
+     coequalizers, and pushouts as the basic building blocks.")))
 
  (future-work
   ((functor-categories "Categories with functors as objects, nat transforms as morphisms")

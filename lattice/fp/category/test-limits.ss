@@ -107,40 +107,83 @@
 
 (test-group "products"
   (define-test "binary product construction"
-    (let ([p (binary-product 'int 'bool)])
+    ;; Set semantics: product of {1,2} × {a,b} = {(1,a),(1,b),(2,a),(2,b)}
+    (let* ([p (binary-product '(1 2) '(a b))]
+           [apex (limit-apex p)])
       (assert-true (limit? p))
-      (assert-equal (cons 'int 'bool) (limit-apex p))))
+      (assert-equal 4 (length apex))
+      (assert-true (pair? (member '(1 . a) apex)))
+      (assert-true (pair? (member '(2 . b) apex)))))
 
   (define-test "product projections"
-    (let* ([p (binary-product 1 2)]
+    ;; Element-level projections: π_a = car, π_b = cdr
+    (let* ([p (binary-product '(1 2) '(x y))]
            [apex (limit-apex p)]
-           [cone (limit-cone p)])
-      (assert-equal 1 ((cone-project cone 'a) apex))
-      (assert-equal 2 ((cone-project cone 'b) apex))))
+           [cone (limit-cone p)]
+           [π-a (cone-project cone 'a)]
+           [π-b (cone-project cone 'b)])
+      ;; Test on specific element from apex
+      (assert-equal 1 (π-a '(1 . x)))
+      (assert-equal 'x (π-b '(1 . x)))
+      ;; Map over all elements
+      (assert-equal '(1 1 2 2) (map π-a apex))
+      (assert-equal '(x y x y) (map π-b apex))))
 
   (define-test "product pairing morphism"
     (let ([pair (product-pair add1 (lambda (x) (* x 2)))])
       (assert-equal (cons 6 10) (pair 5))))
 
   (define-test "product universal property"
-    (let* ([p (binary-product 'a 'b)]
-           [other-apex 'x]
-           [f (lambda (x) 'a)]
-           [g (lambda (x) 'b)]
+    ;; For any cone over the discrete diagram, factor through the product
+    (let* ([p (binary-product '(1 2) '(a b))]
+           [other-apex 'z]
+           [f (lambda (x) 1)]   ; f : Z → A
+           [g (lambda (x) 'a)]  ; g : Z → B
            [other-projs (lambda (obj)
                           (case obj
                             [(a) f]
                             [(b) g]))]
            [other-cone (make-cone other-apex (cone-diagram (limit-cone p)) other-projs)]
            [factor (limit-factor p other-cone)])
-      (let ([result (factor 'x)])
-        (assert-equal 'a (car result))
-        (assert-equal 'b (cdr result)))))
+      (let ([result (factor 'z)])
+        (assert-equal 1 (car result))
+        (assert-equal 'a (cdr result)))))
 
   (define-test "n-ary product"
-    (let ([p (n-ary-product '(1 2 3 4 5))])
+    ;; n-ary product computes full cartesian product
+    (let* ([p (n-ary-product '((1 2) (a b)))]
+           [apex (limit-apex p)])
       (assert-true (limit? p))
-      (assert-equal '(1 2 3 4 5) (limit-apex p)))))
+      (assert-equal 4 (length apex))
+      (assert-true (pair? (member '(1 a) apex)))
+      (assert-true (pair? (member '(2 b) apex)))))
+
+  (define-test "n-ary product projections"
+    (let* ([p (n-ary-product '((1 2) (a b) (x y)))]
+           [apex (limit-apex p)]
+           [cone (limit-cone p)]
+           [π-0 (cone-project cone 'x0)]
+           [π-1 (cone-project cone 'x1)]
+           [π-2 (cone-project cone 'x2)])
+      (assert-equal 8 (length apex))
+      (assert-equal 1 (π-0 '(1 a x)))
+      (assert-equal 'a (π-1 '(1 a x)))
+      (assert-equal 'x (π-2 '(1 a x)))))
+
+  (define-test "composition: equalizer of product morphisms"
+    ;; This test verifies fix for fold-zxs5: products and equalizers now compose
+    ;; Product of {1,2} × {1,2}, then find equalizer of f(a,b)=(a+b) and g(a,b)=3
+    (let* ([prod (binary-product '(1 2) '(1 2))]
+           [prod-apex (limit-apex prod)]  ; {(1,1),(1,2),(2,1),(2,2)}
+           [f (lambda (p) (+ (car p) (cdr p)))]  ; f(a,b) = a+b
+           [g (lambda (p) 3)]                     ; g(a,b) = 3
+           ;; Codomain of f and g is integers - use range that includes 3
+           [eq (equalizer prod-apex '(2 3 4) f g)]
+           [eq-apex (limit-apex eq)])
+      ;; Equalizer should be pairs where a+b=3, i.e., {(1,2),(2,1)}
+      (assert-equal 2 (length eq-apex))
+      (assert-true (pair? (member '(1 . 2) eq-apex)))
+      (assert-true (pair? (member '(2 . 1) eq-apex))))))
 
 ;;; ============================================================
 ;;; Section 5: Coproduct Tests
@@ -148,8 +191,17 @@
 
 (test-group "coproducts"
   (define-test "binary coproduct construction"
-    (let ([c (binary-coproduct 'int 'bool)])
-      (assert-true (colimit? c))))
+    (let ([c (binary-coproduct '(1 2 3) '(a b))])
+      (assert-true (colimit? c))
+      ;; Apex should be the disjoint union
+      (let ([apex (colimit-apex c)])
+        (assert-equal 5 (length apex))
+        ;; Check all tagged elements are present
+        (assert-true (pair? (member (make-left 1) apex)))
+        (assert-true (pair? (member (make-left 2) apex)))
+        (assert-true (pair? (member (make-left 3) apex)))
+        (assert-true (pair? (member (make-right 'a) apex)))
+        (assert-true (pair? (member (make-right 'b) apex))))))
 
   (define-test "coproduct injections"
     (assert-true (left? (coproduct-inl 42)))
@@ -163,7 +215,7 @@
       (assert-equal 5 (copair (make-right "hello")))))
 
   (define-test "coproduct universal property"
-    (let* ([c (binary-coproduct 'int 'string)]
+    (let* ([c (binary-coproduct '(1 2) '("hi" "bye"))]
            [other-apex 'target]
            [f (lambda (x) (list 'from-int x))]
            [g (lambda (x) (list 'from-string x))]
@@ -184,30 +236,38 @@
 
 (test-group "equalizers"
   (define-test "equalizer finds equal elements"
+    ;; f(x) = 2*x, g(x) = x+x, so f=g everywhere
     (let* ([f (lambda (x) (* x 2))]
            [g (lambda (x) (+ x x))]
-           [eq (equalizer '(1 2 3 4 5) f g)]
+           [eq (equalizer '(1 2 3 4 5) '(2 4 6 8 10) f g)]
            [apex (limit-apex eq)])
       (assert-equal '(1 2 3 4 5) apex)))
 
   (define-test "equalizer filters non-equal elements"
+    ;; f(x) = x+1, g(x) = 2*x; equal only when x+1=2x, i.e., x=1
     (let* ([f add1]
            [g (lambda (x) (* x 2))]
-           [eq (equalizer '(0 1 2 3 4 5) f g)]
+           [eq (equalizer '(0 1 2 3 4 5) '(0 1 2 3 4 5 6 7 8 9 10) f g)]
            [apex (limit-apex eq)])
       (assert-equal '(1) apex)))
 
   (define-test "equalizer with no solutions"
+    ;; f(x) = x+1, g(x) = x+2, never equal
     (let* ([f add1]
            [g (lambda (x) (+ x 2))]
-           [eq (equalizer '(1 2 3) f g)]
+           [eq (equalizer '(1 2 3) '(2 3 4 5) f g)]
            [apex (limit-apex eq)])
       (assert-equal '() apex)))
 
   (define-test "equalizer inclusion morphism"
-    (let* ([eq (equalizer '(1 2 3 4) add1 add1)]
-           [incl (equalizer-inclusion eq)])
-      (assert-equal '(1 2 3 4) (incl '(1 2 3 4))))))
+    ;; f = g = add1, so equalizer is all of A
+    (let* ([eq (equalizer '(1 2 3 4) '(2 3 4 5) add1 add1)]
+           [incl (equalizer-inclusion eq)]
+           [apex (limit-apex eq)])
+      ;; Inclusion is element-level: maps each e in E to itself in A
+      (assert-equal '(1 2 3 4) (map incl apex))
+      (assert-equal 1 (incl 1))
+      (assert-equal 2 (incl 2)))))
 
 ;;; ============================================================
 ;;; Section 7: Coequalizer Tests
@@ -266,8 +326,12 @@
            [p1 (pullback-p1 pb)]
            [p2 (pullback-p2 pb)]
            [apex (limit-apex pb)])
-      (assert-equal 3 (length (p1 apex)))
-      (assert-equal 3 (length (p2 apex)))))
+      ;; Projections are element-level: apply to each pair in apex
+      (assert-equal 3 (length (map p1 apex)))
+      (assert-equal 3 (length (map p2 apex)))
+      ;; Test specific projections
+      (assert-equal 1 (p1 '(1 . 1)))
+      (assert-equal 1 (p2 '(1 . 1)))))
 
   (define-test "pullback of identical morphisms is diagonal"
     (let* ([f (lambda (x) x)]
@@ -341,13 +405,13 @@
       (assert-true (string-contains? s "discrete-2"))))
 
   (define-test "diagram->string"
-    (let* ([d (make-product-diagram 'a 'b)]
+    (let* ([d (make-product-diagram '(a b) '(1 2))]
            [s (diagram->string d)])
       (assert-true (string? s))
       (assert-true (string-contains? s "discrete-2"))))
 
   (define-test "limit->string"
-    (let* ([p (binary-product 1 2)]
+    (let* ([p (binary-product '(1) '(2))]
            [s (limit->string p)])
       (assert-true (string? s))
       (assert-true (string-contains? s "Limit")))))
@@ -368,14 +432,190 @@
 
 (test-group "verification"
   (define-test "verify-cone for product"
-    (let* ([p (binary-product 1 2)]
+    (let* ([p (binary-product '(1 2) '(a b))]
            [cone (limit-cone p)])
       (assert-true (verify-cone cone))))
 
+  (define-test "verify-cone for equalizer"
+    (let* ([f add1]
+           [g (lambda (x) (* x 2))]
+           [eq (equalizer '(0 1 2 3 4 5) '(0 1 2 3 4 5 6 7 8 9 10) f g)]
+           [cone (limit-cone eq)])
+      ;; Apex is (1) since add1(1)=2=2*1
+      (assert-equal '(1) (cone-apex cone))
+      (assert-true (verify-cone cone))))
+
+  (define-test "verify-cone for pullback"
+    (let* ([f (lambda (x) (* x 2))]
+           [g (lambda (x) x)]
+           [pb (pullback '(1 2 3) '(2 4 6) 'nat f g)]
+           [cone (limit-cone pb)])
+      ;; Apex contains pairs where f(a)=g(b), i.e., 2a=b
+      (assert-true (verify-cone cone))))
+
   (define-test "verify-cocone for coproduct"
-    (let* ([c (binary-coproduct 1 2)]
+    (let* ([c (binary-coproduct '(1 2) '(a b))]
            [cocone (colimit-cocone c)])
+      (assert-true (verify-cocone cocone))))
+
+  (define-test "verify-cocone for coequalizer"
+    (let* ([f (lambda (x) x)]
+           [g (lambda (x) (+ x 1))]
+           [coeq (coequalizer '(1 2) '(1 2 3) f g)]
+           [cocone (colimit-cocone coeq)])
       (assert-true (verify-cocone cocone)))))
+
+;;; ============================================================
+;;; Section 13: General Limit Construction Tests
+;;; ============================================================
+
+(test-group "general-construction"
+  (define-test "limit-from-diagram on empty shape gives terminal"
+    (let* ([diagram (make-diagram shape-empty
+                                  (lambda (x) (error 'test "no objects"))
+                                  (lambda (x) (error 'test "no morphisms")))]
+           [lim (limit-from-diagram diagram)])
+      (assert-true (limit? lim))
+      (assert-equal '() (limit-apex lim))))
+
+  (define-test "limit-from-diagram on discrete-2 gives product"
+    (let* ([diagram (make-diagram shape-discrete-2
+                                  (lambda (obj)
+                                    (case obj
+                                      [(a) '(1 2)]
+                                      [(b) '(x y)]))
+                                  (lambda (m) (error 'test "no morphisms")))]
+           [lim (limit-from-diagram diagram)]
+           [apex (limit-apex lim)])
+      (assert-true (limit? lim))
+      (assert-equal 4 (length apex))
+      ;; Tuples should be (a-val b-val)
+      (assert-true (pair? (member '(1 x) apex)))
+      (assert-true (pair? (member '(2 y) apex)))))
+
+  (define-test "limit-from-diagram on parallel-pair gives equalizer"
+    ;; f(x) = x+1, g(x) = 2x; equal when x=1
+    (let* ([diagram (make-diagram shape-parallel-pair
+                                  (lambda (obj)
+                                    (case obj
+                                      [(a) '(0 1 2 3)]
+                                      [(b) '(0 1 2 3 4 5 6)]))
+                                  (lambda (m)
+                                    (case m
+                                      [(f) add1]
+                                      [(g) (lambda (x) (* 2 x))])))]
+           [lim (limit-from-diagram diagram)]
+           [apex (limit-apex lim)])
+      (assert-true (limit? lim))
+      ;; Equalizer elements are tuples (a b) where f(a)=g(a) and b=f(a)
+      ;; Only a=1 satisfies f(1)=2=g(1), so apex has element (1 2)
+      (assert-equal 1 (length apex))
+      (assert-equal 1 (car (car apex)))))
+
+  (define-test "limit-from-diagram on cospan gives pullback"
+    ;; A = {1,2,3}, B = {2,4,6}, C = naturals
+    ;; f(a) = 2a, g(b) = b
+    ;; Pullback: pairs (a,b) where 2a = b
+    (let* ([diagram (make-diagram shape-cospan
+                                  (lambda (obj)
+                                    (case obj
+                                      [(a) '(1 2 3)]
+                                      [(b) '(2 4 6)]
+                                      [(c) '(2 4 6)]))
+                                  (lambda (m)
+                                    (case m
+                                      [(f) (lambda (x) (* 2 x))]
+                                      [(g) (lambda (x) x)])))]
+           [lim (limit-from-diagram diagram)]
+           [apex (limit-apex lim)])
+      (assert-true (limit? lim))
+      ;; Should have (1,2,2), (2,4,4), (3,6,6)
+      (assert-equal 3 (length apex))))
+
+  (define-test "limit-from-diagram projections work correctly"
+    (let* ([diagram (make-diagram shape-discrete-2
+                                  (lambda (obj)
+                                    (case obj
+                                      [(a) '(1 2)]
+                                      [(b) '(x y)]))
+                                  (lambda (m) (error 'test "no morphisms")))]
+           [lim (limit-from-diagram diagram)]
+           [cone (limit-cone lim)]
+           [π-a (cone-project cone 'a)]
+           [π-b (cone-project cone 'b)])
+      (assert-equal 1 (π-a '(1 x)))
+      (assert-equal 'x (π-b '(1 x)))
+      (assert-equal 2 (π-a '(2 y)))
+      (assert-equal 'y (π-b '(2 y)))))
+
+  (define-test "limit-from-diagram verifies cone commutativity"
+    (let* ([diagram (make-diagram shape-parallel-pair
+                                  (lambda (obj)
+                                    (case obj
+                                      [(a) '(1 2 3)]
+                                      [(b) '(1 2 3 4 5 6)]))
+                                  (lambda (m)
+                                    (case m
+                                      [(f) (lambda (x) (* x 2))]
+                                      [(g) (lambda (x) (* x 2))])))]
+           [lim (limit-from-diagram diagram)]
+           [cone (limit-cone lim)])
+      ;; When f=g, equalizer is all of A (as tuples)
+      (assert-true (verify-cone cone))))
+
+  (define-test "colimit-from-diagram on empty shape gives initial"
+    (let* ([diagram (make-diagram shape-empty
+                                  (lambda (x) (error 'test "no objects"))
+                                  (lambda (x) (error 'test "no morphisms")))]
+           [colim (colimit-from-diagram diagram)])
+      (assert-true (colimit? colim))
+      (assert-equal '() (colimit-apex colim))))
+
+  (define-test "colimit-from-diagram on discrete-2 gives coproduct"
+    (let* ([diagram (make-diagram shape-discrete-2
+                                  (lambda (obj)
+                                    (case obj
+                                      [(a) '(1 2)]
+                                      [(b) '(x y)]))
+                                  (lambda (m) (error 'test "no morphisms")))]
+           [colim (colimit-from-diagram diagram)]
+           [apex (colimit-apex colim)])
+      (assert-true (colimit? colim))
+      ;; Coproduct has 4 elements, tagged
+      (assert-equal 4 (length apex))))
+
+  (define-test "colimit-from-diagram on span gives pushout"
+    ;; A = {a1,a2}, B = {b1,b2}, C = {c}
+    ;; f: c → a1, g: c → b1
+    ;; Pushout: (A + B) / (a1 ~ b1)
+    (let* ([diagram (make-diagram shape-span
+                                  (lambda (obj)
+                                    (case obj
+                                      [(a) '(a1 a2)]
+                                      [(b) '(b1 b2)]
+                                      [(c) '(c)]))
+                                  (lambda (m)
+                                    (case m
+                                      [(f) (lambda (x) 'a1)]
+                                      [(g) (lambda (x) 'b1)])))]
+           [colim (colimit-from-diagram diagram)]
+           [apex (colimit-apex colim)]
+           [ι-a (cocone-inject (colimit-cocone colim) 'a)]
+           [ι-b (cocone-inject (colimit-cocone colim) 'b)])
+      (assert-true (colimit? colim))
+      ;; a1 and b1 should be in the same equivalence class
+      (assert-equal (ι-a 'a1) (ι-b 'b1))
+      ;; a2 and b2 should be in different classes
+      (assert-false (equal? (ι-a 'a2) (ι-b 'b2)))))
+
+  (define-test "n-ary-coproduct construction"
+    (let* ([colim (n-ary-coproduct '((1 2) (a b) (x)) '(num alpha sym))]
+           [apex (colimit-apex colim)])
+      (assert-true (colimit? colim))
+      (assert-equal 5 (length apex))
+      (assert-true (pair? (member '(num . 1) apex)))
+      (assert-true (pair? (member '(alpha . a) apex)))
+      (assert-true (pair? (member '(sym . x) apex))))))
 
 ;;; ============================================================
 ;;; Run Tests
