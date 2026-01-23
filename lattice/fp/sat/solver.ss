@@ -1,15 +1,17 @@
 (load "lattice/fp/sat/cnf.ss")
 (load "lattice/fp/sat/assignment.ss")
+(load "lattice/fp/sat/watches.ss")
 
 (doc 'module 'solver)
 (doc 'description "CDCL SAT solver - Conflict-Driven Clause Learning")
 (doc 'layer 'lattice)
 (doc 'purity 'partial)
 (doc 'note "Implements DPLL with: unit propagation, conflict analysis, clause learning, non-chronological backtracking")
+(doc 'note "Uses Two-Watched Literals (2WL) for efficient unit propagation")
 (doc 'fuel-bound "O(2^n) worst case, typically much better with clause learning")
 
 (doc 'section 'solver-state)
-(doc 'note "State = (state cnf assignment learned-clauses vsids-scores conflict-count)")
+(doc 'note "State = (state cnf assignment learned-clauses vsids-scores conflict-count watches)")
 
 (define (make-solver-state cnf)
   (doc 'export #t)
@@ -17,7 +19,8 @@
   (doc 'description "Create initial solver state from CNF")
   (let* ([nvars (cnf-num-vars cnf)]
          [assignment (make-assignment nvars)]
-         [scores (make-vector (+ nvars 1) 0.0)])
+         [scores (make-vector (+ nvars 1) 0.0)]
+         [watches (make-watches nvars)])
         ;; Initialize VSIDS scores from clause occurrences
         (for-each
          (lambda (clause)
@@ -28,29 +31,35 @@
                                            (+ (vector-ref scores var) 1.0))))
                   clause))
          (cnf-clauses cnf))
+        ;; Initialize watches for all clauses
+        (watches-init-all! watches (cnf-clauses cnf))
         (list 'solver-state
               cnf
               assignment
               '()          ; learned clauses
               scores       ; VSIDS scores
-              0)))         ; conflict count
+              0            ; conflict count
+              watches)))   ; 2WL watches
 
 (define (state-cnf s) (list-ref s 1))
 (define (state-assignment s) (list-ref s 2))
 (define (state-learned s) (list-ref s 3))
 (define (state-scores s) (list-ref s 4))
 (define (state-conflicts s) (list-ref s 5))
+(define (state-watches s) (list-ref s 6))
 
 (define (state-set-assignment s a)
-  (list 'solver-state (state-cnf s) a (state-learned s) (state-scores s) (state-conflicts s)))
+  (list 'solver-state (state-cnf s) a (state-learned s) (state-scores s) (state-conflicts s) (state-watches s)))
 
 (define (state-add-learned s clause)
+  ;; Also initialize watches for the learned clause
+  (watches-init-clause! (state-watches s) clause)
   (list 'solver-state (state-cnf s) (state-assignment s)
-        (cons clause (state-learned s)) (state-scores s) (state-conflicts s)))
+        (cons clause (state-learned s)) (state-scores s) (state-conflicts s) (state-watches s)))
 
 (define (state-inc-conflicts s)
   (list 'solver-state (state-cnf s) (state-assignment s)
-        (state-learned s) (state-scores s) (+ 1 (state-conflicts s))))
+        (state-learned s) (state-scores s) (+ 1 (state-conflicts s)) (state-watches s)))
 
 (define (state-all-clauses s)
   (doc 'type '(-> SolverState (List Clause)))
@@ -59,32 +68,72 @@
 
 (doc 'section 'unit-propagation)
 
+;;; Unit propagation using Two-Watched Literals
+;;; Much more efficient than scanning all clauses
+
 (define (unit-propagate state level)
   (doc 'export #t)
   (doc 'type '(-> SolverState Nat (Values SolverState (Or #f Clause))))
-  (doc 'description "Boolean Constraint Propagation - propagate until fixpoint or conflict")
+  (doc 'description "Boolean Constraint Propagation using 2WL - propagate until fixpoint or conflict")
   (doc 'returns "Updated state and conflict clause (or #f if no conflict)")
-  (let loop ([state state])
-       ;; First check for existing conflicts (crucial after backtrack)
-       (let ([conflict (check-conflict state)])
-            (if conflict
-                (values state conflict)
-                ;; No conflict - look for unit clauses to propagate
-                (let ([result (find-unit-clause state)])
-                     (if (not result)
-                         (values state #f)  ; No unit clause - fixpoint
-                         (let ([clause (car result)]
-                               [lit (cdr result)])
-                              (let* ([var (lit-var lit)]
-                                     [val (if (lit-positive? lit) 'true 'false)]
-                                     [a (assignment-propagate
-                                         (state-assignment state) var val level clause)]
-                                     [new-state (state-set-assignment state a)])
-                                    (loop new-state)))))))))
+  ;; First, find initial unit clauses (for initial propagation)
+  (let ([initial-units (find-initial-units state)])
+    (unit-propagate-loop state level initial-units)))
 
+(define (unit-propagate-loop state level pending-units)
+  (doc 'type '(-> SolverState Nat (List (Pair Literal Clause)) (Values SolverState (Or #f Clause))))
+  (doc 'description "Process pending unit propagations using 2WL")
+  (if (null? pending-units)
+      (values state #f)  ; Fixpoint reached
+      (let* ([unit (car pending-units)]
+             [lit (car unit)]
+             [clause (cdr unit)]
+             [a (state-assignment state)])
+        ;; Check if already assigned
+        (if (assignment-assigned? a (lit-var lit))
+            ;; Already assigned - check consistency
+            (if (assignment-satisfies-lit? a lit)
+                (unit-propagate-loop state level (cdr pending-units))
+                ;; Conflict: propagating opposite of assigned value
+                (values state clause))
+            ;; Propagate this literal
+            (let* ([var (lit-var lit)]
+                   [val (if (lit-positive? lit) 'true 'false)]
+                   [new-a (assignment-propagate a var val level clause)]
+                   [new-state (state-set-assignment state new-a)]
+                   ;; The negation of lit is now false - update watches
+                   [false-lit (lit-negate lit)]
+                   [prop-result (watches-propagate! (state-watches new-state) new-a false-lit)])
+              (cond
+               ;; Conflict detected
+               [(and (pair? prop-result) (eq? (car prop-result) 'conflict))
+                (values new-state (cadr prop-result))]
+               ;; New units discovered
+               [(and (pair? prop-result) (eq? (car prop-result) 'units))
+                (unit-propagate-loop new-state level
+                                     (append (cdr prop-result) (cdr pending-units)))]
+               ;; No new units
+               [else
+                (unit-propagate-loop new-state level (cdr pending-units))]))))))
+
+(define (find-initial-units state)
+  (doc 'type '(-> SolverState (List (Pair Literal Clause))))
+  (doc 'description "Find unit clauses in initial state (before any propagation)")
+  (let ([a (state-assignment state)])
+    (let loop ([clauses (state-all-clauses state)]
+               [units '()])
+      (cond
+       [(null? clauses) units]
+       [else
+        (let ([lit (assignment-unit-lit a (car clauses))])
+          (if lit
+              (loop (cdr clauses) (cons (cons lit (car clauses)) units))
+              (loop (cdr clauses) units)))]))))
+
+;;; Legacy functions kept for compatibility and debugging
 (define (find-unit-clause state)
   (doc 'type '(-> SolverState (Maybe (Pair Clause Literal))))
-  (doc 'description "Find a unit clause and its unassigned literal")
+  (doc 'description "Find a unit clause and its unassigned literal (legacy, O(n) scan)")
   (let ([a (state-assignment state)])
        (let loop ([clauses (state-all-clauses state)])
             (cond
@@ -97,7 +146,7 @@
 
 (define (check-conflict state)
   (doc 'type '(-> SolverState (Maybe Clause)))
-  (doc 'description "Check if any clause is falsified")
+  (doc 'description "Check if any clause is falsified (legacy, O(n) scan)")
   (let ([a (state-assignment state)])
        (let loop ([clauses (state-all-clauses state)])
             (cond

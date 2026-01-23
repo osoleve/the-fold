@@ -1,5 +1,5 @@
 (skill sat
-  (version "0.1.0")
+  (version "0.2.0")
   (tier 1)
   (path "lattice/fp/sat")
   (purity partial)
@@ -7,9 +7,10 @@
   (fuel-bound "O(2^n) worst case, typically much better with CDCL")
   (deps (fp))
   (description "Boolean Satisfiability solver with CDCL (Conflict-Driven Clause Learning).
-    Implements DPLL algorithm with unit propagation, conflict analysis, clause learning,
-    non-chronological backtracking, and VSIDS branching heuristic. Includes CNF builders
-    for common patterns: cardinality constraints, graph coloring, N-Queens.")
+    Implements DPLL algorithm with Two-Watched Literals (2WL) for efficient unit propagation,
+    conflict analysis, clause learning, non-chronological backtracking, and VSIDS branching
+    heuristic. Includes CNF builders for common patterns: cardinality constraints, graph
+    coloring, N-Queens.")
   (keywords (sat satisfiability cnf dpll cdcl clause-learning boolean constraint np-complete))
   (aliases (sat boolean-sat cdcl))
   (exports
@@ -26,5 +27,6 @@
    (clause "clause.ss" "Disjunctive clause representation")
    (cnf "cnf.ss" "CNF formula representation and DIMACS I/O")
    (assignment "assignment.ss" "Partial assignment with decision levels")
-   (solver "solver.ss" "CDCL solver with clause learning")
+   (watches "watches.ss" "Two-Watched Literals (2WL) for efficient unit propagation")
+   (solver "solver.ss" "CDCL solver with clause learning and 2WL")
    (sat "sat.ss" "High-level API and common encodings")))
