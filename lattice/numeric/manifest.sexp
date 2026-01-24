@@ -1,5 +1,5 @@
 (skill numeric
-  (version "0.7.0")
+  (version "0.7.1")
   (tier 0)
   (path "lattice/numeric")
   (purity total)
@@ -165,6 +165,9 @@
     real->interval interval->string interval-print
     ;; Multi-dimensional boxes
     make-box box-dimension box-volume box-contains?
+    ;; Critical point detection (for rigorous transcendentals)
+    interval-contains-critical? interval-contains-critical-rigorous?
+    pi-down pi-up 2pi-down 2pi-up
     ;; Constants
     pi-interval e-interval
     ;; Short aliases

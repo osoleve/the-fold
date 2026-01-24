@@ -849,6 +849,34 @@
          [critical (+ base (* k-lo period))])
     (<= critical hi)))
 
+;;; interval-contains-critical-rigorous? : Real × Real × Real × Real × Real × Real → Boolean
+;;; Rigorous check if interval [lo, hi] might contain any point of form (base + k*period).
+;;; Uses interval bounds for the critical point: base in [base-lo, base-hi], period in [period-lo, period-hi].
+;;; For transcendentals, pi should be represented as [pi-down, pi-up].
+(define (interval-contains-critical-rigorous? lo hi base-lo base-hi period-lo period-hi)
+  (doc 'export #t)
+  ;; Find k range that might place critical point near [lo, hi]
+  ;; k such that base + k*period >= lo means k >= (lo - base) / period
+  ;; Use conservative bounds: k-min from (lo - base-hi) / period-hi, k-max from (hi - base-lo) / period-lo
+  (let* ([k-min (floor (/ (- lo base-hi) period-hi))]
+         [k-max (ceiling (/ (- hi base-lo) period-lo))])
+    ;; Check if any integer k in [k-min, k-max] places critical interval overlapping [lo, hi]
+    (let loop ([k k-min])
+      (if (> k k-max)
+          #f
+          ;; Critical point interval for this k: [base-lo + k*period-lo, base-hi + k*period-hi]
+          ;; But need correct bound direction based on sign of k
+          (let* ([crit-lo (if (>= k 0)
+                              (+ base-lo (* k period-lo))
+                              (+ base-lo (* k period-hi)))]
+                 [crit-hi (if (>= k 0)
+                              (+ base-hi (* k period-hi))
+                              (+ base-hi (* k period-lo)))])
+            ;; Check overlap: [crit-lo, crit-hi] overlaps [lo, hi]?
+            (if (and (<= crit-lo hi) (>= crit-hi lo))
+                #t
+                (loop (+ k 1))))))))
+
 ;;; interval-tan : Interval → Interval | '(error domain-error)
 ;;; Tangent function. Undefined at pi/2 + k*pi.
 ;;; Returns '(error domain-error) if interval contains a discontinuity.
@@ -1068,6 +1096,17 @@
   (let ([r (atan x)])
     (if (nan? r) r (fl-next-up r))))
 
+;;; Rigorous pi bounds: π is irrational, so we bracket it
+;;; These are the adjacent floats around the true value of π
+(define pi-down 3.1415926535897931)   ; fl-next-down of π approximation
+(doc pi-down 'export #t)
+(define pi-up   3.1415926535897936)   ; fl-next-up of π approximation
+(doc pi-up 'export #t)
+(define 2pi-down (* 2 pi-down))
+(doc 2pi-down 'export #t)
+(define 2pi-up   (* 2 pi-up))
+(doc 2pi-up 'export #t)
+
 ;;; interval-exp-rigorous : Interval → Interval
 ;;; Exponential with guaranteed enclosure.
 (define (interval-exp-rigorous iv)
@@ -1099,47 +1138,62 @@
                        (div-up (interval-hi log-iv) ln10-lo)))))
 
 ;;; interval-sin-rigorous : Interval → Interval
-;;; Sine with guaranteed enclosure.
+;;; Sine with guaranteed enclosure using rigorous critical point detection.
 (define (interval-sin-rigorous iv)
   (doc 'export #t)
   (let* ([lo (interval-lo iv)]
          [hi (interval-hi iv)]
-         [pi 3.141592653589793]
          [width (- hi lo)])
     (cond
-      [(>= width (* 2 pi)) (make-interval -1 1)]
+      [(>= width 2pi-down) (make-interval -1 1)]
       [else
        (let* ([sin-lo (sin lo)]
               [sin-hi (sin hi)]
               [min-val (min (fl-next-down sin-lo) (fl-next-down sin-hi))]
               [max-val (max (fl-next-up sin-lo) (fl-next-up sin-hi))])
-         (let* ([max-val (if (interval-contains-critical? lo hi (* 0.5 pi) (* 2 pi))
+         ;; sin maximum at π/2 + 2kπ — use rigorous check with π interval bounds
+         ;; base = π/2 ∈ [pi-down/2, pi-up/2], period = 2π ∈ [2pi-down, 2pi-up]
+         (let* ([max-val (if (interval-contains-critical-rigorous?
+                               lo hi
+                               (* 0.5 pi-down) (* 0.5 pi-up)
+                               2pi-down 2pi-up)
                              1
                              max-val)]
-                [min-val (if (interval-contains-critical? lo hi (* 1.5 pi) (* 2 pi))
+                ;; sin minimum at 3π/2 + 2kπ
+                [min-val (if (interval-contains-critical-rigorous?
+                               lo hi
+                               (* 1.5 pi-down) (* 1.5 pi-up)
+                               2pi-down 2pi-up)
                              -1
                              min-val)])
            (make-interval min-val max-val)))])))
 
 ;;; interval-cos-rigorous : Interval → Interval
-;;; Cosine with guaranteed enclosure.
+;;; Cosine with guaranteed enclosure using rigorous critical point detection.
 (define (interval-cos-rigorous iv)
   (doc 'export #t)
   (let* ([lo (interval-lo iv)]
          [hi (interval-hi iv)]
-         [pi 3.141592653589793]
          [width (- hi lo)])
     (cond
-      [(>= width (* 2 pi)) (make-interval -1 1)]
+      [(>= width 2pi-down) (make-interval -1 1)]
       [else
        (let* ([cos-lo (cos lo)]
               [cos-hi (cos hi)]
               [min-val (min (fl-next-down cos-lo) (fl-next-down cos-hi))]
               [max-val (max (fl-next-up cos-lo) (fl-next-up cos-hi))])
-         (let* ([max-val (if (interval-contains-critical? lo hi 0 (* 2 pi))
+         ;; cos maximum at 0 + 2kπ — base is exactly 0, period needs rigorous bounds
+         (let* ([max-val (if (interval-contains-critical-rigorous?
+                               lo hi
+                               0 0           ; base = 0 (exact)
+                               2pi-down 2pi-up)
                              1
                              max-val)]
-                [min-val (if (interval-contains-critical? lo hi pi (* 2 pi))
+                ;; cos minimum at π + 2kπ
+                [min-val (if (interval-contains-critical-rigorous?
+                               lo hi
+                               pi-down pi-up
+                               2pi-down 2pi-up)
                              -1
                              min-val)])
            (make-interval min-val max-val)))])))

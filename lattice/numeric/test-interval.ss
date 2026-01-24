@@ -911,7 +911,36 @@
   (define-test "rigorous cos preserves containment"
     (let* ([x 0.7]
            [iv (interval-cos-rigorous (interval-singleton x))])
-      (assert-true (interval-contains? iv (cos x))))))
+      (assert-true (interval-contains? iv (cos x)))))
+
+  ;; Test that rigorous sin correctly detects maximum near π/2
+  ;; The float π/2 = 1.5707963267948966, true π/2 is slightly different
+  (define-test "rigorous sin detects maximum near pi/2"
+    (let* ([pi-2-approx 1.5707963267948966]
+           ;; Interval tightly around the float approximation
+           [iv (interval (- pi-2-approx 1e-15) (+ pi-2-approx 1e-15))]
+           [rig (interval-sin-rigorous iv)])
+      ;; Must return exactly 1 as upper bound since interval contains true π/2
+      (assert-equal 1 (interval-hi rig))))
+
+  ;; Test that rigorous cos correctly detects minimum near π
+  (define-test "rigorous cos detects minimum near pi"
+    (let* ([pi-approx 3.141592653589793]
+           [iv (interval (- pi-approx 1e-15) (+ pi-approx 1e-15))]
+           [rig (interval-cos-rigorous iv)])
+      ;; Must return exactly -1 as lower bound since interval contains true π
+      (assert-equal -1 (interval-lo rig))))
+
+  ;; Test rigorous critical point helper directly
+  (define-test "rigorous critical check catches tight interval around π"
+    ;; True π is irrational; float π differs by ULP
+    ;; An interval [π-ε, π+ε] should detect the critical point
+    (let* ([pi-float 3.141592653589793]
+           [eps 1e-15])
+      (assert-true (interval-contains-critical-rigorous?
+                     (- pi-float eps) (+ pi-float eps)
+                     pi-down pi-up      ; base interval
+                     2pi-down 2pi-up))))) ; period interval
 
 ;;; ============================================================================
 ;;; Run Tests
