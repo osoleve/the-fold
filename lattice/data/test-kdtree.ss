@@ -118,12 +118,12 @@
 
 (define-test "kdtree-fold"
   (let ([tree (kdtree-build '((1 2) (3 4) (5 6)))])
-    ;; Count points via fold
-    (assert-equal 3 (kdtree-fold (lambda (pt acc) (+ 1 acc)) 0 tree))
+    ;; Count points via fold (acc first, then point)
+    (assert-equal 3 (kdtree-fold (lambda (acc pt) (+ 1 acc)) 0 tree))
     ;; Sum x coordinates
-    (assert-equal 9 (kdtree-fold (lambda (pt acc) (+ (car pt) acc)) 0 tree))
+    (assert-equal 9 (kdtree-fold (lambda (acc pt) (+ (car pt) acc)) 0 tree))
     ;; Collect points
-    (assert-equal 3 (length (kdtree-fold cons '() tree)))))
+    (assert-equal 3 (length (kdtree-fold (lambda (acc pt) (cons pt acc)) '() tree)))))
 
 (define-test "kdtree->list"
   (let* ([points '((2 3) (5 4) (9 6))]

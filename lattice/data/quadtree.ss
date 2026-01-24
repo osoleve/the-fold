@@ -356,14 +356,14 @@ better for dynamic insertions and spatial locality queries.")
                (quadtree-depth (quadtree-sw tree))))]))
 
 (define (quadtree-fold proc init tree)
-  (doc 'type '(-> (-> Point a a) a Quadtree a))
-  (doc 'description "Fold over all points in quadtree. (proc point acc) called for each point. O(n)")
+  (doc 'type '(-> (-> a Point a) a Quadtree a))
+  (doc 'description "Left fold over all points in quadtree. (proc acc point) called for each point.
+Traversal order: SW -> SE -> NW -> NE (bottom-to-top, left-to-right). O(n).
+Signature matches fold-left convention: accumulator first.")
   (cond
     [(quadtree-empty? tree) init]
     [(quadtree-leaf? tree)
-     (fold-left (lambda (acc pt) (proc pt acc))
-                init
-                (quadtree-leaf-points tree))]
+     (fold-left proc init (quadtree-leaf-points tree))]
     [(quadtree-node? tree)
      (quadtree-fold proc
                     (quadtree-fold proc
@@ -376,4 +376,4 @@ better for dynamic insertions and spatial locality queries.")
 (define (quadtree->list tree)
   (doc 'type '(-> Quadtree (List Point)))
   (doc 'description "Extract all points from the quadtree. O(n)")
-  (reverse (quadtree-fold cons '() tree)))
+  (reverse (quadtree-fold (lambda (acc pt) (cons pt acc)) '() tree)))

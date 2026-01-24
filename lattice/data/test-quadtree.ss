@@ -99,12 +99,12 @@
 (define-test "quadtree-fold"
   (let* ([points '((1 2) (3 4) (5 6))]
          [tree (quadtree-build-auto points)])
-    ;; Count points via fold
-    (assert-equal 3 (quadtree-fold (lambda (pt acc) (+ 1 acc)) 0 tree))
+    ;; Count points via fold (acc first, then point)
+    (assert-equal 3 (quadtree-fold (lambda (acc pt) (+ 1 acc)) 0 tree))
     ;; Sum x coordinates (points stored as (x y data) where data=(x y))
-    (assert-equal 9 (quadtree-fold (lambda (pt acc) (+ (car pt) acc)) 0 tree))
+    (assert-equal 9 (quadtree-fold (lambda (acc pt) (+ (car pt) acc)) 0 tree))
     ;; Collect points
-    (assert-equal 3 (length (quadtree-fold cons '() tree)))))
+    (assert-equal 3 (length (quadtree-fold (lambda (acc pt) (cons pt acc)) '() tree)))))
 
 (define-test "quadtree->list"
   (let* ([points '((1 2) (3 4) (5 6))]
