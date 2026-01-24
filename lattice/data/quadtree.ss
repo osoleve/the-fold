@@ -355,15 +355,25 @@ better for dynamic insertions and spatial locality queries.")
                (quadtree-depth (quadtree-se tree))
                (quadtree-depth (quadtree-sw tree))))]))
 
+(define (quadtree-fold proc init tree)
+  (doc 'type '(-> (-> Point a a) a Quadtree a))
+  (doc 'description "Fold over all points in quadtree. (proc point acc) called for each point. O(n)")
+  (cond
+    [(quadtree-empty? tree) init]
+    [(quadtree-leaf? tree)
+     (fold-left (lambda (acc pt) (proc pt acc))
+                init
+                (quadtree-leaf-points tree))]
+    [(quadtree-node? tree)
+     (quadtree-fold proc
+                    (quadtree-fold proc
+                                   (quadtree-fold proc
+                                                  (quadtree-fold proc init (quadtree-sw tree))
+                                                  (quadtree-se tree))
+                                   (quadtree-nw tree))
+                    (quadtree-ne tree))]))
+
 (define (quadtree->list tree)
   (doc 'type '(-> Quadtree (List Point)))
   (doc 'description "Extract all points from the quadtree. O(n)")
-  (let loop ([t tree] [acc '()])
-    (cond
-      [(quadtree-empty? t) acc]
-      [(quadtree-leaf? t) (append (quadtree-leaf-points t) acc)]
-      [(quadtree-node? t)
-       (loop (quadtree-ne t)
-             (loop (quadtree-nw t)
-                   (loop (quadtree-se t)
-                         (loop (quadtree-sw t) acc))))])))
+  (reverse (quadtree-fold cons '() tree)))

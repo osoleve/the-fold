@@ -345,15 +345,20 @@ Uses range query for initial filtering, then distance check.")
         (and (> n 0)
              (<= h (* 2 (+ 1 (floor (log n 2)))))))))
 
+(define (kdtree-fold proc init tree)
+  (doc 'type '(-> (-> Point a a) a KDTree a))
+  (doc 'description "Fold over all points in tree. (proc point acc) called for each point. O(n)")
+  (if (kdtree-empty? tree)
+      init
+      (kdtree-fold proc
+                   (proc (kdtree-point tree)
+                         (kdtree-fold proc init (kdtree-left tree)))
+                   (kdtree-right tree))))
+
 (define (kdtree->list tree)
   (doc 'type '(-> KDTree (List Point)))
   (doc 'description "Extract all points from tree (in-order traversal). O(n)")
-  (let loop ([t tree] [acc '()])
-    (if (kdtree-empty? t)
-        acc
-        (loop (kdtree-left t)
-              (cons (kdtree-point t)
-                    (loop (kdtree-right t) acc))))))
+  (reverse (kdtree-fold cons '() tree)))
 
 ;;; ============================================================
 ;;; Insertion (for incremental building)

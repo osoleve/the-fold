@@ -96,6 +96,16 @@
   (let ([tree (quadtree-create (make-bounds 0 0 10 10))])
     (assert-false (quadtree-nearest tree 5 5))))
 
+(define-test "quadtree-fold"
+  (let* ([points '((1 2) (3 4) (5 6))]
+         [tree (quadtree-build-auto points)])
+    ;; Count points via fold
+    (assert-equal 3 (quadtree-fold (lambda (pt acc) (+ 1 acc)) 0 tree))
+    ;; Sum x coordinates (points stored as (x y data) where data=(x y))
+    (assert-equal 9 (quadtree-fold (lambda (pt acc) (+ (car pt) acc)) 0 tree))
+    ;; Collect points
+    (assert-equal 3 (length (quadtree-fold cons '() tree)))))
+
 (define-test "quadtree->list"
   (let* ([points '((1 2) (3 4) (5 6))]
          [tree (quadtree-build-auto points)]
