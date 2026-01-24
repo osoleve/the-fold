@@ -106,6 +106,14 @@
          [tree (quadtree-build-auto points)])
     (assert-true (> (quadtree-depth tree) 1))))
 
+(define-test "quadtree duplicate points no infinite loop"
+  ;; This would cause infinite recursion before the fix
+  (let* ([points '((5 5) (5 5) (5 5) (5 5) (5 5) (5 5) (5 5) (5 5))]
+         [tree (quadtree-build-auto points)])
+    (assert-equal 8 (quadtree-size tree))
+    ;; Should complete without stack overflow
+    (assert-true (> (quadtree-depth tree) 0))))
+
 (define-test "quadtree many points"
   ;; Grid of 100 points
   (let* ([points (apply append

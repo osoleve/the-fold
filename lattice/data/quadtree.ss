@@ -94,6 +94,9 @@ better for dynamic insertions and spatial locality queries.")
 (define *quadtree-capacity* 4)
 (doc *quadtree-capacity* 'description "Maximum points per leaf before splitting")
 
+(define *quadtree-max-depth* 16)
+(doc *quadtree-max-depth* 'description "Maximum tree depth to prevent infinite recursion on duplicate points")
+
 (define (quadtree-create bounds)
   (doc 'type '(-> Bounds Quadtree))
   (doc 'description "Create an empty quadtree with given bounds")
@@ -136,6 +139,10 @@ better for dynamic insertions and spatial locality queries.")
 (define (quadtree-insert tree x y data)
   (doc 'type '(-> Quadtree Num Num Any Quadtree))
   (doc 'description "Insert a point at (x,y) with associated data into the quadtree")
+  (quadtree-insert-at-depth tree x y data 0))
+
+(define (quadtree-insert-at-depth tree x y data depth)
+  ;; Internal insert with depth tracking to prevent infinite recursion on duplicates
   (cond
     [(quadtree-empty? tree) tree]  ; can't insert into empty tree (no bounds)
     [(quadtree-leaf? tree)
@@ -143,12 +150,13 @@ better for dynamic insertions and spatial locality queries.")
            [points (quadtree-leaf-points tree)])
        (if (not (bounds-contains? bounds x y))
            tree  ; point out of bounds, ignore
-           (if (< (length points) *quadtree-capacity*)
-               ;; Room in leaf, just add
+           (if (or (< (length points) *quadtree-capacity*)
+                   (>= depth *quadtree-max-depth*))
+               ;; Room in leaf, or max depth reached - just add without splitting
                (quadtree-leaf bounds (cons (list x y data) points))
                ;; Need to split
                (let ([split-tree (quadtree-split tree)])
-                 (quadtree-insert split-tree x y data)))))]
+                 (quadtree-insert-at-depth split-tree x y data (+ depth 1))))))]
     [(quadtree-node? tree)
      (let ([bounds (quadtree-bounds tree)])
        (if (not (bounds-contains? bounds x y))
@@ -159,16 +167,17 @@ better for dynamic insertions and spatial locality queries.")
                   [ne (quadtree-ne tree)]
                   [nw (quadtree-nw tree)]
                   [se (quadtree-se tree)]
-                  [sw (quadtree-sw tree)])
+                  [sw (quadtree-sw tree)]
+                  [next-depth (+ depth 1)])
              (cond
                [(and (>= x cx) (>= y cy))
-                (quadtree-node bounds (quadtree-insert ne x y data) nw se sw)]
+                (quadtree-node bounds (quadtree-insert-at-depth ne x y data next-depth) nw se sw)]
                [(and (< x cx) (>= y cy))
-                (quadtree-node bounds ne (quadtree-insert nw x y data) se sw)]
+                (quadtree-node bounds ne (quadtree-insert-at-depth nw x y data next-depth) se sw)]
                [(and (>= x cx) (< y cy))
-                (quadtree-node bounds ne nw (quadtree-insert se x y data) sw)]
+                (quadtree-node bounds ne nw (quadtree-insert-at-depth se x y data next-depth) sw)]
                [else
-                (quadtree-node bounds ne nw se (quadtree-insert sw x y data))]))))]))
+                (quadtree-node bounds ne nw se (quadtree-insert-at-depth sw x y data next-depth))]))))]))
 
 (define (quadtree-split leaf)
   (doc 'type '(-> Quadtree Quadtree))
@@ -345,12 +354,13 @@ better for dynamic insertions and spatial locality queries.")
 
 (define (quadtree->list tree)
   (doc 'type '(-> Quadtree (List Point)))
-  (doc 'description "Extract all points from the quadtree")
-  (cond
-    [(quadtree-empty? tree) '()]
-    [(quadtree-leaf? tree) (quadtree-leaf-points tree)]
-    [(quadtree-node? tree)
-     (append (quadtree->list (quadtree-ne tree))
-             (quadtree->list (quadtree-nw tree))
-             (quadtree->list (quadtree-se tree))
-             (quadtree->list (quadtree-sw tree)))]))
+  (doc 'description "Extract all points from the quadtree. O(n)")
+  (let loop ([t tree] [acc '()])
+    (cond
+      [(quadtree-empty? t) acc]
+      [(quadtree-leaf? t) (append (quadtree-leaf-points t) acc)]
+      [(quadtree-node? t)
+       (loop (quadtree-ne t)
+             (loop (quadtree-nw t)
+                   (loop (quadtree-se t)
+                         (loop (quadtree-sw t) acc))))])))

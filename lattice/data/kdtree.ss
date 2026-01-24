@@ -72,7 +72,12 @@ in O(√n + k) where k is result size. Points are represented as vectors (lists 
 (define (point-distance-sq p1 p2)
   (doc 'type '(-> Point Point Num))
   (doc 'description "Squared Euclidean distance between points")
-  (apply + (map (lambda (a b) (let ([d (- a b)]) (* d d))) p1 p2)))
+  ;; Tail-recursive to avoid allocation in hot path
+  (let loop ([a p1] [b p2] [sum 0])
+    (if (null? a)
+        sum
+        (let ([d (- (car a) (car b))])
+          (loop (cdr a) (cdr b) (+ sum (* d d)))))))
 
 (define (point-distance p1 p2)
   (doc 'type '(-> Point Point Num))
@@ -339,12 +344,13 @@ Uses range query for initial filtering, then distance check.")
 
 (define (kdtree->list tree)
   (doc 'type '(-> KDTree (List Point)))
-  (doc 'description "Extract all points from tree (in-order traversal)")
-  (if (kdtree-empty? tree)
-      '()
-      (append (kdtree->list (kdtree-left tree))
-              (list (kdtree-point tree))
-              (kdtree->list (kdtree-right tree)))))
+  (doc 'description "Extract all points from tree (in-order traversal). O(n)")
+  (let loop ([t tree] [acc '()])
+    (if (kdtree-empty? t)
+        acc
+        (loop (kdtree-left t)
+              (cons (kdtree-point t)
+                    (loop (kdtree-right t) acc))))))
 
 ;;; ============================================================
 ;;; Insertion (for incremental building)
