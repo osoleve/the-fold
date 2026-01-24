@@ -19,6 +19,11 @@
     (assert-equal 6 (kdtree-size tree))
     (assert-true (kdtree-balanced? tree))))
 
+(define-test "list->kdtree alias"
+  ;; list->kdtree is alias for kdtree-build
+  (let ([tree (list->kdtree '((1 2) (3 4) (5 6)))])
+    (assert-equal 3 (kdtree-size tree))))
+
 (define-test "kdtree-build 3D points"
   (let ([tree (kdtree-build '((1 2 3) (4 5 6) (7 8 9) (2 3 4)))])
     (assert-equal 4 (kdtree-size tree))

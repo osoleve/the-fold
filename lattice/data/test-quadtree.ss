@@ -53,6 +53,12 @@
          [tree (quadtree-build-auto points)])
     (assert-equal 4 (quadtree-size tree))))
 
+(define-test "list->quadtree alias"
+  ;; list->quadtree is alias for quadtree-build-auto
+  (let* ([points '((1 2) (3 4) (5 6))]
+         [tree (list->quadtree points)])
+    (assert-equal 3 (quadtree-size tree))))
+
 (define-test "quadtree-range-rect"
   (let* ([points '((1 1) (5 5) (9 9) (3 3) (7 7))]
          [tree (quadtree-build-auto points)]

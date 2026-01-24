@@ -99,6 +99,9 @@ Points must all have the same dimensionality.")
       (let ([k (point-dimension (car points))])
         (kdtree-build-rec points k 0))))
 
+;; Alias for API consistency with list->vector, list->string, etc.
+(define list->kdtree kdtree-build)
+
 (define (kdtree-build-rec points k depth)
   ;; Build recursively, splitting on axis = depth mod k
   (cond

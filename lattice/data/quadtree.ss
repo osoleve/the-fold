@@ -130,6 +130,9 @@ better for dynamic insertions and spatial locality queries.")
              [hh+ (if (zero? hh) 1 (* hh 1.01))])
         (quadtree-build points (make-bounds cx cy hw+ hh+)))))
 
+;; Alias for API consistency with list->vector, list->string, etc.
+(define list->quadtree quadtree-build-auto)
+
 ;;; ============================================================
 ;;; Insertion
 ;;; ============================================================
