@@ -250,6 +250,19 @@
     (let ([min-pt (kdtree-find-min tree 1 2 0)])
       (assert-equal 2 (cadr min-pt)))))
 
+(define-test "kdtree-delete with duplicate coordinates"
+  ;; Test deletion when multiple points share same coordinate on split axis
+  (let* ([points '((5 1) (5 2) (5 3) (5 4) (5 5))]  ; all same x
+         [tree (kdtree-build points)])
+    (assert-equal 5 (kdtree-size tree))
+    ;; Delete one point
+    (let ([tree2 (kdtree-delete-2d tree '(5 3))])
+      (assert-equal 4 (kdtree-size tree2))
+      (assert-false (kdtree-member? tree2 '(5 3) 2))
+      ;; Other points still present
+      (assert-true (kdtree-member? tree2 '(5 1) 2))
+      (assert-true (kdtree-member? tree2 '(5 5) 2)))))
+
 ;; Helper for stress test
 (define (take lst n)
   (if (or (null? lst) (<= n 0))

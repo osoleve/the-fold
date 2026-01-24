@@ -451,16 +451,17 @@ Returns unchanged tree if point not found.")
                         (kdtree-delete-rec (kdtree-right tree) point k (+ depth 1))
                         depth)]
           [else
-           ;; Equal coordinates - try left first, then right if not found in left
-           (let ([left-result (kdtree-delete-rec (kdtree-left tree) point k (+ depth 1))])
-             (if (< (kdtree-size left-result) (kdtree-size (kdtree-left tree)))
-                 ;; Successfully deleted from left
-                 (kdtree-node node-point left-result (kdtree-right tree) depth)
-                 ;; Not in left, try right
-                 (kdtree-node node-point
-                              (kdtree-left tree)
-                              (kdtree-delete-rec (kdtree-right tree) point k (+ depth 1))
-                              depth)))]))))
+           ;; Equal coordinates - check which subtree contains the point
+           ;; Use member? to determine which side to search (O(log n) typically)
+           (if (kdtree-member-rec (kdtree-left tree) point k (+ depth 1))
+               (kdtree-node node-point
+                            (kdtree-delete-rec (kdtree-left tree) point k (+ depth 1))
+                            (kdtree-right tree)
+                            depth)
+               (kdtree-node node-point
+                            (kdtree-left tree)
+                            (kdtree-delete-rec (kdtree-right tree) point k (+ depth 1))
+                            depth))]))))
 
 (define (kdtree-delete-node tree k depth)
   ;; Delete the node at root of tree, finding appropriate replacement

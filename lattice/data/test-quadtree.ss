@@ -214,4 +214,18 @@
       ;; 'a at (10,10) should still exist
       (assert-true (quadtree-member? tree2 10 10)))))
 
+(define-test "quadtree-delete point on boundary"
+  ;; Test deletion of point exactly on quadrant boundaries
+  (let* ([tree (quadtree-create (make-bounds 0 0 10 10))]  ; bounds from -10,-10 to 10,10
+         [tree (quadtree-insert tree 0 0 'origin)]         ; exactly at center
+         [tree (quadtree-insert tree 0 5 'on-y-axis)]      ; on y-axis
+         [tree (quadtree-insert tree 5 0 'on-x-axis)])     ; on x-axis
+    (assert-equal 3 (quadtree-size tree))
+    ;; Delete origin point
+    (let ([tree2 (quadtree-delete tree 0 0)])
+      (assert-equal 2 (quadtree-size tree2))
+      (assert-false (quadtree-member? tree2 0 0))
+      (assert-true (quadtree-member? tree2 0 5))
+      (assert-true (quadtree-member? tree2 5 0)))))
+
 (run-all-tests)
