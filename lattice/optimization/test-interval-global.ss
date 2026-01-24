@@ -293,6 +293,144 @@
 )
 
 ;;; ============================================================================
+;;; Tightness Tests
+;;; ============================================================================
+;;;
+;;; Verify the optimizer returns tight bounds on the global minimum.
+;;; A tight result has:
+;;; 1. best-upper close to the true minimum value
+;;; 2. Candidate boxes small (width below tolerance)
+;;; 3. Gap between lower and upper bounds small
+
+(test-group "Tightness: Bound Quality"
+
+  (define-test "x² bound accuracy"
+    ;; True minimum: f(0) = 0
+    ;; Optimizer should find value very close to 0
+    (let* ([f-interval (lambda (box) (interval-sqr (car box)))]
+           [box (list (interval -10 10))]
+           [criteria (make-interval-convergence 1e-8 50000)]
+           [result (interval-minimize f-interval box criteria)])
+      ;; best-upper should be extremely close to 0
+      (assert-true (< (ior-best-upper result) 1e-14))
+      ;; Reason should be exhausted (converged), not max-iterations
+      (assert-equal 'exhausted (ior-reason result))))
+
+  (define-test "Sphere bound accuracy"
+    ;; True minimum: f(0,0) = 0
+    (let* ([box (list (interval -5 5) (interval -5 5))]
+           [criteria (make-interval-convergence 1e-6 30000)]
+           [result (interval-minimize interval-sphere box criteria)])
+      ;; Should achieve tight bound
+      (assert-true (< (ior-best-upper result) 1e-10))))
+
+  (define-test "Rosenbrock bound accuracy"
+    ;; True minimum: f(1,1) = 0
+    (let* ([box (list (interval 0.5 1.5) (interval 0.5 1.5))]
+           [criteria (make-interval-convergence 1e-6 50000)]
+           [result (interval-minimize interval-rosenbrock box criteria)])
+      ;; Should get very close to 0
+      (assert-true (< (ior-best-upper result) 1e-6))))
+)
+
+(test-group "Tightness: Candidate Box Width"
+
+  (define-test "Candidate boxes converge by width or gap"
+    ;; Candidates converge when EITHER width < tol OR gap < gap-tol
+    ;; This test verifies all candidates meet at least one criterion
+    (let* ([f-interval (lambda (box) (interval-sqr (car box)))]
+           [box (list (interval -5 5))]
+           [tol 1e-4]
+           [criteria (make-interval-convergence tol 10000 tol)]  ; width-tol = gap-tol
+           [result (interval-minimize f-interval box criteria)]
+           [candidates (ior-candidates result)])
+      ;; All candidate boxes should satisfy at least one convergence criterion
+      (assert-true (for-all (lambda (cand)
+                              (let* ([width (interval-width (car cand))]
+                                     [f-iv (f-interval cand)]
+                                     [gap (- (interval-hi f-iv) (interval-lo f-iv))])
+                                (or (<= width tol) (<= gap tol))))
+                            candidates))))
+
+  (define-test "2D candidate boxes reasonably small"
+    ;; For 2D, verify candidates are reasonably small (not necessarily at tolerance)
+    (let* ([box (list (interval -3 3) (interval -3 3))]
+           [tol 1e-3]
+           [criteria (make-interval-convergence tol 30000)]
+           [result (interval-minimize interval-sphere box criteria)]
+           [candidates (ior-candidates result)])
+      ;; All candidate boxes should have max-width much smaller than original
+      (assert-true (for-all (lambda (cand)
+                              (let ([widths (map interval-width cand)])
+                                ;; Should be at least 10x smaller than original width 6
+                                (< (apply max widths) 0.6)))
+                            candidates))))
+)
+
+(test-group "Tightness: Solution Box"
+
+  (define-test "Solution box much smaller than original"
+    (let* ([f-interval (lambda (box) (interval-sqr (car box)))]
+           [box (list (interval -5 5))]
+           [tol 1e-4]
+           [criteria (make-interval-convergence tol 10000)]
+           [result (interval-minimize f-interval box criteria)]
+           [sol-box (ior-solution-box result)])
+      ;; Solution box is hull of candidates, should be much smaller than original
+      ;; Original width is 10, solution should be << 1 for x²
+      (assert-true (< (interval-width (car sol-box)) 0.1))))
+
+  (define-test "2D solution box reasonably tight"
+    (let* ([box (list (interval -5 5) (interval -5 5))]
+           [tol 1e-3]
+           [criteria (make-interval-convergence tol 30000)]
+           [result (interval-minimize interval-sphere box criteria)]
+           [sol-box (ior-solution-box result)])
+      ;; Solution box should be much smaller than original
+      (assert-true (< (interval-width (car sol-box)) 1))
+      (assert-true (< (interval-width (cadr sol-box)) 1))))
+)
+
+(test-group "Tightness: Iteration Efficiency"
+
+  (define-test "Simple function converges quickly"
+    ;; x² should not need many iterations for moderate tolerance
+    (let* ([f-interval (lambda (box) (interval-sqr (car box)))]
+           [box (list (interval -10 10))]
+           [criteria (make-interval-convergence 1e-4 10000)]
+           [result (interval-minimize f-interval box criteria)])
+      ;; Should converge in reasonable number of iterations
+      (assert-true (< (ior-iterations result) 5000))))
+
+  (define-test "2D sphere converges reasonably"
+    (let* ([box (list (interval -5 5) (interval -5 5))]
+           [criteria (make-interval-convergence 1e-3 30000)]
+           [result (interval-minimize interval-sphere box criteria)])
+      ;; 2D takes more iterations but should still converge
+      (assert-true (< (ior-iterations result) 20000))))
+)
+
+(test-group "Tightness: Overestimation Bounds"
+
+  (define-test "Interval evaluation not overly pessimistic"
+    ;; For x² over [0, 2], interval gives [0, 4]
+    ;; True range is [0, 4], so interval is exact here
+    (let* ([box (list (interval 0 2))]
+           [f-iv (interval-sqr (car box))])
+      (assert-equal 0 (interval-lo f-iv))
+      (assert-equal 4 (interval-hi f-iv))))
+
+  (define-test "Sphere interval reasonably tight"
+    ;; For x² + y² over [0,1] x [0,1]
+    ;; True range is [0, 2]
+    ;; Interval: sqr([0,1]) + sqr([0,1]) = [0,1] + [0,1] = [0,2]
+    (let* ([box (list (interval 0 1) (interval 0 1))]
+           [f-iv (interval-sphere box)])
+      (assert-equal 0 (interval-lo f-iv))
+      (assert-equal 2 (interval-hi f-iv))))
+)
+
+;;; ============================================================================
 ;;; Run Tests
 ;;; ============================================================================
 
