@@ -214,15 +214,13 @@
 
 (test-group 'distances
 
-  (define-test "bottleneck distance bounds are reasonable"
-    ; Note: Our greedy algorithm gives an upper bound, not the exact distance
-    (let* ([pts '((0.0 0.0) (1.0 0.0))]
+  (define-test "bottleneck distance is zero for identical diagrams"
+    (let* ([pts '((0.0 0.0) (1.0 0.0) (0.5 0.5))]
            [d1 (compute-persistence pts 1 2.0)]
            [d2 (compute-persistence pts 1 2.0)]
            [dist (diagram-bottleneck d1 d2 0)])
-      ; For identical diagrams, the exact distance would be 0
-      ; Our greedy bound should be non-negative
-      (assert-true (>= dist 0))))
+      ; Identical diagrams should have distance 0
+      (assert-equal 0.0 dist)))
 
   (define-test "bottleneck distance positive for different diagrams"
     (let* ([pts1 '((0.0 0.0) (1.0 0.0))]
@@ -231,6 +229,30 @@
            [d2 (compute-persistence pts2 1 3.0)])
       ; Edge birth times differ (1.0 vs 2.0)
       (assert-true (> (diagram-bottleneck d1 d2 0) 0)))))
+
+;;; ============================================================
+;;; High-Dimension Tests
+;;; ============================================================
+
+(test-group 'high-dimensions
+
+  (define-test "rips supports dimension 4 (5-simplex)"
+    ; 5 points in a small cluster should form a 4-simplex
+    (let* ([pts '((0.0 0.0) (0.1 0.0) (0.0 0.1) (0.1 0.1) (0.05 0.05))]
+           [f (rips-filtration pts 4 1.0 euclidean-distance)]
+           [simplices (filtration-simplices f)]
+           [dims (map simplex-dim simplices)]
+           [max-dim-found (apply max dims)])
+      ; Should have simplices up to dimension 4
+      (assert-equal 4 max-dim-found)))
+
+  (define-test "tetrahedra generated for 4 points"
+    ; 4 points close together should form a tetrahedron (dim 3)
+    (let* ([pts '((0.0 0.0 0.0) (1.0 0.0 0.0) (0.5 0.866 0.0) (0.5 0.289 0.816))]
+           [f (rips-filtration pts 3 2.0 euclidean-distance)]
+           [simplices (filtration-simplices f)])
+      ; Should have exactly one tetrahedron (dim 3)
+      (assert-equal 1 (length (filter (lambda (s) (= 3 (simplex-dim s))) simplices))))))
 
 ;;; ============================================================
 ;;; Run Tests

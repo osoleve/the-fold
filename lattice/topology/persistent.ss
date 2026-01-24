@@ -139,67 +139,59 @@ the Čech complex (which requires all points to fit in a ball of radius ε/2).")
 (define (build-rips-pairs points dist-matrix n max-dim max-epsilon)
   (doc 'type '(-> Vector Vector Integer Integer Number (List (Pair Simplex Number))))
   (doc 'description "Build all Rips simplices up to max-dim with birth times")
+  (doc 'note "Uses recursive combination generation for arbitrary dimensions")
   (let ([result '()])
     ; Add vertices at time 0
     (do ([i 0 (+ i 1)])
         [(= i n)]
       (set! result (cons (cons (make-simplex (list i)) 0.0) result)))
-    ; Add higher simplices by checking all combinations
-    (when (>= max-dim 1)
-      (set! result (append result (rips-edges dist-matrix n max-epsilon))))
-    (when (>= max-dim 2)
-      (set! result (append result (rips-triangles dist-matrix n max-epsilon))))
-    (when (>= max-dim 3)
-      (set! result (append result (rips-tetrahedra dist-matrix n max-epsilon))))
+    ; Add k-simplices for k = 1 to max-dim
+    (do ([k 1 (+ k 1)])
+        [(> k max-dim) result]
+      (set! result (append result (rips-k-simplices dist-matrix n k max-epsilon))))))
+
+(define (rips-k-simplices dist-matrix n k max-epsilon)
+  (doc 'type '(-> Vector Integer Integer Number (List (Pair Simplex Number))))
+  (doc 'description "Build all k-simplices (k+1 vertices) for Rips complex")
+  (let ([result '()])
+    (for-each-combination
+      (iota n) (+ k 1)
+      (lambda (vertices)
+        (let ([max-d (max-pairwise-distance dist-matrix vertices)])
+          (when (<= max-d max-epsilon)
+            (set! result (cons (cons (make-simplex vertices) max-d) result))))))
     result))
 
-(define (rips-edges dist-matrix n max-epsilon)
-  (doc 'type '(-> Vector Integer Number (List (Pair Simplex Number))))
-  (let ([result '()])
-    (do ([i 0 (+ i 1)])
-        [(= i n) result]
-      (do ([j (+ i 1) (+ j 1)])
-          [(= j n)]
-        (let ([d (dist-ref dist-matrix i j)])
-          (when (<= d max-epsilon)
-            (set! result (cons (cons (make-simplex (list i j)) d) result))))))))
+(define (max-pairwise-distance dist-matrix vertices)
+  (doc 'type '(-> Vector (List Integer) Number))
+  (doc 'description "Maximum pairwise distance among vertices (Rips diameter)")
+  (let ([max-d 0.0])
+    (let loop-i ([vs vertices])
+      (unless (null? vs)
+        (let ([i (car vs)])
+          (let loop-j ([ws (cdr vs)])
+            (unless (null? ws)
+              (let ([j (car ws)])
+                (set! max-d (max max-d (dist-ref dist-matrix i j)))
+                (loop-j (cdr ws)))))
+          (loop-i (cdr vs)))))
+    max-d))
 
-(define (rips-triangles dist-matrix n max-epsilon)
-  (doc 'type '(-> Vector Integer Number (List (Pair Simplex Number))))
-  (let ([result '()])
-    (do ([i 0 (+ i 1)])
-        [(= i n) result]
-      (do ([j (+ i 1) (+ j 1)])
-          [(= j n)]
-        (do ([k (+ j 1) (+ k 1)])
-            [(= k n)]
-          (let* ([d01 (dist-ref dist-matrix i j)]
-                 [d02 (dist-ref dist-matrix i k)]
-                 [d12 (dist-ref dist-matrix j k)]
-                 [max-d (max d01 d02 d12)])
-            (when (<= max-d max-epsilon)
-              (set! result (cons (cons (make-simplex (list i j k)) max-d) result)))))))))
-
-(define (rips-tetrahedra dist-matrix n max-epsilon)
-  (doc 'type '(-> Vector Integer Number (List (Pair Simplex Number))))
-  (let ([result '()])
-    (do ([i 0 (+ i 1)])
-        [(= i n) result]
-      (do ([j (+ i 1) (+ j 1)])
-          [(= j n)]
-        (do ([k (+ j 1) (+ k 1)])
-            [(= k n)]
-          (do ([l (+ k 1) (+ l 1)])
-              [(= l n)]
-            (let* ([d01 (dist-ref dist-matrix i j)]
-                   [d02 (dist-ref dist-matrix i k)]
-                   [d03 (dist-ref dist-matrix i l)]
-                   [d12 (dist-ref dist-matrix j k)]
-                   [d13 (dist-ref dist-matrix j l)]
-                   [d23 (dist-ref dist-matrix k l)]
-                   [max-d (max d01 d02 d03 d12 d13 d23)])
-              (when (<= max-d max-epsilon)
-                (set! result (cons (cons (make-simplex (list i j k l)) max-d) result))))))))))
+(define (for-each-combination lst k proc)
+  (doc 'type '(-> (List α) Integer (-> (List α) Void) Void))
+  (doc 'description "Call proc on each k-combination of lst")
+  (when (>= (length lst) k)
+    (if (= k 0)
+        (proc '())
+        (if (= k (length lst))
+            (proc lst)
+            (let ([first (car lst)]
+                  [rest (cdr lst)])
+              ; Combinations including first
+              (for-each-combination rest (- k 1)
+                (lambda (combo) (proc (cons first combo))))
+              ; Combinations not including first
+              (for-each-combination rest k proc))))))
 
 ;;; ============================================================
 ;;; Persistence Algorithm (Standard Reduction)
@@ -568,22 +560,43 @@ where γ ranges over all bijections and ||·||_∞ is the L∞ distance.")
 
 (define (bottleneck-greedy pts1 pts2)
   (doc 'type '(-> (List Point) (List Point) Number))
-  (doc 'description "Greedy approximation to bottleneck distance")
-  ; Build all possible costs (point-to-point and point-to-diagonal)
-  (let* ([costs '()]
-         [n1 (length pts1)]
-         [n2 (length pts2)])
-    ; Point-to-point costs
+  (doc 'description "Greedy matching approximation to bottleneck distance")
+  (doc 'note "Greedily matches each point to its closest available partner or diagonal.
+This gives an O(n²) 2-approximation to the true bottleneck distance.")
+  (let* ([n1 (length pts1)]
+         [n2 (length pts2)]
+         [vec1 (list->vector pts1)]
+         [vec2 (list->vector pts2)]
+         ; Track which points are matched
+         [matched1 (make-vector n1 #f)]
+         [matched2 (make-vector n2 #f)]
+         [max-cost 0.0])
+    ; Greedy: for each point in pts1, find best match in pts2 or use diagonal
     (do ([i 0 (+ i 1)])
         [(= i n1)]
-      (do ([j 0 (+ j 1)])
-          [(= j n2)]
-        (set! costs (cons (point-distance (list-ref pts1 i) (list-ref pts2 j)) costs))))
-    ; Point-to-diagonal costs
-    (for-each (lambda (p) (set! costs (cons (diagonal-distance p) costs))) pts1)
-    (for-each (lambda (p) (set! costs (cons (diagonal-distance p) costs))) pts2)
-    ; The bottleneck distance is at most the maximum of these
-    (if (null? costs) 0.0 (apply max costs))))
+      (let* ([p1 (vector-ref vec1 i)]
+             [diag-cost (diagonal-distance p1)]
+             [best-j #f]
+             [best-cost diag-cost])
+        ; Find closest unmatched point in pts2
+        (do ([j 0 (+ j 1)])
+            [(= j n2)]
+          (unless (vector-ref matched2 j)
+            (let ([cost (point-distance p1 (vector-ref vec2 j))])
+              (when (< cost best-cost)
+                (set! best-j j)
+                (set! best-cost cost)))))
+        ; Make the match
+        (vector-set! matched1 i #t)
+        (when best-j
+          (vector-set! matched2 best-j #t))
+        (set! max-cost (max max-cost best-cost))))
+    ; Remaining unmatched points in pts2 go to diagonal
+    (do ([j 0 (+ j 1)])
+        [(= j n2)]
+      (unless (vector-ref matched2 j)
+        (set! max-cost (max max-cost (diagonal-distance (vector-ref vec2 j))))))
+    max-cost))
 
 ;;; ============================================================
 ;;; Convenience Functions
