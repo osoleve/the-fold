@@ -26,6 +26,62 @@
       (assert-equal 30 (bids-second-max bids)))))
 
 ;;; ============================================================================
+;;; Tie-Breaking Strategies
+;;; ============================================================================
+
+(test-group "tie-breaking"
+  (define-test "default strategy is 'first"
+    (assert-equal 'first (*tie-break-strategy*)))
+
+  (define-test "select-winner with 'first picks lowest index"
+    (parameterize ([*tie-break-strategy* 'first])
+      (let* ([bids (make-bids '(25 25 25))]  ; 3-way tie
+             [outcome (first-price-auction bids)])
+        (assert-equal 0 (auction-outcome-winner outcome)))))
+
+  (define-test "select-winner with 'last picks highest index"
+    (parameterize ([*tie-break-strategy* 'last])
+      (let* ([bids (make-bids '(25 25 25))]  ; 3-way tie
+             [outcome (first-price-auction bids)])
+        (assert-equal 2 (auction-outcome-winner outcome)))))
+
+  (define-test "with-tie-break convenience works"
+    (let* ([bids (make-bids '(25 25 25))]
+           [outcome-first (with-tie-break 'first
+                            (lambda () (first-price-auction bids)))]
+           [outcome-last (with-tie-break 'last
+                           (lambda () (first-price-auction bids)))])
+      (assert-equal 0 (auction-outcome-winner outcome-first))
+      (assert-equal 2 (auction-outcome-winner outcome-last))))
+
+  (define-test "custom tie-break function"
+    ;; Always pick the middle winner
+    (let* ([pick-middle (lambda (winners)
+                          (list-ref winners (quotient (length winners) 2)))]
+           [bids (make-bids '(25 25 25))]
+           [outcome (with-tie-break pick-middle
+                      (lambda () (first-price-auction bids)))])
+      (assert-equal 1 (auction-outcome-winner outcome))))
+
+  (define-test "tie-break affects second-price auction"
+    (let* ([bids (make-bids '(30 30 20))]  ; bidders 0,1 tie for first
+           [outcome-first (with-tie-break 'first
+                            (lambda () (second-price-auction bids)))]
+           [outcome-last (with-tie-break 'last
+                           (lambda () (second-price-auction bids)))])
+      (assert-equal 0 (auction-outcome-winner outcome-first))
+      (assert-equal 1 (auction-outcome-winner outcome-last))
+      ;; Payment is still second-highest (30 from the other winner)
+      (assert-equal 30 (auction-outcome-payment outcome-first))
+      (assert-equal 30 (auction-outcome-payment outcome-last))))
+
+  (define-test "tie-break affects all-pay auction"
+    (let* ([bids (make-bids '(25 25 10))]
+           [outcome-last (with-tie-break 'last
+                           (lambda () (all-pay-auction bids)))])
+      (assert-equal 1 (auction-outcome-winner outcome-last)))))
+
+;;; ============================================================================
 ;;; First-Price Auction
 ;;; ============================================================================
 

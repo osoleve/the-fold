@@ -12,6 +12,39 @@
 (doc 'note "A mechanism is a game where the designer controls the rules to achieve desired outcomes. Core concepts: DSIC (dominant strategy incentive compatible) means truthful reporting is a dominant strategy. IR (individual rationality) means participants gain non-negative utility. Efficiency means maximizing total welfare.")
 
 ;;; ============================================================================
+;;; Section: Tie-Breaking Configuration
+;;; ============================================================================
+
+(doc 'section 'tie-breaking)
+(doc 'note "When multiple bidders tie for highest bid, we must select one winner. The default 'first strategy is deterministic and reproducible but may introduce bias in repeated auctions. Alternative strategies are available for fairness or custom selection logic.")
+
+(doc *tie-break-strategy* 'export #t)
+(doc *tie-break-strategy* 'type 'Parameter)
+(doc *tie-break-strategy* 'description "Strategy for breaking ties among winners. Values: 'first (lowest index, default), 'last (highest index), 'random (uniform random), or a procedure (List Nat) -> Nat.")
+(define *tie-break-strategy* (make-parameter 'first))
+
+(define (select-winner winners)
+  (doc 'type '(-> (List Nat) (U Nat False)))
+  (doc 'description "Select a single winner from list of tied winners using current tie-break strategy")
+  (if (null? winners)
+      #f
+      (let ([strategy (*tie-break-strategy*)])
+        (cond
+          [(eq? strategy 'first) (car winners)]
+          [(eq? strategy 'last) (car (reverse winners))]
+          [(eq? strategy 'random) (list-ref winners (random (length winners)))]
+          [(procedure? strategy) (strategy winners)]
+          [else (car winners)]))))  ; fallback to 'first
+
+(define (with-tie-break strategy thunk)
+  (doc 'export #t)
+  (doc 'type '(-> (U Symbol (-> (List Nat) Nat)) (-> a) a))
+  (doc 'description "Run thunk with the given tie-break strategy")
+  (doc 'example "(with-tie-break 'random (lambda () (first-price-auction bids)))")
+  (parameterize ([*tie-break-strategy* strategy])
+    (thunk)))
+
+;;; ============================================================================
 ;;; Section: Bid and Valuation Representation
 ;;; ============================================================================
 
@@ -123,9 +156,9 @@
   (doc 'export #t)
   (doc 'type '(-> (Vector Number) AuctionOutcome))
   (doc 'description "First-price sealed-bid auction: highest bidder wins, pays their bid")
-  (doc 'note "Not incentive compatible - bidders shade bids. Equilibrium bid = (n-1)/n × valuation for n risk-neutral bidders with uniform valuations.")
+  (doc 'note "Not incentive compatible - bidders shade bids. Equilibrium bid = (n-1)/n × valuation for n risk-neutral bidders with uniform valuations. Ties broken by *tie-break-strategy*.")
   (let* ([winners (bids-winners bids)]
-         [winner (if (null? winners) #f (car winners))]
+         [winner (select-winner winners)]
          [payment (if winner (bids-ref bids winner) 0)])
     (make-auction-outcome winner payment)))
 
@@ -135,9 +168,9 @@
   (doc 'export #t)
   (doc 'type '(-> (Vector Number) AuctionOutcome))
   (doc 'description "Second-price sealed-bid (Vickrey) auction: highest bidder wins, pays second-highest bid")
-  (doc 'note "DSIC: Truthful bidding is a dominant strategy. Winner's utility = valuation - payment = v - second-highest-bid.")
+  (doc 'note "DSIC: Truthful bidding is a dominant strategy. Winner's utility = valuation - payment = v - second-highest-bid. Ties broken by *tie-break-strategy*.")
   (let* ([winners (bids-winners bids)]
-         [winner (if (null? winners) #f (car winners))]
+         [winner (select-winner winners)]
          [payment (bids-second-max bids)])
     (make-auction-outcome winner payment)))
 
@@ -148,10 +181,10 @@
   (doc 'export #t)
   (doc 'type '(-> (Vector Number) AuctionOutcome))
   (doc 'description "All-pay auction: everyone pays their bid, highest bidder wins")
-  (doc 'note "Models contests where effort is sunk (lobbying, R&D). Not truthful. Revenue can exceed valuation in equilibrium.")
+  (doc 'note "Models contests where effort is sunk (lobbying, R&D). Not truthful. Revenue can exceed valuation in equilibrium. Ties broken by *tie-break-strategy*.")
   (let* ([n (bids-length bids)]
          [winners (bids-winners bids)]
-         [winner (if (null? winners) #f (car winners))]
+         [winner (select-winner winners)]
          [payments (let ([v (make-vector n 0)])
                      (do ([i 0 (+ i 1)])
                          [(= i n) v]
@@ -168,10 +201,10 @@
   (doc 'export #t)
   (doc 'type '(-> (Vector Number) AuctionOutcome))
   (doc 'description "Third-price auction: highest bidder wins, pays third-highest bid")
-  (doc 'note "Not DSIC. Incentivizes overbidding. Useful as a theoretical example of non-truthful mechanisms.")
+  (doc 'note "Not DSIC. Incentivizes overbidding. Useful as a theoretical example of non-truthful mechanisms. Ties broken by *tie-break-strategy*.")
   (let* ([n (bids-length bids)]
          [winners (bids-winners bids)]
-         [winner (if (null? winners) #f (car winners))]
+         [winner (select-winner winners)]
          [sorted (sort > (vector->list bids))]
          [payment (if (>= n 3) (caddr sorted) 0)])
     (make-auction-outcome winner payment)))
@@ -567,18 +600,16 @@
   (doc 'export #t)
   (doc 'type '(-> (Vector Number) Number Number AuctionOutcome))
   (doc 'description "Simulate Dutch auction with known valuations (jump bidding at v - ε)")
-  (doc 'note "With rational bidders, winner is highest valuation, payment slightly below. Equivalent to first-price in expectation.")
+  (doc 'note "With rational bidders, winner is highest valuation, payment slightly below. Equivalent to first-price in expectation. Ties broken by *tie-break-strategy*.")
   (let* ([n (vector-length valuations)]
          [max-val (let loop ([i 0] [best -inf.0])
                     (if (>= i n)
                         best
                         (loop (+ i 1) (max best (vector-ref valuations i)))))]
-         [winner (let loop ([i 0])
-                   (if (>= i n)
-                       #f
-                       (if (= (vector-ref valuations i) max-val)
-                           i
-                           (loop (+ i 1)))))]
+         ;; Find all bidders with max valuation
+         [winners (filter (lambda (i) (= (vector-ref valuations i) max-val))
+                          (iota n))]
+         [winner (select-winner winners)]
          ;; Payment = highest price at or below valuation
          [payment (let loop ([price start-price])
                     (if (<= price max-val)

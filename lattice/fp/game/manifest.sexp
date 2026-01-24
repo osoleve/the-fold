@@ -83,10 +83,11 @@
    stv-example approval-example diverse-preferences-example
 
    ;; mechanism.ss — Mechanism Design
+   *tie-break-strategy* with-tie-break
    make-bids make-auction-outcome
    auction-outcome-winner auction-outcome-payment auction-outcome-revenue
    first-price-auction second-price-auction all-pay-auction third-price-auction
-   with-reserve bidder-utility
+   dutch-auction with-reserve bidder-utility
    check-dsic verify-dsic check-ex-post-ir
    vcg-combinatorial pivot-mechanism
    myerson-virtual-value optimal-reserve-uniform
