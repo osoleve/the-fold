@@ -165,6 +165,13 @@ All elements share the same dimension, which is stored once.")
   (make-qvec (dim* (qty-dim qty) (qvec-dim qv))
              (vec-scale (qty-value qty) (qvec-values qv))))
 
+(define (qvec-qty-div qv qty)
+  (doc 'type '(-> QVec Quantity QVec))
+  (doc 'description "Divide vector by quantity (dimensions divide).")
+  (doc 'note "Example: displacement / time = velocity")
+  (make-qvec (dim/ (qvec-dim qv) (qty-dim qty))
+             (vec-scale (/ 1 (qty-value qty)) (qvec-values qv))))
+
 ;;; ============================================================
 ;;; Products
 ;;; ============================================================
@@ -201,11 +208,10 @@ All elements share the same dimension, which is stored once.")
             (dim-pow (qvec-dim qv) 2)))
 
 (define (qvec-norm qv)
-  (doc 'type '(-> QVec (Result Quantity Error)))
-  (doc 'description "L2 norm. Requires dimension with even exponents.")
-  (doc 'note "Works for: position (L), velocity (L/T), area (L²), etc.")
-  (let ([d (qvec-dim qv)])
-    (make-qty (vec-norm (qvec-values qv)) d)))
+  (doc 'type '(-> QVec Quantity))
+  (doc 'description "L2 norm (Euclidean magnitude). Returns quantity with same dimension.")
+  (doc 'note "||position|| is a length, ||velocity|| is a speed, etc.")
+  (make-qty (vec-norm (qvec-values qv)) (qvec-dim qv)))
 
 (define (qvec-normalize qv)
   (doc 'type '(-> QVec (Result QVec Error)))
@@ -342,7 +348,9 @@ All elements share the same dimension, which is stored once.")
   (doc 'type '(-> Quantity QVec Quantity QVec))
   (doc 'description "Compute velocity change from F=ma: dv = (F/m)*dt")
   (doc 'note "mass: kg, force: N, dt: s → returns m/s")
-  (let* ([acceleration (make-qvec dim-acceleration
+  ;; Derive acceleration dimension from force/mass rather than hardcoding
+  (let* ([accel-dim (dim/ (qvec-dim force) (qty-dim mass))]
+         [acceleration (make-qvec accel-dim
                                   (vec-scale (/ 1 (qty-value mass))
                                             (qvec-values force)))]
          [dv (qvec-integrate-time acceleration dt)])

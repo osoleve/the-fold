@@ -72,11 +72,14 @@
       (assert-true (vec-equal? (vector 5 7 9) (qvec-values sum)))))
 
   (define-test qvec-add-dimension-mismatch-test
-    ;; Calling qvec-add with mismatched dimensions should produce an error
-    ;; We verify indirectly by checking the dimensions don't match
+    ;; Verify that position and velocity have different dimensions
+    ;; (qvec-add would throw an error if called, which we can't easily test)
     (let ([pos (position-vec 1 2)]
           [vel (velocity-vec 3 4)])
-      (assert-false (dim=? (qvec-dim pos) (qvec-dim vel)))))
+      (assert-false (dim=? (qvec-dim pos) (qvec-dim vel)))
+      ;; Also verify same-dim vectors work
+      (let ([pos2 (position-vec 5 6)])
+        (assert-true (qvec? (qvec-add pos pos2))))))
 
   (define-test qvec-sub-test
     (let* ([v1 (velocity-vec 10 20)]
@@ -105,7 +108,16 @@
            [disp (qvec-qty-scale dt v)])
       (assert-true (vec-equal? (vector 20 0 0) (qvec-values disp)))
       ;; dimension should be velocity * time = length
-      (assert-true (dim=? dim-length-base (qvec-dim disp))))))
+      (assert-true (dim=? dim-length-base (qvec-dim disp)))))
+
+  (define-test qvec-qty-div-test
+    ;; displacement / time = velocity
+    (let* ([disp (position-vec 100 0)]  ; 100 m
+           [dt (second 10)]              ; 10 seconds
+           [vel (qvec-qty-div disp dt)])
+      (assert-true (vec-equal? (vector 10 0) (qvec-values vel)))
+      ;; dimension should be length / time = velocity
+      (assert-true (dim=? dim-velocity (qvec-dim vel))))))
 
 ;;; ============================================================
 ;;; Products Tests
