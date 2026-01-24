@@ -79,7 +79,19 @@
     (let* ([bids (make-bids '(25 25 10))]
            [outcome-last (with-tie-break 'last
                            (lambda () (all-pay-auction bids)))])
-      (assert-equal 1 (auction-outcome-winner outcome-last)))))
+      (assert-equal 1 (auction-outcome-winner outcome-last))))
+
+  (define-test "invalid strategy symbol raises error"
+    (assert-error
+     (lambda ()
+       (with-tie-break 'invalid-strategy
+         (lambda () (first-price-auction (make-bids '(25 25))))))))
+
+  (define-test "custom strategy returning invalid winner raises error"
+    (assert-error
+     (lambda ()
+       (with-tie-break (lambda (winners) 999)  ; 999 not in winners
+         (lambda () (first-price-auction (make-bids '(25 25)))))))))
 
 ;;; ============================================================================
 ;;; First-Price Auction
@@ -178,7 +190,16 @@
            [outcome (auction-with-reserve bids)])
       (assert-equal 1 (auction-outcome-winner outcome))
       ;; Second-highest is 20, but reserve is 25
-      (assert-equal 25 (auction-outcome-payment outcome)))))
+      (assert-equal 25 (auction-outcome-payment outcome))))
+
+  (define-test "with-reserve works with all-pay (vector payments)"
+    (let* ([bids (make-bids '(10 35 15 20))]
+           [auction-with-reserve (with-reserve all-pay-auction 25)]
+           [outcome (auction-with-reserve bids)])
+      ;; Only bidder 1 (35) meets reserve of 25
+      (assert-equal 1 (auction-outcome-winner outcome))
+      ;; Payment should be a vector
+      (assert-true (vector? (auction-outcome-payment outcome))))))
 
 ;;; ============================================================================
 ;;; Bidder Utility

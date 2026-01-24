@@ -33,8 +33,18 @@
           [(eq? strategy 'first) (car winners)]
           [(eq? strategy 'last) (car (reverse winners))]
           [(eq? strategy 'random) (list-ref winners (random (length winners)))]
-          [(procedure? strategy) (strategy winners)]
-          [else (car winners)]))))  ; fallback to 'first
+          [(procedure? strategy)
+           (let ([result (strategy winners)])
+             ;; Validate custom strategy returns valid winner
+             (if (memv result winners)
+                 result
+                 (error 'select-winner
+                        "custom tie-break strategy returned invalid winner"
+                        result winners)))]
+          [else
+           (error 'select-winner
+                  "invalid tie-break strategy (expected 'first, 'last, 'random, or procedure)"
+                  strategy)]))))
 
 (define (with-tie-break strategy thunk)
   (doc 'export #t)
@@ -188,12 +198,9 @@
          [payments (let ([v (make-vector n 0)])
                      (do ([i 0 (+ i 1)])
                          [(= i n) v]
-                       (vector-set! v i (bids-ref bids i))))]
-         [total-revenue (let loop ([i 0] [sum 0])
-                          (if (>= i n)
-                              sum
-                              (loop (+ i 1) (+ sum (bids-ref bids i)))))])
-    (make-auction-outcome% winner payments total-revenue)))
+                       (vector-set! v i (bids-ref bids i))))])
+    ;; Use constructor - it handles vector payments and computes revenue
+    (make-auction-outcome winner payments)))
 
 ;;; Third-Price Auction
 ;;; Winner pays third-highest bid. Interesting theoretical properties.
@@ -220,6 +227,7 @@
   (doc 'export #t)
   (doc 'type '(-> (-> (Vector Number) AuctionOutcome) Number (-> (Vector Number) AuctionOutcome)))
   (doc 'description "Wrap an auction with a reserve price")
+  (doc 'note "For scalar-payment auctions, ensures winner pays at least reserve. For vector-payment auctions (all-pay), the reserve filters eligible bidders but payments are unchanged.")
   (lambda (bids)
     (let* ([n (bids-length bids)]
            [filtered-bids (make-vector n 0)])
@@ -231,10 +239,14 @@
       ;; Check if anyone meets reserve
       (if (> (bids-max filtered-bids) 0)
           (let ([result (auction filtered-bids)])
-            ;; Ensure payment is at least reserve
+            ;; Ensure payment is at least reserve (scalar payments only)
             (let ([winner (auction-outcome-winner result)]
                   [payment (auction-outcome-payment result)])
-              (make-auction-outcome winner (max payment reserve-price))))
+              (if (vector? payment)
+                  ;; Vector payments (all-pay): return as-is, reserve already filtered bids
+                  result
+                  ;; Scalar payment: ensure at least reserve
+                  (make-auction-outcome winner (max payment reserve-price)))))
           ;; No sale
           (make-auction-outcome #f 0)))))
 
@@ -265,9 +277,10 @@
        (if (= i winner)
            (- valuation payment)
            0)]
-      ;; List of winners (tie) with scalar payment
+      ;; List of winners (tie) with scalar payment - split prize model
+      ;; Each winner gets 1/n of the prize value and pays 1/n of the price
       [(and (list? winner) (member i winner))
-       (- valuation (/ payment (length winner)))]
+       (/ (- valuation payment) (length winner))]
       [else 0])))
 
 ;;; ============================================================================
