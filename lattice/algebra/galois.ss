@@ -35,27 +35,34 @@
 
 ;;; gf-order : Field → Nat
 ;;; Get the order (number of elements) of a finite field.
+;;; Uses metadata if available, otherwise falls back to element count.
 (define (gf-order F)
   (doc 'export #t)
   (doc 'type '(-> Field Nat))
-  (length (field-elements F)))
+  (or (field-meta-ref F 'order)
+      (let ([elts (field-elements F)])
+        (if (null? elts)
+            0  ; Unknown/infinite
+            (length elts)))))
 
 ;;; gf-characteristic : Field → Nat
 ;;; Get the characteristic of a finite field.
 ;;; For GF(p^n), the characteristic is p.
+;;; Uses metadata if available, otherwise computes by repeated addition.
 (define (gf-characteristic F)
   (doc 'export #t)
   (doc 'type '(-> Field Nat))
-  (let ([elts (field-elements F)])
-    (if (null? elts)
-        0  ; Infinite field
-        (let* ([one (field-one F)]
-               [add (field-add-op F)]
-               [eq-fn (field-equal-fn F)])
-          (let loop ([sum one] [n 1])
-            (if (eq-fn sum (field-zero F))
-                n
-                (loop (add sum one) (+ n 1))))))))
+  (or (field-meta-ref F 'characteristic)
+      (let ([elts (field-elements F)])
+        (if (null? elts)
+            0  ; Infinite field
+            (let* ([one (field-one F)]
+                   [add (field-add-op F)]
+                   [eq-fn (field-equal-fn F)])
+              (let loop ([sum one] [n 1])
+                (if (eq-fn sum (field-zero F))
+                    n
+                    (loop (add sum one) (+ n 1)))))))))
 
 ;;; ============================================================================
 ;;; Section 2: GF(p^n) Extension Fields
@@ -106,16 +113,20 @@
 ;;; make-gf-extension : Prime × Nat × Polynomial → Field
 ;;; Create GF(p^n) as GF(p)[x]/(modulus) where modulus is irreducible of degree n.
 ;;; The modulus polynomial should be over GF(p).
+;;; NOTE: For p^n > 10000, use make-gf-extension-large to avoid element enumeration.
 (define (make-gf-extension p n modulus)
   (doc 'export #t)
   (doc 'type '(-> Int Int Polynomial Field))
   (doc 'description "Create GF(p^n) as quotient ring GF(p)[x]/(modulus)")
   (let* ([base-field (gf-prime p)]
+         [order (expt p n)]
          [zero-coeffs (list (field-zero base-field))]
          [one-coeffs (list (field-one base-field))]
-         ;; Generate all p^n elements
-         [elements (gf-ext-enumerate p n base-field modulus)])
-    (make-field
+         ;; Only enumerate small fields
+         [elements (if (< order 10000)
+                       (gf-ext-enumerate p n base-field modulus)
+                       '())])
+    (make-field*
      elements
      ;; Addition: coefficient-wise
      (lambda (a b)
@@ -135,7 +146,30 @@
        (gf-ext-div a b base-field n modulus))
      ;; Equality
      (lambda (a b)
-       (gf-ext-equal? a b base-field)))))
+       (gf-ext-equal? a b base-field))
+     ;; Metadata
+     `((order . ,order) (characteristic . ,p) (degree . ,n)))))
+
+;;; make-gf-extension-large : Prime × Nat × Polynomial → Field
+;;; Create GF(p^n) without element enumeration. Use for cryptographic field sizes.
+(define (make-gf-extension-large p n modulus)
+  (doc 'export #t)
+  (doc 'type '(-> Int Int Polynomial Field))
+  (doc 'description "Create GF(p^n) without enumeration, for large fields")
+  (let* ([base-field (make-field-zp-large p)]
+         [order (expt p n)]
+         [zero-coeffs (list (field-zero base-field))]
+         [one-coeffs (list (field-one base-field))])
+    (make-field*
+     '()  ; No enumeration
+     (lambda (a b) (gf-ext-add a b base-field n modulus))
+     (lambda (a b) (gf-ext-mul a b base-field n modulus))
+     (make-gf-ext-element zero-coeffs modulus base-field)
+     (make-gf-ext-element one-coeffs modulus base-field)
+     (lambda (a) (gf-ext-neg a base-field n modulus))
+     (lambda (a b) (gf-ext-div a b base-field n modulus))
+     (lambda (a b) (gf-ext-equal? a b base-field))
+     `((order . ,order) (characteristic . ,p) (degree . ,n)))))
 
 ;;; Enumerate all elements of GF(p^n)
 (define (gf-ext-enumerate p n base-field modulus)
@@ -215,17 +249,16 @@
   (gf-ext-mul a (gf-ext-inv b base-field n modulus) base-field n modulus))
 
 ;;; GF(p^n) element equality
+;;; O(n) comparison via direct list traversal
 (define (gf-ext-equal? a b base-field)
   (let* ([ca (gf-ext-coeffs a)]
          [cb (gf-ext-coeffs b)]
-         [eq-fn (field-equal-fn base-field)]
-         [zero (field-zero base-field)])
+         [eq-fn (field-equal-fn base-field)])
     (and (= (length ca) (length cb))
-         (let loop ([i 0])
-           (or (= i (length ca))
-               (and (eq-fn (list-ref-or ca i zero)
-                           (list-ref-or cb i zero))
-                    (loop (+ i 1))))))))
+         (let loop ([as ca] [bs cb])
+           (or (null? as)
+               (and (eq-fn (car as) (car bs))
+                    (loop (cdr as) (cdr bs))))))))
 
 ;;; Helper: safe list-ref with default
 (define (list-ref-or lst i default)
@@ -288,15 +321,19 @@
 ;;; Create GF(2^n) with given irreducible polynomial (as integer).
 ;;; The irreducible should include the leading x^n term.
 ;;; Example: GF(2^8) with AES polynomial x^8 + x^4 + x^3 + x + 1 = 0x11B
+;;; NOTE: For n > 16, elements are not enumerated (too large).
 (define (make-gf2n n irred)
   (doc 'export #t)
   (doc 'type '(-> Nat Int Field))
   (doc 'description "Create GF(2^n) with optimized binary arithmetic")
   (doc 'note "irred is the irreducible polynomial including x^n term, as integer")
-  (let ([mask (- (bitwise-arithmetic-shift-left 1 n) 1)])
-    (make-field
-     ;; Elements (2^n of them)
-     (map (lambda (i) (make-gf2n-element i n irred)) (iota (bitwise-arithmetic-shift-left 1 n)))
+  (let* ([order (bitwise-arithmetic-shift-left 1 n)]
+         ;; Only enumerate for small fields (n <= 16 means 65536 elements max)
+         [elements (if (<= n 16)
+                       (map (lambda (i) (make-gf2n-element i n irred)) (iota order))
+                       '())])
+    (make-field*
+     elements
      ;; Addition: XOR
      (lambda (a b)
        (make-gf2n-element (bitwise-xor (gf2n-value a) (gf2n-value b)) n irred))
@@ -316,7 +353,32 @@
         n irred))
      ;; Equality
      (lambda (a b)
-       (= (gf2n-value a) (gf2n-value b))))))
+       (= (gf2n-value a) (gf2n-value b)))
+     ;; Metadata
+     `((order . ,order) (characteristic . 2) (degree . ,n)))))
+
+;;; make-gf2n-large : Nat × Int → Field
+;;; Create GF(2^n) without element enumeration. Use for cryptographic sizes (n >= 128).
+(define (make-gf2n-large n irred)
+  (doc 'export #t)
+  (doc 'type '(-> Nat Int Field))
+  (doc 'description "Create GF(2^n) without enumeration, for large n")
+  (let ([order (bitwise-arithmetic-shift-left 1 n)])
+    (make-field*
+     '()  ; No enumeration
+     (lambda (a b)
+       (make-gf2n-element (bitwise-xor (gf2n-value a) (gf2n-value b)) n irred))
+     (lambda (a b)
+       (make-gf2n-element (gf2n-mul-raw (gf2n-value a) (gf2n-value b) n irred) n irred))
+     (make-gf2n-element 0 n irred)
+     (make-gf2n-element 1 n irred)
+     (lambda (a) a)
+     (lambda (a b)
+       (make-gf2n-element
+        (gf2n-mul-raw (gf2n-value a) (gf2n-inv-raw (gf2n-value b) n irred) n irred)
+        n irred))
+     (lambda (a b) (= (gf2n-value a) (gf2n-value b)))
+     `((order . ,order) (characteristic . 2) (degree . ,n)))))
 
 ;;; Raw GF(2^n) multiplication using Russian peasant algorithm
 (define (gf2n-mul-raw a b n irred)

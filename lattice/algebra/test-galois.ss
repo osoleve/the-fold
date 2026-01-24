@@ -229,6 +229,56 @@
 
     (define-test "gf2-8 order is 256"
       (let ([F (make-gf2-8-aes)])
-        (assert-equal 256 (gf-order F))))))
+        (assert-equal 256 (gf-order F)))))
+
+  ;;; ==========================================================================
+  ;;; Large Field Tests (no enumeration)
+  ;;; ==========================================================================
+
+  (test-group "large-fields"
+
+    (define-test "make-gf2n-large creates field instantly for n=128"
+      ;; This would hang/crash if we tried to enumerate 2^128 elements
+      (let* ([irred-128 (+ (bitwise-arithmetic-shift-left 1 128)
+                           (bitwise-arithmetic-shift-left 1 7)
+                           (bitwise-arithmetic-shift-left 1 2)
+                           (bitwise-arithmetic-shift-left 1 1)
+                           1)]  ; x^128 + x^7 + x^2 + x + 1
+             [F (make-gf2n-large 128 irred-128)])
+        ;; Verify metadata works
+        (assert-equal (bitwise-arithmetic-shift-left 1 128) (gf-order F))
+        (assert-equal 2 (gf-characteristic F))))
+
+    (define-test "gf2n-large arithmetic works"
+      (let* ([irred-64 (+ (bitwise-arithmetic-shift-left 1 64)
+                          (bitwise-arithmetic-shift-left 1 4)
+                          (bitwise-arithmetic-shift-left 1 3)
+                          (bitwise-arithmetic-shift-left 1 1)
+                          1)]  ; x^64 + x^4 + x^3 + x + 1
+             [F (make-gf2n-large 64 irred-64)]
+             [a (gf2n-from-int F #xDEADBEEFCAFEBABE)]
+             [b (gf2n-from-int F #x1234567890ABCDEF)]
+             [one (field-one F)]
+             [zero (field-zero F)])
+        ;; Basic axioms
+        (assert-true (field-equal? F (field-add F a zero) a))
+        (assert-true (field-equal? F (field-mul F a one) a))
+        ;; Addition is XOR
+        (assert-equal (bitwise-xor #xDEADBEEFCAFEBABE #x1234567890ABCDEF)
+                      (gf2n-to-int (field-add F a b)))))
+
+    (define-test "make-field-zp-large creates field instantly"
+      ;; Use a large prime (Mersenne prime 2^61 - 1)
+      (let* ([p (- (bitwise-arithmetic-shift-left 1 61) 1)]
+             [F (make-field-zp-large p)])
+        (assert-equal p (gf-order F))
+        (assert-equal p (gf-characteristic F))))
+
+    (define-test "large prime field arithmetic works"
+      (let* ([p 1000000007]  ; A billion-ish prime
+             [F (make-field-zp-large p)])
+        ;; Basic operations
+        (assert-equal 0 (field-add F 500000000 500000007))
+        (assert-equal 1 (field-mul F 500000004 (field-inv F 500000004)))))))
 
 (run-all-tests)

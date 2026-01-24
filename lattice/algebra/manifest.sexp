@@ -110,10 +110,12 @@
     ;; GF(p) prime fields
     gf-prime gf-order gf-characteristic
     ;; GF(p^n) extension fields
-    make-gf-extension gf-ext-element? gf-ext-coeffs gf-ext-to-poly
+    make-gf-extension make-gf-extension-large
+    gf-ext-element? gf-ext-coeffs gf-ext-to-poly
     make-gf-ext-element gf-ext-base-field gf-ext-modulus
     ;; GF(2^n) binary fields (optimized)
-    make-gf2n gf2n-element? gf2n-value gf2n-degree gf2n-irred
+    make-gf2n make-gf2n-large
+    gf2n-element? gf2n-value gf2n-degree gf2n-irred
     gf2n-from-int gf2n-to-int gf2n-to-poly
     ;; Standard fields
     make-gf2-4 make-gf2-8-aes make-gf2-16 make-gf2-32 make-gf-p2
@@ -125,7 +127,12 @@
     ;; Minimal polynomials
     gf-minimal-poly
     ;; Trace and norm
-    gf-trace gf-norm))
+    gf-trace gf-norm)
+   (field
+    ;; Extended field constructor with metadata
+    make-field* field-metadata field-meta-ref
+    ;; Large prime field without enumeration
+    make-field-zp-large))
 
   (modules
    (group "group.ss" "Group theory: cyclic, symmetric, dihedral groups and homomorphisms")

@@ -17,8 +17,8 @@
 (doc 'section 'field-representation)
 
 (doc 'note "A Field is represented as:")
-(doc 'note "(field elements add-op mul-op zero one neg-fn div-fn equal-fn)")
-(doc 'note "- elements: list of field elements (may be empty for infinite fields)")
+(doc 'note "(field elements add-op mul-op zero one neg-fn div-fn equal-fn [metadata])")
+(doc 'note "- elements: list of field elements (may be empty for infinite/large fields)")
 (doc 'note "- add-op: addition (a, b) → a + b")
 (doc 'note "- mul-op: multiplication (a, b) → a × b")
 (doc 'note "- zero: additive identity (0)")
@@ -26,6 +26,7 @@
 (doc 'note "- neg-fn: additive inverse a → -a")
 (doc 'note "- div-fn: division (a, b) → a / b (b ≠ 0)")
 (doc 'note "- equal-fn: equality predicate for elements")
+(doc 'note "- metadata: optional alist with (order . n) (characteristic . p) etc.")
 (doc 'note "")
 (doc 'note "Field axioms (in addition to ring axioms):")
 (doc 'note "1. Commutativity of multiplication: a × b = b × a")
@@ -33,7 +34,15 @@
 (doc 'note "3. Division: a / b = a × b⁻¹")
 (define (make-field elements add-op mul-op zero one neg-fn div-fn equal-fn)
   (doc 'export #t)
-  (list 'field elements add-op mul-op zero one neg-fn div-fn equal-fn))
+  (list 'field elements add-op mul-op zero one neg-fn div-fn equal-fn '()))
+
+;;; make-field* : Extended field constructor with metadata
+;;; metadata is an alist: ((order . n) (characteristic . p) ...)
+(define (make-field* elements add-op mul-op zero one neg-fn div-fn equal-fn metadata)
+  (doc 'export #t)
+  (doc 'type '(-> List Proc Proc a a Proc Proc Proc Alist Field))
+  (doc 'description "Create field with explicit metadata (order, characteristic)")
+  (list 'field elements add-op mul-op zero one neg-fn div-fn equal-fn metadata))
 
 ;;; field? : α → Boolean
 (define (field? x)
@@ -59,6 +68,23 @@
 (doc 'export #t)
 (define (field-equal-fn f) (list-ref f 8))
 (doc 'export #t)
+
+;;; field-metadata : Field → Alist
+;;; Get metadata alist. Returns '() for fields without metadata.
+(define (field-metadata f)
+  (doc 'export #t)
+  (if (> (length f) 9)
+      (list-ref f 9)
+      '()))
+
+;;; field-meta-ref : Field × Symbol → (Union Value #f)
+;;; Look up a metadata key. Returns #f if not found.
+(define (field-meta-ref f key)
+  (doc 'export #t)
+  (let ([meta (field-metadata f)])
+    (cond
+      [(assq key meta) => cdr]
+      [else #f])))
 
 ;;; ====
 ;;; Field Operations
@@ -168,17 +194,36 @@
 ;;; make-field-zp : Prime → Field
 ;;; Create the finite field Z_p of integers modulo prime p.
 ;;; WARNING: Does not verify p is prime; caller must ensure this.
+;;; NOTE: For p > 10^6, use make-field-zp-large to avoid element enumeration.
 (define (make-field-zp p)
   (doc 'export #t)
-  (make-field
-   (range 0 p)
+  (make-field*
+   (if (< p 1000000) (range 0 p) '())  ; Only enumerate small fields
    (lambda (a b) (modulo (+ a b) p))         ; Addition mod p
    (lambda (a b) (modulo (* a b) p))         ; Multiplication mod p
    0                                          ; Zero
    1                                          ; One
    (lambda (a) (modulo (- a) p))             ; Negation
    (lambda (a b) (modulo (* a (mod-inverse b p)) p))  ; Division
-   =))
+   =
+   `((order . ,p) (characteristic . ,p))))   ; Metadata
+
+;;; make-field-zp-large : Prime → Field
+;;; Create GF(p) without enumerating elements. Use for cryptographic primes.
+(define (make-field-zp-large p)
+  (doc 'export #t)
+  (doc 'type '(-> Int Field))
+  (doc 'description "Create GF(p) without element enumeration, for large primes")
+  (make-field*
+   '()                                        ; No enumeration
+   (lambda (a b) (modulo (+ a b) p))
+   (lambda (a b) (modulo (* a b) p))
+   0
+   1
+   (lambda (a) (modulo (- a) p))
+   (lambda (a b) (modulo (* a (mod-inverse b p)) p))
+   =
+   `((order . ,p) (characteristic . ,p))))
 
 ;;; mod-inverse : Integer × Integer → Integer
 ;;; Compute modular multiplicative inverse using extended Euclidean algorithm.
