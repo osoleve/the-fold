@@ -189,8 +189,8 @@
              [old-s 0] [s 1])
     (if (= r 0)
         (if (= old-r 1)
-            (error 'mod-inverse "no inverse exists")
-            (modulo old-s m))
+            (modulo old-s m)  ; GCD = 1, inverse exists
+            (error 'mod-inverse "no inverse exists"))  ; GCD ≠ 1, no inverse
         (let ([q (quotient old-r r)])
           (loop r (- old-r (* q r))
                 s (- old-s (* q s)))))))
