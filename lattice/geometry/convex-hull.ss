@@ -184,14 +184,20 @@
 (doc find-furthest-from-line 'type '(-> (Listof Point2) Point2 Point2 Point2))
 (doc find-furthest-from-line 'description "Find point furthest from line a→b")
 (define (find-furthest-from-line points a b)
-  (fold-left
-   (lambda (best p)
-     (if (> (abs (point-line-distance p a b))
-            (abs (point-line-distance best a b)))
-         p
-         best))
-   (car points)
-   (cdr points)))
+  ;; Use cross product magnitude directly to avoid sqrt.
+  ;; cross = (b-a) × (p-a) = distance * |b-a|
+  ;; Since |b-a| is constant for all comparisons, comparing |cross| works.
+  (let ([dx (- (point2-x b) (point2-x a))]
+        [dy (- (point2-y b) (point2-y a))])
+    (fold-left
+     (lambda (best p)
+       (let ([cross-best (abs (- (* dx (- (point2-y best) (point2-y a)))
+                                 (* dy (- (point2-x best) (point2-x a)))))]
+             [cross-p (abs (- (* dx (- (point2-y p) (point2-y a)))
+                              (* dy (- (point2-x p) (point2-x a)))))])
+         (if (> cross-p cross-best) p best)))
+     (car points)
+     (cdr points))))
 
 (doc quickhull-recurse 'type '(-> (Listof Point2) Point2 Point2 (Listof Point2)))
 (doc quickhull-recurse 'description "Recursive step: find hull points between a and b")
@@ -457,10 +463,14 @@
      "Compute Minkowski difference A ⊖ B = A ⊕ (-B).
       Used for collision detection: A and B intersect iff origin ∈ (A ⊖ B).")
 (define (minkowski-difference hull-a hull-b)
-  (let ([neg-b (map (lambda (p)
-                      (make-point2 (- (point2-x p)) (- (point2-y p))))
-                    hull-b)])
-    (minkowski-sum hull-a (convex-hull neg-b))))
+  ;; Negating a convex hull produces another convex hull (reflection through origin).
+  ;; CCW winding becomes CW, so reverse to restore CCW order.
+  ;; This avoids O(n log n) hull recomputation - just O(n) negate + reverse.
+  (let ([neg-b (reverse
+                (map (lambda (p)
+                       (make-point2 (- (point2-x p)) (- (point2-y p))))
+                     hull-b))])
+    (minkowski-sum hull-a neg-b)))
 
 ;;; ============================================================
 ;;; Section: Collision Detection via GJK-style
