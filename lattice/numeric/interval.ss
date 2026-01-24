@@ -976,6 +976,17 @@
 ;;;   atan2(y, 0) = π/2 if y > 0, -π/2 if y < 0
 ;;;   atan2(0, x) = 0 if x > 0, π if x < 0
 ;;;   atan2(0, 0) = undefined
+;;;
+;;; IMPORTANT: Discontinuity Overestimation (Wrapping Effect)
+;;; When x < 0 and y spans zero, the result must be the full range [-π, π]
+;;; because the true atan2 values approach π from above (y > 0) and -π from
+;;; below (y < 0). This is significant overestimation for narrow y intervals.
+;;; For example, atan2([-0.001, 0.001], [-1, -1]) returns [-π, π] even though
+;;; the true values are approximately {π, -π} (close to but excluding 0).
+;;; This is an inherent limitation of connected interval representations and
+;;; can cause large overestimation in optimization contexts. Consider using
+;;; multiple intervals or alternative angle representations when high precision
+;;; is needed near the negative x-axis.
 (define (interval-atan2 ivy ivx)
   (doc 'export #t)
   (doc 'description "Interval atan2(y, x). Handles quadrant wrapping and axis cases.")
