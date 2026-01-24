@@ -236,7 +236,19 @@
                                    (make-point2 (+ 5 (point2-x p))
                                                 (point2-y p)))
                                  square-points))])
-      (assert-false (hulls-intersect? s1 s2)))))
+      (assert-false (hulls-intersect? s1 s2))))
+
+  (define-test "Minkowski sum handles hull with duplicate adjacent vertices"
+    ;; Regression test for atan(0,0) crash
+    (let* ([hull-with-dup (list (make-point2 0 0)
+                                (make-point2 1 0)
+                                (make-point2 1 0)  ; Duplicate!
+                                (make-point2 1 1)
+                                (make-point2 0 1))]
+           [s2 (graham-scan square-points)]
+           [sum (minkowski-sum hull-with-dup s2)])
+      ;; Should not crash, and should produce a valid hull
+      (assert-true (>= (length sum) 3)))))
 
 ;;; ============================================================
 ;;; Edge Cases

@@ -1,4 +1,4 @@
-;;; lattice/geometry/convex-hull.ss --- 2D and 3D convex hull algorithms
+;;; lattice/geometry/convex-hull.ss --- 2D convex hull algorithms
 ;;; @module convex-hull
 ;;; @requires prelude geometry/mesh-gen
 
@@ -402,7 +402,8 @@
         [else angle]))))
 
 (doc polygon-edges 'type '(-> (Listof Point2) (Listof (Pair Point2 Number))))
-(doc polygon-edges 'description "Extract edge vectors with their polar angles (normalized to [0, 2π))")
+(doc polygon-edges 'description "Extract edge vectors with their polar angles (normalized to [0, 2π)).
+                                 Filters out zero-length edges to avoid atan(0,0) errors.")
 (define (polygon-edges hull)
   (if (null? hull)
       '()
@@ -413,10 +414,13 @@
               (let* ([p1 (list-ref hull i)]
                      [p2 (list-ref hull (modulo (+ i 1) n))]
                      [dx (- (point2-x p2) (point2-x p1))]
-                     [dy (- (point2-y p2) (point2-y p1))]
-                     [edge (make-point2 dx dy)]
-                     [angle (normalize-angle (atan dy dx))])
-                (loop (+ i 1) (cons (cons edge angle) result))))))))
+                     [dy (- (point2-y p2) (point2-y p1))])
+                ;; Skip zero-length edges (duplicate adjacent vertices)
+                (if (and (< (abs dx) 1e-10) (< (abs dy) 1e-10))
+                    (loop (+ i 1) result)
+                    (let* ([edge (make-point2 dx dy)]
+                           [angle (normalize-angle (atan dy dx))])
+                      (loop (+ i 1) (cons (cons edge angle) result))))))))))
 
 (doc merge-edges-ccw 'type '(-> (Listof (Pair Point2 Number)) (Listof (Pair Point2 Number)) (Listof Point2)))
 (doc merge-edges-ccw 'description "Merge two edge lists in CCW (increasing angle) order")
