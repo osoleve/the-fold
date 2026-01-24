@@ -92,8 +92,9 @@ in O(√n + k) where k is result size. Points are represented as vectors (lists 
 
 (define (kdtree-build points)
   (doc 'type '(-> (List Point) KDTree))
-  (doc 'description "Build k-d tree from list of points. O(n log n) using median selection.
-Points must all have the same dimensionality.")
+  (doc 'description "Build k-d tree from list of points. O(n log² n) using sorting-based median.
+Points must all have the same dimensionality. Note: True O(n log n) would require
+linear-time median selection (median-of-medians); this implementation uses sorting.")
   (if (null? points)
       kdtree-empty
       (let ([k (point-dimension (car points))])
