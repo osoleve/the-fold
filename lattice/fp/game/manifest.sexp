@@ -13,16 +13,18 @@
   (description
    "Comprehensive game theory library covering non-cooperative games,
     cooperative (coalitional) games, two-sided matching, social choice/voting theory,
-    multi-winner elections, and fair division. Implements Nash equilibrium, Shapley value,
-    Gale-Shapley stable matching, Schulze voting, STV, PAV, Monroe/Chamberlin-Courant,
-    cake cutting protocols, and adjusted winner.")
+    multi-winner elections, fair division, and mechanism design. Implements Nash equilibrium,
+    Shapley value, Gale-Shapley stable matching, Schulze voting, STV, PAV, VCG mechanism,
+    first-price/second-price auctions, double auctions, and incentive compatibility analysis.")
 
   (keywords (game-theory nash-equilibrium shapley-value cooperative-games
              matching stable-matching gale-shapley voting social-choice
              condorcet schulze multi-winner stv approval-voting pav
              monroe chamberlin-courant proportional-representation
              committee-selection fair-division cake-cutting envy-free
-             proportional adjusted-winner power-indices banzhaf))
+             proportional adjusted-winner power-indices banzhaf
+             mechanism-design auction vickrey vcg incentive-compatibility
+             dsic revelation-principle double-auction pivot-mechanism))
 
   (aliases (game games game-theory))
 
@@ -78,7 +80,20 @@
    monroe-greedy cc-greedy cc-total-satisfaction
    proportionality-score representation-coverage diversity-score
    profile->approval approval->profile
-   stv-example approval-example diverse-preferences-example)
+   stv-example approval-example diverse-preferences-example
+
+   ;; mechanism.ss — Mechanism Design
+   make-bids make-auction-outcome
+   auction-outcome-winner auction-outcome-payment auction-outcome-revenue
+   first-price-auction second-price-auction all-pay-auction third-price-auction
+   with-reserve bidder-utility
+   check-dsic verify-dsic check-ex-post-ir
+   vcg-combinatorial pivot-mechanism
+   myerson-virtual-value optimal-reserve-uniform
+   k-double-auction double-auction-trades double-auction-volume
+   double-auction-buyer-surplus double-auction-seller-surplus double-auction-total-surplus
+   make-direct-mechanism
+   is-budget-balanced? is-weakly-budget-balanced?)
 
   (modules
    (normal-form "normal-form.ss" "Strategic form games, Nash equilibrium, IESDS")
@@ -87,4 +102,5 @@
    (voting "voting.ss" "Social choice: plurality, Borda, Condorcet, Schulze")
    (voting-games "voting-games.ss" "Bridge: voting rules to simple games, power indices")
    (multi-winner "multi-winner.ss" "STV, approval voting, PAV, Monroe, Chamberlin-Courant")
-   (fair-division "fair-division.ss" "Cake cutting, adjusted winner, EF1, maximin share")))
+   (fair-division "fair-division.ss" "Cake cutting, adjusted winner, EF1, maximin share")
+   (mechanism "mechanism.ss" "Auctions, VCG, incentive compatibility, double auctions")))
