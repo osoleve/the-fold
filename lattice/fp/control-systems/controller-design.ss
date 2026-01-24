@@ -83,7 +83,7 @@
 
 (define (pole-placement-ackermann sys desired-poles)
   (doc 'type "SS × (List Complex) → Matrix | Error")
-  (doc 'description "Compute state feedback gain K using Ackermann's formula. State feedback: u = -K*x where K is the feedback gain matrix. Closed-loop system: x' = (A - B*K)*x. Places closed-loop poles at specified locations. Only works for SISO systems (single input)")
+  (doc 'description "Compute state feedback gain K using Ackermann's formula. State feedback: u = -K*x where K is the feedback gain matrix. Closed-loop system: x' = (A - B*K)*x. Places closed-loop poles at specified locations. SISO only - for MIMO systems, use pole-placement instead.")
   (doc 'note "Formula: K = [0 0 ... 0 1] * inv(C_n) * p(A) where C_n is controllability matrix and p(s) = desired char poly")
   (let* ([A (ss-A sys)]
          [B (ss-B sys)]
@@ -133,7 +133,7 @@
 
 (define (pole-placement-bass-gura sys desired-poles)
   (doc 'type "SS × (List Complex) → Matrix | Error")
-  (doc 'description "Compute state feedback gain using Bass-Gura formula. More numerically stable than Ackermann for higher-order systems")
+  (doc 'description "Compute state feedback gain using Bass-Gura formula. More numerically stable than Ackermann for higher-order systems. SISO only - use pole-placement for MIMO")
   (let* ([A (ss-A sys)]
          [B (ss-B sys)]
          [n (ss-order sys)]
@@ -157,6 +157,161 @@
                    [WC-inv (matrix-mul W C-inv)]
                    [K (matrix-mul (vector->row-matrix delta) WC-inv)])
                   K))))
+
+;;; ====
+;;; MIMO Pole Placement
+;;; ====
+
+(define (pole-placement sys desired-poles)
+  (doc 'type "SS × (List Complex) → Matrix | Error")
+  (doc 'description "General pole placement for both SISO and MIMO systems.
+For SISO: delegates to Ackermann's formula.
+For MIMO: uses eigenvector assignment method.
+State feedback: u = -K*x places eigenvalues of (A - B*K) at desired locations.")
+  (doc 'param "sys — state-space system (A, B, C, D)")
+  (doc 'param "desired-poles — list of n complex numbers for closed-loop eigenvalues")
+  (doc 'returns "K — feedback gain matrix (m × n) where m = number of inputs")
+  (let* ([A (ss-A sys)]
+         [B (ss-B sys)]
+         [n (ss-order sys)]
+         [m (matrix-cols B)])
+    (cond
+      ;; Verify pole count matches system order
+      [(not (= (length desired-poles) n))
+       '(error pole-count-mismatch)]
+      ;; SISO case: use Ackermann
+      [(= m 1)
+       (pole-placement-ackermann sys desired-poles)]
+      ;; MIMO case: use eigenvector assignment
+      [else
+       (pole-placement-mimo sys desired-poles)])))
+
+(define (pole-placement-mimo sys desired-poles)
+  (doc 'type "SS × (List Complex) → Matrix | Error")
+  (doc 'description "MIMO pole placement via eigenvector assignment.
+Algorithm:
+1. For each pole λᵢ, compute feasible subspace Sᵢ = (λᵢI - A)⁻¹B
+2. Choose eigenvector vᵢ from Sᵢ (cycling through input columns)
+3. Build V = [v₁ ... vₙ] and U = [u₁ ... uₙ] where uᵢ are input directions
+4. Compute K = U V⁻¹ so that K vᵢ = uᵢ for each i
+
+This gives (A - BK)vᵢ = λᵢvᵢ by construction.")
+  (let* ([A (ss-A sys)]
+         [B (ss-B sys)]
+         [n (ss-order sys)]
+         [m (matrix-cols B)])
+    ;; Check controllability
+    (let ([C-mat (controllability-matrix sys)])
+      (if (not (= (stability-matrix-rank C-mat) n))
+          '(error system-not-controllable)
+          ;; Build eigenvector and input direction matrices
+          (eigenvector-assignment A B desired-poles n m)))))
+
+(define (eigenvector-assignment A B desired-poles n m)
+  (doc 'type "Matrix × Matrix × List × Nat × Nat → Matrix | Error")
+  (doc 'description "Core eigenvector assignment algorithm for MIMO pole placement")
+  (let ([V (make-matrix n n 0)]    ; Eigenvectors as columns
+        [U (make-matrix m n 0)])   ; Input directions as columns
+    ;; Assign each pole
+    (let loop ([i 0])
+      (if (= i n)
+          ;; All poles assigned, compute K = U V⁻¹
+          (let ([V-inv (matrix-inverse V)])
+            (if (and (pair? V-inv) (eq? (car V-inv) 'error))
+                '(error eigenvector-matrix-singular)
+                (matrix-mul U V-inv)))
+          ;; Assign pole i
+          (let* ([lambda-i (list-ref desired-poles i)]
+                 ;; Extract real part (handle both complex and real)
+                 [li (if (complex? lambda-i)
+                         (complex-real lambda-i)
+                         lambda-i)]
+                 ;; (λI - A)
+                 [lambda-I (matrix-scale li (identity n))]
+                 [M (matrix-sub lambda-I A)]
+                 [M-inv (matrix-inverse M)])
+            (if (and (pair? M-inv) (eq? (car M-inv) 'error))
+                ;; λ is eigenvalue of A - special handling needed
+                (handle-repeated-pole A B i li V U n m desired-poles)
+                ;; Normal case: feasible subspace
+                ;; We want v = (A - λI)⁻¹Bu, but (A-λI)⁻¹ = -(λI-A)⁻¹
+                ;; So v = -(λI - A)⁻¹Bu = -S·u where S = (λI-A)⁻¹B
+                (let* ([S (matrix-mul M-inv B)]
+                       ;; Choose input direction by cycling through columns
+                       [j (modulo i m)]
+                       ;; Unit vector for input j
+                       [u-vec (make-vector m 0)]
+                       ;; Eigenvector is -1 * j-th column of S (note the negation!)
+                       [v-vec (vec-scale -1.0 (matrix-col-vec S j))])
+                  (vector-set! u-vec j 1.0)
+                  ;; Store in matrices
+                  (matrix-set-col-from-vec! V i v-vec)
+                  (matrix-set-col-from-vec! U i u-vec)
+                  (loop (+ i 1)))))))))
+
+(define (handle-repeated-pole A B i lambda V U n m desired-poles)
+  (doc 'description "Handle case where desired pole equals an open-loop eigenvalue.
+Uses perturbation: slightly shift the pole and proceed.")
+  ;; Simple approach: perturb the pole slightly
+  (let* ([eps 1e-6]
+         [li-pert (+ lambda eps)]
+         [lambda-I (matrix-scale li-pert (identity n))]
+         [M (matrix-sub lambda-I A)]
+         [M-inv (matrix-inverse M)])
+    (if (and (pair? M-inv) (eq? (car M-inv) 'error))
+        '(error cannot-place-pole-at-open-loop-eigenvalue)
+        (let* ([S (matrix-mul M-inv B)]
+               [j (modulo i m)]
+               [u-vec (make-vector m 0)]
+               [v-vec (vec-scale -1.0 (matrix-col-vec S j))])  ; Negation for correct sign
+          (vector-set! u-vec j 1.0)
+          (matrix-set-col-from-vec! V i v-vec)
+          (matrix-set-col-from-vec! U i u-vec)
+          ;; Continue with remaining poles
+          (eigenvector-assignment-continue A B desired-poles (+ i 1) n m V U)))))
+
+(define (eigenvector-assignment-continue A B desired-poles start n m V U)
+  (doc 'description "Continue eigenvector assignment from a given index")
+  (let loop ([i start])
+    (if (= i n)
+        ;; Done, compute K
+        (let ([V-inv (matrix-inverse V)])
+          (if (and (pair? V-inv) (eq? (car V-inv) 'error))
+              '(error eigenvector-matrix-singular)
+              (matrix-mul U V-inv)))
+        ;; Assign pole i (same logic as main function)
+        (let* ([lambda-i (list-ref desired-poles i)]
+               [li (if (complex? lambda-i) (complex-real lambda-i) lambda-i)]
+               [lambda-I (matrix-scale li (identity n))]
+               [M (matrix-sub lambda-I A)]
+               [M-inv (matrix-inverse M)])
+          (if (and (pair? M-inv) (eq? (car M-inv) 'error))
+              '(error cannot-place-pole-at-open-loop-eigenvalue)
+              (let* ([S (matrix-mul M-inv B)]
+                     [j (modulo i m)]
+                     [u-vec (make-vector m 0)]
+                     [v-vec (vec-scale -1.0 (matrix-col-vec S j))])  ; Negation
+                (vector-set! u-vec j 1.0)
+                (matrix-set-col-from-vec! V i v-vec)
+                (matrix-set-col-from-vec! U i u-vec)
+                (loop (+ i 1))))))))
+
+(define (matrix-col-vec M j)
+  (doc 'type "Matrix × Nat → Vector")
+  (doc 'description "Extract column j of matrix M as a vector")
+  (let* ([n (matrix-rows M)]
+         [v (make-vector n 0)])
+    (do ([i 0 (+ i 1)])
+        [(= i n) v]
+      (vector-set! v i (matrix-ref M i j)))))
+
+(define (matrix-set-col-from-vec! M j v)
+  (doc 'type "Matrix × Nat × Vector → Void")
+  (doc 'description "Set column j of matrix M from vector v (mutating)")
+  (let ([n (vector-length v)])
+    (do ([i 0 (+ i 1)])
+        [(= i n)]
+      (matrix-set! M i j (vector-ref v i)))))
 
 (define (characteristic-polynomial A)
   (doc 'type "Matrix → Poly")

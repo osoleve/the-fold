@@ -120,6 +120,72 @@
 (let ([A (matrix-from-lists '((1 2 3) (4 5 6) (7 8 9)))])
      (test-approx "matrix trace" 15.0 (matrix-trace A) 1e-10))
 
+(printf "\n--- MIMO Pole Placement ---\n")
+
+;; General pole-placement dispatches to Ackermann for SISO
+(let* ([A (matrix-from-lists '((0 1) (-2 -3)))]
+       [B (matrix-from-lists '((0) (1)))]
+       [C (matrix-from-lists '((1 0)))]
+       [D (matrix-from-lists '((0)))]
+       [sys (make-ss A B C D)]
+       [desired-poles (list (make-complex -5 0) (make-complex -5 0))]
+       [K (pole-placement sys desired-poles)])
+      (test "SISO via pole-placement: K is matrix" #t (matrix? K))
+      (test "SISO via pole-placement: K shape" '(1 . 2)
+            (cons (matrix-rows K) (matrix-cols K))))
+
+;; MIMO system: 2-state, 2-input
+;; A = [0 1; -2 -3], B = [1 0; 0 1] (two independent inputs)
+(let* ([A (matrix-from-lists '((0 1) (-2 -3)))]
+       [B (matrix-from-lists '((1 0) (0 1)))]  ; 2x2 B matrix (2 inputs)
+       [C (matrix-from-lists '((1 0)))]
+       [D (matrix-from-lists '((0 0)))]
+       [sys (make-ss A B C D)]
+       [desired-poles (list (make-complex -4 0) (make-complex -5 0))]
+       [K (pole-placement sys desired-poles)])
+      (test "MIMO: K is matrix" #t (matrix? K))
+      (test "MIMO: K rows (inputs)" 2 (matrix-rows K))
+      (test "MIMO: K cols (states)" 2 (matrix-cols K))
+      ;; Verify closed-loop poles
+      (when (matrix? K)
+        (let* ([Acl (matrix-sub A (matrix-mul B K))]
+               [cl-char-poly (characteristic-polynomial Acl)]
+               [cl-coeffs (poly-coeffs cl-char-poly)])
+          ;; For poles at -4, -5: (s+4)(s+5) = s² + 9s + 20
+          (test-approx "MIMO closed-loop: s coeff" 9.0 (vector-ref cl-coeffs 1) 0.1)
+          (test-approx "MIMO closed-loop: const" 20.0 (vector-ref cl-coeffs 2) 0.1))))
+
+;; 3-state, 2-input MIMO system
+(let* ([A (matrix-from-lists '((0 1 0) (0 0 1) (-1 -2 -3)))]
+       [B (matrix-from-lists '((1 0) (0 1) (1 1)))]
+       [C (matrix-from-lists '((1 0 0)))]
+       [D (matrix-from-lists '((0 0)))]
+       [sys (make-ss A B C D)]
+       [desired-poles (list (make-complex -2 0) (make-complex -3 0) (make-complex -4 0))]
+       [K (pole-placement sys desired-poles)])
+      (test "MIMO 3x2: K is matrix" #t (matrix? K))
+      (when (matrix? K)
+        (test "MIMO 3x2: K rows" 2 (matrix-rows K))
+        (test "MIMO 3x2: K cols" 3 (matrix-cols K))
+        ;; Verify closed-loop characteristic polynomial
+        ;; Poles at -2, -3, -4: (s+2)(s+3)(s+4) = s³ + 9s² + 26s + 24
+        (let* ([Acl (matrix-sub A (matrix-mul B K))]
+               [cl-char-poly (characteristic-polynomial Acl)]
+               [cl-coeffs (poly-coeffs cl-char-poly)])
+          (test-approx "MIMO 3x2 closed-loop: s² coeff" 9.0 (vector-ref cl-coeffs 1) 0.5)
+          (test-approx "MIMO 3x2 closed-loop: s coeff" 26.0 (vector-ref cl-coeffs 2) 0.5)
+          (test-approx "MIMO 3x2 closed-loop: const" 24.0 (vector-ref cl-coeffs 3) 0.5))))
+
+;; Error case: wrong number of poles
+(let* ([A (matrix-from-lists '((0 1) (-2 -3)))]
+       [B (matrix-from-lists '((1 0) (0 1)))]
+       [C (matrix-from-lists '((1 0)))]
+       [D (matrix-from-lists '((0 0)))]
+       [sys (make-ss A B C D)]
+       [wrong-poles (list (make-complex -4 0))]  ; Only 1 pole for 2-state system
+       [result (pole-placement sys wrong-poles)])
+      (test "Error: pole count mismatch" 'error (and (pair? result) (car result))))
+
 ;;; ====
 ;;; Observer Design Tests
 ;;; ====

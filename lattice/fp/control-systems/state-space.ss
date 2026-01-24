@@ -128,10 +128,10 @@ The Scaling and Squaring algorithm computes e^A as follows:
 
 This is much more numerically stable than Taylor series.")
 
-(define *pade-coeffs-6*
-  (doc 'description "Coefficients for [6,6] diagonal Padé approximant
+(doc *pade-coeffs-6* 'description "Coefficients for [6,6] diagonal Padé approximant
 N(X) = sum_{k=0}^6 b_k * X^k, D(X) = sum_{k=0}^6 b_k * (-X)^k
 Precomputed: b_k = (2n-k)! * n! / ((2n)! * (n-k)! * k!) for n=6")
+(define *pade-coeffs-6*
   (list 1 1/2 1/10 1/120 1/1680 1/30240 1/665280))
 
 (define (matrix-1norm m)
