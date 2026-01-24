@@ -1,16 +1,18 @@
 (skill topology
-  (version "0.3.0")
+  (version "0.4.0")
   (tier 1)
   (path "lattice/topology")
   (purity total)
   (stability experimental)
-  (fuel-bound "O(n³) for homology via Gaussian elimination, O(N*k) for boundary matrix construction")
+  (fuel-bound "O(n³) for homology/persistence, O(n^(d+1)) for Rips construction")
   (deps (data))
-  (description "Computational topology: simplicial complexes, homology groups, and Betti numbers.
-Computes topological invariants over Z₂ coefficients. Foundation for persistent homology and TDA.")
+  (description "Computational topology and topological data analysis.
+Includes simplicial complexes, homology over Z₂, persistent homology,
+Vietoris-Rips filtrations, persistence diagrams, and barcodes.")
   (keywords (topology simplicial-complex homology betti-numbers boundary euler-characteristic
-             star link skeleton filtration tda z2-coefficients))
-  (aliases (topo simplicial))
+             star link skeleton filtration tda z2-coefficients persistent-homology
+             persistence-diagram barcode vietoris-rips bottleneck-distance))
+  (aliases (topo simplicial persistent tda))
   (exports
     (simplicial-complex
       ;; Simplex constructors and predicates
@@ -47,9 +49,25 @@ Computes topological invariants over Z₂ coefficients. Foundation for persisten
       ;; Standard topological spaces
       make-sphere make-torus make-klein-bottle make-projective-plane
       ;; Connected components (β₀ alternative)
-      sc-connected-components))
+      sc-connected-components)
+    (persistent
+      ;; Filtration construction
+      make-filtration filtration? filtration-pairs filtration-simplices filtration-size
+      ;; Vietoris-Rips complex from point cloud
+      rips-filtration euclidean-distance
+      ;; Persistence computation (main interface)
+      persistence-reduce compute-persistence
+      ;; Persistence diagram
+      make-persistence-diagram persistence-diagram? diagram-points diagram-points-dim
+      diagram-betti persistence-summary
+      ;; Barcode representation
+      diagram->barcode barcode? barcode-intervals barcode-print
+      ;; Distance metrics
+      diagram-bottleneck))
   (modules
     (simplicial-complex "simplicial-complex.ss"
       "Core simplicial complex data structures and operations")
     (homology "homology.ss"
-      "Homology groups and Betti numbers over Z₂ coefficients")))
+      "Homology groups and Betti numbers over Z₂ coefficients")
+    (persistent "persistent.ss"
+      "Persistent homology, Vietoris-Rips filtrations, and TDA")))
