@@ -511,7 +511,7 @@
                                  (if (and psys bif
                                           (or (eq? bif 'pitchfork) (eq? bif 'transcritical)))
                                      (let ([sys (instantiate-at psys curr-param)])
-                                          (classify-codim1-bifurcation sys curr-fp *continuation-step-size*))
+                                          (classify-codim1-bifurcation sys curr-fp *normal-form-h*))
                                      bif)])
                                (loop curr (cdr rest)
                                      (if refined-bif
@@ -611,6 +611,9 @@ At a real eigenvalue zero-crossing:
   - Transcritical: f''(x*) ≠ 0")
 
 (define *normal-form-tolerance* 1e-4)
+(define *normal-form-h* 1e-4)  ; Step size for normal form derivative estimation
+                               ; Must be larger than continuation step (1e-6) to avoid
+                               ; roundoff error dominating in f''' computation
 
 (define (compute-1d-derivatives sys fp h)
   (doc 'type '(-> ODE Vec Number (List Number Number)))
