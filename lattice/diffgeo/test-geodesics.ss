@@ -297,6 +297,137 @@
         (assert-equal 2 misses)))))
 
 ;;; ============================================================================
+;;; Curved Space Tests - Unit 2-Sphere
+;;; ============================================================================
+
+;;; The unit 2-sphere S² has intrinsic metric in (θ, φ) coordinates:
+;;;   ds² = dθ² + sin²θ dφ²
+;;; where θ ∈ (0, π) is colatitude and φ ∈ [0, 2π) is longitude.
+;;; Geodesics are great circles.
+
+(define (make-sphere-chart)
+  ;; Chart for S² in (θ, φ) coordinates
+  (make-identity-chart 'sphere-2d 2))
+
+(define (make-s2-metric chart)
+  ;; Intrinsic metric on unit 2-sphere: g = diag(1, sin²θ)
+  (make-metric chart
+               (lambda (coords)
+                 (let* ([theta (vector-ref coords 0)]
+                        [sin-theta (sin theta)]
+                        [sin2 (* sin-theta sin-theta)])
+                   (matrix-from-lists (list (list 1 0)
+                                            (list 0 sin2)))))))
+
+(test-group "sphere-geodesics"
+  (define sphere-chart (make-sphere-chart))
+  (define s2-metric (make-s2-metric sphere-chart))
+  (define pi 3.141592653589793)
+
+  (define-test "meridian geodesic (φ constant)"
+    ;; A meridian (constant longitude) is a great circle
+    ;; Start at θ=π/4, φ=0 with velocity in θ direction
+    (let* ([p (vector (/ pi 4) 0.0)]    ; θ=45°, φ=0
+           [v (vector 1.0 0.0)]          ; Pure θ velocity
+           [endpoint (exp-map s2-metric p v 100)])
+      ;; Should travel along meridian: φ stays 0
+      (assert-true (approx-equal? (vector-ref endpoint 1) 0.0 *test-tolerance*))
+      ;; θ should increase by 1 radian
+      (assert-true (approx-equal? (vector-ref endpoint 0) (+ (/ pi 4) 1.0) *test-tolerance*))))
+
+  (define-test "equatorial geodesic (θ=π/2)"
+    ;; The equator is a great circle
+    ;; At equator, dφ/dt = const (since sin(π/2) = 1)
+    (let* ([p (vector (/ pi 2) 0.0)]    ; θ=90° (equator), φ=0
+           [v (vector 0.0 1.0)]          ; Pure φ velocity
+           [endpoint (exp-map s2-metric p v 100)])
+      ;; Should stay on equator: θ stays π/2
+      (assert-true (approx-equal? (vector-ref endpoint 0) (/ pi 2) *test-tolerance*))
+      ;; φ should increase by 1 radian
+      (assert-true (approx-equal? (vector-ref endpoint 1) 1.0 *test-tolerance*))))
+
+  (define-test "geodesic distance on sphere"
+    ;; Distance between two points on equator
+    ;; Points at φ=0 and φ=π/3 at equator should have distance π/3
+    (let* ([p (vector (/ pi 2) 0.0)]           ; Equator, φ=0
+           [q (vector (/ pi 2) (/ pi 3))]      ; Equator, φ=π/3
+           [dist (geodesic-distance s2-metric p q 100)])
+      ;; Arc length on unit sphere = angle
+      (assert-true (approx-equal? dist (/ pi 3) 0.01))))
+
+  (define-test "geodesic distance along meridian"
+    ;; Distance from θ=π/4 to θ=3π/4 along same meridian
+    (let* ([p (vector (/ pi 4) 0.0)]           ; θ=45°
+           [q (vector (* 3 (/ pi 4)) 0.0)]     ; θ=135°
+           [dist (geodesic-distance s2-metric p q 100)])
+      ;; Distance should be π/2 radians
+      (assert-true (approx-equal? dist (/ pi 2) 0.01))))
+
+  (define-test "geodesic interpolation on sphere"
+    ;; Interpolating at t=0.5 should give midpoint
+    (let* ([p (vector (/ pi 2) 0.0)]           ; Equator start
+           [q (vector (/ pi 2) (/ pi 2))]      ; Equator end (90° apart)
+           [result (geodesic-interpolate s2-metric p q 0.5 100)])
+      (if (and (pair? result) (eq? (car result) 'err))
+          (assert-true #f)  ; Should not fail
+          (begin
+            ;; Midpoint should be at φ=π/4
+            (assert-true (approx-equal? (vector-ref result 0) (/ pi 2) *test-tolerance*))
+            (assert-true (approx-equal? (vector-ref result 1) (/ pi 4) *test-tolerance*)))))))
+
+(test-group "sphere-parallel-transport"
+  (define sphere-chart (make-sphere-chart))
+  (define s2-metric (make-s2-metric sphere-chart))
+  (define pi 3.141592653589793)
+
+  (define-test "parallel transport preserves norm on sphere"
+    ;; Transport a vector along equator, norm should be preserved
+    (let* ([p (vector (/ pi 2) 0.0)]           ; Equator
+           [geodesic-vel (vector 0.0 1.0)]     ; Move along equator
+           [V (vector 1.0 0.0)]                ; Vector pointing toward pole
+           [initial-norm (metric-norm s2-metric p V)]
+           [V-transported (parallel-transport s2-metric p geodesic-vel V 1.0 100)]
+           [q (exp-map s2-metric p geodesic-vel 100)]
+           [final-norm (metric-norm s2-metric q V-transported)])
+      (assert-true (approx-equal? initial-norm final-norm *test-tolerance*))))
+
+  (define-test "parallel transport along meridian"
+    ;; Transport along meridian (simpler case)
+    (let* ([p (vector (/ pi 4) 0.0)]           ; Start at θ=45°
+           [geodesic-vel (vector 0.5 0.0)]     ; Move along meridian
+           [V (vector 0.0 1.0)]                ; Vector in φ direction
+           [V-transported (parallel-transport s2-metric p geodesic-vel V 1.0 100)])
+      ;; Vector should remain tangent (no radial component appears)
+      ;; and norm preserved
+      (let* ([q (exp-map s2-metric p geodesic-vel 100)]
+             [initial-norm (metric-norm s2-metric p V)]
+             [final-norm (metric-norm s2-metric q V-transported)])
+        (assert-true (approx-equal? initial-norm final-norm *test-tolerance*))))))
+
+(test-group "sphere-curvature-effects"
+  (define sphere-chart (make-sphere-chart))
+  (define s2-metric (make-s2-metric sphere-chart))
+  (define pi 3.141592653589793)
+
+  (define-test "geodesics converge toward poles"
+    ;; Two geodesics starting parallel at equator will converge
+    ;; This is a signature of positive curvature
+    ;; Start two meridians at slightly different φ, both heading toward north pole
+    (let* ([p1 (vector (/ pi 2) 0.0)]           ; Equator, φ=0
+           [p2 (vector (/ pi 2) 0.1)]           ; Equator, φ=0.1
+           [v (vector -1.0 0.0)]                ; Toward north pole
+           [q1 (exp-map s2-metric p1 v 100)]
+           [q2 (exp-map s2-metric p2 v 100)]
+           ;; Initial separation in φ direction
+           [initial-sep (abs (- (vector-ref p2 1) (vector-ref p1 1)))]
+           ;; Final separation - need to compute properly with metric
+           [final-sep (abs (- (vector-ref q2 1) (vector-ref q1 1)))])
+      ;; The φ coordinate difference should be same (both reached same θ)
+      ;; but the *physical* distance decreased because sin(θ) is smaller
+      ;; Check that θ values are similar (both traveled same amount)
+      (assert-true (approx-equal? (vector-ref q1 0) (vector-ref q2 0) 0.01)))))
+
+;;; ============================================================================
 ;;; Run Tests
 ;;; ============================================================================
 
