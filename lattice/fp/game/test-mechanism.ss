@@ -270,7 +270,110 @@
            [payments (cdr result)])
       ;; Efficient: give both to agent 0 (value 20) vs split (8+8=16 or 5+8=13)
       (assert-equal 3 (vector-ref allocation 0))
-      (assert-equal 0 (vector-ref allocation 1)))))
+      (assert-equal 0 (vector-ref allocation 1))
+      ;; Payment for agent 0:
+      ;; Welfare without 0 = 16 (agent 1 gets both)
+      ;; Others' welfare with 0 = 0 (agent 1 gets nothing)
+      ;; Payment = 16 - 0 = 16
+      (assert-equal 16 (vector-ref payments 0))
+      (assert-equal 0 (vector-ref payments 1))))
+
+  (define-test "vcg three items tests recursion depth"
+    ;; 3 items (8 bundles), 2 bidders
+    ;; bundles: 0={}, 1={a}, 2={b}, 3={a,b}, 4={c}, 5={a,c}, 6={b,c}, 7={a,b,c}
+    (let* ([n 2]
+           [m 3]
+           ;; Agent 0: specialist in items a,b together
+           ;; Agent 1: wants item c strongly
+           [valuations (vector (vector 0  2  2 15  1  3  3 16)   ; agent 0
+                               (vector 0  3  3  6 10 13 13 16))] ; agent 1
+           [result (vcg-combinatorial valuations m)]
+           [allocation (car result)]
+           [payments (cdr result)])
+      ;; Efficient: agent 0 gets {a,b} (15), agent 1 gets {c} (10) = 25 total
+      ;; vs agent 0 gets all (16), agent 1 gets nothing (0) = 16
+      ;; vs agent 1 gets all (16), agent 0 gets nothing (0) = 16
+      (assert-equal 3 (vector-ref allocation 0))  ; {a,b}
+      (assert-equal 4 (vector-ref allocation 1)))) ; {c}
+
+  (define-test "vcg with all zero valuations"
+    ;; Edge case: nobody values anything
+    (let* ([n 2]
+           [m 1]
+           [valuations (vector (vector 0 0)
+                               (vector 0 0))]
+           [result (vcg-combinatorial valuations m)]
+           [allocation (car result)]
+           [payments (cdr result)])
+      ;; Any allocation is efficient (all have welfare 0)
+      ;; Payments should be 0 for everyone
+      (assert-equal 0 (vector-ref payments 0))
+      (assert-equal 0 (vector-ref payments 1))))
+
+  (define-test "vcg with single bidder"
+    ;; Edge case: only one bidder
+    (let* ([n 1]
+           [m 2]
+           [valuations (vector (vector 0 5 8 12))]
+           [result (vcg-combinatorial valuations m)]
+           [allocation (car result)]
+           [payments (cdr result)])
+      ;; Single bidder gets optimal bundle
+      (assert-equal 3 (vector-ref allocation 0))  ; {a,b} = 12
+      ;; No externality on others (no others!) -> payment = 0
+      (assert-equal 0 (vector-ref payments 0))))
+
+  (define-test "vcg efficient split beats giving all to one"
+    ;; Ensure splitting items across bidders when efficient
+    ;; 2 items, 2 bidders who each want different items
+    (let* ([n 2]
+           [m 2]
+           ;; Agent 0 wants item a only
+           ;; Agent 1 wants item b only
+           [valuations (vector (vector 0 10 0 10)   ; only values {a}
+                               (vector 0 0 10 10))] ; only values {b}
+           [result (vcg-combinatorial valuations m)]
+           [allocation (car result)]
+           [payments (cdr result)])
+      ;; Efficient: split - each gets their preferred item (total 20)
+      ;; vs one gets both (10)
+      (assert-equal 1 (vector-ref allocation 0))  ; {a}
+      (assert-equal 2 (vector-ref allocation 1))  ; {b}
+      ;; Payments:
+      ;; Without agent 0: agent 1 still gets {b} for 10. Others' welfare = 10
+      ;; With agent 0: agent 1 gets {b} for 10. Others' welfare = 10
+      ;; Payment 0 = 10 - 10 = 0
+      (assert-equal 0 (vector-ref payments 0))
+      (assert-equal 0 (vector-ref payments 1))))
+
+  (define-test "vcg payment reflects externality"
+    ;; 2 items, 3 bidders - verify VCG payments are externalities
+    (let* ([n 3]
+           [m 2]
+           ;; bundles: 0={}, 1={a}, 2={b}, 3={a,b}
+           [valuations (vector (vector 0 20 0 20)    ; agent 0 wants {a}
+                               (vector 0 0 15 15)    ; agent 1 wants {b}
+                               (vector 0 10 10 18))] ; agent 2 wants both
+           [result (vcg-combinatorial valuations m)]
+           [allocation (car result)]
+           [payments (cdr result)])
+      ;; Efficient: agent 0 gets {a} (20), agent 1 gets {b} (15) = 35 total
+      ;; vs agent 2 gets both (18) = 18
+      (assert-equal 1 (vector-ref allocation 0))  ; {a}
+      (assert-equal 2 (vector-ref allocation 1))  ; {b}
+      (assert-equal 0 (vector-ref allocation 2))  ; nothing
+      ;; Payment for agent 0:
+      ;; Without 0: agent 1 gets {b} (15), agent 2 gets {a} (10). Others' = 25
+      ;; With 0: agent 1 gets {b} (15), agent 2 gets nothing. Others' = 15
+      ;; Payment = 25 - 15 = 10
+      (assert-equal 10 (vector-ref payments 0))
+      ;; Payment for agent 1:
+      ;; Without 1: agent 0 gets {a} (20), agent 2 gets {b} (10). Others' = 30
+      ;; With 1: agent 0 gets {a} (20), agent 2 nothing. Others' = 20
+      ;; Payment = 30 - 20 = 10
+      (assert-equal 10 (vector-ref payments 1))
+      ;; Agent 2 gets nothing, pays nothing
+      (assert-equal 0 (vector-ref payments 2)))))
 
 ;;; ============================================================================
 ;;; Public Goods / Pivot Mechanism
