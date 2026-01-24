@@ -158,7 +158,7 @@ better for dynamic insertions and spatial locality queries.")
                ;; Room in leaf, or max depth reached - just add without splitting
                (quadtree-leaf bounds (cons (list x y data) points))
                ;; Need to split
-               (let ([split-tree (quadtree-split tree)])
+               (let ([split-tree (quadtree-split tree depth)])
                  (quadtree-insert-at-depth split-tree x y data (+ depth 1))))))]
     [(quadtree-node? tree)
      (let ([bounds (quadtree-bounds tree)])
@@ -182,9 +182,10 @@ better for dynamic insertions and spatial locality queries.")
                [else
                 (quadtree-node bounds ne nw se (quadtree-insert-at-depth sw x y data next-depth))]))))]))
 
-(define (quadtree-split leaf)
-  (doc 'type '(-> Quadtree Quadtree))
-  (doc 'description "Split a leaf node into 4 children")
+(define (quadtree-split leaf depth)
+  (doc 'type '(-> Quadtree Nat Quadtree))
+  (doc 'description "Split a leaf node into 4 children. Depth parameter ensures
+correct depth tracking when re-inserting existing points into child nodes.")
   (let* ([bounds (quadtree-leaf-bounds leaf)]
          [points (quadtree-leaf-points leaf)]
          [cx (bounds-cx bounds)]
@@ -202,10 +203,12 @@ better for dynamic insertions and spatial locality queries.")
          [se (quadtree-leaf se-bounds '())]
          [sw (quadtree-leaf sw-bounds '())]
          ;; Create node
-         [node (quadtree-node bounds ne nw se sw)])
-    ;; Re-insert all points
+         [node (quadtree-node bounds ne nw se sw)]
+         ;; Depth for re-inserted points is current depth + 1
+         [child-depth (+ depth 1)])
+    ;; Re-insert all points at correct depth
     (fold-left (lambda (tree pt)
-                 (quadtree-insert tree (car pt) (cadr pt) (caddr pt)))
+                 (quadtree-insert-at-depth tree (car pt) (cadr pt) (caddr pt) child-depth))
                node
                points)))
 
