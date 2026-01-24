@@ -8,15 +8,19 @@
   (deps (linalg topology))
 
   (description
-   "3D computational geometry library providing primitives, spatial data structures,
-    raymarching, and mesh topology analysis. Includes points, lines, rays, planes,
-    triangles, spheres, AABBs, OBBs, transforms, distance queries, intersection tests,
-    BVH and octree acceleration structures, mesh SDF computation, marching cubes
-    isosurface extraction, and topological validation via Betti numbers.")
+   "2D/3D computational geometry library providing primitives, spatial data structures,
+    raymarching, mesh generation, and mesh topology analysis. Includes points, lines,
+    rays, planes, triangles, spheres, AABBs, OBBs, transforms, distance queries,
+    intersection tests, BVH and octree acceleration structures, mesh SDF computation,
+    marching cubes isosurface extraction, Delaunay triangulation with refinement,
+    topological validation via Betti numbers, and 2D convex hull algorithms
+    (Graham scan, Quickhull) with Minkowski operations.")
 
-  (keywords (geometry 3d raymarching sdf bvh octree mesh intersection transform
+  (keywords (geometry 2d 3d raymarching sdf bvh octree mesh intersection transform
              marching-cubes rendering ray-tracing spatial-data-structures
-             topology homology betti-numbers manifold validation))
+             topology homology betti-numbers manifold validation
+             delaunay triangulation mesh-generation refinement
+             convex-hull graham-scan quickhull minkowski collision-detection))
   (aliases (geom 3d-geometry spatial))
 
   (exports
@@ -89,6 +93,15 @@
     compute-cube-index compute-edge-intersections generate-cube-triangles
     marching-cubes marching-cubes-sphere marching-cubes-torus)
 
+   (mesh-gen
+    make-point2 point2-x point2-y
+    make-tri2 tri2? tri2-p1 tri2-p2 tri2-p3 tri2-points
+    tri2-area tri2-circumcenter tri2-circumradius-sq point-in-circumcircle?
+    delaunay-triangulate
+    tri2-edge-lengths tri2-aspect-ratio tri2-angles tri2-min-angle tri2-max-angle
+    mesh-quality-report refine-mesh
+    triangles-to-3d random-points-in-rect render-mesh-2d)
+
    (mesh-topology
     mesh->simplicial-complex triangles->simplicial-complex
     mesh-betti-numbers mesh-euler-characteristic mesh-f-vector
@@ -97,7 +110,15 @@
     mesh-edges-are-manifold? mesh-vertices-are-manifold?
     mesh-boundary-edges mesh-non-manifold-edges
     mesh-topology-summary
-    mesh-is-watertight? mesh-is-sphere-topology? mesh-is-torus-topology?))
+    mesh-is-watertight? mesh-is-sphere-topology? mesh-is-torus-topology?)
+
+   (convex-hull
+    cross-product-2d ccw? collinear? point2-distance-sq
+    graham-scan quickhull convex-hull
+    convex-hull-area convex-hull-perimeter convex-hull-centroid convex-hull-diameter
+    point-in-convex-hull?
+    extreme-point support-function
+    minkowski-sum minkowski-difference hulls-intersect?))
 
   (modules
    (geometry "geometry.ss"
@@ -123,7 +144,15 @@
    (marching-cubes "marching-cubes.ss"
     "Marching cubes isosurface extraction. Converts implicit surfaces (SDFs) to
      triangle meshes at specified resolution.")
+   (mesh-gen "mesh-gen.ss"
+    "2D mesh generation with Delaunay triangulation (Bowyer-Watson), quality metrics
+     (aspect ratio, angles), and Ruppert refinement. Includes 3D elevation and ASCII viz.")
    (mesh-topology "mesh-topology.ss"
     "Topological analysis of triangle meshes via homology. Computes Betti numbers,
      validates manifold properties, detects non-manifold edges, and verifies mesh
-     topology (sphere, torus, watertight).")))
+     topology (sphere, torus, watertight).")
+   (convex-hull "convex-hull.ss"
+    "2D convex hull algorithms: Graham scan O(n log n), Quickhull O(n log n) expected.
+     Includes hull properties (area, perimeter, centroid, diameter), point-in-hull tests,
+     extreme point queries, support functions, and Minkowski sum/difference for
+     collision detection.")))
