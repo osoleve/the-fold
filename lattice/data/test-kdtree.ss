@@ -160,4 +160,100 @@
                 (assert-equal p (kdtree-nearest tree p)))
               points)))
 
+;;; ============================================================
+;;; Delete Tests
+;;; ============================================================
+
+(define-test "kdtree-member? basic"
+  (let ([tree (kdtree-build '((1 2) (3 4) (5 6)))])
+    (assert-true (kdtree-member? tree '(1 2) 2))
+    (assert-true (kdtree-member? tree '(3 4) 2))
+    (assert-true (kdtree-member? tree '(5 6) 2))
+    (assert-false (kdtree-member? tree '(0 0) 2))
+    (assert-false (kdtree-member? tree '(1 3) 2))))
+
+(define-test "kdtree-delete leaf"
+  ;; Delete from single-node tree
+  (let* ([tree (kdtree-build '((5 5)))]
+         [tree2 (kdtree-delete-2d tree '(5 5))])
+    (assert-true (kdtree-empty? tree2))))
+
+(define-test "kdtree-delete non-existent"
+  (let* ([tree (kdtree-build '((1 1) (5 5)))]
+         [tree2 (kdtree-delete-2d tree '(99 99))])
+    ;; Should be unchanged
+    (assert-equal 2 (kdtree-size tree2))))
+
+(define-test "kdtree-delete root"
+  (let* ([tree (kdtree-build '((5 5) (2 2) (8 8)))]
+         [root-point (kdtree-point tree)]
+         [tree2 (kdtree-delete-2d tree root-point)])
+    (assert-equal 2 (kdtree-size tree2))
+    (assert-false (kdtree-member? tree2 root-point 2))))
+
+(define-test "kdtree-delete maintains structure"
+  ;; Delete from larger tree, verify remaining points still queryable
+  (let* ([points '((2 3) (5 4) (9 6) (4 7) (8 1) (7 2))]
+         [tree (kdtree-build points)]
+         [tree2 (kdtree-delete-2d tree '(5 4))]
+         [tree3 (kdtree-delete-2d tree2 '(8 1))])
+    (assert-equal 4 (kdtree-size tree3))
+    ;; Remaining points should still be findable
+    (assert-equal '(2 3) (kdtree-nearest tree3 '(2 3)))
+    (assert-equal '(9 6) (kdtree-nearest tree3 '(9 6)))
+    (assert-equal '(4 7) (kdtree-nearest tree3 '(4 7)))
+    (assert-equal '(7 2) (kdtree-nearest tree3 '(7 2)))))
+
+(define-test "kdtree-delete all points"
+  (let* ([points '((1 1) (2 2) (3 3))]
+         [tree (kdtree-build points)]
+         [tree2 (kdtree-delete-2d tree '(1 1))]
+         [tree3 (kdtree-delete-2d tree2 '(2 2))]
+         [tree4 (kdtree-delete-2d tree3 '(3 3))])
+    (assert-true (kdtree-empty? tree4))))
+
+(define-test "kdtree-delete 3d"
+  (let* ([points '((1 2 3) (4 5 6) (7 8 9))]
+         [tree (kdtree-build points)]
+         [tree2 (kdtree-delete-3d tree '(4 5 6))])
+    (assert-equal 2 (kdtree-size tree2))
+    (assert-true (kdtree-member? tree2 '(1 2 3) 3))
+    (assert-false (kdtree-member? tree2 '(4 5 6) 3))
+    (assert-true (kdtree-member? tree2 '(7 8 9) 3))))
+
+(define-test "kdtree-delete stress"
+  ;; Build grid, delete half, verify queries still work
+  (let* ([points (apply append
+                        (map (lambda (x)
+                               (map (lambda (y) (list x y))
+                                    (iota 10)))
+                             (iota 10)))]
+         [tree (kdtree-build points)]
+         ;; Delete all even-indexed points
+         [even-points (filter (lambda (p) (even? (+ (car p) (cadr p)))) points)]
+         [tree2 (fold-left (lambda (t pt) (kdtree-delete-2d t pt)) tree even-points)])
+    ;; Should have about half remaining
+    (assert-true (< (kdtree-size tree2) 60))
+    ;; Odd-indexed points should still be findable
+    (let ([odd-points (filter (lambda (p) (odd? (+ (car p) (cadr p)))) points)])
+      (for-each (lambda (p)
+                  (assert-equal p (kdtree-nearest tree2 p)))
+                (take odd-points 10)))))  ; test subset for speed
+
+(define-test "kdtree-find-min on split axis"
+  ;; Test find-min when search axis matches split axis
+  (let ([tree (kdtree-build '((5 5) (2 3) (8 7) (1 8) (3 2)))])
+    ;; min on x-axis (axis 0) should be point with x=1
+    (let ([min-pt (kdtree-find-min tree 0 2 0)])
+      (assert-equal 1 (car min-pt)))
+    ;; min on y-axis (axis 1) should be point with y=2
+    (let ([min-pt (kdtree-find-min tree 1 2 0)])
+      (assert-equal 2 (cadr min-pt)))))
+
+;; Helper for stress test
+(define (take lst n)
+  (if (or (null? lst) (<= n 0))
+      '()
+      (cons (car lst) (take (cdr lst) (- n 1)))))
+
 (run-all-tests)

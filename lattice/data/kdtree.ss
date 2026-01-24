@@ -402,3 +402,160 @@ Parameter k is dimensionality.")
   (doc 'type '(-> KDTree Point KDTree))
   (doc 'description "Convenience: insert into 3D tree")
   (kdtree-insert tree point 3))
+
+;;; ============================================================
+;;; Deletion
+;;; ============================================================
+
+(doc 'section 'deletion)
+
+(define (kdtree-delete tree point k)
+  (doc 'type '(-> KDTree Point Nat KDTree))
+  (doc 'description "Delete a point from the k-d tree. O(log n) average.
+Unlike BSTs, k-d tree deletion requires finding replacement from subtree
+that preserves invariant across all axes. Parameter k is dimensionality.
+Returns unchanged tree if point not found.")
+  (kdtree-delete-rec tree point k 0))
+
+(define (kdtree-delete-2d tree point)
+  (doc 'type '(-> KDTree Point KDTree))
+  (doc 'description "Convenience: delete from 2D tree")
+  (kdtree-delete tree point 2))
+
+(define (kdtree-delete-3d tree point)
+  (doc 'type '(-> KDTree Point KDTree))
+  (doc 'description "Convenience: delete from 3D tree")
+  (kdtree-delete tree point 3))
+
+(define (kdtree-delete-rec tree point k depth)
+  ;; Delete point from tree, maintaining k-d tree invariant
+  ;; When coordinates are equal on split axis, point could be in either subtree
+  (if (kdtree-empty? tree)
+      tree  ; point not found
+      (let* ([node-point (kdtree-point tree)]
+             [axis (modulo depth k)]
+             [pt-coord (point-coord point axis)]
+             [nd-coord (point-coord node-point axis)])
+        (cond
+          [(points-equal? point node-point)
+           ;; Found the point to delete
+           (kdtree-delete-node tree k depth)]
+          [(< pt-coord nd-coord)
+           (kdtree-node node-point
+                        (kdtree-delete-rec (kdtree-left tree) point k (+ depth 1))
+                        (kdtree-right tree)
+                        depth)]
+          [(> pt-coord nd-coord)
+           (kdtree-node node-point
+                        (kdtree-left tree)
+                        (kdtree-delete-rec (kdtree-right tree) point k (+ depth 1))
+                        depth)]
+          [else
+           ;; Equal coordinates - try left first, then right if not found in left
+           (let ([left-result (kdtree-delete-rec (kdtree-left tree) point k (+ depth 1))])
+             (if (< (kdtree-size left-result) (kdtree-size (kdtree-left tree)))
+                 ;; Successfully deleted from left
+                 (kdtree-node node-point left-result (kdtree-right tree) depth)
+                 ;; Not in left, try right
+                 (kdtree-node node-point
+                              (kdtree-left tree)
+                              (kdtree-delete-rec (kdtree-right tree) point k (+ depth 1))
+                              depth)))]))))
+
+(define (kdtree-delete-node tree k depth)
+  ;; Delete the node at root of tree, finding appropriate replacement
+  (let ([left (kdtree-left tree)]
+        [right (kdtree-right tree)]
+        [axis (modulo depth k)])
+    (cond
+      ;; Leaf node (no children): just remove it
+      [(and (kdtree-empty? left) (kdtree-empty? right))
+       kdtree-empty]
+
+      ;; Has right subtree: find min on axis, swap, delete from right
+      [(not (kdtree-empty? right))
+       (let ([replacement (kdtree-find-min right axis k (+ depth 1))])
+         (kdtree-node replacement
+                      left
+                      (kdtree-delete-rec right replacement k (+ depth 1))
+                      depth))]
+
+      ;; Only left subtree: find min on axis from left, swap to right, delete from left
+      ;; This is subtle: we move left subtree to become right subtree after finding min
+      ;; because the replacement goes to current position, and remaining left points
+      ;; should now be in the right subtree (they're >= replacement on split axis)
+      [else
+       (let ([replacement (kdtree-find-min left axis k (+ depth 1))])
+         (kdtree-node replacement
+                      kdtree-empty
+                      (kdtree-delete-rec left replacement k (+ depth 1))
+                      depth))])))
+
+(define (kdtree-find-min tree axis k depth)
+  (doc 'type '(-> KDTree Nat Nat Nat Point))
+  (doc 'description "Find the point with minimum value on given axis in tree.
+This is non-trivial because the tree is only partitioned on one axis per level,
+so minimum on a different axis could be anywhere.")
+  (kdtree-find-min-rec tree axis k depth))
+
+(define (kdtree-find-min-rec tree axis k depth)
+  ;; Find minimum point on given axis
+  (if (kdtree-empty? tree)
+      #f  ; shouldn't happen if called on non-empty tree
+      (let* ([node-point (kdtree-point tree)]
+             [split-axis (modulo depth k)]
+             [left (kdtree-left tree)]
+             [right (kdtree-right tree)])
+        (if (= axis split-axis)
+            ;; Split axis matches search axis: min must be in left subtree or current
+            (if (kdtree-empty? left)
+                node-point
+                (point-min-on-axis node-point
+                                   (kdtree-find-min-rec left axis k (+ depth 1))
+                                   axis))
+            ;; Different axis: min could be anywhere, must search both
+            (point-min-on-axis
+             node-point
+             (point-min-on-axis
+              (if (kdtree-empty? left) #f (kdtree-find-min-rec left axis k (+ depth 1)))
+              (if (kdtree-empty? right) #f (kdtree-find-min-rec right axis k (+ depth 1)))
+              axis)
+             axis)))))
+
+(define (point-min-on-axis p1 p2 axis)
+  ;; Return point with smaller coordinate on axis (handles #f)
+  (cond
+    [(not p1) p2]
+    [(not p2) p1]
+    [(< (point-coord p1 axis) (point-coord p2 axis)) p1]
+    [else p2]))
+
+(define (points-equal? p1 p2)
+  (doc 'type '(-> Point Point Boolean))
+  (doc 'description "Check if two points are equal (all coordinates match)")
+  (equal? p1 p2))
+
+(define (kdtree-member? tree point k)
+  (doc 'type '(-> KDTree Point Nat Boolean))
+  (doc 'description "Check if point exists in the k-d tree")
+  (kdtree-member-rec tree point k 0))
+
+(define (kdtree-member-rec tree point k depth)
+  ;; When coordinates are equal on split axis, point could be in either subtree
+  ;; due to how kdtree-build sorts and splits. We must search both in that case.
+  (if (kdtree-empty? tree)
+      #f
+      (let* ([node-point (kdtree-point tree)]
+             [axis (modulo depth k)]
+             [pt-coord (point-coord point axis)]
+             [nd-coord (point-coord node-point axis)])
+        (cond
+          [(points-equal? point node-point) #t]
+          [(< pt-coord nd-coord)
+           (kdtree-member-rec (kdtree-left tree) point k (+ depth 1))]
+          [(> pt-coord nd-coord)
+           (kdtree-member-rec (kdtree-right tree) point k (+ depth 1))]
+          [else
+           ;; Equal coordinates - must check both subtrees
+           (or (kdtree-member-rec (kdtree-left tree) point k (+ depth 1))
+               (kdtree-member-rec (kdtree-right tree) point k (+ depth 1)))]))))

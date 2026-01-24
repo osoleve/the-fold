@@ -1,7 +1,7 @@
 ;;; lattice/data/manifest.sexp — Data Structures Skill Manifest
 
 (skill data
-  (version "0.2.0")
+  (version "0.3.0")
   (tier 0)
   (path "lattice/data")
   (purity total)
@@ -23,8 +23,8 @@
              community-detection label-propagation modularity modularity-ilp
              minimum-spanning-tree mst prim kruskal union-find
              homology betti-numbers simplicial-complex cycle-basis euler-characteristic
-             kdtree kd-tree spatial nearest-neighbor knn range-query
-             quadtree spatial-index point-query 2d))
+             kdtree kd-tree spatial nearest-neighbor knn range-query delete
+             quadtree spatial-index point-query 2d dynamic))
   (aliases (ds structures collections))
 
   (exports

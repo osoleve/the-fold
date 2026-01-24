@@ -380,3 +380,117 @@ Signature matches fold-left convention: accumulator first.")
   (doc 'type '(-> Quadtree (List Point)))
   (doc 'description "Extract all points from the quadtree. O(n)")
   (reverse (quadtree-fold (lambda (acc pt) (cons pt acc)) '() tree)))
+
+;;; ============================================================
+;;; Deletion
+;;; ============================================================
+
+(doc 'section 'deletion)
+
+(define (quadtree-delete tree x y)
+  (doc 'type '(-> Quadtree Num Num Quadtree))
+  (doc 'description "Delete a point at (x,y) from the quadtree. If multiple points at
+that location, removes the first match. Returns unchanged tree if point not found.
+After deletion, merges sparse children back into parent when appropriate.")
+  (quadtree-delete-if tree x y (lambda (pt) #t)))
+
+(define (quadtree-delete-if tree x y pred)
+  (doc 'type '(-> Quadtree Num Num (-> Point Boolean) Quadtree))
+  (doc 'description "Delete a point at (x,y) matching predicate. Predicate receives
+the full point (x y data). Returns unchanged tree if no match found.")
+  (cond
+    [(quadtree-empty? tree) tree]
+    [(quadtree-leaf? tree)
+     (let ([bounds (quadtree-leaf-bounds tree)]
+           [points (quadtree-leaf-points tree)])
+       (if (not (bounds-contains? bounds x y))
+           tree  ; not in this region
+           ;; Remove first matching point
+           (let ([new-points (delete-first-matching points x y pred)])
+             (quadtree-leaf bounds new-points))))]
+    [(quadtree-node? tree)
+     (let ([bounds (quadtree-bounds tree)])
+       (if (not (bounds-contains? bounds x y))
+           tree  ; not in this region
+           ;; Recurse into appropriate quadrant
+           (let* ([cx (bounds-cx bounds)]
+                  [cy (bounds-cy bounds)]
+                  [ne (quadtree-ne tree)]
+                  [nw (quadtree-nw tree)]
+                  [se (quadtree-se tree)]
+                  [sw (quadtree-sw tree)]
+                  [new-tree
+                   (cond
+                     [(and (>= x cx) (>= y cy))
+                      (quadtree-node bounds (quadtree-delete-if ne x y pred) nw se sw)]
+                     [(and (< x cx) (>= y cy))
+                      (quadtree-node bounds ne (quadtree-delete-if nw x y pred) se sw)]
+                     [(and (>= x cx) (< y cy))
+                      (quadtree-node bounds ne nw (quadtree-delete-if se x y pred) sw)]
+                     [else
+                      (quadtree-node bounds ne nw se (quadtree-delete-if sw x y pred))])])
+             ;; Try to merge if total points in all children <= capacity
+             (quadtree-try-merge new-tree))))]))
+
+(define (delete-first-matching points x y pred)
+  ;; Remove first point at (x,y) matching predicate
+  (cond
+    [(null? points) '()]
+    [(and (= (car (car points)) x)
+          (= (cadr (car points)) y)
+          (pred (car points)))
+     (cdr points)]  ; found it, skip this one
+    [else
+     (cons (car points) (delete-first-matching (cdr points) x y pred))]))
+
+(define (quadtree-try-merge tree)
+  (doc 'type '(-> Quadtree Quadtree))
+  (doc 'description "If all children are leaves and total points <= capacity, merge into single leaf")
+  (if (not (quadtree-node? tree))
+      tree
+      (let ([ne (quadtree-ne tree)]
+            [nw (quadtree-nw tree)]
+            [se (quadtree-se tree)]
+            [sw (quadtree-sw tree)])
+        (if (and (quadtree-leaf? ne) (quadtree-leaf? nw)
+                 (quadtree-leaf? se) (quadtree-leaf? sw))
+            (let ([total-points (+ (length (quadtree-leaf-points ne))
+                                   (length (quadtree-leaf-points nw))
+                                   (length (quadtree-leaf-points se))
+                                   (length (quadtree-leaf-points sw)))])
+              (if (<= total-points *quadtree-capacity*)
+                  ;; Merge all points into parent leaf
+                  (quadtree-leaf
+                   (quadtree-bounds tree)
+                   (append (quadtree-leaf-points ne)
+                           (quadtree-leaf-points nw)
+                           (quadtree-leaf-points se)
+                           (quadtree-leaf-points sw)))
+                  tree))
+            tree))))
+
+(define (quadtree-member? tree x y)
+  (doc 'type '(-> Quadtree Num Num Boolean))
+  (doc 'description "Check if a point exists at (x,y) in the quadtree")
+  (cond
+    [(quadtree-empty? tree) #f]
+    [(quadtree-leaf? tree)
+     (let ([points (quadtree-leaf-points tree)])
+       (any? (lambda (pt) (and (= (car pt) x) (= (cadr pt) y))) points))]
+    [(quadtree-node? tree)
+     (let ([bounds (quadtree-bounds tree)]
+           [cx (bounds-cx (quadtree-bounds tree))]
+           [cy (bounds-cy (quadtree-bounds tree))])
+       (if (not (bounds-contains? bounds x y))
+           #f
+           (cond
+             [(and (>= x cx) (>= y cy)) (quadtree-member? (quadtree-ne tree) x y)]
+             [(and (< x cx) (>= y cy)) (quadtree-member? (quadtree-nw tree) x y)]
+             [(and (>= x cx) (< y cy)) (quadtree-member? (quadtree-se tree) x y)]
+             [else (quadtree-member? (quadtree-sw tree) x y)])))]))
+
+(define (any? pred lst)
+  (cond
+    [(null? lst) #f]
+    [(pred (car lst)) #t]
+    [else (any? pred (cdr lst))]))

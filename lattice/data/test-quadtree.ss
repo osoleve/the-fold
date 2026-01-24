@@ -152,4 +152,66 @@
       '()
       (cons (car lst) (take (cdr lst) (- n 1)))))
 
+;;; ============================================================
+;;; Delete Tests
+;;; ============================================================
+
+(define-test "quadtree-member? basic"
+  (let* ([points '((1 1) (5 5) (9 9))]
+         [tree (quadtree-build-auto points)])
+    (assert-true (quadtree-member? tree 1 1))
+    (assert-true (quadtree-member? tree 5 5))
+    (assert-true (quadtree-member? tree 9 9))
+    (assert-false (quadtree-member? tree 3 3))
+    (assert-false (quadtree-member? tree 0 0))))
+
+(define-test "quadtree-delete single point"
+  (let* ([points '((1 1) (5 5) (9 9))]
+         [tree (quadtree-build-auto points)]
+         [tree2 (quadtree-delete tree 5 5)])
+    (assert-equal 2 (quadtree-size tree2))
+    (assert-true (quadtree-member? tree2 1 1))
+    (assert-false (quadtree-member? tree2 5 5))
+    (assert-true (quadtree-member? tree2 9 9))))
+
+(define-test "quadtree-delete non-existent"
+  (let* ([points '((1 1) (5 5))]
+         [tree (quadtree-build-auto points)]
+         [tree2 (quadtree-delete tree 99 99)])
+    ;; Should be unchanged
+    (assert-equal 2 (quadtree-size tree2))))
+
+(define-test "quadtree-delete all points"
+  (let* ([tree (quadtree-build-auto '((1 1) (2 2)))]
+         [tree2 (quadtree-delete tree 1 1)]
+         [tree3 (quadtree-delete tree2 2 2)])
+    (assert-equal 0 (quadtree-size tree3))))
+
+(define-test "quadtree-delete triggers merge"
+  ;; Create tree that splits, then delete to trigger merge
+  (let* ([points '((0 0) (10 10) (20 20) (30 30) (40 40))]  ; causes split
+         [tree (quadtree-build-auto points)])
+    (assert-true (quadtree-node? tree))
+    ;; Delete enough points to allow merging
+    (let* ([t2 (quadtree-delete tree 40 40)]
+           [t3 (quadtree-delete t2 30 30)]
+           [t4 (quadtree-delete t3 20 20)])
+      ;; With only 2 points remaining, should have merged to leaf
+      (assert-equal 2 (quadtree-size t4))
+      (assert-true (quadtree-leaf? t4)))))
+
+(define-test "quadtree-delete-if with predicate"
+  ;; Store points with data: (x y data)
+  (let* ([tree (quadtree-create (make-bounds 50 50 100 100))]
+         [tree (quadtree-insert tree 10 10 'a)]
+         [tree (quadtree-insert tree 10 10 'b)]  ; duplicate coords, different data
+         [tree (quadtree-insert tree 20 20 'c)])
+    (assert-equal 3 (quadtree-size tree))
+    ;; Delete only the 'b point at (10,10)
+    (let ([tree2 (quadtree-delete-if tree 10 10
+                                     (lambda (pt) (eq? (caddr pt) 'b)))])
+      (assert-equal 2 (quadtree-size tree2))
+      ;; 'a at (10,10) should still exist
+      (assert-true (quadtree-member? tree2 10 10)))))
+
 (run-all-tests)
