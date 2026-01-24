@@ -1,10 +1,10 @@
-;;; playpen/boardcraft/examples/visibility-demo.ss — Visibility Demo
+;;; lattice/tiles/examples/visibility-demo.ss — Visibility Demo
 ;;;
 ;;; Demonstrates line-of-sight and field-of-view calculations
 ;;; across different tile shapes.
 ;;;
 ;;; Usage:
-;;;   scheme --script playpen/boardcraft/examples/visibility-demo.ss
+;;;   scheme --script lattice/tiles/examples/visibility-demo.ss
 
 (load "lattice/tiles/boardcraft.ss")
 

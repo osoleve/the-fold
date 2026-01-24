@@ -337,7 +337,7 @@
              '())
          (case ctx-name
                [(boardcraft-unbound)
-                '("📖 BoardCraft docs: Browse playpen/boardcraft/ directory"
+                '("📖 BoardCraft docs: Browse lattice/tiles/ directory"
                   "💡 Examples: (examples 'hex-boards)"
                   "🔍 Discovery: (discover 'boardcraft)")]
                [(loom-unbound)

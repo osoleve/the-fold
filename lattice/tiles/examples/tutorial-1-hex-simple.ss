@@ -1,4 +1,4 @@
-;;; playpen/boardcraft/examples/tutorial-1-hex-simple.ss
+;;; lattice/tiles/examples/tutorial-1-hex-simple.ss
 ;;; BoardCraft Tutorial 1: Simple Hexagonal Board Introduction
 
 (load "lattice/tiles/boardcraft.ss")

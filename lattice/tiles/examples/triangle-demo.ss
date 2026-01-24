@@ -1,10 +1,10 @@
-;;; playpen/boardcraft/examples/triangle-demo.ss — Triangular Tile Demo
+;;; lattice/tiles/examples/triangle-demo.ss — Triangular Tile Demo
 ;;;
 ;;; Demonstrates triangular board creation and operations.
 ;;; Triangles alternate between up (△) and down (▽) orientations.
 ;;;
 ;;; Usage:
-;;;   scheme --script playpen/boardcraft/examples/triangle-demo.ss
+;;;   scheme --script lattice/tiles/examples/triangle-demo.ss
 
 (load "lattice/tiles/boardcraft.ss")
 

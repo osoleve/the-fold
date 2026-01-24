@@ -1,3 +1,5 @@
+(load "core/base/prelude.ss")
+
 (display "Loading BoardCraft SDK...
 ")
 
@@ -65,7 +67,7 @@
 ")
 (display "Turns: Turn order, action points, phases
 ")
-(display "See playpen/boardcraft/README.ss for documentation.
+(display "See lattice/tiles/README.ss for documentation.
 ")
 (newline)
 

@@ -1,4 +1,4 @@
-;;; playpen/boardcraft/README.ss — BoardCraft SDK Overview
+;;; lattice/tiles/README.ss — BoardCraft SDK Overview
 ;;;
 ;;; ═══════════════════════════════════════════════════════════
 ;;; BOARDCRAFT: A TILE-BASED BOARD GAME SDK

@@ -1,10 +1,10 @@
-;;; playpen/boardcraft/examples/turns-demo.ss — Turn System Demo
+;;; lattice/tiles/examples/turns-demo.ss — Turn System Demo
 ;;;
 ;;; Demonstrates turn-based gameplay including turn order,
 ;;; action points, and complete game loop.
 ;;;
 ;;; Usage:
-;;;   scheme --script playpen/boardcraft/examples/turns-demo.ss
+;;;   scheme --script lattice/tiles/examples/turns-demo.ss
 
 (load "lattice/tiles/boardcraft.ss")
 

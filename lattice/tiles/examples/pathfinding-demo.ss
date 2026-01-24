@@ -1,10 +1,10 @@
-;;; playpen/boardcraft/examples/pathfinding-demo.ss — Pathfinding Demo
+;;; lattice/tiles/examples/pathfinding-demo.ss — Pathfinding Demo
 ;;;
 ;;; Demonstrates BFS, Dijkstra, and A* pathfinding across
 ;;; all tile shapes (square, hex, triangle).
 ;;;
 ;;; Usage:
-;;;   scheme --script playpen/boardcraft/examples/pathfinding-demo.ss
+;;;   scheme --script lattice/tiles/examples/pathfinding-demo.ss
 
 (load "lattice/tiles/boardcraft.ss")
 

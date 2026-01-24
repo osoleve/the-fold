@@ -1,10 +1,10 @@
-;;; playpen/boardcraft/examples/render-demo.ss — Board Rendering Demo
+;;; lattice/tiles/examples/render-demo.ss — Board Rendering Demo
 ;;;
 ;;; Demonstrates ASCII art rendering of boards, including
 ;;; visualization of pathfinding and field-of-view results.
 ;;;
 ;;; Usage:
-;;;   scheme --script playpen/boardcraft/examples/render-demo.ss
+;;;   scheme --script lattice/tiles/examples/render-demo.ss
 
 (load "lattice/tiles/boardcraft.ss")
 

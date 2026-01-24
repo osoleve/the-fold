@@ -1,9 +1,9 @@
-;;; playpen/boardcraft/examples/square-chess.ss — Chess Board Example
+;;; lattice/tiles/examples/square-chess.ss — Chess Board Example
 ;;;
 ;;; Demonstrates square board for chess-like games.
 ;;;
 ;;; Usage:
-;;;   scheme --script playpen/boardcraft/examples/square-chess.ss
+;;;   scheme --script lattice/tiles/examples/square-chess.ss
 
 (load "lattice/tiles/boardcraft.ss")
 

@@ -1,9 +1,9 @@
-;;; playpen/boardcraft/examples/hex-demo.ss — Hexagonal Board Demo
+;;; lattice/tiles/examples/hex-demo.ss — Hexagonal Board Demo
 ;;;
 ;;; Demonstrates hex board creation, neighbor finding, and distance calculation.
 ;;;
 ;;; Usage:
-;;;   scheme --script playpen/boardcraft/examples/hex-demo.ss
+;;;   scheme --script lattice/tiles/examples/hex-demo.ss
 
 (load "lattice/tiles/boardcraft.ss")
 

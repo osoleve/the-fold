@@ -1,4 +1,4 @@
-;;; playpen/boardcraft/test-board-size.ss — Tests for board-size and capacity
+;;; lattice/tiles/test-board-size.ss — Tests for board-size and capacity
 ;;;
 ;;; Verifies that:
 ;;; - board-size returns 0 for empty boards (no tiles stored)

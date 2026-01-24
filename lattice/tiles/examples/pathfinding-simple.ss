@@ -1,9 +1,9 @@
-;;; playpen/boardcraft/examples/pathfinding-simple.ss — Simple Pathfinding Demo
+;;; lattice/tiles/examples/pathfinding-simple.ss — Simple Pathfinding Demo
 ;;;
 ;;; Demonstrates basic pathfinding on square and hex grids.
 ;;;
 ;;; Usage:
-;;;   scheme --script playpen/boardcraft/examples/pathfinding-simple.ss
+;;;   scheme --script lattice/tiles/examples/pathfinding-simple.ss
 
 (load "lattice/tiles/boardcraft.ss")
 

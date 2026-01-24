@@ -1,10 +1,10 @@
-;;; playpen/boardcraft/examples/units-demo.ss — Unit Management Demo
+;;; lattice/tiles/examples/units-demo.ss — Unit Management Demo
 ;;;
 ;;; Demonstrates unit/entity management including placement,
 ;;; movement, visibility, and integration with pathfinding.
 ;;;
 ;;; Usage:
-;;;   scheme --script playpen/boardcraft/examples/units-demo.ss
+;;;   scheme --script lattice/tiles/examples/units-demo.ss
 
 (load "lattice/tiles/boardcraft.ss")
 
