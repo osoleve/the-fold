@@ -501,8 +501,8 @@
 (define (k-double-auction buyer-bids seller-asks k)
   (doc 'export #t)
   (doc 'type '(-> (Vector Number) (Vector Number) Number DoubleAuctionOutcome))
-  (doc 'description "k-double auction: price = k × (highest losing bid) + (1-k) × (lowest losing ask)")
-  (doc 'note "k=0: seller's price. k=1: buyer's price. k=0.5: split the difference. Only k=0.5 is budget-balanced in expectation.")
+  (doc 'description "k-double auction: price = k × (marginal winning bid) + (1-k) × (marginal winning ask)")
+  (doc 'note "k=0: seller's price (highest winning ask). k=1: buyer's price (lowest winning bid). k=0.5: split the difference. Only k=0.5 is budget-balanced in expectation.")
   (let* ([sorted-buyers (sort > (vector->list buyer-bids))]
          [sorted-sellers (sort < (vector->list seller-asks))]
          ;; Find market-clearing quantity
@@ -512,13 +512,7 @@
                     (loop (cdr b) (cdr s) (+ q 1))))])
     (if (= qty 0)
         (make-double-auction-outcome% '() 0 0 0)
-        (let* (;; Price based on marginal traders
-               [marginal-buyer (if (< qty (length sorted-buyers))
-                                   (list-ref sorted-buyers qty)
-                                   0)]
-               [marginal-seller (if (< qty (length sorted-sellers))
-                                    (list-ref sorted-sellers qty)
-                                    +inf.0)]
+        (let* (;; Price based on marginal (last) winning traders
                [clearing-buyer (list-ref sorted-buyers (- qty 1))]
                [clearing-seller (list-ref sorted-sellers (- qty 1))]
                ;; k-double price
