@@ -744,6 +744,176 @@
       (assert-true (< (abs (- (interval-hi iv) 0.5)) tolerance)))))
 
 ;;; ============================================================================
+;;; interval-log10 Tests
+;;; ============================================================================
+
+(test-group "interval-log10"
+  (define-test "log10 positive interval"
+    ;; log10([1, 100]) = [0, 2]
+    (let* ([iv (interval-log10 (interval 1 100))]
+           [tolerance 1e-10])
+      (assert-true (< (abs (interval-lo iv)) tolerance))
+      (assert-true (< (abs (- (interval-hi iv) 2.0)) tolerance))))
+
+  (define-test "log10 powers of 10"
+    ;; log10([10, 1000]) = [1, 3]
+    (let* ([iv (interval-log10 (interval 10 1000))]
+           [tolerance 1e-10])
+      (assert-true (< (abs (- (interval-lo iv) 1.0)) tolerance))
+      (assert-true (< (abs (- (interval-hi iv) 3.0)) tolerance))))
+
+  (define-test "log10 fractional"
+    ;; log10([0.1, 1]) = [-1, 0]
+    (let* ([iv (interval-log10 (interval 0.1 1))]
+           [tolerance 1e-10])
+      (assert-true (< (abs (- (interval-lo iv) -1.0)) tolerance))
+      (assert-true (< (abs (interval-hi iv)) tolerance))))
+
+  (define-test "log10 negative returns error"
+    (assert-equal '(error domain-error)
+                  (interval-log10 (interval -2 -1))))
+
+  (define-test "log10 crossing zero clamps"
+    ;; Should handle negative lower bound
+    (let ([iv (interval-log10 (interval -1 10))])
+      (assert-true (< (interval-lo iv) -100))  ; Very negative (from epsilon)
+      (assert-true (< (abs (- (interval-hi iv) 1.0)) 1e-10)))))
+
+;;; ============================================================================
+;;; interval-atan2 Tests
+;;; ============================================================================
+
+(test-group "interval-atan2"
+  (define-test "atan2 quadrant I (x > 0, y > 0)"
+    (let* ([pi 3.141592653589793]
+           [iv (interval-atan2 (interval 1 2) (interval 1 2))]
+           [tolerance 1e-10])
+      ;; atan2([1,2], [1,2]) should be around [atan(1/2), atan(2/1)]
+      (assert-true (< (abs (- (interval-lo iv) (atan 0.5))) tolerance))
+      (assert-true (< (abs (- (interval-hi iv) (atan 2.0))) tolerance))))
+
+  (define-test "atan2 quadrant IV (x > 0, y < 0)"
+    (let* ([iv (interval-atan2 (interval -2 -1) (interval 1 2))]
+           [tolerance 1e-10])
+      ;; y negative, x positive → negative angles
+      (assert-true (< (interval-hi iv) 0))))
+
+  (define-test "atan2 positive x axis"
+    ;; atan2(0, 1) = 0
+    (let* ([iv (interval-atan2 (interval-singleton 0) (interval-singleton 1))]
+           [tolerance 1e-10])
+      (assert-true (< (abs (interval-lo iv)) tolerance))
+      (assert-true (< (abs (interval-hi iv)) tolerance))))
+
+  (define-test "atan2 positive y axis"
+    ;; atan2(1, 0) = pi/2
+    (let* ([pi 3.141592653589793]
+           [iv (interval-atan2 (interval-singleton 1) (interval-singleton 0))]
+           [tolerance 1e-10])
+      (assert-true (< (abs (- (interval-lo iv) (/ pi 2))) tolerance))
+      (assert-true (< (abs (- (interval-hi iv) (/ pi 2))) tolerance))))
+
+  (define-test "atan2 left half-plane crossing y=0 gives full range"
+    ;; When x < 0 and y crosses 0, result wraps around ±π
+    (let* ([pi 3.141592653589793]
+           [iv (interval-atan2 (interval -1 1) (interval -2 -1))])
+      (assert-equal (- pi) (interval-lo iv))
+      (assert-equal pi (interval-hi iv))))
+
+  (define-test "atan2 origin is error"
+    (assert-equal '(error domain-error)
+                  (interval-atan2 (interval-singleton 0) (interval-singleton 0)))))
+
+;;; ============================================================================
+;;; Rigorous Transcendental Tests
+;;; ============================================================================
+
+(test-group "rigorous-transcendentals"
+  (define-test "rigorous exp is at least as wide as standard"
+    (let ([iv (interval 0 2)])
+      (let ([std (interval-exp iv)]
+            [rig (interval-exp-rigorous iv)])
+        (assert-true (<= (interval-lo rig) (interval-lo std)))
+        (assert-true (>= (interval-hi rig) (interval-hi std))))))
+
+  (define-test "rigorous log is at least as wide as standard"
+    (let ([iv (interval 1 10)])
+      (let ([std (interval-log iv)]
+            [rig (interval-log-rigorous iv)])
+        (assert-true (<= (interval-lo rig) (interval-lo std)))
+        (assert-true (>= (interval-hi rig) (interval-hi std))))))
+
+  (define-test "rigorous log10 is at least as wide as standard"
+    (let ([iv (interval 1 100)])
+      (let ([std (interval-log10 iv)]
+            [rig (interval-log10-rigorous iv)])
+        (assert-true (<= (interval-lo rig) (interval-lo std)))
+        (assert-true (>= (interval-hi rig) (interval-hi std))))))
+
+  (define-test "rigorous sin is at least as wide as standard"
+    (let ([iv (interval 0 1)])
+      (let ([std (interval-sin iv)]
+            [rig (interval-sin-rigorous iv)])
+        (assert-true (<= (interval-lo rig) (interval-lo std)))
+        (assert-true (>= (interval-hi rig) (interval-hi std))))))
+
+  (define-test "rigorous cos is at least as wide as standard"
+    (let ([iv (interval 0 1)])
+      (let ([std (interval-cos iv)]
+            [rig (interval-cos-rigorous iv)])
+        (assert-true (<= (interval-lo rig) (interval-lo std)))
+        (assert-true (>= (interval-hi rig) (interval-hi std))))))
+
+  (define-test "rigorous atan is at least as wide as standard"
+    (let ([iv (interval -10 10)])
+      (let ([std (interval-atan iv)]
+            [rig (interval-atan-rigorous iv)])
+        (assert-true (<= (interval-lo rig) (interval-lo std)))
+        (assert-true (>= (interval-hi rig) (interval-hi std))))))
+
+  (define-test "rigorous sinh is at least as wide as standard"
+    (let ([iv (interval -1 2)])
+      (let ([std (interval-sinh iv)]
+            [rig (interval-sinh-rigorous iv)])
+        (assert-true (<= (interval-lo rig) (interval-lo std)))
+        (assert-true (>= (interval-hi rig) (interval-hi std))))))
+
+  (define-test "rigorous cosh is at least as wide as standard"
+    (let ([iv (interval -1 2)])
+      (let ([std (interval-cosh iv)]
+            [rig (interval-cosh-rigorous iv)])
+        (assert-true (<= (interval-lo rig) (interval-lo std)))
+        (assert-true (>= (interval-hi rig) (interval-hi std))))))
+
+  (define-test "rigorous tanh is at least as wide as standard"
+    (let ([iv (interval -2 2)])
+      (let ([std (interval-tanh iv)]
+            [rig (interval-tanh-rigorous iv)])
+        (assert-true (<= (interval-lo rig) (interval-lo std)))
+        (assert-true (>= (interval-hi rig) (interval-hi std))))))
+
+  (define-test "rigorous exp preserves containment"
+    ;; For exact input, rigorous result must contain exact output
+    (let* ([x 1.5]
+           [iv (interval-exp-rigorous (interval-singleton x))])
+      (assert-true (interval-contains? iv (exp x)))))
+
+  (define-test "rigorous log preserves containment"
+    (let* ([x 2.5]
+           [iv (interval-log-rigorous (interval-singleton x))])
+      (assert-true (interval-contains? iv (log x)))))
+
+  (define-test "rigorous sin preserves containment"
+    (let* ([x 0.7]
+           [iv (interval-sin-rigorous (interval-singleton x))])
+      (assert-true (interval-contains? iv (sin x)))))
+
+  (define-test "rigorous cos preserves containment"
+    (let* ([x 0.7]
+           [iv (interval-cos-rigorous (interval-singleton x))])
+      (assert-true (interval-contains? iv (cos x))))))
+
+;;; ============================================================================
 ;;; Run Tests
 ;;; ============================================================================
 

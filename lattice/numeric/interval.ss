@@ -920,6 +920,277 @@
   (make-interval (tanh (interval-lo iv))
                  (tanh (interval-hi iv))))
 
+;;; interval-log10 : Interval → Interval | '(error domain-error)
+;;; Base-10 logarithm. Requires interval to be positive.
+;;; log10(x) = log(x) / log(10)
+(define (interval-log10 iv)
+  (doc 'export #t)
+  (let ([lo (interval-lo iv)]
+        [hi (interval-hi iv)]
+        [ln10 2.302585092994046])  ; log(10)
+    (cond
+      [(<= hi 0) '(error domain-error)]    ; Entirely non-positive
+      [(<= lo 0)                   ; Partially negative: clamp to epsilon
+       (make-interval (/ (log 1e-300) ln10) (/ (log hi) ln10))]
+      [else                        ; Entirely positive
+       (make-interval (/ (log lo) ln10) (/ (log hi) ln10))])))
+
+;;; interval-atan2 : Interval × Interval → Interval | '(error domain-error)
+;;; Two-argument arctangent atan2(y, x). Returns angle in [-π, π].
+;;; Complex because result depends on quadrant and may wrap around ±π.
+;;; Special cases on axes:
+;;;   atan2(y, 0) = π/2 if y > 0, -π/2 if y < 0
+;;;   atan2(0, x) = 0 if x > 0, π if x < 0
+;;;   atan2(0, 0) = undefined
+(define (interval-atan2 ivy ivx)
+  (doc 'export #t)
+  (doc 'description "Interval atan2(y, x). Handles quadrant wrapping and axis cases.")
+  (let* ([y-lo (interval-lo ivy)]
+         [y-hi (interval-hi ivy)]
+         [x-lo (interval-lo ivx)]
+         [x-hi (interval-hi ivx)]
+         [pi 3.141592653589793]
+         [half-pi (/ pi 2)])
+    (cond
+      ;; Origin is undefined
+      [(and (= x-lo 0) (= x-hi 0) (= y-lo 0) (= y-hi 0))
+       '(error domain-error)]
+
+      ;; Positive y-axis: x = 0, y > 0 → π/2
+      [(and (= x-lo 0) (= x-hi 0) (> y-lo 0))
+       (make-interval half-pi half-pi)]
+
+      ;; Negative y-axis: x = 0, y < 0 → -π/2
+      [(and (= x-lo 0) (= x-hi 0) (< y-hi 0))
+       (make-interval (- half-pi) (- half-pi))]
+
+      ;; Positive x-axis: y = 0, x > 0 → 0
+      [(and (= y-lo 0) (= y-hi 0) (> x-lo 0))
+       (make-interval 0 0)]
+
+      ;; Negative x-axis: y = 0, x < 0 → π
+      [(and (= y-lo 0) (= y-hi 0) (< x-hi 0))
+       (make-interval pi pi)]
+
+      ;; x = 0, y spans zero → range includes ±π/2
+      [(and (= x-lo 0) (= x-hi 0))
+       (make-interval (- half-pi) half-pi)]
+
+      ;; Quadrant I: x > 0, y >= 0
+      [(and (> x-lo 0) (>= y-lo 0))
+       (make-interval (atan (/ y-lo x-hi))
+                      (atan (/ y-hi x-lo)))]
+
+      ;; Quadrant II: x < 0, y > 0 (strict on both)
+      [(and (< x-hi 0) (> y-lo 0))
+       (make-interval (atan (/ y-hi x-hi))
+                      (atan (/ y-lo x-lo)))]
+
+      ;; Quadrant III: x < 0, y < 0 (strict on both)
+      [(and (< x-hi 0) (< y-hi 0))
+       (make-interval (atan (/ y-lo x-lo))
+                      (atan (/ y-hi x-hi)))]
+
+      ;; Quadrant IV: x > 0, y < 0 (strict on both)
+      [(and (> x-lo 0) (< y-hi 0))
+       (make-interval (atan (/ y-lo x-lo))
+                      (atan (/ y-hi x-hi)))]
+
+      ;; Right half-plane: x > 0, y spans zero
+      [(> x-lo 0)
+       (make-interval (atan (/ y-lo x-lo))
+                      (atan (/ y-hi x-lo)))]
+
+      ;; Left half-plane with discontinuity: x < 0, y spans zero
+      ;; Result wraps around ±π, giving full [-π, π]
+      [(< x-hi 0)
+       (if (and (<= y-lo 0) (>= y-hi 0))
+           (make-interval (- pi) pi)  ; Crosses discontinuity
+           (if (> y-lo 0)
+               (make-interval (atan (/ y-hi x-hi))
+                              (atan (/ y-lo x-lo)))
+               (make-interval (atan (/ y-lo x-lo))
+                              (atan (/ y-hi x-hi)))))]
+
+      ;; General case: x spans zero — conservative full range
+      [else (make-interval (- pi) pi)])))
+
+;;; ============================================================================
+;;; Rigorous Transcendental Functions (Directed Rounding)
+;;; ============================================================================
+;;;
+;;; These versions use fl-next-down and fl-next-up to guarantee the
+;;; mathematical result is enclosed. They are slower but provide formal
+;;; correctness for safety-critical applications.
+
+;;; Helper: directed rounding wrappers for transcendentals
+(define (exp-down x)
+  (let ([r (exp x)])
+    (if (or (infinite? r) (nan? r)) r (fl-next-down r))))
+
+(define (exp-up x)
+  (let ([r (exp x)])
+    (if (or (infinite? r) (nan? r)) r (fl-next-up r))))
+
+(define (log-down x)
+  (if (<= x 0)
+      -inf.0
+      (let ([r (log x)])
+        (if (or (infinite? r) (nan? r)) r (fl-next-down r)))))
+
+(define (log-up x)
+  (if (<= x 0)
+      -inf.0
+      (let ([r (log x)])
+        (if (or (infinite? r) (nan? r)) r (fl-next-up r)))))
+
+(define (sin-down x)
+  (let ([r (sin x)])
+    (if (nan? r) r (fl-next-down r))))
+
+(define (sin-up x)
+  (let ([r (sin x)])
+    (if (nan? r) r (fl-next-up r))))
+
+(define (cos-down x)
+  (let ([r (cos x)])
+    (if (nan? r) r (fl-next-down r))))
+
+(define (cos-up x)
+  (let ([r (cos x)])
+    (if (nan? r) r (fl-next-up r))))
+
+(define (atan-down x)
+  (let ([r (atan x)])
+    (if (nan? r) r (fl-next-down r))))
+
+(define (atan-up x)
+  (let ([r (atan x)])
+    (if (nan? r) r (fl-next-up r))))
+
+;;; interval-exp-rigorous : Interval → Interval
+;;; Exponential with guaranteed enclosure.
+(define (interval-exp-rigorous iv)
+  (doc 'export #t)
+  (make-interval (exp-down (interval-lo iv))
+                 (exp-up (interval-hi iv))))
+
+;;; interval-log-rigorous : Interval → Interval | '(error domain-error)
+;;; Natural log with guaranteed enclosure.
+(define (interval-log-rigorous iv)
+  (doc 'export #t)
+  (let ([lo (interval-lo iv)]
+        [hi (interval-hi iv)])
+    (cond
+      [(<= hi 0) '(error domain-error)]
+      [(<= lo 0) (make-interval -inf.0 (log-up hi))]
+      [else (make-interval (log-down lo) (log-up hi))])))
+
+;;; interval-log10-rigorous : Interval → Interval | '(error domain-error)
+;;; Base-10 log with guaranteed enclosure.
+(define (interval-log10-rigorous iv)
+  (doc 'export #t)
+  (let* ([log-iv (interval-log-rigorous iv)]
+         [ln10-lo 2.3025850929940455]   ; fl-next-down of log(10)
+         [ln10-hi 2.3025850929940459])  ; fl-next-up of log(10)
+    (if (error? log-iv)
+        log-iv
+        (make-interval (div-down (interval-lo log-iv) ln10-hi)
+                       (div-up (interval-hi log-iv) ln10-lo)))))
+
+;;; interval-sin-rigorous : Interval → Interval
+;;; Sine with guaranteed enclosure.
+(define (interval-sin-rigorous iv)
+  (doc 'export #t)
+  (let* ([lo (interval-lo iv)]
+         [hi (interval-hi iv)]
+         [pi 3.141592653589793]
+         [width (- hi lo)])
+    (cond
+      [(>= width (* 2 pi)) (make-interval -1 1)]
+      [else
+       (let* ([sin-lo (sin lo)]
+              [sin-hi (sin hi)]
+              [min-val (min (fl-next-down sin-lo) (fl-next-down sin-hi))]
+              [max-val (max (fl-next-up sin-lo) (fl-next-up sin-hi))])
+         (let* ([max-val (if (interval-contains-critical? lo hi (* 0.5 pi) (* 2 pi))
+                             1
+                             max-val)]
+                [min-val (if (interval-contains-critical? lo hi (* 1.5 pi) (* 2 pi))
+                             -1
+                             min-val)])
+           (make-interval min-val max-val)))])))
+
+;;; interval-cos-rigorous : Interval → Interval
+;;; Cosine with guaranteed enclosure.
+(define (interval-cos-rigorous iv)
+  (doc 'export #t)
+  (let* ([lo (interval-lo iv)]
+         [hi (interval-hi iv)]
+         [pi 3.141592653589793]
+         [width (- hi lo)])
+    (cond
+      [(>= width (* 2 pi)) (make-interval -1 1)]
+      [else
+       (let* ([cos-lo (cos lo)]
+              [cos-hi (cos hi)]
+              [min-val (min (fl-next-down cos-lo) (fl-next-down cos-hi))]
+              [max-val (max (fl-next-up cos-lo) (fl-next-up cos-hi))])
+         (let* ([max-val (if (interval-contains-critical? lo hi 0 (* 2 pi))
+                             1
+                             max-val)]
+                [min-val (if (interval-contains-critical? lo hi pi (* 2 pi))
+                             -1
+                             min-val)])
+           (make-interval min-val max-val)))])))
+
+;;; interval-atan-rigorous : Interval → Interval
+;;; Arctangent with guaranteed enclosure.
+(define (interval-atan-rigorous iv)
+  (doc 'export #t)
+  (make-interval (atan-down (interval-lo iv))
+                 (atan-up (interval-hi iv))))
+
+;;; interval-sinh-rigorous : Interval → Interval
+;;; Hyperbolic sine with guaranteed enclosure.
+(define (interval-sinh-rigorous iv)
+  (doc 'export #t)
+  (let ([lo (interval-lo iv)]
+        [hi (interval-hi iv)])
+    ;; sinh(x) = (exp(x) - exp(-x)) / 2
+    ;; For lower bound: use exp-down for positive term, exp-up for negative term
+    (make-interval (div-down (sub-down (exp-down lo) (exp-up (- lo))) 2)
+                   (div-up (sub-up (exp-up hi) (exp-down (- hi))) 2))))
+
+;;; interval-cosh-rigorous : Interval → Interval
+;;; Hyperbolic cosine with guaranteed enclosure.
+(define (interval-cosh-rigorous iv)
+  (doc 'export #t)
+  (let ([lo (interval-lo iv)]
+        [hi (interval-hi iv)])
+    (cond
+      [(>= lo 0)
+       (make-interval (div-down (add-down (exp-down lo) (exp-down (- lo))) 2)
+                      (div-up (add-up (exp-up hi) (exp-up (- hi))) 2))]
+      [(<= hi 0)
+       (make-interval (div-down (add-down (exp-down hi) (exp-down (- hi))) 2)
+                      (div-up (add-up (exp-up lo) (exp-up (- lo))) 2))]
+      [else
+       ;; Contains zero: min is cosh(0) = 1, use rigorous bound
+       (make-interval (fl-next-down 1.0)
+                      (div-up (add-up (max (exp-up lo) (exp-up hi))
+                                      (max (exp-up (- lo)) (exp-up (- hi))))
+                              2))])))
+
+;;; interval-tanh-rigorous : Interval → Interval
+;;; Hyperbolic tangent with guaranteed enclosure.
+(define (interval-tanh-rigorous iv)
+  (doc 'export #t)
+  (let ([sinh-iv (interval-sinh-rigorous iv)]
+        [cosh-iv (interval-cosh-rigorous iv)])
+    ;; tanh = sinh / cosh, cosh is always positive
+    (interval-div-rigorous sinh-iv cosh-iv)))
+
 ;;; ============================================================================
 ;;; Natural Interval Extension Helpers
 ;;; ============================================================================

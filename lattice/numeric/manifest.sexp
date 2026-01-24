@@ -1,5 +1,5 @@
 (skill numeric
-  (version "0.6.0")
+  (version "0.7.0")
   (tier 0)
   (path "lattice/numeric")
   (purity total)
@@ -149,11 +149,16 @@
     fl-next-up fl-next-down
     add-down add-up sub-down sub-up mul-down mul-up div-down div-up
     sqrt-down sqrt-up
-    ;; Elementary functions
+    ;; Elementary functions (standard)
     interval-abs interval-sqrt interval-pow interval-min interval-max
-    interval-exp interval-log interval-sin interval-cos interval-tan
-    interval-asin interval-acos interval-atan
+    interval-exp interval-log interval-log10
+    interval-sin interval-cos interval-tan
+    interval-asin interval-acos interval-atan interval-atan2
     interval-sinh interval-cosh interval-tanh
+    ;; Elementary functions (rigorous - directed rounding)
+    interval-exp-rigorous interval-log-rigorous interval-log10-rigorous
+    interval-sin-rigorous interval-cos-rigorous interval-atan-rigorous
+    interval-sinh-rigorous interval-cosh-rigorous interval-tanh-rigorous
     ;; Set operations
     interval-union interval-hull interval-hull-list interval-intersection interval-bisect
     ;; Coercion
@@ -243,9 +248,11 @@
     "Interval arithmetic for verified numerical computation. Represents sets of
      real numbers with guaranteed enclosure. Supports arithmetic, comparisons
      (three-valued logic), set operations, and transcendental elementary functions
-     (exp, log, sin, cos, tan, hyperbolic). Multi-dimensional boxes for n-dimensional
-     computations. Foundation for global optimization, monotonicity analysis, and
-     computer-aided proofs.")
+     (exp, log, log10, sin, cos, tan, atan2, hyperbolic). Provides both standard
+     (fast, round-to-nearest) and rigorous (directed rounding, guaranteed enclosure)
+     versions of operations. Multi-dimensional boxes for n-dimensional computations.
+     Foundation for global optimization, monotonicity analysis, and computer-aided
+     proofs.")
    (affine "affine.ss"
     "Affine arithmetic for tighter bounds via correlation tracking. Solves the
      'dependency problem' in interval arithmetic where x - x yields [-r, r] instead
