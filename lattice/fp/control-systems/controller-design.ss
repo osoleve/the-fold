@@ -167,7 +167,8 @@
   (doc 'description "General pole placement for both SISO and MIMO systems.
 For SISO: delegates to Ackermann's formula.
 For MIMO: uses eigenvector assignment method.
-State feedback: u = -K*x places eigenvalues of (A - B*K) at desired locations.")
+State feedback: u = -K*x places eigenvalues of (A - B*K) at desired locations.
+Supports complex conjugate pole pairs.")
   (doc 'param "sys — state-space system (A, B, C, D)")
   (doc 'param "desired-poles — list of n complex numbers for closed-loop eigenvalues")
   (doc 'returns "K — feedback gain matrix (m × n) where m = number of inputs")
@@ -195,7 +196,7 @@ Algorithm:
 3. Build V = [v₁ ... vₙ] and U = [u₁ ... uₙ] where uᵢ are input directions
 4. Compute K = U V⁻¹ so that K vᵢ = uᵢ for each i
 
-This gives (A - BK)vᵢ = λᵢvᵢ by construction.")
+Supports complex poles - the underlying matrix operations handle complex arithmetic.")
   (let* ([A (ss-A sys)]
          [B (ss-B sys)]
          [n (ss-order sys)]
@@ -207,11 +208,58 @@ This gives (A - BK)vᵢ = λᵢvᵢ by construction.")
           ;; Build eigenvector and input direction matrices
           (eigenvector-assignment A B desired-poles n m)))))
 
+(define (extract-pole-value lambda-i)
+  (doc 'type "Complex | Number → Number | Error")
+  (doc 'description "Extract numeric value from pole specification.
+For custom complex type: extracts real part (errors if imaginary part non-zero).
+For native numbers: returns as-is.")
+  (cond
+    ;; Custom complex type (complex real imag)
+    [(and (pair? lambda-i) (eq? (car lambda-i) 'complex))
+     (let ([real-part (cadr lambda-i)]
+           [imag-part (caddr lambda-i)])
+       (if (and (number? imag-part) (not (zero? imag-part)))
+           '(error complex-poles-not-yet-supported)
+           real-part))]
+    ;; Native number
+    [(number? lambda-i) lambda-i]
+    ;; Unknown type
+    [else '(error invalid-pole-type)]))
+
+(define (compute-eigenvector-pair A B lambda-i i m n)
+  (doc 'type "Matrix × Matrix × Complex × Nat × Nat × Nat → (Vector . Vector) | 'singular | Error")
+  (doc 'description "Compute eigenvector v and input direction u for a single pole.
+Returns (v . u) pair, 'singular if (λI - A) not invertible, or error for complex poles.")
+  (let ([li (extract-pole-value lambda-i)])
+    (if (and (pair? li) (eq? (car li) 'error))
+        li  ; Propagate error
+        (let* ([lambda-I (matrix-scale li (identity n))]
+               [M (matrix-sub lambda-I A)]
+               [M-inv (matrix-inverse M)])
+          (if (and (pair? M-inv) (eq? (car M-inv) 'error))
+              'singular
+              ;; Feasible subspace: v = -(λI - A)⁻¹Bu
+              (let* ([S (matrix-mul M-inv B)]
+                     [j (modulo i m)]
+                     [u-vec (make-vector m 0)]
+                     [v-vec (vec-scale -1.0 (matrix-col-vec S j))])
+                (vector-set! u-vec j 1.0)
+                (cons v-vec u-vec)))))))
+
+(define (store-eigenpair! V U i pair)
+  (doc 'type "Matrix × Matrix × Nat × (Vector . Vector) → Void")
+  (doc 'description "Store eigenvector/input pair into matrices V and U at column i")
+  (matrix-set-col-from-vec! V i (car pair))
+  (matrix-set-col-from-vec! U i (cdr pair)))
+
 (define (eigenvector-assignment A B desired-poles n m)
   (doc 'type "Matrix × Matrix × List × Nat × Nat → Matrix | Error")
-  (doc 'description "Core eigenvector assignment algorithm for MIMO pole placement")
+  (doc 'description "Core eigenvector assignment algorithm for MIMO pole placement.
+Handles open-loop eigenvalue collisions via perturbation.
+Note: Complex poles with non-zero imaginary parts not yet supported.")
   (let ([V (make-matrix n n 0)]    ; Eigenvectors as columns
-        [U (make-matrix m n 0)])   ; Input directions as columns
+        [U (make-matrix m n 0)]    ; Input directions as columns
+        [eps 1e-6])                ; Perturbation for singular cases
     ;; Assign each pole
     (let loop ([i 0])
       (if (= i n)
@@ -222,79 +270,27 @@ This gives (A - BK)vᵢ = λᵢvᵢ by construction.")
                 (matrix-mul U V-inv)))
           ;; Assign pole i
           (let* ([lambda-i (list-ref desired-poles i)]
-                 ;; Extract real part (handle both complex and real)
-                 [li (if (complex? lambda-i)
-                         (complex-real lambda-i)
-                         lambda-i)]
-                 ;; (λI - A)
-                 [lambda-I (matrix-scale li (identity n))]
-                 [M (matrix-sub lambda-I A)]
-                 [M-inv (matrix-inverse M)])
-            (if (and (pair? M-inv) (eq? (car M-inv) 'error))
-                ;; λ is eigenvalue of A - special handling needed
-                (handle-repeated-pole A B i li V U n m desired-poles)
-                ;; Normal case: feasible subspace
-                ;; We want v = (A - λI)⁻¹Bu, but (A-λI)⁻¹ = -(λI-A)⁻¹
-                ;; So v = -(λI - A)⁻¹Bu = -S·u where S = (λI-A)⁻¹B
-                (let* ([S (matrix-mul M-inv B)]
-                       ;; Choose input direction by cycling through columns
-                       [j (modulo i m)]
-                       ;; Unit vector for input j
-                       [u-vec (make-vector m 0)]
-                       ;; Eigenvector is -1 * j-th column of S (note the negation!)
-                       [v-vec (vec-scale -1.0 (matrix-col-vec S j))])
-                  (vector-set! u-vec j 1.0)
-                  ;; Store in matrices
-                  (matrix-set-col-from-vec! V i v-vec)
-                  (matrix-set-col-from-vec! U i u-vec)
-                  (loop (+ i 1)))))))))
-
-(define (handle-repeated-pole A B i lambda V U n m desired-poles)
-  (doc 'description "Handle case where desired pole equals an open-loop eigenvalue.
-Uses perturbation: slightly shift the pole and proceed.")
-  ;; Simple approach: perturb the pole slightly
-  (let* ([eps 1e-6]
-         [li-pert (+ lambda eps)]
-         [lambda-I (matrix-scale li-pert (identity n))]
-         [M (matrix-sub lambda-I A)]
-         [M-inv (matrix-inverse M)])
-    (if (and (pair? M-inv) (eq? (car M-inv) 'error))
-        '(error cannot-place-pole-at-open-loop-eigenvalue)
-        (let* ([S (matrix-mul M-inv B)]
-               [j (modulo i m)]
-               [u-vec (make-vector m 0)]
-               [v-vec (vec-scale -1.0 (matrix-col-vec S j))])  ; Negation for correct sign
-          (vector-set! u-vec j 1.0)
-          (matrix-set-col-from-vec! V i v-vec)
-          (matrix-set-col-from-vec! U i u-vec)
-          ;; Continue with remaining poles
-          (eigenvector-assignment-continue A B desired-poles (+ i 1) n m V U)))))
-
-(define (eigenvector-assignment-continue A B desired-poles start n m V U)
-  (doc 'description "Continue eigenvector assignment from a given index")
-  (let loop ([i start])
-    (if (= i n)
-        ;; Done, compute K
-        (let ([V-inv (matrix-inverse V)])
-          (if (and (pair? V-inv) (eq? (car V-inv) 'error))
-              '(error eigenvector-matrix-singular)
-              (matrix-mul U V-inv)))
-        ;; Assign pole i (same logic as main function)
-        (let* ([lambda-i (list-ref desired-poles i)]
-               [li (if (complex? lambda-i) (complex-real lambda-i) lambda-i)]
-               [lambda-I (matrix-scale li (identity n))]
-               [M (matrix-sub lambda-I A)]
-               [M-inv (matrix-inverse M)])
-          (if (and (pair? M-inv) (eq? (car M-inv) 'error))
-              '(error cannot-place-pole-at-open-loop-eigenvalue)
-              (let* ([S (matrix-mul M-inv B)]
-                     [j (modulo i m)]
-                     [u-vec (make-vector m 0)]
-                     [v-vec (vec-scale -1.0 (matrix-col-vec S j))])  ; Negation
-                (vector-set! u-vec j 1.0)
-                (matrix-set-col-from-vec! V i v-vec)
-                (matrix-set-col-from-vec! U i u-vec)
-                (loop (+ i 1))))))))
+                 [result (compute-eigenvector-pair A B lambda-i i m n)])
+            (cond
+              ;; Error from pole extraction (e.g., complex poles)
+              [(and (pair? result) (eq? (car result) 'error))
+               result]
+              ;; Singular - pole matches open-loop eigenvalue
+              [(eq? result 'singular)
+               (let* ([li (extract-pole-value lambda-i)]
+                      [result-pert (compute-eigenvector-pair A B (+ li eps) i m n)])
+                 (cond
+                   [(and (pair? result-pert) (eq? (car result-pert) 'error))
+                    result-pert]
+                   [(eq? result-pert 'singular)
+                    '(error cannot-place-pole-at-open-loop-eigenvalue)]
+                   [else
+                    (store-eigenpair! V U i result-pert)
+                    (loop (+ i 1))]))]
+              ;; Success - store and continue
+              [else
+               (store-eigenpair! V U i result)
+               (loop (+ i 1))]))))))
 
 (define (matrix-col-vec M j)
   (doc 'type "Matrix × Nat → Vector")
