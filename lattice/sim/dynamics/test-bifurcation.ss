@@ -422,6 +422,67 @@
            [is-fp (is-equilibrium? sys fp-origin 0.1)])
           (assert-true is-fp)))
 
+  ;;; ============================================================
+  ;;; 3D System Tests (n > 2)
+  ;;; ============================================================
+  ;;; These tests verify behavior for systems with dimension > 2.
+  ;;; Some analyses are 2D-only and should gracefully handle 3D input.
+  ;;; Note: Several functions have known limitations for n>2.
+
+  (define-test "lorenz 3D: find non-trivial fixed points"
+    ;; For rho > 1, Lorenz has fixed points at C+ and C-:
+    ;; C± = (±sqrt(β(ρ-1)), ±sqrt(β(ρ-1)), ρ-1) with β=8/3
+    (let* ([rho 28.0]
+           [beta (/ 8 3)]
+           [sys (instantiate-at lorenz-rho rho)]
+           ;; Expected C+ location
+           [sqrt-val (sqrt (* beta (- rho 1)))]
+           ;; Find fixed point near C+
+           [fp (find-fixed-point-newton sys (vector 8.0 8.0 27.0) 1e-8 1e-6 20)])
+          (assert-true (vector? fp))
+          ;; Should be close to expected
+          (assert-true (< (abs (- (vector-ref fp 0) sqrt-val)) 0.5))
+          (assert-true (< (abs (- (vector-ref fp 2) (- rho 1))) 0.5))))
+
+  (define-test "lorenz 3D: eigenvalues at origin"
+    ;; Lorenz Jacobian at origin: verify we get 3 eigenvalues
+    (let* ([sys (instantiate-at lorenz-rho 28)]
+           [origin (vector 0.0 0.0 0.0)]
+           [analysis (analyze-stability-general sys origin 1e-6)]
+           [eigs (cdr analysis)])
+          ;; Should have 3 eigenvalues
+          (assert-equal 3 (length eigs))))
+
+  (define-test "lorenz 3D: stability analysis returns classification"
+    ;; Verify 3D stability analysis completes and returns a classification
+    (let* ([sys (instantiate-at lorenz-rho 28)]
+           [origin (vector 0.0 0.0 0.0)]
+           [analysis (analyze-stability-general sys origin 1e-6)]
+           [stability-type (car analysis)])
+          ;; Should return some stability classification (not crash)
+          (assert-true (symbol? stability-type))))
+
+  (define-test "lorenz 3D: continuation produces points"
+    ;; Verify continuation works for 3D, even if stability tracking limited
+    (let* ([continuation (continue-fixed-point lorenz-rho 0.5 (vector 0.0 0.0 0.0) 2.0 0.3)])
+          ;; Should have some continuation points
+          (assert-true (> (length continuation) 2))
+          ;; Each entry should have the expected structure
+          (assert-true (= (length (car continuation)) 4))))
+
+  (define-test "first-lyapunov-coefficient returns #f for 3D system"
+    ;; First Lyapunov coefficient is only implemented for 2D
+    (let* ([result (first-lyapunov-coefficient lorenz-rho 1.0 (vector 0.0 0.0 0.0) 1e-4)])
+          ;; Should return #f for 3D system (documented limitation)
+          (assert-false result)))
+
+  (define-test "lorenz 3D: determinant computable"
+    ;; Verify matrix-determinant works for 3x3 matrices (uses existing test)
+    ;; Using a known 3x3 matrix rather than computed Jacobian to isolate test
+    (let ([m (list 'matrix 3 3 (vector 1 2 3  0 1 4  5 6 0))])
+         ;; det = 1 (verified earlier in test suite)
+         (assert-true (< (abs (- (matrix-determinant m) 1)) 0.001))))
+
 )
 
 (run-all-tests)
