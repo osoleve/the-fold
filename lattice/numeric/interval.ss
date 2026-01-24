@@ -951,17 +951,23 @@
 ;;; interval-log10 : Interval → Interval | '(error domain-error)
 ;;; Base-10 logarithm. Requires interval to be positive.
 ;;; log10(x) = log(x) / log(10)
+;;; Uses interval arithmetic to guarantee containment.
 (define (interval-log10 iv)
   (doc 'export #t)
   (let ([lo (interval-lo iv)]
-        [hi (interval-hi iv)]
-        [ln10 2.302585092994046])  ; log(10)
+        [hi (interval-hi iv)])
     (cond
       [(<= hi 0) '(error domain-error)]    ; Entirely non-positive
       [(<= lo 0)                   ; Partially negative: clamp to epsilon
-       (make-interval (/ (log 1e-300) ln10) (/ (log hi) ln10))]
+       ;; Use interval division: log-interval / ln10-interval
+       (let* ([log-iv (interval (log 1e-300) (log hi))]
+              [ln10-iv (interval 2.3025850929940455 2.3025850929940459)])
+         (interval-div log-iv ln10-iv))]
       [else                        ; Entirely positive
-       (make-interval (/ (log lo) ln10) (/ (log hi) ln10))])))
+       ;; Use interval division: [log(lo), log(hi)] / [ln10-down, ln10-up]
+       (let* ([log-iv (interval (log lo) (log hi))]
+              [ln10-iv (interval 2.3025850929940455 2.3025850929940459)])
+         (interval-div log-iv ln10-iv))])))
 
 ;;; interval-atan2 : Interval × Interval → Interval | '(error domain-error)
 ;;; Two-argument arctangent atan2(y, x). Returns angle in [-π, π].

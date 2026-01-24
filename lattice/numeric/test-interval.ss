@@ -777,7 +777,17 @@
     ;; Should handle negative lower bound
     (let ([iv (interval-log10 (interval -1 10))])
       (assert-true (< (interval-lo iv) -100))  ; Very negative (from epsilon)
-      (assert-true (< (abs (- (interval-hi iv) 1.0)) 1e-10)))))
+      (assert-true (< (abs (- (interval-hi iv) 1.0)) 1e-10))))
+
+  (define-test "log10 preserves containment"
+    ;; Verify interval contains true mathematical value
+    (let ([test-vals '(2.5 10.0 0.5 100.0 0.01)])
+      (for-each
+        (lambda (x)
+          (let* ([iv (interval-log10 (interval-singleton x))]
+                 [true-val (/ (log x) (log 10))])
+            (assert-true (interval-contains? iv true-val))))
+        test-vals))))
 
 ;;; ============================================================================
 ;;; interval-atan2 Tests
