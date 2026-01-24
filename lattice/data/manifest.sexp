@@ -22,7 +22,9 @@
              katz-centrality closeness-centrality betweenness-centrality
              community-detection label-propagation modularity modularity-ilp
              minimum-spanning-tree mst prim kruskal union-find
-             homology betti-numbers simplicial-complex cycle-basis euler-characteristic))
+             homology betti-numbers simplicial-complex cycle-basis euler-characteristic
+             kdtree kd-tree spatial nearest-neighbor knn range-query
+             quadtree spatial-index point-query 2d))
   (aliases (ds structures collections))
 
   (exports
@@ -42,4 +44,6 @@
    (pagerank "pagerank.ss" "PageRank importance scoring")
    (graph-matrix "graph-matrix.ss" "Adjacency matrices, Dijkstra O((V+E) log V), Floyd-Warshall, graph metrics")
    (centrality "centrality.ss" "Eigenvector, Katz, closeness, betweenness centrality")
-   (graph-community "graph-community.ss" "Community detection, Prim MST O((V+E) log V), Kruskal, modularity")))
+   (graph-community "graph-community.ss" "Community detection, Prim MST O((V+E) log V), Kruskal, modularity")
+   (kdtree "kdtree.ss" "K-d tree for O(log n) nearest neighbor and range queries in any dimension")
+   (quadtree "quadtree.ss" "Quadtree for 2D spatial queries with uniform subdivision")))

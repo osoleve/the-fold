@@ -1,0 +1,356 @@
+;;; lattice/data/quadtree.ss — Quadtree for 2D Spatial Queries
+;;; @module quadtree
+;;; @requires prelude
+
+(load "core/base/prelude.ss")
+
+(doc 'module 'quadtree)
+(doc 'description "Quadtree for efficient 2D spatial queries. Uniformly subdivides space into
+four quadrants (NE, NW, SE, SW). Supports point insertion, range queries, and nearest neighbor.
+Unlike k-d trees, quadtrees use fixed subdivision rather than median splitting, making them
+better for dynamic insertions and spatial locality queries.")
+(doc 'layer 'lattice)
+(doc 'tier 0)
+(doc 'purity 'total)
+
+;;; ============================================================
+;;; Core Representation
+;;; ============================================================
+
+(doc 'section 'core-representation)
+
+;; Bounding box: (center-x center-y half-width half-height)
+(define (make-bounds cx cy hw hh)
+  (doc 'type '(-> Num Num Num Num Bounds))
+  (doc 'description "Create a bounding box with center (cx,cy) and half-dimensions (hw,hh)")
+  (list 'bounds cx cy hw hh))
+
+(define (bounds? x)
+  (and (pair? x) (eq? (car x) 'bounds)))
+
+(define (bounds-cx b) (cadr b))
+(define (bounds-cy b) (caddr b))
+(define (bounds-hw b) (cadddr b))
+(define (bounds-hh b) (car (cddddr b)))
+
+(define (bounds-contains? bounds x y)
+  (doc 'type '(-> Bounds Num Num Boolean))
+  (doc 'description "Check if point (x,y) is within bounds")
+  (and (>= x (- (bounds-cx bounds) (bounds-hw bounds)))
+       (<= x (+ (bounds-cx bounds) (bounds-hw bounds)))
+       (>= y (- (bounds-cy bounds) (bounds-hh bounds)))
+       (<= y (+ (bounds-cy bounds) (bounds-hh bounds)))))
+
+(define (bounds-intersects? b1 b2)
+  (doc 'type '(-> Bounds Bounds Boolean))
+  (doc 'description "Check if two bounding boxes intersect")
+  (not (or (> (- (bounds-cx b1) (bounds-hw b1)) (+ (bounds-cx b2) (bounds-hw b2)))
+           (< (+ (bounds-cx b1) (bounds-hw b1)) (- (bounds-cx b2) (bounds-hw b2)))
+           (> (- (bounds-cy b1) (bounds-hh b1)) (+ (bounds-cy b2) (bounds-hh b2)))
+           (< (+ (bounds-cy b1) (bounds-hh b1)) (- (bounds-cy b2) (bounds-hh b2))))))
+
+;; Quadtree node: either a leaf with points or an internal node with 4 children
+(define quadtree-empty 'quadtree-empty)
+
+(define (quadtree-empty? tree)
+  (doc 'type '(-> Quadtree Boolean))
+  (eq? tree 'quadtree-empty))
+
+;; Leaf node: holds up to capacity points before splitting
+(define (quadtree-leaf bounds points)
+  (doc 'type '(-> Bounds (List Point) Quadtree))
+  (list 'quadtree-leaf bounds points))
+
+(define (quadtree-leaf? x)
+  (and (pair? x) (eq? (car x) 'quadtree-leaf)))
+
+(define (quadtree-leaf-bounds node) (cadr node))
+(define (quadtree-leaf-points node) (caddr node))
+
+;; Internal node: 4 children (NE, NW, SE, SW)
+(define (quadtree-node bounds ne nw se sw)
+  (doc 'type '(-> Bounds Quadtree Quadtree Quadtree Quadtree Quadtree))
+  (list 'quadtree-node bounds ne nw se sw))
+
+(define (quadtree-node? x)
+  (and (pair? x) (eq? (car x) 'quadtree-node)))
+
+(define (quadtree-bounds node)
+  (cond [(quadtree-leaf? node) (quadtree-leaf-bounds node)]
+        [(quadtree-node? node) (cadr node)]
+        [else #f]))
+
+(define (quadtree-ne node) (caddr node))
+(define (quadtree-nw node) (cadddr node))
+(define (quadtree-se node) (car (cddddr node)))
+(define (quadtree-sw node) (cadr (cddddr node)))
+
+;;; ============================================================
+;;; Construction
+;;; ============================================================
+
+(doc 'section 'construction)
+
+(define *quadtree-capacity* 4)
+(doc *quadtree-capacity* 'description "Maximum points per leaf before splitting")
+
+(define (quadtree-create bounds)
+  (doc 'type '(-> Bounds Quadtree))
+  (doc 'description "Create an empty quadtree with given bounds")
+  (quadtree-leaf bounds '()))
+
+(define (quadtree-build points bounds)
+  (doc 'type '(-> (List Point) Bounds Quadtree))
+  (doc 'description "Build a quadtree from a list of 2D points (each point is (x y))")
+  (fold-left (lambda (tree pt)
+               (quadtree-insert tree (car pt) (cadr pt) pt))
+             (quadtree-create bounds)
+             points))
+
+(define (quadtree-build-auto points)
+  (doc 'type '(-> (List Point) Quadtree))
+  (doc 'description "Build quadtree with auto-computed bounds from points")
+  (if (null? points)
+      quadtree-empty
+      (let* ([xs (map car points)]
+             [ys (map cadr points)]
+             [min-x (apply min xs)]
+             [max-x (apply max xs)]
+             [min-y (apply min ys)]
+             [max-y (apply max ys)]
+             [cx (/ (+ min-x max-x) 2)]
+             [cy (/ (+ min-y max-y) 2)]
+             [hw (/ (- max-x min-x) 2)]
+             [hh (/ (- max-y min-y) 2)]
+             ;; Add 1% padding to ensure all points fit
+             [hw+ (if (zero? hw) 1 (* hw 1.01))]
+             [hh+ (if (zero? hh) 1 (* hh 1.01))])
+        (quadtree-build points (make-bounds cx cy hw+ hh+)))))
+
+;;; ============================================================
+;;; Insertion
+;;; ============================================================
+
+(doc 'section 'insertion)
+
+(define (quadtree-insert tree x y data)
+  (doc 'type '(-> Quadtree Num Num Any Quadtree))
+  (doc 'description "Insert a point at (x,y) with associated data into the quadtree")
+  (cond
+    [(quadtree-empty? tree) tree]  ; can't insert into empty tree (no bounds)
+    [(quadtree-leaf? tree)
+     (let ([bounds (quadtree-leaf-bounds tree)]
+           [points (quadtree-leaf-points tree)])
+       (if (not (bounds-contains? bounds x y))
+           tree  ; point out of bounds, ignore
+           (if (< (length points) *quadtree-capacity*)
+               ;; Room in leaf, just add
+               (quadtree-leaf bounds (cons (list x y data) points))
+               ;; Need to split
+               (let ([split-tree (quadtree-split tree)])
+                 (quadtree-insert split-tree x y data)))))]
+    [(quadtree-node? tree)
+     (let ([bounds (quadtree-bounds tree)])
+       (if (not (bounds-contains? bounds x y))
+           tree  ; out of bounds
+           ;; Insert into appropriate quadrant
+           (let* ([cx (bounds-cx bounds)]
+                  [cy (bounds-cy bounds)]
+                  [ne (quadtree-ne tree)]
+                  [nw (quadtree-nw tree)]
+                  [se (quadtree-se tree)]
+                  [sw (quadtree-sw tree)])
+             (cond
+               [(and (>= x cx) (>= y cy))
+                (quadtree-node bounds (quadtree-insert ne x y data) nw se sw)]
+               [(and (< x cx) (>= y cy))
+                (quadtree-node bounds ne (quadtree-insert nw x y data) se sw)]
+               [(and (>= x cx) (< y cy))
+                (quadtree-node bounds ne nw (quadtree-insert se x y data) sw)]
+               [else
+                (quadtree-node bounds ne nw se (quadtree-insert sw x y data))]))))]))
+
+(define (quadtree-split leaf)
+  (doc 'type '(-> Quadtree Quadtree))
+  (doc 'description "Split a leaf node into 4 children")
+  (let* ([bounds (quadtree-leaf-bounds leaf)]
+         [points (quadtree-leaf-points leaf)]
+         [cx (bounds-cx bounds)]
+         [cy (bounds-cy bounds)]
+         [hw (/ (bounds-hw bounds) 2)]
+         [hh (/ (bounds-hh bounds) 2)]
+         ;; Create 4 child bounds
+         [ne-bounds (make-bounds (+ cx hw) (+ cy hh) hw hh)]
+         [nw-bounds (make-bounds (- cx hw) (+ cy hh) hw hh)]
+         [se-bounds (make-bounds (+ cx hw) (- cy hh) hw hh)]
+         [sw-bounds (make-bounds (- cx hw) (- cy hh) hw hh)]
+         ;; Create empty children
+         [ne (quadtree-leaf ne-bounds '())]
+         [nw (quadtree-leaf nw-bounds '())]
+         [se (quadtree-leaf se-bounds '())]
+         [sw (quadtree-leaf sw-bounds '())]
+         ;; Create node
+         [node (quadtree-node bounds ne nw se sw)])
+    ;; Re-insert all points
+    (fold-left (lambda (tree pt)
+                 (quadtree-insert tree (car pt) (cadr pt) (caddr pt)))
+               node
+               points)))
+
+;;; ============================================================
+;;; Range Queries
+;;; ============================================================
+
+(doc 'section 'range-queries)
+
+(define (quadtree-range tree query-bounds)
+  (doc 'type '(-> Quadtree Bounds (List Point)))
+  (doc 'description "Find all points within the query bounding box")
+  (cond
+    [(quadtree-empty? tree) '()]
+    [(quadtree-leaf? tree)
+     (if (not (bounds-intersects? (quadtree-leaf-bounds tree) query-bounds))
+         '()
+         (filter (lambda (pt)
+                   (bounds-contains? query-bounds (car pt) (cadr pt)))
+                 (quadtree-leaf-points tree)))]
+    [(quadtree-node? tree)
+     (if (not (bounds-intersects? (quadtree-bounds tree) query-bounds))
+         '()
+         (append (quadtree-range (quadtree-ne tree) query-bounds)
+                 (quadtree-range (quadtree-nw tree) query-bounds)
+                 (quadtree-range (quadtree-se tree) query-bounds)
+                 (quadtree-range (quadtree-sw tree) query-bounds)))]))
+
+(define (quadtree-range-rect tree x1 y1 x2 y2)
+  (doc 'type '(-> Quadtree Num Num Num Num (List Point)))
+  (doc 'description "Find all points in rectangle from (x1,y1) to (x2,y2)")
+  (let* ([min-x (min x1 x2)]
+         [max-x (max x1 x2)]
+         [min-y (min y1 y2)]
+         [max-y (max y1 y2)]
+         [cx (/ (+ min-x max-x) 2)]
+         [cy (/ (+ min-y max-y) 2)]
+         [hw (/ (- max-x min-x) 2)]
+         [hh (/ (- max-y min-y) 2)])
+    (quadtree-range tree (make-bounds cx cy hw hh))))
+
+(define (quadtree-radius tree cx cy radius)
+  (doc 'type '(-> Quadtree Num Num Num (List Point)))
+  (doc 'description "Find all points within radius of (cx, cy)")
+  (let* ([bounds (make-bounds cx cy radius radius)]
+         [candidates (quadtree-range tree bounds)]
+         [r-sq (* radius radius)])
+    (filter (lambda (pt)
+              (let ([dx (- (car pt) cx)]
+                    [dy (- (cadr pt) cy)])
+                (<= (+ (* dx dx) (* dy dy)) r-sq)))
+            candidates)))
+
+;;; ============================================================
+;;; Nearest Neighbor
+;;; ============================================================
+
+(doc 'section 'nearest-neighbor)
+
+(define (quadtree-nearest tree qx qy)
+  (doc 'type '(-> Quadtree Num Num (Maybe Point)))
+  (doc 'description "Find the nearest point to (qx, qy). Returns #f if tree is empty.")
+  (let ([result (quadtree-nearest-rec tree qx qy +inf.0 #f)])
+    (if (car result) (car result) #f)))
+
+(define (quadtree-nearest-rec tree qx qy best-dist best-point)
+  ;; Returns (best-point . best-dist-sq)
+  (cond
+    [(quadtree-empty? tree)
+     (cons best-point best-dist)]
+    [(quadtree-leaf? tree)
+     (let ([points (quadtree-leaf-points tree)])
+       (fold-left
+        (lambda (acc pt)
+          (let* ([dx (- (car pt) qx)]
+                 [dy (- (cadr pt) qy)]
+                 [d-sq (+ (* dx dx) (* dy dy))])
+            (if (< d-sq (cdr acc))
+                (cons pt d-sq)
+                acc)))
+        (cons best-point best-dist)
+        points))]
+    [(quadtree-node? tree)
+     ;; Check if we need to search this node at all
+     (let ([bounds (quadtree-bounds tree)])
+       (if (> (bounds-min-dist-sq bounds qx qy) best-dist)
+           (cons best-point best-dist)  ; pruned
+           ;; Search all quadrants, ordered by distance to query
+           (let* ([children (list (quadtree-ne tree) (quadtree-nw tree)
+                                  (quadtree-se tree) (quadtree-sw tree))]
+                  [sorted (sort-by-bounds-dist children qx qy)])
+             (fold-left
+              (lambda (acc child)
+                (if (quadtree-empty? child)
+                    acc
+                    (let ([child-bounds (quadtree-bounds child)])
+                      (if (> (bounds-min-dist-sq child-bounds qx qy) (cdr acc))
+                          acc  ; prune
+                          (quadtree-nearest-rec child qx qy (cdr acc) (car acc))))))
+              (cons best-point best-dist)
+              sorted))))]))
+
+(define (bounds-min-dist-sq bounds qx qy)
+  (doc 'type '(-> Bounds Num Num Num))
+  (doc 'description "Minimum squared distance from point to bounding box")
+  (let* ([cx (bounds-cx bounds)]
+         [cy (bounds-cy bounds)]
+         [hw (bounds-hw bounds)]
+         [hh (bounds-hh bounds)]
+         [x-dist (max 0 (- (abs (- qx cx)) hw))]
+         [y-dist (max 0 (- (abs (- qy cy)) hh))])
+    (+ (* x-dist x-dist) (* y-dist y-dist))))
+
+(define (sort-by-bounds-dist children qx qy)
+  (sort (lambda (a b)
+          (< (bounds-min-dist-sq (quadtree-bounds a) qx qy)
+             (bounds-min-dist-sq (quadtree-bounds b) qx qy)))
+        (filter (lambda (c) (not (quadtree-empty? c))) children)))
+
+;;; ============================================================
+;;; Statistics
+;;; ============================================================
+
+(doc 'section 'statistics)
+
+(define (quadtree-size tree)
+  (doc 'type '(-> Quadtree Nat))
+  (doc 'description "Count total points in the quadtree")
+  (cond
+    [(quadtree-empty? tree) 0]
+    [(quadtree-leaf? tree) (length (quadtree-leaf-points tree))]
+    [(quadtree-node? tree)
+     (+ (quadtree-size (quadtree-ne tree))
+        (quadtree-size (quadtree-nw tree))
+        (quadtree-size (quadtree-se tree))
+        (quadtree-size (quadtree-sw tree)))]))
+
+(define (quadtree-depth tree)
+  (doc 'type '(-> Quadtree Nat))
+  (doc 'description "Maximum depth of the quadtree")
+  (cond
+    [(quadtree-empty? tree) 0]
+    [(quadtree-leaf? tree) 1]
+    [(quadtree-node? tree)
+     (+ 1 (max (quadtree-depth (quadtree-ne tree))
+               (quadtree-depth (quadtree-nw tree))
+               (quadtree-depth (quadtree-se tree))
+               (quadtree-depth (quadtree-sw tree))))]))
+
+(define (quadtree->list tree)
+  (doc 'type '(-> Quadtree (List Point)))
+  (doc 'description "Extract all points from the quadtree")
+  (cond
+    [(quadtree-empty? tree) '()]
+    [(quadtree-leaf? tree) (quadtree-leaf-points tree)]
+    [(quadtree-node? tree)
+     (append (quadtree->list (quadtree-ne tree))
+             (quadtree->list (quadtree-nw tree))
+             (quadtree->list (quadtree-se tree))
+             (quadtree->list (quadtree-sw tree)))]))
