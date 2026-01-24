@@ -241,73 +241,76 @@
 
 (doc convex-hull-area 'type '(-> (Listof Point2) Number))
 (doc convex-hull-area 'description
-     "Compute area of convex hull using shoelace formula")
+     "Compute area of convex hull using shoelace formula. O(n) time.")
 (define (convex-hull-area hull)
   (if (< (length hull) 3)
       0
-      (let ([n (length hull)])
+      (let ([first (car hull)])
+        ;; Sliding window: iterate pairs (p1, p2) around the polygon
         (abs
-         (/ (let loop ([i 0] [sum 0])
-              (if (>= i n)
+         (/ (let loop ([remaining hull] [sum 0])
+              (if (null? remaining)
                   sum
-                  (let* ([p1 (list-ref hull i)]
-                         [p2 (list-ref hull (modulo (+ i 1) n))]
+                  (let* ([p1 (car remaining)]
+                         [p2 (if (null? (cdr remaining)) first (cadr remaining))]
                          [x1 (point2-x p1)] [y1 (point2-y p1)]
                          [x2 (point2-x p2)] [y2 (point2-y p2)])
-                    (loop (+ i 1) (+ sum (- (* x1 y2) (* x2 y1)))))))
+                    (loop (cdr remaining) (+ sum (- (* x1 y2) (* x2 y1)))))))
             2)))))
 
 (doc convex-hull-perimeter 'type '(-> (Listof Point2) Number))
-(doc convex-hull-perimeter 'description "Compute perimeter of convex hull")
+(doc convex-hull-perimeter 'description "Compute perimeter of convex hull. O(n) time.")
 (define (convex-hull-perimeter hull)
   (if (< (length hull) 2)
       0
-      (let ([n (length hull)])
-        (let loop ([i 0] [sum 0])
-          (if (>= i n)
+      (let ([first (car hull)])
+        (let loop ([remaining hull] [sum 0])
+          (if (null? remaining)
               sum
-              (let* ([p1 (list-ref hull i)]
-                     [p2 (list-ref hull (modulo (+ i 1) n))])
-                (loop (+ i 1) (+ sum (sqrt (point2-distance-sq p1 p2))))))))))
+              (let* ([p1 (car remaining)]
+                     [p2 (if (null? (cdr remaining)) first (cadr remaining))])
+                (loop (cdr remaining) (+ sum (sqrt (point2-distance-sq p1 p2))))))))))
 
 (doc point-in-convex-hull? 'type '(-> Point2 (Listof Point2) Boolean))
 (doc point-in-convex-hull? 'description
      "Test if point is inside or on boundary of convex hull.
-      Uses sign of cross products with all edges.")
+      Uses sign of cross products with all edges. O(n) time.")
 (define (point-in-convex-hull? p hull)
   (if (< (length hull) 3)
       #f
-      (let ([n (length hull)])
-        (let loop ([i 0])
-          (if (>= i n)
+      (let ([first (car hull)])
+        (let loop ([remaining hull])
+          (if (null? remaining)
               #t
-              (let* ([p1 (list-ref hull i)]
-                     [p2 (list-ref hull (modulo (+ i 1) n))]
+              (let* ([p1 (car remaining)]
+                     [p2 (if (null? (cdr remaining)) first (cadr remaining))]
                      [cross (cross-product-2d p1 p2 p)])
                 (if (< cross (- 1e-10))
                     #f  ; Point is to the right of edge (outside)
-                    (loop (+ i 1)))))))))
+                    (loop (cdr remaining)))))))))
 
 (doc convex-hull-centroid 'type '(-> (Listof Point2) Point2))
 (doc convex-hull-centroid 'description
-     "Compute centroid (center of mass) of convex hull polygon")
+     "Compute centroid (center of mass) of convex hull polygon. O(n) time.")
 (define (convex-hull-centroid hull)
   (if (null? hull)
       (make-point2 0 0)
-      (let ([n (length hull)])
-        (let loop ([i 0] [cx 0] [cy 0] [a 0])
-          (if (>= i n)
+      (let ([first (car hull)]
+            [n (length hull)])
+        (let loop ([remaining hull] [cx 0] [cy 0] [a 0])
+          (if (null? remaining)
               (if (< (abs a) 1e-10)
+                  ;; Degenerate case: use simple average
                   (make-point2 (/ (fold-left + 0 (map point2-x hull)) n)
                                (/ (fold-left + 0 (map point2-y hull)) n))
                   (make-point2 (/ cx (* 3 a))
                                (/ cy (* 3 a))))
-              (let* ([p1 (list-ref hull i)]
-                     [p2 (list-ref hull (modulo (+ i 1) n))]
+              (let* ([p1 (car remaining)]
+                     [p2 (if (null? (cdr remaining)) first (cadr remaining))]
                      [x1 (point2-x p1)] [y1 (point2-y p1)]
                      [x2 (point2-x p2)] [y2 (point2-y p2)]
                      [cross (- (* x1 y2) (* x2 y1))])
-                (loop (+ i 1)
+                (loop (cdr remaining)
                       (+ cx (* (+ x1 x2) cross))
                       (+ cy (* (+ y1 y2) cross))
                       (+ a cross))))))))
@@ -315,20 +318,21 @@
 (doc convex-hull-diameter 'type '(-> (Listof Point2) Number))
 (doc convex-hull-diameter 'description
      "Compute diameter of convex hull (max distance between any two vertices).
-      Uses rotating calipers for O(n) after hull construction.")
+      O(n²) time using vector for O(1) access. Rotating calipers would be O(n).")
 (define (convex-hull-diameter hull)
   (if (< (length hull) 2)
       0
-      ;; Simple O(n²) for now - rotating calipers would be O(n)
-      (let ([n (length hull)])
+      ;; Convert to vector for O(1) random access, making this O(n²) not O(n³)
+      (let* ([v (list->vector hull)]
+             [n (vector-length v)])
         (let outer ([i 0] [max-dist 0])
           (if (>= i n)
               (sqrt max-dist)
               (let inner ([j (+ i 1)] [max-d max-dist])
                 (if (>= j n)
                     (outer (+ i 1) max-d)
-                    (let ([d (point2-distance-sq (list-ref hull i)
-                                                  (list-ref hull j))])
+                    (let ([d (point2-distance-sq (vector-ref v i)
+                                                  (vector-ref v j))])
                       (inner (+ j 1) (max max-d d))))))))))
 
 ;;; ============================================================
