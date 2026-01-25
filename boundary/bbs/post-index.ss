@@ -155,11 +155,6 @@ If post relationships are added in the future, add deps infrastructure here.")
   (filter (lambda (id) (string-starts-with? id "post-"))
           (bbs-list-heads)))
 
-(define (string-starts-with? str prefix)
-  (doc 'type (-> String String Boolean))
-  (and (>= (string-length str) (string-length prefix))
-       (string=? (substring str 0 (string-length prefix)) prefix)))
-
 (define (post-sync-counter-from-heads! ids)
   (doc 'type (-> (List String) Void))
   (doc 'description "Sync the post counter to be >= max ID found in heads")

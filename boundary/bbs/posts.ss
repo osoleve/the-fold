@@ -105,11 +105,6 @@ Lock-aware design:
   (filter (lambda (id) (string-starts-with? id "post-"))
           (bbs-list-heads)))
 
-(define (string-starts-with? str prefix)
-  (doc 'type (-> String String Boolean))
-  (and (>= (string-length str) (string-length prefix))
-       (string=? (substring str 0 (string-length prefix)) prefix)))
-
 (doc 'section 'post-operations)
 
 (define (post-create title body post-type . args)

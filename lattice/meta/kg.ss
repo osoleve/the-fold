@@ -230,13 +230,6 @@
                (directory-list base-dir)))
        result))
 
-;;; string-starts-with? : String String -> Bool
-(define (string-starts-with? str prefix)
-  (let ([str-len (string-length str)]
-        [pre-len (string-length prefix)])
-       (and (>= str-len pre-len)
-            (string=? (substring str 0 pre-len) prefix))))
-
 ;;; ====
 ;;; Main API
 ;;; ====
