@@ -13,13 +13,14 @@
     rays, planes, triangles, spheres, AABBs, OBBs, transforms, distance queries,
     intersection tests, BVH and octree acceleration structures, mesh SDF computation,
     marching cubes isosurface extraction, Delaunay triangulation with refinement,
+    Voronoi diagrams (via Delaunay duality) with Lloyd relaxation,
     topological validation via Betti numbers, and 2D convex hull algorithms
     (Graham scan, Quickhull) with Minkowski operations.")
 
   (keywords (geometry 2d 3d raymarching sdf bvh octree mesh intersection transform
              marching-cubes rendering ray-tracing spatial-data-structures
              topology homology betti-numbers manifold validation
-             delaunay triangulation mesh-generation refinement
+             delaunay triangulation mesh-generation refinement voronoi lloyd-relaxation
              convex-hull graham-scan quickhull minkowski collision-detection))
   (aliases (geom 3d-geometry spatial))
 
@@ -118,7 +119,14 @@
     convex-hull-area convex-hull-perimeter convex-hull-centroid convex-hull-diameter
     point-in-convex-hull?
     extreme-point support-function
-    minkowski-sum minkowski-difference hulls-intersect?))
+    minkowski-sum minkowski-difference hulls-intersect?)
+
+   (voronoi
+    voronoi-diagram voronoi? voronoi-sites voronoi-vertices voronoi-edges voronoi-cells
+    voronoi-cell-polygon voronoi-cell-centroid voronoi-neighbors voronoi-nearest-site
+    voronoi-bounded voronoi-bounded? voronoi-bounded-sites voronoi-bounded-cells
+    voronoi-bounded-cell voronoi-cell-areas voronoi-summary
+    lloyd-step lloyd-relax render-voronoi))
 
   (modules
    (geometry "geometry.ss"
@@ -155,4 +163,8 @@
     "2D convex hull algorithms: Graham scan O(n log n), Quickhull O(n log n) expected.
      Includes hull properties (area, perimeter, centroid, diameter), point-in-hull tests,
      extreme point queries, support functions, and Minkowski sum/difference for
-     collision detection.")))
+     collision detection.")
+   (voronoi "voronoi.ss"
+    "Voronoi diagrams via Delaunay duality. Computes cells, neighbors, nearest site queries.
+     Supports bounded Voronoi (clipped to rectangle) and Lloyd relaxation for uniform
+     point distribution. Includes cell area computation and ASCII visualization.")))
