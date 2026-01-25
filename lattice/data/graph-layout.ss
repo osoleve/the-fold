@@ -185,6 +185,8 @@
   (let* ([nodes (graph-nodes graph)]
          [edges (graph-edges graph)]
          [n (length nodes)]
+         ;; Convert to vector for O(1) access during edge loop (Gemini QA fix)
+         [nodes-vec (list->vector nodes)]
          ;; Pre-compute id->index map for O(1) lookup (fixes O(E*N) bug)
          [id-map (make-eq-hashtable)]
          [_ (let build-map ([ns nodes] [i 0])
@@ -213,8 +215,8 @@
               [idx1 (hashtable-ref id-map id1 #f)]
               [idx2 (hashtable-ref id-map id2 #f)])
          (when (and idx1 idx2)
-           (let* ([node1 (list-ref nodes idx1)]
-                  [node2 (list-ref nodes idx2)]
+           (let* ([node1 (vector-ref nodes-vec idx1)]
+                  [node2 (vector-ref nodes-vec idx2)]
                   [force (calculate-attraction node1 node2)])
              (vector-set! forces idx1 (vec-add (vector-ref forces idx1) force))
              (vector-set! forces idx2 (vec-sub (vector-ref forces idx2) force))))))
