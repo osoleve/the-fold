@@ -5,7 +5,7 @@
   (purity total)
   (stability stable)
   (fuel-bound "O(n log n) for BVH/octree operations, O(n) for raymarching")
-  (deps (linalg topology fp/optics))
+  (deps (linalg topology fp/optics fp/protocol))
 
   (description
    "2D/3D computational geometry library providing primitives, spatial data structures,
@@ -130,6 +130,14 @@
     voronoi-bounded-cell voronoi-cell-areas voronoi-summary
     lloyd-step lloyd-relax render-voronoi)
 
+   (shape-protocol
+    ;; Shape protocols
+    shape-intersect-ray shape-aabb shape-contains-point? shape-distance-point
+    shape-center shape-volume shape-surface-area shape-normal-at
+    ;; Scene operations
+    scene-intersect-ray scene-aabb shapes-containing-point
+    closest-shape scene-sdf scene-total-volume)
+
    (geometry-optics
     ;; Vec3 lenses
     vec3-x-lens vec3-y-lens vec3-z-lens
@@ -203,4 +211,9 @@
     "Composable optics for geometric primitives. Provides lenses for Vec3, rays, planes,
      triangles, spheres, AABBs, and OBBs. Includes traversals for multi-element structures
      (triangle vertices, AABB corners), type prisms for safe access, and convenience
-     combinators (translate-shape, transform-triangle).")))
+     combinators (translate-shape, transform-triangle).")
+   (shape-protocol "shape-protocol.ss"
+    "Unified protocol interface for all shape types. Enables polymorphic operations
+     (intersect-ray, aabb, contains-point, distance, center, volume, surface-area, normal)
+     across heterogeneous shape collections. Supports scene-level operations like
+     closest-hit raycast, combined AABB, SDF, and total volume computation.")))
