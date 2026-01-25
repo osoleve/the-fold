@@ -5,7 +5,7 @@
   (purity total)
   (stability stable)
   (fuel-bound "O(n log n) for BVH/octree operations, O(n) for raymarching")
-  (deps (linalg topology))
+  (deps (linalg topology fp/optics))
 
   (description
    "2D/3D computational geometry library providing primitives, spatial data structures,
@@ -21,7 +21,8 @@
              marching-cubes rendering ray-tracing spatial-data-structures
              topology homology betti-numbers manifold validation
              delaunay triangulation mesh-generation refinement voronoi lloyd-relaxation
-             convex-hull graham-scan quickhull minkowski collision-detection))
+             convex-hull graham-scan quickhull minkowski collision-detection
+             optics lenses traversals prisms functional-access))
   (aliases (geom 3d-geometry spatial))
 
   (exports
@@ -127,7 +128,36 @@
     voronoi-neighbors voronoi-nearest-site
     voronoi-bounded voronoi-bounded? voronoi-bounded-sites voronoi-bounded-cells
     voronoi-bounded-cell voronoi-cell-areas voronoi-summary
-    lloyd-step lloyd-relax render-voronoi))
+    lloyd-step lloyd-relax render-voronoi)
+
+   (geometry-optics
+    ;; Vec3 lenses
+    vec3-x-lens vec3-y-lens vec3-z-lens
+    ;; Line3 lenses
+    line3-origin-lens line3-direction-lens
+    ;; Ray3 lenses
+    ray3-origin-lens ray3-direction-lens
+    ray3-origin-x-lens ray3-origin-y-lens ray3-origin-z-lens
+    ;; Plane3 lenses
+    plane3-normal-lens plane3-d-lens
+    ;; Triangle3 lenses and traversals
+    triangle3-p1-lens triangle3-p2-lens triangle3-p3-lens triangle3-vertices-each
+    ;; Circle lenses
+    circle-center-lens circle-radius-lens
+    ;; Sphere lenses
+    sphere-center-lens sphere-radius-lens
+    sphere-center-x-lens sphere-center-y-lens sphere-center-z-lens
+    ;; AABB lenses and traversals
+    aabb-min-lens aabb-max-lens aabb-corners-each
+    ;; OBB lenses
+    obb-center-lens obb-axes-lens obb-extents-lens
+    ;; Type prisms
+    prism-line3 prism-ray3 prism-plane3 prism-triangle3
+    prism-sphere prism-aabb prism-circle
+    ;; Traversals
+    shapes-each triangles-each spheres-each all-triangle-vertices
+    ;; Convenience
+    translate-shape scale-sphere transform-triangle))
 
   (modules
    (geometry "geometry.ss"
@@ -168,4 +198,9 @@
    (voronoi "voronoi.ss"
     "Voronoi diagrams via Delaunay duality. Computes cells, neighbors, nearest site queries.
      Supports bounded Voronoi (clipped to rectangle) and Lloyd relaxation for uniform
-     point distribution. Includes cell area computation and ASCII visualization.")))
+     point distribution. Includes cell area computation and ASCII visualization.")
+   (geometry-optics "geometry-optics.ss"
+    "Composable optics for geometric primitives. Provides lenses for Vec3, rays, planes,
+     triangles, spheres, AABBs, and OBBs. Includes traversals for multi-element structures
+     (triangle vertices, AABB corners), type prisms for safe access, and convenience
+     combinators (translate-shape, transform-triangle).")))
