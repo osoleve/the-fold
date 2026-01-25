@@ -319,8 +319,10 @@
   (doc 'description "Return both square roots as a list (smaller first), or #f")
   (let ([r (mod-sqrt a p)])
     (if r
-        (let ([r2 (- p r)])
-          (if (<= r r2)
-              (list r r2)
-              (list r2 r)))
+        (let ([r2 (modulo (- p r) p)])  ; Ensure r2 is in [0, p-1]
+          (if (= r r2)
+              (list r)        ; Single root (e.g., 0, or p=2)
+              (if (<= r r2)
+                  (list r r2)
+                  (list r2 r))))
         #f)))

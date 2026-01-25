@@ -324,6 +324,14 @@
 
   (test-false "mod-sqrt-both(5, 13) = #f (5 is NR mod 13)" (mod-sqrt-both 5 13))
 
+  ;; Edge case: mod-sqrt-both(0, p) should return (0) not (0, p)
+  (test "mod-sqrt-both(0, 7) returns single root" 1 (length (mod-sqrt-both 0 7)))
+  (test "mod-sqrt-both(0, 7) root is 0" 0 (car (mod-sqrt-both 0 7)))
+
+  ;; Edge case: p=2 has single roots
+  (test "mod-sqrt-both(0, 2) returns single root" 1 (length (mod-sqrt-both 0 2)))
+  (test "mod-sqrt-both(1, 2) returns single root" 1 (length (mod-sqrt-both 1 2)))
+
   ;; Large prime for crypto-like test
   ;; Mersenne prime 2^31 - 1 = 2147483647, which is ≡ 3 (mod 4)
   (let* ([p 2147483647]
