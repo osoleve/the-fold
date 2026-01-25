@@ -326,12 +326,12 @@
         [(>= i len) #f]
         [(char-whitespace? (string-ref line i)) (skip-ws (+ i 1))]
         [(char-alphabetic? (string-ref line i))
-         ;; Extract the identifier
+         ;; Extract the identifier (including / and : for namespaced forms)
          (let extract ([end i])
            (if (and (< end len)
                     (or (char-alphabetic? (string-ref line end))
                         (char-numeric? (string-ref line end))
-                        (memv (string-ref line end) '(#\- #\_ #\? #\! #\* #\>))))
+                        (memv (string-ref line end) '(#\- #\_ #\? #\! #\* #\> #\/ #\:))))
                (extract (+ end 1))
                ;; Check if it's a known form
                (let ([sym (string->symbol (substring line i end))])
