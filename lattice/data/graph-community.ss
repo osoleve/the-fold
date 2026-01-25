@@ -124,24 +124,20 @@
 
 ;;; communities->partition : Vector → (List (List Nat))
 ;;; Convert label vector to list of node lists (one per community).
+;;; Uses hashtable to handle sparse/large label values safely.
 (define (communities->partition labels)
   (let* ([n (vector-length labels)]
-         [max-label (let loop ([i 0] [mx 0])
-                         (if (= i n) mx
-                             (loop (+ i 1) (max mx (vector-ref labels i)))))]
-         [groups (make-vector (+ max-label 1) '())])
-        ;; Group nodes by label
-        (do ([i 0 (+ i 1)])
-            ((= i n))
-            (let ([lbl (vector-ref labels i)])
-                 (vector-set! groups lbl (cons i (vector-ref groups lbl)))))
-        ;; Collect non-empty groups
-        (let loop ([i 0] [result '()])
-             (if (> i max-label)
-                 (reverse result)
-                 (let ([grp (vector-ref groups i)])
-                      (loop (+ i 1)
-                            (if (null? grp) result (cons (reverse grp) result))))))))
+         [groups (make-hashtable equal-hash equal?)])
+    ;; Group nodes by label using hashtable (handles sparse labels)
+    (do ([i 0 (+ i 1)])
+        ((= i n))
+      (let* ([lbl (vector-ref labels i)]
+             [existing (hashtable-ref groups lbl '())])
+        (hashtable-set! groups lbl (cons i existing))))
+    ;; Collect all groups, sorted by label for deterministic output
+    (let* ([keys (hashtable-keys groups)]
+           [sorted-keys (list-sort < (vector->list keys))])
+      (map (lambda (k) (reverse (hashtable-ref groups k '()))) sorted-keys))))
 
 ;;; num-communities : Vector → Nat
 ;;; Count number of distinct communities.
@@ -641,25 +637,31 @@
       (let ([edges (community-induced-edges adj nodes)])
         (graph-betti-numbers edges nodes))))
 
-(doc all-communities-betti 'type '(-> Matrix Vector (List (List Nat Nat Nat Nat))))
+(doc all-communities-betti 'type '(-> Matrix Vector (List (List Any Nat Nat Nat))))
 (doc all-communities-betti 'description "Compute Betti numbers for all detected communities")
 (doc all-communities-betti 'param 'adj "Adjacency matrix of full graph")
 (doc all-communities-betti 'param 'labels "Community label vector from label-propagation")
-(doc all-communities-betti 'returns "List of (community-id size B_0 B_1) tuples")
+(doc all-communities-betti 'returns "List of (original-label size B_0 B_1) tuples, preserving original community IDs")
 (define (all-communities-betti adj labels)
-  (let* ([partition (communities->partition labels)]
-         [num-communities (length partition)])
-    (let loop ([communities partition] [id 0] [result '()])
-      (if (null? communities)
-          (reverse result)
-          (let* ([nodes (car communities)]
-                 [size (length nodes)]
-                 [betti (community-betti-numbers adj nodes)]
-                 [b0 (car betti)]
-                 [b1 (cdr betti)])
-            (loop (cdr communities)
-                  (+ id 1)
-                  (cons (list id size b0 b1) result)))))))
+  (let* ([n (vector-length labels)]
+         [groups (make-hashtable equal-hash equal?)])
+    ;; Group nodes by label
+    (do ([i 0 (+ i 1)])
+        ((= i n))
+      (let* ([lbl (vector-ref labels i)]
+             [existing (hashtable-ref groups lbl '())])
+        (hashtable-set! groups lbl (cons i existing))))
+    ;; Compute Betti numbers for each community, preserving original labels
+    (let* ([keys (hashtable-keys groups)]
+           [sorted-keys (list-sort < (vector->list keys))])
+      (map (lambda (lbl)
+             (let* ([nodes (reverse (hashtable-ref groups lbl '()))]
+                    [size (length nodes)]
+                    [betti (community-betti-numbers adj nodes)]
+                    [b0 (car betti)]
+                    [b1 (cdr betti)])
+               (list lbl size b0 b1)))
+           sorted-keys))))
 
 (doc community-homology-quality 'type '(-> Nat Nat Nat Num))
 (doc community-homology-quality 'description "Compute topological quality score for a community")
@@ -668,22 +670,30 @@
 (doc community-homology-quality 'param 'b1 "B_1 (independent cycles)")
 (doc community-homology-quality 'returns "Quality score in [0, 1]: higher is better")
 (doc community-homology-quality 'note "Score combines:
-  - Connectivity penalty: 1/B_0 (perfect=1, fragmented<1)
-  - Cycle density bonus: B_1/(n-1) normalized (denser is better)
-  - Final: weighted combination favoring connectivity")
+  - Connectivity: (largest-component-fraction)^0.5 approximated as (n/B_0)/n = 1/B_0
+    but dampened to avoid harsh penalties for minor fragmentation
+  - Cycle density: B_1 / max-B_1 where max-B_1 = (n-1)(n-2)/2 for K_n
+  - Final: weighted combination favoring connectivity (0.7) over density (0.3)")
 (define (community-homology-quality size b0 b1)
-  (if (or (= size 0) (= b0 0))
-      0.0
-      (let* (;; Connectivity: 1.0 if connected, penalized if fragmented
-             [connectivity (/ 1.0 b0)]
-             ;; Cycle density: B_1 relative to max possible for connected graph
-             ;; Max B_1 for connected graph with n nodes is (n-1)(n-2)/2 (complete graph)
-             ;; We normalize more simply: B_1 / (n - 1) for n > 1
-             [max-extra-edges (if (> size 1) (- size 1) 1)]
-             [cycle-density (min 1.0 (/ b1 max-extra-edges))]
-             ;; Weight connectivity heavily (0.7) + cycle density (0.3)
-             [score (+ (* 0.7 connectivity) (* 0.3 cycle-density))])
-        score)))
+  (cond
+    [(= size 0) 0.0]
+    [(= b0 0) 0.0]
+    [(= size 1)
+     ;; Single-node community: connected but trivial, give modest score
+     0.5]
+    [else
+     (let* (;; Connectivity: use sqrt(1/B_0) to dampen harsh fragmentation penalty
+            ;; B_0=1 -> 1.0, B_0=2 -> 0.71, B_0=4 -> 0.5
+            [connectivity (sqrt (/ 1.0 b0))]
+            ;; Cycle density: B_1 relative to theoretical max for K_n
+            ;; Max B_1 = (n-1)(n-2)/2 for complete graph on n vertices
+            [max-b1 (/ (* (- size 1) (- size 2)) 2)]
+            [cycle-density (if (> max-b1 0)
+                               (min 1.0 (/ b1 max-b1))
+                               0.0)]
+            ;; Weight connectivity heavily (0.7) + cycle density (0.3)
+            [score (+ (* 0.7 connectivity) (* 0.3 cycle-density))])
+       score)]))
 
 (doc aggregate-community-quality 'type '(-> Matrix Vector Num))
 (doc aggregate-community-quality 'description "Compute overall topological quality of community partition")
@@ -741,10 +751,14 @@
               [b0 (caddr entry)]
               [b1 (cadddr entry)]
               [quality (community-homology-quality size b0 b1)]
+              ;; Max B_1 for complete graph K_n = (n-1)(n-2)/2
+              [max-b1 (/ (* (- size 1) (- size 2)) 2)]
               [notes (cond
                        [(> b0 1) "FRAGMENTED"]
-                       [(and (> size 3) (= b1 0)) "tree-like"]
-                       [(> b1 (- size 1)) "very dense"]
+                       [(= size 1) "singleton"]
+                       [(and (>= size 2) (= b1 0)) "tree-like"]
+                       [(and (> max-b1 0) (>= b1 max-b1)) "clique"]
+                       [(and (> max-b1 0) (>= (/ b1 max-b1) 0.7)) "very dense"]
                        [else ""])])
          (printf "  ~a    ~a     ~a     ~a    ~a      ~a\n"
                  id size b0 b1 (round-2 quality) notes)))
@@ -755,4 +769,8 @@
     (printf "  B_0: Connected components (ideal = 1)\n")
     (printf "  B_1: Independent cycles (higher = denser)\n")
     (printf "  FRAGMENTED: Community has disconnected parts\n")
+    (printf "  singleton:  Single-node community\n")
+    (printf "  tree-like:  Connected but no cycles (B_1 = 0)\n")
+    (printf "  clique:     Complete subgraph (B_1 = max)\n")
+    (printf "  very dense: B_1 >= 70%% of maximum\n")
     (printf "=================================\n\n")))

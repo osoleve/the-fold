@@ -76,9 +76,11 @@
 (test "clique 1 B_0 (connected)" 1 (car c1-betti))
 (test "clique 1 B_1 (one cycle)" 1 (cdr c1-betti))
 
-;; Test all-communities-betti
+;; Test all-communities-betti preserves original labels
 (define all-betti (all-communities-betti two-cliques perfect-labels))
 (test "two communities detected" 2 (length all-betti))
+(test "first community has original label 0" 0 (caar all-betti))
+(test "second community has original label 1" 1 (caadr all-betti))
 
 (printf "\n")
 
@@ -98,10 +100,9 @@
 (test "fragmented B_0 (disconnected)" 2 (car fragmented-betti))
 (test "fragmented B_1 (no cycles)" 0 (cdr fragmented-betti))
 
-;; Quality should be low for fragmented community
+;; Quality with new formula: sqrt(1/2) * 0.7 = 0.495
 (define frag-quality (community-homology-quality 2 2 0))
-(test-approx "fragmented quality penalty" 0.35 frag-quality 0.01)
-;; 0.7 * (1/2) + 0.3 * 0 = 0.35
+(test-approx "fragmented quality penalty" 0.495 frag-quality 0.01)
 
 (printf "\n")
 
@@ -114,34 +115,79 @@
 
 ;; Perfect connected community with some cycles
 ;; Size 4, B_0=1 (connected), B_1=2 (two independent cycles)
+;; max_b1 = (4-1)(4-2)/2 = 3, density = 2/3
+;; quality = 0.7 * 1.0 + 0.3 * (2/3) = 0.7 + 0.2 = 0.9
 (define q1 (community-homology-quality 4 1 2))
-(test-approx "quality: connected with cycles" 0.9 q1 0.1)
-;; 0.7 * 1.0 + 0.3 * (2/3) = 0.7 + 0.2 = 0.9
+(test-approx "quality: connected with cycles" 0.9 q1 0.01)
 
 ;; Tree-like community: connected but no cycles
 ;; Size 4, B_0=1, B_1=0
+;; quality = 0.7 * 1.0 + 0.3 * 0 = 0.7
 (define q2 (community-homology-quality 4 1 0))
 (test-approx "quality: tree-like community" 0.7 q2 0.01)
-;; 0.7 * 1.0 + 0.3 * 0 = 0.7
 
 ;; Heavily fragmented: 4 components, no cycles
+;; connectivity = sqrt(1/4) = 0.5
+;; quality = 0.7 * 0.5 + 0.3 * 0 = 0.35
 (define q3 (community-homology-quality 4 4 0))
-(test-approx "quality: heavily fragmented" 0.175 q3 0.01)
-;; 0.7 * (1/4) + 0.3 * 0 = 0.175
+(test-approx "quality: heavily fragmented" 0.35 q3 0.01)
+
+;; Single-node community should get modest score (0.5)
+(define q-single (community-homology-quality 1 1 0))
+(test-approx "quality: single-node community" 0.5 q-single 0.01)
 
 (printf "\n")
 
 ;;; ====
-;;; Test 4: Aggregate quality comparison
+;;; Test 4: Clique normalization (K_3 vs K_4 should score equally)
+;;; ====
+;;; This tests that cycle density is properly normalized to theoretical max
+
+(printf "Test 4: Clique normalization\n")
+(printf "----------------------------\n")
+
+;; K_3: size=3, B_1=1, max_b1=(2*1)/2=1, density=1.0, quality=1.0
+(define q-k3 (community-homology-quality 3 1 1))
+(test-approx "K_3 quality (complete triangle)" 1.0 q-k3 0.01)
+
+;; K_4: size=4, B_1=3, max_b1=(3*2)/2=3, density=1.0, quality=1.0
+(define q-k4 (community-homology-quality 4 1 3))
+(test-approx "K_4 quality (complete 4-clique)" 1.0 q-k4 0.01)
+
+;; Both should be equal (size-invariant for cliques)
+(test-approx "K_3 and K_4 equal quality" q-k3 q-k4 0.01)
+
+(printf "\n")
+
+;;; ====
+;;; Test 5: Sparse labels (tests hashtable fix)
 ;;; ====
 
-(printf "Test 4: Aggregate quality\n")
+(printf "Test 5: Sparse labels\n")
+(printf "---------------------\n")
+
+;; Labels with large gaps: 0, 1000, 5000
+;; This would crash with old make-vector approach
+(define sparse-labels (vector 0 0 1000 1000 5000 5000))
+(define sparse-betti (all-communities-betti two-cliques sparse-labels))
+
+(test "sparse: three communities" 3 (length sparse-betti))
+(test "sparse: first label is 0" 0 (caar sparse-betti))
+(test "sparse: second label is 1000" 1000 (caadr sparse-betti))
+(test "sparse: third label is 5000" 5000 (caaddr sparse-betti))
+
+(printf "\n")
+
+;;; ====
+;;; Test 6: Aggregate quality comparison
+;;; ====
+
+(printf "Test 6: Aggregate quality\n")
 (printf "-------------------------\n")
 
 (define perfect-quality (aggregate-community-quality two-cliques perfect-labels))
 (define bad-quality (aggregate-community-quality two-cliques bad-labels))
 
-(test-approx "perfect partition quality" 0.8 perfect-quality 0.15)
 (printf "  Perfect partition quality: ~a\n" (round-3 perfect-quality))
 (printf "  Bad partition quality:     ~a\n" (round-3 bad-quality))
 
@@ -154,31 +200,34 @@
      (set! tests-failed (+ tests-failed 1))
      (printf "  [FAIL] Expected perfect > bad quality\n")))
 
+;; Perfect partition of two K_3s should be 1.0
+(test-approx "perfect partition is optimal" 1.0 perfect-quality 0.01)
+
 (printf "\n")
 
 ;;; ====
-;;; Test 5: Community homology report (visual inspection)
+;;; Test 7: Community homology report (visual inspection)
 ;;; ====
 
-(printf "Test 5: Homology report output\n")
+(printf "Test 7: Homology report output\n")
 (printf "------------------------------\n")
 (community-homology-report two-cliques perfect-labels)
 
 ;;; ====
-;;; Test 6: Karate club-style graph
+;;; Test 8: Karate club-style graph
 ;;; ====
 ;;; A more realistic test: 8 nodes in 2 communities with some inter-community edges
 
-(printf "Test 6: Realistic graph with inter-community edges\n")
+(printf "Test 8: Realistic graph with inter-community edges\n")
 (printf "--------------------------------------------------\n")
 
-;; Community A: 0,1,2,3 (dense clique + one chain)
-;; Community B: 4,5,6,7 (less dense, tree-like)
+;; Community A: 0,1,2,3 (dense clique K_4)
+;; Community B: 4,5,6,7 (star/tree)
 ;; Bridge: edge 3-4
 
 (define realistic (make-matrix 8 8 0))
 
-;; Community A: nearly complete on 0,1,2,3
+;; Community A: complete K_4 on 0,1,2,3
 (matrix-set! realistic 0 1 1) (matrix-set! realistic 1 0 1)
 (matrix-set! realistic 0 2 1) (matrix-set! realistic 2 0 1)
 (matrix-set! realistic 0 3 1) (matrix-set! realistic 3 0 1)
