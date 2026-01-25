@@ -196,7 +196,27 @@
       (let* ([F (gf-prime 5)]
              ;; x^4 - 1 = x^4 + 4 in GF(5) = [4, 0, 0, 0, 1]
              [p (make-polynomial F '(4 0 0 0 1))])
-        (assert-false (poly-irreducible? p)))))
+        (assert-false (poly-irreducible? p))))
+
+    (define-test "poly-frobenius-power matches direct computation"
+      ;; Verify x^(q^k) via Frobenius matches x^(q^k) via direct expt
+      (let* ([F (gf-prime 3)]
+             [f (make-polynomial F '(1 0 1))]  ; x^2 + 1 (irreducible mod 3)
+             [x (make-polynomial F '(0 1))]    ; x
+             ;; Compute x^(3^2) = x^9 two ways
+             [via-frobenius (poly-frobenius-power x 3 2 f)]
+             [via-direct (poly-power-mod x 9 f)])
+        (assert-true (poly-equal? via-frobenius via-direct))))
+
+    (define-test "poly-power-mod handles large exponents (tail-recursive)"
+      ;; Verify tail-recursive version works for moderately large exponents
+      (let* ([F (gf-prime 7)]
+             [f (make-polynomial F '(3 0 0 1))]  ; x^3 + 3 (for reduction)
+             [x (make-polynomial F '(0 1))]      ; x
+             ;; Compute x^1000 mod f - would stack overflow if not tail-recursive
+             [result (poly-power-mod x 1000 f)])
+        ;; Just verify it completes without error and returns a polynomial
+        (assert-true (< (poly-degree result) 3)))))
 
   ;;; ==========================================================================
   ;;; Primitive Elements

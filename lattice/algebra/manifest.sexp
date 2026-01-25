@@ -120,8 +120,8 @@
     ;; Standard fields
     make-gf2-4 make-gf2-8-aes make-gf2-16 make-gf2-32 make-gf-p2
     gf2-4-irred gf2-8-aes-irred gf2-16-irred gf2-32-irred
-    ;; Irreducible polynomials (uses Rabin's O(d² log p) test)
-    poly-irreducible? rabin-irreducible? poly-power-mod
+    ;; Irreducible polynomials (uses Rabin's O(d² log q) test)
+    poly-irreducible? rabin-irreducible? poly-power-mod poly-frobenius-power
     ;; Primitive elements
     gf-primitive? gf-find-primitive
     ;; Minimal polynomials
