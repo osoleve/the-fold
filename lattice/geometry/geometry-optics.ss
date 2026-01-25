@@ -373,6 +373,7 @@
 ;;; Fold for all vertices in a triangle list
 (doc all-triangle-vertices 'type '(Fold (List Triangle3) Vec3))
 (doc all-triangle-vertices 'description "Fold over all vertices in a triangle mesh")
+(doc all-triangle-vertices 'todo "Use flat-fold instead of apply-append for large meshes (O(n²) → O(n))")
 (doc all-triangle-vertices 'export #t)
 (define all-triangle-vertices
   (make-fold
