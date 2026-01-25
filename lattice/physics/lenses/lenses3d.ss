@@ -209,7 +209,7 @@
 (doc body3d. 'export #t)
 
 (define-syntax body3d.
-  (syntax-rules (pos vel orientation angular-vel mass inertia x y z w)
+  (syntax-rules (pos vel orientation angular-vel mass inertia inv-mass inv-inertia x y z w)
     ;; Position paths
     [(body3d. pos) rigid-body-3d-pos-lens]
     [(body3d. pos x) rigid-body-3d-pos-x-lens]
@@ -233,7 +233,10 @@
     [(body3d. angular-vel z) rigid-body-3d-angular-vel-z-lens]
     ;; Mass and inertia
     [(body3d. mass) rigid-body-3d-mass-lens]
-    [(body3d. inertia) rigid-body-3d-inertia-lens]))
+    [(body3d. inertia) rigid-body-3d-inertia-lens]
+    ;; Read-only getters for computed fields
+    [(body3d. inv-mass) rigid-body-3d-inv-mass-getter]
+    [(body3d. inv-inertia) rigid-body-3d-inv-inertia-getter]))
 
 ;;; ============================================================
 ;;; Section 5: Traversals for Body Collections

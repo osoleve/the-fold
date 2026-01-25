@@ -138,7 +138,16 @@
     (let ([b2 (& test-body (.~ (body3d. mass) 100.0))])
       (assert-equal 100.0 (rigid-body-3d-mass b2))
       ;; Inverse mass should be recalculated
-      (assert-equal 0.01 (rigid-body-3d-inv-mass b2)))))
+      (assert-equal 0.01 (rigid-body-3d-inv-mass b2))))
+
+  (define-test "(body3d. inv-mass) getter"
+    ;; test-body has mass 5.0, so inv-mass should be 0.2
+    (assert-equal 0.2 (^. test-body (body3d. inv-mass))))
+
+  (define-test "(body3d. inv-inertia) getter"
+    ;; Just verify we can access it through the macro (returns a mat3 = list of lists)
+    (let ([inv-I (^. test-body (body3d. inv-inertia))])
+      (assert-true (list? inv-I)))))
 
 ;;; ============================================================
 ;;; Traversal Tests
