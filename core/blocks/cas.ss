@@ -31,6 +31,29 @@
 (doc address-version-v3 'export #t)
 (define address-version-v3 #x03)
 
+(doc 'section 'blake2b-address-versions)
+(doc 'note "BLAKE2b variants use 0x10-0x13, parallel to SHA-256 0x00-0x03. ~5x faster for large blocks.")
+
+(doc address-version-blake2b-alpha 'type Byte)
+(doc address-version-blake2b-alpha 'description "Version 0x10: BLAKE2b with α-normalization only.")
+(doc address-version-blake2b-alpha 'export #t)
+(define address-version-blake2b-alpha #x10)
+
+(doc address-version-blake2b-algebraic 'type Byte)
+(doc address-version-blake2b-algebraic 'description "Version 0x11: BLAKE2b with algebraic + α-normalization.")
+(doc address-version-blake2b-algebraic 'export #t)
+(define address-version-blake2b-algebraic #x11)
+
+(doc address-version-blake2b-v2 'type Byte)
+(doc address-version-blake2b-v2 'description "Version 0x12: BLAKE2b with v2 normalization.")
+(doc address-version-blake2b-v2 'export #t)
+(define address-version-blake2b-v2 #x12)
+
+(doc address-version-blake2b-v3 'type Byte)
+(doc address-version-blake2b-v3 'description "Version 0x13: BLAKE2b with v3 normalization.")
+(doc address-version-blake2b-v3 'export #t)
+(define address-version-blake2b-v3 #x13)
+
 (doc 'section 'hashing-functions)
 
 (define (hash-block blk)
@@ -114,6 +137,20 @@
   (doc 'description "Check if address was computed with v3 normalization (v0x03).")
   (doc 'export #t)
   (= (address-version-byte addr) address-version-v3))
+
+(define (address-blake2b? addr)
+  (doc 'type (-> Bytevector Boolean))
+  (doc 'description "Check if address was computed with BLAKE2b (v0x10-0x13).")
+  (doc 'export #t)
+  (let ([v (address-version-byte addr)])
+    (and (>= v #x10) (<= v #x13))))
+
+(define (address-sha256? addr)
+  (doc 'type (-> Bytevector Boolean))
+  (doc 'description "Check if address was computed with SHA-256 (v0x00-0x03).")
+  (doc 'export #t)
+  (let ([v (address-version-byte addr)])
+    (and (>= v #x00) (<= v #x03))))
 
 (define (hash->hex hash)
   (doc 'type (-> Bytevector String))
