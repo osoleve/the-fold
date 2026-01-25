@@ -634,6 +634,15 @@ Doc type annotations are used by both the LSP and type inference:
 - Type inference (`core/types/infer.ss`) uses declared types via `lookup-declared-type`
 - Bridge: `load-doc-types-into-checker!` populates type checker from doc index
 
+**Todos vs BBS Issues:**
+
+| Use | When |
+|-----|------|
+| `(doc 'todo ...)` | Colocated with code, for localized improvements (performance, refactoring, cleanup) |
+| BBS issue | Tracked work items, features, bugs, cross-cutting concerns, things needing scheduling |
+
+**Rule of thumb**: If it's "fix this function" → `(doc 'todo ...)`. If it's "add capability X" or "design decision needed" → BBS issue.
+
 ### Normalization and Content Addressing
 
 S-expressions are α-normalized (de Bruijn indices) before hashing:
