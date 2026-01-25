@@ -7,7 +7,7 @@
   (purity total)
   (stability experimental)
   (fuel-bound "O(n³) for regression, O(n²) for time series, O(n) for descriptive stats")
-  (deps (linalg fp algebra))
+  (deps (linalg fp algebra fp/protocol))
 
   (description
    "Comprehensive statistical modeling library including linear and generalized
@@ -32,6 +32,11 @@
                   legendre-features chebyshev-features hermite-features laguerre-features
                   orthogonal-features)
    (diagnostics hat-matrix-diagonal cooks-distance residuals-studentized vif)
+   (model-protocol model-coefficients model-intercept model-predict model-residuals
+                   model-fitted model-n model-p model-df-residual model-sigma
+                   model-aic model-bic model-r-squared model-deviance model-se
+                   model-mse model-rmse model-mae model-summary
+                   compare-models-aic compare-models-bic cv-score)
 
    ;; Regression
    (linear linear-model-fit linear-model-predict weighted-linear-fit)
@@ -70,6 +75,7 @@
   (modules
    ;; Core modules
    (result-types "core/result-types.ss" "Statistical model result structures")
+   (model-protocol "core/model-protocol.ss" "Unified protocol interface for all model types")
    (summary-stats "core/summary-stats.ss" "Descriptive statistics")
    (design-matrix "core/design-matrix.ss" "Design matrix, orthogonal polynomial bases")
    (diagnostics "core/diagnostics.ss" "Model diagnostics (leverage, Cook's D)")
