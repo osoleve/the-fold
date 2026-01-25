@@ -1,6 +1,7 @@
 (load "core/base/prelude.ss")
 (load "lattice/algebra/field.ss")
 (load "lattice/algebra/polynomial.ss")
+(load "lattice/number-theory/primality.ss")  ; For factorize
 
 (doc 'module 'galois)
 (doc 'description "Galois field (finite field) arithmetic: GF(p), GF(p^n), GF(2^n)")
@@ -447,22 +448,95 @@
 
 (doc 'note "Utilities for working with irreducible polynomials.")
 (doc 'note "An irreducible polynomial cannot be factored into non-trivial factors.")
+(doc 'note "Uses Rabin's irreducibility test for O(d² log p) complexity over GF(p).")
+
+;;; poly-power-mod : Polynomial × Int × Polynomial → Polynomial
+;;; Compute p^n mod m using repeated squaring with reduction at each step.
+;;; Essential for Rabin's test where we compute x^(p^k) mod f.
+(define (poly-power-mod p n m)
+  (doc 'export #t)
+  (doc 'type '(-> Polynomial Int Polynomial Polynomial))
+  (doc 'description "Modular polynomial exponentiation: p^n mod m")
+  (doc 'complexity "O(log n) multiplications, each followed by reduction mod m")
+  (let ([F (poly-field p)])
+    (cond
+      [(= n 0) (poly-one-over F)]
+      [(= n 1) (poly-mod p m)]
+      [(even? n)
+       (let ([half (poly-power-mod p (quotient n 2) m)])
+         (poly-mod (poly-mul half half) m))]
+      [else
+       (let ([prev (poly-power-mod p (- n 1) m)])
+         (poly-mod (poly-mul p prev) m))])))
+
+;;; unique-prime-divisors : Nat → (List Nat)
+;;; Get unique prime divisors of n (uses factorize from primality.ss)
+(define (unique-prime-divisors n)
+  (if (<= n 1)
+      '()
+      (let loop ([factors (factorize n)] [seen '()])
+        (if (null? factors)
+            (reverse seen)
+            (let ([p (car factors)])
+              (if (member p seen)
+                  (loop (cdr factors) seen)
+                  (loop (cdr factors) (cons p seen))))))))
+
+;;; rabin-irreducible? : Polynomial × Int → Boolean
+;;; Rabin's irreducibility test for polynomial f over GF(p).
+;;; Much faster than trial division: O(d² log p) vs O(p^(d/2)).
+;;;
+;;; Algorithm: For f(x) of degree d over GF(p), f is irreducible iff:
+;;; 1. For each prime q | d: gcd(x^(p^(d/q)) - x, f) = 1
+;;; 2. x^(p^d) ≡ x (mod f)
+(define (rabin-irreducible? f p-char)
+  (doc 'export #t)
+  (doc 'type '(-> Polynomial Int Boolean))
+  (doc 'description "Rabin's fast irreducibility test for polynomials over GF(p)")
+  (doc 'complexity "O(d² log p) field operations where d = deg(f)")
+  (let* ([F (poly-field f)]
+         [d (poly-degree f)]
+         [x (make-polynomial F (list (field-zero F) (field-one F)))]  ; x = [0, 1]
+         [neg-x (poly-neg x)]  ; -x for computing x^k - x
+         [prime-divs (unique-prime-divisors d)])
+    ;; Check condition 1: for each prime q | d, gcd(x^(p^(d/q)) - x, f) = 1
+    (and (let loop ([qs prime-divs])
+           (or (null? qs)
+               (let* ([q (car qs)]
+                      [exp (quotient d q)]       ; d/q
+                      [pk (expt p-char exp)]     ; p^(d/q)
+                      [x-pk (poly-power-mod x pk f)]  ; x^(p^(d/q)) mod f
+                      [diff (poly-add x-pk neg-x)]    ; x^(p^(d/q)) - x
+                      [g (poly-gcd diff f)])
+                 (and (= (poly-degree g) 0)      ; gcd = constant (coprime)
+                      (loop (cdr qs))))))
+         ;; Check condition 2: x^(p^d) ≡ x (mod f)
+         (let* ([pd (expt p-char d)]             ; p^d
+                [x-pd (poly-power-mod x pd f)])  ; x^(p^d) mod f
+           (poly-equal? x-pd x)))))
 
 ;;; poly-irreducible? : Polynomial → Boolean
 ;;; Test if a polynomial is irreducible over its coefficient field.
-;;; Uses trial division for small degrees.
+;;; Uses Rabin's test for finite fields (O(d² log p)), falls back to trial
+;;; division for infinite fields or when field metadata unavailable.
 (define (poly-irreducible? p)
   (doc 'export #t)
   (doc 'type '(-> Polynomial Boolean))
   (doc 'description "Test if polynomial is irreducible over its coefficient field")
+  (doc 'note "Uses Rabin's O(d² log p) test for GF(p), trial division otherwise")
   (let* ([F (poly-field p)]
          [d (poly-degree p)])
     (cond
       [(< d 1) #f]  ; Constants are not irreducible
       [(= d 1) #t]  ; Linear polynomials are always irreducible
       [else
-       ;; Check if p has any factors of degree 1 to d/2
-       (not (poly-has-factor-up-to-degree? p (quotient d 2) F))])))
+       ;; Try to use Rabin's test if we have characteristic info
+       (let ([char (gf-characteristic F)])
+         (if (and char (> char 0))
+             ;; Finite field with known characteristic - use Rabin's fast test
+             (rabin-irreducible? p char)
+             ;; Unknown or infinite field - fall back to trial division
+             (not (poly-has-factor-up-to-degree? p (quotient d 2) F))))])))
 
 ;;; Check if polynomial has a factor of degree 1 to max-deg
 (define (poly-has-factor-up-to-degree? p max-deg F)

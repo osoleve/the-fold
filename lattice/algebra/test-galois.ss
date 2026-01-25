@@ -161,6 +161,41 @@
     (define-test "constants are not irreducible"
       (let* ([F (gf-prime 5)]
              [p (make-polynomial F '(3))])
+        (assert-false (poly-irreducible? p))))
+
+    ;; Rabin's test specific cases
+    (define-test "x^4 + x + 1 is irreducible over GF(2)"
+      ;; Classic GF(2^4) irreducible
+      (let* ([F (gf-prime 2)]
+             ;; x^4 + x + 1 = [1, 1, 0, 0, 1] (ascending)
+             [p (make-polynomial F '(1 1 0 0 1))])
+        (assert-true (poly-irreducible? p))))
+
+    (define-test "x^4 + 1 is reducible over GF(2)"
+      ;; x^4 + 1 = (x+1)^4 in characteristic 2
+      (let* ([F (gf-prime 2)]
+             [p (make-polynomial F '(1 0 0 0 1))])
+        (assert-false (poly-irreducible? p))))
+
+    (define-test "x^8 + x^4 + x^3 + x + 1 is irreducible over GF(2)"
+      ;; AES polynomial
+      (let* ([F (gf-prime 2)]
+             ;; [1, 1, 0, 1, 1, 0, 0, 0, 1] ascending
+             [p (make-polynomial F '(1 1 0 1 1 0 0 0 1))])
+        (assert-true (poly-irreducible? p))))
+
+    (define-test "Rabin test with larger prime field"
+      ;; x^3 + x + 1 over GF(7) - should be irreducible (no roots, no quadratic factors)
+      (let* ([F (gf-prime 7)]
+             [p (make-polynomial F '(1 1 0 1))])  ; 1 + x + x^3
+        ;; First verify no roots
+        (assert-true (poly-irreducible? p))))
+
+    (define-test "Rabin test correctly identifies reducible degree-4"
+      ;; x^4 - 1 = (x-1)(x+1)(x^2+1) over GF(5)
+      (let* ([F (gf-prime 5)]
+             ;; x^4 - 1 = x^4 + 4 in GF(5) = [4, 0, 0, 0, 1]
+             [p (make-polynomial F '(4 0 0 0 1))])
         (assert-false (poly-irreducible? p)))))
 
   ;;; ==========================================================================
