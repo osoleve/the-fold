@@ -144,13 +144,9 @@
                 (let ([nearest (quadtree-nearest tree (car pt) (cadr pt))])
                   (assert-equal (car pt) (car nearest))
                   (assert-equal (cadr pt) (cadr nearest))))
-              (take points 10))))  ; test first 10 for speed
+              (take 10 points))))  ; test first 10 for speed
 
-;; Helper
-(define (take lst n)
-  (if (or (null? lst) (<= n 0))
-      '()
-      (cons (car lst) (take (cdr lst) (- n 1)))))
+;; Note: Uses take from prelude.ss with signature (take n lst)
 
 ;;; ============================================================
 ;;; Delete Tests

@@ -1,0 +1,251 @@
+;;; lattice/data/collection-impl.ss — Protocol Implementations for Data Structures
+;;; @module collection-impl
+;;; @requires collection-protocol, avl-tree, heap, kdtree, quadtree
+
+(load "lattice/data/collection-protocol.ss")
+(load "lattice/data/avl-tree.ss")
+(load "lattice/data/heap.ss")
+(load "lattice/data/kdtree.ss")
+(load "lattice/data/quadtree.ss")
+
+(doc 'module 'collection-impl)
+(doc 'description "Protocol implementations for lattice data structures.
+Registers AVL trees, heaps, k-d trees, and quadtrees with the collection protocol system.
+
+After loading this module, generic operations work across all collection types:
+  (coll-size my-avl)
+  (coll-size my-heap)
+  (coll-fold my-kdtree fn init)
+  (coll-filter-list my-quadtree pred)")
+(doc 'layer 'lattice)
+(doc 'tier 0)
+(doc 'purity 'partial)
+
+;;; ============================================================
+;;; AVL Tree Implementation
+;;; ============================================================
+;;; AVL implements: Core + Keyed protocols
+
+(doc 'section 'avl-implementation)
+
+;; Core protocols
+(implement-protocol! 'coll-empty? 'avl-node
+  (lambda (tree) #f))  ; Non-empty nodes are never empty
+
+(implement-protocol! 'coll-size 'avl-node
+  (lambda (tree) (avl-size tree)))
+
+(implement-protocol! 'coll-fold 'avl-node
+  (lambda (tree fn init)
+    ;; Wrap avl-fold to provide (key . value) pairs to fn
+    (avl-fold (lambda (acc k v) (fn acc (cons k v)))
+              init tree)))
+
+(implement-protocol! 'coll-to-list 'avl-node
+  (lambda (tree) (avl->list tree)))
+
+;; Keyed protocols
+(implement-protocol! 'keyed-lookup 'avl-node
+  (lambda (tree key) (avl-lookup key tree)))
+
+(implement-protocol! 'keyed-insert 'avl-node
+  (lambda (tree key value) (avl-insert key value tree)))
+
+(implement-protocol! 'keyed-delete 'avl-node
+  (lambda (tree key) (avl-delete key tree)))
+
+(implement-protocol! 'keyed-contains? 'avl-node
+  (lambda (tree key) (avl-contains? key tree)))
+
+(implement-protocol! 'keyed-keys 'avl-node
+  (lambda (tree) (avl-keys tree)))
+
+(implement-protocol! 'keyed-values 'avl-node
+  (lambda (tree) (avl-values tree)))
+
+;;; ============================================================
+;;; Heap Implementation
+;;; ============================================================
+;;; Heap implements: Core + Priority protocols
+
+(doc 'section 'heap-implementation)
+
+;; Core protocols
+(implement-protocol! 'coll-empty? 'heap-node
+  (lambda (heap) #f))  ; Non-empty nodes are never empty
+
+(implement-protocol! 'coll-size 'heap-node
+  (lambda (heap) (heap-size heap)))
+
+(implement-protocol! 'coll-fold 'heap-node
+  (lambda (heap fn init)
+    ;; Fold by repeatedly extracting min (heap order traversal)
+    ;; Note: This is O(n log n) due to delete-min operations
+    (let loop ([h heap] [acc init])
+      (if (heap-empty? h)
+          acc
+          (loop (heap-delete-min h) (fn acc (heap-value h)))))))
+
+(implement-protocol! 'coll-to-list 'heap-node
+  (lambda (heap) (heap->list heap)))
+
+;; Priority protocols
+(implement-protocol! 'prio-peek 'heap-node
+  (lambda (heap) (heap-min heap)))
+
+(implement-protocol! 'prio-pop 'heap-node
+  (lambda (heap)
+    (let-values ([(new-heap elem) (heap-pop heap)])
+      (values new-heap elem))))
+
+(implement-protocol! 'prio-insert 'heap-node
+  (lambda (heap elem) (heap-insert elem heap)))
+
+(implement-protocol! 'prio-merge 'heap-node
+  (lambda (h1 h2) (heap-merge h1 h2)))
+
+;;; ============================================================
+;;; KD-Tree Implementation
+;;; ============================================================
+;;; KD-Tree implements: Core + Spatial protocols
+
+(doc 'section 'kdtree-implementation)
+
+;; Core protocols
+(implement-protocol! 'coll-empty? 'kdtree-node
+  (lambda (tree) #f))
+
+(implement-protocol! 'coll-size 'kdtree-node
+  (lambda (tree) (kdtree-size tree)))
+
+(implement-protocol! 'coll-fold 'kdtree-node
+  (lambda (tree fn init)
+    (kdtree-fold fn init tree)))
+
+(implement-protocol! 'coll-to-list 'kdtree-node
+  (lambda (tree) (kdtree->list tree)))
+
+;; Spatial protocols
+(implement-protocol! 'spatial-nearest 'kdtree-node
+  (lambda (tree query) (kdtree-nearest tree query)))
+
+(implement-protocol! 'spatial-knn 'kdtree-node
+  (lambda (tree query k) (kdtree-knn tree query k)))
+
+(implement-protocol! 'spatial-range 'kdtree-node
+  (lambda (tree min-pt max-pt) (kdtree-range tree min-pt max-pt)))
+
+(implement-protocol! 'spatial-radius 'kdtree-node
+  (lambda (tree center radius) (kdtree-radius tree center radius)))
+
+(implement-protocol! 'spatial-contains? 'kdtree-node
+  (lambda (tree point)
+    (kdtree-member? tree point (point-dimension point))))
+
+;;; ============================================================
+;;; Quadtree Implementation
+;;; ============================================================
+;;; Quadtree implements: Core + Spatial protocols
+;;; Note: Quadtree has two node types: quadtree-leaf and quadtree-node
+
+(doc 'section 'quadtree-implementation)
+
+;; Core protocols - leaf nodes
+(implement-protocol! 'coll-empty? 'quadtree-leaf
+  (lambda (tree) (null? (quadtree-leaf-points tree))))
+
+(implement-protocol! 'coll-size 'quadtree-leaf
+  (lambda (tree) (quadtree-size tree)))
+
+(implement-protocol! 'coll-fold 'quadtree-leaf
+  (lambda (tree fn init)
+    (quadtree-fold fn init tree)))
+
+(implement-protocol! 'coll-to-list 'quadtree-leaf
+  (lambda (tree) (quadtree->list tree)))
+
+;; Core protocols - internal nodes
+(implement-protocol! 'coll-empty? 'quadtree-node
+  (lambda (tree) #f))  ; Internal nodes always have children
+
+(implement-protocol! 'coll-size 'quadtree-node
+  (lambda (tree) (quadtree-size tree)))
+
+(implement-protocol! 'coll-fold 'quadtree-node
+  (lambda (tree fn init)
+    (quadtree-fold fn init tree)))
+
+(implement-protocol! 'coll-to-list 'quadtree-node
+  (lambda (tree) (quadtree->list tree)))
+
+;; Spatial protocols - leaf nodes
+(implement-protocol! 'spatial-nearest 'quadtree-leaf
+  (lambda (tree query)
+    (quadtree-nearest tree (car query) (cadr query))))
+
+(implement-protocol! 'spatial-range 'quadtree-leaf
+  (lambda (tree min-pt max-pt)
+    (quadtree-range-rect tree
+                         (car min-pt) (cadr min-pt)
+                         (car max-pt) (cadr max-pt))))
+
+(implement-protocol! 'spatial-radius 'quadtree-leaf
+  (lambda (tree center radius)
+    (quadtree-radius tree (car center) (cadr center) radius)))
+
+(implement-protocol! 'spatial-contains? 'quadtree-leaf
+  (lambda (tree point)
+    (quadtree-member? tree (car point) (cadr point))))
+
+;; Spatial protocols - internal nodes
+(implement-protocol! 'spatial-nearest 'quadtree-node
+  (lambda (tree query)
+    (quadtree-nearest tree (car query) (cadr query))))
+
+(implement-protocol! 'spatial-range 'quadtree-node
+  (lambda (tree min-pt max-pt)
+    (quadtree-range-rect tree
+                         (car min-pt) (cadr min-pt)
+                         (car max-pt) (cadr max-pt))))
+
+(implement-protocol! 'spatial-radius 'quadtree-node
+  (lambda (tree center radius)
+    (quadtree-radius tree (car center) (cadr center) radius)))
+
+(implement-protocol! 'spatial-contains? 'quadtree-node
+  (lambda (tree point)
+    (quadtree-member? tree (car point) (cadr point))))
+
+;;; ============================================================
+;;; Protocol Coverage Summary
+;;; ============================================================
+
+(doc 'coverage "
+| Protocol           | AVL | Heap | KDTree | Quadtree |
+|--------------------|-----|------|--------|----------|
+| coll-empty?        |  ✓  |  ✓   |   ✓    |    ✓     |
+| coll-size          |  ✓  |  ✓   |   ✓    |    ✓     |
+| coll-fold          |  ✓  |  ✓   |   ✓    |    ✓     |
+| coll-to-list       |  ✓  |  ✓   |   ✓    |    ✓     |
+| keyed-lookup       |  ✓  |      |        |          |
+| keyed-insert       |  ✓  |      |        |          |
+| keyed-delete       |  ✓  |      |        |          |
+| keyed-contains?    |  ✓  |      |        |          |
+| keyed-keys         |  ✓  |      |        |          |
+| keyed-values       |  ✓  |      |        |          |
+| spatial-nearest    |     |      |   ✓    |    ✓     |
+| spatial-knn        |     |      |   ✓    |          |
+| spatial-range      |     |      |   ✓    |    ✓     |
+| spatial-radius     |     |      |   ✓    |    ✓     |
+| spatial-contains?  |     |      |   ✓    |    ✓     |
+| prio-peek          |     |  ✓   |        |          |
+| prio-pop           |     |  ✓   |        |          |
+| prio-insert        |     |  ✓   |        |          |
+| prio-merge         |     |  ✓   |        |          |
+")
+
+(display "Collection implementations loaded.\n")
+(display "  AVL:      Core + Keyed protocols\n")
+(display "  Heap:     Core + Priority protocols\n")
+(display "  KDTree:   Core + Spatial protocols\n")
+(display "  Quadtree: Core + Spatial protocols\n")

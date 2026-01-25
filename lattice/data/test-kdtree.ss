@@ -238,7 +238,7 @@
     (let ([odd-points (filter (lambda (p) (odd? (+ (car p) (cadr p)))) points)])
       (for-each (lambda (p)
                   (assert-equal p (kdtree-nearest tree2 p)))
-                (take odd-points 10)))))  ; test subset for speed
+                (take 10 odd-points)))))  ; test subset for speed
 
 (define-test "kdtree-find-min on split axis"
   ;; Test find-min when search axis matches split axis
@@ -263,10 +263,6 @@
       (assert-true (kdtree-member? tree2 '(5 1) 2))
       (assert-true (kdtree-member? tree2 '(5 5) 2)))))
 
-;; Helper for stress test
-(define (take lst n)
-  (if (or (null? lst) (<= n 0))
-      '()
-      (cons (car lst) (take (cdr lst) (- n 1)))))
+;; Note: Uses take from prelude.ss with signature (take n lst)
 
 (run-all-tests)

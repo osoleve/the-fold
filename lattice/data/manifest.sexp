@@ -1,17 +1,17 @@
 ;;; lattice/data/manifest.sexp — Data Structures Skill Manifest
 
 (skill data
-  (version "0.3.0")
+  (version "0.4.0")
   (tier 0)
   (path "lattice/data")
   (purity total)
   (stability stable)
   (fuel-bound "O(log n) for balanced structures, O((V+E) log V) for graph algorithms, O(n³) for homology")
-  (deps ())  ; Tier 0 - no skill-level deps (graph-algorithms has file-level dep on topology)
+  (deps (fp))  ; collection-protocol depends on fp/protocol
 
   (description
    "Fundamental data structures: heaps, balanced trees, graphs,
-    dictionaries, and collection utilities.")
+    dictionaries, collection utilities, and unified collection protocols.")
 
   (keywords (data-structure graph heap priority-queue leftist-heap heapsort
              sort merge-sort quicksort insertion-sort stable-sort median
@@ -24,7 +24,9 @@
              minimum-spanning-tree mst prim kruskal union-find
              homology betti-numbers simplicial-complex cycle-basis euler-characteristic
              kdtree kd-tree spatial nearest-neighbor knn range-query delete
-             quadtree spatial-index point-query 2d dynamic))
+             quadtree spatial-index point-query 2d dynamic
+             protocol polymorphism dispatch generic collection-protocol
+             keyed-collection spatial-collection priority-collection))
   (aliases (ds structures collections))
 
   (exports
@@ -46,4 +48,6 @@
    (centrality "centrality.ss" "Eigenvector, Katz, closeness, betweenness centrality")
    (graph-community "graph-community.ss" "Community detection, Prim MST O((V+E) log V), Kruskal, modularity")
    (kdtree "kdtree.ss" "K-d tree for O(log n) nearest neighbor and range queries in any dimension")
-   (quadtree "quadtree.ss" "Quadtree for 2D spatial queries with uniform subdivision")))
+   (quadtree "quadtree.ss" "Quadtree for 2D spatial queries with uniform subdivision")
+   (collection-protocol "collection-protocol.ss" "Unified protocols for collection operations: core, keyed, spatial, priority")
+   (collection-impl "collection-impl.ss" "Protocol implementations for AVL, heap, kdtree, quadtree")))

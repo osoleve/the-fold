@@ -114,8 +114,8 @@ linear-time median selection (median-of-medians); this implementation uses sorti
             [sorted (sort-by-axis points axis)]
             [mid (quotient (length sorted) 2)]
             [median-point (list-ref sorted mid)]
-            [left-pts (take sorted mid)]
-            [right-pts (drop sorted (+ mid 1))])
+            [left-pts (take mid sorted)]
+            [right-pts (drop (+ mid 1) sorted)])
        (kdtree-node median-point
                     (kdtree-build-rec left-pts k (+ depth 1))
                     (kdtree-build-rec right-pts k (+ depth 1))
@@ -126,15 +126,7 @@ linear-time median selection (median-of-medians); this implementation uses sorti
   (doc 'description "Sort points by coordinate along given axis")
   (sort (lambda (p1 p2) (< (point-coord p1 axis) (point-coord p2 axis))) points))
 
-(define (take lst n)
-  (if (or (null? lst) (<= n 0))
-      '()
-      (cons (car lst) (take (cdr lst) (- n 1)))))
-
-(define (drop lst n)
-  (if (or (null? lst) (<= n 0))
-      lst
-      (drop (cdr lst) (- n 1))))
+;; Note: Uses take/drop from prelude.ss with signature (take n lst), (drop n lst)
 
 ;;; ============================================================
 ;;; Nearest Neighbor Search
