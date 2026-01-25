@@ -94,6 +94,13 @@
           (loop (+ i 1)
                 (cons (fn (vector-ref keys i) (vector-ref vals i)) acc))))))
 
+(define (string-set-equal? lst1 lst2)
+  (doc 'type (-> (List String) (List String) Boolean))
+  (doc 'description "Check if two lists contain the same strings (set equality)")
+  (let ([sorted1 (sort string<? lst1)]
+        [sorted2 (sort string<? lst2)])
+    (equal? sorted1 sorted2)))
+
 (define (bbs-load-index-cache!)
   (doc 'type (-> Boolean))
   (doc 'description "Try to load index from disk cache")
@@ -114,8 +121,11 @@
                        ;; Get actual disk heads for validation and counter sync
                        ;; (Gemini QA: use disk heads, not cached IDs, for counter sync)
                        ;; Use issue-only heads to avoid counting posts in validation
-                       (let ([disk-heads (bbs-list-issue-heads)])
-                         (and (= head-count (length disk-heads))
+                       (let* ([disk-heads (bbs-list-issue-heads)]
+                              [cached-ids (map car issues-hex)])
+                         ;; Validate by ID set comparison, not just count
+                         ;; Catches: deletions, additions, renames, corruption
+                         (and (string-set-equal? cached-ids disk-heads)
                               ;; Cache is valid - restore state
                               (begin
                                 ;; Restore issues hashtable (convert hex back to bytevector)
