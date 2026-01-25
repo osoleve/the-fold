@@ -13,6 +13,11 @@
   (module-stats)            ; Show load times
   (module-deps 'eval)       ; Show dependencies of a module
 
+Session Introspection:
+  (loaded-modules)          ; List of loaded module symbols
+  (session-info)            ; Alist with modules, counts, timing
+  (session-summary)         ; Print brief session summary
+
 Module Header Format (at top of .ss files):
   ;;; @module eval
   ;;; @requires prelude block prim
@@ -591,6 +596,54 @@ Dependencies:
                                       (if (null? deps) "(none)" (apply string-append
                                                                        (map (lambda (d) (string-append (symbol->string d) " ")) deps)))))))
         (sort (lambda (a b) (string<? (symbol->string a) (symbol->string b))) modules))))
+
+;;; ====
+;;; Programmatic Introspection
+;;; ====
+
+(doc loaded-modules 'type '(-> (List Symbol)))
+(doc loaded-modules 'description "Return list of currently loaded module names in load order.")
+(define (loaded-modules)
+  (reverse *load-order*))
+
+(doc loaded-module-count 'type '(-> Int))
+(doc loaded-module-count 'description "Return number of loaded modules.")
+(define (loaded-module-count)
+  (length *load-order*))
+
+(doc total-load-time 'type '(-> Int))
+(doc total-load-time 'description "Return total module load time in milliseconds.")
+(define (total-load-time)
+  (fold-left + 0 (map (lambda (m) (or (module-load-time m) 0)) *load-order*)))
+
+(doc session-info 'type '(-> Alist))
+(doc session-info 'description "Return session state as an alist with modules, load-order, counts, and timing info.")
+(define (session-info)
+  (let* ([loaded (loaded-modules)]
+         [total-time (total-load-time)]
+         [load-times (map (lambda (m)
+                            (cons m (or (module-load-time m) 0)))
+                          loaded)])
+    `((modules . ,loaded)
+      (module-count . ,(length loaded))
+      (load-order . ,*load-order*)
+      (total-load-time-ms . ,total-time)
+      (load-times . ,load-times)
+      (cached-headers . ,(hashtable-size *header-cache*))
+      (registered-paths . ,(hashtable-size *module-paths*))
+      (registered-deps . ,(hashtable-size *module-deps*)))))
+
+(doc session-summary 'type '(-> Void))
+(doc session-summary 'description "Print a brief session summary.")
+(define (session-summary)
+  (let ([info (session-info)])
+    (printf "\nSession Summary\n")
+    (printf "───────────────────────────────────────\n")
+    (printf "  Loaded modules:    ~a\n" (cdr (assq 'module-count info)))
+    (printf "  Total load time:   ~ams\n" (cdr (assq 'total-load-time-ms info)))
+    (printf "  Cached headers:    ~a\n" (cdr (assq 'cached-headers info)))
+    (printf "  Registered paths:  ~a\n" (cdr (assq 'registered-paths info)))
+    (printf "───────────────────────────────────────\n\n")))
 
 ;;; ====
 ;;; Convenience
