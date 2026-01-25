@@ -1,11 +1,41 @@
 (load "core/base/prelude.ss")
 (load "lattice/fp/control/state.ss")
+(load "lattice/fp/protocol.ss")
 
 (doc 'module 'prng)
 (doc 'description "Pseudorandom Number Generation — Pure, deterministic PRNGs using the State monad. All generators are fully reproducible given the same seed.")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
-(doc 'features "PCG (Permuted Congruential Generator) - high quality, fast; Xorshift128+ - fast, good statistical properties; Splitmix64 - excellent for seeding other generators; State monad integration for composable random computations")
+(doc 'purity 'partial)  ; partial due to protocol registration
+(doc 'features "PCG (Permuted Congruential Generator) - high quality, fast; Xorshift128+ - fast, good statistical properties; Splitmix64 - excellent for seeding other generators; State monad integration for composable random computations; Protocol-based extensibility for new generator types")
+
+;;; ============================================================================
+;;; PRNG Protocols
+;;; ============================================================================
+;;;
+;;; These protocols enable extensible dispatch for generator operations.
+;;; New generator types can be added by implementing these protocols.
+
+(doc 'section 'prng-protocols)
+
+(doc prng-next 'type '(-> RNG (Pair Int RNG)))
+(doc prng-next 'description "Generate next random value and return new state")
+(define-protocol (prng-next gen) "Generate next value, return (value . new-gen)")
+
+(doc prng-output-bits 'type '(-> RNG Int))
+(doc prng-output-bits 'description "Number of random bits produced per call (32 or 64)")
+(define-protocol (prng-output-bits gen) "Get output bit width")
+
+(doc prng-random 'type '(-> RNG (State RNG Int)))
+(doc prng-random 'description "Get the State monad for this generator type")
+(define-protocol (prng-random gen) "Get State monad for generator")
+
+(doc prng-split 'type '(-> RNG (Pair RNG RNG)))
+(doc prng-split 'description "Split generator into two independent generators for parallel use")
+(define-protocol (prng-split gen) "Split for parallel simulations")
+
+(doc prng-serialize 'type '(-> RNG SExpr))
+(doc prng-serialize 'description "Serialize generator state to S-expression")
+(define-protocol (prng-serialize gen) "Serialize to S-expression")
 
 (doc 'section 'bit-manipulation)
 
@@ -89,6 +119,22 @@
 (define splitmix-random
   (make-state splitmix-next))
 
+;;; Splitmix Protocol Implementations
+(implement-protocol! 'prng-next 'splitmix splitmix-next)
+(implement-protocol! 'prng-output-bits 'splitmix (lambda (g) 64))
+(implement-protocol! 'prng-random 'splitmix (lambda (g) splitmix-random))
+(implement-protocol! 'prng-serialize 'splitmix
+  (lambda (g) `(splitmix ,(splitmix-state g))))
+(implement-protocol! 'prng-split 'splitmix
+  (lambda (gen)
+    (let* ([r1 (splitmix-next gen)]
+           [seed1 (car r1)]
+           [g1 (cdr r1)]
+           [r2 (splitmix-next g1)]
+           [seed2 (car r2)])
+      (cons (make-splitmix seed1)
+            (make-splitmix seed2)))))
+
 (doc 'section 'pcg)
 
 (doc "High-quality, statistically excellent generator. We implement PCG-XSH-RR (32-bit output, 64-bit state). State: (state . inc) where both are 64-bit")
@@ -132,6 +178,24 @@
 (define pcg-random
   (make-state pcg-next))
 
+;;; PCG Protocol Implementations
+(implement-protocol! 'prng-next 'pcg pcg-next)
+(implement-protocol! 'prng-output-bits 'pcg (lambda (g) 32))
+(implement-protocol! 'prng-random 'pcg (lambda (g) pcg-random))
+(implement-protocol! 'prng-serialize 'pcg
+  (lambda (g) `(pcg ,(pcg-state g) ,(pcg-inc g))))
+(implement-protocol! 'prng-split 'pcg
+  (lambda (gen)
+    (let* ([state (pcg-state gen)]
+           [inc (pcg-inc gen)]
+           ;; Generate two seeds from current state
+           [seed1 (u64 (+ state #x9e3779b97f4a7c15))]
+           [seed2 (u64 (+ seed1 #x9e3779b97f4a7c15))]
+           ;; Create two new PCGs with different stream IDs
+           [stream1 (u64 (+ inc 2))]
+           [stream2 (u64 (+ inc 4))])
+      (cons (make-pcg seed1 stream1)
+            (make-pcg seed2 stream2)))))
 
 (doc 'section 'xorshift128+-generator)
 
@@ -179,65 +243,70 @@
 (define xorshift128-random
   (make-state xorshift128-next))
 
+;;; Xorshift128 Protocol Implementations
+(implement-protocol! 'prng-next 'xorshift128 xorshift128-next)
+(implement-protocol! 'prng-output-bits 'xorshift128 (lambda (g) 64))
+(implement-protocol! 'prng-random 'xorshift128 (lambda (g) xorshift128-random))
+(implement-protocol! 'prng-serialize 'xorshift128
+  (lambda (g) `(xorshift128 ,(xorshift128-s0 g) ,(xorshift128-s1 g))))
+(implement-protocol! 'prng-split 'xorshift128
+  (lambda (gen)
+    (let* ([combined (u64 (+ (xorshift128-s0 gen) (xorshift128-s1 gen)))]
+           [sm (make-splitmix combined)]
+           [r1 (splitmix-next sm)]
+           [r2 (splitmix-next (cdr r1))]
+           [r3 (splitmix-next (cdr r2))]
+           [r4 (splitmix-next (cdr r3))])
+      (cons (list 'xorshift128
+                  (if (= (car r1) 0) 1 (car r1))
+                  (if (= (car r2) 0) 1 (car r2)))
+            (list 'xorshift128
+                  (if (= (car r3) 0) 1 (car r3))
+                  (if (= (car r4) 0) 1 (car r4)))))))
 
 (doc 'section 'uniform-random-number-generation)
 
 (doc "Uniform Random Number Generation")
-
-
+(doc 'note "These functions use prng-* protocols for extensible dispatch")
 
 (define (random-u32-from gen-state)
   (doc 'export #t)
-  (cond
-   [(pcg? gen-state) pcg-random]
-   [(splitmix? gen-state)
-    (state-map u32 splitmix-random)]
-   [(xorshift128? gen-state)
-    (state-map u32 xorshift128-random)]
-   [else (error 'random-u32 "unknown generator type" gen-state)]))
+  (doc 'description "Get State monad for u32 generation (truncates 64-bit generators)")
+  (let ([bits (prng-output-bits gen-state)]
+        [rng (prng-random gen-state)])
+    (if (= bits 32)
+        rng
+        (state-map u32 rng))))
 
 (define (random-u64-from gen-state)
   (doc 'export #t)
-  (cond
-   [(pcg? gen-state)
-    ;; PCG produces 32 bits, combine two
-    (state-bind pcg-random
-                (lambda (hi)
-                        (state-bind pcg-random
-                                    (lambda (lo)
-                                            (state-pure
-                                             (u64 (bitwise-ior (ash hi 32) lo)))))))]
-   [(splitmix? gen-state) splitmix-random]
-   [(xorshift128? gen-state) xorshift128-random]
-   [else (error 'random-u64 "unknown generator type" gen-state)]))
+  (doc 'description "Get State monad for u64 generation (combines two calls for 32-bit generators)")
+  (let ([bits (prng-output-bits gen-state)]
+        [rng (prng-random gen-state)])
+    (if (= bits 64)
+        rng
+        ;; 32-bit generator: combine two calls
+        (state-bind rng
+                    (lambda (hi)
+                      (state-bind rng
+                                  (lambda (lo)
+                                    (state-pure
+                                     (u64 (bitwise-ior (ash hi 32) lo))))))))))
 
 (doc random-float 'export #t)
+(doc random-float 'description "Generate uniform float in [0,1) using protocol dispatch")
 (define random-float
   (make-state
    (lambda (gen)
-           (cond
-            [(pcg? gen)
-             ;; PCG produces 32 bits
-             (let* ([result (pcg-next gen)]
-                    [bits (car result)]
-                    [new-gen (cdr result)]
-                    [scaled (/ bits (expt 2.0 32))])
-                   (cons scaled new-gen))]
-            [(splitmix? gen)
-             ;; Splitmix produces 64 bits, use top 53 for precision
-             (let* ([result (splitmix-next gen)]
-                    [bits (car result)]
-                    [new-gen (cdr result)]
-                    [scaled (/ (ash bits -11) (expt 2.0 53))])
-                   (cons scaled new-gen))]
-            [(xorshift128? gen)
-             ;; Xorshift128+ produces 64 bits, use top 53 for precision
-             (let* ([result (xorshift128-next gen)]
-                    [bits (car result)]
-                    [new-gen (cdr result)]
-                    [scaled (/ (ash bits -11) (expt 2.0 53))])
-                   (cons scaled new-gen))]
-            [else (error 'random-float "unknown generator" gen)]))))
+     (let* ([bits (prng-output-bits gen)]
+            [result (prng-next gen)]
+            [val (car result)]
+            [new-gen (cdr result)])
+       (if (= bits 32)
+           ;; 32-bit: divide by 2^32
+           (cons (/ val (expt 2.0 32)) new-gen)
+           ;; 64-bit: use top 53 bits for double precision
+           (cons (/ (ash val -11) (expt 2.0 53)) new-gen))))))
 
 (define (random-float-range lo hi)
   (doc 'export #t)
@@ -246,40 +315,34 @@
 
 (define (random-int-range lo hi)
   (doc 'export #t)
+  (doc 'description "Generate uniform integer in [lo, hi] using rejection sampling")
   (if (> lo hi)
       (error 'random-int-range "lo must be <= hi" lo hi)
       (let* ([range (+ (- hi lo) 1)]
              [threshold (modulo (- (expt 2 64)) range)])
-            (make-state
-             (lambda (gen)
-                     (let loop ([g gen])
-                          (let* ([result (cond
-                                          [(pcg? g)
-                                           (let* ([r1 (pcg-next g)]
-                                                  [r2 (pcg-next (cdr r1))])
-                                                 (cons (bitwise-ior
-                                                        (ash (car r1) 32)
-                                                        (car r2))
-                                                       (cdr r2)))]
-                                          [(splitmix? g) (splitmix-next g)]
-                                          [(xorshift128? g) (xorshift128-next g)]
-                                          [else (error 'random-int-range "unknown gen" g)])]
-                                 [bits (car result)]
-                                 [new-gen (cdr result)])
-                                (if (>= bits threshold)
-                                    (cons (+ lo (modulo bits range)) new-gen)
-                                    (loop new-gen)))))))))
+        (make-state
+         (lambda (gen)
+           (let loop ([g gen])
+             ;; Get 64 bits worth of randomness
+             (let* ([bits-per-call (prng-output-bits g)]
+                    [result (if (= bits-per-call 64)
+                                (prng-next g)
+                                ;; 32-bit: combine two calls
+                                (let* ([r1 (prng-next g)]
+                                       [r2 (prng-next (cdr r1))])
+                                  (cons (bitwise-ior (ash (car r1) 32) (car r2))
+                                        (cdr r2))))]
+                    [bits (car result)]
+                    [new-gen (cdr result)])
+               (if (>= bits threshold)
+                   (cons (+ lo (modulo bits range)) new-gen)
+                   (loop new-gen)))))))))
 
 (doc random-bool 'export #t)
+(doc random-bool 'description "Generate random boolean using protocol dispatch")
 (define random-bool
   (state-map (lambda (n) (odd? n))
-             (make-state
-              (lambda (gen)
-                      (cond
-                       [(pcg? gen) (pcg-next gen)]
-                       [(splitmix? gen) (splitmix-next gen)]
-                       [(xorshift128? gen) (xorshift128-next gen)]
-                       [else (error 'random-bool "unknown generator" gen)])))))
+             (make-state prng-next)))
 
 
 (doc 'section 'sampling-utilities)
@@ -314,36 +377,26 @@
 
 (define (sample k lst)
   (doc 'export #t)
+  (doc 'description "Reservoir sampling. O(n) using internal vector.")
   (let ([n (length lst)])
-       (cond
-        [(> k n) (error 'sample "k > list length" k n)]
-        [(= k n) (shuffle lst)]
-        [(= k 0) (state-pure '())]
-        [else
-         ;; Reservoir sampling
-         (let ([reservoir (take k lst)]
-               [rest (drop k lst)])
-              (letrec ([fill-reservoir
-                        (lambda (res rem i)
-                                (if (null? rem)
-                                    (state-pure res)
-                                    (state-bind (random-int-range 0 i)
-                                                (lambda (j)
-                                                        (if (< j k)
-                                                            (fill-reservoir
-                                                             (list-set res j (car rem))
-                                                             (cdr rem)
-                                                             (+ i 1))
-                                                            (fill-reservoir
-                                                             res
-                                                             (cdr rem)
-                                                             (+ i 1)))))))])
-                      (fill-reservoir reservoir rest k)))])))
-
-(define (list-set lst i val)
-  (if (= i 0)
-      (cons val (cdr lst))
-      (cons (car lst) (list-set (cdr lst) (- i 1) val))))
+    (cond
+     [(> k n) (error 'sample "k > list length" k n)]
+     [(= k n) (shuffle lst)]
+     [(= k 0) (state-pure '())]
+     [else
+      ;; Reservoir sampling with vector for O(1) updates
+      (let ([reservoir (list->vector (take k lst))]
+            [rest (drop k lst)])
+        (letrec ([fill-reservoir
+                  (lambda (rem i)
+                    (if (null? rem)
+                        (state-pure (vector->list reservoir))
+                        (state-bind (random-int-range 0 i)
+                                    (lambda (j)
+                                      (when (< j k)
+                                        (vector-set! reservoir j (car rem)))
+                                      (fill-reservoir (cdr rem) (+ i 1))))))])
+          (fill-reservoir rest k)))])))
 
 (define (weighted-choice weighted-list)
   (if (null? weighted-list)
@@ -369,13 +422,16 @@
 
 (define (random-list n gen)
   (doc 'export #t)
-  (if (<= n 0)
-      (state-pure '())
-      (state-bind gen
-                  (lambda (x)
-                          (state-bind (random-list (- n 1) gen)
-                                      (lambda (xs)
-                                              (state-pure (cons x xs))))))))
+  (doc 'description "Generate list of n random values. Tail-recursive to support large n.")
+  ;; Tail-recursive: accumulate in reverse, flip at end
+  (letrec ([loop
+            (lambda (remaining acc)
+              (if (<= remaining 0)
+                  (state-pure (reverse acc))
+                  (state-bind gen
+                              (lambda (x)
+                                (loop (- remaining 1) (cons x acc))))))])
+    (loop n '())))
 
 (define (random-vector n gen)
   (state-map list->vector (random-list n gen)))
@@ -401,14 +457,11 @@
 
 
 (define (gen-advance n gen)
+  (doc 'export #t)
+  (doc 'description "Advance generator n steps using protocol dispatch")
   (if (<= n 0)
       gen
-      (let ([next (cond
-                   [(pcg? gen) pcg-next]
-                   [(splitmix? gen) splitmix-next]
-                   [(xorshift128? gen) xorshift128-next]
-                   [else (error 'gen-advance "unknown generator" gen)])])
-           (gen-advance (- n 1) (cdr (next gen))))))
+      (gen-advance (- n 1) (cdr (prng-next gen)))))
 
 
 (doc 'section 'generator-splitting-for-parallel-simulations)
@@ -418,47 +471,9 @@
 
 
 (define (gen-split gen)
-  (cond
-   [(pcg? gen)
-    ;; PCG split: derive two new generators with different stream IDs
-    ;; Use the current state to seed two new PCGs with distinct streams
-    (let* ([state (pcg-state gen)]
-           [inc (pcg-inc gen)]
-           ;; Generate two seeds from current state
-           [seed1 (u64 (+ state #x9e3779b97f4a7c15))]
-           [seed2 (u64 (+ seed1 #x9e3779b97f4a7c15))]
-           ;; Create two new PCGs with different stream IDs
-           [stream1 (u64 (+ inc 2))]
-           [stream2 (u64 (+ inc 4))])
-          (cons (make-pcg seed1 stream1)
-                (make-pcg seed2 stream2)))]
-   
-   [(splitmix? gen)
-    ;; Splitmix split: generate two seeds and create new generators
-    (let* ([r1 (splitmix-next gen)]
-           [seed1 (car r1)]
-           [g1 (cdr r1)]
-           [r2 (splitmix-next g1)]
-           [seed2 (car r2)])
-          (cons (make-splitmix seed1)
-                (make-splitmix seed2)))]
-   
-   [(xorshift128? gen)
-    ;; Xorshift split: use splitmix to derive new states
-    (let* ([combined (u64 (+ (xorshift128-s0 gen) (xorshift128-s1 gen)))]
-           [sm (make-splitmix combined)]
-           [r1 (splitmix-next sm)]
-           [r2 (splitmix-next (cdr r1))]
-           [r3 (splitmix-next (cdr r2))]
-           [r4 (splitmix-next (cdr r3))])
-          (cons (list 'xorshift128
-                      (if (= (car r1) 0) 1 (car r1))
-                      (if (= (car r2) 0) 1 (car r2)))
-                (list 'xorshift128
-                      (if (= (car r3) 0) 1 (car r3))
-                      (if (= (car r4) 0) 1 (car r4)))))]
-   
-   [else (error 'gen-split "unknown generator type" gen)]))
+  (doc 'export #t)
+  (doc 'description "Split generator into two independent generators using protocol dispatch")
+  (prng-split gen))
 
 (define random-split
   (make-state
@@ -475,42 +490,27 @@
 
 
 (define (random-bytes n)
+  (doc 'export #t)
+  (doc 'description "Generate n random bytes using protocol dispatch")
   (if (<= n 0)
       (state-pure (make-bytevector 0))
       (make-state
        (lambda (gen)
-               (let ([bv (make-bytevector n)])
-                    (let loop ([i 0] [g gen])
-                         (if (>= i n)
-                             (cons bv g)
-                             ;; Generate bytes 4 or 8 at a time
-                             (cond
-                              [(pcg? g)
-                               (let* ([r (pcg-next g)]
-                                      [val (car r)]
-                                      [ng (cdr r)])
-                                     ;; PCG gives 32 bits = 4 bytes
-                                     (let byte-loop ([j 0] [v val])
-                                          (if (or (>= (+ i j) n) (>= j 4))
-                                              (loop (+ i 4) ng)
-                                              (begin
-                                               (bytevector-u8-set! bv (+ i j) (bitwise-and v #xff))
-                                               (byte-loop (+ j 1) (ash v -8))))))]
-                              
-                              [(or (splitmix? g) (xorshift128? g))
-                               (let* ([next (if (splitmix? g) splitmix-next xorshift128-next)]
-                                      [r (next g)]
-                                      [val (car r)]
-                                      [ng (cdr r)])
-                                     ;; 64 bits = 8 bytes
-                                     (let byte-loop ([j 0] [v val])
-                                          (if (or (>= (+ i j) n) (>= j 8))
-                                              (loop (+ i 8) ng)
-                                              (begin
-                                               (bytevector-u8-set! bv (+ i j) (bitwise-and v #xff))
-                                               (byte-loop (+ j 1) (ash v -8))))))]
-                              
-                              [else (error 'random-bytes "unknown generator" g)]))))))))
+         (let ([bv (make-bytevector n)]
+               [bytes-per-call (/ (prng-output-bits gen) 8)])  ; 4 or 8 bytes
+           (let loop ([i 0] [g gen])
+             (if (>= i n)
+                 (cons bv g)
+                 (let* ([r (prng-next g)]
+                        [val (car r)]
+                        [ng (cdr r)])
+                   ;; Extract bytes from value
+                   (let byte-loop ([j 0] [v val])
+                     (if (or (>= (+ i j) n) (>= j bytes-per-call))
+                         (loop (+ i bytes-per-call) ng)
+                         (begin
+                           (bytevector-u8-set! bv (+ i j) (bitwise-and v #xff))
+                           (byte-loop (+ j 1) (ash v -8)))))))))))))
 
 
 (doc 'section 'generator-serialization-for-resumable-sessions)
@@ -520,17 +520,9 @@
 
 
 (define (gen-serialize gen)
-  (cond
-   [(pcg? gen)
-    `(pcg ,(pcg-state gen) ,(pcg-inc gen))]
-   
-   [(splitmix? gen)
-    `(splitmix ,(splitmix-state gen))]
-   
-   [(xorshift128? gen)
-    `(xorshift128 ,(xorshift128-s0 gen) ,(xorshift128-s1 gen))]
-   
-   [else (error 'gen-serialize "unknown generator type" gen)]))
+  (doc 'export #t)
+  (doc 'description "Serialize generator state using protocol dispatch")
+  (prng-serialize gen))
 
 (define (gen-deserialize sexpr)
   (case (car sexpr)
@@ -638,3 +630,13 @@
       (char=? c #\newline)
       (char=? c #\return)))
 
+;;; ============================================================================
+;;; Module Load Message
+;;; ============================================================================
+
+(display "prng.ss loaded (with protocol dispatch).\n")
+(display "  Generators:  make-pcg, make-splitmix, make-xorshift128\n")
+(display "  Protocols:   prng-next, prng-output-bits, prng-random, prng-split, prng-serialize\n")
+(display "  Random:      random-float, random-int-range, random-bool, random-bytes\n")
+(display "  Sampling:    random-element, shuffle, sample, weighted-choice\n")
+(display "  Extend:      (implement-protocol! 'prng-next 'my-gen my-next-fn)\n")
