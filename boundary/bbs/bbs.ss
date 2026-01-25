@@ -489,3 +489,6 @@
 (printf "  (bbs-list-by-label 'label)      - Filter by label~n")
 (printf "  (bbs-list-by-type 'type)        - Filter by type~n")
 (printf "  (bbs-label-report)              - Show all labels~n")
+
+;;; Auto-initialize on load (prevents stale cache issues)
+(bbs-init!)
