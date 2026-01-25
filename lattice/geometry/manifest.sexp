@@ -123,7 +123,8 @@
 
    (voronoi
     voronoi-diagram voronoi? voronoi-sites voronoi-vertices voronoi-edges voronoi-cells
-    voronoi-cell-polygon voronoi-cell-centroid voronoi-neighbors voronoi-nearest-site
+    voronoi-cell-polygon voronoi-cell-centroid voronoi-cell-unbounded?
+    voronoi-neighbors voronoi-nearest-site
     voronoi-bounded voronoi-bounded? voronoi-bounded-sites voronoi-bounded-cells
     voronoi-bounded-cell voronoi-cell-areas voronoi-summary
     lloyd-step lloyd-relax render-voronoi))

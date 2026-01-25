@@ -144,6 +144,45 @@
            [vor (voronoi-diagram pts)])
       (assert-true (voronoi? vor))
       (assert-equal 2 (vector-length (voronoi-sites vor)))))
+
+  (define-test "voronoi-co-circular-points"
+    ;; Four points on a circle share a circumcenter (co-circular)
+    ;; This tests the duplicate circumcenter handling
+    (let* ([pts (list (make-point2 0 0)
+                      (make-point2 1 0)
+                      (make-point2 1 1)
+                      (make-point2 0 1))]  ; Square = all co-circular
+           [vor (voronoi-diagram pts)])
+      ;; Should have 4 sites
+      (assert-equal 4 (vector-length (voronoi-sites vor)))
+      ;; Should have 2 vertices (circumcenters) - the square has 2 triangles
+      (assert-equal 2 (vector-length (voronoi-vertices vor)))
+      ;; All 4 cells should be unbounded (on convex hull)
+      (assert-true (voronoi-cell-unbounded? vor 0))
+      (assert-true (voronoi-cell-unbounded? vor 1))
+      (assert-true (voronoi-cell-unbounded? vor 2))
+      (assert-true (voronoi-cell-unbounded? vor 3))))
+
+  (define-test "voronoi-hull-site-many-neighbors"
+    ;; A site on the hull with many neighbors should produce valid bounded cell
+    ;; Center point surrounded by semi-circle of points
+    (let* ([center (make-point2 0.5 0.5)]
+           ;; 5 points on an arc around the center (all on hull)
+           [arc-pts (list (make-point2 0.2 0.2)
+                          (make-point2 0.1 0.5)
+                          (make-point2 0.2 0.8)
+                          (make-point2 0.5 0.9)
+                          (make-point2 0.8 0.8))]
+           [pts (cons center arc-pts)]
+           [vor (voronoi-bounded pts 0 1 0 1)])
+      ;; Center cell (index 0) should be bounded and have valid polygon
+      (let ([center-cell (voronoi-bounded-cell vor 0)])
+        (assert-true (>= (length center-cell) 3)))
+      ;; Hull sites should also produce valid bounded cells
+      (do ([i 1 (+ i 1)])
+          ((>= i 6))
+        (let ([cell (voronoi-bounded-cell vor i)])
+          (assert-true (>= (length cell) 3))))))
 )
 
 ;;; Helper for string-contains

@@ -23,16 +23,23 @@
 ;;; - edges: connections between adjacent circumcenters
 ;;; - cells: mapping from site index to cell polygon vertices
 
-(doc make-voronoi 'type '(-> (Vector Point2) (Vector Point2) (List VoronoiEdge) (Vector (List Int)) Voronoi))
+(doc make-voronoi 'type '(-> (Vector Point2) (Vector Point2) (List VoronoiEdge) (Vector (List Int)) (Vector Boolean) Voronoi))
 (doc make-voronoi 'description "Create a Voronoi diagram structure")
-(define (make-voronoi sites vertices edges cells)
-  (list 'voronoi sites vertices edges cells))
+(define (make-voronoi sites vertices edges cells unbounded)
+  (list 'voronoi sites vertices edges cells unbounded))
 
 (define (voronoi? v) (and (pair? v) (eq? (car v) 'voronoi)))
 (define (voronoi-sites v) (list-ref v 1))
 (define (voronoi-vertices v) (list-ref v 2))
 (define (voronoi-edges v) (list-ref v 3))
 (define (voronoi-cells v) (list-ref v 4))
+(define (voronoi-unbounded v) (list-ref v 5))
+
+(doc voronoi-cell-unbounded? 'export #t)
+(doc voronoi-cell-unbounded? 'type '(-> Voronoi Int Boolean))
+(doc voronoi-cell-unbounded? 'description "Check if a cell is unbounded (site on convex hull)")
+(define (voronoi-cell-unbounded? vor site-idx)
+  (vector-ref (voronoi-unbounded vor) site-idx))
 
 ;;; A Voronoi edge connects two vertices (or extends to infinity)
 ;;; v1, v2 are vertex indices (-1 means extends to infinity in that direction)
@@ -106,19 +113,31 @@
 (doc build-site-triangles 'type '(-> (Vector Point2) (Vector Triangle2) (Vector (List Int))))
 (doc build-site-triangles 'description "For each site, find all triangles containing it")
 (define (build-site-triangles sites triangles)
-  (let ([n (vector-length sites)]
+  ;; Build site index lookup for O(1) access
+  (let ([site-index (make-hashtable equal-hash equal?)]
+        [n (vector-length sites)]
         [result (make-vector (vector-length sites) '())])
+    ;; Build index: point -> site index
+    (do ([i 0 (+ i 1)])
+        ((>= i n))
+      (let ([site (vector-ref sites i)])
+        (hashtable-set! site-index
+                        (list (point2-x site) (point2-y site))
+                        i)))
+    ;; Single pass through triangles - O(M) instead of O(N*M)
     (do ([ti 0 (+ ti 1)])
         ((>= ti (vector-length triangles)) result)
-      (let ([tri (vector-ref triangles ti)])
-        ;; Find which sites match this triangle's vertices
-        (do ([si 0 (+ si 1)])
-            ((>= si n))
-          (let ([site (vector-ref sites si)])
-            (when (or (points-equal? site (tri2-p1 tri))
-                      (points-equal? site (tri2-p2 tri))
-                      (points-equal? site (tri2-p3 tri)))
-              (vector-set! result si (cons ti (vector-ref result si))))))))))
+      (let* ([tri (vector-ref triangles ti)]
+             [p1 (tri2-p1 tri)]
+             [p2 (tri2-p2 tri)]
+             [p3 (tri2-p3 tri)])
+        (for-each
+         (lambda (p)
+           (let ([key (list (point2-x p) (point2-y p))])
+             (let ([idx (hashtable-ref site-index key #f)])
+               (when idx
+                 (vector-set! result idx (cons ti (vector-ref result idx)))))))
+         (list p1 p2 p3))))))
 
 ;;; ============================================================
 ;;; Section: Cell Construction
@@ -149,20 +168,22 @@
 (doc build-cell 'type '(-> Point2 (List Int) (Vector Point2) (List Int)))
 (doc build-cell 'description "Build a cell's vertex index list for a site")
 (define (build-cell site tri-indices circumcenters)
-  ;; Get circumcenters for all triangles adjacent to this site
-  (let* ([verts (map (lambda (ti) (vector-ref circumcenters ti)) tri-indices)]
-         ;; Order them CCW around the site
-         [ordered (order-cell-vertices site verts)])
-    ;; Return indices into circumcenters vector
-    (map (lambda (v)
-           ;; Find index of this vertex
-           (let loop ([i 0])
-             (if (>= i (vector-length circumcenters))
-                 -1  ; shouldn't happen
-                 (if (points-equal? v (vector-ref circumcenters i))
-                     i
-                     (loop (+ i 1))))))
-         ordered)))
+  ;; Sort triangle indices directly by angle of their circumcenters
+  ;; This avoids the co-circular issue where points-equal? finds wrong index
+  (let ([sorted-indices
+         (list-sort
+          (lambda (ti1 ti2)
+            (< (angle-from-site site (vector-ref circumcenters ti1))
+               (angle-from-site site (vector-ref circumcenters ti2))))
+          tri-indices)])
+    ;; Remove duplicate indices (co-circular points share circumcenters)
+    (let loop ([remaining sorted-indices] [prev -1] [result '()])
+      (if (null? remaining)
+          (reverse result)
+          (let ([ti (car remaining)])
+            (if (= ti prev)
+                (loop (cdr remaining) prev result)  ; skip duplicate
+                (loop (cdr remaining) ti (cons ti result))))))))
 
 ;;; ============================================================
 ;;; Section: Main Voronoi Construction
@@ -178,7 +199,8 @@
 (define (voronoi-diagram points)
   (if (< (length points) 3)
       ;; Degenerate cases
-      (make-voronoi (list->vector points) '#() '() (make-vector (length points) '()))
+      (make-voronoi (list->vector points) '#() '() (make-vector (length points) '())
+                    (make-vector (length points) #t))  ; all unbounded
       (let* ([sites (list->vector points)]
              [n (vector-length sites)]
              ;; Compute Delaunay triangulation
@@ -195,6 +217,8 @@
              [site-tris (build-site-triangles sites triangles)]
              ;; Build Voronoi edges
              [edges (build-voronoi-edges triangles edge-adj sites)]
+             ;; Identify unbounded cells (sites touching boundary edges)
+             [unbounded (find-unbounded-sites edge-adj sites)]
              ;; Build cells
              [cells (let ([v (make-vector n '())])
                       (do ([i 0 (+ i 1)])
@@ -202,7 +226,27 @@
                         (vector-set! v i (build-cell (vector-ref sites i)
                                                      (vector-ref site-tris i)
                                                      circumcenters))))])
-        (make-voronoi sites circumcenters edges cells))))
+        (make-voronoi sites circumcenters edges cells unbounded))))
+
+(doc find-unbounded-sites 'type '(-> Hashtable (Vector Point2) (Vector Boolean)))
+(doc find-unbounded-sites 'description "Find sites that touch boundary edges (unbounded cells)")
+(define (find-unbounded-sites edge-adj sites)
+  (let ([n (vector-length sites)]
+        [unbounded (make-vector (vector-length sites) #f)])
+    ;; A site is unbounded if it touches any boundary edge
+    ;; (boundary edge = edge with only 1 adjacent triangle)
+    (let-values ([(keys vals) (hashtable-entries edge-adj)])
+      (do ([i 0 (+ i 1)])
+          ((>= i (vector-length keys)) unbounded)
+        (let ([tri-list (vector-ref vals i)])
+          (when (= (length tri-list) 1)
+            ;; Boundary edge - mark both endpoints as unbounded
+            (let* ([ek (vector-ref keys i)]
+                   [edge-pts (edge-key->points ek)]
+                   [s1 (find-site-index sites (car edge-pts))]
+                   [s2 (find-site-index sites (cdr edge-pts))])
+              (when (>= s1 0) (vector-set! unbounded s1 #t))
+              (when (>= s2 0) (vector-set! unbounded s2 #t)))))))))
 
 (doc build-voronoi-edges 'type '(-> (Vector Triangle2) Hashtable (Vector Point2) (List VoronoiEdge)))
 (doc build-voronoi-edges 'description "Build Voronoi edges from triangle adjacency")
@@ -254,11 +298,14 @@
      "Get the polygon vertices for a cell (by site index).
       Returns vertices in CCW order. Empty if cell is unbounded.")
 (define (voronoi-cell-polygon vor site-idx)
-  (let* ([vertices (voronoi-vertices vor)]
-         [cell (vector-ref (voronoi-cells vor) site-idx)])
-    (if (exists (lambda (vi) (< vi 0)) cell)
-        '()  ; Unbounded cell
-        (map (lambda (vi) (vector-ref vertices vi)) cell))))
+  ;; Use proper unbounded detection from boundary edge analysis
+  (if (voronoi-cell-unbounded? vor site-idx)
+      '()  ; Unbounded cell - can't represent as finite polygon
+      (let* ([vertices (voronoi-vertices vor)]
+             [cell (vector-ref (voronoi-cells vor) site-idx)])
+        (if (or (null? cell) (exists (lambda (vi) (< vi 0)) cell))
+            '()
+            (map (lambda (vi) (vector-ref vertices vi)) cell)))))
 
 (doc voronoi-cell-centroid 'export #t)
 (doc voronoi-cell-centroid 'type '(-> Voronoi Int (Option Point2)))
@@ -380,18 +427,21 @@
   (let* ([vor (voronoi-diagram points)]
          [sites (voronoi-sites vor)]
          [n (vector-length sites)]
-         ;; For unbounded cells (< 3 vertices), compute via bisector clipping
+         ;; Use proper unbounded detection from boundary edge analysis
          [bounded-cells
           (let ([v (make-vector n '())])
             (do ([i 0 (+ i 1)])
                 ((>= i n) v)
-              (let ([cell-verts (voronoi-cell-polygon vor i)])
-                (if (< (length cell-verts) 3)
-                    ;; Unbounded or degenerate: compute by bisector clipping
-                    (let ([bounded (compute-bounded-cell vor i x-min x-max y-min y-max)])
-                      (vector-set! v i bounded))
-                    ;; Bounded: just clip to rect
-                    (vector-set! v i (clip-polygon-to-rect cell-verts x-min x-max y-min y-max))))))])
+              (if (voronoi-cell-unbounded? vor i)
+                  ;; Unbounded cell: compute by bisector clipping
+                  (let ([bounded (compute-bounded-cell vor i x-min x-max y-min y-max)])
+                    (vector-set! v i bounded))
+                  ;; Bounded cell: get polygon and clip to rect
+                  (let ([cell-verts (voronoi-cell-polygon vor i)])
+                    (if (< (length cell-verts) 3)
+                        ;; Degenerate (shouldn't happen for bounded cells)
+                        (vector-set! v i (compute-bounded-cell vor i x-min x-max y-min y-max))
+                        (vector-set! v i (clip-polygon-to-rect cell-verts x-min x-max y-min y-max)))))))])
     ;; Return modified Voronoi with clipped cells stored directly as points
     (list 'voronoi-bounded sites bounded-cells)))
 
