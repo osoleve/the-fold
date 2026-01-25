@@ -665,6 +665,19 @@
                                    (scan (+ i 1))))
                              ;; Simple char like #\(
                              (values (+ char-pos 1) in-string 0)))))]
+                ;; #; datum comment - skip the commented datum, then find actual datum
+                [(and (< (+ col 1) len)
+                      (char=? (string-ref line (+ col 1)) #\;))
+                 ;; Skip the #; and its target datum, then continue looking
+                 (let-values ([(col1 str1 depth1)
+                               (skip-datum-with-depth line (+ col 2) in-string)])
+                   (if (not (= depth1 0))
+                       ;; Commented datum continues to next line
+                       ;; Return special marker: use negative depth to indicate
+                       ;; we're in a nested #; context
+                       (values col1 str1 (- -100 depth1))
+                       ;; Commented datum complete, now find actual datum
+                       (skip-datum-with-depth line col1 str1)))]
                 ;; Other # syntax (boolean #t/#f, etc.) - atom
                 [else
                  (let-values ([(new-col new-str _) (skip-atom line col in-string)])
@@ -742,6 +755,38 @@
                           (string-ref line (+ col 1))
                           #f)])
           (cond
+            ;; Nested #; continuation: skipping inner datum, then need actual datum
+            ;; in-datum < -100 means (- -100 in-datum) is the inner depth
+            [(< in-datum -100)
+             (let ([inner-depth (- -100 in-datum)])
+               (cond
+                 ;; Inner depth -1 means waiting for inner datum to start
+                 [(= inner-depth -1)
+                  (cond
+                    [(char-whitespace? c)
+                     (char-loop (+ col 1) stack errors in-string in-block in-datum)]
+                    ;; Found start of inner datum - process it
+                    [else
+                     (let-values ([(new-col new-str new-depth)
+                                   (skip-datum-with-depth line col in-string)])
+                       (if (= new-depth 0)
+                           ;; Inner datum complete, now find actual datum
+                           (char-loop new-col stack errors new-str in-block -1)
+                           ;; Inner datum continues
+                           (values stack errors new-str in-block (- -100 new-depth))))])]
+                 ;; Inner depth > 0 means inside parens in inner datum
+                 [(> inner-depth 0)
+                  (let-values ([(new-col new-str new-depth)
+                                (skip-balanced-depth line col in-string inner-depth)])
+                    (if (= new-depth 0)
+                        ;; Inner datum complete, now find actual datum
+                        (char-loop new-col stack errors new-str in-block -1)
+                        ;; Inner datum continues
+                        (values stack errors new-str in-block (- -100 new-depth))))]
+                 [else
+                  ;; Shouldn't happen
+                  (char-loop (+ col 1) stack errors in-string in-block in-datum)]))]
+
             ;; Waiting for datum to start (saw #; but datum is on next line)
             ;; in-datum = -1 means waiting for the datum to begin
             [(= in-datum -1)
@@ -796,6 +841,15 @@
                                      (scan (+ i 1))))
                                ;; Simple char like #\(
                                (char-loop (+ char-pos 1) stack errors in-string in-block 0)))))]
+                  ;; #; datum comment while waiting - skip its target, keep waiting
+                  [(and next-c (char=? next-c #\;))
+                   (let-values ([(new-col new-str depth)
+                                 (skip-datum-with-depth line (+ col 2) in-string)])
+                     (if (not (= depth 0))
+                         ;; Commented datum continues - track it
+                         (values stack errors new-str in-block (- -100 depth))
+                         ;; Commented datum done, still waiting for actual datum
+                         (char-loop new-col stack errors new-str in-block -1)))]
                   ;; Other # syntax (boolean #t/#f) - atom, datum complete
                   [else
                    (let-values ([(new-col new-str _) (skip-atom line col in-string)])
