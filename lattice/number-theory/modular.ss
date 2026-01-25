@@ -188,3 +188,134 @@
                    (loop (montgomery-mult b b m R m-prime)
                          (quotient e 2)
                          result)])))))
+
+;;; ============================================================================
+;;; Quadratic Residues and Modular Square Roots
+;;; ============================================================================
+
+(doc 'section 'quadratic-residues)
+
+(doc 'note "Quadratic residue theory and Tonelli-Shanks algorithm for modular square roots.")
+(doc 'note "Essential for elliptic curve cryptography where we compute y = sqrt(x³ + ax + b) mod p.")
+
+;;; quadratic-residue? : Int × Int → Boolean
+;;; Test if a is a quadratic residue mod p (i.e., has a square root).
+;;; Uses Euler's criterion: a is a QR iff a^((p-1)/2) ≡ 1 (mod p).
+;;; Assumes p is an odd prime and a is not divisible by p.
+(define (quadratic-residue? a p)
+  (doc 'export #t)
+  (doc 'type '(-> Int Int Boolean))
+  (doc 'description "Test if a has a square root mod p using Euler's criterion")
+  (doc 'note "Returns #t if a ≡ 0 (mod p), as 0 is trivially a QR")
+  (let ([a-mod (modulo a p)])
+    (or (= a-mod 0)
+        (= 1 (mod-expt a-mod (quotient (- p 1) 2) p)))))
+
+;;; legendre-symbol : Int × Int → Int
+;;; Compute the Legendre symbol (a/p) for odd prime p.
+;;; Returns: 1 if a is a non-zero QR, -1 if a is a non-residue, 0 if p|a.
+(define (legendre-symbol a p)
+  (doc 'export #t)
+  (doc 'type '(-> Int Int Int))
+  (doc 'description "Legendre symbol: 1 if QR, -1 if non-residue, 0 if p divides a")
+  (let ([a-mod (modulo a p)])
+    (cond
+      [(= a-mod 0) 0]
+      [(= 1 (mod-expt a-mod (quotient (- p 1) 2) p)) 1]
+      [else -1])))
+
+;;; mod-sqrt : Int × Int → (Union Int #f)
+;;; Compute modular square root: find x such that x² ≡ a (mod p).
+;;; Returns one of the two roots (the other is p - x), or #f if no root exists.
+;;; Assumes p is an odd prime.
+(define (mod-sqrt a p)
+  (doc 'export #t)
+  (doc 'type '(-> Int Int (Union Int Boolean)))
+  (doc 'description "Modular square root using Tonelli-Shanks algorithm")
+  (doc 'note "Returns #f if a is not a quadratic residue mod p")
+  (doc 'note "For the other root, compute (p - result)")
+  (let ([a-mod (modulo a p)])
+    (cond
+      ;; Trivial case: sqrt(0) = 0
+      [(= a-mod 0) 0]
+      ;; Check if a is a quadratic residue
+      [(not (quadratic-residue? a-mod p)) #f]
+      ;; Special case: p ≡ 3 (mod 4) - simple formula
+      [(= 3 (modulo p 4))
+       (mod-expt a-mod (quotient (+ p 1) 4) p)]
+      ;; General case: Tonelli-Shanks algorithm
+      [else
+       (tonelli-shanks a-mod p)])))
+
+;;; tonelli-shanks : Int × Int → Int
+;;; Tonelli-Shanks algorithm for modular square root.
+;;; Assumes a is a non-zero quadratic residue mod p, and p ≡ 1 (mod 4).
+(define (tonelli-shanks a p)
+  (doc 'export #t)
+  (doc 'type '(-> Int Int Int))
+  (doc 'description "Tonelli-Shanks algorithm for p ≡ 1 (mod 4)")
+  ;; Step 1: Factor out powers of 2 from p-1
+  ;; Write p - 1 = Q * 2^S where Q is odd
+  (let-values ([(Q S) (factor-out-2s (- p 1))])
+    ;; Step 2: Find a quadratic non-residue z
+    (let ([z (find-non-residue p)])
+      ;; Step 3: Initialize
+      (let loop ([M S]
+                 [c (mod-expt z Q p)]           ; c = z^Q
+                 [t (mod-expt a Q p)]           ; t = a^Q
+                 [R (mod-expt a (quotient (+ Q 1) 2) p)])  ; R = a^((Q+1)/2)
+        ;; Step 4: Loop until t = 1
+        (cond
+          [(= t 1) R]  ; Done! R² ≡ a (mod p)
+          [else
+           ;; Find least i, 0 < i < M, such that t^(2^i) ≡ 1 (mod p)
+           (let ([i (find-least-i t M p)])
+             ;; Update values
+             (let* ([b (mod-expt c (expt 2 (- M i 1)) p)]  ; b = c^(2^(M-i-1))
+                    [new-M i]
+                    [new-c (mod* b b p)]                    ; c = b²
+                    [new-t (mod* t new-c p)]                ; t = t * c
+                    [new-R (mod* R b p)])                   ; R = R * b
+               (loop new-M new-c new-t new-R)))])))))
+
+;;; factor-out-2s : Int → (Values Int Int)
+;;; Factor n = Q * 2^S where Q is odd.
+;;; Returns (Q, S).
+(define (factor-out-2s n)
+  (let loop ([q n] [s 0])
+    (if (odd? q)
+        (values q s)
+        (loop (quotient q 2) (+ s 1)))))
+
+;;; find-non-residue : Int → Int
+;;; Find the smallest quadratic non-residue mod p.
+;;; For random p, expected to find one quickly (about half of 1..p-1 are non-residues).
+(define (find-non-residue p)
+  (let loop ([z 2])
+    (if (= -1 (legendre-symbol z p))
+        z
+        (loop (+ z 1)))))
+
+;;; find-least-i : Int × Int × Int → Int
+;;; Find the least i, 0 < i < M, such that t^(2^i) ≡ 1 (mod p).
+(define (find-least-i t M p)
+  (let loop ([i 1] [power (mod* t t p)])  ; Start with t^2
+    (cond
+      [(= power 1) i]
+      [(>= i M) (error 'find-least-i "should not happen if t is a QR")]
+      [else (loop (+ i 1) (mod* power power p))])))
+
+;;; mod-sqrt-both : Int × Int → (Union (List Int Int) #f)
+;;; Return both square roots of a mod p, or #f if none exist.
+;;; The roots are (r, p-r) where r is the "positive" root (r ≤ p/2).
+(define (mod-sqrt-both a p)
+  (doc 'export #t)
+  (doc 'type '(-> Int Int (Union (List Int) Boolean)))
+  (doc 'description "Return both square roots as a list (smaller first), or #f")
+  (let ([r (mod-sqrt a p)])
+    (if r
+        (let ([r2 (- p r)])
+          (if (<= r r2)
+              (list r r2)
+              (list r2 r)))
+        #f)))

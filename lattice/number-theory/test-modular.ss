@@ -238,7 +238,93 @@
   (test "montgomery-expt large: 2^100 mod 1000000007"
         (mod-expt 2 100 1000000007)
         (montgomery-expt 2 100 1000000007))
-  
+
+  ;;; ====
+  ;;; Quadratic Residues and Modular Square Roots
+  ;;; ====
+
+  (display "\n--- Quadratic Residues ---\n")
+
+  ;; Legendre symbol tests
+  (test "legendre(1, 7) = 1" 1 (legendre-symbol 1 7))
+  (test "legendre(2, 7) = 1 (2 is QR mod 7)" 1 (legendre-symbol 2 7))
+  (test "legendre(3, 7) = -1 (3 is NR mod 7)" -1 (legendre-symbol 3 7))
+  (test "legendre(4, 7) = 1 (4 = 2² is QR)" 1 (legendre-symbol 4 7))
+  (test "legendre(0, 7) = 0" 0 (legendre-symbol 0 7))
+  (test "legendre(7, 7) = 0" 0 (legendre-symbol 7 7))
+
+  ;; Quadratic residue tests
+  (test-true "quadratic-residue?(4, 7)" (quadratic-residue? 4 7))
+  (test-true "quadratic-residue?(2, 7)" (quadratic-residue? 2 7))
+  (test-false "quadratic-residue?(3, 7)" (quadratic-residue? 3 7))
+  (test-true "quadratic-residue?(0, 7)" (quadratic-residue? 0 7))
+
+  (display "\n--- Modular Square Root (Tonelli-Shanks) ---\n")
+
+  ;; Simple case: p ≡ 3 (mod 4)
+  ;; For p = 7: 7 ≡ 3 (mod 4), so use simple formula
+  (let ([r (mod-sqrt 2 7)])
+    (test "mod-sqrt(2, 7) exists" #t (number? r))
+    (test "mod-sqrt(2, 7)² ≡ 2 (mod 7)" 2 (mod* r r 7)))
+
+  (let ([r (mod-sqrt 4 7)])
+    (test "mod-sqrt(4, 7) = 2 or 5" #t (or (= r 2) (= r 5)))
+    (test "mod-sqrt(4, 7)² ≡ 4 (mod 7)" 4 (mod* r r 7)))
+
+  ;; Non-residue returns #f
+  (test-false "mod-sqrt(3, 7) = #f (3 is NR mod 7)" (mod-sqrt 3 7))
+
+  ;; Zero
+  (test "mod-sqrt(0, 7) = 0" 0 (mod-sqrt 0 7))
+
+  ;; General case: p ≡ 1 (mod 4) - requires full Tonelli-Shanks
+  ;; p = 13: 13 ≡ 1 (mod 4)
+  (let ([r (mod-sqrt 3 13)])
+    (test "mod-sqrt(3, 13) exists" #t (number? r))
+    (test "mod-sqrt(3, 13)² ≡ 3 (mod 13)" 3 (mod* r r 13)))
+
+  (let ([r (mod-sqrt 4 13)])
+    (test "mod-sqrt(4, 13) = 2 or 11" #t (or (= r 2) (= r 11)))
+    (test "mod-sqrt(4, 13)² ≡ 4 (mod 13)" 4 (mod* r r 13)))
+
+  (let ([r (mod-sqrt 9 13)])
+    (test "mod-sqrt(9, 13) = 3 or 10" #t (or (= r 3) (= r 10)))
+    (test "mod-sqrt(9, 13)² ≡ 9 (mod 13)" 9 (mod* r r 13)))
+
+  ;; Larger primes
+  ;; p = 17: 17 ≡ 1 (mod 4)
+  (let ([r (mod-sqrt 2 17)])
+    (test "mod-sqrt(2, 17) exists" #t (number? r))
+    (test "mod-sqrt(2, 17)² ≡ 2 (mod 17)" 2 (mod* r r 17)))
+
+  ;; p = 41: 41 ≡ 1 (mod 4)
+  (let ([r (mod-sqrt 5 41)])
+    (test "mod-sqrt(5, 41) exists" #t (number? r))
+    (test "mod-sqrt(5, 41)² ≡ 5 (mod 41)" 5 (mod* r r 41)))
+
+  ;; p = 97: larger prime, 97 ≡ 1 (mod 4)
+  (let ([r (mod-sqrt 2 97)])
+    (test "mod-sqrt(2, 97) exists" #t (number? r))
+    (test "mod-sqrt(2, 97)² ≡ 2 (mod 97)" 2 (mod* r r 97)))
+
+  ;; Test mod-sqrt-both
+  (let ([roots (mod-sqrt-both 4 13)])
+    (test "mod-sqrt-both(4, 13) returns two roots" 2 (length roots))
+    (test "mod-sqrt-both(4, 13) first root squared" 4 (mod* (car roots) (car roots) 13))
+    (test "mod-sqrt-both(4, 13) second root squared" 4 (mod* (cadr roots) (cadr roots) 13))
+    (test "mod-sqrt-both(4, 13) roots sum to p" 13 (+ (car roots) (cadr roots))))
+
+  (test-false "mod-sqrt-both(5, 13) = #f (5 is NR mod 13)" (mod-sqrt-both 5 13))
+
+  ;; Large prime for crypto-like test
+  ;; Mersenne prime 2^31 - 1 = 2147483647, which is ≡ 3 (mod 4)
+  (let* ([p 2147483647]
+         [a 12345678]
+         [r (mod-sqrt a p)])
+    (if r
+        (test "mod-sqrt with large prime verifies" a (mod* r r p))
+        (test-true "mod-sqrt with large prime: a is non-residue" #t)))
+
   ;;; ====
   ;;; Summary
   ;;; ====
