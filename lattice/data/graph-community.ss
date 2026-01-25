@@ -592,3 +592,167 @@
                                 (reverse acc)
                                 (loop (+ i 1) (cons i acc))))])
         (make-ilp c-full A b integer-vars)))))
+
+;;; ====
+;;; Community Homology Analysis
+;;; ====
+
+(doc 'section 'community-homology)
+(doc 'description "Topological analysis of community structure using simplicial homology")
+(doc 'note "Combines community detection with algebraic topology:
+  - B_0 measures community fragmentation (ideally 1 = connected)
+  - B_1 measures internal cycle structure (higher = more dense/redundant paths)
+  - Quality metrics based on topological invariants")
+
+(load "lattice/data/graph-algorithms.ss")
+
+(doc community-induced-edges 'type '(-> Matrix (List Nat) (List Edge)))
+(doc community-induced-edges 'description "Extract edges within a community from adjacency matrix")
+(doc community-induced-edges 'param 'adj "Adjacency matrix of full graph")
+(doc community-induced-edges 'param 'nodes "List of node indices in the community")
+(doc community-induced-edges 'returns "List of edges (i . j) where both i and j are in nodes")
+(define (community-induced-edges adj nodes)
+  (let ([node-set (make-hashtable equal-hash equal?)]
+        [edges '()])
+    ;; Build set for O(1) membership
+    (for-each (lambda (n) (hashtable-set! node-set n #t)) nodes)
+    ;; Extract edges between community members (undirected: only i < j)
+    (for-each
+     (lambda (i)
+       (for-each
+        (lambda (j)
+          (when (and (< i j)
+                     (hashtable-ref node-set j #f)
+                     (> (matrix-ref adj i j) 0))
+            (set! edges (cons (cons i j) edges))))
+        nodes))
+     nodes)
+    edges))
+
+(doc community-betti-numbers 'type '(-> Matrix (List Nat) (Pair Nat Nat)))
+(doc community-betti-numbers 'description "Compute Betti numbers for community-induced subgraph")
+(doc community-betti-numbers 'param 'adj "Adjacency matrix of full graph")
+(doc community-betti-numbers 'param 'nodes "List of node indices in the community")
+(doc community-betti-numbers 'returns "Pair (B_0 . B_1) where B_0=components, B_1=independent cycles")
+(doc community-betti-numbers 'note "B_0 > 1 indicates disconnected community (poor quality)")
+(define (community-betti-numbers adj nodes)
+  (if (null? nodes)
+      (cons 0 0)
+      (let ([edges (community-induced-edges adj nodes)])
+        (graph-betti-numbers edges nodes))))
+
+(doc all-communities-betti 'type '(-> Matrix Vector (List (List Nat Nat Nat Nat))))
+(doc all-communities-betti 'description "Compute Betti numbers for all detected communities")
+(doc all-communities-betti 'param 'adj "Adjacency matrix of full graph")
+(doc all-communities-betti 'param 'labels "Community label vector from label-propagation")
+(doc all-communities-betti 'returns "List of (community-id size B_0 B_1) tuples")
+(define (all-communities-betti adj labels)
+  (let* ([partition (communities->partition labels)]
+         [num-communities (length partition)])
+    (let loop ([communities partition] [id 0] [result '()])
+      (if (null? communities)
+          (reverse result)
+          (let* ([nodes (car communities)]
+                 [size (length nodes)]
+                 [betti (community-betti-numbers adj nodes)]
+                 [b0 (car betti)]
+                 [b1 (cdr betti)])
+            (loop (cdr communities)
+                  (+ id 1)
+                  (cons (list id size b0 b1) result)))))))
+
+(doc community-homology-quality 'type '(-> Nat Nat Nat Num))
+(doc community-homology-quality 'description "Compute topological quality score for a community")
+(doc community-homology-quality 'param 'size "Number of nodes in community")
+(doc community-homology-quality 'param 'b0 "B_0 (connected components)")
+(doc community-homology-quality 'param 'b1 "B_1 (independent cycles)")
+(doc community-homology-quality 'returns "Quality score in [0, 1]: higher is better")
+(doc community-homology-quality 'note "Score combines:
+  - Connectivity penalty: 1/B_0 (perfect=1, fragmented<1)
+  - Cycle density bonus: B_1/(n-1) normalized (denser is better)
+  - Final: weighted combination favoring connectivity")
+(define (community-homology-quality size b0 b1)
+  (if (or (= size 0) (= b0 0))
+      0.0
+      (let* (;; Connectivity: 1.0 if connected, penalized if fragmented
+             [connectivity (/ 1.0 b0)]
+             ;; Cycle density: B_1 relative to max possible for connected graph
+             ;; Max B_1 for connected graph with n nodes is (n-1)(n-2)/2 (complete graph)
+             ;; We normalize more simply: B_1 / (n - 1) for n > 1
+             [max-extra-edges (if (> size 1) (- size 1) 1)]
+             [cycle-density (min 1.0 (/ b1 max-extra-edges))]
+             ;; Weight connectivity heavily (0.7) + cycle density (0.3)
+             [score (+ (* 0.7 connectivity) (* 0.3 cycle-density))])
+        score)))
+
+(doc aggregate-community-quality 'type '(-> Matrix Vector Num))
+(doc aggregate-community-quality 'description "Compute overall topological quality of community partition")
+(doc aggregate-community-quality 'param 'adj "Adjacency matrix of full graph")
+(doc aggregate-community-quality 'param 'labels "Community label vector")
+(doc aggregate-community-quality 'returns "Size-weighted average quality score")
+(define (aggregate-community-quality adj labels)
+  (let* ([betti-list (all-communities-betti adj labels)]
+         [n (vector-length labels)]
+         [weighted-sum 0.0])
+    (for-each
+     (lambda (entry)
+       (let* ([size (cadr entry)]
+              [b0 (caddr entry)]
+              [b1 (cadddr entry)]
+              [quality (community-homology-quality size b0 b1)]
+              [weight (/ size n)])
+         (set! weighted-sum (+ weighted-sum (* weight quality)))))
+     betti-list)
+    weighted-sum))
+
+;;; round-2 : Num → Num
+;;; Round to 2 decimal places for display.
+(define (round-2 x)
+  (/ (round (* x 100)) 100.0))
+
+;;; round-3 : Num → Num
+;;; Round to 3 decimal places for display.
+(define (round-3 x)
+  (/ (round (* x 1000)) 1000.0))
+
+(doc community-homology-report 'type '(-> Matrix Vector Void))
+(doc community-homology-report 'description "Print detailed homology analysis of community structure")
+(doc community-homology-report 'param 'adj "Adjacency matrix of full graph")
+(doc community-homology-report 'param 'labels "Community label vector from label-propagation")
+(define (community-homology-report adj labels)
+  (let* ([betti-list (all-communities-betti adj labels)]
+         [n (vector-length labels)]
+         [num-communities (length betti-list)]
+         [total-quality (aggregate-community-quality adj labels)]
+         [mod-score (modularity adj labels)])
+    (printf "\n=== Community Homology Report ===\n\n")
+    (printf "Graph: ~a nodes, ~a communities\n" n num-communities)
+    (printf "Modularity Q: ~a\n" (round-3 mod-score))
+    (printf "Topological Quality: ~a\n\n" (round-3 total-quality))
+
+    (printf "Per-Community Analysis:\n")
+    (printf "  ID   Size   B_0   B_1   Quality   Notes\n")
+    (printf "  --   ----   ---   ---   -------   -----\n")
+
+    (for-each
+     (lambda (entry)
+       (let* ([id (car entry)]
+              [size (cadr entry)]
+              [b0 (caddr entry)]
+              [b1 (cadddr entry)]
+              [quality (community-homology-quality size b0 b1)]
+              [notes (cond
+                       [(> b0 1) "FRAGMENTED"]
+                       [(and (> size 3) (= b1 0)) "tree-like"]
+                       [(> b1 (- size 1)) "very dense"]
+                       [else ""])])
+         (printf "  ~a    ~a     ~a     ~a    ~a      ~a\n"
+                 id size b0 b1 (round-2 quality) notes)))
+     betti-list)
+
+    (printf "\n---------------------------------\n")
+    (printf "Legend:\n")
+    (printf "  B_0: Connected components (ideal = 1)\n")
+    (printf "  B_1: Independent cycles (higher = denser)\n")
+    (printf "  FRAGMENTED: Community has disconnected parts\n")
+    (printf "=================================\n\n")))
