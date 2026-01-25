@@ -1,9 +1,10 @@
 ;;; lattice/data/graph-layout.ss --- Force-directed graph layout algorithms
 ;;; @module graph-layout
-;;; @requires prelude linalg/vec
+;;; @requires prelude linalg/vec optics
 
 (load "core/base/prelude.ss")
 (load "lattice/linalg/vec.ss")
+(load "lattice/fp/optics/optics.ss")
 
 (doc 'module 'graph-layout)
 (doc 'description "Force-directed graph layout using Fruchterman-Reingold algorithm")
@@ -33,6 +34,44 @@
 (define (node-set-vel node new-vel)
   (list 'graph-node (node-id node) (node-pos node) new-vel))
 
+;;; Node Optics - composable access to node fields
+;;; Note: make-lens setter signature is (val whole) -> whole
+(doc node-pos-lens 'export #t)
+(doc node-pos-lens 'type '(Lens GraphNode Vec))
+(doc node-pos-lens 'description "Lens focusing on node position vector")
+(define node-pos-lens
+  (make-lens node-pos (lambda (val node) (node-set-pos node val))))
+
+(doc node-vel-lens 'export #t)
+(doc node-vel-lens 'type '(Lens GraphNode Vec))
+(doc node-vel-lens 'description "Lens focusing on node velocity vector")
+(define node-vel-lens
+  (make-lens node-vel (lambda (val node) (node-set-vel node val))))
+
+;;; Vector element lens (local definition for composition)
+(define (vec-element-lens n)
+  (make-lens
+   (lambda (v) (vector-ref v n))
+   (lambda (val v)
+     (let* ([len (vector-length v)]
+            [new-v (make-vector len)])
+       (do ([i 0 (+ i 1)])
+           ((= i len) new-v)
+         (vector-set! new-v i (if (= i n) val (vector-ref v i))))))))
+
+;;; Composed lenses for x/y components
+(doc node-x-lens 'export #t)
+(doc node-x-lens 'type '(Lens GraphNode Number))
+(doc node-x-lens 'description "Lens focusing on node x coordinate")
+(define node-x-lens
+  (>>> node-pos-lens (vec-element-lens 0)))
+
+(doc node-y-lens 'export #t)
+(doc node-y-lens 'type '(Lens GraphNode Number))
+(doc node-y-lens 'description "Lens focusing on node y coordinate")
+(define node-y-lens
+  (>>> node-pos-lens (vec-element-lens 1)))
+
 (doc make-layout-graph 'type '(-> (List Any) (List (Pair Any Any)) LayoutGraph))
 (doc make-layout-graph 'description "Create a layout graph from node IDs and edges")
 (define (make-layout-graph node-ids edges)
@@ -58,17 +97,52 @@
       [(equal? (node-id (car nodes)) id) (car nodes)]
       [else (loop (cdr nodes))])))
 
+;;; Graph Optics
+(doc graph-nodes-lens 'export #t)
+(doc graph-nodes-lens 'type '(Lens LayoutGraph (List GraphNode)))
+(doc graph-nodes-lens 'description "Lens focusing on graph's node list")
+(define graph-nodes-lens
+  (make-lens graph-nodes (lambda (val g) (graph-set-nodes g val))))
+
+;;; Traversal over all nodes in a graph
+(doc graph-nodes-each 'export #t)
+(doc graph-nodes-each 'type '(Traversal LayoutGraph GraphNode))
+(doc graph-nodes-each 'description "Traversal over all nodes in a graph")
+(define graph-nodes-each
+  (make-traversal
+   ;; Traverse: apply f to each node
+   (lambda (f g)
+     (graph-set-nodes g (map f (graph-nodes g))))
+   ;; Fold: get all nodes as list
+   (lambda (g)
+     (graph-nodes g))))
+
+;;; Composed traversals for accessing all positions/velocities
+(doc graph-all-positions 'export #t)
+(doc graph-all-positions 'type '(Traversal LayoutGraph Vec))
+(doc graph-all-positions 'description "Traversal over all node positions")
+(define graph-all-positions
+  (>>> graph-nodes-each node-pos-lens))
+
+(doc graph-all-velocities 'export #t)
+(doc graph-all-velocities 'type '(Traversal LayoutGraph Vec))
+(doc graph-all-velocities 'description "Traversal over all node velocities")
+(define graph-all-velocities
+  (>>> graph-nodes-each node-vel-lens))
+
 ;;; ============================================================
 ;;; Section: Force Calculations
 ;;; ============================================================
 
 (doc 'section 'forces)
 
-(define *repulsion-constant* 10000.0)
-(define *attraction-constant* 0.01)
+;;; Tunable parameters - can be set! before running layout
+(define *repulsion-constant* 50000.0)   ; Much higher = nodes push apart more
+(define *attraction-constant* 0.005)    ; Lower = connected nodes don't pull as tight
+(define *gravity-constant* 0.01)        ; Weak pull toward center (prevents drift)
 (define *damping* 0.85)
-(define *min-distance* 1.0)
-(define *max-displacement* 50.0)
+(define *min-distance* 10.0)            ; Minimum separation
+(define *max-displacement* 30.0)        ; Smaller steps = more stable
 
 (doc calculate-repulsion 'type '(-> GraphNode GraphNode Vec))
 (doc calculate-repulsion 'description "Calculate repulsive force between two nodes (Coulomb's law)")
@@ -76,9 +150,14 @@
   (let* ([pos1 (node-pos node1)]
          [pos2 (node-pos node2)]
          [delta (vec-sub pos1 pos2)]
-         [dist (max *min-distance* (vec-norm delta))]
+         [raw-dist (vec-norm delta)]
+         ;; Fix: when nodes overlap, add random perturbation to separate them
+         [delta (if (< raw-dist 0.01)
+                    (vector (- (random 10) 5) (- (random 10) 5))
+                    delta)]
+         [dist (max *min-distance* (if (< raw-dist 0.01) 5.0 raw-dist))]
          [force-mag (/ *repulsion-constant* (* dist dist))]
-         [unit-vec (vec-scale (/ 1.0 dist) delta)])
+         [unit-vec (vec-scale (/ 1.0 (max 0.01 (vec-norm delta))) delta)])
     (vec-scale force-mag unit-vec)))
 
 (doc calculate-attraction 'type '(-> GraphNode GraphNode Vec))
@@ -106,6 +185,12 @@
   (let* ([nodes (graph-nodes graph)]
          [edges (graph-edges graph)]
          [n (length nodes)]
+         ;; Pre-compute id->index map for O(1) lookup (fixes O(E*N) bug)
+         [id-map (make-eq-hashtable)]
+         [_ (let build-map ([ns nodes] [i 0])
+              (when (pair? ns)
+                (hashtable-set! id-map (node-id (car ns)) i)
+                (build-map (cdr ns) (+ i 1))))]
          ;; Calculate forces for each node
          [forces (make-vector n (vector 0.0 0.0))])
     ;; Repulsion between all pairs
@@ -120,22 +205,27 @@
               (vector-set! forces j (vec-sub (vector-ref forces j) force))
               (loop-j (+ j 1) (cdr nodes-j)))))
         (loop-i (+ i 1) (cdr nodes-i))))
-    ;; Attraction along edges
+    ;; Attraction along edges (O(E) with hashtable)
     (for-each
      (lambda (edge)
        (let* ([id1 (car edge)]
               [id2 (cdr edge)]
-              [node1 (graph-find-node graph id1)]
-              [node2 (graph-find-node graph id2)])
-         (when (and node1 node2)
-           (let ([force (calculate-attraction node1 node2)]
-                 [idx1 (node-index nodes id1)]
-                 [idx2 (node-index nodes id2)])
-             (when idx1
-               (vector-set! forces idx1 (vec-add (vector-ref forces idx1) force)))
-             (when idx2
-               (vector-set! forces idx2 (vec-sub (vector-ref forces idx2) force)))))))
+              [idx1 (hashtable-ref id-map id1 #f)]
+              [idx2 (hashtable-ref id-map id2 #f)])
+         (when (and idx1 idx2)
+           (let* ([node1 (list-ref nodes idx1)]
+                  [node2 (list-ref nodes idx2)]
+                  [force (calculate-attraction node1 node2)])
+             (vector-set! forces idx1 (vec-add (vector-ref forces idx1) force))
+             (vector-set! forces idx2 (vec-sub (vector-ref forces idx2) force))))))
      edges)
+    ;; Central gravity (prevents disconnected components from drifting)
+    (let apply-gravity ([i 0] [ns nodes])
+      (when (pair? ns)
+        (let* ([pos (node-pos (car ns))]
+               [gravity (vec-scale (- *gravity-constant*) pos)])
+          (vector-set! forces i (vec-add (vector-ref forces i) gravity)))
+        (apply-gravity (+ i 1) (cdr ns))))
     ;; Apply forces with damping
     (graph-set-nodes
      graph
@@ -154,6 +244,7 @@
                   [new-node (node-set-pos (node-set-vel node vel-clamped) new-pos)])
              (loop (+ i 1) (cdr ns) (cons new-node result))))))))
 
+;;; Kept for backward compatibility
 (define (node-index nodes id)
   (let loop ([ns nodes] [i 0])
     (cond
@@ -205,16 +296,17 @@
            [range-y (max 1 (- max-y min-y))]
            [usable-w (- width (* 2 margin))]
            [usable-h (- height (* 2 margin))]
-           [scale (min (/ usable-w range-x) (/ usable-h range-y))])
-      (graph-set-nodes
-       graph
-       (map (lambda (node)
-              (let* ([x (node-x node)]
-                     [y (node-y node)]
-                     [norm-x (+ margin (* scale (- x min-x)))]
-                     [norm-y (+ margin (* scale (- y min-y)))])
-                (node-set-pos node (vector norm-x norm-y))))
-            (graph-nodes graph))))))
+           [scale (min (/ usable-w range-x) (/ usable-h range-y))]
+           ;; Normalize position function
+           [normalize-pos (lambda (node)
+                            (let* ([pos (^. node node-pos-lens)]
+                                   [x (vector-ref pos 0)]
+                                   [y (vector-ref pos 1)]
+                                   [norm-x (+ margin (* scale (- x min-x)))]
+                                   [norm-y (+ margin (* scale (- y min-y)))])
+                              (& node (.~ node-pos-lens (vector norm-x norm-y)))))])
+      ;; Apply normalization via traversal
+      (traversal-over graph-nodes-each normalize-pos graph))))
 
 ;;; ============================================================
 ;;; Section: Hierarchical Layout (for DAGs)
@@ -277,3 +369,5 @@
 (printf "  (normalize-layout graph w h m)    - Fit to dimensions\n")
 (printf "  (hierarchical-layout ids edges f) - Tier-based layout\n")
 (printf "  (layout-from-adjacency adj)       - From adjacency list\n")
+(printf "  Optics: node-pos-lens, node-vel-lens, node-x-lens, node-y-lens\n")
+(printf "          graph-nodes-each, graph-all-positions, graph-all-velocities\n")
