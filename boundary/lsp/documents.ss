@@ -396,10 +396,12 @@
 
 (doc symbol-char? 'type '(-> Char Boolean))
 (doc symbol-char? 'description "Check if a character can be part of a Scheme symbol")
+(doc symbol-char? 'note "R6RS extended alphabetic chars: ! $ % & * + - . / : < = > ? @ ^ _ ~")
 (define (symbol-char? c)
   (or (char-alphabetic? c)
       (char-numeric? c)
-      (and (memv c '(#\- #\_ #\? #\! #\* #\+ #\/ #\< #\> #\= #\: #\@)) #t)))
+      (and (memv c '(#\! #\$ #\% #\& #\* #\+ #\- #\. #\/
+                     #\: #\< #\= #\> #\? #\@ #\^ #\_ #\~)) #t)))
 
 (doc 'section 'span-re-export)
 
