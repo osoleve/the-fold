@@ -139,14 +139,12 @@ Key insight: Every adjunction F ⊣ G yields a comonad F∘G with:
        ;; extract = ε : F(G(a)) → a
        ε-comp
        ;; extend f w where f : F(G(a)) → b, w : F(G(a))
+       ;; extend f = fmap_{F∘G} f ∘ duplicate
        ;; 1. duplicate w = F-fmap η-comp w : F(G(F(G(a))))
-       ;; 2. Map f over the inner F(G(a)) via G-fmap
-       ;; Result: F(G(b))
+       ;; 2. fmap_{F∘G} f : F(G(F(G(a)))) → F(G(b))
        (lambda (f w)
          (let ([duplicated (F-fmap η-comp w)])  ; F(G(F(G(a))))
-           (F-fmap (lambda (gfga)               ; gfga : G(F(G(a)))
-                     (G-fmap f gfga))           ; G-fmap f : G(F(G(a))) → G(b)
-                   duplicated)))))))
+           ((functor-fmap FG-functor) f duplicated)))))))
 
 (doc 'section 'store-comonad)
 (doc 'description "Store Comonad
