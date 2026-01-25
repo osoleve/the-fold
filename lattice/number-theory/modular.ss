@@ -238,6 +238,8 @@
     (cond
       ;; Trivial case: sqrt(0) = 0
       [(= a-mod 0) 0]
+      ;; Special case: p = 2 - in GF(2), sqrt(a) = a
+      [(= p 2) a-mod]
       ;; Check if a is a quadratic residue
       [(not (quadratic-residue? a-mod p)) #f]
       ;; Special case: p ≡ 3 (mod 4) - simple formula
@@ -290,7 +292,10 @@
 ;;; find-non-residue : Int → Int
 ;;; Find the smallest quadratic non-residue mod p.
 ;;; For random p, expected to find one quickly (about half of 1..p-1 are non-residues).
+;;; Requires p to be an odd prime (p > 2). For p = 2, there are no non-residues.
 (define (find-non-residue p)
+  (when (= p 2)
+    (error 'find-non-residue "no non-residues exist for p=2 (GF(2))"))
   (let loop ([z 2])
     (if (= -1 (legendre-symbol z p))
         z

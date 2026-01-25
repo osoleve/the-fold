@@ -277,6 +277,14 @@
   ;; Zero
   (test "mod-sqrt(0, 7) = 0" 0 (mod-sqrt 0 7))
 
+  ;; Special case: p = 2 (GF(2) where sqrt(a) = a)
+  (test "mod-sqrt(0, 2) = 0" 0 (mod-sqrt 0 2))
+  (test "mod-sqrt(1, 2) = 1" 1 (mod-sqrt 1 2))
+  (test "mod-sqrt(0, 2)² ≡ 0 (mod 2)" 0 (mod* (mod-sqrt 0 2) (mod-sqrt 0 2) 2))
+  (test "mod-sqrt(1, 2)² ≡ 1 (mod 2)" 1 (mod* (mod-sqrt 1 2) (mod-sqrt 1 2) 2))
+  (test "mod-sqrt(4, 2) = 0 (4 mod 2 = 0)" 0 (mod-sqrt 4 2))
+  (test "mod-sqrt(5, 2) = 1 (5 mod 2 = 1)" 1 (mod-sqrt 5 2))
+
   ;; General case: p ≡ 1 (mod 4) - requires full Tonelli-Shanks
   ;; p = 13: 13 ≡ 1 (mod 4)
   (let ([r (mod-sqrt 3 13)])
