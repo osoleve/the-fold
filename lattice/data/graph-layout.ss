@@ -48,18 +48,8 @@
 (define node-vel-lens
   (make-lens node-vel (lambda (val node) (node-set-vel node val))))
 
-;;; Vector element lens (local definition for composition)
-(define (vec-element-lens n)
-  (make-lens
-   (lambda (v) (vector-ref v n))
-   (lambda (val v)
-     (let* ([len (vector-length v)]
-            [new-v (make-vector len)])
-       (do ([i 0 (+ i 1)])
-           ((= i len) new-v)
-         (vector-set! new-v i (if (= i n) val (vector-ref v i))))))))
-
 ;;; Composed lenses for x/y components
+;;; (uses vec-element-lens from optics.ss)
 (doc node-x-lens 'export #t)
 (doc node-x-lens 'type '(Lens GraphNode Number))
 (doc node-x-lens 'description "Lens focusing on node x coordinate")

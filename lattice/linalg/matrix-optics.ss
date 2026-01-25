@@ -280,39 +280,7 @@
   (doc 'export #t)
   (matrix-cell-lens i j))  ; Direct access is more efficient
 
-;;; ============================================================
-;;; Section: Vector Element Lens (for composition)
-;;; ============================================================
-
-;;; vec-element-lens : Nat -> Lens Vec a
-;;; Focus on element n of a Scheme vector.
-(define (vec-element-lens n)
-  (doc 'export #t)
-  (doc 'type '(-> Nat (Lens Vec a)))
-  (doc 'description "Lens focusing on element n of a vector")
-  (make-lens
-   (lambda (v) (vector-ref v n))
-   (lambda (val v)
-     (let* ([len (vector-length v)]
-            [new-v (make-vector len)])
-       (do ([i 0 (+ i 1)])
-           ((= i len) new-v)
-         (vector-set! new-v i (if (= i n) val (vector-ref v i))))))))
-
-;;; vec-elements-each : Traversal Vec a
-;;; Traverse all elements of a vector.
-(doc vec-elements-each 'export #t)
-(doc vec-elements-each 'type '(Traversal Vec a))
-(doc vec-elements-each 'description "Traversal over all vector elements")
-(define vec-elements-each
-  (make-traversal
-   (lambda (f v)
-     (let* ([len (vector-length v)]
-            [new-v (make-vector len)])
-       (do ([i 0 (+ i 1)])
-           ((= i len) new-v)
-         (vector-set! new-v i (f (vector-ref v i))))))
-   vector->list))
+;;; Note: vec-element-lens and vec-elements-each are now in optics.ss
 
 ;;; ============================================================
 ;;; Section: Convenience Functions
@@ -398,8 +366,8 @@
 ;;; Submatrix:
 ;;;   matrix-submatrix-lens
 ;;;
-;;; Vector optics:
-;;;   vec-element-lens, vec-elements-each
+;;; Vector optics (from optics.ss):
+;;;   vec-element-lens, vec-element-affine, vec-elements-each
 ;;;
 ;;; Convenience:
 ;;;   matrix-update-cell, matrix-update-row, matrix-update-col
