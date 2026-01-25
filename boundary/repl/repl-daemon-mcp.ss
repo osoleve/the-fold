@@ -32,6 +32,9 @@
 (define *idle-timeout* 600)            ; 10 minutes without request - kill idle workers
 (define *max-workers* 50)              ; Maximum concurrent workers (DoS prevention)
 (define *last-cleanup* (time-second (current-time)))
+(define *cached-worker-count* 0)       ; Cached active worker count
+(define *worker-count-timestamp* 0)    ; When count was last computed
+(define *worker-count-ttl* 1)          ; Cache TTL in seconds
 
 ;;; ====
 ;;; Input Validation
@@ -190,7 +193,8 @@
                  (begin
                   (system (format "kill ~a 2>/dev/null" pid))
                   (when (process-alive? pid)
-                        (system (format "kill -9 ~a 2>/dev/null" pid))))))))
+                        (system (format "kill -9 ~a 2>/dev/null" pid)))))
+             (invalidate-worker-count!))))
 
 (define (worker-starting? session-id)
   (let* ([now (time-second (current-time))]
@@ -243,7 +247,7 @@
                      (system cmd)))))
 
 (define (count-active-workers)
-  "Count number of active workers (alive or starting)."
+  "Count number of active workers (alive or starting). O(n) in worker files."
   (if (not (file-exists? *workers-dir*))
       0
       (let ([files (directory-list *workers-dir*)])
@@ -263,11 +267,25 @@
                                        (loop (cdr fs) count)))
                              (loop (cdr fs) count))))))))
 
+(define (get-active-worker-count)
+  "Get cached active worker count, refreshing if stale."
+  (let ([now (time-second (current-time))])
+    (when (> (- now *worker-count-timestamp*) *worker-count-ttl*)
+      (set! *cached-worker-count* (count-active-workers))
+      (set! *worker-count-timestamp* now))
+    *cached-worker-count*))
+
+(define (invalidate-worker-count!)
+  "Force refresh of worker count on next query (call after spawn/terminate)."
+  (set! *worker-count-timestamp* 0))
+
 (define (ensure-worker! session-id)
   ;; Check worker limit before spawning (DoS prevention)
-  (when (< (count-active-workers) *max-workers*)
+  ;; Uses cached count to avoid O(n) scan per request
+  (when (< (get-active-worker-count) *max-workers*)
         (unless (or (worker-alive? session-id) (worker-starting? session-id))
-                (spawn-worker! session-id))))
+                (spawn-worker! session-id)
+                (invalidate-worker-count!))))
 
 ;;; ====
 ;;; Cleanup
