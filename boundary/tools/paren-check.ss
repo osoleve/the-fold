@@ -673,9 +673,10 @@
                                (skip-datum-with-depth line (+ col 2) in-string)])
                    (if (not (= depth1 0))
                        ;; Commented datum continues to next line
-                       ;; Return special marker: use negative depth to indicate
-                       ;; we're in a nested #; context
-                       (values col1 str1 (- -100 depth1))
+                       ;; Encode nested state: -1000 + inner-depth
+                       ;; -1001 = waiting for inner datum (-1)
+                       ;; -999 = inside parens in inner datum (depth 1)
+                       (values col1 str1 (- depth1 1000))
                        ;; Commented datum complete, now find actual datum
                        (skip-datum-with-depth line col1 str1)))]
                 ;; Other # syntax (boolean #t/#f, etc.) - atom
@@ -756,15 +757,19 @@
                           #f)])
           (cond
             ;; Nested #; continuation: skipping inner datum, then need actual datum
-            ;; in-datum < -100 means (- -100 in-datum) is the inner depth
-            [(< in-datum -100)
-             (let ([inner-depth (- -100 in-datum)])
+            ;; Encoding: in-datum = inner-depth - 1000
+            ;; So -1001 = inner waiting (-1), -999 = inner depth 1, etc.
+            [(< in-datum -900)
+             (let ([inner-depth (+ in-datum 1000)])
                (cond
                  ;; Inner depth -1 means waiting for inner datum to start
                  [(= inner-depth -1)
                   (cond
                     [(char-whitespace? c)
                      (char-loop (+ col 1) stack errors in-string in-block in-datum)]
+                    ;; Line comment while waiting - continue to next line
+                    [(char=? c #\;)
+                     (values stack errors in-string in-block in-datum)]
                     ;; Found start of inner datum - process it
                     [else
                      (let-values ([(new-col new-str new-depth)
@@ -773,7 +778,7 @@
                            ;; Inner datum complete, now find actual datum
                            (char-loop new-col stack errors new-str in-block -1)
                            ;; Inner datum continues
-                           (values stack errors new-str in-block (- -100 new-depth))))])]
+                           (values stack errors new-str in-block (- new-depth 1000))))])]
                  ;; Inner depth > 0 means inside parens in inner datum
                  [(> inner-depth 0)
                   (let-values ([(new-col new-str new-depth)
@@ -782,7 +787,7 @@
                         ;; Inner datum complete, now find actual datum
                         (char-loop new-col stack errors new-str in-block -1)
                         ;; Inner datum continues
-                        (values stack errors new-str in-block (- -100 new-depth))))]
+                        (values stack errors new-str in-block (- new-depth 1000))))]
                  [else
                   ;; Shouldn't happen
                   (char-loop (+ col 1) stack errors in-string in-block in-datum)]))]
@@ -847,7 +852,7 @@
                                  (skip-datum-with-depth line (+ col 2) in-string)])
                      (if (not (= depth 0))
                          ;; Commented datum continues - track it
-                         (values stack errors new-str in-block (- -100 depth))
+                         (values stack errors new-str in-block (- depth 1000))
                          ;; Commented datum done, still waiting for actual datum
                          (char-loop new-col stack errors new-str in-block -1)))]
                   ;; Other # syntax (boolean #t/#f) - atom, datum complete
