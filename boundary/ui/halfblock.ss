@@ -171,24 +171,27 @@ Supports 24-bit color for game graphics, sprites, and pixel art.")
 (define (render-halfblock-cell top-color bottom-color)
   (doc 'type '(-> Color Color String))
   (doc 'description "Render two vertical pixels as one terminal character")
-  (cond
-    ;; Both same color: full block (or space if default)
-    [(colors-equal? top-color bottom-color)
-     (if (color-default? top-color)
-         " "
-         (string-append (ansi-fg top-color) halfblock-full))]
+  ;; Always reset first to prevent color state leakage between cells
+  (string-append
+   ansi-reset
+   (cond
+     ;; Both same color: full block (or space if default)
+     [(colors-equal? top-color bottom-color)
+      (if (color-default? top-color)
+          " "
+          (string-append (ansi-fg top-color) halfblock-full))]
 
-    ;; Top has color, bottom is default: upper half with fg
-    [(color-default? bottom-color)
-     (string-append (ansi-fg top-color) halfblock-upper)]
+     ;; Top has color, bottom is default: upper half with fg
+     [(color-default? bottom-color)
+      (string-append (ansi-fg top-color) halfblock-upper)]
 
-    ;; Bottom has color, top is default: lower half with fg
-    [(color-default? top-color)
-     (string-append (ansi-fg bottom-color) halfblock-lower)]
+     ;; Bottom has color, top is default: lower half with fg
+     [(color-default? top-color)
+      (string-append (ansi-fg bottom-color) halfblock-lower)]
 
-    ;; Both have different colors: upper half with fg=top, bg=bottom
-    [else
-     (string-append (ansi-fg top-color) (ansi-bg bottom-color) halfblock-upper)]))
+     ;; Both have different colors: upper half with fg=top, bg=bottom
+     [else
+      (string-append (ansi-fg top-color) (ansi-bg bottom-color) halfblock-upper)])))
 
 (define (pixel-buffer->string buf)
   (doc 'type '(-> PixelBuffer String))
