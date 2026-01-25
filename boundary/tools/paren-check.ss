@@ -10,6 +10,8 @@
 (doc 'note "(paren-balance \"path/to/file.ss\") for just the final balance")
 (doc 'note "(paren-locate \"path/to/file.ss\") for stack-based exact error locations")
 (doc 'note "(paren-errors \"path/to/file.ss\") for list of error structs")
+(doc 'note "(paren-suggest \"path/to/file.ss\") for indentation-based fix suggestions")
+(doc 'note "(paren-summary \"path/to/file.ss\") for quick one-line status")
 
 (doc 'section 'core-balance)
 
@@ -248,12 +250,17 @@
 ;;; with their exact locations. When something goes wrong, we can
 ;;; point to exactly where the problem is.
 
-;;; An opener is (type line col) where type is 'paren, 'bracket, or 'brace
-(define (make-opener type line col)
-  (list type line col))
+;;; An opener is (type line col indent form) where:
+;;;   type is 'paren, 'bracket, or 'brace
+;;;   indent is the indentation level of the line containing the opener
+;;;   form is the detected form name (e.g., 'define, 'let, 'lambda) or #f
+(define (make-opener type line col indent form)
+  (list type line col indent form))
 (define (opener-type o) (car o))
 (define (opener-line o) (cadr o))
 (define (opener-col o) (caddr o))
+(define (opener-indent o) (list-ref o 3))
+(define (opener-form o) (list-ref o 4))
 
 ;;; An error is (kind message line col . extra)
 ;;; Kinds: 'unclosed, 'extra-close, 'mismatch
@@ -294,6 +301,93 @@
     [(bracket) #\]]
     [(brace) #\}]))
 
+;;; ====
+;;; Indentation Heuristics
+;;; ====
+
+;;; line-indent : String -> Int
+;;; Return the indentation level (column of first non-whitespace char).
+(define (line-indent line)
+  (let ([len (string-length line)])
+    (let loop ([i 0])
+      (cond
+        [(>= i len) i]
+        [(char-whitespace? (string-ref line i)) (loop (+ i 1))]
+        [else i]))))
+
+;;; detect-form : String Int -> Symbol | #f
+;;; Detect the Scheme form starting after the opener at col.
+;;; Returns form symbol ('define, 'let, 'lambda, etc.) or #f.
+(define (detect-form line col)
+  (let ([len (string-length line)])
+    ;; Skip whitespace after opener
+    (let skip-ws ([i (+ col 1)])
+      (cond
+        [(>= i len) #f]
+        [(char-whitespace? (string-ref line i)) (skip-ws (+ i 1))]
+        [(char-alphabetic? (string-ref line i))
+         ;; Extract the identifier
+         (let extract ([end i])
+           (if (and (< end len)
+                    (or (char-alphabetic? (string-ref line end))
+                        (char-numeric? (string-ref line end))
+                        (memv (string-ref line end) '(#\- #\_ #\? #\! #\* #\>))))
+               (extract (+ end 1))
+               ;; Check if it's a known form
+               (let ([sym (string->symbol (substring line i end))])
+                 (if (memq sym '(define define-syntax define-record-type
+                                 let let* letrec letrec* let-values let*-values
+                                 lambda case-lambda
+                                 if cond case when unless
+                                 begin do
+                                 syntax-rules syntax-case with-syntax
+                                 parameterize guard
+                                 call-with-values call/cc
+                                 match match-let
+                                 module library))
+                     sym
+                     #f))))]
+        [else #f]))))
+
+;;; form-expected-closers : Symbol -> Int
+;;; Return expected minimum body forms for a given form type.
+;;; This hints at minimum closing parens expected.
+(define (form-expected-closers form)
+  (case form
+    [(define define-syntax) 2]        ; name + body
+    [(lambda case-lambda) 2]          ; args + body
+    [(let let* letrec letrec*) 2]     ; bindings + body
+    [(if) 3]                          ; test + then + else
+    [(cond case) 1]                   ; at least one clause
+    [(begin) 1]                       ; at least one form
+    [(when unless) 2]                 ; test + body
+    [else 1]))
+
+;;; Known form names for helpful messages
+(define *form-names*
+  '((define . "definition")
+    (define-syntax . "syntax definition")
+    (let . "let binding")
+    (let* . "let* binding")
+    (letrec . "letrec binding")
+    (lambda . "lambda")
+    (case-lambda . "case-lambda")
+    (if . "conditional")
+    (cond . "cond expression")
+    (case . "case expression")
+    (when . "when clause")
+    (unless . "unless clause")
+    (begin . "begin block")
+    (do . "do loop")
+    (syntax-rules . "syntax-rules")
+    (syntax-case . "syntax-case")
+    (match . "match expression")))
+
+(define (form-name->string form)
+  (cond
+    [(assq form *form-names*) => cdr]
+    [else (symbol->string form)]))
+
 ;;; paren-stack-analyze : String -> (Values Stack Errors)
 ;;; Analyze file with stack tracking. Returns final stack and list of errors.
 (define (paren-stack-analyze path)
@@ -310,12 +404,20 @@
               ;; EOF - check for unclosed items
               (let* ([unclosed-errors
                       (map (lambda (opener)
-                             (make-paren-error
-                               'unclosed
-                               (format "unclosed '~a' - never closed"
-                                       (type->open-char (opener-type opener)))
-                               (opener-line opener)
-                               (opener-col opener)))
+                             (let ([form (opener-form opener)]
+                                   [indent (opener-indent opener)])
+                               (make-paren-error
+                                 'unclosed
+                                 (if form
+                                     (format "unclosed '~a' (~a at indent ~a) - never closed"
+                                             (type->open-char (opener-type opener))
+                                             (form-name->string form)
+                                             indent)
+                                     (format "unclosed '~a' (indent ~a) - never closed"
+                                             (type->open-char (opener-type opener))
+                                             indent))
+                                 (opener-line opener)
+                                 (opener-col opener))))
                            (reverse stack))]
                      ;; Also check for unterminated block comments
                      [block-error
@@ -342,7 +444,8 @@
                                   "unterminated string literal"
                                   line-num 0))
                           '())])
-                (values '() (append (reverse errors) unclosed-errors block-error datum-error string-error)))
+                ;; Return stack for suggestion analysis, plus all errors
+                (values stack (append (reverse errors) unclosed-errors block-error datum-error string-error)))
               ;; Process this line
               (let-values ([(new-stack new-errors new-in-string new-in-block new-in-datum)
                             (process-line line line-num stack errors
@@ -814,12 +917,14 @@
             ;; Openers
             [(char->opener-type c)
              => (lambda (type)
-                  (char-loop (+ col 1)
-                             (cons (make-opener type line-num col) stack)
-                             errors
-                             in-string
-                             in-block
-                             in-datum))]
+                  (let ([indent (line-indent line)]
+                        [form (detect-form line col)])
+                    (char-loop (+ col 1)
+                               (cons (make-opener type line-num col indent form) stack)
+                               errors
+                               in-string
+                               in-block
+                               in-datum)))]
 
             ;; Closers
             [(char->closer-type c)
@@ -910,3 +1015,161 @@
 ;;; Quick check - returns #t if file has balanced parens.
 (define (paren-ok? path)
   (null? (paren-errors path)))
+
+;;; ====
+;;; Indentation-Based Suggestions
+;;; ====
+
+;;; group-by-indent : (List Opener) -> (Alist Int (List Opener))
+;;; Group openers by their indentation level.
+(define (group-by-indent openers)
+  (let loop ([ops openers] [groups '()])
+    (if (null? ops)
+        (reverse groups)
+        (let* ([op (car ops)]
+               [indent (opener-indent op)]
+               [existing (assv indent groups)])
+          (if existing
+              (loop (cdr ops)
+                    (cons (cons indent (cons op (cdr existing)))
+                          (filter (lambda (g) (not (= (car g) indent))) groups)))
+              (loop (cdr ops)
+                    (cons (cons indent (list op)) groups)))))))
+
+;;; analyze-indent-pattern : String -> (List (Line Indent Opens Closes))
+;;; Analyze the indentation pattern of a file.
+(define (analyze-indent-pattern path)
+  (call-with-input-file path
+    (lambda (port)
+      (let loop ([line-num 1] [results '()])
+        (let ([line (get-line port)])
+          (if (eof-object? line)
+              (reverse results)
+              (let-values ([(opens closes _) (count-parens line)])
+                (let ([indent (line-indent line)])
+                  (loop (+ line-num 1)
+                        (cons (list line-num indent opens closes) results))))))))))
+
+;;; suggest-missing-closers : (List Opener) Int -> String
+;;; Generate suggestion text for unclosed openers based on indentation.
+(define (suggest-missing-closers unclosed-stack total-lines)
+  (if (null? unclosed-stack)
+      ""
+      (let* ([groups (group-by-indent unclosed-stack)]
+             [sorted (sort (lambda (a b) (< (car a) (car b))) groups)])
+        (with-output-to-string
+          (lambda ()
+            (printf "\n  Indentation analysis:\n")
+            (for-each
+              (lambda (group)
+                (let ([indent (car group)]
+                      [openers (cdr group)])
+                  (printf "    Indent ~a: ~a unclosed opener(s) from line(s) ~a\n"
+                          indent
+                          (length openers)
+                          (string-join
+                            (map (lambda (o)
+                                   (if (opener-form o)
+                                       (format "~a (~a)" (opener-line o) (opener-form o))
+                                       (number->string (opener-line o))))
+                                 (reverse openers))
+                            ", "))))
+              sorted)
+            (printf "\n  Suggestion: Add ~a closer(s). Look for forms starting at:\n"
+                    (length unclosed-stack))
+            ;; Show the most likely culprits (outermost/earliest unclosed)
+            (let ([earliest (take-up-to 5 (reverse unclosed-stack))])
+              (for-each
+                (lambda (o)
+                  (if (opener-form o)
+                      (printf "    - Line ~a: ~a (~a) at column ~a\n"
+                              (opener-line o)
+                              (opener-form o)
+                              (type->open-char (opener-type o))
+                              (+ (opener-col o) 1))
+                      (printf "    - Line ~a: '~a' at column ~a\n"
+                              (opener-line o)
+                              (type->open-char (opener-type o))
+                              (+ (opener-col o) 1))))
+                earliest)))))))
+
+;;; take-up-to : Int (List a) -> (List a)
+(define (take-up-to n lst)
+  (if (or (<= n 0) (null? lst))
+      '()
+      (cons (car lst) (take-up-to (- n 1) (cdr lst)))))
+
+;;; string-join : (List String) String -> String
+(define (string-join strs sep)
+  (if (null? strs)
+      ""
+      (let loop ([rest (cdr strs)] [acc (car strs)])
+        (if (null? rest)
+            acc
+            (loop (cdr rest) (string-append acc sep (car rest)))))))
+
+;;; paren-suggest : String -> void
+;;; Analyze file and provide indentation-based suggestions for fixing imbalances.
+(define (paren-suggest path)
+  (let-values ([(final-stack errors) (paren-stack-analyze path)])
+    (printf "\n~a\n" (make-string 70 #\─))
+    (printf "Paren Suggestion Report: ~a\n" path)
+    (printf "~a\n" (make-string 70 #\─))
+
+    (cond
+      [(and (null? errors) (null? final-stack))
+       (printf "\n✓ All parentheses balanced!\n")]
+
+      [else
+       ;; Show errors first
+       (when (not (null? errors))
+         (printf "\nErrors found:\n")
+         (for-each
+           (lambda (err)
+             (printf "  ~a:~a: ~a\n"
+                     (paren-error-line err)
+                     (+ (paren-error-col err) 1)
+                     (paren-error-message err)))
+           errors))
+
+       ;; Analyze the pattern file to find where closers might be missing
+       (let ([pattern (analyze-indent-pattern path)]
+             [balance (paren-balance path)])
+         (cond
+           [(> balance 0)
+            ;; More opens than closes - suggest where to add closers
+            (printf "\n~a unclosed opener(s) detected.\n" balance)
+            ;; Get the remaining stack from a fresh analysis
+            (let-values ([(stack _) (paren-stack-analyze path)])
+              (printf "~a" (suggest-missing-closers stack (length pattern))))]
+
+           [(< balance 0)
+            ;; More closes than opens - find where extra closers are
+            (printf "\n~a extra closer(s) detected.\n" (- balance))
+            (printf "\n  Look for lines with unexpected ')' or ']' or '}'.\n")
+            ;; Find lines where balance goes negative
+            (let ([imbalanced (filter (lambda (info) (< (cadddr info) 0))
+                                      (analyze-file path))])
+              (when (not (null? imbalanced))
+                (printf "  First imbalance at line ~a\n" (car (car imbalanced)))))]
+
+           [else
+            ;; Balance is 0 but there are mismatch errors
+            (printf "\n  Bracket types are mismatched.\n")]))])
+
+    (printf "\n~a\n" (make-string 70 #\─))))
+
+;;; paren-summary : String -> void
+;;; Quick summary with just the key info.
+(define (paren-summary path)
+  (let ([balance (paren-balance path)]
+        [errors (paren-errors path)])
+    (cond
+      [(and (= balance 0) (null? errors))
+       (printf "✓ ~a: balanced\n" path)]
+      [(> balance 0)
+       (printf "✗ ~a: ~a unclosed opener(s)\n" path balance)]
+      [(< balance 0)
+       (printf "✗ ~a: ~a extra closer(s)\n" path (- balance))]
+      [else
+       (printf "✗ ~a: ~a error(s)\n" path (length errors))])))
