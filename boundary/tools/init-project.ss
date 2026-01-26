@@ -131,7 +131,7 @@
 
 ;;; create-project : Alist → Bool
 (define (create-project config)
-  (let ([name (assoc-ref config 'name)])
+  (let ([name (assq-ref config 'name)])
        ;; Create directory structure
        (create-directories config)
        
@@ -139,7 +139,7 @@
        (create-project-files config)
        
        ;; Initialize git
-       (when (assoc-ref config 'with-git)
+       (when (assq-ref config 'with-git)
              (init-git config))
        
        ;; Display completion message
@@ -148,8 +148,8 @@
 
 ;;; create-directories : Alist → void
 (define (create-directories config)
-  (let ([name (assoc-ref config 'name)]
-        [type (assoc-ref config 'type)])
+  (let ([name (assq-ref config 'name)]
+        [type (assq-ref config 'type)])
        (display (format "Creating directory structure for ~a...\n" name))
        
        ;; Base directories
@@ -176,7 +176,7 @@
 
 ;;; create-project-files : Alist → void
 (define (create-project-files config)
-  (let ([name (assoc-ref config 'name)])
+  (let ([name (assq-ref config 'name)])
        (display "Creating project files...\n")
        
        ;; README
@@ -189,21 +189,21 @@
        (create-main-file config)
        
        ;; Test file (if requested)
-       (when (assoc-ref config 'with-tests)
+       (when (assq-ref config 'with-tests)
              (create-test-file config))
        
        ;; .gitignore (if git enabled)
-       (when (assoc-ref config 'with-git)
+       (when (assq-ref config 'with-git)
              (create-gitignore config))
        
        ;; CI config (if requested)
-       (when (assoc-ref config 'with-ci)
+       (when (assq-ref config 'with-ci)
              (create-ci-config config))))
 
 ;;; create-readme : Alist → void
 (define (create-readme config)
-  (let* ([name (assoc-ref config 'name)]
-         [desc (assoc-ref config 'description)]
+  (let* ([name (assq-ref config 'name)]
+         [desc (assq-ref config 'description)]
          [path (path-join name "README.md")]
          [content (format-readme name desc)])
         (write-file path content)
@@ -231,8 +231,8 @@
 
 ;;; create-claude-md : Alist → void
 (define (create-claude-md config)
-  (let* ([name (assoc-ref config 'name)]
-         [desc (assoc-ref config 'description)]
+  (let* ([name (assq-ref config 'name)]
+         [desc (assq-ref config 'description)]
          [path (path-join name "CLAUDE.md")]
          [content (format-claude-md name desc)])
         (write-file path content)
@@ -260,9 +260,9 @@
 
 ;;; create-main-file : Alist → void
 (define (create-main-file config)
-  (let* ([name (assoc-ref config 'name)]
-         [type (assoc-ref config 'type)]
-         [desc (assoc-ref config 'description)]
+  (let* ([name (assq-ref config 'name)]
+         [type (assq-ref config 'type)]
+         [desc (assq-ref config 'description)]
          [path (case type
                      [(core-module) (path-join name "core" (string-append name ".ss"))]
                      [(boundary-tool) (path-join name "boundary" (string-append name ".ss"))]
@@ -296,7 +296,7 @@
 
 ;;; create-test-file : Alist → void
 (define (create-test-file config)
-  (let* ([name (assoc-ref config 'name)]
+  (let* ([name (assq-ref config 'name)]
          [path (path-join name "tests" (string-append "test-" name ".ss"))]
          [content (format-test-file name)])
         (write-file path content)
@@ -316,7 +316,7 @@
 
 ;;; create-gitignore : Alist → void
 (define (create-gitignore config)
-  (let* ([name (assoc-ref config 'name)]
+  (let* ([name (assq-ref config 'name)]
          [path (path-join name ".gitignore")]
          [content (format-gitignore)])
         (write-file path content)
@@ -328,7 +328,7 @@
 
 ;;; create-ci-config : Alist → void
 (define (create-ci-config config)
-  (let* ([name (assoc-ref config 'name)]
+  (let* ([name (assq-ref config 'name)]
          [path (path-join name ".github" "workflows" "ci.yml")]
          [content (format-ci-config name)])
         (make-directory (path-join name ".github"))
@@ -358,7 +358,7 @@
 ;;; init-git : Alist → void
 ;;; SECURITY: Project name is validated at init-project entry point.
 (define (init-git config)
-  (let ([name (assoc-ref config 'name)])
+  (let ([name (assq-ref config 'name)])
        ;; SECURITY: Double-check name is valid before shell use
        (unless (valid-project-name? name)
                (error 'init-git "Invalid project name" name))
@@ -434,10 +434,7 @@
 ;;; Utility Functions
 ;;; ====
 
-;;; assoc-ref : Alist × Symbol → Any
-(define (assoc-ref alist key)
-  (let ([entry (assq key alist)])
-       (if entry (cdr entry) #f)))
+;; assq-ref is provided by prelude (uses eq? for symbol keys)
 
 ;;; path-join : String* → String
 (define (path-join . parts)

@@ -274,10 +274,7 @@
                            (r-loop (cdr prefs)))))))
                 (p-loop (+ i 1))))))))
 
-;;; assoc-ref : Hashtable × Key → Value | #f
-(define (assoc-ref table key)
-  (let ((entry (assoc key table)))
-    (if entry (cdr entry) #f)))
+;; assoc-ref is provided by prelude
 
 ;;; prefers-to? : List × Id × Id → Boolean
 ;;; Does agent prefer id1 to id2? (id2 may be #f for unmatched)
