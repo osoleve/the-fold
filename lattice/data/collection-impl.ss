@@ -7,6 +7,7 @@
 (load "lattice/data/heap.ss")
 (load "lattice/data/kdtree.ss")
 (load "lattice/data/quadtree.ss")
+(load "lattice/fp/meta/combinators.ss")  ; For just/nothing
 
 (doc 'module 'collection-impl)
 (doc 'description "Protocol implementations for lattice data structures.
@@ -35,6 +36,7 @@ After loading this module, generic operations work across all collection types:
 (implement-protocol! 'coll-fold 'avl-empty (lambda (tree fn init) init))
 (implement-protocol! 'coll-to-list 'avl-empty (lambda (tree) '()))
 (implement-protocol! 'keyed-lookup 'avl-empty (lambda (tree key) #f))
+(implement-protocol! 'keyed-ref 'avl-empty (lambda (tree key) nothing))
 (implement-protocol! 'keyed-insert 'avl-empty
   (lambda (tree key value) (avl-insert key value avl-empty)))
 (implement-protocol! 'keyed-delete 'avl-empty (lambda (tree key) tree))
@@ -103,6 +105,12 @@ After loading this module, generic operations work across all collection types:
 ;; Keyed protocols
 (implement-protocol! 'keyed-lookup 'avl-node
   (lambda (tree key) (avl-lookup key tree)))
+
+(implement-protocol! 'keyed-ref 'avl-node
+  (lambda (tree key)
+    (if (avl-contains? key tree)
+        (just (avl-lookup key tree))
+        nothing)))
 
 (implement-protocol! 'keyed-insert 'avl-node
   (lambda (tree key value) (avl-insert key value tree)))
@@ -281,6 +289,7 @@ After loading this module, generic operations work across all collection types:
 | coll-fold          |  ✓  |  ✓   |   ✓    |    ✓     |
 | coll-to-list       |  ✓  |  ✓   |   ✓    |    ✓     |
 | keyed-lookup       |  ✓  |      |        |          |
+| keyed-ref          |  ✓  |      |        |          |
 | keyed-insert       |  ✓  |      |        |          |
 | keyed-delete       |  ✓  |      |        |          |
 | keyed-contains?    |  ✓  |      |        |          |

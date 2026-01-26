@@ -1,7 +1,7 @@
 ;;; Test harness for type signature parser
 
 (load "core/test-framework.ss")
-(load "core/types/sig-parser.ss")
+(load "core/types/sig-check.ss")
 
 (display "
 ====

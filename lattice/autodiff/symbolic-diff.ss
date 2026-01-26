@@ -17,8 +17,7 @@
 
 (doc 'section 'expression-evaluation)
 
-(define (eval-expr expr env)
-  (doc 'type '(-> Expr Env Number))
+;;; eval-expr : Expr × Env → Number
 ;;; Evaluate a symbolic expression given variable bindings.
 ;;; env is an alist: ((x . 3.0) (y . 2.0) ...)
 ;;;

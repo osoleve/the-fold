@@ -1596,8 +1596,8 @@
 ;;; Rank-N Polymorphism (Placeholder, from rank-n-infer.ss)
 ;;; ====
 
-;;; Load the rank-N inference module (placeholder)
-(load "core/types/rank-n-infer.ss")
+;;; Load the rank-N inference module
+(load "core/types/rank-n.ss")
 
 ;;; ====
 ;;; Convenience Functions

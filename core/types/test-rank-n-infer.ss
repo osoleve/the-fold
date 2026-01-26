@@ -2,7 +2,7 @@
 ;;;
 ;;; Run from project root: scheme --script core/types/test-rank-n-infer.ss
 
-(load "core/types/rank-n-infer.ss")
+(load "core/types/rank-n.ss")
 
 (define *tests-passed* 0)
 (define *tests-failed* 0)

@@ -154,7 +154,14 @@ Example:
 (doc 'section 'keyed-protocols)
 
 (define-protocol (keyed-lookup coll key)
-  "Look up value by key. Returns #f if not found.")
+  "Look up value by key. Returns #f if not found.
+   WARNING: Cannot distinguish 'not found' from 'value is #f'.
+   Use keyed-ref for unambiguous lookups, or keyed-contains? to check existence.")
+
+(define-protocol (keyed-ref coll key)
+  "Look up value by key. Returns (just value) if found, nothing (#f) if not.
+   Unlike keyed-lookup, this unambiguously distinguishes missing keys from #f values.
+   Requires: lattice/fp/meta/combinators.ss for just/nothing.")
 
 (define-protocol (keyed-insert coll key value)
   "Insert key-value pair, returning new collection.")
@@ -170,6 +177,15 @@ Example:
 
 (define-protocol (keyed-values coll)
   "Return list of all values.")
+
+;;; Generic keyed lookup with default (works on any collection with keyed-contains? and keyed-lookup)
+(define (keyed-lookup/default coll key default)
+  (doc 'type '(-> Collection Key a a))
+  (doc 'description "Look up value by key, returning default if not found.
+   This avoids the #f ambiguity by letting caller specify sentinel value.")
+  (if (keyed-contains? coll key)
+      (keyed-lookup coll key)
+      default))
 
 ;;; ============================================================
 ;;; Spatial Collection Protocols
@@ -224,7 +240,7 @@ Example:
   (filter (lambda (proto)
             (type-implements? type-tag proto))
           '(coll-empty? coll-size coll-fold coll-to-list
-            keyed-lookup keyed-insert keyed-delete keyed-contains?
+            keyed-lookup keyed-ref keyed-insert keyed-delete keyed-contains?
             keyed-keys keyed-values
             spatial-nearest spatial-knn spatial-range spatial-radius spatial-contains?
             prio-peek prio-pop prio-insert prio-merge)))
@@ -251,7 +267,9 @@ Generic (work on any collection with fold):
   coll-product       - Product of elements
 
 Keyed Collection:
-  keyed-lookup       - Get by key
+  keyed-lookup       - Get by key (returns #f if missing - ambiguous for #f values)
+  keyed-ref          - Get by key (returns Maybe - unambiguous)
+  keyed-lookup/default - Get by key with fallback
   keyed-insert       - Insert key-value
   keyed-delete       - Delete by key
   keyed-contains?    - Key exists?

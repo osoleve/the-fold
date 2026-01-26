@@ -12,7 +12,7 @@
 (load "core/test-framework.ss")
 (load "core/types/types.ss")
 (load "core/types/kinds.ss")
-(load "core/types/sig-parser.ss")
+(load "core/types/sig-check.ss")
 
 (display "
 ====
