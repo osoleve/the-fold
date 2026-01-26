@@ -109,15 +109,7 @@
         [else
          (loop (cdr chars) (cons (car chars) current) parts)])))
 
-;;; remove-duplicates : (List Symbol) -> (List Symbol)
-(define (remove-duplicates lst)
-  (let loop ([lst lst] [seen '()] [result '()])
-       (if (null? lst)
-           (reverse result)
-           (let ([item (car lst)])
-                (if (memq item seen)
-                    (loop (cdr lst) seen result)
-                    (loop (cdr lst) (cons item seen) (cons item result)))))))
+;; remove-duplicates is provided by prelude (aliased to unique)
 
 ;;; string-split-words : String -> (List String)
 ;;; Split string on whitespace and punctuation

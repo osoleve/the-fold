@@ -1254,14 +1254,7 @@
                                          guard))
                          unique-guards))))))
 
-;;; remove-duplicates : (List α) → (List α)
-;;; Remove duplicate elements from a list (preserving order).
-(define (remove-duplicates lst)
-  (let loop ([lst lst] [seen '()] [result '()])
-       (cond
-        [(null? lst) (reverse result)]
-        [(member (car lst) seen) (loop (cdr lst) seen result)]
-        [else (loop (cdr lst) (cons (car lst) seen) (cons (car lst) result))])))
+;; remove-duplicates is provided by prelude (via @requires)
 
 ;;; rust-emit : (List α) [× Nat] → String
 ;;; Emit a full Rust function with FFI boilerplate and fuel tracking.

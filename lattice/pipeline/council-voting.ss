@@ -257,13 +257,7 @@
       [(= unique-winners 2) 1]   ; Some disagreement
       [else 2])))                ; High controversy
 
-;;; remove-duplicates : (List a) → (List a)
-(define (remove-duplicates lst)
-  (let loop ([lst lst] [seen '()] [acc '()])
-    (cond
-      [(null? lst) (reverse acc)]
-      [(member (car lst) seen) (loop (cdr lst) seen acc)]
-      [else (loop (cdr lst) (cons (car lst) seen) (cons (car lst) acc))])))
+;; remove-duplicates is provided by prelude (via council.ss → context.ss)
 
 ;;; ============================================================================
 ;;; Common Patterns

@@ -510,8 +510,7 @@
 (doc 'section 'weighted-matching-ilp)
 (doc 'note "Given a bipartite graph with weights W[i,j] for each edge (i,j), find a matching that maximizes the total weight. ILP formulation: maximize Σ W[i,j] · x[i,j] subject to Σ_j x[i,j] <= 1 for all i (each row matched at most once), Σ_i x[i,j] <= 1 for all j (each col matched at most once), x[i,j] ∈ {0,1}")
 
-(define (weighted-matching-ilp n m weight)
-  (doc 'type '(-> Nat Nat (Nat Nat -> Real) (List (Nat . Nat) . Real)))
+(doc 'type '(-> Nat Nat (Nat Nat -> Real) (List (Nat . Nat) . Real)))
 ;;; Compute maximum weighted bipartite matching using ILP.
 ;;; n = number of nodes on left side (rows)
 ;;; m = number of nodes on right side (cols)

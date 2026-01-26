@@ -479,16 +479,7 @@
 
 ) ; end optimal assignment tests
 
-;;; ============================================================================
-;;; Helper Functions
-;;; ============================================================================
-
-(define (remove-duplicates lst)
-  (if (null? lst)
-      '()
-      (cons (car lst)
-            (remove-duplicates (filter (lambda (x) (not (equal? x (car lst))))
-                                       (cdr lst))))))
+;; remove-duplicates is provided by prelude (via test-framework.ss and matching.ss)
 
 ;;; ============================================================================
 ;;; ILP-Based Weighted Matching Tests
