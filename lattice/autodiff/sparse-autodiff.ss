@@ -171,29 +171,29 @@
          [entries (let loop-i ([i 0] [acc '()])
                        (if (= i m)
                            (reverse acc)  ; Reverse once at end: O(nnz)
-                           (begin
-                            (reset-traced-ids!)
-                            (let* ([tape (make-reverse-tape)]
-                                   [traced-args (map (lambda (x) (make-traced-var x tape)) args)]
-                                   [outputs (apply f traced-args)]
-                                   [output-i (if (or (traced? outputs) (not (list? outputs)))
-                                                 outputs
-                                                 (list-ref outputs i))]
-                                   [grads (if (traced? output-i)
-                                              (backward tape (traced-id output-i) 1)
-                                              (make-hashtable equal-hash equal?))]
-                                   [arg-ids (map traced-id traced-args)]
-                                   ;; Collect non-zero entries for this row - prepend to acc
-                                   [new-acc (let loop-j ([j 0] [ids arg-ids] [current-acc acc])
-                                                 (if (null? ids)
-                                                     current-acc
-                                                     (let ([grad (hashtable-ref grads (car ids) 0)])
-                                                          (loop-j (+ j 1)
-                                                                  (cdr ids)
-                                                                  (if (> (abs grad) tolerance)
-                                                                      (cons (cons i j) current-acc)
-                                                                      current-acc)))))])
-                                  (loop-i (+ i 1) new-acc)))))]
+                           (with-fresh-ad-scope
+                            (lambda ()
+                              (let* ([tape (make-reverse-tape)]
+                                     [traced-args (map (lambda (x) (make-traced-var x tape)) args)]
+                                     [outputs (apply f traced-args)]
+                                     [output-i (if (or (traced? outputs) (not (list? outputs)))
+                                                   outputs
+                                                   (list-ref outputs i))]
+                                     [grads (if (traced? output-i)
+                                                (backward tape (traced-id output-i) 1)
+                                                (make-hashtable equal-hash equal?))]
+                                     [arg-ids (map traced-id traced-args)]
+                                     ;; Collect non-zero entries for this row - prepend to acc
+                                     [new-acc (let loop-j ([j 0] [ids arg-ids] [current-acc acc])
+                                                   (if (null? ids)
+                                                       current-acc
+                                                       (let ([grad (hashtable-ref grads (car ids) 0)])
+                                                            (loop-j (+ j 1)
+                                                                    (cdr ids)
+                                                                    (if (> (abs grad) tolerance)
+                                                                        (cons (cons i j) current-acc)
+                                                                        current-acc)))))])
+                                    (loop-i (+ i 1) new-acc))))))]
          [nnz (length entries)]
          [row-idx (make-vector nnz 0)]
          [col-idx (make-vector nnz 0)])
@@ -267,28 +267,28 @@
          [triplets (let loop-i ([i 0] [acc '()])
                         (if (= i m)
                             acc
-                            (begin
-                             (reset-traced-ids!)
-                             (let* ([tape (make-reverse-tape)]
-                                    [traced-args (map (lambda (x) (make-traced-var x tape)) args)]
-                                    [outputs (apply f traced-args)]
-                                    [output-i (if (or (traced? outputs) (not (list? outputs)))
-                                                  outputs
-                                                  (list-ref outputs i))]
-                                    [grads (if (traced? output-i)
-                                               (backward tape (traced-id output-i) 1)
-                                               (make-hashtable equal-hash equal?))]
-                                    [arg-ids (map traced-id traced-args)])
-                                   (loop-i (+ i 1)
-                                           (let loop-j ([j 0] [args-left arg-ids] [acc2 acc])
-                                                (if (null? args-left)
-                                                    acc2
-                                                    (let ([grad (hashtable-ref grads (car args-left) 0)])
-                                                         (loop-j (+ j 1)
-                                                                 (cdr args-left)
-                                                                 (if (= grad 0)
-                                                                     acc2
-                                                                     (cons (list i j grad) acc2)))))))))))])
+                            (with-fresh-ad-scope
+                             (lambda ()
+                               (let* ([tape (make-reverse-tape)]
+                                      [traced-args (map (lambda (x) (make-traced-var x tape)) args)]
+                                      [outputs (apply f traced-args)]
+                                      [output-i (if (or (traced? outputs) (not (list? outputs)))
+                                                    outputs
+                                                    (list-ref outputs i))]
+                                      [grads (if (traced? output-i)
+                                                 (backward tape (traced-id output-i) 1)
+                                                 (make-hashtable equal-hash equal?))]
+                                      [arg-ids (map traced-id traced-args)])
+                                     (loop-i (+ i 1)
+                                             (let loop-j ([j 0] [args-left arg-ids] [acc2 acc])
+                                                  (if (null? args-left)
+                                                      acc2
+                                                      (let ([grad (hashtable-ref grads (car args-left) 0)])
+                                                           (loop-j (+ j 1)
+                                                                   (cdr args-left)
+                                                                   (if (= grad 0)
+                                                                       acc2
+                                                                       (cons (list i j grad) acc2))))))))))))])
         (sparse-coo-from-triplets m n triplets)))
 
 ;;; sparse-jacobian-with-pattern : ((Traced ...) → (List Traced)) × (List Number) × SparsityPattern → SparseCOO
@@ -307,25 +307,26 @@
         ;; Compute gradient for each row
         (for-each
          (lambda (i)
-                 (reset-traced-ids!)
-                 (let* ([tape (make-reverse-tape)]
-                        [traced-args (map (lambda (x) (make-traced-var x tape)) args)]
-                        [outputs (apply f traced-args)]
-                        [output-i (if (or (traced? outputs) (not (list? outputs)))
-                                      outputs
-                                      (list-ref outputs i))]
-                        [grads (if (traced? output-i)
-                                   (backward tape (traced-id output-i) 1)
-                                   (make-hashtable equal-hash equal?))]
-                        [arg-ids (list->vector (map traced-id traced-args))])
-                       ;; Fill in values for this row
-                       (do ([k 0 (+ k 1)])
-                           ((= k nnz))
-                           (when (= (vector-ref row-idx k) i)
-                                 (let* ([j (vector-ref col-idx k)]
-                                        [arg-id (vector-ref arg-ids j)]
-                                        [grad (hashtable-ref grads arg-id 0)])
-                                       (vector-set! values k grad))))))
+                 (with-fresh-ad-scope
+                  (lambda ()
+                    (let* ([tape (make-reverse-tape)]
+                           [traced-args (map (lambda (x) (make-traced-var x tape)) args)]
+                           [outputs (apply f traced-args)]
+                           [output-i (if (or (traced? outputs) (not (list? outputs)))
+                                         outputs
+                                         (list-ref outputs i))]
+                           [grads (if (traced? output-i)
+                                      (backward tape (traced-id output-i) 1)
+                                      (make-hashtable equal-hash equal?))]
+                           [arg-ids (list->vector (map traced-id traced-args))])
+                          ;; Fill in values for this row
+                          (do ([k 0 (+ k 1)])
+                              ((= k nnz))
+                              (when (= (vector-ref row-idx k) i)
+                                    (let* ([j (vector-ref col-idx k)]
+                                           [arg-id (vector-ref arg-ids j)]
+                                           [grad (hashtable-ref grads arg-id 0)])
+                                          (vector-set! values k grad))))))))
          rows-to-compute)
         (make-sparse-coo m n (vec-copy row-idx) (vec-copy col-idx) values)))
 

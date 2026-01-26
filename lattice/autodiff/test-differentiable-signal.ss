@@ -453,42 +453,44 @@
             
             ;; Test 1: Traced convolution produces correct forward pass
             (define-test traced-conv-forward
-              (reset-traced-ids!)
-              (let* ([tape (make-reverse-tape)]
-                     [signal-vals '#(1.0 2.0 3.0 4.0)]
-                     [n (vector-length signal-vals)]
-                     [traced-signal (make-vector n)]
-                     [_ (do ([i 0 (+ i 1)])
-                            ((= i n))
-                            (vector-set! traced-signal i
-                                         (make-traced-var (vector-ref signal-vals i) tape)))]
-                     [kernel '#(0.5 0.5)]
-                     [output (traced-convolve-1d traced-signal kernel 'full)])
-                    ;; Check output length
-                    (assert-= (vector-length output) 5 0.001)  ; 4 + 2 - 1
-                    ;; Check first value: 1.0 * 0.5 = 0.5
-                    (assert-= (traced-value (vector-ref output 0)) 0.5 1e-6)
-                    ;; Check that outputs are traced
-                    (assert-true (traced? (vector-ref output 0)))))
+              (with-fresh-ad-scope
+               (lambda ()
+                 (let* ([tape (make-reverse-tape)]
+                        [signal-vals '#(1.0 2.0 3.0 4.0)]
+                        [n (vector-length signal-vals)]
+                        [traced-signal (make-vector n)]
+                        [_ (do ([i 0 (+ i 1)])
+                               ((= i n))
+                               (vector-set! traced-signal i
+                                            (make-traced-var (vector-ref signal-vals i) tape)))]
+                        [kernel '#(0.5 0.5)]
+                        [output (traced-convolve-1d traced-signal kernel 'full)])
+                       ;; Check output length
+                       (assert-= (vector-length output) 5 0.001)  ; 4 + 2 - 1
+                       ;; Check first value: 1.0 * 0.5 = 0.5
+                       (assert-= (traced-value (vector-ref output 0)) 0.5 1e-6)
+                       ;; Check that outputs are traced
+                       (assert-true (traced? (vector-ref output 0)))))))
             
             ;; Test 2: Traced convolution gradient via reverse mode
             (define-test traced-conv-gradient
-              (reset-traced-ids!)
-              (let* ([tape (make-reverse-tape)]
-                     [signal-vals '#(1.0 2.0 3.0)]
-                     [n (vector-length signal-vals)]
-                     [traced-signal (make-vector n)]
-                     [_ (do ([i 0 (+ i 1)])
-                            ((= i n))
-                            (vector-set! traced-signal i
-                                         (make-traced-var (vector-ref signal-vals i) tape)))]
-                     [kernel '#(1.0 1.0)]  ; Sum filter
-                     [output (traced-convolve-1d traced-signal kernel 'valid)]
-                     ;; Output: [3, 5] for valid mode
-                     ;; Sum loss: 3 + 5 = 8
-                     [loss (traced-add (vector-ref output 0) (vector-ref output 1))])
-                    ;; Check forward
-                    (assert-= (traced-value loss) 8 1e-6))))
+              (with-fresh-ad-scope
+               (lambda ()
+                 (let* ([tape (make-reverse-tape)]
+                        [signal-vals '#(1.0 2.0 3.0)]
+                        [n (vector-length signal-vals)]
+                        [traced-signal (make-vector n)]
+                        [_ (do ([i 0 (+ i 1)])
+                               ((= i n))
+                               (vector-set! traced-signal i
+                                            (make-traced-var (vector-ref signal-vals i) tape)))]
+                        [kernel '#(1.0 1.0)]  ; Sum filter
+                        [output (traced-convolve-1d traced-signal kernel 'valid)]
+                        ;; Output: [3, 5] for valid mode
+                        ;; Sum loss: 3 + 5 = 8
+                        [loss (traced-add (vector-ref output 0) (vector-ref output 1))])
+                       ;; Check forward
+                       (assert-= (traced-value loss) 8 1e-6))))))
 
 ;;; ====
 ;;; DFT Local Gradient Tests

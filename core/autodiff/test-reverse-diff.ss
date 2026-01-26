@@ -42,13 +42,14 @@
                     (assert-true (traced? t))))
             
             (define-test traced-id-is-unique
-              (reset-traced-ids!)
-              (let* ([tape (make-reverse-tape)]
-                     [t1 (make-traced-var 1 tape)]
-                     [t2 (make-traced-var 2 tape)]
-                     [t3 (make-traced-var 3 tape)])
-                    (assert-true (not (= (traced-id t1) (traced-id t2))))
-                    (assert-true (not (= (traced-id t2) (traced-id t3))))))
+              (with-fresh-ad-scope
+               (lambda ()
+                 (let* ([tape (make-reverse-tape)]
+                        [t1 (make-traced-var 1 tape)]
+                        [t2 (make-traced-var 2 tape)]
+                        [t3 (make-traced-var 3 tape)])
+                       (assert-true (not (= (traced-id t1) (traced-id t2))))
+                       (assert-true (not (= (traced-id t2) (traced-id t3))))))))
             
             (define-test plain-number-extraction
               ;; traced-value should work on plain numbers too

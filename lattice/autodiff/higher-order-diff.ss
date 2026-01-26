@@ -45,23 +45,24 @@
        ;; For each output i, compute gradient (row i of Jacobian)
        (do ([i 0 (+ i 1)])
            ((= i m) (list 'matrix m n result))
-           (reset-traced-ids!)
-           (let* ([tape (make-reverse-tape)]
-                  [traced-args (map (lambda (x) (make-traced-var x tape)) args)]
-                  [outputs (apply f traced-args)]
-                  ;; Check traced? first since traced values are also lists
-                  [output-i (if (or (traced? outputs) (not (list? outputs)))
-                                outputs
-                                (list-ref outputs i))]
-                  [grads (if (traced? output-i)
-                             (backward tape (traced-id output-i) 1)
-                             (make-hashtable equal-hash equal?))]
-                  [arg-ids (map traced-id traced-args)])
-                 (do ([j 0 (+ j 1)])
-                     ((= j n))
-                     (let* ([arg-id (list-ref arg-ids j)]
-                            [grad (hashtable-ref grads arg-id 0)])
-                           (vector-set! result (+ (* i n) j) grad)))))))
+           (with-fresh-ad-scope
+            (lambda ()
+              (let* ([tape (make-reverse-tape)]
+                     [traced-args (map (lambda (x) (make-traced-var x tape)) args)]
+                     [outputs (apply f traced-args)]
+                     ;; Check traced? first since traced values are also lists
+                     [output-i (if (or (traced? outputs) (not (list? outputs)))
+                                   outputs
+                                   (list-ref outputs i))]
+                     [grads (if (traced? output-i)
+                                (backward tape (traced-id output-i) 1)
+                                (make-hashtable equal-hash equal?))]
+                     [arg-ids (map traced-id traced-args)])
+                    (do ([j 0 (+ j 1)])
+                        ((= j n))
+                        (let* ([arg-id (list-ref arg-ids j)]
+                               [grad (hashtable-ref grads arg-id 0)])
+                              (vector-set! result (+ (* i n) j) grad)))))))))
 
 ;;; jacobian-forward : ((Dual ...) → (List Dual)) × (List Number) × Nat × Nat → Matrix
 ;;; Compute Jacobian using forward mode (efficient when m > n).
@@ -198,8 +199,9 @@
 ;;; v is a vector of length m (number of outputs).
 (define (vjp f args v)
   (doc 'export #t)
-  (reset-traced-ids!)
-  (let* ([tape (make-reverse-tape)]
+  (with-fresh-ad-scope
+   (lambda ()
+     (let* ([tape (make-reverse-tape)]
          [traced-args (map (lambda (x) (make-traced-var x tape)) args)]
          [outputs (apply f traced-args)]
          [outputs-list (if (list? outputs) outputs (list outputs))]
@@ -231,7 +233,7 @@
               (reverse-tape-entries tape))
              ;; Extract gradient for each input
              (map (lambda (targ) (hashtable-ref grads (traced-id targ) 0))
-                  traced-args))))
+                  traced-args))))))
 
 ;;; ====
 ;;; Jacobian-Vector Product (JVP) - Forward Mode

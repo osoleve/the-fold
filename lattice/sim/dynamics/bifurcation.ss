@@ -508,8 +508,7 @@
                                                          prev-stab curr-stab)])
                           ;; Refine pitchfork/transcritical using normal form if psys provided
                           (let ([refined-bif
-                                 (if (and psys bif
-                                          (or (eq? bif 'pitchfork) (eq? bif 'transcritical)))
+                                 (if (and psys bif (eq? bif 'pitchfork-or-transcritical))
                                      (let ([sys (instantiate-at psys curr-param)])
                                           (classify-codim1-bifurcation sys curr-fp *normal-form-h*))
                                      bif)])
@@ -535,10 +534,10 @@ then Hopf (complex eigenvalues), then saddle-node (real eigenvalue crossing with
           'hopf]
          ;; Pitchfork/Transcritical: stability change with real eigenvalue zero crossing
          ;; (fixed point persists but changes stability - NOT saddle-node)
+         ;; Returns 'pitchfork-or-transcritical; refined later via normal-form analysis
+         ;; when the ODE system is available (see classify-codim1-bifurcation)
          [(and stab-changed real-zero-crossing)
-          (if (symmetric-breaking? prev-reals curr-reals)
-              'pitchfork
-              'transcritical)]
+          'pitchfork-or-transcritical]
          ;; Saddle-node: real eigenvalue crosses zero WITHOUT stability change
          ;; This typically indicates fixed point creation/annihilation
          [(and real-zero-crossing (not stab-changed)
@@ -589,16 +588,6 @@ then Hopf (complex eigenvalues), then saddle-node (real eigenvalue crossing with
                          (and (< (abs im) tolerance)
                               (< (* pr cr) 0))))
             (iota (length prev-reals)))))
-
-(define (symmetric-breaking? prev-reals curr-reals)
-  (doc 'type '(-> (List Number) (List Number) Boolean))
-  (doc 'description "Heuristic for pitchfork vs transcritical - check for symmetric eigenvalue structure")
-  (doc 'deprecated "Use normal-form-is-pitchfork? instead for proper detection")
-  ;; Simplified: pitchfork often has eigenvalues that are symmetric around zero
-  ;; This is a heuristic - proper detection needs normal form analysis
-  (let ([prev-sum (apply + prev-reals)]
-        [curr-sum (apply + curr-reals)])
-       (< (abs prev-sum) 0.1)))  ; Roughly symmetric
 
 ;;; ============================================================
 ;;; Section: Normal Form Coefficients for Bifurcation Classification

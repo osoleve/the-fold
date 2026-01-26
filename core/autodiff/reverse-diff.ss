@@ -38,16 +38,6 @@
        (*traced-id-counter* (+ id 1))
        id))
 
-;;; reset-traced-ids! : Unit → Unit
-;;; DEPRECATED: Use with-fresh-ad-scope instead.
-;;;
-;;; WARNING: Calling this function between nested gradient computations
-;;; will corrupt the outer computation's tape. Only use for isolated tests.
-;;; For production code, always use (with-fresh-ad-scope (lambda () ...)).
-(define (reset-traced-ids!)
-  (display "WARNING: reset-traced-ids! is deprecated. Use with-fresh-ad-scope.\n")
-  (*traced-id-counter* 0))
-
 ;;; with-fresh-ad-scope : (Unit → α) → α
 ;;; Execute a computation in a fresh AD scope with its own ID counter and tape.
 ;;; This enables nested gradient computations without corrupting outer scopes.

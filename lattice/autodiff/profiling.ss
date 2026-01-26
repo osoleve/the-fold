@@ -138,41 +138,42 @@
 
 ;;; time-gradient : ((Traced ...) → Traced) × (List Number) → TimingResult
 (define (time-gradient f args)
-  (reset-traced-ids!)
-  (let* ([tape (make-reverse-tape)]
-         [traced-args (map (lambda (x) (make-traced-var x tape)) args)]
-         ;; Time forward pass
-         [forward-start (current-microseconds)]
-         [result (apply f traced-args)]
-         [forward-end (current-microseconds)]
-         [forward-time (- forward-end forward-start)])
-        (if (traced? result)
-            (let* ([val (traced-value result)]
-                   [result-id (traced-id result)]
-                   [arg-ids (map traced-id traced-args)]
-                   ;; Time backward pass
-                   [backward-start (current-microseconds)]
-                   [grads-table (backward tape result-id 1)]
-                   [backward-end (current-microseconds)]
-                   [backward-time (- backward-end backward-start)]
-                   [grads (map (lambda (id)
-                                       (if (= id result-id)
-                                           1
-                                           (hashtable-ref grads-table id 0)))
-                               arg-ids)])
-                  (list (cons 'value val)
-                        (cons 'gradient grads)
-                        (cons 'forward-us forward-time)
-                        (cons 'backward-us backward-time)
-                        (cons 'total-us (+ forward-time backward-time))
-                        (cons 'tape-size (tape-size tape))))
-            ;; Constant function
-            (list (cons 'value result)
-                  (cons 'gradient (map (lambda (_) 0) args))
-                  (cons 'forward-us forward-time)
-                  (cons 'backward-us 0)
-                  (cons 'total-us forward-time)
-                  (cons 'tape-size 0)))))
+  (with-fresh-ad-scope
+   (lambda ()
+     (let* ([tape (make-reverse-tape)]
+            [traced-args (map (lambda (x) (make-traced-var x tape)) args)]
+            ;; Time forward pass
+            [forward-start (current-microseconds)]
+            [result (apply f traced-args)]
+            [forward-end (current-microseconds)]
+            [forward-time (- forward-end forward-start)])
+           (if (traced? result)
+               (let* ([val (traced-value result)]
+                      [result-id (traced-id result)]
+                      [arg-ids (map traced-id traced-args)]
+                      ;; Time backward pass
+                      [backward-start (current-microseconds)]
+                      [grads-table (backward tape result-id 1)]
+                      [backward-end (current-microseconds)]
+                      [backward-time (- backward-end backward-start)]
+                      [grads (map (lambda (id)
+                                          (if (= id result-id)
+                                              1
+                                              (hashtable-ref grads-table id 0)))
+                                  arg-ids)])
+                     (list (cons 'value val)
+                           (cons 'gradient grads)
+                           (cons 'forward-us forward-time)
+                           (cons 'backward-us backward-time)
+                           (cons 'total-us (+ forward-time backward-time))
+                           (cons 'tape-size (tape-size tape))))
+               ;; Constant function
+               (list (cons 'value result)
+                     (cons 'gradient (map (lambda (_) 0) args))
+                     (cons 'forward-us forward-time)
+                     (cons 'backward-us 0)
+                     (cons 'total-us forward-time)
+                     (cons 'tape-size 0)))))))
 
 ;;; ====
 ;;; Memory Estimation
@@ -255,49 +256,50 @@
 
 ;;; profile-computation : ((Traced ...) → Traced) × (List Number) → Report
 (define (profile-computation f args)
-  (reset-traced-ids!)
-  (let* ([tape (make-reverse-tape)]
-         [traced-args (map (lambda (x) (make-traced-var x tape)) args)]
-         ;; Forward pass with timing
-         [forward-start (current-microseconds)]
-         [result (apply f traced-args)]
-         [forward-end (current-microseconds)])
-        (if (traced? result)
-            (let* ([val (traced-value result)]
-                   [result-id (traced-id result)]
-                   [arg-ids (map traced-id traced-args)]
-                   ;; Backward pass with timing
-                   [backward-start (current-microseconds)]
-                   [grads-table (backward tape result-id 1)]
-                   [backward-end (current-microseconds)]
-                   [grads (map (lambda (id)
-                                       (if (= id result-id)
-                                           1
-                                           (hashtable-ref grads-table id 0)))
-                               arg-ids)]
-                   [stats (tape-stats tape)]
-                   [mem (tape-memory-estimate tape)])
-                  (list
-                   (cons 'value val)
-                   (cons 'gradient grads)
-                   (cons 'timing
-                         (list (cons 'forward-us (- forward-end forward-start))
-                               (cons 'backward-us (- backward-end backward-start))
-                               (cons 'total-us (- backward-end forward-start))))
-                   (cons 'tape stats)
-                   (cons 'memory-bytes mem)
-                   (cons 'num-inputs (length args))))
-            ;; Constant function
-            (list
-             (cons 'value result)
-             (cons 'gradient (map (lambda (_) 0) args))
-             (cons 'timing
-                   (list (cons 'forward-us (- forward-end forward-start))
-                         (cons 'backward-us 0)
-                         (cons 'total-us (- forward-end forward-start))))
-             (cons 'tape '((size . 0) (ops . ())))
-             (cons 'memory-bytes 0)
-             (cons 'num-inputs (length args))))))
+  (with-fresh-ad-scope
+   (lambda ()
+     (let* ([tape (make-reverse-tape)]
+            [traced-args (map (lambda (x) (make-traced-var x tape)) args)]
+            ;; Forward pass with timing
+            [forward-start (current-microseconds)]
+            [result (apply f traced-args)]
+            [forward-end (current-microseconds)])
+           (if (traced? result)
+               (let* ([val (traced-value result)]
+                      [result-id (traced-id result)]
+                      [arg-ids (map traced-id traced-args)]
+                      ;; Backward pass with timing
+                      [backward-start (current-microseconds)]
+                      [grads-table (backward tape result-id 1)]
+                      [backward-end (current-microseconds)]
+                      [grads (map (lambda (id)
+                                          (if (= id result-id)
+                                              1
+                                              (hashtable-ref grads-table id 0)))
+                                  arg-ids)]
+                      [stats (tape-stats tape)]
+                      [mem (tape-memory-estimate tape)])
+                     (list
+                      (cons 'value val)
+                      (cons 'gradient grads)
+                      (cons 'timing
+                            (list (cons 'forward-us (- forward-end forward-start))
+                                  (cons 'backward-us (- backward-end backward-start))
+                                  (cons 'total-us (- backward-end forward-start))))
+                      (cons 'tape stats)
+                      (cons 'memory-bytes mem)
+                      (cons 'num-inputs (length args))))
+               ;; Constant function
+               (list
+                (cons 'value result)
+                (cons 'gradient (map (lambda (_) 0) args))
+                (cons 'timing
+                      (list (cons 'forward-us (- forward-end forward-start))
+                            (cons 'backward-us 0)
+                            (cons 'total-us (- forward-end forward-start))))
+                (cons 'tape '((size . 0) (ops . ())))
+                (cons 'memory-bytes 0)
+                (cons 'num-inputs (length args))))))))
 
 ;;; print-profile : Report → Void
 (define (print-profile report)
