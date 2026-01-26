@@ -237,6 +237,121 @@
       (assert-equal 0 (vec3-z com)))))
 
 ;;; ============================================================
+;;; Protocol Bundle Tests
+;;; ============================================================
+
+(test-group "protocol-bundles"
+  (define test-body
+    (make-rigid-body-3d (vec3 1 2 3)
+                        (vec3 4 5 6)
+                        (quat-identity)
+                        (vec3 0.1 0.2 0.3)
+                        10.0
+                        (inertia-solid-sphere 10.0 1.0)))
+
+  (define-test "body3d-ops implemented by rigid-body-3d"
+    (assert-true (implements-bundle? 'rigid-body-3d body3d-ops)))
+
+  (define-test "rotational-body3d-ops implemented by rigid-body-3d"
+    (assert-true (implements-bundle? 'rigid-body-3d rotational-body3d-ops)))
+
+  (define-test "body3d-pos protocol"
+    (assert-true (vec3-equal? (vec3 1 2 3) (body3d-pos test-body))))
+
+  (define-test "body3d-vel protocol"
+    (assert-true (vec3-equal? (vec3 4 5 6) (body3d-vel test-body))))
+
+  (define-test "body3d-mass protocol"
+    (assert-equal 10.0 (body3d-mass test-body)))
+
+  (define-test "body3d-set-pos protocol"
+    (let ([b2 (body3d-set-pos test-body (vec3 99 88 77))])
+      (assert-true (vec3-equal? (vec3 99 88 77) (body3d-pos b2)))))
+
+  (define-test "body3d-set-mass protocol recalculates inv-mass"
+    (let ([b2 (body3d-set-mass test-body 5.0)])
+      (assert-equal 5.0 (body3d-mass b2))
+      (assert-equal 0.2 (rigid-body-3d-inv-mass b2))))  ; inv-mass = 1/5 = 0.2
+
+  (define-test "body3d-orientation protocol"
+    (assert-true (quat-equal? (quat-identity) (body3d-orientation test-body))))
+
+  (define-test "body3d-angular-vel protocol"
+    (assert-true (vec3-equal? (vec3 0.1 0.2 0.3) (body3d-angular-vel test-body))))
+
+  (define-test "rotates3d? predicate"
+    (assert-true (rotates3d? test-body))))
+
+;;; ============================================================
+;;; Generic Lens Tests
+;;; ============================================================
+
+(test-group "generic-lenses"
+  (define test-body
+    (make-rigid-body-3d (vec3 1 2 3)
+                        (vec3 4 5 6)
+                        (quat-identity)
+                        (vec3 0 0 0)
+                        10.0
+                        (mat3-identity)))
+
+  (define-test "body3d-pos-lens view"
+    (assert-true (vec3-equal? (vec3 1 2 3) (view body3d-pos-lens test-body))))
+
+  (define-test "body3d-vel-lens view"
+    (assert-true (vec3-equal? (vec3 4 5 6) (view body3d-vel-lens test-body))))
+
+  (define-test "body3d-mass-lens view"
+    (assert-equal 10.0 (view body3d-mass-lens test-body)))
+
+  (define-test "body3d-pos-lens set"
+    (let ([b2 (set-lens body3d-pos-lens (vec3 100 200 300) test-body)])
+      (assert-true (vec3-equal? (vec3 100 200 300) (body3d-pos b2)))))
+
+  (define-test "body3d-vel-lens over"
+    (let ([b2 (over body3d-vel-lens (lambda (v) (vec3-scale v 2)) test-body)])
+      (assert-true (vec3-equal? (vec3 8 10 12) (body3d-vel b2)))))
+
+  (define-test "body3d-orientation-lens view"
+    (assert-true (quat-equal? (quat-identity) (view body3d-orientation-lens test-body))))
+
+  (define-test "body3d-angular-vel-lens set"
+    (let ([b2 (set-lens body3d-angular-vel-lens (vec3 1 2 3) test-body)])
+      (assert-true (vec3-equal? (vec3 1 2 3) (body3d-angular-vel b2))))))
+
+;;; ============================================================
+;;; Generic Helper Tests
+;;; ============================================================
+
+(test-group "generic-helpers"
+  (define test-body
+    (make-rigid-body-3d (vec3 0 0 0)
+                        (vec3 0 0 0)
+                        (quat-identity)
+                        (vec3 0 0 0)
+                        10.0
+                        (mat3-identity)))
+
+  (define-test "integrate-body3d position"
+    (let* ([b (make-rigid-body-3d (vec3 0 0 0) (vec3 10 0 0) (quat-identity) (vec3-zero) 1.0 (mat3-identity))]
+           [b2 (integrate-body3d 0.5 b)])
+      ;; Position should advance by vel*dt = (10,0,0)*0.5 = (5,0,0)
+      (assert-true (vec3-equal? (vec3 5 0 0) (body3d-pos b2)))))
+
+  (define-test "apply-impulse-at-point3d linear"
+    (let* ([b (make-rigid-body-3d (vec3 0 0 0) (vec3 0 0 0) (quat-identity) (vec3-zero) 10.0 (mat3-identity))]
+           ;; Apply impulse at center of mass - should only affect linear velocity
+           [b2 (apply-impulse-at-point3d (vec3 100 0 0) (vec3 0 0 0) b)])
+      ;; delta-v = J/m = (100,0,0)/10 = (10,0,0)
+      (assert-true (vec3-equal? (vec3 10 0 0) (body3d-vel b2)))))
+
+  (define-test "apply-force3d-via-lens"
+    (let* ([b (make-rigid-body-3d (vec3 0 0 0) (vec3 0 0 0) (quat-identity) (vec3-zero) 10.0 (mat3-identity))]
+           [b2 (apply-force3d-via-lens body3d-vel-lens body3d-mass-lens (vec3 100 0 0) 1.0 b)])
+      ;; delta-v = F*dt/m = 100*1.0/10 = 10
+      (assert-true (vec3-equal? (vec3 10 0 0) (body3d-vel b2))))))
+
+;;; ============================================================
 ;;; Run Tests
 ;;; ============================================================
 
