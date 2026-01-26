@@ -257,8 +257,8 @@
                                                              ;; Count subgoals this builder needs
                                                              ;; (simplified: assume 1 for now)
                                                              [n 1]
-                                                             [these-proofs (take ps n)]
-                                                             [rest-proofs (drop ps n)]
+                                                             [these-proofs (take n ps)]
+                                                             [rest-proofs (drop n ps)]
                                                              [proof (apply b these-proofs)])
                                                             (distribute (cdr bs) rest-proofs
                                                                         (cons proof acc))))))])
@@ -368,19 +368,7 @@
 ;;; Helper Functions
 ;;; ====
 
-;;; take : (List α) × Nat → (List α)
-(define (take lst n)
-  (if (or (null? lst) (<= n 0))
-      '()
-      (cons (car lst) (take (cdr lst) (- n 1)))))
-
-;;; drop : (List α) × Nat → (List α)
-(define (drop lst n)
-  (if (or (null? lst) (<= n 0))
-      lst
-      (drop (cdr lst) (- n 1))))
-
-;; filter, ormap provided by prelude
+;; take, drop, filter, ormap provided by prelude
 
 ;;; ====
 ;;; Proof Execution

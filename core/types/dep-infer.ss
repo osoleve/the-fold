@@ -1019,7 +1019,7 @@
               (if (< (length args) (length param-types))
                   ;; Partial application
                   (let ([remaining-params (list-tail param-types (length args))])
-                       (dep-check-args args (take param-types (length args)) ctx
+                       (dep-check-args args (take (length args) param-types) ctx
                                        (lambda () `(ok ,(cons '-> (append remaining-params (list return-type)))))))
                   ;; Full application
                   (dep-check-args args param-types ctx
@@ -1027,11 +1027,7 @@
        
        [else `(error not-a-function ,func-type)])))
 
-;;; take : (List a) x Int -> (List a)
-(define (take lst n)
-  (if (or (null? lst) (<= n 0))
-      '()
-      (cons (car lst) (take (cdr lst) (- n 1)))))
+;; take provided by prelude
 
 ;;; ====
 ;;; Type Checking

@@ -413,8 +413,8 @@
                              (loop (cdr cs)
                                    (append missing
                                            (map (lambda (m)
-                                                        (let ([subpats (take m arity)]
-                                                              [rest (drop m arity)])
+                                                        (let ([subpats (take arity m)]
+                                                              [rest (drop arity m)])
                                                              (cons (make-ctor-pattern tag subpats)
                                                                    rest)))
                                                 ctor-missing))))))))]))
@@ -588,19 +588,7 @@
       '()
       (cons x (make-list (- n 1) x))))
 
-(define (take lst n)
-  (doc 'type '(-> (List α) Nat (List α)))
-  (doc 'description "Take first n elements from list.")
-  (if (or (null? lst) (<= n 0))
-      '()
-      (cons (car lst) (take (cdr lst) (- n 1)))))
-
-(define (drop lst n)
-  (doc 'type '(-> (List α) Nat (List α)))
-  (doc 'description "Drop first n elements from list.")
-  (if (or (null? lst) (<= n 0))
-      lst
-      (drop (cdr lst) (- n 1))))
+;; take, drop provided by prelude
 
 (define (filter-map f lst)
   (doc 'type '(-> (-> α (+ β #f)) (List α) (List β)))
