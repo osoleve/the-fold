@@ -70,8 +70,8 @@
                  [rhs (equality-rhs prop)])
                 (if (not (equal? lhs rhs))
                     ;; Try normalizing both sides
-                    (let ([lhs-norm (normalize-closed lhs)]
-                          [rhs-norm (normalize-closed rhs)])
+                    (let ([lhs-norm (nbe-type-normalize-closed lhs)]
+                          [rhs-norm (nbe-type-normalize-closed rhs)])
                          (if (equal? lhs-norm rhs-norm)
                              ;; Sides are definitionally equal after normalization
                              (tactic-success '() (lambda () `(refl ,A ,lhs)))
