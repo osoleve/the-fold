@@ -186,6 +186,18 @@
       0
       (+ 1 (heap-size (heap-left heap)) (heap-size (heap-right heap)))))
 
+(define (heap-fold fn init heap)
+  (doc 'type '(-> (-> β α β) β Heap β))
+  (doc 'description "Fold over all heap elements via tree traversal. Order is unspecified (not heap order).")
+  (doc 'complexity "O(n)")
+  (if (heap-empty? heap)
+      init
+      (heap-fold fn
+                 (heap-fold fn
+                            (fn init (heap-value heap))
+                            (heap-left heap))
+                 (heap-right heap))))
+
 (define (list->heap lst)
   (doc 'type '(-> (List α) Heap))
   (doc 'description "Build min-heap from list.")

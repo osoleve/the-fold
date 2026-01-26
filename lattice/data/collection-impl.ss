@@ -135,12 +135,9 @@ After loading this module, generic operations work across all collection types:
 
 (implement-protocol! 'coll-fold 'heap-node
   (lambda (heap fn init)
-    ;; Fold by repeatedly extracting min (heap order traversal)
-    ;; Note: This is O(n log n) due to delete-min operations
-    (let loop ([h heap] [acc init])
-      (if (heap-empty? h)
-          acc
-          (loop (heap-delete-min h) (fn acc (heap-value h)))))))
+    ;; Direct tree traversal - O(n) instead of O(n log n)
+    ;; Note: Order is unspecified (not heap order). Use prio-pop for ordered access.
+    (heap-fold fn init heap)))
 
 (implement-protocol! 'coll-to-list 'heap-node
   (lambda (heap) (heap->list heap)))

@@ -717,12 +717,16 @@
 ;;; Initialization
 ;;; ====
 
-(display "posix-ffi.ss loaded.\n")
-(display "  (posix-load!)                   - Load FFI library\n")
-(display "  (posix-getpid)                  - Get real OS PID\n")
-(display "  (posix-fdatasync fd)            - Force data to disk (fast)\n")
-(display "  (posix-fsync fd)                - Force data+metadata to disk\n")
-(display "  (posix-stat path)               - Get file metadata\n")
-(display "  (posix-fstat fd)                - Get metadata via fd\n")
-(display "  (with-flock-lock path thunk)    - Execute with advisory lock\n")
-(display "  (run-posix-tests)               - Run tests\n")
+;; Only show load message on first load
+(unless (top-level-bound? '*posix-ffi-loaded*)
+  (display "posix-ffi.ss loaded.\n")
+  (display "  (posix-load!)                   - Load FFI library\n")
+  (display "  (posix-getpid)                  - Get real OS PID\n")
+  (display "  (posix-fdatasync fd)            - Force data to disk (fast)\n")
+  (display "  (posix-fsync fd)                - Force data+metadata to disk\n")
+  (display "  (posix-stat path)               - Get file metadata\n")
+  (display "  (posix-fstat fd)                - Get metadata via fd\n")
+  (display "  (with-flock-lock path thunk)    - Execute with advisory lock\n")
+  (display "  (run-posix-tests)               - Run tests\n"))
+
+(define *posix-ffi-loaded* #t)

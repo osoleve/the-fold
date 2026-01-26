@@ -70,15 +70,29 @@ Example:
 
 (define (coll-any? coll pred)
   (doc 'type '(-> Collection (-> Element Boolean) Boolean))
-  (doc 'description "Check if any element satisfies predicate")
-  ;; Note: This doesn't short-circuit due to fold semantics
-  ;; For large collections, consider type-specific implementation
-  (> (coll-count coll pred) 0))
+  (doc 'description "Check if any element satisfies predicate. Short-circuits on first match.")
+  (call/cc
+   (lambda (return)
+     (coll-fold coll
+                (lambda (acc elem)
+                  (if (pred elem)
+                      (return #t)
+                      acc))
+                #f)
+     #f)))
 
 (define (coll-all? coll pred)
   (doc 'type '(-> Collection (-> Element Boolean) Boolean))
-  (doc 'description "Check if all elements satisfy predicate")
-  (= (coll-count coll pred) (coll-size coll)))
+  (doc 'description "Check if all elements satisfy predicate. Short-circuits on first mismatch.")
+  (call/cc
+   (lambda (return)
+     (coll-fold coll
+                (lambda (acc elem)
+                  (if (pred elem)
+                      acc
+                      (return #f)))
+                #t)
+     #t)))
 
 (define (coll-filter-list coll pred)
   (doc 'type '(-> Collection (-> Element Boolean) (List Element)))
@@ -100,10 +114,16 @@ Example:
 
 (define (coll-find coll pred)
   (doc 'type '(-> Collection (-> Element Boolean) (Maybe Element)))
-  (doc 'description "Find first element satisfying predicate, or #f")
-  ;; Note: Doesn't short-circuit - finds first in traversal order
-  (let ([matches (coll-filter-list coll pred)])
-    (if (null? matches) #f (car matches))))
+  (doc 'description "Find first element satisfying predicate, or #f. Short-circuits on first match.")
+  (call/cc
+   (lambda (return)
+     (coll-fold coll
+                (lambda (acc elem)
+                  (if (pred elem)
+                      (return elem)
+                      acc))
+                #f)
+     #f)))
 
 (define (coll-partition coll pred)
   (doc 'type '(-> Collection (-> Element Boolean) (Values (List Element) (List Element))))

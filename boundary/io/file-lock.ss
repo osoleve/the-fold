@@ -271,9 +271,13 @@
 
 (doc 'section 'help)
 
-(display "file-lock.ss loaded.\n")
-(display "  Lock:   (with-file-lock path thunk)\n")
-(display "  Manual: (acquire-file-lock path), (release-file-lock path)\n")
-(display "  Info:   (current-process-id)\n")
-(when (check-posix-ffi!)
-  (display "  POSIX FFI available - using flock() for automatic cleanup\n"))
+;; Only show load message on first load
+(unless (top-level-bound? '*file-lock-loaded*)
+  (display "file-lock.ss loaded.\n")
+  (display "  Lock:   (with-file-lock path thunk)\n")
+  (display "  Manual: (acquire-file-lock path), (release-file-lock path)\n")
+  (display "  Info:   (current-process-id)\n")
+  (when (check-posix-ffi!)
+    (display "  POSIX FFI available - using flock() for automatic cleanup\n")))
+
+(define *file-lock-loaded* #t)
