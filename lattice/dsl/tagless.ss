@@ -303,12 +303,6 @@
 (define (cond-if-lazy d c t-thunk e-thunk)
   ((dict-ref d 'if) c t-thunk e-thunk))
 
-;;; cond-if : Dict × Boolean × α × α → α
-;;; DEPRECATED: Both branches are eagerly evaluated before the condition
-;;; is checked. Use cond-if-lazy instead for correct short-circuit behavior.
-(define (cond-if d c t e) ((dict-ref d 'if) c (lambda () t) (lambda () e)))
-(doc 'export #t)
-
 ;;; Evaluator uses thunks for short-circuit semantics
 (define eval-cond-dict
   (make-cond-dict

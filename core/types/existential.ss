@@ -109,14 +109,6 @@
                (list w)))  ; Single type, wrap in list
       '()))
 
-;;; pack-witness-type : SExpr → Type
-;;; Get the witness type (for single-var pack, returns single type).
-;;; DEPRECATED: Use pack-witness-types for multi-var support.
-(define (pack-witness-type e)
-  (if (pack-well-formed? e)
-      (cadr e)
-      #f))
-
 ;;; pack-value : SExpr → SExpr
 ;;; Get the value being packed.
 (define (pack-value e)
@@ -162,14 +154,6 @@
                (car binding)  ; Multi-var: ((a b ...) val) -> (a b ...)
                (list (car binding))))  ; Single-var: (a val) -> (a)
       '()))
-
-;;; unpack-type-var : SExpr → Symbol
-;;; Get the type variable name (for single-var unpack).
-;;; DEPRECATED: Use unpack-type-vars for multi-var support.
-(define (unpack-type-var e)
-  (if (unpack-well-formed? e)
-      (car (caadr e))
-      #f))
 
 ;;; unpack-val-var : SExpr → Symbol
 ;;; Get the value variable name.
