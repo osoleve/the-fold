@@ -89,11 +89,12 @@
 
 ;;; enode-equal? : ENode × ENode → Boolean
 ;;; Structural equality (assumes already canonicalized or same UF context).
+;;; Uses eqv? for op comparison to handle both symbols and numbers.
 (define (enode-equal? e1 e2)
   (doc 'type (-> ENode ENode Boolean))
   (doc 'description "Check structural equality of two e-nodes.")
   (doc 'export #t)
-  (and (eq? (enode-op e1) (enode-op e2))
+  (and (eqv? (enode-op e1) (enode-op e2))
        (let ([c1 (enode-children e1)]
              [c2 (enode-children e2)])
          (and (= (vector-length c1) (vector-length c2))
@@ -105,12 +106,19 @@
 ;;; enode-hash : ENode → Fixnum
 ;;; Hash function for e-nodes (for hashcons table).
 ;;; Bounded to avoid bignum promotion in hashtable lookups.
+;;; Supports both symbol and number operators.
 (define (enode-hash enode)
   (doc 'type (-> ENode Fixnum))
   (doc 'description "Compute hash of an e-node for hashconsing.")
   (doc 'export #t)
-  (let ([children (enode-children enode)]
-        [h (fxand (symbol-hash (enode-op enode)) #xFFFFFF)])
+  (let* ([op (enode-op enode)]
+         [children (enode-children enode)]
+         [h (fxand (if (symbol? op)
+                       (symbol-hash op)
+                       (if (number? op)
+                           (abs (exact (truncate op)))
+                           0))
+                   #xFFFFFF)])
     (do ([i 0 (+ i 1)]
          [acc h (fxand (+ (* acc 31) (vector-ref children i)) #xFFFFFF)])
         ((>= i (vector-length children)) acc))))
@@ -379,15 +387,21 @@
 
 ;;; enode->string : ENode → String
 ;;; Convert e-node to readable string.
+(define (op->string op)
+  (cond
+    [(symbol? op) (symbol->string op)]
+    [(number? op) (number->string op)]
+    [else "?"]))
+
 (define (enode->string enode)
   (doc 'type (-> ENode String))
   (doc 'description "Convert e-node to string representation.")
   (doc 'export #t)
   (let ([children (enode-children enode)])
     (if (zero? (vector-length children))
-        (symbol->string (enode-op enode))
+        (op->string (enode-op enode))
         (string-append "("
-                       (symbol->string (enode-op enode))
+                       (op->string (enode-op enode))
                        " "
                        (let loop ([i 0] [acc ""])
                          (if (>= i (vector-length children))

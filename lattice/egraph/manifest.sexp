@@ -61,16 +61,25 @@
     pattern-apply
     make-rule rule? rule-lhs rule-rhs
     apply-rule apply-rules
-    subst->string pattern->string))
+    subst->string pattern->string)
+   (saturation
+    make-saturation-config saturation-config? default-saturation-config
+    config-fuel config-node-limit config-iter-limit
+    saturation-result? result-status result-iterations result-rules-applied
+    result-final-classes result-final-nodes result-saturated?
+    saturate saturate-simple saturate-with-fuel
+    arith-identity-rules arith-comm-rules arith-assoc-rules
+    arith-distrib-rules basic-arith-rules full-arith-rules
+    result->string saturation-debug))
 
   (modules
    (("union-find.ss" "Disjoint set with path compression and union by rank")
     ("eclass.ss" "E-node and e-class representation for e-graphs")
     ("egraph.ss" "E-graph with hashconsing, merging, and rebuild")
-    ("match.ss" "Pattern matching and rewrite rules for e-graphs")))
+    ("match.ss" "Pattern matching and rewrite rules for e-graphs")
+    ("saturation.ss" "Equality saturation loop with resource limits")))
 
   (future-work
    "scheduler.ss - Rule scheduling with backoff"
-   "saturation.ss - Equality saturation loop"
    "cost.ss - CUDA cost model"
    "extract.ss - Cost-based extraction"))
