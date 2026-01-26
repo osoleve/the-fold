@@ -83,7 +83,16 @@
     extract extract-term extract-all
     optimize optimize-with-config
     extraction-report compare-extractions
-    extraction-debug optimize-debug))
+    extraction-debug optimize-debug)
+   (scheduler
+    make-rule-stats rule-stats? stats-rule stats-priority
+    update-stats! should-run?
+    make-scheduler scheduler? scheduler-name
+    simple-scheduler make-backoff-scheduler
+    make-worklist-scheduler make-priority-scheduler
+    saturate-scheduled scheduled-iteration
+    optimize-scheduled
+    scheduler->string rule-stats->string scheduler-stats-report))
 
   (modules
    (("union-find.ss" "Disjoint set with path compression and union by rank")
@@ -92,7 +101,5 @@
     ("match.ss" "Pattern matching and rewrite rules for e-graphs")
     ("saturation.ss" "Equality saturation loop with resource limits")
     ("cost.ss" "Cost models for CUDA, CPU, and code size optimization")
-    ("extract.ss" "Cost-based extraction from e-graphs")))
-
-  (future-work
-   "scheduler.ss - Rule scheduling with backoff"))
+    ("extract.ss" "Cost-based extraction from e-graphs")
+    ("scheduler.ss" "Rule scheduling with backoff and priority strategies"))))
