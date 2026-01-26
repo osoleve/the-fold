@@ -168,36 +168,70 @@
        '(0 1 42 -5 100)))))
 
 ;;; ============================================================
-;;; Codensity List (Difference Lists)
+;;; Codensity List
 ;;; ============================================================
 
-(test-group "Codensity List (Difference Lists)"
+(test-group "Codensity List"
 
   (define-test "codensity-list-singleton creates single element"
     (let ([c (codensity-list-singleton 42)])
       (assert-equal '(42) (codensity-list-lower c))))
 
-  (define-test "codensity-list-append combines lists"
+  (define-test "codensity-list with bind composes monadic computations"
+    ;; Codensity provides O(1) bind, not O(1) append
     (let* ([c1 (codensity-list-singleton 1)]
-           [c2 (codensity-list-singleton 2)]
-           [combined (codensity-list-append c1 c2)])
-      (assert-equal '(1 2) (codensity-list-lower combined))))
+           [c2 (codensity-bind c1 (lambda (x)
+                                    (codensity-list-singleton (+ x 10))))])
+      (assert-equal '(11) (codensity-list-lower c2)))))
 
-  (define-test "codensity-list-append is associative"
-    (let* ([c1 (codensity-list-singleton 1)]
-           [c2 (codensity-list-singleton 2)]
-           [c3 (codensity-list-singleton 3)]
-           [left-assoc (codensity-list-append (codensity-list-append c1 c2) c3)]
-           [right-assoc (codensity-list-append c1 (codensity-list-append c2 c3))])
-      (assert-equal (codensity-list-lower left-assoc)
-                    (codensity-list-lower right-assoc))))
+;;; ============================================================
+;;; Difference Lists (True O(1) Append)
+;;; ============================================================
 
-  (define-test "many appends produce correct result"
-    (let* ([singles (map codensity-list-singleton '(1 2 3 4 5))]
-           [combined (fold-left codensity-list-append
-                                (codensity-list-singleton 0)
+(test-group "Difference Lists"
+
+  (define-test "dlist-singleton creates single element"
+    (assert-equal '(42) (dlist-to-list (dlist-singleton 42))))
+
+  (define-test "dlist-append combines lists in O(1)"
+    (let* ([d1 (dlist-singleton 1)]
+           [d2 (dlist-singleton 2)]
+           [combined (dlist-append d1 d2)])
+      (assert-equal '(1 2) (dlist-to-list combined))))
+
+  (define-test "dlist-append is associative"
+    (let* ([d1 (dlist-singleton 1)]
+           [d2 (dlist-singleton 2)]
+           [d3 (dlist-singleton 3)]
+           [left-assoc (dlist-append (dlist-append d1 d2) d3)]
+           [right-assoc (dlist-append d1 (dlist-append d2 d3))])
+      (assert-equal (dlist-to-list left-assoc)
+                    (dlist-to-list right-assoc))))
+
+  (define-test "many dlist appends produce correct result"
+    (let* ([singles (map dlist-singleton '(1 2 3 4 5))]
+           [combined (fold-left dlist-append
+                                (dlist-singleton 0)
                                 singles)])
-      (assert-equal '(0 1 2 3 4 5) (codensity-list-lower combined)))))
+      (assert-equal '(0 1 2 3 4 5) (dlist-to-list combined))))
+
+  (define-test "dlist-from-list round trips"
+    (assert-equal '(a b c) (dlist-to-list (dlist-from-list '(a b c)))))
+
+  (define-test "dlist-cons prepends element"
+    (let ([dl (dlist-cons 1 (dlist-cons 2 (dlist-singleton 3)))])
+      (assert-equal '(1 2 3) (dlist-to-list dl))))
+
+  (define-test "dlist-snoc appends element"
+    (let ([dl (dlist-snoc (dlist-snoc (dlist-singleton 1) 2) 3)])
+      (assert-equal '(1 2 3) (dlist-to-list dl))))
+
+  (define-test "dlist-empty is identity for append"
+    (let ([d (dlist-singleton 42)])
+      (assert-equal (dlist-to-list d)
+                    (dlist-to-list (dlist-append dlist-empty d)))
+      (assert-equal (dlist-to-list d)
+                    (dlist-to-list (dlist-append d dlist-empty))))))
 
 ;;; ============================================================
 ;;; Codensity Maybe

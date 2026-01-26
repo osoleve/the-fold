@@ -246,8 +246,8 @@
     make-codensity codensity? codensity-return-fn codensity-run
     codensity-return codensity-bind codensity-map
     codensity-lift codensity-lower
-    ;; Codensity List
-    codensity-list-singleton codensity-list-append codensity-list-lower
+    ;; Codensity List (use dlist-* for O(1) append)
+    codensity-list-singleton codensity-list-lower
     ;; True Difference Lists (O(1) append)
     make-dlist dlist? dlist-prepend dlist-empty
     dlist-singleton dlist-from-list dlist-append

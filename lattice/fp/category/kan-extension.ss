@@ -370,41 +370,28 @@ the (a -> M r) functions waiting to be applied.")
 ;;; Same pattern!
 
 (doc 'section 'codensity-list)
-(doc 'description "Codensity for List (Difference Lists)
+(doc 'description "Codensity for List
 
-A classic example: Codensity List is isomorphic to difference lists,
-giving O(1) append instead of O(n).
+IMPORTANT: Codensity provides O(1) BIND, not O(1) append.
 
-Normal list append: [1,2] ++ [3,4] = 1 : 2 : [3,4] (traverses left list)
-Difference list: (\\xs -> 1:2:xs) . (\\xs -> 3:4:xs) = \\xs -> 1:2:3:4:xs
+If you want O(1) append (difference lists), use the dlist-* functions below.
+Codensity List is useful when you have many monadic binds (>>=) but don't
+need efficient concatenation.
 
-However, there are TWO representations:
-
-1. Generic Codensity: forall r. (a -> [r]) -> [r]
-   - This gives O(1) BIND, but append still uses append internally
-   - Use codensity-list-singleton and codensity-list-append
-
-2. True Difference Lists: [a] -> [a] (endomorphisms)
-   - This gives O(1) APPEND via function composition
-   - Use dlist-* functions below")
+Common confusion: 'Codensity List ~ difference lists' is about representation
+isomorphism, not operational equivalence. The O(1) append comes from the
+dlist encoding ([a] -> [a] endomorphisms), not from Codensity's CPS encoding.")
 
 ;;; codensity-list-singleton : a -> Codensity List a
+;;; Create a single-element Codensity List.
+;;; Use codensity-bind for monadic composition (O(1)).
+;;; For list concatenation with O(1) append, use dlist-* instead.
 (define (codensity-list-singleton x)
   (make-codensity list
                   (lambda (k) (k x))))
 
-;;; codensity-list-append : Codensity List a -> Codensity List a -> Codensity List a
-;;; NOTE: This is NOT true O(1) append! It uses `append` internally.
-;;; For true O(1) append, use the dlist-* functions below.
-;;; This function provides correct semantics but O(n) performance where
-;;; n is the length of the first list.
-(define (codensity-list-append c1 c2)
-  (make-codensity list
-                  (lambda (k)
-                    (append ((codensity-run c1) k)
-                            ((codensity-run c2) k)))))
-
 ;;; codensity-list-lower : Codensity List a -> List a
+;;; Lower Codensity back to a regular list.
 (define (codensity-list-lower c)
   ((codensity-run c) list))
 
@@ -624,7 +611,7 @@ Codensity reassociates to right-associative (O(n)).")
 ;;;   make-codensity, codensity?, codensity-return-fn, codensity-run
 ;;;   codensity-return, codensity-bind, codensity-map
 ;;;   codensity-lift, codensity-lower
-;;;   codensity-list-singleton, codensity-list-append, codensity-list-lower
+;;;   codensity-list-singleton, codensity-list-lower
 ;;;   codensity-maybe-return, codensity-maybe-bind, codensity-maybe-fail
 ;;;   make-codensity-monad, codensity-monad-return, codensity-monad-bind
 ;;;   codensity-monad-lift, codensity-monad-lower

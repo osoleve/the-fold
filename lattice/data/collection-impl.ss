@@ -219,7 +219,7 @@ After loading this module, generic operations work across all collection types:
 
 ;; Core protocols - internal nodes
 (implement-protocol! 'coll-empty? 'quadtree-node
-  (lambda (tree) #f))  ; Internal nodes always have children
+  (lambda (tree) (= 0 (quadtree-size tree))))  ; Check logical emptiness, not structural
 
 (implement-protocol! 'coll-size 'quadtree-node
   (lambda (tree) (quadtree-size tree)))
