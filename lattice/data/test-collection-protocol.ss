@@ -237,6 +237,16 @@
       ;; Should return the point data (x y data)
       (assert-true (pair? nearest))))
 
+  (define-test "spatial-knn finds k nearest"
+    (let ([knn (spatial-knn test-quadtree '(5 5) 3)])
+      (assert-equal 3 (length knn))
+      ;; First result should be closest - point at or near (5,4)
+      (let* ([first-pt (car knn)]
+             [x (car first-pt)]
+             [y (cadr first-pt)])
+        ;; (5 4) is in our test data and closest to (5,5)
+        (assert-true (and (= x 5) (= y 4))))))
+
   (define-test "spatial-range finds points in box"
     (let ([in-range (spatial-range test-quadtree '(3 2) '(6 5))])
       (assert-true (>= (length in-range) 1))))

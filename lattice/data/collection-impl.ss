@@ -36,7 +36,6 @@ After loading this module, generic operations work across all collection types:
 (implement-protocol! 'coll-fold 'avl-empty (lambda (tree fn init) init))
 (implement-protocol! 'coll-to-list 'avl-empty (lambda (tree) '()))
 (implement-protocol! 'keyed-lookup 'avl-empty (lambda (tree key) #f))
-(implement-protocol! 'keyed-ref 'avl-empty (lambda (tree key) nothing))
 (implement-protocol! 'keyed-insert 'avl-empty
   (lambda (tree key value) (avl-insert key value avl-empty)))
 (implement-protocol! 'keyed-delete 'avl-empty (lambda (tree key) tree))
@@ -75,6 +74,7 @@ After loading this module, generic operations work across all collection types:
 (implement-protocol! 'coll-fold 'quadtree-empty (lambda (tree fn init) init))
 (implement-protocol! 'coll-to-list 'quadtree-empty (lambda (tree) '()))
 (implement-protocol! 'spatial-nearest 'quadtree-empty (lambda (tree query) #f))
+(implement-protocol! 'spatial-knn 'quadtree-empty (lambda (tree query k) '()))
 (implement-protocol! 'spatial-range 'quadtree-empty (lambda (tree min-pt max-pt) '()))
 (implement-protocol! 'spatial-radius 'quadtree-empty (lambda (tree center radius) '()))
 (implement-protocol! 'spatial-contains? 'quadtree-empty (lambda (tree point) #f))
@@ -83,6 +83,7 @@ After loading this module, generic operations work across all collection types:
 ;;; AVL Tree Implementation
 ;;; ============================================================
 ;;; AVL implements: Core + Keyed protocols
+;;; Fold traversal: in-order by key (sorted ascending)
 
 (doc 'section 'avl-implementation)
 
@@ -106,12 +107,6 @@ After loading this module, generic operations work across all collection types:
 (implement-protocol! 'keyed-lookup 'avl-node
   (lambda (tree key) (avl-lookup key tree)))
 
-(implement-protocol! 'keyed-ref 'avl-node
-  (lambda (tree key)
-    (if (avl-contains? key tree)
-        (just (avl-lookup key tree))
-        nothing)))
-
 (implement-protocol! 'keyed-insert 'avl-node
   (lambda (tree key value) (avl-insert key value tree)))
 
@@ -131,6 +126,7 @@ After loading this module, generic operations work across all collection types:
 ;;; Heap Implementation
 ;;; ============================================================
 ;;; Heap implements: Core + Priority protocols
+;;; Fold traversal: unspecified tree order (NOT priority order; use prio-pop for that)
 
 (doc 'section 'heap-implementation)
 
@@ -169,6 +165,7 @@ After loading this module, generic operations work across all collection types:
 ;;; KD-Tree Implementation
 ;;; ============================================================
 ;;; KD-Tree implements: Core + Spatial protocols
+;;; Fold traversal: in-order (left subtree, node, right subtree)
 
 (doc 'section 'kdtree-implementation)
 
@@ -208,6 +205,7 @@ After loading this module, generic operations work across all collection types:
 ;;; ============================================================
 ;;; Quadtree implements: Core + Spatial protocols
 ;;; Note: Quadtree has two node types: quadtree-leaf and quadtree-node
+;;; Fold traversal: spatial order (SW -> SE -> NW -> NE, bottom-to-top)
 
 (doc 'section 'quadtree-implementation)
 
@@ -244,6 +242,10 @@ After loading this module, generic operations work across all collection types:
   (lambda (tree query)
     (quadtree-nearest tree (car query) (cadr query))))
 
+(implement-protocol! 'spatial-knn 'quadtree-leaf
+  (lambda (tree query k)
+    (quadtree-knn tree (car query) (cadr query) k)))
+
 (implement-protocol! 'spatial-range 'quadtree-leaf
   (lambda (tree min-pt max-pt)
     (quadtree-range-rect tree
@@ -262,6 +264,10 @@ After loading this module, generic operations work across all collection types:
 (implement-protocol! 'spatial-nearest 'quadtree-node
   (lambda (tree query)
     (quadtree-nearest tree (car query) (cadr query))))
+
+(implement-protocol! 'spatial-knn 'quadtree-node
+  (lambda (tree query k)
+    (quadtree-knn tree (car query) (cadr query) k)))
 
 (implement-protocol! 'spatial-range 'quadtree-node
   (lambda (tree min-pt max-pt)
@@ -289,14 +295,13 @@ After loading this module, generic operations work across all collection types:
 | coll-fold          |  ✓  |  ✓   |   ✓    |    ✓     |
 | coll-to-list       |  ✓  |  ✓   |   ✓    |    ✓     |
 | keyed-lookup       |  ✓  |      |        |          |
-| keyed-ref          |  ✓  |      |        |          |
 | keyed-insert       |  ✓  |      |        |          |
 | keyed-delete       |  ✓  |      |        |          |
 | keyed-contains?    |  ✓  |      |        |          |
 | keyed-keys         |  ✓  |      |        |          |
 | keyed-values       |  ✓  |      |        |          |
 | spatial-nearest    |     |      |   ✓    |    ✓     |
-| spatial-knn        |     |      |   ✓    |          |
+| spatial-knn        |     |      |   ✓    |    ✓     |
 | spatial-range      |     |      |   ✓    |    ✓     |
 | spatial-radius     |     |      |   ✓    |    ✓     |
 | spatial-contains?  |     |      |   ✓    |    ✓     |
@@ -304,6 +309,12 @@ After loading this module, generic operations work across all collection types:
 | prio-pop           |     |  ✓   |        |          |
 | prio-insert        |     |  ✓   |        |          |
 | prio-merge         |     |  ✓   |        |          |
+
+Fold traversal order:
+  AVL:      in-order by key (sorted ascending)
+  Heap:     unspecified tree traversal (NOT priority order)
+  KDTree:   in-order (left, node, right)
+  Quadtree: spatial (SW -> SE -> NW -> NE)
 ")
 
 (display "Collection implementations loaded.\n")

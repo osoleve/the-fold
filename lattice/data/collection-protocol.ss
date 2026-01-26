@@ -44,11 +44,20 @@ Example:
 (define-protocol (coll-fold coll fn init)
   "Left fold over collection elements.
    fn: (acc element) -> acc
+
    Element type varies by collection:
      - AVL: (cons key value)
      - Heap: element
      - KDTree: point
-     - Quadtree: (x y data)")
+     - Quadtree: (x y data)
+
+   Traversal order (deterministic per collection type):
+     - AVL: in-order by key (sorted ascending)
+     - Heap: unspecified tree traversal (NOT heap/priority order)
+     - KDTree: in-order (left, node, right)
+     - Quadtree: spatial order (SW -> SE -> NW -> NE)
+
+   For heap priority-order traversal, use repeated prio-pop.")
 
 (define-protocol (coll-to-list coll)
   "Convert collection to a list of elements.")
@@ -178,15 +187,6 @@ Example:
 (define-protocol (keyed-values coll)
   "Return list of all values.")
 
-;;; Generic keyed lookup with default (works on any collection with keyed-contains? and keyed-lookup)
-(define (keyed-lookup/default coll key default)
-  (doc 'type '(-> Collection Key a a))
-  (doc 'description "Look up value by key, returning default if not found.
-   This avoids the #f ambiguity by letting caller specify sentinel value.")
-  (if (keyed-contains? coll key)
-      (keyed-lookup coll key)
-      default))
-
 ;;; ============================================================
 ;;; Spatial Collection Protocols
 ;;; ============================================================
@@ -240,7 +240,7 @@ Example:
   (filter (lambda (proto)
             (type-implements? type-tag proto))
           '(coll-empty? coll-size coll-fold coll-to-list
-            keyed-lookup keyed-ref keyed-insert keyed-delete keyed-contains?
+            keyed-lookup keyed-insert keyed-delete keyed-contains?
             keyed-keys keyed-values
             spatial-nearest spatial-knn spatial-range spatial-radius spatial-contains?
             prio-peek prio-pop prio-insert prio-merge)))
@@ -267,9 +267,7 @@ Generic (work on any collection with fold):
   coll-product       - Product of elements
 
 Keyed Collection:
-  keyed-lookup       - Get by key (returns #f if missing - ambiguous for #f values)
-  keyed-ref          - Get by key (returns Maybe - unambiguous)
-  keyed-lookup/default - Get by key with fallback
+  keyed-lookup       - Get by key
   keyed-insert       - Insert key-value
   keyed-delete       - Delete by key
   keyed-contains?    - Key exists?

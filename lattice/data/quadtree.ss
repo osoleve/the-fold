@@ -1,8 +1,9 @@
 ;;; lattice/data/quadtree.ss — Quadtree for 2D Spatial Queries
 ;;; @module quadtree
-;;; @requires prelude
+;;; @requires prelude, heap
 
 (load "core/base/prelude.ss")
+(load "lattice/data/heap.ss")
 
 (doc 'module 'quadtree)
 (doc 'description "Quadtree for efficient 2D spatial queries. Uniformly subdivides space into
@@ -302,12 +303,11 @@ correct depth tracking when re-inserting existing points into child nodes.")
                   [sorted (sort-by-bounds-dist children qx qy)])
              (fold-left
               (lambda (acc child)
-                (if (quadtree-empty? child)
-                    acc
-                    (let ([child-bounds (quadtree-bounds child)])
-                      (if (> (bounds-min-dist-sq child-bounds qx qy) (cdr acc))
-                          acc  ; prune
-                          (quadtree-nearest-rec child qx qy (cdr acc) (car acc))))))
+                ;; Note: sort-by-bounds-dist already filters empty children
+                (let ([child-bounds (quadtree-bounds child)])
+                  (if (> (bounds-min-dist-sq child-bounds qx qy) (cdr acc))
+                      acc  ; prune
+                      (quadtree-nearest-rec child qx qy (cdr acc) (car acc)))))
               (cons best-point best-dist)
               sorted))))]))
 
@@ -327,6 +327,83 @@ correct depth tracking when re-inserting existing points into child nodes.")
           (< (bounds-min-dist-sq (quadtree-bounds a) qx qy)
              (bounds-min-dist-sq (quadtree-bounds b) qx qy)))
         (filter (lambda (c) (not (quadtree-empty? c))) children)))
+
+;;; ============================================================
+;;; K-Nearest Neighbors
+;;; ============================================================
+
+(doc 'section 'k-nearest-neighbors)
+
+;; Comparator for (distance-sq . point) pairs - max-heap by distance
+(define (quadtree-knn-pair-greater? p1 p2)
+  (>= (car p1) (car p2)))
+
+(define (quadtree-knn tree qx qy k-count)
+  (doc 'type '(-> Quadtree Num Num Nat (List Point)))
+  (doc 'description "Find k nearest points to (qx, qy). Returns list sorted by distance (closest first).
+O(k log n) average case. Uses max-heap to track k closest candidates with distance-based pruning.")
+  (if (or (quadtree-empty? tree) (<= k-count 0))
+      '()
+      (let* ([result-heap (quadtree-knn-rec tree qx qy k-count heap-empty)]
+             [pairs (quadtree-knn-heap->list result-heap)])
+        (reverse (map cdr pairs)))))
+
+;; Extract all pairs from k-NN heap (max-heap by distance)
+(define (quadtree-knn-heap->list heap)
+  (if (heap-empty? heap)
+      '()
+      (cons (heap-value heap)
+            (quadtree-knn-heap->list (heap-delete-top-by quadtree-knn-pair-greater? heap)))))
+
+(define (quadtree-knn-rec tree qx qy k-count heap)
+  ;; heap contains up to k-count (distance-sq . point) pairs as a max-heap
+  (cond
+    [(quadtree-empty? tree) heap]
+    [(quadtree-leaf? tree)
+     ;; Process all points in leaf
+     (fold-left
+      (lambda (h pt)
+        (let* ([dx (- (car pt) qx)]
+               [dy (- (cadr pt) qy)]
+               [dist-sq (+ (* dx dx) (* dy dy))]
+               [current-size (heap-size h)]
+               [threshold (if (or (= current-size 0) (< current-size k-count))
+                             +inf.0
+                             (car (heap-value h)))])
+          (if (< dist-sq threshold)
+              (let ([h2 (heap-insert-by quadtree-knn-pair-greater? (cons dist-sq pt) h)])
+                (if (> (heap-size h2) k-count)
+                    (heap-delete-top-by quadtree-knn-pair-greater? h2)
+                    h2))
+              h)))
+      heap
+      (quadtree-leaf-points tree))]
+    [(quadtree-node? tree)
+     ;; Check if we should prune this subtree
+     (let ([bounds (quadtree-bounds tree)]
+           [current-size (heap-size heap)])
+       (let ([threshold (if (or (= current-size 0) (< current-size k-count))
+                           +inf.0
+                           (car (heap-value heap)))])
+         (if (> (bounds-min-dist-sq bounds qx qy) threshold)
+             heap  ; prune: bounds too far
+             ;; Search children, sorted by distance (closest first)
+             (let* ([children (list (quadtree-ne tree) (quadtree-nw tree)
+                                    (quadtree-se tree) (quadtree-sw tree))]
+                    [sorted (sort-by-bounds-dist children qx qy)])
+               (fold-left
+                (lambda (h child)
+                  ;; Note: sort-by-bounds-dist already filters empty children
+                  (let* ([child-bounds (quadtree-bounds child)]
+                         [h-size (heap-size h)]
+                         [child-threshold (if (or (= h-size 0) (< h-size k-count))
+                                             +inf.0
+                                             (car (heap-value h)))])
+                    (if (> (bounds-min-dist-sq child-bounds qx qy) child-threshold)
+                        h  ; prune this child
+                        (quadtree-knn-rec child qx qy k-count h))))
+                heap
+                sorted)))))]))
 
 ;;; ============================================================
 ;;; Statistics

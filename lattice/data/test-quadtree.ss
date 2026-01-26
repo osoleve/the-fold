@@ -96,6 +96,64 @@
   (let ([tree (quadtree-create (make-bounds 0 0 10 10))])
     (assert-false (quadtree-nearest tree 5 5))))
 
+(define-test "quadtree-knn basic"
+  (let* ([points '((0 0) (1 1) (2 2) (3 3) (5 5) (10 10))]
+         [tree (quadtree-build-auto points)]
+         [knn (quadtree-knn tree 0 0 3)])
+    ;; Should return 3 closest to origin
+    (assert-equal 3 (length knn))
+    ;; First should be (0 0) at distance 0
+    (assert-equal 0 (car (car knn)))
+    (assert-equal 0 (cadr (car knn)))))
+
+(define-test "quadtree-knn all points"
+  ;; When k exceeds size, return all points
+  (let* ([points '((1 1) (2 2) (3 3))]
+         [tree (quadtree-build-auto points)]
+         [knn (quadtree-knn tree 0 0 100)])
+    (assert-equal 3 (length knn))))
+
+(define-test "quadtree-knn empty tree"
+  (assert-equal '() (quadtree-knn quadtree-empty 0 0 5)))
+
+(define-test "quadtree-knn k=0"
+  (let* ([tree (quadtree-build-auto '((1 1) (2 2)))])
+    (assert-equal '() (quadtree-knn tree 0 0 0))))
+
+(define-test "quadtree-knn distance ordering"
+  ;; Verify results are sorted by distance
+  (let* ([points '((0 0) (3 0) (0 4) (10 10))]
+         [tree (quadtree-build-auto points)]
+         [knn (quadtree-knn tree 0 0 4)])
+    ;; Distances: (0,0)=0, (3,0)=3, (0,4)=4, (10,10)=sqrt(200)~14.14
+    (assert-equal 4 (length knn))
+    ;; First: (0,0)
+    (assert-equal 0 (car (car knn)))
+    ;; Second: (3,0) at distance 3
+    (assert-equal 3 (car (cadr knn)))
+    ;; Third: (0,4) at distance 4
+    (assert-equal 4 (cadr (caddr knn)))))
+
+(define-test "quadtree-knn multi-quadrant"
+  ;; Test that knn correctly visits multiple quadrants when needed
+  ;; Points placed in all 4 quadrants around origin, query from center
+  (let* ([points '((-5 -5)   ; SW quadrant
+                   (5 -5)    ; SE quadrant
+                   (-5 5)    ; NW quadrant
+                   (5 5)     ; NE quadrant
+                   (1 1)     ; NE quadrant, closest to query
+                   (-1 -1))] ; SW quadrant, second closest
+         [tree (quadtree-build-auto points)]
+         ;; Query from origin, find 3 nearest
+         [knn (quadtree-knn tree 0 0 3)])
+    ;; Should find points from multiple quadrants
+    (assert-equal 3 (length knn))
+    ;; Distances: (1,1)=sqrt(2), (-1,-1)=sqrt(2), then one of the corners at sqrt(50)
+    ;; First two should be the close ones (order may vary for equal distances)
+    (let ([first-dist (+ (* (car (car knn)) (car (car knn)))
+                         (* (cadr (car knn)) (cadr (car knn))))])
+      (assert-true (<= first-dist 2)))))  ; sqrt(2)^2 = 2
+
 (define-test "quadtree-fold"
   (let* ([points '((1 2) (3 4) (5 6))]
          [tree (quadtree-build-auto points)])
