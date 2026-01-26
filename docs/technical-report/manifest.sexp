@@ -17,6 +17,7 @@
     "05-the-type-theory.md"
     "06-the-module-system.md"
     "07-implementation.md"
+    "07b-equality-saturation.md"
     "08-developer-and-meta-tooling.md"
     "09-agent-substrate.md"
     "10-evaluation.md"
