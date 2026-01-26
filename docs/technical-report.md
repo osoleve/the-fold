@@ -5633,6 +5633,26 @@ Without scheduling, saturation is O(rules × classes × matches) per iteration. 
 - Worklist avoids redundant work on stable classes
 - Priority focuses on productive rules first
 
+**Thread Safety**
+
+The e-graph implementation is **not thread-safe**. Concurrent access to the same e-graph from multiple threads would cause data races on:
+
+| Component | Mutable State |
+|-----------|---------------|
+| Union-find | `parent` and `rank` vectors |
+| E-class store | Node lists, parent sets |
+| Hashcons table | E-node → e-class mappings |
+| Dirty worklist | Set of classes needing rebuild |
+| Statistics | Counter updates |
+
+For concurrent use cases:
+
+1. **Separate e-graphs per thread**: Each thread operates on its own e-graph instance (preferred for embarrassingly parallel workloads)
+2. **External synchronization**: Wrap e-graph operations in mutexes (simple but coarse-grained)
+3. **Functional/persistent design**: A future enhancement could use persistent data structures for lock-free concurrent reads
+
+The current design prioritizes single-threaded performance—mutation enables O(1) hashcons updates and O(α(n)) union-find operations. For CUDA codegen, where e-graphs optimize individual kernels, single-threaded operation is sufficient.
+
 ### 7b.11 Performance Characteristics
 
 | Operation | Complexity |

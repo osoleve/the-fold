@@ -5166,6 +5166,646 @@ The traditional query-dsl (<code>query-dsl.ss</code>) uses pattern matching on b
 <p>
 The optic query language is more general—it works on any data structure navigable by optics, not just CAS blocks. The two approaches complement each other: use <code>query-dsl</code> for declarative block searches, use <code>optic-query</code> for structured data navigation.</p>
 <hr>
+<h3>
+7.13 Differential Forms</h3>
+<p>
+The differential forms module (<code>lattice/diffgeo/forms.ss</code>) implements exterior calculus—the algebraic machinery for integration on manifolds. Where tangent vectors describe velocities, differential forms describe the objects that <em>measure</em> velocities.</p>
+<h4>
+7.13.1 k-Forms and Exterior Algebra</h4>
+<p>
+A <strong>k-form</strong> at a point p is an alternating multilinear map:</p>
+<pre><code>ω : (TₚM)ᵏ → ℝ
+</code></pre>
+<p>
+Alternating means swapping any two arguments negates the result. This antisymmetry is why forms integrate correctly over oriented domains.</p>
+<p>
+<strong>Representation</strong>: A k-form on an n-dimensional manifold has C(n,k) independent components, indexed by <strong>multi-indices</strong>—strictly increasing sequences (i₁ &lt; i₂ &lt; ... &lt; iₖ):</p>
+<pre><code class="language-scheme">;; 2-form in 3D has C(3,2) = 3 components: dx⁰¹, dx⁰², dx¹²
+(make-k-form point chart 2 #(a₀₁ a₀₂ a₁₂))
+
+;; Basis forms
+(k-form-basis point chart &#39;(0 1))  ; dx⁰ ∧ dx¹
+(k-form-basis point chart &#39;(1 2))  ; dx¹ ∧ dx²
+</code></pre>
+<p>
+**The exterior algebra** Λ(T*ₚM) is the graded algebra of all k-forms at a point:</p>
+<pre><code>Λ(T*ₚM) = Λ⁰ ⊕ Λ¹ ⊕ Λ² ⊕ ... ⊕ Λⁿ
+</code></pre>
+<p>
+where Λᵏ is the space of k-forms. For n dimensions, Λⁿ⁺¹ and higher are trivially zero (no room for more antisymmetric slots).</p>
+<h4>
+7.13.2 Wedge Product</h4>
+<p>
+The <strong>wedge product</strong> ∧ combines forms:</p>
+<pre><code>∧ : Λᵖ × Λᵍ → Λᵖ⁺ᵍ
+</code></pre>
+<p>
+<strong>Properties</strong>:</p>
+<ul>
+<li><strong>Bilinear</strong>: ∧ distributes over addition and scales</li><li><strong>Associative</strong>: (α ∧ β) ∧ γ = α ∧ (β ∧ γ)</li><li><strong>Graded antisymmetric</strong>: α ∧ β = (-1)ᵖᵍ β ∧ α for α ∈ Λᵖ, β ∈ Λᵍ</li></ul>
+<p>
+For basis forms, the wedge product follows the <strong>shuffle sign</strong> rule:</p>
+<pre><code>dxᴵ ∧ dxᴶ = { sgn(I,J) · dxᴵ∪ᴶ  if I ∩ J = ∅
+            { 0                  if I ∩ J ≠ ∅
+</code></pre>
+<p>
+where sgn(I,J) is the sign of the permutation that interleaves I and J into sorted order.</p>
+<pre><code class="language-scheme">(wedge alpha beta)      ; α ∧ β
+(wedge* alpha beta gamma)  ; Left-associative: (α ∧ β) ∧ γ
+
+;; Example: construct a 2-form from 1-forms
+(define dx (k-form-basis p chart &#39;(0)))
+(define dy (k-form-basis p chart &#39;(1)))
+(wedge dx dy)  ; dx ∧ dy = -dy ∧ dx
+</code></pre>
+<p>
+<strong>Complexity</strong>: O(C(n,p) · C(n,q)) for wedging a p-form with a q-form.</p>
+<h4>
+7.13.3 Exterior Derivative</h4>
+<p>
+The <strong>exterior derivative</strong> d generalizes the gradient to forms:</p>
+<pre><code>d : Λᵏ → Λᵏ⁺¹
+</code></pre>
+<p>
+For a k-form ω = Σᵢ ωᵢ dxᴵ, the exterior derivative is:</p>
+<pre><code>dω = Σᵢ Σⱼ (∂ωᵢ/∂xʲ) dxʲ ∧ dxᴵ
+</code></pre>
+<p>
+<strong>The fundamental identity</strong>: d(dω) = 0</p>
+<p>
+This <strong>nilpotency</strong> is the algebraic core of cohomology. It expresses:</p>
+<ul>
+<li>Curl of a gradient is zero</li><li>Divergence of a curl is zero</li><li>All higher analogues</li></ul>
+<pre><code class="language-scheme">;; Exterior derivative of a k-form field
+(exterior-derivative omega-field point chart)
+
+;; Differential of a scalar (0-form → 1-form)
+(d-scalar f point chart)  ; df = Σᵢ (∂f/∂xⁱ) dxⁱ
+
+;; Example: df for f(x,y) = x² + y²
+(define f (lambda (p) (+ (expt (car p) 2) (expt (cadr p) 2))))
+(d-scalar f &#39;(1 2) cartesian-chart)  ; → 2dx + 4dy
+</code></pre>
+<p>
+<strong>Leibniz rule</strong>: d(α ∧ β) = dα ∧ β + (-1)ᵖ α ∧ dβ for α ∈ Λᵖ</p>
+<p>
+The implementation uses central finite differences for partial derivatives.</p>
+<h4>
+7.13.4 Interior Product</h4>
+<p>
+The **interior product** (contraction) ι_v : Λᵏ → Λᵏ⁻¹ &quot;eats&quot; one argument:</p>
+<pre><code>(ι_v ω)(v₂,...,vₖ) = ω(v, v₂,...,vₖ)
+</code></pre>
+<p>
+For a k-form expressed in a basis, contracting removes one index at a time with appropriate signs:</p>
+<pre><code>ι_v(dxⁱ¹ ∧ ... ∧ dxⁱᵏ) = Σⱼ (-1)ʲ⁻¹ vⁱʲ (dxⁱ¹ ∧ ... ∧ d̂xⁱʲ ∧ ... ∧ dxⁱᵏ)
+</code></pre>
+<p>
+where the hat denotes omission.</p>
+<pre><code class="language-scheme">(interior-product tangent-vector k-form)
+</code></pre>
+<p>
+<strong>Cartan&#39;s formula</strong>: £<em>v = d ∘ ι</em>v + ι<em>v ∘ d, where £</em>v is the Lie derivative along v.</p>
+<h4>
+7.13.5 Hodge Star Operator</h4>
+<p>
+The <strong>Hodge star</strong> ⋆ : Λᵏ → Λⁿ⁻ᵏ is the metric-dependent duality operator:</p>
+<pre><code>α ∧ ⋆β = ⟨α, β⟩ vol
+</code></pre>
+<p>
+where vol is the volume form and ⟨·,·⟩ is the inner product on forms induced by the metric.</p>
+<p>
+For <strong>Euclidean space</strong>, the Hodge star maps basis forms to their complements with appropriate signs:</p>
+<pre><code>⋆(dxᴵ) = ε(I, Iᶜ) · dxᴵᶜ
+</code></pre>
+<p>
+where ε is the Levi-Civita symbol and Iᶜ is the complement of I in {0,...,n-1}.</p>
+<pre><code class="language-scheme">(hodge-star-euclidean omega)  ; ⋆ω (Euclidean metric)
+
+;; In 3D:
+;; ⋆dx = dy ∧ dz,  ⋆dy = -dx ∧ dz,  ⋆dz = dx ∧ dy
+;; ⋆(dx ∧ dy) = dz,  ⋆(dx ∧ dz) = -dy,  ⋆(dy ∧ dz) = dx
+;; ⋆(dx ∧ dy ∧ dz) = 1,  ⋆1 = dx ∧ dy ∧ dz
+</code></pre>
+<p>
+<strong>Key identities</strong>:</p>
+<ul>
+<li>⋆⋆ω = (-1)ᵏ⁽ⁿ⁻ᵏ⁾ ω (for Euclidean signature)</li><li>The codifferential: δ = (-1)ⁿᵏ⁺ⁿ⁺¹ ⋆ d ⋆</li><li>The Laplacian: Δ = dδ + δd</li></ul>
+<p>
+The <strong>volume form</strong> is the unique n-form that measures oriented volume:</p>
+<pre><code class="language-scheme">(volume-form point chart)  ; dx⁰ ∧ dx¹ ∧ ... ∧ dxⁿ⁻¹
+</code></pre>
+<h4>
+7.13.6 Integration on Manifolds</h4>
+<p>
+A k-form integrates over a k-dimensional domain via pullback:</p>
+<pre><code>∫_D ω = ∫_{φ(D)} φ*ω
+</code></pre>
+<p>
+where φ parameterizes the domain and φ* is the pullback.</p>
+<p>
+<strong>Line integrals</strong> (1-forms over curves):</p>
+<pre><code class="language-scheme">(integrate-1-form-line omega-field gamma t0 t1 steps)
+;; omega-field: point → 1-form
+;; gamma: t → point (curve parameterization)
+;; Returns ∫_γ ω
+</code></pre>
+<p>
+The integral evaluates ω(dγ/dt) along the curve and sums with the parameter differential.</p>
+<p>
+<strong>Surface integrals</strong> (2-forms over surfaces):</p>
+<pre><code class="language-scheme">(integrate-2-form-surface omega-field sigma u0 u1 v0 v1 u-steps v-steps)
+;; sigma: (u,v) → point (surface parameterization)
+;; Returns ∫_σ ω
+</code></pre>
+<p>
+Evaluates ω(∂σ/∂u, ∂σ/∂v) over the parameter domain.</p>
+<p>
+<strong>Stokes&#39; theorem</strong> connects these:</p>
+<pre><code>∫_M dω = ∫_∂M ω
+</code></pre>
+<p>
+The exterior derivative is the adjoint of the boundary operator. This unifies:</p>
+<ul>
+<li>Gradient theorem (0-forms)</li><li>Green&#39;s/Kelvin-Stokes theorem (1-forms)</li><li>Divergence theorem (2-forms in 3D)</li></ul>
+<h4>
+7.13.7 Pullback of Forms</h4>
+<p>
+The **pullback** f* : Λᵏ(N) → Λᵏ(M) for f : M → N is defined by:</p>
+<pre><code>(f*ω)(v₁,...,vₖ) = ω(f_*v₁,...,f_*vₖ)
+</code></pre>
+<p>
+where f_* is the pushforward (differential) of f.</p>
+<pre><code class="language-scheme">(pullback-k-form f k-form source-point source-chart target-chart)
+</code></pre>
+<p>
+The pullback commutes with the wedge product and exterior derivative:</p>
+<ul>
+<li>f*(α ∧ β) = f*α ∧ f*β</li><li>f<em>(dω) = d(f</em>ω)</li></ul>
+<p>
+This makes pullback a morphism of differential graded algebras.</p>
+<h4>
+7.13.8 Evaluation</h4>
+<p>
+A k-form applied to k tangent vectors yields a scalar:</p>
+<pre><code class="language-scheme">(k-form-apply omega (list v1 v2 ... vk))
+</code></pre>
+<p>
+The computation extracts k×k subdeterminants from the matrix of vector components, weighted by the form&#39;s components—the algebraic manifestation of alternating multilinearity.</p>
+<hr>
+<h3>
+7.14 Categorical Limits and Colimits</h3>
+<p>
+The limits module (<code>lattice/fp/category/limits.ss</code>) implements categorical limits and colimits with concrete Set semantics—element-level constructions where apexes are actual sets and projections/injections operate on individual elements.</p>
+<h4>
+7.14.1 Design Philosophy</h4>
+<p>
+Category theory traditionally defines limits abstractly via universal properties. This module grounds those abstractions in <strong>Set</strong>, providing:</p>
+<ol>
+<li><strong>Concrete apexes</strong>: Products are actual cartesian products, coproducts are disjoint unions</li><li><strong>Element-level morphisms</strong>: Projections and injections operate on single elements, not sets</li><li><strong>Compositional verification</strong>: Limits and colimits compose correctly because they share Set semantics</li><li><strong>Factorizer contracts</strong>: Universal morphisms satisfy the expected equations</li></ol>
+<p>
+<strong>Key insight</strong>: The semantic mismatch between &quot;type-level&quot; and &quot;Set-level&quot; thinking causes subtle bugs. By committing fully to Set semantics—where a product of sets A and B is the set A × B—all constructions become compatible and verify correctly.</p>
+<h4>
+7.14.2 Diagram Shapes</h4>
+<p>
+Limits and colimits are defined over <strong>diagrams</strong>, which are functors from index categories (shapes) to the target category:</p>
+<pre><code class="language-scheme">(define shape-discrete-2
+  (make-shape &#39;discrete-2 &#39;(a b) &#39;()))  ; Two objects, no morphisms
+
+(define shape-parallel-pair
+  (make-shape &#39;parallel-pair &#39;(a b)
+              &#39;((f a b) (g a b))))       ; A ⇉ B
+
+(define shape-cospan
+  (make-shape &#39;cospan &#39;(a b c)
+              &#39;((f a c) (g b c))))       ; A → C ← B
+
+(define shape-span
+  (make-shape &#39;span &#39;(a b c)
+              &#39;((f c a) (g c b))))       ; A ← C → B
+</code></pre>
+<p>
+The shape encodes the &quot;pattern&quot; that a limit or colimit completes.</p>
+<h4>
+7.14.3 Products and Coproducts</h4>
+<p>
+<strong>Binary product</strong> in Set is the cartesian product with element-level projections:</p>
+<pre><code class="language-scheme">(define (binary-product a-elements b-elements)
+  ;; Apex: actual cartesian product {(a,b) | a ∈ A, b ∈ B}
+  ;; Projections: π₁(a,b) = a, π₂(a,b) = b (element-level)
+  ;; Factorizer: given f : X → A, g : X → B, returns ⟨f,g⟩ : X → A×B
+  ...)
+
+(let* ([p (binary-product &#39;(1 2) &#39;(a b))]
+       [apex (limit-apex p)])    ; =&gt; ((1 . a) (1 . b) (2 . a) (2 . b))
+  (map (cone-project (limit-cone p) &#39;a) apex))  ; =&gt; (1 1 2 2)
+</code></pre>
+<p>
+<strong>Binary coproduct</strong> in Set is the disjoint union with tagged injections:</p>
+<pre><code class="language-scheme">(define (binary-coproduct a-elements b-elements)
+  ;; Apex: disjoint union {(left . a) | a ∈ A} ∪ {(right . b) | b ∈ B}
+  ;; Injections: ι_a(a) = (left . a), ι_b(b) = (right . b)
+  ;; Factorizer: given f : A → X, g : B → X, returns [f,g] : A+B → X
+  ...)
+
+(let* ([c (binary-coproduct &#39;(1 2) &#39;(x y))]
+       [apex (colimit-apex c)])
+  apex)  ; =&gt; ((left . 1) (left . 2) (right . x) (right . y))
+</code></pre>
+<p>
+<strong>N-ary products</strong> generalize to any number of sets:</p>
+<pre><code class="language-scheme">(n-ary-product (list &#39;(1 2) &#39;(a b) &#39;(x y)))
+;; Apex: ((1 a x) (1 a y) (1 b x) (1 b y) (2 a x) ...)
+;; Projections: dynamically named by (shape-objects shape)
+</code></pre>
+<h4>
+7.14.4 Equalizers and Coequalizers</h4>
+<p>
+The <strong>equalizer</strong> of f,g : A ⇉ B is the subobject where f and g agree:</p>
+<pre><code class="language-scheme">(define (equalizer a-elements b-elements f g)
+  ;; Apex: {a ∈ A | f(a) = g(a)}
+  ;; Projections: π_a(e) = e (inclusion), π_b(e) = f(e)
+  ;; Factorizer: given h : X → A with f∘h = g∘h, returns u : X → E
+  ...)
+
+(let* ([eq (equalizer &#39;(0 1 2 3 4 5) &#39;(0 2 4 6 8 10)
+                       add1 (lambda (x) (* x 2)))]
+       [apex (limit-apex eq)])
+  apex)  ; =&gt; (1)  ; Only x=1 satisfies x+1 = 2x
+</code></pre>
+<p>
+The <strong>coequalizer</strong> of f,g : A ⇉ B is the quotient where f(a) ~ g(a):</p>
+<pre><code class="language-scheme">(define (coequalizer a-elements b-elements f g)
+  ;; Apex: equivalence classes of B under f(a) ~ g(a)
+  ;; Quotient map: q : B → Q sends each b to its equivalence class
+  ...)
+</code></pre>
+<h4>
+7.14.5 Pullbacks and Pushouts</h4>
+<p>
+The <strong>pullback</strong> of A →f C ←g B is the fibered product:</p>
+<pre><code class="language-scheme">(define (pullback a-elements b-elements c f g)
+  ;; Apex: {(a,b) | f(a) = g(b)} (fiber product)
+  ;; Projections: π_a(a,b) = a, π_b(a,b) = b, π_c(a,b) = f(a)
+  ;; Factorizer: given h_a : X → A, h_b : X → B with f∘h_a = g∘h_b,
+  ;;            returns u : X → P where u(x) = (h_a(x), h_b(x))
+  ...)
+
+;; Example: f(x) = 2x, g(y) = y; pullback pairs (a,b) where 2a = b
+(let* ([pb (pullback &#39;(1 2 3) &#39;(2 4 6) &#39;(2 4 6)
+                      (lambda (x) (* x 2)) identity)]
+       [apex (limit-apex pb)])
+  apex)  ; =&gt; ((1 . 2) (2 . 4) (3 . 6))
+</code></pre>
+<p>
+The <strong>pushout</strong> of A ←f C →g B is the coproduct quotiented by f(c) ~ g(c):</p>
+<pre><code class="language-scheme">(define (pushout a-elements b-elements c-elements f g)
+  ;; Apex: equivalence classes of A + B under f(c) ~ g(c)
+  ;; Injections: ι_a(a) = [left(a)], ι_b(b) = [right(b)]
+  ...)
+</code></pre>
+<h4>
+7.14.6 Terminal and Initial Objects</h4>
+<p>
+The <strong>terminal object</strong> is the limit of the empty diagram—any singleton:</p>
+<pre><code class="language-scheme">(terminal-object &#39;unit)
+;; Apex: &#39;unit
+;; Factorizer: constant map ! : X → 1, !(x) = unit
+</code></pre>
+<p>
+The <strong>initial object</strong> is the colimit of the empty diagram—the empty set:</p>
+<pre><code class="language-scheme">(initial-object)
+;; Apex: &#39;()
+;; Factorizer: absurd : 0 → X (vacuously satisfied)
+</code></pre>
+<h4>
+7.14.7 Verification Functions</h4>
+<p>
+Limits and colimits must satisfy commutativity conditions. <strong>Cone verification</strong> checks that all triangles commute:</p>
+<pre><code class="language-scheme">(define (verify-cone cone)
+  ;; For each morphism f : A → B in the diagram,
+  ;; verify: d(f) ∘ π_A = π_B for all elements in apex
+  ...)
+
+(let* ([p (binary-product &#39;(1 2) &#39;(a b))]
+       [cone (limit-cone p)])
+  (verify-cone cone))  ; =&gt; #t
+</code></pre>
+<p>
+<strong>Cocone verification</strong> is dual—checking that injections commute with diagram morphisms.</p>
+<h4>
+7.14.8 Functor Preservation</h4>
+<p>
+A functor <strong>preserves limits</strong> if applying it to a limit cone yields a limit cone in the target category. The verification tests factorization:</p>
+<pre><code class="language-scheme">(define (functor-preserves-limit? F lim test-cones)
+  ;; For each test cone C, verify:
+  ;; π_obj(u(x)) = h_obj(x) for all objects and elements
+  ;; where u = factorizer(C)
+  ...)
+</code></pre>
+<p>
+This implements the universal property check: the factorizer produces the unique mediating morphism, and composition with projections recovers the original cone legs.</p>
+<h4>
+7.14.9 Composition Example</h4>
+<p>
+The Set semantics enable correct composition of different limit types:</p>
+<pre><code class="language-scheme">;; Equalizer of morphisms from a product
+(let* ([prod (binary-product &#39;(1 2) &#39;(1 2))]
+       [prod-apex (limit-apex prod)]  ; ((1.1) (1.2) (2.1) (2.2))
+       [f (lambda (p) (+ (car p) (cdr p)))]  ; a+b
+       [g (lambda (p) 3)]                     ; constant 3
+       [eq (equalizer prod-apex &#39;(2 3 4) f g)]
+       [eq-apex (limit-apex eq)])
+  eq-apex)  ; =&gt; ((1 . 2) (2 . 1))  ; pairs where a+b = 3
+</code></pre>
+<p>
+This works because:</p>
+<ol>
+<li><code>binary-product</code> returns an actual list of pairs</li><li><code>equalizer</code> filters that list element-by-element</li><li>Projections are element-level functions</li><li><code>verify-cone</code> tests commutativity pointwise</li></ol>
+<h4>
+7.14.10 General Limit Construction</h4>
+<p>
+A fundamental theorem in category theory states that <strong>any limit can be constructed from products and equalizers</strong>. The module implements this constructively:</p>
+<p>
+<strong>Theorem</strong>: For a diagram D : J → Set, the limit is:</p>
+<pre><code>Lim D = Eq(s, t : ∏D(j) ⇉ ∏D(cod f))
+</code></pre>
+<p>
+where:</p>
+<ul>
+<li>s projects to target and applies the morphism: s(x)<em>f = D(f)(x</em>{dom f})</li><li>t projects to the codomain directly: t(x)<em>f = x</em>{cod f}</li></ul>
+<p>
+<strong>Implementation</strong>:</p>
+<pre><code class="language-scheme">(define (limit-from-diagram diagram)
+  ;; Handle edge cases first
+  (cond
+    [(null? objects) (terminal-object &#39;unit)]
+    [(null? morphisms) (n-ary-product-with-names ...)]
+    [else
+      ;; General case: equalizer of product morphisms
+      (let* ([prod (n-ary-product object-elements)]
+             [s (build-source-morphism diagram)]
+             [t (build-target-morphism diagram)])
+        (equalizer prod-apex cod-product-apex s t))]))
+</code></pre>
+<p>
+The dual construction builds colimits from coproducts and coequalizers:</p>
+<pre><code class="language-scheme">(colimit-from-diagram diagram)
+;; Colim D = Coeq(s, t : ∐D(dom f) ⇉ ∐D(j))
+</code></pre>
+<p>
+<strong>Example</strong>:</p>
+<pre><code class="language-scheme">;; Pullback via general construction
+(let* ([diag (make-pullback-diagram A B C f g)]
+       [lim (limit-from-diagram diag)])
+  (limit-apex lim))  ; =&gt; {(a,b) | f(a) = g(b)}
+
+;; Pushout via general construction
+(let* ([diag (make-pushout-diagram A B C f g)]
+       [colim (colimit-from-diagram diag)])
+  (colimit-apex colim))  ; =&gt; equivalence classes under f(c) ~ g(c)
+</code></pre>
+<p>
+This unified construction simplifies reasoning about limits and ensures all limit types compose correctly—the general theorem guarantees correctness by reducing everything to the well-tested product and equalizer primitives.</p>
+<h4>
+7.14.11 API Summary</h4>
+<table>
+<thead>
+<tr>
+<th>Function</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>binary-product</code></td>
+<td><code>(List A) × (List B) → Limit</code></td>
+<td>Cartesian product</td>
+</tr>
+<tr>
+<td><code>binary-coproduct</code></td>
+<td><code>(List A) × (List B) → Colimit</code></td>
+<td>Disjoint union</td>
+</tr>
+<tr>
+<td><code>n-ary-product</code></td>
+<td><code>(List (List A)) → Limit</code></td>
+<td>N-way product</td>
+</tr>
+<tr>
+<td><code>n-ary-coproduct</code></td>
+<td><code>(List (List A)) × (List Symbol) → List</code></td>
+<td>Tagged disjoint union</td>
+</tr>
+<tr>
+<td><code>equalizer</code></td>
+<td><code>(List A) × (List B) × (A→B) × (A→B) → Limit</code></td>
+<td>Subobject where f=g</td>
+</tr>
+<tr>
+<td><code>coequalizer</code></td>
+<td><code>(List A) × (List B) × (A→B) × (A→B) → Colimit</code></td>
+<td>Quotient by f(a)~g(a)</td>
+</tr>
+<tr>
+<td><code>pullback</code></td>
+<td><code>... → Limit</code></td>
+<td>Fiber product</td>
+</tr>
+<tr>
+<td><code>pushout</code></td>
+<td><code>... → Colimit</code></td>
+<td>Amalgamated sum</td>
+</tr>
+<tr>
+<td><code>terminal-object</code></td>
+<td><code>Any → Limit</code></td>
+<td>Singleton limit</td>
+</tr>
+<tr>
+<td><code>initial-object</code></td>
+<td><code>() → Colimit</code></td>
+<td>Empty colimit</td>
+</tr>
+<tr>
+<td><code>limit-from-diagram</code></td>
+<td><code>Diagram → Limit</code></td>
+<td>General limit construction</td>
+</tr>
+<tr>
+<td><code>colimit-from-diagram</code></td>
+<td><code>Diagram → Colimit</code></td>
+<td>General colimit construction</td>
+</tr>
+<tr>
+<td><code>verify-cone</code></td>
+<td><code>Cone → Bool</code></td>
+<td>Check cone commutativity</td>
+</tr>
+<tr>
+<td><code>verify-cocone</code></td>
+<td><code>Cocone → Bool</code></td>
+<td>Check cocone commutativity</td>
+</tr>
+<tr>
+<td><code>functor-preserves-limit?</code></td>
+<td><code>Functor × Limit × (List Cone) → Bool</code></td>
+<td>Test limit preservation</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h3>
+7.15 Kleisli Categories and Monads</h3>
+<p>
+The Kleisli module (<code>lattice/fp/category/kleisli.ss</code> and <code>common-monads.ss</code>) provides categorical foundations for monadic programming—viewing monads through the lens of Kleisli categories where morphisms are effectful functions <code>A → M B</code>.</p>
+<h4>
+7.15.1 Categorical Perspective</h4>
+<p>
+Every monad M defines a <strong>Kleisli category</strong> Kleisli(M) where:</p>
+<ul>
+<li><strong>Objects</strong>: Same as the base category (types)</li><li><strong>Morphisms</strong>: A → B becomes A → M B (Kleisli arrows)</li><li><strong>Identity</strong>: return : A → M A</li><li><strong>Composition</strong>: (g &gt;=&gt; f)(x) = f(x) &gt;&gt;= g (fish operator)</li></ul>
+<p>
+This perspective clarifies why monad laws matter—they&#39;re exactly the category laws for Kleisli(M):</p>
+<table>
+<thead>
+<tr>
+<th>Monad Law</th>
+<th>Category Law</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>return &gt;&gt;= f = f</td>
+<td>Left identity: id ∘ f = f</td>
+</tr>
+<tr>
+<td>m &gt;&gt;= return = m</td>
+<td>Right identity: f ∘ id = f</td>
+</tr>
+<tr>
+<td>(m &gt;&gt;= f) &gt;&gt;= g = m &gt;&gt;= (λx. f x &gt;&gt;= g)</td>
+<td>Associativity: (h ∘ g) ∘ f = h ∘ (g ∘ f)</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-scheme">(define kc-list (make-kleisli-category monad-list))
+
+;; Kleisli arrow composition
+(define (list-dup x) (list x x))      ; A → List A
+(define (list-inc x) (list (+ x 10))) ; A → List A
+
+(let ([dup-then-inc (kleisli-&gt;&gt;&gt; kc-list list-dup list-inc)])
+  (dup-then-inc 5))  ; =&gt; (15 15)
+
+;; Law verification
+(verify-kleisli-laws kc-list list-dup list-inc some-arrow 3)  ; =&gt; #t
+</code></pre>
+<h4>
+7.15.2 Common Monads</h4>
+<p>
+The <code>common-monads.ss</code> module provides production-ready monads with proper categorical structure:</p>
+<p>
+<strong>Maybe Monad</strong> — Computations that might fail:</p>
+<pre><code class="language-scheme">(maybe-just 42)       ; Wraps a value
+maybe-nothing         ; Represents failure
+(maybe-bind m f)      ; Short-circuits on nothing
+
+;; Critical: Just #f ≠ Nothing
+(maybe-just? (maybe-just #f))    ; =&gt; #t
+(maybe-nothing? (maybe-just #f)) ; =&gt; #f
+</code></pre>
+<p>
+<strong>Either Monad</strong> — Computations with typed errors:</p>
+<pre><code class="language-scheme">(make-right value)     ; Success case
+(make-left error)      ; Failure with error info
+(either-bind e f)      ; Propagates Left, applies f to Right
+
+;; Example: Error tracking through composition
+(let ([kc-either (make-kleisli-category monad-either)])
+  (define (safe-div x)
+    (if (= x 0) (make-left &#39;div-by-zero) (make-right (/ 10 x))))
+  (define (safe-sqrt x)
+    (if (&lt; x 0) (make-left &#39;negative-sqrt) (make-right (sqrt x))))
+
+  ((kleisli-&gt;&gt;&gt; kc-either safe-div safe-sqrt) 5))  ; =&gt; (right . 1.414...)
+  ((kleisli-&gt;&gt;&gt; kc-either safe-div safe-sqrt) 0))  ; =&gt; (left . div-by-zero)
+</code></pre>
+<p>
+<strong>Reader Monad</strong> — Computations that read from an environment:</p>
+<pre><code class="language-scheme">(reader-return 42)     ; Ignores environment
+reader-ask             ; Returns environment
+(reader-asks f)        ; Applies f to environment
+(reader-local f m)     ; Runs m with modified environment
+
+(run-reader (reader-asks (lambda (e) (* e 2))) 100)  ; =&gt; 200
+</code></pre>
+<p>
+<strong>List Monad</strong> — Non-deterministic computations:</p>
+<pre><code class="language-scheme">;; Built into common-monads as monad-list
+;; return x = (list x)
+;; bind m f = (append-map f m)
+
+((kleisli-lift kc-list (lambda (x) (* x 2))) 5)  ; =&gt; (10)
+</code></pre>
+<h4>
+7.15.3 Kleisli Combinators</h4>
+<p>
+Compositional building blocks for effectful pipelines:</p>
+<pre><code class="language-scheme">;; Chain arrows sequentially
+(kleisli-sequence kc arrows)  ; (List (A → M B)) → (A → M B)
+
+;; Feed value through pipeline
+(kleisli-pipe kc init arrows) ; Value × (List Arrow) → M Value
+
+;; Repeat arrow n times
+(kleisli-replicate kc n arrow) ; Nat × Arrow → Arrow
+
+;; Lift pure function to Kleisli arrow
+(kleisli-lift kc f)            ; (A → B) → (A → M B)
+</code></pre>
+<h4>
+7.15.4 Monad Operations Structure</h4>
+<p>
+Monads are defined via <code>MonadOps</code> records:</p>
+<pre><code class="language-scheme">(define monad-maybe
+  (make-monad-ops
+    &#39;maybe                    ; name
+    maybe-return              ; return : A → M A
+    maybe-bind                ; bind : M A → (A → M B) → M B
+    maybe-fmap))              ; fmap : (A → B) → M A → M B
+
+(monad-ops? monad-maybe)      ; =&gt; #t
+(monad-ops-name monad-maybe)  ; =&gt; &#39;maybe
+</code></pre>
+<p>
+Law verification is built-in:</p>
+<pre><code class="language-scheme">(verify-left-identity monad-maybe 5 some-kleisli-arrow)
+(verify-right-identity monad-maybe (maybe-just 42))
+(verify-associativity monad-maybe m f g)
+</code></pre>
+<h4>
+7.15.5 Relationship to Optics</h4>
+<p>
+Kleisli arrows interact naturally with optics. An affine traversal is essentially a Kleisli arrow for Maybe:</p>
+<pre><code class="language-scheme">;; Affine: s → Maybe a (read), s → b → t (write)
+;; This is: s → Maybe a in Kleisli(Maybe)
+
+;; Traversal: s → [a] (read), s → (a → b) → t (write)
+;; This is related to: s → List a in Kleisli(List)
+</code></pre>
+<p>
+The connection becomes explicit in profunctor optics, where <code>Star f a b = a → f b</code> is the profunctor for Kleisli arrows of functor f.</p>
+<h4>
+7.15.6 Integration with Limits</h4>
+<p>
+The Kleisli category module shares infrastructure with the limits module:</p>
+<ul>
+<li>Both use diagrams and shapes for categorical structure</li><li>Limits in Kleisli(M) are M-valued limits (when they exist)</li><li>Factorizers follow the same universal property pattern</li></ul>
+<p>
+<strong>Example</strong>: Products in Kleisli(List) give all pairings of non-deterministic choices.</p>
+<hr>
             </section>
 
             <section id="meta-tooling">
@@ -5581,6 +6221,51 @@ The doc extraction system (<code>lattice/meta/docs.ss</code>) provides searchabl
 </tr>
 </tbody>
 </table>
+<h4>
+8.5.1 Type Checker Integration</h4>
+<p>
+Doc type annotations are <strong>authoritative</strong>—they take precedence over type inference. The integration works at two levels:</p>
+<p>
+<strong>Type Checker</strong> (<code>core/types/infer.ss</code>):</p>
+<p>
+The type inference system maintains a <code>*declared-types*</code> hashtable populated from doc annotations:</p>
+<pre><code class="language-scheme">;; Register a declared type
+(register-declared-type! &#39;my-fn &#39;(-&gt; Int Int Int))
+
+;; Look up declared type (returns #f if not found)
+(lookup-declared-type &#39;my-fn)  ; =&gt; (-&gt; Int Int Int)
+
+;; Bulk registration from doc annotations
+(register-doc-types! &#39;((foo . (-&gt; Int Bool))
+                       (bar . (-&gt; String Int))))
+</code></pre>
+<p>
+When inferring a variable&#39;s type, the system checks declared types as a fallback:</p>
+<pre><code class="language-scheme">;; In infer.ss, variable lookup now does:
+(or (tenv-lookup env expr)           ; 1. Check local environment
+    (lookup-declared-type expr))      ; 2. Check declared types
+</code></pre>
+<p>
+<strong>LSP Integration</strong> (<code>boundary/lsp/capabilities.ss</code>):</p>
+<p>
+The LSP hover provider uses doc types as the <strong>first</strong> source of type information:</p>
+<pre><code>Priority order for hover types:
+1. (doc symbol &#39;type ...) annotation  ← Author&#39;s explicit declaration
+2. Local type inference (let bindings)
+3. Global type inference (top-level defs)
+4. Symbol index / primitive database
+</code></pre>
+<p>
+The bridge function <code>load-doc-types-into-checker!</code> lazily populates the type checker&#39;s declared types from the doc index:</p>
+<pre><code class="language-scheme">;; Data flow:
+(doc f &#39;type &#39;(-&gt; Int Int)) in source
+         ↓
+docs.ss extracts to *doc-index*
+         ↓
+load-doc-types-into-checker! registers in *declared-types*
+         ↓
+infer.ss uses declared type when inferring &#39;f
+</code></pre>
 <p>
 <strong>Indexing Performance</strong>:</p>
 <p>
