@@ -384,14 +384,7 @@
                                     (display (string-append "      " (gray (cadddr r)) "\n")))))
               (reverse *test-results*))))))
 
-;;; take : Int × (List a) → (List a)
-;;; Take first n elements from list
-(define (take n lst)
-  (if (or (<= n 0) (null? lst))
-      '()
-      (cons (car lst) (take (- n 1) (cdr lst)))))
-
-;; filter provided by prelude
+;; take, filter provided by prelude
 
 ;;; sort : (a × a → Boolean) × (List a) → (List a)
 ;;; Sort list using comparison function (simple insertion sort)

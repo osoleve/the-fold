@@ -119,12 +119,7 @@
   (let ([small-primes '(2 3 5 7 11 13 17 19 23 29 31 37 41 43 47 53 59 61 67 71 73 79 83 89 97)])
     (take (min k (length small-primes)) small-primes)))
 
-;;; take : Int × (List a) → (List a)
-;;; Take first n elements of a list.
-(define (take n lst)
-  (if (or (= n 0) (null? lst))
-      '()
-      (cons (car lst) (take (- n 1) (cdr lst)))))
+;; take provided by prelude
 
 (doc 'section 'integer-factorization)
 

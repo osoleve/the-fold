@@ -538,10 +538,7 @@
 
 
 
-(define (take n lst)
-  (if (or (<= n 0) (null? lst))
-      '()
-      (cons (car lst) (take (- n 1) (cdr lst)))))
+;; take provided by prelude
 
 (define (list-tail-safe lst n)
   (if (or (<= n 0) (null? lst))

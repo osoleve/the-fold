@@ -504,9 +504,4 @@
         '()
         (take (- len n) lst))))
 
-(define (take n lst)
-  (doc 'type '(-> Nat (List α) (List α)))
-  (doc 'description "Take first n elements")
-  (if (or (<= n 0) (null? lst))
-      '()
-      (cons (car lst) (take (- n 1) (cdr lst)))))
+;; take provided by prelude
