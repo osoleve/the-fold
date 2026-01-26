@@ -51,7 +51,6 @@ After loading, the REPL will:
 ;; Metadata tagging system
 (load "core/lang/parse.ss")
 (load "lattice/query/patterns-parse.ss")  ; Tag extraction (extract-tags, has-tag?, get-tag)
-(load "lattice/query/query.ss")
 
 ;; Standard library: Store API and Collection Utilities
 (load "boundary/storage/store-api.ss")
@@ -168,10 +167,9 @@ After loading, the REPL will:
   (display "    (bx-help)              Show all explorer commands\n")
   (display "\n")
   (display "  METADATA TAGS:\n")
-  (display "    (tags)                 Show all @tags in use\n")
-  (display "    (tag-report)           Tag frequency histogram\n")
-  (display "    (find-tagged (fs) k v) Find blocks with @key:value\n")
   (display "    (extract-tags text)    Parse @tags from text\n")
+  (display "    (has-tag? tags key)    Check if tag exists\n")
+  (display "    (get-tag tags key)     Get tag value\n")
   (display "\n")
   (display "  TYPED EVALUATION:\n")
   (display "    (fold-eval expr)       Evaluate a Fold expression\n")

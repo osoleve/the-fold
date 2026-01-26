@@ -629,12 +629,6 @@ Note: Complex poles with non-zero imaginary parts not yet supported.")
                                   [X-new (matrix-sub X (matrix-scale alpha residual))])
                                  (loop X-new (+ iter 1)))))))))
 
-(define (lyapunov-solve-simple A Q max-iter)
-  (doc 'type "Matrix × Matrix × Nat → Matrix")
-  (doc 'description "DEPRECATED: Use lyapunov-solve instead for better numerical properties. Simple iterative Lyapunov solver: A'X + XA = -Q")
-  (doc 'deprecated #t)
-  (lyapunov-solve-iterative A Q max-iter))
-
 (define (matrix-frobenius-norm-local M)
   (doc 'type "Matrix → Number")
   (let* ([rows (matrix-rows M)]

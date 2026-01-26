@@ -668,27 +668,6 @@
                     z  ; Index out of bounds, return current
                     (navigate (from-just child-z) (cdr remaining)))))))))
 
-;;; navigate-to-position : (Tree a) x (List a) -> (TreeZipper a)
-;;; Navigate from root following path values (heuristic - matches by value).
-;;; DEPRECATED: Use navigate-to-indices for Comonad operations.
-;;; Note: This is a simplified implementation that works when values are unique.
-(define (navigate-to-position tree path)
-  (let ([z (tree->zipper tree)])
-    ;; Skip root value (already there), navigate to rest
-    (if (or (null? path) (null? (cdr path)))
-        z
-        (let navigate ([z z] [remaining (cdr path)])
-          (if (null? remaining)
-              z
-              ;; Find child with matching value
-              (let find-child ([child-z (tree-zipper-down z)])
-                (if (nothing? child-z)
-                    z  ; Couldn't find, return current
-                    (let ([cz (from-just child-z)])
-                      (if (equal? (tree-zipper-get cz) (car remaining))
-                          (navigate cz (cdr remaining))
-                          (find-child (tree-zipper-right cz)))))))))))
-
 ;;; tree-zipper-duplicate : (TreeZipper a) -> (TreeZipper (TreeZipper a))
 ;;; Duplicate: zipper of all possible focuses.
 (define (tree-zipper-duplicate z)

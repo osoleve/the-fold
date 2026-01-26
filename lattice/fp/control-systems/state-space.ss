@@ -273,11 +273,6 @@ Precomputed: b_k = (2n-k)! * n! / ((2n)! * (n-k)! * k!) for n=6")
   (doc 'description "Compute the state transition matrix Φ(t) = e^(A*t) using numerically robust Scaling and Squaring with Padé")
   (matrix-exp (matrix-scale t (ss-A sys))))
 
-(define (ss-transition-matrix-taylor sys t terms)
-  (doc 'type '(-> SS Num Nat Matrix))
-  (doc 'description "DEPRECATED: Use ss-transition-matrix instead. Compute the state transition matrix using Taylor series.")
-  (matrix-exp-taylor (matrix-scale t (ss-A sys)) terms))
-
 (doc 'section 'controllability)
 
 (define (ss-controllability-matrix sys)

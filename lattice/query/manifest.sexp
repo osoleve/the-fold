@@ -40,8 +40,6 @@
               find-orphans make-tag-query make-content-query make-and-query
               make-or-query make-not-query make-select-query)
    (aho-corasick make-automaton search build-trie compute-failures)
-   (query find-tagged find-tagged-any list-all-tags tag-histogram
-          tag-values tag-report)
    (optic-query oquery oquery-where oquery-select oquery-pipe
                 oquery-first oquery-first-where
                 optic-where optic-having optic-select optic-at-index
@@ -70,7 +68,6 @@
    (patterns-parse "patterns-parse.ss" "Tag parsing and extraction from text")
    (query-dsl "query-dsl.ss" "Core query DSL with predicates and combinators")
    (aho-corasick "aho-corasick.ss" "Aho-Corasick multi-pattern string matching")
-   (query "query.ss" "High-level query interface for tagged blocks")
    (query-patterns "query-patterns.ss" "Relational pattern matching with joins")
    (optic-query "optic-query.ss" "Optic-based declarative query language")
    (query-macro "query-macro.ss" "SQL-like declarative query DSL with predicate combinators")))
