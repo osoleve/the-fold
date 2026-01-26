@@ -190,13 +190,12 @@
   (doc 'type '(-> (-> β α β) β Heap β))
   (doc 'description "Fold over all heap elements via tree traversal. Order is unspecified (not heap order).")
   (doc 'complexity "O(n)")
+  (doc 'note "Tail-recursive on left spine (potentially O(n)), standard recursive on right spine (O(log n) by leftist property).")
   (if (heap-empty? heap)
       init
-      (heap-fold fn
-                 (heap-fold fn
-                            (fn init (heap-value heap))
-                            (heap-left heap))
-                 (heap-right heap))))
+      (let* ([acc (fn init (heap-value heap))]
+             [acc-right (heap-fold fn acc (heap-right heap))])
+        (heap-fold fn acc-right (heap-left heap)))))
 
 (define (list->heap lst)
   (doc 'type '(-> (List α) Heap))
