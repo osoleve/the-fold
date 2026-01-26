@@ -29,6 +29,12 @@
        (or (pred (car lst))
            (ormap pred (cdr lst)))))
 
+;; Aliases for ormap/andmap (more discoverable names)
+(define any? ormap)
+(doc any? 'alias 'ormap)
+(define all? andmap)
+(doc all? 'alias 'andmap)
+
 (doc 'section 'list-utilities)
 
 (doc 'section 'duplicate-removal)

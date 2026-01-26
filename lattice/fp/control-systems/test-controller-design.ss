@@ -389,15 +389,7 @@
       ;; A-BK = -2 - K = -5 → K = 3
       (test-approx "1x1 pole placement: K value" 3.0 (matrix-ref K 0 0) 0.1))
 
-;;; ====
-;;; Helper function for checking all elements
-;;; ====
-
-(define (all? pred lst)
-  (cond
-   [(null? lst) #t]
-   [(not (pred (car lst))) #f]
-   [else (all? pred (cdr lst))]))
+;; all? is provided by prelude (alias for andmap)
 
 ;;; ====
 ;;; Summary

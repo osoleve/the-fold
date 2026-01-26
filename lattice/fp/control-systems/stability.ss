@@ -725,20 +725,7 @@
                 (matrix-set! M i k (matrix-ref M j k))
                 (matrix-set! M j k tmp)))))
 
-;;; all? : (α → Boolean) × (List α) → Boolean
-(define (all? pred lst)
-  (cond
-   [(null? lst) #t]
-   [(not (pred (car lst))) #f]
-   [else (all? pred (cdr lst))]))
-
-;;; any? : (α → Boolean) × (List α) → Boolean
-(define (any? pred lst)
-  (cond
-   [(null? lst) #f]
-   [(pred (car lst)) #t]
-   [else (any? pred (cdr lst))]))
-
+;; all? and any? are provided by prelude (aliases for andmap/ormap)
 ;; iota is provided by prelude
 
 ;;; pi constant

@@ -566,8 +566,4 @@ the full point (x y data). Returns unchanged tree if no match found.")
              [(and (>= x cx) (< y cy)) (quadtree-member? (quadtree-se tree) x y)]
              [else (quadtree-member? (quadtree-sw tree) x y)])))]))
 
-(define (any? pred lst)
-  (cond
-    [(null? lst) #f]
-    [(pred (car lst)) #t]
-    [else (any? pred (cdr lst))]))
+;; any? is provided by prelude (alias for ormap)
