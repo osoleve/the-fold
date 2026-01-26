@@ -610,25 +610,7 @@
                           (or start i)
                           tokens))))))
 
-(define (string-trim s)
-  (let* ([len (string-length s)]
-         [start (let loop ([i 0])
-                     (if (and (< i len)
-                              (char-whitespace? (string-ref s i)))
-                         (loop (+ i 1))
-                         i))]
-         [end (let loop ([i len])
-                   (if (and (> i start)
-                            (char-whitespace? (string-ref s (- i 1))))
-                       (loop (- i 1))
-                       i))])
-        (substring s start end)))
-
-(define (char-whitespace? c)
-  (or (char=? c #\space)
-      (char=? c #\tab)
-      (char=? c #\newline)
-      (char=? c #\return)))
+;; string-trim is provided by prelude
 
 ;;; ============================================================================
 ;;; Module Load Message

@@ -1360,28 +1360,7 @@
 ;;; Utilities
 ;;; ====
 
-;;; string-trim-left : String → String
-(define (string-trim-left str)
-  (let ([len (string-length str)])
-       (let loop ([i 0])
-            (if (or (>= i len)
-                    (not (char-whitespace? (string-ref str i))))
-                (substring str i len)
-                (loop (+ i 1))))))
-
-;;; string-split : String × Char → (List String)
-(define (string-split str delim)
-  (let ([len (string-length str)])
-       (let loop ([i 0] [start 0] [acc '()])
-            (cond
-             [(>= i len)
-              (reverse (cons (substring str start len) acc))]
-             [(char=? (string-ref str i) delim)
-              (loop (+ i 1) (+ i 1) (cons (substring str start i) acc))]
-             [else
-              (loop (+ i 1) start acc)]))))
-
-;; take, filter-map provided by prelude
+;; string-trim-left, string-split, take, and filter-map provided by prelude
 
 ;;; ====
 ;;; Find References Implementation

@@ -145,24 +145,4 @@
                  (string=? (substring id 0 5) "fold-")))
           (bbs-list-heads)))
 
-;;; filter-map provided by prelude
-
-(doc 'section 'string-utilities)
-
-(define (string-trim str)
-  (doc 'type '(-> String String))
-  (doc 'description "Remove leading and trailing whitespace")
-  (let* ([len (string-length str)]
-         [start (let loop ([i 0])
-                  (if (>= i len)
-                      len
-                      (if (char-whitespace? (string-ref str i))
-                          (loop (+ i 1))
-                          i)))]
-         [end (let loop ([i (- len 1)])
-                (if (< i start)
-                    start
-                    (if (char-whitespace? (string-ref str i))
-                        (loop (- i 1))
-                        (+ i 1))))])
-    (substring str start end)))
+;;; filter-map and string-trim provided by prelude

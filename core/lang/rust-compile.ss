@@ -164,33 +164,7 @@
                             (string-length str))
                  suffix)))
 
-;;; string-trim : String → String
-;;; Remove leading and trailing whitespace.
-(define (string-trim str)
-  (let* ([chars (string->list str)]
-         [trimmed (reverse (drop-while char-whitespace?
-                                       (reverse (drop-while char-whitespace? chars))))])
-        (list->string trimmed)))
-
-;;; drop-while : (α → Boolean) × (List α) → (List α)
-(define (drop-while pred lst)
-  (cond
-   [(null? lst) '()]
-   [(pred (car lst)) (drop-while pred (cdr lst))]
-   [else lst]))
-
-;;; string-split : String × Char → (List String)
-(define (string-split str delim)
-  (let loop ([chars (string->list str)] [current '()] [result '()])
-       (cond
-        [(null? chars)
-         (reverse (cons (list->string (reverse current)) result))]
-        [(char=? (car chars) delim)
-         (loop (cdr chars) '() (cons (list->string (reverse current)) result))]
-        [else
-         (loop (cdr chars) (cons (car chars) current) result)])))
-
-;;; filter-map provided by prelude
+;;; string-trim, string-split, and filter-map provided by prelude
 
 ;;; ====
 ;;; Build Commands

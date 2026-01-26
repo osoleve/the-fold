@@ -115,25 +115,7 @@
              [(string=? (substring str i (+ i sub-len)) sub) i]
              [else (loop (+ i 1))]))))
 
-;;; string-trim-left : String -> String
-(define (string-trim-left str)
-  (let loop ([chars (string->list str)])
-       (cond
-        [(null? chars) ""]
-        [(char-whitespace? (car chars)) (loop (cdr chars))]
-        [else (list->string chars)])))
-
-;;; string-trim : String -> String
-(define (string-trim str)
-  (string-trim-left (string-trim-right str)))
-
-;;; string-trim-right : String -> String
-(define (string-trim-right str)
-  (list->string (reverse (let loop ([chars (reverse (string->list str))])
-                              (cond
-                               [(null? chars) '()]
-                               [(char-whitespace? (car chars)) (loop (cdr chars))]
-                               [else chars])))))
+;; string-trim, string-trim-left, string-trim-right are provided by prelude
 
 (doc 'section 'type-signatures)
 

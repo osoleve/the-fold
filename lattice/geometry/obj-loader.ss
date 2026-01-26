@@ -65,19 +65,7 @@
                (cons (car chars) current)
                result)])))
 
-;;; string-trim : String → String
-(define (string-trim str)
-  (let* ([chars (string->list str)]
-         [trimmed (drop-while char-whitespace?
-                              (reverse (drop-while char-whitespace? chars)))])
-        (list->string (reverse trimmed))))
-
-;;; drop-while : (α → Bool) × (List α) → (List α)
-(define (drop-while pred lst)
-  (cond
-   [(null? lst) '()]
-   [(pred (car lst)) (drop-while pred (cdr lst))]
-   [else lst]))
+;; string-trim is provided by prelude
 
 (doc 'section 'obj-loading)
 
