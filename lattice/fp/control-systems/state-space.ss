@@ -195,6 +195,19 @@ Precomputed: b_k = (2n-k)! * n! / ((2n)! * (n-k)! * k!) for n=6")
                  result
                  (square (+ k 1) (matrix-mul result result))))))
 
+(define (apply-permutation-to-matrix perm-vec B)
+  (doc 'type '(-> Vector Matrix Matrix))
+  (doc 'description "Apply permutation vector to matrix rows: result[i,:] = B[perm[i],:]")
+  (let* ([n (vector-length perm-vec)]
+         [m (matrix-cols B)]
+         [result (make-matrix n m 0)])
+        (do ([i 0 (+ i 1)])
+            [(= i n) result]
+            (do ([j 0 (+ j 1)])
+                [(= j m)]
+                (matrix-set! result i j
+                             (matrix-ref B (vector-ref perm-vec i) j))))))
+
 (define (matrix-solve-system A B)
   (doc 'type '(-> Matrix Matrix Matrix))
   (doc 'description "Solve A * X = B for X using LU decomposition. Returns X = A^(-1) * B")
@@ -205,8 +218,8 @@ Precomputed: b_k = (2n-k)! * n! / ((2n)! * (n-k)! * k!) for n=6")
             (matrix-mul (matrix-inverse A) B)
             (let* ([L (car lu-result)]
                    [U (cadr lu-result)]
-                   [P (caddr lu-result)]
-                   [Pb (matrix-mul P B)])
+                   [perm-vec (caddr lu-result)]
+                   [Pb (apply-permutation-to-matrix perm-vec B)])
                   (let ([Y (forward-substitute L Pb)])
                        (back-substitute U Y))))))
 
@@ -249,24 +262,6 @@ Precomputed: b_k = (2n-k)! * n! / ((2n)! * (n-k)! * k!) for n=6")
                      (matrix-set! X i j
                                   (/ (- (matrix-ref Y i j) sum)
                                      (matrix-ref U i i))))))))
-
-(define (matrix-exp-taylor A fuel)
-  (doc 'type '(-> Matrix Nat Matrix))
-  (doc 'description "DEPRECATED: Use matrix-exp instead for numerical stability. Compute matrix exponential using Taylor series: e^A = I + A + A²/2! + A³/3! + ... Fuel limits number of terms.")
-  (let* ([n (matrix-rows A)]
-         [I (identity n)]
-         [result I]
-         [term I]
-         [factorial 1])
-        (let loop ([k 1] [term term] [result result] [factorial 1])
-             (if (>= k fuel)
-                 result
-                 (let* ([new-term (matrix-scale (/ 1 (* factorial k)) (matrix-mul term A))]
-                        [new-factorial (* factorial k)])
-                       (loop (+ k 1)
-                             (matrix-mul term A)
-                             (matrix-add result new-term)
-                             new-factorial))))))
 
 (define (ss-transition-matrix sys t)
   (doc 'type '(-> SS Num Matrix))

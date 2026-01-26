@@ -87,9 +87,9 @@
                           ((= j m))
                           (matrix-set! block i (+ n j) (matrix-ref B i j))))
                   ;; Lower-left and lower-right are zeros (already initialized)
-                  ;; Compute exp(block * Ts)
+                  ;; Compute exp(block * Ts) using numerically robust Padé approximation
                   (let* ([scaled-block (matrix-scale Ts block)]
-                         [exp-block (matrix-exp-taylor scaled-block 20)])
+                         [exp-block (matrix-exp scaled-block)])
                         ;; Extract Ad from upper-left n×n
                         (let ([Ad (make-matrix n n 0)])
                              (do ([i 0 (+ i 1)])
