@@ -201,21 +201,36 @@
                     (cons i acc)
                     acc))))))
 
+;;; uf-all-sets-table : UnionFind → Hashtable
+;;; Internal: Build hashtable mapping root → list of members in O(N).
+(define (uf-all-sets-table uf)
+  (let ([n (uf-size uf)]
+        [table (make-eqv-hashtable)])
+    (do ([i 0 (+ i 1)])
+        ((>= i n) table)
+      (let ([root (uf-find uf i)])
+        (hashtable-set! table root
+                        (cons i (hashtable-ref table root '())))))))
+
+;;; uf-all-sets : UnionFind → (List (List Id))
+;;; Get all sets as lists of members. O(N) single pass.
+(define (uf-all-sets uf)
+  (doc 'type (-> UnionFind (List (List Id))))
+  (doc 'description "List all equivalence classes as lists of member IDs. O(N) complexity.")
+  (doc 'export #t)
+  (let ([table (uf-all-sets-table uf)])
+    (map (lambda (root) (reverse (hashtable-ref table root '())))
+         (uf-roots uf))))
+
 ;;; uf-set-members : UnionFind × Id → (List Id)
-;;; Get all members of the set containing id.
+;;; Get all members of the set containing id. O(N) via table lookup.
 (define (uf-set-members uf id)
   (doc 'type (-> UnionFind Id (List Id)))
-  (doc 'description "List all elements in the same set as id.")
+  (doc 'description "List all elements in the same set as id. O(N) complexity.")
   (doc 'export #t)
   (let ([root (uf-find uf id)]
-        [n (uf-size uf)])
-    (let loop ([i 0] [acc '()])
-      (if (>= i n)
-          (reverse acc)
-          (loop (+ i 1)
-                (if (= (uf-find uf i) root)
-                    (cons i acc)
-                    acc))))))
+        [table (uf-all-sets-table uf)])
+    (reverse (hashtable-ref table root '()))))
 
 ;;; uf-set-size : UnionFind × Id → Nat
 ;;; Get the size of the set containing id.
@@ -224,15 +239,6 @@
   (doc 'description "Number of elements in the set containing id.")
   (doc 'export #t)
   (length (uf-set-members uf id)))
-
-;;; uf-all-sets : UnionFind → (List (List Id))
-;;; Get all sets as lists of members.
-(define (uf-all-sets uf)
-  (doc 'type (-> UnionFind (List (List Id))))
-  (doc 'description "List all equivalence classes as lists of member IDs.")
-  (doc 'export #t)
-  (map (lambda (root) (uf-set-members uf root))
-       (uf-roots uf)))
 
 ;;; ============================================================
 ;;; Debugging
