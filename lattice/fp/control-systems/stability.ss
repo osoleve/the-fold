@@ -786,11 +786,4 @@
         [else
          (string-append (number->string re) (number->string im) "j")])))
 
-;;; string-join : (List String) × String → String
-(define (string-join strs sep)
-  (if (null? strs)
-      ""
-      (let loop ([s (car strs)] [rest (cdr strs)])
-           (if (null? rest)
-               s
-               (loop (string-append s sep (car rest)) (cdr rest))))))
+;; string-join is provided by prelude

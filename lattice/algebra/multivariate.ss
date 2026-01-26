@@ -694,14 +694,7 @@
     [(symbol? c) (symbol->string c)]
     [else (format "~a" c)]))
 
-;;; string-join : (List String) × String → String
-(define (string-join strs sep)
-  (if (null? strs)
-      ""
-      (let loop ([ss (cdr strs)] [acc (car strs)])
-        (if (null? ss)
-            acc
-            (loop (cdr ss) (string-append acc sep (car ss)))))))
+;; string-join is provided by prelude
 
 ;;; ====
 ;;; Utility

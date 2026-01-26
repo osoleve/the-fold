@@ -330,15 +330,7 @@
                       modules)])
        (string-join entries "\n")))
 
-;;; string-join : (List String) String -> String
-(define (string-join strings sep)
-  (if (null? strings)
-      ""
-      (let loop ([strs (cdr strings)]
-                 [acc (car strings)])
-           (if (null? strs)
-               acc
-               (loop (cdr strs) (string-append acc sep (car strs)))))))
+;; string-join is provided by prelude
 
 (doc 'section 'manifest-validation)
 

@@ -431,14 +431,7 @@
                       (apply string-append
                              (intersperse "\n" choice-strs))))))))
 
-;; iota is provided by prelude
-
-;;; Helper: intersperse separator between list elements
-(define (intersperse sep lst)
-  (cond
-   [(null? lst) '()]
-   [(null? (cdr lst)) lst]
-   [else (cons (car lst) (cons sep (intersperse sep (cdr lst))))]))
+;; iota and intersperse are provided by prelude and combinators.ss respectively
 
 ;;; ====
 ;;; DSL Constructors (S-expression Based)

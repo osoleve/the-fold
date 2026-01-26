@@ -356,11 +356,7 @@
                       (replicate (cdr pair) (car pair)))
               encoded)))
 
-(define (replicate n x)
-  (doc 'type '(-> Nat α (List α)))
-  (if (<= n 0)
-      '()
-      (cons x (replicate (- n 1) x))))
+;; replicate is provided by prelude (via entropy.ss)
 
 (doc 'section 'channel-coding)
 

@@ -1158,14 +1158,7 @@
       '()
       (cons (car lst) (take-up-to (- n 1) (cdr lst)))))
 
-;;; string-join : (List String) String -> String
-(define (string-join strs sep)
-  (if (null? strs)
-      ""
-      (let loop ([rest (cdr strs)] [acc (car strs)])
-        (if (null? rest)
-            acc
-            (loop (cdr rest) (string-append acc sep (car rest)))))))
+;; string-join is provided by prelude
 
 ;;; paren-suggest : String -> void
 ;;; Analyze file and provide indentation-based suggestions for fixing imbalances.

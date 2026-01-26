@@ -108,16 +108,7 @@
       (string-append (substring hex 0 16) "...")
       hex))
 
-(define (string-join strs sep)
-  (doc 'description "Join strings with a separator")
-  (if (null? strs)
-      ""
-      (let loop ([rest (cdr strs)]
-                 [acc (car strs)])
-        (if (null? rest)
-            acc
-            (loop (cdr rest)
-                  (string-append acc sep (car rest)))))))
+;; string-join is provided by prelude
 
 (doc 'section 'structured-queries)
 

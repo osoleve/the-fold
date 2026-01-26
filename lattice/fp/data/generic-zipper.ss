@@ -414,14 +414,7 @@ For a sum type A + B + C where B has the hole:
 
     [else "?"]))
 
-(define (string-join strs sep)
-  (doc 'type '(-> (List String) String String))
-  (if (null? strs)
-      ""
-      (fold-left (lambda (acc s)
-                   (string-append acc sep s))
-                 (car strs)
-                 (cdr strs))))
+;; string-join is provided by prelude
 
 (doc 'section 'derived-zipper-examples)
 (doc 'note "Example: List derivative

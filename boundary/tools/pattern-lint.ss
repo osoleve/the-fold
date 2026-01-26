@@ -129,13 +129,7 @@
            (loop (+ i 1)
                  (cons (string-append "x" (number->string (+ i 1))) acc)))))
 
-;;; string-join : (List String) × String → String
-(define (string-join strs sep)
-  (if (null? strs)
-      ""
-      (fold-left (lambda (acc s) (string-append acc sep s))
-                 (car strs)
-                 (cdr strs))))
+;; string-join is provided by prelude
 
 ;;; ====
 ;;; Type Registration Commands

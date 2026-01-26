@@ -618,13 +618,7 @@ Supports:
                         (matrix->lists m))])
     (string-append "[" (string-join row-strs "; ") "]")))
 
-;;; string-join : (List String) x String -> String
-(define (string-join strs sep)
-  (if (null? strs)
-      ""
-      (fold-left (lambda (acc s) (string-append acc sep s))
-                 (car strs)
-                 (cdr strs))))
+;; string-join is provided by prelude
 
 ;;; lp-result->string : LPResult -> String
 (define (lp-result->string result)
