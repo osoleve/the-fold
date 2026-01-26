@@ -613,10 +613,4 @@
                     (loop (cdr items) (cons mapped result))
                     (loop (cdr items) result))))))
 
-(define (ormap pred lst)
-  (doc 'type '(-> (-> α Bool) (List α) Bool))
-  (doc 'description "Check if predicate holds for any element in list.")
-  (cond
-   [(null? lst) #f]
-   [(pred (car lst)) #t]
-   [else (ormap pred (cdr lst))]))
+;; ormap is provided by prelude

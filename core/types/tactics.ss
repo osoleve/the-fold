@@ -380,12 +380,7 @@
       lst
       (drop (cdr lst) (- n 1))))
 
-;;; ormap : (α → Boolean) × (List α) → Boolean
-(define (ormap pred lst)
-  (cond
-   [(null? lst) #f]
-   [(pred (car lst)) #t]
-   [else (ormap pred (cdr lst))]))
+;; ormap is provided by prelude
 
 ;;; filter : (α → Boolean) × (List α) → (List α)
 (define (filter pred lst)

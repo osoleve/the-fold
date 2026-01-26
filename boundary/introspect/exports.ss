@@ -222,13 +222,7 @@
     [(value) "values"]
     [else "other"]))
 
-(define (string-join strs sep)
-  (doc 'description "Join strings with separator")
-  (if (null? strs)
-      ""
-      (fold-left (lambda (acc s) (string-append acc sep s))
-                 (car strs)
-                 (cdr strs))))
+;; string-join is provided by prelude (via string-core.ss)
 
 (define (filter-map f lst)
   (doc 'description "Map function over list, filtering out #f results")

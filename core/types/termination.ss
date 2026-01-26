@@ -685,9 +685,4 @@
    [(pred (car lst)) (all pred (cdr lst))]
    [else #f]))
 
-;;; ormap : (α → Boolean) × (List α) → Boolean
-(define (ormap pred lst)
-  (cond
-   [(null? lst) #f]
-   [(pred (car lst)) #t]
-   [else (ormap pred (cdr lst))]))
+;; ormap is provided by prelude
