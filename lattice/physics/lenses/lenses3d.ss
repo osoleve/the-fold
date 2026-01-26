@@ -342,19 +342,55 @@
 (define (integrate-body3d dt body)
   (let ([body1 (integrate-position3d-via-lens body3d-pos-lens body3d-vel-lens dt body)])
     (if (rotates3d? body1)
-        ;; Integrate quaternion: q' = q + 0.5 * dt * omega * q
-        ;; where omega * q represents the quaternion derivative
-        (let* ([q (view body3d-orientation-lens body1)]
-               [omega (view body3d-angular-vel-lens body1)]
-               ;; Convert omega to quaternion form for derivative
-               [omega-quat (quat 0 (vec3-x omega) (vec3-y omega) (vec3-z omega))]
-               [q-dot (quat-scale (quat-mul omega-quat q) 0.5)]
-               [new-q (quat-normalize (quat-add q (quat-scale q-dot dt)))])
-          (set-lens body3d-orientation-lens new-q body1))
+        (integrate-rotation3d-via-lens body3d-orientation-lens body3d-angular-vel-lens dt body1)
         body1)))
+
+;;; Helper: Compute world-space inverse inertia from body-space inertia and orientation
+;;; I_world^-1 = R * I_body^-1 * R^T where R is the rotation matrix from quaternion
+(define (world-inv-inertia-from-body body-inv-inertia orientation)
+  (if (mat3-zero? body-inv-inertia)
+      (mat3-zero)
+      (let* ([R (quat-to-rotation-matrix orientation)]
+             [R-T (mat3-transpose R)])
+        (mat3-mul R (mat3-mul body-inv-inertia R-T)))))
+
+(doc apply-torque3d-via-lens 'type '(-> (Lens Body3D Vec3) (Lens Body3D Mat3) (Lens Body3D Quaternion) Vec3 Number Body3D Body3D))
+(doc apply-torque3d-via-lens 'description "Apply 3D torque to a body using lens-based access")
+(doc apply-torque3d-via-lens 'note "delta-omega = I_world^-1 * torque * dt")
+(doc apply-torque3d-via-lens 'export #t)
+(define (apply-torque3d-via-lens angular-vel-lens inertia-lens orientation-lens torque dt body)
+  (let* ([inertia (view inertia-lens body)]
+         [orientation (view orientation-lens body)]
+         [inv-inertia (if (mat3-zero? inertia) (mat3-zero) (mat3-inverse inertia))]
+         [world-inv-inertia (world-inv-inertia-from-body inv-inertia orientation)]
+         [angular-accel (mat3-mul-vec3 world-inv-inertia torque)]
+         [delta-omega (vec3-scale angular-accel dt)])
+    (over angular-vel-lens (lambda (omega) (vec3-add omega delta-omega)) body)))
+
+(doc integrate-rotation3d-via-lens 'type '(-> (Lens Body3D Quaternion) (Lens Body3D Vec3) Number Body3D Body3D))
+(doc integrate-rotation3d-via-lens 'description "Euler integration of 3D rotation using lenses")
+(doc integrate-rotation3d-via-lens 'note "Integrates quaternion: q' = normalize(q + 0.5 * dt * omega * q)")
+(doc integrate-rotation3d-via-lens 'export #t)
+(define (integrate-rotation3d-via-lens orientation-lens angular-vel-lens dt body)
+  (let* ([q (view orientation-lens body)]
+         [omega (view angular-vel-lens body)]
+         [omega-quat (quat 0 (vec3-x omega) (vec3-y omega) (vec3-z omega))]
+         [q-dot (quat-scale (quat-mul omega-quat q) 0.5)]
+         [new-q (quat-normalize (quat-add q (quat-scale q-dot dt)))])
+    (set-lens orientation-lens new-q body)))
+
+(doc apply-torque3d 'type '(-> Vec3 Number Body3D Body3D))
+(doc apply-torque3d 'description "Apply torque to a 3D body (no-op if body doesn't rotate)")
+(doc apply-torque3d 'export #t)
+(define (apply-torque3d torque dt body)
+  (if (rotates3d? body)
+      (apply-torque3d-via-lens body3d-angular-vel-lens body3d-inertia-lens
+                                body3d-orientation-lens torque dt body)
+      body))
 
 (doc apply-impulse-at-point3d 'type '(-> Vec3 Vec3 Body3D Body3D))
 (doc apply-impulse-at-point3d 'description "Apply impulse at world point (linear only if body doesn't rotate)")
+(doc apply-impulse-at-point3d 'note "Uses world-space inertia tensor for correct rotational response")
 (doc apply-impulse-at-point3d 'export #t)
 (define (apply-impulse-at-point3d impulse world-point body)
   (let* ([pos (view body3d-pos-lens body)]
@@ -364,13 +400,14 @@
          [body1 (over body3d-vel-lens (lambda (v) (vec3-add v delta-v)) body)])
     (if (rotates3d? body1)
         ;; Apply angular impulse: r × J gives torque impulse
+        ;; Use world-space inverse inertia for correct physics
         (let* ([r (vec3-sub world-point pos)]
                [torque-impulse (vec3-cross r impulse)]
-               ;; Need world-space inverse inertia
-               ;; For now, use body-space as approximation (exact would rotate inertia tensor)
+               [orientation (view body3d-orientation-lens body1)]
                [inertia (view body3d-inertia-lens body1)]
-               [inv-inertia (if (mat3-zero? inertia) (mat3-zero) (mat3-inverse inertia))]
-               [delta-omega (mat3-mul-vec3 inv-inertia torque-impulse)])
+               [body-inv-inertia (if (mat3-zero? inertia) (mat3-zero) (mat3-inverse inertia))]
+               [world-inv-inertia (world-inv-inertia-from-body body-inv-inertia orientation)]
+               [delta-omega (mat3-mul-vec3 world-inv-inertia torque-impulse)])
           (over body3d-angular-vel-lens (lambda (omega) (vec3-add omega delta-omega)) body1))
         body1)))
 
@@ -607,11 +644,12 @@
 (doc 'note "Dot notation: (body3d. pos x), (body3d. orientation w), etc.")
 (doc 'note "Traversals: bodies-3d-each, bodies-3d-filtered, dynamic-bodies-3d, static-bodies-3d")
 (doc 'note "Convenience: translate-body-3d, apply-central-impulse-3d, apply-gravity-3d")
-(doc 'note "Integration: step-body-3d, step-bodies-3d, integrate-body3d")
+(doc 'note "Integration: step-body-3d, step-bodies-3d, integrate-body3d, integrate-rotation3d-via-lens")
+(doc 'note "Torque: apply-torque3d, apply-torque3d-via-lens")
 (doc 'note "Folds: total-mass-3d, center-of-mass-3d, total-kinetic-energy")
 (doc 'note "Bundles: body3d-ops, rotational-body3d-ops")
 (doc 'note "Generic: body3d-pos-lens, body3d-vel-lens, body3d-mass-lens, etc.")
-(doc 'note "Helpers: rotates3d?, apply-impulse-at-point3d")
+(doc 'note "Helpers: rotates3d?, apply-impulse-at-point3d (uses world-space inertia)")
 (doc 'note "Re-exports vec3 lenses from geometry-optics.ss")
 
 (display "lenses3d.ss loaded (with open protocol dispatch).\n")
@@ -623,6 +661,7 @@
 (display "  Rotational:    body3d-orientation-lens, body3d-angular-vel-lens, body3d-inertia-lens\n")
 (display "  Helpers:       (rotates3d? body), (integrate-body3d dt body)\n")
 (display "                 (apply-impulse-at-point3d J pt body)\n")
+(display "                 (apply-torque3d torque dt body)\n")
 (display "  Bundles:       body3d-ops, rotational-body3d-ops\n")
 (display "  Check:         (implements-bundle? 'rigid-body-3d body3d-ops) => #t\n")
 (display "  Extend:        (derive-bundle! body3d-ops 'my-type my-prefix)\n")

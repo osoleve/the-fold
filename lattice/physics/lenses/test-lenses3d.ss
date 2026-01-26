@@ -349,7 +349,98 @@
     (let* ([b (make-rigid-body-3d (vec3 0 0 0) (vec3 0 0 0) (quat-identity) (vec3-zero) 10.0 (mat3-identity))]
            [b2 (apply-force3d-via-lens body3d-vel-lens body3d-mass-lens (vec3 100 0 0) 1.0 b)])
       ;; delta-v = F*dt/m = 100*1.0/10 = 10
-      (assert-true (vec3-equal? (vec3 10 0 0) (body3d-vel b2))))))
+      (assert-true (vec3-equal? (vec3 10 0 0) (body3d-vel b2)))))
+
+  (define-test "apply-torque3d"
+    (let* ([b (make-rigid-body-3d (vec3 0 0 0) (vec3 0 0 0) (quat-identity) (vec3-zero) 1.0 (mat3-identity))]
+           ;; Apply torque around z-axis for 1 second
+           ;; With identity inertia: delta-omega = I^-1 * tau * dt = (0,0,10) * 1 = (0,0,10)
+           [b2 (apply-torque3d (vec3 0 0 10) 1.0 b)])
+      (assert-true (< (abs (- (vec3-z (body3d-angular-vel b2)) 10.0)) 0.001))))
+
+  (define-test "apply-impulse-at-point3d angular effect"
+    ;; Apply impulse off-center to cause rotation
+    (let* ([;; Sphere with I = (2/5)*m*r^2 * Identity for r=1, m=1 => I = 0.4*Identity
+            b (make-rigid-body-3d (vec3 0 0 0) (vec3 0 0 0) (quat-identity) (vec3-zero)
+                                   1.0 (inertia-solid-sphere 1.0 1.0))]
+           ;; Apply impulse J=(1,0,0) at point r=(0,1,0) (offset on y-axis)
+           ;; Torque impulse = r × J = (0,1,0) × (1,0,0) = (0,0,-1)
+           ;; For sphere: I^-1 = (1/0.4)*Identity = 2.5*Identity
+           ;; delta-omega = I^-1 * torque = (0, 0, -2.5)
+           [b2 (apply-impulse-at-point3d (vec3 1 0 0) (vec3 0 1 0) b)])
+      ;; Linear: delta-v = J/m = (1,0,0)/1 = (1,0,0)
+      (assert-true (vec3-equal? (vec3 1 0 0) (body3d-vel b2)))
+      ;; Angular: should rotate around z-axis (negative direction)
+      (assert-true (< (abs (- (vec3-z (body3d-angular-vel b2)) -2.5)) 0.001))))
+
+  (define-test "integrate-rotation3d-via-lens"
+    ;; Start with identity quaternion, spin around z-axis
+    (let* ([b (make-rigid-body-3d (vec3 0 0 0) (vec3 0 0 0) (quat-identity)
+                                   (vec3 0 0 3.14159) ; ~PI rad/s around z
+                                   1.0 (mat3-identity))]
+           ;; Integrate for 0.5 seconds => should rotate ~PI/2 radians
+           [b2 (integrate-rotation3d-via-lens body3d-orientation-lens body3d-angular-vel-lens 0.5 b)]
+           [q (body3d-orientation b2)])
+      ;; After ~90 degree rotation around z: quat should be approximately (cos(45°), 0, 0, sin(45°))
+      ;; cos(45°) ≈ 0.707, sin(45°) ≈ 0.707
+      (assert-true (< (abs (- (quat-w q) 0.707)) 0.1))
+      (assert-true (< (abs (- (quat-z q) 0.707)) 0.1)))))
+
+;;; ============================================================
+;;; Additional Coverage Tests
+;;; ============================================================
+
+(test-group "additional-coverage"
+  (define-test "quat-y-lens view and set"
+    (let* ([q (quat 1 0 0.5 0)]
+           [y-val (^. q quat-y-lens)]
+           [q2 (& q (.~ quat-y-lens 0.25))])
+      (assert-equal 0.5 y-val)
+      (assert-equal 0.25 (quat-y q2))))
+
+  (define-test "body3d-inertia-lens view"
+    (let* ([inertia (inertia-solid-sphere 10.0 1.0)]
+           [b (make-rigid-body-3d (vec3 0 0 0) (vec3 0 0 0) (quat-identity) (vec3-zero) 10.0 inertia)])
+      ;; View inertia through generic lens
+      (assert-true (equal? inertia (view body3d-inertia-lens b)))))
+
+  (define-test "body3d-inertia-lens set"
+    (let* ([b (make-rigid-body-3d (vec3 0 0 0) (vec3 0 0 0) (quat-identity) (vec3-zero) 10.0 (mat3-identity))]
+           [new-inertia (mat3-diagonal 2 2 2)]
+           [b2 (set-lens body3d-inertia-lens new-inertia b)])
+      (assert-true (equal? new-inertia (body3d-inertia b2)))))
+
+  (define-test "rigid-body-3d-vel-y-lens"
+    (let* ([b (make-rigid-body-3d (vec3 0 0 0) (vec3 1 2 3) (quat-identity) (vec3-zero) 1.0 (mat3-identity))])
+      (assert-equal 2 (^. b rigid-body-3d-vel-y-lens))))
+
+  (define-test "rigid-body-3d-vel-z-lens"
+    (let* ([b (make-rigid-body-3d (vec3 0 0 0) (vec3 1 2 3) (quat-identity) (vec3-zero) 1.0 (mat3-identity))])
+      (assert-equal 3 (^. b rigid-body-3d-vel-z-lens))))
+
+  (define-test "rigid-body-3d-angular-vel-x-lens"
+    (let* ([b (make-rigid-body-3d (vec3 0 0 0) (vec3 0 0 0) (quat-identity) (vec3 0.1 0.2 0.3) 1.0 (mat3-identity))])
+      (assert-equal 0.1 (^. b rigid-body-3d-angular-vel-x-lens))))
+
+  (define-test "rigid-body-3d-angular-vel-y-lens"
+    (let* ([b (make-rigid-body-3d (vec3 0 0 0) (vec3 0 0 0) (quat-identity) (vec3 0.1 0.2 0.3) 1.0 (mat3-identity))])
+      (assert-equal 0.2 (^. b rigid-body-3d-angular-vel-y-lens))))
+
+  (define-test "total-kinetic-energy fold"
+    (let* ([;; Body 1: m=2, v=(3,0,0), omega=0 => KE = 0.5*2*9 = 9
+            b1 (make-rigid-body-3d (vec3 0 0 0) (vec3 3 0 0) (quat-identity) (vec3-zero) 2.0 (mat3-identity))]
+           ;; Body 2: m=1, v=(0,0,0), omega=0 => KE = 0
+           [b2 (make-rigid-body-3d (vec3 0 0 0) (vec3 0 0 0) (quat-identity) (vec3-zero) 1.0 (mat3-identity))]
+           [bodies (list b1 b2)]
+           [ke (total-kinetic-energy bodies)])
+      ;; Total KE = 9 + 0 = 9
+      (assert-true (< (abs (- ke 9.0)) 0.001))))
+
+  (define-test "static body ignores torque"
+    (let* ([b (make-static-body-3d (vec3 0 0 0) (quat-identity))]
+           [b2 (apply-torque3d (vec3 0 0 100) 1.0 b)])
+      ;; Static body should not change
+      (assert-true (vec3-equal? (vec3-zero) (rigid-body-3d-angular-vel b2))))))
 
 ;;; ============================================================
 ;;; Run Tests
