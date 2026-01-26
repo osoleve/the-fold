@@ -298,12 +298,7 @@
      (cons (car xs) (common-prefix (cdr xs) (cdr ys)))]
     [else '()]))
 
-;;; last : (List a) -> a
-;;; Get last element of non-empty list.
-(define (last lst)
-  (if (null? (cdr lst))
-      (car lst)
-      (last (cdr lst))))
+;;; last provided by prelude
 
 ;;; ====
 ;;; Descendant Check

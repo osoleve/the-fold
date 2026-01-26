@@ -360,11 +360,7 @@
                                    (watch-events . ())
                                    (status . ready)))))))
 
-;;; Helper: get last element
-(define (last lst)
-  (if (null? (cdr lst))
-      (car lst)
-      (last (cdr lst))))
+;;; last provided by prelude
 
 ;;; ====
 ;;; Inspection

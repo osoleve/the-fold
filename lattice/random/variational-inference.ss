@@ -220,10 +220,7 @@
       '()
       (cons (car lst) (butlast (cdr lst)))))
 
-(define (last lst)
-  (if (null? (cdr lst))
-      (car lst)
-      (last (cdr lst))))
+;;; last provided by prelude
 
 (define (full-gaussian-entropy vfamily)
   (doc 'export #t)

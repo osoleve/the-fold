@@ -369,11 +369,7 @@
                    (hashtable-keys *symbol-index*))))
        results))
 
-;;; last : (List a) -> a
-(define (last lst)
-  (if (null? (cdr lst))
-      (car lst)
-      (last (cdr lst))))
+;;; last provided by prelude
 
 ;;; butlast : (List a) -> (List a)
 (define (butlast lst)

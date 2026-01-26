@@ -487,14 +487,7 @@
 
 (doc 'section 'helpers)
 
-;; iota is provided by prelude
-
-(define (last lst)
-  (doc 'type '(-> (List α) α))
-  (doc 'description "Get last element of non-empty list")
-  (if (null? (cdr lst))
-      (car lst)
-      (last (cdr lst))))
+;; iota, last provided by prelude
 
 (define (drop-right lst n)
   (doc 'type '(-> (List α) Nat (List α)))
