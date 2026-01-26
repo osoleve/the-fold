@@ -988,17 +988,13 @@
          (display "  No pre-computed set available. Use prime numbers!\n")
          '()]
         [(>= (length (car sets)) n)
-         (let ([rates (take (car sets) n)])
+         (let ([rates (take n (car sets))])
               (display (string-append "  " (format-list rates) "\n"))
               (display "  (These are coprime, maximizing visual complexity)\n")
               rates)]
         [else (loop (cdr sets))])))
 
-(define (take lst n)
-  "Take first n elements of list."
-  (if (or (null? lst) (<= n 0))
-      '()
-      (cons (car lst) (take (cdr lst) (- n 1)))))
+;; take provided by prelude
 
 (define (format-list lst)
   "Format a list for display."
