@@ -46,14 +46,21 @@
     eclass-add-node! eclass-add-parent!
     eclass-get-nodes eclass-get-parents
     eclass-merge!
-    eclass-node-count eclass-all-nodes eclass-debug))
+    eclass-node-count eclass-all-nodes eclass-debug)
+   (egraph
+    make-egraph egraph?
+    egraph-find egraph-lookup
+    egraph-add-enode! egraph-add-term!
+    egraph-merge! egraph-rebuild! egraph-saturate-rebuild!
+    egraph-class-count egraph-node-count egraph-size
+    egraph-class-nodes egraph-stats-report egraph-debug))
 
   (modules
    (("union-find.ss" "Disjoint set with path compression and union by rank")
-    ("eclass.ss" "E-node and e-class representation for e-graphs")))
+    ("eclass.ss" "E-node and e-class representation for e-graphs")
+    ("egraph.ss" "E-graph with hashconsing, merging, and rebuild")))
 
   (future-work
-   "egraph.ss - E-graph with hashcons and rebuilding"
    "match.ss - Pattern matching on e-classes"
    "scheduler.ss - Rule scheduling with backoff"
    "saturation.ss - Equality saturation loop"
