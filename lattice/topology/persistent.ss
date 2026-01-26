@@ -270,15 +270,7 @@ Column j's 'low' (index of lowest 1) gives the pairing.")
         ; Store as sorted list (descending for easy low access)
         (vector-set! columns j (sort-by > indices))))))
 
-(define (filter-map f lst)
-  (doc 'type '(-> (-> α (Or β #f)) (List α) (List β)))
-  (let loop ([remaining lst] [acc '()])
-    (if (null? remaining)
-        (reverse acc)
-        (let ([result (f (car remaining))])
-          (if result
-              (loop (cdr remaining) (cons result acc))
-              (loop (cdr remaining) acc))))))
+;;; filter-map provided by prelude
 
 (define (reduce-column! columns j low low-to-col)
   (doc 'type '(-> Vector Integer Vector HashTable Void))

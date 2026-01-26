@@ -165,16 +165,7 @@
                            (cons namespaced-name path)))
              simple-entries)))
 
-(doc filter-map 'type (-> (-> a (Maybe b)) (List a) (List b)))
-(doc filter-map 'description "Map and filter in one pass, removing #f results.")
-(define (filter-map f lst)
-  (let loop ([lst lst] [acc '()])
-       (if (null? lst)
-           (reverse acc)
-           (let ([result (f (car lst))])
-                (if result
-                    (loop (cdr lst) (cons result acc))
-                    (loop (cdr lst) acc))))))
+;;; filter-map provided by prelude
 
 (doc 'section 'validation)
 

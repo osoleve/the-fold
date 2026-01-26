@@ -366,16 +366,7 @@
                  (make-quill-timeline-event id time effects once? meta))
            #f)))
 
-;;; Helper for filter-map
-(define (filter-map f xs)
-  (let loop ([xs xs] [acc '()])
-       (cond
-        [(null? xs) (reverse acc)]
-        [else
-         (let ([result (f (car xs))])
-              (if result
-                  (loop (cdr xs) (cons result acc))
-                  (loop (cdr xs) acc)))])))
+;;; filter-map provided by prelude
 
 ;;; ====
 ;;; Lesson Compilation

@@ -759,17 +759,7 @@
    [(pred (car lst)) #t]
    [else (any pred (cdr lst))]))
 
-;;; filter-map : (A -> B | #f) × List A -> List B
-;;; Map with filter for #f results.
-(define (filter-map fn lst)
-  (let loop ([lst lst] [results '()])
-       (if (null? lst)
-           (reverse results)
-           (let ([result (fn (car lst))])
-                (loop (cdr lst)
-                      (if result
-                          (cons result results)
-                          results))))))
+;;; filter-map provided by prelude
 
 ;;; find : (A -> Bool) × List A -> A | #f
 ;;; Find first element matching predicate.

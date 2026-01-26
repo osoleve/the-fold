@@ -339,14 +339,7 @@
                     `(ok complete)
                     `(error missing-patterns ,missing))))))
 
-;;; filter-map : (α → β | #f) × (List α) → (List β)
-(define (filter-map f lst)
-  (if (null? lst)
-      '()
-      (let ([result (f (car lst))])
-           (if result
-               (cons result (filter-map f (cdr lst)))
-               (filter-map f (cdr lst))))))
+;;; filter-map provided by prelude
 
 ;;; ====
 ;;; Impossible Case Detection

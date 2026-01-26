@@ -520,15 +520,7 @@
                      (and base (compare-results base curr))))
         current-results)))
 
-;;; filter-map : (α → (Option β)) × (List α) → (List β)
-(define (filter-map f lst)
-  (fold-right (lambda (x acc)
-                      (let ([result (f x)])
-                           (if result
-                               (cons result acc)
-                               acc)))
-              '()
-              lst))
+;;; filter-map provided by prelude
 
 ;;; any-regressions? : (List Comparison) → Boolean
 (define (any-regressions? comparisons)

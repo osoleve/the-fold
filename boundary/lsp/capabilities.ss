@@ -1381,17 +1381,7 @@
              [else
               (loop (+ i 1) start acc)]))))
 
-;; take provided by prelude
-
-;;; filter-map : (α → β | #f) × (List α) → (List β)
-(define (filter-map f lst)
-  (let loop ([l lst] [acc '()])
-       (if (null? l)
-           (reverse acc)
-           (let ([result (f (car l))])
-                (if result
-                    (loop (cdr l) (cons result acc))
-                    (loop (cdr l) acc))))))
+;; take, filter-map provided by prelude
 
 ;;; ====
 ;;; Find References Implementation

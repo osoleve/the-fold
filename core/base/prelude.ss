@@ -78,6 +78,18 @@
    [(pred (car lst)) (cons (car lst) (filter pred (cdr lst)))]
    [else (filter pred (cdr lst))]))
 
+(define (filter-map f lst)
+  (doc 'type (-> (-> α (Maybe β)) (List α) (List β)))
+  (doc 'description "Map function over list, keeping only non-#f results.")
+  (doc 'export #t)
+  (let loop ([lst lst] [acc '()])
+    (if (null? lst)
+        (reverse acc)
+        (let ([result (f (car lst))])
+          (if result
+              (loop (cdr lst) (cons result acc))
+              (loop (cdr lst) acc))))))
+
 (define (fold-left f acc lst)
   (doc 'type (-> (-> β α β) β (List α) β))
   (doc 'description "Left-associative fold.")

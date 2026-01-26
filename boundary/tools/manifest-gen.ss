@@ -165,15 +165,7 @@
                      #f))
             #f)))
 
-;;; filter-map : (a -> b | #f) (List a) -> (List b)
-(define (filter-map f lst)
-  (let loop ([lst lst] [acc '()])
-       (if (null? lst)
-           (reverse acc)
-           (let ([result (f (car lst))])
-                (if result
-                    (loop (cdr lst) (cons result acc))
-                    (loop (cdr lst) acc))))))
+;;; filter-map provided by prelude
 
 (doc 'section 'module-analysis)
 

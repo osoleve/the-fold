@@ -207,16 +207,7 @@
 
 (doc 'section 'list-utilities)
 
-(define (filter-map f lst)
-  (doc 'type '(-> (-> a (Maybe b)) (List a) (List b)))
-  (doc 'description "Map function over list, filtering out #f results")
-  (let loop ([lst lst] [acc '()])
-       (if (null? lst)
-           (reverse acc)
-           (let ([result (f (car lst))])
-                (if result
-                    (loop (cdr lst) (cons result acc))
-                    (loop (cdr lst) acc))))))
+;;; filter-map provided by prelude
 
 (define (deduplicate lst equal?)
   (doc 'type '(-> (List a) (-> a a Boolean) (List a)))

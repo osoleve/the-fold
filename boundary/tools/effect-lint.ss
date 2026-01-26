@@ -457,14 +457,6 @@
 ;;; Initialize database
 (init-effect-database!)
 
-;;; filter-map helper
-(define (filter-map f lst)
-  (let loop ([items lst] [result '()])
-       (if (null? items)
-           (reverse result)
-           (let ([mapped (f (car items))])
-                (if mapped
-                    (loop (cdr items) (cons mapped result))
-                    (loop (cdr items) result))))))
+;;; filter-map provided by prelude
 
 (display "Effect lint loaded. Use (effect-help) for usage.\n")

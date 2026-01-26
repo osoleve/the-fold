@@ -460,15 +460,7 @@
   (let ([parts (string-split-simple path #\/)])
        (if (null? parts) path (car (reverse parts)))))
 
-;;; filter-map : (a -> b | #f) × (List a) -> (List b)
-(define (filter-map f lst)
-  (let loop ([lst lst] [acc '()])
-       (if (null? lst)
-           (reverse acc)
-           (let ([result (f (car lst))])
-                (if result
-                    (loop (cdr lst) (cons result acc))
-                    (loop (cdr lst) acc))))))
+;;; filter-map provided by prelude
 
 ;;; ====
 ;;; Path Validation

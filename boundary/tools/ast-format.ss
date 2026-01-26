@@ -324,14 +324,7 @@
            (reverse acc)
            (loop (cdr lst) (+ i 1) (cons (cons i (car lst)) acc)))))
 
-;;; Filter-map helper
-(define (filter-map f lst)
-  (let loop ([lst lst] [acc '()])
-       (if (null? lst)
-           (reverse acc)
-           (let ([result (f (car lst))])
-                (loop (cdr lst)
-                      (if result (cons result acc) acc))))))
+;;; filter-map provided by prelude
 
 ;;; ====
 ;;; Main API

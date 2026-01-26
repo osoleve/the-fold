@@ -735,15 +735,7 @@
                  (car strs)
                  (cdr strs))))
 
-;;; filter-map : (a → b | #f) × (List a) → (List b)
-(define (filter-map f lst)
-  (let loop ([items lst] [result '()])
-       (if (null? items)
-           (reverse result)
-           (let ([mapped (f (car items))])
-                (if mapped
-                    (loop (cdr items) (cons mapped result))
-                    (loop (cdr items) result))))))
+;;; filter-map provided by prelude
 
 ;;; ====
 ;;; Usage Help

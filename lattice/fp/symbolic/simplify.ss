@@ -8,16 +8,7 @@
 
 (doc 'section 'helper-functions)
 
-(define (filter-map f lst)
-  (doc 'type '(-> (-> α (Maybe β)) (List α) (List β)))
-  (doc 'description "Map function over list, keeping only non-#f results")
-  (let loop ([lst lst] [acc '()])
-       (if (null? lst)
-           (reverse acc)
-           (let ([result (f (car lst))])
-                (if result
-                    (loop (cdr lst) (cons result acc))
-                    (loop (cdr lst) acc))))))
+;;; filter-map provided by prelude
 
 (define (get-numeric e)
   (doc 'type '(-> Expr (Maybe Number)))

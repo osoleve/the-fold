@@ -287,15 +287,7 @@
 
 (doc 'section 'utilities)
 
-(define (filter-map f lst)
-  (doc 'type (-> (-> a (Option b)) (List a) (List b)))
-  (doc 'description "Map function and filter out #f results")
-  (let loop ([lst lst] [acc '()])
-    (if (null? lst)
-        (reverse acc)
-        (let ([result (f (car lst))])
-          (loop (cdr lst)
-                (if result (cons result acc) acc))))))
+;;; filter-map provided by prelude
 
 (define (string-trim str)
   (doc 'type (-> String String))

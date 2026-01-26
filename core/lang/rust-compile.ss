@@ -190,13 +190,7 @@
         [else
          (loop (cdr chars) (cons (car chars) current) result)])))
 
-;;; filter-map : (α → (or β #f)) × (List α) → (List β)
-(define (filter-map f lst)
-  (let loop ([lst lst] [result '()])
-       (cond
-        [(null? lst) (reverse result)]
-        [(f (car lst)) => (lambda (v) (loop (cdr lst) (cons v result)))]
-        [else (loop (cdr lst) result)])))
+;;; filter-map provided by prelude
 
 ;;; ====
 ;;; Build Commands

@@ -18,15 +18,7 @@
 
 (doc 'section 'utilities)
 
-(define (filter-map f lst)
-  (doc 'type '(-> (-> α (Option β)) (List α) (List β)))
-  (doc 'description "Map f over lst, keeping only non-#f results")
-  (let loop ([xs lst] [acc '()])
-       (if (null? xs)
-           (reverse acc)
-           (let ([result (f (car xs))])
-                (loop (cdr xs)
-                      (if result (cons result acc) acc))))))
+;;; filter-map provided by prelude
 
 (define (any pred lst)
   (doc 'type '(-> (-> α Boolean) (List α) Boolean))

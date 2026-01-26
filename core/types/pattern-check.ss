@@ -588,17 +588,4 @@
       '()
       (cons x (make-list (- n 1) x))))
 
-;; take, drop provided by prelude
-
-(define (filter-map f lst)
-  (doc 'type '(-> (-> α (+ β #f)) (List α) (List β)))
-  (doc 'description "Map function over list, filtering out #f results.")
-  (let loop ([items lst] [result '()])
-       (if (null? items)
-           (reverse result)
-           (let ([mapped (f (car items))])
-                (if mapped
-                    (loop (cdr items) (cons mapped result))
-                    (loop (cdr items) result))))))
-
-;; ormap is provided by prelude
+;; take, drop, filter-map, ormap provided by prelude

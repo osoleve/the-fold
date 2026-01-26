@@ -444,16 +444,7 @@
 
 (doc 'section 'utility-functions)
 
-(doc filter-map 'type '(-> (-> a (U b #f)) (List a) (List b)))
-(define (filter-map f lst)
-  (let loop ([lst lst] [acc '()])
-    (if (null? lst)
-        (reverse acc)
-        (let ([result (f (car lst))])
-          (loop (cdr lst)
-                (if result (cons result acc) acc))))))
-
-;; iota is provided by prelude (via blocks.ss chain)
+;; iota, filter-map provided by prelude
 
 ;;; equal-hash : Any -> Int
 ;;; Hash function for equal? hashtables.

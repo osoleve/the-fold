@@ -160,15 +160,7 @@ missing refs (hashes not in CAS).")
       (lambda (ref) (fetch ref))
       (vector->list (block-refs blk))))))
 
-(define (filter-map f xs)
-  (doc 'type '(-> (-> a (Maybe b)) (List a) (List b)))
-  (doc 'description "Map function, keeping only non-#f results.")
-  (let loop ([xs xs] [acc '()])
-    (if (null? xs)
-        (reverse acc)
-        (let ([result (f (car xs))])
-          (loop (cdr xs)
-                (if result (cons result acc) acc))))))
+;;; filter-map provided by prelude
 
 (doc 'section 'type-prisms)
 

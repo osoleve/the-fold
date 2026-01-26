@@ -222,17 +222,7 @@
     [(value) "values"]
     [else "other"]))
 
-;; string-join is provided by prelude (via string-core.ss)
-
-(define (filter-map f lst)
-  (doc 'description "Map function over list, filtering out #f results")
-  (let loop ([lst lst] [acc '()])
-    (if (null? lst)
-        (reverse acc)
-        (let ([result (f (car lst))])
-          (if result
-              (loop (cdr lst) (cons result acc))
-              (loop (cdr lst) acc))))))
+;; string-join, filter-map provided by prelude
 
 (doc 'section 'convenience-aliases)
 

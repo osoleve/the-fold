@@ -35,15 +35,7 @@
            (substring filename 0 (- len 3))
            filename)))
 
-(doc filter-map 'type "(A -> B | #f) (List A) -> (List B)")
-(define (filter-map f lst)
-  (let loop ([lst lst] [acc '()])
-       (if (null? lst)
-           (reverse acc)
-           (let ([result (f (car lst))])
-                (if result
-                    (loop (cdr lst) (cons result acc))
-                    (loop (cdr lst) acc))))))
+;;; filter-map provided by prelude
 
 (doc 'section 'input-validation)
 

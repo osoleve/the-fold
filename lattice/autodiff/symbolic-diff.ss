@@ -171,15 +171,7 @@
 (define (get-numeric e)
   (if (num? e) (num-val e) #f))
 
-;;; filter-map : (α → β | #f) × (List α) → (List β)
-(define (filter-map f lst)
-  (let loop ([lst lst] [acc '()])
-       (if (null? lst)
-           (reverse acc)
-           (let ([result (f (car lst))])
-                (if result
-                    (loop (cdr lst) (cons result acc))
-                    (loop (cdr lst) acc))))))
+;;; filter-map provided by prelude
 
 ;;; collect-like-terms : (List Expr) → (List Expr)
 ;;; Collect terms like x + x → 2*x

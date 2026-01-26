@@ -66,16 +66,7 @@
   (doc 'export #f)
   (filter-map (lambda (inst) (match-instance inst constraint)) db))
 
-(define (filter-map f lst)
-  (doc 'type (-> (-> Any (Maybe Any)) (List Any) (List Any)))
-  (doc 'description "Map a function over a list and filter out #f results.")
-  (doc 'export #f)
-  (if (null? lst)
-      '()
-      (let ([result (f (car lst))])
-           (if result
-               (cons result (filter-map f (cdr lst)))
-               (filter-map f (cdr lst))))))
+;;; filter-map provided by prelude
 
 (doc 'section 'instance-specificity)
 

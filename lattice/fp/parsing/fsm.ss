@@ -487,14 +487,7 @@
            partition)])
         (make-fsm new-states (fsm-alphabet dfa) new-trans new-start new-accepting)))
 
-;;; filter-map : (α → (Option β)) × (List α) → (List β)
-;;; Helper: filter and map
-(define (filter-map f lst)
-  (fold-right (lambda (x acc)
-                      (let ([result (f x)])
-                           (if result (cons result acc) acc)))
-              '()
-              lst))
+;;; filter-map provided by prelude
 
 (doc 'section 'fsm-visualization)
 

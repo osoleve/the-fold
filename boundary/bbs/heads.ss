@@ -145,15 +145,7 @@
                  (string=? (substring id 0 5) "fold-")))
           (bbs-list-heads)))
 
-(define (filter-map f lst)
-  (doc 'type '(-> (-> a (Option b)) (List a) (List b)))
-  (doc 'description "Map and filter in one pass")
-  (let loop ([lst lst] [acc '()])
-    (if (null? lst)
-        (reverse acc)
-        (let ([result (f (car lst))])
-          (loop (cdr lst)
-                (if result (cons result acc) acc))))))
+;;; filter-map provided by prelude
 
 (doc 'section 'string-utilities)
 

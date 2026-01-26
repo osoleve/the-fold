@@ -664,15 +664,7 @@
 ;;; Helper Functions
 ;;; ====
 
-;;; filter-map : (α → β |(Option SExpr)) × (List α) → (List β)
-(define (filter-map f lst)
-  (let loop ([items lst] [result '()])
-       (if (null? items)
-           (reverse result)
-           (let ([mapped (f (car items))])
-                (if mapped
-                    (loop (cdr items) (cons mapped result))
-                    (loop (cdr items) result))))))
+;;; filter-map provided by prelude
 
 ;;; append-map : (α → (List β)) × (List α) → (List β)
 (define (append-map f lst)

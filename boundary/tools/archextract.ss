@@ -279,17 +279,7 @@
         `((nodes . ,nodes)
           (edges . ,edges))))
 
-;;; filter-map : (a -> b | #f) x (List a) -> (List b)
-;;; Map and filter out #f results.
-(define (filter-map f lst)
-  (let loop ([lst lst] [acc '()])
-       (cond
-        [(null? lst) (reverse acc)]
-        [else
-         (let ([result (f (car lst))])
-              (if result
-                  (loop (cdr lst) (cons result acc))
-                  (loop (cdr lst) acc)))])))
+;;; filter-map provided by prelude
 
 ;;; ====
 ;;; Cycle Detection

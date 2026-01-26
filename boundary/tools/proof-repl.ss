@@ -321,15 +321,7 @@
                          #f)))
         laws-list)))
 
-;;; filter-map : (a -> b | #f) x (List a) -> (List b)
-(define (filter-map f lst)
-  (let loop ([xs lst] [acc '()])
-       (if (null? xs)
-           (reverse acc)
-           (let ([result (f (car xs))])
-                (if result
-                    (loop (cdr xs) (cons result acc))
-                    (loop (cdr xs) acc))))))
+;;; filter-map provided by prelude
 
 ;;; ====
 ;;; Undo Command

@@ -271,15 +271,7 @@
 (define (range lo hi)
   (if (>= lo hi) '() (cons lo (range (+ lo 1) hi))))
 
-(define (filter-map f lst)
-  (let loop ([lst lst] [acc '()])
-       (cond
-        [(null? lst) (reverse acc)]
-        [else
-         (let ([result (f (car lst))])
-              (if result
-                  (loop (cdr lst) (cons result acc))
-                  (loop (cdr lst) acc)))])))
+;;; filter-map provided by prelude
 
 (doc 'section 'utility)
 

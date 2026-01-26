@@ -362,17 +362,7 @@
                           #f)))
         fns)))
 
-;;; NOTE: string-downcase provided by core/prelude.ss
-
-;;; filter-map : (a -> b | #f) x (List a) -> (List b)
-;;; Map and filter out #f results.
-(define (filter-map f lst)
-  (let loop ([lst lst] [acc '()])
-       (if (null? lst)
-           (reverse acc)
-           (let ([result (f (car lst))])
-                (loop (cdr lst)
-                      (if result (cons result acc) acc))))))
+;;; NOTE: string-downcase, filter-map provided by core/prelude.ss
 
 ;;; ====
 ;;; Rendering

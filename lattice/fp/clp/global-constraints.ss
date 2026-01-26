@@ -79,16 +79,7 @@
          [unique-vals (list-uniq singleton-vals)])
         (not (= (length singleton-vals) (length unique-vals)))))
 
-(define (filter-map f lst)
-  (doc 'type '(-> (-> α (Maybe β)) (List α) (List β)))
-  (doc 'description "Map and filter in one pass")
-  (let loop ([lst lst] [acc '()])
-       (if (null? lst)
-           (reverse acc)
-           (let ([result (f (car lst))])
-                (if result
-                    (loop (cdr lst) (cons result acc))
-                    (loop (cdr lst) acc))))))
+;;; filter-map provided by prelude
 
 (define (list-uniq-global lst)
   (doc 'type '(-> (List α) (List α)))
