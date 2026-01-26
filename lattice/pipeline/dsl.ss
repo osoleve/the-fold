@@ -239,16 +239,7 @@
 (define (drop-stage n)
   (stage-arr (lambda (items) (drop n items))))
 
-;;; Simple take/drop (if not in prelude)
-(define (take n lst)
-  (if (or (= n 0) (null? lst))
-      '()
-      (cons (car lst) (take (- n 1) (cdr lst)))))
-
-(define (drop n lst)
-  (if (or (= n 0) (null? lst))
-      lst
-      (drop (- n 1) (cdr lst))))
+;; take and drop are provided by prelude (via context.ss)
 
 (doc 'section 'parallel-execution)
 

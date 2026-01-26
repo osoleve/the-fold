@@ -337,17 +337,7 @@
                     (append (subgraph-partition adj orig-a k-a)
                             (subgraph-partition adj orig-b k-b)))))]))
 
-;;; take : Nat × (List α) → (List α)
-(define (take n lst)
-  (if (or (= n 0) (null? lst))
-      '()
-      (cons (car lst) (take (- n 1) (cdr lst)))))
-
-;;; drop : Nat × (List α) → (List α)
-(define (drop n lst)
-  (if (or (= n 0) (null? lst))
-      lst
-      (drop (- n 1) (cdr lst))))
+;; take and drop are provided by prelude (via @requires)
 
 ;;; ====
 ;;; Laplacian Properties
