@@ -218,18 +218,27 @@
 
 (doc 'section 'application)
 
+;;; E-class reference wrapper (to distinguish from literal numbers)
+(define eclass-ref-tag 'eclass-ref)
+(define (make-eclass-ref id) (vector eclass-ref-tag id))
+(define (eclass-ref? x)
+  (and (vector? x)
+       (= (vector-length x) 2)
+       (eq? (vector-ref x 0) eclass-ref-tag)))
+(define (eclass-ref-id x) (vector-ref x 1))
+
 ;;; pattern-apply : Substitution × Pattern → Term
 ;;; Apply a substitution to a pattern, yielding a term.
-;;; Pattern variables are replaced with their bound values.
+;;; Pattern variables are replaced with wrapped e-class references.
 (define (pattern-apply subst pattern)
   (doc 'type (-> Substitution Pattern Term))
-  (doc 'description "Apply substitution to pattern, yielding a term with e-class IDs.")
+  (doc 'description "Apply substitution to pattern, yielding a term with e-class refs.")
   (doc 'export #t)
   (cond
     [(pattern-var? pattern)
      (let ([binding (subst-lookup subst pattern)])
        (if binding
-           binding  ; Return the e-class ID
+           (make-eclass-ref binding)  ; Wrap the e-class ID
            (error 'pattern-apply "Unbound pattern variable" pattern)))]
     [(pair? pattern)
      (cons (car pattern)
@@ -287,15 +296,19 @@
           #t))))
 
 ;;; add-instantiated-term : EGraph × InstantiatedTerm → EClassId
-;;; Add a term where leaves may be e-class IDs (from substitution).
+;;; Add a term where leaves may be e-class refs (from substitution).
 (define (add-instantiated-term eg term)
   (doc 'type (-> EGraph InstantiatedTerm EClassId))
-  (doc 'description "Add term with e-class ID leaves to e-graph.")
+  (doc 'description "Add term with e-class ref leaves to e-graph.")
   (cond
-    ;; Already an e-class ID (from pattern variable)
-    [(integer? term) term]
+    ;; E-class reference (from pattern variable)
+    [(eclass-ref? term)
+     (eclass-ref-id term)]
     ;; Symbol leaf
     [(symbol? term)
+     (egraph-add-enode! eg (make-enode term (vector)))]
+    ;; Number literal (add as e-node, not e-class ID!)
+    [(number? term)
      (egraph-add-enode! eg (make-enode term (vector)))]
     ;; Application
     [(pair? term)

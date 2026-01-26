@@ -185,19 +185,28 @@
 
 (test-group "pattern-apply"
 
-  (define-test "apply to variable"
+  (define-test "apply to variable returns eclass-ref"
     (let ([s (subst-extend (empty-subst) '?x 5)])
-      (assert-equal 5 (pattern-apply s '?x))))
+      (let ([result (pattern-apply s '?x)])
+        (assert-true (eclass-ref? result))
+        (assert-equal 5 (eclass-ref-id result)))))
 
-  (define-test "apply to compound"
+  (define-test "apply to compound wraps variable bindings"
     (let ([s (subst-extend (subst-extend (empty-subst) '?x 1) '?y 2)])
       (let ([result (pattern-apply s '(+ ?x ?y))])
-        (assert-equal '(+ 1 2) result))))
+        (assert-equal '+ (car result))
+        (assert-true (eclass-ref? (cadr result)))
+        (assert-equal 1 (eclass-ref-id (cadr result)))
+        (assert-true (eclass-ref? (caddr result)))
+        (assert-equal 2 (eclass-ref-id (caddr result))))))
 
   (define-test "apply preserves literals"
     (let ([s (subst-extend (empty-subst) '?x 1)])
       (let ([result (pattern-apply s '(f ?x 42))])
-        (assert-equal '(f 1 42) result)))))
+        (assert-equal 'f (car result))
+        (assert-true (eclass-ref? (cadr result)))
+        (assert-equal 1 (eclass-ref-id (cadr result)))
+        (assert-equal 42 (caddr result))))))
 
 (test-group "rules"
 
