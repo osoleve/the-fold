@@ -102,12 +102,7 @@
                             (apply max (map lit-var clause))))
                       clauses))))
 
-;;; Generate list 0, 1, ..., n-1
-(define (iota n)
-  (let loop ([i 0] [acc '()])
-    (if (>= i n)
-        (reverse acc)
-        (loop (+ i 1) (cons i acc)))))
+;; iota is provided by prelude (via literal.ss chain)
 
 (doc 'section 'binary-search)
 (doc 'note "Binary search over cost - O(log n) SAT calls instead of O(n)")

@@ -249,12 +249,7 @@
                     ;; Verify shuffle actually changed order (statistically certain)
                     (assert-false (equal? large-list shuffled)))))
 
-;;; Helper: iota - generate list 0 to n-1
-(define (iota n)
-  (let loop ([i (- n 1)] [acc '()])
-       (if (< i 0)
-           acc
-           (loop (- i 1) (cons i acc)))))
+;; iota is provided by prelude (via test-framework.ss)
 
 ;;; ====
 ;;; Summary

@@ -965,12 +965,7 @@
                     (assert-equal '(0 . 0) (car result))
                     (assert-equal '(19 . 19) (car (reverse result))))))
 
-;;; Helper: iota generates list (0 1 2 ... n-1)
-(define (iota n)
-  (let loop ([i 0] [acc '()])
-       (if (>= i n)
-           (reverse acc)
-           (loop (+ i 1) (cons i acc)))))
+;; iota is provided by prelude (via test-framework.ss)
 
 ;;; ====
 ;;; Summary

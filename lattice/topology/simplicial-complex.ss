@@ -212,13 +212,7 @@
                (map (lambda (k) (simplex-faces-of-dim s k))
                     (iota d))))))
 
-(define (iota n)
-  (doc 'type '(-> Integer (List Integer)))
-  (doc 'description "Generate list (0 1 2 ... n-1)")
-  (let loop ([i 0] [acc '()])
-    (if (>= i n)
-        (reverse acc)
-        (loop (+ i 1) (cons i acc)))))
+;; iota is provided by prelude (via set.ss)
 
 (doc 'section 'simplicial-complex)
 

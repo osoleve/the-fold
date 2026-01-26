@@ -431,12 +431,7 @@
                       (apply string-append
                              (intersperse "\n" choice-strs))))))))
 
-;;; Helper: generate list 0 to n-1
-(define (iota n)
-  (let loop ([i 0] [acc '()])
-       (if (>= i n)
-           (reverse acc)
-           (loop (+ i 1) (cons i acc)))))
+;; iota is provided by prelude
 
 ;;; Helper: intersperse separator between list elements
 (define (intersperse sep lst)

@@ -268,9 +268,4 @@
 
 (printf "~n=== DOGFOOD TEST COMPLETE ===~n")
 
-(doc 'section 'helpers)
-(define (iota n)
-  (let loop ([i 0] [acc '()])
-    (if (>= i n)
-        (reverse acc)
-        (loop (+ i 1) (cons i acc)))))
+;; iota is provided by prelude (via flashmob.ss chain)

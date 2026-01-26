@@ -725,12 +725,7 @@
       '()
       (cons (car lst) (take-n (cdr lst) (- n 1)))))
 
-;;; iota : Nat → (List Nat)
-(define (iota n)
-  (let loop ([i 0] [acc '()])
-       (if (>= i n)
-           (reverse acc)
-           (loop (+ i 1) (cons i acc)))))
+;; iota is provided by prelude
 
 ;;; join-strings : String × (List String) → String
 (define (join-strings sep strs)

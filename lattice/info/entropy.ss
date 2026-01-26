@@ -153,15 +153,7 @@
                                         joint-probs)))
                 (iota n-cols)))))
 
-(define (iota n)
-  (doc 'type '(-> Nat (List Nat)))
-  (doc 'description "Generate list (0 1 2 ... n-1)")
-  (if (<= n 0)
-      '()
-      (let loop ([i 0] [acc '()])
-           (if (= i n)
-               (reverse acc)
-               (loop (+ i 1) (cons i acc))))))
+;; iota is provided by prelude
 
 (doc 'section 'cross-entropy-and-kl)
 

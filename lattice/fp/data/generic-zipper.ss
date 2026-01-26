@@ -446,9 +446,4 @@ The context has: a path of (left child, right child) pairs")
 
 (doc 'section 'helpers)
 
-(define (iota n)
-  (doc 'type '(-> Nat (List Nat)))
-  (let loop ([i 0] [acc '()])
-    (if (>= i n)
-        (reverse acc)
-        (loop (+ i 1) (cons i acc)))))
+;; iota is provided by prelude

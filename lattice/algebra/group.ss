@@ -580,13 +580,7 @@
    [(null? lst) '()]
    [(pred (car lst)) (cons (car lst) (filter pred (cdr lst)))]
    [else (filter pred (cdr lst))]))
-(define (iota n)
-  (doc 'type '(-> Integer (List Integer)))
-  (doc 'description "Generate list (0 1 2 ... n-1)")
-  (let loop ([i 0] [acc '()])
-       (if (= i n)
-           (reverse acc)
-           (loop (+ i 1) (cons i acc)))))
+;; iota is provided by prelude
 (define (fold-left f acc lst)
   (doc 'type '(-> (-> Acc Element Acc) Acc List Acc))
   (if (null? lst)

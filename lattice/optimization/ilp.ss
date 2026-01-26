@@ -613,13 +613,7 @@ Empty list = pure LP, all indices = pure ILP")
 ;;; Helper Functions
 ;;; ====
 
-;;; iota : Nat -> List
-;;; Generate list (0 1 2 ... n-1).
-(define (iota n)
-  (let loop ([i 0] [acc '()])
-    (if (= i n)
-        (reverse acc)
-        (loop (+ i 1) (cons i acc)))))
+;; iota is provided by prelude (via lp.ss)
 
 ;;; vec-ones : Nat -> Vec
 ;;; Create vector of ones.

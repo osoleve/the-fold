@@ -739,13 +739,7 @@
    [(pred (car lst)) #t]
    [else (any? pred (cdr lst))]))
 
-;;; iota : Nat → (List Nat)
-;;; Generate list (0 1 2 ... n-1)
-(define (iota n)
-  (let loop ([i 0] [acc '()])
-       (if (>= i n)
-           (reverse acc)
-           (loop (+ i 1) (cons i acc)))))
+;; iota is provided by prelude
 
 ;;; pi constant
 (define pi 3.141592653589793)
