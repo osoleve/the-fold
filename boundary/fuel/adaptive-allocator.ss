@@ -113,7 +113,7 @@
          [len (allocator-history-len a)]
          [max-h (allocator-max-history a)]
          [new-history (if (>= len max-h)
-                          (cons obs (take history (- max-h 1)))
+                          (cons obs (take (- max-h 1) history))
                           (cons obs history))]
          [new-len (if (>= len max-h) max-h (+ len 1))])
         (list 'adaptive-allocator
@@ -211,8 +211,8 @@
   (doc 'type (-> Allocator Nat (List Num)))
   (doc 'description "Get the N most recent observed costs")
   (doc 'export #t)
-  (take (allocator-observations alloc)
-        (min n (allocator-history-len alloc))))
+  (take (min n (allocator-history-len alloc))
+        (allocator-observations alloc)))
 
 (doc 'section 'convenience)
 
@@ -256,9 +256,4 @@
   (doc 'export #t)
   (caddr result))
 
-(define (take lst n)
-  (doc 'type (-> (List a) Nat (List a)))
-  (doc 'description "Take first n elements from list")
-  (if (or (null? lst) (<= n 0))
-      '()
-      (cons (car lst) (take (cdr lst) (- n 1)))))
+;; take is provided by prelude (via kalman.ss and eval.ss)

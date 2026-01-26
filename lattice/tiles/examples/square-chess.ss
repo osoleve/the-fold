@@ -7,11 +7,7 @@
 
 (load "lattice/tiles/boardcraft.ss")
 
-;;; Helper function
-(define (take lst n)
-  (if (or (null? lst) (= n 0))
-      '()
-      (cons (car lst) (take (cdr lst) (- n 1)))))
+;; take is provided by prelude (via boardcraft.ss)
 
 (display "═══════════════════════════════════════════════════════════════\n")
 (display "  BOARDCRAFT CHESS DEMO\n")
@@ -245,7 +241,7 @@
       (lambda (c)
               (display c)
               (display " "))
-      (take ring 5))
+      (take 5 ring))
      (display "...\n"))
 (newline)
 
