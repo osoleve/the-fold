@@ -1149,12 +1149,6 @@ At a real eigenvalue zero-crossing:
                                 (vector-ref data (+ (* row2 n) j)))
                    (vector-set! data (+ (* row2 n) j) temp)))))
 
-;; Keep 2D version for backward compatibility
-(define (matrix-determinant-2d m)
-  (doc 'type '(-> Matrix Number))
-  (doc 'description "Compute determinant of 2x2 matrix (deprecated, use matrix-determinant)")
-  (matrix-determinant m))
-
 ;;; ============================================================
 ;;; Section: Bifurcation Summary
 ;;; ============================================================

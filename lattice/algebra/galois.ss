@@ -666,14 +666,6 @@
       (make-polynomial (gf-ext-base-field element) (gf-ext-coeffs element))
       (error 'gf-ext-to-poly "not a GF(p^n) element")))
 
-;;; gf-ext-from-poly : Polynomial × Field → Element
-;;; Create GF(p^n) element from polynomial.
-(define (gf-ext-from-poly poly gf-ext-field)
-  (doc 'export #t)
-  (let* ([sample (field-one gf-ext-field)]
-         [n (length (field-elements (gf-ext-base-field sample)))])
-    (error 'gf-ext-from-poly "not implemented yet")))  ; TODO
-
 ;;; gf2n-to-poly : Element → Polynomial
 ;;; Convert GF(2^n) element to polynomial over GF(2).
 (define (gf2n-to-poly element)

@@ -7,24 +7,17 @@
 (load "lattice/physics/diff/rollout.ss")
 
 (doc 'module 'optimize)
-(doc 'deprecated "Prefer optic-optimize.ss for new code")
 (doc 'description "Trajectory Optimization API
 
-DEPRECATED: This module uses manual parameter flattening which has known issues
-with nested AD scopes. See optic-optimize.ss for cleaner implementations:
-  optimize-trajectory        → optimize-trajectory-all
-  optimize-initial-velocity  → optimize-initial-velocity-optic
-
-Kept for:
-  - Adam optimizer (not yet available in optic-optimize)
-  - Inverse physics (estimate-mass, estimate-gravity)
-  - Checkpointed gradient computation
-
-High-level API for differentiable physics optimization:
+Provides general-purpose optimization algorithms and physics-specific utilities:
 - Gradient descent and variants (Adam, momentum)
-- Trajectory optimization
-- Inverse physics (parameter estimation)
-- Sensitivity analysis")
+- Inverse physics (parameter estimation: mass, gravity)
+- Sensitivity analysis (gradients, Hessian diagonal)
+
+For trajectory optimization, prefer optic-optimize.ss which provides:
+  optimize-trajectory-optic        Optimize initial body state
+  optimize-trajectory-all          Optimize all state variables
+  optimize-initial-velocity-optic  Find velocity to hit target")
 (doc 'layer 'lattice)
 (doc 'purity 'total)
 
@@ -118,82 +111,6 @@ High-level API for differentiable physics optimization:
                        (lambda () (adam-step params grads m v t learning-rate beta1 beta2 epsilon))
                        (lambda (new-params new-m new-v)
                                (loop new-params new-m new-v (+ t 1)))))))))
-
-;;; ====
-;;; Trajectory Optimization
-;;; ====
-
-;;; optimize-initial-velocity : Vec2 × Vec2 × Vec2 × Number × Nat × Number × Nat → Vec2
-;;; DEPRECATED: Use optimize-initial-velocity-optic from optic-optimize.ss
-;;;
-;;; Find initial velocity to hit target position.
-;;;   start-pos: starting position
-;;;   target-pos: desired final position
-;;;   gravity: gravity vector
-;;;   dt: timestep
-;;;   num-steps: simulation steps
-;;;   learning-rate: optimization step size
-;;;   max-iters: optimization iterations
-(define (optimize-initial-velocity start-pos target-pos gravity dt num-steps
-                                   learning-rate max-iters)
-  (let* ([loss-fn (projectile-hit-loss start-pos target-pos gravity dt num-steps)]
-         ;; Wrap for gradient: takes list, returns scalar
-         [opt-loss (lambda (vel-list)
-                           (loss-fn (vec2 (car vel-list) (cadr vel-list))))]
-         ;; Initial guess: direct line to target (ignoring gravity)
-         [delta (vec2-sub target-pos start-pos)]
-         [time (* num-steps dt)]
-         [initial-vel (vec2-scale-inv delta time)]
-         ;; Optimize
-         [result (adam opt-loss
-                       (list (vec2-x initial-vel) (vec2-y initial-vel))
-                       learning-rate
-                       max-iters)])
-        (vec2 (car result) (cadr result))))
-
-;;; optimize-trajectory : TracedBody × (TracedBody → TracedBody) × (RigidBody2D → Number) × Nat × Number × Nat → TracedBody
-;;; DEPRECATED: Use optimize-trajectory-all from optic-optimize.ss
-;;;
-;;; Optimize initial body state to minimize final loss.
-;;; This is a more general version that optimizes all state variables.
-;;;
-;;; NOTE: This function has nested AD scope issues. The optic version fixes this.
-(define (optimize-trajectory initial-body step-fn loss-fn num-steps
-                             learning-rate max-iters)
-  (let* ([mass (rigid-body-mass initial-body)]
-         [inertia (rigid-body-inertia initial-body)]
-         ;; Flatten initial state
-         [initial-params (list (vec2-x (rigid-body-pos initial-body))
-                               (vec2-y (rigid-body-pos initial-body))
-                               (vec2-x (rigid-body-vel initial-body))
-                               (vec2-y (rigid-body-vel initial-body))
-                               (rigid-body-angle initial-body)
-                               (rigid-body-angular-vel initial-body))]
-         ;; Loss wrapper
-         [opt-loss
-          (lambda (params)
-                  (with-fresh-ad-scope
-                   (lambda ()
-                           (let* ([tape (make-reverse-tape)]
-                                  [tb (make-traced-body
-                                       (traced-vec2 (make-traced-var (list-ref params 0) tape)
-                                                    (make-traced-var (list-ref params 1) tape))
-                                       (traced-vec2 (make-traced-var (list-ref params 2) tape)
-                                                    (make-traced-var (list-ref params 3) tape))
-                                       (make-traced-var (list-ref params 4) tape)
-                                       (make-traced-var (list-ref params 5) tape)
-                                       mass inertia)]
-                                  [final-tb (traced-rollout tb step-fn num-steps)]
-                                  [final-rb (unpack-traced-body final-tb)])
-                                 (loss-fn final-rb)))))]
-         ;; Optimize
-         [result (adam opt-loss initial-params learning-rate max-iters)])
-        ;; Reconstruct body
-        (make-rigid-body (vec2 (list-ref result 0) (list-ref result 1))
-                         (vec2 (list-ref result 2) (list-ref result 3))
-                         (list-ref result 4)
-                         (list-ref result 5)
-                         mass inertia)))
 
 ;;; ====
 ;;; Inverse Physics (Parameter Estimation)
@@ -343,31 +260,7 @@ High-level API for differentiable physics optimization:
       (cons (f (car lst)) (cdr lst))
       (cons (car lst) (list-update (cdr lst) (- idx 1) f))))
 
-;;; iota : Nat → (List Nat)
-;;; Generate list (0, 1, ..., n-1).
-(define (iota n)
-  (let loop ([i 0])
-       (if (= i n)
-           '()
-           (cons i (loop (+ i 1))))))
-
 ;;; print-optimization-progress : Nat × Number × (List Number) → Unit
 ;;; Print optimization iteration info (for debugging).
 (define (print-optimization-progress iter loss params)
   (printf "Iter ~a: loss=~a params=~a~n" iter loss params))
-
-;;; ====
-;;; Complete Optimization Example
-;;; ====
-
-;;; This shows how to set up a complete optimization problem.
-
-;;; projectile-optimization-example : Vec2 × Vec2 × Vec2 → Vec2
-;;; Find initial velocity to hit target from start position under gravity.
-(define (projectile-optimization-example start target gravity)
-  (let* ([dt (/ 1 60)]
-         [num-steps 100]
-         [learning-rate 0.1]
-         [max-iters 100])
-        (optimize-initial-velocity start target gravity dt num-steps
-                                   learning-rate max-iters)))

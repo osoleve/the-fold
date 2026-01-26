@@ -371,10 +371,10 @@
   ;;; Saddle-Node Detection
   ;;; ============================================================
 
-  (define-test "matrix-determinant-2d computes correctly"
+  (define-test "matrix-determinant computes 2x2 correctly"
     (let ([m (list 'matrix 2 2 (vector 1 2 3 4))])
          ;; det = 1*4 - 2*3 = -2
-         (assert-true (< (abs (+ (matrix-determinant-2d m) 2)) 0.001))))
+         (assert-true (< (abs (+ (matrix-determinant m) 2)) 0.001))))
 
   (define-test "matrix-determinant works for 3x3 matrix"
     (let ([m (list 'matrix 3 3 (vector 1 2 3  0 1 4  5 6 0))])
