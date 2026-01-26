@@ -391,13 +391,7 @@
       '()
       (cons (car lst) (take (- n 1) (cdr lst)))))
 
-;;; filter : (a → Boolean) × (List a) → (List a)
-;;; Filter list by predicate
-(define (filter pred lst)
-  (cond
-   [(null? lst) '()]
-   [(pred (car lst)) (cons (car lst) (filter pred (cdr lst)))]
-   [else (filter pred (cdr lst))]))
+;; filter provided by prelude
 
 ;;; sort : (a × a → Boolean) × (List a) → (List a)
 ;;; Sort list using comparison function (simple insertion sort)

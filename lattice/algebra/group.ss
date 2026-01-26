@@ -114,7 +114,7 @@
                      (if (null? bs)
                          (loop-a (cdr as))
                          (let ([result (op (car as) (car bs))])
-                              (if (any (lambda (e) (eq? e result)) elems)
+                              (if (ormap (lambda (e) (eq? e result)) elems)
                                   (loop-b (cdr bs))
                                   #f))))))))
 (define (verify-associativity g)
@@ -395,7 +395,7 @@
         ;; H is non-empty
         (not (null? h-elements))
         ;; Identity in H
-        (any (lambda (x) (eq? x e)) h-elements)
+        (ormap (lambda (x) (eq? x e)) h-elements)
         ;; Closed under operation
         (let loop-a ([as h-elements])
              (if (null? as)
@@ -404,7 +404,7 @@
                       (if (null? bs)
                           (loop-a (cdr as))
                           (let ([result (op (car as) (car bs))])
-                               (if (any (lambda (x) (eq? x result)) h-elements)
+                               (if (ormap (lambda (x) (eq? x result)) h-elements)
                                    (loop-b (cdr bs))
                                    #f))))))
         ;; Closed under inverses
@@ -412,7 +412,7 @@
              (if (null? es)
                  #t
                  (let ([a-inv (inv (car es))])
-                      (if (any (lambda (x) (eq? x a-inv)) h-elements)
+                      (if (ormap (lambda (x) (eq? x a-inv)) h-elements)
                           (loop (cdr es))
                           #f)))))))
 (define (generate-subgroup g generators)
@@ -434,7 +434,7 @@
                    [unique
                     (fold-left
                      (lambda (acc x)
-                             (if (any (lambda (y) (eq? x y)) acc)
+                             (if (ormap (lambda (y) (eq? x y)) acc)
                                  acc
                                  (cons x acc)))
                      current
@@ -518,14 +518,14 @@
               (let loop ([imgs images])
                    (if (null? imgs)
                        #t
-                       (if (any (lambda (x) (eq? x (car imgs))) (cdr imgs))
+                       (if (ormap (lambda (x) (eq? x (car imgs))) (cdr imgs))
                            #f
                            (loop (cdr imgs)))))
               ;; All target elements hit (surjective)
               (let loop ([targets target-elems])
                    (if (null? targets)
                        #t
-                       (if (any (lambda (x) (eq? x (car targets))) images)
+                       (if (ormap (lambda (x) (eq? x (car targets))) images)
                            (loop (cdr targets))
                            #f)))))))
 (define (kernel h)
@@ -550,7 +550,7 @@
         (fold-left
          (lambda (acc x)
                  (let ([img (phi x)])
-                      (if (any (lambda (y) (eq? y img)) acc)
+                      (if (ormap (lambda (y) (eq? y img)) acc)
                           acc
                           (cons img acc))))
          '()
@@ -567,25 +567,7 @@
                     (map (lambda (b) (op a b)) elems))
             elems)))
 
-(doc 'section 'utility-functions)
-(define (any pred lst)
-  (doc 'type '(-> (-> Element Boolean) List Boolean))
-  (cond
-   [(null? lst) #f]
-   [(pred (car lst)) #t]
-   [else (any pred (cdr lst))]))
-(define (filter pred lst)
-  (doc 'type '(-> (-> Element Boolean) List List))
-  (cond
-   [(null? lst) '()]
-   [(pred (car lst)) (cons (car lst) (filter pred (cdr lst)))]
-   [else (filter pred (cdr lst))]))
-;; iota is provided by prelude
-(define (fold-left f acc lst)
-  (doc 'type '(-> (-> Acc Element Acc) Acc List Acc))
-  (if (null? lst)
-      acc
-      (fold-left f (f acc (car lst)) (cdr lst))))
+;; filter, fold-left, iota, ormap provided by prelude
 
 (doc 'section 'common-groups)
 (define (trivial-group)

@@ -522,9 +522,4 @@
    [(equal-fn item (car lst)) #t]
    [else (member-equal item (cdr lst) equal-fn)]))
 
-;;; Helper: filter
-(define (filter pred lst)
-  (cond
-   [(null? lst) '()]
-   [(pred (car lst)) (cons (car lst) (filter pred (cdr lst)))]
-   [else (filter pred (cdr lst))]))
+;; filter provided by prelude

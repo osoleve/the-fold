@@ -695,7 +695,7 @@
          [eq-fn (field-equal-fn F)])
     ;; Element is primitive iff element^d ≠ 1 for all proper divisors d of q-1
     (let ([divisors (proper-divisors q-1)])
-      (not (any? (lambda (d)
+      (not (ormap (lambda (d)
                    (eq-fn (field-power F element d) one))
                  divisors)))))
 
@@ -706,18 +706,7 @@
       (filter (lambda (d) (= 0 (modulo n d)))
               (cdr (iota n)))))  ; (1 2 ... n-1)
 
-;;; any? predicate
-(define (any? pred lst)
-  (and (not (null? lst))
-       (or (pred (car lst))
-           (any? pred (cdr lst)))))
-
-;;; filter
-(define (filter pred lst)
-  (cond
-    [(null? lst) '()]
-    [(pred (car lst)) (cons (car lst) (filter pred (cdr lst)))]
-    [else (filter pred (cdr lst))]))
+;; filter, ormap provided by prelude
 
 ;;; gf-find-primitive : Field → Element
 ;;; Find a primitive element of the field by exhaustive search.
@@ -757,7 +746,7 @@
     ;; Collect conjugates: α, α^p, α^{p^2}, ... until we cycle
     (let loop ([current element] [conjugates (list element)] [seen (list element)])
       (let ([next (field-power ext-field current p)])
-        (if (any? (lambda (x) (eq-fn next x)) seen)
+        (if (ormap (lambda (x) (eq-fn next x)) seen)
             ;; Found all conjugates, build minimal polynomial
             (gf-poly-from-roots ext-field base-field (reverse conjugates))
             (loop next (cons next conjugates) (cons next seen)))))))

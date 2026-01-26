@@ -300,17 +300,7 @@
   (let ([as-list (zipper->list z)])
     (ormap pred as-list)))
 
-(define (ormap pred xs)
-  (doc 'type '(-> (-> α Bool) (List α) Bool))
-  (if (null? xs)
-      #f
-      (or (pred (car xs)) (ormap pred (cdr xs)))))
-
-(define (andmap-single pred xs)
-  (doc 'type '(-> (-> α Bool) (List α) Bool))
-  (if (null? xs)
-      #t
-      (and (pred (car xs)) (andmap-single pred (cdr xs)))))
+;; ormap, andmap provided by prelude
 
 (define (zipper-collect f z)
   (doc 'type '(-> (-> α (Maybe β)) (ListZipper α) (List β)))

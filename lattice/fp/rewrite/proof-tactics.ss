@@ -685,21 +685,7 @@ This is Lattice code: pure, total, assumes perfect input.")
 (define tactic-monad
   (simplify-tactic monad-simplify))
 
-;;; ====
-;;; Helper: ormap
-;;; ====
-
-(define (ormap pred lst)
-  (cond
-   [(null? lst) #f]
-   [(pred (car lst)) #t]
-   [else (ormap pred (cdr lst))]))
-
-(define (filter pred lst)
-  (cond
-   [(null? lst) '()]
-   [(pred (car lst)) (cons (car lst) (filter pred (cdr lst)))]
-   [else (filter pred (cdr lst))]))
+;; ormap, filter provided by prelude
 
 ;;; ====
 ;;; Proof Execution

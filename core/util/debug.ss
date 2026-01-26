@@ -454,14 +454,7 @@
 (define (get-recent-watch-events d n)
   (take-up-to-debug n (debugger-watch-events d)))
 
-;;; filter : (α → Boolean) × (List α) → (List α)
-;;; Keep elements satisfying predicate.
-(define (filter pred lst)
-  (let loop ([l lst] [acc '()])
-       (cond
-        [(null? l) (reverse acc)]
-        [(pred (car l)) (loop (cdr l) (cons (car l) acc))]
-        [else (loop (cdr l) acc)])))
+;; filter provided by prelude
 
 ;;; ====
 ;;; Fuel-Tracking Debugger Extension
