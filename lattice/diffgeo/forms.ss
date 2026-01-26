@@ -83,11 +83,7 @@
      [(equal? (car lst) elem) i]
      [else (loop (cdr lst) (+ i 1))])))
 
-(doc range 'type '(-> Nat Nat (List Nat)))
-(define (range start end)
-  (if (>= start end)
-      '()
-      (cons start (range (+ start 1) end))))
+;;; range provided by prelude
 
 (doc binomial 'type '(-> Nat Nat Nat))
 (doc binomial 'description "Binomial coefficient C(n,k)")

@@ -137,11 +137,7 @@
               (outer (+ i 1) acc)
               (inner (+ j 1) (cons (cons i j) acc)))))))
 
-;;; range : Nat × Nat → (List Nat)
-(define (range start end)
-  (if (>= start end)
-      '()
-      (cons start (range (+ start 1) end))))
+;;; range provided by prelude
 
 ;;; ====
 ;;; Reduced Gröbner Basis

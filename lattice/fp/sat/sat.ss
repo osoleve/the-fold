@@ -268,10 +268,7 @@
                          (range 0 n))))
                (range 0 (- (* 2 n) 1))))))
 
-(define (range lo hi)
-  (if (>= lo hi) '() (cons lo (range (+ lo 1) hi))))
-
-;;; filter-map provided by prelude
+;;; range, filter-map provided by prelude
 
 (doc 'section 'utility)
 

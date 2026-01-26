@@ -143,6 +143,15 @@
            (reverse acc)
            (loop (+ i 1) (cons i acc)))))
 
+(define (range start end)
+  (doc 'type (-> Int Int (List Int)))
+  (doc 'description "Generate list [start, start+1, ..., end-1].")
+  (doc 'export #t)
+  (let loop ([i start] [acc '()])
+    (if (>= i end)
+        (reverse acc)
+        (loop (+ i 1) (cons i acc)))))
+
 (define (take n lst)
   (doc 'type (-> Nat (List α) (List α)))
   (doc 'description "Take first n elements.")

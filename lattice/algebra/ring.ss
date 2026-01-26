@@ -495,11 +495,7 @@
 ;;; Utilities
 ;;; ====
 
-;;; Helper: range
-(define (range start end)
-  (if (>= start end)
-      '()
-      (cons start (range (+ start 1) end))))
+;;; range provided by prelude
 
 ;;; unique-with-equal : (List α) × (α × α → Bool) → (List α)
 ;;; Remove duplicates using custom equality predicate.

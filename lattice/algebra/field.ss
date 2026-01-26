@@ -244,8 +244,4 @@
 ;;; Utility
 ;;; ====
 
-;;; range : Nat × Nat → (List Nat)
-(define (range start end)
-  (if (>= start end)
-      '()
-      (cons start (range (+ start 1) end))))
+;;; range provided by prelude

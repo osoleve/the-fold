@@ -340,12 +340,7 @@
                  (loop (cdr intervals)
                        (append (reverse (range lo (+ hi 1))) acc))))))
 
-(define (range lo hi)
-  (doc 'type '(-> Int Int (List Int)))
-  (doc 'description "Generate list [lo, lo+1, ..., hi-1]")
-  (if (>= lo hi)
-      '()
-      (cons lo (range (+ lo 1) hi))))
+;;; range provided by prelude
 
 (define (domain-for-each dom proc)
   (doc 'type '(-> Domain (-> Int Void) Void))
