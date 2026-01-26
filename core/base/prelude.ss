@@ -228,6 +228,51 @@
   (doc 'export #t)
   (span (lambda (x) (not (pred x))) lst))
 
+(doc 'section 'numeric-reductions)
+
+(define (sum lst)
+  (doc 'type (-> (List Num) Num))
+  (doc 'description "Sum all elements in a numeric list. Returns 0 for empty list.")
+  (doc 'export #t)
+  (fold-left + 0 lst))
+
+(define (product lst)
+  (doc 'type (-> (List Num) Num))
+  (doc 'description "Multiply all elements in a numeric list. Returns 1 for empty list.")
+  (doc 'export #t)
+  (fold-left * 1 lst))
+
+(define (mean lst)
+  (doc 'type (-> (List Num) Num))
+  (doc 'description "Arithmetic mean of a numeric list. Error on empty list.")
+  (doc 'export #t)
+  (if (null? lst)
+      (error 'mean "empty list")
+      (/ (sum lst) (length lst))))
+
+(doc 'section 'alist-utilities)
+
+(define (assoc-ref alist key)
+  (doc 'type (-> (Alist κ ν) κ (Maybe ν)))
+  (doc 'description "Look up key in association list, return value or #f if not found. Uses equal? for comparison.")
+  (doc 'export #t)
+  (let ([pair (assoc key alist)])
+    (and pair (cdr pair))))
+
+(define (assq-ref alist key)
+  (doc 'type (-> (Alist Symbol ν) Symbol (Maybe ν)))
+  (doc 'description "Look up symbol key in association list, return value or #f. Uses eq? for comparison (faster for symbols).")
+  (doc 'export #t)
+  (let ([pair (assq key alist)])
+    (and pair (cdr pair))))
+
+(define (alist-update alist key value)
+  (doc 'type (-> (Alist κ ν) κ ν (Alist κ ν)))
+  (doc 'description "Return new alist with key mapped to value. Replaces existing or adds new entry.")
+  (doc 'export #t)
+  (cons (cons key value)
+        (filter (lambda (pair) (not (equal? (car pair) key))) alist)))
+
 (doc 'section 'collection-utilities)
 (doc 'note "Missing functional primitives.")
 
