@@ -89,7 +89,8 @@
               (kg-ensure!)
               (let ([roots (lattice-roots)])
                    (assert-true (if (memq 'linalg roots) #t #f))
-                   (assert-true (if (memq 'data roots) #t #f))))
+                   ;; algebra is tier 0 root (data now depends on fp, so not a root)
+                   (assert-true (if (memq 'algebra roots) #t #f))))
 
             (define-test test-lattice-deps-transitive
               (kg-ensure!)

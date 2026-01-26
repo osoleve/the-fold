@@ -11,7 +11,7 @@
   (stability stable)
   (fuel-bound 10000)
 
-  (deps (data algebra))  ; Depends on data structures and algebraic structures
+  (deps (algebra))  ; Depends on algebraic structures (field.ss, polynomial.ss)
 
   (description
    "A comprehensive functional programming library implementing Haskell-style
