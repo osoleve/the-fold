@@ -165,9 +165,9 @@
                   (pack-expr? valid-pack))
        (test-true "pack-well-formed? valid"
                   (pack-well-formed? valid-pack))
-       (test "pack-witness-type"
-             'Int
-             (pack-witness-type valid-pack))
+       (test "pack-witness-types"
+             '(Int)
+             (pack-witness-types valid-pack))
        (test "pack-value"
              42
              (pack-value valid-pack))
@@ -193,9 +193,9 @@
                   (unpack-expr? valid-unpack))
        (test-true "unpack-well-formed? valid"
                   (unpack-well-formed? valid-unpack))
-       (test "unpack-type-var"
-             'a
-             (unpack-type-var valid-unpack))
+       (test "unpack-type-vars"
+             '(a)
+             (unpack-type-vars valid-unpack))
        (test "unpack-val-var"
              'val
              (unpack-val-var valid-unpack))
