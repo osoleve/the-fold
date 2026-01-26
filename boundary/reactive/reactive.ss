@@ -62,21 +62,24 @@
        (display "  Hint: Use (register-optic! 'name optic) for dependency tracking\n"))]))
 
 (define (with-access-tracking thunk)
-  (doc 'type (-> (-> Any) (Values Any (List Symbol))))
-  (doc 'description "Execute thunk while tracking optic accesses. Returns the result and the list of optic names accessed.")
+  (doc 'type (-> (-> Any) (Values Any (List Symbol) (List Symbol))))
+  (doc 'description "Execute thunk while tracking optic and derivation accesses. Returns the result, the list of optic names accessed, and the list of derivation names accessed.")
   (doc 'export #t)
   (let ([old-tracking *tracking-accesses?*]
-        [old-log *access-log*])
+        [old-log *access-log*]
+        [old-deriv-log *derivation-access-log*])
     (dynamic-wind
       (lambda ()
         (set! *tracking-accesses?* #t)
-        (set! *access-log* '()))
+        (set! *access-log* '())
+        (set! *derivation-access-log* '()))
       (lambda ()
         (let ([result (thunk)])
-          (values result (reverse *access-log*))))
+          (values result (reverse *access-log*) (reverse *derivation-access-log*))))
       (lambda ()
         (set! *tracking-accesses?* old-tracking)
-        (set! *access-log* old-log)))))
+        (set! *access-log* old-log)
+        (set! *derivation-access-log* old-deriv-log)))))
 
 (define (log-optic-access! optic-name)
   (doc 'type (-> Symbol Void))
@@ -91,25 +94,33 @@
 (doc derivation-tag 'description "Tag for derivation record vectors")
 (define derivation-tag 'reactive/derivation)
 
-(doc make-derivation-record 'description "Derivation record: vector #(tag source dependencies compute-fn cached-value stale?)")
-(define (make-derivation-record source dependencies compute-fn cached-value stale?)
-  (vector derivation-tag source dependencies compute-fn cached-value stale?))
+(doc make-derivation-record 'description "Derivation record: vector #(tag source optic-deps derivation-deps compute-fn cached-value stale?)")
+(define (make-derivation-record source optic-deps derivation-deps compute-fn cached-value stale?)
+  (vector derivation-tag source optic-deps derivation-deps compute-fn cached-value stale?))
 
 (define (derivation-record? x)
   (and (vector? x)
-       (> (vector-length x) 0)
+       (>= (vector-length x) 7)
        (eq? (vector-ref x 0) derivation-tag)))
 
 (define (derivation-source d) (vector-ref d 1))
-(define (derivation-dependencies d) (vector-ref d 2))
-(define (derivation-compute-fn d) (vector-ref d 3))
-(define (derivation-cached-value d) (vector-ref d 4))
-(define (derivation-stale? d) (vector-ref d 5))
+(define (derivation-optic-dependencies d) (vector-ref d 2))
+(define (derivation-derivation-dependencies d) (vector-ref d 3))
+(define (derivation-compute-fn d) (vector-ref d 4))
+(define (derivation-cached-value d) (vector-ref d 5))
+(define (derivation-stale? d) (vector-ref d 6))
+
+;; Backward compatibility alias
+(define (derivation-dependencies d) (derivation-optic-dependencies d))
 
 (define (derivation-set-source! d v) (vector-set! d 1 v))
-(define (derivation-set-dependencies! d v) (vector-set! d 2 v))
-(define (derivation-set-cached-value! d v) (vector-set! d 4 v))
-(define (derivation-set-stale! d v) (vector-set! d 5 v))
+(define (derivation-set-optic-dependencies! d v) (vector-set! d 2 v))
+(define (derivation-set-derivation-dependencies! d v) (vector-set! d 3 v))
+(define (derivation-set-cached-value! d v) (vector-set! d 5 v))
+(define (derivation-set-stale! d v) (vector-set! d 6 v))
+
+;; Backward compatibility alias
+(define (derivation-set-dependencies! d v) (derivation-set-optic-dependencies! d v))
 
 (doc *derivations* 'type '(Hashtable Symbol Derivation))
 (define *derivations* (make-hashtable symbol-hash eq?))
@@ -118,30 +129,64 @@
 (doc *optic-to-derivations* 'description "Maps optic names to the derivation names that depend on them.")
 (define *optic-to-derivations* (make-hashtable symbol-hash eq?))
 
+(doc 'section 'derivation-to-derivation-deps)
+
+(doc *derivation-access-log* 'type '(List Symbol))
+(doc *derivation-access-log* 'description "List of derivation names accessed during current tracking session.")
+(define *derivation-access-log* '())
+
+(doc *currently-computing* 'type '(List Symbol))
+(doc *currently-computing* 'description "Stack of derivation names currently being computed. Used for cycle detection.")
+(define *currently-computing* '())
+
+(doc *derivation-to-derivations* 'type '(Hashtable Symbol (List Symbol)))
+(doc *derivation-to-derivations* 'description "Maps derivation names to other derivation names that depend on them. Enables cascade invalidation when a derivation's value changes.")
+(define *derivation-to-derivations* (make-hashtable symbol-hash eq?))
+
+(define (log-derivation-access! derivation-name)
+  (doc 'type (-> Symbol Void))
+  (doc 'description "Record that a derivation was accessed (for inter-derivation dependency tracking).")
+  (doc 'export #t)
+  (when (and *tracking-accesses?* derivation-name)
+    (unless (memq derivation-name *derivation-access-log*)
+      (set! *derivation-access-log* (cons derivation-name *derivation-access-log*)))))
+
 (doc 'section 'derivation-management)
 
 (define (define-reactive name source compute-fn)
   (doc 'type (-> Symbol Any (-> Any Any) Void))
-  (doc 'description "Define a reactive derivation. The compute-fn should use traced optic operations to auto-discover dependencies.")
+  (doc 'description "Define a reactive derivation. The compute-fn should use traced optic operations and reactive-value calls to auto-discover dependencies on both optics and other derivations.")
   (doc 'export #t)
   (call-with-values
     (lambda ()
       (with-access-tracking
        (lambda () (compute-fn source))))
-    (lambda (value deps)
-      (let ([record (make-derivation-record source deps compute-fn value #f)])
-        (hashtable-set! *derivations* name record)
-        (for-each
-         (lambda (optic-name)
-           (let ([existing (hashtable-ref *optic-to-derivations* optic-name '())])
-             (unless (memq name existing)
-               (hashtable-set! *optic-to-derivations* optic-name (cons name existing)))))
-         deps)))))
+    (lambda (value optic-deps deriv-deps)
+      ;; Filter out self-references in derivation deps
+      (let ([filtered-deriv-deps (filter (lambda (d) (not (eq? d name))) deriv-deps)])
+        (let ([record (make-derivation-record source optic-deps filtered-deriv-deps compute-fn value #f)])
+          (hashtable-set! *derivations* name record)
+          ;; Register optic dependencies
+          (for-each
+           (lambda (optic-name)
+             (let ([existing (hashtable-ref *optic-to-derivations* optic-name '())])
+               (unless (memq name existing)
+                 (hashtable-set! *optic-to-derivations* optic-name (cons name existing)))))
+           optic-deps)
+          ;; Register derivation dependencies
+          (for-each
+           (lambda (deriv-name)
+             (let ([existing (hashtable-ref *derivation-to-derivations* deriv-name '())])
+               (unless (memq name existing)
+                 (hashtable-set! *derivation-to-derivations* deriv-name (cons name existing)))))
+           filtered-deriv-deps))))))
 
 (define (reactive-value name)
   (doc 'type (-> Symbol Any))
-  (doc 'description "Get the current value of a derivation. Recomputes if stale.")
+  (doc 'description "Get the current value of a derivation. Recomputes if stale. When called during access tracking, logs the dependency so the caller derivation will be invalidated when this derivation changes.")
   (doc 'export #t)
+  ;; Log that we're accessing this derivation (for inter-derivation dependency tracking)
+  (log-derivation-access! name)
   (let ([record (hashtable-ref *derivations* name #f)])
     (unless record
       (error 'reactive-value "unknown derivation" name))
@@ -151,8 +196,21 @@
 
 (define (reactive-recompute! name record)
   (doc 'type (-> Symbol Derivation Any))
-  (doc 'description "Recompute a derivation and update its dependencies. If computation fails, dependency graph is restored to consistent state.")
-  (let ([old-deps (derivation-dependencies record)])
+  (doc 'description "Recompute a derivation and update its optic and derivation dependencies. If computation fails, dependency graph is restored to consistent state. Detects circular dependencies and raises an error.")
+  ;; Cycle detection: if we're already computing this derivation, it's a cycle
+  (when (memq name *currently-computing*)
+    (error 'reactive-recompute!
+           (string-append "Circular dependency detected: "
+                          (symbol->string name)
+                          " depends on itself through: "
+                          (let loop ([stack *currently-computing*] [acc ""])
+                            (if (null? stack) acc
+                                (loop (cdr stack)
+                                      (string-append acc " -> " (symbol->string (car stack)))))))
+           name))
+  (let ([old-optic-deps (derivation-optic-dependencies record)]
+        [old-deriv-deps (derivation-derivation-dependencies record)])
+    ;; Remove old optic dependencies
     (for-each
      (lambda (optic-name)
        (let* ([existing (hashtable-ref *optic-to-derivations* optic-name '())]
@@ -160,30 +218,64 @@
          (if (null? remaining)
              (hashtable-delete! *optic-to-derivations* optic-name)
              (hashtable-set! *optic-to-derivations* optic-name remaining))))
-     old-deps)
+     old-optic-deps)
+    ;; Remove old derivation dependencies
+    (for-each
+     (lambda (deriv-name)
+       (let* ([existing (hashtable-ref *derivation-to-derivations* deriv-name '())]
+              [remaining (filter (lambda (n) (not (eq? n name))) existing)])
+         (if (null? remaining)
+             (hashtable-delete! *derivation-to-derivations* deriv-name)
+             (hashtable-set! *derivation-to-derivations* deriv-name remaining))))
+     old-deriv-deps)
     (guard (ex [else
+                ;; Restore old optic dependencies on error
                 (for-each
                  (lambda (optic-name)
                    (let ([existing (hashtable-ref *optic-to-derivations* optic-name '())])
                      (unless (memq name existing)
                        (hashtable-set! *optic-to-derivations* optic-name (cons name existing)))))
-                 old-deps)
+                 old-optic-deps)
+                ;; Restore old derivation dependencies on error
+                (for-each
+                 (lambda (deriv-name)
+                   (let ([existing (hashtable-ref *derivation-to-derivations* deriv-name '())])
+                     (unless (memq name existing)
+                       (hashtable-set! *derivation-to-derivations* deriv-name (cons name existing)))))
+                 old-deriv-deps)
                 (raise ex)])
-      (call-with-values
+      ;; Track that we're computing this derivation (for cycle detection)
+      (dynamic-wind
+        (lambda () (set! *currently-computing* (cons name *currently-computing*)))
         (lambda ()
-          (with-access-tracking
-           (lambda () ((derivation-compute-fn record) (derivation-source record)))))
-        (lambda (value new-deps)
-          (derivation-set-dependencies! record new-deps)
-          (derivation-set-cached-value! record value)
-          (derivation-set-stale! record #f)
-          (for-each
-           (lambda (optic-name)
-             (let ([existing (hashtable-ref *optic-to-derivations* optic-name '())])
-               (unless (memq name existing)
-                 (hashtable-set! *optic-to-derivations* optic-name (cons name existing)))))
-           new-deps)
-          value)))))
+          (call-with-values
+            (lambda ()
+              (with-access-tracking
+               (lambda () ((derivation-compute-fn record) (derivation-source record)))))
+        (lambda (value new-optic-deps new-deriv-deps)
+          ;; Filter out self-references
+          (let ([filtered-deriv-deps (filter (lambda (d) (not (eq? d name))) new-deriv-deps)])
+            (derivation-set-optic-dependencies! record new-optic-deps)
+            (derivation-set-derivation-dependencies! record filtered-deriv-deps)
+            (derivation-set-cached-value! record value)
+            (derivation-set-stale! record #f)
+            ;; Register new optic dependencies
+            (for-each
+             (lambda (optic-name)
+               (let ([existing (hashtable-ref *optic-to-derivations* optic-name '())])
+                 (unless (memq name existing)
+                   (hashtable-set! *optic-to-derivations* optic-name (cons name existing)))))
+             new-optic-deps)
+            ;; Register new derivation dependencies
+            (for-each
+             (lambda (deriv-name)
+               (let ([existing (hashtable-ref *derivation-to-derivations* deriv-name '())])
+                 (unless (memq name existing)
+                   (hashtable-set! *derivation-to-derivations* deriv-name (cons name existing)))))
+             filtered-deriv-deps)
+            value))))
+        ;; Pop from currently-computing stack
+        (lambda () (set! *currently-computing* (cdr *currently-computing*)))))))
 
 (define (reactive-refresh! name)
   (doc 'type (-> Symbol Any))
@@ -207,15 +299,25 @@
   (doc 'export #t)
   (let ([record (hashtable-ref *derivations* name #f)])
     (if record
-        (derivation-dependencies record)
+        (derivation-optic-dependencies record)
+        '())))
+
+(define (reactive-derivation-dependencies name)
+  (doc 'type (-> Symbol (List Symbol)))
+  (doc 'description "Get the derivation dependencies of a derivation (other derivations it depends on).")
+  (doc 'export #t)
+  (let ([record (hashtable-ref *derivations* name #f)])
+    (if record
+        (derivation-derivation-dependencies record)
         '())))
 
 (define (undefine-reactive name)
   (doc 'type (-> Symbol Void))
-  (doc 'description "Remove a derivation.")
+  (doc 'description "Remove a derivation and clean up all its dependencies.")
   (doc 'export #t)
   (let ([record (hashtable-ref *derivations* name #f)])
     (when record
+      ;; Remove from optic dependency graph
       (for-each
        (lambda (optic-name)
          (let* ([existing (hashtable-ref *optic-to-derivations* optic-name '())]
@@ -223,21 +325,37 @@
            (if (null? remaining)
                (hashtable-delete! *optic-to-derivations* optic-name)
                (hashtable-set! *optic-to-derivations* optic-name remaining))))
-       (derivation-dependencies record))
+       (derivation-optic-dependencies record))
+      ;; Remove from derivation dependency graph
+      (for-each
+       (lambda (deriv-name)
+         (let* ([existing (hashtable-ref *derivation-to-derivations* deriv-name '())]
+                [remaining (filter (lambda (n) (not (eq? n name))) existing)])
+           (if (null? remaining)
+               (hashtable-delete! *derivation-to-derivations* deriv-name)
+               (hashtable-set! *derivation-to-derivations* deriv-name remaining))))
+       (derivation-derivation-dependencies record))
+      ;; Also remove any derivations that depend on this one from the reverse index
+      (hashtable-delete! *derivation-to-derivations* name)
       (hashtable-delete! *derivations* name))))
 
 (doc 'section 'invalidation)
 
+(define (do-invalidate-derivation! derivation-name)
+  (doc 'type (-> Symbol Void))
+  (doc 'description "Mark a derivation as stale and cascade to all derivations that depend on it.")
+  (let ([record (hashtable-ref *derivations* derivation-name #f)])
+    (when (and record (not (derivation-stale? record)))
+      (derivation-set-stale! record #t)
+      ;; Cascade to derivations that depend on this one
+      (let ([dependents (hashtable-ref *derivation-to-derivations* derivation-name '())])
+        (for-each do-invalidate-derivation! dependents)))))
+
 (define (do-invalidate-optic! optic-name)
   (doc 'type (-> Symbol Void))
-  (doc 'description "Immediately mark all derivations depending on this optic as stale. Internal use - prefer invalidate-optic! which respects batching.")
+  (doc 'description "Immediately mark all derivations depending on this optic as stale, cascading through the derivation dependency graph.")
   (let ([affected (hashtable-ref *optic-to-derivations* optic-name '())])
-    (for-each
-     (lambda (derivation-name)
-       (let ([record (hashtable-ref *derivations* derivation-name #f)])
-         (when record
-           (derivation-set-stale! record #t))))
-     affected)))
+    (for-each do-invalidate-derivation! affected)))
 
 (define (invalidate-optic! optic-name)
   (doc 'type (-> Symbol Void))
@@ -371,7 +489,8 @@
   (let ([record (hashtable-ref *derivations* name #f)])
     (and record
          `((name . ,name)
-           (dependencies . ,(derivation-dependencies record))
+           (optic-dependencies . ,(derivation-optic-dependencies record))
+           (derivation-dependencies . ,(derivation-derivation-dependencies record))
            (stale? . ,(derivation-stale? record))
            (cached-value . ,(derivation-cached-value record))))))
 
@@ -382,6 +501,15 @@
   (let ([keys (vector->list (hashtable-keys *optic-to-derivations*))])
     (map (lambda (k)
            (cons k (hashtable-ref *optic-to-derivations* k '())))
+         keys)))
+
+(define (derivation-dependency-graph)
+  (doc 'type (-> Alist))
+  (doc 'description "Get the full derivation -> derivation dependency graph (shows which derivations depend on which other derivations).")
+  (doc 'export #t)
+  (let ([keys (vector->list (hashtable-keys *derivation-to-derivations*))])
+    (map (lambda (k)
+           (cons k (hashtable-ref *derivation-to-derivations* k '())))
          keys)))
 
 (doc 'section 'filter-helper)
