@@ -64,6 +64,67 @@
     (assert-equal 6 (length (coll-to-list test-quadtree)))))
 
 ;;; ============================================================
+;;; Empty Collection Tests
+;;; ============================================================
+
+(test-group "Empty Collections"
+
+  (define-test "coll-empty? on empty collections"
+    (assert-true (coll-empty? avl-empty))
+    (assert-true (coll-empty? heap-empty))
+    (assert-true (coll-empty? kdtree-empty))
+    (assert-true (coll-empty? quadtree-empty)))
+
+  (define-test "coll-size on empty collections"
+    (assert-equal 0 (coll-size avl-empty))
+    (assert-equal 0 (coll-size heap-empty))
+    (assert-equal 0 (coll-size kdtree-empty))
+    (assert-equal 0 (coll-size quadtree-empty)))
+
+  (define-test "coll-fold on empty collections"
+    (assert-equal 42 (coll-fold avl-empty (lambda (acc x) (+ acc 1)) 42))
+    (assert-equal 42 (coll-fold heap-empty (lambda (acc x) (+ acc 1)) 42))
+    (assert-equal 42 (coll-fold kdtree-empty (lambda (acc x) (+ acc 1)) 42))
+    (assert-equal 42 (coll-fold quadtree-empty (lambda (acc x) (+ acc 1)) 42)))
+
+  (define-test "coll-to-list on empty collections"
+    (assert-equal '() (coll-to-list avl-empty))
+    (assert-equal '() (coll-to-list heap-empty))
+    (assert-equal '() (coll-to-list kdtree-empty))
+    (assert-equal '() (coll-to-list quadtree-empty)))
+
+  (define-test "keyed protocols on empty AVL"
+    (assert-false (keyed-lookup avl-empty 'anything))
+    (assert-false (keyed-contains? avl-empty 'anything))
+    (assert-equal '() (keyed-keys avl-empty))
+    (assert-equal '() (keyed-values avl-empty))
+    ;; keyed-insert on empty creates new tree
+    (let ([new-avl (keyed-insert avl-empty 1 "one")])
+      (assert-equal "one" (keyed-lookup new-avl 1))))
+
+  (define-test "priority protocols on empty heap"
+    ;; prio-insert on empty creates new heap
+    (let ([new-heap (prio-insert heap-empty 42)])
+      (assert-equal 42 (prio-peek new-heap))
+      (assert-equal 1 (coll-size new-heap)))
+    ;; prio-merge with empty returns the other
+    (let ([h (list->heap '(1 2 3))])
+      (assert-equal 3 (coll-size (prio-merge heap-empty h)))))
+
+  (define-test "spatial protocols on empty kdtree"
+    (assert-false (spatial-nearest kdtree-empty '(0 0)))
+    (assert-equal '() (spatial-knn kdtree-empty '(0 0) 5))
+    (assert-equal '() (spatial-range kdtree-empty '(0 0) '(10 10)))
+    (assert-equal '() (spatial-radius kdtree-empty '(0 0) 100))
+    (assert-false (spatial-contains? kdtree-empty '(0 0))))
+
+  (define-test "spatial protocols on empty quadtree"
+    (assert-false (spatial-nearest quadtree-empty '(0 0)))
+    (assert-equal '() (spatial-range quadtree-empty '(0 0) '(10 10)))
+    (assert-equal '() (spatial-radius quadtree-empty '(0 0) 100))
+    (assert-false (spatial-contains? quadtree-empty '(0 0)))))
+
+;;; ============================================================
 ;;; Generic Operations Tests
 ;;; ============================================================
 

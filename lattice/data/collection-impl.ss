@@ -22,6 +22,62 @@ After loading this module, generic operations work across all collection types:
 (doc 'purity 'partial)
 
 ;;; ============================================================
+;;; Empty Collection Implementations
+;;; ============================================================
+;;; Empty collections are symbols (e.g., 'avl-empty, 'heap-empty).
+;;; The protocol system now treats symbols as their own type tags.
+
+(doc 'section 'empty-implementations)
+
+;; AVL empty
+(implement-protocol! 'coll-empty? 'avl-empty (lambda (tree) #t))
+(implement-protocol! 'coll-size 'avl-empty (lambda (tree) 0))
+(implement-protocol! 'coll-fold 'avl-empty (lambda (tree fn init) init))
+(implement-protocol! 'coll-to-list 'avl-empty (lambda (tree) '()))
+(implement-protocol! 'keyed-lookup 'avl-empty (lambda (tree key) #f))
+(implement-protocol! 'keyed-insert 'avl-empty
+  (lambda (tree key value) (avl-insert key value avl-empty)))
+(implement-protocol! 'keyed-delete 'avl-empty (lambda (tree key) tree))
+(implement-protocol! 'keyed-contains? 'avl-empty (lambda (tree key) #f))
+(implement-protocol! 'keyed-keys 'avl-empty (lambda (tree) '()))
+(implement-protocol! 'keyed-values 'avl-empty (lambda (tree) '()))
+
+;; Heap empty
+(implement-protocol! 'coll-empty? 'heap-empty (lambda (heap) #t))
+(implement-protocol! 'coll-size 'heap-empty (lambda (heap) 0))
+(implement-protocol! 'coll-fold 'heap-empty (lambda (heap fn init) init))
+(implement-protocol! 'coll-to-list 'heap-empty (lambda (heap) '()))
+(implement-protocol! 'prio-peek 'heap-empty
+  (lambda (heap) (error 'prio-peek "Cannot peek empty heap")))
+(implement-protocol! 'prio-pop 'heap-empty
+  (lambda (heap) (error 'prio-pop "Cannot pop empty heap")))
+(implement-protocol! 'prio-insert 'heap-empty
+  (lambda (heap elem) (heap-insert elem heap-empty)))
+(implement-protocol! 'prio-merge 'heap-empty
+  (lambda (h1 h2) h2))  ; Merging empty with h2 returns h2
+
+;; KDTree empty
+(implement-protocol! 'coll-empty? 'kdtree-empty (lambda (tree) #t))
+(implement-protocol! 'coll-size 'kdtree-empty (lambda (tree) 0))
+(implement-protocol! 'coll-fold 'kdtree-empty (lambda (tree fn init) init))
+(implement-protocol! 'coll-to-list 'kdtree-empty (lambda (tree) '()))
+(implement-protocol! 'spatial-nearest 'kdtree-empty (lambda (tree query) #f))
+(implement-protocol! 'spatial-knn 'kdtree-empty (lambda (tree query k) '()))
+(implement-protocol! 'spatial-range 'kdtree-empty (lambda (tree min-pt max-pt) '()))
+(implement-protocol! 'spatial-radius 'kdtree-empty (lambda (tree center radius) '()))
+(implement-protocol! 'spatial-contains? 'kdtree-empty (lambda (tree point) #f))
+
+;; Quadtree empty
+(implement-protocol! 'coll-empty? 'quadtree-empty (lambda (tree) #t))
+(implement-protocol! 'coll-size 'quadtree-empty (lambda (tree) 0))
+(implement-protocol! 'coll-fold 'quadtree-empty (lambda (tree fn init) init))
+(implement-protocol! 'coll-to-list 'quadtree-empty (lambda (tree) '()))
+(implement-protocol! 'spatial-nearest 'quadtree-empty (lambda (tree query) #f))
+(implement-protocol! 'spatial-range 'quadtree-empty (lambda (tree min-pt max-pt) '()))
+(implement-protocol! 'spatial-radius 'quadtree-empty (lambda (tree center radius) '()))
+(implement-protocol! 'spatial-contains? 'quadtree-empty (lambda (tree point) #f))
+
+;;; ============================================================
 ;;; AVL Tree Implementation
 ;;; ============================================================
 ;;; AVL implements: Core + Keyed protocols

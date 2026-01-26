@@ -58,10 +58,11 @@ Type Dispatch:
 
 (define (get-type-tag obj)
   (doc 'type '(-> Any (Or Symbol #f)))
-  (doc 'description "Extract type tag from object. Returns #f for non-tagged values")
-  (and (pair? obj)
-       (symbol? (car obj))
-       (car obj)))
+  (doc 'description "Extract type tag from object. Symbols are their own type tag (for empty collections like 'avl-empty). Tagged lists use (car obj). Returns #f for other values.")
+  (cond
+    [(symbol? obj) obj]  ; Symbols are their own type tag
+    [(and (pair? obj) (symbol? (car obj))) (car obj)]
+    [else #f]))
 
 (doc 'section 'dispatch)
 
