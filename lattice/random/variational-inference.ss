@@ -173,13 +173,10 @@
         (map (lambda (mu-i L-row)
                      (+ mu-i
                         (fold-left + 0
-                                   (map * L-row (take epsilons (length L-row))))))
+                                   (map * L-row (take (length L-row) epsilons))))))
              means L)))
 
-(define (take lst n)
-  (if (or (null? lst) (<= n 0))
-      '()
-      (cons (car lst) (take (cdr lst) (- n 1)))))
+;; take provided by prelude
 
 (define (sample-full-gaussian vfamily prng)
   (doc 'export #t)
@@ -279,20 +276,16 @@
   (doc 'export #t)
   (case type
     [(mf-gaussian)
-     (let ([means (take params dim)]
-           [log-stds (drop params dim)])
+     (let ([means (take dim params)]
+           [log-stds (drop dim params)])
           (make-mf-gaussian means log-stds))]
     [(full-gaussian)
-     (let ([means (take params dim)]
-           [chol (drop params dim)])
+     (let ([means (take dim params)]
+           [chol (drop dim params)])
           (make-full-gaussian means chol))]
     [else (error 'vfamily-from-params "Unknown type" type)]))
 
-(define (drop lst n)
-  (if (or (null? lst) (<= n 0))
-      lst
-      (drop (cdr lst) (- n 1))))
-
+;; drop provided by prelude
 
 (doc 'section 'elbo-computation)
 
@@ -466,8 +459,8 @@
         (let-values ([(epsilons new-prng) (sample-standard-normals d prng)])
                     ;; Compute gradient
                     (let* ([grad (elbo-gradient-mf log-joint means log-stds epsilons)]
-                           [grad-means (take grad d)]
-                           [grad-log-stds (drop grad d)]
+                           [grad-means (take d grad)]
+                           [grad-log-stds (drop d grad)]
                            ;; Gradient ascent (maximize ELBO)
                            [new-means (map (lambda (m g) (+ m (* learning-rate g)))
                                            means grad-means)]
@@ -786,7 +779,7 @@
   (let ([history (vi-result-elbo-history result)])
        (if (< (length history) 2)
            #f
-           (let* ([recent (take history 2)]
+           (let* ([recent (take 2 history)]
                   [elbo1 (cdar recent)]
                   [elbo0 (cdadr recent)]
                   [rel-change (abs (/ (- elbo1 elbo0) (+ (abs elbo0) 1e-8)))])

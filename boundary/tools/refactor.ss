@@ -448,26 +448,16 @@
          [extracted (extract-at-path target-sexp expr-path name params)]
          [definition (car extracted)]
          [modified (cadr extracted)]
-         [new-sexps (append (take sexps sexp-index)
+         [new-sexps (append (take sexp-index sexps)
                             (list definition modified)
-                            (drop sexps (+ sexp-index 1)))])
+                            (drop (+ sexp-index 1) sexps))])
         (write-scheme-file file-path new-sexps)
         (make-change 'extract file-path
                      (sexp->string target-sexp)
                      (sexp->string modified)
                      0 0)))
 
-;;; Helper: take first n elements
-(define (take lst n)
-  (if (or (null? lst) (<= n 0))
-      '()
-      (cons (car lst) (take (cdr lst) (- n 1)))))
-
-;;; Helper: drop first n elements
-(define (drop lst n)
-  (if (or (null? lst) (<= n 0))
-      lst
-      (drop (cdr lst) (- n 1))))
+;; take, drop provided by prelude
 
 ;;; ====
 ;;; Semantic Search

@@ -242,15 +242,10 @@
         ;; Sort by score descending and take top k
         (let ([sorted (sort (lambda (a b) (> (cdr a) (cdr b))) pairs)])
              (if (<= k (length sorted))
-                 (take sorted k)
+                 (take k sorted)
                  sorted))))
 
-;;; take : (List a) × Nat → (List a)
-;;; Take first n elements from list.
-(define (take lst n)
-  (if (or (null? lst) (<= n 0))
-      '()
-      (cons (car lst) (take (cdr lst) (- n 1)))))
+;; take provided by prelude
 
 ;;; sort : (a × a → Bool) × (List a) → (List a)
 ;;; Simple insertion sort for small lists.

@@ -166,7 +166,7 @@
        
        (if (null? entries)
            (display "  (no history)\n")
-           (let ([to-show (take entries (min n (length entries)))])
+           (let ([to-show (take (min n (length entries)) entries)])
                 (for-each
                  (lambda (entry)
                          (display (format "  ~4a  ~a  ~a\n"
@@ -192,11 +192,7 @@
       (string-append (substring str 0 (- max-len 3)) "...")
       str))
 
-(define (take lst n)
-  "Take first n elements from list"
-  (if (or (null? lst) (<= n 0))
-      '()
-      (cons (car lst) (take (cdr lst) (- n 1)))))
+;; take provided by prelude
 
 ;;; ====
 ;;; Searching History

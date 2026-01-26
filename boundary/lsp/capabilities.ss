@@ -1076,7 +1076,7 @@
                                                         (cdr sig)
                                                         #f))))
                 (if (> (length matches) 50)
-                    (take matches 50)  ; Limit results
+                    (take 50 matches)  ; Limit results
                     matches)))))
 
 ;;; ====
@@ -1381,11 +1381,7 @@
              [else
               (loop (+ i 1) start acc)]))))
 
-;;; take : (List α) × Int → (List α)
-(define (take lst n)
-  (if (or (null? lst) (<= n 0))
-      '()
-      (cons (car lst) (take (cdr lst) (- n 1)))))
+;; take provided by prelude
 
 ;;; filter-map : (α → β | #f) × (List α) → (List β)
 (define (filter-map f lst)
@@ -1515,7 +1511,7 @@
                                   line))))
                         index-results)])
           (apply json-arr (if (> (length symbols) 100)
-                              (take symbols 100)
+                              (take 100 symbols)
                               symbols)))
         ;; Fallback to open documents only
         (let* ([uris (doc-list)]
@@ -1524,7 +1520,7 @@
                                           (document-symbols-for-workspace uri query))
                                         uris))])
           (apply json-arr (if (> (length all-symbols) 100)
-                              (take all-symbols 100)
+                              (take 100 all-symbols)
                               all-symbols))))))
 
 ;;; document-symbols-for-workspace : String × String → (List JsonObject)

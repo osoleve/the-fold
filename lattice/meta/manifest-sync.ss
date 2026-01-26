@@ -200,20 +200,16 @@
                 [missing-manifest (cdr comparison)])
             (when (pair? missing-source)
               (printf "~nDeclared but not found in source (~a):~n" (length missing-source))
-              (for-each (lambda (s) (printf "  - ~a~n" s)) (take missing-source 10))
+              (for-each (lambda (s) (printf "  - ~a~n" s)) (take 10 missing-source))
               (when (> (length missing-source) 10)
                 (printf "  ... and ~a more~n" (- (length missing-source) 10))))
             (when (pair? missing-manifest)
               (printf "~nDefined but not exported (~a):~n" (length missing-manifest))
-              (for-each (lambda (s) (printf "  - ~a~n" s)) (take missing-manifest 10))
+              (for-each (lambda (s) (printf "  - ~a~n" s)) (take 10 missing-manifest))
               (when (> (length missing-manifest) 10)
                 (printf "  ... and ~a more~n" (- (length missing-manifest) 10)))))))))
 
-;;; take : (List a) × Nat -> (List a)
-(define (take lst n)
-  (if (or (null? lst) (<= n 0))
-      '()
-      (cons (car lst) (take (cdr lst) (- n 1)))))
+;; take provided by prelude
 
 ;;; ====
 ;;; Export Annotation Generator

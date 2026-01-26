@@ -103,7 +103,7 @@
          ;; Pad or truncate to length n
          [padded (if (< (length coeffs) n)
                      (append coeffs (make-list (- n (length coeffs)) zero))
-                     (take coeffs n))])
+                     (take n coeffs))])
     ;; Remove trailing zeros but keep at least one
     (let loop ([cs (reverse padded)])
       (cond
@@ -267,13 +267,7 @@
       (list-ref lst i)
       default))
 
-;; iota is provided by prelude
-
-;;; Helper: take first n elements
-(define (take lst n)
-  (if (or (null? lst) (= n 0))
-      '()
-      (cons (car lst) (take (cdr lst) (- n 1)))))
+;; iota, take provided by prelude
 
 ;;; Helper: make-list
 (define (make-list n val)
