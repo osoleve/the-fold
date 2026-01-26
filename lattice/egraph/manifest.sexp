@@ -37,13 +37,22 @@
    (union-find
     make-uf uf? uf-make-set! uf-find uf-union! uf-same-set?
     uf-count uf-size uf-roots uf-set-members uf-set-size uf-all-sets
-    uf-debug))
+    uf-debug)
+   (eclass
+    make-enode enode? enode-op enode-children enode-arity
+    enode-canonicalize enode-equal? enode-hash enode->string
+    make-eclass-store eclass-store?
+    eclass-get eclass-get-or-create!
+    eclass-add-node! eclass-add-parent!
+    eclass-get-nodes eclass-get-parents
+    eclass-merge!
+    eclass-node-count eclass-all-nodes eclass-debug))
 
   (modules
-   (("union-find.ss" "Disjoint set with path compression and union by rank")))
+   (("union-find.ss" "Disjoint set with path compression and union by rank")
+    ("eclass.ss" "E-node and e-class representation for e-graphs")))
 
   (future-work
-   "eclass.ss - E-class representation"
    "egraph.ss - E-graph with hashcons and rebuilding"
    "match.ss - Pattern matching on e-classes"
    "scheduler.ss - Rule scheduling with backoff"
