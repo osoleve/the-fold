@@ -267,13 +267,7 @@
       (list-ref lst i)
       default))
 
-;; iota, take provided by prelude
-
-;;; Helper: make-list
-(define (make-list n val)
-  (if (<= n 0)
-      '()
-      (cons val (make-list (- n 1) val))))
+;; iota, take, make-list provided by prelude
 
 ;;; ============================================================================
 ;;; Section 3: GF(2^n) Binary Fields (Optimized)

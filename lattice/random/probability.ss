@@ -338,15 +338,12 @@
                                     (lambda (xs)
                                             (prob-pure (cons x xs))))))))
 
+;; make-list is provided by prelude (alias for replicate)
+
 (define (prob-replicate n p)
   (if (<= n 0)
       (prob-pure '())
       (prob-sequence (make-list n p))))
-
-(define (make-list n x)
-  (if (<= n 0)
-      '()
-      (cons x (make-list (- n 1) x))))
 
 (define (prob-map-m f xs)
   (prob-sequence (map f xs)))

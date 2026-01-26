@@ -581,11 +581,4 @@
 
 (doc 'section 'helper-functions)
 
-(define (make-list n x)
-  (doc 'type '(-> Nat α (List α)))
-  (doc 'description "Create a list of n copies of x.")
-  (if (<= n 0)
-      '()
-      (cons x (make-list (- n 1) x))))
-
-;; take, drop, filter-map, ormap provided by prelude
+;; make-list, take, drop, filter-map, ormap provided by prelude

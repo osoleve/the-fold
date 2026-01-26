@@ -700,8 +700,4 @@
 ;;; Utility
 ;;; ====
 
-;;; make-list defined in polynomial.ss, redefined here for standalone
-(define (make-list n fill)
-  (if (<= n 0)
-      '()
-      (cons fill (make-list (- n 1) fill))))
+;; make-list is provided by prelude (alias for replicate)

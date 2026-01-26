@@ -611,8 +611,7 @@
         [(= j i) (loop (cdr l) (+ j 1) acc)]
         [else (loop (cdr l) (+ j 1) (cons (car l) acc))])))
 
-;;; identity : α → α
-(define (identity x) x)
+;; identity is provided by prelude (via expr.ss load chain)
 
 ;;; fold-sum : (List Expr) → Expr
 (define (fold-sum exprs)

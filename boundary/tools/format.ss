@@ -267,15 +267,11 @@
                           (+ count 1)
                           count))))))
 
+;; make-list is provided by prelude (alias for replicate)
+
 ;;; make-spaces : Nat → String
 (define (make-spaces n)
   (list->string (make-list n #\space)))
-
-;;; make-list : Nat × α → (List α)
-(define (make-list n x)
-  (if (= n 0)
-      '()
-      (cons x (make-list (- n 1) x))))
 
 ;;; empty-line? : String → Bool
 (define (empty-line? line)

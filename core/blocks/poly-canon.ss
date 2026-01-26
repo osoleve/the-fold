@@ -284,11 +284,7 @@
       [(= e 1) v]
       [else (cons '* (make-list e v))])))
 
-(define (make-list n x)
-  (doc 'type (-> Nat Any (List Any)))
-  (doc 'description "Create list of n copies of x.")
-  (doc 'export #t)
-  (if (<= n 0) '() (cons x (make-list (- n 1) x))))
+;; make-list is provided by prelude (alias for replicate)
 
 (doc 'section 'entry-point)
 

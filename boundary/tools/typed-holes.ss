@@ -631,12 +631,7 @@
            (loop (+ i 1)
                  (cons (string->symbol (string-append "x" (number->string i))) acc)))))
 
-;;; make-list : Nat × a → (List a)
-(define (make-list n val)
-  (let loop ([i 0] [acc '()])
-       (if (>= i n)
-           acc
-           (loop (+ i 1) (cons val acc)))))
+;; make-list is provided by prelude (alias for replicate)
 
 ;;; ====
 ;;; Main Suggestion Engine

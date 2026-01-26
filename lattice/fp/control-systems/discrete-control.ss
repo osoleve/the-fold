@@ -374,11 +374,7 @@
                      (vector-set! result i sum)
                      (loop (+ j 1) (+ sum (* (matrix-ref M i j) (vector-ref v j)))))))))
 
-;;; make-list : Nat × a → (List a)
-(define (make-list n val)
-  (if (<= n 0)
-      '()
-      (cons val (make-list (- n 1) val))))
+;; make-list is provided by prelude (alias for replicate)
 
 ;;; matrix-inverse : Matrix → Matrix | Error
 ;;; Compute matrix inverse using LU decomposition.

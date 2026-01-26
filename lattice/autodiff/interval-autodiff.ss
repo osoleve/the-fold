@@ -369,11 +369,7 @@
                 (hashtable-ref grads id (interval-singleton 0)))
               input-ids))])))
 
-;;; make-list : Nat x a -> (List a)
-(define (make-list n val)
-  (if (= n 0)
-      '()
-      (cons val (make-list (- n 1) val))))
+;; make-list is provided by prelude (alias for replicate)
 
 ;;; ============================================================================
 ;;; Monotonicity Analysis for Optimization

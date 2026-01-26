@@ -281,16 +281,7 @@
 
 (define make-string make-string-char)
 
-(define (make-list n x)
-  (doc 'description "Create a list of n copies of x")
-  (doc 'param '(n "Number of elements"))
-  (doc 'param '(x "Element to repeat"))
-  (doc 'returns "List")
-
-  (let loop ([i 0] [result '()])
-       (if (= i n)
-           result
-           (loop (+ i 1) (cons x result)))))
+;; make-list is provided by prelude (alias for replicate)
 
 (display "Fuel profiler loaded.\n")
 (display "Usage:\n")

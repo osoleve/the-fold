@@ -207,6 +207,10 @@
       '()
       (cons x (replicate (- n 1) x))))
 
+;; Alias for replicate (Racket/SRFI naming)
+(define make-list replicate)
+(doc make-list 'alias 'replicate)
+
 (define (span pred lst)
   (doc 'type (-> (-> α Bool) (List α) (Values (List α) (List α))))
   (doc 'description "Split list at first element that fails predicate. Returns (prefix, suffix) where all elements in prefix satisfy pred.")

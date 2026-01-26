@@ -493,8 +493,7 @@
 (define (adam-state-t s) (cadddr s))
 (doc 'export #t)
 
-(define (make-list n val)
-  (if (<= n 0) '() (cons val (make-list (- n 1) val))))
+;; make-list is provided by prelude (alias for replicate)
 
 (define (adam-update state grads lr beta1 beta2 epsilon)
   (doc 'export #t)
