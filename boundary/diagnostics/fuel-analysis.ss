@@ -1,31 +1,12 @@
+;;; Load prelude first for doc, fold-left, filter, zip
+(load "core/base/prelude.ss")
+
 (doc 'module 'fuel-analysis)
 (doc 'description "Primitive-Level Fuel Cost Analysis - analyze fuel costs by tracking primitive operations during evaluation")
 (doc 'layer 'boundary)
 (doc 'purity 'partial)
 
 (doc 'note "Features: track all primitive calls during evaluation, sum fuel costs based on prim-fuel-cost, estimate computational complexity from fuel growth")
-
-(doc 'section 'minimal-prelude-utilities)
-
-(define (fold-left f acc lst)
-  (doc 'description "Fold left over list")
-  (if (null? lst)
-      acc
-      (fold-left f (f acc (car lst)) (cdr lst))))
-
-(define (filter pred lst)
-  (doc 'description "Filter list by predicate")
-  (cond
-   [(null? lst) '()]
-   [(pred (car lst)) (cons (car lst) (filter pred (cdr lst)))]
-   [else (filter pred (cdr lst))]))
-
-(define (zip xs ys)
-  (doc 'description "Zip two lists into pairs")
-  (if (or (null? xs) (null? ys))
-      '()
-      (cons (cons (car xs) (car ys))
-            (zip (cdr xs) (cdr ys)))))
 
 (doc 'section 'prim-fuel-cost)
 
