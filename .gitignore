@@ -2,6 +2,9 @@
 .claude/settings.local.json
 .claude/*.local.md
 
+# Git worktrees
+.worktrees/
+
 # IDE
 .vscode/tasks.json
 
