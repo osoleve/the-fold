@@ -258,6 +258,8 @@ The lattice is a DAG of verified skills. "Stdlib" = tier 0 (foundational nodes).
 
 *FP Toolkit (`lattice/fp/`):* Monads, parsers, streams, zippers, game theory, symbolic math, control systems (state-space, Kalman filters, PID, stability analysis), term rewriting. Use `(li 'fp)` and `(le 'fp)` for details.
 
+*Regex/FSM (`lattice/fp/parsing/`):* Regex→NFA compilation via Thompson's construction. Supports quantifier ranges `{n,m}`, anchors `^`/`$`, lookahead `(?=...)`/`(?!...)`. **Note:** Anchors and lookahead require position-aware NFA execution; `nfa->dfa` and `fsm-minimize` skip conversion when assertions present. Use `regex-accepts?` or `fsm-accepts?` which auto-detect and use appropriate runner.
+
 *Game Theory (`lattice/fp/game/`):* Rich set of ready-to-use algorithms:
 | Module | Contents |
 |--------|----------|
@@ -782,6 +784,8 @@ rm -rf .fold-repl/   # Nuclear option
 3. If already fixed, just close the issue with `(bbs-close 'fold-XXXX)`
 
 Example: In one session, 3 of 4 "open" LSP issues were already fixed but not closed in BBS.
+
+**Gemini QA Reviews:** Use `gemini -m gemini-3-flash-preview --include-directories <dir> "QA review..."` for code reviews. Flash model is cost-effective for bulk QA. Create BBS issues from findings (`bbs-create`), fix, then close (`bbs-close`).
 
 ---
 
