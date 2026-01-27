@@ -26,7 +26,31 @@
     (let* ([f (spawn (lambda () (error 'test "boom")))]
            [result (await f)])
       (assert-true (and (pair? result)
-                        (eq? (car result) 'error))))))
+                        (eq? (car result) 'error)))))
+
+  (define-test "parallel-invoke runs multiple thunks"
+    (let ([results (parallel-invoke
+                    (lambda () 1)
+                    (lambda () 2)
+                    (lambda () 3))])
+      (assert-equal '(1 2 3) results)))
+
+  (define-test "parallel-map applies function to list"
+    (let ([results (parallel-map (lambda (x) (* x x)) '(1 2 3 4 5))])
+      (assert-equal '(1 4 9 16 25) results)))
+
+  (define-test "parallel-map handles empty list"
+    (assert-equal '() (parallel-map (lambda (x) x) '())))
+
+  (define-test "parallel-for-each executes side effects"
+    (let ([sum-box (box 0)]
+          [lock (make-mutex)])
+      (parallel-for-each
+       (lambda (x)
+         (with-mutex lock
+           (set-box! sum-box (+ (unbox sum-box) x))))
+       '(1 2 3 4 5))
+      (assert-equal 15 (unbox sum-box)))))
 
 ;; Run and cleanup
 (run-all-tests)

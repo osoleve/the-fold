@@ -83,3 +83,63 @@
       (pool-shutdown! pool)
       (pool-wait-shutdown! pool)
       (set-box! *global-pool* #f))))
+
+;;; Bulk parallel operations
+
+(define (parallel-invoke . thunks)
+  (doc 'type '(-> (-> Any) ... (List Any)))
+  (doc 'description "Run thunks in parallel, return results in order.")
+  (if (null? thunks)
+      '()
+      (let ([futures (map spawn thunks)])
+        (map await futures))))
+
+(define *parallel-chunk-threshold* 64)
+
+(define (parallel-map f xs . args)
+  (doc 'type '(-> (-> a b) (List a) [Nat] (List b)))
+  (doc 'description "Parallel map with adaptive chunking.")
+  (let ([chunk-size (if (null? args)
+                        #f
+                        (car args))]
+        [n (length xs)])
+    (cond
+      [(null? xs) '()]
+      [(or (< n *parallel-chunk-threshold*)
+           (not (pool-running? (ensure-pool!))))
+       ;; Sequential fallback for small lists or no pool
+       (map f xs)]
+      [else
+       ;; Parallel execution
+       (let* ([num-workers (pool-worker-count (ensure-pool!))]
+              [actual-chunk-size (or chunk-size
+                                     (max 1 (quotient n num-workers)))]
+              [chunks (split-into-chunks xs actual-chunk-size)]
+              [futures (map (lambda (chunk)
+                              (spawn (lambda () (map f chunk))))
+                            chunks)])
+         (apply append (map await futures)))])))
+
+(define (split-into-chunks lst chunk-size)
+  (doc 'type '(-> (List a) Nat (List (List a))))
+  (doc 'description "Split list into chunks of given size.")
+  (if (null? lst)
+      '()
+      (let loop ([remaining lst] [acc '()])
+        (if (null? remaining)
+            (reverse acc)
+            (let-values ([(chunk rest) (split-at-most remaining chunk-size)])
+              (loop rest (cons chunk acc)))))))
+
+(define (split-at-most lst n)
+  (doc 'type '(-> (List a) Nat (Values (List a) (List a))))
+  (let loop ([lst lst] [n n] [acc '()])
+    (if (or (null? lst) (= n 0))
+        (values (reverse acc) lst)
+        (loop (cdr lst) (- n 1) (cons (car lst) acc)))))
+
+(define (parallel-for-each f xs)
+  (doc 'type '(-> (-> a Void) (List a) Void))
+  (doc 'description "Parallel for-each (side effects).")
+  (parallel-map f xs)
+  (void))
