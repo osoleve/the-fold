@@ -174,6 +174,28 @@
 ;; Between the two pipe-quoted symbols (on space at position 6)
 (test "symbol-at-offset multi-pipe between" "|a b|" (symbol-at-offset multi-pipe-doc 6))
 
+;; Empty pipe-quoted symbol ||
+(define empty-pipe-doc (make-document "file:///ep.ss" 1 "(|| x)"))
+(test "symbol-at-offset empty pipe" "||" (symbol-at-offset empty-pipe-doc 1))
+(test "symbol-at-offset empty pipe end" "||" (symbol-at-offset empty-pipe-doc 2))
+
+;; Escaped pipe within symbol: |a\|b| represents symbol containing a|b
+;; Content positions: 0=| 1=a 2=\ 3=| 4=b 5=|
+(define escaped-pipe-doc (make-document "file:///esc.ss" 1 "|a\\|b|"))
+(test "symbol-at-offset escaped pipe inside" "|a\\|b|" (symbol-at-offset escaped-pipe-doc 1))
+(test "symbol-at-offset escaped pipe on escape" "|a\\|b|" (symbol-at-offset escaped-pipe-doc 3))
+(test "symbol-at-offset escaped pipe end" "|a\\|b|" (symbol-at-offset escaped-pipe-doc 5))
+
+;; Unbalanced pipe at EOF (no closing pipe)
+(define unbalanced-pipe-doc (make-document "file:///unbal.ss" 1 "|foo"))
+;; When inside an unclosed pipe-quoted region, return what we can find
+(test "symbol-at-offset unbalanced pipe" "|foo" (symbol-at-offset unbalanced-pipe-doc 2))
+
+;; Double escaped backslash before pipe: \\| means pipe is NOT escaped
+;; Content: |a\\|  positions: 0=| 1=a 2=\ 3=\ 4=|
+(define double-escape-doc (make-document "file:///dbl.ss" 1 "|a\\\\|"))
+(test "symbol-at-offset double escape" "|a\\\\|" (symbol-at-offset double-escape-doc 2))
+
 ;;; ====
 ;;; Document Store Tests
 ;;; ====

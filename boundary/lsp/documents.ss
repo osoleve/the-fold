@@ -428,6 +428,16 @@
 
 (doc 'section 'pipe-quoted-symbols)
 
+(doc escaped-char? 'type '(-> String Int Boolean))
+(doc escaped-char? 'description "Check if character at position i is escaped by backslash")
+(doc escaped-char? 'note "Counts consecutive backslashes before i - odd count means escaped")
+(define (escaped-char? content i)
+  (let loop ([j (- i 1)] [count 0])
+    (cond
+      [(< j 0) (odd? count)]
+      [(char=? (string-ref content j) #\\) (loop (- j 1) (+ count 1))]
+      [else (odd? count)])))
+
 (doc inside-pipe-quoted? 'type '(-> String Int Boolean))
 (doc inside-pipe-quoted? 'description "Check if offset is inside a pipe-quoted symbol |...|")
 (doc inside-pipe-quoted? 'note "Counts unescaped pipes before offset - odd count means inside")
@@ -437,26 +447,37 @@
       (cond
         [(>= i offset) (odd? count)]
         [(>= i len) (odd? count)]
-        [(char=? (string-ref content i) #\|) (loop (+ i 1) (+ count 1))]
+        ;; Only count unescaped pipes
+        [(and (char=? (string-ref content i) #\|)
+              (not (escaped-char? content i)))
+         (loop (+ i 1) (+ count 1))]
         [else (loop (+ i 1) count)]))))
 
 (doc find-pipe-quoted-start 'type '(-> String Int Int))
 (doc find-pipe-quoted-start 'description "Find opening pipe of pipe-quoted symbol")
+(doc find-pipe-quoted-start 'note "Skips escaped pipes when searching backward")
 (define (find-pipe-quoted-start content offset)
   (let loop ([i (- offset 1)])
     (cond
       [(< i 0) 0]
-      [(char=? (string-ref content i) #\|) i]
+      ;; Found unescaped pipe - this is the start
+      [(and (char=? (string-ref content i) #\|)
+            (not (escaped-char? content i)))
+       i]
       [else (loop (- i 1))])))
 
 (doc find-pipe-quoted-end 'type '(-> String Int Int))
 (doc find-pipe-quoted-end 'description "Find closing pipe of pipe-quoted symbol (exclusive)")
+(doc find-pipe-quoted-end 'note "Skips escaped pipes when searching forward")
 (define (find-pipe-quoted-end content offset)
   (let ([len (string-length content)])
     (let loop ([i offset])
       (cond
         [(>= i len) len]
-        [(char=? (string-ref content i) #\|) (+ i 1)]
+        ;; Found unescaped pipe - this is the end (exclusive)
+        [(and (char=? (string-ref content i) #\|)
+              (not (escaped-char? content i)))
+         (+ i 1)]
         [else (loop (+ i 1))]))))
 
 (doc 'section 'span-re-export)
