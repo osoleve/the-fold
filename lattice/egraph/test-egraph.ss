@@ -70,6 +70,48 @@
       (let ([id (egraph-add-term! eg '(+ (* a b) c))])
         (assert-equal 5 (egraph-class-count eg))))))
 
+(test-group "egraph-literals"
+
+  (define-test "egraph-add-term! handles strings"
+    (let ([eg (make-egraph)])
+      (let ([id (egraph-add-term! eg "hello")])
+        (assert-equal 1 (egraph-class-count eg)))))
+
+  (define-test "egraph-add-term! distinguishes different strings"
+    (let ([eg (make-egraph)])
+      (let ([id1 (egraph-add-term! eg "hello")]
+            [id2 (egraph-add-term! eg "world")])
+        (assert-equal 2 (egraph-class-count eg))
+        (assert-true (not (= (egraph-find eg id1) (egraph-find eg id2)))))))
+
+  (define-test "egraph-add-term! deduplicates same string"
+    (let ([eg (make-egraph)])
+      (let ([id1 (egraph-add-term! eg "hello")]
+            [id2 (egraph-add-term! eg "hello")])
+        (assert-equal 1 (egraph-class-count eg))
+        (assert-equal (egraph-find eg id1) (egraph-find eg id2)))))
+
+  (define-test "egraph-add-term! handles booleans"
+    (let ([eg (make-egraph)])
+      (let ([id1 (egraph-add-term! eg #t)]
+            [id2 (egraph-add-term! eg #f)])
+        (assert-equal 2 (egraph-class-count eg))
+        (assert-true (not (= (egraph-find eg id1) (egraph-find eg id2)))))))
+
+  (define-test "egraph-add-term! handles characters"
+    (let ([eg (make-egraph)])
+      (let ([id1 (egraph-add-term! eg #\a)]
+            [id2 (egraph-add-term! eg #\b)]
+            [id3 (egraph-add-term! eg #\a)])
+        (assert-equal 2 (egraph-class-count eg))
+        (assert-equal (egraph-find eg id1) (egraph-find eg id3)))))
+
+  (define-test "egraph-add-term! handles mixed literals in expressions"
+    (let ([eg (make-egraph)])
+      ;; (concat "hello" " " "world") has 4 classes
+      (let ([id (egraph-add-term! eg '(concat "hello" " " "world"))])
+        (assert-equal 4 (egraph-class-count eg))))))
+
 (test-group "egraph-merge"
 
   (define-test "egraph-merge! merges two classes"

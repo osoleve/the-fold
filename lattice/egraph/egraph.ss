@@ -290,15 +290,10 @@
             [child-ids (map (lambda (arg) (egraph-add-term! eg arg)) args)]
             [enode (make-enode op (list->vector child-ids))])
        (egraph-add-enode! eg enode))]
-    [(symbol? term)
-     ;; Symbol leaf
-     (egraph-add-enode! eg (make-enode term (vector)))]
-    [(number? term)
-     ;; Number leaf (use number as "operator", no children)
-     (egraph-add-enode! eg (make-enode term (vector)))]
     [else
-     ;; Other literals (strings, etc.) - wrap in quote-like node
-     (egraph-add-enode! eg (make-enode 'literal (vector)))]))
+     ;; Leaf: symbol, number, string, boolean, char, or other literal
+     ;; Use the literal itself as the e-node operator with no children
+     (egraph-add-enode! eg (make-enode term (vector)))]))
 
 ;;; ============================================================
 ;;; Introspection

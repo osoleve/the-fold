@@ -89,12 +89,12 @@
 
 ;;; enode-equal? : ENode × ENode → Boolean
 ;;; Structural equality (assumes already canonicalized or same UF context).
-;;; Uses eqv? for op comparison to handle both symbols and numbers.
+;;; Uses equal? for op comparison to handle all literal types (strings, etc.).
 (define (enode-equal? e1 e2)
   (doc 'type (-> ENode ENode Boolean))
   (doc 'description "Check structural equality of two e-nodes.")
   (doc 'export #t)
-  (and (eqv? (enode-op e1) (enode-op e2))
+  (and (equal? (enode-op e1) (enode-op e2))
        (let ([c1 (enode-children e1)]
              [c2 (enode-children e2)])
          (and (= (vector-length c1) (vector-length c2))
@@ -106,18 +106,20 @@
 ;;; enode-hash : ENode → Fixnum
 ;;; Hash function for e-nodes (for hashcons table).
 ;;; Bounded to avoid bignum promotion in hashtable lookups.
-;;; Supports both symbol and number operators.
+;;; Supports symbols, numbers, strings, booleans, and characters.
 (define (enode-hash enode)
   (doc 'type (-> ENode Fixnum))
   (doc 'description "Compute hash of an e-node for hashconsing.")
   (doc 'export #t)
   (let* ([op (enode-op enode)]
          [children (enode-children enode)]
-         [h (fxand (if (symbol? op)
-                       (symbol-hash op)
-                       (if (number? op)
-                           (abs (exact (truncate op)))
-                           0))
+         [h (fxand (cond
+                     [(symbol? op) (symbol-hash op)]
+                     [(number? op) (abs (exact (truncate op)))]
+                     [(string? op) (string-hash op)]
+                     [(boolean? op) (if op 1 0)]
+                     [(char? op) (char->integer op)]
+                     [else (equal-hash op)])  ; Fallback for other types
                    #xFFFFFF)])
     (do ([i 0 (+ i 1)]
          [acc h (fxand (+ (* acc 31) (vector-ref children i)) #xFFFFFF)])
@@ -391,7 +393,10 @@
   (cond
     [(symbol? op) (symbol->string op)]
     [(number? op) (number->string op)]
-    [else "?"]))
+    [(string? op) (string-append "\"" op "\"")]
+    [(boolean? op) (if op "#t" "#f")]
+    [(char? op) (string-append "#\\" (string op))]
+    [else (format "~s" op)]))
 
 (define (enode->string enode)
   (doc 'type (-> ENode String))
