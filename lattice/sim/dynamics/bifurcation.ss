@@ -112,7 +112,7 @@
   (doc 'description "Find fixed point using configured solver (robust or classic Newton)")
   (if *use-robust-newton*
       (find-fixed-point-robust sys initial-guess tolerance step-size max-iter)
-      (find-fixed-point-solver sys initial-guess tolerance step-size max-iter)))
+      (find-fixed-point-newton sys initial-guess tolerance step-size max-iter)))
 
 (define (continue-fixed-point psys param0 fp0 param-end param-step)
   (doc 'export #t)
@@ -142,8 +142,8 @@
                        ;; Predict next fixed point (use current as initial guess)
                        [next-param (+ param (* direction step))]
                        [next-sys (instantiate-at psys next-param)]
-                       ;; Correct using Newton's method
-                       [next-fp (find-fixed-point-newton next-sys fp
+                       ;; Correct using configured solver (robust or classic Newton)
+                       [next-fp (find-fixed-point-solver next-sys fp
                                                          *continuation-tolerance*
                                                          *continuation-step-size*
                                                          *continuation-max-newton*)])
@@ -1269,9 +1269,9 @@ newly-created branches by perturbing along the critical eigenvector.")
                 (let* ([sign (if (eq? direction 'upper) 1.0 -1.0)]
                        [perturbation (vec-scale (* sign *branch-switch-perturbation*) eigenvec)]
                        [perturbed-fp (vec-add fp perturbation)]
-                       ;; Use Newton iteration to converge to the new fixed point
+                       ;; Use robust Newton iteration - near bifurcations the Jacobian is nearly singular
                        [sys (instantiate-at psys param)]
-                       [new-fp (find-fixed-point-newton sys perturbed-fp
+                       [new-fp (find-fixed-point-robust sys perturbed-fp
                                                         *branch-switch-tolerance*
                                                         *continuation-step-size*
                                                         *branch-switch-max-iter*)])
@@ -1326,7 +1326,8 @@ For pitchfork: new branches only exist past the bifurcation, so we step forward 
                                                [perturbation (vec-scale (* sign scale) effective-eigenvec)]
                                                [perturbed-fp (vec-add fp perturbation)]
                                                [sys (instantiate-at psys new-param)]
-                                               [new-fp (find-fixed-point-newton sys perturbed-fp
+                                               ;; Use robust solver - near bifurcations the Jacobian is nearly singular
+                                               [new-fp (find-fixed-point-robust sys perturbed-fp
                                                                                 *branch-switch-tolerance*
                                                                                 *continuation-step-size*
                                                                                 *branch-switch-max-iter*)])
