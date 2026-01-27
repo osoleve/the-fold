@@ -32,32 +32,47 @@
 (doc make-triangulation 'type '(-> (Vector Point2) (List Triangle2) Hashtable (List Edge) Triangulation))
 (doc make-triangulation 'description "Create a triangulation with adjacency information")
 (define (make-triangulation points triangles adjacency boundary)
-  (list 'triangulation points triangles adjacency boundary))
+  ;; Build point->index map for O(1) lookup in interpolation
+  (let ([point-index (make-hashtable equal-hash equal?)]
+        [n (vector-length points)])
+    (do ([i 0 (+ i 1)])
+        ((>= i n))
+      (let ([p (vector-ref points i)])
+        (hashtable-set! point-index (list (point2-x p) (point2-y p)) i)))
+    (vector 'triangulation points triangles adjacency boundary (length triangles) point-index)))
 
 (doc triangulation? 'export #t)
 (doc triangulation? 'type '(-> Any Boolean))
 (doc triangulation? 'description "Check if value is a triangulation")
 (define (triangulation? x)
-  (and (pair? x) (eq? (car x) 'triangulation)))
+  (and (vector? x) (>= (vector-length x) 1) (eq? (vector-ref x 0) 'triangulation)))
 
 (doc triangulation-points 'export #t)
 (doc triangulation-points 'type '(-> Triangulation (Vector Point2)))
 (doc triangulation-points 'description "Get the input points as a vector (indexed by point-id)")
-(define (triangulation-points tri) (list-ref tri 1))
+(define (triangulation-points tri) (vector-ref tri 1))
 
 (doc triangulation-triangles 'export #t)
 (doc triangulation-triangles 'type '(-> Triangulation (List Triangle2)))
 (doc triangulation-triangles 'description "Get the list of triangles")
-(define (triangulation-triangles tri) (list-ref tri 2))
+(define (triangulation-triangles tri) (vector-ref tri 2))
 
 (doc triangulation-adjacency 'type '(-> Triangulation Hashtable))
 (doc triangulation-adjacency 'description "Get the adjacency hash (tri → neighbors)")
-(define (triangulation-adjacency tri) (list-ref tri 3))
+(define (triangulation-adjacency tri) (vector-ref tri 3))
 
 (doc triangulation-boundary 'export #t)
 (doc triangulation-boundary 'type '(-> Triangulation (List Edge)))
 (doc triangulation-boundary 'description "Get boundary edges (CCW winding)")
-(define (triangulation-boundary tri) (list-ref tri 4))
+(define (triangulation-boundary tri) (vector-ref tri 4))
+
+(doc triangulation-count 'type '(-> Triangulation Integer))
+(doc triangulation-count 'description "Get the number of triangles (cached, O(1))")
+(define (triangulation-count tri) (vector-ref tri 5))
+
+(doc triangulation-point-index 'type '(-> Triangulation Hashtable))
+(doc triangulation-point-index 'description "Get point->index map for O(1) interpolation lookup")
+(define (triangulation-point-index tri) (vector-ref tri 6))
 
 ;;; Location record for point query results
 (doc make-location 'type '(-> Triangle2 Number Number Number Location))
@@ -133,8 +148,8 @@
 (define (tri2-area tri)
   (abs (tri2-signed-area tri)))
 
-(doc tri2-circumcenter 'type '(-> Triangle2 Point2))
-(doc tri2-circumcenter 'description "Compute circumcenter of triangle")
+(doc tri2-circumcenter 'type '(-> Triangle2 (Or Point2 False)))
+(doc tri2-circumcenter 'description "Compute circumcenter of triangle. Returns #f for degenerate (collinear) triangles.")
 (define (tri2-circumcenter tri)
   (let* ([p1 (tri2-p1 tri)]
          [p2 (tri2-p2 tri)]
@@ -144,38 +159,47 @@
          [cx (point2-x p3)] [cy (point2-y p3)]
          [d (* 2.0 (+ (* ax (- by cy))
                       (* bx (- cy ay))
-                      (* cx (- ay by))))]
-         [a2 (+ (* ax ax) (* ay ay))]
-         [b2 (+ (* bx bx) (* by by))]
-         [c2 (+ (* cx cx) (* cy cy))]
-         [ux (/ (+ (* a2 (- by cy))
-                   (* b2 (- cy ay))
-                   (* c2 (- ay by)))
-                d)]
-         [uy (/ (+ (* a2 (- cx bx))
-                   (* b2 (- ax cx))
-                   (* c2 (- bx ax)))
-                d)])
-    (make-point2 ux uy)))
+                      (* cx (- ay by))))])
+    ;; Guard against degenerate (collinear) triangles
+    (if (< (abs d) 1e-15)
+        #f
+        (let* ([a2 (+ (* ax ax) (* ay ay))]
+               [b2 (+ (* bx bx) (* by by))]
+               [c2 (+ (* cx cx) (* cy cy))]
+               [ux (/ (+ (* a2 (- by cy))
+                        (* b2 (- cy ay))
+                        (* c2 (- ay by)))
+                     d)]
+               [uy (/ (+ (* a2 (- cx bx))
+                        (* b2 (- ax cx))
+                        (* c2 (- bx ax)))
+                     d)])
+          (make-point2 ux uy)))))
 
-(doc tri2-circumradius-sq 'type '(-> Triangle2 Number))
-(doc tri2-circumradius-sq 'description "Squared circumradius of triangle")
+(doc tri2-circumradius-sq 'type '(-> Triangle2 (Or Number False)))
+(doc tri2-circumradius-sq 'description "Squared circumradius of triangle. Returns #f for degenerate triangles.")
 (define (tri2-circumradius-sq tri)
-  (let* ([cc (tri2-circumcenter tri)]
-         [p1 (tri2-p1 tri)]
-         [dx (- (point2-x cc) (point2-x p1))]
-         [dy (- (point2-y cc) (point2-y p1))])
-    (+ (* dx dx) (* dy dy))))
+  (let ([cc (tri2-circumcenter tri)])
+    (if (not cc)
+        #f
+        (let* ([p1 (tri2-p1 tri)]
+               [dx (- (point2-x cc) (point2-x p1))]
+               [dy (- (point2-y cc) (point2-y p1))])
+          (+ (* dx dx) (* dy dy))))))
 
 (doc point-in-circumcircle? 'type '(-> Point2 Triangle2 Boolean))
-(doc point-in-circumcircle? 'description "Test if point is inside triangle's circumcircle")
+(doc point-in-circumcircle? 'description "Test if point is inside triangle's circumcircle.
+  Returns #f for degenerate (collinear) triangles.")
 (define (point-in-circumcircle? p tri)
-  (let* ([cc (tri2-circumcenter tri)]
-         [r2 (tri2-circumradius-sq tri)]
-         [dx (- (point2-x p) (point2-x cc))]
-         [dy (- (point2-y p) (point2-y cc))]
-         [d2 (+ (* dx dx) (* dy dy))])
-    (< d2 r2)))
+  (let ([cc (tri2-circumcenter tri)])
+    ;; Degenerate triangles have no finite circumcircle
+    (if (not cc)
+        #f
+        (let* ([r2 (tri2-circumradius-sq tri)]
+               [dx (- (point2-x p) (point2-x cc))]
+               [dy (- (point2-y p) (point2-y cc))]
+               [d2 (+ (* dx dx) (* dy dy))])
+          (< d2 r2)))))
 
 ;;; ============================================================
 ;;; Section: Edge Operations
@@ -393,7 +417,8 @@
 
 (doc barycentric-coords 'export #t)
 (doc barycentric-coords 'type '(-> Point2 Triangle2 (Values Number Number Number)))
-(doc barycentric-coords 'description "Compute barycentric coordinates of point in triangle")
+(doc barycentric-coords 'description "Compute barycentric coordinates of point in triangle.
+  Returns (values 1/3 1/3 1/3) for degenerate (collinear) triangles.")
 (define (barycentric-coords p tri)
   (let* ([p1 (tri2-p1 tri)]
          [p2 (tri2-p2 tri)]
@@ -403,15 +428,18 @@
          [x2 (point2-x p2)] [y2 (point2-y p2)]
          [x3 (point2-x p3)] [y3 (point2-y p3)]
          [denom (+ (* (- y2 y3) (- x1 x3))
-                   (* (- x3 x2) (- y1 y3)))]
-         [u (/ (+ (* (- y2 y3) (- x x3))
-                  (* (- x3 x2) (- y y3)))
-               denom)]
-         [v (/ (+ (* (- y3 y1) (- x x3))
-                  (* (- x1 x3) (- y y3)))
-               denom)]
-         [w (- 1.0 u v)])
-    (values u v w)))
+                   (* (- x3 x2) (- y1 y3)))])
+    ;; Guard against degenerate (collinear) triangles
+    (if (< (abs denom) 1e-15)
+        (values 1/3 1/3 1/3)
+        (let* ([u (/ (+ (* (- y2 y3) (- x x3))
+                       (* (- x3 x2) (- y y3)))
+                    denom)]
+               [v (/ (+ (* (- y3 y1) (- x x3))
+                       (* (- x1 x3) (- y y3)))
+                    denom)]
+               [w (- 1.0 u v)])
+          (values u v w)))))
 
 (doc locate-point 'export #t)
 (doc locate-point 'type '(-> Triangulation Point2 [Triangle2] (Or Location False)))
@@ -427,8 +455,7 @@
            #f
            (locate-point tri-data point (car tris))))]
     [(tri-data point hint)
-     (let* ([tris (triangulation-triangles tri-data)]
-            [n (length tris)]
+     (let* ([n (triangulation-count tri-data)]  ; O(1) instead of O(n)
             [max-steps (+ 10 (* 2 (exact (ceiling (sqrt n)))))]
             [adj (triangulation-adjacency tri-data)])
        (let loop ([current hint] [steps 0])
@@ -490,20 +517,15 @@
                [u (vector-ref bary 0)]
                [v (vector-ref bary 1)]
                [w (vector-ref bary 2)]
-               [points-vec (triangulation-points tri-data)]
+               [point-index (triangulation-point-index tri-data)]
                [p1 (tri2-p1 tri)]
                [p2 (tri2-p2 tri)]
                [p3 (tri2-p3 tri)]
-               ;; Find point indices
+               ;; O(1) point index lookup via hash
                [find-idx (lambda (p)
-                           (let loop ([i 0])
-                             (if (>= i (vector-length points-vec))
-                                 #f
-                                 (let ([pi (vector-ref points-vec i)])
-                                   (if (and (< (abs (- (point2-x p) (point2-x pi))) 1e-10)
-                                            (< (abs (- (point2-y p) (point2-y pi))) 1e-10))
-                                       i
-                                       (loop (+ i 1)))))))]
+                           (hashtable-ref point-index
+                                         (list (point2-x p) (point2-y p))
+                                         #f))]
                [i1 (find-idx p1)]
                [i2 (find-idx p2)]
                [i3 (find-idx p3)])

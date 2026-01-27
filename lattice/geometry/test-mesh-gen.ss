@@ -164,7 +164,33 @@
            [loc1 (locate-point tri (make-point2 0.5 0.5))]
            [loc2 (locate-point tri (make-point2 0.6 0.6) (location-triangle loc1))])
       (assert-true (location? loc1))
-      (assert-true (location? loc2)))))
+      (assert-true (location? loc2))))
+
+  (define-test "locate point on edge returns location"
+    (let* ([pts (list (make-point2 0 0)
+                      (make-point2 2 0)
+                      (make-point2 1 2))]
+           [tri (delaunay-triangulate pts)]
+           ;; Point on edge p1-p2 (midpoint at (1,0))
+           [loc (locate-point tri (make-point2 1 0))])
+      (assert-true (location? loc))))
+
+  (define-test "locate point on vertex returns location"
+    (let* ([pts (list (make-point2 0 0)
+                      (make-point2 2 0)
+                      (make-point2 1 2))]
+           [tri (delaunay-triangulate pts)]
+           ;; Point exactly on vertex p1
+           [loc (locate-point tri (make-point2 0 0))])
+      (assert-true (location? loc))))
+
+  (define-test "locate works with large mesh"
+    (random-seed 123)
+    (let* ([pts (random-points-in-rect 0 100 0 100 200)]
+           [tri (delaunay-triangulate pts)]
+           ;; Query a point we know is inside the convex hull
+           [loc (locate-point tri (make-point2 50 50))])
+      (assert-true (location? loc)))))
 
 ;;; ============================================================
 ;;; Interpolation Tests
